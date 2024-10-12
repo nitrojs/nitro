@@ -9,17 +9,6 @@ import { readPackageJSON, writePackageJSON } from "pkg-types";
  * @link https://cloud.google.com/functions/docs/runtime-support#node.js
  */
 const supportedNodeVersions = new Set([18, 20]);
-const nodeVersionMap = new Map([
-  [6, "6"],
-  [8, "8"],
-  [10, "10"],
-  [12, "12"],
-  [14, "14"],
-  [16, "16"],
-  [18, "18"],
-  [20, "20"],
-  [22, "22"],
-]);
 
 export async function writeFirebaseConfig(nitro: Nitro) {
   const firebaseConfigPath = join(nitro.options.rootDir, "firebase.json");
@@ -67,7 +56,7 @@ export async function updatePackageJSON(nitro: Nitro) {
       // https://cloud.google.com/functions/docs/concepts/nodejs-runtime
       node:
         nitro.options.firebase?.nodeVersion ||
-        getDefaultNodeVersion(supportedNodeVersions, nodeVersionMap),
+        getDefaultNodeVersion(supportedNodeVersions, String),
     },
   });
 }
