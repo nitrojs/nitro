@@ -15,3 +15,30 @@ export function defineNitroPreset<
   }
   return { ...preset, _meta: meta } as P & { _meta: M };
 }
+
+const DEFAULT_NODE_VERSION = 20 as const;
+
+export function getDefaultNodeVersion(
+  supportedNodeVersions: Set<number>,
+  nodeVersionMap: Map<number, string>
+): string {
+  // Get Nitro's current default Node.js version
+  let version = DEFAULT_NODE_VERSION;
+
+  // Check it is supported by the provider
+  if (supportedNodeVersions.has(version) && nodeVersionMap.has(version)) {
+    // If so, return the mapped version
+    return nodeVersionMap.get(version)!;
+  }
+
+  // Else, return the latest supported version
+  while (version > 0) {
+    version--;
+    if (supportedNodeVersions.has(version) && nodeVersionMap.has(version)) {
+      // Found the next-highest supported version
+      return nodeVersionMap.get(version)!;
+    }
+  }
+
+  throw new Error("No supported Node.js version found");
+}
