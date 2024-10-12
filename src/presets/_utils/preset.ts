@@ -18,9 +18,6 @@ export function defineNitroPreset<
 
 const DEFAULT_NODE_VERSION = 20 as const;
 
-
-
-
 /**
  * Builder to get the default Node.js version for a provider.
  *
