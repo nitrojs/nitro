@@ -26,12 +26,12 @@ const DEFAULT_NODE_VERSION = 20 as const;
  * If not, it will return the highest supported version below `DEFAULT_NODE_VERSION`.
  *
  * @param supportedNodeVersions - A set of Node.js version numbers supported by the provider.
- * @param getNodeVerisonString  - A preset-specific function to convert a Node.js version number to the runtime string.
+ * @param getNodeVerisonString  - A preset-specific function to convert a Node.js version number to the runtime string. Defaults to String constructor.
  * @returns The Node.js version identifier for preset.
  */
 export function getDefaultNodeVersion(
   supportedNodeVersions: Set<number>,
-  getNodeVerisonString: (version: number) => string
+  getNodeVerisonString: (version: number) => string = String
 ): string {
   // Get Nitro's current default Node.js version
   let version = DEFAULT_NODE_VERSION;
