@@ -25,10 +25,9 @@ export async function writeSWARoutes(nitro: Nitro) {
   const currentNodeVersion = Number.parseInt(packageJSON.engines?.node);
   /* If current node version is supported, use it,
       otherwise use the default node version */
-  const nodeVersion =
-    currentNodeVersion && supportedNodeVersions.has(currentNodeVersion)
-      ? currentNodeVersion
-      : getDefaultNodeVersion(supportedNodeVersions);
+  const nodeVersion = supportedNodeVersions.has(currentNodeVersion)
+    ? currentNodeVersion
+    : getDefaultNodeVersion(supportedNodeVersions);
 
   // Merge custom config into the generated config
   const config = {
