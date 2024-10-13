@@ -56,7 +56,7 @@ export async function updatePackageJSON(nitro: Nitro) {
       // https://cloud.google.com/functions/docs/concepts/nodejs-runtime
       node:
         nitro.options.firebase?.nodeVersion ||
-        getDefaultNodeVersion(supportedNodeVersions, String),
+        getDefaultNodeVersion(supportedNodeVersions),
     },
   });
 }
