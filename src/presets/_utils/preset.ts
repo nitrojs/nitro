@@ -43,7 +43,7 @@ export function getDefaultNodeVersion(
   }
 
   // Else, return the latest supported version
-  while (version > 0) {
+  while (version > 10) {
     version--;
     if (supportedNodeVersions.has(version)) {
       // Found the next-highest supported version
