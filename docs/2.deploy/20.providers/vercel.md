@@ -31,8 +31,7 @@ Examples of values for "Root Directory": `apps/web` or `packages/app`.
 
 Nitro `/api` directory isn't compatible with Vercel. Instead, you should use:
 
-- `routes/api/` for standalone usage
-- `server/api/` with [Nuxt](https://nuxt.com).
+- `server/routes/api/` for standalone usage
 
 ## Custom build output configuration
 
