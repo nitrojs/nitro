@@ -56,7 +56,9 @@ const vercelEdge = defineNitroPreset(
     },
     rollupConfig: {
       output: {
-        format: "module",
+        entryFileNames: "index.js",
+        format: "esm",
+        inlineDynamicImports: false,
       },
     },
     unenv: {
