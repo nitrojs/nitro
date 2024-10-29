@@ -15,7 +15,7 @@ export async function resolveImportsOptions(options: NitroOptions) {
   options.imports.presets.push(...getNitroImportsPreset());
 
   // Add h3 auto imports preset
-  const h3Exports = await resolveModuleExportNames("h3", {
+  const h3Exports: string[] = await resolveModuleExportNames("h3", {
     url: import.meta.url,
   });
   options.imports.presets ??= [];
