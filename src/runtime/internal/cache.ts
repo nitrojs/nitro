@@ -57,7 +57,12 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
       .replace(/:\/$/, ":index");
 
     let entry: CacheEntry<T> =
-      ((await useStorage().getItem(cacheKey)) as unknown) || {};
+      ((await useStorage()
+        .getItem(cacheKey)
+        .catch((error) => {
+          console.error(`[nitro] [cache] Cache read error.`, error);
+          useNitroApp().captureError(error, { event, tags: ["cache"] });
+        })) as unknown) || {};
 
     // https://github.com/unjs/nitro/issues/2160
     if (typeof entry !== "object") {
