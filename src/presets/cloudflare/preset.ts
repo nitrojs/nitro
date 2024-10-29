@@ -17,7 +17,7 @@ const cloudflarePages = defineNitroPreset(
     },
     output: {
       dir: "{{ rootDir }}/dist",
-      publicDir: "{{ output.dir }}",
+      publicDir: "{{ output.dir }}/{{ baseURL }}",
       serverDir: "{{ output.dir }}/_worker.js",
     },
     alias: {
@@ -53,7 +53,8 @@ const cloudflarePagesStatic = defineNitroPreset(
   {
     extends: "static",
     output: {
-      publicDir: "{{ rootDir }}/dist",
+      dir: "{{ rootDir }}/dist",
+      publicDir: "{{ output.dir }}/{{ baseURL }}",
     },
     commands: {
       preview: "npx wrangler pages dev dist",
