@@ -7,6 +7,7 @@ import { join, resolve } from "pathe";
 import { isCI } from "std-env";
 import {
   joinURL,
+  withBase,
   withLeadingSlash,
   withTrailingSlash,
   withoutLeadingSlash,
@@ -118,7 +119,7 @@ async function writeCFPagesHeaders(nitro: Nitro) {
     ([_, routeRules]) => routeRules.headers
   )) {
     const headers = [
-      path.replace("/**", "/*").replace(/^\//, nitro.options.baseURL || "/"),
+      withBase(path.replace("/**", "/*"), nitro.options.baseURL),
       ...Object.entries({ ...routeRules.headers }).map(
         ([header, value]) => `  ${header}: ${value}`
       ),
@@ -149,7 +150,7 @@ async function writeCFPagesRedirects(nitro: Nitro) {
   const staticFallback = existsSync(
     join(nitro.options.output.publicDir, "404.html")
   )
-    ? `${joinURL(nitro.options.baseURL, "/")}* ${joinURL(nitro.options.baseURL, "/")}404.html 404`
+    ? `${joinURL(nitro.options.baseURL, "/*")} ${joinURL(nitro.options.baseURL, "/404.html")} 404`
     : "";
   const contents = [staticFallback];
   const rules = Object.entries(nitro.options.routeRules).sort(
@@ -161,7 +162,7 @@ async function writeCFPagesRedirects(nitro: Nitro) {
   )) {
     const code = routeRules.redirect!.statusCode;
     contents.unshift(
-      `${key.replace("/**", "/*")}\t${routeRules.redirect!.to}\t${code}`
+      `${withBase(key.replace("/**", "/*"), nitro.options.baseURL)}\t${withBase(routeRules.redirect!.to, nitro.options.baseURL)}\t${code}`
     );
   }
 
