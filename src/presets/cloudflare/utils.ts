@@ -7,7 +7,7 @@ import { join, resolve } from "pathe";
 import { isCI } from "std-env";
 import {
   joinURL,
-  withBase,
+  hasProtocol,
   withLeadingSlash,
   withTrailingSlash,
   withoutLeadingSlash,
@@ -161,9 +161,11 @@ async function writeCFPagesRedirects(nitro: Nitro) {
     ([_, routeRules]) => routeRules.redirect
   )) {
     const code = routeRules.redirect!.statusCode;
-    contents.unshift(
-      `${withBase(key.replace("/**", "/*"), nitro.options.baseURL)}\t${withBase(routeRules.redirect!.to, nitro.options.baseURL)}\t${code}`
-    );
+    const from = joinURL(nitro.options.baseURL, key.replace("/**", "/*"));
+    const to = hasProtocol(routeRules.redirect!.to, { acceptRelative: true })
+      ? routeRules.redirect!.to
+      : joinURL(nitro.options.baseURL, routeRules.redirect!.to);
+    contents.unshift(`${from}\t${to}\t${code}`);
   }
 
   if (existsSync(redirectsPath)) {
