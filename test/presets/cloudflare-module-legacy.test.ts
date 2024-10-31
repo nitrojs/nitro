@@ -6,22 +6,14 @@ import { describe } from "vitest";
 import { setupTest, testNitro } from "../tests";
 
 describe("nitro:preset:cloudflare-module", async () => {
-  const ctx = await setupTest("cloudflare-module");
+  const ctx = await setupTest("cloudflare-module-legacy", {});
 
   testNitro(ctx, () => {
     const mf = new Miniflare({
       modules: true,
       scriptPath: resolve(ctx.outDir, "server/index.mjs"),
       modulesRules: [{ type: "CompiledWasm", include: ["**/*.wasm"] }],
-      assets: {
-        directory: resolve(ctx.outDir, "public"),
-        routingConfig: { has_user_worker: true },
-        assetConfig: {
-          // https://developers.cloudflare.com/workers/static-assets/routing/#routing-configuration
-          html_handling: "auto-trailing-slash" /* default */,
-          not_found_handling: "none" /* default */,
-        },
-      },
+      sitePath: resolve(ctx.outDir, "public"),
       compatibilityFlags: ["streams_enable_constructors"],
       bindings: { ...ctx.env },
     });

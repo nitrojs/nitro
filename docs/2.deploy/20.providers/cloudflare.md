@@ -97,6 +97,22 @@ rules = [
 bucket = ".output/public"
 ```
 
+## Runtime hooks
+
+You can use [runtime hooks](/guide/plugins#nitro-runtime-hooks) bellow in order to extend [worker handlers](https://developers.cloudflare.com/workers/runtime-apis/handlers/).
+
+:read-more{to="/guide/plugins#nitro-runtime-hooks"}
+
+> [!NOTE]
+> This feature is currently available in [nightly channel](https://nitro.unjs.io/guide/nightly) only.
+
+- [`cloudflare:scheduled`](https://developers.cloudflare.com/workers/runtime-apis/handlers/scheduled/)
+- [`cloudflare:email`](https://developers.cloudflare.com/email-routing/email-workers/runtime-api/)
+- [`cloudflare:queue`](https://developers.cloudflare.com/queues/configuration/javascript-apis/#consumer)
+- [`cloudflare:tail`](https://developers.cloudflare.com/workers/runtime-apis/handlers/tail/)
+- `cloudflare:trace`
+
+
 ### Preview your app locally
 
 You can use [wrangler](https://github.com/cloudflare/workers-sdk/tree/main/packages/wrangler), to preview your app locally:

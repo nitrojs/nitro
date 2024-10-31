@@ -52,6 +52,10 @@ export default defineNitroErrorHandler(
       );
     }
 
+    if (statusCode === 404) {
+      setResponseHeader(event, "Cache-Control", "no-cache");
+    }
+
     setResponseStatus(event, statusCode, statusMessage);
 
     if (isJsonRequest(event)) {

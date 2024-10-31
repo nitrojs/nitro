@@ -1,11 +1,12 @@
 import "#nitro-internal-pollyfills";
 import { useNitroApp } from "nitropack/runtime";
 import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
+import type { Context } from "@netlify/edge-functions";
 
 const nitroApp = useNitroApp();
 
 // https://docs.netlify.com/edge-functions/api/
-export default async function netlifyEdge(request: Request, _context: any) {
+export default async function netlifyEdge(request: Request, _context: Context) {
   const url = new URL(request.url);
 
   if (isPublicAssetURL(url.pathname)) {
