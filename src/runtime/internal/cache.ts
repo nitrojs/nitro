@@ -111,16 +111,22 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
         entry.mtime = Date.now();
         entry.integrity = integrity;
         delete pending[key];
-        if (validate(entry) !== false) {
-          const promise = useStorage()
-            .setItem(cacheKey, entry)
-            .catch((error) => {
-              console.error(`[nitro] [cache] Cache write error.`, error);
-              useNitroApp().captureError(error, { event, tags: ["cache"] });
-            });
-          if (event?.waitUntil) {
-            event.waitUntil(promise);
-          }
+        const promise =
+          validate(entry) === false
+            ? useStorage()
+                .removeItem(cacheKey)
+                .catch((error) => {
+                  console.error(`[nitro] [cache] Cache write error.`, error);
+                  useNitroApp().captureError(error, { event, tags: ["cache"] });
+                })
+            : useStorage()
+                .setItem(cacheKey, entry)
+                .catch((error) => {
+                  console.error(`[nitro] [cache] Cache write error.`, error);
+                  useNitroApp().captureError(error, { event, tags: ["cache"] });
+                });
+        if (event?.waitUntil) {
+          event.waitUntil(promise);
         }
       }
     };
@@ -137,6 +143,18 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
       _resolvePromise.catch((error) => {
         console.error(`[nitro] [cache] SWR handler error.`, error);
         useNitroApp().captureError(error, { event, tags: ["cache"] });
+
+        // SWR revalidation failed, remove existing entry so we do
+        // not continue to return the cached value indefinitely.
+        const promise = useStorage()
+          .removeItem(cacheKey)
+          .catch((error) => {
+            console.error(`[nitro] [cache] Cache write error.`, error);
+            useNitroApp().captureError(error, { event, tags: ["cache"] });
+          });
+        if (event?.waitUntil) {
+          event.waitUntil(promise);
+        }
       });
       return entry;
     }
