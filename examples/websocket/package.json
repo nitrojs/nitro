@@ -1,5 +1,5 @@
 {
-  "name": "example-hello-world",
+  "name": "example-websocket",
   "private": true,
   "scripts": {
     "dev": "nitro dev",

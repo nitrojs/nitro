@@ -20,6 +20,7 @@ import { hash } from "ohash";
 import { parseURL } from "ufo";
 import { useNitroApp } from "./app";
 import { useStorage } from "./storage";
+import type { TransactionOptions } from "unstorage";
 
 function defaultCacheOptions() {
   return {
@@ -57,7 +58,12 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
       .replace(/:\/$/, ":index");
 
     let entry: CacheEntry<T> =
-      ((await useStorage().getItem(cacheKey)) as unknown) || {};
+      ((await useStorage()
+        .getItem(cacheKey)
+        .catch((error) => {
+          console.error(`[nitro] [cache] Cache read error.`, error);
+          useNitroApp().captureError(error, { event, tags: ["cache"] });
+        })) as unknown) || {};
 
     // https://github.com/unjs/nitro/issues/2160
     if (typeof entry !== "object") {
@@ -112,8 +118,12 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
         entry.integrity = integrity;
         delete pending[key];
         if (validate(entry) !== false) {
+          let setOpts: TransactionOptions | undefined;
+          if (opts.maxAge && !opts.swr /* TODO: respect staleMaxAge */) {
+            setOpts = { ttl: opts.maxAge };
+          }
           const promise = useStorage()
-            .setItem(cacheKey, entry)
+            .setItem(cacheKey, entry, setOpts)
             .catch((error) => {
               console.error(`[nitro] [cache] Cache write error.`, error);
               useNitroApp().captureError(error, { event, tags: ["cache"] });
@@ -227,8 +237,14 @@ export function defineCachedEventHandler<
       // Auto-generated key
       const _path =
         event.node.req.originalUrl || event.node.req.url || event.path;
-      const _pathname =
-        escapeKey(decodeURI(parseURL(_path).pathname)).slice(0, 16) || "index";
+      let _pathname: string;
+      try {
+        _pathname =
+          escapeKey(decodeURI(parseURL(_path).pathname)).slice(0, 16) ||
+          "index";
+      } catch {
+        _pathname = "-";
+      }
       const _hashedPath = `${_pathname}.${hash(_path)}`;
       const _headers = variableHeaderNames
         .map((header) => [header, event.node.req.headers[header]])

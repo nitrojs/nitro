@@ -1,6 +1,7 @@
 import { existsSync, promises as fsp } from "node:fs";
-import type { Nitro } from "nitropack/types";
+import type { Nitro, PublicAssetDir } from "nitropack/types";
 import { join } from "pathe";
+import { joinURL } from "ufo";
 
 export async function writeRedirects(nitro: Nitro) {
   const redirectsPath = join(nitro.options.output.publicDir, "_redirects");
@@ -92,6 +93,18 @@ export async function writeHeaders(nitro: Nitro) {
   await fsp.writeFile(headersPath, contents);
 }
 
+export function getStaticPaths(publicAssets: PublicAssetDir[]): string[] {
+  return [
+    "/.netlify",
+    ...publicAssets
+      .filter(
+        (path) =>
+          path.fallthrough !== true && path.baseURL && path.baseURL !== "/"
+      )
+      .map(({ baseURL }) => baseURL),
+  ].map((url) => joinURL("/", url!, "*"));
+}
+
 // This is written to the functions directory. It just re-exports the compiled handler,
 // along with its config. We do this instead of compiling the entrypoint directly because
 // the Netlify platform actually statically analyzes the function file to read the config;
@@ -103,6 +116,7 @@ export const config = {
   name: "server handler",
   generator: "${getGeneratorString(nitro)}",
   path: "/*",
+  excludedPath: ${JSON.stringify(getStaticPaths(nitro.options.publicAssets))},
   preferStatic: true,
 };
     `.trim();

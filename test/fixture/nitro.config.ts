@@ -4,6 +4,10 @@ import { defineNitroConfig } from "nitropack/config";
 export default defineNitroConfig({
   compressPublicAssets: true,
   compatibilityDate: "2024-09-19",
+  framework: {
+    name: "nitro",
+    version: "2.x",
+  },
   imports: {
     presets: [
       {

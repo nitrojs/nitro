@@ -1,7 +1,8 @@
 import { promises as fsp } from "node:fs";
-import type { Context } from "@netlify/functions";
+import type { Context as FunctionContext } from "@netlify/functions";
 import { resolve } from "pathe";
 import { describe, expect, it } from "vitest";
+import { getStaticPaths } from "../../src/presets/netlify/utils";
 import { getPresetTmpDir, setupTest, testNitro } from "../tests";
 
 describe("nitro:preset:netlify", async () => {
@@ -22,7 +23,9 @@ describe("nitro:preset:netlify", async () => {
     async () => {
       const { default: handler } = (await import(
         resolve(ctx.outDir, "server/main.mjs")
-      )) as { default: (req: Request, ctx: Context) => Promise<Response> };
+      )) as {
+        default: (req: Request, _ctx: FunctionContext) => Promise<Response>;
+      };
       return async ({ url: rawRelativeUrl, headers, method, body }) => {
         // creating new URL object to parse query easier
         const url = new URL(`https://example.com${rawRelativeUrl}`);
@@ -31,7 +34,7 @@ describe("nitro:preset:netlify", async () => {
           method,
           body,
         });
-        const res = await handler(req, {} as Context);
+        const res = await handler(req, {} as FunctionContext);
         return res;
       };
     },
@@ -51,6 +54,7 @@ describe("nitro:preset:netlify", async () => {
         "
         `);
       });
+
       it("adds route rules - headers", async () => {
         const headers = await fsp.readFile(
           resolve(ctx.outDir, "../dist/_headers"),
@@ -72,6 +76,7 @@ describe("nitro:preset:netlify", async () => {
         "
       `);
       });
+
       it("writes config.json", async () => {
         const config = await fsp
           .readFile(resolve(ctx.outDir, "../deploy/v1/config.json"), "utf8")
@@ -86,6 +91,24 @@ describe("nitro:preset:netlify", async () => {
           }
         `);
       });
+
+      it("writes server/server.mjs with static paths excluded", async () => {
+        const serverFunctionFile = await fsp.readFile(
+          resolve(ctx.outDir, "server/server.mjs"),
+          "utf8"
+        );
+        expect(serverFunctionFile).toMatchInlineSnapshot(`
+          "export { default } from "./main.mjs";
+          export const config = {
+            name: "server handler",
+            generator: "nitro@2.x",
+            path: "/*",
+            excludedPath: ["/.netlify/*","/build/*"],
+            preferStatic: true,
+          };"
+        `);
+      });
+
       describe("matching ISR route rule with no max-age", () => {
         it("sets Netlify-CDN-Cache-Control header with revalidation after 1 year and durable directive", async () => {
           const { headers } = await callHandler({ url: "/rules/isr" });
@@ -93,6 +116,7 @@ describe("nitro:preset:netlify", async () => {
             (headers as Record<string, string>)["netlify-cdn-cache-control"]
           ).toBe("public, max-age=31536000, must-revalidate, durable");
         });
+
         it("sets Cache-Control header with immediate revalidation", async () => {
           const { headers } = await callHandler({ url: "/rules/isr" });
           expect((headers as Record<string, string>)["cache-control"]).toBe(
@@ -100,6 +124,7 @@ describe("nitro:preset:netlify", async () => {
           );
         });
       });
+
       describe("matching ISR route rule with a max-age", () => {
         it("sets Netlify-CDN-Cache-Control header with SWC=1yr, given max-age, and durable directive", async () => {
           const { headers } = await callHandler({ url: "/rules/isr-ttl" });
@@ -109,6 +134,7 @@ describe("nitro:preset:netlify", async () => {
             "public, max-age=60, stale-while-revalidate=31536000, durable"
           );
         });
+
         it("sets Cache-Control header with immediate revalidation", async () => {
           const { headers } = await callHandler({ url: "/rules/isr-ttl" });
           expect((headers as Record<string, string>)["cache-control"]).toBe(
@@ -116,6 +142,7 @@ describe("nitro:preset:netlify", async () => {
           );
         });
       });
+
       it("does not overwrite Cache-Control headers given a matching non-ISR route rule", async () => {
         const { headers } = await callHandler({ url: "/rules/dynamic" });
         expect(
@@ -125,6 +152,7 @@ describe("nitro:preset:netlify", async () => {
           (headers as Record<string, string>)["netlify-cdn-cache-control"]
         ).not.toBeDefined();
       });
+
       // Regression test for https://github.com/unjs/nitro/issues/2431
       it("matches paths with a query string", async () => {
         const { headers } = await callHandler({
@@ -136,4 +164,53 @@ describe("nitro:preset:netlify", async () => {
       });
     }
   );
+
+  describe("getStaticPaths", () => {
+    it("always returns `/.netlify/*`", () => {
+      expect(getStaticPaths([])).toEqual(["/.netlify/*"]);
+    });
+
+    it("returns a pattern with a leading slash for each non-fallthrough non-root public asset path", () => {
+      const publicAssets = [
+        {
+          fallthrough: true,
+          baseURL: "with-fallthrough",
+          dir: "with-fallthrough-dir",
+          maxAge: 0,
+        },
+        {
+          fallthrough: true,
+          dir: "with-fallthrough-no-baseURL-dir",
+          maxAge: 0,
+        },
+        {
+          fallthrough: false,
+          dir: "no-fallthrough-no-baseURL-dir",
+          maxAge: 0,
+        },
+        {
+          fallthrough: false,
+          dir: "no-fallthrough-root-baseURL-dir",
+          baseURL: "/",
+          maxAge: 0,
+        },
+        {
+          baseURL: "with-default-fallthrough",
+          dir: "with-default-fallthrough-dir",
+          maxAge: 0,
+        },
+        {
+          fallthrough: false,
+          baseURL: "nested/no-fallthrough",
+          dir: "nested/no-fallthrough-dir",
+          maxAge: 0,
+        },
+      ];
+      expect(getStaticPaths(publicAssets)).toEqual([
+        "/.netlify/*",
+        "/with-default-fallthrough/*",
+        "/nested/no-fallthrough/*",
+      ]);
+    });
+  });
 });

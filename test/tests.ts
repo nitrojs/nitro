@@ -88,6 +88,7 @@ export async function setupTest(
       "cloudflare-module",
       "cloudflare-module-legacy",
       "cloudflare-pages",
+      "netlify-edge",
       "vercel-edge",
       "winterjs",
     ].includes(preset),
@@ -558,7 +559,7 @@ export function testNitro(
     );
 
     it.skipIf(ctx.isWorker || ctx.isDev)(
-      "public files can be un-ignored with patterns",
+      "public files can be un-ignored with patterns",
       async () => {
         expect((await callHandler({ url: "/_unignored.txt" })).status).toBe(
           200
