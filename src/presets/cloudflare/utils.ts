@@ -119,7 +119,7 @@ async function writeCFPagesHeaders(nitro: Nitro) {
     ([_, routeRules]) => routeRules.headers
   )) {
     const headers = [
-      withBase(path.replace("/**", "/*"), nitro.options.baseURL),
+      joinURL(nitro.options.baseURL, path.replace("/**", "/*")),
       ...Object.entries({ ...routeRules.headers }).map(
         ([header, value]) => `  ${header}: ${value}`
       ),
