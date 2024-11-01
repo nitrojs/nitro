@@ -143,7 +143,6 @@ const cloudflareModuleLegacy = defineNitroPreset(
   {
     name: "cloudflare-module-legacy" as const,
     aliases: ["cloudflare-module"] as const,
-    compatibilityDate: "2024-05-07",
     url: import.meta.url,
   }
 );
@@ -198,6 +197,7 @@ const cloudflareDurable = defineNitroPreset(
   },
   {
     name: "cloudflare-durable" as const,
+    compatibilityDate: "2024-09-19",
     url: import.meta.url,
   }
 );

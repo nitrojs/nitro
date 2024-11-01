@@ -110,12 +110,14 @@ async function _loadUserConfig(
           generateRuntimeConfigTypes:
             !framework?.name || framework.name === "nitro",
         },
-        preset: (
-          await resolvePreset("" /* auto detect */, {
-            static: configOverrides.static,
-            compatibilityDate: compatibilityDate || fallbackCompatibilityDate,
-          })
-        )?._meta?.name,
+        preset:
+          presetOverride ||
+          (
+            await resolvePreset("" /* auto detect */, {
+              static: configOverrides.static,
+              compatibilityDate: compatibilityDate || fallbackCompatibilityDate,
+            })
+          )?._meta?.name,
       };
     },
     defaults: NitroDefaults,
