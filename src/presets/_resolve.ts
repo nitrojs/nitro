@@ -76,18 +76,10 @@ export async function resolvePreset(
   }
 
   if (name && !preset) {
+    // prettier-ignore
     const options = allPresets
-      .filter(
-        (p) =>
-          p._meta.name === name ||
-          p._meta.stdName === name ||
-          p._meta.aliases?.includes(name)
-      )
-      .sort((a, b) =>
-        (a._meta.compatibilityDate || 0) > (b._meta.compatibilityDate || 0)
-          ? 1
-          : -1
-      );
+      .filter((p) =>p._meta.name === name ||p._meta.stdName === name ||p._meta.aliases?.includes(name) )
+      .sort((a, b) => (a._meta.compatibilityDate || 0) > (b._meta.compatibilityDate || 0) ? 1 : -1);
     if (options.length > 0) {
       let msg = `Preset "${name}" cannot be resolved with current compatibilityDate: ${formatCompatibilityDate(_compatDates || "")}.\n\n`;
       for (const option of options) {
