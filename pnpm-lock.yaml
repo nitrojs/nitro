@@ -144,9 +144,6 @@ importers:
       mlly:
         specifier: ^1.7.2
         version: 1.7.2
-      mri:
-        specifier: ^1.2.0
-        version: 1.2.0
       node-fetch-native:
         specifier: ^1.6.4
         version: 1.6.4
