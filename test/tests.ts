@@ -316,6 +316,9 @@ export function testNitro(
       let headers = (await callHandler({ url: "/foo.css", headers: { "Accept-Encoding": "gzip" } })).headers;
       if (headers["vary"]) expect(headers["vary"]).toBe("Origin, Accept-Encoding");
 
+      headers = (await callHandler({ url: "/foo.css", headers: { "Accept-Encoding": "" } })).headers;
+      if (headers["vary"]) expect(headers["vary"]).toBe("Origin");
+
       headers = (await callHandler({ url: "/foo.js", headers: { "Accept-Encoding": "gzip" } })).headers;
 
       //For some reason, sometimes there are no space between Origin and Accept-Encoding when passing headers as an array
