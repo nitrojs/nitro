@@ -49,7 +49,11 @@ export default eventHandler((event) => {
     "",
   ];
   if (encodings.length > 1) {
-    setResponseHeader(event, "Vary", "Accept-Encoding");
+    const varyHeader = getResponseHeader(event, 'Vary');
+
+    if(!varyHeader) setResponseHeader(event, "Vary", "Accept-Encoding");
+    else if (typeof varyHeader === "string" && !varyHeader.includes('Accept-Encoding')) setResponseHeader(event, "Vary", `${ varyHeader }, Accept-Encoding`);
+    else if (Array.isArray(varyHeader) && !varyHeader.includes('Accept-Encoding')) setResponseHeader(event, "Vary", [...varyHeader, 'Accept-Encoding']);
   }
 
   for (const encoding of encodings) {
