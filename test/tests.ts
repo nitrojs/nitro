@@ -505,7 +505,11 @@ export function testNitro(
       },
       sharedRuntimeConfig: {
         // Cloudflare environment variables are set after first request
-        dynamic: ctx.preset.includes("cloudflare") ? "initial" : "from-env",
+        dynamic:
+          ctx.preset.includes("cloudflare") &&
+          ctx.preset !== "cloudflare-worker"
+            ? "initial"
+            : "from-env",
         // url: "https://test.com",
         app: {
           baseURL: "/",
