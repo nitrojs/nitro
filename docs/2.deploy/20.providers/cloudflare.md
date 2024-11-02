@@ -77,15 +77,16 @@ Then you can deploy the application with:
 **Note:** Using this preset is not recommended.
 ::
 
-When using Workers you will need a `wrangler.toml` file, in your root directory.
+When using Workers you will need a `wrangler.toml` file, in your root directory. To using Workers with Static Assets, you also need a compatibility date set to `2024-09-19` or later, in your `wrangler.toml` file and nitro configuration file.
 
-The following shows a typical `wrangler.toml` file for a Nitro application:
+The following shows a typical `wrangler.toml` file and a `nitro.config.ts` file for a Nitro application:
 
 ```ini
+// wrangler.toml
 name = "playground"
 main = "./.output/server/index.mjs"
 workers_dev = true
-compatibility_date = "2024-11-01"
+compatibility_date = "2024-09-19"
 assets = { directory = "./.output/public", binding = "ASSETS" }
 # account_id = "<(optional) your Cloudflare account id, retrievable from the Cloudflare dashboard>"
 # route = "<(optional) mainly useful when you want to setup custom domains>"
@@ -93,6 +94,14 @@ assets = { directory = "./.output/public", binding = "ASSETS" }
 rules = [
   { type = "ESModule", globs = ["**/*.js", "**/*.mjs"]},
 ]
+```
+
+```ts
+// nitro.config.ts
+export default defineNitroConfig({
+    compatibilityDate: "2024-09-19",
+    // Your other nitro config goes here
+})
 ```
 
 ## Runtime hooks
