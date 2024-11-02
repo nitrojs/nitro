@@ -173,7 +173,7 @@ The way this preset works is identical to that of the `cloudflare_module` one pr
 Regardless on whether you're using Cloudflare Pages or Cloudflare workers, you can use the [Wrangler GitHub actions](https://github.com/marketplace/actions/deploy-to-cloudflare-workers-with-wrangler) to deploy your application.
 
 ::note
-**Note:** Remember to [instruct Nitro to use the correct preset](/deploy/#changing-the-deployment-preset) (note that this is necessary for all presets including the `cloudflare_pages` one).
+**Note:** Remember to [instruct Nitro to use the correct preset](/deploy#changing-the-deployment-preset) (note that this is necessary for all presets including the `cloudflare_pages` one).
 ::
 
 ## Environment Variables
