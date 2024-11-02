@@ -85,16 +85,14 @@ The following shows a typical `wrangler.toml` file for a Nitro application:
 name = "playground"
 main = "./.output/server/index.mjs"
 workers_dev = true
-compatibility_date = "2023-12-01"
+compatibility_date = "2024-11-01"
+assets = { directory = "./.output/public", binding = "ASSETS" }
 # account_id = "<(optional) your Cloudflare account id, retrievable from the Cloudflare dashboard>"
 # route = "<(optional) mainly useful when you want to setup custom domains>"
 
 rules = [
   { type = "ESModule", globs = ["**/*.js", "**/*.mjs"]},
 ]
-
-[site]
-bucket = ".output/public"
 ```
 
 ## Runtime hooks
