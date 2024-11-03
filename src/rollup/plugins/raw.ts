@@ -20,7 +20,7 @@ export function raw(opts: RawOptions = {}): Plugin {
 
   return {
     name: "raw",
-    async resolveId(id, importer) {
+    async resolveId(id, importer, options) {
       if (id === HELPER_ID) {
         return id;
       }
@@ -34,8 +34,7 @@ export function raw(opts: RawOptions = {}): Plugin {
         id = id.slice(4);
       }
 
-      const resolvedId = (await this.resolve(id, importer, { skipSelf: true }))
-        ?.id;
+      const resolvedId = (await this.resolve(id, importer, options))?.id;
 
       if (!resolvedId || resolvedId.startsWith("\0")) {
         return resolvedId;

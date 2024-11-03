@@ -18,12 +18,16 @@ const esbuildLoaders = {
 export function handlersMeta(nitro: Nitro) {
   return {
     name: "nitro:handlers-meta",
-    async resolveId(id) {
+    async resolveId(id, importer, options) {
       if (id.startsWith("\0")) {
         return;
       }
       if (id.endsWith(`?meta`)) {
-        const resolved = await this.resolve(id.replace(`?meta`, ``));
+        const resolved = await this.resolve(
+          id.replace(`?meta`, ``),
+          importer,
+          options
+        );
         if (!resolved) {
           return;
         }
