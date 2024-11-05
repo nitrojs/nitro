@@ -104,7 +104,7 @@ assets = { directory = "./.output/public/", binding = "ASSETS" }
 
 ## Runtime hooks
 
-You can use [runtime hooks](/guide/plugins#nitro-runtime-hooks) bellow in order to extend [worker handlers](https://developers.cloudflare.com/workers/runtime-apis/handlers/).
+You can use [runtime hooks](/guide/plugins#nitro-runtime-hooks) below in order to extend [worker handlers](https://developers.cloudflare.com/workers/runtime-apis/handlers/).
 
 :read-more{to="/guide/plugins#nitro-runtime-hooks"}
 
