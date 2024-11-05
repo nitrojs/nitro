@@ -11,8 +11,8 @@ import type {
 
 import { NitroDefaults } from "./defaults";
 
-import { resolveAssetsOptions } from "./resolvers/assets";
 // Resolvers
+import { resolveAssetsOptions } from "./resolvers/assets";
 import {
   fallbackCompatibilityDate,
   resolveCompatibilityOptions,
@@ -25,6 +25,7 @@ import { resolveOpenAPIOptions } from "./resolvers/open-api";
 import { resolvePathOptions } from "./resolvers/paths";
 import { resolveRouteRulesOptions } from "./resolvers/route-rules";
 import { resolveRuntimeConfigOptions } from "./resolvers/runtime-config";
+import { resolveStorageOptions } from "./resolvers/storage";
 import { resolveURLOptions } from "./resolvers/url";
 
 const configResolvers = [
@@ -39,6 +40,7 @@ const configResolvers = [
   resolveOpenAPIOptions,
   resolveURLOptions,
   resolveAssetsOptions,
+  resolveStorageOptions,
 ] as const;
 
 export async function loadOptions(
