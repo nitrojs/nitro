@@ -41,17 +41,16 @@ export default defineNuxtConfig({
 ::
 
 
-## Streaming support (experimental)
-
-**Preset:** `aws_lambda_streaming`
-
-Nitro supports an experimental preset to generate output format compatible with [AWS Lambda](https://aws.amazon.com/lambda/) with streaming invoke turned on.
+## Response streaming
 
 :read-more{title="Introducing AWS Lambda response streaming" to="https://aws.amazon.com/blogs/compute/introducing-aws-lambda-response-streaming/"}
 
-> [!NOTE]
-> This preset available via [nightly channel](https://nitro.build/guide/nightly) to try.
+In order to enable response streaming, enable `awsLambda.streaming` flag:
 
-> [!IMPORTANT]
-> This preset is not production ready and might be renamed! Please don't advice users or document to indirectly use it.
-
+```ts [nitro.config.ts]
+export default defineNitroConfig({
+  awsLambda: {
+    streaming: true
+  }
+});
+```

@@ -102,6 +102,7 @@ export async function setupTest(
       CUSTOM_HELLO_THERE: "general",
       SECRET: "secret",
       APP_DOMAIN: "test.com",
+      NITRO_DYNAMIC: "from-env",
     },
     fetch: (url, opts) =>
       fetch(joinURL(ctx.server!.url, url.slice(1)), {
@@ -517,7 +518,12 @@ export function testNitro(
         "server-config": true,
       },
       sharedRuntimeConfig: {
-        dynamic: "from-env",
+        // Cloudflare environment variables are set after first request
+        dynamic:
+          ctx.preset.includes("cloudflare") &&
+          ctx.preset !== "cloudflare-worker"
+            ? "initial"
+            : "from-env",
         // url: "https://test.com",
         app: {
           baseURL: "/",

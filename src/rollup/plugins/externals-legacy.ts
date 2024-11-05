@@ -52,7 +52,7 @@ export function externals(opts: NodeExternalsOptions): Plugin {
 
   return {
     name: "node-externals",
-    async resolveId(originalId, importer, options) {
+    async resolveId(originalId, importer, resolveOpts) {
       // Skip internals
       if (
         !originalId ||
@@ -86,7 +86,11 @@ export function externals(opts: NodeExternalsOptions): Plugin {
       }
 
       // Resolve id using rollup resolver
-      const resolved = (await this.resolve(originalId, importer, options)) || {
+      const resolved = (await this.resolve(
+        originalId,
+        importer,
+        resolveOpts
+      )) || {
         id,
       };
 

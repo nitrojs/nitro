@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## v2.10.2
+
+[compare changes](https://github.com/nitrojs/nitro/compare/v2.10.1...v2.10.2)
+
+### 🩹 Fixes
+
+- **rollup:** Pass options to `resolve` ([#2842](https://github.com/nitrojs/nitro/pull/2842))
+
+### 📖 Documentation
+
+- **cloudflare:** Update `cloudflare-module` ([#2831](https://github.com/nitrojs/nitro/pull/2831))
+- Update nightly and experimental banners ([9ff37139](https://github.com/nitrojs/nitro/commit/9ff37139))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](http://github.com/pi0))
+- Restent Ou ([@gxres042](http://github.com/gxres042))
+
+## v2.10.1
+
+[compare changes](https://github.com/nitrojs/nitro/compare/v2.10.0...v2.10.1)
+
+### 🩹 Fixes
+
+- **imports:** Use explicit import for `useDatabase` ([#2837](https://github.com/nitrojs/nitro/pull/2837))
+- **rollup:** Check raw extensions against resolved id ([#2838](https://github.com/nitrojs/nitro/pull/2838))
+- **imports:** Use explicit imports ([#2839](https://github.com/nitrojs/nitro/pull/2839))
+- Update `node_cluster` entry name ([#2840](https://github.com/nitrojs/nitro/pull/2840))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](http://github.com/pi0))
+
 ## v2.10.0
 
 [compare changes](https://github.com/nitrojs/nitro/compare/v2.9.6...v2.10.0)

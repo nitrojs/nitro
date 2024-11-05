@@ -9,7 +9,7 @@
 :read-more{title="Cloudflare Pages" to="https://pages.cloudflare.com/"}
 
 ::note
-This is the recommended preset for Cloudflare deployments, please consider using the alternative ones only if you have special requirements or needs.
+This is the recommended preset for Cloudflare deployments, please consider using the alternative ones if you need special features.
 ::
 
 ::note
@@ -73,38 +73,40 @@ Then you can deploy the application with:
 **Note:** This preset uses the [module worker syntax](https://developers.cloudflare.com/workers/learning/migrating-to-module-workers/) for deployment.
 ::
 
-::warning
-**Note:** Using this preset is not recommended.
+When using Workers you will need a `wrangler.toml` file, in your root directory. To using Workers with [Static Assets](https://developers.cloudflare.com/workers/static-assets/) (BETA with [limitations](https://developers.cloudflare.com/workers/static-assets/#limitations)), you also need a compatibility date set to `2024-09-19` or later, in your `wrangler.toml` file and nitro configuration file.
+
+The following shows a typical `wrangler.toml` file and a `nitro.config.ts` file for a Nitro application:
+
+::code-group
+
+```ts [nitro.config.ts]
+export default defineNitroConfig({
+    compatibilityDate: "2024-09-19",
+})
+```
+
+```ts [nuxt.config.ts]
+export default defineNuxtConfig({
+    compatibilityDate: "2024-09-19",
+})
+```
+
 ::
 
-When using Workers you will need a `wrangler.toml` file, in your root directory.
-
-The following shows a typical `wrangler.toml` file for a Nitro application:
-
-```ini
-name = "playground"
+```ini [wrangler.toml]
+name = "nitro-app"
+compatibility_date = "2024-09-19"
 main = "./.output/server/index.mjs"
-workers_dev = true
-compatibility_date = "2023-12-01"
-# account_id = "<(optional) your Cloudflare account id, retrievable from the Cloudflare dashboard>"
-# route = "<(optional) mainly useful when you want to setup custom domains>"
-
-rules = [
-  { type = "ESModule", globs = ["**/*.js", "**/*.mjs"]},
-]
-
-[site]
-bucket = ".output/public"
+assets = { directory = "./.output/public/", binding = "ASSETS" }
 ```
+
+
 
 ## Runtime hooks
 
 You can use [runtime hooks](/guide/plugins#nitro-runtime-hooks) bellow in order to extend [worker handlers](https://developers.cloudflare.com/workers/runtime-apis/handlers/).
 
 :read-more{to="/guide/plugins#nitro-runtime-hooks"}
-
-> [!NOTE]
-> This feature is currently available in [nightly channel](https://nitro.build/guide/nightly) only.
 
 - [`cloudflare:scheduled`](https://developers.cloudflare.com/workers/runtime-apis/handlers/scheduled/)
 - [`cloudflare:email`](https://developers.cloudflare.com/email-routing/email-workers/runtime-api/)
@@ -175,7 +177,7 @@ The way this preset works is identical to that of the `cloudflare_module` one pr
 Regardless on whether you're using Cloudflare Pages or Cloudflare workers, you can use the [Wrangler GitHub actions](https://github.com/marketplace/actions/deploy-to-cloudflare-workers-with-wrangler) to deploy your application.
 
 ::note
-**Note:** Remember to [instruct Nitro to use the correct preset](/deploy/#changing-the-deployment-preset) (note that this is necessary for all presets including the `cloudflare_pages` one).
+**Note:** Remember to [instruct Nitro to use the correct preset](/deploy#changing-the-deployment-preset) (note that this is necessary for all presets including the `cloudflare_pages` one).
 ::
 
 ## Environment Variables
@@ -280,7 +282,7 @@ defineEventHandler(async (event) => {
 
 ### Access to the bindings in local env
 
-In order to access bindings during local dev mode, regardless of the chosen preset, it is recommended to use a `wrangler.toml` file (as well as a `.dev.vars` one) in combination with the [`nitro-cloudflare-dev` module](https://github.com/pi0/nitro-cloudflare-dev) as illustrated below.
+In order to access bindings during local dev mode, regardless of the chosen preset, it is recommended to use a `wrangler.toml` file (as well as a `.dev.vars` one) in combination with the [`nitro-cloudflare-dev` module](https://github.com/nitrojs/nitro-cloudflare-dev) as illustrated below.
 
 > [!NOTE]
 > The `nitro-cloudflare-dev` module is experimental. The Nitro team is looking into a more native integration  which could in the near future make the module unneeded.
