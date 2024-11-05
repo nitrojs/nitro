@@ -31,10 +31,12 @@ function defaultCacheOptions() {
   } as const;
 }
 
+type ResolvedCacheEntry<T> = CacheEntry<T> & { value: T };
+
 export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
   fn: (...args: ArgsT) => T | Promise<T>,
   opts: CacheOptions<T, ArgsT> = {}
-): (...args: ArgsT) => Promise<T | undefined> {
+): (...args: ArgsT) => Promise<T> {
   opts = { ...defaultCacheOptions(), ...opts };
 
   const pending: { [key: string]: Promise<T> } = {};
@@ -50,7 +52,7 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
     resolver: () => T | Promise<T>,
     shouldInvalidateCache?: boolean,
     event?: H3Event
-  ): Promise<CacheEntry<T>> {
+  ): Promise<ResolvedCacheEntry<T>> {
     // Use extension for key to avoid conflicting with parent namespace (foo/bar and foo/bar/baz)
     const cacheKey = [opts.base, group, name, key + ".json"]
       .filter(Boolean)
@@ -148,10 +150,10 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
         console.error(`[nitro] [cache] SWR handler error.`, error);
         useNitroApp().captureError(error, { event, tags: ["cache"] });
       });
-      return entry;
+      return entry as ResolvedCacheEntry<T>;
     }
 
-    return _resolvePromise.then(() => entry);
+    return _resolvePromise.then(() => entry) as Promise<ResolvedCacheEntry<T>>;
   }
 
   return async (...args) => {
