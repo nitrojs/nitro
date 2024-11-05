@@ -183,7 +183,10 @@ type TestHandler = (options: any) => Promise<TestHandlerResult | Response>;
 export function testNitro(
   ctx: Context,
   getHandler: () => TestHandler | Promise<TestHandler>,
-  additionalTests?: (ctx: Context, callHandler: TestHandler) => void
+  additionalTests?: (
+    ctx: Context,
+    callHandler: (options: any) => Promise<TestHandlerResult>
+  ) => void
 ) {
   let _handler: TestHandler;
 
