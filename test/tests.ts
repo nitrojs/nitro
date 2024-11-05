@@ -311,19 +311,38 @@ export function testNitro(
     expect(data).toMatch("<h1 >Hello JSX!</h1>");
   });
 
-  it.skipIf(ctx.preset.startsWith('cloudflare') || ctx.preset === 'vercel-edge')(
-    "handles custom Vary header",
-    async () => {
-      let headers = (await callHandler({ url: "/foo.css", headers: { "Accept-Encoding": "gzip" } })).headers;
-      if (headers["vary"]) expect(headers["vary"].includes('Origin') && headers["vary"].includes('Accept-Encoding')).toBeTruthy();
+  it.skipIf(
+    ctx.preset.startsWith("cloudflare") || ctx.preset === "vercel-edge"
+  )("handles custom Vary header", async () => {
+    let headers = (
+      await callHandler({
+        url: "/foo.css",
+        headers: { "Accept-Encoding": "gzip" },
+      })
+    ).headers;
+    if (headers["vary"])
+      expect(
+        headers["vary"].includes("Origin") &&
+          headers["vary"].includes("Accept-Encoding")
+      ).toBeTruthy();
 
-      headers = (await callHandler({ url: "/foo.css", headers: { "Accept-Encoding": "" } })).headers;
-      if (headers["vary"]) expect(headers["vary"]).toBe("Origin");
+    headers = (
+      await callHandler({ url: "/foo.css", headers: { "Accept-Encoding": "" } })
+    ).headers;
+    if (headers["vary"]) expect(headers["vary"]).toBe("Origin");
 
-      headers = (await callHandler({ url: "/foo.js", headers: { "Accept-Encoding": "gzip" } })).headers;
-      if (headers["vary"]) expect(headers["vary"].includes('Origin') && headers["vary"].includes('Accept-Encoding')).toBeTruthy();
-    }
-  );
+    headers = (
+      await callHandler({
+        url: "/foo.js",
+        headers: { "Accept-Encoding": "gzip" },
+      })
+    ).headers;
+    if (headers["vary"])
+      expect(
+        headers["vary"].includes("Origin") &&
+          headers["vary"].includes("Accept-Encoding")
+      ).toBeTruthy();
+  });
 
   it("handles route rules - headers", async () => {
     const { headers } = await callHandler({ url: "/rules/headers" });
