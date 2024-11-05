@@ -7,7 +7,7 @@ export const GLOB_SCAN_PATTERN = "**/*.{js,mjs,cjs,ts,mts,cts,tsx,jsx}";
 type FileInfo = { path: string; fullPath: string };
 
 const suffixRegex =
-  /\.(?<method>connect|delete|get|head|options|patch|post|put|trace)?(?:\.(?<env>dev|prod|prerender))?$/;
+  /(\.(?<method>connect|delete|get|head|options|patch|post|put|trace))?(\.(?<env>dev|prod|prerender))?$/;
 
 // prettier-ignore
 type MatchedMethodSuffix = "connect" | "delete" | "get" | "head" | "options" | "patch" | "post" | "put" | "trace";
@@ -104,11 +104,10 @@ export async function scanServerRoutes(
     const suffixMatch = route.match(suffixRegex);
     let method: MatchedMethodSuffix | undefined;
     let env: MatchedEnvSuffix | undefined;
-    if (suffixMatch?.index) {
-      route = route.slice(0, Math.max(0, suffixMatch.index));
-      const { groups } = suffixMatch;
-      method = groups?.method as MatchedMethodSuffix | undefined;
-      env = groups?.env as MatchedEnvSuffix | undefined;
+    if (suffixMatch?.index && suffixMatch?.index >= 0) {
+      route = route.slice(0, suffixMatch.index);
+      method = suffixMatch.groups?.method as MatchedMethodSuffix | undefined;
+      env = suffixMatch.groups?.env as MatchedEnvSuffix | undefined;
     }
 
     route = route.replace(/\/index$/, "") || "/";
