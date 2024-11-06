@@ -1,4 +1,4 @@
-# Alwaysdata
+# alwaysdata
 
 > Deploy Nitro apps to alwaysdata.
 
