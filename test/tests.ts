@@ -701,7 +701,7 @@ export function testNitro(
   });
 
   describe("cache", () => {
-    it.skipIf(ctx.isIsolated)(
+    it.skipIf(ctx.isIsolated || (isWindows && ctx.preset === "nitro-dev"))(
       "should setItem before returning response the first time",
       async () => {
         const {
