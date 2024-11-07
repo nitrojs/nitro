@@ -6,7 +6,7 @@ import sqlts from "../files/sqlts.sql";
 
 export default defineEventHandler(async () => {
   return {
-    sql,
-    sqlts,
+    sql: sql.trim(),
+    sqlts: sqlts.trim(),
   };
 });

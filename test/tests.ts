@@ -782,8 +782,8 @@ export function testNitro(
   it("raw imports", async () => {
     const { data } = await callHandler({ url: "/raw" });
     expect(data).toMatchObject({
-      sql: "--\n",
-      sqlts: "--\n",
+      sql: "--",
+      sqlts: "--",
     });
   });
 }
