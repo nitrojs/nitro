@@ -34,6 +34,10 @@ export function raw(opts: RawOptions = {}): Plugin {
         id = id.slice(4);
       }
 
+      if (!withRawSpecifier && !extensions.has(extname(id))) {
+        return;
+      }
+
       const resolvedId = (await this.resolve(id, importer, resolveOpts))?.id;
 
       if (!resolvedId || resolvedId.startsWith("\0")) {
