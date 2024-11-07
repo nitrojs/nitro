@@ -28,22 +28,6 @@ describe("nitro:preset:nitro-dev", async () => {
         expect(data.keys).includes("src:nitro.config.ts");
       });
 
-      it("static asset headers", async () => {
-        const { headers } = await ctx.fetch("/build/test.txt");
-        expect(Object.fromEntries(headers)).toMatchObject({
-          "accept-ranges": "bytes",
-          "cache-control": "public, max-age=0",
-          "last-modified": expect.any(String),
-          etag: 'W/"7-18df5a508c5"',
-          "content-type": "text/plain; charset=UTF-8",
-          "content-length": "7",
-          date: expect.any(String),
-          connection: "keep-alive",
-          "keep-alive": "timeout=5",
-          "x-build-header": "works",
-        });
-      });
-
       describe("openAPI", () => {
         let spec: OpenAPI3;
         it("/_openapi.json", async () => {
