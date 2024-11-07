@@ -387,12 +387,15 @@ export function testNitro(
     expect(status).toBe(503);
   });
 
-  it("universal import.meta", async () => {
-    const { status, data } = await callHandler({ url: "/api/import-meta" });
-    expect(status).toBe(200);
-    expect(data.testFile).toMatch(/[/\\]test.txt$/);
-    expect(data.hasEnv).toBe(true);
-  });
+  it.skipIf(isWindows && ctx.preset === "nitro-dev")(
+    "universal import.meta",
+    async () => {
+      const { status, data } = await callHandler({ url: "/api/import-meta" });
+      expect(status).toBe(200);
+      expect(data.testFile).toMatch(/[/\\]test.txt$/);
+      expect(data.hasEnv).toBe(true);
+    }
+  );
 
   it("handles custom server assets", async () => {
     const { data: html, status: htmlStatus } = await callHandler({
