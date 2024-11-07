@@ -4,6 +4,10 @@ import { defineNitroConfig } from "nitropack/config";
 export default defineNitroConfig({
   compressPublicAssets: true,
   compatibilityDate: "2024-09-19",
+  framework: {
+    name: "nitro",
+    version: "2.x",
+  },
   imports: {
     presets: [
       {
@@ -77,9 +81,9 @@ export default defineNitroConfig({
     "/rules/swr/**": { swr: true },
     "/rules/swr-ttl/**": { swr: 60 },
     "/rules/redirect/obj": {
-      redirect: { to: "https://nitro.unjs.io/", statusCode: 308 },
+      redirect: { to: "https://nitro.build/", statusCode: 308 },
     },
-    "/rules/redirect/wildcard/**": { redirect: "https://nitro.unjs.io/**" },
+    "/rules/redirect/wildcard/**": { redirect: "https://nitro.build/**" },
     "/rules/nested/**": { redirect: "/base", headers: { "x-test": "test" } },
     "/rules/nested/override": { redirect: { to: "/other" } },
     "/rules/_/noncached/cached": { swr: true },

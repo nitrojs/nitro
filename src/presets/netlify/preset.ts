@@ -6,6 +6,7 @@ import netlifyLegacyPresets from "./legacy/preset";
 import {
   generateNetlifyFunction,
   getGeneratorString,
+  getStaticPaths,
   writeHeaders,
   writeRedirects,
 } from "./utils";
@@ -85,6 +86,7 @@ const netlifyEdge = defineNitroPreset(
           functions: [
             {
               path: "/*",
+              excludedPath: getStaticPaths(nitro.options.publicAssets),
               name: "edge server handler",
               function: "server",
               generator: getGeneratorString(nitro),

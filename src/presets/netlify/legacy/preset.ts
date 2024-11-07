@@ -1,4 +1,4 @@
-import { existsSync, promises as fsp } from "node:fs";
+import { promises as fsp } from "node:fs";
 import { defineNitroPreset } from "nitropack/kit";
 import type { Nitro } from "nitropack/types";
 import { dirname, join } from "pathe";
@@ -24,7 +24,7 @@ const netlify = defineNitroPreset(
       },
       async compiled(nitro: Nitro) {
         await writeHeaders(nitro);
-        await writeRedirects(nitro);
+        await writeRedirects(nitro, "/.netlify/functions/server");
 
         if (nitro.options.netlify) {
           const configPath = join(

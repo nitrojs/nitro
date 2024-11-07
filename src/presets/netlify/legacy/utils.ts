@@ -1,8 +1,27 @@
 import { existsSync, promises as fsp } from "node:fs";
-import type { Nitro } from "nitropack/types";
+import type { Nitro, PublicAssetDir } from "nitropack/types";
 import { join } from "pathe";
+import { joinURL } from "ufo";
 
-export async function writeRedirects(nitro: Nitro) {
+export function generateCatchAllRedirects(
+  publicAssets: PublicAssetDir[],
+  catchAllPath?: string
+): string {
+  if (!catchAllPath) return "";
+
+  return [
+    // e.g.: /static/* /static/:splat 200
+    // Because of Netlify CDN shadowing
+    // (https://docs.netlify.com/routing/redirects/rewrites-proxies/#shadowing),
+    // this config avoids function invocations for all static paths, even 404s.
+    ...getStaticPaths(publicAssets).map(
+      (path) => `${path} ${path.replace("/*", "/:splat")} 200`
+    ),
+    `/* ${catchAllPath} 200`,
+  ].join("\n");
+}
+
+export async function writeRedirects(nitro: Nitro, catchAllPath?: string) {
   const redirectsPath = join(nitro.options.output.publicDir, "_redirects");
   const staticFallback = existsSync(
     join(nitro.options.output.publicDir, "404.html")
@@ -11,7 +30,7 @@ export async function writeRedirects(nitro: Nitro) {
     : "";
   let contents = nitro.options.static
     ? staticFallback
-    : "/* /.netlify/functions/server 200";
+    : generateCatchAllRedirects(nitro.options.publicAssets, catchAllPath);
 
   const rules = Object.entries(nitro.options.routeRules).sort(
     (a, b) => a[0].split(/\/(?!\*)/).length - b[0].split(/\/(?!\*)/).length
@@ -103,12 +122,20 @@ export async function writeHeaders(nitro: Nitro) {
   await fsp.writeFile(headersPath, contents);
 }
 
+export function getStaticPaths(publicAssets: PublicAssetDir[]): string[] {
+  return publicAssets
+    .filter(
+      (dir) => dir.fallthrough !== true && dir.baseURL && dir.baseURL !== "/"
+    )
+    .map((dir) => joinURL("/", dir.baseURL!, "*"));
+}
+
 export function deprecateSWR(nitro: Nitro) {
   if (nitro.options.future.nativeSWR) {
     return;
   }
   let hasLegacyOptions = false;
-  for (const [key, value] of Object.entries(nitro.options.routeRules)) {
+  for (const [_key, value] of Object.entries(nitro.options.routeRules)) {
     if (_hasProp(value, "isr")) {
       continue;
     }

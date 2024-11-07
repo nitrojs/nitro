@@ -9,9 +9,9 @@ body:
         https://github.com/nuxt/nuxt/issues/new/choose
 
         Please use one of the templates below to create a minimal reproduction :
-          
-        👉 https://stackblitz.com/github/unjs/nitro/tree/starter
-        👉 https://codesandbox.io/p/github/unjs/nitro/starter
+
+        👉 https://stackblitz.com/github/nitrojs/nitro/tree/starter
+        👉 https://codesandbox.io/p/github/nitrojs/nitro/starter
   - type: textarea
     id: bug-env
     attributes:

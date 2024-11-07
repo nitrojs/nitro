@@ -41,14 +41,14 @@ describe("nitro:preset:vercel", async () => {
             "routes": [
               {
                 "headers": {
-                  "Location": "https://nitro.unjs.io/",
+                  "Location": "https://nitro.build/",
                 },
                 "src": "/rules/redirect/obj",
                 "status": 308,
               },
               {
                 "headers": {
-                  "Location": "https://nitro.unjs.io/$1",
+                  "Location": "https://nitro.build/$1",
                 },
                 "src": "/rules/redirect/wildcard/(.*)",
                 "status": 307,

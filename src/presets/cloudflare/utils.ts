@@ -7,6 +7,7 @@ import { join, resolve } from "pathe";
 import { isCI } from "std-env";
 import {
   joinURL,
+  hasProtocol,
   withLeadingSlash,
   withTrailingSlash,
   withoutLeadingSlash,
@@ -35,7 +36,7 @@ async function writeCFRoutes(nitro: Nitro) {
 
   const writeRoutes = () =>
     fsp.writeFile(
-      resolve(nitro.options.output.publicDir, "_routes.json"),
+      resolve(nitro.options.output.dir, "_routes.json"),
       JSON.stringify(routes, undefined, 2)
     );
 
@@ -66,13 +67,13 @@ async function writeCFRoutes(nitro: Nitro) {
   // Explicit prefixes
   routes.exclude!.push(
     ...explicitPublicAssets
-      .map((dir) => joinURL(dir.baseURL!, "*"))
+      .map((asset) => joinURL(nitro.options.baseURL, asset.baseURL || "/", "*"))
       .sort(comparePaths)
   );
 
   // Unprefixed assets
   const publicAssetFiles = await globby("**", {
-    cwd: nitro.options.output.publicDir,
+    cwd: nitro.options.output.dir,
     absolute: false,
     dot: true,
     ignore: [
@@ -107,7 +108,7 @@ function comparePaths(a: string, b: string) {
 }
 
 async function writeCFPagesHeaders(nitro: Nitro) {
-  const headersPath = join(nitro.options.output.publicDir, "_headers");
+  const headersPath = join(nitro.options.output.dir, "_headers");
   const contents = [];
 
   const rules = Object.entries(nitro.options.routeRules).sort(
@@ -118,7 +119,7 @@ async function writeCFPagesHeaders(nitro: Nitro) {
     ([_, routeRules]) => routeRules.headers
   )) {
     const headers = [
-      path.replace("/**", "/*"),
+      joinURL(nitro.options.baseURL, path.replace("/**", "/*")),
       ...Object.entries({ ...routeRules.headers }).map(
         ([header, value]) => `  ${header}: ${value}`
       ),
@@ -145,11 +146,11 @@ async function writeCFPagesHeaders(nitro: Nitro) {
 }
 
 async function writeCFPagesRedirects(nitro: Nitro) {
-  const redirectsPath = join(nitro.options.output.publicDir, "_redirects");
+  const redirectsPath = join(nitro.options.output.dir, "_redirects");
   const staticFallback = existsSync(
     join(nitro.options.output.publicDir, "404.html")
   )
-    ? "/* /404.html 404"
+    ? `${joinURL(nitro.options.baseURL, "/*")} ${joinURL(nitro.options.baseURL, "/404.html")} 404`
     : "";
   const contents = [staticFallback];
   const rules = Object.entries(nitro.options.routeRules).sort(
@@ -160,9 +161,11 @@ async function writeCFPagesRedirects(nitro: Nitro) {
     ([_, routeRules]) => routeRules.redirect
   )) {
     const code = routeRules.redirect!.statusCode;
-    contents.unshift(
-      `${key.replace("/**", "/*")}\t${routeRules.redirect!.to}\t${code}`
-    );
+    const from = joinURL(nitro.options.baseURL, key.replace("/**", "/*"));
+    const to = hasProtocol(routeRules.redirect!.to, { acceptRelative: true })
+      ? routeRules.redirect!.to
+      : joinURL(nitro.options.baseURL, routeRules.redirect!.to);
+    contents.unshift(`${from}\t${to}\t${code}`);
   }
 
   if (existsSync(redirectsPath)) {

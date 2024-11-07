@@ -38,7 +38,7 @@ export interface Context {
   // [key: string]: unknown;
 }
 
-// https://github.com/unjs/nitro/pull/1240
+// https://github.com/nitrojs/nitro/pull/1240
 export const describeIf = (
   condition: boolean,
   title: string,
@@ -88,6 +88,7 @@ export async function setupTest(
       "cloudflare-module",
       "cloudflare-module-legacy",
       "cloudflare-pages",
+      "netlify-edge",
       "vercel-edge",
       "winterjs",
     ].includes(preset),
@@ -101,6 +102,7 @@ export async function setupTest(
       CUSTOM_HELLO_THERE: "general",
       SECRET: "secret",
       APP_DOMAIN: "test.com",
+      NITRO_DYNAMIC: "from-env",
     },
     fetch: (url, opts) =>
       fetch(joinURL(ctx.server!.url, url.slice(1)), {
@@ -181,7 +183,10 @@ type TestHandler = (options: any) => Promise<TestHandlerResult | Response>;
 export function testNitro(
   ctx: Context,
   getHandler: () => TestHandler | Promise<TestHandler>,
-  additionalTests?: (ctx: Context, callHandler: TestHandler) => void
+  additionalTests?: (
+    ctx: Context,
+    callHandler: (options: any) => Promise<TestHandlerResult>
+  ) => void
 ) {
   let _handler: TestHandler;
 
@@ -273,13 +278,13 @@ export function testNitro(
 
     const obj = await callHandler({ url: "/rules/redirect/obj" });
     expect(obj.status).toBe(308);
-    expect(obj.headers.location).toBe("https://nitro.unjs.io/");
+    expect(obj.headers.location).toBe("https://nitro.build/");
 
     const wildcard = await callHandler({
       url: "/rules/redirect/wildcard/nuxt",
     });
     expect(wildcard.status).toBe(307);
-    expect(wildcard.headers.location).toBe("https://nitro.unjs.io/nuxt");
+    expect(wildcard.headers.location).toBe("https://nitro.build/nuxt");
   });
 
   it("binary response", async () => {
@@ -308,6 +313,43 @@ export function testNitro(
     const { data } = await callHandler({ url: "/jsx" });
     expect(data).toMatch("<h1 >Hello JSX!</h1>");
   });
+
+  it.runIf(ctx.nitro?.options.serveStatic)(
+    "handles custom Vary header",
+    async () => {
+      let headers = (
+        await callHandler({
+          url: "/foo.css",
+          headers: { "Accept-Encoding": "gzip" },
+        })
+      ).headers;
+      if (headers["vary"])
+        expect(
+          headers["vary"].includes("Origin") &&
+            headers["vary"].includes("Accept-Encoding")
+        ).toBeTruthy();
+
+      headers = (
+        await callHandler({
+          url: "/foo.css",
+          headers: { "Accept-Encoding": "" },
+        })
+      ).headers;
+      if (headers["vary"]) expect(headers["vary"]).toBe("Origin");
+
+      headers = (
+        await callHandler({
+          url: "/foo.js",
+          headers: { "Accept-Encoding": "gzip" },
+        })
+      ).headers;
+      if (headers["vary"])
+        expect(
+          headers["vary"].includes("Origin") &&
+            headers["vary"].includes("Accept-Encoding")
+        ).toBeTruthy();
+    }
+  );
 
   it("handles route rules - headers", async () => {
     const { headers } = await callHandler({ url: "/rules/headers" });
@@ -502,7 +544,12 @@ export function testNitro(
         "server-config": true,
       },
       sharedRuntimeConfig: {
-        dynamic: "from-env",
+        // Cloudflare environment variables are set after first request
+        dynamic:
+          ctx.preset.includes("cloudflare") &&
+          ctx.preset !== "cloudflare-worker"
+            ? "initial"
+            : "from-env",
         // url: "https://test.com",
         app: {
           baseURL: "/",
@@ -558,7 +605,7 @@ export function testNitro(
     );
 
     it.skipIf(ctx.isWorker || ctx.isDev)(
-      "public files can be un-ignored with patterns",
+      "public files can be un-ignored with patterns",
       async () => {
         expect((await callHandler({ url: "/_unignored.txt" })).status).toBe(
           200
@@ -582,7 +629,7 @@ export function testNitro(
       ];
 
       // TODO: Node presets do not split cookies
-      // https://github.com/unjs/nitro/issues/1462
+      // https://github.com/nitrojs/nitro/issues/1462
       // (vercel and deno-server uses node only for tests only)
       const notSplittingPresets = [
         "node-listener",
@@ -729,6 +776,14 @@ export function testNitro(
     it("filters based on dev|prod", async () => {
       const { data } = await callHandler({ url: "/env" });
       expect(data).toBe(ctx.isDev ? "dev env" : "prod env");
+    });
+  });
+
+  it("raw imports", async () => {
+    const { data } = await callHandler({ url: "/raw" });
+    expect(data).toMatchObject({
+      sql: "--",
+      sqlts: "--",
     });
   });
 }

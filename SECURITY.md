@@ -2,7 +2,7 @@
 
 ## ⚠️ Reporting a Vulnerability
 
-To report a vulnerability, please send an email to [security+nitro@unjs.io](mailto:security+nitro@unjs.io) or submit it for a bounty via [Huntr](https://huntr.dev/bounties/disclose/?target=https://github.com/unjs/nitro).
+To report a vulnerability, please send an email to [security+nitro@unjs.io](mailto:security+nitro@unjs.io) or submit it for a bounty via [Huntr](https://huntr.dev/bounties/disclose/?target=https://github.com/nitrojs/nitro).
 
 All security vulnerabilities will be promptly verified and addressed.
 

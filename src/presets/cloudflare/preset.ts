@@ -17,12 +17,12 @@ const cloudflarePages = defineNitroPreset(
     },
     output: {
       dir: "{{ rootDir }}/dist",
-      publicDir: "{{ output.dir }}",
+      publicDir: "{{ output.dir }}/{{ baseURL }}",
       serverDir: "{{ output.dir }}/_worker.js",
     },
     alias: {
       // Hotfix: Cloudflare appends /index.html if mime is not found and things like ico are not in standard lite.js!
-      // https://github.com/unjs/nitro/pull/933
+      // https://github.com/nitrojs/nitro/pull/933
       _mime: "mime/index.js",
     },
     wasm: {
@@ -53,7 +53,8 @@ const cloudflarePagesStatic = defineNitroPreset(
   {
     extends: "static",
     output: {
-      publicDir: "{{ rootDir }}/dist",
+      dir: "{{ rootDir }}/dist",
+      publicDir: "{{ output.dir }}/{{ baseURL }}",
     },
     commands: {
       preview: "npx wrangler pages dev dist",
@@ -142,7 +143,6 @@ const cloudflareModuleLegacy = defineNitroPreset(
   {
     name: "cloudflare-module-legacy" as const,
     aliases: ["cloudflare-module"] as const,
-    compatibilityDate: "2024-05-07",
     url: import.meta.url,
   }
 );
@@ -197,6 +197,7 @@ const cloudflareDurable = defineNitroPreset(
   },
   {
     name: "cloudflare-durable" as const,
+    compatibilityDate: "2024-09-19",
     url: import.meta.url,
   }
 );

@@ -2,6 +2,7 @@ import {
   type CompatibilityDateSpec,
   type PlatformName,
   resolveCompatibilityDatesFromEnv,
+  formatCompatibilityDate,
 } from "compatx";
 import type { NitroPreset, NitroPresetMeta } from "nitropack/types";
 import { kebabCase } from "scule";
@@ -17,35 +18,38 @@ const _stdProviderMap: Partial<Record<ProviderName, PlatformName>> = {
 
 export async function resolvePreset(
   name: string,
-  opts: { static?: boolean; compatibilityDate?: CompatibilityDateSpec }
+  opts: { static?: boolean; compatibilityDate?: false | CompatibilityDateSpec }
 ): Promise<(NitroPreset & { _meta?: NitroPresetMeta }) | undefined> {
   const _name = kebabCase(name) || provider;
 
-  const _compatDates = resolveCompatibilityDatesFromEnv(opts.compatibilityDate);
+  const _compatDates = opts.compatibilityDate
+    ? resolveCompatibilityDatesFromEnv(opts.compatibilityDate)
+    : false;
 
   const matches = allPresets
     .filter((preset) => {
-      const names = [
-        preset._meta.name,
-        preset._meta.stdName,
-        ...(preset._meta.aliases || []),
-      ].filter(Boolean);
+      // prettier-ignore
+      const names = [preset._meta.name, preset._meta.stdName, ...(preset._meta.aliases || [])].filter(Boolean);
       if (!names.includes(_name)) {
         return false;
       }
 
-      const _date =
-        _compatDates[_stdProviderMap[preset._meta.stdName!] as PlatformName] ||
-        _compatDates[preset._meta.stdName as PlatformName] ||
-        _compatDates[preset._meta.name as PlatformName] ||
-        _compatDates.default;
+      if (_compatDates) {
+        const _date =
+          _compatDates[
+            _stdProviderMap[preset._meta.stdName!] as PlatformName
+          ] ||
+          _compatDates[preset._meta.stdName as PlatformName] ||
+          _compatDates[preset._meta.name as PlatformName] ||
+          _compatDates.default;
 
-      if (
-        _date &&
-        preset._meta.compatibilityDate &&
-        new Date(preset._meta.compatibilityDate) > new Date(_date)
-      ) {
-        return false;
+        if (
+          _date &&
+          preset._meta.compatibilityDate &&
+          new Date(preset._meta.compatibilityDate) > new Date(_date)
+        ) {
+          return false;
+        }
       }
 
       return true;
@@ -69,6 +73,22 @@ export async function resolvePreset(
     return opts?.static
       ? resolvePreset("static", opts)
       : resolvePreset("node-server", opts);
+  }
+
+  if (name && !preset) {
+    // prettier-ignore
+    const options = allPresets
+      .filter((p) =>p._meta.name === name ||p._meta.stdName === name ||p._meta.aliases?.includes(name) )
+      .sort((a, b) => (a._meta.compatibilityDate || 0) > (b._meta.compatibilityDate || 0) ? 1 : -1);
+    if (options.length > 0) {
+      let msg = `Preset "${name}" cannot be resolved with current compatibilityDate: ${formatCompatibilityDate(_compatDates || "")}.\n\n`;
+      for (const option of options) {
+        msg += `\n- ${option._meta.name} (requires compatibilityDate >= ${option._meta.compatibilityDate})`;
+      }
+      const err = new Error(msg);
+      Error.captureStackTrace?.(err, resolvePreset);
+      throw err;
+    }
   }
 
   return preset;

@@ -23,6 +23,12 @@ describe.skipIf(isCI)("nitro:preset:nitro-dev", async () => {
         expect(status).toBe(200);
       });
 
+      it("dev storage", async () => {
+        const { data } = await callHandler({ url: "/api/storage/src" });
+        expect(data.keys.length).toBeGreaterThan(0);
+        expect(data.keys).includes("src:nitro.config.ts");
+      });
+
       describe("openAPI", () => {
         let spec: OpenAPI3;
         it("/_openapi.json", async () => {

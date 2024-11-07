@@ -26,7 +26,7 @@ const firebase = defineNitroPreset(
         const _gen = nitro.options.firebase?.gen as unknown;
         if (!_gen || _gen === "default") {
           nitro.logger.warn(
-            "Neither `firebase.gen` or `NITRO_FIREBASE_GEN` is set. Nitro will default to Cloud Functions 1st generation. It is recommended to set this to the latest generation (currently `2`). Set the version to remove this warning. See https://nitro.unjs.io/deploy/providers/firebase for more information."
+            "Neither `firebase.gen` or `NITRO_FIREBASE_GEN` is set. Nitro will default to Cloud Functions 1st generation. It is recommended to set this to the latest generation (currently `2`). Set the version to remove this warning. See https://nitro.build/deploy/providers/firebase for more information."
           );
           // Using the gen 1 makes this preset backwards compatible for people already using it
           nitro.options.firebase = { gen: 1 };

@@ -126,7 +126,7 @@ function createNitroApp(): NitroApp {
           fetch: $fetch as any,
         })) as $Fetch<unknown, NitroFetchRequest>;
 
-      // https://github.com/unjs/nitro/issues/1420
+      // https://github.com/nitrojs/nitro/issues/1420
       event.waitUntil = (promise) => {
         if (!event.context.nitro._waitUntilPromises) {
           event.context.nitro._waitUntilPromises = [];
