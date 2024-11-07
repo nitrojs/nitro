@@ -778,4 +778,12 @@ export function testNitro(
       expect(data).toBe(ctx.isDev ? "dev env" : "prod env");
     });
   });
+
+  it("raw imports", async () => {
+    const { data } = await callHandler({ url: "/raw" });
+    expect(data).toMatchObject({
+      sql: "--\n",
+      sqlts: "--\n",
+    });
+  });
 }
