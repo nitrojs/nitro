@@ -8,7 +8,6 @@ import { type FSWatcher, watch } from "chokidar";
 import {
   type H3Error,
   type H3Event,
-  appendResponseHeaders,
   createApp,
   createError,
   eventHandler,
@@ -30,7 +29,7 @@ import { resolve } from "pathe";
 import { debounce } from "perfect-debounce";
 import { servePlaceholder } from "serve-placeholder";
 import serveStatic from "serve-static";
-import { joinURL, withoutBase } from "ufo";
+import { joinURL } from "ufo";
 import defaultErrorHandler from "./error";
 import { createVFSHandler } from "./vfs";
 import { createRouter as createRadixRouter, toRouteMatcher } from "radix3";
@@ -175,28 +174,35 @@ export function createDevServer(nitro: Nitro): NitroDevServer {
   const routeRulesMatcher = toRouteMatcher(
     createRadixRouter({ routes: nitro.options.routeRules })
   );
-  app.use(
-    "/",
-    eventHandler((event) => {
-      const baseUrl = nitro.options.runtimeConfig.app.baseURL;
-      const normPath = withoutBase(event.path.split("?")[0], baseUrl);
-      const rules: NitroRouteRules = defu(
-        {},
-        ...routeRulesMatcher.matchAll(normPath).reverse()
-      );
-      if (rules.headers) {
-        appendResponseHeaders(event, rules.headers);
-      }
-    })
-  );
-
   // Serve asset dirs
   for (const asset of nitro.options.publicAssets) {
     const url = joinURL(
       nitro.options.runtimeConfig.app.baseURL,
       asset.baseURL || "/"
     );
-    app.use(url, fromNodeMiddleware(serveStatic(asset.dir)));
+    app.use(
+      url,
+      fromNodeMiddleware(
+        serveStatic(asset.dir, {
+          setHeaders: (res) => {
+            const path = res.req.url;
+            if (path === undefined) {
+              return;
+            }
+            const rules: NitroRouteRules = defu(
+              {},
+              ...routeRulesMatcher.matchAll(path).reverse()
+            );
+            if (!rules.headers) {
+              return;
+            }
+            for (const [k, v] of Object.entries(rules.headers)) {
+              res.appendHeader(k, v);
+            }
+          },
+        })
+      )
+    );
     if (!asset.fallthrough) {
       app.use(url, fromNodeMiddleware(servePlaceholder()));
     }
