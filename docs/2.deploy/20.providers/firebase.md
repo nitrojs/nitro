@@ -31,7 +31,8 @@ You can integrate with this provider using [zero configuration](/deploy/#zero-co
     - Configure deployment settings (project root directory and branch), and enable automatic rollouts.
     - Choose a unique ID for deployment.
 4. Wait for the first release to complete.
-## Firebase functions
+
+## Firebase hosting
 
 **Preset:** `firebase`
 
