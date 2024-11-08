@@ -1,8 +1,11 @@
-import { defineNitroPreset } from "nitropack/kit";
-import { basename } from "pathe";
+import { defineNitroPreset, writeFile } from "nitropack/kit";
+import { version as nitroVersion } from "nitropack/meta";
+import { basename, join } from "pathe";
 import type { Plugin } from "rollup";
 import { genSafeVariableName } from "knitwork";
+import { stringifyYAML } from "confbox";
 import { updatePackageJSON, writeFirebaseConfig } from "./utils";
+import type { AppHostingOptions, AppHostingOutputBundleConfig } from "./types";
 
 export type { FirebaseOptions as PresetOptions } from "./types";
 
@@ -68,4 +71,37 @@ const firebase = defineNitroPreset(
   }
 );
 
-export default [firebase] as const;
+const firebaseAppHosting = defineNitroPreset(
+  {
+    extends: "node-server",
+    serveStatic: true,
+    hooks: {
+      async compiled(nitro) {
+        await writeFile(
+          join(nitro.options.rootDir, ".apphosting/bundle.yaml"),
+          stringifyYAML({
+            version: "v1",
+            runConfig: {
+              runCommand: "node .output/server/index.mjs",
+              ...(nitro.options.firebase as AppHostingOptions)?.appHosting,
+            },
+            metadata: {
+              framework: nitro.options.framework.name || "nitropack",
+              frameworkVersion: nitro.options.framework.version || "2.x",
+              adapterPackageName: "nitropack",
+              adapterVersion: nitroVersion,
+            },
+          } satisfies AppHostingOutputBundleConfig),
+          true
+        );
+      },
+    },
+  },
+  {
+    name: "firebase-app-hosting" as const,
+    stdName: "firebase_app_hosting",
+    url: import.meta.url,
+  }
+);
+
+export default [firebase, firebaseAppHosting] as const;
