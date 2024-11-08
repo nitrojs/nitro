@@ -100,11 +100,13 @@ async function _loadUserConfig(
       preset: presetOverride,
     },
     async defaultConfig({ configs }) {
+      const getConf = <K extends keyof NitroConfig>(key: K) =>
+        (configs.main?.[key] ??
+          configs.rc?.[key] ??
+          configs.packageJson?.[key]) as NitroConfig[K];
+
       if (!compatibilityDate) {
-        compatibilityDate =
-          configs.main?.compatibilityDate ||
-          configs.rc?.compatibilityDate ||
-          configs.packageJson?.compatibilityDate;
+        compatibilityDate = getConf("compatibilityDate");
       }
       const framework = configs.overrides?.framework || configs.main?.framework;
       return {
@@ -116,7 +118,7 @@ async function _loadUserConfig(
           presetOverride ||
           (
             await resolvePreset("" /* auto detect */, {
-              static: configOverrides.static,
+              static: getConf("static"),
               compatibilityDate: compatibilityDate || fallbackCompatibilityDate,
             })
           )?._meta?.name,
