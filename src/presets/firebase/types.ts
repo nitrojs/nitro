@@ -1,12 +1,13 @@
 import type { RuntimeOptions, region } from "firebase-functions";
 import type { HttpsOptions } from "firebase-functions/v2/https";
 
-export type FirebaseOptions =
-  | FirebaseOptionsGen1
-  | FirebaseOptionsGen2
-  | AppHostingOptions;
+export type FirebaseOptions = FirebaseFunctionsOptions | AppHostingOptions;
 
 // ---- Firebase Functions ----
+
+export type FirebaseFunctionsOptions =
+  | FirebaseOptionsGen1
+  | FirebaseOptionsGen2;
 
 export interface FirebaseOptionsBase {
   gen: 1 | 2;

@@ -5,7 +5,11 @@ import type { Plugin } from "rollup";
 import { genSafeVariableName } from "knitwork";
 import { stringifyYAML } from "confbox";
 import { updatePackageJSON, writeFirebaseConfig } from "./utils";
-import type { AppHostingOptions, AppHostingOutputBundleConfig } from "./types";
+import type {
+  AppHostingOptions,
+  AppHostingOutputBundleConfig,
+  FirebaseFunctionsOptions,
+} from "./types";
 
 export type { FirebaseOptions as PresetOptions } from "./types";
 
@@ -26,7 +30,8 @@ const firebase = defineNitroPreset(
         await updatePackageJSON(nitro);
       },
       "rollup:before": (nitro, rollupConfig) => {
-        const _gen = nitro.options.firebase?.gen as unknown;
+        const _gen = (nitro.options.firebase as FirebaseFunctionsOptions)
+          ?.gen as unknown;
         if (!_gen || _gen === "default") {
           nitro.logger.warn(
             "Neither `firebase.gen` or `NITRO_FIREBASE_GEN` is set. Nitro will default to Cloud Functions 1st generation. It is recommended to set this to the latest generation (currently `2`). Set the version to remove this warning. See https://nitro.build/deploy/providers/firebase for more information."
@@ -37,7 +42,8 @@ const firebase = defineNitroPreset(
         nitro.options.appConfig.nitro = nitro.options.appConfig.nitro || {};
         nitro.options.appConfig.nitro.firebase = nitro.options.firebase;
 
-        const { serverFunctionName } = nitro.options.firebase;
+        const { serverFunctionName } = nitro.options
+          .firebase as FirebaseFunctionsOptions;
         if (
           serverFunctionName &&
           serverFunctionName !== genSafeVariableName(serverFunctionName)
