@@ -112,6 +112,9 @@ export async function scanServerRoutes(
 
     route = route.replace(/\/index$/, "") || "/";
 
+    if (/[a-z]+-[a-z]+/.test(route)) {
+      console.warn(`Warning: Route "${route}" contains kebab-case parameters which will return 404.`);
+    }
     return {
       handler: file.fullPath,
       lazy: true,
