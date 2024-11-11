@@ -98,7 +98,7 @@ export async function scanServerRoutes(
       .replace(/\(([^(/\\]+)\)[/\\]/g, "")
       .replace(/\[\.{3}]/g, "**")
       .replace(/\[\.{3}(\w+)]/g, "**:$1")
-      .replace(/\[(\w+)]/g, ":$1");
+      .replace(/\[([^/\]]+)]/g, ":$1");
     route = withLeadingSlash(withoutTrailingSlash(withBase(route, prefix)));
 
     const suffixMatch = route.match(suffixRegex);
