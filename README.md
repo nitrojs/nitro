@@ -4,7 +4,7 @@
 
 [![npm version](https://flat.badgen.net/npm/v/nitropack)](https://npmjs.com/package/nitropack)
 [![npm downloads](https://flat.badgen.net/npm/dm/nitropack)](https://npmjs.com/package/nitropack)
-[![Gurubase](https://flat.badgen.net/badge/Gurubase-Ask%20Nitro%20Guru-006BFF)](https://gurubase.io/g/nitro)
+[![Gurubase](https://img.shields.io/badge/Gurubase-Ask%20Nitro%20Guru-006BFF)](https://gurubase.io/g/nitro)
 
 <!-- /automd -->
 
