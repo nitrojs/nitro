@@ -103,6 +103,8 @@ ${presetsWithType
   .join("\n")}
 }
 
+export const presetsWithConfig = ${JSON.stringify(presetsWithType.map((p) => camelCase(p)))} as const;
+
 export type PresetName = ${names.map((name) => `"${name}"`).join(" | ")};
 
 export type PresetNameInput = ${names

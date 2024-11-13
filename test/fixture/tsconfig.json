@@ -6,6 +6,7 @@
     "skipLibCheck": true,
     "baseUrl": ".",
     "strict": false,
+    "types": ["@cloudflare/workers-types"],
     // (currently manually synced with top level tsconfig.json paths)
     "paths": {
       // CLI

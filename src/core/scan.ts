@@ -7,7 +7,7 @@ export const GLOB_SCAN_PATTERN = "**/*.{js,mjs,cjs,ts,mts,cts,tsx,jsx}";
 type FileInfo = { path: string; fullPath: string };
 
 const suffixRegex =
-  /\.(connect|delete|get|head|options|patch|post|put|trace)(\.(dev|prod|prerender))?$/;
+  /(\.(?<method>connect|delete|get|head|options|patch|post|put|trace))?(\.(?<env>dev|prod|prerender))?$/;
 
 // prettier-ignore
 type MatchedMethodSuffix = "connect" | "delete" | "get" | "head" | "options" | "patch" | "post" | "put" | "trace";
@@ -98,16 +98,16 @@ export async function scanServerRoutes(
       .replace(/\(([^(/\\]+)\)[/\\]/g, "")
       .replace(/\[\.{3}]/g, "**")
       .replace(/\[\.{3}(\w+)]/g, "**:$1")
-      .replace(/\[(\w+)]/g, ":$1");
+      .replace(/\[([^/\]]+)]/g, ":$1");
     route = withLeadingSlash(withoutTrailingSlash(withBase(route, prefix)));
 
     const suffixMatch = route.match(suffixRegex);
     let method: MatchedMethodSuffix | undefined;
     let env: MatchedEnvSuffix | undefined;
-    if (suffixMatch?.index) {
-      route = route.slice(0, Math.max(0, suffixMatch.index));
-      method = suffixMatch[1] as MatchedMethodSuffix;
-      env = suffixMatch[3] as MatchedEnvSuffix;
+    if (suffixMatch?.index && suffixMatch?.index >= 0) {
+      route = route.slice(0, suffixMatch.index);
+      method = suffixMatch.groups?.method as MatchedMethodSuffix | undefined;
+      env = suffixMatch.groups?.env as MatchedEnvSuffix | undefined;
     }
 
     route = route.replace(/\/index$/, "") || "/";

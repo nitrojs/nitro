@@ -1,3 +1,4 @@
+import type { Readable } from "node:stream";
 import type {
   APIGatewayProxyEventV2,
   APIGatewayProxyStructuredResultV2,
@@ -10,31 +11,6 @@ import {
   normalizeLambdaOutgoingHeaders,
 } from "nitropack/runtime/internal";
 import { withQuery } from "ufo";
-
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace awslambda {
-    // https://docs.aws.amazon.com/lambda/latest/dg/configuration-response-streaming.html
-    function streamifyResponse(
-      handler: (
-        event: APIGatewayProxyEventV2,
-        responseStream: NodeJS.WritableStream,
-        context: Context
-      ) => Promise<void>
-    ): any;
-
-    // eslint-disable-next-line @typescript-eslint/no-namespace
-    namespace HttpResponseStream {
-      function from(
-        stream: NodeJS.WritableStream,
-        metadata: {
-          statusCode: APIGatewayProxyStructuredResultV2["statusCode"];
-          headers: APIGatewayProxyStructuredResultV2["headers"];
-        }
-      ): NodeJS.WritableStream;
-    }
-  }
-}
 
 const nitroApp = useNitroApp();
 
@@ -72,25 +48,55 @@ export const handler = awslambda.streamifyResponse(
       },
     };
     if (r.body) {
-      const reader = r.body as ReadableStream;
       const writer = awslambda.HttpResponseStream.from(
         responseStream,
         httpResponseMetadata
       );
-      await streamToNodeStream(reader.getReader(), responseStream);
+      if (!(r.body as ReadableStream).getReader) {
+        writer.write(r.body as any /* TODO */);
+        writer.end();
+        return;
+      }
+      const reader = (r.body as ReadableStream).getReader();
+      await streamToNodeStream(reader, responseStream);
       writer.end();
     }
   }
 );
 
-const streamToNodeStream = async (
-  reader: ReadableStreamDefaultReader<Uint8Array>,
+async function streamToNodeStream(
+  reader: Readable | ReadableStreamDefaultReader,
   writer: NodeJS.WritableStream
-) => {
+) {
   let readResult = await reader.read();
   while (!readResult.done) {
     writer.write(readResult.value);
     readResult = await reader.read();
   }
   writer.end();
-};
+}
+
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace awslambda {
+    // https://docs.aws.amazon.com/lambda/latest/dg/configuration-response-streaming.html
+    function streamifyResponse(
+      handler: (
+        event: APIGatewayProxyEventV2,
+        responseStream: NodeJS.WritableStream,
+        context: Context
+      ) => Promise<void>
+    ): any;
+
+    // eslint-disable-next-line @typescript-eslint/no-namespace
+    namespace HttpResponseStream {
+      function from(
+        stream: NodeJS.WritableStream,
+        metadata: {
+          statusCode: APIGatewayProxyStructuredResultV2["statusCode"];
+          headers: APIGatewayProxyStructuredResultV2["headers"];
+        }
+      ): NodeJS.WritableStream;
+    }
+  }
+}

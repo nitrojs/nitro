@@ -2,8 +2,8 @@
 name: Nitro
 shortDescription: Next Generation Server Toolkit
 description: Create web servers with everything you need and deploy them wherever you prefer.
-github: unjs/nitro
-url: https://nitro.unjs.io
+github: nitrojs/nitro
+url: https://nitro.build
 themeColor: "red"
 automd: true
 redirects:
@@ -13,7 +13,7 @@ landing:
     playOnline:
       label: "Play Online"
       icon: "i-simple-icons-lightning"
-      to: "https://stackblitz.com/github/unjs/nitro/tree/main/examples/hello-world"
+      to: "https://stackblitz.com/github/nitrojs/nitro/tree/main/examples/hello-world"
   contributors: true
   featuresTitle: "A Server for the Modern Web"
   features:

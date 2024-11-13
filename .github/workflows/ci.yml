@@ -51,7 +51,7 @@ jobs:
       - run: pnpm test:types
         if: ${{ matrix.os != 'windows-latest' }}
       - run: pnpm build
-      - run: pnpm vitest-es --coverage
+      - run: pnpm vitest --coverage
         env:
           NODE_OPTIONS: --experimental-vm-modules --enable-source-maps
       # - uses: codecov/codecov-action@v3

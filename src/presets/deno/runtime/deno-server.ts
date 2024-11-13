@@ -44,7 +44,7 @@ const serveOptions: _Deno.ServeOptions & Partial<_Deno.ServeTlsOptions> = {
   },
 };
 
-// https://github.com/unjs/nitro/pull/2373
+// https://github.com/nitrojs/nitro/pull/2373
 if (!serveOptions.key || !serveOptions.cert) {
   delete serveOptions.key;
   delete serveOptions.cert;

@@ -18,7 +18,7 @@ declare module "h3" {
     fetch: H3EventFetch;
     /** @experimental Calls fetch with same context and request headers */
     $fetch: H3Event$Fetch;
-    /** @experimental See https://github.com/unjs/nitro/issues/1420 */
+    /** @experimental See https://github.com/nitrojs/nitro/issues/1420 */
     waitUntil: (promise: Promise<unknown>) => void;
     /** @experimental */
     captureError: CaptureError;

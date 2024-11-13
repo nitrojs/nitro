@@ -148,9 +148,6 @@ To revalidate a page on demand:
 
 ### Fine-grained ISR config via route rules
 
-> [!IMPORTANT]
-> Fine-grained ISR config is currently possible by using the [nightly channel](https://nitro.unjs.io/guide/nightly).
-
 By default, query paramas are ignored by cache.
 
 You can pass an options object to `isr` route rule to configure caching behavior.

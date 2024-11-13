@@ -12,12 +12,7 @@ You can easily build Nitro powered applications to run with [wasmerio/winterjs](
 
 
 ::warning
-🌙 WinterJS is currently supported in **nightly release channel**. Read the docs for using [Nightly Release Channel](/guide/getting-started#nightly-release-channel).
-::
-
-
-::warning
-🚧 WinterJS runtime is unstable and under heavy development. Follow [unjs/nitro#1861](https://github.com/unjs/nitro/issues/1861) for status and information.
+🚧 WinterJS runtime is unstable and under heavy development. Follow [nitrojs/nitro#1861](https://github.com/nitrojs/nitro/issues/1861) for status and information.
 ::
 
 

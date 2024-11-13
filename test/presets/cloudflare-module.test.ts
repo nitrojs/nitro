@@ -13,7 +13,15 @@ describe("nitro:preset:cloudflare-module", async () => {
       modules: true,
       scriptPath: resolve(ctx.outDir, "server/index.mjs"),
       modulesRules: [{ type: "CompiledWasm", include: ["**/*.wasm"] }],
-      sitePath: resolve(ctx.outDir, "public"),
+      assets: {
+        directory: resolve(ctx.outDir, "public"),
+        routingConfig: { has_user_worker: true },
+        assetConfig: {
+          // https://developers.cloudflare.com/workers/static-assets/routing/#routing-configuration
+          html_handling: "auto-trailing-slash" /* default */,
+          not_found_handling: "none" /* default */,
+        },
+      },
       compatibilityFlags: ["streams_enable_constructors"],
       bindings: { ...ctx.env },
     });

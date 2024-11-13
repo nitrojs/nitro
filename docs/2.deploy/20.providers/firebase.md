@@ -1,26 +1,58 @@
 # Firebase
 
-> Deploy Nitro apps to Firebase.
+> Deploy Nitro apps to Firebase hosting.
+
+::note
+You will need to be on the [**Blaze plan**](https://firebase.google.com/pricing) (Pay as you go) to get started.
+::
+
+<!--
+
+## Firebase app hosting <sup>(beta)</sup>
+
+Preset: `firebase_app_hosting`
+
+:read-more{title="Firebase App Hosting" to="https://firebase.google.com/docs/app-hosting"}
+
+::important
+Firebase app hosting support is currently available in the Nitro [nightly release channel](/guide/nightly).
+::
+
+::tip
+You can integrate with this provider using [zero configuration](/deploy/#zero-config-providers).
+::
+
+### Project setup
+
+1. Go to the Firebase [console](https://console.firebase.google.com/) and set up a new project.
+2. Select **Build > App Hosting** from the sidebar.
+    - You may need to upgrade your billing plan at this step.
+3. Click **Get Started**.
+    - Choose a region.
+    - Import a GitHub repository (you’ll need to link your GitHub account).
+    - Configure deployment settings (project root directory and branch), and enable automatic rollouts.
+    - Choose a unique ID for deployment.
+4. Wait for the first release to complete.
+
+-->
+
+## Firebase hosting
 
 **Preset:** `firebase`
 
 :read-more{title="Firebase Hosting" to="https://firebase.google.com/docs/hosting"}
 
-::note
-You need to be on the **Blaze plan** to use Nitro with cloud functions.
-::
-
 ::important
 This preset will deploy to firebase functions 1st gen by default. If you want to deploy to firebase functions 2nd gen, see the [instructions below](#using-2nd-generation-firebase-functions).
 ::
 
-## Project Setup
+### Project Setup
 
-### Using firebase CLI (recommended)
+#### Using firebase CLI (recommended)
 
 You may instead prefer to set up your project with the Firebase CLI, which will fetch your project ID for you, add required dependencies (see above) and even set up automated deployments via GitHub Actions (for hosting only). [Learn about installing the firebase CLI](https://firebase.google.com/docs/cli#windows-npm).
 
-#### 1. Install firebase CLI globally
+1. Install firebase CLI globally
 
 Always try to use the latest version of the Firebase CLI.
 
@@ -30,7 +62,7 @@ npm install -g firebase-tools@latest
 
 **Note**: You need to be on [^11.18.0](https://github.com/firebase/firebase-tools/releases/tag/v11.18.0) to deploy a `nodejs18` function.
 
-#### 2. Initialize your firebase project
+2. Initialize your firebase project
 
 ```bash
 firebase login
@@ -57,11 +89,11 @@ Once complete, add the following to your `firebase.json` to enable server render
 
 You can find more details in the [Firebase documentation](https://firebase.google.com/docs/hosting/quickstart).
 
-### Alternative method
+#### Alternative method
 
 If you don't already have a `firebase.json` in your root directory, Nitro will create one the first time you run it. In this file, you will need to replace `<your_project_id>` with the ID of your Firebase project. This file should then be committed to the git.
 
-#### 1. Create a `.firebaserc` file
+1. Create a `.firebaserc` file
 
 It is recommended to create a `.firebaserc` file so you don't need to manually pass your project ID to your `firebase` commands (with `--project <your_project_id>`):
 
@@ -75,19 +107,19 @@ It is recommended to create a `.firebaserc` file so you don't need to manually p
 
 This file is usually generated when you initialize your project with the Firebase CLI. But if you don't have one, you can create it manually.
 
-#### 2. Install firebase dependencies
+2. Install firebase dependencies
 
 Then, add Firebase dependencies to your project:
 
 :pm-install{name="firebase-admin firebase-functions firebase-functions-test" dev}
 
-#### 3. Log into the firebase CLI
+3. Log into the firebase CLI
 
 Make sure you are authenticated with the firebase cli. Run this command and follow the prompts:
 
 :pm-x{command="firebase-tools login"}
 
-## Local preview
+### Local preview
 
 You can preview a local version of your site if you need to test things out without deploying.
 
@@ -96,7 +128,7 @@ NITRO_PRESET=firebase npm run build
 firebase emulators:start
 ```
 
-## Build and deploy
+### Build and deploy
 
 Deploy to Firebase Hosting by running a Nitro build and then running the `firebase deploy` command.
 
@@ -112,7 +144,7 @@ If you installed the Firebase CLI globally, you can also run:
 firebase deploy
 ```
 
-## Using 2nd generation firebase functions
+### Using 2nd generation firebase functions
 
 - [Comparison between 1st and 2nd generation functions](https://firebase.google.com/docs/functions/version-comparison)
 
@@ -148,7 +180,7 @@ If you cannot use configuration for any reason, alternatively you can use `NITRO
 
 If you already have a deployed version of your website and want to upgrade to 2nd gen, [see the Migration process on Firebase docs](https://firebase.google.com/docs/functions/2nd-gen-upgrade). Namely, the CLI will ask you to delete your existing functions before deploying the new ones.
 
-## Options
+### Options
 
 You can set options for the firebase functions in your `nitro.config.ts` file:
 
@@ -184,7 +216,7 @@ export default defineNuxtConfig({
 
 You can also set options for 1st generation Cloud Functions if the `gen` option is set to `1`. Note these are different from the options for 2nd generation Cloud Functions.
 
-### Runtime Node.js version
+#### Runtime Node.js version
 
 You can set custom Node.js version in configuration:
 
@@ -225,7 +257,7 @@ You might also need to add a runtime key to your `firebase.json` file:
 
 You can read more about this in [Firebase Docs](https://firebase.google.com/docs/functions/manage-functions?gen=2nd#set_nodejs_version).
 
-## If your firebase project has other cloud functions
+### If your firebase project has other cloud functions
 
 You may be warned that other cloud functions will be deleted when you deploy your nitro project. This is because nitro will deploy your entire project to firebase functions. If you want to deploy only your nitro project, you can use the `--only` flag:
 
@@ -233,9 +265,9 @@ You may be warned that other cloud functions will be deleted when you deploy you
 firebase deploy --only functions:server,hosting
 ```
 
-## Advanced
+### Advanced
 
-### Renaming function
+#### Renaming function
 
 When deploying multiple apps within the same Firebase project, you must give your server a unique name in order to avoid overwriting
 your functions.

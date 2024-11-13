@@ -56,7 +56,7 @@ export function isJsonRequest(event: H3Event) {
 }
 
 export function normalizeError(error: any, isDev?: boolean) {
-  // temp fix for https://github.com/unjs/nitro/issues/759
+  // temp fix for https://github.com/nitrojs/nitro/issues/759
   // TODO: investigate vercel-edge not using unenv pollyfill
   const cwd = typeof process.cwd === "function" ? process.cwd() : "/";
 

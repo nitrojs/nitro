@@ -407,14 +407,14 @@ export const plugins = [
   if (nitro.options.noExternals) {
     rollupConfig.plugins.push({
       name: "no-externals",
-      async resolveId(id, from, options) {
+      async resolveId(id, from, resolveOpts) {
         if (
           nitro.options.node &&
           (id.startsWith("node:") || builtinModules.includes(id))
         ) {
           return { id, external: true };
         }
-        const resolved = await this.resolve(id, from, options);
+        const resolved = await this.resolve(id, from, resolveOpts);
         if (!resolved) {
           const _resolved = await resolvePath(id, {
             url: nitro.options.nodeModulesDirs,

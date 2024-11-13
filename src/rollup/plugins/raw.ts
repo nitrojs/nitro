@@ -20,7 +20,7 @@ export function raw(opts: RawOptions = {}): Plugin {
 
   return {
     name: "raw",
-    async resolveId(id, importer) {
+    async resolveId(id, importer, resolveOpts) {
       if (id === HELPER_ID) {
         return id;
       }
@@ -29,22 +29,23 @@ export function raw(opts: RawOptions = {}): Plugin {
         return;
       }
 
-      let isRawId = id.startsWith("raw:");
-      if (isRawId) {
+      const withRawSpecifier = id.startsWith("raw:");
+      if (withRawSpecifier) {
         id = id.slice(4);
-      } else if (extensions.has(extname(id))) {
-        isRawId = true;
       }
 
-      if (!isRawId) {
+      if (!withRawSpecifier && !extensions.has(extname(id))) {
         return;
       }
 
-      const resolvedId = (await this.resolve(id, importer, { skipSelf: true }))
-        ?.id;
+      const resolvedId = (await this.resolve(id, importer, resolveOpts))?.id;
 
       if (!resolvedId || resolvedId.startsWith("\0")) {
         return resolvedId;
+      }
+
+      if (!withRawSpecifier && !extensions.has(extname(resolvedId))) {
+        return;
       }
 
       return { id: "\0raw:" + resolvedId };

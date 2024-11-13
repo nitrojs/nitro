@@ -1,4 +1,4 @@
-// https://nitro.unjs.io/guide/typescript
+// https://nitro.build/guide/typescript
 {
   "extends": "./.nitro/types/tsconfig.json"
 }

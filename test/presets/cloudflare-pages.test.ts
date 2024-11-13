@@ -48,6 +48,8 @@ describe.skipIf(isWindows)("nitro:preset:cloudflare-pages", async () => {
           "/_swagger",
           "/_unignored.txt",
           "/favicon.ico",
+          "/foo.css",
+          "/foo.js",
           "/json-string",
           "/prerender",
           "/prerender-custom",

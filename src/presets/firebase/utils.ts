@@ -3,6 +3,7 @@ import { writeFile, getDefaultNodeVersion } from "nitropack/kit";
 import type { Nitro } from "nitropack/types";
 import { join, relative } from "pathe";
 import { readPackageJSON, writePackageJSON } from "pkg-types";
+import type { FirebaseFunctionsOptions } from "./types";
 
 /**
  * Supported Node.js versions for Firebase Functions.
@@ -55,7 +56,7 @@ export async function updatePackageJSON(nitro: Nitro) {
     engines: {
       // https://cloud.google.com/functions/docs/concepts/nodejs-runtime
       node:
-        nitro.options.firebase?.nodeVersion ||
+        (nitro.options.firebase as FirebaseFunctionsOptions)?.nodeVersion ||
         getDefaultNodeVersion(supportedNodeVersions),
     },
   });

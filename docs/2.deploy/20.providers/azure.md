@@ -76,7 +76,7 @@ If you are using runtimeConfig, you will likely want to configure the correspond
 
 ::important
 If you encounter any issues, please ensure you're using a Node.js 16+ runtime. You can find more information about [how to set the Node version in the Azure docs](https://docs.microsoft.com/en-us/azure/azure-functions/functions-reference-node?tabs=v2#setting-the-node-version).
-Please see [unjs/nitro#2114](https://github.com/unjs/nitro/issues/2114) for some common issues.
+Please see [nitrojs/nitro#2114](https://github.com/nitrojs/nitro/issues/2114) for some common issues.
 ::
 
 ### Local preview

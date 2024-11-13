@@ -5,6 +5,7 @@ import type {
   ScheduledController,
   TraceItem,
 } from "@cloudflare/workers-types";
+import type { DurableObject } from "cloudflare:workers";
 import type { Config as WranglerConfig } from "./types.wrangler";
 
 /**
@@ -58,6 +59,8 @@ export interface CloudflareOptions {
   };
 }
 
+type DurableObjectState = ConstructorParameters<typeof DurableObject>[0];
+
 declare module "nitropack/types" {
   export interface NitroRuntimeHooks {
     // https://developers.cloudflare.com/workers/runtime-apis/handlers/scheduled/
@@ -93,5 +96,15 @@ declare module "nitropack/types" {
       env: unknown;
       context: ExecutionContext;
     }) => void;
+
+    "cloudflare:durable:init": (
+      durable: DurableObject,
+      _: {
+        state: DurableObjectState;
+        env: unknown;
+      }
+    ) => void;
+
+    "cloudflare:durable:alarm": (durable: DurableObject) => void;
   }
 }

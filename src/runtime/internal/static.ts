@@ -6,6 +6,7 @@ import {
   getResponseHeader,
   removeResponseHeader,
   setResponseHeader,
+  appendResponseHeader,
   setResponseStatus,
 } from "h3";
 import type { PublicAsset } from "nitropack/types";
@@ -49,7 +50,7 @@ export default eventHandler((event) => {
     "",
   ];
   if (encodings.length > 1) {
-    setResponseHeader(event, "Vary", "Accept-Encoding");
+    appendResponseHeader(event, "Vary", "Accept-Encoding");
   }
 
   for (const encoding of encodings) {
