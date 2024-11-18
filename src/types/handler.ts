@@ -7,6 +7,7 @@ type MaybeArray<T> = T | T[];
 /** @exprerimental */
 export interface NitroRouteMeta {
   openAPI?: OperationObject;
+  openAPIEnabled?: boolean;
 }
 
 export interface NitroEventHandler {
