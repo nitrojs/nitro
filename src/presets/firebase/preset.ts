@@ -88,7 +88,7 @@ const firebaseAppHosting = defineNitroPreset(
           stringifyYAML({
             version: "v1",
             runConfig: {
-              runCommand: "node .output/server/index.mjs",
+              runCommand: `node ${join(nitro.options.output.serverDir, "index.mjs")}`,
               ...(nitro.options.firebase as AppHostingOptions)?.appHosting,
             },
             metadata: {
