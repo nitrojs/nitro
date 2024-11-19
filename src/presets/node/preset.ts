@@ -36,11 +36,11 @@ const nodeCluster = defineNitroPreset(
       "rollup:before"(_nitro, rollupConfig) {
         const manualChunks = rollupConfig.output?.manualChunks;
         if (manualChunks && typeof manualChunks === "function") {
-          const clusterEntry = resolvePathSync("./runtime/node-server", {
+          const serverEntry = resolvePathSync("./runtime/node-server", {
             url: import.meta.url,
           });
           rollupConfig.output.manualChunks = (id, meta) => {
-            if (id.includes("node-server") && normalize(id) === clusterEntry) {
+            if (id.includes("node-server") && normalize(id) === serverEntry) {
               return "nitro/node-worker";
             }
             return manualChunks(id, meta);
