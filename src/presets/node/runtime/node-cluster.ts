@@ -62,11 +62,13 @@ function runMaster() {
 }
 
 function runWorker() {
-  import("./node-server").catch((error) => {
-    console.error(error);
-    // eslint-disable-next-line unicorn/no-process-exit
-    process.exit(1);
-  });
+  import("./node-server")
+    .then(({ serverWorker }) => serverWorker())
+    .catch((error) => {
+      console.error(error);
+      // eslint-disable-next-line unicorn/no-process-exit
+      process.exit(1);
+    });
 }
 
 // Trap unhandled errors
