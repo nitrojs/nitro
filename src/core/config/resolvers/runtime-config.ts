@@ -39,15 +39,13 @@ function provideFallbackValues(obj: Record<string, any>) {
 }
 
 function checkSerializableRuntimeConfig(obj: any, path: string[] = []) {
+  if (isPrimitiveValue(obj)) {
+    return;
+  }
+
   for (const key in obj) {
     const value = obj[key];
-    if (
-      value === null ||
-      typeof value === "string" ||
-      value === undefined ||
-      typeof value === "number" ||
-      typeof value === "boolean"
-    ) {
+    if (value === null || value === undefined || isPrimitiveValue(value)) {
       continue;
     }
 
@@ -66,4 +64,12 @@ function checkSerializableRuntimeConfig(obj: any, path: string[] = []) {
       );
     }
   }
+}
+
+function isPrimitiveValue(value: any) {
+  return (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  );
 }
