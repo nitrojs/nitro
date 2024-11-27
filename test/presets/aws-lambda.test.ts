@@ -1,4 +1,8 @@
-import type { APIGatewayProxyEvent, APIGatewayProxyEventV2 } from "aws-lambda";
+import type {
+  ALBEvent,
+  APIGatewayProxyEvent,
+  APIGatewayProxyEventV2,
+} from "aws-lambda";
 import destr from "destr";
 import { resolve } from "pathe";
 import { describe, expect, it } from "vitest";
@@ -332,6 +336,74 @@ describe("nitro:preset:aws-lambda", async () => {
     };
 
   const ctx = await setupTest("aws-lambda");
+
+  // ALB paylod (single-value query/headers)
+  const albSingle = "alb-single";
+  testNitro(
+    ctx,
+    async () => {
+      const { handler } = await import(resolve(ctx.outDir, "server/index.mjs"));
+      return async ({
+        url: rawRelativeUrl,
+        headers: rawHeaders,
+        method,
+        body,
+      }) => {
+        // creating new URL object to parse query easier
+        const url = new URL(`https://example.com${rawRelativeUrl}`);
+        const { queryStringParameters } = createQueryStringParameters(
+          url.searchParams,
+          albSingle
+        );
+        const { headers } = createHeaders(rawHeaders, albSingle);
+        const event: Partial<ALBEvent> = {
+          httpMethod: method || "GET",
+          path: url.pathname,
+          queryStringParameters,
+          headers,
+          body: body || "",
+          requestContext: { elb: { targetGroupArn: "some-target" } },
+        };
+        const res = await handler(event);
+        return makeResponse(res);
+      };
+    },
+    additionalTests({ type: albSingle })
+  );
+
+  // ALB paylod (multi-value query/headers)
+  const albMulti = "alb-multi";
+  testNitro(
+    ctx,
+    async () => {
+      const { handler } = await import(resolve(ctx.outDir, "server/index.mjs"));
+      return async ({
+        url: rawRelativeUrl,
+        headers: rawHeaders,
+        method,
+        body,
+      }) => {
+        // creating new URL object to parse query easier
+        const url = new URL(`https://example.com${rawRelativeUrl}`);
+        const { multiValueQueryStringParameters } = createQueryStringParameters(
+          url.searchParams,
+          albMulti
+        );
+        const { multiValueHeaders } = createHeaders(rawHeaders, albMulti);
+        const event: Partial<ALBEvent> = {
+          httpMethod: method || "GET",
+          path: url.pathname,
+          multiValueQueryStringParameters,
+          multiValueHeaders,
+          body: body || "",
+          requestContext: { elb: { targetGroupArn: "some-target" } },
+        };
+        const res = await handler(event);
+        return makeResponse(res);
+      };
+    },
+    additionalTests({ type: albMulti })
+  );
 
   // Lambda v1 paylod
   const rest = "rest";
