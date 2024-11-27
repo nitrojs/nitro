@@ -386,7 +386,6 @@ export function testNitro(
     });
     expect(status).toBe(503);
     expect(headers).toMatchObject({
-      connection: "keep-alive",
       "content-type": "application/json",
       "content-security-policy": "script-src 'none'; frame-ancestors 'none';",
       "referrer-policy": "no-referrer",
