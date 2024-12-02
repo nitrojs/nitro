@@ -3,14 +3,14 @@ import type {
   CaptureError,
   CapturedErrorContext,
 } from "nitropack/types";
-import type { $Fetch, NitroFetchRequest } from "./fetch/fetch";
+import type { Base$Fetch, NitroFetchRequest } from "./fetch/fetch";
 
 export type H3EventFetch = (
   request: NitroFetchRequest,
   init?: RequestInit
 ) => Promise<Response>;
 
-export type H3Event$Fetch = $Fetch<unknown, NitroFetchRequest>;
+export type H3Event$Fetch = Base$Fetch<unknown, NitroFetchRequest>;
 
 declare module "h3" {
   interface H3Event {
