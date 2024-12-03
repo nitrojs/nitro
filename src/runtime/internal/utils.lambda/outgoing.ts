@@ -48,4 +48,3 @@ const TEXT_TYPE_RE = /^text\/|\/(javascript|json|xml)|utf-?8/;
 function isTextType(contentType = "") {
   return TEXT_TYPE_RE.test(contentType);
 }
-
