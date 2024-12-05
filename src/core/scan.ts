@@ -6,7 +6,8 @@ import { withBase, withLeadingSlash, withoutTrailingSlash } from "ufo";
 export const GLOB_SCAN_PATTERN = "**/*.{js,mjs,cjs,ts,mts,cts,tsx,jsx}";
 type FileInfo = { path: string; fullPath: string };
 
-const methodSuffixRegex = /(\.(?<method>connect|delete|get|head|options|patch|post|put|trace))?/;
+const methodSuffixRegex =
+  /(\.(?<method>connect|delete|get|head|options|patch|post|put|trace))?/;
 const envSuffixRegex = /(\.(?<env>dev|prod|prerender))?$/;
 
 // prettier-ignore
@@ -79,7 +80,7 @@ export async function scanHandlers(nitro: Nitro) {
 export async function scanMiddleware(nitro: Nitro) {
   const files = await scanFiles(nitro, "middleware");
   return files.map((file) => {
-    const { env } = extractSuffix(file.path)
+    const { env } = extractSuffix(file.path);
     return {
       middleware: true,
       handler: file.fullPath,
@@ -103,7 +104,7 @@ export async function scanServerRoutes(
       .replace(/\[([^/\]]+)]/g, ":$1");
     route = withLeadingSlash(withoutTrailingSlash(withBase(route, prefix)));
 
-    const { path, method, env } = extractSuffix(route, true)
+    const { path, method, env } = extractSuffix(route, true);
     route = path.replace(/\/index$/, "") || "/";
 
     return {
@@ -125,7 +126,7 @@ export async function scanPlugins(nitro: Nitro) {
 export async function scanTasks(nitro: Nitro) {
   const files = await scanFiles(nitro, "tasks");
   return files.map((f) => {
-    const { path, env } = extractSuffix(f.path)
+    const { path, env } = extractSuffix(f.path);
     const name = path
       .replace(/\/index$/, "")
       .replace(/\.[A-Za-z]+$/, "")
@@ -167,17 +168,12 @@ async function scanDir(
     .sort((a, b) => a.path.localeCompare(b.path));
 }
 
-function extractSuffix(
-  path: string,
-): { path: string; env?: MatchedEnvSuffix }
+function extractSuffix(path: string): { path: string; env?: MatchedEnvSuffix };
 function extractSuffix(
   path: string,
   includeMethod: true
-): { path: string; method?: MatchedMethodSuffix; env?: MatchedEnvSuffix }
-function extractSuffix(
-  path: string,
-  includeMethod: boolean = false
-) {
+): { path: string; method?: MatchedMethodSuffix; env?: MatchedEnvSuffix };
+function extractSuffix(path: string, includeMethod: boolean = false) {
   const regex = includeMethod
     ? new RegExp(methodSuffixRegex.source + envSuffixRegex.source)
     : envSuffixRegex;
