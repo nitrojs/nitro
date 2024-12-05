@@ -3,15 +3,19 @@ import type { Nitro } from "nitropack/types";
 import { join, relative } from "pathe";
 import { withBase, withLeadingSlash, withoutTrailingSlash } from "ufo";
 
-export const GLOB_SCAN_PATTERN = "**/*.{js,mjs,cjs,ts,mts,cts,tsx,jsx}";
-type FileInfo = { path: string; fullPath: string };
-
-const suffixRegex =
-  /(\.(?<method>connect|delete|get|head|options|patch|post|put|trace))?(\.(?<env>dev|prod|prerender))?$/;
-
 // prettier-ignore
 type MatchedMethodSuffix = "connect" | "delete" | "get" | "head" | "options" | "patch" | "post" | "put" | "trace";
 type MatchedEnvSuffix = "dev" | "prod" | "prerender";
+type FileInfo = {
+  path: string;
+  fullPath: string;
+  method?: MatchedMethodSuffix;
+  env?: MatchedEnvSuffix;
+};
+
+export const GLOB_SCAN_PATTERN = "**/*.{js,mjs,cjs,ts,mts,cts,tsx,jsx}";
+const suffixRegex =
+  /(\.(?<method>connect|delete|get|head|options|patch|post|put|trace))?(\.(?<env>dev|prod|prerender))?$/;
 
 export async function scanAndSyncOptions(nitro: Nitro) {
   // Scan plugins
@@ -82,6 +86,7 @@ export async function scanMiddleware(nitro: Nitro) {
     return {
       middleware: true,
       handler: file.fullPath,
+      env: file.env,
     };
   });
 }
@@ -100,16 +105,6 @@ export async function scanServerRoutes(
       .replace(/\[\.{3}(\w+)]/g, "**:$1")
       .replace(/\[([^/\]]+)]/g, ":$1");
     route = withLeadingSlash(withoutTrailingSlash(withBase(route, prefix)));
-
-    const suffixMatch = route.match(suffixRegex);
-    let method: MatchedMethodSuffix | undefined;
-    let env: MatchedEnvSuffix | undefined;
-    if (suffixMatch?.index && suffixMatch?.index >= 0) {
-      route = route.slice(0, suffixMatch.index);
-      method = suffixMatch.groups?.method as MatchedMethodSuffix | undefined;
-      env = suffixMatch.groups?.env as MatchedEnvSuffix | undefined;
-    }
-
     route = route.replace(/\/index$/, "") || "/";
 
     return {
@@ -117,8 +112,8 @@ export async function scanServerRoutes(
       lazy: true,
       middleware: false,
       route,
-      method,
-      env,
+      method: file.method,
+      env: file.env,
     };
   });
 }
@@ -135,7 +130,7 @@ export async function scanTasks(nitro: Nitro) {
       .replace(/\/index$/, "")
       .replace(/\.[A-Za-z]+$/, "")
       .replace(/\//g, ":");
-    return { name, handler: f.fullPath };
+    return { name, handler: f.fullPath, env: f.env };
   });
 }
 
@@ -164,9 +159,21 @@ async function scanDir(
   });
   return fileNames
     .map((fullPath) => {
+      const path = relative(join(dir, name), fullPath);
+      const suffixMatch = path.match(suffixRegex);
+      let method: MatchedMethodSuffix | undefined;
+      let env: MatchedEnvSuffix | undefined;
+
+      if (suffixMatch?.index && suffixMatch?.index >= 0) {
+        method = suffixMatch.groups?.method as MatchedMethodSuffix | undefined;
+        env = suffixMatch.groups?.env as MatchedEnvSuffix | undefined;
+      }
+
       return {
         fullPath,
-        path: relative(join(dir, name), fullPath),
+        path,
+        method,
+        env,
       };
     })
     .sort((a, b) => a.path.localeCompare(b.path));
