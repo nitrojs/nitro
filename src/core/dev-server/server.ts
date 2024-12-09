@@ -45,9 +45,13 @@ function initWorker(filename: string): Promise<NitroWorker> | undefined {
       );
     });
     worker.once("error", (err) => {
-      const newErr = new Error("[worker init] " + err.message);
-      newErr.stack = err.stack;
-      reject(newErr);
+      const newError = new Error(`[worker init] ${filename} failed`, {
+        cause: err,
+      });
+
+      // pass stack trace to new error
+      newError.stack = err.stack;
+      reject(newError);
     });
     const addressListener = (event: any) => {
       if (!event || !event?.address) {
@@ -141,7 +145,13 @@ export function createDevServer(nitro: Nitro): NitroDevServer {
         lastError = undefined;
       })
       .catch((error) => {
-        console.error("[worker reload]", error);
+        const errorArgs = ["[worker reload]", error];
+
+        if (error?.cause) {
+          errorArgs.push("Caused by:", error.cause);
+        }
+
+        console.error(...errorArgs);
         lastError = error;
       })
       .finally(() => {
