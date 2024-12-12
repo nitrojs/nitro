@@ -5,6 +5,7 @@ import {
   fetchWithEvent,
   handleCacheHeaders,
   isEvent,
+  isStream,
   splitCookiesString,
 } from "h3";
 import type { EventHandlerRequest, EventHandlerResponse, H3Event } from "h3";
@@ -406,11 +407,26 @@ export function defineCachedEventHandler<
         headers["cache-control"] = cacheControl.join(", ");
       }
 
+      let cachedBody = body as any;
+      // When handler response is a stream, we cache the result of this stream
+      if (body instanceof ReadableStream) {
+        const td = new TextDecoder();
+        let buffer = "";
+        await body.pipeTo(
+          new WritableStream({
+            write(chunk) {
+              buffer += td.decode(chunk);
+            },
+          })
+        );
+        cachedBody = buffer;
+      }
+
       // Create cache entry for response
       const cacheEntry: ResponseCacheEntry<Response> = {
         code: event.node.res.statusCode,
         headers,
-        body,
+        body: cachedBody,
       };
 
       return cacheEntry;

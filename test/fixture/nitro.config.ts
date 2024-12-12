@@ -91,6 +91,7 @@ export default defineNitroConfig({
     "/rules/_/cached/noncached": { cache: false, swr: false, isr: false },
     "/rules/_/cached/**": { swr: true },
     "/api/proxy/**": { proxy: "/api/echo" },
+    "/stream-cached": { swr: true },
   },
   prerender: {
     crawlLinks: true,

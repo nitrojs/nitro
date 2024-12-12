@@ -143,6 +143,10 @@ describe("nitro:preset:vercel", async () => {
                 "src": "(?<url>/rules/swr-ttl/.*)",
               },
               {
+                "dest": "/stream-cached?url=$url",
+                "src": "/stream-cached",
+              },
+              {
                 "dest": "/__nitro",
                 "src": "/(.*)",
               },

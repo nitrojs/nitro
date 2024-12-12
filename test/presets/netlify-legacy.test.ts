@@ -71,6 +71,7 @@ describe("nitro:preset:netlify-legacy", async () => {
         /rules/isr-ttl/*	/.netlify/builders/server 200
         /rules/isr/*	/.netlify/builders/server 200
         /rules/dynamic	/.netlify/functions/server 200
+        /stream-cached	/.netlify/builders/server 200
         /build/* /build/:splat 200
         /* /.netlify/functions/server 200"
       `);
