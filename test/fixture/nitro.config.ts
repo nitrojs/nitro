@@ -24,6 +24,11 @@ export default defineNitroConfig({
       // @ts-expect-error #2382
       method: "GET",
     },
+    {
+      route: "/api/hello2",
+      handler: "~/api/hello.ts",
+      method: "GET",
+    }
   ],
   devProxy: {
     "/proxy/example": { target: "https://example.com", changeOrigin: true },
