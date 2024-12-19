@@ -26,8 +26,7 @@ export default defineNitroConfig({
     },
     {
       route: "/api/hello2",
-      handler: "~/api/hello.ts",
-      method: "GET",
+      handler: "~/api/hello.ts"
     },
   ],
   devProxy: {
