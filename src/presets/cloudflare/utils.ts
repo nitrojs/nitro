@@ -290,12 +290,12 @@ function mergeWranglerConfig(
   const mergedConfig: WranglerConfig = defu(userConfig, extraConfig);
   if (mergedConfig.compatibility_flags) {
     mergedConfig.compatibility_flags = [
-      ...new Set(mergedConfig.compatibility_flags),
+      ...new Set(mergedConfig.compatibility_flags || []),
     ];
-    if (mergedConfig.compatibility_flags.includes?.("no_nodejs_compat_v2")) {
+    if (mergedConfig.compatibility_flags.includes("no_nodejs_compat_v2")) {
       mergedConfig.compatibility_flags =
         mergedConfig.compatibility_flags.filter(
-          (flag) => flag !== "no_nodejs_compat_v2"
+          (flag) => flag !== "nodejs_compat_v2"
         );
     }
   }
