@@ -205,17 +205,15 @@ async function writeCFWranglerConfig(nitro: Nitro) {
     ? mergeWranglerConfig(userConfig.config, extraConfig)
     : extraConfig;
 
-  // Explicitly fail if pages_build_output_dir is set
-  if (mergedConfig.pages_build_output_dir) {
-    throw new Error(
-      "Custom wrangler `pages_build_output_dir` is not supported."
-    );
-  }
-
   // Write config
   // https://github.com/cloudflare/workers-sdk/pull/7442
   const configRedirect = !!process.env.EXPERIMENTAL_WRANGLER_CONFIG;
   if (configRedirect) {
+    if (mergedConfig.pages_build_output_dir) {
+      throw new Error(
+        "`pages_build_output_dir` wrangler config should not be set."
+      );
+    }
     const configPath = join(
       nitro.options.rootDir,
       ".wrangler/deploy/config.json"
