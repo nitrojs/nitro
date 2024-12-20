@@ -289,10 +289,15 @@ function mergeWranglerConfig(
   // TODO: Improve logic with explicit merging
   const mergedConfig: WranglerConfig = defu(userConfig, extraConfig);
   if (mergedConfig.compatibility_flags) {
-    // TODO: exclude `no_` configs from userConfig
     mergedConfig.compatibility_flags = [
       ...new Set(mergedConfig.compatibility_flags),
     ];
+    if (mergedConfig.compatibility_flags.includes?.("no_nodejs_compat_v2")) {
+      mergedConfig.compatibility_flags =
+        mergedConfig.compatibility_flags.filter(
+          (flag) => flag !== "no_nodejs_compat_v2"
+        );
+    }
   }
   return mergedConfig;
 }
