@@ -287,5 +287,12 @@ function mergeWranglerConfig(
   extraConfig: WranglerConfig = {}
 ): WranglerConfig {
   // TODO: Improve logic with explicit merging
-  return defu(userConfig, extraConfig);
+  const mergedConfig: WranglerConfig = defu(userConfig, extraConfig);
+  if (mergedConfig.compatibility_flags) {
+    // TODO: exclude `no_` configs from userConfig
+    mergedConfig.compatibility_flags = [
+      ...new Set(mergedConfig.compatibility_flags),
+    ];
+  }
+  return mergedConfig;
 }
