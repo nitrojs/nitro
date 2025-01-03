@@ -108,7 +108,6 @@ async function _loadUserConfig(
       if (!compatibilityDate) {
         compatibilityDate = getConf("compatibilityDate");
       }
-
       const framework = configs.overrides?.framework || configs.main?.framework;
       return {
         typescript: {
