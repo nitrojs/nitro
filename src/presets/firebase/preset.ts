@@ -100,9 +100,11 @@ const firebaseAppHosting = defineNitroPreset(
             },
             outputFiles: {
               serverApp: {
-                include: [relative(nitro.options.rootDir, nitro.options.output.dir)]
-              }
-            }
+                include: [
+                  relative(nitro.options.rootDir, nitro.options.output.dir),
+                ],
+              },
+            },
           } satisfies AppHostingOutputBundleConfig),
           true
         );

@@ -100,7 +100,7 @@ export interface AppHostingOutputBundleConfig {
     /** serverApp holds a list of directories + files relative to the app root dir that frameworks need to deploy to the App Hosting server, 
     generally this will be the output/dist directory e.g. ./.output or ./dist, In the case that the framework wants to include all files they can use [“.”] */
     serverApp: {
-      include:  string[]
-    }
+      include: string[];
+    };
   };
 }
