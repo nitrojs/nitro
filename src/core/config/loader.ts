@@ -109,19 +109,6 @@ async function _loadUserConfig(
         compatibilityDate = getConf("compatibilityDate");
       }
 
-      const alias = getConf("alias");
-      if (alias && typeof alias === "object") {
-        ((configs.main ??= {}).typescript ??= {}).tsConfig ??= {};
-        (configs.main.typescript.tsConfig.compilerOptions ??= {}).paths ??= {};
-
-        const paths = configs.main.typescript.tsConfig.compilerOptions.paths;
-        for (const [key, value] of Object.entries(alias)) {
-          if (typeof paths === "object") {
-            paths[key] = [value];
-          }
-        }
-      }
-
       const framework = configs.overrides?.framework || configs.main?.framework;
       return {
         typescript: {

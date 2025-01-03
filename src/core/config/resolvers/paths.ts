@@ -16,6 +16,18 @@ export async function resolvePathOptions(options: NitroOptions) {
     options[key] = resolve(options.rootDir, options[key]);
   }
 
+  const alias = options.alias;
+  if (alias && typeof alias === "object") {
+    ((options.typescript.tsConfig ??= {}).compilerOptions ??= {}).paths ??= {};
+
+    const paths = options.typescript.tsConfig.compilerOptions.paths;
+    for (const [key, value] of Object.entries(alias)) {
+      if (typeof paths === "object") {
+        paths[key] = [value];
+      }
+    }
+  }
+
   // Add aliases
   options.alias = {
     ...options.alias,
