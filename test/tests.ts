@@ -457,6 +457,7 @@ export function testNitro(
     const res = await callHandler({ url: "/imports" });
     expect(res.data).toMatchObject({
       testUtil: 123,
+      testNestedUtil: 1234 + 12_345,
     });
   });
 

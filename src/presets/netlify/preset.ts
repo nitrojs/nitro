@@ -19,7 +19,7 @@ const netlify = defineNitroPreset(
     entry: "./runtime/netlify",
     output: {
       dir: "{{ rootDir }}/.netlify/functions-internal",
-      publicDir: "{{ rootDir }}/dist",
+      publicDir: "{{ rootDir }}/dist/{{ baseURL }}",
     },
     rollupConfig: {
       output: {
@@ -67,7 +67,7 @@ const netlifyEdge = defineNitroPreset(
     exportConditions: ["netlify"],
     output: {
       serverDir: "{{ rootDir }}/.netlify/edge-functions/server",
-      publicDir: "{{ rootDir }}/dist",
+      publicDir: "{{ rootDir }}/dist/{{ baseURL }}",
     },
     rollupConfig: {
       output: {
@@ -114,7 +114,7 @@ const netlifyStatic = defineNitroPreset(
     extends: "static",
     output: {
       dir: "{{ rootDir }}/dist",
-      publicDir: "{{ rootDir }}/dist",
+      publicDir: "{{ rootDir }}/dist/{{ baseURL }}",
     },
     commands: {
       preview: "npx serve ./",
