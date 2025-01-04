@@ -95,10 +95,9 @@ export interface AppHostingOutputBundleConfig {
     frameworkVersion?: string;
   };
 
-  // Optional outputFiles for frameworks to let us know where their outputFiles are and optimize server files + static assets.
+  // Optional outputFiles for frameworks to optimize server files + static assets.
   outputFiles?: {
-    /** serverApp holds a list of directories + files relative to the app root dir that frameworks need to deploy to the App Hosting server, 
-    generally this will be the output/dist directory e.g. ./.output or ./dist, In the case that the framework wants to include all files they can use [“.”] */
+    /** serverApp holds a list of directories + files relative to the app root dir that frameworks need to deploy to the App Hosting server. */
     serverApp: {
       include: string[];
     };
