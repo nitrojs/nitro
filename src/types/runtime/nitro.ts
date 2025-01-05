@@ -16,7 +16,7 @@ export interface NitroApp {
 }
 
 export interface NitroAppPlugin {
-  (nitro: NitroApp): void;
+  (nitro: NitroApp): void | Promise<void>;
 }
 
 export interface NitroAsyncContext {
