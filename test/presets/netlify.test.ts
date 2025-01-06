@@ -167,7 +167,7 @@ describe("nitro:preset:netlify", async () => {
 
   describe("getStaticPaths", () => {
     it("always returns `/.netlify/*`", () => {
-      expect(getStaticPaths([])).toEqual(["/.netlify/*"]);
+      expect(getStaticPaths([], "/base")).toEqual(["/.netlify/*"]);
     });
 
     it("returns a pattern with a leading slash for each non-fallthrough non-root public asset path", () => {
