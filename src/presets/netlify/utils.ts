@@ -93,16 +93,16 @@ export async function writeHeaders(nitro: Nitro) {
   await fsp.writeFile(headersPath, contents);
 }
 
-export function getStaticPaths(publicAssets: PublicAssetDir[]): string[] {
+export function getStaticPaths(
+  publicAssets: PublicAssetDir[],
+  baseURL: string
+): string[] {
   return [
-    "/.netlify",
+    "/.netlify/*", // TODO: should this be also be prefixed with baseURL?
     ...publicAssets
-      .filter(
-        (path) =>
-          path.fallthrough !== true && path.baseURL && path.baseURL !== "/"
-      )
-      .map(({ baseURL }) => baseURL),
-  ].map((url) => joinURL("/", url!, "*"));
+      .filter((a) => a.fallthrough !== true && a.baseURL && a.baseURL !== "/")
+      .map((a) => joinURL(baseURL, a.baseURL!, "*")),
+  ];
 }
 
 // This is written to the functions directory. It just re-exports the compiled handler,
@@ -115,8 +115,8 @@ export { default } from "./main.mjs";
 export const config = {
   name: "server handler",
   generator: "${getGeneratorString(nitro)}",
-  path: "/*",
-  excludedPath: ${JSON.stringify(getStaticPaths(nitro.options.publicAssets))},
+  path: "${joinURL(nitro.options.baseURL, "*")}",
+  excludedPath: ${JSON.stringify(getStaticPaths(nitro.options.publicAssets, nitro.options.baseURL))},
   preferStatic: true,
 };
     `.trim();
