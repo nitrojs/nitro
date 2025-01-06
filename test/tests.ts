@@ -378,13 +378,20 @@ export function testNitro(
   });
 
   it("handles errors", async () => {
-    const { status } = await callHandler({
+    const { status, headers } = await callHandler({
       url: "/api/error",
       headers: {
         Accept: "application/json",
       },
     });
     expect(status).toBe(503);
+    expect(headers).toMatchObject({
+      "content-type": "application/json",
+      "content-security-policy": "script-src 'none'; frame-ancestors 'none';",
+      "referrer-policy": "no-referrer",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+    });
   });
 
   it.skipIf(isWindows && ctx.preset === "nitro-dev")(
@@ -450,6 +457,7 @@ export function testNitro(
     const res = await callHandler({ url: "/imports" });
     expect(res.data).toMatchObject({
       testUtil: 123,
+      testNestedUtil: 1234 + 12_345,
     });
   });
 

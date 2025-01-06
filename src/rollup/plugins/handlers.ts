@@ -93,10 +93,11 @@ ${handlers
       },
       "#nitro-internal-virtual/server-handlers-meta": () => {
         const handlers = getHandlers();
+        const imports = unique(handlers.map((h) => h.handler));
         return /* js */ `
-  ${handlers
+  ${imports
     .map(
-      (h) => `import ${getImportId(h.handler)}Meta from "${h.handler}?meta";`
+      (handler) => `import ${getImportId(handler)}Meta from "${handler}?meta";`
     )
     .join("\n")}
 export const handlersMeta = [

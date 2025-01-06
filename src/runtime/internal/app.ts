@@ -121,10 +121,10 @@ function createNitroApp(): NitroApp {
       // Assign bound fetch to context
       event.fetch = (req, init) =>
         fetchWithEvent(event, req, init, { fetch: localFetch });
-      event.$fetch = ((req, init) =>
+      event.$fetch = (req, init) =>
         fetchWithEvent(event, req, init as RequestInit, {
           fetch: $fetch as any,
-        })) as $Fetch<unknown, NitroFetchRequest>;
+        });
 
       // https://github.com/nitrojs/nitro/issues/1420
       event.waitUntil = (promise) => {

@@ -124,7 +124,7 @@ export async function writeSWARoutes(nitro: Nitro) {
     const existingRouteIndex = config.routes.findIndex(
       (_route) => _route.route === route
     );
-    if (existingRouteIndex > -1) {
+    if (existingRouteIndex !== -1) {
       config.routes.splice(existingRouteIndex, 1);
     }
     config.routes.unshift({

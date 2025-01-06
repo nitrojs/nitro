@@ -41,7 +41,11 @@ export default {
       import.meta._websocket &&
       request.headers.get("upgrade") === "websocket"
     ) {
-      return ws!.handleUpgrade(request as any, env, context);
+      return ws!.handleUpgrade(
+        request as any,
+        env,
+        context as unknown as ExecutionContext
+      );
     }
 
     const url = new URL(request.url);
