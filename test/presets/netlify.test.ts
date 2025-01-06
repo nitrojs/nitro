@@ -206,10 +206,10 @@ describe("nitro:preset:netlify", async () => {
           maxAge: 0,
         },
       ];
-      expect(getStaticPaths(publicAssets)).toEqual([
+      expect(getStaticPaths(publicAssets, "/base")).toEqual([
         "/.netlify/*",
-        "/with-default-fallthrough/*",
-        "/nested/no-fallthrough/*",
+        "/base/with-default-fallthrough/*",
+        "/base/nested/no-fallthrough/*",
       ]);
     });
   });
