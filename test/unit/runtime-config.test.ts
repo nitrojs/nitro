@@ -39,6 +39,7 @@ describe("normalizeRuntimeConfig", () => {
   it("should not warn when primitive prototype is changed", () => {
     const warnSpy = vi.spyOn(console, "warn");
 
+    // https://github.com/nitrojs/nitro/pull/2902
     (String.prototype as any).brokenFunction = () => undefined;
 
     normalizeRuntimeConfig(nitroConfig);
