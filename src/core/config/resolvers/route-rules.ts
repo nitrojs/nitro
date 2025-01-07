@@ -19,8 +19,8 @@ export function normalizeRouteRules(
   const normalizedRules: Record<string, NitroRouteRules> = {};
   for (let path in config.routeRules) {
     const routeConfig = config.routeRules[path] as NitroRouteConfig;
-    if (!path.startsWith('/')) {
-      path = `/${path}`
+    if (!path.startsWith("/")) {
+      path = `/${path}`;
     }
     const routeRules: NitroRouteRules = {
       ...routeConfig,
