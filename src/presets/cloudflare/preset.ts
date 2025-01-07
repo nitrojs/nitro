@@ -6,7 +6,12 @@ import { writeCFPagesFiles, writeCFPagesStaticFiles } from "./utils";
 
 export type { CloudflareOptions as PresetOptions } from "./types";
 
-const cloudflareExternals = ["cloudflare:workers", "cloudflare:sockets"];
+const cloudflareExternals = [
+  "cloudflare:email",
+  "cloudflare:sockets",
+  "cloudflare:workers",
+  "cloudflare:workflows",
+] as const;
 
 const cloudflarePages = defineNitroPreset(
   {
