@@ -6,6 +6,8 @@ import { writeCFPagesFiles, writeCFPagesStaticFiles } from "./utils";
 
 export type { CloudflareOptions as PresetOptions } from "./types";
 
+const cloudflareExternals = ["cloudflare:workers", "cloudflare:sockets"];
+
 const cloudflarePages = defineNitroPreset(
   {
     extends: "cloudflare",
@@ -19,6 +21,9 @@ const cloudflarePages = defineNitroPreset(
       dir: "{{ rootDir }}/dist",
       publicDir: "{{ output.dir }}/{{ baseURL }}",
       serverDir: "{{ output.dir }}/_worker.js",
+    },
+    unenv: {
+      external: [...cloudflareExternals],
     },
     alias: {
       // Hotfix: Cloudflare appends /index.html if mime is not found and things like ico are not in standard lite.js!
@@ -86,6 +91,9 @@ const cloudflare = defineNitroPreset(
     wasm: {
       lazy: true,
     },
+    unenv: {
+      external: [...cloudflareExternals],
+    },
     hooks: {
       async compiled(nitro: Nitro) {
         await writeFile(
@@ -123,6 +131,9 @@ const cloudflareModuleLegacy = defineNitroPreset(
         inlineDynamicImports: false,
       },
     },
+    unenv: {
+      external: [...cloudflareExternals],
+    },
     wasm: {
       lazy: false,
       esmImport: true,
@@ -155,6 +166,9 @@ const cloudflareModule = defineNitroPreset(
     commands: {
       preview: "npx wrangler dev ./server/index.mjs --assets ./public/",
       deploy: "npx wrangler deploy",
+    },
+    unenv: {
+      external: [...cloudflareExternals],
     },
     rollupConfig: {
       output: {
@@ -191,8 +205,8 @@ const cloudflareDurable = defineNitroPreset(
   {
     extends: "cloudflare-module",
     entry: "./runtime/cloudflare-durable",
-    rollupConfig: {
-      external: ["cloudflare:workers"],
+    unenv: {
+      external: [...cloudflareExternals],
     },
   },
   {
