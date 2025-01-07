@@ -17,8 +17,11 @@ export function normalizeRouteRules(
   config: NitroConfig
 ): Record<string, NitroRouteRules> {
   const normalizedRules: Record<string, NitroRouteRules> = {};
-  for (const path in config.routeRules) {
+  for (let path in config.routeRules) {
     const routeConfig = config.routeRules[path] as NitroRouteConfig;
+    if (!path.startsWith('/')) {
+      path = `/${path}`
+    }
     const routeRules: NitroRouteRules = {
       ...routeConfig,
       redirect: undefined,
