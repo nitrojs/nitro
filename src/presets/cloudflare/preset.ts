@@ -7,9 +7,13 @@ import { writeCFPagesFiles, writeCFPagesStaticFiles } from "./utils";
 export type { CloudflareOptions as PresetOptions } from "./types";
 
 const cloudflareExternals = [
+  // https://developers.cloudflare.com/email-routing/email-workers/reply-email-workers/
   "cloudflare:email",
+  // https://developers.cloudflare.com/workers/runtime-apis/tcp-sockets/
   "cloudflare:sockets",
+  // https://developers.cloudflare.com/durable-objects/get-started/walkthrough/
   "cloudflare:workers",
+  // https://developers.cloudflare.com/workflows/build/workers-api/
   "cloudflare:workflows",
 ] as const;
 
