@@ -94,4 +94,12 @@ export interface AppHostingOutputBundleConfig {
     // Version of the framework that is being supported, e.g. "18.0.1"
     frameworkVersion?: string;
   };
+
+  // Optional outputFiles for frameworks to optimize server files + static assets.
+  outputFiles?: {
+    /** serverApp holds a list of directories + files relative to the app root dir that frameworks need to deploy to the App Hosting server. */
+    serverApp: {
+      include: string[];
+    };
+  };
 }

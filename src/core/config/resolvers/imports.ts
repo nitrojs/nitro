@@ -27,7 +27,7 @@ export async function resolveImportsOptions(options: NitroOptions) {
   // Auto imports from utils dirs
   options.imports.dirs ??= [];
   options.imports.dirs.push(
-    ...options.scanDirs.map((dir) => join(dir, "utils/*"))
+    ...options.scanDirs.map((dir) => join(dir, "utils/**/*"))
   );
 
   // Normalize exclude
