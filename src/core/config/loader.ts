@@ -8,7 +8,6 @@ import type {
   NitroOptions,
   NitroPresetMeta,
 } from "nitro/types";
-import { defu } from "defu"
 import { NitroDefaults } from "./defaults";
 
 // Resolvers
@@ -138,7 +137,7 @@ async function _loadUserConfig(
       });
       if (preset) {
         return {
-          config: defu(preset),
+          config: klona(preset),
         };
       }
     },
