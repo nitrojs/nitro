@@ -7,8 +7,8 @@ import type {
   NitroConfig,
   NitroOptions,
   NitroPresetMeta,
-} from "nitropack/types";
-
+} from "nitro/types";
+import { defu } from "defu"
 import { NitroDefaults } from "./defaults";
 
 // Resolvers
@@ -138,7 +138,7 @@ async function _loadUserConfig(
       });
       if (preset) {
         return {
-          config: preset,
+          config: defu(preset),
         };
       }
     },
