@@ -730,6 +730,34 @@ export function testNitro(
         }
       }
     );
+
+    it.skipIf(
+      ctx.isIsolated ||
+        (isWindows && ctx.preset === "nitro-dev") ||
+        ctx.isLambda
+    )("should cache stream result", async () => {
+      const { data } = await callHandler({
+        url: "/stream-cached",
+      });
+
+      const [str, timestamp] = data.split(",") as string[];
+
+      expect(str).toBe(
+        ctx.isLambda ? btoa("nitroisawesome") : "nitroisawesome"
+      );
+
+      const calls = await Promise.all([
+        callHandler({ url: "/stream-cached" }),
+        callHandler({ url: "/stream-cached" }),
+        callHandler({ url: "/stream-cached" }),
+      ]);
+
+      for (const call of calls) {
+        expect(call.data).toBe(
+          ctx.isLambda ? btoa(`${str},${timestamp}`) : `${str},${timestamp}`
+        );
+      }
+    });
   });
 
   describe("scanned files", () => {
