@@ -1,10 +1,13 @@
-// Backward compatibility for imports from "#internal/nitro/*" or "nitropack/runtime/*"
+import type { NitroErrorHandler } from "nitropack/types";
 import type { H3Event } from "h3";
 import { getRequestHeader } from "h3";
 
-/**
- * @deprecated This util is only provided for backward compatibility and will be removed in v3.
- */
+export function defineNitroErrorHandler(
+  handler: NitroErrorHandler
+): NitroErrorHandler {
+  return handler;
+}
+
 export function isJsonRequest(event: H3Event) {
   // If the client specifically requests HTML, then avoid classifying as JSON.
   if (hasReqHeader(event, "accept", "text/html")) {
@@ -20,9 +23,6 @@ export function isJsonRequest(event: H3Event) {
   );
 }
 
-/**
- * Internal
- */
 function hasReqHeader(event: H3Event, name: string, includes: string) {
   const value = getRequestHeader(event, name);
   return (
@@ -30,9 +30,6 @@ function hasReqHeader(event: H3Event, name: string, includes: string) {
   );
 }
 
-/**
- * @deprecated This util is only provided for backward compatibility and will be removed in v3.
- */
 export function normalizeError(error: any, isDev?: boolean) {
   // temp fix for https://github.com/nitrojs/nitro/issues/759
   // TODO: investigate vercel-edge not using unenv pollyfill

@@ -1,18 +1,15 @@
-// import ansiHTML from 'ansi-html'
 import {
   send,
   setResponseHeader,
   setResponseHeaders,
   setResponseStatus,
 } from "h3";
-import type { NitroErrorHandler } from "nitropack/types";
-import { isJsonRequest, normalizeError } from "./utils";
 
-export function defineNitroErrorHandler(
-  handler: NitroErrorHandler
-): NitroErrorHandler {
-  return handler;
-}
+import {
+  defineNitroErrorHandler,
+  isJsonRequest,
+  normalizeError,
+} from "./utils";
 
 const isDev = process.env.NODE_ENV === "development";
 

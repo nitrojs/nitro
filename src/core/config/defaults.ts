@@ -58,7 +58,7 @@ export const NitroDefaults: NitroConfig = {
   baseURL: process.env.NITRO_APP_BASE_URL || "/",
   handlers: [],
   devHandlers: [],
-  errorHandler: join(runtimeDir, "internal/error"),
+  errorHandler: join(runtimeDir, "internal/error/handler"),
   routeRules: {},
   prerender: {
     autoSubfolderIndex: true,
