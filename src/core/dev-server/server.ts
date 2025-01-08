@@ -22,6 +22,7 @@ import type {
   Nitro,
   NitroBuildInfo,
   NitroDevServer,
+  NitroRouteRules,
   NitroWorker,
 } from "nitropack/types";
 import { resolve } from "pathe";
@@ -31,6 +32,8 @@ import serveStatic from "serve-static";
 import { joinURL } from "ufo";
 import defaultErrorHandler from "./error";
 import { createVFSHandler } from "./vfs";
+import { createRouter as createRadixRouter, toRouteMatcher } from "radix3";
+import defu from "defu";
 
 function initWorker(filename: string): Promise<NitroWorker> | undefined {
   if (!existsSync(filename)) {
@@ -166,13 +169,40 @@ export function createDevServer(nitro: Nitro): NitroDevServer {
   // Debugging endpoint to view vfs
   app.use("/_vfs", createVFSHandler(nitro));
 
+  // Apply headers based on routeRules. In cases where the dev server is being
+  // used, these would otherwise fail to be applied to public assets.
+  const routeRulesMatcher = toRouteMatcher(
+    createRadixRouter({ routes: nitro.options.routeRules })
+  );
   // Serve asset dirs
   for (const asset of nitro.options.publicAssets) {
     const url = joinURL(
       nitro.options.runtimeConfig.app.baseURL,
       asset.baseURL || "/"
     );
-    app.use(url, fromNodeMiddleware(serveStatic(asset.dir)));
+    app.use(
+      url,
+      fromNodeMiddleware(
+        serveStatic(asset.dir, {
+          setHeaders: (res) => {
+            const path = res.req.url;
+            if (path === undefined) {
+              return;
+            }
+            const rules: NitroRouteRules = defu(
+              {},
+              ...routeRulesMatcher.matchAll(path).reverse()
+            );
+            if (!rules.headers) {
+              return;
+            }
+            for (const [k, v] of Object.entries(rules.headers)) {
+              res.appendHeader(k, v);
+            }
+          },
+        })
+      )
+    );
     if (!asset.fallthrough) {
       app.use(url, fromNodeMiddleware(servePlaceholder()));
     }

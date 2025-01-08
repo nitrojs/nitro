@@ -82,19 +82,20 @@ describe("nitro:preset:netlify-legacy", async () => {
         );
 
         expect(headers).toMatchInlineSnapshot(`
-        "/rules/headers
-          cache-control: s-maxage=60
-        /rules/cors
-          access-control-allow-origin: *
-          access-control-allow-methods: GET
-          access-control-allow-headers: *
-          access-control-max-age: 0
-        /rules/nested/*
-          x-test: test
-        /build/*
-          cache-control: public, max-age=3600, immutable
-        "
-      `);
+          "/rules/headers
+            cache-control: s-maxage=60
+          /rules/cors
+            access-control-allow-origin: *
+            access-control-allow-methods: GET
+            access-control-allow-headers: *
+            access-control-max-age: 0
+          /rules/nested/*
+            x-test: test
+          /build/*
+            cache-control: public, max-age=3600, immutable
+            x-build-header: works
+          "
+        `);
       });
       it("should write config.json", async () => {
         const config = await fsp
