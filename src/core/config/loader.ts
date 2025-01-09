@@ -1,6 +1,5 @@
 import { loadConfig, watchConfig } from "c12";
 import { type CompatibilityDateSpec, resolveCompatibilityDates } from "compatx";
-import { defu } from "defu";
 import { klona } from "klona/full";
 import type { PresetName } from "nitropack/presets";
 import type {
