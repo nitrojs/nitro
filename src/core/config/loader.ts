@@ -8,6 +8,7 @@ import type {
   NitroOptions,
   NitroPresetMeta,
 } from "nitropack/types";
+
 import { NitroDefaults } from "./defaults";
 
 // Resolvers
