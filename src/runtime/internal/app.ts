@@ -109,6 +109,7 @@ function createNitroApp(): NitroApp {
     eventHandler((event) => {
       // Init nitro context
       event.context.nitro = event.context.nitro || { errors: [] };
+      event.context.nitro.runtimeConfig = config;
 
       // Support platform context provided by local fetch
       const envContext: { waitUntil?: H3Event["waitUntil"] } | undefined = (
