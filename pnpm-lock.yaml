@@ -308,8 +308,8 @@ importers:
         specifier: ^5.7.3
         version: 5.7.3
       unbuild:
-        specifier: ^3.3.0
-        version: 3.3.0(typescript@5.7.3)(vue@3.5.13(typescript@5.7.3))
+        specifier: ^3.3.1
+        version: 3.3.1(typescript@5.7.3)(vue@3.5.13(typescript@5.7.3))
       undici:
         specifier: ^6.20.1
         version: 6.21.0
@@ -5608,11 +5608,11 @@ packages:
   ufo@1.5.4:
     resolution: {integrity: sha512-UsUk3byDzKd04EyoZ7U4DOlxQaD14JUKQl6/P7wiX4FNvUfm3XL246n9W5AmqwW5RSFJ27NAuM0iLscAOYUiGQ==}
 
-  unbuild@3.3.0:
-    resolution: {integrity: sha512-DRBK6KpMo4A2gAkQglItfLWbjJtiBfNfS87UCLf0yoDsxUUwU4AgQJru0dGoX0vW8bfMaBynvWgTUtzr4CJcbQ==}
+  unbuild@3.3.1:
+    resolution: {integrity: sha512-/5OeeHmW1JlWEyQw3SPkB9BV16lzr6C5i8D+O17NLx6ETgvCZ3ZlyXfWkVVfG2YCsv8xAVQCqJNJtbEAGwHg7A==}
     hasBin: true
     peerDependencies:
-      typescript: ^5.7.2
+      typescript: ^5.7.3
     peerDependenciesMeta:
       typescript:
         optional: true
@@ -12166,7 +12166,7 @@ snapshots:
 
   ufo@1.5.4: {}
 
-  unbuild@3.3.0(typescript@5.7.3)(vue@3.5.13(typescript@5.7.3)):
+  unbuild@3.3.1(typescript@5.7.3)(vue@3.5.13(typescript@5.7.3)):
     dependencies:
       '@rollup/plugin-alias': 5.1.1(rollup@4.30.1)
       '@rollup/plugin-commonjs': 28.0.2(rollup@4.30.1)

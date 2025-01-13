@@ -197,7 +197,7 @@
     "miniflare": "^3.20241230.1",
     "prettier": "^3.4.2",
     "typescript": "^5.7.3",
-    "unbuild": "^3.3.0",
+    "unbuild": "^3.3.1",
     "undici": "^6.21.0",
     "vitest": "^2.1.8",
     "xml2js": "^0.6.2"
