@@ -4,10 +4,8 @@ import { runTask } from "nitropack/runtime";
 import { trapUnhandledNodeErrors } from "nitropack/runtime/internal";
 import { startScheduleRunner } from "nitropack/runtime/internal";
 import { scheduledTasks, tasks } from "#nitro-internal-virtual/tasks";
-
-import { mkdirSync } from "node:fs";
 import { Server } from "node:http";
-import { tmpdir } from "node:os";
+import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import { parentPort, threadId } from "node:worker_threads";
 import wsAdapter from "crossws/adapters/node";
@@ -42,9 +40,7 @@ function getAddress() {
   if (isWindows) {
     return join(String.raw`\\.\pipe\nitro`, socketName);
   }
-  const socketDir = join(tmpdir(), "nitro");
-  mkdirSync(socketDir, { recursive: true });
-  return join(socketDir, socketName);
+  return fileURLToPath(new URL(socketName, import.meta.url));
 }
 
 const listenAddress = getAddress();
