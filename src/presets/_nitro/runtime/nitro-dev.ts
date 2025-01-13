@@ -40,7 +40,9 @@ function getAddress() {
   if (isWindows) {
     return join(String.raw`\\.\pipe\nitro`, socketName);
   }
-  return fileURLToPath(new URL(socketName, import.meta.url));
+  const workerDir =
+    process.env.NITRO_DEV_WORKER_DIR || import.meta.dirname || process.cwd();
+  return join(workerDir, socketName);
 }
 
 const listenAddress = getAddress();

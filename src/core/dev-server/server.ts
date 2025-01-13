@@ -23,7 +23,7 @@ import type {
   NitroDevServer,
   NitroWorker,
 } from "nitropack/types";
-import { resolve } from "pathe";
+import { resolve, dirname } from "pathe";
 import { debounce } from "perfect-debounce";
 import { servePlaceholder } from "serve-placeholder";
 import serveStatic from "serve-static";
@@ -36,7 +36,12 @@ function initWorker(filename: string): Promise<NitroWorker> | undefined {
     return;
   }
   return new Promise((resolve, reject) => {
-    const worker = new Worker(filename);
+    const worker = new Worker(filename, {
+      env: {
+        ...process.env,
+        NITRO_DEV_WORKER_DIR: dirname(filename),
+      },
+    });
     worker.once("exit", (code) => {
       reject(
         new Error(
