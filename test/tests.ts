@@ -384,9 +384,12 @@ export function testNitro(
       },
     });
     expect(status).toBe(503);
+
     expect(headers).toMatchObject({
       "content-type": "application/json",
-      "content-security-policy": "script-src 'none'; frame-ancestors 'none';",
+      "content-security-policy": ctx.isDev
+        ? "script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self';"
+        : "script-src 'none'; frame-ancestors 'none';",
       "referrer-policy": "no-referrer",
       "x-content-type-options": "nosniff",
       "x-frame-options": "DENY",
