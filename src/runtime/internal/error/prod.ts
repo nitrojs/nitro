@@ -19,7 +19,7 @@ export default defineNitroErrorHandler(
       // prettier-ignore
       const tags = [error.unhandled && "[unhandled]", error.fatal && "[fatal]"].filter(Boolean).join(" ")
       console.error(
-        `[nitro] [request error] ${tags} [${event.method}] ${event.path}\n`,
+        `[nitro] [request error] ${tags} [${event.method}] ${url}\n`,
         error
       );
     }
