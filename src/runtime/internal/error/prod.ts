@@ -1,5 +1,4 @@
 import {
-  getRequestHeader,
   getRequestURL,
   getResponseHeader,
   send,

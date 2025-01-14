@@ -7,10 +7,12 @@ import {
   getRequestURL,
   getResponseHeader,
 } from "h3";
-
+import { readFile } from "node:fs/promises";
+import { resolve, dirname } from "node:path";
 import consola from "consola";
+import { ErrorParser } from "youch-core";
 import { Youch } from "youch";
-
+import { SourceMapConsumer } from "source-map";
 import { defineNitroErrorHandler, setSecurityHeaders } from "./utils";
 
 export default defineNitroErrorHandler(
@@ -20,18 +22,21 @@ export default defineNitroErrorHandler(
     // prettier-ignore
     const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true }).toString();
 
-    const youch = new Youch();
+    // Load stack trace with source maps
+    await loadStackTrace(error);
 
     // Console output
     if (error.unhandled || error.fatal) {
       // prettier-ignore
       const tags = [error.unhandled && "[unhandled]", error.fatal && "[fatal]"].filter(Boolean).join(" ")
-      // const ansiError = await youch.toANSI(error);
       consola.error(
-        `[nitro] [request error] ${tags} [${event.method}] ${url}\n`,
+        `[nitro] [request error] ${tags} [${event.method}] ${url}\n\n`,
         error
       );
     }
+
+    // https://github.com/poppinss/youch
+    const youch = new Youch();
 
     // Send response
     setResponseStatus(event, statusCode, statusMessage);
@@ -70,3 +75,56 @@ export default defineNitroErrorHandler(
         );
   }
 );
+
+// ---- Source Map support ----
+
+type SourceLoader = Parameters<ErrorParser["defineSourceLoader"]>[0];
+type StackFrame = Parameters<SourceLoader>[0];
+async function sourceLoader(frame: StackFrame) {
+  if (!frame.fileName || frame.fileType !== "fs" || frame.type === "native") {
+    return;
+  }
+
+  if (frame.type === "app") {
+    // prettier-ignore
+    const rawSourceMap = await readFile(`${frame.fileName}.map`, "utf8").catch(() => {});
+    if (rawSourceMap) {
+      const consumer = await new SourceMapConsumer(rawSourceMap);
+      // prettier-ignore
+      const originalPosition = consumer.originalPositionFor({ line: frame.lineNumber!, column: frame.columnNumber! });
+      if (originalPosition.source && originalPosition.line) {
+        // prettier-ignore
+        frame.fileName = resolve(dirname(frame.fileName), originalPosition.source);
+        frame.lineNumber = originalPosition.line;
+        frame.columnNumber = originalPosition.column || 0;
+      }
+    }
+  }
+
+  const contents = await readFile(frame.fileName, "utf8").catch(() => {});
+
+  return contents ? { contents } : undefined;
+}
+
+async function loadStackTrace(error: any) {
+  const parsed = await new ErrorParser()
+    .defineSourceLoader(sourceLoader)
+    .parse(error);
+
+  const stack =
+    error.message +
+    "\n" +
+    parsed.frames
+      .map((frame) => {
+        return frame.type === "app" || !frame.raw
+          ? `at ${frame.functionName || ""} (${frame.fileName}:${frame.lineNumber}:${frame.columnNumber})`
+          : frame.raw;
+      })
+      .join("\n");
+
+  Object.defineProperty(error, "stack", { value: stack });
+
+  if (error.cause) {
+    await loadStackTrace(error.cause);
+  }
+}
