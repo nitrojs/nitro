@@ -1,5 +1,6 @@
 import {
   send,
+  getRequestHeader,
   getRequestHeaders,
   setResponseHeader,
   setResponseStatus,
@@ -9,11 +10,7 @@ import {
 import consola from "consola";
 import { Youch } from "youch";
 
-import {
-  defineNitroErrorHandler,
-  isJsonRequest,
-  setSecurityHeaders,
-} from "./utils";
+import { defineNitroErrorHandler, setSecurityHeaders } from "./utils";
 
 export default defineNitroErrorHandler(
   async function defaultNitroErrorHandler(error, event) {
@@ -41,8 +38,19 @@ export default defineNitroErrorHandler(
     if (statusCode === 404) {
       setResponseHeader(event, "Cache-Control", "no-cache");
     }
-    return isJsonRequest(event)
+    return getRequestHeader(event, "accept")?.includes("text/html")
       ? send(
+          event,
+          await youch.toHTML(error, {
+            request: {
+              url,
+              method: event.method,
+              headers: getRequestHeaders(event),
+            },
+          }),
+          "text/html"
+        )
+      : send(
           event,
           JSON.stringify(
             {
@@ -58,17 +66,6 @@ export default defineNitroErrorHandler(
             2
           ),
           "application/json"
-        )
-      : send(
-          event,
-          await youch.toHTML(error, {
-            request: {
-              url,
-              method: event.method,
-              headers: getRequestHeaders(event),
-            },
-          }),
-          "text/html"
         );
   }
 );
