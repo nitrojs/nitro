@@ -1,4 +1,3 @@
-import _consola from "consola";
 import { runtimeDir } from "nitropack/runtime/meta";
 import type { NitroOptions } from "nitropack/types";
 import { join } from "pathe";
