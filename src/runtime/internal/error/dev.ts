@@ -78,6 +78,28 @@ export default defineNitroErrorHandler(
 
 // ---- Source Map support ----
 
+async function loadStackTrace(error: any) {
+  if (!(error instanceof Error)) {
+    return;
+  }
+  const parsed = await new ErrorParser()
+    .defineSourceLoader(sourceLoader)
+    .parse(error);
+
+  const stack =
+    error.message +
+    "\n" +
+    parsed.frames.map((frame) => fmtFrame(frame)).join("\n");
+  try {
+    Object.defineProperty(error, "stack", { value: stack });
+  } catch {
+    /* ignore */
+  }
+  if (error.cause) {
+    await loadStackTrace(error.cause);
+  }
+}
+
 type SourceLoader = Parameters<ErrorParser["defineSourceLoader"]>[0];
 type StackFrame = Parameters<SourceLoader>[0];
 async function sourceLoader(frame: StackFrame) {
@@ -102,29 +124,13 @@ async function sourceLoader(frame: StackFrame) {
   }
 
   const contents = await readFile(frame.fileName, "utf8").catch(() => {});
-
   return contents ? { contents } : undefined;
 }
 
-async function loadStackTrace(error: any) {
-  const parsed = await new ErrorParser()
-    .defineSourceLoader(sourceLoader)
-    .parse(error);
-
-  const stack =
-    error.message +
-    "\n" +
-    parsed.frames
-      .map((frame) => {
-        return frame.type === "app" || !frame.raw
-          ? `at ${frame.functionName || ""} (${frame.fileName}:${frame.lineNumber}:${frame.columnNumber})`
-          : frame.raw;
-      })
-      .join("\n");
-
-  Object.defineProperty(error, "stack", { value: stack });
-
-  if (error.cause) {
-    await loadStackTrace(error.cause);
+function fmtFrame(frame: StackFrame) {
+  if (frame.type === "native") {
+    return frame.raw;
   }
+  const src = `${frame.fileName || ""}:${frame.lineNumber}:${frame.columnNumber})`;
+  return frame.functionName ? `at ${frame.functionName} (${src}` : `at ${src}`;
 }
