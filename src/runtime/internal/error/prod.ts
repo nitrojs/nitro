@@ -8,12 +8,6 @@ export default defineNitroErrorHandler(
     // prettier-ignore
     const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true }).toString();
 
-    // 404
-    if (statusCode === 404) {
-      setResponseHeader(event, "Cache-Control", "no-cache");
-      return send(event, "");
-    }
-
     // Console output
     if (error.unhandled || error.fatal) {
       // prettier-ignore
@@ -27,10 +21,14 @@ export default defineNitroErrorHandler(
     // Send response
     setSecurityHeaders(event, false /* no js */);
     setResponseStatus(event, statusCode, statusMessage);
+    if (statusCode === 404) {
+      setResponseHeader(event, "Cache-Control", "no-cache");
+    }
     return send(
       event,
       JSON.stringify(
         {
+          error: true,
           url,
           statusCode,
           statusMessage,

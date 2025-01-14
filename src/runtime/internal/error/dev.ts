@@ -22,11 +22,6 @@ export default defineNitroErrorHandler(
     // prettier-ignore
     const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true }).toString();
 
-    // 404
-    if (statusCode === 404) {
-      setResponseHeader(event, "Cache-Control", "no-cache");
-    }
-
     const youch = new Youch();
 
     // Console output
@@ -43,17 +38,21 @@ export default defineNitroErrorHandler(
     // Send response
     setResponseStatus(event, statusCode, statusMessage);
     setSecurityHeaders(event, true /* allow js */);
+    if (statusCode === 404) {
+      setResponseHeader(event, "Cache-Control", "no-cache");
+    }
     return isJsonRequest(event)
       ? send(
           event,
           JSON.stringify(
             {
-              stack: error.stack?.split("\n").map((line) => line.trim()),
+              error: true,
               url,
               statusCode,
               statusMessage,
               message: error.message,
               data: error.data,
+              stack: error.stack?.split("\n").map((line) => line.trim()),
             },
             null,
             2
