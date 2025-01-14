@@ -34,7 +34,8 @@ export default defineNitroErrorHandler(
           url,
           statusCode,
           statusMessage,
-          message: "server error",
+          message:
+            error.unhandled || error.fatal ? "server error" : error.message,
           data: error.data,
         },
         null,
