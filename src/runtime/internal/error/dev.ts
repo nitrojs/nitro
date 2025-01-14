@@ -5,6 +5,7 @@ import {
   setResponseHeader,
   setResponseStatus,
   getRequestURL,
+  getResponseHeader,
 } from "h3";
 
 import consola from "consola";
@@ -35,8 +36,8 @@ export default defineNitroErrorHandler(
     // Send response
     setResponseStatus(event, statusCode, statusMessage);
     setSecurityHeaders(event, true /* allow js */);
-    if (statusCode === 404) {
-      setResponseHeader(event, "Cache-Control", "no-cache");
+    if (statusCode === 404 || !getResponseHeader(event, "cache-control")) {
+      setResponseHeader(event, "cache-control", "no-cache");
     }
     return getRequestHeader(event, "accept")?.includes("text/html")
       ? send(

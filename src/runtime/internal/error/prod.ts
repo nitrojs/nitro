@@ -1,4 +1,11 @@
-import { getRequestURL, send, setResponseHeader, setResponseStatus } from "h3";
+import {
+  getRequestHeader,
+  getRequestURL,
+  getResponseHeader,
+  send,
+  setResponseHeader,
+  setResponseStatus,
+} from "h3";
 import { defineNitroErrorHandler, setSecurityHeaders } from "./utils";
 
 export default defineNitroErrorHandler(
@@ -21,8 +28,8 @@ export default defineNitroErrorHandler(
     // Send response
     setSecurityHeaders(event, false /* no js */);
     setResponseStatus(event, statusCode, statusMessage);
-    if (statusCode === 404) {
-      setResponseHeader(event, "Cache-Control", "no-cache");
+    if (statusCode === 404 || !getResponseHeader(event, "cache-control")) {
+      setResponseHeader(event, "cache-control", "no-cache");
     }
     return send(
       event,
