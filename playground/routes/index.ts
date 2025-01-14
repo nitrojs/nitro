@@ -1,3 +1,3 @@
 export default eventHandler(async (event) => {
-  return {};
+  throw createError("foo");
 });

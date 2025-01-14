@@ -4,7 +4,7 @@ import { defineNitroErrorHandler, setSecurityHeaders } from "./utils";
 export default defineNitroErrorHandler(
   function defaultNitroErrorHandler(error, event) {
     const statusCode = error.statusCode || 500;
-    const statusMessage = error.statusMessage || "Internal Server Error";
+    const statusMessage = error.statusMessage || "Server Error";
     // prettier-ignore
     const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true }).toString();
 
@@ -33,7 +33,7 @@ export default defineNitroErrorHandler(
           statusCode,
           statusMessage,
           message:
-            error.unhandled || error.fatal ? "server error" : error.message,
+            error.unhandled || error.fatal ? "Server Error" : error.message,
           data: error.data,
         },
         null,
