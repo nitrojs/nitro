@@ -1,6 +1,6 @@
 import type { NitroErrorHandler } from "nitropack/types";
 import type { H3Event } from "h3";
-import { getRequestHeader } from "h3";
+import { getRequestHeader, setResponseHeaders } from "h3";
 
 export function defineNitroErrorHandler(
   handler: NitroErrorHandler
@@ -23,52 +23,24 @@ export function isJsonRequest(event: H3Event) {
   );
 }
 
+export function setSecurityHeaders(event: H3Event, allowjs = false) {
+  setResponseHeaders(event, {
+    // Prevent browser from guessing the MIME types of resources.
+    "X-Content-Type-Options": "nosniff",
+    // Prevent error page from being embedded in an iframe
+    "X-Frame-Options": "DENY",
+    // Prevent browsers from sending the Referer header
+    "Referrer-Policy": "no-referrer",
+    // Disable the execution of any js
+    "Content-Security-Policy": allowjs
+      ? "script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self';"
+      : "script-src 'none'; frame-ancestors 'none';",
+  });
+}
+
 function hasReqHeader(event: H3Event, name: string, includes: string) {
   const value = getRequestHeader(event, name);
   return (
     value && typeof value === "string" && value.toLowerCase().includes(includes)
   );
-}
-
-export function normalizeError(error: any, isDev?: boolean) {
-  // temp fix for https://github.com/nitrojs/nitro/issues/759
-  // TODO: investigate vercel-edge not using unenv pollyfill
-  const cwd = typeof process.cwd === "function" ? process.cwd() : "/";
-
-  const stack =
-    !isDev && !import.meta.prerender && (error.unhandled || error.fatal)
-      ? []
-      : ((error.stack as string) || "")
-          .split("\n")
-          .splice(1)
-          .filter((line) => line.includes("at "))
-          .map((line) => {
-            const text = line
-              .replace(cwd + "/", "./")
-              .replace("webpack:/", "")
-              .replace("file://", "")
-              .trim();
-            return {
-              text,
-              internal:
-                (line.includes("node_modules") && !line.includes(".cache")) ||
-                line.includes("internal") ||
-                line.includes("new Promise"),
-            };
-          });
-
-  const statusCode = error.statusCode || 500;
-  const statusMessage =
-    error.statusMessage ?? (statusCode === 404 ? "Not Found" : "");
-  const message =
-    !isDev && error.unhandled
-      ? "internal server error"
-      : error.message || error.toString();
-
-  return {
-    stack,
-    statusCode,
-    statusMessage,
-    message,
-  };
 }

@@ -164,7 +164,8 @@
     "unimport": "^3.14.5",
     "unstorage": "^1.14.4",
     "untyped": "^1.5.2",
-    "unwasm": "^0.3.9"
+    "unwasm": "^0.3.9",
+    "youch": "4.1.0-beta.4"
   },
   "devDependencies": {
     "@azure/functions": "^3.5.1",
