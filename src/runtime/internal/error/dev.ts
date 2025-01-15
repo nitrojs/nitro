@@ -23,7 +23,7 @@ export default defineNitroErrorHandler(
     const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true }).toString();
 
     // Load stack trace with source maps
-    await loadStackTrace(error);
+    await loadStackTrace(error).catch(() => {});
 
     // Console output
     if (error.unhandled || error.fatal) {
@@ -90,13 +90,11 @@ export async function loadStackTrace(error: any) {
     error.message +
     "\n" +
     parsed.frames.map((frame) => fmtFrame(frame)).join("\n");
-  try {
-    Object.defineProperty(error, "stack", { value: stack });
-  } catch {
-    /* ignore */
-  }
+
+  Object.defineProperty(error, "stack", { value: stack });
+
   if (error.cause) {
-    await loadStackTrace(error.cause);
+    await loadStackTrace(error.cause).catch(() => {});
   }
 }
 
