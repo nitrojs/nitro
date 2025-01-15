@@ -1,4 +1,4 @@
-export { defineNitroPreset } from "./preset";
+export { defineNitroPreset, getDefaultNodeVersion } from "./preset";
 export { defineNitroModule } from "./module";
 
 export { writeFile, isDirectory } from "./fs";
