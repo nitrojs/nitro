@@ -78,7 +78,7 @@ export default defineNitroErrorHandler(
 
 // ---- Source Map support ----
 
-async function loadStackTrace(error: any) {
+export async function loadStackTrace(error: any) {
   if (!(error instanceof Error)) {
     return;
   }

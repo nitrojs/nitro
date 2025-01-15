@@ -28,7 +28,10 @@ import { debounce } from "perfect-debounce";
 import { servePlaceholder } from "serve-placeholder";
 import serveStatic from "serve-static";
 import { joinURL } from "ufo";
-import defaultErrorHandler from "./error";
+import consola from "consola";
+import defaultErrorHandler, {
+  loadStackTrace,
+} from "../../runtime/internal/error/dev";
 import { createVFSHandler } from "./vfs";
 
 function initWorker(filename: string): Promise<NitroWorker> | undefined {
@@ -49,14 +52,8 @@ function initWorker(filename: string): Promise<NitroWorker> | undefined {
         )
       );
     });
-    worker.once("error", (error) => {
-      const newError = new Error(`[worker init] ${filename} failed`, {
-        cause: error,
-      });
-      if (Error.captureStackTrace) {
-        Error.captureStackTrace(newError, initWorker);
-      }
-      reject(newError);
+    worker.once("error", async (error) => {
+      reject(error);
     });
     const addressListener = (event: any) => {
       if (!event || !event?.address) {
@@ -149,8 +146,9 @@ export function createDevServer(nitro: Nitro): NitroDevServer {
       .then(() => {
         lastError = undefined;
       })
-      .catch((error) => {
-        console.error("[worker reload]", error);
+      .catch(async (error) => {
+        await loadStackTrace(error).catch(() => {});
+        consola.error(error);
         lastError = error;
       })
       .finally(() => {
