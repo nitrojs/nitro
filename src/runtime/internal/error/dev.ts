@@ -26,18 +26,30 @@ export default defineNitroErrorHandler(
     // Load stack trace with source maps
     await loadStackTrace(error).catch(consola.error);
 
+    // https://github.com/poppinss/youch
+    const youch = new Youch();
+
     // Console output
     if (isSensitive) {
       // prettier-ignore
       const tags = [error.unhandled && "[unhandled]", error.fatal && "[fatal]"].filter(Boolean).join(" ")
+
+      const columns = process.stderr.columns;
+      if (!columns) {
+        process.stdout.columns = 90; // Temporary workaround for youch wrapping issue
+      }
+      const ansiError = await (
+        await youch.toANSI(error)
+      ).replaceAll(process.cwd(), ".");
+      if (!columns) {
+        process.stderr.columns = columns;
+      }
+
       consola.error(
         `[nitro] [request error] ${tags} [${event.method}] ${url}\n\n`,
-        error
+        ansiError
       );
     }
-
-    // https://github.com/poppinss/youch
-    const youch = new Youch();
 
     // Send response
     setResponseStatus(event, statusCode, statusMessage);
