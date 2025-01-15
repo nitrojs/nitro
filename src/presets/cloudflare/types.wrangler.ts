@@ -24,7 +24,9 @@
  * - `@breaking`: the deprecation/optionality is a breaking change from Wrangler v1.
  * - `@todo`: there's more work to be done (with details attached).
  */
-export type Config = ConfigFields<DevConfig> & PagesConfigFields & Environment;
+export type Config = Partial<
+  ConfigFields<DevConfig> & PagesConfigFields & Environment
+>;
 
 export type RawConfig = Partial<ConfigFields<RawDevConfig>> &
   PagesConfigFields &
