@@ -1,12 +1,14 @@
 import type { EventHandler, H3Error, H3Event, RouterMethod } from "h3";
 import type { PresetName } from "nitropack/presets";
-import type { OperationObject } from "openapi-typescript";
+import type { OperationObject, SchemaObject } from "openapi-typescript";
 
 type MaybeArray<T> = T | T[];
 
 /** @exprerimental */
 export interface NitroRouteMeta {
-  openAPI?: OperationObject;
+  openAPI?: OperationObject & {
+    components?: Record<string, SchemaObject>;
+  };
 }
 
 export interface NitroEventHandler {
