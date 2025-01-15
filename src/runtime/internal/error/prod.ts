@@ -9,13 +9,14 @@ import { defineNitroErrorHandler, setSecurityHeaders } from "./utils";
 
 export default defineNitroErrorHandler(
   function defaultNitroErrorHandler(error, event) {
+    const isSensitive = error.unhandled || error.fatal;
     const statusCode = error.statusCode || 500;
     const statusMessage = error.statusMessage || "Server Error";
     // prettier-ignore
     const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true }).toString();
 
     // Console output
-    if (error.unhandled || error.fatal) {
+    if (isSensitive) {
       // prettier-ignore
       const tags = [error.unhandled && "[unhandled]", error.fatal && "[fatal]"].filter(Boolean).join(" ")
       console.error(
@@ -38,9 +39,8 @@ export default defineNitroErrorHandler(
           url,
           statusCode,
           statusMessage,
-          message:
-            error.unhandled || error.fatal ? "Server Error" : error.message,
-          data: error.data,
+          message: isSensitive ? "Server Error" : error.message,
+          data: isSensitive ? undefined : error.data,
         },
         null,
         2

@@ -17,16 +17,17 @@ import { defineNitroErrorHandler, setSecurityHeaders } from "./utils";
 
 export default defineNitroErrorHandler(
   async function defaultNitroErrorHandler(error, event) {
+    const isSensitive = error.unhandled || error.fatal;
     const statusCode = error.statusCode || 500;
     const statusMessage = error.statusMessage || "Server Error";
     // prettier-ignore
     const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true }).toString();
 
     // Load stack trace with source maps
-    await loadStackTrace(error).catch(() => {});
+    await loadStackTrace(error).catch(consola.error);
 
     // Console output
-    if (error.unhandled || error.fatal) {
+    if (isSensitive) {
       // prettier-ignore
       const tags = [error.unhandled && "[unhandled]", error.fatal && "[fatal]"].filter(Boolean).join(" ")
       consola.error(
@@ -94,7 +95,7 @@ export async function loadStackTrace(error: any) {
   Object.defineProperty(error, "stack", { value: stack });
 
   if (error.cause) {
-    await loadStackTrace(error.cause).catch(() => {});
+    await loadStackTrace(error.cause).catch(consola.error);
   }
 }
 
