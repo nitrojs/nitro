@@ -36,7 +36,8 @@ export function createRouteRulesHandler(ctx: {
           targetPath = withoutBase(targetPath, strpBase);
         }
         target = joinURL(target.slice(0, -3), targetPath);
-      } else if (event.path.includes("?")) {
+      }
+      if (event.path.includes("?")) {
         const query = getQuery(event.path);
         target = withQuery(target, query);
       }
@@ -52,7 +53,8 @@ export function createRouteRulesHandler(ctx: {
           targetPath = withoutBase(targetPath, strpBase);
         }
         target = joinURL(target.slice(0, -3), targetPath);
-      } else if (event.path.includes("?")) {
+      }
+      if (event.path.includes("?")) {
         const query = getQuery(event.path);
         target = withQuery(target, query);
       }
@@ -78,8 +80,8 @@ export function getRouteRules(event: H3Event): NitroRouteRules {
 type DeepReadonly<T> = T extends Record<string, any>
   ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
   : T extends Array<infer U>
-    ? ReadonlyArray<DeepReadonly<U>>
-    : T;
+  ? ReadonlyArray<DeepReadonly<U>>
+  : T;
 
 /**
  * @param path - The path to match against route rules. This should not contain a query string.
