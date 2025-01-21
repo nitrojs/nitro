@@ -67,7 +67,7 @@ export async function createNitro(
   // Tasks
   addNitroTasksVirtualFile(nitro);
 
-  // Scan and install modules as last step
+  // Scan and install modules
   await installModules(nitro);
 
   // Auto imports
