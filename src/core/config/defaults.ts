@@ -93,7 +93,7 @@ export const NitroDefaults: NitroConfig = {
 
   // Advanced
   typescript: {
-    strict: false,
+    strict: true,
     generateTsConfig: true,
     generateRuntimeConfigTypes: true,
     tsconfigPath: "types/tsconfig.json",
