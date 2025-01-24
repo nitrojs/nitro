@@ -220,6 +220,9 @@ declare module "nitropack/types" {
         allowSyntheticDefaultImports: true,
         jsxFactory: "h",
         jsxFragmentFactory: "Fragment",
+        allowImportingTsExtensions: true,
+        rewriteRelativeImportExtensions: true,
+        verbatimModuleSyntax: true,
         paths: {
           "#imports": [
             relativeWithDot(tsconfigDir, join(typesDir, "nitro-imports")),
