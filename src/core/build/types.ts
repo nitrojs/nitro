@@ -217,6 +217,8 @@ declare module "nitro/types" {
         jsx: "preserve",
         jsxFactory: "h",
         jsxFragmentFactory: "Fragment",
+        allowImportingTsExtensions: true,
+        rewriteRelativeImportExtensions: true,
         paths: {
           "#imports": [
             relativeWithDot(tsconfigDir, join(typesDir, "nitro-imports")),
