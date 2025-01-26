@@ -87,12 +87,18 @@ export async function writeTypes(nitro: Nitro) {
       resolvedImportPathMap.set(i.from, path);
     }
 
+    const tsConfigPath = resolve(
+      nitro.options.buildDir,
+      nitro.options.typescript.tsconfigPath
+    );
+    const tsconfigDir = dirname(tsConfigPath);
+
     autoImportedTypes = [
       nitro.options.imports && nitro.options.imports.autoImport !== false
         ? (
             await nitro.unimport.generateTypeDeclarations({
               exportHelper: false,
-              resolvePath: (i) => resolvedImportPathMap.get(i.from) ?? i.from,
+              resolvePath: (i) => resolvedImportPathMap.get(i.from) ?? relativeWithDot(tsconfigDir, i.from),
             })
           ).trim()
         : "",
