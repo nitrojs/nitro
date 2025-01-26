@@ -98,7 +98,9 @@ export async function writeTypes(nitro: Nitro) {
         ? (
             await nitro.unimport.generateTypeDeclarations({
               exportHelper: false,
-              resolvePath: (i) => resolvedImportPathMap.get(i.from) ?? relativeWithDot(tsconfigDir, i.from),
+              resolvePath: (i) =>
+                resolvedImportPathMap.get(i.from) ??
+                relativeWithDot(tsconfigDir, i.from),
             })
           ).trim()
         : "",
