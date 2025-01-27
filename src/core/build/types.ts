@@ -64,7 +64,7 @@ export async function writeTypes(nitro: Nitro) {
         continue;
       }
       let path = resolveAlias(i.from, nitro.options.alias);
-      if (!isAbsolute(path)) {
+      if (isAbsolute(path)) {
         const resolvedPath = await resolvePath(i.from, {
           url: nitro.options.nodeModulesDirs,
         }).catch(() => null);
