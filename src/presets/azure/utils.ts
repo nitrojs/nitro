@@ -1,9 +1,9 @@
 import { createWriteStream } from "node:fs";
-import fsp from "node:fs/promises";
 import archiver from "archiver";
-import { writeFile } from "nitropack/kit";
+import { getDefaultNodeVersion, writeFile } from "nitropack/kit";
 import type { Nitro } from "nitropack/types";
 import { join, resolve } from "pathe";
+import { readPackageJSON } from "pkg-types";
 
 export async function writeFunctionsRoutes(nitro: Nitro) {
   const host = {
@@ -49,22 +49,18 @@ export async function writeSWARoutes(nitro: Nitro) {
     version: "2.0",
   };
 
-  // https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-node?tabs=typescript%2Cwindows%2Cazure-cli&pivots=nodejs-model-v4#supported-versions
-  const supportedNodeVersions = new Set(["16", "18", "20"]);
-  let nodeVersion = "18";
-  try {
-    const currentNodeVersion = JSON.parse(
-      await fsp.readFile(join(nitro.options.rootDir, "package.json"), "utf8")
-    ).engines.node;
-    if (supportedNodeVersions.has(currentNodeVersion)) {
-      nodeVersion = currentNodeVersion;
-    }
-  } catch {
-    const currentNodeVersion = process.versions.node.slice(0, 2);
-    if (supportedNodeVersions.has(currentNodeVersion)) {
-      nodeVersion = currentNodeVersion;
-    }
-  }
+  /** @link https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-node?tabs=typescript%2Cwindows%2Cazure-cli&pivots=nodejs-model-v4#supported-versions */
+  const supportedNodeVersions = new Set([16, 18, 20]);
+
+  // Read package.json to get the current node version
+  const packageJSONPath = join(nitro.options.rootDir, "package.json");
+  const packageJSON = await readPackageJSON(packageJSONPath);
+  const currentNodeVersion = Number.parseInt(packageJSON.engines?.node);
+  /* If current node version is supported, use it,
+      otherwise use the default node version */
+  const nodeVersion = supportedNodeVersions.has(currentNodeVersion)
+    ? currentNodeVersion
+    : getDefaultNodeVersion(supportedNodeVersions);
 
   // Merge custom config into the generated config
   const config = {
