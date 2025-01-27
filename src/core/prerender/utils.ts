@@ -55,7 +55,7 @@ export function extractLinks(
       const fromURL = new URL(from, "http://localhost");
       _link.pathname = new URL(_link.pathname, fromURL).pathname;
     }
-    links.push(_link.pathname + _link.search);
+    links.push(encodeURI(_link.pathname + _link.search));
   }
   for (const link of links) {
     const _parents = linkParents.get(link);
