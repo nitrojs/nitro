@@ -1,5 +1,6 @@
 import { type HTTPMethod, eventHandler, getRequestURL } from "h3";
 import type {
+  ComponentsObject,
   OpenAPI3,
   OperationObject,
   ParameterObject,
@@ -9,6 +10,7 @@ import type {
 import { joinURL } from "ufo";
 import { handlersMeta } from "#nitro-internal-virtual/server-handlers-meta";
 import { useRuntimeConfig } from "../config";
+import type { DeepPartial } from "../../../types/_utils";
 
 // Served as /_openapi.json
 export default eventHandler((event) => {
@@ -21,6 +23,8 @@ export default eventHandler((event) => {
     title: "Nitro Server Routes",
     ...runtimeConfig.nitro?.openAPI?.meta,
   };
+
+  const { paths, components } = getOpenApiMeta();
 
   return <OpenAPI3>{
     openapi: "3.1.0",
@@ -36,17 +40,22 @@ export default eventHandler((event) => {
         variables: {},
       },
     ],
-    paths: getPaths(),
+    paths,
+    components,
   };
 });
 
-function getPaths(): PathsObject {
+function getOpenApiMeta(): DeepPartial<OpenAPI3> {
   const paths: PathsObject = {};
+  const componentsSchema: ComponentsObject = {
+    schemas: {},
+  };
 
   for (const h of handlersMeta) {
     const { route, parameters } = normalizeRoute(h.route || "");
     const tags = defaultTags(h.route || "");
     const method = (h.method || "get").toLowerCase() as Lowercase<HTTPMethod>;
+    const { components, ...openAPI } = h.meta?.openAPI || {};
 
     const item: PathItemObject = {
       [method]: <OperationObject>{
@@ -55,9 +64,13 @@ function getPaths(): PathsObject {
         responses: {
           200: { description: "OK" },
         },
-        ...h.meta?.openAPI,
+        ...openAPI,
       },
     };
+
+    if (components) {
+      Object.assign(componentsSchema.schemas!, components);
+    }
 
     if (paths[route] === undefined) {
       paths[route] = item;
@@ -66,7 +79,7 @@ function getPaths(): PathsObject {
     }
   }
 
-  return paths;
+  return { paths, components: componentsSchema };
 }
 
 function normalizeRoute(_route: string) {
