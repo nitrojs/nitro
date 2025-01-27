@@ -85,9 +85,13 @@ function createNitroApp(): NitroApp {
     preemptive: true,
   });
 
+  // Allow patching the global fetch
+  const fetchWrapper = (...args: Parameters<typeof globalThis.fetch>) =>
+    globalThis.fetch(...args);
+
   // Create local fetch callers
   const localCall = createCall(toNodeListener(h3App) as any);
-  const _localFetch = createLocalFetch(localCall, globalThis.fetch);
+  const _localFetch = createLocalFetch(localCall, fetchWrapper);
   const localFetch: typeof fetch = (input, init) =>
     _localFetch(input as RequestInfo, init as any).then((response) =>
       normalizeFetchResponse(response)
