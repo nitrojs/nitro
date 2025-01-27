@@ -9,6 +9,9 @@ import type {
 import { joinURL } from "ufo";
 import { handlersMeta } from "#nitro-internal-virtual/server-handlers-meta";
 import { useRuntimeConfig } from "../config";
+import { createRouter as createRadixRouter, toRouteMatcher } from "radix3";
+import type { NitroRouteRules, NitroRuntimeConfig } from "nitropack/types";
+import defu from "defu";
 
 // Served as /_openapi.json
 export default eventHandler((event) => {
@@ -36,14 +39,27 @@ export default eventHandler((event) => {
         variables: {},
       },
     ],
-    paths: getPaths(),
+    paths: getPaths(runtimeConfig),
   };
 });
 
-function getPaths(): PathsObject {
+function getPaths(runtimeConfig: NitroRuntimeConfig): PathsObject {
   const paths: PathsObject = {};
 
+  const _routeRulesMatcher = toRouteMatcher(
+    createRadixRouter({ routes: runtimeConfig.nitro.routeRules })
+  );
+
+  const _getRouteRules = (path: string) =>
+    defu({}, ..._routeRulesMatcher.matchAll(path).reverse()) as NitroRouteRules;
+
   for (const h of handlersMeta) {
+    const enabledInRouteMeta = h.meta && h.meta.openAPIEnabled;
+    const enabledInRouteRules =
+      h.route && _getRouteRules(h.route).openAPIEnabled;
+    const openAPIEnabled = enabledInRouteMeta ?? enabledInRouteRules;
+    if (openAPIEnabled === false) continue;
+
     const { route, parameters } = normalizeRoute(h.route || "");
     const tags = defaultTags(h.route || "");
     const method = (h.method || "get").toLowerCase() as Lowercase<HTTPMethod>;
