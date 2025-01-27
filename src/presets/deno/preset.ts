@@ -145,7 +145,7 @@ const denoServer = defineNitroPreset(
         const denoJSON = {
           tasks: {
             start:
-              "deno run --allow-net --allow-read --allow-write --allow-env --unstable-byonm ./server/index.mjs",
+              "deno serve --allow-net --allow-read --allow-write --allow-env --unstable-byonm --parallel ./server/index.mjs",
           },
         };
         await writeFile(
