@@ -85,7 +85,6 @@ function createNitroApp(): NitroApp {
     preemptive: true,
   });
 
-  // Allow patching the global fetch
   // Create local fetch callers
   const localCall = createCall(toNodeListener(h3App) as any);
   // prettier-ignore
