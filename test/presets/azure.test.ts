@@ -5,86 +5,84 @@ import { resolve } from "pathe";
 import { describe, expect, it } from "vitest";
 import { setupTest, testNitro } from "../tests";
 
-describe(
-  "nitro:preset:azure",
-  async () => {
-    const customConfig = {
-      routes: [
-        {
-          route: "/admin",
-          allowedRoles: ["authenticated"],
-        },
-        {
-          route: "/logout",
-          redirect: "/.auth/logout",
-        },
-        {
-          route: "/index.html",
-          redirect: "/overridden-index",
-        },
-        {
-          route: "/",
-          rewrite: "/api/server/overridden",
-        },
-      ],
-      responseOverrides: {
-        401: {
-          statusCode: 302,
-          redirect: "/.auth/login/aad",
-        },
+describe("nitro:preset:azure", { timeout: 10_000 }, async () => {
+  const customConfig = {
+    routes: [
+      {
+        route: "/admin",
+        allowedRoles: ["authenticated"],
       },
-      networking: {
-        allowedIpRanges: ["10.0.0.0/24", "100.0.0.0/32", "192.168.100.0/22"],
+      {
+        route: "/logout",
+        redirect: "/.auth/logout",
       },
-      platform: {
-        apiRuntime: "custom-runtime",
+      {
+        route: "/index.html",
+        redirect: "/overridden-index",
       },
-    };
+      {
+        route: "/",
+        rewrite: "/api/server/overridden",
+      },
+    ],
+    responseOverrides: {
+      401: {
+        statusCode: 302,
+        redirect: "/.auth/login/aad",
+      },
+    },
+    networking: {
+      allowedIpRanges: ["10.0.0.0/24", "100.0.0.0/32", "192.168.100.0/22"],
+    },
+    platform: {
+      apiRuntime: "custom-runtime",
+    },
+  };
 
-    const ctx = await setupTest("azure", {
-      config: {
-        azure: {
-          config: customConfig,
-        },
+  const ctx = await setupTest("azure", {
+    config: {
+      azure: {
+        config: customConfig,
       },
+    },
+  });
+
+  if (process.env.TEST_AZURE) {
+    testNitro(ctx, async () => {
+      const port = await getRandomPort();
+      const apiPort = await getRandomPort(); // Avoids conflicts with other tests
+      await new Promise((resolve) => setTimeout(resolve, 500)); // Make sure output is written to disk
+      expect(existsSync(ctx.outDir));
+      const p = execa(
+        "swa",
+        `start .output/public --api-location .output/server --host 127.0.0.1 --port ${port} --api-port ${apiPort}`.split(
+          " "
+        ),
+        {
+          cwd: resolve(ctx.outDir, ".."),
+          stdio: "inherit",
+          // stderr: "inherit",
+          // stdout: "ignore",
+        }
+      );
+      ctx.server = {
+        url: `http://127.0.0.1:${port}`,
+        close: () => p.kill(),
+      } as any;
+      await waitForPort(port, { host: "127.0.0.1", retries: 20 });
+      return async ({ url, ...opts }) => {
+        const res = await ctx.fetch(url, opts);
+        return res;
+      };
     });
+  }
 
-    if (process.env.TEST_AZURE) {
-      testNitro(ctx, async () => {
-        const port = await getRandomPort();
-        const apiPort = await getRandomPort(); // Avoids conflicts with other tests
-        await new Promise((resolve) => setTimeout(resolve, 500)); // Make sure output is written to disk
-        expect(existsSync(ctx.outDir));
-        const p = execa(
-          "swa",
-          `start .output/public --api-location .output/server --host 127.0.0.1 --port ${port} --api-port ${apiPort}`.split(
-            " "
-          ),
-          {
-            cwd: resolve(ctx.outDir, ".."),
-            stdio: "inherit",
-            // stderr: "inherit",
-            // stdout: "ignore",
-          }
-        );
-        ctx.server = {
-          url: `http://127.0.0.1:${port}`,
-          close: () => p.kill(),
-        } as any;
-        await waitForPort(port, { host: "127.0.0.1", retries: 20 });
-        return async ({ url, ...opts }) => {
-          const res = await ctx.fetch(url, opts);
-          return res;
-        };
-      });
-    }
+  const config = await fsp
+    .readFile(resolve(ctx.rootDir, "staticwebapp.config.json"), "utf8")
+    .then((r) => JSON.parse(r));
 
-    const config = await fsp
-      .readFile(resolve(ctx.rootDir, "staticwebapp.config.json"), "utf8")
-      .then((r) => JSON.parse(r));
-
-    it("generated the correct config", () => {
-      expect(config).toMatchInlineSnapshot(`
+  it("generated the correct config", () => {
+    expect(config).toMatchInlineSnapshot(`
         {
           "navigationFallback": {
             "rewrite": "/api/server",
@@ -147,7 +145,5 @@ describe(
           ],
         }
       `);
-    });
-  },
-  { timeout: 10_000 }
-);
+  });
+});
