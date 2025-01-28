@@ -89,7 +89,7 @@ function createNitroApp(): NitroApp {
   // Create local fetch callers
   const localCall = createCall(toNodeListener(h3App) as any);
   // prettier-ignore
-  const _localFetch = createLocalFetch(localCall, (...args) => globalThis.fetch(...args) );
+  const _localFetch = createLocalFetch(localCall, (...args) => globalThis.fetch(...args));
   const localFetch: typeof fetch = (input, init) =>
     _localFetch(input as RequestInfo, init as any).then((response) =>
       normalizeFetchResponse(response)
