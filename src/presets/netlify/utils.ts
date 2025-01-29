@@ -116,6 +116,8 @@ export const config = {
   name: "server handler",
   generator: "${getGeneratorString(nitro)}",
   path: "/*",
+  nodeBundler: "none",
+  includedFiles: ["**"],
   excludedPath: ${JSON.stringify(getStaticPaths(nitro.options.publicAssets, nitro.options.baseURL))},
   preferStatic: true,
 };
