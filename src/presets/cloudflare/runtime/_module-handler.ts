@@ -3,6 +3,7 @@ import type * as CF from "@cloudflare/workers-types";
 import type { ExportedHandler } from "@cloudflare/workers-types";
 import { useNitroApp } from "nitropack/runtime";
 import { requestHasBody, runCronTasks } from "nitropack/runtime/internal";
+import type { NitroCloudflareFetchEvent } from "../types";
 
 type MaybePromise<T> = T | Promise<T>;
 
@@ -13,12 +14,32 @@ export function createHandler<Env>(hooks: {
       url: URL,
     ]
   ) => MaybePromise<Response | CF.Response | undefined>;
+  extentEvent?: (event: NitroCloudflareFetchEvent) => void;
 }) {
   const nitroApp = useNitroApp();
 
   return <ExportedHandler<Env>>{
     async fetch(request, env, context) {
       const url = new URL(request.url);
+
+      // Global hook for custom interceptors
+      const fetchEvent: NitroCloudflareFetchEvent = {
+        request,
+        env,
+        context,
+        url,
+      };
+      if (hooks.extentEvent) {
+        hooks.extentEvent(fetchEvent);
+      }
+      const res = await nitroApp.hooks.callHookWith(
+        chainableCaller,
+        "cloudflare:fetch",
+        fetchEvent
+      );
+      if (res) {
+        return res;
+      }
 
       // Preset-specific logic
       if (hooks.fetch) {
@@ -28,30 +49,8 @@ export function createHandler<Env>(hooks: {
         }
       }
 
-      let body;
-      if (requestHasBody(request as unknown as Request)) {
-        body = Buffer.from(await request.arrayBuffer());
-      }
-
-      // Expose latest env to the global context
-      (globalThis as any).__env__ = env;
-
-      return nitroApp.localFetch(url.pathname + url.search, {
-        context: {
-          cf: (request as any).cf,
-          waitUntil: (promise: Promise<any>) => context.waitUntil(promise),
-          cloudflare: {
-            request,
-            env,
-            context,
-          },
-        },
-        host: url.hostname,
-        protocol: url.protocol,
-        method: request.method,
-        headers: request.headers as unknown as Headers,
-        body,
-      }) as unknown as Promise<Response>;
+      // Main handler
+      return fetchHandler(request, env, context, url, nitroApp);
     },
 
     scheduled(controller, env, context) {
@@ -124,4 +123,47 @@ export function createHandler<Env>(hooks: {
       );
     },
   };
+}
+
+// https://github.com/unjs/hookable/issues/111
+export async function chainableCaller(hooks: any[], args: any[]) {
+  for (const hook of hooks) {
+    const res = await hook(...args);
+    if (res) {
+      return res;
+    }
+  }
+}
+
+export async function fetchHandler(
+  request: Request | CF.Request,
+  env: unknown,
+  context: CF.ExecutionContext | DurableObjectState,
+  url: URL = new URL(request.url),
+  nitroApp = useNitroApp()
+) {
+  let body;
+  if (requestHasBody(request as unknown as Request)) {
+    body = Buffer.from(await request.arrayBuffer());
+  }
+
+  // Expose latest env to the global context
+  (globalThis as any).__env__ = env;
+
+  return nitroApp.localFetch(url.pathname + url.search, {
+    context: {
+      cf: (request as any).cf,
+      waitUntil: (promise: Promise<any>) => context.waitUntil(promise),
+      cloudflare: {
+        request,
+        env,
+        context,
+      },
+    },
+    host: url.hostname,
+    protocol: url.protocol,
+    method: request.method,
+    headers: request.headers as unknown as Headers,
+    body,
+  }) as unknown as Promise<Response>;
 }

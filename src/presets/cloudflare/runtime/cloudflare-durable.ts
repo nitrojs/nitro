@@ -4,12 +4,29 @@ import { DurableObject } from "cloudflare:workers";
 import wsAdapter from "crossws/adapters/cloudflare-durable";
 import { useNitroApp } from "nitropack/runtime";
 import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
-import { createHandler } from "./_module-handler";
+import {
+  chainableCaller,
+  createHandler,
+  fetchHandler,
+} from "./_module-handler";
 
 const nitroApp = useNitroApp();
 
+const DURABLE_BINDING = "$DurableObject";
+const DURABLE_INSTANCE = "server";
+
+function getDurableStub(env: Env) {
+  const binding = (env as any)[DURABLE_BINDING] as CF.DurableObjectNamespace;
+  const id = binding.idFromName(DURABLE_INSTANCE);
+  return binding.get(id);
+}
+
 const ws = import.meta._websocket
-  ? wsAdapter(nitroApp.h3App.websocket)
+  ? wsAdapter({
+      ...nitroApp.h3App.websocket,
+      instanceName: DURABLE_INSTANCE,
+      bindingName: DURABLE_BINDING,
+    })
   : undefined;
 
 interface Env {
@@ -17,7 +34,7 @@ interface Env {
 }
 
 export default createHandler<Env>({
-  fetch(request, env, context, url) {
+  async fetch(request, env, context, url) {
     // Static assets fallback (optional binding)
     if (env.ASSETS && isPublicAssetURL(url.pathname)) {
       return env.ASSETS.fetch(request);
@@ -31,6 +48,12 @@ export default createHandler<Env>({
     ) {
       return ws!.handleUpgrade(request, env, context);
     }
+  },
+  extentEvent(event) {
+    event.durableFech = () => {
+      const stub = getDurableStub(event.env as Env);
+      return stub.fetch(event.request);
+    };
   },
 });
 
@@ -48,11 +71,36 @@ export class $DurableObject extends DurableObject {
     }
   }
 
-  override fetch(request: Request) {
-    if (import.meta._websocket) {
+  override async fetch(request: Request) {
+    const url = new URL(request.url);
+
+    // Global hook for custom interceptors
+    const fetchEvent = {
+      durable: this,
+      request: request as any,
+      env: this.env,
+      context: this.ctx,
+      url,
+    };
+    const res = await nitroApp.hooks.callHookWith(
+      chainableCaller,
+      "cloudflare:durable:fetch",
+      fetchEvent
+    );
+    if (res) {
+      return res;
+    }
+
+    // Websocket upgrade
+    if (
+      import.meta._websocket &&
+      request.headers.get("upgrade") === "websocket"
+    ) {
       return ws!.handleDurableUpgrade(this, request);
     }
-    return new Response("404", { status: 404 });
+
+    // Main handler
+    return fetchHandler(request, this.env, this.ctx, url, nitroApp);
   }
 
   override alarm(): void | Promise<void> {

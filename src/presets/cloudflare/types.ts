@@ -1,4 +1,6 @@
 import type {
+  Request,
+  Response,
   ExecutionContext,
   ForwardableEmailMessage,
   MessageBatch,
@@ -61,8 +63,22 @@ export interface CloudflareOptions {
 
 type DurableObjectState = ConstructorParameters<typeof DurableObject>[0];
 
+export interface NitroCloudflareFetchEvent {
+  readonly request: Request;
+  readonly env: unknown;
+  readonly context: unknown;
+  readonly url: URL;
+
+  /**
+   * @experimental only available in the `cloudflare:durable` preset and might be removed in the future
+   */
+  durableFech?: () => Promise<Response>;
+}
+
 declare module "nitropack/types" {
   export interface NitroRuntimeHooks {
+    "cloudflare:fetch": (event: NitroCloudflareFetchEvent) => void;
+
     // https://developers.cloudflare.com/workers/runtime-apis/handlers/scheduled/
     "cloudflare:scheduled": (_: {
       controller: ScheduledController;
@@ -97,6 +113,16 @@ declare module "nitropack/types" {
       context: ExecutionContext;
     }) => void;
 
+    // --- Durable Objects ---
+
+    /** @experimental */
+    "cloudflare:durable:fetch": (
+      event: NitroCloudflareFetchEvent & {
+        readonly durable: DurableObject;
+      }
+    ) => void;
+
+    /** @experimental */
     "cloudflare:durable:init": (
       durable: DurableObject,
       _: {
@@ -105,6 +131,7 @@ declare module "nitropack/types" {
       }
     ) => void;
 
+    /** @experimental */
     "cloudflare:durable:alarm": (durable: DurableObject) => void;
   }
 }
