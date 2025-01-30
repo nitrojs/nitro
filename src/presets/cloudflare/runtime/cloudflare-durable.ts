@@ -79,7 +79,9 @@ export class $DurableObject extends DurableObject {
     }
     // Main handler
     const url = new URL(request.url);
-    return fetchHandler(request, this.env, this.ctx, url, nitroApp);
+    return fetchHandler(request, this.env, this.ctx, url, nitroApp, {
+      durable: this,
+    });
   }
 
   override alarm(): void | Promise<void> {
