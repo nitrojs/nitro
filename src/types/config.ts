@@ -309,6 +309,7 @@ export interface CompressOptions {
 // Server assets
 export interface ServerAssetDir {
   baseName: string;
+  pattern?: string;
   dir: string;
   ignore?: string[];
 }

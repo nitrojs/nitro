@@ -27,6 +27,7 @@ import { resolveRouteRulesOptions } from "./resolvers/route-rules";
 import { resolveRuntimeConfigOptions } from "./resolvers/runtime-config";
 import { resolveStorageOptions } from "./resolvers/storage";
 import { resolveURLOptions } from "./resolvers/url";
+import { resolveErrorOptions } from "./resolvers/error";
 
 const configResolvers = [
   resolveCompatibilityOptions,
@@ -41,6 +42,7 @@ const configResolvers = [
   resolveURLOptions,
   resolveAssetsOptions,
   resolveStorageOptions,
+  resolveErrorOptions,
 ] as const;
 
 export async function loadOptions(
@@ -138,7 +140,7 @@ async function _loadUserConfig(
       });
       if (preset) {
         return {
-          config: preset,
+          config: klona(preset),
         };
       }
     },

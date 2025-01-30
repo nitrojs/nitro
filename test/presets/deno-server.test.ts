@@ -16,7 +16,8 @@ describe.runIf(hasDeno)("nitro:preset:deno-server", async () => {
       "deno",
       ["task", "--config", resolve(ctx.outDir, "deno.json"), "start"],
       {
-        stdio: "inherit",
+        // stdio: "inherit",
+        stdio: "ignore",
         env: {
           NITRO_PORT: String(port),
           NITRO_HOST: "127.0.0.1",

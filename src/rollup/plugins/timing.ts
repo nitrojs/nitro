@@ -1,26 +1,32 @@
 import { extname } from "pathe";
 import type { Plugin, RenderedChunk } from "rollup";
 
-interface Options {}
+interface TimingOptions {
+  silent?: boolean;
+}
 
 const TIMING = "globalThis.__timing__";
 
 const iife = (code: string) =>
   `(function() { ${code.trim()} })();`.replace(/\n/g, "");
 
-const HELPER = iife(`
-const start = () => Date.now();
-const end = s => Date.now() - s;
-const _s = {};
-const metrics = [];
-const logStart = id => { _s[id] = Date.now(); };
-const logEnd = id => { const t = end(_s[id]); delete _s[id]; metrics.push([id, t]); if (t > 0) { console.debug('>', id + ' (' + t + 'ms)'); } };
-${TIMING} = { start, end, metrics, logStart, logEnd };
-`);
-
 const HELPERIMPORT = "import './timing.js';";
 
-export function timing(_opts: Options = {}): Plugin {
+export function timing(opts: TimingOptions = {}): Plugin {
+  const HELPER_DEBUG = opts.silent
+    ? ""
+    : `if (t > 0) { console.debug('>', id + ' (' + t + 'ms)'); }`;
+
+  const HELPER = iife(/* js */ `
+    const start = () => Date.now();
+    const end = s => Date.now() - s;
+    const _s = {};
+    const metrics = [];
+    const logStart = id => { _s[id] = Date.now(); };
+    const logEnd = id => { const t = end(_s[id]); delete _s[id]; metrics.push([id, t]); ${HELPER_DEBUG} };
+    ${TIMING} = { start, end, metrics, logStart, logEnd };
+    `);
+
   return {
     name: "timing",
     generateBundle() {

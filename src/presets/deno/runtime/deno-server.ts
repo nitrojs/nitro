@@ -9,9 +9,9 @@ import wsAdapter from "crossws/adapters/deno";
 import destr from "destr";
 
 // TODO: Declare conflict with crossws
-// declare global {
-// const Deno: typeof import("@deno/types").Deno;
-// }
+declare global {
+  const Deno: typeof import("@deno/types").Deno;
+}
 
 const nitroApp = useNitroApp();
 

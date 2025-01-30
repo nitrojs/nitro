@@ -1,9 +1,10 @@
 import { fileURLToPath } from "node:url";
 import { defineNitroConfig } from "nitropack/config";
+import { dirname, resolve } from "node:path";
 
 export default defineNitroConfig({
   compressPublicAssets: true,
-  compatibilityDate: "2024-09-19",
+  compatibilityDate: "2025-01-30",
   framework: {
     name: "nitro",
     version: "2.x",
@@ -16,6 +17,16 @@ export default defineNitroConfig({
         imports: ["camelCase", "pascalCase", "kebabCase"],
       },
     ],
+  },
+  rollupConfig: {
+    output: {
+      // TODO: when output.dir is outside of src, rollup emits wrong relative sourcemap paths
+      sourcemapPathTransform: (relativeSourcePath, sourcemapPath) => {
+        const sourcemapDir = dirname(sourcemapPath);
+        const sourcePath = resolve(sourcemapDir, relativeSourcePath);
+        return sourcePath;
+      },
+    },
   },
   handlers: [
     {
@@ -95,6 +106,7 @@ export default defineNitroConfig({
     "/rules/_/cached/noncached": { cache: false, swr: false, isr: false },
     "/rules/_/cached/**": { swr: true },
     "/api/proxy/**": { proxy: "/api/echo" },
+    "**": { headers: { "x-test": "test" } },
   },
   prerender: {
     crawlLinks: true,

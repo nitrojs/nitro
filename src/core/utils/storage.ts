@@ -1,13 +1,15 @@
 import type { Nitro } from "nitropack/types";
+import { klona } from "klona";
 import { createStorage as _createStorage, builtinDrivers } from "unstorage";
 
 export async function createStorage(nitro: Nitro) {
   const storage = _createStorage();
 
-  const mounts = {
+  // https://github.com/unjs/unstorage/issues/566
+  const mounts = klona({
     ...nitro.options.storage,
     ...nitro.options.devStorage,
-  };
+  });
 
   for (const [path, opts] of Object.entries(mounts)) {
     if (opts.driver) {

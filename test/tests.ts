@@ -170,7 +170,6 @@ export async function setupTest(
 
 export async function startServer(ctx: Context, handle: RequestListener) {
   ctx.server = await listen(handle);
-  console.log(">", ctx.server!.url);
 }
 
 type TestHandlerResult = {
@@ -385,9 +384,12 @@ export function testNitro(
       },
     });
     expect(status).toBe(503);
+
     expect(headers).toMatchObject({
       "content-type": "application/json",
-      "content-security-policy": "script-src 'none'; frame-ancestors 'none';",
+      "content-security-policy": ctx.isDev
+        ? "script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self';"
+        : "script-src 'none'; frame-ancestors 'none';",
       "referrer-policy": "no-referrer",
       "x-content-type-options": "nosniff",
       "x-frame-options": "DENY",
@@ -457,6 +459,7 @@ export function testNitro(
     const res = await callHandler({ url: "/imports" });
     expect(res.data).toMatchObject({
       testUtil: 123,
+      testNestedUtil: 1234 + 12_345,
     });
   });
 
