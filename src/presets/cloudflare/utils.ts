@@ -2,8 +2,8 @@ import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { relative, dirname } from "node:path";
 import { writeFile } from "nitropack/kit";
-import { parseTOML, stringifyTOML } from "confbox";
-import defu from "defu";
+import { parseTOML } from "confbox";
+import { defu } from "defu";
 import { globby } from "globby";
 import type { Nitro } from "nitropack/types";
 import { join, resolve } from "pathe";
@@ -17,19 +17,7 @@ import {
 import type { CloudflarePagesRoutes } from "./types";
 import type { Config as WranglerConfig } from "./types.wrangler";
 
-export async function writeCFPagesFiles(nitro: Nitro) {
-  await writeCFRoutes(nitro);
-  await writeCFPagesHeaders(nitro);
-  await writeCFPagesRedirects(nitro);
-  await writeCFWranglerConfig(nitro);
-}
-
-export async function writeCFPagesStaticFiles(nitro: Nitro) {
-  await writeCFPagesHeaders(nitro);
-  await writeCFPagesRedirects(nitro);
-}
-
-async function writeCFRoutes(nitro: Nitro) {
+export async function writeCFRoutes(nitro: Nitro) {
   const _cfPagesConfig = nitro.options.cloudflare?.pages || {};
   const routes: CloudflarePagesRoutes = {
     version: _cfPagesConfig.routes?.version || 1,
@@ -111,7 +99,7 @@ function comparePaths(a: string, b: string) {
   return a.split("/").length - b.split("/").length || a.localeCompare(b);
 }
 
-async function writeCFPagesHeaders(nitro: Nitro) {
+export async function writeCFPagesHeaders(nitro: Nitro) {
   const headersPath = join(nitro.options.output.dir, "_headers");
   const contents = [];
 
@@ -149,7 +137,7 @@ async function writeCFPagesHeaders(nitro: Nitro) {
   await writeFile(headersPath, contents.join("\n"), true);
 }
 
-async function writeCFPagesRedirects(nitro: Nitro) {
+export async function writeCFPagesRedirects(nitro: Nitro) {
   const redirectsPath = join(nitro.options.output.dir, "_redirects");
   const staticFallback = existsSync(
     join(nitro.options.output.publicDir, "404.html")
@@ -189,113 +177,116 @@ async function writeCFPagesRedirects(nitro: Nitro) {
   await writeFile(redirectsPath, contents.join("\n"), true);
 }
 
-async function writeCFWranglerConfig(nitro: Nitro) {
-  const extraConfig: WranglerConfig = nitro.options.cloudflare?.wrangler || {};
-
-  // Skip if there are no extra config
-  if (Object.keys(extraConfig || {}).length === 0) {
+// https://developers.cloudflare.com/workers/wrangler/configuration/#generated-wrangler-configuration
+export async function writeWranglerConfig(nitro: Nitro, isPages: boolean) {
+  // Allow skipping generated wrangler.json
+  if (nitro.options.cloudflare?.noWranglerConfig) {
     return;
+  }
+
+  // Compute path to generated wrangler.json
+  const wranglerConfigDir = nitro.options.output.serverDir;
+  const wranglerConfigPath = join(wranglerConfigDir, "wrangler.json");
+
+  // Default configs
+  const defaults: WranglerConfig = {};
+
+  // Compatibility date
+  defaults.compatibility_date =
+    nitro.options.compatibilityDate.cloudflare ||
+    nitro.options.compatibilityDate.default;
+
+  // Enable nodejs compatibility by default but disable wrangler transforms
+  defaults.compatibility_flags = ["nodejs_compat", "no_nodejs_compat_v2"];
+
+  if (isPages) {
+    // Pages
+    defaults.pages_build_output_dir = relative(
+      dirname(wranglerConfigPath),
+      nitro.options.output.publicDir
+    );
+  } else {
+    // Modules
+    defaults.main = relative(
+      wranglerConfigDir,
+      join(nitro.options.output.serverDir, "index.mjs")
+    );
+    defaults.assets = {
+      // @ts-expect-error
+      binding: "ASSETS",
+      directory: relative(
+        dirname(wranglerConfigPath),
+        nitro.options.output.publicDir
+      ),
+    };
   }
 
   // Read user config
   const userConfig = await resolveWranglerConfig(nitro.options.rootDir);
 
-  // Merge configs
-  const mergedConfig = userConfig.config
-    ? mergeWranglerConfig(userConfig.config, extraConfig)
-    : extraConfig;
+  // (first argument takes precedence)
+  const wranglerConfig = mergeWranglerConfigs(
+    userConfig,
+    nitro.options.cloudflare?.wrangler,
+    defaults
+  );
 
-  // Write config
-  // https://github.com/cloudflare/workers-sdk/pull/7442
-  const configRedirect = !!process.env.EXPERIMENTAL_WRANGLER_CONFIG;
-  if (configRedirect) {
-    if (mergedConfig.pages_build_output_dir) {
-      throw new Error(
-        "`pages_build_output_dir` wrangler config should not be set."
-      );
-    }
-    const configPath = join(
-      nitro.options.rootDir,
-      ".wrangler/deploy/config.json"
-    );
-    const wranglerConfigPath = join(
-      nitro.options.output.serverDir,
-      "wrangler.json"
-    );
-    await writeFile(
-      configPath,
-      JSON.stringify({
-        configPath: relative(dirname(configPath), wranglerConfigPath),
-      }),
-      true
-    );
-    await writeFile(
-      wranglerConfigPath,
-      JSON.stringify(mergedConfig, null, 2),
-      true
-    );
-  } else {
-    // Overwrite user config (TODO: remove when cloudflare/workers-sdk#7442 is GA)
-    const jsonConfig = join(nitro.options.rootDir, "wrangler.json");
-    if (existsSync(jsonConfig)) {
-      await writeFile(jsonConfig, JSON.stringify(mergedConfig, null, 2), true);
-    } else {
-      const tomlConfig = join(nitro.options.rootDir, "wrangler.toml");
-      await writeFile(tomlConfig, stringifyTOML(mergedConfig), true);
-    }
-  }
+  // Write wrangler.json
+  await writeFile(
+    wranglerConfigPath,
+    JSON.stringify(wranglerConfig, null, 2),
+    true
+  );
+
+  // Write .wrangler/deploy/config.json (redirect file)
+  const configPath = join(
+    nitro.options.rootDir,
+    ".wrangler/deploy/config.json"
+  );
+  await writeFile(
+    configPath,
+    JSON.stringify({
+      configPath: relative(dirname(configPath), wranglerConfigPath),
+    }),
+    true
+  );
 }
 
-async function resolveWranglerConfig(
-  dir: string
-): Promise<{ path: string; config?: WranglerConfig }> {
+async function resolveWranglerConfig(dir: string): Promise<WranglerConfig> {
   const jsonConfig = join(dir, "wrangler.json");
   if (existsSync(jsonConfig)) {
     const config = JSON.parse(
       await readFile(join(dir, "wrangler.json"), "utf8")
     ) as WranglerConfig;
-    return {
-      config,
-      path: jsonConfig,
-    };
+    return config;
   }
   const tomlConfig = join(dir, "wrangler.toml");
   if (existsSync(tomlConfig)) {
     const config = parseTOML<WranglerConfig>(
       await readFile(join(dir, "wrangler.toml"), "utf8")
     );
-    return {
-      config,
-      path: tomlConfig,
-    };
+    return config;
   }
-  return {
-    path: tomlConfig,
-  };
+  return {};
 }
 
 /**
- * Merge user config with extra config
- *
- * - Objects/Arrays are merged
- * - User config takes precedence over extra config
+ * Merge wrangler configs (first argument takes precedence)
  */
-function mergeWranglerConfig(
-  userConfig: WranglerConfig = {},
-  extraConfig: WranglerConfig = {}
+function mergeWranglerConfigs(
+  ...configs: (WranglerConfig | undefined)[]
 ): WranglerConfig {
-  // TODO: Improve logic with explicit merging
-  const mergedConfig: WranglerConfig = defu(userConfig, extraConfig);
-  if (mergedConfig.compatibility_flags) {
-    mergedConfig.compatibility_flags = [
-      ...new Set(mergedConfig.compatibility_flags || []),
-    ];
-    if (mergedConfig.compatibility_flags.includes("no_nodejs_compat_v2")) {
-      mergedConfig.compatibility_flags =
-        mergedConfig.compatibility_flags.filter(
-          (flag) => flag !== "nodejs_compat_v2"
-        );
+  // Merge configs
+  const merged = defu({}, ...configs) as WranglerConfig;
+
+  // Normalize compatibility flags
+  if (merged.compatibility_flags) {
+    let flags = [...new Set(merged.compatibility_flags || [])];
+    if (flags.includes("no_nodejs_compat_v2")) {
+      flags = flags.filter((flag) => flag !== "nodejs_compat_v2");
     }
+    merged.compatibility_flags = flags;
   }
-  return mergedConfig;
+
+  return merged;
 }

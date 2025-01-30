@@ -2,7 +2,12 @@ import { defineNitroPreset } from "nitropack/kit";
 import { writeFile } from "nitropack/kit";
 import type { Nitro } from "nitropack/types";
 import { resolve } from "pathe";
-import { writeCFPagesFiles, writeCFPagesStaticFiles } from "./utils";
+import {
+  writeWranglerConfig,
+  writeCFRoutes,
+  writeCFPagesHeaders,
+  writeCFPagesRedirects,
+} from "./utils";
 
 export type { CloudflareOptions as PresetOptions } from "./types";
 
@@ -52,7 +57,10 @@ const cloudflarePages = defineNitroPreset(
     },
     hooks: {
       async compiled(nitro: Nitro) {
-        await writeCFPagesFiles(nitro);
+        await writeWranglerConfig(nitro);
+        await writeCFRoutes(nitro);
+        await writeCFPagesHeaders(nitro);
+        await writeCFPagesRedirects(nitro);
       },
     },
   },
@@ -76,7 +84,9 @@ const cloudflarePagesStatic = defineNitroPreset(
     },
     hooks: {
       async compiled(nitro: Nitro) {
-        await writeCFPagesStaticFiles(nitro);
+        await writeWranglerConfig(nitro);
+        await writeCFPagesHeaders(nitro);
+        await writeCFPagesRedirects(nitro);
       },
     },
   },
@@ -105,6 +115,7 @@ const cloudflare = defineNitroPreset(
     },
     hooks: {
       async compiled(nitro: Nitro) {
+        await writeWranglerConfig(nitro);
         await writeFile(
           resolve(nitro.options.output.dir, "package.json"),
           JSON.stringify({ private: true, main: "./server/index.mjs" }, null, 2)
@@ -173,8 +184,8 @@ const cloudflareModule = defineNitroPreset(
     entry: "./runtime/cloudflare-module",
     exportConditions: ["workerd"],
     commands: {
-      preview: "npx wrangler dev ./server/index.mjs --assets ./public/",
-      deploy: "npx wrangler deploy",
+      preview: "npx wrangler dev -c ./server/wrangler.json",
+      deploy: "npx wrangler deploy -c ./server/wrangler.json",
     },
     unenv: {
       external: [...cloudflareExternals],
@@ -192,6 +203,7 @@ const cloudflareModule = defineNitroPreset(
     },
     hooks: {
       async compiled(nitro: Nitro) {
+        await writeWranglerConfig(nitro);
         await writeFile(
           resolve(nitro.options.output.dir, "package.json"),
           JSON.stringify({ private: true, main: "./server/index.mjs" }, null, 2)

@@ -2,12 +2,10 @@ name = "nitro-test"
 
 compatibility_date = "2024-09-19"
 
-assets = { directory = "./.output/public/", binding = "ASSETS" }
+# [[durable_objects.bindings]]
+# name = "$DurableObject"
+# class_name = "$DurableObject"
 
-[[durable_objects.bindings]]
-name = "$DurableObject"
-class_name = "$DurableObject"
-
-[[migrations]]
-tag = "v1"
-new_sqlite_classes = ["$DurableObject"]
+# [[migrations]]
+# tag = "v1"
+# new_sqlite_classes = ["$DurableObject"]

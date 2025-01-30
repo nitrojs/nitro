@@ -28,6 +28,11 @@ export interface CloudflareOptions {
    */
   wrangler?: WranglerConfig;
 
+  /**
+   * Disable the automatic generation of the Wrangler configuration file.
+   */
+  noWranglerConfig?: boolean;
+
   pages: {
     /**
      * Nitro will automatically generate a `_routes.json` that controls which files get served statically and
