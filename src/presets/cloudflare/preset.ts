@@ -57,7 +57,7 @@ const cloudflarePages = defineNitroPreset(
     },
     hooks: {
       async compiled(nitro: Nitro) {
-        await writeWranglerConfig(nitro);
+        await writeWranglerConfig(nitro, true /* pages */);
         await writeCFRoutes(nitro);
         await writeCFPagesHeaders(nitro);
         await writeCFPagesRedirects(nitro);
@@ -84,7 +84,7 @@ const cloudflarePagesStatic = defineNitroPreset(
     },
     hooks: {
       async compiled(nitro: Nitro) {
-        await writeWranglerConfig(nitro);
+        await writeWranglerConfig(nitro, true /* pages */);
         await writeCFPagesHeaders(nitro);
         await writeCFPagesRedirects(nitro);
       },
@@ -115,7 +115,6 @@ const cloudflare = defineNitroPreset(
     },
     hooks: {
       async compiled(nitro: Nitro) {
-        await writeWranglerConfig(nitro);
         await writeFile(
           resolve(nitro.options.output.dir, "package.json"),
           JSON.stringify({ private: true, main: "./server/index.mjs" }, null, 2)
@@ -203,7 +202,7 @@ const cloudflareModule = defineNitroPreset(
     },
     hooks: {
       async compiled(nitro: Nitro) {
-        await writeWranglerConfig(nitro);
+        await writeWranglerConfig(nitro, false /* module */);
         await writeFile(
           resolve(nitro.options.output.dir, "package.json"),
           JSON.stringify({ private: true, main: "./server/index.mjs" }, null, 2)
