@@ -8,9 +8,9 @@ import type {
   PathsObject,
 } from "openapi-typescript";
 import { joinURL } from "ufo";
+import { defu } from "defu";
 import { handlersMeta } from "#nitro-internal-virtual/server-handlers-meta";
 import { useRuntimeConfig } from "../config";
-import type { DeepPartial } from "../../../types/_utils";
 
 // Served as /_openapi.json
 export default eventHandler((event) => {
@@ -24,7 +24,7 @@ export default eventHandler((event) => {
     ...runtimeConfig.nitro?.openAPI?.meta,
   };
 
-  const { paths, components } = getOpenApiMeta();
+  const { paths, globals } = getHandlersMeta();
 
   return <OpenAPI3>{
     openapi: "3.1.0",
@@ -41,21 +41,24 @@ export default eventHandler((event) => {
       },
     ],
     paths,
-    components,
+    components: globals.components,
   };
 });
 
-function getOpenApiMeta(): DeepPartial<OpenAPI3> {
+type OpenAPIGlobals = Pick<OpenAPI3, "components">;
+
+function getHandlersMeta(): {
+  paths: PathsObject;
+  globals: OpenAPIGlobals;
+} {
   const paths: PathsObject = {};
-  const componentsSchema: ComponentsObject = {
-    schemas: {},
-  };
+  let globals: OpenAPIGlobals = {};
 
   for (const h of handlersMeta) {
     const { route, parameters } = normalizeRoute(h.route || "");
     const tags = defaultTags(h.route || "");
     const method = (h.method || "get").toLowerCase() as Lowercase<HTTPMethod>;
-    const { components, ...openAPI } = h.meta?.openAPI || {};
+    const { $global, ...openAPI } = h.meta?.openAPI || {};
 
     const item: PathItemObject = {
       [method]: <OperationObject>{
@@ -68,8 +71,9 @@ function getOpenApiMeta(): DeepPartial<OpenAPI3> {
       },
     };
 
-    if (components) {
-      Object.assign(componentsSchema.schemas!, components);
+    if ($global) {
+      // TODO: Warn on conflicting global definitions?
+      globals = defu($global, globals);
     }
 
     if (paths[route] === undefined) {
@@ -79,7 +83,7 @@ function getOpenApiMeta(): DeepPartial<OpenAPI3> {
     }
   }
 
-  return { paths, components: componentsSchema };
+  return { paths, globals };
 }
 
 function normalizeRoute(_route: string) {

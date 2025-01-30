@@ -11,13 +11,17 @@ defineRouteMeta({
         },
       },
     },
-    components: {
-      Test: {
-        type: "object",
-        properties: {
-          status: {
-            type: "string",
-            enum: ["OK", "ERROR"],
+    $global: {
+      components: {
+        schemas: {
+          Test: {
+            type: "object",
+            properties: {
+              status: {
+                type: "string",
+                enum: ["OK", "ERROR"],
+              },
+            },
           },
         },
       },
