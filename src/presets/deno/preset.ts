@@ -40,7 +40,7 @@ const denoServer = defineNitroPreset(
     entry: "./runtime/deno-server",
     exportConditions: ["deno"],
     commands: {
-      preview: "deno task start",
+      preview: "deno task --config ./deno.json start",
     },
     rollupConfig: {
       external: (id) =>
