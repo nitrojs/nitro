@@ -9,6 +9,7 @@ import type {
   VercelBuildConfigV3,
   VercelServerlessFunctionConfig,
 } from "./types";
+import { isTest } from "std-env";
 
 export async function generateFunctionFiles(nitro: Nitro) {
   const buildConfigPath = resolve(nitro.options.output.dir, "config.json");
@@ -240,7 +241,7 @@ export function deprecateSWR(nitro: Nitro) {
       hasLegacyOptions = true;
     }
   }
-  if (hasLegacyOptions) {
+  if (hasLegacyOptions && !isTest) {
     console.warn(
       "[nitro] Nitro now uses `isr` option to configure ISR behavior on Vercel. Backwards-compatible support for `static` and `swr` options within the Vercel Build Options API will be removed in the future versions. Set `future.nativeSWR: true` nitro config disable this warning."
     );

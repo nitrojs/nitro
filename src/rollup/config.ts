@@ -19,7 +19,7 @@ import { hash } from "ohash";
 import { dirname, join, normalize, resolve } from "pathe";
 import type { Plugin } from "rollup";
 import { visualizer } from "rollup-plugin-visualizer";
-import { isWindows } from "std-env";
+import { isTest, isWindows } from "std-env";
 import * as unenv from "unenv";
 import type { Preset } from "unenv";
 import unimportPlugin from "unimport/unplugin";
@@ -191,7 +191,11 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
   }
 
   if (nitro.options.timing) {
-    rollupConfig.plugins.push(timing());
+    rollupConfig.plugins.push(
+      timing({
+        silent: isTest,
+      })
+    );
   }
 
   if (nitro.options.imports) {

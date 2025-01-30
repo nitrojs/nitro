@@ -159,4 +159,5 @@ export type {
   CacheOptions,
   ResponseCacheEntry,
   CachedEventHandlerOptions,
+  NitroApp,
 } from "nitropack/types";

@@ -87,7 +87,8 @@ function createNitroApp(): NitroApp {
 
   // Create local fetch callers
   const localCall = createCall(toNodeListener(h3App) as any);
-  const _localFetch = createLocalFetch(localCall, globalThis.fetch);
+  // prettier-ignore
+  const _localFetch = createLocalFetch(localCall, (u, i) => globalThis.fetch(u, i));
   const localFetch: typeof fetch = (input, init) =>
     _localFetch(input as RequestInfo, init as any).then((response) =>
       normalizeFetchResponse(response)
@@ -121,10 +122,10 @@ function createNitroApp(): NitroApp {
       // Assign bound fetch to context
       event.fetch = (req, init) =>
         fetchWithEvent(event, req, init, { fetch: localFetch });
-      event.$fetch = ((req, init) =>
+      event.$fetch = (req, init) =>
         fetchWithEvent(event, req, init as RequestInit, {
           fetch: $fetch as any,
-        })) as $Fetch<unknown, NitroFetchRequest>;
+        });
 
       // https://github.com/nitrojs/nitro/issues/1420
       event.waitUntil = (promise) => {

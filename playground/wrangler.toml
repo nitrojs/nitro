@@ -10,4 +10,4 @@ class_name = "$DurableObject"
 
 [[migrations]]
 tag = "v1"
-new_classes = ["$DurableObject"]
+new_sqlite_classes = ["$DurableObject"]

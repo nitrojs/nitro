@@ -5,6 +5,7 @@ import type {
   NitroRouteConfig,
   NitroRouteRules,
 } from "nitropack/types";
+import { withLeadingSlash } from "ufo";
 
 export async function resolveRouteRulesOptions(options: NitroOptions) {
   // Backward compatibility for options.routes
@@ -17,8 +18,9 @@ export function normalizeRouteRules(
   config: NitroConfig
 ): Record<string, NitroRouteRules> {
   const normalizedRules: Record<string, NitroRouteRules> = {};
-  for (const path in config.routeRules) {
+  for (let path in config.routeRules) {
     const routeConfig = config.routeRules[path] as NitroRouteConfig;
+    path = withLeadingSlash(path);
     const routeRules: NitroRouteRules = {
       ...routeConfig,
       redirect: undefined,

@@ -33,7 +33,7 @@ export function serverAssets(nitro: Nitro): Plugin {
         // Scan all assets
         const assets: Record<string, ResolvedAsset> = {};
         for (const asset of nitro.options.serverAssets) {
-          const files = await globby("**/*.*", {
+          const files = await globby(asset.pattern || "**/*", {
             cwd: asset.dir,
             absolute: false,
             ignore: asset.ignore,

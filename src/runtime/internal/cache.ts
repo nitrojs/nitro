@@ -369,10 +369,10 @@ export function defineCachedEventHandler<
         fetchWithEvent(event, url, fetchOptions, {
           fetch: useNitroApp().localFetch as any,
         });
-      event.$fetch = ((url, fetchOptions) =>
+      event.$fetch = (url, fetchOptions) =>
         fetchWithEvent(event, url, fetchOptions as RequestInit, {
           fetch: globalThis.$fetch as any,
-        })) as $Fetch<unknown, NitroFetchRequest>;
+        });
       event.context = incomingEvent.context;
       event.context.cache = {
         options: _opts,
