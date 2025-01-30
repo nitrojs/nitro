@@ -51,10 +51,6 @@ const denoServer = defineNitroPreset(
         hoistTransitiveImports: false,
       },
     },
-    alias: {
-      // Deno supports `fetch()` natively everywhere
-      "node-fetch-native": "unenv/runtime/mock/empty",
-    },
     hooks: {
       async compiled(nitro) {
         // https://docs.deno.com/runtime/fundamentals/configuration/
