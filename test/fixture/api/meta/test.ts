@@ -5,7 +5,7 @@ defineRouteMeta({
     parameters: [{ in: "query", name: "test", required: true }],
     responses: {
       200: {
-        description: "OK ",
+        description: "result",
         content: {
           "application/json": { schema: { $ref: "#/components/schemas/Test" } },
         },

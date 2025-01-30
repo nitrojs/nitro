@@ -51,7 +51,14 @@ describe("nitro:preset:nitro-dev", async () => {
                 ],
                 "responses": {
                   "200": {
-                    "description": "OK",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "$ref": "#/components/schemas/Test",
+                        },
+                      },
+                    },
+                    "description": "result",
                   },
                 },
                 "tags": [
