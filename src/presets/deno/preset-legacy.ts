@@ -8,36 +8,7 @@ import { isAbsolute, resolve } from "pathe";
 // nitro/src/rollup/plugin/import-meta.ts
 const ImportMetaRe = /import\.meta|globalThis._importMeta_/;
 
-const denoDeploy = defineNitroPreset(
-  {
-    entry: "./runtime/deno-deploy",
-    exportConditions: ["deno"],
-    node: false,
-    noExternals: true,
-    serveStatic: "deno",
-    commands: {
-      preview: "",
-      deploy:
-        "cd ./ && deployctl deploy --project=<project_name> server/index.ts",
-    },
-    rollupConfig: {
-      preserveEntrySignatures: false,
-      external: (id) => id.startsWith("https://"),
-      output: {
-        entryFileNames: "index.ts",
-        manualChunks: (id) => "index",
-        format: "esm",
-      },
-    },
-  },
-  {
-    name: "deno-deploy" as const,
-    aliases: ["deno"] as const,
-    url: import.meta.url,
-  }
-);
-
-const denoServer = defineNitroPreset(
+export const denoServerLegacy = defineNitroPreset(
   {
     extends: "node-server",
     entry: "./runtime/deno-server",
@@ -161,8 +132,6 @@ const denoServer = defineNitroPreset(
     url: import.meta.url,
   }
 );
-
-export default [denoDeploy, denoServer] as const;
 
 const HTTP_IMPORT_RE = /^(https?:)?\/\//;
 
