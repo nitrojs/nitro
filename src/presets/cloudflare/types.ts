@@ -29,9 +29,9 @@ export interface CloudflareOptions {
   wrangler?: WranglerConfig;
 
   /**
-   * Disable the automatic generation of the Wrangler configuration file.
+   * Disable the automatic generation of .wrangler/deploy/config.json
    */
-  noWranglerConfig?: boolean;
+  noWranglerDeployConfig?: boolean;
 
   pages: {
     /**

@@ -179,11 +179,6 @@ export async function writeCFPagesRedirects(nitro: Nitro) {
 
 // https://developers.cloudflare.com/workers/wrangler/configuration/#generated-wrangler-configuration
 export async function writeWranglerConfig(nitro: Nitro, isPages: boolean) {
-  // Allow skipping generated wrangler.json
-  if (nitro.options.cloudflare?.noWranglerConfig) {
-    return;
-  }
-
   // Compute path to generated wrangler.json
   const wranglerConfigDir = nitro.options.output.serverDir;
   const wranglerConfigPath = join(wranglerConfigDir, "wrangler.json");
@@ -239,17 +234,19 @@ export async function writeWranglerConfig(nitro: Nitro, isPages: boolean) {
   );
 
   // Write .wrangler/deploy/config.json (redirect file)
-  const configPath = join(
-    nitro.options.rootDir,
-    ".wrangler/deploy/config.json"
-  );
-  await writeFile(
-    configPath,
-    JSON.stringify({
-      configPath: relative(dirname(configPath), wranglerConfigPath),
-    }),
-    true
-  );
+  if (!nitro.options.cloudflare?.noWranglerDeployConfig) {
+    const configPath = join(
+      nitro.options.rootDir,
+      ".wrangler/deploy/config.json"
+    );
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        configPath: relative(dirname(configPath), wranglerConfigPath),
+      }),
+      true
+    );
+  }
 }
 
 async function resolveWranglerConfig(dir: string): Promise<WranglerConfig> {
