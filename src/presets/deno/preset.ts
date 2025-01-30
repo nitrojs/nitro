@@ -43,10 +43,7 @@ const denoServer = defineNitroPreset(
       preview: "deno task --config ./deno.json start",
     },
     rollupConfig: {
-      external: (id) =>
-        id.startsWith("https://") ||
-        id.startsWith("node:") ||
-        builtinModules.includes(id),
+      external: (id) => id.startsWith("https://"),
       output: {
         hoistTransitiveImports: false,
       },
