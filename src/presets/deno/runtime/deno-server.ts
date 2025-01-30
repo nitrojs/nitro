@@ -50,8 +50,6 @@ if (!serveOptions.key || !serveOptions.cert) {
   delete serveOptions.cert;
 }
 
-Deno.serve(serveOptions, handler);
-
 // Websocket support
 const ws = import.meta._websocket
   ? wsAdapter(nitroApp.h3App.websocket)
@@ -89,4 +87,9 @@ if (import.meta._tasks) {
   startScheduleRunner();
 }
 
-export default {};
+export default {
+  fetch(request: Request) {
+    // todo: integrate serveOptions
+    return handler(request, undefined);
+  },
+};
