@@ -165,45 +165,27 @@ declare module "nitropack/types" {
     "export {}",
   ];
 
+  function pathToReference(path: string) {
+    return `/// <reference path="${path}" />`;
+  }
+
   const declarations = [
     // local nitropack augmentations
-    '/// <reference path="./nitro-routes.d.ts" />',
-    '/// <reference path="./nitro-config.d.ts" />',
+    "./nitro-routes.d.ts",
+    "./nitro-config.d.ts",
     // global server auto-imports
-    '/// <reference path="./nitro-imports.d.ts" />',
+    "./nitro-imports.d.ts",
   ];
 
-  const buildFiles: { path: string; contents: string }[] = [];
-
-  buildFiles.push({
-    path: join(typesDir, "nitro-routes.d.ts"),
-    contents: routes.join("\n"),
-  });
-
-  buildFiles.push({
-    path: join(typesDir, "nitro-config.d.ts"),
-    contents: config.join("\n"),
-  });
-
-  buildFiles.push({
-    path: join(typesDir, "nitro-imports.d.ts"),
-    contents: [...autoImportedTypes, autoImportExports || "export {}"].join(
-      "\n"
-    ),
-  });
-
-  buildFiles.push({
-    path: join(typesDir, "nitro.d.ts"),
-    contents: declarations.join("\n"),
-  });
-
+  let tsConfigPath: string = "";
+  let tsConfig: TSConfig | undefined = undefined;
   if (nitro.options.typescript.generateTsConfig) {
-    const tsConfigPath = resolve(
+    tsConfigPath = resolve(
       nitro.options.buildDir,
       nitro.options.typescript.tsconfigPath
     );
     const tsconfigDir = dirname(tsConfigPath);
-    const tsConfig: TSConfig = defu(nitro.options.typescript.tsConfig, {
+    tsConfig = defu(nitro.options.typescript.tsConfig, {
       compilerOptions: {
         forceConsistentCasingInFileNames: true,
         strict: nitro.options.typescript.strict,
@@ -314,7 +296,39 @@ declare module "nitropack/types" {
         ),
       ];
     }
+  }
 
+  // Allow modules to modify the types before writing them
+  await nitro.hooks.callHook("prepare:types", {
+    declarations: declarations,
+    tsConfig: tsConfig,
+  });
+
+  const buildFiles: { path: string; contents: string }[] = [];
+
+  buildFiles.push({
+    path: join(typesDir, "nitro-routes.d.ts"),
+    contents: routes.join("\n"),
+  });
+
+  buildFiles.push({
+    path: join(typesDir, "nitro-config.d.ts"),
+    contents: config.join("\n"),
+  });
+
+  buildFiles.push({
+    path: join(typesDir, "nitro-imports.d.ts"),
+    contents: [...autoImportedTypes, autoImportExports || "export {}"].join(
+      "\n"
+    ),
+  });
+
+  buildFiles.push({
+    path: join(typesDir, "nitro.d.ts"),
+    contents: declarations.map((file) => pathToReference(file)).join("\n"),
+  });
+
+  if (tsConfig) {
     buildFiles.push({
       path: tsConfigPath,
       contents: JSON.stringify(tsConfig, null, 2),
