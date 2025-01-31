@@ -1,3 +1,5 @@
+import type { Nitro } from "nitropack/types";
+import type { WranglerConfig, CloudflarePagesRoutes } from "./types";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { relative, dirname } from "node:path";
@@ -5,7 +7,6 @@ import { writeFile } from "nitropack/kit";
 import { parseTOML } from "confbox";
 import { defu } from "defu";
 import { globby } from "globby";
-import type { Nitro } from "nitropack/types";
 import { join, resolve } from "pathe";
 import {
   joinURL,
@@ -14,8 +15,6 @@ import {
   withTrailingSlash,
   withoutLeadingSlash,
 } from "ufo";
-import type { CloudflarePagesRoutes } from "./types";
-import type { Config as WranglerConfig } from "./types.wrangler";
 
 export async function writeCFRoutes(nitro: Nitro) {
   const _cfPagesConfig = nitro.options.cloudflare?.pages || {};
@@ -191,7 +190,8 @@ export async function writeWranglerConfig(nitro: Nitro, isPages: boolean) {
     nitro.options.compatibilityDate.cloudflare ||
     nitro.options.compatibilityDate.default;
 
-  // Enable nodejs compatibility by default but disable wrangler transforms
+  // Enable native workerd nodejs compatibility by default
+  // But disable wrangler transforms which are not compatible with Nitro currently
   defaults.compatibility_flags = ["nodejs_compat", "no_nodejs_compat_v2"];
 
   if (isPages) {
@@ -207,7 +207,6 @@ export async function writeWranglerConfig(nitro: Nitro, isPages: boolean) {
       join(nitro.options.output.serverDir, "index.mjs")
     );
     defaults.assets = {
-      // @ts-expect-error
       binding: "ASSETS",
       directory: relative(
         dirname(wranglerConfigPath),
