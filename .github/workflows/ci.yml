@@ -46,7 +46,7 @@ jobs:
       - uses: denoland/setup-deno@v1
         if: ${{ matrix.os != 'windows-latest' }}
         with:
-          deno-version: v1.x
+          deno-version: v2.x
       - run: pnpm install
       - run: pnpm test:types
         if: ${{ matrix.os != 'windows-latest' }}

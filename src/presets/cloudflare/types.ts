@@ -6,7 +6,7 @@ import type {
   TraceItem,
 } from "@cloudflare/workers-types";
 import type { DurableObject } from "cloudflare:workers";
-import type { Config as WranglerConfig } from "./types.wrangler";
+import type { Config as WranglerConfig } from "./wrangler/config";
 
 /**
  * https://developers.cloudflare.com/pages/platform/functions/routing/#functions-invocation-routes
