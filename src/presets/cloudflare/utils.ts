@@ -190,10 +190,6 @@ export async function writeWranglerConfig(nitro: Nitro, isPages: boolean) {
     nitro.options.compatibilityDate.cloudflare ||
     nitro.options.compatibilityDate.default;
 
-  // Enable native workerd nodejs compatibility by default
-  // But disable wrangler transforms which are not compatible with Nitro currently
-  defaults.compatibility_flags = ["nodejs_compat", "no_nodejs_compat_v2"];
-
   if (isPages) {
     // Pages
     defaults.pages_build_output_dir = relative(
