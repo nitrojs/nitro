@@ -1,306 +1,12 @@
-// Source:
-// - https://github.com/cloudflare/workers-sdk/blob/main/packages/wrangler/src/config/config.ts
-// - https://github.com/cloudflare/workers-sdk/blob/main/packages/wrangler/src/config/environment.ts
-// 4f47f7422786e537eaefd034153998f848bcd573
-
 /**
- * This is the static type definition for the configuration object.
+ * Copyright (c) 2020 Cloudflare, Inc. <wrangler@cloudflare.com>
+ * https://github.com/cloudflare/workers-sdk/blob/main/LICENSE-MIT
+ * https://github.com/cloudflare/workers-sdk/blob/main/LICENSE-APACHE
  *
- * It reflects a normalized and validated version of the configuration that you can write in wrangler.toml,
- * and optionally augment with arguments passed directly to wrangler.
- *
- * For more information about the configuration object, see the
- * documentation at https://developers.cloudflare.com/workers/cli-wrangler/configuration
- *
- * Notes:
- *
- * - Fields that are only specified in `ConfigFields` and not `Environment` can only appear
- * in the top level config and should not appear in any environments.
- * - Fields that are specified in `PagesConfigFields` are only relevant for Pages projects
- * - All top level fields in config and environments are optional in the wrangler.toml file.
- *
- * Legend for the annotations:
- *
- * - `@breaking`: the deprecation/optionality is a breaking change from Wrangler v1.
- * - `@todo`: there's more work to be done (with details attached).
+ * Source: https://github.com/cloudflare/workers-sdk/blob/main/packages/wrangler/src/config/environment.ts
  */
-export type Config = ConfigFields<DevConfig> & PagesConfigFields & Environment;
 
-export type RawConfig = Partial<ConfigFields<RawDevConfig>> &
-  PagesConfigFields &
-  RawEnvironment &
-  DeprecatedConfigFields &
-  EnvironmentMap & { $schema?: string };
-
-// Pages-specific configuration fields
-export interface PagesConfigFields {
-  /**
-   * The directory of static assets to serve.
-   *
-   * The presence of this field in `wrangler.toml` indicates a Pages project,
-   * and will prompt the handling of the configuration file according to the
-   * Pages-specific validation rules.
-   */
-  pages_build_output_dir?: string;
-}
-
-export interface ConfigFields<Dev extends RawDevConfig> {
-  configPath: string | undefined;
-
-  /**
-   * A boolean to enable "legacy" style wrangler environments (from Wrangler v1).
-   * These have been superseded by Services, but there may be projects that won't
-   * (or can't) use them. If you're using a legacy environment, you can set this
-   * to `true` to enable it.
-   */
-  legacy_env: boolean;
-
-  /**
-   * Whether Wrangler should send usage metrics to Cloudflare for this project.
-   *
-   * When defined this will override any user settings.
-   * Otherwise, Wrangler will use the user's preference.
-   */
-  send_metrics: boolean | undefined;
-
-  /**
-   * Options to configure the development server that your worker will use.
-   */
-  dev: Dev;
-
-  /**
-   * A list of migrations that should be uploaded with your Worker.
-   *
-   * These define changes in your Durable Object declarations.
-   *
-   * More details at https://developers.cloudflare.com/workers/learning/using-durable-objects#configuring-durable-object-classes-with-migrations
-   *
-   * @default []
-   */
-  migrations: {
-    /** A unique identifier for this migration. */
-    tag: string;
-    /** The new Durable Objects being defined. */
-    new_classes?: string[];
-    /** The Durable Objects being renamed. */
-    renamed_classes?: {
-      from: string;
-      to: string;
-    }[];
-    /** The Durable Objects being removed. */
-    deleted_classes?: string[];
-  }[];
-
-  /**
-   * The definition of a Worker Site, a feature that lets you upload
-   * static assets with your Worker.
-   *
-   * More details at https://developers.cloudflare.com/workers/platform/sites
-   */
-  site:
-    | {
-        /**
-         * The directory containing your static assets.
-         *
-         * It must be a path relative to your wrangler.toml file.
-         * Example: bucket = "./public"
-         *
-         * If there is a `site` field then it must contain this `bucket` field.
-         */
-        bucket: string;
-
-        /**
-         * The location of your Worker script.
-         *
-         * @deprecated DO NOT use this (it's a holdover from Wrangler v1.x). Either use the top level `main` field, or pass the path to your entry file as a command line argument.
-         * @breaking
-         */
-        "entry-point"?: string;
-
-        /**
-         * An exclusive list of .gitignore-style patterns that match file
-         * or directory names from your bucket location. Only matched
-         * items will be uploaded. Example: include = ["upload_dir"]
-         *
-         * @optional
-         * @default []
-         */
-        include?: string[];
-
-        /**
-         * A list of .gitignore-style patterns that match files or
-         * directories in your bucket that should be excluded from
-         * uploads. Example: exclude = ["ignore_dir"]
-         *
-         * @optional
-         * @default []
-         */
-        exclude?: string[];
-      }
-    | undefined;
-
-  /**
-   * Serve a folder of static assets with your Worker, without any additional code.
-   * This can either be a string, or an object with additional config fields.
-   */
-  assets:
-    | {
-        bucket: string;
-        include: string[];
-        exclude: string[];
-        browser_TTL: number | undefined;
-        serve_single_page_app: boolean;
-      }
-    | undefined;
-
-  /**
-   * A list of wasm modules that your worker should be bound to. This is
-   * the "legacy" way of binding to a wasm module. ES module workers should
-   * do proper module imports.
-   */
-  wasm_modules:
-    | {
-        [key: string]: string;
-      }
-    | undefined;
-
-  /**
-   * A list of text files that your worker should be bound to. This is
-   * the "legacy" way of binding to a text file. ES module workers should
-   * do proper module imports.
-   */
-  text_blobs:
-    | {
-        [key: string]: string;
-      }
-    | undefined;
-
-  /**
-   * A list of data files that your worker should be bound to. This is
-   * the "legacy" way of binding to a data file. ES module workers should
-   * do proper module imports.
-   */
-  data_blobs:
-    | {
-        [key: string]: string;
-      }
-    | undefined;
-
-  /**
-   * By default, wrangler.toml is the source of truth for your environment configuration, like a terraform file.
-   *
-   * If you change your vars in the dashboard, wrangler *will* override/delete them on its next deploy.
-   *
-   * If you want to keep your dashboard vars when wrangler deploys, set this field to true.
-   *
-   * @default false
-   * @nonInheritable
-   */
-  keep_vars?: boolean;
-}
-
-// Pages-specific configuration fields
-export interface PagesConfigFields {
-  /**
-   * The directory of static assets to serve.
-   *
-   * The presence of this field in `wrangler.toml` indicates a Pages project,
-   * and will prompt the handling of the configuration file according to the
-   * Pages-specific validation rules.
-   */
-  pages_build_output_dir?: string;
-}
-
-export interface DevConfig {
-  /**
-   * IP address for the local dev server to listen on,
-   *
-   * @default localhost
-   */
-  ip: string;
-
-  /**
-   * Port for the local dev server to listen on
-   *
-   * @default 8787
-   */
-  port: number | undefined;
-
-  /**
-   * Port for the local dev server's inspector to listen on
-   *
-   * @default 9229
-   */
-  inspector_port: number | undefined;
-
-  /**
-   * Protocol that local wrangler dev server listens to requests on.
-   *
-   * @default http
-   */
-  local_protocol: "http" | "https";
-
-  /**
-   * Protocol that wrangler dev forwards requests on
-   *
-   * Setting this to `http` is not currently implemented for remote mode.
-   * See https://github.com/cloudflare/workers-sdk/issues/583
-   *
-   * @default https
-   */
-  upstream_protocol: "https" | "http";
-
-  /**
-   * Host to forward requests to, defaults to the host of the first route of project
-   */
-  host: string | undefined;
-}
-
-export type RawDevConfig = Partial<DevConfig>;
-
-export interface DeprecatedConfigFields {
-  /**
-   * The project "type". A holdover from Wrangler v1.x.
-   * Valid values were "webpack", "javascript", and "rust".
-   *
-   * @deprecated DO NOT USE THIS. Most common features now work out of the box with wrangler, including modules, jsx, typescript, etc. If you need anything more, use a custom build.
-   * @breaking
-   */
-  type?: "webpack" | "javascript" | "rust";
-
-  /**
-   * Path to the webpack config to use when building your worker.
-   * A holdover from Wrangler v1.x, used with `type: "webpack"`.
-   *
-   * @deprecated DO NOT USE THIS. Most common features now work out of the box with wrangler, including modules, jsx, typescript, etc. If you need anything more, use a custom build.
-   * @breaking
-   */
-  webpack_config?: string;
-
-  /**
-   * Configuration only used by a standalone use of the miniflare binary.
-   * @deprecated
-   */
-  miniflare?: unknown;
-}
-
-interface EnvironmentMap {
-  /**
-   * The `env` section defines overrides for the configuration for different environments.
-   *
-   * All environment fields can be specified at the top level of the config indicating the default environment settings.
-   *
-   * - Some fields are inherited and overridable in each environment.
-   * - But some are not inherited and must be explicitly specified in every environment, if they are specified at the top level.
-   *
-   * For more information, see the documentation at https://developers.cloudflare.com/workers/cli-wrangler/configuration#environments
-   *
-   * @default {}
-   */
-  env?: {
-    [envName: string]: RawEnvironment;
-  };
-}
+import type { Json } from "./_utils";
 
 /**
  * The `Environment` interface declares all the configuration fields that
@@ -312,7 +18,7 @@ export interface Environment
   extends EnvironmentInheritable,
     EnvironmentNonInheritable {}
 
-export type SimpleRoute = string;
+type SimpleRoute = string;
 export type ZoneIdRoute = {
   pattern: string;
   zone_id: string;
@@ -334,8 +40,56 @@ export type Route =
  * Configuration in wrangler for Cloudchamber
  */
 export type CloudchamberConfig = {
+  image?: string;
+  location?: string;
   vcpu?: number;
   memory?: string;
+  ipv4?: boolean;
+};
+
+/**
+ * Configuration for a container application
+ */
+export type ContainerApp = {
+  // TODO: fill out the entire type
+
+  /* Name of the application*/
+  name: string;
+  /* Number of application instances */
+  instances: number;
+  /* The scheduling policy of the application, default is regional */
+  scheduling_policy?: "regional" | "moon";
+  /* Configuration of the container */
+  configuration: {
+    image: string;
+    labels?: { name: string; value: string }[];
+    secrets?: { name: string; type: "env"; secret: string }[];
+  };
+  /* Scheduling constraints */
+  constraints?: {
+    regions?: string[];
+    cities?: string[];
+    tier?: number;
+  };
+};
+
+/**
+ * Configuration in wrangler for Durable Object Migrations
+ */
+export type DurableObjectMigration = {
+  /** A unique identifier for this migration. */
+  tag: string;
+  /** The new Durable Objects being defined. */
+  new_classes?: string[];
+  /** The new SQLite Durable Objects being defined. */
+  new_sqlite_classes?: string[];
+  /** The Durable Objects being renamed. */
+  renamed_classes?: {
+    from: string;
+    to: string;
+  }[];
+  /** The Durable Objects being removed. */
+  deleted_classes?: string[];
 };
 
 /**
@@ -344,7 +98,7 @@ export type CloudchamberConfig = {
  */
 interface EnvironmentInheritable {
   /**
-   * The name of your worker. Alphanumeric + dashes only.
+   * The name of your Worker. Alphanumeric + dashes only.
    *
    * @inheritable
    */
@@ -373,22 +127,25 @@ interface EnvironmentInheritable {
 
   /**
    * A list of flags that enable features from upcoming features of
-   * the Workers runtime, usually used together with compatibility_flags.
+   * the Workers runtime, usually used together with compatibility_date.
    *
-   * More details at https://developers.cloudflare.com/workers/platform/compatibility-dates
+   * More details at https://developers.cloudflare.com/workers/platform/compatibility-flags
    *
+   * @default []
    * @inheritable
    */
   compatibility_flags: string[];
 
   /**
    * The entrypoint/path to the JavaScript file that will be executed.
+   *
+   * @inheritable
    */
   main: string | undefined;
 
   /**
    * If true then Wrangler will traverse the file tree below `base_dir`;
-   * Any files that match `rules` will be included in the deployed worker.
+   * Any files that match `rules` will be included in the deployed Worker.
    * Defaults to true if `no_bundle` is true, otherwise false.
    *
    * @inheritable
@@ -400,43 +157,58 @@ interface EnvironmentInheritable {
    * Defaults to false.
    * If left unset, files will be named using the pattern ${fileHash}-${basename},
    * for example, `34de60b44167af5c5a709e62a4e20c4f18c9e3b6-favicon.ico`.
+   *
+   * @inheritable
    */
   preserve_file_names: boolean | undefined;
 
   /**
-   * The directory in which module rules should be evaluated when including additional files into a worker deployment.
-   * This defaults to the directory containing the `main` entry point of the worker if not specified.
+   * The directory in which module rules should be evaluated when including additional files into a Worker deployment.
+   * This defaults to the directory containing the `main` entry point of the Worker if not specified.
    *
    * @inheritable
    */
   base_dir: string | undefined;
 
+  // Carmen according to our tests the default is undefined
+  // warning: you must force "workers_dev: true" in tests to match expected behavior
   /**
    * Whether we use <name>.<subdomain>.workers.dev to
-   * test and deploy your worker.
+   * test and deploy your Worker.
    *
-   * @default `true` (This is a breaking change from Wrangler v1)
+   *
+   * @default true
    * @breaking
    * @inheritable
    */
+
   workers_dev: boolean | undefined;
 
   /**
-   * A list of routes that your worker should be published to.
+   * Whether we use <version>-<name>.<subdomain>.workers.dev to
+   * serve Preview URLs for your Worker.
+   *
+   * @default true
+   * @inheritable
+   */
+  preview_urls: boolean | undefined;
+
+  /**
+   * A list of routes that your Worker should be published to.
    * Only one of `routes` or `route` is required.
    *
-   * Only required when workers_dev is false, and there's no scheduled worker (see `triggers`)
+   * Only required when workers_dev is false, and there's no scheduled Worker (see `triggers`)
    *
    * @inheritable
    */
   routes: Route[] | undefined;
 
   /**
-   * A route that your worker should be published to. Literally
+   * A route that your Worker should be published to. Literally
    * the same as routes, but only one.
    * Only one of `routes` or `route` is required.
    *
-   * Only required when workers_dev is false, and there's no scheduled worker
+   * Only required when workers_dev is false, and there's no scheduled Worker
    *
    * @inheritable
    */
@@ -444,13 +216,15 @@ interface EnvironmentInheritable {
 
   /**
    * Path to a custom tsconfig
+   *
+   * @inheritable
    */
   tsconfig: string | undefined;
 
   /**
    * The function to use to replace jsx syntax.
    *
-   * @default `"React.createElement"`
+   * @default "React.createElement"
    * @inheritable
    */
   jsx_factory: string;
@@ -458,19 +232,31 @@ interface EnvironmentInheritable {
   /**
    * The function to use to replace jsx fragment syntax.
    *
-   * @default `"React.Fragment"`
+   * @default "React.Fragment"
    * @inheritable
    */
   jsx_fragment: string;
 
   /**
-   * "Cron" definitions to trigger a worker's "scheduled" function.
+   * A list of migrations that should be uploaded with your Worker.
    *
-   * Lets you call workers periodically, much like a cron job.
+   * These define changes in your Durable Object declarations.
+   *
+   * More details at https://developers.cloudflare.com/workers/learning/using-durable-objects#configuring-durable-object-classes-with-migrations
+   *
+   * @default []
+   * @inheritable
+   */
+  migrations: DurableObjectMigration[];
+
+  /**
+   * "Cron" definitions to trigger a Worker's "scheduled" function.
+   *
+   * Lets you call Workers periodically, much like a cron job.
    *
    * More details here https://developers.cloudflare.com/workers/platform/cron-triggers
    *
-   * @default `{crons:[]}`
+   * @default {crons:[]}
    * @inheritable
    */
   triggers: { crons: string[] };
@@ -512,7 +298,7 @@ interface EnvironmentInheritable {
    * Refer to the [custom builds documentation](https://developers.cloudflare.com/workers/cli-wrangler/configuration#build)
    * for more details.
    *
-   * @default {}
+   * @default {watch_dir:"./src"}
    */
   build: {
     /** The command used to build your Worker. On Linux and macOS, the command is executed in the `sh` shell and the `cmd` shell for Windows. The `&&` and `||` shell operators may be used. */
@@ -547,25 +333,9 @@ interface EnvironmentInheritable {
   node_compat: boolean | undefined;
 
   /**
-   * Specifies namespace bindings that are bound to this Worker environment.
+   * Designates this Worker as an internal-only "first-party" Worker.
    *
-   * NOTE: This field is not automatically inherited from the top level environment,
-   * and so must be specified in every named environment.
-   *
-   * @default `[]`
-   * @nonInheritable
-   */
-  dispatch_namespaces: {
-    /** The binding name used to refer to the bound service. */
-    binding: string;
-    /** The namespace to bind to. */
-    namespace: string;
-    /** Details about the outbound worker which will handle outbound requests from your namespace */
-    outbound?: DispatchNamespaceOutbound;
-  }[];
-
-  /**
-   *	Designates this worker as an internal-only "first-party" worker.
+   * @inheritable
    */
   first_party_worker: boolean | undefined;
 
@@ -580,7 +350,7 @@ interface EnvironmentInheritable {
   /**
    * List of bindings that you will send to logfwdr
    *
-   * @default `{bindings:[]}`
+   * @default {bindings:[]}
    * @inheritable
    */
   logfwdr: {
@@ -593,7 +363,7 @@ interface EnvironmentInheritable {
   };
 
   /**
-   * Send Trace Events from this worker to Workers Logpush.
+   * Send Trace Events from this Worker to Workers Logpush.
    *
    * This will not configure a corresponding Logpush job automatically.
    *
@@ -611,11 +381,29 @@ interface EnvironmentInheritable {
   upload_source_maps: boolean | undefined;
 
   /**
-   * Specify how the worker should be located to minimize round-trip time.
+   * Specify how the Worker should be located to minimize round-trip time.
    *
    * More details: https://developers.cloudflare.com/workers/platform/smart-placement/
+   *
+   * @inheritable
    */
-  placement: { mode: "off" | "smart" } | undefined;
+  placement: { mode: "off" | "smart"; hint?: string } | undefined;
+
+  /**
+   * Specify the directory of static assets to deploy/serve
+   *
+   * More details at https://developers.cloudflare.com/workers/frameworks/
+   *
+   * @inheritable
+   */
+  assets: Assets | undefined;
+
+  /**
+   * Specify the observability behavior of the Worker.
+   *
+   * @inheritable
+   */
+  observability: Observability | undefined;
 }
 
 export type DurableObjectBindings = {
@@ -623,11 +411,22 @@ export type DurableObjectBindings = {
   name: string;
   /** The exported class name of the Durable Object */
   class_name: string;
-  /** The script where the Durable Object is defined (if it's external to this worker) */
+  /** The script where the Durable Object is defined (if it's external to this Worker) */
   script_name?: string;
   /** The service environment of the script_name to bind to */
   environment?: string;
 }[];
+
+export type WorkflowBinding = {
+  /** The name of the binding used to refer to the Workflow */
+  binding: string;
+  /** The name of the Workflow */
+  name: string;
+  /** The exported class name of the Workflow */
+  class_name: string;
+  /** The script where the Workflow is defined (if it's external to this Worker) */
+  script_name?: string;
+};
 
 /**
  * The `EnvironmentNonInheritable` interface declares all the configuration fields for an environment
@@ -638,28 +437,28 @@ export type DurableObjectBindings = {
  */
 export interface EnvironmentNonInheritable {
   /**
-   * A map of values to substitute when deploying your worker.
+   * A map of values to substitute when deploying your Worker.
    *
    * NOTE: This field is not automatically inherited from the top level environment,
    * and so must be specified in every named environment.
    *
-   * @default `{}`
+   * @default {}
    * @nonInheritable
    */
   define: Record<string, string>;
   /**
-   * A map of environment variables to set when deploying your worker.
+   * A map of environment variables to set when deploying your Worker.
    *
    * NOTE: This field is not automatically inherited from the top level environment,
    * and so must be specified in every named environment.
    *
-   * @default `{}`
+   * @default {}
    * @nonInheritable
    */
-  vars: Record<string, string | unknown /* Json */>;
+  vars: Record<string, string | Json>;
 
   /**
-   * A list of durable objects that your worker should be bound to.
+   * A list of durable objects that your Worker should be bound to.
    *
    * For more information about Durable Objects, see the documentation at
    * https://developers.cloudflare.com/workers/learning/using-durable-objects
@@ -667,7 +466,7 @@ export interface EnvironmentNonInheritable {
    * NOTE: This field is not automatically inherited from the top level environment,
    * and so must be specified in every named environment.
    *
-   * @default `{bindings:[]}`
+   * @default {bindings:[]}
    * @nonInheritable
    */
   durable_objects: {
@@ -675,15 +474,42 @@ export interface EnvironmentNonInheritable {
   };
 
   /**
+   * A list of workflows that your Worker should be bound to.
+   *
+   * NOTE: This field is not automatically inherited from the top level environment,
+   * and so must be specified in every named environment.
+   *
+   * @default []
+   * @nonInheritable
+   */
+  workflows: WorkflowBinding[];
+
+  /**
    * Cloudchamber configuration
    *
    * NOTE: This field is not automatically inherited from the top level environment,
    * and so must be specified in every named environment.
    *
-   * @default `{}`
+   * @default {}
    * @nonInheritable
    */
   cloudchamber: CloudchamberConfig;
+
+  /**
+   * Container related configuration
+   */
+  containers: {
+    /**
+     * Container app configuration
+     *
+     * NOTE: This field is not automatically inherited from the top level environment,
+     * and so must be specified in every named environment.
+     *
+     * @default {}
+     * @nonInheritable
+     */
+    app: ContainerApp[];
+  };
 
   /**
    * These specify any Workers KV Namespaces you want to
@@ -695,14 +521,14 @@ export interface EnvironmentNonInheritable {
    * NOTE: This field is not automatically inherited from the top level environment,
    * and so must be specified in every named environment.
    *
-   * @default `[]`
+   * @default []
    * @nonInheritable
    */
   kv_namespaces: {
     /** The binding name used to refer to the KV Namespace */
     binding: string;
     /** The ID of the KV namespace */
-    id: string;
+    id?: string;
     /** The ID of the KV namespace used during `wrangler dev` */
     preview_id?: string;
   }[];
@@ -713,7 +539,7 @@ export interface EnvironmentNonInheritable {
    * NOTE: This field is not automatically inherited from the top level environment,
    * and so must be specified in every named environment.
    *
-   * @default `[]`
+   * @default []
    * @nonInheritable
    */
   send_email: {
@@ -731,13 +557,13 @@ export interface EnvironmentNonInheritable {
    * NOTE: This field is not automatically inherited from the top level environment,
    * and so must be specified in every named environment.
    *
-   * @default `{}`
+   * @default {consumers:[],producers:[]}
    * @nonInheritable
    */
   queues: {
     /** Producer bindings */
     producers?: {
-      /** The binding name used to refer to the Queue in the worker. */
+      /** The binding name used to refer to the Queue in the Worker. */
       binding: string;
 
       /** The name of this Queue. */
@@ -784,14 +610,14 @@ export interface EnvironmentNonInheritable {
    * NOTE: This field is not automatically inherited from the top level environment,
    * and so must be specified in every named environment.
    *
-   * @default `[]`
+   * @default []
    * @nonInheritable
    */
   r2_buckets: {
-    /** The binding name used to refer to the R2 bucket in the worker. */
+    /** The binding name used to refer to the R2 bucket in the Worker. */
     binding: string;
     /** The name of this R2 bucket at the edge. */
-    bucket_name: string;
+    bucket_name?: string;
     /** The preview name of this R2 bucket at the edge. */
     preview_bucket_name?: string;
     /** The jurisdiction that the bucket exists in. Default if not present. */
@@ -804,16 +630,16 @@ export interface EnvironmentNonInheritable {
    * NOTE: This field is not automatically inherited from the top level environment,
    * and so must be specified in every named environment.
    *
-   * @default `[]`
+   * @default []
    * @nonInheritable
    */
   d1_databases: {
-    /** The binding name used to refer to the D1 database in the worker. */
+    /** The binding name used to refer to the D1 database in the Worker. */
     binding: string;
     /** The name of this D1 database. */
-    database_name: string;
+    database_name?: string;
     /** The UUID of this D1 database (not required). */
-    database_id: string;
+    database_id?: string;
     /** The UUID of this D1 database for Wrangler Dev (if specified). */
     preview_database_id?: string;
     /** The name of the migrations table for this D1 database (defaults to 'd1_migrations'). */
@@ -830,30 +656,14 @@ export interface EnvironmentNonInheritable {
    * NOTE: This field is not automatically inherited from the top level environment,
    * and so must be specified in every named environment.
    *
-   * @default `[]`
+   * @default []
    * @nonInheritable
    */
   vectorize: {
-    /** The binding name used to refer to the Vectorize index in the worker. */
+    /** The binding name used to refer to the Vectorize index in the Worker. */
     binding: string;
     /** The name of the index. */
     index_name: string;
-  }[];
-
-  /**
-   * Specifies Constellation projects that are bound to this Worker environment.
-   *
-   * NOTE: This field is not automatically inherited from the top level environment,
-   * and so must be specified in every named environment.
-   *
-   * @default `[]`
-   * @nonInheritable
-   */
-  constellation: {
-    /** The binding name used to refer to the project in the worker. */
-    binding: string;
-    /** The id of the project. */
-    project_id: string;
   }[];
 
   /**
@@ -862,11 +672,11 @@ export interface EnvironmentNonInheritable {
    * NOTE: This field is not automatically inherited from the top level environment,
    * and so must be specified in every named environment.
    *
-   * @default `[]`
+   * @default []
    * @nonInheritable
    */
   hyperdrive: {
-    /** The binding name used to refer to the project in the worker. */
+    /** The binding name used to refer to the project in the Worker. */
     binding: string;
     /** The id of the database. */
     id: string;
@@ -875,12 +685,12 @@ export interface EnvironmentNonInheritable {
   }[];
 
   /**
-   * Specifies service bindings (worker-to-worker) that are bound to this Worker environment.
+   * Specifies service bindings (Worker-to-Worker) that are bound to this Worker environment.
    *
    * NOTE: This field is not automatically inherited from the top level environment,
    * and so must be specified in every named environment.
    *
-   * @default `[]`
+   * @default []
    * @nonInheritable
    */
   services:
@@ -902,18 +712,24 @@ export interface EnvironmentNonInheritable {
    * NOTE: This field is not automatically inherited from the top level environment,
    * and so must be specified in every named environment.
    *
-   * @default `[]`
+   * @default []
    * @nonInheritable
    */
   analytics_engine_datasets: {
-    /** The binding name used to refer to the dataset in the worker. */
+    /** The binding name used to refer to the dataset in the Worker. */
     binding: string;
     /** The name of this dataset to write to. */
     dataset?: string;
   }[];
 
   /**
-   * A browser that will be usable from the worker.
+   * A browser that will be usable from the Worker.
+   *
+   * NOTE: This field is not automatically inherited from the top level environment,
+   * and so must be specified in every named environment.
+   *
+   * @default {}
+   * @nonInheritable
    */
   browser:
     | {
@@ -923,10 +739,17 @@ export interface EnvironmentNonInheritable {
 
   /**
    * Binding to the AI project.
+   *
+   * NOTE: This field is not automatically inherited from the top level environment,
+   * and so must be specified in every named environment.
+   *
+   * @default {}
+   * @nonInheritable
    */
   ai:
     | {
         binding: string;
+        staging?: boolean;
       }
     | undefined;
 
@@ -945,6 +768,7 @@ export interface EnvironmentNonInheritable {
    * NOTE: This field is not automatically inherited from the top level environment,
    * and so must be specified in every named environment.
    *
+   * @default {}
    * @nonInheritable
    */
   unsafe: {
@@ -983,14 +807,67 @@ export interface EnvironmentNonInheritable {
         };
   };
 
+  /**
+   * Specifies a list of mTLS certificates that are bound to this Worker environment.
+   *
+   * NOTE: This field is not automatically inherited from the top level environment,
+   * and so must be specified in every named environment.
+   *
+   * @default []
+   * @nonInheritable
+   */
   mtls_certificates: {
-    /** The binding name used to refer to the certificate in the worker */
+    /** The binding name used to refer to the certificate in the Worker */
     binding: string;
     /** The uuid of the uploaded mTLS certificate */
     certificate_id: string;
   }[];
 
+  /**
+   * Specifies a list of Tail Workers that are bound to this Worker environment
+   *
+   * NOTE: This field is not automatically inherited from the top level environment,
+   * and so must be specified in every named environment.
+   *
+   * @default []
+   * @nonInheritable
+   */
   tail_consumers?: TailConsumer[];
+
+  /**
+   * Specifies namespace bindings that are bound to this Worker environment.
+   *
+   * NOTE: This field is not automatically inherited from the top level environment,
+   * and so must be specified in every named environment.
+   *
+   * @default []
+   * @nonInheritable
+   */
+  dispatch_namespaces: {
+    /** The binding name used to refer to the bound service. */
+    binding: string;
+    /** The namespace to bind to. */
+    namespace: string;
+    /** Details about the outbound Worker which will handle outbound requests from your namespace */
+    outbound?: DispatchNamespaceOutbound;
+  }[];
+
+  /**
+   * Specifies list of Pipelines bound to this Worker environment
+   *
+   * NOTE: This field is not automatically inherited from the top level environment,
+   * and so must be specified in every named environment.
+   *
+   * @default []
+   * @nonInheritable
+   */
+  pipelines: {
+    /** The binding name used to refer to the bound service. */
+    binding: string;
+
+    /** Name of the Pipeline to bind */
+    pipeline: string;
+  }[];
 }
 
 /**
@@ -1013,9 +890,9 @@ interface EnvironmentDeprecated {
   "kv-namespaces"?: string;
 
   /**
-   * A list of services that your worker should be bound to.
+   * A list of services that your Worker should be bound to.
    *
-   * @default `[]`
+   * @default []
    * @deprecated DO NOT USE. We'd added this to test the new service binding system, but the proper way to test experimental features is to use `unsafe.bindings` configuration.
    */
   experimental_services?: {
@@ -1040,10 +917,10 @@ export interface DeprecatedUpload {
   format?: "modules" | "service-worker";
 
   /**
-   * The directory you wish to upload your worker from,
-   * relative to the wrangler.toml file.
+   * The directory you wish to upload your Worker from,
+   * relative to the Wrangler configuration file.
    *
-   * Defaults to the directory containing the wrangler.toml file.
+   * Defaults to the directory containing the Wrangler configuration file.
    *
    * @deprecated
    */
@@ -1089,12 +966,13 @@ export type ConfigModuleRuleType =
   | "Text"
   | "Data"
   | "PythonModule"
-  | "PythonRequirement";
+  | "PythonRequirement"
+  | "NodeJsCompatModule";
 
 export type TailConsumer = {
   /** The name of the service tail events will be forwarded to. */
   service: string;
-  /** (Optional) The environt of the service. */
+  /** (Optional) The environment of the service. */
   environment?: string;
 };
 
@@ -1103,11 +981,48 @@ export interface DispatchNamespaceOutbound {
   service: string;
   /** (Optional) Name of the environment handling the outbound requests. */
   environment?: string;
-  /** (Optional) List of parameter names, for sending context from your dispatch worker to the outbound handler */
+  /** (Optional) List of parameter names, for sending context from your dispatch Worker to the outbound handler */
   parameters?: string[];
 }
 
 export interface UserLimits {
-  /** Maximum allowed CPU time for a worker's invocation in milliseconds */
+  /** Maximum allowed CPU time for a Worker's invocation in milliseconds */
   cpu_ms: number;
+}
+
+export type Assets = {
+  /** Absolute path to assets directory */
+  directory?: string;
+  /** Name of `env` binding property in the User Worker. */
+  binding?: string;
+  /** How to handle HTML requests. */
+  html_handling?:
+    | "auto-trailing-slash"
+    | "force-trailing-slash"
+    | "drop-trailing-slash"
+    | "none";
+  /** How to handle requests that do not match an asset. */
+  not_found_handling?: "single-page-application" | "404-page" | "none";
+  /**
+   * If true, route every request to the User Worker, whether or not it matches an asset.
+   * If false, then respond to requests that match an asset with that asset directly.
+   * */
+  run_worker_first?: boolean;
+
+  /** Deprecated; Inverse of run_worker_first. Should use run_worker_first instead */
+  experimental_serve_directly?: boolean;
+};
+
+export interface Observability {
+  /** If observability is enabled for this Worker */
+  enabled?: boolean;
+  /** The sampling rate */
+  head_sampling_rate?: number;
+  logs?: {
+    enabled?: boolean;
+    /** The sampling rate */
+    head_sampling_rate?: number;
+    /** Set to false to disable invocation logs */
+    invocation_logs?: boolean;
+  };
 }
