@@ -11,6 +11,7 @@ const ws = import.meta._websocket
   : undefined;
 
 const server = Bun.serve({
+  reusePort: true,
   port: process.env.NITRO_PORT || process.env.PORT || 3000,
   websocket: import.meta._websocket ? ws!.websocket : (undefined as any),
   async fetch(req: Request, server: any) {
