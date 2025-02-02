@@ -19,10 +19,26 @@ export async function resolvePathOptions(options: NitroOptions) {
   // Add aliases
   options.alias = {
     ...options.alias,
-    "~/": join(options.srcDir, "/"),
-    "@/": join(options.srcDir, "/"),
-    "~~/": join(options.rootDir, "/"),
-    "@@/": join(options.rootDir, "/"),
+    '~': join(options.srcDir, '/'),
+    '@': join(options.srcDir, '/'),
+    '~~': join(options.rootDir, '/'),
+    '@@': join(options.rootDir, '/'),
+    '~/*': join(options.srcDir, '/*'),
+    '@/*': join(options.srcDir, '/*'),
+    '~~/*': join(options.rootDir, '/*'),
+    '@@/*': join(options.rootDir, '/*'),
+  };
+
+  const alias = options.alias;
+  if (alias && typeof alias === "object") {
+    ((options.typescript.tsConfig ??= {}).compilerOptions ??= {}).paths ??= {};
+
+    const paths = options.typescript.tsConfig.compilerOptions.paths;
+    for (const [key, value] of Object.entries(alias)) {
+      if (typeof paths === "object") {
+        paths[key] = [value];
+      }
+    }
   };
 
   // Resolve possibly template paths
