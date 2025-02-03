@@ -22,14 +22,20 @@ const cloudflareExternals = [
   "cloudflare:workflows",
 ] as const;
 
+// TODO: Remove when wrangler -C support landed
+// https://github.com/cloudflare/workers-sdk/pull/7994
+const isWindows = process.platform === "win32";
+const commandWithDir = (command: string) =>
+  isWindows ? `cmd /c ${command}` : `(cd ./ && ${command})`;
+
 const cloudflarePages = defineNitroPreset(
   {
     extends: "cloudflare",
     entry: "./runtime/cloudflare-pages",
     exportConditions: ["workerd"],
     commands: {
-      preview: "npx wrangler pages dev ./",
-      deploy: "npx wrangler pages deploy ./",
+      preview: commandWithDir("npx wrangler pages dev"),
+      deploy: commandWithDir("npx wrangler pages deploy"),
     },
     output: {
       dir: "{{ rootDir }}/dist",
@@ -79,8 +85,8 @@ const cloudflarePagesStatic = defineNitroPreset(
       publicDir: "{{ output.dir }}/{{ baseURL }}",
     },
     commands: {
-      preview: "npx wrangler pages dev dist",
-      deploy: "npx wrangler pages deploy dist",
+      preview: commandWithDir("npx wrangler pages dev"),
+      deploy: commandWithDir("npx wrangler pages deploy"),
     },
     hooks: {
       async compiled(nitro: Nitro) {
@@ -183,8 +189,8 @@ const cloudflareModule = defineNitroPreset(
     entry: "./runtime/cloudflare-module",
     exportConditions: ["workerd"],
     commands: {
-      preview: "npx wrangler dev -c ./server/wrangler.json",
-      deploy: "npx wrangler deploy -c ./server/wrangler.json",
+      preview: commandWithDir("npx wrangler dev"),
+      deploy: commandWithDir("npx wrangler deploy"),
     },
     unenv: {
       external: [...cloudflareExternals],
