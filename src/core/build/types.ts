@@ -49,11 +49,10 @@ export async function writeTypes(nitro: Nitro) {
   if (nitro.unimport) {
     await nitro.unimport.init();
     // TODO: fully resolve utils exported from `#imports`
-    autoImportExports = toExports(
-      await nitro.unimport.getImports(),
-      nitro.options.rootDir,
-      true
-    ).replace(/#internal\/nitro/g, relative(typesDir, runtimeDir));
+    autoImportExports = toExports(await nitro.unimport.getImports()).replace(
+      /#internal\/nitro/g,
+      relative(typesDir, runtimeDir)
+    );
 
     const resolvedImportPathMap = new Map<string, string>();
     const imports = await nitro.unimport
