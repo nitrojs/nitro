@@ -48,18 +48,19 @@ export async function writeTypes(nitro: Nitro) {
 
   if (nitro.unimport) {
     await nitro.unimport.init();
+
     // TODO: fully resolve utils exported from `#imports`
-    autoImportExports = toExports(await nitro.unimport.getImports()).replace(
+
+    const allImports = await nitro.unimport.getImports();
+
+    autoImportExports = toExports(allImports).replace(
       /#internal\/nitro/g,
       relative(typesDir, runtimeDir)
     );
 
     const resolvedImportPathMap = new Map<string, string>();
-    const imports = await nitro.unimport
-      .getImports()
-      .then((r) => r.filter((i) => !i.type));
 
-    for (const i of imports) {
+    for (const i of allImports.filter((i) => !i.type)) {
       if (resolvedImportPathMap.has(i.from)) {
         continue;
       }
