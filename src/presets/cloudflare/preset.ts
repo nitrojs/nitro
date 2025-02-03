@@ -26,7 +26,7 @@ const cloudflareExternals = [
 // https://github.com/cloudflare/workers-sdk/pull/7994
 const isWindows = process.platform === "win32";
 const commandWithDir = (command: string) =>
-  isWindows ? `cmd /c ${command}` : `(cd ./ && ${command})`;
+  isWindows ? `cmd /c "cd ./ && ${command}"` : `(cd ./ && ${command})`;
 
 const cloudflarePages = defineNitroPreset(
   {
