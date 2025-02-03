@@ -36,6 +36,8 @@ export interface CloudflareOptions {
 
   /**
    * Disable the automatic generation of .wrangler/deploy/config.json
+   *
+   * More info: https://developers.cloudflare.com/workers/wrangler/configuration#generated-wrangler-configuration
    */
   noWranglerDeployConfig?: boolean;
 
