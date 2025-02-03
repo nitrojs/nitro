@@ -1,6 +1,6 @@
 // https://github.com/cloudflare/workers-sdk/blob/main/packages/unenv-preset/src/runtime/node/crypto/index.ts
 
-import workerdCrypto from "#workerd/node:crypto"
+import workerdCrypto from "#workerd/node:crypto";
 
 import {
   Cipher,

@@ -1,6 +1,6 @@
 // https://github.com/cloudflare/workers-sdk/blob/main/packages/unenv-preset/src/runtime/node/async_hooks/index.ts
 
-import workerdAsyncHooks from "#workerd/node:async_hooks"
+import workerdAsyncHooks from "#workerd/node:async_hooks";
 
 import {
   // asyncWrapProviders,
