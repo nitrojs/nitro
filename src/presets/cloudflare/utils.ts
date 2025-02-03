@@ -190,6 +190,13 @@ export async function writeWranglerConfig(nitro: Nitro, isPages: boolean) {
     nitro.options.compatibilityDate.cloudflare ||
     nitro.options.compatibilityDate.default;
 
+  // Node.js compatibility
+  defaults.compatibility_flags = [
+    // "nodejs_compat",
+    "nodejs_compat_v2",
+    // "no_nodejs_compat_v2",
+  ];
+
   if (isPages) {
     // Pages
     defaults.pages_build_output_dir = relative(

@@ -22,7 +22,7 @@ describe("nitro:preset:cloudflare-module", async () => {
           not_found_handling: "none" /* default */,
         },
       },
-      compatibilityFlags: ["streams_enable_constructors"],
+      compatibilityFlags: ["streams_enable_constructors", "nodejs_compat"],
       bindings: { ...ctx.env },
     });
 
