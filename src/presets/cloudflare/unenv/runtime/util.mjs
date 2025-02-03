@@ -1,5 +1,7 @@
 // https://github.com/cloudflare/workers-sdk/blob/main/packages/unenv-preset/src/runtime/node/util/index.ts
 
+import workerdUtil from "#workerd/node:util";
+
 import {
   _errnoException,
   _exceptionWithHostPort,
@@ -49,8 +51,6 @@ export {
   // parseEnv,
   // styleText,
 } from "unenv/runtime/node/util/index";
-
-const workerdUtil = globalThis["proces" + "s"].getBuiltinModule("node:util");
 
 export const {
   MIMEParams,

@@ -1,5 +1,7 @@
 // https://github.com/cloudflare/workers-sdk/blob/main/packages/unenv-preset/src/runtime/node/crypto/index.ts
 
+import workerdCrypto from "#workerd/node:crypto"
+
 import {
   Cipher,
   Cipheriv,
@@ -53,9 +55,6 @@ export {
   sign,
   verify,
 } from "unenv/runtime/node/crypto/index";
-
-const workerdCrypto =
-  globalThis["proces" + "s"].getBuiltinModule("node:crypto");
 
 export const {
   Certificate,
@@ -134,7 +133,7 @@ export default {
   createVerify,
   diffieHellman,
   getCipherInfo,
-  hash,
+  // hash,
   privateDecrypt,
   privateEncrypt,
   publicDecrypt,

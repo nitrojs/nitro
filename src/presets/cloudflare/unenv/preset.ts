@@ -1,6 +1,6 @@
-// https://github.com/cloudflare/workers-sdk/blob/main/packages/unenv-preset/src/preset.ts
-
 import type { Preset } from "unenv";
+import type { Plugin } from "rollup";
+
 import { fileURLToPath } from "mlly";
 import { join } from "pathe";
 
@@ -11,7 +11,8 @@ export const cloudflareExternals = [
   "cloudflare:workflows",
 ] as const;
 
-// Built-in APIs provided by workerd with nodejs compatibility.
+// Built-in APIs provided by workerd with nodejs compatibility
+// https://github.com/cloudflare/workers-sdk/blob/main/packages/unenv-preset/src/preset.ts
 export const nodeCompatModules = [
   "_stream_duplex",
   "_stream_passthrough",
@@ -42,15 +43,8 @@ export const nodeCompatModules = [
   "zlib",
 ];
 
-// Modules implemented via a mix of workerd APIs and polyfills.
-export const hybridNodeCompatModules = [
-  "async_hooks",
-  "crypto",
-  "perf_hooks",
-  "util",
-  "sys",
-  "node:sys",
-];
+// Modules implemented via a mix of workerd APIs and polyfills
+export const hybridNodeCompatModules = ["async_hooks", "crypto", "util"];
 
 const presetRuntimeDir = fileURLToPath(new URL("runtime/", import.meta.url));
 const resolvePresetRuntime = (m: string) => join(presetRuntimeDir, `${m}.mjs`);
@@ -60,12 +54,24 @@ export const unenvCfPreset: Preset = {
   alias: {
     // <id> => node:<id>
     ...Object.fromEntries(nodeCompatModules.map((m) => [m, `node:${m}`])),
-    // node:<id> => runtime/<id>.mjs
+    ...Object.fromEntries(hybridNodeCompatModules.map((m) => [m, `node:${m}`])),
+    // node:<id> => runtime/<id>.mjs (hybrid)
     ...Object.fromEntries(
       hybridNodeCompatModules.map((m) => [
         `node:${m}`,
         resolvePresetRuntime(m === "sys" ? "util" : m),
       ])
     ),
+    sys: resolvePresetRuntime("util"),
+    "node:sys": resolvePresetRuntime("util"),
+  },
+};
+
+export const hybridNodePlugin: Plugin = {
+  name: "nitro:cloudflare:hybrid-node-compat",
+  resolveId(id) {
+    if (id.startsWith("#workerd/node:")) {
+      return { id: id.slice("#workerd/".length), external: true };
+    }
   },
 };

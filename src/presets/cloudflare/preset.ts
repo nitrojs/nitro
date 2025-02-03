@@ -8,7 +8,7 @@ import {
   writeCFPagesHeaders,
   writeCFPagesRedirects,
 } from "./utils";
-import { unenvCfPreset } from "./unenv/preset";
+import { hybridNodePlugin, unenvCfPreset } from "./unenv/preset";
 
 export type { CloudflareOptions as PresetOptions } from "./types";
 
@@ -43,6 +43,7 @@ const cloudflarePages = defineNitroPreset(
       esmImport: true,
     },
     rollupConfig: {
+      plugins: [hybridNodePlugin],
       output: {
         entryFileNames: "index.js",
         format: "esm",
@@ -176,6 +177,7 @@ const cloudflareModule = defineNitroPreset(
     },
     unenv: unenvCfPreset,
     rollupConfig: {
+      plugins: [hybridNodePlugin],
       output: {
         format: "esm",
         exports: "named",
@@ -211,7 +213,6 @@ const cloudflareDurable = defineNitroPreset(
   {
     extends: "cloudflare-module",
     entry: "./runtime/cloudflare-durable",
-    unenv: unenvCfPreset,
   },
   {
     name: "cloudflare-durable" as const,

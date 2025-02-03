@@ -191,11 +191,7 @@ export async function writeWranglerConfig(nitro: Nitro, isPages: boolean) {
     nitro.options.compatibilityDate.default;
 
   // Node.js compatibility
-  defaults.compatibility_flags = [
-    // "nodejs_compat",
-    "nodejs_compat_v2",
-    // "no_nodejs_compat_v2",
-  ];
+  defaults.compatibility_flags = ["nodejs_compat", "no_nodejs_compat_v2"];
 
   if (isPages) {
     // Pages
