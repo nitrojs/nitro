@@ -16,7 +16,8 @@ export {
   triggerAsyncId,
 } from "unenv/runtime/node/async_hooks/index";
 
-const workerdAsyncHooks = globalThis["proces" + "s"].getBuiltinModule("node:async_hooks");
+const workerdAsyncHooks =
+  globalThis["proces" + "s"].getBuiltinModule("node:async_hooks");
 
 export const { AsyncLocalStorage, AsyncResource } = workerdAsyncHooks;
 
@@ -27,4 +28,4 @@ export default {
   triggerAsyncId,
   AsyncLocalStorage,
   AsyncResource,
-}
+};

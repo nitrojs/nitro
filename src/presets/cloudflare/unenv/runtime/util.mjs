@@ -125,4 +125,4 @@ export default {
   transferableAbortController,
   transferableAbortSignal,
   types,
-}
+};

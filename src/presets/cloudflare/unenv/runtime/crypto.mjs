@@ -54,7 +54,8 @@ export {
   verify,
 } from "unenv/runtime/node/crypto/index";
 
-const workerdCrypto = globalThis["proces" + "s"].getBuiltinModule("node:crypto");
+const workerdCrypto =
+  globalThis["proces" + "s"].getBuiltinModule("node:crypto");
 
 export const {
   Certificate,
@@ -111,7 +112,7 @@ export const webcrypto = {
   getRandomValues,
   randomUUID,
   subtle,
-}
+};
 
 const fips = workerdCrypto.fips;
 
@@ -187,4 +188,4 @@ export default {
   timingSafeEqual,
   fips,
   webcrypto,
-}
+};
