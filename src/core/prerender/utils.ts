@@ -34,7 +34,7 @@ export async function extractLinks(
   // Extract from any <TAG href=""> to crawl
   if (crawlLinks) {
     await walk(parseHTML(html), (node) => {
-      if (!node.attributes.href) {
+      if (!node.attributes?.href) {
         return;
       }
 
