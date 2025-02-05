@@ -10,7 +10,7 @@ export interface NitroApp {
   localCall: (aRequest: AbstractRequest) => Promise<AbstractResponse>;
   localFetch: (
     req: string | URL | Request,
-    init?: RequestInit
+    init?: RequestInit & AbstractRequest
   ) => Promise<Response>;
   captureError: CaptureError;
 }

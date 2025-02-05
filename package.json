@@ -142,7 +142,7 @@
     "mime": "^4.0.6",
     "mlly": "^1.7.4",
     "node-fetch-native": "^1.6.6",
-    "node-mock-http": "^0.1.0",
+    "node-mock-http": "^0.1.2",
     "ofetch": "^1.4.1",
     "ohash": "^1.1.4",
     "openapi-typescript": "^7.6.0",
