@@ -147,6 +147,9 @@ importers:
       node-fetch-native:
         specifier: ^1.6.6
         version: 1.6.6
+      node-mock-http:
+        specifier: ^0.1.0
+        version: 0.1.0
       ofetch:
         specifier: ^1.4.1
         version: 1.4.1
@@ -4422,6 +4425,9 @@ packages:
   node-gyp-build@4.8.4:
     resolution: {integrity: sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ==}
     hasBin: true
+
+  node-mock-http@0.1.0:
+    resolution: {integrity: sha512-uguVoOrUjmS8VvB4CBi82WUaZrBsTvjbXk4bm8JtH/stPqNHBJoUcaGuAOWEBftflJcQkRcvkJ85pQNePrtbyA==}
 
   node-releases@2.0.19:
     resolution: {integrity: sha512-xxOWJsBKtzAq7DY0J+DTzuz58K8e7sJbdgwkbMWQe8UYB6ekmsQ45q0M/tJDsGaZmbC+l7n57UV8Hl5tHxO9uw==}
@@ -10903,6 +10909,8 @@ snapshots:
   node-forge@1.3.1: {}
 
   node-gyp-build@4.8.4: {}
+
+  node-mock-http@0.1.0: {}
 
   node-releases@2.0.19: {}
 
