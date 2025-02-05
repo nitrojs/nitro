@@ -278,7 +278,7 @@ export async function prerender(nitro: Nitro) {
 
     // Crawl route links
     if (!_route.error && (isImplicitHTML || route.endsWith(".html"))) {
-      const extractedLinks = extractLinks(
+      const extractedLinks = await extractLinks(
         dataBuff.toString("utf8"),
         route,
         res,

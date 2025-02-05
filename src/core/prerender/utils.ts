@@ -1,7 +1,7 @@
 import { colors } from "consola/utils";
 import type { PrerenderRoute } from "nitropack/types";
 import { parseURL } from "ufo";
-import { parse as parseHTML, walkSync } from "ultrahtml";
+import { parse as parseHTML, walk } from "ultrahtml";
 
 const allowedExtensions = new Set(["", ".json"]);
 
@@ -22,7 +22,7 @@ function escapeHtml(text: string) {
   );
 }
 
-export function extractLinks(
+export async function extractLinks(
   html: string,
   from: string,
   res: Response,
@@ -33,7 +33,7 @@ export function extractLinks(
 
   // Extract from any <TAG href=""> to crawl
   if (crawlLinks) {
-    walkSync(parseHTML(html), (node) => {
+    await walk(parseHTML(html), (node) => {
       if (!node.attributes.href) {
         return;
       }
