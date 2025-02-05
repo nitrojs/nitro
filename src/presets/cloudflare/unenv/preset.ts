@@ -4,13 +4,6 @@ import type { Plugin } from "rollup";
 import { fileURLToPath } from "mlly";
 import { join } from "pathe";
 
-export const cloudflareExternals = [
-  "cloudflare:email",
-  "cloudflare:sockets",
-  "cloudflare:workers",
-  "cloudflare:workflows",
-] as const;
-
 // Built-in APIs provided by workerd with nodejs compatibility
 // https://github.com/cloudflare/workers-sdk/blob/main/packages/unenv-preset/src/preset.ts
 export const nodeCompatModules = [
@@ -65,11 +58,17 @@ export const unenvCfPreset: Preset = {
     sys: resolvePresetRuntime("util"),
     "node:sys": resolvePresetRuntime("util"),
   },
+  inject: {
+    "globalThis.Buffer": ["node:buffer", "Buffer"],
+  },
 };
 
 export const hybridNodePlugin: Plugin = {
   name: "nitro:cloudflare:hybrid-node-compat",
   resolveId(id) {
+    if (id.startsWith("cloudflare:")) {
+      return { id, external: true };
+    }
     if (id.startsWith("#workerd/node:")) {
       return { id: id.slice("#workerd/".length), external: true };
     }

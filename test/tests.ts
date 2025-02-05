@@ -799,4 +799,16 @@ export function testNitro(
       sqlts: "--",
     });
   });
+
+  it.skipIf(
+    ["cloudflare-worker", "cloudflare-module-legacy", "vercel-edge"].includes(
+      ctx.preset
+    )
+  )("nodejs compatibility", async () => {
+    const { data, status } = await callHandler({ url: "/node-compat" });
+    expect(status).toBe(200);
+    for (const key in data) {
+      expect(data[key], key).toBe(true);
+    }
+  });
 }
