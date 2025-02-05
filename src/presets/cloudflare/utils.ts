@@ -185,44 +185,80 @@ export async function writeWranglerConfig(nitro: Nitro, isPages: boolean) {
   // Default configs
   const defaults: WranglerConfig = {};
 
+  // Config overrides
+  const overrides: WranglerConfig = {};
+
   // Compatibility date
   defaults.compatibility_date =
     nitro.options.compatibilityDate.cloudflare ||
     nitro.options.compatibilityDate.default;
 
   // Node.js compatibility
-  defaults.compatibility_flags = ["nodejs_compat", "no_nodejs_compat_v2"];
+  defaults.compatibility_flags = [];
 
   if (isPages) {
     // Pages
-    defaults.pages_build_output_dir = relative(
-      dirname(wranglerConfigPath),
+    overrides.pages_build_output_dir = relative(
+      wranglerConfigDir,
       nitro.options.output.publicDir
     );
   } else {
     // Modules
-    defaults.main = relative(
+    overrides.main = relative(
       wranglerConfigDir,
       join(nitro.options.output.serverDir, "index.mjs")
     );
-    defaults.assets = {
+    overrides.assets = {
       binding: "ASSETS",
-      directory: relative(
-        dirname(wranglerConfigPath),
-        nitro.options.output.publicDir
-      ),
+      directory: relative(wranglerConfigDir, nitro.options.output.publicDir),
     };
   }
 
   // Read user config
   const userConfig = await resolveWranglerConfig(nitro.options.rootDir);
 
+  // Nitro context config (from frameworks and modules)
+  const ctxConfig = nitro.options.cloudflare?.wrangler || {};
+
+  // Validate and warn about overrides
+  for (const key in overrides) {
+    if (key in userConfig || key in ctxConfig) {
+      nitro.logger.warn(
+        `[nitro] [cloudflare] Wrangler config \`${key}\`${key in ctxConfig ? "set by config or modules" : ""} is overridden and will be ignored.`
+      );
+    }
+  }
+
   // (first argument takes precedence)
-  const wranglerConfig = mergeWranglerConfigs(
+  const wranglerConfig = defu(
+    overrides,
+    ctxConfig,
     userConfig,
-    nitro.options.cloudflare?.wrangler,
     defaults
-  );
+  ) as WranglerConfig;
+
+  // Compatibility flags
+  // prettier-ignore
+  const compatFlags = new Set(wranglerConfig.compatibility_flags || [])
+  if (
+    compatFlags.has("nodejs_compat_v2") &&
+    compatFlags.has("no_nodejs_compat_v2")
+  ) {
+    nitro.logger.warn(
+      "[nitro] [cloudflare] Wrangler config `compatibility_flags` contains both `nodejs_compat_v2` and `no_nodejs_compat_v2`. Ignoring `nodejs_compat_v2`."
+    );
+    compatFlags.delete("nodejs_compat_v2");
+  }
+  if (compatFlags.has("nodejs_compat_v2")) {
+    nitro.logger.warn(
+      "[nitro] [cloudflare] Wrangler config `compatibility_flags` contains `nodejs_compat_v2`, which is currently incompatible with nitro, please remove it or USE AT YOUR OWN RISK!"
+    );
+  } else {
+    // Add default compatibility flags
+    compatFlags.add("nodejs_compat");
+    compatFlags.add("no_nodejs_compat_v2");
+  }
+  wranglerConfig.compatibility_flags = [...compatFlags];
 
   // Write wrangler.json
   await writeFile(
@@ -263,25 +299,4 @@ async function resolveWranglerConfig(dir: string): Promise<WranglerConfig> {
     return config;
   }
   return {};
-}
-
-/**
- * Merge wrangler configs (first argument takes precedence)
- */
-function mergeWranglerConfigs(
-  ...configs: (WranglerConfig | undefined)[]
-): WranglerConfig {
-  // Merge configs
-  const merged = defu({}, ...configs) as WranglerConfig;
-
-  // Normalize compatibility flags
-  if (merged.compatibility_flags) {
-    let flags = [...new Set(merged.compatibility_flags || [])];
-    if (flags.includes("no_nodejs_compat_v2")) {
-      flags = flags.filter((flag) => flag !== "nodejs_compat_v2");
-    }
-    merged.compatibility_flags = flags;
-  }
-
-  return merged;
 }
