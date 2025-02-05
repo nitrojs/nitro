@@ -33,10 +33,13 @@ export function extractLinks(
 
   // Extract from any <TAG href=""> to crawl
   if (crawlLinks) {
-    walkSync(parseHTML(html), node => {
+    walkSync(parseHTML(html), (node) => {
       if (node.attributes.href) {
         const link = escapeHtml(node.attributes.href);
-        if (!decodeURIComponent(link).startsWith("#") && allowedExtensions.has(getExtension(link))) {
+        if (
+          !decodeURIComponent(link).startsWith("#") &&
+          allowedExtensions.has(getExtension(link))
+        ) {
           _links.push(link);
         }
       }
