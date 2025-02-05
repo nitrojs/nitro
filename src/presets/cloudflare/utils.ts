@@ -193,9 +193,6 @@ export async function writeWranglerConfig(nitro: Nitro, isPages: boolean) {
     nitro.options.compatibilityDate.cloudflare ||
     nitro.options.compatibilityDate.default;
 
-  // Node.js compatibility
-  defaults.compatibility_flags = [];
-
   if (isPages) {
     // Pages
     overrides.pages_build_output_dir = relative(
