@@ -20,7 +20,7 @@ import { dirname, join, normalize, resolve } from "pathe";
 import type { Plugin } from "rollup";
 import { visualizer } from "rollup-plugin-visualizer";
 import { isTest, isWindows } from "std-env";
-import * as unenv from "unenv";
+import { defineEnv } from "unenv";
 import type { Preset } from "unenv";
 import unimportPlugin from "unimport/unplugin";
 import { rollup as unwasm } from "unwasm/plugin";
@@ -54,27 +54,29 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
     ".jsx",
   ];
 
-  const nodePreset = nitro.options.node === false ? unenv.nodeless : unenv.node;
-
-  const builtinPreset: Preset = {
-    alias: {
-      // General
-      ...(nitro.options.dev
-        ? {}
-        : {
-            debug: "unenv/npm/debug",
-          }),
-      ...(nitro.options.node === false
-        ? {}
-        : {
-            "node-mock-http/_polyfill/events": "node:events",
-            "node-mock-http/_polyfill/buffer": "node:buffer",
-          }),
-      ...nitro.options.alias,
+  const { env } = defineEnv({
+    nodeCompat: nitro.options.node === false,
+    resolve: true,
+    overrides: {
+      alias: {
+        // General
+        ...(nitro.options.dev
+          ? {}
+          : {
+              debug: "unenv/npm/debug",
+            }),
+        ...(nitro.options.node === false
+          ? {}
+          : {
+              "node-mock-http/_polyfill/events": "node:events",
+              "node-mock-http/_polyfill/buffer": "node:buffer",
+            }),
+        ...nitro.options.alias,
+      },
     },
-  };
+  });
 
-  const env = unenv.env(nodePreset, builtinPreset, nitro.options.unenv);
+  console.log(env);
 
   const buildServerDir = join(nitro.options.buildDir, "dist/server");
 
