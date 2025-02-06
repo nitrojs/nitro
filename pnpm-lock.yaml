@@ -148,8 +148,8 @@ importers:
         specifier: ^1.6.6
         version: 1.6.6
       node-mock-http:
-        specifier: ^0.1.2
-        version: 0.1.2
+        specifier: ^1.0.0
+        version: 1.0.0
       ofetch:
         specifier: ^1.4.1
         version: 1.4.1
@@ -4426,8 +4426,8 @@ packages:
     resolution: {integrity: sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ==}
     hasBin: true
 
-  node-mock-http@0.1.2:
-    resolution: {integrity: sha512-G7KCCUZ/aYzwwyDwPH5mESs18ijVJaktSNg1MVcYFAOHw3PTHh1O8S7c4ioWRXVdz7NniKAY5nM6359pAPYfwQ==}
+  node-mock-http@1.0.0:
+    resolution: {integrity: sha512-0uGYQ1WQL1M5kKvGRXWQ3uZCHtLTO8hln3oBjIusM75WoesZ909uQJs/Hb946i2SS+Gsrhkaa6iAO17jRIv6DQ==}
 
   node-releases@2.0.19:
     resolution: {integrity: sha512-xxOWJsBKtzAq7DY0J+DTzuz58K8e7sJbdgwkbMWQe8UYB6ekmsQ45q0M/tJDsGaZmbC+l7n57UV8Hl5tHxO9uw==}
@@ -10910,7 +10910,7 @@ snapshots:
 
   node-gyp-build@4.8.4: {}
 
-  node-mock-http@0.1.2: {}
+  node-mock-http@1.0.0: {}
 
   node-releases@2.0.19: {}
 
