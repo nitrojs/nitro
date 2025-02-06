@@ -23,9 +23,9 @@ import {
   isString,
   isSymbol,
   isUndefined,
-  // parseEnv,
-  // styleText,
-} from "unenv/runtime/node/util/index";
+  parseEnv,
+  styleText,
+} from "unenv/node/util";
 
 export {
   _errnoException,
@@ -48,9 +48,9 @@ export {
   isString,
   isSymbol,
   isUndefined,
-  // parseEnv,
-  // styleText,
-} from "unenv/runtime/node/util/index";
+  parseEnv,
+  styleText,
+} from "unenv/node/util";
 
 export const {
   MIMEParams,
@@ -100,8 +100,8 @@ export default {
   isString,
   isSymbol,
   isUndefined,
-  // parseEnv,
-  // styleText,
+  parseEnv,
+  styleText,
   MIMEParams,
   MIMEType,
   TextDecoder,

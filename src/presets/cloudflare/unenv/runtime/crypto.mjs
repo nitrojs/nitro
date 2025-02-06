@@ -18,7 +18,7 @@ import {
   diffieHellman,
   ECDH,
   getCipherInfo,
-  // hash,
+  hash,
   privateDecrypt,
   privateEncrypt,
   pseudoRandomBytes,
@@ -29,7 +29,7 @@ import {
   webcrypto as unenvCryptoWebcrypto,
   Verify,
   verify,
-} from "unenv/runtime/node/crypto/index";
+} from "unenv/node/crypto";
 
 export {
   Cipher,
@@ -47,14 +47,14 @@ export {
   createVerify,
   diffieHellman,
   getCipherInfo,
-  // hash,
+  hash,
   privateDecrypt,
   privateEncrypt,
   publicDecrypt,
   publicEncrypt,
   sign,
   verify,
-} from "unenv/runtime/node/crypto/index";
+} from "unenv/node/crypto";
 
 export const {
   Certificate,
@@ -133,7 +133,7 @@ export default {
   createVerify,
   diffieHellman,
   getCipherInfo,
-  // hash,
+  hash,
   privateDecrypt,
   privateEncrypt,
   publicDecrypt,

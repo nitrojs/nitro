@@ -5,6 +5,7 @@ export default unjs({
     "**/.output",
     "**/.nitro",
     "**/.netlify",
+    "**/.vercel",
     "**/.nuxt",
     "**/*.gen.*",
     "**/dist",

@@ -62,9 +62,15 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
       ...(nitro.options.dev
         ? {}
         : {
-            debug: "unenv/runtime/npm/debug",
+            debug: "unenv/npm/debug",
             "consola/core": "consola/core",
-            consola: "unenv/runtime/npm/consola",
+            consola: "unenv/npm/consola",
+          }),
+      ...(nitro.options.node === false
+        ? {}
+        : {
+            "node-mock-http/_polyfill/events": "node:events",
+            "node-mock-http/_polyfill/buffer": "node:buffer",
           }),
       ...nitro.options.alias,
     },
@@ -349,9 +355,9 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
   rollupConfig.plugins.push(
     virtual(
       {
-        "#nitro-internal-pollyfills": env.polyfill
-          .map((p) => `import '${p}';`)
-          .join("\n"),
+        "#nitro-internal-pollyfills":
+          env.polyfill.map((p) => `import '${p}';`).join("\n") ||
+          `/* No polyfills */`,
       },
       nitro.vfs
     )

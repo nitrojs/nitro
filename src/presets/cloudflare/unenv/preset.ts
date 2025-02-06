@@ -57,6 +57,8 @@ export const unenvCfPreset: Preset = {
     ),
     sys: resolvePresetRuntime("util"),
     "node:sys": resolvePresetRuntime("util"),
+    "node-mock-http/_polyfill/events": "node:events",
+    "node-mock-http/_polyfill/buffer": "node:buffer",
   },
   inject: {
     "globalThis.Buffer": ["node:buffer", "Buffer"],

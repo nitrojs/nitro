@@ -3,24 +3,25 @@
 import workerdAsyncHooks from "#workerd/node:async_hooks";
 
 import {
-  // asyncWrapProviders,
+  asyncWrapProviders,
   createHook,
   executionAsyncId,
   executionAsyncResource,
   triggerAsyncId,
-} from "unenv/runtime/node/async_hooks/index";
+} from "unenv/node/async_hooks";
 
 export {
-  // asyncWrapProviders,
+  asyncWrapProviders,
   createHook,
   executionAsyncId,
   executionAsyncResource,
   triggerAsyncId,
-} from "unenv/runtime/node/async_hooks/index";
+} from "unenv/node/async_hooks";
 
 export const { AsyncLocalStorage, AsyncResource } = workerdAsyncHooks;
 
 export default {
+  asyncWrapProviders,
   createHook,
   executionAsyncId,
   executionAsyncResource,

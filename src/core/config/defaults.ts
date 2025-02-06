@@ -76,7 +76,7 @@ export const NitroDefaults: NitroConfig = {
   unenv: {},
   analyze: false,
   moduleSideEffects: [
-    "unenv/runtime/polyfill/",
+    "unenv/polyfill/",
     "node-fetch-native/polyfill",
     "node-fetch-native/dist/polyfill",
     resolve(runtimeDir, "polyfill/"),
