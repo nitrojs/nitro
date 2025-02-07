@@ -1,4 +1,4 @@
-import type { FilterPattern } from "@rollup/pluginutils";
+import type { FilterPattern } from "unplugin-utils";
 import type { NodeFileTraceOptions } from "@vercel/nft";
 import type { Loader as ESBuildLoader } from "esbuild";
 import type { TransformOptions as ESBuildTransformOptions } from "esbuild";

@@ -1,6 +1,6 @@
 // Based on https://github.com/egoist/rollup-plugin-esbuild (MIT)
 
-import { createFilter } from "@rollup/pluginutils";
+import { createFilter } from "unplugin-utils";
 import { type Loader, type TransformResult, transform } from "esbuild";
 import type { EsbuildOptions } from "nitropack/types";
 import { extname, relative } from "pathe";
