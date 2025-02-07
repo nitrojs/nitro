@@ -57,6 +57,7 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
   const { env } = defineEnv({
     nodeCompat: nitro.options.node === false,
     resolve: true,
+    presets: [nitro.options.unenv],
     overrides: {
       alias: {
         // General
@@ -75,8 +76,6 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
       },
     },
   });
-
-  console.log(env);
 
   const buildServerDir = join(nitro.options.buildDir, "dist/server");
 
