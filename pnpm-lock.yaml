@@ -7,7 +7,6 @@ settings:
 overrides:
   nitropack: link:.
   undici: ^6.20.1
-  unenv: npm:unenv-nightly@2.0.0-20250207-023056-21dea9b
 
 importers:
 
@@ -212,8 +211,8 @@ importers:
         specifier: ^2.4.1
         version: 2.4.1
       unenv:
-        specifier: npm:unenv-nightly@2.0.0-20250207-023056-21dea9b
-        version: unenv-nightly@2.0.0-20250207-023056-21dea9b
+        specifier: 2.0.0-rc.3
+        version: 2.0.0-rc.3
       unimport:
         specifier: ^4.0.0
         version: 4.0.0(rollup@4.32.1)
@@ -5678,8 +5677,8 @@ packages:
     resolution: {integrity: sha512-q/1rj5D0/zayJB2FraXdaWxbhWiNKDvu8naDT2dl1yTlvJp4BLtOcp2a5BvgGNQpYYJzau7tf1WgKv3b+7mqpQ==}
     engines: {node: '>=18.17'}
 
-  unenv-nightly@2.0.0-20250207-023056-21dea9b:
-    resolution: {integrity: sha512-kr/O6ZFIsNy7o7Iy3OSF0SU1mdBnYg7In/Q3bUvPfHrMFCqQw7ch044C89IihYne+SpUZ/BNHTV2dnsy9GqSDA==}
+  unenv@2.0.0-rc.3:
+    resolution: {integrity: sha512-RSv8Mt/BXcmdUyJsA2yvQv50F/Rznl0EvopFbFp4ZxDlzfvgJ7IFe0yzcUNPdKzqFibqxdmqqWX4lbrlJcRTSA==}
 
   unhead@1.11.18:
     resolution: {integrity: sha512-TWgGUoZMpYe2yJwY6jZ0/9kpQT18ygr2h5lI6cUXdfD9UzDc0ytM9jGaleSYkj9guJWXkk7izYBnzJvxl8mRvQ==}
@@ -12292,7 +12291,7 @@ snapshots:
 
   undici@6.21.1: {}
 
-  unenv-nightly@2.0.0-20250207-023056-21dea9b:
+  unenv@2.0.0-rc.3:
     dependencies:
       defu: 6.1.4
       mlly: 1.7.4
