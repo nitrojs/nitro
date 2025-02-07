@@ -54,10 +54,28 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
     ".jsx",
   ];
 
+  const isNodeless = nitro.options.node === false;
+
   const { env } = defineEnv({
-    nodeCompat: nitro.options.node === false,
+    nodeCompat: isNodeless,
     resolve: true,
-    presets: [nitro.options.unenv],
+    presets: [
+      isNodeless
+        ? {
+            // Backward compatibility (remove in v2)
+            // https://github.com/unjs/unenv/pull/427
+            inject: {
+              performance: "unenv/polyfill/performance",
+            },
+            polyfill: [
+              "unenv/polyfill/globalthis-global",
+              "unenv/polyfill/process",
+              "unenv/polyfill/performance",
+            ],
+          }
+        : {},
+      nitro.options.unenv,
+    ],
     overrides: {
       alias: {
         // General
@@ -66,7 +84,7 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
           : {
               debug: "unenv/npm/debug",
             }),
-        ...(nitro.options.node === false
+        ...(isNodeless
           ? {}
           : {
               "node-mock-http/_polyfill/events": "node:events",

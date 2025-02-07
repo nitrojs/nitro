@@ -68,6 +68,10 @@ export const unenvCfPreset: Preset = {
     "node-mock-http/_polyfill/buffer": "node:buffer",
   },
   inject: {
+    // process: "TODO",
+    // console: "TODO",
+    Buffer: ["node:buffer", "Buffer"],
+    "global.Buffer": ["node:buffer", "Buffer"],
     "globalThis.Buffer": ["node:buffer", "Buffer"],
   },
 };

@@ -95,7 +95,7 @@
   "resolutions": {
     "nitropack": "link:.",
     "undici": "^6.20.1",
-    "unenv": "npm:unenv-nightly@2.0.0-20250207-011423-492459d"
+    "unenv": "npm:unenv-nightly@2.0.0-20250207-023056-21dea9b"
   },
   "dependencies": {
     "@cloudflare/kv-asset-handler": "^0.3.4",
