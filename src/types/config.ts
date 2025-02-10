@@ -86,6 +86,7 @@ export interface NitroOptions extends PresetOptions {
   renderer?: string;
   serveStatic: boolean | "node" | "deno" | "inline";
   noPublicDir: boolean;
+  ignoreModules: string[];
 
   /**
    * @experimental Requires `experimental.wasm` to work

@@ -41,6 +41,7 @@ export const NitroDefaults: NitroConfig = {
   virtual: {},
   compressPublicAssets: false,
   ignore: [],
+  ignoreModules: [],
 
   // Dev
   dev: false,
