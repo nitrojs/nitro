@@ -373,6 +373,7 @@ export function defineCachedEventHandler<
         fetchWithEvent(event, url, fetchOptions as RequestInit, {
           fetch: globalThis.$fetch as any,
         });
+      event.waitUntil = incomingEvent.waitUntil;
       event.context = incomingEvent.context;
       event.context.cache = {
         options: _opts,
