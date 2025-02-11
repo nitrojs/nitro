@@ -60,9 +60,9 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
     nodeCompat: isNodeless,
     resolve: true,
     presets: [
-      nitro.options.unenv,
       unenvPresets.common,
       isNodeless ? unenvPresets.nodeless : unenvPresets.node,
+      nitro.options.unenv,
     ],
     overrides: {
       alias: {
@@ -154,7 +154,7 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
         return relativePath.includes("node_modules");
       },
     },
-    external: env.external,
+    external: [...env.external],
     plugins: [],
     onwarn(warning, rollupWarn) {
       if (
