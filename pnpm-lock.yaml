@@ -208,8 +208,8 @@ importers:
         specifier: ^2.4.1
         version: 2.4.1
       unenv:
-        specifier: npm:unenv-nightly@2.0.0-20250211-133400-9e1c9e9
-        version: unenv-nightly@2.0.0-20250211-133400-9e1c9e9
+        specifier: 2.0.0-rc.4
+        version: 2.0.0-rc.4
       unimport:
         specifier: ^4.0.0
         version: 4.0.0(rollup@4.32.1)
@@ -5677,8 +5677,8 @@ packages:
     resolution: {integrity: sha512-q/1rj5D0/zayJB2FraXdaWxbhWiNKDvu8naDT2dl1yTlvJp4BLtOcp2a5BvgGNQpYYJzau7tf1WgKv3b+7mqpQ==}
     engines: {node: '>=18.17'}
 
-  unenv-nightly@2.0.0-20250211-133400-9e1c9e9:
-    resolution: {integrity: sha512-eEO7i+yX8eAvP6CcMqFmtQ1F7FBkT9jUWyoHQ2pB7PBEpiNNuqtVVScxQhCetdGxn5zaH563AxYfrLSt2JPLvg==}
+  unenv@2.0.0-rc.4:
+    resolution: {integrity: sha512-5yneal3PObCay6i1yUtgLACNCoTJHc3ZbzqodUwiwagkuCItv8SMHOOveAl4WbolsC27cltszBvv2xJ+uLAHlw==}
 
   unhead@1.11.18:
     resolution: {integrity: sha512-TWgGUoZMpYe2yJwY6jZ0/9kpQT18ygr2h5lI6cUXdfD9UzDc0ytM9jGaleSYkj9guJWXkk7izYBnzJvxl8mRvQ==}
@@ -12295,7 +12295,7 @@ snapshots:
 
   undici@6.21.1: {}
 
-  unenv-nightly@2.0.0-20250211-133400-9e1c9e9:
+  unenv@2.0.0-rc.4:
     dependencies:
       defu: 6.1.4
       mlly: 1.7.4
