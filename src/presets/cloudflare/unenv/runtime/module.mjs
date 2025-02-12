@@ -65,7 +65,7 @@ export {
   _stat,
 } from "unenv/node/module";
 
-export const { builtinModules, isBuiltin } = workerdModule
+export const { builtinModules, isBuiltin } = workerdModule;
 
 export const createRequire = (file) => {
   return Object.assign(workerdModule.createRequire(file), {

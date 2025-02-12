@@ -73,7 +73,7 @@ export const {
   transferableAbortController,
   transferableAbortSignal,
   isArray,
-  isDeepStrictEqual
+  isDeepStrictEqual,
 } = workerdUtil;
 
 export const types = workerdUtil.types;
