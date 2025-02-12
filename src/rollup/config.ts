@@ -41,6 +41,7 @@ import { sourcemapMininify } from "./plugins/sourcemap-min";
 import { storage } from "./plugins/storage";
 import { timing } from "./plugins/timing";
 import { virtual } from "./plugins/virtual";
+import { errorHandler } from "./plugins/error-handler";
 import { resolveAliases } from "./utils";
 
 export const getRollupConfig = (nitro: Nitro): RollupConfig => {
@@ -344,6 +345,9 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
     rollupConfig.plugins.push(handlersMeta(nitro));
   }
 
+  // Error handler
+  rollupConfig.plugins.push(errorHandler(nitro));
+
   // Polyfill
   rollupConfig.plugins.push(
     virtual(
@@ -393,7 +397,6 @@ export const plugins = [
     alias({
       entries: resolveAliases({
         "#build": buildDir,
-        "#nitro-internal-virtual/error-handler": nitro.options.errorHandler,
         "#internal/nitro": runtimeDir,
         "nitro/runtime": runtimeDir,
         "nitropack/runtime": runtimeDir,

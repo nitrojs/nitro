@@ -81,6 +81,7 @@ export default defineNitroConfig({
     "db:migrate": { description: "Migrate database" },
     "db:seed": { description: "Seed database" },
   },
+  errorHandler: "~/error.ts",
   routeRules: {
     "/api/param/prerender4": { prerender: true },
     "/api/param/prerender2": { prerender: false },

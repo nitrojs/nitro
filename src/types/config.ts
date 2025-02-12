@@ -181,7 +181,7 @@ export interface NitroOptions extends PresetOptions {
   handlers: NitroEventHandler[];
   routeRules: { [path: string]: NitroRouteRules };
   devHandlers: NitroDevEventHandler[];
-  errorHandler: string;
+  errorHandler: string | string[];
   devErrorHandler: NitroErrorHandler;
   prerender: {
     /**

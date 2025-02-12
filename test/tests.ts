@@ -394,6 +394,12 @@ export function testNitro(
       "x-content-type-options": "nosniff",
       "x-frame-options": "DENY",
     });
+
+    const { data } = await callHandler({
+      url: "/api/error?custom_error_handler",
+    });
+    expect(status).toBe(503);
+    expect(data).toBe("custom_error_handler");
   });
 
   it.skipIf(isWindows && ctx.preset === "nitro-dev")(
