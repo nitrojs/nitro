@@ -37,7 +37,15 @@ export const nodeCompatModules = [
 ];
 
 // Modules implemented via a mix of workerd APIs and polyfills
-export const hybridNodeCompatModules = ["async_hooks", "crypto", "util"];
+export const hybridNodeCompatModules = [
+  "async_hooks",
+  "console",
+  "crypto",
+  "module",
+  "perf_hooks",
+  "process",
+  "util",
+];
 
 const presetRuntimeDir = fileURLToPath(new URL("runtime/", import.meta.url));
 const resolvePresetRuntime = (m: string) => join(presetRuntimeDir, `${m}.mjs`);
@@ -68,8 +76,7 @@ export const unenvCfPreset: Preset = {
     "node-mock-http/_polyfill/buffer": "node:buffer",
   },
   inject: {
-    // process: "TODO",
-    // console: "TODO",
+    process: resolvePresetRuntime("process"),
     Buffer: ["node:buffer", "Buffer"],
     "global.Buffer": ["node:buffer", "Buffer"],
     "globalThis.Buffer": ["node:buffer", "Buffer"],

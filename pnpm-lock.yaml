@@ -207,8 +207,8 @@ importers:
         specifier: ^2.4.1
         version: 2.4.1
       unenv:
-        specifier: 2.0.0-rc.4
-        version: 2.0.0-rc.4
+        specifier: 2.0.0-rc.5
+        version: 2.0.0-rc.5
       unimport:
         specifier: ^4.0.0
         version: 4.1.1
@@ -5608,8 +5608,8 @@ packages:
     resolution: {integrity: sha512-Qy96NND4Dou5jKoSJ2gm8ax8AJM/Ey9o9mz7KN1bb9GP+G0l20Zw8afxTnY2f4b7hmhn/z8aC2kfArVQlAhFBw==}
     engines: {node: '>=20.18.1'}
 
-  unenv@2.0.0-rc.4:
-    resolution: {integrity: sha512-5yneal3PObCay6i1yUtgLACNCoTJHc3ZbzqodUwiwagkuCItv8SMHOOveAl4WbolsC27cltszBvv2xJ+uLAHlw==}
+  unenv@2.0.0-rc.5:
+    resolution: {integrity: sha512-4OcgxJtjQ/rDI3ldgG8GRy08Omi95/760JS0Js+FzyN2MYSaxdu8e/FhKTNIKj5XTw6xWHqi1rqRbbcHiEGajA==}
 
   unhead@1.11.18:
     resolution: {integrity: sha512-TWgGUoZMpYe2yJwY6jZ0/9kpQT18ygr2h5lI6cUXdfD9UzDc0ytM9jGaleSYkj9guJWXkk7izYBnzJvxl8mRvQ==}
@@ -12123,7 +12123,7 @@ snapshots:
 
   undici@7.3.0: {}
 
-  unenv@2.0.0-rc.4:
+  unenv@2.0.0-rc.5:
     dependencies:
       defu: 6.1.4
       mlly: 1.7.4

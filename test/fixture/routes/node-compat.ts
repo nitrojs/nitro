@@ -2,15 +2,13 @@ import nodeAsyncHooks from "node:async_hooks";
 import nodeCrypto from "node:crypto";
 
 const nodeCompatTests = {
-  buffer: {
-    Buffer: () => {
-      const _Buffer = Buffer;
-      return _Buffer && !("__unenv__" in _Buffer);
-    },
-    "globalThis.Buffer": () => {
-      const _Buffer = globalThis.Buffer;
-      return _Buffer && !("__unenv__" in _Buffer);
-    },
+  globals: {
+    // eslint-disable-next-line unicorn/prefer-global-this
+    global: () => globalThis.global === global,
+    // eslint-disable-next-line unicorn/prefer-global-this
+    Buffer: () => Buffer && globalThis.Buffer && global.Buffer,
+    // eslint-disable-next-line unicorn/prefer-global-this
+    process: () => process && globalThis.process && global.process,
   },
   crypto: {
     createHash: () => {
@@ -23,9 +21,6 @@ const nodeCompatTests = {
   },
   async_hooks: {
     AsyncLocalStorage: async () => {
-      if ("__unenv__" in nodeAsyncHooks.AsyncLocalStorage) {
-        return false;
-      }
       const ctx = new nodeAsyncHooks.AsyncLocalStorage();
       const rand = Math.random();
       return ctx.run(rand, async () => {

@@ -59,6 +59,7 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
 
   const { env } = defineEnv({
     nodeCompat: isNodeless,
+    npmShims: true,
     resolve: true,
     presets: [
       unenvPresets.common,
@@ -66,9 +67,7 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
       nitro.options.unenv,
     ],
     overrides: {
-      alias: {
-        ...nitro.options.alias,
-      },
+      alias: nitro.options.alias,
     },
   });
 

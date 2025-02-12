@@ -1,3 +1,4 @@
+// https://github.com/cloudflare/workerd/blob/main/src/node/async_hooks.ts
 // https://github.com/cloudflare/workers-sdk/blob/main/packages/unenv-preset/src/runtime/node/async_hooks/index.ts
 
 import workerdAsyncHooks from "#workerd/node:async_hooks";
@@ -21,11 +22,11 @@ export {
 export const { AsyncLocalStorage, AsyncResource } = workerdAsyncHooks;
 
 export default {
+  AsyncLocalStorage,
+  AsyncResource,
   asyncWrapProviders,
   createHook,
   executionAsyncId,
   executionAsyncResource,
   triggerAsyncId,
-  AsyncLocalStorage,
-  AsyncResource,
 };
