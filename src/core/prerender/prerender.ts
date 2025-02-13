@@ -7,7 +7,8 @@ import type { Nitro, NitroRouteRules, PrerenderRoute } from "nitropack/types";
 import type { $Fetch } from "ofetch";
 import { join, relative, resolve } from "pathe";
 import { createRouter as createRadixRouter, toRouteMatcher } from "radix3";
-import { joinURL, withBase, withoutBase } from "ufo";
+import { joinURL, withBase, withLeadingSlash, withoutBase } from "ufo";
+import { getPublicAssets } from "../build/assets";
 import { build } from "../build/build";
 import { createNitro } from "../nitro";
 import { compressPublicAssets } from "../utils/compress";
@@ -107,6 +108,10 @@ export async function prerender(nitro: Nitro) {
   const skippedRoutes = new Set();
   const displayedLengthWarns = new Set();
 
+  const publicAssets = await getPublicAssets(nitro).then(
+    (r) => new Set(r ? r.map((f) => withLeadingSlash(f.file)) : [])
+  );
+
   const canPrerender = (route = "/") => {
     // Skip if route is already generated or skipped
     if (generatedRoutes.has(route) || skippedRoutes.has(route)) {
@@ -118,6 +123,11 @@ export async function prerender(nitro: Nitro) {
       if (matchesIgnorePattern(route, pattern)) {
         return false;
       }
+    }
+
+    // do not prerender any files in the public assets
+    if (publicAssets.has(route)) {
+      return false;
     }
 
     // Check for route rules explicitly disabling prerender

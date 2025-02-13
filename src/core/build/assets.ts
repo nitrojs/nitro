@@ -8,10 +8,12 @@ import { compressPublicAssets } from "../utils/compress";
 const NEGATION_RE = /^(!?)(.*)$/;
 const PARENT_DIR_GLOB_RE = /!?\.\.\//;
 
-export async function copyPublicAssets(nitro: Nitro) {
+export async function getPublicAssets(nitro: Nitro) {
   if (nitro.options.noPublicDir) {
     return;
   }
+  const publicAssets: Array<{ file: string; src: string; dst: string }> = [];
+
   for (const asset of nitro.options.publicAssets) {
     const srcDir = asset.dir;
     const dstDir = join(nitro.options.output.publicDir, asset.baseURL!);
@@ -31,22 +33,39 @@ export async function copyPublicAssets(nitro: Nitro) {
         }),
       ].filter((p) => !PARENT_DIR_GLOB_RE.test(p));
 
-      const publicAssets = await globby(includePatterns, {
+      const files = await globby(includePatterns, {
         cwd: srcDir,
         absolute: false,
         dot: true,
       });
-      await Promise.all(
-        publicAssets.map(async (file) => {
-          const src = join(srcDir, file);
-          const dst = join(dstDir, file);
-          if (!existsSync(dst)) {
-            await fsp.cp(src, dst);
-          }
-        })
+
+      publicAssets.push(
+        ...files.map((file) => ({
+          file,
+          src: join(srcDir, file),
+          dst: join(dstDir, file),
+        }))
       );
     }
   }
+
+  return publicAssets;
+}
+
+export async function copyPublicAssets(nitro: Nitro) {
+  const publicAssets = await getPublicAssets(nitro);
+  if (!publicAssets) {
+    return;
+  }
+
+  await Promise.all(
+    publicAssets.map(async (file) => {
+      if (!existsSync(file.dst)) {
+        await fsp.cp(file.src, file.dst);
+      }
+    })
+  );
+
   if (nitro.options.compressPublicAssets) {
     await compressPublicAssets(nitro);
   }
