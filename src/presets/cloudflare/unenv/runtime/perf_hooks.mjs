@@ -29,7 +29,7 @@ export {
 
 const workerdGlobalPerformance = globalThis["perf" + "ormance"];
 
-export const performance = Object.assign(workerdGlobalPerformance, {
+export const performance = /*@__PURE__*/ Object.assign(workerdGlobalPerformance, {
   addEventListener: unenvPerformance.addEventListener.bind(unenvPerformance),
   clearMarks: unenvPerformance.clearMarks.bind(unenvPerformance),
   clearMeasures: unenvPerformance.clearMeasures.bind(unenvPerformance),

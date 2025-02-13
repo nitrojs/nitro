@@ -101,6 +101,7 @@ export const {
   setFips,
   subtle,
   timingSafeEqual,
+  fips,
 } = workerdCrypto;
 
 export const getRandomValues = workerdCrypto.getRandomValues.bind(
@@ -113,8 +114,6 @@ export const webcrypto = {
   randomUUID,
   subtle,
 };
-
-const fips = workerdCrypto.fips;
 
 export default {
   Certificate,

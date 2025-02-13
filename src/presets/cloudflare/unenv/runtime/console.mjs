@@ -49,7 +49,7 @@ export const {
   warn,
 } = workerdConsole;
 
-Object.assign(workerdConsole, {
+const consolePolyfill = {
   Console,
   _ignoreErrors,
   _stderr,
@@ -57,7 +57,15 @@ Object.assign(workerdConsole, {
   _stdout,
   _stdoutErrorHandler,
   _times,
-});
+}
 
-// eslint-disable-next-line unicorn/prefer-export-from
-export default workerdConsole;
+const consoleModule = /*@__PURE__*/ new Proxy(workerdConsole, {
+  get(target, prop) {
+    if (Reflect.has(target, prop)) {
+      return Reflect.get(target, prop);
+    }
+    return Reflect.get(consolePolyfill, prop);
+  }
+})
+
+export default consoleModule

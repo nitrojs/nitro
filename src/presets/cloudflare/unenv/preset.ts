@@ -87,10 +87,17 @@ export const hybridNodePlugin: Plugin = {
   name: "nitro:cloudflare:hybrid-node-compat",
   resolveId(id) {
     if (id.startsWith("cloudflare:")) {
-      return { id, external: true };
+      return { id, external: true, moduleSideEffects: false };
     }
     if (id.startsWith("#workerd/node:")) {
-      return { id: id.slice("#workerd/".length), external: true };
+      return {
+        id: id.slice("#workerd/".length),
+        external: true,
+        moduleSideEffects: false,
+      };
+    }
+    if (id.startsWith(presetRuntimeDir)) {
+      return { id, moduleSideEffects: false };
     }
   },
 };
