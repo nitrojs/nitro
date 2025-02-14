@@ -12,7 +12,12 @@ export async function getPublicAssets(nitro: Nitro) {
   if (nitro.options.noPublicDir) {
     return;
   }
-  const publicAssets: Array<{ file: string; src: string; dst: string }> = [];
+
+  if (nitro._cachedPublicAssets) {
+    return nitro._cachedPublicAssets;
+  }
+
+  const publicAssets: Array<{ url: string; src: string; dst: string }> = [];
 
   for (const asset of nitro.options.publicAssets) {
     const srcDir = asset.dir;
@@ -41,13 +46,15 @@ export async function getPublicAssets(nitro: Nitro) {
 
       publicAssets.push(
         ...files.map((file) => ({
-          file,
+          url: join(asset.baseURL!, file),
           src: join(srcDir, file),
           dst: join(dstDir, file),
         }))
       );
     }
   }
+
+  nitro._cachedPublicAssets = publicAssets;
 
   return publicAssets;
 }

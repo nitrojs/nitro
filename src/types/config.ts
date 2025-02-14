@@ -195,6 +195,7 @@ export interface NitroOptions extends PresetOptions {
     ignore: Array<
       string | RegExp | ((path: string) => undefined | null | boolean)
     >;
+    ignorePublicAssets: boolean;
     routes: string[];
     /**
      * Amount of retries. Pass Infinity to retry indefinitely.

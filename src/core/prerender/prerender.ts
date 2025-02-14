@@ -108,8 +108,10 @@ export async function prerender(nitro: Nitro) {
   const skippedRoutes = new Set();
   const displayedLengthWarns = new Set();
 
-  const publicAssets = await getPublicAssets(nitro).then(
-    (r) => new Set(r ? r.map((f) => withLeadingSlash(f.file)) : [])
+  const publicAssets = new Set(
+    nitro.options.prerender.ignorePublicAssets
+      ? await getPublicAssets(nitro).then((r) => r?.map((f) => f.url) || [])
+      : []
   );
 
   const canPrerender = (route = "/") => {
