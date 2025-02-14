@@ -65,13 +65,17 @@ export async function copyPublicAssets(nitro: Nitro) {
     return;
   }
 
-  await Promise.all(
-    publicAssets.map(async (file) => {
-      if (!existsSync(file.dst)) {
-        await fsp.cp(file.src, file.dst);
-      }
-    })
-  );
+  const batchSize = 20;
+  for (let i = 0; i < publicAssets.length; i += batchSize) {
+    const batch = publicAssets.slice(i, i + batchSize);
+    await Promise.all(
+      batch.map(async (file) => {
+        if (!existsSync(file.dst)) {
+          await fsp.cp(file.src, file.dst);
+        }
+      })
+    );
+  }
 
   if (nitro.options.compressPublicAssets) {
     await compressPublicAssets(nitro);
