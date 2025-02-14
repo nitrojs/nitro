@@ -13,7 +13,7 @@ export async function resolveFetchOptions(options: NitroOptions) {
   }
   if (!options.experimental.nodeFetchCompat) {
     options.alias = {
-      "node-fetch-native/polyfill": "unenv/runtime/mock/empty",
+      "node-fetch-native/polyfill": "unenv/mock/empty",
       "node-fetch-native": "node-fetch-native/native",
       ...options.alias,
     };

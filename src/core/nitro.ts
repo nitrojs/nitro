@@ -67,6 +67,9 @@ export async function createNitro(
   // Tasks
   addNitroTasksVirtualFile(nitro);
 
+  // Scan and install modules
+  await installModules(nitro);
+
   // Auto imports
   if (nitro.options.imports) {
     // Create unimport instance
@@ -77,9 +80,6 @@ export async function createNitro(
     // Backward compatibility
     nitro.options.virtual["#nitro"] = 'export * from "#imports"';
   }
-
-  // Scan and install modules as last step
-  await installModules(nitro);
 
   return nitro;
 }

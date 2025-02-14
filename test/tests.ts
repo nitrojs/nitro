@@ -170,7 +170,6 @@ export async function setupTest(
 
 export async function startServer(ctx: Context, handle: RequestListener) {
   ctx.server = await listen(handle);
-  console.log(">", ctx.server!.url);
 }
 
 type TestHandlerResult = {
@@ -378,13 +377,29 @@ export function testNitro(
   });
 
   it("handles errors", async () => {
-    const { status } = await callHandler({
+    const { status, headers } = await callHandler({
       url: "/api/error",
       headers: {
         Accept: "application/json",
       },
     });
     expect(status).toBe(503);
+
+    expect(headers).toMatchObject({
+      "content-type": "application/json",
+      "content-security-policy": ctx.isDev
+        ? "script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self';"
+        : "script-src 'none'; frame-ancestors 'none';",
+      "referrer-policy": "no-referrer",
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+    });
+
+    const { data } = await callHandler({
+      url: "/api/error?custom_error_handler",
+    });
+    expect(status).toBe(503);
+    expect(data).toBe("custom_error_handler");
   });
 
   it.skipIf(isWindows && ctx.preset === "nitro-dev")(
@@ -450,6 +465,7 @@ export function testNitro(
     const res = await callHandler({ url: "/imports" });
     expect(res.data).toMatchObject({
       testUtil: 123,
+      testNestedUtil: 1234 + 12_345,
     });
   });
 
@@ -788,5 +804,17 @@ export function testNitro(
       sql: "--",
       sqlts: "--",
     });
+  });
+
+  it.skipIf(
+    ["cloudflare-worker", "cloudflare-module-legacy", "vercel-edge"].includes(
+      ctx.preset
+    )
+  )("nodejs compatibility", async () => {
+    const { data, status } = await callHandler({ url: "/node-compat" });
+    expect(status).toBe(200);
+    for (const key in data) {
+      expect(data[key], key).toBe(true);
+    }
   });
 }

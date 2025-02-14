@@ -62,19 +62,21 @@ describe("nitro:preset:netlify", async () => {
         );
 
         expect(headers).toMatchInlineSnapshot(`
-        "/rules/headers
-          cache-control: s-maxage=60
-        /rules/cors
-          access-control-allow-origin: *
-          access-control-allow-methods: GET
-          access-control-allow-headers: *
-          access-control-max-age: 0
-        /rules/nested/*
-          x-test: test
-        /build/*
-          cache-control: public, max-age=3600, immutable
-        "
-      `);
+          "/rules/headers
+            cache-control: s-maxage=60
+          /rules/cors
+            access-control-allow-origin: *
+            access-control-allow-methods: GET
+            access-control-allow-headers: *
+            access-control-max-age: 0
+          /rules/nested/*
+            x-test: test
+          /build/*
+            cache-control: public, max-age=3600, immutable
+          /*
+            x-test: test
+          "
+        `);
       });
 
       it("writes config.json", async () => {
@@ -103,6 +105,8 @@ describe("nitro:preset:netlify", async () => {
             name: "server handler",
             generator: "nitro@2.x",
             path: "/*",
+            nodeBundler: "none",
+            includedFiles: ["**"],
             excludedPath: ["/.netlify/*","/build/*"],
             preferStatic: true,
           };"
@@ -167,7 +171,7 @@ describe("nitro:preset:netlify", async () => {
 
   describe("getStaticPaths", () => {
     it("always returns `/.netlify/*`", () => {
-      expect(getStaticPaths([])).toEqual(["/.netlify/*"]);
+      expect(getStaticPaths([], "/base")).toEqual(["/.netlify/*"]);
     });
 
     it("returns a pattern with a leading slash for each non-fallthrough non-root public asset path", () => {
@@ -206,10 +210,10 @@ describe("nitro:preset:netlify", async () => {
           maxAge: 0,
         },
       ];
-      expect(getStaticPaths(publicAssets)).toEqual([
+      expect(getStaticPaths(publicAssets, "/base")).toEqual([
         "/.netlify/*",
-        "/with-default-fallthrough/*",
-        "/nested/no-fallthrough/*",
+        "/base/with-default-fallthrough/*",
+        "/base/nested/no-fallthrough/*",
       ]);
     });
   });

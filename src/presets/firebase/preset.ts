@@ -1,6 +1,6 @@
 import { defineNitroPreset, writeFile } from "nitropack/kit";
 import { version as nitroVersion } from "nitropack/meta";
-import { basename, join } from "pathe";
+import { basename, join, relative } from "pathe";
 import type { Plugin } from "rollup";
 import { genSafeVariableName } from "knitwork";
 import { stringifyYAML } from "confbox";
@@ -83,12 +83,13 @@ const firebaseAppHosting = defineNitroPreset(
     serveStatic: true,
     hooks: {
       async compiled(nitro) {
+        const serverEntry = join(nitro.options.output.serverDir, "index.mjs");
         await writeFile(
           join(nitro.options.rootDir, ".apphosting/bundle.yaml"),
           stringifyYAML({
             version: "v1",
             runConfig: {
-              runCommand: "node .output/server/index.mjs",
+              runCommand: `node ${relative(nitro.options.rootDir, serverEntry)}`,
               ...(nitro.options.firebase as AppHostingOptions)?.appHosting,
             },
             metadata: {
@@ -96,6 +97,13 @@ const firebaseAppHosting = defineNitroPreset(
               frameworkVersion: nitro.options.framework.version || "2.x",
               adapterPackageName: "nitropack",
               adapterVersion: nitroVersion,
+            },
+            outputFiles: {
+              serverApp: {
+                include: [
+                  relative(nitro.options.rootDir, nitro.options.output.dir),
+                ],
+              },
             },
           } satisfies AppHostingOutputBundleConfig),
           true

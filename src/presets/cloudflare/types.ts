@@ -6,7 +6,13 @@ import type {
   TraceItem,
 } from "@cloudflare/workers-types";
 import type { DurableObject } from "cloudflare:workers";
-import type { Config as WranglerConfig } from "./types.wrangler";
+
+import type {
+  Config as _Config,
+  ComputedFields as _ComputedFields,
+} from "./wrangler/config";
+
+export type WranglerConfig = Partial<Omit<_Config, keyof _ComputedFields>>;
 
 /**
  * https://developers.cloudflare.com/pages/platform/functions/routing/#functions-invocation-routes
@@ -27,6 +33,13 @@ export interface CloudflareOptions {
    * Configuration for the Cloudflare Deployments
    */
   wrangler?: WranglerConfig;
+
+  /**
+   * Disable the automatic generation of .wrangler/deploy/config.json
+   *
+   * More info: https://developers.cloudflare.com/workers/wrangler/configuration#generated-wrangler-configuration
+   */
+  noWranglerDeployConfig?: boolean;
 
   pages: {
     /**

@@ -1,12 +1,11 @@
 import { colors } from "consola/utils";
 import type { PrerenderRoute } from "nitropack/types";
 import { parseURL } from "ufo";
+import { parse as parseHTML, walk } from "ultrahtml";
 
 const allowedExtensions = new Set(["", ".json"]);
 
 const linkParents = new Map<string, Set<string>>();
-
-const LINK_REGEX = /(?<=\s)href=(?!&quot;)["']?([^"'>]+)/g;
 
 const HTML_ENTITIES = {
   "&lt;": "<",
@@ -23,7 +22,7 @@ function escapeHtml(text: string) {
   );
 }
 
-export function extractLinks(
+export async function extractLinks(
   html: string,
   from: string,
   res: Response,
@@ -34,12 +33,19 @@ export function extractLinks(
 
   // Extract from any <TAG href=""> to crawl
   if (crawlLinks) {
-    _links.push(
-      ...[...html.matchAll(LINK_REGEX)]
-        .map((m) => escapeHtml(m[1]))
-        .filter((m) => !decodeURIComponent(m).startsWith("#"))
-        .filter((link) => allowedExtensions.has(getExtension(link)))
-    );
+    await walk(parseHTML(html), (node) => {
+      if (!node.attributes?.href) {
+        return;
+      }
+
+      const link = escapeHtml(node.attributes.href);
+      if (
+        !decodeURIComponent(link).startsWith("#") &&
+        allowedExtensions.has(getExtension(link))
+      ) {
+        _links.push(link);
+      }
+    });
   }
 
   // Extract from x-nitro-prerender headers

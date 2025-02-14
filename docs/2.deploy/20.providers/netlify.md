@@ -43,6 +43,10 @@ Make sure the publish directory is set to `dist` when creating a new project.
 
 **Preset:** `netlify_builder`
 
+::warning
+**Note:** This preset is deprecated. Instead, use the `netlify` preset with the `isr` route rule.
+::
+
 On-demand Builders are serverless functions used to generate web content as needed that’s automatically cached on Netlify’s Edge CDN. They enable you to build pages for your site when a user visits them for the first time and then cache them at the edge for subsequent visits.
 
 :read-more{title="Netlify On-demand Builders" to="https://docs.netlify.com/configure-builds/on-demand-builders/"}

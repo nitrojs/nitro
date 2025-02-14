@@ -14,6 +14,7 @@ import { relative } from "pathe";
 import { resolveAlias } from "pathe/utils";
 import type { TSConfig } from "pkg-types";
 import { type JSValue, generateTypes, resolveSchema } from "untyped";
+import { toExports } from "unimport";
 
 export async function writeTypes(nitro: Nitro) {
   const types: NitroTypes = {
@@ -47,19 +48,19 @@ export async function writeTypes(nitro: Nitro) {
 
   if (nitro.unimport) {
     await nitro.unimport.init();
+
     // TODO: fully resolve utils exported from `#imports`
-    autoImportExports = await nitro.unimport
-      .toExports(typesDir)
-      .then((r) =>
-        r.replace(/#internal\/nitro/g, relative(typesDir, runtimeDir))
-      );
+
+    const allImports = await nitro.unimport.getImports();
+
+    autoImportExports = toExports(allImports).replace(
+      /#internal\/nitro/g,
+      relative(typesDir, runtimeDir)
+    );
 
     const resolvedImportPathMap = new Map<string, string>();
-    const imports = await nitro.unimport
-      .getImports()
-      .then((r) => r.filter((i) => !i.type));
 
-    for (const i of imports) {
+    for (const i of allImports.filter((i) => !i.type)) {
       if (resolvedImportPathMap.has(i.from)) {
         continue;
       }

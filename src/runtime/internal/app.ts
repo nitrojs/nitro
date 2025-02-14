@@ -17,12 +17,12 @@ import type {
   NitroRuntimeHooks,
 } from "nitropack/types";
 import type { NitroAsyncContext } from "nitropack/types";
-import type { $Fetch, NitroFetchRequest } from "nitropack/types";
 import { Headers, createFetch } from "ofetch";
 import {
-  createCall,
-  createFetch as createLocalFetch,
-} from "unenv/runtime/fetch/index";
+  fetchNodeRequestHandler,
+  callNodeRequestHandler,
+  type AbstractRequest,
+} from "node-mock-http";
 import errorHandler from "#nitro-internal-virtual/error-handler";
 import { plugins } from "#nitro-internal-virtual/plugins";
 import { handlers } from "#nitro-internal-virtual/server-handlers";
@@ -85,13 +85,20 @@ function createNitroApp(): NitroApp {
     preemptive: true,
   });
 
-  // Create local fetch callers
-  const localCall = createCall(toNodeListener(h3App) as any);
-  const _localFetch = createLocalFetch(localCall, globalThis.fetch);
-  const localFetch: typeof fetch = (input, init) =>
-    _localFetch(input as RequestInfo, init as any).then((response) =>
-      normalizeFetchResponse(response)
-    );
+  // Create local fetch caller
+  const nodeHandler = toNodeListener(h3App);
+  const localCall = (aRequest: AbstractRequest) =>
+    callNodeRequestHandler(nodeHandler, aRequest);
+  const localFetch: typeof fetch = (input, init) => {
+    if (!input.toString().startsWith("/")) {
+      return globalThis.fetch(input, init);
+    }
+    return fetchNodeRequestHandler(
+      nodeHandler,
+      input as string /* TODO */,
+      init
+    ).then((response) => normalizeFetchResponse(response));
+  };
   const $fetch = createFetch({
     fetch: localFetch,
     Headers,
@@ -121,10 +128,10 @@ function createNitroApp(): NitroApp {
       // Assign bound fetch to context
       event.fetch = (req, init) =>
         fetchWithEvent(event, req, init, { fetch: localFetch });
-      event.$fetch = ((req, init) =>
+      event.$fetch = (req, init) =>
         fetchWithEvent(event, req, init as RequestInit, {
           fetch: $fetch as any,
-        })) as $Fetch<unknown, NitroFetchRequest>;
+        });
 
       // https://github.com/nitrojs/nitro/issues/1420
       event.waitUntil = (promise) => {

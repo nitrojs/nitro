@@ -1,17 +1,17 @@
 import type { App as H3App, H3Event, Router } from "h3";
 import type { Hookable } from "hookable";
 import type { NitroRuntimeHooks as NitroTypesRuntimeHooks } from "nitropack";
-import type {
-  createCall,
-  createFetch as createLocalFetch,
-} from "unenv/runtime/fetch/index";
+import type { AbstractRequest, AbstractResponse } from "node-mock-http";
 
 export interface NitroApp {
   h3App: H3App;
   router: Router;
   hooks: Hookable<NitroRuntimeHooks>;
-  localCall: ReturnType<typeof createCall>;
-  localFetch: ReturnType<typeof createLocalFetch>;
+  localCall: (aRequest: AbstractRequest) => Promise<AbstractResponse>;
+  localFetch: (
+    req: string | URL | Request,
+    init?: RequestInit & AbstractRequest
+  ) => Promise<Response>;
   captureError: CaptureError;
 }
 
