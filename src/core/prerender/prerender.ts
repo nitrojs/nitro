@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { colors } from "consola/utils";
 import { defu } from "defu";
@@ -171,6 +172,14 @@ export async function prerender(nitro: Nitro) {
         );
         return false;
       }
+    }
+
+    // Check if file already exists, for example copied across from public assets
+    const fileAlreadyExists =
+      existsSync(join(nitro.options.output.publicDir, route.fileName!)) ||
+      existsSync(join(nitro.options.output.publicDir, route.route));
+    if (fileAlreadyExists) {
+      return false;
     }
 
     return true;
