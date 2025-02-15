@@ -11,8 +11,7 @@ import { joinURL } from "ufo";
 import { defu } from "defu";
 import { handlersMeta } from "#nitro-internal-virtual/server-handlers-meta";
 import { useRuntimeConfig } from "../config";
-import { createRouter as createRadixRouter, toRouteMatcher } from "radix3";
-import type { NitroRouteRules, NitroRuntimeConfig } from "nitropack/types";
+import { getRouteRulesForPath } from "../route-rules";
 
 // Served as /_openapi.json
 export default eventHandler((event) => {
@@ -26,7 +25,7 @@ export default eventHandler((event) => {
     ...runtimeConfig.nitro?.openAPI?.meta,
   };
 
-  const { paths, globals } = getHandlersMeta(runtimeConfig);
+  const { paths, globals } = getHandlersMeta();
 
   return <OpenAPI3>{
     openapi: "3.1.0",
@@ -49,24 +48,17 @@ export default eventHandler((event) => {
 
 type OpenAPIGlobals = Pick<OpenAPI3, "components">;
 
-function getHandlersMeta(runtimeConfig: NitroRuntimeConfig): {
+function getHandlersMeta(): {
   paths: PathsObject;
   globals: OpenAPIGlobals;
 } {
   const paths: PathsObject = {};
   let globals: OpenAPIGlobals = {};
 
-  const _routeRulesMatcher = toRouteMatcher(
-    createRadixRouter({ routes: runtimeConfig.nitro.routeRules })
-  );
-
-  const _getRouteRules = (path: string) =>
-    defu({}, ..._routeRulesMatcher.matchAll(path).reverse()) as NitroRouteRules;
-
   for (const h of handlersMeta) {
     const enabledInRouteMeta = h.meta && h.meta.openAPIEnabled;
     const enabledInRouteRules =
-      h.route && _getRouteRules(h.route).openAPIEnabled;
+      h.route && getRouteRulesForPath(h.route).openAPIEnabled;
     const openAPIEnabled = enabledInRouteMeta ?? enabledInRouteRules;
     if (openAPIEnabled === false) continue;
 
