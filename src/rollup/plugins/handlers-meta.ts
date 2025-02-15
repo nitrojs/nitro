@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { transform } from "esbuild";
 import type { Nitro } from "nitropack/types";
-import { extname } from "pathe";
+import { extname, resolve, dirname } from "pathe";
 import type { Plugin } from "rollup";
 import MagicString from "magic-string";
 
@@ -43,6 +43,8 @@ export function handlersMeta(nitro: Nitro) {
       if (!id.startsWith(virtualPrefix)) return;
 
       try {
+        const dirPath = dirname(id.slice(virtualPrefix.length));
+
         const ext = extname(id) as keyof typeof esbuildLoaders;
         const { code: jsCode } = await transform(code, {
           loader: esbuildLoaders[ext],
@@ -57,7 +59,12 @@ export function handlersMeta(nitro: Nitro) {
             typeof node.source.value === "string" &&
             node.source.value?.startsWith(".")
           ) {
-            s.remove(node.start!, node.end!);
+            const absolutePath = resolve(dirPath, node.source.value);
+            s.overwrite(
+              node.source.start!,
+              node.source.end!,
+              `"${absolutePath}"`
+            );
           }
 
           // if its the macro call, we remove the code after it and replace it with the export
