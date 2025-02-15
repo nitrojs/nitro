@@ -13,7 +13,6 @@ import { handlersMeta } from "#nitro-internal-virtual/server-handlers-meta";
 import { useRuntimeConfig } from "../config";
 import { createRouter as createRadixRouter, toRouteMatcher } from "radix3";
 import type { NitroRouteRules, NitroRuntimeConfig } from "nitropack/types";
-import defu from "defu";
 
 // Served as /_openapi.json
 export default eventHandler((event) => {
