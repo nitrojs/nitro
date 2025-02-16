@@ -4,6 +4,7 @@ import type { Nitro } from "nitropack/types";
 import { extname, resolve, dirname } from "pathe";
 import type { Plugin } from "rollup";
 import MagicString from "magic-string";
+import { parse } from "acorn";
 
 const virtualPrefix = "\0nitro-handler-meta:";
 
@@ -49,11 +50,14 @@ export function handlersMeta(nitro: Nitro) {
         const { code: jsCode } = await transform(code, {
           loader: esbuildLoaders[ext],
         });
-        const ast = this.parse(jsCode);
+        const ast = parse(jsCode, {
+          sourceType: "module",
+          ecmaVersion: "latest",
+        }); // TODO: what are the desired options?
         const s = new MagicString(jsCode);
 
         for (const node of ast.body) {
-          // if its a relative import, we remove it, since it won't be in place
+          // if its a relative import, we update it to the absolute path
           if (
             node.type === "ImportDeclaration" &&
             typeof node.source.value === "string" &&
@@ -61,8 +65,8 @@ export function handlersMeta(nitro: Nitro) {
           ) {
             const absolutePath = resolve(dirPath, node.source.value);
             s.overwrite(
-              node.source.start!,
-              node.source.end!,
+              node.source.start,
+              node.source.end,
               `"${absolutePath}"`
             );
           }
@@ -75,13 +79,13 @@ export function handlersMeta(nitro: Nitro) {
             node.expression.callee.name === "defineRouteMeta" &&
             node.expression.arguments.length === 1
           ) {
-            s.remove(node.end!, jsCode.length);
+            s.remove(node.end, jsCode.length);
 
             const arg = jsCode.slice(
-              node.expression.arguments[0].start!,
-              node.expression.arguments[0].end!
+              node.expression.arguments[0].start,
+              node.expression.arguments[0].end
             );
-            s.overwrite(node.start!, node.end!, `export default ${arg}`);
+            s.overwrite(node.start, node.end, `export default ${arg}`);
 
             return {
               code: s.toString(),

@@ -44,6 +44,9 @@ importers:
       '@vercel/nft':
         specifier: ^0.29.1
         version: 0.29.1(rollup@4.34.6)
+      acorn:
+        specifier: ^8.14.0
+        version: 8.14.0
       archiver:
         specifier: ^7.0.1
         version: 7.0.1

@@ -107,6 +107,7 @@
     "@rollup/plugin-terser": "^0.4.4",
     "@types/http-proxy": "^1.17.15",
     "@vercel/nft": "^0.29.1",
+    "acorn": "^8.14.0",
     "archiver": "^7.0.1",
     "c12": "^2.0.2",
     "chokidar": "^3.6.0",
