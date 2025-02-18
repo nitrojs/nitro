@@ -57,7 +57,7 @@ const consolePolyfill = {
   _stdout,
   _stdoutErrorHandler,
   _times,
-}
+};
 
 const consoleModule = /*@__PURE__*/ new Proxy(workerdConsole, {
   get(target, prop) {
@@ -65,7 +65,7 @@ const consoleModule = /*@__PURE__*/ new Proxy(workerdConsole, {
       return Reflect.get(target, prop);
     }
     return Reflect.get(consolePolyfill, prop);
-  }
-})
+  },
+});
 
-export default consoleModule
+export default consoleModule;
