@@ -1,9 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { transform } from "esbuild";
-import type { Expression, Literal } from "estree";
-import type { Nitro, NitroEventHandler } from "nitropack/types";
-import { extname } from "pathe";
+import type { Nitro } from "nitropack/types";
+import { extname, resolve, dirname } from "pathe";
 import type { Plugin } from "rollup";
+import MagicString from "magic-string";
+import { parse } from "acorn";
 
 const virtualPrefix = "\0nitro-handler-meta:";
 
@@ -28,9 +29,8 @@ export function handlersMeta(nitro: Nitro) {
           importer,
           resolveOpts
         );
-        if (!resolved) {
-          return;
-        }
+        if (!resolved) return;
+
         return virtualPrefix + resolved.id;
       }
     },
@@ -41,19 +41,37 @@ export function handlersMeta(nitro: Nitro) {
       }
     },
     async transform(code, id) {
-      if (!id.startsWith(virtualPrefix)) {
-        return;
-      }
-
-      let meta: NitroEventHandler["meta"] | null = null;
+      if (!id.startsWith(virtualPrefix)) return;
 
       try {
+        const dirPath = dirname(id.slice(virtualPrefix.length));
+
         const ext = extname(id) as keyof typeof esbuildLoaders;
-        const jsCode = await transform(code, {
+        const { code: jsCode } = await transform(code, {
           loader: esbuildLoaders[ext],
-        }).then((r) => r.code);
-        const ast = this.parse(jsCode);
+        });
+        const ast = parse(jsCode, {
+          sourceType: "module",
+          ecmaVersion: "latest",
+        }); // TODO: what are the desired options?
+        const s = new MagicString(jsCode);
+
         for (const node of ast.body) {
+          // if its a relative import, we update it to the absolute path
+          if (
+            node.type === "ImportDeclaration" &&
+            typeof node.source.value === "string" &&
+            node.source.value?.startsWith(".")
+          ) {
+            const absolutePath = resolve(dirPath, node.source.value);
+            s.overwrite(
+              node.source.start,
+              node.source.end,
+              `"${absolutePath}"`
+            );
+          }
+
+          // if its the macro call, we remove the code after it and replace it with the export
           if (
             node.type === "ExpressionStatement" &&
             node.expression.type === "CallExpression" &&
@@ -61,42 +79,29 @@ export function handlersMeta(nitro: Nitro) {
             node.expression.callee.name === "defineRouteMeta" &&
             node.expression.arguments.length === 1
           ) {
-            meta = astToObject(node.expression.arguments[0] as any);
-            break;
+            s.remove(node.end, jsCode.length);
+
+            const arg = jsCode.slice(
+              node.expression.arguments[0].start,
+              node.expression.arguments[0].end
+            );
+            s.overwrite(node.start, node.end, `export default ${arg}`);
+
+            return {
+              code: s.toString(),
+              map: s.generateMap(),
+            };
           }
         }
-      } catch (error) {
-        console.warn(
-          `[nitro] [handlers-meta] Cannot extra route meta for: ${id}: ${error}`
-        );
-      }
 
-      return {
-        code: `export default ${JSON.stringify(meta)};`,
-        map: null,
-      };
+        return {
+          code: "export default null",
+          map: null,
+        };
+      } catch (error) {
+        console.error(error);
+        return { code, map: null };
+      }
     },
   } satisfies Plugin;
-}
-
-function astToObject(node: Expression | Literal): any {
-  switch (node.type) {
-    case "ObjectExpression": {
-      const obj: Record<string, any> = {};
-      for (const prop of node.properties) {
-        if (prop.type === "Property") {
-          const key = (prop.key as any).name ?? (prop.key as any).value;
-          obj[key] = astToObject(prop.value as any);
-        }
-      }
-      return obj;
-    }
-    case "ArrayExpression": {
-      return node.elements.map((el) => astToObject(el as any)).filter(Boolean);
-    }
-    case "Literal": {
-      return node.value;
-    }
-    // No default
-  }
 }
