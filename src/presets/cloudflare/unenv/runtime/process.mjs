@@ -5,7 +5,7 @@ import workerdProcess from "#workerd/node:process";
 
 import { Process as UnenvProcess } from "unenv/node/internal/process/process";
 import { env as UnenvEnv } from "unenv/node/internal/process/env";
-import { hrtime as UnenvHrTime } from "unenv/node/internal/process/time";
+import { hrtime as UnenvHrTime } from "unenv/node/internal/process/hrtime";
 
 const mixedProcess = new UnenvProcess({
   env: UnenvEnv,
