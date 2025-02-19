@@ -1,5 +1,5 @@
 import { pathToFileURL } from "node:url";
-import { globby } from "globby";
+import { glob } from "tinyglobby";
 import { genSafeVariableName } from "knitwork";
 import { resolve } from "pathe";
 import type { Plugin } from "rollup";
@@ -65,7 +65,7 @@ export function dynamicRequire({ dir, ignore, inline }: Options): Plugin {
           Object.keys(r.files).filter((file) => !ignore.includes(file))
         );
       } catch {
-        files = await globby("**/*.{cjs,mjs,js}", {
+        files = await glob("**/*.{cjs,mjs,js}", {
           cwd: dir,
           absolute: false,
           ignore,

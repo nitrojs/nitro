@@ -98,9 +98,6 @@ importers:
       fs-extra:
         specifier: ^11.3.0
         version: 11.3.0
-      globby:
-        specifier: ^14.0.2
-        version: 14.1.0
       gzip-size:
         specifier: ^7.0.0
         version: 7.0.0
@@ -194,6 +191,9 @@ importers:
       std-env:
         specifier: ^3.8.0
         version: 3.8.0
+      tinyglobby:
+        specifier: ^0.2.11
+        version: 0.2.11
       ufo:
         specifier: ^1.5.4
         version: 1.5.4
@@ -5466,8 +5466,8 @@ packages:
   tinyexec@0.3.2:
     resolution: {integrity: sha512-KQQR9yN7R5+OSwaK0XQoj22pwHoTlgYqmUscPYoknOoWCWfj/5/ABTMRi69FrKU5ffPVh5QcFikpWJI/P1ocHA==}
 
-  tinyglobby@0.2.10:
-    resolution: {integrity: sha512-Zc+8eJlFMvgatPZTl6A9L/yht8QqdmUNtURHaKZLmKBE12hNPSrqNkUp2cs3M/UKmNVVAMFQYSjYIVHDjW5zew==}
+  tinyglobby@0.2.11:
+    resolution: {integrity: sha512-32TmKeeKUahv0Go8WmQgiEp9Y21NuxjwjqiRC1nrUB51YacfSwuB44xgXD+HdIppmMRgjQNPdrHyA6vIybYZ+g==}
     engines: {node: '>=12.0.0'}
 
   tinypool@1.0.2:
@@ -10769,7 +10769,7 @@ snapshots:
       postcss: 8.5.2
       postcss-nested: 7.0.2(postcss@8.5.2)
       semver: 7.7.1
-      tinyglobby: 0.2.10
+      tinyglobby: 0.2.11
     optionalDependencies:
       typescript: 5.7.3
       vue: 3.5.13(typescript@5.7.3)
@@ -11985,7 +11985,7 @@ snapshots:
 
   tinyexec@0.3.2: {}
 
-  tinyglobby@0.2.10:
+  tinyglobby@0.2.11:
     dependencies:
       fdir: 6.4.3(picomatch@4.0.2)
       picomatch: 4.0.2
@@ -12096,7 +12096,7 @@ snapshots:
       rollup: 4.34.6
       rollup-plugin-dts: 6.1.1(rollup@4.34.6)(typescript@5.7.3)
       scule: 1.3.0
-      tinyglobby: 0.2.10
+      tinyglobby: 0.2.11
       untyped: 1.5.2
     optionalDependencies:
       typescript: 5.7.3
