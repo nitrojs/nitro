@@ -370,11 +370,13 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
       {
         "#nitro-internal-virtual/plugins": `
 ${nitroPlugins
-  .map((plugin) => `import _${hash(plugin)} from '${plugin}';`)
+  .map(
+    (plugin) => `import _${hash(plugin).replace(/-/g, "")} from '${plugin}';`
+  )
   .join("\n")}
 
 export const plugins = [
-  ${nitroPlugins.map((plugin) => `_${hash(plugin)}`).join(",\n")}
+  ${nitroPlugins.map((plugin) => `_${hash(plugin).replace(/-/g, "")}`).join(",\n")}
 ]
     `,
       },
