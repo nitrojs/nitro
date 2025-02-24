@@ -70,7 +70,6 @@ Temporary Items
 staticwebapp.config.json
 .eslintcache
 playground/firebase.json
-.zeabur
 .apphosting
 
 test/fixture/functions

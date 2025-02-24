@@ -25,7 +25,6 @@ import _renderCom from "./render.com/preset";
 import _stormkit from "./stormkit/preset";
 import _vercel from "./vercel/preset";
 import _winterjs from "./winterjs/preset";
-import _zeabur from "./zeabur/preset";
 import _zerops from "./zerops/preset";
 
 export default [
@@ -54,6 +53,5 @@ export default [
   ..._stormkit,
   ..._vercel,
   ..._winterjs,
-  ..._zeabur,
   ..._zerops,
 ] as const;
