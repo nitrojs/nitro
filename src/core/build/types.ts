@@ -280,25 +280,23 @@ declare module "nitropack/types" {
     });
 
     for (const alias in tsConfig.compilerOptions!.paths) {
-      const paths = new Set<string>(
-        await Promise.all(
-          tsConfig.compilerOptions!.paths[alias].map(async (path: string) => {
-            if (!isAbsolute(path)) {
-              return path;
-            }
-            const stats = await fsp
-              .stat(path)
-              .catch(() => null /* file does not exist */);
-            return relativeWithDot(
-              tsconfigDir,
-              stats?.isFile()
-                ? path.replace(/(?<=\w)\.\w+$/g, "") /* remove extension */
-                : path
-            );
-          })
-        )
+      const paths = await Promise.all(
+        tsConfig.compilerOptions!.paths[alias].map(async (path: string) => {
+          if (!isAbsolute(path)) {
+            return path;
+          }
+          const stats = await fsp
+            .stat(path)
+            .catch(() => null /* file does not exist */);
+          return relativeWithDot(
+            tsconfigDir,
+            stats?.isFile()
+              ? path.replace(/(?<=\w)\.\w+$/g, "") /* remove extension */
+              : path
+          );
+        })
       );
-      tsConfig.compilerOptions!.paths[alias] = [...paths];
+      tsConfig.compilerOptions!.paths[alias] = [...new Set(paths)];
     }
 
     tsConfig.include = [
