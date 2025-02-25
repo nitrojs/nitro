@@ -1,11 +1,8 @@
 import { existsSync, promises as fsp } from "node:fs";
 import { defu } from "defu";
 import { genTypeImport } from "knitwork";
-import {
-  lookupNodeModuleSubpath,
-  parseNodeModulePath,
-  resolvePath,
-} from "mlly";
+import { lookupNodeModuleSubpath, parseNodeModulePath } from "mlly";
+import { resolveModulePath } from "exsolve";
 import { isDirectory, resolveNitroPath, writeFile } from "nitropack/kit";
 import { runtimeDir } from "nitropack/runtime/meta";
 import type { Nitro, NitroTypes } from "nitropack/types";
@@ -66,9 +63,12 @@ export async function writeTypes(nitro: Nitro) {
       }
       let path = resolveAlias(i.from, nitro.options.alias);
       if (!isAbsolute(path)) {
-        const resolvedPath = await resolvePath(i.from, {
-          url: nitro.options.nodeModulesDirs,
-        }).catch(() => null);
+        const resolvedPath = resolveModulePath(i.from, {
+          try: true,
+          from: nitro.options.nodeModulesDirs,
+          suffixes: ["/index"],
+          extensions: [".mjs", ".cjs", ".js", ".mts", ".cts", ".ts"],
+        });
         if (resolvedPath) {
           const { dir, name } = parseNodeModulePath(resolvedPath);
           if (!dir || !name) {

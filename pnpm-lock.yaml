@@ -95,6 +95,9 @@ importers:
       etag:
         specifier: ^1.8.1
         version: 1.8.1
+      exsolve:
+        specifier: ^0.1.4
+        version: 0.1.4
       fs-extra:
         specifier: ^11.3.0
         version: 11.3.0
@@ -3080,6 +3083,9 @@ packages:
   express@4.21.2:
     resolution: {integrity: sha512-28HqgMZAmih1Czt9ny7qr6ek2qddF4FclbMzwhCREB6OFfH+rXAnuNCwo1/wFvrtbgsQDb4kSbX9de9lFbrXnA==}
     engines: {node: '>= 0.10.0'}
+
+  exsolve@0.1.4:
+    resolution: {integrity: sha512-08muLXvKl1dre+XmG95njeLG/b09FwSmHX9JaQ5KRhG0QvoJ+9TqeMz+cjlUoBF6WtpS2fdxVSlWb/d7U1SRYg==}
 
   extend@3.0.2:
     resolution: {integrity: sha512-fjquC59cD7CyW6urNXK0FBufkZcoiGG80wTuPujX590cB5Ttln20E2UB4S/WARVqhXffZl2LNgS+gQdPIIim/g==}
@@ -9221,6 +9227,8 @@ snapshots:
       vary: 1.1.2
     transitivePeerDependencies:
       - supports-color
+
+  exsolve@0.1.4: {}
 
   extend@3.0.2: {}
 

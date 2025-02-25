@@ -6,8 +6,8 @@ import {
   lookupNodeModuleSubpath,
   normalizeid,
   parseNodeModulePath,
-  resolvePath,
 } from "mlly";
+import { resolveModulePath } from "exsolve";
 import { isDirectory } from "nitropack/kit";
 import type { NodeExternalsOptions } from "nitropack/types";
 import { dirname, isAbsolute, join, normalize, relative, resolve } from "pathe";
@@ -28,9 +28,11 @@ export function externals(opts: NodeExternalsOptions): Plugin {
     if (resolved) {
       return resolved;
     }
-    resolved = await resolvePath(id, {
+    resolved = resolveModulePath(id, {
       conditions: opts.exportConditions,
-      url: opts.moduleDirectories,
+      from: opts.moduleDirectories,
+      suffixes: ["/index"],
+      extensions: [".mjs", ".cjs", ".js", ".mts", ".cts", ".ts", ".json"],
     });
     _resolveCache.set(id, resolved);
     return resolved;
@@ -97,7 +99,7 @@ export function externals(opts: NodeExternalsOptions): Plugin {
         return null;
       }
 
-      // Try resolving with mlly as fallback
+      // Try resolving with Node.js algorithm as fallback
       if (
         !isAbsolute(resolved.id) ||
         !existsSync(resolved.id) ||

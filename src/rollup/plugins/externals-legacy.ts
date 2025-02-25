@@ -1,7 +1,8 @@
 import { existsSync, promises as fsp } from "node:fs";
 import { type NodeFileTraceOptions, nodeFileTrace } from "@vercel/nft";
 import { consola } from "consola";
-import { isValidNodeImport, normalizeid, resolvePath } from "mlly";
+import { isValidNodeImport, normalizeid } from "mlly";
+import { resolveModulePath } from "exsolve";
 import { isDirectory } from "nitropack/kit";
 import { dirname, isAbsolute, join, normalize, resolve } from "pathe";
 import type { Plugin } from "rollup";
@@ -36,9 +37,11 @@ export function externals(opts: NodeExternalsOptions): Plugin {
     if (resolved) {
       return resolved;
     }
-    resolved = await resolvePath(id, {
+    resolved = resolveModulePath(id, {
       conditions: opts.exportConditions,
-      url: opts.moduleDirectories,
+      from: opts.moduleDirectories,
+      suffixes: ["/index"],
+      extensions: [".mjs", ".cjs", ".js", ".mts", ".cts", ".ts", ".json"],
     });
     _resolveCache.set(id, resolved);
     return resolved;
@@ -94,7 +97,7 @@ export function externals(opts: NodeExternalsOptions): Plugin {
         id,
       };
 
-      // Try resolving with mlly as fallback
+      // Try resolving with Node.js algorithm as fallback
       if (
         !isAbsolute(resolved.id) ||
         !existsSync(resolved.id) ||

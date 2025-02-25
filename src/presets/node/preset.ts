@@ -1,6 +1,6 @@
 import { defineNitroPreset } from "nitropack/kit";
 import { normalize } from "pathe";
-import { resolvePathSync } from "mlly";
+import { resolveModulePath } from "exsolve";
 
 const node = defineNitroPreset(
   {
@@ -36,8 +36,9 @@ const nodeCluster = defineNitroPreset(
       "rollup:before"(_nitro, rollupConfig) {
         const manualChunks = rollupConfig.output?.manualChunks;
         if (manualChunks && typeof manualChunks === "function") {
-          const serverEntry = resolvePathSync("./runtime/node-server", {
-            url: import.meta.url,
+          const serverEntry = resolveModulePath("./runtime/node-server", {
+            from: import.meta.url,
+            extensions: [".mjs", ".ts"],
           });
           rollupConfig.output.manualChunks = (id, meta) => {
             if (id.includes("node-server") && normalize(id) === serverEntry) {
