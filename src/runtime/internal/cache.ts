@@ -16,10 +16,10 @@ import type {
   NitroFetchRequest,
   ResponseCacheEntry,
 } from "nitropack/types";
-import { hash } from "ohash";
 import { parseURL } from "ufo";
 import { useNitroApp } from "./app";
 import { useStorage } from "./storage";
+import { hash } from "./hash";
 import type { TransactionOptions } from "unstorage";
 
 function defaultCacheOptions() {
@@ -185,7 +185,7 @@ export function cachedFunction<T, ArgsT extends unknown[] = any[]>(
 }
 
 function getKey(...args: unknown[]) {
-  return args.length > 0 ? hash(args, {}) : "";
+  return args.length > 0 ? hash(args) : "";
 }
 
 function escapeKey(key: string | string[]) {

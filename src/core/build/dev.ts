@@ -4,7 +4,7 @@ import type { Nitro, RollupConfig } from "nitropack/types";
 import { join } from "pathe";
 import { debounce } from "perfect-debounce";
 import * as rollup from "rollup";
-import { GLOB_SCAN_PATTERN, scanHandlers } from "../scan";
+import { scanHandlers } from "../scan";
 import { nitroServerName } from "../utils/nitro";
 import { formatRollupError } from "./error";
 import { writeTypes } from "./types";
@@ -25,7 +25,7 @@ export async function watchDev(nitro: Nitro, rollupConfig: RollupConfig) {
   const watchPatterns = nitro.options.scanDirs.flatMap((dir) => [
     join(dir, nitro.options.apiDir || "api"),
     join(dir, nitro.options.routesDir || "routes"),
-    join(dir, "middleware", GLOB_SCAN_PATTERN),
+    join(dir, "middleware"),
     join(dir, "plugins"),
     join(dir, "modules"),
   ]);

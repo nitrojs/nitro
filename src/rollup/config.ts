@@ -7,7 +7,8 @@ import inject from "@rollup/plugin-inject";
 import json from "@rollup/plugin-json";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
 import { defu } from "defu";
-import { resolvePath, sanitizeFilePath } from "mlly";
+import { sanitizeFilePath } from "mlly";
+import { resolveModulePath } from "exsolve";
 import { runtimeDependencies, runtimeDir } from "nitropack/runtime/meta";
 import type {
   Nitro,
@@ -370,11 +371,13 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
       {
         "#nitro-internal-virtual/plugins": `
 ${nitroPlugins
-  .map((plugin) => `import _${hash(plugin)} from '${plugin}';`)
+  .map(
+    (plugin) => `import _${hash(plugin).replace(/-/g, "")} from '${plugin}';`
+  )
   .join("\n")}
 
 export const plugins = [
-  ${nitroPlugins.map((plugin) => `_${hash(plugin)}`).join(",\n")}
+  ${nitroPlugins.map((plugin) => `_${hash(plugin).replace(/-/g, "")}`).join(",\n")}
 ]
     `,
       },
@@ -421,8 +424,11 @@ export const plugins = [
         }
         const resolved = await this.resolve(id, from, resolveOpts);
         if (!resolved) {
-          const _resolved = await resolvePath(id, {
-            url: nitro.options.nodeModulesDirs,
+          const _resolved = resolveModulePath(id, {
+            try: true,
+            from: nitro.options.nodeModulesDirs,
+            suffixes: ["/index"],
+            extensions: [".mjs", ".cjs", ".js", ".mts", ".cts", ".ts", ".json"],
             conditions: [
               "default",
               nitro.options.dev ? "development" : "production",
@@ -430,7 +436,7 @@ export const plugins = [
               "import",
               "require",
             ],
-          }).catch(() => null);
+          });
           if (_resolved) {
             return { id: _resolved, external: false };
           }

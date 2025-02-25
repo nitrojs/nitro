@@ -56,7 +56,8 @@ export async function resolvePathOptions(options: NitroOptions) {
   options.nodeModulesDirs.push(resolve(pkgDir, "..")); // pnpm
   options.nodeModulesDirs = [
     ...new Set(
-      options.nodeModulesDirs.map((dir) => resolve(options.rootDir, dir))
+      // Adding trailing slash to optimize resolve performance (path is explicitly a dir)
+      options.nodeModulesDirs.map((dir) => resolve(options.rootDir, dir) + "/")
     ),
   ];
 
