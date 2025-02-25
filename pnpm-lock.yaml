@@ -96,8 +96,8 @@ importers:
         specifier: ^1.8.1
         version: 1.8.1
       exsolve:
-        specifier: ^0.2.0
-        version: 0.2.0
+        specifier: ^0.3.0
+        version: 0.3.0
       fs-extra:
         specifier: ^11.3.0
         version: 11.3.0
@@ -3084,8 +3084,8 @@ packages:
     resolution: {integrity: sha512-28HqgMZAmih1Czt9ny7qr6ek2qddF4FclbMzwhCREB6OFfH+rXAnuNCwo1/wFvrtbgsQDb4kSbX9de9lFbrXnA==}
     engines: {node: '>= 0.10.0'}
 
-  exsolve@0.2.0:
-    resolution: {integrity: sha512-JNWfZ+ktuA3QTF3cOjY6HKhik+/A0FvKp7Lbv3UZXYc55ETGN0+k8DvaLAI6aOppzYaWsJsj0IR5o1zHQmHnVA==}
+  exsolve@0.3.0:
+    resolution: {integrity: sha512-BLpecKkLPgfkK3REtDylppPRsVo7wT8ecB8x/aJ7R87lKVS+VxxmCgmPZh/57uoIqk87k3eH3oLqckMcYP+hgQ==}
 
   extend@3.0.2:
     resolution: {integrity: sha512-fjquC59cD7CyW6urNXK0FBufkZcoiGG80wTuPujX590cB5Ttln20E2UB4S/WARVqhXffZl2LNgS+gQdPIIim/g==}
@@ -9228,7 +9228,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  exsolve@0.2.0: {}
+  exsolve@0.3.0: {}
 
   extend@3.0.2: {}
 
