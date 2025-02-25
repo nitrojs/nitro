@@ -427,7 +427,7 @@ export const plugins = [
           const _resolved = resolveModulePath(id, {
             try: true,
             from: nitro.options.nodeModulesDirs,
-            suffixes: ["/index"],
+            suffixes: ["", "/index"],
             extensions: [".mjs", ".cjs", ".js", ".mts", ".cts", ".ts", ".json"],
             conditions: [
               "default",

@@ -66,7 +66,8 @@ export async function writeTypes(nitro: Nitro) {
         const resolvedPath = resolveModulePath(i.from, {
           try: true,
           from: nitro.options.nodeModulesDirs,
-          suffixes: ["/index"],
+          conditions: ["type", "node", "import"],
+          suffixes: ["", "/index"],
           extensions: [".mjs", ".cjs", ".js", ".mts", ".cts", ".ts"],
         });
         if (resolvedPath) {

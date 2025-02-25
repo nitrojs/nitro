@@ -28,7 +28,7 @@ export function externals(opts: NodeExternalsOptions): Plugin {
       try: true,
       conditions: opts.exportConditions,
       from: opts.moduleDirectories,
-      suffixes: ["/index"],
+      suffixes: ["", "/index"],
       extensions: [".mjs", ".cjs", ".js", ".mts", ".cts", ".ts", ".json"],
     });
     return res?.startsWith("file://") ? fileURLToPath(res) : res;
