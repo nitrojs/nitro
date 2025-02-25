@@ -1,5 +1,6 @@
 import { existsSync, promises as fsp } from "node:fs";
 import { platform } from "node:os";
+import { fileURLToPath } from "node:url";
 import { nodeFileTrace } from "@vercel/nft";
 import {
   isValidNodeImport,
@@ -7,7 +8,7 @@ import {
   normalizeid,
   parseNodeModulePath,
 } from "mlly";
-import { resolveModulePath } from "exsolve";
+import { resolveModuleURL } from "exsolve";
 import { isDirectory } from "nitropack/kit";
 import type { NodeExternalsOptions } from "nitropack/types";
 import { dirname, isAbsolute, join, normalize, relative, resolve } from "pathe";
@@ -23,12 +24,14 @@ export function externals(opts: NodeExternalsOptions): Plugin {
     if (id.startsWith("\0")) {
       return id;
     }
-    return resolveModulePath(id, {
+    const res = resolveModuleURL(id, {
+      try: true,
       conditions: opts.exportConditions,
       from: opts.moduleDirectories,
       suffixes: ["/index"],
       extensions: [".mjs", ".cjs", ".js", ".mts", ".cts", ".ts", ".json"],
     });
+    return res?.startsWith("file://") ? fileURLToPath(res) : res;
   };
 
   // Normalize options
