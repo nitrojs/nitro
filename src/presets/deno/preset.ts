@@ -1,4 +1,3 @@
-import { builtinModules } from "node:module";
 import { defineNitroPreset } from "nitropack/kit";
 import { writeFile } from "nitropack/kit";
 import { resolve } from "pathe";

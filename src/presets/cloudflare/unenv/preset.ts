@@ -4,65 +4,24 @@ import type { Plugin } from "rollup";
 import { fileURLToPath } from "mlly";
 import { join } from "pathe";
 
-// Built-in APIs provided by workerd with nodejs compatibility
-// https://github.com/cloudflare/workers-sdk/blob/main/packages/unenv-preset/src/preset.ts
-export const nodeCompatModules = [
-  "_stream_duplex",
-  "_stream_passthrough",
-  "_stream_readable",
-  "_stream_transform",
-  "_stream_writable",
-  "assert",
-  "assert/strict",
-  "buffer",
-  "diagnostics_channel",
-  "dns",
-  "dns/promises",
-  "events",
-  "net",
-  "path",
-  "path/posix",
-  "path/win32",
-  "querystring",
-  "stream",
-  "stream/consumers",
-  "stream/promises",
-  "stream/web",
-  "string_decoder",
-  "timers",
-  "timers/promises",
-  "url",
-  "util/types",
-  "zlib",
-];
-
-// Modules implemented via a mix of workerd APIs and polyfills
-export const hybridNodeCompatModules = [
-  "async_hooks",
-  "console",
-  "crypto",
-  "module",
-  "perf_hooks",
-  "process",
-  "util",
-];
+import { builtnNodeModules, hybridNodeModules } from "./node-compat";
 
 const presetRuntimeDir = fileURLToPath(new URL("runtime/", import.meta.url));
 const resolvePresetRuntime = (m: string) => join(presetRuntimeDir, `${m}.mjs`);
 
 export const unenvCfPreset: Preset = {
-  external: nodeCompatModules.map((m) => `node:${m}`),
+  external: builtnNodeModules.map((m) => `node:${m}`),
   alias: {
     // (native)
     ...Object.fromEntries(
-      nodeCompatModules.flatMap((m) => [
+      builtnNodeModules.flatMap((m) => [
         [m, `node:${m}`],
         [`node:${m}`, `node:${m}`],
       ])
     ),
     // (hybrid)
     ...Object.fromEntries(
-      hybridNodeCompatModules.flatMap((m) => {
+      hybridNodeModules.flatMap((m) => {
         const resolved = resolvePresetRuntime(m);
         return [
           [`node:${m}`, resolved],

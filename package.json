@@ -80,6 +80,7 @@
     "dev": "pnpm nitro dev playground",
     "dev:build": "pnpm nitro build playground",
     "dev:start": "node playground/.output/server/index.mjs",
+    "node-ts": "node --disable-warning=ExperimentalWarning --experimental-strip-types",
     "lint": "eslint --cache . && prettier -c .",
     "lint:fix": "eslint --cache --fix . && prettier -w .",
     "nitro": "jiti ./src/cli/index.ts",
