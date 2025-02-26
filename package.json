@@ -117,7 +117,7 @@
     "cookie-es": "^1.2.2",
     "croner": "^9.0.0",
     "crossws": "^0.3.4",
-    "db0": "^0.2.4",
+    "db0": "^0.3.1",
     "defu": "^6.1.4",
     "destr": "^2.0.3",
     "dot-prop": "^9.0.0",
@@ -189,7 +189,6 @@
     "@types/xml2js": "^0.4.14",
     "@vitest/coverage-v8": "^3.0.7",
     "automd": "^0.4.0",
-    "better-sqlite3": "^11.8.1",
     "changelogen": "^0.6.0",
     "edge-runtime": "^4.0.1",
     "eslint": "^9.21.0",
@@ -236,7 +235,6 @@
     ],
     "onlyBuiltDependencies": [
       "@parcel/watcher",
-      "better-sqlite3",
       "esbuild",
       "workerd"
     ]
