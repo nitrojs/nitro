@@ -210,8 +210,8 @@ importers:
         specifier: ^2.4.1
         version: 2.4.1
       unenv:
-        specifier: 2.0.0-rc.6
-        version: 2.0.0-rc.6
+        specifier: 2.0.0-rc.7
+        version: 2.0.0-rc.7
       unimport:
         specifier: ^4.1.2
         version: 4.1.2
@@ -5470,8 +5470,8 @@ packages:
     resolution: {integrity: sha512-Qy96NND4Dou5jKoSJ2gm8ax8AJM/Ey9o9mz7KN1bb9GP+G0l20Zw8afxTnY2f4b7hmhn/z8aC2kfArVQlAhFBw==}
     engines: {node: '>=20.18.1'}
 
-  unenv@2.0.0-rc.6:
-    resolution: {integrity: sha512-1AQFWJU6weE9QSFYFFw17Acrows3QIxl216K31bFWlMmKST+lKhe0tMJBlrxxG2dx8qnSi2IsIXEarEP7IpIYA==}
+  unenv@2.0.0-rc.7:
+    resolution: {integrity: sha512-uFyMpBMEfaoZy+2l0Akp9aVsi+IsQ9KXgYfC34txraCsOehbVgzrxf2qwb99bEOLrWG3rdWa1xauP/hcys+vcw==}
 
   unhead@1.11.20:
     resolution: {integrity: sha512-3AsNQC0pjwlLqEYHLjtichGWankK8yqmocReITecmpB1H0aOabeESueyy+8X1gyJx4ftZVwo9hqQ4O3fPWffCA==}
@@ -11822,12 +11822,12 @@ snapshots:
 
   undici@7.3.0: {}
 
-  unenv@2.0.0-rc.6:
+  unenv@2.0.0-rc.7:
     dependencies:
       defu: 6.1.4
-      mlly: 1.7.4
-      ohash: 1.1.4
-      pathe: 1.1.2
+      exsolve: 1.0.0
+      ohash: 2.0.5
+      pathe: 2.0.3
       ufo: 1.5.4
 
   unhead@1.11.20:
