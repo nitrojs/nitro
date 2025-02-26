@@ -80,13 +80,14 @@
     "dev": "pnpm nitro dev playground",
     "dev:build": "pnpm nitro build playground",
     "dev:start": "node playground/.output/server/index.mjs",
-    "node-ts": "node --disable-warning=ExperimentalWarning --experimental-strip-types",
+    "gen-mirror": "pnpm jiti scripts/gen-mirror.ts",
+    "gen-node-compat": "pnpm node-ts scripts/gen-node-compat.ts",
+    "gen-presets": "pnpm jiti scripts/gen-presets.ts",
     "lint": "eslint --cache . && prettier -c .",
     "lint:fix": "eslint --cache --fix . && prettier -w .",
     "nitro": "jiti ./src/cli/index.ts",
+    "node-ts": "node --disable-warning=ExperimentalWarning --experimental-strip-types",
     "prepack": "pnpm build",
-    "gen-mirror": "pnpm jiti scripts/gen-mirror.ts",
-    "gen-presets": "pnpm jiti scripts/gen-presets.ts",
     "release": "pnpm test && pnpm build && changelogen --release && pnpm publish && git push --follow-tags",
     "stub": "unbuild --stub",
     "test": "pnpm lint && pnpm vitest run",
@@ -229,15 +230,15 @@
         "@algolia/client-search"
       ]
     },
-    "ignoredBuiltDependencies": [
-      "keytar",
-      "protobufjs",
-      "vue-demi"
-    ],
     "onlyBuiltDependencies": [
       "@parcel/watcher",
       "esbuild",
       "workerd"
+    ],
+    "ignoredBuiltDependencies": [
+      "keytar",
+      "protobufjs",
+      "vue-demi"
     ]
   }
 }
