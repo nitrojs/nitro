@@ -96,8 +96,8 @@ importers:
         specifier: ^1.8.1
         version: 1.8.1
       exsolve:
-        specifier: ^1.0.0
-        version: 1.0.0
+        specifier: ^1.0.1
+        version: 1.0.1
       fs-extra:
         specifier: ^11.3.0
         version: 11.3.0
@@ -3006,8 +3006,8 @@ packages:
   exsolve@0.4.4:
     resolution: {integrity: sha512-74RiT9i1G0eyFyE9n5f6mdX8+AicZFnhJ0CHB9VrkIl3Sy8vmW49ODbpwevdLswST7fhp3jvfPzD4DArTfjnsA==}
 
-  exsolve@1.0.0:
-    resolution: {integrity: sha512-iBv7HbA5im///8J1VuoyM+VPVxqGJrDK2q4LjCDs4F2wl0yh1X858LGUrw71EqaWXGcNOwin0XI7FklHKhp8dg==}
+  exsolve@1.0.1:
+    resolution: {integrity: sha512-Smf0iQtkQVJLaph8r/qS8C8SWfQkaq9Q/dFcD44MLbJj6DNhlWefVuaS21SjfqOsBbjVlKtbCj6L9ekXK6EZUg==}
 
   extend@3.0.2:
     resolution: {integrity: sha512-fjquC59cD7CyW6urNXK0FBufkZcoiGG80wTuPujX590cB5Ttln20E2UB4S/WARVqhXffZl2LNgS+gQdPIIim/g==}
@@ -8129,7 +8129,7 @@ snapshots:
       confbox: 0.1.8
       defu: 6.1.4
       dotenv: 16.4.7
-      exsolve: 1.0.0
+      exsolve: 1.0.1
       giget: 2.0.0
       jiti: 2.4.2
       ohash: 2.0.5
@@ -8974,7 +8974,7 @@ snapshots:
 
   exsolve@0.4.4: {}
 
-  exsolve@1.0.0: {}
+  exsolve@1.0.1: {}
 
   extend@3.0.2: {}
 
@@ -11825,7 +11825,7 @@ snapshots:
   unenv@2.0.0-rc.8:
     dependencies:
       defu: 6.1.4
-      exsolve: 1.0.0
+      exsolve: 1.0.1
       ohash: 2.0.5
       pathe: 2.0.3
       ufo: 1.5.4
