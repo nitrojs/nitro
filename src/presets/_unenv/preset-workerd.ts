@@ -4,12 +4,12 @@ import type { Plugin } from "rollup";
 import { fileURLToPath } from "mlly";
 import { join } from "pathe";
 
-import { builtnNodeModules, hybridNodeModules } from "./node-compat";
+import { builtnNodeModules, hybridNodeModules } from "./node-compat/cloudflare";
 
 const presetRuntimeDir = fileURLToPath(new URL("runtime/", import.meta.url));
 const resolvePresetRuntime = (m: string) => join(presetRuntimeDir, `${m}.mjs`);
 
-export const unenvCfPreset: Preset = {
+export const unenvWorkerdPreset: Preset = {
   external: builtnNodeModules.map((m) => `node:${m}`),
   alias: {
     // (native)

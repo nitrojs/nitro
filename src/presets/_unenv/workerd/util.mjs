@@ -1,5 +1,4 @@
 // https://github.com/cloudflare/workerd/blob/main/src/node/util.ts
-// https://github.com/cloudflare/workers-sdk/blob/main/packages/unenv-preset/src/runtime/node/util/index.ts
 
 import workerdUtil from "#workerd/node:util";
 

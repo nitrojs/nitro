@@ -2,7 +2,7 @@ import { promises as fsp } from "node:fs";
 import { defineNitroPreset } from "nitropack/kit";
 import type { Nitro } from "nitropack/types";
 import { dirname, join } from "pathe";
-import { builtnNodeModules } from "./unenv/node-compat";
+import { unenvDenoPreset } from "../_unenv/preset-deno";
 import netlifyLegacyPresets from "./legacy/preset";
 import {
   generateNetlifyFunction,
@@ -76,19 +76,7 @@ const netlifyEdge = defineNitroPreset(
         format: "esm",
       },
     },
-    unenv: {
-      external: builtnNodeModules.map((m) => `node:${m}`),
-      alias: {
-        ...Object.fromEntries(
-          builtnNodeModules.flatMap((m) => [
-            [m, `node:${m}`],
-            [`node:${m}`, `node:${m}`],
-          ])
-        ),
-        "node-mock-http/_polyfill/events": "node:events",
-        "node-mock-http/_polyfill/buffer": "node:buffer",
-      },
-    },
+    unenv: unenvDenoPreset,
     hooks: {
       async compiled(nitro: Nitro) {
         await writeHeaders(nitro);

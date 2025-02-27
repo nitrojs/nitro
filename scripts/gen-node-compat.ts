@@ -1,11 +1,18 @@
 import { writeFile } from "node:fs/promises";
 
 const platforms = {
+  // Cloudflare are vercel-edge are almost identical
   cloudflare: {
     url: "https://platform-node-compat.pi0.workers.dev/?json",
-    forceHybrid: ["async_hooks", "console", "perf_hooks"],
+    forceHybrid: ["console", "perf_hooks"],
     forceBuiltin: ["assert", "assert/strict", "events", "net", "stream"],
   },
+  vercel: {
+    url: "https://platform-node-compat.vercel.app/?json",
+    forceHybrid: ["console", "perf_hooks"],
+    forceBuiltin: ["assert", "assert/strict", "events", "net", "stream"],
+  },
+  // Deno deploy and Netlify edge are almost identical
   deno: {
     url: "https://platform-node-compat.deno.dev/?json",
     forceBuiltin: true,
@@ -13,10 +20,6 @@ const platforms = {
   netlify: {
     url: "https://platform-node-compat.netlify.app/?json",
     forceBuiltin: true,
-  },
-  vercel: {
-    url: "https://platform-node-compat.vercel.app/?json",
-    forceBuiltin: ["assert", "assert/strict", "events", "net", "stream"],
   },
 } as {
   [platform: string]: {
@@ -118,7 +121,7 @@ ${notSupported.map((id) => `  "${id}",`).join("\n")}
 
   await writeFile(
     new URL(
-      `../src/presets/${platformName}/unenv/node-compat.ts`,
+      `../src/presets/_unenv/node-compat/${platformName}.ts`,
       import.meta.url
     ),
     code

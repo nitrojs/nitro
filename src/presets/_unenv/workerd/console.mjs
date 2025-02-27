@@ -1,5 +1,3 @@
-// https://github.com/cloudflare/workers-sdk/blob/main/packages/unenv-preset/src/runtime/node/console/index.ts
-
 import workerdConsole from "#workerd/node:console";
 
 import {

@@ -8,7 +8,7 @@ import {
   writeCFPagesHeaders,
   writeCFPagesRedirects,
 } from "./utils";
-import { hybridNodePlugin, unenvCfPreset } from "./unenv/preset";
+import { hybridNodePlugin, unenvWorkerdPreset } from "../_unenv/preset-workerd";
 
 import cfLegacyPresets from "./preset-legacy";
 
@@ -34,7 +34,7 @@ const cloudflarePages = defineNitroPreset(
       publicDir: "{{ output.dir }}/{{ baseURL }}",
       serverDir: "{{ output.dir }}/_worker.js",
     },
-    unenv: unenvCfPreset,
+    unenv: unenvWorkerdPreset,
     alias: {
       // Hotfix: Cloudflare appends /index.html if mime is not found and things like ico are not in standard lite.js!
       // https://github.com/nitrojs/nitro/pull/933
@@ -104,7 +104,7 @@ const cloudflareModule = defineNitroPreset(
       preview: commandWithDir("npx wrangler dev"),
       deploy: commandWithDir("npx wrangler deploy"),
     },
-    unenv: unenvCfPreset,
+    unenv: unenvWorkerdPreset,
     rollupConfig: {
       plugins: [hybridNodePlugin],
       output: {

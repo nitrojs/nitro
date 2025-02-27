@@ -1,7 +1,7 @@
 import { defineNitroPreset } from "nitropack/kit";
 import { writeFile } from "nitropack/kit";
 import { resolve } from "pathe";
-import { builtnNodeModules } from "./unenv/node-compat";
+import { unenvDenoPreset } from "../_unenv/preset-deno";
 
 import { denoServerLegacy } from "./preset-legacy";
 
@@ -17,19 +17,7 @@ const denoDeploy = defineNitroPreset(
       deploy:
         "cd ./ && deployctl deploy --project=<project_name> server/index.ts",
     },
-    unenv: {
-      external: builtnNodeModules.map((m) => `node:${m}`),
-      alias: {
-        ...Object.fromEntries(
-          builtnNodeModules.flatMap((m) => [
-            [m, `node:${m}`],
-            [`node:${m}`, `node:${m}`],
-          ])
-        ),
-        "node-mock-http/_polyfill/events": "node:events",
-        "node-mock-http/_polyfill/buffer": "node:buffer",
-      },
-    },
+    unenv: unenvDenoPreset,
     rollupConfig: {
       preserveEntrySignatures: false,
       external: (id) => id.startsWith("https://"),
