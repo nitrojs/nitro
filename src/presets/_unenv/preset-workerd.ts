@@ -6,8 +6,8 @@ import { join } from "pathe";
 
 import { builtnNodeModules, hybridNodeModules } from "./node-compat/cloudflare";
 
-const presetRuntimeDir = fileURLToPath(new URL("runtime/", import.meta.url));
-const resolvePresetRuntime = (m: string) => join(presetRuntimeDir, `${m}.mjs`);
+const workerdDir = fileURLToPath(new URL("workerd/", import.meta.url));
+const resolvePresetRuntime = (m: string) => join(workerdDir, `${m}.mjs`);
 
 export const unenvWorkerdPreset: Preset = {
   external: builtnNodeModules.map((m) => `node:${m}`),
@@ -55,7 +55,7 @@ export const hybridNodePlugin: Plugin = {
         moduleSideEffects: false,
       };
     }
-    if (id.startsWith(presetRuntimeDir)) {
+    if (id.startsWith(workerdDir)) {
       return { id, moduleSideEffects: false };
     }
   },
