@@ -23,9 +23,9 @@ describe("nitro:preset:nitro-dev", async () => {
       });
 
       it("dev storage", async () => {
-        const { data } = await callHandler({ url: "/api/storage/src" });
+        const { data } = await callHandler({ url: "/api/storage/dev" });
         expect(data.keys.length).toBeGreaterThan(0);
-        expect(data.keys).includes("src:nitro.config.ts");
+        expect(data.keys).includes("src:public:favicon.ico");
       });
 
       describe("openAPI", () => {

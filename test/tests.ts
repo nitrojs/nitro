@@ -485,6 +485,7 @@ export function testNitro(
 
   it.skipIf(ctx.isIsolated)(
     "useStorage (with base)",
+    { retry: 5 },
     async () => {
       const putRes = await callHandler({
         url: "/api/storage/item?key=test:hello",
@@ -516,8 +517,7 @@ export function testNitro(
           })
         ).data
       ).toBe("world");
-    },
-    { retry: 5 }
+    }
   );
 
   if (additionalTests) {
