@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { colors } from "consola/utils";
 import { defu } from "defu";
@@ -7,7 +8,8 @@ import type { Nitro, NitroRouteRules, PrerenderRoute } from "nitropack/types";
 import type { $Fetch } from "ofetch";
 import { join, relative, resolve } from "pathe";
 import { createRouter as createRadixRouter, toRouteMatcher } from "radix3";
-import { joinURL, withBase, withoutBase } from "ufo";
+import { joinURL, withBase, withLeadingSlash, withoutBase } from "ufo";
+import { getPublicAssets } from "../build/assets";
 import { build } from "../build/build";
 import { createNitro } from "../nitro";
 import { compressPublicAssets } from "../utils/compress";
@@ -107,6 +109,12 @@ export async function prerender(nitro: Nitro) {
   const skippedRoutes = new Set();
   const displayedLengthWarns = new Set();
 
+  const publicAssets = new Set(
+    nitro.options.prerender.ignorePublicAssets
+      ? await getPublicAssets(nitro).then((r) => r?.map((f) => f.url) || [])
+      : []
+  );
+
   const canPrerender = (route = "/") => {
     // Skip if route is already generated or skipped
     if (generatedRoutes.has(route) || skippedRoutes.has(route)) {
@@ -118,6 +126,11 @@ export async function prerender(nitro: Nitro) {
       if (matchesIgnorePattern(route, pattern)) {
         return false;
       }
+    }
+
+    // do not prerender any files in the public assets
+    if (publicAssets.has(route)) {
+      return false;
     }
 
     // Check for route rules explicitly disabling prerender
@@ -159,6 +172,14 @@ export async function prerender(nitro: Nitro) {
         );
         return false;
       }
+    }
+
+    // Check if file already exists, for example copied across from public assets
+    const fileAlreadyExists =
+      existsSync(join(nitro.options.output.publicDir, route.fileName!)) ||
+      existsSync(join(nitro.options.output.publicDir, route.route));
+    if (fileAlreadyExists) {
+      return false;
     }
 
     return true;
