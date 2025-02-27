@@ -807,9 +807,7 @@ export function testNitro(
   });
 
   it.skipIf(
-    ["cloudflare-worker", "cloudflare-module-legacy", "vercel-edge"].includes(
-      ctx.preset
-    )
+    ["cloudflare-worker", "cloudflare-module-legacy"].includes(ctx.preset)
   )("nodejs compatibility", async () => {
     const { data, status } = await callHandler({ url: "/node-compat" });
     expect(status).toBe(200);
