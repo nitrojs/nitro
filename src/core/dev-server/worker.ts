@@ -141,8 +141,13 @@ export class NodeDevWorker implements DevWorker {
       this.#worker = undefined;
     }
 
-    if (this.#address?.socketPath) {
-      await rm(this.#address.socketPath).catch(() => {});
+    const socketPath = this.#address?.socketPath;
+    if (
+      socketPath &&
+      socketPath[0] !== "\0" &&
+      !socketPath.startsWith(String.raw`\\.\pipe`)
+    ) {
+      await rm(socketPath).catch(() => {});
     }
     this.#address = undefined;
   }
