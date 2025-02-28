@@ -33,8 +33,9 @@ export class NodeDevWorker implements DevWorker {
   #id: number;
   #workerDir: string;
   #hooks: WorkerHooks;
+
   #address?: WorkerAddress;
-  #proxy: HTTPProxy;
+  #proxy?: HTTPProxy;
   #worker?: Worker;
 
   constructor(id: number, workerDir: string, hooks: WorkerHooks = {}) {
@@ -46,11 +47,13 @@ export class NodeDevWorker implements DevWorker {
   }
 
   get ready() {
-    return Boolean(!this.closed && this.#worker && this.#address);
+    return Boolean(
+      !this.closed && this.#address && this.#proxy && this.#worker
+    );
   }
 
   handleEvent(event: H3Event) {
-    if (!this.#address) {
+    if (!this.#address || !this.#proxy) {
       throw createError({
         statusCode: 503,
         message: "worker is not ready yet",
@@ -67,7 +70,7 @@ export class NodeDevWorker implements DevWorker {
     if (!this.ready) {
       return;
     }
-    return this.#proxy.proxy.ws(
+    return this.#proxy!.proxy.ws(
       req,
       socket as OutgoingMessage<IncomingMessage>,
       { target: this.#address, xfwd: true },
@@ -113,34 +116,24 @@ export class NodeDevWorker implements DevWorker {
     if (this.closed) {
       return;
     }
-
     this.closed = true;
     this.#hooks.onClose?.(this, reason);
+    this.#hooks = {};
+    await Promise.all(
+      [this.#closeProxy(), this.#closeSocket(), this.#closeWorker()].map((p) =>
+        p.catch((error) => consola.error(error))
+      )
+    );
+  }
 
-    if (this.#worker) {
-      this.#worker.postMessage({ event: "shutdown" });
-      await new Promise<void>((resolve) => {
-        const gracefulShutdownTimeoutSec =
-          Number.parseInt(process.env.NITRO_SHUTDOWN_TIMEOUT || "", 10) || 5;
-        const timeout = setTimeout(() => {
-          consola.warn(
-            `force closing dev worker after ${gracefulShutdownTimeoutSec} seconds...`
-          );
-          resolve();
-        }, gracefulShutdownTimeoutSec * 1000);
+  async #closeProxy() {
+    await new Promise<void>((resolve) =>
+      this.#proxy?.proxy?.close(() => resolve())
+    );
+    this.#proxy = undefined;
+  }
 
-        this.#worker?.on("message", (message) => {
-          if (message.event === "exit") {
-            clearTimeout(timeout);
-            resolve();
-          }
-        });
-      });
-      this.#worker.removeAllListeners();
-      await this.#worker.terminate();
-      this.#worker = undefined;
-    }
-
+  async #closeSocket() {
     const socketPath = this.#address?.socketPath;
     if (
       socketPath &&
@@ -150,5 +143,34 @@ export class NodeDevWorker implements DevWorker {
       await rm(socketPath).catch(() => {});
     }
     this.#address = undefined;
+  }
+
+  async #closeWorker() {
+    if (!this.#worker) {
+      return;
+    }
+    this.#worker.postMessage({ event: "shutdown" });
+    await new Promise<void>((resolve) => {
+      const gracefulShutdownTimeoutSec =
+        Number.parseInt(process.env.NITRO_SHUTDOWN_TIMEOUT || "", 10) || 5;
+      const timeout = setTimeout(() => {
+        consola.warn(
+          `force closing dev worker after ${gracefulShutdownTimeoutSec} seconds...`
+        );
+        resolve();
+      }, gracefulShutdownTimeoutSec * 1000);
+
+      this.#worker?.on("message", (message) => {
+        if (message.event === "exit") {
+          clearTimeout(timeout);
+          resolve();
+        }
+      });
+    });
+    this.#worker.removeAllListeners();
+    await this.#worker.terminate().catch((error) => {
+      consola.error(error);
+    });
+    this.#worker = undefined;
   }
 }
