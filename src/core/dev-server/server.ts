@@ -78,6 +78,9 @@ class DevServer {
 
     nitro.hooks.hook("dev:error", (cause: unknown) => {
       this.buildError = cause;
+      for (const worker of this.workers) {
+        worker.close();
+      }
     });
 
     if (nitro.options.devServer.watch.length > 0) {
