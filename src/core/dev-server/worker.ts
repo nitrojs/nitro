@@ -36,7 +36,7 @@ export class NodeDevWorker implements DevWorker {
 
   #address?: WorkerAddress;
   #proxy?: HTTPProxy;
-  #worker?: Worker;
+  #worker?: Worker & { _exitCode?: number };
 
   constructor(id: number, workerDir: string, hooks: WorkerHooks = {}) {
     this.#id = id;
@@ -92,9 +92,10 @@ export class NodeDevWorker implements DevWorker {
         NITRO_DEV_WORKER_ID: String(this.#id),
         NITRO_DEV_WORKER_DIR: this.#workerDir,
       },
-    });
+    }) as Worker & { _exitCode?: number };
 
     worker.once("exit", (code) => {
+      worker._exitCode = code;
       this.close(`worker exited with code ${code}`);
     });
 
@@ -150,23 +151,26 @@ export class NodeDevWorker implements DevWorker {
       return;
     }
     this.#worker.postMessage({ event: "shutdown" });
-    await new Promise<void>((resolve) => {
-      const gracefulShutdownTimeoutSec =
-        Number.parseInt(process.env.NITRO_SHUTDOWN_TIMEOUT || "", 10) || 5;
-      const timeout = setTimeout(() => {
-        consola.warn(
-          `force closing dev worker after ${gracefulShutdownTimeoutSec} seconds...`
-        );
-        resolve();
-      }, gracefulShutdownTimeoutSec * 1000);
 
-      this.#worker?.on("message", (message) => {
-        if (message.event === "exit") {
-          clearTimeout(timeout);
+    if (!this.#worker._exitCode) {
+      await new Promise<void>((resolve) => {
+        const gracefulShutdownTimeoutSec =
+          Number.parseInt(process.env.NITRO_SHUTDOWN_TIMEOUT || "", 10) || 5;
+        const timeout = setTimeout(() => {
+          consola.warn(
+            `force closing dev worker after ${gracefulShutdownTimeoutSec} seconds...`
+          );
           resolve();
-        }
+        }, gracefulShutdownTimeoutSec * 1000);
+
+        this.#worker?.on("message", (message) => {
+          if (message.event === "exit") {
+            clearTimeout(timeout);
+            resolve();
+          }
+        });
       });
-    });
+    }
     this.#worker.removeAllListeners();
     await this.#worker.terminate().catch((error) => {
       consola.error(error);
