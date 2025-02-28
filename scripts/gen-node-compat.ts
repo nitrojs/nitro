@@ -1,17 +1,17 @@
 import { writeFile } from "node:fs/promises";
 
-const platforms = {
-  // Cloudflare are vercel-edge are almost identical
+const platforms = {)
   cloudflare: {
     url: "https://platform-node-compat.pi0.workers.dev/?json",
     forceHybrid: ["console", "perf_hooks"],
     forceBuiltin: ["assert", "assert/strict", "events", "net", "stream"],
   },
-  vercel: {
-    url: "https://platform-node-compat.vercel.app/?json",
-    forceHybrid: ["console", "perf_hooks"],
-    forceBuiltin: ["assert", "assert/strict", "events", "net", "stream"],
-  },
+  // Vercel seems intentionally not built-in modules of workerd...
+  // vercel: {
+  //   url: "https://platform-node-compat.vercel.app/?json",
+  //   forceHybrid: ["console", "perf_hooks"],
+  //   forceBuiltin: ["assert", "assert/strict", "events", "net", "stream"],
+  // },
   // Deno deploy and Netlify edge are almost identical
   deno: {
     url: "https://platform-node-compat.deno.dev/?json",
