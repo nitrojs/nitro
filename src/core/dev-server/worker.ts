@@ -30,13 +30,15 @@ export interface DevWorker {
 
 export class NodeDevWorker implements DevWorker {
   closed: boolean = false;
-  #address?: WorkerAddress;
+  #id: number;
   #workerDir: string;
   #hooks: WorkerHooks;
+  #address?: WorkerAddress;
   #proxy: HTTPProxy;
   #worker?: Worker;
 
-  constructor(workerDir: string, hooks: WorkerHooks = {}) {
+  constructor(id: number, workerDir: string, hooks: WorkerHooks = {}) {
+    this.#id = id;
     this.#workerDir = workerDir;
     this.#hooks = hooks;
     this.#proxy = createHTTPProxy();
@@ -82,7 +84,11 @@ export class NodeDevWorker implements DevWorker {
     }
 
     const worker = new Worker(workerEntryPath, {
-      env: { ...process.env, NITRO_DEV_WORKER_DIR: this.#workerDir },
+      env: {
+        ...process.env,
+        NITRO_DEV_WORKER_ID: String(this.#id),
+        NITRO_DEV_WORKER_DIR: this.#workerDir,
+      },
     });
 
     worker.once("exit", (code) => {
@@ -94,7 +100,6 @@ export class NodeDevWorker implements DevWorker {
     });
 
     worker.on("message", (message) => {
-      consola.log(message);
       if (message?.address) {
         this.#address = message.address;
         this.#hooks.onReady?.(this, this.#address);
@@ -110,20 +115,13 @@ export class NodeDevWorker implements DevWorker {
     }
 
     this.closed = true;
-
     this.#hooks.onClose?.(this, reason);
-
-    if (this.#address?.socketPath) {
-      await rm(this.#address.socketPath).catch(() => {});
-    }
-    this.#address = undefined;
 
     if (this.#worker) {
       this.#worker.postMessage({ event: "shutdown" });
-
       await new Promise<void>((resolve) => {
         const gracefulShutdownTimeoutSec =
-          Number.parseInt(process.env.NITRO_SHUTDOWN_TIMEOUT || "", 10) || 3;
+          Number.parseInt(process.env.NITRO_SHUTDOWN_TIMEOUT || "", 10) || 5;
         const timeout = setTimeout(() => {
           consola.warn(
             `force closing dev worker after ${gracefulShutdownTimeoutSec} seconds...`
@@ -138,14 +136,14 @@ export class NodeDevWorker implements DevWorker {
           }
         });
       });
-
       this.#worker.removeAllListeners();
-
       await this.#worker.terminate();
-
-      consola.log("normal close....");
-
       this.#worker = undefined;
     }
+
+    if (this.#address?.socketPath) {
+      await rm(this.#address.socketPath).catch(() => {});
+    }
+    this.#address = undefined;
   }
 }

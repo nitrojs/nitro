@@ -55,6 +55,7 @@ class DevServer {
   lastError?: string;
   watcher?: FSWatcher;
   workers: DevWorker[] = [];
+  workerIdCtr: number = 0;
 
   constructor(nitro: Nitro) {
     this.nitro = nitro;
@@ -66,12 +67,11 @@ class DevServer {
 
     this.app = this.createApp();
 
-    const debouncedReload = debounce(() => this.reload());
-
-    nitro.hooks.hook("close", debouncedReload);
-    nitro.hooks.hook("dev:reload", debouncedReload);
+    nitro.hooks.hook("close", () => this.close());
+    nitro.hooks.hook("dev:reload", () => this.reload());
 
     if (nitro.options.devServer.watch.length > 0) {
+      const debouncedReload = debounce(() => this.reload());
       this.watcher = watch(
         nitro.options.devServer.watch,
         nitro.options.watchOptions
@@ -114,10 +114,13 @@ class DevServer {
       worker.close();
     }
     this.workers.unshift(
-      new NodeDevWorker(this.workerDir, {
+      new NodeDevWorker(++this.workerIdCtr, this.workerDir, {
         onClose: (worker, reason) => {
           this.lastError = reason;
-          this.workers = this.workers.filter((w) => w !== worker);
+          const index = this.workers.indexOf(worker);
+          if (index !== -1) {
+            this.workers.splice(index, 1);
+          }
         },
         onReady: (worker, addr) => {
           this.writeBuildInfo(worker, addr);
@@ -128,9 +131,6 @@ class DevServer {
 
   async getWorker() {
     for (let retry = 0; retry < 10; retry++) {
-      if (this.workers.filter((w) => !w.closed).length === 0) {
-        this.reload();
-      }
       const activeWorker = this.workers.find((w) => w.ready);
       if (activeWorker) {
         return activeWorker;
