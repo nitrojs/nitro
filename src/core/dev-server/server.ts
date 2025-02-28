@@ -58,7 +58,7 @@ class DevServer {
 
   workerError?: unknown;
 
-  building?: boolean;
+  building?: boolean = true /* assume initial build will start soon */;
   buildError?: unknown;
 
   constructor(nitro: Nitro) {
