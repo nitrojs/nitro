@@ -241,7 +241,7 @@ class DevServer {
             JSON.stringify(
               {
                 error:
-                  "Dev server is not available. please reload the page and check CLI console for errors if the issue persists.",
+                  "The dev server is not available. Please reload the page and check the console for errors if the issue persists.",
               },
               null,
               2
