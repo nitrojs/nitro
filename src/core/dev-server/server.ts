@@ -162,7 +162,7 @@ class DevServer {
       if (activeWorker) {
         return activeWorker;
       }
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
   }
 
@@ -288,8 +288,8 @@ class DevServer {
     return new Response(
       JSON.stringify(
         {
-          error:
-            "The dev server is not available. Please reload the page and check the console for errors if the issue persists.",
+          error: "The dev server is unavailable.",
+          hint: "Please reload the page and check the console for errors if the issue persists.",
         },
         null,
         2
@@ -299,6 +299,7 @@ class DevServer {
         headers: {
           "Content-Type": "application/json",
           "Cache-Control": "no-store",
+          Refresh: "3",
         },
       }
     );
