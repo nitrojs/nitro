@@ -127,9 +127,9 @@ export class NodeDevWorker implements DevWorker {
   }
 
   async #closeProxy() {
-    await new Promise<void>((resolve) =>
-      this.#proxy?.proxy?.close(() => resolve())
-    );
+    this.#proxy?.proxy?.close(() => {
+      // TODO: it will be never called! Investigate why and then await on it.
+    });
     this.#proxy = undefined;
   }
 
