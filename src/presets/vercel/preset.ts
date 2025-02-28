@@ -6,6 +6,7 @@ import {
   generateFunctionFiles,
   generateStaticFiles,
 } from "./utils";
+import { builtnNodeModules } from "../_unenv/node-compat/vercel";
 
 export type { VercelOptions as PresetOptions } from "./types";
 
@@ -55,10 +56,7 @@ const vercelEdge = defineNitroPreset(
       preview: "",
     },
     unenv: {
-      // https://vercel.com/docs/functions/edge-middleware/edge-runtime#compatible-node.js-modules
-      external: ["async_hooks", "events", "buffer", "assert", "util"].flatMap(
-        (m) => [m, `node:${m}`]
-      ),
+      external: builtnNodeModules.flatMap((m) => [m, `node:${m}`]),
     },
     rollupConfig: {
       output: {
