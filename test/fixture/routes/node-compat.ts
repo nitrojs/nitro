@@ -38,7 +38,7 @@ export default eventHandler(async (event) => {
   const results: Record<string, boolean> = {};
   for (const [group, groupTests] of Object.entries(nodeCompatTests)) {
     for (const [name, test] of Object.entries(groupTests)) {
-      results[`${group}:${name}`] = !!(await test());
+      results[`${group}:${name}`] = await testFn(test);
     }
   }
   return new Response(JSON.stringify(results, null, 2), {
@@ -47,3 +47,11 @@ export default eventHandler(async (event) => {
     },
   });
 });
+
+async function testFn(fn: () => any) {
+  try {
+    return !!(await fn());
+  } catch {
+    return false;
+  }
+}

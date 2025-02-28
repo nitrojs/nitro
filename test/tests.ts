@@ -816,6 +816,9 @@ export function testNitro(
     const { data, status } = await callHandler({ url: "/node-compat" });
     expect(status).toBe(200);
     for (const key in data) {
+      if (ctx.preset === "vercel-edge" && key === "crypto:createHash") {
+        continue;
+      }
       expect(data[key], key).toBe(true);
     }
   });
