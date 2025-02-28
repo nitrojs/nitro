@@ -237,29 +237,7 @@ class DevServer {
       eventHandler(async (event) => {
         const worker = await this.getWorker();
         if (!worker) {
-          const error = this.buildError || this.workerError;
-          if (error) {
-            throw error;
-          }
-
-          // This should not normally happen...
-          return new Response(
-            JSON.stringify(
-              {
-                error:
-                  "The dev server is not available. Please reload the page and check the console for errors if the issue persists.",
-              },
-              null,
-              2
-            ),
-            {
-              status: 503,
-              headers: {
-                "Content-Type": "application/json",
-                "Cache-Control": "no-store",
-              },
-            }
-          );
+          return this.#generateError();
         }
         return worker.handleEvent(event);
       })
@@ -281,5 +259,48 @@ class DevServer {
       });
     }
     return worker.handleUpgrade(req, socket, head);
+  }
+
+  #generateError() {
+    const error: any = this.buildError || this.workerError;
+    if (error) {
+      try {
+        error.unhandled = false;
+        let id = error.id || error.path;
+        if (id) {
+          const cause = (error as { errors?: any[] }).errors?.[0];
+          const loc =
+            error.location || error.loc || cause?.location || cause?.loc;
+          if (loc) {
+            id += `:${loc.line}:${loc.column}`;
+          }
+          error.stack = (error.stack || "").replace(
+            /(^\s*at\s+.+)/m,
+            `    at ${id}\n$1`
+          );
+        }
+      } catch {
+        // ignore
+      }
+      return createError(error);
+    }
+
+    return new Response(
+      JSON.stringify(
+        {
+          error:
+            "The dev server is not available. Please reload the page and check the console for errors if the issue persists.",
+        },
+        null,
+        2
+      ),
+      {
+        status: 503,
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-store",
+        },
+      }
+    );
   }
 }
