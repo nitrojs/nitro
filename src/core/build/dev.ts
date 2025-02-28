@@ -61,39 +61,31 @@ function startRollupWatcher(nitro: Nitro, rollupConfig: RollupConfig) {
   let start: number;
 
   watcher.on("event", (event) => {
+    // START > BUNDLE_START > BUNDLE_END > END
+    // START > BUNDLE_START > ERROR > END
     switch (event.code) {
-      // The watcher is (re)starting
       case "START": {
-        return;
-      }
-
-      // Building an individual bundle
-      case "BUNDLE_START": {
         start = Date.now();
-        return;
+        nitro.hooks.callHook("dev:start");
+        break;
       }
-
-      // Finished building all bundles
       case "BUNDLE_END": {
         nitro.hooks.callHook("compiled", nitro);
-
         if (nitro.options.logging.buildSuccess) {
           nitro.logger.success(
             `${nitroServerName(nitro)} built`,
             start ? `in ${Date.now() - start} ms` : ""
           );
         }
-
         nitro.hooks.callHook("dev:reload");
-        return;
+        break;
       }
-
-      // Encountered an error while bundling
       case "ERROR": {
         nitro.logger.error(formatRollupError(event.error));
         nitro.hooks.callHook("dev:error", event.error);
       }
     }
   });
+
   return watcher;
 }

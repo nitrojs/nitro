@@ -10,6 +10,7 @@ export interface NitroHooks {
   "rollup:before": (nitro: Nitro, config: RollupConfig) => HookResult;
   compiled: (nitro: Nitro) => HookResult;
   "dev:reload": () => HookResult;
+  "dev:start": () => HookResult;
   "dev:error": (cause?: unknown) => HookResult;
   "rollup:reload": () => HookResult;
   restart: () => HookResult;

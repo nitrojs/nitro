@@ -57,6 +57,8 @@ class DevServer {
   workerIdCtr: number = 0;
 
   workerError?: unknown;
+
+  building?: boolean;
   buildError?: unknown;
 
   constructor(nitro: Nitro) {
@@ -71,13 +73,20 @@ class DevServer {
 
     nitro.hooks.hook("close", () => this.close());
 
+    nitro.hooks.hook("dev:start", () => {
+      this.building = true;
+      this.buildError = undefined;
+    });
+
     nitro.hooks.hook("dev:reload", () => {
       this.buildError = undefined;
+      this.building = false;
       this.reload();
     });
 
     nitro.hooks.hook("dev:error", (cause: unknown) => {
       this.buildError = cause;
+      this.building = false;
       for (const worker of this.workers) {
         worker.close();
       }
@@ -144,15 +153,16 @@ class DevServer {
   }
 
   async getWorker() {
-    for (let retry = 0; retry < 3; retry++) {
+    let retry = 0;
+    while (this.building || ++retry < 10) {
+      if ((this.workers.length === 0 || this.buildError) && !this.building) {
+        return;
+      }
       const activeWorker = this.workers.find((w) => w.ready);
       if (activeWorker) {
         return activeWorker;
       }
-      if (this.workers.length === 0) {
-        return;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 200));
     }
   }
 
@@ -226,9 +236,25 @@ class DevServer {
     app.use(
       eventHandler(async (event) => {
         const worker = await this.getWorker();
-        if (!worker) {
-          throw createError(
-            this.buildError || this.workerError || { statusCode: 503 }
+        if (!worker || 1 === 1) {
+          return new Response(
+            JSON.stringify(
+              {
+                error:
+                  "Dev server is not available. please reload the page and check CLI console for errors if the issue persists.",
+              },
+              null,
+              2
+            ),
+            {
+              status: 503,
+              headers: {
+                Refresh: "5",
+                "Content-Type": "application/json",
+                "Retry-After": "3",
+                "Cache-Control": "no-store",
+              },
+            }
           );
         }
         return worker.handleEvent(event);
