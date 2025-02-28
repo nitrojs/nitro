@@ -52,10 +52,12 @@ class DevServer {
   app: App;
   listeners: Listener[] = [];
   reloadPromise?: Promise<void>;
-  lastError?: string;
   watcher?: FSWatcher;
   workers: DevWorker[] = [];
   workerIdCtr: number = 0;
+
+  workerError?: unknown;
+  buildError?: unknown;
 
   constructor(nitro: Nitro) {
     this.nitro = nitro;
@@ -68,7 +70,15 @@ class DevServer {
     this.app = this.createApp();
 
     nitro.hooks.hook("close", () => this.close());
-    nitro.hooks.hook("dev:reload", () => this.reload());
+
+    nitro.hooks.hook("dev:reload", () => {
+      this.buildError = undefined;
+      this.reload();
+    });
+
+    nitro.hooks.hook("dev:error", (cause: unknown) => {
+      this.buildError = cause;
+    });
 
     if (nitro.options.devServer.watch.length > 0) {
       const debouncedReload = debounce(() => this.reload());
@@ -113,27 +123,31 @@ class DevServer {
     for (const worker of this.workers) {
       worker.close();
     }
-    this.workers.unshift(
-      new NodeDevWorker(++this.workerIdCtr, this.workerDir, {
-        onClose: (worker, reason) => {
-          this.lastError = reason;
-          const index = this.workers.indexOf(worker);
-          if (index !== -1) {
-            this.workers.splice(index, 1);
-          }
-        },
-        onReady: (worker, addr) => {
-          this.writeBuildInfo(worker, addr);
-        },
-      })
-    );
+    const worker = new NodeDevWorker(++this.workerIdCtr, this.workerDir, {
+      onClose: (worker, cause) => {
+        this.workerError = cause;
+        const index = this.workers.indexOf(worker);
+        if (index !== -1) {
+          this.workers.splice(index, 1);
+        }
+      },
+      onReady: (worker, addr) => {
+        this.writeBuildInfo(worker, addr);
+      },
+    });
+    if (!worker.closed) {
+      this.workers.unshift(worker);
+    }
   }
 
   async getWorker() {
-    for (let retry = 0; retry < 10; retry++) {
+    for (let retry = 0; retry < 3; retry++) {
       const activeWorker = this.workers.find((w) => w.ready);
       if (activeWorker) {
         return activeWorker;
+      }
+      if (this.workers.length === 0) {
+        return;
       }
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
@@ -210,10 +224,9 @@ class DevServer {
       eventHandler(async (event) => {
         const worker = await this.getWorker();
         if (!worker) {
-          throw createError({
-            statusCode: 503,
-            message: "No worker available.",
-          });
+          throw createError(
+            this.buildError || this.workerError || { statusCode: 503 }
+          );
         }
         return worker.handleEvent(event);
       })

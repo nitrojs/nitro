@@ -12,7 +12,7 @@ import { createHTTPProxy } from "./proxy";
 export type WorkerAddress = { host: string; port: number; socketPath?: string };
 
 export interface WorkerHooks {
-  onClose?: (worker: DevWorker, reason?: string) => void;
+  onClose?: (worker: DevWorker, cause?: unknown) => void;
   onReady?: (worker: DevWorker, address?: WorkerAddress) => void;
 }
 
@@ -99,7 +99,7 @@ export class NodeDevWorker implements DevWorker {
     });
 
     worker.once("error", (error) => {
-      this.close(error.stack || error.message);
+      this.close(error);
     });
 
     worker.on("message", (message) => {
@@ -112,12 +112,12 @@ export class NodeDevWorker implements DevWorker {
     this.#worker = worker;
   }
 
-  async close(reason?: string) {
+  async close(cause?: unknown) {
     if (this.closed) {
       return;
     }
     this.closed = true;
-    this.#hooks.onClose?.(this, reason);
+    this.#hooks.onClose?.(this, cause);
     this.#hooks = {};
     await Promise.all(
       [this.#closeProxy(), this.#closeSocket(), this.#closeWorker()].map((p) =>
@@ -172,5 +172,11 @@ export class NodeDevWorker implements DevWorker {
       consola.error(error);
     });
     this.#worker = undefined;
+  }
+
+  [Symbol.for("nodejs.util.inspect.custom")]() {
+    // eslint-disable-next-line unicorn/no-nested-ternary
+    const status = this.closed ? "closed" : this.ready ? "ready" : "pending";
+    return `NodeDevWorker#${this.#id}(${status})`;
   }
 }

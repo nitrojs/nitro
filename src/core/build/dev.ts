@@ -74,7 +74,7 @@ function startRollupWatcher(nitro: Nitro, rollupConfig: RollupConfig) {
       }
 
       // Finished building all bundles
-      case "END": {
+      case "BUNDLE_END": {
         nitro.hooks.callHook("compiled", nitro);
 
         if (nitro.options.logging.buildSuccess) {
@@ -91,6 +91,7 @@ function startRollupWatcher(nitro: Nitro, rollupConfig: RollupConfig) {
       // Encountered an error while bundling
       case "ERROR": {
         nitro.logger.error(formatRollupError(event.error));
+        nitro.hooks.callHook("dev:error", event.error);
       }
     }
   });
