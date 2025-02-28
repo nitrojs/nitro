@@ -56,7 +56,15 @@ const vercelEdge = defineNitroPreset(
       preview: "",
     },
     unenv: {
-      external: builtnNodeModules.flatMap((m) => [m, `node:${m}`]),
+      external: builtnNodeModules.flatMap((m) => `node:${m}`),
+      alias: {
+        ...Object.fromEntries(
+          builtnNodeModules.flatMap((m) => [
+            [m, `node:${m}`],
+            [`node:${m}`, `node:${m}`],
+          ])
+        ),
+      },
     },
     rollupConfig: {
       output: {
