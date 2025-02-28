@@ -236,7 +236,13 @@ class DevServer {
     app.use(
       eventHandler(async (event) => {
         const worker = await this.getWorker();
-        if (!worker || 1 === 1) {
+        if (!worker) {
+          const error = this.buildError || this.workerError;
+          if (error) {
+            throw error;
+          }
+
+          // This should not normally happen...
           return new Response(
             JSON.stringify(
               {
@@ -249,9 +255,7 @@ class DevServer {
             {
               status: 503,
               headers: {
-                Refresh: "5",
                 "Content-Type": "application/json",
-                "Retry-After": "3",
                 "Cache-Control": "no-store",
               },
             }
