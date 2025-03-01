@@ -1,5 +1,6 @@
 import { builtinModules, createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
+import { isAbsolute } from "node:path";
 import alias from "@rollup/plugin-alias";
 // import terser from "@rollup/plugin-terser"; // TODO: Investigate jiti issue
 import commonjs from "@rollup/plugin-commonjs";
@@ -415,18 +416,21 @@ export const plugins = [
   if (nitro.options.noExternals) {
     rollupConfig.plugins.push({
       name: "no-externals",
-      async resolveId(id, from, resolveOpts) {
+      async resolveId(id, importer, resolveOpts) {
         if (
           nitro.options.node &&
           (id.startsWith("node:") || builtinModules.includes(id))
         ) {
           return { id, external: true };
         }
-        const resolved = await this.resolve(id, from, resolveOpts);
+        const resolved = await this.resolve(id, importer, resolveOpts);
         if (!resolved) {
           const _resolved = resolveModulePath(id, {
             try: true,
-            from: nitro.options.nodeModulesDirs,
+            from:
+              importer && isAbsolute(importer)
+                ? [pathToFileURL(importer), ...nitro.options.nodeModulesDirs]
+                : nitro.options.nodeModulesDirs,
             suffixes: ["", "/index"],
             extensions: [".mjs", ".cjs", ".js", ".mts", ".cts", ".ts", ".json"],
             conditions: [
@@ -444,7 +448,7 @@ export const plugins = [
         if (!resolved || (resolved.external && !id.endsWith(".wasm"))) {
           throw new Error(
             `Cannot resolve ${JSON.stringify(id)} from ${JSON.stringify(
-              from
+              importer
             )} and externals are not allowed!`
           );
         }

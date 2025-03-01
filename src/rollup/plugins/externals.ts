@@ -1,6 +1,6 @@
 import { existsSync, promises as fsp } from "node:fs";
 import { platform } from "node:os";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { nodeFileTrace } from "@vercel/nft";
 import {
   isValidNodeImport,
@@ -20,14 +20,20 @@ import semver from "semver";
 export function externals(opts: NodeExternalsOptions): Plugin {
   const trackedExternals = new Set<string>();
 
-  const tryResolve = (id: string): string | undefined => {
+  const tryResolve = (
+    id: string,
+    importer: undefined | string
+  ): string | undefined => {
     if (id.startsWith("\0")) {
       return id;
     }
     const res = resolveModuleURL(id, {
       try: true,
       conditions: opts.exportConditions,
-      from: opts.moduleDirectories,
+      from:
+        importer && isAbsolute(importer)
+          ? [pathToFileURL(importer), ...opts.moduleDirectories!]
+          : opts.moduleDirectories,
       suffixes: ["", "/index"],
       extensions: [".mjs", ".cjs", ".js", ".mts", ".cts", ".ts", ".json"],
     });
@@ -101,7 +107,7 @@ export function externals(opts: NodeExternalsOptions): Plugin {
         !existsSync(resolved.id) ||
         (await isDirectory(resolved.id))
       ) {
-        resolved.id = tryResolve(resolved.id) || resolved.id;
+        resolved.id = tryResolve(resolved.id, importer) || resolved.id;
       }
 
       // Inline invalid node imports
@@ -133,7 +139,7 @@ export function externals(opts: NodeExternalsOptions): Plugin {
       if (pkgName !== originalId) {
         // Subpath export
         if (!isAbsolute(originalId)) {
-          const fullPath = tryResolve(originalId);
+          const fullPath = tryResolve(originalId, importer);
           if (fullPath) {
             trackedExternals.add(fullPath);
             return {
@@ -145,13 +151,14 @@ export function externals(opts: NodeExternalsOptions): Plugin {
 
         // Absolute path, we are not sure about subpath to generate import statement
         // Guess as main subpath export
-        const packageEntry = tryResolve(pkgName);
+        const packageEntry = tryResolve(pkgName, importer);
         if (packageEntry !== id) {
           // Reverse engineer subpath export
           const guessedSubpath: string | null | undefined =
             await lookupNodeModuleSubpath(id).catch(() => null);
           const resolvedGuess =
-            guessedSubpath && tryResolve(join(pkgName, guessedSubpath));
+            guessedSubpath &&
+            tryResolve(join(pkgName, guessedSubpath), importer);
           if (resolvedGuess === id) {
             trackedExternals.add(resolvedGuess);
             return {
