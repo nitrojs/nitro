@@ -1,3 +1,4 @@
+import { TSConfig } from "pkg-types";
 import type { NitroConfig } from "./config";
 import type { Nitro, NitroTypes } from "./nitro";
 import type { PrerenderRoute } from "./prerender";
@@ -6,6 +7,10 @@ import type { RollupConfig } from "./rollup";
 type HookResult = void | Promise<void>;
 
 export interface NitroHooks {
+  "prepare:types": (options: {
+    declarations: string[];
+    tsConfig: TSConfig | undefined;
+  }) => HookResult;
   "types:extend": (types: NitroTypes) => HookResult;
   "rollup:before": (nitro: Nitro, config: RollupConfig) => HookResult;
   compiled: (nitro: Nitro) => HookResult;
