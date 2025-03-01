@@ -1,6 +1,6 @@
 import { promises as fsp } from "node:fs";
 import { colors } from "consola/utils";
-import { globby } from "globby";
+import { glob } from "tinyglobby";
 import { gzipSize } from "gzip-size";
 import { dirname, relative, resolve } from "pathe";
 import prettyBytes from "pretty-bytes";
@@ -15,7 +15,7 @@ export async function generateFSTree(
     return;
   }
 
-  const files = await globby("**/*.*", { cwd: dir, ignore: ["*.map"] });
+  const files = await glob("**/*.*", { cwd: dir, ignore: ["*.map"] });
 
   const items: { file: string; path: string; size: number; gzip: number }[] =
     [];

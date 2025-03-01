@@ -101,9 +101,6 @@ importers:
       fs-extra:
         specifier: ^11.3.0
         version: 11.3.0
-      globby:
-        specifier: ^14.1.0
-        version: 14.1.0
       gzip-size:
         specifier: ^7.0.0
         version: 7.0.0
@@ -197,6 +194,9 @@ importers:
       std-env:
         specifier: ^3.8.0
         version: 3.8.0
+      tinyglobby:
+        specifier: ^0.2.12
+        version: 0.2.12
       ufo:
         specifier: ^1.5.4
         version: 1.5.4

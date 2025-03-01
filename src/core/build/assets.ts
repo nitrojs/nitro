@@ -1,5 +1,5 @@
 import { existsSync, promises as fsp } from "node:fs";
-import { globby } from "globby";
+import { glob } from "tinyglobby";
 import { isDirectory, prettyPath } from "nitropack/kit";
 import type { Nitro } from "nitropack/types";
 import { join, relative, resolve } from "pathe";
@@ -31,7 +31,7 @@ export async function copyPublicAssets(nitro: Nitro) {
         }),
       ].filter((p) => !PARENT_DIR_GLOB_RE.test(p));
 
-      const publicAssets = await globby(includePatterns, {
+      const publicAssets = await glob(includePatterns, {
         cwd: srcDir,
         absolute: false,
         dot: true,
