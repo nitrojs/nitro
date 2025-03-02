@@ -85,7 +85,7 @@
     "gen-presets": "pnpm jiti scripts/gen-presets.ts",
     "lint": "eslint --cache . && prettier -c .",
     "lint:fix": "eslint --cache --fix . && prettier -w .",
-    "lint:package": "publint", 
+    "lint:package": "publint",
     "nitro": "jiti ./src/cli/index.ts",
     "node-ts": "node --disable-warning=ExperimentalWarning --experimental-strip-types",
     "prepack": "pnpm build",
