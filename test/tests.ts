@@ -227,16 +227,22 @@ export function testNitro(
     _handler = await getHandler();
   }, 25_000);
 
-  it("API Works", async () => {
-    const { data: helloData } = await callHandler({ url: "/api/hello" });
-    expect(helloData).to.toMatchObject({ message: "Hello API" });
+  // netlify-edge intentionally ignores prerendered routes
+  it.skipIf(ctx.preset === "netlify-edge")(
+    "prerendered API routes work",
+    async () => {
+      const { data: helloData } = await callHandler({ url: "/api/hello" });
+      expect(helloData).to.toMatchObject({ message: "Hello API" });
 
-    if (ctx.nitro?.options.serveStatic) {
-      // /api/hey is expected to be prerendered
-      const { data: heyData } = await callHandler({ url: "/api/hey" });
-      expect(heyData).to.have.string("Hey API");
+      if (ctx.nitro?.options.serveStatic) {
+        // /api/hey is expected to be prerendered
+        const { data: heyData } = await callHandler({ url: "/api/hey" });
+        expect(heyData).to.have.string("Hey API");
+      }
     }
+  );
 
+  it("API Works", async () => {
     const { data: kebabData } = await callHandler({ url: "/api/kebab" });
     expect(kebabData).to.have.string("hello-world");
 
