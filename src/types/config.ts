@@ -211,7 +211,7 @@ export interface NitroOptions extends PresetOptions {
   // Rollup
   rollupConfig?: RollupConfig;
   entry: string;
-  unenv: UnenvPreset;
+  unenv: UnenvPreset[];
   alias: Record<string, string>;
   minify: boolean;
   inlineDynamicImports: boolean;
@@ -262,7 +262,7 @@ export interface NitroConfig
   extends DeepPartial<
       Omit<
         NitroOptions,
-        "routeRules" | "rollupConfig" | "preset" | "compatibilityDate"
+        "routeRules" | "rollupConfig" | "preset" | "compatibilityDate" | "unenv"
       >
     >,
     C12InputConfig<NitroConfig> {
@@ -271,6 +271,7 @@ export interface NitroConfig
   routeRules?: { [path: string]: NitroRouteConfig };
   rollupConfig?: Partial<RollupConfig>;
   compatibilityDate?: CompatibilityDateSpec;
+  unenv?: UnenvPreset | UnenvPreset[];
 }
 
 // ------------------------------------------------------------

@@ -23,7 +23,6 @@ import type { Plugin } from "rollup";
 import { visualizer } from "rollup-plugin-visualizer";
 import { isTest, isWindows } from "std-env";
 import { defineEnv } from "unenv";
-import * as unenvPresets from "./unenv";
 import unimportPlugin from "unimport/unplugin";
 import { rollup as unwasm } from "unwasm/plugin";
 import { appConfig } from "./plugins/app-config";
@@ -63,11 +62,7 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
     nodeCompat: isNodeless,
     npmShims: true,
     resolve: true,
-    presets: [
-      unenvPresets.common,
-      isNodeless ? unenvPresets.nodeless : unenvPresets.node,
-      nitro.options.unenv,
-    ],
+    presets: nitro.options.unenv,
     overrides: {
       alias: nitro.options.alias,
     },
