@@ -181,21 +181,23 @@ export async function writeCFPagesRedirects(nitro: Nitro) {
   await writeFile(redirectsPath, contents.join("\n"), true);
 }
 
+const wranglerConfigAndUnenv2CompatDate = "2025-03-01";
+
 export async function enableNodeCompat(nitro: Nitro) {
-  const unenvV2CompatDate = "2025-03-01";
   const compatDate =
     nitro.options.compatibilityDate.cloudflare ||
     nitro.options.compatibilityDate.default;
 
   const nodeCompatEnabled: boolean =
-    nitro.options.cloudflare?.nodeCompat ?? compatDate >= unenvV2CompatDate;
+    nitro.options.cloudflare?.nodeCompat ??
+    compatDate >= wranglerConfigAndUnenv2CompatDate;
 
   if (
-    compatDate < unenvV2CompatDate &&
+    compatDate < wranglerConfigAndUnenv2CompatDate &&
     nitro.options.cloudflare?.nodeCompat === undefined
   ) {
     nitro.logger.warn(
-      `Current compatibility date "${compatDate}" does not supports native Node.js support in cloudflare workers. Please consider upgrading compatibilityDate to "${unenvV2CompatDate}" or newer.`
+      `Current compatibility date "${compatDate}" does not supports native Node.js support in cloudflare workers. Please consider upgrading compatibilityDate to "${wranglerConfigAndUnenv2CompatDate}" or newer.`
     );
   }
 
@@ -227,9 +229,9 @@ export async function writeWranglerConfig(
   const overrides: WranglerConfig = {};
 
   // Compatibility date
-  defaults.compatibility_date =
+  const compatDate = (defaults.compatibility_date =
     nitro.options.compatibilityDate.cloudflare ||
-    nitro.options.compatibilityDate.default;
+    nitro.options.compatibilityDate.default);
 
   if (cfTarget === "pages") {
     // Pages
@@ -305,7 +307,12 @@ export async function writeWranglerConfig(
   );
 
   // Write .wrangler/deploy/config.json (redirect file)
-  if (!nitro.options.cloudflare?.noWranglerDeployConfig) {
+  let shouldWriteWranglerDeployConfig =
+    compatDate >= wranglerConfigAndUnenv2CompatDate;
+  if (nitro.options.cloudflare?.noWranglerDeployConfig) {
+    shouldWriteWranglerDeployConfig = false;
+  }
+  if (shouldWriteWranglerDeployConfig) {
     const configPath = join(
       nitro.options.rootDir,
       ".wrangler/deploy/config.json"

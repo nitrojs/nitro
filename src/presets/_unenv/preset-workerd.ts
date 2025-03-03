@@ -9,7 +9,10 @@ import { builtnNodeModules, hybridNodeModules } from "./node-compat/cloudflare";
 const workerdDir = fileURLToPath(new URL("workerd/", import.meta.url));
 const resolvePresetRuntime = (m: string) => join(workerdDir, `${m}.mjs`);
 
-export const unenvWorkerd: Preset = {
+export const unenvCfExternals: Preset = {
+  meta: {
+    name: "nitro-cloudflare:externals",
+  },
   external: [
     "cloudflare:email",
     "cloudflare:sockets",
@@ -19,6 +22,9 @@ export const unenvWorkerd: Preset = {
 };
 
 export const unenvWorkerdWithNodeCompat: Preset = {
+  meta: {
+    name: "nitro-cloudflare:node-compat",
+  },
   external: builtnNodeModules.map((m) => `node:${m}`),
   alias: {
     // (native)
