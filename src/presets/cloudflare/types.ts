@@ -41,12 +41,14 @@ export interface CloudflareOptions {
    *
    * If disabled, pure unenv polyfills will be used instead.
    *
-   * Enabled by default with `compatibilityDate` >= `2025-03-01`
+   * Enabled by default with `compatibilityDate` >= `2025-03-01`.
    */
   nodeCompat?: boolean;
 
   /**
    * Disable the automatic generation of `.wrangler/deploy/config.json`.
+   *
+   * Enabled by default with `compatibilityDate` >= `2025-03-01` unless explicitly set to `false`.
    *
    * More info: https://developers.cloudflare.com/workers/wrangler/configuration#generated-wrangler-configuration
    */
