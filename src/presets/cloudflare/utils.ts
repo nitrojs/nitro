@@ -355,11 +355,15 @@ async function resolveWranglerConfig(dir: string): Promise<WranglerConfig> {
 }
 
 async function generateWorkerName(nitro: Nitro) {
-  const gitConfig = await readGitConfig(nitro.options.rootDir).catch(() => {});
+  const gitConfig = await readGitConfig(nitro.options.rootDir).catch(
+    () => undefined
+  );
   const gitRepo = gitConfig?.remote?.origin?.url
     ?.replace(/\.git$/, "")
     .match(/[/:]([^/]+\/[^/]+)$/)?.[1];
-  const pkgJSON = await readPackageJSON(nitro.options.rootDir).catch(() => {});
+  const pkgJSON = await readPackageJSON(nitro.options.rootDir).catch(
+    () => undefined
+  );
   const pkgName = pkgJSON?.name;
   const subpath = relative(nitro.options.workspaceDir, nitro.options.rootDir);
   return `${gitRepo || pkgName}/${subpath}`.replace(/[^a-zA-Z0-9-]/g, "-");
