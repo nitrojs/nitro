@@ -43,7 +43,7 @@ export default defineNitroErrorHandler(
       }
 
       consola.error(
-        `[nitro] [request error] ${tags} [${event.method}] ${url}\n\n`,
+        `[request error] ${tags} [${event.method}] ${url}\n\n`,
         ansiError
       );
     }

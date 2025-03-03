@@ -261,7 +261,7 @@ export async function writeWranglerConfig(
   for (const key in overrides) {
     if (key in userConfig || key in ctxConfig) {
       nitro.logger.warn(
-        `[nitro] [cloudflare] Wrangler config \`${key}\`${key in ctxConfig ? "set by config or modules" : ""} is overridden and will be ignored.`
+        `Cloudflare] Wrangler config \`${key}\`${key in ctxConfig ? "set by config or modules" : ""} is overridden and will be ignored.`
       );
     }
   }
@@ -283,13 +283,13 @@ export async function writeWranglerConfig(
       compatFlags.has("no_nodejs_compat_v2")
     ) {
       nitro.logger.warn(
-        "[nitro] [cloudflare] Wrangler config `compatibility_flags` contains both `nodejs_compat_v2` and `no_nodejs_compat_v2`. Ignoring `nodejs_compat_v2`."
+        "[cloudflare] Wrangler config `compatibility_flags` contains both `nodejs_compat_v2` and `no_nodejs_compat_v2`. Ignoring `nodejs_compat_v2`."
       );
       compatFlags.delete("nodejs_compat_v2");
     }
     if (compatFlags.has("nodejs_compat_v2")) {
       nitro.logger.warn(
-        "[nitro] [cloudflare] Please consider replacing `nodejs_compat_v2` with `nodejs_compat` in your `compatibility_flags` or USE IT AT YOUR OWN RISK as it can cause issues with nitro."
+        "[cloudflare] Please consider replacing `nodejs_compat_v2` with `nodejs_compat` in your `compatibility_flags` or USE IT AT YOUR OWN RISK as it can cause issues with nitro."
       );
     } else {
       // Add default compatibility flags
