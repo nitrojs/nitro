@@ -53,7 +53,7 @@ const cloudflarePages = defineNitroPreset(
       },
     },
     hooks: {
-      async "rollup:before"(nitro) {
+      "build:before": async (nitro) => {
         await enableNodeCompat(nitro);
       },
       async compiled(nitro: Nitro) {
@@ -119,7 +119,7 @@ const cloudflareModule = defineNitroPreset(
       esmImport: true,
     },
     hooks: {
-      "rollup:before": async (nitro) => {
+      "build:before": async (nitro) => {
         await enableNodeCompat(nitro);
       },
       async compiled(nitro: Nitro) {

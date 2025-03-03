@@ -200,7 +200,7 @@ export async function enableNodeCompat(nitro: Nitro) {
   }
 
   if (nodeCompatEnabled) {
-    nitro.options.unenv = unenvWorkerdWithNodeCompat; // TODO: use unenvPresets when supported
+    nitro.options.unenv.push(unenvWorkerdWithNodeCompat);
     nitro.options.rollupConfig!.plugins ??= [];
     (nitro.options.rollupConfig!.plugins as Plugin[]).push(
       workerdHybridNodeCompatPlugin
