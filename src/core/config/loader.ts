@@ -28,6 +28,7 @@ import { resolveRuntimeConfigOptions } from "./resolvers/runtime-config";
 import { resolveStorageOptions } from "./resolvers/storage";
 import { resolveURLOptions } from "./resolvers/url";
 import { resolveErrorOptions } from "./resolvers/error";
+import { resolveUnenv } from "./resolvers/unenv";
 
 const configResolvers = [
   resolveCompatibilityOptions,
@@ -43,6 +44,7 @@ const configResolvers = [
   resolveAssetsOptions,
   resolveStorageOptions,
   resolveErrorOptions,
+  resolveUnenv,
 ] as const;
 
 export async function loadOptions(
