@@ -1,5 +1,6 @@
 import {
   send,
+  sendRedirect,
   getRequestHeader,
   getRequestHeaders,
   setResponseHeader,
@@ -21,7 +22,18 @@ export default defineNitroErrorHandler(
     const statusCode = error.statusCode || 500;
     const statusMessage = error.statusMessage || "Server Error";
     // prettier-ignore
-    const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true }).toString();
+    const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true })
+
+    // Redirects with base URL
+    if (statusCode === 404) {
+      const baseURL = import.meta.baseURL || "/";
+      if (baseURL.length > 1 && !url.pathname.startsWith(baseURL)) {
+        return sendRedirect(
+          event,
+          `${baseURL}${url.pathname.slice(1)}${url.search}`
+        );
+      }
+    }
 
     // Load stack trace with source maps
     await loadStackTrace(error).catch(consola.error);
@@ -59,7 +71,7 @@ export default defineNitroErrorHandler(
           event,
           await youch.toHTML(error, {
             request: {
-              url,
+              url: url.href,
               method: event.method,
               headers: getRequestHeaders(event),
             },

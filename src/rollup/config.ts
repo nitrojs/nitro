@@ -230,6 +230,7 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
     server: true,
     client: false,
     nitro: true,
+    baseURL: nitro.options.baseURL,
     // @ts-expect-error
     "versions.nitro": "",
     "versions?.nitro": "",
