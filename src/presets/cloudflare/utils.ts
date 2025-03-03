@@ -261,7 +261,7 @@ export async function writeWranglerConfig(
   for (const key in overrides) {
     if (key in userConfig || key in ctxConfig) {
       nitro.logger.warn(
-        `Cloudflare] Wrangler config \`${key}\`${key in ctxConfig ? "set by config or modules" : ""} is overridden and will be ignored.`
+        `[cloudflare] Wrangler config \`${key}\`${key in ctxConfig ? "set by config or modules" : ""} is overridden and will be ignored.`
       );
     }
   }
