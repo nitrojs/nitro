@@ -6,6 +6,7 @@ import { readFile } from "node:fs/promises";
 import { relative, dirname } from "node:path";
 import { writeFile } from "nitropack/kit";
 import { parseTOML } from "confbox";
+import { readGitConfig, readPackageJSON } from "pkg-types";
 import { defu } from "defu";
 import { globby } from "globby";
 import { join, resolve } from "pathe";
@@ -274,6 +275,14 @@ export async function writeWranglerConfig(
     defaults
   ) as WranglerConfig;
 
+  // Name is required
+  if (!wranglerConfig.name) {
+    wranglerConfig.name = await generateWorkerName(nitro)!;
+    nitro.logger.info(
+      `Using auto generated worker name: \`${wranglerConfig.name}\``
+    );
+  }
+
   // Compatibility flags
   // prettier-ignore
   const compatFlags = new Set(wranglerConfig.compatibility_flags || [])
@@ -343,4 +352,15 @@ async function resolveWranglerConfig(dir: string): Promise<WranglerConfig> {
     return config;
   }
   return {};
+}
+
+async function generateWorkerName(nitro: Nitro) {
+  const gitConfig = await readGitConfig(nitro.options.rootDir).catch(() => {});
+  const gitRepo = gitConfig?.remote?.origin?.url
+    ?.replace(/\.git$/, "")
+    .match(/[/:]([^/]+\/[^/]+)$/)?.[1];
+  const pkgJSON = await readPackageJSON(nitro.options.rootDir).catch(() => {});
+  const pkgName = pkgJSON?.name;
+  const subpath = relative(nitro.options.workspaceDir, nitro.options.rootDir);
+  return `${gitRepo || pkgName}/${subpath}`.replace(/[^a-zA-Z0-9-]/g, "-");
 }
