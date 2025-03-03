@@ -2,6 +2,7 @@ import { defineNitroPreset } from "nitropack/kit";
 import { writeFile } from "nitropack/kit";
 import type { Nitro } from "nitropack/types";
 import { resolve } from "pathe";
+import { unenvCfExternals } from "../_unenv/preset-workerd";
 import {
   enableNodeCompat,
   writeWranglerConfig,
@@ -9,7 +10,6 @@ import {
   writeCFPagesHeaders,
   writeCFPagesRedirects,
 } from "./utils";
-import { unenvCfExternals } from "../_unenv/preset-workerd";
 
 import cfLegacyPresets from "./preset-legacy";
 
