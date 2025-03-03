@@ -46,6 +46,4 @@ export async function resolveUnenv(options: NitroOptions) {
     options.unenv.unshift(nodeless);
   }
   options.unenv.unshift(common);
-
-  console.log(options.unenv.length, options.unenv);
 }
