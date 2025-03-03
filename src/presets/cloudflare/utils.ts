@@ -1,4 +1,5 @@
-import type { Nitro } from "nitropack/types";
+import type { Nitro, RollupConfig } from "nitropack/types";
+import type { Plugin } from "rollup";
 import type { WranglerConfig, CloudflarePagesRoutes } from "./types";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
@@ -15,6 +16,10 @@ import {
   withTrailingSlash,
   withoutLeadingSlash,
 } from "ufo";
+import {
+  workerdHybridNodeCompatPlugin,
+  unenvWorkerdWithNodeCompat,
+} from "../_unenv/preset-workerd";
 
 export async function writeCFRoutes(nitro: Nitro) {
   const _cfPagesConfig = nitro.options.cloudflare?.pages || {};
@@ -176,8 +181,41 @@ export async function writeCFPagesRedirects(nitro: Nitro) {
   await writeFile(redirectsPath, contents.join("\n"), true);
 }
 
+export async function enableNodeCompat(nitro: Nitro) {
+  const unenvV2CompatDate = "2025-03-01";
+  const compatDate =
+    nitro.options.compatibilityDate.cloudflare ||
+    nitro.options.compatibilityDate.default;
+
+  const nodeCompatEnabled: boolean =
+    nitro.options.cloudflare?.nodeCompat ?? compatDate >= unenvV2CompatDate;
+
+  if (
+    compatDate < unenvV2CompatDate &&
+    nitro.options.cloudflare?.nodeCompat === undefined
+  ) {
+    nitro.logger.warn(
+      `Current compatibility date "${compatDate}" does not supports native Node.js support in cloudflare workers. Please consider upgrading compatibilityDate to "${unenvV2CompatDate}" or newer.`
+    );
+  }
+
+  if (nodeCompatEnabled) {
+    nitro.options.unenv = unenvWorkerdWithNodeCompat; // TODO: use unenvPresets when supported
+    nitro.options.rollupConfig!.plugins ??= [];
+    (nitro.options.rollupConfig!.plugins as Plugin[]).push(
+      workerdHybridNodeCompatPlugin
+    );
+  }
+
+  nitro.options.cloudflare ??= {};
+  nitro.options.cloudflare.nodeCompat = nodeCompatEnabled;
+}
+
 // https://developers.cloudflare.com/workers/wrangler/configuration/#generated-wrangler-configuration
-export async function writeWranglerConfig(nitro: Nitro, isPages: boolean) {
+export async function writeWranglerConfig(
+  nitro: Nitro,
+  cfTarget: "pages" | "module"
+) {
   // Compute path to generated wrangler.json
   const wranglerConfigDir = nitro.options.output.serverDir;
   const wranglerConfigPath = join(wranglerConfigDir, "wrangler.json");
@@ -193,7 +231,7 @@ export async function writeWranglerConfig(nitro: Nitro, isPages: boolean) {
     nitro.options.compatibilityDate.cloudflare ||
     nitro.options.compatibilityDate.default;
 
-  if (isPages) {
+  if (cfTarget === "pages") {
     // Pages
     overrides.pages_build_output_dir = relative(
       wranglerConfigDir,
@@ -237,23 +275,25 @@ export async function writeWranglerConfig(nitro: Nitro, isPages: boolean) {
   // Compatibility flags
   // prettier-ignore
   const compatFlags = new Set(wranglerConfig.compatibility_flags || [])
-  if (
-    compatFlags.has("nodejs_compat_v2") &&
-    compatFlags.has("no_nodejs_compat_v2")
-  ) {
-    nitro.logger.warn(
-      "[nitro] [cloudflare] Wrangler config `compatibility_flags` contains both `nodejs_compat_v2` and `no_nodejs_compat_v2`. Ignoring `nodejs_compat_v2`."
-    );
-    compatFlags.delete("nodejs_compat_v2");
-  }
-  if (compatFlags.has("nodejs_compat_v2")) {
-    nitro.logger.warn(
-      "[nitro] [cloudflare] Wrangler config `compatibility_flags` contains `nodejs_compat_v2`, which is currently incompatible with nitro, please remove it or USE AT YOUR OWN RISK!"
-    );
-  } else {
-    // Add default compatibility flags
-    compatFlags.add("nodejs_compat");
-    compatFlags.add("no_nodejs_compat_v2");
+  if (nitro.options.cloudflare?.nodeCompat) {
+    if (
+      compatFlags.has("nodejs_compat_v2") &&
+      compatFlags.has("no_nodejs_compat_v2")
+    ) {
+      nitro.logger.warn(
+        "[nitro] [cloudflare] Wrangler config `compatibility_flags` contains both `nodejs_compat_v2` and `no_nodejs_compat_v2`. Ignoring `nodejs_compat_v2`."
+      );
+      compatFlags.delete("nodejs_compat_v2");
+    }
+    if (compatFlags.has("nodejs_compat_v2")) {
+      nitro.logger.warn(
+        "[nitro] [cloudflare] Wrangler config `compatibility_flags` contains `nodejs_compat_v2`, which is currently incompatible with nitro, please remove it or USE AT YOUR OWN RISK!"
+      );
+    } else {
+      // Add default compatibility flags
+      compatFlags.add("nodejs_compat");
+      compatFlags.add("no_nodejs_compat_v2");
+    }
   }
   wranglerConfig.compatibility_flags = [...compatFlags];
 
