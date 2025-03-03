@@ -7,6 +7,7 @@ type HookResult = void | Promise<void>;
 
 export interface NitroHooks {
   "types:extend": (types: NitroTypes) => HookResult;
+  "build:before": (nitro: Nitro) => HookResult;
   "rollup:before": (nitro: Nitro, config: RollupConfig) => HookResult;
   compiled: (nitro: Nitro) => HookResult;
   "dev:reload": () => HookResult;
