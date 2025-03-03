@@ -289,7 +289,7 @@ export async function writeWranglerConfig(
     }
     if (compatFlags.has("nodejs_compat_v2")) {
       nitro.logger.warn(
-        "[nitro] [cloudflare] Wrangler config `compatibility_flags` contains `nodejs_compat_v2`, which is currently incompatible with nitro, please remove it or USE AT YOUR OWN RISK!"
+        "[nitro] [cloudflare] Please consider replacing `nodejs_compat_v2` with `nodejs_compat` in your `compatibility_flags` or USE IT AT YOUR OWN RISK as it can cause issues with nitro."
       );
     } else {
       // Add default compatibility flags
