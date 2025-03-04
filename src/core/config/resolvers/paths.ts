@@ -8,7 +8,7 @@ import { NitroDefaults } from "../defaults";
 
 export async function resolvePathOptions(options: NitroOptions) {
   options.rootDir = resolve(options.rootDir || ".");
-  options.workspaceDir = await findWorkspaceDir(options.rootDir).catch(
+  options.workspaceDir ||= await findWorkspaceDir(options.rootDir).catch(
     () => options.rootDir
   );
   options.srcDir = resolve(options.srcDir || options.rootDir);
