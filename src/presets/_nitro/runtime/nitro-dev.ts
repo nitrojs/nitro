@@ -19,7 +19,7 @@ import {
 
 const {
   NITRO_NO_UNIX_SOCKET,
-  NITRO_DEV_WORKER_DIR = "",
+  NITRO_DEV_WORKER_DIR = ".",
   NITRO_DEV_WORKER_ID,
 } = process.env;
 
@@ -39,7 +39,7 @@ function getAddress() {
   }
 
   const socketName = `worker-${process.pid}-${threadId}-${NITRO_DEV_WORKER_ID}.sock`;
-  const socketPath = join(NITRO_DEV_WORKER_DIR || ".", socketName);
+  const socketPath = join(NITRO_DEV_WORKER_DIR, socketName);
 
   switch (process.platform) {
     case "win32": {
