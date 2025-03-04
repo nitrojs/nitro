@@ -6,7 +6,6 @@ import { startScheduleRunner } from "nitropack/runtime/internal";
 import { scheduledTasks, tasks } from "#nitro-internal-virtual/tasks";
 import { Server } from "node:http";
 import { join } from "node:path";
-import { digest } from "ohash";
 import { parentPort, threadId } from "node:worker_threads";
 import wsAdapter from "crossws/adapters/node";
 import {
