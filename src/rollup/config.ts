@@ -1,5 +1,6 @@
 import { builtinModules, createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
+import { isAbsolute } from "node:path";
 import alias from "@rollup/plugin-alias";
 // import terser from "@rollup/plugin-terser"; // TODO: Investigate jiti issue
 import commonjs from "@rollup/plugin-commonjs";
@@ -7,7 +8,8 @@ import inject from "@rollup/plugin-inject";
 import json from "@rollup/plugin-json";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
 import { defu } from "defu";
-import { resolvePath, sanitizeFilePath } from "mlly";
+import { sanitizeFilePath } from "mlly";
+import { resolveModulePath } from "exsolve";
 import { runtimeDependencies, runtimeDir } from "nitropack/runtime/meta";
 import type {
   Nitro,
@@ -21,7 +23,6 @@ import type { Plugin } from "rollup";
 import { visualizer } from "rollup-plugin-visualizer";
 import { isTest, isWindows } from "std-env";
 import { defineEnv } from "unenv";
-import * as unenvPresets from "./unenv";
 import unimportPlugin from "unimport/unplugin";
 import { rollup as unwasm } from "unwasm/plugin";
 import { appConfig } from "./plugins/app-config";
@@ -59,16 +60,11 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
 
   const { env } = defineEnv({
     nodeCompat: isNodeless,
+    npmShims: true,
     resolve: true,
-    presets: [
-      unenvPresets.common,
-      isNodeless ? unenvPresets.nodeless : unenvPresets.node,
-      nitro.options.unenv,
-    ],
+    presets: nitro.options.unenv,
     overrides: {
-      alias: {
-        ...nitro.options.alias,
-      },
+      alias: nitro.options.alias,
     },
   });
 
@@ -234,6 +230,7 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
     server: true,
     client: false,
     nitro: true,
+    baseURL: nitro.options.baseURL,
     // @ts-expect-error
     "versions.nitro": "",
     "versions?.nitro": "",
@@ -371,11 +368,13 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
       {
         "#nitro-internal-virtual/plugins": `
 ${nitroPlugins
-  .map((plugin) => `import _${hash(plugin)} from '${plugin}';`)
+  .map(
+    (plugin) => `import _${hash(plugin).replace(/-/g, "")} from '${plugin}';`
+  )
   .join("\n")}
 
 export const plugins = [
-  ${nitroPlugins.map((plugin) => `_${hash(plugin)}`).join(",\n")}
+  ${nitroPlugins.map((plugin) => `_${hash(plugin).replace(/-/g, "")}`).join(",\n")}
 ]
     `,
       },
@@ -413,17 +412,23 @@ export const plugins = [
   if (nitro.options.noExternals) {
     rollupConfig.plugins.push({
       name: "no-externals",
-      async resolveId(id, from, resolveOpts) {
+      async resolveId(id, importer, resolveOpts) {
         if (
           nitro.options.node &&
           (id.startsWith("node:") || builtinModules.includes(id))
         ) {
           return { id, external: true };
         }
-        const resolved = await this.resolve(id, from, resolveOpts);
+        const resolved = await this.resolve(id, importer, resolveOpts);
         if (!resolved) {
-          const _resolved = await resolvePath(id, {
-            url: nitro.options.nodeModulesDirs,
+          const _resolved = resolveModulePath(id, {
+            try: true,
+            from:
+              importer && isAbsolute(importer)
+                ? [pathToFileURL(importer), ...nitro.options.nodeModulesDirs]
+                : nitro.options.nodeModulesDirs,
+            suffixes: ["", "/index"],
+            extensions: [".mjs", ".cjs", ".js", ".mts", ".cts", ".ts", ".json"],
             conditions: [
               "default",
               nitro.options.dev ? "development" : "production",
@@ -431,7 +436,7 @@ export const plugins = [
               "import",
               "require",
             ],
-          }).catch(() => null);
+          });
           if (_resolved) {
             return { id: _resolved, external: false };
           }
@@ -439,7 +444,7 @@ export const plugins = [
         if (!resolved || (resolved.external && !id.endsWith(".wasm"))) {
           throw new Error(
             `Cannot resolve ${JSON.stringify(id)} from ${JSON.stringify(
-              from
+              importer
             )} and externals are not allowed!`
           );
         }

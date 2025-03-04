@@ -2,6 +2,7 @@ import {
   getRequestURL,
   getResponseHeader,
   send,
+  sendRedirect,
   setResponseHeader,
   setResponseStatus,
 } from "h3";
@@ -13,14 +14,24 @@ export default defineNitroErrorHandler(
     const statusCode = error.statusCode || 500;
     const statusMessage = error.statusMessage || "Server Error";
     // prettier-ignore
-    const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true }).toString();
+    const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true })
+
+    if (statusCode === 404) {
+      const baseURL = import.meta.baseURL || "/";
+      if (/^\/[^/]/.test(baseURL) && !url.pathname.startsWith(baseURL)) {
+        return sendRedirect(
+          event,
+          `${baseURL}${url.pathname.slice(1)}${url.search}`
+        );
+      }
+    }
 
     // Console output
     if (isSensitive) {
       // prettier-ignore
       const tags = [error.unhandled && "[unhandled]", error.fatal && "[fatal]"].filter(Boolean).join(" ")
       console.error(
-        `[nitro] [request error] ${tags} [${event.method}] ${url}\n`,
+        `[request error] ${tags} [${event.method}] ${url}\n`,
         error
       );
     }
@@ -36,7 +47,7 @@ export default defineNitroErrorHandler(
       JSON.stringify(
         {
           error: true,
-          url,
+          url: url.href,
           statusCode,
           statusMessage,
           message: isSensitive ? "Server Error" : error.message,

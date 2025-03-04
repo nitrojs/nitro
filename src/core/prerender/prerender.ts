@@ -24,8 +24,8 @@ const linkParents = new Map<string, Set<string>>();
 
 export async function prerender(nitro: Nitro) {
   if (nitro.options.noPublicDir) {
-    console.warn(
-      "[nitro] Skipping prerender since `noPublicDir` option is enabled."
+    nitro.logger.warn(
+      "Skipping prerender since `noPublicDir` option is enabled."
     );
     return;
   }

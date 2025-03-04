@@ -8,7 +8,7 @@ import { NitroDefaults } from "../defaults";
 
 export async function resolvePathOptions(options: NitroOptions) {
   options.rootDir = resolve(options.rootDir || ".");
-  options.workspaceDir = await findWorkspaceDir(options.rootDir).catch(
+  options.workspaceDir ||= await findWorkspaceDir(options.rootDir).catch(
     () => options.rootDir
   );
   options.srcDir = resolve(options.srcDir || options.rootDir);
@@ -56,7 +56,8 @@ export async function resolvePathOptions(options: NitroOptions) {
   options.nodeModulesDirs.push(resolve(pkgDir, "..")); // pnpm
   options.nodeModulesDirs = [
     ...new Set(
-      options.nodeModulesDirs.map((dir) => resolve(options.rootDir, dir))
+      // Adding trailing slash to optimize resolve performance (path is explicitly a dir)
+      options.nodeModulesDirs.map((dir) => resolve(options.rootDir, dir) + "/")
     ),
   ];
 

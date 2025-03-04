@@ -2,23 +2,18 @@ import { defineNitroPreset } from "nitropack/kit";
 import { writeFile } from "nitropack/kit";
 import type { Nitro } from "nitropack/types";
 import { resolve } from "pathe";
+import { unenvCfExternals } from "../_unenv/preset-workerd";
 import {
+  enableNodeCompat,
   writeWranglerConfig,
   writeCFRoutes,
   writeCFPagesHeaders,
   writeCFPagesRedirects,
 } from "./utils";
-import { hybridNodePlugin, unenvCfPreset } from "./unenv/preset";
 
 import cfLegacyPresets from "./preset-legacy";
 
 export type { CloudflareOptions as PresetOptions } from "./types";
-
-// TODO: Remove when wrangler -C support landed
-// https://github.com/cloudflare/workers-sdk/pull/7994
-const isWindows = process.platform === "win32";
-const commandWithDir = (command: string) =>
-  isWindows ? `cmd /c "cd ./ && ${command}"` : `(cd ./ && ${command})`;
 
 const cloudflarePages = defineNitroPreset(
   {
@@ -26,15 +21,15 @@ const cloudflarePages = defineNitroPreset(
     entry: "./runtime/cloudflare-pages",
     exportConditions: ["workerd"],
     commands: {
-      preview: commandWithDir("npx wrangler pages dev"),
-      deploy: commandWithDir("npx wrangler pages deploy"),
+      preview: "npx wrangler --cwd ./ pages dev",
+      deploy: "npx wrangler --cwd ./ pages deploy",
     },
     output: {
       dir: "{{ rootDir }}/dist",
       publicDir: "{{ output.dir }}/{{ baseURL }}",
       serverDir: "{{ output.dir }}/_worker.js",
     },
-    unenv: unenvCfPreset,
+    unenv: [unenvCfExternals],
     alias: {
       // Hotfix: Cloudflare appends /index.html if mime is not found and things like ico are not in standard lite.js!
       // https://github.com/nitrojs/nitro/pull/933
@@ -45,7 +40,6 @@ const cloudflarePages = defineNitroPreset(
       esmImport: true,
     },
     rollupConfig: {
-      plugins: [hybridNodePlugin],
       output: {
         entryFileNames: "index.js",
         format: "esm",
@@ -53,8 +47,11 @@ const cloudflarePages = defineNitroPreset(
       },
     },
     hooks: {
+      "build:before": async (nitro) => {
+        await enableNodeCompat(nitro);
+      },
       async compiled(nitro: Nitro) {
-        await writeWranglerConfig(nitro, true /* pages */);
+        await writeWranglerConfig(nitro, "pages");
         await writeCFRoutes(nitro);
         await writeCFPagesHeaders(nitro);
         await writeCFPagesRedirects(nitro);
@@ -76,12 +73,11 @@ const cloudflarePagesStatic = defineNitroPreset(
       publicDir: "{{ output.dir }}/{{ baseURL }}",
     },
     commands: {
-      preview: commandWithDir("npx wrangler pages dev"),
-      deploy: commandWithDir("npx wrangler pages deploy"),
+      preview: "npx wrangler --cwd ./ pages dev",
+      deploy: "npx wrangler --cwd ./ pages deploy",
     },
     hooks: {
       async compiled(nitro: Nitro) {
-        await writeWranglerConfig(nitro, true /* pages */);
         await writeCFPagesHeaders(nitro);
         await writeCFPagesRedirects(nitro);
       },
@@ -101,12 +97,11 @@ const cloudflareModule = defineNitroPreset(
     entry: "./runtime/cloudflare-module",
     exportConditions: ["workerd"],
     commands: {
-      preview: commandWithDir("npx wrangler dev"),
-      deploy: commandWithDir("npx wrangler deploy"),
+      preview: "npx wrangler --cwd ./ dev",
+      deploy: "npx wrangler --cwd ./ deploy",
     },
-    unenv: unenvCfPreset,
+    unenv: [unenvCfExternals],
     rollupConfig: {
-      plugins: [hybridNodePlugin],
       output: {
         format: "esm",
         exports: "named",
@@ -118,8 +113,12 @@ const cloudflareModule = defineNitroPreset(
       esmImport: true,
     },
     hooks: {
+      "build:before": async (nitro) => {
+        await enableNodeCompat(nitro);
+      },
       async compiled(nitro: Nitro) {
-        await writeWranglerConfig(nitro, false /* module */);
+        await writeWranglerConfig(nitro, "module");
+
         await writeFile(
           resolve(nitro.options.output.dir, "package.json"),
           JSON.stringify({ private: true, main: "./server/index.mjs" }, null, 2)

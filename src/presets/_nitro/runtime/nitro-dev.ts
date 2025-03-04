@@ -5,7 +5,6 @@ import { trapUnhandledNodeErrors } from "nitropack/runtime/internal";
 import { startScheduleRunner } from "nitropack/runtime/internal";
 import { scheduledTasks, tasks } from "#nitro-internal-virtual/tasks";
 import { Server } from "node:http";
-import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import { parentPort, threadId } from "node:worker_threads";
 import wsAdapter from "crossws/adapters/node";
@@ -16,7 +15,9 @@ import {
   readBody,
   toNodeListener,
 } from "h3";
-import { isWindows, provider } from "std-env";
+
+const { NITRO_NO_UNIX_SOCKET, NITRO_DEV_WORKER_DIR, NITRO_DEV_WORKER_ID } =
+  process.env;
 
 const nitroApp = useNitroApp();
 
@@ -29,20 +30,23 @@ if (import.meta._websocket) {
 }
 
 function getAddress() {
-  if (
-    provider === "stackblitz" ||
-    process.env.NITRO_NO_UNIX_SOCKET ||
-    process.versions.bun
-  ) {
+  if (NITRO_NO_UNIX_SOCKET || process.versions.webcontainer) {
     return 0;
   }
-  const socketName = `worker-${process.pid}-${threadId}.sock`;
-  if (isWindows) {
-    return join(String.raw`\\.\pipe\nitro`, socketName);
+
+  const socketName = `worker-${process.pid}-${threadId}-${NITRO_DEV_WORKER_ID}.sock`;
+
+  switch (process.platform) {
+    case "win32": {
+      return join(String.raw`\\.\pipe\nitro`, socketName);
+    }
+    case "linux": {
+      return `\0${socketName}`;
+    }
+    default: {
+      return join(NITRO_DEV_WORKER_DIR || ".", socketName);
+    }
   }
-  const workerDir =
-    process.env.NITRO_DEV_WORKER_DIR || import.meta.dirname || process.cwd();
-  return join(workerDir, socketName);
 }
 
 const listenAddress = getAddress();
