@@ -69,7 +69,6 @@ export const NitroDefaults: NitroConfig = {
     failOnError: false,
     crawlLinks: false,
     ignore: [],
-    ignorePublicAssets: false,
     routes: [],
   },
 

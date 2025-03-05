@@ -23,7 +23,6 @@ export interface Nitro {
   /* @internal */
   _prerenderedRoutes?: PrerenderRoute[];
   _prerenderMeta?: Record<string, { contentType?: string }>;
-  _cachedPublicAssets?: Array<{ url: string; src: string; dst: string }>;
 }
 
 export type NitroDynamicConfig = Pick<

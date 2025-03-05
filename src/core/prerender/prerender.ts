@@ -1,15 +1,18 @@
-import { existsSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { colors } from "consola/utils";
 import { defu } from "defu";
 import mime from "mime";
 import { writeFile } from "nitropack/kit";
-import type { Nitro, NitroRouteRules, PrerenderRoute } from "nitropack/types";
+import type {
+  Nitro,
+  NitroRouteRules,
+  PrerenderRoute,
+  PublicAssetDir,
+} from "nitropack/types";
 import type { $Fetch } from "ofetch";
 import { join, relative, resolve } from "pathe";
 import { createRouter as createRadixRouter, toRouteMatcher } from "radix3";
-import { joinURL, withBase, withLeadingSlash, withoutBase } from "ufo";
-import { getPublicAssets } from "../build/assets";
+import { joinURL, withBase, withoutBase, withTrailingSlash } from "ufo";
 import { build } from "../build/build";
 import { createNitro } from "../nitro";
 import { compressPublicAssets } from "../utils/compress";
@@ -109,11 +112,12 @@ export async function prerender(nitro: Nitro) {
   const skippedRoutes = new Set();
   const displayedLengthWarns = new Set();
 
-  const publicAssets = new Set(
-    nitro.options.prerender.ignorePublicAssets
-      ? await getPublicAssets(nitro).then((r) => r?.map((f) => f.url) || [])
-      : []
-  );
+  const publicAssetBases: string[] = nitro.options.publicAssets
+    .filter(
+      (a): a is PublicAssetDir & { baseURL: string } =>
+        !!a.baseURL && a.baseURL !== "/" && !a.fallthrough
+    )
+    .map((a) => withTrailingSlash(a.baseURL));
 
   const canPrerender = (route = "/") => {
     // Skip if route is already generated or skipped
@@ -128,8 +132,7 @@ export async function prerender(nitro: Nitro) {
       }
     }
 
-    // do not prerender any files in the public assets
-    if (publicAssets.has(route)) {
+    if (publicAssetBases.some((base) => route.startsWith(base))) {
       return false;
     }
 
@@ -172,14 +175,6 @@ export async function prerender(nitro: Nitro) {
         );
         return false;
       }
-    }
-
-    // Check if file already exists, for example copied across from public assets
-    const fileAlreadyExists =
-      existsSync(join(nitro.options.output.publicDir, route.fileName!)) ||
-      existsSync(join(nitro.options.output.publicDir, route.route));
-    if (fileAlreadyExists) {
-      return false;
     }
 
     return true;

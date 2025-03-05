@@ -8,17 +8,10 @@ import { compressPublicAssets } from "../utils/compress";
 const NEGATION_RE = /^(!?)(.*)$/;
 const PARENT_DIR_GLOB_RE = /!?\.\.\//;
 
-export async function getPublicAssets(nitro: Nitro) {
+export async function copyPublicAssets(nitro: Nitro) {
   if (nitro.options.noPublicDir) {
     return;
   }
-
-  if (nitro._cachedPublicAssets) {
-    return nitro._cachedPublicAssets;
-  }
-
-  const publicAssets: Array<{ url: string; src: string; dst: string }> = [];
-
   for (const asset of nitro.options.publicAssets) {
     const srcDir = asset.dir;
     const dstDir = join(nitro.options.output.publicDir, asset.baseURL!);
@@ -38,45 +31,22 @@ export async function getPublicAssets(nitro: Nitro) {
         }),
       ].filter((p) => !PARENT_DIR_GLOB_RE.test(p));
 
-      const files = await globby(includePatterns, {
+      const publicAssets = await globby(includePatterns, {
         cwd: srcDir,
         absolute: false,
         dot: true,
       });
-
-      publicAssets.push(
-        ...files.map((file) => ({
-          url: join(asset.baseURL!, file),
-          src: join(srcDir, file),
-          dst: join(dstDir, file),
-        }))
+      await Promise.all(
+        publicAssets.map(async (file) => {
+          const src = join(srcDir, file);
+          const dst = join(dstDir, file);
+          if (!existsSync(dst)) {
+            await fsp.cp(src, dst);
+          }
+        })
       );
     }
   }
-
-  nitro._cachedPublicAssets = publicAssets;
-
-  return publicAssets;
-}
-
-export async function copyPublicAssets(nitro: Nitro) {
-  const publicAssets = await getPublicAssets(nitro);
-  if (!publicAssets) {
-    return;
-  }
-
-  const batchSize = 20;
-  for (let i = 0; i < publicAssets.length; i += batchSize) {
-    const batch = publicAssets.slice(i, i + batchSize);
-    await Promise.all(
-      batch.map(async (file) => {
-        if (!existsSync(file.dst)) {
-          await fsp.cp(file.src, file.dst);
-        }
-      })
-    );
-  }
-
   if (nitro.options.compressPublicAssets) {
     await compressPublicAssets(nitro);
   }
