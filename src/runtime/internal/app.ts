@@ -61,6 +61,9 @@ function createNitroApp(): NitroApp {
       return errorHandler(error as H3Error, event);
     },
     onRequest: async (event) => {
+      // Init nitro context
+      event.context.nitro = event.context.nitro || { errors: [] };
+      
       await nitroApp.hooks.callHook("request", event).catch((error) => {
         captureError(error, { event, tags: ["request"] });
       });
@@ -114,9 +117,6 @@ function createNitroApp(): NitroApp {
   // A generic event handler give nitro access to the requests
   h3App.use(
     eventHandler((event) => {
-      // Init nitro context
-      event.context.nitro = event.context.nitro || { errors: [] };
-
       // Support platform context provided by local fetch
       const envContext: { waitUntil?: H3Event["waitUntil"] } | undefined = (
         event.node.req as unknown as { __unenv__: any }
