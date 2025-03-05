@@ -1,6 +1,6 @@
 import escapeRE from "escape-string-regexp";
 import { resolveModuleExportNames } from "mlly";
-import type { NitroOptions } from "nitropack/types";
+import type { NitroOptions } from "nitro/types";
 import { join } from "pathe";
 import type { Preset } from "unimport";
 
@@ -58,19 +58,19 @@ export async function resolveImportsOptions(options: NitroOptions) {
 function getNitroImportsPreset(): Preset[] {
   return [
     {
-      from: "nitropack/runtime/internal/app",
+      from: "nitro/runtime/internal/app",
       imports: ["useNitroApp"],
     },
     {
-      from: "nitropack/runtime/internal/config",
+      from: "nitro/runtime/internal/config",
       imports: ["useRuntimeConfig", "useAppConfig"],
     },
     {
-      from: "nitropack/runtime/internal/plugin",
+      from: "nitro/runtime/internal/plugin",
       imports: ["defineNitroPlugin", "nitroPlugin"],
     },
     {
-      from: "nitropack/runtime/internal/cache",
+      from: "nitro/runtime/internal/cache",
       imports: [
         "defineCachedFunction",
         "defineCachedEventHandler",
@@ -79,31 +79,31 @@ function getNitroImportsPreset(): Preset[] {
       ],
     },
     {
-      from: "nitropack/runtime/internal/storage",
+      from: "nitro/runtime/internal/storage",
       imports: ["useStorage"],
     },
     {
-      from: "nitropack/runtime/internal/renderer",
+      from: "nitro/runtime/internal/renderer",
       imports: ["defineRenderHandler"],
     },
     {
-      from: "nitropack/runtime/internal/meta",
+      from: "nitro/runtime/internal/meta",
       imports: ["defineRouteMeta"],
     },
     {
-      from: "nitropack/runtime/internal/route-rules",
+      from: "nitro/runtime/internal/route-rules",
       imports: ["getRouteRules"],
     },
     {
-      from: "nitropack/runtime/internal/context",
+      from: "nitro/runtime/internal/context",
       imports: ["useEvent"],
     },
     {
-      from: "nitropack/runtime/internal/task",
+      from: "nitro/runtime/internal/task",
       imports: ["defineTask", "runTask"],
     },
     {
-      from: "nitropack/runtime/internal/error/utils",
+      from: "nitro/runtime/internal/error/utils",
       imports: ["defineNitroErrorHandler"],
     },
   ];

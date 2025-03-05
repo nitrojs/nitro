@@ -1,6 +1,6 @@
 import { promises as fsp } from "node:fs";
 import mime from "mime";
-import type { RawOptions } from "nitropack/types";
+import type { RawOptions } from "nitro/types";
 import { extname } from "pathe";
 import type { Plugin } from "rollup";
 

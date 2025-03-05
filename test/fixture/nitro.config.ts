@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { defineNitroConfig } from "nitropack/config";
+import { defineNitroConfig } from "nitro/config";
 import { dirname, resolve } from "node:path";
 
 export default defineNitroConfig({

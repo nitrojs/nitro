@@ -10,12 +10,8 @@ import type { ProxyServerOptions } from "httpxy";
 import type {
   NitroRuntimeConfigApp as NitroTypesRuntimeConfigApp,
   NitroRuntimeConfig as NitroTypeskRuntimeConfig,
-} from "nitropack";
-import type {
-  PresetName,
-  PresetNameInput,
-  PresetOptions,
-} from "nitropack/presets";
+} from "nitro";
+import type { PresetName, PresetNameInput, PresetOptions } from "nitro/presets";
 import type { TSConfig } from "pkg-types";
 import type { PluginVisualizerOptions } from "rollup-plugin-visualizer";
 import type { Preset as UnenvPreset } from "unenv";

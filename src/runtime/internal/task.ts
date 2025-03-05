@@ -6,7 +6,7 @@ import type {
   TaskEvent,
   TaskPayload,
   TaskResult,
-} from "nitropack/types";
+} from "nitro/types";
 import { isTest } from "std-env";
 import { scheduledTasks, tasks } from "#nitro-internal-virtual/tasks";
 

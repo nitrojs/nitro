@@ -1,4 +1,4 @@
-import type { Nitro } from "nitropack/types";
+import type { Nitro } from "nitro/types";
 import { upperFirst } from "scule";
 
 export function nitroServerName(nitro: Nitro) {

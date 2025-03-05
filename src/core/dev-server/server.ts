@@ -5,7 +5,7 @@ import type { FSWatcher } from "chokidar";
 import type { App } from "h3";
 import type { Listener, ListenOptions } from "listhen";
 import { NodeDevWorker, type DevWorker, type WorkerAddress } from "./worker";
-import type { Nitro, NitroBuildInfo, NitroDevServer } from "nitropack/types";
+import type { Nitro, NitroBuildInfo, NitroDevServer } from "nitro/types";
 import {
   createApp,
   createError,
@@ -18,7 +18,7 @@ import {
   defaultHandler as devErrorHandlerInternal,
   loadStackTrace,
 } from "../../runtime/internal/error/dev";
-import { version as nitroVersion } from "nitropack/meta";
+import { version as nitroVersion } from "nitro/meta";
 import consola from "consola";
 import serveStatic from "serve-static";
 import { writeFile } from "node:fs/promises";

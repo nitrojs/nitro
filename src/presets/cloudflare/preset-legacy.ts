@@ -1,6 +1,6 @@
-import { defineNitroPreset } from "nitropack/kit";
-import { writeFile } from "nitropack/kit";
-import type { Nitro } from "nitropack/types";
+import { defineNitroPreset } from "nitro/kit";
+import { writeFile } from "nitro/kit";
+import type { Nitro } from "nitro/types";
 import { resolve } from "pathe";
 
 export type { CloudflareOptions as PresetOptions } from "./types";

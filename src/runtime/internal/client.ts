@@ -1,4 +1,4 @@
-import type { $Fetch, NitroFetchRequest } from "nitropack/types";
+import type { $Fetch, NitroFetchRequest } from "nitro/types";
 // Client polyfill
 import { $fetch } from "ofetch";
 

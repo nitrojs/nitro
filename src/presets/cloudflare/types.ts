@@ -87,7 +87,7 @@ export interface CloudflareOptions {
 
 type DurableObjectState = ConstructorParameters<typeof DurableObject>[0];
 
-declare module "nitropack/types" {
+declare module "nitro/types" {
   export interface NitroRuntimeHooks {
     // https://developers.cloudflare.com/workers/runtime-apis/handlers/scheduled/
     "cloudflare:scheduled": (_: {

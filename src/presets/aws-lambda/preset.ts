@@ -1,4 +1,4 @@
-import { defineNitroPreset } from "nitropack/kit";
+import { defineNitroPreset } from "nitro/kit";
 export type { AwsLambdaOptions as PresetOptions } from "./types";
 
 const awsLambda = defineNitroPreset(

@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import type { NitroPreset, NitroPresetMeta } from "nitropack/types";
+import type { NitroPreset, NitroPresetMeta } from "nitro/types";
 
 export function defineNitroPreset<
   P extends NitroPreset,

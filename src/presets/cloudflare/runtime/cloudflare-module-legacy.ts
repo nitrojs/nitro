@@ -5,7 +5,7 @@ import {
 } from "@cloudflare/kv-asset-handler";
 import wsAdapter from "crossws/adapters/cloudflare";
 import { withoutBase } from "ufo";
-import { useNitroApp, useRuntimeConfig } from "nitropack/runtime";
+import { useNitroApp, useRuntimeConfig } from "nitro/runtime";
 import { getPublicAssetMeta } from "#nitro-internal-virtual/public-assets";
 import { createHandler } from "./_module-handler";
 

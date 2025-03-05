@@ -1,5 +1,5 @@
 import { globby } from "globby";
-import type { Nitro } from "nitropack/types";
+import type { Nitro } from "nitro/types";
 import { join, relative } from "pathe";
 import { withBase, withLeadingSlash, withoutTrailingSlash } from "ufo";
 

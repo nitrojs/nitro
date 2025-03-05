@@ -1,4 +1,4 @@
-import type { NitroOptions } from "nitropack/types";
+import type { NitroOptions } from "nitro/types";
 import { resolve } from "pathe";
 
 export async function resolveStorageOptions(options: NitroOptions) {

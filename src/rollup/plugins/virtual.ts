@@ -1,4 +1,4 @@
-import type { RollupVirtualOptions, VirtualModule } from "nitropack/types";
+import type { RollupVirtualOptions, VirtualModule } from "nitro/types";
 import { dirname, resolve } from "pathe";
 import type { Plugin } from "rollup";
 

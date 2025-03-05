@@ -1,7 +1,7 @@
 import { existsSync, promises as fsp } from "node:fs";
 import { globby } from "globby";
-import { isDirectory, prettyPath } from "nitropack/kit";
-import type { Nitro } from "nitropack/types";
+import { isDirectory, prettyPath } from "nitro/kit";
+import type { Nitro } from "nitro/types";
 import { join, relative, resolve } from "pathe";
 import { compressPublicAssets } from "../utils/compress";
 

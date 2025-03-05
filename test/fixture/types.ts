@@ -4,9 +4,9 @@ import {
   type EventHandlerRequest,
   defineEventHandler,
 } from "h3";
-import { defineNitroConfig } from "nitropack/config";
-import type { $Fetch } from "nitropack/types";
-import type { Serialize, Simplify } from "nitropack/types";
+import { defineNitroConfig } from "nitro/config";
+import type { $Fetch } from "nitro/types";
+import type { Serialize, Simplify } from "nitro/types";
 import { describe, it } from "vitest";
 
 interface TestResponse {

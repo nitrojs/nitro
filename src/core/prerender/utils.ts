@@ -1,5 +1,5 @@
 import { colors } from "consola/utils";
-import type { PrerenderRoute } from "nitropack/types";
+import type { PrerenderRoute } from "nitro/types";
 import { parseURL } from "ufo";
 import { parse as parseHTML, walk } from "ultrahtml";
 

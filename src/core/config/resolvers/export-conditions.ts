@@ -1,4 +1,4 @@
-import type { NitroOptions } from "nitropack/types";
+import type { NitroOptions } from "nitro/types";
 
 export async function resolveExportConditionsOptions(options: NitroOptions) {
   options.exportConditions = _resolveExportConditions(

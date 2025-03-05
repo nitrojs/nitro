@@ -1,5 +1,5 @@
-import { runtimeDir } from "nitropack/runtime/meta";
-import type { NitroOptions } from "nitropack/types";
+import { runtimeDir } from "nitro/runtime/meta";
+import type { NitroOptions } from "nitro/types";
 import { join } from "pathe";
 
 export async function resolveOpenAPIOptions(options: NitroOptions) {

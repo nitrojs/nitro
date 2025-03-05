@@ -1,5 +1,5 @@
 import { fileURLToPath } from "mlly";
-import { createNitro, scanHandlers, writeTypes } from "nitropack/core";
+import { createNitro, scanHandlers, writeTypes } from "nitro/core";
 import { resolve } from "pathe";
 
 const prepare = async () => {

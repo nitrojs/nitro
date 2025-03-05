@@ -6,7 +6,7 @@ import {
   sendRedirect,
   setHeaders,
 } from "h3";
-import type { NitroRouteRules } from "nitropack/types";
+import type { NitroRouteRules } from "nitro/types";
 import { createRouter as createRadixRouter, toRouteMatcher } from "radix3";
 import { getQuery, joinURL, withQuery, withoutBase } from "ufo";
 import { useRuntimeConfig } from "./config";

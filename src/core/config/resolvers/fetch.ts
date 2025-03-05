@@ -1,6 +1,6 @@
 import consola from "consola";
 import { resolveModulePath } from "exsolve";
-import type { NitroOptions } from "nitropack/types";
+import type { NitroOptions } from "nitro/types";
 import { nodeMajorVersion, provider } from "std-env";
 
 export async function resolveFetchOptions(options: NitroOptions) {

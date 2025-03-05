@@ -5,7 +5,7 @@ import type {
   NitroBuildInfo,
   TaskEvent,
   TaskRunnerOptions,
-} from "nitropack/types";
+} from "nitro/types";
 import { ofetch } from "ofetch";
 import { normalize, resolve } from "pathe";
 

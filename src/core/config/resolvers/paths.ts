@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
-import { resolveNitroPath } from "nitropack/kit";
-import { pkgDir } from "nitropack/runtime/meta";
-import type { NitroOptions } from "nitropack/types";
+import { resolveNitroPath } from "nitro/kit";
+import { pkgDir } from "nitro/runtime/meta";
+import type { NitroOptions } from "nitro/types";
 import { join, resolve } from "pathe";
 import { findWorkspaceDir } from "pkg-types";
 import { NitroDefaults } from "../defaults";

@@ -1,5 +1,5 @@
-import { defineNitroPreset, writeFile } from "nitropack/kit";
-import { version as nitroVersion } from "nitropack/meta";
+import { defineNitroPreset, writeFile } from "nitro/kit";
+import { version as nitroVersion } from "nitro/meta";
 import { basename, join, relative } from "pathe";
 import type { Plugin } from "rollup";
 import { genSafeVariableName } from "knitwork";
@@ -93,9 +93,9 @@ const firebaseAppHosting = defineNitroPreset(
               ...(nitro.options.firebase as AppHostingOptions)?.appHosting,
             },
             metadata: {
-              framework: nitro.options.framework.name || "nitropack",
+              framework: nitro.options.framework.name || "nitro",
               frameworkVersion: nitro.options.framework.version || "2.x",
-              adapterPackageName: "nitropack",
+              adapterPackageName: "nitro",
               adapterVersion: nitroVersion,
             },
             outputFiles: {

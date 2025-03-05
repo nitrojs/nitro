@@ -1,5 +1,5 @@
 import { connectors } from "db0";
-import type { Nitro } from "nitropack/types";
+import type { Nitro } from "nitro/types";
 import { camelCase } from "scule";
 import { virtual } from "./virtual";
 

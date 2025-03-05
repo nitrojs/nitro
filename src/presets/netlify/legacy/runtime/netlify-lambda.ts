@@ -1,11 +1,11 @@
 import "#nitro-internal-pollyfills";
-import { useNitroApp } from "nitropack/runtime";
+import { useNitroApp } from "nitro/runtime";
 import {
   normalizeCookieHeader,
   normalizeLambdaIncomingHeaders,
   normalizeLambdaOutgoingBody,
   normalizeLambdaOutgoingHeaders,
-} from "nitropack/runtime/internal";
+} from "nitro/runtime/internal";
 
 import type {
   HandlerContext,

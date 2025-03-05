@@ -1,7 +1,7 @@
 import consola from "consola";
 import { colors } from "consola/utils";
 import { getProperty } from "dot-prop";
-import type { Nitro } from "nitropack/types";
+import type { Nitro } from "nitro/types";
 import { relative, resolve } from "pathe";
 
 export function prettyPath(p: string, highlight = true) {

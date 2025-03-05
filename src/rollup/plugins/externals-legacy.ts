@@ -2,7 +2,7 @@ import { existsSync, promises as fsp } from "node:fs";
 import { type NodeFileTraceOptions, nodeFileTrace } from "@vercel/nft";
 import { consola } from "consola";
 import { isValidNodeImport, normalizeid, resolvePath } from "mlly";
-import { isDirectory } from "nitropack/kit";
+import { isDirectory } from "nitro/kit";
 import { dirname, isAbsolute, join, normalize, resolve } from "pathe";
 import type { Plugin } from "rollup";
 import semver from "semver";

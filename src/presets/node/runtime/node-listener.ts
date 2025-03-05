@@ -1,10 +1,10 @@
 import "#nitro-internal-pollyfills";
 import { toNodeListener } from "h3";
-import { useNitroApp } from "nitropack/runtime";
+import { useNitroApp } from "nitro/runtime";
 import {
   startScheduleRunner,
   trapUnhandledNodeErrors,
-} from "nitropack/runtime/internal";
+} from "nitro/runtime/internal";
 
 const nitroApp = useNitroApp();
 

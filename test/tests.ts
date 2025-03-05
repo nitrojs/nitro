@@ -13,8 +13,8 @@ import {
   createNitro,
   prepare,
   prerender,
-} from "nitropack/core";
-import type { Nitro, NitroConfig } from "nitropack/types";
+} from "nitro/core";
+import type { Nitro, NitroConfig } from "nitro/types";
 import { type FetchOptions, fetch } from "ofetch";
 import { join, resolve } from "pathe";
 import { isWindows, nodeMajorVersion } from "std-env";

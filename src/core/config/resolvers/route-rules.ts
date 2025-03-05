@@ -4,7 +4,7 @@ import type {
   NitroOptions,
   NitroRouteConfig,
   NitroRouteRules,
-} from "nitropack/types";
+} from "nitro/types";
 import { withLeadingSlash } from "ufo";
 
 export async function resolveRouteRulesOptions(options: NitroOptions) {

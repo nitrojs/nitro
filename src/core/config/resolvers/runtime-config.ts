@@ -3,7 +3,7 @@ import type {
   NitroConfig,
   NitroOptions,
   NitroRuntimeConfig,
-} from "nitropack/types";
+} from "nitro/types";
 
 export async function resolveRuntimeConfigOptions(options: NitroOptions) {
   options.runtimeConfig = normalizeRuntimeConfig(options);

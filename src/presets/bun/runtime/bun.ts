@@ -1,6 +1,6 @@
 import "#nitro-internal-pollyfills";
-import { useNitroApp } from "nitropack/runtime";
-import { startScheduleRunner } from "nitropack/runtime/internal";
+import { useNitroApp } from "nitro/runtime";
+import { startScheduleRunner } from "nitro/runtime/internal";
 
 import wsAdapter from "crossws/adapters/bun";
 

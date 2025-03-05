@@ -2,13 +2,13 @@ import { pathToFileURL } from "node:url";
 import { colors } from "consola/utils";
 import { defu } from "defu";
 import mime from "mime";
-import { writeFile } from "nitropack/kit";
+import { writeFile } from "nitro/kit";
 import type {
   Nitro,
   NitroRouteRules,
   PrerenderRoute,
   PublicAssetDir,
-} from "nitropack/types";
+} from "nitro/types";
 import type { $Fetch } from "ofetch";
 import { join, relative, resolve } from "pathe";
 import { createRouter as createRadixRouter, toRouteMatcher } from "radix3";

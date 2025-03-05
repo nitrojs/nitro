@@ -5,7 +5,7 @@ import {
 } from "compatx";
 import _consola from "consola";
 import { colors } from "consola/utils";
-import type { NitroOptions } from "nitropack/types";
+import type { NitroOptions } from "nitro/types";
 import { relative } from "pathe";
 
 // Nitro v2.9.6 release
@@ -104,7 +104,7 @@ async function _resolveDefault(options: NitroOptions): Promise<DateString> {
 
 function _getDefaultNitroConfig() {
   return /* js */ `
-import { defineNitroConfig } from 'nitropack/config'
+import { defineNitroConfig } from 'nitro/config'
 
 export default defineNitroConfig({})
   `;

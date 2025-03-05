@@ -1,8 +1,8 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { defu } from "defu";
-import { writeFile } from "nitropack/kit";
-import type { Nitro } from "nitropack/types";
+import { writeFile } from "nitro/kit";
+import type { Nitro } from "nitro/types";
 import { resolve } from "pathe";
 
 export async function writeIISFiles(nitro: Nitro) {

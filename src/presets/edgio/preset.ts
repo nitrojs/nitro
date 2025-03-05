@@ -1,5 +1,5 @@
 import { promises as fsp } from "node:fs";
-import { defineNitroPreset } from "nitropack/kit";
+import { defineNitroPreset } from "nitro/kit";
 import { dirname, resolve } from "pathe";
 import type { PackageJson } from "pkg-types";
 
@@ -77,7 +77,7 @@ module.exports = async function entry (port) {
           resolve(nitro.options.output.dir, "package.json"),
           JSON.stringify(
             <PackageJson>{
-              name: "nitropack-edgio-output",
+              name: "nitro-edgio-output",
               version: "1.0.0",
               private: true,
               scripts: {

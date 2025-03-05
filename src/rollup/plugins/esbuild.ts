@@ -2,7 +2,7 @@
 
 import { createFilter } from "unplugin-utils";
 import { type Loader, type TransformResult, transform } from "esbuild";
-import type { EsbuildOptions } from "nitropack/types";
+import type { EsbuildOptions } from "nitro/types";
 import { extname, relative } from "pathe";
 import type { Plugin, PluginContext } from "rollup";
 

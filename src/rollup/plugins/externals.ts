@@ -9,8 +9,8 @@ import {
   parseNodeModulePath,
 } from "mlly";
 import { resolveModuleURL } from "exsolve";
-import { isDirectory } from "nitropack/kit";
-import type { NodeExternalsOptions } from "nitropack/types";
+import { isDirectory } from "nitro/kit";
+import type { NodeExternalsOptions } from "nitro/types";
 import { dirname, isAbsolute, join, normalize, relative, resolve } from "pathe";
 import type { PackageJson } from "pkg-types";
 import { readPackageJSON, writePackageJSON } from "pkg-types";

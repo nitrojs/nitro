@@ -6,7 +6,7 @@ import type {
   NitroRouteConfig,
   RenderResponse,
   RenderContext,
-} from "nitropack/types";
+} from "nitro/types";
 
 // Core
 export { createNitro } from "./nitro";
@@ -32,20 +32,20 @@ export { writeTypes } from "./build/types";
 // ----------- Backward compatibility -----------
 
 /**
- * @deprecated Please import `defineNitroConfig` from nitropack/config instead
+ * @deprecated Please import `defineNitroConfig` from nitro/config instead
  */
 export function defineNitroConfig(config: NitroConfig): NitroConfig {
   return config;
 }
 
-/** @deprecated Please import `defineNitroPreset` from nitropack/kit instead */
-export { defineNitroPreset } from "nitropack/kit";
+/** @deprecated Please import `defineNitroPreset` from nitro/kit instead */
+export { defineNitroPreset } from "nitro/kit";
 
 /** @deprecated Avoid depending on GLOB_SCAN_PATTERN  */
 export { GLOB_SCAN_PATTERN } from "./scan";
 
-/** @deprecated Directly import { runtimeDependencies } from "nitropack/runtime/meta"; */
-export { runtimeDependencies as nitroRuntimeDependencies } from "nitropack/runtime/meta";
+/** @deprecated Directly import { runtimeDependencies } from "nitro/runtime/meta"; */
+export { runtimeDependencies as nitroRuntimeDependencies } from "nitro/runtime/meta";
 
 /** @deprecated Avoid depending on scan utils */
 export {
@@ -57,7 +57,7 @@ export {
   scanTasks,
 } from "./scan";
 
-/** @deprecated Use `NitroRuntimeConfig` from `nitropack/types` */
+/** @deprecated Use `NitroRuntimeConfig` from `nitro/types` */
 export interface NitroRuntimeConfig {
   app: NitroRuntimeConfigApp;
   nitro: {
@@ -71,7 +71,7 @@ export interface NitroRuntimeConfig {
   [key: string]: any;
 }
 
-/** @deprecated Use `NitroRuntimeHooks` from `nitropack/types` */
+/** @deprecated Use `NitroRuntimeHooks` from `nitro/types` */
 export interface NitroRuntimeHooks {
   close: () => void;
   error: CaptureError;
@@ -88,13 +88,13 @@ export interface NitroRuntimeHooks {
   ) => void;
 }
 
-/** @deprecated Use `NitroRuntimeConfigApp` from `nitropack/types` */
+/** @deprecated Use `NitroRuntimeConfigApp` from `nitro/types` */
 export interface NitroRuntimeConfigApp {
   baseURL: string;
   [key: string]: any;
 }
 
-/** @deprecated Directly import { ... } from "nitropack/types"; */
+/** @deprecated Directly import { ... } from "nitro/types"; */
 export type {
   LoadConfigOptions,
   Nitro,
@@ -160,4 +160,4 @@ export type {
   ResponseCacheEntry,
   CachedEventHandlerOptions,
   NitroApp,
-} from "nitropack/types";
+} from "nitro/types";

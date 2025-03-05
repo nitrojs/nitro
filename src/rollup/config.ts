@@ -10,13 +10,13 @@ import { nodeResolve } from "@rollup/plugin-node-resolve";
 import { defu } from "defu";
 import { sanitizeFilePath } from "mlly";
 import { resolveModulePath } from "exsolve";
-import { runtimeDependencies, runtimeDir } from "nitropack/runtime/meta";
+import { runtimeDependencies, runtimeDir } from "nitro/runtime/meta";
 import type {
   Nitro,
   NitroStaticBuildFlags,
   NodeExternalsOptions,
   RollupConfig,
-} from "nitropack/types";
+} from "nitro/types";
 import { hash } from "ohash";
 import { dirname, join, normalize, resolve } from "pathe";
 import type { Plugin } from "rollup";
@@ -398,7 +398,7 @@ export const plugins = [
         "#build": buildDir,
         "#internal/nitro": runtimeDir,
         "nitro/runtime": runtimeDir,
-        "nitropack/runtime": runtimeDir,
+        "nitro/runtime": runtimeDir,
         "~": nitro.options.srcDir,
         "@/": nitro.options.srcDir,
         "~~": nitro.options.rootDir,
@@ -471,7 +471,7 @@ export const plugins = [
             "@@/",
             "virtual:",
             "nitro/runtime",
-            "nitropack/runtime",
+            "nitro/runtime",
             dirname(nitro.options.entry),
             ...(nitro.options.experimental.wasm
               ? [(id: string) => id?.endsWith(".wasm")]

@@ -1,4 +1,4 @@
-import type { Nitro } from "nitropack/types";
+import type { Nitro } from "nitro/types";
 import { klona } from "klona";
 import { createStorage as _createStorage, builtinDrivers } from "unstorage";
 

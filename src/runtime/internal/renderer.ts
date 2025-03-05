@@ -7,7 +7,7 @@ import {
   setResponseHeaders,
   setResponseStatus,
 } from "h3";
-import type { RenderHandler, RenderContext } from "nitropack/types";
+import type { RenderHandler, RenderContext } from "nitro/types";
 import { useNitroApp } from "./app";
 import { useRuntimeConfig } from "./config";
 

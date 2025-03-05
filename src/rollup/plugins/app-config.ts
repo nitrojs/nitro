@@ -1,5 +1,5 @@
 import { genImport } from "knitwork";
-import type { Nitro } from "nitropack/types";
+import type { Nitro } from "nitro/types";
 import { virtual } from "./virtual";
 
 export function appConfig(nitro: Nitro) {

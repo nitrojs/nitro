@@ -1,7 +1,7 @@
 import { defineCommand } from "citty";
 import { consola } from "consola";
 import destr from "destr";
-import { createNitro, loadOptions, runTask } from "nitropack/core";
+import { createNitro, loadOptions, runTask } from "nitro/core";
 import { resolve } from "pathe";
 
 export default defineCommand({

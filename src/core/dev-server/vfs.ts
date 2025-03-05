@@ -1,5 +1,5 @@
 import { createError, eventHandler, getRequestHeader, getRequestIP } from "h3";
-import type { Nitro } from "nitropack/types";
+import type { Nitro } from "nitro/types";
 
 export function createVFSHandler(nitro: Nitro) {
   return eventHandler(async (event) => {

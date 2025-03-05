@@ -1,9 +1,5 @@
-import { runtimeDir } from "nitropack/runtime/meta";
-import type {
-  Nitro,
-  NitroEventHandler,
-  NitroRouteRules,
-} from "nitropack/types";
+import { runtimeDir } from "nitro/runtime/meta";
+import type { Nitro, NitroEventHandler, NitroRouteRules } from "nitro/types";
 import { hash } from "ohash";
 import { join } from "pathe";
 import { virtual } from "./virtual";

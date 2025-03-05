@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { transform } from "esbuild";
 import type { Expression, Literal } from "estree";
-import type { Nitro, NitroEventHandler } from "nitropack/types";
+import type { Nitro, NitroEventHandler } from "nitro/types";
 import { extname } from "pathe";
 import type { Plugin } from "rollup";
 

@@ -1,6 +1,6 @@
 import { promises as fsp } from "node:fs";
-import { defineNitroPreset } from "nitropack/kit";
-import type { Nitro } from "nitropack/types";
+import { defineNitroPreset } from "nitro/kit";
+import type { Nitro } from "nitro/types";
 import { dirname, join } from "pathe";
 import { deprecateSWR, writeHeaders, writeRedirects } from "./utils";
 

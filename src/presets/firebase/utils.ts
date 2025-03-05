@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
-import { writeFile } from "nitropack/kit";
-import type { Nitro } from "nitropack/types";
+import { writeFile } from "nitro/kit";
+import type { Nitro } from "nitro/types";
 import { join, relative } from "pathe";
 import { readPackageJSON, writePackageJSON } from "pkg-types";
 import type { FirebaseFunctionsOptions } from "./types";

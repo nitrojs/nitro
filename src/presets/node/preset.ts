@@ -1,4 +1,4 @@
-import { defineNitroPreset } from "nitropack/kit";
+import { defineNitroPreset } from "nitro/kit";
 import { normalize } from "pathe";
 import { resolveModulePath } from "exsolve";
 

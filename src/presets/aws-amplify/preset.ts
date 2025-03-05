@@ -1,4 +1,4 @@
-import { defineNitroPreset } from "nitropack/kit";
+import { defineNitroPreset } from "nitro/kit";
 import { writeAmplifyFiles } from "./utils";
 
 export type { AWSAmplifyOptions as PresetOptions } from "./types";

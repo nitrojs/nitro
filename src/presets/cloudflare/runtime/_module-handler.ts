@@ -1,8 +1,8 @@
 import "#nitro-internal-pollyfills";
 import type * as CF from "@cloudflare/workers-types";
 import type { ExportedHandler } from "@cloudflare/workers-types";
-import { useNitroApp } from "nitropack/runtime";
-import { requestHasBody, runCronTasks } from "nitropack/runtime/internal";
+import { useNitroApp } from "nitro/runtime";
+import { requestHasBody, runCronTasks } from "nitro/runtime/internal";
 
 type MaybePromise<T> = T | Promise<T>;
 

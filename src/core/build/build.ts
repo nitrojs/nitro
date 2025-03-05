@@ -1,5 +1,5 @@
-import { getRollupConfig } from "nitropack/rollup";
-import type { Nitro } from "nitropack/types";
+import { getRollupConfig } from "nitro/rollup";
+import type { Nitro } from "nitro/types";
 import { watchDev } from "./dev";
 import { buildProduction } from "./prod";
 

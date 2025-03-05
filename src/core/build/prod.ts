@@ -1,8 +1,8 @@
 import { promises as fsp } from "node:fs";
 import { formatCompatibilityDate } from "compatx";
-import { writeFile } from "nitropack/kit";
-import { version as nitroVersion } from "nitropack/meta";
-import type { Nitro, NitroBuildInfo, RollupConfig } from "nitropack/types";
+import { writeFile } from "nitro/kit";
+import { version as nitroVersion } from "nitro/meta";
+import type { Nitro, NitroBuildInfo, RollupConfig } from "nitro/types";
 import { dirname, join, relative, resolve } from "pathe";
 import * as rollup from "rollup";
 import { presetsWithConfig } from "../../presets/_types.gen";

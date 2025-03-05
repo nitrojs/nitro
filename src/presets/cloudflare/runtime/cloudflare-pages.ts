@@ -1,6 +1,6 @@
 import "#nitro-internal-pollyfills";
-import { useNitroApp } from "nitropack/runtime";
-import { requestHasBody, runCronTasks } from "nitropack/runtime/internal";
+import { useNitroApp } from "nitro/runtime";
+import { requestHasBody, runCronTasks } from "nitro/runtime/internal";
 import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
 
 import type {

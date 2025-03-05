@@ -1,4 +1,4 @@
-// Backward compatibility for imports from "#internal/nitro/*" or "nitropack/runtime/*"
+// Backward compatibility for imports from "#internal/nitro/*" or "nitro/runtime/*"
 import type { H3Event } from "h3";
 import { getRequestHeader } from "h3";
 

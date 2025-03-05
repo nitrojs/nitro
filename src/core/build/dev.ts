@@ -1,6 +1,6 @@
 import { watch } from "chokidar";
 import defu from "defu";
-import type { Nitro, RollupConfig } from "nitropack/types";
+import type { Nitro, RollupConfig } from "nitro/types";
 import { join } from "pathe";
 import { debounce } from "perfect-debounce";
 import * as rollup from "rollup";

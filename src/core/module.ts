@@ -1,5 +1,5 @@
 import { createJiti } from "jiti";
-import type { Nitro, NitroModule, NitroModuleInput } from "nitropack/types";
+import type { Nitro, NitroModule, NitroModuleInput } from "nitro/types";
 
 export async function installModules(nitro: Nitro) {
   const _modules = [...(nitro.options.modules || [])];

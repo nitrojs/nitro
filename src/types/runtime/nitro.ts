@@ -1,6 +1,6 @@
 import type { App as H3App, H3Event, Router } from "h3";
 import type { Hookable } from "hookable";
-import type { NitroRuntimeHooks as NitroTypesRuntimeHooks } from "nitropack";
+import type { NitroRuntimeHooks as NitroTypesRuntimeHooks } from "nitro";
 import type { AbstractRequest, AbstractResponse } from "node-mock-http";
 
 export interface NitroApp {

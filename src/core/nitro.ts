@@ -1,12 +1,12 @@
 import { consola } from "consola";
 import { createDebugger, createHooks } from "hookable";
-import { runtimeDir } from "nitropack/runtime/meta";
+import { runtimeDir } from "nitro/runtime/meta";
 import type {
   LoadConfigOptions,
   Nitro,
   NitroConfig,
   NitroDynamicConfig,
-} from "nitropack/types";
+} from "nitro/types";
 import { join } from "pathe";
 import { createUnimport } from "unimport";
 import { loadOptions } from "./config/loader";

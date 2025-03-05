@@ -1,10 +1,10 @@
-import type { Nitro } from "nitropack/types";
+import type { Nitro } from "nitro/types";
 import type { Plugin } from "rollup";
 import type { WranglerConfig, CloudflarePagesRoutes } from "./types";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { relative, dirname, extname } from "node:path";
-import { writeFile } from "nitropack/kit";
+import { writeFile } from "nitro/kit";
 import { parseTOML, parseJSONC } from "confbox";
 import { readGitConfig, readPackageJSON, findNearestFile } from "pkg-types";
 import { defu } from "defu";

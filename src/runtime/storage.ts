@@ -1,3 +1,3 @@
-// Backward compatibility for imports from "#internal/nitro/*" or "nitropack/runtime/*"
+// Backward compatibility for imports from "#internal/nitro/*" or "nitro/runtime/*"
 
 export { useStorage } from "./internal/storage";

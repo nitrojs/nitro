@@ -1,5 +1,5 @@
 import { existsSync, promises as fsp } from "node:fs";
-import type { Nitro, PublicAssetDir } from "nitropack/types";
+import type { Nitro, PublicAssetDir } from "nitro/types";
 import { join } from "pathe";
 import { joinURL } from "ufo";
 import { isTest } from "std-env";

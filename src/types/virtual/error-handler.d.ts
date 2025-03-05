@@ -1,4 +1,4 @@
-import type { NitroErrorHandler } from "nitropack/types";
+import type { NitroErrorHandler } from "nitro/types";
 
 type EParams = Parameters<NitroErrorHandler>;
 type EReturn = ReturnType<NitroErrorHandler>;

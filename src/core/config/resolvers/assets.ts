@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { defu } from "defu";
-import type { NitroOptions } from "nitropack/types";
+import type { NitroOptions } from "nitro/types";
 import { resolve } from "pathe";
 import { withLeadingSlash, withoutTrailingSlash } from "ufo";
 

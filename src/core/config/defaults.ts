@@ -1,5 +1,5 @@
-import { runtimeDir } from "nitropack/runtime/meta";
-import type { NitroConfig } from "nitropack/types";
+import { runtimeDir } from "nitro/runtime/meta";
+import type { NitroConfig } from "nitro/types";
 import { resolve } from "pathe";
 import { isDebug, isTest } from "std-env";
 

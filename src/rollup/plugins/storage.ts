@@ -1,5 +1,5 @@
 import { genImport, genSafeVariableName } from "knitwork";
-import type { Nitro } from "nitropack/types";
+import type { Nitro } from "nitro/types";
 import { builtinDrivers } from "unstorage";
 import { virtual } from "./virtual";
 
