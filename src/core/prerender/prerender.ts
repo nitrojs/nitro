@@ -22,7 +22,7 @@ import {
   formatPrerenderRoute,
   matchesIgnorePattern,
 } from "./utils";
-import { scanPublicAssets } from "../build/assets";
+import { scanUnprefixedPublicAssets } from "../build/assets";
 
 const JsonSigRx = /^\s*["[{]|^\s*-?\d{1,16}(\.\d{1,17})?([Ee][+-]?\d+)?\s*$/; // From unjs/destr
 
@@ -121,7 +121,7 @@ export async function prerender(nitro: Nitro) {
     .map((a) => withTrailingSlash(a.baseURL));
 
   const scannedPublicAssets = nitro.options.prerender.ignorePublicAssets
-    ? new Set(await scanPublicAssets(nitro))
+    ? new Set(await scanUnprefixedPublicAssets(nitro))
     : new Set<string>();
 
   const canPrerender = (route = "/") => {

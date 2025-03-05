@@ -8,7 +8,7 @@ import { compressPublicAssets } from "../utils/compress";
 const NEGATION_RE = /^(!?)(.*)$/;
 const PARENT_DIR_GLOB_RE = /!?\.\.\//;
 
-export async function scanPublicAssets(nitro: Nitro) {
+export async function scanUnprefixedPublicAssets(nitro: Nitro) {
   const scannedPaths: string[] = [];
   for (const asset of nitro.options.publicAssets) {
     if (asset.baseURL && asset.baseURL !== "/" && !asset.fallthrough) {
