@@ -37,7 +37,7 @@ function getAddress() {
     return 0;
   }
 
-  const socketName = `worker-${process.pid}-${threadId}-${NITRO_DEV_WORKER_ID}.sock`;
+  const socketName = `worker-${process.pid}-${threadId}-${Math.round(Math.random() * 10_000)}-${NITRO_DEV_WORKER_ID}.sock`;
   const socketPath = join(NITRO_DEV_WORKER_DIR, socketName);
 
   switch (process.platform) {
