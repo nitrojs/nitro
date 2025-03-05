@@ -6,8 +6,6 @@
  * Source: https://github.com/cloudflare/workers-sdk/blob/main/packages/wrangler/src/config/environment.ts
  */
 
-import type { Json } from "./_utils";
-
 /**
  * The `Environment` interface declares all the configuration fields that
  * can be specified for an environment.
@@ -455,7 +453,7 @@ export interface EnvironmentNonInheritable {
    * @default {}
    * @nonInheritable
    */
-  vars: Record<string, string | Json>;
+  vars: Record<string, unknown>;
 
   /**
    * A list of durable objects that your Worker should be bound to.

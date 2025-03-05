@@ -1,13 +1,3 @@
-// Extracted from miniflare
-export type Json =
-  | string
-  | number
-  | boolean
-  | {
-      [key: string]: Json;
-    }
-  | Json[];
-
 // Extracted from @types/yargs
 type PascalCase<S extends string> = string extends S
   ? string

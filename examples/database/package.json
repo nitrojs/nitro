@@ -6,7 +6,6 @@
     "build": "nitro build"
   },
   "devDependencies": {
-    "better-sqlite3": "^8.4.0",
     "nitropack": "latest"
   }
 }

@@ -18,7 +18,7 @@ export const denoServerLegacy = defineNitroPreset(
     },
     unenv: {
       inject: {
-        global: ["unenv/polyfill/global-this", "default"],
+        global: ["unenv/polyfill/globalthis-global", "default"],
         Buffer: ["node:buffer", "Buffer"],
         setTimeout: ["node:timers", "setTimeout"],
         clearTimeout: ["node:timers", "clearTimeout"],

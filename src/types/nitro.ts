@@ -55,7 +55,7 @@ export interface NitroBuildInfo {
   };
   dev?: {
     pid: number;
-    workerAddress: { host: string; port: number; socketPath?: string };
+    workerAddress?: { host: string; port: number; socketPath?: string };
   };
   config?: Partial<PresetOptions>;
 }

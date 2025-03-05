@@ -5,21 +5,42 @@ import { isWindows } from "std-env";
 import { describeIf, setupTest, testNitro } from "../tests";
 
 describeIf(!isWindows, "nitro:preset:vercel-edge", async () => {
-  const ctx = await setupTest("vercel-edge");
+  const ctx = await setupTest("vercel-edge", {
+    config: {
+      minify: false,
+    },
+  });
   testNitro(ctx, async () => {
-    // TODO: Add add-event-listener
     const entry = resolve(ctx.outDir, "functions/__nitro.func/index.mjs");
-    const initialCode = await fsp.readFile(entry, "utf8");
-    const runtime = new EdgeRuntime({
-      extend: (context) =>
-        Object.assign(context, { process: { env: { ...ctx.env } } }),
-    });
-    runtime.evaluate(
-      initialCode.replace(
+
+    const init = (await fsp.readFile(entry, "utf8"))
+      .replace(
         /export ?{ ?handleEvent as default ?}/,
         "globalThis.handleEvent = handleEvent"
       )
-    );
+      // TODO: we can use AST to replace this.
+      // This is only needed for testing via EdgeRuntime since unlike prod (workerd?), it is a simple Node.js isolate
+      .replace(
+        /import\s+(.+)\s+from\s+['"](node:[^'"]+)['"]/g,
+        "const $1 = process.getBuiltinModule('$2')"
+      )
+      .replace(
+        `const nodeAsyncHooks, { AsyncLocalStorage } = process.getBuiltinModule('node:async_hooks');`,
+        `const nodeAsyncHooks = process.getBuiltinModule('node:async_hooks'); const { AsyncLocalStorage } = nodeAsyncHooks;`
+      );
+
+    const runtime = new EdgeRuntime({
+      extend: (context) =>
+        Object.assign(context, {
+          process: {
+            env: { ...ctx.env },
+            getBuiltinModule: process.getBuiltinModule,
+          },
+        }),
+    });
+
+    await runtime.evaluate(`(async function() { ${init} })()`);
+
     return async ({ url, headers, method, body }) => {
       const isGet = ["get", "head"].includes((method || "get").toLowerCase());
       const res = await runtime.evaluate(

@@ -242,8 +242,8 @@ export function deprecateSWR(nitro: Nitro) {
     }
   }
   if (hasLegacyOptions && !isTest) {
-    console.warn(
-      "[nitro] Nitro now uses `isr` option to configure ISR behavior on Vercel. Backwards-compatible support for `static` and `swr` options within the Vercel Build Options API will be removed in the future versions. Set `future.nativeSWR: true` nitro config disable this warning."
+    nitro.logger.warn(
+      "Nitro now uses `isr` option to configure ISR behavior on Vercel. Backwards-compatible support for `static` and `swr` options within the Vercel Build Options API will be removed in the future versions. Set `future.nativeSWR: true` nitro config disable this warning."
     );
   }
 }

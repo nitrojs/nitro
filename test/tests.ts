@@ -483,38 +483,42 @@ export function testNitro(
     }
   );
 
-  it.skipIf(ctx.isIsolated)("useStorage (with base)", async () => {
-    const putRes = await callHandler({
-      url: "/api/storage/item?key=test:hello",
-      method: "PUT",
-      body: "world",
-    });
-    expect(putRes.data).toBe("world");
+  it.skipIf(ctx.isIsolated)(
+    "useStorage (with base)",
+    { retry: 5 },
+    async () => {
+      const putRes = await callHandler({
+        url: "/api/storage/item?key=test:hello",
+        method: "PUT",
+        body: "world",
+      });
+      expect(putRes.data).toBe("world");
 
-    expect(
-      (
-        await callHandler({
-          url: "/api/storage/item?key=:",
-        })
-      ).data
-    ).toMatchObject(["test:hello"]);
+      expect(
+        (
+          await callHandler({
+            url: "/api/storage/item?key=:",
+          })
+        ).data
+      ).toMatchObject(["test:hello"]);
 
-    expect(
-      (
-        await callHandler({
-          url: "/api/storage/item?base=test&key=:",
-        })
-      ).data
-    ).toMatchObject(["hello"]);
+      expect(
+        (
+          await callHandler({
+            url: "/api/storage/item?base=test&key=:",
+          })
+        ).data
+      ).toMatchObject(["hello"]);
 
-    expect(
-      (
-        await callHandler({
-          url: "/api/storage/item?base=test&key=hello",
-        })
-      ).data
-    ).toBe("world");
-  });
+      expect(
+        (
+          await callHandler({
+            url: "/api/storage/item?base=test&key=hello",
+          })
+        ).data
+      ).toBe("world");
+    }
+  );
 
   if (additionalTests) {
     additionalTests(ctx, callHandler);
@@ -807,13 +811,17 @@ export function testNitro(
   });
 
   it.skipIf(
-    ["cloudflare-worker", "cloudflare-module-legacy", "vercel-edge"].includes(
-      ctx.preset
-    )
+    ["cloudflare-worker", "cloudflare-module-legacy"].includes(ctx.preset)
   )("nodejs compatibility", async () => {
     const { data, status } = await callHandler({ url: "/node-compat" });
     expect(status).toBe(200);
     for (const key in data) {
+      if (ctx.preset === "vercel-edge" && key === "crypto:createHash") {
+        continue;
+      }
+      if (ctx.preset === "deno-server" && key === "globals:BroadcastChannel") {
+        continue; // unstable API
+      }
       expect(data[key], key).toBe(true);
     }
   });

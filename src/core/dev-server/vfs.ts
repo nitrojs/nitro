@@ -1,8 +1,17 @@
-import { createError, eventHandler, getRequestHeader } from "h3";
+import { createError, eventHandler, getRequestHeader, getRequestIP } from "h3";
 import type { Nitro } from "nitropack/types";
 
 export function createVFSHandler(nitro: Nitro) {
   return eventHandler(async (event) => {
+    const ip = getRequestIP(event, { xForwardedFor: false });
+    const isLocalRequest = ip && /^::1$|^127\.\d+\.\d+\.\d+$/.test(ip);
+    if (!isLocalRequest) {
+      throw createError({
+        message: `Forbidden IP: "${ip || "?"}"`,
+        statusCode: 403,
+      });
+    }
+
     const vfsEntries = {
       ...nitro.vfs,
       ...nitro.options.virtual,

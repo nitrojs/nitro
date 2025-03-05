@@ -1,11 +1,8 @@
 import { existsSync, promises as fsp } from "node:fs";
 import { defu } from "defu";
 import { genTypeImport } from "knitwork";
-import {
-  lookupNodeModuleSubpath,
-  parseNodeModulePath,
-  resolvePath,
-} from "mlly";
+import { lookupNodeModuleSubpath, parseNodeModulePath } from "mlly";
+import { resolveModulePath } from "exsolve";
 import { isDirectory, resolveNitroPath, writeFile } from "nitropack/kit";
 import { runtimeDir } from "nitropack/runtime/meta";
 import type { Nitro, NitroTypes } from "nitropack/types";
@@ -66,9 +63,13 @@ export async function writeTypes(nitro: Nitro) {
       }
       let path = resolveAlias(i.from, nitro.options.alias);
       if (!isAbsolute(path)) {
-        const resolvedPath = await resolvePath(i.from, {
-          url: nitro.options.nodeModulesDirs,
-        }).catch(() => null);
+        const resolvedPath = resolveModulePath(i.from, {
+          try: true,
+          from: nitro.options.nodeModulesDirs,
+          conditions: ["type", "node", "import"],
+          suffixes: ["", "/index"],
+          extensions: [".mjs", ".cjs", ".js", ".mts", ".cts", ".ts"],
+        });
         if (resolvedPath) {
           const { dir, name } = parseNodeModulePath(resolvedPath);
           if (!dir || !name) {
@@ -280,9 +281,8 @@ declare module "nitropack/types" {
     });
 
     for (const alias in tsConfig.compilerOptions!.paths) {
-      const paths = tsConfig.compilerOptions!.paths[alias];
-      tsConfig.compilerOptions!.paths[alias] = await Promise.all(
-        paths.map(async (path: string) => {
+      const paths = await Promise.all(
+        tsConfig.compilerOptions!.paths[alias].map(async (path: string) => {
           if (!isAbsolute(path)) {
             return path;
           }
@@ -297,6 +297,7 @@ declare module "nitropack/types" {
           );
         })
       );
+      tsConfig.compilerOptions!.paths[alias] = [...new Set(paths)];
     }
 
     tsConfig.include = [

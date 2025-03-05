@@ -1,7 +1,7 @@
-import { builtinModules } from "node:module";
 import { defineNitroPreset } from "nitropack/kit";
 import { writeFile } from "nitropack/kit";
 import { resolve } from "pathe";
+import { unenvDenoPreset } from "../_unenv/preset-deno";
 
 import { denoServerLegacy } from "./preset-legacy";
 
@@ -17,9 +17,10 @@ const denoDeploy = defineNitroPreset(
       deploy:
         "cd ./ && deployctl deploy --project=<project_name> server/index.ts",
     },
+    unenv: unenvDenoPreset,
     rollupConfig: {
       preserveEntrySignatures: false,
-      external: (id) => id.startsWith("https://"),
+      external: (id) => id.startsWith("https://") || id.startsWith("node:"),
       output: {
         entryFileNames: "index.ts",
         manualChunks: (id) => "index",

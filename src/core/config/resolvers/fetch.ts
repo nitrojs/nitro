@@ -1,4 +1,5 @@
 import consola from "consola";
+import { resolveModulePath } from "exsolve";
 import type { NitroOptions } from "nitropack/types";
 import { nodeMajorVersion, provider } from "std-env";
 
@@ -13,7 +14,10 @@ export async function resolveFetchOptions(options: NitroOptions) {
   }
   if (!options.experimental.nodeFetchCompat) {
     options.alias = {
-      "node-fetch-native/polyfill": "unenv/mock/empty",
+      "node-fetch-native/polyfill": resolveModulePath("unenv/mock/empty", {
+        from: import.meta.url,
+      }),
+      "node-fetch-native/native": "node-fetch-native/native",
       "node-fetch-native": "node-fetch-native/native",
       ...options.alias,
     };
