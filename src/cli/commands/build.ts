@@ -35,7 +35,7 @@ export default defineCommand({
     },
   },
   setup() {
-    overrideEnv('production')
+    overrideEnv("production");
   },
   async run({ args }) {
     const rootDir = resolve((args.dir || args._dir || ".") as string);

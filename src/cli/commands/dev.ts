@@ -19,7 +19,7 @@ export default defineCommand({
     ...getArgs(),
   },
   setup() {
-    overrideEnv('development')
+    overrideEnv("development");
   },
   async run({ args }) {
     const rootDir = resolve((args.dir || args._dir || ".") as string);
