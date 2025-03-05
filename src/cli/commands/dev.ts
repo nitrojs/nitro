@@ -5,6 +5,7 @@ import { build, createDevServer, createNitro, prepare } from "nitropack/core";
 import type { Nitro } from "nitropack/types";
 import { resolve } from "pathe";
 import { commonArgs } from "../common";
+import { overrideEnv } from "../utils/env";
 
 const hmrKeyRe = /^runtimeConfig\.|routeRules\./;
 
@@ -16,6 +17,9 @@ export default defineCommand({
   args: {
     ...commonArgs,
     ...getArgs(),
+  },
+  setup() {
+    overrideEnv('development')
   },
   async run({ args }) {
     const rootDir = resolve((args.dir || args._dir || ".") as string);

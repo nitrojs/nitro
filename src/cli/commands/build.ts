@@ -9,6 +9,7 @@ import {
 } from "nitropack/core";
 import { resolve } from "pathe";
 import { commonArgs } from "../common";
+import { overrideEnv } from "../utils/env";
 
 export default defineCommand({
   meta: {
@@ -32,6 +33,9 @@ export default defineCommand({
       description:
         "The date to use for preset compatibility (you can also use `NITRO_COMPATIBILITY_DATE` environment variable).",
     },
+  },
+  setup() {
+    overrideEnv('production')
   },
   async run({ args }) {
     const rootDir = resolve((args.dir || args._dir || ".") as string);
