@@ -120,7 +120,7 @@ export async function prerender(nitro: Nitro) {
     )
     .map((a) => withTrailingSlash(a.baseURL));
 
-  const scannedPublicAssets = nitro.options.prerender.ignorePublicAssets
+  const scannedPublicAssets = nitro.options.prerender.ignoreUnprefixedPublicAssets
     ? new Set(await scanUnprefixedPublicAssets(nitro))
     : new Set<string>();
 
