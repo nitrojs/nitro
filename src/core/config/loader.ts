@@ -105,7 +105,8 @@ async function _loadUserConfig(
     },
     async defaultConfig({ configs }) {
       const getConf = <K extends keyof NitroConfig>(key: K) =>
-        (configs.main?.[key] ??
+        (configOverrides[key] ??
+          configs.main?.[key] ??
           configs.rc?.[key] ??
           configs.packageJson?.[key]) as NitroConfig[K];
 
