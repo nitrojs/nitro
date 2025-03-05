@@ -63,7 +63,7 @@ function createNitroApp(): NitroApp {
     onRequest: async (event) => {
       // Init nitro context
       event.context.nitro = event.context.nitro || { errors: [] };
-      
+
       await nitroApp.hooks.callHook("request", event).catch((error) => {
         captureError(error, { event, tags: ["request"] });
       });
