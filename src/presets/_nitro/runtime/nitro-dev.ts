@@ -32,38 +32,15 @@ if (import.meta._websocket) {
   server.on("upgrade", handleUpgrade);
 }
 
-function getAddress() {
-  if (NITRO_NO_UNIX_SOCKET || process.versions.webcontainer) {
-    return 0;
-  }
+let listener: Server | undefined;
 
-  const socketName = `worker-${process.pid}-${threadId}-${Math.round(Math.random() * 10_000)}-${NITRO_DEV_WORKER_ID}.sock`;
-  const socketPath = join(NITRO_DEV_WORKER_DIR, socketName);
-
-  switch (process.platform) {
-    case "win32": {
-      return join(String.raw`\\.\pipe\nitro`, socketPath);
-    }
-    case "linux": {
-      return `\0${socketPath}`;
-    }
-    default: {
-      return socketPath;
-    }
-  }
-}
-
-const listenAddress = getAddress();
-const listener = server.listen(listenAddress, () => {
-  const _address = server.address();
-  parentPort?.postMessage({
-    event: "listen",
-    address:
-      typeof _address === "string"
-        ? { socketPath: _address }
-        : { host: "localhost", port: _address?.port },
+listen()
+  .catch(() => listen(true /* use random port */))
+  // eslint-disable-next-line unicorn/prefer-top-level-await
+  .catch((error) => {
+    console.error("Failed to listen on any port", error);
+    return shutdown();
   });
-});
 
 // Register tasks handlers
 nitroApp.router.get(
@@ -81,6 +58,7 @@ nitroApp.router.get(
     };
   })
 );
+
 nitroApp.router.use(
   "/_nitro/tasks/:name",
   defineEventHandler(async (event) => {
@@ -98,23 +76,69 @@ nitroApp.router.use(
 // Trap unhandled errors
 trapUnhandledNodeErrors();
 
+// Scheduled tasks
+if (import.meta._tasks) {
+  startScheduleRunner();
+}
+
 // Force shutdown
-async function onShutdown() {
+async function shutdown() {
   server.closeAllConnections?.();
   await Promise.all([
-    new Promise((resolve) => listener.close(resolve)),
+    new Promise((resolve) => listener?.close(resolve)),
     nitroApp.hooks.callHook("close").catch(console.error),
   ]);
+  parentPort?.postMessage({ event: "exit" });
 }
 
 parentPort?.on("message", async (msg) => {
   if (msg && msg.event === "shutdown") {
-    await onShutdown();
-    parentPort?.postMessage({ event: "exit" });
+    shutdown();
   }
 });
 
-// Scheduled tasks
-if (import.meta._tasks) {
-  startScheduleRunner();
+// --- utils ---
+
+function listen(
+  useRandomPort: boolean = Boolean(
+    NITRO_NO_UNIX_SOCKET || process.versions.webcontainer
+  )
+) {
+  return new Promise<void>((resolve, reject) => {
+    try {
+      listener = server.listen(useRandomPort ? 0 : getSocketAddress(), () => {
+        const address = server.address();
+        console.log(address);
+        parentPort?.postMessage({
+          event: "listen",
+          address:
+            typeof address === "string"
+              ? { socketPath: address }
+              : { host: "localhost", port: address?.port },
+        });
+        resolve();
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+function getSocketAddress() {
+  const socketName = `worker-${process.pid}-${threadId}-${Math.round(Math.random() * 10_000)}-${NITRO_DEV_WORKER_ID}.sock`;
+  const socketPath = join(NITRO_DEV_WORKER_DIR, socketName);
+  if (Math.random() > 0.5) {
+    throw new Error("Random error");
+  }
+  switch (process.platform) {
+    case "win32": {
+      return join(String.raw`\\.\pipe\nitro`, socketPath);
+    }
+    case "linux": {
+      return `\0${socketPath}`;
+    }
+    default: {
+      return socketPath;
+    }
+  }
 }
