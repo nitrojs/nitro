@@ -12,7 +12,8 @@ import {
 import { readFile } from "node:fs/promises";
 import { resolve, dirname } from "node:path";
 import consola from "consola";
-import { Youch, ErrorParser } from "#deps/youch";
+import * as _youch from "#deps/youch";
+import type { ErrorParser } from "youch-core";
 import { SourceMapConsumer } from "source-map";
 import { defineNitroErrorHandler, type InternalHandlerResponse } from "./utils";
 
@@ -59,7 +60,7 @@ export async function defaultHandler(
   await loadStackTrace(error).catch(consola.error);
 
   // https://github.com/poppinss/youch
-  const youch = new Youch();
+  const youch = new _youch.Youch();
 
   // Console output
   if (isSensitive && !opts?.silent) {
@@ -128,7 +129,7 @@ export async function loadStackTrace(error: any) {
   if (!(error instanceof Error)) {
     return;
   }
-  const parsed = await new ErrorParser()
+  const parsed = await new _youch.ErrorParser()
     .defineSourceLoader(sourceLoader)
     .parse(error);
 
