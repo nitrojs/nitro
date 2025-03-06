@@ -5,6 +5,9 @@
   "repository": "nitrojs/nitro",
   "license": "MIT",
   "type": "module",
+  "imports": {
+    "#deps/youch": "./dist/deps/youch/youch.mjs"
+  },
   "exports": {
     "./cli": {
       "types": "./cli.d.ts",
@@ -169,9 +172,7 @@
     "unplugin-utils": "^0.2.4",
     "unstorage": "^1.15.0",
     "untyped": "^2.0.0",
-    "unwasm": "^0.3.9",
-    "youch": "4.1.0-beta.5",
-    "youch-core": "^0.3.1"
+    "unwasm": "^0.3.9"
   },
   "devDependencies": {
     "@azure/functions": "^3.5.1",
@@ -207,7 +208,9 @@
     "unbuild": "^3.5.0",
     "undici": "^7.4.0",
     "vitest": "^3.0.7",
-    "xml2js": "^0.6.2"
+    "xml2js": "^0.6.2",
+    "youch": "4.1.0-beta.5",
+    "youch-core": "^0.3.1"
   },
   "peerDependencies": {
     "xml2js": "^0.6.2"
