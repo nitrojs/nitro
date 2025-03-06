@@ -6,6 +6,7 @@ import { startScheduleRunner } from "nitropack/runtime/internal";
 import { scheduledTasks, tasks } from "#nitro-internal-virtual/tasks";
 import { Server } from "node:http";
 import { join } from "node:path";
+import nodeCrypto from "node:crypto";
 import { parentPort, threadId } from "node:worker_threads";
 import wsAdapter from "crossws/adapters/node";
 import {
@@ -15,6 +16,11 @@ import {
   readBody,
   toNodeListener,
 } from "h3";
+
+// globalThis.crypto support for Node.js 18
+if (!globalThis.crypto) {
+  globalThis.crypto = nodeCrypto as unknown as Crypto;
+}
 
 const {
   NITRO_NO_UNIX_SOCKET,
