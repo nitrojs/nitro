@@ -396,10 +396,10 @@ export function testNitro(
     });
 
     const { data } = await callHandler({
-      url: "/api/error?custom_error_handler",
+      url: "/api/error?json",
     });
     expect(status).toBe(503);
-    expect(data).toBe("custom_error_handler");
+    expect(data.json.error).toBe(true);
   });
 
   it.skipIf(isWindows && ctx.preset === "nitro-dev")(

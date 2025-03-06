@@ -67,5 +67,14 @@ export interface NitroDevEventHandler {
 
 export type NitroErrorHandler = (
   error: H3Error,
-  event: H3Event
+  event: H3Event,
+  _: {
+    defaultHandler: (
+      error: H3Error,
+      event: H3Event,
+      opts?: { silent?: boolean; json?: boolean }
+    ) => Omit<ResponseInit, "body"> & {
+      body: string | Record<string, any>;
+    };
+  }
 ) => void | Promise<void>;

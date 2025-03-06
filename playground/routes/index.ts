@@ -1,3 +1,3 @@
 export default eventHandler(async (event) => {
-  return {};
+  return foo.bar;
 });
