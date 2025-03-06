@@ -15,12 +15,12 @@ import consola from "consola";
 import { ErrorParser } from "youch-core";
 import { Youch } from "youch";
 import { SourceMapConsumer } from "source-map";
-import { defineNitroErrorHandler } from "./utils";
+import { defineNitroErrorHandler, type InternalHandlerResponse } from "./utils";
 
 export default defineNitroErrorHandler(
   async function defaultNitroErrorHandler(error, event) {
     const res = await defaultHandler(error, event);
-    setResponseHeaders(event, res.headers);
+    setResponseHeaders(event, res.headers!);
     setResponseStatus(event, res.status, res.statusText);
     return send(
       event,
@@ -35,7 +35,7 @@ export async function defaultHandler(
   error: H3Error,
   event: H3Event,
   opts?: { silent?: boolean; json?: boolean }
-) {
+): Promise<InternalHandlerResponse> {
   const isSensitive = error.unhandled || error.fatal;
   const statusCode = error.statusCode || 500;
   const statusMessage = error.statusMessage || "Server Error";
@@ -120,8 +120,6 @@ export async function defaultHandler(
     statusText: statusMessage,
     headers,
     body,
-  } satisfies Omit<ResponseInit, "body"> & {
-    body: string | Record<string, any>;
   };
 }
 

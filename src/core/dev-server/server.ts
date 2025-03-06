@@ -14,7 +14,8 @@ import {
   toNodeListener,
 } from "h3";
 import {
-  default as defaultErrorHandler,
+  default as devErrorHandler,
+  defaultHandler as devErrorHandlerInternal,
   loadStackTrace,
 } from "../../runtime/internal/error/dev";
 import { version as nitroVersion } from "nitropack/meta";
@@ -195,9 +196,11 @@ class DevServer {
     const app = createApp({
       onError: async (error, event) => {
         const errorHandler =
-          this.nitro.options.devErrorHandler || defaultErrorHandler;
+          this.nitro.options.devErrorHandler || devErrorHandler;
         await loadStackTrace(error).catch(() => {});
-        return errorHandler(error, event);
+        return errorHandler(error, event, {
+          defaultHandler: devErrorHandlerInternal,
+        });
       },
     });
 

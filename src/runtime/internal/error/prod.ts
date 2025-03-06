@@ -7,7 +7,7 @@ import {
   setResponseHeaders,
   setResponseStatus,
 } from "h3";
-import { defineNitroErrorHandler } from "./utils";
+import { defineNitroErrorHandler, type InternalHandlerResponse } from "./utils";
 
 export default defineNitroErrorHandler(
   function defaultNitroErrorHandler(error, event) {
@@ -22,7 +22,7 @@ export function defaultHandler(
   error: H3Error,
   event: H3Event,
   opts?: { silent?: boolean; json?: boolean }
-) {
+): InternalHandlerResponse {
   const isSensitive = error.unhandled || error.fatal;
   const statusCode = error.statusCode || 500;
   const statusMessage = error.statusMessage || "Server Error";
@@ -35,6 +35,7 @@ export function defaultHandler(
       const redirectTo = `${baseURL}${url.pathname.slice(1)}${url.search}`;
       return {
         status: 302,
+        statusText: "Found",
         headers: { location: redirectTo },
         body: `Redirecting...`,
       };
@@ -79,7 +80,5 @@ export function defaultHandler(
     statusText: statusMessage,
     headers,
     body,
-  } satisfies Omit<ResponseInit, "body"> & {
-    body: string | Record<string, any>;
   };
 }
