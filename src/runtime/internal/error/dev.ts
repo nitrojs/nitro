@@ -93,7 +93,7 @@ export async function defaultHandler(
       "script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self';",
   };
   if (statusCode === 404 || !getResponseHeader(event, "cache-control")) {
-    headers["Cache-Control"] = "no-cache";
+    headers["cache-control"] = "no-cache";
   }
 
   // Prepare body
