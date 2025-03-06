@@ -227,12 +227,9 @@ importers:
       unwasm:
         specifier: ^0.3.9
         version: 0.3.9
-      youch:
-        specifier: 4.1.0-beta.5
-        version: 4.1.0-beta.5
-      youch-core:
-        specifier: ^0.3.1
-        version: 0.3.1
+      youch-redist:
+        specifier: 4.1.0-beta.5-1
+        version: 4.1.0-beta.5-1
     devDependencies:
       '@azure/functions':
         specifier: ^3.5.1
@@ -336,6 +333,12 @@ importers:
       xml2js:
         specifier: ^0.6.2
         version: 0.6.2
+      youch:
+        specifier: ^4.1.0-beta.5
+        version: 4.1.0-beta.5
+      youch-core:
+        specifier: ^0.3.1
+        version: 0.3.1
 
   examples/api-routes:
     devDependencies:
@@ -5896,6 +5899,9 @@ packages:
   youch-core@0.3.1:
     resolution: {integrity: sha512-KOAmtABz17fgK+uBBJYIzaPpIgX+JgTRgY4t3zXH18akc5rRtFkRmcNTMCuSxLdbOJDY9+T/O3nyA/EQuN4EWA==}
     engines: {node: '>=20.6.0'}
+
+  youch-redist@4.1.0-beta.5-1:
+    resolution: {integrity: sha512-IlNgclEfelti10dh7yzGfQxhowEasVPr4zEN/At+uOzfWv74HiRx2Uz4gyvCRcez0dk1PDerl5aQhKxUKXKClg==}
 
   youch@3.2.3:
     resolution: {integrity: sha512-ZBcWz/uzZaQVdCvfV4uk616Bbpf2ee+F/AvuKDR5EwX/Y4v06xWdtMluqTD7+KlZdM93lLm9gMZYo0sKBS0pgw==}
@@ -12218,6 +12224,8 @@ snapshots:
     dependencies:
       '@poppinss/exception': 1.2.0
       error-stack-parser-es: 0.1.5
+
+  youch-redist@4.1.0-beta.5-1: {}
 
   youch@3.2.3:
     dependencies:
