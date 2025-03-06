@@ -91,7 +91,7 @@ async function shutdown() {
   parentPort?.postMessage({ event: "exit" });
 }
 
-parentPort?.on("message", async (msg) => {
+parentPort?.on("message", (msg) => {
   if (msg && msg.event === "shutdown") {
     shutdown();
   }
