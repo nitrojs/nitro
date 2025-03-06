@@ -7,6 +7,7 @@ import { rm } from "node:fs/promises";
 import { join } from "pathe";
 import { Worker } from "node:worker_threads";
 import consola from "consola";
+import { isCI, isTest } from "std-env";
 import { createHTTPProxy } from "./proxy";
 
 export type WorkerAddress = { host: string; port: number; socketPath?: string };
@@ -152,7 +153,7 @@ export class NodeDevWorker implements DevWorker {
     }
     this.#worker.postMessage({ event: "shutdown" });
 
-    if (!this.#worker._exitCode) {
+    if (!this.#worker._exitCode && !isTest && !isCI) {
       await new Promise<void>((resolve) => {
         const gracefulShutdownTimeoutSec =
           Number.parseInt(process.env.NITRO_SHUTDOWN_TIMEOUT || "", 10) || 5;

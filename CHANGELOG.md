@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## v2.11.2
+
+[compare changes](https://github.com/nitrojs/nitro/compare/v2.11.1...v2.11.2)
+
+### 🩹 Fixes
+
+- **prerender:** Ignore prefixed public assets ([#3093](https://github.com/nitrojs/nitro/pull/3093))
+- **dev:** Mark event as handled before sending proxy ([058819aa](https://github.com/nitrojs/nitro/commit/058819aa))
+- **dev:** Force close server immediately in test and ci ([97ed879a](https://github.com/nitrojs/nitro/commit/97ed879a))
+- **dev:** Close all connections when reloading ([5b5e10e7](https://github.com/nitrojs/nitro/commit/5b5e10e7))
+- **config:** Respect config overrides for defaults ([#3158](https://github.com/nitrojs/nitro/pull/3158))
+
+### 💅 Refactors
+
+- Move handled set to proxy util ([67c396ba](https://github.com/nitrojs/nitro/commit/67c396ba))
+
+### 🏡 Chore
+
+- **release:** V2.11.1 ([cd3b8724](https://github.com/nitrojs/nitro/commit/cd3b8724))
+- Update deps ([53da847b](https://github.com/nitrojs/nitro/commit/53da847b))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+- Daniel Roe ([@danielroe](https://github.com/danielroe))
+
 ## v2.11.1
 
 [compare changes](https://github.com/nitrojs/nitro/compare/v2.11.0...v2.11.1)

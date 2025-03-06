@@ -98,10 +98,15 @@ nitroApp.router.use(
 // Trap unhandled errors
 trapUnhandledNodeErrors();
 
-// Graceful shutdown
-async function onShutdown(signal?: NodeJS.Signals) {
-  await nitroApp.hooks.callHook("close");
+// Force shutdown
+async function onShutdown() {
+  server.closeAllConnections?.();
+  await Promise.all([
+    new Promise((resolve) => listener.close(resolve)),
+    nitroApp.hooks.callHook("close").catch(console.error),
+  ]);
 }
+
 parentPort?.on("message", async (msg) => {
   if (msg && msg.event === "shutdown") {
     await onShutdown();
