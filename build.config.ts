@@ -3,13 +3,8 @@ import { fileURLToPath } from "node:url";
 import { resolve } from "pathe";
 import { normalize } from "pathe";
 import { defineBuildConfig } from "unbuild";
-import { build } from "esbuild";
-import { cp } from "node:fs/promises";
-import { readPackageJSON } from "pkg-types";
 
 const srcDir = fileURLToPath(new URL("src", import.meta.url));
-
-const ver = (id: string) => readPackageJSON(id).then((m) => m.version);
 
 export const subpaths = [
   "cli",
@@ -55,9 +50,6 @@ export default defineBuildConfig({
         );
       }
     },
-    async "rollup:done"(ctx) {
-      await buildYouch();
-    },
   },
   externals: [
     "nitro",
@@ -94,31 +86,3 @@ export default defineBuildConfig({
     },
   },
 });
-
-async function buildYouch() {
-  await build({
-    stdin: {
-      contents: /* js */ `export { Youch } from "youch"; export { ErrorParser } from "youch-core";`,
-      resolveDir: process.cwd(),
-    },
-    banner: {
-      js: [
-        "Copyright (c) virk.officials@gmail.com",
-        `Bundled https://github.com/poppinss/youch ${await ver("youch")} (MIT)`,
-        `Bundled https://github.com/poppinss/youch-core ${await ver("youch-core")} (MIT)`,
-      ]
-        .map((line) => `// ${line}`)
-        .join("\n"),
-    },
-    bundle: true,
-    outfile: "dist/deps/youch/youch.mjs",
-    platform: "node",
-    target: "esnext",
-    format: "esm",
-    legalComments: "inline",
-    minifyWhitespace: true,
-  });
-
-  const youchDir = new URL("public", import.meta.resolve("youch"));
-  await cp(youchDir, "dist/deps/youch/public", { recursive: true });
-}

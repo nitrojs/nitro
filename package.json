@@ -62,7 +62,6 @@
       "types": "./types.d.ts",
       "import": "./dist/types/index.mjs"
     },
-    "./internal/deps/youch": "./dist/deps/youch/youch.mjs",
     "./package.json": "./package.json"
   },
   "main": "./dist/core/index.mjs",
@@ -170,7 +169,9 @@
     "unplugin-utils": "^0.2.4",
     "unstorage": "^1.15.0",
     "untyped": "^2.0.0",
-    "unwasm": "^0.3.9"
+    "unwasm": "^0.3.9",
+    "youch": "4.1.0-beta.5",
+    "youch-core": "^0.3.1"
   },
   "devDependencies": {
     "@azure/functions": "^3.5.1",
@@ -206,9 +207,7 @@
     "unbuild": "^3.5.0",
     "undici": "^7.4.0",
     "vitest": "^3.0.7",
-    "xml2js": "^0.6.2",
-    "youch": "4.1.0-beta.5",
-    "youch-core": "^0.3.1"
+    "xml2js": "^0.6.2"
   },
   "peerDependencies": {
     "xml2js": "^0.6.2"

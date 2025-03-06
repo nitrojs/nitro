@@ -48,9 +48,9 @@ jobs:
         with:
           deno-version: v2.x
       - run: pnpm install
-      - run: pnpm build
       - run: pnpm test:types
         if: ${{ matrix.os != 'windows-latest' }}
+      - run: pnpm build
       - run: pnpm vitest --coverage
         env:
           NODE_OPTIONS: --experimental-vm-modules --enable-source-maps
