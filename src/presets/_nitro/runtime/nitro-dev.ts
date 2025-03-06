@@ -41,7 +41,7 @@ listen()
   .catch(() => listen(true /* use random port */))
   // eslint-disable-next-line unicorn/prefer-top-level-await
   .catch((error) => {
-    console.error("Failed to listen on any port", error);
+    console.error("Dev worker failed to listen:", error);
     return shutdown();
   });
 
