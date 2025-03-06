@@ -108,7 +108,6 @@ function listen(
     try {
       listener = server.listen(useRandomPort ? 0 : getSocketAddress(), () => {
         const address = server.address();
-        console.log(address);
         parentPort?.postMessage({
           event: "listen",
           address:
