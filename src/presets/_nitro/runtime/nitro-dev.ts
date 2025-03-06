@@ -126,9 +126,6 @@ function listen(
 function getSocketAddress() {
   const socketName = `worker-${process.pid}-${threadId}-${Math.round(Math.random() * 10_000)}-${NITRO_DEV_WORKER_ID}.sock`;
   const socketPath = join(NITRO_DEV_WORKER_DIR, socketName);
-  if (Math.random() > 0.5) {
-    throw new Error("Random error");
-  }
   switch (process.platform) {
     case "win32": {
       return join(String.raw`\\.\pipe\nitro`, socketPath);
