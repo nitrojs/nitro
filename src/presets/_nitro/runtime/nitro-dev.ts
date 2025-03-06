@@ -22,16 +22,19 @@ const {
   NITRO_DEV_WORKER_ID,
 } = process.env;
 
+// Trap unhandled errors
+trapUnhandledNodeErrors();
+
+// Listen for shutdown signal from runner
+parentPort?.on("message", (msg) => {
+  if (msg && msg.event === "shutdown") {
+    shutdown();
+  }
+});
+
 const nitroApp = useNitroApp();
 
 const server = new Server(toNodeListener(nitroApp.h3App));
-
-// https://crossws.unjs.io/adapters/node
-if (import.meta._websocket) {
-  const { handleUpgrade } = wsAdapter(nitroApp.h3App.websocket);
-  server.on("upgrade", handleUpgrade);
-}
-
 let listener: Server | undefined;
 
 listen()
@@ -41,6 +44,12 @@ listen()
     console.error("Failed to listen on any port", error);
     return shutdown();
   });
+
+// https://crossws.unjs.io/adapters/node
+if (import.meta._websocket) {
+  const { handleUpgrade } = wsAdapter(nitroApp.h3App.websocket);
+  server.on("upgrade", handleUpgrade);
+}
 
 // Register tasks handlers
 nitroApp.router.get(
@@ -58,7 +67,6 @@ nitroApp.router.get(
     };
   })
 );
-
 nitroApp.router.use(
   "/_nitro/tasks/:name",
   defineEventHandler(async (event) => {
@@ -73,29 +81,10 @@ nitroApp.router.use(
   })
 );
 
-// Trap unhandled errors
-trapUnhandledNodeErrors();
-
 // Scheduled tasks
 if (import.meta._tasks) {
   startScheduleRunner();
 }
-
-// Force shutdown
-async function shutdown() {
-  server.closeAllConnections?.();
-  await Promise.all([
-    new Promise((resolve) => listener?.close(resolve)),
-    nitroApp.hooks.callHook("close").catch(console.error),
-  ]);
-  parentPort?.postMessage({ event: "exit" });
-}
-
-parentPort?.on("message", (msg) => {
-  if (msg && msg.event === "shutdown") {
-    shutdown();
-  }
-});
 
 // --- utils ---
 
@@ -137,4 +126,13 @@ function getSocketAddress() {
       return socketPath;
     }
   }
+}
+
+async function shutdown() {
+  server.closeAllConnections?.();
+  await Promise.all([
+    new Promise((resolve) => listener?.close(resolve)),
+    nitroApp.hooks.callHook("close").catch(console.error),
+  ]);
+  parentPort?.postMessage({ event: "exit" });
 }
