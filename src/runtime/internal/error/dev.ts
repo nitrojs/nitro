@@ -9,6 +9,7 @@ import {
   setResponseHeaders,
   setResponseStatus,
 } from "h3";
+import nodeCrypto from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { resolve, dirname } from "node:path";
 import consola from "consola";
@@ -94,6 +95,11 @@ export async function defaultHandler(
   };
   if (statusCode === 404 || !getResponseHeader(event, "cache-control")) {
     headers["cache-control"] = "no-cache";
+  }
+
+  // Crypto polyfill for Node.18 (used by youch > @poppinss+dumper)
+  if (!globalThis.crypto && !useJSON) {
+    globalThis.crypto = nodeCrypto as unknown as Crypto;
   }
 
   // Prepare body
