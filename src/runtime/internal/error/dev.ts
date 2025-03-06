@@ -12,7 +12,7 @@ import {
 import { readFile } from "node:fs/promises";
 import { resolve, dirname } from "node:path";
 import consola from "consola";
-import * as _youch from "#deps/youch";
+import * as _youch from "nitropack/internal/deps/youch";
 import type { ErrorParser } from "youch-core";
 import { SourceMapConsumer } from "source-map";
 import { defineNitroErrorHandler, type InternalHandlerResponse } from "./utils";

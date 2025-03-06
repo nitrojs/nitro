@@ -5,9 +5,6 @@
   "repository": "nitrojs/nitro",
   "license": "MIT",
   "type": "module",
-  "imports": {
-    "#deps/youch": "./dist/deps/youch/youch.mjs"
-  },
   "exports": {
     "./cli": {
       "types": "./cli.d.ts",
@@ -65,6 +62,7 @@
       "types": "./types.d.ts",
       "import": "./dist/types/index.mjs"
     },
+    "./internal/deps/youch": "./dist/deps/youch/youch.mjs",
     "./package.json": "./package.json"
   },
   "main": "./dist/core/index.mjs",

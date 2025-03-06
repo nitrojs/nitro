@@ -55,7 +55,7 @@ export default defineBuildConfig({
         );
       }
     },
-    async "build:done"(ctx) {
+    async "rollup:done"(ctx) {
       await buildYouch();
     },
   },
