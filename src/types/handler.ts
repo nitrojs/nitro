@@ -7,7 +7,7 @@ type MaybeArray<T> = T | T[];
 /** @exprerimental */
 export interface NitroRouteMeta {
   openAPI?: OperationObject & {
-    $global: Pick<OpenAPI3, "components">;
+    $global?: Pick<OpenAPI3, "components">;
   };
 }
 
