@@ -23,11 +23,7 @@ if (!globalThis.crypto) {
   globalThis.crypto = nodeCrypto as unknown as Crypto;
 }
 
-const {
-  NITRO_NO_UNIX_SOCKET,
-  NITRO_DEV_WORKER_DIR = ".",
-  NITRO_DEV_WORKER_ID,
-} = process.env;
+const { NITRO_NO_UNIX_SOCKET, NITRO_DEV_WORKER_ID } = process.env;
 
 // Trap unhandled errors
 trapUnhandledNodeErrors();

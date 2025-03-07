@@ -91,7 +91,6 @@ export class NodeDevWorker implements DevWorker {
       env: {
         ...process.env,
         NITRO_DEV_WORKER_ID: String(this.#id),
-        NITRO_DEV_WORKER_DIR: this.#workerDir,
       },
     }) as Worker & { _exitCode?: number };
 
