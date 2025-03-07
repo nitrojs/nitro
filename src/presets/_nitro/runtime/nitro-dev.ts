@@ -123,7 +123,7 @@ function getSocketAddress() {
   const socketName = `nitro-worker-${process.pid}-${threadId}-${NITRO_DEV_WORKER_ID}-${Math.round(Math.random() * 10_000)}.sock`;
   // Windows: pipe
   if (process.platform === "win32") {
-    return join(String.raw`\\.\pipe`, NITRO_DEV_WORKER_DIR, socketName);
+    return join(String.raw`\\.\pipe`, socketName);
   }
   // Linux: abstract namespace
   if (process.platform === "linux") {
