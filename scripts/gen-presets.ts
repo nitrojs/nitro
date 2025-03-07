@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { consola } from "consola";
 import { createJiti } from "jiti";
 import { findTypeExports } from "mlly";
-import type { NitroPreset, NitroPresetMeta } from "nitropack/types";
+import type { NitroPreset, NitroPresetMeta } from "nitro/types";
 import { camelCase, kebabCase, pascalCase, snakeCase } from "scule";
 import { subpaths } from "../build.config";
 
