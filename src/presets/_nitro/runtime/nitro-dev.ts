@@ -1,4 +1,5 @@
 import "#nitro-internal-pollyfills";
+import { tmpdir } from "node:os";
 import { useNitroApp } from "nitropack/runtime";
 import { runTask } from "nitropack/runtime";
 import { trapUnhandledNodeErrors } from "nitropack/runtime/internal";
@@ -9,7 +10,6 @@ import { join } from "node:path";
 import nodeCrypto from "node:crypto";
 import { parentPort, threadId } from "node:worker_threads";
 import wsAdapter from "crossws/adapters/node";
-import { isCI } from "std-env";
 import {
   defineEventHandler,
   getQuery,
@@ -133,7 +133,7 @@ function getSocketAddress() {
     }
   }
   // Unix socket
-  return join(NITRO_DEV_WORKER_DIR, socketName);
+  return join(tmpdir(), socketName);
 }
 
 async function shutdown() {
