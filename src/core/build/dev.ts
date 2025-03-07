@@ -74,7 +74,7 @@ function startRollupWatcher(nitro: Nitro, rollupConfig: RollupConfig) {
         if (nitro.options.logging.buildSuccess) {
           nitro.logger.success(
             `${nitroServerName(nitro)} built`,
-            start ? `in ${Date.now() - start} ms` : ""
+            start ? `in ${Date.now() - start}ms` : ""
           );
         }
         nitro.hooks.callHook("dev:reload");
