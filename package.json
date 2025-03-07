@@ -170,7 +170,8 @@
     "unstorage": "^1.15.0",
     "untyped": "^2.0.0",
     "unwasm": "^0.3.9",
-    "youch-redist": "4.1.0-beta.5-1"
+    "youch": "^4.1.0-beta.6",
+    "youch-core": "^0.3.1"
   },
   "devDependencies": {
     "@azure/functions": "^3.5.1",
@@ -206,9 +207,7 @@
     "unbuild": "^3.5.0",
     "undici": "^7.4.0",
     "vitest": "^3.0.7",
-    "xml2js": "^0.6.2",
-    "youch": "^4.1.0-beta.5",
-    "youch-core": "^0.3.1"
+    "xml2js": "^0.6.2"
   },
   "peerDependencies": {
     "xml2js": "^0.6.2"
