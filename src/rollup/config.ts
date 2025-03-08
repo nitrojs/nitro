@@ -2,7 +2,6 @@ import { builtinModules, createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 import { isAbsolute } from "node:path";
 import alias from "@rollup/plugin-alias";
-// import terser from "@rollup/plugin-terser"; // TODO: Investigate jiti issue
 import commonjs from "@rollup/plugin-commonjs";
 import inject from "@rollup/plugin-inject";
 import json from "@rollup/plugin-json";
@@ -514,9 +513,6 @@ export const plugins = [
       exportConditions: nitro.options.exportConditions,
     })
   );
-
-  // Automatically mock unresolved externals
-  // rollupConfig.plugins.push(autoMock())
 
   // https://github.com/rollup/plugins/tree/master/packages/commonjs
   rollupConfig.plugins.push(
