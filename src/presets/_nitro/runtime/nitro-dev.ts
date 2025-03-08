@@ -93,7 +93,9 @@ if (import.meta._tasks) {
 
 function listen(
   useRandomPort: boolean = Boolean(
-    NITRO_NO_UNIX_SOCKET || process.versions.webcontainer
+    NITRO_NO_UNIX_SOCKET ||
+      process.versions.webcontainer ||
+      ("Bun" in globalThis && process.platform === "win32")
   )
 ) {
   return new Promise<void>((resolve, reject) => {
