@@ -11,8 +11,6 @@ import {
   createDecipher,
   createDecipheriv,
   createECDH,
-  createSign,
-  createVerify,
   Decipher,
   Decipheriv,
   diffieHellman,
@@ -24,11 +22,7 @@ import {
   pseudoRandomBytes,
   publicDecrypt,
   publicEncrypt,
-  Sign,
-  sign,
   webcrypto as unenvCryptoWebcrypto,
-  Verify,
-  verify,
 } from "unenv/node/crypto";
 
 export {
@@ -37,14 +31,10 @@ export {
   Decipher,
   Decipheriv,
   ECDH,
-  Sign,
-  Verify,
   constants,
   createCipheriv,
   createDecipheriv,
   createECDH,
-  createSign,
-  createVerify,
   diffieHellman,
   getCipherInfo,
   hash,
@@ -52,8 +42,6 @@ export {
   privateEncrypt,
   publicDecrypt,
   publicEncrypt,
-  sign,
-  verify,
 } from "unenv/node/crypto";
 
 export const {
@@ -101,6 +89,12 @@ export const {
   subtle,
   timingSafeEqual,
   fips,
+  Sign,
+  Verify,
+  createSign,
+  createVerify,
+  sign,
+  verify,
 } = workerdCrypto;
 
 export const getRandomValues = workerdCrypto.getRandomValues.bind(
