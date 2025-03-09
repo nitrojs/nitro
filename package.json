@@ -167,7 +167,7 @@
   },
   "packageManager": "pnpm@10.3.0",
   "engines": {
-    "node": "^16.11.0 || >=17.0.0"
+    "node": ">=20.11.1"
   },
   "pnpm": {
     "peerDependencyRules": {
