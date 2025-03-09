@@ -66,6 +66,7 @@ export async function resolvePreset(
     ) || matches[0];
 
   if (typeof preset === "function") {
+    // @ts-expect-error unreachable
     return preset();
   }
 

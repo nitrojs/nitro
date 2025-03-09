@@ -181,10 +181,7 @@ function generateBuildConfig(nitro: Nitro) {
         }
         return {
           src,
-          dest:
-            nitro.options.preset === "vercel-edge"
-              ? "/__nitro?url=$url"
-              : generateEndpoint(key) + "?url=$url",
+          dest: generateEndpoint(key) + "?url=$url",
         };
       }),
     // If we are using an ISR function for /, then we need to write this explicitly
