@@ -65,7 +65,6 @@ const denoServer = defineNitroPreset(
   },
   {
     name: "deno-server" as const,
-    compatibilityDate: "2025-01-30",
     url: import.meta.url,
   }
 );
