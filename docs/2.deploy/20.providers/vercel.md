@@ -10,6 +10,10 @@
 Integration with this provider is possible with [zero configuration](/deploy/#zero-config-providers).
 ::
 
+::tip
+It is recommended to enable [Fluid compute](https://vercel.com/docs/functions/fluid-compute).
+::
+
 ## Deploy using git
 
 1. Push your code to your git repository (GitHub, GitLab, Bitbucket).
@@ -104,9 +108,3 @@ export default defineNitroConfig({
   },
 });
 ```
-
-## Vercel edge functions
-
-**Preset:** `vercel_edge` (deprecated)
-
-We recommend migrating to the default Node.js runtime and enabling [Fluid compute](https://vercel.com/docs/functions/fluid-compute).
