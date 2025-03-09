@@ -1,4 +1,4 @@
-import { glob, rm, rename } from "node:fs/promises";
+import { glob, rm, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { resolve } from "pathe";
 import { normalize } from "pathe";
@@ -31,9 +31,14 @@ export default defineBuildConfig({
   hooks: {
     async "build:done"(ctx) {
       for await (const file of glob(resolve(ctx.options.outDir, "**/*.d.ts"))) {
-        await (file.includes("runtime")
-          ? rename(file, file.replace(/\.d\.ts$/, ".d.mts"))
-          : rm(file));
+        if (file.includes("runtime") || file.includes("presets")) {
+          const dtsContents = (await readFile(file, "utf8")).replaceAll(
+            / from "\.\/(.+)";$/gm,
+            (_, relativePath) => ` from "./${relativePath}.mjs";`
+          );
+          await writeFile(file.replace(/\.d.ts$/, ".d.mts"), dtsContents);
+        }
+        await rm(file);
       }
     },
   },
