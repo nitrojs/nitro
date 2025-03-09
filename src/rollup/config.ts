@@ -26,7 +26,6 @@ import unimportPlugin from "unimport/unplugin";
 import { rollup as unwasm } from "unwasm/plugin";
 import { appConfig } from "./plugins/app-config";
 import { database } from "./plugins/database";
-import { dynamicRequire } from "./plugins/dynamic-require";
 import { esbuild } from "./plugins/esbuild";
 import { externals } from "./plugins/externals";
 import { handlers } from "./plugins/handlers";
@@ -298,22 +297,6 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
       target: "es2019",
       sourceMap: nitro.options.sourceMap,
       ...nitro.options.esbuild?.options,
-    })
-  );
-
-  // Dynamic Require Support
-  rollupConfig.plugins.push(
-    dynamicRequire({
-      dir: resolve(nitro.options.buildDir, "dist/server"),
-      inline:
-        nitro.options.node === false || nitro.options.inlineDynamicImports,
-      ignore: [
-        "client.manifest.mjs",
-        "server.js",
-        "server.cjs",
-        "server.mjs",
-        "server.manifest.mjs",
-      ],
     })
   );
 
