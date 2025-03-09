@@ -95,7 +95,7 @@
     "test:types": "tsc --noEmit && pnpm test:fixture:types"
   },
   "resolutions": {
-    "nitropack": "link:.",
+    "nitro": "link:.",
     "jiti": "link:../jiti"
   },
   "dependencies": {
