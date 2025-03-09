@@ -1,5 +1,5 @@
 import fsp from "node:fs/promises";
-import type { Nitro } from "nitro";
+import type { Nitro } from "nitro/types";
 
 export async function prepare(nitro: Nitro) {
   await prepareDir(nitro.options.output.dir);

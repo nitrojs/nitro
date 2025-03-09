@@ -7,10 +7,6 @@ import type { LogLevel } from "consola";
 import type { ConnectorName } from "db0";
 import type { NestedHooks } from "hookable";
 import type { ProxyServerOptions } from "httpxy";
-import type {
-  NitroRuntimeConfigApp as NitroTypesRuntimeConfigApp,
-  NitroRuntimeConfig as NitroTypeskRuntimeConfig,
-} from "nitro";
 import type { PresetName, PresetNameInput, PresetOptions } from "nitro/presets";
 import type { TSConfig } from "pkg-types";
 import type { PluginVisualizerOptions } from "rollup-plugin-visualizer";
@@ -336,6 +332,20 @@ export type DatabaseConnectionConfigs = Record<
 
 // Runtime config
 
-export interface NitroRuntimeConfigApp extends NitroTypesRuntimeConfigApp {}
+export interface NitroRuntimeConfigApp {
+  baseURL: string;
+  [key: string]: any;
+}
 
-export interface NitroRuntimeConfig extends NitroTypeskRuntimeConfig {}
+export interface NitroRuntimeConfig {
+  app: NitroRuntimeConfigApp;
+  nitro: {
+    envPrefix?: string;
+    envExpansion?: boolean;
+    routeRules?: {
+      [path: string]: NitroRouteConfig;
+    };
+    openAPI?: NitroOpenAPIConfig;
+  };
+  [key: string]: any;
+}
