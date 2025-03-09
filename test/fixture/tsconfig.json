@@ -12,6 +12,7 @@
       "nitro/config": ["../../src/config"],
       "nitro": ["../../src/core"],
       "nitro/runtime": ["../../src/runtime"],
+      "nitro/runtime/internal": ["./src/runtime/internal"],
       "nitro/runtime/meta": ["./runtime-meta"],
       "nitro/runtime/*": ["../../src/runtime/*"],
       "nitro/kit": ["../../src/kit"],
