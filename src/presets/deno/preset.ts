@@ -28,7 +28,6 @@ const denoDeploy = defineNitroPreset(
   },
   {
     name: "deno-deploy" as const,
-    aliases: ["deno"] as const,
     url: import.meta.url,
   }
 );
@@ -36,6 +35,7 @@ const denoDeploy = defineNitroPreset(
 const denoServer = defineNitroPreset(
   {
     extends: "node-server",
+    serveStatic: true,
     entry: "./runtime/deno-server",
     exportConditions: ["deno"],
     commands: {

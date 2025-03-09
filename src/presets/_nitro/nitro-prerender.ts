@@ -2,7 +2,6 @@ import { defineNitroPreset } from "../_utils/preset";
 
 const nitroPrerender = defineNitroPreset(
   {
-    extends: "node",
     serveStatic: true,
     entry: "./runtime/nitro-prerenderer",
     output: {

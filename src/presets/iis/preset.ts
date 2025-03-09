@@ -5,6 +5,7 @@ import { writeIISFiles, writeIISNodeFiles } from "./utils";
 const iisHandler = defineNitroPreset(
   {
     extends: "node-server",
+    serveStatic: true,
     hooks: {
       async compiled(nitro: Nitro) {
         await writeIISFiles(nitro);
@@ -13,7 +14,6 @@ const iisHandler = defineNitroPreset(
   },
   {
     name: "iis-handler" as const,
-    aliases: ["iis"] as const,
     url: import.meta.url,
   }
 );
@@ -21,6 +21,7 @@ const iisHandler = defineNitroPreset(
 const iisNode = defineNitroPreset(
   {
     extends: "node-server",
+    serveStatic: true,
     hooks: {
       async compiled(nitro: Nitro) {
         await writeIISNodeFiles(nitro);

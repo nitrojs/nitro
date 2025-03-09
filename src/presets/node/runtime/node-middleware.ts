@@ -8,15 +8,12 @@ import {
 
 const nitroApp = useNitroApp();
 
-export const listener = toNodeListener(nitroApp.h3App);
+export const middleware = toNodeListener(nitroApp.h3App);
 
 /** @experimental */
 export const websocket = import.meta._websocket
   ? nitroApp.h3App.websocket
   : undefined;
-
-/** @deprecated use new `listener` export instead */
-export const handler = listener;
 
 // Trap unhandled errors
 trapUnhandledNodeErrors();

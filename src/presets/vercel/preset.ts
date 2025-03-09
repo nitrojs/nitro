@@ -2,11 +2,9 @@ import { defineNitroPreset } from "../_utils/preset";
 import type { Nitro } from "nitro/types";
 import {
   deprecateSWR,
-  generateEdgeFunctionFiles,
   generateFunctionFiles,
   generateStaticFiles,
 } from "./utils";
-import { builtnNodeModules } from "../_unenv/node-compat/vercel";
 
 export type { VercelOptions as PresetOptions } from "./types";
 
@@ -14,7 +12,6 @@ export type { VercelOptions as PresetOptions } from "./types";
 
 const vercel = defineNitroPreset(
   {
-    extends: "node",
     entry: "./runtime/vercel",
     output: {
       dir: "{{ rootDir }}/.vercel/output",

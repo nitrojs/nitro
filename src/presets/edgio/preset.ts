@@ -6,6 +6,7 @@ import type { PackageJson } from "pkg-types";
 const edgio = defineNitroPreset(
   {
     extends: "node-server",
+    serveStatic: true,
     commands: {
       deploy: "cd ./ && npm run deploy",
       preview: "cd ./ && npm run preview",
@@ -104,7 +105,6 @@ module.exports = async function entry (port) {
   },
   {
     name: "edgio" as const,
-    aliases: ["layer0"] as const,
     url: import.meta.url,
   }
 );

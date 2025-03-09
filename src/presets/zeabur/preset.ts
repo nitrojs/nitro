@@ -8,7 +8,6 @@ import { dirname, relative, resolve } from "pathe";
 
 const zeabur = defineNitroPreset(
   {
-    extends: "node",
     entry: "./runtime/zeabur",
     output: {
       dir: "{{ rootDir }}/.zeabur/output",

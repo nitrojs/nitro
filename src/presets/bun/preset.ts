@@ -3,6 +3,7 @@ import { defineNitroPreset } from "../_utils/preset";
 const bun = defineNitroPreset(
   {
     extends: "node-server",
+    serveStatic: true,
     entry: "./runtime/bun",
     // https://bun.sh/docs/runtime/modules#resolution
     exportConditions: ["bun", "worker", "node", "import", "default"],

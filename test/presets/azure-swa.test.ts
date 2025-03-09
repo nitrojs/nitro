@@ -5,7 +5,7 @@ import { resolve } from "pathe";
 import { describe, expect, it } from "vitest";
 import { setupTest, testNitro } from "../tests";
 
-describe("nitro:preset:azure", { timeout: 10_000 }, async () => {
+describe("nitro:preset:azure-swa", { timeout: 10_000 }, async () => {
   const customConfig = {
     routes: [
       {
@@ -39,7 +39,7 @@ describe("nitro:preset:azure", { timeout: 10_000 }, async () => {
     },
   };
 
-  const ctx = await setupTest("azure", {
+  const ctx = await setupTest("azure-swa", {
     config: {
       azure: {
         config: customConfig,

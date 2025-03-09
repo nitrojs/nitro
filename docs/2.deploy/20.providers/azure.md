@@ -4,7 +4,7 @@
 
 ## Azure static web apps
 
-**Preset:** `azure`
+**Preset:** `azure-swa`
 
 :read-more{title="Azure Static Web Apps" to="https://azure.microsoft.com/en-us/products/app-service/static"}
 

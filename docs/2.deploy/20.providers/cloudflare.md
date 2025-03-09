@@ -4,7 +4,7 @@
 
 ## Cloudflare Worker
 
-**Preset:** `cloudflare` / `cloudflare_module`
+**Preset:** `cloudflare_module`
 
 :read-more{title="Cloudflare Workers" to="https://developers.cloudflare.com/workers/"}
 

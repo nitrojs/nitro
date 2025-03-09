@@ -643,7 +643,7 @@ export function testNitro(
       // https://github.com/nitrojs/nitro/issues/1462
       // (vercel and deno-server uses node only for tests only)
       const notSplittingPresets = [
-        "node-listener",
+        "node-middleware",
         "nitro-dev",
         "vercel",
         (nodeMajorVersion || 0) < 18 && "deno-server",

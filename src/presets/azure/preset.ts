@@ -4,7 +4,7 @@ import { writeSWARoutes } from "./utils";
 
 export type { AzureOptions as PresetOptions } from "./types";
 
-const azure = defineNitroPreset(
+const azureSWA = defineNitroPreset(
   {
     entry: "./runtime/azure-swa",
     output: {
@@ -23,10 +23,9 @@ const azure = defineNitroPreset(
   },
   {
     name: "azure-swa" as const,
-    aliases: ["azure"] as const,
     stdName: "azure_static",
     url: import.meta.url,
   }
 );
 
-export default [azure] as const;
+export default [azureSWA] as const;
