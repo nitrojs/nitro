@@ -24,7 +24,6 @@ import { isTest, isWindows } from "std-env";
 import { defineEnv } from "unenv";
 import unimportPlugin from "unimport/unplugin";
 import { rollup as unwasm } from "unwasm/plugin";
-import { appConfig } from "./plugins/app-config";
 import { database } from "./plugins/database";
 import { esbuild } from "./plugins/esbuild";
 import { externals } from "./plugins/externals";
@@ -311,9 +310,6 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
 
   // Database
   rollupConfig.plugins.push(database(nitro));
-
-  // App.config
-  rollupConfig.plugins.push(appConfig(nitro));
 
   // Handlers
   rollupConfig.plugins.push(handlers(nitro));

@@ -547,24 +547,12 @@ export function testNitro(
       url: "/config",
     });
     expect(data).toMatchObject({
-      appConfig: {
-        dynamic: "from-middleware",
-        "app-config": true,
-        "nitro-config": true,
-        "server-config": true,
-      },
       runtimeConfig: {
         dynamic: "from-env",
         url: "https://test.com",
         app: {
           baseURL: "/",
         },
-      },
-      sharedAppConfig: {
-        dynamic: "initial",
-        "app-config": true,
-        "nitro-config": true,
-        "server-config": true,
       },
       sharedRuntimeConfig: {
         // Cloudflare environment variables are set after first request

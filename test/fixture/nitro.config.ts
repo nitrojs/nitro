@@ -61,15 +61,10 @@ export default defineNitroConfig({
     "**/_*.txt",
     "!**/_unignored.txt",
   ],
-  appConfig: {
-    "nitro-config": true,
-    dynamic: "initial",
-  },
   runtimeConfig: {
     dynamic: "initial",
     url: "https://{{APP_DOMAIN}}",
   },
-  appConfigFiles: ["~/server.config.ts"],
   publicAssets: [
     {
       baseURL: "build",

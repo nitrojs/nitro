@@ -4,7 +4,7 @@
 export { useNitroApp } from "./internal/app";
 
 // Config
-export { useRuntimeConfig, useAppConfig } from "./internal/config";
+export { useRuntimeConfig } from "./internal/config";
 
 // Storage
 export { useStorage } from "./internal/storage";
