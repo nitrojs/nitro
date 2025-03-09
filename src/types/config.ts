@@ -87,7 +87,6 @@ export interface NitroOptions extends PresetOptions {
   wasm?: UnwasmPluginOptions;
   openAPI?: NitroOpenAPIConfig;
   experimental: {
-    legacyExternals?: boolean;
     openAPI?: boolean;
     /**
      * See https://github.com/microsoft/TypeScript/pull/51669

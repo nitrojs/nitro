@@ -29,7 +29,6 @@ import { database } from "./plugins/database";
 import { dynamicRequire } from "./plugins/dynamic-require";
 import { esbuild } from "./plugins/esbuild";
 import { externals } from "./plugins/externals";
-import { externals as legacyExternals } from "./plugins/externals-legacy";
 import { handlers } from "./plugins/handlers";
 import { handlersMeta } from "./plugins/handlers-meta";
 import { importMeta } from "./plugins/import-meta";
@@ -450,11 +449,8 @@ export const plugins = [
       },
     });
   } else {
-    const externalsPlugin = nitro.options.experimental.legacyExternals
-      ? legacyExternals
-      : externals;
     rollupConfig.plugins.push(
-      externalsPlugin(
+      externals(
         defu(nitro.options.externals, <NodeExternalsOptions>{
           outDir: nitro.options.output.serverDir,
           moduleDirectories: nitro.options.nodeModulesDirs,
