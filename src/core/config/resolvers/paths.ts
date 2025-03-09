@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { resolveNitroPath } from "nitro/kit";
+import { resolveNitroPath } from "../../utils/fs";
 import { pkgDir } from "nitro/runtime/meta";
 import type { NitroOptions } from "nitro/types";
 import { join, resolve } from "pathe";

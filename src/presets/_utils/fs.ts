@@ -1,7 +1,12 @@
 import fsp from "node:fs/promises";
-import { consola } from "consola";
-import { dirname } from "pathe";
-import { prettyPath } from "./path";
+import { relative, dirname } from "pathe";
+import consola from "consola";
+import { colors } from "consola/utils";
+
+export function prettyPath(p: string, highlight = true) {
+  p = relative(process.cwd(), p);
+  return highlight ? colors.cyan(p) : p;
+}
 
 export async function writeFile(
   file: string,

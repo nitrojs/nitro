@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { writeFile } from "nitro/kit";
+import { writeFile } from "../_utils/fs";
 import type { Nitro } from "nitro/types";
 import { join, relative } from "pathe";
 import { readPackageJSON, writePackageJSON } from "pkg-types";

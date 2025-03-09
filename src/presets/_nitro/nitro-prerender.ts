@@ -1,4 +1,4 @@
-import { defineNitroPreset } from "nitro/kit";
+import { defineNitroPreset } from "../_utils/preset";
 
 const nitroPrerender = defineNitroPreset(
   {

@@ -1,7 +1,9 @@
+import type { Nitro } from "nitro/types";
+import { stat, mkdir, writeFile as fspWriteFile } from "node:fs/promises";
+import { dirname } from "pathe";
 import consola from "consola";
 import { colors } from "consola/utils";
 import { getProperty } from "dot-prop";
-import type { Nitro } from "nitro/types";
 import { relative, resolve } from "pathe";
 
 export function prettyPath(p: string, highlight = true) {
@@ -40,4 +42,28 @@ function _compilePathTemplate(contents: string) {
       }
       return val || `${match}`;
     });
+}
+
+export async function writeFile(
+  file: string,
+  contents: Buffer | string,
+  log = false
+) {
+  await mkdir(dirname(file), { recursive: true });
+  await fspWriteFile(
+    file,
+    contents,
+    typeof contents === "string" ? "utf8" : undefined
+  );
+  if (log) {
+    consola.info("Generated", prettyPath(file));
+  }
+}
+
+export async function isDirectory(path: string) {
+  try {
+    return (await stat(path)).isDirectory();
+  } catch {
+    return false;
+  }
 }

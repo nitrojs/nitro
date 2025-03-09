@@ -1,5 +1,5 @@
 import fsp from "node:fs/promises";
-import { defineNitroPreset } from "nitro/kit";
+import { defineNitroPreset } from "../_utils/preset";
 import { join } from "pathe";
 
 const _static = defineNitroPreset(

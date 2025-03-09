@@ -1,4 +1,4 @@
-import { defineNitroPreset } from "nitro/kit";
+import { defineNitroPreset } from "../_utils/preset";
 import type { Nitro } from "nitro/types";
 import { writeFunctionsRoutes, writeSWARoutes } from "./utils";
 

@@ -1,4 +1,5 @@
-import { defineNitroPreset, writeFile } from "nitro/kit";
+import { defineNitroPreset } from "../_utils/preset";
+import { writeFile } from "../_utils/fs";
 import { version as nitroVersion } from "nitro/meta";
 import { basename, join, relative } from "pathe";
 import type { Plugin } from "rollup";

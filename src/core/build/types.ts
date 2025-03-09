@@ -3,7 +3,7 @@ import { defu } from "defu";
 import { genTypeImport } from "knitwork";
 import { lookupNodeModuleSubpath, parseNodeModulePath } from "mlly";
 import { resolveModulePath } from "exsolve";
-import { isDirectory, resolveNitroPath, writeFile } from "nitro/kit";
+import { isDirectory, resolveNitroPath, writeFile } from "../utils/fs";
 import { runtimeDir } from "nitro/runtime/meta";
 import type { Nitro, NitroTypes } from "nitro/types";
 import { dirname, isAbsolute, join, resolve } from "pathe";

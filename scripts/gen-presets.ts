@@ -15,6 +15,7 @@ const presetsDir = fileURLToPath(new URL("../src/presets", import.meta.url));
 const presetDirs: string[] = readdirSync(presetsDir, { withFileTypes: true })
   .filter(
     (dir) =>
+      dir.name !== "_utils" &&
       dir.isDirectory() &&
       existsSync(resolve(presetsDir, dir.name, "preset.ts"))
   )
@@ -38,6 +39,9 @@ for (const preset of presetDirs) {
   const _presets = await jiti
     .import(presetPath)
     .then((mod) => (mod as any).default || mod);
+  if (!Array.isArray(_presets)) {
+    throw new TypeError(`Preset ${preset} does not export an array`);
+  }
   allPresets.push(..._presets);
 }
 

@@ -1,5 +1,5 @@
 import { promises as fsp } from "node:fs";
-import { defineNitroPreset } from "nitro/kit";
+import { defineNitroPreset } from "../_utils/preset";
 import type { Nitro } from "nitro/types";
 import { dirname, join } from "pathe";
 import { unenvDenoPreset } from "../_unenv/preset-deno";

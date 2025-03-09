@@ -2,7 +2,7 @@ import { pathToFileURL } from "node:url";
 import { colors } from "consola/utils";
 import { defu } from "defu";
 import mime from "mime";
-import { writeFile } from "nitro/kit";
+import { writeFile } from "../utils/fs";
 import type {
   Nitro,
   NitroRouteRules,

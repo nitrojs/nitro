@@ -4,7 +4,7 @@ import type { WranglerConfig, CloudflarePagesRoutes } from "./types";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { relative, dirname, extname } from "node:path";
-import { writeFile } from "nitro/kit";
+import { writeFile } from "../_utils/fs";
 import { parseTOML, parseJSONC } from "confbox";
 import { readGitConfig, readPackageJSON, findNearestFile } from "pkg-types";
 import { defu } from "defu";

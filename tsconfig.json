@@ -25,7 +25,6 @@
       "nitro/runtime": ["./src/runtime"],
       "nitro/runtime/internal": ["./src/runtime/internal"],
       "nitro/runtime/meta": ["./runtime-meta"],
-      "nitro/kit": ["./src/kit"],
       "nitro/meta": ["./src/meta"],
       "nitro/presets": ["./src/presets"],
       "nitro/types": ["./src/types"],

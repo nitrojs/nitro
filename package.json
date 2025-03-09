@@ -10,7 +10,6 @@
     ".": "./dist/core/index.mjs",
     "./config": "./dist/config/index.mjs",
     "./types": "./dist/types/index.d.mts",
-    "./kit": "./dist/kit/index.mjs",
     "./meta": "./dist/meta/index.mjs",
     "./presets": "./dist/presets/index.mjs",
     "./runtime": "./dist/runtime/index.mjs",

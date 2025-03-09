@@ -6,14 +6,7 @@ import { defineBuildConfig } from "unbuild";
 
 const srcDir = fileURLToPath(new URL("src", import.meta.url));
 
-export const subpaths = [
-  "config",
-  "kit",
-  "presets",
-  "runtime",
-  "meta",
-  "types",
-];
+export const subpaths = ["config", "presets", "runtime", "meta", "types"];
 
 export default defineBuildConfig({
   declaration: true,
@@ -22,7 +15,6 @@ export default defineBuildConfig({
     { input: "src/cli/index.ts" },
     { input: "src/config/index.ts" },
     { input: "src/core/index.ts" },
-    { input: "src/kit/index.ts" },
     { input: "src/meta/index.ts" },
     { input: "src/types/index.ts" },
     { input: "src/runtime/", outDir: "dist/runtime", format: "esm" },

@@ -1,5 +1,5 @@
-import { defineNitroPreset } from "nitro/kit";
-import { writeFile } from "nitro/kit";
+import { defineNitroPreset } from "../_utils/preset";
+import { writeFile } from "../_utils/fs";
 import { resolve } from "pathe";
 import { unenvDenoPreset } from "../_unenv/preset-deno";
 

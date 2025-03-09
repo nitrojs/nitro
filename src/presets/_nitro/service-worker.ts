@@ -1,5 +1,5 @@
 import { existsSync, promises as fsp } from "node:fs";
-import { defineNitroPreset } from "nitro/kit";
+import { defineNitroPreset } from "../_utils/preset";
 import type { Nitro } from "nitro/types";
 import { resolve } from "pathe";
 import { joinURL } from "ufo";
