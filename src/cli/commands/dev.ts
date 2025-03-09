@@ -2,7 +2,7 @@ import nodeCrypto from "node:crypto";
 import { defineCommand } from "citty";
 import { consola } from "consola";
 import { getArgs, parseArgs } from "listhen/cli";
-import { build, createDevServer, createNitro, prepare } from "nitro/core";
+import { build, createDevServer, createNitro, prepare } from "nitro";
 import type { Nitro } from "nitro/types";
 import { resolve } from "pathe";
 import { commonArgs } from "../common";

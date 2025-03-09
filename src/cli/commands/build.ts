@@ -7,7 +7,7 @@ import {
   createNitro,
   prepare,
   prerender,
-} from "nitro/core";
+} from "nitro";
 import { resolve } from "pathe";
 import { commonArgs } from "../common";
 

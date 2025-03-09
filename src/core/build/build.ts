@@ -1,4 +1,4 @@
-import { getRollupConfig } from "nitro/rollup";
+import { getRollupConfig } from "../../rollup";
 import type { Nitro } from "nitro/types";
 import { watchDev } from "./dev";
 import { buildProduction } from "./prod";

@@ -10,7 +10,6 @@
     "paths": {
       "nitro/cli": ["../../src/cli"],
       "nitro/config": ["../../src/config"],
-      "nitro/core": ["../../src/core"],
       "nitro": ["../../src/core"],
       "nitro/runtime": ["../../src/runtime"],
       "nitro/runtime/meta": ["./runtime-meta"],

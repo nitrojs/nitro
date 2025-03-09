@@ -1,5 +1,5 @@
 import { fileURLToPath } from "mlly";
-import { createNitro, writeTypes } from "nitro/core";
+import { createNitro, writeTypes } from "nitro";
 import { resolve } from "pathe";
 import { scanHandlers } from "../../src/core/scan";
 

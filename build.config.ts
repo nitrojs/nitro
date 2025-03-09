@@ -7,12 +7,9 @@ import { defineBuildConfig } from "unbuild";
 const srcDir = fileURLToPath(new URL("src", import.meta.url));
 
 export const subpaths = [
-  "cli",
   "config",
-  "core",
   "kit",
   "presets",
-  "rollup",
   "runtime",
   "meta",
   "types",
@@ -22,35 +19,17 @@ export default defineBuildConfig({
   declaration: true,
   name: "nitro",
   entries: [
-    // CLI
     { input: "src/cli/index.ts" },
-    // Config
     { input: "src/config/index.ts" },
-    // Core
     { input: "src/core/index.ts" },
-    // Runtime
-    { input: "src/runtime/", outDir: "dist/runtime", format: "esm" },
-    // Kit
     { input: "src/kit/index.ts" },
-    // Meta
     { input: "src/meta/index.ts" },
-    // Presets
-    { input: "src/presets/", outDir: "dist/presets", format: "esm" },
-    // Rollup
     { input: "src/rollup/index.ts" },
-    // Types
     { input: "src/types/index.ts" },
+    { input: "src/runtime/", outDir: "dist/runtime", format: "esm" },
+    { input: "src/presets/", outDir: "dist/presets", format: "esm" },
   ],
-  hooks: {
-    async "build:prepare"(ctx) {
-      for (const subpath of subpaths) {
-        await writeFile(
-          `./${subpath}.d.ts`,
-          `export * from "./dist/${subpath}/index";`
-        );
-      }
-    },
-  },
+  hooks: {},
   externals: [
     "nitro",
     "nitro/runtime/meta",
@@ -63,7 +42,7 @@ export default defineBuildConfig({
       alias: {
         nitro: "nitro",
         "nitro/meta": resolve(srcDir, "../meta.ts"),
-        "nitro/runtime/meta": resolve(srcDir, "../runtime-meta.mjs"),
+        "nitro/runtime/meta": resolve(srcDir, "../lib/runtime-meta.mjs"),
         ...Object.fromEntries(
           subpaths.map((subpath) => [
             `nitro/${subpath}`,
