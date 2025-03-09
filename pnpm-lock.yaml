@@ -11,12 +11,6 @@ importers:
 
   .:
     dependencies:
-      '@cloudflare/kv-asset-handler':
-        specifier: ^0.3.4
-        version: 0.3.4
-      '@netlify/functions':
-        specifier: 3.0.0
-        version: 3.0.0
       '@rollup/plugin-alias':
         specifier: ^5.1.1
         version: 5.1.1(rollup@4.35.0)
@@ -246,6 +240,9 @@ importers:
       '@netlify/edge-functions':
         specifier: ^2.11.1
         version: 2.11.1
+      '@netlify/functions':
+        specifier: 3.0.0
+        version: 3.0.0
       '@scalar/api-reference':
         specifier: ^1.25.130
         version: 1.25.130(@hyperjump/browser@1.2.0)(axios@1.8.2)(change-case@5.4.4)(jwt-decode@4.0.0)(tailwindcss@4.0.12)(typescript@5.8.2)
