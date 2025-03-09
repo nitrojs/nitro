@@ -34,8 +34,8 @@ const denoDeploy = defineNitroPreset(
 
 const denoServer = defineNitroPreset(
   {
-    serveStatic: true,
     entry: "./runtime/deno-server",
+    serveStatic: true,
     exportConditions: ["deno"],
     commands: {
       preview: "deno task --config ./deno.json start",

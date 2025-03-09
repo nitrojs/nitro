@@ -2,8 +2,8 @@ import { defineNitroPreset } from "../_utils/preset";
 
 const nitroPrerender = defineNitroPreset(
   {
-    serveStatic: true,
     entry: "./runtime/nitro-prerenderer",
+    serveStatic: true,
     output: {
       serverDir: "{{ buildDir }}/prerender",
     },
