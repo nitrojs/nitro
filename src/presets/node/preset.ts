@@ -19,7 +19,6 @@ const nodeServer = defineNitroPreset(
 const nodeMiddleware = defineNitroPreset(
   {
     entry: "./runtime/node-middleware",
-    serveStatic: true,
   },
   {
     name: "node-middleware" as const,

@@ -5,9 +5,8 @@ export type { AWSAmplifyOptions as PresetOptions } from "./types";
 
 const awsAmplify = defineNitroPreset(
   {
-    extends: "node-server",
-    serveStatic: true,
     entry: "./runtime/aws-amplify",
+    serveStatic: true,
     output: {
       dir: "{{ rootDir }}/.amplify-hosting",
       serverDir: "{{ output.dir }}/compute/default",

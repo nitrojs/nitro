@@ -34,7 +34,6 @@ const denoDeploy = defineNitroPreset(
 
 const denoServer = defineNitroPreset(
   {
-    extends: "node-server",
     serveStatic: true,
     entry: "./runtime/deno-server",
     exportConditions: ["deno"],
