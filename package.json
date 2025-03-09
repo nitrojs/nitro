@@ -56,7 +56,6 @@
     "@rollup/plugin-terser": "^0.4.4",
     "@types/http-proxy": "^1.17.16",
     "@vercel/nft": "^0.29.2",
-    "archiver": "^7.0.1",
     "c12": "^3.0.2",
     "chokidar": "^4.0.3",
     "citty": "^0.1.6",

@@ -1,6 +1,6 @@
 import { defineNitroPreset } from "../_utils/preset";
 import type { Nitro } from "nitro/types";
-import { writeFunctionsRoutes, writeSWARoutes } from "./utils";
+import { writeSWARoutes } from "./utils";
 
 export type { AzureOptions as PresetOptions } from "./types";
 
@@ -29,24 +29,4 @@ const azure = defineNitroPreset(
   }
 );
 
-const azureFunctions = defineNitroPreset(
-  {
-    serveStatic: true,
-    entry: "./runtime/azure-functions",
-    commands: {
-      deploy:
-        "az functionapp deployment source config-zip -g <resource-group> -n <app-name> --src {{ output.dir }}/deploy.zip",
-    },
-    hooks: {
-      async compiled(ctx: Nitro) {
-        await writeFunctionsRoutes(ctx);
-      },
-    },
-  },
-  {
-    name: "azure-functions" as const,
-    url: import.meta.url,
-  }
-);
-
-export default [azure, azureFunctions] as const;
+export default [azure] as const;
