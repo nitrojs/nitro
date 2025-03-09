@@ -6,60 +6,26 @@
     "skipLibCheck": true,
     "baseUrl": ".",
     "strict": false,
-    "types": [
-      "@cloudflare/workers-types"
-    ],
+    "types": ["@cloudflare/workers-types"],
     "paths": {
-      "nitro/cli": [
-        "../../src/cli"
-      ],
-      "nitro/config": [
-        "../../src/config"
-      ],
-      "nitro/core": [
-        "../../src/core"
-      ],
-      "nitro": [
-        "../../src/core"
-      ],
-      "nitro/runtime": [
-        "../../src/runtime"
-      ],
-      "nitro/runtime/meta": [
-        "./runtime-meta"
-      ],
-      "nitro/runtime/*": [
-        "../../src/runtime/*"
-      ],
-      "nitro/kit": [
-        "../../src/kit"
-      ],
-      "nitro/meta": [
-        "../../src/meta"
-      ],
-      "nitro/presets": [
-        "../../src/presets"
-      ],
-      "nitro/presets/*": [
-        "../../src/presets/*"
-      ],
-      "nitro/rollup": [
-        "../../src/rollup"
-      ],
-      "nitro/types": [
-        "../../src/types"
-      ],
+      "nitro/cli": ["../../src/cli"],
+      "nitro/config": ["../../src/config"],
+      "nitro/core": ["../../src/core"],
+      "nitro": ["../../src/core"],
+      "nitro/runtime": ["../../src/runtime"],
+      "nitro/runtime/meta": ["./runtime-meta"],
+      "nitro/runtime/*": ["../../src/runtime/*"],
+      "nitro/kit": ["../../src/kit"],
+      "nitro/meta": ["../../src/meta"],
+      "nitro/presets": ["../../src/presets"],
+      "nitro/presets/*": ["../../src/presets/*"],
+      "nitro/rollup": ["../../src/rollup"],
+      "nitro/types": ["../../src/types"],
       // Virtual files
-      "#nitro-internal-virtual/*": [
-        "../../src/types/virtual/*"
-      ],
+      "#nitro-internal-virtual/*": ["../../src/types/virtual/*"],
       // Compatibility (#internal/nitro)
-      "#internal/nitro": [
-        "../../src/runtime/_compat"
-      ],
-      "#internal/nitro/*": [
-        "../../src/runtime/_compat/*"
-      ]
+      "#internal/nitro": ["../../src/runtime/_compat"],
+      "#internal/nitro/*": ["../../src/runtime/_compat/*"]
     }
   }
 }

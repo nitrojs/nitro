@@ -18,71 +18,26 @@
     "jsx": "preserve",
     "jsxFactory": "h",
     "jsxFragmentFactory": "Fragment",
-    "lib": [
-      "es2022",
-      "webworker",
-      "dom.iterable"
-    ],
+    "lib": ["es2022", "webworker", "dom.iterable"],
     "paths": {
-      "nitro/cli": [
-        "./src/cli"
-      ],
-      "nitro/config": [
-        "./src/config"
-      ],
-      "nitro/core": [
-        "./src/core"
-      ],
-      "nitro": [
-        "./src/core"
-      ],
-      "nitro/runtime": [
-        "./src/runtime"
-      ],
-      "nitro/runtime/*": [
-        "./src/runtime/*"
-      ],
-      "nitro/runtime/meta": [
-        "./runtime-meta"
-      ],
-      "nitro/kit": [
-        "./src/kit"
-      ],
-      "nitro/meta": [
-        "./src/meta"
-      ],
-      "nitro/presets": [
-        "./src/presets"
-      ],
-      "nitro/presets/*": [
-        "./src/presets/*"
-      ],
-      "nitro/rollup": [
-        "./src/rollup"
-      ],
-      "nitro/types": [
-        "./src/types"
-      ],
-      "#nitro-internal-virtual/*": [
-        "./src/types/virtual/*"
-      ],
-      "#internal/nitro": [
-        "./src/runtime"
-      ],
-      "#internal/nitro/*": [
-        "./src/runtime/*"
-      ]
+      "nitro/cli": ["./src/cli"],
+      "nitro/config": ["./src/config"],
+      "nitro/core": ["./src/core"],
+      "nitro": ["./src/core"],
+      "nitro/runtime": ["./src/runtime"],
+      "nitro/runtime/*": ["./src/runtime/*"],
+      "nitro/runtime/meta": ["./runtime-meta"],
+      "nitro/kit": ["./src/kit"],
+      "nitro/meta": ["./src/meta"],
+      "nitro/presets": ["./src/presets"],
+      "nitro/presets/*": ["./src/presets/*"],
+      "nitro/rollup": ["./src/rollup"],
+      "nitro/types": ["./src/types"],
+      "#nitro-internal-virtual/*": ["./src/types/virtual/*"],
+      "#internal/nitro": ["./src/runtime"],
+      "#internal/nitro/*": ["./src/runtime/*"]
     }
   },
-  "include": [
-    "src",
-    "test",
-    "scripts/gen-mirror.ts"
-  ],
-  "exclude": [
-    "dist",
-    "examples",
-    "playground",
-    "test/fixture"
-  ]
+  "include": ["src", "test", "scripts/gen-mirror.ts"],
+  "exclude": ["dist", "examples", "playground", "test/fixture"]
 }
