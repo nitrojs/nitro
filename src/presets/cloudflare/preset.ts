@@ -15,7 +15,7 @@ export type { CloudflareOptions as PresetOptions } from "./types";
 
 const cloudflarePages = defineNitroPreset(
   {
-    extends: "cloudflare",
+    extends: "base-worker",
     entry: "./runtime/cloudflare-pages",
     exportConditions: ["workerd"],
     commands: {
