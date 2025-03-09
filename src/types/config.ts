@@ -109,10 +109,6 @@ export interface NitroOptions extends PresetOptions {
      */
     sourcemapMinify?: false;
     /**
-     * Backward compatibility support for Node fetch (required for Node < 18)
-     */
-    nodeFetchCompat?: boolean;
-    /**
      * Allow env expansion in runtime config
      *
      * @see https://github.com/nitrojs/nitro/pull/2043

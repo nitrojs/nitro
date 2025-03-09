@@ -19,7 +19,6 @@ import {
 } from "./resolvers/compatibility";
 import { resolveDatabaseOptions } from "./resolvers/database";
 import { resolveExportConditionsOptions } from "./resolvers/export-conditions";
-import { resolveFetchOptions } from "./resolvers/fetch";
 import { resolveImportsOptions } from "./resolvers/imports";
 import { resolveOpenAPIOptions } from "./resolvers/open-api";
 import { resolvePathOptions } from "./resolvers/paths";
@@ -36,7 +35,6 @@ const configResolvers = [
   resolveImportsOptions,
   resolveRouteRulesOptions,
   resolveDatabaseOptions,
-  resolveFetchOptions,
   resolveExportConditionsOptions,
   resolveRuntimeConfigOptions,
   resolveOpenAPIOptions,

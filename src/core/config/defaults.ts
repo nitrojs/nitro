@@ -72,12 +72,7 @@ export const NitroDefaults: NitroConfig = {
 
   // Rollup
   analyze: false,
-  moduleSideEffects: [
-    "unenv/polyfill/",
-    "node-fetch-native/polyfill",
-    "node-fetch-native/dist/polyfill",
-    resolve(runtimeDir, "polyfill/"),
-  ],
+  moduleSideEffects: ["unenv/polyfill/", resolve(runtimeDir, "polyfill/")],
   replace: {},
   node: true,
   sourceMap: true,

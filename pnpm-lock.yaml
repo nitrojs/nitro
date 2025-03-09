@@ -143,9 +143,6 @@ importers:
       mlly:
         specifier: ^1.7.4
         version: 1.7.4
-      node-fetch-native:
-        specifier: ^1.6.6
-        version: 1.6.6
       node-mock-http:
         specifier: ^1.0.0
         version: 1.0.0
