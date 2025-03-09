@@ -51,8 +51,6 @@ export interface NitroOptions extends PresetOptions {
   static: boolean;
   logLevel: LogLevel;
   runtimeConfig: NitroRuntimeConfig;
-  appConfig: AppConfig;
-  appConfigFiles: string[];
 
   // Dirs
   workspaceDir: string;
@@ -279,11 +277,6 @@ export interface LoadConfigOptions {
 // ------------------------------------------------------------
 // Partial types
 // ------------------------------------------------------------
-
-// App config
-export interface AppConfig {
-  [key: string]: any;
-}
 
 // Public assets
 export interface PublicAssetDir {

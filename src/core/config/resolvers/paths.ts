@@ -70,20 +70,6 @@ export async function resolvePathOptions(options: NitroOptions) {
     resolve(options.srcDir, dir)
   );
   options.scanDirs = [...new Set(options.scanDirs)];
-
-  // Normalize app.config file paths
-  options.appConfigFiles ??= [];
-  options.appConfigFiles = options.appConfigFiles
-    .map((file) => _tryResolve(resolveNitroPath(file, options)))
-    .filter(Boolean) as string[];
-
-  // Detect app.config from scanDirs
-  for (const dir of options.scanDirs) {
-    const configFile = _tryResolve("app.config", dir);
-    if (configFile && !options.appConfigFiles.includes(configFile)) {
-      options.appConfigFiles.push(configFile);
-    }
-  }
 }
 
 function _tryResolve(

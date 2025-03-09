@@ -39,8 +39,9 @@ const firebase = defineNitroPreset(
           // Using the gen 1 makes this preset backwards compatible for people already using it
           nitro.options.firebase = { gen: 1 };
         }
-        nitro.options.appConfig.nitro = nitro.options.appConfig.nitro || {};
-        nitro.options.appConfig.nitro.firebase = nitro.options.firebase;
+        // TODO: add options support back using virtual template
+        // nitro.options.appConfig.nitro = nitro.options.appConfig.nitro || {};
+        // nitro.options.appConfig.nitro.firebase = nitro.options.firebase;
 
         const { serverFunctionName } = nitro.options
           .firebase as FirebaseFunctionsOptions;

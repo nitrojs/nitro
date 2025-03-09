@@ -9,8 +9,6 @@ export const NitroDefaults: NitroConfig = {
   timing: isDebug,
   logLevel: isTest ? 1 : 3,
   runtimeConfig: { app: {}, nitro: {} },
-  appConfig: {},
-  appConfigFiles: [],
 
   // Dirs
   scanDirs: [],

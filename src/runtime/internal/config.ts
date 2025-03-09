@@ -38,23 +38,6 @@ export function useRuntimeConfig<
   return runtimeConfig;
 }
 
-// App config
-const _sharedAppConfig = _deepFreeze(klona(_inlineAppConfig));
-export function useAppConfig(event?: H3Event) {
-  // Backwards compatibility with ambient context
-  if (!event) {
-    return _sharedAppConfig;
-  }
-  // Reuse cached app config from event context
-  if (event.context.nitro.appConfig) {
-    return event.context.nitro.appConfig;
-  }
-  // Prepare app config for event context
-  const appConfig = klona(_inlineAppConfig);
-  event.context.nitro.appConfig = appConfig;
-  return appConfig;
-}
-
 // --- Utils ---
 
 function _deepFreeze(object: Record<string, any>) {
