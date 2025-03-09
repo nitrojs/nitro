@@ -1,4 +1,4 @@
-import { writeFile } from "node:fs/promises";
+import { glob, rm, rename } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { resolve } from "pathe";
 import { normalize } from "pathe";
@@ -24,12 +24,19 @@ export default defineBuildConfig({
     { input: "src/core/index.ts" },
     { input: "src/kit/index.ts" },
     { input: "src/meta/index.ts" },
-    { input: "src/rollup/index.ts" },
     { input: "src/types/index.ts" },
     { input: "src/runtime/", outDir: "dist/runtime", format: "esm" },
     { input: "src/presets/", outDir: "dist/presets", format: "esm" },
   ],
-  hooks: {},
+  hooks: {
+    async "build:done"(ctx) {
+      for await (const file of glob(resolve(ctx.options.outDir, "**/*.d.ts"))) {
+        await (file.includes("runtime")
+          ? rename(file, file.replace(/\.d\.ts$/, ".d.mts"))
+          : rm(file));
+      }
+    },
+  },
   externals: [
     "nitro",
     "nitro/runtime/meta",
