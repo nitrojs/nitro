@@ -1,4 +1,4 @@
-import { defineRenderHandler } from "nitropack/runtime";
+import { defineRenderHandler } from "nitro/runtime";
 
 export default defineRenderHandler((_event) => {
   return {

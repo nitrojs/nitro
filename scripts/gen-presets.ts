@@ -26,7 +26,7 @@ const jiti = createJiti(presetsDir, {
     nitropack: fileURLToPath(new URL("../src/core/index.ts", import.meta.url)),
     ...Object.fromEntries(
       subpaths.map((pkg) => [
-        `nitropack/${pkg}`,
+        `nitro/${pkg}`,
         fileURLToPath(new URL(`../src/${pkg}/index.ts`, import.meta.url)),
       ])
     ),

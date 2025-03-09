@@ -95,7 +95,8 @@
     "test:types": "tsc --noEmit && pnpm test:fixture:types"
   },
   "resolutions": {
-    "nitropack": "link:."
+    "nitropack": "link:.",
+    "jiti": "link:../jiti"
   },
   "dependencies": {
     "@cloudflare/kv-asset-handler": "^0.3.4",

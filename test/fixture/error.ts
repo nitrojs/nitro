@@ -1,4 +1,4 @@
-import { defineNitroErrorHandler } from "nitropack/runtime";
+import { defineNitroErrorHandler } from "nitro/runtime";
 import { send } from "h3";
 export default defineNitroErrorHandler(
   async (error, event, { defaultHandler }) => {

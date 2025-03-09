@@ -397,7 +397,7 @@ export const plugins = [
         "#build": buildDir,
         "#internal/nitro": runtimeDir,
         "nitro/runtime": runtimeDir,
-        "nitropack/runtime": runtimeDir,
+        "nitropack/runtime": runtimeDir, // Backwards compatibility
         "~": nitro.options.srcDir,
         "@/": nitro.options.srcDir,
         "~~": nitro.options.rootDir,
