@@ -3,8 +3,6 @@ import { writeFile } from "../_utils/fs";
 import { resolve } from "pathe";
 import { unenvDenoPreset } from "../_unenv/preset-deno";
 
-import { denoServerLegacy } from "./preset-legacy";
-
 const denoDeploy = defineNitroPreset(
   {
     entry: "./runtime/deno-deploy",
@@ -72,4 +70,4 @@ const denoServer = defineNitroPreset(
   }
 );
 
-export default [denoServerLegacy, denoDeploy, denoServer] as const;
+export default [denoDeploy, denoServer] as const;

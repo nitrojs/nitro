@@ -41,55 +41,6 @@ const vercel = defineNitroPreset(
   }
 );
 
-const vercelEdge = defineNitroPreset(
-  {
-    extends: "base-worker",
-    entry: "./runtime/vercel-edge",
-    exportConditions: ["edge-light"],
-    output: {
-      dir: "{{ rootDir }}/.vercel/output",
-      serverDir: "{{ output.dir }}/functions/__nitro.func",
-      publicDir: "{{ output.dir }}/static/{{ baseURL }}",
-    },
-    commands: {
-      deploy: "",
-      preview: "",
-    },
-    unenv: {
-      external: builtnNodeModules.flatMap((m) => `node:${m}`),
-      alias: {
-        ...Object.fromEntries(
-          builtnNodeModules.flatMap((m) => [
-            [m, `node:${m}`],
-            [`node:${m}`, `node:${m}`],
-          ])
-        ),
-      },
-    },
-    rollupConfig: {
-      output: {
-        format: "module",
-      },
-    },
-    wasm: {
-      lazy: true,
-      esmImport: false,
-    },
-    hooks: {
-      "rollup:before": (nitro: Nitro) => {
-        deprecateSWR(nitro);
-      },
-      async compiled(nitro: Nitro) {
-        await generateEdgeFunctionFiles(nitro);
-      },
-    },
-  },
-  {
-    name: "vercel-edge" as const,
-    url: import.meta.url,
-  }
-);
-
 const vercelStatic = defineNitroPreset(
   {
     extends: "static",
@@ -117,4 +68,4 @@ const vercelStatic = defineNitroPreset(
   }
 );
 
-export default [vercel, vercelEdge, vercelStatic] as const;
+export default [vercel, vercelStatic] as const;

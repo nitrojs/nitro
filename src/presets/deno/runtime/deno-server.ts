@@ -1,5 +1,4 @@
 import "#nitro-internal-pollyfills";
-import "./_deno-env-polyfill";
 import { useNitroApp } from "nitro/runtime";
 import { useRuntimeConfig } from "nitro/runtime";
 import { startScheduleRunner } from "nitro/runtime/internal";

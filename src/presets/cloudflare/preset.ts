@@ -11,8 +11,6 @@ import {
   writeCFPagesRedirects,
 } from "./utils";
 
-import cfLegacyPresets from "./preset-legacy";
-
 export type { CloudflareOptions as PresetOptions } from "./types";
 
 const cloudflarePages = defineNitroPreset(
@@ -132,7 +130,7 @@ const cloudflareModule = defineNitroPreset(
   },
   {
     name: "cloudflare-module" as const,
-    compatibilityDate: "2024-09-19",
+    aliases: ["cloudflare"],
     url: import.meta.url,
   }
 );
@@ -144,13 +142,11 @@ const cloudflareDurable = defineNitroPreset(
   },
   {
     name: "cloudflare-durable" as const,
-    compatibilityDate: "2024-09-19",
     url: import.meta.url,
   }
 );
 
 export default [
-  ...cfLegacyPresets,
   cloudflarePages,
   cloudflarePagesStatic,
   cloudflareModule,

@@ -47,8 +47,6 @@
     "nitro": "link:."
   },
   "dependencies": {
-    "@cloudflare/kv-asset-handler": "^0.3.4",
-    "@netlify/functions": "3.0.0",
     "@rollup/plugin-alias": "^5.1.1",
     "@rollup/plugin-commonjs": "^28.0.3",
     "@rollup/plugin-inject": "^5.0.5",
@@ -122,6 +120,7 @@
     "youch-core": "^0.3.2"
   },
   "devDependencies": {
+    "@netlify/functions": "3.0.0",
     "@azure/functions": "^3.5.1",
     "@azure/static-web-apps-cli": "^2.0.4",
     "@cloudflare/workers-types": "^4.20250303.0",
