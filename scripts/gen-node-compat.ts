@@ -3,7 +3,7 @@ import { writeFile } from "node:fs/promises";
 const platforms = {
   cloudflare: {
     url: "https://platform-node-compat.pi0.workers.dev/?json",
-    forceHybrid: ["console", "perf_hooks"],
+    forceHybrid: ["console"],
     forceBuiltin: ["assert", "assert/strict", "events", "net", "stream"],
   },
   vercel: {

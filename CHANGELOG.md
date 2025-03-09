@@ -2,6 +2,68 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## v2.11.6
+
+[compare changes](https://github.com/nitrojs/nitro/compare/v2.11.5...v2.11.6)
+
+### 🩹 Fixes
+
+- Update enenv and cloudflare node compat ([#3187](https://github.com/nitrojs/nitro/pull/3187))
+- **dev:** Use port for bun on windows ([#3188](https://github.com/nitrojs/nitro/pull/3188))
+
+### 💅 Refactors
+
+- Remove extra space in logs ([#3181](https://github.com/nitrojs/nitro/pull/3181))
+- Remove dependency on unenv mock utils ([#3186](https://github.com/nitrojs/nitro/pull/3186))
+
+### 📖 Documentation
+
+- **deploy:** Add warning about turborepo and zero config ([#3182](https://github.com/nitrojs/nitro/pull/3182))
+- **vercel:** Typo ([#3183](https://github.com/nitrojs/nitro/pull/3183))
+- **fetch:** Fix grammar ([#3184](https://github.com/nitrojs/nitro/pull/3184))
+
+### 🏡 Chore
+
+- **release:** V2.11.5 ([8099ed86](https://github.com/nitrojs/nitro/commit/8099ed86))
+- Remove unused file ([8de0e8f3](https://github.com/nitrojs/nitro/commit/8de0e8f3))
+- Update minor dependencies and lock ([75d0d826](https://github.com/nitrojs/nitro/commit/75d0d826))
+- Update lock ([c2f8d066](https://github.com/nitrojs/nitro/commit/c2f8d066))
+- Update unenv ([b26d2b5a](https://github.com/nitrojs/nitro/commit/b26d2b5a))
+
+### ✅ Tests
+
+- Update cloudflare-module ([0f3e4a3b](https://github.com/nitrojs/nitro/commit/0f3e4a3b))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+- Nandesora Tjihero ([@Ombuweb](https://github.com/Ombuweb))
+- @beer ([@iiio2](https://github.com/iiio2))
+- Connor Roberts ([@murshex](https://github.com/murshex))
+- Restent Ou ([@gxres042](https://github.com/gxres042))
+
+## v2.11.5
+
+[compare changes](https://github.com/nitrojs/nitro/compare/v2.11.4...v2.11.5)
+
+### 🩹 Fixes
+
+- **dev:** Use abstract sockets on linux with node.js >=20 ([#3178](https://github.com/nitrojs/nitro/pull/3178))
+- **dev:** Use os tmp dir for unix sockets ([#3179](https://github.com/nitrojs/nitro/pull/3179))
+
+### 📦 Build
+
+- Use upstream `youch` back ([#3175](https://github.com/nitrojs/nitro/pull/3175))
+
+### 🌊 Types
+
+- Mark `$global` optional for `NitroRouteMeta` ([#3174](https://github.com/nitrojs/nitro/pull/3174))
+
+### ❤️ Contributors
+
+- Pooya Parsa <pyapar@gmail.com>
+- Léo Pradel <pradel.leo@gmail.com>
+
 ## v2.11.4
 
 [compare changes](https://github.com/nitrojs/nitro/compare/v2.11.3...v2.11.4)

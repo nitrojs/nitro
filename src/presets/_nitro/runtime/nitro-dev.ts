@@ -1,4 +1,5 @@
 import "#nitro-internal-pollyfills";
+import { tmpdir } from "node:os";
 import { useNitroApp } from "nitro/runtime";
 import { runTask } from "nitro/runtime";
 import { trapUnhandledNodeErrors } from "nitro/runtime/internal";
@@ -9,7 +10,6 @@ import { join } from "node:path";
 import nodeCrypto from "node:crypto";
 import { parentPort, threadId } from "node:worker_threads";
 import wsAdapter from "crossws/adapters/node";
-import { isCI } from "std-env";
 import {
   defineEventHandler,
   getQuery,
@@ -23,11 +23,7 @@ if (!globalThis.crypto) {
   globalThis.crypto = nodeCrypto as unknown as Crypto;
 }
 
-const {
-  NITRO_NO_UNIX_SOCKET,
-  NITRO_DEV_WORKER_DIR = ".",
-  NITRO_DEV_WORKER_ID,
-} = process.env;
+const { NITRO_NO_UNIX_SOCKET, NITRO_DEV_WORKER_ID } = process.env;
 
 // Trap unhandled errors
 trapUnhandledNodeErrors();
@@ -97,7 +93,9 @@ if (import.meta._tasks) {
 
 function listen(
   useRandomPort: boolean = Boolean(
-    NITRO_NO_UNIX_SOCKET || process.versions.webcontainer
+    NITRO_NO_UNIX_SOCKET ||
+      process.versions.webcontainer ||
+      ("Bun" in globalThis && process.platform === "win32")
   )
 ) {
   return new Promise<void>((resolve, reject) => {
@@ -120,18 +118,20 @@ function listen(
 }
 
 function getSocketAddress() {
-  const socketName = `worker-${process.pid}-${threadId}-${Math.round(Math.random() * 10_000)}-${NITRO_DEV_WORKER_ID}.sock`;
+  const socketName = `nitro-worker-${process.pid}-${threadId}-${NITRO_DEV_WORKER_ID}-${Math.round(Math.random() * 10_000)}.sock`;
   // Windows: pipe
-  const socketPath = join(NITRO_DEV_WORKER_DIR, socketName);
   if (process.platform === "win32") {
-    return join(String.raw`\\.\pipe\nitro`, socketPath);
+    return join(String.raw`\\.\pipe`, socketName);
   }
   // Linux: abstract namespace
-  if (process.platform === "linux" && !isCI) {
-    return `\0${socketPath}`;
+  if (process.platform === "linux") {
+    const nodeMajor = Number.parseInt(process.versions.node.split(".")[0], 10);
+    if (nodeMajor >= 20) {
+      return `\0${socketName}`;
+    }
   }
-  // MacOS and CI: Unix socket
-  return socketPath;
+  // Unix socket
+  return join(tmpdir(), socketName);
 }
 
 async function shutdown() {
