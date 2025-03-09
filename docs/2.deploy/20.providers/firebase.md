@@ -2,10 +2,6 @@
 
 > Deploy Nitro apps to Firebase hosting.
 
-::note
-You will need to be on the [**Blaze plan**](https://firebase.google.com/pricing) (Pay as you go) to get started.
-::
-
 <!--
 
 ## Firebase app hosting <sup>(beta)</sup>
@@ -42,9 +38,8 @@ You can integrate with this provider using [zero configuration](/deploy/#zero-co
 
 :read-more{title="Firebase Hosting" to="https://firebase.google.com/docs/hosting"}
 
-::important
-This preset will deploy to firebase functions 1st gen by default. If you want to deploy to firebase functions 2nd gen, see the [instructions below](#using-2nd-generation-firebase-functions).
-::
+> [!NOTE]
+> This preset uses [2nd gen](https://firebase.google.com/docs/functions/version-comparison#new-in-2nd-gen) firebase cloud functions
 
 ### Project Setup
 
@@ -143,78 +138,6 @@ If you installed the Firebase CLI globally, you can also run:
 ```bash
 firebase deploy
 ```
-
-### Using 2nd generation firebase functions
-
-- [Comparison between 1st and 2nd generation functions](https://firebase.google.com/docs/functions/version-comparison)
-
-To switch to the more recent and, recommended generation of firebase functions, set the `firebase.gen` option to `2`:
-
-::code-group
-
-```ts{3} [nitro.config.ts]
-export default defineNitroConfig({
-  firebase: {
-    gen: 2
-    // ...
-  }
-})
-```
-
-```ts{4} [nuxt.config.ts]
-export default defineNuxtConfig({
-  nitro: {
-    firebase: {
-      gen: 2
-      // ...
-    }
-  }
-})
-```
-
-::
-
-::note
-If you cannot use configuration for any reason, alternatively you can use `NITRO_FIREBASE_GEN` environment variable.
-::
-
-If you already have a deployed version of your website and want to upgrade to 2nd gen, [see the Migration process on Firebase docs](https://firebase.google.com/docs/functions/2nd-gen-upgrade). Namely, the CLI will ask you to delete your existing functions before deploying the new ones.
-
-### Options
-
-You can set options for the firebase functions in your `nitro.config.ts` file:
-
-::code-group
-
-```ts [nitro.config.ts]
-export default defineNitroConfig({
-  firebase: {
-    gen: 2,
-    httpsOptions: {
-      region: 'europe-west1',
-      maxInstances: 3,
-    },
-  },
-});
-```
-
-```ts [nuxt.config.ts]
-export default defineNuxtConfig({
-  nitro: {
-    firebase: {
-      gen: 2,
-      httpsOptions: {
-        region: 'europe-west1',
-        maxInstances: 3,
-      },
-    },
-  },
-});
-```
-
-::
-
-You can also set options for 1st generation Cloud Functions if the `gen` option is set to `1`. Note these are different from the options for 2nd generation Cloud Functions.
 
 #### Runtime Node.js version
 
