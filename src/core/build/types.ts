@@ -206,8 +206,7 @@ export async function writeTypes(nitro: Nitro) {
         noImplicitOverride: true,
         forceConsistentCasingInFileNames: true,
         /* If NOT transpiling with TypeScript: */
-        // TODO: consider using 'module: preserve' (requires TS 5.4+)
-        module: "ESNext",
+        module: "Preserve",
         jsx: "preserve",
         jsxFactory: "h",
         jsxFragmentFactory: "Fragment",
