@@ -148,7 +148,6 @@
     "firebase-functions": "^4.9.0",
     "get-port-please": "^3.1.2",
     "miniflare": "^3.20250224.0",
-    "ohash-v1": "npm:ohash@^1.1.6",
     "prettier": "^3.5.3",
     "typescript": "^5.8.2",
     "unbuild": "^3.5.0",
