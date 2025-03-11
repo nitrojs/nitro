@@ -1,13 +1,3 @@
-import type { AppOptions, H3Event } from "h3";
-import type {
-  CaptureError,
-  NitroConfig,
-  NitroOpenAPIConfig,
-  NitroRouteConfig,
-  RenderResponse,
-  RenderContext,
-} from "nitro/types";
-
 // Core
 export { createNitro } from "./nitro";
 

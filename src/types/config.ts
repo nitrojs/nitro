@@ -72,7 +72,6 @@ export interface NitroOptions extends PresetOptions {
   database: DatabaseConnectionConfigs;
   devDatabase: DatabaseConnectionConfigs;
   bundledStorage: string[];
-  timing: boolean;
   renderer?: string;
   serveStatic: boolean | "node" | "deno" | "inline";
   noPublicDir: boolean;
@@ -91,7 +90,7 @@ export interface NitroOptions extends PresetOptions {
      */
     typescriptBundlerResolution?: boolean;
     /**
-     * Enable native async context support for useEvent()
+     * Enable native async context support for useRequest()
      */
     asyncContext?: boolean;
     /**

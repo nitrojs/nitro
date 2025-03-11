@@ -52,9 +52,6 @@ export async function createNitro(
     createDebugger(nitro.hooks, { tag: "nitro" });
     nitro.options.plugins.push(join(runtimeDir, "internal/debug"));
   }
-  if (nitro.options.timing) {
-    nitro.options.plugins.push(join(runtimeDir, "internal/timing"));
-  }
 
   // Logger
   if (nitro.options.logLevel !== undefined) {

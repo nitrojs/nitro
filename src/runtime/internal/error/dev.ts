@@ -1,14 +1,4 @@
-import {
-  type H3Event,
-  type H3Error,
-  send,
-  getRequestHeader,
-  getRequestHeaders,
-  getRequestURL,
-  getResponseHeader,
-  setResponseHeaders,
-  setResponseStatus,
-} from "h3";
+import { type H3Event, type H3Error, getRequestURL } from "h3";
 import { readFile } from "node:fs/promises";
 import { resolve, dirname } from "node:path";
 import consola from "consola";
@@ -20,14 +10,14 @@ import { defineNitroErrorHandler, type InternalHandlerResponse } from "./utils";
 export default defineNitroErrorHandler(
   async function defaultNitroErrorHandler(error, event) {
     const res = await defaultHandler(error, event);
-    setResponseHeaders(event, res.headers!);
-    setResponseStatus(event, res.status, res.statusText);
-    return send(
-      event,
-      typeof res.body === "string"
-        ? res.body
-        : JSON.stringify(res.body, null, 2)
-    );
+    event.response.status = res.status;
+    event.response.statusText = res.statusText;
+    for (const [name, value] of Object.entries(res.headers!)) {
+      event.response.headers.set(name, value);
+    }
+    return typeof res.body === "string"
+      ? res.body
+      : JSON.stringify(res.body, null, 2);
   }
 );
 
@@ -77,7 +67,7 @@ export async function defaultHandler(
 
   // Use HTML response only when user-agent expects it (browsers)
   const useJSON =
-    opts?.json || !getRequestHeader(event, "accept")?.includes("text/html");
+    opts?.json || !event.request.headers.get("accept")?.includes("text/html");
 
   // Prepare headers
   const headers: HeadersInit = {
@@ -92,7 +82,7 @@ export async function defaultHandler(
     "content-security-policy":
       "script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self';",
   };
-  if (statusCode === 404 || !getResponseHeader(event, "cache-control")) {
+  if (statusCode === 404 || !event.response.headers.has("cache-control")) {
     headers["cache-control"] = "no-cache";
   }
 
@@ -111,7 +101,7 @@ export async function defaultHandler(
         request: {
           url: url.href,
           method: event.method,
-          headers: getRequestHeaders(event),
+          headers: Object.fromEntries(event.request.headers.entries()),
         },
       });
 

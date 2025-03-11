@@ -4,7 +4,7 @@ import { globby } from "globby";
 import { resolve } from "pathe";
 
 const nightlyPackages = {
-  h3: "h3-nightly",
+  // h3: "h3-nightly",
 } as Record<string, string>;
 
 async function loadPackage(dir: string) {

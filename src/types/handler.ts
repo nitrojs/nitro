@@ -1,4 +1,4 @@
-import type { EventHandler, H3Error, H3Event, RouterMethod } from "h3";
+import type { EventHandler, H3Error, H3Event, HTTPMethod } from "h3";
 import type { PresetName } from "nitro/presets";
 import type { OperationObject, OpenAPI3 } from "openapi-typescript";
 
@@ -39,7 +39,7 @@ export interface NitroEventHandler {
   /**
    * Router method matcher
    */
-  method?: RouterMethod;
+  method?: HTTPMethod;
 
   /**
    * Meta
@@ -82,4 +82,4 @@ export type NitroErrorHandler = (
       body: string | Record<string, any>;
     }>;
   }
-) => void | Promise<void>;
+) => unknown; /* TODO: Response */

@@ -1,6 +1,5 @@
 import type { Readable } from "node:stream";
-import type { H3Event } from "h3";
-import { getRequestHeader, splitCookiesString } from "h3";
+import { splitSetCookieString } from "cookie-es";
 import { useNitroApp } from "./app";
 
 const METHOD_WITH_BODY_RE = /post|put|patch/i;
@@ -63,7 +62,7 @@ export function normalizeFetchResponse(response: Response) {
 }
 
 export function normalizeCookieHeader(header: number | string | string[] = "") {
-  return splitCookiesString(joinHeaders(header));
+  return splitSetCookieString(joinHeaders(header));
 }
 
 export function normalizeCookieHeaders(headers: Headers) {

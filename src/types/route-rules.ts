@@ -1,4 +1,4 @@
-import type { ProxyOptions, RouterMethod } from "h3";
+import type { ProxyOptions } from "h3";
 import type { ExcludeFunctions, IntRange } from "./_utils";
 import type { CachedEventHandlerOptions } from "./runtime";
 

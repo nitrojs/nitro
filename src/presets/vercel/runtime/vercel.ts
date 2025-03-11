@@ -1,14 +1,15 @@
 import "#nitro-internal-pollyfills";
 import { useNitroApp } from "nitro/runtime";
 
-import { type NodeListener, toNodeListener } from "h3";
+import { toNodeHandler } from "srvx/node";
+import type { NodeHttpHandler } from "srvx/types";
 import { parseQuery } from "ufo";
 
 const nitroApp = useNitroApp();
 
-const handler = toNodeListener(nitroApp.h3App);
+const appHandler = toNodeHandler(nitroApp.h3App.fetch);
 
-const listener: NodeListener = function (req, res) {
+const listener: NodeHttpHandler = function (req, res) {
   const query = req.headers["x-now-route-matches"] as string;
   if (query) {
     const { url } = parseQuery(query);
@@ -16,7 +17,7 @@ const listener: NodeListener = function (req, res) {
       req.url = url as string;
     }
   }
-  return handler(req, res);
+  return appHandler(req, res);
 };
 
 export default listener;

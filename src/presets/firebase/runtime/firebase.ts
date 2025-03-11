@@ -2,7 +2,7 @@ import "#nitro-internal-pollyfills";
 import { useNitroApp } from "nitro/runtime";
 
 import { onRequest } from "firebase-functions/v2/https";
-import { toNodeListener } from "h3";
+import { toNodeHandler } from "srvx/node";
 
 const nitroApp = useNitroApp();
 
@@ -15,5 +15,5 @@ export const __firebaseServerFunctionName__ = onRequest(
     invoker: "public",
     ...firebaseConfig.httpsOptions,
   },
-  toNodeListener(nitroApp.h3App)
+  toNodeHandler(nitroApp.h3App.fetch)
 );

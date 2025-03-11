@@ -1,24 +1,15 @@
 import destr from "destr";
 import {
   type H3Error,
-  type H3Event,
-  createApp,
-  createRouter,
-  eventHandler,
+  createH3,
   fetchWithEvent,
   isEvent,
   lazyEventHandler,
-  toNodeListener,
 } from "h3";
 import { createHooks } from "hookable";
 import type { CaptureError, NitroApp, NitroRuntimeHooks } from "nitro/types";
 import type { NitroAsyncContext } from "nitro/types";
 import { Headers, createFetch } from "ofetch";
-import {
-  fetchNodeRequestHandler,
-  callNodeRequestHandler,
-  type AbstractRequest,
-} from "node-mock-http";
 import errorHandler from "#nitro-internal-virtual/error-handler";
 import { plugins } from "#nitro-internal-virtual/plugins";
 import { handlers } from "#nitro-internal-virtual/server-handlers";
@@ -26,7 +17,7 @@ import { cachedEventHandler } from "./cache";
 import { useRuntimeConfig } from "./config";
 import { nitroAsyncContext } from "./context";
 import { createRouteRulesHandler, getRouteRulesForPath } from "./route-rules";
-import { normalizeFetchResponse } from "./utils";
+import { joinURL } from "ufo";
 
 function createNitroApp(): NitroApp {
   const config = useRuntimeConfig();
@@ -50,41 +41,28 @@ function createNitroApp(): NitroApp {
     }
   };
 
-  const h3App = createApp({
+  const h3App = createH3({
     debug: destr(process.env.DEBUG),
     onError: (error, event) => {
       captureError(error, { event, tags: ["request"] });
       return errorHandler(error as H3Error, event);
     },
     onRequest: async (event) => {
-      // Init nitro context
       event.context.nitro = event.context.nitro || { errors: [] };
 
-      // Support platform context provided by local fetch
-      const envContext: { waitUntil?: H3Event["waitUntil"] } | undefined = (
-        event.node.req as unknown as { __unenv__: any }
-      )?.__unenv__;
-      if (envContext) {
-        Object.assign(event.context, envContext);
-      }
-
-      // Assign bound fetch to context
       event.fetch = (req, init) =>
         fetchWithEvent(event, req, init, { fetch: localFetch });
+
       event.$fetch = (req, init) =>
         fetchWithEvent(event, req, init as RequestInit, {
           fetch: $fetch as any,
         });
 
-      // https://github.com/nitrojs/nitro/issues/1420
       event.waitUntil = (promise) => {
         if (!event.context.nitro._waitUntilPromises) {
           event.context.nitro._waitUntilPromises = [];
         }
         event.context.nitro._waitUntilPromises.push(promise);
-        if (envContext?.waitUntil) {
-          envContext.waitUntil(promise);
-        }
       };
 
       event.captureError = (error, context) => {
@@ -102,33 +80,15 @@ function createNitroApp(): NitroApp {
           captureError(error, { event, tags: ["request", "response"] });
         });
     },
-    onAfterResponse: async (event, response) => {
-      await nitroApp.hooks
-        .callHook("afterResponse", event, response)
-        .catch((error) => {
-          captureError(error, { event, tags: ["request", "response"] });
-        });
-    },
   });
 
-  const router = createRouter({
-    preemptive: true,
-  });
-
-  // Create local fetch caller
-  const nodeHandler = toNodeListener(h3App);
-  const localCall = (aRequest: AbstractRequest) =>
-    callNodeRequestHandler(nodeHandler, aRequest);
   const localFetch: typeof fetch = (input, init) => {
     if (!input.toString().startsWith("/")) {
       return globalThis.fetch(input, init);
     }
-    return fetchNodeRequestHandler(
-      nodeHandler,
-      input as string /* TODO */,
-      init
-    ).then((response) => normalizeFetchResponse(response));
+    return Promise.resolve(h3App.fetch(input, init));
   };
+
   const $fetch = createFetch({
     fetch: localFetch,
     Headers,
@@ -141,14 +101,14 @@ function createNitroApp(): NitroApp {
   // Register route rule handlers
   h3App.use(createRouteRulesHandler({ localFetch }));
 
+  // TODO support baseURL
+
   for (const h of handlers) {
     let handler = h.lazy ? lazyEventHandler(h.handler) : h.handler;
-    if (h.middleware || !h.route) {
-      const middlewareBase = (config.app.baseURL + (h.route || "/")).replace(
-        /\/+/g,
-        "/"
-      );
-      h3App.use(middlewareBase, handler);
+    if (!h.route) {
+      h3App.use(handler);
+    } else if (h.middleware) {
+      h3App.use(h.route, handler, { method: h.method });
     } else {
       const routeRules = getRouteRulesForPath(
         h.route.replace(/:\w+|\*\*/g, "_")
@@ -159,26 +119,22 @@ function createNitroApp(): NitroApp {
           ...routeRules.cache,
         });
       }
-      router.use(h.route, handler, h.method);
+      h3App.on(h.method, h.route, handler);
     }
   }
 
-  h3App.use(config.app.baseURL as string, router.handler);
-
   // Experimental async context support
   if (import.meta._asyncContext) {
-    const _handler = h3App.handler;
-    h3App.handler = (event) => {
-      const ctx: NitroAsyncContext = { event };
-      return nitroAsyncContext.callAsync(ctx, () => _handler(event));
+    const _fetch = h3App.fetch;
+    h3App.fetch = (request, init) => {
+      const ctx: NitroAsyncContext = { request: request as any };
+      return nitroAsyncContext.callAsync(ctx, () => _fetch(request, init));
     };
   }
 
   const app: NitroApp = {
     hooks,
     h3App,
-    router,
-    localCall,
     localFetch,
     captureError,
   };

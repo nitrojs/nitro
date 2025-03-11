@@ -2,17 +2,12 @@ import type { IncomingMessage, OutgoingMessage } from "node:http";
 import type { Duplex } from "node:stream";
 import type { GetPortInput } from "get-port-please";
 import type { FSWatcher } from "chokidar";
-import type { App } from "h3";
+import type { H3 } from "h3";
 import type { Listener, ListenOptions } from "listhen";
 import { NodeDevWorker, type DevWorker, type WorkerAddress } from "./worker";
 import type { Nitro, NitroBuildInfo, NitroDevServer } from "nitro/types";
-import {
-  createApp,
-  createError,
-  eventHandler,
-  fromNodeMiddleware,
-  toNodeListener,
-} from "h3";
+import { createH3, createError, eventHandler, fromNodeHandler } from "h3";
+import { toNodeHandler } from "srvx/node";
 import {
   default as devErrorHandler,
   defaultHandler as devErrorHandlerInternal,
@@ -53,7 +48,7 @@ let workerIdCtr = 0;
 class DevServer {
   nitro: Nitro;
   workerDir: string;
-  app: App;
+  app: H3;
   listeners: Listener[] = [];
   reloadPromise?: Promise<void>;
   watcher?: FSWatcher;
@@ -106,7 +101,10 @@ class DevServer {
   }
 
   async listen(port: GetPortInput, opts?: Partial<ListenOptions>) {
-    const listener = await listhen(toNodeListener(this.app), { port, ...opts });
+    const listener = await listhen(toNodeHandler(this.app.fetch), {
+      port,
+      ...opts,
+    });
     this.listeners.push(listener);
     listener.server.on("upgrade", (req, sock, head) =>
       this.handleUpgrade(req, sock, head)
@@ -193,7 +191,8 @@ class DevServer {
 
   createApp() {
     // Init h3 app
-    const app = createApp({
+    const app = createH3({
+      debug: true,
       onError: async (error, event) => {
         const errorHandler =
           this.nitro.options.devErrorHandler || devErrorHandler;
@@ -210,17 +209,18 @@ class DevServer {
     }
 
     // Debugging endpoint to view vfs
-    app.use("/_vfs", createVFSHandler(this.nitro));
+    app.get("/_vfs", createVFSHandler(this.nitro));
 
     // Serve asset dirs
     for (const asset of this.nitro.options.publicAssets) {
       const url = joinURL(
         this.nitro.options.runtimeConfig.app.baseURL,
-        asset.baseURL || "/"
+        asset.baseURL || "/",
+        "**"
       );
-      app.use(url, fromNodeMiddleware(serveStatic(asset.dir)));
+      app.use(url, fromNodeHandler(serveStatic(asset.dir)));
       if (!asset.fallthrough) {
-        app.use(url, fromNodeMiddleware(servePlaceholder()));
+        app.use(url, fromNodeHandler(servePlaceholder()));
       }
     }
 

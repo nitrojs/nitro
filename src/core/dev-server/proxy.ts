@@ -1,12 +1,12 @@
 import type { TLSSocket } from "node:tls";
 import type { ProxyServerOptions, ProxyServer } from "httpxy";
 import type { H3Event } from "h3";
-
 import { createProxyServer } from "httpxy";
+import { fromNodeHandler } from "h3";
 
 export type HTTPProxy = {
   proxy: ProxyServer;
-  handleEvent: (event: H3Event, opts?: ProxyServerOptions) => Promise<void>;
+  handleEvent: (event: H3Event, opts?: ProxyServerOptions) => any;
 };
 
 export function createHTTPProxy(defaults: ProxyServerOptions = {}): HTTPProxy {
@@ -31,19 +31,11 @@ export function createHTTPProxy(defaults: ProxyServerOptions = {}): HTTPProxy {
     }
   });
 
-  const handleEvent = async (event: H3Event, opts: ProxyServerOptions = {}) => {
-    try {
-      event._handled = true;
-      await proxy.web(event.node.req, event.node.res, opts);
-    } catch (error: any) {
-      if (error?.code !== "ECONNRESET") {
-        throw error;
-      }
-    }
-  };
-
   return {
     proxy,
-    handleEvent,
+    handleEvent(event, opts) {
+      const handler = fromNodeHandler((req, res) => proxy.web(req, res, opts));
+      return handler(event);
+    },
   };
 }

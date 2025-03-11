@@ -1,6 +1,5 @@
 import { type HTTPMethod, eventHandler, getRequestURL } from "h3";
 import type {
-  ComponentsObject,
   OpenAPI3,
   OperationObject,
   ParameterObject,

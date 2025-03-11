@@ -1,15 +1,13 @@
-import type { AppOptions, App as H3App, H3Event, Router } from "h3";
+import type { H3, H3Event, H3Config } from "h3";
 import type { Hookable } from "hookable";
-import type { AbstractRequest, AbstractResponse } from "node-mock-http";
+import type { ServerRequest } from "srvx/types";
 
 export interface NitroApp {
-  h3App: H3App;
-  router: Router;
+  h3App: H3;
   hooks: Hookable<NitroRuntimeHooks>;
-  localCall: (aRequest: AbstractRequest) => Promise<AbstractResponse>;
   localFetch: (
     req: string | URL | Request,
-    init?: RequestInit & AbstractRequest
+    init?: RequestInit
   ) => Promise<Response>;
   captureError: CaptureError;
 }
@@ -19,7 +17,7 @@ export interface NitroAppPlugin {
 }
 
 export interface NitroAsyncContext {
-  event: H3Event;
+  request: ServerRequest;
 }
 
 export interface RenderResponse {
@@ -53,9 +51,8 @@ export interface NitroRuntimeHooks {
   close: () => void;
   error: CaptureError;
 
-  request: NonNullable<AppOptions["onRequest"]>;
-  beforeResponse: NonNullable<AppOptions["onBeforeResponse"]>;
-  afterResponse: NonNullable<AppOptions["onAfterResponse"]>;
+  request: NonNullable<H3Config["onRequest"]>;
+  beforeResponse: NonNullable<H3Config["onBeforeResponse"]>;
 
   "render:before": (context: RenderContext) => void;
 

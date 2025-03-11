@@ -1,5 +1,5 @@
 import "#nitro-internal-pollyfills";
-import { toNodeListener } from "h3";
+import { toNodeHandler } from "srvx/node";
 import { useNitroApp } from "nitro/runtime";
 import {
   startScheduleRunner,
@@ -8,7 +8,7 @@ import {
 
 const nitroApp = useNitroApp();
 
-export const middleware = toNodeListener(nitroApp.h3App);
+export const middleware = toNodeHandler(nitroApp.h3App.fetch);
 
 /** @experimental */
 export const websocket = import.meta._websocket

@@ -32,7 +32,6 @@ export default defineNitroConfig({
     {
       route: "/api/test/*/foo",
       handler: "~/api/hello.ts",
-      // @ts-expect-error #2382
       method: "GET",
     },
     {
@@ -41,7 +40,7 @@ export default defineNitroConfig({
     },
   ],
   devProxy: {
-    "/proxy/example": { target: "https://example.com", changeOrigin: true },
+    "/proxy/example/": { target: "https://example.com", changeOrigin: true },
   },
   alias: {
     "#fixture-nitro-utils-extra-absolute": fileURLToPath(

@@ -2,7 +2,7 @@ import type { IncomingMessage, OutgoingMessage } from "node:http";
 import type { Duplex } from "node:stream";
 import type { Worker } from "node:worker_threads";
 import type { FSWatcher } from "chokidar";
-import type { App } from "h3";
+import type { H3 } from "h3";
 import type { ListenOptions, Listener } from "listhen";
 
 export interface DevServerOptions {
@@ -20,7 +20,7 @@ export interface NitroDevServer {
     port: ListenOptions["port"],
     opts?: Partial<ListenOptions>
   ) => Promise<Listener>;
-  app: App;
+  app: H3;
   close: () => Promise<void>;
   watcher?: FSWatcher;
   upgrade: (

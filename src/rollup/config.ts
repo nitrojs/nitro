@@ -36,7 +36,6 @@ import { replace } from "./plugins/replace";
 import { serverAssets } from "./plugins/server-assets";
 import { sourcemapMininify } from "./plugins/sourcemap-min";
 import { storage } from "./plugins/storage";
-import { timing } from "./plugins/timing";
 import { virtual } from "./plugins/virtual";
 import { errorHandler } from "./plugins/error-handler";
 import { resolveAliases } from "./utils";
@@ -180,14 +179,6 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
 
   if (rollupConfig.output.inlineDynamicImports) {
     delete rollupConfig.output.manualChunks;
-  }
-
-  if (nitro.options.timing) {
-    rollupConfig.plugins.push(
-      timing({
-        silent: isTest,
-      })
-    );
   }
 
   if (nitro.options.imports) {

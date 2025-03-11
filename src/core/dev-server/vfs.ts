@@ -1,4 +1,4 @@
-import { createError, eventHandler, getRequestHeader, getRequestIP } from "h3";
+import { createError, eventHandler, getRequestIP } from "h3";
 import type { Nitro } from "nitro/types";
 
 export function createVFSHandler(nitro: Nitro) {
@@ -20,7 +20,7 @@ export function createVFSHandler(nitro: Nitro) {
     const url = event.path || "";
     const isJson =
       url.endsWith(".json") ||
-      getRequestHeader(event, "accept")?.includes("application/json");
+      event.headers.get("accept")?.includes("application/json");
     const id = decodeURIComponent(url.replace(/^(\.json)?\/?/, "") || "");
 
     if (id && !(id in vfsEntries)) {

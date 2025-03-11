@@ -1,11 +1,5 @@
 import defu from "defu";
-import {
-  type H3Event,
-  eventHandler,
-  proxyRequest,
-  sendRedirect,
-  setHeaders,
-} from "h3";
+import { type H3Event, eventHandler, proxyRequest, redirect } from "h3";
 import type { NitroRouteRules } from "nitro/types";
 import { createRouter as createRadixRouter, toRouteMatcher } from "radix3";
 import { getQuery, joinURL, withQuery, withoutBase } from "ufo";
@@ -24,7 +18,9 @@ export function createRouteRulesHandler(ctx: {
     const routeRules = getRouteRules(event);
     // Apply headers options
     if (routeRules.headers) {
-      setHeaders(event, routeRules.headers);
+      for (const [key, value] of Object.entries(routeRules.headers)) {
+        event.response.setHeader(key, value);
+      }
     }
     // Apply redirect options
     if (routeRules.redirect) {
@@ -40,7 +36,7 @@ export function createRouteRulesHandler(ctx: {
         const query = getQuery(event.path);
         target = withQuery(target, query);
       }
-      return sendRedirect(event, target, routeRules.redirect.statusCode);
+      return redirect(event, target, routeRules.redirect.statusCode);
     }
     // Apply proxy options
     if (routeRules.proxy) {

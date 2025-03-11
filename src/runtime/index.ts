@@ -21,7 +21,7 @@ export { defineRenderHandler } from "./internal/renderer";
 export { getRouteRules } from "./internal/route-rules";
 
 // Context
-export { useEvent } from "./internal/context";
+export { useRequest } from "./internal/context";
 
 // Tasks
 export { defineTask, runTask } from "./internal/task";

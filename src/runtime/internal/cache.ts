@@ -1,11 +1,9 @@
 import {
   type EventHandler,
-  createEvent,
   defineEventHandler,
   fetchWithEvent,
   handleCacheHeaders,
   isEvent,
-  splitCookiesString,
 } from "h3";
 import type { EventHandlerRequest, EventHandlerResponse, H3Event } from "h3";
 import type {

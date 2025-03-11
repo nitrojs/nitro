@@ -96,7 +96,7 @@ function getNitroImportsPreset(): Preset[] {
     },
     {
       from: "nitro/runtime/internal/context",
-      imports: ["useEvent"],
+      imports: ["useRequest"],
     },
     {
       from: "nitro/runtime/internal/task",

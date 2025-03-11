@@ -26,9 +26,9 @@ import { defaultHandler } from "${builtinHandler}";
 export default async function(error, event) {
   for (const handler of errorHandlers) {
     try {
-      await handler(error, event, { defaultHandler });
-      if (event.handled) {
-        return; // Response handled
+      const response = await handler(error, event, { defaultHandler });
+      if (response) {
+        return response;
       }
     } catch(error) {
       // Handler itself thrown, log and continue

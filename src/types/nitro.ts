@@ -1,5 +1,5 @@
 import type { ConsolaInstance } from "consola";
-import type { RouterMethod } from "h3";
+import type { HTTPMethod } from "h3";
 import type { Hookable } from "hookable";
 import type { PresetName, PresetOptions } from "nitro/presets";
 import type { Unimport } from "unimport";
@@ -31,7 +31,7 @@ export type NitroDynamicConfig = Pick<
 >;
 
 export type NitroTypes = {
-  routes: Record<string, Partial<Record<RouterMethod | "default", string[]>>>;
+  routes: Record<string, Partial<Record<HTTPMethod | "default", string[]>>>;
 };
 
 export interface NitroFrameworkInfo {

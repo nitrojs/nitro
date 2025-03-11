@@ -1,6 +1,5 @@
 import type { Cookie } from "@azure/functions";
-import { parse } from "cookie-es";
-import { splitCookiesString } from "h3";
+import { parse, splitSetCookieString } from "cookie-es";
 
 export function getAzureParsedCookiesFromHeaders(
   headers: Record<string, number | string | string[] | undefined>
@@ -14,7 +13,7 @@ export function getAzureParsedCookiesFromHeaders(
     return [];
   }
   const azureCookies: Cookie[] = [];
-  for (const setCookieStr of splitCookiesString(setCookieHeader)) {
+  for (const setCookieStr of splitSetCookieString(setCookieHeader)) {
     const setCookie = Object.entries(parse(setCookieStr));
     if (setCookie.length === 0) {
       continue;

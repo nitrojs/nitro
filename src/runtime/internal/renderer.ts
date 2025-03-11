@@ -1,12 +1,4 @@
-import {
-  H3Event,
-  eventHandler,
-  getResponseStatus,
-  send,
-  setResponseHeader,
-  setResponseHeaders,
-  setResponseStatus,
-} from "h3";
+import { eventHandler } from "h3";
 import type { RenderHandler, RenderContext } from "nitro/types";
 import { useNitroApp } from "./app";
 import { useRuntimeConfig } from "./config";
@@ -25,22 +17,18 @@ export function defineRenderHandler(render: RenderHandler) {
     if (!ctx.response /* not handled by hook */) {
       // TODO: Use serve-placeholder
       if (event.path === `${runtimeConfig.app.baseURL}favicon.ico`) {
-        setResponseHeader(event, "Content-Type", "image/x-icon");
-        return send(
-          event,
-          "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-        );
+        event.response.setHeader("Content-Type", "image/x-icon");
+        return "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
       }
 
       ctx.response = await ctx.render(event);
 
       if (!ctx.response) {
-        const _currentStatus = getResponseStatus(event);
-        setResponseStatus(event, _currentStatus === 200 ? 500 : _currentStatus);
-        return send(
-          event,
-          "No response returned from render handler: " + event.path
+        const _currentStatus = event.response.status;
+        event.response.statusText = String(
+          _currentStatus === 200 ? 500 : _currentStatus
         );
+        return "No response returned from render handler: " + event.path;
       }
     }
 
@@ -49,14 +37,13 @@ export function defineRenderHandler(render: RenderHandler) {
 
     // Send headers
     if (ctx.response.headers) {
-      setResponseHeaders(event, ctx.response.headers);
+      for (const [key, value] of Object.entries(ctx.response.headers)) {
+        event.response.setHeader(key, value);
+      }
     }
     if (ctx.response.statusCode || ctx.response.statusMessage) {
-      setResponseStatus(
-        event,
-        ctx.response.statusCode,
-        ctx.response.statusMessage
-      );
+      event.response.status = ctx.response.statusCode;
+      event.response.statusText = ctx.response.statusMessage;
     }
 
     // Send response body
