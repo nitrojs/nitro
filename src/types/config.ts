@@ -248,7 +248,14 @@ export interface NitroConfig
   extends DeepPartial<
       Omit<
         NitroOptions,
-        "routeRules" | "rollupConfig" | "preset" | "compatibilityDate" | "unenv"
+        | "routeRules" 
+        | "rollupConfig" 
+        | "preset" 
+        | "compatibilityDate" 
+        | "unenv" 
+        | "_config" 
+        | "_c12" 
+        | "_cli"
       >
     >,
     C12InputConfig<NitroConfig> {
