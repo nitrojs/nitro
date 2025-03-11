@@ -23,5 +23,7 @@ You can integrate with this provider using [zero configuration](/deploy/#zero-co
     - Choose a region.
     - Import a GitHub repository (you’ll need to link your GitHub account).
     - Configure deployment settings (project root directory and branch), and enable automatic rollouts.
-    - Choose a unique ID for deployment.
-4. Wait for the first release to complete.
+    - Choose a unique ID for your backend.
+4. Click Finish & Deploy to create your first rollout.
+
+When you deploy with Firebase App Hosting, the App Hosting preset will be run automatically at build time.
