@@ -8,6 +8,7 @@ export function serverMain(nitro: Nitro): Plugin {
       if (chunk.isEntry) {
         return {
           code: `globalThis.__nitro_main__ = import.meta.url; ${code}`,
+          map: null,
         };
       }
     },
