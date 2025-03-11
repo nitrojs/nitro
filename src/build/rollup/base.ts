@@ -18,7 +18,7 @@ import { rollup as unwasm } from "unwasm/plugin";
 import { database } from "./plugins/database";
 import { handlers } from "./plugins/handlers";
 import { handlersMeta } from "./plugins/handlers-meta";
-import { importMeta } from "./plugins/import-meta";
+import { serverMain } from "./plugins/server-main";
 import { publicAssets } from "./plugins/public-assets";
 import { raw } from "./plugins/raw";
 import { serverAssets } from "./plugins/server-assets";
@@ -46,8 +46,8 @@ export function baseRollupPlugins(
     plugins.push(unwasm(nitro.options.wasm || {}));
   }
 
-  // Universal import.meta
-  plugins.push(importMeta(nitro));
+  // Inject gloalThis.__server_main__
+  plugins.push(serverMain(nitro));
 
   // Nitro Plugins
   const nitroPlugins = [...new Set(nitro.options.plugins)];
@@ -251,12 +251,6 @@ export function baseRollupConfig(nitro: Nitro) {
     "globalThis.process.": "process.",
     "process.env.RUNTIME_CONFIG": () =>
       JSON.stringify(nitro.options.runtimeConfig, null, 2),
-    ...Object.fromEntries(
-      [".", ";", ")", "[", "]", "}", " "].map((d) => [
-        `import.meta${d}`,
-        `globalThis._importMeta_${d}`,
-      ])
-    ),
     ...Object.fromEntries(
       [";", "(", "{", "}", " ", "\t", "\n"].map((d) => [
         `${d}global.`,
