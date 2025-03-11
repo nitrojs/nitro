@@ -200,6 +200,7 @@ export async function writeTypes(nitro: Nitro) {
         moduleDetection: "force",
         isolatedModules: true,
         verbatimModuleSyntax: true,
+        allowImportingTsExtensions: true,
         /* Strictness */
         strict: nitro.options.typescript.strict,
         noUncheckedIndexedAccess: true,
