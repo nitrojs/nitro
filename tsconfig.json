@@ -21,7 +21,7 @@
     "lib": ["es2022", "webworker", "dom.iterable"],
     "types": ["node", "@cloudflare/workers-types"],
     "paths": {
-      "nitro": ["./src/core"],
+      "nitro": ["./src/index"],
       "nitro/config": ["./lib/config.mjs"],
       "nitro/runtime": ["./src/runtime"],
       "nitro/runtime/internal": ["./src/runtime/internal"],
