@@ -266,9 +266,11 @@ export function baseRollupPlugins(
     plugins.push({
       name: "no-externals",
       async resolveId(id, importer, resolveOpts) {
+        id = base.aliases[id] || id;
         if (
-          nitro.options.node &&
-          (id.startsWith("node:") || builtinModules.includes(id))
+          base.env.external.includes(id) ||
+          (nitro.options.node &&
+            (id.startsWith("node:") || builtinModules.includes(id)))
         ) {
           return { id, external: true };
         }
