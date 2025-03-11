@@ -255,7 +255,6 @@ export interface NitroConfig
         | "unenv"
         | "_config"
         | "_c12"
-        | "_cli"
       >
     >,
     C12InputConfig<NitroConfig> {
