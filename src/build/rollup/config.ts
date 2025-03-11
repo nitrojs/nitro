@@ -11,13 +11,15 @@ import inject from "@rollup/plugin-inject";
 import json from "@rollup/plugin-json";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
 import { visualizer } from "rollup-plugin-visualizer";
-import { replace } from "./plugins/replace";
-import { esbuild } from "./plugins/esbuild";
-import { sourcemapMininify } from "./plugins/sourcemap-min";
-import { baseRollupConfig, baseRollupPlugins } from "./base";
+import { replace } from "../plugins/replace";
+import { esbuild } from "../plugins/esbuild";
+import { importMeta } from "../plugins/import-meta";
+import { sourcemapMininify } from "../plugins/sourcemap-min";
+import { baseBuildConfig } from "../config";
+import { baseBuildPlugins } from "../plugins";
 
 export const getRollupConfig = (nitro: Nitro): RollupConfig => {
-  const base = baseRollupConfig(nitro);
+  const base = baseBuildConfig(nitro);
 
   const chunkNamePrefixes = [
     [nitro.options.buildDir, "build"],
@@ -35,15 +37,11 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
     }
   }
 
-  type _RollupConfig = Omit<RollupConfig, "plugins"> & { plugins: Plugin[] };
-
-  const rollupConfig: _RollupConfig = defu(nitro.options.rollupConfig as any, <
-    _RollupConfig
-  >{
+  let config = {
     input: nitro.options.entry,
     external: [...base.env.external],
     plugins: [
-      ...baseRollupPlugins(nitro, base),
+      ...baseBuildPlugins(nitro, base),
       esbuild({
         target: "esnext",
         sourceMap: nitro.options.sourceMap,
@@ -151,17 +149,23 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
         return relativePath.includes("node_modules");
       },
     },
-  });
+  } satisfies RollupConfig;
 
-  if (rollupConfig.output.inlineDynamicImports) {
-    delete rollupConfig.output.manualChunks;
+  config = defu(nitro.options.rollupConfig as any, config);
+
+  if (config.output.inlineDynamicImports) {
+    // @ts-ignore
+    delete config.output.manualChunks;
   }
+
+  // Universal import.meta
+  config.plugins.push(importMeta(nitro));
 
   // Minify
   if (nitro.options.minify) {
     const _terser = createRequire(import.meta.url)("@rollup/plugin-terser");
     const terser = _terser.default || _terser;
-    rollupConfig.plugins.push(
+    config.plugins.push(
       terser({
         mangle: {
           keep_fnames: true,
@@ -178,12 +182,12 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
     !nitro.options.dev &&
     nitro.options.experimental.sourcemapMinify !== false
   ) {
-    rollupConfig.plugins.push(sourcemapMininify());
+    config.plugins.push(sourcemapMininify());
   }
 
   // Bundle analyzer
   if (nitro.options.analyze) {
-    rollupConfig.plugins.push(
+    config.plugins.push(
       // https://github.com/btd/rollup-plugin-visualizer
       visualizer({
         ...nitro.options.analyze,
@@ -196,5 +200,5 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
     );
   }
 
-  return rollupConfig;
+  return config;
 };

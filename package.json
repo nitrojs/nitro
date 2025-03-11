@@ -40,6 +40,8 @@
     "release": "pnpm test && pnpm build && changelogen --release && pnpm publish && git push --follow-tags",
     "stub": "unbuild --stub",
     "test": "pnpm lint && pnpm vitest run",
+    "test:rollup": "NITRO_BUILDER=rollup pnpm vitest",
+    "test:rolldown": "NITRO_BUILDER=rolldown pnpm vitest",
     "test:fixture:types": "pnpm stub && jiti ./test/scripts/gen-fixture-types.ts && cd test/fixture && tsc --noEmit",
     "test:types": "tsc --noEmit && pnpm test:fixture:types"
   },
@@ -149,6 +151,8 @@
     "get-port-please": "^3.1.2",
     "miniflare": "^3.20250224.0",
     "prettier": "^3.5.3",
+    "react": "^19.0.0",
+    "rolldown": "1.0.0-beta.4",
     "typescript": "^5.8.2",
     "unbuild": "^3.5.0",
     "undici": "^7.4.0",
@@ -156,10 +160,14 @@
     "xml2js": "^0.6.2"
   },
   "peerDependencies": {
+    "rolldown": "*",
     "xml2js": "^0.6.2"
   },
   "peerDependenciesMeta": {
     "xml2js": {
+      "optional": true
+    },
+    "rolldown": {
       "optional": true
     }
   },

@@ -1,29 +1,29 @@
-import { promises as fsp } from "node:fs";
-import { formatCompatibilityDate } from "compatx";
-import { writeFile } from "../utils/fs";
-import { version as nitroVersion } from "nitro/meta";
 import type { Nitro, NitroBuildInfo, RollupConfig } from "nitro/types";
-import { dirname, join, relative, resolve } from "pathe";
-import * as rollup from "rollup";
-import { presetsWithConfig } from "../presets/_types.gen";
-import { scanHandlers } from "../scan";
-import { generateFSTree } from "../utils/fs-tree";
-import { nitroServerName } from "../utils/nitro";
-import { snapshotStorage } from "../utils/storage";
+import { formatCompatibilityDate } from "compatx";
+import { writeFile } from "../../utils/fs";
+import { version as nitroVersion } from "nitro/meta";
+import { relative, resolve } from "pathe";
+import { presetsWithConfig } from "../../presets/_types.gen";
+import { scanHandlers } from "../../scan";
+import { generateFSTree } from "../../utils/fs-tree";
+import { nitroServerName } from "../../utils/nitro";
+import { writeTypes } from "../types";
+import { snapshot } from "../snapshot";
 import { formatRollupError } from "./error";
-import { writeTypes } from "./types";
 
 export async function buildProduction(
   nitro: Nitro,
   rollupConfig: RollupConfig
 ) {
+  const rollup = await import("rollup");
+
   await scanHandlers(nitro);
   await writeTypes(nitro);
-  await _snapshot(nitro);
+  await snapshot(nitro);
 
   if (!nitro.options.static) {
     nitro.logger.info(
-      `Building ${nitroServerName(nitro)} (preset: \`${nitro.options.preset}\`, compatibility date: \`${formatCompatibilityDate(nitro.options.compatibilityDate)}\`)`
+      `Building ${nitroServerName(nitro)} (rollup, preset: \`${nitro.options.preset}\`, compatibility date: \`${formatCompatibilityDate(nitro.options.compatibilityDate)}\`)`
     );
     const build = await rollup.rollup(rollupConfig).catch((error) => {
       nitro.logger.error(formatRollupError(error));
@@ -88,31 +88,4 @@ export async function buildProduction(
       )}\``
     );
   }
-}
-
-async function _snapshot(nitro: Nitro) {
-  if (
-    nitro.options.bundledStorage.length === 0 ||
-    nitro.options.preset === "nitro-prerender"
-  ) {
-    return;
-  }
-  // TODO: Use virtual storage for server assets
-  const storageDir = resolve(nitro.options.buildDir, "snapshot");
-  nitro.options.serverAssets.push({
-    baseName: "nitro:bundled",
-    dir: storageDir,
-  });
-
-  const data = await snapshotStorage(nitro);
-  await Promise.all(
-    Object.entries(data).map(async ([path, contents]) => {
-      if (typeof contents !== "string") {
-        contents = JSON.stringify(contents);
-      }
-      const fsPath = join(storageDir, path.replace(/:/g, "/"));
-      await fsp.mkdir(dirname(fsPath), { recursive: true });
-      await fsp.writeFile(fsPath, contents, "utf8");
-    })
-  );
 }
