@@ -1,6 +1,5 @@
 import { existsSync, promises as fsp } from "node:fs";
 import { defu } from "defu";
-import { genTypeImport } from "knitwork";
 import { lookupNodeModuleSubpath, parseNodeModulePath } from "mlly";
 import { resolveModulePath } from "exsolve";
 import { isDirectory, resolveNitroPath, writeFile } from "../utils/fs";

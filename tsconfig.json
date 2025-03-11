@@ -22,11 +22,10 @@
     "types": ["node", "@cloudflare/workers-types"],
     "paths": {
       "nitro": ["./src/core"],
-      "nitro/config": ["./src/config"],
+      "nitro/config": ["./lib/config.mjs"],
       "nitro/runtime": ["./src/runtime"],
       "nitro/runtime/internal": ["./src/runtime/internal"],
       "nitro/runtime/meta": ["./lib/runtime-meta.mjs"],
-      "nitro/meta": ["./src/meta"],
       "nitro/presets": ["./src/presets"],
       "nitro/types": ["./src/types"],
       "#nitro-internal-virtual/*": ["./src/types/virtual/*"],

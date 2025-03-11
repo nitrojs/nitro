@@ -17,7 +17,7 @@ import {
   default as devErrorHandler,
   defaultHandler as devErrorHandlerInternal,
   loadStackTrace,
-} from "../../runtime/internal/error/dev";
+} from "../runtime/internal/error/dev";
 import { version as nitroVersion } from "nitro/meta";
 import consola from "consola";
 import serveStatic from "serve-static";

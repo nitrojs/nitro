@@ -32,7 +32,6 @@ export default defineNitroConfig({
     {
       route: "/api/test/*/foo",
       handler: "~/api/hello.ts",
-      // @ts-expect-error #2382
       method: "GET",
     },
     {

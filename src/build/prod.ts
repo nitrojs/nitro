@@ -5,7 +5,7 @@ import { version as nitroVersion } from "nitro/meta";
 import type { Nitro, NitroBuildInfo, RollupConfig } from "nitro/types";
 import { dirname, join, relative, resolve } from "pathe";
 import * as rollup from "rollup";
-import { presetsWithConfig } from "../../presets/_types.gen";
+import { presetsWithConfig } from "../presets/_types.gen";
 import { scanHandlers } from "../scan";
 import { generateFSTree } from "../utils/fs-tree";
 import { nitroServerName } from "../utils/nitro";
