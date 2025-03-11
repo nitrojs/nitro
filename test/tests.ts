@@ -132,7 +132,6 @@ export async function setupTest(
     output: {
       dir: ctx.outDir,
     },
-    timing: !ctx.isWorker,
   });
   const nitro = (ctx.nitro = await createNitro(config, {
     compatibilityDate: opts.compatibilityDate || formatDate(new Date()),
@@ -402,16 +401,6 @@ export function testNitro(
     expect(data.json.error).toBe(true);
   });
 
-  it.skipIf(isWindows && ctx.preset === "nitro-dev")(
-    "universal import.meta",
-    async () => {
-      const { status, data } = await callHandler({ url: "/api/import-meta" });
-      expect(status).toBe(200);
-      expect(data.testFile).toMatch(/[/\\]test.txt$/);
-      expect(data.hasEnv).toBe(true);
-    }
-  );
-
   it("handles custom server assets", async () => {
     const { data: html, status: htmlStatus } = await callHandler({
       url: "/file?filename=index.html",
@@ -568,16 +557,6 @@ export function testNitro(
       },
     });
   });
-
-  if (ctx.nitro!.options.timing) {
-    it("set server timing header", async () => {
-      const { status, headers } = await callHandler({
-        url: "/api/hello",
-      });
-      expect(status).toBe(200);
-      expect(headers["server-timing"]).toMatch(/-;dur=\d+;desc="Generate"/);
-    });
-  }
 
   it("static build flags", async () => {
     const { data } = await callHandler({ url: "/static-flags" });

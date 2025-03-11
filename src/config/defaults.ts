@@ -6,7 +6,6 @@ import { isDebug, isTest } from "std-env";
 export const NitroDefaults: NitroConfig = {
   // General
   debug: isDebug,
-  timing: isDebug,
   logLevel: isTest ? 1 : 3,
   runtimeConfig: { app: {}, nitro: {} },
 

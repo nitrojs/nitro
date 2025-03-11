@@ -13,7 +13,6 @@ import { nodeResolve } from "@rollup/plugin-node-resolve";
 import { visualizer } from "rollup-plugin-visualizer";
 import { replace } from "../plugins/replace";
 import { esbuild } from "../plugins/esbuild";
-import { importMeta } from "../plugins/import-meta";
 import { sourcemapMininify } from "../plugins/sourcemap-min";
 import { baseBuildConfig } from "../config";
 import { baseBuildPlugins } from "../plugins";
@@ -157,9 +156,6 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
     // @ts-ignore
     delete config.output.manualChunks;
   }
-
-  // Universal import.meta
-  config.plugins.push(importMeta(nitro));
 
   // Minify
   if (nitro.options.minify) {

@@ -7,33 +7,23 @@ import { isAbsolute, dirname } from "pathe";
 import { hash } from "ohash";
 import { defu } from "defu";
 import { resolveModulePath } from "exsolve";
-import { isTest } from "std-env";
 import { runtimeDir, runtimeDependencies } from "nitro/runtime/meta";
 import unimportPlugin from "unimport/unplugin";
 import { rollup as unwasm } from "unwasm/plugin";
 import { database } from "./plugins/database";
 import { handlers } from "./plugins/handlers";
 import { handlersMeta } from "./plugins/handlers-meta";
+import { serverMain } from "./plugins/server-main";
 import { publicAssets } from "./plugins/public-assets";
 import { raw } from "./plugins/raw";
 import { serverAssets } from "./plugins/server-assets";
 import { storage } from "./plugins/storage";
-import { timing } from "./plugins/timing";
 import { virtual } from "./plugins/virtual";
 import { errorHandler } from "./plugins/error-handler";
 import { externals } from "./plugins/externals";
 
 export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const plugins: Plugin[] = [];
-
-  // Server timing
-  if (nitro.options.timing) {
-    plugins.push(
-      timing({
-        silent: isTest,
-      })
-    );
-  }
 
   // Auto imports
   if (nitro.options.imports) {
@@ -47,6 +37,9 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   if (nitro.options.experimental.wasm) {
     plugins.push(unwasm(nitro.options.wasm || {}));
   }
+
+  // Inject gloalThis.__server_main__
+  plugins.push(serverMain(nitro));
 
   // Nitro Plugins
   const nitroPlugins = [...new Set(nitro.options.plugins)];
