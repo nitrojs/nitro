@@ -10,7 +10,7 @@ import { isAbsolute, join, dirname, resolve } from "pathe";
 import { hash } from "ohash";
 import { defu } from "defu";
 import { resolveModulePath } from "exsolve";
-import { isTest, isWindows } from "std-env";
+import { isWindows } from "std-env";
 import { defineEnv } from "unenv";
 import { runtimeDir, runtimeDependencies } from "nitro/runtime/meta";
 import unimportPlugin from "unimport/unplugin";
@@ -18,12 +18,11 @@ import { rollup as unwasm } from "unwasm/plugin";
 import { database } from "./plugins/database";
 import { handlers } from "./plugins/handlers";
 import { handlersMeta } from "./plugins/handlers-meta";
-import { importMeta } from "./plugins/import-meta";
+import { serverMain } from "./plugins/server-main";
 import { publicAssets } from "./plugins/public-assets";
 import { raw } from "./plugins/raw";
 import { serverAssets } from "./plugins/server-assets";
 import { storage } from "./plugins/storage";
-import { timing } from "./plugins/timing";
 import { virtual } from "./plugins/virtual";
 import { errorHandler } from "./plugins/error-handler";
 import { externals } from "./plugins/externals";
@@ -33,15 +32,6 @@ export function baseRollupPlugins(
   base: ReturnType<typeof baseRollupConfig>
 ) {
   const plugins: Plugin[] = [];
-
-  // Server timing
-  if (nitro.options.timing) {
-    plugins.push(
-      timing({
-        silent: isTest,
-      })
-    );
-  }
 
   // Auto imports
   if (nitro.options.imports) {
@@ -56,8 +46,8 @@ export function baseRollupPlugins(
     plugins.push(unwasm(nitro.options.wasm || {}));
   }
 
-  // Universal import.meta
-  plugins.push(importMeta(nitro));
+  // Inject gloalThis.__server_main__
+  plugins.push(serverMain(nitro));
 
   // Nitro Plugins
   const nitroPlugins = [...new Set(nitro.options.plugins)];
@@ -261,12 +251,6 @@ export function baseRollupConfig(nitro: Nitro) {
     "globalThis.process.": "process.",
     "process.env.RUNTIME_CONFIG": () =>
       JSON.stringify(nitro.options.runtimeConfig, null, 2),
-    ...Object.fromEntries(
-      [".", ";", ")", "[", "]", "}", " "].map((d) => [
-        `import.meta${d}`,
-        `globalThis._importMeta_${d}`,
-      ])
-    ),
     ...Object.fromEntries(
       [";", "(", "{", "}", " ", "\t", "\n"].map((d) => [
         `${d}global.`,
