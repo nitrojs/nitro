@@ -12,6 +12,7 @@ import json from "@rollup/plugin-json";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
 import { visualizer } from "rollup-plugin-visualizer";
 import { replace } from "./plugins/replace";
+import { esbuild } from "./plugins/esbuild";
 import { sourcemapMininify } from "./plugins/sourcemap-min";
 import { baseRollupConfig, baseRollupPlugins } from "./base";
 
@@ -43,6 +44,11 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
     external: [...base.env.external],
     plugins: [
       ...baseRollupPlugins(nitro, base),
+      esbuild({
+        target: "esnext",
+        sourceMap: nitro.options.sourceMap,
+        ...nitro.options.esbuild?.options,
+      }),
       alias({ entries: base.aliases }),
       replace({ preventAssignment: true, values: base.replacements }),
       nodeResolve({
