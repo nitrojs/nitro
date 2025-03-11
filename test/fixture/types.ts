@@ -258,7 +258,6 @@ describe("defineNitroConfig", () => {
       routeRules: {
         "/**": {
           cache: {
-            // @ts-expect-error
             shouldBypassCache(event) {
               return false;
             },

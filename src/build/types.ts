@@ -1,6 +1,5 @@
 import { existsSync, promises as fsp } from "node:fs";
 import { defu } from "defu";
-import { genTypeImport } from "knitwork";
 import { lookupNodeModuleSubpath, parseNodeModulePath } from "mlly";
 import { resolveModulePath } from "exsolve";
 import { isDirectory, resolveNitroPath, writeFile } from "../utils/fs";
@@ -200,6 +199,7 @@ export async function writeTypes(nitro: Nitro) {
         moduleDetection: "force",
         isolatedModules: true,
         verbatimModuleSyntax: true,
+        allowImportingTsExtensions: true,
         /* Strictness */
         strict: nitro.options.typescript.strict,
         noUncheckedIndexedAccess: true,

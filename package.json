@@ -7,10 +7,10 @@
   "type": "module",
   "exports": {
     "./package.json": "./package.json",
-    ".": "./dist/core/index.mjs",
-    "./config": "./dist/config/index.mjs",
+    ".": "./dist/index.mjs",
+    "./config": "./lib/config.mjs",
     "./types": "./dist/types/index.d.mts",
-    "./meta": "./dist/meta/index.mjs",
+    "./meta": "./lib/meta.mjs",
     "./presets": "./dist/presets/index.mjs",
     "./runtime": "./dist/runtime/index.mjs",
     "./runtime/internal": "./dist/runtime/internal/index.mjs",

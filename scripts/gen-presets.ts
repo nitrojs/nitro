@@ -24,7 +24,7 @@ const presetDirs: string[] = readdirSync(presetsDir, { withFileTypes: true })
 // --- Load presets ---
 const jiti = createJiti(presetsDir, {
   alias: {
-    nitropack: fileURLToPath(new URL("../src/core/index.ts", import.meta.url)),
+    nitropack: fileURLToPath(new URL("../src/index.ts", import.meta.url)),
     ...Object.fromEntries(
       subpaths.map((pkg) => [
         `nitro/${pkg}`,

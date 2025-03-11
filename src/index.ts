@@ -5,7 +5,7 @@ export { createNitro } from "./nitro";
 export { prerender } from "./prerender/prerender";
 
 // Dev server
-export { createDevServer } from "./dev-server/server";
+export { createDevServer } from "./dev/server";
 
 // Config loader
 export { loadOptions } from "./config/loader";

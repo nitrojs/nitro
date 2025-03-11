@@ -6,16 +6,14 @@ import { defineBuildConfig } from "unbuild";
 
 const srcDir = fileURLToPath(new URL("src", import.meta.url));
 
-export const subpaths = ["config", "presets", "runtime", "meta", "types"];
+export const subpaths = ["config", "presets", "runtime", "types"];
 
 export default defineBuildConfig({
   declaration: true,
   name: "nitro",
   entries: [
     { input: "src/cli/index.ts" },
-    { input: "src/config/index.ts" },
-    { input: "src/core/index.ts" },
-    { input: "src/meta/index.ts" },
+    { input: "src/index.ts" },
     { input: "src/types/index.ts" },
     { input: "src/runtime/", outDir: "dist/runtime", format: "esm" },
     { input: "src/presets/", outDir: "dist/presets", format: "esm" },
@@ -37,6 +35,7 @@ export default defineBuildConfig({
   externals: [
     "nitro",
     "nitro/runtime/meta",
+    "nitro/config",
     ...subpaths.map((subpath) => `nitro/${subpath}`),
     "firebase-functions",
     "@scalar/api-reference",
@@ -45,7 +44,6 @@ export default defineBuildConfig({
     jiti: {
       alias: {
         nitro: "nitro",
-        "nitro/meta": resolve(srcDir, "../meta.ts"),
         "nitro/runtime/meta": resolve(srcDir, "../lib/runtime-meta.mjs"),
         ...Object.fromEntries(
           subpaths.map((subpath) => [
