@@ -10,7 +10,7 @@ import { isAbsolute, join, dirname, resolve } from "pathe";
 import { hash } from "ohash";
 import { defu } from "defu";
 import { resolveModulePath } from "exsolve";
-import { isTest, isWindows } from "std-env";
+import { isWindows } from "std-env";
 import { defineEnv } from "unenv";
 import { runtimeDir, runtimeDependencies } from "nitro/runtime/meta";
 import unimportPlugin from "unimport/unplugin";
@@ -23,7 +23,6 @@ import { publicAssets } from "./plugins/public-assets";
 import { raw } from "./plugins/raw";
 import { serverAssets } from "./plugins/server-assets";
 import { storage } from "./plugins/storage";
-import { timing } from "./plugins/timing";
 import { virtual } from "./plugins/virtual";
 import { errorHandler } from "./plugins/error-handler";
 import { externals } from "./plugins/externals";
@@ -33,15 +32,6 @@ export function baseRollupPlugins(
   base: ReturnType<typeof baseRollupConfig>
 ) {
   const plugins: Plugin[] = [];
-
-  // Server timing
-  if (nitro.options.timing) {
-    plugins.push(
-      timing({
-        silent: isTest,
-      })
-    );
-  }
 
   // Auto imports
   if (nitro.options.imports) {

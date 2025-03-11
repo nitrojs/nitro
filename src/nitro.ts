@@ -47,13 +47,10 @@ export async function createNitro(
     await nitro.storage.dispose();
   });
 
-  // Debug and timing
+  // Debug
   if (nitro.options.debug) {
     createDebugger(nitro.hooks, { tag: "nitro" });
     nitro.options.plugins.push(join(runtimeDir, "internal/debug"));
-  }
-  if (nitro.options.timing) {
-    nitro.options.plugins.push(join(runtimeDir, "internal/timing"));
   }
 
   // Logger
