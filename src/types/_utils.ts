@@ -17,9 +17,7 @@ export type ExcludeFunctions<G extends Record<string, any>> = Pick<
 >;
 
 // prettier-ignore
-export type DeepPartial<T> = T extends Record<string, any>
-  ? { [P in keyof T]?: DeepPartial<T[P]> | T[P] }
-  : T;
+export type DeepPartial<T> = T extends (...args: any[]) => any ? T : T extends Record<string, any> ? { [P in keyof T]?: DeepPartial<T[P]> } : T;
 
 export type KebabCase<
   T extends string,
