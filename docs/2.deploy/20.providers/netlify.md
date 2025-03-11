@@ -39,18 +39,6 @@ Nitro output can directly run the server at the edge. Closer to your users.
 Make sure the publish directory is set to `dist` when creating a new project.
 ::
 
-## On-demand builders
-
-**Preset:** `netlify_builder`
-
-::warning
-**Note:** This preset is deprecated. Instead, use the `netlify` preset with the `isr` route rule.
-::
-
-On-demand Builders are serverless functions used to generate web content as needed that’s automatically cached on Netlify’s Edge CDN. They enable you to build pages for your site when a user visits them for the first time and then cache them at the edge for subsequent visits.
-
-:read-more{title="Netlify On-demand Builders" to="https://docs.netlify.com/configure-builds/on-demand-builders/"}
-
 ## Custom deploy configuration
 
 You can provide additional deploy configuration using the `netlify` key inside `nitro.config`. It will be merged with built-in auto-generated config. Currently the only supported value is `images.remote_images`, for [configuring Netlify Image CDN](https://docs.netlify.com/image-cdn/create-integration/).

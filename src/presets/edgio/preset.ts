@@ -1,11 +1,12 @@
 import { promises as fsp } from "node:fs";
-import { defineNitroPreset } from "nitropack/kit";
+import { defineNitroPreset } from "../_utils/preset";
 import { dirname, resolve } from "pathe";
 import type { PackageJson } from "pkg-types";
 
 const edgio = defineNitroPreset(
   {
     extends: "node-server",
+    serveStatic: true,
     commands: {
       deploy: "cd ./ && npm run deploy",
       preview: "cd ./ && npm run preview",
@@ -77,7 +78,7 @@ module.exports = async function entry (port) {
           resolve(nitro.options.output.dir, "package.json"),
           JSON.stringify(
             <PackageJson>{
-              name: "nitropack-edgio-output",
+              name: "nitro-edgio-output",
               version: "1.0.0",
               private: true,
               scripts: {
@@ -104,7 +105,6 @@ module.exports = async function entry (port) {
   },
   {
     name: "edgio" as const,
-    aliases: ["layer0"] as const,
     url: import.meta.url,
   }
 );

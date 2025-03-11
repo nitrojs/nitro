@@ -1,21 +1,9 @@
-import { defineNitroPreset } from "nitropack/kit";
+import { defineNitroPreset } from "../_utils/preset";
 import { normalize } from "pathe";
 import { resolveModulePath } from "exsolve";
 
-const node = defineNitroPreset(
-  {
-    entry: "./runtime/node-listener",
-  },
-  {
-    name: "node-listener" as const,
-    aliases: ["node"] as const,
-    url: import.meta.url,
-  }
-);
-
 const nodeServer = defineNitroPreset(
   {
-    extends: "node",
     entry: "./runtime/node-server",
     serveStatic: true,
     commands: {
@@ -28,9 +16,20 @@ const nodeServer = defineNitroPreset(
   }
 );
 
+const nodeMiddleware = defineNitroPreset(
+  {
+    entry: "./runtime/node-middleware",
+  },
+  {
+    name: "node-middleware" as const,
+    url: import.meta.url,
+  }
+);
+
 const nodeCluster = defineNitroPreset(
   {
     extends: "node-server",
+    serveStatic: true,
     entry: "./runtime/node-cluster",
     hooks: {
       "rollup:before"(_nitro, rollupConfig) {
@@ -56,18 +55,4 @@ const nodeCluster = defineNitroPreset(
   }
 );
 
-const cli = defineNitroPreset(
-  {
-    extends: "node",
-    entry: "./runtime/cli",
-    commands: {
-      preview: "Run with node ./server/index.mjs [route]",
-    },
-  },
-  {
-    name: "cli" as const,
-    url: import.meta.url,
-  }
-);
-
-export default [node, nodeServer, nodeCluster, cli] as const;
+export default [nodeServer, nodeCluster, nodeMiddleware] as const;

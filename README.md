@@ -9,8 +9,10 @@
 
 Create web servers that run anywhere! 📖 [**documentation**](https://nitro.build)
 
-> [!NOTE]
-> You are on the v2 branch. Check [main branch](https://github.com/nitrojs/nitro/tree/main) for v3 development tree.
+> [!IMPORTANT]
+> You are on the **v3 beta branch**. Checkout the [v2](https://github.com/nitrojs/nitro/tree/v2) branch for current stable.
+
+Check [migration guide](./docs/1.guide/00.migration.md) for migrating from Nitro v2 to Nitro v3.
 
 ## Contribution
 

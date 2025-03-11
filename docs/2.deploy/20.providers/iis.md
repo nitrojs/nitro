@@ -14,7 +14,7 @@
 
 ## Using IIS handler
 
-**Preset:** `iis_handler` / `iis`
+**Preset:** `iis_handler`
 
 You can use IIS http handler directly.
 

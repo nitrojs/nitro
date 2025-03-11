@@ -1,8 +1,8 @@
 // @ts-nocheck TODO: Remove after removing polyfills
 import "#nitro-internal-pollyfills";
 import { toPlainHandler } from "h3";
-import { useNitroApp } from "nitropack/runtime";
-import { toBuffer } from "nitropack/runtime/internal";
+import { useNitroApp } from "nitro/runtime";
+import { toBuffer } from "nitro/runtime/internal";
 import { hasProtocol, joinURL } from "ufo";
 
 // Types are reverse engineered from runtime

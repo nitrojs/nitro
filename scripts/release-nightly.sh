@@ -30,9 +30,9 @@ fi
 
 # Release packages
 
-echo "Publishing main package..."
-npm publish --access public --tolerate-republish
+# nitro-nightly@latest => v3
+npm publish --access public --tolerate-republish --tag latest
 
-echo "Publishing mirror package..."
+# nitropack-nightly@3x => v3-mirror
 cd .mirror
-npm publish --access public --tolerate-republish
+npm publish --access public --tolerate-republish --tag 3x

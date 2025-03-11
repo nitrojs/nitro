@@ -1,11 +1,11 @@
-import type { Nitro, RollupConfig } from "nitropack/types";
+import type { Nitro } from "nitro/types";
 import type { Plugin } from "rollup";
 import type { WranglerConfig, CloudflarePagesRoutes } from "./types";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { relative, dirname } from "node:path";
-import { writeFile } from "nitropack/kit";
-import { parseTOML } from "confbox";
+import { relative, dirname, extname } from "node:path";
+import { writeFile } from "../_utils/fs";
+import { parseTOML, parseJSONC } from "confbox";
 import { readGitConfig, readPackageJSON, findNearestFile } from "pkg-types";
 import { defu } from "defu";
 import { globby } from "globby";
@@ -210,19 +210,32 @@ export async function enableNodeCompat(nitro: Nitro) {
   );
 }
 
+const extensionParsers = {
+  ".json": JSON.parse,
+  ".jsonc": parseJSONC,
+  ".toml": parseTOML,
+} as const;
+
 async function readWranglerConfig(
   nitro: Nitro
 ): Promise<{ configPath?: string; config?: WranglerConfig }> {
-  const configPath = await findNearestFile(["wrangler.json", "wrangler.toml"], {
-    startingFrom: nitro.options.rootDir,
-  }).catch(() => undefined);
+  const configPath = await findNearestFile(
+    ["wrangler.json", "wrangler.jsonc", "wrangler.toml"],
+    {
+      startingFrom: nitro.options.rootDir,
+    }
+  ).catch(() => undefined);
   if (!configPath) {
     return {};
   }
   const userConfigText = await readFile(configPath, "utf8");
-  const config = configPath.endsWith(".toml")
-    ? parseTOML(userConfigText)
-    : JSON.parse(userConfigText);
+  const parser =
+    extensionParsers[extname(configPath) as keyof typeof extensionParsers];
+  if (!parser) {
+    /* unreachable */
+    throw new Error(`Unsupported config file format: ${configPath}`);
+  }
+  const config = parser(userConfigText) as WranglerConfig;
   return { configPath, config };
 }
 

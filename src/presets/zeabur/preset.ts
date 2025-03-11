@@ -1,14 +1,13 @@
 import fsp from "node:fs/promises";
-import { writeFile } from "nitropack/kit";
-import { defineNitroPreset } from "nitropack/kit";
-import type { Nitro } from "nitropack/types";
+import { writeFile } from "../_utils/fs";
+import { defineNitroPreset } from "../_utils/preset";
+import type { Nitro } from "nitro/types";
 import { dirname, relative, resolve } from "pathe";
 
 // https://zeabur.com/docs/advanced/serverless-output-format
 
 const zeabur = defineNitroPreset(
   {
-    extends: "node",
     entry: "./runtime/zeabur",
     output: {
       dir: "{{ rootDir }}/.zeabur/output",

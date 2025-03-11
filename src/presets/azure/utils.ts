@@ -1,48 +1,8 @@
 import { createWriteStream } from "node:fs";
 import fsp from "node:fs/promises";
-import archiver from "archiver";
-import { writeFile } from "nitropack/kit";
-import type { Nitro } from "nitropack/types";
+import { writeFile } from "../_utils/fs";
+import type { Nitro } from "nitro/types";
 import { join, resolve } from "pathe";
-
-export async function writeFunctionsRoutes(nitro: Nitro) {
-  const host = {
-    version: "2.0",
-    extensions: { http: { routePrefix: "" } },
-  };
-
-  const functionDefinition = {
-    entryPoint: "handle",
-    bindings: [
-      {
-        authLevel: "anonymous",
-        type: "httpTrigger",
-        direction: "in",
-        name: "req",
-        route: "{*url}",
-        methods: ["delete", "get", "head", "options", "patch", "post", "put"],
-      },
-      {
-        type: "http",
-        direction: "out",
-        name: "res",
-      },
-    ],
-  };
-
-  await writeFile(
-    resolve(nitro.options.output.serverDir, "function.json"),
-    JSON.stringify(functionDefinition)
-  );
-  await writeFile(
-    resolve(nitro.options.output.dir, "host.json"),
-    JSON.stringify(host)
-  );
-  await _zipDirectory(
-    nitro.options.output.dir,
-    join(nitro.options.output.dir, "deploy.zip")
-  );
-}
 
 export async function writeSWARoutes(nitro: Nitro) {
   const host = {
@@ -202,19 +162,4 @@ export async function writeSWARoutes(nitro: Nitro) {
       ""
     );
   }
-}
-
-function _zipDirectory(dir: string, outfile: string): Promise<undefined> {
-  const archive = archiver("zip", { zlib: { level: 9 } });
-  const stream = createWriteStream(outfile);
-
-  return new Promise((resolve, reject) => {
-    archive
-      .glob("**/*", { cwd: dir, nodir: true, dot: true, follow: true })
-      .on("error", (err: Error) => reject(err))
-      .pipe(stream);
-
-    stream.on("close", () => resolve(undefined));
-    archive.finalize();
-  });
 }

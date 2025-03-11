@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - v2
+      - v3
   pull_request:
     branches:
       - v2
+      - v3
 
 jobs:
   lint:

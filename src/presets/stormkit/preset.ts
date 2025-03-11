@@ -1,4 +1,4 @@
-import { defineNitroPreset } from "nitropack/kit";
+import { defineNitroPreset } from "../_utils/preset";
 
 const stormkit = defineNitroPreset(
   {

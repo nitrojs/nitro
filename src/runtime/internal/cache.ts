@@ -15,11 +15,11 @@ import type {
   CachedEventHandlerOptions,
   NitroFetchRequest,
   ResponseCacheEntry,
-} from "nitropack/types";
+} from "nitro/types";
 import { parseURL } from "ufo";
 import { useNitroApp } from "./app";
 import { useStorage } from "./storage";
-import { hash } from "./hash";
+import { hash } from "ohash";
 import type { TransactionOptions } from "unstorage";
 
 function defaultCacheOptions() {

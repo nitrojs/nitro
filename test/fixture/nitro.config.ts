@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { defineNitroConfig } from "nitropack/config";
+import { defineNitroConfig } from "nitro/config";
 import { dirname, resolve } from "node:path";
 
 export default defineNitroConfig({
@@ -32,7 +32,6 @@ export default defineNitroConfig({
     {
       route: "/api/test/*/foo",
       handler: "~/api/hello.ts",
-      // @ts-expect-error #2382
       method: "GET",
     },
     {
@@ -61,15 +60,10 @@ export default defineNitroConfig({
     "**/_*.txt",
     "!**/_unignored.txt",
   ],
-  appConfig: {
-    "nitro-config": true,
-    dynamic: "initial",
-  },
   runtimeConfig: {
     dynamic: "initial",
     url: "https://{{APP_DOMAIN}}",
   },
-  appConfigFiles: ["~/server.config.ts"],
   publicAssets: [
     {
       baseURL: "build",

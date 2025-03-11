@@ -1,5 +1,5 @@
 import type { EventHandler, H3Error, H3Event, RouterMethod } from "h3";
-import type { PresetName } from "nitropack/presets";
+import type { PresetName } from "nitro/presets";
 import type { OperationObject, OpenAPI3 } from "openapi-typescript";
 
 type MaybeArray<T> = T | T[];
@@ -7,7 +7,7 @@ type MaybeArray<T> = T | T[];
 /** @exprerimental */
 export interface NitroRouteMeta {
   openAPI?: OperationObject & {
-    $global: Pick<OpenAPI3, "components">;
+    $global?: Pick<OpenAPI3, "components">;
   };
 }
 
@@ -65,7 +65,21 @@ export interface NitroDevEventHandler {
   handler: EventHandler;
 }
 
+type MaybePromise<T> = T | Promise<T>;
+
 export type NitroErrorHandler = (
   error: H3Error,
-  event: H3Event
+  event: H3Event,
+  _: {
+    defaultHandler: (
+      error: H3Error,
+      event: H3Event,
+      opts?: { silent?: boolean; json?: boolean }
+    ) => MaybePromise<{
+      status: number;
+      statusText: string;
+      headers: Record<string, string>;
+      body: string | Record<string, any>;
+    }>;
+  }
 ) => void | Promise<void>;

@@ -10,6 +10,10 @@
 Integration with this provider is possible with [zero configuration](/deploy/#zero-config-providers).
 ::
 
+::tip
+It is recommended to enable [Fluid compute](https://vercel.com/docs/functions/fluid-compute).
+::
+
 ## Deploy using git
 
 1. Push your code to your git repository (GitHub, GitLab, Bitbucket).
@@ -36,7 +40,7 @@ Nitro `/api` directory isn't compatible with Vercel. Instead, you should use:
 
 ## Custom build output configuration
 
-You can provide additional [build output configuration](https://vercel.com/docs/build-output-api/v3) using `vercel.config` key inside `nitro.config`. It will be merged with built-in auto generated config.
+You can provide additional [build output configuration](https://vercel.com/docs/build-output-api/v3) using `vercel.config` key inside `nitro.config`. It will be merged with built-in auto-generated config.
 
 ## On-Demand incremental static regeneration (ISR)
 
@@ -104,9 +108,3 @@ export default defineNitroConfig({
   },
 });
 ```
-
-## Vercel edge functions
-
-**Preset:** `vercel_edge` (deprecated)
-
-We recommend migrating to the default Node.js runtime and enabling [Fluid compute](https://vercel.com/docs/functions/fluid-compute).

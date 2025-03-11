@@ -1,9 +1,7 @@
-import { defineNitroPreset } from "nitropack/kit";
-import { writeFile } from "nitropack/kit";
+import { defineNitroPreset } from "../_utils/preset";
+import { writeFile } from "../_utils/fs";
 import { resolve } from "pathe";
 import { unenvDenoPreset } from "../_unenv/preset-deno";
-
-import { denoServerLegacy } from "./preset-legacy";
 
 const denoDeploy = defineNitroPreset(
   {
@@ -30,15 +28,14 @@ const denoDeploy = defineNitroPreset(
   },
   {
     name: "deno-deploy" as const,
-    aliases: ["deno"] as const,
     url: import.meta.url,
   }
 );
 
 const denoServer = defineNitroPreset(
   {
-    extends: "node-server",
     entry: "./runtime/deno-server",
+    serveStatic: true,
     exportConditions: ["deno"],
     commands: {
       preview: "deno task --config ./deno.json start",
@@ -67,9 +64,8 @@ const denoServer = defineNitroPreset(
   },
   {
     name: "deno-server" as const,
-    compatibilityDate: "2025-01-30",
     url: import.meta.url,
   }
 );
 
-export default [denoServerLegacy, denoDeploy, denoServer] as const;
+export default [denoDeploy, denoServer] as const;

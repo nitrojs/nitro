@@ -1,16 +1,27 @@
 # Cloudflare
 
-> Deploy Nitro apps to Cloudflare.
+> Deploy Nitro apps to Cloudflare Workers and Pages.
+
+## Cloudflare Worker
+
+**Preset:** `cloudflare_module`
+
+:read-more{title="Cloudflare Workers" to="https://developers.cloudflare.com/workers/"}
+
+::note
+This preset uses the [module worker syntax](https://developers.cloudflare.com/workers/learning/migrating-to-module-workers/) for deployment.
+::
+
+::note
+This preset benefits [Static Assets](https://developers.cloudflare.com/workers/static-assets/) by default.
+::
+
 
 ## Cloudflare Pages
 
 **Preset:** `cloudflare_pages`
 
 :read-more{title="Cloudflare Pages" to="https://pages.cloudflare.com/"}
-
-::note
-This is the recommended preset for Cloudflare deployments, please consider using the alternative ones if you need special features.
-::
 
 ::note
 Integration with this provider is possible with [zero configuration](/deploy#zero-config-providers).
@@ -64,43 +75,6 @@ logged into your Cloudflare account:
 Then you can deploy the application with:
 
 :pm-x{command="wrangler pages deploy dist"}
-
-## Cloudflare Module Workers
-
-**Preset:** `cloudflare_module`
-
-::note
-**Note:** This preset uses the [module worker syntax](https://developers.cloudflare.com/workers/learning/migrating-to-module-workers/) for deployment.
-::
-
-When using Workers you will need a `wrangler.toml` file, in your root directory. To using Workers with [Static Assets](https://developers.cloudflare.com/workers/static-assets/) (BETA with [limitations](https://developers.cloudflare.com/workers/static-assets/#limitations)), you also need a compatibility date set to `2024-09-19` or later, in your `wrangler.toml` file and nitro configuration file.
-
-The following shows a typical `wrangler.toml` file and a `nitro.config.ts` file for a Nitro application:
-
-::code-group
-
-```ts [nitro.config.ts]
-export default defineNitroConfig({
-    compatibilityDate: "2024-09-19",
-})
-```
-
-```ts [nuxt.config.ts]
-export default defineNuxtConfig({
-    compatibilityDate: "2024-09-19",
-})
-```
-
-::
-
-```ini [wrangler.toml]
-name = "nitro-app"
-compatibility_date = "2024-09-19"
-main = "./.output/server/index.mjs"
-assets = { directory = "./.output/public/", binding = "ASSETS" }
-```
-
-
 
 ## Runtime hooks
 
@@ -158,19 +132,6 @@ and publish it:
 
 :pm-x{command="wrangler deploy"}
 
-## Cloudflare Service Workers
-
-**Preset:** `cloudflare`
-
-::note
-**Note:** This preset uses the [service worker syntax](https://developers.cloudflare.com/workers/learning/service-worker/) for deployment.
-::
-
-::warning
-**Note:** This preset is deprecated.
-::
-
-The way this preset works is identical to that of the `cloudflare_module` one presented above, with the only difference being that such preset inherits all the [disadvantages](https://developers.cloudflare.com/workers/reference/migrate-to-module-workers/#advantages-of-migrating) that such syntax brings.
 
 ## Deploy within CI/CD using GitHub Actions
 

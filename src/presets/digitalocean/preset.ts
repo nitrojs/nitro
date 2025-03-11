@@ -1,8 +1,9 @@
-import { defineNitroPreset } from "nitropack/kit";
+import { defineNitroPreset } from "../_utils/preset";
 
 const digitalOcean = defineNitroPreset(
   {
     extends: "node-server",
+    serveStatic: true,
   },
   {
     name: "digital-ocean" as const,

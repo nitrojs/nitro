@@ -3,13 +3,8 @@ import { writeFile } from "node:fs/promises";
 const platforms = {
   cloudflare: {
     url: "https://platform-node-compat.pi0.workers.dev/?json",
-    forceHybrid: ["console", "perf_hooks"],
+    forceHybrid: ["console"],
     forceBuiltin: ["assert", "assert/strict", "events", "net", "stream"],
-  },
-  vercel: {
-    url: "https://platform-node-compat.vercel.app/?json",
-    // https://vercel.com/docs/functions/edge-middleware/edge-runtime#compatible-node.js-modules
-    forceBuiltin: ["async_hooks", "events", "buffer", "assert", "util"],
   },
   // Deno deploy and Netlify edge are almost identical
   deno: {

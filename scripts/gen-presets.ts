@@ -4,9 +4,9 @@ import { fileURLToPath } from "node:url";
 import { consola } from "consola";
 import { createJiti } from "jiti";
 import { findTypeExports } from "mlly";
-import type { NitroPreset, NitroPresetMeta } from "nitropack/types";
+import type { NitroPreset, NitroPresetMeta } from "nitro/types";
 import { camelCase, kebabCase, pascalCase, snakeCase } from "scule";
-import { subpaths } from "../build.config";
+import { stubAlias } from "../build.config";
 
 const autoGenHeader = /* ts */ `// Auto-generated using gen-presets script\n`;
 
@@ -15,29 +15,23 @@ const presetsDir = fileURLToPath(new URL("../src/presets", import.meta.url));
 const presetDirs: string[] = readdirSync(presetsDir, { withFileTypes: true })
   .filter(
     (dir) =>
+      dir.name !== "_utils" &&
       dir.isDirectory() &&
       existsSync(resolve(presetsDir, dir.name, "preset.ts"))
   )
   .map((dir) => dir.name);
 
 // --- Load presets ---
-const jiti = createJiti(presetsDir, {
-  alias: {
-    nitropack: fileURLToPath(new URL("../src/core/index.ts", import.meta.url)),
-    ...Object.fromEntries(
-      subpaths.map((pkg) => [
-        `nitropack/${pkg}`,
-        fileURLToPath(new URL(`../src/${pkg}/index.ts`, import.meta.url)),
-      ])
-    ),
-  },
-});
+const jiti = createJiti(presetsDir, { alias: stubAlias });
 const allPresets: (NitroPreset & { _meta?: NitroPresetMeta })[] = [];
 for (const preset of presetDirs) {
   const presetPath = resolve(presetsDir, preset, "preset.ts");
   const _presets = await jiti
     .import(presetPath)
     .then((mod) => (mod as any).default || mod);
+  if (!Array.isArray(_presets)) {
+    throw new TypeError(`Preset ${preset} does not export an array`);
+  }
   allPresets.push(..._presets);
 }
 

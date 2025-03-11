@@ -1,7 +1,6 @@
 import type { H3Event } from "h3";
 import { klona } from "klona";
-import type { NitroRuntimeConfig } from "nitropack/types";
-import { appConfig as _inlineAppConfig } from "#nitro-internal-virtual/app-config";
+import type { NitroRuntimeConfig } from "nitro/types";
 import { type EnvOptions, applyEnv } from "./utils.env";
 
 // Static runtime config inlined by nitro build
@@ -36,23 +35,6 @@ export function useRuntimeConfig<
   applyEnv(runtimeConfig, envOptions);
   event.context.nitro.runtimeConfig = runtimeConfig;
   return runtimeConfig;
-}
-
-// App config
-const _sharedAppConfig = _deepFreeze(klona(_inlineAppConfig));
-export function useAppConfig(event?: H3Event) {
-  // Backwards compatibility with ambient context
-  if (!event) {
-    return _sharedAppConfig;
-  }
-  // Reuse cached app config from event context
-  if (event.context.nitro.appConfig) {
-    return event.context.nitro.appConfig;
-  }
-  // Prepare app config for event context
-  const appConfig = klona(_inlineAppConfig);
-  event.context.nitro.appConfig = appConfig;
-  return appConfig;
 }
 
 // --- Utils ---

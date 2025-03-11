@@ -11,12 +11,8 @@ import {
   toNodeListener,
 } from "h3";
 import { createHooks } from "hookable";
-import type {
-  CaptureError,
-  NitroApp,
-  NitroRuntimeHooks,
-} from "nitropack/types";
-import type { NitroAsyncContext } from "nitropack/types";
+import type { CaptureError, NitroApp, NitroRuntimeHooks } from "nitro/types";
+import type { NitroAsyncContext } from "nitro/types";
 import { Headers, createFetch } from "ofetch";
 import {
   fetchNodeRequestHandler,

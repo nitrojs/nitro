@@ -1,5 +1,5 @@
 import type { Server as HttpServer } from "node:http";
-import type { NitroApp } from "nitropack/types";
+import type { NitroApp } from "nitro/types";
 import gracefulShutdown from "./lib/http-graceful-shutdown";
 
 export function getGracefulShutdownConfig() {

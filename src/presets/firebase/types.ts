@@ -10,7 +10,6 @@ export type FirebaseFunctionsOptions =
   | FirebaseOptionsGen2;
 
 export interface FirebaseOptionsBase {
-  gen: 1 | 2;
   /**
    * Firebase functions node runtime version.
    * @see https://cloud.google.com/functions/docs/runtime-support
