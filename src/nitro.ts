@@ -12,7 +12,7 @@ import { createUnimport } from "unimport";
 import { loadOptions } from "./config/loader";
 import { updateNitroConfig } from "./config/update";
 import { installModules } from "./module";
-import { scanAndSyncOptions } from "./scan";
+import { scanAndSyncOptions, scanHandlers } from "./scan";
 import { addNitroTasksVirtualFile } from "./task";
 import { createStorage } from "./utils/storage";
 
@@ -66,6 +66,9 @@ export async function createNitro(
 
   // Scan and install modules
   await installModules(nitro);
+
+  // Ensure initial handlers are populated
+  await scanHandlers(nitro);
 
   // Auto imports
   if (nitro.options.imports) {
