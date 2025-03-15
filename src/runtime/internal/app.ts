@@ -200,6 +200,8 @@ function runNitroPlugins(nitroApp: NitroApp) {
   }
 }
 
+export const nitroApp: NitroApp = createNitroApp();
+
 export function useNitroApp() {
   return nitroApp;
 }
