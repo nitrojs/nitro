@@ -47,11 +47,13 @@ async function handleEvent(event: FetchEvent) {
 
   return nitroApp.localFetch(url.pathname + url.search, {
     context: {
-      // https://developers.cloudflare.com/workers//runtime-apis/request#incomingrequestcfproperties
-      cf: (event.request as any).cf,
-      waitUntil: (promise: Promise<any>) => event.waitUntil(promise),
-      cloudflare: {
-        event,
+      _platform: {
+        // https://developers.cloudflare.com/workers//runtime-apis/request#incomingrequestcfproperties
+        cf: (event.request as any).cf,
+        waitUntil: (promise: Promise<any>) => event.waitUntil(promise),
+        cloudflare: {
+          event,
+        },
       },
     },
     host: url.hostname,

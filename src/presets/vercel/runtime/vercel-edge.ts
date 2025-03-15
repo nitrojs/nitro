@@ -18,8 +18,10 @@ export default async function handleEvent(request: Request, event: any) {
     method: request.method,
     body,
     context: {
-      vercel: {
-        event,
+      _platform: {
+        vercel: {
+          event,
+        },
       },
     },
   });
