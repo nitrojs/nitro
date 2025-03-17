@@ -16,7 +16,7 @@ Preset: `firebase_app_hosting`
 You can integrate with this provider using [zero configuration](/deploy/#zero-config-providers).
 ::
 
-## Project setup
+### Project setup
 
 1. Go to the Firebase [console](https://console.firebase.google.com/) and set up a new project.
 2. Select **Build > App Hosting** from the sidebar.
