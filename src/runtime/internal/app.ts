@@ -98,7 +98,6 @@ function createNitroApp(): NitroApp {
         }
         event.context.nitro._waitUntilPromises.push(promise);
         if (event.context.waitUntil) {
-          console.log("calling", event.context.waitUntil.toString());
           event.context.waitUntil(promise);
         }
       };
