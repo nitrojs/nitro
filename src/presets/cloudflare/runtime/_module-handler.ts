@@ -123,9 +123,9 @@ export async function fetchHandler(
 
   return nitroApp.localFetch(url.pathname + url.search, {
     context: {
+      waitUntil: (promise: Promise<any>) => context.waitUntil(promise),
       _platform: {
         cf: (request as any).cf,
-        waitUntil: (promise: Promise<any>) => context.waitUntil(promise),
         cloudflare: {
           request,
           env,

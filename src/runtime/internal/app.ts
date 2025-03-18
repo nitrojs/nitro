@@ -67,10 +67,18 @@ function createNitroApp(): NitroApp {
       event.context.nitro = event.context.nitro || { errors: [] };
 
       // Support platform context provided by local fetch
-      const platformContext: { waitUntil?: H3Event["waitUntil"] } | undefined =
-        (event.node.req as unknown as { __unenv__: any })?.__unenv__?._platform;
-      if (platformContext) {
-        Object.assign(event.context, platformContext);
+      const fetchContext = (event.node.req as any)?.__unenv__ as {
+        waitUntil?: H3Event["waitUntil"];
+        _platform?: Record<string, any>;
+      };
+      if (fetchContext?._platform) {
+        event.context = {
+          ...fetchContext._platform,
+          ...event.context,
+        };
+      }
+      if (!event.context.waitUntil && fetchContext?.waitUntil) {
+        event.context.waitUntil = fetchContext.waitUntil;
       }
 
       // Assign bound fetch to context
@@ -87,8 +95,9 @@ function createNitroApp(): NitroApp {
           event.context.nitro._waitUntilPromises = [];
         }
         event.context.nitro._waitUntilPromises.push(promise);
-        if (platformContext?.waitUntil) {
-          platformContext.waitUntil(promise);
+        if (event.context.waitUntil) {
+          console.log("calling", event.context.waitUntil.toString());
+          event.context.waitUntil(promise);
         }
       };
 
