@@ -36,9 +36,14 @@ export function createHTTPProxy(defaults: ProxyServerOptions = {}): HTTPProxy {
       event._handled = true;
       await proxy.web(event.node.req, event.node.res, opts);
     } catch (error: any) {
+      try {
+        event.node.res.setHeader("refresh", "3");
+      } catch {
+        // Ignore
+      }
       throw createError({
         statusCode: 503,
-        message: "Proxy error.",
+        message: "Dev server is unavailable.",
         cause: error,
       });
     }
