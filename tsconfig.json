@@ -23,6 +23,7 @@
     "jsxFactory": "h",
     "jsxFragmentFactory": "Fragment",
     "lib": ["es2022", "webworker", "dom.iterable"],
+    "types": ["@cloudflare/workers-types"],
     "paths": {
       // CLI
       "nitro/cli": ["./src/cli"],

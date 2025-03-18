@@ -23,14 +23,16 @@ import {
   callNodeRequestHandler,
   type AbstractRequest,
 } from "node-mock-http";
-import errorHandler from "#nitro-internal-virtual/error-handler";
-import { plugins } from "#nitro-internal-virtual/plugins";
-import { handlers } from "#nitro-internal-virtual/server-handlers";
 import { cachedEventHandler } from "./cache";
 import { useRuntimeConfig } from "./config";
 import { nitroAsyncContext } from "./context";
 import { createRouteRulesHandler, getRouteRulesForPath } from "./route-rules";
 import { normalizeFetchResponse } from "./utils";
+
+// IMPORTANT: virtuals and user code should be imported last to avoid initialization order issues
+import errorHandler from "#nitro-internal-virtual/error-handler";
+import { plugins } from "#nitro-internal-virtual/plugins";
+import { handlers } from "#nitro-internal-virtual/server-handlers";
 
 function createNitroApp(): NitroApp {
   const config = useRuntimeConfig();
