@@ -1,6 +1,6 @@
 import type { TLSSocket } from "node:tls";
 import type { ProxyServerOptions, ProxyServer } from "httpxy";
-import type { H3Event } from "h3";
+import { createError, type H3Event } from "h3";
 
 import { createProxyServer } from "httpxy";
 
@@ -36,9 +36,11 @@ export function createHTTPProxy(defaults: ProxyServerOptions = {}): HTTPProxy {
       event._handled = true;
       await proxy.web(event.node.req, event.node.res, opts);
     } catch (error: any) {
-      if (error?.code !== "ECONNRESET") {
-        throw error;
-      }
+      throw createError({
+        statusCode: 503,
+        message: "Proxy error.",
+        cause: error,
+      });
     }
   };
 
