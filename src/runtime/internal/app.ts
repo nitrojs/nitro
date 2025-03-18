@@ -67,10 +67,12 @@ function createNitroApp(): NitroApp {
       event.context.nitro = event.context.nitro || { errors: [] };
 
       // Support platform context provided by local fetch
-      const fetchContext = (event.node.req as any)?.__unenv__ as {
-        waitUntil?: H3Event["waitUntil"];
-        _platform?: Record<string, any>;
-      };
+      const fetchContext = (event.node.req as any)?.__unenv__ as
+        | undefined
+        | {
+            waitUntil?: H3Event["waitUntil"];
+            _platform?: Record<string, any>;
+          };
       if (fetchContext?._platform) {
         event.context = {
           ...fetchContext._platform,
