@@ -1,23 +1,19 @@
 import destr from "destr";
-import {
-  type H3Error,
-  createH3,
-  fetchWithEvent,
-  isEvent,
-  lazyEventHandler,
-} from "h3";
+import type { H3Error, H3Event } from "h3";
+import { createH3, fetchWithEvent, isEvent, lazyEventHandler } from "h3";
 import { createHooks } from "hookable";
 import type { CaptureError, NitroApp, NitroRuntimeHooks } from "nitro/types";
 import type { NitroAsyncContext } from "nitro/types";
 import { Headers, createFetch } from "ofetch";
-import errorHandler from "#nitro-internal-virtual/error-handler";
-import { plugins } from "#nitro-internal-virtual/plugins";
-import { handlers } from "#nitro-internal-virtual/server-handlers";
 import { cachedEventHandler } from "./cache";
 import { useRuntimeConfig } from "./config";
 import { nitroAsyncContext } from "./context";
 import { createRouteRulesHandler, getRouteRulesForPath } from "./route-rules";
-import { joinURL } from "ufo";
+
+// IMPORTANT: virtuals and user code should be imported last to avoid initialization order issues
+import errorHandler from "#nitro-internal-virtual/error-handler";
+import { plugins } from "#nitro-internal-virtual/plugins";
+import { handlers } from "#nitro-internal-virtual/server-handlers";
 
 function createNitroApp(): NitroApp {
   const config = useRuntimeConfig();
@@ -50,6 +46,24 @@ function createNitroApp(): NitroApp {
     onRequest: async (event) => {
       event.context.nitro = event.context.nitro || { errors: [] };
 
+      // Support platform context provided by local fetch
+      const fetchContext = (event.node?.req as any)?.__unenv__ as
+        | undefined
+        | {
+            waitUntil?: H3Event["waitUntil"];
+            _platform?: Record<string, any>;
+          };
+      if (fetchContext?._platform) {
+        Object.assign(event.context, {
+          ...fetchContext._platform,
+          ...event.context,
+        });
+      }
+      if (!event.context.waitUntil && fetchContext?.waitUntil) {
+        event.context.waitUntil = fetchContext.waitUntil;
+      }
+
+      // Assign bound fetch to context
       event.fetch = (req, init) =>
         fetchWithEvent(event, req, init, { fetch: localFetch });
 
@@ -63,6 +77,9 @@ function createNitroApp(): NitroApp {
           event.context.nitro._waitUntilPromises = [];
         }
         event.context.nitro._waitUntilPromises.push(promise);
+        if (event.context.waitUntil) {
+          event.context.waitUntil(promise);
+        }
       };
 
       event.captureError = (error, context) => {

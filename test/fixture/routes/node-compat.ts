@@ -1,5 +1,6 @@
 import nodeAsyncHooks from "node:async_hooks";
 import nodeCrypto from "node:crypto";
+import nodeTLS from "node:tls";
 
 const nodeCompatTests = {
   globals: {
@@ -31,6 +32,14 @@ const nodeCompatTests = {
         }
         return true;
       });
+    },
+  },
+  tls: {
+    connect: async () => {
+      const socket = nodeTLS.connect(443, "1.1.1.1");
+      await new Promise<void>((r) => socket.on("connect", r));
+      socket.end();
+      return true;
     },
   },
 };

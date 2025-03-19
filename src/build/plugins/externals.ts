@@ -9,7 +9,7 @@ import {
   parseNodeModulePath,
 } from "mlly";
 import { resolveModuleURL } from "exsolve";
-import { isDirectory } from "../../../utils/fs";
+import { isDirectory } from "../../utils/fs";
 import type { NodeExternalsOptions } from "nitro/types";
 import { dirname, isAbsolute, join, normalize, relative, resolve } from "pathe";
 import type { PackageJson } from "pkg-types";

@@ -2,7 +2,7 @@ import { cp, mkdir, rm, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "mlly";
 import { join } from "pathe";
 import { type PackageJson, readPackageJSON } from "pkg-types";
-import { subpaths } from "../build.config";
+import { distSubpaths } from "../build.config";
 
 const copyPkgFields = [
   "description",
@@ -66,7 +66,7 @@ async function main() {
   );
 
   // Generate subpath re-exports
-  for (const subpath of subpaths) {
+  for (const subpath of distSubpaths) {
     await mkdir(join(mirrorDir, "dist", subpath), { recursive: true });
     await writeFile(
       join(mirrorDir, "dist", subpath, "index.mjs"),

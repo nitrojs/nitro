@@ -1,4 +1,4 @@
-import type { ReferenceConfiguration } from "@scalar/api-reference";
+import type { ApiReferenceConfiguration } from "@scalar/api-reference";
 import { eventHandler } from "h3";
 import { useRuntimeConfig } from "../config";
 
@@ -12,9 +12,11 @@ export default eventHandler((event) => {
 
   // https://github.com/scalar/scalar
   const _config = runtimeConfig.nitro.openAPI?.ui
-    ?.scalar as ReferenceConfiguration;
-  const scalarConfig: ReferenceConfiguration = {
+    ?.scalar as ApiReferenceConfiguration;
+  const scalarConfig: ApiReferenceConfiguration = {
     ..._config,
+    url: openAPIEndpoint,
+    // @ts-expect-error (missing types?)
     spec: { url: openAPIEndpoint, ..._config?.spec },
   };
 

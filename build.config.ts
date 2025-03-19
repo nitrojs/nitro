@@ -5,8 +5,26 @@ import { normalize } from "pathe";
 import { defineBuildConfig } from "unbuild";
 
 const srcDir = fileURLToPath(new URL("src", import.meta.url));
+const libDir = fileURLToPath(new URL("lib", import.meta.url));
 
-export const subpaths = ["config", "presets", "runtime", "types"];
+export const distSubpaths = ["presets", "runtime", "types"];
+export const libSubpaths = ["config", "meta", "runtime/meta"];
+
+export const stubAlias = {
+  nitro: resolve(srcDir, "index.ts"),
+  ...Object.fromEntries(
+    distSubpaths.map((subpath) => [
+      `nitro/${subpath}`,
+      resolve(srcDir, `${subpath}/index.ts`),
+    ])
+  ),
+  ...Object.fromEntries(
+    libSubpaths.map((subpath) => [
+      `nitro/${subpath}`,
+      resolve(libDir, `${subpath.replace("/", "-")}.mjs`),
+    ])
+  ),
+};
 
 export default defineBuildConfig({
   declaration: true,
@@ -34,24 +52,13 @@ export default defineBuildConfig({
   },
   externals: [
     "nitro",
-    "nitro/runtime/meta",
-    "nitro/config",
-    ...subpaths.map((subpath) => `nitro/${subpath}`),
+    ...[...distSubpaths, ...libSubpaths].map((subpath) => `nitro/${subpath}`),
     "firebase-functions",
     "@scalar/api-reference",
   ],
   stubOptions: {
     jiti: {
-      alias: {
-        nitro: "nitro",
-        "nitro/runtime/meta": resolve(srcDir, "../lib/runtime-meta.mjs"),
-        ...Object.fromEntries(
-          subpaths.map((subpath) => [
-            `nitro/${subpath}`,
-            resolve(srcDir, `${subpath}/index.ts`),
-          ])
-        ),
-      },
+      alias: stubAlias,
     },
   },
   rollup: {

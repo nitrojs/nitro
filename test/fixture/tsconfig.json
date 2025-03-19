@@ -9,16 +9,17 @@
     "types": ["@cloudflare/workers-types"],
     "paths": {
       "nitro/cli": ["../../src/cli"],
-      "nitro/config": ["../../lib/config.mjs"],
       "nitro": ["../../src/index"],
       "nitro/runtime": ["../../src/runtime"],
       "nitro/runtime/internal": ["./src/runtime/internal"],
-      "nitro/runtime/meta": ["../../lib/runtime-meta.mjs"],
       "nitro/runtime/*": ["../../src/runtime/*"],
       "nitro/presets": ["../../src/presets"],
       "nitro/presets/*": ["../../src/presets/*"],
       "nitro/rollup": ["../../src/rollup"],
       "nitro/types": ["../../src/types"],
+      "nitro/meta": ["../../lib/meta.mjs"],
+      "nitro/config": ["../../lib/config.mjs"],
+      "nitro/runtime/meta": ["../../lib/runtime-meta.mjs"],
       // Virtual files
       "#nitro-internal-virtual/*": ["../../src/types/virtual/*"],
       // Compatibility (#internal/nitro)

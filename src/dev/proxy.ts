@@ -1,8 +1,9 @@
 import type { TLSSocket } from "node:tls";
 import type { ProxyServerOptions, ProxyServer } from "httpxy";
 import type { H3Event } from "h3";
+
 import { createProxyServer } from "httpxy";
-import { fromNodeHandler } from "h3";
+import { createError, fromNodeHandler } from "h3";
 
 export type HTTPProxy = {
   proxy: ProxyServer;
@@ -33,9 +34,17 @@ export function createHTTPProxy(defaults: ProxyServerOptions = {}): HTTPProxy {
 
   return {
     proxy,
-    handleEvent(event, opts) {
-      const handler = fromNodeHandler((req, res) => proxy.web(req, res, opts));
-      return handler(event);
+    async handleEvent(event, opts) {
+      try {
+        await fromNodeHandler((req, res) => proxy.web(req, res, opts))(event);
+      } catch (error: any) {
+        event.response.setHeader("refresh", "3");
+        throw createError({
+          statusCode: 503,
+          message: "Dev server is unavailable.",
+          cause: error,
+        });
+      }
     },
   };
 }
