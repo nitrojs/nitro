@@ -7,10 +7,12 @@ import type {
 import "#nitro-internal-pollyfills";
 import { useNitroApp } from "nitropack/runtime";
 import {
+  normalizeCookieHeader,
   normalizeLambdaIncomingHeaders,
   normalizeLambdaOutgoingHeaders,
 } from "nitropack/runtime/internal";
 import { withQuery } from "ufo";
+import type { StreamingResponse } from "@netlify/functions";
 
 const nitroApp = useNitroApp();
 
@@ -40,8 +42,12 @@ export const handler = awslambda.streamifyResponse(
         ? Buffer.from(event.body || "", "base64").toString("utf8")
         : event.body,
     });
-    const httpResponseMetadata = {
+    const cookies = normalizeCookieHeader(r.headers["set-cookie"]);
+    const httpResponseMetadata: Omit<StreamingResponse, "body"> = {
       statusCode: r.status,
+      multiValueHeaders: {
+        "set-cookie": cookies,
+      },
       headers: {
         ...normalizeLambdaOutgoingHeaders(r.headers, true),
         "Transfer-Encoding": "chunked",
