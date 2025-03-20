@@ -1,7 +1,14 @@
 type MaybePromise<T> = T | Promise<T>;
 
 /** @experimental */
-export interface TaskContext {}
+export interface TaskContext {
+  /**
+   * Amount of time in seconds to wait before running the task.
+   * Task runs on the next full second after the specified wait time.
+   * 0 is treated as no wait time.
+   */
+  waitFor?: number;
+}
 
 /** @experimental */
 export interface TaskPayload {
