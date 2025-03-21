@@ -42,12 +42,16 @@ export const handler = awslambda.streamifyResponse(
         ? Buffer.from(event.body || "", "base64").toString("utf8")
         : event.body,
     });
+
+    const isApiGwV2 = "cookies" in event || "rawPath" in event;
     const cookies = normalizeCookieHeader(r.headers["set-cookie"]);
     const httpResponseMetadata: Omit<StreamingResponse, "body"> = {
       statusCode: r.status,
-      multiValueHeaders: {
-        "set-cookie": cookies,
-      },
+      ...(cookies.length > 0 && {
+        ...(isApiGwV2
+          ? { cookies }
+          : { multiValueHeaders: { "set-cookie": cookies } }),
+      }),
       headers: {
         ...normalizeLambdaOutgoingHeaders(r.headers, true),
         "Transfer-Encoding": "chunked",
