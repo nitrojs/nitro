@@ -10,7 +10,7 @@ import type { DurableObject } from "cloudflare:workers";
 import type {
   RawConfig as _Config,
   ComputedFields as _ComputedFields,
-} from "./wrangler/config";
+} from "./wrangler/types/config";
 
 export type WranglerConfig = Partial<Omit<_Config, keyof _ComputedFields>>;
 
