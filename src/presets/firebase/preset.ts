@@ -3,7 +3,7 @@ import { writeFile } from "../_utils/fs";
 import { version as nitroVersion } from "nitro/meta";
 import { join, relative } from "pathe";
 import { stringifyYAML } from "confbox";
-import type { AppHostingOptions, AppHostingOutputBundleConfig } from "./types";
+import type { AppHostingOutputBundleConfig } from "./types";
 
 export type { FirebaseOptions as PresetOptions } from "./types";
 
@@ -20,7 +20,7 @@ const firebaseAppHosting = defineNitroPreset(
             version: "v1",
             runConfig: {
               runCommand: `node ${relative(nitro.options.rootDir, serverEntry)}`,
-              ...(nitro.options.firebase as AppHostingOptions)?.appHosting,
+              ...nitro.options.firebase?.appHosting,
             },
             metadata: {
               framework: nitro.options.framework.name || "nitro",
