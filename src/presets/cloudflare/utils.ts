@@ -183,12 +183,16 @@ export async function writeCFPagesRedirects(nitro: Nitro) {
   await writeFile(redirectsPath, contents.join("\n"), true);
 }
 
-export async function enableNodeCompat(nitro: Nitro) {
+export async function enableNodeCompat(
+  nitro: Nitro,
+  cfTarget: "pages" | "module"
+) {
   // Infer nodeCompat from user config
   if (nitro.options.cloudflare?.nodeCompat === undefined) {
     const { config } = await readWranglerConfig(
       nitro,
-      process.env.CLOUDFLARE_ENV ?? nitro.options.cloudflare?.envName
+      process.env.CLOUDFLARE_ENV ?? nitro.options.cloudflare?.envName,
+      cfTarget
     );
     const userCompatibilityFlags = new Set(config?.compatibility_flags || []);
     if (
@@ -222,7 +226,8 @@ const extensionParsers = {
 
 async function readWranglerConfig(
   nitro: Nitro,
-  cfEnvName: string | undefined
+  cfEnvName: string | undefined,
+  cfTarget: "pages" | "module"
 ): Promise<{ configPath?: string; config?: WranglerConfig }> {
   const configPath = await findNearestFile(
     ["wrangler.json", "wrangler.jsonc", "wrangler.toml"],
@@ -240,12 +245,8 @@ async function readWranglerConfig(
     /* unreachable */
     throw new Error(`Unsupported config file format: ${configPath}`);
   }
-
-  const isPagesPreset =
-    nitro.options.preset === "cloudflare-pages" ||
-    nitro.options.preset === "cloudflare-pages-static";
   if (
-    isPagesPreset &&
+    cfTarget === "pages" &&
     cfEnvName &&
     cfEnvName !== "production" &&
     cfEnvName !== "preview"
@@ -308,7 +309,8 @@ export async function writeWranglerConfig(
   // Read user config
   const { config: userConfig = {} } = await readWranglerConfig(
     nitro,
-    process.env.CLOUDFLARE_ENV ?? nitro.options.cloudflare?.envName
+    process.env.CLOUDFLARE_ENV ?? nitro.options.cloudflare?.envName,
+    cfTarget
   );
 
   // Nitro context config (from frameworks and modules)
