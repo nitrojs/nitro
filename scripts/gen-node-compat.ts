@@ -4,7 +4,14 @@ const platforms = {
   cloudflare: {
     url: "https://platform-node-compat.pi0.workers.dev/?json",
     forceHybrid: ["console"],
-    forceBuiltin: ["assert", "assert/strict", "events", "net", "stream"],
+    forceBuiltin: [
+      "_tls_wrap",
+      "assert",
+      "assert/strict",
+      "events",
+      "net",
+      "stream",
+    ],
   },
   // Deno deploy and Netlify edge are almost identical
   deno: {

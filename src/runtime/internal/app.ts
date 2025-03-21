@@ -19,14 +19,16 @@ import {
   callNodeRequestHandler,
   type AbstractRequest,
 } from "node-mock-http";
-import errorHandler from "#nitro-internal-virtual/error-handler";
-import { plugins } from "#nitro-internal-virtual/plugins";
-import { handlers } from "#nitro-internal-virtual/server-handlers";
 import { cachedEventHandler } from "./cache";
 import { useRuntimeConfig } from "./config";
 import { nitroAsyncContext } from "./context";
 import { createRouteRulesHandler, getRouteRulesForPath } from "./route-rules";
 import { normalizeFetchResponse } from "./utils";
+
+// IMPORTANT: virtuals and user code should be imported last to avoid initialization order issues
+import errorHandler from "#nitro-internal-virtual/error-handler";
+import { plugins } from "#nitro-internal-virtual/plugins";
+import { handlers } from "#nitro-internal-virtual/server-handlers";
 
 function createNitroApp(): NitroApp {
   const config = useRuntimeConfig();
@@ -61,11 +63,20 @@ function createNitroApp(): NitroApp {
       event.context.nitro = event.context.nitro || { errors: [] };
 
       // Support platform context provided by local fetch
-      const envContext: { waitUntil?: H3Event["waitUntil"] } | undefined = (
-        event.node.req as unknown as { __unenv__: any }
-      )?.__unenv__;
-      if (envContext) {
-        Object.assign(event.context, envContext);
+      const fetchContext = (event.node.req as any)?.__unenv__ as
+        | undefined
+        | {
+            waitUntil?: H3Event["waitUntil"];
+            _platform?: Record<string, any>;
+          };
+      if (fetchContext?._platform) {
+        event.context = {
+          ...fetchContext._platform,
+          ...event.context,
+        };
+      }
+      if (!event.context.waitUntil && fetchContext?.waitUntil) {
+        event.context.waitUntil = fetchContext.waitUntil;
       }
 
       // Assign bound fetch to context
@@ -82,8 +93,8 @@ function createNitroApp(): NitroApp {
           event.context.nitro._waitUntilPromises = [];
         }
         event.context.nitro._waitUntilPromises.push(promise);
-        if (envContext?.waitUntil) {
-          envContext.waitUntil(promise);
+        if (event.context.waitUntil) {
+          event.context.waitUntil(promise);
         }
       };
 

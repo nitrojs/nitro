@@ -120,11 +120,10 @@ export class NodeDevWorker implements DevWorker {
     this.closed = true;
     this.#hooks.onClose?.(this, cause);
     this.#hooks = {};
-    await Promise.all(
-      [this.#closeProxy(), this.#closeSocket(), this.#closeWorker()].map((p) =>
-        p.catch((error) => consola.error(error))
-      )
-    );
+    const onError = (error: unknown) => consola.error(error);
+    await this.#closeWorker().catch(onError);
+    await this.#closeProxy().catch(onError);
+    await this.#closeSocket().catch(onError);
   }
 
   async #closeProxy() {
