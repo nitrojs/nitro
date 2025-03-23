@@ -46,6 +46,13 @@ export interface CloudflareOptions {
   deployConfig?: boolean;
 
   /**
+   * Specify directory where to put `wrangler.json` file.
+   *
+   * **NOTE:** This option is only effective if `deployConfig` is enabled.
+   */
+  deployConfigDir?: string;
+
+  /**
    * Enable native Node.js compatibility support.
    *
    * If this option disabled, pure unenv polyfills will be used instead.

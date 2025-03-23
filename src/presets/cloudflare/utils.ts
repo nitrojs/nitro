@@ -250,8 +250,9 @@ export async function writeWranglerConfig(
   }
 
   // Compute path to generated wrangler.json
-  const wranglerConfigDir = nitro.options.output.serverDir;
-  const wranglerConfigPath = join(wranglerConfigDir, "wrangler.json");
+  const wranglerFileName = 'wrangler.json'
+  const wranglerConfigDir = nitro.options.cloudflare.deployConfigDir || nitro.options.rootDir;
+  const wranglerConfigPath = join(wranglerConfigDir, wranglerFileName);
 
   // Default configs
   const defaults: WranglerConfig = {};
@@ -345,18 +346,21 @@ export async function writeWranglerConfig(
     true
   );
 
-  const configPath = join(
-    nitro.options.rootDir,
-    ".wrangler/deploy/config.json"
-  );
-
-  await writeFile(
-    configPath,
-    JSON.stringify({
-      configPath: relative(dirname(configPath), wranglerConfigPath),
-    }),
-    true
-  );
+  if (wranglerConfigPath !== join(nitro.options.rootDir, wranglerFileName)) {
+    // The custom path is unnecessary if the file is in the root
+    const configPath = join(
+      nitro.options.rootDir,
+      ".wrangler/deploy/config.json"
+    );
+  
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        configPath: relative(dirname(configPath), wranglerConfigPath),
+      }),
+      true
+    );
+  }
 }
 
 async function generateWorkerName(nitro: Nitro) {
