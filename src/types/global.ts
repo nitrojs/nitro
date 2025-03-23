@@ -1,3 +1,4 @@
+import type { DotenvOptions } from "c12";
 import type { NitroConfig, NitroOptions } from "./config";
 import type { NitroModule } from "./module";
 
@@ -5,7 +6,7 @@ export interface NitroStaticBuildFlags {
   _asyncContext?: boolean;
   _websocket?: boolean;
   _tasks?: boolean;
-  dev?: boolean;
+  dev?: boolean | DotenvOptions;
   client?: boolean;
   nitro?: boolean;
   baseURL?: string;

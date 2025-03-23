@@ -1,3 +1,4 @@
+import type { DotenvOptions } from "c12";
 import type { NitroOptions } from "nitro/types";
 
 export async function resolveExportConditionsOptions(options: NitroOptions) {
@@ -9,7 +10,7 @@ export async function resolveExportConditionsOptions(options: NitroOptions) {
 
 function _resolveExportConditions(
   conditions: string[],
-  opts: { dev: boolean; node: boolean; wasm?: boolean }
+  opts: { dev: boolean | DotenvOptions; node: boolean; wasm?: boolean }
 ) {
   const resolvedConditions: string[] = [];
 
