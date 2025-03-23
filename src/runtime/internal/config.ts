@@ -37,6 +37,12 @@ export function useRuntimeConfig<
   return runtimeConfig;
 }
 
+// Initialize global nitro object and expose useRuntimeConfig
+if (!globalThis.__nitro__) {
+  globalThis.__nitro__ = {};
+}
+globalThis.__nitro__.useRuntimeConfig = useRuntimeConfig;
+
 // --- Utils ---
 
 function _deepFreeze(object: Record<string, any>) {
