@@ -97,7 +97,7 @@ async function _loadUserConfig(
   )({
     name: "nitro",
     cwd: configOverrides.rootDir,
-    dotenv: configOverrides.dev,
+    dotenv: configOverrides.dev as NitroOptions["dev"],
     extend: { extendKey: ["extends", "preset"] },
     overrides: {
       ...configOverrides,

@@ -1,5 +1,5 @@
 import type { RollupCommonJSOptions } from "@rollup/plugin-commonjs";
-import type { C12InputConfig, ConfigWatcher, ResolvedConfig } from "c12";
+import type { C12InputConfig, ConfigWatcher, DotenvOptions, ResolvedConfig } from "c12";
 import type { WatchConfigOptions } from "c12";
 import type { ChokidarOptions } from "chokidar";
 import type { CompatibilityDateSpec, CompatibilityDates } from "compatx";
@@ -148,7 +148,7 @@ export interface NitroOptions extends PresetOptions {
   ignore: string[];
 
   // Dev
-  dev: boolean;
+  dev: boolean | DotenvOptions;
   devServer: DevServerOptions;
   watchOptions: ChokidarOptions;
   devProxy: Record<string, string | ProxyServerOptions>;
