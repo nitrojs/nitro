@@ -11,9 +11,8 @@ export async function resolvePathOptions(options: NitroOptions) {
   options.workspaceDir ||= await findWorkspaceDir(options.rootDir).catch(
     () => options.rootDir
   );
-  options.srcDir = resolve(options.srcDir || options.rootDir);
   for (const key of ["srcDir", "buildDir"] as const) {
-    options[key] = resolve(options.rootDir, options[key]);
+    options[key] = resolve(options.rootDir, options[key] || ".");
   }
 
   // Add aliases
