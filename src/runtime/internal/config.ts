@@ -38,6 +38,12 @@ export function useRuntimeConfig<
   return runtimeConfig;
 }
 
+// Initialize global nitro object and expose useRuntimeConfig
+if (!globalThis.__nitro__) {
+  globalThis.__nitro__ = {};
+}
+globalThis.__nitro__.useRuntimeConfig = useRuntimeConfig;
+
 // App config
 const _sharedAppConfig = _deepFreeze(klona(_inlineAppConfig));
 export function useAppConfig(event?: H3Event) {

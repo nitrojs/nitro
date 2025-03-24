@@ -1,4 +1,5 @@
-import type { NitroConfig, NitroOptions } from "./config";
+import type { H3Event } from "h3";
+import type { NitroConfig, NitroOptions, NitroRuntimeConfig } from "./config";
 import type { NitroModule } from "./module";
 
 export interface NitroStaticBuildFlags {
@@ -24,6 +25,14 @@ declare global {
   }
 
   interface ImportMeta extends NitroStaticBuildFlags {}
+
+    // eslint-disable-next-line no-var
+  var __nitro__: {
+    useRuntimeConfig?: <T extends NitroRuntimeConfig = NitroRuntimeConfig>(
+      event?: H3Event
+    ) => T;
+    [key: string]: any;
+  };
 }
 
 declare global {
