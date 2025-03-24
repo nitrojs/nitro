@@ -20,8 +20,10 @@ import { defineNitroErrorHandler, type InternalHandlerResponse } from "./utils";
 export default defineNitroErrorHandler(
   async function defaultNitroErrorHandler(error, event) {
     const res = await defaultHandler(error, event);
-    setResponseHeaders(event, res.headers!);
-    setResponseStatus(event, res.status, res.statusText);
+    if (!event.node?.res.headersSent) {
+      setResponseHeaders(event, res.headers!);
+      setResponseStatus(event, res.status, res.statusText);
+    }
     return send(
       event,
       typeof res.body === "string"
