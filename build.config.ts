@@ -52,6 +52,7 @@ export default defineBuildConfig({
   },
   externals: [
     "nitro",
+    "typescript",
     ...[...distSubpaths, ...libSubpaths].map((subpath) => `nitro/${subpath}`),
     "firebase-functions",
     "@scalar/api-reference",
@@ -62,6 +63,8 @@ export default defineBuildConfig({
     },
   },
   rollup: {
+    inlineDependencies: true,
+    cjsBridge: true,
     output: {
       chunkFileNames(chunk: any) {
         const id = normalize(chunk.moduleIds.at(-1));

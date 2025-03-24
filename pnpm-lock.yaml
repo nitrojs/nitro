@@ -11,45 +11,9 @@ importers:
 
   .:
     dependencies:
-      '@rollup/plugin-alias':
-        specifier: ^5.1.1
-        version: 5.1.1(rollup@4.37.0)
-      '@rollup/plugin-commonjs':
-        specifier: ^28.0.3
-        version: 28.0.3(rollup@4.37.0)
-      '@rollup/plugin-inject':
-        specifier: ^5.0.5
-        version: 5.0.5(rollup@4.37.0)
-      '@rollup/plugin-json':
-        specifier: ^6.1.0
-        version: 6.1.0(rollup@4.37.0)
-      '@rollup/plugin-node-resolve':
-        specifier: ^16.0.1
-        version: 16.0.1(rollup@4.37.0)
-      '@rollup/plugin-replace':
-        specifier: ^6.0.2
-        version: 6.0.2(rollup@4.37.0)
-      '@rollup/plugin-terser':
-        specifier: ^0.4.4
-        version: 0.4.4(rollup@4.37.0)
-      '@types/http-proxy':
-        specifier: ^1.17.16
-        version: 1.17.16
       '@vercel/nft':
         specifier: ^0.29.2
         version: 0.29.2(rollup@4.37.0)
-      c12:
-        specifier: ^3.0.2
-        version: 3.0.2(magicast@0.3.5)
-      chokidar:
-        specifier: ^4.0.3
-        version: 4.0.3
-      citty:
-        specifier: ^0.1.6
-        version: 0.1.6
-      compatx:
-        specifier: ^0.1.8
-        version: 0.1.8
       confbox:
         specifier: ^0.2.1
         version: 0.2.1
@@ -74,66 +38,27 @@ importers:
       destr:
         specifier: ^2.0.3
         version: 2.0.3
-      dot-prop:
-        specifier: ^9.0.0
-        version: 9.0.0
       esbuild:
         specifier: ^0.25.1
         version: 0.25.1
-      escape-string-regexp:
-        specifier: ^5.0.0
-        version: 5.0.0
-      etag:
-        specifier: ^1.8.1
-        version: 1.8.1
-      exsolve:
-        specifier: ^1.0.4
-        version: 1.0.4
-      fs-extra:
-        specifier: ^11.3.0
-        version: 11.3.0
       globby:
         specifier: ^14.1.0
         version: 14.1.0
-      gzip-size:
-        specifier: ^7.0.0
-        version: 7.0.0
       h3:
         specifier: ^1.15.1
         version: 1.15.1
       hookable:
         specifier: ^5.5.3
         version: 5.5.3
-      httpxy:
-        specifier: ^0.1.7
-        version: 0.1.7
-      ioredis:
-        specifier: ^5.6.0
-        version: 5.6.0
       jiti:
         specifier: ^2.4.2
         version: 2.4.2
       klona:
         specifier: ^2.0.6
         version: 2.0.6
-      knitwork:
-        specifier: ^1.2.0
-        version: 1.2.0
-      listhen:
-        specifier: ^1.9.0
-        version: 1.9.0
-      magic-string:
-        specifier: ^0.30.17
-        version: 0.30.17
-      magicast:
-        specifier: ^0.3.5
-        version: 0.3.5
       mime:
         specifier: ^4.0.6
         version: 4.0.6
-      mlly:
-        specifier: ^1.7.4
-        version: 1.7.4
       node-mock-http:
         specifier: ^1.0.0
         version: 1.0.0
@@ -146,39 +71,15 @@ importers:
       openapi-typescript:
         specifier: ^7.6.1
         version: 7.6.1(typescript@5.8.2)
-      pathe:
-        specifier: ^2.0.3
-        version: 2.0.3
-      perfect-debounce:
-        specifier: ^1.0.0
-        version: 1.0.0
-      pkg-types:
-        specifier: ^2.1.0
-        version: 2.1.0
-      pretty-bytes:
-        specifier: ^6.1.1
-        version: 6.1.1
       radix3:
         specifier: ^1.1.2
         version: 1.1.2
       rollup:
         specifier: ^4.37.0
         version: 4.37.0
-      rollup-plugin-visualizer:
-        specifier: ^5.14.0
-        version: 5.14.0(rolldown@1.0.0-beta.7(typescript@5.8.2))(rollup@4.37.0)
       scule:
         specifier: ^1.3.0
         version: 1.3.0
-      semver:
-        specifier: ^7.7.1
-        version: 7.7.1
-      serve-placeholder:
-        specifier: ^2.0.2
-        version: 2.0.2
-      serve-static:
-        specifier: ^1.16.2
-        version: 1.16.2
       source-map:
         specifier: ^0.7.4
         version: 0.7.4
@@ -188,9 +89,6 @@ importers:
       ufo:
         specifier: ^1.5.4
         version: 1.5.4
-      ultrahtml:
-        specifier: ^1.5.3
-        version: 1.5.3
       uncrypto:
         specifier: ^0.1.3
         version: 0.1.3
@@ -198,25 +96,16 @@ importers:
         specifier: ^2.4.1
         version: 2.4.1
       unenv:
-        specifier: 2.0.0-rc.15
+        specifier: ^2.0.0-rc.15
         version: 2.0.0-rc.15
-      unimport:
-        specifier: ^4.1.2
-        version: 4.1.2
-      unplugin-utils:
-        specifier: ^0.2.4
-        version: 0.2.4
+      unplugin:
+        specifier: ^2.2.2
+        version: 2.2.2
       unstorage:
         specifier: ^1.15.0
         version: 1.15.0(@azure/identity@4.8.0)(db0@0.3.1)(ioredis@5.6.0)
-      untyped:
-        specifier: ^2.0.0
-        version: 2.0.0
-      unwasm:
-        specifier: ^0.3.9
-        version: 0.3.9
       youch:
-        specifier: 4.1.0-beta.6
+        specifier: ^4.1.0-beta.6
         version: 4.1.0-beta.6
       youch-core:
         specifier: ^0.3.2
@@ -240,6 +129,27 @@ importers:
       '@netlify/functions':
         specifier: ^3.0.4
         version: 3.0.4
+      '@rollup/plugin-alias':
+        specifier: ^5.1.1
+        version: 5.1.1(rollup@4.37.0)
+      '@rollup/plugin-commonjs':
+        specifier: ^28.0.3
+        version: 28.0.3(rollup@4.37.0)
+      '@rollup/plugin-inject':
+        specifier: ^5.0.5
+        version: 5.0.5(rollup@4.37.0)
+      '@rollup/plugin-json':
+        specifier: ^6.1.0
+        version: 6.1.0(rollup@4.37.0)
+      '@rollup/plugin-node-resolve':
+        specifier: ^16.0.1
+        version: 16.0.1(rollup@4.37.0)
+      '@rollup/plugin-replace':
+        specifier: ^6.0.2
+        version: 6.0.2(rollup@4.37.0)
+      '@rollup/plugin-terser':
+        specifier: ^0.4.4
+        version: 0.4.4(rollup@4.37.0)
       '@scalar/api-reference':
         specifier: ^1.28.7
         version: 1.28.7(@hyperjump/browser@1.2.0)(axios@1.8.4)(change-case@5.4.4)(jwt-decode@4.0.0)(tailwindcss@4.0.12)(typescript@5.8.2)
@@ -279,48 +189,132 @@ importers:
       automd:
         specifier: ^0.4.0
         version: 0.4.0(magicast@0.3.5)
+      c12:
+        specifier: ^3.0.2
+        version: 3.0.2(magicast@0.3.5)
       changelogen:
         specifier: ^0.6.1
         version: 0.6.1(magicast@0.3.5)
+      chokidar:
+        specifier: ^4.0.3
+        version: 4.0.3
+      citty:
+        specifier: ^0.1.6
+        version: 0.1.6
+      compatx:
+        specifier: ^0.1.8
+        version: 0.1.8
+      dot-prop:
+        specifier: ^9.0.0
+        version: 9.0.0
       edge-runtime:
         specifier: ^4.0.1
         version: 4.0.1
+      escape-string-regexp:
+        specifier: ^5.0.0
+        version: 5.0.0
       eslint:
         specifier: ^9.23.0
         version: 9.23.0(jiti@2.4.2)
       eslint-config-unjs:
         specifier: ^0.4.2
         version: 0.4.2(eslint@9.23.0(jiti@2.4.2))(typescript@5.8.2)
+      etag:
+        specifier: ^1.8.1
+        version: 1.8.1
       execa:
         specifier: ^9.5.2
         version: 9.5.2
       expect-type:
         specifier: ^1.2.0
         version: 1.2.0
+      exsolve:
+        specifier: ^1.0.4
+        version: 1.0.4
       get-port-please:
         specifier: ^3.1.2
         version: 3.1.2
+      gzip-size:
+        specifier: ^7.0.0
+        version: 7.0.0
+      httpxy:
+        specifier: ^0.1.7
+        version: 0.1.7
+      knitwork:
+        specifier: ^1.2.0
+        version: 1.2.0
+      listhen:
+        specifier: ^1.9.0
+        version: 1.9.0
+      magic-string:
+        specifier: ^0.30.17
+        version: 0.30.17
+      magicast:
+        specifier: ^0.3.5
+        version: 0.3.5
       miniflare:
         specifier: ^4.20250320.0
         version: 4.20250320.0
+      mlly:
+        specifier: ^1.7.4
+        version: 1.7.4
+      pathe:
+        specifier: ^2.0.3
+        version: 2.0.3
+      perfect-debounce:
+        specifier: ^1.0.0
+        version: 1.0.0
+      pkg-types:
+        specifier: ^2.1.0
+        version: 2.1.0
       prettier:
         specifier: ^3.5.3
         version: 3.5.3
+      pretty-bytes:
+        specifier: ^6.1.1
+        version: 6.1.1
       react:
         specifier: ^19.0.0
         version: 19.0.0
       rolldown:
         specifier: ^1.0.0-beta.7
         version: 1.0.0-beta.7(typescript@5.8.2)
+      rollup-plugin-visualizer:
+        specifier: ^5.14.0
+        version: 5.14.0(rolldown@1.0.0-beta.7(typescript@5.8.2))(rollup@4.37.0)
+      semver:
+        specifier: ^7.7.1
+        version: 7.7.1
+      serve-placeholder:
+        specifier: ^2.0.2
+        version: 2.0.2
+      serve-static:
+        specifier: ^1.16.2
+        version: 1.16.2
       typescript:
         specifier: ^5.8.2
         version: 5.8.2
+      ultrahtml:
+        specifier: ^1.5.3
+        version: 1.5.3
       unbuild:
         specifier: ^3.5.0
         version: 3.5.0(typescript@5.8.2)(vue@3.5.13(typescript@5.8.2))
       undici:
         specifier: ^7.5.0
         version: 7.5.0
+      unimport:
+        specifier: ^4.1.2
+        version: 4.1.2
+      unplugin-utils:
+        specifier: ^0.2.4
+        version: 0.2.4
+      untyped:
+        specifier: ^2.0.0
+        version: 2.0.0
+      unwasm:
+        specifier: ^0.3.9
+        version: 0.3.9
       vitest:
         specifier: ^3.0.9
         version: 3.0.9(@edge-runtime/vm@5.0.0)(@types/debug@4.1.12)(@types/node@22.13.13)(jiti@2.4.2)(terser@5.39.0)(yaml@2.7.0)
@@ -1773,9 +1767,6 @@ packages:
   '@types/http-errors@2.0.4':
     resolution: {integrity: sha512-D0CFMMtydbJAegzOyHjtiKPLlvnm3iTZyZRSZoLq2mRhDdmLfIWOCYPfQJ4cu2erKghU++QvjcUjp/5h7hESpA==}
 
-  '@types/http-proxy@1.17.16':
-    resolution: {integrity: sha512-sdWoUajOB1cd0A8cRRQ1cfyWNbmFKLAqBB89Y8x5iYyG/mkJHc0YUH8pdWBy2omi9qtCpiIgGjuwO0dQST2l5w==}
-
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
 
@@ -3099,10 +3090,6 @@ packages:
   fs-constants@1.0.0:
     resolution: {integrity: sha512-y6OAwoSIf7FyjMIv94u+b5rdheZEjzR63GTyZJm5qh4Bi+2YgwLCcI/fPFZkL5PSixOt6ZNKm+w+Hfp/Bciwow==}
 
-  fs-extra@11.3.0:
-    resolution: {integrity: sha512-Z4XaCL6dUDHfP/jT25jJKMmtxvuwbkrD1vNSMFlo9lNLY2c5FHYSQgHPRZUjAB26TpDEoW9HCOgplrdbaPV/ew==}
-    engines: {node: '>=14.14'}
-
   fs.realpath@1.0.0:
     resolution: {integrity: sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==}
 
@@ -3645,9 +3632,6 @@ packages:
   json-stringify-deterministic@1.0.12:
     resolution: {integrity: sha512-q3PN0lbUdv0pmurkBNdJH3pfFvOTL/Zp0lquqpvcjfKzt6Y0j49EPHAmVHCAS4Ceq/Y+PejWTzyiVpoY71+D6g==}
     engines: {node: '>= 4'}
-
-  jsonfile@6.1.0:
-    resolution: {integrity: sha512-5dgndWOriYSm5cnYaJNhalLNDKOqFwyDB/rr1E9ZsGciGvKPs8R2xYGCacuf3z6K1YKDz182fd+fY3cn3pMqXQ==}
 
   jsonpointer@5.0.1:
     resolution: {integrity: sha512-p/nXbhSEcu3pZRdkW1OfJhpsVtW1gd4Wa1fnQc9YLiTfAjn0312eMKimbdIQzuZl9aa9xUGaRlP9T/CJE/ditQ==}
@@ -5333,10 +5317,6 @@ packages:
   unist-util-visit@5.0.0:
     resolution: {integrity: sha512-MR04uvD+07cwl/yhVuVWAtw+3GOR/knlL55Nd/wAdblk27GCVt3lqpTivy/tkJcZoNPzTwS1Y+KMojlLDhoTzg==}
 
-  universalify@2.0.1:
-    resolution: {integrity: sha512-gptHNQghINnc/vTGIk0SOFGFNXw7JVrlRUtConJRlvaw6DuX0wO5Jeko9sWrMBhh+PsYAZ7oXAiOnf/UKogyiw==}
-    engines: {node: '>= 10.0.0'}
-
   unpipe@1.0.0:
     resolution: {integrity: sha512-pjy2bYhSsufwWlKwPc+l3cN7+wuJlK6uz0YdJEOlQDbl6jo/YlPi4mb8agUkVC8BF7V8NuzeyPNqRksA3hztKQ==}
     engines: {node: '>= 0.8'}
@@ -5349,8 +5329,8 @@ packages:
     resolution: {integrity: sha512-4/u/j4FrCKdi17jaxuJA0jClGxB1AvU2hw/IuayPc4ay1XGaJs/rbb4v5WKwAjNifjmXK9PIFyuPiaK8azyR9w==}
     engines: {node: '>=14.0.0'}
 
-  unplugin@2.2.0:
-    resolution: {integrity: sha512-m1ekpSwuOT5hxkJeZGRxO7gXbXT3gF26NjQ7GdVHoLoF8/nopLcd/QfPigpCy7i51oFHiRJg/CyHhj4vs2+KGw==}
+  unplugin@2.2.2:
+    resolution: {integrity: sha512-Qp+iiD+qCRnUek+nDoYvtWX7tfnYyXsrOnJ452FRTgOyKmTM7TUJ3l+PLPJOOWPTUyKISKp4isC5JJPSXUjGgw==}
     engines: {node: '>=18.12.0'}
 
   unstorage@1.15.0:
@@ -7232,10 +7212,6 @@ snapshots:
 
   '@types/http-errors@2.0.4': {}
 
-  '@types/http-proxy@1.17.16':
-    dependencies:
-      '@types/node': 22.13.10
-
   '@types/json-schema@7.0.15': {}
 
   '@types/jsonfile@6.1.4':
@@ -8751,12 +8727,6 @@ snapshots:
 
   fs-constants@1.0.0: {}
 
-  fs-extra@11.3.0:
-    dependencies:
-      graceful-fs: 4.2.11
-      jsonfile: 6.1.0
-      universalify: 2.0.1
-
   fs.realpath@1.0.0: {}
 
   fsevents@2.3.3:
@@ -9331,12 +9301,6 @@ snapshots:
   json-stable-stringify-without-jsonify@1.0.1: {}
 
   json-stringify-deterministic@1.0.12: {}
-
-  jsonfile@6.1.0:
-    dependencies:
-      universalify: 2.0.1
-    optionalDependencies:
-      graceful-fs: 4.2.11
 
   jsonpointer@5.0.1: {}
 
@@ -11340,7 +11304,7 @@ snapshots:
       acorn: 8.14.1
       estree-walker: 3.0.3
       magic-string: 0.30.17
-      unplugin: 2.2.0
+      unplugin: 2.2.2
 
   undici-types@6.20.0: {}
 
@@ -11391,7 +11355,7 @@ snapshots:
       scule: 1.3.0
       strip-literal: 3.0.0
       tinyglobby: 0.2.12
-      unplugin: 2.2.0
+      unplugin: 2.2.2
       unplugin-utils: 0.2.4
 
   unist-util-find-after@5.0.0:
@@ -11426,8 +11390,6 @@ snapshots:
       unist-util-is: 6.0.0
       unist-util-visit-parents: 6.0.1
 
-  universalify@2.0.1: {}
-
   unpipe@1.0.0: {}
 
   unplugin-utils@0.2.4:
@@ -11440,7 +11402,7 @@ snapshots:
       acorn: 8.14.1
       webpack-virtual-modules: 0.6.2
 
-  unplugin@2.2.0:
+  unplugin@2.2.2:
     dependencies:
       acorn: 8.14.1
       webpack-virtual-modules: 0.6.2
