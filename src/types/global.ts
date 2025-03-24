@@ -26,7 +26,7 @@ declare global {
 
   interface ImportMeta extends NitroStaticBuildFlags {}
 
-    // eslint-disable-next-line no-var
+  // eslint-disable-next-line no-var
   var __nitro__: {
     useRuntimeConfig?: <T extends NitroRuntimeConfig = NitroRuntimeConfig>(
       event?: H3Event
