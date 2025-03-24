@@ -30,7 +30,9 @@ export async function runTask<RT = unknown>(
     context = {},
   }: { payload?: TaskPayload; context?: TaskContext } = {}
 ): Promise<TaskResult<RT>> {
-  if (__runningTasks__[name]) {
+  const runImmediately = !context?.waitFor;
+
+  if (!runImmediately && __runningTasks__[name]) {
     return __runningTasks__[name];
   }
 
@@ -50,14 +52,41 @@ export async function runTask<RT = unknown>(
 
   const handler = (await tasks[name].resolve!()) as Task<RT>;
   const taskEvent: TaskEvent = { name, payload, context };
-  __runningTasks__[name] = handler.run(taskEvent);
 
-  try {
-    const res = await __runningTasks__[name];
-    return res;
-  } finally {
-    delete __runningTasks__[name];
+  if (runImmediately) {
+    __runningTasks__[name] = handler.run(taskEvent);
+    try {
+      const res = await __runningTasks__[name];
+      return res;
+    } finally {
+      delete __runningTasks__[name];
+    }
   }
+
+  const nextExecution = new Date();
+  nextExecution.setSeconds(nextExecution.getSeconds() + context.waitFor!);
+
+  const p = new Promise<TaskResult<RT>>((resolve, reject) => {
+    const job = new Cron(
+      "* * * * * *",
+      async () => {
+        try {
+          const res = await handler.run(taskEvent);
+          resolve(res);
+        } catch (error) {
+          reject(error);
+        } finally {
+          job.stop();
+        }
+      },
+      {
+        startAt: nextExecution,
+        maxRuns: 1,
+      }
+    );
+  });
+
+  return p;
 }
 
 /** @experimental */

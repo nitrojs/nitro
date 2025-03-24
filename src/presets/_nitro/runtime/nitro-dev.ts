@@ -74,13 +74,18 @@ nitroApp.router.use(
   "/_nitro/tasks/:name",
   defineEventHandler(async (event) => {
     const name = getRouterParam(event, "name") as string;
+    const body: any = await readBody(event);
+
     const payload = {
       ...getQuery(event),
-      ...(await readBody(event)
-        .then((r) => r?.payload)
-        .catch(() => ({}))),
+      ...(body && typeof body === "object" ? body.payload : {}),
     };
-    return await runTask(name, { payload });
+
+    const context = {
+      ...(body && typeof body === "object" ? body.context : {}),
+    };
+
+    return await runTask(name, { payload, context });
   })
 );
 
