@@ -143,9 +143,6 @@ importers:
       ohash:
         specifier: ^2.0.11
         version: 2.0.11
-      openapi-typescript:
-        specifier: ^7.6.1
-        version: 7.6.1(typescript@5.8.2)
       pathe:
         specifier: ^2.0.3
         version: 2.0.3

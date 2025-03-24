@@ -1,4 +1,4 @@
-import type { OperationObject } from "openapi-typescript";
+import type { OperationObject } from "../openapi-ts";
 import { NitroRouteMeta } from "nitro/types";
 
 export const handlersMeta: {
