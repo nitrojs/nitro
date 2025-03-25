@@ -1,12 +1,11 @@
 import { type HTTPMethod, eventHandler, getRequestURL } from "h3";
 import type {
-  ComponentsObject,
   OpenAPI3,
   OperationObject,
   ParameterObject,
   PathItemObject,
   PathsObject,
-} from "openapi-typescript";
+} from "#internal/types/openapi-ts";
 import { joinURL } from "ufo";
 import { defu } from "defu";
 import { handlersMeta } from "#nitro-internal-virtual/server-handlers-meta";

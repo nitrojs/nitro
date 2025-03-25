@@ -59,6 +59,9 @@ importers:
       klona:
         specifier: ^2.0.6
         version: 2.0.6
+      mlly:
+        specifier: ^1.7.4
+        version: 1.7.4
       node-mock-http:
         specifier: ^1.0.0
         version: 1.0.0
@@ -68,9 +71,12 @@ importers:
       ohash:
         specifier: ^2.0.11
         version: 2.0.11
-      openapi-typescript:
-        specifier: ^7.6.1
-        version: 7.6.1(typescript@5.8.2)
+      pathe:
+        specifier: ^2.0.3
+        version: 2.0.3
+      pkg-types:
+        specifier: ^2.1.0
+        version: 2.1.0
       radix3:
         specifier: ^1.1.2
         version: 1.1.2
@@ -255,18 +261,9 @@ importers:
       miniflare:
         specifier: ^4.20250320.0
         version: 4.20250320.0
-      mlly:
-        specifier: ^1.7.4
-        version: 1.7.4
-      pathe:
-        specifier: ^2.0.3
-        version: 2.0.3
       perfect-debounce:
         specifier: ^1.0.0
         version: 1.0.0
-      pkg-types:
-        specifier: ^2.1.0
-        version: 2.1.0
       prettier:
         specifier: ^3.5.3
         version: 3.5.3
