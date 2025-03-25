@@ -8,7 +8,24 @@ const srcDir = fileURLToPath(new URL("src", import.meta.url));
 const libDir = fileURLToPath(new URL("lib", import.meta.url));
 
 export const distSubpaths = ["presets", "runtime", "types"];
+
 export const libSubpaths = ["config", "meta", "runtime/meta"];
+
+// prettier-ignore
+const inlineDependencies = [
+  "@babel/parser","@jridgewell/sourcemap-codec","@parcel/watcher","@parcel/watcher-wasm","@rollup/plugin-alias","@rollup/plugin-commonjs",
+  "@rollup/plugin-inject","@rollup/plugin-json","@rollup/plugin-node-resolve","@rollup/plugin-replace","@rollup/pluginutils",
+  "acorn","braces","c12","c12/update","chokidar","citty","clipboardy","commondir","debug","deepmerge","define-lazy-prop",
+  "depd","destroy","detect-libc","dot-prop","dotenv","duplexer","ee-first","encodeurl","escape-html","escape-string-regexp",
+  "estree","estree-walker","etag","exsolve","fdir","fill-range","fresh","function-bind","get-port-please","giget","gzip-size",
+  "hasown","http-errors","http-shutdown","httpxy","inherits","is-core-module","is-docker","is-extglob","is-glob","is-module",
+  "is-number","is-reference","is-wsl","js-tokens","knitwork","listhen","listhen/cli","local-pkg","magic-string","magicast",
+  "micromatch","mime","ms","napi-wasm","node-fetch-native/proxy","node-forge","nypm","on-finished","open","parseurl","path-parse",
+  "perfect-debounce","picomatch","picomatch/lib/utils","pretty-bytes","quansync/macro","range-parser","rc9","readdirp","resolve",
+  "rollup-plugin-visualizer","semver","send","serve-placeholder","serve-static","setprototypeof","source-map-js","statuses",
+  "strip-literal","tinyexec","tinyglobby","to-regex-range","toidentifier","ultrahtml","unimport","unimport/unplugin",
+  "unplugin-utils","untun","untyped","unwasm/plugin","uqr"
+]
 
 export const stubAlias = {
   nitro: resolve(srcDir, "index.ts"),
@@ -63,8 +80,8 @@ export default defineBuildConfig({
     },
   },
   rollup: {
-    inlineDependencies: true,
     cjsBridge: true,
+    inlineDependencies,
     output: {
       chunkFileNames(chunk: any) {
         const id = normalize(chunk.moduleIds.at(-1));
