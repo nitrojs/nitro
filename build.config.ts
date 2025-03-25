@@ -13,18 +13,26 @@ export const libSubpaths = ["config", "meta", "runtime/meta"];
 
 // prettier-ignore
 const inlineDependencies = [
-  "@babel/parser","@jridgewell/sourcemap-codec","@parcel/watcher","@parcel/watcher-wasm","@rollup/plugin-alias","@rollup/plugin-commonjs",
-  "@rollup/plugin-inject","@rollup/plugin-json","@rollup/plugin-node-resolve","@rollup/plugin-replace","@rollup/pluginutils",
-  "acorn","braces","c12","c12/update","chokidar","citty","clipboardy","commondir","debug","deepmerge","define-lazy-prop",
-  "depd","destroy","detect-libc","dot-prop","dotenv","duplexer","ee-first","encodeurl","escape-html","escape-string-regexp",
-  "estree","estree-walker","etag","exsolve","fdir","fill-range","fresh","function-bind","get-port-please","giget","gzip-size",
-  "hasown","http-errors","http-shutdown","httpxy","inherits","is-core-module","is-docker","is-extglob","is-glob","is-module",
-  "is-number","is-reference","is-wsl","js-tokens","knitwork","listhen","listhen/cli","local-pkg","magic-string","magicast",
-  "micromatch","mime","ms","napi-wasm","node-fetch-native/proxy","node-forge","nypm","on-finished","open","parseurl","path-parse",
-  "perfect-debounce","picomatch","picomatch/lib/utils","pretty-bytes","quansync/macro","range-parser","rc9","readdirp","resolve",
-  "rollup-plugin-visualizer","semver","send","serve-placeholder","serve-static","setprototypeof","source-map-js","statuses",
-  "strip-literal","tinyexec","tinyglobby","to-regex-range","toidentifier","ultrahtml","unimport","unimport/unplugin",
-  "unplugin-utils","untun","untyped","unwasm/plugin","uqr"
+  "@rollup/plugin-alias","@rollup/plugin-commonjs", "@rollup/plugin-inject","@rollup/plugin-json", "@rollup/plugin-node-resolve","@rollup/plugin-replace","@rollup/pluginutils", "unplugin-utils", "rollup-plugin-visualizer",
+  "untun","untyped","unwasm","uqr", "unimport", "citty", "nypm", "c12", "listhen", "rc9", "node-fetch-native", "perfect-debounce", "knitwork", "magicast", "get-port-please","giget", "httpxy", "exsolve",
+  "tinyexec","tinyglobby",
+  "is-core-module","is-docker","is-extglob","is-glob","is-module", "is-number","is-reference", "is-wsl",
+  "http-errors","http-shutdown", "send","serve-placeholder","serve-static" ,"on-finished", "destroy", "mime", "statuses", "etag", "duplexer",
+  "acorn", "estree", "estree-walker", "@babel/parser", "magic-string", "strip-literal",
+  "chokidar", "@parcel/watcher","@parcel/watcher-wasm",
+  "hasown","inherits", "setprototypeof", "js-tokens", "function-bind", "fill-range",
+  "encodeurl","escape-html","escape-string-regexp",
+  "source-map-js", "@jridgewell/sourcemap-codec",
+  "braces", "micromatch", "picomatch", "fdir", "readdirp", "path-parse", "resolve",
+  "pretty-bytes", "ms",
+  "local-pkg", "semver",
+  "detect-libc", "napi-wasm",
+  "clipboardy","commondir","debug","deepmerge","define-lazy-prop",
+  "depd", "dot-prop","dotenv","ee-first",
+  "fresh","gzip-size",
+  "node-forge","open","parseurl",
+  "quansync","range-parser",
+  "to-regex-range","toidentifier","ultrahtml",
 ]
 
 export const stubAlias = {
