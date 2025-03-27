@@ -1,4 +1,4 @@
-import type { OpenAPI3 } from "openapi-typescript";
+import type { OpenAPI3 } from "../../src/types/openapi-ts";
 import { describe, expect, it } from "vitest";
 import { setupTest, testNitro } from "../tests";
 

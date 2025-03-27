@@ -5,7 +5,7 @@ import type {
   ParameterObject,
   PathItemObject,
   PathsObject,
-} from "openapi-typescript";
+} from "#internal/types/openapi-ts";
 import { joinURL } from "ufo";
 import { defu } from "defu";
 import { handlersMeta } from "#nitro-internal-virtual/server-handlers-meta";
