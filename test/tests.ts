@@ -427,16 +427,14 @@ export function testNitro(
       const { status, headers } = await callHandler({ url: "/favicon.ico" });
       expect(status).toBe(200);
       expect(headers.etag).toBeDefined();
-      // TODO
-      // expect(headers["content-type"]).toBe("image/vnd.microsoft.icon");
+      expect(headers["content-type"]).toBe("image/vnd.microsoft.icon");
     });
 
     it("serve static asset /build/test.txt", async () => {
       const { status, headers } = await callHandler({ url: "/build/test.txt" });
       expect(status).toBe(200);
       expect(headers.etag).toBe('"7-vxGfAKTuGVGhpDZqQLqV60dnKPw"');
-      // TODO
-      // expect(headers["content-type"]).toBe("text/plain; charset=utf-8");
+      expect(headers["content-type"]).toBe("text/plain; charset=utf-8");
     });
 
     it("stores content-type for prerendered routes", async () => {
@@ -444,8 +442,7 @@ export function testNitro(
         url: "/api/param/prerender4",
       });
       expect(data).toBe("prerender4");
-      // TODO
-      // expect(headers["content-type"]).toBe("text/plain; charset=utf-16");
+      expect(headers["content-type"]).toBe("text/plain; charset=utf-16");
     });
   }
 
