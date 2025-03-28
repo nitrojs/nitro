@@ -14,26 +14,17 @@ const ws = import.meta._websocket
 const server = Bun.serve({
   port: process.env.NITRO_PORT || process.env.PORT || 3000,
   websocket: import.meta._websocket ? ws!.websocket : (undefined as any),
-  async fetch(req: Request, server: any) {
+  async fetch(request: Request, server: any) {
     // https://crossws.unjs.io/adapters/bun
-    if (import.meta._websocket && req.headers.get("upgrade") === "websocket") {
-      return ws!.handleUpgrade(req, server);
+    if (
+      import.meta._websocket &&
+      request.headers.get("upgrade") === "websocket"
+    ) {
+      return ws!.handleUpgrade(request, server);
     }
 
-    const url = new URL(req.url);
-
-    let body;
-    if (req.body) {
-      body = await req.arrayBuffer();
-    }
-
-    return nitroApp.localFetch(url.pathname + url.search, {
-      host: url.hostname,
-      protocol: url.protocol,
-      headers: req.headers,
-      method: req.method,
-      redirect: req.redirect,
-      body,
+    return nitroApp.fetch(request, {
+      h3: { bun: { request, server } },
     });
   },
 });

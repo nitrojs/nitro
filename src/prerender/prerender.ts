@@ -96,9 +96,12 @@ export async function prerender(nitro: Nitro) {
     nitroRenderer.options.output.serverDir,
     serverFilename
   );
-  const { closePrerenderer, localFetch } = (await import(
+  const { closePrerenderer, appFetch } = (await import(
     pathToFileURL(serverEntrypoint).href
-  )) as { closePrerenderer: () => Promise<void>; localFetch: $Fetch };
+  )) as {
+    closePrerenderer: () => Promise<void>;
+    appFetch: typeof globalThis.fetch;
+  };
 
   // Create route rule matcher
   const _routeRulesMatcher = toRouteMatcher(
@@ -209,14 +212,12 @@ export async function prerender(nitro: Nitro) {
     // Fetch the route
     const encodedRoute = encodeURI(route);
 
-    const res = await localFetch<Response>(
-      withBase(encodedRoute, nitro.options.baseURL),
-      {
-        headers: { "x-nitro-prerender": encodedRoute },
-        retry: nitro.options.prerender.retry,
-        retryDelay: nitro.options.prerender.retryDelay,
-      }
-    );
+    const res = await appFetch(withBase(encodedRoute, nitro.options.baseURL), {
+      headers: [["x-nitro-prerender", encodedRoute]],
+      // TODO
+      // retry: nitro.options.prerender.retry,
+      // retryDelay: nitro.options.prerender.retryDelay,
+    });
     // Data will be removed as soon as written to the disk
     let dataBuff: Buffer | undefined = Buffer.from(await res.arrayBuffer());
 

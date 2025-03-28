@@ -1,6 +1,6 @@
 import "#nitro-internal-pollyfills";
 import { useNitroApp } from "nitro/runtime";
-import { normalizeLambdaOutgoingBody } from "nitro/runtime/internal";
+import { normalizeLambdaOutgoingBody } from "../../aws-lambda/runtime/_utils";
 
 import type { Handler } from "aws-lambda";
 
@@ -27,31 +27,24 @@ const nitroApp = useNitroApp();
 
 export const handler: Handler<StormkitEvent, StormkitResponse> =
   async function (event, context) {
-    const response = await nitroApp.localCall({
-      event,
-      url: event.url,
-      context,
-      headers: event.headers,
+    const response = await nitroApp.fetch(event.url, {
+      h3: { _platform: { stormkit: { event, context } } },
       method: event.method || "GET",
-      query: event.query,
+      headers: event.headers,
       body: event.body,
     });
 
-    const awsBody = await normalizeLambdaOutgoingBody(
-      response.body,
-      response.headers
-    );
+    const { body, isBase64Encoded } =
+      await normalizeLambdaOutgoingBody(response);
 
     return <StormkitResponse>{
       statusCode: response.status,
       headers: normalizeOutgoingHeaders(response.headers),
-      [awsBody.type === "text" ? "body" : "buffer"]: awsBody.body,
+      [isBase64Encoded ? "buffer" : "body"]: body,
     };
   };
 
-function normalizeOutgoingHeaders(
-  headers: Record<string, number | string | string[] | undefined>
-): Record<string, string> {
+function normalizeOutgoingHeaders(headers: Headers): Record<string, string> {
   return Object.fromEntries(
     Object.entries(headers).map(([k, v]) => [
       k,

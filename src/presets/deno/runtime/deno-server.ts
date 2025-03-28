@@ -64,22 +64,8 @@ async function handler(request: Request, info: any) {
   ) {
     return ws!.handleUpgrade(request, info);
   }
-
-  const url = new URL(request.url);
-
-  // https://deno.land/api?s=Body
-  let body;
-  if (request.body) {
-    body = await request.arrayBuffer();
-  }
-
-  return nitroApp.localFetch(url.pathname + url.search, {
-    host: url.hostname,
-    protocol: url.protocol,
-    headers: request.headers,
-    method: request.method,
-    redirect: request.redirect,
-    body,
+  return nitroApp.fetch(request, {
+    h3: { _platform: { deno: { request, info } } },
   });
 }
 

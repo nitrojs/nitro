@@ -6,7 +6,7 @@ import type { Context } from "@netlify/edge-functions";
 const nitroApp = useNitroApp();
 
 // https://docs.netlify.com/edge-functions/api/
-export default async function netlifyEdge(request: Request, _context: Context) {
+export default async function netlifyEdge(request: Request, context: Context) {
   const url = new URL(request.url);
 
   if (isPublicAssetURL(url.pathname)) {
@@ -17,17 +17,7 @@ export default async function netlifyEdge(request: Request, _context: Context) {
     request.headers.set("x-forwarded-proto", "https");
   }
 
-  let body;
-  if (request.body) {
-    body = await request.arrayBuffer();
-  }
-
-  return nitroApp.localFetch(url.pathname + url.search, {
-    host: url.hostname,
-    protocol: url.protocol,
-    headers: request.headers,
-    method: request.method,
-    redirect: request.redirect,
-    body,
+  return nitroApp.fetch(request, {
+    h3: { _platform: { netlify: { request, context } } },
   });
 }

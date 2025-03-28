@@ -11,24 +11,12 @@ addEventListener("fetch", (event: FetchEvent) => {
     return;
   }
 
-  event.respondWith(handleEvent(url, event));
+  event.respondWith(
+    nitroApp.fetch(event.request, {
+      h3: { _platform: { serviceWorker: { event } } },
+    })
+  );
 });
-
-async function handleEvent(url: URL, event: FetchEvent) {
-  let body;
-  if (event.request.body) {
-    body = await event.request.arrayBuffer();
-  }
-
-  return nitroApp.localFetch(url.pathname + url.search, {
-    host: url.hostname,
-    protocol: url.protocol,
-    headers: event.request.headers,
-    method: event.request.method,
-    redirect: event.request.redirect,
-    body,
-  });
-}
 
 declare const self: ServiceWorkerGlobalScope;
 

@@ -46,21 +46,9 @@ function createNitroApp(): NitroApp {
     onRequest: async (event) => {
       event.context.nitro = event.context.nitro || { errors: [] };
 
-      // Support platform context provided by local fetch
-      const fetchContext = (event.node?.req as any)?.__unenv__ as
-        | undefined
-        | {
-            waitUntil?: H3Event["waitUntil"];
-            _platform?: Record<string, any>;
-          };
-      if (fetchContext?._platform) {
-        Object.assign(event.context, {
-          ...fetchContext._platform,
-          ...event.context,
-        });
-      }
-      if (!event.context.waitUntil && fetchContext?.waitUntil) {
-        event.context.waitUntil = fetchContext.waitUntil;
+      // Add platform context provided by local fetch
+      if (event.context._platform) {
+        Object.assign(event.context, event.context._platform);
       }
 
       // Assign bound fetch to context
@@ -99,15 +87,19 @@ function createNitroApp(): NitroApp {
     },
   });
 
-  const localFetch: typeof fetch = (input, init) => {
-    if (!input.toString().startsWith("/")) {
-      return globalThis.fetch(input, init);
-    }
+  const appFetch: typeof fetch = (input, init) => {
     return Promise.resolve(h3App.fetch(input, init));
   };
 
+  const hybridFetch: typeof fetch = (input, init) => {
+    if (!input.toString().startsWith("/")) {
+      return globalThis.fetch(input, init);
+    }
+    return appFetch(input, init);
+  };
+
   const $fetch = createFetch({
-    fetch: localFetch,
+    fetch: hybridFetch,
     Headers,
     defaults: { baseURL: config.app.baseURL },
   });
@@ -116,7 +108,7 @@ function createNitroApp(): NitroApp {
   globalThis.$fetch = $fetch;
 
   // Register route rule handlers
-  h3App.use(createRouteRulesHandler({ localFetch }));
+  h3App.use(createRouteRulesHandler(hybridFetch));
 
   // TODO support baseURL
 
@@ -152,7 +144,7 @@ function createNitroApp(): NitroApp {
   const app: NitroApp = {
     hooks,
     h3App,
-    localFetch,
+    fetch: appFetch,
     captureError,
   };
 

@@ -10,9 +10,7 @@ const _routeRulesMatcher = toRouteMatcher(
   createRadixRouter({ routes: config.nitro.routeRules })
 );
 
-export function createRouteRulesHandler(ctx: {
-  localFetch: typeof globalThis.fetch;
-}) {
+export function createRouteRulesHandler(hybridFetch: typeof globalThis.fetch) {
   return eventHandler((event) => {
     // Match route options against path
     const routeRules = getRouteRules(event);
@@ -53,7 +51,7 @@ export function createRouteRulesHandler(ctx: {
         target = withQuery(target, query);
       }
       return proxyRequest(event, target, {
-        fetch: ctx.localFetch,
+        fetch: hybridFetch,
         ...routeRules.proxy,
       });
     }

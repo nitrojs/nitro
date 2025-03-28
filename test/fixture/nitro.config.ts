@@ -122,6 +122,8 @@ export default defineNitroConfig({
     "* * * * *": "test",
   },
   cloudflare: {
+    nodeCompat: true,
+    deployConfig: true,
     pages: {
       routes: {
         include: ["/*"],

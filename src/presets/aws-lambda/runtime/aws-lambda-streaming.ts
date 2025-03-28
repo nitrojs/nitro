@@ -1,18 +1,15 @@
+import "#nitro-internal-pollyfills";
+import { withQuery } from "ufo";
+import { useNitroApp } from "nitro/runtime";
+import { normalizeLambdaOutgoingHeaders } from "./_utils";
+
+import type { StreamingResponse } from "@netlify/functions";
 import type { Readable } from "node:stream";
 import type {
   APIGatewayProxyEventV2,
   APIGatewayProxyStructuredResultV2,
   Context,
 } from "aws-lambda";
-import "#nitro-internal-pollyfills";
-import { useNitroApp } from "nitro/runtime";
-import {
-  normalizeCookieHeader,
-  normalizeLambdaIncomingHeaders,
-  normalizeLambdaOutgoingHeaders,
-} from "nitro/runtime/internal";
-import { withQuery } from "ufo";
-import type { StreamingResponse } from "@netlify/functions";
 
 const nitroApp = useNitroApp();
 
@@ -24,50 +21,51 @@ export const handler = awslambda.streamifyResponse(
     const url = withQuery(event.rawPath, query);
     const method = event.requestContext?.http?.method || "get";
 
+    const headers = new Headers();
+    for (const [key, value] of Object.entries(event.headers)) {
+      if (value) {
+        headers.set(key, value);
+      }
+    }
     if ("cookies" in event && event.cookies) {
-      event.headers.cookie = event.cookies.join(";");
+      for (const cookie of event.cookies) {
+        headers.append("cookie", cookie);
+      }
     }
 
-    const r = await nitroApp.localCall({
-      event,
-      url,
-      context,
-      headers: normalizeLambdaIncomingHeaders(event.headers) as Record<
-        string,
-        string | string[]
-      >,
+    const response = await nitroApp.fetch(url, {
+      h3: { _platform: { aws: { event, context } } },
       method,
-      query,
+      headers,
       body: event.isBase64Encoded
         ? Buffer.from(event.body || "", "base64").toString("utf8")
         : event.body,
     });
 
     const isApiGwV2 = "cookies" in event || "rawPath" in event;
-    const cookies = normalizeCookieHeader(r.headers["set-cookie"]);
+    const cookies = response.headers.getSetCookie();
     const httpResponseMetadata: Omit<StreamingResponse, "body"> = {
-      statusCode: r.status,
+      statusCode: response.status,
       ...(cookies.length > 0 && {
         ...(isApiGwV2
           ? { cookies }
           : { multiValueHeaders: { "set-cookie": cookies } }),
       }),
       headers: {
-        ...normalizeLambdaOutgoingHeaders(r.headers, true),
+        ...normalizeLambdaOutgoingHeaders(
+          response.headers,
+          true /* stripCookies */
+        ),
         "Transfer-Encoding": "chunked",
       },
     };
-    if (r.body) {
+
+    if (response.body) {
       const writer = awslambda.HttpResponseStream.from(
         responseStream,
         httpResponseMetadata
       );
-      if (!(r.body as ReadableStream).getReader) {
-        writer.write(r.body as any /* TODO */);
-        writer.end();
-        return;
-      }
-      const reader = (r.body as ReadableStream).getReader();
+      const reader = response.body.getReader();
       await streamToNodeStream(reader, responseStream);
       writer.end();
     }
