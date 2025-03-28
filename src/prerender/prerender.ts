@@ -9,7 +9,6 @@ import type {
   PrerenderRoute,
   PublicAssetDir,
 } from "nitro/types";
-import type { $Fetch } from "ofetch";
 import { join, relative, resolve } from "pathe";
 import { createRouter as createRadixRouter, toRouteMatcher } from "radix3";
 import { joinURL, withBase, withoutBase, withTrailingSlash } from "ufo";
