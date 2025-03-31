@@ -368,7 +368,7 @@ export function defineCachedEventHandler<
       // Assign bound fetch to context
       event.fetch = (url: string, fetchOptions: any) =>
         fetchWithEvent(event, url, fetchOptions, {
-          fetch: useNitroApp().localFetch as any,
+          fetch: useNitroApp().fetch,
         });
       event.$fetch = (url: string, fetchOptions: any) =>
         fetchWithEvent(event, url, fetchOptions as RequestInit, {
