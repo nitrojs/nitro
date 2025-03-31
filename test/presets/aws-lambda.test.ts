@@ -2,60 +2,69 @@ import type { APIGatewayProxyEvent, APIGatewayProxyEventV2 } from "aws-lambda";
 import destr from "destr";
 import { resolve } from "pathe";
 import { describe } from "vitest";
+import { parseURL, parseQuery } from "ufo";
 import { setupTest, testNitro } from "../tests";
 
-describe("nitro:preset:aws-lambda", async () => {
+describe("nitro:preset:aws-lambda-v2", async () => {
   const ctx = await setupTest("aws-lambda");
-  // Lambda v1 paylod
-  testNitro({ ...ctx, lambdaV1: true }, async () => {
+  testNitro(ctx, async () => {
     const { handler } = await import(resolve(ctx.outDir, "server/index.mjs"));
-    return async ({ url: rawRelativeUrl, headers, method, body }) => {
-      // creating new URL object to parse query easier
-      const url = new URL(`https://example.com${rawRelativeUrl}`);
-      const queryStringParameters = Object.fromEntries(
-        url.searchParams.entries()
-      );
-      const event: Partial<APIGatewayProxyEvent> = {
-        resource: "/my/path",
-        path: url.pathname,
+    return async ({ url, headers, method, body }) => {
+      const { pathname, search } = parseURL(url);
+      const event = {
+        rawPath: pathname,
         headers: headers || {},
-        httpMethod: method || "GET",
-        queryStringParameters,
+        rawQueryString: search.slice(1),
+        queryStringParameters: parseQuery(search) as Record<string, string>,
         body: body || "",
-      };
+        isBase64Encoded: false,
+        version: "2",
+        routeKey: "",
+        requestContext: {
+          accountId: "",
+          apiId: "",
+          domainName: "",
+          domainPrefix: "",
+          requestId: "",
+          routeKey: "",
+          stage: "",
+          time: "",
+          timeEpoch: 0,
+          http: {
+            path: url.pathname,
+            protocol: "http",
+            userAgent: "",
+            sourceIp: "",
+            method: method || "GET",
+          },
+        },
+      } satisfies APIGatewayProxyEventV2;
       const res = await handler(event);
       return makeResponse(res);
     };
   });
-  // Lambda v2 paylod
-  testNitro(ctx, async () => {
+});
+
+describe("nitro:preset:aws-lambda-v1", async () => {
+  const ctx = await setupTest("aws-lambda");
+  testNitro({ ...ctx, lambdaV1: true }, async () => {
     const { handler } = await import(resolve(ctx.outDir, "server/index.mjs"));
-    return async ({ url: rawRelativeUrl, headers, method, body }) => {
-      // creating new URL object to parse query easier
-      const url = new URL(`https://example.com${rawRelativeUrl}`);
-      const queryStringParameters = Object.fromEntries(
-        url.searchParams.entries()
-      );
-      const event: Partial<APIGatewayProxyEventV2> = {
-        rawPath: url.pathname,
+    return async ({ url, headers, method, body }) => {
+      const { pathname, search } = parseURL(url);
+      const event = {
+        stageVariables: {},
+        resource: "",
+        httpMethod: method || "GET",
+        path: pathname,
+        pathParameters: {},
+        queryStringParameters: parseQuery(search) as Record<string, string>,
+        multiValueQueryStringParameters: {},
         headers: headers || {},
-        requestContext: {
-          ...Object.fromEntries([
-            ["accountId"],
-            ["apiId"],
-            ["domainName"],
-            ["domainPrefix"],
-          ]),
-          http: {
-            path: url.pathname,
-            protocol: "http",
-            ...Object.fromEntries([["userAgent"], ["sourceIp"]]),
-            method: method || "GET",
-          },
-        },
-        queryStringParameters,
+        multiValueHeaders: {},
         body: body || "",
-      };
+        isBase64Encoded: false,
+        requestContext: {} as any,
+      } satisfies APIGatewayProxyEvent;
       const res = await handler(event);
       return makeResponse(res);
     };

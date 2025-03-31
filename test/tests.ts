@@ -193,7 +193,10 @@ export function testNitro(
     callOpts: { binary?: boolean } = {}
   ): Promise<TestHandlerResult> {
     const result = await _handler(options);
-    if (!["Response", "_Response"].includes(result.constructor.name)) {
+    if (
+      !(result instanceof Response) &&
+      !["Response", "_Response"].includes(result.constructor.name)
+    ) {
       return result as TestHandlerResult;
     }
 
@@ -212,6 +215,7 @@ export function testNitro(
         headers[key] = value;
       }
     }
+    headers["set-cookie"] = (result as Response).headers.getSetCookie();
 
     return {
       data: callOpts.binary
@@ -610,39 +614,13 @@ export function testNitro(
       const { headers } = await callHandler({ url: "/api/headers" });
       expect(headers["x-foo"]).toBe("bar");
       expect(headers["x-array"]).toMatch(/^foo,\s?bar$/);
-
-      let expectedCookies: string | string[] = [
+      const expectedCookies: string | string[] = [
         "foo=bar",
         "bar=baz",
         "test=value; Path=/",
         "test2=value; Path=/",
       ];
-
-      // TODO: Node presets do not split cookies
-      // https://github.com/nitrojs/nitro/issues/1462
-      // (vercel and deno-server uses node only for tests only)
-      const notSplittingPresets = [
-        "node-middleware",
-        "nitro-dev",
-        "vercel",
-        (nodeMajorVersion || 0) < 18 && "deno-server",
-        (nodeMajorVersion || 0) < 18 && "bun",
-      ].filter(Boolean);
-      if (notSplittingPresets.includes(ctx.preset)) {
-        expectedCookies =
-          (nodeMajorVersion || 0) < 18
-            ? "foo=bar, bar=baz, test=value; Path=/, test2=value; Path=/"
-            : ["foo=bar, bar=baz", "test=value; Path=/", "test2=value; Path=/"];
-      }
-
-      // TODO: vercel-edge joins all cookies for some reason!
-      if (typeof expectedCookies === "string") {
-        expect(headers["set-cookie"]).toBe(expectedCookies);
-      } else {
-        expect((headers["set-cookie"] as string[]).join(", ")).toBe(
-          expectedCookies.join(", ")
-        );
-      }
+      expect(headers["set-cookie"]).toMatchObject(expectedCookies);
     });
   });
 

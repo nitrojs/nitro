@@ -1,6 +1,5 @@
 // @ts-nocheck TODO: Remove after removing polyfills
 import "#nitro-internal-pollyfills";
-import { toPlainHandler } from "h3";
 import { useNitroApp } from "nitro/runtime";
 import { toBuffer } from "../../aws-lambda/runtime/_utils";
 import { hasProtocol, joinURL } from "ufo";

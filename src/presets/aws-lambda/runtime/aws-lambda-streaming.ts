@@ -1,7 +1,6 @@
 import "#nitro-internal-pollyfills";
-import { withQuery } from "ufo";
 import { useNitroApp } from "nitro/runtime";
-import { normalizeLambdaOutgoingHeaders } from "./_utils";
+import { awsRequest, awsResponseHeaders } from "./_utils";
 
 import type { StreamingResponse } from "@netlify/functions";
 import type { Readable } from "node:stream";
@@ -15,49 +14,17 @@ const nitroApp = useNitroApp();
 
 export const handler = awslambda.streamifyResponse(
   async (event: APIGatewayProxyEventV2, responseStream, context) => {
-    const query = {
-      ...event.queryStringParameters,
-    };
-    const url = withQuery(event.rawPath, query);
-    const method = event.requestContext?.http?.method || "get";
+    const request = awsRequest(event);
 
-    const headers = new Headers();
-    for (const [key, value] of Object.entries(event.headers)) {
-      if (value) {
-        headers.set(key, value);
-      }
-    }
-    if ("cookies" in event && event.cookies) {
-      for (const cookie of event.cookies) {
-        headers.append("cookie", cookie);
-      }
-    }
-
-    const response = await nitroApp.fetch(url, {
+    const response = await nitroApp.fetch(request, {
       h3: { _platform: { aws: { event, context } } },
-      method,
-      headers,
-      body: event.isBase64Encoded
-        ? Buffer.from(event.body || "", "base64").toString("utf8")
-        : event.body,
     });
 
-    const isApiGwV2 = "cookies" in event || "rawPath" in event;
-    const cookies = response.headers.getSetCookie();
+    response.headers.set("transfer-encoding", "chunked");
+
     const httpResponseMetadata: Omit<StreamingResponse, "body"> = {
       statusCode: response.status,
-      ...(cookies.length > 0 && {
-        ...(isApiGwV2
-          ? { cookies }
-          : { multiValueHeaders: { "set-cookie": cookies } }),
-      }),
-      headers: {
-        ...normalizeLambdaOutgoingHeaders(
-          response.headers,
-          true /* stripCookies */
-        ),
-        "Transfer-Encoding": "chunked",
-      },
+      ...awsResponseHeaders(response),
     };
 
     if (response.body) {
