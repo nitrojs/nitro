@@ -78,7 +78,7 @@
     "fs-extra": "^11.3.0",
     "globby": "^14.1.0",
     "gzip-size": "^7.0.0",
-    "h3": "npm:h3-nightly@2.0.0-20250327-110700-bc19c0e",
+    "h3": "npm:h3-nightly@2.0.0-20250331-221543-6f2af35",
     "hookable": "^5.5.3",
     "httpxy": "^0.1.7",
     "ioredis": "^5.6.0",
