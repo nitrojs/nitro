@@ -1,7 +1,6 @@
 // @ts-nocheck TODO: Remove after removing polyfills
 import "#nitro-internal-pollyfills";
 import { useNitroApp } from "nitro/runtime";
-import { toBuffer } from "../../aws-lambda/runtime/_utils";
 import { hasProtocol, joinURL } from "ufo";
 
 // Types are reverse engineered from runtime
@@ -66,6 +65,27 @@ addEventListener("fetch" as any, async (event: FetchEvent) => {
 // ------------------------------
 // Polyfills for missing APIs
 // ------------------------------
+
+function toBuffer(data: ReadableStream): Promise<Buffer> {
+  return new Promise<Buffer>((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    data
+      .pipeTo(
+        new WritableStream({
+          write(chunk) {
+            chunks.push(chunk);
+          },
+          close() {
+            resolve(Buffer.concat(chunks));
+          },
+          abort(reason) {
+            reject(reason);
+          },
+        })
+      )
+      .catch(reject);
+  });
+}
 
 // Headers.entries
 if (!Headers.prototype.entries) {
