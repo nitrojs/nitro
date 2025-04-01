@@ -56,16 +56,14 @@ export default {
     // Expose latest env to the global context
     (globalThis as any).__env__ = env;
 
-    return nitroApp.fetch(request as unknown as Request, {
-      h3: {
-        waitUntil: (promise: Promise<any>) => context.waitUntil(promise),
-        _platform: {
-          cf: request.cf,
-          cloudflare: {
-            request,
-            env,
-            context,
-          },
+    return nitroApp.fetch(request as unknown as Request, undefined, {
+      waitUntil: (promise: Promise<any>) => context.waitUntil(promise),
+      _platform: {
+        cf: request.cf,
+        cloudflare: {
+          request,
+          env,
+          context,
         },
       },
     });

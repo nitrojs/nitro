@@ -12,8 +12,8 @@ addEventListener("fetch", (event: FetchEvent) => {
   }
 
   event.respondWith(
-    nitroApp.fetch(event.request, {
-      h3: { _platform: { serviceWorker: { event } } },
+    nitroApp.fetch(event.request, undefined, {
+      _platform: { serviceWorker: { event } },
     })
   );
 });

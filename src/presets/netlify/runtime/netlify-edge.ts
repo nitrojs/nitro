@@ -17,7 +17,7 @@ export default async function netlifyEdge(request: Request, context: Context) {
     request.headers.set("x-forwarded-proto", "https");
   }
 
-  return nitroApp.fetch(request, {
-    h3: { _platform: { netlify: { request, context } } },
+  return nitroApp.fetch(request, undefined, {
+    _platform: { netlify: { request, context } },
   });
 }

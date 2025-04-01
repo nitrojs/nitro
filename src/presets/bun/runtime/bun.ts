@@ -23,8 +23,8 @@ const server = Bun.serve({
       return ws!.handleUpgrade(request, server);
     }
 
-    return nitroApp.fetch(request, {
-      h3: { bun: { request, server } },
+    return nitroApp.fetch(request, undefined, {
+      _platform: { bun: { request, server } },
     });
   },
 });

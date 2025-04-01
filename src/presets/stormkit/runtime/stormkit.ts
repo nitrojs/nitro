@@ -27,12 +27,15 @@ const nitroApp = useNitroApp();
 
 export const handler: Handler<StormkitEvent, StormkitResponse> =
   async function (event, context) {
-    const response = await nitroApp.fetch(event.url, {
-      h3: { _platform: { stormkit: { event, context } } },
-      method: event.method || "GET",
-      headers: event.headers,
-      body: event.body,
-    });
+    const response = await nitroApp.fetch(
+      event.url,
+      {
+        method: event.method || "GET",
+        headers: event.headers,
+        body: event.body,
+      },
+      { _platform: { stormkit: { event, context } } }
+    );
 
     const { body, isBase64Encoded } = await awsResponseBody(response);
 

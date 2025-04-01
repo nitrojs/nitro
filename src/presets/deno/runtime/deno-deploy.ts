@@ -29,7 +29,7 @@ Deno.serve((request: Request, info: _Deno.ServeHandlerInfo) => {
     request.headers.set("x-forwarded-proto", "https");
   }
 
-  return nitroApp.fetch(request, {
-    h3: { _platform: { deno: { request, info } } },
+  return nitroApp.fetch(request, undefined, {
+    _platform: { deno: { request, info } },
   });
 });

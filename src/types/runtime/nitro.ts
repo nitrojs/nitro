@@ -7,7 +7,8 @@ export interface NitroApp {
   hooks: Hookable<NitroRuntimeHooks>;
   fetch: (
     req: string | URL | Request,
-    init?: RequestInit & { h3?: H3EventContext }
+    init?: RequestInit,
+    context?: H3EventContext
   ) => Promise<Response>;
   captureError: CaptureError;
 }

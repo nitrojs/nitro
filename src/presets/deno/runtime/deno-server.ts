@@ -64,8 +64,8 @@ async function handler(request: Request, info: any) {
   ) {
     return ws!.handleUpgrade(request, info);
   }
-  return nitroApp.fetch(request, {
-    h3: { _platform: { deno: { request, info } } },
+  return nitroApp.fetch(request, undefined, {
+    _platform: { deno: { request, info } },
   });
 }
 

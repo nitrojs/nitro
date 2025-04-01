@@ -5,6 +5,9 @@ import type { MatchedRoutes } from "./_match";
 // An interface to extend in a local project
 export interface InternalApi {}
 
+// TODO: upgrade to uppercase for h3 v2 types and web consistency
+type RouterMethod = Lowercase<HTTPMethod>;
+
 export type NitroFetchRequest =
   | Exclude<keyof InternalApi, `/_${string}` | `/api/_${string}`>
   | Exclude<FetchRequest, string>
@@ -12,7 +15,7 @@ export type NitroFetchRequest =
 
 export type MiddlewareOf<
   Route extends string,
-  Method extends HTTPMethod | "default",
+  Method extends RouterMethod | "default",
 > = Method extends keyof InternalApi[MatchedRoutes<Route>]
   ? InternalApi[MatchedRoutes<Route>][Method]
   : never;
@@ -20,7 +23,7 @@ export type MiddlewareOf<
 export type TypedInternalResponse<
   Route,
   Default = unknown,
-  Method extends HTTPMethod = HTTPMethod,
+  Method extends RouterMethod = RouterMethod,
 > = Default extends string | boolean | number | null | void | object
   ? // Allow user overrides
     Default
@@ -38,14 +41,14 @@ export type TypedInternalResponse<
 export type AvailableRouterMethod<R extends NitroFetchRequest> =
   R extends string
     ? keyof InternalApi[MatchedRoutes<R>] extends undefined
-      ? HTTPMethod
+      ? RouterMethod
       : Extract<
             keyof InternalApi[MatchedRoutes<R>],
             "default"
           > extends undefined
-        ? Extract<HTTPMethod, keyof InternalApi[MatchedRoutes<R>]>
-        : HTTPMethod
-    : HTTPMethod;
+        ? Extract<RouterMethod, keyof InternalApi[MatchedRoutes<R>]>
+        : RouterMethod
+    : RouterMethod;
 
 // Argumented fetch options to include the correct request methods.
 // This overrides the default, which is only narrowed to a string.
@@ -53,7 +56,7 @@ export interface NitroFetchOptions<
   R extends NitroFetchRequest,
   M extends AvailableRouterMethod<R> = AvailableRouterMethod<R>,
 > extends FetchOptions {
-  method?: Uppercase<M>;
+  method?: Uppercase<M> | M;
 }
 
 // Extract the route method from options which might be undefined or without a method parameter.
@@ -61,10 +64,10 @@ export type ExtractedRouteMethod<
   R extends NitroFetchRequest,
   O extends NitroFetchOptions<R>,
 > = O extends undefined
-  ? "GET"
-  : Uppercase<Exclude<O["method"], undefined>> extends HTTPMethod
-    ? Uppercase<Exclude<O["method"], undefined>>
-    : "GET";
+  ? "get"
+  : Lowercase<Exclude<O["method"], undefined>> extends RouterMethod
+    ? Lowercase<Exclude<O["method"], undefined>>
+    : "get";
 
 export type Base$Fetch<
   DefaultT = unknown,
@@ -80,7 +83,7 @@ export type Base$Fetch<
   TypedInternalResponse<
     R,
     T,
-    NitroFetchOptions<R> extends O ? "GET" : ExtractedRouteMethod<R, O>
+    NitroFetchOptions<R> extends O ? "get" : ExtractedRouteMethod<R, O>
   >
 >;
 
@@ -100,7 +103,7 @@ export interface $Fetch<
       TypedInternalResponse<
         R,
         T,
-        NitroFetchOptions<R> extends O ? "GET" : ExtractedRouteMethod<R, O>
+        NitroFetchOptions<R> extends O ? "get" : ExtractedRouteMethod<R, O>
       >
     >
   >;

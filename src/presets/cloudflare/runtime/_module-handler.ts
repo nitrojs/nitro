@@ -116,18 +116,16 @@ export async function fetchHandler(
   // Expose latest env to the global context
   (globalThis as any).__env__ = env;
 
-  return nitroApp.fetch(request as unknown as Request, {
-    h3: {
-      waitUntil: (promise: Promise<any>) => context.waitUntil(promise),
-      _platform: {
-        cf: (request as any).cf,
-        cloudflare: {
-          request,
-          env,
-          context,
-          url,
-          ...ctxExt,
-        },
+  return nitroApp.fetch(request as unknown as Request, undefined, {
+    waitUntil: (promise: Promise<any>) => context.waitUntil(promise),
+    _platform: {
+      cf: (request as any).cf,
+      cloudflare: {
+        request,
+        env,
+        context,
+        url,
+        ...ctxExt,
       },
     },
   }) as unknown as Promise<Response>;

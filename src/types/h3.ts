@@ -4,6 +4,7 @@ import type {
   CapturedErrorContext,
 } from "./runtime";
 import type { Base$Fetch, NitroFetchRequest } from "./fetch/fetch";
+import type { NitroRuntimeConfig } from "./config";
 
 export type H3EventFetch = (
   request: NitroFetchRequest,
@@ -13,23 +14,25 @@ export type H3EventFetch = (
 export type H3Event$Fetch = Base$Fetch<unknown, NitroFetchRequest>;
 
 declare module "h3" {
-  class H3Event {
+  interface H3Event {
+    waitUntil: (promise: Promise<unknown>) => void;
+
     /** @experimental Calls fetch with same context and request headers */
     fetch: H3EventFetch;
     /** @experimental Calls fetch with same context and request headers */
     $fetch: H3Event$Fetch;
-    waitUntil: (promise: Promise<unknown>) => void;
     /** @experimental */
     captureError: CaptureError;
   }
-  interface H3Context {
-    nitro: {
+  interface H3EventContext {
+    nitro?: {
       _waitUntilPromises?: Promise<unknown>[];
       /** @experimental */
       errors: { error?: Error; context: CapturedErrorContext }[];
+      runtimeConfig?: NitroRuntimeConfig;
     };
 
-    cache: {
+    cache?: {
       options: CacheOptions;
     };
   }

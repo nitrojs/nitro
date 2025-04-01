@@ -18,7 +18,7 @@ const METHODS = new Set(["HEAD", "GET"] as HTTPMethod[]);
 const EncodingMap = { gzip: ".gz", br: ".br" } as const;
 
 export default eventHandler((event) => {
-  if (event.method && !METHODS.has(event.method)) {
+  if (event.req.method && !METHODS.has(event.req.method as HTTPMethod)) {
     return;
   }
 
@@ -28,7 +28,7 @@ export default eventHandler((event) => {
 
   let asset: PublicAsset | undefined;
 
-  const encodingHeader = event.request.headers.get("accept-encoding") || "";
+  const encodingHeader = event.req.headers.get("accept-encoding") || "";
   const encodings = [
     ...encodingHeader
       .split(",")
@@ -38,7 +38,7 @@ export default eventHandler((event) => {
     "",
   ];
   if (encodings.length > 1) {
-    event.response.headers.append("Vary", "Accept-Encoding");
+    event.res.headers.append("Vary", "Accept-Encoding");
   }
 
   for (const encoding of encodings) {
@@ -54,7 +54,7 @@ export default eventHandler((event) => {
 
   if (!asset) {
     if (isPublicAssetURL(id)) {
-      event.response.headers.delete("Cache-Control");
+      event.res.headers.delete("Cache-Control");
       throw createError({
         statusMessage: "Cannot find static asset " + id,
         statusCode: 404,
@@ -65,8 +65,8 @@ export default eventHandler((event) => {
 
   const ifNotMatch = event.headers.get("if-none-match") === asset.etag;
   if (ifNotMatch) {
-    event.response.status = 304;
-    event.response.statusText = "Not Modified";
+    event.res.status = 304;
+    event.res.statusText = "Not Modified";
     return "";
   }
 
@@ -77,29 +77,29 @@ export default eventHandler((event) => {
     asset.mtime &&
     new Date(ifModifiedSinceH) >= mtimeDate
   ) {
-    event.response.status = 304;
-    event.response.statusText = "Not Modified";
+    event.res.status = 304;
+    event.res.statusText = "Not Modified";
     return "";
   }
 
   if (asset.type) {
-    event.response.headers.set("Content-Type", asset.type);
+    event.res.headers.set("Content-Type", asset.type);
   }
 
-  if (asset.etag && !event.response.headers.has("ETag")) {
-    event.response.headers.set("ETag", asset.etag);
+  if (asset.etag && !event.res.headers.has("ETag")) {
+    event.res.headers.set("ETag", asset.etag);
   }
 
-  if (asset.mtime && !event.response.headers.has("Last-Modified")) {
-    event.response.headers.set("Last-Modified", mtimeDate.toUTCString());
+  if (asset.mtime && !event.res.headers.has("Last-Modified")) {
+    event.res.headers.set("Last-Modified", mtimeDate.toUTCString());
   }
 
-  if (asset.encoding && !event.response.headers.has("Content-Encoding")) {
-    event.response.headers.set("Content-Encoding", asset.encoding);
+  if (asset.encoding && !event.res.headers.has("Content-Encoding")) {
+    event.res.headers.set("Content-Encoding", asset.encoding);
   }
 
-  if (asset.size > 0 && !event.response.headers.has("Content-Length")) {
-    event.response.headers.set("Content-Length", asset.size.toString());
+  if (asset.size > 0 && !event.res.headers.has("Content-Length")) {
+    event.res.headers.set("Content-Length", asset.size.toString());
   }
 
   return readAsset(id);

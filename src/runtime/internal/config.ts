@@ -27,13 +27,13 @@ export function useRuntimeConfig<
     return _sharedRuntimeConfig as T;
   }
   // Reuse cached runtime config from event context
-  if (event.context.nitro.runtimeConfig) {
-    return event.context.nitro.runtimeConfig;
+  if (event.context.nitro!.runtimeConfig) {
+    return event.context.nitro!.runtimeConfig as unknown as T;
   }
   // Prepare runtime config for event context
   const runtimeConfig = klona(_inlineRuntimeConfig) as T;
   applyEnv(runtimeConfig, envOptions);
-  event.context.nitro.runtimeConfig = runtimeConfig;
+  event.context.nitro!.runtimeConfig = runtimeConfig;
   return runtimeConfig;
 }
 

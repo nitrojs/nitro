@@ -1,5 +1,5 @@
 import destr from "destr";
-import type { H3Error, H3Event } from "h3";
+import type { H3Error, H3EventContext } from "h3";
 import { createH3, fetchWithEvent, isEvent, lazyEventHandler } from "h3";
 import { createHooks } from "hookable";
 import type { CaptureError, NitroApp, NitroRuntimeHooks } from "nitro/types";
@@ -61,10 +61,10 @@ function createNitroApp(): NitroApp {
         });
 
       event.waitUntil = (promise) => {
-        if (!event.context.nitro._waitUntilPromises) {
-          event.context.nitro._waitUntilPromises = [];
+        if (!event.context.nitro!._waitUntilPromises) {
+          event.context.nitro!._waitUntilPromises = [];
         }
-        event.context.nitro._waitUntilPromises.push(promise);
+        event.context.nitro!._waitUntilPromises.push(promise);
         if (event.context.waitUntil) {
           event.context.waitUntil(promise);
         }
@@ -87,8 +87,12 @@ function createNitroApp(): NitroApp {
     },
   });
 
-  const appFetch: typeof fetch = (input, init) => {
-    return Promise.resolve(h3App.fetch(input, init));
+  const appFetch = (
+    input: string | URL | Request,
+    init?: RequestInit,
+    ctx?: H3EventContext
+  ) => {
+    return Promise.resolve(h3App.fetch(input, init, ctx));
   };
 
   const hybridFetch: typeof fetch = (input, init) => {

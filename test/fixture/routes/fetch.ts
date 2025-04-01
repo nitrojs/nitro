@@ -5,10 +5,7 @@ export default eventHandler(async (event) => {
     "event.fetch": await event.fetch("/api/hey").then((r) => r.text()),
     "event.$fetch": await event.$fetch("/api/hey"),
     "nitroApp.localFetch": await nitroApp
-      .localFetch("/api/hey")
+      .fetch("/api/hey")
       .then((r) => r.text()),
-    "nitroApp.localCall": await nitroApp
-      .localCall({ url: "/api/hey" })
-      .then((r) => r.body),
   };
 });

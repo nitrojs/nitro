@@ -17,15 +17,15 @@ export function defineRenderHandler(render: RenderHandler) {
     if (!ctx.response /* not handled by hook */) {
       // TODO: Use serve-placeholder
       if (event.path === `${runtimeConfig.app.baseURL}favicon.ico`) {
-        event.response.setHeader("Content-Type", "image/x-icon");
+        event.res.headers.set("Content-Type", "image/x-icon");
         return "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
       }
 
       ctx.response = await ctx.render(event);
 
       if (!ctx.response) {
-        const _currentStatus = event.response.status;
-        event.response.statusText = String(
+        const _currentStatus = event.res.status;
+        event.res.statusText = String(
           _currentStatus === 200 ? 500 : _currentStatus
         );
         return "No response returned from render handler: " + event.path;
@@ -38,12 +38,12 @@ export function defineRenderHandler(render: RenderHandler) {
     // Send headers
     if (ctx.response.headers) {
       for (const [key, value] of Object.entries(ctx.response.headers)) {
-        event.response.setHeader(key, value);
+        event.res.headers.set(key, value);
       }
     }
     if (ctx.response.statusCode || ctx.response.statusMessage) {
-      event.response.status = ctx.response.statusCode;
-      event.response.statusText = ctx.response.statusMessage;
+      event.res.status = ctx.response.statusCode;
+      event.res.statusText = ctx.response.statusMessage;
     }
 
     // Send response body

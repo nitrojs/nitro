@@ -8,10 +8,10 @@ export default defineEventHandler((event) => {
     "/prerender#foo",
     "../api/hey",
     "/json-string",
-    event.path.includes("?") ? "/api/param/hidden" : "/prerender?withQuery",
+    event.url.href.includes("?") ? "/api/param/hidden" : "/prerender?withQuery",
   ];
 
-  event.response.headers.append(
+  event.res.headers.append(
     "x-nitro-prerender",
     "/api/param/prerender1, /api/param/prerender2"
   );

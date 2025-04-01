@@ -70,13 +70,12 @@ nitroApp.h3App.use(
   "/_nitro/tasks/:name",
   defineEventHandler(async (event) => {
     const name = getRouterParam(event, "name") as string;
-    const body = (await event.request.json().catch(() => ({}))) as Record<
+    const body = (await event.req.json().catch(() => ({}))) as Record<
       string,
       unknown
     >;
-    const query = Object.entries(event.query);
     const payload = {
-      ...query,
+      ...Object.fromEntries(event.url.searchParams.entries()),
       ...body,
     };
     return await runTask(name, { payload });

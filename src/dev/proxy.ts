@@ -38,7 +38,7 @@ export function createHTTPProxy(defaults: ProxyServerOptions = {}): HTTPProxy {
       try {
         await fromNodeHandler((req, res) => proxy.web(req, res, opts))(event);
       } catch (error: any) {
-        event.response.setHeader("refresh", "3");
+        event.res.headers.set("refresh", "3");
         throw createError({
           statusCode: 503,
           message: "Dev server is unavailable.",

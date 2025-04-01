@@ -10,10 +10,10 @@ import { defineNitroErrorHandler, type InternalHandlerResponse } from "./utils";
 export default defineNitroErrorHandler(
   async function defaultNitroErrorHandler(error, event) {
     const res = await defaultHandler(error, event);
-    event.response.status = res.status;
-    event.response.statusText = res.statusText;
+    event.res.status = res.status;
+    event.res.statusText = res.statusText;
     for (const [name, value] of Object.entries(res.headers!)) {
-      event.response.headers.set(name, value);
+      event.res.headers.set(name, value);
     }
     return typeof res.body === "string"
       ? res.body
@@ -67,7 +67,7 @@ export async function defaultHandler(
 
   // Use HTML response only when user-agent expects it (browsers)
   const useJSON =
-    opts?.json || !event.request.headers.get("accept")?.includes("text/html");
+    opts?.json || !event.req.headers.get("accept")?.includes("text/html");
 
   // Prepare headers
   const headers: HeadersInit = {
@@ -82,7 +82,7 @@ export async function defaultHandler(
     "content-security-policy":
       "script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self';",
   };
-  if (statusCode === 404 || !event.response.headers.has("cache-control")) {
+  if (statusCode === 404 || !event.res.headers.has("cache-control")) {
     headers["cache-control"] = "no-cache";
   }
 
@@ -100,8 +100,8 @@ export async function defaultHandler(
     : await youch.toHTML(error, {
         request: {
           url: url.href,
-          method: event.method,
-          headers: Object.fromEntries(event.request.headers.entries()),
+          method: event.req.method,
+          headers: Object.fromEntries(event.req.headers.entries()),
         },
       });
 

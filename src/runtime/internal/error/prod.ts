@@ -4,10 +4,10 @@ import { defineNitroErrorHandler, type InternalHandlerResponse } from "./utils";
 export default defineNitroErrorHandler(
   function defaultNitroErrorHandler(error, event) {
     const res = defaultHandler(error, event);
-    event.response.status = res.status;
-    event.response.statusText = res.statusText;
+    event.res.status = res.status;
+    event.res.statusText = res.statusText;
     for (const [key, value] of Object.entries(res.headers)) {
-      event.response.headers.set(key, value);
+      event.res.headers.set(key, value);
     }
     return JSON.stringify(res.body, null, 2);
   }
@@ -56,9 +56,9 @@ export function defaultHandler(
     // Disable the execution of any js
     "content-security-policy": "script-src 'none'; frame-ancestors 'none';",
   };
-  event.response.status = statusCode;
-  event.response.statusText = statusMessage;
-  if (statusCode === 404 || !event.response.headers.has("cache-control")) {
+  event.res.status = statusCode;
+  event.res.statusText = statusMessage;
+  if (statusCode === 404 || !event.res.headers.has("cache-control")) {
     headers["cache-control"] = "no-cache";
   }
 

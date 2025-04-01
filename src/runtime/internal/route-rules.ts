@@ -17,7 +17,7 @@ export function createRouteRulesHandler(hybridFetch: typeof globalThis.fetch) {
     // Apply headers options
     if (routeRules.headers) {
       for (const [key, value] of Object.entries(routeRules.headers)) {
-        event.response.setHeader(key, value);
+        event.res.headers.set(key, value);
       }
     }
     // Apply redirect options
