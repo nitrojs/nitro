@@ -288,7 +288,7 @@ export interface LoadConfigOptions {
   watch?: boolean;
   c12?: WatchConfigOptions;
   compatibilityDate?: CompatibilityDateSpec;
-  dotenv?: DotenvOptions;
+  dotenv?: boolean | DotenvOptions;
 }
 
 // ------------------------------------------------------------
