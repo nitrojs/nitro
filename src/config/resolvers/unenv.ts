@@ -12,6 +12,9 @@ export const common: Preset = {
     "buffer/": "node:buffer",
     "buffer/index": "node:buffer",
     "buffer/index.js": "node:buffer",
+    // https://github.com/nitrojs/nitro/issues/3271
+    "string_decoder/": "node:string_decoder",
+    "process/": "node:process",
   },
 };
 
