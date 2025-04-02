@@ -1,5 +1,10 @@
 import type { RollupCommonJSOptions } from "@rollup/plugin-commonjs";
-import type { C12InputConfig, ConfigWatcher, ResolvedConfig } from "c12";
+import type {
+  C12InputConfig,
+  ConfigWatcher,
+  DotenvOptions,
+  ResolvedConfig,
+} from "c12";
 import type { WatchConfigOptions } from "c12";
 import type { ChokidarOptions } from "chokidar";
 import type { CompatibilityDateSpec, CompatibilityDates } from "compatx";
@@ -283,6 +288,7 @@ export interface LoadConfigOptions {
   watch?: boolean;
   c12?: WatchConfigOptions;
   compatibilityDate?: CompatibilityDateSpec;
+  dotenv?: DotenvOptions;
 }
 
 // ------------------------------------------------------------
