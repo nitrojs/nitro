@@ -35,16 +35,6 @@ describe("nitro:preset:cloudflare-module", async () => {
         body,
       });
 
-      // const cookies = splitSetCookieString(res.headers.getSetCookie());
-      // // res.headers.delete("Set-Cookie");
-      // // for (const cookie of cookies) {
-      // //   res.headers.append("Set-Cookie", cookie);
-      // // }
-
-      // console.log(cookies, res.headers);
-
-      console.log(res.headers);
-
       return res as unknown as Response;
     };
   });
