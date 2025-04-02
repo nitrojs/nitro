@@ -17,7 +17,7 @@ import {
 import type { Nitro, NitroConfig } from "nitro/types";
 import { type FetchOptions, fetch } from "ofetch";
 import { join, resolve } from "pathe";
-import { isWindows, nodeMajorVersion } from "std-env";
+import { isWindows } from "std-env";
 import { joinURL } from "ufo";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -197,7 +197,7 @@ export function testNitro(
       !(result instanceof Response) &&
       !["Response", "_Response"].includes(result.constructor.name)
     ) {
-      return result as TestHandlerResult;
+      throw new TypeError("Expected Response");
     }
 
     const headers: Record<string, string | string[]> = {};
@@ -292,14 +292,6 @@ export function testNitro(
 
   it("binary response", async () => {
     const { data } = await callHandler({ url: "/icon.png" }, { binary: true });
-    let buffer: Buffer;
-    if (ctx.isLambda) {
-      // TODO: Handle base64 decoding in lambda tests themselves
-      expect(typeof data).toBe("string");
-      buffer = Buffer.from(data, "base64");
-    } else {
-      buffer = data;
-    }
     // Check if buffer is a png
     function isBufferPng(buffer: Buffer) {
       return (
@@ -309,7 +301,7 @@ export function testNitro(
         buffer[3] === 0x47
       );
     }
-    expect(isBufferPng(buffer)).toBe(true);
+    expect(isBufferPng(data)).toBe(true);
   });
 
   it("render JSX", async () => {
@@ -533,7 +525,7 @@ export function testNitro(
     const { data } = await callHandler({
       url: "/stream",
     });
-    expect(data).toBe(ctx.isLambda ? btoa("nitroisawesome") : "nitroisawesome");
+    expect(data).toBe("nitroisawesome");
   });
 
   it.skipIf(!ctx.supportsEnv)("config", async () => {

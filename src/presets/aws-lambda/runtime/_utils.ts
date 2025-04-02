@@ -128,9 +128,6 @@ export async function awsResponseBody(
 }
 
 function isTextType(contentType = "") {
-  if (!/^text\/|\/(javascript|json|xml)|utf-?8/i.test(contentType)) {
-    console.log("binary", contentType);
-  }
   return /^text\/|\/(javascript|json|xml)|utf-?8/i.test(contentType);
 }
 

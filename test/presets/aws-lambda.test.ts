@@ -40,7 +40,7 @@ describe("nitro:preset:aws-lambda-v2", async () => {
         },
       } satisfies APIGatewayProxyEventV2;
       const res = await handler(event);
-      return makeResponse(res);
+      return webResponse(res);
     };
   });
 });
@@ -66,21 +66,34 @@ describe("nitro:preset:aws-lambda-v1", async () => {
         requestContext: {} as any,
       } satisfies APIGatewayProxyEvent;
       const res = await handler(event);
-      return makeResponse(res);
+      return webResponse(res);
     };
   });
 });
 
-const makeResponse = (response: any) => {
-  const headers = response.headers;
+function webResponse(awsResponse: any) {
+  const headers = new Headers(awsResponse.headers);
+  const setCookie =
+    awsResponse?.cookies /* v2 */ ??
+    awsResponse?.multiValueHeaders /* v1 */?.["set-cookie"] ??
+    [];
+  headers.delete("set-cookie");
+  for (const cookie of setCookie) {
+    if (Array.isArray(cookie)) {
+      for (const c of cookie) {
+        headers.append("set-cookie", c);
+      }
+    } else {
+      headers.append("set-cookie", cookie);
+    }
+  }
 
-  // APIgw v2 uses cookies, v1 uses multiValueHeaders
-  headers["set-cookie"] =
-    response?.cookies ?? response?.multiValueHeaders?.["set-cookie"];
+  const body = awsResponse.isBase64Encoded
+    ? Buffer.from(awsResponse.body, "base64")
+    : (awsResponse.body as string);
 
-  return {
-    data: destr(response.body),
-    status: response.statusCode,
+  return new Response(body, {
+    status: awsResponse.statusCode,
     headers,
-  };
-};
+  });
+}
