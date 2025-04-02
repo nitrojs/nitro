@@ -15,11 +15,9 @@ export default defineEventHandler((event) => {
     "x-nitro-prerender",
     "/api/param/prerender1, /api/param/prerender2"
   );
-
-  event.res.headers.set("x-nitro-prerender", "/api/param/prerender3");
+  event.res.headers.append("x-nitro-prerender", "/api/param/prerender3");
 
   event.res.headers.set("content-type", "text/html");
-
   return /* html */ `<!DOCTYPE html><html>
 <head>
   <meta charset="utf-8">
