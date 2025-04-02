@@ -438,7 +438,7 @@ export function testNitro(
         url: "/api/param/prerender4",
       });
       expect(data).toBe("prerender4");
-      expect(headers["content-type"]).toBe("text/plain; charset=utf-16");
+      expect(headers["content-type"]).toBe("text/plain; custom");
     });
   }
 

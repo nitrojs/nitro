@@ -22,6 +22,7 @@ export default eventHandler((event) => {
 
   // The default page title
 
+  event.res.headers.set("Content-Type", "text/html");
   return /* html */ `<!doctype html>
     <html lang="en">
       <head>

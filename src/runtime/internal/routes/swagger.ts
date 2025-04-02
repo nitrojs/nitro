@@ -12,6 +12,7 @@ export default eventHandler((event) => {
     runtimeConfig.nitro.openAPI?.route || "./_openapi.json";
 
   const CDN_BASE = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@^5";
+  event.res.headers.set("Content-Type", "text/html");
   return /* html */ `<!doctype html>
     <html lang="en">
       <head>
