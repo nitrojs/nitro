@@ -1,9 +1,4 @@
-export default eventHandler(
-  () =>
-    new Response("Hey API", {
-      status: 200,
-      headers: {
-        "Content-Type": "text/html",
-      },
-    })
-);
+export default eventHandler((event) => {
+  event.res.headers.set("Content-Type", "text/html");
+  return "Hey API";
+});
