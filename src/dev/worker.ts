@@ -154,7 +154,7 @@ export class NodeDevWorker implements DevWorker {
     if (!this.#worker._exitCode && !isTest && !isCI) {
       await new Promise<void>((resolve) => {
         const gracefulShutdownTimeoutMs =
-          Number.parseInt(process.env.NITRO_SHUTDOWN_TIMEOUT || "", 10) || 30_000;
+          Number.parseInt(process.env.NITRO_SHUTDOWN_TIMEOUT || "", 10) || 5000;
         const timeout = setTimeout(() => {
           if (process.env.DEBUG) {
             consola.warn(`force closing dev worker...`);
