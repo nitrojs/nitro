@@ -95,6 +95,9 @@ const cloudflareModule = defineNitroPreset(
   {
     extends: "base-worker",
     entry: "./runtime/cloudflare-module",
+    output: {
+      publicDir: "{{ output.dir }}/public/{{ baseURL }}",
+    },
     exportConditions: ["workerd"],
     commands: {
       preview: "npx wrangler --cwd ./ dev",
