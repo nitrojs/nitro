@@ -26,8 +26,12 @@ export default eventHandler((event) => {
 
   const {
     paths,
-    globals: { components, ...extensible },
+    globals: { components, ...globalsRest },
   } = getHandlersMeta();
+
+  const extensible: Extensable = Object.fromEntries(
+    Object.entries(globalsRest).filter(([key]) => key.startsWith("x-"))
+  );
 
   return <OpenAPI3>{
     openapi: "3.1.0",
