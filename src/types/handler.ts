@@ -1,13 +1,17 @@
 import type { EventHandler, H3Error, H3Event, RouterMethod } from "h3";
 import type { PresetName } from "nitropack/presets";
-import type { OperationObject, OpenAPI3, Extensable } from "../types/openapi-ts";
+import type {
+  OperationObject,
+  OpenAPI3,
+  Extensable,
+} from "../types/openapi-ts";
 
 type MaybeArray<T> = T | T[];
 
 /** @exprerimental */
 export interface NitroRouteMeta {
   openAPI?: OperationObject & {
-    $global?: Pick<OpenAPI3, "components"> & Extensable
+    $global?: Pick<OpenAPI3, "components"> & Extensable;
   };
 }
 
