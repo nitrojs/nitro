@@ -156,7 +156,7 @@
     "serve-placeholder": "^2.0.2",
     "serve-static": "^1.16.2",
     "source-map": "^0.7.4",
-    "std-env": "^3.8.1",
+    "std-env": "^3.9.0",
     "ufo": "^1.5.4",
     "ultrahtml": "^1.5.3",
     "uncrypto": "^0.1.3",
