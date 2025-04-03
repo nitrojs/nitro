@@ -48,10 +48,10 @@ export default defineNuxtConfig({
 By setting `deployConfig: true`, Nitro will automatically generate a `wrangler.json` for you with the correct configuration.
 If you need to add [Cloudflare Workers configuration](https://developers.cloudflare.com/workers/wrangler/configuration/), such as [bindings](https://developers.cloudflare.com/workers/runtime-apis/bindings/), you can either:
 
-- Set these in your Nitro config under the `cloudflare: {wrangler : ... }`. This has the same type as `wrangler.json`.
+- Set these in your Nitro config under the `cloudflare: { wrangler : {} }`. This has the same type as `wrangler.json`.
 - Provide your own `wrangler.json`. Nitro will merge your config with the appropriate settings, including pointing to the build output.
 
-To use Workers with Static Assets (BETA), you also need a Nitro compatibility date set to 2024-09-19 or later.
+To use Workers with Static Assets, you also need a Nitro compatibility date set to `2024-09-19` or later.
 
 
 ### Preview your app locally
