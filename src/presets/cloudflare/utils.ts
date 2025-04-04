@@ -278,7 +278,13 @@ export async function writeWranglerConfig(
     );
     overrides.assets = {
       binding: "ASSETS",
-      directory: relative(wranglerConfigDir, nitro.options.output.publicDir),
+      directory: relative(
+        wranglerConfigDir,
+        resolve(
+          nitro.options.output.publicDir,
+          "..".repeat(nitro.options.baseURL.split("/").filter(Boolean).length)
+        )
+      ),
     };
   }
 
