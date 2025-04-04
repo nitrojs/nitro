@@ -1,4 +1,4 @@
-import type { RollupCommonJSOptions } from "@rollup/plugin-commonjs";
+import type * as RollupCommonJS from "@rollup/plugin-commonjs";
 import type { C12InputConfig, ConfigWatcher, ResolvedConfig } from "c12";
 import type { WatchConfigOptions } from "c12";
 import type { ChokidarOptions } from "chokidar";
@@ -211,7 +211,7 @@ export interface NitroOptions extends PresetOptions {
   externals: NodeExternalsOptions;
   analyze: false | PluginVisualizerOptions;
   replace: Record<string, string | ((id: string) => string)>;
-  commonJS?: RollupCommonJSOptions;
+  commonJS?: RollupCommonJS.RollupCommonJSOptions;
   exportConditions?: string[];
 
   // Advanced
