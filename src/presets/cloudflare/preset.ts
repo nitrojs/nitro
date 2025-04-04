@@ -46,7 +46,7 @@ const cloudflarePages = defineNitroPreset(
     },
     hooks: {
       "build:before": async (nitro) => {
-        await enableNodeCompat(nitro);
+        await enableNodeCompat(nitro, "pages");
       },
       async compiled(nitro: Nitro) {
         await writeWranglerConfig(nitro, "pages");
@@ -112,7 +112,7 @@ const cloudflareModule = defineNitroPreset(
     },
     hooks: {
       "build:before": async (nitro) => {
-        await enableNodeCompat(nitro);
+        await enableNodeCompat(nitro, "module");
       },
       async compiled(nitro: Nitro) {
         await writeWranglerConfig(nitro, "module");

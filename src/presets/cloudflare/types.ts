@@ -8,9 +8,9 @@ import type {
 import type { DurableObject } from "cloudflare:workers";
 
 import type {
-  Config as _Config,
+  RawConfig as _Config,
   ComputedFields as _ComputedFields,
-} from "./wrangler/config";
+} from "./wrangler/types/config";
 
 export type WranglerConfig = Partial<Omit<_Config, keyof _ComputedFields>>;
 
@@ -35,6 +35,16 @@ export interface CloudflareOptions {
    * **NOTE:** This option is only effective if `deployConfig` is enabled.
    */
   wrangler?: WranglerConfig;
+
+  /**
+   * Optional name of the environment to use for the Cloudflare Deployments.
+   *
+   * This option can also be set by defining the `CLOUDFLARE_ENV` environment variable
+   * set to the name of the environment.
+   *
+   * **NOTE:** This option is only effective if `deployConfig` is enabled.
+   */
+  envName?: string;
 
   /**
    * Enable automatic generation of `.wrangler/deploy/config.json`.
