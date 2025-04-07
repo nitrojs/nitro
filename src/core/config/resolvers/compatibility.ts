@@ -26,8 +26,8 @@ export async function resolveCompatibilityOptions(options: NitroOptions) {
     ) {
       consola.warn(
         [
-          `Please add \`compatibilityDate: '${formatDate("latest")}'\` to the config file. Using \`${fallbackCompatibilityDate}\` as fallback.`,
-          `More info: ${colors.underline("https://nitro.build/deploy#compatibility-date")}`,
+          /* WARN */ `Please add \`compatibilityDate: '${formatDate("latest")}'\` to the config file. Using \`${fallbackCompatibilityDate}\` as fallback.`,
+          `       More info: ${colors.underline("https://nitro.build/deploy#compatibility-date")}`,
         ].join("\n")
       );
       _fallbackInfoShown = true;
