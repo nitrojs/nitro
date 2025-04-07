@@ -1,6 +1,6 @@
 import { defineNitroConfig } from "nitropack/config";
 
 export default defineNitroConfig({
+  compatibilityDate: "latest",
   srcDir: "server",
-  compatibilityDate: "2025-03-01",
 });
