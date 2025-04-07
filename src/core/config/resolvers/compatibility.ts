@@ -24,7 +24,7 @@ export async function resolveCompatibilityOptions(options: NitroOptions) {
       !isTest &&
       options.preset !== "nitro-prerender"
     ) {
-      consola.log(
+      consola.warn(
         [
           `Please add \`compatibilityDate: '${formatDate("latest")}'\` to the config file. Using \`${fallbackCompatibilityDate}\` as fallback.`,
           `More info: ${colors.underline("https://nitro.build/deploy#compatibility-date")}`,
