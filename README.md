@@ -2,8 +2,8 @@
 
 <!-- automd:badges -->
 
-[![npm version](https://flat.badgen.net/npm/v/nitropack)](https://npmjs.com/package/nitropack)
-[![npm downloads](https://flat.badgen.net/npm/dm/nitropack)](https://npmjs.com/package/nitropack)
+[![npm version](https://img.shields.io/npm/v/nitropack)](https://npmjs.com/package/nitropack)
+[![npm downloads](https://img.shields.io/npm/dm/nitropack)](https://npm.chart.dev/nitropack)
 
 <!-- /automd -->
 
