@@ -12,6 +12,7 @@ const ws = import.meta._websocket
 
 // @ts-expect-error
 const server = Bun.serve({
+  idleTimeout: parseInt(process.env.BUN_IDLE_TIMEOUT) || 10,
   port: process.env.NITRO_PORT || process.env.PORT || 3000,
   websocket: import.meta._websocket ? ws!.websocket : (undefined as any),
   async fetch(req: Request, server: any) {
