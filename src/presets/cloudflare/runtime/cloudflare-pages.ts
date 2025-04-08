@@ -1,6 +1,6 @@
 import "#nitro-internal-pollyfills";
-import { useNitroApp } from "nitropack/runtime";
-import { requestHasBody, runCronTasks } from "nitropack/runtime/internal";
+import { useNitroApp } from "nitro/runtime";
+import { requestHasBody, runCronTasks } from "nitro/runtime/internal";
 import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
 
 import type {
@@ -63,12 +63,14 @@ export default {
 
     return nitroApp.localFetch(url.pathname + url.search, {
       context: {
-        cf: request.cf,
         waitUntil: (promise: Promise<any>) => context.waitUntil(promise),
-        cloudflare: {
-          request,
-          env,
-          context,
+        _platform: {
+          cf: request.cf,
+          cloudflare: {
+            request,
+            env,
+            context,
+          },
         },
       },
       host: url.hostname,

@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    /* Base options: */
     "esModuleInterop": false,
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
@@ -10,65 +9,32 @@
     "moduleDetection": "force",
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
-    /* Strictness */
     "strict": true,
-    // TODO: enable noUncheckedIndexedAccess in subsequent PR
     // "noUncheckedIndexedAccess": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitOverride": true,
-    /* If NOT transpiling with TypeScript: */
     "module": "preserve",
     "noEmit": true,
     "jsx": "preserve",
     "jsxFactory": "h",
     "jsxFragmentFactory": "Fragment",
     "lib": ["es2022", "webworker", "dom.iterable"],
+    "types": ["node", "@cloudflare/workers-types"],
     "paths": {
-      // CLI
-      "nitro/cli": ["./src/cli"],
-      "nitropack/cli": ["./src/cli"],
-      // Config
-      "nitro/config": ["./src/config"],
-      "nitropack/config": ["./src/config"],
-      // Core
-      "nitro/core": ["./src/core"],
-      "nitropack/core": ["./src/core"],
-      // Core (alias)
-      "nitro": ["./src/core"],
-      "nitropack": ["./src/core"],
-      // Runtime
+      "nitro": ["./src/index"],
       "nitro/runtime": ["./src/runtime"],
-      "nitropack/runtime": ["./src/runtime"],
-      // Runtime subpaths
-      "nitro/runtime/*": ["./src/runtime/*"],
-      "nitropack/runtime/*": ["./src/runtime/*"],
-      // Runtime meta
-      "nitro/runtime/meta": ["./runtime-meta"],
-      "nitropack/runtime/meta": ["./runtime-meta"],
-      // Kit
-      "nitro/kit": ["./src/kit"],
-      "nitropack/kit": ["./src/kit"],
-      // Meta
-      "nitro/meta": ["./src/meta"],
-      "nitropack/meta": ["./src/meta"],
-      // Presets
+      "nitro/runtime/internal": ["./src/runtime/internal"],
       "nitro/presets": ["./src/presets"],
-      "nitropack/presets": ["./src/presets"],
-      "nitro/presets/*": ["./src/presets/*"],
-      "nitropack/presets/*": ["./src/presets/*"],
-      // Rollup
-      "nitro/rollup": ["./src/rollup"],
-      "nitropack/rollup": ["./src/rollup"],
-      // Types
       "nitro/types": ["./src/types"],
-      "nitropack/types": ["./src/types"],
-      // Virtual files
+      "nitro/config": ["./lib/config.mjs"],
+      "nitro/meta": ["./lib/meta.mjs"],
+      "nitro/runtime/meta": ["./lib/runtime-meta.mjs"],
       "#nitro-internal-virtual/*": ["./src/types/virtual/*"],
-      // Compatibility (#internal/nitro)
       "#internal/nitro": ["./src/runtime"],
-      "#internal/nitro/*": ["./src/runtime/*"]
+      "#internal/nitro/*": ["./src/runtime/*"],
+      "#internal/types/openapi-ts": ["./src/types/openapi-ts"]
     }
   },
   "include": ["src", "test", "scripts/gen-mirror.ts"],
-  "exclude": ["dist", "examples", "playground", "test/fixture"]
+  "exclude": ["dist", "lib", "examples", "playground", "test/fixture"]
 }

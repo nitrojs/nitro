@@ -2,26 +2,48 @@ import "#nitro-internal-pollyfills";
 import type * as CF from "@cloudflare/workers-types";
 import { DurableObject } from "cloudflare:workers";
 import wsAdapter from "crossws/adapters/cloudflare-durable";
-import { useNitroApp } from "nitropack/runtime";
+import { useNitroApp } from "nitro/runtime";
 import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
-import { createHandler } from "./_module-handler";
+import { createHandler, fetchHandler } from "./_module-handler";
 
-const nitroApp = useNitroApp();
-
-const ws = import.meta._websocket
-  ? wsAdapter(nitroApp.h3App.websocket)
-  : undefined;
+const DURABLE_BINDING = "$DurableObject";
+const DURABLE_INSTANCE = "server";
 
 interface Env {
   ASSETS?: { fetch: typeof CF.fetch };
+  [DURABLE_BINDING]?: CF.DurableObjectNamespace;
 }
 
+const nitroApp = useNitroApp();
+
+const getDurableStub = (env: Env) => {
+  const binding = env[DURABLE_BINDING];
+  if (!binding) {
+    throw new Error(
+      `Durable Object binding "${DURABLE_BINDING}" not available.`
+    );
+  }
+  const id = binding.idFromName(DURABLE_INSTANCE);
+  return binding.get(id);
+};
+
+const ws = import.meta._websocket
+  ? wsAdapter({
+      ...nitroApp.h3App.websocket,
+      instanceName: DURABLE_INSTANCE,
+      bindingName: DURABLE_BINDING,
+    })
+  : undefined;
+
 export default createHandler<Env>({
-  fetch(request, env, context, url) {
+  fetch(request, env, context, url, ctxExt) {
     // Static assets fallback (optional binding)
     if (env.ASSETS && isPublicAssetURL(url.pathname)) {
       return env.ASSETS.fetch(request);
     }
+
+    // Expose stub fetch to the context
+    ctxExt.durableFetch = (req = request) => getDurableStub(env).fetch(req);
 
     // Websocket upgrade
     // https://crossws.unjs.io/adapters/cloudflare#durable-objects
@@ -49,10 +71,17 @@ export class $DurableObject extends DurableObject {
   }
 
   override fetch(request: Request) {
-    if (import.meta._websocket) {
+    if (
+      import.meta._websocket &&
+      request.headers.get("upgrade") === "websocket"
+    ) {
       return ws!.handleDurableUpgrade(this, request);
     }
-    return new Response("404", { status: 404 });
+    // Main handler
+    const url = new URL(request.url);
+    return fetchHandler(request, this.env, this.ctx, url, nitroApp, {
+      durable: this,
+    });
   }
 
   override alarm(): void | Promise<void> {

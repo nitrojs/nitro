@@ -1,10 +1,16 @@
-import { existsSync, promises as fsp } from "node:fs";
-import { parseTOML, stringifyTOML } from "confbox";
-import defu from "defu";
+import type { Nitro } from "nitro/types";
+import type { Plugin } from "rollup";
+import type { WranglerConfig, CloudflarePagesRoutes } from "./types";
+import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
+import { relative, dirname, extname } from "node:path";
+import { writeFile } from "../_utils/fs";
+import { parseTOML, parseJSONC } from "confbox";
+import { readGitConfig, readPackageJSON, findNearestFile } from "pkg-types";
+import { defu } from "defu";
 import { globby } from "globby";
-import type { Nitro } from "nitropack/types";
+import { provider } from "std-env";
 import { join, resolve } from "pathe";
-import { isCI } from "std-env";
 import {
   joinURL,
   hasProtocol,
@@ -12,21 +18,12 @@ import {
   withTrailingSlash,
   withoutLeadingSlash,
 } from "ufo";
-import type { CloudflarePagesRoutes } from "./types";
+import {
+  workerdHybridNodeCompatPlugin,
+  unenvWorkerdWithNodeCompat,
+} from "../_unenv/preset-workerd";
 
-export async function writeCFPagesFiles(nitro: Nitro) {
-  await writeCFRoutes(nitro);
-  await writeCFPagesHeaders(nitro);
-  await writeCFPagesRedirects(nitro);
-  await writeCFWrangler(nitro);
-}
-
-export async function writeCFPagesStaticFiles(nitro: Nitro) {
-  await writeCFPagesHeaders(nitro);
-  await writeCFPagesRedirects(nitro);
-}
-
-async function writeCFRoutes(nitro: Nitro) {
+export async function writeCFRoutes(nitro: Nitro) {
   const _cfPagesConfig = nitro.options.cloudflare?.pages || {};
   const routes: CloudflarePagesRoutes = {
     version: _cfPagesConfig.routes?.version || 1,
@@ -35,9 +32,10 @@ async function writeCFRoutes(nitro: Nitro) {
   };
 
   const writeRoutes = () =>
-    fsp.writeFile(
+    writeFile(
       resolve(nitro.options.output.dir, "_routes.json"),
-      JSON.stringify(routes, undefined, 2)
+      JSON.stringify(routes, undefined, 2),
+      true
     );
 
   if (_cfPagesConfig.defaultRoutes === false) {
@@ -107,7 +105,7 @@ function comparePaths(a: string, b: string) {
   return a.split("/").length - b.split("/").length || a.localeCompare(b);
 }
 
-async function writeCFPagesHeaders(nitro: Nitro) {
+export async function writeCFPagesHeaders(nitro: Nitro) {
   const headersPath = join(nitro.options.output.dir, "_headers");
   const contents = [];
 
@@ -129,7 +127,7 @@ async function writeCFPagesHeaders(nitro: Nitro) {
   }
 
   if (existsSync(headersPath)) {
-    const currentHeaders = await fsp.readFile(headersPath, "utf8");
+    const currentHeaders = await readFile(headersPath, "utf8");
     if (/^\/\* /m.test(currentHeaders)) {
       nitro.logger.info(
         "Not adding Nitro fallback to `_headers` (as an existing fallback was found)."
@@ -142,10 +140,10 @@ async function writeCFPagesHeaders(nitro: Nitro) {
     contents.unshift(currentHeaders);
   }
 
-  await fsp.writeFile(headersPath, contents.join("\n"));
+  await writeFile(headersPath, contents.join("\n"), true);
 }
 
-async function writeCFPagesRedirects(nitro: Nitro) {
+export async function writeCFPagesRedirects(nitro: Nitro) {
   const redirectsPath = join(nitro.options.output.dir, "_redirects");
   const staticFallback = existsSync(
     join(nitro.options.output.publicDir, "404.html")
@@ -169,7 +167,7 @@ async function writeCFPagesRedirects(nitro: Nitro) {
   }
 
   if (existsSync(redirectsPath)) {
-    const currentRedirects = await fsp.readFile(redirectsPath, "utf8");
+    const currentRedirects = await readFile(redirectsPath, "utf8");
     if (/^\/\* /m.test(currentRedirects)) {
       nitro.logger.info(
         "Not adding Nitro fallback to `_redirects` (as an existing fallback was found)."
@@ -182,37 +180,216 @@ async function writeCFPagesRedirects(nitro: Nitro) {
     contents.unshift(currentRedirects);
   }
 
-  await fsp.writeFile(redirectsPath, contents.join("\n"));
+  await writeFile(redirectsPath, contents.join("\n"), true);
 }
 
-async function writeCFWrangler(nitro: Nitro) {
-  type WranglerConfig = typeof nitro.options.cloudflare.wrangler;
+export async function enableNodeCompat(nitro: Nitro) {
+  nitro.options.cloudflare ??= {};
 
-  const inlineConfig: WranglerConfig =
-    nitro.options.cloudflare?.wrangler || ({} as WranglerConfig);
+  // Enable deploy config for workers CI by default
+  // TODO: enable this by default once API could assert no config overrides will happen
+  if (
+    nitro.options.cloudflare.deployConfig === undefined &&
+    provider === "cloudflare_workers"
+  ) {
+    nitro.options.cloudflare.deployConfig = true;
+  }
 
-  // Write wrangler.toml only if config is not empty
-  if (!inlineConfig || Object.keys(inlineConfig).length === 0) {
+  // Infer nodeCompat from user config
+  if (nitro.options.cloudflare.nodeCompat === undefined) {
+    const { config } = await readWranglerConfig(nitro);
+    const userCompatibilityFlags = new Set(config?.compatibility_flags || []);
+    if (
+      userCompatibilityFlags.has("nodejs_compat") ||
+      userCompatibilityFlags.has("nodejs_compat_v2") ||
+      nitro.options.cloudflare.deployConfig
+    ) {
+      nitro.options.cloudflare.nodeCompat = true;
+    }
+  }
+
+  if (!nitro.options.cloudflare.nodeCompat) {
+    if (nitro.options.cloudflare.nodeCompat === undefined) {
+      nitro.logger.warn("[cloudflare] Node.js compatibility is not enabled.");
+    }
     return;
   }
 
-  let configFromFile: WranglerConfig = {} as WranglerConfig;
-  const configPath = resolve(
-    nitro.options.rootDir,
-    inlineConfig.configPath || "wrangler.toml"
+  nitro.options.unenv.push(unenvWorkerdWithNodeCompat);
+  nitro.options.rollupConfig!.plugins ??= [];
+  (nitro.options.rollupConfig!.plugins as Plugin[]).push(
+    workerdHybridNodeCompatPlugin
   );
-  if (existsSync(configPath)) {
-    configFromFile = parseTOML<WranglerConfig>(
-      await fsp.readFile(configPath, "utf8")
+}
+
+const extensionParsers = {
+  ".json": JSON.parse,
+  ".jsonc": parseJSONC,
+  ".toml": parseTOML,
+} as const;
+
+async function readWranglerConfig(
+  nitro: Nitro
+): Promise<{ configPath?: string; config?: WranglerConfig }> {
+  const configPath = await findNearestFile(
+    ["wrangler.json", "wrangler.jsonc", "wrangler.toml"],
+    {
+      startingFrom: nitro.options.rootDir,
+    }
+  ).catch(() => undefined);
+  if (!configPath) {
+    return {};
+  }
+  const userConfigText = await readFile(configPath, "utf8");
+  const parser =
+    extensionParsers[extname(configPath) as keyof typeof extensionParsers];
+  if (!parser) {
+    /* unreachable */
+    throw new Error(`Unsupported config file format: ${configPath}`);
+  }
+  const config = parser(userConfigText) as WranglerConfig;
+  return { configPath, config };
+}
+
+// https://developers.cloudflare.com/workers/wrangler/configuration/#generated-wrangler-configuration
+export async function writeWranglerConfig(
+  nitro: Nitro,
+  cfTarget: "pages" | "module"
+) {
+  // Skip if not enabled
+  if (!nitro.options.cloudflare?.deployConfig) {
+    return;
+  }
+
+  // Compute path to generated wrangler.json
+  const wranglerConfigDir = nitro.options.output.serverDir;
+  const wranglerConfigPath = join(wranglerConfigDir, "wrangler.json");
+
+  // Default configs
+  const defaults: WranglerConfig = {};
+
+  // Config overrides
+  const overrides: WranglerConfig = {};
+
+  // Compatibility date
+  defaults.compatibility_date =
+    nitro.options.compatibilityDate.cloudflare ||
+    nitro.options.compatibilityDate.default;
+
+  if (cfTarget === "pages") {
+    // Pages
+    overrides.pages_build_output_dir = relative(
+      wranglerConfigDir,
+      nitro.options.output.dir
+    );
+  } else {
+    // Modules
+    overrides.main = relative(
+      wranglerConfigDir,
+      join(nitro.options.output.serverDir, "index.mjs")
+    );
+    overrides.assets = {
+      binding: "ASSETS",
+      directory: relative(
+        wranglerConfigDir,
+        resolve(
+          nitro.options.output.publicDir,
+          "..".repeat(nitro.options.baseURL.split("/").filter(Boolean).length)
+        )
+      ),
+    };
+  }
+
+  // Read user config
+  const { config: userConfig = {} } = await readWranglerConfig(nitro);
+
+  // Nitro context config (from frameworks and modules)
+  const ctxConfig = nitro.options.cloudflare?.wrangler || {};
+
+  // Validate and warn about overrides
+  for (const key in overrides) {
+    if (key in userConfig || key in ctxConfig) {
+      nitro.logger.warn(
+        `[cloudflare] Wrangler config \`${key}\`${key in ctxConfig ? "set by config or modules" : ""} is overridden and will be ignored.`
+      );
+    }
+  }
+
+  // (first argument takes precedence)
+  const wranglerConfig = defu(
+    overrides,
+    ctxConfig,
+    userConfig,
+    defaults
+  ) as WranglerConfig;
+
+  // Name is required
+  if (!wranglerConfig.name) {
+    wranglerConfig.name = await generateWorkerName(nitro)!;
+    nitro.logger.info(
+      `Using auto generated worker name: \`${wranglerConfig.name}\``
     );
   }
 
-  const wranglerConfig: WranglerConfig = defu(configFromFile, inlineConfig);
+  // Compatibility flags
+  // prettier-ignore
+  const compatFlags = new Set(wranglerConfig.compatibility_flags || [])
+  if (nitro.options.cloudflare?.nodeCompat) {
+    if (
+      compatFlags.has("nodejs_compat_v2") &&
+      compatFlags.has("no_nodejs_compat_v2")
+    ) {
+      nitro.logger.warn(
+        "[cloudflare] Wrangler config `compatibility_flags` contains both `nodejs_compat_v2` and `no_nodejs_compat_v2`. Ignoring `nodejs_compat_v2`."
+      );
+      compatFlags.delete("nodejs_compat_v2");
+    }
+    if (compatFlags.has("nodejs_compat_v2")) {
+      nitro.logger.warn(
+        "[cloudflare] Please consider replacing `nodejs_compat_v2` with `nodejs_compat` in your `compatibility_flags` or USE IT AT YOUR OWN RISK as it can cause issues with nitro."
+      );
+    } else {
+      // Add default compatibility flags
+      compatFlags.add("nodejs_compat");
+      compatFlags.add("no_nodejs_compat_v2");
+    }
+  }
+  wranglerConfig.compatibility_flags = [...compatFlags];
 
-  const wranglerPath = join(
-    isCI ? nitro.options.rootDir : nitro.options.buildDir,
-    "wrangler.toml"
+  // Write wrangler.json
+  await writeFile(
+    wranglerConfigPath,
+    JSON.stringify(wranglerConfig, null, 2),
+    true
   );
 
-  await fsp.writeFile(wranglerPath, stringifyTOML(wranglerConfig));
+  const configPath = join(
+    nitro.options.rootDir,
+    ".wrangler/deploy/config.json"
+  );
+
+  await writeFile(
+    configPath,
+    JSON.stringify({
+      configPath: relative(dirname(configPath), wranglerConfigPath),
+    }),
+    true
+  );
+}
+
+async function generateWorkerName(nitro: Nitro) {
+  const gitConfig = await readGitConfig(nitro.options.rootDir).catch(
+    () => undefined
+  );
+  const gitRepo = gitConfig?.remote?.origin?.url
+    ?.replace(/\.git$/, "")
+    .match(/[/:]([^/]+\/[^/]+)$/)?.[1];
+  const pkgJSON = await readPackageJSON(nitro.options.rootDir).catch(
+    () => undefined
+  );
+  const pkgName = pkgJSON?.name;
+  const subpath = relative(nitro.options.workspaceDir, nitro.options.rootDir);
+  return `${gitRepo || pkgName}/${subpath}`
+    .replace(/[^a-zA-Z0-9-]/g, "-")
+    .replace(/-$/, "");
 }

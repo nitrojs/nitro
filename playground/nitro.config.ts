@@ -1,5 +1,6 @@
-import { defineNitroConfig } from "nitropack/config";
+import { defineNitroConfig } from "nitro/config";
 
 export default defineNitroConfig({
-  compatibilityDate: "2024-09-19",
+  srcDir: "server",
+  compatibilityDate: "2025-03-01",
 });

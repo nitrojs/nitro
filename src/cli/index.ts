@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { defineCommand, runMain } from "citty";
-import { version as nitroVersion } from "nitropack/meta";
+import { version as nitroVersion } from "nitro/meta";
 
 const main = defineCommand({
   meta: {

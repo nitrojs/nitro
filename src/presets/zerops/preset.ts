@@ -1,8 +1,9 @@
-import { defineNitroPreset } from "nitropack/kit";
+import { defineNitroPreset } from "../_utils/preset";
 
 const zerops = defineNitroPreset(
   {
     extends: "node-server",
+    serveStatic: true,
   },
   {
     name: "zerops" as const,

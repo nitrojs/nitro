@@ -1,8 +1,7 @@
-import { defineNitroPreset } from "nitropack/kit";
+import { defineNitroPreset } from "../_utils/preset";
 
 const nitroDev = defineNitroPreset(
   {
-    extends: "node",
     entry: "./runtime/nitro-dev",
     output: {
       serverDir: "{{ buildDir }}/dev",

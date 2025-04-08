@@ -1,9 +1,8 @@
 import { promises as fsp } from "node:fs";
-import { defineNitroPreset } from "nitropack/kit";
-import type { Nitro } from "nitropack/types";
-import { joinURL } from "ufo";
+import { defineNitroPreset } from "../_utils/preset";
+import type { Nitro } from "nitro/types";
 import { dirname, join } from "pathe";
-import netlifyLegacyPresets from "./legacy/preset";
+import { unenvDenoPreset } from "../_unenv/preset-deno";
 import {
   generateNetlifyFunction,
   getGeneratorString,
@@ -56,7 +55,6 @@ const netlify = defineNitroPreset(
     name: "netlify" as const,
     stdName: "netlify",
     url: import.meta.url,
-    compatibilityDate: "2024-05-07",
   }
 );
 
@@ -76,6 +74,7 @@ const netlifyEdge = defineNitroPreset(
         format: "esm",
       },
     },
+    unenv: unenvDenoPreset,
     hooks: {
       async compiled(nitro: Nitro) {
         await writeHeaders(nitro);
@@ -109,7 +108,6 @@ const netlifyEdge = defineNitroPreset(
   {
     name: "netlify-edge" as const,
     url: import.meta.url,
-    compatibilityDate: "2024-05-07",
   }
 );
 
@@ -135,13 +133,7 @@ const netlifyStatic = defineNitroPreset(
     stdName: "netlify",
     static: true,
     url: import.meta.url,
-    compatibilityDate: "2024-05-07",
   }
 );
 
-export default [
-  ...netlifyLegacyPresets,
-  netlify,
-  netlifyEdge,
-  netlifyStatic,
-] as const;
+export default [netlify, netlifyEdge, netlifyStatic] as const;

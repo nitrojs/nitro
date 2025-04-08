@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyProductionCondition } from "../../src/rollup/plugins/externals";
+import { applyProductionCondition } from "../../src/build/plugins/externals";
 
 describe("externals:applyProductionCondition", () => {
   const applyProductionConditionCases = [

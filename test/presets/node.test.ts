@@ -4,14 +4,14 @@ import { isWindows } from "std-env";
 import { describe, expect, it } from "vitest";
 import { setupTest, startServer, testNitro } from "../tests";
 
-describe("nitro:preset:node-listener", async () => {
-  const ctx = await setupTest("node-listener");
+describe("nitro:preset:node-middleware", async () => {
+  const ctx = await setupTest("node-middleware");
 
   testNitro(ctx, async () => {
     const entryPath = resolve(ctx.outDir, "server/index.mjs");
-    const { listener } = await import(entryPath);
+    const { middleware } = await import(entryPath);
 
-    await startServer(ctx, listener);
+    await startServer(ctx, middleware);
 
     return async ({ url, ...opts }) => {
       const res = await ctx.fetch(url, opts);

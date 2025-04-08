@@ -1,8 +1,7 @@
-import { defineNitroPreset } from "nitropack/kit";
-import type { Nitro } from "nitropack/types";
+import { defineNitroPreset } from "../_utils/preset";
+import type { Nitro } from "nitro/types";
 import {
   deprecateSWR,
-  generateEdgeFunctionFiles,
   generateFunctionFiles,
   generateStaticFiles,
 } from "./utils";
@@ -13,7 +12,6 @@ export type { VercelOptions as PresetOptions } from "./types";
 
 const vercel = defineNitroPreset(
   {
-    extends: "node",
     entry: "./runtime/vercel",
     output: {
       dir: "{{ rootDir }}/.vercel/output",
@@ -36,49 +34,6 @@ const vercel = defineNitroPreset(
   {
     name: "vercel" as const,
     stdName: "vercel",
-    url: import.meta.url,
-  }
-);
-
-const vercelEdge = defineNitroPreset(
-  {
-    extends: "base-worker",
-    entry: "./runtime/vercel-edge",
-    exportConditions: ["edge-light"],
-    output: {
-      dir: "{{ rootDir }}/.vercel/output",
-      serverDir: "{{ output.dir }}/functions/__nitro.func",
-      publicDir: "{{ output.dir }}/static/{{ baseURL }}",
-    },
-    commands: {
-      deploy: "",
-      preview: "",
-    },
-    rollupConfig: {
-      output: {
-        format: "module",
-      },
-    },
-    unenv: {
-      inject: {
-        process: undefined,
-      },
-    },
-    wasm: {
-      lazy: true,
-      esmImport: false,
-    },
-    hooks: {
-      "rollup:before": (nitro: Nitro) => {
-        deprecateSWR(nitro);
-      },
-      async compiled(nitro: Nitro) {
-        await generateEdgeFunctionFiles(nitro);
-      },
-    },
-  },
-  {
-    name: "vercel-edge" as const,
     url: import.meta.url,
   }
 );
@@ -110,4 +65,4 @@ const vercelStatic = defineNitroPreset(
   }
 );
 
-export default [vercel, vercelEdge, vercelStatic] as const;
+export default [vercel, vercelStatic] as const;

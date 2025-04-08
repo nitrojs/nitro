@@ -1,10 +1,10 @@
 import { fileURLToPath } from "node:url";
-import { defineNitroConfig } from "nitropack/config";
+import { defineNitroConfig } from "nitro/config";
 import { dirname, resolve } from "node:path";
 
 export default defineNitroConfig({
   compressPublicAssets: true,
-  compatibilityDate: "2024-09-19",
+  compatibilityDate: "2025-03-01",
   framework: {
     name: "nitro",
     version: "2.x",
@@ -32,7 +32,6 @@ export default defineNitroConfig({
     {
       route: "/api/test/*/foo",
       handler: "~/api/hello.ts",
-      // @ts-expect-error #2382
       method: "GET",
     },
     {
@@ -61,15 +60,10 @@ export default defineNitroConfig({
     "**/_*.txt",
     "!**/_unignored.txt",
   ],
-  appConfig: {
-    "nitro-config": true,
-    dynamic: "initial",
-  },
   runtimeConfig: {
     dynamic: "initial",
     url: "https://{{APP_DOMAIN}}",
   },
-  appConfigFiles: ["~/server.config.ts"],
   publicAssets: [
     {
       baseURL: "build",
@@ -81,6 +75,7 @@ export default defineNitroConfig({
     "db:migrate": { description: "Migrate database" },
     "db:seed": { description: "Seed database" },
   },
+  errorHandler: "~/error.ts",
   routeRules: {
     "/api/param/prerender4": { prerender: true },
     "/api/param/prerender2": { prerender: false },

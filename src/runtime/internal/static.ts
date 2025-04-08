@@ -9,7 +9,7 @@ import {
   appendResponseHeader,
   setResponseStatus,
 } from "h3";
-import type { PublicAsset } from "nitropack/types";
+import type { PublicAsset } from "nitro/types";
 import {
   decodePath,
   joinURL,

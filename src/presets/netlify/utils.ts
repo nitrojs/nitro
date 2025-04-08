@@ -1,5 +1,5 @@
 import { existsSync, promises as fsp } from "node:fs";
-import type { Nitro, PublicAssetDir } from "nitropack/types";
+import type { Nitro, PublicAssetDir } from "nitro/types";
 import { join } from "pathe";
 import { joinURL } from "ufo";
 
@@ -116,6 +116,8 @@ export const config = {
   name: "server handler",
   generator: "${getGeneratorString(nitro)}",
   path: "/*",
+  nodeBundler: "none",
+  includedFiles: ["**"],
   excludedPath: ${JSON.stringify(getStaticPaths(nitro.options.publicAssets, nitro.options.baseURL))},
   preferStatic: true,
 };

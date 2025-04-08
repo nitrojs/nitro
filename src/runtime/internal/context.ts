@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { type H3Event, createError } from "h3";
-import type { NitroAsyncContext } from "nitropack/types";
+import type { NitroAsyncContext } from "nitro/types";
 import { getContext } from "unctx";
 
 export const nitroAsyncContext = getContext<NitroAsyncContext>("nitro-app", {

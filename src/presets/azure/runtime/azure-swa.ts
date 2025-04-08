@@ -1,9 +1,9 @@
 import "#nitro-internal-pollyfills";
-import { useNitroApp } from "nitropack/runtime";
+import { useNitroApp } from "nitro/runtime";
 import {
   getAzureParsedCookiesFromHeaders,
   normalizeLambdaOutgoingHeaders,
-} from "nitropack/runtime/internal";
+} from "nitro/runtime/internal";
 
 import type { HttpRequest, HttpResponse } from "@azure/functions";
 import { parseURL } from "ufo";

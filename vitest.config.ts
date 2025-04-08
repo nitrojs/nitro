@@ -5,6 +5,7 @@ export default defineConfig({
     testTimeout: 30_000,
     coverage: {
       reporter: ["text", "clover", "json"],
+      include: ["src/**/*.ts"],
     },
     include: ["test/**/*.test.ts"],
   },

@@ -1,10 +1,10 @@
-import { defineNitroPreset } from "nitropack/kit";
-import type { Nitro } from "nitropack/types";
-import { writeFunctionsRoutes, writeSWARoutes } from "./utils";
+import { defineNitroPreset } from "../_utils/preset";
+import type { Nitro } from "nitro/types";
+import { writeSWARoutes } from "./utils";
 
 export type { AzureOptions as PresetOptions } from "./types";
 
-const azure = defineNitroPreset(
+const azureSWA = defineNitroPreset(
   {
     entry: "./runtime/azure-swa",
     output: {
@@ -23,30 +23,9 @@ const azure = defineNitroPreset(
   },
   {
     name: "azure-swa" as const,
-    aliases: ["azure"] as const,
     stdName: "azure_static",
     url: import.meta.url,
   }
 );
 
-const azureFunctions = defineNitroPreset(
-  {
-    serveStatic: true,
-    entry: "./runtime/azure-functions",
-    commands: {
-      deploy:
-        "az functionapp deployment source config-zip -g <resource-group> -n <app-name> --src {{ output.dir }}/deploy.zip",
-    },
-    hooks: {
-      async compiled(ctx: Nitro) {
-        await writeFunctionsRoutes(ctx);
-      },
-    },
-  },
-  {
-    name: "azure-functions" as const,
-    url: import.meta.url,
-  }
-);
-
-export default [azure, azureFunctions] as const;
+export default [azureSWA] as const;

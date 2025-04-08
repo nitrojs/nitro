@@ -105,6 +105,8 @@ describe("nitro:preset:netlify", async () => {
             name: "server handler",
             generator: "nitro@2.x",
             path: "/*",
+            nodeBundler: "none",
+            includedFiles: ["**"],
             excludedPath: ["/.netlify/*","/build/*"],
             preferStatic: true,
           };"

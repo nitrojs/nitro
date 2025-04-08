@@ -4,9 +4,9 @@ import {
   type EventHandlerRequest,
   defineEventHandler,
 } from "h3";
-import { defineNitroConfig } from "nitropack/config";
-import type { $Fetch } from "nitropack/types";
-import type { Serialize, Simplify } from "nitropack/types";
+import { defineNitroConfig } from "nitro/config";
+import type { $Fetch } from "nitro/types";
+import type { Serialize, Simplify } from "nitro/types";
 import { describe, it } from "vitest";
 
 interface TestResponse {
@@ -254,11 +254,10 @@ describe("API routes", () => {
 describe("defineNitroConfig", () => {
   it("should not accept functions to routeRules.cache", () => {
     defineNitroConfig({
-      compatibilityDate: "2024-09-29",
+      compatibilityDate: "2025-03-01",
       routeRules: {
         "/**": {
           cache: {
-            // @ts-expect-error
             shouldBypassCache(event) {
               return false;
             },

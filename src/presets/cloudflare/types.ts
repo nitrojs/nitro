@@ -6,7 +6,13 @@ import type {
   TraceItem,
 } from "@cloudflare/workers-types";
 import type { DurableObject } from "cloudflare:workers";
-import type { Config as WranglerConfig } from "./types.wrangler";
+
+import type {
+  Config as _Config,
+  ComputedFields as _ComputedFields,
+} from "./wrangler/config";
+
+export type WranglerConfig = Partial<Omit<_Config, keyof _ComputedFields>>;
 
 /**
  * https://developers.cloudflare.com/pages/platform/functions/routing/#functions-invocation-routes
@@ -24,11 +30,31 @@ export interface CloudflarePagesRoutes {
 
 export interface CloudflareOptions {
   /**
-   * Configuration for the Cloudflare Deployments
+   * Configuration for the Cloudflare Deployments.
+   *
+   * **NOTE:** This option is only effective if `deployConfig` is enabled.
    */
   wrangler?: WranglerConfig;
 
-  pages: {
+  /**
+   * Enable automatic generation of `.wrangler/deploy/config.json`.
+   *
+   * **IMPORTANT:** Enabling this option will cause settings from cloudflare dashboard (including environment variables) to be disabled and discarded.
+   *
+   * More info: https://developers.cloudflare.com/workers/wrangler/configuration#generated-wrangler-configuration
+   */
+  deployConfig?: boolean;
+
+  /**
+   * Enable native Node.js compatibility support.
+   *
+   * If this option disabled, pure unenv polyfills will be used instead.
+   *
+   * If not set, will be auto enabled if `nodejs_compat` or `nodejs_compat_v2` is detected in `wrangler.toml` or `wrangler.json`.
+   */
+  nodeCompat?: boolean;
+
+  pages?: {
     /**
      * Nitro will automatically generate a `_routes.json` that controls which files get served statically and
      * which get served by the Worker. Using this config will override the automatic `_routes.json`. Or, if the
@@ -61,7 +87,7 @@ export interface CloudflareOptions {
 
 type DurableObjectState = ConstructorParameters<typeof DurableObject>[0];
 
-declare module "nitropack/types" {
+declare module "nitro/types" {
   export interface NitroRuntimeHooks {
     // https://developers.cloudflare.com/workers/runtime-apis/handlers/scheduled/
     "cloudflare:scheduled": (_: {

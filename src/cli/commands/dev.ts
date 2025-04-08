@@ -1,12 +1,18 @@
+import nodeCrypto from "node:crypto";
 import { defineCommand } from "citty";
 import { consola } from "consola";
 import { getArgs, parseArgs } from "listhen/cli";
-import { build, createDevServer, createNitro, prepare } from "nitropack/core";
-import type { Nitro } from "nitropack/types";
+import { build, createDevServer, createNitro, prepare } from "nitro";
+import type { Nitro } from "nitro/types";
 import { resolve } from "pathe";
 import { commonArgs } from "../common";
 
 const hmrKeyRe = /^runtimeConfig\.|routeRules\./;
+
+// globalThis.crypto support for Node.js 18
+if (!globalThis.crypto) {
+  globalThis.crypto = nodeCrypto as unknown as Crypto;
+}
 
 export default defineCommand({
   meta: {

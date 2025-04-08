@@ -6,7 +6,7 @@ import type {
   TaskEvent,
   TaskPayload,
   TaskResult,
-} from "nitropack/types";
+} from "nitro/types";
 import { isTest } from "std-env";
 import { scheduledTasks, tasks } from "#nitro-internal-virtual/tasks";
 
@@ -79,7 +79,7 @@ export function startScheduleRunner() {
             context: {},
           }).catch((error) => {
             console.error(
-              `[nitro] Error while running scheduled task "${name}"`,
+              `Error while running scheduled task "${name}"`,
               error
             );
           })

@@ -1,12 +1,14 @@
 import { type HTTPMethod, eventHandler, getRequestURL } from "h3";
 import type {
+  Extensable,
   OpenAPI3,
   OperationObject,
   ParameterObject,
   PathItemObject,
   PathsObject,
-} from "openapi-typescript";
+} from "#internal/types/openapi-ts";
 import { joinURL } from "ufo";
+import { defu } from "defu";
 import { handlersMeta } from "#nitro-internal-virtual/server-handlers-meta";
 import { useRuntimeConfig } from "../config";
 
@@ -22,6 +24,15 @@ export default eventHandler((event) => {
     ...runtimeConfig.nitro?.openAPI?.meta,
   };
 
+  const {
+    paths,
+    globals: { components, ...globalsRest },
+  } = getHandlersMeta();
+
+  const extensible: Extensable = Object.fromEntries(
+    Object.entries(globalsRest).filter(([key]) => key.startsWith("x-"))
+  );
+
   return <OpenAPI3>{
     openapi: "3.1.0",
     info: {
@@ -36,17 +47,26 @@ export default eventHandler((event) => {
         variables: {},
       },
     ],
-    paths: getPaths(),
+    paths,
+    components,
+    ...extensible,
   };
 });
 
-function getPaths(): PathsObject {
+type OpenAPIGlobals = Pick<OpenAPI3, "components"> & Extensable;
+
+function getHandlersMeta(): {
+  paths: PathsObject;
+  globals: OpenAPIGlobals;
+} {
   const paths: PathsObject = {};
+  let globals: OpenAPIGlobals = {};
 
   for (const h of handlersMeta) {
     const { route, parameters } = normalizeRoute(h.route || "");
     const tags = defaultTags(h.route || "");
     const method = (h.method || "get").toLowerCase() as Lowercase<HTTPMethod>;
+    const { $global, ...openAPI } = h.meta?.openAPI || {};
 
     const item: PathItemObject = {
       [method]: <OperationObject>{
@@ -55,9 +75,14 @@ function getPaths(): PathsObject {
         responses: {
           200: { description: "OK" },
         },
-        ...h.meta?.openAPI,
+        ...openAPI,
       },
     };
+
+    if ($global) {
+      // TODO: Warn on conflicting global definitions?
+      globals = defu($global, globals);
+    }
 
     if (paths[route] === undefined) {
       paths[route] = item;
@@ -66,7 +91,7 @@ function getPaths(): PathsObject {
     }
   }
 
-  return paths;
+  return { paths, globals };
 }
 
 function normalizeRoute(_route: string) {

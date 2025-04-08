@@ -1,7 +1,7 @@
 import fsp from "node:fs/promises";
 import { defu } from "defu";
-import { writeFile } from "nitropack/kit";
-import type { Nitro } from "nitropack/types";
+import { writeFile } from "../_utils/fs";
+import type { Nitro } from "nitro/types";
 import { dirname, relative, resolve } from "pathe";
 import { joinURL, withoutLeadingSlash } from "ufo";
 import type {
@@ -181,10 +181,7 @@ function generateBuildConfig(nitro: Nitro) {
         }
         return {
           src,
-          dest:
-            nitro.options.preset === "vercel-edge"
-              ? "/__nitro?url=$url"
-              : generateEndpoint(key) + "?url=$url",
+          dest: generateEndpoint(key) + "?url=$url",
         };
       }),
     // If we are using an ISR function for /, then we need to write this explicitly
@@ -242,8 +239,8 @@ export function deprecateSWR(nitro: Nitro) {
     }
   }
   if (hasLegacyOptions && !isTest) {
-    console.warn(
-      "[nitro] Nitro now uses `isr` option to configure ISR behavior on Vercel. Backwards-compatible support for `static` and `swr` options within the Vercel Build Options API will be removed in the future versions. Set `future.nativeSWR: true` nitro config disable this warning."
+    nitro.logger.warn(
+      "Nitro now uses `isr` option to configure ISR behavior on Vercel. Backwards-compatible support for `static` and `swr` options within the Vercel Build Options API will be removed in the future versions. Set `future.nativeSWR: true` nitro config disable this warning."
     );
   }
 }

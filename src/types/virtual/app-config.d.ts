@@ -1,3 +1,3 @@
-import type { AppConfig } from "nitropack";
+import type { AppConfig } from "nitro";
 
 export const appConfig: AppConfig;

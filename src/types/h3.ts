@@ -2,7 +2,7 @@ import type {
   CacheOptions,
   CaptureError,
   CapturedErrorContext,
-} from "nitropack/types";
+} from "./runtime";
 import type { Base$Fetch, NitroFetchRequest } from "./fetch/fetch";
 
 export type H3EventFetch = (

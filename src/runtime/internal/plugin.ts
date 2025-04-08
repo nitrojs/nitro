@@ -1,4 +1,4 @@
-import type { NitroAppPlugin } from "nitropack/types";
+import type { NitroAppPlugin } from "nitro/types";
 
 export function defineNitroPlugin(def: NitroAppPlugin) {
   return def;

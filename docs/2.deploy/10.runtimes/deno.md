@@ -18,6 +18,6 @@ NITRO_PRESET=deno_server npm run build
 deno run --unstable --allow-net --allow-read --allow-env .output/server/index.ts
 ```
 
-## Denoy Deploy
+## Deno Deploy
 
 :read-more{to="/deploy/providers/deno-deploy"}
