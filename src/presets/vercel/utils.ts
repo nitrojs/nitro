@@ -12,6 +12,10 @@ import type {
 import { isTest } from "std-env";
 
 export async function generateFunctionFiles(nitro: Nitro) {
+  const observibilityRoutes = getObservibilityRoutes(nitro);
+
+  console.log("Vercel observability routes", observibilityRoutes);
+
   const buildConfigPath = resolve(nitro.options.output.dir, "config.json");
   const buildConfig = generateBuildConfig(nitro);
   await writeFile(buildConfigPath, JSON.stringify(buildConfig, null, 2));
@@ -250,4 +254,96 @@ export function deprecateSWR(nitro: Nitro) {
 
 function _hasProp(obj: any, prop: string) {
   return obj && typeof obj === "object" && prop in obj;
+}
+
+// --- utils for observibility ---
+
+/**
+ * - Sorts routes by how much specific they are
+ */
+function getObservibilityRoutes(nitro: Nitro) {
+  const routePatterns = [
+    ...new Set(
+      [...nitro.scannedHandlers, ...nitro.options.handlers]
+        .filter((h) => !h.middleware && h.route)
+        .map((h) => h.route!)
+    ),
+  ];
+
+  const staticRoutes: string[] = [];
+  const dynamicRoutes: string[] = [];
+  const catchAllRoutes: string[] = [];
+
+  for (const route of routePatterns) {
+    if (route.includes("**")) {
+      catchAllRoutes.push(route);
+    } else if (route.includes(":")) {
+      dynamicRoutes.push(route);
+    } else {
+      staticRoutes.push(route);
+    }
+  }
+
+  return [
+    ...normalizeRoutes(staticRoutes),
+    ...normalizeRoutes(dynamicRoutes),
+    ...normalizeRoutes(catchAllRoutes),
+  ];
+}
+
+function normalizeRoutes(routes: string[]) {
+  return routes
+    .sort((a, b) =>
+      // a.split("/").length - b.split("/").length ||
+      b.localeCompare(a)
+    )
+    .map((route) => ({
+      path: normalizeRoutePath(route),
+      pattern: normalizeRoutePattern(route),
+    }));
+}
+
+function normalizeRoutePath(route: string) {
+  return route
+    .split("/")
+    .slice(1)
+    .map((segment) => {
+      if (segment.startsWith("**")) {
+        return `[...${segment.replace(/[*:]/g, "")}]`;
+      }
+      if (segment === "*") {
+        return "[*]";
+      }
+      if (segment.startsWith(":")) {
+        return `[${segment.slice(1)}]`;
+      }
+
+      if (segment.includes(":")) {
+        return `[${segment.replace(/:/g, "_")}]`;
+      }
+      // TODO: handle ../seg:id/..
+      return segment;
+    })
+    .map((segment) => segment.replace(/[^a-zA-Z0-9_.[\]]/g, "-"))
+    .join("/");
+}
+
+function normalizeRoutePattern(route: string) {
+  return route
+    .split("/")
+    .slice(1)
+    .map((segment) => {
+      if (segment.startsWith("**")) {
+        return `(.*)`;
+      }
+      if (segment === "*") {
+        return "[-]";
+      }
+      if (segment.startsWith(":")) {
+        return `[${segment.slice(1)}]`;
+      }
+      return segment;
+    })
+    .map((segment) => segment.replace(/[^a-zA-Z0-9_.[\]]/g, "-"))
+    .join("/");
 }
