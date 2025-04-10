@@ -14,7 +14,7 @@ const mixedProcess = new UnenvProcess({
 });
 
 // https://github.com/cloudflare/workerd/blob/main/src/node/internal/process.ts#L94
-for (const key of ["exit", "getBuiltinModule", "platform"]) {
+for (const key of ["exit", "getBuiltinModule", "platform", "features"]) {
   if (key in workerdProcess) {
     mixedProcess[key] = workerdProcess[key];
   }
