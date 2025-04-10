@@ -1,5 +1,6 @@
 import { type HTTPMethod, eventHandler, getRequestURL } from "h3";
 import type {
+  Extensable,
   OpenAPI3,
   OperationObject,
   ParameterObject,
@@ -23,7 +24,14 @@ export default eventHandler((event) => {
     ...runtimeConfig.nitro?.openAPI?.meta,
   };
 
-  const { paths, globals } = getHandlersMeta();
+  const {
+    paths,
+    globals: { components, ...globalsRest },
+  } = getHandlersMeta();
+
+  const extensible: Extensable = Object.fromEntries(
+    Object.entries(globalsRest).filter(([key]) => key.startsWith("x-"))
+  );
 
   return <OpenAPI3>{
     openapi: "3.1.0",
@@ -40,11 +48,12 @@ export default eventHandler((event) => {
       },
     ],
     paths,
-    components: globals.components,
+    components,
+    ...extensible,
   };
 });
 
-type OpenAPIGlobals = Pick<OpenAPI3, "components">;
+type OpenAPIGlobals = Pick<OpenAPI3, "components"> & Extensable;
 
 function getHandlersMeta(): {
   paths: PathsObject;

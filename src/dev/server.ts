@@ -218,7 +218,14 @@ class DevServer {
         asset.baseURL || "/",
         "**"
       );
-      app.use(url, fromNodeHandler(serveStatic(asset.dir)));
+      app.use(
+        url,
+        fromNodeHandler(
+          serveStatic(asset.dir, {
+            dotfiles: "allow",
+          })
+        )
+      );
       if (!asset.fallthrough) {
         app.use(url, fromNodeHandler(servePlaceholder()));
       }
