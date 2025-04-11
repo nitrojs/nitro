@@ -189,6 +189,7 @@ function createNitroApp(): NitroApp {
     hooks,
     h3App,
     router,
+    handlers,
     localCall,
     localFetch,
     captureError,

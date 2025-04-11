@@ -1,10 +1,12 @@
 import type { AppOptions, App as H3App, H3Event, Router } from "h3";
 import type { Hookable } from "hookable";
 import type { AbstractRequest, AbstractResponse } from "node-mock-http";
+import type { NitroEventHandler } from "nitro/types";
 
 export interface NitroApp {
   h3App: H3App;
   router: Router;
+  handlers: NitroEventHandler[];
   hooks: Hookable<NitroRuntimeHooks>;
   localCall: (aRequest: AbstractRequest) => Promise<AbstractResponse>;
   localFetch: (
