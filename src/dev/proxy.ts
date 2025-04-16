@@ -36,7 +36,9 @@ export function createHTTPProxy(defaults: ProxyServerOptions = {}): HTTPProxy {
     proxy,
     async handleEvent(event, opts) {
       try {
-        await fromNodeHandler((req, res) => proxy.web(req, res, opts))(event);
+        return await fromNodeHandler((req, res) => proxy.web(req, res, opts))(
+          event
+        );
       } catch (error: any) {
         event.res.headers.set("refresh", "3");
         throw createError({

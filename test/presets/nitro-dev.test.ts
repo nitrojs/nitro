@@ -17,7 +17,7 @@ describe("nitro:preset:nitro-dev", async () => {
       };
     },
     (_ctx, callHandler) => {
-      it.todo("returns correct status for devProxy", async () => {
+      it("returns correct status for devProxy", async () => {
         const { status } = await callHandler({ url: "/proxy/example" });
         expect(status).toBe(200);
       });

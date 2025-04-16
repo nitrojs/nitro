@@ -206,6 +206,11 @@ class DevServer {
     // Dev-only handlers
     for (const handler of this.nitro.options.devHandlers) {
       app.use(handler.route || "/", handler.handler);
+      if (handler.route) {
+        app.all(handler.route, handler.handler);
+      } else {
+        app.use(handler.handler); // global middleware
+      }
     }
 
     // Debugging endpoint to view vfs
@@ -213,22 +218,16 @@ class DevServer {
 
     // Serve asset dirs
     for (const asset of this.nitro.options.publicAssets) {
-      const url = joinURL(
+      const assetRoute = joinURL(
         this.nitro.options.runtimeConfig.app.baseURL,
         asset.baseURL || "/",
         "**"
       );
+      // TODO: serve placeholder as fallback
       app.use(
-        url,
-        fromNodeHandler(
-          serveStatic(asset.dir, {
-            dotfiles: "allow",
-          })
-        )
+        assetRoute,
+        fromNodeHandler(serveStatic(asset.dir, { dotfiles: "allow" }))
       );
-      if (!asset.fallthrough) {
-        app.use(url, fromNodeHandler(servePlaceholder()));
-      }
     }
 
     // User defined dev proxy
@@ -239,14 +238,12 @@ class DevServer {
         opts = { target: opts };
       }
       const proxy = createHTTPProxy(opts);
-      app.use(
-        route,
-        eventHandler((event) => proxy.handleEvent(event))
-      );
+      app.all(route, proxy.handleEvent);
     }
 
     // Main handler
-    app.use(
+    app.all(
+      "/**",
       eventHandler(async (event) => {
         const worker = await this.getWorker();
         if (!worker) {
