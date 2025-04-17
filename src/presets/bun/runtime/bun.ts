@@ -7,7 +7,8 @@ import wsAdapter from "crossws/adapters/bun";
 const nitroApp = useNitroApp();
 
 const ws = import.meta._websocket
-  ? wsAdapter(nitroApp.h3App.websocket)
+  ? // @ts-expect-error
+    wsAdapter(nitroApp.h3App.websocket)
   : undefined;
 
 // @ts-expect-error

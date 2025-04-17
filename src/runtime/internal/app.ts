@@ -1,6 +1,6 @@
 import destr from "destr";
 import type { H3Error, H3EventContext } from "h3";
-import { createH3, fetchWithEvent, isEvent, lazyEventHandler } from "h3";
+import { H3, fetchWithEvent, isEvent, lazyEventHandler } from "h3";
 import { createHooks } from "hookable";
 import type { CaptureError, NitroApp, NitroRuntimeHooks } from "nitro/types";
 import type { NitroAsyncContext } from "nitro/types";
@@ -37,7 +37,7 @@ function createNitroApp(): NitroApp {
     }
   };
 
-  const h3App = createH3({
+  const h3App = new H3({
     debug: destr(process.env.DEBUG),
     onError: (error, event) => {
       captureError(error, { event, tags: ["request"] });

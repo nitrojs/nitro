@@ -2,11 +2,10 @@ import type { IncomingMessage, OutgoingMessage } from "node:http";
 import type { Duplex } from "node:stream";
 import type { GetPortInput } from "get-port-please";
 import type { FSWatcher } from "chokidar";
-import type { H3 } from "h3";
 import type { Listener, ListenOptions } from "listhen";
 import { NodeDevWorker, type DevWorker, type WorkerAddress } from "./worker";
 import type { Nitro, NitroBuildInfo, NitroDevServer } from "nitro/types";
-import { createH3, createError, eventHandler, fromNodeHandler } from "h3";
+import { H3, createError, eventHandler, fromNodeHandler } from "h3";
 import { toNodeHandler } from "srvx/node";
 import {
   default as devErrorHandler,
@@ -191,7 +190,7 @@ class DevServer {
 
   createApp() {
     // Init h3 app
-    const app = createH3({
+    const app = new H3({
       debug: true,
       onError: async (error, event) => {
         const errorHandler =

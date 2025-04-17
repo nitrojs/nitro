@@ -53,7 +53,8 @@ Deno.serve(serveOptions, handler);
 
 // Websocket support
 const ws = import.meta._websocket
-  ? wsAdapter(nitroApp.h3App.websocket)
+  ? // @ts-expect-error
+    wsAdapter(nitroApp.h3App.websocket)
   : undefined;
 
 async function handler(request: Request, info: any) {

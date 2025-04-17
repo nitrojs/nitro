@@ -100,8 +100,8 @@ importers:
         specifier: ^7.0.0
         version: 7.0.0
       h3:
-        specifier: npm:h3-nightly@2.0.0-20250402-142905-0448747
-        version: h3-nightly@2.0.0-20250402-142905-0448747(crossws@0.3.4)
+        specifier: npm:h3-nightly@2.0.0-20250417-222045-ac609aa
+        version: h3-nightly@2.0.0-20250417-222045-ac609aa(crossws@0.3.4)
       hookable:
         specifier: ^5.5.3
         version: 5.5.3
@@ -178,8 +178,8 @@ importers:
         specifier: ^0.7.4
         version: 0.7.4
       srvx:
-        specifier: ^0.2.8
-        version: 0.2.8
+        specifier: ^0.4.0
+        version: 0.4.0
       std-env:
         specifier: ^3.9.0
         version: 3.9.0
@@ -2956,8 +2956,8 @@ packages:
     resolution: {integrity: sha512-O1Ld7Dr+nqPnmGpdhzLmMTQ4vAsD+rHwMm1NLUmoUFFymBOMKxCCrtDxqdBRYXdeEPEi3SyoR4TizJLQrnKBNA==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
-  h3-nightly@2.0.0-20250402-142905-0448747:
-    resolution: {integrity: sha512-UIWAuQexg2xnqlP0YZFwnklfDjvqq+fAEo4Tt4Eqmep4GJoAxy7roVDKZObcRtUbgoOCKgi/qU6fvtf5WV4ExA==}
+  h3-nightly@2.0.0-20250417-222045-ac609aa:
+    resolution: {integrity: sha512-EryLx6x5mGja0RqTHpdu+ItdVyB+i78AeRqac7DLeYbHW7vSEpvKwTBgTom3fMXSBwqR1OHuAF6IFqzFm9RpIw==}
     engines: {node: '>=20.11.1'}
     peerDependencies:
       crossws: ^0.2.4
@@ -4572,8 +4572,8 @@ packages:
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
     hasBin: true
 
-  rou3@0.5.1:
-    resolution: {integrity: sha512-OXMmJ3zRk2xeXFGfA3K+EOPHC5u7RDFG7lIOx0X1pdnhUkI8MdVrbV+sNsD80ElpUZ+MRHdyxPnFthq9VHs8uQ==}
+  rou3@0.6.0:
+    resolution: {integrity: sha512-0gF3uSNVOXvocv7+UEFz/4hKMwPCLDTzWUpIU3XNZjfzekJKiEF9vlpSCG/moJ4IzBqzPl48jomVMUwpiONmuw==}
 
   run-applescript@7.0.0:
     resolution: {integrity: sha512-9by4Ij99JUr/MCFBUkDKLWK3G9HVXmabKz9U5MlIAIuvuzkiOicRYs8XJLxX+xahD+mLiiCYDqF9dKAgtzKP1A==}
@@ -4717,8 +4717,8 @@ packages:
   spdx-license-ids@3.0.21:
     resolution: {integrity: sha512-Bvg/8F5XephndSK3JffaRqdT+gyhfqIPwDHpX80tJrF8QQRYMo8sNMeaZ2Dp5+jhwKnUmIOyFFQfHRkjJm5nXg==}
 
-  srvx@0.2.8:
-    resolution: {integrity: sha512-9HG8eqhHLsvzhW4nJTg/4Sob1Sw/fB6S8Yzvf+iUD6l5CT4D0CXfPcFfh1r2eJFNHC0JOezK+YrgoufA5goYMQ==}
+  srvx@0.4.0:
+    resolution: {integrity: sha512-6/bC6gP2WNv3iWeIcOWP7YD8vWWZNNMXkoX8GAu3LmVA5RknVHw4Jg0RmMqDxFSEzeTR518fwiZVeUntSb1dww==}
     engines: {node: '>=20.11.1'}
 
   stackback@0.0.2:
@@ -8351,11 +8351,11 @@ snapshots:
     dependencies:
       duplexer: 0.1.2
 
-  h3-nightly@2.0.0-20250402-142905-0448747(crossws@0.3.4):
+  h3-nightly@2.0.0-20250417-222045-ac609aa(crossws@0.3.4):
     dependencies:
       cookie-es: 2.0.0
-      rou3: 0.5.1
-      srvx: 0.2.8
+      rou3: 0.6.0
+      srvx: 0.4.0
     optionalDependencies:
       crossws: 0.3.4
 
@@ -10338,7 +10338,7 @@ snapshots:
       '@rollup/rollup-win32-x64-msvc': 4.40.0
       fsevents: 2.3.3
 
-  rou3@0.5.1: {}
+  rou3@0.6.0: {}
 
   run-applescript@7.0.0: {}
 
@@ -10494,7 +10494,7 @@ snapshots:
 
   spdx-license-ids@3.0.21: {}
 
-  srvx@0.2.8:
+  srvx@0.4.0:
     dependencies:
       cookie-es: 2.0.0
 

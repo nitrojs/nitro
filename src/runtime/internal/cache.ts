@@ -279,19 +279,19 @@ export function defineCachedEventHandler<
       // Only pass headers which are defined in opts.varies
       const variableHeaders: Record<string, string | string[]> = {};
       for (const header of variableHeaderNames) {
-        const value = incomingEvent.node!.req.headers[header];
+        const value = incomingEvent.runtime!.node!.req.headers[header];
         if (value !== undefined) {
           variableHeaders[header] = value;
         }
       }
 
       // Create proxies to avoid sharing state with user request
-      const reqProxy = cloneWithProxy(incomingEvent.node!.req, {
+      const reqProxy = cloneWithProxy(incomingEvent.runtime!.node!.req, {
         headers: variableHeaders,
       });
       const resHeaders: Record<string, number | string | string[]> = {};
       let _resSendBody;
-      const resProxy = cloneWithProxy(incomingEvent.node!.res, {
+      const resProxy = cloneWithProxy(incomingEvent.runtime!.node!.res!, {
         statusCode: 200,
         writableEnded: false,
         writableFinished: false,
@@ -421,8 +421,10 @@ export function defineCachedEventHandler<
   );
 
   return defineEventHandler<Request, any>(async (event) => {
+    const { res: nodeRes } = event.runtime?.node || {};
+
     // Headers-only mode
-    if (opts.headersOnly) {
+    if (opts.headersOnly || !nodeRes) {
       // TODO: Send SWR too
       if (handleCacheHeaders(event, { maxAge: opts.maxAge })) {
         return;
@@ -436,7 +438,7 @@ export function defineCachedEventHandler<
     )) as ResponseCacheEntry<Response>;
 
     // Don't continue if response is already handled by user
-    if (event.node!.res.headersSent || event.node!.res.writableEnded) {
+    if (nodeRes.headersSent || nodeRes.writableEnded) {
       return response.body;
     }
 
@@ -452,18 +454,15 @@ export function defineCachedEventHandler<
     }
 
     // Send status and headers
-    event.node!.res.statusCode = response.code;
+    nodeRes.statusCode = response.code;
     for (const name in response.headers) {
       const value = response.headers[name];
       if (name === "set-cookie") {
         // TODO: Show warning and remove this header in the next major version of Nitro
-        event.node!.res.appendHeader(
-          name,
-          splitSetCookieString(value as string[])
-        );
+        nodeRes.appendHeader(name, splitSetCookieString(value as string[]));
       } else {
         if (value !== undefined) {
-          event.node!.res.setHeader(name, value);
+          nodeRes.setHeader(name, value);
         }
       }
     }

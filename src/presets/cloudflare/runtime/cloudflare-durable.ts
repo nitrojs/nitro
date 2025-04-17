@@ -28,7 +28,8 @@ const getDurableStub = (env: Env) => {
 };
 
 const ws = import.meta._websocket
-  ? wsAdapter({
+  ? // @ts-expect-error
+    wsAdapter({
       ...nitroApp.h3App.websocket,
       instanceName: DURABLE_INSTANCE,
       bindingName: DURABLE_BINDING,
