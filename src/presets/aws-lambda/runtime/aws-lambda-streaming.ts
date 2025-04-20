@@ -1,9 +1,5 @@
 import type { Readable } from "node:stream";
-import type {
-  APIGatewayProxyEventV2,
-  APIGatewayProxyStructuredResultV2,
-  Context,
-} from "aws-lambda";
+import type { APIGatewayProxyEventV2 } from "aws-lambda";
 import "#nitro-internal-pollyfills";
 import { useNitroApp } from "nitro/runtime";
 import {
@@ -59,6 +55,7 @@ export const handler = awslambda.streamifyResponse(
     };
     if (r.body) {
       const writer = awslambda.HttpResponseStream.from(
+        // @ts-expect-error TODO: IMPORTANT! It should be a Writable according to the aws-lambda types
         responseStream,
         httpResponseMetadata
       );
@@ -84,29 +81,4 @@ async function streamToNodeStream(
     readResult = await reader.read();
   }
   writer.end();
-}
-
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace awslambda {
-    // https://docs.aws.amazon.com/lambda/latest/dg/configuration-response-streaming.html
-    function streamifyResponse(
-      handler: (
-        event: APIGatewayProxyEventV2,
-        responseStream: NodeJS.WritableStream,
-        context: Context
-      ) => Promise<void>
-    ): any;
-
-    // eslint-disable-next-line @typescript-eslint/no-namespace
-    namespace HttpResponseStream {
-      function from(
-        stream: NodeJS.WritableStream,
-        metadata: {
-          statusCode: APIGatewayProxyStructuredResultV2["statusCode"];
-          headers: APIGatewayProxyStructuredResultV2["headers"];
-        }
-      ): NodeJS.WritableStream;
-    }
-  }
 }

@@ -153,13 +153,13 @@ export class NodeDevWorker implements DevWorker {
 
     if (!this.#worker._exitCode && !isTest && !isCI) {
       await new Promise<void>((resolve) => {
-        const gracefulShutdownTimeoutSec =
-          Number.parseInt(process.env.NITRO_SHUTDOWN_TIMEOUT || "", 10) || 5;
+        const gracefulShutdownTimeoutMs =
+          Number.parseInt(process.env.NITRO_SHUTDOWN_TIMEOUT || "", 10) || 5000;
         const timeout = setTimeout(() => {
           if (process.env.DEBUG) {
             consola.warn(`force closing dev worker...`);
           }
-        }, gracefulShutdownTimeoutSec * 1000);
+        }, gracefulShutdownTimeoutMs);
 
         this.#worker?.on("message", (message) => {
           if (message.event === "exit") {
