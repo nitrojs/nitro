@@ -1,52 +1,64 @@
-# Contribution guide
+# Contribution Guide
 
 <!-- https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/setting-guidelines-for-repository-contributors -->
 
 > All contributors lead the growth of Nitro - including you!
 
-## Contribute to the code
+## Discussions
+
+You can involve in discussions using:
+
+- [Github Discussions](discussions)
+- [Nitro Discord](https://discord.nitro.build)
+
+## Contribute to the Code
 
 > [!IMPORTANT]
-> Please consider having a discussion with maintainers before opening pull-requests.
+> Please discuss your ideas with the maintainers before opening a pull request.
 
-### Local development
+### Local Development
 
-- Clone [Nitro](https://github.com/nitrojs/nitro) git repository
-- Install the latest LTS version of [Node.js](https://nodejs.org/en/) (v22+)
-- Enable [Corepack](https://github.com/nodejs/corepack) using `corepack enable` (use `npm i -fg corepack` if not available).
-- Install dependencies using `pnpm install`
-- Build project in stub mode using `pnpm build --stub`
-- Run playground using `pnpm nitro dev ./playground` to verify changes
-- Add/modify and run tests using `pnpm test`
-  - Tip: you can use `pnpm vitest test/presets/node.test.ts` for a quick test
+- Clone the [Nitro](https://github.com/nitrojs/nitro) repository.
+- Install the latest LTS version of [Node.js](https://nodejs.org/en/) (v22+).
+- Enable [Corepack](https://github.com/nodejs/corepack) using `corepack enable` (run `npm i -g corepack` if it's not available).
+- Install dependencies using `pnpm install`.
+- Build the project in stub mode using `pnpm build --stub`.
+- Run the playground with `pnpm nitro dev ./playground` to verify changes.
+- Add, modify, and run tests using `pnpm test`.
+  - Tip: Run `pnpm vitest test/presets/node.test.ts` for quick testing.
 
-## Reporting issues
+## Reporting Issues
 
-There might have been a bug when using Nitro.
+You might encounter a bug while using Nitro.
 
-Though we're trying to resolve all the bugs we met, new bugs may emerge with the time lapsed. In this situation, your bug report is the key to helping us find it and fix it in time, even if you can't fix the underlying code of Nitro directly.
+Although we aim to resolve all known issues, new bugs can emerge over time. Your bug report helps us find and fix them faster — even if you're unable to fix the underlying code yourself.
 
-Here are some key steps for you to report the bug to us.
+Here’s how to report a bug effectively:
 
-## Ensure it's a bug
+### Ensure It's a Bug
 
-Sometimes, the thing you want to get help may not be a bug but a feature or other things. Considering the type before you start to report.
+Sometimes what seems like a bug may actually be expected behavior or a missing feature. Make sure you’re reporting an actual bug by creating a minimal nitro project and reducing scope.
 
-## Search the previous issues and discussions
+### Create a Minimal Reproduction
 
-Searching the previous issues and discussions, check if there has an issue or discussion that reported a bug like yours and use 👍 on the original issue (instead of replying "me too" or "when it will be fixed") and if you have more context of issue, like a better/smaller reproduction, please consider to share.
+Please create a minimal reproduction using the Nitro starter templates.
 
-If you feel issue is related but not the same, **making a new issue is always better** choice, maintainers will help to merge similar issues.
+Sometimes, bugs originate from another layer — not Nitro itself. A minimal reproduction helps identify the source and speeds up debugging.
 
-## Create a minimal reproduction
+Use one of the following templates to reproduce the issue:
 
-It's very important for you to create a minimal reproduction with Nitro(only) starter template.
+- [Stackblitz Template](https://stackblitz.com/fork/github/unjs/nitro-starter)
+- [Nitro Starter Repo](https://github.com/nitrojs/nitro-starter)
 
-Sometimes the bug may not occurred by Nitro but other layers. A minimal production can not only help you ensure where the bug comes from, but also help us locate the bug and find a solution as fast as possible.
+If your bug involves a higher-level framework like [Nuxt](https://nuxt.com), please report it there. Maintainers will help narrow it down to a Nitro-level issue if needed.
 
-Please use one of the templates below to create a minimal reproduction:
+### Search Existing Issues and Discussions
 
-- [Stackblitz](https://stackblitz.com/fork/github/unjs/nitro-starter)
-- [Nitro Starter](https://github.com/nitrojs/nitro-starter)
+Before creating a new issue, search existing [issues](https://github.com/nitrojs/nitro/issues) and [discussions](https://github.com/nitrojs/nitro/discussions) to see if your bug has already been reported.
 
-If the bug report is related to, or using a layer of framework like [Nuxt](https://nuxt.com), please report it to there. Maintainers will help to narrow down issue to a more minimal reproduction.
+If it has:
+- Add a 👍 reaction to the original post (instead of commenting "me too" or "when will it be fixed").
+- If you can provide additional context or a better/smaller reproduction, please share it.
+
+If the issue seems related but different, it's **better to open a new issue**. Maintainers will merge similar issues if needed.
+
