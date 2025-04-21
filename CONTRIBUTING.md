@@ -18,9 +18,9 @@ You can involve in discussions using:
 
 ### Local Development
 
-- Clone the [Nitro](https://github.com/nitrojs/nitro) repository.
+- Clone the [`nitrojs/nitro`](https://github.com/nitrojs/nitro) git repository.
 - Install the latest LTS version of [Node.js](https://nodejs.org/en/) (v22+).
-- Enable [Corepack](https://github.com/nodejs/corepack) using `corepack enable` (run `npm i -g corepack` if it's not available).
+- Enable [corepack](https://github.com/nodejs/corepack) using `corepack enable` (run `npm i -g corepack` if it's not available).
 - Install dependencies using `pnpm install`.
 - Build the project in stub mode using `pnpm build --stub`.
 - Run the playground with `pnpm nitro dev ./playground` to verify changes.
@@ -60,5 +60,6 @@ If it has:
 - Add a 👍 reaction to the original post (instead of commenting "me too" or "when will it be fixed").
 - If you can provide additional context or a better/smaller reproduction, please share it.
 
-If the issue seems related but different, it's **better to open a new issue**. Maintainers will merge similar issues if needed.
+> [!NOTE]
+> If the issue seems related but different or old or already closed, it's **better to open a new issue**. Maintainers will merge similar issues if needed.
 
