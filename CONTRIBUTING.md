@@ -56,7 +56,7 @@ If your bug involves a higher-level framework like [Nuxt](https://nuxt.com), ple
 
 Before creating a new issue, search existing [issues](https://github.com/nitrojs/nitro/issues) and [discussions](https://github.com/nitrojs/nitro/discussions) to see if your bug has already been reported.
 
-If it has:
+If it has already been reported:
 - Add a 👍 reaction to the original post (instead of commenting "me too" or "when will it be fixed").
 - If you can provide additional context or a better/smaller reproduction, please share it.
 
