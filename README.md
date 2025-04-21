@@ -16,18 +16,7 @@ Check [migration guide](./docs/1.guide/00.migration.md) for migrating from Nitro
 
 ## Contribution
 
-<details>
-  <summary>Local development</summary>
-
-- Clone this repository
-- Install the latest LTS version of [Node.js](https://nodejs.org/en/)
-- Enable [Corepack](https://github.com/nodejs/corepack) using `corepack enable`
-- Install dependencies using `pnpm install`
-- Run tests using `pnpm dev` or `pnpm test`
-
-</details>
-
-<!-- /automd -->
+Please check [Contribution guide](CONTRIBUTING.md).
 
 ## License
 
