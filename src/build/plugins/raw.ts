@@ -73,7 +73,7 @@ export function raw(opts: RawOptions = {}): Plugin {
       return {
         code,
         map: null,
-        moduleType: 'json'
+        moduleType: "json",
       };
     },
   };
