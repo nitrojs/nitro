@@ -32,7 +32,10 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
     ],
     plugins: [
       ...(baseBuildPlugins(nitro, base) as RolldownPlugin[]),
-      replace({ preventAssignment: true, values: base.replacements }) as RolldownPlugin,
+      replace({
+        preventAssignment: true,
+        values: base.replacements,
+      }) as RolldownPlugin,
       json() as RolldownPlugin,
     ],
     resolve: {
