@@ -3,6 +3,7 @@
   "version": "3.0.0-beta",
   "description": "Build and Deploy Universal JavaScript Servers",
   "repository": "nitrojs/nitro",
+  "homepage": "https://nitro.build",
   "license": "MIT",
   "type": "module",
   "exports": {
