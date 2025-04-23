@@ -90,7 +90,7 @@ const netlifyEdge = defineNitroPreset(
               excludedPath: getStaticPaths(
                 nitro.options.publicAssets,
                 nitro.options.baseURL
-              ) as Config['excludedPath'],
+              ) as Config["excludedPath"],
               name: "edge server handler",
               function: "server",
               generator: getGeneratorString(nitro),
