@@ -46,7 +46,7 @@ export default defineBuildConfig({
       for (const subpath of subpaths) {
         await writeFile(
           `./${subpath}.d.ts`,
-          `export * from "./dist/${subpath}/index";`
+          `export * from "./dist/${subpath}/index.mjs";`
         );
       }
     },
