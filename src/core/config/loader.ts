@@ -96,7 +96,7 @@ async function _loadUserConfig(
       : loadConfig<NitroConfig & { _meta?: NitroPresetMeta }>
   )({
     name: "nitro",
-    cwd: configOverrides.rootDir,
+    cwd: opts.cwd,
     dotenv: opts.dotenv ?? configOverrides.dev,
     extend: { extendKey: ["extends", "preset"] },
     overrides: {

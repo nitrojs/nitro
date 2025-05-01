@@ -27,7 +27,10 @@ export default defineCommand({
   },
   async run({ args }) {
     const cwd = resolve((args.dir || args.cwd || ".") as string);
-    const options = await loadOptions({ rootDir: cwd }).catch(() => undefined);
+    const rootDir = args.dir || args.cwd ? cwd : undefined;
+    const options = await loadOptions({ rootDir }, { cwd }).catch(
+      () => undefined
+    );
 
     consola.info(`Running task \`${args.name}\`...`);
     let payload: any = destr(args.payload || "{}");
@@ -45,7 +48,7 @@ export default defineCommand({
           payload,
         },
         {
-          cwd,
+          cwd: options?.rootDir || cwd,
           buildDir: options?.buildDir || ".nitro",
         }
       );

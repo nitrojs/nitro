@@ -12,8 +12,9 @@ export default defineCommand({
     ...commonArgs,
   },
   async run({ args }) {
-    const rootDir = resolve((args.dir || args._dir || ".") as string);
-    const nitro = await createNitro({ rootDir });
+    const cwd = resolve((args.dir || args._dir || ".") as string);
+    const rootDir = args.dir || args._dir ? cwd : undefined;
+    const nitro = await createNitro({ rootDir }, { cwd });
     await writeTypes(nitro);
   },
 });

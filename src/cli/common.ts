@@ -7,7 +7,7 @@ export const commonArgs = <ArgsDef>{
   },
   _dir: {
     type: "positional",
-    default: ".",
+    required: false,
     description: "project root directory (prefer using `--dir`)",
   },
 };

@@ -16,10 +16,13 @@ export default defineCommand({
   },
   async run({ args }) {
     const cwd = resolve((args.dir || args.cwd || ".") as string);
-    const options = await loadOptions({ rootDir: cwd }).catch(() => undefined);
+    const rootDir = args.dir || args.cwd ? cwd : undefined;
+    const options = await loadOptions({ rootDir }, { cwd }).catch(
+      () => undefined
+    );
 
     const tasks = await listTasks({
-      cwd,
+      cwd: options?.rootDir || cwd,
       buildDir: options?.buildDir || ".nitro",
     });
     for (const [name, task] of Object.entries(tasks)) {

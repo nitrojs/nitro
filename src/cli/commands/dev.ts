@@ -24,7 +24,8 @@ export default defineCommand({
     ...getArgs(),
   },
   async run({ args }) {
-    const rootDir = resolve((args.dir || args._dir || ".") as string);
+    const cwd = resolve((args.dir || args._dir || ".") as string);
+    const rootDir = args.dir || args._dir ? cwd : undefined;
     let nitro: Nitro;
     const reload = async () => {
       if (nitro) {
@@ -42,6 +43,7 @@ export default defineCommand({
           _cli: { command: "dev" },
         },
         {
+          cwd,
           watch: true,
           c12: {
             async onUpdate({ getDiff, newConfig }) {

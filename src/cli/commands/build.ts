@@ -40,7 +40,8 @@ export default defineCommand({
     },
   },
   async run({ args }) {
-    const rootDir = resolve((args.dir || args._dir || ".") as string);
+    const cwd = resolve((args.dir || args._dir || ".") as string);
+    const rootDir = args.dir || args._dir ? cwd : undefined;
     const nitro = await createNitro(
       {
         rootDir,
@@ -49,6 +50,7 @@ export default defineCommand({
         preset: args.preset,
       },
       {
+        cwd,
         compatibilityDate: args.compatibilityDate as DateString,
       }
     );

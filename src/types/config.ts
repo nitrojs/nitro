@@ -285,6 +285,7 @@ export interface NitroConfig
 // ------------------------------------------------------------
 
 export interface LoadConfigOptions {
+  cwd?: string;
   watch?: boolean;
   c12?: WatchConfigOptions;
   compatibilityDate?: CompatibilityDateSpec;
