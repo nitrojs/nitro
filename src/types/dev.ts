@@ -6,6 +6,7 @@ import type { App } from "h3";
 import type { ListenOptions, Listener } from "listhen";
 
 export interface DevServerOptions {
+  port: number;
   watch: string[];
 }
 

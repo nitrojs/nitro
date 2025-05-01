@@ -66,7 +66,10 @@ export default defineCommand({
       nitro.hooks.hookOnce("restart", reload);
       const server = createDevServer(nitro);
       const listhenOptions = parseArgs(args);
-      await server.listen(listhenOptions.port || 3000, listhenOptions);
+      await server.listen(
+        nitro.options.devServer.port || listhenOptions.port || 3000,
+        listhenOptions
+      );
       await prepare(nitro);
       await build(nitro);
     };
