@@ -44,10 +44,7 @@ export const NitroDefaults: NitroConfig = {
 
   // Dev
   dev: false,
-
-  devServer: {
-    watch: [],
-  },
+  devServer: { watch: [] },
   watchOptions: { ignoreInitial: true },
   devProxy: {},
 
