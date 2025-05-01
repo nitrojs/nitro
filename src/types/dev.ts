@@ -7,6 +7,7 @@ import type { ListenOptions, Listener } from "listhen";
 
 export interface DevServerOptions {
   port: number;
+  hostname: string;
   watch: string[];
 }
 

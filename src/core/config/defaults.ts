@@ -46,7 +46,6 @@ export const NitroDefaults: NitroConfig = {
   dev: false,
 
   devServer: {
-    port: 3000,
     watch: [],
   },
   watchOptions: { ignoreInitial: true },
