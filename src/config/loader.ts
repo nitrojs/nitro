@@ -29,6 +29,8 @@ import { resolveURLOptions } from "./resolvers/url";
 import { resolveErrorOptions } from "./resolvers/error";
 import { resolveUnenv } from "./resolvers/unenv";
 import { resolveBuilder } from "./resolvers/builder";
+import { resolve } from "pathe";
+import consola from "consola";
 
 const configResolvers = [
   resolveCompatibilityOptions,
@@ -109,6 +111,19 @@ async function _loadUserConfig(
           configs.main?.[key] ??
           configs.rc?.[key] ??
           configs.packageJson?.[key]) as NitroConfig[K];
+
+      const configRootDir =
+        configs.main?.rootDir ??
+        configs.rc?.rootDir ??
+        configs.packageJson?.rootDir;
+      if (
+        configRootDir &&
+        resolve(configRootDir) !== resolve(configOverrides.rootDir || ".")
+      ) {
+        consola.warn(
+          `Nitro config file should be in the \`rootDir: '${configRootDir}'\`.`
+        );
+      }
 
       if (!compatibilityDate) {
         compatibilityDate = getConf("compatibilityDate");
