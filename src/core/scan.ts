@@ -161,6 +161,15 @@ async function scanDir(
     dot: true,
     ignore: nitro.options.ignore,
     absolute: true,
+  }).catch((error) => {
+    if (error?.code !== "ENOTDIR") {
+      throw error;
+    }
+
+    nitro.logger.warn(
+      `File \`${name}\` in directory \`${dir}\` must be a folder.`
+    );
+    return [];
   });
   return fileNames
     .map((fullPath) => {
