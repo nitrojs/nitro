@@ -45,7 +45,7 @@ function getListenFds(): number[] {
 
 function getServerListenOptions(): ListenOptions | { fd: number } {
   const fds = getListenFds();
-  if (fds.length) {
+  if (fds.length > 0) {
     if (fds.length > 1) {
       console.warn(
         `Multiple file descriptors (${fds.length}) passed to the server. Only the first one will be used.`
