@@ -271,8 +271,6 @@ export interface NitroConfig
   unenv?: UnenvPreset | UnenvPreset[];
 }
 
-export type NitroConfigInput = Omit<NitroConfig, "rootDir">;
-
 // ------------------------------------------------------------
 // Config Loader
 // ------------------------------------------------------------
