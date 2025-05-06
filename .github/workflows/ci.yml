@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - v2
+      - v3
   pull_request:
     branches:
       - v2
+      - v3
 
 jobs:
   lint:
@@ -18,7 +20,7 @@ jobs:
       - run: npm i -g --force corepack && corepack enable
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
       - run: pnpm install
       - run: pnpm stub
@@ -37,7 +39,7 @@ jobs:
       - run: npm i -g --force corepack && corepack enable
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
       - uses: oven-sh/setup-bun@v2
         if: ${{ matrix.os != 'windows-latest' }}

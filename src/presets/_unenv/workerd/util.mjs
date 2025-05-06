@@ -1,4 +1,4 @@
-// https://github.com/cloudflare/workers-sdk/blob/main/packages/unenv-preset/src/runtime/node/util/index.ts
+// https://github.com/cloudflare/workerd/blob/main/src/node/util.ts
 
 import workerdUtil from "#workerd/node:util";
 
@@ -7,11 +7,9 @@ import {
   _exceptionWithHostPort,
   getSystemErrorMap,
   getSystemErrorName,
-  isArray,
   isBoolean,
   isBuffer,
   isDate,
-  isDeepStrictEqual,
   isError,
   isFunction,
   isNull,
@@ -32,11 +30,9 @@ export {
   _exceptionWithHostPort,
   getSystemErrorMap,
   getSystemErrorName,
-  isArray,
   isBoolean,
   isBuffer,
   isDate,
-  isDeepStrictEqual,
   isError,
   isFunction,
   isNull,
@@ -75,6 +71,8 @@ export const {
   toUSVString,
   transferableAbortController,
   transferableAbortSignal,
+  isArray,
+  isDeepStrictEqual,
 } = workerdUtil;
 
 export const types = workerdUtil.types;

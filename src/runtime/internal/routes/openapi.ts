@@ -1,12 +1,12 @@
 import { type HTTPMethod, eventHandler, getRequestURL } from "h3";
 import type {
-  ComponentsObject,
+  Extensable,
   OpenAPI3,
   OperationObject,
   ParameterObject,
   PathItemObject,
   PathsObject,
-} from "openapi-typescript";
+} from "#internal/types/openapi-ts";
 import { joinURL } from "ufo";
 import { defu } from "defu";
 import { handlersMeta } from "#nitro-internal-virtual/server-handlers-meta";
@@ -24,7 +24,14 @@ export default eventHandler((event) => {
     ...runtimeConfig.nitro?.openAPI?.meta,
   };
 
-  const { paths, globals } = getHandlersMeta();
+  const {
+    paths,
+    globals: { components, ...globalsRest },
+  } = getHandlersMeta();
+
+  const extensible: Extensable = Object.fromEntries(
+    Object.entries(globalsRest).filter(([key]) => key.startsWith("x-"))
+  );
 
   return <OpenAPI3>{
     openapi: "3.1.0",
@@ -41,11 +48,12 @@ export default eventHandler((event) => {
       },
     ],
     paths,
-    components: globals.components,
+    components,
+    ...extensible,
   };
 });
 
-type OpenAPIGlobals = Pick<OpenAPI3, "components">;
+type OpenAPIGlobals = Pick<OpenAPI3, "components"> & Extensable;
 
 function getHandlersMeta(): {
   paths: PathsObject;

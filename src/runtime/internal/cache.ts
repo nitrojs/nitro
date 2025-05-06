@@ -16,10 +16,10 @@ import type {
   NitroFetchRequest,
   ResponseCacheEntry,
 } from "nitropack/types";
-import { hash } from "ohash";
 import { parseURL } from "ufo";
 import { useNitroApp } from "./app";
 import { useStorage } from "./storage";
+import { hash } from "./hash";
 import type { TransactionOptions } from "unstorage";
 
 function defaultCacheOptions() {
@@ -63,7 +63,7 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
       ((await useStorage()
         .getItem(cacheKey)
         .catch((error) => {
-          console.error(`[nitro] [cache] Cache read error.`, error);
+          console.error(`[cache] Cache read error.`, error);
           useNitroApp().captureError(error, { event, tags: ["cache"] });
         })) as unknown) || {};
 
@@ -71,7 +71,7 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
     if (typeof entry !== "object") {
       entry = {};
       const error = new Error("Malformed data read from cache.");
-      console.error("[nitro] [cache]", error);
+      console.error("[cache]", error);
       useNitroApp().captureError(error, { event, tags: ["cache"] });
     }
 
@@ -127,7 +127,7 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
           const promise = useStorage()
             .setItem(cacheKey, entry, setOpts)
             .catch((error) => {
-              console.error(`[nitro] [cache] Cache write error.`, error);
+              console.error(`[cache] Cache write error.`, error);
               useNitroApp().captureError(error, { event, tags: ["cache"] });
             });
           if (event?.waitUntil) {
@@ -147,7 +147,7 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
 
     if (opts.swr && validate(entry) !== false) {
       _resolvePromise.catch((error) => {
-        console.error(`[nitro] [cache] SWR handler error.`, error);
+        console.error(`[cache] SWR handler error.`, error);
         useNitroApp().captureError(error, { event, tags: ["cache"] });
       });
       return entry as ResolvedCacheEntry<T>;
@@ -185,7 +185,7 @@ export function cachedFunction<T, ArgsT extends unknown[] = any[]>(
 }
 
 function getKey(...args: unknown[]) {
-  return args.length > 0 ? hash(args, {}) : "";
+  return args.length > 0 ? hash(args) : "";
 }
 
 function escapeKey(key: string | string[]) {

@@ -17,5 +17,6 @@ export default unjs({
     "unicorn/filename-case": 0,
     "unicorn/consistent-function-scoping": 0,
     "@typescript-eslint/no-empty-object-type": 0,
+    "unicorn/no-empty-file": 0,
   },
 });

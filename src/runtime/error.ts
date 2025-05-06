@@ -44,7 +44,6 @@ export default defineNitroErrorHandler(
     // Console output
     if (error.unhandled || error.fatal) {
       const tags = [
-        "[nitro]",
         "[request error]",
         error.unhandled && "[unhandled]",
         error.fatal && "[fatal]",

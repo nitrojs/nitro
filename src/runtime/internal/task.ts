@@ -79,7 +79,7 @@ export function startScheduleRunner() {
             context: {},
           }).catch((error) => {
             console.error(
-              `[nitro] Error while running scheduled task "${name}"`,
+              `Error while running scheduled task "${name}"`,
               error
             );
           })

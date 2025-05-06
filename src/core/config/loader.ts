@@ -28,6 +28,7 @@ import { resolveRuntimeConfigOptions } from "./resolvers/runtime-config";
 import { resolveStorageOptions } from "./resolvers/storage";
 import { resolveURLOptions } from "./resolvers/url";
 import { resolveErrorOptions } from "./resolvers/error";
+import { resolveUnenv } from "./resolvers/unenv";
 
 const configResolvers = [
   resolveCompatibilityOptions,
@@ -43,6 +44,7 @@ const configResolvers = [
   resolveAssetsOptions,
   resolveStorageOptions,
   resolveErrorOptions,
+  resolveUnenv,
 ] as const;
 
 export async function loadOptions(
@@ -95,7 +97,7 @@ async function _loadUserConfig(
   )({
     name: "nitro",
     cwd: configOverrides.rootDir,
-    dotenv: configOverrides.dev,
+    dotenv: opts.dotenv ?? configOverrides.dev,
     extend: { extendKey: ["extends", "preset"] },
     overrides: {
       ...configOverrides,
@@ -103,7 +105,8 @@ async function _loadUserConfig(
     },
     async defaultConfig({ configs }) {
       const getConf = <K extends keyof NitroConfig>(key: K) =>
-        (configs.main?.[key] ??
+        (configOverrides[key] ??
+          configs.main?.[key] ??
           configs.rc?.[key] ??
           configs.packageJson?.[key]) as NitroConfig[K];
 

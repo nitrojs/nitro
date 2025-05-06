@@ -1,6 +1,6 @@
 # Vercel
 
-> Deploy Nitro apps to Vercel functions or edge.
+> Deploy Nitro apps to Vercel Functions.
 
 **Preset:** `vercel`
 
@@ -23,89 +23,19 @@ Learn more about Vercel’s [Git Integration](https://vercel.com/docs/concepts/g
 
 ## Monorepo
 
-Monorepo is supported by Vercel. However a custom "[Root Directory](https://vercel.com/docs/deployments/configure-a-build#root-directory)" must be specified in "Project Settings > General" tab. Also make sure that "Include source files outside of the Root Directory" is checked.
+Monorepos are supported by Vercel. However a custom "[Root Directory](https://vercel.com/docs/deployments/configure-a-build#root-directory)" must be specified in "Project Settings > General" tab. Make sure that "Include source files outside of the Root Directory" is checked.
 
 Examples of values for "Root Directory": `apps/web` or `packages/app`.
 
-## Vercel edge functions
-
-**Preset:** `vercel_edge`
-
-:read-more{title="Vercel Edge Functions" to="https://vercel.com/docs/concepts/functions/edge-functions"}
-
-It is possible to deploy your nitro applications directly on [Vercel Edge Functions](https://vercel.com/docs/concepts/functions/edge-functions).
-
-In order to enable this target, please set `NITRO_PRESET` environment variable to `vercel_edge`.
-
-## Vercel KV storage
-
-You can easily use [Vercel KV Storage](https://vercel.com/docs/storage/vercel-kv) with [Nitro Storage](/guide/storage).
-
-::warning
-This feature is currently in beta. Please check [driver docs](https://unstorage.unjs.io/drivers/vercel-kv).
-::
-
-1. Install `@vercel/kv` dependency:
-
-```json [package.json]
-{
-  "devDependencies": {
-    "@vercel/kv": "latest"
-  }
-}
-```
-
-Update your configuration:
-
-::code-group
-
-```ts [nitro.config.ts]
-export default defineNitroConfig({
-  storage: {
-    data: { driver: 'vercelKV' }
-  }
-})
-```
-
-```ts [nuxt.config.ts]
-export default defineNuxtConfig({
-  nitro: {
-    storage: {
-      data: { driver: 'vercelKV' }
-    }
-  }
-})
-```
-
-::
-
-::note
-You need to either set `KV_REST_API_URL` and `KV_REST_API_TOKEN` environment variables or pass `url` and `token` to driver options. Check [driver docs](https://unstorage.unjs.io/drivers/vercel-kv) for more information about usage.
-::
-
-You can now access data store in any event handler:
-
-```ts
-export default defineEventHandler(async (event) => {
-  const dataStorage = useStorage("data");
-  await dataStorage.setItem("hello", "world");
-  return {
-    hello: await dataStorage.getItem("hello"),
-  };
-});
-```
-
 ## API routes
 
-Nitro `/api` directory isn't compatible with Vercel.
-Instead, you have to use :
+Nitro `/api` directory isn't compatible with Vercel. Instead, you should use:
 
-- `routes/api/` for standalone usage
-- `server/api/` with [Nuxt](https://nuxt.com).
+- `server/routes/api/` for standalone usage
 
 ## Custom build output configuration
 
-You can provide additional [build output configuration](https://vercel.com/docs/build-output-api/v3) using `vercel.config` key inside `nitro.config`. It will be merged with built-in auto generated config.
+You can provide additional [build output configuration](https://vercel.com/docs/build-output-api/v3) using `vercel.config` key inside `nitro.config`. It will be merged with built-in auto-generated config.
 
 ## On-Demand incremental static regeneration (ISR)
 
@@ -173,3 +103,9 @@ export default defineNitroConfig({
   },
 });
 ```
+
+## Vercel edge functions
+
+**Preset:** `vercel_edge` (deprecated)
+
+We recommend migrating to the default Node.js runtime and enabling [Fluid compute](https://vercel.com/docs/functions/fluid-compute).

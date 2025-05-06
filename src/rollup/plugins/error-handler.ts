@@ -1,5 +1,7 @@
 import type { Nitro } from "nitropack/types";
 import { virtual } from "./virtual";
+import { runtimeDir } from "nitropack/runtime/meta";
+import { join } from "pathe";
 
 export function errorHandler(nitro: Nitro) {
   return virtual(
@@ -9,15 +11,22 @@ export function errorHandler(nitro: Nitro) {
           ? nitro.options.errorHandler
           : [nitro.options.errorHandler];
 
+        const builtinHandler = join(
+          runtimeDir,
+          `internal/error/${nitro.options.dev ? "dev" : "prod"}`
+        );
+
         return /* js */ `
 ${errorHandlers.map((h, i) => `import errorHandler$${i} from "${h}";`).join("\n")}
 
 const errorHandlers = [${errorHandlers.map((_, i) => `errorHandler$${i}`).join(", ")}];
 
+import { defaultHandler } from "${builtinHandler}";
+
 export default async function(error, event) {
   for (const handler of errorHandlers) {
     try {
-      await handler(error, event);
+      await handler(error, event, { defaultHandler });
       if (event.handled) {
         return; // Response handled
       }

@@ -84,6 +84,13 @@ export class $DurableObject extends DurableObject {
     });
   }
 
+  publish(topic: string, data: unknown, opts: any) {
+    if (!ws) {
+      throw new Error("WebSocket not available");
+    }
+    return ws.publish(topic, data, opts);
+  }
+
   override alarm(): void | Promise<void> {
     this.ctx.waitUntil(
       nitroApp.hooks.callHook("cloudflare:durable:alarm", this)

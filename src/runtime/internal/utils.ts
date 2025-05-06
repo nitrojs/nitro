@@ -34,7 +34,7 @@ export async function useRequestBody(
 }
 
 function _captureError(error: Error, type: string) {
-  console.error(`[nitro] [${type}]`, error);
+  console.error(`[${type}]`, error);
   useNitroApp().captureError(error, { tags: [type] });
 }
 
