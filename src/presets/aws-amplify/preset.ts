@@ -28,4 +28,27 @@ const awsAmplify = defineNitroPreset(
   }
 );
 
-export default [awsAmplify] as const;
+const awsAmplifyStatic = defineNitroPreset(
+  {
+    extends: 'static',
+    output: {
+      dir: '{{ rootDir }}/.amplify-hosting',
+      publicDir: '{{ output.dir }}/static{{ baseURL }}',
+    },
+    commands: {
+      preview: 'npx serve ./static',
+    },
+    hooks: {
+      async compiled(nitro) {
+        await writeAmplifyFiles(nitro);
+      },
+    },
+  },
+  {
+    name: "aws-amplify-static",
+    stdName: "aws_amplify",
+    static: true,
+    url: import.meta.url,
+  }
+)
+export default [awsAmplify, awsAmplifyStatic]
