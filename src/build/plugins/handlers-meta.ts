@@ -2,7 +2,6 @@ import { readFile, unlink, writeFile } from "node:fs/promises";
 import { transform } from "esbuild";
 import type { Nitro, NitroEventHandler, NitroRouteMeta } from "nitro/types";
 import { dirname, extname, resolve } from "pathe";
-import { filename } from "pathe/utils";
 import type { Plugin } from "rollup";
 import {
   parse,
@@ -220,6 +219,7 @@ function isDefineRouteMeta(node: AnyNode): node is DefineRouteMetaExpression {
   );
 }
 
+// The functions below are copied from nuxt's definePageMeta code
 export function isNotReferencePosition(
   node: Identifier,
   parent: AnyNode | null
