@@ -93,13 +93,7 @@ export function handlersMeta(nitro: Nitro) {
           nodesToKeep
         );
 
-        // REVIEW: could the following be replaced with jiti.evalModule? I think that should work but I get an error when trying
-        const tempFilePath = `/tmp/${filePath.replaceAll("/", "_").replace("\\", "_")}.js`; // REVIEW: where should we put this + is there a better way to get a safe id?
-        await writeFile(tempFilePath, routeMetaFile, { encoding: "utf8" });
-        const { default: routeMeta } = await jiti.import<{
-          default: NitroRouteMeta | null;
-        }>(tempFilePath);
-        await unlink(tempFilePath);
+        const { default: routeMeta } = await jiti.evalModule(routeMetaFile, {filename: filePath}) as {default: NitroRouteMeta | null};
 
         meta = routeMeta;
       } catch (error) {
