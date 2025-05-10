@@ -15,9 +15,6 @@ import MagicString from "magic-string";
 import { createJiti } from "jiti";
 
 const virtualPrefix = "\0nitro-handler-meta:";
-const jiti = createJiti(import.meta.url, {
-  moduleCache: false,
-});
 
 // From esbuild.ts
 const esbuildLoaders = {
@@ -28,6 +25,12 @@ const esbuildLoaders = {
 } as const;
 
 export function handlersMeta(nitro: Nitro) {
+  const jiti = createJiti(nitro.options.rootDir, {
+    alias: nitro.options.alias,
+    moduleCache: false,
+    fsCache: false,
+  })
+
   return {
     name: "nitro:handlers-meta",
     async resolveId(id, importer, resolveOpts) {
@@ -90,6 +93,7 @@ export function handlersMeta(nitro: Nitro) {
           nodesToKeep
         );
 
+        // REVIEW: could the following be replaced with jiti.evalModule? I think that should work but I get an error when trying
         const tempFilePath = `/tmp/${filePath.replaceAll("/", "_").replace("\\", "_")}.js`; // REVIEW: where should we put this + is there a better way to get a safe id?
         await writeFile(tempFilePath, routeMetaFile, { encoding: "utf8" });
         const { default: routeMeta } = await jiti.import<{
@@ -170,12 +174,7 @@ function getIdentityVisitor<T extends AnyNode>(
       // check if the identifier is relevant and if so, find its declaration and traverse it if not already traversed
       if (path.isDescendantOf(state.traversingFrom)) {
         const binding = path.scope!.getBinding(path.node!.name);
-        if (!binding) {
-          console.log(path);
-          throw new Error(`No binding found for: ${path.node!.name}`);
-        }
-
-        if (binding.path.isDescendantOf(state.traversingFrom)) return;
+        if (!binding || binding.path.isDescendantOf(state.traversingFrom)) return;
 
         const rootParent = binding.path.find(
           (p) => p.parent?.type === "Program"
