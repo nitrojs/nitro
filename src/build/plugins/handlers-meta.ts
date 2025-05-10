@@ -93,7 +93,9 @@ export function handlersMeta(nitro: Nitro) {
           nodesToKeep
         );
 
-        const { default: routeMeta } = await jiti.evalModule(routeMetaFile, {filename: filePath}) as {default: NitroRouteMeta | null};
+        const { default: routeMeta } = (await jiti.evalModule(routeMetaFile, {
+          filename: filePath,
+        })) as { default: NitroRouteMeta | null };
 
         meta = routeMeta;
       } catch (error) {
