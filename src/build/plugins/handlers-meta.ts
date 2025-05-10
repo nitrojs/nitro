@@ -29,7 +29,7 @@ export function handlersMeta(nitro: Nitro) {
     alias: nitro.options.alias,
     moduleCache: false,
     fsCache: false,
-  })
+  });
 
   return {
     name: "nitro:handlers-meta",
@@ -174,7 +174,8 @@ function getIdentityVisitor<T extends AnyNode>(
       // check if the identifier is relevant and if so, find its declaration and traverse it if not already traversed
       if (path.isDescendantOf(state.traversingFrom)) {
         const binding = path.scope!.getBinding(path.node!.name);
-        if (!binding || binding.path.isDescendantOf(state.traversingFrom)) return;
+        if (!binding || binding.path.isDescendantOf(state.traversingFrom))
+          return;
 
         const rootParent = binding.path.find(
           (p) => p.parent?.type === "Program"
