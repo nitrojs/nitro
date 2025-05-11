@@ -1,7 +1,7 @@
-import { readFile, unlink, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { transform } from "esbuild";
 import type { Nitro, NitroEventHandler, NitroRouteMeta } from "nitro/types";
-import { dirname, extname, resolve } from "pathe";
+import { extname } from "pathe";
 import type { Plugin } from "rollup";
 import {
   parse,
@@ -86,9 +86,8 @@ export function handlersMeta(nitro: Nitro) {
         });
 
         const filePath = id.slice(virtualPrefix.length);
-        const dirPath = dirname(filePath);
-        const routeMetaFile = generateRouteMetaFile(
-          dirPath,
+        const routeMetaFile = await generateRouteMetaFile(
+          nitro,
           jsCode,
           nodesToKeep
         );
@@ -102,8 +101,6 @@ export function handlersMeta(nitro: Nitro) {
         nitro.logger.warn(
           `[handlers-meta] Cannot extra route meta for: ${id}: ${error}`
         );
-
-        console.error(error);
       }
 
       return {
@@ -114,24 +111,15 @@ export function handlersMeta(nitro: Nitro) {
   } satisfies Plugin;
 }
 
-function generateRouteMetaFile(
-  dirPath: string,
+async function generateRouteMetaFile(
+  nitro: Nitro,
   originalCode: string,
   nodes: Set<AnyNode>
-): string {
+): Promise<string> {
   const s = new MagicString(originalCode);
 
   const orderedNodes = [...nodes].sort((a, b) => a.start - b.start);
   const codeParts = orderedNodes.map((node) => {
-    if (
-      node.type === "ImportDeclaration" &&
-      typeof node.source.value === "string" &&
-      node.source.value.startsWith(".")
-    ) {
-      const absolutePath = resolve(dirPath, node.source.value);
-      s.overwrite(node.source.start, node.source.end, `"${absolutePath}"`);
-    }
-
     if (isDefineRouteMeta(node)) {
       const arg = s.slice(
         node.expression.arguments[0].start,
@@ -143,7 +131,11 @@ function generateRouteMetaFile(
     return s.slice(node.start, node.end);
   });
 
-  return codeParts.join("\n\n");
+  const assembledCode = codeParts.join("\n\n");
+
+  if (nitro.unimport)
+    return (await nitro.unimport.injectImports(assembledCode)).code;
+  else return assembledCode;
 }
 
 type TraverseState = {
