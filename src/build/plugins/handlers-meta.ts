@@ -3,16 +3,23 @@ import { transform } from "esbuild";
 import type { Nitro, NitroEventHandler, NitroRouteMeta } from "nitro/types";
 import { extname } from "pathe";
 import type { Plugin } from "rollup";
-import {
-  parse,
-  type AnyNode,
-  type ExpressionStatement,
-  type CallExpression,
-  type Identifier,
-} from "acorn";
+import type {
+  CallExpression,
+  ExpressionStatement,
+  Identifier,
+  Node,
+} from "estree";
 import { traverse, type NodePath } from "estree-toolkit";
 import MagicString from "magic-string";
 import { createJiti } from "jiti";
+
+// rollups parse method adds the start and end properties
+declare module "estree" {
+  interface BaseNode {
+    start: number;
+    end: number;
+  }
+}
 
 const virtualPrefix = "\0nitro-handler-meta:";
 
@@ -67,10 +74,7 @@ export function handlersMeta(nitro: Nitro) {
         const jsCode = await transform(code, {
           loader: esbuildLoaders[ext],
         }).then((r) => r.code);
-        const ast = parse(jsCode, {
-          ecmaVersion: "latest", // REVIEW: is this ok?
-          sourceType: "module",
-        });
+        const ast = this.parse(jsCode);
 
         const nodesToKeep: NodePath[] = [];
         traverse(ast, {
@@ -116,7 +120,7 @@ async function generateRouteMetaFile(
 ): Promise<string> {
   const s = new MagicString(originalCode);
 
-  const orderedNodes = (nodes.map((n) => n.node!) as AnyNode[]).sort(
+  const orderedNodes = (nodes.map((n) => n.node!) as Node[]).sort(
     (a, b) => a.start - b.start
   );
   const codeParts = orderedNodes.map((node) => {
@@ -138,7 +142,7 @@ async function generateRouteMetaFile(
   else return assembledCode;
 }
 
-function getIdentityVisitor<T extends AnyNode>(
+function getIdentityVisitor<T extends Node>(
   nodesToKeep: NodePath[]
 ): Parameters<typeof traverse<T, never>>[1] {
   return {
@@ -150,7 +154,7 @@ function getIdentityVisitor<T extends AnyNode>(
         path.node!.name === "defineRouteMeta" || // defineRouteMeta won't have a binding
         isNotReferencePosition(
           path.node as Identifier,
-          path.parent as AnyNode | null
+          path.parent as Node | null
         )
       )
         return;
@@ -186,8 +190,8 @@ type DefineRouteMetaExpression = ExpressionStatement & {
 function isDefineRouteMeta(
   node: DefineRouteMetaExpression
 ): node is DefineRouteMetaExpression;
-function isDefineRouteMeta(node: AnyNode): node is DefineRouteMetaExpression;
-function isDefineRouteMeta(node: AnyNode): node is DefineRouteMetaExpression {
+function isDefineRouteMeta(node: Node): node is DefineRouteMetaExpression;
+function isDefineRouteMeta(node: Node): node is DefineRouteMetaExpression {
   return (
     node.type === "ExpressionStatement" &&
     node.expression.type === "CallExpression" &&
@@ -198,10 +202,7 @@ function isDefineRouteMeta(node: AnyNode): node is DefineRouteMetaExpression {
 }
 
 // The functions below are copied from nuxt's definePageMeta code
-export function isNotReferencePosition(
-  node: Identifier,
-  parent: AnyNode | null
-) {
+export function isNotReferencePosition(node: Identifier, parent: Node | null) {
   if (!parent) return false;
 
   switch (parent.type) {
@@ -266,10 +267,10 @@ export function isNotReferencePosition(
   return false;
 }
 
-function getPatternIdentifiers(pattern: AnyNode) {
+function getPatternIdentifiers(pattern: Node) {
   const identifiers: Identifier[] = [];
 
-  function collectIdentifiers(pattern: AnyNode) {
+  function collectIdentifiers(pattern: Node) {
     switch (pattern.type) {
       case "Identifier": {
         identifiers.push(pattern);
