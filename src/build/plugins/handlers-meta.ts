@@ -72,15 +72,13 @@ export function handlersMeta(nitro: Nitro) {
           sourceType: "module",
         });
 
-        const nodesToKeep = new Set<AnyNode>();
+        const nodesToKeep: NodePath[] = [];
         traverse(ast, {
           $: { scope: true },
           ExpressionStatement(path) {
             if (isDefineRouteMeta(path.node! as ExpressionStatement)) {
-              nodesToKeep.add(path.node! as ExpressionStatement);
-              path.traverse(getIdentityVisitor(nodesToKeep), {
-                traversingFrom: path,
-              });
+              nodesToKeep.push(path);
+              path.traverse(getIdentityVisitor(nodesToKeep));
             }
           },
         });
@@ -114,11 +112,13 @@ export function handlersMeta(nitro: Nitro) {
 async function generateRouteMetaFile(
   nitro: Nitro,
   originalCode: string,
-  nodes: Set<AnyNode>
+  nodes: NodePath[]
 ): Promise<string> {
   const s = new MagicString(originalCode);
 
-  const orderedNodes = [...nodes].sort((a, b) => a.start - b.start);
+  const orderedNodes = (nodes.map((n) => n.node!) as AnyNode[]).sort(
+    (a, b) => a.start - b.start
+  );
   const codeParts = orderedNodes.map((node) => {
     if (isDefineRouteMeta(node)) {
       const arg = s.slice(
@@ -138,18 +138,14 @@ async function generateRouteMetaFile(
   else return assembledCode;
 }
 
-type TraverseState = {
-  traversingFrom: NodePath;
-};
-
 function getIdentityVisitor<T extends AnyNode>(
-  nodesToKeep: Set<AnyNode>
-): Parameters<typeof traverse<T, TraverseState>>[1] {
+  nodesToKeep: NodePath[]
+): Parameters<typeof traverse<T, never>>[1] {
   return {
     $: {
       scope: true,
     },
-    Identifier(path, state) {
+    Identifier(path) {
       if (
         path.node!.name === "defineRouteMeta" || // defineRouteMeta won't have a binding
         isNotReferencePosition(
@@ -159,26 +155,20 @@ function getIdentityVisitor<T extends AnyNode>(
       )
         return;
 
-      // check if the identifier is relevant and if so, find its declaration and traverse it if not already traversed
-      if (path.isDescendantOf(state.traversingFrom)) {
-        const binding = path.scope!.getBinding(path.node!.name);
-        if (!binding || binding.path.isDescendantOf(state.traversingFrom))
-          return;
+      // find the identifier's declaration and traverse it if not already traversed
+      const binding = path.scope!.getBinding(path.node!.name);
+      if (!binding || nodesToKeep.some((n) => binding.path.isDescendantOf(n)))
+        return;
 
-        const rootParent = binding.path.find(
-          (p) => p.parent?.type === "Program"
+      const rootParent = binding.path.find((p) => p.parent?.type === "Program");
+      if (!rootParent)
+        throw new Error(
+          `No root level parent found for binding: ${path.node?.name}`
         );
-        if (!rootParent)
-          throw new Error(
-            `No root level parent found for binding: ${path.node?.name}`
-          );
 
-        if (!nodesToKeep.has(rootParent.node! as AnyNode)) {
-          nodesToKeep.add(rootParent.node! as AnyNode);
-          rootParent.traverse(getIdentityVisitor(nodesToKeep), {
-            traversingFrom: rootParent,
-          });
-        }
+      if (!nodesToKeep.includes(rootParent)) {
+        nodesToKeep.push(rootParent);
+        rootParent.traverse(getIdentityVisitor(nodesToKeep));
       }
     },
   };
