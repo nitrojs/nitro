@@ -127,30 +127,6 @@ export default defineNuxtConfig({
 
 Nitro automatically generates a `_routes.json` file that controls which routes get served from files and which are served from the Worker script. The auto-generated routes file can be overridden with the config option `cloudflare.pages.routes` ([read more](https://developers.cloudflare.com/pages/platform/functions/routing/#functions-invocation-routes)).
 
-### Building your Application using the preset
-
-The preset only applies for the application build process.
-
-If you use the [Cloudflare Pages GitHub/GitLab integration](https://developers.cloudflare.com/pages/get-started/#connect-your-git-provider-to-pages), and you don't need to preview your application locally, Nitro does not require any type of configuration. When you push to your repository, the Cloudflare Pages CI/CD process will automatically build your project and Nitro will detect the correct environment and build your application accordingly.
-
-If instead you want preview your application locally and/or manually deploy it, when building the application you will need to let Nitro know that the target environment is the Cloudflare Pages one, you can do that in two ways:
-
-- By defining either the `NITRO_PRESET` or the `SERVER_PRESET` environment variable set to `cloudflare_pages` when running the build process, like so:
-
-    ```bash
-    NITRO_PRESET=cloudflare_pages npm run build
-    ```
-
-- Or by updating your Nitro [preset configuration](/config#preset):
-
-    ```json5
-    "preset": "cloudflare_pages",
-    ```
-
-    and then running the standard build command:
-
-    :pm-run{script="build"}
-
 ### Local Preview
 
 You can use [Wrangler](https://github.com/cloudflare/workers-sdk/tree/main/packages/wrangler) to preview your app locally:
