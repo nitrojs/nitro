@@ -63,6 +63,7 @@ describe("nitro:preset:nitro-dev", async () => {
                 },
                 "tags": [
                   "test",
+                  "test2",
                 ],
               },
             }
