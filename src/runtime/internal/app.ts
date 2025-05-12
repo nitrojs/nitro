@@ -75,6 +75,7 @@ function createNitroApp(): NitroApp {
           };
       if (fetchContext?._platform) {
         event.context = {
+          _platform: fetchContext?._platform, // #3335
           ...fetchContext._platform,
           ...event.context,
         };
