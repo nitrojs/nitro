@@ -53,21 +53,27 @@ export const handler = awslambda.streamifyResponse(
         "Transfer-Encoding": "chunked",
       },
     };
-    if (r.body) {
-      const writer = awslambda.HttpResponseStream.from(
-        // @ts-expect-error TODO: IMPORTANT! It should be a Writable according to the aws-lambda types
-        responseStream,
-        httpResponseMetadata
-      );
-      if (!(r.body as ReadableStream).getReader) {
-        writer.write(r.body as any /* TODO */);
-        writer.end();
-        return;
-      }
-      const reader = (r.body as ReadableStream).getReader();
-      await streamToNodeStream(reader, responseStream);
+    const body =
+      r.body ??
+      new ReadableStream({
+        start(controller) {
+          controller.enqueue("");
+          controller.close();
+        },
+      });
+    const writer = awslambda.HttpResponseStream.from(
+      // @ts-expect-error TODO: IMPORTANT! It should be a Writable according to the aws-lambda types
+      responseStream,
+      httpResponseMetadata
+    );
+    if (!(body as ReadableStream).getReader) {
+      writer.write(r.body as any /* TODO */);
       writer.end();
+      return;
     }
+    const reader = (body as ReadableStream).getReader();
+    await streamToNodeStream(reader, responseStream);
+    writer.end();
   }
 );
 
