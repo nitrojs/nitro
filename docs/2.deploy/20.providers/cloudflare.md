@@ -2,18 +2,18 @@
 
 > Deploy Nitro apps to Cloudflare.
 
-## <a name="cloudflare-module-workers"></a>Cloudflare Workers
+## Cloudflare Workers
 
 **Preset:** `cloudflare_module`
 
-:read-more{title="Cloudflare Workers" to="https://developers.cloudflare.com/workers/static-assets/"}
+:read-more{title="Cloudflare Workers" to="https://developers.cloudflare.com/workers/"}
 
 ::note
-This is the recommended preset for Cloudflare deployments, please consider using the alternative ones only if you need special features.
+Integration with this provider is possible with [zero configuration](/deploy#zero-config-providers) supporting [workers builds (beta)](https://developers.cloudflare.com/workers/ci-cd/builds/).
 ::
 
-::note
-Integration with this provider is possible with [zero configuration](/deploy#zero-config-providers).
+::important
+To use Workers with Static Assets, you need a Nitro compatibility date set to `2024-09-19` or later.
 ::
 
 The following shows an example `nitro.config.ts` file for deploying a Nitro app to Cloudflare Workers.
@@ -26,7 +26,7 @@ export default defineNitroConfig({
     preset: "cloudflare_module",
     cloudflare: {
       deployConfig: true,
-      nodeCompat:true
+      nodeCompat: true
     }
 })
 ```
@@ -38,7 +38,7 @@ export default defineNuxtConfig({
       preset: "cloudflare_module",
       cloudflare: {
         deployConfig: true,
-        nodeCompat:true
+        nodeCompat: true
       }
     }
 })
@@ -51,22 +51,15 @@ If you need to add [Cloudflare Workers configuration](https://developers.cloudfl
 - Set these in your Nitro config under the `cloudflare: { wrangler : {} }`. This has the same type as `wrangler.json`.
 - Provide your own `wrangler.json`. Nitro will merge your config with the appropriate settings, including pointing to the build output.
 
-To use Workers with Static Assets, you also need a Nitro compatibility date set to `2024-09-19` or later.
-
-
-### Preview your app locally
+### Local Preview
 
 You can use [Wrangler](https://github.com/cloudflare/workers-sdk/tree/main/packages/wrangler) to preview your app locally:
 
-```bash
-npm i wrangler@latest
+:pm-run{script="build"}
 
-npm run build
-npx wrangler dev
+:pm-x{command="wrangler dev"}
 
-```
-
-### Deploy
+### Manual Deploy
 
 After having built your application you can manually deploy it with Wrangler.
 
@@ -78,9 +71,7 @@ Then you can deploy the application with:
 
 :pm-x{command="wrangler deploy"}
 
-You could also [Workers Builds (BETA)](https://developers.cloudflare.com/workers/ci-cd/builds/) for CI/CD.
-
-### Runtime hooks
+### Runtime Hooks
 
 You can use [runtime hooks](/guide/plugins#nitro-runtime-hooks) below in order to extend [Worker handlers](https://developers.cloudflare.com/workers/runtime-apis/handlers/).
 
@@ -101,6 +92,10 @@ You can use [runtime hooks](/guide/plugins#nitro-runtime-hooks) below in order t
 
 ::note
 Integration with this provider is possible with [zero configuration](/deploy#zero-config-providers).
+::
+
+::warning
+Cloudflare [Workers Module](#cloudflare-workers) is the new recommended preset for deployments. Please consider using the pages only if you need specific features.
 ::
 
 The following shows an example `nitro.config.ts` file for deploying a Nitro app to Cloudflare Pages.
@@ -130,15 +125,7 @@ export default defineNuxtConfig({
 ```
 ::
 
-By setting `deployConfig: true`, Nitro will automatically generate a `wrangler.json` for you with the correct configuration.
-
-If you need to add [Cloudflare Workers configuration](https://developers.cloudflare.com/workers/wrangler/configuration/), such as bindings, you can either:
-
-- Set these in your Nitro config under the `cloudflare: {wrangler : ... }`. This has the same type as `wrangler.json`.
-- Provide your own `wrangler.json`. Nitro will merge your config with the appropriate settings, including pointing to the build output.
-
-
-Nitro also automatically generates a `_routes.json` file that controls which routes get served from files and which are served from the Worker script. The auto-generated routes file can be overridden with the config option `cloudflare.pages.routes` ([read more](https://developers.cloudflare.com/pages/platform/functions/routing/#functions-invocation-routes)).
+Nitro automatically generates a `_routes.json` file that controls which routes get served from files and which are served from the Worker script. The auto-generated routes file can be overridden with the config option `cloudflare.pages.routes` ([read more](https://developers.cloudflare.com/pages/platform/functions/routing/#functions-invocation-routes)).
 
 ### Building your Application using the preset
 
@@ -164,19 +151,15 @@ If instead you want preview your application locally and/or manually deploy it, 
 
     :pm-run{script="build"}
 
-### Wrangler
+### Local Preview
 
-To preview your application locally or manually deploy it you will need to use the [Wrangler](https://github.com/cloudflare/workers-sdk/tree/main/packages/wrangler) CLI tool, simply install it as a node dependency:
+You can use [Wrangler](https://github.com/cloudflare/workers-sdk/tree/main/packages/wrangler) to preview your app locally:
 
-:pm-install{name="wrangler"}
-
-### Preview your app locally
-
-After having built your application you can preview it locally with Wrangler by running:
+:pm-run{script="build"}
 
 :pm-x{command="wrangler pages dev"}
 
-### Deploy from your local machine using Wrangler
+### Manual Deploy
 
 After having built your application you can manually deploy it with Wrangler, in order to do so first make sure to be
 logged into your Cloudflare account:
