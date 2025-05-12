@@ -1,6 +1,6 @@
 defineRouteMeta({
   openAPI: {
-    tags: ["test"],
+    tags: ["test", getTag()],
     description: "Test route description",
     parameters: [{ in: "query", name: "test", required: true }],
     responses: {
@@ -28,6 +28,14 @@ defineRouteMeta({
     },
   },
 });
+
+function getTag() {
+  return oneMoreDepth();
+}
+
+function oneMoreDepth() {
+  return "test2";
+}
 
 export default defineEventHandler(() => {
   return {

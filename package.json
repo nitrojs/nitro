@@ -74,6 +74,7 @@
     "dot-prop": "^9.0.0",
     "esbuild": "^0.25.2",
     "escape-string-regexp": "^5.0.0",
+    "estree-toolkit": "1.7.13",
     "etag": "^1.8.1",
     "exsolve": "^1.0.4",
     "fs-extra": "^11.3.0",
