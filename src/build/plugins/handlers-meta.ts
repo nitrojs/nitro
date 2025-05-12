@@ -83,11 +83,12 @@ export function handlersMeta(nitro: Nitro) {
             if (isDefineRouteMeta(path.node! as ExpressionStatement)) {
               nodesToKeep.push(path);
               path.traverse(getIdentityVisitor(nodesToKeep));
+
+              this.stop();
             }
           },
         });
 
-        const filePath = id.slice(virtualPrefix.length);
         const routeMetaFile = await generateRouteMetaFile(
           nitro,
           jsCode,
@@ -95,7 +96,7 @@ export function handlersMeta(nitro: Nitro) {
         );
 
         const { default: routeMeta } = (await jiti.evalModule(routeMetaFile, {
-          filename: filePath,
+          filename: id.slice(virtualPrefix.length),
         })) as { default: NitroRouteMeta | null };
 
         meta = routeMeta;
@@ -159,16 +160,11 @@ function getIdentityVisitor<T extends Node>(
       )
         return;
 
-      // find the identifier's declaration and traverse it if not already traversed
       const binding = path.scope!.getBinding(path.node!.name);
-      if (!binding || nodesToKeep.some((n) => binding.path.isDescendantOf(n)))
-        return;
+      if (!binding) return;
 
       const rootParent = binding.path.find((p) => p.parent?.type === "Program");
-      if (!rootParent)
-        throw new Error(
-          `No root level parent found for binding: ${path.node?.name}`
-        );
+      if (!rootParent) return;
 
       if (!nodesToKeep.includes(rootParent)) {
         nodesToKeep.push(rootParent);
