@@ -301,6 +301,33 @@ export function externals(opts: NodeExternalsOptions): Plugin {
         }
       }
 
+      const userPkg = await readPackageJSON(
+        opts.rootDir || process.cwd()
+      ).catch(() => ({}) as PackageJson);
+
+      const userPkgAliases = Object.fromEntries(
+        [
+          ...Object.entries(userPkg.dependencies || {}),
+          ...Object.entries(userPkg.devDependencies || {}),
+        ]
+          .map(([name, version]) => {
+            // TODO: optimize this package name parsing
+            // { "lodash4": "npm:lodash@4.17.21" }              => [ "lodash" ~> "lodash4" ]
+            // { "@std/ulid": "npm:@jsr/std__ulid@1.0.0-rc.4" } => [ "@jsr/std__ulid" ~> "@std/ulid" ]
+
+            if (!version.includes(":")) {
+              return null;
+            }
+
+            const parts = version.split(":")[1]!.split("@");
+            return parts.length >= 3
+              ? ["@" + parts[1], name]
+              : [parts[0], name];
+          })
+          .filter(Boolean) as [string, string][]
+      );
+
+      const pkgAliases = { ...userPkgAliases, ...opts.traceAlias };
       const usedAliases: Record<string, string> = {};
 
       const writePackage = async (
@@ -340,9 +367,9 @@ export function externals(opts: NodeExternalsOptions): Plugin {
         );
 
         // Link aliases
-        if (opts.traceAlias && pkgPath in opts.traceAlias) {
-          usedAliases[opts.traceAlias[pkgPath]] = version;
-          await linkPackage(pkgPath, opts.traceAlias[pkgPath]);
+        if (pkgPath in pkgAliases) {
+          usedAliases[pkgAliases[pkgPath]] = version;
+          await linkPackage(pkgPath, pkgAliases[pkgPath]);
         }
       };
 
@@ -457,10 +484,6 @@ export function externals(opts: NodeExternalsOptions): Plugin {
       }
 
       // Write an informative package.json
-      const userPkg = await readPackageJSON(
-        opts.rootDir || process.cwd()
-      ).catch(() => ({}) as PackageJson);
-
       await writePackageJSON(resolve(opts.outDir, "package.json"), {
         name: (userPkg.name || "server") + "-prod",
         version: userPkg.version || "0.0.0",
