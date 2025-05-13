@@ -13,7 +13,7 @@ nitroApp.hooks.hook("error", (error, context) => {
   ) {
     const url = getRequestURL(context.event).href;
     consola.error(
-      `[prerender errror]`,
+      `[prerender error]`,
       `[${context.event.method}]`,
       `[${url}]`,
       error
