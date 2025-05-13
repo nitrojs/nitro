@@ -10,6 +10,7 @@ nitroApp.hooks.hook("error", (error, context) => {
   if (
     isEvent(context.event) &&
     !(error as H3Error).unhandled &&
+    (error as H3Error).statusCode >= 500 &&
     getRequestHeader(context.event, "x-nitro-prerender")
   ) {
     const url = getRequestURL(context.event).href;
