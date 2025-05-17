@@ -259,12 +259,6 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
           ])
         ),
         ...Object.fromEntries(
-          [";", "(", "{", "}", " ", "\t", "\n"].map((d) => [
-            `${d}global.`,
-            `${d}globalThis.`,
-          ])
-        ),
-        ...Object.fromEntries(
           Object.entries(buildEnvVars).map(([key, val]) => [
             `process.env.${key}`,
             JSON.stringify(val),
