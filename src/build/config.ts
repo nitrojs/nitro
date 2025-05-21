@@ -55,12 +55,6 @@ export function baseBuildConfig(nitro: Nitro) {
     "process.env.RUNTIME_CONFIG": () =>
       JSON.stringify(nitro.options.runtimeConfig, null, 2),
     ...Object.fromEntries(
-      [";", "(", "{", "}", " ", "\t", "\n"].map((d) => [
-        `${d}global.`,
-        `${d}globalThis.`,
-      ])
-    ),
-    ...Object.fromEntries(
       Object.entries(buildEnvVars).map(([key, val]) => [
         `process.env.${key}`,
         JSON.stringify(val),

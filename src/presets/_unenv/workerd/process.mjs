@@ -20,6 +20,14 @@ for (const key of ["exit", "getBuiltinModule", "platform"]) {
   }
 }
 
+if (workerdProcess.features) {
+  Object.defineProperty(mixedProcess, "features", {
+    get() {
+      return workerdProcess.features;
+    },
+  });
+}
+
 export default mixedProcess;
 
 export const {

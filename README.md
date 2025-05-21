@@ -2,8 +2,8 @@
 
 <!-- automd:badges -->
 
-[![npm version](https://flat.badgen.net/npm/v/nitropack)](https://npmjs.com/package/nitropack)
-[![npm downloads](https://flat.badgen.net/npm/dm/nitropack)](https://npmjs.com/package/nitropack)
+[![npm version](https://img.shields.io/npm/v/nitro)](https://npmjs.com/package/nitro)
+[![npm downloads](https://img.shields.io/npm/dm/nitro)](https://npm.chart.dev/nitro)
 
 <!-- /automd -->
 
@@ -16,18 +16,7 @@ Check [migration guide](./docs/1.guide/00.migration.md) for migrating from Nitro
 
 ## Contribution
 
-<details>
-  <summary>Local development</summary>
-
-- Clone this repository
-- Install the latest LTS version of [Node.js](https://nodejs.org/en/)
-- Enable [Corepack](https://github.com/nodejs/corepack) using `corepack enable`
-- Install dependencies using `pnpm install`
-- Run tests using `pnpm dev` or `pnpm test`
-
-</details>
-
-<!-- /automd -->
+Please check [Contribution guide](CONTRIBUTING.md).
 
 ## License
 

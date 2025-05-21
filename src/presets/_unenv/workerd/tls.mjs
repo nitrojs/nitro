@@ -9,11 +9,7 @@ import {
   DEFAULT_ECDH_CURVE,
   DEFAULT_MAX_VERSION,
   DEFAULT_MIN_VERSION,
-  SecureContext,
   Server,
-  checkServerIdentity,
-  convertALPNProtocols,
-  createSecureContext,
   createSecurePair,
   createServer,
   getCiphers,
@@ -27,18 +23,21 @@ export {
   DEFAULT_ECDH_CURVE,
   DEFAULT_MAX_VERSION,
   DEFAULT_MIN_VERSION,
-  SecureContext,
   Server,
-  checkServerIdentity,
-  convertALPNProtocols,
-  createSecureContext,
   createSecurePair,
   createServer,
   getCiphers,
   rootCertificates,
 } from "unenv/node/tls";
 
-export const { TLSSocket, connect } = workerdTLS;
+export const {
+  TLSSocket,
+  connect,
+  SecureContext,
+  checkServerIdentity,
+  convertALPNProtocols,
+  createSecureContext,
+} = workerdTLS;
 
 export default {
   // native

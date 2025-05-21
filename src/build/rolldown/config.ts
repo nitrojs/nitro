@@ -7,6 +7,7 @@ import { runtimeDir } from "nitro/runtime/meta";
 import json from "@rollup/plugin-json";
 import { baseBuildConfig } from "../config";
 import { baseBuildPlugins } from "../plugins";
+import { replace } from "../plugins/replace";
 import { builtinModules } from "node:module";
 
 export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
@@ -31,6 +32,11 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
     ],
     plugins: [
       ...(baseBuildPlugins(nitro, base) as RolldownPlugin[]),
+      // https://github.com/rolldown/rolldown/issues/4257
+      replace({
+        preventAssignment: true,
+        values: base.replacements,
+      }) as RolldownPlugin,
       json() as RolldownPlugin,
     ],
     resolve: {
@@ -45,21 +51,6 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
     },
     // @ts-expect-error (readonly values)
     inject: base.env.inject,
-    define: {
-      ...Object.fromEntries(
-        Object.entries(base.replacements)
-          .filter(
-            ([key, val]) =>
-              val &&
-              (key.startsWith("import.meta.env.") ||
-                key.startsWith("process.env."))
-          )
-          .map(([key, value]) => [
-            key,
-            typeof value === "function" ? value() : value,
-          ])
-      ),
-    },
     jsx: "react-jsx",
     onwarn(warning, warn) {
       if (

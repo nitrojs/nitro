@@ -1,6 +1,7 @@
 import { promises as fsp } from "node:fs";
 import { defineNitroPreset } from "../_utils/preset";
 import type { Nitro } from "nitro/types";
+import type { Config, Manifest } from "@netlify/edge-functions";
 import { dirname, join } from "pathe";
 import { unenvDenoPreset } from "../_unenv/preset-deno";
 import {
@@ -81,7 +82,7 @@ const netlifyEdge = defineNitroPreset(
         await writeRedirects(nitro);
 
         // https://docs.netlify.com/edge-functions/create-integration/
-        const manifest = {
+        const manifest: Manifest = {
           version: 1,
           functions: [
             {
@@ -89,7 +90,7 @@ const netlifyEdge = defineNitroPreset(
               excludedPath: getStaticPaths(
                 nitro.options.publicAssets,
                 nitro.options.baseURL
-              ),
+              ) as Config["excludedPath"],
               name: "edge server handler",
               function: "server",
               generator: getGeneratorString(nitro),

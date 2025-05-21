@@ -1981,7 +1981,7 @@ Check [release notes](https://github.com/nitrojs/nitro/releases/tag/v2.11.0)
 - Nested fetch calls with incoming headers and context in event context ([learn more](https://github.com/nitrojs/nitro/pull/930))
 - Binary and Raw storage operations support ([learn more](https://github.com/unjs/unstorage/pull/141))
 - [Cloudflare] Exposed `event.context.cf` ([learn more](https://github.com/nitrojs/nitro/pull/927))
-- Built-in session support ([learn more](https://github.com/unjs/h3/pull/315))
+- Built-in session support ([learn more](https://github.com/h3js/h3/pull/315))
 
 ### 🚀 Enhancements
 
