@@ -57,7 +57,7 @@ export async function writeTypes(nitro: Nitro) {
 
     const resolvedImportPathMap = new Map<string, string>();
 
-    for (const i of allImports.filter((i) => !i.type)) {
+    for (const i of allImports) {
       if (resolvedImportPathMap.has(i.from)) {
         continue;
       }
