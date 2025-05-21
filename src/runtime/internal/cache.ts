@@ -46,6 +46,7 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
   const name = opts.name || fn.name || "_";
   const integrity = opts.integrity || hash([fn, opts]);
   const validate = opts.validate || ((entry) => entry.value !== undefined);
+  const serializeValue = opts.serializeValue || ((value) => value);
 
   async function get(
     key: string,
@@ -104,7 +105,7 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
       }
 
       try {
-        entry.value = await pending[key];
+        entry.value = await serializeValue(await pending[key]);
       } catch (error) {
         // Make sure entries that reject get removed.
         if (!isPending) {
