@@ -81,7 +81,7 @@ export async function buildProduction(
       `You can preview this build using \`${_compilePathCommandTemplate(
         rewriteRelativePaths(buildInfo.commands!.preview),
         nitro.options,
-        nitro.options.rootDir,
+        nitro.options.rootDir
       )}\``
     );
   }
@@ -90,7 +90,7 @@ export async function buildProduction(
       `You can deploy this build using \`${_compilePathCommandTemplate(
         rewriteRelativePaths(buildInfo.commands!.deploy),
         nitro.options,
-        nitro.options.rootDir,
+        nitro.options.rootDir
       )}\``
     );
   }
@@ -124,11 +124,11 @@ async function _snapshot(nitro: Nitro) {
 }
 
 function _compilePathCommandTemplate(
-  contents: string, 
+  contents: string,
   data: Record<string, any>,
   base: string
 ) {
-  if(!contents.includes("{{")) {
+  if (!contents.includes("{{")) {
     return contents;
   }
 
