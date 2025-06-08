@@ -21,8 +21,8 @@ const cloudflarePages = defineNitroPreset(
     entry: "./runtime/cloudflare-pages",
     exportConditions: ["workerd"],
     commands: {
-      preview: "npx wrangler pages dev {{ output.dir }}",
-      deploy: "npx wrangler pages deploy {{ output.dir }}",
+      preview: "npx wrangler --cwd ./ pages dev",
+      deploy: "npx wrangler --cwd ./ pages deploy",
     },
     output: {
       dir: "{{ rootDir }}/dist",
@@ -49,6 +49,13 @@ const cloudflarePages = defineNitroPreset(
     hooks: {
       "build:before": async (nitro) => {
         await enableNodeCompat(nitro);
+
+        if (!nitro.options.cloudflare.deployConfig) {
+          nitro.options.commands.preview =
+            "npx wrangler pages dev {{ output.dir }}";
+          nitro.options.commands.deploy =
+            "npx wrangler pages deploy {{ output.dir }}";
+        }
       },
       async compiled(nitro: Nitro) {
         await writeWranglerConfig(nitro, "pages");
@@ -73,10 +80,18 @@ const cloudflarePagesStatic = defineNitroPreset(
       publicDir: "{{ output.dir }}/{{ baseURL }}",
     },
     commands: {
-      preview: "npx wrangler pages dev {{ output.dir }}",
-      deploy: "npx wrangler pages deploy {{ output.dir }}",
+      preview: "npx wrangler --cwd ./ pages dev",
+      deploy: "npx wrangler --cwd ./ pages deploy",
     },
     hooks: {
+      "build:before": async (nitro) => {
+        if (!nitro.options.cloudflare.deployConfig) {
+          nitro.options.commands.preview =
+            "npx wrangler pages dev {{ output.dir }}";
+          nitro.options.commands.deploy =
+            "npx wrangler pages deploy {{ output.dir }}";
+        }
+      },
       async compiled(nitro: Nitro) {
         await writeCFPagesHeaders(nitro);
         await writeCFPagesRedirects(nitro);
@@ -100,8 +115,8 @@ const cloudflareModule = defineNitroPreset(
     },
     exportConditions: ["workerd"],
     commands: {
-      preview: "npx wrangler dev {{ output.serverDir }}/index.mjs --assets {{ output.publicDir }}",
-      deploy: "npx wrangler deploy {{ output.serverDir }}/index.mjs --assets {{ output.publicDir }}",
+      preview: "npx wrangler --cwd ./ dev",
+      deploy: "npx wrangler --cwd ./ deploy",
     },
     unenv: [unenvCfExternals],
     rollupConfig: {
@@ -118,6 +133,13 @@ const cloudflareModule = defineNitroPreset(
     hooks: {
       "build:before": async (nitro) => {
         await enableNodeCompat(nitro);
+
+        if (!nitro.options.cloudflare.deployConfig) {
+          nitro.options.commands.preview =
+            "npx wrangler dev {{ output.serverDir }}/index.mjs --assets {{ output.publicDir }}";
+          nitro.options.commands.deploy =
+            "npx wrangler deploy {{ output.serverDir }}/index.mjs --assets {{ output.publicDir }}";
+        }
       },
       async compiled(nitro: Nitro) {
         await writeWranglerConfig(nitro, "module");
