@@ -69,10 +69,8 @@ export async function prerender(nitro: Nitro) {
     ...nitro.options._config,
     static: false,
     rootDir: nitro.options.rootDir,
-    rollupConfig: {
-      output: {
-        entryFileNames: nitro.options.rollupConfig?.output?.entryFileNames,
-      },
+    output: {
+      serverDir: "{{ buildDir }}/prerender",
     },
     logLevel: 0,
     preset: "nitro-prerender",
