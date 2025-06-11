@@ -303,7 +303,7 @@ export async function writeTypes(nitro: Nitro) {
       ];
     }
 
-    types.tsConfig = tsConfig
+    types.tsConfig = tsConfig;
 
     buildFiles.push({
       path: tsConfigPath,
@@ -317,7 +317,7 @@ export async function writeTypes(nitro: Nitro) {
     buildFiles.map(async (file) => {
       await writeFile(
         resolve(nitro.options.buildDir, file.path),
-        typeof file.contents === 'string' ? file.contents : file.contents()
+        typeof file.contents === "string" ? file.contents : file.contents()
       );
     })
   );

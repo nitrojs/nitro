@@ -8,7 +8,7 @@ import type { NitroConfig, NitroOptions } from "./config";
 import type { NitroEventHandler } from "./handler";
 import type { NitroHooks } from "./hooks";
 import type { PrerenderRoute } from "./prerender";
-import type { TSConfig } from "pkg-types"
+import type { TSConfig } from "pkg-types";
 
 export interface Nitro {
   options: NitroOptions;
