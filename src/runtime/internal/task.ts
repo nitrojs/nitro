@@ -1,5 +1,5 @@
 import { Cron } from "croner";
-import { createError } from "h3";
+import { HTTPError } from "h3";
 import type {
   Task,
   TaskContext,
@@ -35,16 +35,16 @@ export async function runTask<RT = unknown>(
   }
 
   if (!(name in tasks)) {
-    throw createError({
+    throw new HTTPError({
       message: `Task \`${name}\` is not available!`,
-      statusCode: 404,
+      status: 404,
     });
   }
 
   if (!tasks[name].resolve) {
-    throw createError({
+    throw new HTTPError({
       message: `Task \`${name}\` is not implemented!`,
-      statusCode: 501,
+      status: 501,
     });
   }
 

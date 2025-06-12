@@ -95,7 +95,7 @@ export default defineNitroConfig({
     "/rules/swr/**": { swr: true },
     "/rules/swr-ttl/**": { swr: 60 },
     "/rules/redirect/obj": {
-      redirect: { to: "https://nitro.build/", statusCode: 308 },
+      redirect: { to: "https://nitro.build/", status: 308 },
     },
     "/rules/redirect/wildcard/**": { redirect: "https://nitro.build/**" },
     "/rules/nested/**": { redirect: "/base", headers: { "x-test": "test" } },

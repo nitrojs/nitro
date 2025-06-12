@@ -1,7 +1,8 @@
-import { createError } from "h3";
+import { HTTPError } from "h3";
+
 export default eventHandler(() => {
-  throw createError({
-    statusCode: 503,
-    statusMessage: "Service Unavailable",
+  throw new HTTPError({
+    status: 503,
+    statusText: "Service Unavailable",
   });
 });

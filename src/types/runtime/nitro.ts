@@ -23,8 +23,8 @@ export interface NitroAsyncContext {
 
 export interface RenderResponse {
   body: any;
-  statusCode: number;
-  statusMessage: string;
+  status: number;
+  statusText: string;
   headers: Record<string, string>;
 }
 

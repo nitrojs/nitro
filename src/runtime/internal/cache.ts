@@ -338,8 +338,8 @@ export function defineCachedEventHandler<
           }
           return true;
         },
-        writeHead(statusCode, headers) {
-          this.statusCode = statusCode;
+        writeHead(status, headers) {
+          this.status = status;
           if (headers) {
             if (Array.isArray(headers) || typeof headers === "string") {
               throw new TypeError("Raw headers  is not supported.");
@@ -408,7 +408,7 @@ export function defineCachedEventHandler<
 
       // Create cache entry for response
       const cacheEntry: ResponseCacheEntry<Response> = {
-        code: event.node.res.statusCode,
+        code: event.node.res.status,
         headers,
         body,
       };
@@ -452,7 +452,7 @@ export function defineCachedEventHandler<
     }
 
     // Send status and headers
-    nodeRes.statusCode = response.code;
+    nodeRes.status = response.code;
     for (const name in response.headers) {
       const value = response.headers[name];
       if (name === "set-cookie") {

@@ -28,13 +28,13 @@ export async function defaultHandler(
   opts?: { silent?: boolean; json?: boolean }
 ): Promise<InternalHandlerResponse> {
   const isSensitive = error.unhandled;
-  const statusCode = error.status || 500;
-  const statusMessage = error.statusText || "Server Error";
+  const status = error.status || 500;
+  const statusText = error.statusText || "Server Error";
   // prettier-ignore
   const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true })
 
   // Redirects with base URL
-  if (statusCode === 404) {
+  if (status === 404) {
     const baseURL = import.meta.baseURL || "/";
     if (/^\/[^/]/.test(baseURL) && !url.pathname.startsWith(baseURL)) {
       const redirectTo = `${baseURL}${url.pathname.slice(1)}${url.search}`;
@@ -83,7 +83,7 @@ export async function defaultHandler(
     "content-security-policy":
       "script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self';",
   };
-  if (statusCode === 404 || !event.res.headers.has("cache-control")) {
+  if (status === 404 || !event.res.headers.has("cache-control")) {
     headers["cache-control"] = "no-cache";
   }
 
@@ -92,8 +92,8 @@ export async function defaultHandler(
     ? {
         error: true,
         url,
-        statusCode,
-        statusMessage,
+        status,
+        statusText,
         message: error.message,
         data: error.data,
         stack: error.stack?.split("\n").map((line) => line.trim()),
@@ -107,8 +107,8 @@ export async function defaultHandler(
       });
 
   return {
-    status: statusCode,
-    statusText: statusMessage,
+    status: status,
+    statusText: statusText,
     headers,
     body,
   };

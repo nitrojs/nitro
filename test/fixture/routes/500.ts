@@ -1,3 +1,5 @@
+import { HTTPError } from "h3";
+
 export default defineEventHandler((event) => {
-  throw createError({ statusCode: 500, statusMessage: "Test Error" });
+  throw new HTTPError({ status: 500, statusText: "Test Error" });
 });

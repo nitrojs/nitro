@@ -131,7 +131,7 @@ function generateBuildConfig(nitro: Nitro) {
           };
           if (routeRules.redirect) {
             route = defu(route, {
-              status: routeRules.redirect.statusCode,
+              status: routeRules.redirect.status,
               headers: {
                 Location: routeRules.redirect.to.replace("/**", "/$1"),
               },

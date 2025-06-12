@@ -1,4 +1,4 @@
-import { type HTTPMethod, createError, eventHandler } from "h3";
+import { type HTTPMethod, HTTPError, eventHandler } from "h3";
 import type { PublicAsset } from "nitro/types";
 import {
   decodePath,
@@ -54,8 +54,8 @@ export default eventHandler((event) => {
 
   if (!asset) {
     if (isPublicAssetURL(id)) {
-      // removeResponseHeader(event, "Cache-Control");
-      throw createError({ statusCode: 404 });
+      event.res.headers.delete("Cache-Control");
+      throw new HTTPError({ status: 404 });
     }
     return;
   }

@@ -20,12 +20,12 @@ export function defaultHandler(
   opts?: { silent?: boolean; json?: boolean }
 ): InternalHandlerResponse {
   const isSensitive = error.unhandled;
-  const statusCode = error.status || 500;
-  const statusMessage = error.statusText || "Server Error";
+  const status = error.status || 500;
+  const statusText = error.statusText || "Server Error";
   // prettier-ignore
   const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true })
 
-  if (statusCode === 404) {
+  if (status === 404) {
     const baseURL = import.meta.baseURL || "/";
     if (/^\/[^/]/.test(baseURL) && !url.pathname.startsWith(baseURL)) {
       const redirectTo = `${baseURL}${url.pathname.slice(1)}${url.search}`;
@@ -60,25 +60,25 @@ export function defaultHandler(
     // Disable the execution of any js
     "content-security-policy": "script-src 'none'; frame-ancestors 'none';",
   };
-  event.res.status = statusCode;
+  event.res.status = status;
   // @ts-expect-error TODO
-  event.res.statusText = statusMessage;
-  if (statusCode === 404 || !event.res.headers.has("cache-control")) {
+  event.res.statusText = statusText;
+  if (status === 404 || !event.res.headers.has("cache-control")) {
     headers["cache-control"] = "no-cache";
   }
 
   const body = {
     error: true,
     url: url.href,
-    statusCode,
-    statusMessage,
+    status,
+    statusText,
     message: isSensitive ? "Server Error" : error.message,
     data: isSensitive ? undefined : error.data,
   };
 
   return {
-    status: statusCode,
-    statusText: statusMessage,
+    status: status,
+    statusText: statusText,
     headers,
     body,
   };

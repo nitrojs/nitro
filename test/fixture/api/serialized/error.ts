@@ -1,5 +1,7 @@
+import { HTTPError } from "h3";
+
 export default defineEventHandler(() => {
-  return createError({
-    statusCode: 400,
+  return new HTTPError({
+    status: 400,
   });
 });

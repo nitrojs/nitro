@@ -216,8 +216,8 @@ describe("API routes", () => {
 
     expectTypeOf($fetch("/api/serialized/error")).toEqualTypeOf<
       Promise<{
-        statusCode: number;
-        statusMessage?: string;
+        status: number;
+        statusText?: string;
         data?: NonNullable<unknown>;
         message: string;
       }>

@@ -23,7 +23,7 @@ export async function writeRedirects(nitro: Nitro) {
   for (const [key, routeRules] of rules.filter(
     ([_, routeRules]) => routeRules.redirect
   )) {
-    let code = routeRules.redirect!.statusCode;
+    let code = routeRules.redirect!.status;
     // TODO: Remove map when netlify support 307/308
     if (code === 307) {
       code = 302;

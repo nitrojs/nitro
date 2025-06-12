@@ -1,6 +1,6 @@
 import type { IncomingMessage, OutgoingMessage } from "node:http";
 import type { Duplex } from "node:stream";
-import { createError, type H3Event } from "h3";
+import { HTTPError, type H3Event } from "h3";
 import type { HTTPProxy } from "./proxy";
 import { existsSync } from "node:fs";
 import { rm } from "node:fs/promises";
@@ -55,7 +55,7 @@ export class NodeDevWorker implements DevWorker {
 
   async handleEvent(event: H3Event) {
     if (!this.#address || !this.#proxy) {
-      throw createError({
+      throw new HTTPError({
         status: 503,
         statusText: "Dev worker is unavailable",
       });

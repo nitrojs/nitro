@@ -3,7 +3,8 @@ export interface PrerenderRoute {
   contents?: string;
   data?: ArrayBuffer;
   fileName?: string;
-  error?: Error & { statusCode: number; statusMessage: string };
+  // TODO: Use HTTPError
+  error?: Error & { status: number; statusText: string };
   generateTimeMS?: number;
   skip?: boolean;
   contentType?: string;

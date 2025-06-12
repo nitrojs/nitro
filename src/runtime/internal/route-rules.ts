@@ -33,7 +33,7 @@ export function createRouteRulesHandler(hybridFetch: typeof globalThis.fetch) {
       } else if (event.url.search) {
         target = withQuery(target, Object.fromEntries(event.url.searchParams));
       }
-      return redirect(event, target, routeRules.redirect.statusCode);
+      return redirect(event, target, routeRules.redirect.status);
     }
     // Apply proxy options
     if (routeRules.proxy) {

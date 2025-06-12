@@ -3,7 +3,7 @@ import type { ProxyServerOptions, ProxyServer } from "httpxy";
 import type { H3Event } from "h3";
 
 import { createProxyServer } from "httpxy";
-import { createError, fromNodeHandler } from "h3";
+import { HTTPError, fromNodeHandler } from "h3";
 
 export type HTTPProxy = {
   proxy: ProxyServer;
@@ -41,8 +41,8 @@ export function createHTTPProxy(defaults: ProxyServerOptions = {}): HTTPProxy {
         );
       } catch (error: any) {
         event.res.headers.set("refresh", "3");
-        throw createError({
-          statusCode: 503,
+        throw new HTTPError({
+          status: 503,
           message: "Dev server is unavailable.",
           cause: error,
         });

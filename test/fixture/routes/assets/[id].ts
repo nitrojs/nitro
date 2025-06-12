@@ -1,10 +1,12 @@
+import { HTTPError } from "h3";
+
 export default eventHandler(async (event) => {
   const serverAssets = useStorage("assets/server");
 
   const id = event.context.params.id;
 
   if (!(await serverAssets.hasItem(id))) {
-    throw createError({ message: `Asset ${id} not found`, statusCode: 404 });
+    throw new HTTPError({ message: `Asset ${id} not found`, status: 404 });
   }
 
   const meta = (await serverAssets.getMeta(

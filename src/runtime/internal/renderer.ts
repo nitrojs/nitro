@@ -43,9 +43,9 @@ export function defineRenderHandler(render: RenderHandler) {
         event.res.headers.set(key, value);
       }
     }
-    if (ctx.response.statusCode || ctx.response.statusMessage) {
-      event.res.status = ctx.response.statusCode;
-      event.res.statusText = ctx.response.statusMessage;
+    if (ctx.response.status || ctx.response.statusText) {
+      event.res.status = ctx.response.status;
+      event.res.statusText = ctx.response.statusText;
     }
 
     // Send response body

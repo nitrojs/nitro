@@ -158,7 +158,7 @@ export async function writeCFPagesRedirects(nitro: Nitro) {
   for (const [key, routeRules] of rules.filter(
     ([_, routeRules]) => routeRules.redirect
   )) {
-    const code = routeRules.redirect!.statusCode;
+    const code = routeRules.redirect!.status;
     const from = joinURL(nitro.options.baseURL, key.replace("/**", "/*"));
     const to = hasProtocol(routeRules.redirect!.to, { acceptRelative: true })
       ? routeRules.redirect!.to

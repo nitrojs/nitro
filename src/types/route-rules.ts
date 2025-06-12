@@ -2,12 +2,12 @@ import type { ProxyOptions } from "h3";
 import type { ExcludeFunctions, IntRange } from "./_utils";
 import type { CachedEventHandlerOptions } from "./runtime";
 
-export type HTTPStatusCode = IntRange<100, 600>;
+export type HTTPstatus = IntRange<100, 600>;
 
 export interface NitroRouteConfig {
   cache?: ExcludeFunctions<CachedEventHandlerOptions> | false;
   headers?: Record<string, string>;
-  redirect?: string | { to: string; statusCode?: HTTPStatusCode };
+  redirect?: string | { to: string; status?: HTTPstatus };
   prerender?: boolean;
   proxy?: string | ({ to: string } & ProxyOptions);
   isr?: number /* expiration */ | boolean | VercelISRConfig;
@@ -20,7 +20,7 @@ export interface NitroRouteConfig {
 
 export interface NitroRouteRules
   extends Omit<NitroRouteConfig, "redirect" | "cors" | "swr" | "static"> {
-  redirect?: { to: string; statusCode: HTTPStatusCode };
+  redirect?: { to: string; status: HTTPstatus };
   proxy?: { to: string } & ProxyOptions;
 }
 

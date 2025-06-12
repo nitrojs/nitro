@@ -31,7 +31,7 @@ export function normalizeRouteRules(
       routeRules.redirect = {
         // @ts-ignore
         to: "/",
-        statusCode: 307,
+        status: 307,
         ...(typeof routeConfig.redirect === "string"
           ? { to: routeConfig.redirect }
           : routeConfig.redirect),
