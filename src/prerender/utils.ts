@@ -111,7 +111,7 @@ type IgnorePattern =
   | ((path: string) => undefined | null | boolean);
 export function matchesIgnorePattern(path: string, pattern: IgnorePattern) {
   if (typeof pattern === "string") {
-    // TODO: support radix3 patterns
+    // TODO: support rou3 patterns
     return path.startsWith(pattern as string);
   }
 

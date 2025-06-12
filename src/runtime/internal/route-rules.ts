@@ -6,15 +6,17 @@ import {
   proxyRequest,
   redirect,
 } from "h3";
-import type { NitroRouteRules } from "nitro/types";
-import { createRouter as createRadixRouter, toRouteMatcher } from "radix3";
-import { getQuery, joinURL, withQuery, withoutBase } from "ufo";
+import type { NitroRouteConfig, NitroRouteRules } from "nitro/types";
+import { createRouter, addRoute, findAllRoutes } from "rou3";
+import { joinURL, withQuery, withoutBase } from "ufo";
 import { useRuntimeConfig } from "./config";
 
 const config = useRuntimeConfig();
-const _routeRulesMatcher = toRouteMatcher(
-  createRadixRouter({ routes: config.nitro.routeRules })
-);
+
+const routeRules = createRouter<NitroRouteConfig>();
+for (const [route, rules] of Object.entries(config.nitro.routeRules!)) {
+  addRoute(routeRules, undefined, route, rules);
+}
 
 export function createRouteRulesHandler(
   hybridFetch: typeof globalThis.fetch
@@ -87,5 +89,10 @@ type DeepReadonly<T> = T extends Record<string, any>
 export function getRouteRulesForPath(
   path: string
 ): DeepReadonly<NitroRouteRules> {
-  return defu({}, ..._routeRulesMatcher.matchAll(path).reverse());
+  return defu(
+    {},
+    ...findAllRoutes(routeRules, undefined, path)
+      .map((m) => m.data)
+      .reverse()
+  );
 }

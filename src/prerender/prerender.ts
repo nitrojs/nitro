@@ -10,7 +10,7 @@ import type {
   PublicAssetDir,
 } from "nitro/types";
 import { join, relative, resolve } from "pathe";
-import { createRouter as createRadixRouter, toRouteMatcher } from "radix3";
+import { createRouter, addRoute, findAllRoutes } from "rou3";
 import { joinURL, withBase, withoutBase, withTrailingSlash } from "ufo";
 import { build } from "../build/build";
 import { createNitro } from "../nitro";
@@ -103,11 +103,18 @@ export async function prerender(nitro: Nitro) {
   };
 
   // Create route rule matcher
-  const _routeRulesMatcher = toRouteMatcher(
-    createRadixRouter({ routes: nitro.options.routeRules })
-  );
+  const routeRules = createRouter<NitroRouteRules>();
+  for (const [route, rules] of Object.entries(nitro.options.routeRules)) {
+    addRoute(routeRules, undefined, route, rules);
+  }
+
   const _getRouteRules = (path: string) =>
-    defu({}, ..._routeRulesMatcher.matchAll(path).reverse()) as NitroRouteRules;
+    defu(
+      {},
+      ...findAllRoutes(routeRules, undefined, path)
+        .map((r) => r.data)
+        .reverse()
+    ) as NitroRouteRules;
 
   // Start prerendering
   const generatedRoutes = new Set();

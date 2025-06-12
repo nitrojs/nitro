@@ -750,7 +750,8 @@ export function testNitro(
   });
 
   it.skipIf(
-    ["cloudflare-worker", "cloudflare-module-legacy"].includes(ctx.preset)
+    process.env.OFFLINE /* connect */ ||
+      ["cloudflare-worker", "cloudflare-module-legacy"].includes(ctx.preset)
   )("nodejs compatibility", async () => {
     const { data, status } = await callHandler({ url: "/node-compat" });
     expect(status).toBe(200);
