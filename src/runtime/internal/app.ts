@@ -1,5 +1,5 @@
 import destr from "destr";
-import type { H3Error, H3EventContext } from "h3";
+import type { HTTPError, H3EventContext } from "h3";
 import { H3, fetchWithEvent, isEvent, lazyEventHandler } from "h3";
 import { createHooks } from "hookable";
 import type { CaptureError, NitroApp, NitroRuntimeHooks } from "nitro/types";
@@ -41,7 +41,7 @@ function createNitroApp(): NitroApp {
     debug: destr(process.env.DEBUG),
     onError: (error, event) => {
       captureError(error, { event, tags: ["request"] });
-      return errorHandler(error as H3Error, event);
+      return errorHandler(error as HTTPError, event);
     },
     onRequest: async (event) => {
       event.context.nitro = event.context.nitro || { errors: [] };
@@ -78,7 +78,7 @@ function createNitroApp(): NitroApp {
         captureError(error, { event, tags: ["request"] });
       });
     },
-    onBeforeResponse: async (event, response) => {
+    onResponse: async (response, event) => {
       await nitroApp.hooks
         .callHook("beforeResponse", event, response)
         .catch((error) => {

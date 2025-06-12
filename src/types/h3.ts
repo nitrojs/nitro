@@ -15,15 +15,14 @@ export type H3Event$Fetch = Base$Fetch<unknown, NitroFetchRequest>;
 
 declare module "h3" {
   interface H3Event {
-    waitUntil: (promise: Promise<unknown>) => void;
-
     /** @experimental Calls fetch with same context and request headers */
-    fetch: H3EventFetch;
+    fetch?: H3EventFetch;
     /** @experimental Calls fetch with same context and request headers */
-    $fetch: H3Event$Fetch;
+    $fetch?: H3Event$Fetch;
     /** @experimental */
-    captureError: CaptureError;
+    captureError?: CaptureError;
   }
+
   interface H3EventContext {
     nitro?: {
       _waitUntilPromises?: Promise<unknown>[];

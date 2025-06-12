@@ -1,4 +1,4 @@
-import { type H3Event, type H3Error, getRequestURL } from "h3";
+import { type H3Event, type HTTPError, getRequestURL } from "h3";
 import { readFile } from "node:fs/promises";
 import { resolve, dirname } from "node:path";
 import consola from "consola";
@@ -11,6 +11,7 @@ export default defineNitroErrorHandler(
   async function defaultNitroErrorHandler(error, event) {
     const res = await defaultHandler(error, event);
     event.res.status = res.status;
+    // @ts-expect-error TODO
     event.res.statusText = res.statusText;
     for (const [name, value] of Object.entries(res.headers!)) {
       event.res.headers.set(name, value);
@@ -22,13 +23,13 @@ export default defineNitroErrorHandler(
 );
 
 export async function defaultHandler(
-  error: H3Error,
+  error: HTTPError,
   event: H3Event,
   opts?: { silent?: boolean; json?: boolean }
 ): Promise<InternalHandlerResponse> {
-  const isSensitive = error.unhandled || error.fatal;
-  const statusCode = error.statusCode || 500;
-  const statusMessage = error.statusMessage || "Server Error";
+  const isSensitive = error.unhandled;
+  const statusCode = error.status || 500;
+  const statusMessage = error.statusText || "Server Error";
   // prettier-ignore
   const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true })
 
@@ -55,12 +56,12 @@ export async function defaultHandler(
   // Console output
   if (isSensitive && !opts?.silent) {
     // prettier-ignore
-    const tags = [error.unhandled && "[unhandled]", error.fatal && "[fatal]"].filter(Boolean).join(" ")
+    const tags = [error.unhandled && "[unhandled]"].filter(Boolean).join(" ")
     const ansiError = await (
       await youch.toANSI(error)
     ).replaceAll(process.cwd(), ".");
     consola.error(
-      `[request error] ${tags} [${event.method}] ${url}\n\n`,
+      `[request error] ${tags} [${event.req.method}] ${url}\n\n`,
       ansiError
     );
   }

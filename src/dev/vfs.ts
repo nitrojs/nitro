@@ -1,4 +1,4 @@
-import { createError, eventHandler, getRequestIP } from "h3";
+import { HTTPError, eventHandler, getRequestIP } from "h3";
 import type { Nitro } from "nitro/types";
 
 export function createVFSHandler(nitro: Nitro) {
@@ -6,9 +6,9 @@ export function createVFSHandler(nitro: Nitro) {
     const ip = getRequestIP(event, { xForwardedFor: false });
     const isLocalRequest = ip && /^::1$|^127\.\d+\.\d+\.\d+$/.test(ip);
     if (!isLocalRequest) {
-      throw createError({
-        message: `Forbidden IP: "${ip || "?"}"`,
-        statusCode: 403,
+      throw new HTTPError({
+        statusText: `Forbidden IP: "${ip || "?"}"`,
+        status: 403,
       });
     }
 
@@ -17,14 +17,14 @@ export function createVFSHandler(nitro: Nitro) {
       ...nitro.options.virtual,
     };
 
-    const url = event.path || "";
+    const url = event.url.pathname || "";
     const isJson =
       url.endsWith(".json") ||
-      event.headers.get("accept")?.includes("application/json");
+      event.req.headers.get("accept")?.includes("application/json");
     const id = decodeURIComponent(url.replace(/^(\.json)?\/?/, "") || "");
 
     if (id && !(id in vfsEntries)) {
-      throw createError({ message: "File not found", statusCode: 404 });
+      throw new HTTPError({ message: "File not found", status: 404 });
     }
 
     let content = id ? vfsEntries[id] : undefined;

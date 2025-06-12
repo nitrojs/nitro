@@ -16,7 +16,7 @@ export function defineRenderHandler(render: RenderHandler) {
 
     if (!ctx.response /* not handled by hook */) {
       // TODO: Use serve-placeholder
-      if (event.path === `${runtimeConfig.app.baseURL}favicon.ico`) {
+      if (event.url.pathname === `${runtimeConfig.app.baseURL}favicon.ico`) {
         event.res.headers.set("Content-Type", "image/x-icon");
         return "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
       }
@@ -28,7 +28,9 @@ export function defineRenderHandler(render: RenderHandler) {
         event.res.statusText = String(
           _currentStatus === 200 ? 500 : _currentStatus
         );
-        return "No response returned from render handler: " + event.path;
+        return (
+          "No response returned from render handler: " + event.url.pathname
+        );
       }
     }
 

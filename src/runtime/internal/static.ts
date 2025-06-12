@@ -23,7 +23,7 @@ export default eventHandler((event) => {
   }
 
   let id = decodePath(
-    withLeadingSlash(withoutTrailingSlash(parseURL(event.path).pathname))
+    withLeadingSlash(withoutTrailingSlash(event.url.pathname))
   );
 
   let asset: PublicAsset | undefined;
@@ -60,14 +60,14 @@ export default eventHandler((event) => {
     return;
   }
 
-  const ifNotMatch = event.headers.get("if-none-match") === asset.etag;
+  const ifNotMatch = event.req.headers.get("if-none-match") === asset.etag;
   if (ifNotMatch) {
     event.res.status = 304;
     event.res.statusText = "Not Modified";
     return "";
   }
 
-  const ifModifiedSinceH = event.headers.get("if-modified-since");
+  const ifModifiedSinceH = event.req.headers.get("if-modified-since");
   const mtimeDate = new Date(asset.mtime);
   if (
     ifModifiedSinceH &&

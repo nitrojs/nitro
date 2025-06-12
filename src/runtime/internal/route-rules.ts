@@ -24,15 +24,14 @@ export function createRouteRulesHandler(hybridFetch: typeof globalThis.fetch) {
     if (routeRules.redirect) {
       let target = routeRules.redirect.to;
       if (target.endsWith("/**")) {
-        let targetPath = event.path;
+        let targetPath = event.url.pathname + event.url.search;
         const strpBase = (routeRules.redirect as any)._redirectStripBase;
         if (strpBase) {
           targetPath = withoutBase(targetPath, strpBase);
         }
         target = joinURL(target.slice(0, -3), targetPath);
-      } else if (event.path.includes("?")) {
-        const query = getQuery(event.path);
-        target = withQuery(target, query);
+      } else if (event.url.search) {
+        target = withQuery(target, Object.fromEntries(event.url.searchParams));
       }
       return redirect(event, target, routeRules.redirect.statusCode);
     }
@@ -40,15 +39,14 @@ export function createRouteRulesHandler(hybridFetch: typeof globalThis.fetch) {
     if (routeRules.proxy) {
       let target = routeRules.proxy.to;
       if (target.endsWith("/**")) {
-        let targetPath = event.path;
+        let targetPath = event.url.pathname + event.url.search;
         const strpBase = (routeRules.proxy as any)._proxyStripBase;
         if (strpBase) {
           targetPath = withoutBase(targetPath, strpBase);
         }
         target = joinURL(target.slice(0, -3), targetPath);
-      } else if (event.path.includes("?")) {
-        const query = getQuery(event.path);
-        target = withQuery(target, query);
+      } else if (event.url.search) {
+        target = withQuery(target, Object.fromEntries(event.url.searchParams));
       }
       return proxyRequest(event, target, {
         fetch: hybridFetch,
@@ -62,7 +60,7 @@ export function getRouteRules(event: H3Event): NitroRouteRules {
   event.context._nitro = event.context._nitro || {};
   if (!event.context._nitro.routeRules) {
     event.context._nitro.routeRules = getRouteRulesForPath(
-      withoutBase(event.path.split("?")[0], useRuntimeConfig().app.baseURL)
+      withoutBase(event.url.pathname, useRuntimeConfig().app.baseURL)
     );
   }
   return event.context._nitro.routeRules;

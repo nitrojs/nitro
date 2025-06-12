@@ -1,10 +1,11 @@
-import { type H3Error, type H3Event, getRequestURL } from "h3";
+import { type HTTPError, type H3Event, getRequestURL } from "h3";
 import { defineNitroErrorHandler, type InternalHandlerResponse } from "./utils";
 
 export default defineNitroErrorHandler(
   function defaultNitroErrorHandler(error, event) {
     const res = defaultHandler(error, event);
     event.res.status = res.status;
+    // @ts-expect-error TODO
     event.res.statusText = res.statusText;
     for (const [key, value] of Object.entries(res.headers)) {
       event.res.headers.set(key, value);
@@ -14,13 +15,13 @@ export default defineNitroErrorHandler(
 );
 
 export function defaultHandler(
-  error: H3Error,
+  error: HTTPError,
   event: H3Event,
   opts?: { silent?: boolean; json?: boolean }
 ): InternalHandlerResponse {
-  const isSensitive = error.unhandled || error.fatal;
-  const statusCode = error.statusCode || 500;
-  const statusMessage = error.statusMessage || "Server Error";
+  const isSensitive = error.unhandled;
+  const statusCode = error.status || 500;
+  const statusMessage = error.statusText || "Server Error";
   // prettier-ignore
   const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true })
 
@@ -40,8 +41,11 @@ export function defaultHandler(
   // Console output
   if (isSensitive && !opts?.silent) {
     // prettier-ignore
-    const tags = [error.unhandled && "[unhandled]", error.fatal && "[fatal]"].filter(Boolean).join(" ")
-    console.error(`[request error] ${tags} [${event.method}] ${url}\n`, error);
+    const tags = [error.unhandled && "[unhandled]"].filter(Boolean).join(" ")
+    console.error(
+      `[request error] ${tags} [${event.req.method}] ${url}\n`,
+      error
+    );
   }
 
   // Send response
@@ -57,6 +61,7 @@ export function defaultHandler(
     "content-security-policy": "script-src 'none'; frame-ancestors 'none';",
   };
   event.res.status = statusCode;
+  // @ts-expect-error TODO
   event.res.statusText = statusMessage;
   if (statusCode === 404 || !event.res.headers.has("cache-control")) {
     headers["cache-control"] = "no-cache";

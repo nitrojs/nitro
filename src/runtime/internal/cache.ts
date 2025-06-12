@@ -8,11 +8,9 @@ import {
 import { splitSetCookieString } from "cookie-es";
 import type { EventHandlerRequest, EventHandlerResponse, H3Event } from "h3";
 import type {
-  $Fetch,
   CacheEntry,
   CacheOptions,
   CachedEventHandlerOptions,
-  NitroFetchRequest,
   ResponseCacheEntry,
 } from "nitro/types";
 import { parseURL } from "ufo";
@@ -236,7 +234,7 @@ export function defineCachedEventHandler<
         return escapeKey(customKey);
       }
       // Auto-generated key
-      const _path = event.node!.req.url || event.path;
+      const _path = event.url.pathname + event.url.search;
       let _pathname: string;
       try {
         _pathname =
@@ -247,7 +245,7 @@ export function defineCachedEventHandler<
       }
       const _hashedPath = `${_pathname}.${hash(_path)}`;
       const _headers = variableHeaderNames
-        .map((header) => [header, event.node!.req.headers[header]])
+        .map((header) => [header, event.req.headers.get(header)])
         .map(([name, value]) => `${escapeKey(name as string)}.${hash(value)}`);
       return [_hashedPath, ..._headers].join(":");
     },
@@ -420,7 +418,7 @@ export function defineCachedEventHandler<
     _opts
   );
 
-  return defineEventHandler<Request, any>(async (event) => {
+  return defineEventHandler(async (event) => {
     const { res: nodeRes } = event.runtime?.node || {};
 
     // Headers-only mode

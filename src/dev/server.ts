@@ -5,7 +5,7 @@ import type { FSWatcher } from "chokidar";
 import type { Listener, ListenOptions } from "listhen";
 import { NodeDevWorker, type DevWorker, type WorkerAddress } from "./worker";
 import type { Nitro, NitroBuildInfo, NitroDevServer } from "nitro/types";
-import { H3, createError, eventHandler, fromNodeHandler } from "h3";
+import { H3, HTTPError, eventHandler, fromNodeHandler } from "h3";
 import { toNodeHandler } from "srvx/node";
 import {
   default as devErrorHandler,
@@ -262,9 +262,9 @@ class DevServer {
   ) {
     const worker = await this.getWorker();
     if (!worker) {
-      throw createError({
-        statusCode: 503,
-        message: "No worker available.",
+      throw new HTTPError({
+        status: 503,
+        statusText: "No worker available.",
       });
     }
     return worker.handleUpgrade(req, socket, head);
@@ -291,7 +291,7 @@ class DevServer {
       } catch {
         // ignore
       }
-      return createError(error);
+      return new HTTPError(error);
     }
 
     return new Response(
