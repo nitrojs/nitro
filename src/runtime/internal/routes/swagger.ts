@@ -1,10 +1,9 @@
-import type { ReferenceConfiguration } from "@scalar/api-reference";
-import { eventHandler } from "h3";
+import { defineHandler } from "h3";
 import { useRuntimeConfig } from "../config";
 
 // https://github.com/swagger-api/swagger-ui
 
-export default eventHandler((event) => {
+export default defineHandler((event) => {
   const runtimeConfig = useRuntimeConfig(event);
   const title = runtimeConfig.nitro.openAPI?.meta?.title || "API Reference";
   const description = runtimeConfig.nitro.openAPI?.meta?.description || "";

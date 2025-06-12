@@ -1,4 +1,4 @@
-export default defineEventHandler((event) => {
+export default defineHandler((event) => {
   const links = [
     "/404",
     "https://about.google/products/",

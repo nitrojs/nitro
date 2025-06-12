@@ -1,4 +1,4 @@
-export default eventHandler((event) => {
+export default defineHandler((event) => {
   return {
     url: event.path,
     method: event.method,

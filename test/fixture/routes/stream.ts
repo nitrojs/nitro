@@ -1,4 +1,4 @@
-export default eventHandler(() => {
+export default defineHandler(() => {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     start(controller) {

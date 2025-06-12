@@ -1,6 +1,7 @@
+// @ts-nocheck TODO!
 import {
   type EventHandler,
-  defineEventHandler,
+  defineHandler,
   fetchWithEvent,
   handleCacheHeaders,
   isEvent,
@@ -418,7 +419,7 @@ export function defineCachedEventHandler<
     _opts
   );
 
-  return defineEventHandler(async (event) => {
+  return defineHandler(async (event) => {
     const { res: nodeRes } = event.runtime?.node || {};
 
     // Headers-only mode

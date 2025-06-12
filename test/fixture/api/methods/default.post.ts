@@ -1,1 +1,1 @@
-export default defineEventHandler<"Default override">(() => "Default override");
+export default defineHandler(() => "Default override" as const);

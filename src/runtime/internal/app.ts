@@ -1,6 +1,6 @@
 import destr from "destr";
 import type { HTTPError, H3EventContext } from "h3";
-import { H3, fetchWithEvent, isEvent, lazyEventHandler } from "h3";
+import { H3, isEvent, lazyEventHandler } from "h3";
 import { createHooks } from "hookable";
 import type { CaptureError, NitroApp, NitroRuntimeHooks } from "nitro/types";
 import type { NitroAsyncContext } from "nitro/types";
@@ -51,15 +51,6 @@ function createNitroApp(): NitroApp {
         Object.assign(event.context, event.context._platform);
       }
 
-      // Assign bound fetch to context
-      event.fetch = (req, init) =>
-        fetchWithEvent(event, req, init, { fetch: appFetch });
-
-      event.$fetch = (req, init) =>
-        fetchWithEvent(event, req, init as RequestInit, {
-          fetch: $fetch as any,
-        });
-
       event.waitUntil = (promise) => {
         if (!event.context.nitro!._waitUntilPromises) {
           event.context.nitro!._waitUntilPromises = [];
@@ -70,17 +61,13 @@ function createNitroApp(): NitroApp {
         }
       };
 
-      event.captureError = (error, context) => {
-        captureError(error, { event, ...context });
-      };
-
       await nitroApp.hooks.callHook("request", event).catch((error) => {
         captureError(error, { event, tags: ["request"] });
       });
     },
     onResponse: async (response, event) => {
       await nitroApp.hooks
-        .callHook("beforeResponse", event, response)
+        .callHook("response", response, event)
         .catch((error) => {
           captureError(error, { event, tags: ["request", "response"] });
         });
@@ -92,7 +79,7 @@ function createNitroApp(): NitroApp {
     init?: RequestInit,
     ctx?: H3EventContext
   ) => {
-    return Promise.resolve(h3App.fetch(input, init, ctx));
+    return Promise.resolve(h3App._fetch(input, init, ctx));
   };
 
   const hybridFetch: typeof fetch = (input, init) => {

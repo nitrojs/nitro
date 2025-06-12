@@ -1,11 +1,11 @@
-import { eventHandler } from "h3";
+import { defineHandler } from "h3";
 import type { RenderHandler, RenderContext } from "nitro/types";
 import { useNitroApp } from "./app";
 import { useRuntimeConfig } from "./config";
 
 export function defineRenderHandler(render: RenderHandler) {
   const runtimeConfig = useRuntimeConfig();
-  return eventHandler(async (event) => {
+  return defineHandler(async (event) => {
     const nitroApp = useNitroApp();
 
     // Create shared context for hooks

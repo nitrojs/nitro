@@ -5,6 +5,6 @@ const h = (tag: string, props: any, ...children: any[]) => {
     .trim()}>${children.join("")}</${tag}>`;
 };
 
-export default eventHandler(() => {
+export default defineHandler(() => {
   return <h1>Hello JSX!</h1>;
 });

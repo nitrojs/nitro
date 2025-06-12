@@ -5,7 +5,7 @@ import type { FSWatcher } from "chokidar";
 import type { Listener, ListenOptions } from "listhen";
 import { NodeDevWorker, type DevWorker, type WorkerAddress } from "./worker";
 import type { Nitro, NitroBuildInfo, NitroDevServer } from "nitro/types";
-import { H3, HTTPError, eventHandler, fromNodeHandler } from "h3";
+import { H3, HTTPError, defineHandler, fromNodeHandler } from "h3";
 import { toNodeHandler } from "srvx/node";
 import {
   default as devErrorHandler,
@@ -225,6 +225,7 @@ class DevServer {
       // TODO: serve placeholder as fallback
       app.use(
         assetRoute,
+        // @ts-expect-error (HTTP2 types)
         fromNodeHandler(serveStatic(asset.dir, { dotfiles: "allow" }))
       );
     }
@@ -243,7 +244,7 @@ class DevServer {
     // Main handler
     app.all(
       "/**",
-      eventHandler(async (event) => {
+      defineHandler(async (event) => {
         const worker = await this.getWorker();
         if (!worker) {
           return this.#generateError();

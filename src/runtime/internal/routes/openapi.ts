@@ -1,4 +1,4 @@
-import { type HTTPMethod, eventHandler, getRequestURL } from "h3";
+import { type HTTPMethod, defineHandler, getRequestURL } from "h3";
 import type {
   Extensable,
   OpenAPI3,
@@ -13,7 +13,7 @@ import { handlersMeta } from "#nitro-internal-virtual/server-handlers-meta";
 import { useRuntimeConfig } from "../config";
 
 // Served as /_openapi.json
-export default eventHandler((event) => {
+export default defineHandler((event) => {
   const runtimeConfig = useRuntimeConfig(event);
 
   const base = runtimeConfig.app?.baseURL;

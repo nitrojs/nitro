@@ -10,10 +10,9 @@ const nitroApp = useNitroApp();
 
 export const middleware = toNodeHandler(nitroApp.h3App.fetch);
 
+// TODO
 /** @experimental */
-export const websocket = import.meta._websocket
-  ? nitroApp.h3App.websocket
-  : undefined;
+export const websocket = import.meta._websocket ? undefined : undefined;
 
 // Trap unhandled errors
 trapUnhandledNodeErrors();

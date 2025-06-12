@@ -1,3 +1,3 @@
-export default eventHandler((event) => {
+export default defineHandler((event) => {
   return "uploaded!";
 });

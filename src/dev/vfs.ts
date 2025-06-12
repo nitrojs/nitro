@@ -1,8 +1,8 @@
-import { HTTPError, eventHandler, getRequestIP } from "h3";
+import { HTTPError, defineHandler, getRequestIP } from "h3";
 import type { Nitro } from "nitro/types";
 
 export function createVFSHandler(nitro: Nitro) {
-  return eventHandler(async (event) => {
+  return defineHandler(async (event) => {
     const ip = getRequestIP(event, { xForwardedFor: false });
     const isLocalRequest = ip && /^::1$|^127\.\d+\.\d+\.\d+$/.test(ip);
     if (!isLocalRequest) {

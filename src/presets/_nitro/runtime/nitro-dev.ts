@@ -9,7 +9,7 @@ import { Server } from "node:http";
 import { join } from "node:path";
 import nodeCrypto from "node:crypto";
 import { parentPort, threadId } from "node:worker_threads";
-import { defineEventHandler, getRouterParam } from "h3";
+import { defineHandler, getRouterParam } from "h3";
 import wsAdapter from "crossws/adapters/node";
 import { toNodeHandler } from "srvx/node";
 
@@ -53,7 +53,7 @@ if (import.meta._websocket) {
 // Register tasks handlers
 nitroApp.h3App.get(
   "/_nitro/tasks",
-  defineEventHandler(async (event) => {
+  defineHandler(async (event) => {
     const _tasks = await Promise.all(
       Object.entries(tasks).map(async ([name, task]) => {
         const _task = await task.resolve?.();
@@ -69,7 +69,7 @@ nitroApp.h3App.get(
 
 nitroApp.h3App.use(
   "/_nitro/tasks/:name",
-  defineEventHandler(async (event) => {
+  defineHandler(async (event) => {
     const name = getRouterParam(event, "name") as string;
     const body = (await event.req.json().catch(() => ({}))) as Record<
       string,

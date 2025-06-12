@@ -1,1 +1,1 @@
-export default defineEventHandler(() => ({ createdAt: new Date() }));
+export default defineHandler(() => ({ createdAt: new Date() }));

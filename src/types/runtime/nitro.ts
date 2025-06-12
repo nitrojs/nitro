@@ -53,7 +53,7 @@ export interface NitroRuntimeHooks {
   error: CaptureError;
 
   request: NonNullable<H3Config["onRequest"]>;
-  beforeResponse: NonNullable<H3Config["onBeforeResponse"]>;
+  response: NonNullable<H3Config["onResponse"]>;
 
   "render:before": (context: RenderContext) => void;
 

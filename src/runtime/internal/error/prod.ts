@@ -5,7 +5,6 @@ export default defineNitroErrorHandler(
   function defaultNitroErrorHandler(error, event) {
     const res = defaultHandler(error, event);
     event.res.status = res.status;
-    // @ts-expect-error TODO
     event.res.statusText = res.statusText;
     for (const [key, value] of Object.entries(res.headers)) {
       event.res.headers.set(key, value);
@@ -61,7 +60,6 @@ export function defaultHandler(
     "content-security-policy": "script-src 'none'; frame-ancestors 'none';",
   };
   event.res.status = status;
-  // @ts-expect-error TODO
   event.res.statusText = statusText;
   if (status === 404 || !event.res.headers.has("cache-control")) {
     headers["cache-control"] = "no-cache";

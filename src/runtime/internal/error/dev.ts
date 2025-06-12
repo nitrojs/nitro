@@ -11,7 +11,6 @@ export default defineNitroErrorHandler(
   async function defaultNitroErrorHandler(error, event) {
     const res = await defaultHandler(error, event);
     event.res.status = res.status;
-    // @ts-expect-error TODO
     event.res.statusText = res.statusText;
     for (const [name, value] of Object.entries(res.headers!)) {
       event.res.headers.set(name, value);

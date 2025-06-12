@@ -1,9 +1,9 @@
-export default defineLazyEventHandler(async () => {
+export default lazyEventHandler(async () => {
   // @ts-ignore
   const { sum } = await import("unwasm/examples/sum.wasm").then((r) =>
     r.default()
   );
-  return eventHandler(() => {
+  return defineHandler(() => {
     return `2+3=${sum(2, 3)}`;
   });
 });

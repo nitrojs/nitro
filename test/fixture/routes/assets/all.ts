@@ -1,4 +1,4 @@
-export default eventHandler(async (event) => {
+export default defineHandler(async (event) => {
   const serverAssets = useStorage("assets/server");
 
   const keys = await serverAssets.getKeys();

@@ -1,4 +1,4 @@
-export default defineEventHandler((event) => {
+export default defineHandler((event) => {
   setHeader(event, "x-foo", "bar");
   setHeader(event, "x-array", ["foo", "bar"]);
 

@@ -1,1 +1,1 @@
-export default defineEventHandler(() => "foo.get");
+export default defineHandler(() => "foo.get" as const);

@@ -1,1 +1,1 @@
-export default eventHandler(() => ({ message: "Hello API" }));
+export default defineHandler(() => ({ message: "Hello API" }));

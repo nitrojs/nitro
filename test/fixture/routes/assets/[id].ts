@@ -1,6 +1,6 @@
 import { HTTPError } from "h3";
 
-export default eventHandler(async (event) => {
+export default defineHandler(async (event) => {
   const serverAssets = useStorage("assets/server");
 
   const id = event.context.params.id;

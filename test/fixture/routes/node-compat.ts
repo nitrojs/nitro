@@ -44,7 +44,7 @@ const nodeCompatTests = {
   },
 };
 
-export default eventHandler(async (event) => {
+export default defineHandler(async (event) => {
   const results: Record<string, boolean> = {};
   for (const [group, groupTests] of Object.entries(nodeCompatTests)) {
     for (const [name, test] of Object.entries(groupTests)) {

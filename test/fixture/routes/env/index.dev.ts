@@ -1,1 +1,1 @@
-export default eventHandler(() => "dev env");
+export default defineHandler(() => "dev env");

@@ -1,4 +1,4 @@
-import { type HTTPMethod, HTTPError, eventHandler } from "h3";
+import { type HTTPMethod, HTTPError, defineHandler } from "h3";
 import type { PublicAsset } from "nitro/types";
 import {
   decodePath,
@@ -17,7 +17,7 @@ const METHODS = new Set(["HEAD", "GET"] as HTTPMethod[]);
 
 const EncodingMap = { gzip: ".gz", br: ".br" } as const;
 
-export default eventHandler((event) => {
+export default defineHandler((event) => {
   if (event.req.method && !METHODS.has(event.req.method as HTTPMethod)) {
     return;
   }

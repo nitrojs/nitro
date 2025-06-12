@@ -1,6 +1,6 @@
 import { HTTPError } from "h3";
 
-export default defineEventHandler(() => {
+export default defineHandler(() => {
   return new HTTPError({
     status: 400,
   });

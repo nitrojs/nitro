@@ -1,1 +1,1 @@
-export default defineEventHandler<"Index get">(() => "Index get");
+export default defineHandler(() => "Index get" as const);

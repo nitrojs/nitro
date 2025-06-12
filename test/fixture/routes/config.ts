@@ -1,6 +1,6 @@
 const sharedRuntimeConfig = useRuntimeConfig();
 
-export default eventHandler((event) => {
+export default defineHandler((event) => {
   const runtimeConfig = useRuntimeConfig(event);
 
   return {

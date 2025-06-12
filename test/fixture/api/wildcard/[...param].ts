@@ -1,3 +1,3 @@
-export default eventHandler((event) => {
+export default defineHandler((event) => {
   return event.context.params!.param as string;
 });

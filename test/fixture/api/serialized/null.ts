@@ -1,3 +1,3 @@
-export default defineEventHandler(() => {
+export default defineHandler(() => {
   return null;
 });

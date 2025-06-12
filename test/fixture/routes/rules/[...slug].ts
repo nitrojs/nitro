@@ -1,1 +1,1 @@
-export default defineEventHandler((event) => event.path);
+export default defineHandler((event) => event.path);

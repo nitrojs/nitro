@@ -4,6 +4,7 @@ import type { H3Event } from "h3";
 
 import { createProxyServer } from "httpxy";
 import { HTTPError, fromNodeHandler } from "h3";
+import type { IncomingMessage, OutgoingMessage } from "node:http";
 
 export type HTTPProxy = {
   proxy: ProxyServer;
@@ -36,9 +37,9 @@ export function createHTTPProxy(defaults: ProxyServerOptions = {}): HTTPProxy {
     proxy,
     async handleEvent(event, opts) {
       try {
-        return await fromNodeHandler((req, res) => proxy.web(req, res, opts))(
-          event
-        );
+        return await fromNodeHandler((req, res) =>
+          proxy.web(req as IncomingMessage, res as OutgoingMessage, opts)
+        )(event);
       } catch (error: any) {
         event.res.headers.set("refresh", "3");
         throw new HTTPError({

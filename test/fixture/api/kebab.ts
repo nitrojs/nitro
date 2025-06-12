@@ -1,1 +1,1 @@
-export default eventHandler(() => kebabCase("HelloWorld"));
+export default defineHandler(() => kebabCase("HelloWorld"));

@@ -1,4 +1,4 @@
-export default defineEventHandler((event) => {
+export default defineHandler((event) => {
   const links = ["/api/hello", "/api/param/foo.json", "/api/param/foo.css"];
 
   return `<!DOCTYPE html><html>
