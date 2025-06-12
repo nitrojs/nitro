@@ -74,6 +74,14 @@ function createNitroApp(): NitroApp {
     },
   });
 
+  // Experimental async context support
+  if (import.meta._asyncContext) {
+    h3App.use((event, next) => {
+      const ctx: NitroAsyncContext = { request: event.req as Request };
+      return nitroAsyncContext.callAsync(ctx, next);
+    });
+  }
+
   const appFetch = (
     input: string | URL | Request,
     init?: RequestInit,
@@ -121,15 +129,6 @@ function createNitroApp(): NitroApp {
       }
       h3App.on(h.method, h.route, handler);
     }
-  }
-
-  // Experimental async context support
-  if (import.meta._asyncContext) {
-    const _fetch = h3App.fetch;
-    h3App.fetch = (request, init) => {
-      const ctx: NitroAsyncContext = { request: request as any };
-      return nitroAsyncContext.callAsync(ctx, () => _fetch(request, init));
-    };
   }
 
   const app: NitroApp = {

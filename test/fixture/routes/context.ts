@@ -1,4 +1,4 @@
-export default defineHandler(async () => {
+export default defineEventHandler(async () => {
   await Promise.resolve(setTimeout(() => {}, 10));
   return await useTest();
 });
