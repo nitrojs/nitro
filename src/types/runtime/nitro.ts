@@ -1,6 +1,6 @@
 import type { H3, H3Event, H3EventContext, H3Config } from "h3";
 import type { Hookable } from "hookable";
-import type { ServerRequest } from "srvx/types";
+import type { ServerRequest } from "srvx";
 
 export interface NitroApp {
   h3App: H3;
