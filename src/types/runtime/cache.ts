@@ -25,15 +25,16 @@ export interface CacheOptions<T = any, ArgsT extends unknown[] = any[]> {
   base?: string;
 }
 
-export interface ResponseCacheEntry<T = any> {
-  body: T | undefined;
-  code: number;
-  headers: Record<string, string | number | string[] | undefined>;
+export interface ResponseCacheEntry {
+  status: number;
+  statusText: string | undefined;
+  headers: Record<string, string>;
+  body: string | undefined;
 }
 
-export interface CachedEventHandlerOptions<T = any>
+export interface CachedEventHandlerOptions
   extends Omit<
-    CacheOptions<ResponseCacheEntry<T>, [H3Event]>,
+    CacheOptions<ResponseCacheEntry, [H3Event]>,
     "transform" | "validate"
   > {
   headersOnly?: boolean;
