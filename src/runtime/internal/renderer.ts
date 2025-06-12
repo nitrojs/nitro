@@ -1,9 +1,9 @@
-import { defineHandler } from "h3";
+import { defineHandler, type EventHandler } from "h3";
 import type { RenderHandler, RenderContext } from "nitro/types";
 import { useNitroApp } from "./app";
 import { useRuntimeConfig } from "./config";
 
-export function defineRenderHandler(render: RenderHandler) {
+export function defineRenderHandler(render: RenderHandler): EventHandler {
   const runtimeConfig = useRuntimeConfig();
   return defineHandler(async (event) => {
     const nitroApp = useNitroApp();

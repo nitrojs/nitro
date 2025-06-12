@@ -1,4 +1,4 @@
-import { defineHandler } from "h3";
+import { defineHandler, type EventHandler } from "h3";
 import { useRuntimeConfig } from "../config";
 
 // https://github.com/swagger-api/swagger-ui
@@ -43,4 +43,4 @@ export default defineHandler((event) => {
         </script>
       </body>
     </html> `;
-});
+}) as EventHandler;

@@ -1,4 +1,9 @@
-import { type HTTPMethod, defineHandler, getRequestURL } from "h3";
+import {
+  type EventHandler,
+  type HTTPMethod,
+  defineHandler,
+  getRequestURL,
+} from "h3";
 import type {
   Extensable,
   OpenAPI3,
@@ -51,7 +56,7 @@ export default defineHandler((event) => {
     components,
     ...extensible,
   };
-});
+}) as EventHandler;
 
 type OpenAPIGlobals = Pick<OpenAPI3, "components"> & Extensable;
 

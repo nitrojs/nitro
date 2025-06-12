@@ -1,5 +1,11 @@
 import defu from "defu";
-import { type H3Event, defineHandler, proxyRequest, redirect } from "h3";
+import {
+  type EventHandler,
+  type H3Event,
+  defineHandler,
+  proxyRequest,
+  redirect,
+} from "h3";
 import type { NitroRouteRules } from "nitro/types";
 import { createRouter as createRadixRouter, toRouteMatcher } from "radix3";
 import { getQuery, joinURL, withQuery, withoutBase } from "ufo";
@@ -10,7 +16,9 @@ const _routeRulesMatcher = toRouteMatcher(
   createRadixRouter({ routes: config.nitro.routeRules })
 );
 
-export function createRouteRulesHandler(hybridFetch: typeof globalThis.fetch) {
+export function createRouteRulesHandler(
+  hybridFetch: typeof globalThis.fetch
+): EventHandler {
   return defineHandler((event) => {
     // Match route options against path
     const routeRules = getRouteRules(event);

@@ -1,4 +1,9 @@
-import { type HTTPMethod, HTTPError, defineHandler } from "h3";
+import {
+  type EventHandler,
+  type HTTPMethod,
+  HTTPError,
+  defineHandler,
+} from "h3";
 import type { PublicAsset } from "nitro/types";
 import {
   decodePath,
@@ -100,4 +105,4 @@ export default defineHandler((event) => {
   }
 
   return readAsset(id);
-});
+}) as EventHandler;

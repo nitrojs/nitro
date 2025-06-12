@@ -1,5 +1,5 @@
 import type { ApiReferenceConfiguration } from "@scalar/api-reference";
-import { defineHandler } from "h3";
+import { defineHandler, type EventHandler } from "h3";
 import { useRuntimeConfig } from "../config";
 
 // Served as /_scalar
@@ -44,7 +44,7 @@ export default defineHandler((event) => {
         <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
       </body>
     </html>`;
-});
+}) as EventHandler;
 
 const customTheme = /* css */ `/* basic theme */
   .light-mode,
