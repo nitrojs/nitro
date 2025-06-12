@@ -161,6 +161,14 @@ async function scanDir(
     dot: true,
     ignore: nitro.options.ignore,
     absolute: true,
+  }).catch((error) => {
+    if (error?.code === "ENOTDIR") {
+      nitro.logger.warn(
+        `Ignoring \`${join(dir, name)}\`. It must be a directory.`
+      );
+      return [];
+    }
+    throw error;
   });
   return fileNames
     .map((fullPath) => {

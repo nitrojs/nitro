@@ -27,7 +27,9 @@ declare global {
 }
 
 declare global {
-  const defineNitroConfig: (config: NitroConfig) => NitroConfig;
+  const defineNitroConfig: (
+    config: Omit<NitroConfig, "rootDir">
+  ) => Omit<NitroConfig, "rootDir">;
   const defineNitroModule: (definition: NitroModule) => NitroModule;
 }
 

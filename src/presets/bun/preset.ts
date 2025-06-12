@@ -5,7 +5,7 @@ const bun = defineNitroPreset(
     entry: "./runtime/bun",
     serveStatic: true,
     // https://bun.sh/docs/runtime/modules#resolution
-    exportConditions: ["bun", "worker", "node", "import", "default"],
+    exportConditions: ["bun", "node", "import", "default"],
     commands: {
       preview: "bun run ./server/index.mjs",
     },
