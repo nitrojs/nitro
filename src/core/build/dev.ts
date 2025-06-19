@@ -31,14 +31,11 @@ export async function watchDev(nitro: Nitro, rollupConfig: RollupConfig) {
   ]);
 
   const watchReloadEvents = new Set(["add", "addDir", "unlink", "unlinkDir"]);
-  const reloadWatcher = watch(watchPatterns).on(
-    "all",
-    (event) => {
-      if (watchReloadEvents.has(event)) {
-        reload();
-      }
+  const reloadWatcher = watch(watchPatterns).on("all", (event) => {
+    if (watchReloadEvents.has(event)) {
+      reload();
     }
-  );
+  });
 
   nitro.hooks.hook("close", () => {
     rollupWatcher.close();
