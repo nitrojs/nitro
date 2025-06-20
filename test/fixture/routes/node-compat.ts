@@ -36,7 +36,8 @@ const nodeCompatTests = {
   },
   tls: {
     connect: async () => {
-      const socket = nodeTLS.connect(443, "1.1.1.1");
+      // TODO: Use a local TLS server for testing
+      const socket = nodeTLS.connect(443, "example.com");
       await new Promise<void>((r) => socket.on("connect", r));
       socket.end();
       return true;
