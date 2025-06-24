@@ -20,7 +20,6 @@ export function defaultHandler(
 ): InternalHandlerResponse {
   const isSensitive = error.unhandled;
   const status = error.status || 500;
-  const statusText = error.statusText || "Server Error";
   // prettier-ignore
   const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true })
 
@@ -60,7 +59,7 @@ export function defaultHandler(
     "content-security-policy": "script-src 'none'; frame-ancestors 'none';",
   };
   event.res.status = status;
-  event.res.statusText = statusText;
+  event.res.statusText = error.statusText;
   if (status === 404 || !event.res.headers.has("cache-control")) {
     headers["cache-control"] = "no-cache";
   }
@@ -69,14 +68,14 @@ export function defaultHandler(
     error: true,
     url: url.href,
     status,
-    statusText,
+    statusText: error.statusText,
     message: isSensitive ? "Server Error" : error.message,
     data: isSensitive ? undefined : error.data,
   };
 
   return {
-    status: status,
-    statusText: statusText,
+    status,
+    statusText: error.statusText,
     headers,
     body,
   };

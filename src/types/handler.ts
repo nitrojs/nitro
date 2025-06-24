@@ -81,7 +81,7 @@ export type NitroErrorHandler = (
       opts?: { silent?: boolean; json?: boolean }
     ) => MaybePromise<{
       status: number;
-      statusText: string;
+      statusText: string | undefined;
       headers: Record<string, string>;
       body: string | Record<string, any>;
     }>;

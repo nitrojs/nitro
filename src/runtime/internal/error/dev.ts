@@ -28,7 +28,6 @@ export async function defaultHandler(
 ): Promise<InternalHandlerResponse> {
   const isSensitive = error.unhandled;
   const status = error.status || 500;
-  const statusText = error.statusText || "Server Error";
   // prettier-ignore
   const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true })
 
@@ -92,7 +91,7 @@ export async function defaultHandler(
         error: true,
         url,
         status,
-        statusText,
+        statusText: error.statusText,
         message: error.message,
         data: error.data,
         stack: error.stack?.split("\n").map((line) => line.trim()),
@@ -106,8 +105,8 @@ export async function defaultHandler(
       });
 
   return {
-    status: status,
-    statusText: statusText,
+    status,
+    statusText: error.statusText,
     headers,
     body,
   };
