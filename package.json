@@ -161,7 +161,7 @@
     "ultrahtml": "^1.6.0",
     "uncrypto": "^0.1.3",
     "unctx": "^2.4.1",
-    "unenv": "2.0.0-rc.17",
+    "unenv": "^2.0.0-rc.18",
     "unimport": "^5.0.1",
     "unplugin-utils": "^0.2.4",
     "unstorage": "^1.16.0",
