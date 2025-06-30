@@ -123,6 +123,10 @@ describe("nitro:preset:azure", { timeout: 10_000 }, async () => {
               "route": "/api/hey",
             },
             {
+              "rewrite": "/_kong/index.html",
+              "route": "/_kong",
+            },
+            {
               "rewrite": "/_swagger/index.html",
               "route": "/_swagger",
             },
