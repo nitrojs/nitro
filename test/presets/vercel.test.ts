@@ -31,9 +31,6 @@ describe("nitro:preset:vercel", async () => {
               "_swagger/index.html": {
                 "path": "_swagger",
               },
-              "_kong/index.html": {
-                "path": "_kong",
-              },
               "api/hey/index.html": {
                 "path": "api/hey",
               },

@@ -131,10 +131,6 @@ describe("nitro:preset:azure", { timeout: 10_000 }, async () => {
               "route": "/_scalar",
             },
             {
-              "rewrite": "/_kong/index.html",
-              "route": "/_kong",
-            },
-            {
               "rewrite": "/prerender/index.html",
               "route": "/prerender",
             },

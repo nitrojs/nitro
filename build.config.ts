@@ -58,7 +58,6 @@ export default defineBuildConfig({
     ...subpaths.map((subpath) => `nitropack/${subpath}`),
     "firebase-functions",
     "@scalar/api-reference",
-    "@kong/spec-renderer",
   ],
   stubOptions: {
     jiti: {
