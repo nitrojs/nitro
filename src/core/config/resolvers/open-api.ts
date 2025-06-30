@@ -51,6 +51,17 @@ export async function resolveOpenAPIOptions(options: NitroOptions) {
     });
   }
 
+  // Kong Spec Renderer
+  if (options.openAPI?.ui?.kong !== false) {
+    const kongSpecRendererRoute = options.openAPI?.ui?.kong?.route || "/_kong";
+    prerenderRoutes.push(kongSpecRendererRoute);
+    options.handlers.push({
+      route: kongSpecRendererRoute,
+      env: handlersEnv,
+      handler: join(runtimeDir, "internal/routes/kong"),
+    });
+  }
+
   // Prerender
   if (shouldPrerender) {
     options.prerender ??= {} as any;
