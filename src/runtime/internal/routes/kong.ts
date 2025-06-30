@@ -6,31 +6,38 @@ import type { SpecRendererNitroConfig } from "@kong/spec-renderer";
 // Helper function to convert object properties to HTML attributes
 function objectToAttributes(obj: Record<string, any>): string {
   return Object.entries(obj)
-    .filter(([_, value]) => value !== null && value !== undefined && String(value || '').trim() !== '')
+    .filter(
+      ([_, value]) =>
+        value !== null &&
+        value !== undefined &&
+        String(value || "").trim() !== ""
+    )
     .map(([key, value]) => {
       const attrName = kebabCase(key);
       // Always include attribute="value" format for all types including booleans
-      return `${attrName}="${String(value).replace(/"/g, '&quot;')}"`;
+      return `${attrName}="${String(value).replace(/"/g, "&quot;")}"`;
     })
     .filter(Boolean)
-    .join(' ');
+    .join(" ");
 }
 
 export default eventHandler((event) => {
   const runtimeConfig = useRuntimeConfig(event);
   const title = runtimeConfig.nitro.openAPI?.meta?.title || "API Reference";
   const description = runtimeConfig.nitro.openAPI?.meta?.description || "";
-  const openAPIEndpoint = runtimeConfig.nitro.openAPI?.route || "./_openapi.json";
+  const openAPIEndpoint =
+    runtimeConfig.nitro.openAPI?.route || "./_openapi.json";
 
   // https://github.com/Kong/spec-renderer
-  const _config = runtimeConfig.nitro.openAPI?.ui?.kong as SpecRendererNitroConfig & { route?: string };
+  const _config = runtimeConfig.nitro.openAPI?.ui
+    ?.kong as SpecRendererNitroConfig & { route?: string };
   const kongSpecRendererConfig: SpecRendererNitroConfig = {
     ..._config,
     specUrl: openAPIEndpoint,
-    navigationType: 'hash', // use hash navigation for better compatibility
+    navigationType: "hash", // use hash navigation for better compatibility
     hideInsomniaTryIt: true,
     showPoweredBy: true, // Enforce the "Powered by Kong" is always shown
-    basePath: _config?.route || '/_kong',
+    basePath: _config?.route || "/_kong",
   };
 
   const componentAttributes = objectToAttributes(kongSpecRendererConfig);
