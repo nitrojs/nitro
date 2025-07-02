@@ -65,7 +65,7 @@ importers:
         version: 9.1.0
       crossws:
         specifier: ^0.4.1
-        version: 0.4.1(srvx@0.8.0)
+        version: 0.4.1(srvx@0.8.1)
       db0:
         specifier: ^0.3.2
         version: 0.3.2
@@ -100,8 +100,8 @@ importers:
         specifier: ^7.0.0
         version: 7.0.0
       h3:
-        specifier: npm:h3-nightly@2.0.0-20250612-104639-febb832
-        version: h3-nightly@2.0.0-20250612-104639-febb832(crossws@0.4.1(srvx@0.8.0))
+        specifier: 2.0.0-beta.1
+        version: 2.0.0-beta.1(crossws@0.4.1(srvx@0.8.1))
       hookable:
         specifier: ^5.5.3
         version: 5.5.3
@@ -160,8 +160,8 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3(rolldown@1.0.0-beta.20)(rollup@4.44.0)
       rou3:
-        specifier: ^0.7.2
-        version: 0.7.2
+        specifier: ^0.7.3
+        version: 0.7.3
       scule:
         specifier: ^1.3.0
         version: 1.3.0
@@ -178,8 +178,8 @@ importers:
         specifier: ^0.7.4
         version: 0.7.4
       srvx:
-        specifier: ^0.8.0
-        version: 0.8.0
+        specifier: ^0.8.1
+        version: 0.8.1
       std-env:
         specifier: ^3.9.0
         version: 3.9.0
@@ -3182,8 +3182,8 @@ packages:
     resolution: {integrity: sha512-7yAQpD2UMJzLi1Dqv7qFYnPbaPx7ZfFK6PiIxQ4PfkGPyNyl2Ugx+a/umUonmKqjhM4DnfbMvdX6otXq83soQQ==}
     engines: {node: ^12.20 || >= 14.13}
 
-  fetchdts@0.1.4:
-    resolution: {integrity: sha512-ickQgaQs/RbVxaJauBqmpiNSk9wLoxWRsSjDFP6JpiO3MCguqaSRltwL6HF9V9hJr2Prnqq0ic9b2bTBK8LqRA==}
+  fetchdts@0.1.5:
+    resolution: {integrity: sha512-GCxyHdCCUm56atms+sIjOsAENvhebk3HAM1CfzgKCgMRjPUylpkkPmNknsaXe1gDRqM3cJbMhpkXMhCzXSE+Jg==}
 
   figures@6.1.0:
     resolution: {integrity: sha512-d+l3qxjSesT4V7v2fh+QnmFnUWv9lSpjarhShNTgBOfA0ttejbQUAlHLitbjkoRiDulW0OPoQPYIGhIC8ohejg==}
@@ -3426,17 +3426,17 @@ packages:
     resolution: {integrity: sha512-O1Ld7Dr+nqPnmGpdhzLmMTQ4vAsD+rHwMm1NLUmoUFFymBOMKxCCrtDxqdBRYXdeEPEi3SyoR4TizJLQrnKBNA==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
-  h3-nightly@2.0.0-20250612-104639-febb832:
-    resolution: {integrity: sha512-0Jzc7znECaGli/an+6v8arT7ky9T0f3+Tkr5bDT1TuzTaqLR2wcGai/yOaZT5q/hb311bvhXLPQSeXKSklCaHQ==}
+  h3@1.15.3:
+    resolution: {integrity: sha512-z6GknHqyX0h9aQaTx22VZDf6QyZn+0Nh+Ym8O/u0SGSkyF5cuTJYKlc8MkzW3Nzf9LE1ivcpmYC3FUGpywhuUQ==}
+
+  h3@2.0.0-beta.1:
+    resolution: {integrity: sha512-sAhBVWbCi2AzApSLZhk41Rmiz+gjPhoAEqjJ96VH3OwyS3Co2kHVx3FZk0/OCCrzKWzYx3Pwf5WbEKDQ2plifg==}
     engines: {node: '>=20.11.1'}
     peerDependencies:
       crossws: ^0.4.1
     peerDependenciesMeta:
       crossws:
         optional: true
-
-  h3@1.15.3:
-    resolution: {integrity: sha512-z6GknHqyX0h9aQaTx22VZDf6QyZn+0Nh+Ym8O/u0SGSkyF5cuTJYKlc8MkzW3Nzf9LE1ivcpmYC3FUGpywhuUQ==}
 
   has-flag@4.0.0:
     resolution: {integrity: sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==}
@@ -5234,11 +5234,8 @@ packages:
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
     hasBin: true
 
-  rou3@0.6.3:
-    resolution: {integrity: sha512-1HSG1ENTj7Kkm5muMnXuzzfdDOf7CFnbSYFA+H3Fp/rB9lOCxCPgy1jlZxTKyFoC5jJay8Mmc+VbPLYRjzYLrA==}
-
-  rou3@0.7.2:
-    resolution: {integrity: sha512-GQuhKsN8Tp4CJh81PUmLWS6VKlL38P+LIVpE+bW8OlVKuf+ICysK9Cnh8mGWE4wKkPmOQTpB9hvbLk0bRmHsMQ==}
+  rou3@0.7.3:
+    resolution: {integrity: sha512-KKenF/hB2iIhS1ohj226LT+/8uKCBpSMqeS4V1UPN9vad99uLoyIhrULRRB1skaB40LQHcBlSsAi3sT8MaoDDQ==}
 
   run-applescript@7.0.0:
     resolution: {integrity: sha512-9by4Ij99JUr/MCFBUkDKLWK3G9HVXmabKz9U5MlIAIuvuzkiOicRYs8XJLxX+xahD+mLiiCYDqF9dKAgtzKP1A==}
@@ -5412,8 +5409,8 @@ packages:
   spdx-license-ids@3.0.21:
     resolution: {integrity: sha512-Bvg/8F5XephndSK3JffaRqdT+gyhfqIPwDHpX80tJrF8QQRYMo8sNMeaZ2Dp5+jhwKnUmIOyFFQfHRkjJm5nXg==}
 
-  srvx@0.8.0:
-    resolution: {integrity: sha512-pZNni9zfG1Leld6CgHMy5WXCWVgqFpoFtNX4jk9jhHSxAWCNTDonjyFP/RHAjvRbJw1FR6cQFj87Vn6nA/EhYw==}
+  srvx@0.8.1:
+    resolution: {integrity: sha512-whxc91DGEICEa/iqN+0hl51Dlu8U5IZ25f5gZmKR0Q3IAtIvz3XEJ9G+gGIg7r4+gwE9fM1kj43xhJI8mfSw8w==}
     engines: {node: '>=20.16.0'}
 
   stack-trace@0.0.10:
@@ -8813,9 +8810,9 @@ snapshots:
     dependencies:
       uncrypto: 0.1.3
 
-  crossws@0.4.1(srvx@0.8.0):
+  crossws@0.4.1(srvx@0.8.1):
     optionalDependencies:
-      srvx: 0.8.0
+      srvx: 0.8.1
 
   crypt@0.0.2: {}
 
@@ -9453,7 +9450,7 @@ snapshots:
       node-domexception: 1.0.0
       web-streams-polyfill: 3.3.3
 
-  fetchdts@0.1.4: {}
+  fetchdts@0.1.5: {}
 
   figures@6.1.0:
     dependencies:
@@ -9695,15 +9692,6 @@ snapshots:
     dependencies:
       duplexer: 0.1.2
 
-  h3-nightly@2.0.0-20250612-104639-febb832(crossws@0.4.1(srvx@0.8.0)):
-    dependencies:
-      cookie-es: 2.0.0
-      fetchdts: 0.1.4
-      rou3: 0.6.3
-      srvx: 0.8.0
-    optionalDependencies:
-      crossws: 0.4.1(srvx@0.8.0)
-
   h3@1.15.3:
     dependencies:
       cookie-es: 1.2.2
@@ -9715,6 +9703,15 @@ snapshots:
       radix3: 1.1.2
       ufo: 1.6.1
       uncrypto: 0.1.3
+
+  h3@2.0.0-beta.1(crossws@0.4.1(srvx@0.8.1)):
+    dependencies:
+      cookie-es: 2.0.0
+      fetchdts: 0.1.5
+      rou3: 0.7.3
+      srvx: 0.8.1
+    optionalDependencies:
+      crossws: 0.4.1(srvx@0.8.1)
 
   has-flag@4.0.0: {}
 
@@ -11874,9 +11871,7 @@ snapshots:
       '@rollup/rollup-win32-x64-msvc': 4.44.0
       fsevents: 2.3.3
 
-  rou3@0.6.3: {}
-
-  rou3@0.7.2: {}
+  rou3@0.7.3: {}
 
   run-applescript@7.0.0: {}
 
@@ -12094,7 +12089,7 @@ snapshots:
 
   spdx-license-ids@3.0.21: {}
 
-  srvx@0.8.0:
+  srvx@0.8.1:
     dependencies:
       cookie-es: 2.0.0
 
