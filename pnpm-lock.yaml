@@ -100,8 +100,8 @@ importers:
         specifier: ^7.0.0
         version: 7.0.0
       h3:
-        specifier: 2.0.0-beta.1
-        version: 2.0.0-beta.1(crossws@0.4.1(srvx@0.8.1))
+        specifier: npm:h3-nightly@2.0.0-20250702-142007-a8a12f8
+        version: h3-nightly@2.0.0-20250702-142007-a8a12f8(crossws@0.4.1(srvx@0.8.1))
       hookable:
         specifier: ^5.5.3
         version: 5.5.3
@@ -3426,17 +3426,17 @@ packages:
     resolution: {integrity: sha512-O1Ld7Dr+nqPnmGpdhzLmMTQ4vAsD+rHwMm1NLUmoUFFymBOMKxCCrtDxqdBRYXdeEPEi3SyoR4TizJLQrnKBNA==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
-  h3@1.15.3:
-    resolution: {integrity: sha512-z6GknHqyX0h9aQaTx22VZDf6QyZn+0Nh+Ym8O/u0SGSkyF5cuTJYKlc8MkzW3Nzf9LE1ivcpmYC3FUGpywhuUQ==}
-
-  h3@2.0.0-beta.1:
-    resolution: {integrity: sha512-sAhBVWbCi2AzApSLZhk41Rmiz+gjPhoAEqjJ96VH3OwyS3Co2kHVx3FZk0/OCCrzKWzYx3Pwf5WbEKDQ2plifg==}
+  h3-nightly@2.0.0-20250702-142007-a8a12f8:
+    resolution: {integrity: sha512-ICOE7Fb2cVJGYJ6dQDXx4cZ/lYUvIE/izdohpCjy5WwI/YO1beuCnkh4sAdsb95Uvmw9UWMOkdSWGpkfN+yxqg==}
     engines: {node: '>=20.11.1'}
     peerDependencies:
       crossws: ^0.4.1
     peerDependenciesMeta:
       crossws:
         optional: true
+
+  h3@1.15.3:
+    resolution: {integrity: sha512-z6GknHqyX0h9aQaTx22VZDf6QyZn+0Nh+Ym8O/u0SGSkyF5cuTJYKlc8MkzW3Nzf9LE1ivcpmYC3FUGpywhuUQ==}
 
   has-flag@4.0.0:
     resolution: {integrity: sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==}
@@ -9692,6 +9692,15 @@ snapshots:
     dependencies:
       duplexer: 0.1.2
 
+  h3-nightly@2.0.0-20250702-142007-a8a12f8(crossws@0.4.1(srvx@0.8.1)):
+    dependencies:
+      cookie-es: 2.0.0
+      fetchdts: 0.1.5
+      rou3: 0.7.3
+      srvx: 0.8.1
+    optionalDependencies:
+      crossws: 0.4.1(srvx@0.8.1)
+
   h3@1.15.3:
     dependencies:
       cookie-es: 1.2.2
@@ -9703,15 +9712,6 @@ snapshots:
       radix3: 1.1.2
       ufo: 1.6.1
       uncrypto: 0.1.3
-
-  h3@2.0.0-beta.1(crossws@0.4.1(srvx@0.8.1)):
-    dependencies:
-      cookie-es: 2.0.0
-      fetchdts: 0.1.5
-      rou3: 0.7.3
-      srvx: 0.8.1
-    optionalDependencies:
-      crossws: 0.4.1(srvx@0.8.1)
 
   has-flag@4.0.0: {}
 
