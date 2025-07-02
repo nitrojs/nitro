@@ -6,7 +6,14 @@
  * Source: https://github.com/cloudflare/workers-sdk/blob/main/packages/wrangler/src/config/environment.ts
  */
 
-import type { Json } from "miniflare";
+type Literal = string | number | boolean | null;
+/** @source https://github.com/cloudflare/workers-sdk/blob/28ecf853f815005f7c3f2f57557c57d167c14e53/packages/miniflare/src/shared/types.ts#L22 */
+type Json =
+  | Literal
+  | {
+      [key: string]: Json;
+    }
+  | Json[];
 
 /**
  * The `Environment` interface declares all the configuration fields that
