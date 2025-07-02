@@ -107,7 +107,7 @@ function createNitroApp(): NitroApp {
   globalThis.$fetch = $fetch;
 
   // Register route rule handlers
-  h3App.use(createRouteRulesHandler(hybridFetch));
+  h3App.use(createRouteRulesHandler());
 
   // TODO support baseURL
 
