@@ -106,7 +106,9 @@ export async function nitro(nitroConfig?: NitroConfig): Promise<VitePlugin> {
 
       // Resolve nitro entry
       if (id.startsWith("__nitro_entry__")) {
-        return resolveModulePath(nitro.options.entry, { extensions: [".mjs", ".ts" /* local dev */]})
+        return resolveModulePath(nitro.options.entry, {
+          extensions: [".mjs", ".ts" /* local dev */],
+        });
       }
 
       // Run through rollup compatible plugins to resolve virtual modules

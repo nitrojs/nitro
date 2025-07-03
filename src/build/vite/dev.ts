@@ -85,7 +85,7 @@ export class NitroDevEnvironment extends DevEnvironment {
   }
 
   async dispatchFetch(request: Request): Promise<Response> {
-    return this.devServer.app.fetch(request)
+    return this.devServer.app.fetch(request);
   }
 
   override async close() {

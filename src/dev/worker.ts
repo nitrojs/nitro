@@ -47,11 +47,7 @@ export class NodeDevWorker implements DevWorker {
 
   #messageListeners: Set<(data: unknown) => void>;
 
-  constructor(
-    server: DevServer,
-    hooks: WorkerHooks = {},
-
-  ) {
+  constructor(server: DevServer, hooks: WorkerHooks = {}) {
     this.#server = server;
     this.#id = ++server.workerIdCtr;
     this.#hooks = hooks;

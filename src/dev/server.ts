@@ -142,21 +142,18 @@ export class DevServer {
     for (const worker of this.workers) {
       worker.close();
     }
-    const worker = new NodeDevWorker(
-      this,
-      {
-        onClose: (worker, cause) => {
-          this.workerError = cause;
-          const index = this.workers.indexOf(worker);
-          if (index !== -1) {
-            this.workers.splice(index, 1);
-          }
-        },
-        onReady: (worker, addr) => {
-          this.writeBuildInfo(worker, addr);
-        },
-      }
-    );
+    const worker = new NodeDevWorker(this, {
+      onClose: (worker, cause) => {
+        this.workerError = cause;
+        const index = this.workers.indexOf(worker);
+        if (index !== -1) {
+          this.workers.splice(index, 1);
+        }
+      },
+      onReady: (worker, addr) => {
+        this.writeBuildInfo(worker, addr);
+      },
+    });
     if (!worker.closed) {
       this.workers.unshift(worker);
     }
