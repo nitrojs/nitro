@@ -6,7 +6,7 @@ settings:
 
 overrides:
   nitro: link:.
-  undici: ^7.7.0
+  undici: ^7.11.0
 
 importers:
 
