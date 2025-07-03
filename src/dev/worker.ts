@@ -9,6 +9,8 @@ import { Worker } from "node:worker_threads";
 import consola from "consola";
 import { isCI, isTest } from "std-env";
 import { createHTTPProxy } from "./proxy";
+import type { DevMessageListener } from "nitro/types";
+import type { DevServer } from "./server";
 
 export type WorkerAddress = { host: string; port: number; socketPath?: string };
 
@@ -27,23 +29,34 @@ export interface DevWorker {
     socket: OutgoingMessage<IncomingMessage> | Duplex,
     head: any
   ) => void;
+  sendMessage: (message: unknown) => void;
+  onMessage: (listener: DevMessageListener) => void;
+  offMessage: (listener: DevMessageListener) => void;
 }
 
 export class NodeDevWorker implements DevWorker {
   closed: boolean = false;
+
+  #server: DevServer;
   #id: number;
-  #workerDir: string;
   #hooks: WorkerHooks;
 
   #address?: WorkerAddress;
   #proxy?: HTTPProxy;
   #worker?: Worker & { _exitCode?: number };
 
-  constructor(id: number, workerDir: string, hooks: WorkerHooks = {}) {
-    this.#id = id;
-    this.#workerDir = workerDir;
+  #messageListeners: Set<(data: unknown) => void>;
+
+  constructor(
+    server: DevServer,
+    hooks: WorkerHooks = {},
+
+  ) {
+    this.#server = server;
+    this.#id = ++server.workerIdCtr;
     this.#hooks = hooks;
     this.#proxy = createHTTPProxy();
+    this.#messageListeners = new Set(server.messageListeners);
     this.#initWorker();
   }
 
@@ -63,6 +76,23 @@ export class NodeDevWorker implements DevWorker {
     await this.#proxy.handleEvent(event, { target: this.#address });
   }
 
+  sendMessage(message: unknown) {
+    if (!this.#worker) {
+      throw new Error(
+        "Dev worker should be initialized before sending messages."
+      );
+    }
+    this.#worker.postMessage(message);
+  }
+
+  onMessage(listener: DevMessageListener) {
+    this.#messageListeners.add(listener);
+  }
+
+  offMessage(listener: DevMessageListener) {
+    this.#messageListeners.delete(listener);
+  }
+
   handleUpgrade(
     req: IncomingMessage,
     socket: OutgoingMessage<IncomingMessage> | Duplex,
@@ -80,7 +110,7 @@ export class NodeDevWorker implements DevWorker {
   }
 
   #initWorker() {
-    const workerEntryPath = join(this.#workerDir, "index.mjs");
+    const workerEntryPath = join(this.#server.workerDir, "index.mjs");
 
     if (!existsSync(workerEntryPath)) {
       this.close(`worker entry not found in "${workerEntryPath}".`);
@@ -92,6 +122,9 @@ export class NodeDevWorker implements DevWorker {
         ...process.env,
         NITRO_DEV_WORKER_ID: String(this.#id),
       },
+      workerData: {
+        runtimeConfig: this.#server.nitro.options.runtimeConfig,
+      },
     }) as Worker & { _exitCode?: number };
 
     worker.once("exit", (code) => {
@@ -100,6 +133,7 @@ export class NodeDevWorker implements DevWorker {
     });
 
     worker.once("error", (error) => {
+      consola.error(`Worker error:`, error);
       this.close(error);
     });
 
@@ -107,6 +141,9 @@ export class NodeDevWorker implements DevWorker {
       if (message?.address) {
         this.#address = message.address;
         this.#hooks.onReady?.(this, this.#address);
+      }
+      for (const listener of this.#messageListeners) {
+        listener(message);
       }
     });
 

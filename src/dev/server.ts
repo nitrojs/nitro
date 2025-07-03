@@ -4,7 +4,12 @@ import type { GetPortInput } from "get-port-please";
 import type { FSWatcher } from "chokidar";
 import type { Listener, ListenOptions } from "listhen";
 import { NodeDevWorker, type DevWorker, type WorkerAddress } from "./worker";
-import type { Nitro, NitroBuildInfo, NitroDevServer } from "nitro/types";
+import type {
+  DevMessageListener,
+  Nitro,
+  NitroBuildInfo,
+  NitroDevServer,
+} from "nitro/types";
 import { H3, HTTPError, defineHandler, fromNodeHandler } from "h3";
 import { toNodeHandler } from "srvx/node";
 import devErrorHandler, {
@@ -18,7 +23,6 @@ import { writeFile } from "node:fs/promises";
 import { resolve } from "pathe";
 import { watch } from "chokidar";
 import { listen as listhen } from "listhen";
-import { servePlaceholder } from "serve-placeholder";
 import { joinURL } from "ufo";
 import { createVFSHandler } from "./vfs";
 import { debounce } from "perfect-debounce";
@@ -31,6 +35,9 @@ export function createDevServer(nitro: Nitro): NitroDevServer {
     reload: () => devServer.reload(),
     listen: (port, opts) => devServer.listen(port, opts),
     close: () => devServer.close(),
+    sendMessage: (message) => devServer.sendMessage(message),
+    onMessage: (listener) => devServer.onMessage(listener),
+    offMessage: (listener) => devServer.offMessage(listener),
     upgrade: (req, socket, head) => devServer.handleUpgrade(req, socket, head),
     get app() {
       return devServer.app;
@@ -41,9 +48,7 @@ export function createDevServer(nitro: Nitro): NitroDevServer {
   };
 }
 
-let workerIdCtr = 0;
-
-class DevServer {
+export class DevServer {
   nitro: Nitro;
   workerDir: string;
   app: H3;
@@ -52,10 +57,13 @@ class DevServer {
   watcher?: FSWatcher;
   workers: DevWorker[] = [];
 
+  workerIdCtr: number = 0;
   workerError?: unknown;
 
   building?: boolean = true /* assume initial build will start soon */;
   buildError?: unknown;
+
+  messageListeners: Set<DevMessageListener> = new Set();
 
   constructor(nitro: Nitro) {
     this.nitro = nitro;
@@ -134,18 +142,21 @@ class DevServer {
     for (const worker of this.workers) {
       worker.close();
     }
-    const worker = new NodeDevWorker(++workerIdCtr, this.workerDir, {
-      onClose: (worker, cause) => {
-        this.workerError = cause;
-        const index = this.workers.indexOf(worker);
-        if (index !== -1) {
-          this.workers.splice(index, 1);
-        }
-      },
-      onReady: (worker, addr) => {
-        this.writeBuildInfo(worker, addr);
-      },
-    });
+    const worker = new NodeDevWorker(
+      this,
+      {
+        onClose: (worker, cause) => {
+          this.workerError = cause;
+          const index = this.workers.indexOf(worker);
+          if (index !== -1) {
+            this.workers.splice(index, 1);
+          }
+        },
+        onReady: (worker, addr) => {
+          this.writeBuildInfo(worker, addr);
+        },
+      }
+    );
     if (!worker.closed) {
       this.workers.unshift(worker);
     }
@@ -164,6 +175,28 @@ class DevServer {
       }
       await new Promise((resolve) => setTimeout(resolve, 600));
     }
+  }
+
+  sendMessage(message: unknown) {
+    for (const worker of this.workers) {
+      if (!worker.closed) {
+        worker.sendMessage(message);
+      }
+    }
+  }
+
+  onMessage(listener: DevMessageListener) {
+    this.messageListeners.add(listener);
+    for (const worker of this.workers) {
+      worker.onMessage(listener);
+    }
+  }
+
+  offMessage(listener: DevMessageListener) {
+    // this.messageListeners.delete(listener);
+    // for (const worker of this.workers) {
+    //   worker.offMessage(listener);
+    // }
   }
 
   writeBuildInfo(_worker: DevWorker, addr?: WorkerAddress) {

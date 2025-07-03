@@ -2,8 +2,8 @@
   "name": "nitro",
   "version": "3.0.0-beta",
   "description": "Build and Deploy Universal JavaScript Servers",
-  "repository": "nitrojs/nitro",
   "homepage": "https://nitro.build",
+  "repository": "nitrojs/nitro",
   "license": "MIT",
   "type": "module",
   "exports": {
@@ -15,7 +15,8 @@
     "./presets": "./dist/presets/index.mjs",
     "./runtime": "./dist/runtime/index.mjs",
     "./runtime/internal": "./dist/runtime/internal/index.mjs",
-    "./runtime/meta": "./lib/runtime-meta.mjs"
+    "./runtime/meta": "./lib/runtime-meta.mjs",
+    "./vite": "./dist/vite.mjs"
   },
   "bin": {
     "nitro": "./dist/cli/index.mjs",
@@ -27,8 +28,8 @@
   ],
   "scripts": {
     "build": "pnpm gen-presets && unbuild",
-    "dev": "pnpm nitro dev playground",
-    "dev:build": "pnpm nitro build playground",
+    "dev": "pnpm -C playground dev",
+    "dev:build": "pnpm -C playground build",
     "dev:start": "node playground/.output/server/index.mjs",
     "gen-mirror": "pnpm jiti scripts/gen-mirror.ts",
     "gen-node-compat": "pnpm node-ts scripts/gen-node-compat.ts",
@@ -41,9 +42,9 @@
     "release": "pnpm test && pnpm build && changelogen --release && pnpm publish && git push --follow-tags",
     "stub": "unbuild --stub",
     "test": "pnpm lint && pnpm vitest run",
-    "test:rollup": "NITRO_BUILDER=rollup pnpm vitest",
-    "test:rolldown": "NITRO_BUILDER=rolldown pnpm vitest",
     "test:fixture:types": "pnpm stub && jiti ./test/scripts/gen-fixture-types.ts && cd test/fixture && tsc --noEmit",
+    "test:rolldown": "NITRO_BUILDER=rolldown pnpm vitest",
+    "test:rollup": "NITRO_BUILDER=rollup pnpm vitest",
     "test:types": "tsc --noEmit && pnpm test:fixture:types"
   },
   "resolutions": {
@@ -106,7 +107,7 @@
     "serve-placeholder": "^2.0.2",
     "serve-static": "^2.2.0",
     "source-map": "^0.7.4",
-    "srvx": "^0.8.1",
+    "srvx": "^0.8.2",
     "std-env": "^3.9.0",
     "ufo": "^1.6.1",
     "ultrahtml": "^1.6.0",
@@ -160,13 +161,17 @@
   },
   "peerDependencies": {
     "rolldown": "*",
+    "vite": "^7",
     "xml2js": "^0.6.2"
   },
   "peerDependenciesMeta": {
-    "xml2js": {
+    "rolldown": {
       "optional": true
     },
-    "rolldown": {
+    "vite": {
+      "optional": true
+    },
+    "xml2js": {
       "optional": true
     }
   },

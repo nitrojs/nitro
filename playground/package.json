@@ -1,0 +1,12 @@
+{
+  "name": "nitro-playground",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "vite": "*",
+    "nitro": "*"
+  }
+}

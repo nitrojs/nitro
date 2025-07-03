@@ -16,6 +16,8 @@ export interface NitroWorker {
   address: { host: string; port: number; socketPath?: string };
 }
 
+export type DevMessageListener = (data: unknown) => void;
+
 export interface NitroDevServer {
   reload: () => void;
   listen: (
@@ -30,4 +32,7 @@ export interface NitroDevServer {
     socket: OutgoingMessage<IncomingMessage> | Duplex,
     head: Buffer
   ) => void;
+  sendMessage: (message: unknown) => void;
+  onMessage: (listener: DevMessageListener) => void;
+  offMessage: (listener: DevMessageListener) => void;
 }
