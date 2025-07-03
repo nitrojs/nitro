@@ -41,6 +41,9 @@ export async function nitro(nitroConfig?: NitroConfig): Promise<VitePlugin> {
           nitro: {
             consumer: "server",
             build: { rollupOptions },
+            resolve: {
+              noExternal: true,
+            },
             dev: {
               createEnvironment: (name, config) =>
                 createNitroDevEnvironment(name, config, nitro),
