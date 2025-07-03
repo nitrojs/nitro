@@ -56,6 +56,7 @@ export default defineBuildConfig({
     ...[...distSubpaths, ...libSubpaths].map((subpath) => `nitro/${subpath}`),
     "firebase-functions",
     "@scalar/api-reference",
+    "get-port-please", // internal type only
   ],
   stubOptions: {
     jiti: {
