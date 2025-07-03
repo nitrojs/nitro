@@ -8,7 +8,7 @@ import { join } from "pathe";
 import { Worker } from "node:worker_threads";
 import consola from "consola";
 import { isCI, isTest } from "std-env";
-import { createHTTPProxy } from "./proxy";
+import { createHTTPProxy, fetchAddress } from "./proxy";
 import type { DevMessageListener } from "nitro/types";
 import type { DevServer } from "./server";
 
@@ -23,7 +23,7 @@ export interface DevWorker {
   readonly ready: boolean;
   readonly closed: boolean;
   close(): Promise<void>;
-  handleEvent: (event: H3Event) => Promise<void>;
+  fetch: (req: Request) => Promise<Response>;
   handleUpgrade: (
     req: IncomingMessage,
     socket: OutgoingMessage<IncomingMessage> | Duplex,
@@ -62,14 +62,11 @@ export class NodeDevWorker implements DevWorker {
     );
   }
 
-  async handleEvent(event: H3Event) {
+  async fetch(req: Request): Promise<Response> {
     if (!this.#address || !this.#proxy) {
-      throw new HTTPError({
-        status: 503,
-        statusText: "Dev worker is unavailable",
-      });
+      return new Response("Dev worker is unavailable", { status: 503 });
     }
-    await this.#proxy.handleEvent(event, { target: this.#address });
+    return fetchAddress(req, this.#address);
   }
 
   sendMessage(message: unknown) {

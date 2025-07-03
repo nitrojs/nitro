@@ -140,10 +140,13 @@ export async function nitro(nitroConfig?: NitroConfig): Promise<VitePlugin> {
     },
     // Extend Vite dev server with Nitro middleware
     configureServer(server) {
-      server.middlewares.use(async (nodeReq, nodeRes) => {
+      server.middlewares.use(async (nodeReq, nodeRes, next) => {
         const nitroEnv = server.environments.nitro as FetchableDevEnvironment;
         const webReq = new NodeRequest({ req: nodeReq, res: nodeRes });
         const webRes = await nitroEnv.dispatchFetch(webReq);
+        if (webRes.status === 404) {
+          return next();
+        }
         await sendNodeResponse(nodeRes, webRes);
       });
     },

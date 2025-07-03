@@ -278,7 +278,7 @@ export class DevServer {
         if (!worker) {
           return this.#generateError();
         }
-        return worker.handleEvent(event);
+        return worker.fetch(event.req as Request);
       })
     );
 
