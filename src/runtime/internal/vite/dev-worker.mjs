@@ -23,5 +23,3 @@ const runner = new ModuleRunner(
 globalThis.__NITRO_RUNTIME_CONFIG__ = workerData.runtimeConfig;
 
 await runner.import("__nitro_entry__");
-
-console.log("Nitro dev worker started");
