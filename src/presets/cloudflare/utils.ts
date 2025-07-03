@@ -105,7 +105,7 @@ function comparePaths(a: string, b: string) {
   return a.split("/").length - b.split("/").length || a.localeCompare(b);
 }
 
-export async function writeCFPagesHeaders(nitro: Nitro) {
+export async function writeCFHeaders(nitro: Nitro) {
   const headersPath = join(nitro.options.output.dir, "_headers");
   const contents = [];
 
