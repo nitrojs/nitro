@@ -5,15 +5,23 @@ import { resolve } from "node:path";
 import consola from "consola";
 import { NodeRequest, sendNodeResponse } from "srvx/node";
 import { createNitro, prepare } from "../..";
-import { createNitroDevEnvironment } from "./dev";
 import { resolveModulePath } from "exsolve";
 import { getViteRollupConfig } from "./rollup";
 import { buildProduction } from "./prod";
+import { createNitroEnvironment } from "./env";
 
 // https://vite.dev/guide/api-environment-plugins
 // https://vite.dev/guide/api-environment-frameworks.html
 
-export async function nitro(nitroConfig?: NitroConfig): Promise<VitePlugin> {
+export interface NitroPluginConfig {
+  config?: NitroConfig;
+  nitro?: Nitro;
+  apps?: Record<string, string>;
+}
+
+export async function nitro(
+  pluginOptions: NitroPluginConfig = {}
+): Promise<VitePlugin> {
   let nitro: Nitro;
   let rollupConfig: ReturnType<typeof getViteRollupConfig>;
 
@@ -26,11 +34,13 @@ export async function nitro(nitroConfig?: NitroConfig): Promise<VitePlugin> {
     // Extend vite config before it's resolved
     async config(userConfig, configEnv) {
       // Initialize a new Nitro instance
-      nitro = await createNitro({
-        dev: configEnv.mode === "development",
-        rootDir: userConfig.root,
-        ...nitroConfig,
-      });
+      nitro =
+        nitro ||
+        (await createNitro({
+          dev: configEnv.mode === "development",
+          rootDir: userConfig.root,
+          ...pluginOptions.config,
+        }));
 
       // Cleanup build directories
       await prepare(nitro);
@@ -59,38 +69,18 @@ export async function nitro(nitroConfig?: NitroConfig): Promise<VitePlugin> {
 
         // Add Nitro as a Vite environment
         environments: {
-          nitro: {
-            consumer: "server",
-            build: {
-              rollupOptions: rollupConfig.config,
-              minify: nitro.options.minify,
-              commonjsOptions: {
-                strictRequires: "auto", // TODO: set to true (default) in v3
-                esmExternals: (id) => !id.startsWith("unenv/"),
-                requireReturnsDefault: "auto",
-                ...(nitro.options.commonJS as any),
-              },
-            },
-            resolve: {
-              noExternal: nitro.options.dev ? undefined : true,
-              conditions: nitro.options.exportConditions,
-              externalConditions: nitro.options.exportConditions,
-              // https://github.com/vitejs/vite/pull/17583 (seems not effective)
-              // alias: rollupOptions._base.aliases,
-            },
-            dev: {
-              createEnvironment: (name, config) =>
-                createNitroDevEnvironment(name, config, nitro),
-            },
-          },
+          nitro: createNitroEnvironment(nitro, rollupConfig),
         },
+
         resolve: {
           // TODO: environment specific aliases not working
           alias: rollupConfig.base.aliases,
         },
+
         build: {
           outDir: publicDistDir,
         },
+
         builder: {
           async buildApp(builder) {
             // Build all environments before to the final Nitro server bundle
@@ -115,12 +105,26 @@ export async function nitro(nitroConfig?: NitroConfig): Promise<VitePlugin> {
         },
       };
     },
-    // Extend environment configs before they are resolved
-    async configEnvironment(name, config) {},
+
     // Full reload Server routes on hot update
     handleHotUpdate(context) {
       context.server.hot.send({ type: "full-reload" });
     },
+
+    // Extend Vite dev server with Nitro middleware
+    configureServer(server) {
+      // return () => { /* defer */
+      server.middlewares.use(async (nodeReq, nodeRes, next) => {
+        const nitroEnv = server.environments.nitro as FetchableDevEnvironment;
+        const webReq = new NodeRequest({ req: nodeReq, res: nodeRes });
+        const webRes = await nitroEnv.dispatchFetch(webReq);
+        return webRes.status === 404
+          ? next()
+          : await sendNodeResponse(nodeRes, webRes);
+      });
+      // };
+    },
+
     async resolveId(id, importer, options) {
       // Only apply to Nitro environment
       if (this.environment.name !== "nitro") return;
@@ -158,19 +162,6 @@ export async function nitro(nitroConfig?: NitroConfig): Promise<VitePlugin> {
           return resolved;
         }
       }
-    },
-    // Extend Vite dev server with Nitro middleware
-    configureServer(server) {
-      // return () => { /* defer */
-      server.middlewares.use(async (nodeReq, nodeRes, next) => {
-        const nitroEnv = server.environments.nitro as FetchableDevEnvironment;
-        const webReq = new NodeRequest({ req: nodeReq, res: nodeRes });
-        const webRes = await nitroEnv.dispatchFetch(webReq);
-        return webRes.status === 404
-          ? next()
-          : await sendNodeResponse(nodeRes, webRes);
-      });
-      // };
     },
   };
 }

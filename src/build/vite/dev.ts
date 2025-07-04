@@ -90,9 +90,10 @@ export class NitroDevEnvironment extends FetchableDevEnvironment {
   ) {
     super(name, config, context, devServer.app.fetch);
     this.nitro = nitro;
+    this.devServer = devServer;
   }
 
-  async init(...args: any[]): Promise<void> {
+  override async init(...args: any[]): Promise<void> {
     await this.nitro.hooks.callHook("dev:reload", {
       entry: resolve(runtimeDir, "internal/vite/dev-worker.mjs"),
     });
