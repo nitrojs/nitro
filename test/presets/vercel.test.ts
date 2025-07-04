@@ -25,6 +25,9 @@ describe("nitro:preset:vercel", async () => {
         expect(config).toMatchInlineSnapshot(`
           {
             "overrides": {
+              "_kong/index.html": {
+                "path": "_kong",
+              },
               "_scalar/index.html": {
                 "path": "_scalar",
               },

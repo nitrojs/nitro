@@ -1,4 +1,5 @@
 import type { ApiReferenceConfiguration as ScalarConfig } from "@scalar/api-reference";
+import type { SpecRendererNitroConfig as KongConfig } from "@kong/spec-renderer";
 
 /**
  * Nitro OpenAPI configuration
@@ -55,5 +56,18 @@ export interface NitroOpenAPIConfig {
            */
           route?: string;
         };
+    /**
+     * Kong Spec Renderer UI configuration
+     */
+    kong?:
+      | false
+      | (Partial<KongConfig> & {
+          /**
+           * Kong Spec Renderer UI route
+           *
+           * Default is `/_kong`
+           */
+          route?: string;
+        });
   };
 }
