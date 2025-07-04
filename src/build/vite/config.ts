@@ -26,7 +26,7 @@ import { baseBuildPlugins } from "../plugins";
 
 export const getViteRollupConfig = (
   nitro: Nitro
-): RollupConfig & { _base: BaseBuildConfig } => {
+): { config: RollupConfig; base: BaseBuildConfig } => {
   const base = baseBuildConfig(nitro);
 
   const chunkNamePrefixes = [
@@ -46,7 +46,6 @@ export const getViteRollupConfig = (
   }
 
   let config = {
-    _base: base,
     input: nitro.options.entry,
     external: [...base.env.external],
     plugins: [
@@ -124,13 +123,12 @@ export const getViteRollupConfig = (
         constBindings: true,
       },
       sanitizeFileName: sanitizeFilePath,
-      sourcemap: nitro.options.sourceMap,
       sourcemapExcludeSources: true,
       sourcemapIgnoreList(relativePath) {
         return relativePath.includes("node_modules");
       },
     },
-  } satisfies RollupConfig & { _base: BaseBuildConfig };
+  } satisfies RollupConfig;
 
   config = defu(nitro.options.rollupConfig as any, config);
 
@@ -154,5 +152,5 @@ export const getViteRollupConfig = (
     );
   }
 
-  return config;
+  return { config, base };
 };

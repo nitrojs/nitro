@@ -13,7 +13,7 @@ import { getViteRollupConfig } from "./config";
 
 export async function nitro(nitroConfig?: NitroConfig): Promise<VitePlugin> {
   let nitro: Nitro;
-  let rollupOptions: ReturnType<typeof getViteRollupConfig>;
+  let rollupConfig: ReturnType<typeof getViteRollupConfig>;
 
   return {
     name: "nitro",
@@ -21,7 +21,7 @@ export async function nitro(nitroConfig?: NitroConfig): Promise<VitePlugin> {
     // Opt-in this plugin into the shared plugins pipeline
     sharedDuringBuild: true,
 
-    // Modify vite config before it's resolved
+    // Extend vite config before it's resolved
     async config(userConfig, configEnv) {
       // Initialize a new Nitro instance
       nitro = await createNitro({
@@ -30,18 +30,28 @@ export async function nitro(nitroConfig?: NitroConfig): Promise<VitePlugin> {
         ...nitroConfig,
       });
 
-      // Prepare build directories
+      // Cleanup build directories
       await prepare(nitro);
 
+      // Determine default Vite dist directory
+      const publicDistDir =
+        userConfig.build?.outDir || resolve(nitro.options.buildDir, "public");
+      nitro.options.publicAssets.push({
+        dir: publicDistDir,
+        maxAge: 0,
+        baseURL: "/",
+        fallthrough: true,
+      });
+
       // Resolve common rollup options
-      rollupOptions = await getViteRollupConfig(nitro);
+      rollupConfig = await getViteRollupConfig(nitro);
 
       return {
         environments: {
           nitro: {
             consumer: "server",
             build: {
-              rollupOptions,
+              rollupOptions: rollupConfig.config,
               minify: nitro.options.minify,
               commonjsOptions: {
                 strictRequires: "auto", // TODO: set to true (default) in v3
@@ -65,22 +75,24 @@ export async function nitro(nitroConfig?: NitroConfig): Promise<VitePlugin> {
         },
         resolve: {
           // TODO: environment specific aliases not working
-          alias: rollupOptions._base.aliases,
+          alias: rollupConfig.base.aliases,
+        },
+        build: {
+          outDir: publicDistDir,
         },
         builder: {
           async buildApp(builder) {
+            const nitroEnv = builder.environments.nitro;
+
             // Build all environments before to the final Nitro server bundle
             await Promise.all(
-              Object.keys(builder.environments)
-                .filter((env) => env !== "nitro")
-                .map(
-                  (envName) =>
-                    [
-                      envName,
-                      builder.build(builder.environments[envName]),
-                    ] as const
-                )
+              Object.values(builder.environments).map(
+                (env) => env !== nitroEnv && builder.build(env)
+              )
             );
+
+            // Build the Nitro server bundle
+            await builder.build(nitroEnv);
 
             // Copy public assets to the final output directory
             await copyPublicAssets(nitro);
@@ -88,16 +100,13 @@ export async function nitro(nitroConfig?: NitroConfig): Promise<VitePlugin> {
             // Prerender routes if configured
             await prerender(nitro);
 
-            // Build the Nitro server bundle
-            await builder.build(builder.environments.nitro);
-
             // Close the Nitro instance
             await nitro.close();
           },
         },
       };
     },
-    // Modify environment configs before they are resolved
+    // Extend environment configs before they are resolved
     async configEnvironment(name, config) {
       // Prepare other environments for Nitro
       // TODO: Should we opt-in or opt-out envs with a flag indicator?
@@ -105,12 +114,9 @@ export async function nitro(nitroConfig?: NitroConfig): Promise<VitePlugin> {
         return;
       }
       if (config.consumer === "client") {
-        // Merge client env outputs into single directory to bundle by Nitro
-        return {
-          build: {
-            outDir: resolve(nitro.options.buildDir, "vite/public"),
-          },
-        };
+        if (config.build?.outDir) {
+          // TODO
+        }
       } else if (config.consumer === "server") {
         // Build server envs into temp directory to resolve
         return {
@@ -132,7 +138,7 @@ export async function nitro(nitroConfig?: NitroConfig): Promise<VitePlugin> {
       }
 
       // Run through rollup compatible plugins to resolve virtual modules
-      for (const plugin of rollupOptions.plugins as RollupPlugin[]) {
+      for (const plugin of rollupConfig.config.plugins as RollupPlugin[]) {
         if (typeof plugin.resolveId !== "function") continue;
         const resolved = await plugin.resolveId.call(
           this,
@@ -150,7 +156,7 @@ export async function nitro(nitroConfig?: NitroConfig): Promise<VitePlugin> {
       if (this.environment.name !== "nitro") return;
 
       // Run through rollup compatible plugins to load virtual modules
-      for (const plugin of rollupOptions.plugins as RollupPlugin[]) {
+      for (const plugin of rollupConfig.config.plugins as RollupPlugin[]) {
         if (typeof plugin.load !== "function") continue;
         const resolved = await plugin.load.call(this, id);
         if (resolved) {
@@ -160,15 +166,15 @@ export async function nitro(nitroConfig?: NitroConfig): Promise<VitePlugin> {
     },
     // Extend Vite dev server with Nitro middleware
     configureServer(server) {
-      server.middlewares.use(async (nodeReq, nodeRes, next) => {
-        const nitroEnv = server.environments.nitro as FetchableDevEnvironment;
-        const webReq = new NodeRequest({ req: nodeReq, res: nodeRes });
-        const webRes = await nitroEnv.dispatchFetch(webReq);
-        if (webRes.status === 404) {
-          return next();
-        }
-        await sendNodeResponse(nodeRes, webRes);
-      });
+      // defer as last middleware
+      return () => {
+        server.middlewares.use(async (nodeReq, nodeRes) => {
+          const nitroEnv = server.environments.nitro as FetchableDevEnvironment;
+          const webReq = new NodeRequest({ req: nodeReq, res: nodeRes });
+          const webRes = await nitroEnv.dispatchFetch(webReq);
+          await sendNodeResponse(nodeRes, webRes);
+        });
+      };
     },
   };
 }
