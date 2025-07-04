@@ -103,7 +103,7 @@ export class NodeDevWorker implements DevWorker {
   }
 
   #initWorker() {
-    const workerEntryPath = join(this.#server.workerDir, "index.mjs");
+    const workerEntryPath = this.#server.workerEntry;
 
     if (!existsSync(workerEntryPath)) {
       this.close(`worker entry not found in "${workerEntryPath}".`);

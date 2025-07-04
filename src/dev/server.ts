@@ -50,7 +50,7 @@ export function createDevServer(nitro: Nitro): NitroDevServer {
 
 export class DevServer {
   nitro: Nitro;
-  workerDir: string;
+  workerEntry: string;
   app: H3;
   listeners: Listener[] = [];
   reloadPromise?: Promise<void>;
@@ -68,9 +68,10 @@ export class DevServer {
   constructor(nitro: Nitro) {
     this.nitro = nitro;
 
-    this.workerDir = resolve(
+    this.workerEntry = resolve(
       nitro.options.output.dir,
-      nitro.options.output.serverDir
+      nitro.options.output.serverDir,
+      "index.mjs"
     );
 
     this.app = this.createApp();
@@ -82,9 +83,12 @@ export class DevServer {
       this.buildError = undefined;
     });
 
-    nitro.hooks.hook("dev:reload", () => {
+    nitro.hooks.hook("dev:reload", (payload) => {
       this.buildError = undefined;
       this.building = false;
+      if (payload?.entry) {
+        this.workerEntry = payload.entry;
+      }
       this.reload();
     });
 
@@ -190,10 +194,10 @@ export class DevServer {
   }
 
   offMessage(listener: DevMessageListener) {
-    // this.messageListeners.delete(listener);
-    // for (const worker of this.workers) {
-    //   worker.offMessage(listener);
-    // }
+    this.messageListeners.delete(listener);
+    for (const worker of this.workers) {
+      worker.offMessage(listener);
+    }
   }
 
   writeBuildInfo(_worker: DevWorker, addr?: WorkerAddress) {
