@@ -25,8 +25,6 @@ export default defineHandler(async (event) => {
         align-items: center;
         height: 100vh;
         margin: 0;
-        color: white;
-        background-color:rgb(59, 59, 59);
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
       }
       #app {
@@ -57,7 +55,9 @@ export default defineHandler(async (event) => {
       <h1>Vite + Nitro</h1>
     </div>
     <script module>
-      move(document.querySelector('#app'));
+      document.addEventListener('click', () => {
+        move(document.querySelector('#app'));
+      });
 
       function move(el) {
         const rect = el.getBoundingClientRect();
