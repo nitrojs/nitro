@@ -17,7 +17,7 @@ export default defineHandler(async (event) => {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite ＋ Nitro</title>
+    <title>Vite 🤜🤛 Nitro</title>
     <style>
       body {
         display: flex;
@@ -38,10 +38,21 @@ export default defineHandler(async (event) => {
         align-items: center;
         justify-content: center;
         font-size: 150px;
-        font-weight: bold;
-        color:rgb(255, 255, 255);
         text-align: center;
         user-select: none;
+      }
+      #plus {
+        display: inline-block;
+        /* animation: rotate 5s linear infinite; */
+      }
+
+      @keyframes rotate {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
       }
     </style>
   </head>
@@ -52,32 +63,8 @@ export default defineHandler(async (event) => {
         <span id="plus">＋</span>
         <img src="${nitroLogo}" alt="Nitro logo" width="200" />
       </div>
-      <h1>Vite + Nitro</h1>
+      <h1>Vite 🤜🤛 Nitro</h1>
     </div>
-    <script module>
-      document.addEventListener('click', () => {
-        move(document.querySelector('#app'));
-      });
-
-      function move(el) {
-        const rect = el.getBoundingClientRect();
-        let x = rect.left, y = rect.top;
-        let dx = Math.random() > 0.5 ? 4 : -4, dy = Math.random() > 0.5 ? 4 : -4;
-        const m = () => {
-          const w = window.innerWidth - el.offsetWidth;
-          const h = window.innerHeight - el.offsetHeight;
-          x += dx;
-          y += dy;
-          if (x <= 0 || x >= w) dx *= -1;
-          if (y <= 0 || y >= h) dy *= -1;
-          el.style.left = x + 'px';
-          el.style.top = y + 'px';
-          requestAnimationFrame(m);
-        }
-        el.style.position = 'absolute';
-        m()
-      }
-    </script>
   </body>
 </html>
   `
