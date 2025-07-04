@@ -7,7 +7,7 @@ import {
   enableNodeCompat,
   writeWranglerConfig,
   writeCFRoutes,
-  writeCFPagesHeaders,
+  writeCFHeaders,
   writeCFPagesRedirects,
 } from "./utils";
 
@@ -51,7 +51,7 @@ const cloudflarePages = defineNitroPreset(
       async compiled(nitro: Nitro) {
         await writeWranglerConfig(nitro, "pages");
         await writeCFRoutes(nitro);
-        await writeCFPagesHeaders(nitro);
+        await writeCFHeaders(nitro);
         await writeCFPagesRedirects(nitro);
       },
     },
@@ -76,7 +76,7 @@ const cloudflarePagesStatic = defineNitroPreset(
     },
     hooks: {
       async compiled(nitro: Nitro) {
-        await writeCFPagesHeaders(nitro);
+        await writeCFHeaders(nitro);
         await writeCFPagesRedirects(nitro);
       },
     },
@@ -119,6 +119,7 @@ const cloudflareModule = defineNitroPreset(
       },
       async compiled(nitro: Nitro) {
         await writeWranglerConfig(nitro, "module");
+        await writeCFHeaders(nitro);
 
         await writeFile(
           resolve(nitro.options.output.dir, "package.json"),
