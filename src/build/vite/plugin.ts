@@ -117,6 +117,10 @@ export async function nitro(nitroConfig?: NitroConfig): Promise<VitePlugin> {
     },
     // Extend environment configs before they are resolved
     async configEnvironment(name, config) {},
+    // Full reload Server routes on hot update
+    handleHotUpdate(context) {
+      context.server.hot.send({ type: "full-reload" });
+    },
     async resolveId(id, importer, options) {
       // Only apply to Nitro environment
       if (this.environment.name !== "nitro") return;

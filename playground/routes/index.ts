@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import { defineHandler, html } from "h3";
 
 // @ts-ignore
@@ -7,17 +8,16 @@ import viteLogo from "../assets/vite.svg";
 // @ts-ignore
 import nitroLogo from "../assets/nitro.svg";
 // const viteLogo = "https://vitejs.dev/logo.svg";
-
 export default defineHandler(async (event) => {
   return html(
     event,
-    /* html */ `
-  <!doctype html>
+    /* html */ `<!doctype html>
 <html lang="en">
   <head>
+    ${import.meta.hot ? '<script type="module" src="/@vite/client"></script>' : ""}
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + Nitro</title>
+    <title>Vite + Nitro!</title>
     <style>
       body {
         display: flex;
