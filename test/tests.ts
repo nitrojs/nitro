@@ -334,7 +334,7 @@ export function testNitro(
           headers: { "Accept-Encoding": "" },
         })
       ).headers;
-      if (headers["vary"]) 
+      if (headers["vary"])
         expect(
           headers["vary"].includes("Origin") &&
             headers["vary"].includes("Accept-Encoding")
