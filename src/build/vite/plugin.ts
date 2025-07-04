@@ -2,11 +2,13 @@ import type { FetchableDevEnvironment, Plugin as VitePlugin } from "vite";
 import type { Plugin as RollupPlugin } from "rollup";
 import type { Nitro, NitroConfig } from "nitro/types";
 import { resolve } from "node:path";
+import consola from "consola";
 import { NodeRequest, sendNodeResponse } from "srvx/node";
-import { copyPublicAssets, createNitro, prepare, prerender } from "../..";
+import { createNitro, prepare } from "../..";
 import { createNitroDevEnvironment } from "./dev";
 import { resolveModulePath } from "exsolve";
-import { getViteRollupConfig } from "./config";
+import { getViteRollupConfig } from "./rollup";
+import { buildProduction } from "./prod";
 
 // https://vite.dev/guide/api-environment-plugins
 // https://vite.dev/guide/api-environment-frameworks.html
@@ -35,7 +37,9 @@ export async function nitro(nitroConfig?: NitroConfig): Promise<VitePlugin> {
 
       // Determine default Vite dist directory
       const publicDistDir =
-        userConfig.build?.outDir || resolve(nitro.options.buildDir, "public");
+        userConfig.build?.outDir ||
+        resolve(nitro.options.buildDir, "vite/public");
+
       nitro.options.publicAssets.push({
         dir: publicDistDir,
         maxAge: 0,
@@ -43,10 +47,17 @@ export async function nitro(nitroConfig?: NitroConfig): Promise<VitePlugin> {
         fallthrough: true,
       });
 
+      // Call build:before hook **before resolving rollup config** for compatibility
+      await nitro.hooks.callHook("build:before", nitro);
+
       // Resolve common rollup options
       rollupConfig = await getViteRollupConfig(nitro);
 
       return {
+        // Don't include HTML middlewares
+        appType: userConfig.appType || "custom",
+
+        // Add Nitro as a Vite environment
         environments: {
           nitro: {
             consumer: "server",
@@ -82,50 +93,30 @@ export async function nitro(nitroConfig?: NitroConfig): Promise<VitePlugin> {
         },
         builder: {
           async buildApp(builder) {
-            const nitroEnv = builder.environments.nitro;
-
             // Build all environments before to the final Nitro server bundle
-            await Promise.all(
-              Object.values(builder.environments).map(
-                (env) => env !== nitroEnv && builder.build(env)
-              )
-            );
+            for (const [name, env] of Object.entries(builder.environments)) {
+              // prettier-ignore
+              const fmtName = name.length <= 3 ? name.toUpperCase() : name[0].toUpperCase() + name.slice(1);
+              if (name === "nitro") continue;
+              if (!env.config.build.rollupOptions.input) {
+                // If the environment is a server environment and has no input, skip it
+                consola.warn(
+                  `Skipping build for \`${fmtName}\` as it has no input.`
+                );
+                continue;
+              }
+              consola.start(`Building \`${fmtName}\`...`);
+              await builder.build(env);
+            }
 
-            // Build the Nitro server bundle
-            await builder.build(nitroEnv);
-
-            // Copy public assets to the final output directory
-            await copyPublicAssets(nitro);
-
-            // Prerender routes if configured
-            await prerender(nitro);
-
-            // Close the Nitro instance
-            await nitro.close();
+            // Nitro build
+            await buildProduction(nitro, builder);
           },
         },
       };
     },
     // Extend environment configs before they are resolved
-    async configEnvironment(name, config) {
-      // Prepare other environments for Nitro
-      // TODO: Should we opt-in or opt-out envs with a flag indicator?
-      if (name === "nitro") {
-        return;
-      }
-      if (config.consumer === "client") {
-        if (config.build?.outDir) {
-          // TODO
-        }
-      } else if (config.consumer === "server") {
-        // Build server envs into temp directory to resolve
-        return {
-          build: {
-            outDir: resolve(nitro.options.buildDir, "vite/env", name),
-          },
-        };
-      }
-    },
+    async configEnvironment(name, config) {},
     async resolveId(id, importer, options) {
       // Only apply to Nitro environment
       if (this.environment.name !== "nitro") return;
@@ -133,7 +124,7 @@ export async function nitro(nitroConfig?: NitroConfig): Promise<VitePlugin> {
       // Resolve nitro entry
       if (id.startsWith("__nitro_entry__")) {
         return resolveModulePath(nitro.options.entry, {
-          extensions: [".mjs", ".ts" /* local dev */],
+          extensions: [".mjs", ".ts"],
         });
       }
 
@@ -166,15 +157,16 @@ export async function nitro(nitroConfig?: NitroConfig): Promise<VitePlugin> {
     },
     // Extend Vite dev server with Nitro middleware
     configureServer(server) {
-      // defer as last middleware
-      return () => {
-        server.middlewares.use(async (nodeReq, nodeRes) => {
-          const nitroEnv = server.environments.nitro as FetchableDevEnvironment;
-          const webReq = new NodeRequest({ req: nodeReq, res: nodeRes });
-          const webRes = await nitroEnv.dispatchFetch(webReq);
-          await sendNodeResponse(nodeRes, webRes);
-        });
-      };
+      // return () => { /* defer */
+      server.middlewares.use(async (nodeReq, nodeRes, next) => {
+        const nitroEnv = server.environments.nitro as FetchableDevEnvironment;
+        const webReq = new NodeRequest({ req: nodeReq, res: nodeRes });
+        const webRes = await nitroEnv.dispatchFetch(webReq);
+        return webRes.status === 404
+          ? next()
+          : await sendNodeResponse(nodeRes, webRes);
+      });
+      // };
     },
   };
 }
