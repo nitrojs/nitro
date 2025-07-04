@@ -4,16 +4,16 @@ import type { Nitro, NitroConfig } from "nitro/types";
 import { resolve } from "node:path";
 import { NodeRequest, sendNodeResponse } from "srvx/node";
 import { copyPublicAssets, createNitro, prepare, prerender } from "../..";
-import { getRollupConfig } from "../rollup/config";
 import { createNitroDevEnvironment } from "./dev";
 import { resolveModulePath } from "exsolve";
+import { getViteRollupConfig } from "./config";
 
 // https://vite.dev/guide/api-environment-plugins
 // https://vite.dev/guide/api-environment-frameworks.html
 
 export async function nitro(nitroConfig?: NitroConfig): Promise<VitePlugin> {
   let nitro: Nitro;
-  let rollupOptions: ReturnType<typeof getRollupConfig>;
+  let rollupOptions: ReturnType<typeof getViteRollupConfig>;
 
   return {
     name: "nitro",
@@ -34,21 +34,38 @@ export async function nitro(nitroConfig?: NitroConfig): Promise<VitePlugin> {
       await prepare(nitro);
 
       // Resolve common rollup options
-      rollupOptions = await getRollupConfig(nitro);
+      rollupOptions = await getViteRollupConfig(nitro);
 
       return {
         environments: {
           nitro: {
             consumer: "server",
-            build: { rollupOptions },
+            build: {
+              rollupOptions,
+              minify: nitro.options.minify,
+              commonjsOptions: {
+                strictRequires: "auto", // TODO: set to true (default) in v3
+                esmExternals: (id) => !id.startsWith("unenv/"),
+                requireReturnsDefault: "auto",
+                ...(nitro.options.commonJS as any),
+              },
+            },
             resolve: {
               noExternal: nitro.options.dev ? undefined : true,
+              conditions: nitro.options.exportConditions,
+              externalConditions: nitro.options.exportConditions,
+              // https://github.com/vitejs/vite/pull/17583 (seems not effective)
+              // alias: rollupOptions._base.aliases,
             },
             dev: {
               createEnvironment: (name, config) =>
                 createNitroDevEnvironment(name, config, nitro),
             },
           },
+        },
+        resolve: {
+          // TODO: environment specific aliases not working
+          alias: rollupOptions._base.aliases,
         },
         builder: {
           async buildApp(builder) {

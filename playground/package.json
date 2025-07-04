@@ -6,7 +6,7 @@
     "build": "vite build"
   },
   "devDependencies": {
-    "vite": "*",
-    "nitro": "*"
+    "nitro": "*",
+    "vite": "^7.0.2"
   }
 }
