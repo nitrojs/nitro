@@ -8,7 +8,7 @@ import { scheduledTasks, tasks } from "#nitro-internal-virtual/tasks";
 import { Server } from "node:http";
 import { join } from "node:path";
 import nodeCrypto from "node:crypto";
-import { parentPort, threadId } from "node:worker_threads";
+import { parentPort, threadId, workerData } from "node:worker_threads";
 import { defineHandler, getRouterParam } from "h3";
 import wsAdapter from "crossws/adapters/node";
 import { toNodeHandler } from "srvx/node";
@@ -18,7 +18,7 @@ if (!globalThis.crypto) {
   globalThis.crypto = nodeCrypto as unknown as Crypto;
 }
 
-const { NITRO_NO_UNIX_SOCKET, NITRO_DEV_WORKER_ID } = process.env;
+const { NITRO_NO_UNIX_SOCKET, NITRO_DEV_WORKER_ID = "000" } = process.env;
 
 // Trap unhandled errors
 trapUnhandledNodeErrors();

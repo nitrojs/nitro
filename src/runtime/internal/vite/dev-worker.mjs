@@ -20,6 +20,8 @@ const runner = new ModuleRunner(
   process.env.DEBUG ? console.debug : undefined
 );
 
-globalThis.__NITRO_RUNTIME_CONFIG__ = workerData.runtimeConfig;
+for (const [key, value] of Object.entries(workerData.globals || {})) {
+  globalThis[key] = value;
+}
 
-await runner.import("__nitro_entry__");
+await runner.import(workerData.viteEntry);

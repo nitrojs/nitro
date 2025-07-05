@@ -13,10 +13,14 @@ import { createNitroEnvironment } from "./env";
 // https://vite.dev/guide/api-environment-plugins
 // https://vite.dev/guide/api-environment-frameworks.html
 
+export interface NitroViteService {
+  entry: string;
+}
+
 export interface NitroPluginConfig {
   config?: NitroConfig;
   nitro?: Nitro;
-  apps?: Record<string, string>;
+  services?: Record<string, NitroViteService>;
 }
 
 export async function nitro(
@@ -128,13 +132,6 @@ export async function nitro(
     async resolveId(id, importer, options) {
       // Only apply to Nitro environment
       if (this.environment.name !== "nitro") return;
-
-      // Resolve nitro entry
-      if (id.startsWith("__nitro_entry__")) {
-        return resolveModulePath(nitro.options.entry, {
-          extensions: [".mjs", ".ts"],
-        });
-      }
 
       // Run through rollup compatible plugins to resolve virtual modules
       for (const plugin of rollupConfig.config.plugins as RollupPlugin[]) {

@@ -2,7 +2,12 @@ import type { Nitro } from "nitro/types";
 import type { EnvironmentOptions } from "vite";
 import type { getViteRollupConfig } from "./rollup";
 
-import { createNitroDevEnvironment } from "./dev";
+import {
+  createFetchableDevEnvironment,
+  createNitroDevEnvironment,
+} from "./dev";
+import type { NitroViteService } from "./plugin";
+import { NodeDevWorker } from "../../dev/worker";
 
 export function createNitroEnvironment(
   nitro: Nitro,
@@ -32,4 +37,32 @@ export function createNitroEnvironment(
         createNitroDevEnvironment(name, config, nitro),
     },
   };
+}
+
+export function createServiceEnvironments(
+  services: Record<string, NitroViteService> = {}
+): Record<string, EnvironmentOptions> {
+  return Object.fromEntries(
+    Object.entries(services).map(([name, config]) => {
+      const env: EnvironmentOptions = {
+        consumer: "server",
+        build: {
+          rollupOptions: { input: config.entry },
+        },
+        dev: {
+          createEnvironment: (name, config) =>
+            createFetchableDevEnvironment(
+              name,
+              config,
+              new NodeDevWorker({
+                name,
+                entry: "",
+                hooks: {},
+              })
+            ),
+        },
+      };
+      return [name, env];
+    })
+  );
 }

@@ -1,39 +1,63 @@
 import type { Nitro } from "nitro/types";
 import type { DevEnvironmentContext, HotChannel, ResolvedConfig } from "vite";
-import { resolve } from "node:path";
 import { DevEnvironment } from "vite";
-import { createDevServer } from "../../dev/server";
+import { NitroDevServer } from "../../dev/server";
+import { resolve } from "node:path";
 import { runtimeDir } from "nitro/runtime/meta";
 
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
 
-// ---- Fetchable Dev Environment ----
+// ---- Types ----
 
 export type FetchHandler = (req: Request) => Promise<Response>;
 
+export interface TransportHooks {
+  sendMessage: (data: any) => void;
+  onMessage: (listener: (value: any) => void) => void;
+  offMessage: (listener: (value: any) => void) => void;
+}
+
+export interface DevServer extends TransportHooks {
+  fetch: FetchHandler;
+  init?: () => void | Promise<void>;
+}
+
+// ---- Fetchable Dev Environment ----
+
+export function createFetchableDevEnvironment(
+  name: string,
+  config: ResolvedConfig,
+  devServer: DevServer
+): FetchableDevEnvironment {
+  const transport = createTransport(devServer);
+  const context: DevEnvironmentContext = { hot: true, transport };
+  return new FetchableDevEnvironment(name, config, context, devServer);
+}
+
 export class FetchableDevEnvironment extends DevEnvironment {
-  _fetch: FetchHandler;
+  devServer: DevServer;
 
   constructor(
     name: string,
     config: ResolvedConfig,
     context: DevEnvironmentContext,
-    fetch: FetchHandler
+    devServer: DevServer
   ) {
     super(name, config, context);
-    this._fetch = fetch;
+    this.devServer = devServer;
   }
 
   async dispatchFetch(request: Request): Promise<Response> {
-    return this._fetch(request);
+    return this.devServer.fetch(request);
+  }
+
+  override async init(...args: any[]): Promise<void> {
+    await this.devServer.init?.();
+    return super.init(...args);
   }
 }
 
-function createTransport(hooks: {
-  sendMessage: (data: any) => void;
-  onMessage: (listener: (value: any) => void) => void;
-  offMessage: (listener: (value: any) => void) => void;
-}): HotChannel {
+function createTransport(hooks: TransportHooks): HotChannel {
   const listeners = new WeakMap();
   return {
     send: (data) => hooks.sendMessage(data),
@@ -66,42 +90,20 @@ export async function createNitroDevEnvironment(
   name: string,
   config: ResolvedConfig,
   nitro: Nitro
-): Promise<NitroDevEnvironment> {
-  const devServer = createDevServer(nitro);
-  const transport = createTransport({
-    sendMessage: devServer.sendMessage,
-    onMessage: devServer.onMessage,
-    offMessage: devServer.offMessage,
+): Promise<FetchableDevEnvironment> {
+  const nitroDev = new NitroDevServer(nitro);
+  return createFetchableDevEnvironment(name, config, {
+    fetch: nitroDev.fetch.bind(nitroDev),
+    onMessage: nitroDev.onMessage.bind(nitroDev),
+    offMessage: nitroDev.offMessage.bind(nitroDev),
+    sendMessage: nitroDev.sendMessage.bind(nitroDev),
+    async init() {
+      await nitro.hooks.callHook("dev:reload", {
+        entry: resolve(runtimeDir, "internal/vite/dev-worker.mjs"),
+        workerData: {
+          viteEntry: nitro.options.entry,
+        },
+      });
+    },
   });
-  const context: DevEnvironmentContext = { hot: true, transport };
-  return new NitroDevEnvironment(name, config, context, nitro, devServer);
-}
-
-export class NitroDevEnvironment extends FetchableDevEnvironment {
-  nitro: Nitro;
-  devServer: ReturnType<typeof createDevServer>;
-
-  constructor(
-    name: string,
-    config: ResolvedConfig,
-    context: DevEnvironmentContext,
-    nitro: Nitro,
-    devServer: ReturnType<typeof createDevServer>
-  ) {
-    super(name, config, context, devServer.app.fetch);
-    this.nitro = nitro;
-    this.devServer = devServer;
-  }
-
-  override async init(...args: any[]): Promise<void> {
-    await this.nitro.hooks.callHook("dev:reload", {
-      entry: resolve(runtimeDir, "internal/vite/dev-worker.mjs"),
-    });
-    return super.init(...args);
-  }
-
-  override async close() {
-    await super.close();
-    await this.devServer.close();
-  }
 }

@@ -4,7 +4,10 @@ import { nitro } from "nitro/vite";
 export default defineConfig({
   plugins: [
     nitro({
-      compatibilityDate: "latest",
+      config: { compatibilityDate: "latest" },
+      services: {
+        simple: "./services/simple",
+      },
     }),
   ],
 });

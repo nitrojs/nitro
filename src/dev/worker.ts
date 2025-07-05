@@ -1,58 +1,51 @@
 import type { IncomingMessage, OutgoingMessage } from "node:http";
 import type { Duplex } from "node:stream";
-import { HTTPError, type H3Event } from "h3";
 import type { HTTPProxy } from "./proxy";
+import type {
+  DevMessageListener,
+  DevWorker,
+  WorkerAddress,
+  WorkerHooks,
+} from "nitro/types";
+
 import { existsSync } from "node:fs";
 import { rm } from "node:fs/promises";
-import { join } from "pathe";
 import { Worker } from "node:worker_threads";
 import consola from "consola";
 import { isCI, isTest } from "std-env";
 import { createHTTPProxy, fetchAddress } from "./proxy";
-import type { DevMessageListener } from "nitro/types";
-import type { DevServer } from "./server";
 
-export type WorkerAddress = { host: string; port: number; socketPath?: string };
-
-export interface WorkerHooks {
-  onClose?: (worker: DevWorker, cause?: unknown) => void;
-  onReady?: (worker: DevWorker, address?: WorkerAddress) => void;
-}
-
-export interface DevWorker {
-  readonly ready: boolean;
-  readonly closed: boolean;
-  close(): Promise<void>;
-  fetch: (req: Request) => Promise<Response>;
-  handleUpgrade: (
-    req: IncomingMessage,
-    socket: OutgoingMessage<IncomingMessage> | Duplex,
-    head: any
-  ) => void;
-  sendMessage: (message: unknown) => void;
-  onMessage: (listener: DevMessageListener) => void;
-  offMessage: (listener: DevMessageListener) => void;
+export interface DevWorkerData {
+  name?: string;
+  globals?: Record<string, unknown>;
+  [key: string]: unknown;
 }
 
 export class NodeDevWorker implements DevWorker {
   closed: boolean = false;
 
-  #server: DevServer;
-  #id: number;
-  #hooks: WorkerHooks;
-
+  #name: string;
+  #entry: string;
+  #data?: DevWorkerData;
+  #hooks: Partial<WorkerHooks>;
+  #worker?: Worker & { _exitCode?: number };
   #address?: WorkerAddress;
   #proxy?: HTTPProxy;
-  #worker?: Worker & { _exitCode?: number };
-
   #messageListeners: Set<(data: unknown) => void>;
 
-  constructor(server: DevServer, hooks: WorkerHooks = {}) {
-    this.#server = server;
-    this.#id = ++server.workerIdCtr;
-    this.#hooks = hooks;
+  constructor(opts: {
+    name: string;
+    hooks: WorkerHooks;
+    entry: string;
+    data?: DevWorkerData;
+  }) {
+    this.#name = opts.name;
+    this.#entry = opts.entry;
+    this.#data = opts.data;
+    this.#hooks = opts.hooks;
+
     this.#proxy = createHTTPProxy();
-    this.#messageListeners = new Set(server.messageListeners);
+    this.#messageListeners = new Set();
     this.#initWorker();
   }
 
@@ -62,11 +55,29 @@ export class NodeDevWorker implements DevWorker {
     );
   }
 
+  // #region Public methods
+
   async fetch(req: Request): Promise<Response> {
     if (!this.#address || !this.#proxy) {
       return new Response("Dev worker is unavailable", { status: 503 });
     }
     return fetchAddress(req, this.#address);
+  }
+
+  upgrade(
+    req: IncomingMessage,
+    socket: OutgoingMessage<IncomingMessage> | Duplex,
+    head: any
+  ) {
+    if (!this.ready) {
+      return;
+    }
+    return this.#proxy!.proxy.ws(
+      req,
+      socket as OutgoingMessage<IncomingMessage>,
+      { target: this.#address, xfwd: true },
+      head
+    );
   }
 
   sendMessage(message: unknown) {
@@ -86,37 +97,42 @@ export class NodeDevWorker implements DevWorker {
     this.#messageListeners.delete(listener);
   }
 
-  handleUpgrade(
-    req: IncomingMessage,
-    socket: OutgoingMessage<IncomingMessage> | Duplex,
-    head: any
-  ) {
-    if (!this.ready) {
+  async close(cause?: unknown) {
+    if (this.closed) {
       return;
     }
-    return this.#proxy!.proxy.ws(
-      req,
-      socket as OutgoingMessage<IncomingMessage>,
-      { target: this.#address, xfwd: true },
-      head
-    );
+    this.closed = true;
+    this.#hooks.onClose?.(this, cause);
+    this.#hooks = {};
+    const onError = (error: unknown) => consola.error(error);
+    await this.#closeWorker().catch(onError);
+    await this.#closeProxy().catch(onError);
+    await this.#closeSocket().catch(onError);
   }
 
-  #initWorker() {
-    const workerEntryPath = this.#server.workerEntry;
+  [Symbol.for("nodejs.util.inspect.custom")]() {
+    // eslint-disable-next-line unicorn/no-nested-ternary
+    const status = this.closed ? "closed" : this.ready ? "ready" : "pending";
+    return `NodeDevWorker#${this.#name}(${status})`;
+  }
 
-    if (!existsSync(workerEntryPath)) {
-      this.close(`worker entry not found in "${workerEntryPath}".`);
+  // #endregion
+
+  // #region Private methods
+
+  #initWorker() {
+    if (!existsSync(this.#entry)) {
+      this.close(`worker entry not found in "${this.#entry}".`);
       return;
     }
 
-    const worker = new Worker(workerEntryPath, {
+    const worker = new Worker(this.#entry, {
       env: {
         ...process.env,
-        NITRO_DEV_WORKER_ID: String(this.#id),
       },
       workerData: {
-        runtimeConfig: this.#server.nitro.options.runtimeConfig,
+        name: this.#name,
+        ...this.#data,
       },
     }) as Worker & { _exitCode?: number };
 
@@ -141,19 +157,6 @@ export class NodeDevWorker implements DevWorker {
     });
 
     this.#worker = worker;
-  }
-
-  async close(cause?: unknown) {
-    if (this.closed) {
-      return;
-    }
-    this.closed = true;
-    this.#hooks.onClose?.(this, cause);
-    this.#hooks = {};
-    const onError = (error: unknown) => consola.error(error);
-    await this.#closeWorker().catch(onError);
-    await this.#closeProxy().catch(onError);
-    await this.#closeSocket().catch(onError);
   }
 
   async #closeProxy() {
@@ -206,9 +209,5 @@ export class NodeDevWorker implements DevWorker {
     this.#worker = undefined;
   }
 
-  [Symbol.for("nodejs.util.inspect.custom")]() {
-    // eslint-disable-next-line unicorn/no-nested-ternary
-    const status = this.closed ? "closed" : this.ready ? "ready" : "pending";
-    return `NodeDevWorker#${this.#id}(${status})`;
-  }
+  // #endregion
 }

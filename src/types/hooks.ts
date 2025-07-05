@@ -1,3 +1,4 @@
+import type { DevWorkerData } from "../dev/worker";
 import type { NitroConfig } from "./config";
 import type { Nitro, NitroTypes } from "./nitro";
 import type { PrerenderRoute } from "./prerender";
@@ -10,7 +11,10 @@ export interface NitroHooks {
   "build:before": (nitro: Nitro) => HookResult;
   "rollup:before": (nitro: Nitro, config: RollupConfig) => HookResult;
   compiled: (nitro: Nitro) => HookResult;
-  "dev:reload": (payload?: { entry?: string }) => HookResult;
+  "dev:reload": (payload?: {
+    entry?: string;
+    workerData?: DevWorkerData;
+  }) => HookResult;
   "dev:start": () => HookResult;
   "dev:error": (cause?: unknown) => HookResult;
   "rollup:reload": () => HookResult;
