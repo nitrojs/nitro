@@ -86,8 +86,9 @@ function fetchSocketOptions(socketPath: string | undefined) {
   if ("Deno" in globalThis) {
     // https://github.com/denoland/deno/pull/29154
     return {
+      // @ts-ignore
       client: Deno.createHttpClient({
-        // @ts-expect-error Missing types?
+        // @ts-ignore Missing types?
         transport: "unix",
         path: socketPath,
       }),

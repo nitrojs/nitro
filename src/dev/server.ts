@@ -32,10 +32,8 @@ import { debounce } from "perfect-debounce";
 import { isTest, isCI } from "std-env";
 import { createHTTPProxy } from "./proxy";
 
-export interface NitroDevServerOptions {
-  port: number;
-  hostname: string;
-  watch: string[];
+export function createDevServer(nitro: Nitro): NitroDevServer {
+  return new NitroDevServer(nitro);
 }
 
 export class NitroDevServer implements DevRPCHooks {

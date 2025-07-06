@@ -32,3 +32,9 @@ export interface DevWorker extends WorkerHooks, DevRPCHooks {
   upgrade: UpgradeHandler;
   close(): Promise<void>;
 }
+
+export interface NitroDevServerOptions {
+  port: number;
+  hostname: string;
+  watch: string[];
+}
