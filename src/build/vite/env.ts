@@ -59,9 +59,10 @@ export function createServiceEnvironment(
           envConfig,
           new NodeDevWorker({
             name: name,
-            entry: resolve(runtimeDir, "internal/vite/dev-worker.mjs"),
+            entry: resolve(runtimeDir, "internal/vite/worker.mjs"),
             data: {
               name: name,
+              listen: true,
               viteEntry: resolveModulePath(serviceConfig.entry, {
                 suffixes: ["", "/index"],
                 extensions: ["", ".ts", ".mjs", ".cjs", ".js", ".mts", ".cts"],

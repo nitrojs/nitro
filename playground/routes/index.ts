@@ -17,7 +17,7 @@ export default defineHandler(async (event) => {
     ${import.meta.hot ? '<script type="module" src="/@vite/client"></script>' : ""}
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + Nitro</title>
+    <title>Vite + Nitro!</title>
     <style>
       body {
         display: flex;

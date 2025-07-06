@@ -1,4 +1,3 @@
-import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parentPort, threadId, workerData } from "node:worker_threads";
@@ -27,21 +26,55 @@ for (const [key, value] of Object.entries(workerData.globals || {})) {
   globalThis[key] = value;
 }
 
-const exports = await runner.import(workerData.viteEntry);
+let entry, entryError;
 
-// --- auto listhen ---
-
-const fetchHandler = exports?.fetch || exports?.default?.fetch;
-
-if (fetchHandler) {
-  await startServer(fetchHandler);
+async function reload() {
+  try {
+    entry = await runner.import(workerData.viteEntry);
+    entryError = undefined;
+  } catch (error) {
+    entryError = error;
+  }
 }
 
-async function startServer(fetchHandler) {
+await reload();
+
+// ----- Server -----
+
+if (workerData.listen) {
+  const { createServer } = await import("node:http");
   const { toNodeHandler } = await import("srvx/node");
-  const server = createServer(toNodeHandler(fetchHandler));
-  const listener = await listen(server);
-  // TODO: close on exit
+  const server = createServer(
+    toNodeHandler(async (req, init) => {
+      if (entryError) {
+        return renderError(req, entryError);
+      }
+      const fetch = entry?.fetch || entry?.default?.fetch;
+      if (!fetch) {
+        return new Response(
+          `Missing \`fetch\` export in "${workerData.viteEntry}"`,
+          { status: 500 }
+        );
+      }
+      try {
+        return await fetch(req, init);
+      } catch (error) {
+        return renderError(req, error);
+      }
+    })
+  );
+
+  parentPort.on("close", () => {
+    console.log("Closing server...");
+    server.close();
+  });
+
+  parentPort.on("message", async (message) => {
+    if (message?.type === "full-reload") {
+      await reload();
+    }
+  });
+  await listen(server);
 }
 
 function listen(server, useRandomPort = false) {
@@ -82,4 +115,15 @@ function getSocketAddress() {
   }
   // Unix socket
   return join(tmpdir(), socketName);
+}
+
+async function renderError(req, error) {
+  const { Youch } = await import("youch");
+  const youch = new Youch();
+  return new Response(await youch.toHTML(error), {
+    status: error.status || 500,
+    headers: {
+      "Content-Type": "text/html",
+    },
+  });
 }

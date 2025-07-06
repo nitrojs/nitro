@@ -119,7 +119,7 @@ export async function nitro(
       };
     },
 
-    // Full reload Server routes on hot update
+    // Full reload browser for Server routes
     handleHotUpdate(context) {
       context.server.hot.send({ type: "full-reload" });
     },

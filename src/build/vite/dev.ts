@@ -99,7 +99,7 @@ export async function createNitroDevEnvironment(
     sendMessage: nitroDev.sendMessage.bind(nitroDev),
     async init() {
       await nitro.hooks.callHook("dev:reload", {
-        entry: resolve(runtimeDir, "internal/vite/dev-worker.mjs"),
+        entry: resolve(runtimeDir, "internal/vite/worker.mjs"),
         workerData: {
           viteEntry: nitro.options.entry,
         },
