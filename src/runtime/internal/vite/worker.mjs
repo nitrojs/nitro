@@ -3,8 +3,8 @@ import { join } from "node:path";
 import { parentPort, threadId, workerData } from "node:worker_threads";
 import { ModuleRunner, ESModulesEvaluator } from "vite/module-runner";
 
+// Create Vite Module Runner
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
-
 const runner = new ModuleRunner(
   {
     transport: {
@@ -22,14 +22,38 @@ const runner = new ModuleRunner(
   process.env.DEBUG ? console.debug : undefined
 );
 
-for (const [key, value] of Object.entries(workerData.globals || {})) {
-  globalThis[key] = value;
-}
+// ----- Fetch Handler -----
+
+let rpcURL;
+
+const originalFetch = globalThis.fetch;
+
+globalThis.fetch = async (input, init) => {
+  const headers = new Headers(init?.headers || {});
+  if (headers.has("x-env")) {
+    const url = new URL(input, rpcURL);
+    return originalFetch(url, init);
+  }
+  return originalFetch(input, init);
+};
+
+parentPort.on("message", (payload) => {
+  if (payload.type === "custom" && payload.event === "nitro-rpc") {
+    rpcURL = payload.data;
+  }
+});
+
+// ----- Module Entry -----
 
 let entry, entryError;
 
 async function reload() {
   try {
+    // Apply globals
+    for (const [key, value] of Object.entries(workerData.globals || {})) {
+      globalThis[key] = value;
+    }
+    // Import the entry module
     entry = await runner.import(workerData.viteEntry);
     entryError = undefined;
   } catch (error) {
@@ -41,7 +65,7 @@ await reload();
 
 // ----- Server -----
 
-if (workerData.listen) {
+if (workerData.server) {
   const { createServer } = await import("node:http");
   const { toNodeHandler } = await import("srvx/node");
   const server = createServer(
@@ -49,14 +73,13 @@ if (workerData.listen) {
       if (entryError) {
         return renderError(req, entryError);
       }
-      const fetch = entry?.fetch || entry?.default?.fetch;
-      if (!fetch) {
-        return new Response(
-          `Missing \`fetch\` export in "${workerData.viteEntry}"`,
-          { status: 500 }
-        );
-      }
       try {
+        const fetch = entry?.fetch || entry?.default?.fetch;
+        if (!fetch) {
+          throw new Error(
+            `Missing \`fetch\` export in "${workerData.viteEntry}"`
+          );
+        }
         return await fetch(req, init);
       } catch (error) {
         return renderError(req, error);
@@ -64,36 +87,39 @@ if (workerData.listen) {
     })
   );
 
-  parentPort.on("close", () => {
-    console.log("Closing server...");
-    server.close();
-  });
-
   parentPort.on("message", async (message) => {
     if (message?.type === "full-reload") {
       await reload();
     }
   });
   await listen(server);
+  const address = server.address();
+  parentPort?.postMessage({
+    event: "listen",
+    address:
+      typeof address === "string"
+        ? { socketPath: address }
+        : { host: "localhost", port: address?.port },
+  });
 }
+
+async function renderError(req, error) {
+  const { Youch } = await import("youch");
+  const youch = new Youch();
+  return new Response(await youch.toHTML(error), {
+    status: error.status || 500,
+    headers: {
+      "Content-Type": "text/html",
+    },
+  });
+}
+
+// ----- Internal Utils -----
 
 function listen(server, useRandomPort = false) {
   return new Promise((resolve, reject) => {
     try {
-      const listener = server.listen(
-        useRandomPort ? 0 : getSocketAddress(),
-        () => {
-          const address = server.address();
-          parentPort?.postMessage({
-            event: "listen",
-            address:
-              typeof address === "string"
-                ? { socketPath: address }
-                : { host: "localhost", port: address?.port },
-          });
-          resolve(listener);
-        }
-      );
+      server.listen(useRandomPort ? 0 : getSocketAddress(), () => resolve());
     } catch (error) {
       reject(error);
     }
@@ -115,15 +141,4 @@ function getSocketAddress() {
   }
   // Unix socket
   return join(tmpdir(), socketName);
-}
-
-async function renderError(req, error) {
-  const { Youch } = await import("youch");
-  const youch = new Youch();
-  return new Response(await youch.toHTML(error), {
-    status: error.status || 500,
-    headers: {
-      "Content-Type": "text/html",
-    },
-  });
 }

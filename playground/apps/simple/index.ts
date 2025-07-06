@@ -1,5 +1,5 @@
 export default {
-  fetch(request: Request): Response | Promise<Response> {
-    return new Response(`Response from Simple App! (${request.url})`);
+  async fetch(req: Request): Promise<Response | Promise<Response>> {
+    return new Response(`Response from Simple Service (${req.url})`);
   },
 };
