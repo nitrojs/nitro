@@ -1,7 +1,7 @@
 import { type FetchableDevEnvironment, type Plugin as VitePlugin } from "vite";
 import type { Plugin as RollupPlugin } from "rollup";
 import type { Nitro, NitroConfig } from "nitro/types";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import consola from "consola";
 import { NodeRequest, sendNodeResponse } from "srvx/node";
 import { createNitro, prepare } from "../..";
@@ -9,6 +9,7 @@ import { getViteRollupConfig } from "./rollup";
 import { buildProduction } from "./prod";
 import { createNitroEnvironment, createServiceEnvironments } from "./env";
 import { createServer } from "node:http";
+import { tmpdir } from "node:os";
 
 // https://vite.dev/guide/api-environment-plugins
 // https://vite.dev/guide/api-environment-frameworks.html
@@ -172,12 +173,18 @@ export async function nitro(
       const rpcServer = createServer((req, res) => {
         server.middlewares.handle(req, res, () => {});
       });
-      rpcServer.listen(0, "localhost", () => {
+      rpcServer.listen(getSocketAddress(), () => {
         const addr = rpcServer.address()!;
-        const url =
-          typeof addr === "string" ? addr : `http://localhost:${addr.port}`;
         for (const env of Object.values(server.environments)) {
-          env.hot.send({ type: "custom", event: "nitro-rpc", data: url });
+          env.hot.send({
+            type: "custom",
+            event: "nitro-rpc",
+            data:
+              typeof addr === "string"
+                ? { socketPath: addr }
+                : // prettier-ignore
+                  { host: `${addr.address.includes(":")? `[${addr.address}]`: addr.address}:${addr.port}`, },
+          });
         }
       });
     },
@@ -214,4 +221,21 @@ export async function nitro(
       }
     },
   };
+}
+
+function getSocketAddress() {
+  const socketName = `nitro-vite-${process.pid}-${Math.round(Math.random() * 10_000)}.sock`;
+  // Windows: pipe
+  if (process.platform === "win32") {
+    return join(String.raw`\\.\pipe`, socketName);
+  }
+  // Linux: abstract namespace
+  if (process.platform === "linux") {
+    const nodeMajor = Number.parseInt(process.versions.node.split(".")[0], 10);
+    if (nodeMajor >= 20) {
+      return `\0${socketName}`;
+    }
+  }
+  // Unix socket
+  return join(tmpdir(), socketName);
 }

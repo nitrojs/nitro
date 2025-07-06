@@ -1,6 +1,7 @@
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parentPort, threadId, workerData } from "node:worker_threads";
+import { Agent } from "undici";
 import { ModuleRunner, ESModulesEvaluator } from "vite/module-runner";
 
 // Create Vite Module Runner
@@ -24,22 +25,25 @@ const runner = new ModuleRunner(
 
 // ----- Fetch Handler -----
 
-let rpcURL;
+let rpcAddr;
 
 const originalFetch = globalThis.fetch;
 
 globalThis.fetch = async (input, init) => {
   const headers = new Headers(init?.headers || {});
-  if (headers.has("x-env")) {
-    const url = new URL(input, rpcURL);
-    return originalFetch(url, init);
+  if (headers.has("x-env") && !headers.has("x-env-fetch")) {
+    if (typeof input === "string" && input[0] === "/") {
+      input = new URL(input, "http://localhost");
+    }
+    headers.set("x-env-fetch", "1"); // Avoid recursive fetch calls
+    return fetchAddress(input, { ...init, headers }, rpcAddr);
   }
   return originalFetch(input, init);
 };
 
 parentPort.on("message", (payload) => {
   if (payload.type === "custom" && payload.event === "nitro-rpc") {
-    rpcURL = payload.data;
+    rpcAddr = payload.data;
   }
 });
 
@@ -141,4 +145,40 @@ function getSocketAddress() {
   }
   // Unix socket
   return join(tmpdir(), socketName);
+}
+
+function fetchAddress(input, init, addr) {
+  if (addr.socketPath) {
+    return fetch(input, {
+      ...init,
+      ...fetchSocketOptions(addr.socketPath),
+    });
+  }
+  const reqURL = new URL(input);
+  const outURL = new URL(
+    reqURL.pathname + reqURL.search,
+    `http://${addr.host}${addr.port ? `:${addr.port}` : ""}`
+  );
+  return fetch(outURL, init);
+}
+
+function fetchSocketOptions(socketPath) {
+  if ("Bun" in globalThis) {
+    // https://bun.sh/guides/http/fetch-unix
+    return { unix: socketPath };
+  }
+  if ("Deno" in globalThis) {
+    // https://github.com/denoland/deno/pull/29154
+    return {
+      client: Deno.createHttpClient({
+        // @ts-expect-error Missing types?
+        transport: "unix",
+        path: socketPath,
+      }),
+    };
+  }
+  // https://github.com/nodejs/undici/issues/2970
+  return {
+    dispatcher: new Agent({ connect: { socketPath } }),
+  };
 }
