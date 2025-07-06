@@ -18,7 +18,7 @@ if (!globalThis.crypto) {
   globalThis.crypto = nodeCrypto as unknown as Crypto;
 }
 
-const { NITRO_NO_UNIX_SOCKET, NITRO_DEV_WORKER_ID = "000" } = process.env;
+const { NITRO_NO_UNIX_SOCKET, NITRO_DEV_WORKER_ID } = process.env;
 
 // Trap unhandled errors
 trapUnhandledNodeErrors();
@@ -117,7 +117,7 @@ function listen(
 }
 
 function getSocketAddress() {
-  const socketName = `nitro-worker-${process.pid}-${threadId}-${NITRO_DEV_WORKER_ID}-${Math.round(Math.random() * 10_000)}.sock`;
+  const socketName = `nitro-worker-${process.pid}-${threadId}-${NITRO_DEV_WORKER_ID || ""}-${Math.round(Math.random() * 10_000)}.sock`;
   // Windows: pipe
   if (process.platform === "win32") {
     return join(String.raw`\\.\pipe`, socketName);

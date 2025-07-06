@@ -6,7 +6,7 @@ export default defineConfig({
     nitro({
       config: { compatibilityDate: "latest" },
       services: {
-        simple: "./services/simple",
+        simple: { entry: "./apps/simple", path: "/simple" },
       },
     }),
   ],

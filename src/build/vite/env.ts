@@ -8,6 +8,9 @@ import {
 } from "./dev";
 import type { NitroViteService } from "./plugin";
 import { NodeDevWorker } from "../../dev/worker";
+import { resolve } from "node:path";
+import { runtimeDir } from "nitro/runtime/meta";
+import { resolveModulePath } from "exsolve";
 
 export function createNitroEnvironment(
   nitro: Nitro,
@@ -39,30 +42,47 @@ export function createNitroEnvironment(
   };
 }
 
+export function createServiceEnvironment(
+  name: string,
+  serviceConfig: NitroViteService,
+  root: string
+): EnvironmentOptions {
+  return {
+    consumer: "server",
+    build: {
+      rollupOptions: { input: serviceConfig.entry },
+    },
+    dev: {
+      createEnvironment: (envName, envConfig) =>
+        createFetchableDevEnvironment(
+          envName,
+          envConfig,
+          new NodeDevWorker({
+            name: name,
+            entry: resolve(runtimeDir, "internal/vite/dev-worker.mjs"),
+            data: {
+              name: name,
+              viteEntry: resolveModulePath(serviceConfig.entry, {
+                suffixes: ["", "/index"],
+                extensions: ["", ".ts", ".mjs", ".cjs", ".js", ".mts", ".cts"],
+              }),
+              globals: {},
+            },
+            hooks: {},
+          })
+        ),
+    },
+  };
+}
+
 export function createServiceEnvironments(
-  services: Record<string, NitroViteService> = {}
+  services: Record<string, NitroViteService> = {},
+  root: string
 ): Record<string, EnvironmentOptions> {
   return Object.fromEntries(
-    Object.entries(services).map(([name, config]) => {
-      const env: EnvironmentOptions = {
-        consumer: "server",
-        build: {
-          rollupOptions: { input: config.entry },
-        },
-        dev: {
-          createEnvironment: (name, config) =>
-            createFetchableDevEnvironment(
-              name,
-              config,
-              new NodeDevWorker({
-                name,
-                entry: "",
-                hooks: {},
-              })
-            ),
-        },
-      };
-      return [name, env];
-    })
+    Object.entries(services).map(([serviceName, serviceConfig]) => [
+      serviceName,
+      createServiceEnvironment(serviceName, serviceConfig, root),
+    ])
   );
 }

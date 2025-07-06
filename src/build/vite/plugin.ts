@@ -1,20 +1,25 @@
-import type { FetchableDevEnvironment, Plugin as VitePlugin } from "vite";
+import {
+  DevEnvironment,
+  type FetchableDevEnvironment,
+  type Plugin as VitePlugin,
+} from "vite";
 import type { Plugin as RollupPlugin } from "rollup";
 import type { Nitro, NitroConfig } from "nitro/types";
 import { resolve } from "node:path";
 import consola from "consola";
 import { NodeRequest, sendNodeResponse } from "srvx/node";
 import { createNitro, prepare } from "../..";
-import { resolveModulePath } from "exsolve";
 import { getViteRollupConfig } from "./rollup";
 import { buildProduction } from "./prod";
-import { createNitroEnvironment } from "./env";
+import { createNitroEnvironment, createServiceEnvironments } from "./env";
+import { serve } from "srvx";
 
 // https://vite.dev/guide/api-environment-plugins
 // https://vite.dev/guide/api-environment-frameworks.html
 
 export interface NitroViteService {
   entry: string;
+  path?: string;
 }
 
 export interface NitroPluginConfig {
@@ -73,6 +78,10 @@ export async function nitro(
 
         // Add Nitro as a Vite environment
         environments: {
+          ...createServiceEnvironments(
+            pluginOptions.services,
+            nitro.options.rootDir
+          ),
           nitro: createNitroEnvironment(nitro, rollupConfig),
         },
 
@@ -117,11 +126,34 @@ export async function nitro(
 
     // Extend Vite dev server with Nitro middleware
     configureServer(server) {
+      // Create a sorted array of routable services
+      const routableServices = Object.entries(pluginOptions.services || {})
+        .filter(([, service]) => service.path)
+        .map(([name, service]) => {
+          return {
+            path: service.path!,
+            env: server.environments[name] as FetchableDevEnvironment,
+          };
+        })
+        .sort((a, b) => b.path.length - a.path.length);
+
       // return () => { /* defer */
       server.middlewares.use(async (nodeReq, nodeRes, next) => {
-        const nitroEnv = server.environments.nitro as FetchableDevEnvironment;
+        // Match fetchable environment based on request
+        // 1. Check for x-nitro-env header
+        // 2. Check if the request URL starts with a routable service path
+        // 3. Default to nitro environment
+        const envHeader = nodeReq.headers["x-nitro-env"] as string;
+        const env = (server.environments[envHeader] ||
+          routableServices.find((s) => nodeReq.url!.startsWith(s.path))?.env ||
+          server.environments.nitro) as FetchableDevEnvironment;
+        // Make sure the environment is fetchable or else skip
+        if (typeof env?.dispatchFetch !== "function") {
+          consola.warn("Environment is not fetchable:", env.name);
+          return next();
+        }
         const webReq = new NodeRequest({ req: nodeReq, res: nodeRes });
-        const webRes = await nitroEnv.dispatchFetch(webReq);
+        const webRes = await env.dispatchFetch(webReq);
         return webRes.status === 404
           ? next()
           : await sendNodeResponse(nodeRes, webRes);
