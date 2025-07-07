@@ -1,57 +1,59 @@
-import type { Nitro } from "nitro/types";
 import type { EnvironmentOptions } from "vite";
-import type { getViteRollupConfig } from "./rollup";
+import type { NitroPluginContext, ViteService } from "./plugin";
 
-import {
-  createFetchableDevEnvironment,
-  createNitroDevEnvironment,
-} from "./dev";
-import type { NitroViteService } from "./plugin";
 import { NodeDevWorker } from "../../dev/worker";
 import { join, resolve } from "node:path";
 import { runtimeDir } from "nitro/runtime/meta";
 import { resolveModulePath } from "exsolve";
+import {
+  createFetchableDevEnvironment,
+  createNitroDevEnvironment,
+} from "./dev";
 
 export function createNitroEnvironment(
-  nitro: Nitro,
-  rollupConfig: ReturnType<typeof getViteRollupConfig>
+  ctx: NitroPluginContext
 ): EnvironmentOptions {
   return {
     consumer: "server",
     build: {
-      rollupOptions: rollupConfig.config,
-      minify: nitro.options.minify,
+      rollupOptions: ctx.rollupConfig!.config,
+      minify: ctx.nitro!.options.minify,
       commonjsOptions: {
         strictRequires: "auto", // TODO: set to true (default) in v3
         esmExternals: (id) => !id.startsWith("unenv/"),
         requireReturnsDefault: "auto",
-        ...(nitro.options.commonJS as any),
+        ...(ctx.nitro!.options.commonJS as any),
       },
     },
     resolve: {
-      noExternal: nitro.options.dev ? undefined : true,
-      conditions: nitro.options.exportConditions,
-      externalConditions: nitro.options.exportConditions,
-      // https://github.com/vitejs/vite/pull/17583 (seems not effective)
-      // alias: rollupOptions._base.aliases,
+      noExternal: ctx.nitro!.options.dev ? undefined : true,
+      conditions: ctx.nitro!.options.exportConditions,
+      externalConditions: ctx.nitro!.options.exportConditions,
     },
     dev: {
       createEnvironment: (name, config) =>
-        createNitroDevEnvironment(name, config, nitro),
+        createNitroDevEnvironment(ctx, name, config),
     },
   };
 }
 
 export function createServiceEnvironment(
+  ctx: NitroPluginContext,
   name: string,
-  serviceConfig: NitroViteService,
-  nitro: Nitro
+  serviceConfig: ViteService
 ): EnvironmentOptions {
   return {
     consumer: "server",
     build: {
       rollupOptions: { input: serviceConfig.entry },
-      outDir: join(nitro.options.buildDir, "vite", "services", name),
+      minify: ctx.nitro!.options.minify,
+      outDir: join(ctx.nitro!.options.buildDir, "vite", "services", name),
+      emptyOutDir: true,
+    },
+    resolve: {
+      noExternal: ctx.nitro!.options.dev ? undefined : true,
+      conditions: ctx.nitro!.options.exportConditions,
+      externalConditions: ctx.nitro!.options.exportConditions,
     },
     dev: {
       createEnvironment: (envName, envConfig) =>
@@ -78,13 +80,12 @@ export function createServiceEnvironment(
 }
 
 export function createServiceEnvironments(
-  services: Record<string, NitroViteService> = {},
-  nitro: Nitro
+  ctx: NitroPluginContext
 ): Record<string, EnvironmentOptions> {
   return Object.fromEntries(
-    Object.entries(services).map(([serviceName, serviceConfig]) => [
-      serviceName,
-      createServiceEnvironment(serviceName, serviceConfig, nitro),
+    Object.entries(ctx.pluginConfig.services || {}).map(([name, config]) => [
+      name,
+      createServiceEnvironment(ctx, name, config),
     ])
   );
 }

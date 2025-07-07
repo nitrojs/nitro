@@ -6,7 +6,11 @@
     "build": "vite build"
   },
   "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.0",
+    "h3": "npm:h3-nightly@beta",
+    "hono": "^4.8.4",
     "nitro": "*",
-    "vite": "^7.0.2"
+    "vite": "^7.0.2",
+    "vue": "^3.5.17"
   }
 }

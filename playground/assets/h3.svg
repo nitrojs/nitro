@@ -1,0 +1,54 @@
+
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+  id="Vector_logo"
+  data-name="Vector logo"
+  viewBox="0 0 540.49 580.9"
+  version="1.1"
+  sodipodi:docname="h3_dark.svg"
+  inkscape:version="1.4.1 (93de688d07, 2025-03-30)"
+  xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+  xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+    id="namedview2"
+    pagecolor="#ffffff"
+    bordercolor="#000000"
+    borderopacity="0.25"
+    inkscape:showpageshadow="2"
+    inkscape:pageopacity="0.0"
+    inkscape:pagecheckerboard="0"
+    inkscape:deskcolor="#d1d1d1"
+    inkscape:zoom="0.49793422"
+    inkscape:cx="454.87936"
+    inkscape:cy="633.61783"
+    inkscape:window-width="2560"
+    inkscape:window-height="1369"
+    inkscape:window-x="0"
+    inkscape:window-y="0"
+    inkscape:window-maximized="1"
+    inkscape:current-layer="Vector_logo" />
+  <defs
+    id="defs1">
+    <style
+      id="style1">.cls-1{fill:#f0db4f;}.cls-2{fill:#323330;}</style>
+  </defs>
+  <path
+    class="cls-2"
+    d="M353,302.23l22.56-61.12H480.11c30.78,0,88.2,25.46,90.38,86.66,2.51,70.57-55.6,89.79-55.6,89.79s69.38,17.47,64.58,92.67c-5.47,85.77-89,94.34-97,94.44-18.77.24-188.66,0-188.66,0l39.11-57.33s120.22-.45,128.67-.45,45.77-2.44,45.77-50c0-34.74-35.77-51.78-58.44-51.78H406l36.44-52.88s31.44-3.3,47.12-21.12c14.66-16.66,22.11-66.78-37.67-69.31Z"
+    transform="translate(-39.22,-137.14)"
+    id="path1"
+    inkscape:label="3" />
+  <path
+    class="cls-1"
+    d="M172,451.89,372,144.78s14.67-20.67,5.33,6-76.44,216.67-76.44,216.67-10.8,24.4.9,24.4,91.71-1.42,95.54-1.23,19.42-2.9,4.44,18.22L193.51,709.44s-14.78,20.55-6.84-1.88c24.77-70,85.7-232.68,85.7-232.68s7-13.55-12.37-13l-75.33.44S164.11,465.11,172,451.89Z"
+    transform="translate(-39.22,-137.14)"
+    id="path2"
+    inkscape:label="l" />
+  <polygon
+    class="cls-1"
+    points="0 103.97 2.67 467.63 72.67 467.63 73.91 310.86 104.78 310.64 140.81 256.38 71.27 257.88 70.33 103.97 0 103.97"
+    id="polygon1"
+    inkscape:label="h" />
+</svg>

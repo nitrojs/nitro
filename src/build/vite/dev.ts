@@ -1,9 +1,18 @@
-import type { Nitro } from "nitro/types";
-import type { DevEnvironmentContext, HotChannel, ResolvedConfig } from "vite";
+import type { NitroPluginContext } from "./plugin";
+import type {
+  DevEnvironmentContext,
+  HotChannel,
+  ResolvedConfig,
+  ViteDevServer,
+} from "vite";
+
+import { join, resolve } from "node:path";
+import { createServer } from "node:http";
+import { tmpdir } from "node:os";
+import { runtimeDir } from "nitro/runtime/meta";
+import { NodeRequest, sendNodeResponse } from "srvx/node";
 import { DevEnvironment } from "vite";
 import { NitroDevServer } from "../../dev/server";
-import { resolve } from "node:path";
-import { runtimeDir } from "nitro/runtime/meta";
 
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
 
@@ -87,23 +96,110 @@ function createTransport(hooks: TransportHooks): HotChannel {
 // ---- Nitro Dev Environment ----
 
 export async function createNitroDevEnvironment(
+  ctx: NitroPluginContext,
   name: string,
-  config: ResolvedConfig,
-  nitro: Nitro
+  config: ResolvedConfig
 ): Promise<FetchableDevEnvironment> {
-  const nitroDev = new NitroDevServer(nitro);
+  const nitroDev = new NitroDevServer(ctx.nitro!);
   return createFetchableDevEnvironment(name, config, {
     fetch: nitroDev.fetch.bind(nitroDev),
     onMessage: nitroDev.onMessage.bind(nitroDev),
     offMessage: nitroDev.offMessage.bind(nitroDev),
     sendMessage: nitroDev.sendMessage.bind(nitroDev),
     async init() {
-      await nitro.hooks.callHook("dev:reload", {
+      await ctx.nitro!.hooks.callHook("dev:reload", {
         entry: resolve(runtimeDir, "internal/vite/worker.mjs"),
         workerData: {
-          viteEntry: nitro.options.entry,
+          viteEntry: ctx.nitro!.options.entry,
         },
       });
     },
   });
+}
+
+// ---- Vite Dev Server Integration ----
+
+export function configureViteDevServer(
+  ctx: NitroPluginContext,
+  server: ViteDevServer
+) {
+  // Expose an RPC server to environments
+  const rpcServer = createServer((req, res) => {
+    server.middlewares.handle(req, res, () => {});
+  });
+  rpcServer.listen(getSocketAddress(), () => {
+    const addr = rpcServer.address()!;
+    for (const env of Object.values(server.environments)) {
+      env.hot.send({
+        type: "custom",
+        event: "nitro-rpc",
+        data:
+          typeof addr === "string"
+            ? { socketPath: addr }
+            : // prettier-ignore
+              { host: `${addr.address.includes(":")? `[${addr.address}]`: addr.address}:${addr.port}`, },
+      });
+    }
+  });
+
+  // Create a sorted array of routable services
+  const routableServices = Object.entries(ctx.pluginConfig.services || {})
+    .filter(([, service]) => service.path)
+    .map(([name, service]) => {
+      return {
+        path: service.path!,
+        env: server.environments[name] as FetchableDevEnvironment,
+      };
+    })
+    .sort((a, b) => b.path.length - a.path.length);
+
+  server.middlewares.use(async (nodeReq, nodeRes, next) => {
+    // Fast Skip known prefixes
+    if (
+      nodeReq.url!.startsWith("/@vite/") ||
+      nodeReq.url!.startsWith("/@fs/") ||
+      nodeReq.url!.startsWith("/@id/")
+    ) {
+      return next();
+    }
+
+    // Match fetchable environment based on request
+    // 1. Check for x-env header
+    // 2. Check if the request URL starts with a routable service path
+    // 3. Default to nitro environment
+    const envHeader = nodeReq.headers["x-env"] as string;
+    const env = (server.environments[envHeader] ||
+      routableServices.find((s) => nodeReq.url!.startsWith(s.path))?.env ||
+      server.environments.nitro) as FetchableDevEnvironment;
+
+    // Make sure the environment is fetchable or else skip
+    if (typeof env?.dispatchFetch !== "function") {
+      ctx.nitro!.logger.warn("Environment is not fetchable:", env.name);
+      return next();
+    }
+
+    // Dispatch the request to the environment
+    const webReq = new NodeRequest({ req: nodeReq, res: nodeRes });
+    const webRes = await env.dispatchFetch(webReq);
+    return webRes.status === 404
+      ? next()
+      : await sendNodeResponse(nodeRes, webRes);
+  });
+}
+
+function getSocketAddress() {
+  const socketName = `nitro-vite-${process.pid}-${Math.round(Math.random() * 10_000)}.sock`;
+  // Windows: pipe
+  if (process.platform === "win32") {
+    return join(String.raw`\\.\pipe`, socketName);
+  }
+  // Linux: abstract namespace
+  if (process.platform === "linux") {
+    const nodeMajor = Number.parseInt(process.versions.node.split(".")[0], 10);
+    if (nodeMajor >= 20) {
+      return `\0${socketName}`;
+    }
+  }
+  // Unix socket
+  return join(tmpdir(), socketName);
 }

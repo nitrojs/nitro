@@ -1,20 +1,20 @@
 /// <reference types="vite/client" />
 import { defineHandler, html } from "h3";
 
-// @ts-ignore
 import viteLogo from "../assets/vite.svg";
-// const nitroLogo = "https://nitro.build/icon.svg";
-
-// @ts-ignore
 import nitroLogo from "../assets/nitro.svg";
-// const viteLogo = "https://vitejs.dev/logo.svg";
-export default defineHandler(async (event) => {
-  // Fetch Simple Service API
-  const simpleServiceRes = await fetch("http://localhost/hello", {
-    // @ts-ignore
-    env: "simple",
-  }).then((res) => res.text());
+import vueLogo from "../assets/vue.svg";
+import honoLogo from "../assets/hono.svg";
+import h3Logo from "../assets/h3.svg";
 
+const services = {
+  vue: { logo: vueLogo, path: "/vue" },
+  hono: { logo: honoLogo, path: "/hono" },
+  h3: { logo: h3Logo, path: "/h3" },
+  // api: { logo: viteLogo, path: "/api" },
+};
+
+export default defineHandler(async (event) => {
   return html(
     event,
     /* html */ `<!doctype html>
@@ -43,6 +43,23 @@ export default defineHandler(async (event) => {
         user-select: none;
         color: #666;
       }
+      .services {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .services a {
+        margin: 20px 10px;
+        text-decoration: none;
+      }
+      .services img {
+        width: 75px;
+        transition: transform 0.3s ease;
+      }
+      .services img:hover {
+        transform: scale(1.1);
+      }
     </style>
   </head>
   <body>
@@ -53,11 +70,23 @@ export default defineHandler(async (event) => {
         <img src="${nitroLogo}" alt="Nitro logo" width="200" />
       </div>
       <h1>Vite 🤜🤛 Nitro</h1>
-       <br>
-       <p>${simpleServiceRes}</p>
-      <a href="https://github.com/nitrojs/nitro/pull/3440" target="_blank">
+      <div class="services">
+          ${Object.entries(services)
+            .sort(() => Math.random() - 0.5)
+            .map(
+              ([name, { logo, path }]) => `
+            <a href="${path}">
+              <img src="${logo}" alt="${name} logo" />
+            </a>
+          `
+            )
+            .join("\n")}
+      </div>
+      <div class="footer">
+        <a href="https://github.com/nitrojs/nitro/pull/3440" target="_blank">
         [ Learn More ]
-      </a>
+       </a>
+      </div>
     </div>
   </body>
 </html>

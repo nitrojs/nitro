@@ -1,11 +1,36 @@
-import type { Nitro } from "nitro/types";
 import type { ViteBuilder } from "vite";
-import { relative } from "node:path";
+import type { RollupOutput, OutputChunk } from "rollup";
+import type { NitroPluginContext } from "./plugin";
+
+import { relative, resolve } from "node:path";
+import { formatCompatibilityDate } from "compatx";
 import { copyPublicAssets, prerender } from "../..";
 import { nitroServerName } from "../../utils/nitro";
-import { formatCompatibilityDate } from "compatx";
 
-export async function buildProduction(nitro: Nitro, builder: ViteBuilder) {
+export async function buildProduction(
+  ctx: NitroPluginContext,
+  builder: ViteBuilder
+) {
+  const nitro = ctx.nitro!;
+
+  // Build all environments before to the final Nitro server bundle
+  ctx._buildResults = {};
+  for (const [name, env] of Object.entries(builder.environments)) {
+    // prettier-ignore
+    const fmtName = name.length <= 3 ? name.toUpperCase() : name[0].toUpperCase() + name.slice(1);
+    if (name === "nitro") continue;
+    if (!env.config.build.rollupOptions.input) {
+      // If the environment is a server environment and has no input, skip it
+      nitro.logger.warn(
+        `Skipping build for \`${fmtName}\` as it has no input.`
+      );
+      continue;
+    }
+    nitro.logger.start(`Building \`${fmtName}\`...`);
+    ctx._buildResults![name] = ((await builder.build(env)) as RollupOutput)
+      .output[0] as OutputChunk;
+  }
+
   nitro.logger.start(
     `Building \`${nitroServerName(nitro)}\` (preset: \`${nitro.options.preset}\`, compatibility date: \`${formatCompatibilityDate(nitro.options.compatibilityDate)}\`)`
   );
@@ -51,4 +76,33 @@ export async function buildProduction(nitro: Nitro, builder: ViteBuilder) {
       )}\``
     );
   }
+}
+
+export function prodFetchInterceptor(ctx: NitroPluginContext): string {
+  const services = ctx.pluginConfig.services || {};
+  const serviceNames = Object.keys(services);
+  return [
+    `const services = { ${serviceNames.map((name) => `[${JSON.stringify(name)}]: () => import("${resolve(ctx.nitro!.options.buildDir, "vite/services", name, ctx._buildResults![name].fileName)}")`)}};`,
+    /* js */ `
+              const serviceHandlers = {};
+              const originalFetch = globalThis.fetch;
+              globalThis.fetch = (input, init) => {
+                if (!init?.env) {
+                  return originalFetch(input, init);
+                }
+                if (typeof input === "string" && input[0] === "/") {
+                  input = new URL(input, "http://localhost");
+                }
+                const req = new Request(input, init);
+                if (serviceHandlers[init.env]) {
+                  return Promise.resolve(serviceHandlers[init.env](req));
+                }
+                return services[init.env]().then((mod) => {
+                  const fetchHandler = mod.fetch || mod.default?.fetch;
+                  serviceHandlers[init.env] = fetchHandler;
+                  return fetchHandler(req);
+                });
+              };
+            `,
+  ].join("\n");
 }
