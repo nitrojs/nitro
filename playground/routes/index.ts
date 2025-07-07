@@ -69,9 +69,13 @@ export default defineHandler(async (event) => {
   <body>
     <div id="app">
       <div class="logo-container">
-        <img src="${viteLogo}" alt="Vite logo" />
+        <a href="https://vitejs.dev" target="_blank">
+          <img src="${viteLogo}" alt="Vite logo" />
+        </a>
         <div id="plus">＋</div>
-        <img src="${nitroLogo}" alt="Nitro logo />
+        <a href="https://nitro.build" target="_blank">
+          <img src="${nitroLogo}" alt="Nitro logo" />
+        </a>
       </div>
       <h1>Vite 🤜🤛 Nitro</h1>
       <div class="services">
