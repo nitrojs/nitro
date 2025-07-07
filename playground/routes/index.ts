@@ -10,8 +10,9 @@ import nitroLogo from "../assets/nitro.svg";
 // const viteLogo = "https://vitejs.dev/logo.svg";
 export default defineHandler(async (event) => {
   // Fetch Simple Service API
-  const simpleServiceRes = await fetch("/hello", {
-    headers: { "x-env": "simple" },
+  const simpleServiceRes = await fetch("http://localhost/hello", {
+    // @ts-ignore
+    env: "simple",
   }).then((res) => res.text());
 
   return html(

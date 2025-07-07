@@ -1,4 +1,9 @@
-import { type FetchableDevEnvironment, type Plugin as VitePlugin } from "vite";
+import type {
+  ConfigEnv,
+  FetchableDevEnvironment,
+  UserConfig,
+  Plugin as VitePlugin,
+} from "vite";
 import type { Plugin as RollupPlugin } from "rollup";
 import type { Nitro, NitroConfig } from "nitro/types";
 import { join, resolve } from "node:path";
@@ -55,13 +60,20 @@ export async function nitro(
       const publicDistDir =
         userConfig.build?.outDir ||
         resolve(nitro.options.buildDir, "vite/public");
-
       nitro.options.publicAssets.push({
         dir: publicDistDir,
         maxAge: 0,
         baseURL: "/",
         fallthrough: true,
       });
+
+      // Nitro Vite Production Runtime
+      if (!nitro.options.dev) {
+        nitro.options.unenv.push({
+          meta: { name: "nitro-vite" },
+          polyfill: ["#nitro-vite"],
+        });
+      }
 
       // Call build:before hook **before resolving rollup config** for compatibility
       await nitro.hooks.callHook("build:before", nitro);
@@ -75,10 +87,7 @@ export async function nitro(
 
         // Add Nitro as a Vite environment
         environments: {
-          ...createServiceEnvironments(
-            pluginOptions.services,
-            nitro.options.rootDir
-          ),
+          ...createServiceEnvironments(pluginOptions.services, nitro),
           nitro: createNitroEnvironment(nitro, rollupConfig),
         },
 
@@ -92,6 +101,9 @@ export async function nitro(
         },
 
         builder: {
+          // // Share the config instance among environments to align with the behavior of dev server
+          sharedConfigBuild: true,
+
           async buildApp(builder) {
             // Build all environments before to the final Nitro server bundle
             for (const [name, env] of Object.entries(builder.environments)) {
@@ -169,7 +181,6 @@ export async function nitro(
       // };
 
       // Expose an RPC server to environments
-      // TODO: Switch to Unix RPC if all environments are compatible
       const rpcServer = createServer((req, res) => {
         server.middlewares.handle(req, res, () => {});
       });
@@ -193,6 +204,11 @@ export async function nitro(
       // Only apply to Nitro environment
       if (this.environment.name !== "nitro") return;
 
+      // Virtual modules
+      if (id === "#nitro-vite") {
+        return { id, moduleSideEffects: true };
+      }
+
       // Run through rollup compatible plugins to resolve virtual modules
       for (const plugin of rollupConfig.config.plugins as RollupPlugin[]) {
         if (typeof plugin.resolveId !== "function") continue;
@@ -207,9 +223,40 @@ export async function nitro(
         }
       }
     },
+
     async load(id) {
       // Only apply to Nitro environment
       if (this.environment.name !== "nitro") return;
+
+      // Virtual modules
+      if (id === "#nitro-vite") {
+        const services = pluginOptions.services || {};
+        const serviceNames = Object.keys(services);
+        return [
+          `const services = { ${serviceNames.map((name) => `[${JSON.stringify(name)}]: () => import("${resolve(nitro.options.buildDir, "vite/services", name)}")`)}};`,
+          /* js */ `
+            const serviceHandlers = {};
+            const originalFetch = globalThis.fetch;
+            globalThis.fetch = (input, init) => {
+              if (!init?.env) {
+                return originalFetch(input, init);
+              }
+              if (typeof input === "string" && input[0] === "/") {
+                input = new URL(input, "http://localhost");
+              }
+              const req = new Request(input, init);
+              if (serviceHandlers[init.env]) {
+                return Promise.resolve(serviceHandlers[init.env](req));
+              }
+              return services[init.env]().then((mod) => {
+                const fetchHandler = mod.fetch || mod.default?.fetch;
+                serviceHandlers[init.env] = fetchHandler;
+                return fetchHandler(req);
+              });
+            };
+          `,
+        ].join("\n");
+      }
 
       // Run through rollup compatible plugins to load virtual modules
       for (const plugin of rollupConfig.config.plugins as RollupPlugin[]) {

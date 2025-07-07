@@ -8,7 +8,7 @@ import {
 } from "./dev";
 import type { NitroViteService } from "./plugin";
 import { NodeDevWorker } from "../../dev/worker";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { runtimeDir } from "nitro/runtime/meta";
 import { resolveModulePath } from "exsolve";
 
@@ -45,12 +45,13 @@ export function createNitroEnvironment(
 export function createServiceEnvironment(
   name: string,
   serviceConfig: NitroViteService,
-  root: string
+  nitro: Nitro
 ): EnvironmentOptions {
   return {
     consumer: "server",
     build: {
       rollupOptions: { input: serviceConfig.entry },
+      outDir: join(nitro.options.buildDir, "vite", "services", name),
     },
     dev: {
       createEnvironment: (envName, envConfig) =>
@@ -78,12 +79,12 @@ export function createServiceEnvironment(
 
 export function createServiceEnvironments(
   services: Record<string, NitroViteService> = {},
-  root: string
+  nitro: Nitro
 ): Record<string, EnvironmentOptions> {
   return Object.fromEntries(
     Object.entries(services).map(([serviceName, serviceConfig]) => [
       serviceName,
-      createServiceEnvironment(serviceName, serviceConfig, root),
+      createServiceEnvironment(serviceName, serviceConfig, nitro),
     ])
   );
 }

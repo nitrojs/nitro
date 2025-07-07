@@ -28,17 +28,16 @@ const runner = new ModuleRunner(
 let rpcAddr;
 
 const originalFetch = globalThis.fetch;
-
-globalThis.fetch = async (input, init) => {
-  const headers = new Headers(init?.headers || {});
-  if (headers.has("x-env") && !headers.has("x-env-fetch")) {
-    if (typeof input === "string" && input[0] === "/") {
-      input = new URL(input, "http://localhost");
-    }
-    headers.set("x-env-fetch", "1"); // Avoid recursive fetch calls
-    return fetchAddress(input, { ...init, headers }, rpcAddr);
+globalThis.fetch = (input, init) => {
+  if (!init?.env) {
+    return originalFetch(input, init);
   }
-  return originalFetch(input, init);
+  if (typeof input === "string" && input[0] === "/") {
+    input = new URL(input, "http://localhost");
+  }
+  const headers = new Headers(init?.headers || {});
+  headers.set("x-env", init.env);
+  return fetchAddress(input, { ...init, env: undefined, headers }, rpcAddr);
 };
 
 parentPort.on("message", (payload) => {
