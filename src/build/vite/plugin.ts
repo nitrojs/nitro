@@ -1,7 +1,7 @@
 import type { FetchableDevEnvironment, Plugin as VitePlugin } from "vite";
 import type { Plugin as RollupPlugin } from "rollup";
 import type { Nitro, NitroConfig } from "nitro/types";
-import { resolve } from "node:path";
+import { join, resolve } from "pathe";
 import consola from "consola";
 import { NodeRequest, sendNodeResponse } from "srvx/node";
 import { createNitro, prepare } from "../..";
@@ -9,6 +9,7 @@ import { resolveModulePath } from "exsolve";
 import { getViteRollupConfig } from "./rollup";
 import { buildProduction } from "./prod";
 import { createNitroEnvironment } from "./env";
+import { runtimeDir } from "nitro/runtime/meta";
 
 // https://vite.dev/guide/api-environment-plugins
 // https://vite.dev/guide/api-environment-frameworks.html
@@ -33,14 +34,18 @@ export async function nitro(
 
     // Extend vite config before it's resolved
     async config(userConfig, configEnv) {
+      const appType = userConfig.appType || "custom";
+      const config: NitroConfig = {
+        dev: configEnv.mode === "development",
+        rootDir: userConfig.root,
+        ...pluginOptions.config,
+      }
+
+      if (appType === "spa" && !config.dev && !config.renderer)
+        config.renderer = join(runtimeDir, "internal/routes/renderer-vite-spa");
+
       // Initialize a new Nitro instance
-      nitro =
-        nitro ||
-        (await createNitro({
-          dev: configEnv.mode === "development",
-          rootDir: userConfig.root,
-          ...pluginOptions.config,
-        }));
+      nitro = nitro || await createNitro(config);
 
       // Cleanup build directories
       await prepare(nitro);
