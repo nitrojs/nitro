@@ -1,6 +1,6 @@
 import { defineHandler, HTTPError } from "h3";
 
-const validServices = new Set(["vue", "api", "hono", "h3"]);
+const validServices = new Set(["vue", "api", "hono", "h3", "react"]);
 
 export default defineHandler(async (event) => {
   const { service, path } = event.context.params!;

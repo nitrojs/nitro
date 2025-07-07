@@ -6,11 +6,13 @@ import nitroLogo from "../assets/nitro.svg";
 import vueLogo from "../assets/vue.svg";
 import honoLogo from "../assets/hono.svg";
 import h3Logo from "../assets/h3.svg";
+import reactLogo from "../assets/react.svg";
 
 const services = {
   vue: { logo: vueLogo, path: "/vue" },
   hono: { logo: honoLogo, path: "/hono" },
   h3: { logo: h3Logo, path: "/h3" },
+  react: { logo: reactLogo, path: "/react" },
   // api: { logo: viteLogo, path: "/api" },
 };
 
@@ -40,8 +42,10 @@ export default defineHandler(async (event) => {
         justify-content: center;
         font-size: 150px;
         text-align: center;
-        user-select: none;
         color: #666;
+      }
+      .logo-container img {
+        width: 200px;
       }
       .services {
         display: flex;
@@ -53,11 +57,11 @@ export default defineHandler(async (event) => {
         margin: 20px 10px;
         text-decoration: none;
       }
-      .services img {
+      img {
         width: 75px;
         transition: transform 0.3s ease;
       }
-      .services img:hover {
+      img:hover {
         transform: scale(1.1);
       }
     </style>
@@ -65,9 +69,9 @@ export default defineHandler(async (event) => {
   <body>
     <div id="app">
       <div class="logo-container">
-        <img src="${viteLogo}" alt="Vite logo" width="200" />
+        <img src="${viteLogo}" alt="Vite logo" />
         <div id="plus">＋</div>
-        <img src="${nitroLogo}" alt="Nitro logo" width="200" />
+        <img src="${nitroLogo}" alt="Nitro logo />
       </div>
       <h1>Vite 🤜🤛 Nitro</h1>
       <div class="services">
