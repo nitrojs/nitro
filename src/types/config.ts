@@ -20,7 +20,7 @@ import type { UnimportPluginOptions } from "unimport/unplugin";
 import type { BuiltinDriverName } from "unstorage";
 import type { UnwasmPluginOptions } from "unwasm/plugin";
 import type { DeepPartial } from "./_utils";
-import type { DevServerOptions } from "./dev";
+import type { NitroDevServerOptions } from "./dev";
 import type {
   NitroDevEventHandler,
   NitroErrorHandler,
@@ -154,7 +154,7 @@ export interface NitroOptions extends PresetOptions {
 
   // Dev
   dev: boolean;
-  devServer: DevServerOptions;
+  devServer: NitroDevServerOptions;
   watchOptions: ChokidarOptions;
   devProxy: Record<string, string | ProxyServerOptions>;
 

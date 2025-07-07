@@ -8,7 +8,7 @@ import { scheduledTasks, tasks } from "#nitro-internal-virtual/tasks";
 import { Server } from "node:http";
 import { join } from "node:path";
 import nodeCrypto from "node:crypto";
-import { parentPort, threadId } from "node:worker_threads";
+import { parentPort, threadId, workerData } from "node:worker_threads";
 import { defineHandler, getRouterParam } from "h3";
 import wsAdapter from "crossws/adapters/node";
 import { toNodeHandler } from "srvx/node";
@@ -117,7 +117,7 @@ function listen(
 }
 
 function getSocketAddress() {
-  const socketName = `nitro-worker-${process.pid}-${threadId}-${NITRO_DEV_WORKER_ID}-${Math.round(Math.random() * 10_000)}.sock`;
+  const socketName = `nitro-worker-${process.pid}-${threadId}-${NITRO_DEV_WORKER_ID || ""}-${Math.round(Math.random() * 10_000)}.sock`;
   // Windows: pipe
   if (process.platform === "win32") {
     return join(String.raw`\\.\pipe`, socketName);

@@ -12,7 +12,10 @@ export default defineConfig({
   },
   plugins: [
     nitro({
-      compatibilityDate: "latest",
+      config: { compatibilityDate: "latest" },
+      services: {
+        simple: { entry: "./apps/simple", path: "/simple" },
+      },
     }),
   ],
 });

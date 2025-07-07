@@ -9,6 +9,12 @@ import viteLogo from "../assets/vite.svg";
 import nitroLogo from "../assets/nitro.svg";
 // const viteLogo = "https://vitejs.dev/logo.svg";
 export default defineHandler(async (event) => {
+  // Fetch Simple Service API
+  const simpleServiceRes = await fetch("http://localhost/hello", {
+    // @ts-ignore
+    env: "simple",
+  }).then((res) => res.text());
+
   return html(
     event,
     /* html */ `<!doctype html>
@@ -17,7 +23,7 @@ export default defineHandler(async (event) => {
     ${import.meta.hot ? '<script type="module" src="/@vite/client"></script>' : ""}
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + Nitro</title>
+    <title>Vite + Nitro!</title>
     <style>
       body {
         display: flex;
@@ -47,6 +53,8 @@ export default defineHandler(async (event) => {
         <img src="${nitroLogo}" alt="Nitro logo" width="200" />
       </div>
       <h1>Vite 🤜🤛 Nitro</h1>
+       <br>
+       <p>${simpleServiceRes}</p>
       <a href="https://github.com/nitrojs/nitro/pull/3440" target="_blank">
         [ Learn More ]
       </a>

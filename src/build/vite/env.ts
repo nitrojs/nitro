@@ -2,7 +2,15 @@ import type { Nitro } from "nitro/types";
 import type { EnvironmentOptions } from "vite";
 import type { getViteRollupConfig } from "./rollup";
 
-import { createNitroDevEnvironment } from "./dev";
+import {
+  createFetchableDevEnvironment,
+  createNitroDevEnvironment,
+} from "./dev";
+import type { NitroViteService } from "./plugin";
+import { NodeDevWorker } from "../../dev/worker";
+import { join, resolve } from "node:path";
+import { runtimeDir } from "nitro/runtime/meta";
+import { resolveModulePath } from "exsolve";
 
 export function createNitroEnvironment(
   nitro: Nitro,
@@ -32,4 +40,51 @@ export function createNitroEnvironment(
         createNitroDevEnvironment(name, config, nitro),
     },
   };
+}
+
+export function createServiceEnvironment(
+  name: string,
+  serviceConfig: NitroViteService,
+  nitro: Nitro
+): EnvironmentOptions {
+  return {
+    consumer: "server",
+    build: {
+      rollupOptions: { input: serviceConfig.entry },
+      outDir: join(nitro.options.buildDir, "vite", "services", name),
+    },
+    dev: {
+      createEnvironment: (envName, envConfig) =>
+        createFetchableDevEnvironment(
+          envName,
+          envConfig,
+          new NodeDevWorker({
+            name: name,
+            entry: resolve(runtimeDir, "internal/vite/worker.mjs"),
+            data: {
+              name: name,
+              server: true,
+              viteEntry: resolveModulePath(serviceConfig.entry, {
+                suffixes: ["", "/index"],
+                extensions: ["", ".ts", ".mjs", ".cjs", ".js", ".mts", ".cts"],
+              }),
+              globals: {},
+            },
+            hooks: {},
+          })
+        ),
+    },
+  };
+}
+
+export function createServiceEnvironments(
+  services: Record<string, NitroViteService> = {},
+  nitro: Nitro
+): Record<string, EnvironmentOptions> {
+  return Object.fromEntries(
+    Object.entries(services).map(([serviceName, serviceConfig]) => [
+      serviceName,
+      createServiceEnvironment(serviceName, serviceConfig, nitro),
+    ])
+  );
 }
