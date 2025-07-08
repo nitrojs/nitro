@@ -5,7 +5,7 @@ import type { Nitro, NitroConfig } from "nitro/types";
 import { resolve } from "node:path";
 import { createNitro, prepare } from "../..";
 import { getViteRollupConfig } from "./rollup";
-import { buildProduction, prodFetchInterceptor } from "./prod";
+import { buildProduction, prodEntry } from "./prod";
 import { createNitroEnvironment, createServiceEnvironments } from "./env";
 import { configureViteDevServer } from "./dev";
 
@@ -28,6 +28,8 @@ export interface NitroPluginContext {
   pluginConfig: NitroPluginConfig;
   rollupConfig?: ReturnType<typeof getViteRollupConfig>;
 
+  _manifest?: Record<string, any>;
+  _publicDistDir?: string;
   _buildResults?: Record<string, OutputChunk>;
 }
 
@@ -57,9 +59,9 @@ export async function nitro(
       await prepare(ctx.nitro);
 
       // Determine default Vite dist directory
-      const publicDistDir =
+      const publicDistDir = (ctx._publicDistDir =
         userConfig.build?.outDir ||
-        resolve(ctx.nitro.options.buildDir, "vite/public");
+        resolve(ctx.nitro.options.buildDir, "vite/public"));
       ctx.nitro.options.publicAssets.push({
         dir: publicDistDir,
         maxAge: 0,
@@ -71,7 +73,7 @@ export async function nitro(
       if (!ctx.nitro.options.dev) {
         ctx.nitro.options.unenv.push({
           meta: { name: "nitro-vite" },
-          polyfill: ["#nitro-vite"],
+          polyfill: ["#nitro-vite-entry"],
         });
       }
 
@@ -97,10 +99,6 @@ export async function nitro(
           alias: ctx.rollupConfig.base.aliases,
         },
 
-        build: {
-          outDir: publicDistDir,
-        },
-
         builder: {
           /// Share the config instance among environments to align with the behavior of dev server
           sharedConfigBuild: true,
@@ -111,9 +109,13 @@ export async function nitro(
       };
     },
 
-    // Full reload browser for Server routes
-    handleHotUpdate(context) {
-      context.server.hot.send({ type: "full-reload" });
+    // Modify environment configs before it's resolved.
+    configEnvironment(name, config) {
+      if (config.consumer === "client") {
+        config.build!.manifest = true;
+        config.build!.emptyOutDir = false;
+        config.build!.outDir = ctx.nitro!.options.output.publicDir;
+      }
     },
 
     // Extend Vite dev server with Nitro middleware
@@ -126,7 +128,7 @@ export async function nitro(
       if (this.environment.name !== "nitro") return;
 
       // Virtual modules
-      if (id === "#nitro-vite") {
+      if (id === "#nitro-vite-entry") {
         return { id, moduleSideEffects: true };
       }
 
@@ -150,8 +152,8 @@ export async function nitro(
       if (this.environment.name !== "nitro") return;
 
       // Virtual modules
-      if (id === "#nitro-vite") {
-        return prodFetchInterceptor(ctx);
+      if (id === "#nitro-vite-entry") {
+        return prodEntry(ctx);
       }
 
       // Run through rollup compatible plugins to load virtual modules

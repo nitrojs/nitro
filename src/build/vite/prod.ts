@@ -3,6 +3,7 @@ import type { RollupOutput, OutputChunk } from "rollup";
 import type { NitroPluginContext } from "./plugin";
 
 import { relative, resolve } from "node:path";
+import { readFile, rm } from "node:fs/promises";
 import { formatCompatibilityDate } from "compatx";
 import { copyPublicAssets, prerender } from "../..";
 import { nitroServerName } from "../../utils/nitro";
@@ -12,6 +13,14 @@ export async function buildProduction(
   builder: ViteBuilder
 ) {
   const nitro = ctx.nitro!;
+
+  // Vite generates public/.vite/manifest.json, for each environment
+  // We need to collect it progressively
+  ctx._manifest = {};
+  const manifestPath = resolve(
+    nitro.options.output.publicDir,
+    ".vite/manifest.json"
+  );
 
   // Build all environments before to the final Nitro server bundle
   ctx._buildResults = {};
@@ -29,7 +38,16 @@ export async function buildProduction(
     nitro.logger.start(`Building \`${fmtName}\`...`);
     ctx._buildResults![name] = ((await builder.build(env)) as RollupOutput)
       .output[0] as OutputChunk;
+
+    Object.assign(
+      ctx._manifest,
+      await readFile(manifestPath, "utf8")
+        .catch(() => "{}")
+        .then((r) => JSON.parse(r))
+    );
   }
+
+  await rm(manifestPath, { force: true });
 
   nitro.logger.start(
     `Building \`${nitroServerName(nitro)}\` (preset: \`${nitro.options.preset}\`, compatibility date: \`${formatCompatibilityDate(nitro.options.compatibilityDate)}\`)`
@@ -78,10 +96,11 @@ export async function buildProduction(
   }
 }
 
-export function prodFetchInterceptor(ctx: NitroPluginContext): string {
+export function prodEntry(ctx: NitroPluginContext): string {
   const services = ctx.pluginConfig.services || {};
   const serviceNames = Object.keys(services);
   return [
+    // Fetchable services
     `const services = { ${serviceNames.map((name) => `[${JSON.stringify(name)}]: () => import("${resolve(ctx.nitro!.options.buildDir, "vite/services", name, ctx._buildResults![name].fileName)}")`)}};`,
     /* js */ `
               const serviceHandlers = {};
@@ -104,5 +123,9 @@ export function prodFetchInterceptor(ctx: NitroPluginContext): string {
                 });
               };
             `,
+    // SSR Manifest
+    ctx._manifest
+      ? `globalThis.__VITE_MANIFEST__ = ${JSON.stringify(ctx._manifest)};`
+      : "",
   ].join("\n");
 }

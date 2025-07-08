@@ -1,8 +1,8 @@
 /// <reference types="vite/client" />
 import { createRoot } from "react-dom/client";
-import RefreshRuntime from "react-refresh";
 
 if (import.meta.env.DEV) {
+  const RefreshRuntime = await import("react-refresh");
   RefreshRuntime.injectIntoGlobalHook(globalThis);
   globalThis.$RefreshReg$ = () => {};
   globalThis.$RefreshSig$ = () => (type) => type;

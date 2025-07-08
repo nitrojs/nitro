@@ -11,13 +11,25 @@ export default defineConfig({
     nitro({
       config: { compatibilityDate: "latest" },
       services: {
+        // API Services
         fetch: { entry: "./services/fetch.ts" },
         h3: { entry: "./services/h3.ts" },
         hono: { entry: "./services/hono.ts" },
+        node: { entry: "./services/node.ts" },
+        // SSR Services
         vue: { entry: "./services/vue/server.ts" },
         react: { entry: "./services/react/server.tsx" },
-        node: { entry: "./services/node.ts" },
       },
     }),
   ],
+  environments: {
+    vueClient: {
+      consumer: "client",
+      build: { rollupOptions: { input: "./services/vue/client.ts" } },
+    },
+    reactClient: {
+      consumer: "client",
+      build: { rollupOptions: { input: "./services/react/client.tsx" } },
+    },
+  },
 });

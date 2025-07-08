@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import { renderToString } from "react-dom/server";
 import App from "./App.jsx";
 
@@ -19,10 +20,27 @@ function indexHTML(appHTML: string) {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Vite + Nitro + React</title>
+    ${import.meta.env?.DEV ? '<script type="module" src="/@vite/client"></script>' : ""}
   </head>
   <body>
     <div id="app">${appHTML}</div>
-    <script type="module" src="/services/react/client.tsx"></script>
+    <script type="module" src="${resolveEntry("services/react/client.tsx")}"></script>
   </body>
 </html>`;
+}
+
+function resolveEntry(entry: string): string {
+  if (import.meta.env?.PROD) {
+    const manifest = globalThis.__VITE_MANIFEST__;
+    const file = manifest?.[entry]?.file;
+    if (!file) {
+      throw new Error(
+        manifest
+          ? `Entry "${entry}" not found in Vite manifest.`
+          : "Vite manifest is not available."
+      );
+    }
+    return `/${file}`;
+  }
+  return `/${entry}`;
 }
