@@ -7,12 +7,14 @@ import vueLogo from "../assets/vue.svg";
 import honoLogo from "../assets/hono.svg";
 import h3Logo from "../assets/h3.svg";
 import reactLogo from "../assets/react.svg";
+import nodeLogo from "../assets/node.svg";
 
 const services = {
   vue: { logo: vueLogo, path: "/vue" },
   hono: { logo: honoLogo, path: "/hono" },
   h3: { logo: h3Logo, path: "/h3" },
   react: { logo: reactLogo, path: "/react" },
+  node: { logo: nodeLogo, path: "/node" },
   // api: { logo: viteLogo, path: "/api" },
 };
 

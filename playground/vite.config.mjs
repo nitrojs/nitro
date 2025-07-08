@@ -11,11 +11,12 @@ export default defineConfig({
     nitro({
       config: { compatibilityDate: "latest" },
       services: {
-        api: { entry: "./services/api.ts" },
+        fetch: { entry: "./services/fetch.ts" },
         h3: { entry: "./services/h3.ts" },
         hono: { entry: "./services/hono.ts" },
         vue: { entry: "./services/vue/server.ts" },
         react: { entry: "./services/react/server.tsx" },
+        node: { entry: "./services/node.ts" },
       },
     }),
   ],
