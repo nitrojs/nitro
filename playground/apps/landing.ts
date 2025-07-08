@@ -1,5 +1,4 @@
 /// <reference types="vite/client" />
-import { defineHandler, html } from "h3";
 
 import viteLogo from "../assets/vite.svg";
 import nitroLogo from "../assets/nitro.svg";
@@ -15,13 +14,10 @@ const services = {
   h3: { logo: h3Logo, path: "/h3" },
   react: { logo: reactLogo, path: "/react" },
   node: { logo: nodeLogo, path: "/node" },
-  // api: { logo: viteLogo, path: "/api" },
 };
 
-export default defineHandler(async (event) => {
-  return html(
-    event,
-    /* html */ `<!doctype html>
+export const fetch = async (_req) => {
+  const html = /* html */ `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -101,6 +97,11 @@ export default defineHandler(async (event) => {
     </div>
   </body>
 </html>
-  `
-  );
-});
+  `;
+
+  return new Response(html, {
+    headers: {
+      "Content-Type": "text/html",
+    },
+  });
+};

@@ -1,4 +1,5 @@
 import "#nitro-internal-pollyfills";
+import type { ServerRequest } from "srvx";
 import { useNitroApp } from "nitro/runtime";
 
 import type { Deno as _Deno } from "@deno/types";
@@ -11,6 +12,7 @@ const ws = import.meta._websocket
     wsAdapter(nitroApp.h3App.websocket)
   : undefined;
 
+// TODO: Migrate to srvx to provide request IP
 Deno.serve((request: Request, info: _Deno.ServeHandlerInfo) => {
   // https://crossws.unjs.io/adapters/deno
   if (
@@ -18,16 +20,6 @@ Deno.serve((request: Request, info: _Deno.ServeHandlerInfo) => {
     request.headers.get("upgrade") === "websocket"
   ) {
     return ws!.handleUpgrade(request, info);
-  }
-
-  // Add client IP address to headers
-  // (rightmost is most trustable)
-  request.headers.append("x-forwarded-for", info.remoteAddr.hostname);
-
-  // There is currently no way to know if the request was made over HTTP or HTTPS
-  // Deno deploy force redirects to HTTPS so we assume HTTPS by default
-  if (!request.headers.has("x-forwarded-proto")) {
-    request.headers.set("x-forwarded-proto", "https");
   }
 
   return nitroApp.fetch(request, undefined, {

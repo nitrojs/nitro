@@ -1,12 +1,10 @@
 /// <reference types="vite/client" />
-import { renderToString } from "vue/server-renderer";
-import { createApp } from "./main";
+import { renderToString } from "react-dom/server";
+import App from "./App.jsx";
 
 export default {
   async fetch(req: Request): Promise<Response> {
-    const { app } = createApp();
-    const ctx = {};
-    const appHTML = await renderToString(app, ctx);
+    const appHTML = await renderToString(<App />);
     return new Response(indexHTML(appHTML), {
       headers: {
         "Content-Type": "text/html",
@@ -21,12 +19,12 @@ function indexHTML(appHTML: string) {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + Nitro + Vue</title>
+    <title>Vite + Nitro + React</title>
     ${import.meta.env?.DEV ? '<script type="module" src="/@vite/client"></script>' : ""}
   </head>
   <body>
     <div id="app">${appHTML}</div>
-    <script type="module" src="${resolveEntry("services/vue/client.ts")}"></script>
+    <script type="module" src="${resolveEntry("apps/react/client.tsx")}"></script>
   </body>
 </html>`;
 }

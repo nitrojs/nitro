@@ -21,6 +21,14 @@ export async function buildProduction(
     nitro.options.output.publicDir,
     ".vite/manifest.json"
   );
+  const collectManifest = async () => {
+    Object.assign(
+      ctx._manifest!,
+      await readFile(manifestPath, "utf8")
+        .catch(() => "{}")
+        .then((r) => JSON.parse(r))
+    );
+  };
 
   // Build all environments before to the final Nitro server bundle
   ctx._buildResults = {};
@@ -38,16 +46,8 @@ export async function buildProduction(
     nitro.logger.start(`Building \`${fmtName}\`...`);
     ctx._buildResults![name] = ((await builder.build(env)) as RollupOutput)
       .output[0] as OutputChunk;
-
-    Object.assign(
-      ctx._manifest,
-      await readFile(manifestPath, "utf8")
-        .catch(() => "{}")
-        .then((r) => JSON.parse(r))
-    );
+    await collectManifest();
   }
-
-  await rm(manifestPath, { force: true });
 
   nitro.logger.start(
     `Building \`${nitroServerName(nitro)}\` (preset: \`${nitro.options.preset}\`, compatibility date: \`${formatCompatibilityDate(nitro.options.compatibilityDate)}\`)`
@@ -68,6 +68,8 @@ export async function buildProduction(
 
   // Build the Nitro server bundle
   await builder.build(builder.environments.nitro);
+  await collectManifest();
+  await rm(manifestPath, { force: true });
 
   // Close the Nitro instance
   await nitro.close();
@@ -115,6 +117,9 @@ export function prodEntry(ctx: NitroPluginContext): string {
                 const req = new Request(input, init);
                 if (serviceHandlers[init.env]) {
                   return Promise.resolve(serviceHandlers[init.env](req));
+                }
+                if (!services[init.env]) {
+                  return new Response("Service not found: " + init.env, { status: 404 });
                 }
                 return services[init.env]().then((mod) => {
                   const fetchHandler = mod.fetch || mod.default?.fetch;

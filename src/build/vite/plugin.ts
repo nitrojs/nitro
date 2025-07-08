@@ -99,6 +99,11 @@ export async function nitro(
           alias: ctx.rollupConfig.base.aliases,
         },
 
+        build: {
+          // TODO: Support server environment emitted assets
+          assetsInlineLimit: 4096 * 4,
+        },
+
         builder: {
           /// Share the config instance among environments to align with the behavior of dev server
           sharedConfigBuild: true,
