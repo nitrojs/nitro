@@ -52,6 +52,12 @@ export async function nitro(
         (await createNitro({
           dev: configEnv.mode === "development",
           rootDir: userConfig.root,
+          compatibilityDate: "latest",
+          imports: false,
+          typescript: {
+            generateRuntimeConfigTypes: false,
+            generateTsConfig: false,
+          },
           ...pluginConfig.config,
         }));
 

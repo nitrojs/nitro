@@ -13,7 +13,6 @@ export default defineConfig({
     react(),
     nitro({
       config: {
-        compatibilityDate: "latest",
         handlers: [
           { route: "/", handler: dispatchHandler },
           { route: "/:service", handler: dispatchHandler },
