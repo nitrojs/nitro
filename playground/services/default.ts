@@ -9,14 +9,18 @@ import reactLogo from "../assets/react.svg";
 import nodeLogo from "../assets/node.svg";
 
 const services = {
+  h3: { logo: h3Logo, path: "/api/h3" },
+  node: { logo: nodeLogo, path: "/api/node" },
+  hono: { logo: honoLogo, path: "/api/hono" },
   vue: { logo: vueLogo, path: "/vue" },
-  hono: { logo: honoLogo, path: "/hono" },
-  h3: { logo: h3Logo, path: "/h3" },
   react: { logo: reactLogo, path: "/react" },
-  node: { logo: nodeLogo, path: "/node" },
 };
 
-export const fetch = async (_req) => {
+export const fetch = async (req) => {
+  const { pathname } = new URL(req.url);
+  if (pathname !== "/") {
+    return new Response("Not Found", { status: 404 });
+  }
   const html = /* html */ `<!doctype html>
 <html lang="en">
   <head>

@@ -1,45 +1,36 @@
-import { join } from "node:path";
 import { defineConfig } from "vite";
 import { nitro } from "nitro/vite";
 
 import vue from "@vitejs/plugin-vue";
 import react from "@vitejs/plugin-react";
 
-const dispatchHandler = join(import.meta.dirname, "./dispatch.ts");
-
 export default defineConfig({
   plugins: [
     vue(),
     react(),
     nitro({
-      config: {
-        handlers: [
-          { route: "/", handler: dispatchHandler },
-          { route: "/:service", handler: dispatchHandler },
-        ],
-      },
       services: {
-        landing: { entry: "./apps/landing.ts" },
-        // API
-        fetch: { entry: "./apps/fetch.ts" },
-        h3: { entry: "./apps/h3.ts" },
-        hono: { entry: "./apps/hono.ts" },
-        node: { entry: "./apps/node.ts" },
         // SSR
-        vue: { entry: "./apps/vue/server.ts" },
-        react: { entry: "./apps/react/server.tsx" },
+        ssr: { entry: "./services/default.ts" },
+        vue: { entry: "./services/vue/server.ts", baseURL: "/vue" },
+        react: { entry: "./services/react/server.tsx", baseURL: "/react" },
+        // API
+        fetch: { entry: "./services/fetch.ts", baseURL: "/api/fetch" },
+        h3: { entry: "./services/h3.ts", baseURL: "/api/h3" },
+        hono: { entry: "./services/hono.ts", baseURL: "/api/hono" },
+        node: { entry: "./services/node.ts", baseURL: "/api/node" },
       },
     }),
   ],
   environments: {
-    // Client environments
-    vueClient: {
+    // Client
+    client: {
       consumer: "client",
-      build: { rollupOptions: { input: "./apps/vue/client.ts" } },
-    },
-    reactClient: {
-      consumer: "client",
-      build: { rollupOptions: { input: "./apps/react/client.tsx" } },
+      build: {
+        rollupOptions: {
+          input: ["./services/vue/client.ts", "./services/react/client.tsx"],
+        },
+      },
     },
   },
 });

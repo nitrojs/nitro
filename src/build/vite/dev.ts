@@ -1,4 +1,4 @@
-import type { NitroPluginContext } from "./plugin";
+import type { NitroPluginContext } from "./types";
 import type {
   DevEnvironmentContext,
   HotChannel,
@@ -142,49 +142,37 @@ export function configureViteDevServer(
     }
   });
 
-  // Create a sorted array of routable services
-  const routableServices = Object.entries(ctx.pluginConfig.services || {})
-    .filter(([, service]) => service.path)
-    .map(([name, service]) => {
-      return {
-        path: service.path!,
-        env: server.environments[name] as FetchableDevEnvironment,
-      };
-    })
-    .sort((a, b) => b.path.length - a.path.length);
+  return () =>
+    server.middlewares.use(async (nodeReq, nodeRes, next) => {
+      // Fast Skip known prefixes
+      if (
+        nodeReq.url!.startsWith("/@vite/") ||
+        nodeReq.url!.startsWith("/@fs/") ||
+        nodeReq.url!.startsWith("/@id/")
+      ) {
+        return next();
+      }
 
-  server.middlewares.use(async (nodeReq, nodeRes, next) => {
-    // Fast Skip known prefixes
-    if (
-      nodeReq.url!.startsWith("/@vite/") ||
-      nodeReq.url!.startsWith("/@fs/") ||
-      nodeReq.url!.startsWith("/@id/")
-    ) {
-      return next();
-    }
+      // Match fetchable environment based on request
+      // 1. Check for x-vite-env header
+      // 3. Default to nitro environment
+      const env = (server.environments[
+        nodeReq.headers["x-vite-env"] as string
+      ] || server.environments.nitro) as FetchableDevEnvironment;
 
-    // Match fetchable environment based on request
-    // 1. Check for x-vite-env header
-    // 2. Check if the request URL starts with a routable service path
-    // 3. Default to nitro environment
-    const envHeader = nodeReq.headers["x-vite-env"] as string;
-    const env = (server.environments[envHeader] ||
-      routableServices.find((s) => nodeReq.url!.startsWith(s.path))?.env ||
-      server.environments.nitro) as FetchableDevEnvironment;
+      // Make sure the environment is fetchable or else skip
+      if (typeof env?.dispatchFetch !== "function") {
+        ctx.nitro!.logger.warn("Environment is not fetchable:", env.name);
+        return next();
+      }
 
-    // Make sure the environment is fetchable or else skip
-    if (typeof env?.dispatchFetch !== "function") {
-      ctx.nitro!.logger.warn("Environment is not fetchable:", env.name);
-      return next();
-    }
-
-    // Dispatch the request to the environment
-    const webReq = new NodeRequest({ req: nodeReq, res: nodeRes });
-    const webRes = await env.dispatchFetch(webReq);
-    return webRes.status === 404
-      ? next()
-      : await sendNodeResponse(nodeRes, webRes);
-  });
+      // Dispatch the request to the environment
+      const webReq = new NodeRequest({ req: nodeReq, res: nodeRes });
+      const webRes = await env.dispatchFetch(webReq);
+      return webRes.status === 404
+        ? next()
+        : await sendNodeResponse(nodeRes, webRes);
+    });
 }
 
 function getSocketAddress() {

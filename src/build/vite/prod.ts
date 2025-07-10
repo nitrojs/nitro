@@ -1,6 +1,6 @@
 import type { ViteBuilder } from "vite";
 import type { RollupOutput, OutputChunk } from "rollup";
-import type { NitroPluginContext } from "./plugin";
+import type { NitroPluginContext } from "./types";
 
 import { relative, resolve } from "node:path";
 import { readFile, rm } from "node:fs/promises";

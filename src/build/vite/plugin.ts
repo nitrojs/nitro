@@ -1,6 +1,6 @@
 import type { Plugin as VitePlugin } from "vite";
-import type { OutputChunk, Plugin as RollupPlugin } from "rollup";
-import type { Nitro, NitroConfig } from "nitro/types";
+import type { Plugin as RollupPlugin } from "rollup";
+import type { NitroPluginConfig, NitroPluginContext } from "./types";
 
 import { resolve } from "node:path";
 import { createNitro, prepare } from "../..";
@@ -8,35 +8,20 @@ import { getViteRollupConfig } from "./rollup";
 import { buildProduction, prodEntry } from "./prod";
 import { createNitroEnvironment, createServiceEnvironments } from "./env";
 import { configureViteDevServer } from "./dev";
+import { runtimeDir } from "nitro/runtime/meta";
+
+import * as rou3 from "rou3";
+import * as rou3Compiler from "rou3/compiler";
 
 // https://vite.dev/guide/api-environment-plugins
 // https://vite.dev/guide/api-environment-frameworks.html
 
-export interface ViteService {
-  entry: string;
-  path?: string;
-}
-
-export interface NitroPluginConfig {
-  config?: NitroConfig;
-  nitro?: Nitro;
-  services?: Record<string, ViteService>;
-}
-
-export interface NitroPluginContext {
-  nitro?: Nitro;
-  pluginConfig: NitroPluginConfig;
-  rollupConfig?: ReturnType<typeof getViteRollupConfig>;
-
-  _manifest?: Record<string, any>;
-  _publicDistDir?: string;
-  _buildResults?: Record<string, OutputChunk>;
-}
-
 export async function nitro(
   pluginConfig: NitroPluginConfig = {}
 ): Promise<VitePlugin> {
-  const ctx: NitroPluginContext = { pluginConfig };
+  const ctx: NitroPluginContext = {
+    pluginConfig,
+  };
 
   return {
     name: "nitro",
@@ -47,19 +32,23 @@ export async function nitro(
     // Extend vite config before it's resolved
     async config(userConfig, configEnv) {
       // Initialize a new Nitro instance
-      ctx.nitro =
-        pluginConfig.nitro ||
-        (await createNitro({
-          dev: configEnv.mode === "development",
-          rootDir: userConfig.root,
-          compatibilityDate: "latest",
-          imports: false,
-          typescript: {
-            generateRuntimeConfigTypes: false,
-            generateTsConfig: false,
+      ctx.nitro = await createNitro({
+        dev: configEnv.mode === "development",
+        rootDir: userConfig.root,
+        compatibilityDate: "latest",
+        imports: false,
+        typescript: {
+          generateRuntimeConfigTypes: false,
+          generateTsConfig: false,
+        },
+        handlers: [
+          {
+            route: "/**",
+            handler: resolve(runtimeDir, "internal/vite/dispatcher.mjs"),
           },
-          ...pluginConfig.config,
-        }));
+        ],
+        ...pluginConfig.config,
+      });
 
       // Cleanup build directories
       await prepare(ctx.nitro);
@@ -130,9 +119,7 @@ export async function nitro(
     },
 
     // Extend Vite dev server with Nitro middleware
-    configureServer(server) {
-      configureViteDevServer(ctx, server);
-    },
+    configureServer: (server) => configureViteDevServer(ctx, server),
 
     async resolveId(id, importer, options) {
       // Only apply to Nitro environment
@@ -141,6 +128,9 @@ export async function nitro(
       // Virtual modules
       if (id === "#nitro-vite-entry") {
         return { id, moduleSideEffects: true };
+      }
+      if (id === "#nitro-vite-services") {
+        return id;
       }
 
       // Run through rollup compatible plugins to resolve virtual modules
@@ -165,6 +155,19 @@ export async function nitro(
       // Virtual modules
       if (id === "#nitro-vite-entry") {
         return prodEntry(ctx);
+      }
+      if (id === "#nitro-vite-services") {
+        const router = rou3.createRouter();
+        for (const [name, service] of Object.entries(
+          ctx.pluginConfig.services || {}
+        )) {
+          const baseURL = service.baseURL || (name === "ssr" ? "/" : undefined);
+          if (!baseURL) {
+            continue;
+          }
+          rou3.addRoute(router, "", `${service.baseURL}/**`, { service: name });
+        }
+        return `export const findService = ${rou3Compiler.compileRouterToString(router)};`;
       }
 
       // Run through rollup compatible plugins to load virtual modules

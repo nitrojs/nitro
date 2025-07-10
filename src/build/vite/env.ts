@@ -1,5 +1,5 @@
 import type { EnvironmentOptions } from "vite";
-import type { NitroPluginContext, ViteService } from "./plugin";
+import type { NitroPluginContext, ServiceConfig } from "./types";
 
 import { NodeDevWorker } from "../../dev/worker";
 import { join, resolve } from "node:path";
@@ -40,7 +40,7 @@ export function createNitroEnvironment(
 export function createServiceEnvironment(
   ctx: NitroPluginContext,
   name: string,
-  serviceConfig: ViteService
+  serviceConfig: ServiceConfig
 ): EnvironmentOptions {
   return {
     consumer: "server",
