@@ -12,13 +12,13 @@ export default defineConfig({
       services: {
         // SSR
         ssr: { entry: "./services/default.ts" },
-        vue: { entry: "./services/vue/server.ts", baseURL: "/vue" },
-        react: { entry: "./services/react/server.tsx", baseURL: "/react" },
+        vue: { entry: "./services/vue/server.ts", route: "/vue" },
+        react: { entry: "./services/react/server.tsx", route: "/react" },
         // API
-        fetch: { entry: "./services/fetch.ts", baseURL: "/api/fetch" },
-        h3: { entry: "./services/h3.ts", baseURL: "/api/h3" },
-        hono: { entry: "./services/hono.ts", baseURL: "/api/hono" },
-        node: { entry: "./services/node.ts", baseURL: "/api/node" },
+        fetch: { entry: "./services/fetch.ts", route: "/api/fetch/**" },
+        h3: { entry: "./services/h3.ts", route: "/api/h3/**" },
+        hono: { entry: "./services/hono.ts", route: "/api/hono/**" },
+        node: { entry: "./services/node.ts", route: "/api/node/**" },
       },
     }),
   ],

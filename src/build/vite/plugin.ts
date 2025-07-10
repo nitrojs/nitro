@@ -161,11 +161,11 @@ export async function nitro(
         for (const [name, service] of Object.entries(
           ctx.pluginConfig.services || {}
         )) {
-          const baseURL = service.baseURL || (name === "ssr" ? "/" : undefined);
-          if (!baseURL) {
+          const route = service.route || (name === "ssr" ? "/**" : undefined);
+          if (!route) {
             continue;
           }
-          rou3.addRoute(router, "", `${service.baseURL}/**`, { service: name });
+          rou3.addRoute(router, "", route, { service: name });
         }
         return `export const findService = ${rou3Compiler.compileRouterToString(router)};`;
       }

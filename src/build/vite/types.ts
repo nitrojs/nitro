@@ -30,11 +30,12 @@ export interface ServiceConfig {
   entry: string;
 
   /**
-   * Base URL for the service.
+   * Service route.
    *
-   * If `baseURL` is not set, services are only accessible via `fetch("<url>", { viteEnv: "<name>" })`.
+   * - If `route` is not set, services are only accessible via `fetch("<url>", { viteEnv: "<name>" })`.
+   * - `ssr` service is special and defaults to `"/**"` route, meaning it will handle all requests.
    */
-  baseURL?: string;
+  route?: string;
 }
 
 /**

@@ -6,7 +6,7 @@ export default defineHandler(async (event) => {
   if (!m) {
     return new Response("", { status: 404 });
   }
-  return fetch(new URL(`/${m.params._ || ""}`, event.url), {
+  return fetch(new URL(`/${m.params?._ || ""}`, event.url), {
     viteEnv: m.data.service,
   });
 });
