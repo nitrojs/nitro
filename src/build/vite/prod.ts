@@ -108,22 +108,23 @@ export function prodEntry(ctx: NitroPluginContext): string {
               const serviceHandlers = {};
               const originalFetch = globalThis.fetch;
               globalThis.fetch = (input, init) => {
-                if (!init?.env) {
+                const { viteEnv } = init || {};
+                if (!viteEnv) {
                   return originalFetch(input, init);
                 }
                 if (typeof input === "string" && input[0] === "/") {
                   input = new URL(input, "http://localhost");
                 }
                 const req = new Request(input, init);
-                if (serviceHandlers[init.env]) {
-                  return Promise.resolve(serviceHandlers[init.env](req));
+                if (serviceHandlers[viteEnv]) {
+                  return Promise.resolve(serviceHandlers[viteEnv](req));
                 }
-                if (!services[init.env]) {
-                  return new Response("Service not found: " + init.env, { status: 404 });
+                if (!services[viteEnv]) {
+                  return new Response("Service not found: " + viteEnv, { status: 404 });
                 }
-                return services[init.env]().then((mod) => {
+                return services[viteEnv]().then((mod) => {
                   const fetchHandler = mod.fetch || mod.default?.fetch;
-                  serviceHandlers[init.env] = fetchHandler;
+                  serviceHandlers[viteEnv] = fetchHandler;
                   return fetchHandler(req);
                 });
               };

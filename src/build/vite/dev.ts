@@ -164,10 +164,10 @@ export function configureViteDevServer(
     }
 
     // Match fetchable environment based on request
-    // 1. Check for x-env header
+    // 1. Check for x-vite-env header
     // 2. Check if the request URL starts with a routable service path
     // 3. Default to nitro environment
-    const envHeader = nodeReq.headers["x-env"] as string;
+    const envHeader = nodeReq.headers["x-vite-env"] as string;
     const env = (server.environments[envHeader] ||
       routableServices.find((s) => nodeReq.url!.startsWith(s.path))?.env ||
       server.environments.nitro) as FetchableDevEnvironment;

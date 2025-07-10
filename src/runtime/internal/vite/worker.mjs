@@ -29,15 +29,16 @@ let rpcAddr;
 
 const originalFetch = globalThis.fetch;
 globalThis.fetch = (input, init) => {
-  if (!init?.env) {
+  const { viteEnv } = init || {};
+  if (!viteEnv) {
     return originalFetch(input, init);
   }
   if (typeof input === "string" && input[0] === "/") {
     input = new URL(input, "http://localhost");
   }
   const headers = new Headers(init?.headers || {});
-  headers.set("x-env", init.env);
-  return fetchAddress(input, { ...init, env: undefined, headers }, rpcAddr);
+  headers.set("x-vite-env", viteEnv);
+  return fetchAddress(input, { ...init, viteEnv: undefined, headers }, rpcAddr);
 };
 
 parentPort.on("message", (payload) => {
