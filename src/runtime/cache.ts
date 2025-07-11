@@ -5,4 +5,6 @@ export {
   cachedFunction,
   defineCachedEventHandler,
   defineCachedFunction,
+  escapeKey
 } from "./internal/cache";
+

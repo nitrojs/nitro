@@ -188,7 +188,7 @@ function getKey(...args: unknown[]) {
   return args.length > 0 ? hash(args) : "";
 }
 
-function escapeKey(key: string | string[]) {
+export function escapeKey(key: string | string[]) {
   return String(key).replace(/\W/g, "");
 }
 

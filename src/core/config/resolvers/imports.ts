@@ -76,6 +76,7 @@ function getNitroImportsPreset(): Preset[] {
         "defineCachedEventHandler",
         "cachedFunction",
         "cachedEventHandler",
+        "escapeKey",
       ],
     },
     {
