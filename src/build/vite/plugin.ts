@@ -111,7 +111,8 @@ export async function nitro(
 
     // Modify environment configs before it's resolved.
     configEnvironment(name, config) {
-      if (config.consumer === "client") {
+      const mayBeClient = config.consumer === undefined && name === "client";
+      if (config.consumer === "client" || mayBeClient) {
         config.build!.manifest = true;
         config.build!.emptyOutDir = false;
         config.build!.outDir = ctx.nitro!.options.output.publicDir;
