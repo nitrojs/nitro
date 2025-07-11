@@ -2,7 +2,7 @@ import type { ViteBuilder } from "vite";
 import type { RollupOutput, OutputChunk } from "rollup";
 import type { NitroPluginContext } from "./types";
 
-import { relative, resolve } from "node:path";
+import { relative, resolve } from "pathe";
 import { readFile, rm } from "node:fs/promises";
 import { formatCompatibilityDate } from "compatx";
 import { copyPublicAssets, prerender } from "../..";
