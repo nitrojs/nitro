@@ -149,7 +149,7 @@
     "eslint-config-unjs": "^0.5.0",
     "execa": "^9.6.0",
     "expect-type": "^1.2.1",
-    "get-port-please": "^3.1.2",
+    "get-port-please": "^3.2.0",
     "miniflare": "^4.20250617.4",
     "prettier": "^3.6.2",
     "react": "^19.1.0",

@@ -6,11 +6,11 @@ import type {
   ViteDevServer,
 } from "vite";
 
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { createServer } from "node:http";
-import { tmpdir } from "node:os";
 import { runtimeDir } from "nitro/runtime/meta";
 import { NodeRequest, sendNodeResponse } from "srvx/node";
+import { getSocketAddress, isSocketSupported } from "get-port-please";
 import { DevEnvironment } from "vite";
 import { NitroDevServer } from "../../dev/server";
 
@@ -119,7 +119,7 @@ export async function createNitroDevEnvironment(
 
 // ---- Vite Dev Server Integration ----
 
-export function configureViteDevServer(
+export async function configureViteDevServer(
   ctx: NitroPluginContext,
   server: ViteDevServer
 ) {
@@ -127,7 +127,10 @@ export function configureViteDevServer(
   const rpcServer = createServer((req, res) => {
     server.middlewares.handle(req, res, () => {});
   });
-  rpcServer.listen(getSocketAddress(), () => {
+  const portOrPath = (await isSocketSupported())
+    ? getSocketAddress({ name: "nitro-vite", pid: true, random: true })
+    : 0;
+  rpcServer.listen(portOrPath, () => {
     const addr = rpcServer.address()!;
     for (const env of Object.values(server.environments)) {
       env.hot.send({
@@ -173,21 +176,4 @@ export function configureViteDevServer(
         ? next()
         : await sendNodeResponse(nodeRes, webRes);
     });
-}
-
-function getSocketAddress() {
-  const socketName = `nitro-vite-${process.pid}-${Math.round(Math.random() * 10_000)}.sock`;
-  // Windows: pipe
-  if (process.platform === "win32") {
-    return join(String.raw`\\.\pipe`, socketName);
-  }
-  // Linux: abstract namespace
-  if (process.platform === "linux") {
-    const nodeMajor = Number.parseInt(process.versions.node.split(".")[0], 10);
-    if (nodeMajor >= 20) {
-      return `\0${socketName}`;
-    }
-  }
-  // Unix socket
-  return join(tmpdir(), socketName);
 }

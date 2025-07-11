@@ -1,8 +1,7 @@
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { parentPort, threadId, workerData } from "node:worker_threads";
 import { Agent } from "undici";
 import { ModuleRunner, ESModulesEvaluator } from "vite/module-runner";
+import { getSocketAddress, isSocketSupported } from "get-port-please";
 
 // Create Vite Module Runner
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
@@ -120,31 +119,21 @@ async function renderError(req, error) {
 
 // ----- Internal Utils -----
 
-function listen(server, useRandomPort = false) {
+async function listen(server) {
+  const portOrPath = (await isSocketSupported())
+    ? getSocketAddress({
+        name: `nitro-vite-${threadId}`,
+        pid: true,
+        random: true,
+      })
+    : 0;
   return new Promise((resolve, reject) => {
     try {
-      server.listen(useRandomPort ? 0 : getSocketAddress(), () => resolve());
+      server.listen(portOrPath, () => resolve());
     } catch (error) {
       reject(error);
     }
   });
-}
-
-function getSocketAddress() {
-  const socketName = `nitro-vite-${process.pid}-${threadId}-${workerData.name}-${Math.round(Math.random() * 10_000)}.sock`;
-  // Windows: pipe
-  if (process.platform === "win32") {
-    return join(String.raw`\\.\pipe`, socketName);
-  }
-  // Linux: abstract namespace
-  if (process.platform === "linux") {
-    const nodeMajor = Number.parseInt(process.versions.node.split(".")[0], 10);
-    if (nodeMajor >= 20) {
-      return `\0${socketName}`;
-    }
-  }
-  // Unix socket
-  return join(tmpdir(), socketName);
 }
 
 function fetchAddress(input, init, addr) {
