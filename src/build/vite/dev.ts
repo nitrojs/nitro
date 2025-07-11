@@ -127,10 +127,10 @@ export async function configureViteDevServer(
   const rpcServer = createServer((req, res) => {
     server.middlewares.handle(req, res, () => {});
   });
-  const portOrPath = (await isSocketSupported())
+  const listenAddr = (await isSocketSupported())
     ? getSocketAddress({ name: "nitro-vite", pid: true, random: true })
-    : 0;
-  rpcServer.listen(portOrPath, () => {
+    : { port: 0, host: "localhost" };
+  rpcServer.listen(listenAddr, () => {
     const addr = rpcServer.address()!;
     for (const env of Object.values(server.environments)) {
       env.hot.send({

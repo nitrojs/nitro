@@ -87,17 +87,17 @@ if (import.meta._tasks) {
 // --- utils ---
 
 async function listen() {
-  const portOrPath = (await isSocketSupported())
+  const listenAddr = (await isSocketSupported())
     ? getSocketAddress({
         name: `nitro-dev-${threadId}`,
         pid: true,
         random: true,
       })
-    : 0;
+    : { port: 0, host: "localhost" };
 
   return new Promise<void>((resolve, reject) => {
     try {
-      listener = server.listen(portOrPath, () => {
+      listener = server.listen(listenAddr, () => {
         const address = server.address();
         parentPort?.postMessage({
           event: "listen",

@@ -57,11 +57,14 @@ export class NodeDevWorker implements DevWorker {
 
   // #region Public methods
 
-  async fetch(req: Request): Promise<Response> {
+  async fetch(
+    input: string | URL | Request,
+    init?: RequestInit
+  ): Promise<Response> {
     if (!this.#address || !this.#proxy) {
       return new Response("Dev worker is unavailable", { status: 503 });
     }
-    return fetchAddress(req, this.#address);
+    return fetchAddress(this.#address, input, init);
   }
 
   upgrade(

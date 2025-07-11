@@ -37,7 +37,7 @@ globalThis.fetch = (input, init) => {
   }
   const headers = new Headers(init?.headers || {});
   headers.set("x-vite-env", viteEnv);
-  return fetchAddress(input, { ...init, viteEnv: undefined, headers }, rpcAddr);
+  return fetchAddress(rpcAddr, input, { ...init, viteEnv: undefined, headers });
 };
 
 parentPort.on("message", (payload) => {
@@ -120,34 +120,45 @@ async function renderError(req, error) {
 // ----- Internal Utils -----
 
 async function listen(server) {
-  const portOrPath = (await isSocketSupported())
+  const listenAddr = (await isSocketSupported())
     ? getSocketAddress({
         name: `nitro-vite-${threadId}`,
         pid: true,
         random: true,
       })
-    : 0;
+    : { port: 0, host: "localhost" };
   return new Promise((resolve, reject) => {
     try {
-      server.listen(portOrPath, () => resolve());
+      server.listen(listenAddr, () => resolve());
     } catch (error) {
       reject(error);
     }
   });
 }
 
-function fetchAddress(input, init, addr) {
+function fetchAddress(addr, input, inputInit) {
+  let url;
+  let init;
+  if (input instanceof Request) {
+    url = new URL(input.url);
+    init = {
+      method: input.method,
+      headers: input.headers,
+      body: input.body,
+      ...inputInit,
+    };
+  } else {
+    url = new URL(input);
+    init = inputInit;
+  }
   if (addr.socketPath) {
-    return fetch(input, {
+    return fetch(url, {
       ...init,
       ...fetchSocketOptions(addr.socketPath),
     });
   }
-  const reqURL = new URL(input);
-  const outURL = new URL(
-    reqURL.pathname + reqURL.search,
-    `http://${addr.host}${addr.port ? `:${addr.port}` : ""}`
-  );
+  const origin = `http://${addr.host}${addr.port ? `:${addr.port}` : ""}`;
+  const outURL = new URL(url.pathname + url.search, origin);
   return fetch(outURL, init);
 }
 

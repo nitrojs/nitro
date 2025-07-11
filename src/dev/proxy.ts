@@ -54,31 +54,36 @@ export function createHTTPProxy(defaults: ProxyServerOptions = {}): HTTPProxy {
 }
 
 export function fetchAddress(
-  req: Request,
-  addr: { host: string; port?: number; socketPath?: string }
-): Promise<Response> {
-  const reqURL = new URL(req.url);
-
-  const outURL = new URL(
-    reqURL.pathname + reqURL.search,
-    `http://${addr.host || reqURL.hostname}${addr.port ? `:${addr.port}` : ""}`
-  );
-
-  return globalThis.fetch(outURL, {
-    method: req.method,
-    headers: req.headers,
-    body: req.body,
-    redirect: "manual",
-    // @ts-expect-error undici
-    duplex: "half",
-    ...fetchSocketOptions(addr.socketPath),
-  });
+  addr: { port?: number; host?: string; socketPath?: string },
+  input: string | URL | Request,
+  inputInit?: RequestInit
+) {
+  let url: URL;
+  let init: RequestInit | undefined;
+  if (input instanceof Request) {
+    url = new URL(input.url);
+    init = {
+      method: input.method,
+      headers: input.headers,
+      body: input.body,
+      ...inputInit,
+    };
+  } else {
+    url = new URL(input);
+    init = inputInit;
+  }
+  if (addr.socketPath) {
+    return fetch(url, {
+      ...init,
+      ...fetchSocketOptions(addr.socketPath),
+    });
+  }
+  const origin = `http://${addr.host}${addr.port ? `:${addr.port}` : ""}`;
+  const outURL = new URL(url.pathname + url.search, origin);
+  return fetch(outURL, init);
 }
 
-function fetchSocketOptions(socketPath: string | undefined) {
-  if (!socketPath) {
-    return {};
-  }
+function fetchSocketOptions(socketPath: string) {
   if ("Bun" in globalThis) {
     // https://bun.sh/guides/http/fetch-unix
     return { unix: socketPath };
