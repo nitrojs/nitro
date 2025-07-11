@@ -78,6 +78,7 @@
     "escape-string-regexp": "^5.0.0",
     "etag": "^1.8.1",
     "exsolve": "^1.0.7",
+    "fetchdts": "^0.1.5",
     "fs-extra": "^11.3.0",
     "globby": "^14.1.0",
     "gzip-size": "^7.0.0",

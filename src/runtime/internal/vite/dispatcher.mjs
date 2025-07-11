@@ -1,4 +1,3 @@
-import {} from "fetchdts";
 import { defineHandler } from "h3";
 import { findService } from "#nitro-vite-services";
 
