@@ -5,7 +5,7 @@ import type { NitroPluginContext } from "./types";
 import { relative, resolve } from "pathe";
 import { readFile, rm } from "node:fs/promises";
 import { formatCompatibilityDate } from "compatx";
-import { copyPublicAssets, prerender } from "../..";
+import { copyPublicAssets, prepare, prerender } from "../..";
 import { nitroServerName } from "../../utils/nitro";
 
 export async function buildProduction(
@@ -52,6 +52,9 @@ export async function buildProduction(
   nitro.logger.start(
     `Building \`${nitroServerName(nitro)}\` (preset: \`${nitro.options.preset}\`, compatibility date: \`${formatCompatibilityDate(nitro.options.compatibilityDate)}\`)`
   );
+
+  // Cleanup build directories
+  await prepare(nitro);
 
   // Call the rollup:before hook for compatibility
   await nitro.hooks.callHook(

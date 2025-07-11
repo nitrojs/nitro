@@ -3,7 +3,7 @@ import type { Plugin as RollupPlugin } from "rollup";
 import type { NitroPluginConfig, NitroPluginContext } from "./types";
 
 import { resolve } from "node:path";
-import { createNitro, prepare } from "../..";
+import { createNitro } from "../..";
 import { getViteRollupConfig } from "./rollup";
 import { buildProduction, prodEntry } from "./prod";
 import { createNitroEnvironment, createServiceEnvironments } from "./env";
@@ -12,6 +12,7 @@ import { runtimeDir } from "nitro/runtime/meta";
 
 import * as rou3 from "rou3";
 import * as rou3Compiler from "rou3/compiler";
+import { resolveModulePath } from "exsolve";
 
 // https://vite.dev/guide/api-environment-plugins
 // https://vite.dev/guide/api-environment-frameworks.html
@@ -50,8 +51,19 @@ export async function nitro(
         ...pluginConfig.config,
       });
 
-      // Cleanup build directories
-      await prepare(ctx.nitro);
+      // Auto config default (ssr) service
+      if (!pluginConfig.services?.ssr && !userConfig.environments?.ssr) {
+        const serverEntry = resolveModulePath("./server", {
+          from: ctx.nitro.options.rootDir + "/",
+          extensions: [".ts", ".tsx", ".js", ".mjs"],
+          try: true,
+        });
+        if (serverEntry) {
+          pluginConfig.services = {
+            ssr: { entry: serverEntry },
+          };
+        }
+      }
 
       // Determine default Vite dist directory
       const publicDistDir = (ctx._publicDistDir =
