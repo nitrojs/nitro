@@ -151,6 +151,11 @@ function fetchAddress(addr, input, inputInit) {
     url = new URL(input);
     init = inputInit;
   }
+  init = {
+    duplex: "half",
+    redirect: "manual",
+    ...init,
+  };
   if (addr.socketPath) {
     return fetch(url, {
       ...init,

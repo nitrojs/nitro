@@ -59,7 +59,7 @@ export function fetchAddress(
   inputInit?: RequestInit
 ) {
   let url: URL;
-  let init: RequestInit | undefined;
+  let init: (RequestInit & { duplex?: string }) | undefined;
   if (input instanceof Request) {
     url = new URL(input.url);
     init = {
@@ -72,6 +72,11 @@ export function fetchAddress(
     url = new URL(input);
     init = inputInit;
   }
+  init = {
+    duplex: "half",
+    redirect: "manual",
+    ...init,
+  };
   if (addr.socketPath) {
     return fetch(url, {
       ...init,
