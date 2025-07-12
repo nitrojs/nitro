@@ -5,10 +5,7 @@ import { NodeDevWorker } from "../../dev/worker";
 import { join, resolve } from "node:path";
 import { runtimeDir } from "nitro/runtime/meta";
 import { resolveModulePath } from "exsolve";
-import {
-  createFetchableDevEnvironment,
-  createNitroDevEnvironment,
-} from "./dev";
+import { createFetchableDevEnvironment } from "./dev";
 
 export function createNitroEnvironment(
   ctx: NitroPluginContext
@@ -31,8 +28,24 @@ export function createNitroEnvironment(
       externalConditions: ctx.nitro!.options.exportConditions,
     },
     dev: {
-      createEnvironment: (name, config) =>
-        createNitroDevEnvironment(ctx, name, config),
+      createEnvironment: (envName, envConfig) =>
+        createFetchableDevEnvironment(
+          envName,
+          envConfig,
+          new NodeDevWorker({
+            name: envName,
+            entry: resolve(runtimeDir, "internal/vite/worker.mjs"),
+            data: {
+              name: envName,
+              server: true,
+              viteEntry: resolve(runtimeDir, "internal/vite/nitro-dev.mjs"),
+              globals: {
+                __NITRO_RUNTIME_CONFIG__: ctx.nitro!.options.runtimeConfig,
+              },
+            },
+            hooks: {},
+          })
+        ),
     },
   };
 }

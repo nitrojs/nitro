@@ -6,13 +6,10 @@ import type {
   ViteDevServer,
 } from "vite";
 
-import { resolve } from "node:path";
 import { createServer } from "node:http";
-import { runtimeDir } from "nitro/runtime/meta";
 import { NodeRequest, sendNodeResponse } from "srvx/node";
 import { getSocketAddress, isSocketSupported } from "get-port-please";
 import { DevEnvironment } from "vite";
-import { NitroDevServer } from "../../dev/server";
 
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
 
@@ -91,30 +88,6 @@ function createTransport(hooks: TransportHooks): HotChannel {
       }
     },
   };
-}
-
-// ---- Nitro Dev Environment ----
-
-export async function createNitroDevEnvironment(
-  ctx: NitroPluginContext,
-  name: string,
-  config: ResolvedConfig
-): Promise<FetchableDevEnvironment> {
-  const nitroDev = new NitroDevServer(ctx.nitro!);
-  return createFetchableDevEnvironment(name, config, {
-    fetch: nitroDev.fetch.bind(nitroDev),
-    onMessage: nitroDev.onMessage.bind(nitroDev),
-    offMessage: nitroDev.offMessage.bind(nitroDev),
-    sendMessage: nitroDev.sendMessage.bind(nitroDev),
-    async init() {
-      await ctx.nitro!.hooks.callHook("dev:reload", {
-        entry: resolve(runtimeDir, "internal/vite/worker.mjs"),
-        workerData: {
-          viteEntry: ctx.nitro!.options.entry,
-        },
-      });
-    },
-  });
 }
 
 // ---- Vite Dev Server Integration ----
