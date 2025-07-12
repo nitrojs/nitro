@@ -84,6 +84,9 @@ export async function nitro(
 
         // Add Nitro as a Vite environment
         environments: {
+          client: {
+            consumer: userConfig.environments?.client?.consumer || "client",
+          },
           ...createServiceEnvironments(ctx),
           nitro: createNitroEnvironment(ctx),
         },
@@ -111,8 +114,7 @@ export async function nitro(
 
     // Modify environment configs before it's resolved.
     configEnvironment(name, config) {
-      const mayBeClient = config.consumer === undefined && name === "client";
-      if (config.consumer === "client" || mayBeClient) {
+      if (config.consumer === "client") {
         config.build!.manifest = true;
         config.build!.emptyOutDir = false;
         config.build!.outDir = ctx.nitro!.options.output.publicDir;
