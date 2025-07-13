@@ -141,9 +141,26 @@ const netlifyStatic = defineNitroPreset(
   }
 );
 
+const netlifyDev = defineNitroPreset(
+  {
+    extends: "nitro-dev",
+    modules: [
+      async (nitro) => await import("./dev").then((m) => m.netlifyDev(nitro)),
+    ],
+  },
+  {
+    name: "netlify-dev" as const,
+    aliases: ["netlify"],
+    compatibilityDate: "2025-07-13",
+    url: import.meta.url,
+    dev: true,
+  }
+);
+
 export default [
   ...netlifyLegacyPresets,
   netlify,
   netlifyEdge,
   netlifyStatic,
+  netlifyDev,
 ] as const;
