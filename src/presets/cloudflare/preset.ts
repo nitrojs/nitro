@@ -91,6 +91,23 @@ const cloudflarePagesStatic = defineNitroPreset(
   }
 );
 
+export const cloudflareDev = defineNitroPreset(
+  {
+    extends: "nitro-dev",
+    modules: [
+      async (nitro) =>
+        await import("./dev").then((m) => m.cloudflareDev(nitro)),
+    ],
+  },
+  {
+    name: "cloudflare-dev" as const,
+    aliases: ["cloudflare-module", "cloudflare-durable", "cloudflare-pages"],
+    compatibilityDate: "2025-07-13",
+    url: import.meta.url,
+    dev: true,
+  }
+);
+
 const cloudflareModule = defineNitroPreset(
   {
     extends: "base-worker",
@@ -160,4 +177,5 @@ export default [
   cloudflarePagesStatic,
   cloudflareModule,
   cloudflareDurable,
+  cloudflareDev,
 ];

@@ -181,9 +181,7 @@ async function _loadUserConfig(
   );
 
   if (options.dev && options.preset !== "nitro-dev") {
-    consola.info(
-      `Enabled \`${options.preset}\` emulation in development mode.`
-    );
+    consola.info(`Using \`${options.preset}\` emulation in development mode.`);
   }
 
   return options;

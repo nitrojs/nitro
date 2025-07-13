@@ -204,6 +204,7 @@
     "unbuild": "^3.5.0",
     "undici": "^7.11.0",
     "vitest": "^3.2.4",
+    "wrangler": "^4.24.3",
     "xml2js": "^0.6.2"
   },
   "peerDependencies": {
