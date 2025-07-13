@@ -109,7 +109,7 @@
     "@rollup/plugin-terser": "^0.4.4",
     "@vercel/nft": "^0.29.4",
     "archiver": "^7.0.1",
-    "c12": "^3.0.4",
+    "c12": "^3.1.0",
     "chokidar": "^4.0.3",
     "citty": "^0.1.6",
     "compatx": "^0.2.0",
