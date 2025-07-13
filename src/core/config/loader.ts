@@ -82,6 +82,9 @@ async function _loadUserConfig(
     "nitropack/" + "presets"
   )) as typeof import("nitropack/presets");
 
+  // prettier-ignore
+  let preset: string | undefined = (configOverrides.preset as string) || process.env.NITRO_PRESET || process.env.SERVER_PRESET
+
   const loadedConfig = await (
     opts.watch
       ? watchConfig<NitroConfig & { _meta?: NitroPresetMeta }>
@@ -110,8 +113,9 @@ async function _loadUserConfig(
       const framework = getConf("framework")
       const isCustomFramework = framework?.name && framework.name !== "nitro";
 
-      // prettier-ignore
-      let preset: string | undefined = (configOverrides.preset as string) || process.env.NITRO_PRESET || process.env.SERVER_PRESET || getConf("preset")
+      if (!preset) {
+        preset = getConf("preset");
+      }
 
       if (configOverrides.dev) {
         // Check if preset has compatible dev support
@@ -166,9 +170,9 @@ async function _loadUserConfig(
   options._config = configOverrides;
   options._c12 = loadedConfig;
 
-  const _presetName = (loadedConfig.layers || []).find(
-    (l) => l.config?._meta?.name
-  )?.config?._meta?.name;
+  const _presetName =
+    (loadedConfig.layers || []).find((l) => l.config?._meta?.name)?.config
+      ?._meta?.name || preset;
   options.preset = _presetName as PresetName;
 
   options.compatibilityDate = resolveCompatibilityDates(
