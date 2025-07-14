@@ -87,7 +87,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
   for (const route of o11Routes) {
     const funcPrefix = resolve(
       nitro.options.output.serverDir,
-      "../__routes__",
+      "..",
       route.dest
     );
     await fsp.mkdir(dirname(funcPrefix), { recursive: true });
@@ -218,7 +218,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservibilityRoute[]) {
     // Observability routes
     ...(o11Routes || []).map((route) => ({
       src: route.src,
-      dest: "/__routes__/" + route.dest,
+      dest: "/" + route.dest,
     })),
     // If we are using an ISR function as a fallback
     // then we do not need to output the below fallback route as well
