@@ -98,7 +98,7 @@ const vercelStatic = defineNitroPreset(
       publicDir: "{{ output.dir }}/static/{{ baseURL }}",
     },
     commands: {
-      preview: "npx serve ./static",
+      preview: "npx serve {{ output.publicDir }}",
     },
     hooks: {
       "rollup:before": (nitro: Nitro) => {

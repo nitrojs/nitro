@@ -7,7 +7,7 @@ import {
   enableNodeCompat,
   writeWranglerConfig,
   writeCFRoutes,
-  writeCFPagesHeaders,
+  writeCFHeaders,
   writeCFPagesRedirects,
 } from "./utils";
 
@@ -60,7 +60,7 @@ const cloudflarePages = defineNitroPreset(
       async compiled(nitro: Nitro) {
         await writeWranglerConfig(nitro, "pages");
         await writeCFRoutes(nitro);
-        await writeCFPagesHeaders(nitro);
+        await writeCFHeaders(nitro);
         await writeCFPagesRedirects(nitro);
       },
     },
@@ -93,7 +93,7 @@ const cloudflarePagesStatic = defineNitroPreset(
         }
       },
       async compiled(nitro: Nitro) {
-        await writeCFPagesHeaders(nitro);
+        await writeCFHeaders(nitro);
         await writeCFPagesRedirects(nitro);
       },
     },
@@ -103,6 +103,23 @@ const cloudflarePagesStatic = defineNitroPreset(
     stdName: "cloudflare_pages",
     url: import.meta.url,
     static: true,
+  }
+);
+
+export const cloudflareDev = defineNitroPreset(
+  {
+    extends: "nitro-dev",
+    modules: [
+      async (nitro) =>
+        await import("./dev").then((m) => m.cloudflareDev(nitro)),
+    ],
+  },
+  {
+    name: "cloudflare-dev" as const,
+    aliases: ["cloudflare-module", "cloudflare-durable", "cloudflare-pages"],
+    compatibilityDate: "2025-07-13",
+    url: import.meta.url,
+    dev: true,
   }
 );
 
@@ -143,6 +160,7 @@ const cloudflareModule = defineNitroPreset(
       },
       async compiled(nitro: Nitro) {
         await writeWranglerConfig(nitro, "module");
+        await writeCFHeaders(nitro);
 
         await writeFile(
           resolve(nitro.options.output.dir, "package.json"),
@@ -181,4 +199,5 @@ export default [
   cloudflarePagesStatic,
   cloudflareModule,
   cloudflareDurable,
+  cloudflareDev,
 ];

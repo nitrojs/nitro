@@ -13,7 +13,7 @@ const _static = defineNitroPreset(
       crawlLinks: true,
     },
     commands: {
-      preview: "npx serve ./public",
+      preview: "npx serve {{ output.publicDir }}",
     },
   },
   {
@@ -27,7 +27,7 @@ const githubPages = defineNitroPreset(
   {
     extends: "static",
     commands: {
-      deploy: "npx gh-pages --dotfiles -d ./public",
+      deploy: "npx gh-pages --dotfiles -d {{ output.publicDir }}",
     },
     prerender: {
       routes: [
