@@ -6,7 +6,7 @@ import type { Plugin } from "rollup";
 
 const PLUGIN_NAME = "dynamic-require";
 const HELPER_DYNAMIC = `\0${PLUGIN_NAME}.mjs`;
-const DYNAMIC_REQUIRE_RE = /import\("\.\/" ?\+(.*)\).then/g;
+const DYNAMIC_REQUIRE_RE = /import\((?:.*\+\s*)?"\.\/" ?\+(.*)\).then/g;
 
 interface Options {
   dir: string;

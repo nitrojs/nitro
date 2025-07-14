@@ -10,5 +10,6 @@ export interface NitroPresetMeta {
   stdName?: ProviderName;
   aliases?: string[];
   static?: boolean;
+  dev?: boolean;
   compatibilityDate?: DateString;
 }

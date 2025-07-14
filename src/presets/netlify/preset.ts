@@ -95,6 +95,7 @@ const netlifyEdge = defineNitroPreset(
               name: "edge server handler",
               function: "server",
               generator: getGeneratorString(nitro),
+              cache: "manual",
             },
           ],
         };
