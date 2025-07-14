@@ -1,0 +1,11 @@
+{
+  "name": "nitro-test-fixture",
+  "version": "0.0.0",
+  "scripts": {
+    "build": "nitro build",
+    "dev": "nitro dev"
+  },
+  "dependencies": {
+    "nitropack": "workspace:^"
+  }
+}
