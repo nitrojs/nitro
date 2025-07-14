@@ -1,5 +1,4 @@
 import type { Nitro } from "nitropack/types";
-import type { Features } from "@netlify/dev";
 import type { ServerResponse } from "node:http";
 
 import { resolveModulePath } from "exsolve";
@@ -8,6 +7,7 @@ import { defineLazyEventHandler, fromNodeMiddleware } from "h3";
 export async function netlifyDev(nitro: Nitro) {
   // If we're already running inside the Netlify CLI, there is no need to run
   // the plugin, as the environment will already be configured.
+  // TODO: We should run module anyway when emulation moved to runtime context.
   if (!nitro.options.dev || process.env.NETLIFY_DEV) {
     return;
   }
@@ -19,7 +19,7 @@ export async function netlifyDev(nitro: Nitro) {
 
   if (!netlifyDevEntry) {
     nitro.logger.warn(
-      "Please install it using `npx nypm i @netlify/dev` to enable dev emulation."
+      "Netlify local emulator is not installed. Please install it using `npx nypm i @netlify/dev` to enable dev emulation."
     );
     return;
   }
@@ -42,8 +42,8 @@ export async function netlifyDev(nitro: Nitro) {
 
   await netlifyDev.start();
 
-  nitro.hooks.hook("close", () => {
-    netlifyDev.stop();
+  nitro.hooks.hook("close", async () => {
+    await netlifyDev.stop();
   });
 
   if (!netlifyDev.siteIsLinked) {
