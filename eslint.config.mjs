@@ -1,7 +1,15 @@
 import unjs from "eslint-config-unjs";
 
 export default unjs({
-  ignores: ["**/.output", "**/.nitro", "**/.netlify", "**/.nuxt", "**/*.gen.*"],
+  ignores: [
+    "**/.output",
+    "**/.nitro",
+    "**/.netlify",
+    "**/.vercel",
+    "**/.nuxt",
+    "**/*.gen.*",
+    "**/dist",
+  ],
   rules: {
     "unicorn/no-null": 0,
     "no-undef": 0,
@@ -9,5 +17,6 @@ export default unjs({
     "unicorn/filename-case": 0,
     "unicorn/consistent-function-scoping": 0,
     "@typescript-eslint/no-empty-object-type": 0,
+    "unicorn/no-empty-file": 0,
   },
 });

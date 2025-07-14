@@ -6,6 +6,7 @@ import {
   generateFunctionFiles,
   generateStaticFiles,
 } from "./utils";
+import { builtnNodeModules } from "../_unenv/node-compat/vercel";
 
 export type { VercelOptions as PresetOptions } from "./types";
 
@@ -54,14 +55,20 @@ const vercelEdge = defineNitroPreset(
       deploy: "",
       preview: "",
     },
+    unenv: {
+      external: builtnNodeModules.flatMap((m) => `node:${m}`),
+      alias: {
+        ...Object.fromEntries(
+          builtnNodeModules.flatMap((m) => [
+            [m, `node:${m}`],
+            [`node:${m}`, `node:${m}`],
+          ])
+        ),
+      },
+    },
     rollupConfig: {
       output: {
         format: "module",
-      },
-    },
-    unenv: {
-      inject: {
-        process: undefined,
       },
     },
     wasm: {
@@ -91,7 +98,7 @@ const vercelStatic = defineNitroPreset(
       publicDir: "{{ output.dir }}/static/{{ baseURL }}",
     },
     commands: {
-      preview: "npx serve ./static",
+      preview: "npx serve {{ output.publicDir }}",
     },
     hooks: {
       "rollup:before": (nitro: Nitro) => {

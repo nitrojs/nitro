@@ -16,10 +16,11 @@ import type {
   NitroFetchRequest,
   ResponseCacheEntry,
 } from "nitropack/types";
-import { hash } from "ohash";
 import { parseURL } from "ufo";
 import { useNitroApp } from "./app";
 import { useStorage } from "./storage";
+import { hash } from "./hash";
+import type { TransactionOptions } from "unstorage";
 
 function defaultCacheOptions() {
   return {
@@ -30,10 +31,12 @@ function defaultCacheOptions() {
   } as const;
 }
 
+type ResolvedCacheEntry<T> = CacheEntry<T> & { value: T };
+
 export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
   fn: (...args: ArgsT) => T | Promise<T>,
   opts: CacheOptions<T, ArgsT> = {}
-): (...args: ArgsT) => Promise<T | undefined> {
+): (...args: ArgsT) => Promise<T> {
   opts = { ...defaultCacheOptions(), ...opts };
 
   const pending: { [key: string]: Promise<T> } = {};
@@ -49,7 +52,7 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
     resolver: () => T | Promise<T>,
     shouldInvalidateCache?: boolean,
     event?: H3Event
-  ): Promise<CacheEntry<T>> {
+  ): Promise<ResolvedCacheEntry<T>> {
     // Use extension for key to avoid conflicting with parent namespace (foo/bar and foo/bar/baz)
     const cacheKey = [opts.base, group, name, key + ".json"]
       .filter(Boolean)
@@ -57,13 +60,18 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
       .replace(/:\/$/, ":index");
 
     let entry: CacheEntry<T> =
-      ((await useStorage().getItem(cacheKey)) as unknown) || {};
+      ((await useStorage()
+        .getItem(cacheKey)
+        .catch((error) => {
+          console.error(`[cache] Cache read error.`, error);
+          useNitroApp().captureError(error, { event, tags: ["cache"] });
+        })) as unknown) || {};
 
-    // https://github.com/unjs/nitro/issues/2160
+    // https://github.com/nitrojs/nitro/issues/2160
     if (typeof entry !== "object") {
       entry = {};
       const error = new Error("Malformed data read from cache.");
-      console.error("[nitro] [cache]", error);
+      console.error("[cache]", error);
       useNitroApp().captureError(error, { event, tags: ["cache"] });
     }
 
@@ -112,10 +120,14 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
         entry.integrity = integrity;
         delete pending[key];
         if (validate(entry) !== false) {
+          let setOpts: TransactionOptions | undefined;
+          if (opts.maxAge && !opts.swr /* TODO: respect staleMaxAge */) {
+            setOpts = { ttl: opts.maxAge };
+          }
           const promise = useStorage()
-            .setItem(cacheKey, entry)
+            .setItem(cacheKey, entry, setOpts)
             .catch((error) => {
-              console.error(`[nitro] [cache] Cache write error.`, error);
+              console.error(`[cache] Cache write error.`, error);
               useNitroApp().captureError(error, { event, tags: ["cache"] });
             });
           if (event?.waitUntil) {
@@ -135,13 +147,13 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
 
     if (opts.swr && validate(entry) !== false) {
       _resolvePromise.catch((error) => {
-        console.error(`[nitro] [cache] SWR handler error.`, error);
+        console.error(`[cache] SWR handler error.`, error);
         useNitroApp().captureError(error, { event, tags: ["cache"] });
       });
-      return entry;
+      return entry as ResolvedCacheEntry<T>;
     }
 
-    return _resolvePromise.then(() => entry);
+    return _resolvePromise.then(() => entry) as Promise<ResolvedCacheEntry<T>>;
   }
 
   return async (...args) => {
@@ -173,7 +185,7 @@ export function cachedFunction<T, ArgsT extends unknown[] = any[]>(
 }
 
 function getKey(...args: unknown[]) {
-  return args.length > 0 ? hash(args, {}) : "";
+  return args.length > 0 ? hash(args) : "";
 }
 
 function escapeKey(key: string | string[]) {
@@ -227,8 +239,14 @@ export function defineCachedEventHandler<
       // Auto-generated key
       const _path =
         event.node.req.originalUrl || event.node.req.url || event.path;
-      const _pathname =
-        escapeKey(decodeURI(parseURL(_path).pathname)).slice(0, 16) || "index";
+      let _pathname: string;
+      try {
+        _pathname =
+          escapeKey(decodeURI(parseURL(_path).pathname)).slice(0, 16) ||
+          "index";
+      } catch {
+        _pathname = "-";
+      }
       const _hashedPath = `${_pathname}.${hash(_path)}`;
       const _headers = variableHeaderNames
         .map((header) => [header, event.node.req.headers[header]])
@@ -245,7 +263,7 @@ export function defineCachedEventHandler<
       if (entry.value.body === undefined) {
         return false;
       }
-      // https://github.com/unjs/nitro/pull/1857
+      // https://github.com/nitrojs/nitro/pull/1857
       if (
         entry.value.headers.etag === "undefined" ||
         entry.value.headers["last-modified"] === "undefined"
@@ -351,10 +369,11 @@ export function defineCachedEventHandler<
         fetchWithEvent(event, url, fetchOptions, {
           fetch: useNitroApp().localFetch as any,
         });
-      event.$fetch = ((url, fetchOptions) =>
+      event.$fetch = (url, fetchOptions) =>
         fetchWithEvent(event, url, fetchOptions as RequestInit, {
           fetch: globalThis.$fetch as any,
-        })) as $Fetch<unknown, NitroFetchRequest>;
+        });
+      event.waitUntil = incomingEvent.waitUntil;
       event.context = incomingEvent.context;
       event.context.cache = {
         options: _opts,

@@ -93,10 +93,11 @@ ${handlers
       },
       "#nitro-internal-virtual/server-handlers-meta": () => {
         const handlers = getHandlers();
+        const imports = unique(handlers.map((h) => h.handler));
         return /* js */ `
-  ${handlers
+  ${imports
     .map(
-      (h) => `import ${getImportId(h.handler)}Meta from "${h.handler}?meta";`
+      (handler) => `import ${getImportId(handler)}Meta from "${handler}?meta";`
     )
     .join("\n")}
 export const handlersMeta = [
@@ -121,7 +122,7 @@ function unique(arr: any[]) {
 }
 
 function getImportId(p: string, lazy?: boolean) {
-  return (lazy ? "_lazy_" : "_") + hash(p).slice(0, 6);
+  return (lazy ? "_lazy_" : "_") + hash(p).replace(/-/g, "").slice(0, 6);
 }
 
 const WILDCARD_PATH_RE = /\/\*\*.*$/;

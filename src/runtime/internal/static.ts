@@ -6,6 +6,7 @@ import {
   getResponseHeader,
   removeResponseHeader,
   setResponseHeader,
+  appendResponseHeader,
   setResponseStatus,
 } from "h3";
 import type { PublicAsset } from "nitropack/types";
@@ -49,7 +50,7 @@ export default eventHandler((event) => {
     "",
   ];
   if (encodings.length > 1) {
-    setResponseHeader(event, "Vary", "Accept-Encoding");
+    appendResponseHeader(event, "Vary", "Accept-Encoding");
   }
 
   for (const encoding of encodings) {
@@ -66,10 +67,7 @@ export default eventHandler((event) => {
   if (!asset) {
     if (isPublicAssetURL(id)) {
       removeResponseHeader(event, "Cache-Control");
-      throw createError({
-        statusMessage: "Cannot find static asset " + id,
-        statusCode: 404,
-      });
+      throw createError({ statusCode: 404 });
     }
     return;
   }

@@ -1,7 +1,7 @@
 import errorHandler from "./error";
 
 export default defineNitroConfig({
-  compatibilityDate: "2024-09-29",
+  compatibilityDate: "2025-03-01",
   errorHandler: "~/error",
   devErrorHandler: errorHandler,
 });

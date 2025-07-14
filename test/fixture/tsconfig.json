@@ -45,11 +45,10 @@
       // Types
       "nitro/types": ["../../src/types"],
       "nitropack/types": ["../../src/types"],
-      // Virtual files
       "#nitro-internal-virtual/*": ["../../src/types/virtual/*"],
-      // Compatibility (#internal/nitro)
       "#internal/nitro": ["../../src/runtime/_compat"],
-      "#internal/nitro/*": ["../../src/runtime/_compat/*"]
+      "#internal/nitro/*": ["../../src/runtime/_compat/*"],
+      "#internal/types/openapi-ts": ["../../src/types/openapi-ts"]
     }
   }
 }

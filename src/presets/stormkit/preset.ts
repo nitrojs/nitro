@@ -5,6 +5,7 @@ const stormkit = defineNitroPreset(
     entry: "./runtime/stormkit",
     output: {
       dir: "{{ rootDir }}/.stormkit",
+      publicDir: "{{ rootDir }}/.stormkit/public/{{ baseURL }}",
     },
   },
   {

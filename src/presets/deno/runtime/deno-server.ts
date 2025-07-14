@@ -9,25 +9,25 @@ import wsAdapter from "crossws/adapters/deno";
 import destr from "destr";
 
 // TODO: Declare conflict with crossws
-// declare global {
-// const Deno: typeof import("@deno/types").Deno;
-// }
+declare global {
+  const Deno: typeof import("@deno/types").Deno;
+}
 
 const nitroApp = useNitroApp();
 
 if (Deno.env.get("DEBUG")) {
   addEventListener("unhandledrejection", (event: any) =>
-    console.error("[nitro] [dev] [unhandledRejection]", event.reason)
+    console.error("[unhandledRejection]", event.reason)
   );
   addEventListener("error", (event: any) =>
-    console.error("[nitro] [dev] [uncaughtException]", event.error)
+    console.error("[uncaughtException]", event.error)
   );
 } else {
   addEventListener("unhandledrejection", (err: any) =>
-    console.error("[nitro] [production] [unhandledRejection] " + err)
+    console.error("[unhandledRejection] " + err)
   );
   addEventListener("error", (event: any) =>
-    console.error("[nitro] [production] [uncaughtException] " + event.error)
+    console.error("[uncaughtException] " + event.error)
   );
 }
 
@@ -44,7 +44,7 @@ const serveOptions: _Deno.ServeOptions & Partial<_Deno.ServeTlsOptions> = {
   },
 };
 
-// https://github.com/unjs/nitro/pull/2373
+// https://github.com/nitrojs/nitro/pull/2373
 if (!serveOptions.key || !serveOptions.cert) {
   delete serveOptions.key;
   delete serveOptions.cert;

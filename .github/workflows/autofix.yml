@@ -3,7 +3,9 @@ name: autofix.ci # needed to securely identify the workflow
 on:
   pull_request:
   push:
-    branches: ["main"]
+    branches:
+      - v2
+      - v3
 
 permissions:
   contents: read
@@ -13,10 +15,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: corepack enable
+      - run: npm i -g --force corepack && corepack enable
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: "pnpm"
       - run: pnpm install
       - run: pnpm stub

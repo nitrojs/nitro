@@ -53,7 +53,7 @@ export function applyEnv(
   return obj;
 }
 
-const envExpandRx = /{{(.*?)}}/g;
+const envExpandRx = /\{\{([^{}]*)\}\}/g;
 
 function _expandFromEnv(value: string) {
   return value.replace(envExpandRx, (match, key) => {

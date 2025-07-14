@@ -15,6 +15,7 @@ export const runtimeDependencies = [
   "iron-webcrypto",
   "klona",
   "node-fetch-native",
+  "node-mock-http",
   "ofetch",
   "ohash",
   "pathe",

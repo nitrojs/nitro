@@ -15,7 +15,11 @@ describe.skipIf(isWindows)("nitro:preset:cloudflare-pages", async () => {
       modules: true,
       scriptPath: resolve(ctx.outDir, "_worker.js", "index.js"),
       modulesRules: [{ type: "CompiledWasm", include: ["**/*.wasm"] }],
-      compatibilityFlags: ["streams_enable_constructors"],
+      compatibilityFlags: [
+        "streams_enable_constructors",
+        "nodejs_compat",
+        "no_nodejs_compat_v2",
+      ],
       sitePath: "",
       bindings: { ...ctx.env },
     });
@@ -48,6 +52,8 @@ describe.skipIf(isWindows)("nitro:preset:cloudflare-pages", async () => {
           "/_swagger",
           "/_unignored.txt",
           "/favicon.ico",
+          "/foo.css",
+          "/foo.js",
           "/json-string",
           "/prerender",
           "/prerender-custom",

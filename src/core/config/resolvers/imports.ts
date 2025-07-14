@@ -27,7 +27,7 @@ export async function resolveImportsOptions(options: NitroOptions) {
   // Auto imports from utils dirs
   options.imports.dirs ??= [];
   options.imports.dirs.push(
-    ...options.scanDirs.map((dir) => join(dir, "utils/*"))
+    ...options.scanDirs.map((dir) => join(dir, "utils/**/*"))
   );
 
   // Normalize exclude
@@ -58,26 +58,53 @@ export async function resolveImportsOptions(options: NitroOptions) {
 function getNitroImportsPreset(): Preset[] {
   return [
     {
-      from: "nitropack/runtime",
+      from: "nitropack/runtime/internal/app",
+      imports: ["useNitroApp"],
+    },
+    {
+      from: "nitropack/runtime/internal/config",
+      imports: ["useRuntimeConfig", "useAppConfig"],
+    },
+    {
+      from: "nitropack/runtime/internal/plugin",
+      imports: ["defineNitroPlugin", "nitroPlugin"],
+    },
+    {
+      from: "nitropack/runtime/internal/cache",
       imports: [
         "defineCachedFunction",
         "defineCachedEventHandler",
         "cachedFunction",
         "cachedEventHandler",
-        "useRuntimeConfig",
-        "useStorage",
-        "useNitroApp",
-        "defineNitroPlugin",
-        "nitroPlugin",
-        "defineRenderHandler",
-        "defineRouteMeta",
-        "getRouteRules",
-        "useAppConfig",
-        "useEvent",
-        "defineTask",
-        "runTask",
-        "defineNitroErrorHandler",
       ],
+    },
+    {
+      from: "nitropack/runtime/internal/storage",
+      imports: ["useStorage"],
+    },
+    {
+      from: "nitropack/runtime/internal/renderer",
+      imports: ["defineRenderHandler"],
+    },
+    {
+      from: "nitropack/runtime/internal/meta",
+      imports: ["defineRouteMeta"],
+    },
+    {
+      from: "nitropack/runtime/internal/route-rules",
+      imports: ["getRouteRules"],
+    },
+    {
+      from: "nitropack/runtime/internal/context",
+      imports: ["useEvent"],
+    },
+    {
+      from: "nitropack/runtime/internal/task",
+      imports: ["defineTask", "runTask"],
+    },
+    {
+      from: "nitropack/runtime/internal/error/utils",
+      imports: ["defineNitroErrorHandler"],
     },
   ];
 }

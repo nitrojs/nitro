@@ -13,7 +13,7 @@ const azure = defineNitroPreset(
     },
     commands: {
       preview:
-        "npx @azure/static-web-apps-cli start ./public --api-location ./server",
+        "npx @azure/static-web-apps-cli start {{ output.publicDir }} --api-location {{ output.serverDir }}",
     },
     hooks: {
       async compiled(ctx: Nitro) {

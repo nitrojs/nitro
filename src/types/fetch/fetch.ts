@@ -66,24 +66,28 @@ export type ExtractedRouteMethod<
     ? Lowercase<Exclude<O["method"], undefined>>
     : "get";
 
+export type Base$Fetch<
+  DefaultT = unknown,
+  DefaultR extends NitroFetchRequest = NitroFetchRequest,
+> = <
+  T = DefaultT,
+  R extends NitroFetchRequest = DefaultR,
+  O extends NitroFetchOptions<R> = NitroFetchOptions<R>,
+>(
+  request: R,
+  opts?: O
+) => Promise<
+  TypedInternalResponse<
+    R,
+    T,
+    NitroFetchOptions<R> extends O ? "get" : ExtractedRouteMethod<R, O>
+  >
+>;
+
 export interface $Fetch<
   DefaultT = unknown,
   DefaultR extends NitroFetchRequest = NitroFetchRequest,
-> {
-  <
-    T = DefaultT,
-    R extends NitroFetchRequest = DefaultR,
-    O extends NitroFetchOptions<R> = NitroFetchOptions<R>,
-  >(
-    request: R,
-    opts?: O
-  ): Promise<
-    TypedInternalResponse<
-      R,
-      T,
-      NitroFetchOptions<R> extends O ? "get" : ExtractedRouteMethod<R, O>
-    >
-  >;
+> extends Base$Fetch<DefaultT, DefaultR> {
   raw<
     T = DefaultT,
     R extends NitroFetchRequest = DefaultR,
@@ -106,7 +110,6 @@ export interface $Fetch<
 }
 
 declare global {
-  // eslint-disable-next-line no-var
   var $fetch: $Fetch;
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace NodeJS {

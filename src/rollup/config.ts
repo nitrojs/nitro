@@ -1,13 +1,14 @@
 import { builtinModules, createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
+import { isAbsolute } from "node:path";
 import alias from "@rollup/plugin-alias";
-// import terser from "@rollup/plugin-terser"; // TODO: Investigate jiti issue
 import commonjs from "@rollup/plugin-commonjs";
 import inject from "@rollup/plugin-inject";
 import json from "@rollup/plugin-json";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
 import { defu } from "defu";
-import { resolvePath, sanitizeFilePath } from "mlly";
+import { sanitizeFilePath } from "mlly";
+import { resolveModulePath } from "exsolve";
 import { runtimeDependencies, runtimeDir } from "nitropack/runtime/meta";
 import type {
   Nitro,
@@ -19,9 +20,8 @@ import { hash } from "ohash";
 import { dirname, join, normalize, resolve } from "pathe";
 import type { Plugin } from "rollup";
 import { visualizer } from "rollup-plugin-visualizer";
-import { isWindows } from "std-env";
-import * as unenv from "unenv";
-import type { Preset } from "unenv";
+import { isTest, isWindows } from "std-env";
+import { defineEnv } from "unenv";
 import unimportPlugin from "unimport/unplugin";
 import { rollup as unwasm } from "unwasm/plugin";
 import { appConfig } from "./plugins/app-config";
@@ -41,6 +41,7 @@ import { sourcemapMininify } from "./plugins/sourcemap-min";
 import { storage } from "./plugins/storage";
 import { timing } from "./plugins/timing";
 import { virtual } from "./plugins/virtual";
+import { errorHandler } from "./plugins/error-handler";
 import { resolveAliases } from "./utils";
 
 export const getRollupConfig = (nitro: Nitro): RollupConfig => {
@@ -54,23 +55,17 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
     ".jsx",
   ];
 
-  const nodePreset = nitro.options.node === false ? unenv.nodeless : unenv.node;
+  const isNodeless = nitro.options.node === false;
 
-  const builtinPreset: Preset = {
-    alias: {
-      // General
-      ...(nitro.options.dev
-        ? {}
-        : {
-            debug: "unenv/runtime/npm/debug",
-            "consola/core": "consola/core",
-            consola: "unenv/runtime/npm/consola",
-          }),
-      ...nitro.options.alias,
+  const { env } = defineEnv({
+    nodeCompat: isNodeless,
+    npmShims: true,
+    resolve: true,
+    presets: nitro.options.unenv,
+    overrides: {
+      alias: nitro.options.alias,
     },
-  };
-
-  const env = unenv.env(nodePreset, builtinPreset, nitro.options.unenv);
+  });
 
   const buildServerDir = join(nitro.options.buildDir, "dist/server");
 
@@ -155,7 +150,7 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
         return relativePath.includes("node_modules");
       },
     },
-    external: env.external,
+    external: [...env.external],
     plugins: [],
     onwarn(warning, rollupWarn) {
       if (
@@ -191,7 +186,11 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
   }
 
   if (nitro.options.timing) {
-    rollupConfig.plugins.push(timing());
+    rollupConfig.plugins.push(
+      timing({
+        silent: isTest,
+      })
+    );
   }
 
   if (nitro.options.imports) {
@@ -230,6 +229,7 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
     server: true,
     client: false,
     nitro: true,
+    baseURL: nitro.options.baseURL,
     // @ts-expect-error
     "versions.nitro": "",
     "versions?.nitro": "",
@@ -256,12 +256,6 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
           [".", ";", ")", "[", "]", "}", " "].map((d) => [
             `import.meta${d}`,
             `globalThis._importMeta_${d}`,
-          ])
-        ),
-        ...Object.fromEntries(
-          [";", "(", "{", "}", " ", "\t", "\n"].map((d) => [
-            `${d}global.`,
-            `${d}globalThis.`,
           ])
         ),
         ...Object.fromEntries(
@@ -341,13 +335,16 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
     rollupConfig.plugins.push(handlersMeta(nitro));
   }
 
+  // Error handler
+  rollupConfig.plugins.push(errorHandler(nitro));
+
   // Polyfill
   rollupConfig.plugins.push(
     virtual(
       {
-        "#nitro-internal-pollyfills": env.polyfill
-          .map((p) => `import '${p}';`)
-          .join("\n"),
+        "#nitro-internal-pollyfills":
+          env.polyfill.map((p) => `import '${p}';`).join("\n") ||
+          `/* No polyfills */`,
       },
       nitro.vfs
     )
@@ -364,11 +361,13 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
       {
         "#nitro-internal-virtual/plugins": `
 ${nitroPlugins
-  .map((plugin) => `import _${hash(plugin)} from '${plugin}';`)
+  .map(
+    (plugin) => `import _${hash(plugin).replace(/-/g, "")} from '${plugin}';`
+  )
   .join("\n")}
 
 export const plugins = [
-  ${nitroPlugins.map((plugin) => `_${hash(plugin)}`).join(",\n")}
+  ${nitroPlugins.map((plugin) => `_${hash(plugin).replace(/-/g, "")}`).join(",\n")}
 ]
     `,
       },
@@ -390,7 +389,6 @@ export const plugins = [
     alias({
       entries: resolveAliases({
         "#build": buildDir,
-        "#nitro-internal-virtual/error-handler": nitro.options.errorHandler,
         "#internal/nitro": runtimeDir,
         "nitro/runtime": runtimeDir,
         "nitropack/runtime": runtimeDir,
@@ -407,17 +405,23 @@ export const plugins = [
   if (nitro.options.noExternals) {
     rollupConfig.plugins.push({
       name: "no-externals",
-      async resolveId(id, from, options) {
+      async resolveId(id, importer, resolveOpts) {
         if (
           nitro.options.node &&
           (id.startsWith("node:") || builtinModules.includes(id))
         ) {
           return { id, external: true };
         }
-        const resolved = await this.resolve(id, from, options);
+        const resolved = await this.resolve(id, importer, resolveOpts);
         if (!resolved) {
-          const _resolved = await resolvePath(id, {
-            url: nitro.options.nodeModulesDirs,
+          const _resolved = resolveModulePath(id, {
+            try: true,
+            from:
+              importer && isAbsolute(importer)
+                ? [pathToFileURL(importer), ...nitro.options.nodeModulesDirs]
+                : nitro.options.nodeModulesDirs,
+            suffixes: ["", "/index"],
+            extensions: [".mjs", ".cjs", ".js", ".mts", ".cts", ".ts", ".json"],
             conditions: [
               "default",
               nitro.options.dev ? "development" : "production",
@@ -425,7 +429,7 @@ export const plugins = [
               "import",
               "require",
             ],
-          }).catch(() => null);
+          });
           if (_resolved) {
             return { id: _resolved, external: false };
           }
@@ -433,7 +437,7 @@ export const plugins = [
         if (!resolved || (resolved.external && !id.endsWith(".wasm"))) {
           throw new Error(
             `Cannot resolve ${JSON.stringify(id)} from ${JSON.stringify(
-              from
+              importer
             )} and externals are not allowed!`
           );
         }
@@ -503,9 +507,6 @@ export const plugins = [
       exportConditions: nitro.options.exportConditions,
     })
   );
-
-  // Automatically mock unresolved externals
-  // rollupConfig.plugins.push(autoMock())
 
   // https://github.com/rollup/plugins/tree/master/packages/commonjs
   rollupConfig.plugins.push(

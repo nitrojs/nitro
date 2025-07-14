@@ -41,7 +41,11 @@ export default {
       import.meta._websocket &&
       request.headers.get("upgrade") === "websocket"
     ) {
-      return ws!.handleUpgrade(request as any, env, context);
+      return ws!.handleUpgrade(
+        request as any,
+        env,
+        context as unknown as ExecutionContext
+      );
     }
 
     const url = new URL(request.url);
@@ -59,12 +63,14 @@ export default {
 
     return nitroApp.localFetch(url.pathname + url.search, {
       context: {
-        cf: request.cf,
         waitUntil: (promise: Promise<any>) => context.waitUntil(promise),
-        cloudflare: {
-          request,
-          env,
-          context,
+        _platform: {
+          cf: request.cf,
+          cloudflare: {
+            request,
+            env,
+            context,
+          },
         },
       },
       host: url.hostname,

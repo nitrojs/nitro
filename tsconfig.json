@@ -23,6 +23,7 @@
     "jsxFactory": "h",
     "jsxFragmentFactory": "Fragment",
     "lib": ["es2022", "webworker", "dom.iterable"],
+    "types": ["@cloudflare/workers-types"],
     "paths": {
       // CLI
       "nitro/cli": ["./src/cli"],
@@ -66,7 +67,8 @@
       "#nitro-internal-virtual/*": ["./src/types/virtual/*"],
       // Compatibility (#internal/nitro)
       "#internal/nitro": ["./src/runtime"],
-      "#internal/nitro/*": ["./src/runtime/*"]
+      "#internal/nitro/*": ["./src/runtime/*"],
+      "#internal/types/openapi-ts": ["./src/types/openapi-ts"]
     }
   },
   "include": ["src", "test", "scripts/gen-mirror.ts"],
