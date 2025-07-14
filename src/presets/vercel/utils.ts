@@ -287,11 +287,12 @@ type ObservibilityRoute = {
 function getObservibilityRoutes(nitro: Nitro): ObservibilityRoute[] {
   // Sort routes by how much specific they are
   const routePatterns = [
-    ...new Set(
-      [...nitro.scannedHandlers, ...nitro.options.handlers]
+    ...new Set([
+      ...(nitro.options.ssrRoutes || []),
+      ...[...nitro.scannedHandlers, ...nitro.options.handlers]
         .filter((h) => !h.middleware && h.route)
-        .map((h) => h.route!)
-    ),
+        .map((h) => h.route!),
+    ]),
   ];
 
   const staticRoutes: string[] = [];
