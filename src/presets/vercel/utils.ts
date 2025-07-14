@@ -17,7 +17,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
   const o11Routes = getObservibilityRoutes(nitro);
 
   const buildConfigPath = resolve(nitro.options.output.dir, "config.json");
-  const buildConfig = generateBuildConfig(nitro, o11Routes );
+  const buildConfig = generateBuildConfig(nitro, o11Routes);
   await writeFile(buildConfigPath, JSON.stringify(buildConfig, null, 2));
 
   const systemNodeVersion = process.versions.node.split(".")[0];
@@ -215,11 +215,11 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservibilityRoute[]) {
           },
         ]
       : []),
-   // Observability routes
-   ...(o11Routes || []).map((route) => ({
-        src: route.src,
-        dest: '/__routes__/' + route.dest,
-      })),
+    // Observability routes
+    ...(o11Routes || []).map((route) => ({
+      src: route.src,
+      dest: "/__routes__/" + route.dest,
+    })),
     // If we are using an ISR function as a fallback
     // then we do not need to output the below fallback route as well
     ...(nitro.options.routeRules["/**"]?.isr
@@ -331,15 +331,15 @@ function normalizeRoutes(routes: string[]) {
 // Output is a PCRE-compatible regular expression that matches each incoming pathname
 // Reference: https://github.com/h3js/rou3/blob/main/src/regexp.ts
 function normalizeRouteSrc(route: string): string {
-  let idCtr=0;
+  let idCtr = 0;
   return route
     .split("/")
     .map((segment) => {
       if (segment.startsWith("**")) {
-        return segment === "**" ? "?(?<_>.*)" : `?(?<${segment.slice(3)}>.+)`
+        return segment === "**" ? "?(?<_>.*)" : `?(?<${segment.slice(3)}>.+)`;
       }
       if (segment === "*") {
-        return `(?<_${idCtr++}>[^/]*)`
+        return `(?<_${idCtr++}>[^/]*)`;
       }
       if (segment.includes(":")) {
         return segment
@@ -353,26 +353,27 @@ function normalizeRouteSrc(route: string): string {
 
 // Output is a destination pathname to function name
 function normalizeRouteDest(route: string) {
-  return route
-    .split("/")
-    .slice(1)
-    .map((segment) => {
-      if (segment.startsWith("**")) {
-        return `[...${segment.replace(/[*:]/g, "")}]`;
-      }
-      if (segment === "*") {
-        return "[-]";
-      }
-      if (segment.startsWith(":")) {
-        return `[${segment.slice(1)}]`;
-      }
-      if (segment.includes(":")) {
-        return `[${segment.replace(/:/g, "_")}]`;
-      }
-      return segment;
-    })
-    // Only use filesystem-safe characters
-    .map((segment) => segment.replace(/[^a-zA-Z0-9_.[\]]/g, "-"))
-    .join("/");
+  return (
+    route
+      .split("/")
+      .slice(1)
+      .map((segment) => {
+        if (segment.startsWith("**")) {
+          return `[...${segment.replace(/[*:]/g, "")}]`;
+        }
+        if (segment === "*") {
+          return "[-]";
+        }
+        if (segment.startsWith(":")) {
+          return `[${segment.slice(1)}]`;
+        }
+        if (segment.includes(":")) {
+          return `[${segment.replace(/:/g, "_")}]`;
+        }
+        return segment;
+      })
+      // Only use filesystem-safe characters
+      .map((segment) => segment.replace(/[^a-zA-Z0-9_.[\]]/g, "-"))
+      .join("/")
+  );
 }
-
