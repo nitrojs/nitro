@@ -14,7 +14,7 @@ import { isTest } from "std-env";
 // https://vercel.com/docs/build-output-api/configuration
 
 export async function generateFunctionFiles(nitro: Nitro) {
-  const o11Routes = getObservibilityRoutes(nitro);
+  const o11Routes = getObservabilityRoutes(nitro);
 
   const buildConfigPath = resolve(nitro.options.output.dir, "config.json");
   const buildConfig = generateBuildConfig(nitro, o11Routes);
@@ -122,7 +122,7 @@ export async function generateStaticFiles(nitro: Nitro) {
   await writeFile(buildConfigPath, JSON.stringify(buildConfig, null, 2));
 }
 
-function generateBuildConfig(nitro: Nitro, o11Routes?: ObservibilityRoute[]) {
+function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
   const rules = Object.entries(nitro.options.routeRules).sort(
     (a, b) => b[0].split(/\/(?!\*)/).length - a[0].split(/\/(?!\*)/).length
   );
@@ -277,14 +277,14 @@ function _hasProp(obj: any, prop: string) {
   return obj && typeof obj === "object" && prop in obj;
 }
 
-// --- utils for observibility ---
+// --- utils for observability ---
 
-type ObservibilityRoute = {
+type ObservabilityRoute = {
   src: string; // route pattern
   dest: string; // function name
 };
 
-function getObservibilityRoutes(nitro: Nitro): ObservibilityRoute[] {
+function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
   // Sort routes by how much specific they are
   const routePatterns = [
     ...new Set([
