@@ -21,8 +21,8 @@ const cloudflarePages = defineNitroPreset(
     entry: "./runtime/cloudflare-pages",
     exportConditions: ["workerd"],
     commands: {
-      preview: "npx wrangler --cwd ./ pages dev",
-      deploy: "npx wrangler --cwd ./ pages deploy",
+      preview: "npx wrangler --cwd ./ pages dev {{ output.dir }}",
+      deploy: "npx wrangler --cwd ./ pages deploy {{ output.dir }}",
     },
     output: {
       dir: "{{ rootDir }}/dist",
@@ -73,8 +73,8 @@ const cloudflarePagesStatic = defineNitroPreset(
       publicDir: "{{ output.dir }}/{{ baseURL }}",
     },
     commands: {
-      preview: "npx wrangler --cwd ./ pages dev",
-      deploy: "npx wrangler --cwd ./ pages deploy",
+      preview: "npx wrangler --cwd ./ pages dev {{ output.dir }}",
+      deploy: "npx wrangler --cwd ./ pages deploy {{ output.dir }}",
     },
     hooks: {
       async compiled(nitro: Nitro) {
