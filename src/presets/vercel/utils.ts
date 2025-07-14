@@ -11,9 +11,13 @@ import type {
 } from "./types";
 import { isTest } from "std-env";
 
+// https://vercel.com/docs/build-output-api/configuration
+
 export async function generateFunctionFiles(nitro: Nitro) {
+  const o11Routes = getObservabilityRoutes(nitro);
+
   const buildConfigPath = resolve(nitro.options.output.dir, "config.json");
-  const buildConfig = generateBuildConfig(nitro);
+  const buildConfig = generateBuildConfig(nitro, o11Routes);
   await writeFile(buildConfigPath, JSON.stringify(buildConfig, null, 2));
 
   const systemNodeVersion = process.versions.node.split(".")[0];
@@ -78,6 +82,21 @@ export async function generateFunctionFiles(nitro: Nitro) {
       JSON.stringify(prerenderConfig, null, 2)
     );
   }
+
+  // Write observability routes
+  for (const route of o11Routes) {
+    const funcPrefix = resolve(
+      nitro.options.output.serverDir,
+      "..",
+      route.dest
+    );
+    await fsp.mkdir(dirname(funcPrefix), { recursive: true });
+    await fsp.symlink(
+      "./" + relative(dirname(funcPrefix), nitro.options.output.serverDir),
+      funcPrefix + ".func",
+      "junction"
+    );
+  }
 }
 
 export async function generateEdgeFunctionFiles(nitro: Nitro) {
@@ -103,7 +122,7 @@ export async function generateStaticFiles(nitro: Nitro) {
   await writeFile(buildConfigPath, JSON.stringify(buildConfig, null, 2));
 }
 
-function generateBuildConfig(nitro: Nitro) {
+function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
   const rules = Object.entries(nitro.options.routeRules).sort(
     (a, b) => b[0].split(/\/(?!\*)/).length - a[0].split(/\/(?!\*)/).length
   );
@@ -196,7 +215,13 @@ function generateBuildConfig(nitro: Nitro) {
           },
         ]
       : []),
-    // If we are using an ISR function as a fallback, then we do not need to output the below fallback route as well
+    // Observability routes
+    ...(o11Routes || []).map((route) => ({
+      src: route.src,
+      dest: "/" + route.dest,
+    })),
+    // If we are using an ISR function as a fallback
+    // then we do not need to output the below fallback route as well
     ...(nitro.options.routeRules["/**"]?.isr
       ? []
       : [
@@ -250,4 +275,106 @@ export function deprecateSWR(nitro: Nitro) {
 
 function _hasProp(obj: any, prop: string) {
   return obj && typeof obj === "object" && prop in obj;
+}
+
+// --- utils for observability ---
+
+type ObservabilityRoute = {
+  src: string; // route pattern
+  dest: string; // function name
+};
+
+function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
+  // Sort routes by how much specific they are
+  const routePatterns = [
+    ...new Set([
+      ...(nitro.options.ssrRoutes || []),
+      ...[...nitro.scannedHandlers, ...nitro.options.handlers]
+        .filter((h) => !h.middleware && h.route)
+        .map((h) => h.route!),
+    ]),
+  ];
+
+  const staticRoutes: string[] = [];
+  const dynamicRoutes: string[] = [];
+  const catchAllRoutes: string[] = [];
+
+  for (const route of routePatterns) {
+    if (route.includes("**")) {
+      catchAllRoutes.push(route);
+    } else if (route.includes(":") || route.includes("*")) {
+      dynamicRoutes.push(route);
+    } else {
+      staticRoutes.push(route);
+    }
+  }
+
+  return [
+    ...normalizeRoutes(staticRoutes),
+    ...normalizeRoutes(dynamicRoutes),
+    ...normalizeRoutes(catchAllRoutes),
+  ];
+}
+
+function normalizeRoutes(routes: string[]) {
+  return routes
+    .sort((a, b) =>
+      // a.split("/").length - b.split("/").length ||
+      b.localeCompare(a)
+    )
+    .map((route) => ({
+      src: normalizeRouteSrc(route),
+      dest: normalizeRouteDest(route),
+    }));
+}
+
+// Input is a rou3/radix3 compatible route pattern
+// Output is a PCRE-compatible regular expression that matches each incoming pathname
+// Reference: https://github.com/h3js/rou3/blob/main/src/regexp.ts
+function normalizeRouteSrc(route: string): string {
+  let idCtr = 0;
+  return route
+    .split("/")
+    .map((segment) => {
+      if (segment.startsWith("**")) {
+        return segment === "**" ? "?(?<_>.*)" : `?(?<${segment.slice(3)}>.+)`;
+      }
+      if (segment === "*") {
+        return `(?<_${idCtr++}>[^/]*)`;
+      }
+      if (segment.includes(":")) {
+        return segment
+          .replace(/:(\w+)/g, (_, id) => `(?<${id}>[^/]+)`)
+          .replace(/\./g, String.raw`\.`);
+      }
+      return segment;
+    })
+    .join("/");
+}
+
+// Output is a destination pathname to function name
+function normalizeRouteDest(route: string) {
+  return (
+    route
+      .split("/")
+      .slice(1)
+      .map((segment) => {
+        if (segment.startsWith("**")) {
+          return `[...${segment.replace(/[*:]/g, "")}]`;
+        }
+        if (segment === "*") {
+          return "[-]";
+        }
+        if (segment.startsWith(":")) {
+          return `[${segment.slice(1)}]`;
+        }
+        if (segment.includes(":")) {
+          return `[${segment.replace(/:/g, "_")}]`;
+        }
+        return segment;
+      })
+      // Only use filesystem-safe characters
+      .map((segment) => segment.replace(/[^a-zA-Z0-9_.[\]]/g, "-"))
+      .join("/")
+  );
 }

@@ -2,33 +2,9 @@
 
 import workerdTLS from "#workerd/node:tls";
 
-import {
-  CLIENT_RENEG_LIMIT,
-  CLIENT_RENEG_WINDOW,
-  DEFAULT_CIPHERS,
-  DEFAULT_ECDH_CURVE,
-  DEFAULT_MAX_VERSION,
-  DEFAULT_MIN_VERSION,
-  Server,
-  createSecurePair,
-  createServer,
-  getCiphers,
-  rootCertificates,
-} from "unenv/node/tls";
+import { createSecurePair } from "unenv/node/tls";
 
-export {
-  CLIENT_RENEG_LIMIT,
-  CLIENT_RENEG_WINDOW,
-  DEFAULT_CIPHERS,
-  DEFAULT_ECDH_CURVE,
-  DEFAULT_MAX_VERSION,
-  DEFAULT_MIN_VERSION,
-  Server,
-  createSecurePair,
-  createServer,
-  getCiphers,
-  rootCertificates,
-} from "unenv/node/tls";
+export { createSecurePair } from "unenv/node/tls";
 
 export const {
   TLSSocket,
@@ -37,13 +13,22 @@ export const {
   checkServerIdentity,
   convertALPNProtocols,
   createSecureContext,
+  CLIENT_RENEG_LIMIT,
+  CLIENT_RENEG_WINDOW,
+  DEFAULT_CIPHERS,
+  DEFAULT_ECDH_CURVE,
+  DEFAULT_MAX_VERSION,
+  DEFAULT_MIN_VERSION,
+  Server,
+  createServer,
+  getCiphers,
+  rootCertificates,
 } = workerdTLS;
 
 export default {
   // native
   TLSSocket,
   connect,
-  // polyfill
   CLIENT_RENEG_LIMIT,
   CLIENT_RENEG_WINDOW,
   DEFAULT_CIPHERS,
@@ -55,8 +40,9 @@ export default {
   checkServerIdentity,
   convertALPNProtocols,
   createSecureContext,
-  createSecurePair,
   createServer,
   getCiphers,
   rootCertificates,
+  // polyfill
+  createSecurePair,
 };

@@ -2,6 +2,50 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## v2.11.13
+
+[compare changes](https://github.com/nitrojs/nitro/compare/v2.11.12...v2.11.13)
+
+### 🩹 Fixes
+
+- **types:** Resolve absolute paths for type imports ([#3368](https://github.com/nitrojs/nitro/pull/3368))
+- **cloudflare:** Globally polyfill env ([#3401](https://github.com/nitrojs/nitro/pull/3401))
+- **dev:** Only use build dir for output ([#3413](https://github.com/nitrojs/nitro/pull/3413))
+- **rollup:** Ensure that external dependency files have write permission ([#3419](https://github.com/nitrojs/nitro/pull/3419))
+- **types:** Enable `skipLibCheck` by default ([#3373](https://github.com/nitrojs/nitro/pull/3373))
+
+### 💅 Refactors
+
+- Depend on unenv polyfill for `global` ([#3364](https://github.com/nitrojs/nitro/pull/3364))
+- Add `tsConfig` to `types:extend` hook ([#3399](https://github.com/nitrojs/nitro/pull/3399))
+- Update unenv and node compat ([#3421](https://github.com/nitrojs/nitro/pull/3421))
+
+### 📖 Documentation
+
+- Fix typo ([#3415](https://github.com/nitrojs/nitro/pull/3415))
+- **database:** Fix example ([#3395](https://github.com/nitrojs/nitro/pull/3395))
+
+### 🏡 Chore
+
+- Update dependencies ([017c7436](https://github.com/nitrojs/nitro/commit/017c7436))
+- Fix lint issue ([046a8c29](https://github.com/nitrojs/nitro/commit/046a8c29))
+- Fix type issues ([bb627052](https://github.com/nitrojs/nitro/commit/bb627052))
+
+### ✅ Tests
+
+- Update tls test endpoint ([e680f420](https://github.com/nitrojs/nitro/commit/e680f420))
+- Bypass tls test for deno and bun ([6da3d458](https://github.com/nitrojs/nitro/commit/6da3d458))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+- Restent Ou ([@gxres042](https://github.com/gxres042))
+- ChunyuPCY ([@ChunyuPCY](https://github.com/ChunyuPCY))
+- Nagaakihoshi <nagaaki.hoshi@yourmystar.jp>
+- Clément Guillot <guillot.clement@pm.me>
+- Daniel Roe ([@danielroe](https://github.com/danielroe))
+- Jonas Thelemann <e-mail@jonas-thelemann.de>
+
 ## v2.11.12
 
 [compare changes](https://github.com/nitrojs/nitro/compare/v2.11.11...v2.11.12)
