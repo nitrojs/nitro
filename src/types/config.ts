@@ -89,6 +89,7 @@ export interface NitroOptions extends PresetOptions {
   bundledStorage: string[];
   timing: boolean;
   renderer?: string;
+  ssrRoutes: string[];
   serveStatic: boolean | "node" | "deno" | "inline";
   noPublicDir: boolean;
 

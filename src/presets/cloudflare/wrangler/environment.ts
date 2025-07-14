@@ -40,6 +40,7 @@ export type Route =
 export type CloudchamberConfig = {
   image?: string;
   location?: string;
+  instance_type?: "dev" | "basic" | "standard";
   vcpu?: number;
   memory?: string;
   ipv4?: boolean;
@@ -51,24 +52,107 @@ export type CloudchamberConfig = {
 export type ContainerApp = {
   // TODO: fill out the entire type
 
-  /* Name of the application*/
-  name: string;
-  /* Number of application instances */
-  instances: number;
-  /* The scheduling policy of the application, default is regional */
-  scheduling_policy?: "regional" | "moon";
-  /* Configuration of the container */
-  configuration: {
-    image: string;
+  /**
+   * Name of the application
+   * @optional Defaults to `worker_name-class_name` if not specified.
+   */
+  name?: string;
+
+  /**
+   * Number of application instances
+   * @deprecated
+   * @hidden
+   */
+  instances?: number;
+
+  /**
+   * Number of maximum application instances.
+   * @optional
+   */
+  max_instances?: number;
+
+  /**
+   * The path to a Dockerfile, or an image URI for the Cloudflare registry.
+   */
+  image: string;
+
+  /**
+   * Build context of the application.
+   * @optional - defaults to the directory of `image`.
+   */
+  image_build_context?: string;
+
+  /**
+   * Image variables to be passed along the image at build time.
+   * @optional
+   */
+  image_vars?: Record<string, string>;
+
+  /**
+   * The class name of the Durable Object the container is connected to.
+   */
+  class_name: string;
+
+  /**
+   * The scheduling policy of the application
+   * @optional
+   * @default "default"
+   */
+  scheduling_policy?: "regional" | "moon" | "default";
+
+  /**
+   * The instance type to be used for the container. This sets preconfigured options for vcpu and memory
+   * @optional
+   */
+  instance_type?: "dev" | "basic" | "standard";
+
+  /**
+   * @deprecated Use top level `containers` fields instead.
+   * `configuration.image` should be `image`
+   * `configuration.disk` should be set via `instance_type`
+   * @hidden
+   */
+  configuration?: {
+    image?: string;
     labels?: { name: string; value: string }[];
     secrets?: { name: string; type: "env"; secret: string }[];
+    disk?: { size: string };
   };
-  /* Scheduling constraints */
+
+  /**
+   * Scheduling constraints
+   * @hidden
+   */
   constraints?: {
     regions?: string[];
     cities?: string[];
     tier?: number;
   };
+
+  /**
+   * @deprecated use the `class_name` field instead.
+   * @hidden
+   */
+  durable_objects?: {
+    namespace_id: string;
+  };
+
+  /**
+   * How a rollout should be done, defining the size of it
+   * @optional
+   * @default 25
+   * */
+  rollout_step_percentage?: number;
+
+  /**
+   * How a rollout should be created. It supports the following modes:
+   *  - full_auto: The container application will be rolled out fully automatically.
+   *  - none: The container application won't have a roll out or update.
+   *  - manual: The container application will be rollout fully by manually actioning progress steps.
+   * @optional
+   * @default "full_auto"
+   */
+  rollout_kind?: "full_auto" | "none" | "full_manual";
 };
 
 /**
@@ -117,7 +201,7 @@ interface EnvironmentInheritable {
    * A date in the form yyyy-mm-dd, which will be used to determine
    * which version of the Workers runtime is used.
    *
-   * More details at https://developers.cloudflare.com/workers/platform/compatibility-dates
+   * More details at https://developers.cloudflare.com/workers/configuration/compatibility-dates
    *
    * @inheritable
    */
@@ -127,7 +211,7 @@ interface EnvironmentInheritable {
    * A list of flags that enable features from upcoming features of
    * the Workers runtime, usually used together with compatibility_date.
    *
-   * More details at https://developers.cloudflare.com/workers/platform/compatibility-flags
+   * More details at https://developers.cloudflare.com/workers/configuration/compatibility-flags/
    *
    * @default []
    * @inheritable
@@ -174,6 +258,7 @@ interface EnvironmentInheritable {
    * Whether we use <name>.<subdomain>.workers.dev to
    * test and deploy your Worker.
    *
+   * For reference, see https://developers.cloudflare.com/workers/wrangler/configuration/#workersdev
    *
    * @default true
    * @breaking
@@ -196,6 +281,8 @@ interface EnvironmentInheritable {
    * Only one of `routes` or `route` is required.
    *
    * Only required when workers_dev is false, and there's no scheduled Worker (see `triggers`)
+   *
+   * For reference, see https://developers.cloudflare.com/workers/wrangler/configuration/#types-of-routes
    *
    * @inheritable
    */
@@ -254,27 +341,18 @@ interface EnvironmentInheritable {
    *
    * More details here https://developers.cloudflare.com/workers/platform/cron-triggers
    *
-   * @default {crons:[]}
-   * @inheritable
-   */
-  triggers: { crons: string[] };
-
-  /**
-   * Specifies the Usage Model for your Worker. There are two options -
-   * [bundled](https://developers.cloudflare.com/workers/platform/limits#bundled-usage-model) and
-   * [unbound](https://developers.cloudflare.com/workers/platform/limits#unbound-usage-model).
-   * For newly created Workers, if the Usage Model is omitted
-   * it will be set to the [default Usage Model set on the account](https://dash.cloudflare.com/?account=workers/default-usage-model).
-   * For existing Workers, if the Usage Model is omitted, it will be
-   * set to the Usage Model configured in the dashboard for that Worker.
+   * For reference, see https://developers.cloudflare.com/workers/wrangler/configuration/#triggers
    *
+   * @default {crons: undefined}
    * @inheritable
    */
-  usage_model: "bundled" | "unbound" | undefined;
+  triggers: { crons: string[] | undefined };
 
   /**
    * Specify limits for runtime behavior.
    * Only supported for the "standard" Usage Model
+   *
+   * For reference, see https://developers.cloudflare.com/workers/wrangler/configuration/#limits
    *
    * @inheritable
    */
@@ -286,6 +364,8 @@ interface EnvironmentInheritable {
    * to use Text, Data, and CompiledWasm modules, or when you wish to
    * have a .js file be treated as an ESModule instead of CommonJS.
    *
+   * For reference, see https://developers.cloudflare.com/workers/wrangler/configuration/#bundling
+   *
    * @inheritable
    */
   rules: Rule[];
@@ -296,6 +376,8 @@ interface EnvironmentInheritable {
    * Refer to the [custom builds documentation](https://developers.cloudflare.com/workers/cli-wrangler/configuration#build)
    * for more details.
    *
+   * For reference, see https://developers.cloudflare.com/workers/wrangler/configuration/#custom-builds
+   *
    * @default {watch_dir:"./src"}
    */
   build: {
@@ -305,11 +387,6 @@ interface EnvironmentInheritable {
     cwd?: string;
     /** The directory to watch for changes while using wrangler dev, defaults to the current working directory */
     watch_dir?: string | string[];
-    /**
-     * Deprecated field previously used to configure the build and upload of the script.
-     * @deprecated
-     */
-    upload?: DeprecatedUpload;
   };
 
   /**
@@ -325,10 +402,14 @@ interface EnvironmentInheritable {
   minify: boolean | undefined;
 
   /**
-   * Add polyfills for node builtin modules and globals
+   * Set the `name` property to the original name for functions and classes renamed during minification.
+   *
+   * See https://esbuild.github.io/api/#keep-names
+   *
+   * @default true
    * @inheritable
    */
-  node_compat: boolean | undefined;
+  keep_names: boolean | undefined;
 
   /**
    * Designates this Worker as an internal-only "first-party" Worker.
@@ -336,14 +417,6 @@ interface EnvironmentInheritable {
    * @inheritable
    */
   first_party_worker: boolean | undefined;
-
-  /**
-   * TODO: remove this as it has been deprecated.
-   *
-   * This is just here for now because the `route` commands use it.
-   * So we need to include it in this type so it is available.
-   */
-  zone_id?: string;
 
   /**
    * List of bindings that you will send to logfwdr
@@ -374,6 +447,9 @@ interface EnvironmentInheritable {
 
   /**
    * Include source maps when uploading this worker.
+   *
+   * For reference, see https://developers.cloudflare.com/workers/wrangler/configuration/#source-maps
+   *
    * @inheritable
    */
   upload_source_maps: boolean | undefined;
@@ -392,6 +468,8 @@ interface EnvironmentInheritable {
    *
    * More details at https://developers.cloudflare.com/workers/frameworks/
    *
+   * For reference, see https://developers.cloudflare.com/workers/wrangler/configuration/#assets
+   *
    * @inheritable
    */
   assets: Assets | undefined;
@@ -399,9 +477,19 @@ interface EnvironmentInheritable {
   /**
    * Specify the observability behavior of the Worker.
    *
+   * For reference, see https://developers.cloudflare.com/workers/wrangler/configuration/#observability
+   *
    * @inheritable
    */
   observability: Observability | undefined;
+
+  /**
+   * Specify the compliance region mode of the Worker.
+   *
+   * Although if the user does not specify a compliance region, the default is `public`,
+   * it can be set to `undefined` in configuration to delegate to the CLOUDFLARE_COMPLIANCE_REGION environment variable.
+   */
+  compliance_region: "public" | "fedramp_high" | undefined;
 }
 
 export type DurableObjectBindings = {
@@ -424,6 +512,8 @@ export type WorkflowBinding = {
   class_name: string;
   /** The script where the Workflow is defined (if it's external to this Worker) */
   script_name?: string;
+  /** Whether the Workflow should be remote or not (only available under `--x-remote-bindings`) */
+  experimental_remote?: boolean;
 };
 
 /**
@@ -450,6 +540,8 @@ export interface EnvironmentNonInheritable {
    * NOTE: This field is not automatically inherited from the top level environment,
    * and so must be specified in every named environment.
    *
+   * For reference, see https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
+   *
    * @default {}
    * @nonInheritable
    */
@@ -463,6 +555,8 @@ export interface EnvironmentNonInheritable {
    *
    * NOTE: This field is not automatically inherited from the top level environment,
    * and so must be specified in every named environment.
+   *
+   * For reference, see https://developers.cloudflare.com/workers/wrangler/configuration/#durable-objects
    *
    * @default {bindings:[]}
    * @nonInheritable
@@ -495,19 +589,14 @@ export interface EnvironmentNonInheritable {
 
   /**
    * Container related configuration
+   *
+   * NOTE: This field is not automatically inherited from the top level environment,
+   * and so must be specified in every named environment.
+   *
+   * @default []
+   * @nonInheritable
    */
-  containers: {
-    /**
-     * Container app configuration
-     *
-     * NOTE: This field is not automatically inherited from the top level environment,
-     * and so must be specified in every named environment.
-     *
-     * @default {}
-     * @nonInheritable
-     */
-    app: ContainerApp[];
-  };
+  containers?: ContainerApp[];
 
   /**
    * These specify any Workers KV Namespaces you want to
@@ -519,6 +608,8 @@ export interface EnvironmentNonInheritable {
    * NOTE: This field is not automatically inherited from the top level environment,
    * and so must be specified in every named environment.
    *
+   * For reference, see https://developers.cloudflare.com/workers/wrangler/configuration/#kv-namespaces
+   *
    * @default []
    * @nonInheritable
    */
@@ -529,6 +620,8 @@ export interface EnvironmentNonInheritable {
     id?: string;
     /** The ID of the KV namespace used during `wrangler dev` */
     preview_id?: string;
+    /** Whether the KV namespace should be remote or not (only available under `--x-remote-bindings`) */
+    experimental_remote?: boolean;
   }[];
 
   /**
@@ -536,6 +629,8 @@ export interface EnvironmentNonInheritable {
    *
    * NOTE: This field is not automatically inherited from the top level environment,
    * and so must be specified in every named environment.
+   *
+   * For reference, see https://developers.cloudflare.com/workers/wrangler/configuration/#email-bindings
    *
    * @default []
    * @nonInheritable
@@ -555,6 +650,8 @@ export interface EnvironmentNonInheritable {
    * NOTE: This field is not automatically inherited from the top level environment,
    * and so must be specified in every named environment.
    *
+   * For reference, see https://developers.cloudflare.com/workers/wrangler/configuration/#queues
+   *
    * @default {consumers:[],producers:[]}
    * @nonInheritable
    */
@@ -569,6 +666,9 @@ export interface EnvironmentNonInheritable {
 
       /** The number of seconds to wait before delivering a message */
       delivery_delay?: number;
+
+      /** Whether the Queue producer should be remote or not (only available under `--x-remote-bindings`) */
+      experimental_remote?: boolean;
     }[];
 
     /** Consumer configuration */
@@ -608,6 +708,8 @@ export interface EnvironmentNonInheritable {
    * NOTE: This field is not automatically inherited from the top level environment,
    * and so must be specified in every named environment.
    *
+   * For reference, see https://developers.cloudflare.com/workers/wrangler/configuration/#r2-buckets
+   *
    * @default []
    * @nonInheritable
    */
@@ -620,6 +722,8 @@ export interface EnvironmentNonInheritable {
     preview_bucket_name?: string;
     /** The jurisdiction that the bucket exists in. Default if not present. */
     jurisdiction?: string;
+    /** Whether the R2 bucket should be remote or not (only available under `--x-remote-bindings`) */
+    experimental_remote?: boolean;
   }[];
 
   /**
@@ -627,6 +731,8 @@ export interface EnvironmentNonInheritable {
    *
    * NOTE: This field is not automatically inherited from the top level environment,
    * and so must be specified in every named environment.
+   *
+   * For reference, see https://developers.cloudflare.com/workers/wrangler/configuration/#d1-databases
    *
    * @default []
    * @nonInheritable
@@ -646,6 +752,8 @@ export interface EnvironmentNonInheritable {
     migrations_dir?: string;
     /** Internal use only. */
     database_internal_env?: string;
+    /** Whether the D1 database should be remote or not (only available under `--x-remote-bindings`) */
+    experimental_remote?: boolean;
   }[];
 
   /**
@@ -653,6 +761,8 @@ export interface EnvironmentNonInheritable {
    *
    * NOTE: This field is not automatically inherited from the top level environment,
    * and so must be specified in every named environment.
+   *
+   * For reference, see https://developers.cloudflare.com/workers/wrangler/configuration/#vectorize-indexes
    *
    * @default []
    * @nonInheritable
@@ -662,6 +772,8 @@ export interface EnvironmentNonInheritable {
     binding: string;
     /** The name of the index. */
     index_name: string;
+    /** Whether the Vectorize index should be remote or not (only available under `--x-remote-bindings`) */
+    experimental_remote?: boolean;
   }[];
 
   /**
@@ -669,6 +781,8 @@ export interface EnvironmentNonInheritable {
    *
    * NOTE: This field is not automatically inherited from the top level environment,
    * and so must be specified in every named environment.
+   *
+   * For reference, see https://developers.cloudflare.com/workers/wrangler/configuration/#hyperdrive
    *
    * @default []
    * @nonInheritable
@@ -688,6 +802,8 @@ export interface EnvironmentNonInheritable {
    * NOTE: This field is not automatically inherited from the top level environment,
    * and so must be specified in every named environment.
    *
+   * For reference, see https://developers.cloudflare.com/workers/wrangler/configuration/#service-bindings
+   *
    * @default []
    * @nonInheritable
    */
@@ -701,6 +817,10 @@ export interface EnvironmentNonInheritable {
         environment?: string;
         /** Optionally, the entrypoint (named export) of the service to bind to. */
         entrypoint?: string;
+        /** Optional properties that will be made available to the service via ctx.props. */
+        props?: Record<string, unknown>;
+        /** Whether the service binding should be remote or not (only available under `--x-remote-bindings`) */
+        experimental_remote?: boolean;
       }[]
     | undefined;
 
@@ -709,6 +829,8 @@ export interface EnvironmentNonInheritable {
    *
    * NOTE: This field is not automatically inherited from the top level environment,
    * and so must be specified in every named environment.
+   *
+   * For reference, see https://developers.cloudflare.com/workers/wrangler/configuration/#analytics-engine-datasets
    *
    * @default []
    * @nonInheritable
@@ -726,12 +848,16 @@ export interface EnvironmentNonInheritable {
    * NOTE: This field is not automatically inherited from the top level environment,
    * and so must be specified in every named environment.
    *
+   * For reference, see https://developers.cloudflare.com/workers/wrangler/configuration/#browser-rendering
+   *
    * @default {}
    * @nonInheritable
    */
   browser:
     | {
         binding: string;
+        /** Whether the Browser binding should be remote or not (only available under `--x-remote-bindings`) */
+        experimental_remote?: boolean;
       }
     | undefined;
 
@@ -741,6 +867,8 @@ export interface EnvironmentNonInheritable {
    * NOTE: This field is not automatically inherited from the top level environment,
    * and so must be specified in every named environment.
    *
+   * For reference, see https://developers.cloudflare.com/workers/wrangler/configuration/#workers-ai
+   *
    * @default {}
    * @nonInheritable
    */
@@ -748,6 +876,27 @@ export interface EnvironmentNonInheritable {
     | {
         binding: string;
         staging?: boolean;
+        /** Whether the AI binding should be remote or not (only available under `--x-remote-bindings`) */
+        experimental_remote?: boolean;
+      }
+    | undefined;
+
+  /**
+   * Binding to Cloudflare Images
+   *
+   * NOTE: This field is not automatically inherited from the top level environment,
+   * and so must be specified in every named environment.
+   *
+   * For reference, see https://developers.cloudflare.com/workers/wrangler/configuration/#images
+   *
+   * @default {}
+   * @nonInheritable
+   */
+  images:
+    | {
+        binding: string;
+        /** Whether the Images binding should be remote or not (only available under `--x-remote-bindings`) */
+        experimental_remote?: boolean;
       }
     | undefined;
 
@@ -811,6 +960,8 @@ export interface EnvironmentNonInheritable {
    * NOTE: This field is not automatically inherited from the top level environment,
    * and so must be specified in every named environment.
    *
+   * For reference, see https://developers.cloudflare.com/workers/wrangler/configuration/#mtls-certificates
+   *
    * @default []
    * @nonInheritable
    */
@@ -819,6 +970,8 @@ export interface EnvironmentNonInheritable {
     binding: string;
     /** The uuid of the uploaded mTLS certificate */
     certificate_id: string;
+    /** Whether the mtls fetcher should be remote or not (only available under `--x-remote-bindings`) */
+    experimental_remote?: boolean;
   }[];
 
   /**
@@ -838,6 +991,8 @@ export interface EnvironmentNonInheritable {
    * NOTE: This field is not automatically inherited from the top level environment,
    * and so must be specified in every named environment.
    *
+   * For reference, see https://developers.cloudflare.com/workers/wrangler/configuration/#dispatch-namespace-bindings-workers-for-platforms
+   *
    * @default []
    * @nonInheritable
    */
@@ -848,6 +1003,8 @@ export interface EnvironmentNonInheritable {
     namespace: string;
     /** Details about the outbound Worker which will handle outbound requests from your namespace */
     outbound?: DispatchNamespaceOutbound;
+    /** Whether the Dispatch Namespace should be remote or not (only available under `--x-remote-bindings`) */
+    experimental_remote?: boolean;
   }[];
 
   /**
@@ -866,75 +1023,43 @@ export interface EnvironmentNonInheritable {
     /** Name of the Pipeline to bind */
     pipeline: string;
   }[];
-}
 
-/**
- * The environment configuration properties that have been deprecated.
- */
-interface EnvironmentDeprecated {
   /**
-   * The zone ID of the zone you want to deploy to. You can find this
-   * in your domain page on the dashboard.
+   * Specifies Secret Store bindings that are bound to this Worker environment.
    *
-   * @deprecated This is unnecessary since we can deduce this from routes directly.
-   */
-  zone_id?: string;
-
-  /**
-   * Legacy way of defining KVNamespaces that is no longer supported.
-   *
-   * @deprecated DO NOT USE. This was a legacy bug from Wrangler v1, that we do not want to support.
-   */
-  "kv-namespaces"?: string;
-
-  /**
-   * A list of services that your Worker should be bound to.
+   * NOTE: This field is not automatically inherited from the top level environment,
+   * and so must be specified in every named environment.
    *
    * @default []
-   * @deprecated DO NOT USE. We'd added this to test the new service binding system, but the proper way to test experimental features is to use `unsafe.bindings` configuration.
+   * @nonInheritable
    */
-  experimental_services?: {
-    /** The binding name used to refer to the Service */
-    name: string;
-    /** The name of the Service being bound */
-    service: string;
-    /** The Service's environment */
-    environment: string;
+  secrets_store_secrets: {
+    /** The binding name used to refer to the bound service. */
+    binding: string;
+
+    /** Id of the secret store */
+    store_id: string;
+
+    /** Name of the secret */
+    secret_name: string;
   }[];
-}
-
-/**
- * Deprecated upload configuration.
- */
-export interface DeprecatedUpload {
-  /**
-   * The format of the Worker script.
-   *
-   * @deprecated We infer the format automatically now.
-   */
-  format?: "modules" | "service-worker";
 
   /**
-   * The directory you wish to upload your Worker from,
-   * relative to the Wrangler configuration file.
+   * **DO NOT USE**. Hello World Binding Config to serve as an explanatory example.
    *
-   * Defaults to the directory containing the Wrangler configuration file.
+   * NOTE: This field is not automatically inherited from the top level environment,
+   * and so must be specified in every named environment.
    *
-   * @deprecated
+   * @default []
+   * @nonInheritable
    */
-  dir?: string;
+  unsafe_hello_world: {
+    /** The binding name used to refer to the bound service. */
+    binding: string;
 
-  /**
-   * The path to the Worker script, relative to `upload.dir`.
-   *
-   * @deprecated This will be replaced by a command line argument.
-   */
-  main?: string;
-
-  /**
-   * @deprecated This is now defined at the top level `rules` field.
-   */
-  rules?: Environment["rules"];
+    /** Whether the timer is enabled */
+    enable_timer?: boolean;
+  }[];
 }
 
 /**
@@ -943,7 +1068,7 @@ export interface DeprecatedUpload {
  * All the properties are optional, and will be replaced with defaults in the configuration that
  * is used in the rest of the codebase.
  */
-export type RawEnvironment = Partial<Environment> & EnvironmentDeprecated;
+export type RawEnvironment = Partial<Environment>;
 
 /**
  * A bundling resolver rule, defining the modules type for paths that match the specified globs.
@@ -964,8 +1089,7 @@ export type ConfigModuleRuleType =
   | "Text"
   | "Data"
   | "PythonModule"
-  | "PythonRequirement"
-  | "NodeJsCompatModule";
+  | "PythonRequirement";
 
 export type TailConsumer = {
   /** The name of the service tail events will be forwarded to. */
@@ -1002,13 +1126,11 @@ export type Assets = {
   /** How to handle requests that do not match an asset. */
   not_found_handling?: "single-page-application" | "404-page" | "none";
   /**
-   * If true, route every request to the User Worker, whether or not it matches an asset.
-   * If false, then respond to requests that match an asset with that asset directly.
-   * */
-  run_worker_first?: boolean;
-
-  /** Deprecated; Inverse of run_worker_first. Should use run_worker_first instead */
-  experimental_serve_directly?: boolean;
+   * Matches will be routed to the User Worker, and matches to negative rules will go to the Asset Worker.
+   *
+   * Can also be `true`, indicating that every request should be routed to the User Worker.
+   */
+  run_worker_first?: string[] | boolean;
 };
 
 export interface Observability {
@@ -1024,3 +1146,14 @@ export interface Observability {
     invocation_logs?: boolean;
   };
 }
+
+export type DockerConfiguration = {
+  /** Socket used by miniflare to communicate with Docker */
+  socketPath: string;
+};
+
+export type ContainerEngine =
+  | {
+      localDocker: DockerConfiguration;
+    }
+  | string;
