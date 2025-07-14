@@ -38,7 +38,6 @@ export default defineCommand({
         {
           rootDir,
           dev: true,
-          preset: "nitro-dev",
           _cli: { command: "dev" },
         },
         {
