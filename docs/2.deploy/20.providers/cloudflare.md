@@ -276,14 +276,14 @@ Then, update config:
 
 ```ts [nitro.config.ts]
 export default defineNitroConfig({
-    compatibilityDate: "2024-07-13", // or "latest"
+    compatibilityDate: "2025-07-15", // or "latest"
     preset: "cloudflare-module" // or "cloudflare-pages"
 })
 ```
 
 ```ts [nuxt.config.ts]
 export default defineNuxtConfig({
-    compatibilityDate: "2024-07-13", // or "latest"
+    compatibilityDate: "2025-07-15", // or "latest"
     nitro: {
         preset: "cloudflare-module" // or "cloudflare-pages"
     }
