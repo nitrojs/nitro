@@ -72,38 +72,3 @@ On-demand Builders are serverless functions used to generate web content as need
 ## Custom deploy configuration
 
 You can provide additional deploy configuration using the `netlify` key inside `nitro.config`. It will be merged with built-in auto-generated config. Currently the only supported value is `images.remote_images`, for [configuring Netlify Image CDN](https://docs.netlify.com/image-cdn/create-integration/).
-
-## Dev Preset
-
-Netlify preset can be enabled in development mode for production environment emulation.
-
-In order to enable dev preset, make sure using latest nitro version (>=2.12) and install [`@netlify/dev`](https://npmjs.com/package/@netlify/dev) as a dependency.
-
-:pm-install{name="-D @netlify/dev"}
-
-Then, update config:
-
-```ts [nitro.config.ts]
-export default defineNitroConfig({
-    compatibilityDate: "2024-07-13", // or "latest"
-    preset: "netlify"
-})
-```
-
-```ts [nuxt.config.ts]
-export default defineNuxtConfig({
-    compatibilityDate: "2024-07-13", // or "latest"
-    nitro: {
-        preset: "netlify"
-    }
-})
-```
-
-You should see a message like this in terminal:
-
-```sh
-ℹ Using netlify-dev emulation in development mode.
-```
-
-> [!NOTE]
-> Dev presets are a new feature and will be improved over time! Please feel free to share your experiences and report any issues.
