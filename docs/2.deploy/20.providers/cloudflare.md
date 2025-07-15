@@ -266,7 +266,7 @@ defineEventHandler(async (event) => {
 
 ## Dev Preset
 
-Cloudflare preset can be enabled in development mode for production environment emulation and accessing to the bindings in local dev
+Cloudflare preset can be enabled in development mode for production environment emulation and access to the bindings in local dev.
 
 In order to enable dev preset, make sure using latest nitro version (>=2.12) and install [`wrangler`](https://npmjs.com/package/wrangler) as a dependency.
 
