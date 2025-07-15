@@ -296,7 +296,7 @@ In development terminal, you should see a message like this:
 ℹ Using cloudflare-dev emulation in development mode.
 ```
 
-In order to access bindings in dev mode we start by defining the bindings. You can do this in a `wrangler.toml`/`wrangler.json` file, or directly in your Nitro config under `cloudflare.wrangler` (accepts the same type as `wrangler.json`).
+In order to access bindings in dev mode we start by defining the bindings. You can do this in a `wrangler.toml`/`wrangler.jsonc` file, or directly in your Nitro config under `cloudflare.wrangler` (accepts the same type as `wrangler.json`).
 
 For example to define a variable and a KV namespace in a `wrangler.toml`
 
