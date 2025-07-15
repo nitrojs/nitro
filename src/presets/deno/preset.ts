@@ -15,7 +15,7 @@ const denoDeploy = defineNitroPreset(
     commands: {
       preview: "",
       deploy:
-        "cd ./ && deployctl deploy --project=<project_name> server/index.ts",
+        "cd ./ && deployctl deploy --project=<project_name> {{ output.serverDir }}/index.ts",
     },
     unenv: unenvDenoPreset,
     rollupConfig: {

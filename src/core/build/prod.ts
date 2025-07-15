@@ -12,6 +12,8 @@ import { nitroServerName } from "../utils/nitro";
 import { snapshotStorage } from "../utils/storage";
 import { formatRollupError } from "./error";
 import { writeTypes } from "./types";
+import { getProperty } from "dot-prop";
+import { consola } from "consola";
 
 export async function buildProduction(
   nitro: Nitro,
@@ -76,15 +78,19 @@ export async function buildProduction(
   };
   if (buildInfo.commands!.preview) {
     nitro.logger.success(
-      `You can preview this build using \`${rewriteRelativePaths(
-        buildInfo.commands!.preview
+      `You can preview this build using \`${_compilePathCommandTemplate(
+        rewriteRelativePaths(buildInfo.commands!.preview),
+        nitro.options,
+        nitro.options.rootDir
       )}\``
     );
   }
   if (buildInfo.commands!.deploy) {
     nitro.logger.success(
-      `You can deploy this build using \`${rewriteRelativePaths(
-        buildInfo.commands!.deploy
+      `You can deploy this build using \`${_compilePathCommandTemplate(
+        rewriteRelativePaths(buildInfo.commands!.deploy),
+        nitro.options,
+        nitro.options.rootDir
       )}\``
     );
   }
@@ -115,4 +121,26 @@ async function _snapshot(nitro: Nitro) {
       await fsp.writeFile(fsPath, contents, "utf8");
     })
   );
+}
+
+function _compilePathCommandTemplate(
+  contents: string,
+  data: Record<string, any>,
+  base: string
+) {
+  if (!contents.includes("{{")) {
+    return contents;
+  }
+
+  return contents.replace(/{{ ?([\w.]+) ?}}/g, (_, match) => {
+    let val = getProperty<Record<string, string>, string>(data, match);
+    if (val) {
+      val = relative(base, val);
+    } else {
+      consola.warn(
+        `cannot resolve template param '${match}' in ${contents.slice(0, 20)}`
+      );
+    }
+    return val || `${match}`;
+  });
 }
