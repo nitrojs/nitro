@@ -19,7 +19,7 @@ const nodeServer = defineNitroPreset(
     entry: "./runtime/node-server",
     serveStatic: true,
     commands: {
-      preview: "node ./server/index.mjs",
+      preview: "node {{ output.serverDir }}/index.mjs",
     },
   },
   {
@@ -61,7 +61,7 @@ const cli = defineNitroPreset(
     extends: "node",
     entry: "./runtime/cli",
     commands: {
-      preview: "Run with node ./server/index.mjs [route]",
+      preview: "Run with node {{ output.serverDir }}/index.mjs [route]",
     },
   },
   {

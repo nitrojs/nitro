@@ -13,6 +13,17 @@ import { isTest } from "std-env";
 
 // https://vercel.com/docs/build-output-api/configuration
 
+// https://vercel.com/docs/functions/runtimes/node-js/node-js-versions
+const SUPPORTED_NODE_VERSIONS = [18, 20, 22];
+
+function getSystemNodeVersion() {
+  const systemNodeVersion = Number.parseInt(
+    process.versions.node.split(".")[0]
+  );
+
+  return Number.isNaN(systemNodeVersion) ? 22 : systemNodeVersion;
+}
+
 export async function generateFunctionFiles(nitro: Nitro) {
   const o11Routes = getObservabilityRoutes(nitro);
 
@@ -20,8 +31,12 @@ export async function generateFunctionFiles(nitro: Nitro) {
   const buildConfig = generateBuildConfig(nitro, o11Routes);
   await writeFile(buildConfigPath, JSON.stringify(buildConfig, null, 2));
 
-  const systemNodeVersion = process.versions.node.split(".")[0];
-  const runtimeVersion = `nodejs${systemNodeVersion}.x`;
+  const systemNodeVersion = getSystemNodeVersion();
+  const usedNodeVersion =
+    SUPPORTED_NODE_VERSIONS.find((version) => version >= systemNodeVersion) ??
+    SUPPORTED_NODE_VERSIONS.at(-1);
+
+  const runtimeVersion = `nodejs${usedNodeVersion}.x`;
   const functionConfigPath = resolve(
     nitro.options.output.serverDir,
     ".vc-config.json"
@@ -285,6 +300,13 @@ type ObservabilityRoute = {
 };
 
 function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
+  const compatDate =
+    nitro.options.compatibilityDate.vercel ||
+    nitro.options.compatibilityDate.default;
+  if (compatDate < "2025-07-15") {
+    return [];
+  }
+
   // Sort routes by how much specific they are
   const routePatterns = [
     ...new Set([
@@ -375,6 +397,6 @@ function normalizeRouteDest(route: string) {
       })
       // Only use filesystem-safe characters
       .map((segment) => segment.replace(/[^a-zA-Z0-9_.[\]]/g, "-"))
-      .join("/")
+      .join("/") || "index"
   );
 }
