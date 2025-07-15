@@ -7,7 +7,7 @@ import { defineBuildConfig } from "unbuild";
 const srcDir = fileURLToPath(new URL("src", import.meta.url));
 const libDir = fileURLToPath(new URL("lib", import.meta.url));
 
-export const distSubpaths = ["presets", "runtime", "types"];
+export const distSubpaths = ["presets", "runtime", "types", "vite"];
 export const libSubpaths = ["config", "meta", "runtime/meta"];
 
 export const stubAlias = {
@@ -32,6 +32,7 @@ export default defineBuildConfig({
   entries: [
     { input: "src/cli/index.ts" },
     { input: "src/index.ts" },
+    { input: "src/vite.ts" },
     { input: "src/types/index.ts" },
     { input: "src/runtime/", outDir: "dist/runtime", format: "esm" },
     { input: "src/presets/", outDir: "dist/presets", format: "esm" },
@@ -55,6 +56,7 @@ export default defineBuildConfig({
     ...[...distSubpaths, ...libSubpaths].map((subpath) => `nitro/${subpath}`),
     "firebase-functions",
     "@scalar/api-reference",
+    "get-port-please", // internal type only
   ],
   stubOptions: {
     jiti: {

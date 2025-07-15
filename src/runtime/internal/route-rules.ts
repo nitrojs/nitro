@@ -18,9 +18,7 @@ for (const [route, rules] of Object.entries(config.nitro.routeRules!)) {
   addRoute(routeRules, undefined, route, rules);
 }
 
-export function createRouteRulesHandler(
-  hybridFetch: typeof globalThis.fetch
-): EventHandler {
+export function createRouteRulesHandler(): EventHandler {
   return defineHandler((event) => {
     // Match route options against path
     const routeRules = getRouteRules(event);
@@ -59,7 +57,6 @@ export function createRouteRulesHandler(
         target = withQuery(target, Object.fromEntries(event.url.searchParams));
       }
       return proxyRequest(event, target, {
-        fetch: hybridFetch,
         ...routeRules.proxy,
       });
     }

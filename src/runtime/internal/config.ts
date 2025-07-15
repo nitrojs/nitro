@@ -4,7 +4,9 @@ import type { NitroRuntimeConfig } from "nitro/types";
 import { type EnvOptions, applyEnv } from "./utils.env";
 
 // Static runtime config inlined by nitro build
-const _inlineRuntimeConfig = process.env.RUNTIME_CONFIG as any;
+const _inlineRuntimeConfig =
+  (globalThis as any).__NITRO_RUNTIME_CONFIG__ ||
+  (process.env.RUNTIME_CONFIG as any);
 const envOptions: EnvOptions = {
   prefix: "NITRO_",
   altPrefix:

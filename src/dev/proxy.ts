@@ -1,10 +1,11 @@
+import type { IncomingMessage, OutgoingMessage } from "node:http";
 import type { TLSSocket } from "node:tls";
 import type { ProxyServerOptions, ProxyServer } from "httpxy";
 import type { H3Event } from "h3";
 
 import { createProxyServer } from "httpxy";
 import { HTTPError, fromNodeHandler } from "h3";
-import type { IncomingMessage, OutgoingMessage } from "node:http";
+import { Agent } from "undici";
 
 export type HTTPProxy = {
   proxy: ProxyServer;
@@ -49,5 +50,62 @@ export function createHTTPProxy(defaults: ProxyServerOptions = {}): HTTPProxy {
         });
       }
     },
+  };
+}
+
+export function fetchAddress(
+  addr: { port?: number; host?: string; socketPath?: string },
+  input: string | URL | Request,
+  inputInit?: RequestInit
+) {
+  let url: URL;
+  let init: (RequestInit & { duplex?: string }) | undefined;
+  if (input instanceof Request) {
+    url = new URL(input.url);
+    init = {
+      method: input.method,
+      headers: input.headers,
+      body: input.body,
+      ...inputInit,
+    };
+  } else {
+    url = new URL(input);
+    init = inputInit;
+  }
+  init = {
+    duplex: "half",
+    redirect: "manual",
+    ...init,
+  };
+  if (addr.socketPath) {
+    return fetch(url, {
+      ...init,
+      ...fetchSocketOptions(addr.socketPath),
+    });
+  }
+  const origin = `http://${addr.host}${addr.port ? `:${addr.port}` : ""}`;
+  const outURL = new URL(url.pathname + url.search, origin);
+  return fetch(outURL, init);
+}
+
+function fetchSocketOptions(socketPath: string) {
+  if ("Bun" in globalThis) {
+    // https://bun.sh/guides/http/fetch-unix
+    return { unix: socketPath };
+  }
+  if ("Deno" in globalThis) {
+    // https://github.com/denoland/deno/pull/29154
+    return {
+      // @ts-ignore
+      client: Deno.createHttpClient({
+        // @ts-ignore Missing types?
+        transport: "unix",
+        path: socketPath,
+      }),
+    };
+  }
+  // https://github.com/nodejs/undici/issues/2970
+  return {
+    dispatcher: new Agent({ connect: { socketPath } }),
   };
 }
