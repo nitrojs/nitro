@@ -5,7 +5,6 @@ import mime from "mime";
 import { writeFile } from "nitropack/kit";
 import type {
   Nitro,
-  NitroConfig,
   NitroRouteRules,
   PrerenderRoute,
   PublicAssetDir,
@@ -69,12 +68,9 @@ export async function prerender(nitro: Nitro) {
     ...nitro.options._config,
     static: false,
     rootDir: nitro.options.rootDir,
-    output: {
-      serverDir: "{{ buildDir }}/prerender",
-    },
     logLevel: 0,
     preset: "nitro-prerender",
-  } satisfies NitroConfig;
+  };
   await nitro.hooks.callHook("prerender:config", prerendererConfig);
   const nitroRenderer = await createNitro(prerendererConfig);
   const prerenderStartTime = Date.now();
