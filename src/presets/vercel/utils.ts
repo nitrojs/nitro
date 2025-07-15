@@ -21,7 +21,7 @@ function getSystemNodeVersion() {
     process.versions.node.split(".")[0]
   );
 
-  return Number.isNaN(systemNodeVersion) ? 20 : systemNodeVersion;
+  return Number.isNaN(systemNodeVersion) ? 22 : systemNodeVersion;
 }
 
 export async function generateFunctionFiles(nitro: Nitro) {
