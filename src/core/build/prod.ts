@@ -45,8 +45,8 @@ export async function buildProduction(
       nitro: nitroVersion,
     },
     commands: {
-      preview: nitro.options.commands.preview,
-      deploy: nitro.options.commands.deploy,
+      preview: resolveTmplPath(nitro.options.commands.preview, nitro),
+      deploy: resolveTmplPath(nitro.options.commands.deploy, nitro),
     },
     config: {
       ...Object.fromEntries(
@@ -72,26 +72,14 @@ export async function buildProduction(
   await nitro.hooks.callHook("compiled", nitro);
 
   // Show deploy and preview hints
-  const rOutput = relative(process.cwd(), nitro.options.output.dir);
-  const rewriteRelativePaths = (input: string) => {
-    return input.replace(/([\s:])\.\/(\S*)/g, `$1${rOutput}/$2`);
-  };
-  if (buildInfo.commands!.preview) {
+  if (buildInfo.commands?.preview) {
     nitro.logger.success(
-      `You can preview this build using \`${_compilePathCommandTemplate(
-        rewriteRelativePaths(buildInfo.commands!.preview),
-        nitro.options,
-        nitro.options.rootDir
-      )}\``
+      `You can preview this build using \`${buildInfo.commands?.preview}\``
     );
   }
-  if (buildInfo.commands!.deploy) {
+  if (buildInfo.commands?.deploy) {
     nitro.logger.success(
-      `You can deploy this build using \`${_compilePathCommandTemplate(
-        rewriteRelativePaths(buildInfo.commands!.deploy),
-        nitro.options,
-        nitro.options.rootDir
-      )}\``
+      `You can deploy this build using \`${buildInfo.commands?.deploy}\``
     );
   }
 }
@@ -123,23 +111,17 @@ async function _snapshot(nitro: Nitro) {
   );
 }
 
-function _compilePathCommandTemplate(
-  contents: string,
-  data: Record<string, any>,
-  base: string
-) {
-  if (!contents.includes("{{")) {
-    return contents;
+function resolveTmplPath(input: string | undefined, nitro: Nitro) {
+  if (!input || !input.includes("{{")) {
+    return input;
   }
-
-  return contents.replace(/{{ ?([\w.]+) ?}}/g, (_, match) => {
-    let val = getProperty<Record<string, string>, string>(data, match);
+  return input.replace(/{{ ?([\w.]+) ?}}/g, (_, match) => {
+    let val = getProperty<Record<string, string>, string>(
+      nitro.options as unknown as Record<string, string>,
+      match
+    );
     if (val) {
-      val = relative(base, val);
-    } else {
-      consola.warn(
-        `cannot resolve template param '${match}' in ${contents.slice(0, 20)}`
-      );
+      val = relative(nitro.options.rootDir, val);
     }
     return val || `${match}`;
   });

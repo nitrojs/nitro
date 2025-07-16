@@ -21,8 +21,8 @@ const cloudflarePages = defineNitroPreset(
     entry: "./runtime/cloudflare-pages",
     exportConditions: ["workerd"],
     commands: {
-      preview: "npx wrangler --cwd ./ pages dev",
-      deploy: "npx wrangler --cwd ./ pages deploy",
+      preview: "npx wrangler --cwd {{ output.dir }} pages dev",
+      deploy: "npx wrangler --cwd {{ output.dir }} pages deploy",
     },
     output: {
       dir: "{{ rootDir }}/dist",
@@ -80,8 +80,8 @@ const cloudflarePagesStatic = defineNitroPreset(
       publicDir: "{{ output.dir }}/{{ baseURL }}",
     },
     commands: {
-      preview: "npx wrangler --cwd ./ pages dev",
-      deploy: "npx wrangler --cwd ./ pages deploy",
+      preview: "npx wrangler --cwd {{ output.dir }} pages dev",
+      deploy: "npx wrangler --cwd {{ output.dir }} pages deploy",
     },
     hooks: {
       "build:before": async (nitro) => {
@@ -132,8 +132,8 @@ const cloudflareModule = defineNitroPreset(
     },
     exportConditions: ["workerd"],
     commands: {
-      preview: "npx wrangler --cwd ./ dev",
-      deploy: "npx wrangler --cwd ./ deploy",
+      preview: "npx wrangler --cwd {{ output.dir }} dev",
+      deploy: "npx wrangler --cwd {{ output.dir }} deploy",
     },
     unenv: [unenvCfExternals],
     rollupConfig: {

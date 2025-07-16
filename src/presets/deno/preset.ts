@@ -15,7 +15,7 @@ const denoDeploy = defineNitroPreset(
     commands: {
       preview: "",
       deploy:
-        "cd ./ && deployctl deploy --project=<project_name> {{ output.serverDir }}/index.ts",
+        "cd {{ output.dir }} && deployctl deploy --project=<project_name> ./server/index.ts",
     },
     unenv: unenvDenoPreset,
     rollupConfig: {
@@ -41,7 +41,7 @@ const denoServer = defineNitroPreset(
     entry: "./runtime/deno-server",
     exportConditions: ["deno"],
     commands: {
-      preview: "deno task --config ./deno.json start",
+      preview: "deno task --config {{ output.dir }}/deno.json start",
     },
     rollupConfig: {
       external: (id) => id.startsWith("https://"),
