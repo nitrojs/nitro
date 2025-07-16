@@ -406,6 +406,12 @@ importers:
         specifier: link:../..
         version: link:../..
 
+  playground:
+    devDependencies:
+      nitropack:
+        specifier: link:..
+        version: link:..
+
 packages:
 
   '@ampproject/remapping@2.3.0':

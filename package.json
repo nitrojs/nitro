@@ -77,8 +77,8 @@
   ],
   "scripts": {
     "build": "pnpm gen-presets && unbuild",
-    "dev": "pnpm nitro dev playground",
-    "dev:build": "pnpm nitro build playground",
+    "dev": "pnpm -C playground dev",
+    "dev:build": "pnpm -C playground build",
     "dev:start": "node playground/.output/server/index.mjs",
     "gen-mirror": "pnpm jiti scripts/gen-mirror.ts",
     "gen-node-compat": "pnpm node-ts scripts/gen-node-compat.ts",
