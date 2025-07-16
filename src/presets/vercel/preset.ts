@@ -22,8 +22,8 @@ const vercel = defineNitroPreset(
       publicDir: "{{ output.dir }}/static/{{ baseURL }}",
     },
     commands: {
-      deploy: "",
       preview: "",
+      deploy: "npx vercel deploy --prebuilt",
     },
     hooks: {
       "rollup:before": (nitro: Nitro) => {
@@ -52,8 +52,8 @@ const vercelEdge = defineNitroPreset(
       publicDir: "{{ output.dir }}/static/{{ baseURL }}",
     },
     commands: {
-      deploy: "",
       preview: "",
+      deploy: "npx vercel deploy --prebuilt",
     },
     unenv: {
       external: builtnNodeModules.flatMap((m) => `node:${m}`),
@@ -99,6 +99,7 @@ const vercelStatic = defineNitroPreset(
     },
     commands: {
       preview: "npx serve {{ output.publicDir }}",
+      deploy: "npx vercel deploy --prebuilt",
     },
     hooks: {
       "rollup:before": (nitro: Nitro) => {
