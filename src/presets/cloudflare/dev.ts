@@ -26,7 +26,7 @@ export async function cloudflareDev(nitro: Nitro) {
     // compatibility with legacy nitro-cloudflare-dev module
     ...(nitro.options as any).cloudflareDev,
     ...nitro.options.cloudflare?.dev,
-  } as NonNullable<typeof nitro.options.cloudflare.dev>;
+  } as NonNullable<NonNullable<typeof nitro.options.cloudflare>["dev"]>;
 
   // Find wrangler.json > wrangler.jsonc > wrangler.toml
   let configPath = config.configPath;
