@@ -13,7 +13,6 @@ import { snapshotStorage } from "../utils/storage";
 import { formatRollupError } from "./error";
 import { writeTypes } from "./types";
 import { getProperty } from "dot-prop";
-import { consola } from "consola";
 
 export async function buildProduction(
   nitro: Nitro,
@@ -122,6 +121,10 @@ function resolveTmplPath(input: string | undefined, nitro: Nitro) {
     );
     if (val) {
       val = relative(nitro.options.rootDir, val);
+    } else {
+      nitro.logger.warn(
+        `cannot resolve template param '${match}' in ${input.slice(0, 20)}`
+      );
     }
     return val || `${match}`;
   });
