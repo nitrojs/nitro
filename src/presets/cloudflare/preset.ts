@@ -50,7 +50,7 @@ const cloudflarePages = defineNitroPreset(
       "build:before": async (nitro) => {
         await enableNodeCompat(nitro);
 
-        if (!nitro.options.cloudflare.deployConfig) {
+        if (!nitro.options.cloudflare?.deployConfig) {
           nitro.options.commands.preview =
             "npx wrangler pages dev {{ output.dir }}";
           nitro.options.commands.deploy =
@@ -85,7 +85,7 @@ const cloudflarePagesStatic = defineNitroPreset(
     },
     hooks: {
       "build:before": async (nitro) => {
-        if (!nitro.options.cloudflare.deployConfig) {
+        if (!nitro.options.cloudflare?.deployConfig) {
           nitro.options.commands.preview =
             "npx wrangler pages dev {{ output.dir }}";
           nitro.options.commands.deploy =
@@ -151,7 +151,7 @@ const cloudflareModule = defineNitroPreset(
       "build:before": async (nitro) => {
         await enableNodeCompat(nitro);
 
-        if (!nitro.options.cloudflare.deployConfig) {
+        if (!nitro.options.cloudflare?.deployConfig) {
           nitro.options.commands.preview =
             "npx wrangler dev {{ output.serverDir }}/index.mjs --assets {{ output.publicDir }}";
           nitro.options.commands.deploy =

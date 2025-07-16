@@ -9,13 +9,13 @@ import type { PresetOptions as NetlifyOptions } from "./netlify/preset";
 import type { PresetOptions as VercelOptions } from "./vercel/preset";
 
 export interface PresetOptions {
-  awsAmplify: AwsAmplifyOptions;
-  awsLambda: AwsLambdaOptions;
-  azure: AzureOptions;
-  cloudflare: CloudflareOptions;
-  firebase: FirebaseOptions;
-  netlify: NetlifyOptions;
-  vercel: VercelOptions;
+  awsAmplify?: AwsAmplifyOptions;
+  awsLambda?: AwsLambdaOptions;
+  azure?: AzureOptions;
+  cloudflare?: CloudflareOptions;
+  firebase?: FirebaseOptions;
+  netlify?: NetlifyOptions;
+  vercel?: VercelOptions;
 }
 
 export const presetsWithConfig = ["awsAmplify","awsLambda","azure","cloudflare","firebase","netlify","vercel"] as const;
