@@ -128,7 +128,7 @@ async function _loadUserConfig(
                 compatibilityDate:
                   compatibilityDate || fallbackCompatibilityDate,
               })
-                .then((p) => p?._meta?.name)
+                .then((p) => p?._meta?.name || "nitro-dev")
                 .catch(() => "nitro-dev")
             : "nitro-dev";
       } else if (!preset) {
