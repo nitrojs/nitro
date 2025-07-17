@@ -1,15 +1,8 @@
-import { createWriteStream } from "node:fs";
-<<<<<<< HEAD
-import fsp from "node:fs/promises";
-import { writeFile } from "../_utils/fs";
 import type { Nitro } from "nitro/types";
-=======
-import archiver from "archiver";
-import { getDefaultNodeVersion, writeFile } from "nitropack/kit";
-import type { Nitro } from "nitropack/types";
->>>>>>> a4353e02 (Convert Azure preset to use new default node version fallback)
 import { join, resolve } from "pathe";
 import { readPackageJSON } from "pkg-types";
+import { writeFile } from "../_utils/fs";
+import { getDefaultNodeVersion } from "../_utils/preset";
 
 export async function writeSWARoutes(nitro: Nitro) {
   const host = {
