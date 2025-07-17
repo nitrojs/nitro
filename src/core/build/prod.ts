@@ -44,8 +44,16 @@ export async function buildProduction(
       nitro: nitroVersion,
     },
     commands: {
-      preview: resolveTmplPath(nitro.options.commands.preview, nitro),
-      deploy: resolveTmplPath(nitro.options.commands.deploy, nitro),
+      preview: resolveTmplPath(
+        nitro.options.commands.preview,
+        nitro,
+        nitro.options.output.dir
+      ),
+      deploy: resolveTmplPath(
+        nitro.options.commands.deploy,
+        nitro,
+        nitro.options.output.dir
+      ),
     },
     config: {
       ...Object.fromEntries(
@@ -71,14 +79,22 @@ export async function buildProduction(
   await nitro.hooks.callHook("compiled", nitro);
 
   // Show deploy and preview hints
-  if (buildInfo.commands?.preview) {
+  if (nitro.options.commands?.preview) {
     nitro.logger.success(
-      `You can preview this build using \`${buildInfo.commands?.preview}\``
+      `You can preview this build using \`${resolveTmplPath(
+        nitro.options.commands.preview,
+        nitro,
+        process.cwd()
+      )}\``
     );
   }
-  if (buildInfo.commands?.deploy) {
+  if (nitro.options.commands?.deploy) {
     nitro.logger.success(
-      `You can deploy this build using \`${buildInfo.commands?.deploy}\``
+      `You can deploy this build using \`${resolveTmplPath(
+        nitro.options.commands.deploy,
+        nitro,
+        process.cwd()
+      )}\``
     );
   }
 }
@@ -110,7 +126,11 @@ async function _snapshot(nitro: Nitro) {
   );
 }
 
-function resolveTmplPath(input: string | undefined, nitro: Nitro) {
+function resolveTmplPath(
+  input: string | undefined,
+  nitro: Nitro,
+  relativeTo: string
+) {
   if (!input || !input.includes("{{")) {
     return input;
   }
@@ -120,7 +140,7 @@ function resolveTmplPath(input: string | undefined, nitro: Nitro) {
       match
     );
     if (val) {
-      val = relative(nitro.options.rootDir, val);
+      val = relative(relativeTo, val);
     } else {
       nitro.logger.warn(
         `cannot resolve template param '${match}' in ${input.slice(0, 20)}`
