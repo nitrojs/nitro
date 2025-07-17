@@ -10,7 +10,7 @@ export async function writeSWARoutes(nitro: Nitro) {
   };
 
   /** @link https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-node?tabs=typescript%2Cwindows%2Cazure-cli&pivots=nodejs-model-v4#supported-versions */
-  const supportedNodeVersions = new Set([16, 18, 20]);
+  const supportedNodeVersions = new Set([18, 20]);
 
   // Read package.json to get the current node version
   const packageJSONPath = join(nitro.options.rootDir, "package.json");
