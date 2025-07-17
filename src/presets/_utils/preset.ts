@@ -16,7 +16,8 @@ export function defineNitroPreset<
   return { ...preset, _meta: meta } as P & { _meta: M };
 }
 
-const DEFAULT_NODE_VERSION = 20 as const;
+const MINIMUM_NODE_VERSION = 20 as const;
+const DEFAULT_NODE_VERSION = 24 as const;
 
 /**
  * Builder to get the default Node.js version for a provider.
@@ -43,7 +44,7 @@ export function getDefaultNodeVersion(
   }
 
   // Else, return the latest supported version
-  while (version > 10) {
+  while (version > MINIMUM_NODE_VERSION) {
     version--;
     if (supportedNodeVersions.has(version)) {
       // Found the next-highest supported version
