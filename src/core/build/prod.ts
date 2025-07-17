@@ -140,7 +140,7 @@ function resolveTmplPath(
       match
     );
     if (val) {
-      val = relative(relativeTo, val);
+      val = relative(relativeTo, val) || ".";
     } else {
       nitro.logger.warn(
         `cannot resolve template param '${match}' in ${input.slice(0, 20)}`
