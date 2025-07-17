@@ -1,24 +1,21 @@
 import "#nitro-internal-pollyfills";
-import { tmpdir } from "node:os";
 import { useNitroApp } from "nitro/runtime";
 import { runTask } from "nitro/runtime";
 import { trapUnhandledNodeErrors } from "nitro/runtime/internal";
 import { startScheduleRunner } from "nitro/runtime/internal";
 import { scheduledTasks, tasks } from "#nitro-internal-virtual/tasks";
 import { Server } from "node:http";
-import { join } from "node:path";
 import nodeCrypto from "node:crypto";
 import { parentPort, threadId } from "node:worker_threads";
 import { defineHandler, getRouterParam } from "h3";
 import wsAdapter from "crossws/adapters/node";
 import { toNodeHandler } from "srvx/node";
+import { getSocketAddress, isSocketSupported } from "get-port-please";
 
 // globalThis.crypto support for Node.js 18
 if (!globalThis.crypto) {
   globalThis.crypto = nodeCrypto as unknown as Crypto;
 }
-
-const { NITRO_NO_UNIX_SOCKET, NITRO_DEV_WORKER_ID } = process.env;
 
 // Trap unhandled errors
 trapUnhandledNodeErrors();
@@ -36,7 +33,6 @@ const server = new Server(toNodeHandler(nitroApp.h3App.fetch));
 let listener: Server | undefined;
 
 listen()
-  .catch(() => listen(true /* use random port */))
   // eslint-disable-next-line unicorn/prefer-top-level-await
   .catch((error) => {
     console.error("Dev worker failed to listen:", error);
@@ -90,16 +86,18 @@ if (import.meta._tasks) {
 
 // --- utils ---
 
-function listen(
-  useRandomPort: boolean = Boolean(
-    NITRO_NO_UNIX_SOCKET ||
-      process.versions.webcontainer ||
-      ("Bun" in globalThis && process.platform === "win32")
-  )
-) {
+async function listen() {
+  const listenAddr = (await isSocketSupported())
+    ? getSocketAddress({
+        name: `nitro-dev-${threadId}`,
+        pid: true,
+        random: true,
+      })
+    : { port: 0, host: "localhost" };
+
   return new Promise<void>((resolve, reject) => {
     try {
-      listener = server.listen(useRandomPort ? 0 : getSocketAddress(), () => {
+      listener = server.listen(listenAddr, () => {
         const address = server.address();
         parentPort?.postMessage({
           event: "listen",
@@ -114,23 +112,6 @@ function listen(
       reject(error);
     }
   });
-}
-
-function getSocketAddress() {
-  const socketName = `nitro-worker-${process.pid}-${threadId}-${NITRO_DEV_WORKER_ID}-${Math.round(Math.random() * 10_000)}.sock`;
-  // Windows: pipe
-  if (process.platform === "win32") {
-    return join(String.raw`\\.\pipe`, socketName);
-  }
-  // Linux: abstract namespace
-  if (process.platform === "linux") {
-    const nodeMajor = Number.parseInt(process.versions.node.split(".")[0], 10);
-    if (nodeMajor >= 20) {
-      return `\0${socketName}`;
-    }
-  }
-  // Unix socket
-  return join(tmpdir(), socketName);
 }
 
 async function shutdown() {

@@ -1,11 +1,12 @@
+import type { Nitro } from "nitro/types";
 import nodeCrypto from "node:crypto";
 import { defineCommand } from "citty";
 import { consola } from "consola";
 import { getArgs, parseArgs } from "listhen/cli";
-import { build, createDevServer, createNitro, prepare } from "nitro";
-import type { Nitro } from "nitro/types";
+import { build, createNitro, prepare } from "nitro";
 import { resolve } from "pathe";
 import { commonArgs } from "../common";
+import { NitroDevServer } from "../../dev/server";
 
 const hmrKeyRe = /^runtimeConfig\.|routeRules\./;
 
@@ -64,7 +65,7 @@ export default defineCommand({
         }
       );
       nitro.hooks.hookOnce("restart", reload);
-      const server = createDevServer(nitro);
+      const server = new NitroDevServer(nitro);
       const listhenOptions = parseArgs(args);
 
       const port =

@@ -1,49 +1,51 @@
 import type { IncomingMessage, OutgoingMessage } from "node:http";
 import type { Duplex } from "node:stream";
-import { HTTPError, type H3Event } from "h3";
 import type { HTTPProxy } from "./proxy";
+import type {
+  DevMessageListener,
+  DevWorker,
+  WorkerAddress,
+  WorkerHooks,
+} from "nitro/types";
+
 import { existsSync } from "node:fs";
 import { rm } from "node:fs/promises";
-import { join } from "pathe";
 import { Worker } from "node:worker_threads";
 import consola from "consola";
 import { isCI, isTest } from "std-env";
-import { createHTTPProxy } from "./proxy";
+import { createHTTPProxy, fetchAddress } from "./proxy";
 
-export type WorkerAddress = { host: string; port: number; socketPath?: string };
-
-export interface WorkerHooks {
-  onClose?: (worker: DevWorker, cause?: unknown) => void;
-  onReady?: (worker: DevWorker, address?: WorkerAddress) => void;
-}
-
-export interface DevWorker {
-  readonly ready: boolean;
-  readonly closed: boolean;
-  close(): Promise<void>;
-  handleEvent: (event: H3Event) => Promise<void>;
-  handleUpgrade: (
-    req: IncomingMessage,
-    socket: OutgoingMessage<IncomingMessage> | Duplex,
-    head: any
-  ) => void;
+export interface DevWorkerData {
+  name?: string;
+  globals?: Record<string, unknown>;
+  [key: string]: unknown;
 }
 
 export class NodeDevWorker implements DevWorker {
   closed: boolean = false;
-  #id: number;
-  #workerDir: string;
-  #hooks: WorkerHooks;
 
+  #name: string;
+  #entry: string;
+  #data?: DevWorkerData;
+  #hooks: Partial<WorkerHooks>;
+  #worker?: Worker & { _exitCode?: number };
   #address?: WorkerAddress;
   #proxy?: HTTPProxy;
-  #worker?: Worker & { _exitCode?: number };
+  #messageListeners: Set<(data: unknown) => void>;
 
-  constructor(id: number, workerDir: string, hooks: WorkerHooks = {}) {
-    this.#id = id;
-    this.#workerDir = workerDir;
-    this.#hooks = hooks;
+  constructor(opts: {
+    name: string;
+    hooks: WorkerHooks;
+    entry: string;
+    data?: DevWorkerData;
+  }) {
+    this.#name = opts.name;
+    this.#entry = opts.entry;
+    this.#data = opts.data;
+    this.#hooks = opts.hooks;
+
     this.#proxy = createHTTPProxy();
+    this.#messageListeners = new Set();
     this.#initWorker();
   }
 
@@ -53,17 +55,19 @@ export class NodeDevWorker implements DevWorker {
     );
   }
 
-  async handleEvent(event: H3Event) {
+  // #region Public methods
+
+  async fetch(
+    input: string | URL | Request,
+    init?: RequestInit
+  ): Promise<Response> {
     if (!this.#address || !this.#proxy) {
-      throw new HTTPError({
-        status: 503,
-        statusText: "Dev worker is unavailable",
-      });
+      return new Response("Dev worker is unavailable", { status: 503 });
     }
-    await this.#proxy.handleEvent(event, { target: this.#address });
+    return fetchAddress(this.#address, input, init);
   }
 
-  handleUpgrade(
+  upgrade(
     req: IncomingMessage,
     socket: OutgoingMessage<IncomingMessage> | Duplex,
     head: any
@@ -79,38 +83,21 @@ export class NodeDevWorker implements DevWorker {
     );
   }
 
-  #initWorker() {
-    const workerEntryPath = join(this.#workerDir, "index.mjs");
-
-    if (!existsSync(workerEntryPath)) {
-      this.close(`worker entry not found in "${workerEntryPath}".`);
-      return;
+  sendMessage(message: unknown) {
+    if (!this.#worker) {
+      throw new Error(
+        "Dev worker should be initialized before sending messages."
+      );
     }
+    this.#worker.postMessage(message);
+  }
 
-    const worker = new Worker(workerEntryPath, {
-      env: {
-        ...process.env,
-        NITRO_DEV_WORKER_ID: String(this.#id),
-      },
-    }) as Worker & { _exitCode?: number };
+  onMessage(listener: DevMessageListener) {
+    this.#messageListeners.add(listener);
+  }
 
-    worker.once("exit", (code) => {
-      worker._exitCode = code;
-      this.close(`worker exited with code ${code}`);
-    });
-
-    worker.once("error", (error) => {
-      this.close(error);
-    });
-
-    worker.on("message", (message) => {
-      if (message?.address) {
-        this.#address = message.address;
-        this.#hooks.onReady?.(this, this.#address);
-      }
-    });
-
-    this.#worker = worker;
+  offMessage(listener: DevMessageListener) {
+    this.#messageListeners.delete(listener);
   }
 
   async close(cause?: unknown) {
@@ -124,6 +111,55 @@ export class NodeDevWorker implements DevWorker {
     await this.#closeWorker().catch(onError);
     await this.#closeProxy().catch(onError);
     await this.#closeSocket().catch(onError);
+  }
+
+  [Symbol.for("nodejs.util.inspect.custom")]() {
+    // eslint-disable-next-line unicorn/no-nested-ternary
+    const status = this.closed ? "closed" : this.ready ? "ready" : "pending";
+    return `NodeDevWorker#${this.#name}(${status})`;
+  }
+
+  // #endregion
+
+  // #region Private methods
+
+  #initWorker() {
+    if (!existsSync(this.#entry)) {
+      this.close(`worker entry not found in "${this.#entry}".`);
+      return;
+    }
+
+    const worker = new Worker(this.#entry, {
+      env: {
+        ...process.env,
+      },
+      workerData: {
+        name: this.#name,
+        ...this.#data,
+      },
+    }) as Worker & { _exitCode?: number };
+
+    worker.once("exit", (code) => {
+      worker._exitCode = code;
+      this.close(`worker exited with code ${code}`);
+    });
+
+    worker.once("error", (error) => {
+      consola.error(`Worker error:`, error);
+      this.close(error);
+    });
+
+    worker.on("message", (message) => {
+      if (message?.address) {
+        this.#address = message.address;
+        this.#hooks.onReady?.(this, this.#address);
+      }
+      for (const listener of this.#messageListeners) {
+        listener(message);
+      }
+    });
+
+    this.#worker = worker;
   }
 
   async #closeProxy() {
@@ -176,9 +212,5 @@ export class NodeDevWorker implements DevWorker {
     this.#worker = undefined;
   }
 
-  [Symbol.for("nodejs.util.inspect.custom")]() {
-    // eslint-disable-next-line unicorn/no-nested-ternary
-    const status = this.closed ? "closed" : this.ready ? "ready" : "pending";
-    return `NodeDevWorker#${this.#id}(${status})`;
-  }
+  // #endregion
 }

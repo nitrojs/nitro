@@ -25,6 +25,7 @@
       "nitro/runtime": ["./src/runtime"],
       "nitro/runtime/internal": ["./src/runtime/internal"],
       "nitro/presets": ["./src/presets"],
+      "nitro/vite": ["./src/vite"],
       "nitro/types": ["./src/types"],
       "nitro/config": ["./lib/config.mjs"],
       "nitro/meta": ["./lib/meta.mjs"],

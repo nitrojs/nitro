@@ -223,7 +223,7 @@ export async function enableNodeCompat(nitro: Nitro) {
 }
 
 const extensionParsers = {
-  ".json": JSON.parse,
+  ".json": parseJSONC,
   ".jsonc": parseJSONC,
   ".toml": parseTOML,
 } as const;

@@ -22,6 +22,12 @@ const netlify = defineNitroPreset(
       dir: "{{ rootDir }}/.netlify/functions-internal",
       publicDir: "{{ rootDir }}/dist/{{ baseURL }}",
     },
+    prerender: {
+      // Prevents an unnecessary redirect from /page/ to /page when accessing prerendered content.
+      // Reference: https://answers.netlify.com/t/support-guide-how-can-i-alter-trailing-slash-behaviour-in-my-urls-will-enabling-pretty-urls-help/31191
+      // Reference: https://nitro.build/config#prerender
+      autoSubfolderIndex: false,
+    },
     rollupConfig: {
       output: {
         entryFileNames: "main.mjs",
@@ -68,6 +74,12 @@ const netlifyEdge = defineNitroPreset(
     output: {
       serverDir: "{{ rootDir }}/.netlify/edge-functions/server",
       publicDir: "{{ rootDir }}/dist/{{ baseURL }}",
+    },
+    prerender: {
+      // Prevents an unnecessary redirect from /page/ to /page when accessing prerendered content.
+      // Reference: https://answers.netlify.com/t/support-guide-how-can-i-alter-trailing-slash-behaviour-in-my-urls-will-enabling-pretty-urls-help/31191
+      // Reference: https://nitro.build/config#prerender
+      autoSubfolderIndex: false,
     },
     rollupConfig: {
       output: {
@@ -118,6 +130,12 @@ const netlifyStatic = defineNitroPreset(
     output: {
       dir: "{{ rootDir }}/dist",
       publicDir: "{{ rootDir }}/dist/{{ baseURL }}",
+    },
+    prerender: {
+      // Prevents an unnecessary redirect from /page/ to /page when accessing prerendered content.
+      // Reference: https://answers.netlify.com/t/support-guide-how-can-i-alter-trailing-slash-behaviour-in-my-urls-will-enabling-pretty-urls-help/31191
+      // Reference: https://nitro.build/config#prerender
+      autoSubfolderIndex: false,
     },
     commands: {
       preview: "npx serve ./",
