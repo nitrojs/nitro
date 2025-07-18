@@ -1,7 +1,7 @@
 import { type Plugin as VitePlugin, normalizePath } from "vite";
 import type { Plugin as RollupPlugin } from "rollup";
 import type { NitroPluginConfig, NitroPluginContext } from "./types";
-import { join, resolve } from "node:path";
+import { join, resolve, relative } from "pathe";
 import { createNitro } from "../..";
 import { getViteRollupConfig } from "./rollup";
 import { buildProduction, prodEntry } from "./prod";
@@ -13,7 +13,6 @@ import * as rou3 from "rou3";
 import * as rou3Compiler from "rou3/compiler";
 import { resolveModulePath } from "exsolve";
 import { prettyPath } from "../../utils/fs";
-import path from "node:path";
 
 // https://vite.dev/guide/api-environment-plugins
 // https://vite.dev/guide/api-environment-frameworks.html
@@ -162,7 +161,7 @@ export async function nitro(
               id.startsWith(root)
             );
             for (const id of filteredModuleIds) {
-              const originalFile = path.relative(root, normalizePath(id));
+              const originalFile = relative(root, id);
               ctx._manifest[originalFile] = { file: file.fileName };
             }
           }
