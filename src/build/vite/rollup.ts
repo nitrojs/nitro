@@ -1,7 +1,7 @@
 import type { Nitro, RollupConfig } from "nitro/types";
 import { defu } from "defu";
 import { sanitizeFilePath } from "mlly";
-import { normalize } from "pathe";
+import { normalize, resolve, dirname } from "pathe";
 import { runtimeDir } from "nitro/runtime/meta";
 import alias from "@rollup/plugin-alias";
 import inject from "@rollup/plugin-inject";
@@ -10,6 +10,8 @@ import { visualizer } from "rollup-plugin-visualizer";
 import { replace } from "../plugins/replace";
 import { baseBuildConfig, type BaseBuildConfig } from "../config";
 import { baseBuildPlugins } from "../plugins";
+import type { OutputBundle, Plugin as RollupPlugin } from "rollup";
+import type { NitroPluginContext } from "./types";
 
 /**
  * Removed from base rollup config:
@@ -25,8 +27,9 @@ import { baseBuildPlugins } from "../plugins";
  */
 
 export const getViteRollupConfig = (
-  nitro: Nitro
+  ctx: NitroPluginContext
 ): { config: RollupConfig; base: BaseBuildConfig } => {
+  const nitro = ctx.nitro!;
   const base = baseBuildConfig(nitro);
 
   const chunkNamePrefixes = [
@@ -49,6 +52,7 @@ export const getViteRollupConfig = (
     input: nitro.options.entry,
     external: [...base.env.external],
     plugins: [
+      virtualBundlePlugin(ctx._serviceBundles),
       ...baseBuildPlugins(nitro, base),
       alias({ entries: base.aliases }),
       replace({ preventAssignment: true, values: base.replacements }),
@@ -154,3 +158,62 @@ export const getViteRollupConfig = (
 
   return { config, base };
 };
+
+function virtualBundlePlugin(
+  bundles: Record<string, OutputBundle>
+): RollupPlugin {
+  type VirtualModule = { code: string; map: string | null };
+  let _modules: Map<string, VirtualModule> | null = null;
+
+  // lazy initialize _modules since at the time of plugin creation, the bundles are not available yet
+  const getModules = () => {
+    if (_modules) {
+      return _modules;
+    }
+    _modules = new Map();
+    for (const bundle of Object.values(bundles)) {
+      // group chunks and source maps
+      for (const [fileName, content] of Object.entries(bundle)) {
+        if (content.type === "chunk") {
+          const virtualModule: VirtualModule = {
+            code: content.code,
+            map: null,
+          };
+          const maybeMap = bundle[`${fileName}.map`];
+          if (maybeMap && maybeMap.type === "asset") {
+            virtualModule.map = maybeMap.source as string;
+          }
+          _modules.set(fileName, virtualModule);
+          _modules.set(resolve(fileName), virtualModule);
+        }
+      }
+    }
+    return _modules;
+  };
+
+  return {
+    name: "virtual-bundle",
+    resolveId(id, importer) {
+      const modules = getModules();
+      if (modules.has(id)) {
+        return resolve(id);
+      }
+
+      if (importer) {
+        const resolved = resolve(dirname(importer), id);
+        if (modules.has(resolved)) {
+          return resolved;
+        }
+      }
+      return null;
+    },
+    load(id) {
+      const modules = getModules();
+      const m = modules.get(id);
+      if (!m) {
+        return null;
+      }
+      return m;
+    },
+  };
+}

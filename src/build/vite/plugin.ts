@@ -1,4 +1,4 @@
-import { type Plugin as VitePlugin, normalizePath } from "vite";
+import { type Plugin as VitePlugin } from "vite";
 import type { Plugin as RollupPlugin } from "rollup";
 import type { NitroPluginConfig, NitroPluginContext } from "./types";
 import { join, resolve, relative } from "pathe";
@@ -24,6 +24,7 @@ export async function nitro(
     pluginConfig,
     _entryPoints: {},
     _manifest: {},
+    _serviceBundles: {},
   };
 
   return {
@@ -96,7 +97,7 @@ export async function nitro(
       await ctx.nitro.hooks.callHook("build:before", ctx.nitro);
 
       // Resolve common rollup options
-      ctx.rollupConfig = await getViteRollupConfig(ctx.nitro);
+      ctx.rollupConfig = await getViteRollupConfig(ctx);
 
       return {
         // Don't include HTML middlewares
@@ -173,6 +174,7 @@ export async function nitro(
             );
           }
           ctx._entryPoints![this.environment.name] = entryFile!;
+          ctx._serviceBundles[this.environment.name] = bundle;
         }
       },
     },
@@ -183,6 +185,18 @@ export async function nitro(
         config.build!.manifest = true;
         config.build!.emptyOutDir = false;
         config.build!.outDir = ctx.nitro!.options.output.publicDir;
+      }
+
+      const services = ctx.pluginConfig.services || {};
+      const serviceNames = Object.keys(services);
+      if (serviceNames.includes(name)) {
+        // we don't write to the file system
+        // instead, the generateBundle hook will capture the output and write it to the virtual file system to be used by the nitro build later
+        if (config.build) {
+          config.build.write = false;
+        } else {
+          config.build = { write: false };
+        }
       }
     },
 

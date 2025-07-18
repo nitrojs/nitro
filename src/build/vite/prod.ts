@@ -1,9 +1,7 @@
 import type { ViteBuilder } from "vite";
-import type { RollupOutput, OutputChunk } from "rollup";
 import type { NitroPluginContext } from "./types";
 
-import { relative, resolve } from "pathe";
-import { readFile, rm } from "node:fs/promises";
+import { relative } from "pathe";
 import { formatCompatibilityDate } from "compatx";
 import { copyPublicAssets, prepare, prerender } from "../..";
 import { nitroServerName } from "../../utils/nitro";
@@ -99,7 +97,7 @@ export function prodEntry(ctx: NitroPluginContext): string {
   const serviceNames = Object.keys(services);
   const result = [
     // Fetchable services
-    `const services = { ${serviceNames.map((name) => `[${JSON.stringify(name)}]: () => import("${resolve(ctx.nitro!.options.buildDir, "vite/services", name, ctx._entryPoints[name])}")`)}};`,
+    `const services = { ${serviceNames.map((name) => `[${JSON.stringify(name)}]: () => import("${ctx._entryPoints[name]}")`)}};`,
     /* js */ `
               const serviceHandlers = {};
               const originalFetch = globalThis.fetch;
