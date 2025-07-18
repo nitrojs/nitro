@@ -9,11 +9,13 @@ const nitroDev = defineNitroPreset(
       publicDir: "{{ buildDir }}/dev",
     },
     externals: { trace: false },
+    serveStatic: true,
     inlineDynamicImports: true, // externals plugin limitation
     sourceMap: true,
   },
   {
     name: "nitro-dev" as const,
+    dev: true,
     url: import.meta.url,
   }
 );

@@ -390,6 +390,7 @@ async function generateWorkerName(nitro: Nitro) {
   const pkgName = pkgJSON?.name;
   const subpath = relative(nitro.options.workspaceDir, nitro.options.rootDir);
   return `${gitRepo || pkgName}/${subpath}`
+    .toLowerCase()
     .replace(/[^a-zA-Z0-9-]/g, "-")
     .replace(/-$/, "");
 }
