@@ -1,13 +1,11 @@
 # yaml-language-server: $schema=https://unpkg.com/undocs/schema/config.json
 name: Nitro
-shortDescription: Next Generation Server Toolkit
-description: Create web servers with everything you need and deploy them wherever you prefer.
+shortDescription: Ship Full-stack Vite Apps
+description: Add server API routes to any Vite apps and deploy with zero configuration on your favorite hosting platform.
 github: nitrojs/nitro
 url: https://nitro.build
 themeColor: "red"
 automd: true
-redirects:
-  /deploy/node: /deploy/runtimes/node
 landing:
   heroLinks:
     playOnline:
@@ -18,38 +16,28 @@ landing:
   featuresTitle: "A Server for the Modern Web"
   features:
     - title: "Rapid Development"
-      description: "Zero config setup with hot module replacement for server code in development."
+      description: "Fast Vite Development Experience, with HMR on the server too."
       icon: "🐇"
     - title: "Deploy Anywhere"
       description: "Deploy the same codebase to any [deployment provider](/deploy) with no extra config."
       icon: "😌"
-    - title: "Portable and Compact"
-      description: "Say goodbye to `node_modules`, output size is less than 1MB."
-      icon: "💼"
-    - title: "Filesystem Routing"
+    - title: "Filesystem Routing Discovery (server/ directory)" # TAB
       description: "[Automatically registers](/guide/routing) server and API routes."
       icon: "📁"
+      tabGroup: ""
+    - title: "Bring your backend framework (server.ts file)" # TAB
+      description: "Go full Web Standard and pick H3, Hono or Elysia to create API routes."
+      icon: "✨"
+    - title: "Server-render any templates|component|JSX|HTML|..thing..."
+      # Rendered Pages /
+      description: "Enable traditional server-side rendering for your frontend framework (React, Vue, Svelte, etc.)"
+      icon: ""
+    - title: "Leverage the Vite Ecosystem"
+      description: "Add any Vite plugin to build your applications."
+      icon: i-simple-icons-vite
     - title: "Minimal Design"
       description: "Minimal design to fit into any solution with minimum overhead"
       icon: "🤏"
-    - title: "Code-Splitting"
-      description: "Async chunk loading for fast server startup time and answer."
-      icon: "🚀"
-    - title: "TypeScript"
-      description: "TypeScript support out of the box with few more goodies."
-      icon: "👕"
-    - title: "Storage Layer"
-      description: "Multi driver and platform-agnostic storage system."
-      icon: "💾"
-    - title: "Cache API"
-      description: "Powerful built-in caching API."
-      icon: "💰"
     - title: "Hackable"
       description: "Built to be customized with the [plugins](/guide/plugins) hooks system."
       icon: "🐱"
-    - title: "Auto Imports"
-      description: "Automatically import utilities for a minimal and clean codebase. Only the used ones will be added to the final bundle."
-      icon: "✨"
-    - title: "Backward Compatible"
-      description: "So you can use legacy npm packages, CommonJS and mocking Node.js modules for workers."
-      icon: "🏛️"
