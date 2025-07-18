@@ -140,11 +140,17 @@ export async function nitro(
     generateBundle: {
       handler(_options, bundle) {
         const { root } = this.environment.config;
+        const services = ctx.pluginConfig.services || {};
+        const serviceNames = Object.keys(services);
+        const isRegisteredService = serviceNames.includes(
+          this.environment.name
+        );
+
         // find entry point of this service
         let entryFile: string | undefined;
         for (const [_name, file] of Object.entries(bundle)) {
           if (file.type === "chunk") {
-            if (file.isEntry) {
+            if (isRegisteredService && file.isEntry) {
               if (entryFile !== undefined) {
                 this.error(
                   `Multiple entry points found for service "${this.environment.name}". Only one entry point is allowed.`
@@ -161,12 +167,14 @@ export async function nitro(
             }
           }
         }
-        if (entryFile === undefined) {
-          this.error(
-            `No entry point found for service "${this.environment.name}".`
-          );
+        if (isRegisteredService) {
+          if (entryFile === undefined) {
+            this.error(
+              `No entry point found for service "${this.environment.name}".`
+            );
+          }
+          ctx._entryPoints![this.environment.name] = entryFile!;
         }
-        ctx._entryPoints![this.environment.name] = entryFile!;
       },
     },
 
