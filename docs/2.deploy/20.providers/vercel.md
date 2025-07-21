@@ -126,3 +126,7 @@ export default defineNitroConfig({
   },
 });
 ```
+
+**Preset:** `vercel_edge` (deprecated)
+
+We recommend migrating to the default Node.js runtime and enabling [Fluid compute](https://vercel.com/docs/functions/fluid-compute).
