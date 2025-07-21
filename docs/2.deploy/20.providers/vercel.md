@@ -15,7 +15,6 @@ Integration with this provider is possible with [zero configuration](/deploy/#ze
 Deploying to Vercel comes with the following features:
 - [Preview deployments](https://vercel.com/docs/deployments/environments)
 - [Fluid compute](https://vercel.com/docs/fluid-compute)
-- [Skew Protection](https://vercel.com/docs/skew-protection)
 - [Observability](https://vercel.com/docs/observability)
 - [Vercel Firewall](https://vercel.com/docs/vercel-firewall)
 
