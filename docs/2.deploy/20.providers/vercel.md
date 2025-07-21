@@ -1,6 +1,6 @@
 # Vercel
 
-> Deploy Nitro apps to Vercel Functions.
+> Deploy Nitro apps to Vercel.
 
 **Preset:** `vercel`
 
@@ -10,24 +10,9 @@
 Integration with this provider is possible with [zero configuration](/deploy/#zero-config-providers).
 ::
 
-## Deploy using git
+## Getting started
 
-
-- Push your code to your git repository (GitHub, GitLab, Bitbucket).
-- [Import your project](https://vercel.com/new) into Vercel.
-- Vercel will detect that you are using Nitro and will enable the correct settings for your deployment.
-- Your application is deployed!
-
-
-After your project has been imported and deployed, all subsequent pushes to branches will generate [Preview Deployments](https://vercel.com/docs/concepts/deployments/environments#preview), and all changes made to the Production Branch (commonly “main”) will result in a [Production Deployment](https://vercel.com/docs/concepts/deployments/environments#production).
-
-Learn more about Vercel’s [Git Integration](https://vercel.com/docs/concepts/git).
-
-## Monorepo support
-
-Monorepos are supported by Vercel. However a custom "[Root Directory](https://vercel.com/docs/deployments/configure-a-build#root-directory)" must be specified in "Project Settings > General" tab. Make sure that "Include source files outside of the Root Directory" is checked.
-
-Examples of values for "Root Directory": `apps/web` or `packages/app`.
+Vercel supports Nitro with zero-configuration. [Deploy Nitro to Vercel now](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fvercel%2Ftree%2Fmain%2Fexamples%2Fnitro).
 
 ## Observability
 
