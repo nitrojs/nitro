@@ -12,7 +12,29 @@ Integration with this provider is possible with [zero configuration](/deploy/#ze
 
 ## Getting started
 
+Deploying to Vercel comes with the following features:
+- [Preview deployments](https://vercel.com/docs/deployments/environments)
+- [Fluid compute](https://vercel.com/docs/fluid-compute)
+- [Skew Protection](https://vercel.com/docs/skew-protection)
+- [Observability](https://vercel.com/docs/observability)
+- [Vercel Firewall](https://vercel.com/docs/vercel-firewall)
+
+And much more. Learn more in [the Vercel documentation](https://vercel.com/docs).
+
+### Deploy with Git
+
 Vercel supports Nitro with zero-configuration. [Deploy Nitro to Vercel now](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fvercel%2Ftree%2Fmain%2Fexamples%2Fnitro).
+
+### Deploy using Vercel CLI
+
+You can interact with Vercel from your terminal, or in automated systems using Vercel CLI. To deploy your Nitro application, use:
+
+```
+vercel build
+```
+
+Learn more in [Vercel CLI documentation](https://vercel.com/docs/cli).
+
 
 ## Observability
 
