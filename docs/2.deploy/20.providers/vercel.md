@@ -4,7 +4,7 @@
 
 **Preset:** `vercel`
 
-:read-more{title="Vercel Functions" to="https://vercel.com/docs/functions"}
+:read-more{title="Vercel Framework Support" to="https://vercel.com/docs/frameworks"}
 
 ::note
 Integration with this provider is possible with [zero configuration](/deploy/#zero-config-providers).
@@ -104,9 +104,3 @@ export default defineNitroConfig({
   },
 });
 ```
-
-## Vercel edge functions
-
-**Preset:** `vercel_edge` (deprecated)
-
-We recommend migrating to the default Node.js runtime and enabling [Fluid compute](https://vercel.com/docs/functions/fluid-compute).
