@@ -422,7 +422,7 @@ describe("nitro:preset:vercel", async () => {
               },
               {
                 "dest": "/api/typed/todos/[...]",
-                "src": "/api/typed/todos/?(?<_>.*)",
+                "src": "/api/typed/todos/(?:.*)",
               },
               {
                 "dest": "/api/typed/todos/[todoId]/comments/[...commentId]",
