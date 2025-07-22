@@ -24,17 +24,6 @@ And much more. Learn more in [the Vercel documentation](https://vercel.com/docs)
 
 Vercel supports Nitro with zero-configuration. [Deploy Nitro to Vercel now](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fvercel%2Ftree%2Fmain%2Fexamples%2Fnitro).
 
-### Deploy using Vercel CLI
-
-You can interact with Vercel from your terminal, or in automated systems using Vercel CLI. To deploy your Nitro application, use:
-
-```
-vercel build
-```
-
-Learn more in [Vercel CLI documentation](https://vercel.com/docs/cli).
-
-
 ## Observability
 
 Nitro (>=2.12) generates routing hints for [functions observability insights](https://vercel.com/docs/observability/insights#vercel-functions), providing a detailed view of performance broken down by route.
