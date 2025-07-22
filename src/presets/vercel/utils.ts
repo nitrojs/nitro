@@ -377,11 +377,11 @@ function normalizeRouteSrc(route: string): string {
 }
 
 // Valid PCRE capture group name
-function namedGroup(input = "_") {
+function namedGroup(input = "") {
   if (/\d/.test(input[0])) {
-    input = "_" + input;
+    input = `_${input}`;
   }
-  return input.replace(/[^a-zA-Z0-9_]/g, "").replace(/^-/, "");
+  return input.replace(/[^a-zA-Z0-9_]/g, "") || "_";
 }
 
 // Output is a destination pathname to function name
