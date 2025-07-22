@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## v2.12.4
+
+[compare changes](https://github.com/nitrojs/nitro/compare/v2.12.3...v2.12.4)
+
+### 🩹 Fixes
+
+- **vercel:** Valid regex for o11y routes ([#3500](https://github.com/nitrojs/nitro/pull/3500))
+
+### ❤️ Contributors
+
+- Pooya Parsa <pyapar@gmail.com>
+
 ## v2.12.3
 
 [compare changes](https://github.com/nitrojs/nitro/compare/v2.12.2...v2.12.3)
