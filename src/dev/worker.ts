@@ -35,14 +35,14 @@ export class NodeDevWorker implements DevWorker {
 
   constructor(opts: {
     name: string;
-    hooks: WorkerHooks;
     entry: string;
+    hooks?: WorkerHooks;
     data?: DevWorkerData;
   }) {
     this.#name = opts.name;
     this.#entry = opts.entry;
     this.#data = opts.data;
-    this.#hooks = opts.hooks;
+    this.#hooks = opts.hooks || {};
 
     this.#proxy = createHTTPProxy();
     this.#messageListeners = new Set();

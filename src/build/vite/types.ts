@@ -1,6 +1,6 @@
-import type { OutputChunk } from "rollup";
 import type { getViteRollupConfig } from "./rollup";
 import type { Nitro, NitroConfig } from "nitro/types";
+import type { DevServer } from "./dev";
 
 export interface NitroPluginConfig {
   /** Custom Nitro config */
@@ -49,4 +49,5 @@ export interface NitroPluginContext {
   _manifest: Record<string, { file: string }>;
   _publicDistDir?: string;
   _entryPoints: Record<string, string>;
+  _devServer?: DevServer;
 }

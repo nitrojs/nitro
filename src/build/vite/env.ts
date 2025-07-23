@@ -1,8 +1,7 @@
 import type { EnvironmentOptions } from "vite";
 import type { NitroPluginContext, ServiceConfig } from "./types";
 
-import { NodeDevWorker } from "../../dev/worker";
-import { join, resolve } from "node:path";
+import { join, resolve } from "pathe";
 import { runtimeDependencies, runtimeDir } from "nitro/runtime/meta";
 import { resolveModulePath } from "exsolve";
 import { createFetchableDevEnvironment } from "./dev";
@@ -32,24 +31,10 @@ export function createNitroEnvironment(
       externalConditions: ctx.nitro!.options.exportConditions,
     },
     dev: {
-      createEnvironment: (envName, envConfig) =>
-        createFetchableDevEnvironment(
-          envName,
-          envConfig,
-          new NodeDevWorker({
-            name: envName,
-            entry: resolve(runtimeDir, "internal/vite/worker.mjs"),
-            data: {
-              name: envName,
-              server: true,
-              viteEntry: resolve(runtimeDir, "internal/vite/nitro-dev.mjs"),
-              globals: {
-                __NITRO_RUNTIME_CONFIG__: ctx.nitro!.options.runtimeConfig,
-              },
-            },
-            hooks: {},
-          })
-        ),
+      createEnvironment: (envName, envConfig) => {
+        const entry = resolve(runtimeDir, "internal/vite/nitro-dev.mjs");
+        return createFetchableDevEnvironment(envName, envConfig, entry, ctx);
+      },
     },
   };
 }
@@ -73,25 +58,13 @@ export function createServiceEnvironment(
       externalConditions: ctx.nitro!.options.exportConditions,
     },
     dev: {
-      createEnvironment: (envName, envConfig) =>
-        createFetchableDevEnvironment(
-          envName,
-          envConfig,
-          new NodeDevWorker({
-            name: name,
-            entry: resolve(runtimeDir, "internal/vite/worker.mjs"),
-            data: {
-              name: name,
-              server: true,
-              viteEntry: resolveModulePath(serviceConfig.entry, {
-                suffixes: ["", "/index"],
-                extensions: ["", ".ts", ".mjs", ".cjs", ".js", ".mts", ".cts"],
-              }),
-              globals: {},
-            },
-            hooks: {},
-          })
-        ),
+      createEnvironment: (envName, envConfig) => {
+        const entry = resolveModulePath(serviceConfig.entry, {
+          suffixes: ["", "/index"],
+          extensions: ["", ".ts", ".mjs", ".cjs", ".js", ".mts", ".cts"],
+        });
+        return createFetchableDevEnvironment(envName, envConfig, entry, ctx);
+      },
     },
   };
 }
