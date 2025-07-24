@@ -210,14 +210,14 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
           // we need to write a rule to avoid route being shadowed by another cache rule elsewhere
           return {
             src,
-            dest: "/__nitro",
+            dest: "/__fallback",
           };
         }
         return {
           src,
           dest:
             nitro.options.preset === "vercel-edge"
-              ? "/__nitro?url=$url"
+              ? "/__fallback?url=$url"
               : generateEndpoint(key) + "?url=$url",
         };
       }),
@@ -226,7 +226,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
       ? [
           {
             src: "(?<url>/)",
-            dest: "/__nitro-index?url=$url",
+            dest: "/__fallback-index?url=$url",
           },
         ]
       : []),
@@ -242,7 +242,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
       : [
           {
             src: "/(.*)",
-            dest: "/__nitro",
+            dest: "/__fallback",
           },
         ])
   );
@@ -252,10 +252,10 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
 
 function generateEndpoint(url: string) {
   if (url === "/") {
-    return "/__nitro-index";
+    return "/__fallback-index";
   }
   return url.includes("/**")
-    ? "/__nitro-" +
+    ? "/__fallback-" +
         withoutLeadingSlash(url.replace(/\/\*\*.*/, "").replace(/[^a-z]/g, "-"))
     : url;
 }

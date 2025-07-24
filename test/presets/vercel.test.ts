@@ -117,35 +117,35 @@ describe("nitro:preset:vercel", async () => {
                 "src": "/rules/_/noncached/cached",
               },
               {
-                "dest": "/__nitro",
+                "dest": "/__fallback",
                 "src": "/rules/_/cached/noncached",
               },
               {
-                "dest": "/__nitro",
+                "dest": "/__fallback",
                 "src": "(?<url>/rules/_/noncached/.*)",
               },
               {
-                "dest": "/__nitro--rules---cached?url=$url",
+                "dest": "/__fallback--rules---cached?url=$url",
                 "src": "(?<url>/rules/_/cached/.*)",
               },
               {
-                "dest": "/__nitro",
+                "dest": "/__fallback",
                 "src": "/rules/dynamic",
               },
               {
-                "dest": "/__nitro--rules-isr?url=$url",
+                "dest": "/__fallback--rules-isr?url=$url",
                 "src": "(?<url>/rules/isr/.*)",
               },
               {
-                "dest": "/__nitro--rules-isr-ttl?url=$url",
+                "dest": "/__fallback--rules-isr-ttl?url=$url",
                 "src": "(?<url>/rules/isr-ttl/.*)",
               },
               {
-                "dest": "/__nitro--rules-swr?url=$url",
+                "dest": "/__fallback--rules-swr?url=$url",
                 "src": "(?<url>/rules/swr/.*)",
               },
               {
-                "dest": "/__nitro--rules-swr-ttl?url=$url",
+                "dest": "/__fallback--rules-swr-ttl?url=$url",
                 "src": "(?<url>/rules/swr-ttl/.*)",
               },
               {
@@ -437,7 +437,7 @@ describe("nitro:preset:vercel", async () => {
                 "src": "/api/typed/catchall/(?<slug>[^/]+)/?(?<another>.+)",
               },
               {
-                "dest": "/__nitro",
+                "dest": "/__fallback",
                 "src": "/(.*)",
               },
             ],
@@ -450,7 +450,7 @@ describe("nitro:preset:vercel", async () => {
         const isrRouteConfig = await fsp.readFile(
           resolve(
             ctx.outDir,
-            "functions/__nitro--rules-isr.prerender-config.json"
+            "functions/__fallback--rules-isr.prerender-config.json"
           ),
           "utf8"
         );
