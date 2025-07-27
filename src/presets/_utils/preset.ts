@@ -24,7 +24,7 @@ const DEFAULT_NODE_VERSION = 24 as const;
  *
  * Ideally, all presets will support Nitro's preferred `DEFAULT_NODE_VERSION`,
  * which will simply be converted to a preset-specific identifier.
- * If not, it will return the highest supported version below `DEFAULT_NODE_VERSION`.
+ * If not, it will return the highest supported version between `MINIMUM_NODE_VERSION` and `DEFAULT_NODE_VERSION`.
  *
  * @param supportedNodeVersions - A set of Node.js version numbers supported by the provider.
  * @param getNodeVerisonString  - A preset-specific function to convert a Node.js version number to the runtime string. Defaults to String constructor.
