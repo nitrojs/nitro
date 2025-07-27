@@ -41,7 +41,7 @@ export async function getNodeRuntime(
   // Read package.json to get the current node version
   const packageJSONPath = join(nitro.options.rootDir, "package.json");
   const packageJSON = await readPackageJSON(packageJSONPath);
-  const currentNodeVersion = parseInt(packageJSON.engines?.node);
+  const currentNodeVersion = Number.parseInt(packageJSON.engines?.node);
 
   // If current node version is supported, use it
   if (supportedNodeVersions.has(currentNodeVersion)) {
