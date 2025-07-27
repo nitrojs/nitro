@@ -1,5 +1,7 @@
 import { fileURLToPath } from "node:url";
-import type { NitroPreset, NitroPresetMeta } from "nitro/types";
+import { readPackageJSON } from "pkg-types";
+import { join } from "pathe";
+import type { Nitro, NitroPreset, NitroPresetMeta } from "nitro/types";
 
 export function defineNitroPreset<
   P extends NitroPreset,
@@ -53,4 +55,21 @@ export function getDefaultNodeVersion(
   }
 
   throw new Error("No supported Node.js version found");
+}
+
+export async function getNodeRuntime(
+  nitro: Nitro,
+  supportedNodeVersions: Set<number>,
+  getNodeVerisonString: (version: number) => string = String
+): Promise<string> {
+  // Read package.json to get the current node version
+  const packageJSONPath = join(nitro.options.rootDir, "package.json");
+  const packageJSON = await readPackageJSON(packageJSONPath);
+  const currentNodeVersion = Number.parseInt(packageJSON.engines?.node);
+
+  // If current node version is supported, use it,
+  // otherwise use the default node version
+  return supportedNodeVersions.has(currentNodeVersion)
+    ? getNodeVerisonString(currentNodeVersion)
+    : getDefaultNodeVersion(supportedNodeVersions, getNodeVerisonString);
 }
