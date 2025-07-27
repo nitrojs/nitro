@@ -12,7 +12,7 @@ export async function writeSWARoutes(nitro: Nitro) {
   const getNodeVersionString = (version: number) => `node:${version}`;
 
   /**
-   * Node versions supported by AWS Amplify.
+   * Node versions supported by Azure Functions.
    * @updated 2025-07-21
    * @link https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-node?tabs=typescript%2Cwindows%2Cazure-cli&pivots=nodejs-model-v4#supported-versions
    */
