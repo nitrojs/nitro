@@ -46,7 +46,7 @@ export interface NitroPluginContext {
   pluginConfig: NitroPluginConfig;
   rollupConfig?: ReturnType<typeof getViteRollupConfig>;
 
-  _manifest?: Record<string, any>;
+  _manifest: Record<string, { file: string }>;
   _publicDistDir?: string;
-  _buildResults?: Record<string, OutputChunk>;
+  _entryPoints: Record<string, string>;
 }

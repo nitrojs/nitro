@@ -25,8 +25,9 @@ export async function handle(context: { res: HttpResponse }, req: HttpRequest) {
 
   const response = await nitroApp.fetch(url, {
     method: req.method || undefined,
-    headers: req.headers,
-    body: req.rawBody, // https://github.com/Azure/azure-functions-host/issues/293
+    // https://github.com/Azure/azure-functions-nodejs-worker/issues/294
+    // https://github.com/Azure/azure-functions-host/issues/293
+    body: req.bufferBody ?? req.rawBody,
   });
 
   // (v3 - current) https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-node?tabs=typescript%2Cwindows%2Cazure-cli&pivots=nodejs-model-v3#http-response
