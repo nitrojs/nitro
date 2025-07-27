@@ -1,12 +1,23 @@
 import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { Nitro } from "nitro/types";
+import { getDefaultNodeVersion } from "../_utils/preset";
 import { joinURL } from "ufo";
 import type {
   AmplifyDeployManifest,
   AmplifyRoute,
   AmplifyRouteTarget,
 } from "./types";
+
+/** Convert a version number to a Lambda Node.js runtime identifier */
+const getNodeVersionString = (version: number) => `nodejs${version}.x`;
+
+/**
+ * Node versions supported by AWS Amplify.
+ * @updated 2025-07-21
+ * @link https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html
+ */
+const SUPPORTED_NODE_VERSIONS = new Set([18, 20, 22]);
 
 export async function writeAmplifyFiles(nitro: Nitro) {
   const outDir = nitro.options.output.dir;
@@ -89,7 +100,10 @@ export async function writeAmplifyFiles(nitro: Nitro) {
           {
             name: "default",
             entrypoint: "server.js",
-            runtime: nitro.options.awsAmplify?.runtime || "nodejs20.x",
+            runtime: getDefaultNodeVersion(
+              SUPPORTED_NODE_VERSIONS,
+              getNodeVersionString
+            ),
           },
         ],
     framework: {
