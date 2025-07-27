@@ -22,20 +22,32 @@ const MINIMUM_NODE_VERSION = 20 as const;
 const DEFAULT_NODE_VERSION = 24 as const;
 
 /**
- * Builder to get the default Node.js version for a provider.
+ * Builder to get the Node.js runtme for a provider.
  *
  * Ideally, all presets will support Nitro's preferred `DEFAULT_NODE_VERSION`,
  * which will simply be converted to a preset-specific identifier.
  * If not, it will return the highest supported version between `MINIMUM_NODE_VERSION` and `DEFAULT_NODE_VERSION`.
  *
+ * @param nitro - The Nitro instance.
  * @param supportedNodeVersions - A set of Node.js version numbers supported by the provider.
  * @param getNodeVerisonString  - A preset-specific function to convert a Node.js version number to the runtime string. Defaults to String constructor.
  * @returns The Node.js version identifier for preset.
  */
-export function getDefaultNodeVersion(
+export async function getNodeRuntime(
+  nitro: Nitro,
   supportedNodeVersions: Set<number>,
   getNodeVerisonString: (version: number) => string = String
-): string {
+): Promise<string> {
+  // Read package.json to get the current node version
+  const packageJSONPath = join(nitro.options.rootDir, "package.json");
+  const packageJSON = await readPackageJSON(packageJSONPath);
+  const currentNodeVersion = parseInt(packageJSON.engines?.node);
+
+  // If current node version is supported, use it
+  if (supportedNodeVersions.has(currentNodeVersion)) {
+    return getNodeVerisonString(currentNodeVersion);
+  }
+
   // Get Nitro's current default Node.js version
   let version = DEFAULT_NODE_VERSION;
 
@@ -55,21 +67,4 @@ export function getDefaultNodeVersion(
   }
 
   throw new Error("No supported Node.js version found");
-}
-
-export async function getNodeRuntime(
-  nitro: Nitro,
-  supportedNodeVersions: Set<number>,
-  getNodeVerisonString: (version: number) => string = String
-): Promise<string> {
-  // Read package.json to get the current node version
-  const packageJSONPath = join(nitro.options.rootDir, "package.json");
-  const packageJSON = await readPackageJSON(packageJSONPath);
-  const currentNodeVersion = Number.parseInt(packageJSON.engines?.node);
-
-  // If current node version is supported, use it,
-  // otherwise use the default node version
-  return supportedNodeVersions.has(currentNodeVersion)
-    ? getNodeVerisonString(currentNodeVersion)
-    : getDefaultNodeVersion(supportedNodeVersions, getNodeVerisonString);
 }

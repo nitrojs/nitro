@@ -1,7 +1,7 @@
 import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { Nitro } from "nitro/types";
-import { getDefaultNodeVersion } from "../_utils/preset";
+import { getNodeRuntime } from "../_utils/preset";
 import { joinURL } from "ufo";
 import type {
   AmplifyDeployManifest,
@@ -100,7 +100,8 @@ export async function writeAmplifyFiles(nitro: Nitro) {
           {
             name: "default",
             entrypoint: "server.js",
-            runtime: getDefaultNodeVersion(
+            runtime: await getNodeRuntime(
+              nitro,
               SUPPORTED_NODE_VERSIONS,
               getNodeVersionString
             ),
