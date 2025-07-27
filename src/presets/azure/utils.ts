@@ -8,7 +8,7 @@ export async function writeSWARoutes(nitro: Nitro) {
     version: "2.0",
   };
 
-  /** Convert a version number to a Lambda Node.js runtime identifier */
+  /** Convert a version number to an Azure Functions runtime identifier */
   const getNodeVersionString = (version: number) => `node:${version}`;
 
   /**
