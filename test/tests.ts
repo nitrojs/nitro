@@ -334,7 +334,11 @@ export function testNitro(
           headers: { "Accept-Encoding": "" },
         })
       ).headers;
-      if (headers["vary"]) expect(headers["vary"]).toBe("Origin");
+      if (headers["vary"])
+        expect(
+          headers["vary"].includes("Origin") &&
+            headers["vary"].includes("Accept-Encoding")
+        ).toBeTruthy();
 
       headers = (
         await callHandler({
