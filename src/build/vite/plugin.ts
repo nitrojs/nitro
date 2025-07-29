@@ -192,11 +192,8 @@ export async function nitro(
       if (serviceNames.includes(name)) {
         // we don't write to the file system
         // instead, the generateBundle hook will capture the output and write it to the virtual file system to be used by the nitro build later
-        if (config.build) {
-          config.build.write = false;
-        } else {
-          config.build = { write: false };
-        }
+        config.build ??= {};
+        config.build.write = false;
       }
     },
 
