@@ -2,6 +2,10 @@
 
 > Deploy Nitro apps to Edgio.
 
+::warning
+This preset is deprecated and will be removed in v3.
+::
+
 **Preset:** `edgio`
 
 :read-more{title="edgio.io" to="https://edg.io/"}
