@@ -83,10 +83,20 @@ export function createServiceEnvironment(
             data: {
               name: name,
               server: true,
-              viteEntry: resolveModulePath(serviceConfig.entry, {
-                suffixes: ["", "/index"],
-                extensions: ["", ".ts", ".mjs", ".cjs", ".js", ".mts", ".cts"],
-              }),
+              viteEntry:
+                resolveModulePath(serviceConfig.entry, {
+                  suffixes: ["", "/index"],
+                  extensions: [
+                    "",
+                    ".ts",
+                    ".mjs",
+                    ".cjs",
+                    ".js",
+                    ".mts",
+                    ".cts",
+                  ],
+                  try: true,
+                }) ?? serviceConfig.entry,
               globals: {},
             },
             hooks: {},
