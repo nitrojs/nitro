@@ -31,12 +31,12 @@ export default defineNitroConfig({
   handlers: [
     {
       route: "/api/test/*/foo",
-      handler: "~/api/hello.ts",
+      handler: "api/hello.ts",
       method: "GET",
     },
     {
       route: "/api/hello2",
-      handler: "~/api/hello.ts",
+      handler: "api/hello.ts",
     },
   ],
   devProxy: {
@@ -79,7 +79,7 @@ export default defineNitroConfig({
     "db:migrate": { description: "Migrate database" },
     "db:seed": { description: "Seed database" },
   },
-  errorHandler: "~/error.ts",
+  errorHandler: "error.ts",
   routeRules: {
     "/api/param/prerender4": { prerender: true },
     "/api/param/prerender2": { prerender: false },
