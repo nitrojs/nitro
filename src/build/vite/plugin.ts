@@ -55,22 +55,34 @@ export async function nitro(
       });
 
       // Auto config default (ssr) service
-      if (!pluginConfig.services?.ssr && !userConfig.environments?.ssr) {
-        const serverEntry = resolveModulePath("./server", {
-          from: [
-            join(ctx.nitro.options.srcDir, "/"),
-            join(ctx.nitro.options.rootDir, "src/"),
-          ],
-          extensions: [".ts", ".js", ".mts", ".mjs", ".tsx", ".jsx"],
-          try: true,
-        });
-        if (serverEntry) {
-          ctx.nitro!.logger.info(
-            `Using \`${prettyPath(serverEntry)}\` as the server entry.`
-          );
-          pluginConfig.services = {
-            ssr: { entry: serverEntry },
-          };
+      if (!pluginConfig.services?.ssr) {
+        pluginConfig.services ??= {};
+        if (userConfig.environments?.ssr === undefined) {
+          const serverEntry = resolveModulePath("./server", {
+            from: [
+              join(ctx.nitro.options.srcDir, "/"),
+              join(ctx.nitro.options.rootDir, "src/"),
+            ],
+            extensions: [".ts", ".js", ".mts", ".mjs", ".tsx", ".jsx"],
+            try: true,
+          });
+          if (serverEntry) {
+            ctx.nitro!.logger.info(
+              `Using \`${prettyPath(serverEntry)}\` as the server entry.`
+            );
+            pluginConfig.services.ssr = { entry: serverEntry };
+          }
+        } else {
+          const input = userConfig.environments.ssr.build?.rollupOptions?.input;
+          if (typeof input === "string") {
+            pluginConfig.services.ssr = {
+              entry: input,
+            };
+          } else {
+            this.error(
+              `Invalid input type for SSR entry point. Expected a string.`
+            );
+          }
         }
       }
 
