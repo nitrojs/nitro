@@ -14,7 +14,7 @@ export async function resolvePathOptions(options: NitroOptions) {
   for (const key of ["srcDir", "buildDir"] as const) {
     options[key] = resolve(options.rootDir, options[key] || ".");
   }
-  options.alias ??= {}
+  options.alias ??= {};
 
   // Resolve possibly template paths
   if (!options.static && !options.entry) {
