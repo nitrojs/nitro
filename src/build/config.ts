@@ -106,10 +106,6 @@ export function baseBuildConfig(nitro: Nitro) {
     "#internal/nitro": runtimeDir,
     "nitro/runtime": runtimeDir,
     "nitropack/runtime": runtimeDir, // Backwards compatibility
-    "~": nitro.options.srcDir,
-    "@/": nitro.options.srcDir,
-    "~~": nitro.options.rootDir,
-    "@@/": nitro.options.rootDir,
     ...env.alias,
   });
 
