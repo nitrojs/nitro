@@ -179,7 +179,7 @@ export default defineEventHandler((event) => {
 
 ### Specify Variables in Development Mode
 
-For development, you can use a `.env` file to specify environment variables:
+For development, you can use a `.env` or `.env.local` file to specify environment variables:
 
 ```ini
 NITRO_HELLO_THERE="captain"
@@ -187,14 +187,14 @@ SECRET="top-secret"
 ```
 
 ::note
-**Note:** Make sure you add `.env` to the `.gitignore` file so that you don't commit it as it can contain sensitive information.
+**Note:** Make sure you add `.env` and `.env.local` to the `.gitignore` file so that you don't commit it as it can contain sensitive information.
 ::
 
 ### Specify Variables for local previews
 
 After build, when you try out your project locally with `wrangler dev` or `wrangler pages dev`, in order to have access to environment variables you will need to specify the in a `.dev.vars` file in the root of your project (as presented in the [Pages](https://developers.cloudflare.com/pages/functions/bindings/#interact-with-your-environment-variables-locally) and [Workers](https://developers.cloudflare.com/workers/configuration/environment-variables/#interact-with-environment-variables-locally) documentation).
 
-If you are using a `.env` file while developing, your `.dev.vars` should be identical to it.
+If you are using a `.env` or `.env.local` file while developing, your `.dev.vars` should be identical to it.
 
 ::note
 **Note:** Make sure you add `.dev.vars` to the `.gitignore` file so that you don't commit it as it can contain sensitive information.

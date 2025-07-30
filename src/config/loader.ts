@@ -85,6 +85,7 @@ async function _loadUserConfig(
   // prettier-ignore
   let preset: string | undefined = (configOverrides.preset as string) || process.env.NITRO_PRESET || process.env.SERVER_PRESET
 
+  const _dotenv = opts.dotenv ?? configOverrides.dev;
   const loadedConfig = await (
     opts.watch
       ? watchConfig<NitroConfig & { _meta?: NitroPresetMeta }>
@@ -92,7 +93,10 @@ async function _loadUserConfig(
   )({
     name: "nitro",
     cwd: configOverrides.rootDir,
-    dotenv: opts.dotenv ?? configOverrides.dev,
+    dotenv:
+      typeof _dotenv === "object"
+        ? { ..._dotenv, fileName: [".env", ".env.local"] }
+        : _dotenv,
     extend: { extendKey: ["extends", "preset"] },
     defaults: NitroDefaults,
     jitiOptions: {
