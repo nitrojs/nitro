@@ -87,7 +87,7 @@ async function _loadUserConfig(
 
   const _dotenv =
     opts.dotenv ??
-    (configOverrides.dev && { cwd: "???", fileName: [".env", ".env.local"] });
+    (configOverrides.dev && { fileName: [".env", ".env.local"] });
   const loadedConfig = await (
     opts.watch
       ? watchConfig<NitroConfig & { _meta?: NitroPresetMeta }>
@@ -95,6 +95,7 @@ async function _loadUserConfig(
   )({
     name: "nitro",
     cwd: configOverrides.rootDir,
+    // @ts-expect-error
     dotenv: _dotenv,
     extend: { extendKey: ["extends", "preset"] },
     defaults: NitroDefaults,
