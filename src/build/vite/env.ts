@@ -106,7 +106,7 @@ export function createServiceEnvironments(
 }
 
 function tryResolve(id: string) {
-  if (isAbsolute(id) || /^[~\0#]/.test(id)) {
+  if (/^[~#/\0]/.test(id) || isAbsolute(id)) {
     return id;
   }
   const resolved = resolveModulePath(id, {
