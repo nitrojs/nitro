@@ -222,6 +222,15 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
     DEBUG: nitro.options.dev,
   };
 
+  const getCompressPublicAssetsOption = () => {
+    const option = nitro.options.compressPublicAssets;
+    if (typeof option === "boolean") {
+      return option;
+    }
+    const values = Object.values(option);
+    return values.length === 0 ? true : values.some(Boolean);
+  };
+
   const staticFlags: NitroStaticBuildFlags = {
     dev: nitro.options.dev,
     preset: nitro.options.preset,
@@ -237,6 +246,7 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
     _asyncContext: nitro.options.experimental.asyncContext,
     _websocket: nitro.options.experimental.websocket,
     _tasks: nitro.options.experimental.tasks,
+    _compressPublicAssets: getCompressPublicAssetsOption(),
   };
 
   // Universal import.meta
