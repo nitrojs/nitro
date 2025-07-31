@@ -27,198 +27,208 @@ export async function nitro(
     _serviceBundles: {},
   };
 
-  return [
-    mainPlugin(ctx),
-    nitroServicePlugin(ctx),
-    nitroPrepareOutputPlugin(ctx),
-  ];
+  return [mainPlugin(ctx), nitroServicePlugin(ctx)];
 }
 
-function mainPlugin(ctx: NitroPluginContext): VitePlugin {
-  return {
-    name: "nitro:main",
+function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
+  return [
+    {
+      name: "nitro:main",
 
-    // Opt-in this plugin into the shared plugins pipeline
-    sharedDuringBuild: true,
+      // Opt-in this plugin into the shared plugins pipeline
+      sharedDuringBuild: true,
 
-    // Extend vite config before it's resolved
-    async config(userConfig, configEnv) {
-      // Initialize a new Nitro instance
-      ctx.nitro = await createNitro({
-        dev: configEnv.mode === "development",
-        rootDir: userConfig.root,
-        compatibilityDate: "latest",
-        imports: false,
-        typescript: {
-          generateRuntimeConfigTypes: false,
-          generateTsConfig: false,
-        },
-        handlers: [
-          {
-            route: "/**",
-            handler: resolve(runtimeDir, "internal/vite/dispatcher.mjs"),
+      // Extend vite config before it's resolved
+      async config(userConfig, configEnv) {
+        // Initialize a new Nitro instance
+        ctx.nitro = await createNitro({
+          dev: configEnv.mode === "development",
+          rootDir: userConfig.root,
+          compatibilityDate: "latest",
+          imports: false,
+          typescript: {
+            generateRuntimeConfigTypes: false,
+            generateTsConfig: false,
           },
-        ],
-        ...ctx.pluginConfig.config,
-      });
+          handlers: [
+            {
+              route: "/**",
+              handler: resolve(runtimeDir, "internal/vite/dispatcher.mjs"),
+            },
+          ],
+          ...ctx.pluginConfig.config,
+        });
 
-      // Auto config default (ssr) service
-      if (!ctx.pluginConfig.services?.ssr) {
-        ctx.pluginConfig.services ??= {};
-        if (userConfig.environments?.ssr === undefined) {
-          const serverEntry = resolveModulePath("./server", {
-            from: [
-              join(ctx.nitro.options.srcDir, "/"),
-              join(ctx.nitro.options.rootDir, "src/"),
-            ],
-            extensions: [".ts", ".js", ".mts", ".mjs", ".tsx", ".jsx"],
-            try: true,
-          });
-          if (serverEntry) {
-            ctx.nitro!.logger.info(
-              `Using \`${prettyPath(serverEntry)}\` as the server entry.`
-            );
-            ctx.pluginConfig.services.ssr = { entry: serverEntry };
-          }
-        } else {
-          const input = userConfig.environments.ssr.build?.rollupOptions?.input;
-          if (typeof input === "string") {
-            ctx.pluginConfig.services.ssr = {
-              entry: input,
-            };
+        // Auto config default (ssr) service
+        if (!ctx.pluginConfig.services?.ssr) {
+          ctx.pluginConfig.services ??= {};
+          if (userConfig.environments?.ssr === undefined) {
+            const serverEntry = resolveModulePath("./server", {
+              from: [
+                join(ctx.nitro.options.srcDir, "/"),
+                join(ctx.nitro.options.rootDir, "src/"),
+              ],
+              extensions: [".ts", ".js", ".mts", ".mjs", ".tsx", ".jsx"],
+              try: true,
+            });
+            if (serverEntry) {
+              ctx.nitro!.logger.info(
+                `Using \`${prettyPath(serverEntry)}\` as the server entry.`
+              );
+              ctx.pluginConfig.services.ssr = { entry: serverEntry };
+            }
           } else {
-            this.error(
-              `Invalid input type for SSR entry point. Expected a string.`
-            );
+            const input =
+              userConfig.environments.ssr.build?.rollupOptions?.input;
+            if (typeof input === "string") {
+              ctx.pluginConfig.services.ssr = {
+                entry: input,
+              };
+            } else {
+              this.error(
+                `Invalid input type for SSR entry point. Expected a string.`
+              );
+            }
           }
         }
-      }
 
-      // Determine default Vite dist directory
-      const publicDistDir = (ctx._publicDistDir =
-        userConfig.build?.outDir ||
-        resolve(ctx.nitro.options.buildDir, "vite/public"));
-      ctx.nitro.options.publicAssets.push({
-        dir: publicDistDir,
-        maxAge: 0,
-        baseURL: "/",
-        fallthrough: true,
-      });
-
-      // Nitro Vite Production Runtime
-      if (!ctx.nitro.options.dev) {
-        ctx.nitro.options.unenv.push({
-          meta: { name: "nitro-vite" },
-          polyfill: ["#nitro-vite-entry"],
+        // Determine default Vite dist directory
+        const publicDistDir = (ctx._publicDistDir =
+          userConfig.build?.outDir ||
+          resolve(ctx.nitro.options.buildDir, "vite/public"));
+        ctx.nitro.options.publicAssets.push({
+          dir: publicDistDir,
+          maxAge: 0,
+          baseURL: "/",
+          fallthrough: true,
         });
-      }
 
-      // Call build:before hook **before resolving rollup config** for compatibility
-      await ctx.nitro.hooks.callHook("build:before", ctx.nitro);
+        // Nitro Vite Production Runtime
+        if (!ctx.nitro.options.dev) {
+          ctx.nitro.options.unenv.push({
+            meta: { name: "nitro-vite" },
+            polyfill: ["#nitro-vite-entry"],
+          });
+        }
 
-      // Resolve common rollup options
-      ctx.rollupConfig = await getViteRollupConfig(ctx);
+        // Call build:before hook **before resolving rollup config** for compatibility
+        await ctx.nitro.hooks.callHook("build:before", ctx.nitro);
 
-      return {
-        // Don't include HTML middlewares
-        appType: userConfig.appType || "custom",
+        // Resolve common rollup options
+        ctx.rollupConfig = await getViteRollupConfig(ctx);
 
-        // Add Nitro as a Vite environment
-        environments: {
-          client: {
-            consumer: userConfig.environments?.client?.consumer || "client",
+        return {
+          // Don't include HTML middlewares
+          appType: userConfig.appType || "custom",
+
+          // Add Nitro as a Vite environment
+          environments: {
+            client: {
+              consumer: userConfig.environments?.client?.consumer || "client",
+            },
+            ...createServiceEnvironments(ctx),
+            nitro: createNitroEnvironment(ctx),
           },
-          ...createServiceEnvironments(ctx),
-          nitro: createNitroEnvironment(ctx),
-        },
 
-        resolve: {
-          // TODO: environment specific aliases not working
-          // https://github.com/vitejs/vite/pull/17583 (seems not effective)
-          alias: ctx.rollupConfig.base.aliases,
-        },
+          resolve: {
+            // TODO: environment specific aliases not working
+            // https://github.com/vitejs/vite/pull/17583 (seems not effective)
+            alias: ctx.rollupConfig.base.aliases,
+          },
 
-        build: {
-          // TODO: Support server environment emitted assets
-          assetsInlineLimit: 4096 * 4,
-        },
+          build: {
+            // TODO: Support server environment emitted assets
+            assetsInlineLimit: 4096 * 4,
+          },
 
-        builder: {
-          /// Share the config instance among environments to align with the behavior of dev server
-          sharedConfigBuild: true,
-        },
-      };
-    },
-
-    buildApp: {
-      order: "post",
-      handler(builder) {
-        return buildProduction(ctx, builder);
+          builder: {
+            /// Share the config instance among environments to align with the behavior of dev server
+            sharedConfigBuild: true,
+          },
+        };
       },
-    },
 
-    generateBundle: {
-      handler(_options, bundle) {
-        const { root } = this.environment.config;
+      buildApp: {
+        order: "post",
+        handler(builder) {
+          return buildProduction(ctx, builder);
+        },
+      },
+
+      generateBundle: {
+        handler(_options, bundle) {
+          const { root } = this.environment.config;
+          const services = ctx.pluginConfig.services || {};
+          const serviceNames = Object.keys(services);
+          const isRegisteredService = serviceNames.includes(
+            this.environment.name
+          );
+
+          // find entry point of this service
+          let entryFile: string | undefined;
+          for (const [_name, file] of Object.entries(bundle)) {
+            if (file.type === "chunk") {
+              if (isRegisteredService && file.isEntry) {
+                if (entryFile !== undefined) {
+                  this.error(
+                    `Multiple entry points found for service "${this.environment.name}". Only one entry point is allowed.`
+                  );
+                }
+                entryFile = file.fileName;
+              }
+              const filteredModuleIds = file.moduleIds.filter((id) =>
+                id.startsWith(root)
+              );
+              for (const id of filteredModuleIds) {
+                const originalFile = relative(root, id);
+                ctx._manifest[originalFile] = { file: file.fileName };
+              }
+            }
+          }
+          if (isRegisteredService) {
+            if (entryFile === undefined) {
+              this.error(
+                `No entry point found for service "${this.environment.name}".`
+              );
+            }
+            ctx._entryPoints![this.environment.name] = entryFile!;
+            ctx._serviceBundles[this.environment.name] = bundle;
+          }
+        },
+      },
+
+      // Modify environment configs before it's resolved.
+      configEnvironment(name, config) {
+        if (config.consumer === "client") {
+          config.build!.emptyOutDir = false;
+          config.build!.outDir = ctx.nitro!.options.output.publicDir;
+        }
+
         const services = ctx.pluginConfig.services || {};
         const serviceNames = Object.keys(services);
-        const isRegisteredService = serviceNames.includes(
-          this.environment.name
-        );
-
-        // find entry point of this service
-        let entryFile: string | undefined;
-        for (const [_name, file] of Object.entries(bundle)) {
-          if (file.type === "chunk") {
-            if (isRegisteredService && file.isEntry) {
-              if (entryFile !== undefined) {
-                this.error(
-                  `Multiple entry points found for service "${this.environment.name}". Only one entry point is allowed.`
-                );
-              }
-              entryFile = file.fileName;
-            }
-            const filteredModuleIds = file.moduleIds.filter((id) =>
-              id.startsWith(root)
-            );
-            for (const id of filteredModuleIds) {
-              const originalFile = relative(root, id);
-              ctx._manifest[originalFile] = { file: file.fileName };
-            }
-          }
-        }
-        if (isRegisteredService) {
-          if (entryFile === undefined) {
-            this.error(
-              `No entry point found for service "${this.environment.name}".`
-            );
-          }
-          ctx._entryPoints![this.environment.name] = entryFile!;
-          ctx._serviceBundles[this.environment.name] = bundle;
+        if (serviceNames.includes(name)) {
+          // we don't write to the file system
+          // instead, the generateBundle hook will capture the output and write it to the virtual file system to be used by the nitro build later
+          config.build ??= {};
+          config.build.write = false;
         }
       },
+
+      // Extend Vite dev server with Nitro middleware
+      configureServer: (server) => configureViteDevServer(ctx, server),
     },
-
-    // Modify environment configs before it's resolved.
-    configEnvironment(name, config) {
-      if (config.consumer === "client") {
-        config.build!.emptyOutDir = false;
-        config.build!.outDir = ctx.nitro!.options.output.publicDir;
-      }
-
-      const services = ctx.pluginConfig.services || {};
-      const serviceNames = Object.keys(services);
-      if (serviceNames.includes(name)) {
-        // we don't write to the file system
-        // instead, the generateBundle hook will capture the output and write it to the virtual file system to be used by the nitro build later
-        config.build ??= {};
-        config.build.write = false;
-      }
+    {
+      name: "nitro:prepare",
+      buildApp: {
+        // clean the output directory before any environment is built
+        order: "pre",
+        async handler() {
+          const nitro = ctx.nitro!;
+          await prepare(nitro);
+        },
+      },
     },
-
-    // Extend Vite dev server with Nitro middleware
-    configureServer: (server) => configureViteDevServer(ctx, server),
-  };
+  ];
 }
 
 function nitroServicePlugin(ctx: NitroPluginContext): VitePlugin {
@@ -304,20 +314,6 @@ function nitroServicePlugin(ctx: NitroPluginContext): VitePlugin {
             return resolved;
           }
         }
-      },
-    },
-  };
-}
-
-function nitroPrepareOutputPlugin(ctx: NitroPluginContext): VitePlugin {
-  return {
-    name: "nitro:prepare-output",
-    buildApp: {
-      // clean the output directory before any environment is built
-      order: "pre",
-      async handler() {
-        const nitro = ctx.nitro!;
-        await prepare(nitro);
       },
     },
   };
