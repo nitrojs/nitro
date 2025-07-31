@@ -202,7 +202,6 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin {
     // Modify environment configs before it's resolved.
     configEnvironment(name, config) {
       if (config.consumer === "client") {
-        config.build!.manifest = true;
         config.build!.emptyOutDir = false;
         config.build!.outDir = ctx.nitro!.options.output.publicDir;
       }
