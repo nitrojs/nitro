@@ -105,8 +105,14 @@ function comparePaths(a: string, b: string) {
   return a.split("/").length - b.split("/").length || a.localeCompare(b);
 }
 
-export async function writeCFHeaders(nitro: Nitro) {
-  const headersPath = join(nitro.options.output.dir, "_headers");
+/**
+ * Writes Cloudflare `_headers` file for route rules.
+ *
+ * @param {Nitro} nitro - Nitro instance
+ * @param {boolean} usePublicDir - Whether to write to the public directory, which is required in the CF Worker environment. CF Pages can utilize `false`. Defaults to `false`.
+ */
+export async function writeCFHeaders(nitro: Nitro, usePublicDir: boolean = false) {
+  const headersPath = join(usePublicDir ? nitro.options.output.publicDir : nitro.options.output.dir, '_headers');
   const contents = [];
 
   const rules = Object.entries(nitro.options.routeRules).sort(
