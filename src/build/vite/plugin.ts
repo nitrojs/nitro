@@ -2,7 +2,7 @@ import { type PluginOption as VitePlugin } from "vite";
 import type { Plugin as RollupPlugin } from "rollup";
 import type { NitroPluginConfig, NitroPluginContext } from "./types";
 import { join, resolve, relative } from "pathe";
-import { createNitro } from "../..";
+import { createNitro, prepare } from "../..";
 import { getViteRollupConfig } from "./rollup";
 import { buildProduction, prodEntry } from "./prod";
 import { createNitroEnvironment, createServiceEnvironments } from "./env";
@@ -27,7 +27,11 @@ export async function nitro(
     _serviceBundles: {},
   };
 
-  return [mainPlugin(ctx), nitroServicePlugin(ctx)];
+  return [
+    mainPlugin(ctx),
+    nitroServicePlugin(ctx),
+    nitroPrepareOutputPlugin(ctx),
+  ];
 }
 
 function mainPlugin(ctx: NitroPluginContext): VitePlugin {
@@ -301,6 +305,20 @@ function nitroServicePlugin(ctx: NitroPluginContext): VitePlugin {
             return resolved;
           }
         }
+      },
+    },
+  };
+}
+
+function nitroPrepareOutputPlugin(ctx: NitroPluginContext): VitePlugin {
+  return {
+    name: "nitro:prepare-output",
+    buildApp: {
+      // clean the output directory before any environment is built
+      order: "pre",
+      async handler() {
+        const nitro = ctx.nitro!;
+        await prepare(nitro);
       },
     },
   };
