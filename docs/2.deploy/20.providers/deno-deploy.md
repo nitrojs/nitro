@@ -21,7 +21,7 @@ cd .output
 deployctl deploy --project=my-project server/index.ts
 ```
 
-## Deploy within CI/CD using gitHub actions
+## Deploy within CI/CD using GitHub actions
 
 You just need to include the deployctl GitHub Action as a step in your workflow.
 
