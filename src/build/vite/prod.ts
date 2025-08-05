@@ -3,7 +3,7 @@ import type { NitroPluginContext } from "./types";
 
 import { relative } from "pathe";
 import { formatCompatibilityDate } from "compatx";
-import { copyPublicAssets, prepare, prerender } from "../..";
+import { copyPublicAssets, prerender } from "../..";
 import { nitroServerName } from "../../utils/nitro";
 
 export async function buildOtherEnvironments(
@@ -11,9 +11,6 @@ export async function buildOtherEnvironments(
   builder: ViteBuilder
 ) {
   const nitro = ctx.nitro!;
-
-  // Cleanup build directories before building
-  await prepare(nitro);
 
   // Build all environments before the final Nitro server bundle
   for (const [name, env] of Object.entries(builder.environments)) {
