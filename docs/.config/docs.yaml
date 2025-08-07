@@ -3,6 +3,6 @@ name: Nitro
 shortDescription: Ship Full-stack Vite Apps
 description: Add server API routes to any Vite apps and deploy with zero configuration on your favorite hosting platform.
 github: nitrojs/nitro
-url: https://nitro.build
+url: https://v3.nitro.build
 themeColor: "rose"
 automd: true
