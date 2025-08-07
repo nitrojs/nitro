@@ -210,7 +210,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
           // we need to write a rule to avoid route being shadowed by another cache rule elsewhere
           return {
             src,
-            dest: "/__nitro",
+            dest: "/__fallback",
           };
         }
         return {
@@ -223,13 +223,13 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
       ? [
           {
             src: "(?<url>/)",
-            dest: "/__nitro-index?url=$url",
+            dest: "/__fallback-index?url=$url",
           },
         ]
       : []),
     // Observability routes
     ...(o11Routes || []).map((route) => ({
-      src: route.src,
+      src: joinURL(nitro.options.baseURL, route.src),
       dest: "/" + route.dest,
     })),
     // If we are using an ISR function as a fallback
@@ -239,7 +239,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
       : [
           {
             src: "/(.*)",
-            dest: "/__nitro",
+            dest: "/__fallback",
           },
         ])
   );
@@ -249,10 +249,10 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
 
 function generateEndpoint(url: string) {
   if (url === "/") {
-    return "/__nitro-index";
+    return "/__fallback-index";
   }
   return url.includes("/**")
-    ? "/__nitro-" +
+    ? "/__fallback-" +
         withoutLeadingSlash(url.replace(/\/\*\*.*/, "").replace(/[^a-z]/g, "-"))
     : url;
 }

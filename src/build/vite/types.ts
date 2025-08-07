@@ -1,4 +1,4 @@
-import type { OutputChunk } from "rollup";
+import type { OutputBundle } from "rollup";
 import type { getViteRollupConfig } from "./rollup";
 import type { Nitro, NitroConfig } from "nitro/types";
 
@@ -46,7 +46,8 @@ export interface NitroPluginContext {
   pluginConfig: NitroPluginConfig;
   rollupConfig?: ReturnType<typeof getViteRollupConfig>;
 
-  _manifest?: Record<string, any>;
+  _manifest: Record<string, { file: string }>;
   _publicDistDir?: string;
-  _buildResults?: Record<string, OutputChunk>;
+  _entryPoints: Record<string, string>;
+  _serviceBundles: Record<string, OutputBundle>;
 }

@@ -6,6 +6,7 @@ import { join, resolve } from "node:path";
 import { runtimeDependencies, runtimeDir } from "nitro/runtime/meta";
 import { resolveModulePath } from "exsolve";
 import { createFetchableDevEnvironment } from "./dev";
+import { isAbsolute } from "pathe";
 
 export function createNitroEnvironment(
   ctx: NitroPluginContext
@@ -83,10 +84,7 @@ export function createServiceEnvironment(
             data: {
               name: name,
               server: true,
-              viteEntry: resolveModulePath(serviceConfig.entry, {
-                suffixes: ["", "/index"],
-                extensions: ["", ".ts", ".mjs", ".cjs", ".js", ".mts", ".cts"],
-              }),
+              viteEntry: tryResolve(serviceConfig.entry),
               globals: {},
             },
             hooks: {},
@@ -105,4 +103,16 @@ export function createServiceEnvironments(
       createServiceEnvironment(ctx, name, config),
     ])
   );
+}
+
+function tryResolve(id: string) {
+  if (/^[~#/\0]/.test(id) || isAbsolute(id)) {
+    return id;
+  }
+  const resolved = resolveModulePath(id, {
+    suffixes: ["", "/index"],
+    extensions: ["", ".ts", ".mjs", ".cjs", ".js", ".mts", ".cts"],
+    try: true,
+  });
+  return resolved || id;
 }

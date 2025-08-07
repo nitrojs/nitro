@@ -14,15 +14,7 @@ export async function resolvePathOptions(options: NitroOptions) {
   for (const key of ["srcDir", "buildDir"] as const) {
     options[key] = resolve(options.rootDir, options[key] || ".");
   }
-
-  // Add aliases
-  options.alias = {
-    ...options.alias,
-    "~/": join(options.srcDir, "/"),
-    "@/": join(options.srcDir, "/"),
-    "~~/": join(options.rootDir, "/"),
-    "@@/": join(options.rootDir, "/"),
-  };
+  options.alias ??= {};
 
   // Resolve possibly template paths
   if (!options.static && !options.entry) {
