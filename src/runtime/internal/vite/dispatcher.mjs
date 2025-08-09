@@ -8,5 +8,16 @@ export default defineHandler(async (event) => {
   }
   return fetch(new URL(`/${m.params?._ || ""}${event.url.search}`, event.url), {
     viteEnv: m.data.service,
+    method: event.req.method,
+    headers: event.req.headers,
+    body: event.req.body,
+    credentials: event.req.credentials,
+    keepalive: event.req.keepalive,
+    cache: event.req.cache,
+    redirect: event.req.redirect,
+    referrer: event.req.referrer,
+    referrerPolicy: event.req.referrerPolicy,
+    integrity: event.req.integrity,
+    mode: event.req.mode,
   });
 });
