@@ -9,6 +9,7 @@ export default defineHandler(async (event) => {
   return fetch(new URL(`/${m.params?._ || ""}${event.url.search}`, event.url), {
     viteEnv: m.data.service,
     method: event.req.method,
+    // TODO: Clone headers or full RequestInit
     headers: event.req.headers,
     body: event.req.body,
     credentials: event.req.credentials,
