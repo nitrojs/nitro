@@ -17,9 +17,7 @@ import { prettyPath } from "../../utils/fs";
 // https://vite.dev/guide/api-environment-plugins
 // https://vite.dev/guide/api-environment-frameworks.html
 
-export async function nitro(
-  pluginConfig: NitroPluginConfig = {}
-): Promise<VitePlugin> {
+export function nitro(pluginConfig: NitroPluginConfig = {}): VitePlugin {
   const ctx: NitroPluginContext = {
     pluginConfig,
     _entryPoints: {},
