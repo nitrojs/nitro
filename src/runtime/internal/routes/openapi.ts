@@ -68,10 +68,11 @@ function getHandlersMeta(): {
   let globals: OpenAPIGlobals = {};
 
   for (const h of handlersMeta) {
-    const { route, parameters } = normalizeRoute(h.route || "");
+    const { $global, ...openAPI } = h.meta?.openAPI || {};
+    const { route, parameters: _parameters } = normalizeRoute(h.route || "", openAPI);
+    const parameters = defu(openAPI.parameters || [], _parameters);
     const tags = defaultTags(h.route || "");
     const method = (h.method || "get").toLowerCase() as Lowercase<HTTPMethod>;
-    const { $global, ...openAPI } = h.meta?.openAPI || {};
 
     const item: PathItemObject = {
       [method]: <OperationObject>{
@@ -99,8 +100,9 @@ function getHandlersMeta(): {
   return { paths, globals };
 }
 
-function normalizeRoute(_route: string) {
+function normalizeRoute(_route: string, openAPI: OperationObject) {
   const parameters: ParameterObject[] = [];
+  const userDefinedParameters = (Array.isArray(openAPI.parameters) ? openAPI.parameters : []) as ParameterObject[];
 
   let anonymousCtr = 0;
   const route = _route
@@ -113,6 +115,12 @@ function normalizeRoute(_route: string) {
   for (const match of paramMatches) {
     const name = match[1];
     if (!parameters.some((p) => p.name === name)) {
+      if (userDefinedParameters.some((p) => p.name === name)) {
+        /**
+         * If user has already defined the path variable, let that take precedence.
+         */
+        continue;
+      }
       parameters.push({
         name,
         in: "path",
