@@ -10,6 +10,7 @@ import type {
   VercelServerlessFunctionConfig,
 } from "./types";
 import { isTest } from "std-env";
+import { ISR_URL_PARAM } from "./runtime/consts";
 
 // https://vercel.com/docs/build-output-api/configuration
 
@@ -217,8 +218,8 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
           src,
           dest:
             nitro.options.preset === "vercel-edge"
-              ? "/__fallback?url=$url"
-              : generateEndpoint(key) + "?url=$url",
+              ? `/__fallback?${ISR_URL_PARAM}=$url`
+              : generateEndpoint(key) + `?${ISR_URL_PARAM}=$url`,
         };
       }),
     // If we are using an ISR function for /, then we need to write this explicitly
@@ -226,7 +227,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
       ? [
           {
             src: "(?<url>/)",
-            dest: "/__fallback-index?url=$url",
+            dest: `/_fallback-index?${ISR_URL_PARAM}=$url`,
           },
         ]
       : []),
