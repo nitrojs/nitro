@@ -15,7 +15,7 @@ const listener: NodeListener = function (req, res) {
     if (url) {
       req.url = url as string;
     }
-  } else if (req.url?.startsWith("/__fallback")) {
+  } else if (req.url?.startsWith("/__fallback--")) {
     // Workaround for ISR functions with passQuery: true
     // /__fallback--api-weather?url=%2Fapi%2Fweather%2Famsterdam&units=123"
     const urlQueryIndex = req.url.indexOf("?url=");
