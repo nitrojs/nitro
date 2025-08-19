@@ -4,16 +4,14 @@ import type { Nitro } from "nitropack/types";
 export function createVFSHandler(nitro: Nitro) {
   return eventHandler(async (event) => {
     const { socket } = event.node.req;
+    // prettier-ignore
     const isUnixSocket =
       // No network addresses
-      !socket.remoteAddress &&
-      !socket.localAddress &&
+      (!socket?.remoteAddress && !socket?.localAddress) &&
       // Empty address object
-      Object.keys(socket.address()).length === 0 &&
+      Object.keys(socket?.address?.() || {}).length === 0 &&
       // Socket is readable/writable but has no port info
-      socket.readable &&
-      socket.writable &&
-      !socket.remotePort;
+      socket?.readable && socket?.writable && !socket?.remotePort;
 
     const ip = getRequestIP(event, { xForwardedFor: isUnixSocket });
     const isLocalRequest = ip && /^::1$|^127\.\d+\.\d+\.\d+$/.test(ip);
