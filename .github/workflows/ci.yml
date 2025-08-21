@@ -1,4 +1,4 @@
-name: checks
+name: ci
 
 on:
   push: { branches: [v2, v3] }
