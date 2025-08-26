@@ -104,5 +104,6 @@ export default defineHandler((event) => {
     event.res.headers.set("Content-Length", asset.size.toString());
   }
 
-  return readAsset(id);
+  // TODO: Promise.resolve is to fix Bun as it returns a thenable
+  return Promise.resolve(readAsset(id));
 }) as EventHandler;
