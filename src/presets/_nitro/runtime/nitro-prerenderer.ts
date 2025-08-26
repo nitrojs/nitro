@@ -12,16 +12,15 @@ export const closePrerenderer = () => nitroApp.hooks.callHook("close");
 
 nitroApp.hooks.hook("error", (error, context) => {
   if (
-    isEvent(context.event) &&
+    context.request &&
     !(error as HTTPError).unhandled &&
     (error as HTTPError).status >= 500 &&
-    context.event.req.headers.get("x-nitro-prerender")
+    context.request.headers.get("x-nitro-prerender")
   ) {
-    const url = getRequestURL(context.event).href;
     consola.error(
       `[prerender error]`,
-      `[${context.event.req.method}]`,
-      `[${url}]`,
+      `[${context.request.method}]`,
+      `[${context.request.url}]`,
       error
     );
   }

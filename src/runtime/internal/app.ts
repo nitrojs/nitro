@@ -120,7 +120,10 @@ function createH3App(captureError: CaptureError) {
   const h3App = new H3({
     debug: DEBUG_MODE,
     onError: (error, event) => {
-      captureError(error, { event, tags: ["request"] });
+      captureError(error, {
+        request: event.req as ServerRequest,
+        tags: ["request"],
+      });
       return errorHandler(error, event);
     },
   });
