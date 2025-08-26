@@ -65,7 +65,7 @@ importers:
         version: 9.1.0
       crossws:
         specifier: ^0.4.1
-        version: 0.4.1(srvx@0.8.6)
+        version: 0.4.1(srvx@0.8.7)
       db0:
         specifier: ^0.3.2
         version: 0.3.2
@@ -104,7 +104,7 @@ importers:
         version: 7.0.0
       h3:
         specifier: 2.0.0-beta.3
-        version: 2.0.0-beta.3(crossws@0.4.1(srvx@0.8.6))
+        version: 2.0.0-beta.3(crossws@0.4.1(srvx@0.8.7))
       hookable:
         specifier: ^5.5.3
         version: 5.5.3
@@ -181,8 +181,8 @@ importers:
         specifier: ^0.7.6
         version: 0.7.6
       srvx:
-        specifier: ^0.8.6
-        version: 0.8.6
+        specifier: ^0.8.7
+        version: 0.8.7
       std-env:
         specifier: ^3.9.0
         version: 3.9.0
@@ -5897,8 +5897,8 @@ packages:
   spdx-license-ids@3.0.22:
     resolution: {integrity: sha512-4PRT4nh1EImPbt2jASOKHX7PB7I+e4IWNLvkKFDxNhJlfjbYlleYQh285Z/3mPTHSAK/AvdMmw5BNNuYH8ShgQ==}
 
-  srvx@0.8.6:
-    resolution: {integrity: sha512-jnIxPn5A7ugRKGZ/+TlcD2hKIkMx64aTAk1ct0y+S4MWXIzTbpq+7B1gdpZTwJZvNJu5/ayx7c/1YT0pAmD0Kw==}
+  srvx@0.8.7:
+    resolution: {integrity: sha512-g3+15LlwVOGL2QpoTPZlvRjg+9a5Tx/69CatXjFP6txvhIaW2FmGyzJfb8yft5wyfGddvJmP/Yx+e/uNDMRSLQ==}
     engines: {node: '>=20.16.0'}
     hasBin: true
 
@@ -9657,9 +9657,9 @@ snapshots:
     dependencies:
       uncrypto: 0.1.3
 
-  crossws@0.4.1(srvx@0.8.6):
+  crossws@0.4.1(srvx@0.8.7):
     optionalDependencies:
-      srvx: 0.8.6
+      srvx: 0.8.7
 
   crypt@0.0.2: {}
 
@@ -10624,14 +10624,14 @@ snapshots:
       ufo: 1.6.1
       uncrypto: 0.1.3
 
-  h3@2.0.0-beta.3(crossws@0.4.1(srvx@0.8.6)):
+  h3@2.0.0-beta.3(crossws@0.4.1(srvx@0.8.7)):
     dependencies:
       cookie-es: 2.0.0
       fetchdts: 0.1.6
       rou3: 0.7.3
-      srvx: 0.8.6
+      srvx: 0.8.7
     optionalDependencies:
-      crossws: 0.4.1(srvx@0.8.6)
+      crossws: 0.4.1(srvx@0.8.7)
 
   has-flag@4.0.0: {}
 
@@ -12969,7 +12969,7 @@ snapshots:
 
   spdx-license-ids@3.0.22: {}
 
-  srvx@0.8.6:
+  srvx@0.8.7:
     dependencies:
       cookie-es: 2.0.0
 

@@ -107,7 +107,7 @@
     "serve-placeholder": "^2.0.2",
     "serve-static": "^2.2.0",
     "source-map": "^0.7.6",
-    "srvx": "^0.8.6",
+    "srvx": "^0.8.7",
     "std-env": "^3.9.0",
     "ufo": "^1.6.1",
     "ultrahtml": "^1.6.0",
