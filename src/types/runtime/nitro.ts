@@ -39,8 +39,11 @@ export interface RenderContext {
 }
 
 export interface CapturedErrorContext {
+  request?: ServerRequest;
+  tags?: string[];
+
+  /** @deprecated */
   event?: H3Event;
-  [key: string]: unknown;
 }
 
 export type CaptureError = (
@@ -52,8 +55,8 @@ export interface NitroRuntimeHooks {
   close: () => void;
   error: CaptureError;
 
-  request: NonNullable<H3Config["onRequest"]>;
-  response: NonNullable<H3Config["onResponse"]>;
+  request: (req: ServerRequest) => void | Promise<void>;
+  response: (res: Response, req: ServerRequest) => void | Promise<void>;
 
   "render:before": (context: RenderContext) => void;
 

@@ -7,7 +7,7 @@ import { parseQuery } from "ufo";
 
 const nitroApp = useNitroApp();
 
-const appHandler = toNodeHandler(nitroApp.h3App.fetch);
+const appHandler = toNodeHandler(nitroApp.fetch);
 
 const listener: NodeHttpHandler = function (req, res) {
   const query = req.headers["x-now-route-matches"] as string;

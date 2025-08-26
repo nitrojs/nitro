@@ -1,100 +1,134 @@
-import destr from "destr";
-import type { HTTPError, H3EventContext } from "h3";
-import { H3, isEvent, lazyEventHandler } from "h3";
-import { createHooks } from "hookable";
-import type { CaptureError, NitroApp, NitroRuntimeHooks } from "nitro/types";
-import type { NitroAsyncContext } from "nitro/types";
-import { Headers, createFetch } from "ofetch";
+import type { ServerRequest } from "srvx";
+import type {
+  CaptureError,
+  NitroApp,
+  NitroAsyncContext,
+  NitroRuntimeHooks,
+} from "nitro/types";
+
+import { H3, lazyEventHandler } from "h3";
+import { createFetch } from "ofetch";
 import { cachedEventHandler } from "./cache";
-import { useRuntimeConfig } from "./config";
-import { nitroAsyncContext } from "./context";
 import { createRouteRulesHandler, getRouteRulesForPath } from "./route-rules";
 
 // IMPORTANT: virtuals and user code should be imported last to avoid initialization order issues
 import errorHandler from "#nitro-internal-virtual/error-handler";
 import { plugins } from "#nitro-internal-virtual/plugins";
 import { handlers } from "#nitro-internal-virtual/server-handlers";
+import { createHooks } from "hookable";
+import { nitroAsyncContext } from "./context";
+
+export const nitroApp: NitroApp = createNitroApp();
+
+export function useNitroApp() {
+  return nitroApp;
+}
+
+for (const plugin of plugins) {
+  try {
+    plugin(nitroApp);
+  } catch (error: any) {
+    nitroApp.captureError(error, { tags: ["plugin"] });
+    throw error;
+  }
+}
 
 function createNitroApp(): NitroApp {
-  const config = useRuntimeConfig();
-
   const hooks = createHooks<NitroRuntimeHooks>();
 
-  const captureError: CaptureError = (error, context = {}) => {
+  const captureError: CaptureError = (error, errorCtx) => {
     const promise = hooks
-      .callHookParallel("error", error, context)
-      .catch((error_) => {
-        console.error("Error while capturing another error", error_);
+      .callHookParallel("error", error, errorCtx)
+      .catch((hookError) => {
+        console.error("Error while capturing another error", hookError);
       });
-    if (context.event && isEvent(context.event)) {
-      const errors = context.event.context.nitro?.errors;
+    if (errorCtx?.request) {
+      const errors = errorCtx.request.context?.nitro?.errors;
       if (errors) {
-        errors.push({ error, context });
+        errors.push({ error, context: errorCtx });
       }
-      if (context.event.waitUntil) {
-        context.event.waitUntil(promise);
+      if (typeof errorCtx.request.waitUntil === "function") {
+        errorCtx.request.waitUntil(promise);
       }
     }
   };
 
-  const h3App = new H3({
-    debug: destr(process.env.DEBUG),
-    onError: (error, event) => {
-      captureError(error, { event, tags: ["request"] });
-      return errorHandler(error as HTTPError, event);
-    },
-    onRequest: async (event) => {
-      event.context.nitro = event.context.nitro || { errors: [] };
-      await nitroApp.hooks.callHook("request", event).catch((error) => {
-        captureError(error, { event, tags: ["request"] });
-      });
-    },
-    onResponse: async (response, event) => {
-      await nitroApp.hooks
-        .callHook("response", response, event)
-        .catch((error) => {
-          captureError(error, { event, tags: ["request", "response"] });
-        });
-    },
-  });
+  const h3App = createH3App(captureError);
+
+  let fetchHandler = async (req: ServerRequest): Promise<Response> => {
+    req.context ??= {};
+    req.context.nitro = req.context.nitro || { errors: [] };
+
+    await nitroApp.hooks.callHook("request", req).catch((error) => {
+      captureError(error, { request: req, tags: ["request"] });
+    });
+
+    const response = await h3App.request(req, undefined, req.context);
+
+    await nitroApp.hooks.callHook("response", response, req).catch((error) => {
+      captureError(error, { request: req, tags: ["request", "response"] });
+    });
+
+    return response;
+  };
 
   // Experimental async context support
   if (import.meta._asyncContext) {
-    h3App.use((event, next) => {
-      const ctx: NitroAsyncContext = { request: event.req as Request };
-      return nitroAsyncContext.callAsync(ctx, next);
-    });
+    const originalFetchHandler = fetchHandler;
+    fetchHandler = (req: ServerRequest): Promise<Response> => {
+      const asyncCtx: NitroAsyncContext = { request: req as Request };
+      return nitroAsyncContext.callAsync(asyncCtx, () =>
+        originalFetchHandler(req)
+      );
+    };
   }
 
-  const appFetch = (
-    input: string | URL | Request,
+  const requestHandler: (
+    input: ServerRequest | URL | string,
     init?: RequestInit,
-    ctx?: H3EventContext
-  ) => {
-    return Promise.resolve(h3App.request(input, init, ctx));
-  };
-
-  const hybridFetch: typeof fetch = (input, init) => {
-    if (!input.toString().startsWith("/")) {
-      return globalThis.fetch(input, init);
-    }
-    return appFetch(input, init);
+    context?: any
+  ) => Promise<Response> = (input, init, context) => {
+    const req = toRequest(input, init);
+    req.context = { ...req.context, ...context };
+    return Promise.resolve(fetchHandler(req));
   };
 
   const $fetch = createFetch({
-    fetch: hybridFetch,
-    Headers,
-    defaults: { baseURL: config.app.baseURL },
+    fetch: (input, init) => {
+      if (!input.toString().startsWith("/")) {
+        return globalThis.fetch(input, init);
+      }
+      return requestHandler(input, init);
+    },
   });
 
   // @ts-ignore
   globalThis.$fetch = $fetch;
 
+  const app: NitroApp = {
+    hooks,
+    h3App,
+    fetch: requestHandler,
+    captureError,
+  };
+
+  return app;
+}
+
+function createH3App(captureError: CaptureError) {
+  const DEBUG_MODE = ["1", "true", "TRUE"].includes(process.env.DEBUG + "");
+  const h3App = new H3({
+    debug: DEBUG_MODE,
+    onError: (error, event) => {
+      captureError(error, { event, tags: ["request"] });
+      return errorHandler(error, event);
+    },
+  });
+
   // Register route rule handlers
   h3App.use(createRouteRulesHandler());
 
-  // TODO support baseURL
-
+  // Register server handlers
   for (const h of handlers) {
     let handler = h.lazy ? lazyEventHandler(h.handler) : h.handler;
     if (!h.route) {
@@ -115,31 +149,23 @@ function createNitroApp(): NitroApp {
     }
   }
 
-  const app: NitroApp = {
-    hooks,
-    h3App,
-    fetch: appFetch,
-    captureError,
-  };
-
-  return app;
+  return h3App;
 }
 
-function runNitroPlugins(nitroApp: NitroApp) {
-  for (const plugin of plugins) {
-    try {
-      plugin(nitroApp);
-    } catch (error: any) {
-      nitroApp.captureError(error, { tags: ["plugin"] });
-      throw error;
+// --- internal ---
+
+function toRequest(
+  _request: ServerRequest | URL | string,
+  _init?: RequestInit
+): ServerRequest {
+  if (typeof _request === "string") {
+    let url = _request;
+    if (url[0] === "/") {
+      url = `http://_${url}`;
     }
+    return new Request(url, _init);
+  } else if (_init || _request instanceof URL) {
+    return new Request(_request, _init);
   }
+  return _request;
 }
-
-export const nitroApp: NitroApp = createNitroApp();
-
-export function useNitroApp() {
-  return nitroApp;
-}
-
-runNitroPlugins(nitroApp);

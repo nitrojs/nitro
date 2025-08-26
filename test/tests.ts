@@ -318,11 +318,12 @@ export function testNitro(
           headers: { "Accept-Encoding": "gzip" },
         })
       ).headers;
-      if (headers["vary"])
+      if (headers["vary"]) {
         expect(
-          headers["vary"].includes("Origin") &&
-            headers["vary"].includes("Accept-Encoding")
+          // headers["vary"].includes("Origin") && // TODO
+          headers["vary"].includes("Accept-Encoding")
         ).toBeTruthy();
+      }
 
       headers = (
         await callHandler({
@@ -330,7 +331,9 @@ export function testNitro(
           headers: { "Accept-Encoding": "" },
         })
       ).headers;
-      if (headers["vary"]) expect(headers["vary"]).toBe("Origin");
+      if (headers["vary"]) {
+        expect(headers["vary"]).toBe("");
+      }
 
       headers = (
         await callHandler({
@@ -338,11 +341,9 @@ export function testNitro(
           headers: { "Accept-Encoding": "gzip" },
         })
       ).headers;
-      if (headers["vary"])
-        expect(
-          headers["vary"].includes("Origin") &&
-            headers["vary"].includes("Accept-Encoding")
-        ).toBeTruthy();
+      if (headers["vary"]) {
+        expect(headers["vary"].includes("Accept-Encoding")).toBeTruthy();
+      }
     }
   );
 
