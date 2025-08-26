@@ -45,22 +45,6 @@ function createNitroApp(): NitroApp {
     },
     onRequest: async (event) => {
       event.context.nitro = event.context.nitro || { errors: [] };
-
-      // Add platform context provided by local fetch
-      if (event.context._platform) {
-        Object.assign(event.context, event.context._platform);
-      }
-
-      event.waitUntil = (promise) => {
-        if (!event.context.nitro!._waitUntilPromises) {
-          event.context.nitro!._waitUntilPromises = [];
-        }
-        event.context.nitro!._waitUntilPromises.push(promise);
-        if (event.context.waitUntil) {
-          event.context.waitUntil(promise);
-        }
-      };
-
       await nitroApp.hooks.callHook("request", event).catch((error) => {
         captureError(error, { event, tags: ["request"] });
       });
