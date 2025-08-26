@@ -41,9 +41,6 @@ export interface RenderContext {
 export interface CapturedErrorContext {
   request?: ServerRequest;
   tags?: string[];
-
-  /** @deprecated */
-  event?: H3Event;
 }
 
 export type CaptureError = (
