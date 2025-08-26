@@ -319,10 +319,8 @@ export function testNitro(
         })
       ).headers;
       if (headers["vary"]) {
-        expect(
-          // headers["vary"].includes("Origin") && // TODO
-          headers["vary"].includes("Accept-Encoding")
-        ).toBeTruthy();
+        expect(headers["vary"].includes("Origin")).toBeTruthy();
+        expect(headers["vary"].includes("Accept-Encoding")).toBeTruthy();
       }
 
       headers = (
@@ -332,7 +330,7 @@ export function testNitro(
         })
       ).headers;
       if (headers["vary"]) {
-        expect(headers["vary"]).toBe("");
+        expect(headers["vary"]).toBe("Origin");
       }
 
       headers = (
@@ -342,6 +340,7 @@ export function testNitro(
         })
       ).headers;
       if (headers["vary"]) {
+        expect(headers["vary"].includes("Origin")).toBeTruthy();
         expect(headers["vary"].includes("Accept-Encoding")).toBeTruthy();
       }
     }
