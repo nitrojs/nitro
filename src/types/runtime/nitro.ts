@@ -1,4 +1,4 @@
-import type { H3, HTTPEvent } from "h3";
+import type { H3, H3EventContext, HTTPEvent } from "h3";
 import type { Hookable } from "hookable";
 import type { ServerRequest, ServerRequestContext } from "srvx";
 
@@ -8,7 +8,7 @@ export interface NitroApp {
   fetch: (
     req: string | URL | Request,
     init?: RequestInit,
-    context?: ServerRequestContext
+    context?: ServerRequestContext | H3EventContext
   ) => Promise<Response>;
   captureError: CaptureError;
 }
