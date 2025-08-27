@@ -1,4 +1,5 @@
-import { type H3Event, type HTTPError, getRequestURL } from "h3";
+import type { H3Event, HTTPError, HTTPEvent } from "h3";
+import { getRequestURL } from "h3";
 import { readFile } from "node:fs/promises";
 import { resolve, dirname } from "node:path";
 import consola from "consola";
@@ -6,24 +7,23 @@ import { ErrorParser } from "youch-core";
 import { Youch } from "youch";
 import { SourceMapConsumer } from "source-map";
 import { defineNitroErrorHandler, type InternalHandlerResponse } from "./utils";
+import { FastResponse } from "srvx";
 
 export default defineNitroErrorHandler(
   async function defaultNitroErrorHandler(error, event) {
     const res = await defaultHandler(error, event);
-    event.res.status = res.status;
-    event.res.statusText = res.statusText;
-    for (const [name, value] of Object.entries(res.headers!)) {
-      event.res.headers.set(name, value);
-    }
-    return typeof res.body === "string"
-      ? res.body
-      : JSON.stringify(res.body, null, 2);
+    return new FastResponse(
+      typeof res.body === "string"
+        ? res.body
+        : JSON.stringify(res.body, null, 2),
+      res
+    );
   }
 );
 
 export async function defaultHandler(
   error: HTTPError,
-  event: H3Event,
+  event: HTTPEvent,
   opts?: { silent?: boolean; json?: boolean }
 ): Promise<InternalHandlerResponse> {
   const isSensitive = error.unhandled;
@@ -81,7 +81,8 @@ export async function defaultHandler(
     "content-security-policy":
       "script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self';",
   };
-  if (status === 404 || !event.res.headers.has("cache-control")) {
+
+  if (status === 404 || !(event as H3Event).res.headers.has("cache-control")) {
     headers["cache-control"] = "no-cache";
   }
 
