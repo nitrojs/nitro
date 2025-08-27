@@ -1,4 +1,4 @@
-import type { ReferenceConfiguration as ScalarConfig } from "@scalar/api-reference";
+import type { ApiReferenceConfiguration as ScalarConfig } from "@scalar/api-reference";
 
 /**
  * Nitro OpenAPI configuration
@@ -34,7 +34,7 @@ export interface NitroOpenAPIConfig {
      */
     scalar?:
       | false
-      | (ScalarConfig & {
+      | (Partial<ScalarConfig> & {
           /**
            * Scalar UI route
            *

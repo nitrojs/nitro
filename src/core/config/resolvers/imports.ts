@@ -103,7 +103,7 @@ function getNitroImportsPreset(): Preset[] {
       imports: ["defineTask", "runTask"],
     },
     {
-      from: "nitropack/runtime/internal/error",
+      from: "nitropack/runtime/internal/error/utils",
       imports: ["defineNitroErrorHandler"],
     },
   ];

@@ -8,6 +8,7 @@ export interface NitroStaticBuildFlags {
   dev?: boolean;
   client?: boolean;
   nitro?: boolean;
+  baseURL?: string;
   prerender?: boolean;
   preset?: NitroOptions["preset"];
   server?: boolean;

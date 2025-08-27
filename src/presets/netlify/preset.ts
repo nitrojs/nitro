@@ -2,6 +2,7 @@ import { promises as fsp } from "node:fs";
 import { defineNitroPreset } from "nitropack/kit";
 import type { Nitro } from "nitropack/types";
 import { dirname, join } from "pathe";
+import { unenvDenoPreset } from "../_unenv/preset-deno";
 import netlifyLegacyPresets from "./legacy/preset";
 import {
   generateNetlifyFunction,
@@ -75,6 +76,7 @@ const netlifyEdge = defineNitroPreset(
         format: "esm",
       },
     },
+    unenv: unenvDenoPreset,
     hooks: {
       async compiled(nitro: Nitro) {
         await writeHeaders(nitro);
@@ -86,10 +88,14 @@ const netlifyEdge = defineNitroPreset(
           functions: [
             {
               path: "/*",
-              excludedPath: getStaticPaths(nitro.options.publicAssets),
+              excludedPath: getStaticPaths(
+                nitro.options.publicAssets,
+                nitro.options.baseURL
+              ),
               name: "edge server handler",
               function: "server",
               generator: getGeneratorString(nitro),
+              cache: "manual",
             },
           ],
         };
@@ -117,7 +123,7 @@ const netlifyStatic = defineNitroPreset(
       publicDir: "{{ rootDir }}/dist/{{ baseURL }}",
     },
     commands: {
-      preview: "npx serve ./",
+      preview: "npx serve {{ output.dir }}",
     },
     hooks: {
       async compiled(nitro: Nitro) {

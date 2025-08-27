@@ -4,7 +4,7 @@ import type { Nitro, RollupConfig } from "nitropack/types";
 import { join } from "pathe";
 import { debounce } from "perfect-debounce";
 import * as rollup from "rollup";
-import { GLOB_SCAN_PATTERN, scanHandlers } from "../scan";
+import { scanHandlers } from "../scan";
 import { nitroServerName } from "../utils/nitro";
 import { formatRollupError } from "./error";
 import { writeTypes } from "./types";
@@ -25,7 +25,7 @@ export async function watchDev(nitro: Nitro, rollupConfig: RollupConfig) {
   const watchPatterns = nitro.options.scanDirs.flatMap((dir) => [
     join(dir, nitro.options.apiDir || "api"),
     join(dir, nitro.options.routesDir || "routes"),
-    join(dir, "middleware", GLOB_SCAN_PATTERN),
+    join(dir, "middleware"),
     join(dir, "plugins"),
     join(dir, "modules"),
   ]);
@@ -61,38 +61,31 @@ function startRollupWatcher(nitro: Nitro, rollupConfig: RollupConfig) {
   let start: number;
 
   watcher.on("event", (event) => {
+    // START > BUNDLE_START > BUNDLE_END > END
+    // START > BUNDLE_START > ERROR > END
     switch (event.code) {
-      // The watcher is (re)starting
       case "START": {
-        return;
-      }
-
-      // Building an individual bundle
-      case "BUNDLE_START": {
         start = Date.now();
-        return;
+        nitro.hooks.callHook("dev:start");
+        break;
       }
-
-      // Finished building all bundles
-      case "END": {
+      case "BUNDLE_END": {
         nitro.hooks.callHook("compiled", nitro);
-
         if (nitro.options.logging.buildSuccess) {
           nitro.logger.success(
             `${nitroServerName(nitro)} built`,
-            start ? `in ${Date.now() - start} ms` : ""
+            start ? `in ${Date.now() - start}ms` : ""
           );
         }
-
         nitro.hooks.callHook("dev:reload");
-        return;
+        break;
       }
-
-      // Encountered an error while bundling
       case "ERROR": {
         nitro.logger.error(formatRollupError(event.error));
+        nitro.hooks.callHook("dev:error", event.error);
       }
     }
   });
+
   return watcher;
 }

@@ -34,9 +34,14 @@ export function handlersMeta(nitro: Nitro) {
         return virtualPrefix + resolved.id;
       }
     },
-    load(id) {
+    async load(id) {
       if (id.startsWith(virtualPrefix)) {
         const fullPath = id.slice(virtualPrefix.length);
+        // Bail out to rollup for virtual files (#3324)
+        if (fullPath.startsWith("\0")) {
+          const { code } = await this.load({ id: fullPath });
+          return code;
+        }
         return readFile(fullPath, { encoding: "utf8" });
       }
     },
@@ -66,8 +71,8 @@ export function handlersMeta(nitro: Nitro) {
           }
         }
       } catch (error) {
-        console.warn(
-          `[nitro] [handlers-meta] Cannot extra route meta for: ${id}: ${error}`
+        nitro.logger.warn(
+          `[handlers-meta] Cannot extra route meta for: ${id}: ${error}`
         );
       }
 

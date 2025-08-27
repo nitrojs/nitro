@@ -5,7 +5,7 @@ import { describe } from "vitest";
 
 import { setupTest, testNitro } from "../tests";
 
-describe("nitro:preset:cloudflare-module", async () => {
+describe("nitro:preset:cloudflare-module-legacy", async () => {
   const ctx = await setupTest("cloudflare-module-legacy", {});
 
   testNitro(ctx, () => {

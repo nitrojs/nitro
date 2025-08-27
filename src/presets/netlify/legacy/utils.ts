@@ -2,6 +2,7 @@ import { existsSync, promises as fsp } from "node:fs";
 import type { Nitro, PublicAssetDir } from "nitropack/types";
 import { join } from "pathe";
 import { joinURL } from "ufo";
+import { isTest } from "std-env";
 
 export function generateCatchAllRedirects(
   publicAssets: PublicAssetDir[],
@@ -151,9 +152,9 @@ export function deprecateSWR(nitro: Nitro) {
       hasLegacyOptions = true;
     }
   }
-  if (hasLegacyOptions) {
-    console.warn(
-      "[nitro] Nitro now uses `isr` option to configure ISR behavior on Netlify. Backwards-compatible support for `static` and `swr` support with Builder Functions will be removed in the future versions. Set `future.nativeSWR: true` nitro config disable this warning."
+  if (hasLegacyOptions && !isTest) {
+    nitro.logger.warn(
+      "Nitro now uses `isr` option to configure ISR behavior on Netlify. Backwards-compatible support for `static` and `swr` support with Builder Functions will be removed in the future versions. Set `future.nativeSWR: true` nitro config disable this warning."
     );
   }
 }

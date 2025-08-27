@@ -12,7 +12,7 @@ export { useStorage } from "./internal/storage";
 // Type (only) helpers
 export { defineNitroPlugin } from "./internal/plugin";
 export { defineRouteMeta } from "./internal/meta";
-export { defineNitroErrorHandler } from "./internal/error";
+export { defineNitroErrorHandler } from "./internal/error/utils";
 
 // Renderer
 export { defineRenderHandler } from "./internal/renderer";

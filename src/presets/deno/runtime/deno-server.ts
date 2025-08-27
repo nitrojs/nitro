@@ -9,25 +9,25 @@ import wsAdapter from "crossws/adapters/deno";
 import destr from "destr";
 
 // TODO: Declare conflict with crossws
-// declare global {
-// const Deno: typeof import("@deno/types").Deno;
-// }
+declare global {
+  const Deno: typeof import("@deno/types").Deno;
+}
 
 const nitroApp = useNitroApp();
 
 if (Deno.env.get("DEBUG")) {
   addEventListener("unhandledrejection", (event: any) =>
-    console.error("[nitro] [dev] [unhandledRejection]", event.reason)
+    console.error("[unhandledRejection]", event.reason)
   );
   addEventListener("error", (event: any) =>
-    console.error("[nitro] [dev] [uncaughtException]", event.error)
+    console.error("[uncaughtException]", event.error)
   );
 } else {
   addEventListener("unhandledrejection", (err: any) =>
-    console.error("[nitro] [production] [unhandledRejection] " + err)
+    console.error("[unhandledRejection] " + err)
   );
   addEventListener("error", (event: any) =>
-    console.error("[nitro] [production] [uncaughtException] " + event.error)
+    console.error("[uncaughtException] " + event.error)
   );
 }
 

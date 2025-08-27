@@ -1,22 +1,16 @@
 # Firebase
 
-> Deploy Nitro apps to Firebase hosting.
+> Deploy Nitro apps to Firebase.
 
 ::note
 You will need to be on the [**Blaze plan**](https://firebase.google.com/pricing) (Pay as you go) to get started.
 ::
 
-<!--
-
-## Firebase app hosting <sup>(beta)</sup>
+## Firebase app hosting
 
 Preset: `firebase_app_hosting`
 
 :read-more{title="Firebase App Hosting" to="https://firebase.google.com/docs/app-hosting"}
-
-::important
-Firebase app hosting support is currently available in the Nitro [nightly release channel](/guide/nightly).
-::
 
 ::tip
 You can integrate with this provider using [zero configuration](/deploy/#zero-config-providers).
@@ -31,12 +25,16 @@ You can integrate with this provider using [zero configuration](/deploy/#zero-co
     - Choose a region.
     - Import a GitHub repository (you’ll need to link your GitHub account).
     - Configure deployment settings (project root directory and branch), and enable automatic rollouts.
-    - Choose a unique ID for deployment.
-4. Wait for the first release to complete.
+    - Choose a unique ID for your backend.
+4. Click Finish & Deploy to create your first rollout.
 
--->
+When you deploy with Firebase App Hosting, the App Hosting preset will be run automatically at build time.
 
-## Firebase hosting
+## Firebase hosting (deprecated)
+
+::important
+This deployment method is deprecated and is not recommended. Firebase App Hosting is the recommended way to deploy Nitro apps on Firebase.
+::
 
 **Preset:** `firebase`
 

@@ -9,7 +9,7 @@ describe("nitro:preset:vercel", async () => {
     ctx,
     async () => {
       const handle = await import(
-        resolve(ctx.outDir, "functions/__nitro.func/index.mjs")
+        resolve(ctx.outDir, "functions/__fallback.func/index.mjs")
       ).then((r) => r.default || r);
       await startServer(ctx, handle);
       return async ({ url, ...options }) => {
@@ -97,6 +97,12 @@ describe("nitro:preset:vercel", async () => {
                 "src": "/build/(.*)",
               },
               {
+                "headers": {
+                  "x-test": "test",
+                },
+                "src": "/(.*)",
+              },
+              {
                 "continue": true,
                 "headers": {
                   "cache-control": "public,max-age=31536000,immutable",
@@ -111,39 +117,327 @@ describe("nitro:preset:vercel", async () => {
                 "src": "/rules/_/noncached/cached",
               },
               {
-                "dest": "/__nitro",
+                "dest": "/__fallback",
                 "src": "/rules/_/cached/noncached",
               },
               {
-                "dest": "/__nitro",
+                "dest": "/__fallback",
                 "src": "(?<url>/rules/_/noncached/.*)",
               },
               {
-                "dest": "/__nitro--rules---cached?url=$url",
+                "dest": "/__fallback--rules---cached?url=$url",
                 "src": "(?<url>/rules/_/cached/.*)",
               },
               {
-                "dest": "/__nitro",
+                "dest": "/__fallback",
                 "src": "/rules/dynamic",
               },
               {
-                "dest": "/__nitro--rules-isr?url=$url",
+                "dest": "/__fallback--rules-isr?url=$url",
                 "src": "(?<url>/rules/isr/.*)",
               },
               {
-                "dest": "/__nitro--rules-isr-ttl?url=$url",
+                "dest": "/__fallback--rules-isr-ttl?url=$url",
                 "src": "(?<url>/rules/isr-ttl/.*)",
               },
               {
-                "dest": "/__nitro--rules-swr?url=$url",
+                "dest": "/__fallback--rules-swr?url=$url",
                 "src": "(?<url>/rules/swr/.*)",
               },
               {
-                "dest": "/__nitro--rules-swr-ttl?url=$url",
+                "dest": "/__fallback--rules-swr-ttl?url=$url",
                 "src": "(?<url>/rules/swr-ttl/.*)",
               },
               {
-                "dest": "/__nitro",
+                "dest": "/wasm/static-import",
+                "src": "/wasm/static-import",
+              },
+              {
+                "dest": "/wasm/dynamic-import",
+                "src": "/wasm/dynamic-import",
+              },
+              {
+                "dest": "/wait-until",
+                "src": "/wait-until",
+              },
+              {
+                "dest": "/stream",
+                "src": "/stream",
+              },
+              {
+                "dest": "/static-flags",
+                "src": "/static-flags",
+              },
+              {
+                "dest": "/route-group",
+                "src": "/route-group",
+              },
+              {
+                "dest": "/raw",
+                "src": "/raw",
+              },
+              {
+                "dest": "/prerender-custom.html",
+                "src": "/prerender-custom.html",
+              },
+              {
+                "dest": "/prerender",
+                "src": "/prerender",
+              },
+              {
+                "dest": "/node-compat",
+                "src": "/node-compat",
+              },
+              {
+                "dest": "/modules",
+                "src": "/modules",
+              },
+              {
+                "dest": "/jsx",
+                "src": "/jsx",
+              },
+              {
+                "dest": "/json-string",
+                "src": "/json-string",
+              },
+              {
+                "dest": "/imports",
+                "src": "/imports",
+              },
+              {
+                "dest": "/icon.png",
+                "src": "/icon.png",
+              },
+              {
+                "dest": "/file",
+                "src": "/file",
+              },
+              {
+                "dest": "/fetch",
+                "src": "/fetch",
+              },
+              {
+                "dest": "/error-stack",
+                "src": "/error-stack",
+              },
+              {
+                "dest": "/env",
+                "src": "/env",
+              },
+              {
+                "dest": "/context",
+                "src": "/context",
+              },
+              {
+                "dest": "/config",
+                "src": "/config",
+              },
+              {
+                "dest": "/assets/md",
+                "src": "/assets/md",
+              },
+              {
+                "dest": "/assets/all",
+                "src": "/assets/all",
+              },
+              {
+                "dest": "/api/upload",
+                "src": "/api/upload",
+              },
+              {
+                "dest": "/api/typed/user/john/post/coffee",
+                "src": "/api/typed/user/john/post/coffee",
+              },
+              {
+                "dest": "/api/typed/user/john",
+                "src": "/api/typed/user/john",
+              },
+              {
+                "dest": "/api/storage/item",
+                "src": "/api/storage/item",
+              },
+              {
+                "dest": "/api/storage/dev",
+                "src": "/api/storage/dev",
+              },
+              {
+                "dest": "/api/serialized/void",
+                "src": "/api/serialized/void",
+              },
+              {
+                "dest": "/api/serialized/tuple",
+                "src": "/api/serialized/tuple",
+              },
+              {
+                "dest": "/api/serialized/set",
+                "src": "/api/serialized/set",
+              },
+              {
+                "dest": "/api/serialized/null",
+                "src": "/api/serialized/null",
+              },
+              {
+                "dest": "/api/serialized/map",
+                "src": "/api/serialized/map",
+              },
+              {
+                "dest": "/api/serialized/function",
+                "src": "/api/serialized/function",
+              },
+              {
+                "dest": "/api/serialized/error",
+                "src": "/api/serialized/error",
+              },
+              {
+                "dest": "/api/serialized/date",
+                "src": "/api/serialized/date",
+              },
+              {
+                "dest": "/api/methods/get",
+                "src": "/api/methods/get",
+              },
+              {
+                "dest": "/api/methods/foo.get",
+                "src": "/api/methods/foo.get",
+              },
+              {
+                "dest": "/api/methods/default",
+                "src": "/api/methods/default",
+              },
+              {
+                "dest": "/api/methods",
+                "src": "/api/methods",
+              },
+              {
+                "dest": "/api/meta/test",
+                "src": "/api/meta/test",
+              },
+              {
+                "dest": "/api/kebab",
+                "src": "/api/kebab",
+              },
+              {
+                "dest": "/api/import-meta",
+                "src": "/api/import-meta",
+              },
+              {
+                "dest": "/api/hey",
+                "src": "/api/hey",
+              },
+              {
+                "dest": "/api/hello2",
+                "src": "/api/hello2",
+              },
+              {
+                "dest": "/api/hello",
+                "src": "/api/hello",
+              },
+              {
+                "dest": "/api/headers",
+                "src": "/api/headers",
+              },
+              {
+                "dest": "/api/errors",
+                "src": "/api/errors",
+              },
+              {
+                "dest": "/api/error",
+                "src": "/api/error",
+              },
+              {
+                "dest": "/api/echo",
+                "src": "/api/echo",
+              },
+              {
+                "dest": "/api/db",
+                "src": "/api/db",
+              },
+              {
+                "dest": "/api/cached",
+                "src": "/api/cached",
+              },
+              {
+                "dest": "/500",
+                "src": "/500",
+              },
+              {
+                "dest": "/_swagger",
+                "src": "/_swagger",
+              },
+              {
+                "dest": "/_scalar",
+                "src": "/_scalar",
+              },
+              {
+                "dest": "/_openapi.json",
+                "src": "/_openapi.json",
+              },
+              {
+                "dest": "/assets/[id]",
+                "src": "/assets/(?<id>[^/]+)",
+              },
+              {
+                "dest": "/api/typed/user/john/post/[postId]",
+                "src": "/api/typed/user/john/post/(?<postId>[^/]+)",
+              },
+              {
+                "dest": "/api/typed/user/john/[johnExtends]",
+                "src": "/api/typed/user/john/(?<johnExtends>[^/]+)",
+              },
+              {
+                "dest": "/api/typed/user/[userId]/post/firstPost",
+                "src": "/api/typed/user/(?<userId>[^/]+)/post/firstPost",
+              },
+              {
+                "dest": "/api/typed/user/[userId]/post/[postId]",
+                "src": "/api/typed/user/(?<userId>[^/]+)/post/(?<postId>[^/]+)",
+              },
+              {
+                "dest": "/api/typed/user/[userId]/[userExtends]",
+                "src": "/api/typed/user/(?<userId>[^/]+)/(?<userExtends>[^/]+)",
+              },
+              {
+                "dest": "/api/typed/user/[userId]",
+                "src": "/api/typed/user/(?<userId>[^/]+)",
+              },
+              {
+                "dest": "/api/test/[-]/foo",
+                "src": "/api/test/(?<_0>[^/]*)/foo",
+              },
+              {
+                "dest": "/api/param/[test-id]",
+                "src": "/api/param/(?<test>[^/]+)-id",
+              },
+              {
+                "dest": "/tasks/[...name]",
+                "src": "/tasks/?(?<name>.+)",
+              },
+              {
+                "dest": "/rules/[...slug]",
+                "src": "/rules/?(?<slug>.+)",
+              },
+              {
+                "dest": "/api/wildcard/[...param]",
+                "src": "/api/wildcard/?(?<param>.+)",
+              },
+              {
+                "dest": "/api/typed/todos/[...]",
+                "src": "/api/typed/todos/(?:.*)",
+              },
+              {
+                "dest": "/api/typed/todos/[todoId]/comments/[...commentId]",
+                "src": "/api/typed/todos/(?<todoId>[^/]+)/comments/?(?<commentId>.+)",
+              },
+              {
+                "dest": "/api/typed/catchall/some/[...test]",
+                "src": "/api/typed/catchall/some/?(?<test>.+)",
+              },
+              {
+                "dest": "/api/typed/catchall/[slug]/[...another]",
+                "src": "/api/typed/catchall/(?<slug>[^/]+)/?(?<another>.+)",
+              },
+              {
+                "dest": "/__fallback",
                 "src": "/(.*)",
               },
             ],
@@ -156,7 +450,7 @@ describe("nitro:preset:vercel", async () => {
         const isrRouteConfig = await fsp.readFile(
           resolve(
             ctx.outDir,
-            "functions/__nitro--rules-isr.prerender-config.json"
+            "functions/__fallback--rules-isr.prerender-config.json"
           ),
           "utf8"
         );

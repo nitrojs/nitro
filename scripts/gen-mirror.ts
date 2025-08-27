@@ -43,7 +43,7 @@ async function main() {
   // Copy package.json fields
   const mirrorPkg: PackageJson = {
     name: mirrrorPkgName,
-    version: `${mainPkg.version}-${mainPkg.name}-mirror`,
+    version: `${mainPkg.version}-mirror`,
     dependencies: {},
   };
 

@@ -12,6 +12,7 @@ import { nitroServerName } from "../utils/nitro";
 import { snapshotStorage } from "../utils/storage";
 import { formatRollupError } from "./error";
 import { writeTypes } from "./types";
+import { getProperty } from "dot-prop";
 
 export async function buildProduction(
   nitro: Nitro,
@@ -43,8 +44,16 @@ export async function buildProduction(
       nitro: nitroVersion,
     },
     commands: {
-      preview: nitro.options.commands.preview,
-      deploy: nitro.options.commands.deploy,
+      preview: resolveTmplPath(
+        nitro.options.commands.preview,
+        nitro,
+        nitro.options.output.dir
+      ),
+      deploy: resolveTmplPath(
+        nitro.options.commands.deploy,
+        nitro,
+        nitro.options.output.dir
+      ),
     },
     config: {
       ...Object.fromEntries(
@@ -70,21 +79,21 @@ export async function buildProduction(
   await nitro.hooks.callHook("compiled", nitro);
 
   // Show deploy and preview hints
-  const rOutput = relative(process.cwd(), nitro.options.output.dir);
-  const rewriteRelativePaths = (input: string) => {
-    return input.replace(/([\s:])\.\/(\S*)/g, `$1${rOutput}/$2`);
-  };
-  if (buildInfo.commands!.preview) {
+  if (nitro.options.commands?.preview) {
     nitro.logger.success(
-      `You can preview this build using \`${rewriteRelativePaths(
-        buildInfo.commands!.preview
+      `You can preview this build using \`${resolveTmplPath(
+        nitro.options.commands.preview,
+        nitro,
+        process.cwd()
       )}\``
     );
   }
-  if (buildInfo.commands!.deploy) {
+  if (nitro.options.commands?.deploy) {
     nitro.logger.success(
-      `You can deploy this build using \`${rewriteRelativePaths(
-        buildInfo.commands!.deploy
+      `You can deploy this build using \`${resolveTmplPath(
+        nitro.options.commands.deploy,
+        nitro,
+        process.cwd()
       )}\``
     );
   }
@@ -115,4 +124,28 @@ async function _snapshot(nitro: Nitro) {
       await fsp.writeFile(fsPath, contents, "utf8");
     })
   );
+}
+
+function resolveTmplPath(
+  input: string | undefined,
+  nitro: Nitro,
+  relativeTo: string
+) {
+  if (!input || !input.includes("{{")) {
+    return input;
+  }
+  return input.replace(/{{ ?([\w.]+) ?}}/g, (_, match) => {
+    let val = getProperty<Record<string, string>, string>(
+      nitro.options as unknown as Record<string, string>,
+      match
+    );
+    if (val) {
+      val = relative(relativeTo, val) || ".";
+    } else {
+      nitro.logger.warn(
+        `cannot resolve template param '${match}' in ${input.slice(0, 20)}`
+      );
+    }
+    return val || `${match}`;
+  });
 }

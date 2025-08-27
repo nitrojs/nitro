@@ -122,7 +122,7 @@ function unique(arr: any[]) {
 }
 
 function getImportId(p: string, lazy?: boolean) {
-  return (lazy ? "_lazy_" : "_") + hash(p).slice(0, 6);
+  return (lazy ? "_lazy_" : "_") + hash(p).replace(/-/g, "").slice(0, 6);
 }
 
 const WILDCARD_PATH_RE = /\/\*\*.*$/;

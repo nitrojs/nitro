@@ -3,11 +3,16 @@ import { colors } from "consola/utils";
 import { defu } from "defu";
 import mime from "mime";
 import { writeFile } from "nitropack/kit";
-import type { Nitro, NitroRouteRules, PrerenderRoute } from "nitropack/types";
+import type {
+  Nitro,
+  NitroRouteRules,
+  PrerenderRoute,
+  PublicAssetDir,
+} from "nitropack/types";
 import type { $Fetch } from "ofetch";
 import { join, relative, resolve } from "pathe";
 import { createRouter as createRadixRouter, toRouteMatcher } from "radix3";
-import { joinURL, withBase, withoutBase } from "ufo";
+import { joinURL, withBase, withoutBase, withTrailingSlash } from "ufo";
 import { build } from "../build/build";
 import { createNitro } from "../nitro";
 import { compressPublicAssets } from "../utils/compress";
@@ -17,6 +22,7 @@ import {
   formatPrerenderRoute,
   matchesIgnorePattern,
 } from "./utils";
+import { scanUnprefixedPublicAssets } from "../build/assets";
 
 const JsonSigRx = /^\s*["[{]|^\s*-?\d{1,16}(\.\d{1,17})?([Ee][+-]?\d+)?\s*$/; // From unjs/destr
 
@@ -24,8 +30,8 @@ const linkParents = new Map<string, Set<string>>();
 
 export async function prerender(nitro: Nitro) {
   if (nitro.options.noPublicDir) {
-    console.warn(
-      "[nitro] Skipping prerender since `noPublicDir` option is enabled."
+    nitro.logger.warn(
+      "Skipping prerender since `noPublicDir` option is enabled."
     );
     return;
   }
@@ -107,6 +113,18 @@ export async function prerender(nitro: Nitro) {
   const skippedRoutes = new Set();
   const displayedLengthWarns = new Set();
 
+  const publicAssetBases: string[] = nitro.options.publicAssets
+    .filter(
+      (a): a is PublicAssetDir & { baseURL: string } =>
+        !!a.baseURL && a.baseURL !== "/" && !a.fallthrough
+    )
+    .map((a) => withTrailingSlash(a.baseURL));
+
+  const scannedPublicAssets = nitro.options.prerender
+    .ignoreUnprefixedPublicAssets
+    ? new Set(await scanUnprefixedPublicAssets(nitro))
+    : new Set<string>();
+
   const canPrerender = (route = "/") => {
     // Skip if route is already generated or skipped
     if (generatedRoutes.has(route) || skippedRoutes.has(route)) {
@@ -118,6 +136,14 @@ export async function prerender(nitro: Nitro) {
       if (matchesIgnorePattern(route, pattern)) {
         return false;
       }
+    }
+
+    if (publicAssetBases.some((base) => route.startsWith(base))) {
+      return false;
+    }
+
+    if (scannedPublicAssets.has(route)) {
+      return false;
     }
 
     // Check for route rules explicitly disabling prerender
@@ -278,7 +304,7 @@ export async function prerender(nitro: Nitro) {
 
     // Crawl route links
     if (!_route.error && (isImplicitHTML || route.endsWith(".html"))) {
-      const extractedLinks = extractLinks(
+      const extractedLinks = await extractLinks(
         dataBuff.toString("utf8"),
         route,
         res,
