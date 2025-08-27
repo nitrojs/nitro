@@ -1,4 +1,4 @@
-import type { H3, H3Event, H3EventContext, H3Config } from "h3";
+import type { H3, HTTPEvent, H3EventContext, H3Config } from "h3";
 import type { Hookable } from "hookable";
 import type { ServerRequest } from "srvx";
 
@@ -29,17 +29,17 @@ export interface RenderResponse {
 }
 
 export type RenderHandler = (
-  event: H3Event
+  event: HTTPEvent
 ) => Partial<RenderResponse> | Promise<Partial<RenderResponse>>;
 
 export interface RenderContext {
-  event: H3Event;
+  event: HTTPEvent;
   render: RenderHandler;
   response?: Partial<RenderResponse>;
 }
 
 export interface CapturedErrorContext {
-  request?: ServerRequest;
+  event?: HTTPEvent;
   tags?: string[];
 }
 

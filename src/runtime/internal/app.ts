@@ -6,7 +6,7 @@ import type {
   NitroRuntimeHooks,
 } from "nitro/types";
 
-import { H3, lazyEventHandler } from "h3";
+import { H3, lazyEventHandler, type HTTPEvent } from "h3";
 import { createFetch } from "ofetch";
 import { cachedEventHandler } from "./cache";
 import { createRouteRulesHandler, getRouteRulesForPath } from "./route-rules";
@@ -42,13 +42,13 @@ function createNitroApp(): NitroApp {
       .catch((hookError) => {
         console.error("Error while capturing another error", hookError);
       });
-    if (errorCtx?.request) {
-      const errors = errorCtx.request.context?.nitro?.errors;
+    if (errorCtx?.event) {
+      const errors = errorCtx.event.req.context?.nitro?.errors;
       if (errors) {
         errors.push({ error, context: errorCtx });
       }
-      if (typeof errorCtx.request.waitUntil === "function") {
-        errorCtx.request.waitUntil(promise);
+      if (typeof errorCtx.event.req.waitUntil === "function") {
+        errorCtx.event.req.waitUntil(promise);
       }
     }
   };
@@ -58,15 +58,16 @@ function createNitroApp(): NitroApp {
   let fetchHandler = async (req: ServerRequest): Promise<Response> => {
     req.context ??= {};
     req.context.nitro = req.context.nitro || { errors: [] };
+    const event = { req } satisfies HTTPEvent;
 
     await nitroApp.hooks.callHook("request", req).catch((error) => {
-      captureError(error, { request: req, tags: ["request"] });
+      captureError(error, { event, tags: ["request"] });
     });
 
     const response = await h3App.request(req, undefined, req.context);
 
     await nitroApp.hooks.callHook("response", response, req).catch((error) => {
-      captureError(error, { request: req, tags: ["request", "response"] });
+      captureError(error, { event, tags: ["request", "response"] });
     });
 
     return response;
@@ -121,7 +122,7 @@ function createH3App(captureError: CaptureError) {
     debug: DEBUG_MODE,
     onError: (error, event) => {
       captureError(error, {
-        request: event.req as ServerRequest,
+        event,
         tags: ["request"],
       });
       return errorHandler(error, event);

@@ -1,4 +1,4 @@
-import type { H3Event } from "h3";
+import { getEventContext, type HTTPEvent } from "h3";
 import { klona } from "klona";
 import type { NitroRuntimeConfig } from "nitro/types";
 import { type EnvOptions, applyEnv } from "./utils.env";
@@ -23,19 +23,21 @@ const _sharedRuntimeConfig = _deepFreeze(
 );
 export function useRuntimeConfig<
   T extends NitroRuntimeConfig = NitroRuntimeConfig,
->(event?: H3Event): T {
+>(event?: HTTPEvent): T {
   // Backwards compatibility with ambient context
   if (!event) {
     return _sharedRuntimeConfig as T;
   }
+  const context = getEventContext(event);
   // Reuse cached runtime config from event context
-  if (event.context.nitro!.runtimeConfig) {
-    return event.context.nitro!.runtimeConfig as unknown as T;
+  if (context.nitro?.runtimeConfig) {
+    return context.nitro.runtimeConfig as unknown as T;
   }
   // Prepare runtime config for event context
   const runtimeConfig = klona(_inlineRuntimeConfig) as T;
   applyEnv(runtimeConfig, envOptions);
-  event.context.nitro!.runtimeConfig = runtimeConfig;
+  context.nitro ??= {};
+  context.nitro.runtimeConfig = runtimeConfig;
   return runtimeConfig;
 }
 
