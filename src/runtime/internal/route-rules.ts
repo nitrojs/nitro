@@ -1,13 +1,12 @@
 import defu from "defu";
 import {
-  type EventHandler,
   H3Event,
-  type HTTPEvent,
   defineHandler,
   getEventContext,
   proxyRequest,
   redirect,
 } from "h3";
+import type { HTTPEvent, EventHandler } from "h3";
 import type { NitroRouteConfig, NitroRouteRules } from "nitro/types";
 import { createRouter, addRoute, findAllRoutes } from "rou3";
 import { joinURL, withQuery, withoutBase } from "ufo";
