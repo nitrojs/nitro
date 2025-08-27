@@ -3,7 +3,7 @@ import type { Hookable } from "hookable";
 import type { ServerRequest, ServerRequestContext } from "srvx";
 
 export interface NitroApp {
-  h3App: H3;
+  _h3?: H3;
   hooks: Hookable<NitroRuntimeHooks>;
   fetch: (
     req: string | URL | Request,

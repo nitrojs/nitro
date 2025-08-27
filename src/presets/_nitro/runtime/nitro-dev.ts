@@ -47,7 +47,7 @@ if (import.meta._websocket) {
 }
 
 // Register tasks handlers
-nitroApp.h3App.get(
+nitroApp._h3?.get(
   "/_nitro/tasks",
   defineHandler(async (event) => {
     const _tasks = await Promise.all(
@@ -63,7 +63,7 @@ nitroApp.h3App.get(
   })
 );
 
-nitroApp.h3App.use(
+nitroApp._h3?.use(
   "/_nitro/tasks/:name",
   defineHandler(async (event) => {
     const name = getRouterParam(event, "name") as string;

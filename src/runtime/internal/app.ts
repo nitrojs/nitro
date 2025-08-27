@@ -113,8 +113,8 @@ function createNitroApp(): NitroApp {
   globalThis.$fetch = $fetch;
 
   const app: NitroApp = {
+    _h3: h3App,
     hooks,
-    h3App,
     fetch: requestHandler,
     captureError,
   };
