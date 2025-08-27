@@ -6,7 +6,7 @@ import type {
   NitroRuntimeHooks,
 } from "nitro/types";
 
-import { H3, lazyEventHandler, type HTTPEvent } from "h3";
+import { H3, lazyEventHandler, toRequest, type HTTPEvent } from "h3";
 import { createFetch } from "ofetch";
 import { cachedEventHandler } from "./cache";
 import { createRouteRulesHandler, getRouteRulesForPath } from "./route-rules";
@@ -160,22 +160,4 @@ function createH3App(captureError: CaptureError) {
   }
 
   return h3App;
-}
-
-// --- internal ---
-
-function toRequest(
-  _request: ServerRequest | URL | string,
-  _init?: RequestInit
-): ServerRequest {
-  if (typeof _request === "string") {
-    let url = _request;
-    if (url[0] === "/") {
-      url = `http://_${url}`;
-    }
-    return new Request(url, _init);
-  } else if (_init || _request instanceof URL) {
-    return new Request(_request, _init);
-  }
-  return _request;
 }
