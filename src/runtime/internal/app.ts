@@ -18,19 +18,21 @@ import { handlers } from "#nitro-internal-virtual/server-handlers";
 import { createHooks } from "hookable";
 import { nitroAsyncContext } from "./context";
 
-export const nitroApp: NitroApp = createNitroApp();
-
-export function useNitroApp() {
-  return nitroApp;
+export function useNitroApp(): NitroApp {
+  return ((useNitroApp as any).__instance__ ??= initNitroApp());
 }
 
-for (const plugin of plugins) {
-  try {
-    plugin(nitroApp);
-  } catch (error: any) {
-    nitroApp.captureError(error, { tags: ["plugin"] });
-    throw error;
+function initNitroApp(): NitroApp {
+  const nitroApp = createNitroApp();
+  for (const plugin of plugins) {
+    try {
+      plugin(nitroApp);
+    } catch (error: any) {
+      nitroApp.captureError(error, { tags: ["plugin"] });
+      throw error;
+    }
   }
+  return nitroApp;
 }
 
 function createNitroApp(): NitroApp {
@@ -59,6 +61,8 @@ function createNitroApp(): NitroApp {
     req.context ??= {};
     req.context.nitro = req.context.nitro || { errors: [] };
     const event = { req } satisfies HTTPEvent;
+
+    const nitroApp = useNitroApp();
 
     await nitroApp.hooks.callHook("request", event).catch((error) => {
       captureError(error, { event, tags: ["request"] });
