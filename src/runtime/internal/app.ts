@@ -60,15 +60,17 @@ function createNitroApp(): NitroApp {
     req.context.nitro = req.context.nitro || { errors: [] };
     const event = { req } satisfies HTTPEvent;
 
-    await nitroApp.hooks.callHook("request", req).catch((error) => {
+    await nitroApp.hooks.callHook("request", event).catch((error) => {
       captureError(error, { event, tags: ["request"] });
     });
 
     const response = await h3App.request(req, undefined, req.context);
 
-    await nitroApp.hooks.callHook("response", response, req).catch((error) => {
-      captureError(error, { event, tags: ["request", "response"] });
-    });
+    await nitroApp.hooks
+      .callHook("response", response, event)
+      .catch((error) => {
+        captureError(error, { event, tags: ["request", "response"] });
+      });
 
     return response;
   };

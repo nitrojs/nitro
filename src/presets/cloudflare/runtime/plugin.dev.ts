@@ -18,22 +18,22 @@ const _proxy = _getPlatformProxy()
 (globalThis as any).__env__ = _proxy.then((proxy) => proxy.env);
 
 export default <NitroAppPlugin>function (nitroApp) {
-  nitroApp.hooks.hook("request", async (req) => {
-    req.context ??= {};
+  nitroApp.hooks.hook("request", async (event) => {
+    event.req.context ??= {};
 
     const proxy = await _proxy;
 
     // Inject the various cf values from the proxy in event and event.context
-    req.context.cf = proxy.cf;
-    req.context.waitUntil = proxy.ctx.waitUntil.bind(proxy.ctx);
+    event.req.context.cf = proxy.cf;
+    event.req.context.waitUntil = proxy.ctx.waitUntil.bind(proxy.ctx);
 
-    const request = new Request(req.url) as Request & {
+    const request = new Request(event.req.url) as Request & {
       cf: typeof proxy.cf;
     };
     request.cf = proxy.cf;
 
-    req.context.cloudflare = {
-      ...req.context.cloudflare!,
+    event.req.context.cloudflare = {
+      ...event.req.context.cloudflare!,
       request,
       env: proxy.env,
       context: proxy.ctx,

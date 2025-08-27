@@ -52,8 +52,8 @@ export interface NitroRuntimeHooks {
   close: () => void;
   error: CaptureError;
 
-  request: (req: ServerRequest) => void | Promise<void>;
-  response: (res: Response, req: ServerRequest) => void | Promise<void>;
+  request: (event: HTTPEvent) => void | Promise<void>;
+  response: (res: Response, event: HTTPEvent) => void | Promise<void>;
 
   "render:before": (context: RenderContext) => void;
 
