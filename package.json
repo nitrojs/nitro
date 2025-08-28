@@ -99,7 +99,6 @@
   },
   "dependencies": {
     "@cloudflare/kv-asset-handler": "^0.4.0",
-    "@netlify/functions": "^3.1.10",
     "@rollup/plugin-alias": "^5.1.1",
     "@rollup/plugin-commonjs": "^28.0.6",
     "@rollup/plugin-inject": "^5.0.5",
@@ -176,6 +175,7 @@
     "@cloudflare/workers-types": "^4.20250826.0",
     "@deno/types": "^0.0.1",
     "@netlify/edge-functions": "^2.17.1",
+    "@netlify/functions": "^4.2.4",
     "@scalar/api-reference": "^1.34.6",
     "@types/archiver": "^6.0.3",
     "@types/aws-lambda": "^8.10.152",
