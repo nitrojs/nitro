@@ -3,7 +3,7 @@ import { defu } from "defu";
 import { writeFile } from "nitropack/kit";
 import type { Nitro } from "nitropack/types";
 import { dirname, relative, resolve } from "pathe";
-import { joinURL, withoutLeadingSlash } from "ufo";
+import { joinURL, withLeadingSlash, withoutLeadingSlash } from "ufo";
 import type {
   PrerenderFunctionConfig,
   VercelBuildConfigV3,
@@ -15,6 +15,10 @@ import { isTest } from "std-env";
 
 // https://vercel.com/docs/functions/runtimes/node-js/node-js-versions
 const SUPPORTED_NODE_VERSIONS = [18, 20, 22];
+
+const FALLBACK_ROUTE = "/__fallback";
+
+const SAFE_FS_CHAR_RE = /[^a-zA-Z0-9_.[\]/]/g;
 
 function getSystemNodeVersion() {
   const systemNodeVersion = Number.parseInt(
@@ -84,7 +88,8 @@ export async function generateFunctionFiles(nitro: Nitro) {
 
     const funcPrefix = resolve(
       nitro.options.output.serverDir,
-      ".." + generateEndpoint(key)
+      "..",
+      normalizeRouteDest(key) + ".isr"
     );
     await fsp.mkdir(dirname(funcPrefix), { recursive: true });
     await fsp.symlink(
@@ -207,18 +212,18 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
       .map(([key, value]) => {
         const src = key.replace(/^(.*)\/\*\*/, "(?<url>$1/.*)");
         if (value.isr === false) {
-          // we need to write a rule to avoid route being shadowed by another cache rule elsewhere
+          // We need to write a rule to avoid route being shadowed by another cache rule elsewhere
           return {
             src,
-            dest: "/__fallback",
+            dest: FALLBACK_ROUTE,
           };
         }
         return {
           src,
           dest:
             nitro.options.preset === "vercel-edge"
-              ? "/__fallback?url=$url"
-              : generateEndpoint(key) + "?url=$url",
+              ? FALLBACK_ROUTE + "?url=$url"
+              : withLeadingSlash(normalizeRouteDest(key) + ".isr?url=$url"),
         };
       }),
     // If we are using an ISR function for /, then we need to write this explicitly
@@ -226,14 +231,14 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
       ? [
           {
             src: "(?<url>/)",
-            dest: "/__fallback-index?url=$url",
+            dest: "/index.isr?url=$url",
           },
         ]
       : []),
     // Observability routes
     ...(o11Routes || []).map((route) => ({
       src: joinURL(nitro.options.baseURL, route.src),
-      dest: "/" + route.dest,
+      dest: withLeadingSlash(route.dest),
     })),
     // If we are using an ISR function as a fallback
     // then we do not need to output the below fallback route as well
@@ -242,22 +247,12 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
       : [
           {
             src: "/(.*)",
-            dest: "/__fallback",
+            dest: FALLBACK_ROUTE,
           },
         ])
   );
 
   return config;
-}
-
-function generateEndpoint(url: string) {
-  if (url === "/") {
-    return "/__fallback-index";
-  }
-  return url.includes("/**")
-    ? "/__fallback-" +
-        withoutLeadingSlash(url.replace(/\/\*\*.*/, "").replace(/[^a-z]/g, "-"))
-    : url;
 }
 
 export function deprecateSWR(nitro: Nitro) {
@@ -406,7 +401,7 @@ function normalizeRouteDest(route: string) {
         return segment;
       })
       // Only use filesystem-safe characters
-      .map((segment) => segment.replace(/[^a-zA-Z0-9_.[\]]/g, "-"))
+      .map((segment) => segment.replace(SAFE_FS_CHAR_RE, "-"))
       .join("/") || "index"
   );
 }
