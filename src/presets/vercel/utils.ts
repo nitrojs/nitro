@@ -1,7 +1,7 @@
 import fsp from "node:fs/promises";
 import { defu } from "defu";
 import { writeFile } from "nitropack/kit";
-import type { Nitro } from "nitropack/types";
+import type { Nitro, NitroRouteRules } from "nitropack/types";
 import { dirname, relative, resolve } from "pathe";
 import { joinURL, withLeadingSlash, withoutLeadingSlash } from "ufo";
 import type {
@@ -10,6 +10,7 @@ import type {
   VercelServerlessFunctionConfig,
 } from "./types";
 import { isTest } from "std-env";
+import { createRouter as createRadixRouter, toRouteMatcher } from "radix3";
 
 // https://vercel.com/docs/build-output-api/configuration
 
@@ -61,30 +62,11 @@ export async function generateFunctionFiles(nitro: Nitro) {
       continue;
     }
 
-    // Normalize route rule
-    let isrConfig = value.isr;
-    if (typeof isrConfig === "number") {
-      isrConfig = { expiration: isrConfig };
-    } else if (isrConfig === true) {
-      isrConfig = { expiration: false };
-    } else {
-      isrConfig = { ...isrConfig };
-    }
-
-    // Generate prerender config
-    const prerenderConfig: PrerenderFunctionConfig = {
-      expiration: isrConfig.expiration ?? false,
-      bypassToken: nitro.options.vercel?.config?.bypassToken,
-      ...isrConfig,
-    };
-
-    // Allow query parameter for wildcard routes
-    if (key.includes("/**") /* wildcard */) {
-      isrConfig.allowQuery = isrConfig.allowQuery || [];
-      if (!isrConfig.allowQuery.includes("url")) {
-        isrConfig.allowQuery.push("url");
-      }
-    }
+    const prerenderConfig = getPrerenderConfig(
+      key,
+      value.isr,
+      nitro.options.vercel?.config?.bypassToken
+    );
 
     const funcPrefix = resolve(
       nitro.options.output.serverDir,
@@ -104,6 +86,14 @@ export async function generateFunctionFiles(nitro: Nitro) {
   }
 
   // Write observability routes
+  if (o11Routes.length === 0) {
+    return;
+  }
+  const _routeRulesMatcher = toRouteMatcher(
+    createRadixRouter({ routes: nitro.options.routeRules })
+  );
+  const _getRouteRules = (path: string) =>
+    defu({}, ..._routeRulesMatcher.matchAll(path).reverse()) as NitroRouteRules;
   for (const route of o11Routes) {
     const funcPrefix = resolve(
       nitro.options.output.serverDir,
@@ -116,6 +106,18 @@ export async function generateFunctionFiles(nitro: Nitro) {
       funcPrefix + ".func",
       "junction"
     );
+    const routeRules = _getRouteRules(route.src);
+    if (routeRules.isr) {
+      const prerenderConfig = getPrerenderConfig(
+        route.dest,
+        routeRules.isr,
+        nitro.options.vercel?.config?.bypassToken
+      );
+      await writeFile(
+        funcPrefix + ".prerender-config.json",
+        JSON.stringify(prerenderConfig, null, 2)
+      );
+    }
   }
 }
 
@@ -404,4 +406,28 @@ function normalizeRouteDest(route: string) {
       .map((segment) => segment.replace(SAFE_FS_CHAR_RE, "-"))
       .join("/") || "index"
   );
+}
+
+function getPrerenderConfig(
+  key: string,
+  isrConfig: NitroRouteRules["isr"],
+  bypassToken?: string
+) {
+  // Normalize route rule
+  if (typeof isrConfig === "number") {
+    isrConfig = { expiration: isrConfig };
+  } else if (isrConfig === true) {
+    isrConfig = { expiration: false };
+  } else {
+    isrConfig = { ...isrConfig };
+  }
+
+  // Generate prerender config
+  const prerenderConfig: PrerenderFunctionConfig = {
+    expiration: isrConfig.expiration ?? false,
+    bypassToken,
+    ...isrConfig,
+  };
+
+  return prerenderConfig;
 }
