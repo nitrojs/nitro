@@ -62,11 +62,6 @@ export async function generateFunctionFiles(nitro: Nitro) {
       continue;
     }
 
-    const prerenderConfig = getPrerenderConfig(
-      value.isr,
-      nitro.options.vercel?.config?.bypassToken
-    );
-
     const funcPrefix = resolve(
       nitro.options.output.serverDir,
       "..",
@@ -78,9 +73,10 @@ export async function generateFunctionFiles(nitro: Nitro) {
       funcPrefix + ".func",
       "junction"
     );
-    await writeFile(
+    await writePrerenderConfig(
       funcPrefix + ".prerender-config.json",
-      JSON.stringify(prerenderConfig, null, 2)
+      value.isr,
+      nitro.options.vercel?.config?.bypassToken
     );
   }
 
@@ -107,13 +103,10 @@ export async function generateFunctionFiles(nitro: Nitro) {
     );
     const routeRules = _getRouteRules(route.src);
     if (routeRules.isr) {
-      const prerenderConfig = getPrerenderConfig(
+      await writePrerenderConfig(
+        funcPrefix + ".prerender-config.json",
         routeRules.isr,
         nitro.options.vercel?.config?.bypassToken
-      );
-      await writeFile(
-        funcPrefix + ".prerender-config.json",
-        JSON.stringify(prerenderConfig, null, 2)
       );
     }
   }
@@ -406,7 +399,8 @@ function normalizeRouteDest(route: string) {
   );
 }
 
-function getPrerenderConfig(
+async function writePrerenderConfig(
+  filename: string,
   isrConfig: NitroRouteRules["isr"],
   bypassToken?: string
 ) {
@@ -426,5 +420,5 @@ function getPrerenderConfig(
     ...isrConfig,
   };
 
-  return prerenderConfig;
+  await writeFile(filename, JSON.stringify(prerenderConfig, null, 2));
 }
