@@ -457,7 +457,7 @@ describe("nitro:preset:vercel", async () => {
         );
         expect(JSON.parse(isrRouteConfig)).toMatchObject({
           expiration: false,
-          allowQuery: ["q", "url"],
+          allowQuery: ["q"],
         });
       });
 
@@ -480,6 +480,7 @@ describe("nitro:preset:vercel", async () => {
             );
           }
         }
+        items.sort();
         return items;
       };
 
@@ -511,10 +512,10 @@ describe("nitro:preset:vercel", async () => {
             "functions/api/import-meta.func (symlink)",
             "functions/api/kebab.func (symlink)",
             "functions/api/meta/test.func (symlink)",
+            "functions/api/methods.func (symlink)",
             "functions/api/methods/default.func (symlink)",
             "functions/api/methods/foo.get.func (symlink)",
             "functions/api/methods/get.func (symlink)",
-            "functions/api/methods.func (symlink)",
             "functions/api/param/[test-id].func (symlink)",
             "functions/api/serialized/date.func (symlink)",
             "functions/api/serialized/error.func (symlink)",
@@ -531,14 +532,14 @@ describe("nitro:preset:vercel", async () => {
             "functions/api/typed/catchall/some/[...test].func (symlink)",
             "functions/api/typed/todos/[...].func (symlink)",
             "functions/api/typed/todos/[todoId]/comments/[...commentId].func (symlink)",
+            "functions/api/typed/user/[userId].func (symlink)",
             "functions/api/typed/user/[userId]/[userExtends].func (symlink)",
             "functions/api/typed/user/[userId]/post/[postId].func (symlink)",
             "functions/api/typed/user/[userId]/post/firstPost.func (symlink)",
-            "functions/api/typed/user/[userId].func (symlink)",
+            "functions/api/typed/user/john.func (symlink)",
             "functions/api/typed/user/john/[johnExtends].func (symlink)",
             "functions/api/typed/user/john/post/[postId].func (symlink)",
             "functions/api/typed/user/john/post/coffee.func (symlink)",
-            "functions/api/typed/user/john.func (symlink)",
             "functions/api/upload.func (symlink)",
             "functions/api/wildcard/[...param].func (symlink)",
             "functions/assets/[id].func (symlink)",
@@ -565,14 +566,14 @@ describe("nitro:preset:vercel", async () => {
             "functions/rules/_/cached/[...].isr.prerender-config.json",
             "functions/rules/_/noncached/cached.isr.func (symlink)",
             "functions/rules/_/noncached/cached.isr.prerender-config.json",
-            "functions/rules/isr/[...].isr.func (symlink)",
-            "functions/rules/isr/[...].isr.prerender-config.json",
             "functions/rules/isr-ttl/[...].isr.func (symlink)",
             "functions/rules/isr-ttl/[...].isr.prerender-config.json",
-            "functions/rules/swr/[...].isr.func (symlink)",
-            "functions/rules/swr/[...].isr.prerender-config.json",
+            "functions/rules/isr/[...].isr.func (symlink)",
+            "functions/rules/isr/[...].isr.prerender-config.json",
             "functions/rules/swr-ttl/[...].isr.func (symlink)",
             "functions/rules/swr-ttl/[...].isr.prerender-config.json",
+            "functions/rules/swr/[...].isr.func (symlink)",
+            "functions/rules/swr/[...].isr.prerender-config.json",
             "functions/static-flags.func (symlink)",
             "functions/stream.func (symlink)",
             "functions/tasks/[...name].func (symlink)",
