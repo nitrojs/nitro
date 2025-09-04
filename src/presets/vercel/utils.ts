@@ -63,7 +63,6 @@ export async function generateFunctionFiles(nitro: Nitro) {
     }
 
     const prerenderConfig = getPrerenderConfig(
-      key,
       value.isr,
       nitro.options.vercel?.config?.bypassToken
     );
@@ -109,7 +108,6 @@ export async function generateFunctionFiles(nitro: Nitro) {
     const routeRules = _getRouteRules(route.src);
     if (routeRules.isr) {
       const prerenderConfig = getPrerenderConfig(
-        route.dest,
         routeRules.isr,
         nitro.options.vercel?.config?.bypassToken
       );
@@ -409,7 +407,6 @@ function normalizeRouteDest(route: string) {
 }
 
 function getPrerenderConfig(
-  key: string,
   isrConfig: NitroRouteRules["isr"],
   bypassToken?: string
 ) {
