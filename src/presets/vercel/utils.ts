@@ -90,6 +90,11 @@ export async function generateFunctionFiles(nitro: Nitro) {
   const _getRouteRules = (path: string) =>
     defu({}, ..._routeRulesMatcher.matchAll(path).reverse()) as NitroRouteRules;
   for (const route of o11Routes) {
+    const routeRules = _getRouteRules(route.src);
+    // TODO: address issue with 404s with /index.func + ISR
+    if (routeRules.isr && route.dest.endsWith("/index")) {
+      continue;
+    }
     const funcPrefix = resolve(
       nitro.options.output.serverDir,
       "..",
@@ -101,7 +106,6 @@ export async function generateFunctionFiles(nitro: Nitro) {
       funcPrefix + ".func",
       "junction"
     );
-    const routeRules = _getRouteRules(route.src);
     if (routeRules.isr) {
       await writePrerenderConfig(
         funcPrefix + ".prerender-config.json",
