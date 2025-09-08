@@ -92,7 +92,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
   for (const route of o11Routes) {
     const routeRules = _getRouteRules(route.src);
     // TODO: address issue with 404s with /index.func + ISR
-    if (routeRules.isr && route.dest.endsWith("/index")) {
+    if (routeRules.isr) {
       continue;
     }
     const funcPrefix = resolve(
@@ -106,13 +106,6 @@ export async function generateFunctionFiles(nitro: Nitro) {
       funcPrefix + ".func",
       "junction"
     );
-    if (routeRules.isr) {
-      await writePrerenderConfig(
-        funcPrefix + ".prerender-config.json",
-        routeRules.isr,
-        nitro.options.vercel?.config?.bypassToken
-      );
-    }
   }
 }
 
