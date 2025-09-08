@@ -93,9 +93,8 @@ export async function generateFunctionFiles(nitro: Nitro) {
     defu({}, ..._routeRulesMatcher.matchAll(path).reverse()) as NitroRouteRules;
   for (const route of o11Routes) {
     const routeRules = _getRouteRules(route.src);
-    // TODO: address issue with 404s with /index.func + ISR
     if (routeRules.isr) {
-      continue;
+      continue; // #3563
     }
     const funcPrefix = resolve(
       nitro.options.output.serverDir,
@@ -195,12 +194,18 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
 
   config.routes!.push(
     // ISR rules
+    // ...If we are using an ISR function for /, then we need to write this explicitly
+    ...(nitro.options.routeRules["/"]?.isr
+      ? [
+          {
+            src: "(?<url>/)",
+            dest: `/index${ISR_SUFFIX}?url=$url`,
+          },
+        ]
+      : []),
+    // ...Add rest of the ISR routes
     ...rules
-      .filter(
-        ([key, value]) =>
-          // value.isr === false || (value.isr && key.includes("/**"))
-          value.isr !== undefined && key !== "/"
-      )
+      .filter(([key, value]) => value.isr !== undefined && key !== "/")
       .map(([key, value]) => {
         const src = key.replace(/^(.*)\/\*\*/, "(?<url>$1/.*)");
         if (value.isr === false) {
@@ -220,15 +225,6 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
                 ),
         };
       }),
-    // If we are using an ISR function for /, then we need to write this explicitly
-    ...(nitro.options.routeRules["/"]?.isr
-      ? [
-          {
-            src: "(?<url>/)",
-            dest: `/index${ISR_SUFFIX}?url=$url`,
-          },
-        ]
-      : []),
     // Observability routes
     ...(o11Routes || []).map((route) => ({
       src: joinURL(nitro.options.baseURL, route.src),
