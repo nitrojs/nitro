@@ -114,7 +114,7 @@ describe("nitro:preset:vercel", async () => {
                 "handle": "filesystem",
               },
               {
-                "dest": "/rules/_/noncached/cached.isr?url=$url",
+                "dest": "/rules/_/noncached/cached-isr?url=$url",
                 "src": "/rules/_/noncached/cached",
               },
               {
@@ -126,7 +126,7 @@ describe("nitro:preset:vercel", async () => {
                 "src": "(?<url>/rules/_/noncached/.*)",
               },
               {
-                "dest": "/rules/_/cached/[...].isr?url=$url",
+                "dest": "/rules/_/cached/[...]-isr?url=$url",
                 "src": "(?<url>/rules/_/cached/.*)",
               },
               {
@@ -134,19 +134,19 @@ describe("nitro:preset:vercel", async () => {
                 "src": "/rules/dynamic",
               },
               {
-                "dest": "/rules/isr/[...].isr?url=$url",
+                "dest": "/rules/isr/[...]-isr?url=$url",
                 "src": "(?<url>/rules/isr/.*)",
               },
               {
-                "dest": "/rules/isr-ttl/[...].isr?url=$url",
+                "dest": "/rules/isr-ttl/[...]-isr?url=$url",
                 "src": "(?<url>/rules/isr-ttl/.*)",
               },
               {
-                "dest": "/rules/swr/[...].isr?url=$url",
+                "dest": "/rules/swr/[...]-isr?url=$url",
                 "src": "(?<url>/rules/swr/.*)",
               },
               {
-                "dest": "/rules/swr-ttl/[...].isr?url=$url",
+                "dest": "/rules/swr-ttl/[...]-isr?url=$url",
                 "src": "(?<url>/rules/swr-ttl/.*)",
               },
               {
@@ -451,7 +451,7 @@ describe("nitro:preset:vercel", async () => {
         const isrRouteConfig = await fsp.readFile(
           resolve(
             ctx.outDir,
-            "functions/rules/isr/[...].isr.prerender-config.json"
+            "functions/rules/isr/[...]-isr.prerender-config.json"
           ),
           "utf8"
         );
@@ -562,18 +562,18 @@ describe("nitro:preset:vercel", async () => {
             "functions/raw.func (symlink)",
             "functions/route-group.func (symlink)",
             "functions/rules/[...slug].func (symlink)",
-            "functions/rules/_/cached/[...].isr.func (symlink)",
-            "functions/rules/_/cached/[...].isr.prerender-config.json",
-            "functions/rules/_/noncached/cached.isr.func (symlink)",
-            "functions/rules/_/noncached/cached.isr.prerender-config.json",
-            "functions/rules/isr-ttl/[...].isr.func (symlink)",
-            "functions/rules/isr-ttl/[...].isr.prerender-config.json",
-            "functions/rules/isr/[...].isr.func (symlink)",
-            "functions/rules/isr/[...].isr.prerender-config.json",
-            "functions/rules/swr-ttl/[...].isr.func (symlink)",
-            "functions/rules/swr-ttl/[...].isr.prerender-config.json",
-            "functions/rules/swr/[...].isr.func (symlink)",
-            "functions/rules/swr/[...].isr.prerender-config.json",
+            "functions/rules/_/cached/[...]-isr.func (symlink)",
+            "functions/rules/_/cached/[...]-isr.prerender-config.json",
+            "functions/rules/_/noncached/cached-isr.func (symlink)",
+            "functions/rules/_/noncached/cached-isr.prerender-config.json",
+            "functions/rules/isr-ttl/[...]-isr.func (symlink)",
+            "functions/rules/isr-ttl/[...]-isr.prerender-config.json",
+            "functions/rules/isr/[...]-isr.func (symlink)",
+            "functions/rules/isr/[...]-isr.prerender-config.json",
+            "functions/rules/swr-ttl/[...]-isr.func (symlink)",
+            "functions/rules/swr-ttl/[...]-isr.prerender-config.json",
+            "functions/rules/swr/[...]-isr.func (symlink)",
+            "functions/rules/swr/[...]-isr.prerender-config.json",
             "functions/static-flags.func (symlink)",
             "functions/stream.func (symlink)",
             "functions/tasks/[...name].func (symlink)",
