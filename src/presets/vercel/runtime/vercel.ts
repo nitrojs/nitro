@@ -16,12 +16,12 @@ const listener: NodeListener = function (req, res) {
     if (url) {
       req.url = url as string;
     }
-  } else if (req.url?.startsWith("/__fallback--")) {
+  } else {
     // Workaround for ISR functions with passQuery: true
     // /__fallback--api-weather?__isr_route=%2Fapi%2Fweather%2Famsterdam&units=123"
-    const urlQueryIndex = req.url.indexOf(`?${ISR_URL_PARAM}=`);
+    const urlQueryIndex = req.url!.indexOf(`?${ISR_URL_PARAM}=`);
     if (urlQueryIndex !== -1) {
-      const { url, ...params } = parseQuery(req.url.slice(urlQueryIndex));
+      const { url, ...params } = parseQuery(req.url!.slice(urlQueryIndex));
       req.url = withQuery((url as string) || "/", params);
     }
   }

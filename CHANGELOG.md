@@ -2,6 +2,59 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## v2.12.5
+
+[compare changes](https://github.com/nitrojs/nitro/compare/v2.12.4...v2.12.5)
+
+### 🩹 Fixes
+
+- **vercel:** Rename main function to `__fallback` ([4b28c706](https://github.com/nitrojs/nitro/commit/4b28c706))
+- **vercel:** Prefix o11y routes with baseURL ([5c58de9b](https://github.com/nitrojs/nitro/commit/5c58de9b))
+- Allow accessing vfs through unix socket ([#3533](https://github.com/nitrojs/nitro/pull/3533))
+- **cloudflare-module:** Output _headers file to correct directory ([#3517](https://github.com/nitrojs/nitro/pull/3517))
+- **bun:** Respect `HOST` and `NITRO_HOST` ([#3547](https://github.com/nitrojs/nitro/pull/3547))
+
+### 💅 Refactors
+
+- **vercel:** Rename `__nitro` function to `__fallback` ([#3502](https://github.com/nitrojs/nitro/pull/3502))
+- **vercel:** Update function config types ([#3505](https://github.com/nitrojs/nitro/pull/3505))
+- **cloudflare:** Update node-compat ([#3558](https://github.com/nitrojs/nitro/pull/3558))
+
+### 📖 Documentation
+
+- **vercel:** Minor improvements ([#3498](https://github.com/nitrojs/nitro/pull/3498))
+- Add favicon.ico ([8124fbca](https://github.com/nitrojs/nitro/commit/8124fbca))
+- Deprecate edgio preset ([#3509](https://github.com/nitrojs/nitro/pull/3509))
+
+### 📦 Build
+
+- Remove `@netlify/functions` dep ([#3556](https://github.com/nitrojs/nitro/pull/3556))
+- Update node engine to `^20.19.0 ([](https://github.com/nitrojs/nitro/commit/))
+
+### 🏡 Chore
+
+- **release:** V2.12.4 ([ef6ae541](https://github.com/nitrojs/nitro/commit/ef6ae541))
+- Update test ([8f638b14](https://github.com/nitrojs/nitro/commit/8f638b14))
+- Update unenv ([5124f00d](https://github.com/nitrojs/nitro/commit/5124f00d))
+- Update deps ([087221f3](https://github.com/nitrojs/nitro/commit/087221f3))
+- Update `@vercel/nft` to 0.30 ([97ff9d5e](https://github.com/nitrojs/nitro/commit/97ff9d5e))
+- Fix internal type issue ([c6ebcc65](https://github.com/nitrojs/nitro/commit/c6ebcc65))
+- Update deps ([9bf29d59](https://github.com/nitrojs/nitro/commit/9bf29d59))
+- Update deps ([d440f6b0](https://github.com/nitrojs/nitro/commit/d440f6b0))
+- Update `pretty-bytes` and `unplugin-utils` ([d847547f](https://github.com/nitrojs/nitro/commit/d847547f))
+- Update lockfile ([3e38b004](https://github.com/nitrojs/nitro/commit/3e38b004))
+- Update deps ([0dd4f842](https://github.com/nitrojs/nitro/commit/0dd4f842))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+-  >=22.12.0` (#3557) <a12449e1>
+- MrlingXD ([@wling-art](https://github.com/wling-art))
+- Adam DeHaven ([@adamdehaven](https://github.com/adamdehaven))
+- Julien Huang ([@huang-julien](https://github.com/huang-julien))
+- Luke Nelson <luke@nelson.zone>
+- Anthony Shew <anthonyshew@gmail.com>
+
 ## v2.12.4
 
 [compare changes](https://github.com/nitrojs/nitro/compare/v2.12.3...v2.12.4)

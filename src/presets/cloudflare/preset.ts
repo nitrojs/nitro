@@ -60,7 +60,7 @@ const cloudflarePages = defineNitroPreset(
       async compiled(nitro: Nitro) {
         await writeWranglerConfig(nitro, "pages");
         await writeCFRoutes(nitro);
-        await writeCFHeaders(nitro);
+        await writeCFHeaders(nitro, "output");
         await writeCFPagesRedirects(nitro);
       },
     },
@@ -93,7 +93,7 @@ const cloudflarePagesStatic = defineNitroPreset(
         }
       },
       async compiled(nitro: Nitro) {
-        await writeCFHeaders(nitro);
+        await writeCFHeaders(nitro, "output");
         await writeCFPagesRedirects(nitro);
       },
     },
@@ -160,7 +160,7 @@ const cloudflareModule = defineNitroPreset(
       },
       async compiled(nitro: Nitro) {
         await writeWranglerConfig(nitro, "module");
-        await writeCFHeaders(nitro);
+        await writeCFHeaders(nitro, "public");
 
         await writeFile(
           resolve(nitro.options.output.dir, "package.json"),
