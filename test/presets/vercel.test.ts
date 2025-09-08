@@ -114,8 +114,7 @@ describe("nitro:preset:vercel", async () => {
                 "handle": "filesystem",
               },
               {
-                "dest": "/rules/_/noncached/cached? __isr_route=$url",
-                "dest": "/rules/_/noncached/cached-isr?url=$url",
+                "dest": "/rules/_/noncached/cached-isr? __isr_route=$url",
                 "src": "/rules/_/noncached/cached",
               },
               {
@@ -127,8 +126,7 @@ describe("nitro:preset:vercel", async () => {
                 "src": "(?<url>/rules/_/noncached/.*)",
               },
               {
-                "dest": "/__fallback--rules---cached? __isr_route=$url",
-                "dest": "/rules/_/cached/[...]-isr?url=$url",
+                "dest": "/rules/_/cached/[...]-isr? __isr_route=$url",
                 "src": "(?<url>/rules/_/cached/.*)",
               },
               {
@@ -136,32 +134,19 @@ describe("nitro:preset:vercel", async () => {
                 "src": "/rules/dynamic",
               },
               {
-                "dest": "/__fallback--rules-isr? __isr_route=$url",
+                "dest": "/rules/isr/[...]-isr? __isr_route=$url",
                 "src": "(?<url>/rules/isr/.*)",
               },
               {
-                "dest": "/__fallback--rules-isr-ttl? __isr_route=$url",
+                "dest": "/rules/isr-ttl/[...]-isr? __isr_route=$url",
                 "src": "(?<url>/rules/isr-ttl/.*)",
               },
               {
-                "dest": "/__fallback--rules-swr? __isr_route=$url",
+                "dest": "/rules/swr/[...]-isr? __isr_route=$url",
                 "src": "(?<url>/rules/swr/.*)",
               },
               {
-                "dest": "/__fallback--rules-swr-ttl? __isr_route=$url",
-                "dest": "/rules/isr/[...]-isr?url=$url",
-                "src": "(?<url>/rules/isr/.*)",
-              },
-              {
-                "dest": "/rules/isr-ttl/[...]-isr?url=$url",
-                "src": "(?<url>/rules/isr-ttl/.*)",
-              },
-              {
-                "dest": "/rules/swr/[...]-isr?url=$url",
-                "src": "(?<url>/rules/swr/.*)",
-              },
-              {
-                "dest": "/rules/swr-ttl/[...]-isr?url=$url",
+                "dest": "/rules/swr-ttl/[...]-isr? __isr_route=$url",
                 "src": "(?<url>/rules/swr-ttl/.*)",
               },
               {
