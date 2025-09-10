@@ -17,7 +17,7 @@ export function createNitroEnvironment(
       rollupOptions: ctx.rollupConfig!.config,
       minify: ctx.nitro!.options.minify,
       commonjsOptions: {
-        strictRequires: "auto", // TODO: set to true (default) in v3
+        strictRequires: true, // TODO: set to true (default) in v3
         esmExternals: (id) => !id.startsWith("unenv/"),
         requireReturnsDefault: "auto",
         ...(ctx.nitro!.options.commonJS as any),
