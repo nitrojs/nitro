@@ -3,7 +3,7 @@ import { fileURLToPath } from "mlly";
 import { join } from "pathe";
 import { readPackageJSON } from "pkg-types";
 import { distSubpaths } from "../build.config";
-import type {PackageJson} from "pkg-types";
+import type { PackageJson } from "pkg-types";
 
 const copyPkgFields = [
   "description",
