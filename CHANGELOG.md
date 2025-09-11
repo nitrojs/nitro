@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## v2.12.6
+
+[compare changes](https://github.com/nitrojs/nitro/compare/v2.12.5...v2.12.6)
+
+### 🩹 Fixes
+
+- **vercel:** Generate prerender config for o11y routes matching `isr` route rule ([#3562](https://github.com/nitrojs/nitro/pull/3562))
+- **vercel:** Skip o11y routes matching `isr` route rule ([#3563](https://github.com/nitrojs/nitro/pull/3563))
+- **vercel:** Use `-isr` as suffix ([bde8ce85](https://github.com/nitrojs/nitro/commit/bde8ce85))
+- **vercel:** Add `/` isr handler before wildcards ([81c2f9cd](https://github.com/nitrojs/nitro/commit/81c2f9cd))
+
+### 💅 Refactors
+
+- **vercel:** Better o11y for isr cached routes ([#3560](https://github.com/nitrojs/nitro/pull/3560))
+
+### 🏡 Chore
+
+- Update dependencies ([4871c9ca](https://github.com/nitrojs/nitro/commit/4871c9ca))
+- Update deps ([aed86581](https://github.com/nitrojs/nitro/commit/aed86581))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+- Daniel Roe ([@danielroe](https://github.com/danielroe))
+
 ## v2.12.5
 
 [compare changes](https://github.com/nitrojs/nitro/compare/v2.12.4...v2.12.5)
