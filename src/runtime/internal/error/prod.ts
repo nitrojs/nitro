@@ -1,6 +1,7 @@
 import type { H3Event, HTTPError, HTTPEvent } from "h3";
 import { getRequestURL } from "h3";
-import { defineNitroErrorHandler, type InternalHandlerResponse } from "./utils";
+import { defineNitroErrorHandler } from "./utils";
+import type { InternalHandlerResponse } from "./utils";
 import { FastResponse } from "srvx";
 
 export default defineNitroErrorHandler(

@@ -1,7 +1,6 @@
-import { type H3Event as _H3Event } from "h3";
+import type { H3Event as _H3Event } from "h3";
 import type { CacheOptions, CapturedErrorContext } from "./runtime";
 import type { Base$Fetch, NitroFetchRequest } from "./fetch/fetch";
-import type { ServerRequestContext } from "srvx";
 import type { NitroRuntimeConfig } from "./config";
 import type { NitroRouteRules } from "./route-rules";
 

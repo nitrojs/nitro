@@ -1,10 +1,12 @@
 import { promises as fsp } from "node:fs";
 import type { RequestListener } from "node:http";
 import { tmpdir } from "node:os";
-import { type DateString, formatDate } from "compatx";
+import { formatDate } from "compatx";
+import type { DateString } from "compatx";
 import { defu } from "defu";
 import destr from "destr";
-import { type Listener, listen } from "listhen";
+import { listen } from "listhen";
+import type { Listener } from "listhen";
 import { fileURLToPath } from "mlly";
 import {
   build,
@@ -15,7 +17,8 @@ import {
   prerender,
 } from "nitro";
 import type { Nitro, NitroConfig } from "nitro/types";
-import { type FetchOptions, fetch } from "ofetch";
+import { fetch } from "ofetch";
+import type { FetchOptions } from "ofetch";
 import { join, resolve } from "pathe";
 import { isWindows } from "std-env";
 import { joinURL } from "ufo";

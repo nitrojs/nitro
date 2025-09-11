@@ -1,7 +1,9 @@
-import { getEventContext, type HTTPEvent } from "h3";
+import { getEventContext } from "h3";
+import type { HTTPEvent } from "h3";
 import { klona } from "klona";
 import type { NitroRuntimeConfig } from "nitro/types";
-import { type EnvOptions, applyEnv } from "./utils.env";
+import { applyEnv } from "./utils.env";
+import type { EnvOptions } from "./utils.env";
 
 // Static runtime config inlined by nitro build
 const _inlineRuntimeConfig =

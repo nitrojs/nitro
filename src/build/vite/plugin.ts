@@ -1,4 +1,4 @@
-import { type PluginOption as VitePlugin } from "vite";
+import type { PluginOption as VitePlugin } from "vite";
 import type { Plugin as RollupPlugin } from "rollup";
 import type { NitroPluginConfig, NitroPluginContext } from "./types";
 import { join, resolve, relative } from "pathe";

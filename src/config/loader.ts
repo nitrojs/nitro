@@ -1,6 +1,7 @@
 import { loadConfig, watchConfig } from "c12";
 import consola from "consola";
-import { type CompatibilityDateSpec, resolveCompatibilityDates } from "compatx";
+import { resolveCompatibilityDates } from "compatx";
+import type { CompatibilityDateSpec } from "compatx";
 import { klona } from "klona/full";
 import type { PresetName } from "nitro/presets";
 import type {

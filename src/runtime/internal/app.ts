@@ -6,7 +6,8 @@ import type {
   NitroRuntimeHooks,
 } from "nitro/types";
 
-import { H3, lazyEventHandler, toRequest, type HTTPEvent } from "h3";
+import { H3, lazyEventHandler, toRequest } from "h3";
+import type { HTTPEvent } from "h3";
 import { createFetch } from "ofetch";
 import { cachedEventHandler } from "./cache";
 import { createRouteRulesHandler, getRouteRulesForPath } from "./route-rules";

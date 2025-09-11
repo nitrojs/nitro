@@ -12,14 +12,14 @@ jobs:
         os: [ubuntu-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: npm i -g --force corepack && corepack enable
       - uses: actions/setup-node@v4
         with: { node-version: lts/*, cache: pnpm }
       - uses: oven-sh/setup-bun@v2
         if: ${{ matrix.os != 'windows-latest' }}
         with: { bun-version: latest }
-      - uses: denoland/setup-deno@v1
+      - uses: denoland/setup-deno@v2
         if: ${{ matrix.os != 'windows-latest' }}
         with: { deno-version: v2.x }
       - run: pnpm install
@@ -37,7 +37,7 @@ jobs:
     needs: tests
     if: contains('refs/heads/v2,refs/heads/v3', github.ref) && github.event_name == 'push'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with: { fetch-depth: 0 }
       - run: npm i -fg corepack && corepack enable
       - uses: actions/setup-node@v4

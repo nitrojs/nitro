@@ -3,7 +3,8 @@ import type { Duplex } from "node:stream";
 import type { GetPortInput } from "get-port-please";
 import type { FSWatcher } from "chokidar";
 import type { Listener, ListenOptions } from "listhen";
-import { NodeDevWorker, type DevWorkerData } from "./worker";
+import { NodeDevWorker } from "./worker";
+import type { DevWorkerData } from "./worker";
 import type {
   DevMessageListener,
   DevRPCHooks,
@@ -13,14 +14,8 @@ import type {
   WorkerAddress,
 } from "nitro/types";
 
-import {
-  H3,
-  HTTPError,
-  defineHandler,
-  fromNodeHandler,
-  withBase,
-  type EventHandler,
-} from "h3";
+import { H3, HTTPError, defineHandler, fromNodeHandler, withBase } from "h3";
+import type { EventHandler } from "h3";
 import { toNodeHandler } from "srvx/node";
 import devErrorHandler, {
   defaultHandler as devErrorHandlerInternal,
