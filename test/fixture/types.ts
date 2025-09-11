@@ -1,6 +1,6 @@
 import { expectTypeOf } from "expect-type";
 import { defineHandler } from "h3";
-import { type EventHandler, EventHandlerRequest } from "h3";
+import type { EventHandler, EventHandlerRequest } from "h3";
 import { defineNitroConfig } from "nitro/config";
 import type { $Fetch } from "nitro/types";
 import type { Serialize, Simplify } from "nitro/types";
