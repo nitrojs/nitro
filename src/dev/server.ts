@@ -288,7 +288,7 @@ export class NitroDevServer implements DevRPCHooks {
     }
 
     // Debugging endpoint to view vfs
-    app.get("/_vfs", createVFSHandler(this.#nitro));
+    app.get("/_vfs/**", createVFSHandler(this.#nitro));
 
     // Serve asset dirs
     for (const asset of this.#nitro.options.publicAssets) {

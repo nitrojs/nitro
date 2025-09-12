@@ -1,9 +1,9 @@
-import type { H3, H3EventContext, HTTPEvent } from "h3";
+import type { H3Core, H3EventContext, HTTPEvent } from "h3";
 import type { Hookable } from "hookable";
 import type { ServerRequest, ServerRequestContext } from "srvx";
 
 export interface NitroApp {
-  _h3?: H3;
+  _h3?: H3Core;
   hooks: Hookable<NitroRuntimeHooks>;
   fetch: (
     req: string | URL | Request,

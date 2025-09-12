@@ -19,9 +19,8 @@ export interface NitroEventHandler {
   /**
    * Path prefix or route
    *
-   * If an empty string used, will be used as a middleware
    */
-  route?: string;
+  route: string;
 
   /**
    * Specifies this is a middleware handler.

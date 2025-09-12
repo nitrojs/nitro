@@ -1,14 +1,12 @@
-import type { H3EventHandler, LazyEventHandler, RouterMethod } from "h3";
+import type {
+  H3EventHandler,
+  H3Route,
+  LazyEventHandler,
+  RouterMethod,
+} from "h3";
+import type { MatchedRoute } from "rou3";
 
-type HandlerDefinition = {
-  route: string;
-  lazy?: boolean;
-  middleware?: boolean;
-  handler: H3EventHandler;
-  method?: RouterMethod;
-} & {
-  lazy: true;
-  handler: LazyEventHandler;
-};
-
-export const handlers: HandlerDefinition[];
+export function findRoute(
+  method: string,
+  path: string
+): MatchedRoute<H3Route> | undefined;

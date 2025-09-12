@@ -80,6 +80,7 @@ export async function scanMiddleware(nitro: Nitro) {
   const files = await scanFiles(nitro, "middleware");
   return files.map((file) => {
     return {
+      route: "/**",
       middleware: true,
       handler: file.fullPath,
     };

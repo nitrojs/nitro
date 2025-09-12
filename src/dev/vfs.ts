@@ -29,7 +29,7 @@ export function createVFSHandler(nitro: Nitro) {
       ...nitro.options.virtual,
     };
 
-    const url = event.url.pathname || "";
+    const url = event.context.params?._ || "";
     const isJson =
       url.endsWith(".json") ||
       event.req.headers.get("accept")?.includes("application/json");

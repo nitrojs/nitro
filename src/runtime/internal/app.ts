@@ -6,17 +6,16 @@ import type {
   NitroRuntimeHooks,
 } from "nitro/types";
 
-import { H3, lazyEventHandler, toRequest, type HTTPEvent } from "h3";
+import { H3Core, toRequest, type HTTPEvent } from "h3";
 import { createFetch } from "ofetch";
-import { cachedEventHandler } from "./cache";
-import { createRouteRulesHandler, getRouteRulesForPath } from "./route-rules";
+import { createRouteRulesHandler } from "./route-rules";
 
 // IMPORTANT: virtuals and user code should be imported last to avoid initialization order issues
 import errorHandler from "#nitro-internal-virtual/error-handler";
 import { plugins } from "#nitro-internal-virtual/plugins";
-import { handlers } from "#nitro-internal-virtual/server-handlers";
 import { createHooks } from "hookable";
 import { nitroAsyncContext } from "./context";
+import { findRoute } from "#nitro-internal-virtual/server-handlers";
 
 export function useNitroApp(): NitroApp {
   return ((useNitroApp as any).__instance__ ??= initNitroApp());
@@ -124,7 +123,8 @@ function createNitroApp(): NitroApp {
 
 function createH3App(captureError: CaptureError) {
   const DEBUG_MODE = ["1", "true", "TRUE"].includes(process.env.DEBUG + "");
-  const h3App = new H3({
+
+  const h3App = new H3Core({
     debug: DEBUG_MODE,
     onError: (error, event) => {
       captureError(error, {
@@ -135,29 +135,11 @@ function createH3App(captureError: CaptureError) {
     },
   });
 
+  // Compiled route matching
+  h3App._findRoute = (event) => findRoute(event.req.method, event.url.pathname);
+
   // Register route rule handlers
   h3App.use(createRouteRulesHandler());
-
-  // Register server handlers
-  for (const h of handlers) {
-    let handler = h.lazy ? lazyEventHandler(h.handler) : h.handler;
-    if (!h.route) {
-      h3App.use(handler);
-    } else if (h.middleware) {
-      h3App.use(h.route, handler, { method: h.method });
-    } else {
-      const routeRules = getRouteRulesForPath(
-        h.route.replace(/:\w+|\*\*/g, "_")
-      );
-      if (routeRules.cache) {
-        handler = cachedEventHandler(handler, {
-          group: "nitro/routes",
-          ...routeRules.cache,
-        });
-      }
-      h3App.on(h.method, h.route, handler);
-    }
-  }
 
   return h3App;
 }
