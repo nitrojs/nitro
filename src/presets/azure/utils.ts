@@ -1,30 +1,22 @@
-import { createWriteStream } from "node:fs";
-import fsp from "node:fs/promises";
-import { writeFile } from "../_utils/fs";
 import type { Nitro } from "nitro/types";
-import { join, resolve } from "pathe";
+import { resolve } from "pathe";
+import { writeFile } from "../_utils/fs";
+import { getNodeRuntime } from "../_utils/preset";
 
 export async function writeSWARoutes(nitro: Nitro) {
   const host = {
     version: "2.0",
   };
 
-  // https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-node?tabs=typescript%2Cwindows%2Cazure-cli&pivots=nodejs-model-v4#supported-versions
-  const supportedNodeVersions = new Set(["16", "18", "20"]);
-  let nodeVersion = "18";
-  try {
-    const currentNodeVersion = JSON.parse(
-      await fsp.readFile(join(nitro.options.rootDir, "package.json"), "utf8")
-    ).engines.node;
-    if (supportedNodeVersions.has(currentNodeVersion)) {
-      nodeVersion = currentNodeVersion;
-    }
-  } catch {
-    const currentNodeVersion = process.versions.node.slice(0, 2);
-    if (supportedNodeVersions.has(currentNodeVersion)) {
-      nodeVersion = currentNodeVersion;
-    }
-  }
+  /** Convert a version number to an Azure Functions runtime identifier */
+  const getNodeVersionString = (version: number) => `node:${version}`;
+
+  /**
+   * Node versions supported by Azure Functions.
+   * @updated 2025-07-21
+   * @link https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-node?tabs=typescript%2Cwindows%2Cazure-cli&pivots=nodejs-model-v4#supported-versions
+   */
+  const supportedNodeVersions = new Set([18, 20]);
 
   // Merge custom config into the generated config
   const config = {
@@ -32,7 +24,11 @@ export async function writeSWARoutes(nitro: Nitro) {
     // Overwrite routes for now, we will add existing routes after generating routes
     routes: [] as Array<{ route: string; redirect?: string; rewrite?: string }>,
     platform: {
-      apiRuntime: `node:${nodeVersion}`,
+      apiRuntime: await getNodeRuntime(
+        nitro,
+        supportedNodeVersions,
+        getNodeVersionString
+      ),
       ...nitro.options.azure?.config?.platform,
     },
     navigationFallback: {

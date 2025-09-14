@@ -1,6 +1,7 @@
 import fsp from "node:fs/promises";
 import { defu } from "defu";
 import { writeFile } from "../_utils/fs";
+import { getNodeRuntime } from "../_utils/preset";
 import type { Nitro } from "nitro/types";
 import { dirname, relative, resolve } from "pathe";
 import { joinURL, withoutLeadingSlash } from "ufo";
@@ -13,16 +14,15 @@ import { isTest } from "std-env";
 
 // https://vercel.com/docs/build-output-api/configuration
 
-// https://vercel.com/docs/functions/runtimes/node-js/node-js-versions
-const SUPPORTED_NODE_VERSIONS = [18, 20, 22];
+/** Convert a version number to an Vercel Functions runtime identifier */
+const getNodeVersionString = (version: number) => `nodejs${version}.x`;
 
-function getSystemNodeVersion() {
-  const systemNodeVersion = Number.parseInt(
-    process.versions.node.split(".")[0]
-  );
-
-  return Number.isNaN(systemNodeVersion) ? 22 : systemNodeVersion;
-}
+/**
+ * Node versions supported by Vercel Functions.
+ * @updated 2025-07-21
+ * @link https://vercel.com/docs/functions/runtimes/node-js/node-js-versions
+ */
+const supportedNodeVersions = new Set([18, 20, 22]);
 
 export async function generateFunctionFiles(nitro: Nitro) {
   const o11Routes = getObservabilityRoutes(nitro);
@@ -31,12 +31,11 @@ export async function generateFunctionFiles(nitro: Nitro) {
   const buildConfig = generateBuildConfig(nitro, o11Routes);
   await writeFile(buildConfigPath, JSON.stringify(buildConfig, null, 2));
 
-  const systemNodeVersion = getSystemNodeVersion();
-  const usedNodeVersion =
-    SUPPORTED_NODE_VERSIONS.find((version) => version >= systemNodeVersion) ??
-    SUPPORTED_NODE_VERSIONS.at(-1);
-
-  const runtimeVersion = `nodejs${usedNodeVersion}.x`;
+  const runtimeVersion = await getNodeRuntime(
+    nitro,
+    supportedNodeVersions,
+    getNodeVersionString
+  );
   const functionConfigPath = resolve(
     nitro.options.output.serverDir,
     ".vc-config.json"

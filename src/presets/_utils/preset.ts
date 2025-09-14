@@ -1,5 +1,7 @@
 import { fileURLToPath } from "node:url";
-import type { NitroPreset, NitroPresetMeta } from "nitro/types";
+import { readPackageJSON } from "pkg-types";
+import { join } from "pathe";
+import type { Nitro, NitroPreset, NitroPresetMeta } from "nitro/types";
 
 export function defineNitroPreset<
   P extends NitroPreset,
@@ -14,4 +16,55 @@ export function defineNitroPreset<
     preset.entry = fileURLToPath(new URL(preset.entry, meta.url));
   }
   return { ...preset, _meta: meta } as P & { _meta: M };
+}
+
+const MINIMUM_NODE_VERSION = 20 as const;
+const DEFAULT_NODE_VERSION = 24 as const;
+
+/**
+ * Builder to get the Node.js runtme for a provider.
+ *
+ * Ideally, all presets will support Nitro's preferred `DEFAULT_NODE_VERSION`,
+ * which will simply be converted to a preset-specific identifier.
+ * If not, it will return the highest supported version between `MINIMUM_NODE_VERSION` and `DEFAULT_NODE_VERSION`.
+ *
+ * @param nitro - The Nitro instance.
+ * @param supportedNodeVersions - A set of Node.js version numbers supported by the provider.
+ * @param getNodeVerisonString  - A preset-specific function to convert a Node.js version number to the runtime string. Defaults to String constructor.
+ * @returns The Node.js version identifier for preset.
+ */
+export async function getNodeRuntime(
+  nitro: Nitro,
+  supportedNodeVersions: Set<number>,
+  getNodeVerisonString: (version: number) => string = String
+): Promise<string> {
+  // Read package.json to get the current node version
+  const packageJSONPath = join(nitro.options.rootDir, "package.json");
+  const packageJSON = await readPackageJSON(packageJSONPath);
+  const currentNodeVersion = Number.parseInt(packageJSON.engines?.node);
+
+  // If current node version is supported, use it
+  if (supportedNodeVersions.has(currentNodeVersion)) {
+    return getNodeVerisonString(currentNodeVersion);
+  }
+
+  // Get Nitro's current default Node.js version
+  let version = DEFAULT_NODE_VERSION;
+
+  // Check it is supported by the provider
+  if (supportedNodeVersions.has(version)) {
+    // If so, return the mapped version
+    return getNodeVerisonString(version);
+  }
+
+  // Else, return the latest supported version
+  while (version > MINIMUM_NODE_VERSION) {
+    version--;
+    if (supportedNodeVersions.has(version)) {
+      // Found the next-highest supported version
+      return getNodeVerisonString(version);
+    }
+  }
+
+  throw new Error("No supported Node.js version found");
 }
