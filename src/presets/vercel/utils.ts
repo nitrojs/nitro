@@ -14,7 +14,7 @@ import { isTest } from "std-env";
 // https://vercel.com/docs/build-output-api/configuration
 
 // https://vercel.com/docs/functions/runtimes/node-js/node-js-versions
-const SUPPORTED_NODE_VERSIONS = [18, 20, 22];
+const SUPPORTED_NODE_VERSIONS = [20, 22];
 
 function getSystemNodeVersion() {
   const systemNodeVersion = Number.parseInt(
