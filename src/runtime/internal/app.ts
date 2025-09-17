@@ -136,11 +136,13 @@ function createH3App(captureError: CaptureError) {
 
   // Compiled route matching
   h3App._findRoute = (event) => {
-    const route = findRoute(event.req.method, event.url.pathname);
+    const pathname = event.url.pathname;
+    const method = event.req.method.toLowerCase();
+    const route = findRoute(method, pathname);
     if (!route) {
       return;
     }
-    const routeRules = resolveRouteRules(event.req.method, event.url.pathname);
+    const routeRules = resolveRouteRules(method, pathname);
     if (routeRules?.length) {
       route.data = {
         ...route.data,
