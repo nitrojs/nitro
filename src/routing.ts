@@ -12,7 +12,7 @@ import { addRoute, createRouter, findRoute, findAllRoutes } from "rou3";
 import { compileRouterToString } from "rou3/compiler";
 import { hash } from "ohash";
 
-const builtInRuntimeRouteRules = new Set(["headers", "redirect", "proxy"]);
+const RuntimeRouteRules = new Set(["headers", "redirect", "proxy"]);
 
 export function initNitroRouting(nitro: Nitro) {
   const envConditions = new Set(
@@ -175,14 +175,11 @@ function serializableRouteRule(h: NitroRouteRules): NitroRouteRules {
         return () => {
           // RouteRuleEntry[]
           return `[${Object.entries(h)
-            .filter(
-              ([name, options]) =>
-                options !== undefined && builtInRuntimeRouteRules.has(name)
-            )
+            .filter(([_name, options]) => options !== undefined)
             .map(([name, options]) => {
               return `{${[
                 `name:${JSON.stringify(name)}`,
-                `handler:__routeRules__.${name}`,
+                RuntimeRouteRules.has(name) && `handler:__routeRules__.${name}`,
                 `options:${JSON.stringify(options)}`,
               ]
                 .filter(Boolean)

@@ -145,18 +145,19 @@ function createH3App(captureError: CaptureError) {
     const pathname = event.url.pathname;
     const method = event.req.method.toLowerCase();
     let route = findRoute(method, pathname);
-    const routeRules = resolveRouteRules(method, pathname);
+    const { routeRules, routeRuleMiddleware } = getRouteRules(method, pathname);
+    event.context.routeRules = routeRules;
     if (!route) {
-      if (routeRules) {
+      if (routeRuleMiddleware) {
         route = { data: { handler: () => Symbol.for("h3.notFound") } };
       } else {
         return;
       }
     }
-    if (routeRules) {
+    if (routeRuleMiddleware) {
       route.data = {
         ...route.data,
-        middleware: [...routeRules, ...(route.data.middleware || [])],
+        middleware: [...routeRuleMiddleware, ...(route.data.middleware || [])],
       };
     }
     return route;
@@ -165,18 +166,21 @@ function createH3App(captureError: CaptureError) {
   return h3App;
 }
 
-function resolveRouteRules(
+function getRouteRules(
   method: string,
   pathname: string
-): undefined | Middleware[] {
+): {
+  routeRules?: Record<string, RouteRuleEntry>;
+  routeRuleMiddleware?: Middleware[];
+} {
   const m = findRouteRules(method, pathname);
   if (!m?.length) {
-    return;
+    return {};
   }
-  const merged: Map<string, RouteRuleEntry> = new Map();
+  const routeRules: Record<string, RouteRuleEntry> = {};
   for (const layer of m) {
     for (const rule of layer.data) {
-      const currentRule = merged.get(rule.name);
+      const currentRule = routeRules[rule.name];
       if (currentRule) {
         if (rule.options === false) {
           currentRule.options = false;
@@ -184,20 +188,23 @@ function resolveRouteRules(
           Object.assign(currentRule.options, rule.options);
         }
       } else if (rule.options !== false) {
-        merged.set(rule.name, {
+        routeRules[rule.name] = {
           name: rule.name,
           handler: rule.handler,
           options: { ...rule.options },
-        });
+        };
       }
     }
   }
   const middleware = [];
-  for (const rule of merged.values()) {
-    if (rule.options === false) {
+  for (const rule of Object.values(routeRules)) {
+    if (rule.options === false || !rule.handler) {
       continue;
     }
     middleware.push(rule.handler(rule.options || {}));
   }
-  return middleware.length > 0 ? middleware : undefined;
+  return {
+    routeRules,
+    routeRuleMiddleware: middleware.length > 0 ? middleware : undefined,
+  };
 }
