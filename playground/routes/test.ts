@@ -1,5 +1,5 @@
 import { defineHandler } from "h3";
 
 export default defineHandler((event) => {
-  return { test: true };
+  return Date.now();
 });

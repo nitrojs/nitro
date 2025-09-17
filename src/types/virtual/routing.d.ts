@@ -15,7 +15,7 @@ export function findRoute(
 export function findRouteRules(
   method: string,
   path: string
-): MatchedRoute<MatchedRouteRule<"isr">[]>[] | undefined;
+): MatchedRoute<MatchedRouteRule[]>[] | undefined;
 
 export const middleware: {
   route?: string;

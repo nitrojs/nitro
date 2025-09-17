@@ -183,16 +183,26 @@ function getRouteRules(
     for (const rule of layer.data) {
       const currentRule = routeRules[rule.name];
       if (currentRule) {
+        if (rule.options === false) {
+          // Remove/Reset existing rule with `false` value
+          delete routeRules[rule.name];
+          continue;
+        }
         if (
           typeof currentRule.options === "object" &&
           typeof rule.options === "object"
         ) {
+          // Merge nested rule objects
           currentRule.options = { ...currentRule.options, ...rule.options };
         } else {
+          // Override rule if non object
           currentRule.options = rule.options;
         }
+        // Routing (route and params)
+        currentRule.route = rule.route;
+        currentRule.params = { ...currentRule.params, ...layer.params };
       } else if (rule.options !== false) {
-        routeRules[rule.name] = { ...rule };
+        routeRules[rule.name] = { ...rule, params: layer.params };
       }
     }
   }
@@ -201,7 +211,7 @@ function getRouteRules(
     if (rule.options === false || !rule.handler) {
       continue;
     }
-    middleware.push(rule.handler(rule.options || {}));
+    middleware.push(rule.handler(rule));
   }
   return {
     routeRules,

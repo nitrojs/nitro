@@ -23,7 +23,9 @@ export function initNitroRouting(nitro: Nitro) {
   };
 
   const routes = new Router<NitroEventHandler & { _importHash: string }>();
-  const routeRules = new Router<NitroRouteRules>(true /* matchAll */);
+  const routeRules = new Router<NitroRouteRules & { _route: string }>(
+    true /* matchAll */
+  );
   const middleware: (NitroEventHandler & { _importHash: string })[] = [];
 
   const sync = () => {
@@ -32,7 +34,10 @@ export function initNitroRouting(nitro: Nitro) {
       Object.entries(nitro.options.routeRules).map(([route, data]) => ({
         route,
         method: "",
-        data: data,
+        data: {
+          ...data,
+          _route: route,
+        },
       }))
     );
 

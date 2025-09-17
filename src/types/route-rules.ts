@@ -25,10 +25,12 @@ export interface NitroRouteRules
   [key: string]: any;
 }
 
-export type MatchedRouteRule<T extends keyof NitroRouteRules = "custom"> = {
-  name: T;
-  options: false | NitroRouteRules[T];
-  handler?: (opts?: unknown) => Middleware;
+export type MatchedRouteRule<K extends keyof NitroRouteRules = "custom"> = {
+  name: K;
+  options: NitroRouteRules[K];
+  route: string;
+  params?: Record<string, string>;
+  handler?: (opts: unknown) => Middleware;
 };
 
 export type MatchedRouteRules = {

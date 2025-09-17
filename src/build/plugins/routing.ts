@@ -1,7 +1,6 @@
 import type { Nitro, NitroEventHandler, NitroRouteRules } from "nitro/types";
 import { virtual } from "./virtual";
-
-const RuntimeRouteRules = new Set(["headers", "redirect", "proxy"]);
+import { RuntimeRouteRules } from "../../runtime/internal/route-rules";
 
 export function routing(nitro: Nitro) {
   return virtual(
@@ -89,13 +88,15 @@ function serializeHandler(
     .join(",")}}`;
 }
 
-function serializeRouteRule(h: NitroRouteRules): string {
+function serializeRouteRule(h: NitroRouteRules & { _route: string }): string {
   return `[${Object.entries(h)
-    .filter(([_name, options]) => options !== undefined)
+    .filter(([name, options]) => options !== undefined && name[0] !== "_")
     .map(([name, options]) => {
       return `{${[
         `name:${JSON.stringify(name)}`,
-        RuntimeRouteRules.has(name) && `handler:__routeRules__.${name}`,
+        `route:${JSON.stringify(h._route)}`,
+        h._method && `method:${JSON.stringify(h._method)}`,
+        RuntimeRouteRules.includes(name) && `handler:__routeRules__.${name}`,
         `options:${JSON.stringify(options)}`,
       ]
         .filter(Boolean)

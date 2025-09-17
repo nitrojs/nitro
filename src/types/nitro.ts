@@ -25,7 +25,7 @@ export interface Nitro {
   routing: Readonly<{
     sync: () => void;
     routes: Router<NitroEventHandler & { _importHash: string }>;
-    routeRules: Router<NitroRouteRules>;
+    routeRules: Router<NitroRouteRules & { _route: string; _method: string }>;
     middleware: (NitroEventHandler & { _importHash: string })[];
   }>;
 
