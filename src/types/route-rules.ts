@@ -22,9 +22,10 @@ export interface NitroRouteRules
   extends Omit<NitroRouteConfig, "redirect" | "cors" | "swr" | "static"> {
   redirect?: { to: string; status: HTTPstatus };
   proxy?: { to: string } & ProxyOptions;
+  [key: string]: any;
 }
 
-export type MatchedRouteRule<T extends keyof NitroRouteRules> = {
+export type MatchedRouteRule<T extends keyof NitroRouteRules = "custom"> = {
   name: T;
   options: false | NitroRouteRules[T];
   handler?: (opts?: unknown) => Middleware;

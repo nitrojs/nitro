@@ -1,6 +1,8 @@
 import type { ServerRequest } from "srvx";
 import type {
   CaptureError,
+  MatchedRouteRule,
+  MatchedRouteRules,
   NitroApp,
   NitroAsyncContext,
   NitroRuntimeHooks,
@@ -17,7 +19,6 @@ import {
   findRoute,
   findRouteRules,
   middleware,
-  type RouteRuleEntry,
 } from "#nitro-internal-virtual/routing";
 
 export function useNitroApp(): NitroApp {
@@ -170,29 +171,28 @@ function getRouteRules(
   method: string,
   pathname: string
 ): {
-  routeRules?: Record<string, RouteRuleEntry>;
+  routeRules?: MatchedRouteRules;
   routeRuleMiddleware?: Middleware[];
 } {
   const m = findRouteRules(method, pathname);
   if (!m?.length) {
     return {};
   }
-  const routeRules: Record<string, RouteRuleEntry> = {};
+  const routeRules: MatchedRouteRules = {};
   for (const layer of m) {
     for (const rule of layer.data) {
       const currentRule = routeRules[rule.name];
       if (currentRule) {
-        if (rule.options === false) {
-          currentRule.options = false;
+        if (
+          typeof currentRule.options === "object" &&
+          typeof rule.options === "object"
+        ) {
+          currentRule.options = { ...currentRule.options, ...rule.options };
         } else {
-          Object.assign(currentRule.options, rule.options);
+          currentRule.options = rule.options;
         }
       } else if (rule.options !== false) {
-        routeRules[rule.name] = {
-          name: rule.name,
-          handler: rule.handler,
-          options: { ...rule.options },
-        };
+        routeRules[rule.name] = { ...rule };
       }
     }
   }
