@@ -1,7 +1,8 @@
 import { proxyRequest, redirect as sendRedirect } from "h3";
-import type { Middleware } from "h3";
+import type { EventHandler, Middleware } from "h3";
 import type { MatchedRouteRule, NitroRouteRules } from "nitro/types";
 import { joinURL, withQuery, withoutBase } from "ufo";
+import { defineCachedEventHandler } from "./cache";
 
 type RouteRuleCtor<T extends keyof NitroRouteRules> = (
   m: MatchedRouteRule<T>
@@ -11,7 +12,7 @@ export const RuntimeRouteRules = [
   "headers",
   "redirect",
   "proxy",
-  // "cache",
+  "cache",
 ] as string[];
 
 // Headers route rule
@@ -62,4 +63,26 @@ export const proxy = <RouteRuleCtor<"proxy">>((m) =>
     return proxyRequest(event, target, {
       ...m.options,
     });
+  });
+
+// Cache route rule
+export const cache = <RouteRuleCtor<"cache">>((m) =>
+  function cacheRouteRule(event, next) {
+    if (!event.context.matchedRoute) {
+      return next();
+    }
+    const cachedHandlers: Map<string, EventHandler> = ((
+      globalThis as any
+    ).__nitroCachedHandlers ??= new Map());
+    const { handler, route } = event.context.matchedRoute;
+    const key = `${m.route}#${route}`;
+    let cachedHandler = cachedHandlers.get(key);
+    if (!cachedHandler) {
+      cachedHandler = defineCachedEventHandler(handler, {
+        group: "nitro/route-rules",
+        ...m.options,
+      });
+      cachedHandlers.set(key, cachedHandler);
+    }
+    return cachedHandler(event);
   });

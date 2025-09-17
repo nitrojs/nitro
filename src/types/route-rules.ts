@@ -27,7 +27,7 @@ export interface NitroRouteRules
 
 export type MatchedRouteRule<K extends keyof NitroRouteRules = "custom"> = {
   name: K;
-  options: NitroRouteRules[K];
+  options: Exclude<NitroRouteRules[K], false>;
   route: string;
   params?: Record<string, string>;
   handler?: (opts: unknown) => Middleware;
