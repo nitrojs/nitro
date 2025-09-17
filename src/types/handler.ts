@@ -53,11 +53,6 @@ export interface NitroEventHandler {
   env?: MaybeArray<"dev" | "prod" | "prerender" | PresetName | (string & {})>;
 }
 
-export type RoutingEventHandler = NitroEventHandler & {
-  _importName: string;
-  toJSON: () => string;
-};
-
 export interface NitroDevEventHandler {
   /**
    * Path prefix or route

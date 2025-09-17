@@ -1,5 +1,7 @@
-import type { Nitro } from "nitro/types";
+import type { Nitro, NitroEventHandler, NitroRouteRules } from "nitro/types";
 import { virtual } from "./virtual";
+
+const RuntimeRouteRules = new Set(["headers", "redirect", "proxy"]);
 
 export function routing(nitro: Nitro) {
   return virtual(
@@ -11,45 +13,43 @@ export function routing(nitro: Nitro) {
             ...Object.values(nitro.routing.routes.routes).map((h) => h.data),
             ...nitro.routing.middleware,
           ],
-          "_importName"
+          "_id"
         );
 
         return /* js */ `
 import * as __routeRules__ from 'nitro/runtime/internal/route-rules';
-import { lazyEventHandler } from "h3";
+${allHandlers.some((h) => h.lazy) ? `import { lazyEventHandler } from "h3";` : ""}
 
-export const findRouteRules = ${nitro.routing.routeRules.compileToString()}
+export const findRouteRules = ${nitro.routing.routeRules.compileToString({ serialize: serializeRouteRule, matchAll: true })}
 
 ${allHandlers
   .filter((h) => !h.lazy)
-  .map((h) => /* js */ `import ${h._importName} from "${h.handler}";`)
+  .map((h) => /* js */ `import ${h._id} from "${h.handler}";`)
   .join("\n")}
 
 ${allHandlers
   .filter((h) => h.lazy)
   .map(
     (h) =>
-      /* js */ `const ${h._importName} = lazyEventHandler(() => import("${h.handler}"));`
+      /* js */ `const ${h._id} = lazyEventHandler(() => import("${h.handler}"));`
   )
   .join("\n")}
 
-export const findRoute = ${nitro.routing.routes.compileToString()}
+export const findRoute = ${nitro.routing.routes.compileToString({ serialize: serializeHandler })}
 
-export const middleware = [${nitro.routing.middleware.map((mw) => mw.toJSON()).join(",")}];
+export const middleware = [${nitro.routing.middleware.map((h) => serializeHandler(h)).join(",")}];
   `;
       },
       // --- routing-meta ---
       "#nitro-internal-virtual/routing-meta": () => {
         const routeHandlers = uniqueBy(
           Object.values(nitro.routing.routes.routes).map((h) => h.data),
-          "_importName"
+          "_id"
         );
 
         return /* js */ `
   ${routeHandlers
-    .map(
-      (h) => /* js */ `import ${h._importName}Meta from "${h.handler}?meta";`
-    )
+    .map((h) => /* js */ `import ${h._id}Meta from "${h.handler}?meta";`)
     .join("\n")}
 export const handlersMeta = [
   ${routeHandlers
@@ -57,7 +57,7 @@ export const handlersMeta = [
       (h) =>
         /* js */ `{ route: ${JSON.stringify(h.route)}, method: ${JSON.stringify(
           h.method?.toLowerCase()
-        )}, meta: ${h._importName}Meta }`
+        )}, meta: ${h._id}Meta }`
     )
     .join(",\n")}
   ];
@@ -70,4 +70,32 @@ export const handlersMeta = [
 
 function uniqueBy<T>(arr: T[], key: keyof T): T[] {
   return [...new Map(arr.map((item) => [item[key], item])).values()];
+}
+
+// --- Serializing ---
+
+function serializeHandler(h: NitroEventHandler & { _id: string }): string {
+  return `{${[
+    `route:${JSON.stringify(h.route)}`,
+    h.method && `method:${JSON.stringify(h.method)}`,
+    h.meta && `meta:${JSON.stringify(h.meta)}`,
+    `handler:${h._id}`,
+  ]
+    .filter(Boolean)
+    .join(",")}}`;
+}
+
+function serializeRouteRule(h: NitroRouteRules): string {
+  return `[${Object.entries(h)
+    .filter(([_name, options]) => options !== undefined)
+    .map(([name, options]) => {
+      return `{${[
+        `name:${JSON.stringify(name)}`,
+        RuntimeRouteRules.has(name) && `handler:__routeRules__.${name}`,
+        `options:${JSON.stringify(options)}`,
+      ]
+        .filter(Boolean)
+        .join(",")}}`;
+    })
+    .join(",")}]`;
 }

@@ -1,7 +1,6 @@
 import type { ServerRequest } from "srvx";
 import type {
   CaptureError,
-  MatchedRouteRule,
   MatchedRouteRules,
   NitroApp,
   NitroAsyncContext,

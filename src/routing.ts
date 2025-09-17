@@ -1,18 +1,12 @@
-import type {
-  Nitro,
-  NitroEventHandler,
-  NitroRouteRules,
-  RoutingEventHandler,
-} from "nitro/types";
+import type { Nitro, NitroEventHandler, NitroRouteRules } from "nitro/types";
 import type { RouterContext } from "rou3";
+import type { RouterCompilerOptions } from "rou3/compiler";
 
 import { join } from "pathe";
 import { runtimeDir } from "nitro/runtime/meta";
 import { addRoute, createRouter, findRoute, findAllRoutes } from "rou3";
 import { compileRouterToString } from "rou3/compiler";
 import { hash } from "ohash";
-
-const RuntimeRouteRules = new Set(["headers", "redirect", "proxy"]);
 
 export function initNitroRouting(nitro: Nitro) {
   const envConditions = new Set(
@@ -28,32 +22,37 @@ export function initNitroRouting(nitro: Nitro) {
     return envs.length === 0 || envs.some((env) => envConditions.has(env));
   };
 
-  const routes = new Router<RoutingEventHandler>();
+  const routes = new Router<NitroEventHandler & { _id: string }>();
   const routeRules = new Router<NitroRouteRules>(true /* matchAll */);
-  const middleware: RoutingEventHandler[] = [];
+  const middleware: (NitroEventHandler & { _id: string })[] = [];
 
   const sync = () => {
     // Update route rules
     routeRules._update(
-      Object.entries(nitro.options.routeRules).map(([route, data]) => {
-        return { route, method: "", data: serializableRouteRule(data) };
-      })
+      Object.entries(nitro.options.routeRules).map(([route, data]) => ({
+        route,
+        method: "",
+        data: data,
+      }))
     );
 
     // Update midleware
-    const _middleware = [...nitro.scannedHandlers, ...nitro.options.handlers]
-      .filter((h) => h && h.middleware && matchesEnv(h))
-      .map((m) => serializableHandler(m));
+    const _middleware = [
+      ...nitro.scannedHandlers,
+      ...nitro.options.handlers,
+    ].filter((h) => h && h.middleware && matchesEnv(h));
     if (nitro.options.serveStatic) {
-      _middleware.unshift(
-        serializableHandler({
-          route: "/**",
-          middleware: true,
-          handler: join(runtimeDir, "internal/static"),
-        })
-      );
+      _middleware.unshift({
+        route: "/**",
+        middleware: true,
+        handler: join(runtimeDir, "internal/static"),
+      });
     }
-    middleware.splice(0, middleware.length, ..._middleware);
+    middleware.splice(
+      0,
+      middleware.length,
+      ..._middleware.map((m) => handlerWithId(m))
+    );
 
     // Update routes
     const _routes = [
@@ -69,13 +68,11 @@ export function initNitroRouting(nitro: Nitro) {
       });
     }
     routes._update(
-      _routes.map((h) => {
-        return {
-          route: h.route,
-          method: h.method || "",
-          data: serializableHandler(h),
-        };
-      })
+      _routes.map((h) => ({
+        ...h,
+        method: h.method || "",
+        data: handlerWithId(h),
+      }))
     );
   };
 
@@ -85,6 +82,12 @@ export function initNitroRouting(nitro: Nitro) {
     routeRules,
     middleware,
   });
+}
+
+function handlerWithId(h: NitroEventHandler) {
+  const id =
+    (h.lazy ? "_lazy_" : "_") + hash(h.handler).replace(/-/g, "").slice(0, 6);
+  return { ...h, _id: id };
 }
 
 // --- Router ---
@@ -99,10 +102,8 @@ export class Router<T> {
   #routes?: Route<T>[];
   #router?: RouterContext<T>;
   #compiled?: string;
-  #matchAll?: boolean;
 
   constructor(matchAll?: boolean) {
-    this.#matchAll = matchAll ?? false;
     this._update([]);
   }
 
@@ -119,12 +120,10 @@ export class Router<T> {
     }
   }
 
-  compileToString() {
+  compileToString(opts?: RouterCompilerOptions) {
     return (
       this.#compiled ||
-      (this.#compiled = compileRouterToString(this.#router!, undefined, {
-        matchAll: this.#matchAll,
-      }))
+      (this.#compiled = compileRouterToString(this.#router!, undefined, opts))
     );
   }
 
@@ -138,57 +137,4 @@ export class Router<T> {
       (route) => route.data
     );
   }
-}
-
-// --- Serializing ---
-
-function serializableHandler(h: NitroEventHandler): RoutingEventHandler {
-  const importName =
-    (h ? "_lazy_" : "_") + hash(h.handler).replace(/-/g, "").slice(0, 6);
-  return new Proxy(h, {
-    get(_, prop, receiver) {
-      if (prop === "_importName") {
-        return importName;
-      }
-      if (prop === "toJSON") {
-        return () => {
-          // Serialized should be compatible with H3Route interface
-          return `{${[
-            `route:${JSON.stringify(h.route)}`,
-            h.method && `method:${JSON.stringify(h.method)}`,
-            h.meta && `meta:${JSON.stringify(h.meta)}`,
-            `handler:${importName}`,
-          ]
-            .filter(Boolean)
-            .join(",")}}`;
-        };
-      }
-      return Reflect.get(h, prop, receiver);
-    },
-  }) as any;
-}
-
-function serializableRouteRule(h: NitroRouteRules): NitroRouteRules {
-  return new Proxy(h, {
-    get(_, prop, receiver) {
-      if (prop === "toJSON") {
-        return () => {
-          // RouteRuleEntry[]
-          return `[${Object.entries(h)
-            .filter(([_name, options]) => options !== undefined)
-            .map(([name, options]) => {
-              return `{${[
-                `name:${JSON.stringify(name)}`,
-                RuntimeRouteRules.has(name) && `handler:__routeRules__.${name}`,
-                `options:${JSON.stringify(options)}`,
-              ]
-                .filter(Boolean)
-                .join(",")}}`;
-            })
-            .join(",")}]`;
-        };
-      }
-      return Reflect.get(h, prop, receiver);
-    },
-  }) as any;
 }
