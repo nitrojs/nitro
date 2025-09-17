@@ -22,9 +22,9 @@ export function initNitroRouting(nitro: Nitro) {
     return envs.length === 0 || envs.some((env) => envConditions.has(env));
   };
 
-  const routes = new Router<NitroEventHandler & { _id: string }>();
+  const routes = new Router<NitroEventHandler & { _importHash: string }>();
   const routeRules = new Router<NitroRouteRules>(true /* matchAll */);
-  const middleware: (NitroEventHandler & { _id: string })[] = [];
+  const middleware: (NitroEventHandler & { _importHash: string })[] = [];
 
   const sync = () => {
     // Update route rules
@@ -51,7 +51,7 @@ export function initNitroRouting(nitro: Nitro) {
     middleware.splice(
       0,
       middleware.length,
-      ..._middleware.map((m) => handlerWithId(m))
+      ..._middleware.map((m) => handlerWithImportHash(m))
     );
 
     // Update routes
@@ -71,7 +71,7 @@ export function initNitroRouting(nitro: Nitro) {
       _routes.map((h) => ({
         ...h,
         method: h.method || "",
-        data: handlerWithId(h),
+        data: handlerWithImportHash(h),
       }))
     );
   };
@@ -84,10 +84,10 @@ export function initNitroRouting(nitro: Nitro) {
   });
 }
 
-function handlerWithId(h: NitroEventHandler) {
+function handlerWithImportHash(h: NitroEventHandler) {
   const id =
     (h.lazy ? "_lazy_" : "_") + hash(h.handler).replace(/-/g, "").slice(0, 6);
-  return { ...h, _id: id };
+  return { ...h, _importHash: id };
 }
 
 // --- Router ---

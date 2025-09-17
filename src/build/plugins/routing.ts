@@ -13,7 +13,7 @@ export function routing(nitro: Nitro) {
             ...Object.values(nitro.routing.routes.routes).map((h) => h.data),
             ...nitro.routing.middleware,
           ],
-          "_id"
+          "_importHash"
         );
 
         return /* js */ `
@@ -24,14 +24,14 @@ export const findRouteRules = ${nitro.routing.routeRules.compileToString({ seria
 
 ${allHandlers
   .filter((h) => !h.lazy)
-  .map((h) => /* js */ `import ${h._id} from "${h.handler}";`)
+  .map((h) => /* js */ `import ${h._importHash} from "${h.handler}";`)
   .join("\n")}
 
 ${allHandlers
   .filter((h) => h.lazy)
   .map(
     (h) =>
-      /* js */ `const ${h._id} = lazyEventHandler(() => import("${h.handler}"));`
+      /* js */ `const ${h._importHash} = lazyEventHandler(() => import("${h.handler}"));`
   )
   .join("\n")}
 
@@ -44,12 +44,14 @@ export const middleware = [${nitro.routing.middleware.map((h) => serializeHandle
       "#nitro-internal-virtual/routing-meta": () => {
         const routeHandlers = uniqueBy(
           Object.values(nitro.routing.routes.routes).map((h) => h.data),
-          "_id"
+          "_importHash"
         );
 
         return /* js */ `
   ${routeHandlers
-    .map((h) => /* js */ `import ${h._id}Meta from "${h.handler}?meta";`)
+    .map(
+      (h) => /* js */ `import ${h._importHash}Meta from "${h.handler}?meta";`
+    )
     .join("\n")}
 export const handlersMeta = [
   ${routeHandlers
@@ -57,7 +59,7 @@ export const handlersMeta = [
       (h) =>
         /* js */ `{ route: ${JSON.stringify(h.route)}, method: ${JSON.stringify(
           h.method?.toLowerCase()
-        )}, meta: ${h._id}Meta }`
+        )}, meta: ${h._importHash}Meta }`
     )
     .join(",\n")}
   ];
@@ -74,12 +76,14 @@ function uniqueBy<T>(arr: T[], key: keyof T): T[] {
 
 // --- Serializing ---
 
-function serializeHandler(h: NitroEventHandler & { _id: string }): string {
+function serializeHandler(
+  h: NitroEventHandler & { _importHash: string }
+): string {
   return `{${[
     `route:${JSON.stringify(h.route)}`,
     h.method && `method:${JSON.stringify(h.method)}`,
     h.meta && `meta:${JSON.stringify(h.meta)}`,
-    `handler:${h._id}`,
+    `handler:${h._importHash}`,
   ]
     .filter(Boolean)
     .join(",")}}`;
