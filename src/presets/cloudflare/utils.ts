@@ -8,8 +8,8 @@ import { writeFile } from "../_utils/fs";
 import { parseTOML, parseJSONC } from "confbox";
 import { readGitConfig, readPackageJSON, findNearestFile } from "pkg-types";
 import { defu } from "defu";
-import { globby } from "globby";
 import { provider } from "std-env";
+import { glob } from "tinyglobby";
 import { join, resolve } from "pathe";
 import {
   joinURL,
@@ -70,7 +70,7 @@ export async function writeCFRoutes(nitro: Nitro) {
   );
 
   // Unprefixed assets
-  const publicAssetFiles = await globby("**", {
+  const publicAssetFiles = await glob("**", {
     cwd: nitro.options.output.dir,
     absolute: false,
     dot: true,

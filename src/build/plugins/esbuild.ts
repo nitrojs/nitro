@@ -1,10 +1,11 @@
 // Based on https://github.com/egoist/rollup-plugin-esbuild (MIT)
 
 import { createFilter } from "unplugin-utils";
-import { type Loader, type TransformResult, transform } from "esbuild";
+import { transform } from "esbuild";
 import type { EsbuildOptions } from "nitro/types";
 import { extname, relative } from "pathe";
 import type { Plugin, PluginContext } from "rollup";
+import type { Loader, TransformResult } from "esbuild";
 
 const defaultLoaders: { [ext: string]: Loader } = {
   ".ts": "ts",

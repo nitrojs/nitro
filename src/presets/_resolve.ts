@@ -1,12 +1,12 @@
 import {
-  type CompatibilityDateSpec,
-  type PlatformName,
   resolveCompatibilityDatesFromEnv,
   formatCompatibilityDate,
 } from "compatx";
+import type { CompatibilityDateSpec, PlatformName } from "compatx";
 import type { NitroPreset, NitroPresetMeta } from "nitro/types";
 import { kebabCase } from "scule";
-import { type ProviderName, provider } from "std-env";
+import { provider } from "std-env";
+import type { ProviderName } from "std-env";
 import allPresets from "./_all.gen";
 
 // std-env has more specific keys for providers than compatx

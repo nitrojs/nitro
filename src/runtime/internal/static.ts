@@ -1,14 +1,9 @@
-import {
-  type EventHandler,
-  type HTTPMethod,
-  HTTPError,
-  defineHandler,
-} from "h3";
+import { HTTPError, defineHandler } from "h3";
+import type { EventHandler, HTTPMethod } from "h3";
 import type { PublicAsset } from "nitro/types";
 import {
   decodePath,
   joinURL,
-  parseURL,
   withLeadingSlash,
   withoutTrailingSlash,
 } from "ufo";

@@ -20,5 +20,6 @@ export default defineHandler(async (event) => {
     referrerPolicy: event.req.referrerPolicy,
     integrity: event.req.integrity,
     mode: event.req.mode,
+    duplex: event.req.duplex,
   });
 });

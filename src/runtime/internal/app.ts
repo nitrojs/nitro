@@ -6,7 +6,8 @@ import type {
   NitroAsyncContext,
   NitroRuntimeHooks,
 } from "nitro/types";
-import { H3Core, toRequest, type HTTPEvent, type Middleware } from "h3";
+import { H3Core, toRequest } from "h3";
+import type { HTTPEvent, Middleware } from "h3";
 import { createFetch } from "ofetch";
 
 // IMPORTANT: virtuals and user code should be imported last to avoid initialization order issues

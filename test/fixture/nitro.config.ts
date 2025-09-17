@@ -57,13 +57,7 @@ export default defineNitroConfig({
       dir: "files",
     },
   ],
-  ignore: [
-    "api/**/_*",
-    "middleware/_ignored.ts",
-    "routes/_*.ts",
-    "**/_*.txt",
-    "!**/_unignored.txt",
-  ],
+  ignore: ["api/**/_*", "middleware/_ignored.ts", "routes/_*.ts", "**/_*.txt"],
   runtimeConfig: {
     dynamic: "initial",
     url: "https://{{APP_DOMAIN}}",
