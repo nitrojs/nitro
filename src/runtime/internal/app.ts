@@ -144,12 +144,16 @@ function createH3App(captureError: CaptureError) {
   h3App._findRoute = (event) => {
     const pathname = event.url.pathname;
     const method = event.req.method.toLowerCase();
-    const route = findRoute(method, pathname);
-    if (!route) {
-      return;
-    }
+    let route = findRoute(method, pathname);
     const routeRules = resolveRouteRules(method, pathname);
-    if (routeRules?.length) {
+    if (!route) {
+      if (routeRules) {
+        route = { data: { handler: () => Symbol.for("h3.notFound") } };
+      } else {
+        return;
+      }
+    }
+    if (routeRules) {
       route.data = {
         ...route.data,
         middleware: [...routeRules, ...(route.data.middleware || [])],
@@ -195,5 +199,5 @@ function resolveRouteRules(
     }
     middleware.push(rule.handler(rule.options || {}));
   }
-  return middleware;
+  return middleware.length > 0 ? middleware : undefined;
 }
