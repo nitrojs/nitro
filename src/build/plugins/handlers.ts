@@ -4,10 +4,10 @@ import { virtual } from "./virtual";
 export function handlers(nitro: Nitro) {
   return virtual(
     {
+      // --- server-handlers ---
       "#nitro-internal-virtual/server-handlers": () => {
-        const { handlers, uniqueHandlers } = getHandlers(nitro);
-
-        const code = /* js */ `
+        const { uniqueHandlers } = getHandlers(nitro);
+        return /* js */ `
 import { lazyEventHandler } from "h3";
 
 ${uniqueHandlers
@@ -24,12 +24,18 @@ ${uniqueHandlers
   .join("\n")}
 
 export const findRoute = ${nitro.routing.handlers.compileToString()}
-  `.trim();
-        return code;
+  `;
       },
+      // --- route-rule-handlers ---
+      "#nitro-internal-virtual/route-rule-handlers": () => {
+        return /* js */ `
+import * as __routeRules__ from 'nitro/runtime/internal/route-rules';
+export const findRouteRules = ${nitro.routing.routeRules.compileToString()}
+        `;
+      },
+      // --- server-handlers-meta ---
       "#nitro-internal-virtual/server-handlers-meta": () => {
         const { handlers, uniqueHandlers } = getHandlers(nitro);
-
         return /* js */ `
   ${uniqueHandlers
     .map((h) => /* js */ `import ${h._id}Meta from "${h.handler}?meta";`)
@@ -44,7 +50,7 @@ export const handlersMeta = [
     )
     .join(",\n")}
   ];
-        `;
+        `.trim();
       },
     },
     nitro.vfs

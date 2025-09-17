@@ -163,8 +163,8 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3(rolldown@1.0.0-beta.34)(rollup@4.50.0)
       rou3:
-        specifier: ^0.7.3
-        version: 0.7.3
+        specifier: ^0.7.4
+        version: 0.7.4
       scule:
         specifier: ^1.3.0
         version: 1.3.0
@@ -5327,8 +5327,8 @@ packages:
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
     hasBin: true
 
-  rou3@0.7.3:
-    resolution: {integrity: sha512-KKenF/hB2iIhS1ohj226LT+/8uKCBpSMqeS4V1UPN9vad99uLoyIhrULRRB1skaB40LQHcBlSsAi3sT8MaoDDQ==}
+  rou3@0.7.4:
+    resolution: {integrity: sha512-I067614ZZYztQ9qK0pE0F2zpMbPI8vh/NyG4qw4YtbWSZKVcL+9HCGdlJH/UptS7usLuElna5OIPXbDQRx2IMA==}
 
   run-applescript@7.0.0:
     resolution: {integrity: sha512-9by4Ij99JUr/MCFBUkDKLWK3G9HVXmabKz9U5MlIAIuvuzkiOicRYs8XJLxX+xahD+mLiiCYDqF9dKAgtzKP1A==}
@@ -9889,7 +9889,7 @@ snapshots:
     dependencies:
       cookie-es: 2.0.0
       fetchdts: 0.1.6
-      rou3: 0.7.3
+      rou3: 0.7.4
       srvx: 0.8.7
     optionalDependencies:
       crossws: 0.4.1(srvx@0.8.7)
@@ -11981,7 +11981,7 @@ snapshots:
       '@rollup/rollup-win32-x64-msvc': 4.50.0
       fsevents: 2.3.3
 
-  rou3@0.7.3: {}
+  rou3@0.7.4: {}
 
   run-applescript@7.0.0: {}
 

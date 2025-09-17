@@ -6,7 +6,6 @@ import { runtimeDir } from "nitro/runtime/meta";
 import { addRoute, createRouter, findRoute, findAllRoutes } from "rou3";
 import { compileRouterToString } from "rou3/compiler";
 import { hash } from "ohash";
-import type { H3Route } from "h3";
 
 export function initNitroRouting(nitro: Nitro) {
   const envConditions = new Set(
@@ -23,14 +22,14 @@ export function initNitroRouting(nitro: Nitro) {
   };
 
   const handlers = new Router<NitroEventHandler & { _id: string }>();
-  const routeRules = new Router<NitroRouteRules>();
+  const routeRules = new Router<NitroRouteRules>(true /* matchAll */);
   const middleware: NitroEventHandler[] = [];
 
   const sync = () => {
     // Update route rules
     routeRules._update(
       Object.entries(nitro.options.routeRules).map(([route, data]) => {
-        return { route, method: "", data };
+        return { route, method: "", data: serializableRouteRule(data) };
       })
     );
 
@@ -80,7 +79,7 @@ export function initNitroRouting(nitro: Nitro) {
   });
 }
 
-// --- Serialized Handler ---
+// --- Serializing ---
 
 function serializableHandler(
   h: NitroEventHandler
@@ -110,6 +109,31 @@ function serializableHandler(
   }) as any;
 }
 
+function serializableRouteRule(h: NitroRouteRules): NitroRouteRules {
+  return new Proxy(h, {
+    get(_, prop, receiver) {
+      if (prop === "toJSON") {
+        return () => {
+          // RouteRuleEntry[]
+          return `[${Object.entries(h)
+            .filter(([_, options]) => options !== undefined)
+            .map(([name, options]) => {
+              return `{${[
+                `name:${JSON.stringify(name)}`,
+                `handler:__routeRules__.${name}`,
+                `options:${JSON.stringify(options)}`,
+              ]
+                .filter(Boolean)
+                .join(",")}}`;
+            })
+            .join(",")}]`;
+        };
+      }
+      return Reflect.get(h, prop, receiver);
+    },
+  }) as any;
+}
+
 // --- Router ---
 
 export interface Route<T = unknown> {
@@ -122,8 +146,10 @@ export class Router<T> {
   #routes?: Route<T>[];
   #router?: RouterContext<T>;
   #compiled?: string;
+  #matchAll?: boolean;
 
-  constructor() {
+  constructor(matchAll?: boolean) {
+    this.#matchAll = matchAll ?? false;
     this._update([]);
   }
 
@@ -142,7 +168,10 @@ export class Router<T> {
 
   compileToString() {
     return (
-      this.#compiled || (this.#compiled = compileRouterToString(this.#router!))
+      this.#compiled ||
+      (this.#compiled = compileRouterToString(this.#router!, undefined, {
+        matchAll: this.#matchAll,
+      }))
     );
   }
 

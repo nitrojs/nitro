@@ -5,10 +5,8 @@ import type {
   NitroAsyncContext,
   NitroRuntimeHooks,
 } from "nitro/types";
-
-import { H3Core, toRequest, type HTTPEvent } from "h3";
+import { H3Core, toRequest, type HTTPEvent, type Middleware } from "h3";
 import { createFetch } from "ofetch";
-import { createRouteRulesHandler } from "./route-rules";
 
 // IMPORTANT: virtuals and user code should be imported last to avoid initialization order issues
 import errorHandler from "#nitro-internal-virtual/error-handler";
@@ -16,6 +14,10 @@ import { plugins } from "#nitro-internal-virtual/plugins";
 import { createHooks } from "hookable";
 import { nitroAsyncContext } from "./context";
 import { findRoute } from "#nitro-internal-virtual/server-handlers";
+import {
+  findRouteRules,
+  type RouteRuleEntry,
+} from "#nitro-internal-virtual/route-rule-handlers";
 
 export function useNitroApp(): NitroApp {
   return ((useNitroApp as any).__instance__ ??= initNitroApp());
@@ -127,19 +129,63 @@ function createH3App(captureError: CaptureError) {
   const h3App = new H3Core({
     debug: DEBUG_MODE,
     onError: (error, event) => {
-      captureError(error, {
-        event,
-        tags: ["request"],
-      });
+      captureError(error, { event, tags: ["request"] });
       return errorHandler(error, event);
     },
   });
 
   // Compiled route matching
-  h3App._findRoute = (event) => findRoute(event.req.method, event.url.pathname);
-
-  // Register route rule handlers
-  h3App.use(createRouteRulesHandler());
+  h3App._findRoute = (event) => {
+    const route = findRoute(event.req.method, event.url.pathname);
+    if (!route) {
+      return;
+    }
+    const routeRules = resolveRouteRules(event.req.method, event.url.pathname);
+    if (routeRules?.length) {
+      route.data = {
+        ...route.data,
+        middleware: [...routeRules, ...(route.data.middleware || [])],
+      };
+    }
+    return route;
+  };
 
   return h3App;
+}
+
+function resolveRouteRules(
+  method: string,
+  pathname: string
+): undefined | Middleware[] {
+  const m = findRouteRules(method, pathname);
+  if (!m?.length) {
+    return;
+  }
+  const merged: Map<string, RouteRuleEntry> = new Map();
+  for (const layer of m) {
+    for (const rule of layer.data) {
+      const currentRule = merged.get(rule.name);
+      if (currentRule) {
+        if (rule.options === false) {
+          currentRule.options = false;
+        } else {
+          Object.assign(currentRule.options, rule.options);
+        }
+      } else if (rule.options !== false) {
+        merged.set(rule.name, {
+          name: rule.name,
+          handler: rule.handler,
+          options: { ...rule.options },
+        });
+      }
+    }
+  }
+  const middleware = [];
+  for (const rule of merged.values()) {
+    if (rule.options === false) {
+      continue;
+    }
+    middleware.push(rule.handler(rule.options || {}));
+  }
+  return middleware;
 }
