@@ -17,6 +17,7 @@ export async function watchDev(nitro: Nitro, config: RolldownOptions) {
       await watcher.close();
     }
     await scanHandlers(nitro);
+    nitro.routing.sync();
     watcher = startWatcher(nitro, config);
     await writeTypes(nitro);
   }
