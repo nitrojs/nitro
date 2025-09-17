@@ -26,7 +26,7 @@ export interface Nitro {
     sync: () => void;
     routes: Router<NitroEventHandler & { _importHash: string }>;
     routeRules: Router<NitroRouteRules>;
-    middleware: NitroEventHandler & { _importHash: string };
+    middleware: (NitroEventHandler & { _importHash: string })[];
   }>;
 
   /* @internal */
