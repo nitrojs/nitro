@@ -1,6 +1,12 @@
 import type { Nitro, NitroEventHandler, NitroRouteRules } from "nitro/types";
 import { virtual } from "./virtual";
-import { RuntimeRouteRules } from "../../runtime/internal/route-rules";
+
+export const RuntimeRouteRules = [
+  "headers",
+  "redirect",
+  "proxy",
+  "cache",
+] as string[];
 
 export function routing(nitro: Nitro) {
   return virtual(

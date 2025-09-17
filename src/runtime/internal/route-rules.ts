@@ -4,16 +4,11 @@ import type { MatchedRouteRule, NitroRouteRules } from "nitro/types";
 import { joinURL, withQuery, withoutBase } from "ufo";
 import { defineCachedEventHandler } from "./cache";
 
+// Note: Remember to update RuntimeRouteRules in src/routing.ts when adding new route rules
+
 type RouteRuleCtor<T extends keyof NitroRouteRules> = (
   m: MatchedRouteRule<T>
 ) => Middleware;
-
-export const RuntimeRouteRules = [
-  "headers",
-  "redirect",
-  "proxy",
-  "cache",
-] as string[];
 
 // Headers route rule
 export const headers = <RouteRuleCtor<"headers">>((m) =>
@@ -75,11 +70,12 @@ export const cache = <RouteRuleCtor<"cache">>((m) =>
       globalThis as any
     ).__nitroCachedHandlers ??= new Map());
     const { handler, route } = event.context.matchedRoute;
-    const key = `${m.route}#${route}`;
+    const key = `${m.route}:${route}`;
     let cachedHandler = cachedHandlers.get(key);
     if (!cachedHandler) {
       cachedHandler = defineCachedEventHandler(handler, {
         group: "nitro/route-rules",
+        name: key,
         ...m.options,
       });
       cachedHandlers.set(key, cachedHandler);
