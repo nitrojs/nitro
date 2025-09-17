@@ -13,11 +13,12 @@ import errorHandler from "#nitro-internal-virtual/error-handler";
 import { plugins } from "#nitro-internal-virtual/plugins";
 import { createHooks } from "hookable";
 import { nitroAsyncContext } from "./context";
-import { findRoute } from "#nitro-internal-virtual/server-handlers";
 import {
+  findRoute,
   findRouteRules,
+  middleware,
   type RouteRuleEntry,
-} from "#nitro-internal-virtual/route-rule-handlers";
+} from "#nitro-internal-virtual/routing";
 
 export function useNitroApp(): NitroApp {
   return ((useNitroApp as any).__instance__ ??= initNitroApp());
@@ -133,6 +134,11 @@ function createH3App(captureError: CaptureError) {
       return errorHandler(error, event);
     },
   });
+
+  // Middleware
+  for (const mw of middleware) {
+    h3App.use(mw.route || "/**", mw.handler, { method: mw.method });
+  }
 
   // Compiled route matching
   h3App._findRoute = (event) => {

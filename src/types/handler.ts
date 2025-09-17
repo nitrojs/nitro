@@ -18,13 +18,11 @@ export interface NitroRouteMeta {
 export interface NitroEventHandler {
   /**
    * Path prefix or route
-   *
    */
   route: string;
 
   /**
    * Specifies this is a middleware handler.
-   * Middleware are called on every route and should normally return nothing to pass to the next handlers
    */
   middleware?: boolean;
 
@@ -54,6 +52,11 @@ export interface NitroEventHandler {
    */
   env?: MaybeArray<"dev" | "prod" | "prerender" | PresetName | (string & {})>;
 }
+
+export type RoutingEventHandler = NitroEventHandler & {
+  _importName: string;
+  toJSON: () => string;
+};
 
 export interface NitroDevEventHandler {
   /**

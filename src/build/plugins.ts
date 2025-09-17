@@ -11,8 +11,8 @@ import { runtimeDir, runtimeDependencies } from "nitro/runtime/meta";
 import unimportPlugin from "unimport/unplugin";
 import { rollup as unwasm } from "unwasm/plugin";
 import { database } from "./plugins/database";
-import { handlers } from "./plugins/handlers";
-import { handlersMeta } from "./plugins/handlers-meta";
+import { routing } from "./plugins/routing";
+import { routeMeta } from "./plugins/route-meta";
 import { serverMain } from "./plugins/server-main";
 import { publicAssets } from "./plugins/public-assets";
 import { raw } from "./plugins/raw";
@@ -74,12 +74,12 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   // Database
   plugins.push(database(nitro));
 
-  // Handlers
-  plugins.push(handlers(nitro));
+  // Routing
+  plugins.push(routing(nitro));
 
-  // Handlers meta
+  // Route meta
   if (nitro.options.experimental.openAPI) {
-    plugins.push(handlersMeta(nitro));
+    plugins.push(routeMeta(nitro));
   }
 
   // Error handler

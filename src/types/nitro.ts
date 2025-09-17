@@ -5,7 +5,7 @@ import type { PresetName, PresetOptions } from "nitro/presets";
 import type { Unimport } from "unimport";
 import type { Storage } from "unstorage";
 import type { NitroConfig, NitroOptions } from "./config";
-import type { NitroEventHandler } from "./handler";
+import type { NitroEventHandler, RoutingEventHandler } from "./handler";
 import type { NitroHooks } from "./hooks";
 import type { PrerenderRoute } from "./prerender";
 import type { TSConfig } from "pkg-types";
@@ -24,9 +24,9 @@ export interface Nitro {
   updateConfig: (config: NitroDynamicConfig) => void | Promise<void>;
   routing: Readonly<{
     sync: () => void;
-    handlers: Router<NitroEventHandler & { _id: string }>;
+    routes: Router<RoutingEventHandler>;
     routeRules: Router<NitroRouteRules>;
-    middleware: NitroEventHandler[];
+    middleware: RoutingEventHandler[];
   }>;
 
   /* @internal */

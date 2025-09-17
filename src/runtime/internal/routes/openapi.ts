@@ -14,7 +14,7 @@ import type {
 } from "#internal/types/openapi-ts";
 import { joinURL } from "ufo";
 import { defu } from "defu";
-import { handlersMeta } from "#nitro-internal-virtual/server-handlers-meta";
+import { handlersMeta } from "#nitro-internal-virtual/routing-meta";
 import { useRuntimeConfig } from "../config";
 
 // Served as /_openapi.json

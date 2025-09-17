@@ -15,9 +15,9 @@ const esbuildLoaders = {
   ".jsx": "jsx",
 } as const;
 
-export function handlersMeta(nitro: Nitro) {
+export function routeMeta(nitro: Nitro) {
   return {
-    name: "nitro:handlers-meta",
+    name: "nitro:route-meta",
     async resolveId(id, importer, resolveOpts) {
       if (id.startsWith("\0")) {
         return;
