@@ -4,6 +4,10 @@ shortDescription: Next Generation Server Toolkit
 description: Create web servers with everything you need and deploy them wherever you prefer.
 github: nitrojs/nitro
 url: https://nitro.build
+socials:
+  twitter: "https://twitter.com/nitrojsdev"
+  bluesky: "https://bsky.app/profile/nitro.build"
+  discord: https://discord.nitro.build
 themeColor: "red"
 automd: true
 redirects:
