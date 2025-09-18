@@ -4,5 +4,9 @@ shortDescription: Ship Full-stack Vite Apps
 description: Add server API routes to any Vite apps and deploy with zero configuration on your favorite hosting platform.
 github: nitrojs/nitro
 url: https://v3.nitro.build
+socials:
+  twitter: "https://twitter.com/nitrojsdev"
+  bluesky: "https://bsky.app/profile/nitro.build"
+  discord: https://discord.nitro.build
 themeColor: "rose"
 automd: true
