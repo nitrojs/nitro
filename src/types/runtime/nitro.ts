@@ -1,14 +1,14 @@
-import type { H3, H3Event, H3EventContext, H3Config } from "h3";
+import type { H3Core, H3EventContext, HTTPEvent } from "h3";
 import type { Hookable } from "hookable";
-import type { ServerRequest } from "srvx";
+import type { ServerRequest, ServerRequestContext } from "srvx";
 
 export interface NitroApp {
-  h3App: H3;
+  _h3?: H3Core;
   hooks: Hookable<NitroRuntimeHooks>;
   fetch: (
     req: string | URL | Request,
     init?: RequestInit,
-    context?: H3EventContext
+    context?: ServerRequestContext | H3EventContext
   ) => Promise<Response>;
   captureError: CaptureError;
 }
@@ -29,18 +29,18 @@ export interface RenderResponse {
 }
 
 export type RenderHandler = (
-  event: H3Event
+  event: HTTPEvent
 ) => Partial<RenderResponse> | Promise<Partial<RenderResponse>>;
 
 export interface RenderContext {
-  event: H3Event;
+  event: HTTPEvent;
   render: RenderHandler;
   response?: Partial<RenderResponse>;
 }
 
 export interface CapturedErrorContext {
-  event?: H3Event;
-  [key: string]: unknown;
+  event?: HTTPEvent;
+  tags?: string[];
 }
 
 export type CaptureError = (
@@ -52,8 +52,8 @@ export interface NitroRuntimeHooks {
   close: () => void;
   error: CaptureError;
 
-  request: NonNullable<H3Config["onRequest"]>;
-  response: NonNullable<H3Config["onResponse"]>;
+  request: (event: HTTPEvent) => void | Promise<void>;
+  response: (res: Response, event: HTTPEvent) => void | Promise<void>;
 
   "render:before": (context: RenderContext) => void;
 

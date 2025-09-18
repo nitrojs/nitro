@@ -8,8 +8,8 @@ import { writeFile } from "../_utils/fs";
 import { parseTOML, parseJSONC } from "confbox";
 import { readGitConfig, readPackageJSON, findNearestFile } from "pkg-types";
 import { defu } from "defu";
-import { globby } from "globby";
 import { provider } from "std-env";
+import { glob } from "tinyglobby";
 import { join, resolve } from "pathe";
 import {
   joinURL,
@@ -70,7 +70,7 @@ export async function writeCFRoutes(nitro: Nitro) {
   );
 
   // Unprefixed assets
-  const publicAssetFiles = await globby("**", {
+  const publicAssetFiles = await glob("**", {
     cwd: nitro.options.output.dir,
     absolute: false,
     dot: true,
@@ -105,8 +105,16 @@ function comparePaths(a: string, b: string) {
   return a.split("/").length - b.split("/").length || a.localeCompare(b);
 }
 
-export async function writeCFHeaders(nitro: Nitro) {
-  const headersPath = join(nitro.options.output.dir, "_headers");
+export async function writeCFHeaders(
+  nitro: Nitro,
+  outdir: "public" | "output"
+) {
+  const headersPath = join(
+    outdir === "public"
+      ? nitro.options.output.publicDir
+      : nitro.options.output.dir,
+    "_headers"
+  );
   const contents = [];
 
   const rules = Object.entries(nitro.options.routeRules).sort(

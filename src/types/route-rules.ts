@@ -1,4 +1,4 @@
-import type { ProxyOptions } from "h3";
+import type { Middleware, ProxyOptions } from "h3";
 import type { ExcludeFunctions, IntRange } from "./_utils";
 import type { CachedEventHandlerOptions } from "./runtime";
 
@@ -22,7 +22,20 @@ export interface NitroRouteRules
   extends Omit<NitroRouteConfig, "redirect" | "cors" | "swr" | "static"> {
   redirect?: { to: string; status: HTTPstatus };
   proxy?: { to: string } & ProxyOptions;
+  [key: string]: any;
 }
+
+export type MatchedRouteRule<K extends keyof NitroRouteRules = "custom"> = {
+  name: K;
+  options: Exclude<NitroRouteRules[K], false>;
+  route: string;
+  params?: Record<string, string>;
+  handler?: (opts: unknown) => Middleware;
+};
+
+export type MatchedRouteRules = {
+  [K in keyof NitroRouteRules]: MatchedRouteRule<K>;
+};
 
 interface VercelISRConfig {
   /**

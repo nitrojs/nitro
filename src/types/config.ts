@@ -200,7 +200,7 @@ export interface NitroOptions extends PresetOptions {
   };
 
   // Rollup
-  builder?: "rollup" | "rolldown";
+  builder?: "rollup" | "rolldown" | "vite";
   rollupConfig?: RollupConfig;
   entry: string;
   unenv: UnenvPreset[];

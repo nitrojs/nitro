@@ -11,6 +11,7 @@ const platforms = {
       "events",
       "net",
       "stream",
+      "constants",
     ],
   },
   // Deno deploy and Netlify edge are almost identical

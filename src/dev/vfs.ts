@@ -3,7 +3,19 @@ import type { Nitro } from "nitro/types";
 
 export function createVFSHandler(nitro: Nitro) {
   return defineHandler(async (event) => {
-    const ip = getRequestIP(event, { xForwardedFor: false });
+    const { socket } = event.runtime?.node?.req || {};
+
+    // prettier-ignore
+    const isUnixSocket =
+      // No network addresses
+      (!socket?.remoteAddress && !socket?.localAddress) &&
+      // Empty address object
+      Object.keys(socket?.address?.() || {}).length === 0 &&
+      // Socket is readable/writable but has no port info
+      socket?.readable && socket?.writable && !socket?.remotePort;
+
+    const ip = getRequestIP(event, { xForwardedFor: isUnixSocket });
+
     const isLocalRequest = ip && /^::1$|^127\.\d+\.\d+\.\d+$/.test(ip);
     if (!isLocalRequest) {
       throw new HTTPError({
@@ -17,7 +29,7 @@ export function createVFSHandler(nitro: Nitro) {
       ...nitro.options.virtual,
     };
 
-    const url = event.url.pathname || "";
+    const url = event.context.params?._ || "";
     const isJson =
       url.endsWith(".json") ||
       event.req.headers.get("accept")?.includes("application/json");

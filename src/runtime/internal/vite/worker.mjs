@@ -60,11 +60,13 @@ async function reload() {
     entry = await runner.import(workerData.viteEntry);
     entryError = undefined;
   } catch (error) {
+    console.error(error);
     entryError = error;
   }
 }
 
-await reload();
+// eslint-disable-next-line unicorn/prefer-top-level-await
+reload();
 
 // ----- Server -----
 
@@ -157,6 +159,7 @@ function fetchAddress(addr, input, inputInit) {
     ...init,
   };
   if (addr.socketPath) {
+    url.protocol = "http:";
     return fetch(url, {
       ...init,
       ...fetchSocketOptions(addr.socketPath),

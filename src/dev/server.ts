@@ -3,7 +3,8 @@ import type { Duplex } from "node:stream";
 import type { GetPortInput } from "get-port-please";
 import type { FSWatcher } from "chokidar";
 import type { Listener, ListenOptions } from "listhen";
-import { NodeDevWorker, type DevWorkerData } from "./worker";
+import { NodeDevWorker } from "./worker";
+import type { DevWorkerData } from "./worker";
 import type {
   DevMessageListener,
   DevRPCHooks,
@@ -13,7 +14,8 @@ import type {
   WorkerAddress,
 } from "nitro/types";
 
-import { H3, HTTPError, defineHandler, fromNodeHandler } from "h3";
+import { H3, HTTPError, defineHandler, fromNodeHandler, withBase } from "h3";
+import type { EventHandler } from "h3";
 import { toNodeHandler } from "srvx/node";
 import devErrorHandler, {
   defaultHandler as devErrorHandlerInternal,
@@ -108,7 +110,7 @@ export class NitroDevServer implements DevRPCHooks {
 
   // #region Public Methods
 
-  fetch(req: Request): Promise<Response> {
+  fetch(req: Request): Response | Promise<Response> {
     return this.#app.fetch(req);
   }
 
@@ -281,7 +283,7 @@ export class NitroDevServer implements DevRPCHooks {
     }
 
     // Debugging endpoint to view vfs
-    app.get("/_vfs", createVFSHandler(this.#nitro));
+    app.get("/_vfs/**", createVFSHandler(this.#nitro));
 
     // Serve asset dirs
     for (const asset of this.#nitro.options.publicAssets) {
@@ -291,11 +293,14 @@ export class NitroDevServer implements DevRPCHooks {
         "**"
       );
       // TODO: serve placeholder as fallback
-      app.use(
-        assetRoute,
+      let handler: EventHandler = fromNodeHandler(
         // @ts-expect-error (HTTP2 types)
-        fromNodeHandler(serveStatic(asset.dir, { dotfiles: "allow" }))
+        serveStatic(asset.dir, { dotfiles: "allow" })
       );
+      if (asset.baseURL?.length || 0 > 1) {
+        handler = withBase(asset.baseURL!, handler);
+      }
+      app.use(assetRoute, handler);
     }
 
     // User defined dev proxy

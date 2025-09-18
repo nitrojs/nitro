@@ -10,6 +10,10 @@ export async function build(nitro: Nitro) {
       const { rolldownBuild } = await import("./rolldown/build");
       return rolldownBuild(nitro);
     }
+    case "vite": {
+      const { viteBuild } = await import("./vite/build");
+      return viteBuild(nitro);
+    }
     default: {
       throw new Error(`Unknown builder: ${nitro.options.builder}`);
     }

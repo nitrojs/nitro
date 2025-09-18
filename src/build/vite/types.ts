@@ -12,6 +12,11 @@ export interface NitroPluginConfig {
    * **Note:** You can use top level `environments` with same keys to extend environment configurations.
    */
   services?: Record<string, ServiceConfig>;
+
+  /**
+   * @internal Pre-initialized Nitro instance.
+   */
+  _nitro?: Nitro;
 }
 
 export interface ServiceConfig {

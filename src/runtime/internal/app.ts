@@ -1,147 +1,32 @@
-import destr from "destr";
-import type { HTTPError, H3EventContext } from "h3";
-import { H3, isEvent, lazyEventHandler } from "h3";
-import { createHooks } from "hookable";
-import type { CaptureError, NitroApp, NitroRuntimeHooks } from "nitro/types";
-import type { NitroAsyncContext } from "nitro/types";
-import { Headers, createFetch } from "ofetch";
-import { cachedEventHandler } from "./cache";
-import { useRuntimeConfig } from "./config";
-import { nitroAsyncContext } from "./context";
-import { createRouteRulesHandler, getRouteRulesForPath } from "./route-rules";
+import type { ServerRequest } from "srvx";
+import type {
+  CaptureError,
+  MatchedRouteRules,
+  NitroApp,
+  NitroAsyncContext,
+  NitroRuntimeHooks,
+} from "nitro/types";
+import { H3Core, toRequest } from "h3";
+import type { HTTPEvent, Middleware } from "h3";
+import { createFetch } from "ofetch";
 
 // IMPORTANT: virtuals and user code should be imported last to avoid initialization order issues
 import errorHandler from "#nitro-internal-virtual/error-handler";
 import { plugins } from "#nitro-internal-virtual/plugins";
-import { handlers } from "#nitro-internal-virtual/server-handlers";
+import { createHooks } from "hookable";
+import { nitroAsyncContext } from "./context";
+import {
+  findRoute,
+  findRouteRules,
+  middleware,
+} from "#nitro-internal-virtual/routing";
 
-function createNitroApp(): NitroApp {
-  const config = useRuntimeConfig();
-
-  const hooks = createHooks<NitroRuntimeHooks>();
-
-  const captureError: CaptureError = (error, context = {}) => {
-    const promise = hooks
-      .callHookParallel("error", error, context)
-      .catch((error_) => {
-        console.error("Error while capturing another error", error_);
-      });
-    if (context.event && isEvent(context.event)) {
-      const errors = context.event.context.nitro?.errors;
-      if (errors) {
-        errors.push({ error, context });
-      }
-      if (context.event.waitUntil) {
-        context.event.waitUntil(promise);
-      }
-    }
-  };
-
-  const h3App = new H3({
-    debug: destr(process.env.DEBUG),
-    onError: (error, event) => {
-      captureError(error, { event, tags: ["request"] });
-      return errorHandler(error as HTTPError, event);
-    },
-    onRequest: async (event) => {
-      event.context.nitro = event.context.nitro || { errors: [] };
-
-      // Add platform context provided by local fetch
-      if (event.context._platform) {
-        Object.assign(event.context, event.context._platform);
-      }
-
-      event.waitUntil = (promise) => {
-        if (!event.context.nitro!._waitUntilPromises) {
-          event.context.nitro!._waitUntilPromises = [];
-        }
-        event.context.nitro!._waitUntilPromises.push(promise);
-        if (event.context.waitUntil) {
-          event.context.waitUntil(promise);
-        }
-      };
-
-      await nitroApp.hooks.callHook("request", event).catch((error) => {
-        captureError(error, { event, tags: ["request"] });
-      });
-    },
-    onResponse: async (response, event) => {
-      await nitroApp.hooks
-        .callHook("response", response, event)
-        .catch((error) => {
-          captureError(error, { event, tags: ["request", "response"] });
-        });
-    },
-  });
-
-  // Experimental async context support
-  if (import.meta._asyncContext) {
-    h3App.use((event, next) => {
-      const ctx: NitroAsyncContext = { request: event.req as Request };
-      return nitroAsyncContext.callAsync(ctx, next);
-    });
-  }
-
-  const appFetch = (
-    input: string | URL | Request,
-    init?: RequestInit,
-    ctx?: H3EventContext
-  ) => {
-    return Promise.resolve(h3App._fetch(input, init, ctx));
-  };
-
-  const hybridFetch: typeof fetch = (input, init) => {
-    if (!input.toString().startsWith("/")) {
-      return globalThis.fetch(input, init);
-    }
-    return appFetch(input, init);
-  };
-
-  const $fetch = createFetch({
-    fetch: hybridFetch,
-    Headers,
-    defaults: { baseURL: config.app.baseURL },
-  });
-
-  // @ts-ignore
-  globalThis.$fetch = $fetch;
-
-  // Register route rule handlers
-  h3App.use(createRouteRulesHandler());
-
-  // TODO support baseURL
-
-  for (const h of handlers) {
-    let handler = h.lazy ? lazyEventHandler(h.handler) : h.handler;
-    if (!h.route) {
-      h3App.use(handler);
-    } else if (h.middleware) {
-      h3App.use(h.route, handler, { method: h.method });
-    } else {
-      const routeRules = getRouteRulesForPath(
-        h.route.replace(/:\w+|\*\*/g, "_")
-      );
-      if (routeRules.cache) {
-        handler = cachedEventHandler(handler, {
-          group: "nitro/routes",
-          ...routeRules.cache,
-        });
-      }
-      h3App.on(h.method, h.route, handler);
-    }
-  }
-
-  const app: NitroApp = {
-    hooks,
-    h3App,
-    fetch: appFetch,
-    captureError,
-  };
-
-  return app;
+export function useNitroApp(): NitroApp {
+  return ((useNitroApp as any).__instance__ ??= initNitroApp());
 }
 
-function runNitroPlugins(nitroApp: NitroApp) {
+function initNitroApp(): NitroApp {
+  const nitroApp = createNitroApp();
   for (const plugin of plugins) {
     try {
       plugin(nitroApp);
@@ -150,12 +35,186 @@ function runNitroPlugins(nitroApp: NitroApp) {
       throw error;
     }
   }
-}
-
-export const nitroApp: NitroApp = createNitroApp();
-
-export function useNitroApp() {
   return nitroApp;
 }
 
-runNitroPlugins(nitroApp);
+function createNitroApp(): NitroApp {
+  const hooks = createHooks<NitroRuntimeHooks>();
+
+  const captureError: CaptureError = (error, errorCtx) => {
+    const promise = hooks
+      .callHookParallel("error", error, errorCtx)
+      .catch((hookError) => {
+        console.error("Error while capturing another error", hookError);
+      });
+    if (errorCtx?.event) {
+      const errors = errorCtx.event.req.context?.nitro?.errors;
+      if (errors) {
+        errors.push({ error, context: errorCtx });
+      }
+      if (typeof errorCtx.event.req.waitUntil === "function") {
+        errorCtx.event.req.waitUntil(promise);
+      }
+    }
+  };
+
+  const h3App = createH3App(captureError);
+
+  let fetchHandler = async (req: ServerRequest): Promise<Response> => {
+    req.context ??= {};
+    req.context.nitro = req.context.nitro || { errors: [] };
+    const event = { req } satisfies HTTPEvent;
+
+    const nitroApp = useNitroApp();
+
+    await nitroApp.hooks.callHook("request", event).catch((error) => {
+      captureError(error, { event, tags: ["request"] });
+    });
+
+    const response = await h3App.request(req, undefined, req.context);
+
+    await nitroApp.hooks
+      .callHook("response", response, event)
+      .catch((error) => {
+        captureError(error, { event, tags: ["request", "response"] });
+      });
+
+    return response;
+  };
+
+  // Experimental async context support
+  if (import.meta._asyncContext) {
+    const originalFetchHandler = fetchHandler;
+    fetchHandler = (req: ServerRequest): Promise<Response> => {
+      const asyncCtx: NitroAsyncContext = { request: req as Request };
+      return nitroAsyncContext.callAsync(asyncCtx, () =>
+        originalFetchHandler(req)
+      );
+    };
+  }
+
+  const requestHandler: (
+    input: ServerRequest | URL | string,
+    init?: RequestInit,
+    context?: any
+  ) => Promise<Response> = (input, init, context) => {
+    const req = toRequest(input, init);
+    req.context = { ...req.context, ...context };
+    return Promise.resolve(fetchHandler(req));
+  };
+
+  const $fetch = createFetch({
+    fetch: (input, init) => {
+      if (!input.toString().startsWith("/")) {
+        return globalThis.fetch(input, init);
+      }
+      return requestHandler(input, init);
+    },
+  });
+
+  // @ts-ignore
+  globalThis.$fetch = $fetch;
+
+  const app: NitroApp = {
+    _h3: h3App,
+    hooks,
+    fetch: requestHandler,
+    captureError,
+  };
+
+  return app;
+}
+
+function createH3App(captureError: CaptureError) {
+  const DEBUG_MODE = ["1", "true", "TRUE"].includes(process.env.DEBUG + "");
+
+  const h3App = new H3Core({
+    debug: DEBUG_MODE,
+    onError: (error, event) => {
+      captureError(error, { event, tags: ["request"] });
+      return errorHandler(error, event);
+    },
+  });
+
+  // Middleware
+  for (const mw of middleware) {
+    h3App.use(mw.route || "/**", mw.handler, { method: mw.method });
+  }
+
+  // Compiled route matching
+  h3App._findRoute = (event) => {
+    const pathname = event.url.pathname;
+    const method = event.req.method.toLowerCase();
+    let route = findRoute(method, pathname);
+    const { routeRules, routeRuleMiddleware } = getRouteRules(method, pathname);
+    event.context.routeRules = routeRules;
+    if (!route) {
+      if (routeRuleMiddleware) {
+        route = { data: { handler: () => Symbol.for("h3.notFound") } };
+      } else {
+        return;
+      }
+    }
+    if (routeRuleMiddleware) {
+      route.data = {
+        ...route.data,
+        middleware: [...routeRuleMiddleware, ...(route.data.middleware || [])],
+      };
+    }
+    return route;
+  };
+
+  return h3App;
+}
+
+function getRouteRules(
+  method: string,
+  pathname: string
+): {
+  routeRules?: MatchedRouteRules;
+  routeRuleMiddleware?: Middleware[];
+} {
+  const m = findRouteRules(method, pathname);
+  if (!m?.length) {
+    return {};
+  }
+  const routeRules: MatchedRouteRules = {};
+  for (const layer of m) {
+    for (const rule of layer.data) {
+      const currentRule = routeRules[rule.name];
+      if (currentRule) {
+        if (rule.options === false) {
+          // Remove/Reset existing rule with `false` value
+          delete routeRules[rule.name];
+          continue;
+        }
+        if (
+          typeof currentRule.options === "object" &&
+          typeof rule.options === "object"
+        ) {
+          // Merge nested rule objects
+          currentRule.options = { ...currentRule.options, ...rule.options };
+        } else {
+          // Override rule if non object
+          currentRule.options = rule.options;
+        }
+        // Routing (route and params)
+        currentRule.route = rule.route;
+        currentRule.params = { ...currentRule.params, ...layer.params };
+      } else if (rule.options !== false) {
+        routeRules[rule.name] = { ...rule, params: layer.params };
+      }
+    }
+  }
+  const middleware = [];
+  for (const rule of Object.values(routeRules)) {
+    if (rule.options === false || !rule.handler) {
+      continue;
+    }
+    middleware.push(rule.handler(rule));
+  }
+  return {
+    routeRules,
+    routeRuleMiddleware: middleware.length > 0 ? middleware : undefined,
+  };
+}

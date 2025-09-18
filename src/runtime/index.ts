@@ -17,9 +17,6 @@ export { defineNitroErrorHandler } from "./internal/error/utils";
 // Renderer
 export { defineRenderHandler } from "./internal/renderer";
 
-// Route rules
-export { getRouteRules } from "./internal/route-rules";
-
 // Context
 export { useRequest } from "./internal/context";
 

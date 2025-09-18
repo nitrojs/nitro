@@ -15,6 +15,7 @@ import { installModules } from "./module";
 import { scanAndSyncOptions, scanHandlers } from "./scan";
 import { addNitroTasksVirtualFile } from "./task";
 import { createStorage } from "./utils/storage";
+import { initNitroRouting } from "./routing";
 
 export async function createNitro(
   config: NitroConfig = {},
@@ -28,6 +29,7 @@ export async function createNitro(
     options,
     hooks: createHooks(),
     vfs: {},
+    routing: {} as any,
     logger: consola.withTag("nitro"),
     scannedHandlers: [],
     close: () => nitro.hooks.callHook("close"),
@@ -37,7 +39,10 @@ export async function createNitro(
     },
   };
 
-  // Scan dirs and sync options
+  // Init routers
+  initNitroRouting(nitro);
+
+  // Scan dirs (plugins, tasks, modules) and sync options
   // TODO: Make it side-effect free to allow proper watching
   await scanAndSyncOptions(nitro);
 
@@ -80,6 +85,9 @@ export async function createNitro(
 
   // Ensure initial handlers are populated
   await scanHandlers(nitro);
+
+  // Sync routers
+  nitro.routing.sync();
 
   return nitro;
 }

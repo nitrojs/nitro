@@ -35,6 +35,13 @@ export async function prerender(nitro: Nitro) {
     return;
   }
 
+  if (nitro.options.builder === "vite") {
+    nitro.logger.warn(
+      "Skipping prerender since not supported with vite builder yet..."
+    );
+    return;
+  }
+
   // Initial list of routes to prerender
   const routes = new Set(nitro.options.prerender.routes);
 

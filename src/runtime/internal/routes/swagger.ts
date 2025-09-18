@@ -1,4 +1,5 @@
-import { defineHandler, type EventHandler } from "h3";
+import { defineHandler } from "h3";
+import type { EventHandler } from "h3";
 import { useRuntimeConfig } from "../config";
 
 // https://github.com/swagger-api/swagger-ui

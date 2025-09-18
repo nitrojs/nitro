@@ -14,7 +14,7 @@ import { isTest } from "std-env";
 // https://vercel.com/docs/build-output-api/configuration
 
 // https://vercel.com/docs/functions/runtimes/node-js/node-js-versions
-const SUPPORTED_NODE_VERSIONS = [18, 20, 22];
+const SUPPORTED_NODE_VERSIONS = [20, 22];
 
 function getSystemNodeVersion() {
   const systemNodeVersion = Number.parseInt(
@@ -356,19 +356,29 @@ function normalizeRouteSrc(route: string): string {
     .split("/")
     .map((segment) => {
       if (segment.startsWith("**")) {
-        return segment === "**" ? "?(?<_>.*)" : `?(?<${segment.slice(3)}>.+)`;
+        return segment === "**"
+          ? "(?:.*)"
+          : `?(?<${namedGroup(segment.slice(3))}>.+)`;
       }
       if (segment === "*") {
         return `(?<_${idCtr++}>[^/]*)`;
       }
       if (segment.includes(":")) {
         return segment
-          .replace(/:(\w+)/g, (_, id) => `(?<${id}>[^/]+)`)
+          .replace(/:(\w+)/g, (_, id) => `(?<${namedGroup(id)}>[^/]+)`)
           .replace(/\./g, String.raw`\.`);
       }
       return segment;
     })
     .join("/");
+}
+
+// Valid PCRE capture group name
+function namedGroup(input = "") {
+  if (/\d/.test(input[0])) {
+    input = `_${input}`;
+  }
+  return input.replace(/[^a-zA-Z0-9_]/g, "") || "_";
 }
 
 // Output is a destination pathname to function name

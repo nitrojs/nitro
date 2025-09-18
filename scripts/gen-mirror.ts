@@ -1,8 +1,9 @@
 import { cp, mkdir, rm, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "mlly";
 import { join } from "pathe";
-import { type PackageJson, readPackageJSON } from "pkg-types";
+import { readPackageJSON } from "pkg-types";
 import { distSubpaths } from "../build.config";
+import type { PackageJson } from "pkg-types";
 
 const copyPkgFields = [
   "description",

@@ -1,4 +1,4 @@
-import { globby } from "globby";
+import { glob } from "tinyglobby";
 import type { Nitro } from "nitro/types";
 import { join, relative } from "pathe";
 import { withBase, withLeadingSlash, withoutTrailingSlash } from "ufo";
@@ -80,6 +80,7 @@ export async function scanMiddleware(nitro: Nitro) {
   const files = await scanFiles(nitro, "middleware");
   return files.map((file) => {
     return {
+      route: "/**",
       middleware: true,
       handler: file.fullPath,
     };
@@ -156,7 +157,7 @@ async function scanDir(
   dir: string,
   name: string
 ): Promise<FileInfo[]> {
-  const fileNames = await globby(join(name, GLOB_SCAN_PATTERN), {
+  const fileNames = await glob(join(name, GLOB_SCAN_PATTERN), {
     cwd: dir,
     dot: true,
     ignore: nitro.options.ignore,

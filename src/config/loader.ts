@@ -1,6 +1,7 @@
 import { loadConfig, watchConfig } from "c12";
 import consola from "consola";
-import { type CompatibilityDateSpec, resolveCompatibilityDates } from "compatx";
+import { resolveCompatibilityDates } from "compatx";
+import type { CompatibilityDateSpec } from "compatx";
 import { klona } from "klona/full";
 import type { PresetName } from "nitro/presets";
 import type {
@@ -85,6 +86,9 @@ async function _loadUserConfig(
   // prettier-ignore
   let preset: string | undefined = (configOverrides.preset as string) || process.env.NITRO_PRESET || process.env.SERVER_PRESET
 
+  const _dotenv =
+    opts.dotenv ??
+    (configOverrides.dev && { fileName: [".env", ".env.local"] });
   const loadedConfig = await (
     opts.watch
       ? watchConfig<NitroConfig & { _meta?: NitroPresetMeta }>
@@ -92,7 +96,8 @@ async function _loadUserConfig(
   )({
     name: "nitro",
     cwd: configOverrides.rootDir,
-    dotenv: opts.dotenv ?? configOverrides.dev,
+    // @ts-expect-error
+    dotenv: _dotenv,
     extend: { extendKey: ["extends", "preset"] },
     defaults: NitroDefaults,
     jitiOptions: {

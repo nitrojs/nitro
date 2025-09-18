@@ -19,8 +19,8 @@ const nitroApp = useNitroApp();
 
 const server =
   cert && key
-    ? new HttpsServer({ key, cert }, toNodeHandler(nitroApp.h3App.fetch))
-    : new HttpServer(toNodeHandler(nitroApp.h3App.fetch));
+    ? new HttpsServer({ key, cert }, toNodeHandler(nitroApp.fetch))
+    : new HttpServer(toNodeHandler(nitroApp.fetch));
 
 const port = (destr(process.env.NITRO_PORT || process.env.PORT) ||
   3000) as number;

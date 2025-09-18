@@ -1,4 +1,4 @@
-import type { H3Event } from "h3";
+import type { HTTPEvent } from "h3";
 
 export interface CacheEntry<T = any> {
   value?: T;
@@ -34,7 +34,7 @@ export interface ResponseCacheEntry {
 
 export interface CachedEventHandlerOptions
   extends Omit<
-    CacheOptions<ResponseCacheEntry, [H3Event]>,
+    CacheOptions<ResponseCacheEntry, [HTTPEvent]>,
     "transform" | "validate"
   > {
   headersOnly?: boolean;

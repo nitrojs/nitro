@@ -9,6 +9,8 @@ import type { NitroEventHandler } from "./handler";
 import type { NitroHooks } from "./hooks";
 import type { PrerenderRoute } from "./prerender";
 import type { TSConfig } from "pkg-types";
+import type { Router } from "../routing";
+import type { NitroRouteRules } from "./route-rules";
 
 export interface Nitro {
   options: NitroOptions;
@@ -20,6 +22,12 @@ export interface Nitro {
   storage: Storage;
   close: () => Promise<void>;
   updateConfig: (config: NitroDynamicConfig) => void | Promise<void>;
+  routing: Readonly<{
+    sync: () => void;
+    routes: Router<NitroEventHandler & { _importHash: string }>;
+    routeRules: Router<NitroRouteRules & { _route: string }>;
+    middleware: (NitroEventHandler & { _importHash: string })[];
+  }>;
 
   /* @internal */
   _prerenderedRoutes?: PrerenderRoute[];
