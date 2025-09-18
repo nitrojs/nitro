@@ -11,6 +11,7 @@ import type {
 } from "./types";
 import { isTest } from "std-env";
 import { createRouter as createRadixRouter, toRouteMatcher } from "radix3";
+import { ISR_URL_PARAM } from "./runtime/consts";
 
 // https://vercel.com/docs/build-output-api/configuration
 
@@ -199,7 +200,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
       ? [
           {
             src: "(?<url>/)",
-            dest: `/index${ISR_SUFFIX}?url=$url`,
+            dest: `/index${ISR_SUFFIX}?${ISR_URL_PARAM}=$url`,
           },
         ]
       : []),
@@ -219,9 +220,11 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
           src,
           dest:
             nitro.options.preset === "vercel-edge"
-              ? FALLBACK_ROUTE + "?url=$url"
+              ? FALLBACK_ROUTE + `?${ISR_URL_PARAM}=$url`
               : withLeadingSlash(
-                  normalizeRouteDest(key) + ISR_SUFFIX + "?url=$url"
+                  normalizeRouteDest(key) +
+                    ISR_SUFFIX +
+                    `?${ISR_URL_PARAM}=$url`
                 ),
         };
       }),
