@@ -36,7 +36,7 @@ Nitro extends Vite apps with server routes and zero config deployment on many ho
   :::u-button
   ---
   size: xl
-  to: /getting-started
+  to: /docs
   trailing-icon: i-lucide-arrow-right
   ---
   Get started
@@ -48,10 +48,10 @@ Nitro extends Vite apps with server routes and zero config deployment on many ho
   icon: i-simple-icons-github
   size: xl
   target: _blank
-  to: https://github.com/nuxt-ui-pro/docs
+  to: https://github.com/nitrojs/nitro
   variant: outline
   ---
-  Star on GitHub
+  GitHub
   :::
 ::
 
