@@ -136,9 +136,9 @@ export class Router<T> {
     return findRoute(this.#router!, method, path)?.data;
   }
 
-  matchAll(method: string, path: string): undefined | T[] {
+  matchAll(method: string, path: string): T[] {
     // Returns from less specific to more specific matches
-    return findAllRoutes(this.#router!, method, path)?.map(
+    return findAllRoutes(this.#router!, method, path).map(
       (route) => route.data
     );
   }
