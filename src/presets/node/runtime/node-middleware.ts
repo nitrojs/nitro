@@ -6,7 +6,7 @@ import {
   trapUnhandledNodeErrors,
 } from "nitro/runtime/internal";
 
-const nitroApp = useNitroApp();
+export const nitroApp = useNitroApp();
 
 export const middleware = toNodeHandler(nitroApp.fetch);
 
