@@ -122,12 +122,32 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
           if (opts.maxAge && !opts.swr /* TODO: respect staleMaxAge */) {
             setOpts = { ttl: opts.maxAge };
           }
-          const promise = useStorage()
-            .setItem(cacheKey, entry, setOpts)
-            .catch((error) => {
+          let cacheEntry = entry;
+          let setItem = useStorage().setItem;
+          if (
+            opts.stream &&
+            entry.value &&
+            typeof entry.value === "object" &&
+            "body" in entry.value &&
+            entry.value.body instanceof ReadableStream
+          ) {
+            const [cacheStream, resStream] = entry.value.body.tee();
+            cacheEntry = {
+              ...entry,
+              value: {
+                ...entry.value,
+                body: cacheStream,
+              },
+            };
+            entry.value.body = resStream;
+            setItem = useStorage().setItemRaw;
+          }
+          const promise = setItem(cacheKey, cacheEntry, setOpts).catch(
+            (error) => {
               console.error(`[cache] Cache write error.`, error);
               useNitroApp().captureError(error, { event, tags: ["cache"] });
-            });
+            }
+          );
           if (typeof event?.req?.waitUntil === "function") {
             event.req.waitUntil(promise);
           }
@@ -270,11 +290,9 @@ export function defineCachedEventHandler(
       const rawValue = await handler(event);
       const res = await toResponse(rawValue, event);
 
-      // Stringified body
-      // TODO: support binary responses
-      const body = await res.text();
+      const body = opts.stream ? res.body : await res.text();
 
-      if (!res.headers.has("etag")) {
+      if (!res.headers.has("etag") && !(body instanceof ReadableStream)) {
         res.headers.set("etag", `W/"${hash(body)}"`);
       }
 

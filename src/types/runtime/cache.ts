@@ -23,6 +23,10 @@ export interface CacheOptions<T = any, ArgsT extends unknown[] = any[]> {
   swr?: boolean;
   staleMaxAge?: number;
   base?: string;
+  /**
+   * If true, the response body will be passed to the cache as a ReadableStream.
+   */
+  stream?: boolean;
 }
 
 export interface ResponseCacheEntry {
