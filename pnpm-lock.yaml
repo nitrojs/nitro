@@ -202,7 +202,7 @@ importers:
         specifier: ^7.11.0
         version: 7.16.0
       unenv:
-        specifier: 2.0.0-rc.21
+        specifier: ^2.0.0-rc.21
         version: 2.0.0-rc.21
       unimport:
         specifier: ^5.3.0
@@ -223,7 +223,7 @@ importers:
         specifier: ^7
         version: 7.1.7(@types/node@24.5.2)(jiti@2.6.0)(terser@5.44.0)(yaml@2.8.1)
       youch:
-        specifier: 4.1.0-beta.11
+        specifier: ^4.1.0-beta.11
         version: 4.1.0-beta.11
       youch-core:
         specifier: ^0.3.3
@@ -317,7 +317,7 @@ importers:
         specifier: ^19.1.1
         version: 19.1.1
       rolldown:
-        specifier: 1.0.0-beta.39
+        specifier: ^1.0.0-beta.39
         version: 1.0.0-beta.39
       typescript:
         specifier: ^5.9.2
