@@ -9,6 +9,7 @@ import type {
   ExecutionContext,
 } from "@cloudflare/workers-types";
 import wsAdapter from "crossws/adapters/cloudflare";
+import type { ServerRequest } from "srvx";
 
 /**
  * Reference: https://developers.cloudflare.com/workers/runtime-apis/fetch-event/#parameters
@@ -32,7 +33,7 @@ const ws = import.meta._websocket
 
 export default {
   async fetch(
-    request: CFRequest,
+    cfReq: CFRequest,
     env: CFPagesEnv,
     context: EventContext<CFPagesEnv, string, any>
   ) {
@@ -40,34 +41,30 @@ export default {
     // https://crossws.unjs.io/adapters/cloudflare
     if (
       import.meta._websocket &&
-      request.headers.get("upgrade") === "websocket"
+      cfReq.headers.get("upgrade") === "websocket"
     ) {
       return ws!.handleUpgrade(
-        request as any,
+        cfReq as any,
         env,
         context as unknown as ExecutionContext
       );
     }
 
-    const url = new URL(request.url);
+    const url = new URL(cfReq.url);
     if (env.ASSETS /* !miniflare */ && isPublicAssetURL(url.pathname)) {
-      return env.ASSETS.fetch(request);
+      return env.ASSETS.fetch(cfReq);
     }
 
     // Expose latest env to the global context
     (globalThis as any).__env__ = env;
 
-    return nitroApp.fetch(request as unknown as Request, undefined, {
-      waitUntil: (promise: Promise<any>) => context.waitUntil(promise),
-      _platform: {
-        cf: request.cf,
-        cloudflare: {
-          request,
-          env,
-          context,
-        },
-      },
-    });
+    // srvx compatibility
+    const req = cfReq as unknown as ServerRequest;
+    req.runtime ??= { name: "cloudflare" };
+    req.runtime.cloudflare ??= { context, env } as any;
+    req.waitUntil = context.waitUntil.bind(context);
+
+    return nitroApp.fetch(req);
   },
   scheduled(event: any, env: CFPagesEnv, context: ExecutionContext) {
     if (import.meta._tasks) {

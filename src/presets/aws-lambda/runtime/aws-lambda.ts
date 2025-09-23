@@ -16,11 +16,9 @@ export async function handler(
   event: APIGatewayProxyEvent | APIGatewayProxyEventV2,
   context: Context
 ): Promise<APIGatewayProxyResult | APIGatewayProxyResultV2> {
-  const request = awsRequest(event);
+  const request = awsRequest(event, context);
 
-  const response = await nitroApp.fetch(request, undefined, {
-    _platform: { aws: { context, event } },
-  });
+  const response = await nitroApp.fetch(request);
 
   return {
     statusCode: response.status,

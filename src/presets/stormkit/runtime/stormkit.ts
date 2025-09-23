@@ -3,6 +3,7 @@ import { useNitroApp } from "nitro/runtime";
 import { awsResponseBody } from "../../aws-lambda/runtime/_utils";
 
 import type { Handler } from "aws-lambda";
+import type { ServerRequest } from "srvx";
 
 type StormkitEvent = {
   url: string; // e.g. /my/path, /my/path?with=query
@@ -27,15 +28,18 @@ const nitroApp = useNitroApp();
 
 export const handler: Handler<StormkitEvent, StormkitResponse> =
   async function (event, context) {
-    const response = await nitroApp.fetch(
-      event.url,
-      {
-        method: event.method || "GET",
-        headers: event.headers,
-        body: event.body,
-      },
-      { _platform: { stormkit: { event, context } } }
-    );
+    const req = new Request(event.url, {
+      method: event.method || "GET",
+      headers: event.headers,
+      body: event.body,
+    }) as ServerRequest;
+
+    // srvx compatibility
+    req.runtime ??= { name: "stormkit" };
+    // @ts-expect-error (add to srvx types)
+    req.runtime.stormkit ??= { event, context } as any;
+
+    const response = await nitroApp.fetch(req);
 
     const { body, isBase64Encoded } = await awsResponseBody(response);
 
