@@ -16,7 +16,7 @@ export function awsRequest(
   const req = new Request(url, { method, headers, body }) as ServerRequest;
 
   // srvx compatibility
-  req.runtime ??= { name: "aws" };
+  req.runtime ??= { name: "aws-lambda" };
   // @ts-expect-error (add to srvx types)
   req.runtime.aws ??= { event, context } as any;
 

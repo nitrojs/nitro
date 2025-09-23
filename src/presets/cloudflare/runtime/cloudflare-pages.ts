@@ -37,6 +37,12 @@ export default {
     env: CFPagesEnv,
     context: EventContext<CFPagesEnv, string, any>
   ) {
+    // srvx compatibility
+    const req = cfReq as unknown as ServerRequest;
+    req.runtime ??= { name: "cloudflare" };
+    req.runtime.cloudflare ??= { context, env } as any;
+    req.waitUntil = context.waitUntil.bind(context);
+
     // Websocket upgrade
     // https://crossws.unjs.io/adapters/cloudflare
     if (
@@ -57,12 +63,6 @@ export default {
 
     // Expose latest env to the global context
     (globalThis as any).__env__ = env;
-
-    // srvx compatibility
-    const req = cfReq as unknown as ServerRequest;
-    req.runtime ??= { name: "cloudflare" };
-    req.runtime.cloudflare ??= { context, env } as any;
-    req.waitUntil = context.waitUntil.bind(context);
 
     return nitroApp.fetch(req);
   },

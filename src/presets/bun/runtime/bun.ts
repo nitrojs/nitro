@@ -18,18 +18,15 @@ const server = Bun.serve({
   host: process.env.NITRO_HOST || process.env.HOST,
   websocket: import.meta._websocket ? ws!.websocket : (undefined as any),
   async fetch(bunReq: Request, server: any) {
-    // https://crossws.unjs.io/adapters/bun
-    if (
-      import.meta._websocket &&
-      bunReq.headers.get("upgrade") === "websocket"
-    ) {
-      return ws!.handleUpgrade(bunReq, server);
-    }
-
     // srvx compatibility
     const req = bunReq as ServerRequest;
     req.runtime ??= { name: "bun" };
     req.runtime.bun ??= { server } as any;
+
+    // https://crossws.unjs.io/adapters/bun
+    if (import.meta._websocket && req.headers.get("upgrade") === "websocket") {
+      return ws!.handleUpgrade(req, server);
+    }
 
     return nitroApp.fetch(req);
   },
