@@ -1,20 +1,21 @@
 import { promises as fsp } from "node:fs";
-import { resolve, join, relative, basename } from "pathe";
-import { describe, expect, it } from "vitest";
-import { setupTest, startServer, testNitro } from "../tests";
-import { readlink } from "node:fs/promises";
+import { resolve, join, basename } from "pathe";
+import { describe, expect, it, vi } from "vitest";
+import { setupTest, testNitro } from "../tests";
 
 describe("nitro:preset:vercel", async () => {
   const ctx = await setupTest("vercel");
   testNitro(
     ctx,
     async () => {
-      const handle = await import(
+      const { fetch: fetchHandler } = await import(
         resolve(ctx.outDir, "functions/__fallback.func/index.mjs")
       ).then((r) => r.default || r);
-      await startServer(ctx, handle);
       return async ({ url, ...options }) => {
-        const res = await ctx.fetch(url, options);
+        const req = new Request(new URL(url, "https://example.com"), options);
+        const res = await fetchHandler(req, {
+          waitUntil: vi.fn(),
+        });
         return res;
       };
     },
