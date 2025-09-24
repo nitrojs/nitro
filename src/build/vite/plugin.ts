@@ -150,13 +150,23 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
 
       configResolved(config) {
         if (config.command === "build") {
-          // add cache-control to immutable client assets
-          const { outDir, assetsDir } = config.environments.client.build;
-          ctx.nitro!.options.publicAssets.push({
-            dir: `${outDir}/${assetsDir}/`,
-            baseURL: `/${assetsDir}/`,
-            maxAge: 31_536_000,
-          });
+          // Add cache-control to immutable client assets
+          for (const env of Object.values(config.environments)) {
+            if (env.consumer === "client") {
+              const { assetsDir } = env.build;
+              const rule = (ctx.nitro!.options.routeRules[
+                `/${assetsDir}/**`
+              ] ??= {});
+              if (!rule.headers?.["cache-control"]) {
+                rule.headers = {
+                  ...rule.headers,
+                  "cache-control": `public, max-age=31536000, immutable`,
+                };
+              }
+            }
+          }
+          // Refrash route rules
+          ctx.nitro!.routing.sync();
         }
       },
 
