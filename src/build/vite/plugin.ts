@@ -148,6 +148,18 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
         };
       },
 
+      configResolved(config) {
+        if (config.command === 'build') { 
+          // add cache-control to immutable client assets
+          const { outDir, assetsDir } = config.environments.client.build;
+          ctx.nitro!.options.publicAssets.push({
+            dir: `${outDir}/${assetsDir}`,
+            baseURL: `/${assetsDir}`,
+            maxAge: 31536000, 
+          });
+        }
+      },
+
       buildApp: {
         order: "post",
         handler(builder) {
