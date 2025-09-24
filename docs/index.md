@@ -8,9 +8,9 @@ seo:
 ---
 orientation: horizontal
 ---
+::code-group
   :::prose-pre
   ---
-  code: npx nuxi init -t github:nuxt-ui-pro/docs
   filename: vite.config.mjs
   icon: i-logos-vitejs
   ---
@@ -25,12 +25,28 @@ orientation: horizontal
   });
   ```
   :::
+  :::prose-pre
+  ---
+  filename: nitro.config.ts
+  ---
+  ```ts
+  import { defineNitroConfig } from "nitro/config";
+
+  export default defineNitroConfig({
+    routeRules: {
+      '/': { prerender: true },
+      '/blog/**': { swr: 60 * 60 },
+    }
+  });
+  ```
+  :::
+::
 
 #title
 Ship [Full-Stack]{.text-primary} Vite Apps
 
 #description
-Nitro extends Vite apps with server routes and zero config deployment on many hosting platforms, with the same codebase. It provides a fast, production-ready server that runs across any runtime.
+Nitro extends your Vite application with a production-ready server, compatible with any runtime. Add server routes to your application and deploy many hosting platform with a zero-config experience.
 
 #links
   :::u-button
