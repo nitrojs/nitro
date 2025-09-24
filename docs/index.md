@@ -1,7 +1,7 @@
 ---
 seo:
   title: Ship Full-Stack Vite Apps
-  description: Nitro lets you add server API routes to any Vite apps and deploy with zero configuration on your favorite hosting platform.
+  description: Nitro extends your Vite application with a production-ready server, compatible with any runtime. Add server routes to your application and deploy many hosting platform with a zero-config experience.
 ---
 
 ::u-page-hero
