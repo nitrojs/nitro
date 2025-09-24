@@ -137,8 +137,14 @@ function createH3App(captureError: CaptureError) {
   });
 
   // Middleware
+  const globalMiddleware: Middleware[] = [];
   for (const mw of middleware) {
-    h3App.use(mw.route || "/**", mw.handler, { method: mw.method });
+    if (!mw.method && (!mw.route || mw.route === "/**")) {
+      globalMiddleware.push(mw.handler);
+    } else {
+      // TODO: Should migrate to compiled pattern matching for right ordering
+      h3App.use(mw.route || "/**", mw.handler, { method: mw.method });
+    }
   }
 
   // Compiled route matching
@@ -158,7 +164,11 @@ function createH3App(captureError: CaptureError) {
     if (routeRuleMiddleware) {
       route.data = {
         ...route.data,
-        middleware: [...routeRuleMiddleware, ...(route.data.middleware || [])],
+        middleware: [
+          ...routeRuleMiddleware,
+          ...globalMiddleware,
+          ...(route.data.middleware || []),
+        ],
       };
     }
     return route;
