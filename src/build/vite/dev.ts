@@ -96,6 +96,12 @@ export async function configureViteDevServer(
   ctx: NitroPluginContext,
   server: ViteDevServer
 ) {
+  // Restart with nitro.config changes
+  const nitroConfigFile = ctx.nitro!.options._c12.configFile;
+  if (nitroConfigFile) {
+    server.config.configFileDependencies.push(nitroConfigFile);
+  }
+
   // Expose an RPC server to environments
   const rpcServer = createServer((req, res) => {
     server.middlewares.handle(req, res, () => {});
