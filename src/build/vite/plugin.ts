@@ -155,7 +155,7 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
           ctx.nitro!.options.publicAssets.push({
             dir: `${outDir}/${assetsDir}`,
             baseURL: `/${assetsDir}`,
-            maxAge: 31536000, 
+            maxAge: 31_536_000, 
           });
         }
       },
