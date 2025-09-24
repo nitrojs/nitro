@@ -153,8 +153,8 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
           // add cache-control to immutable client assets
           const { outDir, assetsDir } = config.environments.client.build;
           ctx.nitro!.options.publicAssets.push({
-            dir: `${outDir}/${assetsDir}`,
-            baseURL: `/${assetsDir}`,
+            dir: `${outDir}/${assetsDir}/`,
+            baseURL: `/${assetsDir}/`,
             maxAge: 31_536_000, 
           });
         }
