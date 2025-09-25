@@ -234,8 +234,9 @@ export function testNitro(
   }, 25_000);
 
   it("Server entry works", async () => {
-    const { data } = await callHandler({ url: "/" });
+    const { data, headers } = await callHandler({ url: "/" });
     expect(data).toBe("server entry works!");
+    expect(headers["x-test"]).toBe("test");
   });
 
   it("API Works", async () => {
