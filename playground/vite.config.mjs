@@ -3,13 +3,4 @@ import { nitro } from "nitro/vite";
 
 export default defineConfig({
   plugins: [nitro()],
-  environments: {
-    client: {
-      build: {
-        rollupOptions: {
-          input: "./client.ts",
-        },
-      },
-    },
-  },
 });
