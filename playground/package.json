@@ -7,6 +7,7 @@
     "build": "vite build"
   },
   "devDependencies": {
+    "mono-jsx": "^0.6.12",
     "nitro": "*",
     "vite": "^7.0.2"
   }

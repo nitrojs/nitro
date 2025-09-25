@@ -6,7 +6,7 @@ import type {
   ViteDevServer,
 } from "vite";
 
-import { createServer } from "node:http";
+import { createServer, IncomingMessage, ServerResponse } from "node:http";
 import { NodeRequest, sendNodeResponse } from "srvx/node";
 import { getSocketAddress, isSocketSupported } from "get-port-please";
 import { DevEnvironment } from "vite";
@@ -124,35 +124,52 @@ export async function configureViteDevServer(
     }
   });
 
-  return () =>
-    server.middlewares.use(async (nodeReq, nodeRes, next) => {
-      // Fast Skip known prefixes
-      if (
-        nodeReq.url!.startsWith("/@vite/") ||
-        nodeReq.url!.startsWith("/@fs/") ||
-        nodeReq.url!.startsWith("/@id/")
-      ) {
-        return next();
-      }
+  const getEnvFetch = (
+    envName: string
+  ): FetchableDevEnvironment["dispatchFetch"] => {
+    const env = server.environments[envName] as FetchableDevEnvironment;
+    if (env && typeof env.dispatchFetch !== "function") {
+      ctx.nitro!.logger.warn("Environment is not fetchable:", env.name);
+    }
+    return env?.dispatchFetch;
+  };
 
-      // Match fetchable environment based on request
-      // 1. Check for x-vite-env header
-      // 3. Default to nitro environment
-      const env = (server.environments[
-        nodeReq.headers["x-vite-env"] as string
-      ] || server.environments.nitro) as FetchableDevEnvironment;
+  const nitroEnvMiddleware = async (
+    nodeReq: IncomingMessage,
+    nodeRes: ServerResponse,
+    next: () => void
+  ) => {
+    if (/^\/@(?:vite|fs|id)\//.test(nodeReq.url!)) {
+      return next();
+    }
 
-      // Make sure the environment is fetchable or else skip
-      if (typeof env?.dispatchFetch !== "function") {
-        ctx.nitro!.logger.warn("Environment is not fetchable:", env.name);
-        return next();
-      }
+    // Match fetchable environment based on request
+    // 1. Check for x-vite-env header
+    // 3. Default to nitro environment
+    const env = (server.environments[nodeReq.headers["x-vite-env"] as string] ||
+      server.environments.nitro) as FetchableDevEnvironment;
 
-      // Dispatch the request to the environment
-      const webReq = new NodeRequest({ req: nodeReq, res: nodeRes });
-      const webRes = await env.dispatchFetch(webReq);
-      return webRes.status === 404
-        ? next()
-        : await sendNodeResponse(nodeRes, webRes);
+    // Make sure the environment is fetchable or else skip
+    if (typeof env?.dispatchFetch !== "function") {
+      ctx.nitro!.logger.warn("Environment is not fetchable:", env.name);
+      return next();
+    }
+
+    // Dispatch the request to the environment
+    const webReq = new NodeRequest({ req: nodeReq, res: nodeRes });
+    const webRes = await env.dispatchFetch(webReq);
+    return webRes.status === 404
+      ? next()
+      : await sendNodeResponse(nodeRes, webRes);
+  };
+
+  return () => {
+    const transformIndex = server.middlewares.stack.findIndex(
+      (m) => (m.handle as { name: string }).name === "viteTransformMiddleware"
+    );
+    server.middlewares.stack.splice(transformIndex, 0, {
+      route: "",
+      handle: nitroEnvMiddleware,
     });
+  };
 }

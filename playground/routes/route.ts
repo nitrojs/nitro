@@ -1,5 +1,5 @@
 import { defineHandler } from "h3";
 
 export default defineHandler((event) => {
-  return Date.now();
+  return "Response from routes/route.ts";
 });

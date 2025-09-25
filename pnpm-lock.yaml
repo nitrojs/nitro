@@ -412,6 +412,9 @@ importers:
 
   playground:
     devDependencies:
+      mono-jsx:
+        specifier: ^0.6.12
+        version: 0.6.12
       nitro:
         specifier: link:..
         version: link:..
@@ -4696,6 +4699,10 @@ packages:
   module-definition@6.0.1:
     resolution: {integrity: sha512-FeVc50FTfVVQnolk/WQT8MX+2WVcDnTGiq6Wo+/+lJ2ET1bRVi3HG3YlJUfqagNMc/kUlFSoR96AJkxGpKz13g==}
     engines: {node: '>=18'}
+    hasBin: true
+
+  mono-jsx@0.6.12:
+    resolution: {integrity: sha512-CZiPwa0FtkdmuFGyValuZzaRSL93Z0P85IXSOtxxErixtEvx3CjSTbJeFzYGUwbACN4Zu/LwCNCHcwoR9mdyLQ==}
     hasBin: true
 
   moo@0.5.2:
@@ -11367,6 +11374,8 @@ snapshots:
     dependencies:
       ast-module-types: 6.0.1
       node-source-walk: 7.0.1
+
+  mono-jsx@0.6.12: {}
 
   moo@0.5.2: {}
 

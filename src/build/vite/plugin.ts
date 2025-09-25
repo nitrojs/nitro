@@ -59,23 +59,20 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
             ...ctx.pluginConfig.config,
           }));
 
-        // Auto config default (ssr) service
+        // Auto config default (SSR) service
         if (!ctx.pluginConfig.services?.ssr) {
           ctx.pluginConfig.services ??= {};
           if (userConfig.environments?.ssr === undefined) {
-            const serverEntry = resolveModulePath("./server", {
-              from: [
-                join(ctx.nitro.options.srcDir, "/"),
-                join(ctx.nitro.options.rootDir, "src/"),
-              ],
+            const ssrEntry = resolveModulePath("./ssr", {
+              from: ctx.nitro.options.scanDirs,
               extensions: [".ts", ".js", ".mts", ".mjs", ".tsx", ".jsx"],
               try: true,
             });
-            if (serverEntry) {
+            if (ssrEntry) {
               ctx.nitro!.logger.info(
-                `Using \`${prettyPath(serverEntry)}\` as the server entry.`
+                `Using \`${prettyPath(ssrEntry)}\` as SSR entry.`
               );
-              ctx.pluginConfig.services.ssr = { entry: serverEntry };
+              ctx.pluginConfig.services.ssr = { entry: ssrEntry };
             }
           } else {
             const input =
