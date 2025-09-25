@@ -8,5 +8,7 @@ socials:
   x: "https://x.com/nitrojsdev"
   bluesky: "https://bsky.app/profile/nitro.build"
   discord: https://discord.nitro.build
+sponsors:
+  api: https://sponsors.pi0.io/sponsors.json
 themeColor: "rose"
 automd: true

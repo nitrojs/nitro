@@ -8,9 +8,12 @@ importers:
 
   .:
     devDependencies:
+      shaders:
+        specifier: ^2.0.673
+        version: 2.0.673
       undocs:
-        specifier: ^0.4.7
-        version: 0.4.7(@babel/parser@7.28.4)(@netlify/blobs@9.1.2)(@parcel/watcher@2.5.1)(@types/node@24.2.0)(@vue/compiler-sfc@3.5.21)(@vueuse/core@13.9.0(vue@3.5.21(typescript@5.9.2)))(db0@0.3.2)(embla-carousel@8.6.0)(ioredis@5.7.0)(jwt-decode@4.0.0)(lightningcss@1.30.1)(magicast@0.3.5)(rollup@4.50.2)(terser@5.43.1)(typescript@5.9.2)(vite@7.1.6(@types/node@24.2.0)(jiti@2.5.1)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.8.1))(yaml@2.8.1)(zod@3.25.76)
+        specifier: ^0.4.8
+        version: 0.4.8(@babel/parser@7.28.4)(@netlify/blobs@9.1.2)(@parcel/watcher@2.5.1)(@types/node@24.2.0)(@vue/compiler-sfc@3.5.21)(@vueuse/core@13.9.0(vue@3.5.21(typescript@5.9.2)))(db0@0.3.2)(embla-carousel@8.6.0)(ioredis@5.7.0)(jwt-decode@4.0.0)(lightningcss@1.30.1)(magicast@0.3.5)(rollup@4.50.2)(terser@5.43.1)(typescript@5.9.2)(vite@7.1.6(@types/node@24.2.0)(jiti@2.5.1)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.8.1))(yaml@2.8.1)(zod@3.25.76)
 
 packages:
 
@@ -4162,6 +4165,9 @@ packages:
   setprototypeof@1.2.0:
     resolution: {integrity: sha512-E5LDX7Wrp85Kil5bhZv46j8jOeboKq5JMmYM3gVGdGH8xFpPWXUMsNrlODCrkoxMEeNi/XZIwuRvY4XNwYMJpw==}
 
+  shaders@2.0.673:
+    resolution: {integrity: sha512-Rh0I2LF6wM1kA33itdmeqdE86SmjyZYzE9HCWcpLw8HFnTS3etUF5lcevHYA3kUpRVp0B0qPiDSN8QZbPoCk3g==}
+
   shebang-command@2.0.0:
     resolution: {integrity: sha512-kHxr2zZpYtdmrN1qDjrrX/Z1rR1kG8Dx+gkpK1G4eXmvXswmcE1hTWBWYUzlraYw1/yZp6YuDY77YtvbN0dmDA==}
     engines: {node: '>=8'}
@@ -4445,8 +4451,8 @@ packages:
   undici-types@7.10.0:
     resolution: {integrity: sha512-t5Fy/nfn+14LuOc2KNYg75vZqClpAiqscVvMygNnlsHBFpSXdJaYtXMcdNLpl/Qvc3P2cB3s6lOV51nqsFq4ag==}
 
-  undocs@0.4.7:
-    resolution: {integrity: sha512-yrTtE2J8qF3e/c7yQ/hIFweuvqJt219Q2v1E4WDLMt/owlpDmjxSunhDmiG7bLfK9tH+3+UwcjGi65qxeTwD5A==}
+  undocs@0.4.8:
+    resolution: {integrity: sha512-Hz83i2IaFC/bs23zSP25fAkiYEKgkHoaEnHF7ytSofHWCCxga/J0pgY3BGIXriWhU09kXLAEbUhy+ds6dO9kjA==}
     hasBin: true
 
   unenv@2.0.0-rc.21:
@@ -10043,6 +10049,8 @@ snapshots:
 
   setprototypeof@1.2.0: {}
 
+  shaders@2.0.673: {}
+
   shebang-command@2.0.0:
     dependencies:
       shebang-regex: 3.0.0
@@ -10334,7 +10342,7 @@ snapshots:
   undici-types@7.10.0:
     optional: true
 
-  undocs@0.4.7(@babel/parser@7.28.4)(@netlify/blobs@9.1.2)(@parcel/watcher@2.5.1)(@types/node@24.2.0)(@vue/compiler-sfc@3.5.21)(@vueuse/core@13.9.0(vue@3.5.21(typescript@5.9.2)))(db0@0.3.2)(embla-carousel@8.6.0)(ioredis@5.7.0)(jwt-decode@4.0.0)(lightningcss@1.30.1)(magicast@0.3.5)(rollup@4.50.2)(terser@5.43.1)(typescript@5.9.2)(vite@7.1.6(@types/node@24.2.0)(jiti@2.5.1)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.8.1))(yaml@2.8.1)(zod@3.25.76):
+  undocs@0.4.8(@babel/parser@7.28.4)(@netlify/blobs@9.1.2)(@parcel/watcher@2.5.1)(@types/node@24.2.0)(@vue/compiler-sfc@3.5.21)(@vueuse/core@13.9.0(vue@3.5.21(typescript@5.9.2)))(db0@0.3.2)(embla-carousel@8.6.0)(ioredis@5.7.0)(jwt-decode@4.0.0)(lightningcss@1.30.1)(magicast@0.3.5)(rollup@4.50.2)(terser@5.43.1)(typescript@5.9.2)(vite@7.1.6(@types/node@24.2.0)(jiti@2.5.1)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.8.1))(yaml@2.8.1)(zod@3.25.76):
     dependencies:
       '@headlessui/vue': 1.7.23(vue@3.5.21(typescript@5.9.2))
       '@iconify-json/logos': 1.2.9
