@@ -72,7 +72,7 @@ Nitro extends your Vite application with a production-ready server, compatible w
   :::
 ::
 
-::div{class="bg-neutral-50 dark:bg-neutral-950/30 py-10"}
+::div{class="bg-neutral-50 dark:bg-neutral-950/30 py-10 border border-default"}
   ::u-container
     ::u-page-grid
       ::u-page-feature
@@ -98,6 +98,7 @@ Nitro extends your Vite application with a production-ready server, compatible w
       #description
       Minimal design to fit into any solution with minimum overhead.
       ::
+
     ::
   ::
 ::
@@ -120,7 +121,7 @@ Create Server Routes
 Start creating API routes in the server/ folder or start with your favorite backend framework in a server.ts file.
 
 #default
-  ::tabs{class="h-[300px]"}
+  ::tabs{class="lg:h-[300px]"}
     ::tabs-item{label="Web Standard"}
       ::prose-pre{filename="server.ts"}
       ```ts
