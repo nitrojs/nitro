@@ -165,7 +165,7 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
               }
             }
           }
-          // Refrash route rules
+          // Refresh route rules
           ctx.nitro!.routing.sync();
         }
       },
