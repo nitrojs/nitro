@@ -23,5 +23,3 @@ export const middleware: {
   method?: string;
   handler: Middleware;
 }[];
-
-export const serverHandler = undefined | Middleware;
