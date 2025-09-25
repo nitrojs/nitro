@@ -124,16 +124,6 @@ export async function configureViteDevServer(
     }
   });
 
-  const getEnvFetch = (
-    envName: string
-  ): FetchableDevEnvironment["dispatchFetch"] => {
-    const env = server.environments[envName] as FetchableDevEnvironment;
-    if (env && typeof env.dispatchFetch !== "function") {
-      ctx.nitro!.logger.warn("Environment is not fetchable:", env.name);
-    }
-    return env?.dispatchFetch;
-  };
-
   const nitroEnvMiddleware = async (
     nodeReq: IncomingMessage,
     nodeRes: ServerResponse,
@@ -146,8 +136,8 @@ export async function configureViteDevServer(
     // Match fetchable environment based on request
     // 1. Check for x-vite-env header
     // 3. Default to nitro environment
-    const env = (server.environments[nodeReq.headers["x-vite-env"] as string] ||
-      server.environments.nitro) as FetchableDevEnvironment;
+    const envName = (nodeReq.headers["x-vite-env"] as string) || "nitro";
+    const env = server.environments[envName] as FetchableDevEnvironment;
 
     // Make sure the environment is fetchable or else skip
     if (typeof env?.dispatchFetch !== "function") {
@@ -163,13 +153,42 @@ export async function configureViteDevServer(
       : await sendNodeResponse(nodeRes, webRes);
   };
 
+  // 1. Handle as first middleware for HTML requests
+  server.middlewares.use((req, res, next) => {
+    // https://github.com/vitejs/vite/issues/20705#issuecomment-3272974173
+    if (!res.getHeader("vary")) {
+      res.setHeader("vary", "Sec-Fetch-Dest, Accept");
+    }
+    if (isHTMLRequest(req)) {
+      nitroEnvMiddleware(req, res, next);
+    } else {
+      next();
+    }
+  });
   return () => {
-    const transformIndex = server.middlewares.stack.findIndex(
-      (m) => (m.handle as { name: string }).name === "viteTransformMiddleware"
-    );
-    server.middlewares.stack.splice(transformIndex, 0, {
-      route: "",
-      handle: nitroEnvMiddleware,
+    // 2. Handle as last middleware for non-HTML requests
+    server.middlewares.use((req, res, next) => {
+      if (isHTMLRequest(req)) {
+        next();
+      } else {
+        nitroEnvMiddleware(req, res, next);
+      }
     });
   };
+}
+
+function isHTMLRequest(req: IncomingMessage): boolean {
+  if ((req as any)._isHTML !== undefined) {
+    return (req as any)._isHTML;
+  }
+  let isHTML = false;
+  const fetchDest = req.headers["sec-fetch-dest"];
+  if (fetchDest) {
+    isHTML = /^(document|iframe|frame|embed)$/.test(fetchDest);
+  } else {
+    const accept = req.headers.accept;
+    isHTML = !!/text\/html/.test(accept || "");
+  }
+  (req as any)._isHTML = isHTML;
+  return isHTML;
 }
