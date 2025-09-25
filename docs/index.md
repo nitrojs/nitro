@@ -12,7 +12,6 @@ orientation: horizontal
   :::prose-pre
   ---
   filename: vite.config.mjs
-  icon: i-logos-vitejs
   ---
   ```ts
   import { defineConfig } from "vite";
@@ -52,7 +51,7 @@ Nitro extends your Vite application with a production-ready server, compatible w
   :::u-button
   ---
   size: xl
-  to: /docs
+  to: /docs/installation
   trailing-icon: i-lucide-arrow-right
   ---
   Get started
