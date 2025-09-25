@@ -24,6 +24,7 @@
 
     // Libs & paths
     "lib": ["ESNext", "DOM"],
+    "types": ["vite/client", "node"],
     "baseUrl": "."
   }
 }

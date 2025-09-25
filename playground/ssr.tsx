@@ -1,7 +1,8 @@
+// https://github.com/ije/mono-jsx
 /** @jsxImportSource mono-jsx */
+
 import icon from "./nitro.png";
 
-// https://github.com/ije/mono-jsx
 export default {
   fetch: (req: Request) => (
     <html>
