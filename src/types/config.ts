@@ -168,6 +168,7 @@ export interface NitroOptions extends PresetOptions {
   // Routing
   baseURL: string;
   apiBaseURL: string;
+  serverEntry: string;
   handlers: NitroEventHandler[];
   routeRules: { [path: string]: NitroRouteRules };
   devHandlers: NitroDevEventHandler[];

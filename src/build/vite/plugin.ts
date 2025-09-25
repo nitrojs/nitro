@@ -1,7 +1,7 @@
 import type { PluginOption as VitePlugin } from "vite";
 import type { Plugin as RollupPlugin } from "rollup";
 import type { NitroPluginConfig, NitroPluginContext } from "./types";
-import { join, resolve, relative } from "pathe";
+import { resolve, relative } from "pathe";
 import { createNitro, prepare } from "../..";
 import { getViteRollupConfig } from "./rollup";
 import { buildEnvironments, prodEntry } from "./prod";
@@ -12,7 +12,6 @@ import { runtimeDependencies, runtimeDir } from "nitro/runtime/meta";
 import * as rou3 from "rou3";
 import * as rou3Compiler from "rou3/compiler";
 import { resolveModulePath } from "exsolve";
-import { prettyPath } from "../../utils/fs";
 
 // https://vite.dev/guide/api-environment-plugins
 // https://vite.dev/guide/api-environment-frameworks.html
@@ -63,27 +62,17 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
         if (!ctx.pluginConfig.services?.ssr) {
           ctx.pluginConfig.services ??= {};
           if (userConfig.environments?.ssr === undefined) {
-            const serverEntry = resolveModulePath("./server", {
-              from: [
-                join(ctx.nitro.options.srcDir, "/"),
-                join(ctx.nitro.options.rootDir, "src/"),
-              ],
-              extensions: [".ts", ".js", ".mts", ".mjs", ".tsx", ".jsx"],
-              try: true,
-            });
-            if (serverEntry) {
-              ctx.nitro!.logger.info(
-                `Using \`${prettyPath(serverEntry)}\` as the server entry.`
-              );
-              ctx.pluginConfig.services.ssr = { entry: serverEntry };
+            console.log(">>", ctx.nitro!.options.serverEntry);
+            if (ctx.nitro!.options.serverEntry) {
+              ctx.pluginConfig.services.ssr = {
+                entry: ctx.nitro!.options.serverEntry,
+              };
             }
           } else {
             const input =
               userConfig.environments.ssr.build?.rollupOptions?.input;
             if (typeof input === "string") {
-              ctx.pluginConfig.services.ssr = {
-                entry: input,
-              };
+              ctx.pluginConfig.services.ssr = { entry: input };
             } else {
               this.error(
                 `Invalid input type for SSR entry point. Expected a string.`

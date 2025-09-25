@@ -1,5 +1,6 @@
 import type {
   H3EventHandler,
+  Middleware,
   H3Route,
   LazyEventHandler,
   RouterMethod,
@@ -22,3 +23,5 @@ export const middleware: {
   method?: string;
   handler: Middleware;
 }[];
+
+export const serverHandler = undefined | Middleware;

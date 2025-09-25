@@ -154,18 +154,19 @@ function createH3App(captureError: CaptureError) {
     let route = findRoute(method, pathname);
     const { routeRules, routeRuleMiddleware } = getRouteRules(method, pathname);
     event.context.routeRules = routeRules;
+    const hasMiddleware = routeRuleMiddleware || globalMiddleware.length > 0;
     if (!route) {
-      if (routeRuleMiddleware) {
+      if (hasMiddleware) {
         route = { data: { handler: () => Symbol.for("h3.notFound") } };
       } else {
         return;
       }
     }
-    if (routeRuleMiddleware) {
+    if (hasMiddleware) {
       route.data = {
         ...route.data,
         middleware: [
-          ...routeRuleMiddleware,
+          ...(routeRuleMiddleware || []),
           ...globalMiddleware,
           ...(route.data.middleware || []),
         ],

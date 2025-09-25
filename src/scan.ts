@@ -1,7 +1,10 @@
+import { existsSync } from "node:fs";
 import { glob } from "tinyglobby";
 import type { Nitro } from "nitro/types";
 import { join, relative } from "pathe";
 import { withBase, withLeadingSlash, withoutTrailingSlash } from "ufo";
+import { resolveModulePath } from "exsolve";
+import { prettyPath } from "./utils/fs";
 
 export const GLOB_SCAN_PATTERN = "**/*.{js,mjs,cjs,ts,mts,cts,tsx,jsx}";
 type FileInfo = { path: string; fullPath: string };
@@ -72,6 +75,22 @@ export async function scanHandlers(nitro: Nitro) {
       );
     }),
   ];
+
+  const serverEntry = resolveModulePath(
+    nitro.options.serverEntry || "./server",
+    {
+      from: nitro.options.scanDirs,
+      extensions: [".ts", ".js", ".mts", ".mjs", ".tsx", ".jsx"],
+      try: true,
+    }
+  );
+  // Only log when auto-detected
+  if (serverEntry && existsSync(serverEntry) && !nitro.options.serverEntry) {
+    nitro.options.serverEntry = serverEntry;
+    nitro!.logger.info(
+      `Using \`${prettyPath(serverEntry)}\` as the server entry.`
+    );
+  }
 
   return handlers;
 }

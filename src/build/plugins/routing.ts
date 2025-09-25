@@ -22,7 +22,8 @@ export function routing(nitro: Nitro) {
         );
 
         return /* js */ `
-import * as __routeRules__ from 'nitro/runtime/internal/route-rules';
+import * as __routeRules__ from "nitro/runtime/internal/route-rules";
+${nitro.options.serverEntry ? `import __serverEntry__ from ${JSON.stringify(nitro.options.serverEntry)};` : ""}
 ${allHandlers.some((h) => h.lazy) ? `import { lazyEventHandler } from "h3";` : ""}
 
 export const findRouteRules = ${nitro.routing.routeRules.compileToString({ serialize: serializeRouteRule, matchAll: true })}
@@ -42,7 +43,10 @@ ${allHandlers
 
 export const findRoute = ${nitro.routing.routes.compileToString({ serialize: serializeHandler })}
 
-export const middleware = [${nitro.routing.middleware.map((h) => serializeHandler(h)).join(",")}];
+export const middleware = [
+  ${nitro.routing.middleware.map((h) => serializeHandler(h)).join(",")},
+  ${nitro.options.serverEntry ? "{handler:function serverEntry(event,next){return Promise.resolve(__serverEntry__?.fetch?.(event.req)).then(r =>!r||r.status===404?next():r)}}," : ""}
+];
   `;
       },
       // --- routing-meta ---

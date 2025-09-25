@@ -1,5 +1,18 @@
 export default {
-  async fetch(req: Request): Promise<Response> {
-    return new Response(`Hello world! (${req.url})`);
+  async fetch(req: Request) {
+    const url = new URL(req.url);
+    if (url.pathname === "/") {
+      return new Response(
+        /* html */ `
+        <h1>Hello world!</h1>
+        <ul>
+          <li><a href="/test">/test</a></li>
+        </ul>
+      `,
+        {
+          headers: { "Content-Type": "text/html" },
+        }
+      );
+    }
   },
 };
