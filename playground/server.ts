@@ -4,14 +4,10 @@ export default {
     if (url.pathname === "/") {
       return new Response(
         /* html */ `
-        <h1>Hello world!</h1>
-        <ul>
-          <li><a href="/test">/test</a></li>
-        </ul>
+        <h1>Nitro Playground!</h1>
+        <ul><li><a href="/test">/test</a></li></ul>
       `,
-        {
-          headers: { "Content-Type": "text/html" },
-        }
+        { headers: { "Content-Type": "text/html" } }
       );
     }
   },
