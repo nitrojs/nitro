@@ -43,10 +43,9 @@ ${allHandlers
 
 export const findRoute = ${nitro.routing.routes.compileToString({ serialize: serializeHandler })}
 
-export const middleware = [
-  ${nitro.routing.middleware.map((h) => serializeHandler(h)).join(",")},
-  ${nitro.options.serverEntry ? "{handler:function serverEntry(event,next){return Promise.resolve(__serverEntry__?.fetch?.(event.req)).then(r =>!r||r.status===404?next():r)}}," : ""}
-];
+export const middleware = [${nitro.routing.middleware.map((h) => serializeHandler(h)).join(",")}];
+
+${nitro.options.serverEntry ? /* js */ `if (__serverEntry__?.fetch) { middleware.push({ handler: function serverEntry(event,next) { return Promise.resolve(__serverEntry__?.fetch(event.req)).then(r =>!r||r.status===404?next():r) } }); }` : ""}
   `;
       },
       // --- routing-meta ---
