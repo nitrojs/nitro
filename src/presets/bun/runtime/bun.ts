@@ -15,7 +15,7 @@ const ws = import.meta._websocket
 // @ts-expect-error
 const server = Bun.serve({
   port: process.env.NITRO_PORT || process.env.PORT || 3000,
-  host: process.env.NITRO_HOST || process.env.HOST,
+  hostname: process.env.NITRO_HOST || process.env.HOST,
   websocket: import.meta._websocket ? ws!.websocket : (undefined as any),
   async fetch(bunReq: Request, server: any) {
     // srvx compatibility
