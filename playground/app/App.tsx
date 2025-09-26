@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import logo from "../assets/nitro.png";
+import logo from "./assets/nitro.png";
 
 export default function App() {
   const [count, setCount] = useState(0);
@@ -41,12 +41,12 @@ export default function App() {
         <TestEndpoint
           label="server.ts"
           url="/server"
-          test={(text) => text.includes("server.ts")}
+          test={(text) => text === "Response from server.ts"}
         />
         <TestEndpoint
           label="routes/route.ts"
           url="/route"
-          test={(text) => text.includes("routes/route.ts")}
+          test={(text) => text === "Response from routes/route.ts"}
         />
       </section>
 
@@ -77,9 +77,12 @@ function TestEndpoint({
 }) {
   const [status, setStatus] = useState<boolean | undefined>(undefined);
   useEffect(() => {
-    fetch(url)
+    fetch(url, { headers: { accept: "text/html" } })
       .then((r) => r.text())
-      .then((text) => test(text))
+      .then((text) => {
+        console.log(text);
+        return test(text);
+      })
       .then(setStatus)
       .catch(() => setStatus(false));
   }, [url, test, setStatus]);

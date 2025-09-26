@@ -99,19 +99,20 @@ parentPort.on("message", (payload) => {
 
 const originalFetch = globalThis.fetch;
 globalThis.fetch = function nitroViteFetch(input, init) {
-  if (!init?.viteEnv) {
+  const viteEnv = init?.viteEnv || input?.headers?.get("x-vite-env") || "nitro";
+  if (!viteEnv) {
     return originalFetch(input, init);
   }
-  const env = envs[init.viteEnv];
+  const env = envs[viteEnv];
   if (!env) {
-    throw httpError(500, `Unknown vite environment "${init.viteEnv}"`);
+    throw httpError(500, `Unknown vite environment "${viteEnv}"`);
   }
 
   if (typeof input === "string" && input[0] === "/") {
     input = new URL(input, "http://localhost");
   }
   const headers = new Headers(init.headers || {});
-  headers.set("x-vite-env", init.viteEnv);
+  headers.set("x-vite-env", viteEnv);
   return env.fetch(input, { ...init, viteEnv: undefined, headers });
 };
 

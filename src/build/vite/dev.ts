@@ -184,12 +184,13 @@ function isHTMLRequest(req: IncomingMessage): boolean {
     return (req as any)._isHTML;
   }
   let isHTML = false;
-  const fetchDest = req.headers["sec-fetch-dest"];
-  if (fetchDest) {
-    isHTML = /^(document|iframe|frame)$/.test(fetchDest);
-  } else {
-    const accept = req.headers.accept;
-    isHTML = !!/text\/html/.test(accept || "");
+  const fetchDest = req.headers["sec-fetch-dest"] || "";
+  const accept = req.headers.accept || "";
+  if (
+    /^(document|iframe|frame)$/.test(fetchDest) ||
+    ((!fetchDest || fetchDest === "empty") && accept.includes("text/html"))
+  ) {
+    isHTML = true;
   }
   (req as any)._isHTML = isHTML;
   return isHTML;

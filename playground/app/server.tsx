@@ -5,9 +5,7 @@ export default {
   async fetch(req: Request): Promise<Response> {
     const appHTML = await renderToString(<App />);
     return new Response(indexHTML(appHTML), {
-      headers: {
-        "Content-Type": "text/html",
-      },
+      headers: { "Content-Type": "text/html" },
     });
   },
 };
