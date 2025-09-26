@@ -86,9 +86,8 @@ parentPort.on("message", (payload) => {
     case "nitro:vite-env": {
       const { name, entry } = payload.data;
       if (envs[name]) {
-        console.error(`Vite environment "${name}" already registered`);
+        console.error(`Vite environment "${name}" already registered!`);
       } else {
-        console.log(`Registering vite environment "${name}"`);
         envs[name] = new EnvRunner({ name, entry });
       }
       break;
