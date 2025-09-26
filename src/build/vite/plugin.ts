@@ -113,7 +113,9 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
         ctx.rollupConfig = await getViteRollupConfig(ctx);
 
         // Create dev worker
-        ctx.devWorker = createDevWorker(ctx);
+        if (ctx.nitro.options.dev && ctx.devWorker) {
+          ctx.devWorker = createDevWorker(ctx);
+        }
 
         return {
           // Don't include HTML middlewares
