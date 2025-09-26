@@ -3,35 +3,111 @@ import { Agent } from "undici";
 import { ModuleRunner, ESModulesEvaluator } from "vite/module-runner";
 import { getSocketAddress, isSocketSupported } from "get-port-please";
 
-// Create Vite Module Runner
-// https://vite.dev/guide/api-environment-runtimes.html#modulerunner
-const runner = new ModuleRunner(
-  {
-    transport: {
-      connect(handlers) {
-        const { onMessage, onDisconnection } = handlers;
-        parentPort.on("message", onMessage);
-        parentPort.on("close", onDisconnection);
+// ----- Environment runners -----
+
+const envs = { nitro: undefined, ssr: undefined };
+
+class EnvRunner {
+  constructor({ name, entry }) {
+    this.name = name;
+    this.entryPath = entry;
+
+    this.entry = undefined;
+    this.entryError = undefined;
+
+    // Create Vite Module Runner
+    // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
+    this.runnerHooks = {};
+    this.runner = new ModuleRunner(
+      {
+        transport: {
+          connect({ onMessage, onDisconnection }) {
+            parentPort.on("message", (payload) => {
+              if (payload?.type === "custom" && payload.viteEnv === name) {
+                onMessage(payload);
+              }
+            });
+            parentPort.on("close", onDisconnection);
+          },
+          send(payload) {
+            parentPort.postMessage({ ...payload, viteEnv: name });
+          },
+        },
       },
-      send(payload) {
-        parentPort.postMessage(payload);
-      },
-    },
-  },
-  new ESModulesEvaluator(),
-  process.env.DEBUG ? console.debug : undefined
-);
+      new ESModulesEvaluator(),
+      process.env.DEBUG ? console.debug : undefined
+    );
+
+    this.reload();
+  }
+
+  async reload() {
+    try {
+      this.entry = await this.runner.import(this.entryPath);
+      this.entryError = undefined;
+    } catch (error) {
+      console.error(error);
+      this.entryError = error;
+    }
+  }
+
+  async fetch(req, init) {
+    if (this.entryError) {
+      return renderError(req, this.entryError);
+    }
+    try {
+      const entryFetch = this.entry?.fetch || this.entry?.default?.fetch;
+      if (!entryFetch) {
+        throw httpError(
+          500,
+          `No fetch handler exported from ${this.entryPath}`
+        );
+      }
+      return await entryFetch(req, init);
+    } catch (error) {
+      return renderError(req, error);
+    }
+  }
+}
+
+// ----- RPC listeners -----
+
+let viteServerAddr;
+
+parentPort.on("message", (payload) => {
+  if (payload?.type !== "custom") {
+    return;
+  }
+  switch (payload.event) {
+    case "nitro:vite-server-addr": {
+      viteServerAddr = payload.data;
+      break;
+    }
+    case "nitro:vite-env": {
+      const { name, entry } = payload.data;
+      if (envs[name]) {
+        console.error(`Vite environment "${name}" already registered`);
+      } else {
+        console.log(`Registering vite environment "${name}"`);
+        envs[name] = new EnvRunner({ name, entry });
+      }
+      break;
+    }
+  }
+});
 
 // ----- Fetch Handler -----
 
-let rpcAddr;
-
 const originalFetch = globalThis.fetch;
-globalThis.fetch = (input, init) => {
-  const { viteEnv } = init || {};
-  if (!viteEnv) {
+globalThis.fetch = function nitroViteFetch(input, init) {
+  if (!init?.viteEnv) {
     return originalFetch(input, init);
   }
+  const env = envs[init.viteEnv];
+  if (!env) {
+    throw httpError(500, `Unknown vite environment "${init.viteEnv}"`);
+  }
+
   if (typeof input === "string" && input[0] === "/") {
     input = new URL(input, "http://localhost");
   }
@@ -40,15 +116,7 @@ globalThis.fetch = (input, init) => {
   return fetchAddress(rpcAddr, input, { ...init, viteEnv: undefined, headers });
 };
 
-parentPort.on("message", (payload) => {
-  if (payload.type === "custom" && payload.event === "nitro-rpc") {
-    rpcAddr = payload.data;
-  }
-});
-
-// ----- Module Entry -----
-
-let entry, entryError;
+// ----- Server -----
 
 async function reload() {
   try {
@@ -56,39 +124,31 @@ async function reload() {
     for (const [key, value] of Object.entries(workerData.globals || {})) {
       globalThis[key] = value;
     }
-    // Import the entry module
-    entry = await runner.import(workerData.viteEntry);
-    entryError = undefined;
+    // Reload all envs
+    await Promise.all(Object.values(envs).map((env) => env?.reload()));
   } catch (error) {
     console.error(error);
-    entryError = error;
   }
 }
 
 // eslint-disable-next-line unicorn/prefer-top-level-await
 reload();
 
-// ----- Server -----
-
 if (workerData.server) {
   const { createServer } = await import("node:http");
   const { toNodeHandler } = await import("srvx/node");
   const server = createServer(
     toNodeHandler(async (req, init) => {
-      if (entryError) {
-        return renderError(req, entryError);
+      const viteEnv =
+        init?.viteEnv || req?.headers.get("x-vite-env") || "nitro";
+      const env = envs[viteEnv];
+      if (!env) {
+        return renderError(
+          req,
+          httpError(500, `Unknown vite environment "${viteEnv}"`)
+        );
       }
-      try {
-        const fetch = entry?.fetch || entry?.default?.fetch;
-        if (!fetch) {
-          throw new Error(
-            `Missing \`fetch\` export in "${workerData.viteEntry}"`
-          );
-        }
-        return await fetch(req, init);
-      } catch (error) {
-        return renderError(req, error);
-      }
+      return env.fetch(req, init);
     })
   );
 
@@ -108,6 +168,14 @@ if (workerData.server) {
   });
 }
 
+// ----- Error handling -----
+
+function httpError(status, message) {
+  const error = new Error(message || `HTTP Error ${status}`);
+  error.status = status;
+  return error;
+}
+
 async function renderError(req, error) {
   const { Youch } = await import("youch");
   const youch = new Youch();
@@ -115,6 +183,9 @@ async function renderError(req, error) {
     status: error.status || 500,
     headers: {
       "Content-Type": "text/html",
+      "Cache-Control": "no-store, max-age=0, must-revalidate",
+      Pragma: "no-cache",
+      Expires: "0",
     },
   });
 }

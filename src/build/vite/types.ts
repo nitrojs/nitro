@@ -1,6 +1,6 @@
 import type { OutputBundle } from "rollup";
 import type { getViteRollupConfig } from "./rollup";
-import type { Nitro, NitroConfig } from "nitro/types";
+import type { DevWorker, Nitro, NitroConfig } from "nitro/types";
 
 export interface NitroPluginConfig {
   /** Custom Nitro config */
@@ -50,6 +50,7 @@ export interface NitroPluginContext {
   nitro?: Nitro;
   pluginConfig: NitroPluginConfig;
   rollupConfig?: ReturnType<typeof getViteRollupConfig>;
+  devWorker?: DevWorker;
 
   _manifest: Record<string, { file: string }>;
   _publicDistDir?: string;

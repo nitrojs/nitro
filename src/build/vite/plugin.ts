@@ -5,7 +5,11 @@ import { join, resolve, relative } from "pathe";
 import { createNitro, prepare } from "../..";
 import { getViteRollupConfig } from "./rollup";
 import { buildEnvironments, prodEntry } from "./prod";
-import { createNitroEnvironment, createServiceEnvironments } from "./env";
+import {
+  createDevWorker,
+  createNitroEnvironment,
+  createServiceEnvironments,
+} from "./env";
 import { configureViteDevServer } from "./dev";
 import { runtimeDependencies, runtimeDir } from "nitro/runtime/meta";
 
@@ -50,16 +54,10 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
               generateRuntimeConfigTypes: false,
               generateTsConfig: false,
             },
-            handlers: [
-              {
-                route: "/**",
-                handler: resolve(runtimeDir, "internal/vite/dispatcher.mjs"),
-              },
-            ],
             ...ctx.pluginConfig.config,
           }));
 
-        // Auto config default (SSR) service
+        // Config "ssr env" as "fetchable ssr service"
         if (!ctx.pluginConfig.services?.ssr) {
           ctx.pluginConfig.services ??= {};
           if (userConfig.environments?.ssr === undefined) {
@@ -113,6 +111,9 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
 
         // Resolve common rollup options
         ctx.rollupConfig = await getViteRollupConfig(ctx);
+
+        // Create dev worker
+        ctx.devWorker = createDevWorker(ctx);
 
         return {
           // Don't include HTML middlewares
