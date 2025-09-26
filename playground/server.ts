@@ -5,5 +5,8 @@ export default {
     if (url.pathname === "/server") {
       return new Response("Response from server.ts!");
     }
+    if (url.pathname === "/") {
+      return fetch(req, { viteEnv: "ssr" } as any);
+    }
   },
 };

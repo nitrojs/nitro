@@ -110,9 +110,9 @@ globalThis.fetch = function nitroViteFetch(input, init) {
   if (typeof input === "string" && input[0] === "/") {
     input = new URL(input, "http://localhost");
   }
-  const headers = new Headers(init?.headers || {});
-  headers.set("x-vite-env", viteEnv);
-  return fetchAddress(rpcAddr, input, { ...init, viteEnv: undefined, headers });
+  const headers = new Headers(init.headers || {});
+  headers.set("x-vite-env", init.viteEnv);
+  return env.fetch(input, { ...init, viteEnv: undefined, headers });
 };
 
 // ----- Server -----
@@ -138,7 +138,8 @@ if (workerData.server) {
   const { toNodeHandler } = await import("srvx/node");
   const server = createServer(
     toNodeHandler(async (req, init) => {
-      const viteEnv = init?.viteEnv || req?.headers.get("x-vite-env") || "ssr"; // TODO
+      const viteEnv =
+        init?.viteEnv || req?.headers.get("x-vite-env") || "nitro"; // TODO
       const env = envs[viteEnv];
       if (!env) {
         return renderError(
@@ -171,6 +172,7 @@ if (workerData.server) {
 function httpError(status, message) {
   const error = new Error(message || `HTTP Error ${status}`);
   error.status = status;
+  error.name = "NitroViteError";
   return error;
 }
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import logo from "../assets/nitro.png";
 
 export default function App() {
@@ -38,6 +38,19 @@ export default function App() {
       <h1>Welcome to Nitro</h1>
 
       <section>
+        <TestEndpoint
+          label="server.ts"
+          url="/server"
+          test={(text) => text.includes("server.ts")}
+        />
+        <TestEndpoint
+          label="routes/route.ts"
+          url="/route"
+          test={(text) => text.includes("routes/route.ts")}
+        />
+      </section>
+
+      <section>
         <p>
           Count: <strong>{count}</strong>
         </p>
@@ -49,4 +62,48 @@ export default function App() {
       </section>
     </main>
   );
+}
+
+// ---- Test Components ----
+
+function TestEndpoint({
+  label,
+  url,
+  test,
+}: {
+  label: string;
+  url: string;
+  test: (text: string) => boolean;
+}) {
+  const [status, setStatus] = useState<boolean | undefined>(undefined);
+  useEffect(() => {
+    fetch(url)
+      .then((r) => r.text())
+      .then((text) => test(text))
+      .then(setStatus)
+      .catch(() => setStatus(false));
+  }, [url, test, setStatus]);
+  return (
+    <p style={{ display: "inline-block" }}>
+      <TestStatus status={status} />
+      <a
+        href={url}
+        target="_blank"
+        rel="noreferrer"
+        style={{ color: "lightblue" }}
+      >
+        {label}
+      </a>
+    </p>
+  );
+}
+
+function TestStatus({ status }: { status: boolean | undefined }) {
+  if (status === undefined) {
+    return <span style={{ color: "gray", padding: "0 0.5rem" }}>...</span>;
+  }
+  if (status === true) {
+    return <span style={{ color: "lightgreen", padding: "0 0.5rem" }}>✓</span>;
+  }
+  return <span style={{ color: "red", padding: "0 0.5rem" }}>✗</span>;
 }
