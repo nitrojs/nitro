@@ -138,8 +138,7 @@ if (workerData.server) {
   const { toNodeHandler } = await import("srvx/node");
   const server = createServer(
     toNodeHandler(async (req, init) => {
-      const viteEnv =
-        init?.viteEnv || req?.headers.get("x-vite-env") || "nitro";
+      const viteEnv = init?.viteEnv || req?.headers.get("x-vite-env") || "ssr"; // TODO
       const env = envs[viteEnv];
       if (!env) {
         return renderError(

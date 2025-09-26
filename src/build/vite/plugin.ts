@@ -57,12 +57,13 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
             ...ctx.pluginConfig.config,
           }));
 
-        // Config "ssr env" as "fetchable ssr service"
+        // Config ssr env as a fetchable ssr service
         if (!ctx.pluginConfig.services?.ssr) {
           ctx.pluginConfig.services ??= {};
           if (userConfig.environments?.ssr === undefined) {
-            const ssrEntry = resolveModulePath("./ssr", {
+            const ssrEntry = resolveModulePath("./app", {
               from: ctx.nitro.options.scanDirs,
+              suffixes: [".server", "/server"],
               extensions: [".ts", ".js", ".mts", ".mjs", ".tsx", ".jsx"],
               try: true,
             });
