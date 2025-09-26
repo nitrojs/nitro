@@ -184,7 +184,7 @@ function isHTMLRequest(req: IncomingMessage): boolean {
   let isHTML = false;
   const fetchDest = req.headers["sec-fetch-dest"];
   if (fetchDest) {
-    isHTML = /^(document|iframe|frame|embed)$/.test(fetchDest);
+    isHTML = /^(document|iframe|frame)$/.test(fetchDest);
   } else {
     const accept = req.headers.accept;
     isHTML = !!/text\/html/.test(accept || "");
