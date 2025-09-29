@@ -3,7 +3,6 @@ import { defineNitroPreset } from "../_utils/preset";
 const sevalla = defineNitroPreset(
   {
     extends: "node-server",
-    serveStatic: true,
   },
   {
     name: "sevalla" as const,
