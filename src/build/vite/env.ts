@@ -28,7 +28,7 @@ export function createNitroEnvironment(
   return {
     consumer: "server",
     build: {
-      rollupOptions: ctx.rollupConfig!.config,
+      rollupOptions: ctx.rollupConfig!.config as any,
       minify: ctx.nitro!.options.minify,
       commonjsOptions: {
         strictRequires: "auto", // TODO: set to true (default) in v3

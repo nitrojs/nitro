@@ -38,7 +38,6 @@ export async function watchDev(nitro: Nitro, rollupConfig: RollupConfig) {
   const scanDirsWatcher = chokidarWatch(scanDirs, {
     ignoreInitial: true,
   }).on("all", (event, path, stat) => {
-    console.log({ event, path, stat });
     if (watchReloadEvents.has(event)) {
       reload();
     }
