@@ -132,6 +132,10 @@ export default defineNitroConfig({
       compatibility_date: "2024-01-01",
     },
   },
+  typescript: {
+    generateRuntimeConfigTypes: true,
+    generateTsConfig: true,
+  },
   openAPI: {
     production: "prerender",
     meta: {
