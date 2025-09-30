@@ -5,6 +5,7 @@ import { isDebug, isTest } from "std-env";
 
 export const NitroDefaults: NitroConfig = {
   // General
+  compatibilityDate: "latest",
   debug: isDebug,
   logLevel: isTest ? 1 : 3,
   runtimeConfig: { app: {}, nitro: {} },
@@ -29,12 +30,7 @@ export const NitroDefaults: NitroConfig = {
   plugins: [],
   tasks: {},
   scheduledTasks: {},
-  imports: {
-    exclude: [],
-    dirs: [],
-    presets: [],
-    virtualImports: ["#imports"],
-  },
+  imports: false,
   virtual: {},
   compressPublicAssets: false,
   ignore: [],
@@ -86,8 +82,8 @@ export const NitroDefaults: NitroConfig = {
   // Advanced
   typescript: {
     strict: true,
-    generateTsConfig: true,
-    generateRuntimeConfigTypes: true,
+    generateRuntimeConfigTypes: false,
+    generateTsConfig: false,
     tsconfigPath: "types/tsconfig.json",
     internalPaths: false,
     tsConfig: {},

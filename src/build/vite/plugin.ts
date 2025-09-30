@@ -1,7 +1,7 @@
 import type { PluginOption as VitePlugin } from "vite";
 import type { Plugin as RollupPlugin } from "rollup";
 import type { NitroPluginConfig, NitroPluginContext } from "./types";
-import { join, resolve, relative } from "pathe";
+import { resolve, relative } from "pathe";
 import { createNitro, prepare } from "../..";
 import { getViteRollupConfig } from "./rollup";
 import { buildEnvironments, prodEntry } from "./prod";
@@ -11,7 +11,7 @@ import {
   createServiceEnvironments,
 } from "./env";
 import { configureViteDevServer } from "./dev";
-import { runtimeDependencies, runtimeDir } from "nitro/runtime/meta";
+import { runtimeDependencies } from "nitro/runtime/meta";
 
 import * as rou3 from "rou3";
 import * as rou3Compiler from "rou3/compiler";
@@ -48,12 +48,6 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
           (await createNitro({
             dev: configEnv.mode === "development",
             rootDir: userConfig.root,
-            compatibilityDate: "latest",
-            imports: false,
-            typescript: {
-              generateRuntimeConfigTypes: false,
-              generateTsConfig: false,
-            },
             ...ctx.pluginConfig.config,
           }));
 
