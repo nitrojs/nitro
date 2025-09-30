@@ -15,10 +15,7 @@ import { NitroDefaults } from "./defaults";
 
 // Resolvers
 import { resolveAssetsOptions } from "./resolvers/assets";
-import {
-  fallbackCompatibilityDate,
-  resolveCompatibilityOptions,
-} from "./resolvers/compatibility";
+import { resolveCompatibilityOptions } from "./resolvers/compatibility";
 import { resolveDatabaseOptions } from "./resolvers/database";
 import { resolveExportConditionsOptions } from "./resolvers/export-conditions";
 import { resolveImportsOptions } from "./resolvers/imports";
@@ -129,8 +126,7 @@ async function _loadUserConfig(
             ? await resolvePreset(preset, {
                 static: getConf("static"),
                 dev: true,
-                compatibilityDate:
-                  compatibilityDate || fallbackCompatibilityDate,
+                compatibilityDate: compatibilityDate || "latest",
               })
                 .then((p) => p?._meta?.name || "nitro-dev")
                 .catch(() => "nitro-dev")
@@ -140,7 +136,7 @@ async function _loadUserConfig(
         preset = await resolvePreset("" /* auto detect */, {
           static: getConf("static"),
           dev: false,
-          compatibilityDate: compatibilityDate || fallbackCompatibilityDate,
+          compatibilityDate: compatibilityDate || "latest",
         }).then((p) => p?._meta?.name);
       }
 
@@ -157,7 +153,7 @@ async function _loadUserConfig(
     async resolve(id: string) {
       const preset = await resolvePreset(id, {
         static: configOverrides.static,
-        compatibilityDate: compatibilityDate || fallbackCompatibilityDate,
+        compatibilityDate: compatibilityDate || "latest",
         dev: configOverrides.dev,
       });
       if (preset) {
