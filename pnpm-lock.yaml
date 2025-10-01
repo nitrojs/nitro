@@ -100,8 +100,8 @@ importers:
         specifier: ^7.0.0
         version: 7.0.0
       h3:
-        specifier: npm:h3-nightly@2.0.0-20251001-105054-2737f62
-        version: h3-nightly@2.0.0-20251001-105054-2737f62(crossws@0.4.1(srvx@0.8.9))
+        specifier: npm:h3-nightly@2.0.0-20251001-154356-e4bb27a
+        version: h3-nightly@2.0.0-20251001-154356-e4bb27a(crossws@0.4.1(srvx@0.8.9))
       hookable:
         specifier: ^5.5.3
         version: 5.5.3
@@ -4050,8 +4050,8 @@ packages:
     resolution: {integrity: sha512-O1Ld7Dr+nqPnmGpdhzLmMTQ4vAsD+rHwMm1NLUmoUFFymBOMKxCCrtDxqdBRYXdeEPEi3SyoR4TizJLQrnKBNA==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
-  h3-nightly@2.0.0-20251001-105054-2737f62:
-    resolution: {integrity: sha512-sFY3lIj2MKXjQ0KLTZbYY/SC368r67rq7Zle1e5H5cPhLNRjbsF+ewP79erHCTwu6j6hNk/Tllm6Shle/UzqfA==}
+  h3-nightly@2.0.0-20251001-154356-e4bb27a:
+    resolution: {integrity: sha512-szZtyjaKJKKWOVMttbUS8GZQZ+HduTdsz5hPeO68wMcsJmBStHUgzP+yNSv9hkLGxZUKqQIgf56Ym3Xx8IvSvg==}
     engines: {node: '>=20.11.1'}
     peerDependencies:
       crossws: ^0.4.1
@@ -10827,7 +10827,7 @@ snapshots:
     dependencies:
       duplexer: 0.1.2
 
-  h3-nightly@2.0.0-20251001-105054-2737f62(crossws@0.4.1(srvx@0.8.9)):
+  h3-nightly@2.0.0-20251001-154356-e4bb27a(crossws@0.4.1(srvx@0.8.9)):
     dependencies:
       cookie-es: 2.0.0
       fetchdts: 0.1.7
