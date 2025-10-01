@@ -24,7 +24,7 @@ export function routing(nitro: Nitro) {
         return /* js */ `
 import * as __routeRules__ from "nitro/runtime/internal/route-rules";
 ${nitro.options.serverEntry ? `import __serverEntry__ from ${JSON.stringify(nitro.options.serverEntry)};` : ""}
-${allHandlers.some((h) => h.lazy) ? `import { lazyEventHandler } from "h3";` : ""}
+import { toEventHandler, ${allHandlers.some((h) => h.lazy) ? `lazyEventHandler` : ""}} from "h3";
 
 export const findRouteRules = ${nitro.routing.routeRules.compileToString({ serialize: serializeRouteRule, matchAll: true })}
 
@@ -91,7 +91,7 @@ function serializeHandler(
     `route:${JSON.stringify(h.route)}`,
     h.method && `method:${JSON.stringify(h.method)}`,
     h.meta && `meta:${JSON.stringify(h.meta)}`,
-    `handler:${h._importHash}`,
+    `handler:${h.lazy ? h._importHash : `toEventHandler(${h._importHash})`}`,
   ]
     .filter(Boolean)
     .join(",")}}`;

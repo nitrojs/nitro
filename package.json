@@ -80,7 +80,7 @@
     "fetchdts": "^0.1.7",
     "fs-extra": "^11.3.2",
     "gzip-size": "^7.0.0",
-    "h3": "2.0.0-beta.4",
+    "h3": "npm:h3-nightly@2.0.0-20251001-090940-38be512",
     "hookable": "^5.5.3",
     "httpxy": "^0.1.7",
     "ioredis": "^5.8.0",

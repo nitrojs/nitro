@@ -148,31 +148,21 @@ function createH3App(captureError: CaptureError) {
   }
 
   // Compiled route matching
+  h3App._getMiddleware = (event, route) => {
+    const pathname = event.url.pathname;
+    const method = event.req.method.toLowerCase();
+    const { routeRules, routeRuleMiddleware } = getRouteRules(method, pathname);
+    event.context.routeRules = routeRules;
+    return [
+      ...(routeRuleMiddleware || []),
+      ...globalMiddleware,
+      ...(route?.data.middleware || []),
+    ];
+  };
   h3App._findRoute = (event) => {
     const pathname = event.url.pathname;
     const method = event.req.method.toLowerCase();
-    let route = findRoute(method, pathname);
-    const { routeRules, routeRuleMiddleware } = getRouteRules(method, pathname);
-    event.context.routeRules = routeRules;
-    const hasMiddleware = routeRuleMiddleware || globalMiddleware.length > 0;
-    if (!route) {
-      if (hasMiddleware) {
-        route = { data: { handler: () => Symbol.for("h3.notFound") } };
-      } else {
-        return;
-      }
-    }
-    if (hasMiddleware) {
-      route.data = {
-        ...route.data,
-        middleware: [
-          ...(routeRuleMiddleware || []),
-          ...globalMiddleware,
-          ...(route.data.middleware || []),
-        ],
-      };
-    }
-    return route;
+    return findRoute(method, pathname);
   };
 
   return h3App;
