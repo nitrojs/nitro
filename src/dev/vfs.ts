@@ -147,6 +147,7 @@ export function createVFSHandler(nitro: Nitro) {
         </div>
       `;
 
+    event.res.headers.set("Content-Type", "text/html; charset=utf-8");
     return /* html */ `
 <!doctype html>
 <html>

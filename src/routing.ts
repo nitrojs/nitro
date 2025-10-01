@@ -8,6 +8,9 @@ import { addRoute, createRouter, findRoute, findAllRoutes } from "rou3";
 import { compileRouterToString } from "rou3/compiler";
 import { hash } from "ohash";
 
+const isGlobalMiddleware = (h: NitroEventHandler) =>
+  !h.method && (!h.route || h.route === "/**");
+
 export function initNitroRouting(nitro: Nitro) {
   const envConditions = new Set(
     [
@@ -23,10 +26,16 @@ export function initNitroRouting(nitro: Nitro) {
   };
 
   const routes = new Router<NitroEventHandler & { _importHash: string }>();
+
   const routeRules = new Router<NitroRouteRules & { _route: string }>(
     true /* matchAll */
   );
-  const middleware: (NitroEventHandler & { _importHash: string })[] = [];
+
+  const globalMiddleware: (NitroEventHandler & { _importHash: string })[] = [];
+
+  const routedMiddleware = new Router<
+    NitroEventHandler & { _importHash: string }
+  >(true /* matchAll */);
 
   const sync = () => {
     // Update route rules
@@ -39,24 +48,6 @@ export function initNitroRouting(nitro: Nitro) {
           _route: route,
         },
       }))
-    );
-
-    // Update midleware
-    const _middleware = [
-      ...nitro.scannedHandlers,
-      ...nitro.options.handlers,
-    ].filter((h) => h && h.middleware && matchesEnv(h));
-    if (nitro.options.serveStatic) {
-      _middleware.unshift({
-        route: "/**",
-        middleware: true,
-        handler: join(runtimeDir, "internal/static"),
-      });
-    }
-    middleware.splice(
-      0,
-      middleware.length,
-      ..._middleware.map((m) => handlerWithImportHash(m))
     );
 
     // Update routes
@@ -79,13 +70,43 @@ export function initNitroRouting(nitro: Nitro) {
         data: handlerWithImportHash(h),
       }))
     );
+
+    // Update midleware
+    const _middleware = [
+      ...nitro.scannedHandlers,
+      ...nitro.options.handlers,
+    ].filter((h) => h && h.middleware && matchesEnv(h));
+    if (nitro.options.serveStatic) {
+      _middleware.unshift({
+        route: "/**",
+        middleware: true,
+        handler: join(runtimeDir, "internal/static"),
+      });
+    }
+    globalMiddleware.splice(
+      0,
+      globalMiddleware.length,
+      ..._middleware
+        .filter((h) => isGlobalMiddleware(h))
+        .map((m) => handlerWithImportHash(m))
+    );
+    routedMiddleware._update(
+      _middleware
+        .filter((h) => !isGlobalMiddleware(h))
+        .map((h) => ({
+          ...h,
+          method: h.method || "",
+          data: handlerWithImportHash(h),
+        }))
+    );
   };
 
   nitro.routing = Object.freeze({
     sync,
     routes,
     routeRules,
-    middleware,
+    globalMiddleware,
+    routedMiddleware,
   });
 }
 

@@ -24,9 +24,10 @@ export interface Nitro {
   updateConfig: (config: NitroDynamicConfig) => void | Promise<void>;
   routing: Readonly<{
     sync: () => void;
-    routes: Router<NitroEventHandler & { _importHash: string }>;
     routeRules: Router<NitroRouteRules & { _route: string }>;
-    middleware: (NitroEventHandler & { _importHash: string })[];
+    routes: Router<NitroEventHandler & { _importHash: string }>;
+    globalMiddleware: (NitroEventHandler & { _importHash: string })[];
+    routedMiddleware: Router<NitroEventHandler & { _importHash: string }>;
   }>;
 
   /* @internal */

@@ -16,15 +16,35 @@ export function routing(nitro: Nitro) {
         const allHandlers = uniqueBy(
           [
             ...Object.values(nitro.routing.routes.routes).map((h) => h.data),
-            ...nitro.routing.middleware,
+            ...Object.values(nitro.routing.routedMiddleware.routes).map(
+              (h) => h.data
+            ),
+            ...nitro.routing.globalMiddleware,
           ],
           "_importHash"
         );
 
+        const h3Imports = [] as string[];
+        if (allHandlers.some((h) => !h.middleware && !h.lazy)) {
+          h3Imports.push("toEventHandler");
+        }
+        if (allHandlers.some((h) => !h.middleware && h.lazy)) {
+          h3Imports.push("lazyEventHandler");
+        }
+        if (
+          nitro.options.serverEntry ||
+          allHandlers.some((h) => h.middleware && !h.lazy)
+        ) {
+          h3Imports.push("toMiddleware");
+        }
+        if (allHandlers.some((h) => h.middleware && h.lazy)) {
+          h3Imports.push("lazyMiddleware");
+        }
+
         return /* js */ `
 import * as __routeRules__ from "nitro/runtime/internal/route-rules";
 ${nitro.options.serverEntry ? `import __serverEntry__ from ${JSON.stringify(nitro.options.serverEntry)};` : ""}
-import { toEventHandler, ${allHandlers.some((h) => h.lazy) ? `lazyEventHandler` : ""}} from "h3";
+import {${h3Imports.join(", ")}} from "h3";
 
 export const findRouteRules = ${nitro.routing.routeRules.compileToString({ serialize: serializeRouteRule, matchAll: true })}
 
@@ -37,15 +57,17 @@ ${allHandlers
   .filter((h) => h.lazy)
   .map(
     (h) =>
-      /* js */ `const ${h._importHash} = lazyEventHandler(() => import("${h.handler}"));`
+      /* js */ `const ${h._importHash} = ${h.middleware ? "lazyMiddleware" : "lazyEventHandler"}(() => import("${h.handler}"));`
   )
   .join("\n")}
 
 export const findRoute = ${nitro.routing.routes.compileToString({ serialize: serializeHandler })}
 
-export const middleware = [${nitro.routing.middleware.map((h) => serializeHandler(h)).join(",")}];
+export const findRoutedMiddleware = ${nitro.routing.routedMiddleware.compileToString({ serialize: serializeHandler, matchAll: true })};
 
-${nitro.options.serverEntry ? /* js */ `if (__serverEntry__?.fetch) { middleware.push({ handler: function serverEntry(event,next) { return Promise.resolve(__serverEntry__?.fetch(event.req)).then(r =>!r||r.status===404?next():r) } }); }` : ""}
+export const globalMiddleware = [${nitro.routing.globalMiddleware.map((h) => (h.lazy ? h._importHash : `toMiddleware(${h._importHash})`)).join(",")}];
+
+${nitro.options.serverEntry && /* js */ `const serverEntry = toMiddleware(__serverEntry__);\nif (serverEntry) { globalMiddleware.push(serverEntry) }`}
   `;
       },
       // --- routing-meta ---

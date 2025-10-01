@@ -100,8 +100,8 @@ importers:
         specifier: ^7.0.0
         version: 7.0.0
       h3:
-        specifier: npm:h3-nightly@2.0.0-20251001-090940-38be512
-        version: h3-nightly@2.0.0-20251001-090940-38be512(crossws@0.4.1(srvx@0.8.9))
+        specifier: npm:h3-nightly@2.0.0-20251001-105054-2737f62
+        version: h3-nightly@2.0.0-20251001-105054-2737f62(crossws@0.4.1(srvx@0.8.9))
       hookable:
         specifier: ^5.5.3
         version: 5.5.3
@@ -160,8 +160,8 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3(rolldown@1.0.0-beta.40)(rollup@4.52.3)
       rou3:
-        specifier: ^0.7.5
-        version: 0.7.5
+        specifier: ^0.7.7
+        version: 0.7.7
       scule:
         specifier: ^1.3.0
         version: 1.3.0
@@ -4050,8 +4050,8 @@ packages:
     resolution: {integrity: sha512-O1Ld7Dr+nqPnmGpdhzLmMTQ4vAsD+rHwMm1NLUmoUFFymBOMKxCCrtDxqdBRYXdeEPEi3SyoR4TizJLQrnKBNA==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
-  h3-nightly@2.0.0-20251001-090940-38be512:
-    resolution: {integrity: sha512-bKCtGdiJ36RLb8A4YN0cA+hjw6pthRO5uQyhoBbb/D9NGPmngwnnsacA9lJCuif+sWndfMKyzNZRTQpxo4suOg==}
+  h3-nightly@2.0.0-20251001-105054-2737f62:
+    resolution: {integrity: sha512-sFY3lIj2MKXjQ0KLTZbYY/SC368r67rq7Zle1e5H5cPhLNRjbsF+ewP79erHCTwu6j6hNk/Tllm6Shle/UzqfA==}
     engines: {node: '>=20.11.1'}
     peerDependencies:
       crossws: ^0.4.1
@@ -5812,8 +5812,8 @@ packages:
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
     hasBin: true
 
-  rou3@0.7.5:
-    resolution: {integrity: sha512-bwUHDHw1HSARty7TWNV71R0NZs5fOt74OM+hcMdJyPfchfRktEmxLoMSNa7PwEp6WqJ0a3feKztsIfTUEYhskw==}
+  rou3@0.7.7:
+    resolution: {integrity: sha512-z+6o7c3DarUbuBMLIdhzj2CqJLtUWrGk4fZlf07dIMitX3UpBXeInJ3lMD9huxj9yh9eo1RqtXf9aL0YzkDDUA==}
 
   run-applescript@7.1.0:
     resolution: {integrity: sha512-DPe5pVFaAsinSaV6QjQ6gdiedWDcRCbUuiQfQa2wmWV7+xC9bGulGI8+TdRmoFkAPaBXk8CrAbnlY2ISniJ47Q==}
@@ -10827,11 +10827,11 @@ snapshots:
     dependencies:
       duplexer: 0.1.2
 
-  h3-nightly@2.0.0-20251001-090940-38be512(crossws@0.4.1(srvx@0.8.9)):
+  h3-nightly@2.0.0-20251001-105054-2737f62(crossws@0.4.1(srvx@0.8.9)):
     dependencies:
       cookie-es: 2.0.0
       fetchdts: 0.1.7
-      rou3: 0.7.5
+      rou3: 0.7.7
       srvx: 0.8.9
     optionalDependencies:
       crossws: 0.4.1(srvx@0.8.9)
@@ -12981,7 +12981,7 @@ snapshots:
       '@rollup/rollup-win32-x64-msvc': 4.52.3
       fsevents: 2.3.3
 
-  rou3@0.7.5: {}
+  rou3@0.7.7: {}
 
   run-applescript@7.1.0: {}
 

@@ -18,7 +18,8 @@ import { nitroAsyncContext } from "./context";
 import {
   findRoute,
   findRouteRules,
-  middleware,
+  globalMiddleware,
+  findRoutedMiddleware,
 } from "#nitro-internal-virtual/routing";
 
 export function useNitroApp(): NitroApp {
@@ -136,33 +137,20 @@ function createH3App(captureError: CaptureError) {
     },
   });
 
-  // Middleware
-  const globalMiddleware: Middleware[] = [];
-  for (const mw of middleware) {
-    if (!mw.method && (!mw.route || mw.route === "/**")) {
-      globalMiddleware.push(mw.handler);
-    } else {
-      // TODO: Should migrate to compiled pattern matching for right ordering
-      h3App.use(mw.route || "/**", mw.handler, { method: mw.method });
-    }
-  }
-
   // Compiled route matching
+  h3App._findRoute = (event) => findRoute(event.req.method, event.url.pathname);
+
   h3App._getMiddleware = (event, route) => {
     const pathname = event.url.pathname;
-    const method = event.req.method.toLowerCase();
+    const method = event.req.method;
     const { routeRules, routeRuleMiddleware } = getRouteRules(method, pathname);
     event.context.routeRules = routeRules;
     return [
-      ...(routeRuleMiddleware || []),
+      ...routeRuleMiddleware,
       ...globalMiddleware,
-      ...(route?.data.middleware || []),
-    ];
-  };
-  h3App._findRoute = (event) => {
-    const pathname = event.url.pathname;
-    const method = event.req.method.toLowerCase();
-    return findRoute(method, pathname);
+      ...findRoutedMiddleware(method, pathname).map((r) => r.data),
+      ...(route?.data?.middleware || []),
+    ].filter(Boolean) as Middleware[];
   };
 
   return h3App;
@@ -173,11 +161,11 @@ function getRouteRules(
   pathname: string
 ): {
   routeRules?: MatchedRouteRules;
-  routeRuleMiddleware?: Middleware[];
+  routeRuleMiddleware: Middleware[];
 } {
   const m = findRouteRules(method, pathname);
   if (!m?.length) {
-    return {};
+    return { routeRuleMiddleware: [] };
   }
   const routeRules: MatchedRouteRules = {};
   for (const layer of m) {
@@ -216,6 +204,6 @@ function getRouteRules(
   }
   return {
     routeRules,
-    routeRuleMiddleware: middleware.length > 0 ? middleware : undefined,
+    routeRuleMiddleware: middleware,
   };
 }

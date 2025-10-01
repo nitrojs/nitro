@@ -37,6 +37,7 @@ export default defineNitroConfig({
     {
       route: "/api/hello2",
       handler: "api/hello.ts",
+      middleware: true,
     },
   ],
   devProxy: {
