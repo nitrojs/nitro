@@ -323,10 +323,6 @@ describe("nitro:preset:vercel", async () => {
                 "src": "/api/hey",
               },
               {
-                "dest": "/api/hello2",
-                "src": "/api/hello2",
-              },
-              {
                 "dest": "/api/hello",
                 "src": "/api/hello",
               },
@@ -503,7 +499,6 @@ describe("nitro:preset:vercel", async () => {
             "functions/api/errors.func (symlink)",
             "functions/api/headers.func (symlink)",
             "functions/api/hello.func (symlink)",
-            "functions/api/hello2.func (symlink)",
             "functions/api/hey.func (symlink)",
             "functions/api/kebab.func (symlink)",
             "functions/api/meta/test.func (symlink)",
