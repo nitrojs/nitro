@@ -1,10 +1,11 @@
 import { existsSync } from "node:fs";
 import { glob } from "tinyglobby";
 import type { Nitro } from "nitro/types";
-import { join, relative } from "pathe";
+import { join, relative, resolve } from "pathe";
 import { withBase, withLeadingSlash, withoutTrailingSlash } from "ufo";
 import { resolveModulePath } from "exsolve";
 import { prettyPath } from "./utils/fs";
+import { runtimeDir } from "nitro/runtime/meta";
 
 export const GLOB_SCAN_PATTERN = "**/*.{js,mjs,cjs,ts,mts,cts,tsx,jsx}";
 type FileInfo = { path: string; fullPath: string };
@@ -89,6 +90,36 @@ export async function scanHandlers(nitro: Nitro) {
     nitro.options.serverEntry = serverEntry;
     nitro!.logger.info(
       `Using \`${prettyPath(serverEntry)}\` as the server entry.`
+    );
+  }
+
+  // Resolve or default indexHTML & renderer
+  let autoRenderer = false;
+  if (nitro.options.indexHTML) {
+    nitro.options.indexHTML = resolveModulePath(nitro.options.indexHTML, {
+      from: nitro.options.scanDirs,
+      extensions: [".html"],
+    })!;
+  } else {
+    const defaultIndex = resolveModulePath("./index.html", {
+      from: nitro.options.rootDir + "/",
+      extensions: [".html"],
+      try: true,
+    });
+    if (defaultIndex) {
+      nitro.options.indexHTML = defaultIndex;
+      autoRenderer = true;
+    }
+  }
+  if (nitro.options.renderer) {
+    nitro.options.renderer = resolveModulePath(nitro.options.renderer, {
+      from: nitro.options.scanDirs,
+      extensions: [".ts", ".js", ".mts", ".mjs", ".tsx", ".jsx"],
+    })!;
+  } else if (nitro.options.indexHTML) {
+    // Log only if both renderer and index.html are auto-detected
+    nitro!.logger.info(
+      `Using \`${prettyPath(nitro.options.indexHTML)}\` as SPA fallback.`
     );
   }
 

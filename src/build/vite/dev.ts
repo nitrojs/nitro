@@ -124,17 +124,15 @@ export async function configureViteDevServer(
     : { port: 0, host: "localhost" };
   rpcServer.listen(listenAddr, () => {
     const addr = rpcServer.address()!;
-    for (const env of Object.values(server.environments)) {
-      env.hot.send({
-        type: "custom",
-        event: "nitro:vite-server-addr",
-        data:
-          typeof addr === "string"
-            ? { socketPath: addr }
-            : // prettier-ignore
-              { host: `${addr.address.includes(":")? `[${addr.address}]`: addr.address}:${addr.port}`, },
-      });
-    }
+    server.environments.nitro.hot.send({
+      type: "custom",
+      event: "nitro:vite-server-addr",
+      data:
+        typeof addr === "string"
+          ? { socketPath: addr }
+          : // prettier-ignore
+            { host: `${addr.address.includes(":")? `[${addr.address}]`: addr.address}:${addr.port}`, },
+    });
   });
 
   const nitroEnvMiddleware = async (

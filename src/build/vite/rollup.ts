@@ -5,7 +5,6 @@ import { normalize, resolve, dirname } from "pathe";
 import { runtimeDir } from "nitro/runtime/meta";
 import alias from "@rollup/plugin-alias";
 import inject from "@rollup/plugin-inject";
-import json from "@rollup/plugin-json";
 import { visualizer } from "rollup-plugin-visualizer";
 import { replace } from "../plugins/replace";
 import { baseBuildConfig, type BaseBuildConfig } from "../config";
@@ -19,6 +18,7 @@ import type { NitroPluginContext } from "./types";
  *  - commonjs
  *  - esbuild
  *  - sourcemapMininify
+ *  - json
  *
  * TODO: Reuse with rollup:
  * - chunkFileNames
@@ -56,7 +56,6 @@ export const getViteRollupConfig = (
       ...baseBuildPlugins(nitro, base),
       alias({ entries: base.aliases }),
       replace({ preventAssignment: true, values: base.replacements }),
-      json(),
       inject(base.env.inject),
     ],
     treeshake: {

@@ -111,7 +111,7 @@ globalThis.fetch = function nitroViteFetch(input, init) {
   if (typeof input === "string" && input[0] === "/") {
     input = new URL(input, "http://localhost");
   }
-  const headers = new Headers(init.headers || {});
+  const headers = new Headers(init?.headers || {});
   headers.set("x-vite-env", viteEnv);
   return env.fetch(input, { ...init, viteEnv: undefined, headers });
 };
