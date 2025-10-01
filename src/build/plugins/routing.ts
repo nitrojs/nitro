@@ -24,22 +24,10 @@ export function routing(nitro: Nitro) {
           "_importHash"
         );
 
-        const h3Imports = [] as string[];
-        if (allHandlers.some((h) => !h.middleware && !h.lazy)) {
-          h3Imports.push("toEventHandler");
-        }
-        if (allHandlers.some((h) => !h.middleware && h.lazy)) {
-          h3Imports.push("lazyEventHandler");
-        }
-        if (
-          nitro.options.serverEntry ||
-          allHandlers.some((h) => h.middleware && !h.lazy)
-        ) {
-          h3Imports.push("toMiddleware");
-        }
-        if (allHandlers.some((h) => h.middleware && h.lazy)) {
-          h3Imports.push("lazyMiddleware");
-        }
+        const h3Imports = [
+          allHandlers.some((h) => !h.lazy) && "toEventHandler",
+          allHandlers.some((h) => h.lazy) && "defineLazyEventHandler",
+        ].filter(Boolean) as string[];
 
         return /* js */ `
 import * as __routeRules__ from "nitro/runtime/internal/route-rules";
@@ -57,7 +45,7 @@ ${allHandlers
   .filter((h) => h.lazy)
   .map(
     (h) =>
-      /* js */ `const ${h._importHash} = ${h.middleware ? "lazyMiddleware" : "lazyEventHandler"}(() => import("${h.handler}"));`
+      /* js */ `const ${h._importHash} = defineLazyEventHandler(() => import("${h.handler}"));`
   )
   .join("\n")}
 
@@ -65,9 +53,9 @@ export const findRoute = ${nitro.routing.routes.compileToString({ serialize: ser
 
 export const findRoutedMiddleware = ${nitro.routing.routedMiddleware.compileToString({ serialize: serializeHandler, matchAll: true })};
 
-export const globalMiddleware = [${nitro.routing.globalMiddleware.map((h) => (h.lazy ? h._importHash : `toMiddleware(${h._importHash})`)).join(",")}];
+export const globalMiddleware = [${nitro.routing.globalMiddleware.map((h) => (h.lazy ? h._importHash : `toEventHandler(${h._importHash})`)).join(",")}];
 
-${nitro.options.serverEntry && /* js */ `const serverEntry = toMiddleware(__serverEntry__);\nif (serverEntry) { globalMiddleware.push(serverEntry) }`}
+${nitro.options.serverEntry && /* js */ `const serverEntry = toEventHandler(__serverEntry__);\nif (serverEntry) { globalMiddleware.push(serverEntry) }`}
   `;
       },
       // --- routing-meta ---
