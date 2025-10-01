@@ -307,7 +307,10 @@ function nitroServicePlugin(ctx: NitroPluginContext): VitePlugin {
         }
 
         // Resolve relative paths from virtual modules
-        if (importer?.startsWith("\0virtual:#nitro-internal-virtual")) {
+        if (
+          importer?.startsWith("\0virtual:#nitro-internal-virtual") ||
+          importer?.startsWith("virtual:#nitro-internal-virtual")
+        ) {
           const internalRes = await this.resolve(id, import.meta.url, {
             ...options,
             custom: { ...options.custom, skipNoExternals: true },
