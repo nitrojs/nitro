@@ -13,6 +13,7 @@ const nitroDev = defineNitroPreset(
     handlers: [
       {
         route: "/_nitro/tasks/**",
+        lazy: true,
         handler: join(runtimeDir, "internal/routes/dev-tasks"),
       },
     ],
