@@ -135,6 +135,9 @@ export async function configureViteDevServer(
     const devAppRes = await ctx.devApp!.fetch(req);
     if (devAppRes.status !== 404) {
       return await sendNodeResponse(nodeRes, devAppRes);
+    } else if (nodeRes.writableEnded || nodeRes.headersSent) {
+      // If dev app already sent a response, do not continue
+      return;
     }
 
     // Dispatch the request to the nitro environment
