@@ -243,9 +243,10 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
 
         const services = ctx.pluginConfig.services || {};
         const serviceNames = Object.keys(services);
-        if (serviceNames.includes(name)) {
-          // we don't write to the file system
-          // instead, the generateBundle hook will capture the output and write it to the virtual file system to be used by the nitro build later
+        if (
+          serviceNames.includes(name) &&
+          ctx.pluginConfig.experimental?.virtualBundle
+        ) {
           config.build ??= {};
           config.build.write = config.build.write ?? false;
         }

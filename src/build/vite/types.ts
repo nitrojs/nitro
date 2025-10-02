@@ -17,6 +17,14 @@ export interface NitroPluginConfig {
    * @internal Pre-initialized Nitro instance.
    */
   _nitro?: Nitro;
+
+  experimental?: {
+    /**
+     * @experimental Use the virtual filesystem for intermediate environment build output files.
+     * @note This is unsafe if plugins rely on temporary files on the filesystem.
+     */
+    virtualBundle?: boolean;
+  };
 }
 
 export interface ServiceConfig {
