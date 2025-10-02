@@ -1,1 +1,1 @@
-export declare function indexHTML(): string | Promise<string>;
+export declare function indexHTML(): unknown | Promise<unknown>;

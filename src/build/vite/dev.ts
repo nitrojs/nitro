@@ -137,6 +137,17 @@ export async function configureViteDevServer(
     }
   });
 
+  // Index.html transform
+  if (typeof ctx.nitro!.options.indexHTML === "string") {
+    const indexHTMLPath = ctx.nitro!.options.indexHTML;
+    ctx.nitro!.options.indexHTML = async () => {
+      const { readFile } = await import("node:fs/promises");
+      const html = await readFile(indexHTMLPath, "utf8");
+      const transformedHTML = await server.transformIndexHtml("/", html);
+      return transformedHTML;
+    };
+  }
+
   const nitroEnvMiddleware = async (
     nodeReq: IncomingMessage,
     nodeRes: ServerResponse,
