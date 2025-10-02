@@ -115,27 +115,7 @@ export async function configureViteDevServer(
     server.config.configFileDependencies.push(nitroConfigFile);
   }
 
-  // Expose an RPC server to environments
-  const rpcServer = createServer((req, res) => {
-    server.middlewares.handle(req, res, () => {});
-  });
-  const listenAddr = (await isSocketSupported())
-    ? getSocketAddress({ name: "nitro-vite", pid: true, random: true })
-    : { port: 0, host: "localhost" };
-  rpcServer.listen(listenAddr, () => {
-    const addr = rpcServer.address()!;
-    for (const env of Object.values(server.environments)) {
-      env.hot.send({
-        type: "custom",
-        event: "nitro:vite-server-addr",
-        data:
-          typeof addr === "string"
-            ? { socketPath: addr }
-            : // prettier-ignore
-              { host: `${addr.address.includes(":")? `[${addr.address}]`: addr.address}:${addr.port}`, },
-      });
-    }
-  });
+  const nitroEnv = server.environments.nitro as FetchableDevEnvironment;
 
   // Index.html transform
   if (typeof ctx.nitro!.options.indexHTML === "string") {
@@ -148,61 +128,51 @@ export async function configureViteDevServer(
     };
   }
 
-  const nitroEnvMiddleware = async (
-    nodeReq: IncomingMessage,
+  const nitroDevMiddleware = async (
+    nodeReq: IncomingMessage & { _nitroHandled?: boolean },
     nodeRes: ServerResponse,
     next: () => void
   ) => {
-    if (/^\/@(?:vite|fs|id)\//.test(nodeReq.url!)) {
+    // Skip for vite internal requests or if already handled
+    if (/^\/@(?:vite|fs|id)\//.test(nodeReq.url!) || nodeReq._nitroHandled) {
       return next();
+    }
+    nodeReq._nitroHandled = true;
+
+    // Create web API compat request
+    const req = new NodeRequest({ req: nodeReq, res: nodeRes });
+
+    // Try dev app
+    const devAppRes = await ctx.devApp!.fetch(req);
+    if (devAppRes.status !== 404) {
+      return await sendNodeResponse(nodeRes, devAppRes);
+    } else if (nodeRes.writableEnded || nodeRes.headersSent) {
+      // If dev app already sent a response, do not continue
+      return;
     }
 
     // Dispatch the request to the nitro environment
-    const env = server.environments.nitro as FetchableDevEnvironment;
-    const webReq = new NodeRequest({ req: nodeReq, res: nodeRes });
-    const webRes = await env.dispatchFetch(webReq);
-    return webRes.status === 404
+    const envRes = await nitroEnv.dispatchFetch(req);
+    return envRes.status === 404
       ? next()
-      : await sendNodeResponse(nodeRes, webRes);
+      : await sendNodeResponse(nodeRes, envRes);
   };
 
-  // 1. Handle as first middleware for HTML requests
-  server.middlewares.use((req, res, next) => {
-    // https://github.com/vitejs/vite/issues/20705#issuecomment-3272974173
-    if (!res.getHeader("vary")) {
-      res.setHeader("vary", "Sec-Fetch-Dest, Accept");
+  // Handle as first middleware for direct requests
+  // https://github.com/vitejs/vite/pull/20866
+  server.middlewares.use(function nitroDevMiddlewarePre(req, res, next) {
+    const fetchDest = req.headers["sec-fetch-dest"];
+    if (fetchDest) {
+      res.setHeader("vary", "sec-fetch-dest");
     }
-    if (isHTMLRequest(req)) {
-      nitroEnvMiddleware(req, res, next);
+    if (!fetchDest || /^(document|iframe|frame|empty)$/.test(fetchDest)) {
+      nitroDevMiddleware(req, res, next);
     } else {
       next();
     }
   });
-  return () => {
-    // 2. Handle as last middleware for non-HTML requests
-    server.middlewares.use((req, res, next) => {
-      if (isHTMLRequest(req)) {
-        next();
-      } else {
-        nitroEnvMiddleware(req, res, next);
-      }
-    });
-  };
-}
 
-function isHTMLRequest(req: IncomingMessage): boolean {
-  if ((req as any)._isHTML !== undefined) {
-    return (req as any)._isHTML;
-  }
-  let isHTML = false;
-  const fetchDest = req.headers["sec-fetch-dest"] || "";
-  const accept = req.headers.accept || "";
-  if (
-    /^(document|iframe|frame)$/.test(fetchDest) ||
-    ((!fetchDest || fetchDest === "empty") && accept.includes("text/html"))
-  ) {
-    isHTML = true;
-  }
-  (req as any)._isHTML = isHTML;
-  return isHTML;
+  return () => {
+    server.middlewares.use(nitroDevMiddleware);
+  };
 }

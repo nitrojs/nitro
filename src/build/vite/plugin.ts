@@ -17,6 +17,7 @@ import * as rou3 from "rou3";
 import * as rou3Compiler from "rou3/compiler";
 import { resolveModulePath } from "exsolve";
 import { prettyPath } from "../../utils/fs";
+import { NitroDevApp } from "../../dev/app";
 
 // https://vite.dev/guide/api-environment-plugins
 // https://vite.dev/guide/api-environment-frameworks.html
@@ -130,6 +131,11 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
         // Create dev worker
         if (ctx.nitro.options.dev && !ctx.devWorker) {
           ctx.devWorker = createDevWorker(ctx);
+        }
+
+        // Create dev app
+        if (ctx.nitro.options.dev && !ctx.devApp) {
+          ctx.devApp = new NitroDevApp(ctx.nitro);
         }
 
         return {
