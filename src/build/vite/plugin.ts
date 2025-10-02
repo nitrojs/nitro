@@ -1,5 +1,5 @@
 import type { PluginOption as VitePlugin } from "vite";
-import type { Plugin as RollupPlugin } from "rollup";
+import type { InputOption, Plugin as RollupPlugin } from "rollup";
 import type { NitroPluginConfig, NitroPluginContext } from "./types";
 import { resolve, relative } from "pathe";
 import { createNitro, prepare } from "../..";
@@ -70,27 +70,17 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
               ctx.pluginConfig.services.ssr = { entry: ssrEntry };
             }
           } else {
-            const input =
-              userConfig.environments.ssr.build?.rollupOptions?.input;
-            let ssrEntry: string;
-            if (typeof input === "string") {
-              ssrEntry = input;
-            } else if (Array.isArray(input) && input.length > 0) {
-              ssrEntry = input[0];
+            const ssrEntry = getEntry(
+              userConfig.environments.ssr.build?.rollupOptions?.input
+            );
+            if (typeof ssrEntry === "string") {
               ctx.nitro!.logger.info(
                 `Using \`${prettyPath(ssrEntry)}\` as SSR entry.`
               );
-            } else if (input && "index" in input) {
-              ssrEntry = input.index;
-              ctx.nitro!.logger.info(
-                `Using \`${prettyPath(ssrEntry)}\` as SSR entry.`
-              );
+              ctx.pluginConfig.services.ssr = { entry: ssrEntry };
             } else {
               this.error(`Invalid input type for SSR entry point.`);
             }
-            ctx.pluginConfig.services.ssr = {
-              entry: ssrEntry!,
-            };
           }
         }
 
@@ -389,4 +379,16 @@ function nitroServicePlugin(ctx: NitroPluginContext): VitePlugin {
       },
     },
   };
+}
+
+// --- internal helpers ---
+
+function getEntry(input: InputOption | undefined): string | undefined {
+  if (typeof input === "string") {
+    return input;
+  } else if (Array.isArray(input) && input.length > 0) {
+    return input[0];
+  } else if (input && "index" in input) {
+    return input.index as string;
+  }
 }
