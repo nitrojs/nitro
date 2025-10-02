@@ -7,6 +7,8 @@ import { getSocketAddress, isSocketSupported } from "get-port-please";
 
 const envs = { nitro: undefined, ssr: undefined };
 
+globalThis.__nitro_vite_envs__ = envs;
+
 class EnvRunner {
   constructor({ name, entry }) {
     this.name = name;

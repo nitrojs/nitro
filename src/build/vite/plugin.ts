@@ -1,5 +1,5 @@
 import type { PluginOption as VitePlugin } from "vite";
-import type { Plugin as RollupPlugin } from "rollup";
+import type { InputOption, Plugin as RollupPlugin } from "rollup";
 import type { NitroPluginConfig, NitroPluginContext } from "./types";
 import { resolve, relative } from "pathe";
 import { createNitro, prepare } from "../..";
@@ -11,7 +11,7 @@ import {
   createServiceEnvironments,
 } from "./env";
 import { configureViteDevServer } from "./dev";
-import { runtimeDependencies } from "nitro/runtime/meta";
+import { runtimeDependencies, runtimeDir } from "nitro/runtime/meta";
 
 import * as rou3 from "rou3";
 import * as rou3Compiler from "rou3/compiler";
@@ -70,18 +70,36 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
               ctx.pluginConfig.services.ssr = { entry: ssrEntry };
             }
           } else {
-            const input =
-              userConfig.environments.ssr.build?.rollupOptions?.input;
-            if (typeof input === "string") {
-              ctx.pluginConfig.services.ssr = {
-                entry: input,
-              };
-            } else {
-              this.error(
-                `Invalid input type for SSR entry point. Expected a string.`
+            let ssrEntry = getEntry(
+              userConfig.environments.ssr.build?.rollupOptions?.input
+            );
+            if (typeof ssrEntry === "string") {
+              ssrEntry =
+                resolveModulePath(ssrEntry, {
+                  from: ctx.nitro.options.scanDirs,
+                  extensions: DEFAULT_EXTENSIONS,
+                  suffixes: ["", "/index"],
+                  try: true,
+                }) || ssrEntry;
+              ctx.nitro!.logger.info(
+                `Using \`${prettyPath(ssrEntry)}\` as SSR entry.`
               );
+              ctx.pluginConfig.services.ssr = { entry: ssrEntry };
+            } else {
+              this.error(`Invalid input type for SSR entry point.`);
             }
           }
+        }
+
+        // Use SSR entry as default renderer
+        if (
+          ctx.pluginConfig.services.ssr?.entry &&
+          !ctx.nitro.options.renderer
+        ) {
+          ctx.nitro.options.renderer = resolve(
+            runtimeDir,
+            "internal/vite/ssr-renderer"
+          );
         }
 
         // Determine default Vite dist directory
@@ -170,9 +188,10 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
               }
             }
           }
-          // Refresh route rules
-          ctx.nitro!.routing.sync();
         }
+
+        // Refresh nitro routes
+        ctx.nitro!.routing.sync();
       },
 
       buildApp: {
@@ -233,9 +252,10 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
 
         const services = ctx.pluginConfig.services || {};
         const serviceNames = Object.keys(services);
-        if (serviceNames.includes(name)) {
-          // we don't write to the file system
-          // instead, the generateBundle hook will capture the output and write it to the virtual file system to be used by the nitro build later
+        if (
+          serviceNames.includes(name) &&
+          ctx.pluginConfig.experimental?.virtualBundle
+        ) {
           config.build ??= {};
           config.build.write = config.build.write ?? false;
         }
@@ -378,4 +398,16 @@ function nitroServicePlugin(ctx: NitroPluginContext): VitePlugin {
       },
     },
   };
+}
+
+// --- internal helpers ---
+
+function getEntry(input: InputOption | undefined): string | undefined {
+  if (typeof input === "string") {
+    return input;
+  } else if (Array.isArray(input) && input.length > 0) {
+    return input[0];
+  } else if (input && "index" in input) {
+    return input.index as string;
+  }
 }

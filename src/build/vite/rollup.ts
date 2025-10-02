@@ -52,12 +52,13 @@ export const getViteRollupConfig = (
     input: nitro.options.entry,
     external: [...base.env.external],
     plugins: [
-      virtualBundlePlugin(ctx._serviceBundles),
+      ctx.pluginConfig.experimental?.virtualBundle &&
+        virtualBundlePlugin(ctx._serviceBundles),
       ...baseBuildPlugins(nitro, base),
       alias({ entries: base.aliases }),
       replace({ preventAssignment: true, values: base.replacements }),
       inject(base.env.inject),
-    ],
+    ].filter(Boolean) as RollupPlugin[],
     treeshake: {
       moduleSideEffects(id) {
         const normalizedId = normalize(id);
