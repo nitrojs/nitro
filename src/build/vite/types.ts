@@ -17,6 +17,14 @@ export interface NitroPluginConfig {
    * @internal Pre-initialized Nitro instance.
    */
   _nitro?: Nitro;
+
+  experimental?: {
+    /**
+     * Experimental: optimization to enable virtualized intermediate build output.
+     * this is unsafe when server framework relies on filesystem output structure.
+     */
+    virtualBundle?: boolean;
+  }
 }
 
 export interface ServiceConfig {
