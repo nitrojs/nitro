@@ -72,15 +72,27 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
           } else {
             const input =
               userConfig.environments.ssr.build?.rollupOptions?.input;
+            let ssrEntry: string;
             if (typeof input === "string") {
-              ctx.pluginConfig.services.ssr = {
-                entry: input,
-              };
+              ssrEntry = input;
+            } else if (Array.isArray(input) && input.length > 0) {
+              ssrEntry = input[0];
+              ctx.nitro!.logger.info(
+                `Using \`${prettyPath(ssrEntry)}\` as SSR entry.`
+              );
+            } else if (input && 'index' in input) {
+              ssrEntry = input.index;
+              ctx.nitro!.logger.info(
+                `Using \`${prettyPath(ssrEntry)}\` as SSR entry.`
+              );
             } else {
               this.error(
-                `Invalid input type for SSR entry point. Expected a string.`
+                `Invalid input type for SSR entry point.`
               );
             }
+            ctx.pluginConfig.services.ssr = {
+              entry: ssrEntry!,
+            };
           }
         }
 
