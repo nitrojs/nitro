@@ -80,15 +80,13 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
               ctx.nitro!.logger.info(
                 `Using \`${prettyPath(ssrEntry)}\` as SSR entry.`
               );
-            } else if (input && 'index' in input) {
+            } else if (input && "index" in input) {
               ssrEntry = input.index;
               ctx.nitro!.logger.info(
                 `Using \`${prettyPath(ssrEntry)}\` as SSR entry.`
               );
             } else {
-              this.error(
-                `Invalid input type for SSR entry point.`
-              );
+              this.error(`Invalid input type for SSR entry point.`);
             }
             ctx.pluginConfig.services.ssr = {
               entry: ssrEntry!,
