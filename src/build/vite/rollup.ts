@@ -58,7 +58,7 @@ export const getViteRollupConfig = (
       alias({ entries: base.aliases }),
       replace({ preventAssignment: true, values: base.replacements }),
       inject(base.env.inject),
-    ],
+    ].filter(Boolean) as RollupPlugin[],
     treeshake: {
       moduleSideEffects(id) {
         const normalizedId = normalize(id);
