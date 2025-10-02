@@ -20,8 +20,8 @@ export interface NitroPluginConfig {
 
   experimental?: {
     /**
-     * Experimental: optimization to enable virtualized intermediate build output.
-     * this is unsafe when server framework relies on filesystem output structure.
+     * @experimental Use the virtual filesystem for intermediate environment build output files.
+     * @note This is unsafe if plugins rely on temporary files on the filesystem.
      */
     virtualBundle?: boolean;
   };
