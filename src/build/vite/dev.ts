@@ -134,7 +134,6 @@ export async function configureViteDevServer(
     // Try dev app
     const devAppRes = await ctx.devApp!.fetch(req);
     if (devAppRes.status !== 404) {
-      console.log("!! dev app !!", req.url);
       return await sendNodeResponse(nodeRes, devAppRes);
     }
 

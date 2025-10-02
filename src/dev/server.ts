@@ -17,6 +17,7 @@ import type {
 import { HTTPError } from "h3";
 
 import { version as nitroVersion } from "nitro/meta";
+import { toNodeHandler } from "srvx/node";
 import consola from "consola";
 import { writeFile } from "node:fs/promises";
 import { resolve } from "pathe";
@@ -120,7 +121,7 @@ export class NitroDevServer extends NitroDevApp implements DevRPCHooks {
   }
 
   async listen(port: GetPortInput, opts?: Partial<ListenOptions>) {
-    const listener = await listhen(this.nodeHandler, {
+    const listener = await listhen(toNodeHandler(this.fetch), {
       port,
       ...opts,
     });

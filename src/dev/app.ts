@@ -16,13 +16,11 @@ import devErrorHandler, {
 export class NitroDevApp {
   nitro: Nitro;
   fetch: (req: Request) => Response | Promise<Response>;
-  nodeHandler: ReturnType<typeof toNodeHandler>;
 
   constructor(nitro: Nitro, catchAllHandler?: HTTPHandler) {
     this.nitro = nitro;
     const app = this.#createApp(catchAllHandler);
     this.fetch = app.fetch.bind(app);
-    this.nodeHandler = toNodeHandler(this.fetch);
   }
 
   #createApp(catchAllHandler?: HTTPHandler) {
