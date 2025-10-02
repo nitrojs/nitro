@@ -92,7 +92,12 @@ export function prodEntry(ctx: NitroPluginContext): string {
       if (ctx.pluginConfig.experimental?.virtualBundle) {
         entry = ctx._entryPoints[name];
       } else {
-        entry = resolve(ctx.nitro!.options.buildDir, "vite/services", name, ctx._entryPoints[name])
+        entry = resolve(
+          ctx.nitro!.options.buildDir,
+          "vite/services",
+          name,
+          ctx._entryPoints[name]
+        );
       }
       return `[${JSON.stringify(name)}]: () => import("${entry}")`;
     })}};`,

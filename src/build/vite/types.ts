@@ -24,7 +24,7 @@ export interface NitroPluginConfig {
      * this is unsafe when server framework relies on filesystem output structure.
      */
     virtualBundle?: boolean;
-  }
+  };
 }
 
 export interface ServiceConfig {
