@@ -1,5 +1,3 @@
 import { defineNitroConfig } from "nitro/config";
 
-export default defineNitroConfig({
-  compatibilityDate: "latest",
-});
+export default defineNitroConfig({});

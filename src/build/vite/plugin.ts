@@ -11,7 +11,7 @@ import {
   createServiceEnvironments,
 } from "./env";
 import { configureViteDevServer } from "./dev";
-import { runtimeDependencies } from "nitro/runtime/meta";
+import { runtimeDependencies, runtimeDir } from "nitro/runtime/meta";
 
 import * as rou3 from "rou3";
 import * as rou3Compiler from "rou3/compiler";
@@ -89,6 +89,17 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
               this.error(`Invalid input type for SSR entry point.`);
             }
           }
+        }
+
+        // Use SSR entry as default renderer
+        if (
+          ctx.pluginConfig.services.ssr?.entry &&
+          !ctx.nitro.options.renderer
+        ) {
+          ctx.nitro.options.renderer = resolve(
+            runtimeDir,
+            "internal/vite/ssr-renderer"
+          );
         }
 
         // Determine default Vite dist directory
@@ -177,9 +188,10 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
               }
             }
           }
-          // Refresh route rules
-          ctx.nitro!.routing.sync();
         }
+
+        // Refresh nitro routes
+        ctx.nitro!.routing.sync();
       },
 
       buildApp: {
