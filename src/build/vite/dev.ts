@@ -10,6 +10,7 @@ import { createServer, IncomingMessage, ServerResponse } from "node:http";
 import { NodeRequest, sendNodeResponse } from "srvx/node";
 import { getSocketAddress, isSocketSupported } from "get-port-please";
 import { DevEnvironment } from "vite";
+import { join } from "pathe";
 
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
 
@@ -117,17 +118,6 @@ export async function configureViteDevServer(
 
   const nitroEnv = server.environments.nitro as FetchableDevEnvironment;
 
-  // Index.html transform
-  if (typeof ctx.nitro!.options.indexHTML === "string") {
-    const indexHTMLPath = ctx.nitro!.options.indexHTML;
-    ctx.nitro!.options.indexHTML = async () => {
-      const { readFile } = await import("node:fs/promises");
-      const html = await readFile(indexHTMLPath, "utf8");
-      const transformedHTML = await server.transformIndexHtml("/", html);
-      return transformedHTML;
-    };
-  }
-
   const nitroDevMiddleware = async (
     nodeReq: IncomingMessage & { _nitroHandled?: boolean },
     nodeRes: ServerResponse,
@@ -144,18 +134,36 @@ export async function configureViteDevServer(
 
     // Try dev app
     const devAppRes = await ctx.devApp!.fetch(req);
+    if (nodeRes.writableEnded || nodeRes.headersSent) {
+      return;
+    }
     if (devAppRes.status !== 404) {
       return await sendNodeResponse(nodeRes, devAppRes);
-    } else if (nodeRes.writableEnded || nodeRes.headersSent) {
-      // If dev app already sent a response, do not continue
-      return;
     }
 
     // Dispatch the request to the nitro environment
     const envRes = await nitroEnv.dispatchFetch(req);
-    return envRes.status === 404
-      ? next()
-      : await sendNodeResponse(nodeRes, envRes);
+    if (nodeRes.writableEnded || nodeRes.headersSent) {
+      return;
+    }
+    if (envRes.status !== 404) {
+      return await sendNodeResponse(nodeRes, envRes);
+    }
+
+    // Renderer
+    if (ctx.nitro!.options.indexHTML) {
+      const { readFile } = await import("node:fs/promises");
+      const html = await readFile(ctx.nitro!.options.indexHTML, "utf8").catch(
+        () => "<!-- loading error -->"
+      );
+      const transformedHTML = await server.transformIndexHtml("/", html);
+      nodeRes.statusCode = 200;
+      nodeRes.setHeader("Content-Type", "text/html; charset=utf-8");
+      nodeRes.end(transformedHTML);
+      return;
+    }
+
+    return next();
   };
 
   // Handle as first middleware for direct requests

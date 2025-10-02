@@ -103,6 +103,16 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
           );
         }
 
+        // Disable built-in index.html renderer in dev mode
+        if (
+          ctx.nitro.options.dev &&
+          ctx.nitro.options.indexHTML &&
+          ctx.nitro.options.renderer ===
+            resolve(runtimeDir, "internal/routes/index-html")
+        ) {
+          ctx.nitro.options.renderer = undefined;
+        }
+
         // Determine default Vite dist directory
         const publicDistDir = (ctx._publicDistDir =
           userConfig.build?.outDir ||
@@ -145,7 +155,14 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
           // Add Nitro as a Vite environment
           environments: {
             client: {
-              consumer: userConfig.environments?.client?.consumer || "client",
+              consumer: userConfig.environments?.client?.consumer ?? "client",
+              build: {
+                rollupOptions: {
+                  input:
+                    userConfig.environments?.client?.build?.rollupOptions
+                      ?.input ?? ctx.nitro.options.indexHTML,
+                },
+              },
             },
             ...createServiceEnvironments(ctx),
             nitro: createNitroEnvironment(ctx),

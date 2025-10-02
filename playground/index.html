@@ -4,142 +4,42 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Nitro Quote</title>
-    <link rel="preload" href="/quote" as="fetch" crossorigin="anonymous" />
-    <link rel="prefetch" href="/quote" />
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-
-      body {
-        font-family:
-          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
-          Cantarell, sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-      }
-
-      .container {
-        max-width: 600px;
-        width: 100%;
-        text-align: center;
-        color: white;
-      }
-
-      .quote-card {
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(10px);
-        border-radius: 20px;
-        padding: 40px 30px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-      }
-
-      .quote {
-        font-size: clamp(1.2rem, 4vw, 1.8rem);
-        line-height: 1.6;
-        margin-bottom: 20px;
-        font-weight: 300;
-        opacity: 0;
-        animation: fadeIn 0.5s ease-in-out 0.5s forwards;
-      }
-
-      .author {
-        font-size: clamp(1rem, 3vw, 1.2rem);
-        opacity: 0.8;
-        font-weight: 400;
-        opacity: 0;
-        animation: fadeIn 0.5s ease-in-out 1s forwards;
-      }
-
-      .loading {
-        font-size: 1.2rem;
-        opacity: 0.7;
-      }
-
-      .error {
-        color: #ff6b6b;
-        font-size: 1.1rem;
-      }
-
-      .attribution {
-        margin-top: 30px;
-        font-size: 0.9rem;
-        opacity: 0.6;
-      }
-
-      .attribution a {
-        color: white;
-        text-decoration: none;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-        transition: border-bottom-color 0.3s ease;
-      }
-
-      .attribution a:hover {
-        border-bottom-color: white;
-      }
-
-      .refresh-btn {
-        margin-top: 20px;
-        background: rgba(255, 255, 255, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        color: white;
-        padding: 12px 24px;
-        border-radius: 25px;
-        cursor: pointer;
-        font-size: 0.9rem;
-        transition: all 0.3s ease;
-        /* opacity: 0; */
-        /* animation: fadeIn 0.5s ease-in-out 0.5s forwards; */
-      }
-
-      .refresh-btn:hover {
-        background: rgba(255, 255, 255, 0.3);
-        transform: translateY(-2px);
-      }
-
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-          transform: translateY(20px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-
-      @media (max-width: 480px) {
-        .quote-card {
-          padding: 30px 20px;
-        }
-        .quote {
-          font-size: 1.3rem;
-        }
-        .author {
-          font-size: 1.1rem;
-        }
-      }
+      @import "tailwindcss";
     </style>
   </head>
-  <body>
-    <div class="container">
-      <div class="quote-card">
-        <div id="quote" class="quote loading">Loading today's quote...</div>
-        <div id="author" class="author"></div>
-        <button id="refresh-btn" class="refresh-btn" onclick="fetchQuote()">
+  <body
+    class="min-h-screen flex items-center justify-center p-5 bg-gradient-to-br from-indigo-500 to-purple-600 font-sans"
+  >
+    <div class="max-w-xl w-full text-center text-white">
+      <div
+        class="bg-white/10 backdrop-blur-md rounded-2xl p-10 shadow-xl border border-white/20"
+      >
+        <div
+          id="quote"
+          class="text-[clamp(1.2rem,4vw,1.8rem)] leading-relaxed mb-5 font-light opacity-70 transition-opacity duration-500"
+        >
+          Loading today's quote...
+        </div>
+        <div
+          id="author"
+          class="text-[clamp(1rem,3vw,1.2rem)] opacity-0 font-normal transition-opacity duration-500"
+        ></div>
+        <button
+          id="refresh-btn"
+          class="mt-5 bg-white/20 border border-white/30 text-white px-6 py-3 rounded-full cursor-pointer text-sm transition hover:bg-white/30 hover:-translate-y-0.5"
+          onclick="fetchQuote()"
+        >
           New Quote
         </button>
       </div>
-      <div class="attribution">
+      <div class="mt-8 text-sm opacity-60">
         Quotes provided by
-        <a href="https://zenquotes.io/" target="_blank" rel="noopener"
+        <a
+          class="text-white no-underline border-b border-white/30 hover:border-white transition-colors"
+          href="https://zenquotes.io/"
+          target="_blank"
+          rel="noopener"
           >ZenQuotes API</a
         >
       </div>
@@ -150,25 +50,40 @@
       const authorElement = document.getElementById("author");
       const refreshBtn = document.getElementById("refresh-btn");
 
+      const baseQuoteClasses =
+        "text-[clamp(1.2rem,4vw,1.8rem)] leading-relaxed mb-5 font-light transition-opacity duration-500";
+      const loadingQuoteClasses = baseQuoteClasses + " opacity-70";
+      const normalQuoteClasses = baseQuoteClasses + " opacity-100";
+      const errorQuoteClasses =
+        baseQuoteClasses + " text-red-400 opacity-100 text-sm";
+
+      const baseAuthorClasses =
+        "text-[clamp(1rem,3vw,1.2rem)] font-normal transition-opacity duration-500";
+      const hiddenAuthorClasses = baseAuthorClasses + " opacity-0";
+      const visibleAuthorClasses = baseAuthorClasses + " opacity-80";
+
       async function fetchQuote() {
         try {
           quoteElement.textContent = "Loading...";
-          quoteElement.className = "quote loading";
+          quoteElement.className = loadingQuoteClasses;
           authorElement.textContent = "";
+          authorElement.className = hiddenAuthorClasses;
           refreshBtn.style.display = "none";
-          const response = await fetch("/quote", { credentials: "omit" });
+          const response = await fetch("/quote");
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
           const { text, author } = await response.json();
           quoteElement.textContent = `"${text}"`;
-          quoteElement.className = "quote";
+          quoteElement.className = normalQuoteClasses;
           authorElement.textContent = `— ${author}`;
+          authorElement.className = visibleAuthorClasses;
         } catch (error) {
           console.error("Error fetching quote:", error);
           quoteElement.textContent = "Failed to load quote. Please try again.";
-          quoteElement.className = "quote error";
+          quoteElement.className = errorQuoteClasses;
           authorElement.textContent = "";
+          authorElement.className = hiddenAuthorClasses;
         } finally {
           refreshBtn.style.display = "inline-block";
         }

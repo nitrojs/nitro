@@ -93,14 +93,10 @@ export async function scanHandlers(nitro: Nitro) {
     );
   }
 
-  // Resolve or default indexHTML & renderer
-  let autoRenderer = false;
-  if (nitro.options.indexHTML) {
-    nitro.options.indexHTML = resolveModulePath(nitro.options.indexHTML, {
-      from: nitro.options.scanDirs,
-      extensions: [".html"],
-    })!;
-  } else {
+  // Default renderer for index.html
+  if (nitro.options.indexHTML && !nitro.options.renderer) {
+    nitro.options.renderer = join(runtimeDir, "internal/routes/index-html");
+  } else if (!nitro.options.renderer) {
     const defaultIndex = resolveModulePath("./index.html", {
       from: nitro.options.rootDir + "/",
       extensions: [".html"],
@@ -108,19 +104,11 @@ export async function scanHandlers(nitro: Nitro) {
     });
     if (defaultIndex) {
       nitro.options.indexHTML = defaultIndex;
-      autoRenderer = true;
+      nitro.options.renderer = join(runtimeDir, "internal/routes/index-html");
+      nitro!.logger.info(
+        `Using \`${prettyPath(nitro.options.indexHTML)}\` as default renderer`
+      );
     }
-  }
-  if (nitro.options.renderer) {
-    nitro.options.renderer = resolveModulePath(nitro.options.renderer, {
-      from: nitro.options.scanDirs,
-      extensions: [".ts", ".js", ".mts", ".mjs", ".tsx", ".jsx"],
-    })!;
-  } else if (nitro.options.indexHTML) {
-    // Log only if both renderer and index.html are auto-detected
-    nitro!.logger.info(
-      `Using \`${prettyPath(nitro.options.indexHTML)}\` as SPA fallback.`
-    );
   }
 
   return handlers;

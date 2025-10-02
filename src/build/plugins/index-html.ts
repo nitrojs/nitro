@@ -6,15 +6,14 @@ export function indexHTML(nitro: Nitro) {
   return virtual(
     {
       "#nitro-internal-virtual/index-html": async () => {
-        if (typeof nitro.options.indexHTML === "string") {
-          return nitro.options.dev
-            ? /* js */ `import fs from 'node:fs';export const indexHTML = () => fs.createReadStream(${JSON.stringify(nitro.options.indexHTML!)}, "utf8")`
-            : /* js */ `export const indexHTML = () => ${JSON.stringify(await readFile(nitro.options.indexHTML, "utf8"))}`;
+        if (typeof nitro.options.indexHTML !== "string") {
+          return `export const indexHTML = () => '<!-- no index.html -->'`;
         }
-        if (typeof nitro.options.indexHTML === "function") {
-          return /* js */ `export const indexHTML = () => ${JSON.stringify(await nitro.options.indexHTML())}`;
+        if (nitro.options.dev) {
+          return `import fs from 'node:fs';export const indexHTML = () => fs.createReadStream(${JSON.stringify(nitro.options.indexHTML)}, "utf8")`;
         }
-        return /* js */ `export const indexHTML = () => '<!-- 404 -->'`;
+        const html = await readFile(nitro.options.indexHTML, "utf8");
+        return `export const indexHTML = () => ${JSON.stringify(html)}`;
       },
     },
     nitro.vfs

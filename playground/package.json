@@ -7,7 +7,10 @@
     "build": "vite build"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.1.14",
     "nitro": "*",
-    "vite": "^7.1.8"
+    "tailwindcss": "^4.1.14",
+    "vite": "^7.1.8",
+    "vite-plugin-inspect": "^11.3.3"
   }
 }
