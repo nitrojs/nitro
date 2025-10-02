@@ -70,10 +70,17 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
               ctx.pluginConfig.services.ssr = { entry: ssrEntry };
             }
           } else {
-            const ssrEntry = getEntry(
+            let ssrEntry = getEntry(
               userConfig.environments.ssr.build?.rollupOptions?.input
             );
             if (typeof ssrEntry === "string") {
+              ssrEntry =
+                resolveModulePath(ssrEntry, {
+                  from: ctx.nitro.options.scanDirs,
+                  extensions: DEFAULT_EXTENSIONS,
+                  suffixes: ["", "/index"],
+                  try: true,
+                }) || ssrEntry;
               ctx.nitro!.logger.info(
                 `Using \`${prettyPath(ssrEntry)}\` as SSR entry.`
               );
