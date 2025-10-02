@@ -1,5 +1,5 @@
 export default {
   fetch() {
-    return new Response("Response from routes/routes.ts!");
+    return new Response("Response from routes/route.ts");
   },
 };

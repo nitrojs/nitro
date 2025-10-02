@@ -10,6 +10,5 @@ export default {
         return new Response("Response from server.ts");
       }
     }
-    console.log("fallback...");
   },
 };
