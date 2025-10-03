@@ -151,12 +151,12 @@ export async function configureViteDevServer(
     }
 
     // Renderer
-    if (ctx.nitro!.options.renderer?.template) {
+    const rendererTemplate = ctx.nitro!.options.renderer?.template;
+    if (rendererTemplate) {
       const { readFile } = await import("node:fs/promises");
-      const html = await readFile(
-        ctx.nitro!.options.renderer?.template,
-        "utf8"
-      ).catch(() => "<!-- loading error -->");
+      const html = await readFile(rendererTemplate, "utf8").catch(
+        (error) => `<!-- ${error.stack} -->`
+      );
       const transformedHTML = await server.transformIndexHtml("/", html);
       nodeRes.statusCode = 200;
       nodeRes.setHeader("Content-Type", "text/html; charset=utf-8");
