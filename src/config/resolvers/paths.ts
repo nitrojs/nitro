@@ -5,6 +5,7 @@ import type { NitroOptions } from "nitro/types";
 import { join, resolve } from "pathe";
 import { findWorkspaceDir } from "pkg-types";
 import { NitroDefaults } from "../defaults";
+import { resolveModulePath } from "exsolve";
 
 export async function resolvePathOptions(options: NitroOptions) {
   options.rootDir = resolve(options.rootDir || ".");
@@ -61,21 +62,26 @@ export async function resolvePathOptions(options: NitroOptions) {
     resolve(options.srcDir, dir)
   );
   options.scanDirs = [...new Set(options.scanDirs)];
-}
 
-function _tryResolve(
-  path: string,
-  base = ".",
-  extensions = ["", ".js", ".ts", ".mjs", ".cjs", ".json"]
-): string | undefined {
-  path = resolve(base, path);
-  if (existsSync(path)) {
-    return path;
+  // Resolve custom renderer entry
+  if (options.renderer?.entry) {
+    options.renderer.entry = resolveModulePath(
+      resolveNitroPath(options.renderer?.entry, options),
+      {
+        from: options.scanDirs,
+        extensions: [".ts", ".js", ".mts", ".mjs", ".tsx", ".jsx"],
+      }
+    );
   }
-  for (const ext of extensions) {
-    const p = path + ext;
-    if (existsSync(p)) {
-      return p;
-    }
+
+  // Resolve custom renderer template
+  if (options.renderer?.template) {
+    options.renderer.template = resolveModulePath(
+      resolveNitroPath(options.renderer?.template, options),
+      {
+        from: options.scanDirs,
+        extensions: [".html"],
+      }
+    )!;
   }
 }

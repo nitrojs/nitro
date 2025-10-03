@@ -77,7 +77,10 @@ export interface NitroOptions extends PresetOptions {
   database: DatabaseConnectionConfigs;
   devDatabase: DatabaseConnectionConfigs;
   bundledStorage: string[];
-  renderer?: string;
+  renderer?: {
+    entry?: string;
+    template?: string;
+  };
   ssrRoutes: string[];
   serveStatic: boolean | "node" | "deno" | "inline";
   noPublicDir: boolean;

@@ -2,7 +2,7 @@ import type { Nitro, NitroEventHandler, NitroRouteRules } from "nitro/types";
 import type { RouterContext } from "rou3";
 import type { RouterCompilerOptions } from "rou3/compiler";
 
-import { join } from "pathe";
+import { join, relative } from "pathe";
 import { runtimeDir } from "nitro/runtime/meta";
 import { addRoute, createRouter, findRoute, findAllRoutes } from "rou3";
 import { compileRouterToString } from "rou3/compiler";
@@ -37,6 +37,8 @@ export function initNitroRouting(nitro: Nitro) {
     NitroEventHandler & { _importHash: string }
   >(true /* matchAll */);
 
+  const warns: Set<string> = new Set();
+
   const sync = () => {
     // Update route rules
     routeRules._update(
@@ -56,11 +58,26 @@ export function initNitroRouting(nitro: Nitro) {
       ...nitro.options.handlers,
     ].filter((h) => h && !h.middleware && matchesEnv(h));
 
-    if (nitro.options.renderer) {
+    // Renderer
+    if (nitro.options.renderer?.entry) {
+      // Check if a wildcard route already exists and remove it with a warning
+      const existingWildcard = _routes.findIndex(
+        (h) =>
+          /^\/\*\*(:.+)?$/.test(h.route) && (!h.method || h.method === "GET")
+      );
+      if (existingWildcard !== -1) {
+        const h = _routes[existingWildcard];
+        const warn = `The renderer will override \`${relative(".", h.handler)}\` (route: \`${h.route}\`). Use amore specific route or different HTTP method.`;
+        if (!warns.has(warn)) {
+          warns.add(warn);
+          nitro.logger.warn(warn);
+        }
+        _routes.splice(existingWildcard, 1);
+      }
       _routes.push({
         route: "/**",
         lazy: true,
-        handler: nitro.options.renderer,
+        handler: nitro.options.renderer?.entry,
       });
     }
     routes._update(

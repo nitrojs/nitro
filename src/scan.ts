@@ -1,10 +1,11 @@
 import { existsSync } from "node:fs";
 import { glob } from "tinyglobby";
 import type { Nitro } from "nitro/types";
-import { join, relative } from "pathe";
+import { join, relative, resolve } from "pathe";
 import { withBase, withLeadingSlash, withoutTrailingSlash } from "ufo";
 import { resolveModulePath } from "exsolve";
 import { prettyPath } from "./utils/fs";
+import { runtimeDir } from "nitro/runtime/meta";
 
 export const GLOB_SCAN_PATTERN = "**/*.{js,mjs,cjs,ts,mts,cts,tsx,jsx}";
 type FileInfo = { path: string; fullPath: string };
@@ -90,6 +91,32 @@ export async function scanHandlers(nitro: Nitro) {
     nitro!.logger.info(
       `Using \`${prettyPath(serverEntry)}\` as the server entry.`
     );
+  }
+
+  // Default renderer for index.html
+  if (nitro.options.renderer?.template && !nitro.options.renderer?.entry) {
+    nitro.options.renderer ??= {};
+    nitro.options.renderer.entry = join(
+      runtimeDir,
+      "internal/routes/renderer-template"
+    );
+  } else if (!nitro.options.renderer?.entry) {
+    const defaultIndex = resolveModulePath("./index.html", {
+      from: nitro.options.rootDir + "/",
+      extensions: [".html"],
+      try: true,
+    });
+    if (defaultIndex) {
+      nitro.options.renderer ??= {};
+      nitro.options.renderer.template = defaultIndex;
+      nitro.options.renderer.entry = join(
+        runtimeDir,
+        "internal/routes/renderer-template"
+      );
+      nitro!.logger.info(
+        `Using \`${prettyPath(nitro.options.renderer?.template)}\` as default renderer`
+      );
+    }
   }
 
   return handlers;
