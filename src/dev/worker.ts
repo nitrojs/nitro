@@ -61,7 +61,10 @@ export class NodeDevWorker implements DevWorker {
     input: string | URL | Request,
     init?: RequestInit
   ): Promise<Response> {
-    if (!this.#address || !this.#proxy) {
+    for (let i = 0; i < 5 && !(this.#address && this.#proxy); i++) {
+      await new Promise((r) => setTimeout(r, 100 * Math.pow(2, i)));
+    }
+    if (!(this.#address && this.#proxy)) {
       return new Response("Dev worker is unavailable", { status: 503 });
     }
     return fetchAddress(this.#address, input, init);

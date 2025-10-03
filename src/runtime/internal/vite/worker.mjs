@@ -57,8 +57,17 @@ class EnvRunner {
     if (this.entryError) {
       return renderError(req, this.entryError);
     }
+    for (let i = 0; i < 5 && !(this.entry || this.entryError); i++) {
+      await new Promise((r) => setTimeout(r, 100 * Math.pow(2, i)));
+    }
+    if (this.entryError) {
+      return renderError(req, this.entryError);
+    }
+    if (!this.entry) {
+      throw httpError(503, `Vite environment "${this.name}" is unavailable`);
+    }
     try {
-      const entryFetch = this.entry?.fetch || this.entry?.default?.fetch;
+      const entryFetch = this.entry.fetch || this.entry.default?.fetch;
       if (!entryFetch) {
         throw httpError(
           500,
