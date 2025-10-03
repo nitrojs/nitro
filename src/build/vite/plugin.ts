@@ -95,12 +95,23 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
         // Use SSR entry as default renderer
         if (
           ctx.pluginConfig.services.ssr?.entry &&
-          !ctx.nitro.options.renderer
+          !ctx.nitro.options.renderer?.entry
         ) {
-          ctx.nitro.options.renderer = resolve(
+          ctx.nitro.options.renderer ??= {};
+          ctx.nitro.options.renderer.entry = resolve(
             runtimeDir,
             "internal/vite/ssr-renderer"
           );
+        }
+
+        // Disable basic template renderer in dev mode (dev server will handle it)
+        if (
+          ctx.nitro.options.dev &&
+          ctx.nitro.options.renderer?.template &&
+          ctx.nitro.options.renderer?.entry ===
+            resolve(runtimeDir, "internal/routes/renderer-template")
+        ) {
+          ctx.nitro.options.renderer.entry = undefined;
         }
 
         // Determine default Vite dist directory
@@ -145,7 +156,14 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
           // Add Nitro as a Vite environment
           environments: {
             client: {
-              consumer: userConfig.environments?.client?.consumer || "client",
+              consumer: userConfig.environments?.client?.consumer ?? "client",
+              build: {
+                rollupOptions: {
+                  input:
+                    userConfig.environments?.client?.build?.rollupOptions
+                      ?.input ?? ctx.nitro.options.renderer?.template,
+                },
+              },
             },
             ...createServiceEnvironments(ctx),
             nitro: createNitroEnvironment(ctx),
@@ -288,6 +306,8 @@ function nitroServicePlugin(ctx: NitroPluginContext): VitePlugin {
   return {
     name: "nitro:service",
 
+    enforce: "pre",
+
     // Only apply this plugin to the nitro environment
     applyToEnvironment: (env) => env.name === "nitro",
 
@@ -302,7 +322,7 @@ function nitroServicePlugin(ctx: NitroPluginContext): VitePlugin {
         }
 
         // Run rollup resolve hooks in dev (VFS support)
-        if (ctx.nitro?.options.dev) {
+        if (id.startsWith("#") || id.startsWith("\0")) {
           for (const plugin of ctx.rollupConfig!.config
             .plugins as RollupPlugin[]) {
             if (typeof plugin.resolveId !== "function") continue;
@@ -390,8 +410,8 @@ function nitroServicePlugin(ctx: NitroPluginContext): VitePlugin {
           return `export const findService = ${rou3Compiler.compileRouterToString(router)};`;
         }
 
-        // Run rollup load hooks in dev (VFS support)
-        if (ctx.nitro?.options.dev) {
+        // Run rollup load hooks (VFS support)
+        if (id.startsWith("#") || id.startsWith("\0")) {
           for (const plugin of ctx.rollupConfig!.config
             .plugins as RollupPlugin[]) {
             if (typeof plugin.load !== "function") continue;

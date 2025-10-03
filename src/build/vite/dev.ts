@@ -10,6 +10,7 @@ import { createServer, IncomingMessage, ServerResponse } from "node:http";
 import { NodeRequest, sendNodeResponse } from "srvx/node";
 import { getSocketAddress, isSocketSupported } from "get-port-please";
 import { DevEnvironment } from "vite";
+import { join } from "pathe";
 
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
 
@@ -133,18 +134,37 @@ export async function configureViteDevServer(
 
     // Try dev app
     const devAppRes = await ctx.devApp!.fetch(req);
+    if (nodeRes.writableEnded || nodeRes.headersSent) {
+      return;
+    }
     if (devAppRes.status !== 404) {
       return await sendNodeResponse(nodeRes, devAppRes);
-    } else if (nodeRes.writableEnded || nodeRes.headersSent) {
-      // If dev app already sent a response, do not continue
-      return;
     }
 
     // Dispatch the request to the nitro environment
     const envRes = await nitroEnv.dispatchFetch(req);
-    return envRes.status === 404
-      ? next()
-      : await sendNodeResponse(nodeRes, envRes);
+    if (nodeRes.writableEnded || nodeRes.headersSent) {
+      return;
+    }
+    if (envRes.status !== 404) {
+      return await sendNodeResponse(nodeRes, envRes);
+    }
+
+    // Renderer
+    const rendererTemplate = ctx.nitro!.options.renderer?.template;
+    if (rendererTemplate) {
+      const { readFile } = await import("node:fs/promises");
+      const html = await readFile(rendererTemplate, "utf8").catch(
+        (error) => `<!-- ${error.stack} -->`
+      );
+      const transformedHTML = await server.transformIndexHtml("/", html);
+      nodeRes.statusCode = 200;
+      nodeRes.setHeader("Content-Type", "text/html; charset=utf-8");
+      nodeRes.end(transformedHTML);
+      return;
+    }
+
+    return next();
   };
 
   // Handle as first middleware for direct requests

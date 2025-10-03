@@ -1,10 +1,17 @@
 import type { ViteBuilder } from "vite";
 import type { NitroPluginContext } from "./types";
 
-import { relative, resolve } from "pathe";
+import { basename, dirname, relative, resolve } from "pathe";
 import { formatCompatibilityDate } from "compatx";
+import { colors as C } from "consola/utils";
 import { copyPublicAssets, prerender } from "../..";
-import { nitroServerName } from "../../utils/nitro";
+import { existsSync, mkdirSync, rename, renameSync } from "node:fs";
+
+const BuilderNames = {
+  nitro: C.magenta("Nitro"),
+  client: C.green("Client"),
+  ssr: C.blue("SSR"),
+} as Record<string, string>;
 
 export async function buildEnvironments(
   ctx: NitroPluginContext,
@@ -12,37 +19,63 @@ export async function buildEnvironments(
 ) {
   const nitro = ctx.nitro!;
 
-  // Build all environments before the final Nitro server bundle
-  for (const [name, env] of Object.entries(builder.environments)) {
+  // ----------------------------------------------
+  // Stage 1: Build all environments before Nitro
+  // ----------------------------------------------
+
+  for (const [envName, env] of Object.entries(builder.environments)) {
     // prettier-ignore
-    const fmtName = name.length <= 3 ? name.toUpperCase() : name[0].toUpperCase() + name.slice(1);
+    const fmtName = BuilderNames[envName] || (envName.length <= 3 ? envName.toUpperCase() : envName[0].toUpperCase() + envName.slice(1));
     if (
-      name === "nitro" ||
+      envName === "nitro" ||
       !env.config.build.rollupOptions.input ||
       env.isBuilt
     ) {
-      if (!["nitro", "ssr", "client"].includes(name)) {
+      if (!["nitro", "ssr", "client"].includes(envName)) {
         nitro.logger.info(
           env.isBuilt
-            ? `Skipping \`${fmtName}\` (already built)`
-            : `Skipping \`${fmtName}\` (no input defined)`
+            ? `Skipping ${fmtName} (already built)`
+            : `Skipping ${fmtName} (no input defined)`
         );
       }
       continue;
     }
-    nitro.logger.start(`Building \`${fmtName}\`...`);
+    console.log();
+    nitro.logger.start(`Building [${fmtName}]`);
     await builder.build(env);
   }
 
-  nitro.logger.start(
-    `Building \`${nitroServerName(nitro)}\` (preset: \`${nitro.options.preset}\`, compatibility date: \`${formatCompatibilityDate(nitro.options.compatibilityDate)}\`)`
-  );
+  // Use transformed client input for renderer template generation
+  const nitroOptions = ctx.nitro!.options;
+  const clientInput =
+    builder.environments.client?.config?.build?.rollupOptions?.input;
+  if (
+    nitroOptions.renderer?.template &&
+    nitroOptions.renderer?.template === clientInput
+  ) {
+    const outputPath = resolve(
+      nitroOptions.output.publicDir,
+      basename(clientInput as string)
+    );
+    if (existsSync(outputPath)) {
+      const tmp = resolve(nitroOptions.buildDir, "vite/index.html");
+      mkdirSync(dirname(tmp), { recursive: true });
+      renameSync(outputPath, tmp);
+      nitroOptions.renderer.template = tmp;
+    }
+  }
 
-  // Call the rollup:before hook for compatibility
-  await nitro.hooks.callHook(
-    "rollup:before",
-    nitro,
-    builder.environments.nitro.config.build.rollupOptions as any
+  // ----------------------------------------------
+  // Stage 2: Build Nitro
+  // ----------------------------------------------
+
+  console.log();
+  const buildInfo = [
+    ["preset", nitro.options.preset],
+    ["compatibility", formatCompatibilityDate(nitro.options.compatibilityDate)],
+  ].filter((e) => e[1]);
+  nitro.logger.start(
+    `Building [${BuilderNames.nitro}] ${C.dim(`(${buildInfo.map(([k, v]) => `${k}: \`${v}\``).join(", ")})`)}`
   );
 
   // Copy public assets to the final output directory
@@ -51,6 +84,13 @@ export async function buildEnvironments(
   // Prerender routes if configured
   // TODO
   // await prerender(nitro);
+
+  // Call the rollup:before hook for compatibility
+  await nitro.hooks.callHook(
+    "rollup:before",
+    nitro,
+    builder.environments.nitro.config.build.rollupOptions as any
+  );
 
   // Build the Nitro server bundle
   await builder.build(builder.environments.nitro);
@@ -66,6 +106,8 @@ export async function buildEnvironments(
   const rewriteRelativePaths = (input: string) => {
     return input.replace(/([\s:])\.\/(\S*)/g, `$1${rOutput}/$2`);
   };
+
+  console.log();
   if (nitro.options.commands.preview) {
     nitro.logger.success(
       `You can preview this build using \`${rewriteRelativePaths(
