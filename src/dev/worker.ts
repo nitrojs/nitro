@@ -65,10 +65,7 @@ export class NodeDevWorker implements DevWorker {
       await new Promise((r) => setTimeout(r, 100 * Math.pow(2, i)));
     }
     if (!(this.#address && this.#proxy)) {
-      return new Response("Dev worker is unavailable", {
-        status: 503,
-        headers: { "Retry-After": "1" },
-      });
+      return new Response("Dev worker is unavailable", { status: 503 });
     }
     return fetchAddress(this.#address, input, init);
   }
