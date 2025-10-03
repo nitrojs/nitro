@@ -95,9 +95,10 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
         // Use SSR entry as default renderer
         if (
           ctx.pluginConfig.services.ssr?.entry &&
-          !ctx.nitro.options.renderer
+          !ctx.nitro.options.renderer?.entry
         ) {
-          ctx.nitro.options.renderer = resolve(
+          ctx.nitro.options.renderer ??= {};
+          ctx.nitro.options.renderer.entry = resolve(
             runtimeDir,
             "internal/vite/ssr-renderer"
           );
@@ -106,11 +107,11 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
         // Disable built-in index.html renderer in dev mode
         if (
           ctx.nitro.options.dev &&
-          ctx.nitro.options.indexHTML &&
-          ctx.nitro.options.renderer ===
-            resolve(runtimeDir, "internal/routes/index-html")
+          ctx.nitro.options.renderer?.template &&
+          ctx.nitro.options.renderer?.entry ===
+            resolve(runtimeDir, "internal/routes/renderer-template")
         ) {
-          ctx.nitro.options.renderer = undefined;
+          ctx.nitro.options.renderer.entry = undefined;
         }
 
         // Determine default Vite dist directory
@@ -160,7 +161,7 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
                 rollupOptions: {
                   input:
                     userConfig.environments?.client?.build?.rollupOptions
-                      ?.input ?? ctx.nitro.options.indexHTML,
+                      ?.input ?? ctx.nitro.options.renderer?.template,
                 },
               },
             },

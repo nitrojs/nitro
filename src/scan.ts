@@ -94,19 +94,27 @@ export async function scanHandlers(nitro: Nitro) {
   }
 
   // Default renderer for index.html
-  if (nitro.options.indexHTML && !nitro.options.renderer) {
-    nitro.options.renderer = join(runtimeDir, "internal/routes/index-html");
-  } else if (!nitro.options.renderer) {
+  if (nitro.options.renderer?.template && !nitro.options.renderer?.entry) {
+    nitro.options.renderer ??= {};
+    nitro.options.renderer.entry = join(
+      runtimeDir,
+      "internal/routes/renderer-template"
+    );
+  } else if (!nitro.options.renderer?.entry) {
     const defaultIndex = resolveModulePath("./index.html", {
       from: nitro.options.rootDir + "/",
       extensions: [".html"],
       try: true,
     });
     if (defaultIndex) {
-      nitro.options.indexHTML = defaultIndex;
-      nitro.options.renderer = join(runtimeDir, "internal/routes/index-html");
+      nitro.options.renderer ??= {};
+      nitro.options.renderer.template = defaultIndex;
+      nitro.options.renderer.entry = join(
+        runtimeDir,
+        "internal/routes/renderer-template"
+      );
       nitro!.logger.info(
-        `Using \`${prettyPath(nitro.options.indexHTML)}\` as default renderer`
+        `Using \`${prettyPath(nitro.options.renderer?.template)}\` as default renderer`
       );
     }
   }

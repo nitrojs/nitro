@@ -59,7 +59,7 @@ export function initNitroRouting(nitro: Nitro) {
     ].filter((h) => h && !h.middleware && matchesEnv(h));
 
     // Renderer
-    if (nitro.options.renderer) {
+    if (nitro.options.renderer?.entry) {
       // Check if a wildcard route already exists and remove it with a warning
       const existingWildcard = _routes.findIndex(
         (h) =>
@@ -77,7 +77,7 @@ export function initNitroRouting(nitro: Nitro) {
       _routes.push({
         route: "/**",
         lazy: true,
-        handler: nitro.options.renderer,
+        handler: nitro.options.renderer?.entry,
       });
     }
     routes._update(

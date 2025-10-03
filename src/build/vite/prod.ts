@@ -49,13 +49,16 @@ export async function buildEnvironments(
   const nitroOptions = ctx.nitro!.options;
   const clientInput =
     builder.environments.client?.config?.build?.rollupOptions?.input;
-  if (nitroOptions.indexHTML && nitroOptions.indexHTML === clientInput) {
+  if (
+    nitroOptions.renderer?.template &&
+    nitroOptions.renderer?.template === clientInput
+  ) {
     const outputPath = resolve(nitroOptions.output.publicDir, "index.html");
     if (existsSync(outputPath)) {
       const tmp = resolve(nitroOptions.buildDir, "vite/index.html");
       mkdirSync(dirname(tmp), { recursive: true });
       renameSync(outputPath, tmp);
-      nitroOptions.indexHTML = tmp;
+      nitroOptions.renderer.template = tmp;
     }
   }
 
