@@ -152,7 +152,10 @@ export async function configureViteDevServer(
 
     // Renderer
     const rendererTemplate = ctx.nitro!.options.renderer?.template;
-    if (rendererTemplate) {
+    if (
+      rendererTemplate &&
+      ctx.nitro!.options.renderer?.entry === "#vite-dev"
+    ) {
       const { readFile } = await import("node:fs/promises");
       const html = await readFile(rendererTemplate, "utf8").catch(
         (error) => `<!-- ${error.stack} -->`

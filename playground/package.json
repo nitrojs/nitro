@@ -1,16 +1,15 @@
 {
   "name": "nitro-playground",
-  "type": "module",
   "version": "1.0.0",
+  "type": "module",
   "scripts": {
-    "dev": "vite dev",
-    "build": "vite build"
+    "build": "vite build",
+    "dev": "vite dev"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.14",
-    "nitro": "*",
+    "nitro": "npm:nitro-nightly@beta",
     "tailwindcss": "^4.1.14",
-    "vite": "^7.1.8",
-    "vite-plugin-inspect": "^11.3.3"
+    "vite": "^7.1.8"
   }
 }

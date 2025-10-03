@@ -11,7 +11,7 @@ import { isAbsolute } from "pathe";
 export function createDevWorker(ctx: NitroPluginContext) {
   return new NodeDevWorker({
     name: "nitro-vite",
-    entry: resolve(runtimeDir, "internal/vite/worker.mjs"),
+    entry: resolve(runtimeDir, "internal/vite/dev-worker.mjs"),
     hooks: {},
     data: {
       server: true,
@@ -52,7 +52,7 @@ export function createNitroEnvironment(
           envName,
           envConfig,
           ctx.devWorker!,
-          resolve(runtimeDir, "internal/vite/nitro-dev.mjs")
+          resolve(runtimeDir, "internal/vite/dev-entry.mjs")
         ),
     },
   };

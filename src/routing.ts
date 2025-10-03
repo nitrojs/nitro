@@ -59,7 +59,10 @@ export function initNitroRouting(nitro: Nitro) {
     ].filter((h) => h && !h.middleware && matchesEnv(h));
 
     // Renderer
-    if (nitro.options.renderer?.entry) {
+    if (
+      nitro.options.renderer?.entry &&
+      nitro.options.renderer?.entry !== "#vite-dev"
+    ) {
       // Check if a wildcard route already exists and remove it with a warning
       const existingWildcard = _routes.findIndex(
         (h) =>

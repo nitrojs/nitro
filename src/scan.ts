@@ -77,48 +77,6 @@ export async function scanHandlers(nitro: Nitro) {
     }),
   ];
 
-  const serverEntry = resolveModulePath(
-    nitro.options.serverEntry || "./server",
-    {
-      from: nitro.options.scanDirs,
-      extensions: [".ts", ".js", ".mts", ".mjs", ".tsx", ".jsx"],
-      try: true,
-    }
-  );
-  // Only log when auto-detected
-  if (serverEntry && existsSync(serverEntry) && !nitro.options.serverEntry) {
-    nitro.options.serverEntry = serverEntry;
-    nitro!.logger.info(
-      `Using \`${prettyPath(serverEntry)}\` as the server entry.`
-    );
-  }
-
-  // Default renderer for index.html
-  if (nitro.options.renderer?.template && !nitro.options.renderer?.entry) {
-    nitro.options.renderer ??= {};
-    nitro.options.renderer.entry = join(
-      runtimeDir,
-      "internal/routes/renderer-template"
-    );
-  } else if (!nitro.options.renderer?.entry) {
-    const defaultIndex = resolveModulePath("./index.html", {
-      from: nitro.options.rootDir + "/",
-      extensions: [".html"],
-      try: true,
-    });
-    if (defaultIndex) {
-      nitro.options.renderer ??= {};
-      nitro.options.renderer.template = defaultIndex;
-      nitro.options.renderer.entry = join(
-        runtimeDir,
-        "internal/routes/renderer-template"
-      );
-      nitro!.logger.info(
-        `Using \`${prettyPath(nitro.options.renderer?.template)}\` as default renderer`
-      );
-    }
-  }
-
   return handlers;
 }
 

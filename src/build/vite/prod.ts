@@ -6,6 +6,7 @@ import { formatCompatibilityDate } from "compatx";
 import { colors as C } from "consola/utils";
 import { copyPublicAssets, prerender } from "../..";
 import { existsSync, mkdirSync, rename, renameSync } from "node:fs";
+import { runtimeDir } from "nitro/runtime/meta";
 
 const BuilderNames = {
   nitro: C.magenta("Nitro"),
@@ -124,55 +125,52 @@ export async function buildEnvironments(
   }
 }
 
-export function prodEntry(ctx: NitroPluginContext): string {
+export function prodSetup(ctx: NitroPluginContext): string {
   const services = ctx.pluginConfig.services || {};
   const serviceNames = Object.keys(services);
-  const result = [
-    // Fetchable services
-    `const services = { ${serviceNames.map((name) => {
-      let entry: string;
-      if (ctx.pluginConfig.experimental?.virtualBundle) {
-        entry = ctx._entryPoints[name];
-      } else {
-        entry = resolve(
-          ctx.nitro!.options.buildDir,
-          "vite/services",
-          name,
-          ctx._entryPoints[name]
-        );
+
+  const serviceEntries = serviceNames.map((name) => {
+    let entry: string;
+    if (ctx.pluginConfig.experimental?.virtualBundle) {
+      entry = ctx._entryPoints[name];
+    } else {
+      entry = resolve(
+        ctx.nitro!.options.buildDir,
+        "vite/services",
+        name,
+        ctx._entryPoints[name]
+      );
+    }
+    return [name, entry];
+  });
+
+  return /* js */ `
+import { setupVite } from "${resolve(runtimeDir, "internal/vite/prod-setup.mjs")}";
+
+const manifest = ${JSON.stringify(ctx._manifest || {})};
+
+function lazyService(loader) {
+  let promise, mod
+  return {
+    fetch(req) {
+      if (mod) { return mod.fetch(req) }
+      if (!promise) {
+        promise = loader().then(_mod => (mod = _mod.default || _mod))
       }
-      return `[${JSON.stringify(name)}]: () => import("${entry}")`;
-    })}};`,
-    /* js */ `
-              const serviceHandlers = {};
-              const originalFetch = globalThis.fetch;
-              globalThis.fetch = (input, init) => {
-                const { viteEnv } = init || {};
-                if (!viteEnv) {
-                  return originalFetch(input, init);
-                }
-                if (typeof input === "string" && input[0] === "/") {
-                  input = new URL(input, "http://localhost");
-                }
-                const req = new Request(input, init);
-                if (serviceHandlers[viteEnv]) {
-                  return Promise.resolve(serviceHandlers[viteEnv](req));
-                }
-                if (!services[viteEnv]) {
-                  return new Response("Service not found: " + viteEnv, { status: 404 });
-                }
-                return services[viteEnv]().then((mod) => {
-                  const fetchHandler = mod.fetch || mod.default?.fetch;
-                  serviceHandlers[viteEnv] = fetchHandler;
-                  return fetchHandler(req);
-                });
-              };
-            `,
-    // TODO: expose resolveEntry utility to resolve entry points
-    // SSR Manifest
-    ctx._manifest
-      ? `globalThis.__VITE_MANIFEST__ = ${JSON.stringify(ctx._manifest)};`
-      : "",
-  ].join("\n");
-  return result;
+      return promise.then(mod => mod.fetch(req))
+    }
+  }
+}
+
+const services = {
+${serviceEntries
+  .map(
+    ([name, entry]) =>
+      /* js */ `[${JSON.stringify(name)}]: lazyService(() => import(${JSON.stringify(entry)}))`
+  )
+  .join(",\n")}
+};
+
+setupVite({ manifest, services });
+  `;
 }
