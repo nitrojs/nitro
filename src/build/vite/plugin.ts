@@ -304,7 +304,7 @@ function nitroServicePlugin(ctx: NitroPluginContext): VitePlugin {
         }
 
         // Run rollup resolve hooks in dev (VFS support)
-        if (ctx.nitro?.options.dev && (id.startsWith("#") || id.startsWith("\0"))) {
+        if (id.startsWith("#") || id.startsWith("\0")) {
           for (const plugin of ctx.rollupConfig!.config
             .plugins as RollupPlugin[]) {
             if (typeof plugin.resolveId !== "function") continue;
@@ -392,8 +392,8 @@ function nitroServicePlugin(ctx: NitroPluginContext): VitePlugin {
           return `export const findService = ${rou3Compiler.compileRouterToString(router)};`;
         }
 
-        // Run rollup load hooks in dev (VFS support)
-        if (ctx.nitro?.options.dev && (id.startsWith("#") || id.startsWith("\0"))) {
+        // Run rollup load hooks (VFS support)
+        if (id.startsWith("#") || id.startsWith("\0")) {
           for (const plugin of ctx.rollupConfig!.config
             .plugins as RollupPlugin[]) {
             if (typeof plugin.load !== "function") continue;
