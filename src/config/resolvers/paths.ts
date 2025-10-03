@@ -63,7 +63,7 @@ export async function resolvePathOptions(options: NitroOptions) {
   );
   options.scanDirs = [...new Set(options.scanDirs)];
 
-  // Resolve custom renderer
+  // Resolve custom renderer entry
   if (options.renderer?.entry) {
     options.renderer.entry = resolveModulePath(
       resolveNitroPath(options.renderer?.entry, options),
@@ -74,7 +74,7 @@ export async function resolvePathOptions(options: NitroOptions) {
     );
   }
 
-  // Resolve custom indexHTML
+  // Resolve custom renderer template
   if (options.renderer?.template) {
     options.renderer.template = resolveModulePath(
       resolveNitroPath(options.renderer?.template, options),

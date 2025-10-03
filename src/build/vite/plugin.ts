@@ -104,7 +104,7 @@ function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
           );
         }
 
-        // Disable basic index.html renderer in dev mode (dev server will handle it)
+        // Disable basic template renderer in dev mode (dev server will handle it)
         if (
           ctx.nitro.options.dev &&
           ctx.nitro.options.renderer?.template &&

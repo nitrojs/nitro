@@ -1,7 +1,7 @@
 import type { ViteBuilder } from "vite";
 import type { NitroPluginContext } from "./types";
 
-import { dirname, relative, resolve } from "pathe";
+import { basename, dirname, relative, resolve } from "pathe";
 import { formatCompatibilityDate } from "compatx";
 import { colors as C } from "consola/utils";
 import { copyPublicAssets, prerender } from "../..";
@@ -45,7 +45,7 @@ export async function buildEnvironments(
     await builder.build(env);
   }
 
-  // Use transformed client input for index.html generation
+  // Use transformed client input for renderer template generation
   const nitroOptions = ctx.nitro!.options;
   const clientInput =
     builder.environments.client?.config?.build?.rollupOptions?.input;
@@ -53,7 +53,10 @@ export async function buildEnvironments(
     nitroOptions.renderer?.template &&
     nitroOptions.renderer?.template === clientInput
   ) {
-    const outputPath = resolve(nitroOptions.output.publicDir, "index.html");
+    const outputPath = resolve(
+      nitroOptions.output.publicDir,
+      basename(clientInput as string)
+    );
     if (existsSync(outputPath)) {
       const tmp = resolve(nitroOptions.buildDir, "vite/index.html");
       mkdirSync(dirname(tmp), { recursive: true });
