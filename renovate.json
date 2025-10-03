@@ -1,8 +1,4 @@
 {
   "extends": ["github>unjs/renovate-config"],
-  "baseBranchPatterns": [
-    "main",
-    "v2",
-    "v3"
-  ]
+  "baseBranchPatterns": ["main", "v2", "v3"]
 }
