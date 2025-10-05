@@ -48,26 +48,18 @@ type NodeComptatReport = {
   >;
 };
 
-for (const [platformName, { url, forceHybrid, forceBuiltin }] of Object.entries(
-  platforms
-)) {
+for (const [platformName, { url, forceBuiltin }] of Object.entries(platforms)) {
   const report = (await fetch(url).then((res) =>
     res.json()
   )) as NodeComptatReport;
 
   const builtnNodeModules: [string, string[]][] = [];
 
-  const hybridNodeCompatModules: [string, string[]][] = [];
-
   const notSupported: string[] = [];
 
   for (const [id, status] of Object.entries(report.builtinModules)) {
     if (!status) {
-      if (forceHybrid?.includes(id)) {
-        hybridNodeCompatModules.push([id, []]);
-      } else {
-        notSupported.push(id);
-      }
+      notSupported.push(id);
       continue;
     }
 
@@ -75,16 +67,7 @@ for (const [platformName, { url, forceHybrid, forceBuiltin }] of Object.entries(
       (exp) => !exp.startsWith("_")
     );
 
-    let target =
-      missingExports.length === 0 ? builtnNodeModules : hybridNodeCompatModules;
-    if (forceHybrid?.includes(id)) {
-      target = hybridNodeCompatModules;
-    }
-    if (forceBuiltin === true || forceBuiltin?.includes(id)) {
-      target = builtnNodeModules;
-    }
-
-    target.push([id, missingExports]);
+    builtnNodeModules.push([id, missingExports]);
   }
 
   const code = /* js */ `// Auto generated using gen-node-compat.ts on ${new Date().toISOString().split("T")[0]}
@@ -95,18 +78,6 @@ for (const [platformName, { url, forceHybrid, forceBuiltin }] of Object.entries(
 export const builtnNodeModules = [
 ${builtnNodeModules
   .sort()
-  .map(([id, missing]) =>
-    missing.length > 0
-      ? `  "${id}", // Missing exports: ${missing.join(", ")}`
-      : `  "${id}",`
-  )
-  .join("\n")}
-];
-
-// prettier-ignore
-export const hybridNodeModules = [
-${hybridNodeCompatModules
-  .sort((a, b) => a[0].localeCompare(b[0]))
   .map(([id, missing]) =>
     missing.length > 0
       ? `  "${id}", // Missing exports: ${missing.join(", ")}`

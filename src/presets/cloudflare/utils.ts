@@ -1,5 +1,4 @@
 import type { Nitro } from "nitro/types";
-import type { Plugin } from "rollup";
 import type { WranglerConfig, CloudflarePagesRoutes } from "./types";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
@@ -18,10 +17,7 @@ import {
   withTrailingSlash,
   withoutLeadingSlash,
 } from "ufo";
-import {
-  workerdHybridNodeCompatPlugin,
-  unenvWorkerdWithNodeCompat,
-} from "../_unenv/preset-workerd";
+import { unenvWorkerdWithNodeCompat } from "../_unenv/preset-workerd";
 
 export async function writeCFRoutes(nitro: Nitro) {
   const _cfPagesConfig = nitro.options.cloudflare?.pages || {};
@@ -224,10 +220,6 @@ export async function enableNodeCompat(nitro: Nitro) {
   }
 
   nitro.options.unenv.push(unenvWorkerdWithNodeCompat);
-  nitro.options.rollupConfig!.plugins ??= [];
-  (nitro.options.rollupConfig!.plugins as Plugin[]).push(
-    workerdHybridNodeCompatPlugin
-  );
 }
 
 const extensionParsers = {
