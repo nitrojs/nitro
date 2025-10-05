@@ -2,7 +2,7 @@ import { defineNitroPreset } from "../_utils/preset";
 
 const standard = defineNitroPreset(
   {
-    entry: "./runtime/server",
+    entry: "./standard/runtime/server",
     serveStatic: false,
     commands: {
       preview: "npx srvx --prod ./",
@@ -10,7 +10,6 @@ const standard = defineNitroPreset(
   },
   {
     name: "standard" as const,
-    url: import.meta.url,
   }
 );
 

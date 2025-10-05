@@ -4,7 +4,7 @@ import { join } from "pathe";
 
 const nitroDev = defineNitroPreset(
   {
-    entry: "./runtime/nitro-dev",
+    entry: "./_nitro/runtime/nitro-dev",
     output: {
       dir: "{{ buildDir }}/dev",
       serverDir: "{{ buildDir }}/dev",
@@ -25,7 +25,6 @@ const nitroDev = defineNitroPreset(
   {
     name: "nitro-dev" as const,
     dev: true,
-    url: import.meta.url,
   }
 );
 

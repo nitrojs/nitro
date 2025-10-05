@@ -8,7 +8,7 @@ import { dirname, relative, resolve } from "pathe";
 
 const zeabur = defineNitroPreset(
   {
-    entry: "./runtime/zeabur",
+    entry: "./zeabur/runtime/zeabur",
     output: {
       dir: "{{ rootDir }}/.zeabur/output",
       serverDir: "{{ output.dir }}/functions/__nitro.func",
@@ -53,7 +53,6 @@ const zeabur = defineNitroPreset(
   {
     name: "zeabur" as const,
     stdName: "zeabur",
-    url: import.meta.url,
   }
 );
 
@@ -70,7 +69,7 @@ const zeaburStatic = defineNitroPreset(
   },
   {
     name: "zeabur-static" as const,
-    url: import.meta.url,
+
     static: true,
   }
 );

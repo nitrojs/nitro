@@ -70,6 +70,9 @@ export default defineBuildConfig({
         if (id.includes("/src/cli/")) {
           return "cli/[name].mjs";
         }
+        if (id.includes("/src/presets")) {
+          return "presets.mjs";
+        }
         return "_chunks/[name].mjs";
       },
     },

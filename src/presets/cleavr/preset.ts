@@ -8,7 +8,6 @@ const cleavr = defineNitroPreset(
   {
     name: "cleavr" as const,
     stdName: "cleavr",
-    url: import.meta.url,
   }
 );
 

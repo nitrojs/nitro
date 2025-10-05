@@ -7,7 +7,6 @@ const heroku = defineNitroPreset(
   },
   {
     name: "heroku" as const,
-    url: import.meta.url,
   }
 );
 

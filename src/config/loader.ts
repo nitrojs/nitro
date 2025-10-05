@@ -76,9 +76,7 @@ async function _loadUserConfig(
       process.env.COMPATIBILITY_DATE) as CompatibilityDateSpec);
 
   // Preset resolver
-  const { resolvePreset } = (await import(
-    "nitro/" + "presets"
-  )) as typeof import("nitro/presets");
+  const { resolvePreset } = await import("../presets");
 
   // prettier-ignore
   let preset: string | undefined = (configOverrides.preset as string) || process.env.NITRO_PRESET || process.env.SERVER_PRESET

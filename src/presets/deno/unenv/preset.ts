@@ -7,7 +7,6 @@ import * as denoCompat from "./node-compat";
 export const unenvDeno: Preset = {
   meta: {
     name: "nitro:deno",
-    url: import.meta.url,
   },
   external: denoCompat.builtnNodeModules.map((m) => `node:${m}`),
   alias: {

@@ -5,7 +5,7 @@ import { unenvDeno } from "./unenv/preset";
 
 const denoDeploy = defineNitroPreset(
   {
-    entry: "./runtime/deno-deploy",
+    entry: "./deno/runtime/deno-deploy",
     exportConditions: ["deno"],
     node: false,
     noExternals: true,
@@ -28,13 +28,12 @@ const denoDeploy = defineNitroPreset(
   },
   {
     name: "deno-deploy" as const,
-    url: import.meta.url,
   }
 );
 
 const denoServer = defineNitroPreset(
   {
-    entry: "./runtime/deno-server",
+    entry: "./deno/runtime/deno-server",
     serveStatic: true,
     exportConditions: ["deno"],
     commands: {
@@ -64,7 +63,6 @@ const denoServer = defineNitroPreset(
   },
   {
     name: "deno-server" as const,
-    url: import.meta.url,
   }
 );
 

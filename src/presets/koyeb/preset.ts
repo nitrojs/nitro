@@ -7,7 +7,6 @@ const koyeb = defineNitroPreset(
   },
   {
     name: "koyeb" as const,
-    url: import.meta.url,
   }
 );
 

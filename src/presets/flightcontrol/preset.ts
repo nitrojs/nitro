@@ -7,7 +7,6 @@ const flightControl = defineNitroPreset(
   },
   {
     name: "flight-control" as const,
-    url: import.meta.url,
   }
 );
 

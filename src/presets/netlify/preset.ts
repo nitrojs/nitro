@@ -17,7 +17,7 @@ export type { NetlifyOptions as PresetOptions } from "./types";
 // Netlify functions
 const netlify = defineNitroPreset(
   {
-    entry: "./runtime/netlify",
+    entry: "./netlify/runtime/netlify",
     output: {
       dir: "{{ rootDir }}/.netlify/functions-internal",
       publicDir: "{{ rootDir }}/dist/{{ baseURL }}",
@@ -61,7 +61,6 @@ const netlify = defineNitroPreset(
   {
     name: "netlify" as const,
     stdName: "netlify",
-    url: import.meta.url,
   }
 );
 
@@ -69,7 +68,7 @@ const netlify = defineNitroPreset(
 const netlifyEdge = defineNitroPreset(
   {
     extends: "base-worker",
-    entry: "./runtime/netlify-edge",
+    entry: "./netlify/runtime/netlify-edge",
     exportConditions: ["netlify"],
     output: {
       serverDir: "{{ rootDir }}/.netlify/edge-functions/server",
@@ -120,7 +119,6 @@ const netlifyEdge = defineNitroPreset(
   },
   {
     name: "netlify-edge" as const,
-    url: import.meta.url,
   }
 );
 
@@ -151,7 +149,6 @@ const netlifyStatic = defineNitroPreset(
     name: "netlify-static" as const,
     stdName: "netlify",
     static: true,
-    url: import.meta.url,
   }
 );
 

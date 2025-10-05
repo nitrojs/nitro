@@ -2,7 +2,7 @@ import { defineNitroPreset } from "../_utils/preset";
 
 const bun = defineNitroPreset(
   {
-    entry: "./runtime/bun",
+    entry: "./bun/runtime/bun",
     serveStatic: true,
     // https://bun.sh/docs/runtime/modules#resolution
     exportConditions: ["bun", "node", "import", "default"],
@@ -12,7 +12,6 @@ const bun = defineNitroPreset(
   },
   {
     name: "bun" as const,
-    url: import.meta.url,
   }
 );
 

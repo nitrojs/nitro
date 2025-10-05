@@ -6,7 +6,6 @@ import * as workerdNodeCompat from "./node-compat";
 export const unencCfNodeCompat: Preset = {
   meta: {
     name: "nitro:cloudflare-node-compat",
-    url: import.meta.url,
   },
   external: workerdNodeCompat.builtnNodeModules,
   alias: {
@@ -29,7 +28,6 @@ export const unencCfNodeCompat: Preset = {
 export const unenvCfExternals: Preset = {
   meta: {
     name: "nitro:cloudflare-externals",
-    url: import.meta.url,
   },
   external: [
     "cloudflare:email",

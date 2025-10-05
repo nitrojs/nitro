@@ -5,7 +5,7 @@ export type { AWSAmplifyOptions as PresetOptions } from "./types";
 
 const awsAmplify = defineNitroPreset(
   {
-    entry: "./runtime/aws-amplify",
+    entry: "./aws-amplify/runtime/aws-amplify",
     serveStatic: true,
     output: {
       dir: "{{ rootDir }}/.amplify-hosting",
@@ -24,7 +24,6 @@ const awsAmplify = defineNitroPreset(
   {
     name: "aws-amplify" as const,
     stdName: "aws_amplify",
-    url: import.meta.url,
   }
 );
 

@@ -6,7 +6,7 @@ export type { AzureOptions as PresetOptions } from "./types";
 
 const azureSWA = defineNitroPreset(
   {
-    entry: "./runtime/azure-swa",
+    entry: "./azure/runtime/azure-swa",
     output: {
       serverDir: "{{ output.dir }}/server/functions",
       publicDir: "{{ output.dir }}/public/{{ baseURL }}",
@@ -24,7 +24,6 @@ const azureSWA = defineNitroPreset(
   {
     name: "azure-swa" as const,
     stdName: "azure_static",
-    url: import.meta.url,
   }
 );
 
