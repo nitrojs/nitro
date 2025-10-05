@@ -25,7 +25,8 @@ export function routing(nitro: Nitro) {
         );
 
         const h3Imports = [
-          allHandlers.some((h) => !h.lazy) && "toEventHandler",
+          (nitro.options.serverEntry || allHandlers.some((h) => !h.lazy)) &&
+            "toEventHandler",
           allHandlers.some((h) => h.lazy) && "defineLazyEventHandler",
         ].filter(Boolean) as string[];
 
