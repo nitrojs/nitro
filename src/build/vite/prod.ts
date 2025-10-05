@@ -7,6 +7,7 @@ import { colors as C } from "consola/utils";
 import { copyPublicAssets, prerender } from "../..";
 import { existsSync, mkdirSync, rename, renameSync } from "node:fs";
 import { runtimeDir } from "nitro/runtime/meta";
+import { writeBuildInfo } from "../info";
 
 const BuilderNames = {
   nitro: C.magenta("Nitro"),
@@ -101,6 +102,9 @@ export async function buildEnvironments(
 
   // Call compiled hook
   await nitro.hooks.callHook("compiled", nitro);
+
+  // Write build info
+  await writeBuildInfo(nitro);
 
   // Show deploy and preview commands
   const rOutput = relative(process.cwd(), nitro.options.output.dir);

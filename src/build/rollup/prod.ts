@@ -1,14 +1,12 @@
-import type { Nitro, NitroBuildInfo, RollupConfig } from "nitro/types";
+import type { Nitro, RollupConfig } from "nitro/types";
 import { formatCompatibilityDate } from "compatx";
-import { writeFile } from "../../utils/fs";
-import { version as nitroVersion } from "nitro/meta";
-import { relative, resolve } from "pathe";
-import { presetsWithConfig } from "../../presets/_types.gen";
+import { relative } from "pathe";
 import { scanHandlers } from "../../scan";
 import { generateFSTree } from "../../utils/fs-tree";
 import { nitroServerName } from "../../utils/nitro";
 import { writeTypes } from "../types";
 import { snapshot } from "../snapshot";
+import { writeBuildInfo } from "../info";
 import { formatRollupError } from "./error";
 
 export async function buildProduction(
@@ -33,26 +31,7 @@ export async function buildProduction(
     await build.write(rollupConfig.output);
   }
 
-  // Write .output/nitro.json
-  const buildInfoPath = resolve(nitro.options.output.dir, "nitro.json");
-  const buildInfo: NitroBuildInfo = {
-    date: new Date().toJSON(),
-    preset: nitro.options.preset,
-    framework: nitro.options.framework,
-    versions: {
-      nitro: nitroVersion,
-    },
-    commands: {
-      preview: nitro.options.commands.preview,
-      deploy: nitro.options.commands.deploy,
-    },
-    config: {
-      ...Object.fromEntries(
-        presetsWithConfig.map((key) => [key, nitro.options[key]])
-      ),
-    },
-  };
-  await writeFile(buildInfoPath, JSON.stringify(buildInfo, null, 2));
+  const buildInfo = await writeBuildInfo(nitro);
 
   if (!nitro.options.static) {
     if (nitro.options.logging.buildSuccess) {

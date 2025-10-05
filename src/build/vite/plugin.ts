@@ -15,6 +15,7 @@ import { runtimeDependencies, runtimeDir } from "nitro/runtime/meta";
 import { resolveModulePath } from "exsolve";
 import { prettyPath } from "../../utils/fs";
 import { NitroDevApp } from "../../dev/app";
+import { nitroPreviewPlugin } from "./preview";
 
 // https://vite.dev/guide/api-environment-plugins
 // https://vite.dev/guide/api-environment-frameworks.html
@@ -29,16 +30,19 @@ export function nitro(pluginConfig: NitroPluginConfig = {}): VitePlugin {
     _serviceBundles: {},
   };
 
-  return [mainPlugin(ctx), nitroServicePlugin(ctx)];
+  return [nitroPlugin(ctx), nitroServicePlugin(ctx), nitroPreviewPlugin(ctx)];
 }
 
-function mainPlugin(ctx: NitroPluginContext): VitePlugin[] {
+function nitroPlugin(ctx: NitroPluginContext): VitePlugin[] {
   return [
     {
       name: "nitro:main",
 
       // Opt-in this plugin into the shared plugins pipeline
       sharedDuringBuild: true,
+
+      // Only apply this plugin during build or dev
+      apply: (config, configEnv) => !configEnv.isPreview,
 
       // Extend vite config before it's resolved
       async config(userConfig, configEnv) {
