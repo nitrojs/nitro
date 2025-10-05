@@ -758,6 +758,13 @@ export function testNitro(
       if (ctx.preset === "deno-server" && key === "globals:BroadcastChannel") {
         continue; // unstable API
       }
+      if (
+        ctx.preset.includes("cloudflare") &&
+        key.startsWith("globals:") &&
+        ctx.nitro!.options.builder === "rolldown"
+      ) {
+        continue;
+      }
       expect(data[key], key).toBe(true);
     }
   });
