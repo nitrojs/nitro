@@ -1,7 +1,7 @@
 import { defineNitroPreset } from "../_utils/preset";
 import { writeFile } from "../_utils/fs";
 import { resolve } from "pathe";
-import { unenvDenoPreset } from "../_unenv/preset-deno";
+import { unenvDeno } from "./unenv/preset";
 
 const denoDeploy = defineNitroPreset(
   {
@@ -15,7 +15,7 @@ const denoDeploy = defineNitroPreset(
       deploy:
         "cd ./ && deployctl deploy --project=<project_name> server/index.ts",
     },
-    unenv: unenvDenoPreset,
+    unenv: unenvDeno,
     rollupConfig: {
       preserveEntrySignatures: false,
       external: (id) => id.startsWith("https://") || id.startsWith("node:"),

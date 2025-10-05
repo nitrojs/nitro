@@ -17,7 +17,7 @@ import {
   withTrailingSlash,
   withoutLeadingSlash,
 } from "ufo";
-import { unenvWorkerdWithNodeCompat } from "../_unenv/preset-workerd";
+import { unencCfNodeCompat } from "./unenv/preset";
 
 export async function writeCFRoutes(nitro: Nitro) {
   const _cfPagesConfig = nitro.options.cloudflare?.pages || {};
@@ -219,7 +219,7 @@ export async function enableNodeCompat(nitro: Nitro) {
     return;
   }
 
-  nitro.options.unenv.push(unenvWorkerdWithNodeCompat);
+  nitro.options.unenv.push(unencCfNodeCompat);
 }
 
 const extensionParsers = {

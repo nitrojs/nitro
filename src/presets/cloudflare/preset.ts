@@ -2,7 +2,7 @@ import { defineNitroPreset } from "../_utils/preset";
 import { writeFile } from "../_utils/fs";
 import type { Nitro } from "nitro/types";
 import { resolve } from "pathe";
-import { unenvCfExternals } from "../_unenv/preset-workerd";
+import { unenvCfExternals } from "./unenv/preset";
 import {
   enableNodeCompat,
   writeWranglerConfig,

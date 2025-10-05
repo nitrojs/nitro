@@ -3,7 +3,7 @@ import { defineNitroPreset } from "../_utils/preset";
 import type { Nitro } from "nitro/types";
 import type { Config, Manifest } from "@netlify/edge-functions";
 import { dirname, join } from "pathe";
-import { unenvDenoPreset } from "../_unenv/preset-deno";
+import { unenvDeno } from "../deno/unenv/preset";
 import {
   generateNetlifyFunction,
   getGeneratorString,
@@ -87,7 +87,7 @@ const netlifyEdge = defineNitroPreset(
         format: "esm",
       },
     },
-    unenv: unenvDenoPreset,
+    unenv: unenvDeno,
     hooks: {
       async compiled(nitro: Nitro) {
         await writeHeaders(nitro);

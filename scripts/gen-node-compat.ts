@@ -2,9 +2,7 @@ import { writeFile } from "node:fs/promises";
 
 const platforms = {
   cloudflare: "https://platform-node-compat.pi0.workers.dev/?ts",
-  // Deno deploy and Netlify edge are almost identical
   deno: "https://platform-node-compat.deno.dev/?ts",
-  netlify: "https://platform-node-compat.netlify.app/?ts",
 };
 
 for (const platform in platforms) {
@@ -16,10 +14,7 @@ for (const platform in platforms) {
   );
 
   await writeFile(
-    new URL(
-      `../src/presets/_unenv/node-compat/${platform}.ts`,
-      import.meta.url
-    ),
+    new URL(`../src/presets/${platform}/unenv/node-compat.ts`, import.meta.url),
     code
   );
 }
