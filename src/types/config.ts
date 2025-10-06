@@ -14,7 +14,7 @@ import type { NestedHooks } from "hookable";
 import type { ProxyServerOptions } from "httpxy";
 import type { PresetName, PresetNameInput, PresetOptions } from "nitro/presets";
 import type { TSConfig } from "pkg-types";
-import type { PluginVisualizerOptions } from "rollup-plugin-visualizer";
+// import type { PluginVisualizerOptions } from "rollup-plugin-visualizer";
 import type { Preset as UnenvPreset } from "unenv";
 import type { UnimportPluginOptions } from "unimport/unplugin";
 import type { BuiltinDriverName } from "unstorage";
@@ -219,7 +219,7 @@ export interface NitroOptions extends PresetOptions {
   };
   noExternals: boolean;
   externals: NodeExternalsOptions;
-  analyze: false | PluginVisualizerOptions;
+  analyze: false | unknown;
   replace: Record<string, string | ((id: string) => string)>;
   commonJS?: RollupCommonJSOptions;
   exportConditions?: string[];
