@@ -57,6 +57,7 @@ export default defineBuildConfig({
     },
   },
   externals: [
+    "typescript",
     "nitro",
     ...[...distSubpaths, ...libSubpaths].map((subpath) => `nitro/${subpath}`),
     "firebase-functions",
