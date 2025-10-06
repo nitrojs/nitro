@@ -200,6 +200,7 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
             ...nitro.options.externals?.traceAlias,
           },
           exportConditions: nitro.options.exportConditions,
+          writePackageJson: true,
         })
       )
     );
