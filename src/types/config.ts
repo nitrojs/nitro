@@ -219,7 +219,7 @@ export interface NitroOptions extends PresetOptions {
   };
   noExternals: boolean;
   externals: NodeExternalsOptions;
-  analyze: false | unknown;
+  analyze: false | Record<string, any>;
   replace: Record<string, string | ((id: string) => string)>;
   commonJS?: RollupCommonJSOptions;
   exportConditions?: string[];
