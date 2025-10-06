@@ -23,7 +23,7 @@ export default createHandler<Env>({
       return env.ASSETS.fetch(request);
     }
 
-    // Websocket upgrade
+    // WebSocket upgrade
     // https://crossws.unjs.io/adapters/cloudflare
     if (
       import.meta._websocket &&

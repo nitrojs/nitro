@@ -46,7 +46,7 @@ export default createHandler<Env>({
     // Expose stub fetch to the context
     ctxExt.durableFetch = (req = request) => getDurableStub(env).fetch(req);
 
-    // Websocket upgrade
+    // WebSocket upgrade
     // https://crossws.unjs.io/adapters/cloudflare#durable-objects
     if (
       import.meta._websocket &&

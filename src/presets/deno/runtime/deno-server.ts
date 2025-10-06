@@ -52,7 +52,7 @@ if (!serveOptions.key || !serveOptions.cert) {
 
 Deno.serve(serveOptions, handler);
 
-// Websocket support
+// WebSocket support
 const ws = import.meta._websocket
   ? // @ts-expect-error
     wsAdapter(nitroApp.h3App.websocket)

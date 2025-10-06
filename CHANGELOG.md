@@ -775,7 +775,7 @@ Check [release notes](https://github.com/nitrojs/nitro/releases/tag/v2.11.0)
 
 ### 📖 Documentation
 
-- Add websocket chat demo to websocket api page ([#2189](https://github.com/nitrojs/nitro/pull/2189))
+- Add WebSocket chat demo to WebSocket api page ([#2189](https://github.com/nitrojs/nitro/pull/2189))
 - Fix typo ([#2190](https://github.com/nitrojs/nitro/pull/2190))
 - Fix typo ([#2194](https://github.com/nitrojs/nitro/pull/2194))
 
@@ -807,7 +807,7 @@ Check [release notes](https://github.com/nitrojs/nitro/releases/tag/v2.11.0)
 - **zeabur:** Support `zeaburStatic` and auto detect preset ([#2014](https://github.com/nitrojs/nitro/pull/2014))
 - **runtime-config:** Experimental env expansion support ([#2043](https://github.com/nitrojs/nitro/pull/2043))
 - Support binary server assets ([#2107](https://github.com/nitrojs/nitro/pull/2107))
-- Experimental websocket support ([#2170](https://github.com/nitrojs/nitro/pull/2170))
+- Experimental WebSocket support ([#2170](https://github.com/nitrojs/nitro/pull/2170))
 - **dev:** Expose upgrade handler ([5374429f](https://github.com/nitrojs/nitro/commit/5374429f))
 - Experimental database layer ([#1351](https://github.com/nitrojs/nitro/pull/1351))
 - Experimental scheduled tasks ([#2179](https://github.com/nitrojs/nitro/pull/2179))
