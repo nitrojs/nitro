@@ -16,7 +16,8 @@ export default defineCommand({
   },
   args: {
     ...commonArgs,
-    // TODO
+    port: { type: "string", description: "specify port" },
+    host: { type: "string", description: "specify hostname " },
   },
   async run({ args }) {
     const rootDir = resolve((args.dir || args._dir || ".") as string);
@@ -61,7 +62,8 @@ export default defineCommand({
       const server = new NitroDevServer(nitro);
 
       await server.listen({
-        /* TODO */
+        port: args.port,
+        hostname: args.host,
       });
       await prepare(nitro);
       await build(nitro);
