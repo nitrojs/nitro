@@ -69,6 +69,9 @@ importers:
       rollup:
         specifier: ^4.52.3
         version: 4.52.4
+      rollup-plugin-visualizer:
+        specifier: ^6.0.4
+        version: 6.0.4(rolldown@1.0.0-beta.41)(rollup@4.52.4)
       rou3:
         specifier: ^0.7.7
         version: 0.7.7
@@ -286,9 +289,6 @@ importers:
       rolldown:
         specifier: 1.0.0-beta.41
         version: 1.0.0-beta.41
-      rollup-plugin-visualizer:
-        specifier: ^6.0.4
-        version: 6.0.4(rolldown@1.0.0-beta.41)(rollup@4.52.4)
       semver:
         specifier: ^7.7.2
         version: 7.7.2
@@ -4756,8 +4756,8 @@ packages:
       xml2js:
         optional: true
 
-  node-abi@3.77.0:
-    resolution: {integrity: sha512-DSmt0OEcLoK4i3NuscSbGjOf3bqiDEutejqENSplMSFA/gmB8mkED9G4pKWnPl7MDU4rSHebKPHeitpDfyH0cQ==}
+  node-abi@3.78.0:
+    resolution: {integrity: sha512-E2wEyrgX/CqvicaQYU3Ze1PFGjc4QYPGsjUrlYkqAE0WjHEZwgOsGMPMzkMse4LjJbDmaEuDX3CM036j5K2DSQ==}
     engines: {node: '>=10'}
 
   node-addon-api@4.3.0:
@@ -11487,7 +11487,7 @@ snapshots:
       - supports-color
       - uploadthing
 
-  node-abi@3.77.0:
+  node-abi@3.78.0:
     dependencies:
       semver: 7.7.2
 
@@ -11967,7 +11967,7 @@ snapshots:
       minimist: 1.2.8
       mkdirp-classic: 0.5.3
       napi-build-utils: 2.0.0
-      node-abi: 3.77.0
+      node-abi: 3.78.0
       pump: 3.0.3
       rc: 1.2.8
       simple-get: 4.0.1
