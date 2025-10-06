@@ -1,8 +1,7 @@
 import type { IncomingMessage, OutgoingMessage } from "node:http";
 import type { Duplex } from "node:stream";
-import type { GetPortInput } from "get-port-please";
 import type { FSWatcher } from "chokidar";
-import type { Listener, ListenOptions } from "listhen";
+import type { ServerOptions, Server } from "srvx";
 import { NodeDevWorker } from "./worker";
 import type { DevWorkerData } from "./worker";
 import type {
@@ -17,12 +16,11 @@ import type {
 import { HTTPError } from "h3";
 
 import { version as nitroVersion } from "nitro/meta";
-import { toNodeHandler } from "srvx/node";
 import consola from "consola";
 import { writeFile } from "node:fs/promises";
 import { resolve } from "pathe";
 import { watch } from "chokidar";
-import { listen as listhen } from "listhen";
+import { serve } from "srvx/node";
 import { debounce } from "perfect-debounce";
 import { isTest, isCI } from "std-env";
 import { NitroDevApp } from "./app";
@@ -34,7 +32,7 @@ export function createDevServer(nitro: Nitro): NitroDevServer {
 export class NitroDevServer extends NitroDevApp implements DevRPCHooks {
   #entry: string;
   #workerData: DevWorkerData = {};
-  #listeners: Listener[] = [];
+  #listeners: Server[] = [];
   #watcher?: FSWatcher;
   #workers: DevWorker[] = [];
   #workerIdCtr: number = 0;
@@ -120,16 +118,18 @@ export class NitroDevServer extends NitroDevApp implements DevRPCHooks {
     return worker.upgrade(req, socket, head);
   }
 
-  async listen(port: GetPortInput, opts?: Partial<ListenOptions>) {
-    const listener = await listhen(toNodeHandler(this.fetch), {
-      port,
+  listen(opts?: Partial<Omit<ServerOptions, "fetch">>): Server {
+    const server = serve({
       ...opts,
+      fetch: this.fetch,
     });
-    this.#listeners.push(listener);
-    listener.server.on("upgrade", (req, sock, head) =>
-      this.upgrade(req, sock, head)
-    );
-    return listener;
+    this.#listeners.push(server);
+    if (server.node?.server) {
+      server.node.server.on("upgrade", (req, sock, head) =>
+        this.upgrade(req, sock, head)
+      );
+    }
+    return server;
   }
 
   async close() {
