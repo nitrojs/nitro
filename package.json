@@ -50,7 +50,6 @@
     "undici": "^7.11.0"
   },
   "dependencies": {
-    "@vercel/nft": "^0.30.2",
     "consola": "^3.4.2",
     "cookie-es": "^2.0.0",
     "croner": "^9.1.0",
@@ -65,6 +64,7 @@
     "hookable": "^5.5.3",
     "jiti": "^2.6.1",
     "klona": "^2.0.6",
+    "nf3": "^0.1.0",
     "ofetch": "^1.4.1",
     "ohash": "^2.0.11",
     "rollup": "^4.52.3",

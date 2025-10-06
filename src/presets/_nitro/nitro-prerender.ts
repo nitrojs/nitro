@@ -7,7 +7,7 @@ const nitroPrerender = defineNitroPreset(
     output: {
       serverDir: "{{ buildDir }}/prerender",
     },
-    externals: { trace: false },
+    externals: { noTrace: true },
   },
   {
     name: "nitro-prerender" as const,

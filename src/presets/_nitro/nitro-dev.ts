@@ -17,7 +17,7 @@ const nitroDev = defineNitroPreset(
         handler: join(runtimeDir, "internal/routes/dev-tasks"),
       },
     ],
-    externals: { trace: false },
+    externals: { noTrace: true },
     serveStatic: true,
     inlineDynamicImports: true, // externals plugin limitation
     sourceMap: true,
