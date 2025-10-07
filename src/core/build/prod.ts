@@ -138,7 +138,7 @@ function resolveTmplPath(
     let val = getProperty<Record<string, string>, string>(
       nitro.options as unknown as Record<string, string>,
       match
-    );
+    ) as string | undefined;
     if (val) {
       val = relative(relativeTo, val) || ".";
     } else {
