@@ -15,7 +15,8 @@
     "./runtime": "./dist/runtime/index.mjs",
     "./runtime/internal": "./dist/runtime/internal/index.mjs",
     "./runtime/meta": "./lib/runtime-meta.mjs",
-    "./vite": "./dist/vite.mjs"
+    "./vite": "./dist/vite.mjs",
+    "./deps/h3": "./lib/deps/h3.mjs"
   },
   "bin": {
     "nitro": "./dist/cli/index.mjs",
