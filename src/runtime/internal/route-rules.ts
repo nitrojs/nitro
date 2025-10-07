@@ -35,7 +35,7 @@ export const redirect = <RouteRuleCtor<"redirect">>((m) =>
     } else if (event.url.search) {
       target = withQuery(target, Object.fromEntries(event.url.searchParams));
     }
-    return sendRedirect(event, target, m.options?.status);
+    return sendRedirect(target, m.options?.status);
   });
 
 // Proxy route rule
