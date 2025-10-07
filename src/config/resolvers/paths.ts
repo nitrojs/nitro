@@ -10,10 +10,10 @@ import consola from "consola";
 const RESOLVE_EXTENSIONS = [".ts", ".js", ".mts", ".mjs", ".tsx", ".jsx"];
 
 export async function resolvePathOptions(options: NitroOptions) {
-  options.rootDir = resolve(options.rootDir || ".");
-  options.workspaceDir ||= await findWorkspaceDir(options.rootDir).catch(
-    () => options.rootDir
-  );
+  options.rootDir = resolve(options.rootDir || ".") + "/";
+  options.workspaceDir ||=
+    (await findWorkspaceDir(options.rootDir).catch(() => options.rootDir)) +
+    "/";
   for (const key of ["srcDir", "buildDir"] as const) {
     options[key] = resolve(options.rootDir, options[key] || ".");
   }
@@ -28,21 +28,24 @@ export async function resolvePathOptions(options: NitroOptions) {
   if (options.entry) {
     options.entry = resolveNitroPath(options.entry, options);
   }
-  options.output.dir = resolveNitroPath(
-    options.output.dir || NitroDefaults.output!.dir!,
-    options,
-    options.rootDir
-  );
-  options.output.publicDir = resolveNitroPath(
-    options.output.publicDir || NitroDefaults.output!.publicDir!,
-    options,
-    options.rootDir
-  );
-  options.output.serverDir = resolveNitroPath(
-    options.output.serverDir || NitroDefaults.output!.serverDir!,
-    options,
-    options.rootDir
-  );
+  options.output.dir =
+    resolveNitroPath(
+      options.output.dir || NitroDefaults.output!.dir!,
+      options,
+      options.rootDir
+    ) + "/";
+  options.output.publicDir =
+    resolveNitroPath(
+      options.output.publicDir || NitroDefaults.output!.publicDir!,
+      options,
+      options.rootDir
+    ) + "/";
+  options.output.serverDir =
+    resolveNitroPath(
+      options.output.serverDir || NitroDefaults.output!.serverDir!,
+      options,
+      options.rootDir
+    ) + "/";
 
   options.nodeModulesDirs.push(resolve(options.workspaceDir, "node_modules"));
   options.nodeModulesDirs.push(resolve(options.rootDir, "node_modules"));
@@ -63,7 +66,7 @@ export async function resolvePathOptions(options: NitroOptions) {
   options.scanDirs = options.scanDirs.map((dir) =>
     resolve(options.srcDir, dir)
   );
-  options.scanDirs = [...new Set(options.scanDirs)];
+  options.scanDirs = [...new Set(options.scanDirs.map((dir) => dir + "/"))];
 
   // Resolve server entry
   if (options.serverEntry) {
@@ -131,4 +134,6 @@ export async function resolvePathOptions(options: NitroOptions) {
       "internal/routes/renderer-template"
     );
   }
+
+  console.log(options);
 }
