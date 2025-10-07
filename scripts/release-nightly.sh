@@ -28,11 +28,5 @@ if [[ ! -z ${NODE_AUTH_TOKEN} ]] ; then
   npm whoami
 fi
 
-# Release packages
-
-# nitropack-nightly@latest => v2
+# Publish to npm
 npm publish --access public --tolerate-republish --tag latest
-
-# nitro-nightly@2x => v2-mirror
-cd .mirror
-npm publish --access public --tolerate-republish --tag 2x
