@@ -23,7 +23,7 @@ importers:
         version: 9.1.0
       crossws:
         specifier: ^0.4.1
-        version: 0.4.1(srvx@0.8.9)
+        version: 0.4.1(srvx@0.8.13)
       db0:
         specifier: ^0.3.4
         version: 0.3.4
@@ -44,7 +44,7 @@ importers:
         version: 3.2.0
       h3:
         specifier: ^2.0.0-rc.1
-        version: 2.0.0-rc.1(crossws@0.4.1(srvx@0.8.9))
+        version: 2.0.0-rc.1(crossws@0.4.1(srvx@0.8.13))
       hookable:
         specifier: ^5.5.3
         version: 5.5.3
@@ -79,8 +79,8 @@ importers:
         specifier: ^0.7.6
         version: 0.7.6
       srvx:
-        specifier: ^0.8.9
-        version: 0.8.9
+        specifier: ^0.8.13
+        version: 0.8.13
       std-env:
         specifier: ^3.9.0
         version: 3.9.0
@@ -5694,11 +5694,6 @@ packages:
     engines: {node: '>=20.16.0'}
     hasBin: true
 
-  srvx@0.8.9:
-    resolution: {integrity: sha512-wYc3VLZHRzwYrWJhkEqkhLb31TI0SOkfYZDkUhXdp3NoCnNS0FqajiQszZZjfow/VYEuc6Q5sZh9nM6kPy2NBQ==}
-    engines: {node: '>=20.16.0'}
-    hasBin: true
-
   stack-trace@0.0.10:
     resolution: {integrity: sha512-KGzahc7puUKkzyMt+IqAep+TVNbKP+k2Lmwhub39m1AsTSkaDutx56aDCo+HLDzf/D26BIHTJWNiTG1KAJiQCg==}
 
@@ -9285,9 +9280,9 @@ snapshots:
     dependencies:
       uncrypto: 0.1.3
 
-  crossws@0.4.1(srvx@0.8.9):
+  crossws@0.4.1(srvx@0.8.13):
     optionalDependencies:
-      srvx: 0.8.9
+      srvx: 0.8.13
 
   crypt@0.0.2: {}
 
@@ -10199,14 +10194,14 @@ snapshots:
       ufo: 1.6.1
       uncrypto: 0.1.3
 
-  h3@2.0.0-rc.1(crossws@0.4.1(srvx@0.8.9)):
+  h3@2.0.0-rc.1(crossws@0.4.1(srvx@0.8.13)):
     dependencies:
       cookie-es: 2.0.0
       fetchdts: 0.1.7
       rou3: 0.7.7
       srvx: 0.8.13
     optionalDependencies:
-      crossws: 0.4.1(srvx@0.8.9)
+      crossws: 0.4.1(srvx@0.8.13)
 
   has-flag@4.0.0: {}
 
@@ -12537,10 +12532,6 @@ snapshots:
   spdx-license-ids@3.0.22: {}
 
   srvx@0.8.13:
-    dependencies:
-      cookie-es: 2.0.0
-
-  srvx@0.8.9:
     dependencies:
       cookie-es: 2.0.0
 
