@@ -104,17 +104,22 @@ function createNitroApp(): NitroApp {
     return Promise.resolve(fetchHandler(req));
   };
 
-  const $fetch = createFetch({
-    fetch: (input, init) => {
-      if (!input.toString().startsWith("/")) {
-        return globalThis.fetch(input, init);
-      }
+  const originalFetch = globalThis.fetch;
+  const fetchWrapper = (input: RequestInfo, init?: RequestInit) => {
+    if (typeof input === "string" && input.startsWith("/")) {
       return requestHandler(input, init);
-    },
-  });
+    }
+    if (input instanceof Request && "_request" in input) {
+      input = (input as any)._request;
+    }
+    return originalFetch(input, init);
+  };
 
   // @ts-ignore
-  globalThis.$fetch = $fetch;
+  globalThis.fetch = fetchWrapper;
+
+  // @ts-ignore
+  globalThis.$fetch = createFetch();
 
   const app: NitroApp = {
     _h3: h3App,
