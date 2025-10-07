@@ -1,7 +1,7 @@
 import type { PluginOption as VitePlugin } from "vite";
 import type { InputOption, Plugin as RollupPlugin } from "rollup";
 import type { NitroPluginConfig, NitroPluginContext } from "./types";
-import { resolve, relative } from "pathe";
+import { resolve, relative, join } from "pathe";
 import { createNitro, prepare } from "../..";
 import { getViteRollupConfig } from "./rollup";
 import { buildEnvironments, prodSetup } from "./prod";
@@ -65,9 +65,10 @@ function nitroPlugin(ctx: NitroPluginContext): VitePlugin[] {
         if (!ctx.pluginConfig.services?.ssr) {
           ctx.pluginConfig.services ??= {};
           if (userConfig.environments?.ssr === undefined) {
-            const ssrEntry = resolveModulePath("./app", {
-              from: ctx.nitro.options.scanDirs,
-              suffixes: [".server", "/server"],
+            const ssrEntry = resolveModulePath("./entry-server", {
+              from: ["", "app", "src"].flatMap((d) =>
+                ctx.nitro!.options.scanDirs.map((s) => join(s, d) + "/")
+              ),
               extensions: DEFAULT_EXTENSIONS,
               try: true,
             });
