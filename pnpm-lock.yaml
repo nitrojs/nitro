@@ -18,75 +18,36 @@ importers:
       cookie-es:
         specifier: ^2.0.0
         version: 2.0.0
-      croner:
-        specifier: ^9.1.0
-        version: 9.1.0
       crossws:
         specifier: ^0.4.1
         version: 0.4.1(srvx@0.8.13)
       db0:
         specifier: ^0.3.4
         version: 0.3.4
-      defu:
-        specifier: ^6.1.4
-        version: 6.1.4
-      destr:
-        specifier: ^2.0.5
-        version: 2.0.5
       esbuild:
         specifier: ^0.25.10
         version: 0.25.10
       fetchdts:
         specifier: ^0.1.7
         version: 0.1.7
-      get-port-please:
-        specifier: ^3.2.0
-        version: 3.2.0
       h3:
         specifier: ^2.0.0-rc.1
         version: 2.0.0-rc.1(crossws@0.4.1(srvx@0.8.13))
-      hookable:
-        specifier: ^5.5.3
-        version: 5.5.3
       jiti:
         specifier: ^2.6.1
         version: 2.6.1
-      klona:
-        specifier: ^2.0.6
-        version: 2.0.6
       nf3:
         specifier: ^0.1.1
         version: 0.1.1
       ofetch:
         specifier: ^1.4.1
         version: 1.4.1
-      ohash:
-        specifier: ^2.0.11
-        version: 2.0.11
       rollup:
         specifier: ^4.52.4
         version: 4.52.4
-      rou3:
-        specifier: ^0.7.7
-        version: 0.7.7
-      scule:
-        specifier: ^1.3.0
-        version: 1.3.0
-      source-map:
-        specifier: ^0.7.6
-        version: 0.7.6
       srvx:
         specifier: ^0.8.13
         version: 0.8.13
-      std-env:
-        specifier: ^3.9.0
-        version: 3.9.0
-      tinyglobby:
-        specifier: ^0.2.15
-        version: 0.2.15
-      ufo:
-        specifier: ^1.6.1
-        version: 1.6.1
       undici:
         specifier: ^7.11.0
         version: 7.16.0
@@ -199,6 +160,15 @@ importers:
       confbox:
         specifier: ^0.2.2
         version: 0.2.2
+      croner:
+        specifier: ^9.1.0
+        version: 9.1.0
+      defu:
+        specifier: ^6.1.4
+        version: 6.1.4
+      destr:
+        specifier: ^2.0.5
+        version: 2.0.5
       dot-prop:
         specifier: ^10.1.0
         version: 10.1.0
@@ -229,12 +199,21 @@ importers:
       fs-extra:
         specifier: ^11.3.2
         version: 11.3.2
+      get-port-please:
+        specifier: ^3.2.0
+        version: 3.2.0
       gzip-size:
         specifier: ^7.0.0
         version: 7.0.0
+      hookable:
+        specifier: ^5.5.3
+        version: 5.5.3
       httpxy:
         specifier: ^0.1.7
         version: 0.1.7
+      klona:
+        specifier: ^2.0.6
+        version: 2.0.6
       knitwork:
         specifier: ^1.2.0
         version: 1.2.0
@@ -253,6 +232,9 @@ importers:
       mlly:
         specifier: ^1.8.0
         version: 1.8.0
+      ohash:
+        specifier: ^2.0.11
+        version: 2.0.11
       pathe:
         specifier: ^2.0.3
         version: 2.0.3
@@ -274,6 +256,12 @@ importers:
       rolldown:
         specifier: 1.0.0-beta.42
         version: 1.0.0-beta.42
+      rou3:
+        specifier: ^0.7.7
+        version: 0.7.7
+      scule:
+        specifier: ^1.3.0
+        version: 1.3.0
       semver:
         specifier: ^7.7.2
         version: 7.7.2
@@ -283,9 +271,21 @@ importers:
       serve-static:
         specifier: ^2.2.0
         version: 2.2.0
+      source-map:
+        specifier: ^0.7.6
+        version: 0.7.6
+      std-env:
+        specifier: ^3.9.0
+        version: 3.9.0
+      tinyglobby:
+        specifier: ^0.2.15
+        version: 0.2.15
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+      ufo:
+        specifier: ^1.6.1
+        version: 1.6.1
       ultrahtml:
         specifier: ^1.6.0
         version: 1.6.0
