@@ -134,6 +134,4 @@ export async function resolvePathOptions(options: NitroOptions) {
       "internal/routes/renderer-template"
     );
   }
-
-  console.log(options);
 }
