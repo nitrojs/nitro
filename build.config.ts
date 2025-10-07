@@ -4,11 +4,25 @@ import { resolve } from "pathe";
 import { normalize } from "pathe";
 import { defineBuildConfig } from "unbuild";
 
+import { resolveModulePath } from "exsolve";
+import { traceNodeModules } from "nf3";
+import { builtinDrivers as unstorageDrivers } from "unstorage";
+
 const srcDir = fileURLToPath(new URL("src", import.meta.url));
 const libDir = fileURLToPath(new URL("lib", import.meta.url));
 
 export const distSubpaths = ["presets", "runtime", "types", "vite"];
 export const libSubpaths = ["config", "meta", "runtime/meta"];
+
+const tracePkgs = [
+  "rollup-plugin-visualizer",
+  "open",
+  "youch",
+  "youch-core",
+  "unctx",
+  "unstorage",
+  ...Object.values(unstorageDrivers),
+];
 
 export const stubAlias = {
   nitro: resolve(srcDir, "index.ts"),
@@ -44,6 +58,13 @@ export default defineBuildConfig({
   ],
   hooks: {
     async "build:done"(ctx) {
+      // Trace bundled dependencies
+      await traceNodeModules(
+        tracePkgs.map((pkg) => resolveModulePath(pkg)),
+        {}
+      );
+
+      // Remove extra d.ts files
       for await (const file of glob(resolve(ctx.options.outDir, "**/*.d.ts"))) {
         if (file.includes("runtime") || file.includes("presets")) {
           const dtsContents = (await readFile(file, "utf8")).replaceAll(
@@ -60,6 +81,7 @@ export default defineBuildConfig({
     "typescript",
     "nitro",
     ...[...distSubpaths, ...libSubpaths].map((subpath) => `nitro/${subpath}`),
+    ...tracePkgs,
     "firebase-functions",
     "@scalar/api-reference",
     "get-port-please", // internal type only
