@@ -13,7 +13,24 @@ const libDir = fileURLToPath(new URL("lib", import.meta.url));
 export const distSubpaths = ["presets", "runtime", "types", "vite"];
 export const libSubpaths = ["config", "meta", "runtime/meta"];
 
-const tracePkgs = ["youch", "youch-core", "unctx"];
+const tracePkgs = [
+  "youch",
+  "youch-core",
+  "unctx",
+  "croner",
+  "defu",
+  "destr",
+  "hookable",
+  "klona",
+  "klona/full",
+  "ohash",
+  "ohash/utils",
+  "scule",
+  "source-map",
+  "ufo",
+  "std-env",
+  "get-port-please",
+];
 
 export const stubAlias = {
   nitro: resolve(srcDir, "index.ts"),
