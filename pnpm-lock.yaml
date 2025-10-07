@@ -39,6 +39,9 @@ importers:
       fetchdts:
         specifier: ^0.1.7
         version: 0.1.7
+      get-port-please:
+        specifier: ^3.2.0
+        version: 3.2.0
       h3:
         specifier: ^2.0.0-rc.1
         version: 2.0.0-rc.1(crossws@0.4.1(srvx@0.8.13))
@@ -223,9 +226,6 @@ importers:
       fs-extra:
         specifier: ^11.3.2
         version: 11.3.2
-      get-port-please:
-        specifier: ^3.2.0
-        version: 3.2.0
       gzip-size:
         specifier: ^7.0.0
         version: 7.0.0
@@ -250,9 +250,6 @@ importers:
       mlly:
         specifier: ^1.8.0
         version: 1.8.0
-      open:
-        specifier: ^10.2.0
-        version: 10.2.0
       pathe:
         specifier: ^2.0.3
         version: 2.0.3
@@ -274,9 +271,6 @@ importers:
       rolldown:
         specifier: 1.0.0-beta.42
         version: 1.0.0-beta.42
-      rollup-plugin-visualizer:
-        specifier: ^6.0.4
-        version: 6.0.4(rolldown@1.0.0-beta.42)(rollup@4.52.4)
       semver:
         specifier: ^7.7.2
         version: 7.7.2

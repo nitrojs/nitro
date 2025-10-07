@@ -47,8 +47,9 @@ export async function resolvePathOptions(options: NitroOptions) {
       options.rootDir
     ) + "/";
 
-  options.nodeModulesDirs.push(resolve(options.workspaceDir, "node_modules"));
   options.nodeModulesDirs.push(resolve(options.rootDir, "node_modules"));
+  options.nodeModulesDirs.push(resolve(options.workspaceDir, "node_modules"));
+  options.nodeModulesDirs.push(resolve(pkgDir, "dist/node_modules"));
   options.nodeModulesDirs.push(resolve(pkgDir, "node_modules"));
   options.nodeModulesDirs.push(resolve(pkgDir, "..")); // pnpm
   options.nodeModulesDirs = [

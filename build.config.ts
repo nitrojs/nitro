@@ -15,8 +15,6 @@ export const distSubpaths = ["presets", "runtime", "types", "vite"];
 export const libSubpaths = ["config", "meta", "runtime/meta"];
 
 const tracePkgs = [
-  "rollup-plugin-visualizer",
-  "open",
   "youch",
   "youch-core",
   "unctx",
