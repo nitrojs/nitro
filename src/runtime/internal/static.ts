@@ -38,19 +38,20 @@ export default eventHandler((event) => {
 
   let asset: PublicAsset | undefined;
 
-  const encodingHeader = String(
-    getRequestHeader(event, "accept-encoding") || ""
-  );
-  const encodings = [
-    ...encodingHeader
-      .split(",")
-      .map((e) => EncodingMap[e.trim() as keyof typeof EncodingMap])
-      .filter(Boolean)
-      .sort(),
-    "",
-  ];
-  if (encodings.length > 1) {
-    appendResponseHeader(event, "Vary", "Accept-Encoding");
+  let encodings: string[] = [""];
+  if (import.meta._compressPublicAssets) {
+    const encodingHeader = String(
+      getRequestHeader(event, "accept-encoding") || ""
+    );
+
+    encodings = [
+      ...encodingHeader
+        .split(",")
+        .map((e) => EncodingMap[e.trim() as keyof typeof EncodingMap])
+        .filter(Boolean)
+        .sort(),
+      "",
+    ];
   }
 
   for (const encoding of encodings) {
@@ -70,6 +71,11 @@ export default eventHandler((event) => {
       throw createError({ statusCode: 404 });
     }
     return;
+  }
+
+  // only add vary header when serving public assets with compression enabled
+  if (import.meta._compressPublicAssets) {
+    appendResponseHeader(event, "Vary", "Accept-Encoding");
   }
 
   const ifNotMatch = getRequestHeader(event, "if-none-match") === asset.etag;
