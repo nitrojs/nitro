@@ -10,7 +10,6 @@ import commonjs from "@rollup/plugin-commonjs";
 import inject from "@rollup/plugin-inject";
 import json from "@rollup/plugin-json";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
-import { visualizer } from "rollup-plugin-visualizer";
 import { replace } from "../plugins/replace";
 import { esbuild } from "../plugins/esbuild";
 import { sourcemapMininify } from "../plugins/sourcemap-min";
@@ -179,21 +178,6 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
     nitro.options.experimental.sourcemapMinify !== false
   ) {
     config.plugins.push(sourcemapMininify());
-  }
-
-  // Bundle analyzer
-  if (nitro.options.analyze) {
-    config.plugins.push(
-      // https://github.com/btd/rollup-plugin-visualizer
-      visualizer({
-        ...nitro.options.analyze,
-        filename: (nitro.options.analyze.filename || "stats.html").replace(
-          "{name}",
-          "nitro"
-        ),
-        title: "Nitro Server bundle stats",
-      })
-    );
   }
 
   return config;

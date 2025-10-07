@@ -66,9 +66,6 @@ importers:
       rollup:
         specifier: ^4.52.4
         version: 4.52.4
-      rollup-plugin-visualizer:
-        specifier: ^6.0.4
-        version: 6.0.4(rolldown@1.0.0-beta.42)(rollup@4.52.4)
       rou3:
         specifier: ^0.7.7
         version: 0.7.7
