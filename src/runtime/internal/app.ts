@@ -105,7 +105,7 @@ function createNitroApp(): NitroApp {
   };
 
   const originalFetch = globalThis.fetch;
-  const fetchWrapper = (input: RequestInfo, init?: RequestInit) => {
+  const nitroFetch = (input: RequestInfo, init?: RequestInit) => {
     if (typeof input === "string" && input.startsWith("/")) {
       return requestHandler(input, init);
     }
@@ -116,7 +116,7 @@ function createNitroApp(): NitroApp {
   };
 
   // @ts-ignore
-  globalThis.fetch = fetchWrapper;
+  globalThis.fetch = nitroFetch;
 
   // @ts-ignore
   globalThis.$fetch = createFetch();
