@@ -1,6 +1,6 @@
 {
   "name": "nitropack",
-  "version": "2.12.6",
+  "version": "2.12.7",
   "description": "Build and Deploy Universal JavaScript Servers",
   "repository": "nitrojs/nitro",
   "license": "MIT",
