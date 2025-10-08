@@ -3,6 +3,15 @@ import type { getViteRollupConfig } from "./rollup";
 import type { DevWorker, Nitro, NitroConfig } from "nitro/types";
 import type { NitroDevApp } from "../../dev/app";
 
+declare module "vite" {
+  interface UserConfig {
+    /**
+     * Nitro Vite Plugin options.
+     */
+    nitro?: NitroConfig;
+  }
+}
+
 export interface NitroPluginConfig {
   /** Custom Nitro config */
   config?: NitroConfig;

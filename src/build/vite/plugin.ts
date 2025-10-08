@@ -17,6 +17,7 @@ import { prettyPath } from "../../utils/fs";
 import { NitroDevApp } from "../../dev/app";
 import { nitroPreviewPlugin } from "./preview";
 import { fileURLToPath } from "node:url";
+import defu from "defu";
 
 // https://vite.dev/guide/api-environment-plugins
 // https://vite.dev/guide/api-environment-frameworks.html
@@ -58,7 +59,7 @@ function nitroPlugin(ctx: NitroPluginContext): VitePlugin[] {
           (await createNitro({
             dev: configEnv.mode === "development",
             rootDir: userConfig.root,
-            ...ctx.pluginConfig.config,
+            ...defu(ctx.pluginConfig.config, userConfig.nitro),
           }));
 
         // Config ssr env as a fetchable ssr service
