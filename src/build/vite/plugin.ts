@@ -121,8 +121,9 @@ function nitroPlugin(ctx: NitroPluginContext): VitePlugin[] {
         if (
           ctx.nitro.options.dev &&
           ctx.nitro.options.renderer?.template &&
-          ctx.nitro.options.renderer?.entry ===
+          ctx.nitro.options.renderer?.entry?.startsWith(
             resolve(runtimeDir, "internal/routes/renderer-template")
+          )
         ) {
           ctx.nitro.options.renderer.entry = "#vite-dev";
         }

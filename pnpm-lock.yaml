@@ -46,8 +46,8 @@ importers:
         specifier: ^2.0.11
         version: 2.0.11
       rendu:
-        specifier: ^0.0.2
-        version: 0.0.2
+        specifier: ^0.0.5
+        version: 0.0.5
       rollup:
         specifier: ^4.52.4
         version: 4.52.4
@@ -5444,8 +5444,8 @@ packages:
   remove-trailing-separator@1.1.0:
     resolution: {integrity: sha512-/hS+Y0u3aOfIETiaiirUFwDBDzmXPvO+jAfKTitUngIPzdKc6Z0LoFjM/CK5PL4C+eKwHohlHAb6H0VFfmmUsw==}
 
-  rendu@0.0.2:
-    resolution: {integrity: sha512-syQtJEmTABYWO/K8EbT5SQ6lly0fMoENr5T4BP9diPtjBFArPTlRjwewH2Za9L8rB6D46sBt0tYLgNVjqdENHQ==}
+  rendu@0.0.5:
+    resolution: {integrity: sha512-QK2bBbtM8AvDmuHYGniezrZnMGJ+lhm+RojXZZjXTbNSZWrzdxIEgDRzvyKImaU25NpbPPa8QkgD01lzsnLraA==}
     hasBin: true
 
   require-directory@2.1.1:
@@ -12310,8 +12310,9 @@ snapshots:
 
   remove-trailing-separator@1.1.0: {}
 
-  rendu@0.0.2:
+  rendu@0.0.5:
     dependencies:
+      cookie-es: 2.0.0
       srvx: 0.8.14
 
   require-directory@2.1.1: {}

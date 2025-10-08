@@ -132,7 +132,7 @@ export async function resolvePathOptions(options: NitroOptions) {
     options.renderer ??= {};
     options.renderer.entry = join(
       runtimeDir,
-      "internal/routes/renderer-template"
+      "internal/routes/renderer-template" + (options.dev ? ".dev" : "")
     );
   }
 }
