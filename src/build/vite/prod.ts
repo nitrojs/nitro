@@ -4,10 +4,11 @@ import type { NitroPluginContext } from "./types";
 import { basename, dirname, relative, resolve } from "pathe";
 import { formatCompatibilityDate } from "compatx";
 import { colors as C } from "consola/utils";
-import { copyPublicAssets, prerender } from "../..";
-import { existsSync, mkdirSync, rename, renameSync } from "node:fs";
+import { copyPublicAssets } from "../..";
+import { existsSync } from "node:fs";
 import { runtimeDir } from "nitro/runtime/meta";
 import { writeBuildInfo } from "../info";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 
 const BuilderNames = {
   nitro: C.magenta("Nitro"),
@@ -60,9 +61,16 @@ export async function buildEnvironments(
       basename(clientInput as string)
     );
     if (existsSync(outputPath)) {
+      const html = await readFile(outputPath, "utf8").then((r) =>
+        r.replace(
+          "<!--ssr-outlet-->",
+          `{{{ fetch($REQUEST, { viteEnv: "ssr" }) }}}`
+        )
+      );
+      await rm(outputPath);
       const tmp = resolve(nitroOptions.buildDir, "vite/index.html");
-      mkdirSync(dirname(tmp), { recursive: true });
-      renameSync(outputPath, tmp);
+      await mkdir(dirname(tmp), { recursive: true });
+      await writeFile(tmp, html, "utf8");
       nitroOptions.renderer.template = tmp;
     }
   }

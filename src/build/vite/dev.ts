@@ -121,7 +121,14 @@ export async function configureViteDevServer(
   // Worker => Host IPC
   const hostIPC = {
     async transformHTML(html: string) {
-      return server.transformIndexHtml("/", html);
+      return server
+        .transformIndexHtml("/", html)
+        .then((r) =>
+          r.replace(
+            "<!--ssr-outlet-->",
+            `{{{ fetch($REQUEST, { viteEnv: "ssr" }) }}}`
+          )
+        );
     },
   };
   nitroEnv.devServer.onMessage(async (payload) => {

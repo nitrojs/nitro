@@ -99,13 +99,6 @@ function nitroPlugin(ctx: NitroPluginContext): VitePlugin[] {
 
         // Default SSR renderer
         if (
-          ctx.nitro.options.renderer?.template &&
-          ctx.pluginConfig.services.ssr?.entry
-        ) {
-          ctx.nitro.logger.warn(
-            "Both SSR entry and renderer template are set. SSR entry needs manual fetch (experimental)."
-          );
-        } else if (
           !ctx.nitro.options.renderer?.entry &&
           !ctx.nitro.options.renderer?.template &&
           ctx.pluginConfig.services.ssr?.entry
