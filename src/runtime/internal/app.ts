@@ -118,9 +118,6 @@ function createNitroApp(): NitroApp {
   // @ts-ignore
   globalThis.fetch = nitroFetch;
 
-  // @ts-ignore
-  globalThis.$fetch = createFetch();
-
   const app: NitroApp = {
     _h3: h3App,
     hooks,

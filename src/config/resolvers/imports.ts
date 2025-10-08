@@ -106,5 +106,9 @@ function getNitroImportsPreset(): Preset[] {
       from: "nitro/runtime/internal/error/utils",
       imports: ["defineNitroErrorHandler"],
     },
+    {
+      from: "nitro/deps/ofetch",
+      imports: ["$fetch"],
+    },
   ];
 }
