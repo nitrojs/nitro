@@ -102,10 +102,7 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   plugins.push(virtual(nitro.options.virtual, nitro.vfs));
 
   // Renderer template
-  if (
-    nitro.options.renderer?.template &&
-    nitro.options.renderer?.entry !== "#vite-dev"
-  ) {
+  if (nitro.options.renderer?.template) {
     plugins.push(rendererTemplate(nitro));
   }
 

@@ -9,8 +9,7 @@ import type {
 import { IncomingMessage, ServerResponse } from "node:http";
 import { NodeRequest, sendNodeResponse } from "srvx/node";
 import { DevEnvironment } from "vite";
-import { compileTemplate } from "rendu";
-import { Readable } from "node:stream";
+import { compileTemplate, renderToResponse } from "rendu";
 
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
 
@@ -119,19 +118,25 @@ export async function configureViteDevServer(
   // Nitro dev environment
   const nitroEnv = server.environments.nitro as FetchableDevEnvironment;
 
-  // Local fetch support
-  const globalFetch = globalThis.fetch;
-  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-    if (typeof input === "string" && input.startsWith("/")) {
-      const url = new URL(
-        input,
-        `http://localhost:${server.config.server.port}`
-      );
-      const req = new Request(url.toString(), init);
-      return nitroEnv.dispatchFetch(req);
-    }
-    return globalFetch(input, init);
+  // Worker => Host IPC
+  const hostIPC = {
+    async transformHTML(html: string) {
+      return server.transformIndexHtml("/", html);
+    },
   };
+  nitroEnv.devServer.onMessage(async (payload) => {
+    if (payload.type === "custom" && payload.event === "nitro:vite-invoke") {
+      const methodName = payload.data.name as keyof typeof hostIPC;
+      const res = await hostIPC[methodName](payload.data.data)
+        .then((data) => ({ data }))
+        .catch((error) => ({ error }));
+      nitroEnv.devServer.sendMessage({
+        type: "custom",
+        event: "nitro:vite-invoke-response",
+        data: { id: payload.data.id, data: res },
+      });
+    }
+  });
 
   const nitroDevMiddleware = async (
     nodeReq: IncomingMessage & { _nitroHandled?: boolean },
@@ -163,28 +168,6 @@ export async function configureViteDevServer(
     }
     if (envRes.status !== 404) {
       return await sendNodeResponse(nodeRes, envRes);
-    }
-
-    // Renderer
-    const rendererTemplate = ctx.nitro!.options.renderer?.template;
-    if (
-      rendererTemplate &&
-      ctx.nitro!.options.renderer?.entry === "#vite-dev"
-    ) {
-      const { readFile } = await import("node:fs/promises");
-      const html = await readFile(rendererTemplate, "utf8").catch(
-        (error) => `<!-- ${error.stack} -->`
-      );
-      const transformedHTML = await server.transformIndexHtml("/", html);
-
-      const template = compileTemplate(transformedHTML, {
-        filename: rendererTemplate,
-      });
-      const stream = await template({});
-      nodeRes.statusCode = 200;
-      nodeRes.setHeader("Content-Type", "text/html; charset=utf-8");
-      Readable.fromWeb(stream as any).pipe(nodeRes);
-      return;
     }
 
     return next();

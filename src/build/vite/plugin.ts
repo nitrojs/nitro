@@ -117,17 +117,6 @@ function nitroPlugin(ctx: NitroPluginContext): VitePlugin[] {
           );
         }
 
-        // Use vite dev renderer in dev mode
-        if (
-          ctx.nitro.options.dev &&
-          ctx.nitro.options.renderer?.template &&
-          ctx.nitro.options.renderer?.entry?.startsWith(
-            resolve(runtimeDir, "internal/routes/renderer-template")
-          )
-        ) {
-          ctx.nitro.options.renderer.entry = "#vite-dev";
-        }
-
         // Determine default Vite dist directory
         const publicDistDir = (ctx._publicDistDir =
           userConfig.build?.outDir ||
