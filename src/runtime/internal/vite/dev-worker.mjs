@@ -83,7 +83,7 @@ class EnvRunner {
 
 // ----- RPC listeners -----
 
-const viteHostRequests = {};
+const viteHostRequests = new Map();
 
 async function requestToViteHost(
   name,
@@ -92,24 +92,23 @@ async function requestToViteHost(
   timeout = 3000
 ) {
   setTimeout(() => {
-    if (viteHostRequests[id]) {
-      delete viteHostRequests[id];
+    if (viteHostRequests.has(id)) {
+      viteHostRequests.delete(id);
       reject(new Error(`Request to vite host timed out (${name}:${id})`));
     }
   }, timeout);
   let resolve, reject;
   const promise = new Promise((_resolve, _reject) => {
     resolve = (value) => {
-      viteHostRequests[id] = undefined;
+      viteHostRequests.delete(id);
       return _resolve(value);
     };
     reject = (err) => {
-      viteHostRequests[id] = undefined;
+      viteHostRequests.delete(id);
       return _reject(err);
     };
   });
-  const req = { name, id, data, resolve, reject };
-  viteHostRequests[id] = req;
+  viteHostRequests.set(id, { resolve, reject });
   parentPort.postMessage({
     type: "custom",
     event: "nitro:vite-invoke",
@@ -138,7 +137,7 @@ parentPort.on("message", (payload) => {
     }
     case "nitro:vite-invoke-response": {
       const { id, data: response } = payload.data;
-      const req = viteHostRequests[id];
+      const req = viteHostRequests.get(id);
       if (req) {
         if (response.error) {
           req.reject(response.error);
