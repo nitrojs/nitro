@@ -121,7 +121,7 @@ export async function configureViteDevServer(
 
   // Local fetch support
   const globalFetch = globalThis.fetch;
-  globalThis.fetch = async (input: RequestInfo, init?: RequestInit) => {
+  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     if (typeof input === "string" && input.startsWith("/")) {
       const url = new URL(
         input,
@@ -183,7 +183,7 @@ export async function configureViteDevServer(
       const stream = await template({});
       nodeRes.statusCode = 200;
       nodeRes.setHeader("Content-Type", "text/html; charset=utf-8");
-      Readable.fromWeb(stream).pipe(nodeRes);
+      Readable.fromWeb(stream as any).pipe(nodeRes);
       return;
     }
 
