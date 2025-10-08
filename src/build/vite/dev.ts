@@ -6,11 +6,11 @@ import type {
   ViteDevServer,
 } from "vite";
 
-import { createServer, IncomingMessage, ServerResponse } from "node:http";
+import { IncomingMessage, ServerResponse } from "node:http";
 import { NodeRequest, sendNodeResponse } from "srvx/node";
-import { getSocketAddress, isSocketSupported } from "get-port-please";
 import { DevEnvironment } from "vite";
-import { join } from "pathe";
+import { compileTemplate } from "rendu";
+import { Readable } from "node:stream";
 
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
 
@@ -116,7 +116,22 @@ export async function configureViteDevServer(
     server.config.configFileDependencies.push(nitroConfigFile);
   }
 
+  // Nitro dev environment
   const nitroEnv = server.environments.nitro as FetchableDevEnvironment;
+
+  // Local fetch support
+  const globalFetch = globalThis.fetch;
+  globalThis.fetch = async (input: RequestInfo, init?: RequestInit) => {
+    if (typeof input === "string" && input.startsWith("/")) {
+      const url = new URL(
+        input,
+        `http://localhost:${server.config.server.port}`
+      );
+      const req = new Request(url.toString(), init);
+      return nitroEnv.dispatchFetch(req);
+    }
+    return globalFetch(input, init);
+  };
 
   const nitroDevMiddleware = async (
     nodeReq: IncomingMessage & { _nitroHandled?: boolean },
@@ -161,9 +176,14 @@ export async function configureViteDevServer(
         (error) => `<!-- ${error.stack} -->`
       );
       const transformedHTML = await server.transformIndexHtml("/", html);
+
+      const template = compileTemplate(transformedHTML, {
+        filename: rendererTemplate,
+      });
+      const stream = await template({});
       nodeRes.statusCode = 200;
       nodeRes.setHeader("Content-Type", "text/html; charset=utf-8");
-      nodeRes.end(transformedHTML);
+      Readable.fromWeb(stream).pipe(nodeRes);
       return;
     }
 

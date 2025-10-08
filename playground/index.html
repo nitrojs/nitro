@@ -19,7 +19,7 @@
           id="quote"
           class="text-[clamp(1.2rem,4vw,1.8rem)] leading-relaxed mb-5 font-light opacity-70 transition-opacity duration-500"
         >
-          Loading today's quote...
+          <?= fetch('/quote?text') ?>
         </div>
         <div
           id="author"
@@ -92,8 +92,6 @@
           refreshBtn.style.display = "inline-block";
         }
       }
-
-      fetchQuote();
     </script>
   </body>
 </html>

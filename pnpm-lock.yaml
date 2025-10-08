@@ -45,6 +45,9 @@ importers:
       ohash:
         specifier: ^2.0.11
         version: 2.0.11
+      rendu:
+        specifier: ^0.0.2
+        version: 0.0.2
       rollup:
         specifier: ^4.52.4
         version: 4.52.4
@@ -5441,6 +5444,10 @@ packages:
   remove-trailing-separator@1.1.0:
     resolution: {integrity: sha512-/hS+Y0u3aOfIETiaiirUFwDBDzmXPvO+jAfKTitUngIPzdKc6Z0LoFjM/CK5PL4C+eKwHohlHAb6H0VFfmmUsw==}
 
+  rendu@0.0.2:
+    resolution: {integrity: sha512-syQtJEmTABYWO/K8EbT5SQ6lly0fMoENr5T4BP9diPtjBFArPTlRjwewH2Za9L8rB6D46sBt0tYLgNVjqdENHQ==}
+    hasBin: true
+
   require-directory@2.1.1:
     resolution: {integrity: sha512-fGxEI7+wsG9xrvdjsrlmL22OMTTiHRwAMroiEeMgq8gzoLC/PQr7RsRDSTLUg/bZAZtF+TVIkHc6/4RIKrui+Q==}
     engines: {node: '>=0.10.0'}
@@ -5684,6 +5691,11 @@ packages:
 
   srvx@0.8.13:
     resolution: {integrity: sha512-ny3X0dm5GsLeeUOsLwfY3mLu/UhM8QkCrc5/rWKt75mx74udHUDlTsUxC5YRArgiMX/knsbRSwJcNo2aPUeN5A==}
+    engines: {node: '>=20.16.0'}
+    hasBin: true
+
+  srvx@0.8.14:
+    resolution: {integrity: sha512-DYI9dUn3UDV0KgL6IAIeIJCljrgfimSeDsEfUq1XcD5DLAvCC2ujzpLi5zGKZTxOs/gNfpgiiI/R3+8PUY2WQw==}
     engines: {node: '>=20.16.0'}
     hasBin: true
 
@@ -12298,6 +12310,10 @@ snapshots:
 
   remove-trailing-separator@1.1.0: {}
 
+  rendu@0.0.2:
+    dependencies:
+      srvx: 0.8.14
+
   require-directory@2.1.1: {}
 
   require-from-string@2.0.2: {}
@@ -12597,6 +12613,10 @@ snapshots:
   spdx-license-ids@3.0.22: {}
 
   srvx@0.8.13:
+    dependencies:
+      cookie-es: 2.0.0
+
+  srvx@0.8.14:
     dependencies:
       cookie-es: 2.0.0
 

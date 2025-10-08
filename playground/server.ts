@@ -9,10 +9,14 @@ function getQuotes(): Promise<{ quoteText: string; quoteAuthor: string }[]> {
 
 export default {
   async fetch(request: Request) {
-    const { pathname } = new URL(request.url);
+    const { pathname, searchParams } = new URL(request.url);
     if (pathname === "/quote") {
       const quotes = await getQuotes();
+      await new Promise((r) => setTimeout(r, 1000)); // simulate latency
       const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+      if (searchParams.has("text")) {
+        return new Response(randomQuote.quoteText);
+      }
       return Response.json({
         text: randomQuote.quoteText,
         author: randomQuote.quoteAuthor,
