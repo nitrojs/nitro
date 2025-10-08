@@ -1,23 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { applyEnv } from "../../src/runtime/internal/utils.env";
+import { applyEnv } from "../../src/runtime/internal/runtime-config";
 
 describe("env utils", () => {
   describe("applyEnv", () => {
     const tests = [
       {
-        config: { a: 1, b: 2 },
+        config: { a: "1", b: "2" },
         env: { NITRO_A: "123" },
-        expected: { a: 123, b: 2 },
+        expected: { a: "123", b: "2" },
       },
       {
-        config: { feature: { options: { optionA: true, optionB: true } } },
-        env: { NITRO_FEATURE: false },
-        expected: { feature: false },
-      },
-      {
-        config: { feature: { options: { optionA: true, optionB: true } } },
-        env: { NITRO_FEATURE_OPTIONS: false },
-        expected: { feature: { options: false } },
+        config: { feature: { options: { option1: "original", option2: 123 } } },
+        env: { NITRO_FEATURE_OPTIONS_OPTION1: "env" },
+        expected: { feature: { options: { option1: "env", option2: 123 } } },
       },
     ];
     for (const test of tests) {
