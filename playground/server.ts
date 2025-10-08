@@ -12,10 +12,11 @@ export default {
     const { pathname, searchParams } = new URL(request.url);
     if (pathname === "/quote") {
       const quotes = await getQuotes();
-      await new Promise((r) => setTimeout(r, 1000)); // simulate latency
       const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
       if (searchParams.has("text")) {
-        return new Response(randomQuote.quoteText);
+        return new Response(tokenizedStream(randomQuote.quoteText, 150), {
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        });
       }
       return Response.json({
         text: randomQuote.quoteText,
@@ -24,3 +25,22 @@ export default {
     }
   },
 };
+
+function tokenizedStream(text: string, delay = 100) {
+  const tokens = text.split(" ");
+  return new ReadableStream({
+    start(controller) {
+      let index = 0;
+      function push() {
+        if (index < tokens.length) {
+          const word = tokens[index++] + (index < tokens.length ? " " : "");
+          controller.enqueue(new TextEncoder().encode(word));
+          setTimeout(push, delay);
+        } else {
+          controller.close();
+        }
+      }
+      push();
+    },
+  });
+}
