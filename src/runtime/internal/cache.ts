@@ -343,3 +343,4 @@ export function defineCachedEventHandler(
 }
 
 export const cachedEventHandler = defineCachedEventHandler;
+export const defineCachedHandler = defineCachedEventHandler;

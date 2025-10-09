@@ -74,6 +74,7 @@ function getNitroImportsPreset(): Preset[] {
       imports: [
         "defineCachedFunction",
         "defineCachedEventHandler",
+        "defineCachedHandler",
         "cachedFunction",
         "cachedEventHandler",
       ],

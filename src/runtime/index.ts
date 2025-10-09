@@ -18,6 +18,7 @@ export { defineRenderHandler } from "./internal/renderer";
 export {
   defineCachedFunction,
   defineCachedEventHandler,
+  defineCachedHandler,
   cachedFunction,
   cachedEventHandler,
 } from "./internal/cache";
