@@ -72,7 +72,7 @@ Nitro extends your Vite application with a production-ready server, compatible w
   :::
 ::
 
-::div{class="bg-neutral-50 dark:bg-neutral-950/30 py-10 border border-default"}
+::div{class="bg-neutral-50 dark:bg-neutral-950/30 py-10 border-y border-default"}
   ::u-container
     ::u-page-grid
       ::u-page-feature
