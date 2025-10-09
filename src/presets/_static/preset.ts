@@ -19,7 +19,6 @@ const _static = defineNitroPreset(
   {
     name: "static" as const,
     static: true,
-    url: import.meta.url,
   }
 );
 
@@ -48,7 +47,6 @@ const githubPages = defineNitroPreset(
   {
     name: "github-pages" as const,
     static: true,
-    url: import.meta.url,
   }
 );
 
@@ -66,7 +64,6 @@ const gitlabPages = defineNitroPreset(
   {
     name: "gitlab-pages" as const,
     static: true,
-    url: import.meta.url,
   }
 );
 

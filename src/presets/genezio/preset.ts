@@ -6,7 +6,6 @@ const genezio = defineNitroPreset(
   },
   {
     name: "genezio" as const,
-    url: import.meta.url,
   }
 );
 export default [genezio] as const;

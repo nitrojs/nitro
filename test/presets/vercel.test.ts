@@ -1,20 +1,21 @@
 import { promises as fsp } from "node:fs";
-import { resolve, join, relative, basename } from "pathe";
-import { describe, expect, it } from "vitest";
-import { setupTest, startServer, testNitro } from "../tests";
-import { readlink } from "node:fs/promises";
+import { resolve, join, basename } from "pathe";
+import { describe, expect, it, vi } from "vitest";
+import { setupTest, testNitro } from "../tests";
 
 describe("nitro:preset:vercel", async () => {
   const ctx = await setupTest("vercel");
   testNitro(
     ctx,
     async () => {
-      const handle = await import(
+      const { fetch: fetchHandler } = await import(
         resolve(ctx.outDir, "functions/__fallback.func/index.mjs")
       ).then((r) => r.default || r);
-      await startServer(ctx, handle);
       return async ({ url, ...options }) => {
-        const res = await ctx.fetch(url, options);
+        const req = new Request(new URL(url, "https://example.com"), options);
+        const res = await fetchHandler(req, {
+          waitUntil: vi.fn(),
+        });
         return res;
       };
     },
@@ -322,10 +323,6 @@ describe("nitro:preset:vercel", async () => {
                 "src": "/api/hey",
               },
               {
-                "dest": "/api/hello2",
-                "src": "/api/hello2",
-              },
-              {
                 "dest": "/api/hello",
                 "src": "/api/hello",
               },
@@ -502,7 +499,6 @@ describe("nitro:preset:vercel", async () => {
             "functions/api/errors.func (symlink)",
             "functions/api/headers.func (symlink)",
             "functions/api/hello.func (symlink)",
-            "functions/api/hello2.func (symlink)",
             "functions/api/hey.func (symlink)",
             "functions/api/kebab.func (symlink)",
             "functions/api/meta/test.func (symlink)",

@@ -1,6 +1,7 @@
 import type { Nitro } from "nitro/types";
 import type { RolldownWatcher, RolldownOptions } from "rolldown";
-import { watch } from "chokidar";
+import { watch as chokidarWatch } from "chokidar";
+import { watch } from "node:fs";
 import { join } from "pathe";
 import { debounce } from "perfect-debounce";
 import { scanHandlers } from "../../scan";
@@ -23,7 +24,7 @@ export async function watchDev(nitro: Nitro, config: RolldownOptions) {
   }
   const reload = debounce(load);
 
-  const watchPatterns = nitro.options.scanDirs.flatMap((dir) => [
+  const scanDirs = nitro.options.scanDirs.flatMap((dir) => [
     join(dir, nitro.options.apiDir || "api"),
     join(dir, nitro.options.routesDir || "routes"),
     join(dir, "middleware"),
@@ -32,10 +33,19 @@ export async function watchDev(nitro: Nitro, config: RolldownOptions) {
   ]);
 
   const watchReloadEvents = new Set(["add", "addDir", "unlink", "unlinkDir"]);
-  const reloadWatcher = watch(watchPatterns, { ignoreInitial: true }).on(
-    "all",
-    (event) => {
-      if (watchReloadEvents.has(event)) {
+  const scanDirsWatcher = chokidarWatch(scanDirs, {
+    ignoreInitial: true,
+  }).on("all", (event) => {
+    if (watchReloadEvents.has(event)) {
+      reload();
+    }
+  });
+
+  const srcDirWatcher = watch(
+    nitro.options.srcDir,
+    { persistent: false },
+    (_event, filename) => {
+      if (filename && /^server\.[mc]?[jt]sx?$/.test(filename)) {
         reload();
       }
     }
@@ -43,7 +53,8 @@ export async function watchDev(nitro: Nitro, config: RolldownOptions) {
 
   nitro.hooks.hook("close", () => {
     watcher.close();
-    reloadWatcher.close();
+    scanDirsWatcher.close();
+    srcDirWatcher.close();
   });
 
   nitro.hooks.hook("rollup:reload", () => reload());

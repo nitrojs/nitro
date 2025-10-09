@@ -1,8 +1,8 @@
 name: ci
 
 on:
-  push: { branches: [v2, v3] }
-  pull_request: { branches: [v2, v3] }
+  push: { branches: [main] }
+  pull_request: { branches: [main] }
 
 jobs:
   tests:
@@ -12,9 +12,9 @@ jobs:
         os: [ubuntu-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: npm i -g --force corepack && corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with: { node-version: lts/*, cache: pnpm }
       - uses: oven-sh/setup-bun@v2
         if: ${{ matrix.os != 'windows-latest' }}
@@ -35,12 +35,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions: { id-token: write, contents: read }
     needs: tests
-    if: contains('refs/heads/v2,refs/heads/v3', github.ref) && github.event_name == 'push'
+    if: contains('refs/heads/main', github.ref) && github.event_name == 'push'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with: { fetch-depth: 0 }
       - run: npm i -fg corepack && corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with: { node-version: lts/*, cache: "pnpm" }
       - run: pnpm install
       - run: pnpm changelogen --bump --canary nightly

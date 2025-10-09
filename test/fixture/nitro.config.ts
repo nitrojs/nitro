@@ -37,6 +37,7 @@ export default defineNitroConfig({
     {
       route: "/api/hello2",
       handler: "api/hello.ts",
+      middleware: true,
     },
   ],
   devProxy: {
@@ -131,6 +132,10 @@ export default defineNitroConfig({
     wrangler: {
       compatibility_date: "2024-01-01",
     },
+  },
+  typescript: {
+    generateRuntimeConfigTypes: true,
+    generateTsConfig: true,
   },
   openAPI: {
     production: "prerender",

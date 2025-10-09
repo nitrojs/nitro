@@ -1,13 +1,12 @@
 import "#nitro-internal-pollyfills";
 import { useNitroApp } from "nitro/runtime";
-import { runTask } from "nitro/runtime";
+
 import { trapUnhandledNodeErrors } from "nitro/runtime/internal";
 import { startScheduleRunner } from "nitro/runtime/internal";
-import { scheduledTasks, tasks } from "#nitro-internal-virtual/tasks";
 import { Server } from "node:http";
 import nodeCrypto from "node:crypto";
 import { parentPort, threadId } from "node:worker_threads";
-import { defineHandler, getRouterParam } from "h3";
+
 import wsAdapter from "crossws/adapters/node";
 import { toNodeHandler } from "srvx/node";
 import { getSocketAddress, isSocketSupported } from "get-port-please";
@@ -45,39 +44,6 @@ if (import.meta._websocket) {
   const { handleUpgrade } = wsAdapter(nitroApp.h3App.websocket);
   server.on("upgrade", handleUpgrade);
 }
-
-// Register tasks handlers
-nitroApp._h3?.get(
-  "/_nitro/tasks",
-  defineHandler(async (event) => {
-    const _tasks = await Promise.all(
-      Object.entries(tasks).map(async ([name, task]) => {
-        const _task = await task.resolve?.();
-        return [name, { description: _task?.meta?.description }];
-      })
-    );
-    return {
-      tasks: Object.fromEntries(_tasks),
-      scheduledTasks,
-    };
-  })
-);
-
-nitroApp._h3?.use(
-  "/_nitro/tasks/:name",
-  defineHandler(async (event) => {
-    const name = getRouterParam(event, "name") as string;
-    const body = (await event.req.json().catch(() => ({}))) as Record<
-      string,
-      unknown
-    >;
-    const payload = {
-      ...Object.fromEntries(event.url.searchParams.entries()),
-      ...body,
-    };
-    return await runTask(name, { payload });
-  })
-);
 
 // Scheduled tasks
 if (import.meta._tasks) {

@@ -72,7 +72,7 @@ export function publicAssets(nitro: Nitro): Plugin {
         return `
 import { promises as fsp } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { resolve, dirname } from 'pathe'
+import { resolve, dirname } from 'node:path'
 import assets from '#nitro-internal-virtual/public-assets-data'
 export function readAsset (id) {
   const serverDir = dirname(fileURLToPath(globalThis.__nitro_main__))

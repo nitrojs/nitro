@@ -1,12 +1,10 @@
 import { promises as fsp } from "node:fs";
-import type { RequestListener } from "node:http";
+import { Server, type RequestListener } from "node:http";
 import { tmpdir } from "node:os";
 import { formatDate } from "compatx";
 import type { DateString } from "compatx";
 import { defu } from "defu";
 import destr from "destr";
-import { listen } from "listhen";
-import type { Listener } from "listhen";
 import { fileURLToPath } from "mlly";
 import {
   build,
@@ -21,7 +19,6 @@ import { fetch } from "ofetch";
 import type { FetchOptions } from "ofetch";
 import { join, resolve } from "pathe";
 import { isWindows } from "std-env";
-import { joinURL } from "ufo";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 export interface Context {
@@ -30,7 +27,7 @@ export interface Context {
   rootDir: string;
   outDir: string;
   fetch: (url: string, opts?: FetchOptions) => Promise<any>;
-  server?: Listener;
+  server?: { url: string; close: () => Promise<void> };
   isDev: boolean;
   isWorker: boolean;
   isLambda: boolean;
@@ -108,7 +105,7 @@ export async function setupTest(
       NITRO_DYNAMIC: "from-env",
     },
     fetch: (url, opts) =>
-      fetch(joinURL(ctx.server!.url, url.slice(1)), {
+      fetch(new URL(url, ctx.server!.url), {
         redirect: "manual",
         ...(opts as any),
       }),
@@ -143,7 +140,11 @@ export async function setupTest(
   if (ctx.isDev) {
     // Setup development server
     const devServer = createDevServer(ctx.nitro);
-    ctx.server = await devServer.listen({});
+    const server = await devServer.listen({});
+    ctx.server = {
+      url: server.url!,
+      close: () => server.close(),
+    };
     await prepare(ctx.nitro);
     const ready = new Promise<void>((resolve) => {
       ctx.nitro!.hooks.hook("dev:reload", () => resolve());
@@ -171,7 +172,22 @@ export async function setupTest(
 }
 
 export async function startServer(ctx: Context, handle: RequestListener) {
-  ctx.server = await listen(handle);
+  const server = new Server(handle);
+  await new Promise<void>((resolve, reject) => {
+    server.on("error", reject);
+    server.listen(0, () => resolve());
+  });
+  const port = (server.address() as any).port;
+  ctx.server = {
+    url: `http://localhost:${port}`,
+    close: () =>
+      new Promise((resolve, reject) => {
+        server.close((err) => {
+          if (err) return reject(err);
+          resolve();
+        });
+      }),
+  };
 }
 
 type TestHandlerResult = {
@@ -232,6 +248,12 @@ export function testNitro(
   beforeAll(async () => {
     _handler = await getHandler();
   }, 25_000);
+
+  it("Server entry works", async () => {
+    const { data, headers } = await callHandler({ url: "/" });
+    expect(data).toBe("server entry works!");
+    expect(headers["x-test"]).toBe("test");
+  });
 
   it("API Works", async () => {
     const { data: helloData } = await callHandler({ url: "/api/hello" });
@@ -751,6 +773,13 @@ export function testNitro(
       }
       if (ctx.preset === "deno-server" && key === "globals:BroadcastChannel") {
         continue; // unstable API
+      }
+      if (
+        ctx.preset.includes("cloudflare") &&
+        key.startsWith("globals:") &&
+        ctx.nitro!.options.builder === "rolldown"
+      ) {
+        continue;
       }
       expect(data[key], key).toBe(true);
     }

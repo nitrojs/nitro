@@ -3,7 +3,7 @@ import { defineNitroPreset } from "../_utils/preset";
 const winterjs = defineNitroPreset(
   {
     extends: "base-worker",
-    entry: "./runtime/winterjs",
+    entry: "./winterjs/runtime/winterjs",
     minify: false,
     serveStatic: "inline",
     wasm: {
@@ -16,7 +16,6 @@ const winterjs = defineNitroPreset(
   },
   {
     name: "winterjs" as const,
-    url: import.meta.url,
   }
 );
 

@@ -10,11 +10,9 @@ const nitroApp = useNitroApp();
 
 export const handler = awslambda.streamifyResponse(
   async (event: APIGatewayProxyEventV2, responseStream, context) => {
-    const request = awsRequest(event);
+    const request = awsRequest(event, context);
 
-    const response = await nitroApp.fetch(request, undefined, {
-      _platform: { aws: { event, context } },
-    });
+    const response = await nitroApp.fetch(request);
 
     response.headers.set("transfer-encoding", "chunked");
 

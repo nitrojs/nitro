@@ -1,7 +1,5 @@
 import type { NitroAppPlugin } from "nitro/types";
 import type { GetPlatformProxyOptions, PlatformProxy } from "wrangler";
-// @ts-ignore
-import { useRuntimeConfig, getRequestURL } from "#imports";
 
 const _proxy = _getPlatformProxy()
   .catch((error) => {
@@ -61,12 +59,16 @@ export default <NitroAppPlugin>function (nitroApp) {
 };
 
 async function _getPlatformProxy() {
-  const _pkg = "wrangler"; // Bypass bundling!
-  const { getPlatformProxy } = (await import(_pkg).catch(() => {
-    throw new Error(
-      "Package `wrangler` not found, please install it with: `npx nypm@latest add -D wrangler`"
-    );
-  })) as typeof import("wrangler");
+  const { useRuntimeConfig } = await import("nitro/runtime");
+
+  const pkg = "wrangler"; // bypass bundler
+  const { getPlatformProxy } = (await import(/* @vite-ignore */ pkg).catch(
+    () => {
+      throw new Error(
+        "Package `wrangler` not found, please install it with: `npx nypm@latest add -D wrangler`"
+      );
+    }
+  )) as typeof import("wrangler");
 
   const runtimeConfig: {
     wrangler: {
@@ -74,7 +76,7 @@ async function _getPlatformProxy() {
       persistDir: string;
       environment?: string;
     };
-  } = useRuntimeConfig();
+  } = useRuntimeConfig() as any;
 
   const proxyOptions: GetPlatformProxyOptions = {
     configPath: runtimeConfig.wrangler.configPath,

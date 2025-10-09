@@ -1,4 +1,10 @@
-import type { EventHandler, HTTPError, HTTPMethod, HTTPEvent } from "h3";
+import type {
+  EventHandler,
+  HTTPError,
+  HTTPMethod,
+  HTTPEvent,
+  HTTPHandler,
+} from "h3";
 import type { PresetName } from "nitro/presets";
 import type {
   OperationObject,
@@ -15,17 +21,31 @@ export interface NitroRouteMeta {
   };
 }
 
-export interface NitroEventHandler {
+interface NitroHandlerCommon {
   /**
-   * Path prefix or route
+   * HTTP pathname pattern to match
+   *
+   * Examples: `/test`, `/api/:id`, `/blog/**`
    */
   route: string;
 
   /**
-   * Specifies this is a middleware handler.
+   * HTTP method to match
+   */
+  method?: HTTPMethod;
+
+  /**
+   * Run handler as a middleware before other route handlings
    */
   middleware?: boolean;
 
+  /**
+   * Extra Meta
+   */
+  meta?: NitroRouteMeta;
+}
+
+export interface NitroEventHandler extends NitroHandlerCommon {
   /**
    * Use lazy loading to import handler
    */
@@ -33,37 +53,20 @@ export interface NitroEventHandler {
 
   /**
    * Path to event handler
-   *
    */
   handler: string;
 
-  /**
-   * Router method matcher
-   */
-  method?: HTTPMethod;
-
-  /**
-   * Meta
-   */
-  meta?: NitroRouteMeta;
-
   /*
-   * Environments to include this handler
+   * Environments to include and bundle this handler
    */
   env?: MaybeArray<"dev" | "prod" | "prerender" | PresetName | (string & {})>;
 }
 
-export interface NitroDevEventHandler {
+export interface NitroDevEventHandler extends NitroHandlerCommon {
   /**
-   * Path prefix or route
+   * Event handler function
    */
-  route?: string;
-
-  /**
-   * Event handler
-   *
-   */
-  handler: EventHandler;
+  handler: HTTPHandler;
 }
 
 type MaybePromise<T> = T | Promise<T>;

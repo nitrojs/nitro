@@ -7,7 +7,6 @@ const renderCom = defineNitroPreset(
   },
   {
     name: "render-com" as const,
-    url: import.meta.url,
   }
 );
 

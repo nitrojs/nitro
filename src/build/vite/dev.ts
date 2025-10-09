@@ -6,10 +6,10 @@ import type {
   ViteDevServer,
 } from "vite";
 
-import { createServer } from "node:http";
+import { IncomingMessage, ServerResponse } from "node:http";
 import { NodeRequest, sendNodeResponse } from "srvx/node";
-import { getSocketAddress, isSocketSupported } from "get-port-please";
 import { DevEnvironment } from "vite";
+import { compileTemplate, renderToResponse } from "rendu";
 
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
 
@@ -33,11 +33,12 @@ export interface DevServer extends TransportHooks {
 export function createFetchableDevEnvironment(
   name: string,
   config: ResolvedConfig,
-  devServer: DevServer
+  devServer: DevServer,
+  entry: string
 ): FetchableDevEnvironment {
-  const transport = createTransport(devServer);
+  const transport = createTransport(name, devServer);
   const context: DevEnvironmentContext = { hot: true, transport };
-  return new FetchableDevEnvironment(name, config, context, devServer);
+  return new FetchableDevEnvironment(name, config, context, devServer, entry);
 }
 
 export class FetchableDevEnvironment extends DevEnvironment {
@@ -47,10 +48,17 @@ export class FetchableDevEnvironment extends DevEnvironment {
     name: string,
     config: ResolvedConfig,
     context: DevEnvironmentContext,
-    devServer: DevServer
+    devServer: DevServer,
+    entry: string
   ) {
     super(name, config, context);
     this.devServer = devServer;
+
+    this.devServer.sendMessage({
+      type: "custom",
+      event: "nitro:vite-env",
+      data: { name, entry },
+    });
   }
 
   async dispatchFetch(request: Request): Promise<Response> {
@@ -63,16 +71,21 @@ export class FetchableDevEnvironment extends DevEnvironment {
   }
 }
 
-function createTransport(hooks: TransportHooks): HotChannel {
+function createTransport(name: string, hooks: TransportHooks): HotChannel {
   const listeners = new WeakMap();
   return {
-    send: (data) => hooks.sendMessage(data),
+    send: (data) => hooks.sendMessage({ ...data, viteEnv: name }),
     on: (event: string, handler: any) => {
       if (event === "connection") return;
       const listener = (value: any) => {
-        if (value.type === "custom" && value.event === event) {
+        if (
+          value?.type === "custom" &&
+          value.event === event &&
+          value.viteEnv === name
+        ) {
           handler(value.data, {
-            send: (payload: any) => hooks.sendMessage(payload),
+            send: (payload: any) =>
+              hooks.sendMessage({ ...payload, viteEnv: name }),
           });
         }
       };
@@ -96,57 +109,92 @@ export async function configureViteDevServer(
   ctx: NitroPluginContext,
   server: ViteDevServer
 ) {
-  // Expose an RPC server to environments
-  const rpcServer = createServer((req, res) => {
-    server.middlewares.handle(req, res, () => {});
-  });
-  const listenAddr = (await isSocketSupported())
-    ? getSocketAddress({ name: "nitro-vite", pid: true, random: true })
-    : { port: 0, host: "localhost" };
-  rpcServer.listen(listenAddr, () => {
-    const addr = rpcServer.address()!;
-    for (const env of Object.values(server.environments)) {
-      env.hot.send({
+  // Restart with nitro.config changes
+  const nitroConfigFile = ctx.nitro!.options._c12.configFile;
+  if (nitroConfigFile) {
+    server.config.configFileDependencies.push(nitroConfigFile);
+  }
+
+  // Nitro dev environment
+  const nitroEnv = server.environments.nitro as FetchableDevEnvironment;
+
+  // Worker => Host IPC
+  const hostIPC = {
+    async transformHTML(html: string) {
+      return server
+        .transformIndexHtml("/", html)
+        .then((r) =>
+          r.replace(
+            "<!--ssr-outlet-->",
+            `{{{ fetch($REQUEST, { viteEnv: "ssr" }) }}}`
+          )
+        );
+    },
+  };
+  nitroEnv.devServer.onMessage(async (payload) => {
+    if (payload.type === "custom" && payload.event === "nitro:vite-invoke") {
+      const methodName = payload.data.name as keyof typeof hostIPC;
+      const res = await hostIPC[methodName](payload.data.data)
+        .then((data) => ({ data }))
+        .catch((error) => ({ error }));
+      nitroEnv.devServer.sendMessage({
         type: "custom",
-        event: "nitro-rpc",
-        data:
-          typeof addr === "string"
-            ? { socketPath: addr }
-            : // prettier-ignore
-              { host: `${addr.address.includes(":")? `[${addr.address}]`: addr.address}:${addr.port}`, },
+        event: "nitro:vite-invoke-response",
+        data: { id: payload.data.id, data: res },
       });
     }
   });
 
-  return () =>
-    server.middlewares.use(async (nodeReq, nodeRes, next) => {
-      // Fast Skip known prefixes
-      if (
-        nodeReq.url!.startsWith("/@vite/") ||
-        nodeReq.url!.startsWith("/@fs/") ||
-        nodeReq.url!.startsWith("/@id/")
-      ) {
-        return next();
-      }
+  const nitroDevMiddleware = async (
+    nodeReq: IncomingMessage & { _nitroHandled?: boolean },
+    nodeRes: ServerResponse,
+    next: () => void
+  ) => {
+    // Skip for vite internal requests or if already handled
+    if (/^\/@(?:vite|fs|id)\//.test(nodeReq.url!) || nodeReq._nitroHandled) {
+      return next();
+    }
+    nodeReq._nitroHandled = true;
 
-      // Match fetchable environment based on request
-      // 1. Check for x-vite-env header
-      // 3. Default to nitro environment
-      const env = (server.environments[
-        nodeReq.headers["x-vite-env"] as string
-      ] || server.environments.nitro) as FetchableDevEnvironment;
+    // Create web API compat request
+    const req = new NodeRequest({ req: nodeReq, res: nodeRes });
 
-      // Make sure the environment is fetchable or else skip
-      if (typeof env?.dispatchFetch !== "function") {
-        ctx.nitro!.logger.warn("Environment is not fetchable:", env.name);
-        return next();
-      }
+    // Try dev app
+    const devAppRes = await ctx.devApp!.fetch(req);
+    if (nodeRes.writableEnded || nodeRes.headersSent) {
+      return;
+    }
+    if (devAppRes.status !== 404) {
+      return await sendNodeResponse(nodeRes, devAppRes);
+    }
 
-      // Dispatch the request to the environment
-      const webReq = new NodeRequest({ req: nodeReq, res: nodeRes });
-      const webRes = await env.dispatchFetch(webReq);
-      return webRes.status === 404
-        ? next()
-        : await sendNodeResponse(nodeRes, webRes);
-    });
+    // Dispatch the request to the nitro environment
+    const envRes = await nitroEnv.dispatchFetch(req);
+    if (nodeRes.writableEnded || nodeRes.headersSent) {
+      return;
+    }
+    if (envRes.status !== 404) {
+      return await sendNodeResponse(nodeRes, envRes);
+    }
+
+    return next();
+  };
+
+  // Handle as first middleware for direct requests
+  // https://github.com/vitejs/vite/pull/20866
+  server.middlewares.use(function nitroDevMiddlewarePre(req, res, next) {
+    const fetchDest = req.headers["sec-fetch-dest"];
+    if (fetchDest) {
+      res.setHeader("vary", "sec-fetch-dest");
+    }
+    if (!fetchDest || /^(document|iframe|frame|empty)$/.test(fetchDest)) {
+      nitroDevMiddleware(req, res, next);
+    } else {
+      next();
+    }
+  });
+
+  return () => {
+    server.middlewares.use(nitroDevMiddleware);
+  };
 }

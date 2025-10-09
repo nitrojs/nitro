@@ -20,7 +20,8 @@ import { serverAssets } from "./plugins/server-assets";
 import { storage } from "./plugins/storage";
 import { virtual } from "./plugins/virtual";
 import { errorHandler } from "./plugins/error-handler";
-import { externals } from "./plugins/externals";
+import { rollupNodeFileTrace } from "nf3";
+import { rendererTemplate } from "./plugins/renderer-template";
 
 export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const plugins: Plugin[] = [];
@@ -100,6 +101,11 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   // User virtuals
   plugins.push(virtual(nitro.options.virtual, nitro.vfs));
 
+  // Renderer template
+  if (nitro.options.renderer?.template) {
+    plugins.push(rendererTemplate(nitro));
+  }
+
   // Externals Plugin
   if (nitro.options.noExternals) {
     plugins.push({
@@ -149,7 +155,7 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
     });
   } else {
     plugins.push(
-      externals(
+      rollupNodeFileTrace(
         defu(nitro.options.externals, <NodeExternalsOptions>{
           outDir: nitro.options.output.serverDir,
           moduleDirectories: nitro.options.nodeModulesDirs,
@@ -191,6 +197,7 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
             ...nitro.options.externals?.traceAlias,
           },
           exportConditions: nitro.options.exportConditions,
+          writePackageJson: true,
         })
       )
     );

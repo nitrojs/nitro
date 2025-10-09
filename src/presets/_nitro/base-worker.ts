@@ -18,7 +18,6 @@ const baseWorker = defineNitroPreset(
   },
   {
     name: "base-worker" as const,
-    url: import.meta.url,
   }
 );
 

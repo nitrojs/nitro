@@ -11,11 +11,11 @@ import type {
 import { joinURL } from "ufo";
 import { defu } from "defu";
 import { handlersMeta } from "#nitro-internal-virtual/routing-meta";
-import { useRuntimeConfig } from "../config";
+import { useRuntimeConfig } from "../runtime-config";
 
 // Served as /_openapi.json
 export default defineHandler((event) => {
-  const runtimeConfig = useRuntimeConfig(event);
+  const runtimeConfig = useRuntimeConfig();
 
   const base = runtimeConfig.app?.baseURL;
   const url = joinURL(getRequestURL(event).origin, base);

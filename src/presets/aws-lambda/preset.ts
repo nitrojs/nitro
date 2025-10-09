@@ -3,7 +3,7 @@ export type { AwsLambdaOptions as PresetOptions } from "./types";
 
 const awsLambda = defineNitroPreset(
   {
-    entry: "./runtime/aws-lambda",
+    entry: "./aws-lambda/runtime/aws-lambda",
     awsLambda: {
       streaming: false,
     },
@@ -17,7 +17,6 @@ const awsLambda = defineNitroPreset(
   },
   {
     name: "aws-lambda" as const,
-    url: import.meta.url,
   }
 );
 

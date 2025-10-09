@@ -1,15 +1,9 @@
-import {
-  defineHandler,
-  handleCacheHeaders,
-  isEvent,
-  isHTTPEvent,
-  toResponse,
-} from "h3";
-import { FastResponse, type ServerRequest } from "srvx";
+import { defineHandler, handleCacheHeaders, isHTTPEvent, toResponse } from "h3";
+import { FastResponse } from "srvx";
 import { parseURL } from "ufo";
+import { hash } from "ohash";
 import { useNitroApp } from "./app";
 import { useStorage } from "./storage";
-import { hash } from "ohash";
 
 import type { H3Event, EventHandler, HTTPEvent } from "h3";
 import type { TransactionOptions } from "unstorage";
@@ -257,11 +251,15 @@ export function defineCachedEventHandler(
       );
 
       try {
+        const originalReq = event.req;
         // @ts-expect-error assigning to publicly readonly property
         event.req = new Request(event.req.url, {
           method: event.req.method,
           headers: filteredHeaders,
         });
+        // Inherit srvx context
+        event.req.runtime = originalReq.runtime;
+        event.req.waitUntil = originalReq.waitUntil;
       } catch (error) {
         console.error("[cache] Failed to filter headers:", error);
       }

@@ -5,8 +5,6 @@ import { normalize, resolve, dirname } from "pathe";
 import { runtimeDir } from "nitro/runtime/meta";
 import alias from "@rollup/plugin-alias";
 import inject from "@rollup/plugin-inject";
-import json from "@rollup/plugin-json";
-import { visualizer } from "rollup-plugin-visualizer";
 import { replace } from "../plugins/replace";
 import { baseBuildConfig, type BaseBuildConfig } from "../config";
 import { baseBuildPlugins } from "../plugins";
@@ -19,11 +17,11 @@ import type { NitroPluginContext } from "./types";
  *  - commonjs
  *  - esbuild
  *  - sourcemapMininify
+ *  - json
  *
  * TODO: Reuse with rollup:
  * - chunkFileNames
  * - moduleSideEffects
- * - visualizer
  */
 
 export const getViteRollupConfig = (
@@ -52,13 +50,13 @@ export const getViteRollupConfig = (
     input: nitro.options.entry,
     external: [...base.env.external],
     plugins: [
-      virtualBundlePlugin(ctx._serviceBundles),
+      ctx.pluginConfig.experimental?.virtualBundle &&
+        virtualBundlePlugin(ctx._serviceBundles),
       ...baseBuildPlugins(nitro, base),
       alias({ entries: base.aliases }),
       replace({ preventAssignment: true, values: base.replacements }),
-      json(),
       inject(base.env.inject),
-    ],
+    ].filter(Boolean) as RollupPlugin[],
     treeshake: {
       moduleSideEffects(id) {
         const normalizedId = normalize(id);
@@ -139,21 +137,6 @@ export const getViteRollupConfig = (
   if (config.output.inlineDynamicImports) {
     // @ts-ignore
     delete config.output.manualChunks;
-  }
-
-  // Bundle analyzer
-  if (nitro.options.analyze) {
-    config.plugins.push(
-      // https://github.com/btd/rollup-plugin-visualizer
-      visualizer({
-        ...nitro.options.analyze,
-        filename: (nitro.options.analyze.filename || "stats.html").replace(
-          "{name}",
-          "nitro"
-        ),
-        title: "Nitro Server bundle stats",
-      })
-    );
   }
 
   return { config, base };

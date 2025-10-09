@@ -1,6 +1,16 @@
 import type { OutputBundle } from "rollup";
 import type { getViteRollupConfig } from "./rollup";
-import type { Nitro, NitroConfig } from "nitro/types";
+import type { DevWorker, Nitro, NitroConfig } from "nitro/types";
+import type { NitroDevApp } from "../../dev/app";
+
+declare module "vite" {
+  interface UserConfig {
+    /**
+     * Nitro Vite Plugin options.
+     */
+    nitro?: NitroConfig;
+  }
+}
 
 export interface NitroPluginConfig {
   /** Custom Nitro config */
@@ -17,6 +27,14 @@ export interface NitroPluginConfig {
    * @internal Pre-initialized Nitro instance.
    */
   _nitro?: Nitro;
+
+  experimental?: {
+    /**
+     * @experimental Use the virtual filesystem for intermediate environment build output files.
+     * @note This is unsafe if plugins rely on temporary files on the filesystem.
+     */
+    virtualBundle?: boolean;
+  };
 }
 
 export interface ServiceConfig {
@@ -50,6 +68,8 @@ export interface NitroPluginContext {
   nitro?: Nitro;
   pluginConfig: NitroPluginConfig;
   rollupConfig?: ReturnType<typeof getViteRollupConfig>;
+  devWorker?: DevWorker;
+  devApp?: NitroDevApp;
 
   _manifest: Record<string, { file: string }>;
   _publicDistDir?: string;

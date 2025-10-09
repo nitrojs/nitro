@@ -1,5 +1,6 @@
 import type {
   H3EventHandler,
+  Middleware,
   H3Route,
   LazyEventHandler,
   RouterMethod,
@@ -15,10 +16,11 @@ export function findRoute(
 export function findRouteRules(
   method: string,
   path: string
-): MatchedRoute<MatchedRouteRule[]>[] | undefined;
+): MatchedRoute<MatchedRouteRule[]>[];
 
-export const middleware: {
-  route?: string;
-  method?: string;
-  handler: Middleware;
-}[];
+export const globalMiddleware: Middleware[];
+
+export function findRoutedMiddleware(
+  method: string,
+  path: string
+): MatchedRoute<Middleware>[];

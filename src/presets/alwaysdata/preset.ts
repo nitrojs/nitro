@@ -11,7 +11,6 @@ const alwaysdata = defineNitroPreset(
   },
   {
     name: "alwaysdata" as const,
-    url: import.meta.url,
   }
 );
 

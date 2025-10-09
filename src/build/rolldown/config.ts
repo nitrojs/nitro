@@ -40,11 +40,7 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
       }) as RolldownPlugin,
     ],
     resolve: {
-      alias: {
-        ...base.aliases,
-        "node-mock-http/_polyfill/events": "node-mock-http/_polyfill/events",
-        "node-mock-http/_polyfill/buffer": "node-mock-http/_polyfill/buffer",
-      },
+      alias: base.aliases,
       extensions: base.extensions,
       mainFields: ["main"], // "module" is intentionally not supported because of externals
       conditionNames: nitro.options.exportConditions,

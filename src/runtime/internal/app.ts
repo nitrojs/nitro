@@ -1,4 +1,3 @@
-import type { ServerRequest } from "srvx";
 import type {
   CaptureError,
   MatchedRouteRules,
@@ -6,19 +5,20 @@ import type {
   NitroAsyncContext,
   NitroRuntimeHooks,
 } from "nitro/types";
-import { H3Core, toRequest } from "h3";
+import type { ServerRequest } from "srvx";
 import type { HTTPEvent, Middleware } from "h3";
-import { createFetch } from "ofetch";
+import { H3Core, toRequest } from "h3";
+import { createHooks } from "hookable";
+import { nitroAsyncContext } from "./context";
 
 // IMPORTANT: virtuals and user code should be imported last to avoid initialization order issues
 import errorHandler from "#nitro-internal-virtual/error-handler";
 import { plugins } from "#nitro-internal-virtual/plugins";
-import { createHooks } from "hookable";
-import { nitroAsyncContext } from "./context";
 import {
   findRoute,
   findRouteRules,
-  middleware,
+  globalMiddleware,
+  findRoutedMiddleware,
 } from "#nitro-internal-virtual/routing";
 
 export function useNitroApp(): NitroApp {
@@ -103,17 +103,19 @@ function createNitroApp(): NitroApp {
     return Promise.resolve(fetchHandler(req));
   };
 
-  const $fetch = createFetch({
-    fetch: (input, init) => {
-      if (!input.toString().startsWith("/")) {
-        return globalThis.fetch(input, init);
-      }
+  const originalFetch = globalThis.fetch;
+  const nitroFetch = (input: RequestInfo, init?: RequestInit) => {
+    if (typeof input === "string" && input.startsWith("/")) {
       return requestHandler(input, init);
-    },
-  });
+    }
+    if (input instanceof Request && "_request" in input) {
+      input = (input as any)._request;
+    }
+    return originalFetch(input, init);
+  };
 
   // @ts-ignore
-  globalThis.$fetch = $fetch;
+  globalThis.fetch = nitroFetch;
 
   const app: NitroApp = {
     _h3: h3App,
@@ -136,32 +138,20 @@ function createH3App(captureError: CaptureError) {
     },
   });
 
-  // Middleware
-  for (const mw of middleware) {
-    h3App.use(mw.route || "/**", mw.handler, { method: mw.method });
-  }
-
   // Compiled route matching
-  h3App._findRoute = (event) => {
+  h3App._findRoute = (event) => findRoute(event.req.method, event.url.pathname);
+
+  h3App._getMiddleware = (event, route) => {
     const pathname = event.url.pathname;
-    const method = event.req.method.toLowerCase();
-    let route = findRoute(method, pathname);
+    const method = event.req.method;
     const { routeRules, routeRuleMiddleware } = getRouteRules(method, pathname);
     event.context.routeRules = routeRules;
-    if (!route) {
-      if (routeRuleMiddleware) {
-        route = { data: { handler: () => Symbol.for("h3.notFound") } };
-      } else {
-        return;
-      }
-    }
-    if (routeRuleMiddleware) {
-      route.data = {
-        ...route.data,
-        middleware: [...routeRuleMiddleware, ...(route.data.middleware || [])],
-      };
-    }
-    return route;
+    return [
+      ...routeRuleMiddleware,
+      ...globalMiddleware,
+      ...findRoutedMiddleware(method, pathname).map((r) => r.data),
+      ...(route?.data?.middleware || []),
+    ].filter(Boolean) as Middleware[];
   };
 
   return h3App;
@@ -172,11 +162,11 @@ function getRouteRules(
   pathname: string
 ): {
   routeRules?: MatchedRouteRules;
-  routeRuleMiddleware?: Middleware[];
+  routeRuleMiddleware: Middleware[];
 } {
   const m = findRouteRules(method, pathname);
   if (!m?.length) {
-    return {};
+    return { routeRuleMiddleware: [] };
   }
   const routeRules: MatchedRouteRules = {};
   for (const layer of m) {
@@ -215,6 +205,6 @@ function getRouteRules(
   }
   return {
     routeRules,
-    routeRuleMiddleware: middleware.length > 0 ? middleware : undefined,
+    routeRuleMiddleware: middleware,
   };
 }

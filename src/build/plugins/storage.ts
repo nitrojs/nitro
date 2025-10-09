@@ -44,29 +44,30 @@ for (const base of bundledStorage) {
 
   return virtual(
     {
-      "#nitro-internal-virtual/storage": `
+      "#nitro-internal-virtual/storage": /* js */ `
 import { createStorage } from 'unstorage'
 import { assets } from '#nitro-internal-virtual/server-assets'
 
 ${driverImports.map((i) => genImport(i, genSafeVariableName(i))).join("\n")}
 
-export const storage = createStorage({})
+export function initStorage() {
+  const storage = createStorage({})
+  storage.mount('/assets', assets)
+  ${mounts
+    .map(
+      (m) =>
+        `storage.mount('${m.path}', ${genSafeVariableName(
+          m.driver
+        )}(${JSON.stringify(m.opts)}))`
+    )
+    .join("\n")}
 
-storage.mount('/assets', assets)
-
-${mounts
-  .map(
-    (m) =>
-      `storage.mount('${m.path}', ${genSafeVariableName(
-        m.driver
-      )}(${JSON.stringify(m.opts)}))`
-  )
-  .join("\n")}
-
-${
-  !isDevOrPrerender && nitro.options.bundledStorage.length > 0
-    ? bundledStorageCode
-    : ""
+  ${
+    !isDevOrPrerender && nitro.options.bundledStorage.length > 0
+      ? bundledStorageCode
+      : ""
+  }
+  return storage
 }
 `,
     },

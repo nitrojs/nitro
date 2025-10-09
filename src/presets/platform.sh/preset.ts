@@ -7,7 +7,6 @@ const platformSh = defineNitroPreset(
   },
   {
     name: "platform-sh" as const,
-    url: import.meta.url,
   }
 );
 

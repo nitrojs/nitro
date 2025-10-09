@@ -1,15 +1,38 @@
-import destr from "destr";
+import type { NitroRuntimeConfig } from "nitro/types";
+
 import { snakeCase } from "scule";
 
-export type EnvOptions = {
+export function useRuntimeConfig(): NitroRuntimeConfig {
+  return ((useRuntimeConfig as any)._cached ||= getRuntimeConfig());
+}
+
+function getRuntimeConfig() {
+  const runtimeConfig =
+    (globalThis as any).__NITRO_RUNTIME_CONFIG__ ||
+    process.env.RUNTIME_CONFIG ||
+    {};
+
+  const env = globalThis.process?.env || {};
+
+  applyEnv(runtimeConfig, {
+    prefix: "NITRO_",
+    altPrefix: runtimeConfig.nitro?.envPrefix ?? env?.NITRO_ENV_PREFIX ?? "_",
+    envExpansion:
+      runtimeConfig.nitro?.envExpansion ?? env?.NITRO_ENV_EXPANSION ?? false,
+  });
+
+  return runtimeConfig;
+}
+
+type EnvOptions = {
   prefix?: string;
   altPrefix?: string;
   envExpansion?: boolean;
 };
 
-export function getEnv(key: string, opts: EnvOptions) {
+function getEnv(key: string, opts: EnvOptions) {
   const envKey = snakeCase(key).toUpperCase();
-  return destr(
+  return (
     process.env[opts.prefix + envKey] ?? process.env[opts.altPrefix + envKey]
   );
 }
