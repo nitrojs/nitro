@@ -122,7 +122,7 @@ Start creating API routes in the routes/ folder or start with your favorite back
 
 #default
   ::tabs{class="min-h-[300px]"}
-    ::tabs-item{label="File-System Routing"}
+    ::tabs-item{label="FS Routing" icon="i-lucide-folder"}
       ::code-tree{defaultValue="routes/api/hello.ts" expand-all}
         ::prose-pre{filename="vite.config.mjs"}
         ```ts
@@ -154,7 +154,7 @@ Start creating API routes in the routes/ folder or start with your favorite back
         ::
       ::
     ::
-    ::tabs-item{label="Web Standard"}
+    ::tabs-item{label="Web Standard" icon="i-lucide-globe"}
       ::prose-pre{filename="server.ts"}
       ```ts
       export default {
@@ -165,7 +165,7 @@ Start creating API routes in the routes/ folder or start with your favorite back
       ```
       ::
     ::
-    ::tabs-item{label="H3"}
+    ::tabs-item{label="H3" icon="i-undocs-h3"}
       ::prose-pre{filename="server.ts"}
       ```ts
       import { H3 } from "h3";
@@ -178,7 +178,7 @@ Start creating API routes in the routes/ folder or start with your favorite back
       ```
       ::
     ::
-    ::tabs-item{label="Hono"}
+    ::tabs-item{label="Hono" icon="i-undocs-hono"}
       ::prose-pre{filename="server.ts"}
       ```ts
       import { Hono } from "hono";
@@ -186,6 +186,19 @@ Start creating API routes in the routes/ folder or start with your favorite back
       const app = new Hono();
 
       app.get("/*", (c) => c.text("🔥 Hello from Hono!"));
+
+      export default app;
+      ```
+      ::
+    ::
+    ::tabs-item{label="Elysia" icon="i-undocs-elysia"}
+      ::prose-pre{filename="server.ts"}
+      ```ts
+      import { Elysia } from "elysia";
+
+      const app = new Elysia();
+
+      app.get("/*", (c) => "🦊 Hello from Elysia!");
 
       export default app;
       ```
