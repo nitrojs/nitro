@@ -67,7 +67,7 @@ export function initNitroRouting(nitro: Nitro) {
       );
       if (existingWildcard !== -1) {
         const h = _routes[existingWildcard];
-        const warn = `The renderer will override \`${relative(".", h.handler)}\` (route: \`${h.route}\`). Use amore specific route or different HTTP method.`;
+        const warn = `The renderer will override \`${relative(".", h.handler)}\` (route: \`${h.route}\`). Use a more specific route or different HTTP method.`;
         if (!warns.has(warn)) {
           warns.add(warn);
           nitro.logger.warn(warn);
