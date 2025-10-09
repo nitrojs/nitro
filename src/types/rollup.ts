@@ -1,11 +1,12 @@
 import type { FilterPattern } from "unplugin-utils";
-import type { NodeFileTraceOptions } from "@vercel/nft";
 import type { Loader as ESBuildLoader } from "esbuild";
 import type { TransformOptions as ESBuildTransformOptions } from "esbuild";
 import type {
   InputOptions as RollupInputOptions,
   OutputOptions as RollupOutputOptions,
 } from "rollup";
+
+export type { ExternalsPluginOptions as NodeExternalsOptions } from "nf3";
 
 export type RollupConfig = RollupInputOptions & {
   output: RollupOutputOptions;
@@ -28,28 +29,6 @@ export interface EsbuildOptions extends ESBuildTransformOptions {
   loaders?: {
     [ext: string]: ESBuildLoader | false;
   };
-}
-
-export interface NodeExternalsOptions {
-  inline?: Array<
-    | string
-    | RegExp
-    | ((id: string, importer?: string) => Promise<boolean> | boolean)
-  >;
-  external?: Array<
-    | string
-    | RegExp
-    | ((id: string, importer?: string) => Promise<boolean> | boolean)
-  >;
-  rootDir?: string;
-  outDir: string;
-  trace?: boolean;
-  traceOptions?: NodeFileTraceOptions;
-  moduleDirectories?: string[];
-  exportConditions?: string[];
-  traceInclude?: string[];
-  traceAlias?: Record<string, string>;
-  chmod?: boolean | number;
 }
 
 export interface ServerAssetOptions {

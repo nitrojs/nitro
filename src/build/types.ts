@@ -9,7 +9,8 @@ import { dirname, isAbsolute, join, resolve } from "pathe";
 import { relative } from "pathe";
 import { resolveAlias } from "pathe/utils";
 import type { TSConfig } from "pkg-types";
-import { type JSValue, generateTypes, resolveSchema } from "untyped";
+import type { JSValue } from "untyped";
+import { generateTypes, resolveSchema } from "untyped";
 import { toExports } from "unimport";
 
 export async function writeTypes(nitro: Nitro) {

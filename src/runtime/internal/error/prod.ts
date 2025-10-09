@@ -1,21 +1,19 @@
-import { type HTTPError, type H3Event, getRequestURL } from "h3";
-import { defineNitroErrorHandler, type InternalHandlerResponse } from "./utils";
+import type { H3Event, HTTPError, HTTPEvent } from "h3";
+import { getRequestURL } from "h3";
+import { defineNitroErrorHandler } from "./utils";
+import type { InternalHandlerResponse } from "./utils";
+import { FastResponse } from "srvx";
 
 export default defineNitroErrorHandler(
   function defaultNitroErrorHandler(error, event) {
     const res = defaultHandler(error, event);
-    event.res.status = res.status;
-    event.res.statusText = res.statusText;
-    for (const [key, value] of Object.entries(res.headers)) {
-      event.res.headers.set(key, value);
-    }
-    return JSON.stringify(res.body, null, 2);
+    return new FastResponse(JSON.stringify(res.body, null, 2), res);
   }
 );
 
 export function defaultHandler(
   error: HTTPError,
-  event: H3Event,
+  event: HTTPEvent,
   opts?: { silent?: boolean; json?: boolean }
 ): InternalHandlerResponse {
   const isSensitive = error.unhandled;
@@ -58,9 +56,8 @@ export function defaultHandler(
     // Disable the execution of any js
     "content-security-policy": "script-src 'none'; frame-ancestors 'none';",
   };
-  event.res.status = status;
-  event.res.statusText = error.statusText;
-  if (status === 404 || !event.res.headers.has("cache-control")) {
+
+  if (status === 404 || !(event as H3Event).res.headers.has("cache-control")) {
     headers["cache-control"] = "no-cache";
   }
 

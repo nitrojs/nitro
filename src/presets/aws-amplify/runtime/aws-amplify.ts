@@ -6,7 +6,7 @@ import { toNodeHandler } from "srvx/node";
 
 const nitroApp = useNitroApp();
 
-const server = new Server(toNodeHandler(nitroApp.h3App.fetch));
+const server = new Server(toNodeHandler(nitroApp.fetch));
 
 // @ts-ignore
 server.listen(3000, (err) => {

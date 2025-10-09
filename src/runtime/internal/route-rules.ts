@@ -1,95 +1,84 @@
-import defu from "defu";
-import {
-  type EventHandler,
-  type H3Event,
-  defineHandler,
-  proxyRequest,
-  redirect,
-} from "h3";
-import type { NitroRouteConfig, NitroRouteRules } from "nitro/types";
-import { createRouter, addRoute, findAllRoutes } from "rou3";
+import { proxyRequest, redirect as sendRedirect } from "h3";
+import type { EventHandler, Middleware } from "h3";
+import type { MatchedRouteRule, NitroRouteRules } from "nitro/types";
 import { joinURL, withQuery, withoutBase } from "ufo";
-import { useRuntimeConfig } from "./config";
+import { defineCachedEventHandler } from "./cache";
 
-const config = useRuntimeConfig();
+// Note: Remember to update RuntimeRouteRules in src/routing.ts when adding new route rules
 
-const routeRules = createRouter<NitroRouteConfig>();
-for (const [route, rules] of Object.entries(config.nitro.routeRules!)) {
-  addRoute(routeRules, undefined, route, rules);
-}
+type RouteRuleCtor<T extends keyof NitroRouteRules> = (
+  m: MatchedRouteRule<T>
+) => Middleware;
 
-export function createRouteRulesHandler(): EventHandler {
-  return defineHandler((event) => {
-    // Match route options against path
-    const routeRules = getRouteRules(event);
-    // Apply headers options
-    if (routeRules.headers) {
-      for (const [key, value] of Object.entries(routeRules.headers)) {
-        event.res.headers.set(key, value);
-      }
-    }
-    // Apply redirect options
-    if (routeRules.redirect) {
-      let target = routeRules.redirect.to;
-      if (target.endsWith("/**")) {
-        let targetPath = event.url.pathname + event.url.search;
-        const strpBase = (routeRules.redirect as any)._redirectStripBase;
-        if (strpBase) {
-          targetPath = withoutBase(targetPath, strpBase);
-        }
-        target = joinURL(target.slice(0, -3), targetPath);
-      } else if (event.url.search) {
-        target = withQuery(target, Object.fromEntries(event.url.searchParams));
-      }
-      return redirect(event, target, routeRules.redirect.status);
-    }
-    // Apply proxy options
-    if (routeRules.proxy) {
-      let target = routeRules.proxy.to;
-      if (target.endsWith("/**")) {
-        let targetPath = event.url.pathname + event.url.search;
-        const strpBase = (routeRules.proxy as any)._proxyStripBase;
-        if (strpBase) {
-          targetPath = withoutBase(targetPath, strpBase);
-        }
-        target = joinURL(target.slice(0, -3), targetPath);
-      } else if (event.url.search) {
-        target = withQuery(target, Object.fromEntries(event.url.searchParams));
-      }
-      return proxyRequest(event, target, {
-        ...routeRules.proxy,
-      });
+// Headers route rule
+export const headers = <RouteRuleCtor<"headers">>((m) =>
+  function headersRouteRule(event) {
+    for (const [key, value] of Object.entries(m.options || {})) {
+      event.res.headers.set(key, value);
     }
   });
-}
 
-export function getRouteRules(event: H3Event): NitroRouteRules {
-  event.context._nitro = event.context._nitro || {};
-  if (!event.context._nitro.routeRules) {
-    event.context._nitro.routeRules = getRouteRulesForPath(
-      withoutBase(event.url.pathname, useRuntimeConfig().app.baseURL)
-    );
-  }
-  return event.context._nitro.routeRules;
-}
+// Redirect route rule
+export const redirect = <RouteRuleCtor<"redirect">>((m) =>
+  function redirectRouteRule(event) {
+    let target = m.options?.to;
+    if (!target) {
+      return;
+    }
+    if (target.endsWith("/**")) {
+      let targetPath = event.url.pathname + event.url.search;
+      const strpBase = (m.options as any)._redirectStripBase;
+      if (strpBase) {
+        targetPath = withoutBase(targetPath, strpBase);
+      }
+      target = joinURL(target.slice(0, -3), targetPath);
+    } else if (event.url.search) {
+      target = withQuery(target, Object.fromEntries(event.url.searchParams));
+    }
+    return sendRedirect(target, m.options?.status);
+  });
 
-// prettier-ignore
-type DeepReadonly<T> = T extends Record<string, any>
-  ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
-  : T extends Array<infer U>
-    ? ReadonlyArray<DeepReadonly<U>>
-    : T;
+// Proxy route rule
+export const proxy = <RouteRuleCtor<"proxy">>((m) =>
+  function proxyRouteRule(event) {
+    let target = m.options?.to;
+    if (!target) {
+      return;
+    }
+    if (target.endsWith("/**")) {
+      let targetPath = event.url.pathname + event.url.search;
+      const strpBase = (m.options as any)._proxyStripBase;
+      if (strpBase) {
+        targetPath = withoutBase(targetPath, strpBase);
+      }
+      target = joinURL(target.slice(0, -3), targetPath);
+    } else if (event.url.search) {
+      target = withQuery(target, Object.fromEntries(event.url.searchParams));
+    }
+    return proxyRequest(event, target, {
+      ...m.options,
+    });
+  });
 
-/**
- * @param path - The path to match against route rules. This should not contain a query string.
- */
-export function getRouteRulesForPath(
-  path: string
-): DeepReadonly<NitroRouteRules> {
-  return defu(
-    {},
-    ...findAllRoutes(routeRules, undefined, path)
-      .map((m) => m.data)
-      .reverse()
-  );
-}
+// Cache route rule
+export const cache = <RouteRuleCtor<"cache">>((m) =>
+  function cacheRouteRule(event, next) {
+    if (!event.context.matchedRoute) {
+      return next();
+    }
+    const cachedHandlers: Map<string, EventHandler> = ((
+      globalThis as any
+    ).__nitroCachedHandlers ??= new Map());
+    const { handler, route } = event.context.matchedRoute;
+    const key = `${m.route}:${route}`;
+    let cachedHandler = cachedHandlers.get(key);
+    if (!cachedHandler) {
+      cachedHandler = defineCachedEventHandler(handler, {
+        group: "nitro/route-rules",
+        name: key,
+        ...m.options,
+      });
+      cachedHandlers.set(key, cachedHandler);
+    }
+    return cachedHandler(event);
+  });

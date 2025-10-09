@@ -1,10 +1,10 @@
 import type { ApiReferenceConfiguration } from "@scalar/api-reference";
 import { defineHandler, type EventHandler } from "h3";
-import { useRuntimeConfig } from "../config";
+import { useRuntimeConfig } from "../runtime-config";
 
 // Served as /_scalar
 export default defineHandler((event) => {
-  const runtimeConfig = useRuntimeConfig(event);
+  const runtimeConfig = useRuntimeConfig();
   const title = runtimeConfig.nitro.openAPI?.meta?.title || "API Reference";
   const description = runtimeConfig.nitro.openAPI?.meta?.description || "";
   const openAPIEndpoint =

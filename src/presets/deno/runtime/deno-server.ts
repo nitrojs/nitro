@@ -6,6 +6,7 @@ import { startScheduleRunner } from "nitro/runtime/internal";
 import type { Deno as _Deno } from "@deno/types";
 import wsAdapter from "crossws/adapters/deno";
 import destr from "destr";
+import type { ServerRequest } from "srvx";
 
 // TODO: Declare conflict with crossws
 declare global {
@@ -57,17 +58,18 @@ const ws = import.meta._websocket
     wsAdapter(nitroApp.h3App.websocket)
   : undefined;
 
-async function handler(request: Request, info: any) {
+async function handler(denoReq: Request, info: any) {
+  // srvx compatibility
+  const req = denoReq as unknown as ServerRequest;
+  req.runtime ??= { name: "deno" };
+  req.runtime.deno ??= { info } as any;
+  // TODO: Support remoteAddr
+
   // https://crossws.unjs.io/adapters/deno
-  if (
-    import.meta._websocket &&
-    request.headers.get("upgrade") === "websocket"
-  ) {
-    return ws!.handleUpgrade(request, info);
+  if (import.meta._websocket && req.headers.get("upgrade") === "websocket") {
+    return ws!.handleUpgrade(req, info);
   }
-  return nitroApp.fetch(request, undefined, {
-    _platform: { deno: { request, info } },
-  });
+  return nitroApp.fetch(req);
 }
 
 // Scheduled tasks

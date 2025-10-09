@@ -1,10 +1,8 @@
 export default defineNitroPlugin((app) => {
-  app.hooks.hook("request", (event) => {
-    if (
-      event.url.pathname.endsWith(".css") ||
-      event.url.pathname.endsWith(".js")
-    ) {
-      event.res.headers.set("Vary", "Origin");
+  app.hooks.hook("response", (res, event) => {
+    const { pathname } = new URL(event.req.url);
+    if (pathname.endsWith(".css") || pathname.endsWith(".js")) {
+      res.headers.append("Vary", "Origin");
     }
   });
 });

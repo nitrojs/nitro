@@ -7,7 +7,6 @@ const digitalOcean = defineNitroPreset(
   },
   {
     name: "digital-ocean" as const,
-    url: import.meta.url,
   }
 );
 

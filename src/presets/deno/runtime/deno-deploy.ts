@@ -13,16 +13,17 @@ const ws = import.meta._websocket
   : undefined;
 
 // TODO: Migrate to srvx to provide request IP
-Deno.serve((request: Request, info: _Deno.ServeHandlerInfo) => {
+Deno.serve((denoReq: Request, info: _Deno.ServeHandlerInfo) => {
+  // srvx compatibility
+  const req = denoReq as unknown as ServerRequest;
+  req.runtime ??= { name: "deno" };
+  req.runtime.deno ??= { info } as any;
+  // TODO: Support remoteAddr
+
   // https://crossws.unjs.io/adapters/deno
-  if (
-    import.meta._websocket &&
-    request.headers.get("upgrade") === "websocket"
-  ) {
-    return ws!.handleUpgrade(request, info);
+  if (import.meta._websocket && req.headers.get("upgrade") === "websocket") {
+    return ws!.handleUpgrade(req, info);
   }
 
-  return nitroApp.fetch(request, undefined, {
-    _platform: { deno: { request, info } },
-  });
+  return nitroApp.fetch(req);
 });

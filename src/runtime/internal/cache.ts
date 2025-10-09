@@ -1,11 +1,11 @@
-import { defineHandler, handleCacheHeaders, isEvent, toResponse } from "h3";
+import { defineHandler, handleCacheHeaders, isHTTPEvent, toResponse } from "h3";
 import { FastResponse } from "srvx";
 import { parseURL } from "ufo";
+import { hash } from "ohash";
 import { useNitroApp } from "./app";
 import { useStorage } from "./storage";
-import { hash } from "ohash";
 
-import type { H3Event, EventHandler } from "h3";
+import type { H3Event, EventHandler, HTTPEvent } from "h3";
 import type { TransactionOptions } from "unstorage";
 import type {
   CacheEntry,
@@ -43,7 +43,7 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
     key: string,
     resolver: () => T | Promise<T>,
     shouldInvalidateCache?: boolean,
-    event?: H3Event
+    event?: HTTPEvent
   ): Promise<ResolvedCacheEntry<T>> {
     // Use extension for key to avoid conflicting with parent namespace (foo/bar and foo/bar/baz)
     const cacheKey = [opts.base, group, name, key + ".json"]
@@ -122,8 +122,8 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
               console.error(`[cache] Cache write error.`, error);
               useNitroApp().captureError(error, { event, tags: ["cache"] });
             });
-          if (event?.waitUntil) {
-            event.waitUntil(promise);
+          if (typeof event?.req?.waitUntil === "function") {
+            event.req.waitUntil(promise);
           }
         }
       }
@@ -133,8 +133,8 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
 
     if (entry.value === undefined) {
       await _resolvePromise;
-    } else if (expired && event && event.waitUntil) {
-      event.waitUntil(_resolvePromise);
+    } else if (expired && event && event.req.waitUntil) {
+      event.req.waitUntil(_resolvePromise);
     }
 
     if (opts.swr && validate(entry) !== false) {
@@ -159,7 +159,7 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
       key,
       () => fn(...args),
       shouldInvalidateCache,
-      args[0] && isEvent(args[0]) ? args[0] : undefined
+      args[0] && isHTTPEvent(args[0]) ? args[0] : undefined
     );
     let value = entry.value;
     if (opts.transform) {
@@ -251,11 +251,15 @@ export function defineCachedEventHandler(
       );
 
       try {
+        const originalReq = event.req;
         // @ts-expect-error assigning to publicly readonly property
         event.req = new Request(event.req.url, {
           method: event.req.method,
           headers: filteredHeaders,
         });
+        // Inherit srvx context
+        event.req.runtime = originalReq.runtime;
+        event.req.waitUntil = originalReq.waitUntil;
       } catch (error) {
         console.error("[cache] Failed to filter headers:", error);
       }
@@ -339,3 +343,4 @@ export function defineCachedEventHandler(
 }
 
 export const cachedEventHandler = defineCachedEventHandler;
+export const defineCachedHandler = defineCachedEventHandler;

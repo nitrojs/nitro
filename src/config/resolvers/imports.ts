@@ -62,7 +62,7 @@ function getNitroImportsPreset(): Preset[] {
       imports: ["useNitroApp"],
     },
     {
-      from: "nitro/runtime/internal/config",
+      from: "nitro/runtime/internal/runtime-config",
       imports: ["useRuntimeConfig"],
     },
     {
@@ -74,6 +74,7 @@ function getNitroImportsPreset(): Preset[] {
       imports: [
         "defineCachedFunction",
         "defineCachedEventHandler",
+        "defineCachedHandler",
         "cachedFunction",
         "cachedEventHandler",
       ],
@@ -105,6 +106,10 @@ function getNitroImportsPreset(): Preset[] {
     {
       from: "nitro/runtime/internal/error/utils",
       imports: ["defineNitroErrorHandler"],
+    },
+    {
+      from: "nitro/deps/ofetch",
+      imports: ["$fetch"],
     },
   ];
 }

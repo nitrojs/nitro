@@ -3,6 +3,7 @@ import type * as CF from "@cloudflare/workers-types";
 import type { ExportedHandler } from "@cloudflare/workers-types";
 import { useNitroApp } from "nitro/runtime";
 import { runCronTasks } from "nitro/runtime/internal";
+import type { ServerRequest } from "srvx";
 
 type MaybePromise<T> = T | Promise<T>;
 
@@ -106,27 +107,21 @@ export function createHandler<Env>(hooks: {
 }
 
 export async function fetchHandler(
-  request: Request | CF.Request,
+  cfReq: Request | CF.Request,
   env: unknown,
   context: CF.ExecutionContext | DurableObjectState,
-  url: URL = new URL(request.url),
+  url: URL = new URL(cfReq.url),
   nitroApp = useNitroApp(),
   ctxExt: any
 ) {
   // Expose latest env to the global context
   (globalThis as any).__env__ = env;
 
-  return nitroApp.fetch(request as unknown as Request, undefined, {
-    waitUntil: (promise: Promise<any>) => context.waitUntil(promise),
-    _platform: {
-      cf: (request as any).cf,
-      cloudflare: {
-        request,
-        env,
-        context,
-        url,
-        ...ctxExt,
-      },
-    },
-  }) as unknown as Promise<Response>;
+  // srvx compatibility
+  const req = cfReq as ServerRequest;
+  req.runtime ??= { name: "cloudflare" };
+  req.runtime.cloudflare ??= { context, env } as any;
+  req.waitUntil = context.waitUntil.bind(context);
+
+  return nitroApp.fetch(req) as unknown as Promise<Response>;
 }

@@ -8,14 +8,29 @@ import { resolveModulePath } from "exsolve";
 import { createFetchableDevEnvironment } from "./dev";
 import { isAbsolute } from "pathe";
 
+export function createDevWorker(ctx: NitroPluginContext) {
+  return new NodeDevWorker({
+    name: "nitro-vite",
+    entry: resolve(runtimeDir, "internal/vite/dev-worker.mjs"),
+    hooks: {},
+    data: {
+      server: true,
+      globals: {
+        __NITRO_RUNTIME_CONFIG__: ctx.nitro!.options.runtimeConfig,
+      },
+    },
+  });
+}
+
 export function createNitroEnvironment(
   ctx: NitroPluginContext
 ): EnvironmentOptions {
   return {
     consumer: "server",
     build: {
-      rollupOptions: ctx.rollupConfig!.config,
+      rollupOptions: ctx.rollupConfig!.config as any,
       minify: ctx.nitro!.options.minify,
+      emptyOutDir: false,
       commonjsOptions: {
         strictRequires: "auto", // TODO: set to true (default) in v3
         esmExternals: (id) => !id.startsWith("unenv/"),
@@ -27,8 +42,8 @@ export function createNitroEnvironment(
       noExternal: ctx.nitro!.options.dev
         ? // Workaround for dev: external dependencies are not resolvable with respect to nodeModulePaths
           new RegExp(runtimeDependencies.join("|"))
-        : // Workaround for production: externals tracing currently does not work with Vite rollup build
-          true,
+        : // Workaround for build: externals tracing is unstable
+          (ctx.nitro!.options.noExternals === false ? undefined : true), // prettier-ignore
       conditions: ctx.nitro!.options.exportConditions,
       externalConditions: ctx.nitro!.options.exportConditions,
     },
@@ -37,19 +52,8 @@ export function createNitroEnvironment(
         createFetchableDevEnvironment(
           envName,
           envConfig,
-          new NodeDevWorker({
-            name: envName,
-            entry: resolve(runtimeDir, "internal/vite/worker.mjs"),
-            data: {
-              name: envName,
-              server: true,
-              viteEntry: resolve(runtimeDir, "internal/vite/nitro-dev.mjs"),
-              globals: {
-                __NITRO_RUNTIME_CONFIG__: ctx.nitro!.options.runtimeConfig,
-              },
-            },
-            hooks: {},
-          })
+          ctx.devWorker!,
+          resolve(runtimeDir, "internal/vite/dev-entry.mjs")
         ),
     },
   };
@@ -78,17 +82,8 @@ export function createServiceEnvironment(
         createFetchableDevEnvironment(
           envName,
           envConfig,
-          new NodeDevWorker({
-            name: name,
-            entry: resolve(runtimeDir, "internal/vite/worker.mjs"),
-            data: {
-              name: name,
-              server: true,
-              viteEntry: tryResolve(serviceConfig.entry),
-              globals: {},
-            },
-            hooks: {},
-          })
+          ctx.devWorker!,
+          tryResolve(serviceConfig.entry)
         ),
     },
   };

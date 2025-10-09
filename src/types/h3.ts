@@ -1,11 +1,8 @@
-import { type H3Event as _H3Event } from "h3";
-import type {
-  CacheOptions,
-  CaptureError,
-  CapturedErrorContext,
-} from "./runtime";
+import type { H3Event as _H3Event } from "h3";
+import type { CacheOptions, CapturedErrorContext } from "./runtime";
 import type { Base$Fetch, NitroFetchRequest } from "./fetch/fetch";
 import type { NitroRuntimeConfig } from "./config";
+import type { MatchedRouteRules } from "./route-rules";
 
 export type H3EventFetch = (
   request: NitroFetchRequest,
@@ -14,17 +11,15 @@ export type H3EventFetch = (
 
 export type H3Event$Fetch = Base$Fetch<unknown, NitroFetchRequest>;
 
-declare module "h3" {
-  interface H3EventContext {
+declare module "srvx" {
+  interface ServerRequestContext {
+    routeRules?: MatchedRouteRules;
     nitro?: {
-      _waitUntilPromises?: Promise<unknown>[];
-      /** @experimental */
-      errors: { error?: Error; context: CapturedErrorContext }[];
       runtimeConfig?: NitroRuntimeConfig;
+      errors?: { error?: Error; context: CapturedErrorContext }[];
     };
-
     cache?: {
-      options: CacheOptions;
+      options?: CacheOptions;
     };
   }
 }

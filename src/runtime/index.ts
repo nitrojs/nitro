@@ -1,38 +1,38 @@
 // Public API (also exposed as auto-imports defined in core/imports.ts)
 
-// App
-export { useNitroApp } from "./internal/app";
-
-// Config
-export { useRuntimeConfig } from "./internal/config";
-
-// Storage
-export { useStorage } from "./internal/storage";
-
 // Type (only) helpers
 export { defineNitroPlugin } from "./internal/plugin";
 export { defineRouteMeta } from "./internal/meta";
 export { defineNitroErrorHandler } from "./internal/error/utils";
 
-// Renderer
-export { defineRenderHandler } from "./internal/renderer";
-
-// Route rules
-export { getRouteRules } from "./internal/route-rules";
+// Config
+export { useRuntimeConfig } from "./internal/runtime-config";
 
 // Context
 export { useRequest } from "./internal/context";
 
-// Tasks
-export { defineTask, runTask } from "./internal/task";
-
-// Database
-export { useDatabase } from "./internal/database";
+// Renderer
+export { defineRenderHandler } from "./internal/renderer";
 
 // Cache
 export {
   defineCachedFunction,
   defineCachedEventHandler,
+  defineCachedHandler,
   cachedFunction,
   cachedEventHandler,
 } from "./internal/cache";
+
+// ---- Internals that depends on virtuals should come last ---- //
+
+// App
+export { useNitroApp } from "./internal/app";
+
+// Storage
+export { useStorage } from "./internal/storage";
+
+// Database
+export { useDatabase } from "./internal/database";
+
+// Tasks
+export { defineTask, runTask } from "./internal/task";

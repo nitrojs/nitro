@@ -1,6 +1,6 @@
 import { promises as fsp } from "node:fs";
 import createEtag from "etag";
-import { globby } from "globby";
+import { glob } from "tinyglobby";
 import mime from "mime";
 import type { Nitro } from "nitro/types";
 import type { PublicAsset } from "nitro/types";
@@ -26,7 +26,7 @@ export function publicAssets(nitro: Nitro): Plugin {
       // #nitro-internal-virtual/public-assets-data
       "#nitro-internal-virtual/public-assets-data": async () => {
         const assets: Record<string, PublicAsset> = {};
-        const files = await globby("**", {
+        const files = await glob("**", {
           cwd: nitro.options.output.publicDir,
           absolute: false,
           dot: true,
@@ -72,7 +72,7 @@ export function publicAssets(nitro: Nitro): Plugin {
         return `
 import { promises as fsp } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { resolve, dirname } from 'pathe'
+import { resolve, dirname } from 'node:path'
 import assets from '#nitro-internal-virtual/public-assets-data'
 export function readAsset (id) {
   const serverDir = dirname(fileURLToPath(globalThis.__nitro_main__))

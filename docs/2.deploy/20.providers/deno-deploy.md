@@ -21,7 +21,7 @@ cd .output
 deployctl deploy --project=my-project server/index.ts
 ```
 
-## Deploy within CI/CD using gitHub actions
+## Deploy within CI/CD using GitHub actions
 
 You just need to include the deployctl GitHub Action as a step in your workflow.
 
@@ -43,9 +43,9 @@ on:
 jobs:
   deploy:
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
       - run: corepack enable
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v5
         with:
           node-version: 18
           cache: pnpm

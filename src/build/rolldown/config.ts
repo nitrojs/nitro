@@ -4,11 +4,11 @@ import { sanitizeFilePath } from "mlly";
 import { normalize } from "pathe";
 import { resolveModulePath } from "exsolve";
 import { runtimeDir } from "nitro/runtime/meta";
-import json from "@rollup/plugin-json";
 import { baseBuildConfig } from "../config";
 import { baseBuildPlugins } from "../plugins";
 import { replace } from "../plugins/replace";
 import { builtinModules } from "node:module";
+import { defu } from "defu";
 
 export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
   const base = baseBuildConfig(nitro);
@@ -23,7 +23,8 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
     ["\0", "virtual"],
   ] as const;
 
-  const config = {
+  let config = {
+    cwd: nitro.options.rootDir,
     input: nitro.options.entry,
     external: [
       ...base.env.external,
@@ -37,21 +38,20 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
         preventAssignment: true,
         values: base.replacements,
       }) as RolldownPlugin,
-      json() as RolldownPlugin,
     ],
     resolve: {
-      alias: {
-        ...base.aliases,
-        "node-mock-http/_polyfill/events": "node-mock-http/_polyfill/events",
-        "node-mock-http/_polyfill/buffer": "node-mock-http/_polyfill/buffer",
-      },
+      alias: base.aliases,
       extensions: base.extensions,
       mainFields: ["main"], // "module" is intentionally not supported because of externals
       conditionNames: nitro.options.exportConditions,
     },
     // @ts-expect-error (readonly values)
     inject: base.env.inject,
-    jsx: "react-jsx",
+    jsx: {
+      mode: "classic",
+      factory: nitro.options.esbuild?.options?.jsxFactory,
+      fragment: nitro.options.esbuild?.options?.jsxFragment,
+    },
     onwarn(warning, warn) {
       if (
         !["CIRCULAR_DEPENDENCY", "EVAL"].includes(warning.code || "") &&
@@ -133,17 +133,28 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
     name: "nitro:rolldown-resolves",
     async resolveId(id, parent, options) {
       if (parent?.startsWith("\0virtual:#nitro-internal-virtual")) {
-        const internalRes = await this.resolve(id, import.meta.url, options);
+        const internalRes = await this.resolve(id, import.meta.url, {
+          ...options,
+          custom: { ...options.custom, skipNoExternals: true },
+        });
         if (internalRes) {
           return internalRes;
         }
-        return resolveModulePath(id, {
-          from: [nitro.options.rootDir, import.meta.url],
-          try: true,
-        });
+        return (
+          resolveModulePath(id, {
+            from: [nitro.options.rootDir, import.meta.url],
+            try: true,
+          }) ||
+          resolveModulePath("./" + id, {
+            from: [nitro.options.rootDir, import.meta.url],
+            try: true,
+          })
+        );
       }
     },
   });
+
+  config = defu(nitro.options.rollupConfig as any, config);
 
   return config as RolldownOptions;
 };

@@ -37,6 +37,7 @@ export default defineNitroConfig({
     {
       route: "/api/hello2",
       handler: "api/hello.ts",
+      middleware: true,
     },
   ],
   devProxy: {
@@ -57,13 +58,7 @@ export default defineNitroConfig({
       dir: "files",
     },
   ],
-  ignore: [
-    "api/**/_*",
-    "middleware/_ignored.ts",
-    "routes/_*.ts",
-    "**/_*.txt",
-    "!**/_unignored.txt",
-  ],
+  ignore: ["api/**/_*", "middleware/_ignored.ts", "routes/_*.ts", "**/_*.txt"],
   runtimeConfig: {
     dynamic: "initial",
     url: "https://{{APP_DOMAIN}}",
@@ -137,6 +132,10 @@ export default defineNitroConfig({
     wrangler: {
       compatibility_date: "2024-01-01",
     },
+  },
+  typescript: {
+    generateRuntimeConfigTypes: true,
+    generateTsConfig: true,
   },
   openAPI: {
     production: "prerender",

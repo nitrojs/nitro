@@ -1,23 +1,29 @@
 import "#nitro-internal-pollyfills";
 import { useNitroApp } from "nitro/runtime";
 
-import { toNodeHandler } from "srvx/node";
-import type { NodeHttpHandler } from "srvx";
-import { parseQuery } from "ufo";
+import type { ServerRequest } from "srvx";
 
 const nitroApp = useNitroApp();
 
-const appHandler = toNodeHandler(nitroApp.h3App.fetch);
-
-const listener: NodeHttpHandler = function (req, res) {
-  const query = req.headers["x-now-route-matches"] as string;
-  if (query) {
-    const { url } = parseQuery(query);
-    if (url) {
-      req.url = url as string;
+export default {
+  fetch(
+    req: ServerRequest,
+    context: { waitUntil: (promise: Promise<any>) => void }
+  ) {
+    // Check for ISR request
+    const isrRoute = req.headers.get("x-now-route-matches");
+    if (isrRoute) {
+      const url = new URL(req.url);
+      url.pathname = decodeURIComponent(isrRoute);
+      req = new Request(url.toString(), req);
     }
-  }
-  return appHandler(req, res);
-};
 
-export default listener;
+    // srvx compatibility
+    req.runtime ??= { name: "vercel" };
+    // @ts-expect-error (add to srvx types)
+    req.runtime.vercel = { context };
+    req.waitUntil = context?.waitUntil;
+
+    return nitroApp.fetch(req);
+  },
+};

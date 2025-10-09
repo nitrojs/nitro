@@ -21,6 +21,7 @@ import _netlify from "./netlify/preset";
 import _node from "./node/preset";
 import _platformSh from "./platform.sh/preset";
 import _renderCom from "./render.com/preset";
+import _standard from "./standard/preset";
 import _stormkit from "./stormkit/preset";
 import _vercel from "./vercel/preset";
 import _winterjs from "./winterjs/preset";
@@ -49,6 +50,7 @@ export default [
   ..._node,
   ..._platformSh,
   ..._renderCom,
+  ..._standard,
   ..._stormkit,
   ..._vercel,
   ..._winterjs,

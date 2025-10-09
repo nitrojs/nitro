@@ -5,7 +5,7 @@ import type { Nitro } from "nitro/types";
 import { findFile } from "pkg-types";
 import { resolveModulePath } from "exsolve";
 
-export async function cloudflareDev(nitro: Nitro) {
+export async function cloudflareDevModule(nitro: Nitro) {
   if (!nitro.options.dev) {
     return; // Production doesn't need this
   }

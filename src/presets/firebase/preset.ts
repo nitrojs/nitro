@@ -44,7 +44,6 @@ const firebaseAppHosting = defineNitroPreset(
   {
     name: "firebase-app-hosting" as const,
     stdName: "firebase_app_hosting",
-    url: import.meta.url,
   }
 );
 

@@ -4,4 +4,3 @@
 export { trapUnhandledNodeErrors } from "./utils";
 export { startScheduleRunner, runCronTasks } from "./task";
 export { getGracefulShutdownConfig, setupGracefulShutdown } from "./shutdown";
-export { getRouteRulesForPath } from "./route-rules";

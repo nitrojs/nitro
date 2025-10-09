@@ -1,6 +1,7 @@
 import { loadConfig, watchConfig } from "c12";
 import consola from "consola";
-import { type CompatibilityDateSpec, resolveCompatibilityDates } from "compatx";
+import { resolveCompatibilityDates } from "compatx";
+import type { CompatibilityDateSpec } from "compatx";
 import { klona } from "klona/full";
 import type { PresetName } from "nitro/presets";
 import type {
@@ -14,10 +15,7 @@ import { NitroDefaults } from "./defaults";
 
 // Resolvers
 import { resolveAssetsOptions } from "./resolvers/assets";
-import {
-  fallbackCompatibilityDate,
-  resolveCompatibilityOptions,
-} from "./resolvers/compatibility";
+import { resolveCompatibilityOptions } from "./resolvers/compatibility";
 import { resolveDatabaseOptions } from "./resolvers/database";
 import { resolveExportConditionsOptions } from "./resolvers/export-conditions";
 import { resolveImportsOptions } from "./resolvers/imports";
@@ -78,13 +76,14 @@ async function _loadUserConfig(
       process.env.COMPATIBILITY_DATE) as CompatibilityDateSpec);
 
   // Preset resolver
-  const { resolvePreset } = (await import(
-    "nitro/" + "presets"
-  )) as typeof import("nitro/presets");
+  const { resolvePreset } = await import("../presets");
 
   // prettier-ignore
   let preset: string | undefined = (configOverrides.preset as string) || process.env.NITRO_PRESET || process.env.SERVER_PRESET
 
+  const _dotenv =
+    opts.dotenv ??
+    (configOverrides.dev && { fileName: [".env", ".env.local"] });
   const loadedConfig = await (
     opts.watch
       ? watchConfig<NitroConfig & { _meta?: NitroPresetMeta }>
@@ -92,7 +91,7 @@ async function _loadUserConfig(
   )({
     name: "nitro",
     cwd: configOverrides.rootDir,
-    dotenv: opts.dotenv ?? configOverrides.dev,
+    dotenv: _dotenv,
     extend: { extendKey: ["extends", "preset"] },
     defaults: NitroDefaults,
     jitiOptions: {
@@ -125,8 +124,7 @@ async function _loadUserConfig(
             ? await resolvePreset(preset, {
                 static: getConf("static"),
                 dev: true,
-                compatibilityDate:
-                  compatibilityDate || fallbackCompatibilityDate,
+                compatibilityDate: compatibilityDate || "latest",
               })
                 .then((p) => p?._meta?.name || "nitro-dev")
                 .catch(() => "nitro-dev")
@@ -136,7 +134,7 @@ async function _loadUserConfig(
         preset = await resolvePreset("" /* auto detect */, {
           static: getConf("static"),
           dev: false,
-          compatibilityDate: compatibilityDate || fallbackCompatibilityDate,
+          compatibilityDate: compatibilityDate || "latest",
         }).then((p) => p?._meta?.name);
       }
 
@@ -153,7 +151,7 @@ async function _loadUserConfig(
     async resolve(id: string) {
       const preset = await resolvePreset(id, {
         static: configOverrides.static,
-        compatibilityDate: compatibilityDate || fallbackCompatibilityDate,
+        compatibilityDate: compatibilityDate || "latest",
         dev: configOverrides.dev,
       });
       if (preset) {

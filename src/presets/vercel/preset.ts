@@ -12,7 +12,7 @@ export type { VercelOptions as PresetOptions } from "./types";
 
 const vercel = defineNitroPreset(
   {
-    entry: "./runtime/vercel",
+    entry: "./vercel/runtime/vercel",
     output: {
       dir: "{{ rootDir }}/.vercel/output",
       serverDir: "{{ output.dir }}/functions/__fallback.func",
@@ -34,7 +34,6 @@ const vercel = defineNitroPreset(
   {
     name: "vercel" as const,
     stdName: "vercel",
-    url: import.meta.url,
   }
 );
 
@@ -61,7 +60,6 @@ const vercelStatic = defineNitroPreset(
     name: "vercel-static" as const,
     stdName: "vercel",
     static: true,
-    url: import.meta.url,
   }
 );
 

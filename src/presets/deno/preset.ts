@@ -1,11 +1,11 @@
 import { defineNitroPreset } from "../_utils/preset";
 import { writeFile } from "../_utils/fs";
 import { resolve } from "pathe";
-import { unenvDenoPreset } from "../_unenv/preset-deno";
+import { unenvDeno } from "./unenv/preset";
 
 const denoDeploy = defineNitroPreset(
   {
-    entry: "./runtime/deno-deploy",
+    entry: "./deno/runtime/deno-deploy",
     exportConditions: ["deno"],
     node: false,
     noExternals: true,
@@ -15,7 +15,7 @@ const denoDeploy = defineNitroPreset(
       deploy:
         "cd ./ && deployctl deploy --project=<project_name> server/index.ts",
     },
-    unenv: unenvDenoPreset,
+    unenv: unenvDeno,
     rollupConfig: {
       preserveEntrySignatures: false,
       external: (id) => id.startsWith("https://") || id.startsWith("node:"),
@@ -28,13 +28,12 @@ const denoDeploy = defineNitroPreset(
   },
   {
     name: "deno-deploy" as const,
-    url: import.meta.url,
   }
 );
 
 const denoServer = defineNitroPreset(
   {
-    entry: "./runtime/deno-server",
+    entry: "./deno/runtime/deno-server",
     serveStatic: true,
     exportConditions: ["deno"],
     commands: {
@@ -64,7 +63,6 @@ const denoServer = defineNitroPreset(
   },
   {
     name: "deno-server" as const,
-    url: import.meta.url,
   }
 );
 

@@ -7,7 +7,6 @@ const zerops = defineNitroPreset(
   },
   {
     name: "zerops" as const,
-    url: import.meta.url,
   }
 );
 
@@ -21,7 +20,7 @@ const zeropsStatic = defineNitroPreset(
   },
   {
     name: "zerops-static" as const,
-    url: import.meta.url,
+
     static: true,
   }
 );

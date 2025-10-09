@@ -13,9 +13,17 @@ export async function resolveBuilder(options: NitroOptions) {
         `Builder "rolldown" is not available. Make sure to install "rolldown" package.`
       );
     }
+  } else if (options.builder === "vite") {
+    try {
+      await import("vite");
+    } catch {
+      throw new Error(
+        `Builder "vite" is not available. Make sure to install "vite" package.`
+      );
+    }
   }
 
-  if (!["rollup", "rolldown"].includes(options.builder!)) {
+  if (!["rollup", "rolldown", "vite"].includes(options.builder!)) {
     throw new Error(`Builder "${options.builder}" is not supported.`);
   }
 }

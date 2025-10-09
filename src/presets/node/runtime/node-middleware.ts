@@ -8,7 +8,7 @@ import {
 
 const nitroApp = useNitroApp();
 
-export const middleware = toNodeHandler(nitroApp.h3App.fetch);
+export const middleware = toNodeHandler(nitroApp.fetch);
 
 // TODO
 /** @experimental */

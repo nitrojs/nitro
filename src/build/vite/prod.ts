@@ -1,53 +1,99 @@
 import type { ViteBuilder } from "vite";
 import type { NitroPluginContext } from "./types";
 
-import { relative } from "pathe";
+import { basename, dirname, relative, resolve } from "pathe";
 import { formatCompatibilityDate } from "compatx";
-import { copyPublicAssets, prepare, prerender } from "../..";
-import { nitroServerName } from "../../utils/nitro";
+import { colors as C } from "consola/utils";
+import { copyPublicAssets } from "../..";
+import { existsSync } from "node:fs";
+import { runtimeDir } from "nitro/runtime/meta";
+import { writeBuildInfo } from "../info";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 
-export async function buildOtherEnvironments(
+const BuilderNames = {
+  nitro: C.magenta("Nitro"),
+  client: C.green("Client"),
+  ssr: C.blue("SSR"),
+} as Record<string, string>;
+
+export async function buildEnvironments(
   ctx: NitroPluginContext,
   builder: ViteBuilder
 ) {
   const nitro = ctx.nitro!;
 
-  // Cleanup build directories before building
-  await prepare(nitro);
+  // ----------------------------------------------
+  // Stage 1: Build all environments before Nitro
+  // ----------------------------------------------
 
-  // Build all environments before the final Nitro server bundle
-  for (const [name, env] of Object.entries(builder.environments)) {
+  for (const [envName, env] of Object.entries(builder.environments)) {
     // prettier-ignore
-    const fmtName = name.length <= 3 ? name.toUpperCase() : name[0].toUpperCase() + name.slice(1);
+    const fmtName = BuilderNames[envName] || (envName.length <= 3 ? envName.toUpperCase() : envName[0].toUpperCase() + envName.slice(1));
     if (
-      name === "nitro" ||
+      envName === "nitro" ||
       !env.config.build.rollupOptions.input ||
       env.isBuilt
     ) {
-      if (!["nitro", "ssr", "client"].includes(name)) {
+      if (!["nitro", "ssr", "client"].includes(envName)) {
         nitro.logger.info(
           env.isBuilt
-            ? `Skipping \`${fmtName}\` (already built)`
-            : `Skipping \`${fmtName}\` (no input defined)`
+            ? `Skipping ${fmtName} (already built)`
+            : `Skipping ${fmtName} (no input defined)`
         );
       }
       continue;
     }
-    nitro.logger.start(`Building \`${fmtName}\`...`);
+    console.log();
+    nitro.logger.start(`Building [${fmtName}]`);
     await builder.build(env);
   }
-}
-export async function buildProduction(
-  ctx: NitroPluginContext,
-  builder: ViteBuilder
-) {
-  const nitro = ctx.nitro!;
 
-  await buildOtherEnvironments(ctx, builder);
+  // Use transformed client input for renderer template generation
+  const nitroOptions = ctx.nitro!.options;
+  const clientInput =
+    builder.environments.client?.config?.build?.rollupOptions?.input;
+  if (
+    nitroOptions.renderer?.template &&
+    nitroOptions.renderer?.template === clientInput
+  ) {
+    const outputPath = resolve(
+      nitroOptions.output.publicDir,
+      basename(clientInput as string)
+    );
+    if (existsSync(outputPath)) {
+      const html = await readFile(outputPath, "utf8").then((r) =>
+        r.replace(
+          "<!--ssr-outlet-->",
+          `{{{ fetch($REQUEST, { viteEnv: "ssr" }) }}}`
+        )
+      );
+      await rm(outputPath);
+      const tmp = resolve(nitroOptions.buildDir, "vite/index.html");
+      await mkdir(dirname(tmp), { recursive: true });
+      await writeFile(tmp, html, "utf8");
+      nitroOptions.renderer.template = tmp;
+    }
+  }
 
+  // ----------------------------------------------
+  // Stage 2: Build Nitro
+  // ----------------------------------------------
+
+  console.log();
+  const buildInfo = [
+    ["preset", nitro.options.preset],
+    ["compatibility", formatCompatibilityDate(nitro.options.compatibilityDate)],
+  ].filter((e) => e[1]);
   nitro.logger.start(
-    `Building \`${nitroServerName(nitro)}\` (preset: \`${nitro.options.preset}\`, compatibility date: \`${formatCompatibilityDate(nitro.options.compatibilityDate)}\`)`
+    `Building [${BuilderNames.nitro}] ${C.dim(`(${buildInfo.map(([k, v]) => `${k}: \`${v}\``).join(", ")})`)}`
   );
+
+  // Copy public assets to the final output directory
+  await copyPublicAssets(nitro);
+
+  // Prerender routes if configured
+  // TODO
+  // await prerender(nitro);
 
   // Call the rollup:before hook for compatibility
   await nitro.hooks.callHook(
@@ -55,12 +101,6 @@ export async function buildProduction(
     nitro,
     builder.environments.nitro.config.build.rollupOptions as any
   );
-
-  // Copy public assets to the final output directory
-  await copyPublicAssets(nitro);
-
-  // Prerender routes if configured
-  await prerender(nitro);
 
   // Build the Nitro server bundle
   await builder.build(builder.environments.nitro);
@@ -71,11 +111,16 @@ export async function buildProduction(
   // Call compiled hook
   await nitro.hooks.callHook("compiled", nitro);
 
+  // Write build info
+  await writeBuildInfo(nitro);
+
   // Show deploy and preview commands
   const rOutput = relative(process.cwd(), nitro.options.output.dir);
   const rewriteRelativePaths = (input: string) => {
     return input.replace(/([\s:])\.\/(\S*)/g, `$1${rOutput}/$2`);
   };
+
+  console.log();
   if (nitro.options.commands.preview) {
     nitro.logger.success(
       `You can preview this build using \`${rewriteRelativePaths(
@@ -92,42 +137,52 @@ export async function buildProduction(
   }
 }
 
-export function prodEntry(ctx: NitroPluginContext): string {
+export function prodSetup(ctx: NitroPluginContext): string {
   const services = ctx.pluginConfig.services || {};
   const serviceNames = Object.keys(services);
-  const result = [
-    // Fetchable services
-    `const services = { ${serviceNames.map((name) => `[${JSON.stringify(name)}]: () => import("${ctx._entryPoints[name]}")`)}};`,
-    /* js */ `
-              const serviceHandlers = {};
-              const originalFetch = globalThis.fetch;
-              globalThis.fetch = (input, init) => {
-                const { viteEnv } = init || {};
-                if (!viteEnv) {
-                  return originalFetch(input, init);
-                }
-                if (typeof input === "string" && input[0] === "/") {
-                  input = new URL(input, "http://localhost");
-                }
-                const req = new Request(input, init);
-                if (serviceHandlers[viteEnv]) {
-                  return Promise.resolve(serviceHandlers[viteEnv](req));
-                }
-                if (!services[viteEnv]) {
-                  return new Response("Service not found: " + viteEnv, { status: 404 });
-                }
-                return services[viteEnv]().then((mod) => {
-                  const fetchHandler = mod.fetch || mod.default?.fetch;
-                  serviceHandlers[viteEnv] = fetchHandler;
-                  return fetchHandler(req);
-                });
-              };
-            `,
-    // TODO: expose resolveEntry utility to resolve entry points
-    // SSR Manifest
-    ctx._manifest
-      ? `globalThis.__VITE_MANIFEST__ = ${JSON.stringify(ctx._manifest)};`
-      : "",
-  ].join("\n");
-  return result;
+
+  const serviceEntries = serviceNames.map((name) => {
+    let entry: string;
+    if (ctx.pluginConfig.experimental?.virtualBundle) {
+      entry = ctx._entryPoints[name];
+    } else {
+      entry = resolve(
+        ctx.nitro!.options.buildDir,
+        "vite/services",
+        name,
+        ctx._entryPoints[name]
+      );
+    }
+    return [name, entry];
+  });
+
+  return /* js */ `
+import { setupVite } from "${resolve(runtimeDir, "internal/vite/prod-setup.mjs")}";
+
+const manifest = ${JSON.stringify(ctx._manifest || {})};
+
+function lazyService(loader) {
+  let promise, mod
+  return {
+    fetch(req) {
+      if (mod) { return mod.fetch(req) }
+      if (!promise) {
+        promise = loader().then(_mod => (mod = _mod.default || _mod))
+      }
+      return promise.then(mod => mod.fetch(req))
+    }
+  }
+}
+
+const services = {
+${serviceEntries
+  .map(
+    ([name, entry]) =>
+      /* js */ `[${JSON.stringify(name)}]: lazyService(() => import(${JSON.stringify(entry)}))`
+  )
+  .join(",\n")}
+};
+
+setupVite({ manifest, services });
+  `;
 }

@@ -78,6 +78,7 @@ export function fetchAddress(
     ...init,
   };
   if (addr.socketPath) {
+    url.protocol = "http:";
     return fetch(url, {
       ...init,
       ...fetchSocketOptions(addr.socketPath),

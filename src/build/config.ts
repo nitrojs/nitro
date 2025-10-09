@@ -91,18 +91,7 @@ export function baseBuildConfig(nitro: Nitro) {
     },
   });
 
-  let buildDir = nitro.options.buildDir;
-  // Windows (native) dynamic imports should be file:// urls
-  if (
-    isWindows &&
-    nitro.options.externals?.trace === false &&
-    nitro.options.dev
-  ) {
-    buildDir = pathToFileURL(buildDir).href;
-  }
-
   const aliases = resolveAliases({
-    "#build": buildDir,
     "#internal/nitro": runtimeDir,
     "nitro/runtime": runtimeDir,
     "nitropack/runtime": runtimeDir, // Backwards compatibility
@@ -110,7 +99,6 @@ export function baseBuildConfig(nitro: Nitro) {
   });
 
   return {
-    buildDir,
     buildServerDir,
     presetsDir,
     extensions,

@@ -4,7 +4,7 @@ import { resolveModulePath } from "exsolve";
 
 const nodeServer = defineNitroPreset(
   {
-    entry: "./runtime/node-server",
+    entry: "./node/runtime/node-server",
     serveStatic: true,
     commands: {
       preview: "node ./server/index.mjs",
@@ -12,17 +12,15 @@ const nodeServer = defineNitroPreset(
   },
   {
     name: "node-server" as const,
-    url: import.meta.url,
   }
 );
 
 const nodeMiddleware = defineNitroPreset(
   {
-    entry: "./runtime/node-middleware",
+    entry: "./node/runtime/node-middleware",
   },
   {
     name: "node-middleware" as const,
-    url: import.meta.url,
   }
 );
 
@@ -30,7 +28,7 @@ const nodeCluster = defineNitroPreset(
   {
     extends: "node-server",
     serveStatic: true,
-    entry: "./runtime/node-cluster",
+    entry: "./node/runtime/node-cluster",
     hooks: {
       "rollup:before"(_nitro, rollupConfig) {
         const manualChunks = rollupConfig.output?.manualChunks;
@@ -51,7 +49,6 @@ const nodeCluster = defineNitroPreset(
   },
   {
     name: "node-cluster" as const,
-    url: import.meta.url,
   }
 );
 

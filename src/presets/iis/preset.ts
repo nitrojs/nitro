@@ -14,7 +14,6 @@ const iisHandler = defineNitroPreset(
   },
   {
     name: "iis-handler" as const,
-    url: import.meta.url,
   }
 );
 
@@ -30,7 +29,6 @@ const iisNode = defineNitroPreset(
   },
   {
     name: "iis-node" as const,
-    url: import.meta.url,
   }
 );
 

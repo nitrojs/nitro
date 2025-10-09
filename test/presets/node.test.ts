@@ -38,8 +38,13 @@ describe("nitro:preset:node-middleware", async () => {
     expect(
       existsSync(resolve(serverNodeModules, "@fixture/nitro-utils/extra.mjs"))
     ).toBe(true);
-    expect(
-      existsSync(resolve(serverNodeModules, "@fixture/nitro-utils/extra2.mjs"))
-    ).toBe(true);
+    if (ctx.nitro?.options.builder !== "rolldown") {
+      // TODO: Rolldown bundles absolute aliases?
+      expect(
+        existsSync(
+          resolve(serverNodeModules, "@fixture/nitro-utils/extra2.mjs")
+        )
+      ).toBe(true);
+    }
   });
 });

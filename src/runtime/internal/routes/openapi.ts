@@ -1,9 +1,5 @@
-import {
-  type EventHandler,
-  type HTTPMethod,
-  defineHandler,
-  getRequestURL,
-} from "h3";
+import { defineHandler, getRequestURL } from "h3";
+import type { EventHandler, HTTPMethod } from "h3";
 import type {
   Extensable,
   OpenAPI3,
@@ -14,12 +10,12 @@ import type {
 } from "#internal/types/openapi-ts";
 import { joinURL } from "ufo";
 import { defu } from "defu";
-import { handlersMeta } from "#nitro-internal-virtual/server-handlers-meta";
-import { useRuntimeConfig } from "../config";
+import { handlersMeta } from "#nitro-internal-virtual/routing-meta";
+import { useRuntimeConfig } from "../runtime-config";
 
 // Served as /_openapi.json
 export default defineHandler((event) => {
-  const runtimeConfig = useRuntimeConfig(event);
+  const runtimeConfig = useRuntimeConfig();
 
   const base = runtimeConfig.app?.baseURL;
   const url = joinURL(getRequestURL(event).origin, base);

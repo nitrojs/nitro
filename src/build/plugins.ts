@@ -11,8 +11,8 @@ import { runtimeDir, runtimeDependencies } from "nitro/runtime/meta";
 import unimportPlugin from "unimport/unplugin";
 import { rollup as unwasm } from "unwasm/plugin";
 import { database } from "./plugins/database";
-import { handlers } from "./plugins/handlers";
-import { handlersMeta } from "./plugins/handlers-meta";
+import { routing } from "./plugins/routing";
+import { routeMeta } from "./plugins/route-meta";
 import { serverMain } from "./plugins/server-main";
 import { publicAssets } from "./plugins/public-assets";
 import { raw } from "./plugins/raw";
@@ -20,7 +20,8 @@ import { serverAssets } from "./plugins/server-assets";
 import { storage } from "./plugins/storage";
 import { virtual } from "./plugins/virtual";
 import { errorHandler } from "./plugins/error-handler";
-import { externals } from "./plugins/externals";
+import { rollupNodeFileTrace } from "nf3";
+import { rendererTemplate } from "./plugins/renderer-template";
 
 export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const plugins: Plugin[] = [];
@@ -74,12 +75,12 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   // Database
   plugins.push(database(nitro));
 
-  // Handlers
-  plugins.push(handlers(nitro));
+  // Routing
+  plugins.push(routing(nitro));
 
-  // Handlers meta
+  // Route meta
   if (nitro.options.experimental.openAPI) {
-    plugins.push(handlersMeta(nitro));
+    plugins.push(routeMeta(nitro));
   }
 
   // Error handler
@@ -100,11 +101,19 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   // User virtuals
   plugins.push(virtual(nitro.options.virtual, nitro.vfs));
 
+  // Renderer template
+  if (nitro.options.renderer?.template) {
+    plugins.push(rendererTemplate(nitro));
+  }
+
   // Externals Plugin
   if (nitro.options.noExternals) {
     plugins.push({
       name: "no-externals",
       async resolveId(id, importer, resolveOpts) {
+        if (resolveOpts.custom?.skipNoExternals) {
+          return;
+        }
         id = base.aliases[id] || id;
         if (
           base.env.external.includes(id) ||
@@ -146,7 +155,7 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
     });
   } else {
     plugins.push(
-      externals(
+      rollupNodeFileTrace(
         defu(nitro.options.externals, <NodeExternalsOptions>{
           outDir: nitro.options.output.serverDir,
           moduleDirectories: nitro.options.nodeModulesDirs,
@@ -188,6 +197,7 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
             ...nitro.options.externals?.traceAlias,
           },
           exportConditions: nitro.options.exportConditions,
+          writePackageJson: true,
         })
       )
     );
