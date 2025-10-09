@@ -1,18 +1,17 @@
 ---
 seo:
   title: Ship Full-Stack Vite Apps
-  description: Nitro lets you add server API routes to any Vite apps and deploy with zero configuration on your favorite hosting platform.
+  description: Nitro extends your Vite application with a production-ready server, compatible with any runtime. Add server routes to your application and deploy many hosting platform with a zero-config experience.
 ---
 
 ::u-page-hero
 ---
 orientation: horizontal
 ---
+::code-group
   :::prose-pre
   ---
-  code: npx nuxi init -t github:nuxt-ui-pro/docs
   filename: vite.config.mjs
-  icon: i-logos-vitejs
   ---
   ```ts
   import { defineConfig } from "vite";
@@ -25,18 +24,36 @@ orientation: horizontal
   });
   ```
   :::
+  :::prose-pre
+  ---
+  filename: nitro.config.ts
+  ---
+  ```ts
+  import { defineNitroConfig } from "nitro/config";
+
+  export default defineNitroConfig({
+    routeRules: {
+      '/': { prerender: true },
+      '/blog/**': { swr: 60 * 60 },
+    }
+  });
+  ```
+  :::
+::
+
+:hero-background
 
 #title
 Ship [Full-Stack]{.text-primary} Vite Apps
 
 #description
-Nitro extends Vite apps with server routes and zero config deployment on many hosting platforms, with the same codebase. It provides a fast, production-ready server that runs across any runtime.
+Nitro extends your Vite application with a production-ready server, compatible with any runtime. Add server routes to your application and deploy many hosting platform with a zero-config experience.
 
 #links
   :::u-button
   ---
   size: xl
-  to: /getting-started
+  to: /docs/quick-start
   trailing-icon: i-lucide-arrow-right
   ---
   Get started
@@ -48,14 +65,14 @@ Nitro extends Vite apps with server routes and zero config deployment on many ho
   icon: i-simple-icons-github
   size: xl
   target: _blank
-  to: https://github.com/nuxt-ui-pro/docs
+  to: https://github.com/nitrojs/nitro
   variant: outline
   ---
-  Star on GitHub
+  GitHub
   :::
 ::
 
-::div{class="bg-neutral-50 dark:bg-neutral-950 py-10"}
+::div{class="bg-neutral-50 dark:bg-neutral-950/30 py-10 border-y border-default"}
   ::u-container
     ::u-page-grid
       ::u-page-feature
@@ -81,6 +98,7 @@ Nitro extends Vite apps with server routes and zero config deployment on many ho
       #description
       Minimal design to fit into any solution with minimum overhead.
       ::
+
     ::
   ::
 ::
@@ -89,88 +107,106 @@ Nitro extends Vite apps with server routes and zero config deployment on many ho
 ---
 orientation: horizontal
 features:
+  - title: 'routes/'
+    description: 'Create server routes in the routes/ folder and they will be automatically registered.'
+    icon: 'i-lucide-folder-tree'
   - title: 'server.ts'
     description: 'Go full Web standard and pick H3, Hono or Elysia to create server routes using the server.ts file.'
     icon: 'i-lucide-file-code'
-  - title: 'server/'
-    description: 'Create server routes in the server/ folder and they will be automatically registered.'
-    icon: 'i-lucide-folder-tree'
 ---
 #title
 Create Server Routes
 
 #description
-Start creating API routes in the server/ folder or start with your favorite backend framework in a server.ts file.
+Start creating API routes in the routes/ folder or start with your favorite backend framework in a `server.ts` file.
 
 #default
-::tabs{class="h-[300px]"}
-  ::tabs-item{label="Web Standard"}
-    ::prose-pre{filename="server.ts"}
-    ```ts
-    export default {
-      async fetch(req: Request): Promise<Response> {
-        return new Response(`Hello world! (${req.url})`);
-      },
-    };
-    ```
-    ::
-  ::
-  ::tabs-item{label="H3"}
-    ::prose-pre{filename="server.ts"}
-    ```ts
-    import { H3 } from "h3";
+  ::tabs{class="min-h-[300px]"}
+    ::tabs-item{label="FS Routing" icon="i-lucide-folder"}
+      ::code-tree{defaultValue="routes/api/hello.ts" expand-all}
+        ::prose-pre{filename="vite.config.mjs"}
+        ```ts
+        import { defineConfig } from "vite";
+        import { nitro } from "nitro/vite";
 
-    const app = new H3()
+        export default defineConfig({
+          plugins: [
+            nitro()
+          ],
+        });
+        ```
+        ::
+        ::prose-pre{filename="routes/api/hello.ts"}
+        ```ts
+        export default ({ req }) => {
+          return new Response("Hello from /api/hello");
+        };
+        ```
+        ::
+        ::prose-pre{filename="routes/foo.ts"}
+        ```ts
+        import { defineHandler } from "nitro/deps/h3";
 
-    app.get("/**", () => "⚡️ Hello from H3!");
-
-    export default app;
-    ```
-    ::
-  ::
-  ::tabs-item{label="Hono"}
-    ::prose-pre{filename="server.ts"}
-    ```ts
-    import { Hono } from "hono";
-
-    const app = new Hono();
-
-    app.get("/*", (c) => c.text("🔥 Hello from Hono!"));
-
-    export default app;
-    ```
-    ::
-  ::
-  ::tabs-item{label="Server Directory"}
-    ::code-tree{defaultValue="routes/hello.ts" expand-all}
-      ::prose-pre{filename="vite.config.mjs"}
-      ```ts
-      import { defineConfig } from "vite";
-      import { nitro } from "nitro/vite";
-
-      export default defineConfig({
-        plugins: [
-          nitro()
-        ],
-      });
-      ```
+        export default defineHandler((event) => {
+          return "Hello from /foo";
+        });
+        ```
+        ::
       ::
-      ::prose-pre{filename="routes/api/hello.ts"}
+    ::
+    ::tabs-item{label="Web Standard" icon="i-lucide-globe"}
+      ::prose-pre{filename="server.ts"}
       ```ts
       export default {
         async fetch(req: Request): Promise<Response> {
-          return new Response("Hello from /api/hello");
+          return new Response(`Hello world! (${req.url})`);
         },
       };
       ```
       ::
-      ::prose-pre{filename="routes/foo.ts"}
+    ::
+    ::tabs-item{label="H3" icon="i-undocs-h3"}
+      ::prose-pre{filename="server.ts"}
       ```ts
-      export default defineHandler((event) => {
-        return "Hello from /foo";
-      });
+      import { H3 } from "h3";
+
+      const app = new H3()
+
+      app.get("/**", () => "⚡️ Hello from H3!");
+
+      export default app;
+      ```
+      ::
+    ::
+    ::tabs-item{label="Hono" icon="i-undocs-hono"}
+      ::prose-pre{filename="server.ts"}
+      ```ts
+      import { Hono } from "hono";
+
+      const app = new Hono();
+
+      app.get("/*", (c) => c.text("🔥 Hello from Hono!"));
+
+      export default app;
+      ```
+      ::
+    ::
+    ::tabs-item{label="Elysia" icon="i-undocs-elysia"}
+      ::prose-pre{filename="server.ts"}
+      ```ts
+      import { Elysia } from "elysia";
+
+      const app = new Elysia();
+
+      app.get("/*", (c) => "🦊 Hello from Elysia!");
+
+      export default app;
       ```
       ::
     ::
   ::
 ::
+
+:page-sponsors
+
+:page-contributors

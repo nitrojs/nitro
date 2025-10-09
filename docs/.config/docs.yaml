@@ -3,41 +3,12 @@ name: Nitro
 shortDescription: Ship Full-stack Vite Apps
 description: Add server API routes to any Vite apps and deploy with zero configuration on your favorite hosting platform.
 github: nitrojs/nitro
-url: https://nitro.build
-themeColor: "red"
+url: https://v3.nitro.build
+socials:
+  x: "https://x.com/nitrojsdev"
+  bluesky: "https://bsky.app/profile/nitro.build"
+  discord: https://discord.nitro.build
+sponsors:
+  api: https://sponsors.pi0.io/sponsors.json
+themeColor: "rose"
 automd: true
-landing:
-  heroLinks:
-    playOnline:
-      label: "Play Online"
-      icon: "i-simple-icons-lightning"
-      to: "https://stackblitz.com/github/nitrojs/nitro/tree/main/examples/hello-world"
-  contributors: true
-  featuresTitle: "A Server for the Modern Web"
-  features:
-    - title: "Rapid Development"
-      description: "Fast Vite Development Experience, with HMR on the server too."
-      icon: "🐇"
-    - title: "Deploy Anywhere"
-      description: "Deploy the same codebase to any [deployment provider](/deploy) with no extra config."
-      icon: "😌"
-    - title: "Filesystem Routing Discovery (server/ directory)" # TAB
-      description: "[Automatically registers](/guide/routing) server and API routes."
-      icon: "📁"
-      tabGroup: ""
-    - title: "Bring your backend framework (server.ts file)" # TAB
-      description: "Go full Web Standard and pick H3, Hono or Elysia to create API routes."
-      icon: "✨"
-    - title: "Server-render any templates|component|JSX|HTML|..thing..."
-      # Rendered Pages /
-      description: "Enable traditional server-side rendering for your frontend framework (React, Vue, Svelte, etc.)"
-      icon: ""
-    - title: "Leverage the Vite Ecosystem"
-      description: "Add any Vite plugin to build your applications."
-      icon: i-simple-icons-vite
-    - title: "Minimal Design"
-      description: "Minimal design to fit into any solution with minimum overhead"
-      icon: "🤏"
-    - title: "Hackable"
-      description: "Built to be customized with the [plugins](/guide/plugins) hooks system."
-      icon: "🐱"
