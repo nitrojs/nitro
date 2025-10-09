@@ -107,21 +107,53 @@ Nitro extends your Vite application with a production-ready server, compatible w
 ---
 orientation: horizontal
 features:
+  - title: 'routes/'
+    description: 'Create server routes in the routes/ folder and they will be automatically registered.'
+    icon: 'i-lucide-folder-tree'
   - title: 'server.ts'
     description: 'Go full Web standard and pick H3, Hono or Elysia to create server routes using the server.ts file.'
     icon: 'i-lucide-file-code'
-  - title: 'server/'
-    description: 'Create server routes in the server/ folder and they will be automatically registered.'
-    icon: 'i-lucide-folder-tree'
 ---
 #title
 Create Server Routes
 
 #description
-Start creating API routes in the server/ folder or start with your favorite backend framework in a server.ts file.
+Start creating API routes in the routes/ folder or start with your favorite backend framework in a `server.ts` file.
 
 #default
-  ::tabs{class="lg:h-[300px]"}
+  ::tabs{class="min-h-[300px]"}
+    ::tabs-item{label="File-System Routing"}
+      ::code-tree{defaultValue="routes/api/hello.ts" expand-all}
+        ::prose-pre{filename="vite.config.mjs"}
+        ```ts
+        import { defineConfig } from "vite";
+        import { nitro } from "nitro/vite";
+
+        export default defineConfig({
+          plugins: [
+            nitro()
+          ],
+        });
+        ```
+        ::
+        ::prose-pre{filename="routes/api/hello.ts"}
+        ```ts
+        export default ({ req }) => {
+          return new Response("Hello from /api/hello");
+        };
+        ```
+        ::
+        ::prose-pre{filename="routes/foo.ts"}
+        ```ts
+        import { defineHandler } from "nitro/deps/h3";
+
+        export default defineHandler((event) => {
+          return "Hello from /foo";
+        });
+        ```
+        ::
+      ::
+    ::
     ::tabs-item{label="Web Standard"}
       ::prose-pre{filename="server.ts"}
       ```ts
@@ -157,38 +189,6 @@ Start creating API routes in the server/ folder or start with your favorite back
 
       export default app;
       ```
-      ::
-    ::
-    ::tabs-item{label="Server Directory"}
-      ::code-tree{defaultValue="routes/hello.ts" expand-all}
-        ::prose-pre{filename="vite.config.mjs"}
-        ```ts
-        import { defineConfig } from "vite";
-        import { nitro } from "nitro/vite";
-
-        export default defineConfig({
-          plugins: [
-            nitro()
-          ],
-        });
-        ```
-        ::
-        ::prose-pre{filename="routes/api/hello.ts"}
-        ```ts
-        export default {
-          async fetch(req: Request): Promise<Response> {
-            return new Response("Hello from /api/hello");
-          },
-        };
-        ```
-        ::
-        ::prose-pre{filename="routes/foo.ts"}
-        ```ts
-        export default defineHandler((event) => {
-          return "Hello from /foo";
-        });
-        ```
-        ::
       ::
     ::
   ::
