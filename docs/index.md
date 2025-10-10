@@ -109,10 +109,11 @@ Create Server Routes
 Start creating API routes in the routes/ folder or start with your favorite backend framework in a `server.ts` file.
 
 #default
-  ::tabs{class="min-h-[300px]"}
+::div{class="min-h-[506px]"}
+  ::tabs
     ::tabs-item{label="FS Routing" icon="i-lucide-folder"}
-      ::code-tree{defaultValue="routes/api/hello.ts" expand-all}
-        ::prose-pre{filename="vite.config.mjs"}
+      ::code-tree{defaultValue="routes/hello.ts" expand-all}
+        ::prose-pre{filename="vite.config.ts"}
         ```ts
         import { defineConfig } from 'vite'
         import { nitro } from 'nitro/vite'
@@ -126,7 +127,7 @@ Start creating API routes in the routes/ folder or start with your favorite back
         ::
         ::prose-pre{filename="routes/hello.ts"}
         ```ts
-        import { defineHandler } from 'nitro/deps/h3'
+        import { defineHandler } from 'nitro/h3'
 
         export default defineHandler(({ req }) => {
           return { api: 'works!' }
@@ -198,6 +199,7 @@ Start creating API routes in the routes/ folder or start with your favorite back
       ::
     ::
   ::
+::
 ::
 
 :page-sponsors

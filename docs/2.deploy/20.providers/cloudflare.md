@@ -59,7 +59,7 @@ Then you can deploy the application with:
 
 ### Runtime Hooks
 
-You can use [runtime hooks](/guide/plugins#nitro-runtime-hooks) below in order to extend [Worker handlers](https://developers.cloudflare.com/workers/runtime-apis/handlers/).
+You can use [runtime hooks](/docs/plugins#nitro-runtime-hooks) below in order to extend [Worker handlers](https://developers.cloudflare.com/workers/runtime-apis/handlers/).
 
 :read-more{to="/guide/plugins#nitro-runtime-hooks"}
 
@@ -139,9 +139,11 @@ Make sure to only access environment variables **within the event lifecycle**  a
 **Example:** If you have set the `SECRET` and `NITRO_HELLO_THERE` environment variables set you can access them in the following way:
 
 ```ts
+import { defineHandler } from "nitro/h3";
+
 console.log(process.env.SECRET) // note that this is in the global scope! so it doesn't actually work and the variable is undefined!
 
-export default defineEventHandler((event) => {
+export default defineHandler((event) => {
   // note that all the below are valid ways of accessing the above mentioned variables
   useRuntimeConfig(event).helloThere
   useRuntimeConfig(event).secret
@@ -208,16 +210,18 @@ For more details on Bindings and how to use them please refer to the Cloudflare 
 ::
 
 > [!TIP]
-> Nitro provides high level API to interact with primitives such as [KV Storage](/guide/storage) and [Database](/guide/database) and you are highly recommended to prefer using them instead of directly depending on low-level APIs for usage stability.
+> Nitro provides high level API to interact with primitives such as [KV Storage](/docs/storage) and [Database](/docs/database) and you are highly recommended to prefer using them instead of directly depending on low-level APIs for usage stability.
 
-:read-more{title="Database Layer" to="/guide/database"}
+:read-more{title="Database Layer" to="/docs/database"}
 
-:read-more{title="KV Storage" to="/guide/storage"}
+:read-more{title="KV Storage" to="/docs/storage"}
 
 In runtime, you can access bindings from the request event, by accessing its `context.cloudflare.env` field, this is for example how you can access a D1 bindings:
 
 ```ts
-defineEventHandler(async (event) => {
+import { defineHandler } from "nitro/h3";
+
+defineHandler(async (event) => {
   const { cloudflare } = event.context
   const stmt = await cloudflare.env.MY_D1.prepare('SELECT id FROM table')
   const { results } = await stmt.all()
