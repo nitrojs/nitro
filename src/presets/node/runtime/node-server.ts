@@ -56,7 +56,7 @@ trapUnhandledNodeErrors();
 // Graceful shutdown
 setupGracefulShutdown(listener, nitroApp);
 
-// Websocket support
+// WebSocket support
 // https://crossws.unjs.io/adapters/node
 if (import.meta._websocket) {
   // @ts-expect-error

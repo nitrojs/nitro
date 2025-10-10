@@ -43,7 +43,7 @@ export default {
     req.runtime.cloudflare ??= { context, env } as any;
     req.waitUntil = context.waitUntil.bind(context);
 
-    // Websocket upgrade
+    // WebSocket upgrade
     // https://crossws.unjs.io/adapters/cloudflare
     if (
       import.meta._websocket &&
