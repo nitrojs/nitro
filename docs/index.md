@@ -14,17 +14,17 @@ orientation: horizontal
   filename: vite.config.ts
   ---
   ```ts
-  import { defineConfig } from "vite";
-  import { nitro } from "nitro/vite";
+  import { defineConfig } from 'vite'
+  import { nitro } from 'nitro/vite'
 
   export default defineConfig({
     plugins: [
       nitro()
     ],
     nitro: {
-      preset: "standard"
+      preset: 'standard'
     }
-  });
+  })
   ```
   :::
 ::
