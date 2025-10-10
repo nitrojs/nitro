@@ -124,13 +124,25 @@ Start creating API routes in the routes/ folder or start with your favorite back
         });
         ```
         ::
-        ::prose-pre{filename="routes/api/hello.ts"}
+        ::prose-pre{filename="routes/hello.ts"}
         ```ts
         import { defineHandler } from 'nitro/deps/h3'
 
         export default defineHandler(({ req }) => {
           return { api: 'works!' }
         })
+        ```
+        ::
+        ::prose-pre{filename="index.html"}
+        ```html
+          <html>
+          <head>
+            <title>Nitro + Vite</title>
+          </head>
+          <body>
+            <h1>Hey, there!</h1>
+          </body>
+          </html>
         ```
         ::
       ::
