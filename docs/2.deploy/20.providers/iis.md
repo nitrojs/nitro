@@ -24,8 +24,6 @@ You can use IIS http handler directly.
 
 ## IIS config options
 
-::code-group
-
 ```ts [nitro.config.ts]
 export default defineNitroConfig({
   // IIS options default
@@ -37,19 +35,3 @@ export default defineNitroConfig({
   },
 });
 ```
-
-```ts [nuxt.config.ts]
-export default defineNuxtConfig({
-  nitro: {
-    // IIS options default
-    iis: {
-      // merges in a pre-existing web.config file to the nitro default file
-      mergeConfig: true,
-      // overrides the default nitro web.config file all together
-      overrideConfig: false,
-    },
-  },
-});
-```
-
-::

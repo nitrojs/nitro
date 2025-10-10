@@ -18,8 +18,6 @@ To use Workers with Static Assets, you need a Nitro compatibility date set to `2
 
 The following shows an example `nitro.config.ts` file for deploying a Nitro app to Cloudflare Workers.
 
-::code-group
-
 ```ts [nitro.config.ts]
 export default defineNitroConfig({
     compatibilityDate: "2024-09-19",
@@ -30,20 +28,6 @@ export default defineNitroConfig({
     }
 })
 ```
-
-```ts [nuxt.config.ts]
-export default defineNuxtConfig({
-    compatibilityDate: "2024-09-19",
-    nitro: {
-      preset: "cloudflare_module",
-      cloudflare: {
-        deployConfig: true,
-        nodeCompat: true
-      }
-    }
-})
-```
-::
 
 By setting `deployConfig: true`, Nitro will automatically generate a `wrangler.json` for you with the correct configuration.
 If you need to add [Cloudflare Workers configuration](https://developers.cloudflare.com/workers/wrangler/configuration/), such as [bindings](https://developers.cloudflare.com/workers/runtime-apis/bindings/), you can either:
@@ -100,8 +84,6 @@ Cloudflare [Workers Module](#cloudflare-workers) is the new recommended preset f
 
 The following shows an example `nitro.config.ts` file for deploying a Nitro app to Cloudflare Pages.
 
-::code-group
-
 ```ts [nitro.config.ts]
 export default defineNitroConfig({
     preset: "cloudflare_pages",
@@ -111,19 +93,6 @@ export default defineNitroConfig({
     }
 })
 ```
-
-```ts [nuxt.config.ts]
-export default defineNuxtConfig({
-    nitro: {
-      preset: "cloudflare_pages",
-      cloudflare: {
-        deployConfig: true,
-        nodeCompat:true
-      }
-    }
-})
-```
-::
 
 Nitro automatically generates a `_routes.json` file that controls which routes get served from files and which are served from the Worker script. The auto-generated routes file can be overridden with the config option `cloudflare.pages.routes` ([read more](https://developers.cloudflare.com/pages/platform/functions/routing/#functions-invocation-routes)).
 
@@ -301,8 +270,6 @@ Next we install the `nitro-cloudflare-dev` module as well as the required `wrang
 
 Then define module:
 
-::code-group
-
 ```js [nitro.config.js]
 import nitroCloudflareBindings from "nitro-cloudflare-dev";
 
@@ -310,14 +277,6 @@ export default defineNitroConfig({
   modules: [nitroCloudflareBindings],
 });
 ```
-
-```ts [nuxt.config.ts]
-export default defineNuxtConfig({
-  modules: ['nitro-cloudflare-dev']
-})
-```
-
-::
 
 From this moment, when running
 
