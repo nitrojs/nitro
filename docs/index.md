@@ -11,7 +11,7 @@ orientation: horizontal
 ::code-group
   :::prose-pre
   ---
-  filename: vite.config.mjs
+  filename: vite.config.ts
   ---
   ```ts
   import { defineConfig } from "vite";
@@ -21,20 +21,8 @@ orientation: horizontal
     plugins: [
       nitro()
     ],
-  });
-  ```
-  :::
-  :::prose-pre
-  ---
-  filename: nitro.config.ts
-  ---
-  ```ts
-  import { defineNitroConfig } from "nitro/config";
-
-  export default defineNitroConfig({
-    routeRules: {
-      '/': { prerender: true },
-      '/blog/**': { swr: 60 * 60 },
+    nitro: {
+      preset: "standard"
     }
   });
   ```
@@ -111,7 +99,7 @@ features:
     description: 'Create server routes in the routes/ folder and they will be automatically registered.'
     icon: 'i-lucide-folder-tree'
   - title: 'server.ts'
-    description: 'Go full Web standard and pick H3, Hono or Elysia to create server routes using the server.ts file.'
+    description: 'Go full Web standard and pick standard library of your choice to create server routes using the server.ts file.'
     icon: 'i-lucide-file-code'
 ---
 #title
@@ -126,8 +114,8 @@ Start creating API routes in the routes/ folder or start with your favorite back
       ::code-tree{defaultValue="routes/api/hello.ts" expand-all}
         ::prose-pre{filename="vite.config.mjs"}
         ```ts
-        import { defineConfig } from "vite";
-        import { nitro } from "nitro/vite";
+        import { defineConfig } from 'vite'
+        import { nitro } from 'nitro/vite'
 
         export default defineConfig({
           plugins: [
@@ -138,18 +126,11 @@ Start creating API routes in the routes/ folder or start with your favorite back
         ::
         ::prose-pre{filename="routes/api/hello.ts"}
         ```ts
-        export default ({ req }) => {
-          return new Response("Hello from /api/hello");
-        };
-        ```
-        ::
-        ::prose-pre{filename="routes/foo.ts"}
-        ```ts
-        import { defineHandler } from "nitro/deps/h3";
+        import { defineHandler } from 'nitro/deps/h3'
 
-        export default defineHandler((event) => {
-          return "Hello from /foo";
-        });
+        export default defineHandler(({ req }) => {
+          return { api: 'works!' }
+        })
         ```
         ::
       ::
@@ -168,39 +149,39 @@ Start creating API routes in the routes/ folder or start with your favorite back
     ::tabs-item{label="H3" icon="i-undocs-h3"}
       ::prose-pre{filename="server.ts"}
       ```ts
-      import { H3 } from "h3";
+      import { H3 } from 'h3'
 
       const app = new H3()
 
-      app.get("/**", () => "⚡️ Hello from H3!");
+      app.get("/", () => '⚡️ Hello from H3!')
 
-      export default app;
+      export default app
       ```
       ::
     ::
     ::tabs-item{label="Hono" icon="i-undocs-hono"}
       ::prose-pre{filename="server.ts"}
       ```ts
-      import { Hono } from "hono";
+      import { Hono } from 'hono'
 
-      const app = new Hono();
+      const app = new Hono()
 
-      app.get("/*", (c) => c.text("🔥 Hello from Hono!"));
+      app.get("/", (c) => c.text('🔥 Hello from Hono!'))
 
-      export default app;
+      export default app
       ```
       ::
     ::
     ::tabs-item{label="Elysia" icon="i-undocs-elysia"}
       ::prose-pre{filename="server.ts"}
       ```ts
-      import { Elysia } from "elysia";
+      import { Elysia } from 'elysia'
 
-      const app = new Elysia();
+      const app = new Elysia()
 
-      app.get("/*", (c) => "🦊 Hello from Elysia!");
+      app.get("/", (c) => '🦊 Hello from Elysia!')
 
-      export default app;
+      export default app
       ```
       ::
     ::
