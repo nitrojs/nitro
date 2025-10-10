@@ -4,26 +4,23 @@ icon: ri:image-2-line
 
 # Assets
 
-## Public assets
+## Public Assets
 
-Nitro handles assets via the `server/public/` directory.
+Nitro handles assets via the `public/` directory.
 
 
-All assets in `server/public/` directory will be automatically served. This means that you can access them directly from the browser without any special configuration.
+All assets in `public/` directory will be automatically served. This means that you can access them directly from the browser without any special configuration.
 
 ```md
-server/
-  public/
-    image.png     <-- /image.png
-    video.mp4     <-- /video.mp4
-    robots.txt    <-- /robots.txt
-package.json
-nitro.config.ts
+public/
+  image.png     <-- /image.png
+  video.mp4     <-- /video.mp4
+  robots.txt    <-- /robots.txt
 ```
 
 ### Production public assets
 
-When building your Nitro app, the `server/public/` directory will be copied to `.output/public/` and a manifest with metadata will be created and embedded in the server bundle.
+When building your Nitro app, the `public/` directory will be copied to `.output/public/` and a manifest with metadata will be created and embedded in the server bundle.
 
 ```json
 {
@@ -52,11 +49,14 @@ This allows Nitro to know the public assets without scanning the directory, givi
 
 ## Server assets
 
-All assets in `server/assets/` directory will be added to the server bundle. After building your application, you can find them in the `.output/server/chunks/raw/` directory. Be careful with the size of your assets, as they will be bundled with the server bundle.
+All assets in `assets/` directory will be added to the server bundle. After building your application, you can find them in the `.output/server/chunks/raw/` directory. Be careful with the size of your assets, as they will be bundled with the server bundle.
+
+> [!TIP]
+> Unless using `useStorage()`, assets won't be included in sever bundle.
 
 They can be addressed by the `assets:server` mount point using the [storage layer](/guide/storage).
 
-For example, you could store a json file in `server/assets/data.json` and retrieve it in your handler:
+For example, you could store a json file in `assets/data.json` and retrieve it in your handler:
 
 ```js
 export default defineEventHandler(async () => {
@@ -69,49 +69,25 @@ export default defineEventHandler(async () => {
 
 In order to add assets from a custom directory, you will need to define a path in your nitro config. This allows you to add assets from a directory outside of the `assets/` directory.
 
-::code-group
 ```js [nitro.config.ts]
 export default defineNitroConfig({
   serverAssets: [{
     baseName: 'my_directory',
-    dir: './server/my_directory'
+    dir: './my_directory'
   }]
 })
 ```
-```ts [nuxt.config.ts]
-export default defineNuxtConfig({
-  nitro: {
-    serverAssets: [{
-      baseName: 'my_directory',
-      dir: './server/my_directory'
-    }]
-  }
-})
-```
-::
 
 You could want to add a directory with html templates for example.
 
-::code-group
 ```js [nitro.config.ts]
 export default defineNitroConfig({
   serverAssets: [{
     baseName: 'templates',
-    dir: './server/templates'
+    dir: './templates'
   }]
 })
 ```
-```ts [nuxt.config.ts]
-export default defineNuxtConfig({
-  nitro: {
-    serverAssets: [{
-      baseName: 'templates',
-      dir: './server/templates'
-    }]
-  }
-})
-```
-::
 
 Then you can use the `assets:templates` base to retrieve your assets.
 
