@@ -46,6 +46,8 @@ To revalidate a page on demand:
 2. Update your configuration:
 
     ```ts [nitro.config.ts]
+    import { defineNitroConfig } from "nitro/config";
+
     export default defineNitroConfig({
       vercel: {
         config: {

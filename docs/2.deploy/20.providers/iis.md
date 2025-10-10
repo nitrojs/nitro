@@ -25,6 +25,8 @@ You can use IIS http handler directly.
 ## IIS config options
 
 ```ts [nitro.config.ts]
+import { defineNitroConfig } from "nitro/config";
+
 export default defineNitroConfig({
   // IIS options default
   iis: {

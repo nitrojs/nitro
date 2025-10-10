@@ -19,6 +19,8 @@ To use Workers with Static Assets, you need a Nitro compatibility date set to `2
 The following shows an example `nitro.config.ts` file for deploying a Nitro app to Cloudflare Workers.
 
 ```ts [nitro.config.ts]
+import { defineNitroConfig } from "nitro/config";
+
 export default defineNitroConfig({
     compatibilityDate: "2024-09-19",
     preset: "cloudflare_module",
@@ -85,6 +87,8 @@ Cloudflare [Workers Module](#cloudflare-workers) is the new recommended preset f
 The following shows an example `nitro.config.ts` file for deploying a Nitro app to Cloudflare Pages.
 
 ```ts [nitro.config.ts]
+import { defineNitroConfig } from "nitro/config";
+
 export default defineNitroConfig({
     preset: "cloudflare_pages",
     cloudflare: {
@@ -242,6 +246,7 @@ Or in your Nitro config:
 
 
 ```js [nitro.config.js]
+import { defineNitroConfig } from "nitro/config";
 import nitroCloudflareBindings from "nitro-cloudflare-dev";
 
 export default defineNitroConfig({
