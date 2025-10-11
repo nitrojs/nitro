@@ -13,8 +13,6 @@
       "nitro/runtime": ["../../src/runtime"],
       "nitro/runtime/internal": ["./src/runtime/internal"],
       "nitro/runtime/*": ["../../src/runtime/*"],
-      "nitro/presets": ["../../src/presets"],
-      "nitro/presets/*": ["../../src/presets/*"],
       "nitro/rollup": ["../../src/rollup"],
       "nitro/types": ["../../src/types"],
       "nitro/meta": ["../../lib/meta.mjs"],
