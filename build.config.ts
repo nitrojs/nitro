@@ -92,6 +92,7 @@ export default defineBuildConfig({
     "firebase-functions",
     "@scalar/api-reference",
     "get-port-please", // internal type only
+    "@cloudflare/workers-types",
   ],
   stubOptions: {
     jiti: {
