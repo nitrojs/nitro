@@ -54,6 +54,7 @@ export default defineBuildConfig({
     { input: "src/index.ts" },
     { input: "src/vite.ts" },
     { input: "src/types/index.ts" },
+    { input: "src/presets/index.ts" },
     { input: "src/runtime/", outDir: "dist/runtime", format: "esm" },
     {
       input: "src/presets/",
@@ -92,6 +93,7 @@ export default defineBuildConfig({
     "firebase-functions",
     "@scalar/api-reference",
     "get-port-please", // internal type only
+    "@cloudflare/workers-types",
   ],
   stubOptions: {
     jiti: {
