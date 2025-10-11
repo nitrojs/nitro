@@ -13,4 +13,8 @@ export interface NitroPresetMeta {
   compatibilityDate?: DateString;
 }
 
-export type { PresetName, PresetNameInput, PresetOptions } from "../presets/_types.gen";
+export type {
+  PresetName,
+  PresetNameInput,
+  PresetOptions,
+} from "../presets/_types.gen";
