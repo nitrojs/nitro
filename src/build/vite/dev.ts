@@ -230,7 +230,11 @@ export async function configureViteDevServer(
     if (fetchDest) {
       res.setHeader("vary", "sec-fetch-dest");
     }
-    if (!fetchDest || /^(document|iframe|frame|empty)$/.test(fetchDest)) {
+    const ext = (req.url || "").match(/\.([a-z0-9]+)(?:[?#]|$)/i)?.[1] || "";
+    if (
+      !ext &&
+      (!fetchDest || /^(document|iframe|frame|empty)$/.test(fetchDest))
+    ) {
       nitroDevMiddleware(req, res, next);
     } else {
       next();
