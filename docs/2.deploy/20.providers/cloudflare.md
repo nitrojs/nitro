@@ -333,3 +333,40 @@ export default defineNitroConfig({
 > Only bindings in the default environment are recognized.
 
 you will be able to access the `MY_VARIABLE` and `MY_KV` from the request event just as illustrated above.
+
+## Tree-shaking and third-party libraries
+
+At build time, Nitro will search-and-replace certain strings in the source code of the application and libraries.  The full list is available in [Nitro's Rollup config](https://github.com/nitrojs/nitro/blob/v2/src/rollup/config.ts).  Making the replacements allows Rollup to tree-shake dependencies and prune code branches that may be client-only or server-only.  However, in certain cases the replacements may cause syntax errors during the build step.
+
+One example (described in more detail [here](https://github.com/nitrojs/nitro/issues/3071)):
+
+- A third-party library contains embedded source code of the form:
+  ```ts
+  const source = "if (typeof window === 'undefined') ...";
+  ```
+- Nitro replaces the literal string `typeof window` with `"undefined"`, resulting in:
+  ```ts
+  const source = "if ("undefined" === 'undefined') ...";`
+  ```
+- The improperly nested double quotes result in a build error:
+  ```
+  Expected ',', got 'undefined'
+  ```
+
+To work around issues like this, it's possible to override Nitro's search-and-replace config.  For example, adding this to your Nitro options may fix the issue by providing a different type of quoting:
+
+```
+replace: {
+  'typeof window': '`undefined`',
+}
+```
+
+Or in Nuxt:
+
+```
+nitro: {
+  replace: {
+    'typeof window': '`undefined`',
+  },
+}
+```
