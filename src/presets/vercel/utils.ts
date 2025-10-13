@@ -199,8 +199,8 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     ...(nitro.options.routeRules["/"]?.isr
       ? [
           {
-            src: "(?<url>/)",
-            dest: `/index${ISR_SUFFIX}?${ISR_URL_PARAM}=$url`,
+            src: `(?<${ISR_URL_PARAM}>/)`,
+            dest: `/index${ISR_SUFFIX}?${ISR_URL_PARAM}=$${ISR_URL_PARAM}`,
           },
         ]
       : []),
@@ -208,7 +208,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     ...rules
       .filter(([key, value]) => value.isr !== undefined && key !== "/")
       .map(([key, value]) => {
-        const src = `(?<url>${normalizeRouteSrc(key)})`;
+        const src = `(?<${ISR_URL_PARAM}>${normalizeRouteSrc(key)})`;
         if (value.isr === false) {
           // We need to write a rule to avoid route being shadowed by another cache rule elsewhere
           return {
@@ -220,11 +220,11 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
           src,
           dest:
             nitro.options.preset === "vercel-edge"
-              ? FALLBACK_ROUTE + `?${ISR_URL_PARAM}=$url`
+              ? FALLBACK_ROUTE + `?${ISR_URL_PARAM}=$${ISR_URL_PARAM}`
               : withLeadingSlash(
                   normalizeRouteDest(key) +
                     ISR_SUFFIX +
-                    `?${ISR_URL_PARAM}=$url`
+                    `?${ISR_URL_PARAM}=$${ISR_URL_PARAM}`
                 ),
         };
       }),

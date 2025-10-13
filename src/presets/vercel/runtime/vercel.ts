@@ -19,9 +19,15 @@ const listener: NodeListener = function (req, res) {
   } else {
     // Workaround for ISR functions with passQuery: true
     // /__fallback--api-weather?__isr_route=%2Fapi%2Fweather%2Famsterdam&units=123"
-    const urlQueryIndex = req.url!.indexOf(`?${ISR_URL_PARAM}=`);
+    const queryIndex = req.url!.indexOf("?");
+    const urlQueryIndex =
+      queryIndex === -1
+        ? -1
+        : req.url!.indexOf(`${ISR_URL_PARAM}=`, queryIndex);
     if (urlQueryIndex !== -1) {
-      const { url, ...params } = parseQuery(req.url!.slice(urlQueryIndex));
+      const { [ISR_URL_PARAM]: url, ...params } = parseQuery(
+        req.url!.slice(queryIndex)
+      );
       req.url = withQuery((url as string) || "/", params);
     }
   }
