@@ -208,7 +208,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     ...rules
       .filter(([key, value]) => value.isr !== undefined && key !== "/")
       .map(([key, value]) => {
-        const src = key.replace(/^(.*)\/\*\*/, "(?<url>$1/.*)");
+        const src = `(?<url>${normalizeRouteSrc(key)})`;
         if (value.isr === false) {
           // We need to write a rule to avoid route being shadowed by another cache rule elsewhere
           return {

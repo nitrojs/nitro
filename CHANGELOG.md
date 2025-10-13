@@ -2,6 +2,55 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## v2.12.7
+
+[compare changes](https://github.com/nitrojs/nitro/compare/v2.12.6...v2.12.7)
+
+### 🩹 Fixes
+
+- **vercel:** Always add `url` to src regex for `isr` routes ([#3595](https://github.com/nitrojs/nitro/pull/3595))
+
+### 🏡 Chore
+
+- Update undocs ([0cb10c6e](https://github.com/nitrojs/nitro/commit/0cb10c6e))
+- Update ci scripts ([9fc50d52](https://github.com/nitrojs/nitro/commit/9fc50d52))
+- Update ci scripts ([2186bf25](https://github.com/nitrojs/nitro/commit/2186bf25))
+- Update dependencies ([9854bbec](https://github.com/nitrojs/nitro/commit/9854bbec))
+
+### 🤖 CI
+
+- Update renovate config ([#3610](https://github.com/nitrojs/nitro/pull/3610))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+- Giorgio Boa ([@gioboa](https://github.com/gioboa))
+
+## v2.12.6
+
+[compare changes](https://github.com/nitrojs/nitro/compare/v2.12.5...v2.12.6)
+
+### 🩹 Fixes
+
+- **vercel:** Generate prerender config for o11y routes matching `isr` route rule ([#3562](https://github.com/nitrojs/nitro/pull/3562))
+- **vercel:** Skip o11y routes matching `isr` route rule ([#3563](https://github.com/nitrojs/nitro/pull/3563))
+- **vercel:** Use `-isr` as suffix ([bde8ce85](https://github.com/nitrojs/nitro/commit/bde8ce85))
+- **vercel:** Add `/` isr handler before wildcards ([81c2f9cd](https://github.com/nitrojs/nitro/commit/81c2f9cd))
+
+### 💅 Refactors
+
+- **vercel:** Better o11y for isr cached routes ([#3560](https://github.com/nitrojs/nitro/pull/3560))
+
+### 🏡 Chore
+
+- Update dependencies ([4871c9ca](https://github.com/nitrojs/nitro/commit/4871c9ca))
+- Update deps ([aed86581](https://github.com/nitrojs/nitro/commit/aed86581))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+- Daniel Roe ([@danielroe](https://github.com/danielroe))
+
 ## v2.12.5
 
 [compare changes](https://github.com/nitrojs/nitro/compare/v2.12.4...v2.12.5)

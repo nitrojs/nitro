@@ -116,22 +116,26 @@ describe("nitro:preset:vercel", async () => {
               {
                 "dest": "/rules/_/noncached/cached-isr? __isr_route=$url",
                 "src": "/rules/_/noncached/cached",
+                "dest": "/rules/_/noncached/cached-isr?url=$url",
+                "src": "(?<url>/rules/_/noncached/cached)",
               },
               {
                 "dest": "/__fallback",
-                "src": "/rules/_/cached/noncached",
+                "src": "(?<url>/rules/_/cached/noncached)",
               },
               {
                 "dest": "/__fallback",
-                "src": "(?<url>/rules/_/noncached/.*)",
+                "src": "(?<url>/rules/_/noncached/(?:.*))",
               },
               {
                 "dest": "/rules/_/cached/[...]-isr? __isr_route=$url",
                 "src": "(?<url>/rules/_/cached/.*)",
+                "dest": "/rules/_/cached/[...]-isr?url=$url",
+                "src": "(?<url>/rules/_/cached/(?:.*))",
               },
               {
                 "dest": "/__fallback",
-                "src": "/rules/dynamic",
+                "src": "(?<url>/rules/dynamic)",
               },
               {
                 "dest": "/rules/isr/[...]-isr? __isr_route=$url",
@@ -148,6 +152,20 @@ describe("nitro:preset:vercel", async () => {
               {
                 "dest": "/rules/swr-ttl/[...]-isr? __isr_route=$url",
                 "src": "(?<url>/rules/swr-ttl/.*)",
+                "dest": "/rules/isr/[...]-isr?url=$url",
+                "src": "(?<url>/rules/isr/(?:.*))",
+              },
+              {
+                "dest": "/rules/isr-ttl/[...]-isr?url=$url",
+                "src": "(?<url>/rules/isr-ttl/(?:.*))",
+              },
+              {
+                "dest": "/rules/swr/[...]-isr?url=$url",
+                "src": "(?<url>/rules/swr/(?:.*))",
+              },
+              {
+                "dest": "/rules/swr-ttl/[...]-isr?url=$url",
+                "src": "(?<url>/rules/swr-ttl/(?:.*))",
               },
               {
                 "dest": "/wasm/static-import",
