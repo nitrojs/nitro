@@ -69,7 +69,6 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "@bomb.sh/tab": "^0.0.5",
     "consola": "^3.4.2",
     "crossws": "^0.4.12",
     "db0": "^0.4.1",
@@ -88,6 +87,7 @@
     "@apphosting/common": "^0.0.9",
     "@azure/functions": "^3.6.0",
     "@azure/static-web-apps-cli": "^2.0.10",
+    "@bomb.sh/tab": "^0.0.5",
     "@cloudflare/workers-types": "^5.20260904.1",
     "@cloudflare/workers-utils": "^0.36.0",
     "@deno/types": "^0.0.1",
