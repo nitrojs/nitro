@@ -69,6 +69,7 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
+    "@bomb.sh/tab": "^0.0.5",
     "consola": "^3.4.2",
     "crossws": "^0.4.12",
     "db0": "^0.4.1",

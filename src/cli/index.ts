@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-import { defineCommand, runMain } from "citty";
+import { defineCommand, runMain as _runMain } from "citty";
 import { version as nitroVersion } from "nitro/meta";
+import { initCompletions } from "./completions";
 
 const main = defineCommand({
   meta: {
@@ -18,4 +19,9 @@ const main = defineCommand({
   },
 });
 
-runMain(main);
+async function runMain() {
+  await initCompletions(main);
+  return _runMain(main);
+}
+
+runMain();
