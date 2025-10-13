@@ -12,9 +12,6 @@ importers:
 
   .:
     dependencies:
-      '@bomb.sh/tab':
-        specifier: ^0.0.5
-        version: 0.0.5(cac@6.7.14)(citty@0.1.6)
       consola:
         specifier: ^3.4.2
         version: 3.4.2
@@ -76,6 +73,9 @@ importers:
       '@azure/static-web-apps-cli':
         specifier: ^2.0.7
         version: 2.0.7
+      '@bomb.sh/tab':
+        specifier: ^0.0.5
+        version: 0.0.5(cac@6.7.14)(citty@0.1.6)
       '@cloudflare/workers-types':
         specifier: ^4.20251008.0
         version: 4.20251008.0
