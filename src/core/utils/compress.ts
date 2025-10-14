@@ -5,6 +5,7 @@ import { globby } from "globby";
 import mime from "mime";
 import type { Nitro } from "nitropack/types";
 import { resolve } from "pathe";
+import { runParallel } from "./parallel";
 
 export async function compressPublicAssets(nitro: Nitro) {
   const publicFiles = await globby("**", {
@@ -14,8 +15,9 @@ export async function compressPublicAssets(nitro: Nitro) {
     ignore: ["**/*.gz", "**/*.br"],
   });
 
-  await Promise.all(
-    publicFiles.map(async (fileName) => {
+  await runParallel(
+    new Set(publicFiles),
+    async (fileName) => {
       const filePath = resolve(nitro.options.output.publicDir, fileName);
 
       if (existsSync(filePath + ".gz") || existsSync(filePath + ".br")) {
@@ -71,7 +73,8 @@ export async function compressPublicAssets(nitro: Nitro) {
           await fsp.writeFile(compressedPath, compressedBuff);
         })
       );
-    })
+    },
+    { concurrency: 10 }
   );
 }
 
