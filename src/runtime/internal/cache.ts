@@ -46,12 +46,14 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
   const name = opts.name || fn.name || "_";
   const integrity = opts.integrity || hash([fn, opts]);
   const validate = opts.validate || ((entry) => entry.value !== undefined);
+  const serialize = opts.serialize || (async (entry) => entry);
 
   async function get(
     key: string,
     resolver: () => T | Promise<T>,
     shouldInvalidateCache?: boolean,
-    event?: H3Event
+    event?: H3Event,
+    args: ArgsT = [] as any
   ): Promise<ResolvedCacheEntry<T>> {
     // Use extension for key to avoid conflicting with parent namespace (foo/bar and foo/bar/baz)
     const cacheKey = [opts.base, group, name, key + ".json"]
@@ -124,12 +126,17 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
           if (opts.maxAge && !opts.swr /* TODO: respect staleMaxAge */) {
             setOpts = { ttl: opts.maxAge };
           }
-          const promise = useStorage()
-            .setItem(cacheKey, entry, setOpts)
-            .catch((error) => {
-              console.error(`[cache] Cache write error.`, error);
-              useNitroApp().captureError(error, { event, tags: ["cache"] });
-            });
+
+          const promise = Promise.resolve(serialize(entry, ...args)).then(
+            (entry) =>
+              useStorage()
+                .setItem(cacheKey, entry, setOpts)
+                .catch((error) => {
+                  console.error(`[cache] Cache write error.`, error);
+                  useNitroApp().captureError(error, { event, tags: ["cache"] });
+                })
+          );
+
           if (event?.waitUntil) {
             event.waitUntil(promise);
           }
@@ -167,7 +174,8 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
       key,
       () => fn(...args),
       shouldInvalidateCache,
-      args[0] && isEvent(args[0]) ? args[0] : undefined
+      args[0] && isEvent(args[0]) ? args[0] : undefined,
+      args
     );
     let value = entry.value;
     if (opts.transform) {
