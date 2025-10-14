@@ -222,6 +222,12 @@ class DevServer {
         fromNodeMiddleware(
           serveStatic(asset.dir, {
             dotfiles: "allow",
+            setHeaders(res, path) {
+              if (path.endsWith(".gz")) {
+                res.setHeader("Content-Encoding", "gzip");
+              }
+              // Or expand to other encodings if needed
+            },
           })
         )
       );
