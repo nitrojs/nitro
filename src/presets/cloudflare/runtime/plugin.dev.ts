@@ -14,8 +14,7 @@ const _proxy = _getPlatformProxy()
     return proxy;
   });
 
-// eslint-disable-next-line unicorn/prefer-top-level-await
-(globalThis as any).__env__ = _proxy.then((proxy) => proxy.env);
+(globalThis as any).__env__ = await _proxy.then((proxy) => proxy.env);
 
 export default <NitroAppPlugin>function (nitroApp) {
   nitroApp.hooks.hook("request", async (event) => {
