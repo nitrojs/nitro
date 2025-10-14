@@ -420,5 +420,12 @@ async function writePrerenderConfig(
     ...isrConfig,
   };
 
+  if (
+    prerenderConfig.allowQuery &&
+    !prerenderConfig.allowQuery.includes(ISR_URL_PARAM)
+  ) {
+    prerenderConfig.allowQuery.push(ISR_URL_PARAM);
+  }
+
   await writeFile(filename, JSON.stringify(prerenderConfig, null, 2));
 }

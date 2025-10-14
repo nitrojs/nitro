@@ -457,7 +457,7 @@ describe("nitro:preset:vercel", async () => {
         );
         expect(JSON.parse(isrRouteConfig)).toMatchObject({
           expiration: false,
-          allowQuery: ["q"],
+          allowQuery: ["q", "__isr_route"],
         });
       });
 
