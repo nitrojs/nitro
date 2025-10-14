@@ -1,6 +1,6 @@
 import "#nitro-internal-pollyfills";
 import { useNitroApp } from "nitropack/runtime";
-// @ts-expect-error
+// @ts-ignore
 import { getRouteRulesForPath } from "nitropack/runtime/internal/index";
 import type { NitroRouteRules } from "nitropack/types";
 import { type NodeListener, toNodeListener } from "h3";
@@ -16,7 +16,7 @@ const listener: NodeListener = function (req, res) {
   if (isrRoute) {
     const { [ISR_URL_PARAM]: url } = parseQuery(isrRoute);
     if (url && typeof url === "string") {
-      const routeRules: NitroRouteRules = getRouteRulesForPath(url);
+      const routeRules = getRouteRulesForPath(url) as NitroRouteRules;
       if (routeRules.isr) {
         req.url = url;
       }
@@ -33,7 +33,7 @@ const listener: NodeListener = function (req, res) {
         req.url!.slice(queryIndex)
       );
       if (url && typeof url === "string") {
-        const routeRules: NitroRouteRules = getRouteRulesForPath(url);
+        const routeRules = getRouteRulesForPath(url) as NitroRouteRules;
         if (routeRules.isr) {
           req.url = withQuery(url, params);
         }
