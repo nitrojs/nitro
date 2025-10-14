@@ -77,13 +77,16 @@ export function createVFSHandler(nitro: Nitro) {
           currentDir[segment] = {};
         }
 
-        currentDir = currentDir[segment];
-      }
+  for (const [key, value] of Object.entries(changes)) {
+    if (key === "__proto__" || key === "constructor" || key === "prototype") {
+      continue;
     }
-
-    const generateHTML = (
-      directory: Record<string, any>,
-      path: string[] = []
+    if (value) {
+      vfs[key] = value;
+    } else {
+      delete vfs[key];
+    }
+  }
     ): string =>
       Object.entries(directory)
         .map(([fname, value = {}]) => {
