@@ -12,7 +12,7 @@ const handler = toNodeListener(nitroApp.h3App);
 const listener: NodeListener = function (req, res) {
   const isrRoute = req.headers["x-now-route-matches"] as string;
   if (isrRoute) {
-    const { url } = parseQuery(isrRoute);
+    const { [ISR_URL_PARAM]: url } = parseQuery(isrRoute);
     if (url) {
       req.url = url as string;
     }
