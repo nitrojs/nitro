@@ -15,15 +15,14 @@ const listener: NodeListener = function (req, res) {
   const isrRoute = req.headers["x-now-route-matches"] as string;
   if (isrRoute) {
     const { [ISR_URL_PARAM]: url } = parseQuery(isrRoute);
-    if (url) {
+    if (url && typeof url === "string") {
       const routeRules: NitroRouteRules = getRouteRulesForPath(url);
       if (routeRules.isr) {
-        req.url = url as string;
+        req.url = url;
       }
     }
   } else {
-    // Route rules with isr: { passQuery: true
-    // /__fallback--api-weather?__isr_route=%2Fapi%2Fweather%2Famsterdam&units=123"
+    // Route rules with isr: { passQuery: true }
     const queryIndex = req.url!.indexOf("?");
     const urlQueryIndex =
       queryIndex === -1
@@ -33,10 +32,10 @@ const listener: NodeListener = function (req, res) {
       const { [ISR_URL_PARAM]: url, ...params } = parseQuery(
         req.url!.slice(queryIndex)
       );
-      if (url) {
+      if (url && typeof url === "string") {
         const routeRules: NitroRouteRules = getRouteRulesForPath(url);
         if (routeRules.isr) {
-          req.url = withQuery((url as string) || "/", params);
+          req.url = withQuery(url, params);
         }
       }
     }
