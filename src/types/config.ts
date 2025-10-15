@@ -12,7 +12,7 @@ import type { LogLevel } from "consola";
 import type { ConnectorName } from "db0";
 import type { NestedHooks } from "hookable";
 import type { ProxyServerOptions } from "httpxy";
-import type { PresetName, PresetNameInput, PresetOptions } from "nitro/presets";
+import type { PresetName, PresetNameInput, PresetOptions } from "nitro/types";
 import type { TSConfig } from "pkg-types";
 import type { Preset as UnenvPreset } from "unenv";
 import type { UnimportPluginOptions } from "unimport/unplugin";
