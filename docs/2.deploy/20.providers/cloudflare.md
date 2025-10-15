@@ -189,6 +189,8 @@ Note that this isn't recommend for sensitive data like secrets.
 
 **Example:**
 
+::code-group
+
 ```ini [wrangler.toml]
 # Shared
 [vars]
@@ -200,6 +202,26 @@ SECRET="secret"
 NITRO_HELLO_THERE="captain"
 SECRET="top-secret"
 ```
+
+```json [wrangler.json]
+{
+  "vars": {
+    "NITRO_HELLO_THERE": "general",
+    "SECRET": "secret"
+  },
+  "env": {
+    "production": {
+      "vars": {
+        "NITRO_HELLO_THERE": "captain",
+        "SECRET": "top-secret"
+      }
+    }
+  }
+}
+
+```
+
+::
 
 ## Direct access to Cloudflare bindings
 
@@ -237,6 +259,8 @@ In order to access bindings in dev mode we start by defining the bindings. You c
 
 For example to define a variable and a KV namespace in a `wrangler.toml`
 
+::code-group
+
 ```ini [wrangler.toml]
 [vars]
 MY_VARIABLE="my-value"
@@ -245,6 +269,22 @@ MY_VARIABLE="my-value"
 binding = "MY_KV"
 id = "xxx"
 ```
+
+```json [wrangler.json]
+{
+  "vars": {
+    "MY_VARIABLE": "my-value",
+  },
+  "kv_namespaces": [
+    {
+      "binding": "MY_KV",
+      "id": "xxx"
+    }
+  ]
+}
+```
+
+::
 
 Or in your Nitro config:
 
