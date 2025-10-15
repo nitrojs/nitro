@@ -6,8 +6,11 @@ import type {
   TaskEvent,
   TaskRunnerOptions,
 } from "nitro/types";
-import { ofetch } from "ofetch";
 import { normalize, resolve } from "pathe";
+import http from "node:http";
+import type { RequestOptions } from "node:http";
+import { withBase, withQuery } from "ufo";
+import type { QueryObject } from "ufo";
 
 /** @experimental */
 export async function runTask(
@@ -103,13 +106,60 @@ async function _getTasksContext(opts?: TaskRunnerOptions) {
     throw new Error(`Dev server is not running (pid: ${buildInfo.dev.pid})`);
   }
 
-  const devFetch = ofetch.create({
-    baseURL: `http://${buildInfo.dev.workerAddress.host || "localhost"}:${
-      buildInfo.dev.workerAddress.port || "3000"
-    }`,
-    // @ts-expect-error
-    socketPath: buildInfo.dev.workerAddress.socketPath,
-  });
+  const baseURL = `http://${buildInfo.dev.workerAddress.host || "localhost"}:${buildInfo.dev.workerAddress.port || "3000"}`;
+  const socketPath = buildInfo.dev.workerAddress.socketPath;
+
+  // `ofetch` doesn't support `socketPath`, so we use `http.request` directly
+  const devFetch = <T = any>(
+    path: string,
+    options?: {
+      method?: RequestOptions["method"];
+      query?: QueryObject;
+      body?: unknown;
+    }
+  ) => {
+    return new Promise<T>((resolve, reject) => {
+      let url = withBase(path, baseURL);
+      if (options?.query) {
+        url = withQuery(url, options.query);
+      }
+
+      const request = http.request(
+        url,
+        {
+          socketPath,
+          method: options?.method,
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+        },
+        (response) => {
+          if (
+            !response.statusCode ||
+            (response.statusCode >= 400 && response.statusCode < 600)
+          ) {
+            reject(new Error(response.statusMessage));
+            return;
+          }
+
+          let data = "";
+          response
+            .on("data", (chunk) => (data += chunk))
+            // Response of tasks is always JSON
+            .on("end", () => resolve(JSON.parse(data)))
+            .on("error", (e) => reject(e));
+        }
+      );
+
+      request.on("error", (e) => reject(e));
+
+      if (options?.body) {
+        request.write(JSON.stringify(options.body));
+      }
+      request.end();
+    });
+  };
 
   return {
     buildInfo,
