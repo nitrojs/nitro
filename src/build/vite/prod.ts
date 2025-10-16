@@ -76,8 +76,9 @@ export async function buildEnvironments(
     }
   }
 
-  // call postponed buildApp hook of other plugins
-  await ctx._buildApp?.apply(null as any, [builder]);
+  if (ctx.pluginConfig.experimental?.assetsImport) {
+    await builder.writeAssetsManifest();
+  }
 
   // ----------------------------------------------
   // Stage 2: Build Nitro

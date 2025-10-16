@@ -26,6 +26,8 @@ import { assetsPlugin } from "@hiogawa/vite-plugin-fullstack";
 const DEFAULT_EXTENSIONS = [".ts", ".js", ".mts", ".mjs", ".tsx", ".jsx"];
 
 export function nitro(pluginConfig: NitroPluginConfig = {}): VitePlugin {
+  pluginConfig.experimental ??= {};
+  pluginConfig.experimental.assetsImport ??= true;
   const ctx: NitroPluginContext = {
     pluginConfig,
     _entryPoints: {},
@@ -297,21 +299,7 @@ function nitroPlugin(ctx: NitroPluginContext): VitePlugin[] {
         },
       },
     },
-    ...(ctx.pluginConfig.experimental?.assetsImport === false
-      ? []
-      : [
-          assetsPlugin(),
-          {
-            name: "nitro:patch-assets-plugin",
-            configResolved(config) {
-              const plugin = config.plugins.find(
-                (p) => p.name === "fullstack:assets"
-              );
-              ctx._buildApp = (plugin?.buildApp as any).handler;
-              delete plugin?.buildApp;
-            },
-          } satisfies VitePlugin,
-        ]),
+    ctx.pluginConfig.experimental?.assetsImport && assetsPlugin(),
   ];
 }
 
