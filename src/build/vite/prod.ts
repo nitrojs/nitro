@@ -77,6 +77,8 @@ export async function buildEnvironments(
   }
 
   if (ctx.pluginConfig.experimental?.assetsImport) {
+    // This is an extended builder API by assets plugin
+    // https://github.com/hi-ogawa/vite-plugins/pull/1288
     await builder.writeAssetsManifest();
   }
 
