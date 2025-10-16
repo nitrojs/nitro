@@ -299,7 +299,13 @@ function nitroPlugin(ctx: NitroPluginContext): VitePlugin[] {
         },
       },
     },
-    ctx.pluginConfig.experimental?.assetsImport && assetsPlugin(),
+    ctx.pluginConfig.experimental?.assetsImport &&
+      assetsPlugin({
+        experimental: {
+          // See https://github.com/hi-ogawa/vite-plugins/pull/1289
+          clientBuildFallback: false,
+        },
+      }),
   ];
 }
 

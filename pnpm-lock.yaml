@@ -13,8 +13,8 @@ importers:
   .:
     dependencies:
       '@hiogawa/vite-plugin-fullstack':
-        specifier: https://pkg.pr.new/hi-ogawa/vite-plugins/@hiogawa/vite-plugin-fullstack@5efb165
-        version: https://pkg.pr.new/hi-ogawa/vite-plugins/@hiogawa/vite-plugin-fullstack@5efb165(vite@7.1.9(@types/node@24.7.1)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.44.0)(yaml@2.8.1))
+        specifier: https://pkg.pr.new/hi-ogawa/vite-plugins/@hiogawa/vite-plugin-fullstack@64a5263
+        version: https://pkg.pr.new/hi-ogawa/vite-plugins/@hiogawa/vite-plugin-fullstack@64a5263(vite@7.1.9(@types/node@24.7.1)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.44.0)(yaml@2.8.1))
       consola:
         specifier: ^3.4.2
         version: 3.4.2
@@ -1151,8 +1151,8 @@ packages:
     peerDependencies:
       vue: ^3.2.0
 
-  '@hiogawa/vite-plugin-fullstack@https://pkg.pr.new/hi-ogawa/vite-plugins/@hiogawa/vite-plugin-fullstack@5efb165':
-    resolution: {tarball: https://pkg.pr.new/hi-ogawa/vite-plugins/@hiogawa/vite-plugin-fullstack@5efb165}
+  '@hiogawa/vite-plugin-fullstack@https://pkg.pr.new/hi-ogawa/vite-plugins/@hiogawa/vite-plugin-fullstack@64a5263':
+    resolution: {tarball: https://pkg.pr.new/hi-ogawa/vite-plugins/@hiogawa/vite-plugin-fullstack@64a5263}
     version: 0.0.4
     peerDependencies:
       vite: ^7.0.0
@@ -7507,7 +7507,7 @@ snapshots:
       '@tanstack/vue-virtual': 3.13.12(vue@3.5.22(typescript@5.9.3))
       vue: 3.5.22(typescript@5.9.3)
 
-  '@hiogawa/vite-plugin-fullstack@https://pkg.pr.new/hi-ogawa/vite-plugins/@hiogawa/vite-plugin-fullstack@5efb165(vite@7.1.9(@types/node@24.7.1)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.44.0)(yaml@2.8.1))':
+  '@hiogawa/vite-plugin-fullstack@https://pkg.pr.new/hi-ogawa/vite-plugins/@hiogawa/vite-plugin-fullstack@64a5263(vite@7.1.9(@types/node@24.7.1)(jiti@2.6.1)(lightningcss@1.30.1)(terser@5.44.0)(yaml@2.8.1))':
     dependencies:
       magic-string: 0.30.19
       srvx: 0.8.15
