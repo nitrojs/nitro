@@ -18,6 +18,7 @@ import { defu } from "defu";
 import { prettyPath } from "../../utils/fs";
 import { NitroDevApp } from "../../dev/app";
 import { nitroPreviewPlugin } from "./preview";
+import { assetsPlugin } from "@hiogawa/vite-plugin-fullstack";
 
 // https://vite.dev/guide/api-environment-plugins
 // https://vite.dev/guide/api-environment-frameworks.html
@@ -25,6 +26,8 @@ import { nitroPreviewPlugin } from "./preview";
 const DEFAULT_EXTENSIONS = [".ts", ".js", ".mts", ".mjs", ".tsx", ".jsx"];
 
 export function nitro(pluginConfig: NitroPluginConfig = {}): VitePlugin {
+  pluginConfig.experimental ??= {};
+  pluginConfig.experimental.assetsImport ??= true;
   const ctx: NitroPluginContext = {
     pluginConfig,
     _entryPoints: {},
@@ -296,6 +299,13 @@ function nitroPlugin(ctx: NitroPluginContext): VitePlugin[] {
         },
       },
     },
+    ctx.pluginConfig.experimental?.assetsImport &&
+      assetsPlugin({
+        experimental: {
+          // See https://github.com/hi-ogawa/vite-plugins/pull/1289
+          clientBuildFallback: false,
+        },
+      }),
   ];
 }
 

@@ -6,6 +6,7 @@ import { defineBuildConfig } from "unbuild";
 
 import { resolveModulePath } from "exsolve";
 import { traceNodeModules } from "nf3";
+import { appendFileSync } from "node:fs";
 
 const srcDir = fileURLToPath(new URL("src", import.meta.url));
 const libDir = fileURLToPath(new URL("lib", import.meta.url));
@@ -82,6 +83,12 @@ export default defineBuildConfig({
         }
         await rm(file);
       }
+
+      // expose "?assets" import type through `nitro/vite`
+      appendFileSync(
+        "dist/vite.d.mts",
+        '\nimport type {} from "@hiogawa/vite-plugin-fullstack/types";\n'
+      );
     },
   },
   externals: [
