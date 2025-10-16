@@ -18,6 +18,7 @@ import { defu } from "defu";
 import { prettyPath } from "../../utils/fs";
 import { NitroDevApp } from "../../dev/app";
 import { nitroPreviewPlugin } from "./preview";
+import { assetsPlugin } from "@hiogawa/vite-plugin-fullstack"
 
 // https://vite.dev/guide/api-environment-plugins
 // https://vite.dev/guide/api-environment-frameworks.html
@@ -296,6 +297,16 @@ function nitroPlugin(ctx: NitroPluginContext): VitePlugin[] {
         },
       },
     },
+    ...ctx.pluginConfig.experimental?.assetsImport ? [
+      assetsPlugin(),
+      {
+        name: "nitro:patch-assets-plugin",
+        configResolved(config) {
+          const plugin = config.plugins.find(p => p.name === 'fullstack:assets');
+          ctx._buildApp = (plugin?.buildApp as any).handler
+        },
+      } satisfies VitePlugin,
+    ] : [],
   ];
 }
 

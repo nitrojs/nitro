@@ -76,6 +76,9 @@ export async function buildEnvironments(
     }
   }
 
+  // call postponed buildApp hook of other plugins
+  await ctx._buildApp?.();
+
   // ----------------------------------------------
   // Stage 2: Build Nitro
   // ----------------------------------------------

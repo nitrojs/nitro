@@ -52,6 +52,7 @@
     "undici": "^7.11.0"
   },
   "dependencies": {
+    "@hiogawa/vite-plugin-fullstack": "^0.0.3",
     "consola": "^3.4.2",
     "cookie-es": "^2.0.0",
     "crossws": "^0.4.1",

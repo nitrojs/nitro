@@ -34,6 +34,10 @@ export interface NitroPluginConfig {
      * @note This is unsafe if plugins rely on temporary files on the filesystem.
      */
     virtualBundle?: boolean;
+    /**
+     * @experimental Enable `?assets` import proposed by https://github.com/vitejs/vite/discussions/20913
+     */
+    assetsImport?: boolean
   };
 }
 
@@ -75,4 +79,5 @@ export interface NitroPluginContext {
   _publicDistDir?: string;
   _entryPoints: Record<string, string>;
   _serviceBundles: Record<string, OutputBundle>;
+  _buildApp?: () => Promise<void>;
 }
