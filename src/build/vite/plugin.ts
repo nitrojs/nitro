@@ -304,6 +304,7 @@ function nitroPlugin(ctx: NitroPluginContext): VitePlugin[] {
         configResolved(config) {
           const plugin = config.plugins.find(p => p.name === 'fullstack:assets');
           ctx._buildApp = (plugin?.buildApp as any).handler
+          delete plugin?.buildApp;
         },
       } satisfies VitePlugin,
     ] : [],
