@@ -2,6 +2,7 @@ import type { OutputBundle } from "rollup";
 import type { getViteRollupConfig } from "./rollup";
 import type { DevWorker, Nitro, NitroConfig } from "nitro/types";
 import type { NitroDevApp } from "../../dev/app";
+import type { BuildAppHook } from "vite";
 
 declare module "vite" {
   interface UserConfig {
@@ -36,8 +37,9 @@ export interface NitroPluginConfig {
     virtualBundle?: boolean;
     /**
      * @experimental Enable `?assets` import proposed by https://github.com/vitejs/vite/discussions/20913
+     * @default true
      */
-    assetsImport?: boolean
+    assetsImport?: boolean;
   };
 }
 
@@ -79,5 +81,5 @@ export interface NitroPluginContext {
   _publicDistDir?: string;
   _entryPoints: Record<string, string>;
   _serviceBundles: Record<string, OutputBundle>;
-  _buildApp?: () => Promise<void>;
+  _buildApp?: BuildAppHook;
 }
