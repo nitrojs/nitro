@@ -92,23 +92,7 @@ export default defineBuildConfig({
     "firebase-functions",
     "@scalar/api-reference",
     "get-port-please", // internal type only
-    /**
-     * This package includes TS syntax that `rollup-plugin-dts` cannot handle,
-     * We have to exclude it from inlining types.
-     * https://github.com/Swatinem/rollup-plugin-dts/blob/2d4301703278b2b849b3f6d15856d11e7952bc63/src/transform/DeclarationScope.ts#L400
-     *
-     * Users will have to install this package manually if they use Cloudflare Workers types.
-     *
-     * ```
-     * ERROR  namespace child (hoisting) not supported yet
-     *
-     * declare module "cloudflare:workers" {
-     *   export = CloudflareWorkersModule;
-     *   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-     * }
-     * ```
-     */
-    "@cloudflare/workers-types",
+    "@cloudflare/workers-types", // issues with rollup-plugin-dts
   ],
   stubOptions: {
     jiti: {
