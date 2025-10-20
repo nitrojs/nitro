@@ -115,7 +115,8 @@ export const cloudflareDev = defineNitroPreset(
     ],
     unenv: {
       alias: {
-        "cloudflare:workers": 'nitropack/presets/cloudflare/runtime/imports/workers',
+        "cloudflare:workers":
+          "nitropack/presets/cloudflare/runtime/imports/workers",
       },
     },
   },
