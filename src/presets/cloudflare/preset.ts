@@ -12,7 +12,6 @@ import {
 } from "./utils";
 
 import cfLegacyPresets from "./preset-legacy";
-import { cloudflareEnvAlias } from "./plugin-env-alias";
 
 export type { CloudflareOptions as PresetOptions } from "./types";
 
@@ -114,12 +113,9 @@ export const cloudflareDev = defineNitroPreset(
       async (nitro) =>
         await import("./dev").then((m) => m.cloudflareDev(nitro)),
     ],
-    hooks: {
-      "rollup:before": (nitro, rollupConfig) => {
-        rollupConfig.plugins ??= [];
-        if (Array.isArray(rollupConfig.plugins)) {
-          rollupConfig.plugins.push(cloudflareEnvAlias(nitro));
-        }
+    unenv: {
+      alias: {
+        "cloudflare:workers": 'nitropack/presets/cloudflare/runtime/imports/workers',
       },
     },
   },
