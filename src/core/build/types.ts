@@ -58,12 +58,13 @@ export async function writeTypes(nitro: Nitro) {
     const resolvedImportPathMap = new Map<string, string>();
 
     for (const i of allImports) {
-      if (resolvedImportPathMap.has(i.from)) {
+      const from = i.typeFrom || i.from
+      if (resolvedImportPathMap.has(from)) {
         continue;
       }
-      let path = resolveAlias(i.from, nitro.options.alias);
+      let path = resolveAlias(from, nitro.options.alias);
       if (!isAbsolute(path)) {
-        const resolvedPath = resolveModulePath(i.from, {
+        const resolvedPath = resolveModulePath(from, {
           try: true,
           from: nitro.options.nodeModulesDirs,
           conditions: ["type", "node", "import"],
@@ -86,7 +87,7 @@ export async function writeTypes(nitro: Nitro) {
       if (isAbsolute(path)) {
         path = relative(typesDir, path);
       }
-      resolvedImportPathMap.set(i.from, path);
+      resolvedImportPathMap.set(from, path);
     }
 
     autoImportedTypes = [
@@ -94,7 +95,10 @@ export async function writeTypes(nitro: Nitro) {
         ? (
             await nitro.unimport.generateTypeDeclarations({
               exportHelper: false,
-              resolvePath: (i) => resolvedImportPathMap.get(i.from) ?? i.from,
+              resolvePath: (i) => {
+                const from = i.typeFrom || i.from
+                return resolvedImportPathMap.get(from) ?? from
+              },
             })
           ).trim()
         : "",
