@@ -1,25 +1,19 @@
 import type { NitroAppPlugin } from "nitropack";
 import type { GetPlatformProxyOptions, PlatformProxy } from "wrangler";
+
 // @ts-ignore
 import { useRuntimeConfig, getRequestURL } from "#imports";
 
-const _proxy = _getPlatformProxy()
-  .catch((error) => {
-    console.error("Failed to initialize wrangler bindings proxy", error);
-    return _createStubProxy();
-  })
-  // eslint-disable-next-line unicorn/prefer-top-level-await
-  .then((proxy) => {
-    (globalThis as any).__env__ = proxy.env;
-    return proxy;
-  });
+const proxy = await _getPlatformProxy().catch((error) => {
+  console.error("Failed to initialize wrangler bindings proxy", error);
+  return _createStubProxy();
+});
 
-(globalThis as any).__env__ = await _proxy.then((proxy) => proxy.env);
+(globalThis as any).__env__ = proxy.env;
+(globalThis as any).__wait_until__ = proxy.ctx.waitUntil.bind(proxy.ctx);
 
 export default <NitroAppPlugin>function (nitroApp) {
   nitroApp.hooks.hook("request", async (event) => {
-    const proxy = await _proxy;
-
     // Inject the various cf values from the proxy in event and event.context
     event.context.cf = proxy.cf;
     event.context.waitUntil = proxy.ctx.waitUntil.bind(proxy.ctx);
@@ -52,7 +46,7 @@ export default <NitroAppPlugin>function (nitroApp) {
 
   // Dispose proxy when Nitro is closed
   nitroApp.hooks.hook("close", () => {
-    return _proxy?.then((proxy) => proxy.dispose);
+    return proxy?.dispose();
   });
 };
 
