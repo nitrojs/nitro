@@ -47,21 +47,21 @@ export async function nitro(
 
   ctx.rollupConfig = await getViteRollupConfig(ctx);
 
-  let additionalPlugins: VitePlugin[] = [];
+  let rollupDevPlugins: VitePlugin[] = [];
   if (ctx.nitro.options.dev) {
     await ctx.nitro.hooks.callHook(
       "rollup:before",
       ctx.nitro,
       ctx.rollupConfig.config
     );
-    additionalPlugins = ctx.rollupConfig.config.plugins as VitePlugin[];
+    rollupDevPlugins = ctx.rollupConfig.config.plugins as VitePlugin[];
   }
 
   return [
     nitroPlugin(ctx),
     nitroServicePlugin(ctx),
     nitroPreviewPlugin(ctx),
-    ...additionalPlugins,
+    ...rollupDevPlugins,
   ];
 }
 
