@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## v2.12.8
+
+[compare changes](https://github.com/nitrojs/nitro/compare/v2.12.7...v2.12.8)
+
+### 🩹 Fixes
+
+- **cloudflare:** Await on `getPlatformProxy()` global env in dev ([#3657](https://github.com/nitrojs/nitro/pull/3657))
+- **build:** Avoid replacing `window$1` ([#3672](https://github.com/nitrojs/nitro/pull/3672))
+- **cloudflare:** Add `cloudflare:workers` alias in dev ([#3663](https://github.com/nitrojs/nitro/pull/3663))
+- Support autoimports `typeFrom` property for declaration gen ([#3670](https://github.com/nitrojs/nitro/pull/3670))
+
+### 🏡 Chore
+
+- Update dependencies ([6e36153b](https://github.com/nitrojs/nitro/commit/6e36153b))
+
+### 🤖 CI
+
+- Try pkg.pr.new ([e675f80b](https://github.com/nitrojs/nitro/commit/e675f80b))
+- Add condition for pkg-pr-new ([c289b4a3](https://github.com/nitrojs/nitro/commit/c289b4a3))
+
+### ❤️ Contributors
+
+- Octavio Araiza ([@8ctavio](https://github.com/8ctavio))
+- Rihan Arfan ([@RihanArfan](https://github.com/RihanArfan))
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+
 ## v2.12.7
 
 [compare changes](https://github.com/nitrojs/nitro/compare/v2.12.6...v2.12.7)
