@@ -139,6 +139,7 @@ export default defineNitroConfig({
     },
   },
   openAPI: {
+    excludedTags: ["Internal"],
     production: "prerender",
     meta: {
       title: "Nitro Test Fixture",
