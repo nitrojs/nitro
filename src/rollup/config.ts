@@ -246,8 +246,7 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
   rollupConfig.plugins.push(
     replace({
       preventAssignment: true,
-      // https://github.com/rollup/plugins/tree/master/packages/replace#delimiters
-      replaceDelimiters: [String.raw`\b`, String.raw`(?![\w.$])`],
+      // replaceDelimiters: [String.raw`\b`, String.raw`(?![\w.$])`],
       values: {
         "typeof window": '"undefined"',
         "typeof window$1": '"undefined"',
