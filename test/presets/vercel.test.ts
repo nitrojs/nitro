@@ -174,6 +174,10 @@ describe("nitro:preset:vercel", async () => {
                 "src": "/route-group",
               },
               {
+                "dest": "/replace",
+                "src": "/replace",
+              },
+              {
                 "dest": "/raw",
                 "src": "/raw",
               },
@@ -560,6 +564,7 @@ describe("nitro:preset:vercel", async () => {
             "functions/prerender-custom.html.func (symlink)",
             "functions/prerender.func (symlink)",
             "functions/raw.func (symlink)",
+            "functions/replace.func (symlink)",
             "functions/route-group.func (symlink)",
             "functions/rules/[...slug].func (symlink)",
             "functions/rules/_/cached/[...]-isr.func (symlink)",
