@@ -73,6 +73,9 @@ importers:
       '@azure/static-web-apps-cli':
         specifier: ^2.0.7
         version: 2.0.7
+      '@bomb.sh/tab':
+        specifier: ^0.0.5
+        version: 0.0.5(cac@6.7.14)(citty@0.1.6)
       '@cloudflare/workers-types':
         specifier: ^4.20251008.0
         version: 4.20251008.0
@@ -533,6 +536,21 @@ packages:
   '@bcoe/v8-coverage@1.0.2':
     resolution: {integrity: sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA==}
     engines: {node: '>=18'}
+
+  '@bomb.sh/tab@0.0.5':
+    resolution: {integrity: sha512-S0dAhnulM/q284LkmBT7ykITbRvnog8a/3nuVi4Iy0VhyfkTZcB0bXB5pltmINyL+OjAfYd9TQeOge+CYk/l1w==}
+    hasBin: true
+    peerDependencies:
+      cac: ^6.7.14
+      citty: ^0.1.6
+      commander: ^13.1.0
+    peerDependenciesMeta:
+      cac:
+        optional: true
+      citty:
+        optional: true
+      commander:
+        optional: true
 
   '@cloudflare/kv-asset-handler@0.4.0':
     resolution: {integrity: sha512-+tv3z+SPp+gqTIcImN9o0hqE9xyfQjI1XD9pL6NuKjua9B1y7mNYv0S9cP+QEbA4ppVgGZEmKOvHX5G5Ei1CVA==}
@@ -6784,6 +6802,13 @@ snapshots:
       '@babel/helper-validator-identifier': 7.27.1
 
   '@bcoe/v8-coverage@1.0.2': {}
+
+  '@bomb.sh/tab@0.0.5(cac@6.7.14)(citty@0.1.6)':
+    dependencies:
+      mri: 1.2.0
+    optionalDependencies:
+      cac: 6.7.14
+      citty: 0.1.6
 
   '@cloudflare/kv-asset-handler@0.4.0':
     dependencies:
