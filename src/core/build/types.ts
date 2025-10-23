@@ -58,7 +58,7 @@ export async function writeTypes(nitro: Nitro) {
     const resolvedImportPathMap = new Map<string, string>();
 
     for (const i of allImports) {
-      const from = i.typeFrom || i.from
+      const from = i.typeFrom || i.from;
       if (resolvedImportPathMap.has(from)) {
         continue;
       }
@@ -96,8 +96,8 @@ export async function writeTypes(nitro: Nitro) {
             await nitro.unimport.generateTypeDeclarations({
               exportHelper: false,
               resolvePath: (i) => {
-                const from = i.typeFrom || i.from
-                return resolvedImportPathMap.get(from) ?? from
+                const from = i.typeFrom || i.from;
+                return resolvedImportPathMap.get(from) ?? from;
               },
             })
           ).trim()
