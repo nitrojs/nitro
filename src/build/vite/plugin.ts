@@ -16,6 +16,7 @@ import { resolveModulePath } from "exsolve";
 import { prettyPath } from "../../utils/fs";
 import { NitroDevApp } from "../../dev/app";
 import { nitroPreviewPlugin } from "./preview";
+import { existsSync } from "node:fs";
 
 // https://vite.dev/guide/api-environment-plugins
 // https://vite.dev/guide/api-environment-frameworks.html
@@ -35,11 +36,12 @@ export async function nitro(
   };
 
   const configEnv = inferConfigEnv();
+  const rootDir = inferRoot();
   ctx.nitro =
     pluginConfig._nitro ||
     (await createNitro({
       dev: configEnv.mode === "development",
-      rootDir: configEnv.root,
+      rootDir,
       ...pluginConfig.config,
     }));
 
@@ -398,18 +400,24 @@ function nitroServicePlugin(ctx: NitroPluginContext): VitePlugin {
 
 // --- internal helpers ---
 
-function inferConfigEnv(): ConfigEnv & { root: string } {
+function inferConfigEnv(): ConfigEnv {
   const isDev = process.env.NODE_ENV
     ? process.env.NODE_ENV === "development"
     : process.argv.includes("dev");
 
   return {
-    root: process.cwd(),
     mode: isDev ? "development" : "production",
     command: isDev ? "serve" : "build",
     isSsrBuild: !isDev && process.argv.includes("--ssr"),
     isPreview: !isDev && process.argv.includes("preview"),
   };
+}
+
+function inferRoot() {
+  const args = process.argv.slice(2).filter((arg) => !arg.startsWith("-"));
+  const lastArg = args.at(-1);
+  const resolvedDir = resolve(lastArg || ".");
+  return existsSync(resolvedDir) ? resolvedDir : process.cwd();
 }
 
 function getEntry(input: InputOption | undefined): string | undefined {
