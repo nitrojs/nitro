@@ -1,6 +1,7 @@
 // Shim for "cloudflare:workers" import in dev environment
 
-export const env = globalThis.__env__;
+// unenv shim respects __env__
+export { env } from "unenv/node/internal/process/env";
 
 export async function waitUntil(promise) {
   await globalThis.__wait_until__?.(promise);
