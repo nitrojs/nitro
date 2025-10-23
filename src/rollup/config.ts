@@ -246,8 +246,10 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
   rollupConfig.plugins.push(
     replace({
       preventAssignment: true,
+      // delimiters: [String.raw`\b`, String.raw`(?![\w.$])`], // Enabled in nitro v3
       values: {
         "typeof window": '"undefined"',
+        "typeof window$1": "typeof window$1", // vueuse/vueuse#5114
         _import_meta_url_: "import.meta.url",
         "globalThis.process.": "process.",
         "process.env.RUNTIME_CONFIG": () =>
