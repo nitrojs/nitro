@@ -36,7 +36,7 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
       ...(baseBuildPlugins(nitro, base) as RolldownPlugin[]),
       // https://github.com/rolldown/rolldown/issues/4257
       replace({
-        delimiters: base.replaceDelimiter,
+        delimiters: base.replaceDelimiters,
         preventAssignment: true,
         values: base.replacements,
       }) as RolldownPlugin,
