@@ -54,7 +54,11 @@ export const getViteRollupConfig = (
         virtualBundlePlugin(ctx._serviceBundles),
       ...baseBuildPlugins(nitro, base),
       alias({ entries: base.aliases }),
-      replace({ preventAssignment: true, values: base.replacements }),
+      replace({
+        delimiters: base.replaceDelimiters,
+        preventAssignment: true,
+        values: base.replacements,
+      }),
       inject(base.env.inject),
     ].filter(Boolean) as RollupPlugin[],
     treeshake: {

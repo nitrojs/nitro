@@ -3,6 +3,7 @@ import { writeFile } from "../_utils/fs";
 import type { Nitro } from "nitro/types";
 import { resolve } from "pathe";
 import { unenvCfExternals } from "./unenv/preset";
+import { presetsDir } from "nitro/runtime/meta";
 import {
   enableNodeCompat,
   writeWranglerConfig,
@@ -93,6 +94,22 @@ export const cloudflareDev = defineNitroPreset(
   {
     extends: "nitro-dev",
     modules: [cloudflareDevModule],
+    esbuild: {
+      options: {
+        target: "es2022",
+      },
+    },
+    unenv: {
+      meta: {
+        name: "cloudflare-dev",
+      },
+      alias: {
+        "cloudflare:workers": resolve(
+          presetsDir,
+          "cloudflare/runtime/shims/workers.dev.mjs"
+        ),
+      },
+    },
   },
   {
     name: "cloudflare-dev" as const,

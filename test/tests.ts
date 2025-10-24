@@ -334,6 +334,11 @@ export function testNitro(
     expect(data).toMatch("<h1 >Hello JSX!</h1>");
   });
 
+  it("replace", async () => {
+    const { data } = await callHandler({ url: "/replace" });
+    expect(data).toMatchObject({ window: false });
+  });
+
   it.runIf(ctx.nitro?.options.serveStatic)(
     "handles custom Vary header",
     async () => {

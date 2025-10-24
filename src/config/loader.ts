@@ -3,7 +3,7 @@ import consola from "consola";
 import { resolveCompatibilityDates } from "compatx";
 import type { CompatibilityDateSpec } from "compatx";
 import { klona } from "klona/full";
-import type { PresetName } from "nitro/presets";
+import type { PresetName } from "../presets";
 import type {
   LoadConfigOptions,
   NitroConfig,

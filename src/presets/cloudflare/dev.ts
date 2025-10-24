@@ -78,7 +78,7 @@ export async function cloudflareDevModule(nitro: Nitro) {
 
   // Add plugin to inject bindings to dev server
   nitro.options.plugins = nitro.options.plugins || [];
-  nitro.options.plugins.push(
+  nitro.options.plugins.unshift(
     resolveModulePath("./cloudflare/runtime/plugin.dev", {
       from: presetsDir,
       extensions: [".mjs", ".ts"],

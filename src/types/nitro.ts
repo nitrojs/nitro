@@ -1,7 +1,7 @@
 import type { ConsolaInstance } from "consola";
 import type { HTTPMethod } from "h3";
 import type { Hookable } from "hookable";
-import type { PresetName, PresetOptions } from "nitro/presets";
+import type { PresetName, PresetOptions } from "../presets";
 import type { Unimport } from "unimport";
 import type { Storage } from "unstorage";
 import type { NitroConfig, NitroOptions } from "./config";

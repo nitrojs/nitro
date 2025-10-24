@@ -10,7 +10,7 @@ export async function viteBuild(nitro: Nitro) {
   const { createBuilder } = await import("vite");
   const builder = await createBuilder({
     base: nitro.options.rootDir,
-    plugins: [nitroPlugin({ _nitro: nitro })],
+    plugins: [await nitroPlugin({ _nitro: nitro })],
   });
   await builder.buildApp();
 }

@@ -47,7 +47,11 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
         ...nitro.options.esbuild?.options,
       }),
       alias({ entries: base.aliases }),
-      replace({ preventAssignment: true, values: base.replacements }),
+      replace({
+        delimiters: base.replaceDelimiters,
+        preventAssignment: true,
+        values: base.replacements,
+      }),
       nodeResolve({
         extensions: base.extensions,
         preferBuiltins: !!nitro.options.node,

@@ -1,8 +1,11 @@
 import "./styles.css";
 import { renderToReadableStream } from "preact-render-to-string/stream";
+import { Counter } from "./counter";
+
+import type {} from "@hiogawa/vite-plugin-fullstack/types";
+
 import clientAssets from "./entry-client?assets=client";
 import serverAssets from "./entry-server?assets=ssr";
-import { Counter } from "./counter";
 
 export default {
   async fetch(request: Request) {

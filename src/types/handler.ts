@@ -5,7 +5,7 @@ import type {
   HTTPEvent,
   HTTPHandler,
 } from "h3";
-import type { PresetName } from "nitro/presets";
+import type { PresetName } from "../presets";
 import type {
   OperationObject,
   OpenAPI3,
