@@ -15,7 +15,6 @@ import { createProxyServer } from "httpxy";
 export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
   return <VitePlugin>{
     name: "nitro:preview",
-
     apply: (_config, configEnv) => !!configEnv.isPreview,
 
     config(config) {
