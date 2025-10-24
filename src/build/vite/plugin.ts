@@ -48,10 +48,14 @@ function nitroInit(ctx: NitroPluginContext): VitePlugin {
   return {
     name: "nitro:init",
     sharedDuringBuild: true,
+    apply: (_config, configEnv) => !configEnv.isPreview,
 
     async config(config, configEnv) {
-      debug("[init] Initializing nitro");
-      await setupNitroContext(ctx, configEnv, config);
+      if (!ctx._initialized) {
+        debug("[init] Initializing nitro");
+        ctx._initialized = true;
+        await setupNitroContext(ctx, configEnv, config);
+      }
     },
 
     applyToEnvironment(env) {
@@ -70,7 +74,7 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
     apply: (_config, configEnv) => !configEnv.isPreview,
 
     async config(userConfig, _configEnv) {
-      debug("[env] Extending config (environments)");
+      debug("[env]  Extending config (environments)");
       const environments: Record<string, EnvironmentOptions> = {
         ...createServiceEnvironments(ctx),
         nitro: createNitroEnvironment(ctx),
@@ -85,14 +89,16 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
           },
         },
       };
-      debug("[env] Environments:", Object.keys(environments).join(", "));
-      return { environments };
+      debug("[env]  Environments:", Object.keys(environments).join(", "));
+      return {
+        environments,
+      };
     },
 
     configEnvironment(name, config) {
       if (config.consumer === "client") {
         debug(
-          "[env] Configuring client environment",
+          "[env]  Configuring client environment",
           name === "client" ? "" : ` (${name})`
         );
         config.build!.emptyOutDir = false;
@@ -102,7 +108,7 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
           ctx.pluginConfig.experimental?.virtualBundle &&
           name in (ctx.pluginConfig.services || {})
         ) {
-          debug("[env] Configuring service environment for virtual:", name);
+          debug("[env]  Configuring service environment for virtual:", name);
           config.build ??= {};
           config.build.write = config.build.write ?? false;
         }
@@ -118,7 +124,7 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
     apply: (_config, configEnv) => !configEnv.isPreview,
 
     async config(userConfig, _configEnv) {
-      debug("[main] Extending config (appType, resolve, builder, server)");
+      debug("[main] Extending config (appType, resolve, server)");
       if (!ctx.rollupConfig) {
         throw new Error("Nitro rollup config is not initialized yet.");
       }
@@ -130,7 +136,6 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
           alias: ctx.rollupConfig.base.aliases,
         },
         builder: {
-          // Share the config instance among environments to align with the behavior of dev server
           sharedConfigBuild: true,
         },
         server: {
@@ -149,9 +154,9 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
         // Add cache-control to immutable client assets
         for (const env of Object.values(config.environments)) {
           if (env.consumer === "client") {
-            const { assetsDir } = env.build;
-            const rule = (ctx.nitro!.options.routeRules[`/${assetsDir}/**`] ??=
-              {});
+            const rule = (ctx.nitro!.options.routeRules[
+              `/${env.build.assetsDir}/**`
+            ] ??= {});
             if (!rule.headers?.["cache-control"]) {
               rule.headers = {
                 ...rule.headers,
@@ -163,6 +168,7 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
       }
 
       // Refresh nitro routes
+      debug("[main] Syncing nitro routes");
       ctx.nitro!.routing.sync();
     },
 
@@ -176,25 +182,28 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
 
     generateBundle: {
       handler(_options, bundle) {
-        debug("[main] Analyzing bundle...");
-        const { root } = this.environment.config;
+        const environment = this.environment;
+        debug(
+          "[main] Generating manifest and entry points for environment:",
+          environment.name
+        );
+        const { root } = environment.config;
         const services = ctx.pluginConfig.services || {};
         const serviceNames = Object.keys(services);
-        const isRegisteredService = serviceNames.includes(
-          this.environment.name
-        );
+        const isRegisteredService = serviceNames.includes(environment.name);
 
         // Find entry point of this service
         let entryFile: string | undefined;
         for (const [_name, file] of Object.entries(bundle)) {
           if (file.type === "chunk") {
             if (isRegisteredService && file.isEntry) {
-              if (entryFile !== undefined) {
-                this.error(
-                  `Multiple entry points found for service "${this.environment.name}". Only one entry point is allowed.`
+              if (entryFile === undefined) {
+                entryFile = file.fileName;
+              } else {
+                this.warn(
+                  `Multiple entry points found for service "${environment.name}"`
                 );
               }
-              entryFile = file.fileName;
             }
             const filteredModuleIds = file.moduleIds.filter((id) =>
               id.startsWith(root)
@@ -218,7 +227,7 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
     },
 
     configureServer: (server) => {
-      debug("[main] Configuring dev server...");
+      debug("[main] Configuring dev server");
       return configureViteDevServer(ctx, server);
     },
   };

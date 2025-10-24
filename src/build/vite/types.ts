@@ -71,6 +71,7 @@ export interface NitroPluginContext {
   devWorker?: DevWorker;
   devApp?: NitroDevApp;
 
+  _initialized?: boolean;
   _manifest: Record<string, { file: string }>;
   _publicDistDir?: string;
   _entryPoints: Record<string, string>;
