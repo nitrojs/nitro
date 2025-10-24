@@ -74,8 +74,8 @@ importers:
         specifier: ^2.0.7
         version: 2.0.7
       '@bomb.sh/tab':
-        specifier: ^0.0.5
-        version: 0.0.5(cac@6.7.14)(citty@0.1.6)
+        specifier: ^0.0.7
+        version: 0.0.7(cac@6.7.14)(citty@0.1.6)
       '@cloudflare/workers-types':
         specifier: ^4.20251008.0
         version: 4.20251008.0
@@ -537,8 +537,8 @@ packages:
     resolution: {integrity: sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA==}
     engines: {node: '>=18'}
 
-  '@bomb.sh/tab@0.0.5':
-    resolution: {integrity: sha512-S0dAhnulM/q284LkmBT7ykITbRvnog8a/3nuVi4Iy0VhyfkTZcB0bXB5pltmINyL+OjAfYd9TQeOge+CYk/l1w==}
+  '@bomb.sh/tab@0.0.7':
+    resolution: {integrity: sha512-/9fTHWWYFl0m2nmfNT9ngI8XEVCvwh7ggAkeHtQybM2CrlIWyakTjbESBpxIFjT8ckpuH3oA2ROyjxoglVtOGQ==}
     hasBin: true
     peerDependencies:
       cac: ^6.7.14
@@ -6803,9 +6803,7 @@ snapshots:
 
   '@bcoe/v8-coverage@1.0.2': {}
 
-  '@bomb.sh/tab@0.0.5(cac@6.7.14)(citty@0.1.6)':
-    dependencies:
-      mri: 1.2.0
+  '@bomb.sh/tab@0.0.7(cac@6.7.14)(citty@0.1.6)':
     optionalDependencies:
       cac: 6.7.14
       citty: 0.1.6
