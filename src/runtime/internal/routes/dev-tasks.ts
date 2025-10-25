@@ -1,4 +1,4 @@
-import { H3 } from "nitro/deps/h3";
+import { H3 } from "h3";
 import { runTask } from "nitro/runtime";
 
 import { scheduledTasks, tasks } from "#nitro-internal-virtual/tasks";

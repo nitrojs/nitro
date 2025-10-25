@@ -1,5 +1,5 @@
-import type { H3Event, HTTPError, HTTPEvent } from "nitro/deps/h3";
-import { getRequestURL } from "nitro/deps/h3";
+import type { H3Event, HTTPError, HTTPEvent } from "h3";
+import { getRequestURL } from "h3";
 import { defineNitroErrorHandler } from "./utils";
 import type { InternalHandlerResponse } from "./utils";
 import { FastResponse } from "srvx";

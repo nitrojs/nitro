@@ -6,8 +6,8 @@ import type {
   NitroRuntimeHooks,
 } from "nitro/types";
 import type { ServerRequest } from "srvx";
-import type { HTTPEvent, Middleware } from "nitro/deps/h3";
-import { H3Core, toRequest } from "nitro/deps/h3";
+import type { HTTPEvent, Middleware } from "h3";
+import { H3Core, toRequest } from "h3";
 import { createHooks } from "hookable";
 import { nitroAsyncContext } from "./context";
 

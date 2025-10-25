@@ -1,16 +1,11 @@
-import {
-  defineHandler,
-  handleCacheHeaders,
-  isHTTPEvent,
-  toResponse,
-} from "nitro/deps/h3";
+import { defineHandler, handleCacheHeaders, isHTTPEvent, toResponse } from "h3";
 import { FastResponse } from "srvx";
 import { parseURL } from "ufo";
 import { hash } from "ohash";
 import { useNitroApp } from "./app";
 import { useStorage } from "./storage";
 
-import type { H3Event, EventHandler, HTTPEvent } from "nitro/deps/h3";
+import type { H3Event, EventHandler, HTTPEvent } from "h3";
 import type { TransactionOptions } from "unstorage";
 import type {
   CacheEntry,
