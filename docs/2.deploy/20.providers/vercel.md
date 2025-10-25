@@ -42,6 +42,7 @@ export default defineNitroConfig({
     }
   }
 })
+```
 
 ## Custom build output configuration
 
