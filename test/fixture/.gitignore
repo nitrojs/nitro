@@ -1,2 +1,5 @@
-!node_modules
 !.env
+!node_modules
+node_modules/dist
+node_modules/nitro
+node_modules/.bin
