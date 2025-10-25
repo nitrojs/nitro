@@ -101,6 +101,11 @@ export interface VercelServerlessFunctionConfig {
    */
   shouldAddSourcemapSupport?: boolean;
 
+  /**
+   * The runtime to use. Defaults to the auto-detected Node.js version.
+   */
+  runtime?: "nodejs20.x" | "nodejs22.x" | "bun1.x" | (string & {});
+
   [key: string]: unknown;
 }
 
