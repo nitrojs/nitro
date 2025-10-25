@@ -1,4 +1,4 @@
-import type { HTTPEvent } from "nitro/h3";
+import type { HTTPEvent } from "nitro/deps/h3";
 
 export interface CacheEntry<T = any> {
   value?: T;

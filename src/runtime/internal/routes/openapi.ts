@@ -1,5 +1,5 @@
-import { defineHandler, getRequestURL } from "nitro/h3";
-import type { EventHandler, HTTPMethod } from "nitro/h3";
+import { defineHandler, getRequestURL } from "nitro/deps/h3";
+import type { EventHandler, HTTPMethod } from "nitro/deps/h3";
 import type {
   Extensable,
   OpenAPI3,

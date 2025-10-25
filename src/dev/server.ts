@@ -13,7 +13,7 @@ import type {
   WorkerAddress,
 } from "nitro/types";
 
-import { HTTPError } from "nitro/h3";
+import { HTTPError } from "nitro/deps/h3";
 
 import { version as nitroVersion } from "nitro/meta";
 import consola from "consola";

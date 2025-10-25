@@ -2,7 +2,7 @@ import type { NitroAsyncContext } from "nitro/types";
 import type { ServerRequest } from "srvx";
 
 import { AsyncLocalStorage } from "node:async_hooks";
-import { HTTPError } from "nitro/h3";
+import { HTTPError } from "nitro/deps/h3";
 import { getContext } from "unctx";
 
 export const nitroAsyncContext = /* @__PURE__ */ (() =>

@@ -1,5 +1,5 @@
 import { Cron } from "croner";
-import { HTTPError } from "nitro/h3";
+import { HTTPError } from "nitro/deps/h3";
 import type {
   Task,
   TaskContext,

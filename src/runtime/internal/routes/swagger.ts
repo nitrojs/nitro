@@ -1,5 +1,5 @@
-import { defineHandler } from "nitro/h3";
-import type { EventHandler } from "nitro/h3";
+import { defineHandler } from "nitro/deps/h3";
+import type { EventHandler } from "nitro/deps/h3";
 import { useRuntimeConfig } from "../runtime-config";
 
 // https://github.com/swagger-api/swagger-ui
