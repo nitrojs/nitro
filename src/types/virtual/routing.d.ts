@@ -4,7 +4,7 @@ import type {
   H3Route,
   LazyEventHandler,
   RouterMethod,
-} from "nitro/deps/h3";
+} from "h3";
 import type { MatchedRoute } from "rou3";
 import type { MatchedRouteRule } from "../route-rules";
 

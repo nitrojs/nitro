@@ -1,5 +1,5 @@
 import type { ConsolaInstance } from "consola";
-import type { HTTPMethod } from "nitro/deps/h3";
+import type { HTTPMethod } from "h3";
 import type { Hookable } from "hookable";
 import type { PresetName, PresetOptions } from "../presets";
 import type { Unimport } from "unimport";
