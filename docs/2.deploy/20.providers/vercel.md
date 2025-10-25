@@ -30,6 +30,19 @@ Nitro `/api` directory isn't compatible with Vercel. Instead, you should use:
 
 - `routes/api/` for standalone usage
 
+## Bun runtime
+
+You can use [Bun](https://bun.com) instead of Node.js by specifying the runtime using the `vercel.functions` key inside `nitro.config`:
+
+```ts [nitro.config.ts]
+export default defineNitroConfig({
+  vercel: {
+    functions: {
+      runtime: "bun1.x"
+    }
+  }
+})
+
 ## Custom build output configuration
 
 You can provide additional [build output configuration](https://vercel.com/docs/build-output-api/v3) using `vercel.config` key inside `nitro.config`. It will be merged with built-in auto-generated config.

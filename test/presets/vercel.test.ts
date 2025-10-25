@@ -581,3 +581,34 @@ describe("nitro:preset:vercel", async () => {
     }
   );
 });
+
+describe("nitro:preset:vercel (with bun runtime)", async () => {
+  const ctx = await setupTest("vercel-bun", {
+    config: {
+      preset: "vercel",
+      vercel: {
+        functions: {
+          runtime: "bun1.x",
+        },
+      },
+    },
+  });
+
+  it("should generate function config with bun runtime", async () => {
+    const config = await fsp
+      .readFile(
+        resolve(ctx.outDir, "functions/__fallback.func/.vc-config.json"),
+        "utf8"
+      )
+      .then((r) => JSON.parse(r));
+    expect(config).toMatchInlineSnapshot(`
+      {
+        "handler": "index.mjs",
+        "launcherType": "Nodejs",
+        "runtime": "bun1.x",
+        "shouldAddHelpers": false,
+        "supportsResponseStreaming": true,
+      }
+    `);
+  });
+});
