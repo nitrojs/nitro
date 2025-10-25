@@ -1,4 +1,4 @@
-import { HTTPError, defineHandler, getRequestIP } from "nitro/deps/h3";
+import { HTTPError, defineHandler, getRequestIP } from "nitro/h3";
 import type { Nitro } from "nitro/types";
 
 export function createVFSHandler(nitro: Nitro) {

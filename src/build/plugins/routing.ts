@@ -33,7 +33,7 @@ export function routing(nitro: Nitro) {
         return /* js */ `
 import * as __routeRules__ from "nitro/runtime/internal/route-rules";
 ${nitro.options.serverEntry ? `import __serverEntry__ from ${JSON.stringify(nitro.options.serverEntry)};` : ""}
-import {${h3Imports.join(", ")}} from "nitro/deps/h3";
+import {${h3Imports.join(", ")}} from "nitro/h3";
 
 export const findRouteRules = ${nitro.routing.routeRules.compileToString({ serialize: serializeRouteRule, matchAll: true })}
 

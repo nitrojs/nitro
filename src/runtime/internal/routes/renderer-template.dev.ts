@@ -1,9 +1,9 @@
-import type { H3Event } from "nitro/deps/h3";
+import type { H3Event } from "nitro/h3";
 import {
   rendererTemplate,
   rendererTemplateFile,
 } from "#nitro-internal-virtual/renderer-template";
-import { HTTPResponse } from "nitro/deps/h3";
+import { HTTPResponse } from "nitro/h3";
 import { hasTemplateSyntax, renderToResponse, compileTemplate } from "rendu";
 
 export default async function renderIndexHTML(event: H3Event) {

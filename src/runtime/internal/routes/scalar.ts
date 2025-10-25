@@ -1,5 +1,5 @@
 import type { ApiReferenceConfiguration } from "@scalar/api-reference";
-import { defineHandler, type EventHandler } from "nitro/deps/h3";
+import { defineHandler, type EventHandler } from "nitro/h3";
 import { useRuntimeConfig } from "../runtime-config";
 
 // Served as /_scalar

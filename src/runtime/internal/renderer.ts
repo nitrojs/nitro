@@ -1,4 +1,4 @@
-import { defineHandler, type EventHandler } from "nitro/deps/h3";
+import { defineHandler, type EventHandler } from "nitro/h3";
 import type { RenderHandler, RenderContext } from "nitro/types";
 import { useNitroApp } from "./app";
 import { useRuntimeConfig } from "./runtime-config";

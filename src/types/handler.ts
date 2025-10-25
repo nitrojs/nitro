@@ -4,7 +4,7 @@ import type {
   HTTPMethod,
   HTTPEvent,
   HTTPHandler,
-} from "nitro/deps/h3";
+} from "nitro/h3";
 import type { PresetName } from "../presets";
 import type {
   OperationObject,

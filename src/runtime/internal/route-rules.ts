@@ -1,5 +1,5 @@
-import { proxyRequest, redirect as sendRedirect } from "nitro/deps/h3";
-import type { EventHandler, Middleware } from "nitro/deps/h3";
+import { proxyRequest, redirect as sendRedirect } from "nitro/h3";
+import type { EventHandler, Middleware } from "nitro/h3";
 import type { MatchedRouteRule, NitroRouteRules } from "nitro/types";
 import { joinURL, withQuery, withoutBase } from "ufo";
 import { defineCachedEventHandler } from "./cache";

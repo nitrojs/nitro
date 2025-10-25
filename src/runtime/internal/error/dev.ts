@@ -1,5 +1,5 @@
-import type { H3Event, HTTPError, HTTPEvent } from "nitro/deps/h3";
-import { getRequestURL } from "nitro/deps/h3";
+import type { H3Event, HTTPError, HTTPEvent } from "nitro/h3";
+import { getRequestURL } from "nitro/h3";
 import { readFile } from "node:fs/promises";
 import { resolve, dirname } from "node:path";
 import consola from "consola";

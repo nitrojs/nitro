@@ -1,10 +1,10 @@
 import type { IncomingMessage, OutgoingMessage } from "node:http";
 import type { TLSSocket } from "node:tls";
 import type { ProxyServerOptions, ProxyServer } from "httpxy";
-import type { H3Event } from "nitro/deps/h3";
+import type { H3Event } from "nitro/h3";
 
 import { createProxyServer } from "httpxy";
-import { HTTPError, fromNodeHandler } from "nitro/deps/h3";
+import { HTTPError, fromNodeHandler } from "nitro/h3";
 import { Agent } from "undici";
 
 export type HTTPProxy = {

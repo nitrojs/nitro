@@ -1,4 +1,4 @@
-import type { H3Core, H3EventContext, HTTPEvent } from "nitro/deps/h3";
+import type { H3Core, H3EventContext, HTTPEvent } from "nitro/h3";
 import type { Hookable } from "hookable";
 import type { ServerRequest, ServerRequestContext } from "srvx";
 
