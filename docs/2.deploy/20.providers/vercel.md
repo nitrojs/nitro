@@ -32,6 +32,8 @@ Nitro `/api` directory isn't compatible with Vercel. Instead, you should use:
 
 ## Bun runtime
 
+:read-more{title="Vercel" to="https://vercel.com/docs/functions/runtimes/bun"}
+
 You can use [Bun](https://bun.com) instead of Node.js by specifying the runtime using the `vercel.functions` key inside `nitro.config`:
 
 ```ts [nitro.config.ts]
@@ -42,6 +44,15 @@ export default defineNitroConfig({
     }
   }
 })
+```
+
+Alternatively, Nitro also detects Bun automatically if you specify a `bunVersion` property in your `vercel.json`:
+
+```json [vercel.json]
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "bunVersion": "1.x"
+}
 ```
 
 ## Custom build output configuration

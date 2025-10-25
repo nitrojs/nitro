@@ -37,18 +37,29 @@ export async function generateFunctionFiles(nitro: Nitro) {
   const buildConfig = generateBuildConfig(nitro, o11Routes);
   await writeFile(buildConfigPath, JSON.stringify(buildConfig, null, 2));
 
-  const systemNodeVersion = getSystemNodeVersion();
-  const usedNodeVersion =
-    SUPPORTED_NODE_VERSIONS.find((version) => version >= systemNodeVersion) ??
-    SUPPORTED_NODE_VERSIONS.at(-1);
+  let runtime: VercelServerlessFunctionConfig["runtime"];
 
-  const runtimeVersion = `nodejs${usedNodeVersion}.x`;
+  const vercelConfigPath = resolve(nitro.options.rootDir, "vercel.json");
+  const vercelConfig = await fsp
+    .readFile(vercelConfigPath)
+    .then((config) => JSON.parse(config.toString()))
+    .catch(() => undefined);
+  if (vercelConfig && typeof vercelConfig.bunVersion === "string") {
+    runtime = `bun${vercelConfig.bunVersion}`;
+  } else {
+    const systemNodeVersion = getSystemNodeVersion();
+    const usedNodeVersion =
+      SUPPORTED_NODE_VERSIONS.find((version) => version >= systemNodeVersion) ??
+      SUPPORTED_NODE_VERSIONS.at(-1);
+    runtime = `nodejs${usedNodeVersion}.x`;
+  }
+
   const functionConfigPath = resolve(
     nitro.options.output.serverDir,
     ".vc-config.json"
   );
   const functionConfig: VercelServerlessFunctionConfig = {
-    runtime: runtimeVersion,
+    runtime,
     handler: "index.mjs",
     launcherType: "Nodejs",
     shouldAddHelpers: false,
