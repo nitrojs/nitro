@@ -28,7 +28,7 @@
       "nitro/types": ["./src/types"],
       "nitro/config": ["./lib/config.mjs"],
       "nitro/meta": ["./lib/meta.mjs"],
-      "nitro/runtime/meta": ["./lib/runtime-meta.mjs"],
+      "nitro/runtime/meta": ["lib/runtime/runtime-meta.mjs"],
       "#nitro-internal-virtual/*": ["./src/types/virtual/*"],
       "#internal/nitro": ["./src/runtime"],
       "#internal/nitro/*": ["./src/runtime/*"],

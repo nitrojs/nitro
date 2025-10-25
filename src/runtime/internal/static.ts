@@ -1,5 +1,5 @@
-import { HTTPError, defineHandler } from "h3";
-import type { EventHandler, HTTPMethod } from "h3";
+import { HTTPError, defineHandler } from "nitro/deps/h3";
+import type { EventHandler, HTTPMethod } from "nitro/deps/h3";
 import type { PublicAsset } from "nitro/types";
 import {
   decodePath,

@@ -1,7 +1,13 @@
 import type { Nitro } from "nitro/types";
-import type { EventHandler, HTTPHandler } from "h3";
+import type { EventHandler, HTTPHandler } from "nitro/deps/h3";
 
-import { withBase, H3, toEventHandler, fromNodeHandler, H3Event } from "h3";
+import {
+  withBase,
+  H3,
+  toEventHandler,
+  fromNodeHandler,
+  H3Event,
+} from "nitro/deps/h3";
 import { toNodeHandler } from "srvx/node";
 import serveStatic from "serve-static";
 import { joinURL } from "ufo";

@@ -1,4 +1,4 @@
-import type { HTTPMethod } from "h3";
+import type { HTTPMethod } from "nitro/deps/h3";
 import type { FetchOptions, FetchRequest, FetchResponse } from "ofetch";
 import type { MatchedRoutes } from "./_match";
 
