@@ -453,6 +453,18 @@ importers:
         specifier: link:../..
         version: link:../..
 
+  test/minimal:
+    devDependencies:
+      nitro:
+        specifier: link:../..
+        version: link:../..
+      tinyglobby:
+        specifier: ^0.2.15
+        version: 0.2.15
+      vite:
+        specifier: ^7.1.12
+        version: 7.1.12(@types/node@24.9.1)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0)(yaml@2.8.1)
+
 packages:
 
   '@azure/abort-controller@1.1.0':

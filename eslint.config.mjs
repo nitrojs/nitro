@@ -4,6 +4,7 @@ export default unjs(
   {
     ignores: [
       "**/.output",
+      "**/.tmp",
       "**/.nitro",
       "**/.netlify",
       "**/.vercel",
