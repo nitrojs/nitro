@@ -120,7 +120,7 @@
     "fs-extra": "^11.3.2",
     "get-port-please": "^3.2.0",
     "gzip-size": "^7.0.0",
-    "hookable": "^5.5.3",
+    "hookable": "^6.0.0-rc.1",
     "httpxy": "^0.1.7",
     "klona": "^2.0.6",
     "knitwork": "^1.2.0",
