@@ -52,10 +52,10 @@ ${allHandlers
   .join("\n")}
 
 export const hasRoutes = ${nitro.routing.routes.hasRoutes() ? "true" : "false"};
-export const findRoute = /* @__PURE__ */ ${nitro.routing.routes.compileToString({ serialize: serializeHandler })}
+export const findRoute = ${nitro.routing.routes.compileToString({ serialize: serializeHandler })}
 
 export const hasRoutedMiddleware = ${nitro.routing.routedMiddleware.hasRoutes() ? "true" : "false"};
-export const findRoutedMiddleware = /* @__PURE__ */ ${nitro.routing.routedMiddleware.compileToString({ serialize: serializeHandler, matchAll: true })};
+export const findRoutedMiddleware = ${nitro.routing.routedMiddleware.compileToString({ serialize: serializeHandler, matchAll: true })};
 
 export const hasGlobalMiddleware = ${nitro.routing.globalMiddleware.length > 0 || nitro.options.serverEntry ? "true" : "false"};
 export const globalMiddleware = [${nitro.routing.globalMiddleware.map((h) => (h.lazy ? h._importHash : `toEventHandler(${h._importHash})`)).join(",")}];
