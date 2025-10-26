@@ -8,6 +8,12 @@ import { glob } from "tinyglobby";
 const fixtureDir = fileURLToPath(new URL("./", import.meta.url));
 const tmpDir = fileURLToPath(new URL(".tmp", import.meta.url));
 
+const sizeThresholds: Record<string, [number, number]> = {
+  rollup: [35, 21],
+  rolldown: [200, 200],
+  vite: [34, 16],
+};
+
 describe("minimal fixture", () => {
   const builders = ["rollup", "rolldown", "vite"] as const;
 
@@ -43,12 +49,14 @@ describe("minimal fixture", () => {
 
         it("output size", async () => {
           const { sizeKB } = await analyzeDir(outDir);
+          const threshold = sizeThresholds[builder][minify ? 1 : 0];
+          expect(sizeKB).toBeLessThan(threshold);
+
           results.push({
             builder: builder + (minify ? " (minified)" : ""),
             size: sizeKB.toFixed(2) + " kB",
             time: `${buildTime}ms`,
           });
-          expect(sizeKB).toBeLessThan(33 * /* kB */ 1024);
         });
       });
     }
