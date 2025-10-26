@@ -55,7 +55,6 @@ export async function createNitro(
   // Debug
   if (nitro.options.debug) {
     createDebugger(nitro.hooks, { tag: "nitro" });
-    nitro.options.plugins.push(join(runtimeDir, "internal/debug"));
   }
 
   // Logger
