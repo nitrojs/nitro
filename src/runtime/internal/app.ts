@@ -15,10 +15,14 @@ import { nitroAsyncContext } from "./context";
 import errorHandler from "#nitro-internal-virtual/error-handler";
 import { plugins } from "#nitro-internal-virtual/plugins";
 import {
+  hasRouteRules,
   findRoute,
   findRouteRules,
   globalMiddleware,
   findRoutedMiddleware,
+  hasRoutedMiddleware,
+  hasGlobalMiddleware,
+  hasRoutes,
 } from "#nitro-internal-virtual/routing";
 
 export function useNitroApp(): NitroApp {
@@ -131,19 +135,35 @@ function createH3App(config: H3Config) {
   const h3App = new H3Core(config);
 
   // Compiled route matching
-  h3App._findRoute = (event) => findRoute(event.req.method, event.url.pathname);
+  if (hasRoutes) {
+    h3App._findRoute = (event) =>
+      findRoute(event.req.method, event.url.pathname);
+  }
 
   h3App._getMiddleware = (event, route) => {
-    const pathname = event.url.pathname;
-    const method = event.req.method;
-    const { routeRules, routeRuleMiddleware } = getRouteRules(method, pathname);
-    event.context.routeRules = routeRules;
-    return [
-      ...routeRuleMiddleware,
-      ...globalMiddleware,
-      ...findRoutedMiddleware(method, pathname).map((r) => r.data),
-      ...(route?.data?.middleware || []),
-    ].filter(Boolean) as Middleware[];
+    const needsRouting = hasRouteRules || hasRoutedMiddleware;
+    const pathname = needsRouting ? event.url.pathname : undefined;
+    const method = needsRouting ? event.req.method : undefined;
+    const middleware: Middleware[] = [];
+    if (hasRouteRules) {
+      const routeRules = getRouteRules(method!, pathname!);
+      event.context.routeRules = routeRules?.routeRules;
+      if (routeRules?.routeRuleMiddleware.length) {
+        middleware.push(...routeRules.routeRuleMiddleware);
+      }
+    }
+    if (hasGlobalMiddleware) {
+      middleware.push(...globalMiddleware);
+    }
+    if (hasRoutedMiddleware) {
+      middleware.push(
+        ...findRoutedMiddleware(method!, pathname!).map((r) => r.data)
+      );
+    }
+    if (route?.data?.middleware?.length) {
+      middleware.push(...route.data.middleware);
+    }
+    return middleware;
   };
 
   return h3App;

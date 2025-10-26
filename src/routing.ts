@@ -163,6 +163,10 @@ export class Router<T> {
     }
   }
 
+  hasRoutes() {
+    return this.#routes!.length > 0;
+  }
+
   compileToString(opts?: RouterCompilerOptions) {
     return (
       this.#compiled ||
