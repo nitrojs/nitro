@@ -182,6 +182,10 @@ describe("nitro:preset:vercel", async () => {
                 "src": "/raw",
               },
               {
+                "dest": "/prerender-error",
+                "src": "/prerender-error",
+              },
+              {
                 "dest": "/prerender-custom.html",
                 "src": "/prerender-custom.html",
               },
@@ -562,6 +566,7 @@ describe("nitro:preset:vercel", async () => {
             "functions/modules.func (symlink)",
             "functions/node-compat.func (symlink)",
             "functions/prerender-custom.html.func (symlink)",
+            "functions/prerender-error.func (symlink)",
             "functions/prerender.func (symlink)",
             "functions/raw.func (symlink)",
             "functions/replace.func (symlink)",

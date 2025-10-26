@@ -85,6 +85,7 @@ export default defineNitroConfig({
   routeRules: {
     "/api/param/prerender4": { prerender: true },
     "/api/param/prerender2": { prerender: false },
+    "/prerender-error": { prerender: true },
     "/rules/headers": { headers: { "cache-control": "s-maxage=60" } },
     "/rules/cors": {
       cors: true,
