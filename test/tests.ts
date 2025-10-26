@@ -21,6 +21,7 @@ import { isWindows, nodeMajorVersion } from "std-env";
 import { joinURL } from "ufo";
 import consola from "consola";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import type { MockInstance } from "vitest";
 
 export interface Context {
   preset: string;
@@ -37,7 +38,7 @@ export interface Context {
   env: Record<string, string>;
   lambdaV1?: boolean;
   // [key: string]: unknown;
-  consolaError: ReturnType<typeof vi.spyOn>;
+  consolaError: MockInstance<typeof consola.error>;
 }
 
 // https://github.com/nitrojs/nitro/pull/1240
