@@ -25,8 +25,8 @@ export function routing(nitro: Nitro) {
         );
 
         const h3Imports = [
-          (nitro.options.serverEntry || allHandlers.some((h) => !h.lazy)) &&
-            "toEventHandler",
+          allHandlers.some((h) => !h.lazy) && "toEventHandler",
+          nitro.options.serverEntry && "toMiddleware",
           allHandlers.some((h) => h.lazy) && "defineLazyEventHandler",
         ].filter(Boolean) as string[];
 
@@ -58,9 +58,10 @@ export const hasRoutedMiddleware = ${nitro.routing.routedMiddleware.hasRoutes() 
 export const findRoutedMiddleware = ${nitro.routing.routedMiddleware.compileToString({ serialize: serializeHandler, matchAll: true })};
 
 export const hasGlobalMiddleware = ${nitro.routing.globalMiddleware.length > 0 || nitro.options.serverEntry ? "true" : "false"};
-export const globalMiddleware = [${nitro.routing.globalMiddleware.map((h) => (h.lazy ? h._importHash : `toEventHandler(${h._importHash})`)).join(",")}];
-
-${nitro.options.serverEntry && /* js */ `const serverEntry = toEventHandler(__serverEntry__);\nif (serverEntry) { globalMiddleware.push(serverEntry) }`}
+export const globalMiddleware = [
+  ${nitro.routing.globalMiddleware.map((h) => (h.lazy ? h._importHash : `toEventHandler(${h._importHash})`)).join(",")}
+  ${nitro.options.serverEntry ? `,toMiddleware(__serverEntry__)` : ""}
+].filter(Boolean);
   `;
       },
       // --- routing-meta ---
