@@ -31,8 +31,8 @@ importers:
         specifier: ^0.1.7
         version: 0.1.7
       h3:
-        specifier: npm:h3-nightly@2.0.0-20251027-131918-a68a754
-        version: h3-nightly@2.0.0-20251027-131918-a68a754(crossws@0.4.1(srvx@0.9.1))
+        specifier: npm:h3-nightly@2.0.0-20251027-214730-fd7dc8f
+        version: h3-nightly@2.0.0-20251027-214730-fd7dc8f(crossws@0.4.1(srvx@0.9.1))
       jiti:
         specifier: ^2.6.1
         version: 2.6.1
@@ -3608,8 +3608,8 @@ packages:
     resolution: {integrity: sha512-O1Ld7Dr+nqPnmGpdhzLmMTQ4vAsD+rHwMm1NLUmoUFFymBOMKxCCrtDxqdBRYXdeEPEi3SyoR4TizJLQrnKBNA==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
-  h3-nightly@2.0.0-20251027-131918-a68a754:
-    resolution: {integrity: sha512-LZ10qygjgjSLqwx8GTq9bhrWvJKfovKEwmROaRa/q00vqY7Qy1t6wsxhmXuuAplvRd9588XGKegPu0GpFecVxA==}
+  h3-nightly@2.0.0-20251027-214730-fd7dc8f:
+    resolution: {integrity: sha512-s7jr9LqQ6s2eFCCfIe2DyPV8V79pVub4JxkZGxrhuHbZVDb495oeCaZONzPOn+Q4BAk0n+gbcQgnO2RjFkyEsg==}
     engines: {node: '>=20.11.1'}
     peerDependencies:
       crossws: ^0.4.1
@@ -9706,7 +9706,7 @@ snapshots:
     dependencies:
       duplexer: 0.1.2
 
-  h3-nightly@2.0.0-20251027-131918-a68a754(crossws@0.4.1(srvx@0.9.1)):
+  h3-nightly@2.0.0-20251027-214730-fd7dc8f(crossws@0.4.1(srvx@0.9.1)):
     dependencies:
       rou3: 0.7.9
       srvx: 0.9.1
