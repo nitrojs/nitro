@@ -4,5 +4,5 @@ import { useNitroApp } from "nitro/runtime";
 const nitroApp = useNitroApp();
 
 export default {
-  fetch: nitroApp.fetch,
+  fetch: (req: Request) => nitroApp.fetch(req),
 };

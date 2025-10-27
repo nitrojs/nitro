@@ -33,8 +33,7 @@ export function setupGracefulShutdown(
           console.warn("Graceful shutdown timeout, force exiting...");
           resolve();
         }, shutdownConfig.timeout);
-        nitroApp.hooks
-          .callHook("close")
+        Promise.resolve(nitroApp.hooks.callHook("close"))
           .catch((error) => {
             console.error(error);
           })

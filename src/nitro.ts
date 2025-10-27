@@ -1,5 +1,5 @@
 import { consola } from "consola";
-import { createDebugger, createHooks } from "hookable";
+import { Hookable, createDebugger } from "hookable";
 import { runtimeDir } from "nitro/runtime/meta";
 import type {
   LoadConfigOptions,
@@ -27,7 +27,7 @@ export async function createNitro(
   // Create nitro context
   const nitro: Nitro = {
     options,
-    hooks: createHooks(),
+    hooks: new Hookable(),
     vfs: {},
     routing: {} as any,
     logger: consola.withTag("nitro"),
@@ -55,7 +55,6 @@ export async function createNitro(
   // Debug
   if (nitro.options.debug) {
     createDebugger(nitro.hooks, { tag: "nitro" });
-    nitro.options.plugins.push(join(runtimeDir, "internal/debug"));
   }
 
   // Logger

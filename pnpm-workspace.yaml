@@ -1,3 +1,5 @@
 packages:
-  - "examples/**"
-  - "playground"
+  - examples/**
+  - playground
+  - test/fixture
+  - test/minimal

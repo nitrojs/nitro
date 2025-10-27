@@ -34,7 +34,7 @@ export function rendererTemplate(nitro: Nitro) {
             `;
           } else {
             return /* js */ `
-              import { HTTPResponse } from "h3";
+              import { HTTPResponse } from "nitro/deps/h3";
               export const rendererTemplate = () => new HTTPResponse(${JSON.stringify(html)}, { headers: { "content-type": "text/html; charset=utf-8" } });
             `;
           }

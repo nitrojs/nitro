@@ -11,7 +11,14 @@ const srcDir = fileURLToPath(new URL("src", import.meta.url));
 const libDir = fileURLToPath(new URL("lib", import.meta.url));
 
 export const distSubpaths = ["presets", "runtime", "types", "vite"];
-export const libSubpaths = ["config", "meta", "runtime/meta"];
+export const libSubpaths = [
+  "config",
+  "meta",
+  "h3",
+  "runtime/meta",
+  "deps/h3",
+  "deps/ofetch",
+];
 
 const tracePkgs = [
   "youch",
@@ -41,7 +48,7 @@ export const stubAlias = {
   ...Object.fromEntries(
     libSubpaths.map((subpath) => [
       `nitro/${subpath}`,
-      resolve(libDir, `${subpath.replace("/", "-")}.mjs`),
+      resolve(libDir, `${subpath}.mjs`),
     ])
   ),
 };
