@@ -136,11 +136,11 @@ function createH3App(config: H3Config) {
 
   // Compiled route matching
   if (hasRoutes) {
-    h3App._findRoute = (event) =>
+    h3App["~findRoute"] = (event) =>
       findRoute(event.req.method, event.url.pathname);
   }
 
-  h3App._getMiddleware = (event, route) => {
+  h3App["~getMiddleware"] = (event, route) => {
     const needsRouting = hasRouteRules || hasRoutedMiddleware;
     const pathname = needsRouting ? event.url.pathname : undefined;
     const method = needsRouting ? event.req.method : undefined;

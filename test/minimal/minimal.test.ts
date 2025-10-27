@@ -12,7 +12,7 @@ const tmpDir = fileURLToPath(new URL(".tmp", import.meta.url));
 const sizeThresholds: Record<string, [number, number]> = {
   rollup: [20, 14],
   rolldown: [146, 146],
-  vite: [22, 12],
+  vite: [23, 12],
 };
 
 if (isWindows) {
