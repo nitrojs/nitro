@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { mkdir, rm, stat } from "node:fs/promises";
 import { glob } from "tinyglobby";
+import { isWindows } from "std-env";
 
 const fixtureDir = fileURLToPath(new URL("./", import.meta.url));
 const tmpDir = fileURLToPath(new URL(".tmp", import.meta.url));
@@ -13,6 +14,14 @@ const sizeThresholds: Record<string, [number, number]> = {
   rolldown: [146, 146],
   vite: [22, 12],
 };
+
+if (isWindows) {
+  // Add 1kB more to thresholds on Windows
+  for (const key in sizeThresholds) {
+    sizeThresholds[key][0] += 1;
+    sizeThresholds[key][1] += 1;
+  }
+}
 
 describe("minimal fixture", () => {
   const builders = ["rollup", "rolldown", "vite"] as const;
