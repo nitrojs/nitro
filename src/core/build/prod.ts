@@ -37,7 +37,10 @@ export async function buildProduction(
   // Write .output/nitro.json
   const buildInfoPath = resolve(nitro.options.output.dir, "nitro.json");
   const buildInfo: NitroBuildInfo = {
-    date: new Date().toJSON(),
+    date: (process.env.SOURCE_DATE_EPOCH
+      ? new Date(Number(process.env.SOURCE_DATE_EPOCH) * 1000)
+      : new Date()
+    ).toJSON(),
     preset: nitro.options.preset,
     framework: nitro.options.framework,
     versions: {
