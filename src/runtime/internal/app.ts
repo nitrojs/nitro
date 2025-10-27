@@ -135,36 +135,36 @@ function createH3App(config: H3Config) {
   const h3App = new H3Core(config);
 
   // Compiled route matching
-  if (hasRoutes) {
-    h3App["~findRoute"] = (event) =>
-      findRoute(event.req.method, event.url.pathname);
-  }
+  hasRoutes &&
+    (h3App["~findRoute"] = (event) =>
+      findRoute(event.req.method, event.url.pathname));
 
-  h3App["~getMiddleware"] = (event, route) => {
-    const needsRouting = hasRouteRules || hasRoutedMiddleware;
-    const pathname = needsRouting ? event.url.pathname : undefined;
-    const method = needsRouting ? event.req.method : undefined;
-    const middleware: Middleware[] = [];
-    if (hasRouteRules) {
-      const routeRules = getRouteRules(method!, pathname!);
-      event.context.routeRules = routeRules?.routeRules;
-      if (routeRules?.routeRuleMiddleware.length) {
-        middleware.push(...routeRules.routeRuleMiddleware);
+  hasGlobalMiddleware && h3App["~middleware"].push(...globalMiddleware);
+
+  if (hasRouteRules || hasRoutedMiddleware) {
+    h3App["~getMiddleware"] = (event, route) => {
+      const needsRouting = hasRouteRules || hasRoutedMiddleware;
+      const pathname = needsRouting ? event.url.pathname : undefined;
+      const method = needsRouting ? event.req.method : undefined;
+      const middleware: Middleware[] = [];
+      if (hasRouteRules) {
+        const routeRules = getRouteRules(method!, pathname!);
+        event.context.routeRules = routeRules?.routeRules;
+        if (routeRules?.routeRuleMiddleware.length) {
+          middleware.push(...routeRules.routeRuleMiddleware);
+        }
       }
-    }
-    if (hasGlobalMiddleware) {
-      middleware.push(...globalMiddleware);
-    }
-    if (hasRoutedMiddleware) {
-      middleware.push(
-        ...findRoutedMiddleware(method!, pathname!).map((r) => r.data)
-      );
-    }
-    if (hasRoutes && route?.data?.middleware?.length) {
-      middleware.push(...route.data.middleware);
-    }
-    return middleware;
-  };
+      hasGlobalMiddleware && middleware.push(...h3App["~middleware"]);
+      hasRoutedMiddleware &&
+        middleware.push(
+          ...findRoutedMiddleware(method!, pathname!).map((r) => r.data)
+        );
+      if (hasRoutes && route?.data?.middleware?.length) {
+        middleware.push(...route.data.middleware);
+      }
+      return middleware;
+    };
+  }
 
   return h3App;
 }
