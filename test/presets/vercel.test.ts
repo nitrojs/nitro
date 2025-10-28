@@ -1,8 +1,7 @@
 import { promises as fsp } from "node:fs";
-import { resolve, join, relative, basename } from "pathe";
-import { describe, expect, it } from "vitest";
-import { setupTest, startServer, testNitro } from "../tests";
-import { readlink } from "node:fs/promises";
+import { resolve, join, basename } from "pathe";
+import { describe, expect, it, afterAll } from "vitest";
+import { setupTest, startServer, testNitro, fixtureDir } from "../tests";
 
 describe("nitro:preset:vercel", async () => {
   const ctx = await setupTest("vercel");
@@ -590,4 +589,69 @@ describe("nitro:preset:vercel", async () => {
       });
     }
   );
+});
+
+describe("nitro:preset:vercel:bun", async () => {
+  const ctx = await setupTest("vercel", {
+    config: {
+      preset: "vercel",
+      vercel: {
+        functions: {
+          runtime: "bun1.x",
+        },
+      },
+    },
+  });
+
+  it("should generate function config with bun runtime", async () => {
+    const config = await fsp
+      .readFile(
+        resolve(ctx.outDir, "functions/__fallback.func/.vc-config.json"),
+        "utf8"
+      )
+      .then((r) => JSON.parse(r));
+    expect(config).toMatchInlineSnapshot(`
+      {
+        "handler": "index.mjs",
+        "launcherType": "Nodejs",
+        "runtime": "bun1.x",
+        "shouldAddHelpers": false,
+        "supportsResponseStreaming": true,
+      }
+    `);
+  });
+});
+
+describe("nitro:preset:vercel:bun-verceljson", async () => {
+  const vercelJsonPath = join(fixtureDir, "vercel.json");
+  // Need to make sure vercel.json is created before setupTest is called
+  await fsp.writeFile(vercelJsonPath, JSON.stringify({ bunVersion: "1.x" }));
+
+  const ctx = await setupTest("vercel", {
+    config: {
+      preset: "vercel",
+    },
+  });
+
+  afterAll(async () => {
+    await fsp.unlink(vercelJsonPath).catch(() => {});
+  });
+
+  it("should detect bun runtime from vercel.json", async () => {
+    const config = await fsp
+      .readFile(
+        resolve(ctx.outDir, "functions/__fallback.func/.vc-config.json"),
+        "utf8"
+      )
+      .then((r) => JSON.parse(r));
+    expect(config).toMatchInlineSnapshot(`
+      {
+        "handler": "index.mjs",
+        "launcherType": "Nodejs",
+        "runtime": "bun1.x",
+        "shouldAddHelpers": false,
+        "supportsResponseStreaming": true,
+      }
+    `);
+  });
 });
