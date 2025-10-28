@@ -198,8 +198,8 @@ importers:
         specifier: ^2.4.1
         version: 2.4.1
       unenv:
-        specifier: 2.0.0-rc.21
-        version: 2.0.0-rc.21
+        specifier: ^2.0.0-rc.23
+        version: 2.0.0-rc.23
       unimport:
         specifier: ^5.5.0
         version: 5.5.0
@@ -216,7 +216,7 @@ importers:
         specifier: ^0.3.11
         version: 0.3.11
       youch:
-        specifier: 4.1.0-beta.11
+        specifier: ^4.1.0-beta.11
         version: 4.1.0-beta.11
       youch-core:
         specifier: ^0.3.3
@@ -326,7 +326,7 @@ importers:
         version: 4.0.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.12)(@types/node@24.9.1)(jiti@2.6.1)(terser@5.44.0)(yaml@2.8.1)
       wrangler:
         specifier: ^4.45.0
-        version: 4.45.0(@cloudflare/workers-types@4.20251014.0)
+        version: 4.45.1(@cloudflare/workers-types@4.20251014.0)
       xml2js:
         specifier: ^0.6.2
         version: 0.6.2
@@ -6237,6 +6237,9 @@ packages:
   unenv@2.0.0-rc.21:
     resolution: {integrity: sha512-Wj7/AMtE9MRnAXa6Su3Lk0LNCfqDYgfwVjwRFVum9U7wsto1imuHqk4kTm7Jni+5A0Hn7dttL6O/zjvUvoo+8A==}
 
+  unenv@2.0.0-rc.23:
+    resolution: {integrity: sha512-NeOb/HbW2OwOzYaV21MewVQYfzlSwG0kVUB74RyV0gEIP44M5DsYTK9e7jDcekB/3YU+pfNWniZj+r4M/aejyQ==}
+
   unhead@1.11.20:
     resolution: {integrity: sha512-3AsNQC0pjwlLqEYHLjtichGWankK8yqmocReITecmpB1H0aOabeESueyy+8X1gyJx4ftZVwo9hqQ4O3fPWffCA==}
 
@@ -6602,8 +6605,8 @@ packages:
     engines: {node: '>=16'}
     hasBin: true
 
-  wrangler@4.45.0:
-    resolution: {integrity: sha512-2qM6bHw8l7r89Z9Y5A7Wn4L9U+dFoLjYgEUVpqy7CcmXpppL3QIYqU6rU5lre7/SRzBuPu/H93Vwfh538gZ3iw==}
+  wrangler@4.45.1:
+    resolution: {integrity: sha512-SmmbDl6NUkv6mHT8/Scb09lvxXy0Y2hD98oZHswCysrYbs4JW5LP1eTuroE23Z2jK75D7TEzv2MXmwcDIytxhg==}
     engines: {node: '>=18.0.0'}
     hasBin: true
     peerDependencies:
@@ -13481,6 +13484,10 @@ snapshots:
       pathe: 2.0.3
       ufo: 1.6.1
 
+  unenv@2.0.0-rc.23:
+    dependencies:
+      pathe: 2.0.3
+
   unhead@1.11.20:
     dependencies:
       '@unhead/dom': 1.11.20
@@ -13833,7 +13840,7 @@ snapshots:
       '@cloudflare/workerd-linux-arm64': 1.20251011.0
       '@cloudflare/workerd-windows-64': 1.20251011.0
 
-  wrangler@4.45.0(@cloudflare/workers-types@4.20251014.0):
+  wrangler@4.45.1(@cloudflare/workers-types@4.20251014.0):
     dependencies:
       '@cloudflare/kv-asset-handler': 0.4.0
       '@cloudflare/unenv-preset': 2.7.8(unenv@2.0.0-rc.21)(workerd@1.20251011.0)
