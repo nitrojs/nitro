@@ -43,7 +43,7 @@ importers:
         version: 7.0.1
       c12:
         specifier: ^3.3.1
-        version: 3.3.1(magicast@0.4.0)
+        version: 3.3.1(magicast@0.5.0)
       chokidar:
         specifier: ^4.0.3
         version: 4.0.3
@@ -126,8 +126,8 @@ importers:
         specifier: ^0.30.21
         version: 0.30.21
       magicast:
-        specifier: ^0.4.0
-        version: 0.4.0
+        specifier: ^0.5.0
+        version: 0.5.0
       mime:
         specifier: ^4.1.0
         version: 4.1.0
@@ -141,8 +141,8 @@ importers:
         specifier: ^1.0.3
         version: 1.0.3
       ofetch:
-        specifier: ^1.4.1
-        version: 1.4.1
+        specifier: ^1.5.0
+        version: 1.5.0
       ohash:
         specifier: ^2.0.11
         version: 2.0.11
@@ -275,10 +275,10 @@ importers:
         version: 4.0.4(vitest@4.0.4(@edge-runtime/vm@5.0.0)(@types/debug@4.1.12)(@types/node@24.9.1)(jiti@2.6.1)(terser@5.44.0)(yaml@2.8.1))
       automd:
         specifier: ^0.4.2
-        version: 0.4.2(magicast@0.4.0)
+        version: 0.4.2(magicast@0.5.0)
       changelogen:
         specifier: ^0.6.2
-        version: 0.6.2(magicast@0.4.0)
+        version: 0.6.2(magicast@0.5.0)
       edge-runtime:
         specifier: ^4.0.1
         version: 4.0.1
@@ -4586,8 +4586,8 @@ packages:
   magicast@0.3.5:
     resolution: {integrity: sha512-L0WhttDl+2BOsybvEOLK7fW3UA0OQ0IQ2d6Zl2x/a6vVRs3bAY0ECOSHHeL5jD+SbOpOCUEi0y1DgHEn9Qn1AQ==}
 
-  magicast@0.4.0:
-    resolution: {integrity: sha512-2SCG6Qg6i0srING+lgghlpBl3klNKBudpPzOHDCQCjzWzEf6VnIxJMoiyaNUjbqeSG2zpwRsu9M9D8visuiQFQ==}
+  magicast@0.5.0:
+    resolution: {integrity: sha512-D0cxqnb8DpO66P4LkD9ME6a4AhRK6A+xprXksD5vtsJN6G4zbzdI10vDaWCIyj3eLwjNZrQxUYB20FDhKrMEKQ==}
 
   make-dir@4.0.0:
     resolution: {integrity: sha512-hXdUTZYIVOt1Ex//jAQi+wTZZpUpwBj/0QsOzqegb3rGMMeJiSEu5xLHnYfBrRV4RH2+OCSOO95Is/7x1WJ4bw==}
@@ -5024,8 +5024,8 @@ packages:
     resolution: {integrity: sha512-W67iLl4J2EXEGTbfeHCffrjDfitvLANg0UlX3wFUUSTx92KXRFegMHUVgSqE+wvhAbi4WqjGg9czysTV2Epbew==}
     engines: {node: '>= 0.4'}
 
-  ofetch@1.4.1:
-    resolution: {integrity: sha512-QZj2DfGplQAr2oj9KzceK9Hwz6Whxazmn85yYeVuS3u9XTMOGMRx0kO95MQ+vLsj/S/NwBDMMLU5hpxvI6Tklw==}
+  ofetch@1.5.0:
+    resolution: {integrity: sha512-A7llJ7eZyziA5xq9//3ZurA8OhFqtS99K5/V1sLBJ5j137CM/OAjlbA/TEJXBuOWwOfLqih+oH5U3ran4za1FQ==}
 
   ohash@1.1.6:
     resolution: {integrity: sha512-TBu7PtV8YkAZn0tSxobKY2n2aAQva936lhRrj6957aDaCf9IEtqsKbgMzXE/F/sjqYOwmrukeORHNLe5glk7Cg==}
@@ -9258,10 +9258,10 @@ snapshots:
       stubborn-fs: 2.0.0
       when-exit: 2.1.4
 
-  automd@0.4.2(magicast@0.4.0):
+  automd@0.4.2(magicast@0.5.0):
     dependencies:
       '@parcel/watcher': 2.5.1
-      c12: 3.3.1(magicast@0.4.0)
+      c12: 3.3.1(magicast@0.5.0)
       citty: 0.1.6
       consola: 3.4.2
       defu: 6.1.4
@@ -9270,7 +9270,7 @@ snapshots:
       magic-string: 0.30.21
       mdbox: 0.1.1
       mlly: 1.8.0
-      ofetch: 1.4.1
+      ofetch: 1.5.0
       pathe: 2.0.3
       perfect-debounce: 2.0.0
       pkg-types: 2.3.0
@@ -9411,7 +9411,7 @@ snapshots:
 
   bytes@3.1.2: {}
 
-  c12@3.3.1(magicast@0.4.0):
+  c12@3.3.1(magicast@0.5.0):
     dependencies:
       chokidar: 4.0.3
       confbox: 0.2.2
@@ -9426,7 +9426,7 @@ snapshots:
       pkg-types: 2.3.0
       rc9: 2.1.2
     optionalDependencies:
-      magicast: 0.4.0
+      magicast: 0.5.0
 
   call-bind-apply-helpers@1.0.2:
     dependencies:
@@ -9464,15 +9464,15 @@ snapshots:
 
   chalk@5.6.2: {}
 
-  changelogen@0.6.2(magicast@0.4.0):
+  changelogen@0.6.2(magicast@0.5.0):
     dependencies:
-      c12: 3.3.1(magicast@0.4.0)
+      c12: 3.3.1(magicast@0.5.0)
       confbox: 0.2.2
       consola: 3.4.2
       convert-gitmoji: 0.1.5
       mri: 1.2.0
       node-fetch-native: 1.6.7
-      ofetch: 1.4.1
+      ofetch: 1.5.0
       open: 10.2.0
       pathe: 2.0.3
       pkg-types: 2.3.0
@@ -11516,7 +11516,7 @@ snapshots:
       '@babel/types': 7.28.5
       source-map-js: 1.2.1
 
-  magicast@0.4.0:
+  magicast@0.5.0:
     dependencies:
       '@babel/parser': 7.28.5
       '@babel/types': 7.28.5
@@ -12101,7 +12101,7 @@ snapshots:
 
   object-inspect@1.13.4: {}
 
-  ofetch@1.4.1:
+  ofetch@1.5.0:
     dependencies:
       destr: 2.0.5
       node-fetch-native: 1.6.7
@@ -13577,7 +13577,7 @@ snapshots:
       h3: 1.15.4
       lru-cache: 10.4.3
       node-fetch-native: 1.6.7
-      ofetch: 1.4.1
+      ofetch: 1.5.0
       ufo: 1.6.1
     optionalDependencies:
       '@azure/identity': 4.13.0
