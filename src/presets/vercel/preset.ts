@@ -26,7 +26,10 @@ const vercel = defineNitroPreset(
     hooks: {
       "rollup:before": async (nitro: Nitro) => {
         const runtime = await resolveVercelRuntime(nitro);
-        if (runtime.startsWith("bun")) {
+        if (
+          runtime.startsWith("bun") &&
+          !nitro.options.exportConditions!.includes("bun")
+        ) {
           nitro.options.exportConditions!.push("bun");
         }
         deprecateSWR(nitro);

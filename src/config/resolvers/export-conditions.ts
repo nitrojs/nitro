@@ -45,6 +45,13 @@ function _resolveExportConditions(
   // 5. Add default conditions
   resolvedConditions.push("import", "default");
 
+  // 6. Auto detect bun and deno (builder)
+  if ("Bun" in globalThis) {
+    resolvedConditions.push("bun");
+  } else if ("Deno" in globalThis) {
+    resolvedConditions.push("deno");
+  }
+
   // Dedup with preserving order
   return resolvedConditions.filter(
     (c, i) => resolvedConditions.indexOf(c) === i
