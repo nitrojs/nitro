@@ -152,6 +152,8 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
             userConfig.server?.port ||
             useNitro(ctx).options.devServer?.port ||
             3000,
+          // #3673, disable Vite's `cors` by default as Nitro handles all requests
+          cors: false,
         },
       };
     },
