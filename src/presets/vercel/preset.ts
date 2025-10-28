@@ -4,6 +4,7 @@ import {
   deprecateSWR,
   generateFunctionFiles,
   generateStaticFiles,
+  resolveVercelRuntime,
 } from "./utils";
 
 export type { VercelOptions as PresetOptions } from "./types";
@@ -23,7 +24,11 @@ const vercel = defineNitroPreset(
       preview: "",
     },
     hooks: {
-      "rollup:before": (nitro: Nitro) => {
+      "rollup:before": async (nitro: Nitro) => {
+        const runtime = await resolveVercelRuntime(nitro);
+        if (runtime.startsWith("bun")) {
+          nitro.options.exportConditions!.push("bun");
+        }
         deprecateSWR(nitro);
       },
       async compiled(nitro: Nitro) {
