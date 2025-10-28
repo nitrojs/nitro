@@ -87,7 +87,7 @@
     "nitro": "jiti ./src/cli/index.ts",
     "node-ts": "node --disable-warning=ExperimentalWarning --experimental-strip-types",
     "prepack": "pnpm build",
-    "release": "pnpm test && pnpm build && changelogen --release && pnpm publish && git push --follow-tags",
+    "release": "pnpm test && pnpm build && changelogen --release --publish && git push --follow-tags",
     "stub": "unbuild --stub",
     "test": "pnpm lint && pnpm vitest run",
     "test:fixture:types": "pnpm stub && jiti ./test/scripts/gen-fixture-types.ts && cd test/fixture && tsc --noEmit",
