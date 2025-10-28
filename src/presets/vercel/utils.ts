@@ -277,6 +277,7 @@ export async function resolveVercelRuntime(nitro: Nitro) {
 
   if (runtime) {
     // Already specified
+    return runtime;
   }
 
   // 2. Read runtime from vercel.json if specified
