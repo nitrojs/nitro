@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## v2.12.9
+
+[compare changes](https://github.com/nitrojs/nitro/compare/v2.12.8...v2.12.9)
+
+### 🩹 Fixes
+
+- Set explicit delimiters to allow $ in replacements ([#3689](https://github.com/nitrojs/nitro/pull/3689))
+
+### 💅 Refactors
+
+- **vercel:** Support bun runtime ([#3678](https://github.com/nitrojs/nitro/pull/3678))
+
+### 🏡 Chore
+
+- Update deps ([9202a3a0](https://github.com/nitrojs/nitro/commit/9202a3a0))
+- Update dependencies ([d39e811e](https://github.com/nitrojs/nitro/commit/d39e811e))
+- Update release script ([33f7ba4b](https://github.com/nitrojs/nitro/commit/33f7ba4b))
+- Update unenv ([883da31c](https://github.com/nitrojs/nitro/commit/883da31c))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+- Tom Lienard ([@QuiiBz](https://github.com/QuiiBz))
+- James Garbutt ([@43081j](https://github.com/43081j))
+
 ## v2.12.8
 
 [compare changes](https://github.com/nitrojs/nitro/compare/v2.12.7...v2.12.8)
