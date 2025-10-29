@@ -16,7 +16,7 @@ export function featureFlags(nitro: Nitro) {
           // Plugins
           hasPlugins: nitro.options.plugins.length > 0,
           hasHooks:
-            nitro.options.runtimeFeatures?.hooks ??
+            nitro.options.features?.runtimeHooks ??
             nitro.options.plugins.length > 0,
         };
         return /* js */ Object.entries(featureFlags)
