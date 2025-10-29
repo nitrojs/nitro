@@ -1,5 +1,6 @@
 import type {
   ConfigEnv,
+  EnvironmentModuleNode,
   EnvironmentOptions,
   UserConfig,
   PluginOption as VitePlugin,
@@ -237,6 +238,44 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
     configureServer: (server) => {
       debug("[main] Configuring dev server");
       return configureViteDevServer(ctx, server);
+    },
+
+    // automatically reload the client when a server module is updated
+    // see: https://github.com/vitejs/vite/issues/19114
+    hotUpdate(options) {
+      if (
+        !ctx.pluginConfig.config?.devServer?.serverReload ||
+        this.environment.name === "client"
+      )
+        return;
+
+      let hasServerOnlyModule = false;
+
+      const invalidated = new Set<EnvironmentModuleNode>();
+
+      for (const mod of options.modules) {
+        if (!mod.id) continue;
+
+        // check if module exists in the client module graph
+        const clientModule =
+          options.server.environments.client.moduleGraph.getModuleById(mod.id);
+        // if so, the client env will handle the update
+        if (clientModule) continue;
+
+        // must be a module that is only SSR, invalidate it
+        this.environment.moduleGraph.invalidateModule(
+          mod,
+          invalidated,
+          options.timestamp,
+          false
+        );
+
+        hasServerOnlyModule = true;
+      }
+
+      if (hasServerOnlyModule) {
+        options.server.ws.send({ type: "full-reload" });
+      }
     },
   };
 }
