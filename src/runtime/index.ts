@@ -23,10 +23,10 @@ export {
   cachedEventHandler,
 } from "./internal/cache";
 
-// ---- Internals that depends on virtuals should come last ---- //
+// ---- Internals that depends on virtual imports should come last ---- //
 
 // App
-export { useNitroApp } from "./internal/app";
+export { useNitroApp, useNitroHooks } from "./internal/app";
 
 // Storage
 export { useStorage } from "./internal/storage";

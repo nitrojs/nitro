@@ -1,18 +1,18 @@
 import { defineHandler, type EventHandler } from "h3";
 import type { RenderHandler, RenderContext } from "nitro/types";
-import { useNitroApp } from "./app";
+import { useNitroHooks } from "./app";
 import { useRuntimeConfig } from "./runtime-config";
 
 export function defineRenderHandler(render: RenderHandler): EventHandler {
   const runtimeConfig = useRuntimeConfig();
   return defineHandler(async (event) => {
-    const nitroApp = useNitroApp();
+    const nitroHooks = useNitroHooks();
 
     // Create shared context for hooks
     const ctx: RenderContext = { event, render, response: undefined };
 
     // Call initial hook to prepare and optionally custom render
-    await nitroApp.hooks.callHook("render:before", ctx);
+    await nitroHooks.callHook("render:before", ctx);
 
     if (!ctx.response /* not handled by hook */) {
       // TODO: Use serve-placeholder
@@ -35,7 +35,7 @@ export function defineRenderHandler(render: RenderHandler): EventHandler {
     }
 
     // Allow  modifying response
-    await nitroApp.hooks.callHook("render:response", ctx.response, ctx);
+    await nitroHooks.callHook("render:response", ctx.response, ctx);
 
     // Send headers
     if (ctx.response.headers) {

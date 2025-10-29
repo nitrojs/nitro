@@ -1,5 +1,5 @@
 import "#nitro-internal-pollyfills";
-import { useNitroApp } from "nitro/runtime";
+import { useNitroApp, useNitroHooks } from "nitro/runtime";
 
 import { trapUnhandledNodeErrors } from "nitro/runtime/internal";
 import { startScheduleRunner } from "nitro/runtime/internal";
@@ -27,6 +27,7 @@ parentPort?.on("message", (msg) => {
 });
 
 const nitroApp = useNitroApp();
+const nitroHooks = useNitroHooks();
 
 const server = new Server(toNodeHandler(nitroApp.fetch));
 let listener: Server | undefined;
@@ -84,7 +85,7 @@ async function shutdown() {
   server.closeAllConnections?.();
   await Promise.all([
     new Promise((resolve) => listener?.close(resolve)),
-    nitroApp.hooks.callHook("close").catch(console.error),
+    nitroHooks.callHook("close").catch(console.error),
   ]);
   parentPort?.postMessage({ event: "exit" });
 }

@@ -1,6 +1,6 @@
 import type { Server as HttpServer } from "node:http";
-import type { NitroApp } from "nitro/types";
 import gracefulShutdown from "./lib/http-graceful-shutdown";
+import { useNitroHooks } from "./app";
 
 export function getGracefulShutdownConfig() {
   return {
@@ -14,10 +14,7 @@ export function getGracefulShutdownConfig() {
   };
 }
 
-export function setupGracefulShutdown(
-  listener: HttpServer,
-  nitroApp: NitroApp
-) {
+export function setupGracefulShutdown(listener: HttpServer) {
   const shutdownConfig = getGracefulShutdownConfig();
   if (shutdownConfig.disabled) {
     return;
@@ -33,7 +30,7 @@ export function setupGracefulShutdown(
           console.warn("Graceful shutdown timeout, force exiting...");
           resolve();
         }, shutdownConfig.timeout);
-        Promise.resolve(nitroApp.hooks.callHook("close"))
+        Promise.resolve(useNitroHooks().callHook("close"))
           .catch((error) => {
             console.error(error);
           })

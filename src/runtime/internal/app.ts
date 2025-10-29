@@ -33,6 +33,15 @@ export function useNitroApp(): NitroApp {
   return ((useNitroApp as any).__instance__ ??= initNitroApp());
 }
 
+export function useNitroHooks(): HookableCore<NitroRuntimeHooks> {
+  const nitroApp = useNitroApp();
+  const hooks = nitroApp.hooks;
+  if (hooks) {
+    return hooks;
+  }
+  return (nitroApp.hooks = new HookableCore<NitroRuntimeHooks>());
+}
+
 function initNitroApp(): NitroApp {
   const nitroApp = createNitroApp();
   if (hasPlugins) {

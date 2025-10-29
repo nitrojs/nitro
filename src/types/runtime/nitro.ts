@@ -14,7 +14,11 @@ export interface NitroApp {
 }
 
 export interface NitroAppPlugin {
-  (nitro: NitroApp): void;
+  (
+    nitro: NitroApp & {
+      hooks: NonNullable<NitroApp["hooks"]>;
+    }
+  ): void;
 }
 
 export interface NitroAsyncContext {
