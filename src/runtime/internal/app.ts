@@ -97,7 +97,7 @@ function createNitroApp(): NitroApp {
     };
   }
 
-  let appReqHandler = (req: ServerRequest): Response | Promise<Response> => {
+  let appHandler = (req: ServerRequest): Response | Promise<Response> => {
     req.context ||= {};
     req.context.nitro = req.context.nitro || { errors: [] };
     return h3App.fetch(req);
@@ -105,27 +105,27 @@ function createNitroApp(): NitroApp {
 
   // Experimental async context support
   if (import.meta._asyncContext) {
-    const originalHandler = appReqHandler;
-    appReqHandler = (req: ServerRequest): Promise<Response> => {
+    const originalHandler = appHandler;
+    appHandler = (req: ServerRequest): Promise<Response> => {
       const asyncCtx: NitroAsyncContext = { request: req as Request };
       return nitroAsyncContext.callAsync(asyncCtx, () => originalHandler(req));
     };
   }
 
-  const appFetchHandler: (
+  const request: (
     input: ServerRequest | URL | string,
     init?: RequestInit,
     context?: any
   ) => Promise<Response> = (input, init, context) => {
     const req = toRequest(input, init);
     req.context = { ...req.context, ...context };
-    return Promise.resolve(appReqHandler(req));
+    return Promise.resolve(appHandler(req));
   };
 
   const nativeFetch = globalThis.fetch;
   globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
     if (typeof input === "string" && input.charCodeAt(0) === 47 /* '/' */) {
-      return appFetchHandler(input, init);
+      return request(input, init);
     }
     if ("_request" in (input as Request)) {
       input = (input as any)._request;
@@ -134,8 +134,9 @@ function createNitroApp(): NitroApp {
   };
 
   const app: NitroApp = {
-    fetch: appFetchHandler,
-    _h3: h3App,
+    fetch: appHandler,
+    request,
+    h3: h3App,
     hooks,
     captureError,
   };
