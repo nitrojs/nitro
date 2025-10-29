@@ -44,6 +44,31 @@ export default defineNuxtConfig({
 
 Framework integrations can use the `ssrRoutes` configuration to declare SSR routes. For more information, see [#3475](https://github.com/nitrojs/nitro/pull/3475).
 
+## Bun runtime
+
+:read-more{title="Vercel" to="https://vercel.com/docs/functions/runtimes/bun"}
+
+You can use [Bun](https://bun.com) instead of Node.js by specifying the runtime using the `vercel.functions` key inside `nitro.config`:
+
+```ts [nitro.config.ts]
+export default defineNitroConfig({
+  vercel: {
+    functions: {
+      runtime: "bun1.x"
+    }
+  }
+})
+```
+
+Alternatively, Nitro also detects Bun automatically if you specify a `bunVersion` property in your `vercel.json`:
+
+```json [vercel.json]
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "bunVersion": "1.x"
+}
+```
+
 ## Custom build output configuration
 
 You can provide additional [build output configuration](https://vercel.com/docs/build-output-api/v3) using `vercel.config` key inside `nitro.config`. It will be merged with built-in auto-generated config.

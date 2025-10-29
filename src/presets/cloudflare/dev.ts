@@ -77,7 +77,7 @@ export async function cloudflareDev(nitro: Nitro) {
 
   // Add plugin to inject bindings to dev server
   nitro.options.plugins = nitro.options.plugins || [];
-  nitro.options.plugins.push(
+  nitro.options.plugins.unshift(
     fileURLToPath(new URL("runtime/plugin.dev", import.meta.url))
   );
 }
