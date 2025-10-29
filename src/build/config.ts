@@ -101,9 +101,6 @@ export function baseBuildConfig(nitro: Nitro) {
     "#internal/nitro": runtimeDir,
     "nitro/runtime": runtimeDir,
     "nitropack/runtime": runtimeDir, // Backwards compatibility
-    "nitro/deps/h3": "h3",
-    "nitro/deps/ofetch": "ofetch",
-    "nitro/h3": "h3",
     ...env.alias,
   });
 
