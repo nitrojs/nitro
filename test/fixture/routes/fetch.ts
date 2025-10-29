@@ -6,7 +6,7 @@ export default defineHandler(async (event) => {
     // "event.fetch": await event.fetch("/api/hey").then((r) => r.text()),
     // "event.$fetch": await event.$fetch("/api/hey"),
     "nitroApp.localFetch": await nitroApp
-      .fetch("/api/hey")
+      .request("/api/hey")
       .then((r) => r.text()),
   };
 });
