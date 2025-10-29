@@ -21,6 +21,7 @@ import { virtual } from "./plugins/virtual";
 import { errorHandler } from "./plugins/error-handler";
 import { rollupNodeFileTrace } from "nf3";
 import { rendererTemplate } from "./plugins/renderer-template";
+import { featureFlags } from "./plugins/feature-flags";
 
 export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const plugins: Plugin[] = [];
@@ -58,6 +59,9 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
       nitro.vfs
     )
   );
+
+  // Feature flags
+  plugins.push(featureFlags(nitro));
 
   // Server assets
   plugins.push(serverAssets(nitro));

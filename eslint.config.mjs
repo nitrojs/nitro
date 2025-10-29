@@ -22,6 +22,7 @@ export default unjs(
       "unicorn/no-empty-file": 0,
       "unicorn/prefer-ternary": 0,
       "unicorn/prefer-single-call": 0,
+      "unicorn/prefer-code-point": 0,
       "@typescript-eslint/no-unused-expressions": 0,
       // "@typescript-eslint/no-deprecated": "error",
     },
