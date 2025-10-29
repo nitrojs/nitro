@@ -7,7 +7,7 @@ import { trapUnhandledNodeErrors } from "nitro/runtime/internal";
 const nitroApp = useNitroApp();
 const nitroHooks = useNitroHooks();
 
-export const appFetch = nitroApp.fetch;
+export const appFetch = nitroApp.request;
 
 export const closePrerenderer = () => nitroHooks.callHook("close");
 
