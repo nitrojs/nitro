@@ -1,7 +1,6 @@
 import "#nitro-internal-pollyfills";
 import { useNitroApp, useNitroHooks } from "nitro/runtime";
 
-import { trapUnhandledNodeErrors } from "nitro/runtime/internal";
 import { startScheduleRunner } from "nitro/runtime/internal";
 import { Server } from "node:http";
 import { parentPort, threadId } from "node:worker_threads";
@@ -9,9 +8,6 @@ import { parentPort, threadId } from "node:worker_threads";
 import wsAdapter from "crossws/adapters/node";
 import { toNodeHandler } from "srvx/node";
 import { getSocketAddress, isSocketSupported } from "get-port-please";
-
-// Trap unhandled errors
-trapUnhandledNodeErrors();
 
 // Listen for shutdown signal from runner
 parentPort?.on("message", (msg) => {

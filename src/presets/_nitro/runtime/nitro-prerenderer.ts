@@ -2,7 +2,6 @@ import "#nitro-internal-pollyfills";
 import consola from "consola";
 import { HTTPError } from "h3";
 import { useNitroApp, useNitroHooks } from "nitro/runtime";
-import { trapUnhandledNodeErrors } from "nitro/runtime/internal";
 
 const nitroApp = useNitroApp();
 const nitroHooks = useNitroHooks();
@@ -26,6 +25,3 @@ nitroHooks.hook("error", (error, context) => {
     );
   }
 });
-
-// Trap unhandled errors
-trapUnhandledNodeErrors();

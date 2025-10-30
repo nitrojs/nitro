@@ -50,8 +50,7 @@ const denoServer = defineNitroPreset(
         // https://docs.deno.com/runtime/fundamentals/configuration/
         const denoJSON = {
           tasks: {
-            start:
-              "deno run --allow-net --allow-read --allow-write --allow-env --unstable-byonm --unstable-node-globals ./server/index.mjs",
+            start: "deno run -A ./server/index.mjs",
           },
         };
         await writeFile(
@@ -62,6 +61,7 @@ const denoServer = defineNitroPreset(
     },
   },
   {
+    aliases: ["deno"],
     name: "deno-server" as const,
   }
 );

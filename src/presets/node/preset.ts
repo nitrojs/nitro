@@ -12,6 +12,7 @@ const nodeServer = defineNitroPreset(
   },
   {
     name: "node-server" as const,
+    aliases: ["node"],
   }
 );
 

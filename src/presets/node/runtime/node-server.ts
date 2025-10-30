@@ -1,67 +1,40 @@
 import "#nitro-internal-pollyfills";
-import { Server as HttpServer } from "node:http";
-import { Server as HttpsServer } from "node:https";
-import type { AddressInfo } from "node:net";
 import wsAdapter from "crossws/adapters/node";
-import destr from "destr";
-import { toNodeHandler } from "srvx/node";
-import { useNitroApp, useRuntimeConfig } from "nitro/runtime";
-import {
-  setupGracefulShutdown,
-  startScheduleRunner,
-  trapUnhandledNodeErrors,
-} from "nitro/runtime/internal";
+import cluster from "node:cluster";
+import { serve } from "srvx/node";
+import { useNitroApp } from "nitro/runtime";
+import { startScheduleRunner } from "nitro/runtime/internal";
 
+const port =
+  Number.parseInt(process.env.NITRO_PORT || process.env.PORT || "") || 3000;
+
+const host = process.env.NITRO_HOST || process.env.HOST;
 const cert = process.env.NITRO_SSL_CERT;
 const key = process.env.NITRO_SSL_KEY;
+// const path = process.env.NITRO_UNIX_SOCKET; // TODO
+
+const clusterId = cluster.isWorker && process.env.WORKER_ID;
+if (clusterId) {
+  console.log(`Worker #${clusterId} started`);
+}
 
 const nitroApp = useNitroApp();
 
-const server =
-  cert && key
-    ? new HttpsServer({ key, cert }, toNodeHandler(nitroApp.fetch))
-    : new HttpServer(toNodeHandler(nitroApp.fetch));
-
-const port = (destr(process.env.NITRO_PORT || process.env.PORT) ||
-  3000) as number;
-const host = process.env.NITRO_HOST || process.env.HOST;
-
-const path = process.env.NITRO_UNIX_SOCKET;
-
-// @ts-ignore
-const listener = server.listen(path ? { path } : { port, host }, (err) => {
-  if (err) {
-    console.error(err);
-    // eslint-disable-next-line unicorn/no-process-exit
-    process.exit(1);
-  }
-  const protocol = cert && key ? "https" : "http";
-  const addressInfo = listener.address() as AddressInfo;
-  if (typeof addressInfo === "string") {
-    console.log(`Listening on unix socket ${addressInfo}`);
-    return;
-  }
-  const baseURL = (useRuntimeConfig().app.baseURL || "").replace(/\/$/, "");
-  const url = `${protocol}://${
-    addressInfo.family === "IPv6"
-      ? `[${addressInfo.address}]`
-      : addressInfo.address
-  }:${addressInfo.port}${baseURL}`;
-  console.log(`Listening on ${url}`);
+const server = serve({
+  port: port,
+  hostname: host,
+  tls: cert && key ? { cert, key } : undefined,
+  node: { reusePort: !!clusterId },
+  silent: clusterId ? clusterId !== "1" : undefined,
+  fetch: nitroApp.fetch,
 });
-
-// Trap unhandled errors
-trapUnhandledNodeErrors();
-
-// Graceful shutdown
-setupGracefulShutdown(listener);
 
 // Websocket support
 // https://crossws.unjs.io/adapters/node
 if (import.meta._websocket) {
   // @ts-expect-error
   const { handleUpgrade } = wsAdapter(nitroApp.h3App.websocket);
-  server.on("upgrade", handleUpgrade);
+  server.node!.server!.on("upgrade", handleUpgrade);
 }
 
 // Scheduled tasks
