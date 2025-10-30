@@ -2,13 +2,13 @@ import type { Nitro, RollupConfig } from "nitro/types";
 import type { RollupWatcher } from "rollup";
 import { watch as chokidarWatch } from "chokidar";
 import { watch } from "node:fs";
-import defu from "defu";
+import { defu } from "defu";
 import { join } from "pathe";
 import { debounce } from "perfect-debounce";
-import { scanHandlers } from "../../scan";
-import { nitroServerName } from "../../utils/nitro";
-import { formatRollupError } from "./error";
-import { writeTypes } from "../types";
+import { scanHandlers } from "../../scan.ts";
+import { nitroServerName } from "../../utils/nitro.ts";
+import { formatRollupError } from "./error.ts";
+import { writeTypes } from "../types.ts";
 
 export async function watchDev(nitro: Nitro, rollupConfig: RollupConfig) {
   const rollup = await import("rollup");

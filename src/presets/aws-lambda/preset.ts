@@ -1,5 +1,6 @@
-import { defineNitroPreset } from "../_utils/preset";
-export type { AwsLambdaOptions as PresetOptions } from "./types";
+import { defineNitroPreset } from "../_utils/preset.ts";
+
+export type { AwsLambdaOptions as PresetOptions } from "./types.ts";
 
 const awsLambda = defineNitroPreset(
   {

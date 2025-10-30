@@ -1,6 +1,6 @@
 import { defineCommand } from "citty";
 import { consola } from "consola";
-import { listTasks, loadOptions } from "nitro";
+import { listTasks, loadOptions } from "nitro/builder";
 import { resolve } from "pathe";
 
 export default defineCommand({

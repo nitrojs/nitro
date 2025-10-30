@@ -1,8 +1,8 @@
-import { defineNitroPreset } from "../_utils/preset";
+import { defineNitroPreset } from "../_utils/preset.ts";
 import type { Nitro } from "nitro/types";
-import { writeSWARoutes } from "./utils";
+import { writeSWARoutes } from "./utils.ts";
 
-export type { AzureOptions as PresetOptions } from "./types";
+export type { AzureOptions as PresetOptions } from "./types.ts";
 
 const azureSWA = defineNitroPreset(
   {

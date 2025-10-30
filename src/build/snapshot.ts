@@ -1,7 +1,7 @@
 import type { Nitro } from "nitro/types";
 import { dirname, join, resolve } from "pathe";
 import { mkdir, writeFile } from "node:fs/promises";
-import { snapshotStorage } from "../utils/storage";
+import { snapshotStorage } from "../utils/storage.ts";
 
 export async function snapshot(nitro: Nitro) {
   if (

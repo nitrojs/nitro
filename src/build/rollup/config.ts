@@ -1,5 +1,4 @@
 import type { Nitro, RollupConfig } from "nitro/types";
-import type { Plugin } from "rollup";
 import { createRequire } from "node:module";
 import { defu } from "defu";
 import { sanitizeFilePath } from "mlly";
@@ -10,12 +9,12 @@ import commonjs from "@rollup/plugin-commonjs";
 import inject from "@rollup/plugin-inject";
 import json from "@rollup/plugin-json";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
-import { replace } from "../plugins/replace";
-import { esbuild } from "../plugins/esbuild";
-import { sourcemapMininify } from "../plugins/sourcemap-min";
-import { baseBuildConfig } from "../config";
-import { baseBuildPlugins } from "../plugins";
-import { raw } from "../plugins/raw";
+import { replace } from "../plugins/replace.ts";
+import { esbuild } from "../plugins/esbuild.ts";
+import { sourcemapMininify } from "../plugins/sourcemap-min.ts";
+import { baseBuildConfig } from "../config.ts";
+import { baseBuildPlugins } from "../plugins.ts";
+import { raw } from "../plugins/raw.ts";
 
 export const getRollupConfig = (nitro: Nitro): RollupConfig => {
   const base = baseBuildConfig(nitro);
@@ -61,14 +60,14 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
         mainFields: ["main"],
         exportConditions: nitro.options.exportConditions,
       }),
-      commonjs({
+      (commonjs as unknown as typeof commonjs.default)({
         strictRequires: "auto", // TODO: set to true (default) in v3
         esmExternals: (id) => !id.startsWith("unenv/"),
         requireReturnsDefault: "auto",
         ...nitro.options.commonJS,
       }),
-      json(),
-      inject(base.env.inject),
+      (json as unknown as typeof json.default)(),
+      (inject as unknown as typeof inject.default)(base.env.inject),
       raw(),
     ],
     onwarn(warning, rollupWarn) {

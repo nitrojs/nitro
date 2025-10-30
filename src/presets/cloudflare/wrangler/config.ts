@@ -6,8 +6,8 @@
  * Source: https://github.com/cloudflare/workers-sdk/blob/main/packages/wrangler/src/config/config.ts
  */
 
-import type { Environment, RawEnvironment } from "./environment";
-import type { CamelCaseKey } from "./_utils";
+import type { Environment, RawEnvironment } from "./environment.ts";
+import type { CamelCaseKey } from "./_utils.ts";
 
 /**
  * This is the static type definition for the configuration object.

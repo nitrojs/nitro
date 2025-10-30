@@ -1,7 +1,7 @@
 import fsp from "node:fs/promises";
 import { resolve } from "pathe";
 import { describe, expect, it } from "vitest";
-import { setupTest } from "../tests";
+import { setupTest } from "../tests.ts";
 
 describe("nitro:preset:static", async () => {
   const ctx = await setupTest("static");

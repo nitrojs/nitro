@@ -6,7 +6,7 @@ import type {
   RouterMethod,
 } from "h3";
 import type { MatchedRoute } from "rou3";
-import type { MatchedRouteRule } from "../route-rules";
+import type { MatchedRouteRule } from "../route-rules.ts";
 
 export function findRoute(
   method: string,

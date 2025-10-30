@@ -1,6 +1,6 @@
 import type { Plugin as VitePlugin } from "vite";
 import type { NitroBuildInfo } from "nitro/types";
-import type { NitroPluginContext } from "./types";
+import type { NitroPluginContext } from "./types.ts";
 
 import { resolve } from "pathe";
 import { existsSync } from "node:fs";
@@ -9,11 +9,11 @@ import { getRandomPort } from "get-port-please";
 
 import consola from "consola";
 import { spawn } from "node:child_process";
-import { prettyPath } from "../../utils/fs";
+import { prettyPath } from "../../utils/fs.ts";
 import { createProxyServer } from "httpxy";
 
 export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
-  return <VitePlugin>{
+  return {
     name: "nitro:preview",
     apply: (_config, configEnv) => !!configEnv.isPreview,
 
@@ -106,5 +106,5 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
         }
       });
     },
-  };
+  } satisfies VitePlugin;
 }

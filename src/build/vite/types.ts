@@ -1,7 +1,7 @@
 import type { OutputBundle } from "rollup";
-import type { getViteRollupConfig } from "./rollup";
+import type { getViteRollupConfig } from "./rollup.ts";
 import type { DevWorker, Nitro, NitroConfig } from "nitro/types";
-import type { NitroDevApp } from "../../dev/app";
+import type { NitroDevApp } from "../../dev/app.ts";
 
 declare module "vite" {
   interface UserConfig {

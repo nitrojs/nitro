@@ -1,18 +1,18 @@
 import { promises as fsp } from "node:fs";
-import { defineNitroPreset } from "../_utils/preset";
+import { defineNitroPreset } from "../_utils/preset.ts";
 import type { Nitro } from "nitro/types";
 import type { Config, Manifest } from "@netlify/edge-functions";
 import { dirname, join } from "pathe";
-import { unenvDeno } from "../deno/unenv/preset";
+import { unenvDeno } from "../deno/unenv/preset.ts";
 import {
   generateNetlifyFunction,
   getGeneratorString,
   getStaticPaths,
   writeHeaders,
   writeRedirects,
-} from "./utils";
+} from "./utils.ts";
 
-export type { NetlifyOptions as PresetOptions } from "./types";
+export type { NetlifyOptions as PresetOptions } from "./types.ts";
 
 // Netlify functions
 const netlify = defineNitroPreset(

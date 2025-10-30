@@ -1,7 +1,7 @@
-import { defineNitroPreset } from "../_utils/preset";
-import { writeFile } from "../_utils/fs";
+import { defineNitroPreset } from "../_utils/preset.ts";
+import { writeFile } from "../_utils/fs.ts";
 import { resolve } from "pathe";
-import { unenvDeno } from "./unenv/preset";
+import { unenvDeno } from "./unenv/preset.ts";
 
 const denoDeploy = defineNitroPreset(
   {

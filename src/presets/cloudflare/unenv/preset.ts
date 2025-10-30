@@ -1,5 +1,5 @@
 import type { Preset } from "unenv";
-import * as workerdNodeCompat from "./node-compat";
+import * as workerdNodeCompat from "./node-compat.ts";
 
 // https://platform-node-compat.pi0.workers.dev/
 

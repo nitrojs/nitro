@@ -6,23 +6,23 @@ import type {
   PluginOption as VitePlugin,
 } from "vite";
 import type { InputOption } from "rollup";
-import type { NitroPluginConfig, NitroPluginContext } from "./types";
+import type { NitroPluginConfig, NitroPluginContext } from "./types.ts";
 import { resolve, relative, join } from "pathe";
-import { createNitro, prepare } from "../..";
-import { getViteRollupConfig } from "./rollup";
-import { buildEnvironments, prodSetup } from "./prod";
+import { createNitro, prepare } from "../../builder.ts";
+import { getViteRollupConfig } from "./rollup.ts";
+import { buildEnvironments, prodSetup } from "./prod.ts";
 import {
   createDevWorker,
   createNitroEnvironment,
   createServiceEnvironments,
-} from "./env";
-import { configureViteDevServer } from "./dev";
+} from "./env.ts";
+import { configureViteDevServer } from "./dev.ts";
 import { runtimeDependencies, runtimeDir } from "nitro/runtime/meta";
 import { resolveModulePath } from "exsolve";
 import { defu } from "defu";
-import { prettyPath } from "../../utils/fs";
-import { NitroDevApp } from "../../dev/app";
-import { nitroPreviewPlugin } from "./preview";
+import { prettyPath } from "../../utils/fs.ts";
+import { NitroDevApp } from "../../dev/app.ts";
+import { nitroPreviewPlugin } from "./preview.ts";
 import { assetsPlugin } from "@hiogawa/vite-plugin-fullstack";
 
 // https://vite.dev/guide/api-environment-plugins

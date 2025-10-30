@@ -1,6 +1,6 @@
 import { resolve } from "pathe";
 import { describe } from "vitest";
-import { setupTest, testNitro } from "../tests";
+import { setupTest, testNitro } from "../tests.ts";
 
 describe("nitro:standard", async () => {
   const ctx = await setupTest("standard");

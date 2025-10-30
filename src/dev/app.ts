@@ -1,17 +1,16 @@
 import type { Nitro } from "nitro/types";
 import type { EventHandler, HTTPHandler } from "h3";
 
-import { withBase, H3, toEventHandler, fromNodeHandler, H3Event } from "h3";
-import { toNodeHandler } from "srvx/node";
+import { withBase, H3, toEventHandler, fromNodeHandler } from "h3";
 import serveStatic from "serve-static";
 import { joinURL } from "ufo";
-import { createVFSHandler } from "./vfs";
-import { createHTTPProxy } from "./proxy";
+import { createVFSHandler } from "./vfs.ts";
+import { createHTTPProxy } from "./proxy.ts";
 
 import devErrorHandler, {
   defaultHandler as devErrorHandlerInternal,
   loadStackTrace,
-} from "../runtime/internal/error/dev";
+} from "../runtime/internal/error/dev.ts";
 
 export class NitroDevApp {
   nitro: Nitro;

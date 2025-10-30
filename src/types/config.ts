@@ -12,28 +12,32 @@ import type { LogLevel } from "consola";
 import type { ConnectorName } from "db0";
 import type { NestedHooks } from "hookable";
 import type { ProxyServerOptions } from "httpxy";
-import type { PresetName, PresetNameInput, PresetOptions } from "../presets";
+import type {
+  PresetName,
+  PresetNameInput,
+  PresetOptions,
+} from "../presets/index.ts";
 import type { TSConfig } from "pkg-types";
 import type { Preset as UnenvPreset } from "unenv";
 import type { UnimportPluginOptions } from "unimport/unplugin";
 import type { BuiltinDriverName } from "unstorage";
 import type { UnwasmPluginOptions } from "unwasm/plugin";
-import type { DeepPartial } from "./_utils";
-import type { NitroDevServerOptions } from "./dev";
+import type { DeepPartial } from "./_utils.ts";
+import type { NitroDevServerOptions } from "./dev.ts";
 import type {
   NitroDevEventHandler,
   NitroErrorHandler,
   NitroEventHandler,
-} from "./handler";
-import type { NitroHooks } from "./hooks";
-import type { NitroModuleInput } from "./module";
-import type { NitroFrameworkInfo } from "./nitro";
-import type { NitroOpenAPIConfig } from "./openapi";
-export type { NitroOpenAPIConfig } from "./openapi";
-import type { NitroPreset } from "./preset";
-import type { EsbuildOptions, NodeExternalsOptions } from "./rollup";
-import type { RollupConfig } from "./rollup";
-import type { NitroRouteConfig, NitroRouteRules } from "./route-rules";
+} from "./handler.ts";
+import type { NitroHooks } from "./hooks.ts";
+import type { NitroModuleInput } from "./module.ts";
+import type { NitroFrameworkInfo } from "./nitro.ts";
+import type { NitroOpenAPIConfig } from "./openapi.ts";
+export type { NitroOpenAPIConfig } from "./openapi.ts";
+import type { NitroPreset } from "./preset.ts";
+import type { EsbuildOptions, NodeExternalsOptions } from "./rollup.ts";
+import type { RollupConfig } from "./rollup.ts";
+import type { NitroRouteConfig, NitroRouteRules } from "./route-rules.ts";
 
 /**
  * Nitro normalized options (nitro.options)

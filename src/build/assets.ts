@@ -1,9 +1,9 @@
 import { existsSync, promises as fsp } from "node:fs";
 import { glob } from "tinyglobby";
-import { isDirectory, prettyPath } from "../utils/fs";
+import { isDirectory, prettyPath } from "../utils/fs.ts";
 import type { Nitro } from "nitro/types";
 import { join, relative, resolve } from "pathe";
-import { compressPublicAssets } from "../utils/compress";
+import { compressPublicAssets } from "../utils/compress.ts";
 
 const NEGATION_RE = /^(!?)(.*)$/;
 const PARENT_DIR_GLOB_RE = /!?\.\.\//;

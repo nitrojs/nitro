@@ -19,7 +19,7 @@ export function createHandler<Env>(hooks: {
   const nitroApp = useNitroApp();
   const nitroHooks = useNitroHooks();
 
-  return <ExportedHandler<Env>>{
+  return {
     async fetch(request, env, context) {
       const ctxExt = {};
       const url = new URL(request.url);
@@ -32,7 +32,14 @@ export function createHandler<Env>(hooks: {
         }
       }
 
-      return fetchHandler(request, env, context, url, nitroApp, ctxExt);
+      return fetchHandler(
+        request,
+        env,
+        context,
+        url,
+        nitroApp,
+        ctxExt
+      ) as Promise<any /* CF response! */>;
     },
 
     scheduled(controller, env, context) {
@@ -104,7 +111,7 @@ export function createHandler<Env>(hooks: {
         })
       );
     },
-  };
+  } satisfies ExportedHandler<Env>;
 }
 
 export async function fetchHandler(

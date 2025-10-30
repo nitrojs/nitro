@@ -2,7 +2,7 @@ import { pathToFileURL } from "node:url";
 import { colors } from "consola/utils";
 import { defu } from "defu";
 import mime from "mime";
-import { writeFile } from "../utils/fs";
+import { writeFile } from "../utils/fs.ts";
 import type {
   Nitro,
   NitroRouteRules,
@@ -12,16 +12,16 @@ import type {
 import { join, relative, resolve } from "pathe";
 import { createRouter, addRoute, findAllRoutes } from "rou3";
 import { joinURL, withBase, withoutBase, withTrailingSlash } from "ufo";
-import { build } from "../build/build";
-import { createNitro } from "../nitro";
-import { compressPublicAssets } from "../utils/compress";
-import { runParallel } from "../utils/parallel";
+import { build } from "../build/build.ts";
+import { createNitro } from "../nitro.ts";
+import { compressPublicAssets } from "../utils/compress.ts";
+import { runParallel } from "../utils/parallel.ts";
 import {
   extractLinks,
   formatPrerenderRoute,
   matchesIgnorePattern,
-} from "./utils";
-import { scanUnprefixedPublicAssets } from "../build/assets";
+} from "./utils.ts";
+import { scanUnprefixedPublicAssets } from "../build/assets.ts";
 
 const JsonSigRx = /^\s*["[{]|^\s*-?\d{1,16}(\.\d{1,17})?([Ee][+-]?\d+)?\s*$/; // From unjs/destr
 

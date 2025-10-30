@@ -1,4 +1,4 @@
-import { allErrors } from "../plugins/errors";
+import { allErrors } from "../plugins/errors.ts";
 
 export default defineHandler((event) => {
   return {

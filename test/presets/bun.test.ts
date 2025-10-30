@@ -2,7 +2,7 @@ import { execa, execaCommandSync } from "execa";
 import { getRandomPort, waitForPort } from "get-port-please";
 import { resolve } from "pathe";
 import { describe } from "vitest";
-import { setupTest, testNitro } from "../tests";
+import { setupTest, testNitro } from "../tests.ts";
 
 const hasBun =
   execaCommandSync("bun --version", { stdio: "ignore", reject: false })

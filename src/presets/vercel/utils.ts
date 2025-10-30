@@ -1,6 +1,6 @@
 import fsp from "node:fs/promises";
 import { defu } from "defu";
-import { writeFile } from "../_utils/fs";
+import { writeFile } from "../_utils/fs.ts";
 import type { Nitro, NitroRouteRules } from "nitro/types";
 import { dirname, relative, resolve } from "pathe";
 import { joinURL, withLeadingSlash, withoutLeadingSlash } from "ufo";
@@ -8,7 +8,7 @@ import type {
   PrerenderFunctionConfig,
   VercelBuildConfigV3,
   VercelServerlessFunctionConfig,
-} from "./types";
+} from "./types.ts";
 import { isTest } from "std-env";
 
 // https://vercel.com/docs/build-output-api/configuration
@@ -130,7 +130,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     (a, b) => b[0].split(/\/(?!\*)/).length - a[0].split(/\/(?!\*)/).length
   );
 
-  const config = defu(nitro.options.vercel?.config, <VercelBuildConfigV3>{
+  const config = defu(nitro.options.vercel?.config, {
     version: 3,
     overrides: {
       // Nitro static prerendered route overrides
@@ -177,7 +177,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
         })),
       { handle: "filesystem" },
     ],
-  });
+  } as VercelBuildConfigV3);
 
   // Early return if we are building a static site
   if (nitro.options.static) {

@@ -1,5 +1,5 @@
 import type { Nitro } from "nitro/types";
-import { virtual } from "./virtual";
+import { virtual } from "./virtual.ts";
 
 export function featureFlags(nitro: Nitro) {
   return virtual(

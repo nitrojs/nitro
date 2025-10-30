@@ -1,5 +1,5 @@
 import fsp from "node:fs/promises";
-import { writeFile } from "../_utils/fs";
+import { writeFile } from "../_utils/fs.ts";
 import type { Nitro } from "nitro/types";
 import { join, resolve } from "pathe";
 

@@ -3,7 +3,7 @@ import type { fetch } from "@cloudflare/workers-types";
 import wsAdapter from "crossws/adapters/cloudflare";
 import { useNitroApp } from "nitro/runtime";
 import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
-import { createHandler } from "./_module-handler";
+import { createHandler } from "./_module-handler.ts";
 
 const nitroApp = useNitroApp();
 

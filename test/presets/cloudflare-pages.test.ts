@@ -4,7 +4,7 @@ import { resolve } from "pathe";
 import { describe, expect, it } from "vitest";
 
 import { isWindows } from "std-env";
-import { setupTest, testNitro } from "../tests";
+import { setupTest, testNitro } from "../tests.ts";
 
 describe.skipIf(isWindows)("nitro:preset:cloudflare-pages", async () => {
   const ctx = await setupTest("cloudflare-pages");

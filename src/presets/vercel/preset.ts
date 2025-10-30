@@ -1,13 +1,13 @@
-import { defineNitroPreset } from "../_utils/preset";
+import { defineNitroPreset } from "../_utils/preset.ts";
 import type { Nitro } from "nitro/types";
 import {
   deprecateSWR,
   generateFunctionFiles,
   generateStaticFiles,
   resolveVercelRuntime,
-} from "./utils";
+} from "./utils.ts";
 
-export type { VercelOptions as PresetOptions } from "./types";
+export type { VercelOptions as PresetOptions } from "./types.ts";
 
 // https://vercel.com/docs/build-output-api/v3
 

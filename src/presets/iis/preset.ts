@@ -1,6 +1,6 @@
-import { defineNitroPreset } from "../_utils/preset";
+import { defineNitroPreset } from "../_utils/preset.ts";
 import type { Nitro } from "nitro/types";
-import { writeIISFiles, writeIISNodeFiles } from "./utils";
+import { writeIISFiles, writeIISNodeFiles } from "./utils.ts";
 
 const iisHandler = defineNitroPreset(
   {

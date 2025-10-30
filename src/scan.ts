@@ -1,11 +1,7 @@
-import { existsSync } from "node:fs";
 import { glob } from "tinyglobby";
 import type { Nitro } from "nitro/types";
-import { join, relative, resolve } from "pathe";
+import { join, relative } from "pathe";
 import { withBase, withLeadingSlash, withoutTrailingSlash } from "ufo";
-import { resolveModulePath } from "exsolve";
-import { prettyPath } from "./utils/fs";
-import { runtimeDir } from "nitro/runtime/meta";
 
 export const GLOB_SCAN_PATTERN = "**/*.{js,mjs,cjs,ts,mts,cts,tsx,jsx}";
 type FileInfo = { path: string; fullPath: string };

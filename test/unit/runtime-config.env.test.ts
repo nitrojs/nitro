@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyEnv } from "../../src/runtime/internal/runtime-config";
+import { applyEnv } from "../../src/runtime/internal/runtime-config.ts";
 
 describe("env utils", () => {
   describe("applyEnv", () => {

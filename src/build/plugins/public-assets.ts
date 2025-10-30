@@ -7,7 +7,7 @@ import type { PublicAsset } from "nitro/types";
 import { relative, resolve } from "pathe";
 import type { Plugin } from "rollup";
 import { withTrailingSlash } from "ufo";
-import { virtual } from "./virtual";
+import { virtual } from "./virtual.ts";
 
 const readAssetHandler: Record<
   Exclude<Nitro["options"]["serveStatic"] | "true" | "false", boolean>,

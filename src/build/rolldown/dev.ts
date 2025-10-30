@@ -4,9 +4,9 @@ import { watch as chokidarWatch } from "chokidar";
 import { watch } from "node:fs";
 import { join } from "pathe";
 import { debounce } from "perfect-debounce";
-import { scanHandlers } from "../../scan";
-import { nitroServerName } from "../../utils/nitro";
-import { writeTypes } from "../types";
+import { scanHandlers } from "../../scan.ts";
+import { nitroServerName } from "../../utils/nitro.ts";
+import { writeTypes } from "../types.ts";
 
 export async function watchDev(nitro: Nitro, config: RolldownOptions) {
   const rolldown = await import("rolldown");

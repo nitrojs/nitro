@@ -1,10 +1,9 @@
 import { afterAll, describe, expect, it } from "vitest";
-import { createNitro, build, prepare } from "nitro";
+import { createNitro, build, prepare } from "nitro/builder";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { mkdir, rm, stat } from "node:fs/promises";
 import { glob } from "tinyglobby";
-import { isCI, isWindows } from "std-env";
 
 const fixtureDir = fileURLToPath(new URL("./", import.meta.url));
 const tmpDir = fileURLToPath(new URL(".tmp", import.meta.url));

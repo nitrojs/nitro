@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "pathe";
 import { isWindows } from "std-env";
 import { describe, expect, it } from "vitest";
-import { setupTest, startServer, testNitro } from "../tests";
+import { setupTest, startServer, testNitro } from "../tests.ts";
 
 describe("nitro:preset:node-middleware", async () => {
   const ctx = await setupTest("node-middleware");

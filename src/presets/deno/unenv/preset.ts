@@ -1,5 +1,5 @@
 import type { Preset } from "unenv";
-import * as denoCompat from "./node-compat";
+import * as denoCompat from "./node-compat.ts";
 
 // https://platform-node-compat.deno.dev/
 // https://platform-node-compat.netlify.app/

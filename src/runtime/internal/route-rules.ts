@@ -2,7 +2,7 @@ import { proxyRequest, redirect as sendRedirect } from "h3";
 import type { EventHandler, Middleware } from "h3";
 import type { MatchedRouteRule, NitroRouteRules } from "nitro/types";
 import { joinURL, withQuery, withoutBase } from "ufo";
-import { defineCachedEventHandler } from "./cache";
+import { defineCachedEventHandler } from "./cache.ts";
 
 // Note: Remember to update RuntimeRouteRules in src/routing.ts when adding new route rules
 
@@ -11,15 +11,15 @@ type RouteRuleCtor<T extends keyof NitroRouteRules> = (
 ) => Middleware;
 
 // Headers route rule
-export const headers = <RouteRuleCtor<"headers">>((m) =>
+export const headers = ((m) =>
   function headersRouteRule(event) {
     for (const [key, value] of Object.entries(m.options || {})) {
       event.res.headers.set(key, value);
     }
-  });
+  }) satisfies RouteRuleCtor<"headers">;
 
 // Redirect route rule
-export const redirect = <RouteRuleCtor<"redirect">>((m) =>
+export const redirect = ((m) =>
   function redirectRouteRule(event) {
     let target = m.options?.to;
     if (!target) {
@@ -36,10 +36,10 @@ export const redirect = <RouteRuleCtor<"redirect">>((m) =>
       target = withQuery(target, Object.fromEntries(event.url.searchParams));
     }
     return sendRedirect(target, m.options?.status);
-  });
+  }) satisfies RouteRuleCtor<"redirect">;
 
 // Proxy route rule
-export const proxy = <RouteRuleCtor<"proxy">>((m) =>
+export const proxy = ((m) =>
   function proxyRouteRule(event) {
     let target = m.options?.to;
     if (!target) {
@@ -58,10 +58,10 @@ export const proxy = <RouteRuleCtor<"proxy">>((m) =>
     return proxyRequest(event, target, {
       ...m.options,
     });
-  });
+  }) satisfies RouteRuleCtor<"proxy">;
 
 // Cache route rule
-export const cache = <RouteRuleCtor<"cache">>((m) =>
+export const cache = ((m) =>
   function cacheRouteRule(event, next) {
     if (!event.context.matchedRoute) {
       return next();
@@ -81,4 +81,4 @@ export const cache = <RouteRuleCtor<"cache">>((m) =>
       cachedHandlers.set(key, cachedHandler);
     }
     return cachedHandler(event);
-  });
+  }) satisfies RouteRuleCtor<"cache">;

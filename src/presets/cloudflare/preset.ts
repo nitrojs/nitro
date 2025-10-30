@@ -1,8 +1,8 @@
-import { defineNitroPreset } from "../_utils/preset";
-import { writeFile } from "../_utils/fs";
+import { defineNitroPreset } from "../_utils/preset.ts";
+import { writeFile } from "../_utils/fs.ts";
 import type { Nitro } from "nitro/types";
 import { resolve } from "pathe";
-import { unenvCfExternals } from "./unenv/preset";
+import { unenvCfExternals } from "./unenv/preset.ts";
 import { presetsDir } from "nitro/runtime/meta";
 import {
   enableNodeCompat,
@@ -10,10 +10,10 @@ import {
   writeCFRoutes,
   writeCFHeaders,
   writeCFPagesRedirects,
-} from "./utils";
-import { cloudflareDevModule } from "./dev";
+} from "./utils.ts";
+import { cloudflareDevModule } from "./dev.ts";
 
-export type { CloudflareOptions as PresetOptions } from "./types";
+export type { CloudflareOptions as PresetOptions } from "./types.ts";
 
 const cloudflarePages = defineNitroPreset(
   {

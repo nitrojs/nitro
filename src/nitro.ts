@@ -1,21 +1,19 @@
 import { consola } from "consola";
 import { Hookable, createDebugger } from "hookable";
-import { runtimeDir } from "nitro/runtime/meta";
 import type {
   LoadConfigOptions,
   Nitro,
   NitroConfig,
   NitroDynamicConfig,
 } from "nitro/types";
-import { join } from "pathe";
 import { createUnimport } from "unimport";
-import { loadOptions } from "./config/loader";
-import { updateNitroConfig } from "./config/update";
-import { installModules } from "./module";
-import { scanAndSyncOptions, scanHandlers } from "./scan";
-import { addNitroTasksVirtualFile } from "./task";
-import { createStorage } from "./utils/storage";
-import { initNitroRouting } from "./routing";
+import { loadOptions } from "./config/loader.ts";
+import { updateNitroConfig } from "./config/update.ts";
+import { installModules } from "./module.ts";
+import { scanAndSyncOptions, scanHandlers } from "./scan.ts";
+import { addNitroTasksVirtualFile } from "./task.ts";
+import { createStorage } from "./utils/storage.ts";
+import { initNitroRouting } from "./routing.ts";
 
 export async function createNitro(
   config: NitroConfig = {},

@@ -1,7 +1,7 @@
 import { defineHandler, type EventHandler } from "h3";
 import type { RenderHandler, RenderContext } from "nitro/types";
-import { useNitroHooks } from "./app";
-import { useRuntimeConfig } from "./runtime-config";
+import { useNitroHooks } from "./app.ts";
+import { useRuntimeConfig } from "./runtime-config.ts";
 
 export function defineRenderHandler(render: RenderHandler): EventHandler {
   const runtimeConfig = useRuntimeConfig();

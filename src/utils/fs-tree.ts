@@ -5,7 +5,7 @@ import { gzipSize } from "gzip-size";
 import { dirname, relative, resolve } from "pathe";
 import prettyBytes from "pretty-bytes";
 import { isTest } from "std-env";
-import { runParallel } from "./parallel";
+import { runParallel } from "./parallel.ts";
 
 export async function generateFSTree(
   dir: string,

@@ -9,10 +9,10 @@ const main = defineCommand({
     version: nitroVersion,
   },
   subCommands: {
-    dev: () => import("./commands/dev").then((r) => r.default),
-    build: () => import("./commands/build").then((r) => r.default),
-    prepare: () => import("./commands/prepare").then((r) => r.default),
-    task: () => import("./commands/task").then((r) => r.default),
+    dev: () => import("./commands/dev.ts").then((r) => r.default),
+    build: () => import("./commands/build.ts").then((r) => r.default),
+    prepare: () => import("./commands/prepare.ts").then((r) => r.default),
+    task: () => import("./commands/task/index.ts").then((r) => r.default),
   },
 });
 

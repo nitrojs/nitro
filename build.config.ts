@@ -1,19 +1,20 @@
-import { glob, rm, readFile, writeFile } from "node:fs/promises";
+import { rm } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { resolve } from "pathe";
-import { normalize } from "pathe";
-import { defineBuildConfig } from "unbuild";
+import { defineBuildConfig } from "obuild/config";
 
 import { resolveModulePath } from "exsolve";
 import { traceNodeModules } from "nf3";
 import { parseNodeModulePath } from "mlly";
 
-const pkg = await import("./package.json").then((r) => r.default || r);
+const pkg = await import("./package.json", { with: { type: "json" } }).then(
+  (r) => r.default || r
+);
 
 const srcDir = fileURLToPath(new URL("src", import.meta.url));
 const libDir = fileURLToPath(new URL("lib", import.meta.url));
 
-export const distSubpaths = ["presets", "runtime", "types", "vite"];
+export const distSubpaths = ["builder", "presets", "runtime", "types", "vite"];
 export const libSubpaths = [
   "config",
   "meta",
@@ -40,11 +41,14 @@ const tracePkgs = [
 ];
 
 export const stubAlias = {
-  nitro: resolve(srcDir, "index.ts"),
+  nitro: resolve(libDir, "index.mjs"),
   ...Object.fromEntries(
     distSubpaths.map((subpath) => [
       `nitro/${subpath}`,
-      resolve(srcDir, `${subpath}/index.ts`),
+      resolve(
+        srcDir,
+        subpath === "builder" ? "builder.ts" : `${subpath}/index.ts`
+      ),
     ])
   ),
   ...Object.fromEntries(
@@ -56,94 +60,121 @@ export const stubAlias = {
 };
 
 export default defineBuildConfig({
-  declaration: true,
-  name: "nitro",
   entries: [
-    { input: "src/cli/index.ts" },
-    { input: "src/index.ts" },
-    { input: "src/vite.ts" },
-    { input: "src/types/index.ts" },
-    { input: "src/runtime/", outDir: "dist/runtime", format: "esm" },
     {
+      type: "bundle",
+      input: [
+        "src/builder.ts",
+        "src/vite.ts",
+        "src/cli/index.ts",
+        "src/types/index.ts",
+      ],
+    },
+    {
+      type: "transform",
+      input: "src/runtime/",
+      outDir: "dist/runtime",
+    },
+    {
+      type: "transform",
       input: "src/presets/",
       outDir: "dist/presets",
-      format: "esm",
-      pattern: "**/runtime/**",
+      filter: (id) => id.includes("runtime/"),
     },
   ],
   hooks: {
-    async "build:done"(ctx) {
-      // Trace bundled dependencies
+    rolldownConfig(config) {
+      config.platform = "node";
+
+      config.external ??= [];
+      (config.external as string[]).push(
+        "typescript",
+        "nitro",
+        ...[...distSubpaths, ...libSubpaths].map(
+          (subpath) => `nitro/${subpath}`
+        ),
+        ...Object.keys(pkg.dependencies),
+        ...Object.keys(pkg.peerDependencies),
+        ...tracePkgs,
+        "firebase-functions",
+        "@scalar/api-reference",
+        "get-port-please",
+        "cloudflare:workers",
+        "@cloudflare/workers-types",
+        // unplugin deps
+        "@rspack/core",
+        "@farmfe/core",
+        "webpack",
+        "unloader"
+      );
+    },
+    rolldownOutput(config) {
+      config.advancedChunks ||= {};
+      config.advancedChunks.groups = [
+        {
+          test: /node_modules/,
+          name: (moduleId) => {
+            const pkgName = parseNodeModulePath(moduleId)
+              ?.name?.split("/")
+              .pop();
+            return `_libs/${pkgName || "_common"}`;
+          },
+        },
+        // {
+        //   test: /src\/presets\/\w+\//,
+        //   name: (moduleId) => {
+        //     const presetName = /src\/presets\/(\w+)\//.exec(moduleId)?.[1];
+        //     return `_presets/${presetName || "_common"}`;
+        //   },
+        // },
+      ];
+
+      // Use better chunk names (without degrading optimization)
+      config.chunkFileNames = (chunk) => {
+        if (chunk.name.startsWith("_")) {
+          return `[name].mjs`;
+        }
+        if (chunk.moduleIds.every((id) => /src\/cli\//.test(id))) {
+          return `cli/_chunks/[name].mjs`;
+        }
+        if (chunk.moduleIds.every((id) => /build\/vite\//.test(id))) {
+          return `_build/vite.[name].mjs`;
+        }
+        if (chunk.moduleIds.every((id) => /build\/rolldown\//.test(id))) {
+          return `_build/rolldown.mjs`;
+        }
+        if (
+          chunk.moduleIds.every((id) =>
+            /build\/rollup\/|build\/plugins/.test(id)
+          )
+        ) {
+          return `_build/rollup.mjs`;
+        }
+        if (chunk.moduleIds.every((id) => /src\/dev\/|src\/runtime/.test(id))) {
+          return `_dev.mjs`;
+        }
+        if (chunk.moduleIds.every((id) => /src\/presets/.test(id))) {
+          return `_presets.mjs`;
+        }
+        if (
+          chunk.moduleIds.every((id) => /src\/build\/|src\/presets/.test(id))
+        ) {
+          return `_build/common.mjs`;
+        }
+        return "_chunks/[hash].mjs";
+      };
+    },
+    async end() {
       await traceNodeModules(
         tracePkgs.map((pkg) => resolveModulePath(pkg)),
         {}
       );
-      for (const dep of Object.keys(pkg.dependencies)) {
+      for (const dep of [
+        ...Object.keys(pkg.dependencies),
+        ...Object.keys(pkg.peerDependencies),
+      ]) {
         await rm(`dist/node_modules/${dep}`, { recursive: true, force: true });
       }
-
-      // Remove extra d.ts files
-      for await (const file of glob(resolve(ctx.options.outDir, "**/*.d.ts"))) {
-        if (file.includes("runtime") || file.includes("presets")) {
-          const dtsContents = (await readFile(file, "utf8")).replaceAll(
-            / from "\.\/(.+)";$/gm,
-            (_, relativePath) => ` from "./${relativePath}.mjs";`
-          );
-          await writeFile(file.replace(/\.d.ts$/, ".d.mts"), dtsContents);
-        }
-        await rm(file);
-      }
-    },
-  },
-  externals: [
-    "typescript",
-    "nitro",
-    ...[...distSubpaths, ...libSubpaths].map((subpath) => `nitro/${subpath}`),
-    ...tracePkgs,
-    "firebase-functions",
-    "@scalar/api-reference",
-    "get-port-please", // internal type only
-    "@cloudflare/workers-types", // issues with rollup-plugin-dts
-  ],
-  stubOptions: {
-    jiti: {
-      alias: stubAlias,
-    },
-  },
-  rollup: {
-    inlineDependencies: true,
-    output: {
-      manualChunks(id: string) {
-        if (id.includes("node_modules")) {
-          const pkg = parseNodeModulePath(id);
-          if (pkg?.name) {
-            return `_deps/${pkg.name}`;
-          }
-        }
-        if (id.includes("src/presets/")) {
-          const presetDir = /\/src\/presets\/([^/.]+)/.exec(id);
-          return `_presets/${presetDir?.[1] || "_common"}`;
-        }
-        // if (id.includes("src/build/")) {
-        //   const dir = /\/src\/build\/([^/.]+)/.exec(id);
-        //   return `_build/${dir?.[1] || "_common"}`;
-        // }
-      },
-      chunkFileNames(chunk: any) {
-        const tailId = normalize(chunk.moduleIds.at(-1));
-        if (tailId.includes("/src/cli/")) {
-          return "_cli/[name].mjs";
-        }
-        if (tailId.includes("/src/build/")) {
-          if (
-            chunk.moduleIds.every((id: string) => id.includes("src/build/vite"))
-          ) {
-            return "_build/vite.mjs";
-          }
-          return "_build/[name].mjs";
-        }
-        return "_chunks/[name].mjs";
-      },
     },
   },
 });

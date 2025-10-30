@@ -2,14 +2,13 @@ import type { Nitro } from "nitro/types";
 import type { RolldownOptions, RolldownPlugin } from "rolldown";
 import { sanitizeFilePath } from "mlly";
 import { normalize } from "pathe";
-import { resolveModulePath } from "exsolve";
 import { runtimeDir } from "nitro/runtime/meta";
-import { baseBuildConfig } from "../config";
-import { baseBuildPlugins } from "../plugins";
-import { replace } from "../plugins/replace";
+import { baseBuildConfig } from "../config.ts";
+import { baseBuildPlugins } from "../plugins.ts";
+import { replace } from "../plugins/replace.ts";
 import { builtinModules } from "node:module";
 import { defu } from "defu";
-import { raw } from "../plugins/raw";
+import { raw } from "../plugins/raw.ts";
 
 export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
   const base = baseBuildConfig(nitro);

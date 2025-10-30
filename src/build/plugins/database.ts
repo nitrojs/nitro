@@ -1,7 +1,7 @@
 import { connectors } from "db0";
 import type { Nitro } from "nitro/types";
 import { camelCase } from "scule";
-import { virtual } from "./virtual";
+import { virtual } from "./virtual.ts";
 
 export function database(nitro: Nitro) {
   if (!nitro.options.experimental.database) {

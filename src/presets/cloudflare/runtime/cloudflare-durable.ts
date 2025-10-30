@@ -4,7 +4,7 @@ import { DurableObject } from "cloudflare:workers";
 import wsAdapter from "crossws/adapters/cloudflare";
 import { useNitroApp, useNitroHooks } from "nitro/runtime";
 import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
-import { createHandler, fetchHandler } from "./_module-handler";
+import { createHandler, fetchHandler } from "./_module-handler.ts";
 
 const DURABLE_BINDING = "$DurableObject";
 const DURABLE_INSTANCE = "server";
