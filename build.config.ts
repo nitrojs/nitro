@@ -107,11 +107,12 @@ export default defineBuildConfig({
     ...tracePkgs,
     "firebase-functions",
     "@scalar/api-reference",
-    "get-port-please", // internal type only
-    "@cloudflare/workers-types", // issues with rollup-plugin-dts\
+    "get-port-please",
+    "cloudflare:workers",
+    "@cloudflare/workers-types",
     // unplugin deps
     "@rspack/core",
-    "farmfe/core",
+    "@farmfe/core",
     "webpack",
     "unloader",
   ],
