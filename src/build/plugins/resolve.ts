@@ -23,7 +23,7 @@ export function nitroResolveIds(): Plugin {
         // Resolve mapped subpaths
         const mappedId = subpathMap[id as keyof typeof subpathMap];
         if (mappedId) {
-          return this.resolve(mappedId, importer, { skipSelf: true });
+          return this.resolve(mappedId, runtimeDir, { skipSelf: true });
         }
       },
     },
