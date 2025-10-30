@@ -269,67 +269,13 @@ function nitroService(ctx: NitroPluginContext): VitePlugin {
     applyToEnvironment: (env) => env.name === "nitro",
 
     resolveId: {
-      async handler(id, importer, options) {
+      async handler(id) {
         // Virtual modules
         if (id === "#nitro-vite-setup") {
           return { id, moduleSideEffects: true };
         }
         if (id === "#nitro-vite-services") {
           return id;
-        }
-
-        // Resolve built-in deps
-        if (
-          runtimeDependencies.some(
-            (dep) => id === dep || id.startsWith(`${dep}/`)
-          )
-        ) {
-          const resolved = await this.resolve(id, importer, {
-            ...options,
-            skipSelf: true,
-          });
-          return (
-            resolved ||
-            resolveModulePath(id, {
-              from: ctx.nitro!.options.nodeModulesDirs,
-              conditions: ctx.nitro!.options.exportConditions,
-              try: true,
-            })
-          );
-        }
-
-        // Resolve relative paths from virtual modules
-        if (importer?.startsWith("\0virtual:#nitro-internal-virtual")) {
-          const internalRes = await this.resolve(id, import.meta.url, {
-            ...options,
-            custom: { ...options.custom, skipNoExternals: true },
-          });
-          if (internalRes) {
-            return internalRes;
-          }
-          const resolvedFromRoot = await this.resolve(
-            id,
-            ctx.nitro!.options.rootDir,
-            { ...options, custom: { ...options.custom, skipNoExternals: true } }
-          );
-          if (resolvedFromRoot) {
-            return resolvedFromRoot;
-          }
-          const ids = [id];
-          if (!/^[./@#]/.test(id)) {
-            ids.push(`./${id}`);
-          }
-          for (const _id of ids) {
-            const resolved = resolveModulePath(_id, {
-              from: process.cwd(),
-              extensions: DEFAULT_EXTENSIONS,
-              suffixes: ["", "/index"],
-              try: true,
-            });
-            if (resolved) {
-              return resolved;
-            }
-          }
         }
       },
     },
