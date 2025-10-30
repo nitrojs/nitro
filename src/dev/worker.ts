@@ -1,6 +1,6 @@
 import type { IncomingMessage, OutgoingMessage } from "node:http";
 import type { Duplex } from "node:stream";
-import type { HTTPProxy } from "./proxy";
+import type { HTTPProxy } from "./proxy.ts";
 import type {
   DevMessageListener,
   DevWorker,
@@ -13,7 +13,7 @@ import { rm } from "node:fs/promises";
 import { Worker } from "node:worker_threads";
 import consola from "consola";
 import { isCI, isTest } from "std-env";
-import { createHTTPProxy, fetchAddress } from "./proxy";
+import { createHTTPProxy, fetchAddress } from "./proxy.ts";
 
 export interface DevWorkerData {
   name?: string;

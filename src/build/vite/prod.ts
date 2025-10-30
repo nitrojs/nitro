@@ -1,13 +1,13 @@
 import type { ViteBuilder } from "vite";
-import type { NitroPluginContext } from "./types";
+import type { NitroPluginContext } from "./types.ts";
 
 import { basename, dirname, relative, resolve } from "pathe";
 import { formatCompatibilityDate } from "compatx";
 import { colors as C } from "consola/utils";
-import { copyPublicAssets } from "../../builder";
+import { copyPublicAssets } from "../../builder.ts";
 import { existsSync } from "node:fs";
 import { runtimeDir } from "nitro/runtime/meta";
-import { writeBuildInfo } from "../info";
+import { writeBuildInfo } from "../info.ts";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { isTest, isCI } from "std-env";
 

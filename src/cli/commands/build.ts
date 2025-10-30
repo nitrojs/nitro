@@ -8,7 +8,7 @@ import {
   prerender,
 } from "nitro/builder";
 import { resolve } from "pathe";
-import { commonArgs } from "../common";
+import { commonArgs } from "../common.ts";
 
 export default defineCommand({
   meta: {

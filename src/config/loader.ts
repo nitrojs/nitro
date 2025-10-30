@@ -3,7 +3,7 @@ import consola from "consola";
 import { resolveCompatibilityDates } from "compatx";
 import type { CompatibilityDateSpec } from "compatx";
 import { klona } from "klona/full";
-import type { PresetName } from "../presets";
+import type { PresetName } from "../presets/index.ts";
 import type {
   LoadConfigOptions,
   NitroConfig,
@@ -11,23 +11,23 @@ import type {
   NitroPresetMeta,
 } from "nitro/types";
 
-import { NitroDefaults } from "./defaults";
+import { NitroDefaults } from "./defaults.ts";
 
 // Resolvers
-import { resolveAssetsOptions } from "./resolvers/assets";
-import { resolveCompatibilityOptions } from "./resolvers/compatibility";
-import { resolveDatabaseOptions } from "./resolvers/database";
-import { resolveExportConditionsOptions } from "./resolvers/export-conditions";
-import { resolveImportsOptions } from "./resolvers/imports";
-import { resolveOpenAPIOptions } from "./resolvers/open-api";
-import { resolvePathOptions } from "./resolvers/paths";
-import { resolveRouteRulesOptions } from "./resolvers/route-rules";
-import { resolveRuntimeConfigOptions } from "./resolvers/runtime-config";
-import { resolveStorageOptions } from "./resolvers/storage";
-import { resolveURLOptions } from "./resolvers/url";
-import { resolveErrorOptions } from "./resolvers/error";
-import { resolveUnenv } from "./resolvers/unenv";
-import { resolveBuilder } from "./resolvers/builder";
+import { resolveAssetsOptions } from "./resolvers/assets.ts";
+import { resolveCompatibilityOptions } from "./resolvers/compatibility.ts";
+import { resolveDatabaseOptions } from "./resolvers/database.ts";
+import { resolveExportConditionsOptions } from "./resolvers/export-conditions.ts";
+import { resolveImportsOptions } from "./resolvers/imports.ts";
+import { resolveOpenAPIOptions } from "./resolvers/open-api.ts";
+import { resolvePathOptions } from "./resolvers/paths.ts";
+import { resolveRouteRulesOptions } from "./resolvers/route-rules.ts";
+import { resolveRuntimeConfigOptions } from "./resolvers/runtime-config.ts";
+import { resolveStorageOptions } from "./resolvers/storage.ts";
+import { resolveURLOptions } from "./resolvers/url.ts";
+import { resolveErrorOptions } from "./resolvers/error.ts";
+import { resolveUnenv } from "./resolvers/unenv.ts";
+import { resolveBuilder } from "./resolvers/builder.ts";
 
 const configResolvers = [
   resolveCompatibilityOptions,
@@ -76,7 +76,7 @@ async function _loadUserConfig(
       process.env.COMPATIBILITY_DATE) as CompatibilityDateSpec);
 
   // Preset resolver
-  const { resolvePreset } = await import("../presets");
+  const { resolvePreset } = await import("../presets/index.ts");
 
   // prettier-ignore
   let preset: string | undefined = (configOverrides.preset as string) || process.env.NITRO_PRESET || process.env.SERVER_PRESET

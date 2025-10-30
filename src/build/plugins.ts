@@ -1,25 +1,25 @@
 import type { Nitro, NodeExternalsOptions } from "nitro/types";
 import type { Plugin } from "rollup";
-import type { BaseBuildConfig } from "./config";
+import type { BaseBuildConfig } from "./config.ts";
 import { dirname } from "pathe";
 import { hash } from "ohash";
 import { defu } from "defu";
 import { runtimeDir, runtimeDependencies } from "nitro/runtime/meta";
 import unimportPlugin from "unimport/unplugin";
 import { rollup as unwasm } from "unwasm/plugin";
-import { database } from "./plugins/database";
-import { routing } from "./plugins/routing";
-import { routeMeta } from "./plugins/route-meta";
-import { serverMain } from "./plugins/server-main";
-import { publicAssets } from "./plugins/public-assets";
-import { serverAssets } from "./plugins/server-assets";
-import { storage } from "./plugins/storage";
-import { virtual } from "./plugins/virtual";
-import { errorHandler } from "./plugins/error-handler";
+import { database } from "./plugins/database.ts";
+import { routing } from "./plugins/routing.ts";
+import { routeMeta } from "./plugins/route-meta.ts";
+import { serverMain } from "./plugins/server-main.ts";
+import { publicAssets } from "./plugins/public-assets.ts";
+import { serverAssets } from "./plugins/server-assets.ts";
+import { storage } from "./plugins/storage.ts";
+import { virtual } from "./plugins/virtual.ts";
+import { errorHandler } from "./plugins/error-handler.ts";
 import { rollupNodeFileTrace } from "nf3";
-import { rendererTemplate } from "./plugins/renderer-template";
-import { featureFlags } from "./plugins/feature-flags";
-import { nitroResolveIds } from "./plugins/resolve";
+import { rendererTemplate } from "./plugins/renderer-template.ts";
+import { featureFlags } from "./plugins/feature-flags.ts";
+import { nitroResolveIds } from "./plugins/resolve.ts";
 
 export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const plugins: Plugin[] = [];
@@ -111,7 +111,7 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   if (!nitro.options.noExternals) {
     plugins.push(
       rollupNodeFileTrace(
-        defu(nitro.options.externals, <NodeExternalsOptions>{
+        defu(nitro.options.externals, {
           outDir: nitro.options.output.serverDir,
           moduleDirectories: nitro.options.nodeModulesDirs,
           external: [
@@ -150,9 +150,9 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
             "h3-nightly": "h3",
             ...nitro.options.externals?.traceAlias,
           },
-          exportConditions: nitro.options.exportConditions,
+          exportConditions: nitro.options.exportConditions as string[],
           writePackageJson: true,
-        })
+        } satisfies NodeExternalsOptions)
       )
     );
   }

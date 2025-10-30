@@ -1,12 +1,12 @@
 // Auto-generated using gen-presets script
 
-import type { PresetOptions as AwsAmplifyOptions } from "./aws-amplify/preset";
-import type { PresetOptions as AwsLambdaOptions } from "./aws-lambda/preset";
-import type { PresetOptions as AzureOptions } from "./azure/preset";
-import type { PresetOptions as CloudflareOptions } from "./cloudflare/preset";
-import type { PresetOptions as FirebaseOptions } from "./firebase/preset";
-import type { PresetOptions as NetlifyOptions } from "./netlify/preset";
-import type { PresetOptions as VercelOptions } from "./vercel/preset";
+import type { PresetOptions as AwsAmplifyOptions } from "./aws-amplify/preset.ts";
+import type { PresetOptions as AwsLambdaOptions } from "./aws-lambda/preset.ts";
+import type { PresetOptions as AzureOptions } from "./azure/preset.ts";
+import type { PresetOptions as CloudflareOptions } from "./cloudflare/preset.ts";
+import type { PresetOptions as FirebaseOptions } from "./firebase/preset.ts";
+import type { PresetOptions as NetlifyOptions } from "./netlify/preset.ts";
+import type { PresetOptions as VercelOptions } from "./vercel/preset.ts";
 
 export interface PresetOptions {
   awsAmplify?: AwsAmplifyOptions;

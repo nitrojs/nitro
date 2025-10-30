@@ -2,7 +2,7 @@ import { existsSync, promises as fsp } from "node:fs";
 import { defu } from "defu";
 import { lookupNodeModuleSubpath, parseNodeModulePath } from "mlly";
 import { resolveModulePath } from "exsolve";
-import { isDirectory, resolveNitroPath, writeFile } from "../utils/fs";
+import { isDirectory, resolveNitroPath, writeFile } from "../utils/fs.ts";
 import { runtimeDir } from "nitro/runtime/meta";
 import type { Nitro, NitroTypes } from "nitro/types";
 import { dirname, isAbsolute, join, resolve } from "pathe";

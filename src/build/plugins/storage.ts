@@ -1,7 +1,7 @@
 import { genImport, genSafeVariableName } from "knitwork";
 import type { Nitro } from "nitro/types";
 import { builtinDrivers } from "unstorage";
-import { virtual } from "./virtual";
+import { virtual } from "./virtual.ts";
 
 export function storage(nitro: Nitro) {
   const mounts: { path: string; driver: string; opts: object }[] = [];

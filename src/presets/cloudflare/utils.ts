@@ -1,9 +1,9 @@
 import type { Nitro } from "nitro/types";
-import type { WranglerConfig, CloudflarePagesRoutes } from "./types";
+import type { WranglerConfig, CloudflarePagesRoutes } from "./types.ts";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { relative, dirname, extname } from "node:path";
-import { writeFile } from "../_utils/fs";
+import { writeFile } from "../_utils/fs.ts";
 import { parseTOML, parseJSONC } from "confbox";
 import { readGitConfig, readPackageJSON, findNearestFile } from "pkg-types";
 import { defu } from "defu";
@@ -17,7 +17,7 @@ import {
   withTrailingSlash,
   withoutLeadingSlash,
 } from "ufo";
-import { unencCfNodeCompat } from "./unenv/preset";
+import { unencCfNodeCompat } from "./unenv/preset.ts";
 
 export async function writeCFRoutes(nitro: Nitro) {
   const _cfPagesConfig = nitro.options.cloudflare?.pages || {};

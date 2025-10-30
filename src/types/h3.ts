@@ -1,8 +1,8 @@
 import type { H3Event as _H3Event } from "h3";
-import type { CacheOptions, CapturedErrorContext } from "./runtime";
-import type { Base$Fetch, NitroFetchRequest } from "./fetch/fetch";
-import type { NitroRuntimeConfig } from "./config";
-import type { MatchedRouteRules } from "./route-rules";
+import type { CacheOptions, CapturedErrorContext } from "./runtime/index.ts";
+import type { Base$Fetch, NitroFetchRequest } from "./fetch/fetch.ts";
+import type { NitroRuntimeConfig } from "./config.ts";
+import type { MatchedRouteRules } from "./route-rules.ts";
 
 export type H3EventFetch = (
   request: NitroFetchRequest,

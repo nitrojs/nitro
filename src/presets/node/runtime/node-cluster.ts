@@ -60,7 +60,7 @@ function runMaster() {
 }
 
 function runWorker() {
-  import("./node-server").catch((error) => {
+  import("./node-server.ts").catch((error) => {
     console.error(error);
     // eslint-disable-next-line unicorn/no-process-exit
     process.exit(1);

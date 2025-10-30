@@ -5,11 +5,11 @@ import { normalize, resolve, dirname } from "pathe";
 import { runtimeDir } from "nitro/runtime/meta";
 import alias from "@rollup/plugin-alias";
 import inject from "@rollup/plugin-inject";
-import { replace } from "../plugins/replace";
-import { baseBuildConfig, type BaseBuildConfig } from "../config";
-import { baseBuildPlugins } from "../plugins";
+import { replace } from "../plugins/replace.ts";
+import { baseBuildConfig, type BaseBuildConfig } from "../config.ts";
+import { baseBuildPlugins } from "../plugins.ts";
 import type { OutputBundle, Plugin as RollupPlugin } from "rollup";
-import type { NitroPluginContext } from "./types";
+import type { NitroPluginContext } from "./types.ts";
 
 /**
  * Removed from base rollup config:
@@ -59,7 +59,7 @@ export const getViteRollupConfig = (
         preventAssignment: true,
         values: base.replacements,
       }),
-      inject(base.env.inject),
+      (inject as unknown as typeof inject.default)(base.env.inject),
     ].filter(Boolean) as RollupPlugin[],
     treeshake: {
       moduleSideEffects(id) {

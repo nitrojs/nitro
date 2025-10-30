@@ -1,7 +1,7 @@
 import { execa, execaCommandSync } from "execa";
 import { getRandomPort, waitForPort } from "get-port-please";
 import { describe } from "vitest";
-import { setupTest, testNitro } from "../tests";
+import { setupTest, testNitro } from "../tests.ts";
 
 const hasDeno =
   execaCommandSync("deno --version", { stdio: "ignore", reject: false })

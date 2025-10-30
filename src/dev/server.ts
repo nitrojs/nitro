@@ -2,8 +2,8 @@ import type { IncomingMessage, OutgoingMessage } from "node:http";
 import type { Duplex } from "node:stream";
 import type { FSWatcher } from "chokidar";
 import type { ServerOptions, Server } from "srvx";
-import { NodeDevWorker } from "./worker";
-import type { DevWorkerData } from "./worker";
+import { NodeDevWorker } from "./worker.ts";
+import type { DevWorkerData } from "./worker.ts";
 import type {
   DevMessageListener,
   DevRPCHooks,
@@ -23,7 +23,7 @@ import { watch } from "chokidar";
 import { serve } from "srvx/node";
 import { debounce } from "perfect-debounce";
 import { isTest, isCI } from "std-env";
-import { NitroDevApp } from "./app";
+import { NitroDevApp } from "./app.ts";
 
 export function createDevServer(nitro: Nitro): NitroDevServer {
   return new NitroDevServer(nitro);

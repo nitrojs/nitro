@@ -1,5 +1,5 @@
-import type { NitroConfig, NitroOptions } from "./config";
-import type { NitroModule } from "./module";
+import type { NitroConfig, NitroOptions } from "./config.ts";
+import type { NitroModule } from "./module.ts";
 
 export interface NitroStaticBuildFlags {
   _asyncContext?: boolean;

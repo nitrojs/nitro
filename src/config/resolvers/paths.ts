@@ -1,9 +1,9 @@
-import { prettyPath, resolveNitroPath } from "../../utils/fs";
+import { prettyPath, resolveNitroPath } from "../../utils/fs.ts";
 import { pkgDir, runtimeDir } from "nitro/runtime/meta";
 import type { NitroOptions } from "nitro/types";
 import { join, resolve } from "pathe";
 import { findWorkspaceDir } from "pkg-types";
-import { NitroDefaults } from "../defaults";
+import { NitroDefaults } from "../defaults.ts";
 import { resolveModulePath } from "exsolve";
 import consola from "consola";
 

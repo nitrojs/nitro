@@ -8,7 +8,9 @@ import { resolveModulePath } from "exsolve";
 import { traceNodeModules } from "nf3";
 import { parseNodeModulePath } from "mlly";
 
-const pkg = await import("./package.json").then((r) => r.default || r);
+const pkg = await import("./package.json", { with: { type: "json" } }).then(
+  (r) => r.default || r
+);
 
 const srcDir = fileURLToPath(new URL("src", import.meta.url));
 const libDir = fileURLToPath(new URL("lib", import.meta.url));
@@ -106,7 +108,12 @@ export default defineBuildConfig({
     "firebase-functions",
     "@scalar/api-reference",
     "get-port-please", // internal type only
-    "@cloudflare/workers-types", // issues with rollup-plugin-dts
+    "@cloudflare/workers-types", // issues with rollup-plugin-dts\
+    // unplugin deps
+    "@rspack/core",
+    "farmfe/core",
+    "webpack",
+    "unloader",
   ],
   stubOptions: {
     jiti: {

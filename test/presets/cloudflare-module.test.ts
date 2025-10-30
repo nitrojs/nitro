@@ -2,7 +2,7 @@ import { Miniflare } from "miniflare";
 import { resolve } from "pathe";
 import { describe } from "vitest";
 
-import { setupTest, testNitro } from "../tests";
+import { setupTest, testNitro } from "../tests.ts";
 
 describe("nitro:preset:cloudflare-module", async () => {
   const ctx = await setupTest("cloudflare-module");

@@ -1,6 +1,6 @@
-import type { OpenAPI3 } from "../../src/types/openapi-ts";
+import type { OpenAPI3 } from "../../src/types/openapi-ts.ts";
 import { describe, expect, it } from "vitest";
-import { setupTest, testNitro } from "../tests";
+import { setupTest, testNitro } from "../tests.ts";
 
 describe("nitro:preset:nitro-dev", async () => {
   const ctx = await setupTest("nitro-dev");

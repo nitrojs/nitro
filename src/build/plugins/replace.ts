@@ -5,7 +5,7 @@ import type { Plugin } from "rollup";
 const NO_REPLACE_RE = /ROLLUP_NO_REPLACE|\\0raw:/;
 
 export function replace(options: RollupReplaceOptions): Plugin {
-  const _plugin = _replace(options);
+  const _plugin = (_replace as unknown as typeof _replace.default)(options);
   return {
     ..._plugin,
     // https://github.com/rollup/plugins/blob/master/packages/replace/src/index.js#L94

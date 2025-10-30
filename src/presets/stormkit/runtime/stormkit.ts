@@ -1,6 +1,6 @@
 import "#nitro-internal-pollyfills";
 import { useNitroApp } from "nitro/runtime";
-import { awsResponseBody } from "../../aws-lambda/runtime/_utils";
+import { awsResponseBody } from "../../aws-lambda/runtime/_utils.ts";
 
 import type { Handler } from "aws-lambda";
 import type { ServerRequest } from "srvx";
@@ -43,11 +43,11 @@ export const handler: Handler<StormkitEvent, StormkitResponse> =
 
     const { body, isBase64Encoded } = await awsResponseBody(response);
 
-    return <StormkitResponse>{
+    return {
       statusCode: response.status,
       headers: normalizeOutgoingHeaders(response.headers),
       [isBase64Encoded ? "buffer" : "body"]: body,
-    };
+    } satisfies StormkitResponse;
   };
 
 function normalizeOutgoingHeaders(headers: Headers): Record<string, string> {

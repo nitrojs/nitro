@@ -1,6 +1,6 @@
 import { defineHandler } from "h3";
 import type { EventHandler } from "h3";
-import { useRuntimeConfig } from "../runtime-config";
+import { useRuntimeConfig } from "../runtime-config.ts";
 
 // https://github.com/swagger-api/swagger-ui
 

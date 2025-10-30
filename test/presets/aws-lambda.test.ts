@@ -3,7 +3,7 @@ import destr from "destr";
 import { resolve } from "pathe";
 import { describe } from "vitest";
 import { parseURL, parseQuery } from "ufo";
-import { setupTest, testNitro } from "../tests";
+import { setupTest, testNitro } from "../tests.ts";
 
 describe("nitro:preset:aws-lambda-v2", async () => {
   const ctx = await setupTest("aws-lambda");

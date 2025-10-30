@@ -30,12 +30,12 @@
     "lib"
   ],
   "scripts": {
-    "build": "pnpm gen-presets && unbuild",
+    "build": "pnpm gen-presets && NODE_OPTIONS=\"--max-old-space-size=8000\" unbuild",
     "dev": "pnpm -C playground dev",
     "dev:build": "pnpm -C playground build",
     "dev:start": "node playground/.output/server/index.mjs",
     "gen-node-compat": "node scripts/gen-node-compat.ts",
-    "gen-presets": "pnpm jiti scripts/gen-presets.ts",
+    "gen-presets": "node ./scripts/gen-presets.ts",
     "lint": "eslint --cache . && prettier -c .",
     "lint:fix": "automd && eslint --cache --fix . && prettier -w .",
     "nitro": "jiti ./src/cli/index.ts",

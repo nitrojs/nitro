@@ -6,7 +6,7 @@ import type { Nitro } from "nitro/types";
 import { resolve } from "pathe";
 import type { Plugin } from "rollup";
 import { normalizeKey } from "unstorage";
-import { virtual } from "./virtual";
+import { virtual } from "./virtual.ts";
 
 interface ResolvedAsset {
   fsPath: string;

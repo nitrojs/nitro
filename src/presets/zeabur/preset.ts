@@ -1,6 +1,6 @@
 import fsp from "node:fs/promises";
-import { writeFile } from "../_utils/fs";
-import { defineNitroPreset } from "../_utils/preset";
+import { writeFile } from "../_utils/fs.ts";
+import { defineNitroPreset } from "../_utils/preset.ts";
 import type { Nitro } from "nitro/types";
 import { dirname, relative, resolve } from "pathe";
 

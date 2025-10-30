@@ -1,5 +1,5 @@
 import type { Readable } from "node:stream";
-import { useNitroApp } from "./app";
+import { useNitroApp } from "./app.ts";
 
 function _captureError(error: Error, type: string) {
   console.error(`[${type}]`, error);

@@ -6,7 +6,7 @@ import { createJiti } from "jiti";
 import { findTypeExports } from "mlly";
 import type { NitroPreset, NitroPresetMeta } from "nitro/types";
 import { camelCase, kebabCase, pascalCase, snakeCase } from "scule";
-import { stubAlias } from "../build.config";
+import { stubAlias } from "../build.config.ts";
 
 const autoGenHeader = /* ts */ `// Auto-generated using gen-presets script\n`;
 
@@ -64,7 +64,7 @@ writeFileSync(
   resolve(presetsDir, "_all.gen.ts"),
   /* ts */ `${autoGenHeader}
 ${presetDirs
-  .map((preset) => `import _${camelCase(preset)} from "./${preset}/preset";`)
+  .map((preset) => `import _${camelCase(preset)} from "./${preset}/preset.ts";`)
   .join("\n")}
 
 export default [
@@ -87,7 +87,7 @@ ${presetsWithType
     (preset) =>
       `import type { PresetOptions as ${pascalCase(
         preset
-      )}Options } from "./${preset}/preset";`
+      )}Options } from "./${preset}/preset.ts";`
   )
   .join("\n")}
 

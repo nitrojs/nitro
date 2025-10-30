@@ -5,12 +5,12 @@ import type {
   HTTPEvent,
   HTTPHandler,
 } from "h3";
-import type { PresetName } from "../presets";
+import type { PresetName } from "../presets/index.ts";
 import type {
   OperationObject,
   OpenAPI3,
   Extensable,
-} from "../types/openapi-ts";
+} from "../types/openapi-ts.ts";
 
 type MaybeArray<T> = T | T[];
 

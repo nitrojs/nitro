@@ -1,6 +1,6 @@
 import type { Middleware, ProxyOptions } from "h3";
-import type { ExcludeFunctions, IntRange } from "./_utils";
-import type { CachedEventHandlerOptions } from "./runtime";
+import type { ExcludeFunctions, IntRange } from "./_utils.ts";
+import type { CachedEventHandlerOptions } from "./runtime/index.ts";
 
 export type HTTPstatus = IntRange<100, 600>;
 

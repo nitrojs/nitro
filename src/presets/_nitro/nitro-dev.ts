@@ -1,5 +1,5 @@
 import { runtimeDir } from "nitro/runtime/meta";
-import { defineNitroPreset } from "../_utils/preset";
+import { defineNitroPreset } from "../_utils/preset.ts";
 import { join } from "pathe";
 
 const nitroDev = defineNitroPreset(

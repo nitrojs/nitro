@@ -9,7 +9,7 @@ const proxy = await _getPlatformProxy().catch((error) => {
 (globalThis as any).__env__ = proxy.env;
 (globalThis as any).__wait_until__ = proxy.ctx.waitUntil.bind(proxy.ctx);
 
-export default <NitroAppPlugin>function (nitroApp) {
+const cloudflareDevPlugin: NitroAppPlugin = function (nitroApp) {
   nitroApp.hooks.hook("request", async (event) => {
     event.req.context ??= {};
 
@@ -47,6 +47,8 @@ export default <NitroAppPlugin>function (nitroApp) {
     return proxy?.dispose();
   });
 };
+
+export default cloudflareDevPlugin;
 
 async function _getPlatformProxy() {
   const { useRuntimeConfig } = await import("nitro/runtime");

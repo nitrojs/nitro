@@ -9,7 +9,7 @@ import type { ServerRequest } from "srvx";
 import type { H3Config, Middleware } from "h3";
 import { H3Core, toRequest } from "h3";
 import { HookableCore } from "hookable";
-import { nitroAsyncContext } from "./context";
+import { nitroAsyncContext } from "./context.ts";
 
 // IMPORTANT: virtual imports and user code should be imported last to avoid initialization order issues
 import errorHandler from "#nitro-internal-virtual/error-handler";

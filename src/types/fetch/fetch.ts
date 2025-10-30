@@ -1,6 +1,6 @@
 import type { HTTPMethod } from "h3";
 import type { FetchOptions, FetchRequest, FetchResponse } from "ofetch";
-import type { MatchedRoutes } from "./_match";
+import type { MatchedRoutes } from "./_match.ts";
 
 // An interface to extend in a local project
 export interface InternalApi {}

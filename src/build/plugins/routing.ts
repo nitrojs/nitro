@@ -1,5 +1,5 @@
 import type { Nitro, NitroEventHandler, NitroRouteRules } from "nitro/types";
-import { virtual } from "./virtual";
+import { virtual } from "./virtual.ts";
 
 export const RuntimeRouteRules = [
   "headers",

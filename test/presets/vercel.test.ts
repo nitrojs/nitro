@@ -1,7 +1,7 @@
 import { promises as fsp } from "node:fs";
 import { resolve, join, basename } from "pathe";
 import { describe, expect, it, vi, afterAll } from "vitest";
-import { setupTest, testNitro, fixtureDir } from "../tests";
+import { setupTest, testNitro, fixtureDir } from "../tests.ts";
 
 describe("nitro:preset:vercel", async () => {
   const ctx = await setupTest("vercel");

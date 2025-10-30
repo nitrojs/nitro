@@ -1,8 +1,8 @@
 import type { Nitro, NitroBuildInfo } from "nitro/types";
 import { resolve } from "pathe";
 import { version as nitroVersion } from "nitro/meta";
-import { presetsWithConfig } from "../presets/_types.gen";
-import { writeFile } from "../utils/fs";
+import { presetsWithConfig } from "../presets/_types.gen.ts";
+import { writeFile } from "../utils/fs.ts";
 import { mkdir, unlink, symlink } from "node:fs/promises";
 import { dirname } from "node:path";
 

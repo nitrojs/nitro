@@ -1,14 +1,14 @@
-import type { Nitro, NitroBuildInfo } from "nitro/types";
+import type { Nitro } from "nitro/types";
 import type { OutputOptions, RolldownOptions } from "rolldown";
 import { formatCompatibilityDate } from "compatx";
 
-import { relative, resolve } from "pathe";
-import { scanHandlers } from "../../scan";
-import { generateFSTree } from "../../utils/fs-tree";
-import { nitroServerName } from "../../utils/nitro";
-import { writeTypes } from "../types";
-import { snapshot } from "../snapshot";
-import { writeBuildInfo } from "../info";
+import { relative } from "pathe";
+import { scanHandlers } from "../../scan.ts";
+import { generateFSTree } from "../../utils/fs-tree.ts";
+import { nitroServerName } from "../../utils/nitro.ts";
+import { writeTypes } from "../types.ts";
+import { snapshot } from "../snapshot.ts";
+import { writeBuildInfo } from "../info.ts";
 
 export async function buildProduction(nitro: Nitro, config: RolldownOptions) {
   const rolldown = await import("rolldown");

@@ -1,4 +1,4 @@
-import type { InternalApi } from "./fetch";
+import type { InternalApi } from "./fetch.ts";
 
 type MatchResult<
   Key extends string,

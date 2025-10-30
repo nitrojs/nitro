@@ -1,7 +1,7 @@
 import consola from "consola";
 import type { Nitro, NitroDynamicConfig } from "nitro/types";
-import { normalizeRouteRules } from "./resolvers/route-rules";
-import { normalizeRuntimeConfig } from "./resolvers/runtime-config";
+import { normalizeRouteRules } from "./resolvers/route-rules.ts";
+import { normalizeRuntimeConfig } from "./resolvers/runtime-config.ts";
 
 export async function updateNitroConfig(
   nitro: Nitro,

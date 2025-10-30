@@ -3,8 +3,8 @@ import { defineCommand } from "citty";
 import { consola } from "consola";
 import { build, createNitro, prepare } from "nitro/builder";
 import { resolve } from "pathe";
-import { commonArgs } from "../common";
-import { NitroDevServer } from "../../dev/server";
+import { commonArgs } from "../common.ts";
+import { NitroDevServer } from "../../dev/server.ts";
 
 const hmrKeyRe = /^runtimeConfig\.|routeRules\./;
 

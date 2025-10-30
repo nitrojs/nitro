@@ -1,5 +1,5 @@
 import type { H3Event, HTTPError, HTTPEvent } from "h3";
-import type { InternalHandlerResponse } from "./utils";
+import type { InternalHandlerResponse } from "./utils.ts";
 import { FastResponse } from "srvx";
 import type { NitroErrorHandler } from "nitro/types";
 

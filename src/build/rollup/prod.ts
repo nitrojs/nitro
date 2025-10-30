@@ -1,13 +1,13 @@
 import type { Nitro, RollupConfig } from "nitro/types";
 import { formatCompatibilityDate } from "compatx";
 import { relative } from "pathe";
-import { scanHandlers } from "../../scan";
-import { generateFSTree } from "../../utils/fs-tree";
-import { nitroServerName } from "../../utils/nitro";
-import { writeTypes } from "../types";
-import { snapshot } from "../snapshot";
-import { writeBuildInfo } from "../info";
-import { formatRollupError } from "./error";
+import { scanHandlers } from "../../scan.ts";
+import { generateFSTree } from "../../utils/fs-tree.ts";
+import { nitroServerName } from "../../utils/nitro.ts";
+import { writeTypes } from "../types.ts";
+import { snapshot } from "../snapshot.ts";
+import { writeBuildInfo } from "../info.ts";
+import { formatRollupError } from "./error.ts";
 
 export async function buildProduction(
   nitro: Nitro,

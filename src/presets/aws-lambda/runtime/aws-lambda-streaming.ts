@@ -1,6 +1,6 @@
 import "#nitro-internal-pollyfills";
 import { useNitroApp } from "nitro/runtime";
-import { awsRequest, awsResponseHeaders } from "./_utils";
+import { awsRequest, awsResponseHeaders } from "./_utils.ts";
 
 import type { StreamingResponse } from "@netlify/functions";
 import type { Readable } from "node:stream";

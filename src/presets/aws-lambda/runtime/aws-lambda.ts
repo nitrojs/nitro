@@ -1,6 +1,6 @@
 import "#nitro-internal-pollyfills";
 import { useNitroApp } from "nitro/runtime";
-import { awsRequest, awsResponseHeaders, awsResponseBody } from "./_utils";
+import { awsRequest, awsResponseHeaders, awsResponseBody } from "./_utils.ts";
 
 import type {
   APIGatewayProxyEvent,

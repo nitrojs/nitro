@@ -1,7 +1,7 @@
-import { getRollupConfig } from "./config";
+import { getRollupConfig } from "./config.ts";
 import type { Nitro } from "nitro/types";
-import { watchDev } from "./dev";
-import { buildProduction } from "./prod";
+import { watchDev } from "./dev.ts";
+import { buildProduction } from "./prod.ts";
 
 export async function rollupBuild(nitro: Nitro) {
   await nitro.hooks.callHook("build:before", nitro);
