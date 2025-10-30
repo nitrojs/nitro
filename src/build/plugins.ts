@@ -22,7 +22,7 @@ import { errorHandler } from "./plugins/error-handler";
 import { rollupNodeFileTrace } from "nf3";
 import { rendererTemplate } from "./plugins/renderer-template";
 import { featureFlags } from "./plugins/feature-flags";
-import { virtualsResolve } from "./plugins/virtuals-resolve";
+import { nitroResolveIds } from "./plugins/resolve";
 
 export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const plugins: Plugin[] = [];
@@ -64,8 +64,8 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   // Feature flags
   plugins.push(featureFlags(nitro));
 
-  // Resolve imports from virtual files
-  plugins.push(virtualsResolve());
+  // Resolve imports from virtual files and mapped subpaths
+  plugins.push(nitroResolveIds());
 
   // Server assets
   plugins.push(serverAssets(nitro));
