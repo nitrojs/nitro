@@ -4,7 +4,7 @@ import type { NitroPluginContext } from "./types";
 import { basename, dirname, relative, resolve } from "pathe";
 import { formatCompatibilityDate } from "compatx";
 import { colors as C } from "consola/utils";
-import { copyPublicAssets } from "../..";
+import { copyPublicAssets } from "../../builder";
 import { existsSync } from "node:fs";
 import { runtimeDir } from "nitro/runtime/meta";
 import { writeBuildInfo } from "../info";

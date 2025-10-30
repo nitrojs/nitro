@@ -7,8 +7,9 @@
   "license": "MIT",
   "type": "module",
   "exports": {
+    ".": "./lib/index.mjs",
     "./package.json": "./package.json",
-    ".": "./dist/index.mjs",
+    "./builder": "./dist/builder.mjs",
     "./config": "./lib/config.mjs",
     "./types": "./dist/types/index.d.mts",
     "./meta": "./lib/meta.mjs",

@@ -1,5 +1,5 @@
 import { defineCommand } from "citty";
-import { createNitro, writeTypes } from "nitro";
+import { createNitro, writeTypes } from "nitro/builder";
 import { resolve } from "pathe";
 import { commonArgs } from "../common";
 

@@ -13,7 +13,7 @@ import {
   createNitro,
   prepare,
   prerender,
-} from "nitro";
+} from "nitro/builder";
 import type { Nitro, NitroConfig } from "nitro/types";
 import { fetch } from "ofetch";
 import type { FetchOptions } from "ofetch";

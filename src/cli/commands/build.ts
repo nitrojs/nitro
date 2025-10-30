@@ -1,4 +1,3 @@
-import nodeCrypto from "node:crypto";
 import { defineCommand } from "citty";
 import type { DateString } from "compatx";
 import {
@@ -7,14 +6,9 @@ import {
   createNitro,
   prepare,
   prerender,
-} from "nitro";
+} from "nitro/builder";
 import { resolve } from "pathe";
 import { commonArgs } from "../common";
-
-// globalThis.crypto support for Node.js 18
-if (!globalThis.crypto) {
-  globalThis.crypto = nodeCrypto as unknown as Crypto;
-}
 
 export default defineCommand({
   meta: {

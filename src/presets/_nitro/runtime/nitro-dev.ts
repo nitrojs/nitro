@@ -4,17 +4,11 @@ import { useNitroApp, useNitroHooks } from "nitro/runtime";
 import { trapUnhandledNodeErrors } from "nitro/runtime/internal";
 import { startScheduleRunner } from "nitro/runtime/internal";
 import { Server } from "node:http";
-import nodeCrypto from "node:crypto";
 import { parentPort, threadId } from "node:worker_threads";
 
 import wsAdapter from "crossws/adapters/node";
 import { toNodeHandler } from "srvx/node";
 import { getSocketAddress, isSocketSupported } from "get-port-please";
-
-// globalThis.crypto support for Node.js 18
-if (!globalThis.crypto) {
-  globalThis.crypto = nodeCrypto as unknown as Crypto;
-}
 
 // Trap unhandled errors
 trapUnhandledNodeErrors();

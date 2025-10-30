@@ -13,7 +13,7 @@ const pkg = await import("./package.json").then((r) => r.default || r);
 const srcDir = fileURLToPath(new URL("src", import.meta.url));
 const libDir = fileURLToPath(new URL("lib", import.meta.url));
 
-export const distSubpaths = ["presets", "runtime", "types", "vite"];
+export const distSubpaths = ["builder", "presets", "runtime", "types", "vite"];
 export const libSubpaths = [
   "config",
   "meta",
@@ -40,11 +40,14 @@ const tracePkgs = [
 ];
 
 export const stubAlias = {
-  nitro: resolve(srcDir, "index.ts"),
+  nitro: resolve(libDir, "index.mjs"),
   ...Object.fromEntries(
     distSubpaths.map((subpath) => [
       `nitro/${subpath}`,
-      resolve(srcDir, `${subpath}/index.ts`),
+      resolve(
+        srcDir,
+        subpath === "builder" ? "builder.ts" : `${subpath}/index.ts`
+      ),
     ])
   ),
   ...Object.fromEntries(
@@ -60,7 +63,7 @@ export default defineBuildConfig({
   name: "nitro",
   entries: [
     { input: "src/cli/index.ts" },
-    { input: "src/index.ts" },
+    { input: "src/builder.ts" },
     { input: "src/vite.ts" },
     { input: "src/types/index.ts" },
     { input: "src/runtime/", outDir: "dist/runtime", format: "esm" },

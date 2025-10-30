@@ -1,7 +1,7 @@
 import type { Nitro } from "nitro/types";
 import { defineCommand } from "citty";
 import { consola } from "consola";
-import { build, createNitro, prepare } from "nitro";
+import { build, createNitro, prepare } from "nitro/builder";
 import { resolve } from "pathe";
 import { commonArgs } from "../common";
 import { NitroDevServer } from "../../dev/server";

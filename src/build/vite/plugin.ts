@@ -7,7 +7,7 @@ import type {
 import type { InputOption } from "rollup";
 import type { NitroPluginConfig, NitroPluginContext } from "./types";
 import { resolve, relative, join } from "pathe";
-import { createNitro, prepare } from "../..";
+import { createNitro, prepare } from "../../builder";
 import { getViteRollupConfig } from "./rollup";
 import { buildEnvironments, prodSetup } from "./prod";
 import {
