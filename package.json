@@ -40,7 +40,7 @@
     "lint:fix": "automd && eslint --cache --fix . && prettier -w .",
     "nitro": "node ./src/cli/index.ts",
     "prepack": "pnpm build",
-    "release": "pnpm test && pnpm build && changelogen --release && pnpm publish && git push --follow-tags",
+    "release": "pnpm test && pnpm build && changelogen --release --prerelease --push",
     "stub": "obuild --stub",
     "test": "pnpm lint && pnpm vitest run",
     "test:fixture:types": "pnpm stub && node ./test/scripts/gen-fixture-types.ts && cd test/fixture && tsc --noEmit",
