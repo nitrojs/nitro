@@ -8,11 +8,6 @@ import type {
 import type { MatchedRoute } from "rou3";
 import type { MatchedRouteRule } from "../route-rules";
 
-export const hasRoutes: boolean;
-export const hasRouteRules: boolean;
-export const hasGlobalMiddleware: boolean;
-export const hasRoutedMiddleware: boolean;
-
 export function findRoute(
   method: string,
   path: string

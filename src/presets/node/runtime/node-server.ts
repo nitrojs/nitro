@@ -54,7 +54,7 @@ const listener = server.listen(path ? { path } : { port, host }, (err) => {
 trapUnhandledNodeErrors();
 
 // Graceful shutdown
-setupGracefulShutdown(listener, nitroApp);
+setupGracefulShutdown(listener);
 
 // Websocket support
 // https://crossws.unjs.io/adapters/node

@@ -48,12 +48,14 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
       mainFields: ["main"], // "module" is intentionally not supported because of externals
       conditionNames: nitro.options.exportConditions,
     },
-    // @ts-expect-error (readonly values)
-    inject: base.env.inject,
-    jsx: {
-      mode: "classic",
-      factory: nitro.options.esbuild?.options?.jsxFactory,
-      fragment: nitro.options.esbuild?.options?.jsxFragment,
+    transform: {
+      inject: base.env.inject as Record<string, string>,
+      jsx: {
+        runtime: "classic", // no auto-import
+        pragma: nitro.options.esbuild?.options?.jsxFactory,
+        pragmaFrag: nitro.options.esbuild?.options?.jsxFragment,
+        development: nitro.options.dev,
+      },
     },
     onwarn(warning, warn) {
       if (
@@ -132,31 +134,6 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
       },
     },
   } satisfies RolldownOptions;
-
-  config.plugins.push({
-    name: "nitro:rolldown-resolves",
-    async resolveId(id, parent, options) {
-      if (parent?.startsWith("\0virtual:#nitro-internal-virtual")) {
-        const internalRes = await this.resolve(id, import.meta.url, {
-          ...options,
-          custom: { ...options.custom, skipNoExternals: true },
-        });
-        if (internalRes) {
-          return internalRes;
-        }
-        return (
-          resolveModulePath(id, {
-            from: [nitro.options.rootDir, import.meta.url],
-            try: true,
-          }) ||
-          resolveModulePath("./" + id, {
-            from: [nitro.options.rootDir, import.meta.url],
-            try: true,
-          })
-        );
-      }
-    },
-  });
 
   config = defu(nitro.options.rollupConfig as any, config);
 

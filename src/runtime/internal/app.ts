@@ -11,44 +11,59 @@ import { H3Core, toRequest } from "h3";
 import { HookableCore } from "hookable";
 import { nitroAsyncContext } from "./context";
 
-// IMPORTANT: virtuals and user code should be imported last to avoid initialization order issues
+// IMPORTANT: virtual imports and user code should be imported last to avoid initialization order issues
 import errorHandler from "#nitro-internal-virtual/error-handler";
 import { plugins } from "#nitro-internal-virtual/plugins";
 import {
-  hasRouteRules,
   findRoute,
   findRouteRules,
   globalMiddleware,
   findRoutedMiddleware,
+} from "#nitro-internal-virtual/routing";
+import {
+  hasRouteRules,
   hasRoutedMiddleware,
   hasGlobalMiddleware,
   hasRoutes,
-} from "#nitro-internal-virtual/routing";
+  hasHooks,
+  hasPlugins,
+} from "#nitro-internal-virtual/feature-flags";
 
 export function useNitroApp(): NitroApp {
   return ((useNitroApp as any).__instance__ ??= initNitroApp());
 }
 
+export function useNitroHooks(): HookableCore<NitroRuntimeHooks> {
+  const nitroApp = useNitroApp();
+  const hooks = nitroApp.hooks;
+  if (hooks) {
+    return hooks;
+  }
+  return (nitroApp.hooks = new HookableCore<NitroRuntimeHooks>());
+}
+
 function initNitroApp(): NitroApp {
   const nitroApp = createNitroApp();
-  for (const plugin of plugins) {
-    try {
-      plugin(nitroApp);
-    } catch (error: any) {
-      nitroApp.captureError(error, { tags: ["plugin"] });
-      throw error;
+  if (hasPlugins) {
+    for (const plugin of plugins) {
+      try {
+        plugin(nitroApp);
+      } catch (error: any) {
+        nitroApp.captureError(error, { tags: ["plugin"] });
+        throw error;
+      }
     }
   }
   return nitroApp;
 }
 
 function createNitroApp(): NitroApp {
-  const hooks = new HookableCore<NitroRuntimeHooks>();
+  const hooks = hasHooks ? new HookableCore<NitroRuntimeHooks>() : undefined;
 
   const captureError: CaptureError = (error, errorCtx) => {
-    const promise = hooks
-      .callHook("error", error, errorCtx)
-      ?.catch?.((hookError: any) => {
+    const promise =
+      hasHooks &&
+      hooks!.callHook("error", error, errorCtx)?.catch?.((hookError: any) => {
         console.error("Error while capturing another error", hookError);
       });
     if (errorCtx?.event) {
@@ -56,7 +71,7 @@ function createNitroApp(): NitroApp {
       if (errors) {
         errors.push({ error, context: errorCtx });
       }
-      if (typeof errorCtx.event.req.waitUntil === "function") {
+      if (hasHooks && typeof errorCtx.event.req.waitUntil === "function") {
         errorCtx.event.req.waitUntil(promise);
       }
     }
@@ -64,66 +79,63 @@ function createNitroApp(): NitroApp {
 
   const h3App = createH3App({
     onError(error, event) {
-      captureError(error, { event });
+      hasHooks && captureError(error, { event });
       return errorHandler(error, event);
-    },
-    onRequest(event) {
-      return hooks.callHook("request", event)?.catch?.((error: any) => {
-        captureError(error, { event, tags: ["request"] });
-      });
-    },
-    onResponse(res, event) {
-      return hooks.callHook("response", res, event)?.catch?.((error: any) => {
-        captureError(error, { event, tags: ["response"] });
-      });
     },
   });
 
-  let fetchHandler = (req: ServerRequest): Response | Promise<Response> => {
-    req.context ??= {};
+  if (hasHooks) {
+    h3App.config.onRequest = (event) => {
+      return hooks!.callHook("request", event)?.catch?.((error: any) => {
+        captureError(error, { event, tags: ["request"] });
+      });
+    };
+    h3App.config.onResponse = (res, event) => {
+      return hooks!.callHook("response", res, event)?.catch?.((error: any) => {
+        captureError(error, { event, tags: ["response"] });
+      });
+    };
+  }
+
+  let appHandler = (req: ServerRequest): Response | Promise<Response> => {
+    req.context ||= {};
     req.context.nitro = req.context.nitro || { errors: [] };
     return h3App.fetch(req);
   };
 
   // Experimental async context support
   if (import.meta._asyncContext) {
-    const originalFetchHandler = fetchHandler;
-    fetchHandler = (req: ServerRequest): Promise<Response> => {
+    const originalHandler = appHandler;
+    appHandler = (req: ServerRequest): Promise<Response> => {
       const asyncCtx: NitroAsyncContext = { request: req as Request };
-      return nitroAsyncContext.callAsync(asyncCtx, () =>
-        originalFetchHandler(req)
-      );
+      return nitroAsyncContext.callAsync(asyncCtx, () => originalHandler(req));
     };
   }
 
-  const requestHandler: (
+  const request: (
     input: ServerRequest | URL | string,
     init?: RequestInit,
     context?: any
   ) => Promise<Response> = (input, init, context) => {
     const req = toRequest(input, init);
     req.context = { ...req.context, ...context };
-    return Promise.resolve(fetchHandler(req));
+    return Promise.resolve(appHandler(req));
   };
 
-  const originalFetch = globalThis.fetch;
-  const nitroFetch = (input: RequestInfo, init?: RequestInit) => {
-    if (typeof input === "string" && input.startsWith("/")) {
-      return requestHandler(input, init);
+  const nativeFetch = globalThis.fetch;
+  globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+    if (typeof input === "string" && input.charCodeAt(0) === 47 /* '/' */) {
+      return request(input, init); // local request
     }
-    if (input instanceof Request && "_request" in input) {
-      input = (input as any)._request;
-    }
-    return originalFetch(input, init);
+    input = (input as any)._request || input; // unwrap srvx Request
+    return nativeFetch(input, init);
   };
-
-  // @ts-ignore
-  globalThis.fetch = nitroFetch;
 
   const app: NitroApp = {
-    _h3: h3App,
+    fetch: appHandler,
+    request,
+    h3: h3App,
     hooks,
-    fetch: requestHandler,
     captureError,
   };
 

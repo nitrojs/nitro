@@ -83,6 +83,14 @@ export interface NitroOptions extends PresetOptions {
   ssrRoutes: string[];
   serveStatic: boolean | "node" | "deno" | "inline";
   noPublicDir: boolean;
+  features: {
+    /**
+     * Enable runtime hooks for request and response.
+     *
+     * By default this feature will be enabled if there is at least one nitro plugin.
+     */
+    runtimeHooks: boolean;
+  };
 
   /**
    * @experimental Requires `experimental.wasm` to work

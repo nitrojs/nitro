@@ -1,7 +1,5 @@
 import type { Nitro, NitroStaticBuildFlags } from "nitro/types";
-import { pathToFileURL } from "node:url";
 import { join, resolve } from "pathe";
-import { isWindows } from "std-env";
 import { defineEnv } from "unenv";
 import { runtimeDir } from "nitro/runtime/meta";
 
@@ -101,9 +99,6 @@ export function baseBuildConfig(nitro: Nitro) {
     "#internal/nitro": runtimeDir,
     "nitro/runtime": runtimeDir,
     "nitropack/runtime": runtimeDir, // Backwards compatibility
-    "nitro/deps/h3": "h3",
-    "nitro/deps/ofetch": "ofetch",
-    "nitro/h3": "h3",
     ...env.alias,
   });
 

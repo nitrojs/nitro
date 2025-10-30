@@ -1,12 +1,9 @@
 import type { Nitro, NodeExternalsOptions } from "nitro/types";
 import type { Plugin } from "rollup";
 import type { BaseBuildConfig } from "./config";
-import { pathToFileURL } from "node:url";
-import { builtinModules } from "node:module";
-import { isAbsolute, dirname } from "pathe";
+import { dirname } from "pathe";
 import { hash } from "ohash";
 import { defu } from "defu";
-import { resolveModulePath } from "exsolve";
 import { runtimeDir, runtimeDependencies } from "nitro/runtime/meta";
 import unimportPlugin from "unimport/unplugin";
 import { rollup as unwasm } from "unwasm/plugin";
@@ -21,6 +18,8 @@ import { virtual } from "./plugins/virtual";
 import { errorHandler } from "./plugins/error-handler";
 import { rollupNodeFileTrace } from "nf3";
 import { rendererTemplate } from "./plugins/renderer-template";
+import { featureFlags } from "./plugins/feature-flags";
+import { nitroResolveIds } from "./plugins/resolve";
 
 export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const plugins: Plugin[] = [];
@@ -58,6 +57,12 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
       nitro.vfs
     )
   );
+
+  // Feature flags
+  plugins.push(featureFlags(nitro));
+
+  // Resolve imports from virtual files and mapped subpaths
+  plugins.push(nitroResolveIds());
 
   // Server assets
   plugins.push(serverAssets(nitro));
@@ -103,53 +108,7 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   }
 
   // Externals Plugin
-  if (nitro.options.noExternals) {
-    plugins.push({
-      name: "no-externals",
-      async resolveId(id, importer, resolveOpts) {
-        if (resolveOpts.custom?.skipNoExternals) {
-          return;
-        }
-        id = base.aliases[id] || id;
-        if (
-          base.env.external.includes(id) ||
-          (nitro.options.node &&
-            (id.startsWith("node:") || builtinModules.includes(id)))
-        ) {
-          return { id, external: true };
-        }
-        const resolved = await this.resolve(id, importer, resolveOpts);
-        if (!resolved) {
-          const _resolved = resolveModulePath(id, {
-            try: true,
-            from:
-              importer && isAbsolute(importer)
-                ? [pathToFileURL(importer), ...nitro.options.nodeModulesDirs]
-                : nitro.options.nodeModulesDirs,
-            suffixes: ["", "/index"],
-            extensions: [".mjs", ".cjs", ".js", ".mts", ".cts", ".ts", ".json"],
-            conditions: [
-              "default",
-              nitro.options.dev ? "development" : "production",
-              "node",
-              "import",
-              "require",
-            ],
-          });
-          if (_resolved) {
-            return { id: _resolved, external: false };
-          }
-        }
-        if (!resolved || (resolved.external && !id.endsWith(".wasm"))) {
-          throw new Error(
-            `Cannot resolve ${JSON.stringify(id)} from ${JSON.stringify(
-              importer
-            )} and externals are not allowed!`
-          );
-        }
-      },
-    });
-  } else {
+  if (!nitro.options.noExternals) {
     plugins.push(
       rollupNodeFileTrace(
         defu(nitro.options.externals, <NodeExternalsOptions>{
@@ -166,7 +125,6 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
             "~~",
             "@@/",
             "virtual:",
-            "nitro/runtime",
             "nitro/runtime",
             dirname(nitro.options.entry),
             ...(nitro.options.experimental.wasm

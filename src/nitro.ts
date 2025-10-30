@@ -32,7 +32,7 @@ export async function createNitro(
     routing: {} as any,
     logger: consola.withTag("nitro"),
     scannedHandlers: [],
-    close: () => nitro.hooks.callHook("close"),
+    close: () => Promise.resolve(nitro.hooks.callHook("close")),
     storage: undefined as any,
     async updateConfig(config: NitroDynamicConfig) {
       updateNitroConfig(nitro, config);

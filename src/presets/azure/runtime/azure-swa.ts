@@ -23,7 +23,7 @@ export async function handle(context: { res: HttpResponse }, req: HttpRequest) {
     url = "/api/" + (req.params.url || "");
   }
 
-  const response = await nitroApp.fetch(url, {
+  const response = await nitroApp.request(url, {
     method: req.method || undefined,
     // https://github.com/Azure/azure-functions-nodejs-worker/issues/294
     // https://github.com/Azure/azure-functions-host/issues/293

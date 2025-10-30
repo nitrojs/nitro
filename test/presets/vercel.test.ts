@@ -9,7 +9,7 @@ describe("nitro:preset:vercel", async () => {
     ctx,
     async () => {
       const { fetch: fetchHandler } = await import(
-        resolve(ctx.outDir, "functions/__fallback.func/index.mjs")
+        resolve(ctx.outDir, "functions/__server.func/index.mjs")
       ).then((r) => r.default || r);
       return async ({ url, ...options }) => {
         const req = new Request(new URL(url, "https://example.com"), options);
@@ -119,11 +119,11 @@ describe("nitro:preset:vercel", async () => {
                 "src": "/rules/_/noncached/cached",
               },
               {
-                "dest": "/__fallback",
+                "dest": "/__server",
                 "src": "/rules/_/cached/noncached",
               },
               {
-                "dest": "/__fallback",
+                "dest": "/__server",
                 "src": "(?<url>/rules/_/noncached/.*)",
               },
               {
@@ -131,7 +131,7 @@ describe("nitro:preset:vercel", async () => {
                 "src": "(?<url>/rules/_/cached/.*)",
               },
               {
-                "dest": "/__fallback",
+                "dest": "/__server",
                 "src": "/rules/dynamic",
               },
               {
@@ -435,7 +435,7 @@ describe("nitro:preset:vercel", async () => {
                 "src": "/api/typed/catchall/(?<slug>[^/]+)/?(?<another>.+)",
               },
               {
-                "dest": "/__fallback",
+                "dest": "/__server",
                 "src": "/(.*)",
               },
             ],
@@ -487,12 +487,12 @@ describe("nitro:preset:vercel", async () => {
         expect(functionsFiles).toMatchInlineSnapshot(`
           [
             "functions/500.func (symlink)",
-            "functions/__fallback.func/.vc-config.json",
-            "functions/__fallback.func/chunks",
-            "functions/__fallback.func/index.mjs",
-            "functions/__fallback.func/index.mjs.map",
-            "functions/__fallback.func/node_modules",
-            "functions/__fallback.func/package.json",
+            "functions/__server.func/.vc-config.json",
+            "functions/__server.func/chunks",
+            "functions/__server.func/index.mjs",
+            "functions/__server.func/index.mjs.map",
+            "functions/__server.func/node_modules",
+            "functions/__server.func/package.json",
             "functions/_openapi.json.func (symlink)",
             "functions/_scalar.func (symlink)",
             "functions/_swagger.func (symlink)",
@@ -597,7 +597,7 @@ describe("nitro:preset:vercel:bun", async () => {
   it("should generate function config with bun runtime", async () => {
     const config = await fsp
       .readFile(
-        resolve(ctx.outDir, "functions/__fallback.func/.vc-config.json"),
+        resolve(ctx.outDir, "functions/__server.func/.vc-config.json"),
         "utf8"
       )
       .then((r) => JSON.parse(r));
@@ -631,7 +631,7 @@ describe("nitro:preset:vercel:bun-verceljson", async () => {
   it("should detect bun runtime from vercel.json", async () => {
     const config = await fsp
       .readFile(
-        resolve(ctx.outDir, "functions/__fallback.func/.vc-config.json"),
+        resolve(ctx.outDir, "functions/__server.func/.vc-config.json"),
         "utf8"
       )
       .then((r) => JSON.parse(r));

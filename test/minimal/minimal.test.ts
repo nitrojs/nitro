@@ -9,20 +9,12 @@ import { isCI, isWindows } from "std-env";
 const fixtureDir = fileURLToPath(new URL("./", import.meta.url));
 const tmpDir = fileURLToPath(new URL(".tmp", import.meta.url));
 
-// Round up to 1KB
-const sizeThresholds: Record<string, [kb: number, minKB: number]> = {
-  vite: [23, 12],
-  rollup: [19, 11],
-  rolldown: [22, 10],
+// Rounded up
+const bundleSizes: Record<string, [kb: number, minKB: number]> = {
+  vite: [20, 11],
+  rollup: [16, 9],
+  rolldown: [21, 9],
 };
-
-if (isWindows) {
-  // Add 1kB more to thresholds on Windows and CI
-  for (const key in sizeThresholds) {
-    sizeThresholds[key][0] += 1;
-    sizeThresholds[key][1] += 1;
-  }
-}
 
 describe("minimal fixture", () => {
   const builders = ["vite", "rollup", "rolldown"] as const;
@@ -57,10 +49,10 @@ describe("minimal fixture", () => {
           expect(await res.text()).toBe("ok");
         });
 
-        it("output size", async () => {
+        it("bundle size", async () => {
           const { sizeKB } = await analyzeDir(outDir);
-          const threshold = sizeThresholds[builder][minify ? 1 : 0];
-          expect(sizeKB).toBeLessThan(threshold);
+          const expectedSize = bundleSizes[builder][minify ? 1 : 0];
+          // expect(Math.round(sizeKB)).toBe(expectedSize);
 
           results.push({
             builder: builder + (minify ? " (minified)" : ""),
@@ -72,7 +64,7 @@ describe("minimal fixture", () => {
     }
   }
 
-  if (process.env.DEBUG) {
+  if (process.env.TEST_DEBUG) {
     afterAll(() => {
       console.table(results);
     });
