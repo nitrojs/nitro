@@ -94,6 +94,7 @@ export default defineBuildConfig({
           (subpath) => `nitro/${subpath}`
         ),
         ...Object.keys(pkg.dependencies),
+        ...Object.keys(pkg.peerDependencies),
         ...tracePkgs,
         "firebase-functions",
         "@scalar/api-reference",
@@ -108,7 +109,6 @@ export default defineBuildConfig({
       );
     },
     rolldownOutput(config) {
-      // Force chunks for easier debugging
       config.advancedChunks ||= {};
       config.advancedChunks.groups = [
         {
@@ -120,22 +120,19 @@ export default defineBuildConfig({
             return `_libs/${pkgName || "_common"}`;
           },
         },
-        {
-          test: /src\/presets\/\w+\//,
-          name: (moduleId) => {
-            const presetName = /src\/presets\/(\w+)\//.exec(moduleId)?.[1];
-            return `_presets/${presetName || "_common"}`;
-          },
-        },
+        // {
+        //   test: /src\/presets\/\w+\//,
+        //   name: (moduleId) => {
+        //     const presetName = /src\/presets\/(\w+)\//.exec(moduleId)?.[1];
+        //     return `_presets/${presetName || "_common"}`;
+        //   },
+        // },
       ];
 
       // Use better chunk names (without degrading optimization)
       config.chunkFileNames = (chunk) => {
         if (chunk.name.startsWith("_")) {
           return `[name].mjs`;
-        }
-        if (/\.d$/.test(chunk.name)) {
-          return "_types/[name].mjs";
         }
         if (chunk.moduleIds.every((id) => /src\/cli\//.test(id))) {
           return `cli/_chunks/[name].mjs`;
@@ -164,7 +161,7 @@ export default defineBuildConfig({
         ) {
           return `_build/common.mjs`;
         }
-        return "_nitro/[hash].mjs";
+        return "_chunks/[hash].mjs";
       };
     },
     async end() {
@@ -172,7 +169,10 @@ export default defineBuildConfig({
         tracePkgs.map((pkg) => resolveModulePath(pkg)),
         {}
       );
-      for (const dep of Object.keys(pkg.dependencies)) {
+      for (const dep of [
+        ...Object.keys(pkg.dependencies),
+        ...Object.keys(pkg.peerDependencies),
+      ]) {
         await rm(`dist/node_modules/${dep}`, { recursive: true, force: true });
       }
     },

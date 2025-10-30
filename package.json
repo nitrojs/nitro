@@ -11,7 +11,7 @@
     "./package.json": "./package.json",
     "./builder": "./dist/builder.mjs",
     "./config": "./lib/config.mjs",
-    "./types": "./dist/types/index.d.mts",
+    "./types": "./dist/types/index.mjs",
     "./meta": "./lib/meta.mjs",
     "./runtime": "./dist/runtime/index.mjs",
     "./runtime/internal": "./dist/runtime/internal/index.mjs",
