@@ -37,7 +37,7 @@ const denoServer = defineNitroPreset(
     serveStatic: true,
     exportConditions: ["deno"],
     commands: {
-      preview: "deno task --config ./deno.json start",
+      preview: "deno -A ./server/index.mjs",
     },
     rollupConfig: {
       external: (id) => id.startsWith("https://"),

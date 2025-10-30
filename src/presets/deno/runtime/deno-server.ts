@@ -1,8 +1,6 @@
 import "#nitro-internal-pollyfills";
-import { plugin as wsPlugin } from "crossws/server";
 import { serve } from "srvx/deno";
 import { useNitroApp } from "nitro/runtime";
-import { startScheduleRunner } from "nitro/runtime/internal";
 
 const port =
   Number.parseInt(process.env.NITRO_PORT || process.env.PORT || "") || 3000;
@@ -14,11 +12,9 @@ const key = process.env.NITRO_SSL_KEY;
 
 const nitroApp = useNitroApp();
 
-if (import.meta._websocket) {
-  // TODO: Add crossws/server (srvx) plugin
-}
+// if (import.meta._websocket) // TODO
 
-const server = serve({
+serve({
   port: port,
   hostname: host,
   tls: cert && key ? { cert, key } : undefined,
@@ -27,6 +23,7 @@ const server = serve({
 
 // Scheduled tasks
 if (import.meta._tasks) {
+  const { startScheduleRunner } = await import("nitro/runtime/internal");
   startScheduleRunner();
 }
 
