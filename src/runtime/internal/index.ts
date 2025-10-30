@@ -2,3 +2,5 @@
 // Please don't use these in your project code!
 
 export { startScheduleRunner, runCronTasks } from "./task.ts";
+
+export { trapUnhandledErrors } from "./error/hooks.ts";

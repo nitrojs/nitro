@@ -1,6 +1,7 @@
 import "#nitro-internal-pollyfills";
 import { serve } from "srvx/deno";
 import { useNitroApp } from "nitro/runtime";
+import { trapUnhandledErrors } from "nitro/runtime/internal";
 
 const port =
   Number.parseInt(process.env.NITRO_PORT || process.env.PORT || "") || 3000;
@@ -20,6 +21,8 @@ serve({
   tls: cert && key ? { cert, key } : undefined,
   fetch: nitroApp.fetch,
 });
+
+trapUnhandledErrors();
 
 // Scheduled tasks
 if (import.meta._tasks) {
