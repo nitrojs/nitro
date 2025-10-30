@@ -122,6 +122,7 @@ export class NitroDevServer extends NitroDevApp implements DevRPCHooks {
     const server = serve({
       ...opts,
       fetch: this.fetch,
+      gracefulShutdown: false,
     });
     this.#listeners.push(server);
     if (server.node?.server) {
