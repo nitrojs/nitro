@@ -5,6 +5,10 @@ import { useNitroApp } from "nitro/runtime";
 import type { Deno as _Deno } from "@deno/types";
 import wsAdapter from "crossws/adapters/deno";
 
+declare global {
+  const Deno: typeof import("@deno/types").Deno;
+}
+
 const nitroApp = useNitroApp();
 
 const ws = import.meta._websocket
