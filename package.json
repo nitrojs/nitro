@@ -63,7 +63,7 @@
     "ofetch": "^2.0.0-alpha.3",
     "ohash": "^2.0.11",
     "rollup": "^4.52.5",
-    "srvx": "^0.9.3",
+    "srvx": "^0.9.4",
     "undici": "^7.16.0",
     "unenv": "^2.0.0-rc.24",
     "unstorage": "^2.0.0-alpha.4"
