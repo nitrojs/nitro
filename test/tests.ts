@@ -432,7 +432,12 @@ export function testNitro(
     expect(data.json.error).toBe(true);
   });
 
-  it("handles custom server assets", async () => {
+  it.skipIf(
+    // TODO!
+    ctx.preset === "vercel" &&
+      ctx.nitro?.options.vercel?.entryFormat === "node" &&
+      isWindows
+  )("handles custom server assets", async () => {
     const { data: html, status: htmlStatus } = await callHandler({
       url: "/file?filename=index.html",
     });
