@@ -1,6 +1,4 @@
 import type { Nitro, RollupConfig } from "nitro/types";
-import type { Plugin } from "rollup";
-import { createRequire } from "node:module";
 import { defu } from "defu";
 import { sanitizeFilePath } from "mlly";
 import { normalize } from "pathe";
@@ -43,6 +41,7 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
       ...baseBuildPlugins(nitro, base),
       esbuild({
         target: "esnext",
+        minify: nitro.options.minify,
         sourceMap: nitro.options.sourceMap,
         ...nitro.options.esbuild?.options,
       }),
@@ -165,21 +164,6 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
   }
 
   // Minify
-  if (nitro.options.minify) {
-    const _terser = createRequire(import.meta.url)("@rollup/plugin-terser");
-    const terser = _terser.default || _terser;
-    config.plugins.push(
-      terser({
-        mangle: {
-          keep_fnames: true,
-          keep_classnames: true,
-        },
-        format: {
-          comments: false,
-        },
-      })
-    );
-  }
   if (
     nitro.options.sourceMap &&
     !nitro.options.dev &&
