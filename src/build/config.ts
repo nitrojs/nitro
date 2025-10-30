@@ -1,7 +1,5 @@
 import type { Nitro, NitroStaticBuildFlags } from "nitro/types";
-import { pathToFileURL } from "node:url";
 import { join, resolve } from "pathe";
-import { isWindows } from "std-env";
 import { defineEnv } from "unenv";
 import { runtimeDir } from "nitro/runtime/meta";
 

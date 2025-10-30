@@ -1,6 +1,6 @@
 import "#nitro-internal-pollyfills";
 import consola from "consola";
-import { HTTPError } from "nitro/deps/h3";
+import { HTTPError } from "h3";
 import { useNitroApp, useNitroHooks } from "nitro/runtime";
 import { trapUnhandledNodeErrors } from "nitro/runtime/internal";
 
