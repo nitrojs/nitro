@@ -37,6 +37,4 @@ export interface NitroDevServerOptions {
   port: number;
   hostname: string;
   watch: string[];
-  /** Reload the page when a server module is updated. */
-  serverReload: boolean;
 }

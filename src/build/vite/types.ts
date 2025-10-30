@@ -34,11 +34,19 @@ export interface NitroPluginConfig {
      * @note This is unsafe if plugins rely on temporary files on the filesystem.
      */
     virtualBundle?: boolean;
+
     /**
      * @experimental Enable `?assets` import proposed by https://github.com/vitejs/vite/discussions/20913
      * @default true
      */
     assetsImport?: boolean;
+
+    /**
+     * Reload the page when a server module is updated.
+     *
+     * @default true
+     */
+    serverReload: boolean;
   };
 }
 
