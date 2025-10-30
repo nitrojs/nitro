@@ -21,16 +21,16 @@
     "./deps/h3": "./lib/deps/h3.mjs",
     "./deps/ofetch": "./lib/deps/ofetch.mjs"
   },
+  "types": "./lib/index.d.mts",
   "bin": {
-    "nitro": "./dist/cli/index.mjs",
-    "nitropack": "./dist/cli/index.mjs"
+    "nitro": "./dist/cli/index.mjs"
   },
   "files": [
     "dist",
     "lib"
   ],
   "scripts": {
-    "build": "pnpm gen-presets && NODE_OPTIONS=\"--max-old-space-size=8000\" unbuild",
+    "build": "pnpm gen-presets && obuild",
     "dev": "pnpm -C playground dev",
     "dev:build": "pnpm -C playground build",
     "dev:start": "node playground/.output/server/index.mjs",
@@ -41,7 +41,7 @@
     "nitro": "node ./src/cli/index.ts",
     "prepack": "pnpm build",
     "release": "pnpm test && pnpm build && changelogen --release && pnpm publish && git push --follow-tags",
-    "stub": "unbuild --stub",
+    "stub": "obuild --stub",
     "test": "pnpm lint && pnpm vitest run",
     "test:fixture:types": "pnpm stub && node ./test/scripts/gen-fixture-types.ts && cd test/fixture && tsc --noEmit",
     "test:rolldown": "NITRO_BUILDER=rolldown pnpm vitest",
@@ -126,6 +126,7 @@
     "mime": "^4.1.0",
     "miniflare": "^4.20251011.1",
     "mlly": "^1.8.0",
+    "obuild": "^0.3.2",
     "pathe": "^2.0.3",
     "perfect-debounce": "^2.0.0",
     "pkg-types": "^2.3.0",
@@ -145,7 +146,6 @@
     "typescript": "^5.9.3",
     "ufo": "^1.6.1",
     "ultrahtml": "^1.6.0",
-    "unbuild": "^3.6.1",
     "uncrypto": "^0.1.3",
     "unctx": "^2.4.1",
     "unimport": "^5.5.0",
