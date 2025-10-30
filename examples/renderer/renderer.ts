@@ -1,15 +1,15 @@
-import { defineRenderHandler } from "nitro/runtime";
-
-export default defineRenderHandler((_event) => {
-  return {
-    body: /* html */ `<!DOCTYPE html>
+export default function renderer({ req, url }: { req: Request; url: URL }) {
+  return new Response(
+    /* html */ `<!DOCTYPE html>
     <html>
-      <head>
-        <title>Rendered Page</title>
-        </head>
-        <body>
-            <h1>Rendered by Nitro!</h1>
-        </body>
+    <head>
+      <title>Custom Renderer</title>
+    </head>
+    <body>
+      <h1>Hello from custom renderer!</h1>
+      <p>Current path: ${url.pathname}</p>
+    </body>
     </html>`,
-  };
-});
+    { headers: { "content-type": "text/html; charset=utf-8" } }
+  );
+}

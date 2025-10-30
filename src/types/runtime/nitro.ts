@@ -56,14 +56,6 @@ export type CaptureError = (
 export interface NitroRuntimeHooks {
   close: () => void;
   error: CaptureError;
-
   request: (event: HTTPEvent) => void | Promise<void>;
   response: (res: Response, event: HTTPEvent) => void | Promise<void>;
-
-  "render:before": (context: RenderContext) => void;
-
-  "render:response": (
-    response: Partial<RenderResponse>,
-    context: RenderContext
-  ) => void;
 }

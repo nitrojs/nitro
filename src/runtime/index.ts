@@ -11,9 +11,6 @@ export { useRuntimeConfig } from "./internal/runtime-config.ts";
 // Context
 export { useRequest } from "./internal/context.ts";
 
-// Renderer
-export { defineRenderHandler } from "./internal/renderer.ts";
-
 // Cache
 export {
   defineCachedFunction,

@@ -84,10 +84,6 @@ function getNitroImportsPreset(): Preset[] {
       imports: ["useStorage"],
     },
     {
-      from: "nitro/runtime/internal/renderer",
-      imports: ["defineRenderHandler"],
-    },
-    {
       from: "nitro/runtime/internal/meta",
       imports: ["defineRouteMeta"],
     },
