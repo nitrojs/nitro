@@ -275,6 +275,7 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
 
       if (hasServerOnlyModule) {
         options.server.ws.send({ type: "full-reload" });
+        return [];
       }
     },
   };
