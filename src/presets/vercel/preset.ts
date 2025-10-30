@@ -13,7 +13,7 @@ export type { VercelOptions as PresetOptions } from "./types.ts";
 
 const vercel = defineNitroPreset(
   {
-    entry: "./vercel/runtime/vercel",
+    entry: "./vercel/runtime/vercel.{format}",
     output: {
       dir: "{{ rootDir }}/.vercel/output",
       serverDir: "{{ output.dir }}/functions/__server.func",
@@ -25,6 +25,7 @@ const vercel = defineNitroPreset(
     },
     hooks: {
       "build:before": async (nitro: Nitro) => {
+        // Runtime
         const runtime = await resolveVercelRuntime(nitro);
         if (
           runtime.startsWith("bun") &&
@@ -32,6 +33,12 @@ const vercel = defineNitroPreset(
         ) {
           nitro.options.exportConditions!.push("bun");
         }
+
+        // Entry handler format
+        nitro.options.entry = nitro.options.entry.replace(
+          "{format}",
+          nitro.options.vercel?.entryFormat === "node" ? "node" : "web"
+        );
       },
       "rollup:before": (nitro: Nitro) => {
         deprecateSWR(nitro);

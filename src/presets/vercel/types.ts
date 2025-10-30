@@ -119,6 +119,15 @@ export interface VercelOptions {
   regions?: string[];
 
   functions?: VercelServerlessFunctionConfig;
+
+  /**
+   * Handler format to use for Vercel Serverless Functions.
+   *
+   * Using `node` format enables compatibility with Node.js specific APIs in your Nitro application (e.g., `req.runtime.node`).
+   *
+   * Possible values are: `web` (default) and `node`.
+   */
+  entryFormat?: "web" | "node";
 }
 
 /**

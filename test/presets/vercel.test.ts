@@ -2,9 +2,12 @@ import { promises as fsp } from "node:fs";
 import { resolve, join, basename } from "pathe";
 import { describe, expect, it, vi, afterAll } from "vitest";
 import { setupTest, testNitro, fixtureDir } from "../tests.ts";
+import { toFetchHandler } from "srvx/node";
 
-describe("nitro:preset:vercel", async () => {
-  const ctx = await setupTest("vercel");
+describe("nitro:preset:vercel:web", async () => {
+  const ctx = await setupTest("vercel", {
+    outDirSuffix: "-web",
+  });
   testNitro(
     ctx,
     async () => {
@@ -582,8 +585,29 @@ describe("nitro:preset:vercel", async () => {
   );
 });
 
+describe("nitro:preset:vercel:node", async () => {
+  const ctx = await setupTest("vercel", {
+    outDirSuffix: "-node",
+    config: {
+      vercel: { entryFormat: "node" },
+    },
+  });
+  testNitro(ctx, async () => {
+    const nodeHandler = await import(
+      resolve(ctx.outDir, "functions/__server.func/index.mjs")
+    ).then((r) => r.default || r);
+    const fetchHandler = toFetchHandler(nodeHandler);
+    return async ({ url, ...options }) => {
+      const req = new Request(new URL(url, "https://example.com"), options);
+      const res = await fetchHandler(req);
+      return res;
+    };
+  });
+});
+
 describe("nitro:preset:vercel:bun", async () => {
   const ctx = await setupTest("vercel", {
+    outDirSuffix: "-bun",
     config: {
       preset: "vercel",
       vercel: {
@@ -619,6 +643,7 @@ describe("nitro:preset:vercel:bun-verceljson", async () => {
   await fsp.writeFile(vercelJsonPath, JSON.stringify({ bunVersion: "1.x" }));
 
   const ctx = await setupTest("vercel", {
+    outDirSuffix: "-bun-verceljson",
     config: {
       preset: "vercel",
     },

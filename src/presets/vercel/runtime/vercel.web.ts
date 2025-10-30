@@ -20,6 +20,7 @@ export default {
 
     // srvx compatibility
     req.runtime ??= { name: "vercel" };
+
     // @ts-expect-error (add to srvx types)
     req.runtime.vercel = { context };
     req.waitUntil = context?.waitUntil;
