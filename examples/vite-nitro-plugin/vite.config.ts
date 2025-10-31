@@ -3,7 +3,7 @@ import { nitro } from "nitro/vite";
 
 export default defineConfig({
   plugins: [
-    // nitro(),
+    nitro(),
     {
       name: "my-nitro-plugin",
       nitro: {
@@ -14,6 +14,5 @@ export default defineConfig({
         },
       },
     },
-    nitro(),
   ],
 });
