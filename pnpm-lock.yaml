@@ -411,6 +411,15 @@ importers:
         specifier: ^7.1.8
         version: 7.1.12(@types/node@24.9.2)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0)(yaml@2.8.1)
 
+  examples/vite-nitro-plugin:
+    devDependencies:
+      nitro:
+        specifier: link:../..
+        version: link:../..
+      vite:
+        specifier: ^7.1.8
+        version: 7.1.12(@types/node@24.9.2)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0)(yaml@2.8.1)
+
   examples/websocket:
     devDependencies:
       nitropack:
