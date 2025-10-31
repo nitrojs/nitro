@@ -9,6 +9,11 @@ const port =
 const host = process.env.NITRO_HOST || process.env.HOST;
 const cert = process.env.NITRO_SSL_CERT;
 const key = process.env.NITRO_SSL_KEY;
+
+if (port < 0 || port > 65535) {
+  throw new Error("Port number range is between 0 to 65535");
+}
+
 // const socketPath = process.env.NITRO_UNIX_SOCKET; // TODO
 
 const nitroApp = useNitroApp();
@@ -16,7 +21,7 @@ const nitroApp = useNitroApp();
 // if (import.meta._websocket) // TODO
 
 serve({
-  port: port,
+  port,
   hostname: host,
   tls: cert && key ? { cert, key } : undefined,
   fetch: nitroApp.fetch,
