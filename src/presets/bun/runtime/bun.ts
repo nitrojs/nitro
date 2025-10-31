@@ -9,7 +9,7 @@ const host = process.env.NITRO_HOST || process.env.HOST;
 const cert = process.env.NITRO_SSL_CERT;
 const key = process.env.NITRO_SSL_KEY;
 
-if (port < 0 || port > 65535) {
+if (port < 0 || port > 65_535) {
   throw new Error("Port number range is between 0 to 65535");
 }
 
