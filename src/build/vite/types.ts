@@ -1,6 +1,6 @@
 import type { OutputBundle } from "rollup";
 import type { getViteRollupConfig } from "./rollup.ts";
-import type { DevWorker, Nitro, NitroConfig } from "nitro/types";
+import type { DevWorker, Nitro, NitroConfig, NitroModule } from "nitro/types";
 import type { NitroDevApp } from "../../dev/app.ts";
 
 declare module "vite" {
@@ -9,6 +9,12 @@ declare module "vite" {
      * Nitro Vite Plugin options.
      */
     nitro?: NitroConfig;
+  }
+}
+
+declare module "rollup" {
+  interface Plugin {
+    nitro?: NitroModule;
   }
 }
 

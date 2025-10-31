@@ -17,7 +17,7 @@ import {
   createServiceEnvironments,
 } from "./env.ts";
 import { configureViteDevServer } from "./dev.ts";
-import { runtimeDependencies, runtimeDir } from "nitro/runtime/meta";
+import { runtimeDir } from "nitro/runtime/meta";
 import { resolveModulePath } from "exsolve";
 import { defu } from "defu";
 import { prettyPath } from "../../utils/fs.ts";
@@ -348,14 +348,28 @@ async function setupNitroContext(
   configEnv: ConfigEnv,
   userConfig: UserConfig
 ) {
+  // Nitro config overrides
+  const nitroConfig = {
+    dev: configEnv.mode === "development",
+    rootDir: userConfig.root,
+    ...defu(ctx.pluginConfig.config, userConfig.nitro),
+  };
+
+  // Register Nitro modules from Vite plugins
+  nitroConfig.modules ??= [];
+  for (const plugin of userConfig.plugins || []) {
+    if (
+      plugin &&
+      !Array.isArray(plugin) &&
+      !(plugin instanceof Promise) &&
+      plugin.nitro
+    ) {
+      nitroConfig.modules.push(plugin.nitro);
+    }
+  }
+
   // Initialize a new Nitro instance
-  ctx.nitro =
-    ctx.pluginConfig._nitro ||
-    (await createNitro({
-      dev: configEnv.mode === "development",
-      rootDir: userConfig.root,
-      ...defu(ctx.pluginConfig.config, userConfig.nitro),
-    }));
+  ctx.nitro = ctx.pluginConfig._nitro || (await createNitro(nitroConfig));
 
   // Config ssr env as a fetchable ssr service
   if (!ctx.pluginConfig.services?.ssr) {

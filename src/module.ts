@@ -42,9 +42,12 @@ async function _resolveNitroModule(
     mod = { setup: mod };
   }
 
+  if ("nitro" in mod) {
+    mod = mod.nitro;
+  }
+
   if (!mod.setup) {
-    // TODO: Warn?
-    mod.setup = () => {};
+    throw new Error("Invalid Nitro module: missing setup() function.");
   }
 
   return {
