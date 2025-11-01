@@ -157,8 +157,6 @@ export function prodSetup(ctx: NitroPluginContext): string {
   return /* js */ `
 import { setupVite } from "${resolve(runtimeDir, "internal/vite/prod-setup.mjs")}";
 
-const manifest = ${JSON.stringify(ctx._manifest || {})};
-
 function lazyService(loader) {
   let promise, mod
   return {
@@ -181,6 +179,6 @@ ${serviceEntries
   .join(",\n")}
 };
 
-setupVite({ manifest, services });
+setupVite({ services });
   `;
 }

@@ -1,6 +1,4 @@
-export function setupVite({ manifest, services }) {
-  globalThis.__VITE_MANIFEST__ = manifest;
-
+export function setupVite({ services }) {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = function nitroViteFetch(input, init) {
     // Only override if viteEnvName is specified

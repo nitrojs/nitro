@@ -199,7 +199,6 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
           "[main] Generating manifest and entry points for environment:",
           environment.name
         );
-        const { root } = environment.config;
         const services = ctx.pluginConfig.services || {};
         const serviceNames = Object.keys(services);
         const isRegisteredService = serviceNames.includes(environment.name);
@@ -207,22 +206,13 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
         // Find entry point of this service
         let entryFile: string | undefined;
         for (const [_name, file] of Object.entries(bundle)) {
-          if (file.type === "chunk") {
-            if (isRegisteredService && file.isEntry) {
-              if (entryFile === undefined) {
-                entryFile = file.fileName;
-              } else {
-                this.warn(
-                  `Multiple entry points found for service "${environment.name}"`
-                );
-              }
-            }
-            const filteredModuleIds = file.moduleIds.filter((id) =>
-              id.startsWith(root)
-            );
-            for (const id of filteredModuleIds) {
-              const originalFile = relative(root, id);
-              ctx._manifest[originalFile] = { file: file.fileName };
+          if (file.type === "chunk" && isRegisteredService && file.isEntry) {
+            if (entryFile === undefined) {
+              entryFile = file.fileName;
+            } else {
+              this.warn(
+                `Multiple entry points found for service "${environment.name}"`
+              );
             }
           }
         }
@@ -332,7 +322,6 @@ function createContext(pluginConfig: NitroPluginConfig): NitroPluginContext {
   return {
     pluginConfig,
     _entryPoints: {},
-    _manifest: {},
     _serviceBundles: {},
   };
 }

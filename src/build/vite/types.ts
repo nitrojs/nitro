@@ -95,7 +95,6 @@ export interface NitroPluginContext {
   devApp?: NitroDevApp;
 
   _initialized?: boolean;
-  _manifest: Record<string, { file: string }>;
   _publicDistDir?: string;
   _entryPoints: Record<string, string>;
   _serviceBundles: Record<string, OutputBundle>;
