@@ -22,7 +22,7 @@ if (clusterId) {
 const nitroApp = useNitroApp();
 
 serve({
-  port: port,
+  port,
   hostname: host,
   tls: cert && key ? { cert, key } : undefined,
   node: { reusePort: !!clusterId },

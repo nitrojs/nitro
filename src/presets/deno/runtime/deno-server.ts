@@ -16,7 +16,7 @@ const nitroApp = useNitroApp();
 // if (import.meta._websocket) // TODO
 
 serve({
-  port: port,
+  port,
   hostname: host,
   tls: cert && key ? { cert, key } : undefined,
   fetch: nitroApp.fetch,

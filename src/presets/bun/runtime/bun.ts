@@ -15,7 +15,7 @@ const key = process.env.NITRO_SSL_KEY;
 const nitroApp = useNitroApp();
 
 serve({
-  port: port,
+  port,
   hostname: host,
   tls: cert && key ? { cert, key } : undefined,
   fetch: nitroApp.fetch,
