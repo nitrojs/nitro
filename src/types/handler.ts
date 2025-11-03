@@ -56,7 +56,7 @@ export interface NitroEventHandler extends NitroHandlerCommon {
   /**
    * Event handler type.
    *
-   * Default is `"web"`. If set to `"node"`, the handler will be converted into a web compatible structure.
+   * Default is `"web"`. If set to `"node"`, the handler will be converted into a web compatible handler.
    */
   format?: EventHandlerFormat;
 
