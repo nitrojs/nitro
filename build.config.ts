@@ -101,6 +101,7 @@ export default defineBuildConfig({
         "get-port-please",
         "cloudflare:workers",
         "@cloudflare/workers-types",
+        "rolldown-vite",
         // unplugin deps
         "@rspack/core",
         "@farmfe/core",
