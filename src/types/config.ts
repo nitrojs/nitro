@@ -274,7 +274,6 @@ export interface NitroConfig
       Omit<
         NitroOptions,
         | "routeRules"
-        | "serverEntry"
         | "rollupConfig"
         | "preset"
         | "compatibilityDate"
@@ -290,7 +289,6 @@ export interface NitroConfig
   rollupConfig?: Partial<RollupConfig>;
   compatibilityDate?: CompatibilityDateSpec;
   unenv?: UnenvPreset | UnenvPreset[];
-  serverEntry?: string | NitroOptions["serverEntry"];
 }
 
 // ------------------------------------------------------------
