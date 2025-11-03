@@ -95,7 +95,8 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
           base.env.polyfill.map((p) => /* js */ `import '${p}';`).join("\n") ||
           /* js */ `/* No polyfills */`,
       },
-      nitro.vfs
+      nitro.vfs,
+      { moduleSideEffects: true }
     )
   );
 

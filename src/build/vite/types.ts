@@ -94,6 +94,7 @@ export interface NitroPluginContext {
   devWorker?: DevWorker;
   devApp?: NitroDevApp;
 
+  _isRolldown?: boolean;
   _initialized?: boolean;
   _publicDistDir?: string;
   _entryPoints: Record<string, string>;

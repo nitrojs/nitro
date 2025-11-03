@@ -8,7 +8,7 @@ import type {
 } from "vite";
 import type { InputOption } from "rollup";
 import type { NitroPluginConfig, NitroPluginContext } from "./types.ts";
-import { resolve, relative, join } from "pathe";
+import { resolve, join } from "pathe";
 import { createNitro, prepare } from "../../builder.ts";
 import { getViteRollupConfig } from "./rollup.ts";
 import { buildEnvironments, prodSetup } from "./prod.ts";
@@ -61,6 +61,7 @@ function nitroInit(ctx: NitroPluginContext): VitePlugin {
     apply: (_config, configEnv) => !configEnv.isPreview,
 
     async config(config, configEnv) {
+      ctx._isRolldown = !!(this.meta as Record<string, string>).rolldownVersion;
       if (!ctx._initialized) {
         debug("[init] Initializing nitro");
         ctx._initialized = true;
@@ -147,6 +148,10 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
         },
         builder: {
           sharedConfigBuild: true,
+        },
+        experimental: {
+          // TODO: Fix issue with rolldown-vite native plugins
+          ...({ enableNativePlugin: false } as any),
         },
         server: {
           port:
@@ -299,9 +304,6 @@ function nitroService(ctx: NitroPluginContext): VitePlugin {
         if (id === "#nitro-vite-setup") {
           return { id, moduleSideEffects: true };
         }
-        if (id === "#nitro-vite-services") {
-          return id;
-        }
       },
     },
 
@@ -353,8 +355,13 @@ async function setupNitroContext(
     }
   }
 
+  nitroConfig.builder = ctx._isRolldown ? "rolldown-vite" : "rolldown";
+  debug("[init] Using builder:", nitroConfig.builder);
+
   // Initialize a new Nitro instance
   ctx.nitro = ctx.pluginConfig._nitro || (await createNitro(nitroConfig));
+
+  ctx.nitro.options.builder = ctx._isRolldown ? "rolldown-vite" : "rolldown";
 
   // Config ssr env as a fetchable ssr service
   if (!ctx.pluginConfig.services?.ssr) {

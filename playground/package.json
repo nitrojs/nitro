@@ -4,13 +4,13 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "preview": "vite preview",
-    "dev": "vite dev"
+    "dev": "vite dev",
+    "preview": "vite preview"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.14",
     "nitro": "npm:nitro-nightly",
     "tailwindcss": "^4.1.14",
-    "vite": "^7.1.8"
+    "vite": "npm:rolldown-vite"
   }
 }

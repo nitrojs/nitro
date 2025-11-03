@@ -8,7 +8,8 @@ const PREFIX = "\0virtual:";
 
 export function virtual(
   modules: RollupVirtualOptions,
-  cache: Record<string, VirtualModule> = {}
+  cache: Record<string, VirtualModule> = {},
+  opts?: { moduleSideEffects?: boolean }
 ): Plugin {
   const _modules = new Map<string, VirtualModule>();
 
@@ -23,7 +24,7 @@ export function virtual(
 
     resolveId(id, importer) {
       if (id in modules) {
-        return PREFIX + id;
+        return { id: PREFIX + id, ...opts };
       }
 
       if (importer) {

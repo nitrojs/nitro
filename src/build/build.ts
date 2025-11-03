@@ -10,7 +10,8 @@ export async function build(nitro: Nitro) {
       const { rolldownBuild } = await import("./rolldown/build.ts");
       return rolldownBuild(nitro);
     }
-    case "vite": {
+    case "vite":
+    case "rolldown-vite": {
       const { viteBuild } = await import("./vite/build.ts");
       return viteBuild(nitro);
     }

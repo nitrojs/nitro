@@ -256,6 +256,9 @@ importers:
       rolldown:
         specifier: 1.0.0-beta.45
         version: 1.0.0-beta.45
+      rolldown-vite:
+        specifier: ^7.1.20
+        version: 7.1.20(@types/node@24.9.2)(esbuild@0.25.11)(jiti@2.6.1)(terser@5.44.0)(yaml@2.8.1)
       rou3:
         specifier: ^0.7.10
         version: 0.7.10
@@ -442,7 +445,7 @@ importers:
     devDependencies:
       '@tailwindcss/vite':
         specifier: ^4.1.14
-        version: 4.1.16(vite@7.1.12(@types/node@24.9.2)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0)(yaml@2.8.1))
+        version: 4.1.16(rolldown-vite@7.1.20(@types/node@24.9.2)(esbuild@0.25.11)(jiti@2.6.1)(terser@5.44.0)(yaml@2.8.1))
       nitro:
         specifier: link:..
         version: link:..
@@ -450,8 +453,8 @@ importers:
         specifier: ^4.1.14
         version: 4.1.16
       vite:
-        specifier: ^7.1.8
-        version: 7.1.12(@types/node@24.9.2)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0)(yaml@2.8.1)
+        specifier: npm:rolldown-vite
+        version: rolldown-vite@7.1.20(@types/node@24.9.2)(esbuild@0.25.11)(jiti@2.6.1)(terser@5.44.0)(yaml@2.8.1)
 
   test/fixture:
     devDependencies:
@@ -1578,6 +1581,10 @@ packages:
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [x64]
     os: [win32]
+
+  '@oxc-project/runtime@0.95.0':
+    resolution: {integrity: sha512-qJS5pNepwMGnafO9ayKGz7rfPQgUBuunHpnP1//9Qa0zK3oT3t1EhT+I+pV9MUA+ZKez//OFqxCxf1vijCKb2Q==}
+    engines: {node: ^20.19.0 || >=22.12.0}
 
   '@oxc-project/types@0.95.0':
     resolution: {integrity: sha512-vACy7vhpMPhjEJhULNxrdR0D943TkA/MigMpJCHmBHvMXxRStRi/dPtTlfQ3uDwWSzRpT8z+7ImjZVf8JWBocQ==}
@@ -5410,6 +5417,46 @@ packages:
       vue-tsc:
         optional: true
 
+  rolldown-vite@7.1.20:
+    resolution: {integrity: sha512-iXo6JzhBnNl+MY5Wky2Qr4RnB1gLJ3798YUMC3uBXSjCDM/bV+ALcnm5M23eOy9Nldi18aUioLpTB/PtqvwSZQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    hasBin: true
+    peerDependencies:
+      '@types/node': ^20.19.0 || >=22.12.0
+      esbuild: ^0.25.0
+      jiti: '>=1.21.0'
+      less: ^4.0.0
+      sass: ^1.70.0
+      sass-embedded: ^1.70.0
+      stylus: '>=0.54.8'
+      sugarss: ^5.0.0
+      terser: ^5.16.0
+      tsx: ^4.8.1
+      yaml: ^2.4.2
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+      esbuild:
+        optional: true
+      jiti:
+        optional: true
+      less:
+        optional: true
+      sass:
+        optional: true
+      sass-embedded:
+        optional: true
+      stylus:
+        optional: true
+      sugarss:
+        optional: true
+      terser:
+        optional: true
+      tsx:
+        optional: true
+      yaml:
+        optional: true
+
   rolldown@1.0.0-beta.45:
     resolution: {integrity: sha512-iMmuD72XXLf26Tqrv1cryNYLX6NNPLhZ3AmNkSf8+xda0H+yijjGJ+wVT9UdBUHOpKzq9RjKtQKRCWoEKQQBZQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -7492,6 +7539,8 @@ snapshots:
   '@oxc-parser/binding-win32-x64-msvc@0.96.0':
     optional: true
 
+  '@oxc-project/runtime@0.95.0': {}
+
   '@oxc-project/types@0.95.0': {}
 
   '@oxc-project/types@0.96.0': {}
@@ -8292,6 +8341,13 @@ snapshots:
       '@tailwindcss/oxide-wasm32-wasi': 4.1.16
       '@tailwindcss/oxide-win32-arm64-msvc': 4.1.16
       '@tailwindcss/oxide-win32-x64-msvc': 4.1.16
+
+  '@tailwindcss/vite@4.1.16(rolldown-vite@7.1.20(@types/node@24.9.2)(esbuild@0.25.11)(jiti@2.6.1)(terser@5.44.0)(yaml@2.8.1))':
+    dependencies:
+      '@tailwindcss/node': 4.1.16
+      '@tailwindcss/oxide': 4.1.16
+      tailwindcss: 4.1.16
+      vite: rolldown-vite@7.1.20(@types/node@24.9.2)(esbuild@0.25.11)(jiti@2.6.1)(terser@5.44.0)(yaml@2.8.1)
 
   '@tailwindcss/vite@4.1.16(vite@7.1.12(@types/node@24.9.2)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0)(yaml@2.8.1))':
     dependencies:
@@ -11962,6 +12018,23 @@ snapshots:
     transitivePeerDependencies:
       - oxc-resolver
       - supports-color
+
+  rolldown-vite@7.1.20(@types/node@24.9.2)(esbuild@0.25.11)(jiti@2.6.1)(terser@5.44.0)(yaml@2.8.1):
+    dependencies:
+      '@oxc-project/runtime': 0.95.0
+      fdir: 6.5.0(picomatch@4.0.3)
+      lightningcss: 1.30.2
+      picomatch: 4.0.3
+      postcss: 8.5.6
+      rolldown: 1.0.0-beta.45
+      tinyglobby: 0.2.15
+    optionalDependencies:
+      '@types/node': 24.9.2
+      esbuild: 0.25.11
+      fsevents: 2.3.3
+      jiti: 2.6.1
+      terser: 5.44.0
+      yaml: 2.8.1
 
   rolldown@1.0.0-beta.45:
     dependencies:

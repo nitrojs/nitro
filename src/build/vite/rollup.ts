@@ -59,8 +59,14 @@ export const getViteRollupConfig = (
         preventAssignment: true,
         values: base.replacements,
       }),
-      (inject as unknown as typeof inject.default)(base.env.inject),
+      !ctx._isRolldown &&
+        (inject as unknown as typeof inject.default)(base.env.inject),
     ].filter(Boolean) as RollupPlugin[],
+    // rolldown-specific config
+    // @ts-expect-error
+    transform: {
+      inject: base.env.inject as Record<string, string>,
+    },
     treeshake: {
       moduleSideEffects(id) {
         const normalizedId = normalize(id);
@@ -126,10 +132,12 @@ export const getViteRollupConfig = (
       intro: "",
       outro: "",
       generatedCode: {
-        constBindings: true,
+        // constBindings is not supported in rolldown
+        ...(ctx._isRolldown ? {} : { constBindings: true }),
       },
       sanitizeFileName: sanitizeFilePath,
-      sourcemapExcludeSources: true,
+      // sourcemapExcludeSources is not supported in rolldown
+      ...(ctx._isRolldown ? {} : { sourcemapExcludeSources: true }),
       sourcemapIgnoreList(relativePath) {
         return relativePath.includes("node_modules");
       },

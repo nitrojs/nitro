@@ -10,13 +10,14 @@ const tmpDir = fileURLToPath(new URL(".tmp", import.meta.url));
 
 // Rounded up
 const bundleSizes: Record<string, [kb: number, minKB: number]> = {
-  vite: [20, 11],
   rollup: [16, 9],
   rolldown: [21, 9],
+  vite: [20, 11],
+  "rolldown-vite": [18, 10],
 };
 
 describe("minimal fixture", () => {
-  const builders = ["vite", "rollup", "rolldown"] as const;
+  const builders = ["vite", "rollup", "rolldown", "rolldown-vite"] as const;
 
   const results: any[] = [];
 
