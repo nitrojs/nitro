@@ -10,9 +10,7 @@ export function featureFlags(nitro: Nitro) {
           hasRoutes: nitro.routing.routes.hasRoutes(),
           hasRouteRules: nitro.routing.routeRules.hasRoutes(),
           hasRoutedMiddleware: nitro.routing.routedMiddleware.hasRoutes(),
-          hasGlobalMiddleware:
-            nitro.routing.globalMiddleware.length > 0 ||
-            !!nitro.options.serverEntry,
+          hasGlobalMiddleware: nitro.routing.globalMiddleware.length > 0,
           // Plugins
           hasPlugins: nitro.options.plugins.length > 0,
           hasHooks:

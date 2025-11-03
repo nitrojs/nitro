@@ -4,5 +4,6 @@ export default {
     if (url.pathname === "/") {
       return new Response("server entry works!");
     }
+    return new Response("404 Not Found", { status: 404 });
   },
 };

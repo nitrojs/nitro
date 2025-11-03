@@ -12,6 +12,8 @@ import type { TSConfig } from "pkg-types";
 import type { Router } from "../routing.ts";
 import type { NitroRouteRules } from "./route-rules.ts";
 
+type MaybeArray<T> = T | T[];
+
 export interface Nitro {
   options: NitroOptions;
   scannedHandlers: NitroEventHandler[];
@@ -25,7 +27,7 @@ export interface Nitro {
   routing: Readonly<{
     sync: () => void;
     routeRules: Router<NitroRouteRules & { _route: string }>;
-    routes: Router<NitroEventHandler & { _importHash: string }>;
+    routes: Router<MaybeArray<NitroEventHandler & { _importHash: string }>>;
     globalMiddleware: (NitroEventHandler & { _importHash: string })[];
     routedMiddleware: Router<NitroEventHandler & { _importHash: string }>;
   }>;
