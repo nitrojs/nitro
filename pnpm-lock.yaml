@@ -467,6 +467,9 @@ importers:
       nitro:
         specifier: link:../..
         version: link:../..
+      rolldown-vite:
+        specifier: ^7.1.20
+        version: 7.1.20(@types/node@24.9.2)(esbuild@0.25.11)(jiti@2.6.1)(terser@5.44.0)(yaml@2.8.1)
       tinyglobby:
         specifier: ^0.2.15
         version: 0.2.15
