@@ -51,7 +51,7 @@ describe("minimal fixture", () => {
         it("bundle size", async () => {
           const { sizeKB } = await analyzeDir(outDir);
           const expectedSize = bundleSizes[builder][minify ? 1 : 0];
-          // expect(Math.round(sizeKB)).toBe(expectedSize);
+          expect(Math.round(sizeKB)).toBe(expectedSize);
 
           results.push({
             builder: builder + (minify ? " (minified)" : ""),

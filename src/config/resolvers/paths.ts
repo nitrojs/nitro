@@ -70,28 +70,16 @@ export async function resolvePathOptions(options: NitroOptions) {
   options.scanDirs = [...new Set(options.scanDirs.map((dir) => dir + "/"))];
 
   // Resolve server entry
-  if (typeof options.serverEntry === "string") {
-    options.serverEntry = { handler: options.serverEntry };
-  }
-  if (options.serverEntry?.handler) {
-    options.serverEntry.handler = resolveModulePath(
-      resolveNitroPath(options.serverEntry.handler, options),
-      {
-        from: options.scanDirs,
-        extensions: RESOLVE_EXTENSIONS,
-      }
-    )!;
-  } else {
-    const defaultServerEntry = resolveModulePath("./server", {
+  if (!options.routes["/**"]?.handler) {
+    const serverEntry = resolveModulePath("./server", {
       from: options.scanDirs,
       extensions: RESOLVE_EXTENSIONS,
       try: true,
     });
-    if (defaultServerEntry) {
-      options.serverEntry ??= {};
-      options.serverEntry.handler = defaultServerEntry;
+    if (serverEntry) {
+      options.routes["/**"] = { handler: serverEntry };
       consola.info(
-        `Using \`${prettyPath(defaultServerEntry)}\` as server entry.`
+        `Using \`${prettyPath(serverEntry)}\` as default route handler.`
       );
     }
   }

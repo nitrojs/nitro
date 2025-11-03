@@ -52,6 +52,7 @@ export const NitroDefaults: NitroConfig = {
   handlers: [],
   devHandlers: [],
   errorHandler: undefined,
+  routes: {},
   routeRules: {},
   prerender: {
     autoSubfolderIndex: true,

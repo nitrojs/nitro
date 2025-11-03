@@ -28,7 +28,6 @@ export function routing(nitro: Nitro) {
 
         return /* js */ `
 import * as __routeRules__ from "nitro/runtime/internal/route-rules";
-${nitro.options.serverEntry?.handler ? `import __serverEntry__ from ${JSON.stringify(nitro.options.serverEntry.handler)};` : ""}
 import * as srvxNode from "srvx/node"
 import * as h3 from "h3";
 

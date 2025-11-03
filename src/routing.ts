@@ -38,8 +38,6 @@ export function initNitroRouting(nitro: Nitro) {
     NitroEventHandler & { _importHash: string }
   >();
 
-  const warns: Set<string> = new Set();
-
   const sync = () => {
     // Update route rules
     routeRules._update(
@@ -55,16 +53,12 @@ export function initNitroRouting(nitro: Nitro) {
 
     // Update routes
     const _routes = [
-      ...nitro.scannedHandlers,
+      ...Object.entries(nitro.options.routes).flatMap(([route, handler]) => {
+        return { ...handler, route, middleware: false };
+      }),
       ...nitro.options.handlers,
+      ...nitro.scannedHandlers,
     ].filter((h) => h && !h.middleware && matchesEnv(h));
-    if (nitro.options.serverEntry?.handler) {
-      _routes.unshift({
-        route: "/**",
-        handler: nitro.options.serverEntry.handler,
-        format: nitro.options.serverEntry.format,
-      });
-    }
     if (nitro.options.renderer?.entry) {
       _routes.push({
         route: "/**",

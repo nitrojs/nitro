@@ -183,12 +183,16 @@ export interface NitroOptions extends PresetOptions {
   // Routing
   baseURL: string;
   apiBaseURL: string;
-  serverEntry: { handler?: string; format?: EventHandlerFormat } | undefined;
+
+  routes: Record<string, Omit<NitroEventHandler, "route" | "middleware">>;
   handlers: NitroEventHandler[];
-  routeRules: { [path: string]: NitroRouteRules };
   devHandlers: NitroDevEventHandler[];
+
+  routeRules: { [path: string]: NitroRouteRules };
+
   errorHandler: string | string[];
   devErrorHandler: NitroErrorHandler;
+
   prerender: {
     /**
      * Prerender HTML routes within subfolders (`/test` would produce `/test/index.html`)
