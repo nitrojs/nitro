@@ -64,7 +64,7 @@ export interface NitroOptions extends PresetOptions {
   // Dirs
   workspaceDir: string;
   rootDir: string;
-  serverDir: string;
+  serverDir: string | false;
   scanDirs: string[];
   apiDir: string;
   routesDir: string;

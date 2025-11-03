@@ -147,8 +147,8 @@ export async function configureViteDevServer(
     }
   });
 
-  const srcDirWatcher = fsWatch(
-    nitro.options.serverDir,
+  const rootDirWatcher = fsWatch(
+    nitro.options.rootDir,
     { persistent: false },
     (_event, filename) => {
       if (filename && /^server\.[mc]?[jt]sx?$/.test(filename)) {
@@ -158,7 +158,7 @@ export async function configureViteDevServer(
   );
   nitro.hooks.hook("close", () => {
     scanDirsWatcher.close();
-    srcDirWatcher.close();
+    rootDirWatcher.close();
   });
 
   // Worker => Host IPC

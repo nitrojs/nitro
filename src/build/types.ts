@@ -241,7 +241,8 @@ export async function writeTypes(nitro: Nitro) {
           "./"
         ),
         join(relativeWithDot(tsconfigDir, nitro.options.rootDir), "**/*"),
-        ...(nitro.options.serverDir === nitro.options.rootDir
+        ...(!nitro.options.serverDir ||
+        nitro.options.serverDir === nitro.options.rootDir
           ? []
           : [
               join(

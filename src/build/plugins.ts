@@ -140,7 +140,7 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
             nitro.options.experimental.bundleRuntimeDependencies === false
               ? []
               : runtimeDependencies),
-          ],
+          ].filter(Boolean) as string[],
           traceOptions: {
             base: "/",
             processCwd: nitro.options.rootDir,

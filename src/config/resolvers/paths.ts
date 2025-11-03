@@ -11,19 +11,23 @@ const RESOLVE_EXTENSIONS = [".ts", ".js", ".mts", ".mjs", ".tsx", ".jsx"];
 
 export async function resolvePathOptions(options: NitroOptions) {
   options.rootDir = resolve(options.rootDir || ".") + "/";
-
+  options.buildDir = resolve(options.rootDir, options.buildDir || ".") + "/";
   options.workspaceDir ||=
     (await findWorkspaceDir(options.rootDir).catch(() => options.rootDir)) +
     "/";
 
   if (options.srcDir) {
+    if (options.serverDir === undefined) {
+      options.serverDir = options.srcDir;
+    }
     consola.warn(
       `"srcDir" option is deprecated. Please use "serverDir" instead.`
     );
   }
 
-  for (const key of ["serverDir", "srcDir", "buildDir"] as const) {
-    options[key] = resolve(options.rootDir, options[key] || ".") + "/";
+  if (options.serverDir !== false) {
+    options.serverDir =
+      resolve(options.rootDir, options.serverDir || ".") + "/";
   }
 
   options.alias ??= {};
@@ -72,11 +76,14 @@ export async function resolvePathOptions(options: NitroOptions) {
   options.plugins = options.plugins.map((p) => resolveNitroPath(p, options));
 
   // Resolve scanDirs
-  options.scanDirs.unshift(options.serverDir);
+  if (options.serverDir) {
+    options.scanDirs.unshift(options.serverDir);
+  }
   options.scanDirs = options.scanDirs.map((dir) =>
     resolve(options.rootDir, dir)
   );
   options.scanDirs = [...new Set(options.scanDirs.map((dir) => dir + "/"))];
+  console.log(options.scanDirs);
 
   // Resolve server entry
   if (!options.routes["/**"]?.handler) {

@@ -41,8 +41,8 @@ export async function watchDev(nitro: Nitro, config: RolldownOptions) {
     }
   });
 
-  const srcDirWatcher = watch(
-    nitro.options.serverDir,
+  const rootDirWatcher = watch(
+    nitro.options.rootDir,
     { persistent: false },
     (_event, filename) => {
       if (filename && /^server\.[mc]?[jt]sx?$/.test(filename)) {
@@ -54,7 +54,7 @@ export async function watchDev(nitro: Nitro, config: RolldownOptions) {
   nitro.hooks.hook("close", () => {
     watcher.close();
     scanDirsWatcher.close();
-    srcDirWatcher.close();
+    rootDirWatcher.close();
   });
 
   nitro.hooks.hook("rollup:reload", () => reload());
