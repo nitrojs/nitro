@@ -74,7 +74,7 @@ export async function resolvePathOptions(options: NitroOptions) {
   // Resolve scanDirs
   options.scanDirs.unshift(options.serverDir);
   options.scanDirs = options.scanDirs.map((dir) =>
-    resolve(options.serverDir, dir)
+    resolve(options.rootDir, dir)
   );
   options.scanDirs = [...new Set(options.scanDirs.map((dir) => dir + "/"))];
 
