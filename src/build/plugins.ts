@@ -131,7 +131,7 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
               ? [(id: string) => id?.endsWith(".wasm")]
               : []),
             runtimeDir,
-            nitro.options.srcDir,
+            nitro.options.serverDir,
             ...nitro.options.handlers
               .map((m) => m.handler)
               .filter((i) => typeof i === "string"),

@@ -35,7 +35,7 @@ export async function cloudflareDevModule(nitro: Nitro) {
     configPath = await findFile(
       ["wrangler.json", "wrangler.jsonc", "wrangler.toml"],
       {
-        startingFrom: nitro.options.srcDir,
+        startingFrom: nitro.options.rootDir,
       }
     ).catch(() => undefined);
   }

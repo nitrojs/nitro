@@ -5,7 +5,7 @@ export async function resolveStorageOptions(options: NitroOptions) {
   // Build-only storage
   const fsMounts = {
     root: resolve(options.rootDir),
-    src: resolve(options.srcDir),
+    src: resolve(options.serverDir),
     build: resolve(options.buildDir),
     cache: resolve(options.buildDir, "cache"),
   } as const;

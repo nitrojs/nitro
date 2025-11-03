@@ -11,12 +11,21 @@ const RESOLVE_EXTENSIONS = [".ts", ".js", ".mts", ".mjs", ".tsx", ".jsx"];
 
 export async function resolvePathOptions(options: NitroOptions) {
   options.rootDir = resolve(options.rootDir || ".") + "/";
+
   options.workspaceDir ||=
     (await findWorkspaceDir(options.rootDir).catch(() => options.rootDir)) +
     "/";
-  for (const key of ["srcDir", "buildDir"] as const) {
-    options[key] = resolve(options.rootDir, options[key] || ".");
+
+  if (options.srcDir) {
+    consola.warn(
+      `"srcDir" option is deprecated. Please use "serverDir" instead.`
+    );
   }
+
+  for (const key of ["serverDir", "srcDir", "buildDir"] as const) {
+    options[key] = resolve(options.rootDir, options[key] || ".") + "/";
+  }
+
   options.alias ??= {};
 
   // Resolve possibly template paths
@@ -63,9 +72,10 @@ export async function resolvePathOptions(options: NitroOptions) {
   options.plugins = options.plugins.map((p) => resolveNitroPath(p, options));
 
   // Resolve scanDirs
-  options.scanDirs.unshift(options.srcDir);
+  options.scanDirs.unshift(options.serverDir);
+  options.scanDirs.push(options.rootDir);
   options.scanDirs = options.scanDirs.map((dir) =>
-    resolve(options.srcDir, dir)
+    resolve(options.serverDir, dir)
   );
   options.scanDirs = [...new Set(options.scanDirs.map((dir) => dir + "/"))];
 

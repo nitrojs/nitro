@@ -28,7 +28,7 @@ export function resolveNitroPath(
     }
   }
 
-  return resolve(base || nitroOptions.srcDir, path);
+  return resolve(base || nitroOptions.rootDir, path);
 }
 
 function _compilePathTemplate(contents: string) {

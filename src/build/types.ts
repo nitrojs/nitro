@@ -241,9 +241,14 @@ export async function writeTypes(nitro: Nitro) {
           "./"
         ),
         join(relativeWithDot(tsconfigDir, nitro.options.rootDir), "**/*"),
-        ...(nitro.options.srcDir === nitro.options.rootDir
+        ...(nitro.options.serverDir === nitro.options.rootDir
           ? []
-          : [join(relativeWithDot(tsconfigDir, nitro.options.srcDir), "**/*")]),
+          : [
+              join(
+                relativeWithDot(tsconfigDir, nitro.options.serverDir),
+                "**/*"
+              ),
+            ]),
       ],
     });
 

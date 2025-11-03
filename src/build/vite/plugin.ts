@@ -361,7 +361,7 @@ async function setupNitroContext(
     ctx.pluginConfig.services ??= {};
     if (userConfig.environments?.ssr === undefined) {
       const ssrEntry = resolveModulePath("./entry-server", {
-        from: ["", "app", "src"].flatMap((d) =>
+        from: ["app", "src", ""].flatMap((d) =>
           ctx.nitro!.options.scanDirs.map((s) => join(s, d) + "/")
         ),
         extensions: DEFAULT_EXTENSIONS,

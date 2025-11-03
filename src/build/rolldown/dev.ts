@@ -42,7 +42,7 @@ export async function watchDev(nitro: Nitro, config: RolldownOptions) {
   });
 
   const srcDirWatcher = watch(
-    nitro.options.srcDir,
+    nitro.options.serverDir,
     { persistent: false },
     (_event, filename) => {
       if (filename && /^server\.[mc]?[jt]sx?$/.test(filename)) {

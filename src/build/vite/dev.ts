@@ -148,7 +148,7 @@ export async function configureViteDevServer(
   });
 
   const srcDirWatcher = fsWatch(
-    nitro.options.srcDir,
+    nitro.options.serverDir,
     { persistent: false },
     (_event, filename) => {
       if (filename && /^server\.[mc]?[jt]sx?$/.test(filename)) {
