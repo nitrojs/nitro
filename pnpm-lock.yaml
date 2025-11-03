@@ -455,12 +455,6 @@ importers:
 
   test/fixture:
     devDependencies:
-      '@types/express':
-        specifier: ^5.0.5
-        version: 5.0.5
-      express:
-        specifier: ^5.1.0
-        version: 5.1.0
       nitro:
         specifier: link:../..
         version: link:../..
