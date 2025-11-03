@@ -163,10 +163,23 @@ export class Router<T> {
   }
 
   compileToString(opts?: RouterCompilerOptions<T>) {
-    return (
-      this.#compiled ||
-      (this.#compiled = compileRouterToString(this.#router!, undefined, opts))
-    );
+    if (this.#compiled) {
+      return this.#compiled;
+    }
+    this.#compiled = compileRouterToString(this.#router!, undefined, opts);
+
+    // TODO: Upstream to rou3 compiler
+    const onlyWildcard =
+      this.routes.length === 1 &&
+      this.routes[0].route === "/**" &&
+      this.routes[0].method === "";
+    if (onlyWildcard) {
+      // Optimize for single wildcard route
+      const data = (opts?.serialize || JSON.stringify)(this.routes[0].data);
+      this.#compiled = /* js */ `/* @__PURE__ */ (() => {const data=${data};return ((_m, p)=>{return {data,params:{"_":p.slice(1)}};})})()`;
+    }
+
+    return this.#compiled;
   }
 
   match(method: string, path: string): undefined | T {
