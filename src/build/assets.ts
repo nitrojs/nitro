@@ -36,18 +36,18 @@ export async function copyPublicAssets(nitro: Nitro) {
     return;
   }
   for (const asset of nitro.options.publicAssets) {
-    const srcDir = asset.dir;
+    const assetDir = asset.dir;
     const dstDir = join(nitro.options.output.publicDir, asset.baseURL!);
-    if (await isDirectory(srcDir)) {
-      const includePatterns = getIncludePatterns(nitro, srcDir);
+    if (await isDirectory(assetDir)) {
+      const includePatterns = getIncludePatterns(nitro, assetDir);
       const publicAssets = await glob(includePatterns, {
-        cwd: srcDir,
+        cwd: assetDir,
         absolute: false,
         dot: true,
       });
       await Promise.all(
         publicAssets.map(async (file) => {
-          const src = join(srcDir, file);
+          const src = join(assetDir, file);
           const dst = join(dstDir, file);
           if (!existsSync(dst)) {
             await fsp.cp(src, dst);
@@ -64,7 +64,7 @@ export async function copyPublicAssets(nitro: Nitro) {
   );
 }
 
-function getIncludePatterns(nitro: Nitro, srcDir: string) {
+function getIncludePatterns(nitro: Nitro, assetDir: string) {
   return [
     "**",
     ...nitro.options.ignore.map((p) => {
@@ -75,7 +75,7 @@ function getIncludePatterns(nitro: Nitro, srcDir: string) {
         // Make non-glob patterns relative to publicAssetDir
         (pattern.startsWith("*")
           ? pattern
-          : relative(srcDir, resolve(nitro.options.serverDir, pattern)))
+          : relative(assetDir, resolve(nitro.options.serverDir, pattern)))
       );
     }),
   ].filter((p) => !PARENT_DIR_GLOB_RE.test(p));
