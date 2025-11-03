@@ -83,7 +83,6 @@ export async function resolvePathOptions(options: NitroOptions) {
     resolve(options.rootDir, dir)
   );
   options.scanDirs = [...new Set(options.scanDirs.map((dir) => dir + "/"))];
-  console.log(options.scanDirs);
 
   // Resolve server entry
   if (!options.routes["/**"]?.handler) {
