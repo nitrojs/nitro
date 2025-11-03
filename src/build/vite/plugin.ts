@@ -362,7 +362,9 @@ async function setupNitroContext(
     if (userConfig.environments?.ssr === undefined) {
       const ssrEntry = resolveModulePath("./entry-server", {
         from: ["app", "src", ""].flatMap((d) =>
-          ctx.nitro!.options.scanDirs.map((s) => join(s, d) + "/")
+          [ctx.nitro!.options.rootDir, ...ctx.nitro!.options.scanDirs].map(
+            (s) => join(s, d) + "/"
+          )
         ),
         extensions: DEFAULT_EXTENSIONS,
         try: true,
@@ -380,7 +382,7 @@ async function setupNitroContext(
       if (typeof ssrEntry === "string") {
         ssrEntry =
           resolveModulePath(ssrEntry, {
-            from: ctx.nitro.options.scanDirs,
+            from: [ctx.nitro.options.rootDir, ...ctx.nitro.options.scanDirs],
             extensions: DEFAULT_EXTENSIONS,
             suffixes: ["", "/index"],
             try: true,

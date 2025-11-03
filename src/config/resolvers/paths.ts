@@ -73,7 +73,6 @@ export async function resolvePathOptions(options: NitroOptions) {
 
   // Resolve scanDirs
   options.scanDirs.unshift(options.serverDir);
-  options.scanDirs.push(options.rootDir);
   options.scanDirs = options.scanDirs.map((dir) =>
     resolve(options.serverDir, dir)
   );
@@ -82,7 +81,7 @@ export async function resolvePathOptions(options: NitroOptions) {
   // Resolve server entry
   if (!options.routes["/**"]?.handler) {
     const serverEntry = resolveModulePath("./server", {
-      from: options.scanDirs,
+      from: [options.rootDir, ...options.scanDirs],
       extensions: RESOLVE_EXTENSIONS,
       try: true,
     });
@@ -99,7 +98,7 @@ export async function resolvePathOptions(options: NitroOptions) {
     options.renderer.entry = resolveModulePath(
       resolveNitroPath(options.renderer?.entry, options),
       {
-        from: options.scanDirs,
+        from: [options.rootDir, ...options.scanDirs],
         extensions: RESOLVE_EXTENSIONS,
       }
     );
@@ -110,13 +109,13 @@ export async function resolvePathOptions(options: NitroOptions) {
     options.renderer.template = resolveModulePath(
       resolveNitroPath(options.renderer?.template, options),
       {
-        from: options.scanDirs,
+        from: [options.rootDir, ...options.scanDirs],
         extensions: [".html"],
       }
     )!;
   } else if (!options.renderer?.entry) {
     const defaultIndex = resolveModulePath("./index.html", {
-      from: options.scanDirs,
+      from: [options.rootDir, ...options.scanDirs],
       extensions: [".html"],
       try: true,
     });
