@@ -75,7 +75,7 @@ function getIncludePatterns(nitro: Nitro, assetDir: string) {
         // Make non-glob patterns relative to publicAssetDir
         (pattern.startsWith("*")
           ? pattern
-          : relative(assetDir, resolve(nitro.options.serverDir, pattern)))
+          : relative(assetDir, resolve(nitro.options.rootDir, pattern)))
       );
     }),
   ].filter((p) => !PARENT_DIR_GLOB_RE.test(p));
