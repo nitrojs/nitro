@@ -1,10 +1,4 @@
-import type {
-  EventHandler,
-  HTTPError,
-  HTTPMethod,
-  HTTPEvent,
-  HTTPHandler,
-} from "h3";
+import type { HTTPError, HTTPMethod, HTTPEvent, HTTPHandler } from "h3";
 import type { PresetName } from "../presets/index.ts";
 import type {
   OperationObject,
@@ -14,8 +8,9 @@ import type {
 
 type MaybeArray<T> = T | T[];
 
-/** @exprerimental */
+/** @experimental */
 export interface NitroRouteMeta {
+  format: EventHandlerFormat;
   openAPI?: OperationObject & {
     $global?: Pick<OpenAPI3, "components"> & Extensable;
   };
@@ -45,6 +40,8 @@ interface NitroHandlerCommon {
   meta?: NitroRouteMeta;
 }
 
+export type EventHandlerFormat = "web" | "node";
+
 export interface NitroEventHandler extends NitroHandlerCommon {
   /**
    * Use lazy loading to import handler
@@ -55,6 +52,13 @@ export interface NitroEventHandler extends NitroHandlerCommon {
    * Path to event handler
    */
   handler: string;
+
+  /**
+   * Event handler type.
+   *
+   * Default is `"web"`. If set to `"node"`, the handler will be converted into a web compatible structure.
+   */
+  format?: EventHandlerFormat;
 
   /*
    * Environments to include and bundle this handler

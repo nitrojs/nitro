@@ -58,10 +58,11 @@ export function initNitroRouting(nitro: Nitro) {
       ...nitro.scannedHandlers,
       ...nitro.options.handlers,
     ].filter((h) => h && !h.middleware && matchesEnv(h));
-    if (nitro.options.serverEntry) {
+    if (nitro.options.serverEntry?.handler) {
       _routes.unshift({
         route: "/**",
-        handler: nitro.options.serverEntry,
+        handler: nitro.options.serverEntry.handler,
+        format: nitro.options.serverEntry.format,
       });
     }
     if (nitro.options.renderer?.entry) {

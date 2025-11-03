@@ -28,7 +28,8 @@ export function routing(nitro: Nitro) {
 
         return /* js */ `
 import * as __routeRules__ from "nitro/runtime/internal/route-rules";
-${nitro.options.serverEntry ? `import __serverEntry__ from ${JSON.stringify(nitro.options.serverEntry)};` : ""}
+${nitro.options.serverEntry?.handler ? `import __serverEntry__ from ${JSON.stringify(nitro.options.serverEntry.handler)};` : ""}
+import * as srvxNode from "srvx/node"
 import * as h3 from "h3";
 
 export const findRouteRules = ${nitro.routing.routeRules.compileToString({ serialize: serializeRouteRule, matchAll: true })}
@@ -48,7 +49,7 @@ ${allHandlers
   .filter((h) => h.lazy)
   .map(
     (h) =>
-      /* js */ `const ${h._importHash} = h3.defineLazyEventHandler(() => import("${h.handler}"));`
+      /* js */ `const ${h._importHash} = h3.defineLazyEventHandler(() => import("${h.handler}")${h.format === "node" ? ".then(m => srvxNode.toFetchHandler(m.default))" : ""});`
   )
   .join("\n")}
 
@@ -121,7 +122,14 @@ function serializeHandler(
 function serializeHandlerFn(
   h: NitroEventHandler & { _importHash: string }
 ): string {
-  return `${h.lazy ? h._importHash : `h3.toEventHandler(${h._importHash})`}`;
+  let code = h._importHash;
+  if (!h.lazy) {
+    if (h.format === "node") {
+      code = `srvxNode.toFetchHandler(${code})`;
+    }
+    code = `h3.toEventHandler(${code})`;
+  }
+  return code;
 }
 
 function serializeRouteRule(h: NitroRouteRules & { _route: string }): string {

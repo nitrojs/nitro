@@ -70,9 +70,12 @@ export async function resolvePathOptions(options: NitroOptions) {
   options.scanDirs = [...new Set(options.scanDirs.map((dir) => dir + "/"))];
 
   // Resolve server entry
-  if (options.serverEntry) {
-    options.serverEntry = resolveModulePath(
-      resolveNitroPath(options.serverEntry, options),
+  if (typeof options.serverEntry === "string") {
+    options.serverEntry = { handler: options.serverEntry };
+  }
+  if (options.serverEntry?.handler) {
+    options.serverEntry.handler = resolveModulePath(
+      resolveNitroPath(options.serverEntry.handler, options),
       {
         from: options.scanDirs,
         extensions: RESOLVE_EXTENSIONS,
@@ -85,7 +88,8 @@ export async function resolvePathOptions(options: NitroOptions) {
       try: true,
     });
     if (defaultServerEntry) {
-      options.serverEntry = defaultServerEntry;
+      options.serverEntry ??= {};
+      options.serverEntry.handler = defaultServerEntry;
       consola.info(
         `Using \`${prettyPath(defaultServerEntry)}\` as server entry.`
       );

@@ -28,6 +28,7 @@ import type {
   NitroDevEventHandler,
   NitroErrorHandler,
   NitroEventHandler,
+  EventHandlerFormat,
 } from "./handler.ts";
 import type { NitroHooks } from "./hooks.ts";
 import type { NitroModuleInput } from "./module.ts";
@@ -182,7 +183,7 @@ export interface NitroOptions extends PresetOptions {
   // Routing
   baseURL: string;
   apiBaseURL: string;
-  serverEntry: string;
+  serverEntry: { handler?: string; format?: EventHandlerFormat } | undefined;
   handlers: NitroEventHandler[];
   routeRules: { [path: string]: NitroRouteRules };
   devHandlers: NitroDevEventHandler[];
@@ -269,6 +270,7 @@ export interface NitroConfig
       Omit<
         NitroOptions,
         | "routeRules"
+        | "serverEntry"
         | "rollupConfig"
         | "preset"
         | "compatibilityDate"
@@ -284,6 +286,7 @@ export interface NitroConfig
   rollupConfig?: Partial<RollupConfig>;
   compatibilityDate?: CompatibilityDateSpec;
   unenv?: UnenvPreset | UnenvPreset[];
+  serverEntry?: string | NitroOptions["serverEntry"];
 }
 
 // ------------------------------------------------------------
