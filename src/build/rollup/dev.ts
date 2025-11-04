@@ -34,13 +34,7 @@ export async function watchDev(nitro: Nitro, rollupConfig: RollupConfig) {
     join(dir, "modules"),
   ]);
 
-  const watchReloadEvents = new Set([
-    "add",
-    "addDir",
-    "unlink",
-    "unlinkDir",
-    "change",
-  ]);
+  const watchReloadEvents = new Set(["add", "addDir", "unlink", "unlinkDir"]);
   const scanDirsWatcher = chokidarWatch(scanDirs, {
     ignoreInitial: true,
   }).on("all", (event, path, stat) => {
