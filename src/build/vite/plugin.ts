@@ -342,7 +342,7 @@ async function setupNitroContext(
 ) {
   // Nitro config overrides
   const nitroConfig = {
-    dev: configEnv.mode === "development",
+    dev: configEnv.command === "serve",
     rootDir: userConfig.root,
     ...defu(ctx.pluginConfig.config, userConfig.nitro),
   };
