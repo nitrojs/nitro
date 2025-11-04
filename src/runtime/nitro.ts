@@ -13,6 +13,3 @@ export { defineNitroConfig as defineConfig };
 export { defineNitroPlugin } from "./internal/plugin.ts";
 export { defineRouteMeta } from "./internal/meta.ts";
 export { defineNitroErrorHandler } from "./internal/error/utils.ts";
-
-// Context
-export { useRequest } from "./internal/context.ts";
