@@ -138,7 +138,7 @@ export async function configureViteDevServer(
     join(dir, "modules"),
   ]);
 
-  const watchReloadEvents = new Set(["add", "addDir", "unlink", "unlinkDir"]);
+  const watchReloadEvents = new Set(["add", "addDir", "unlink", "unlinkDir", "change"]);
   const scanDirsWatcher = chokidarWatch(scanDirs, {
     ignoreInitial: true,
   }).on("all", (event, path, stat) => {

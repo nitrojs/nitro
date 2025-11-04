@@ -18,6 +18,7 @@ import {
   createServiceEnvironments,
 } from "./env.ts";
 import { configureViteDevServer } from "./dev.ts";
+import { scanHandlers } from "../../scan.ts";
 import { runtimeDir } from "nitro/runtime/meta";
 import { resolveModulePath } from "exsolve";
 import { defu } from "defu";
@@ -240,7 +241,7 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
 
     // Automatically reload the client when a server module is updated
     // see: https://github.com/vitejs/vite/issues/19114
-    hotUpdate(options) {
+    async hotUpdate(options) {
       if (
         this.environment.name === "client" ||
         ctx.pluginConfig.experimental?.serverReload === false
@@ -266,7 +267,17 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
         hasServerOnlyModule = true;
       }
       if (hasServerOnlyModule) {
+        // Rescan handlers and sync routing
+        if (ctx.nitro) {
+          await scanHandlers(ctx.nitro);
+          ctx.nitro.routing.sync();
+        }
+        // Send full reload to browser
         options.server.ws.send({ type: "full-reload" });
+        // Send full reload to worker
+        if (ctx.devWorker) {
+          ctx.devWorker.sendMessage({ type: "full-reload" });
+        }
         return [];
       }
     },
