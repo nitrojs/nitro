@@ -242,42 +242,37 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
     // Automatically reload the client when a server module is updated
     // see: https://github.com/vitejs/vite/issues/19114
     async hotUpdate(options) {
-      if (
-        this.environment.name === "client" ||
-        ctx.pluginConfig.experimental?.serverReload === false
-      ) {
+      if (ctx.pluginConfig.experimental?.serverReload === false) {
+        return;
+      }
+      if (this.environment.config.consumer === "client") {
         return;
       }
       let hasServerOnlyModule = false;
-      const invalidated = new Set<EnvironmentModuleNode>();
+      const seen = new Set<EnvironmentModuleNode>();
+      const clientEnvs = Object.values(options.server.environments).filter(
+        (env) => env.config.consumer === "client"
+      );
       for (const mod of options.modules) {
         if (!mod.id) continue;
-        // Check if module exists in the client module graph
-        const clientModule =
-          options.server.environments.client.moduleGraph.getModuleById(mod.id);
-        // If so, the client env will handle the update
-        if (clientModule) continue;
+        // Check if a client env will handle the update
+        if (clientEnvs.some((env) => env.moduleGraph.getModuleById(mod.id!))) {
+          continue;
+        }
         // Must be a module that is only SSR, invalidate it
+        hasServerOnlyModule = true;
         this.environment.moduleGraph.invalidateModule(
           mod,
-          invalidated,
+          seen,
           options.timestamp,
           false
         );
-        hasServerOnlyModule = true;
       }
       if (hasServerOnlyModule) {
-        // Rescan handlers and sync routing
-        if (ctx.nitro) {
-          await scanHandlers(ctx.nitro);
-          ctx.nitro.routing.sync();
-        }
-        // Send full reload to browser
-        options.server.ws.send({ type: "full-reload" });
+        // Send full reload to env
+        this.environment.hot.send({ type: "full-reload" });
         // Send full reload to worker
-        if (ctx.devWorker) {
-          ctx.devWorker.sendMessage({ type: "full-reload" });
-        }
+        options.server.ws.send({ type: "full-reload" });
         return [];
       }
     },
