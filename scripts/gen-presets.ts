@@ -6,7 +6,6 @@ import { createJiti } from "jiti";
 import { findTypeExports } from "mlly";
 import type { NitroPreset, NitroPresetMeta } from "nitro/types";
 import { camelCase, kebabCase, pascalCase, snakeCase } from "scule";
-import { stubAlias } from "../build.config.ts";
 
 const autoGenHeader = /* ts */ `// Auto-generated using gen-presets script\n`;
 
@@ -22,7 +21,7 @@ const presetDirs: string[] = readdirSync(presetsDir, { withFileTypes: true })
   .map((dir) => dir.name);
 
 // --- Load presets ---
-const jiti = createJiti(presetsDir, { alias: stubAlias });
+const jiti = createJiti(presetsDir);
 const allPresets: (NitroPreset & { _meta?: NitroPresetMeta })[] = [];
 for (const preset of presetDirs) {
   const presetPath = resolve(presetsDir, preset, "preset.ts");

@@ -7,7 +7,7 @@
   "license": "MIT",
   "type": "module",
   "exports": {
-    ".": "./lib/index.mjs",
+    ".": "./dist/runtime/nitro.mjs",
     "./package.json": "./package.json",
     "./builder": "./dist/builder.mjs",
     "./config": "./lib/config.mjs",
