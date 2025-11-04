@@ -29,8 +29,9 @@ export function rendererTemplate(nitro: Nitro) {
             });
             return /* js */ `
             import { renderToResponse } from 'rendu'
+            import { serverFetch } from 'nitro/runtime'
             const template = ${template};
-            export const rendererTemplate = (request) => renderToResponse(template, { request })
+            export const rendererTemplate = (request) => renderToResponse(template, { request, context: { serverFetch } })
             `;
           } else {
             return /* js */ `

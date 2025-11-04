@@ -5,9 +5,10 @@ import { getSocketAddress, isSocketSupported } from "get-port-please";
 
 // ----- Environment runners -----
 
-const envs = { nitro: undefined, ssr: undefined };
-
-globalThis.__nitro_vite_envs__ = envs;
+const envs = (globalThis.__nitro_vite_envs__ ??= {
+  nitro: undefined,
+  ssr: undefined,
+});
 
 class EnvRunner {
   constructor({ name, entry }) {
