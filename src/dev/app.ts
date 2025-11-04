@@ -63,15 +63,14 @@ export class NitroDevApp {
 
     // Serve asset dirs
     for (const asset of this.nitro.options.publicAssets) {
-      const assetRoute = joinURL(
+      const assetBase = joinURL(
         this.nitro.options.baseURL,
-        asset.baseURL || "/",
-        "**"
+        asset.baseURL || "/"
       );
-      app.use(assetRoute, (event) =>
+      app.use(joinURL(assetBase, "**"), (event) =>
         serveStaticDir(event, {
           dir: asset.dir,
-          base: asset.baseURL || "/",
+          base: assetBase,
           fallthrough: asset.fallthrough,
         })
       );
