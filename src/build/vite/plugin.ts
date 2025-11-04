@@ -245,7 +245,8 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
       if (ctx.pluginConfig.experimental?.serverReload === false) {
         return;
       }
-      if (this.environment.config.consumer === "client") {
+      const env = this.environment;
+      if (env.config.consumer === "client") {
         return;
       }
       let hasServerOnlyModule = false;
@@ -261,17 +262,12 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
         }
         // Must be a module that is only SSR, invalidate it
         hasServerOnlyModule = true;
-        this.environment.moduleGraph.invalidateModule(
-          mod,
-          seen,
-          options.timestamp,
-          false
-        );
+        env.moduleGraph.invalidateModule(mod, seen, options.timestamp, false);
       }
       if (hasServerOnlyModule) {
-        // Send full reload to env
-        this.environment.hot.send({ type: "full-reload" });
-        // Send full reload to worker
+        // Send full reload to current (server) env
+        env.hot.send({ type: "full-reload" });
+        // Send full reload to the browser (client) envs
         options.server.ws.send({ type: "full-reload" });
         return [];
       }
