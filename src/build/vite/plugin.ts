@@ -254,19 +254,16 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
         (env) => env.config.consumer === "client"
       );
       for (const mod of options.modules) {
-        if (!mod.id) continue;
-        // Check if a client env will handle the update
-        if (clientEnvs.some((env) => env.moduleGraph.getModuleById(mod.id!))) {
-          continue;
+        if (
+          mod.id &&
+          !clientEnvs.some((env) => env.moduleGraph.getModuleById(mod.id!))
+        ) {
+          hasServerOnlyModule = true;
+          env.moduleGraph.invalidateModule(mod, seen, options.timestamp, false);
         }
-        // Must be a module that is only SSR, invalidate it
-        hasServerOnlyModule = true;
-        env.moduleGraph.invalidateModule(mod, seen, options.timestamp, false);
       }
       if (hasServerOnlyModule) {
-        // Send full reload to current (server) env
         env.hot.send({ type: "full-reload" });
-        // Send full reload to the browser (client) envs
         options.server.ws.send({ type: "full-reload" });
         return [];
       }
