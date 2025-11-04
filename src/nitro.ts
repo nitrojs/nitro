@@ -14,6 +14,7 @@ import { scanAndSyncOptions, scanHandlers } from "./scan.ts";
 import { addNitroTasksVirtualFile } from "./task.ts";
 import { createStorage } from "./utils/storage.ts";
 import { initNitroRouting } from "./routing.ts";
+import { registerNitroInstance } from "./global.ts";
 
 export async function createNitro(
   config: NitroConfig = {},
@@ -30,12 +31,18 @@ export async function createNitro(
     routing: {} as any,
     logger: consola.withTag("nitro"),
     scannedHandlers: [],
+    fetch: () => {
+      throw new Error("no dev server attached!");
+    },
     close: () => Promise.resolve(nitro.hooks.callHook("close")),
     storage: undefined as any,
     async updateConfig(config: NitroDynamicConfig) {
       updateNitroConfig(nitro, config);
     },
   };
+
+  // Global setup
+  registerNitroInstance(nitro);
 
   // Init routers
   initNitroRouting(nitro);

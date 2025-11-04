@@ -6,7 +6,6 @@ import { formatCompatibilityDate } from "compatx";
 import { colors as C } from "consola/utils";
 import { copyPublicAssets } from "../../builder.ts";
 import { existsSync } from "node:fs";
-import { runtimeDir } from "nitro/runtime/meta";
 import { writeBuildInfo } from "../info.ts";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { isTest, isCI } from "std-env";
@@ -155,8 +154,6 @@ export function prodSetup(ctx: NitroPluginContext): string {
   });
 
   return /* js */ `
-import { setupVite } from "${resolve(runtimeDir, "internal/vite/prod-setup.mjs")}";
-
 function lazyService(loader) {
   let promise, mod
   return {
@@ -179,6 +176,6 @@ ${serviceEntries
   .join(",\n")}
 };
 
-setupVite({ services });
+globalThis.__nitro_vite_envs__ = services;
   `;
 }

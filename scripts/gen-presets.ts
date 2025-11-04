@@ -1,12 +1,10 @@
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { consola } from "consola";
-import { createJiti } from "jiti";
 import { findTypeExports } from "mlly";
 import type { NitroPreset, NitroPresetMeta } from "nitro/types";
 import { camelCase, kebabCase, pascalCase, snakeCase } from "scule";
-import { stubAlias } from "../build.config.ts";
 
 const autoGenHeader = /* ts */ `// Auto-generated using gen-presets script\n`;
 
@@ -22,13 +20,12 @@ const presetDirs: string[] = readdirSync(presetsDir, { withFileTypes: true })
   .map((dir) => dir.name);
 
 // --- Load presets ---
-const jiti = createJiti(presetsDir, { alias: stubAlias });
 const allPresets: (NitroPreset & { _meta?: NitroPresetMeta })[] = [];
 for (const preset of presetDirs) {
   const presetPath = resolve(presetsDir, preset, "preset.ts");
-  const _presets = await jiti
-    .import(presetPath)
-    .then((mod) => (mod as any).default || mod);
+  const _presets = await import(pathToFileURL(presetPath).href).then(
+    (mod) => (mod as any).default || mod
+  );
   if (!Array.isArray(_presets)) {
     throw new TypeError(`Preset ${preset} does not export an array`);
   }

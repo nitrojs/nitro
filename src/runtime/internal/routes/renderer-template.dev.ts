@@ -1,4 +1,5 @@
 import type { H3Event } from "h3";
+import { serverFetch } from "../app.ts";
 import {
   rendererTemplate,
   rendererTemplateFile,
@@ -22,5 +23,6 @@ export default async function renderIndexHTML(event: H3Event) {
   const template = compileTemplate(html, { filename: rendererTemplateFile });
   return renderToResponse(template, {
     request: event.req as Request,
+    context: { serverFetch },
   });
 }

@@ -30,7 +30,7 @@ jobs:
       - run: pnpm build
       - run: pnpm vitest --coverage
       # - uses: codecov/codecov-action@v3
-      - run: pnpm dlx pkg-pr-new publish
+      - run: pnpm dlx pkg-pr-new publish || true
         if: ${{ matrix.os == 'ubuntu-latest' }}
 
   publish:

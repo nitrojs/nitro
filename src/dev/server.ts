@@ -58,6 +58,9 @@ export class NitroDevServer extends NitroDevApp implements DevRPCHooks {
       }
     }
 
+    // Attach to Nitro.fetch
+    nitro.fetch = this.fetch.bind(this);
+
     this.#entry = resolve(
       nitro.options.output.dir,
       nitro.options.output.serverDir,

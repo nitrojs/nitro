@@ -5,8 +5,8 @@ import type {
   NitroAsyncContext,
   NitroRuntimeHooks,
 } from "nitro/types";
-import type { ServerRequest } from "srvx";
-import type { H3Config, Middleware } from "h3";
+import type { ServerRequest, ServerRequestContext } from "srvx";
+import type { H3Config, H3EventContext, Middleware } from "h3";
 import { H3Core, toRequest } from "h3";
 import { HookableCore } from "hookable";
 import { nitroAsyncContext } from "./context.ts";
@@ -29,6 +29,10 @@ import {
   hasPlugins,
 } from "#nitro-internal-virtual/feature-flags";
 
+declare global {
+  var __nitro__: NitroApp | undefined;
+}
+
 export function useNitroApp(): NitroApp {
   return ((useNitroApp as any).__instance__ ??= initNitroApp());
 }
@@ -42,6 +46,33 @@ export function useNitroHooks(): HookableCore<NitroRuntimeHooks> {
   return (nitroApp.hooks = new HookableCore<NitroRuntimeHooks>());
 }
 
+export function serverFetch(
+  resource: string | URL | Request,
+  init?: RequestInit,
+  context?: ServerRequestContext | H3EventContext
+): Promise<Response> {
+  const req = toRequest(resource, init);
+  req.context = { ...req.context, ...context };
+  const appHandler = useNitroApp().fetch;
+  try {
+    return Promise.resolve(appHandler(req));
+  } catch (error) {
+    return Promise.reject(error);
+  }
+}
+
+export function fetch(
+  resource: string | URL | Request,
+  init?: RequestInit,
+  context?: ServerRequestContext | H3EventContext
+): Promise<Response> {
+  if (typeof resource === "string" && resource.charCodeAt(0) === 47) {
+    return serverFetch(resource, init, context);
+  }
+  resource = (resource as any)._request || resource; // unwrap srvx request
+  return fetch(resource, init);
+}
+
 function initNitroApp(): NitroApp {
   const nitroApp = createNitroApp();
   if (hasPlugins) {
@@ -49,11 +80,12 @@ function initNitroApp(): NitroApp {
       try {
         plugin(nitroApp);
       } catch (error: any) {
-        nitroApp.captureError(error, { tags: ["plugin"] });
+        nitroApp.captureError?.(error, { tags: ["plugin"] });
         throw error;
       }
     }
   }
+  globalThis.__nitro__ = nitroApp;
   return nitroApp;
 }
 
@@ -112,28 +144,8 @@ function createNitroApp(): NitroApp {
     };
   }
 
-  const request: (
-    input: ServerRequest | URL | string,
-    init?: RequestInit,
-    context?: any
-  ) => Promise<Response> = (input, init, context) => {
-    const req = toRequest(input, init);
-    req.context = { ...req.context, ...context };
-    return Promise.resolve(appHandler(req));
-  };
-
-  const nativeFetch = globalThis.fetch;
-  globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
-    if (typeof input === "string" && input.charCodeAt(0) === 47 /* '/' */) {
-      return request(input, init); // local request
-    }
-    input = (input as any)._request || input; // unwrap srvx Request
-    return nativeFetch(input, init);
-  };
-
   const app: NitroApp = {
     fetch: appHandler,
-    request,
     h3: h3App,
     hooks,
     captureError,

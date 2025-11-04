@@ -6,9 +6,10 @@ import { useNitroApp, useNitroHooks } from "nitro/runtime";
 const nitroApp = useNitroApp();
 const nitroHooks = useNitroHooks();
 
-export const appFetch = nitroApp.request;
-
-export const closePrerenderer = () => nitroHooks.callHook("close");
+export default {
+  fetch: nitroApp.fetch,
+  close: () => nitroHooks.callHook("close"),
+};
 
 nitroHooks.hook("error", (error, context) => {
   if (

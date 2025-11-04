@@ -1,8 +1,9 @@
+import { defineConfig } from "nitro";
+
 import { fileURLToPath } from "node:url";
-import { defineNitroConfig } from "nitro/config";
 import { dirname, resolve } from "node:path";
 
-export default defineNitroConfig({
+export default defineConfig({
   compressPublicAssets: true,
   compatibilityDate: "latest",
   serverDir: "server",

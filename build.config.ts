@@ -1,6 +1,4 @@
 import { rm } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
-import { resolve } from "pathe";
 import { defineBuildConfig } from "obuild/config";
 
 import { resolveModulePath } from "exsolve";
@@ -10,9 +8,6 @@ import { parseNodeModulePath } from "mlly";
 const pkg = await import("./package.json", { with: { type: "json" } }).then(
   (r) => r.default || r
 );
-
-const srcDir = fileURLToPath(new URL("src", import.meta.url));
-const libDir = fileURLToPath(new URL("lib", import.meta.url));
 
 export const distSubpaths = ["builder", "presets", "runtime", "types", "vite"];
 export const libSubpaths = [
@@ -39,25 +34,6 @@ const tracePkgs = [
   "youch", // used by error handler
   "youch-core", // used by error handler
 ];
-
-export const stubAlias = {
-  nitro: resolve(libDir, "index.mjs"),
-  ...Object.fromEntries(
-    distSubpaths.map((subpath) => [
-      `nitro/${subpath}`,
-      resolve(
-        srcDir,
-        subpath === "builder" ? "builder.ts" : `${subpath}/index.ts`
-      ),
-    ])
-  ),
-  ...Object.fromEntries(
-    libSubpaths.map((subpath) => [
-      `nitro/${subpath}`,
-      resolve(libDir, `${subpath}.mjs`),
-    ])
-  ),
-};
 
 export default defineBuildConfig({
   entries: [
@@ -88,7 +64,6 @@ export default defineBuildConfig({
 
       config.external ??= [];
       (config.external as string[]).push(
-        "typescript",
         "nitro",
         ...[...distSubpaths, ...libSubpaths].map(
           (subpath) => `nitro/${subpath}`
@@ -96,6 +71,7 @@ export default defineBuildConfig({
         ...Object.keys(pkg.dependencies),
         ...Object.keys(pkg.peerDependencies),
         ...tracePkgs,
+        "typescript",
         "firebase-functions",
         "@scalar/api-reference",
         "get-port-please",

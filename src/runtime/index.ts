@@ -23,7 +23,12 @@ export {
 // ---- Internals that depends on virtual imports should come last ---- //
 
 // App
-export { useNitroApp, useNitroHooks } from "./internal/app.ts";
+export {
+  useNitroApp,
+  useNitroHooks,
+  serverFetch,
+  fetch,
+} from "./internal/app.ts";
 
 // Storage
 export { useStorage } from "./internal/storage.ts";

@@ -353,7 +353,7 @@ async function setupNitroContext(
 ) {
   // Nitro config overrides
   const nitroConfig = {
-    dev: configEnv.mode === "development",
+    dev: configEnv.command === "serve",
     rootDir: userConfig.root,
     ...defu(ctx.pluginConfig.config, userConfig.nitro),
   };
@@ -458,6 +458,7 @@ async function setupNitroContext(
   // Create dev worker
   if (ctx.nitro.options.dev && !ctx.devWorker) {
     ctx.devWorker = createDevWorker(ctx);
+    ctx.nitro.fetch = (req) => ctx.devWorker!.fetch(req);
   }
 
   // Create dev app

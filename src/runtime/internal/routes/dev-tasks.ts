@@ -1,5 +1,5 @@
 import { H3 } from "h3";
-import { runTask } from "nitro/runtime";
+import { runTask } from "../task.ts";
 
 import { scheduledTasks, tasks } from "#nitro-internal-virtual/tasks";
 

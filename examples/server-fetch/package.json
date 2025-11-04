@@ -1,0 +1,12 @@
+{
+  "name": "example-server-fetch",
+  "private": true,
+  "scripts": {
+    "dev": "nitro dev",
+    "build": "nitro build"
+  },
+  "devDependencies": {
+    "nitro": "latest",
+    "vite": "^7.1.12"
+  }
+}

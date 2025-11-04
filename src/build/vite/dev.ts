@@ -175,7 +175,7 @@ export async function configureViteDevServer(
         .then((r) =>
           r.replace(
             "<!--ssr-outlet-->",
-            `{{{ fetch($REQUEST, { viteEnv: "ssr" }) }}}`
+            `{{{ globalThis.__nitro_vite_envs__?.["ssr"]?.fetch($REQUEST) || "" }}}`
           )
         );
     },
