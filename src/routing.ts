@@ -28,15 +28,17 @@ export function initNitroRouting(nitro: Nitro) {
   type MaybeArray<T> = T | T[];
   const routes = new Router<
     MaybeArray<NitroEventHandler & { _importHash: string }>
-  >();
+  >(nitro.options.baseURL);
 
-  const routeRules = new Router<NitroRouteRules & { _route: string }>();
+  const routeRules = new Router<NitroRouteRules & { _route: string }>(
+    nitro.options.baseURL
+  );
 
   const globalMiddleware: (NitroEventHandler & { _importHash: string })[] = [];
 
   const routedMiddleware = new Router<
     NitroEventHandler & { _importHash: string }
-  >();
+  >(nitro.options.baseURL);
 
   const sync = () => {
     // Update route rules
@@ -135,9 +137,14 @@ export class Router<T> {
   #routes?: Route<T>[];
   #router?: RouterContext<T>;
   #compiled?: string;
+  #baseURL: string;
 
-  constructor() {
+  constructor(baseURL?: string) {
     this._update([]);
+    this.#baseURL = baseURL || "";
+    if (this.#baseURL.endsWith("/")) {
+      this.#baseURL = this.#baseURL.slice(0, -1);
+    }
   }
 
   get routes() {
@@ -149,7 +156,12 @@ export class Router<T> {
     this.#router = createRouter<T>();
     this.#compiled = undefined;
     for (const route of routes) {
-      addRoute(this.#router, route.method, route.route, route.data);
+      addRoute(
+        this.#router,
+        route.method,
+        this.#baseURL + route.route,
+        route.data
+      );
     }
     if (opts?.merge) {
       mergeCatchAll(this.#router);
