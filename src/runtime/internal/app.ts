@@ -34,7 +34,7 @@ declare global {
 }
 
 export function useNitroApp(): NitroApp {
-  return (globalThis.__nitro__ ??= initNitroApp());
+  return ((useNitroApp as any).__instance__ ??= initNitroApp());
 }
 
 export function useNitroHooks(): HookableCore<NitroRuntimeHooks> {
@@ -85,6 +85,7 @@ function initNitroApp(): NitroApp {
       }
     }
   }
+  globalThis.__nitro__ = nitroApp;
   return nitroApp;
 }
 
