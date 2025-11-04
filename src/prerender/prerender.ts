@@ -22,6 +22,7 @@ import {
   matchesIgnorePattern,
 } from "./utils.ts";
 import { scanUnprefixedPublicAssets } from "../build/assets.ts";
+import { toRequest } from "h3";
 
 const JsonSigRx = /^\s*["[{]|^\s*-?\d{1,16}(\.\d{1,17})?([Ee][+-]?\d+)?\s*$/; // From unjs/destr
 
@@ -224,7 +225,7 @@ export async function prerender(nitro: Nitro) {
     // Fetch the route
     const encodedRoute = encodeURI(route);
 
-    const req = new Request(withBase(encodedRoute, nitro.options.baseURL), {
+    const req = toRequest(withBase(encodedRoute, nitro.options.baseURL), {
       headers: [["x-nitro-prerender", encodedRoute]],
       // TODO
       // retry: nitro.options.prerender.retry,
