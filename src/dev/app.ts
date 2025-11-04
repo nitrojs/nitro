@@ -4,9 +4,8 @@ import type { H3Event, HTTPHandler } from "h3";
 import { H3, toEventHandler, serveStatic } from "h3";
 import { joinURL } from "ufo";
 import mime from "mime";
-import { join, resolve } from "pathe";
+import { join, resolve, extname } from "pathe";
 import { readFile, stat } from "node:fs/promises";
-import { extname } from "node:path";
 import { createVFSHandler } from "./vfs.ts";
 import { createHTTPProxy } from "./proxy.ts";
 
