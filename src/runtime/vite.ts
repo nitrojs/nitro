@@ -13,8 +13,8 @@ export function fetchViteEnv(
   input: RequestInfo | URL,
   init?: RequestInit
 ) {
-  const services = globalThis.__nitro_vite_envs__ || {};
-  const viteEnv = services[viteEnvName];
+  const envs = globalThis.__nitro_vite_envs__ || {};
+  const viteEnv = envs[viteEnvName];
   if (!viteEnv) {
     throw HTTPError.status(404);
   }
