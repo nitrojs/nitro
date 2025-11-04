@@ -240,7 +240,7 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
 
     // Automatically reload the client when a server module is updated
     // see: https://github.com/vitejs/vite/issues/19114
-    async hotUpdate(options) {
+    async hotUpdate({ server, modules, timestamp }) {
       const env = this.environment;
       if (
         ctx.pluginConfig.experimental?.serverReload === false ||
@@ -248,23 +248,23 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
       ) {
         return;
       }
-      let hasServerOnlyModule = false;
-      const seen = new Set<EnvironmentModuleNode>();
-      const clientEnvs = Object.values(options.server.environments).filter(
+      const clientEnvs = Object.values(server.environments).filter(
         (env) => env.config.consumer === "client"
       );
-      for (const mod of options.modules) {
+      let hasServerOnlyModule = false;
+      const invalidated = new Set<EnvironmentModuleNode>();
+      for (const mod of modules) {
         if (
           mod.id &&
           !clientEnvs.some((env) => env.moduleGraph.getModuleById(mod.id!))
         ) {
           hasServerOnlyModule = true;
-          env.moduleGraph.invalidateModule(mod, seen, options.timestamp, false);
+          env.moduleGraph.invalidateModule(mod, invalidated, timestamp, false);
         }
       }
       if (hasServerOnlyModule) {
         env.hot.send({ type: "full-reload" });
-        options.server.ws.send({ type: "full-reload" });
+        server.ws.send({ type: "full-reload" });
         return [];
       }
     },
