@@ -124,9 +124,6 @@ importers:
       '@types/semver':
         specifier: ^7.7.1
         version: 7.7.1
-      '@types/serve-static':
-        specifier: ^2.2.0
-        version: 2.2.0
       '@types/xml2js':
         specifier: ^0.4.14
         version: 0.4.14
@@ -268,9 +265,6 @@ importers:
       serve-placeholder:
         specifier: ^2.0.2
         version: 2.0.2
-      serve-static:
-        specifier: ^2.2.0
-        version: 2.2.0
       source-map:
         specifier: ^0.7.6
         version: 0.7.6
@@ -2566,9 +2560,6 @@ packages:
 
   '@types/serve-static@1.15.10':
     resolution: {integrity: sha512-tRs1dB+g8Itk72rlSI2ZrW6vZg0YrLI81iQSTkMmOqnqCaNr/8Ek4VwWcN5vZgCYWbg/JJSGBlUaYGAOP73qBw==}
-
-  '@types/serve-static@2.2.0':
-    resolution: {integrity: sha512-8mam4H1NHLtu7nmtalF7eyBH14QyOASmcxHhSfEoRyr0nP/YdoesEtU+uSRvMe96TW/HPTtkoKqQLl53N7UXMQ==}
 
   '@types/tmp@0.0.33':
     resolution: {integrity: sha512-gVC1InwyVrO326wbBZw+AO3u2vRXz/iRWq9jYhpG4W8LXyIgDv3ZmcLQ5Q4Gs+gFMyqx+viFoFT+l3p61QFCmQ==}
@@ -8672,11 +8663,6 @@ snapshots:
       '@types/http-errors': 2.0.5
       '@types/node': 24.10.0
       '@types/send': 0.17.6
-
-  '@types/serve-static@2.2.0':
-    dependencies:
-      '@types/http-errors': 2.0.5
-      '@types/node': 24.10.0
 
   '@types/tmp@0.0.33': {}
 

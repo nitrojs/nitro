@@ -1,9 +1,12 @@
 import type { Nitro } from "nitro/types";
-import type { EventHandler, HTTPHandler } from "h3";
+import type { H3Event, HTTPHandler } from "h3";
 
-import { withBase, H3, toEventHandler, fromNodeHandler } from "h3";
-import serveStatic from "serve-static";
+import { H3, toEventHandler, serveStatic } from "h3";
 import { joinURL } from "ufo";
+import mime from "mime";
+import { join, resolve } from "pathe";
+import { readFile, stat } from "node:fs/promises";
+import { extname } from "node:path";
 import { createVFSHandler } from "./vfs.ts";
 import { createHTTPProxy } from "./proxy.ts";
 
@@ -62,19 +65,17 @@ export class NitroDevApp {
     // Serve asset dirs
     for (const asset of this.nitro.options.publicAssets) {
       const assetRoute = joinURL(
-        this.nitro.options.runtimeConfig.app.baseURL,
+        this.nitro.options.baseURL,
         asset.baseURL || "/",
         "**"
       );
-      // TODO: serve placeholder as fallback
-      let handler: EventHandler = fromNodeHandler(
-        // @ts-expect-error (HTTP2 types)
-        serveStatic(asset.dir, { dotfiles: "allow" })
+      app.use(assetRoute, (event) =>
+        serveStaticDir(event, {
+          dir: asset.dir,
+          base: asset.baseURL || "/",
+          fallthrough: asset.fallthrough,
+        })
       );
-      if (asset.baseURL?.length || 0 > 1) {
-        handler = withBase(asset.baseURL!, handler);
-      }
-      app.use(assetRoute, handler);
     }
 
     // User defined dev proxy
@@ -95,4 +96,35 @@ export class NitroDevApp {
 
     return app;
   }
+}
+
+function serveStaticDir(
+  event: H3Event,
+  opts: { dir: string; base: string; fallthrough?: boolean }
+) {
+  const dir = resolve(opts.dir) + "/";
+  const r = (id: string) => {
+    if (!id.startsWith(opts.base) || !extname(id)) return;
+    const resolved = join(dir, id.slice(opts.base.length));
+    if (resolved.startsWith(dir)) {
+      return resolved;
+    }
+  };
+  return serveStatic(event, {
+    fallthrough: opts.fallthrough,
+    getContents(id) {
+      const path = r(id);
+      return path ? readFile(path) : undefined;
+    },
+    getMeta: async (id) => {
+      const path = r(id);
+      if (!path) return;
+      const s = await stat(path).catch(() => null);
+      if (!s?.isFile()) return;
+      return { size: s.size, mtime: s.mtime };
+    },
+    getType(ext) {
+      return mime.getType(ext) || "application/octet-stream";
+    },
+  });
 }
