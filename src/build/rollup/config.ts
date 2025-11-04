@@ -48,7 +48,6 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
       }),
       alias({ entries: base.aliases }),
       replace({
-        delimiters: base.replaceDelimiters,
         preventAssignment: true,
         values: base.replacements,
       }),

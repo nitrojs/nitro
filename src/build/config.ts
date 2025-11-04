@@ -46,12 +46,6 @@ export function baseBuildConfig(nitro: Nitro) {
     _tasks: nitro.options.experimental.tasks,
   };
 
-  // https://github.com/rollup/plugins/tree/master/packages/replace#delimiters
-  const replaceDelimiters: [string, string] = [
-    String.raw`\b`,
-    String.raw`(?![\w.$])`,
-  ];
-
   const replacements = {
     "typeof window": '"undefined"',
     _import_meta_url_: "import.meta.url",
@@ -109,7 +103,6 @@ export function baseBuildConfig(nitro: Nitro) {
     isNodeless,
     buildEnvVars,
     staticFlags,
-    replaceDelimiters,
     replacements,
     env,
     aliases,

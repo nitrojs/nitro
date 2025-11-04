@@ -55,7 +55,6 @@ export const getViteRollupConfig = (
       ...baseBuildPlugins(nitro, base),
       alias({ entries: base.aliases }),
       replace({
-        delimiters: base.replaceDelimiters,
         preventAssignment: true,
         values: base.replacements,
       }),
