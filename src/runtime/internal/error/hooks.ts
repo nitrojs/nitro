@@ -2,7 +2,7 @@ import { useNitroApp } from "../app.ts";
 
 function _captureError(error: Error, type: string) {
   console.error(`[${type}]`, error);
-  useNitroApp().captureError(error, { tags: [type] });
+  useNitroApp().captureError?.(error, { tags: [type] });
 }
 
 export function trapUnhandledErrors() {

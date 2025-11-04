@@ -4,14 +4,9 @@ import type { ServerRequest, ServerRequestContext } from "srvx";
 
 export interface NitroApp {
   fetch: (req: Request) => Response | Promise<Response>;
-  request: (
-    req: string | URL | Request,
-    init?: RequestInit,
-    context?: ServerRequestContext | H3EventContext
-  ) => Promise<Response>;
   h3?: H3Core;
   hooks?: HookableCore<NitroRuntimeHooks>;
-  captureError: CaptureError;
+  captureError?: CaptureError;
 }
 
 export interface NitroAppPlugin {

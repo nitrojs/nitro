@@ -22,6 +22,7 @@ export interface Nitro {
   unimport?: Unimport;
   logger: ConsolaInstance;
   storage: Storage;
+  fetch: (input: Request) => Response | Promise<Response>;
   close: () => Promise<void>;
   updateConfig: (config: NitroDynamicConfig) => void | Promise<void>;
   routing: Readonly<{

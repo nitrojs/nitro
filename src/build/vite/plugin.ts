@@ -447,6 +447,7 @@ async function setupNitroContext(
   // Create dev worker
   if (ctx.nitro.options.dev && !ctx.devWorker) {
     ctx.devWorker = createDevWorker(ctx);
+    ctx.nitro.fetch = (req) => ctx.devWorker!.fetch(req);
   }
 
   // Create dev app

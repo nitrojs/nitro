@@ -392,6 +392,15 @@ importers:
         specifier: latest
         version: 2.12.9(@azure/identity@4.13.0)(rolldown@1.0.0-beta.46)(xml2js@0.6.2)
 
+  examples/server-fetch:
+    devDependencies:
+      nitro:
+        specifier: link:../..
+        version: link:../..
+      vite:
+        specifier: ^7.1.12
+        version: 7.1.12(@types/node@24.10.0)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0)(yaml@2.8.1)
+
   examples/vite-assets:
     dependencies:
       preact:

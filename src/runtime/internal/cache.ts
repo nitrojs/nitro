@@ -56,7 +56,7 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
         .getItem(cacheKey)
         .catch((error) => {
           console.error(`[cache] Cache read error.`, error);
-          useNitroApp().captureError(error, { event, tags: ["cache"] });
+          useNitroApp().captureError?.(error, { event, tags: ["cache"] });
         })) as unknown) || {};
 
     // https://github.com/nitrojs/nitro/issues/2160
@@ -64,7 +64,7 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
       entry = {};
       const error = new Error("Malformed data read from cache.");
       console.error("[cache]", error);
-      useNitroApp().captureError(error, { event, tags: ["cache"] });
+      useNitroApp().captureError?.(error, { event, tags: ["cache"] });
     }
 
     const ttl = (opts.maxAge ?? 0) * 1000;
@@ -120,7 +120,7 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
             .setItem(cacheKey, entry, setOpts)
             .catch((error) => {
               console.error(`[cache] Cache write error.`, error);
-              useNitroApp().captureError(error, { event, tags: ["cache"] });
+              useNitroApp().captureError?.(error, { event, tags: ["cache"] });
             });
           if (typeof event?.req?.waitUntil === "function") {
             event.req.waitUntil(promise);
@@ -140,7 +140,7 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
     if (opts.swr && validate(entry) !== false) {
       _resolvePromise.catch((error) => {
         console.error(`[cache] SWR handler error.`, error);
-        useNitroApp().captureError(error, { event, tags: ["cache"] });
+        useNitroApp().captureError?.(error, { event, tags: ["cache"] });
       });
       return entry as ResolvedCacheEntry<T>;
     }
