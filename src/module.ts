@@ -1,5 +1,6 @@
 import type { Nitro, NitroModule, NitroModuleInput } from "nitro/types";
 import { resolveNitroPath } from "./utils/fs.ts";
+import { pathToFileURL } from "node:url";
 
 export async function installModules(nitro: Nitro) {
   const _modules = [...(nitro.options.modules || [])];
@@ -26,10 +27,8 @@ async function _resolveNitroModule(
 
   if (typeof mod === "string") {
     const _modPath = resolveNitroPath(mod, nitroOptions);
-    _url = _modPath;
-    mod = (await import(_modPath)).then(
-      (m: any) => m.default || m
-    ) as NitroModule;
+    _url = pathToFileURL(_modPath).href;
+    mod = (await import(_url)).then((m: any) => m.default || m) as NitroModule;
   }
 
   if (typeof mod === "function") {

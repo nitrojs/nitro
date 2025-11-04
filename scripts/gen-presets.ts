@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { consola } from "consola";
 import { findTypeExports } from "mlly";
 import type { NitroPreset, NitroPresetMeta } from "nitro/types";
@@ -23,7 +23,7 @@ const presetDirs: string[] = readdirSync(presetsDir, { withFileTypes: true })
 const allPresets: (NitroPreset & { _meta?: NitroPresetMeta })[] = [];
 for (const preset of presetDirs) {
   const presetPath = resolve(presetsDir, preset, "preset.ts");
-  const _presets = await import(presetPath).then(
+  const _presets = await import(pathToFileURL(presetPath).href).then(
     (mod) => (mod as any).default || mod
   );
   if (!Array.isArray(_presets)) {
