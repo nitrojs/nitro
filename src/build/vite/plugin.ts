@@ -18,7 +18,6 @@ import {
   createServiceEnvironments,
 } from "./env.ts";
 import { configureViteDevServer } from "./dev.ts";
-import { scanHandlers } from "../../scan.ts";
 import { runtimeDir } from "nitro/runtime/meta";
 import { resolveModulePath } from "exsolve";
 import { defu } from "defu";
@@ -242,11 +241,11 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
     // Automatically reload the client when a server module is updated
     // see: https://github.com/vitejs/vite/issues/19114
     async hotUpdate(options) {
-      if (ctx.pluginConfig.experimental?.serverReload === false) {
-        return;
-      }
       const env = this.environment;
-      if (env.config.consumer === "client") {
+      if (
+        ctx.pluginConfig.experimental?.serverReload === false ||
+        env.config.consumer === "client"
+      ) {
         return;
       }
       let hasServerOnlyModule = false;
