@@ -3,6 +3,14 @@ import type { Nitro } from "nitro/types";
 const nitroInstances: Nitro[] = ((globalThis as any).__nitro_instances__ ||=
   []);
 
+const globalKey = "__nitro_builder__";
+
+declare global {
+  var __nitro_builder__: {
+    fetch: (req: Request) => Promise<Response>;
+  };
+}
+
 export function registerNitroInstance(nitro: Nitro) {
   if (nitroInstances.includes(nitro)) {
     return;
@@ -12,16 +20,16 @@ export function registerNitroInstance(nitro: Nitro) {
   nitro.hooks.hookOnce("close", () => {
     nitroInstances.splice(nitroInstances.indexOf(nitro), 1);
     if (nitroInstances.length === 0) {
-      delete (globalThis as any).__nitro__;
+      delete (globalThis as any)[globalKey];
     }
   });
 }
 
 function globalInit() {
-  if (globalThis.__nitro__) {
+  if (globalThis[globalKey]) {
     return;
   }
-  globalThis.__nitro__ = {
+  globalThis[globalKey] = {
     async fetch(req) {
       for (let r = 0; r < 10 && nitroInstances.length === 0; r++) {
         await new Promise((resolve) => setTimeout(resolve, 300));

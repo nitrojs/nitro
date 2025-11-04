@@ -19,7 +19,7 @@ export function serverFetch(
   init?: RequestInit,
   context?: ServerRequestContext | H3EventContext
 ): Promise<Response> {
-  const nitro = globalThis.__nitro__;
+  const nitro = globalThis.__nitro__ || globalThis.__nitro_builder__;
   if (!nitro) {
     return Promise.reject(new Error("Nitro instance is not available."));
   }
