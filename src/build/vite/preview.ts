@@ -84,9 +84,7 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
       });
 
       if (loadedEnv && Object.keys(loadedEnv).length > 0) {
-        consola.warn(
-          "[nitro] .env files loaded for preview mode only!"
-        );
+        consola.warn("[nitro] .env files loaded for preview mode only!");
         consola.warn(
           "[nitro] For production: Use platform environment variables (Vercel, Cloudflare, AWS, etc.)"
         );
