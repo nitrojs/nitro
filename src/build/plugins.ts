@@ -20,7 +20,6 @@ import { rollupNodeFileTrace } from "nf3";
 import { rendererTemplate } from "./plugins/renderer-template.ts";
 import { featureFlags } from "./plugins/feature-flags.ts";
 import { nitroResolveIds } from "./plugins/resolve.ts";
-import { runtimeConfig } from "./plugins/runtime-config.ts";
 
 export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const plugins: Plugin[] = [];
@@ -61,9 +60,6 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
 
   // Feature flags
   plugins.push(featureFlags(nitro));
-
-  // Runtime config
-  plugins.push(runtimeConfig(nitro));
 
   // Resolve imports from virtual files and mapped subpaths
   plugins.push(nitroResolveIds());

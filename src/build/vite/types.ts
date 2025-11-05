@@ -1,12 +1,6 @@
 import type { OutputBundle } from "rollup";
 import type { getViteRollupConfig } from "./rollup.ts";
-import type {
-  DevWorker,
-  LoadConfigOptions,
-  Nitro,
-  NitroConfig,
-  NitroModule,
-} from "nitro/types";
+import type { DevWorker, Nitro, NitroConfig, NitroModule } from "nitro/types";
 import type { NitroDevApp } from "../../dev/app.ts";
 
 declare module "vite" {
@@ -31,13 +25,6 @@ declare module "rollup" {
 export interface NitroPluginConfig {
   /** Custom Nitro config */
   config?: NitroConfig;
-
-  /**
-   * Load environment variables from .env files
-   *
-   * @see LoadConfigOptions.dotenv
-   */
-  dotenv?: LoadConfigOptions["dotenv"];
 
   /**
    * Fetchable service environments automatically created by the plugin.

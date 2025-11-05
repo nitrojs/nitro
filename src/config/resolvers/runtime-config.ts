@@ -1,5 +1,4 @@
 import { defu } from "defu";
-import { snakeCase } from "scule";
 
 import type {
   NitroConfig,
@@ -9,17 +8,6 @@ import type {
 
 export async function resolveRuntimeConfigOptions(options: NitroOptions) {
   options.runtimeConfig = normalizeRuntimeConfig(options);
-
-  const envOpts = {
-    prefix: "NITRO_",
-    altPrefix:
-      options.runtimeConfig.nitro?.envPrefix ??
-      process.env?.NITRO_ENV_PREFIX ??
-      "_",
-  };
-
-  // Apply environment variables to runtime config at build time
-  applyEnvToConfig(options.runtimeConfig, envOpts);
 }
 
 export function normalizeRuntimeConfig(config: NitroConfig) {
@@ -85,49 +73,4 @@ function isPrimitiveValue(value: any) {
     typeof value === "number" ||
     typeof value === "boolean"
   );
-}
-
-type EnvOptions = {
-  prefix?: string;
-  altPrefix?: string;
-};
-
-function getEnv(key: string, opts: EnvOptions) {
-  const envKey = snakeCase(key).toUpperCase();
-  return (
-    process.env[opts.prefix + envKey] ?? process.env[opts.altPrefix + envKey]
-  );
-}
-
-function _isObject(input: unknown) {
-  return typeof input === "object" && !Array.isArray(input);
-}
-
-function applyEnvToConfig(
-  obj: Record<string, any>,
-  opts: EnvOptions,
-  parentKey = ""
-) {
-  for (const key in obj) {
-    const subKey = parentKey ? `${parentKey}_${key}` : key;
-    const envValue = getEnv(subKey, opts);
-    if (_isObject(obj[key])) {
-      // If envValue is an object, merge it
-      if (_isObject(envValue)) {
-        obj[key] = { ...(obj[key] as any), ...(envValue as any) };
-        applyEnvToConfig(obj[key], opts, subKey);
-      }
-      // If envValue is undefined, recurse into nested properties
-      else if (envValue === undefined) {
-        applyEnvToConfig(obj[key], opts, subKey);
-      }
-      // If envValue is a primitive, set it and skip nested properties
-      else {
-        obj[key] = envValue ?? obj[key];
-      }
-    } else {
-      obj[key] = envValue ?? obj[key];
-    }
-  }
-  return obj;
 }
