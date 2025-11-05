@@ -1,0 +1,12 @@
+diff --git a/dist/plugin-BCdbXZQd.js b/dist/plugin-BCdbXZQd.js
+index 43e8718f3406e3b0f7272e43754148b253bdc834..cdb36c89d9f7dcd6d7392eadb22073c52d84786a 100644
+--- a/dist/plugin-BCdbXZQd.js
++++ b/dist/plugin-BCdbXZQd.js
+@@ -128,6 +128,7 @@ function normalizeRelativePath(s) {
+ }
+ function getEntrySource(config, name = "index") {
+ 	const input = config.build.rollupOptions.input;
++	if (name === 'index' && typeof input === "string") return input;
+ 	assert(typeof input === "object" && !Array.isArray(input) && name in input && typeof input[name] === "string", `[vite-rsc:getEntrySource] expected 'build.rollupOptions.input' to be an object with a '${name}' property that is a string, but got ${JSON.stringify(input)}`);
+ 	return input[name];
+ }

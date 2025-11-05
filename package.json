@@ -194,6 +194,9 @@
       "keytar",
       "protobufjs",
       "vue-demi"
-    ]
+    ],
+    "patchedDependencies": {
+      "@vitejs/plugin-rsc@0.5.0": "patches/@vitejs__plugin-rsc@0.5.0.patch"
+    }
   }
 }

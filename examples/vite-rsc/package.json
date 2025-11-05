@@ -1,0 +1,22 @@
+{
+  "name": "example-vite-rsc",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.1",
+    "@vitejs/plugin-react": "latest",
+    "@vitejs/plugin-rsc": "https://pkg.pr.new/@vitejs/plugin-rsc@a4d9c98",
+    "nitro": "npm:nitro-nightly",
+    "rsc-html-stream": "^0.0.7",
+    "vite": "^7.2.0"
+  }
+}
