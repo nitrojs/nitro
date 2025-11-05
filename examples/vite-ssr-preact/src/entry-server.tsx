@@ -1,6 +1,6 @@
 import "./styles.css";
 import { renderToReadableStream } from "preact-render-to-string/stream";
-import { Counter } from "./counter";
+import { App } from "./app";
 
 // @ts-ignore
 import clientAssets from "./entry-client?assets=client";
@@ -24,7 +24,6 @@ function Root(props: { url: URL }) {
     <html lang="en">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Vite Assets Example</title>
         {assets.css.map((attr: any) => (
           <link key={attr.href} rel="stylesheet" {...attr} />
         ))}
@@ -34,10 +33,10 @@ function Root(props: { url: URL }) {
         <script type="module" src={assets.entry} />
       </head>
       <body>
-        <h1 className="hero">Vite Assets Example</h1>
+        <h1 className="hero">Nitro + Vite + Preact</h1>
         <p>URL: {props.url.href}</p>
-        <div id="counter">
-          <Counter />
+        <div id="app">
+          <App />
         </div>
       </body>
     </html>

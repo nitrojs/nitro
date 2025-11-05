@@ -407,7 +407,22 @@ importers:
         specifier: ^7.1.8
         version: 7.2.0(@types/node@24.10.0)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1)
 
-  examples/vite-preact-ssr:
+  examples/vite-ssr-html:
+    devDependencies:
+      '@tailwindcss/vite':
+        specifier: ^4.1.14
+        version: 4.1.16(vite@7.2.0(@types/node@24.10.0)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))
+      nitro:
+        specifier: link:../..
+        version: link:../..
+      tailwindcss:
+        specifier: ^4.1.14
+        version: 4.1.16
+      vite:
+        specifier: latest
+        version: 7.2.0(@types/node@24.10.0)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1)
+
+  examples/vite-ssr-preact:
     devDependencies:
       '@preact/preset-vite':
         specifier: ^2.10.2
@@ -431,19 +446,31 @@ importers:
         specifier: ^7.1.8
         version: 7.2.0(@types/node@24.10.0)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1)
 
-  examples/vite-ssr-html:
+  examples/vite-ssr-react:
     devDependencies:
-      '@tailwindcss/vite':
-        specifier: ^4.1.14
-        version: 4.1.16(vite@7.2.0(@types/node@24.10.0)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))
+      '@types/react':
+        specifier: ^19.2.2
+        version: 19.2.2
+      '@types/react-dom':
+        specifier: ^19.2.2
+        version: 19.2.2(@types/react@19.2.2)
+      '@vitejs/plugin-react':
+        specifier: ^5.1.0
+        version: 5.1.0(vite@7.2.0(@types/node@24.10.0)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))
       nitro:
         specifier: link:../..
         version: link:../..
-      tailwindcss:
-        specifier: ^4.1.14
-        version: 4.1.16
+      react:
+        specifier: ^19.2.0
+        version: 19.2.0
+      react-dom:
+        specifier: ^19.2.0
+        version: 19.2.0(react@19.2.0)
+      react-refresh:
+        specifier: ^0.18.0
+        version: 0.18.0
       vite:
-        specifier: latest
+        specifier: ^7.1.8
         version: 7.2.0(@types/node@24.10.0)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1)
 
   examples/vite-ssr-tsr-react:
@@ -536,21 +563,6 @@ importers:
       vite-tsconfig-paths:
         specifier: ^5.1.4
         version: 5.1.4(typescript@5.9.3)(vite@7.2.0(@types/node@22.19.0)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))
-
-  examples/vite-ssr-vue:
-    devDependencies:
-      '@vitejs/plugin-vue':
-        specifier: ^6.0.1
-        version: 6.0.1(vite@7.2.0(@types/node@24.10.0)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1))(vue@3.5.22(typescript@5.9.3))
-      nitro:
-        specifier: link:../..
-        version: link:../..
-      vite:
-        specifier: ^7.1.12
-        version: 7.2.0(@types/node@24.10.0)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.0)(tsx@4.20.6)(yaml@2.8.1)
-      vue:
-        specifier: ^3.5.22
-        version: 3.5.22(typescript@5.9.3)
 
   examples/vite-ssr-vue-router:
     devDependencies:
