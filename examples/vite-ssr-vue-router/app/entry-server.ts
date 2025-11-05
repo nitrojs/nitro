@@ -25,8 +25,8 @@ async function handler(request: Request): Promise<Response> {
       router.currentRoute.value.matched
         .map((to) => to.meta.assets)
         .filter(Boolean)
-        .map((fn) => fn!().then((m) => m.default)),
-    )),
+        .map((fn) => fn!().then((m) => m.default))
+    ))
   );
 
   const head = createHead();
@@ -49,7 +49,7 @@ async function handler(request: Request): Promise<Response> {
 }
 
 function htmlTemplate(body: string): string {
-  return /* html */ `\<!DOCTYPE html>
+  return /* html */ `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
