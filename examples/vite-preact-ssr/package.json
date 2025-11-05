@@ -1,0 +1,17 @@
+{
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "preview": "vite preview",
+    "dev": "vite dev"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.2",
+    "@tailwindcss/vite": "^4.1.14",
+    "nitro": "latest",
+    "tailwindcss": "^4.1.14",
+    "vite": "^7.1.8",
+    "preact": "^10.27.2",
+    "preact-render-to-string": "^6.6.2"
+  }
+}

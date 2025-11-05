@@ -1,7 +1,7 @@
-import { defineNitroConfig } from "nitro/config";
+import { defineConfig } from "nitro";
 
-export default defineNitroConfig({
+export default defineConfig({
   routes: {
-    "/**": { handler: "./server", format: "node" },
+    "/**": { handler: "./server.ts", format: "node" },
   },
 });

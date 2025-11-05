@@ -1,4 +1,4 @@
 import { defineHandler } from "nitro/h3";
-import { serverFetch } from "nitro";
+import { fetch } from "nitro";
 
-export default defineHandler(() => serverFetch("/hello"));
+export default defineHandler(() => fetch("/hello"));
