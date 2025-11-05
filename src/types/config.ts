@@ -305,7 +305,35 @@ export interface LoadConfigOptions {
   watch?: boolean;
   c12?: WatchConfigOptions;
   compatibilityDate?: CompatibilityDateSpec;
-  dotenv?: boolean | DotenvOptions;
+  /**
+   * Load environment variables from .env files
+   *
+   * When set to `true`, loads `.env` and `.env.local` files in both dev and production modes.
+   *
+   * By default, .env files are only loaded in development mode.
+   *
+   * @example
+   * ```ts
+   * // Load .env in both dev and production
+   * dotenv: true
+   *
+   * // Custom file names
+   * dotenv: { fileName: ['.env', '.env.production'] }
+   *
+   * // Different configs for dev and production
+   * dotenv: {
+   *   dev: { fileName: ['.env', '.env.local'] },
+   *   production: { fileName: ['.env', '.env.production'] }
+   * }
+   * ```
+   */
+  dotenv?:
+    | boolean
+    | DotenvOptions
+    | {
+        dev?: boolean | DotenvOptions;
+        production?: boolean | DotenvOptions;
+      };
 }
 
 // ------------------------------------------------------------

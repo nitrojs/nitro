@@ -81,9 +81,47 @@ async function _loadUserConfig(
   // prettier-ignore
   let preset: string | undefined = (configOverrides.preset as string) || process.env.NITRO_PRESET || process.env.SERVER_PRESET
 
-  const _dotenv =
-    opts.dotenv ??
-    (configOverrides.dev && { fileName: [".env", ".env.local"] });
+  // Resolve dotenv configuration
+  let _dotenv: false | import("c12").DotenvOptions | undefined;
+  if (opts.dotenv === false) {
+    _dotenv = false;
+  } else if (opts.dotenv === true) {
+    // Load .env in both dev and production
+    _dotenv = { fileName: [".env", ".env.local"] };
+  } else if (opts.dotenv && typeof opts.dotenv === "object") {
+    // Check if it's a split config (dev/production)
+    if ("dev" in opts.dotenv || "production" in opts.dotenv) {
+      const splitConfig = opts.dotenv as {
+        dev?: boolean | import("c12").DotenvOptions;
+        production?: boolean | import("c12").DotenvOptions;
+      };
+      const envConfig = configOverrides.dev
+        ? splitConfig.dev
+        : splitConfig.production;
+
+      if (envConfig === false) {
+        _dotenv = false;
+      } else if (envConfig === true) {
+        _dotenv = { fileName: [".env", ".env.local"] };
+      } else if (envConfig) {
+        _dotenv = envConfig;
+      } else {
+        // Fallback to default dev behavior
+        _dotenv = configOverrides.dev
+          ? { fileName: [".env", ".env.local"] }
+          : false;
+      }
+    } else {
+      // It's a DotenvOptions object
+      _dotenv = opts.dotenv as import("c12").DotenvOptions;
+    }
+  } else {
+    // Default: only load .env in dev mode
+    _dotenv = configOverrides.dev
+      ? { fileName: [".env", ".env.local"] }
+      : false;
+  }
+
   const loadedConfig = await (
     opts.watch
       ? watchConfig<NitroConfig & { _meta?: NitroPresetMeta }>

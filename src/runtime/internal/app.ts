@@ -28,6 +28,7 @@ import {
   hasHooks,
   hasPlugins,
 } from "#nitro-internal-virtual/feature-flags";
+import { setupRuntimeEnv } from "#nitro-internal-virtual/runtime-config";
 
 declare global {
   var __nitro__: NitroApp | undefined;
@@ -74,6 +75,9 @@ export function fetch(
 }
 
 function initNitroApp(): NitroApp {
+  // Setup runtime environment variables from config
+  setupRuntimeEnv();
+
   const nitroApp = createNitroApp();
   if (hasPlugins) {
     for (const plugin of plugins) {

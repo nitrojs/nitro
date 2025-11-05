@@ -356,8 +356,12 @@ async function setupNitroContext(
   nitroConfig.builder = ctx._isRolldown ? "rolldown-vite" : "vite";
   debug("[init] Using builder:", nitroConfig.builder);
 
-  // Initialize a new Nitro instance
-  ctx.nitro = ctx.pluginConfig._nitro || (await createNitro(nitroConfig));
+  // Initialize a new Nitro instance with dotenv option
+  ctx.nitro =
+    ctx.pluginConfig._nitro ||
+    (await createNitro(nitroConfig, {
+      dotenv: ctx.pluginConfig.dotenv,
+    }));
 
   ctx.nitro.options.builder = ctx._isRolldown ? "rolldown-vite" : "vite";
 
