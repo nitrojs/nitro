@@ -1,0 +1,11 @@
+{
+  "type": "module",
+  "scripts": {
+    "build": "nitro build",
+    "dev": "nitro dev"
+  },
+  "devDependencies": {
+    "elysia": "^1.4.15",
+    "nitro": "latest"
+  }
+}
