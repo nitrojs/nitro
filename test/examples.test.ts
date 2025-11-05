@@ -13,7 +13,7 @@ const useVite = new Set<string>([
   "nano-jsx", // TODO: JSX issue with rolldown
 ]);
 
-const skip = new Set<string>(["websocket", "nano-jsx"]);
+const skip = new Set<string>(["websocket"]);
 
 const skipDev = new Set<string>(["auto-imports", "cached-handler"]);
 
@@ -38,8 +38,8 @@ function setupTest(name: string) {
       fetch: typeof globalThis.fetch;
     };
 
-    function registerTests(ctx: TestContext) {
-      test("/", async () => {
+    function registerTests(ctx: TestContext, mode: string) {
+      test(`${name} (${mode})`, async () => {
         const res = await ctx.fetch("/");
         const expectedStatus = name === "custom-error-handler" ? 500 : 200;
         expect(res.status, res.statusText).toBe(expectedStatus);
@@ -67,7 +67,7 @@ function setupTest(name: string) {
         await server?.close();
       });
 
-      registerTests(context);
+      registerTests(context, "dev");
     });
 
     describe.skipIf(skipProd.has(name)).sequential(`${name} (prod)`, () => {
@@ -90,7 +90,7 @@ function setupTest(name: string) {
         context.fetch = (input, init) => entryMod.fetch(toRequest(input, init));
       });
 
-      registerTests(context);
+      registerTests(context, "prod");
     });
   });
 }
