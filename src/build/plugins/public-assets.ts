@@ -42,7 +42,10 @@ export function publicAssets(nitro: Nitro): Plugin {
           const etag = createEtag(assetData);
           const stat = await fsp.stat(fullPath);
 
-          const assetId = nitro.options.baseURL + decodeURIComponent(id);
+          const assetId = joinURL(
+            nitro.options.baseURL,
+            decodeURIComponent(id)
+          );
 
           let encoding;
           if (id.endsWith(".gz")) {
