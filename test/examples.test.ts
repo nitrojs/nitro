@@ -6,6 +6,7 @@ import { describe, test, expect, beforeAll, afterAll } from "vitest";
 
 import * as vite from "vite";
 import * as rolldownVite from "rolldown-vite";
+import { isWindows } from "std-env";
 
 const examplesDir = fileURLToPath(new URL("../examples", import.meta.url));
 
@@ -33,7 +34,7 @@ function setupTest(name: string) {
     ? vite
     : rolldownVite;
 
-  describe.skipIf(skip.has(name))(name, () => {
+  describe.skipIf(skip.has(name) || isWindows)(name, () => {
     type TestContext = {
       fetch: typeof globalThis.fetch;
     };
