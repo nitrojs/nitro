@@ -6,7 +6,7 @@ const standard = defineNitroPreset(
     serveStatic: false,
     exportConditions: ["import", "default"],
     output: {
-      publicDir: "{{ output.dir }}/{{ baseURL }}",
+      publicDir: "{{ output.dir }}/public/{{ baseURL }}",
     },
     commands: {
       preview: "npx srvx --prod ./",
