@@ -6,7 +6,7 @@ import type { Nitro } from "nitro/types";
 import type { PublicAsset } from "nitro/types";
 import { relative, resolve } from "pathe";
 import type { Plugin } from "rollup";
-import { withTrailingSlash } from "ufo";
+import { joinURL, withTrailingSlash } from "ufo";
 import { virtual } from "./virtual.ts";
 
 const readAssetHandler: Record<
@@ -42,7 +42,7 @@ export function publicAssets(nitro: Nitro): Plugin {
           const etag = createEtag(assetData);
           const stat = await fsp.stat(fullPath);
 
-          const assetId = "/" + decodeURIComponent(id);
+          const assetId = nitro.options.baseURL + decodeURIComponent(id);
 
           let encoding;
           if (id.endsWith(".gz")) {
@@ -114,7 +114,9 @@ export function readAsset (id) {
           nitro.options.publicAssets
             .filter((dir) => !dir.fallthrough && dir.baseURL !== "/")
             .map((dir) => [
-              withTrailingSlash(dir.baseURL),
+              withTrailingSlash(
+                joinURL(nitro.options.baseURL, dir.baseURL || "/")
+              ),
               { maxAge: dir.maxAge },
             ])
         );

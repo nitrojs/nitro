@@ -5,6 +5,9 @@ const standard = defineNitroPreset(
     entry: "./standard/runtime/server",
     serveStatic: false,
     exportConditions: ["import", "default"],
+    output: {
+      publicDir: "{{ output.dir }}/{{ baseURL }}",
+    },
     commands: {
       preview: "npx srvx --prod ./",
     },
