@@ -46,9 +46,10 @@ function setupTest(name: string) {
       });
     }
 
-    describe
-      .skipIf(skipDev.has(name))
-      .sequential(`${name} (dev)`, { timeout: 30_000 }, () => {
+    describe.skipIf(skipDev.has(name))(
+      `${name} (dev)`,
+      { timeout: 30_000 },
+      () => {
         let server: vite.ViteDevServer | rolldownVite.ViteDevServer;
         const context: TestContext = {} as any;
 
@@ -70,11 +71,13 @@ function setupTest(name: string) {
         });
 
         registerTests(context, "dev");
-      });
+      }
+    );
 
-    describe
-      .skipIf(skipProd.has(name))
-      .sequential(`${name} (prod)`, { timeout: 30_000 }, () => {
+    describe.skipIf(skipProd.has(name))(
+      `${name} (prod)`,
+      { timeout: 30_000 },
+      () => {
         const context: TestContext = {} as any;
 
         beforeAll(async () => {
@@ -96,6 +99,7 @@ function setupTest(name: string) {
         });
 
         registerTests(context, "prod");
-      });
+      }
+    );
   });
 }
