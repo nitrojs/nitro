@@ -11,6 +11,7 @@ import consola from "consola";
 import { spawn } from "node:child_process";
 import { prettyPath } from "../../utils/fs.ts";
 import { createProxyServer } from "httpxy";
+import { loadDotenv } from "c12";
 
 export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
   return {
@@ -75,6 +76,12 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
       let child: ReturnType<typeof spawn> | undefined;
 
       consola.info(buildInfo.commands?.preview);
+
+      // Load .env files for preview mode
+      await loadDotenv({
+        cwd: server.config.root,
+        fileName: [".env.production", ".env"],
+      });
 
       child = spawn(command, args, {
         stdio: "inherit",
