@@ -35,7 +35,9 @@ export function runtimeConfig(nitro: Nitro) {
                 typeof obj[key] === "string"
                   ? JSON.stringify(obj[key])
                   : String(obj[key]);
-              envSetters.push(`  process.env[${JSON.stringify(envKey)}] = ${value};`);
+              envSetters.push(
+                `  process.env[${JSON.stringify(envKey)}] = ${value};`
+              );
             }
           }
         }
