@@ -46,60 +46,51 @@ function setupTest(name: string) {
       });
     }
 
-    describe.skipIf(skipDev.has(name))(
-      `${name} (dev)`,
-      { timeout: 30_000 },
-      () => {
-        let server: vite.ViteDevServer | rolldownVite.ViteDevServer;
-        const context: TestContext = {} as any;
+    describe.skipIf(skipDev.has(name))(`${name} (dev)`, () => {
+      let server: vite.ViteDevServer | rolldownVite.ViteDevServer;
+      const context: TestContext = {} as any;
 
-        beforeAll(async () => {
-          process.chdir(rootDir);
-          server = await createServer({ root: rootDir });
-          await server.listen("0" as unknown as number);
-          const addr = server.httpServer?.address() as {
-            port: number;
-            address: string;
-            family: string;
-          };
-          const baseURL = `http://${addr.family === "IPv6" ? `[${addr.address}]` : addr.address}:${addr.port}`;
-          context.fetch = (url, opts) => fetch(baseURL + url, opts);
-        });
+      beforeAll(async () => {
+        process.chdir(rootDir);
+        server = await createServer({ root: rootDir });
+        await server.listen("0" as unknown as number);
+        const addr = server.httpServer?.address() as {
+          port: number;
+          address: string;
+          family: string;
+        };
+        const baseURL = `http://${addr.family === "IPv6" ? `[${addr.address}]` : addr.address}:${addr.port}`;
+        context.fetch = (url, opts) => fetch(baseURL + url, opts);
+      }, 30_000);
 
-        afterAll(async () => {
-          await server?.close();
-        });
+      afterAll(async () => {
+        await server?.close();
+      });
 
-        registerTests(context, "dev");
-      }
-    );
+      registerTests(context, "dev");
+    });
 
-    describe.skipIf(skipProd.has(name))(
-      `${name} (prod)`,
-      { timeout: 30_000 },
-      () => {
-        const context: TestContext = {} as any;
+    describe.skipIf(skipProd.has(name))(`${name} (prod)`, () => {
+      const context: TestContext = {} as any;
 
-        beforeAll(async () => {
-          process.chdir(rootDir);
+      beforeAll(async () => {
+        process.chdir(rootDir);
 
-          process.env.NITRO_PRESET = "standard";
-          const builder = await createBuilder({ logLevel: "warn" });
-          await builder.buildApp();
+        process.env.NITRO_PRESET = "standard";
+        const builder = await createBuilder({ logLevel: "warn" });
+        await builder.buildApp();
 
-          const { default: entryMod } = await import(
-            pathToFileURL(join(rootDir, ".output/server/index.mjs")).href
-          );
+        const { default: entryMod } = await import(
+          pathToFileURL(join(rootDir, ".output/server/index.mjs")).href
+        );
 
-          delete (globalThis as any).document; // Set by nano-jsx!
+        delete (globalThis as any).document; // Set by nano-jsx!
 
-          expect(entryMod?.fetch).toBeInstanceOf(Function);
-          context.fetch = (input, init) =>
-            entryMod.fetch(toRequest(input, init));
-        });
+        expect(entryMod?.fetch).toBeInstanceOf(Function);
+        context.fetch = (input, init) => entryMod.fetch(toRequest(input, init));
+      }, 30_000);
 
-        registerTests(context, "prod");
-      }
-    );
+      registerTests(context, "prod");
+    });
   });
 }
