@@ -78,10 +78,22 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
       consola.info(buildInfo.commands?.preview);
 
       // Load .env files for preview mode
-      await loadDotenv({
+      const loadedEnv = await loadDotenv({
         cwd: server.config.root,
         fileName: [".env.production", ".env"],
       });
+
+      if (loadedEnv && Object.keys(loadedEnv).length > 0) {
+        consola.warn(
+          "[nitro] .env files loaded for preview mode only!"
+        );
+        consola.warn(
+          "[nitro] For production: Use platform environment variables (Vercel, Cloudflare, AWS, etc.)"
+        );
+        consola.warn(
+          "[nitro] For self-hosted/Docker: Use `npx srvx --prod .output`"
+        );
+      }
 
       child = spawn(command, args, {
         stdio: "inherit",
