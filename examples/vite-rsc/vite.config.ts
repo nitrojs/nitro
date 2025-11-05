@@ -6,7 +6,7 @@ import { nitro } from "nitro/vite";
 export default defineConfig({
   plugins: [
     rsc({
-      // serverHandler: false,
+      serverHandler: false,
       loadModuleDevRunner: "globalThis.__nitro_vite_envs__.rsc.runner",
     }),
     react(),
