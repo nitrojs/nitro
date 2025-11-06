@@ -35,9 +35,17 @@ const vercel = defineNitroPreset(
         }
 
         // Entry handler format
+        let serverFormat = nitro.options.vercel?.entryFormat;
+        if (!serverFormat) {
+          const hasNodeHandler = nitro.routing.routes.routes
+            .flatMap((r) => r.data)
+            .some((h) => h.format === "node");
+          serverFormat = hasNodeHandler ? "node" : "web";
+        }
+        nitro.logger.info(`[vercel] Using \`${serverFormat}\` entry format.`);
         nitro.options.entry = nitro.options.entry.replace(
           "{format}",
-          nitro.options.vercel?.entryFormat === "node" ? "node" : "web"
+          serverFormat
         );
       },
       "rollup:before": (nitro: Nitro) => {
