@@ -31,7 +31,7 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
         "node_modules/.nitro/last-build.json"
       );
       if (!existsSync(lastBuildPath)) {
-        console.warn(
+        consola.warn(
           `No nitro build found. Please build your project before previewing.`
         );
         return;
@@ -46,12 +46,14 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
       const buildInfoPath = resolve(realBuildDir, "nitro.json");
       if (!existsSync(buildInfoPath)) {
         consola.warn(
-          `[nitro] No build info found in ${prettyPath(buildInfoPath)}. Please build your project before previewing.\n`
+          `[nitro] No build info found in ${prettyPath(buildInfoPath)}. Please build your project before previewing.`
         );
         return;
       }
 
-      consola.log(`Using build directory: ${prettyPath(realBuildDir)}`);
+      consola.info(
+        `Previewing nitro build output: ${prettyPath(realBuildDir)}`
+      );
 
       const buildInfo = JSON.parse(
         await readFile(buildInfoPath, "utf8")
@@ -93,18 +95,13 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
         });
       }
 
-      const randomPort = await getRandomPort();
-      consola.info(`Spawning preview server...`);
-
       const [command, ...args] = buildInfo.commands.preview.split(" ");
 
-      let child: ReturnType<typeof spawn> | undefined;
-
+      consola.info(`Spawning preview server...`);
       consola.info(buildInfo.commands?.preview);
 
-      console.log("");
-
-      child = spawn(command, args, {
+      const randomPort = await getRandomPort();
+      const child = spawn(command, args, {
         stdio: "inherit",
         cwd: realBuildDir,
         env: {
@@ -113,10 +110,15 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
           PORT: String(randomPort),
         },
       });
-      process.on("exit", () => {
-        child?.kill();
-        child = undefined;
-      });
+      for (const sig of ["SIGINT", "SIGHUP"] as const) {
+        process.once(sig, () => {
+          consola.info(`Stopping preview server...`);
+          if (child.killed === false) {
+            child.kill(sig);
+            process.exit();
+          }
+        });
+      }
       child.on("exit", (code) => {
         if (code && code !== 0) {
           consola.error(`[nitro] Preview server exited with code ${code}`);
