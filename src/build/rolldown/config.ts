@@ -47,7 +47,6 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
     transform: {
       inject: base.env.inject as Record<string, string>,
       jsx: {
-        runtime: "classic", // no auto-import
         pragma: nitro.options.esbuild?.options?.jsxFactory,
         pragmaFrag: nitro.options.esbuild?.options?.jsxFragment,
         development: nitro.options.dev,

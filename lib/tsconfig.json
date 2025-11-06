@@ -7,10 +7,6 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
 
-    "jsx": "preserve",
-    "jsxFactory": "h",
-    "jsxFragmentFactory": "Fragment",
-
     "allowJs": true,
     "allowImportingTsExtensions": true,
     "strict": true,

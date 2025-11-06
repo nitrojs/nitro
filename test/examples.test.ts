@@ -3,18 +3,14 @@ import { readdir } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { toRequest } from "h3";
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
-
-import * as vite from "vite";
-import * as rolldownVite from "rolldown-vite";
 import { isWindows } from "std-env";
 
 const examplesDir = fileURLToPath(new URL("../examples", import.meta.url));
 
 const useRolldown = process.env.NITRO_BUILDER === "rolldown";
-
-const noRolldown = new Set<string>([
-  "nano-jsx", // TODO: JSX issue with rolldown
-]);
+const { createServer, createBuilder } = useRolldown
+  ? await import("rolldown-vite")
+  : await import("vite");
 
 const skip = new Set<string>(["websocket"]);
 
@@ -31,11 +27,6 @@ for (const example of await readdir(examplesDir)) {
 
 function setupTest(name: string) {
   const rootDir = join(examplesDir, name);
-
-  // prettier-ignore
-  const { createServer, createBuilder } = (!useRolldown || noRolldown.has(name) )
-    ? vite
-    : rolldownVite
 
   describe.skipIf(skip.has(name) || isWindows)(name, () => {
     type TestContext = {

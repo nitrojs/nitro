@@ -1,3 +1,6 @@
 {
-  "extends": "nitro/tsconfig"
+  "extends": "nitro/tsconfig",
+  "compilerOptions": {
+    "jsx": "react-jsx"
+  }
 }
