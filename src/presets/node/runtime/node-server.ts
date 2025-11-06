@@ -2,7 +2,10 @@ import "#nitro-internal-pollyfills";
 import cluster from "node:cluster";
 import { serve } from "srvx/node";
 import { useNitroApp } from "nitro/runtime";
-import { trapUnhandledErrors } from "nitro/runtime/internal";
+import {
+  trapUnhandledErrors,
+  startScheduleRunner,
+} from "nitro/runtime/internal";
 
 const port =
   Number.parseInt(process.env.NITRO_PORT || process.env.PORT || "") || 3000;
@@ -34,7 +37,6 @@ trapUnhandledErrors();
 
 // Scheduled tasks
 if (import.meta._tasks) {
-  const { startScheduleRunner } = await import("nitro/runtime/internal");
   startScheduleRunner();
 }
 
