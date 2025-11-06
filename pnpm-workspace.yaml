@@ -12,7 +12,7 @@ ignoredBuiltDependencies:
   - vue-demi
 
 onlyBuiltDependencies:
-  - '@parcel/watcher'
+  - "@parcel/watcher"
   - esbuild
   - sharp
   - workerd
@@ -20,8 +20,8 @@ onlyBuiltDependencies:
 peerDependencyRules:
   ignoreMissing:
     - react
-    - '@types/react'
+    - "@types/react"
     - react-dom
-    - '@algolia/client-search'
+    - "@algolia/client-search"
 
 shellEmulator: true
