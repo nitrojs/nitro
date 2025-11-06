@@ -5,7 +5,21 @@ on:
   pull_request: { branches: [main] }
 
 jobs:
-  tests:
+  tests-checks:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    steps:
+      - uses: actions/checkout@v5
+      - run: npm i -g --force corepack && corepack enable
+      - uses: actions/setup-node@v6
+        with: { node-version: lts/*, cache: pnpm }
+      - run: pnpm install
+      - run: pnpm stub && pnpm lint
+      - run: pnpm test:types
+  tests-rollup:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -28,15 +42,31 @@ jobs:
       - run: pnpm test:types
         if: ${{ matrix.os != 'windows-latest' }}
       - run: pnpm build
-      - run: pnpm vitest --coverage
-      # - uses: codecov/codecov-action@v3
-      - run: pnpm dlx pkg-pr-new publish || true
-        if: ${{ matrix.os == 'ubuntu-latest' }}
+      - run: pnpm vitest run
+  tests-rolldown:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
 
-  publish:
+    steps:
+      - uses: actions/checkout@v5
+      - run: npm i -g --force corepack && corepack enable
+      - uses: actions/setup-node@v6
+        with: { node-version: lts/*, cache: pnpm }
+      - uses: oven-sh/setup-bun@v2
+        if: ${{ matrix.os != 'windows-latest' }}
+        with: { bun-version: latest }
+      - uses: denoland/setup-deno@v1
+        if: ${{ matrix.os != 'windows-latest' }}
+        with: { deno-version: v2.x }
+      - run: pnpm install
+      - run: pnpm build
+      - run: NITRO_BUILDER=rolldown pnpm vitest run
+  publish-nightly:
     runs-on: ubuntu-latest
     permissions: { id-token: write, contents: read }
-    needs: tests
+    needs: [tests-checks, tests-rollup, tests-rolldown]
     if: contains('refs/heads/main', github.ref) && github.event_name == 'push'
     steps:
       - uses: actions/checkout@v5
@@ -48,3 +78,15 @@ jobs:
       - run: pnpm build
       - run: pnpm changelogen --bump -r 3.0.1 --canary nightly
       - run: npm i -g npm@latest && npm publish --tag latest
+  publish-pkg-pr-new:
+    runs-on: ubuntu-latest
+    needs: [tests-checks, tests-rollup, tests-rolldown]
+    steps:
+      - uses: actions/checkout@v5
+        with: { fetch-depth: 0 }
+      - run: npm i -fg corepack && corepack enable
+      - uses: actions/setup-node@v6
+        with: { node-version: lts/*, cache: "pnpm" }
+      - run: pnpm install
+      - run: pnpm build
+      - run: pnpm dlx pkg-pr-new publish || true
