@@ -11,7 +11,6 @@ import consola from "consola";
 import { spawn } from "node:child_process";
 import { prettyPath } from "../../utils/fs.ts";
 import { createProxyServer } from "httpxy";
-import { loadDotenv } from "c12";
 
 export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
   return {
@@ -64,8 +63,21 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
       });
 
       if (!buildInfo.commands?.preview) {
-        consola.warn("[nitro] No preview command found for this preset..");
+        consola.warn("No preview command found for this preset..");
         return;
+      }
+
+      // Load .env files for preview mode
+      const dotEnvEntries = await loadPreviewDotEnv(server.config.root);
+      if (dotEnvEntries.length > 0) {
+        consola.box({
+          title: " [Environment Variables] ",
+          message: [
+            "Loaded variables from .env files (preview mode only).",
+            "Set platform environment variables for production:",
+            ...dotEnvEntries.map(([key, val]) => ` - ${key}`),
+          ].join("\n"),
+        });
       }
 
       const randomPort = await getRandomPort();
@@ -77,27 +89,12 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
 
       consola.info(buildInfo.commands?.preview);
 
-      // Load .env files for preview mode
-      const loadedEnv = await loadDotenv({
-        cwd: server.config.root,
-        fileName: [".env.production", ".env"],
-      });
-
-      if (loadedEnv && Object.keys(loadedEnv).length > 0) {
-        consola.warn("[nitro] .env files loaded for preview mode only!");
-        consola.warn(
-          "[nitro] For production: Use platform environment variables (Vercel, Cloudflare, AWS, etc.)"
-        );
-        consola.warn(
-          "[nitro] For self-hosted/Docker: Use `npx srvx --prod .output`"
-        );
-      }
-
       child = spawn(command, args, {
         stdio: "inherit",
         cwd: realBuildDir,
         env: {
           ...process.env,
+          ...Object.fromEntries(dotEnvEntries),
           PORT: String(randomPort),
         },
       });
@@ -124,4 +121,13 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
       });
     },
   } satisfies VitePlugin;
+}
+
+async function loadPreviewDotEnv(root: string): Promise<[string, string][]> {
+  const { loadDotenv } = await import("c12");
+  const env = await loadDotenv({
+    cwd: root,
+    fileName: [".env.preview", ".env.production", ".env"],
+  });
+  return Object.entries(env).filter(([_key, val]) => val) as [string, string][];
 }
