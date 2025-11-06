@@ -1,5 +1,5 @@
 import type { Nitro, NitroBuildInfo } from "nitro/types";
-import { resolve } from "pathe";
+import { relative, resolve } from "pathe";
 import { version as nitroVersion } from "nitro/meta";
 import { presetsWithConfig } from "../presets/_types.gen.ts";
 import { writeFile } from "../utils/fs.ts";
@@ -30,13 +30,14 @@ export async function writeBuildInfo(nitro: Nitro): Promise<NitroBuildInfo> {
 
   const lastBuild = resolve(
     nitro.options.rootDir,
-    "node_modules/.nitro/last-build"
+    "node_modules/.nitro/last-build.json"
   );
   await mkdir(dirname(lastBuild), { recursive: true });
-  await unlink(lastBuild).catch(() => {});
-  await symlink(nitro.options.output.dir, lastBuild)
-    .catch(() => symlink(nitro.options.output.dir, lastBuild))
-    .catch(() => {});
-
+  await writeFile(
+    lastBuild,
+    JSON.stringify({
+      outputDir: relative(lastBuild, nitro.options.output.dir),
+    })
+  );
   return buildInfo;
 }

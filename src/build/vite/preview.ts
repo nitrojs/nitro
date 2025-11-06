@@ -26,19 +26,32 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
     },
 
     async configurePreviewServer(server) {
-      const buildInfoPath = resolve(
+      const lastBuildPath = resolve(
         server.config.root,
-        "node_modules/.nitro/last-build",
-        "nitro.json"
+        "node_modules/.nitro/last-build.json"
       );
-      if (!existsSync(buildInfoPath)) {
-        console.warn(
-          `[nitro] No build found. Please build your project before previewing.`
+      if (!existsSync(lastBuildPath)) {
+        consola.warn(
+          `[nitro] No build info found in ${prettyPath(lastBuildPath)}. Please build your project before previewing.\n`
         );
         return;
       }
 
-      const realBuildDir = await readlink("node_modules/.nitro/last-build");
+      const { outputDir: relativeOutDir } = (await JSON.parse(
+        await readFile(lastBuildPath, "utf8")
+      )) as { outputDir: string };
+
+      const realBuildDir = resolve(lastBuildPath, relativeOutDir);
+
+      const buildInfoPath = resolve(realBuildDir, "nitro.json");
+      if (!existsSync(buildInfoPath)) {
+        consola.warn(
+          `[nitro] No build info found in ${prettyPath(buildInfoPath)}. Please build your project before previewing.\n`
+        );
+        return;
+      }
+
+      consola.log(`Using build directory: ${prettyPath(realBuildDir)}`);
 
       const buildInfo = JSON.parse(
         await readFile(buildInfoPath, "utf8")
@@ -107,4 +120,17 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
       });
     },
   } satisfies VitePlugin;
+}
+
+async function findLastBuildDir(root: string): Promise<void> {
+  const lastBuildPath = resolve(root, "node_modules/.nitro/last-build.json");
+  if (!existsSync(lastBuildPath)) {
+    return;
+  }
+
+  const { outputDir: relativeOutDir } = await readFile(lastBuildPath, "utf8")
+    .catch(() => "{}")
+    .then((data) => JSON.parse(data));
+
+  const realBuildDir = resolve(lastBuildPath, relativeOutDir);
 }
