@@ -62,7 +62,8 @@ jobs:
         with: { deno-version: v2.x }
       - run: pnpm install
       - run: pnpm build
-      - run: NITRO_BUILDER=rolldown pnpm vitest run
+      - run: pnpm vitest run
+        env: { NITRO_BUILDER: rolldown }
   publish-nightly:
     runs-on: ubuntu-latest
     permissions: { id-token: write, contents: read }
