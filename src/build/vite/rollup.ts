@@ -48,7 +48,7 @@ export const getViteRollupConfig = (
     input: nitro.options.entry,
     external: [...base.env.external],
     plugins: [
-      ctx.pluginConfig.experimental?.virtualBundle &&
+      ctx.pluginConfig.experimental?.vite?.virtualBundle &&
         virtualBundlePlugin(ctx._serviceBundles),
       ...baseBuildPlugins(nitro, base),
       alias({ entries: base.aliases }),
