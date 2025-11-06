@@ -1,11 +1,8 @@
 import type { Plugin as VitePlugin } from "vite";
 import type { NitroPluginContext } from "./types.ts";
-import { getRandomPort } from "get-port-please";
-
-import consola from "consola";
 import { spawn } from "node:child_process";
+import consola from "consola";
 import { prettyPath } from "../../utils/fs.ts";
-import { createProxyServer } from "httpxy";
 import { getBuildInfo } from "../info.ts";
 
 export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
@@ -71,6 +68,7 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
       consola.info(buildInfo.commands?.preview);
       console.log("");
 
+      const { getRandomPort } = await import("get-port-please");
       const randomPort = await getRandomPort();
       const child = spawn(command, args, {
         stdio: "inherit",
@@ -96,6 +94,7 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
         }
       });
 
+      const { createProxyServer } = await import("httpxy");
       const proxy = createProxyServer({
         target: `http://localhost:${randomPort}`,
       });
