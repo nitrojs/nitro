@@ -20,11 +20,13 @@ const vercel = defineNitroPreset(
       publicDir: "{{ output.dir }}/static/{{ baseURL }}",
     },
     commands: {
-      deploy: "",
       preview: "",
+      deploy: "npx vercel deploy --prebuilt",
     },
     hooks: {
       "build:before": async (nitro: Nitro) => {
+        const logger = nitro.logger.withTag("vercel");
+
         // Runtime
         const runtime = await resolveVercelRuntime(nitro);
         if (
@@ -33,6 +35,7 @@ const vercel = defineNitroPreset(
         ) {
           nitro.options.exportConditions!.push("bun");
         }
+        logger.info(`Using \`${runtime}\` runtime.`);
 
         // Entry handler format
         let serverFormat = nitro.options.vercel?.entryFormat;
@@ -42,7 +45,7 @@ const vercel = defineNitroPreset(
             .some((h) => h.format === "node");
           serverFormat = hasNodeHandler ? "node" : "web";
         }
-        nitro.logger.info(`[vercel] Using \`${serverFormat}\` entry format.`);
+        logger.info(`Using \`${serverFormat}\` entry format.`);
         nitro.options.entry = nitro.options.entry.replace(
           "{format}",
           serverFormat
