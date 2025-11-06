@@ -335,7 +335,7 @@ export function testNitro(
 
   it("render JSX", async () => {
     const { data } = await callHandler({ url: "/jsx" });
-    expect(data).toMatch(/<h1.+>Hello JSX!<\/h1>/);
+    expect(data).toMatch(/<h1 class="test">Hello JSX!<\/h1>/);
   });
 
   it("replace", async () => {

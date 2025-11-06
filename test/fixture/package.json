@@ -8,6 +8,7 @@
     "dev": "nitro dev"
   },
   "devDependencies": {
+    "nano-jsx": "^0.2.0",
     "nitro": "latest"
   }
 }

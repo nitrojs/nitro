@@ -1,10 +1,6 @@
-const h = (tag: string, props: any, ...children: any[]) => {
-  return `<${tag} ${Object.keys(props || {})
-    .map((key) => `${key}="${props[key]}"`)
-    .join(" ")
-    .trim()}>${children.join("")}</${tag}>`;
-};
+import { defineHandler, html } from "h3";
+import { h, renderSSR } from "nano-jsx";
 
 export default defineHandler(() => {
-  return <h1>Hello JSX!</h1>;
+  return html(renderSSR(() => <h1 className="test">Hello JSX!</h1>));
 });

@@ -647,6 +647,9 @@ importers:
 
   test/fixture:
     devDependencies:
+      nano-jsx:
+        specifier: ^0.2.0
+        version: 0.2.0
       nitro:
         specifier: link:../..
         version: link:../..
