@@ -239,7 +239,7 @@ export function deprecateSWR(nitro: Nitro) {
     return;
   }
   let hasLegacyOptions = false;
-  for (const [key, value] of Object.entries(nitro.options.routeRules)) {
+  for (const [_key, value] of Object.entries(nitro.options.routeRules)) {
     if (_hasProp(value, "isr")) {
       continue;
     }

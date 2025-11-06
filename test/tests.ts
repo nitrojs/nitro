@@ -696,7 +696,7 @@ export function testNitro(
       "should setItem before returning response the first time",
       async () => {
         const {
-          data: { timestamp, eventContextCache },
+          data: { timestamp },
         } = await callHandler({ url: "/api/cached" });
 
         // TODO

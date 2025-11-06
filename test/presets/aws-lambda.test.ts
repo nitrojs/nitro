@@ -1,5 +1,4 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyEventV2 } from "aws-lambda";
-import destr from "destr";
 import { resolve } from "pathe";
 import { describe } from "vitest";
 import { parseURL, parseQuery } from "ufo";

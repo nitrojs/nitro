@@ -1,5 +1,4 @@
 import type { Nitro, RollupConfig } from "nitro/types";
-import { createRequire } from "node:module";
 import { defu } from "defu";
 import { sanitizeFilePath } from "mlly";
 import { normalize } from "pathe";

@@ -51,14 +51,14 @@ export async function cloudflareDevModule(nitro: Nitro) {
     startingFrom: nitro.options.rootDir,
   }).catch(() => undefined);
 
-  let addedToGitIgnore = false;
+  // let addedToGitIgnore = false;
   if (gitIgnorePath && persistDir === ".wrangler/state/v3") {
     const gitIgnore = await fs.readFile(gitIgnorePath, "utf8");
     if (!gitIgnore.includes(".wrangler/state/v3")) {
       await fs
         .writeFile(gitIgnorePath, gitIgnore + "\n.wrangler/state/v3\n")
         .catch(() => {});
-      addedToGitIgnore = true;
+      // addedToGitIgnore = true;
     }
   }
 

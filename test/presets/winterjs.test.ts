@@ -1,4 +1,4 @@
-import { execa, execaCommandSync } from "execa";
+import { execa } from "execa";
 import { getRandomPort, waitForPort } from "get-port-please";
 import { describe } from "vitest";
 import { setupTest, testNitro } from "../tests.ts";

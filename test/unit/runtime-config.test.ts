@@ -49,7 +49,7 @@ describe("normalizeRuntimeConfig", () => {
   });
 
   it("should throw a warning when runtimeConfig is not serializable", () => {
-    const originalWarn = console.warn;
+    // const originalWarn = console.warn;
     const spyWarn = (console.warn = vi.fn());
     normalizeRuntimeConfig({
       ...nitroConfig,

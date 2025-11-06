@@ -1,6 +1,6 @@
-import type { H3Core, H3EventContext, HTTPEvent } from "h3";
+import type { H3Core, HTTPEvent } from "h3";
 import type { HookableCore } from "hookable";
-import type { ServerRequest, ServerRequestContext } from "srvx";
+import type { ServerRequest } from "srvx";
 
 export interface NitroApp {
   fetch: (req: Request) => Response | Promise<Response>;

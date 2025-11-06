@@ -28,7 +28,6 @@ import type {
   NitroDevEventHandler,
   NitroErrorHandler,
   NitroEventHandler,
-  EventHandlerFormat,
 } from "./handler.ts";
 import type { NitroHooks } from "./hooks.ts";
 import type { NitroModuleInput } from "./module.ts";

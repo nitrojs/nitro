@@ -70,7 +70,7 @@ export function startScheduleRunner() {
   };
 
   for (const schedule of scheduledTasks) {
-    const cron = new Cron(schedule.cron, async () => {
+    new Cron(schedule.cron, async () => {
       await Promise.all(
         schedule.tasks.map((name) =>
           runTask(name, {

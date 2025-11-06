@@ -11,7 +11,7 @@ describe.runIf(hasDeno)("nitro:preset:deno-server", async () => {
   const ctx = await setupTest("deno-server");
   testNitro(ctx, async () => {
     const port = await getRandomPort();
-    const p = execa("deno", ["task", "start"], {
+    execa("deno", ["task", "start"], {
       cwd: ctx.outDir,
       // stdio: "inherit",
       stdio: "ignore",

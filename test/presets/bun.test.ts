@@ -13,7 +13,7 @@ describe.runIf(hasBun)("nitro:preset:bun", async () => {
   testNitro(ctx, async () => {
     const port = await getRandomPort();
     process.env.PORT = String(port);
-    const p = execa("bun", [resolve(ctx.outDir, "server/index.mjs")], {
+    execa("bun", [resolve(ctx.outDir, "server/index.mjs")], {
       stdio: "inherit",
     });
     ctx.server = {

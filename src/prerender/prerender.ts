@@ -1,5 +1,4 @@
 import { pathToFileURL } from "node:url";
-import { colors } from "consola/utils";
 import { defu } from "defu";
 import mime from "mime";
 import { writeFile } from "../utils/fs.ts";
@@ -26,7 +25,7 @@ import { toRequest } from "h3";
 
 const JsonSigRx = /^\s*["[{]|^\s*-?\d{1,16}(\.\d{1,17})?([Ee][+-]?\d+)?\s*$/; // From unjs/destr
 
-const linkParents = new Map<string, Set<string>>();
+// const linkParents = new Map<string, Set<string>>();
 
 export async function prerender(nitro: Nitro) {
   if (nitro.options.noPublicDir) {
@@ -360,12 +359,12 @@ export async function prerender(nitro: Nitro) {
   if (nitro.options.prerender.failOnError && failedRoutes.size > 0) {
     nitro.logger.log("\nErrors prerendering:");
     for (const route of failedRoutes) {
-      const parents = linkParents.get(route.route);
-      const parentsText = parents?.size
-        ? `\n${[...parents.values()]
-            .map((link) => colors.gray(`  │ └── Linked from ${link}`))
-            .join("\n")}`
-        : "";
+      // const parents = linkParents.get(route.route);
+      // const parentsText = parents?.size
+      //   ? `\n${[...parents.values()]
+      //       .map((link) => colors.gray(`  │ └── Linked from ${link}`))
+      //       .join("\n")}`
+      //   : "";
       nitro.logger.log(formatPrerenderRoute(route));
     }
     nitro.logger.log("");

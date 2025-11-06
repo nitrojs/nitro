@@ -1,5 +1,5 @@
 import type { Nitro, NitroStaticBuildFlags } from "nitro/types";
-import { join, resolve } from "pathe";
+import { resolve } from "pathe";
 import { defineEnv } from "unenv";
 import { runtimeDir } from "nitro/runtime/meta";
 

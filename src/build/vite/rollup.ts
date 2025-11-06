@@ -1,4 +1,4 @@
-import type { Nitro, RollupConfig } from "nitro/types";
+import type { RollupConfig } from "nitro/types";
 import { defu } from "defu";
 import { sanitizeFilePath } from "mlly";
 import { normalize, resolve, dirname } from "pathe";
