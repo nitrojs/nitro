@@ -10,7 +10,9 @@ import { isWindows } from "std-env";
 
 const examplesDir = fileURLToPath(new URL("../examples", import.meta.url));
 
-const noRolldownVite = new Set<string>([
+const useRolldown = process.env.NITRO_BUILDER === "rolldown";
+
+const noRolldown = new Set<string>([
   "nano-jsx", // TODO: JSX issue with rolldown
 ]);
 
@@ -31,9 +33,9 @@ function setupTest(name: string) {
   const rootDir = join(examplesDir, name);
 
   // prettier-ignore
-  const { createServer, createBuilder } = noRolldownVite.has(name)
+  const { createServer, createBuilder } = (!useRolldown || noRolldown.has(name) )
     ? vite
-    : (process.env.NITRO_BUILDER === "rolldown" ? rolldownVite : vite);
+    : rolldownVite
 
   describe.skipIf(skip.has(name) || isWindows)(name, () => {
     type TestContext = {
