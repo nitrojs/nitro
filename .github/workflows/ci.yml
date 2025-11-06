@@ -76,7 +76,7 @@ jobs:
       - run: pnpm install
       - run: pnpm build
       - run: pnpm dlx pkg-pr-new publish || true
-  publish-nightly:
+  publish-nitro-nightly:
     runs-on: ubuntu-latest
     permissions: { id-token: write, contents: read }
     needs: [tests-checks, tests-rollup, tests-rolldown]
