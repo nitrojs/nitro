@@ -118,7 +118,7 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
       } else {
         if (
           ctx.pluginConfig.experimental?.vite?.virtualBundle &&
-          name in (ctx.pluginConfig.viteServices || {})
+          name in (ctx.services || {})
         ) {
           debug("[env]  Configuring service environment for virtual:", name);
           config.build ??= {};
@@ -205,8 +205,7 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
           "[main] Generating manifest and entry points for environment:",
           environment.name
         );
-        const services = ctx.pluginConfig.viteServices || {};
-        const serviceNames = Object.keys(services);
+        const serviceNames = Object.keys(ctx.services);
         const isRegisteredService = serviceNames.includes(environment.name);
 
         // Find entry point of this service
@@ -322,6 +321,7 @@ function nitroService(ctx: NitroPluginContext): VitePlugin {
 function createContext(pluginConfig: NitroPluginConfig): NitroPluginContext {
   return {
     pluginConfig,
+    services: {},
     _entryPoints: {},
     _serviceBundles: {},
   };
@@ -367,8 +367,7 @@ async function setupNitroContext(
   ctx.nitro.options.builder = ctx._isRolldown ? "rolldown-vite" : "vite";
 
   // Config ssr env as a fetchable ssr service
-  if (!ctx.pluginConfig.viteServices?.ssr) {
-    ctx.pluginConfig.viteServices ??= {};
+  if (!ctx.services?.ssr) {
     if (userConfig.environments?.ssr === undefined) {
       const ssrEntry = resolveModulePath("./entry-server", {
         from: ["app", "src", ""].flatMap((d) =>
@@ -380,7 +379,7 @@ async function setupNitroContext(
         try: true,
       });
       if (ssrEntry) {
-        ctx.pluginConfig.viteServices.ssr = { entry: ssrEntry };
+        ctx.services.ssr = { entry: ssrEntry };
         ctx.nitro!.logger.info(
           `Using \`${prettyPath(ssrEntry)}\` as vite ssr entry.`
         );
@@ -397,7 +396,7 @@ async function setupNitroContext(
             suffixes: ["", "/index"],
             try: true,
           }) || ssrEntry;
-        ctx.pluginConfig.viteServices.ssr = { entry: ssrEntry };
+        ctx.services.ssr = { entry: ssrEntry };
       }
     }
   }
@@ -406,7 +405,7 @@ async function setupNitroContext(
   if (
     !ctx.nitro.options.renderer?.entry &&
     !ctx.nitro.options.renderer?.template &&
-    ctx.pluginConfig.viteServices.ssr?.entry
+    ctx.services.ssr?.entry
   ) {
     ctx.nitro.options.renderer ??= {};
     ctx.nitro.options.renderer.entry = resolve(

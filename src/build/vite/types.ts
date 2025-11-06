@@ -24,14 +24,7 @@ declare module "rollup" {
 
 export interface NitroPluginConfig extends NitroConfig {
   /**
-   * Fetchable service environments automatically created by the plugin.
-   *
-   * **Note:** You can use top level `environments` with same keys to extend environment configurations.
-   */
-  viteServices?: Record<string, ServiceConfig>;
-
-  /**
-   * @internal Pre-initialized Nitro instance.
+   * @internal Use preinitialized Nitro instance for the plugin.
    */
   _nitro?: Nitro;
 
@@ -60,38 +53,16 @@ export interface NitroPluginConfig extends NitroConfig {
 }
 
 export interface ServiceConfig {
-  /**
-   * Path to the service entrypoint file.
-   *
-   * Services should export a web standard fetch handler function.
-   *
-   * Example:
-   * ```ts
-   * export default async (req: Request) => {
-   *   return Response.json({ message: "Hello from service!" });
-   * };
-   * ```
-   */
   entry: string;
-
-  /**
-   * Service route.
-   *
-   * - If `route` is not set, services are only accessible via `fetchViteEnv` (importable from `nitro/runtime/vite`).
-   * - `ssr` service is special and defaults to `"/**"` route, meaning it will handle all requests.
-   */
-  route?: string;
 }
 
-/**
- * @internal
- */
 export interface NitroPluginContext {
   nitro?: Nitro;
   pluginConfig: NitroPluginConfig;
   rollupConfig?: ReturnType<typeof getViteRollupConfig>;
   devWorker?: DevWorker;
   devApp?: NitroDevApp;
+  services: Record<string, ServiceConfig>;
 
   _isRolldown?: boolean;
   _initialized?: boolean;
