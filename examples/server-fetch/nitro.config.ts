@@ -1,7 +1,7 @@
 import { defineConfig, serverFetch } from "nitro";
 
 export default defineConfig({
-  serverDir: "./",
+  serverDir: true,
   hooks: {
     "dev:start": async () => {
       const res = await serverFetch("/hello");

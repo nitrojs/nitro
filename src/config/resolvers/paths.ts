@@ -26,6 +26,9 @@ export async function resolvePathOptions(options: NitroOptions) {
   }
 
   if (options.serverDir !== false) {
+    if ((options as any).serverDir === true) {
+      options.serverDir = "server";
+    }
     options.serverDir =
       resolve(options.rootDir, options.serverDir || ".") + "/";
   }

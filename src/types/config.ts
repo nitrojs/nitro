@@ -294,6 +294,7 @@ export interface NitroConfig
         | "preset"
         | "compatibilityDate"
         | "unenv"
+        | "serverDir"
         | "_config"
         | "_c12"
       >
@@ -305,6 +306,7 @@ export interface NitroConfig
   rollupConfig?: Partial<RollupConfig>;
   compatibilityDate?: CompatibilityDateSpec;
   unenv?: UnenvPreset | UnenvPreset[];
+  serverDir?: boolean | "./" | "./server" | (string & {});
 }
 
 // ------------------------------------------------------------
