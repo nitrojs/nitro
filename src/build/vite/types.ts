@@ -22,41 +22,40 @@ declare module "rollup" {
   }
 }
 
-export interface NitroPluginConfig {
-  /** Custom Nitro config */
-  config?: NitroConfig;
-
+export interface NitroPluginConfig extends NitroConfig {
   /**
    * Fetchable service environments automatically created by the plugin.
    *
    * **Note:** You can use top level `environments` with same keys to extend environment configurations.
    */
-  services?: Record<string, ServiceConfig>;
+  viteServices?: Record<string, ServiceConfig>;
 
   /**
    * @internal Pre-initialized Nitro instance.
    */
   _nitro?: Nitro;
 
-  experimental?: {
-    /**
-     * @experimental Use the virtual filesystem for intermediate environment build output files.
-     * @note This is unsafe if plugins rely on temporary files on the filesystem.
-     */
-    virtualBundle?: boolean;
+  experimental?: NitroConfig["experimental"] & {
+    vite: {
+      /**
+       * @experimental Use the virtual filesystem for intermediate environment build output files.
+       * @note This is unsafe if plugins rely on temporary files on the filesystem.
+       */
+      virtualBundle?: boolean;
 
-    /**
-     * @experimental Enable `?assets` import proposed by https://github.com/vitejs/vite/discussions/20913
-     * @default true
-     */
-    assetsImport?: boolean;
+      /**
+       * @experimental Enable `?assets` import proposed by https://github.com/vitejs/vite/discussions/20913
+       * @default true
+       */
+      assetsImport?: boolean;
 
-    /**
-     * Reload the page when a server module is updated.
-     *
-     * @default true
-     */
-    serverReload: boolean;
+      /**
+       * Reload the page when a server module is updated.
+       *
+       * @default true
+       */
+      serverReload: boolean;
+    };
   };
 }
 
@@ -78,7 +77,7 @@ export interface ServiceConfig {
   /**
    * Service route.
    *
-   * - If `route` is not set, services are only accessible via `fetch("<url>", { viteEnv: "<name>" })`.
+   * - If `route` is not set, services are only accessible via `fetchViteEnv` (importable from `nitro/runtime/vite`).
    * - `ssr` service is special and defaults to `"/**"` route, meaning it will handle all requests.
    */
   route?: string;
