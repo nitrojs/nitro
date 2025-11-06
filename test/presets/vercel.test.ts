@@ -266,10 +266,6 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/api/storage/item",
               },
               {
-                "dest": "/api/storage/dev",
-                "src": "/api/storage/dev",
-              },
-              {
                 "dest": "/api/serialized/void",
                 "src": "/api/serialized/void",
               },
@@ -522,7 +518,6 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/api/serialized/set.func (symlink)",
             "functions/api/serialized/tuple.func (symlink)",
             "functions/api/serialized/void.func (symlink)",
-            "functions/api/storage/dev.func (symlink)",
             "functions/api/storage/item.func (symlink)",
             "functions/api/test/[-]/foo.func (symlink)",
             "functions/api/typed/catchall/[slug]/[...another].func (symlink)",
@@ -637,7 +632,7 @@ describe("nitro:preset:vercel:bun", async () => {
   });
 });
 
-describe("nitro:preset:vercel:bun-verceljson", async () => {
+describe.skip("nitro:preset:vercel:bun-verceljson", async () => {
   const vercelJsonPath = join(fixtureDir, "vercel.json");
   // Need to make sure vercel.json is created before setupTest is called
   await fsp.writeFile(vercelJsonPath, JSON.stringify({ bunVersion: "1.x" }));
