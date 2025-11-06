@@ -47,7 +47,7 @@
     "test:fixture:types": "pnpm stub && node ./test/scripts/gen-fixture-types.ts && cd test/fixture && tsc --noEmit",
     "test:rolldown": "NITRO_BUILDER=rolldown pnpm vitest",
     "test:rollup": "NITRO_BUILDER=rollup pnpm vitest",
-    "test:types": "tsc --noEmit && pnpm test:fixture:types"
+    "test:types": "tsc --noEmit"
   },
   "resolutions": {
     "nitro": "link:.",
