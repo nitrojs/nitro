@@ -3,3 +3,25 @@ packages:
   - playground
   - test/fixture
   - test/minimal
+
+ignoreWorkspaceRootCheck: true
+
+ignoredBuiltDependencies:
+  - keytar
+  - protobufjs
+  - vue-demi
+
+onlyBuiltDependencies:
+  - "@parcel/watcher"
+  - esbuild
+  - sharp
+  - workerd
+
+peerDependencyRules:
+  ignoreMissing:
+    - react
+    - "@types/react"
+    - react-dom
+    - "@algolia/client-search"
+
+shellEmulator: true
