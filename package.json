@@ -20,7 +20,8 @@
     "./vite": "./dist/vite.mjs",
     "./h3": "./lib/deps/h3.mjs",
     "./deps/h3": "./lib/deps/h3.mjs",
-    "./deps/ofetch": "./lib/deps/ofetch.mjs"
+    "./deps/ofetch": "./lib/deps/ofetch.mjs",
+    "./tsconfig": "./lib/tsconfig.json"
   },
   "types": "./lib/index.d.mts",
   "bin": {
