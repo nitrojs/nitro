@@ -1,16 +1,12 @@
 import type { Plugin as VitePlugin } from "vite";
-import type { NitroBuildInfo } from "nitro/types";
 import type { NitroPluginContext } from "./types.ts";
-
-import { resolve } from "pathe";
-import { existsSync } from "node:fs";
-import { readFile, readlink, stat } from "node:fs/promises";
 import { getRandomPort } from "get-port-please";
 
 import consola from "consola";
 import { spawn } from "node:child_process";
 import { prettyPath } from "../../utils/fs.ts";
 import { createProxyServer } from "httpxy";
+import { loadLastBuild } from "../preview.ts";
 
 export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
   return {
@@ -26,14 +22,11 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
     },
 
     async configurePreviewServer(server) {
-      const outputDir = await findLastBuildDir(server.config.root);
-      const buildInfoPath = resolve(outputDir, "nitro.json");
-      const buildInfo = (await readFile(buildInfoPath, "utf8")
-        .then(JSON.parse)
-        .catch(() => undefined)) as NitroBuildInfo;
+      const { outputDir, buildInfo } = await loadLastBuild(server.config.root);
       if (!buildInfo) {
-        consola.warn(`Cannot load ${prettyPath(buildInfoPath)}.`);
-        return;
+        throw this.error(
+          "Cannot load nitro build info. Make sure to build first."
+        );
       }
 
       const info = [
@@ -76,6 +69,7 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
 
       consola.info(`Spawning preview server...`);
       consola.info(buildInfo.commands?.preview);
+      console.log("");
 
       const randomPort = await getRandomPort();
       const child = spawn(command, args, {
@@ -124,15 +118,4 @@ async function loadPreviewDotEnv(root: string): Promise<[string, string][]> {
     fileName: [".env.preview", ".env.production", ".env"],
   });
   return Object.entries(env).filter(([_key, val]) => val) as [string, string][];
-}
-
-async function findLastBuildDir(root: string): Promise<string> {
-  const lastBuildLink = resolve(root, "node_modules/.nitro/last-build.json");
-  const outDir = await readFile(lastBuildLink, "utf8")
-    .then(JSON.parse)
-    .then((data) =>
-      resolve(lastBuildLink, data.outputDir || "../../../.output")
-    )
-    .catch(() => resolve(root, ".output"));
-  return outDir;
 }
