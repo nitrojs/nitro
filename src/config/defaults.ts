@@ -86,7 +86,7 @@ export const NitroDefaults: NitroConfig = {
     generateTsConfig: false,
     tsconfigPath: "tsconfig.json",
     internalPaths: false,
-    tsConfig: {},
+    tsConfig: undefined,
   },
   nodeModulesDirs: [],
   hooks: {},

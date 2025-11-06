@@ -274,6 +274,9 @@ importers:
       tinyglobby:
         specifier: ^0.2.15
         version: 0.2.15
+      tsconfck:
+        specifier: ^3.1.6
+        version: 3.1.6(typescript@5.9.3)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3

@@ -153,6 +153,12 @@ export interface NitroOptions extends PresetOptions {
      * @see https://nitro.build/guide/tasks
      */
     tasks?: boolean;
+    /**
+     * Infer path aliases from tsconfig.json
+     *
+     * @default true
+     */
+    tsconfigAliases?: boolean;
   };
   future: {
     nativeSWR: boolean;

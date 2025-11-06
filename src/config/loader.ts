@@ -20,6 +20,7 @@ import { resolveDatabaseOptions } from "./resolvers/database.ts";
 import { resolveExportConditionsOptions } from "./resolvers/export-conditions.ts";
 import { resolveImportsOptions } from "./resolvers/imports.ts";
 import { resolveOpenAPIOptions } from "./resolvers/open-api.ts";
+import { resolveTypescript } from "./resolvers/typescript.ts";
 import { resolvePathOptions } from "./resolvers/paths.ts";
 import { resolveRouteRulesOptions } from "./resolvers/route-rules.ts";
 import { resolveRuntimeConfigOptions } from "./resolvers/runtime-config.ts";
@@ -31,6 +32,7 @@ import { resolveBuilder } from "./resolvers/builder.ts";
 
 const configResolvers = [
   resolveCompatibilityOptions,
+  resolveTypescript,
   resolvePathOptions,
   resolveImportsOptions,
   resolveRouteRulesOptions,

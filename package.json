@@ -142,6 +142,7 @@
     "source-map": "^0.7.6",
     "std-env": "^3.10.0",
     "tinyglobby": "^0.2.15",
+    "tsconfck": "^3.1.6",
     "typescript": "^5.9.3",
     "ufo": "^1.6.1",
     "ultrahtml": "^1.6.0",
