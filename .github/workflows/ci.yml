@@ -64,6 +64,18 @@ jobs:
       - run: pnpm build
       - run: pnpm vitest run
         env: { NITRO_BUILDER: rolldown }
+  publish-pkg-pr-new:
+    runs-on: ubuntu-latest
+    needs: [tests-checks, tests-rollup, tests-rolldown]
+    steps:
+      - uses: actions/checkout@v5
+        with: { fetch-depth: 0 }
+      - run: npm i -fg corepack && corepack enable
+      - uses: actions/setup-node@v6
+        with: { node-version: lts/*, cache: "pnpm" }
+      - run: pnpm install
+      - run: pnpm build
+      - run: pnpm dlx pkg-pr-new publish || true
   publish-nightly:
     runs-on: ubuntu-latest
     permissions: { id-token: write, contents: read }
@@ -79,15 +91,3 @@ jobs:
       - run: pnpm build
       - run: pnpm changelogen --bump -r 3.0.1 --canary nightly
       - run: npm i -g npm@latest && npm publish --tag latest
-  publish-pkg-pr-new:
-    runs-on: ubuntu-latest
-    needs: [tests-checks, tests-rollup, tests-rolldown]
-    steps:
-      - uses: actions/checkout@v5
-        with: { fetch-depth: 0 }
-      - run: npm i -fg corepack && corepack enable
-      - uses: actions/setup-node@v6
-        with: { node-version: lts/*, cache: "pnpm" }
-      - run: pnpm install
-      - run: pnpm build
-      - run: pnpm dlx pkg-pr-new publish || true
