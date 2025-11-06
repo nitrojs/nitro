@@ -13,7 +13,7 @@ export const NitroDefaults: NitroConfig = {
   // Dirs
   serverDir: false,
   scanDirs: [],
-  buildDir: ".nitro",
+  buildDir: `node_modules/.nitro`,
   output: {
     dir: "{{ rootDir }}/.output",
     serverDir: "{{ output.dir }}/server",
@@ -85,7 +85,7 @@ export const NitroDefaults: NitroConfig = {
     strict: true,
     generateRuntimeConfigTypes: false,
     generateTsConfig: false,
-    tsconfigPath: "types/tsconfig.json",
+    tsconfigPath: "tsconfig.json",
     internalPaths: false,
     tsConfig: {},
   },

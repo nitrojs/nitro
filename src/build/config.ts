@@ -6,7 +6,6 @@ import { runtimeDir } from "nitro/runtime/meta";
 export type BaseBuildConfig = ReturnType<typeof baseBuildConfig>;
 
 export function baseBuildConfig(nitro: Nitro) {
-  const buildServerDir = join(nitro.options.buildDir, "dist/server");
   const presetsDir = resolve(runtimeDir, "../presets");
 
   // prettier-ignore
@@ -97,7 +96,6 @@ export function baseBuildConfig(nitro: Nitro) {
   });
 
   return {
-    buildServerDir,
     presetsDir,
     extensions,
     isNodeless,

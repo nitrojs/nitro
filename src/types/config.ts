@@ -251,9 +251,21 @@ export interface NitroOptions extends PresetOptions {
     internalPaths?: boolean;
     generateRuntimeConfigTypes?: boolean;
     generateTsConfig?: boolean;
-    /** the path of the generated `tsconfig.json`, relative to buildDir */
-    tsconfigPath: string;
     tsConfig?: Partial<TSConfig>;
+
+    /**
+     * Path of the generated types directory.
+     *
+     * Default is `node_modules/.nitro/types`
+     */
+    generatedTypesDir?: string;
+
+    /**
+     * Path of the generated `tsconfig.json` relative to `typescript.generatedTypesDir`
+     *
+     * Default is `tsconfig.json` (`node_modules/.nitro/types/tsconfig.json`)
+     */
+    tsconfigPath: string;
   };
   hooks: NestedHooks<NitroHooks>;
   nodeModulesDirs: string[];

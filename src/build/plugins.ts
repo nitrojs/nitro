@@ -115,10 +115,7 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
         defu(nitro.options.externals, {
           outDir: nitro.options.output.serverDir,
           moduleDirectories: nitro.options.nodeModulesDirs,
-          external: [
-            ...(nitro.options.dev ? [nitro.options.buildDir] : []),
-            ...nitro.options.nodeModulesDirs,
-          ],
+          external: nitro.options.nodeModulesDirs,
           inline: [
             "#",
             "~",

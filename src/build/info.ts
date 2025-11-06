@@ -1,10 +1,12 @@
 import type { Nitro, NitroBuildInfo, WorkerAddress } from "nitro/types";
-import { relative, resolve } from "pathe";
+import { join, relative, resolve } from "pathe";
 import { version as nitroVersion } from "nitro/meta";
 import { presetsWithConfig } from "../presets/_types.gen.ts";
 import { writeFile } from "../utils/fs.ts";
 import { mkdir, readFile, stat } from "node:fs/promises";
 import { dirname } from "node:path";
+
+const NITRO_WELLKNOWN_DIR = "node_modules/.nitro";
 
 export async function getBuildInfo(
   root: string
@@ -32,7 +34,7 @@ export async function getBuildInfo(
 }
 
 export async function findLastBuildDir(root: string): Promise<string> {
-  const lastBuildLink = resolve(root, "node_modules/.nitro/last-build.json");
+  const lastBuildLink = join(root, NITRO_WELLKNOWN_DIR, "last-build.json");
   const outputDir = await readFile(lastBuildLink, "utf8")
     .then(JSON.parse)
     .then((data) =>
@@ -64,9 +66,10 @@ export async function writeBuildInfo(nitro: Nitro): Promise<NitroBuildInfo> {
 
   await writeFile(buildInfoPath, JSON.stringify(buildInfo, null, 2), true);
 
-  const lastBuild = resolve(
+  const lastBuild = join(
     nitro.options.rootDir,
-    "node_modules/.nitro/last-build.json"
+    NITRO_WELLKNOWN_DIR,
+    "last-build.json"
   );
   await mkdir(dirname(lastBuild), { recursive: true });
   await writeFile(
@@ -82,7 +85,11 @@ export async function writeDevBuildInfo(
   nitro: Nitro,
   addr?: WorkerAddress
 ): Promise<void> {
-  const buildInfoPath = resolve(nitro.options.buildDir, "nitro.json");
+  const buildInfoPath = join(
+    nitro.options.rootDir,
+    NITRO_WELLKNOWN_DIR,
+    "nitro.dev.json"
+  );
   const buildInfo: NitroBuildInfo = {
     date: new Date().toJSON(),
     preset: nitro.options.preset,

@@ -82,9 +82,9 @@ const _devHint = `(is dev server running?)`;
 
 async function _getTasksContext(opts?: TaskRunnerOptions) {
   const cwd = resolve(process.cwd(), opts?.cwd || ".");
-  const outDir = resolve(cwd, opts?.buildDir || ".nitro");
+  const buildDir = resolve(cwd, opts?.buildDir || "node_modules/.nitro");
 
-  const buildInfoPath = resolve(outDir, "nitro.json");
+  const buildInfoPath = resolve(buildDir, "nitro.dev.json");
   if (!existsSync(buildInfoPath)) {
     throw new Error(`Missing info file: \`${buildInfoPath}\` ${_devHint}`);
   }

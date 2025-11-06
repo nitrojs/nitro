@@ -32,8 +32,6 @@ export const getViteRollupConfig = (
   const base = baseBuildConfig(nitro);
 
   const chunkNamePrefixes = [
-    [nitro.options.buildDir, "build"],
-    [base.buildServerDir, "app"],
     [runtimeDir, "nitro"],
     [base.presetsDir, "nitro"],
     ["\0nitro-wasm:", "wasm"],

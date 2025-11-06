@@ -20,8 +20,6 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
   const base = baseBuildConfig(nitro);
 
   const chunkNamePrefixes = [
-    [nitro.options.buildDir, "build"],
-    [base.buildServerDir, "app"],
     [runtimeDir, "nitro"],
     [base.presetsDir, "nitro"],
     ["\0raw:", "raw"],
