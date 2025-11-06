@@ -1,6 +1,4 @@
 {
-  "name": "example-express",
-  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "build": "nitro build",
@@ -9,6 +7,6 @@
   "devDependencies": {
     "@types/express": "^5.0.5",
     "express": "^5.1.0",
-    "nitro": "npm:nitro-nightly"
+    "nitro": "latest"
   }
 }

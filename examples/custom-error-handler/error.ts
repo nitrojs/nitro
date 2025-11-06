@@ -1,7 +1,8 @@
-import type { NitroErrorHandler } from "nitro";
+import { defineNitroErrorHandler } from "nitro/runtime";
 
-const errorHandler: NitroErrorHandler = function (error, event) {
-  event.res.end("[custom error handler] " + error.stack);
-};
-
-export default errorHandler;
+export default defineNitroErrorHandler((error, event) => {
+  return new Response(`Custom Error Handler: ${error.message}`, {
+    status: 500,
+    headers: { "Content-Type": "text/plain" },
+  });
+});

@@ -11,11 +11,13 @@ export default {
     context: { waitUntil: (promise: Promise<any>) => void }
   ) {
     // Check for ISR request
-    const isrRoute = req.headers.get("x-now-route-matches");
-    if (isrRoute) {
-      const url = new URL(req.url);
-      url.pathname = decodeURIComponent(isrRoute);
-      req = new Request(url.toString(), req);
+    const query = req.headers.get("x-now-route-matches");
+    if (query) {
+      const urlParam = new URLSearchParams(query).get("url");
+      if (urlParam) {
+        const url = new URL(decodeURIComponent(urlParam), req.url).href;
+        req = new Request(url, req);
+      }
     }
 
     // srvx compatibility

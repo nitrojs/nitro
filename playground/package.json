@@ -8,9 +8,7 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.1.14",
-    "nitro": "npm:nitro-nightly",
-    "tailwindcss": "^4.1.14",
+    "nitro": "latest",
     "vite": "npm:rolldown-vite"
   }
 }

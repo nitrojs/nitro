@@ -1,6 +1,4 @@
 {
-  "name": "vite-nitro-plugin",
-  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "build": "vite build",
@@ -8,7 +6,7 @@
     "dev": "vite dev"
   },
   "devDependencies": {
-    "nitro": "npm:nitro-nightly",
+    "nitro": "latest",
     "vite": "^7.1.8"
   }
 }

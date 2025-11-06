@@ -1,4 +1,6 @@
-export default defineNitroConfig({
-  compatibilityDate: "2025-03-01",
-  renderer: "~/renderer",
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  serverDir: "./",
+  renderer: { entry: "./renderer" },
 });

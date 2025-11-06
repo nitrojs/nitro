@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    // Module resolution
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+
+    // JSX
+    "jsx": "react-jsx",
+
+    // Core checks
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+
+    // Additional safety
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "useUnknownInCatchVariables": true,
+    "noUnusedLocals": true,
+    "types": ["vite/client"],
+
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["sec/*"]
+    }
+  },
+  "include": ["sec", "types.d.ts"],
+  "exclude": ["node_modules", "dist"]
+}

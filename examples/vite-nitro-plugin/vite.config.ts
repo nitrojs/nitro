@@ -8,7 +8,7 @@ export default defineConfig({
       name: "my-nitro-plugin",
       nitro: {
         setup: (nitro) => {
-          nitro.options.serverEntry = "#virtual-by-plugin";
+          nitro.options.routes["/"] = "#virtual-by-plugin";
           nitro.options.virtual["#virtual-by-plugin"] =
             `export default () => new Response("Hello from virtual entry!")`;
         },

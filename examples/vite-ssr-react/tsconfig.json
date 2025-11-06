@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    // Module resolution
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+
+    // JSX
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+
+    // Core checks
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+
+    // Additional safety
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "useUnknownInCatchVariables": true,
+    "noUnusedLocals": true,
+
+    // Libs & paths
+    "lib": ["ESNext", "DOM"],
+    "types": ["vite/client", "node"],
+    "baseUrl": "."
+  }
+}

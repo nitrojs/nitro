@@ -1,0 +1,20 @@
+{
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite dev",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@tanstack/router-plugin": "^1.134.9",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^5.1.0",
+    "nitro": "latest",
+    "vite": "^7.1.12",
+    "@tanstack/react-router": "^1.134.9",
+    "@tanstack/react-router-devtools": "^1.134.9",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  }
+}
