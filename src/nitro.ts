@@ -12,7 +12,6 @@ import { updateNitroConfig } from "./config/update.ts";
 import { installModules } from "./module.ts";
 import { scanAndSyncOptions, scanHandlers } from "./scan.ts";
 import { addNitroTasksVirtualFile } from "./task.ts";
-import { createStorage } from "./utils/storage.ts";
 import { initNitroRouting } from "./routing.ts";
 import { registerNitroInstance } from "./global.ts";
 
@@ -35,7 +34,6 @@ export async function createNitro(
       throw new Error("no dev server attached!");
     },
     close: () => Promise.resolve(nitro.hooks.callHook("close")),
-    storage: undefined as any,
     async updateConfig(config: NitroDynamicConfig) {
       updateNitroConfig(nitro, config);
     },
@@ -50,12 +48,6 @@ export async function createNitro(
   // Scan dirs (plugins, tasks, modules) and sync options
   // TODO: Make it side-effect free to allow proper watching
   await scanAndSyncOptions(nitro);
-
-  // Storage
-  nitro.storage = await createStorage(nitro);
-  nitro.hooks.hook("close", async () => {
-    await nitro.storage.dispose();
-  });
 
   // Debug
   if (nitro.options.debug) {

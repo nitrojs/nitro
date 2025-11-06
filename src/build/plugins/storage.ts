@@ -25,23 +25,6 @@ export function storage(nitro: Nitro) {
 
   const driverImports = [...new Set(mounts.map((m) => m.driver))];
 
-  const bundledStorageCode = `
-import { prefixStorage } from 'unstorage'
-import overlay from 'unstorage/drivers/overlay'
-import memory from 'unstorage/drivers/memory'
-
-const bundledStorage = ${JSON.stringify(nitro.options.bundledStorage)}
-for (const base of bundledStorage) {
-  storage.mount(base, overlay({
-    layers: [
-      memory(),
-      // TODO
-      // prefixStorage(storage, base),
-      prefixStorage(storage, 'assets:nitro:bundled:' + base)
-    ]
-  }))
-}`;
-
   return virtual(
     {
       "#nitro-internal-virtual/storage": /* js */ `
@@ -61,12 +44,6 @@ export function initStorage() {
         )}(${JSON.stringify(m.opts)}))`
     )
     .join("\n")}
-
-  ${
-    !isDevOrPrerender && nitro.options.bundledStorage.length > 0
-      ? bundledStorageCode
-      : ""
-  }
   return storage
 }
 `,

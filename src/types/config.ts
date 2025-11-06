@@ -83,7 +83,6 @@ export interface NitroOptions extends PresetOptions {
   devStorage: StorageMounts;
   database: DatabaseConnectionConfigs;
   devDatabase: DatabaseConnectionConfigs;
-  bundledStorage: string[];
   renderer?: {
     handler?: string;
     template?: string;

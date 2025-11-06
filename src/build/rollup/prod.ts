@@ -4,7 +4,6 @@ import { relative } from "pathe";
 import { scanHandlers } from "../../scan.ts";
 import { generateFSTree } from "../../utils/fs-tree.ts";
 import { writeTypes } from "../types.ts";
-import { snapshot } from "../snapshot.ts";
 import { writeBuildInfo } from "../info.ts";
 import { formatRollupError } from "./error.ts";
 
@@ -18,7 +17,6 @@ export async function buildProduction(
 
   await scanHandlers(nitro);
   await writeTypes(nitro);
-  await snapshot(nitro);
 
   if (!nitro.options.static) {
     nitro.logger.info(
