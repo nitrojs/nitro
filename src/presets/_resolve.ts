@@ -5,7 +5,7 @@ import {
 import type { CompatibilityDateSpec, PlatformName } from "compatx";
 import type { NitroPreset, NitroPresetMeta } from "nitro/types";
 import { kebabCase } from "scule";
-import { provider } from "std-env";
+import { provider, runtime } from "std-env";
 import type { ProviderName } from "std-env";
 import allPresets from "./_all.gen.ts";
 
@@ -85,9 +85,11 @@ export async function resolvePreset(
 
   // Auto-detect preset
   if (!name && !preset) {
-    return opts?.static
-      ? resolvePreset("static", opts)
-      : resolvePreset("node-server", opts);
+    if (opts?.static) {
+      return resolvePreset("static", opts);
+    }
+    const runtimeMap = { deno: "deno", bun: "bun" } as Record<string, string>;
+    return resolvePreset(runtimeMap[runtime] || "node", opts);
   }
 
   if (name && !preset) {

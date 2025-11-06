@@ -13,8 +13,7 @@ const standard = defineNitroPreset(
     },
     alias: {
       srvx: "srvx/generic",
-      "srvx/node": "srvx/node",
-      "srvx/generic": "srvx/generic",
+      "srvx/": "srvx/",
     },
   },
   {
