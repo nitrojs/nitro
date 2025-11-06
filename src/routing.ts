@@ -64,11 +64,11 @@ export function initNitroRouting(nitro: Nitro) {
       ...nitro.options.handlers,
       ...nitro.scannedHandlers,
     ].filter((h) => h && !h.middleware && matchesEnv(h));
-    if (nitro.options.renderer?.entry) {
+    if (nitro.options.renderer?.handler) {
       _routes.push({
         route: "/**",
         lazy: true,
-        handler: nitro.options.renderer?.entry,
+        handler: nitro.options.renderer?.handler,
       });
     }
     routes._update(
