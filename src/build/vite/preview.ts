@@ -33,7 +33,7 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
       );
       if (!existsSync(buildInfoPath)) {
         console.warn(
-          `[nitro] No build found. Please build your project before previewing.`
+          `No nitro build found. Please build your project before previewing.`
         );
         return;
       }
@@ -63,7 +63,7 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
       });
 
       if (!buildInfo.commands?.preview) {
-        consola.warn("No preview command found for this preset..");
+        consola.warn("No nitro build preview command found for this preset.");
         return;
       }
 
