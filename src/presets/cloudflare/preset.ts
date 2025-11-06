@@ -49,6 +49,9 @@ const cloudflarePages = defineNitroPreset(
     hooks: {
       "build:before": async (nitro) => {
         await enableNodeCompat(nitro);
+        if (nitro.options.builder?.includes("rolldown")) {
+          nitro.options.minify = false;
+        }
       },
       async compiled(nitro: Nitro) {
         await writeWranglerConfig(nitro, "pages");
@@ -142,6 +145,9 @@ const cloudflareModule = defineNitroPreset(
     hooks: {
       "build:before": async (nitro) => {
         await enableNodeCompat(nitro);
+        if (nitro.options.builder?.includes("rolldown")) {
+          nitro.options.minify = false;
+        }
       },
       async compiled(nitro: Nitro) {
         await writeWranglerConfig(nitro, "module");
