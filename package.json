@@ -175,25 +175,5 @@
   "packageManager": "pnpm@10.17.1",
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
-  },
-  "pnpm": {
-    "peerDependencyRules": {
-      "ignoreMissing": [
-        "react",
-        "@types/react",
-        "react-dom",
-        "@algolia/client-search"
-      ]
-    },
-    "onlyBuiltDependencies": [
-      "@parcel/watcher",
-      "esbuild",
-      "workerd"
-    ],
-    "ignoredBuiltDependencies": [
-      "keytar",
-      "protobufjs",
-      "vue-demi"
-    ]
   }
 }
