@@ -403,12 +403,12 @@ async function setupNitroContext(
 
   // Default SSR renderer
   if (
-    !ctx.nitro.options.renderer?.entry &&
+    !ctx.nitro.options.renderer?.handler &&
     !ctx.nitro.options.renderer?.template &&
     ctx.services.ssr?.entry
   ) {
     ctx.nitro.options.renderer ??= {};
-    ctx.nitro.options.renderer.entry = resolve(
+    ctx.nitro.options.renderer.handler = resolve(
       runtimeDir,
       "internal/vite/ssr-renderer"
     );

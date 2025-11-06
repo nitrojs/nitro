@@ -126,10 +126,10 @@ export async function resolvePathOptions(options: NitroOptions) {
     }
   }
 
-  // Resolve renderer entry
-  if (options.renderer?.entry) {
-    options.renderer.entry = resolveModulePath(
-      resolveNitroPath(options.renderer?.entry, options),
+  // Resolve renderer handler
+  if (options.renderer?.handler) {
+    options.renderer.handler = resolveModulePath(
+      resolveNitroPath(options.renderer?.handler, options),
       {
         from: [options.rootDir, ...options.scanDirs],
         extensions: RESOLVE_EXTENSIONS,
@@ -146,7 +146,7 @@ export async function resolvePathOptions(options: NitroOptions) {
         extensions: [".html"],
       }
     )!;
-  } else if (!options.renderer?.entry) {
+  } else if (!options.renderer?.handler) {
     const defaultIndex = resolveModulePath("./index.html", {
       from: [options.rootDir, ...options.scanDirs],
       extensions: [".html"],
@@ -161,10 +161,10 @@ export async function resolvePathOptions(options: NitroOptions) {
     }
   }
 
-  // Default renderer entry if template is set
-  if (options.renderer?.template && !options.renderer?.entry) {
+  // Default renderer handler if template is set
+  if (options.renderer?.template && !options.renderer?.handler) {
     options.renderer ??= {};
-    options.renderer.entry = join(
+    options.renderer.handler = join(
       runtimeDir,
       "internal/routes/renderer-template" + (options.dev ? ".dev" : "")
     );
