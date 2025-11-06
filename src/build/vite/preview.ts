@@ -4,7 +4,7 @@ import type { NitroPluginContext } from "./types.ts";
 
 import { resolve } from "pathe";
 import { existsSync } from "node:fs";
-import { readFile, readlink } from "node:fs/promises";
+import { readFile, readlink, stat } from "node:fs/promises";
 import { getRandomPort } from "get-port-please";
 
 import consola from "consola";
@@ -26,41 +26,18 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
     },
 
     async configurePreviewServer(server) {
-      const lastBuildPath = resolve(
-        server.config.root,
-        "node_modules/.nitro/last-build.json"
-      );
-      if (!existsSync(lastBuildPath)) {
-        consola.warn(
-          `No nitro build found. Please build your project before previewing.`
-        );
+      const outputDir = await findLastBuildDir(server.config.root);
+      const buildInfoPath = resolve(outputDir, "nitro.json");
+      const buildInfo = (await readFile(buildInfoPath, "utf8")
+        .then(JSON.parse)
+        .catch(() => undefined)) as NitroBuildInfo;
+      if (!buildInfo) {
+        consola.warn(`Cannot load ${prettyPath(buildInfoPath)}.`);
         return;
       }
-
-      const { outputDir: relativeOutDir } = (await JSON.parse(
-        await readFile(lastBuildPath, "utf8")
-      )) as { outputDir: string };
-
-      const realBuildDir = resolve(lastBuildPath, relativeOutDir);
-
-      const buildInfoPath = resolve(realBuildDir, "nitro.json");
-      if (!existsSync(buildInfoPath)) {
-        consola.warn(
-          `[nitro] No build info found in ${prettyPath(buildInfoPath)}. Please build your project before previewing.`
-        );
-        return;
-      }
-
-      consola.info(
-        `Previewing nitro build output: ${prettyPath(realBuildDir)}`
-      );
-
-      const buildInfo = JSON.parse(
-        await readFile(buildInfoPath, "utf8")
-      ) as NitroBuildInfo;
 
       const info = [
-        ["Build Directory:", prettyPath(realBuildDir)],
+        ["Build Directory:", prettyPath(outputDir)],
         ["Date:", buildInfo.date && new Date(buildInfo.date).toLocaleString()],
         ["Nitro Version:", buildInfo.versions.nitro],
         ["Nitro Preset:", buildInfo.preset],
@@ -103,7 +80,7 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
       const randomPort = await getRandomPort();
       const child = spawn(command, args, {
         stdio: "inherit",
-        cwd: realBuildDir,
+        cwd: outputDir,
         env: {
           ...process.env,
           ...Object.fromEntries(dotEnvEntries),
@@ -149,15 +126,13 @@ async function loadPreviewDotEnv(root: string): Promise<[string, string][]> {
   return Object.entries(env).filter(([_key, val]) => val) as [string, string][];
 }
 
-async function findLastBuildDir(root: string): Promise<string | undefined> {
-  const lastBuildPath = resolve(root, "node_modules/.nitro/last-build.json");
-  if (!existsSync(lastBuildPath)) {
-    return;
-  }
-
-  const { outputDir: relativeOutDir } = await readFile(lastBuildPath, "utf8")
-    .catch(() => "{}")
-    .then((data) => JSON.parse(data));
-
-  return resolve(lastBuildPath, relativeOutDir);
+async function findLastBuildDir(root: string): Promise<string> {
+  const lastBuildLink = resolve(root, "node_modules/.nitro/last-build.json");
+  const outDir = await readFile(lastBuildLink, "utf8")
+    .then(JSON.parse)
+    .then((data) =>
+      resolve(lastBuildLink, data.outputDir || "../../../.output")
+    )
+    .catch(() => resolve(root, ".output"));
+  return outDir;
 }
