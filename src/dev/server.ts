@@ -5,25 +5,22 @@ import type { ServerOptions, Server } from "srvx";
 import { NodeDevWorker } from "./worker.ts";
 import type { DevWorkerData } from "./worker.ts";
 import type {
+  Nitro,
   DevMessageListener,
   DevRPCHooks,
   DevWorker,
-  Nitro,
-  NitroBuildInfo,
-  WorkerAddress,
 } from "nitro/types";
 
 import { HTTPError } from "h3";
 
-import { version as nitroVersion } from "nitro/meta";
 import consola from "consola";
-import { writeFile } from "node:fs/promises";
 import { resolve } from "pathe";
 import { watch } from "chokidar";
 import { serve } from "srvx/node";
 import { debounce } from "perfect-debounce";
 import { isTest, isCI } from "std-env";
 import { NitroDevApp } from "./app.ts";
+import { writeDevBuildInfo } from "../build/info.ts";
 
 export function createDevServer(nitro: Nitro): NitroDevServer {
   return new NitroDevServer(nitro);
@@ -178,8 +175,8 @@ export class NitroDevServer extends NitroDevApp implements DevRPCHooks {
             this.#workers.splice(index, 1);
           }
         },
-        onReady: (worker, addr) => {
-          this.#writeBuildInfo(worker, addr);
+        onReady: async (_worker, addr) => {
+          writeDevBuildInfo(this.nitro, addr).catch(() => {});
         },
       },
     });
@@ -216,27 +213,6 @@ export class NitroDevServer extends NitroDevApp implements DevRPCHooks {
   // #endregion
 
   // #region Private Methods
-
-  #writeBuildInfo(_worker: DevWorker, addr?: WorkerAddress) {
-    const buildInfoPath = resolve(this.nitro.options.buildDir, "nitro.json");
-    const buildInfo: NitroBuildInfo = {
-      date: new Date().toJSON(),
-      preset: this.nitro.options.preset,
-      framework: this.nitro.options.framework,
-      versions: {
-        nitro: nitroVersion,
-      },
-      dev: {
-        pid: process.pid,
-        workerAddress: addr,
-      },
-    };
-    writeFile(buildInfoPath, JSON.stringify(buildInfo, null, 2)).catch(
-      (error) => {
-        consola.error(error);
-      }
-    );
-  }
 
   async #getWorker() {
     let retry = 0;

@@ -6,7 +6,7 @@ import consola from "consola";
 import { spawn } from "node:child_process";
 import { prettyPath } from "../../utils/fs.ts";
 import { createProxyServer } from "httpxy";
-import { loadLastBuild } from "../preview.ts";
+import { getBuildInfo } from "../info.ts";
 
 export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
   return {
@@ -22,7 +22,7 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
     },
 
     async configurePreviewServer(server) {
-      const { outputDir, buildInfo } = await loadLastBuild(server.config.root);
+      const { outputDir, buildInfo } = await getBuildInfo(server.config.root);
       if (!buildInfo) {
         throw this.error(
           "Cannot load nitro build info. Make sure to build first."
