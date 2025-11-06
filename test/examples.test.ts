@@ -1,3 +1,5 @@
+import type { ViteDevServer } from "vite";
+import type { ViteDevServer as RolldownViteDevServer } from "rolldown-vite";
 import { join } from "node:path";
 import { readdir } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -42,7 +44,7 @@ function setupTest(name: string) {
     }
 
     describe.skipIf(skipDev.has(name))(`${name} (dev)`, () => {
-      let server: vite.ViteDevServer | rolldownVite.ViteDevServer;
+      let server: ViteDevServer | RolldownViteDevServer;
       const context: TestContext = {} as any;
 
       beforeAll(async () => {
