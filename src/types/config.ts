@@ -158,7 +158,7 @@ export interface NitroOptions extends PresetOptions {
      *
      * @default true
      */
-    tsconfigAliases?: boolean;
+    tsconfigPaths?: boolean;
   };
   future: {
     nativeSWR: boolean;

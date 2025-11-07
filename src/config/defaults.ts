@@ -72,12 +72,7 @@ export const NitroDefaults: NitroConfig = {
   replace: {},
   node: true,
   sourceMap: true,
-  esbuild: {
-    options: {
-      jsxFactory: "h",
-      jsxFragment: "Fragment",
-    },
-  },
+  esbuild: {},
 
   // Advanced
   typescript: {

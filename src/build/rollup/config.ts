@@ -32,6 +32,8 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
     }
   }
 
+  const tsc = nitro.options.typescript.tsConfig?.compilerOptions;
+
   let config = {
     input: nitro.options.entry,
     external: [...base.env.external],
@@ -41,6 +43,11 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
         target: "esnext",
         sourceMap: nitro.options.sourceMap,
         minify: nitro.options.minify,
+        jsx: tsc?.jsx === "react" ? "transform" : "automatic",
+        jsxFactory: tsc?.jsxFactory,
+        jsxFragment: tsc?.jsxFragmentFactory,
+        jsxDev: nitro.options.dev,
+        jsxImportSource: tsc?.jsxImportSource,
         ...nitro.options.esbuild?.options,
       }),
       alias({ entries: base.aliases }),

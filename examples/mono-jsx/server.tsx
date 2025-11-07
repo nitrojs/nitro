@@ -1,5 +1,5 @@
 export default () => (
   <html>
-    <h1 class="test">Hello JSX!</h1>
+    <h1>Nitro + mongo-jsx works!</h1>
   </html>
 );

@@ -9,7 +9,7 @@ export async function resolveTsconfig(options: NitroOptions) {
     options.typescript.tsConfig = await loadTsconfig(root);
   }
   if (
-    options.experimental.tsconfigAliases !== false &&
+    options.experimental.tsconfigPaths !== false &&
     options.typescript.tsConfig.compilerOptions?.paths
   ) {
     options.alias = {
