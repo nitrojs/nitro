@@ -131,7 +131,7 @@ export default defineBuildConfig({
         return "_chunks/[hash].mjs";
       };
     },
-    async end(ctx) {
+    async end() {
       await traceNodeModules(
         tracePkgs.map((pkg) => resolveModulePath(pkg)),
         {}

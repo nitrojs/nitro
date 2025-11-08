@@ -44,8 +44,6 @@ export async function resolvePathOptions(options: NitroOptions) {
   if (options.entry) {
     options.entry = resolveNitroPath(options.entry, options);
   }
-  options.moduleSideEffects ??= [];
-  options.moduleSideEffects.push(options.entry);
 
   options.output.dir =
     resolveNitroPath(
