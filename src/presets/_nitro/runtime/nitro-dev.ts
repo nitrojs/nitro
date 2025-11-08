@@ -1,10 +1,9 @@
 import "#nitro-internal-pollyfills";
-import { useNitroApp, useNitroHooks } from "nitro/runtime";
+import { useNitroApp, useNitroHooks } from "nitro/app";
 
-import {
-  startScheduleRunner,
-  trapUnhandledErrors,
-} from "nitro/runtime/internal";
+import { startScheduleRunner } from "nitro/~internal/runtime/task";
+import { trapUnhandledErrors } from "nitro/~internal/runtime/error/hooks";
+
 import { Server } from "node:http";
 import { parentPort, threadId } from "node:worker_threads";
 

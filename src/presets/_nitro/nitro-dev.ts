@@ -1,4 +1,4 @@
-import { runtimeDir } from "nitro/runtime/meta";
+import { runtimeDir } from "nitro/meta";
 import { defineNitroPreset } from "../_utils/preset.ts";
 import { join } from "pathe";
 

@@ -1,7 +1,7 @@
 import { html } from "nitro/h3";
-import { defineCachedEventHandler } from "nitro/runtime";
+import { defineCachedHandler } from "nitro/cache";
 
-export default defineCachedEventHandler(
+export default defineCachedHandler(
   async () => {
     await new Promise((resolve) => setTimeout(resolve, 500));
     return html`

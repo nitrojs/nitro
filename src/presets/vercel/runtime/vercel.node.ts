@@ -1,7 +1,7 @@
 import "#nitro-internal-pollyfills";
 import type { NodeServerRequest, NodeServerResponse } from "srvx";
 import { toNodeHandler } from "srvx/node";
-import { useNitroApp } from "nitro/runtime";
+import { useNitroApp } from "nitro/app";
 
 const nitroApp = useNitroApp();
 

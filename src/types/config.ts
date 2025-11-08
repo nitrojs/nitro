@@ -122,10 +122,6 @@ export interface NitroOptions extends PresetOptions {
      */
     wasm?: boolean;
     /**
-     * Disable Experimental bundling of Nitro Runtime Dependencies
-     */
-    bundleRuntimeDependencies?: false;
-    /**
      * Disable Experimental Sourcemap Minification
      */
     sourcemapMinify?: false;
@@ -252,7 +248,6 @@ export interface NitroOptions extends PresetOptions {
   // Advanced
   typescript: {
     strict?: boolean;
-    internalPaths?: boolean;
     generateRuntimeConfigTypes?: boolean;
     generateTsConfig?: boolean;
     tsConfig?: Partial<TSConfig>;

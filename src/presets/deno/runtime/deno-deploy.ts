@@ -1,13 +1,9 @@
 import "#nitro-internal-pollyfills";
 import type { ServerRequest } from "srvx";
-import { useNitroApp } from "nitro/runtime";
+import { useNitroApp } from "nitro/app";
 
 import type { Deno as _Deno } from "@deno/types";
 import wsAdapter from "crossws/adapters/deno";
-
-declare global {
-  const Deno: typeof import("@deno/types").Deno;
-}
 
 const nitroApp = useNitroApp();
 

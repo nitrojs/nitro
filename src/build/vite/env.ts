@@ -3,7 +3,7 @@ import type { NitroPluginContext, ServiceConfig } from "./types.ts";
 
 import { NodeDevWorker } from "../../dev/worker.ts";
 import { join, resolve } from "node:path";
-import { runtimeDependencies, runtimeDir } from "nitro/runtime/meta";
+import { runtimeDependencies, runtimeDir } from "nitro/meta";
 import { resolveModulePath } from "exsolve";
 import { createFetchableDevEnvironment } from "./dev.ts";
 import { isAbsolute } from "pathe";

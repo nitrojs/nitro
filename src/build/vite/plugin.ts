@@ -18,7 +18,7 @@ import {
   createServiceEnvironments,
 } from "./env.ts";
 import { configureViteDevServer } from "./dev.ts";
-import { runtimeDir } from "nitro/runtime/meta";
+import { runtimeDir } from "nitro/meta";
 import { resolveModulePath } from "exsolve";
 import { defu } from "defu";
 import { prettyPath } from "../../utils/fs.ts";

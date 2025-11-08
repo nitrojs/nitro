@@ -2,7 +2,7 @@ import type { Nitro, RollupConfig } from "nitro/types";
 import { defu } from "defu";
 import { sanitizeFilePath } from "mlly";
 import { normalize } from "pathe";
-import { runtimeDir } from "nitro/runtime/meta";
+import { runtimeDir } from "nitro/meta";
 import alias from "@rollup/plugin-alias";
 import commonjs from "@rollup/plugin-commonjs";
 import inject from "@rollup/plugin-inject";
@@ -86,21 +86,7 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
     },
     treeshake: {
       moduleSideEffects(id) {
-        const normalizedId = normalize(id);
-        const idWithoutNodeModules = normalizedId.split("node_modules/").pop();
-        if (!idWithoutNodeModules) {
-          return false;
-        }
-        if (
-          normalizedId.startsWith(runtimeDir) ||
-          idWithoutNodeModules.startsWith(runtimeDir)
-        ) {
-          return true;
-        }
-        return nitro.options.moduleSideEffects.some(
-          (m) =>
-            normalizedId.startsWith(m) || idWithoutNodeModules.startsWith(m)
-        );
+        return nitro.options.moduleSideEffects.some((p) => id.startsWith(p));
       },
     },
     output: {

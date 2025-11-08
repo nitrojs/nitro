@@ -1,11 +1,9 @@
 import "#nitro-internal-pollyfills";
 import cluster from "node:cluster";
 import { serve } from "srvx/node";
-import { useNitroApp } from "nitro/runtime";
-import {
-  trapUnhandledErrors,
-  startScheduleRunner,
-} from "nitro/runtime/internal";
+import { useNitroApp } from "nitro/app";
+import { startScheduleRunner } from "nitro/~internal/runtime/task";
+import { trapUnhandledErrors } from "nitro/~internal/runtime/error/hooks";
 
 const port =
   Number.parseInt(process.env.NITRO_PORT || process.env.PORT || "") || 3000;

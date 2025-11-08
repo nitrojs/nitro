@@ -1,4 +1,4 @@
-import { runtimeDir } from "nitro/runtime/meta";
+import { runtimeDir } from "nitro/meta";
 import type { NitroOptions } from "nitro/types";
 import { join } from "pathe";
 

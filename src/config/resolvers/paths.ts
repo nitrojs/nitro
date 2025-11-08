@@ -1,5 +1,5 @@
 import { prettyPath, resolveNitroPath } from "../../utils/fs.ts";
-import { pkgDir, runtimeDir } from "nitro/runtime/meta";
+import { pkgDir, runtimeDir } from "nitro/meta";
 import type { NitroOptions } from "nitro/types";
 import { join, resolve } from "pathe";
 import { findWorkspaceDir } from "pkg-types";
@@ -44,6 +44,9 @@ export async function resolvePathOptions(options: NitroOptions) {
   if (options.entry) {
     options.entry = resolveNitroPath(options.entry, options);
   }
+  options.moduleSideEffects ??= [];
+  options.moduleSideEffects.push(options.entry);
+
   options.output.dir =
     resolveNitroPath(
       options.output.dir || NitroDefaults.output!.dir!,

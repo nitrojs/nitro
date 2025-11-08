@@ -184,7 +184,7 @@ function escapeKey(key: string | string[]) {
   return String(key).replace(/\W/g, "");
 }
 
-export function defineCachedEventHandler(
+export function defineCachedHandler(
   handler: EventHandler,
   opts: CachedEventHandlerOptions = defaultCacheOptions()
 ): EventHandler {
@@ -341,6 +341,3 @@ export function defineCachedEventHandler(
     });
   });
 }
-
-export const cachedEventHandler = defineCachedEventHandler;
-export const defineCachedHandler = defineCachedEventHandler;

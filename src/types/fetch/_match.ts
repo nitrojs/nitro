@@ -95,8 +95,8 @@ export type MatchedRoutes<
 > = Route extends "/"
   ? keyof InternalApi // root middleware
   : Extract<Matches, { exact: true }> extends never
-    ?
-        | Extract<
+    ? // @ts-ignore
+      | Extract<
             Exclude<Matches, { score: never }>,
             { score: MaxTuple<Matches["score"]> }
           >["key"]

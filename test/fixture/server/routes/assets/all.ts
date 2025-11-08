@@ -1,4 +1,4 @@
-import { useStorage } from "nitro/runtime";
+import { useStorage } from "nitro/storage";
 
 export default async () => {
   const serverAssets = useStorage("assets/server");

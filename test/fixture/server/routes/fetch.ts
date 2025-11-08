@@ -2,7 +2,7 @@ import {
   serverFetch as runtimeServerFetch,
   fetch as runtimeFetch,
   useNitroApp,
-} from "nitro/runtime";
+} from "nitro/app";
 
 import { serverFetch as nitroServerFetch, fetch as nitroFetch } from "nitro";
 

@@ -1,5 +1,5 @@
 import "#nitro-internal-pollyfills";
-import { useNitroApp } from "nitro/runtime";
+import { useNitroApp } from "nitro/app";
 import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
 import type { ServerRequest } from "srvx";
 

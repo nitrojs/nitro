@@ -1,5 +1,5 @@
 import { defineHandler } from "nitro/h3";
-import { useDatabase } from "nitro/runtime";
+import { useDatabase } from "nitro/database";
 
 export default defineHandler(async () => {
   const db = useDatabase();

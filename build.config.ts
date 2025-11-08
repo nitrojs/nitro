@@ -9,16 +9,6 @@ const pkg = await import("./package.json", { with: { type: "json" } }).then(
   (r) => r.default || r
 );
 
-export const distSubpaths = ["builder", "presets", "runtime", "types", "vite"];
-export const libSubpaths = [
-  "config",
-  "meta",
-  "h3",
-  "runtime/meta",
-  "deps/h3",
-  "deps/ofetch",
-];
-
 const tracePkgs = [
   "cookie-es", // used by azure runtime
   "croner", // used by internal/task
@@ -65,8 +55,8 @@ export default defineBuildConfig({
       config.external ??= [];
       (config.external as string[]).push(
         "nitro",
-        ...[...distSubpaths, ...libSubpaths].map(
-          (subpath) => `nitro/${subpath}`
+        ...Object.keys(pkg.exports || {}).map((key) =>
+          key.replace(/^./, "nitro")
         ),
         ...Object.keys(pkg.dependencies),
         ...Object.keys(pkg.peerDependencies),
@@ -141,7 +131,7 @@ export default defineBuildConfig({
         return "_chunks/[hash].mjs";
       };
     },
-    async end() {
+    async end(ctx) {
       await traceNodeModules(
         tracePkgs.map((pkg) => resolveModulePath(pkg)),
         {}

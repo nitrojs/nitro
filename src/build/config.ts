@@ -1,7 +1,7 @@
 import type { Nitro, NitroStaticBuildFlags } from "nitro/types";
 import { resolve } from "pathe";
 import { defineEnv } from "unenv";
-import { runtimeDir } from "nitro/runtime/meta";
+import { runtimeDir } from "nitro/meta";
 
 export type BaseBuildConfig = ReturnType<typeof baseBuildConfig>;
 
@@ -88,12 +88,7 @@ export function baseBuildConfig(nitro: Nitro) {
     },
   });
 
-  const aliases = resolveAliases({
-    "#internal/nitro": runtimeDir,
-    "nitro/runtime": runtimeDir,
-    "nitropack/runtime": runtimeDir, // Backwards compatibility
-    ...env.alias,
-  });
+  const aliases = resolveAliases({ ...env.alias });
 
   return {
     presetsDir,

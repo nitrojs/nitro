@@ -1,4 +1,4 @@
-import { runtimeDir } from "nitro/runtime/meta";
+import { runtimeDir } from "nitro/meta";
 import type { NitroConfig } from "nitro/types";
 import { resolve } from "pathe";
 import { isDebug, isTest } from "std-env";
@@ -68,7 +68,7 @@ export const NitroDefaults: NitroConfig = {
 
   // Rollup
   builder: undefined,
-  moduleSideEffects: ["unenv/polyfill/", resolve(runtimeDir, "polyfill/")],
+  moduleSideEffects: ["unenv/polyfill/"],
   replace: {},
   node: true,
   sourceMap: true,
@@ -80,7 +80,6 @@ export const NitroDefaults: NitroConfig = {
     generateRuntimeConfigTypes: false,
     generateTsConfig: false,
     tsconfigPath: "tsconfig.json",
-    internalPaths: false,
     tsConfig: undefined,
   },
   nodeModulesDirs: [],

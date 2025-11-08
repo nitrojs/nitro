@@ -1,5 +1,5 @@
 import { defineHandler } from "nitro/h3";
-import { useStorage } from "nitro/runtime";
+import { useStorage } from "nitro/storage";
 
 export default defineHandler(async (event) => {
   const base = event.url.searchParams.get("base") || "";

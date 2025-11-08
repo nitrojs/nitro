@@ -3,7 +3,7 @@ import { defu } from "defu";
 import { lookupNodeModuleSubpath, parseNodeModulePath } from "mlly";
 import { resolveModulePath } from "exsolve";
 import { isDirectory, resolveNitroPath, writeFile } from "../utils/fs.ts";
-import { runtimeDir } from "nitro/runtime/meta";
+import { runtimeDir } from "nitro/meta";
 import type { Nitro, NitroTypes } from "nitro/types";
 import { dirname, isAbsolute, join, resolve } from "pathe";
 import { relative } from "pathe";
@@ -223,22 +223,6 @@ export async function writeTypes(nitro: Nitro) {
               join(generatedTypesDir, "nitro-imports")
             ),
           ],
-          ...(nitro.options.typescript.internalPaths
-            ? {
-                "nitro/runtime": [
-                  relativeWithDot(tsconfigDir, join(runtimeDir, "index")),
-                ],
-                "#internal/nitro": [
-                  relativeWithDot(tsconfigDir, join(runtimeDir, "index")),
-                ],
-                "nitro/runtime/*": [
-                  relativeWithDot(tsconfigDir, join(runtimeDir, "*")),
-                ],
-                "#internal/nitro/*": [
-                  relativeWithDot(tsconfigDir, join(runtimeDir, "*")),
-                ],
-              }
-            : {}),
         },
       },
       include: [

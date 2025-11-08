@@ -1,6 +1,6 @@
 import type { NitroPreset, NitroPresetMeta } from "nitro/types";
 
-import { presetsDir } from "nitro/runtime/meta";
+import { presetsDir } from "nitro/meta";
 import { resolve } from "node:path";
 
 export function defineNitroPreset<

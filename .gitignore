@@ -79,3 +79,5 @@ test/fixture/functions
 .pnpm-store
 .wrangler
 
+# Stub files
+src/runtime/*.mjs

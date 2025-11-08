@@ -2,7 +2,7 @@ import { proxyRequest, redirect as sendRedirect } from "h3";
 import type { EventHandler, Middleware } from "h3";
 import type { MatchedRouteRule, NitroRouteRules } from "nitro/types";
 import { joinURL, withQuery, withoutBase } from "ufo";
-import { defineCachedEventHandler } from "./cache.ts";
+import { defineCachedHandler } from "./cache.ts";
 
 // Note: Remember to update RuntimeRouteRules in src/routing.ts when adding new route rules
 
@@ -73,7 +73,7 @@ export const cache = ((m) =>
     const key = `${m.route}:${route}`;
     let cachedHandler = cachedHandlers.get(key);
     if (!cachedHandler) {
-      cachedHandler = defineCachedEventHandler(handler, {
+      cachedHandler = defineCachedHandler(handler, {
         group: "nitro/route-rules",
         name: key,
         ...m.options,

@@ -1,6 +1,8 @@
 import type { NitroAppPlugin } from "nitro/types";
 import type { GetPlatformProxyOptions, PlatformProxy } from "wrangler";
 
+import { useRuntimeConfig } from "nitro/runtime-config";
+
 const proxy = await _getPlatformProxy().catch((error) => {
   console.error("Failed to initialize wrangler bindings proxy", error);
   return _createStubProxy();
@@ -51,8 +53,6 @@ const cloudflareDevPlugin: NitroAppPlugin = function (nitroApp) {
 export default cloudflareDevPlugin;
 
 async function _getPlatformProxy() {
-  const { useRuntimeConfig } = await import("nitro/runtime");
-
   const pkg = "wrangler"; // bypass bundler
   const { getPlatformProxy } = (await import(/* @vite-ignore */ pkg).catch(
     () => {

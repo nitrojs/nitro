@@ -7,7 +7,7 @@ import type {
   ParameterObject,
   PathItemObject,
   PathsObject,
-} from "#internal/types/openapi-ts";
+} from "../../../types/openapi-ts.ts";
 import { joinURL } from "ufo";
 import { defu } from "defu";
 import { handlersMeta } from "#nitro-internal-virtual/routing-meta";

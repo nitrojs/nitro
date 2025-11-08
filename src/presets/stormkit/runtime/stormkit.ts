@@ -1,5 +1,5 @@
 import "#nitro-internal-pollyfills";
-import { useNitroApp } from "nitro/runtime";
+import { useNitroApp } from "nitro/app";
 import { awsResponseBody } from "../../aws-lambda/runtime/_utils.ts";
 
 import type { Handler } from "aws-lambda";

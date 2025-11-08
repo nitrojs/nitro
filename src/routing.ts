@@ -3,7 +3,7 @@ import type { RouterContext } from "rou3";
 import type { RouterCompilerOptions } from "rou3/compiler";
 
 import { join } from "pathe";
-import { runtimeDir } from "nitro/runtime/meta";
+import { runtimeDir } from "nitro/meta";
 import { addRoute, createRouter, findRoute, findAllRoutes } from "rou3";
 import { compileRouterToString } from "rou3/compiler";
 import { hash } from "ohash";
@@ -134,49 +134,49 @@ export interface Route<T = unknown> {
 }
 
 export class Router<T> {
-  #routes?: Route<T>[];
-  #router?: RouterContext<T>;
-  #compiled?: string;
-  #baseURL: string;
+  _routes?: Route<T>[];
+  _router?: RouterContext<T>;
+  _compiled?: string;
+  _baseURL: string;
 
   constructor(baseURL?: string) {
     this._update([]);
-    this.#baseURL = baseURL || "";
-    if (this.#baseURL.endsWith("/")) {
-      this.#baseURL = this.#baseURL.slice(0, -1);
+    this._baseURL = baseURL || "";
+    if (this._baseURL.endsWith("/")) {
+      this._baseURL = this._baseURL.slice(0, -1);
     }
   }
 
   get routes() {
-    return this.#routes!;
+    return this._routes!;
   }
 
   _update(routes: Route<T>[], opts?: { merge?: boolean }) {
-    this.#routes = routes;
-    this.#router = createRouter<T>();
-    this.#compiled = undefined;
+    this._routes = routes;
+    this._router = createRouter<T>();
+    this._compiled = undefined;
     for (const route of routes) {
       addRoute(
-        this.#router,
+        this._router,
         route.method,
-        this.#baseURL + route.route,
+        this._baseURL + route.route,
         route.data
       );
     }
     if (opts?.merge) {
-      mergeCatchAll(this.#router);
+      mergeCatchAll(this._router);
     }
   }
 
   hasRoutes() {
-    return this.#routes!.length > 0;
+    return this._routes!.length > 0;
   }
 
   compileToString(opts?: RouterCompilerOptions<T>) {
-    if (this.#compiled) {
-      return this.#compiled;
+    if (this._compiled) {
+      return this._compiled;
     }
-    this.#compiled = compileRouterToString(this.#router!, undefined, opts);
+    this._compiled = compileRouterToString(this._router!, undefined, opts);
 
     // TODO: Upstream to rou3 compiler
     const onlyWildcard =
@@ -186,19 +186,19 @@ export class Router<T> {
     if (onlyWildcard) {
       // Optimize for single wildcard route
       const data = (opts?.serialize || JSON.stringify)(this.routes[0].data);
-      this.#compiled = /* js */ `/* @__PURE__ */ (() => {const data=${data};return ((_m, p)=>{return {data,params:{"_":p.slice(1)}};})})()`;
+      this._compiled = /* js */ `/* @__PURE__ */ (() => {const data=${data};return ((_m, p)=>{return {data,params:{"_":p.slice(1)}};})})()`;
     }
 
-    return this.#compiled;
+    return this._compiled;
   }
 
   match(method: string, path: string): undefined | T {
-    return findRoute(this.#router!, method, path)?.data;
+    return findRoute(this._router!, method, path)?.data;
   }
 
   matchAll(method: string, path: string): T[] {
     // Returns from less specific to more specific matches
-    return findAllRoutes(this.#router!, method, path).map(
+    return findAllRoutes(this._router!, method, path).map(
       (route) => route.data
     );
   }
