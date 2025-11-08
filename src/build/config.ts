@@ -1,7 +1,7 @@
 import type { Nitro, NitroStaticBuildFlags } from "nitro/types";
-import { resolve } from "pathe";
+import { dirname, resolve } from "pathe";
 import { defineEnv } from "unenv";
-import { runtimeDir } from "nitro/meta";
+import { pkgDir, runtimeDependencies, runtimeDir } from "nitro/meta";
 
 export type BaseBuildConfig = ReturnType<typeof baseBuildConfig>;
 
@@ -78,6 +78,28 @@ export function baseBuildConfig(nitro: Nitro) {
     ...nitro.options.replace,
   };
 
+  const noExternal = [
+    "#",
+    "~",
+    "@/",
+    "~~",
+    "@@/",
+    "virtual:",
+    "nitro",
+    pkgDir,
+    nitro.options.serverDir,
+    dirname(nitro.options.entry),
+    ...(nitro.options.experimental.wasm
+      ? [(id: string) => id?.endsWith(".wasm")]
+      : []),
+    ...nitro.options.handlers
+      .map((m) => m.handler)
+      .filter((i) => typeof i === "string"),
+    ...(nitro.options.dev || nitro.options.preset === "nitro-prerender"
+      ? []
+      : runtimeDependencies),
+  ].filter(Boolean) as string[];
+
   const { env } = defineEnv({
     nodeCompat: isNodeless,
     npmShims: true,
@@ -99,6 +121,7 @@ export function baseBuildConfig(nitro: Nitro) {
     replacements,
     env,
     aliases,
+    noExternal,
   };
 }
 
