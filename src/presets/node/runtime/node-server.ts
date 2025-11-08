@@ -1,5 +1,4 @@
 import "#nitro-internal-pollyfills";
-import cluster from "node:cluster";
 import { serve } from "srvx/node";
 import { useNitroApp } from "nitro/app";
 import { startScheduleRunner } from "nitro/~internal/runtime/task";
