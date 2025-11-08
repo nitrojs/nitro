@@ -58,50 +58,40 @@ export async function resolveImportsOptions(options: NitroOptions) {
 function getNitroImportsPreset(): Preset[] {
   return [
     {
-      from: "nitro/runtime/internal/app",
+      from: "nitro/app",
       imports: ["useNitroApp"],
     },
     {
-      from: "nitro/runtime/internal/runtime-config",
+      from: "nitro/runtime-config",
       imports: ["useRuntimeConfig"],
     },
     {
-      from: "nitro/runtime/internal/plugin",
-      imports: ["defineNitroPlugin", "nitroPlugin"],
+      from: "nitro",
+      imports: ["definePlugin"],
     },
     {
-      from: "nitro/runtime/internal/cache",
-      imports: [
-        "defineCachedFunction",
-        "defineCachedEventHandler",
-        "defineCachedHandler",
-        "cachedFunction",
-        "cachedEventHandler",
-      ],
+      from: "nitro/cache",
+      imports: ["defineCachedFunction", "defineCachedHandler"],
     },
     {
-      from: "nitro/runtime/internal/storage",
+      from: "nitro/storage",
       imports: ["useStorage"],
     },
     {
-      from: "nitro/runtime/internal/meta",
-      imports: ["defineRouteMeta"],
+      from: "nitro",
+      imports: ["defineRouteMeta", "defineErrorHandler"],
     },
+    // {
+    //   from: "nitro/runtime/internal/route-rules",
+    //   imports: ["getRouteRules"],
+    // },
     {
-      from: "nitro/runtime/internal/route-rules",
-      imports: ["getRouteRules"],
-    },
-    {
-      from: "nitro/runtime/internal/context",
+      from: "nitro/context",
       imports: ["useRequest"],
     },
     {
-      from: "nitro/runtime/internal/task",
+      from: "nitro/task",
       imports: ["defineTask", "runTask"],
-    },
-    {
-      from: "nitro/runtime/internal/error/utils",
-      imports: ["defineNitroErrorHandler"],
     },
     {
       from: "nitro/deps/ofetch",
