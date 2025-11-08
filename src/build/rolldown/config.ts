@@ -21,6 +21,8 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
     ["\0", "virtual"],
   ] as const;
 
+  const tsc = nitro.options.typescript.tsConfig?.compilerOptions;
+
   let config = {
     cwd: nitro.options.rootDir,
     input: nitro.options.entry,
@@ -47,12 +49,10 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
     transform: {
       inject: base.env.inject as Record<string, string>,
       jsx: {
-        runtime:
-          nitro.options.esbuild?.options?.jsx === "automatic"
-            ? "automatic"
-            : "classic" /* no import */,
-        pragma: nitro.options.esbuild?.options?.jsxFactory,
-        pragmaFrag: nitro.options.esbuild?.options?.jsxFragment,
+        runtime: tsc?.jsx === "react" ? "classic" : "automatic",
+        pragma: tsc?.jsxFactory,
+        pragmaFrag: tsc?.jsxFragmentFactory,
+        importSource: tsc?.jsxImportSource,
         development: nitro.options.dev,
       },
     },

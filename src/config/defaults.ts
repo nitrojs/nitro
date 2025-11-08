@@ -72,12 +72,7 @@ export const NitroDefaults: NitroConfig = {
   replace: {},
   node: true,
   sourceMap: true,
-  esbuild: {
-    options: {
-      jsxFactory: "h",
-      jsxFragment: "Fragment",
-    },
-  },
+  esbuild: {},
 
   // Advanced
   typescript: {
@@ -86,7 +81,7 @@ export const NitroDefaults: NitroConfig = {
     generateTsConfig: false,
     tsconfigPath: "tsconfig.json",
     internalPaths: false,
-    tsConfig: {},
+    tsConfig: undefined,
   },
   nodeModulesDirs: [],
   hooks: {},
