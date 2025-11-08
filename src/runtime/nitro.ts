@@ -12,6 +12,7 @@ export function defineConfig(
 // Type (only) helpers
 export { defineNitroPlugin as definePlugin } from "./internal/plugin.ts";
 export { defineRouteMeta } from "./internal/meta.ts";
+export { defineNitroErrorHandler as defineErrorHandler } from "./internal/error/utils.ts";
 
 // Runtime
 export function serverFetch(

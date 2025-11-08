@@ -1,4 +1,5 @@
-import { defineTask, useDatabase } from "nitro/runtime";
+import { defineTask } from "nitro/task";
+import { useDatabase } from "nitro/database";
 
 export default defineTask({
   meta: {

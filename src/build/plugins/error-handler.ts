@@ -1,6 +1,6 @@
 import type { Nitro } from "nitro/types";
 import { virtual } from "./virtual.ts";
-import { runtimeDir } from "nitro/runtime/meta";
+import { runtimeDir } from "nitro/meta";
 import { join } from "pathe";
 
 export function errorHandler(nitro: Nitro) {

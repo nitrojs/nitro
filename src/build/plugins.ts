@@ -4,7 +4,7 @@ import type { BaseBuildConfig } from "./config.ts";
 import { dirname } from "pathe";
 import { hash } from "ohash";
 import { defu } from "defu";
-import { runtimeDir, runtimeDependencies } from "nitro/runtime/meta";
+import { runtimeDependencies, pkgDir } from "nitro/meta";
 import unimportPlugin from "unimport/unplugin";
 import { rollup as unwasm } from "unwasm/plugin";
 import { database } from "./plugins/database.ts";
@@ -123,19 +123,17 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
             "~~",
             "@@/",
             "virtual:",
-            "nitro/runtime",
+            "nitro",
+            pkgDir,
+            nitro.options.serverDir,
             dirname(nitro.options.entry),
             ...(nitro.options.experimental.wasm
               ? [(id: string) => id?.endsWith(".wasm")]
               : []),
-            runtimeDir,
-            nitro.options.serverDir,
             ...nitro.options.handlers
               .map((m) => m.handler)
               .filter((i) => typeof i === "string"),
-            ...(nitro.options.dev ||
-            nitro.options.preset === "nitro-prerender" ||
-            nitro.options.experimental.bundleRuntimeDependencies === false
+            ...(nitro.options.dev || nitro.options.preset === "nitro-prerender"
               ? []
               : runtimeDependencies),
           ].filter(Boolean) as string[],

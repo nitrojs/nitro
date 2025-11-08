@@ -1,7 +1,7 @@
 import "#nitro-internal-pollyfills";
 import type { fetch } from "@cloudflare/workers-types";
 import wsAdapter from "crossws/adapters/cloudflare";
-import { useNitroApp } from "nitro/runtime";
+import { useNitroApp } from "nitro/app";
 import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
 import { createHandler } from "./_module-handler.ts";
 

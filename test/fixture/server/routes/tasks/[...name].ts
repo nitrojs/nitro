@@ -1,5 +1,5 @@
 import { defineHandler, getQuery } from "nitro/h3";
-import { runTask } from "nitro/runtime";
+import { runTask } from "nitro/task";
 
 export default defineHandler(async (event) => {
   const name = event.context.params!.name;

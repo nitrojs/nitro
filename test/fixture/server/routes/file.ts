@@ -1,6 +1,6 @@
 import { defineHandler, getQuery } from "nitro/h3";
 
-import { useStorage } from "nitro/runtime";
+import { useStorage } from "nitro/storage";
 
 export default defineHandler(async (event) => {
   const query = getQuery(event);

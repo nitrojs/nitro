@@ -1,7 +1,7 @@
 import "#nitro-internal-pollyfills";
 import consola from "consola";
 import { HTTPError } from "h3";
-import { useNitroApp, useNitroHooks } from "nitro/runtime";
+import { useNitroApp, useNitroHooks } from "nitro/app";
 
 const nitroApp = useNitroApp();
 const nitroHooks = useNitroHooks();

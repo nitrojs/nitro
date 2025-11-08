@@ -1,4 +1,4 @@
-import { defineRouteMeta } from "nitro/runtime";
+import { defineRouteMeta } from "nitro";
 
 defineRouteMeta({
   openAPI: {

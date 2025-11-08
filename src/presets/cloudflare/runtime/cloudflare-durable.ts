@@ -2,7 +2,7 @@ import "#nitro-internal-pollyfills";
 import type * as CF from "@cloudflare/workers-types";
 import { DurableObject } from "cloudflare:workers";
 import wsAdapter from "crossws/adapters/cloudflare";
-import { useNitroApp, useNitroHooks } from "nitro/runtime";
+import { useNitroApp, useNitroHooks } from "nitro/app";
 import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
 import { createHandler, fetchHandler } from "./_module-handler.ts";
 

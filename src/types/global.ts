@@ -1,5 +1,4 @@
-import type { NitroConfig, NitroOptions } from "./config.ts";
-import type { NitroModule } from "./module.ts";
+import type { NitroOptions } from "./config.ts";
 
 export interface NitroStaticBuildFlags {
   _asyncContext?: boolean;
@@ -24,13 +23,6 @@ declare global {
   }
 
   interface ImportMeta extends NitroStaticBuildFlags {}
-}
-
-declare global {
-  const defineNitroConfig: (
-    config: Omit<NitroConfig, "rootDir">
-  ) => Omit<NitroConfig, "rootDir">;
-  const defineNitroModule: (definition: NitroModule) => NitroModule;
 }
 
 export type {};

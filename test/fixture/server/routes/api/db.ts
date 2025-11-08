@@ -1,4 +1,4 @@
-import { useDatabase } from "nitro/runtime";
+import { useDatabase } from "nitro/database";
 
 export default async () => {
   const db = useDatabase();

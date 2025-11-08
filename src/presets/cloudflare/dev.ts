@@ -4,7 +4,7 @@ import { fileURLToPath } from "mlly";
 import type { Nitro } from "nitro/types";
 import { findFile } from "pkg-types";
 import { resolveModulePath } from "exsolve";
-import { presetsDir } from "nitro/runtime/meta";
+import { presetsDir } from "nitro/meta";
 
 export async function cloudflareDevModule(nitro: Nitro) {
   if (!nitro.options.dev) {

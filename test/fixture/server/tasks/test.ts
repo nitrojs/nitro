@@ -1,4 +1,4 @@
-import { defineTask } from "nitro/runtime";
+import { defineTask } from "nitro/task";
 
 export default defineTask({
   meta: {

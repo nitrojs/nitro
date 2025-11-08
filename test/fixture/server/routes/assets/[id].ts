@@ -1,5 +1,5 @@
 import { defineHandler, HTTPError } from "nitro/h3";
-import { useStorage } from "nitro/runtime";
+import { useStorage } from "nitro/storage";
 
 export default defineHandler(async (event) => {
   const serverAssets = useStorage("assets/server");

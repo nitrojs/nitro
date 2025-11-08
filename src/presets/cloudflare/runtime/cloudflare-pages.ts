@@ -1,7 +1,7 @@
 import "#nitro-internal-pollyfills";
-import { useNitroApp } from "nitro/runtime";
-import { runCronTasks } from "nitro/runtime/internal";
+import { useNitroApp } from "nitro/app";
 import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
+import { runCronTasks } from "nitro/~internal/runtime/task";
 
 import type {
   Request as CFRequest,

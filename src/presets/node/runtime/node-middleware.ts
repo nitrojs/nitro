@@ -1,7 +1,7 @@
 import "#nitro-internal-pollyfills";
 import { toNodeHandler } from "srvx/node";
-import { useNitroApp } from "nitro/runtime";
-import { startScheduleRunner } from "nitro/runtime/internal";
+import { useNitroApp } from "nitro/app";
+import { startScheduleRunner } from "nitro/~internal/runtime/task";
 
 const nitroApp = useNitroApp();
 

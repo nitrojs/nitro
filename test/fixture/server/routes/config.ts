@@ -1,4 +1,4 @@
-import { useRuntimeConfig } from "nitro/runtime";
+import { useRuntimeConfig } from "nitro/runtime-config";
 
 const sharedRuntimeConfig = useRuntimeConfig();
 

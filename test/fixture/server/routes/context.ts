@@ -1,5 +1,5 @@
 import { defineEventHandler } from "nitro/h3";
-import { useRequest } from "nitro/runtime";
+import { useRequest } from "nitro/context";
 
 export default defineEventHandler(async () => {
   await Promise.resolve(setTimeout(() => {}, 10));

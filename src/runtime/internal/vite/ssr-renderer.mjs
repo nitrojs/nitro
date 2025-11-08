@@ -1,4 +1,4 @@
-import { fetchViteEnv } from "nitro/runtime/vite";
+import { fetchViteEnv } from "nitro/vite/runtime";
 
 /** @param {{ req: Request }} HTTPEvent */
 export default function ssrRenderer({ req }) {

@@ -1,5 +1,5 @@
 import "#nitro-internal-pollyfills";
-import { useNitroApp } from "nitro/runtime";
+import { useNitroApp } from "nitro/app";
 import { awsRequest, awsResponseHeaders, awsResponseBody } from "./_utils.ts";
 
 import type {

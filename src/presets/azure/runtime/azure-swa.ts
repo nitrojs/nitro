@@ -1,6 +1,6 @@
 import "#nitro-internal-pollyfills";
 import { parseURL } from "ufo";
-import { useNitroApp } from "nitro/runtime";
+import { useNitroApp } from "nitro/app";
 import { getAzureParsedCookiesFromHeaders } from "./_utils.ts";
 
 import type {
