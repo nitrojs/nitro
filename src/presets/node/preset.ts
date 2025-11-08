@@ -1,6 +1,5 @@
 import { defineNitroPreset } from "../_utils/preset.ts";
-import { normalize } from "pathe";
-import { resolveModulePath } from "exsolve";
+import { nodeCluster } from "./cluster.ts";
 
 const nodeServer = defineNitroPreset(
   {
@@ -22,34 +21,6 @@ const nodeMiddleware = defineNitroPreset(
   },
   {
     name: "node-middleware" as const,
-  }
-);
-
-const nodeCluster = defineNitroPreset(
-  {
-    extends: "node-server",
-    serveStatic: true,
-    entry: "./node/runtime/node-cluster",
-    hooks: {
-      "rollup:before"(_nitro, rollupConfig) {
-        const manualChunks = rollupConfig.output?.manualChunks;
-        if (manualChunks && typeof manualChunks === "function") {
-          const serverEntry = resolveModulePath("./runtime/node-server", {
-            from: import.meta.url,
-            extensions: [".mjs", ".ts"],
-          });
-          rollupConfig.output.manualChunks = (id, meta) => {
-            if (id.includes("node-server") && normalize(id) === serverEntry) {
-              return "nitro/node-worker";
-            }
-            return manualChunks(id, meta);
-          };
-        }
-      },
-    },
-  },
-  {
-    name: "node-cluster" as const,
   }
 );
 
