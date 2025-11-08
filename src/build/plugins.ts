@@ -1,12 +1,10 @@
 import type { Nitro, NodeExternalsOptions } from "nitro/types";
 import type { Plugin } from "rollup";
 import type { BaseBuildConfig } from "./config.ts";
-import { dirname } from "pathe";
 import { hash } from "ohash";
 import { defu } from "defu";
-import { runtimeDependencies, pkgDir } from "nitro/meta";
 import unimportPlugin from "unimport/unplugin";
-import { rollup as unwasm } from "unwasm/plugin";
+import { unwasm } from "unwasm/plugin";
 import { database } from "./plugins/database.ts";
 import { routing } from "./plugins/routing.ts";
 import { routeMeta } from "./plugins/route-meta.ts";
