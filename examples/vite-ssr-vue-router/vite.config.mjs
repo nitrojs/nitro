@@ -16,8 +16,8 @@ export default defineConfig((_env) => ({
 
 // Workaround https://github.com/vitejs/vite-plugin-vue/issues/677
 function patchVueExclude(plugin, exclude) {
-  const original = (plugin.transform).handler;
-  (plugin.transform).handler = function (this, ...args) {
+  const original = plugin.transform.handler;
+  plugin.transform.handler = function (...args) {
     if (exclude.test(args[1])) return;
     return original.call(this, ...args);
   };
