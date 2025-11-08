@@ -40,7 +40,7 @@ export function createNitroEnvironment(
     },
     resolve: {
       noExternal: ctx.nitro!.options.dev
-        ? [...ctx.rollupConfig!.base.noExternal]
+        ? [...ctx.rollupConfig!.base.noExternal, ...runtimeDependencies]
         : true, // in production, NF3 tracks externals
       conditions: ctx.nitro!.options.exportConditions,
       externalConditions: ctx.nitro!.options.exportConditions,
