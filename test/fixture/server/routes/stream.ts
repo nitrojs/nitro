@@ -1,4 +1,4 @@
-export default defineHandler(() => {
+export default () => {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     start(controller) {
@@ -9,4 +9,4 @@ export default defineHandler(() => {
     },
   });
   return stream;
-});
+};

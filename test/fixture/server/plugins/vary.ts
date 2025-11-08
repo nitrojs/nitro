@@ -1,3 +1,5 @@
+import { defineNitroPlugin } from "nitro/runtime";
+
 export default defineNitroPlugin((app) => {
   app.hooks.hook("response", (res, event) => {
     const { pathname } = new URL(event.req.url);

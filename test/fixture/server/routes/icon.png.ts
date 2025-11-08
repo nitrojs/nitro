@@ -1,5 +1,7 @@
+import { defineHandler } from "nitro/h3";
+
 export default defineHandler((event) => {
-  setHeader(event, "Content-Type", "image/png");
+  event.res.headers.set("Content-Type", "image/png");
   return Buffer.from(_base64ToArray(_getLogoBase64()));
 });
 

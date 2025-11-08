@@ -1,3 +1,5 @@
+import { defineNitroPlugin } from "nitro/runtime";
+
 export const allErrors: { error: Error; context: any }[] = [];
 
 export default defineNitroPlugin((app) => {

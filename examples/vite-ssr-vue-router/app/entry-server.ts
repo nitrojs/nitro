@@ -4,7 +4,7 @@ import { RouterView, createMemoryHistory, createRouter } from "vue-router";
 
 import { createHead, transformHtmlTemplate } from "unhead/server";
 
-import { routes } from "./routes";
+import { routes } from "./routes.ts";
 
 // @ts-ignore
 import clientEntry from "./entry-client.ts?assets=client";
@@ -25,7 +25,7 @@ async function handler(request: Request): Promise<Response> {
       router.currentRoute.value.matched
         .map((to) => to.meta.assets)
         .filter(Boolean)
-        .map((fn) => fn!().then((m) => m.default))
+        .map((fn) => (fn as any)().then((m: any) => m.default))
     ))
   );
 

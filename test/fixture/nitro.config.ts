@@ -33,12 +33,12 @@ export default defineConfig({
   handlers: [
     {
       route: "/api/test/*/foo",
-      handler: "./server/api/hello.ts",
+      handler: "./server/routes/api/hello.ts",
       method: "GET",
     },
     {
       route: "/api/hello2",
-      handler: "server/api/hello.ts",
+      handler: "./server/routes/api/hello.ts",
       middleware: true,
     },
   ],
@@ -60,7 +60,12 @@ export default defineConfig({
       dir: "server/files",
     },
   ],
-  ignore: ["api/**/_*", "middleware/_ignored.ts", "routes/_*.ts", "**/_*.txt"],
+  ignore: [
+    "routes/api/**/_*",
+    "middleware/_ignored.ts",
+    "routes/_*.ts",
+    "**/_*.txt",
+  ],
   runtimeConfig: {
     dynamic: "initial",
     url: "https://{{APP_DOMAIN}}",
@@ -145,11 +150,6 @@ export default defineConfig({
       title: "Nitro Test Fixture",
       description: "Nitro Test Fixture API",
       version: "2.0",
-    },
-    ui: {
-      scalar: {
-        theme: "purple",
-      },
     },
   },
 });

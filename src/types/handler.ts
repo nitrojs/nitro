@@ -10,7 +10,6 @@ type MaybeArray<T> = T | T[];
 
 /** @experimental */
 export interface NitroRouteMeta {
-  format: EventHandlerFormat;
   openAPI?: OperationObject & {
     $global?: Pick<OpenAPI3, "components"> & Extensable;
   };
@@ -90,4 +89,4 @@ export type NitroErrorHandler = (
       body: string | Record<string, any>;
     }>;
   }
-) => Response | Promise<Response>;
+) => MaybePromise<Response | void>;

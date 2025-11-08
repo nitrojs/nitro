@@ -48,7 +48,7 @@ const nodeCompatTests = {
   },
 };
 
-export default defineHandler(async (event) => {
+export default async () => {
   const results: Record<string, boolean> = {};
   for (const [group, groupTests] of Object.entries(nodeCompatTests)) {
     for (const [name, test] of Object.entries(groupTests)) {
@@ -60,7 +60,7 @@ export default defineHandler(async (event) => {
       "Content-Type": "application/json",
     },
   });
-});
+};
 
 async function testFn(fn: () => any) {
   try {

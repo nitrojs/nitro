@@ -1,4 +1,5 @@
 import { defineNitroErrorHandler } from "nitro/runtime";
+
 export default defineNitroErrorHandler(
   async (error, event, { defaultHandler }) => {
     if (event.req.url.includes("?json")) {

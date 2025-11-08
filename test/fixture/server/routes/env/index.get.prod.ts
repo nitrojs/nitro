@@ -1,1 +1,1 @@
-export default defineHandler(() => "prod env");
+export default () => "prod env";

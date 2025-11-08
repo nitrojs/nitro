@@ -1,3 +1,5 @@
+import { defineHandler } from "nitro/h3";
+
 export default defineHandler((event) => {
   const links = [
     "/404",

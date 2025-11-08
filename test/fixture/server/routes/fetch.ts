@@ -1,16 +1,17 @@
 import {
   serverFetch as runtimeServerFetch,
   fetch as runtimeFetch,
+  useNitroApp,
 } from "nitro/runtime";
 
 import { serverFetch as nitroServerFetch, fetch as nitroFetch } from "nitro";
 
-export default defineHandler(async (event) => {
+export default async () => {
   const nitroApp = useNitroApp();
   return {
-    "nitroApp.fetch": await nitroApp
-      .fetch(new Request(new URL("/api/hello", "http://localhost")))
-      .then((res) => res.json()),
+    "nitroApp.fetch": await Promise.resolve(
+      nitroApp.fetch(new Request(new URL("/api/hello", "http://localhost")))
+    ).then((res) => res.json()),
     "nitro/runtime.serverFetch": await runtimeServerFetch("/api/hello").then(
       (res) => res.json()
     ),
@@ -22,4 +23,4 @@ export default defineHandler(async (event) => {
     ),
     "nitro/fetch": await nitroFetch("/api/hello").then((res) => res.json()),
   };
-});
+};

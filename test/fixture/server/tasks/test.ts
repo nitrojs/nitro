@@ -1,3 +1,5 @@
+import { defineTask } from "nitro/runtime";
+
 export default defineTask({
   meta: {
     description: "task to debug",

@@ -7,24 +7,14 @@
     "erasableSyntaxOnly": true,
     "noUncheckedIndexedAccess": false,
     "noImplicitReturns": false,
+    "jsx": "preserve",
     "lib": ["es2022", "webworker", "dom.iterable"],
     "types": ["node", "@cloudflare/workers-types"],
     "paths": {
-      "nitro": ["./src/runtime/nitro.ts"],
-      "nitro/builder": ["./src/builder.ts"],
-      "nitro/runtime": ["./src/runtime/index.ts"],
-      "nitro/runtime/internal": ["./src/runtime/internal/index.ts"],
-      "nitro/vite": ["./src/vite.ts"],
-      "nitro/types": ["./src/types/index.ts"],
-      "nitro/config": ["./lib/config.mjs"],
-      "nitro/meta": ["./lib/meta.mjs"],
-      "nitro/runtime/meta": ["./lib/runtime/meta.mjs"],
       "#nitro-internal-virtual/*": ["./src/types/virtual/*.ts"],
       "#internal/nitro": ["./src/runtime/index.ts"],
       "#internal/nitro/*": ["./src/runtime/*.ts"],
       "#internal/types/openapi-ts": ["./src/types/openapi-ts.ts"]
     }
-  },
-  "include": ["src", "test", "scripts/gen-mirror.ts"],
-  "exclude": ["dist", "lib", "examples", "playground", "test/fixture"]
+  }
 }

@@ -79,11 +79,3 @@ test/fixture/functions
 .pnpm-store
 .wrangler
 
-# mirror pkg
-.mirror
-
-# Generated types
-*.d.ts
-!lib/**/*.d.ts
-!runtime-meta.d.ts
-!src/types/**/*.d.ts

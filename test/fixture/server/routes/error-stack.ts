@@ -1,5 +1,5 @@
-export default defineHandler(async (event) => {
+export default async () => {
   return {
-    stack: new Error("testing error").stack.replace(/\\/g, "/"),
+    stack: new Error("testing error").stack!.replace(/\\/g, "/"),
   };
-});
+};

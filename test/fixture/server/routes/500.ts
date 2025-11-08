@@ -1,5 +1,5 @@
-import { HTTPError } from "h3";
+import { HTTPError } from "nitro/h3";
 
-export default defineHandler((event) => {
+export default () => {
   throw new HTTPError({ status: 500, statusText: "Test Error" });
-});
+};

@@ -11,7 +11,7 @@ import extraUtils from "@fixture/nitro-utils/extra";
 // @ts-ignore
 import extraUtilsAbsolute from "#fixture-nitro-utils-extra-absolute";
 
-export default defineHandler(() => {
+export default () => {
   return {
     depA, // expected to all be 1.0.0
     depB, // expected to all be 2.0.1
@@ -20,4 +20,4 @@ export default defineHandler(() => {
     extraUtils,
     extraUtilsAbsolute,
   };
-});
+};

@@ -39,7 +39,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             Home
           </Link>{" "}
           <Link
-            // @ts-expect-error
+            // @ts-ignore
             to="/this-route-does-not-exist"
             activeProps={{ className: "font-bold" }}
           >

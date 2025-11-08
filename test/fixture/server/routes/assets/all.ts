@@ -1,4 +1,6 @@
-export default defineHandler(async (event) => {
+import { useStorage } from "nitro/runtime";
+
+export default async () => {
   const serverAssets = useStorage("assets/server");
 
   const keys = await serverAssets.getKeys();
@@ -16,9 +18,9 @@ export default defineHandler(async (event) => {
   );
 
   return items;
-});
+};
 
-function isPureObject(value) {
+function isPureObject(value: unknown): boolean {
   return (
     value !== null && typeof value === "object" && value.constructor === Object
   );

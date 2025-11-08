@@ -1,6 +1,6 @@
 import "./styles.css";
 import { renderToReadableStream } from "react-dom/server.edge";
-import { App } from "./app";
+import { App } from "./app.tsx";
 
 // @ts-ignore
 import clientAssets from "./entry-client?assets=client";

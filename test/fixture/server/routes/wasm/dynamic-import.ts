@@ -1,4 +1,6 @@
-export default lazyEventHandler(async () => {
+import { defineLazyEventHandler, defineHandler } from "nitro/h3";
+
+export default defineLazyEventHandler(async () => {
   // @ts-ignore
   const { sum } = await import("unwasm/examples/sum.wasm").then((r) =>
     r.default()

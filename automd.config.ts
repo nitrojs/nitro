@@ -1,7 +1,10 @@
+import type { Config } from "automd";
+
 export default {
   input: ["README.md", "docs/**/*.md"],
   generators: {
     compatDate: {
+      name: "compatDate",
       async generate(ctx) {
         const { compatibilityChanges } = await import("./lib/meta.mjs");
 
@@ -20,4 +23,4 @@ export default {
       },
     },
   },
-};
+} satisfies Config;

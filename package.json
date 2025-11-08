@@ -43,10 +43,8 @@
     "nitro": "node ./src/cli/index.ts",
     "release": "pnpm test && pnpm build && changelogen --release --prerelease --push",
     "stub": "obuild --stub",
-    "test": "pnpm lint && pnpm vitest run",
-    "test:fixture:types": "pnpm stub && node ./test/scripts/gen-fixture-types.ts && cd test/fixture && tsc --noEmit",
+    "test": "pnpm lint && pnpm test:types && pnpm vitest run",
     "test:rolldown": "NITRO_BUILDER=rolldown pnpm vitest",
-    "test:rollup": "NITRO_BUILDER=rollup pnpm vitest",
     "test:types": "tsc --noEmit"
   },
   "resolutions": {

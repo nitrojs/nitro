@@ -1,6 +1,6 @@
 import { createSSRApp } from "vue";
 import { RouterView, createRouter, createWebHistory } from "vue-router";
-import { routes } from "./routes";
+import { routes } from "./routes.ts";
 
 async function main() {
   const app = createSSRApp(RouterView);

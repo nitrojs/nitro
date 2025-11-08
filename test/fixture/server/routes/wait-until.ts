@@ -1,3 +1,5 @@
+import { defineHandler } from "nitro/h3";
+
 const timeTakingOperation = async () => {
   // console.log("wait-until.ts: timeTakingOperation() start");
   await new Promise((resolve) => setTimeout(resolve, 100));

@@ -1,4 +1,4 @@
-export default defineHandler((event) => {
+export default () => {
   const links = ["/api/hello", "/api/param/foo.json", "/api/param/foo.css"];
 
   return `<!DOCTYPE html><html>
@@ -14,4 +14,4 @@ ${links.map((link) => `    <li><a href="${link}">${link}</a></li>`).join("\n")}
   </ul>
 </body>
 </html>`;
-});
+};

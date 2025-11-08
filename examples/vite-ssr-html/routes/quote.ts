@@ -3,8 +3,10 @@ const QUOTES_URL =
 
 let _quotes: Promise<unknown> | undefined;
 
-function getQuotes(): Promise<{ quoteText: string; quoteAuthor: string }[]> {
-  return (_quotes ??= fetch(QUOTES_URL).then((res) => res.json()));
+function getQuotes() {
+  return (_quotes ??= fetch(QUOTES_URL).then((res) => res.json())) as Promise<
+    { quoteText: string; quoteAuthor: string }[]
+  >;
 }
 
 export default async function quotesHandler() {
