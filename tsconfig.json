@@ -16,5 +16,11 @@
       "#internal/nitro/*": ["./src/runtime/*.ts"],
       "#internal/types/openapi-ts": ["./src/types/openapi-ts.ts"]
     }
-  }
+  },
+  "exclude": [
+    "examples/import-alias/**",
+    "test/fixture/server/routes/jsx.tsx",
+    "examples/vite-ssr-solid/src/entry-server.tsx",
+    "examples/vite-ssr-solid/src/entry-client.tsx"
+  ]
 }
