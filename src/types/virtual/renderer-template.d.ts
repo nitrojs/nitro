@@ -4,3 +4,4 @@ export declare function rendererTemplate(
 
 // dev only
 export declare const rendererTemplateFile: string | undefined;
+export declare const isStaticTemplate: boolean | undefined;

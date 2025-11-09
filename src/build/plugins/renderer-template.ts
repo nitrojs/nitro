@@ -11,19 +11,35 @@ export function rendererTemplate(nitro: Nitro) {
   return virtual(
     {
       "#nitro-internal-virtual/renderer-template": async () => {
-        if (typeof nitro.options.renderer?.template !== "string") {
+        const template = (nitro.options.renderer as { template: string })
+          ?.template;
+        if (typeof template !== "string") {
           // No template
-          return `export const rendererTemplate = () => '<!-- renderer.template is not set -->'; export const rendererTemplateFile = undefined;`;
+          return /* js */ `
+            export const rendererTemplate = () => '<!-- renderer.template is not set -->';
+            export const rendererTemplateFile = undefined;
+            export const isStaticTemplate = true;`;
         }
         if (nitro.options.dev) {
           // Development
-          return `import { readFile } from 'node:fs/promises';export const rendererTemplate = () => readFile(${JSON.stringify(nitro.options.renderer?.template)}, "utf8"); export const rendererTemplateFile = ${JSON.stringify(
-            nitro.options.renderer?.template
-          )};`;
+          return /* js */ `
+            import { readFile } from 'node:fs/promises';
+            export const rendererTemplate = () => readFile(${JSON.stringify(template)}, "utf8");
+            export const rendererTemplateFile = ${JSON.stringify(template)};
+            export const isStaticTemplate = ${JSON.stringify((nitro.options.renderer as { static: boolean }).static)};
+            `;
         } else {
           // Production
-          const html = await readFile(nitro.options.renderer?.template, "utf8");
-          if (hasTemplateSyntax(html)) {
+          const html = await readFile(template, "utf8");
+          const isStatic =
+            (nitro.options.renderer as { static: boolean }).static ??
+            !hasTemplateSyntax(html);
+          if (isStatic) {
+            return /* js */ `
+              import { HTTPResponse } from "h3";
+              export const rendererTemplate = () => new HTTPResponse(${JSON.stringify(html)}, { headers: { "content-type": "text/html; charset=utf-8" } });
+            `;
+          } else {
             const template = compileTemplateToString(html, {
               contextKeys: [...RENDER_CONTEXT_KEYS],
             });
@@ -32,11 +48,6 @@ export function rendererTemplate(nitro: Nitro) {
             import { serverFetch } from 'nitro/app'
             const template = ${template};
             export const rendererTemplate = (request) => renderToResponse(template, { request, context: { serverFetch } })
-            `;
-          } else {
-            return /* js */ `
-              import { HTTPResponse } from "h3";
-              export const rendererTemplate = () => new HTTPResponse(${JSON.stringify(html)}, { headers: { "content-type": "text/html; charset=utf-8" } });
             `;
           }
         }
