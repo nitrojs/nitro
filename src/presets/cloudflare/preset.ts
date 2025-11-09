@@ -20,6 +20,7 @@ const cloudflarePages = defineNitroPreset(
     extends: "base-worker",
     entry: "./cloudflare/runtime/cloudflare-pages",
     exportConditions: ["workerd"],
+    minify: false,
     commands: {
       preview: "npx wrangler --cwd ./ pages dev",
       deploy: "npx wrangler --cwd ./ pages deploy",
@@ -49,9 +50,6 @@ const cloudflarePages = defineNitroPreset(
     hooks: {
       "build:before": async (nitro) => {
         await enableNodeCompat(nitro);
-        if (nitro.options.builder?.includes("rolldown")) {
-          nitro.options.minify = false;
-        }
       },
       async compiled(nitro: Nitro) {
         await writeWranglerConfig(nitro, "pages");
@@ -126,6 +124,7 @@ const cloudflareModule = defineNitroPreset(
       publicDir: "{{ output.dir }}/public/{{ baseURL }}",
     },
     exportConditions: ["workerd"],
+    minify: false,
     commands: {
       preview: "npx wrangler --cwd ./ dev",
       deploy: "npx wrangler --cwd ./ deploy",
