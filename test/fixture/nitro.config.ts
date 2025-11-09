@@ -128,8 +128,6 @@ export default defineConfig({
     "* * * * *": "test",
   },
   cloudflare: {
-    nodeCompat: true,
-    deployConfig: true,
     pages: {
       routes: {
         include: ["/*"],

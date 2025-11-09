@@ -7,7 +7,6 @@ import { writeFile } from "../_utils/fs.ts";
 import { parseTOML, parseJSONC } from "confbox";
 import { readGitConfig, readPackageJSON, findNearestFile } from "pkg-types";
 import { defu } from "defu";
-import { provider } from "std-env";
 import { glob } from "tinyglobby";
 import { join, resolve } from "pathe";
 import {
@@ -190,36 +189,11 @@ export async function writeCFPagesRedirects(nitro: Nitro) {
 export async function enableNodeCompat(nitro: Nitro) {
   nitro.options.cloudflare ??= {};
 
-  // Enable deploy config for workers CI by default
-  // TODO: enable this by default once API could assert no config overrides will happen
-  if (
-    nitro.options.cloudflare.deployConfig === undefined &&
-    provider === "cloudflare_workers"
-  ) {
-    nitro.options.cloudflare.deployConfig = true;
+  nitro.options.cloudflare.deployConfig ??= true;
+  nitro.options.cloudflare.nodeCompat ??= true;
+  if (nitro.options.cloudflare.nodeCompat) {
+    nitro.options.unenv.push(unencCfNodeCompat);
   }
-
-  // Infer nodeCompat from user config
-  if (nitro.options.cloudflare.nodeCompat === undefined) {
-    const { config } = await readWranglerConfig(nitro);
-    const userCompatibilityFlags = new Set(config?.compatibility_flags || []);
-    if (
-      userCompatibilityFlags.has("nodejs_compat") ||
-      userCompatibilityFlags.has("nodejs_compat_v2") ||
-      nitro.options.cloudflare.deployConfig
-    ) {
-      nitro.options.cloudflare.nodeCompat = true;
-    }
-  }
-
-  if (!nitro.options.cloudflare.nodeCompat) {
-    if (nitro.options.cloudflare.nodeCompat === undefined) {
-      nitro.logger.warn("[cloudflare] Node.js compatibility is not enabled.");
-    }
-    return;
-  }
-
-  nitro.options.unenv.push(unencCfNodeCompat);
 }
 
 const extensionParsers = {
