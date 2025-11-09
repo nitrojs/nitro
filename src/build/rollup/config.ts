@@ -41,6 +41,7 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
       ...baseBuildPlugins(nitro, base),
       oxc({
         sourcemap: !!nitro.options.sourcemap,
+        minify: nitro.options.minify ? { ...nitro.options.oxc?.minify } : false,
         transform: {
           target: "esnext",
           cwd: nitro.options.rootDir,

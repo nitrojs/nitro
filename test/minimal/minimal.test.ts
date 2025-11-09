@@ -10,7 +10,7 @@ const tmpDir = fileURLToPath(new URL(".tmp", import.meta.url));
 
 // Rounded up
 const bundleSizes: Record<string, [kb: number, minKB: number]> = {
-  rollup: [15, 8],
+  rollup: [15, 9],
   rolldown: [20, 8],
   vite: [18, 10],
   "rolldown-vite": [17, 10],
@@ -51,7 +51,7 @@ describe("minimal fixture", () => {
 
         it("bundle size", async () => {
           const { sizeKB } = await analyzeDir(outDir);
-          const expectedSize = bundleSizes[builder][minify ? 1 : 0];
+          const expectedSize = bundleSizes[builder]![minify ? 1 : 0];
           expect(Math.round(sizeKB)).toBe(expectedSize);
 
           results.push({
