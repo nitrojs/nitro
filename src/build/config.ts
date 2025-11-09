@@ -101,7 +101,6 @@ export function baseBuildConfig(nitro: Nitro) {
 
   const { env } = defineEnv({
     nodeCompat: isNodeless,
-    npmShims: true,
     resolve: true,
     presets: nitro.options.unenv,
     overrides: {
