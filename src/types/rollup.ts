@@ -1,6 +1,4 @@
 import type { FilterPattern } from "unplugin-utils";
-import type { Loader as ESBuildLoader } from "esbuild";
-import type { TransformOptions as ESBuildTransformOptions } from "esbuild";
 import type {
   InputOptions as RollupInputOptions,
   OutputOptions as RollupOutputOptions,
