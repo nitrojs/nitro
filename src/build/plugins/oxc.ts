@@ -1,14 +1,11 @@
-import { createFilter } from "unplugin-utils";
 import { minify } from "oxc-minify";
 import { transform } from "oxc-transform";
 import type { OXCOptions } from "nitro/types";
 import type { Plugin } from "rollup";
 
 export function oxc(options: OXCOptions): Plugin {
-  const filter = createFilter(
-    options.include || /\.[mj]?[jt]sx?$/,
-    options.exclude || /node_modules/
-  );
+  const filter = (id: string) =>
+    !/node_modules/.test(id) && /\.[mj]?[jt]sx?$/.test(id);
 
   return {
     name: "oxc",

@@ -1,4 +1,3 @@
-import type { FilterPattern } from "unplugin-utils";
 import type {
   InputOptions as RollupInputOptions,
   OutputOptions as RollupOutputOptions,
@@ -19,8 +18,6 @@ export interface RollupVirtualOptions {
 }
 
 export interface OXCOptions {
-  include?: FilterPattern;
-  exclude?: FilterPattern;
   sourcemap?: boolean;
   minify?: boolean | MinifyOptions;
   transform?: Omit<TransformOptions, "jsx"> & { jsx?: JsxOptions };
