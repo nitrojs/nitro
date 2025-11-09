@@ -35,7 +35,7 @@ import type { NitroFrameworkInfo } from "./nitro.ts";
 import type { NitroOpenAPIConfig } from "./openapi.ts";
 export type { NitroOpenAPIConfig } from "./openapi.ts";
 import type { NitroPreset } from "./preset.ts";
-import type { EsbuildOptions, NodeExternalsOptions } from "./rollup.ts";
+import type { NodeExternalsOptions, OXCOptions } from "./rollup.ts";
 import type { RollupConfig } from "./rollup.ts";
 import type { NitroRouteConfig, NitroRouteRules } from "./route-rules.ts";
 
@@ -233,12 +233,10 @@ export interface NitroOptions extends PresetOptions {
   alias: Record<string, string>;
   minify: boolean;
   inlineDynamicImports: boolean;
-  sourceMap: boolean | "inline" | "hidden";
+  sourcemap: boolean;
   node: boolean;
   moduleSideEffects: string[];
-  esbuild?: {
-    options?: Partial<EsbuildOptions>;
-  };
+  oxc?: OXCOptions;
   noExternals: boolean;
   externals: NodeExternalsOptions;
   replace: Record<string, string | ((id: string) => string)>;

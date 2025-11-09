@@ -5,6 +5,8 @@ import type {
   InputOptions as RollupInputOptions,
   OutputOptions as RollupOutputOptions,
 } from "rollup";
+import type { MinifyOptions } from "oxc-minify";
+import type { JsxOptions, TransformOptions } from "oxc-transform";
 
 export type { ExternalsPluginOptions as NodeExternalsOptions } from "nf3";
 
@@ -18,17 +20,12 @@ export interface RollupVirtualOptions {
   [id: string]: VirtualModule;
 }
 
-export interface EsbuildOptions extends ESBuildTransformOptions {
+export interface OXCOptions {
   include?: FilterPattern;
   exclude?: FilterPattern;
-  sourceMap?: boolean | "inline" | "hidden";
-  /**
-   * Map extension to esbuild loader
-   * Note that each entry (the extension) needs to start with a dot
-   */
-  loaders?: {
-    [ext: string]: ESBuildLoader | false;
-  };
+  sourcemap?: boolean;
+  minify?: boolean | MinifyOptions;
+  transform?: Omit<TransformOptions, "jsx"> & { jsx?: JsxOptions };
 }
 
 export interface ServerAssetOptions {

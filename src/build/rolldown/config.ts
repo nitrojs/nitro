@@ -114,7 +114,7 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
       intro: "",
       outro: "",
       sanitizeFileName: sanitizeFilePath,
-      sourcemap: nitro.options.sourceMap,
+      sourcemap: nitro.options.sourcemap,
       sourcemapIgnoreList(relativePath) {
         return relativePath.includes("node_modules");
       },

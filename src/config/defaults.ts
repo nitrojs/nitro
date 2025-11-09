@@ -69,8 +69,7 @@ export const NitroDefaults: NitroConfig = {
   moduleSideEffects: ["unenv/polyfill/"],
   replace: {},
   node: true,
-  sourceMap: true,
-  esbuild: {},
+  sourcemap: true,
 
   // Advanced
   typescript: {
