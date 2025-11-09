@@ -1,19 +1,10 @@
 import { readFile } from "node:fs/promises";
-// import { transform } from "esbuild";
+import { transform } from "oxc-transform";
 import type { Expression, Literal } from "estree";
 import type { Nitro, NitroEventHandler } from "nitro/types";
-import { extname } from "pathe";
 import type { Plugin } from "rollup";
 
 const virtualPrefix = "\0nitro-handler-meta:";
-
-// From esbuild.ts
-const esbuildLoaders = {
-  ".ts": "ts",
-  ".js": "js",
-  ".tsx": "tsx",
-  ".jsx": "jsx",
-} as const;
 
 export function routeMeta(nitro: Nitro) {
   return {
@@ -48,10 +39,7 @@ export function routeMeta(nitro: Nitro) {
       let meta: NitroEventHandler["meta"] | null = null;
 
       try {
-        const ext = extname(id) as keyof typeof esbuildLoaders;
-        const jsCode = await transform(code, {
-          loader: esbuildLoaders[ext],
-        }).then((r) => r.code);
+        const jsCode = transform(id, code).code;
         const ast = this.parse(jsCode);
         for (const node of ast.body) {
           if (

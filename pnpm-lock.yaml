@@ -229,6 +229,9 @@ importers:
       obuild:
         specifier: ^0.4.1
         version: 0.4.1(typescript@5.9.3)
+      oxc-parser:
+        specifier: ^0.96.0
+        version: 0.96.0
       pathe:
         specifier: ^2.0.3
         version: 2.0.3
