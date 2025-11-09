@@ -187,6 +187,11 @@ if (workerData.server) {
     })
   );
 
+  server.on("upgrade", (req, socket, head) => {
+    const handleUpgrade = envs["nitro"]?.entry?.handleUpgrade;
+    handleUpgrade?.(req, socket, head);
+  });
+
   parentPort.on("message", async (message) => {
     if (message?.type === "full-reload") {
       await reload();

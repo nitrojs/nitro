@@ -5,8 +5,9 @@ import wsAdapter from "crossws/adapters/cloudflare";
 import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
 import { createHandler } from "./_module-handler.ts";
 import { resolveWebsocketHooks } from "nitro/~internal/runtime/app";
+import { hasWebSocket } from "#nitro-internal-virtual/feature-flags";
 
-const ws = import.meta._websocket
+const ws = hasWebSocket
   ? wsAdapter({ resolve: resolveWebsocketHooks })
   : undefined;
 
@@ -23,10 +24,7 @@ export default createHandler<Env>({
 
     // Websocket upgrade
     // https://crossws.unjs.io/adapters/cloudflare
-    if (
-      import.meta._websocket &&
-      request.headers.get("upgrade") === "websocket"
-    ) {
+    if (hasWebSocket && request.headers.get("upgrade") === "websocket") {
       return ws!.handleUpgrade(request as any, env, context);
     }
   },

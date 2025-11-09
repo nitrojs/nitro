@@ -83,7 +83,9 @@ export class NodeDevWorker implements DevWorker {
       socket as OutgoingMessage<IncomingMessage>,
       { target: this.#address, xfwd: true },
       head
-    );
+    ).catch((error) => {
+      consola.error("WebSocket proxy error:", error);
+    });
   }
 
   sendMessage(message: unknown) {

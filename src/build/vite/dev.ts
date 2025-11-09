@@ -122,6 +122,19 @@ export async function configureViteDevServer(
     server.config.configFileDependencies.push(nitroConfigFile);
   }
 
+  // Websocket
+  const hasWebSocket =
+    nitro.options.features.websocket ?? nitro.options.experimental.websocket;
+  if (hasWebSocket) {
+    server.httpServer!.on("upgrade", (req, socket, head) => {
+      if (req.url?.startsWith("/?token")) {
+        // Vite upgrade. TODO: Is there a better way?
+        return;
+      }
+      ctx.devWorker?.upgrade(req, socket, head);
+    });
+  }
+
   // Rebuild on scan dir changes
   const reload = debounce(async () => {
     await scanHandlers(nitro);

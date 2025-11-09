@@ -2,7 +2,6 @@ import type { NitroOptions } from "./config.ts";
 
 export interface NitroStaticBuildFlags {
   _asyncContext?: boolean;
-  _websocket?: boolean;
   _tasks?: boolean;
   dev?: boolean;
   client?: boolean;
