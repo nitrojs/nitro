@@ -18,8 +18,7 @@ export interface RollupVirtualOptions {
 }
 
 export interface OXCOptions {
-  sourcemap?: boolean;
-  minify?: boolean | MinifyOptions;
+  minify?: MinifyOptions;
   transform?: Omit<TransformOptions, "jsx"> & { jsx?: JsxOptions };
 }
 

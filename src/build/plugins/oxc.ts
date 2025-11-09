@@ -3,7 +3,7 @@ import { transform } from "oxc-transform";
 import type { OXCOptions } from "nitro/types";
 import type { Plugin } from "rollup";
 
-export function oxc(options: OXCOptions): Plugin {
+export function oxc(options: OXCOptions & { sourcemap: boolean }): Plugin {
   const filter = (id: string) =>
     !/node_modules/.test(id) && /\.[mj]?[jt]sx?$/.test(id);
 
