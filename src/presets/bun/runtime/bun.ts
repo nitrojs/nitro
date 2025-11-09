@@ -1,8 +1,12 @@
 import "#nitro-internal-pollyfills";
+import type { ServerRequest } from "srvx";
 import { serve } from "srvx/bun";
+import wsAdapter from "crossws/adapters/bun";
+
 import { useNitroApp } from "nitro/app";
 import { startScheduleRunner } from "nitro/~internal/runtime/task";
 import { trapUnhandledErrors } from "nitro/~internal/runtime/error/hooks";
+import { resolveWebsocketHooks } from "nitro/~internal/runtime/app";
 
 const port =
   Number.parseInt(process.env.NITRO_PORT || process.env.PORT || "") || 3000;
@@ -11,15 +15,34 @@ const cert = process.env.NITRO_SSL_CERT;
 const key = process.env.NITRO_SSL_KEY;
 // const socketPath = process.env.NITRO_UNIX_SOCKET; // TODO
 
-// if (import.meta._websocket) // TODO
-
 const nitroApp = useNitroApp();
+
+let _fetch = nitroApp.fetch;
+
+const ws = import.meta._websocket
+  ? wsAdapter({ resolve: resolveWebsocketHooks })
+  : undefined;
+
+if (import.meta._websocket) {
+  _fetch = (req: ServerRequest) => {
+    if (req.headers.get("upgrade") === "websocket") {
+      return ws!.handleUpgrade(
+        req,
+        req.runtime!.bun!.server
+      ) as Promise<Response>;
+    }
+    return nitroApp.fetch(req);
+  };
+}
 
 serve({
   port,
   hostname: host,
   tls: cert && key ? { cert, key } : undefined,
-  fetch: nitroApp.fetch,
+  fetch: _fetch,
+  bun: {
+    websocket: import.meta._websocket ? ws?.websocket : undefined,
+  },
 });
 
 trapUnhandledErrors();

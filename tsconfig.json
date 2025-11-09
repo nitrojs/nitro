@@ -12,7 +12,7 @@
     "types": ["node", "@cloudflare/workers-types"],
     "paths": {
       "#nitro-internal-virtual/*": ["./src/types/virtual/*.ts"],
-      "nitro/~internal/runtime*": ["./src/runtime/internal/*.ts"]
+      "nitro/~internal/runtime/*": ["./src/runtime/internal/*.ts"]
     }
   },
   "exclude": [

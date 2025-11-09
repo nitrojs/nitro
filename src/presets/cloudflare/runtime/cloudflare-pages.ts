@@ -1,15 +1,16 @@
 import "#nitro-internal-pollyfills";
-import { useNitroApp } from "nitro/app";
-import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
-import { runCronTasks } from "nitro/~internal/runtime/task";
-
+import type { ServerRequest } from "srvx";
 import type {
   Request as CFRequest,
   EventContext,
   ExecutionContext,
 } from "@cloudflare/workers-types";
 import wsAdapter from "crossws/adapters/cloudflare";
-import type { ServerRequest } from "srvx";
+
+import { useNitroApp } from "nitro/app";
+import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
+import { runCronTasks } from "nitro/~internal/runtime/task";
+import { resolveWebsocketHooks } from "nitro/~internal/runtime/app";
 
 /**
  * Reference: https://developers.cloudflare.com/workers/runtime-apis/fetch-event/#parameters
@@ -27,8 +28,7 @@ interface CFPagesEnv {
 const nitroApp = useNitroApp();
 
 const ws = import.meta._websocket
-  ? // @ts-expect-error
-    wsAdapter(nitroApp.h3App.websocket)
+  ? wsAdapter({ resolve: resolveWebsocketHooks })
   : undefined;
 
 export default {

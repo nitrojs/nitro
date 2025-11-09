@@ -1,8 +1,11 @@
 import "#nitro-internal-pollyfills";
-import { serve } from "srvx/node";
+import { NodeRequest, serve } from "srvx/node";
+import wsAdapter from "crossws/adapters/node";
+
 import { useNitroApp } from "nitro/app";
 import { startScheduleRunner } from "nitro/~internal/runtime/task";
 import { trapUnhandledErrors } from "nitro/~internal/runtime/error/hooks";
+import { resolveWebsocketHooks } from "nitro/~internal/runtime/app";
 
 const port =
   Number.parseInt(process.env.NITRO_PORT || process.env.PORT || "") || 3000;
@@ -12,16 +15,27 @@ const cert = process.env.NITRO_SSL_CERT;
 const key = process.env.NITRO_SSL_KEY;
 // const socketPath = process.env.NITRO_UNIX_SOCKET; // TODO
 
-// if (import.meta._websocket) // TODO
-
 const nitroApp = useNitroApp();
 
-serve({
+const server = serve({
   port,
   hostname: host,
   tls: cert && key ? { cert, key } : undefined,
   fetch: nitroApp.fetch,
 });
+
+if (import.meta._websocket) {
+  const { handleUpgrade } = wsAdapter({ resolve: resolveWebsocketHooks });
+  server.node!.server!.on("upgrade", (req, socket, head) => {
+    handleUpgrade(
+      req,
+      socket,
+      head,
+      // @ts-expect-error (upgrade is not typed)
+      new NodeRequest({ req, upgrade: { socket, head } })
+    );
+  });
+}
 
 trapUnhandledErrors();
 

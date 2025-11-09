@@ -2,9 +2,11 @@ import "#nitro-internal-pollyfills";
 import type * as CF from "@cloudflare/workers-types";
 import { DurableObject } from "cloudflare:workers";
 import wsAdapter from "crossws/adapters/cloudflare";
+import { createHandler, fetchHandler } from "./_module-handler.ts";
+
 import { useNitroApp, useNitroHooks } from "nitro/app";
 import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
-import { createHandler, fetchHandler } from "./_module-handler.ts";
+import { resolveWebsocketHooks } from "nitro/~internal/runtime/app";
 
 const DURABLE_BINDING = "$DurableObject";
 const DURABLE_INSTANCE = "server";
@@ -30,8 +32,7 @@ const getDurableStub = (env: Env) => {
 
 const ws = import.meta._websocket
   ? wsAdapter({
-      // TODO!
-      // ...nitroApp.h3App.websocket,
+      resolve: resolveWebsocketHooks,
       instanceName: DURABLE_INSTANCE,
       bindingName: DURABLE_BINDING,
     })

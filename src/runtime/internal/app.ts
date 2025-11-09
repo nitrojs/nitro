@@ -6,8 +6,8 @@ import type {
   NitroRuntimeHooks,
 } from "nitro/types";
 import type { ServerRequest, ServerRequestContext } from "srvx";
-import type { H3Config, H3EventContext, Middleware } from "h3";
-import { H3Core, toRequest } from "h3";
+import type { H3Config, H3EventContext, Middleware, WebSocketHooks } from "h3";
+import { H3Core, HTTPError, toRequest } from "h3";
 import { HookableCore } from "hookable";
 import { nitroAsyncContext } from "./context.ts";
 
@@ -59,6 +59,21 @@ export function serverFetch(
   } catch (error) {
     return Promise.reject(error);
   }
+}
+
+export async function resolveWebsocketHooks(
+  req: ServerRequest
+): Promise<Partial<WebSocketHooks>> {
+  // https://github.com/h3js/h3/blob/c11ca743d476e583b3b47de1717e6aae92114357/src/utils/ws.ts#L37
+  const hooks = ((await serverFetch(req)) as any)
+    .crossws as Partial<WebSocketHooks>;
+  if (!hooks) {
+    throw new HTTPError({
+      statusCode: 400,
+      statusMessage: "No WebSocket handler for this request",
+    });
+  }
+  return hooks;
 }
 
 export function fetch(

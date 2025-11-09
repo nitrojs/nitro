@@ -1,15 +1,13 @@
 import "#nitro-internal-pollyfills";
 import type { fetch } from "@cloudflare/workers-types";
 import wsAdapter from "crossws/adapters/cloudflare";
-import { useNitroApp } from "nitro/app";
+
 import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
 import { createHandler } from "./_module-handler.ts";
-
-const nitroApp = useNitroApp();
+import { resolveWebsocketHooks } from "nitro/~internal/runtime/app";
 
 const ws = import.meta._websocket
-  ? // @ts-expect-error
-    wsAdapter(nitroApp.h3App.websocket)
+  ? wsAdapter({ resolve: resolveWebsocketHooks })
   : undefined;
 
 interface Env {
