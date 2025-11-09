@@ -93,6 +93,11 @@ export interface NitroOptions extends PresetOptions {
      * By default this feature will be enabled if there is at least one nitro plugin.
      */
     runtimeHooks: boolean;
+
+    /**
+     * Enable WebSocket support
+     */
+    websocket: boolean;
   };
 
   /**
@@ -129,9 +134,11 @@ export interface NitroOptions extends PresetOptions {
      */
     envExpansion?: boolean;
     /**
-     * Enable experimental WebSocket support
+     * Enable WebSocket support
      *
      * @see https://nitro.build/guide/websocket
+     *
+     * @deprecated use `features.websocket` instead.
      */
     websocket?: boolean;
     /**

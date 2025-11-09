@@ -19,6 +19,7 @@ export const NitroDefaults: NitroConfig = {
   },
 
   // Features
+  features: {},
   experimental: {},
   future: {},
   storage: {},

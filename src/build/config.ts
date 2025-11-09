@@ -41,7 +41,8 @@ export function baseBuildConfig(nitro: Nitro) {
     "versions?.nitro": "",
     // Internal
     _asyncContext: nitro.options.experimental.asyncContext,
-    _websocket: nitro.options.experimental.websocket,
+    _websocket:
+      nitro.options.features.websocket ?? nitro.options.experimental.websocket,
     _tasks: nitro.options.experimental.tasks,
   };
 
