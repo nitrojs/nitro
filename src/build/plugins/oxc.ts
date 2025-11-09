@@ -8,7 +8,7 @@ export function oxc(options: OXCOptions & { sourcemap: boolean }): Plugin {
     !/node_modules/.test(id) && /\.[mj]?[jt]sx?$/.test(id);
 
   return {
-    name: "oxc",
+    name: "nitro:oxc",
     async transform(code, id) {
       if (!filter(id)) {
         return null;
