@@ -45,7 +45,7 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
         transform: {
           target: "esnext",
           cwd: nitro.options.rootDir,
-          ...nitro.options.oxc,
+          ...nitro.options.oxc?.transform,
           jsx: {
             runtime: tsc?.jsx === "react" ? "classic" : "automatic",
             pragma: tsc?.jsxFactory,
