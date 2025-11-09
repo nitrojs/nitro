@@ -11,8 +11,7 @@ export function rendererTemplate(nitro: Nitro) {
   return virtual(
     {
       "#nitro-internal-virtual/renderer-template": async () => {
-        const template = (nitro.options.renderer as { template: string })
-          ?.template;
+        const template = nitro.options.renderer?.template;
         if (typeof template !== "string") {
           // No template
           return /* js */ `
@@ -26,14 +25,13 @@ export function rendererTemplate(nitro: Nitro) {
             import { readFile } from 'node:fs/promises';
             export const rendererTemplate = () => readFile(${JSON.stringify(template)}, "utf8");
             export const rendererTemplateFile = ${JSON.stringify(template)};
-            export const isStaticTemplate = ${JSON.stringify((nitro.options.renderer as { static: boolean }).static)};
+            export const isStaticTemplate = ${JSON.stringify(nitro.options.renderer?.static)};
             `;
         } else {
           // Production
           const html = await readFile(template, "utf8");
           const isStatic =
-            (nitro.options.renderer as { static: boolean }).static ??
-            !hasTemplateSyntax(html);
+            nitro.options.renderer?.static ?? !hasTemplateSyntax(html);
           if (isStatic) {
             return /* js */ `
               import { HTTPResponse } from "h3";
