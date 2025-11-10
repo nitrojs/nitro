@@ -1,0 +1,15 @@
+{
+  "name": "nitro-playground",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite dev",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@vitejs/devtools": "0.0.0-alpha.16",
+    "nitro": "latest",
+    "vite": "npm:rolldown-vite"
+  }
+}
