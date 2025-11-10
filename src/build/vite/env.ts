@@ -32,9 +32,6 @@ export function createNitroEnvironment(
       minify: ctx.nitro!.options.minify,
       emptyOutDir: false,
       commonjsOptions: {
-        strictRequires: "auto", // TODO: set to true (default) in v3
-        esmExternals: (id) => !id.startsWith("unenv/"),
-        requireReturnsDefault: "auto",
         ...(ctx.nitro!.options.commonJS as any),
       },
     },

@@ -71,9 +71,6 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
         exportConditions: nitro.options.exportConditions,
       }),
       (commonjs as unknown as typeof commonjs.default)({
-        strictRequires: "auto", // TODO: set to true (default) in v3
-        esmExternals: (id) => !id.startsWith("unenv/"),
-        requireReturnsDefault: "auto",
         ...nitro.options.commonJS,
       }),
       (json as unknown as typeof json.default)(),
