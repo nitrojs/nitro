@@ -42,9 +42,6 @@ importers:
       oxc-transform:
         specifier: ^0.96.0
         version: 0.96.0
-      rollup:
-        specifier: ^4.53.1
-        version: 4.53.1
       srvx:
         specifier: ^0.9.5
         version: 0.9.5
@@ -226,6 +223,9 @@ importers:
       mlly:
         specifier: ^1.8.0
         version: 1.8.0
+      nypm:
+        specifier: ^0.6.2
+        version: 0.6.2
       obuild:
         specifier: ^0.4.1
         version: 0.4.1(typescript@5.9.3)
@@ -256,6 +256,9 @@ importers:
       rolldown-vite:
         specifier: ^7.2.2
         version: 7.2.2(@types/node@24.10.0)(esbuild@0.25.12)(jiti@2.6.1)(tsx@4.20.6)(yaml@2.8.1)
+      rollup:
+        specifier: ^4.53.1
+        version: 4.53.1
       rou3:
         specifier: ^0.7.10
         version: 0.7.10
