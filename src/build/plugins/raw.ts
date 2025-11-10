@@ -1,23 +1,10 @@
 import { promises as fsp } from "node:fs";
 import mime from "mime";
-import type { RawOptions } from "nitro/types";
-import { extname } from "pathe";
 import type { Plugin } from "rollup";
 
 const HELPER_ID = "\0raw-helpers";
 
-export function raw(opts: RawOptions = {}): Plugin {
-  const extensions = new Set([
-    ".md",
-    ".mdx",
-    ".txt",
-    ".css",
-    ".htm",
-    ".html",
-    ".sql",
-    ...(opts.extensions || []),
-  ]);
-
+export function raw(): Plugin {
   return {
     name: "raw",
     async resolveId(id, importer, resolveOpts) {
@@ -25,28 +12,13 @@ export function raw(opts: RawOptions = {}): Plugin {
         return id;
       }
 
-      if (id[0] === "\0") {
+      if (!id.startsWith("raw:")) {
         return;
       }
 
-      const withRawSpecifier = id.startsWith("raw:");
-      if (withRawSpecifier) {
-        id = id.slice(4);
-      }
-
-      if (!withRawSpecifier && !extensions.has(extname(id))) {
-        return;
-      }
-
-      const resolvedId = (await this.resolve(id, importer, resolveOpts))?.id;
-
-      if (!resolvedId || resolvedId.startsWith("\0")) {
-        return resolvedId;
-      }
-
-      if (!withRawSpecifier && !extensions.has(extname(resolvedId))) {
-        return;
-      }
+      const resolvedId = (
+        await this.resolve(id.slice(4 /* raw: */), importer, resolveOpts)
+      )?.id;
 
       return { id: "\0raw:" + resolvedId };
     },

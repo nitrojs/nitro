@@ -8,7 +8,6 @@ import { baseBuildPlugins } from "../plugins.ts";
 import { replace } from "../plugins/replace.ts";
 import { builtinModules } from "node:module";
 import { defu } from "defu";
-import { raw } from "../plugins/raw.ts";
 
 export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
   const base = baseBuildConfig(nitro);
@@ -38,7 +37,6 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
         preventAssignment: true,
         values: base.replacements,
       }) as RolldownPlugin,
-      raw() as RolldownPlugin,
     ],
     resolve: {
       alias: base.aliases,

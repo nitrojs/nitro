@@ -19,6 +19,7 @@ import { rendererTemplate } from "./plugins/renderer-template.ts";
 import { featureFlags } from "./plugins/feature-flags.ts";
 import { nitroResolveIds } from "./plugins/resolve.ts";
 import { sourcemapMinify } from "./plugins/sourcemap-min.ts";
+import { raw } from "./plugins/raw.ts";
 
 export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const plugins: Plugin[] = [];
@@ -77,6 +78,9 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
 
   // Routing
   plugins.push(routing(nitro));
+
+  // Raw Imports
+  plugins.push(raw());
 
   // Route meta
   if (nitro.options.experimental.openAPI) {

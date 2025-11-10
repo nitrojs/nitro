@@ -31,7 +31,3 @@ export interface ServerAssetOptions {
     };
   };
 }
-
-export interface RawOptions {
-  extensions?: string[];
-}

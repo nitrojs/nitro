@@ -1,5 +1,5 @@
 // @ts-ignore
-import sql from "../files/sql.sql";
+import sql from "raw:../files/sql.sql";
 
 // https://github.com/nitrojs/nitro/issues/2836
 // @ts-ignore

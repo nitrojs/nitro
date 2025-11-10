@@ -12,7 +12,6 @@ import { replace } from "../plugins/replace.ts";
 import { oxc } from "../plugins/oxc.ts";
 import { baseBuildConfig } from "../config.ts";
 import { baseBuildPlugins } from "../plugins.ts";
-import { raw } from "../plugins/raw.ts";
 
 export const getRollupConfig = (nitro: Nitro): RollupConfig => {
   const base = baseBuildConfig(nitro);
@@ -74,7 +73,6 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
       }),
       (json as unknown as typeof json.default)(),
       (inject as unknown as typeof inject.default)(base.env.inject),
-      raw(),
     ],
     onwarn(warning, rollupWarn) {
       if (
