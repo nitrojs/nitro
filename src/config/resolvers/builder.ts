@@ -34,12 +34,12 @@ export async function resolveBuilder(options: NitroOptions) {
   }
 
   // Auto-detect installed builder
-  // for (const pkg of ["rolldown", "rollup", "vite"] as const) {
-  //   if (isPkgInstalled(pkg, options.rootDir)) {
-  //     options.builder = pkg;
-  //     return;
-  //   }
-  // }
+  for (const pkg of ["rolldown", "rollup", "vite"] as const) {
+    if (isPkgInstalled(pkg, options.rootDir)) {
+      options.builder = pkg;
+      return;
+    }
+  }
 
   // Prompt to choose an install a builder if none detected
   const pkgToInstall = await consola.prompt(
