@@ -1,5 +1,11 @@
-import { describe, expect, it } from "vitest";
-import { applyEnv } from "../../src/runtime/internal/runtime-config.ts";
+import { describe, expect, it, vi } from "vitest";
+import { runtimeConfig } from "../../src/build/plugins/runtime-config.ts";
+
+vi.mock("#nitro-internal-virtual/runtime-config", () => ({ runtimeConfig }));
+
+const { applyEnv } = await import(
+  "../../src/runtime/internal/runtime-config.ts"
+);
 
 describe("env utils", () => {
   describe("applyEnv", () => {
