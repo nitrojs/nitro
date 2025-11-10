@@ -13,7 +13,7 @@ const bundleSizes: Record<string, [kb: number, minKB: number]> = {
   rollup: [16, 11],
   rolldown: [20, 9],
   vite: [16, 10],
-  "rolldown-vite": [16, 10],
+  "rolldown-vite": [16, 9],
 };
 
 describe("minimal fixture", () => {
