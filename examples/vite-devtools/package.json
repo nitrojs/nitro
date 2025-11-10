@@ -9,6 +9,7 @@
   },
   "devDependencies": {
     "@vitejs/devtools": "0.0.0-alpha.16",
+    "@vitejs/devtools-kit": "0.0.0-alpha.16",
     "nitro": "latest",
     "vite": "npm:rolldown-vite"
   }

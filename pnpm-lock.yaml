@@ -451,6 +451,9 @@ importers:
       '@vitejs/devtools':
         specifier: 0.0.0-alpha.16
         version: 0.0.0-alpha.16(@azure/identity@4.13.0)(@pnpm/logger@1001.0.1)(db0@0.3.4)(rolldown-vite@7.2.2(@types/node@24.10.0)(esbuild@0.25.12)(jiti@2.6.1)(tsx@4.20.6)(yaml@2.8.1))(vue@3.5.24(typescript@5.9.3))
+      '@vitejs/devtools-kit':
+        specifier: 0.0.0-alpha.16
+        version: 0.0.0-alpha.16(rolldown-vite@7.2.2(@types/node@24.10.0)(esbuild@0.25.12)(jiti@2.6.1)(tsx@4.20.6)(yaml@2.8.1))(ws@8.18.3)
       nitro:
         specifier: link:../..
         version: link:../..
