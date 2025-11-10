@@ -5,7 +5,6 @@ import { normalize } from "pathe";
 import { runtimeDir } from "nitro/meta";
 import { baseBuildConfig } from "../config.ts";
 import { baseBuildPlugins } from "../plugins.ts";
-import { replace } from "../plugins/replace.ts";
 import { builtinModules } from "node:module";
 import { defu } from "defu";
 
