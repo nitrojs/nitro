@@ -388,6 +388,7 @@ async function setupNitroContext(
       runtimeDir,
       "internal/vite/ssr-renderer"
     );
+    ctx.nitro!.routing.sync();
   }
 
   // Determine default Vite dist directory
