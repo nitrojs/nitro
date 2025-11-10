@@ -22,13 +22,12 @@ export async function resolveBuilder(options: NitroOptions) {
         `Nitro builder package \`${pkg}\` is not installed. Would you like to install it?`,
         { type: "confirm", default: true, cancel: "null" }
       );
-      if (shouldInstall) {
-        await installPkg(pkg, options.rootDir);
-      } else {
+      if (!shouldInstall) {
         throw new Error(
           `Nitro builder package "${options.builder}" is not installed. Please install it in your project dependencies.`
         );
       }
+      await installPkg(pkg, options.rootDir);
     }
     return;
   }
@@ -41,7 +40,7 @@ export async function resolveBuilder(options: NitroOptions) {
     }
   }
 
-  // Prompt to choose an install a builder if none detected
+  // Prompt to choose and install a builder if none detected
   const pkgToInstall = await consola.prompt(
     `No nitro builder specified. Which builder would you like to install?`,
     {
@@ -51,17 +50,16 @@ export async function resolveBuilder(options: NitroOptions) {
     }
   );
 
-  if (pkgToInstall) {
-    await installPkg(pkgToInstall, options.rootDir);
-    options.builder = pkgToInstall;
-    return;
+  if (!pkgToInstall) {
+    throw new Error(
+      `No nitro builder specified. Please install one of the following packages: ${VALID_BUILDERS.join(
+        ", "
+      )} and set it as the builder in your nitro config or via the NITRO_BUILDER environment variable.`
+    );
   }
 
-  throw new Error(
-    `No nitro builder specified. Please install one of the following packages: ${VALID_BUILDERS.join(
-      ", "
-    )} and set it as the builder in your nitro config or via the NITRO_BUILDER environment variable.`
-  );
+  await installPkg(pkgToInstall, options.rootDir);
+  options.builder = pkgToInstall;
 }
 
 const require = createRequire(process.cwd() + "/_index.js");
