@@ -8,6 +8,25 @@ export default defineEventHandler(async (event) => {
   events.push("handler-start");
   console.log("[abort-test] Handler started");
   
+  // Debug: Check what signal we're getting
+  // Access the signal from the Request
+  const signal = (event.req as any).signal;
+  
+  // For debugging: also try to get from runtime.node if available (production)
+  const nodeReq = event.runtime?.node?.req;
+  const nodeSignal = nodeReq ? (nodeReq as any).signal : undefined;
+  
+  console.log("[abort-test] Has event.req.signal?", !!signal);
+  console.log("[abort-test] Has runtime.node.req.signal?", !!nodeSignal);
+  console.log("[abort-test] Are they the same?", signal === nodeSignal);
+  
+  // Mark this signal so we can track it
+  if (!signal._handlerId) {
+    signal._handlerId = Math.random().toString(36).slice(2, 6);
+  }
+  console.log("[abort-test] Handler sees signal ID:", signal._handlerId);
+  console.log("[abort-test] signal.aborted at start:", signal?.aborted);
+  
   const req = event.node?.req;
   const res = event.node?.res;
   
@@ -35,6 +54,18 @@ export default defineEventHandler(async (event) => {
   // Return Promise wrapping setInterval
   return new Promise<any>((resolve) => {
     const interval = setInterval(() => {
+      // Check abort signal from srvx fix
+      const sig = event.req.signal as any;
+      const isAborted = sig?.aborted;
+      console.log(`[abort-test] Iteration ${workCounter + 1}: signal._srvxId=${sig?._srvxId}, signal._handlerId=${sig?._handlerId}, aborted=${isAborted}`);
+      
+      if (isAborted) {
+        console.log(`[abort-test] ABORT SIGNAL DETECTED at workCounter: ${workCounter}`);
+        clearInterval(interval);
+        resolve({ closeDuringWork: true, workCounter, events, abortedEarly: true });
+        return;
+      }
+      
       workCounter++;
       console.log(`[abort-test] Work iteration ${workCounter}`);
       events.push(`work-${workCounter}`);

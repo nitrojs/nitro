@@ -44,6 +44,43 @@ export class NitroDevServer extends NitroDevApp implements DevRPCHooks {
       if (!worker) {
         return this.#generateError();
       }
+      
+      // Propagate client disconnect to worker via IPC
+      const nodeReq = event.node?.req;
+      const nodeRes = event.node?.res;
+      
+      if (nodeReq && nodeRes) {
+        const requestId = Math.random().toString(36).slice(2);
+        
+        // Monitor socket close to detect client disconnect
+        const notifyAbort = () => {
+          worker.sendMessage({
+            event: "abort-request",
+            requestId,
+          });
+        };
+        
+        nodeReq.once("close", notifyAbort);
+        nodeRes.once("close", notifyAbort);
+        if (nodeReq.socket) {
+          nodeReq.socket.once("close", notifyAbort);
+        }
+        
+        // Add request ID header so worker can correlate the abort message
+        const headers = new Headers(event.req.headers);
+        headers.set("x-nitro-request-id", requestId);
+        
+        const modifiedRequest = new Request(event.req.url, {
+          method: event.req.method,
+          headers,
+          body: event.req.body,
+          // @ts-expect-error duplex is required for streaming
+          duplex: "half",
+        });
+        
+        return worker.fetch(modifiedRequest);
+      }
+      
       return worker.fetch(event.req as Request);
     });
 

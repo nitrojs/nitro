@@ -11,10 +11,19 @@ import { trapUnhandledErrors } from "nitro/~internal/runtime/error/hooks";
 import { resolveWebsocketHooks } from "nitro/~internal/runtime/app";
 import { hasWebSocket } from "#nitro-internal-virtual/feature-flags";
 
-// Listen for shutdown signal from runner
+// Track AbortControllers for active requests
+const requestControllers = new Map<string, AbortController>();
+
+// Listen for shutdown and abort signals from dev server
 parentPort?.on("message", (msg) => {
   if (msg && msg.event === "shutdown") {
     shutdown();
+  } else if (msg && msg.event === "abort-request") {
+    const controller = requestControllers.get(msg.requestId);
+    if (controller && !controller.signal.aborted) {
+      controller.abort();
+    }
+    requestControllers.delete(msg.requestId);
   }
 });
 
@@ -23,7 +32,32 @@ const nitroHooks = useNitroHooks();
 
 trapUnhandledErrors();
 
-const server = new Server(toNodeHandler(nitroApp.fetch));
+// Wrap fetch to inject abortable signal
+const wrappedFetch = (req: Request) => {
+  const requestId = req.headers.get("x-nitro-request-id");
+  
+  if (requestId) {
+    const controller = new AbortController();
+    requestControllers.set(requestId, controller);
+    
+    // Replace the Request's signal with our abortable one
+    Object.defineProperty(req, "signal", {
+      value: controller.signal,
+      writable: false,
+      configurable: true,
+      enumerable: true,
+    });
+    
+    // Clean up after request completes
+    controller.signal.addEventListener("abort", () => {
+      requestControllers.delete(requestId);
+    }, { once: true });
+  }
+  
+  return nitroApp.fetch(req);
+};
+
+const server = new Server(toNodeHandler(wrappedFetch));
 let listener: Server | undefined;
 
 listen()
