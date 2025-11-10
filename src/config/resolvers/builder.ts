@@ -5,7 +5,8 @@ import { createRequire } from "node:module";
 const VALID_BUILDERS = ["rollup", "rolldown", "vite", "rolldown-vite"] as const;
 
 export async function resolveBuilder(options: NitroOptions) {
-  options.builder = (process.env.NITRO_BUILDER as any) || options.builder;
+  // NITRO_BUILDER environment variable
+  options.builder ??= process.env.NITRO_BUILDER as any;
 
   // Builder is explicitly set
   if (options.builder) {
