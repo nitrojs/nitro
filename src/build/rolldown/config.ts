@@ -30,14 +30,7 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
       ...builtinModules,
       ...builtinModules.map((m) => `node:${m}`),
     ],
-    plugins: [
-      ...(baseBuildPlugins(nitro, base) as RolldownPlugin[]),
-      // https://github.com/rolldown/rolldown/issues/4257
-      replace({
-        preventAssignment: true,
-        values: base.replacements,
-      }) as RolldownPlugin,
-    ],
+    plugins: [...(baseBuildPlugins(nitro, base) as RolldownPlugin[])],
     resolve: {
       alias: base.aliases,
       extensions: base.extensions,

@@ -2,51 +2,60 @@ import { promises as fsp } from "node:fs";
 import mime from "mime";
 import type { Plugin } from "rollup";
 
-const HELPER_ID = "\0raw-helpers";
+const HELPER_ID = "virtual:raw-helpers";
+const RESOLVED_RAW_PREFIX = "virtual:raw:";
 
 export function raw(): Plugin {
   return {
     name: "raw",
-    async resolveId(id, importer, resolveOpts) {
-      if (id === HELPER_ID) {
-        return id;
-      }
-
-      if (!id.startsWith("raw:")) {
-        return;
-      }
-
-      const resolvedId = (
-        await this.resolve(id.slice(4 /* raw: */), importer, resolveOpts)
-      )?.id;
-
-      return { id: "\0raw:" + resolvedId };
+    resolveId: {
+      order: "pre",
+      async handler(id, importer, resolveOpts) {
+        if (id === HELPER_ID) {
+          return id;
+        }
+        if (id.startsWith("raw:")) {
+          const resolvedId = (
+            await this.resolve(id.slice(4 /* raw: */), importer, resolveOpts)
+          )?.id;
+          return { id: RESOLVED_RAW_PREFIX + resolvedId };
+        }
+      },
     },
-    load(id) {
-      if (id === HELPER_ID) {
-        return getHelpers();
-      }
-      if (id.startsWith("\0raw:")) {
-        // this.addWatchFile(id.substring(5))
-        return fsp.readFile(id.slice(5), isBinary(id) ? "binary" : "utf8");
-      }
+    load: {
+      order: "pre",
+      handler(id) {
+        if (id === HELPER_ID) {
+          return getHelpers();
+        }
+        if (id.startsWith(RESOLVED_RAW_PREFIX)) {
+          // this.addWatchFile(id.substring(RESOLVED_RAW_PREFIX.length));
+          return fsp.readFile(
+            id.slice(RESOLVED_RAW_PREFIX.length),
+            isBinary(id) ? "binary" : "utf8"
+          );
+        }
+      },
     },
-    transform(code, id) {
-      if (!id.startsWith("\0raw:")) {
-        return;
-      }
-      if (isBinary(id)) {
-        const serialized = Buffer.from(code, "binary").toString("base64");
+    transform: {
+      order: "pre",
+      handler(code, id) {
+        if (!id.startsWith(RESOLVED_RAW_PREFIX)) {
+          return;
+        }
+        if (isBinary(id)) {
+          const serialized = Buffer.from(code, "binary").toString("base64");
+          return {
+            code: `import {base64ToUint8Array } from "${HELPER_ID}" \n export default base64ToUint8Array("${serialized}")`,
+            map: null,
+          };
+        }
         return {
-          code: `// ROLLUP_NO_REPLACE \n import {base64ToUint8Array } from "${HELPER_ID}" \n export default base64ToUint8Array("${serialized}")`,
+          code: `export default ${JSON.stringify(code)}`,
           map: null,
+          moduleType: "js",
         };
-      }
-      return {
-        code: `// ROLLUP_NO_REPLACE \n export default ${JSON.stringify(code)}`,
-        map: null,
-        moduleType: "js",
-      };
+      },
     },
   };
 }

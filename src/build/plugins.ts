@@ -5,6 +5,7 @@ import { hash } from "ohash";
 import { defu } from "defu";
 import unimportPlugin from "unimport/unplugin";
 import { unwasm } from "unwasm/plugin";
+import replace from "@rollup/plugin-replace";
 import { database } from "./plugins/database.ts";
 import { routing } from "./plugins/routing.ts";
 import { routeMeta } from "./plugins/route-meta.ts";
@@ -20,6 +21,7 @@ import { featureFlags } from "./plugins/feature-flags.ts";
 import { nitroResolveIds } from "./plugins/resolve.ts";
 import { sourcemapMinify } from "./plugins/sourcemap-min.ts";
 import { raw } from "./plugins/raw.ts";
+import { runtimeConfig } from "./plugins/runtime-config.ts";
 
 export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const plugins: Plugin[] = [];
@@ -87,6 +89,9 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
     plugins.push(routeMeta(nitro));
   }
 
+  // Runtime config
+  plugins.push(runtimeConfig(nitro));
+
   // Error handler
   plugins.push(errorHandler(nitro));
 
@@ -110,6 +115,14 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   if (nitro.options.renderer?.template) {
     plugins.push(rendererTemplate(nitro));
   }
+
+  // Replace Plugin
+  plugins.push(
+    (replace as unknown as typeof replace.default)({
+      preventAssignment: true,
+      values: base.replacements,
+    })
+  );
 
   // Externals Plugin
   if (!nitro.options.noExternals) {

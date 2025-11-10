@@ -1,12 +1,13 @@
 export default async () => {
   return {
-    dev: [process.dev, import.meta.dev],
-    preset: [process.preset, import.meta.preset],
-    prerender: [process.prerender, import.meta.prerender],
-    server: [process.server, import.meta.server],
-    client: [process.client, import.meta.client],
-    nitro: [process.nitro, import.meta.nitro],
-    "versions.nitro": [process.versions.nitro, import.meta.versions?.nitro],
-    "versions?.nitro": [process.versions?.nitro, import.meta.versions?.nitro],
+    dev: import.meta.dev,
+    preset: import.meta.preset,
+    prerender: import.meta.prerender,
+    nitro: import.meta.nitro,
+    server: import.meta.server,
+    client: import.meta.client,
+    baseURL: import.meta.baseURL,
+    _asyncContext: import.meta._asyncContext,
+    _tasks: import.meta._tasks,
   };
 };

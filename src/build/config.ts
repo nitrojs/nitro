@@ -1,4 +1,4 @@
-import type { Nitro, NitroStaticBuildFlags } from "nitro/types";
+import type { Nitro, NitroImportMeta } from "nitro/types";
 import { dirname, resolve } from "pathe";
 import { defineEnv } from "unenv";
 import { pkgDir, runtimeDependencies, runtimeDir } from "nitro/meta";
@@ -13,63 +13,21 @@ export function baseBuildConfig(nitro: Nitro) {
 
   const isNodeless = nitro.options.node === false;
 
-  // Build-time environment variables
-  let NODE_ENV = nitro.options.dev ? "development" : "production";
-  if (nitro.options.preset === "nitro-prerender") {
-    NODE_ENV = "prerender";
-  }
-
-  const buildEnvVars = {
-    NODE_ENV,
-    prerender: nitro.options.preset === "nitro-prerender",
-    server: true,
-    client: false,
-    dev: String(nitro.options.dev),
-    DEBUG: nitro.options.dev,
-  };
-
-  const staticFlags: NitroStaticBuildFlags = {
+  const importMetaInjections: NitroImportMeta = {
     dev: nitro.options.dev,
     preset: nitro.options.preset,
     prerender: nitro.options.preset === "nitro-prerender",
+    nitro: true,
     server: true,
     client: false,
-    nitro: true,
     baseURL: nitro.options.baseURL,
-    // @ts-expect-error
-    "versions.nitro": "",
-    "versions?.nitro": "",
-    // Internal
     _asyncContext: nitro.options.experimental.asyncContext,
     _tasks: nitro.options.experimental.tasks,
   };
 
   const replacements = {
-    "typeof window": '"undefined"',
-    _import_meta_url_: "import.meta.url",
-    "globalThis.process.": "process.",
-    "process.env.RUNTIME_CONFIG": () =>
-      JSON.stringify(nitro.options.runtimeConfig, null, 2),
     ...Object.fromEntries(
-      Object.entries(buildEnvVars).map(([key, val]) => [
-        `process.env.${key}`,
-        JSON.stringify(val),
-      ])
-    ),
-    ...Object.fromEntries(
-      Object.entries(buildEnvVars).map(([key, val]) => [
-        `import.meta.env.${key}`,
-        JSON.stringify(val),
-      ])
-    ),
-    ...Object.fromEntries(
-      Object.entries(staticFlags).map(([key, val]) => [
-        `process.${key}`,
-        JSON.stringify(val),
-      ])
-    ),
-    ...Object.fromEntries(
-      Object.entries(staticFlags).map(([key, val]) => [
+      Object.entries(importMetaInjections).map(([key, val]) => [
         `import.meta.${key}`,
         JSON.stringify(val),
       ])
@@ -115,8 +73,6 @@ export function baseBuildConfig(nitro: Nitro) {
     presetsDir,
     extensions,
     isNodeless,
-    buildEnvVars,
-    staticFlags,
     replacements,
     env,
     aliases,

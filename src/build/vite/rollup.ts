@@ -5,7 +5,6 @@ import { normalize, resolve, dirname } from "pathe";
 import { runtimeDir } from "nitro/meta";
 import alias from "@rollup/plugin-alias";
 import inject from "@rollup/plugin-inject";
-import { replace } from "../plugins/replace.ts";
 import { baseBuildConfig, type BaseBuildConfig } from "../config.ts";
 import { baseBuildPlugins } from "../plugins.ts";
 import type { OutputBundle, Plugin as RollupPlugin } from "rollup";
@@ -47,15 +46,12 @@ export const getViteRollupConfig = (
   let config = {
     input: nitro.options.entry,
     external: [...base.env.external],
+
     plugins: [
       ctx.pluginConfig.experimental?.vite?.virtualBundle &&
         virtualBundlePlugin(ctx._serviceBundles),
       ...baseBuildPlugins(nitro, base),
       alias({ entries: base.aliases }),
-      replace({
-        preventAssignment: true,
-        values: base.replacements,
-      }),
       !ctx._isRolldown &&
         (inject as unknown as typeof inject.default)(base.env.inject),
     ].filter(Boolean) as RollupPlugin[],

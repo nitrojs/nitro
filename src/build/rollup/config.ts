@@ -8,7 +8,6 @@ import commonjs from "@rollup/plugin-commonjs";
 import inject from "@rollup/plugin-inject";
 import json from "@rollup/plugin-json";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
-import { replace } from "../plugins/replace.ts";
 import { oxc } from "../plugins/oxc.ts";
 import { baseBuildConfig } from "../config.ts";
 import { baseBuildPlugins } from "../plugins.ts";
@@ -55,10 +54,6 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
         },
       }),
       alias({ entries: base.aliases }),
-      replace({
-        preventAssignment: true,
-        values: base.replacements,
-      }),
       nodeResolve({
         extensions: base.extensions,
         preferBuiltins: !!nitro.options.node,

@@ -1,4 +1,5 @@
 import type { NitroRuntimeConfig } from "nitro/types";
+import { runtimeConfig } from "#nitro-internal-virtual/runtime-config";
 
 import { snakeCase } from "scule";
 
@@ -7,18 +8,14 @@ export function useRuntimeConfig(): NitroRuntimeConfig {
 }
 
 function getRuntimeConfig() {
-  const runtimeConfig =
-    (globalThis as any).__NITRO_RUNTIME_CONFIG__ ||
-    process.env.RUNTIME_CONFIG ||
-    {};
-
   const env = globalThis.process?.env || {};
 
   applyEnv(runtimeConfig, {
     prefix: "NITRO_",
     altPrefix: runtimeConfig.nitro?.envPrefix ?? env?.NITRO_ENV_PREFIX ?? "_",
-    envExpansion:
-      runtimeConfig.nitro?.envExpansion ?? env?.NITRO_ENV_EXPANSION ?? false,
+    envExpansion: Boolean(
+      runtimeConfig.nitro?.envExpansion ?? env?.NITRO_ENV_EXPANSION ?? false
+    ),
   });
 
   return runtimeConfig;
