@@ -78,4 +78,4 @@ test/fixture/functions
 
 .pnpm-store
 .wrangler
-
+.rolldown
