@@ -446,7 +446,7 @@ importers:
         specifier: link:../..
         version: link:../..
 
-  examples/vite-nitro-devtools:
+  examples/vite-devtools:
     devDependencies:
       '@vitejs/devtools':
         specifier: 0.0.0-alpha.16
