@@ -25,3 +25,4 @@ peerDependencyRules:
     - "@algolia/client-search"
 
 shellEmulator: true
+trustPolicy: no-downgrade
