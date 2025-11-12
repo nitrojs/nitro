@@ -25,4 +25,7 @@ peerDependencyRules:
     - "@algolia/client-search"
 
 shellEmulator: true
-trustPolicy: no-downgrade
+# Enable when https://github.com/pnpm/pnpm/pull/10168 lands
+# trustPolicy: no-downgrade
+# trustPolicyExclude:
+#   - chokidar@4.0.3
