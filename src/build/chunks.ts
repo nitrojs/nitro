@@ -26,6 +26,11 @@ export function getChunkName(nitro: Nitro, moduleIds: string[]) {
     return `_ssr/[name].mjs`;
   }
 
+  // Chunks from generated code
+  if (realIds.every((id) => id.startsWith(nitro.options.buildDir))) {
+    return `_build/[name].mjs`;
+  }
+
   // Only nitro runtime
   if (
     realIds.every(
