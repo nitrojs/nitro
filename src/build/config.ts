@@ -1,12 +1,7 @@
 import type { Nitro, NitroImportMeta } from "nitro/types";
-import { dirname, normalize } from "pathe";
+import { dirname } from "pathe";
 import { defineEnv } from "unenv";
-import {
-  pkgDir,
-  runtimeDependencies,
-  runtimeDir,
-  presetsDir,
-} from "nitro/meta";
+import { pkgDir, runtimeDependencies, presetsDir } from "nitro/meta";
 
 export type BaseBuildConfig = ReturnType<typeof baseBuildConfig>;
 
