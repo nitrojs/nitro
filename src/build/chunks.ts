@@ -17,7 +17,7 @@ export function getChunkName(nitro: Nitro, moduleIds: string[]) {
 
   // WASM chunk
   if (ids.every((id) => id.endsWith(".wasm"))) {
-    return `_wasm/[name].wasm`;
+    return `_wasm/[name].mjs`;
   }
 
   // Chunks generate by other vite environments (we assume SSR for simplicity)
