@@ -1,23 +1,14 @@
 import type { Nitro } from "nitro/types";
 import type { RolldownOptions, RolldownPlugin } from "rolldown";
 import { sanitizeFilePath } from "mlly";
-import { normalize } from "pathe";
-import { runtimeDir } from "nitro/meta";
 import { baseBuildConfig } from "../config.ts";
 import { baseBuildPlugins } from "../plugins.ts";
 import { builtinModules } from "node:module";
 import { defu } from "defu";
+import { getChunkName } from "../chunks.ts";
 
 export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
   const base = baseBuildConfig(nitro);
-
-  const chunkNamePrefixes = [
-    [runtimeDir, "nitro"],
-    [base.presetsDir, "nitro"],
-    ["\0raw:", "raw"],
-    ["\0nitro-wasm:", "wasm"],
-    ["\0", "virtual"],
-  ] as const;
 
   const tsc = nitro.options.typescript.tsConfig?.compilerOptions;
 
@@ -60,49 +51,12 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
       },
     },
     output: {
-      dir: nitro.options.output.serverDir,
-      entryFileNames: "index.mjs",
-      minify: nitro.options.minify,
-      chunkFileNames(chunk) {
-        const id = normalize(chunk.moduleIds.at(-1) || "");
-        // Known path prefixes
-        for (const [dir, name] of chunkNamePrefixes) {
-          if (id.startsWith(dir)) {
-            return `chunks/${name}/[name].mjs`;
-          }
-        }
-
-        // Route handlers
-        const routeHandler =
-          nitro.options.handlers.find((h) =>
-            id.startsWith(h.handler as string)
-          ) ||
-          nitro.scannedHandlers.find((h) => id.startsWith(h.handler as string));
-        if (routeHandler?.route) {
-          const path =
-            routeHandler.route
-              .replace(/:([^/]+)/g, "_$1")
-              .replace(/\/[^/]+$/g, "")
-              .replace(/[^a-zA-Z0-9/_-]/g, "_") || "/";
-          return `chunks/routes${path}/[name].mjs`;
-        }
-
-        // Task handlers
-        const taskHandler = Object.entries(nitro.options.tasks).find(
-          ([_, task]) => task.handler === id
-        );
-        if (taskHandler) {
-          return `chunks/tasks/[name].mjs`;
-        }
-
-        // Unknown path
-        return `chunks/_/[name].mjs`;
-      },
-      inlineDynamicImports: nitro.options.inlineDynamicImports,
       format: "esm",
-      exports: "auto",
-      intro: "",
-      outro: "",
+      entryFileNames: "index.mjs",
+      chunkFileNames: (chunk) => getChunkName(nitro, chunk.moduleIds),
+      dir: nitro.options.output.serverDir,
+      inlineDynamicImports: nitro.options.inlineDynamicImports,
+      minify: nitro.options.minify,
       sanitizeFileName: sanitizeFilePath,
       sourcemap: nitro.options.sourcemap,
       sourcemapIgnoreList(relativePath) {
