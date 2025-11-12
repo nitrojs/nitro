@@ -12,7 +12,6 @@ export function getChunkName(nitro: Nitro, moduleIds: string[]) {
     if (moduleIds.every((id) => id.includes("virtual:raw"))) {
       return `_raw/[name].mjs`;
     }
-    console.log({ moduleIds });
     return `_virtual/[name].mjs`;
   }
 
