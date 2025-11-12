@@ -101,11 +101,10 @@ export interface NitroOptions extends PresetOptions {
   };
 
   /**
-   * @experimental Requires `experimental.wasm` to work
    *
    * @see https://github.com/unjs/unwasm
    */
-  wasm?: UnwasmPluginOptions;
+  wasm?: false | UnwasmPluginOptions;
   openAPI?: NitroOpenAPIConfig;
   experimental: {
     openAPI?: boolean;
@@ -117,12 +116,6 @@ export interface NitroOptions extends PresetOptions {
      * Enable native async context support for useRequest()
      */
     asyncContext?: boolean;
-    /**
-     * Enable Experimental WebAssembly Support
-     *
-     * @see https://github.com/unjs/unwasm
-     */
-    wasm?: boolean;
     /**
      * Disable Experimental Sourcemap Minification
      */

@@ -121,7 +121,6 @@ export default defineConfig({
   experimental: {
     openAPI: true,
     asyncContext: true,
-    wasm: true,
     envExpansion: true,
     database: true,
     tasks: true,
