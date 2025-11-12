@@ -5,10 +5,10 @@ import { parseNodeModulePath } from "mlly";
 const virtualRe = /^\0|^virtual:/;
 
 export function getChunkName(nitro: Nitro, moduleIds: string[]) {
-  const realIds = moduleIds.filter((id) => !virtualRe.test(id));
+  const ids = moduleIds.filter((id) => !virtualRe.test(id));
 
   // All virtual
-  if (realIds.length === 0) {
+  if (ids.length === 0) {
     if (moduleIds.every((id) => id.includes("virtual:raw"))) {
       return `_raw/[name].mjs`;
     }
@@ -17,31 +17,29 @@ export function getChunkName(nitro: Nitro, moduleIds: string[]) {
   }
 
   // WASM chunk
-  if (realIds.every((id) => id.endsWith(".wasm"))) {
+  if (ids.every((id) => id.endsWith(".wasm"))) {
     return `_wasm/[name].wasm`;
   }
 
   // Chunks generate by other vite environments (we assume SSR for simplicity)
-  if (realIds.every((id) => id.includes("vite/services"))) {
+  if (ids.every((id) => id.includes("vite/services"))) {
     return `_ssr/[name].mjs`;
   }
 
   // Chunks from generated code
-  if (realIds.every((id) => id.startsWith(nitro.options.buildDir))) {
+  if (ids.every((id) => id.startsWith(nitro.options.buildDir))) {
     return `_build/[name].mjs`;
   }
 
   // Only nitro runtime
   if (
-    realIds.every(
-      (id) => id.startsWith(runtimeDir) || id.startsWith(presetsDir)
-    )
+    ids.every((id) => id.startsWith(runtimeDir) || id.startsWith(presetsDir))
   ) {
     return `_runtime/[name].mjs`;
   }
 
   // Try to match user defined routes or tasks
-  const mainId = realIds.at(-1);
+  const mainId = ids.at(-1);
   if (mainId) {
     const routeHandler = nitro.routing.routes.routes
       .flatMap((h) => h.data)
@@ -59,13 +57,13 @@ export function getChunkName(nitro: Nitro, moduleIds: string[]) {
   }
 
   // Only node_modules
-  if (realIds.every((id) => id.includes("node_modules"))) {
-    if (realIds.length > 3) {
+  if (ids.every((id) => id.includes("node_modules"))) {
+    if (ids.length > 3) {
       return `_lib/[hash].mjs`;
     }
     const pkgNames = [
       ...new Set(
-        realIds
+        ids
           .map((id) => parseNodeModulePath(id)?.name?.replace(/^@.+\//, ""))
           .filter((id) => id && !id.startsWith("."))
           .sort()
