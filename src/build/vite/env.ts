@@ -38,7 +38,12 @@ export function createNitroEnvironment(
     },
     resolve: {
       noExternal: ctx.nitro!.options.dev
-        ? [...ctx.rollupConfig!.base.noExternal, ...runtimeDependencies]
+        ? [
+            ...ctx.rollupConfig!.base.noExternal.filter(
+              (i) => typeof i === "string" || i instanceof RegExp
+            ),
+            ...runtimeDependencies,
+          ]
         : true, // in production, NF3 tracks externals
       conditions: ctx.nitro!.options.exportConditions,
       externalConditions: ctx.nitro!.options.exportConditions,

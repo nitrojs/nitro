@@ -33,7 +33,7 @@ export function baseBuildConfig(nitro: Nitro) {
     ...nitro.options.replace,
   };
 
-  const noExternal = [
+  const noExternal: (string | RegExp | ((id: string) => boolean))[] = [
     "#",
     "~",
     "@/",
