@@ -26,6 +26,6 @@ peerDependencyRules:
 
 shellEmulator: true
 # Enable when https://github.com/pnpm/pnpm/pull/10168 lands
-# trustPolicy: no-downgrade
-# trustPolicyExclude:
-#   - chokidar@4.0.3
+trustPolicy: no-downgrade
+trustPolicyExclude:
+  - chokidar@4.0.3
