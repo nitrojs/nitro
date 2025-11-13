@@ -12,3 +12,4 @@ export * from "./prerender.ts";
 export * from "./preset.ts";
 export * from "./rollup.ts";
 export * from "./route-rules.ts";
+export * from "./srvx.ts";
