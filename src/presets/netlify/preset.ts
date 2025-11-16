@@ -11,6 +11,7 @@ import {
   writeHeaders,
   writeRedirects,
 } from "./utils.ts";
+import type { NetlifyOptions } from "./types.ts";
 
 export type { NetlifyOptions as PresetOptions } from "./types.ts";
 
@@ -46,7 +47,12 @@ const netlify = defineNitroPreset(
           generateNetlifyFunction(nitro)
         );
 
-        if (nitro.options.netlify?.config) {
+        // TODO: remove in a future major
+        const imageConfig = (
+          nitro.options.netlify as any as NetlifyOptions["config"]
+        )?.images;
+
+        if (nitro.options.netlify?.config || imageConfig) {
           const configPath = join(
             nitro.options.output.dir,
             "../deploy/v1/config.json"
@@ -54,7 +60,10 @@ const netlify = defineNitroPreset(
           await fsp.mkdir(dirname(configPath), { recursive: true });
           await fsp.writeFile(
             configPath,
-            JSON.stringify(nitro.options.netlify?.config),
+            JSON.stringify({
+              images: imageConfig,
+              ...nitro.options.netlify?.config,
+            }),
             "utf8"
           );
         }
