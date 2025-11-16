@@ -47,12 +47,7 @@ const netlify = defineNitroPreset(
           generateNetlifyFunction(nitro)
         );
 
-        // TODO: remove in a future major
-        const imageConfig = (
-          nitro.options.netlify as any as NetlifyOptions["config"]
-        )?.images;
-
-        if (nitro.options.netlify?.config || imageConfig) {
+        if (nitro.options.netlify?.config || nitro.options.netlify?.images) {
           const configPath = join(
             nitro.options.output.dir,
             "../deploy/v1/config.json"
@@ -61,7 +56,7 @@ const netlify = defineNitroPreset(
           await fsp.writeFile(
             configPath,
             JSON.stringify({
-              images: imageConfig,
+              images: nitro.options.netlify?.images,
               ...nitro.options.netlify?.config,
             }),
             "utf8"

@@ -12,10 +12,8 @@ describe("nitro:preset:netlify", async () => {
         publicDir: resolve(getPresetTmpDir("netlify"), "dist"),
       },
       netlify: {
-        config: {
-          images: {
-            remote_images: ["https://example.com/.*"],
-          },
+        images: {
+          remote_images: ["https://example.com/.*"],
         },
       },
     },
