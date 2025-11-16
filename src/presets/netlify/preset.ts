@@ -46,7 +46,12 @@ const netlify = defineNitroPreset(
           generateNetlifyFunction(nitro)
         );
 
-        if (nitro.options.netlify?.config || nitro.options.netlify?.images) {
+        if (nitro.options.netlify?.images) {
+          nitro.options.netlify.config ||= {};
+          nitro.options.netlify.config.images ||= nitro.options.netlify?.images;
+        }
+
+        if (Object.keys(nitro.options.netlify?.config || {}).length > 0) {
           const configPath = join(
             nitro.options.output.dir,
             "../deploy/v1/config.json"
@@ -54,10 +59,7 @@ const netlify = defineNitroPreset(
           await fsp.mkdir(dirname(configPath), { recursive: true });
           await fsp.writeFile(
             configPath,
-            JSON.stringify({
-              images: nitro.options.netlify?.images,
-              ...nitro.options.netlify?.config,
-            }),
+            JSON.stringify(nitro.options.netlify?.config),
             "utf8"
           );
         }
