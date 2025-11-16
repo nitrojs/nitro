@@ -378,7 +378,7 @@ async function setupNitroContext(
   }
   if (
     ctx.nitro.options.serverEntry &&
-    ctx.nitro.options.serverEntry.handler === ctx.services.ssr.entry
+    ctx.nitro.options.serverEntry.handler === ctx.services.ssr?.entry
   ) {
     ctx.nitro.logger.warn(
       `Nitro server entry and Vite SSR both set to ${prettyPath(ctx.services.ssr.entry)}. Use a separate SSR entry (e.g. \`src/server.ts\`).`
