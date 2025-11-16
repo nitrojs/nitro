@@ -1,11 +1,16 @@
-import { defineNitroPreset } from "../_utils/preset.ts";
-import { writeFile } from "../_utils/fs.ts";
-import { resolve } from "pathe";
-import { unenvDeno } from "./unenv/preset.ts";
+import { defineNitroPreset } from "../_utils/preset.ts"
+import { writeFile } from "../_utils/fs.ts"
+import { resolve } from "pathe"
+import { unenvDeno } from "./unenv/preset.ts"
 
 const denoDeploy = defineNitroPreset(
   {
     entry: "./deno/runtime/deno-deploy",
+    manifest: {
+      // https://docs.deno.com/deploy/reference/env_vars_and_contexts/#predefined-environment-variables
+      // https://docs.deno.com/deploy/classic/environment-variables/#default-environment-variables
+      deploymentId: process.env.DENO_DEPLOYMENT_ID,
+    },
     exportConditions: ["deno"],
     node: false,
     noExternals: true,
