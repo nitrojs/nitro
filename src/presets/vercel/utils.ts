@@ -165,7 +165,8 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
           return route;
         }),
       // Skew protection
-      ...(process.env.VERCEL_SKEW_PROTECTION_ENABLED && nitro.options.manifest?.deploymentId
+      ...(nitro.options.vercel?.skewProtection &&
+      nitro.options.manifest?.deploymentId
         ? [
             {
               src: "/.*",
