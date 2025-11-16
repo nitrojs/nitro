@@ -11,7 +11,6 @@ import {
   writeHeaders,
   writeRedirects,
 } from "./utils.ts";
-import type { NetlifyOptions } from "./types.ts";
 
 export type { NetlifyOptions as PresetOptions } from "./types.ts";
 
