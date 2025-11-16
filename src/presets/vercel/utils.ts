@@ -165,7 +165,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
           return route;
         }),
       // Skew protection
-      ...(process.env.VERCEL_SKEW_PROTECTION_ENABLED
+      ...(process.env.VERCEL_SKEW_PROTECTION_ENABLED && nitro.options.manifest?.deploymentId
         ? [
             {
               src: "/.*",
@@ -177,7 +177,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
                 },
               ],
               headers: {
-                "Set-Cookie": `__vdpl=${process.env.VERCEL_DEPLOYMENT_ID}; Path=${nitro.options.baseURL}; SameSite=Strict; Secure; HttpOnly`,
+                "Set-Cookie": `__vdpl=${nitro.options.manifest.deploymentId}; Path=${nitro.options.baseURL}; SameSite=Strict; Secure; HttpOnly`,
               },
               continue: true,
             },
