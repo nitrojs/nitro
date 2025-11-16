@@ -46,7 +46,7 @@ const netlify = defineNitroPreset(
           generateNetlifyFunction(nitro)
         );
 
-        if (nitro.options.netlify) {
+        if (nitro.options.netlify?.config) {
           const configPath = join(
             nitro.options.output.dir,
             "../deploy/v1/config.json"
@@ -54,7 +54,7 @@ const netlify = defineNitroPreset(
           await fsp.mkdir(dirname(configPath), { recursive: true });
           await fsp.writeFile(
             configPath,
-            JSON.stringify(nitro.options.netlify),
+            JSON.stringify(nitro.options.netlify?.config),
             "utf8"
           );
         }
