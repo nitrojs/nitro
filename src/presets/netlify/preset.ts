@@ -19,6 +19,7 @@ const netlify = defineNitroPreset(
   {
     entry: "./netlify/runtime/netlify",
     manifest: {
+      // https://docs.netlify.com/build/frameworks/frameworks-api/#netlifyv1skew-protectionjson
       deploymentId: process.env.DEPLOY_ID,
     },
     output: {
@@ -73,6 +74,7 @@ const netlifyEdge = defineNitroPreset(
     extends: "base-worker",
     entry: "./netlify/runtime/netlify-edge",
     manifest: {
+      // https://docs.netlify.com/build/frameworks/frameworks-api/#netlifyv1skew-protectionjson
       deploymentId: process.env.DEPLOY_ID,
     },
     exportConditions: ["netlify"],
@@ -132,6 +134,7 @@ const netlifyStatic = defineNitroPreset(
   {
     extends: "static",
     manifest: {
+      // https://docs.netlify.com/build/frameworks/frameworks-api/#netlifyv1skew-protectionjson
       deploymentId: process.env.DEPLOY_ID,
     },
     output: {

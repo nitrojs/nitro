@@ -15,6 +15,7 @@ const vercel = defineNitroPreset(
   {
     entry: "./vercel/runtime/vercel.{format}",
     manifest: {
+      // https://vercel.com/docs/environment-variables/system-environment-variables#VERCEL_DEPLOYMENT_ID
       deploymentId: process.env.VERCEL_DEPLOYMENT_ID,
     },
     output: {
@@ -72,6 +73,7 @@ const vercelStatic = defineNitroPreset(
   {
     extends: "static",
     manifest: {
+      // https://vercel.com/docs/environment-variables/system-environment-variables#VERCEL_DEPLOYMENT_ID
       deploymentId: process.env.VERCEL_DEPLOYMENT_ID,
     },
     output: {
