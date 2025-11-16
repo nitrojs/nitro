@@ -16,7 +16,7 @@ describe("nitro:preset:netlify", async () => {
           images: {
             remote_images: ["https://example.com/.*"],
           },
-        }
+        },
       },
     },
   });
