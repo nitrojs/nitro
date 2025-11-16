@@ -18,6 +18,9 @@ export type { NetlifyOptions as PresetOptions } from "./types.ts";
 const netlify = defineNitroPreset(
   {
     entry: "./netlify/runtime/netlify",
+    manifest: {
+      deploymentId: process.env.DEPLOY_ID,
+    },
     output: {
       dir: "{{ rootDir }}/.netlify/functions-internal",
       publicDir: "{{ rootDir }}/dist/{{ baseURL }}",
@@ -69,6 +72,9 @@ const netlifyEdge = defineNitroPreset(
   {
     extends: "base-worker",
     entry: "./netlify/runtime/netlify-edge",
+    manifest: {
+      deploymentId: process.env.DEPLOY_ID,
+    },
     exportConditions: ["netlify"],
     output: {
       serverDir: "{{ rootDir }}/.netlify/edge-functions/server",
@@ -125,6 +131,9 @@ const netlifyEdge = defineNitroPreset(
 const netlifyStatic = defineNitroPreset(
   {
     extends: "static",
+    manifest: {
+      deploymentId: process.env.DEPLOY_ID,
+    },
     output: {
       dir: "{{ rootDir }}/dist",
       publicDir: "{{ rootDir }}/dist/{{ baseURL }}",
