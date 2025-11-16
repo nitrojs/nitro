@@ -7,8 +7,11 @@ import viteTsConfigPaths from "vite-tsconfig-paths";
 export default defineConfig({
   plugins: [
     viteTsConfigPaths({ projects: ["./tsconfig.json"] }),
-    tanstackStart({ srcDirectory: "src" }),
+    tanstackStart(),
     viteReact(),
     nitro(),
   ],
+  environments: {
+    ssr: { build: { rollupOptions: { input: "./server.ts" } } },
+  },
 });
