@@ -105,28 +105,31 @@ export async function resolvePathOptions(options: NitroOptions) {
     })
   );
 
-  // Auto-detected server entry
-  if (
-    !options.routes["/**"] &&
-    !options.handlers.some((h) => h.route === "/**")
-  ) {
-    const serverEntry = resolveModulePath("./server", {
-      from: [options.rootDir, ...options.scanDirs],
-      extensions: RESOLVE_EXTENSIONS,
-      try: true,
-    });
-    if (serverEntry) {
-      const alreadyRegistered =
-        options.handlers.some((h) => h.handler === serverEntry) ||
-        Object.values(options.routes).some(
-          (r) => (r as { handler: string }).handler === serverEntry
-        );
-      if (!alreadyRegistered) {
-        options.routes["/**"] = { handler: serverEntry };
-        consola.info(
-          `Using \`${prettyPath(serverEntry)}\` as default route handler.`
-        );
+  // Server entry
+  if (options.serverEntry !== false) {
+    if (typeof options?.serverEntry === "string") {
+      options.serverEntry = { handler: options.serverEntry };
+    }
+    if (options.serverEntry?.handler) {
+      options.serverEntry.handler = resolveNitroPath(
+        options.serverEntry.handler,
+        options
+      );
+    } else {
+      const detected = resolveModulePath("./server", {
+        try: true,
+        from: options.rootDir,
+        extensions: RESOLVE_EXTENSIONS.flatMap((ext) => [ext, `.node${ext}`]),
+      });
+      if (detected) {
+        options.serverEntry ??= { handler: "" };
+        options.serverEntry.handler = detected;
+        consola.info(`Detected \`${prettyPath(detected)}\` as server entry.`);
       }
+    }
+    if (options.serverEntry?.handler && !options.serverEntry?.format) {
+      const isNode = /\.(node)\.\w+$/.test(options.serverEntry.handler);
+      options.serverEntry.format = isNode ? "node" : "web";
     }
   }
 
