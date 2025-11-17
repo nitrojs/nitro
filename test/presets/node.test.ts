@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { resolve } from "pathe";
-import { isWindows } from "std-env";
+// import { isWindows } from "std-env";
 import { describe, expect, it } from "vitest";
 import { setupTest, startServer, testNitro } from "../tests.ts";
 
