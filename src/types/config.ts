@@ -238,8 +238,6 @@ export interface NitroOptions extends PresetOptions {
   node: boolean;
   moduleSideEffects: string[];
   oxc?: OXCOptions;
-  noExternals: boolean;
-  externals: NodeExternalsOptions;
   replace: Record<string, string | ((id: string) => string)>;
   commonJS?: RollupCommonJSOptions;
   exportConditions?: string[];

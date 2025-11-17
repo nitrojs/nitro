@@ -14,7 +14,6 @@ const denoDeploy = defineNitroPreset(
     },
     exportConditions: ["deno"],
     node: false,
-    noExternals: true,
     serveStatic: "deno",
     commands: {
       preview: "",

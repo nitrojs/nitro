@@ -125,27 +125,23 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   );
 
   // Externals Plugin
-  if (!nitro.options.noExternals) {
+  // WIP: Opt-in tracing for prod
+  // WIP: Simpler externals for dev
+  if (nitro.options.dev) {
     plugins.push(
-      rollupNodeFileTrace(
-        defu(nitro.options.externals, {
-          outDir: nitro.options.output.serverDir,
-          moduleDirectories: nitro.options.nodeModulesDirs,
-          external: nitro.options.nodeModulesDirs,
-          inline: [...base.noExternal],
-          traceOptions: {
-            base: "/",
-            processCwd: nitro.options.rootDir,
-            exportsOnly: true,
-          },
-          traceAlias: {
-            "h3-nightly": "h3",
-            ...nitro.options.externals?.traceAlias,
-          },
-          exportConditions: nitro.options.exportConditions as string[],
-          writePackageJson: true,
-        } satisfies NodeExternalsOptions)
-      )
+      rollupNodeFileTrace({
+        outDir: nitro.options.output.serverDir,
+        moduleDirectories: nitro.options.nodeModulesDirs,
+        external: nitro.options.nodeModulesDirs,
+        inline: [...base.noExternal],
+        traceOptions: {
+          base: "/",
+          exportsOnly: true,
+          processCwd: nitro.options.rootDir,
+        },
+        exportConditions: nitro.options.exportConditions as string[],
+        writePackageJson: true,
+      })
     );
   }
 
