@@ -132,6 +132,7 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
         outDir: nitro.options.output.serverDir,
         moduleDirectories: nitro.options.nodeModulesDirs,
         external: nitro.options.nodeModulesDirs,
+        noTrace: nitro.options.dev,
         inline: [...base.noExternal],
         traceOptions: {
           base: "/",
