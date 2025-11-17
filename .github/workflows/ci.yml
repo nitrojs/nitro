@@ -63,7 +63,9 @@ jobs:
         with: { deno-version: v2.x }
       - run: pnpm install
       - run: pnpm build
-      - run: pnpm vitest run
+      - run: pnpm vitest run test/presets
+        env: { NITRO_BUILDER: rolldown }
+      - run: pnpm vitest run test/examples
         env: { NITRO_BUILDER: rolldown }
   publish-pkg-pr-new:
     runs-on: ubuntu-latest
