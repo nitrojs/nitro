@@ -22,7 +22,11 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
 
-    - name: Build
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 10.22.0
+    - name: Install dependencies and build
       run: |
-        npm install
-        gulp
+        pnpm install
+        pnpm build
