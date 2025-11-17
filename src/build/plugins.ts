@@ -1,8 +1,7 @@
-import type { Nitro, NodeExternalsOptions } from "nitro/types";
+import type { Nitro } from "nitro/types";
 import type { Plugin } from "rollup";
 import type { BaseBuildConfig } from "./config.ts";
 import { hash } from "ohash";
-import { defu } from "defu";
 import unimportPlugin from "unimport/unplugin";
 import { unwasm } from "unwasm/plugin";
 import replace from "@rollup/plugin-replace";
