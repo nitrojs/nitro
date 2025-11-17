@@ -43,16 +43,17 @@ export function raw(): Plugin {
         if (!id.startsWith(RESOLVED_RAW_PREFIX)) {
           return;
         }
+        const path = id.slice(RESOLVED_RAW_PREFIX.length);
         if (isBinary(id)) {
           const serialized = Buffer.from(code, "binary").toString("base64");
           return {
             code: `import {base64ToUint8Array } from "${HELPER_ID}" \n export default base64ToUint8Array("${serialized}")`,
-            map: null,
+            map: rawAssetMap(path),
           };
         }
         return {
           code: `export default ${JSON.stringify(code)}`,
-          map: null,
+          map: rawAssetMap(path),
           moduleType: "js",
         };
       },
@@ -84,4 +85,15 @@ export function base64ToUint8Array(str) {
   return bytes;
 }
   `;
+}
+
+function rawAssetMap(id: string) {
+  return {
+    version: 3,
+    file: id,
+    sources: [id],
+    sourcesContent: [],
+    names: [],
+    mappings: "",
+  };
 }
