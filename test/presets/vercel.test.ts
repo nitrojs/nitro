@@ -378,7 +378,7 @@ describe("nitro:preset:vercel:web", async () => {
             items.push(`${dirname}/${entry.name}`);
           } else if (entry.isSymbolicLink()) {
             items.push(`${dirname}/${entry.name} (symlink)`);
-          } else if (/chunks|node_modules/.test(entry.name)) {
+          } else if (/_\/|_.+|node_modules/.test(entry.name)) {
             items.push(`${dirname}/${entry.name}`);
           } else if (entry.isDirectory()) {
             items.push(
@@ -398,12 +398,7 @@ describe("nitro:preset:vercel:web", async () => {
         expect(functionsFiles).toMatchInlineSnapshot(`
           [
             "functions/500.func (symlink)",
-            "functions/__server.func/.vc-config.json",
-            "functions/__server.func/chunks",
-            "functions/__server.func/index.mjs",
-            "functions/__server.func/index.mjs.map",
-            "functions/__server.func/node_modules",
-            "functions/__server.func/package.json",
+            "functions/__server.func",
             "functions/_openapi.json.func (symlink)",
             "functions/_scalar.func (symlink)",
             "functions/_swagger.func (symlink)",

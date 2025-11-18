@@ -2,6 +2,7 @@ import { defineConfig } from "nitro";
 
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import { existsSync } from "node:fs";
 
 export default defineConfig({
   compressPublicAssets: true,
@@ -21,13 +22,13 @@ export default defineConfig({
       },
     ],
   },
+  sourcemap: true,
   rollupConfig: {
     output: {
-      // TODO: when output.dir is outside of src, rollup emits wrong relative sourcemap paths
       sourcemapPathTransform: (relativeSourcePath, sourcemapPath) => {
         const sourcemapDir = dirname(sourcemapPath);
         const sourcePath = resolve(sourcemapDir, relativeSourcePath);
-        return sourcePath;
+        return existsSync(sourcePath) ? sourcePath : relativeSourcePath;
       },
     },
   },
@@ -120,7 +121,6 @@ export default defineConfig({
   experimental: {
     openAPI: true,
     asyncContext: true,
-    wasm: true,
     envExpansion: true,
     database: true,
     tasks: true,

@@ -32,7 +32,7 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   }
 
   // WASM loader
-  if (nitro.options.experimental.wasm) {
+  if (nitro.options.wasm !== false) {
     plugins.push(unwasm(nitro.options.wasm || {}));
   }
 

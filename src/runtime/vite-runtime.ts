@@ -14,7 +14,7 @@ export function fetchViteEnv(
   init?: RequestInit
 ) {
   const envs = globalThis.__nitro_vite_envs__ || {};
-  const viteEnv = envs[viteEnvName];
+  const viteEnv = envs[viteEnvName as keyof typeof envs] as FetchableEnv;
   if (!viteEnv) {
     throw HTTPError.status(404);
   }

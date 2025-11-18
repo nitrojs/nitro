@@ -1,11 +1,11 @@
 import type { RollupConfig } from "nitro/types";
 import { defu } from "defu";
 import { sanitizeFilePath } from "mlly";
-import { normalize, resolve, dirname } from "pathe";
-import { runtimeDir } from "nitro/meta";
+import { resolve, dirname } from "pathe";
 import alias from "@rollup/plugin-alias";
 import inject from "@rollup/plugin-inject";
 import { baseBuildConfig, type BaseBuildConfig } from "../config.ts";
+import { getChunkName } from "../chunks.ts";
 import { baseBuildPlugins } from "../plugins.ts";
 import type { OutputBundle, Plugin as RollupPlugin } from "rollup";
 import type { NitroPluginContext } from "./types.ts";
@@ -30,23 +30,9 @@ export const getViteRollupConfig = (
   const nitro = ctx.nitro!;
   const base = baseBuildConfig(nitro);
 
-  const chunkNamePrefixes = [
-    [runtimeDir, "nitro"],
-    [base.presetsDir, "nitro"],
-    ["\0nitro-wasm:", "wasm"],
-    ["\0", "virtual"],
-  ] as const;
-
-  function getChunkGroup(id: string): string | void {
-    if (id.startsWith(runtimeDir) || id.startsWith(base.presetsDir)) {
-      return "nitro";
-    }
-  }
-
   let config = {
     input: nitro.options.entry,
     external: [...base.env.external],
-
     plugins: [
       ctx.pluginConfig.experimental?.vite?.virtualBundle &&
         virtualBundlePlugin(ctx._serviceBundles),
@@ -69,51 +55,11 @@ export const getViteRollupConfig = (
       },
     },
     output: {
-      dir: nitro.options.output.serverDir,
-      entryFileNames: "index.mjs",
-      chunkFileNames(chunk) {
-        const id = normalize(chunk.moduleIds.at(-1) || "");
-        // Known path prefixes
-        for (const [dir, name] of chunkNamePrefixes) {
-          if (id.startsWith(dir)) {
-            return `chunks/${name}/[name].mjs`;
-          }
-        }
-
-        // Route handlers
-        const routeHandler =
-          nitro.options.handlers.find((h) =>
-            id.startsWith(h.handler as string)
-          ) ||
-          nitro.scannedHandlers.find((h) => id.startsWith(h.handler as string));
-        if (routeHandler?.route) {
-          const path =
-            routeHandler.route
-              .replace(/:([^/]+)/g, "_$1")
-              .replace(/\/[^/]+$/g, "")
-              .replace(/[^a-zA-Z0-9/_-]/g, "_") || "/";
-          return `chunks/routes/${path}/[name].mjs`.replace(/\/+/g, "/");
-        }
-
-        // Task handlers
-        const taskHandler = Object.entries(nitro.options.tasks).find(
-          ([_, task]) => task.handler === id
-        );
-        if (taskHandler) {
-          return `chunks/tasks/[name].mjs`;
-        }
-
-        // Unknown path
-        return `chunks/_/[name].mjs`;
-      },
-      manualChunks(id) {
-        return getChunkGroup(id);
-      },
-      inlineDynamicImports: nitro.options.inlineDynamicImports,
       format: "esm",
-      exports: "auto",
-      intro: "",
-      outro: "",
+      entryFileNames: "index.mjs",
+      chunkFileNames: (chunk) => getChunkName(nitro, chunk.moduleIds),
+      inlineDynamicImports: nitro.options.inlineDynamicImports,
+      dir: nitro.options.output.serverDir,
       generatedCode: {
         // constBindings is not supported in rolldown
         ...(ctx._isRolldown ? {} : { constBindings: true }),
@@ -121,18 +67,11 @@ export const getViteRollupConfig = (
       sanitizeFileName: sanitizeFilePath,
       // sourcemapExcludeSources is not supported in rolldown
       ...(ctx._isRolldown ? {} : { sourcemapExcludeSources: true }),
-      sourcemapIgnoreList(relativePath) {
-        return relativePath.includes("node_modules");
-      },
+      sourcemapIgnoreList: (id) => id.includes("node_modules"),
     },
   } satisfies RollupConfig;
 
   config = defu(nitro.options.rollupConfig as any, config);
-
-  if (config.output.inlineDynamicImports) {
-    // @ts-ignore
-    delete config.output.manualChunks;
-  }
 
   return { config, base };
 };

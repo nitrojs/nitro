@@ -14,6 +14,12 @@ export type { VercelOptions as PresetOptions } from "./types.ts";
 const vercel = defineNitroPreset(
   {
     entry: "./vercel/runtime/vercel.{format}",
+    manifest: {
+      deploymentId: process.env.VERCEL_DEPLOYMENT_ID,
+    },
+    vercel: {
+      skewProtection: !!process.env.VERCEL_SKEW_PROTECTION_ENABLED,
+    },
     output: {
       dir: "{{ rootDir }}/.vercel/output",
       serverDir: "{{ output.dir }}/functions/__server.func",
@@ -68,6 +74,12 @@ const vercel = defineNitroPreset(
 const vercelStatic = defineNitroPreset(
   {
     extends: "static",
+    manifest: {
+      deploymentId: process.env.VERCEL_DEPLOYMENT_ID,
+    },
+    vercel: {
+      skewProtection: !!process.env.VERCEL_SKEW_PROTECTION_ENABLED,
+    },
     output: {
       dir: "{{ rootDir }}/.vercel/output",
       publicDir: "{{ output.dir }}/static/{{ baseURL }}",

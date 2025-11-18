@@ -1,8 +1,6 @@
 import type { Nitro, RollupConfig } from "nitro/types";
 import { defu } from "defu";
 import { sanitizeFilePath } from "mlly";
-import { normalize } from "pathe";
-import { runtimeDir } from "nitro/meta";
 import alias from "@rollup/plugin-alias";
 import commonjs from "@rollup/plugin-commonjs";
 import inject from "@rollup/plugin-inject";
@@ -11,23 +9,10 @@ import { nodeResolve } from "@rollup/plugin-node-resolve";
 import { oxc } from "../plugins/oxc.ts";
 import { baseBuildConfig } from "../config.ts";
 import { baseBuildPlugins } from "../plugins.ts";
+import { getChunkName } from "../chunks.ts";
 
 export const getRollupConfig = (nitro: Nitro): RollupConfig => {
   const base = baseBuildConfig(nitro);
-
-  const chunkNamePrefixes = [
-    [runtimeDir, "nitro"],
-    [base.presetsDir, "nitro"],
-    ["\0raw:", "raw"],
-    ["\0nitro-wasm:", "wasm"],
-    ["\0", "virtual"],
-  ] as const;
-
-  function getChunkGroup(id: string): string | void {
-    if (id.startsWith(runtimeDir) || id.startsWith(base.presetsDir)) {
-      return "nitro";
-    }
-  }
 
   const tsc = nitro.options.typescript.tsConfig?.compilerOptions;
 
@@ -85,68 +70,20 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
       },
     },
     output: {
-      dir: nitro.options.output.serverDir,
-      entryFileNames: "index.mjs",
-      chunkFileNames(chunk) {
-        const id = normalize(chunk.moduleIds.at(-1) || "");
-        // Known path prefixes
-        for (const [dir, name] of chunkNamePrefixes) {
-          if (id.startsWith(dir)) {
-            return `chunks/${name}/[name].mjs`;
-          }
-        }
-
-        // Route handlers
-        const routeHandler =
-          nitro.options.handlers.find((h) =>
-            id.startsWith(h.handler as string)
-          ) ||
-          nitro.scannedHandlers.find((h) => id.startsWith(h.handler as string));
-        if (routeHandler?.route) {
-          const path =
-            routeHandler.route
-              .replace(/:([^/]+)/g, "_$1")
-              .replace(/\/[^/]+$/g, "") || "/";
-          return `chunks/routes${path}/[name].mjs`;
-        }
-
-        // Task handlers
-        const taskHandler = Object.entries(nitro.options.tasks).find(
-          ([_, task]) => task.handler === id
-        );
-        if (taskHandler) {
-          return `chunks/tasks/[name].mjs`;
-        }
-
-        // Unknown path
-        return `chunks/_/[name].mjs`;
-      },
-      manualChunks(id) {
-        return getChunkGroup(id);
-      },
-      inlineDynamicImports: nitro.options.inlineDynamicImports,
       format: "esm",
-      exports: "auto",
-      intro: "",
-      outro: "",
-      generatedCode: {
-        constBindings: true,
-      },
+      entryFileNames: "index.mjs",
+      chunkFileNames: (chunk) => getChunkName(nitro, chunk.moduleIds),
+      dir: nitro.options.output.serverDir,
+      inlineDynamicImports: nitro.options.inlineDynamicImports,
+      generatedCode: { constBindings: true },
       sanitizeFileName: sanitizeFilePath,
       sourcemap: nitro.options.sourcemap,
       sourcemapExcludeSources: true,
-      sourcemapIgnoreList(relativePath) {
-        return relativePath.includes("node_modules");
-      },
+      sourcemapIgnoreList: (id) => id.includes("node_modules"),
     },
   } satisfies RollupConfig;
 
   config = defu(nitro.options.rollupConfig as any, config);
-
-  if (config.output.inlineDynamicImports) {
-    // @ts-ignore
-    delete config.output.manualChunks;
-  }
 
   return config;
 };

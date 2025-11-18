@@ -3,7 +3,7 @@ import type { NitroOptions } from "nitro/types";
 export async function resolveExportConditionsOptions(options: NitroOptions) {
   options.exportConditions = _resolveExportConditions(
     options.exportConditions || [],
-    { dev: options.dev, node: options.node, wasm: options.experimental.wasm }
+    { dev: options.dev, node: options.node, wasm: options.wasm !== false }
   );
 }
 

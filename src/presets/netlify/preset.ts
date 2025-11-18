@@ -18,6 +18,9 @@ export type { NetlifyOptions as PresetOptions } from "./types.ts";
 const netlify = defineNitroPreset(
   {
     entry: "./netlify/runtime/netlify",
+    manifest: {
+      deploymentId: process.env.DEPLOY_ID,
+    },
     output: {
       dir: "{{ rootDir }}/.netlify/functions-internal",
       publicDir: "{{ rootDir }}/dist/{{ baseURL }}",
@@ -43,7 +46,12 @@ const netlify = defineNitroPreset(
           generateNetlifyFunction(nitro)
         );
 
-        if (nitro.options.netlify) {
+        if (nitro.options.netlify?.images) {
+          nitro.options.netlify.config ||= {};
+          nitro.options.netlify.config.images ||= nitro.options.netlify?.images;
+        }
+
+        if (Object.keys(nitro.options.netlify?.config || {}).length > 0) {
           const configPath = join(
             nitro.options.output.dir,
             "../deploy/v1/config.json"
@@ -51,7 +59,7 @@ const netlify = defineNitroPreset(
           await fsp.mkdir(dirname(configPath), { recursive: true });
           await fsp.writeFile(
             configPath,
-            JSON.stringify(nitro.options.netlify),
+            JSON.stringify(nitro.options.netlify?.config),
             "utf8"
           );
         }
@@ -69,6 +77,9 @@ const netlifyEdge = defineNitroPreset(
   {
     extends: "base-worker",
     entry: "./netlify/runtime/netlify-edge",
+    manifest: {
+      deploymentId: process.env.DEPLOY_ID,
+    },
     exportConditions: ["netlify"],
     output: {
       serverDir: "{{ rootDir }}/.netlify/edge-functions/server",
@@ -125,6 +136,9 @@ const netlifyEdge = defineNitroPreset(
 const netlifyStatic = defineNitroPreset(
   {
     extends: "static",
+    manifest: {
+      deploymentId: process.env.DEPLOY_ID,
+    },
     output: {
       dir: "{{ rootDir }}/dist",
       publicDir: "{{ rootDir }}/dist/{{ baseURL }}",

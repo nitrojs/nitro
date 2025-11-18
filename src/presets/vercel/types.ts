@@ -113,6 +113,14 @@ export interface VercelOptions {
   config: VercelBuildConfigV3;
 
   /**
+   * If you have enabled skew protection in the Vercel dashboard, it will
+   * be enabled by default.
+   *
+   * You can disable the Nitro integration by setting this option to `false`.
+   */
+  skewProtection?: boolean;
+
+  /**
    * If you are using `vercel-edge`, you can specify the region(s) for your edge function.
    * @see https://vercel.com/docs/concepts/functions/edge-functions#edge-function-regions
    */

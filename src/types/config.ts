@@ -25,6 +25,7 @@ import type { UnwasmPluginOptions } from "unwasm/plugin";
 import type { DeepPartial } from "./_utils.ts";
 import type { NitroDevServerOptions } from "./dev.ts";
 import type {
+  EventHandlerFormat,
   NitroDevEventHandler,
   NitroErrorHandler,
   NitroEventHandler,
@@ -86,6 +87,9 @@ export interface NitroOptions extends PresetOptions {
   ssrRoutes: string[];
   serveStatic: boolean | "node" | "deno" | "inline";
   noPublicDir: boolean;
+  manifest?: {
+    deploymentId?: string;
+  };
   features: {
     /**
      * Enable runtime hooks for request and response.
@@ -101,11 +105,10 @@ export interface NitroOptions extends PresetOptions {
   };
 
   /**
-   * @experimental Requires `experimental.wasm` to work
    *
    * @see https://github.com/unjs/unwasm
    */
-  wasm?: UnwasmPluginOptions;
+  wasm?: false | UnwasmPluginOptions;
   openAPI?: NitroOpenAPIConfig;
   experimental: {
     openAPI?: boolean;
@@ -117,12 +120,6 @@ export interface NitroOptions extends PresetOptions {
      * Enable native async context support for useRequest()
      */
     asyncContext?: boolean;
-    /**
-     * Enable Experimental WebAssembly Support
-     *
-     * @see https://github.com/unjs/unwasm
-     */
-    wasm?: boolean;
     /**
      * Disable Experimental Sourcemap Minification
      */
@@ -191,14 +188,14 @@ export interface NitroOptions extends PresetOptions {
   baseURL: string;
   apiBaseURL: string;
 
+  serverEntry: false | { handler: string; format?: EventHandlerFormat };
+  handlers: NitroEventHandler[];
+  devHandlers: NitroDevEventHandler[];
+  routeRules: { [path: string]: NitroRouteRules };
   routes: Record<
     string,
     string | Omit<NitroEventHandler, "route" | "middleware">
   >;
-  handlers: NitroEventHandler[];
-  devHandlers: NitroDevEventHandler[];
-
-  routeRules: { [path: string]: NitroRouteRules };
 
   errorHandler: string | string[];
   devErrorHandler: NitroErrorHandler;
@@ -300,6 +297,7 @@ export interface NitroConfig
         | "serverDir"
         | "_config"
         | "_c12"
+        | "serverEntry"
       >
     >,
     C12InputConfig<NitroConfig> {
@@ -310,6 +308,7 @@ export interface NitroConfig
   compatibilityDate?: CompatibilityDateSpec;
   unenv?: UnenvPreset | UnenvPreset[];
   serverDir?: boolean | "./" | "./server" | (string & {});
+  serverEntry?: string | NitroOptions["serverEntry"];
 }
 
 // ------------------------------------------------------------

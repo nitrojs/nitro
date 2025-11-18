@@ -79,3 +79,5 @@ test/fixture/functions
 .pnpm-store
 .wrangler
 .rolldown
+
+CHANGELOG.md

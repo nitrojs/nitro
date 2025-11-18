@@ -27,6 +27,11 @@ export default defineCommand({
       description:
         "The build preset to use (you can also use `NITRO_PRESET` environment variable).",
     },
+    builder: {
+      type: "string",
+      description:
+        "The builder to use (you can also use `NITRO_BUILDER` environment variable).",
+    },
     compatibilityDate: {
       type: "string",
       description:
@@ -41,6 +46,7 @@ export default defineCommand({
         dev: false,
         minify: args.minify,
         preset: args.preset,
+        builder: args.builder as "rollup" | "rolldown" | "vite",
       },
       {
         compatibilityDate: args.compatibilityDate as DateString,

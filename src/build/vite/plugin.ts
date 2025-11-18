@@ -166,30 +166,6 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
       };
     },
 
-    configResolved(config) {
-      if (config.command === "build") {
-        debug("[main] Inferring caching routes");
-        // Add cache-control to immutable client assets
-        for (const env of Object.values(config.environments)) {
-          if (env.consumer === "client") {
-            const rule = (ctx.nitro!.options.routeRules[
-              `/${env.build.assetsDir}/**`
-            ] ??= {});
-            if (!rule.headers?.["cache-control"]) {
-              rule.headers = {
-                ...rule.headers,
-                "cache-control": `public, max-age=31536000, immutable`,
-              };
-            }
-          }
-        }
-      }
-
-      // Refresh nitro routes
-      debug("[main] Syncing nitro routes");
-      ctx.nitro!.routing.sync();
-    },
-
     buildApp: {
       order: "post",
       handler(builder) {
@@ -400,6 +376,15 @@ async function setupNitroContext(
       }
     }
   }
+  if (
+    ctx.nitro.options.serverEntry &&
+    ctx.nitro.options.serverEntry.handler === ctx.services.ssr?.entry
+  ) {
+    ctx.nitro.logger.warn(
+      `Nitro server entry and Vite SSR both set to ${prettyPath(ctx.services.ssr.entry)}. Use a separate SSR entry (e.g. \`src/server.ts\`).`
+    );
+    ctx.nitro.options.serverEntry = false;
+  }
 
   // Default SSR renderer
   if (
@@ -412,6 +397,7 @@ async function setupNitroContext(
       runtimeDir,
       "internal/vite/ssr-renderer"
     );
+    ctx.nitro!.routing.sync();
   }
 
   // Determine default Vite dist directory
