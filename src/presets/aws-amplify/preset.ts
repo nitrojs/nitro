@@ -7,6 +7,10 @@ const awsAmplify = defineNitroPreset(
   {
     extends: "node-server",
     entry: "./runtime/aws-amplify",
+    manifest: {
+      // https://docs.aws.amazon.com/amplify/latest/userguide/environment-variables.html#amplify-console-environment-variables
+      deploymentId: process.env.AWS_JOB_ID,
+    },
     output: {
       dir: "{{ rootDir }}/.amplify-hosting",
       serverDir: "{{ output.dir }}/compute/default",

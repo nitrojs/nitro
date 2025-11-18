@@ -8,6 +8,11 @@ import { denoServerLegacy } from "./preset-legacy";
 const denoDeploy = defineNitroPreset(
   {
     entry: "./runtime/deno-deploy",
+    manifest: {
+      // https://docs.deno.com/deploy/reference/env_vars_and_contexts/#predefined-environment-variables
+      // https://docs.deno.com/deploy/classic/environment-variables/#default-environment-variables
+      deploymentId: process.env.DENO_DEPLOYMENT_ID,
+    },
     exportConditions: ["deno"],
     node: false,
     noExternals: true,
