@@ -208,9 +208,12 @@ export async function configureViteDevServer(
   ) => {
     // Skip for vite internal requests or if already handled
     if (
-      /^\/@(?:vite|fs|id)\//.test(nodeReq.url!) ||
+      !nodeReq.url ||
+      /^\/@(?:vite|fs|id)\//.test(nodeReq.url) ||
       nodeReq._nitroHandled ||
-      nodeReq.url!.startsWith("/.devtools-vite/")
+      server.middlewares.stack
+        .map((mw) => mw.route)
+        .some((base) => base && nodeReq.url!.startsWith(base))
     ) {
       return next();
     }
