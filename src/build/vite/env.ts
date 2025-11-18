@@ -44,7 +44,7 @@ export function createNitroEnvironment(
             ),
             ...runtimeDependencies,
           ]
-        : true, // in production, NF3 tracks externals
+        : true, // production build is standalone
       conditions: ctx.nitro!.options.exportConditions,
       externalConditions: ctx.nitro!.options.exportConditions,
     },
