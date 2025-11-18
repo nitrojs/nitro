@@ -19,10 +19,10 @@ import _iis from "./iis/preset.ts";
 import _koyeb from "./koyeb/preset.ts";
 import _netlify from "./netlify/preset.ts";
 import _node from "./node/preset.ts";
-import _platformSh from "./platform.sh/preset.ts";
 import _renderCom from "./render.com/preset.ts";
 import _standard from "./standard/preset.ts";
 import _stormkit from "./stormkit/preset.ts";
+import _upsun from "./upsun/preset.ts";
 import _vercel from "./vercel/preset.ts";
 import _winterjs from "./winterjs/preset.ts";
 import _zeabur from "./zeabur/preset.ts";
@@ -48,10 +48,10 @@ export default [
   ..._koyeb,
   ..._netlify,
   ..._node,
-  ..._platformSh,
   ..._renderCom,
   ..._standard,
   ..._stormkit,
+  ..._upsun,
   ..._vercel,
   ..._winterjs,
   ..._zeabur,
