@@ -229,7 +229,7 @@ export async function configureViteDevServer(
     if (nodeRes.writableEnded || nodeRes.headersSent) {
       return;
     }
-    if (envRes.status !== 404) {
+    if (envRes.status !== 404 || ctx.nitro!.options.renderer?.handler) {
       return await sendNodeResponse(nodeRes, envRes);
     }
 
