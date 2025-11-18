@@ -204,36 +204,35 @@ export async function configureViteDevServer(
   const nitroDevMiddleware = async (
     nodeReq: IncomingMessage & { _nitroHandled?: boolean },
     nodeRes: ServerResponse,
-    next: () => void
+    next: (error?: unknown) => void
   ) => {
     // Skip for vite internal requests or if already handled
     if (/^\/@(?:vite|fs|id)\//.test(nodeReq.url!) || nodeReq._nitroHandled) {
       return next();
     }
     nodeReq._nitroHandled = true;
+    try {
+      // Create web API compat request
+      const req = new NodeRequest({ req: nodeReq, res: nodeRes });
 
-    // Create web API compat request
-    const req = new NodeRequest({ req: nodeReq, res: nodeRes });
+      // Try dev app
+      const devAppRes = await ctx.devApp!.fetch(req);
+      if (nodeRes.writableEnded || nodeRes.headersSent) {
+        return;
+      }
+      if (devAppRes.status !== 404) {
+        return await sendNodeResponse(nodeRes, devAppRes);
+      }
 
-    // Try dev app
-    const devAppRes = await ctx.devApp!.fetch(req);
-    if (nodeRes.writableEnded || nodeRes.headersSent) {
-      return;
-    }
-    if (devAppRes.status !== 404) {
-      return await sendNodeResponse(nodeRes, devAppRes);
-    }
-
-    // Dispatch the request to the nitro environment
-    const envRes = await nitroEnv.dispatchFetch(req);
-    if (nodeRes.writableEnded || nodeRes.headersSent) {
-      return;
-    }
-    if (envRes.status !== 404 || ctx.nitro!.options.renderer?.handler) {
+      // Dispatch the request to the nitro environment
+      const envRes = await nitroEnv.dispatchFetch(req);
+      if (nodeRes.writableEnded || nodeRes.headersSent) {
+        return;
+      }
       return await sendNodeResponse(nodeRes, envRes);
+    } catch (error) {
+      return next(error);
     }
-
-    return next();
   };
 
   // Handle as first middleware for direct requests
