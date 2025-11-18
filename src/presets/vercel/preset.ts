@@ -16,6 +16,9 @@ const vercel = defineNitroPreset(
   {
     extends: "node",
     entry: "./runtime/vercel",
+    manifest: {
+      deploymentId: process.env.VERCEL_DEPLOYMENT_ID,
+    },
     output: {
       dir: "{{ rootDir }}/.vercel/output",
       serverDir: "{{ output.dir }}/functions/__fallback.func",
@@ -93,6 +96,9 @@ const vercelEdge = defineNitroPreset(
 const vercelStatic = defineNitroPreset(
   {
     extends: "static",
+    manifest: {
+      deploymentId: process.env.VERCEL_DEPLOYMENT_ID,
+    },
     output: {
       dir: "{{ rootDir }}/.vercel/output",
       publicDir: "{{ output.dir }}/static/{{ baseURL }}",

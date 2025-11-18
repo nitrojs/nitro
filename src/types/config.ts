@@ -92,6 +92,9 @@ export interface NitroOptions extends PresetOptions {
   ssrRoutes: string[];
   serveStatic: boolean | "node" | "deno" | "inline";
   noPublicDir: boolean;
+  manifest?: {
+    deploymentId?: string;
+  };
 
   /**
    * @experimental Requires `experimental.wasm` to work
