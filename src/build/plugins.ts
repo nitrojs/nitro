@@ -131,7 +131,12 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
         defu(nitro.options.externals, {
           outDir: nitro.options.output.serverDir,
           moduleDirectories: nitro.options.nodeModulesDirs,
-          external: nitro.options.nodeModulesDirs,
+          external: [
+            // Externalize more aggressively in dev
+            nitro.options.dev
+              ? (id) => id.includes("node_modules")
+              : /node_modules/,
+          ],
           inline: [...base.noExternal],
           traceOptions: {
             base: "/",
