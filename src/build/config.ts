@@ -1,7 +1,7 @@
 import type { Nitro, NitroImportMeta } from "nitro/types";
 import { dirname } from "pathe";
 import { defineEnv } from "unenv";
-import { pkgDir, runtimeDependencies, presetsDir } from "nitro/meta";
+import { runtimeDependencies, presetsDir, runtimeDir } from "nitro/meta";
 
 export type BaseBuildConfig = ReturnType<typeof baseBuildConfig>;
 
@@ -35,10 +35,12 @@ export function baseBuildConfig(nitro: Nitro) {
 
   const noExternal: (string | RegExp)[] = [
     /^(?:[\0#~.]|virtual:)/,
-    "nitro",
-    pkgDir,
-    nitro.options.serverDir,
+    /^nitro$/,
+    /nitro\/(dist|app|~internal)/,
+    runtimeDir,
+    presetsDir,
     nitro.options.buildDir,
+    ...nitro.options.scanDirs,
     dirname(nitro.options.entry),
     ...(nitro.options.wasm === false ? [] : [/\.wasm$/]),
     ...nitro.options.handlers

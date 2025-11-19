@@ -1,29 +1,41 @@
 import type { Plugin } from "rollup";
 import { pathToFileURL } from "node:url";
+import { isAbsolute } from "pathe";
 
 export type ExternalsOptions = {
   include?: FilterMatcher[];
   exclude?: FilterMatcher[];
 };
 
+const NO_EXTERNAL_RE = /^(?:[\0#~.]|[a-z0-9]{2,}:)|\?/;
+
 export function externals(opts: ExternalsOptions): Plugin {
-  const filter = createFilter(opts);
+  const exclude = createFilter(opts?.exclude || []);
   return {
     name: "nitro:externals",
     resolveId: {
       order: "pre",
-      filter: { id: { exclude: /^(?:[\0#~.]|[a-z0-9]{2,}:)|\?/ } },
+      filter: { id: { exclude: NO_EXTERNAL_RE } },
       async handler(id, importer, rOpts) {
-        if (!filter(id)) {
+        if (exclude(id)) {
           return null;
         }
         const resolved = await this.resolve(id, importer, rOpts);
-        if (!resolved) {
-          return null;
+        if (
+          !resolved?.id ||
+          NO_EXTERNAL_RE.test(resolved.id) ||
+          !filter(resolved.id)
+        ) {
+          return resolved;
+        }
+        if (id.includes("test")) {
+          console.log(">", id);
         }
         return {
-          id: pathToFileURL(resolved.id).href,
           external: true,
+          id: isAbsolute(resolved.id)
+            ? pathToFileURL(resolved.id).href
+            : resolved.id,
         };
       },
     },
@@ -35,36 +47,20 @@ export function externals(opts: ExternalsOptions): Plugin {
 type FilterFunction = (id: string) => boolean;
 type FilterMatcher = string | RegExp | FilterFunction;
 
-function createFilter(opts: {
-  include?: FilterMatcher[];
-  exclude?: FilterMatcher[];
-}) {
-  const includeMatchers = (opts?.include || [])
+function createFilter(matchers: FilterMatcher[] = []) {
+  const matcherFns = matchers
     .map((m) => toMatcher(m))
-    .filter(Boolean) as FilterFunction[];
-  const excludeMatchers = (opts?.exclude || [])
-    .map((m) => toMatcher(m))
-    .filter(Boolean) as FilterFunction[];
-
-  // Should match one of the includes and none of the excludes
-  return (id: string) => {
-    if (includeMatchers.length > 0 && !includeMatchers.some((fn) => fn(id))) {
-      return false;
-    }
-    if (excludeMatchers.some((fn) => fn(id))) {
-      return false;
-    }
-    return true;
-  };
+    .filter((m): m is FilterFunction => typeof m === "function");
+  return (id: string) => matcherFns.some((fn) => fn(id));
 }
 
 function toMatcher(
   filter: string | RegExp | ((id: string) => boolean)
 ): FilterFunction | undefined {
   if (typeof filter === "string") {
-    return (id: string) => id.startsWith(filter);
+    return Object.assign((id: string) => id.startsWith(filter), { filter });
   } else if (filter instanceof RegExp) {
-    return (id: string) => filter.test(id);
+    return Object.assign((id: string) => filter.test(id), { filter });
   } else if (typeof filter === "function") {
     return filter;
   }
