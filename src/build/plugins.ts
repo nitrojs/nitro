@@ -1,8 +1,7 @@
-import type { Nitro, NodeExternalsOptions } from "nitro/types";
+import type { Nitro } from "nitro/types";
 import type { Plugin } from "rollup";
 import type { BaseBuildConfig } from "./config.ts";
 import { hash } from "ohash";
-import { defu } from "defu";
 import unimportPlugin from "unimport/unplugin";
 import { unwasm } from "unwasm/plugin";
 import replace from "@rollup/plugin-replace";
@@ -15,13 +14,14 @@ import { serverAssets } from "./plugins/server-assets.ts";
 import { storage } from "./plugins/storage.ts";
 import { virtual } from "./plugins/virtual.ts";
 import { errorHandler } from "./plugins/error-handler.ts";
-import { rollupNodeFileTrace } from "nf3";
+// import { rollupNodeFileTrace } from "nf3";
 import { rendererTemplate } from "./plugins/renderer-template.ts";
 import { featureFlags } from "./plugins/feature-flags.ts";
 import { nitroResolveIds } from "./plugins/resolve.ts";
 import { sourcemapMinify } from "./plugins/sourcemap-min.ts";
 import { raw } from "./plugins/raw.ts";
 import { runtimeConfig } from "./plugins/runtime-config.ts";
+import { externals } from "./plugins/externals.ts";
 
 export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const plugins: Plugin[] = [];
@@ -125,29 +125,28 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   );
 
   // Externals Plugin
-  if (!nitro.options.noExternals) {
-    plugins.push(
-      rollupNodeFileTrace(
-        defu(nitro.options.externals, {
-          outDir: nitro.options.output.serverDir,
-          moduleDirectories: nitro.options.nodeModulesDirs,
-          external: nitro.options.nodeModulesDirs,
-          inline: [...base.noExternal],
-          traceOptions: {
-            base: "/",
-            processCwd: nitro.options.rootDir,
-            exportsOnly: true,
-          },
-          traceAlias: {
-            "h3-nightly": "h3",
-            ...nitro.options.externals?.traceAlias,
-          },
-          exportConditions: nitro.options.exportConditions as string[],
-          writePackageJson: true,
-        } satisfies NodeExternalsOptions)
-      )
-    );
+  // WIP: Opt-in tracing for prod
+  // WIP: Simpler externals for dev
+  if (nitro.options.dev) {
+    plugins.push(externals({ exclude: base.noExternal }));
   }
+
+  //   plugins.push(
+  //   rollupNodeFileTrace({
+  //     outDir: nitro.options.output.serverDir,
+  //     moduleDirectories: nitro.options.nodeModulesDirs,
+  //     external: nitro.options.nodeModulesDirs,
+  //     noTrace: nitro.options.dev,
+  //     inline: [...base.noExternal],
+  //     traceOptions: {
+  //       base: "/",
+  //       exportsOnly: true,
+  //       processCwd: nitro.options.rootDir,
+  //     },
+  //     exportConditions: nitro.options.exportConditions as string[],
+  //     writePackageJson: true,
+  //   })
+  // );
 
   // Minify
   if (

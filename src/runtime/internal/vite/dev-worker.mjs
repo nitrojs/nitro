@@ -38,7 +38,7 @@ class EnvRunner {
         },
       },
       new ESModulesEvaluator(),
-      process.env.DEBUG ? console.debug : undefined
+      process.env.NITRO_DEBUG ? console.debug : undefined
     );
 
     this.reload();

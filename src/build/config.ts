@@ -1,7 +1,7 @@
 import type { Nitro, NitroImportMeta } from "nitro/types";
 import { dirname } from "pathe";
 import { defineEnv } from "unenv";
-import { pkgDir, runtimeDependencies, presetsDir } from "nitro/meta";
+import { runtimeDependencies, presetsDir, runtimeDir } from "nitro/meta";
 
 export type BaseBuildConfig = ReturnType<typeof baseBuildConfig>;
 
@@ -33,21 +33,16 @@ export function baseBuildConfig(nitro: Nitro) {
     ...nitro.options.replace,
   };
 
-  const noExternal: (string | RegExp | ((id: string) => boolean))[] = [
-    "#",
-    "~",
-    "@/",
-    "~~",
-    "@@/",
-    "virtual:",
-    "nitro",
-    pkgDir,
-    nitro.options.serverDir,
+  const noExternal: (string | RegExp)[] = [
+    /^(?:[\0#~.]|virtual:)/,
+    /^nitro$/,
+    /nitro\/(dist|app|~internal)/,
+    runtimeDir,
+    presetsDir,
     nitro.options.buildDir,
+    ...nitro.options.scanDirs,
     dirname(nitro.options.entry),
-    ...(nitro.options.wasm === false
-      ? []
-      : [(id: string) => id.endsWith(".wasm")]),
+    ...(nitro.options.wasm === false ? [] : [/\.wasm$/]),
     ...nitro.options.handlers
       .map((m) => m.handler)
       .filter((i) => typeof i === "string"),
