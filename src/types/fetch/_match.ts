@@ -58,29 +58,21 @@ type CalcMatchScore<
 
 type _MatchedRoutes<
   Route extends string,
-  MatchedResultUnion extends MatchResult<string> = MatchResult<
-    keyof InternalApi
-  >,
-> = MatchedResultUnion["key"] extends infer MatchedKeys // spread union type
-  ? MatchedKeys extends string
-    ? Route extends MatchedKeys
-      ? MatchResult<MatchedKeys, true> // exact match
-      : MatchedKeys extends `${infer Root}/**${string}`
-        ? MatchedKeys extends `${string}/**`
-          ? Route extends `${Root}/${string}`
-            ? MatchResult<MatchedKeys, false, [], true>
-            : never // catchAll match
-          : MatchResult<
-              MatchedKeys,
-              false,
-              CalcMatchScore<Root, Route, [], true>
-            > // glob match
-        : MatchResult<
-            MatchedKeys,
-            false,
-            CalcMatchScore<MatchedKeys, Route, [], true>
-          > // partial match
-    : never
+  MatchedKeys extends string = keyof InternalApi,
+> = MatchedKeys extends any
+  ? Route extends MatchedKeys
+    ? MatchResult<MatchedKeys, true> // exact match
+    : MatchedKeys extends `${infer Root}/**${string}`
+      ? MatchedKeys extends `${string}/**`
+        ? Route extends `${Root}/${string}`
+          ? MatchResult<MatchedKeys, false, [], true>
+          : never // catchAll match
+        : MatchResult<MatchedKeys, false, CalcMatchScore<Root, Route, [], true>> // glob match
+      : MatchResult<
+          MatchedKeys,
+          false,
+          CalcMatchScore<MatchedKeys, Route, [], true>
+        > // partial match
   : never;
 
 export type MatchedRoutes<
@@ -88,9 +80,9 @@ export type MatchedRoutes<
   MatchedKeysResult extends MatchResult<string> = MatchResult<
     keyof InternalApi
   >,
-  Matches extends MatchResult<string> = _MatchedRoutes<
+  Matches extends MatchResult<string, boolean> = _MatchedRoutes<
     Route,
-    MatchedKeysResult
+    MatchedKeysResult["key"]
   >,
 > = Route extends "/"
   ? keyof InternalApi // root middleware
