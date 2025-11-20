@@ -67,11 +67,7 @@ type _MatchedRoutes<
         ? Route extends `${Root}/${string}`
           ? MatchResult<MatchedKeys, false, [], true>
           : never // catchAll match
-        : MatchResult<
-            MatchedKeys,
-            false,
-            CalcMatchScore<Root, Route, [], true>
-          > // glob match
+        : MatchResult<MatchedKeys, false, CalcMatchScore<Root, Route, [], true>> // glob match
       : MatchResult<
           MatchedKeys,
           false,
