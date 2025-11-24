@@ -21,16 +21,24 @@ export const handler = awslambda.streamifyResponse(
       ...awsResponseHeaders(response),
     };
 
-    if (response.body) {
-      const writer = awslambda.HttpResponseStream.from(
-        // @ts-expect-error TODO: IMPORTANT! It should be a Writable according to the aws-lambda types
-        responseStream,
-        httpResponseMetadata
-      );
-      const reader = response.body.getReader();
-      await streamToNodeStream(reader, responseStream);
-      writer.end();
-    }
+    const body =
+      response.body ??
+      new ReadableStream<string>({
+        start(controller) {
+          controller.enqueue("");
+          controller.close();
+        },
+      });
+
+    const writer = awslambda.HttpResponseStream.from(
+      // @ts-expect-error TODO: IMPORTANT! It should be a Writable according to the aws-lambda types
+      responseStream,
+      httpResponseMetadata
+    );
+
+    const reader = body.getReader();
+    await streamToNodeStream(reader, responseStream);
+    writer.end();
   }
 );
 
