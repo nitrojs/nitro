@@ -23,7 +23,7 @@ export const handler = awslambda.streamifyResponse(
 
     const body =
       response.body ??
-      new ReadableStream({
+      new ReadableStream<string>({
         start(controller) {
           controller.enqueue("");
           controller.close();
