@@ -242,19 +242,18 @@ export async function configureViteDevServer(
     }
   };
 
-  // Handle as first middleware for direct requests
-  // To avoid overlap with static assets served by Vite from root
+  // Handle server routes first to avoid conflicts with static assets served by Vite from the root
   // https://github.com/vitejs/vite/pull/20866
   server.middlewares.use(function nitroDevMiddlewarePre(req, res, next) {
     const fetchDest = req.headers["sec-fetch-dest"];
     res.setHeader("vary", "sec-fetch-dest");
     if (
-      // Originating from browser tab or no fetch dest (curl, fetch, etc) and not script, style, image etc
+      // Originating from browser tab or no fetch dest (curl, fetch, etc) and (not script, style, image, etc)
       (!fetchDest || /^(document|iframe|frame|empty)$/.test(fetchDest)) &&
-      // No file extension (/src/index.ts)
+      // No file extension (not /src/index.ts)
       !req.url!.match(/\.([a-z0-9]+)(?:[?#]|$)/i)?.[1] &&
       // Special prefixes (/__vue-router/auto-routes, /@vite-plugin-layouts/, etc)
-      !/^\/(?:__|@).*/.test(req.url!)
+      !/^\/(?:__|@)/.test(req.url!)
     ) {
       nitroDevMiddleware(req, res, next);
     } else {
