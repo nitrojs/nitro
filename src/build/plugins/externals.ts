@@ -1,35 +1,27 @@
 import type { Plugin } from "rollup";
 import { pathToFileURL } from "node:url";
 import { isAbsolute } from "pathe";
+import { escapeRegExp } from "../../utils/regex.ts";
 
 export type ExternalsOptions = {
-  include?: FilterMatcher[];
-  exclude?: FilterMatcher[];
+  noExternal?: (string | RegExp)[];
 };
 
-const NO_EXTERNAL_RE = /^(?:[\0#~.]|[a-z0-9]{2,}:)|\?/;
-
 export function externals(opts: ExternalsOptions): Plugin {
-  const exclude = createFilter(opts?.exclude || []);
+  const noExternal: RegExp[] = [
+    /^(?:[\0#~.]|[a-z0-9]{2,}:)|\?/,
+    ...(opts?.noExternal || []).map((i) => toRegexFilter(i)),
+  ];
+
   return {
     name: "nitro:externals",
     resolveId: {
       order: "pre",
-      filter: { id: { exclude: NO_EXTERNAL_RE } },
+      filter: { id: { exclude: noExternal } },
       async handler(id, importer, rOpts) {
-        if (exclude(id)) {
-          return null;
-        }
         const resolved = await this.resolve(id, importer, rOpts);
-        if (
-          !resolved?.id ||
-          NO_EXTERNAL_RE.test(resolved.id) ||
-          !filter(resolved.id)
-        ) {
+        if (!resolved?.id || noExternal.some((p) => p.test(resolved.id))) {
           return resolved;
-        }
-        if (id.includes("test")) {
-          console.log(">", id);
         }
         return {
           external: true,
@@ -42,26 +34,12 @@ export function externals(opts: ExternalsOptions): Plugin {
   };
 }
 
-// --- helper functions for filter matching ---
-
-type FilterFunction = (id: string) => boolean;
-type FilterMatcher = string | RegExp | FilterFunction;
-
-function createFilter(matchers: FilterMatcher[] = []) {
-  const matcherFns = matchers
-    .map((m) => toMatcher(m))
-    .filter((m): m is FilterFunction => typeof m === "function");
-  return (id: string) => matcherFns.some((fn) => fn(id));
-}
-
-function toMatcher(
-  filter: string | RegExp | ((id: string) => boolean)
-): FilterFunction | undefined {
-  if (typeof filter === "string") {
-    return Object.assign((id: string) => id.startsWith(filter), { filter });
-  } else if (filter instanceof RegExp) {
-    return Object.assign((id: string) => filter.test(id), { filter });
-  } else if (typeof filter === "function") {
-    return filter;
+function toRegexFilter(input: string | RegExp): RegExp {
+  if (input instanceof RegExp) {
+    return input;
   }
+  if (typeof input === "string") {
+    return new RegExp("^" + escapeRegExp(input));
+  }
+  throw new TypeError("Expected a string or RegExp", { cause: input });
 }

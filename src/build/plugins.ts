@@ -128,7 +128,7 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   // WIP: Opt-in tracing for prod
   // WIP: Simpler externals for dev
   if (nitro.options.dev) {
-    plugins.push(externals({ exclude: base.noExternal }));
+    plugins.push(externals({ noExternal: base.noExternal }));
   }
 
   //   plugins.push(

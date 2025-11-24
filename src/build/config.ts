@@ -2,6 +2,7 @@ import type { Nitro, NitroImportMeta } from "nitro/types";
 import { dirname } from "pathe";
 import { defineEnv } from "unenv";
 import { runtimeDependencies, presetsDir, runtimeDir } from "nitro/meta";
+import { escapeRegExp } from "../utils/regex.ts";
 
 export type BaseBuildConfig = ReturnType<typeof baseBuildConfig>;
 
@@ -36,9 +37,10 @@ export function baseBuildConfig(nitro: Nitro) {
   const noExternal: (string | RegExp)[] = [
     /^(?:[\0#~.]|virtual:)/,
     /^nitro$/,
-    /nitro\/(dist|app|~internal)/,
+    /nitro\/(dist|app|cache|storage|context|database|task|runtime-config|~internal)/,
     runtimeDir,
     presetsDir,
+    new RegExp(escapeRegExp(nitro.options.rootDir) + "(?!.*node_modules)"),
     nitro.options.buildDir,
     ...nitro.options.scanDirs,
     dirname(nitro.options.entry),
