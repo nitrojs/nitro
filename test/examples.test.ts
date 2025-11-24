@@ -14,7 +14,7 @@ const { createServer, createBuilder } = useRolldown
   ? await import("rolldown-vite")
   : await import("vite");
 
-const skip = new Set<string>(["websocket"]);
+const skip = new Set<string>(["websocket", "vite-devtools"]);
 
 const skipDev = new Set<string>(["auto-imports", "cached-handler"]);
 
