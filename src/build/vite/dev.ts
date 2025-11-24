@@ -247,11 +247,9 @@ export async function configureViteDevServer(
   // https://github.com/vitejs/vite/pull/20866
   server.middlewares.use(function nitroDevMiddlewarePre(req, res, next) {
     const fetchDest = req.headers["sec-fetch-dest"];
-    if (fetchDest) {
-      res.setHeader("vary", "sec-fetch-dest");
-    }
+    res.setHeader("vary", "sec-fetch-dest");
     if (
-      // Originating from browser tab or no fetch dest (curl, fetch, etc)
+      // Originating from browser tab or no fetch dest (curl, fetch, etc) and not script, style, image etc
       (!fetchDest || /^(document|iframe|frame|empty)$/.test(fetchDest)) &&
       // No file extension (/src/index.ts)
       !req.url!.match(/\.([a-z0-9]+)(?:[?#]|$)/i)?.[1] &&
