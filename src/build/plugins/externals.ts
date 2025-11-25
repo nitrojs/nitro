@@ -34,10 +34,21 @@ export function externals(opts: ExternalsOptions): Plugin {
         }
 
         // Resolve
-        const resolved = await this.resolve(id, importer, rOpts);
+        let resolved = await this.resolve(id, importer, rOpts);
+
+        // Keep CommonJS external imports as ESM externals (rollup quirk) unless explicitly marked as no external to bundle
+        const cjsResolved = resolved?.meta?.commonjs
+          ?.resolved as typeof resolved;
+        if (cjsResolved) {
+          if (noExternal.some((p) => p.test(cjsResolved.id))) {
+            // return null;
+            return resolved;
+          }
+          resolved = cjsResolved as typeof resolved;
+        }
 
         // Check if not resolved or explicitly marked as no external
-        if (!resolved?.id || noExternal.some((p) => p.test(resolved.id))) {
+        if (!resolved?.id || noExternal.some((p) => p.test(resolved!.id))) {
           return resolved;
         }
 

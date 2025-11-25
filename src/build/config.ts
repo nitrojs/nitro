@@ -38,7 +38,6 @@ export function baseBuildConfig(nitro: Nitro) {
     /^(?:[\0#~.]|virtual:)/,
     /^nitro$/,
     /nitro\/(dist|app|cache|storage|context|database|task|runtime-config|~internal)/,
-    /node_modules\/(source-map)/,
     runtimeDir,
     presetsDir,
     new RegExp(escapeRegExp(nitro.options.rootDir) + "(?!.*node_modules)"),
