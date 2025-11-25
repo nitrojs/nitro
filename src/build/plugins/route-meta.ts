@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { transform } from "oxc-transform";
+import { transformSync } from "oxc-transform";
 import type { Expression, Literal } from "estree";
 import type { Nitro, NitroEventHandler } from "nitro/types";
 import type { Plugin } from "rollup";
@@ -39,7 +39,7 @@ export function routeMeta(nitro: Nitro) {
       let meta: NitroEventHandler["meta"] | null = null;
 
       try {
-        const jsCode = transform(id, code).code;
+        const jsCode = transformSync(id, code).code;
         const ast = this.parse(jsCode);
         for (const node of ast.body) {
           if (
