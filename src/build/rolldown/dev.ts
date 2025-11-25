@@ -90,6 +90,7 @@ export async function watchDev(nitro: Nitro, config: RolldownOptions) {
           break;
         }
         case "ERROR": {
+          nitro.logger.error(event.error);
           nitro.hooks.callHook("dev:error", event.error);
         }
       }

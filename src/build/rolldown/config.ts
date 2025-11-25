@@ -13,6 +13,7 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
   const tsc = nitro.options.typescript.tsConfig?.compilerOptions;
 
   let config = {
+    platform: nitro.options.node ? "node" : "neutral",
     cwd: nitro.options.rootDir,
     input: nitro.options.entry,
     external: [
