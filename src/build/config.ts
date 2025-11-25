@@ -41,7 +41,6 @@ export function baseBuildConfig(nitro: Nitro) {
     runtimeDir,
     presetsDir,
     new RegExp(escapeRegExp(nitro.options.rootDir) + "(?!.*node_modules)"),
-    nitro.options.buildDir,
     ...nitro.options.scanDirs,
     dirname(nitro.options.entry),
     ...(nitro.options.wasm === false ? [] : [/\.wasm$/]),
