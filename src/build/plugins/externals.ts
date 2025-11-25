@@ -1,11 +1,16 @@
 import type { Plugin } from "rollup";
 import { pathToFileURL } from "node:url";
 import { isAbsolute } from "pathe";
+import { resolveModulePath } from "exsolve";
+import { builtinModules } from "node:module";
 import { escapeRegExp } from "../../utils/regex.ts";
 
 export type ExternalsOptions = {
+  rootDir: string;
   noExternal?: (string | RegExp)[];
 };
+
+const PLUGIN_NAME = "nitro:externals";
 
 export function externals(opts: ExternalsOptions): Plugin {
   const noExternal: RegExp[] = [
@@ -14,20 +19,49 @@ export function externals(opts: ExternalsOptions): Plugin {
   ];
 
   return {
-    name: "nitro:externals",
+    name: PLUGIN_NAME,
     resolveId: {
       order: "pre",
       filter: { id: { exclude: noExternal } },
       async handler(id, importer, rOpts) {
+        // Externalize built-in modules with normalized prefix
+        if (builtinModules.includes(id)) {
+          return {
+            resolvedBy: PLUGIN_NAME,
+            external: true,
+            id: id.includes(":") ? id : `node:${id}`,
+          };
+        }
+
+        // Resolve
         const resolved = await this.resolve(id, importer, rOpts);
+
+        // Check if not resolved or explicitly marked as no external
         if (!resolved?.id || noExternal.some((p) => p.test(resolved.id))) {
           return resolved;
         }
+
+        // Resolve to absolute path (rollup quirk)
+        let externalId = resolved.id;
+        if (!isAbsolute(externalId)) {
+          externalId =
+            resolveModulePath(externalId, {
+              try: true,
+              from: importer || opts.rootDir,
+            }) || externalId;
+        }
+
+        // Convert to file URL if absolute path for windows compatibility
+        if (isAbsolute(externalId)) {
+          externalId = pathToFileURL(externalId).href;
+        }
+
+        // Mark as external
         return {
+          ...resolved,
+          resolvedBy: PLUGIN_NAME,
           external: true,
-          id: isAbsolute(resolved.id)
-            ? pathToFileURL(resolved.id).href
-            : resolved.id,
+          id: externalId,
         };
       },
     },
