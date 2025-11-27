@@ -1,7 +1,7 @@
 import type { Plugin } from "rollup";
 import { escapeRegExp } from "../../utils/regex.ts";
 
-const PREFIX = "\0virtual:";
+const PREFIX = "\0nitro:virtual:";
 
 export type VirtualModule = {
   id: string;
@@ -28,11 +28,9 @@ export function virtual(input: VirtualModule[]): Plugin {
     resolveId: {
       order: "pre",
       filter: {
-        id: {
-          include: new RegExp(
-            `^(${[...modules.keys()].map((id) => escapeRegExp(id)).join("|")})$`
-          ),
-        },
+        id: new RegExp(
+          `^(${[...modules.keys()].map((id) => escapeRegExp(id)).join("|")})$`
+        ),
       },
       handler: (id) => {
         const mod = modules.get(id);

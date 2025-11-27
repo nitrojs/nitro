@@ -1,34 +1,34 @@
-import { minify, type MinifyOptions } from "oxc-minify";
-import { transform } from "oxc-transform";
+import type { MinifyOptions } from "oxc-minify";
 import type { OXCOptions } from "nitro/types";
 import type { Plugin } from "rollup";
 
-export function oxc(
+import { transform } from "oxc-transform";
+
+export async function oxc(
   options: OXCOptions & { sourcemap: boolean; minify: boolean | MinifyOptions }
-): Plugin {
-  const filter = (id: string) =>
-    !/node_modules/.test(id) && /\.[mj]?[jt]sx?$/.test(id);
+): Promise<Plugin> {
+  const minify = options.minify
+    ? await import("oxc-minify").then((m) => m.minify)
+    : null;
 
   return {
     name: "nitro:oxc",
-    async transform(code, id) {
-      if (!filter(id)) {
-        return null;
-      }
-      return transform(id, code, {
-        sourcemap: options.sourcemap,
-        ...options.transform,
-      });
-    },
-
-    async renderChunk(code, chunk) {
-      if (options.minify) {
-        return minify(chunk.fileName, code, {
+    transform: {
+      filter: {
+        id: /^(?!.*\/node_modules\/).*\.[mj]?[jt]sx?$/,
+      },
+      async handler(code, id) {
+        return transform(id, code, {
           sourcemap: options.sourcemap,
-          ...(typeof options.minify === "object" ? options.minify : {}),
+          ...options.transform,
         });
-      }
-      return null;
+      },
+    },
+    async renderChunk(code, chunk) {
+      return minify?.(chunk.fileName, code, {
+        sourcemap: options.sourcemap,
+        ...(typeof options.minify === "object" ? options.minify : {}),
+      });
     },
   };
 }
