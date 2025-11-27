@@ -108,7 +108,7 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
     )
   );
 
-  // User virtuals
+  // User virtual templates
   plugins.push(virtual(nitro.options.virtual, nitro.vfs));
 
   // Renderer template
@@ -116,7 +116,7 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
     plugins.push(rendererTemplate(nitro));
   }
 
-  // Replace Plugin
+  // Replace
   plugins.push(
     (replace as unknown as typeof replace.default)({
       preventAssignment: true,
@@ -124,34 +124,20 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
     })
   );
 
-  // Externals Plugin
-  // WIP: Opt-in tracing for prod
-  // WIP: Simpler externals for dev
-  if (nitro.options.dev) {
+  // Externals (require Node.js compatible resolution)
+  if (nitro.options.node && nitro.options.noExternals !== true) {
     plugins.push(
       externals({
         rootDir: nitro.options.rootDir,
-        noExternal: base.noExternal,
+        conditions: nitro.options.exportConditions || ["default"],
+        exclude: [...base.noExternal],
+        include: nitro.options.dev ? undefined : [],
+        trace: nitro.options.dev
+          ? false
+          : { outDir: nitro.options.output.serverDir },
       })
     );
   }
-
-  //   plugins.push(
-  //   rollupNodeFileTrace({
-  //     outDir: nitro.options.output.serverDir,
-  //     moduleDirectories: nitro.options.nodeModulesDirs,
-  //     external: nitro.options.nodeModulesDirs,
-  //     noTrace: nitro.options.dev,
-  //     inline: [...base.noExternal],
-  //     traceOptions: {
-  //       base: "/",
-  //       exportsOnly: true,
-  //       processCwd: nitro.options.rootDir,
-  //     },
-  //     exportConditions: nitro.options.exportConditions as string[],
-  //     writePackageJson: true,
-  //   })
-  // );
 
   // Minify
   if (

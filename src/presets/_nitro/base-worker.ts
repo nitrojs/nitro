@@ -5,6 +5,7 @@ const baseWorker = defineNitroPreset(
     entry: null as any, // Abstract
     node: false,
     minify: true,
+    noExternals: true,
     rollupConfig: {
       output: {
         format: "iife",

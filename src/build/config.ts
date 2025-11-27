@@ -40,6 +40,7 @@ export function baseBuildConfig(nitro: Nitro) {
     /nitro\/(dist|app|cache|storage|context|database|task|runtime-config|~internal)/,
     runtimeDir,
     presetsDir,
+    !nitro.options.dev && nitro.options.buildDir,
     new RegExp(escapeRegExp(nitro.options.rootDir) + "(?!.*node_modules)"),
     ...nitro.options.scanDirs,
     dirname(nitro.options.entry),

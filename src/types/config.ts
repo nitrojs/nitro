@@ -241,6 +241,7 @@ export interface NitroOptions extends PresetOptions {
   replace: Record<string, string | ((id: string) => string)>;
   commonJS?: RollupCommonJSOptions;
   exportConditions?: string[];
+  noExternals?: boolean;
 
   // Advanced
   typescript: {

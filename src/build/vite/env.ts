@@ -3,7 +3,7 @@ import type { NitroPluginContext, ServiceConfig } from "./types.ts";
 
 import { NodeDevWorker } from "../../dev/worker.ts";
 import { join, resolve } from "node:path";
-import { runtimeDependencies, runtimeDir } from "nitro/meta";
+import { runtimeDir } from "nitro/meta";
 import { resolveModulePath } from "exsolve";
 import { createFetchableDevEnvironment } from "./dev.ts";
 import { isAbsolute } from "pathe";
@@ -38,12 +38,7 @@ export function createNitroEnvironment(
     },
     resolve: {
       noExternal: ctx.nitro!.options.dev
-        ? [
-            ...ctx.rollupConfig!.base.noExternal.filter(
-              (i) => typeof i === "string" || i instanceof RegExp
-            ),
-            ...runtimeDependencies,
-          ]
+        ? ctx.rollupConfig!.base.noExternal
         : true, // production build is standalone
       conditions: ctx.nitro!.options.exportConditions,
       externalConditions: ctx.nitro!.options.exportConditions,
@@ -75,6 +70,9 @@ export function createServiceEnvironment(
       emptyOutDir: true,
     },
     resolve: {
+      noExternal: ctx.nitro!.options.dev
+        ? ctx.rollupConfig!.base.noExternal
+        : true, // production build is standalone
       conditions: ctx.nitro!.options.exportConditions,
       externalConditions: ctx.nitro!.options.exportConditions,
     },
