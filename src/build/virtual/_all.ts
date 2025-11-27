@@ -7,7 +7,7 @@ import plugins from "./plugins.ts";
 import polyfills from "./polyfills.ts";
 import publicAssets from "./public-assets.ts";
 import rendererTemplate from "./renderer-template.ts";
-import routingMeta from "./routing.ts";
+import routingMeta from "./routing-meta.ts";
 import routing from "./routing.ts";
 import runtimeConfig from "./runtime-config.ts";
 import serverAssets from "./server-assets.ts";
