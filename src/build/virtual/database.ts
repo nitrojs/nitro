@@ -36,7 +36,7 @@ ${connectorsNames
 
 export const connectionConfigs = {
   ${Object.entries(dbConfigs || {})
-    .filter(([, config]) => !!config)
+    .filter(([, config]) => !!config?.connector)
     .map(
       ([name, { connector, options }]) => /* js */ `${name}: {
           connector: ${camelCase(connector)}Connector,
