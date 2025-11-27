@@ -25,7 +25,7 @@ export async function createNitro(
   const nitro: Nitro = {
     options,
     hooks: new Hookable(),
-    vfs: {},
+    vfs: new Map(),
     routing: {} as any,
     logger: consola.withTag("nitro"),
     scannedHandlers: [],
