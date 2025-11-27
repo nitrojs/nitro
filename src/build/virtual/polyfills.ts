@@ -2,7 +2,7 @@ import type { Nitro } from "nitro/types";
 
 export default function polyfills(_nitro: Nitro, polyfills: string[]) {
   return {
-    id: "#nitro-internal-pollyfills",
+    id: "#nitro-internal-polyfills",
     moduleSideEffects: true,
     template: () => {
       return (

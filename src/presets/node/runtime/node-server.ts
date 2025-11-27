@@ -1,4 +1,4 @@
-import "#nitro-internal-pollyfills";
+import "#nitro-internal-polyfills";
 import { NodeRequest, serve } from "srvx/node";
 import wsAdapter from "crossws/adapters/node";
 

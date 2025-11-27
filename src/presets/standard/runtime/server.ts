@@ -1,4 +1,4 @@
-import "#nitro-internal-pollyfills";
+import "#nitro-internal-polyfills";
 import { useNitroApp } from "nitro/app";
 
 const nitroApp = useNitroApp();

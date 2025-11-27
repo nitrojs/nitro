@@ -1,4 +1,4 @@
-import "#nitro-internal-pollyfills";
+import "#nitro-internal-polyfills";
 import wsAdapter from "crossws/adapters/node";
 
 import { useNitroApp } from "nitro/app";

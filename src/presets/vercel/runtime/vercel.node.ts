@@ -1,4 +1,4 @@
-import "#nitro-internal-pollyfills";
+import "#nitro-internal-polyfills";
 import type { NodeServerRequest, NodeServerResponse } from "srvx";
 import { toNodeHandler } from "srvx/node";
 import { useNitroApp } from "nitro/app";
