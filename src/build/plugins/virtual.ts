@@ -5,13 +5,11 @@ const PREFIX = "\0virtual:";
 
 export type VirtualModule = {
   id: string;
+  moduleSideEffects?: boolean;
   template: string | (() => string | Promise<string>);
 };
 
-export function virtual(
-  input: VirtualModule[],
-  opts?: { moduleSideEffects?: boolean }
-): Plugin {
+export function virtual(input: VirtualModule[]): Plugin {
   const modules = new Map<
     string,
     { module: VirtualModule; render: () => string | Promise<string> }
@@ -37,9 +35,13 @@ export function virtual(
         },
       },
       handler: (id) => {
+        const mod = modules.get(id);
+        if (!mod) {
+          return null;
+        }
         return {
           id: PREFIX + id,
-          moduleSideEffects: opts?.moduleSideEffects || false,
+          moduleSideEffects: mod.module.moduleSideEffects ?? false,
         };
       },
     },
