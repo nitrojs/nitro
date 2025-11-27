@@ -15,13 +15,13 @@ export default function storage(nitro: Nitro) {
         : nitro.options.storage;
 
       for (const path in storageMounts) {
-        const mount = storageMounts[path];
+        const { driver: driverName, ...driverOpts } = storageMounts[path];
         mounts.push({
           path,
           driver:
-            builtinDrivers[mount.driver as keyof typeof builtinDrivers] ||
-            mount.driver,
-          opts: mount,
+            builtinDrivers[driverName as keyof typeof builtinDrivers] ||
+            driverName,
+          opts: driverOpts,
         });
       }
 
