@@ -5,9 +5,9 @@ import type { Plugin } from "rollup";
 import { transform } from "oxc-transform";
 import { minify } from "oxc-minify";
 
-export async function oxc(
+export function oxc(
   options: OXCOptions & { sourcemap: boolean; minify: boolean | MinifyOptions }
-): Promise<Plugin> {
+): Plugin {
   return {
     name: "nitro:oxc",
     transform: {
