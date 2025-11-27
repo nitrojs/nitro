@@ -11,7 +11,6 @@ import { loadOptions } from "./config/loader.ts";
 import { updateNitroConfig } from "./config/update.ts";
 import { installModules } from "./module.ts";
 import { scanAndSyncOptions, scanHandlers } from "./scan.ts";
-import { addNitroTasksVirtualFile } from "./task.ts";
 import { initNitroRouting } from "./routing.ts";
 import { registerNitroInstance } from "./global.ts";
 
@@ -61,9 +60,6 @@ export async function createNitro(
 
   // Hooks
   nitro.hooks.addHooks(nitro.options.hooks);
-
-  // Tasks
-  addNitroTasksVirtualFile(nitro);
 
   // Scan and install modules
   await installModules(nitro);

@@ -1,70 +1,64 @@
-import type { RollupVirtualOptions, VirtualModule } from "nitro/types";
-import { dirname, resolve } from "pathe";
 import type { Plugin } from "rollup";
-
-// Based on https://github.com/rollup/plugins/blob/master/packages/virtual/src/index.ts
+import { escapeRegExp } from "../../utils/regex.ts";
 
 const PREFIX = "\0virtual:";
 
+export type VirtualModule = {
+  id: string;
+  template: string | (() => string | Promise<string>);
+};
+
 export function virtual(
-  modules: RollupVirtualOptions,
-  cache: Record<string, VirtualModule> = {},
+  input: VirtualModule[],
   opts?: { moduleSideEffects?: boolean }
 ): Plugin {
-  const _modules = new Map<string, VirtualModule>();
-
-  for (const [id, mod] of Object.entries(modules)) {
-    cache[id] = mod;
-    _modules.set(id, mod);
-    _modules.set(resolve(id), mod);
+  const modules = new Map<
+    string,
+    { module: VirtualModule; render: () => string | Promise<string> }
+  >();
+  for (const mod of input) {
+    const render = () =>
+      typeof mod.template === "function" ? mod.template() : mod.template;
+    modules.set(mod.id, { module: mod, render });
   }
 
   return {
-    name: "virtual",
-
-    resolveId(id, importer) {
-      if (id in modules) {
-        return { id: PREFIX + id, ...opts };
-      }
-
-      if (importer) {
-        const importerNoPrefix = importer.startsWith(PREFIX)
-          ? importer.slice(PREFIX.length)
-          : importer;
-        const resolved = resolve(dirname(importerNoPrefix), id);
-        if (_modules.has(resolved)) {
-          return PREFIX + resolved;
-        }
-      }
-
-      return null;
+    name: "nitro:virtual",
+    api: {
+      modules,
     },
-
-    async load(id) {
-      if (!id.startsWith(PREFIX)) {
-        return null;
-      }
-
-      const idNoPrefix = id.slice(PREFIX.length);
-      if (!_modules.has(idNoPrefix)) {
-        return null;
-      }
-
-      let m = _modules.get(idNoPrefix);
-      if (typeof m === "function") {
-        m = await m();
-      }
-
-      if (!m) {
-        return null;
-      }
-
-      cache[id.replace(PREFIX, "")] = m;
-
-      return {
-        code: m as string,
-        map: null,
-      };
+    resolveId: {
+      order: "pre",
+      filter: {
+        id: {
+          include: new RegExp(
+            `^(${[...modules.keys()].map((id) => escapeRegExp(id)).join("|")})$`
+          ),
+        },
+      },
+      handler: (id) => {
+        return {
+          id: PREFIX + id,
+          moduleSideEffects: opts?.moduleSideEffects || false,
+        };
+      },
+    },
+    load: {
+      order: "pre",
+      filter: {
+        id: new RegExp(`^${escapeRegExp(PREFIX)}`),
+      },
+      handler: async (id) => {
+        const idNoPrefix = id.slice(PREFIX.length);
+        const mod = modules.get(idNoPrefix);
+        if (!mod) {
+          throw new Error(`Virtual module ${idNoPrefix} not found.`);
+        }
+        return {
+          code: await mod.render(),
+          map: null,
+        };
+      },
     },
   };
 }

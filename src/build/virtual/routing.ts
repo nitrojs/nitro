@@ -1,5 +1,4 @@
 import type { Nitro, NitroEventHandler, NitroRouteRules } from "nitro/types";
-import { virtual } from "./virtual.ts";
 
 export const RuntimeRouteRules = [
   "headers",
@@ -8,25 +7,22 @@ export const RuntimeRouteRules = [
   "cache",
 ] as string[];
 
-export function routing(nitro: Nitro) {
-  return virtual(
-    {
-      // --- routing (routes, routeRules and middleware) ---
-      "#nitro-internal-virtual/routing": () => {
-        const allHandlers = uniqueBy(
-          [
-            ...Object.values(nitro.routing.routes.routes).flatMap(
-              (h) => h.data
-            ),
-            ...Object.values(nitro.routing.routedMiddleware.routes).map(
-              (h) => h.data
-            ),
-            ...nitro.routing.globalMiddleware,
-          ],
-          "_importHash"
-        );
+export default function routing(nitro: Nitro) {
+  return {
+    id: "#nitro-internal-virtual/routing",
+    template: () => {
+      const allHandlers = uniqueBy(
+        [
+          ...Object.values(nitro.routing.routes.routes).flatMap((h) => h.data),
+          ...Object.values(nitro.routing.routedMiddleware.routes).map(
+            (h) => h.data
+          ),
+          ...nitro.routing.globalMiddleware,
+        ],
+        "_importHash"
+      );
 
-        return /* js */ `
+      return /* js */ `
 import * as __routeRules__ from "nitro/~internal/runtime/route-rules";
 import * as srvxNode from "srvx/node"
 import * as h3 from "h3";
@@ -60,35 +56,8 @@ export const globalMiddleware = [
   ${nitro.routing.globalMiddleware.map((h) => (h.lazy ? h._importHash : `h3.toEventHandler(${h._importHash})`)).join(",")}
 ].filter(Boolean);
   `;
-      },
-      // --- routing-meta ---
-      "#nitro-internal-virtual/routing-meta": () => {
-        const routeHandlers = uniqueBy(
-          Object.values(nitro.routing.routes.routes).flatMap((h) => h.data),
-          "_importHash"
-        );
-
-        return /* js */ `
-  ${routeHandlers
-    .map(
-      (h) => /* js */ `import ${h._importHash}Meta from "${h.handler}?meta";`
-    )
-    .join("\n")}
-export const handlersMeta = [
-  ${routeHandlers
-    .map(
-      (h) =>
-        /* js */ `{ route: ${JSON.stringify(h.route)}, method: ${JSON.stringify(
-          h.method?.toLowerCase()
-        )}, meta: ${h._importHash}Meta }`
-    )
-    .join(",\n")}
-  ];
-        `.trim();
-      },
     },
-    nitro.vfs
-  );
+  };
 }
 
 function uniqueBy<T>(arr: T[], key: keyof T): T[] {
