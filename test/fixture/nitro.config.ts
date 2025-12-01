@@ -51,6 +51,7 @@ export default defineConfig({
       ignorePath: true,
     },
   },
+  traceDeps: ["@fixture"],
   alias: {
     "#fixture-nitro-utils-extra-absolute": fileURLToPath(
       new URL("node_modules/@fixture/nitro-utils/extra2.mjs", import.meta.url)

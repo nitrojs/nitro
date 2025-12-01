@@ -242,6 +242,7 @@ export interface NitroOptions extends PresetOptions {
   commonJS?: RollupCommonJSOptions;
   exportConditions?: string[];
   noExternals?: boolean | (string | RegExp)[];
+  traceDeps?: (string | RegExp)[];
 
   // Advanced
   typescript: {

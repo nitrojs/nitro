@@ -1,17 +1,18 @@
 import type { Plugin } from "rollup";
+import type { PackageJson } from "pkg-types";
 import type { ExternalsTraceOptions } from "nf3";
+
 import { pathToFileURL } from "node:url";
 import { isAbsolute, join } from "pathe";
 import { resolveModulePath } from "exsolve";
-import { escapeRegExp } from "../../utils/regex.ts";
+import { toRegExp } from "../../utils/regex.ts";
 import { builtinModules, createRequire } from "node:module";
-import type { PackageJson } from "pkg-types";
 
 export type ExternalsOptions = {
   rootDir: string;
   conditions: string[];
-  exclude?: RegExp[];
-  include?: RegExp[];
+  exclude?: (string | RegExp)[];
+  include?: (string | RegExp)[];
   trace?:
     | false
     | Omit<
@@ -23,14 +24,14 @@ export type ExternalsOptions = {
 const PLUGIN_NAME = "nitro:externals";
 
 export function externals(opts: ExternalsOptions): Plugin {
+  const include: RegExp[] | undefined = opts?.include
+    ? opts.include.map((p) => toRegExp(p))
+    : undefined;
+
   const exclude: RegExp[] = [
     /^(?:[\0#~.]|[a-z0-9]{2,}:)|\?/,
-    ...(opts?.exclude || []),
+    ...(opts?.exclude || []).map((p) => toRegExp(p)),
   ];
-
-  const include: RegExp[] | undefined = opts?.include
-    ? opts?.include || []
-    : undefined;
 
   const filter = (id: string) => {
     // Most match at least one include (if specified)

@@ -33,8 +33,7 @@ describe("nitro:preset:node-middleware", async () => {
     expect(noncached2.headers.get("etag")).toBeNull();
   });
 
-  // TODO: Enable when explicit tracedDeps config added
-  it.todo("should not bundle externals", () => {
+  it("should trace externals", () => {
     const serverNodeModules = resolve(ctx.outDir, "server/node_modules");
     expect(
       existsSync(resolve(serverNodeModules, "@fixture/nitro-utils/extra.mjs"))
