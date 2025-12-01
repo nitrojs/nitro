@@ -24,30 +24,22 @@ export function createVFSHandler(nitro: Nitro) {
       });
     }
 
-    const vfsEntries = {
-      ...nitro.vfs,
-      ...nitro.options.virtual,
-    };
-
     const url = event.context.params?._ || "";
     const isJson =
       url.endsWith(".json") ||
       event.req.headers.get("accept")?.includes("application/json");
     const id = decodeURIComponent(url.replace(/^(\.json)?\/?/, "") || "");
 
-    if (id && !(id in vfsEntries)) {
+    if (id && !nitro.vfs.has(id)) {
       throw new HTTPError({ message: "File not found", status: 404 });
     }
 
-    let content = id ? vfsEntries[id] : undefined;
-    if (typeof content === "function") {
-      content = await content();
-    }
+    const content = id ? await nitro.vfs.get(id)?.render() : undefined;
 
     if (isJson) {
       return {
         rootDir: nitro.options.rootDir,
-        entries: Object.keys(vfsEntries).map((id) => ({
+        entries: [...nitro.vfs.keys()].map((id) => ({
           id,
           path: "/_vfs.json/" + encodeURIComponent(id),
         })),
@@ -61,7 +53,7 @@ export function createVFSHandler(nitro: Nitro) {
     }
 
     const directories: Record<string, any> = { [nitro.options.rootDir]: {} };
-    const fpaths = Object.keys(vfsEntries);
+    const fpaths = [...nitro.vfs.keys()];
 
     for (const item of fpaths) {
       const segments = item

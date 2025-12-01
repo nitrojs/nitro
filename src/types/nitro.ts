@@ -16,7 +16,7 @@ type MaybeArray<T> = T | T[];
 export interface Nitro {
   options: NitroOptions;
   scannedHandlers: NitroEventHandler[];
-  vfs: Record<string, string>;
+  vfs: Map<string, { render: () => string | Promise<string> }>;
   hooks: Hookable<NitroHooks>;
   unimport?: Unimport;
   logger: ConsolaInstance;

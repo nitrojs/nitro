@@ -1,4 +1,4 @@
-import "#nitro-internal-pollyfills";
+import "#nitro-internal-polyfills";
 import type * as CF from "@cloudflare/workers-types";
 import type { ExportedHandler } from "@cloudflare/workers-types";
 import type { ServerRequest } from "srvx";

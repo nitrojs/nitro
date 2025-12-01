@@ -1,4 +1,4 @@
-import "#nitro-internal-pollyfills";
+import "#nitro-internal-polyfills";
 import type { ServerRequest } from "srvx";
 import type { Deno as _Deno } from "@deno/types";
 import wsAdapter from "crossws/adapters/deno";

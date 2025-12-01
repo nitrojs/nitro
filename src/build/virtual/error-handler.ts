@@ -1,22 +1,21 @@
 import type { Nitro } from "nitro/types";
-import { virtual } from "./virtual.ts";
 import { runtimeDir } from "nitro/meta";
 import { join } from "pathe";
 
-export function errorHandler(nitro: Nitro) {
-  return virtual(
-    {
-      "#nitro-internal-virtual/error-handler": () => {
-        const errorHandlers = Array.isArray(nitro.options.errorHandler)
-          ? nitro.options.errorHandler
-          : [nitro.options.errorHandler];
+export default function errorHandler(nitro: Nitro) {
+  return {
+    id: "#nitro-internal-virtual/error-handler",
+    template: () => {
+      const errorHandlers = Array.isArray(nitro.options.errorHandler)
+        ? nitro.options.errorHandler
+        : [nitro.options.errorHandler];
 
-        const builtinHandler = join(
-          runtimeDir,
-          `internal/error/${nitro.options.dev ? "dev" : "prod"}`
-        );
+      const builtinHandler = join(
+        runtimeDir,
+        `internal/error/${nitro.options.dev ? "dev" : "prod"}`
+      );
 
-        return /* js */ `
+      return /* js */ `
 ${errorHandlers.map((h, i) => `import errorHandler$${i} from "${h}";`).join("\n")}
 
 const errorHandlers = [${errorHandlers.map((_, i) => `errorHandler$${i}`).join(", ")}];
@@ -38,8 +37,6 @@ export default async function(error, event) {
   // H3 will handle fallback
 }
 `;
-      },
     },
-    nitro.vfs
-  );
+  };
 }

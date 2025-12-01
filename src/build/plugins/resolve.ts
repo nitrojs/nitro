@@ -16,7 +16,7 @@ export function nitroResolveIds(): Plugin {
         // Resolve ids with a virtual template parent
         if (
           importer &&
-          importer.startsWith("\0virtual:#nitro-internal-virtual")
+          importer.startsWith("\0nitro:virtual:#nitro-internal-virtual")
         ) {
           return this.resolve(id, runtimeDir, { skipSelf: true });
         }

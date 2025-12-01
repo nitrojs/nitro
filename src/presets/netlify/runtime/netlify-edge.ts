@@ -1,4 +1,4 @@
-import "#nitro-internal-pollyfills";
+import "#nitro-internal-polyfills";
 import { useNitroApp } from "nitro/app";
 import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
 import type { Context } from "@netlify/edge-functions";
