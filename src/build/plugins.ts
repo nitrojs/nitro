@@ -63,7 +63,7 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
         rootDir: nitro.options.rootDir,
         conditions: nitro.options.exportConditions || ["default"],
         exclude: [...base.noExternal],
-        include: nitro.options.dev ? undefined : [],
+        include: nitro.options.dev ? undefined : nitro.options.traceDeps,
         trace: nitro.options.dev
           ? false
           : { outDir: nitro.options.output.serverDir },
