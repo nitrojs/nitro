@@ -1,7 +1,7 @@
 import { promises as fsp } from "node:fs";
-import { resolve } from "pathe";
-import { describe, expect, it } from "vitest";
-import { setupTest, startServer, testNitro } from "../tests";
+import { resolve, join, basename } from "pathe";
+import { describe, expect, it, afterAll } from "vitest";
+import { setupTest, startServer, testNitro, fixtureDir } from "../tests";
 
 describe("nitro:preset:vercel", async () => {
   const ctx = await setupTest("vercel");
@@ -113,40 +113,40 @@ describe("nitro:preset:vercel", async () => {
                 "handle": "filesystem",
               },
               {
-                "dest": "/rules/_/noncached/cached?url=$url",
-                "src": "/rules/_/noncached/cached",
+                "dest": "/rules/_/noncached/cached-isr?url=$url",
+                "src": "(?<url>/rules/_/noncached/cached)",
               },
               {
                 "dest": "/__fallback",
-                "src": "/rules/_/cached/noncached",
+                "src": "(?<url>/rules/_/cached/noncached)",
               },
               {
                 "dest": "/__fallback",
-                "src": "(?<url>/rules/_/noncached/.*)",
+                "src": "(?<url>/rules/_/noncached/(?:.*))",
               },
               {
-                "dest": "/__fallback--rules---cached?url=$url",
-                "src": "(?<url>/rules/_/cached/.*)",
+                "dest": "/rules/_/cached/[...]-isr?url=$url",
+                "src": "(?<url>/rules/_/cached/(?:.*))",
               },
               {
                 "dest": "/__fallback",
-                "src": "/rules/dynamic",
+                "src": "(?<url>/rules/dynamic)",
               },
               {
-                "dest": "/__fallback--rules-isr?url=$url",
-                "src": "(?<url>/rules/isr/.*)",
+                "dest": "/rules/isr/[...]-isr?url=$url",
+                "src": "(?<url>/rules/isr/(?:.*))",
               },
               {
-                "dest": "/__fallback--rules-isr-ttl?url=$url",
-                "src": "(?<url>/rules/isr-ttl/.*)",
+                "dest": "/rules/isr-ttl/[...]-isr?url=$url",
+                "src": "(?<url>/rules/isr-ttl/(?:.*))",
               },
               {
-                "dest": "/__fallback--rules-swr?url=$url",
-                "src": "(?<url>/rules/swr/.*)",
+                "dest": "/rules/swr/[...]-isr?url=$url",
+                "src": "(?<url>/rules/swr/(?:.*))",
               },
               {
-                "dest": "/__fallback--rules-swr-ttl?url=$url",
-                "src": "(?<url>/rules/swr-ttl/.*)",
+                "dest": "/rules/swr-ttl/[...]-isr?url=$url",
+                "src": "(?<url>/rules/swr-ttl/(?:.*))",
               },
               {
                 "dest": "/wasm/static-import",
@@ -171,6 +171,10 @@ describe("nitro:preset:vercel", async () => {
               {
                 "dest": "/route-group",
                 "src": "/route-group",
+              },
+              {
+                "dest": "/replace",
+                "src": "/replace",
               },
               {
                 "dest": "/raw",
@@ -450,15 +454,204 @@ describe("nitro:preset:vercel", async () => {
         const isrRouteConfig = await fsp.readFile(
           resolve(
             ctx.outDir,
-            "functions/__fallback--rules-isr.prerender-config.json"
+            "functions/rules/isr/[...]-isr.prerender-config.json"
           ),
           "utf8"
         );
         expect(JSON.parse(isrRouteConfig)).toMatchObject({
           expiration: false,
-          allowQuery: ["q", "url"],
+          allowQuery: ["q"],
         });
+      });
+
+      const walkDir = async (path: string): Promise<string[]> => {
+        const items: string[] = [];
+        const dirname = basename(path);
+        const entries = await fsp.readdir(path, { withFileTypes: true });
+        for (const entry of entries) {
+          if (entry.isFile()) {
+            items.push(`${dirname}/${entry.name}`);
+          } else if (entry.isSymbolicLink()) {
+            items.push(`${dirname}/${entry.name} (symlink)`);
+          } else if (/chunks|node_modules/.test(entry.name)) {
+            items.push(`${dirname}/${entry.name}`);
+          } else if (entry.isDirectory()) {
+            items.push(
+              ...(await walkDir(join(path, entry.name))).map(
+                (i) => `${dirname}/${i}`
+              )
+            );
+          }
+        }
+        items.sort();
+        return items;
+      };
+
+      it("should generated expected functions", async () => {
+        const functionsDir = resolve(ctx.outDir, "functions");
+        const functionsFiles = await walkDir(functionsDir);
+        expect(functionsFiles).toMatchInlineSnapshot(`
+          [
+            "functions/500.func (symlink)",
+            "functions/__fallback.func/.vc-config.json",
+            "functions/__fallback.func/chunks",
+            "functions/__fallback.func/index.mjs",
+            "functions/__fallback.func/index.mjs.map",
+            "functions/__fallback.func/node_modules",
+            "functions/__fallback.func/package.json",
+            "functions/__fallback.func/timing.js",
+            "functions/_openapi.json.func (symlink)",
+            "functions/_scalar.func (symlink)",
+            "functions/_swagger.func (symlink)",
+            "functions/api/cached.func (symlink)",
+            "functions/api/db.func (symlink)",
+            "functions/api/echo.func (symlink)",
+            "functions/api/error.func (symlink)",
+            "functions/api/errors.func (symlink)",
+            "functions/api/headers.func (symlink)",
+            "functions/api/hello.func (symlink)",
+            "functions/api/hello2.func (symlink)",
+            "functions/api/hey.func (symlink)",
+            "functions/api/import-meta.func (symlink)",
+            "functions/api/kebab.func (symlink)",
+            "functions/api/meta/test.func (symlink)",
+            "functions/api/methods.func (symlink)",
+            "functions/api/methods/default.func (symlink)",
+            "functions/api/methods/foo.get.func (symlink)",
+            "functions/api/methods/get.func (symlink)",
+            "functions/api/param/[test-id].func (symlink)",
+            "functions/api/serialized/date.func (symlink)",
+            "functions/api/serialized/error.func (symlink)",
+            "functions/api/serialized/function.func (symlink)",
+            "functions/api/serialized/map.func (symlink)",
+            "functions/api/serialized/null.func (symlink)",
+            "functions/api/serialized/set.func (symlink)",
+            "functions/api/serialized/tuple.func (symlink)",
+            "functions/api/serialized/void.func (symlink)",
+            "functions/api/storage/dev.func (symlink)",
+            "functions/api/storage/item.func (symlink)",
+            "functions/api/test/[-]/foo.func (symlink)",
+            "functions/api/typed/catchall/[slug]/[...another].func (symlink)",
+            "functions/api/typed/catchall/some/[...test].func (symlink)",
+            "functions/api/typed/todos/[...].func (symlink)",
+            "functions/api/typed/todos/[todoId]/comments/[...commentId].func (symlink)",
+            "functions/api/typed/user/[userId].func (symlink)",
+            "functions/api/typed/user/[userId]/[userExtends].func (symlink)",
+            "functions/api/typed/user/[userId]/post/[postId].func (symlink)",
+            "functions/api/typed/user/[userId]/post/firstPost.func (symlink)",
+            "functions/api/typed/user/john.func (symlink)",
+            "functions/api/typed/user/john/[johnExtends].func (symlink)",
+            "functions/api/typed/user/john/post/[postId].func (symlink)",
+            "functions/api/typed/user/john/post/coffee.func (symlink)",
+            "functions/api/upload.func (symlink)",
+            "functions/api/wildcard/[...param].func (symlink)",
+            "functions/assets/[id].func (symlink)",
+            "functions/assets/all.func (symlink)",
+            "functions/assets/md.func (symlink)",
+            "functions/config.func (symlink)",
+            "functions/context.func (symlink)",
+            "functions/env.func (symlink)",
+            "functions/error-stack.func (symlink)",
+            "functions/fetch.func (symlink)",
+            "functions/file.func (symlink)",
+            "functions/icon.png.func (symlink)",
+            "functions/imports.func (symlink)",
+            "functions/json-string.func (symlink)",
+            "functions/jsx.func (symlink)",
+            "functions/modules.func (symlink)",
+            "functions/node-compat.func (symlink)",
+            "functions/prerender-custom.html.func (symlink)",
+            "functions/prerender.func (symlink)",
+            "functions/raw.func (symlink)",
+            "functions/replace.func (symlink)",
+            "functions/route-group.func (symlink)",
+            "functions/rules/[...slug].func (symlink)",
+            "functions/rules/_/cached/[...]-isr.func (symlink)",
+            "functions/rules/_/cached/[...]-isr.prerender-config.json",
+            "functions/rules/_/noncached/cached-isr.func (symlink)",
+            "functions/rules/_/noncached/cached-isr.prerender-config.json",
+            "functions/rules/isr-ttl/[...]-isr.func (symlink)",
+            "functions/rules/isr-ttl/[...]-isr.prerender-config.json",
+            "functions/rules/isr/[...]-isr.func (symlink)",
+            "functions/rules/isr/[...]-isr.prerender-config.json",
+            "functions/rules/swr-ttl/[...]-isr.func (symlink)",
+            "functions/rules/swr-ttl/[...]-isr.prerender-config.json",
+            "functions/rules/swr/[...]-isr.func (symlink)",
+            "functions/rules/swr/[...]-isr.prerender-config.json",
+            "functions/static-flags.func (symlink)",
+            "functions/stream.func (symlink)",
+            "functions/tasks/[...name].func (symlink)",
+            "functions/wait-until.func (symlink)",
+            "functions/wasm/dynamic-import.func (symlink)",
+            "functions/wasm/static-import.func (symlink)",
+          ]
+        `);
       });
     }
   );
+});
+
+describe("nitro:preset:vercel:bun", async () => {
+  const ctx = await setupTest("vercel", {
+    config: {
+      preset: "vercel",
+      vercel: {
+        functions: {
+          runtime: "bun1.x",
+        },
+      },
+    },
+  });
+
+  it("should generate function config with bun runtime", async () => {
+    const config = await fsp
+      .readFile(
+        resolve(ctx.outDir, "functions/__fallback.func/.vc-config.json"),
+        "utf8"
+      )
+      .then((r) => JSON.parse(r));
+    expect(config).toMatchInlineSnapshot(`
+      {
+        "handler": "index.mjs",
+        "launcherType": "Nodejs",
+        "runtime": "bun1.x",
+        "shouldAddHelpers": false,
+        "supportsResponseStreaming": true,
+      }
+    `);
+  });
+});
+
+describe("nitro:preset:vercel:bun-verceljson", async () => {
+  const vercelJsonPath = join(fixtureDir, "vercel.json");
+  // Need to make sure vercel.json is created before setupTest is called
+  await fsp.writeFile(vercelJsonPath, JSON.stringify({ bunVersion: "1.x" }));
+
+  const ctx = await setupTest("vercel", {
+    config: {
+      preset: "vercel",
+    },
+  });
+
+  afterAll(async () => {
+    await fsp.unlink(vercelJsonPath).catch(() => {});
+  });
+
+  it("should detect bun runtime from vercel.json", async () => {
+    const config = await fsp
+      .readFile(
+        resolve(ctx.outDir, "functions/__fallback.func/.vc-config.json"),
+        "utf8"
+      )
+      .then((r) => JSON.parse(r));
+    expect(config).toMatchInlineSnapshot(`
+      {
+        "handler": "index.mjs",
+        "launcherType": "Nodejs",
+        "runtime": "bun1.x",
+        "shouldAddHelpers": false,
+        "supportsResponseStreaming": true,
+      }
+    `);
+  });
 });

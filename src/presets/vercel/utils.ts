@@ -1,20 +1,27 @@
 import fsp from "node:fs/promises";
 import { defu } from "defu";
 import { writeFile } from "nitropack/kit";
-import type { Nitro } from "nitropack/types";
+import type { Nitro, NitroRouteRules } from "nitropack/types";
 import { dirname, relative, resolve } from "pathe";
-import { joinURL, withoutLeadingSlash } from "ufo";
+import { joinURL, withLeadingSlash, withoutLeadingSlash } from "ufo";
 import type {
   PrerenderFunctionConfig,
   VercelBuildConfigV3,
   VercelServerlessFunctionConfig,
 } from "./types";
 import { isTest } from "std-env";
+import { createRouter as createRadixRouter, toRouteMatcher } from "radix3";
 
 // https://vercel.com/docs/build-output-api/configuration
 
 // https://vercel.com/docs/functions/runtimes/node-js/node-js-versions
 const SUPPORTED_NODE_VERSIONS = [18, 20, 22];
+
+const FALLBACK_ROUTE = "/__fallback";
+
+const ISR_SUFFIX = "-isr"; // Avoid using . as it can conflict with routing
+
+const SAFE_FS_CHAR_RE = /[^a-zA-Z0-9_.[\]/]/g;
 
 function getSystemNodeVersion() {
   const systemNodeVersion = Number.parseInt(
@@ -31,23 +38,38 @@ export async function generateFunctionFiles(nitro: Nitro) {
   const buildConfig = generateBuildConfig(nitro, o11Routes);
   await writeFile(buildConfigPath, JSON.stringify(buildConfig, null, 2));
 
-  const systemNodeVersion = getSystemNodeVersion();
-  const usedNodeVersion =
-    SUPPORTED_NODE_VERSIONS.find((version) => version >= systemNodeVersion) ??
-    SUPPORTED_NODE_VERSIONS.at(-1);
+  // Runtime
+  // 1. Respect explicit runtime from nitro config
+  let runtime: VercelServerlessFunctionConfig["runtime"] =
+    nitro.options.vercel?.functions?.runtime;
+  // 2. Read runtime from vercel.json if specified
+  if (!runtime) {
+    const vercelConfig = await readVercelConfig(nitro.options.rootDir);
+    // Use bun runtime if bunVersion is specified or bun used to build
+    if (vercelConfig.bunVersion || "Bun" in globalThis) {
+      runtime = `bun${vercelConfig.bunVersion || "1.x"}`;
+    } else {
+      // 3. Auto-detect runtime based on system Node.js version
+      const systemNodeVersion = getSystemNodeVersion();
+      const usedNodeVersion =
+        SUPPORTED_NODE_VERSIONS.find(
+          (version) => version >= systemNodeVersion
+        ) ?? SUPPORTED_NODE_VERSIONS.at(-1);
+      runtime = `nodejs${usedNodeVersion}.x`;
+    }
+  }
 
-  const runtimeVersion = `nodejs${usedNodeVersion}.x`;
   const functionConfigPath = resolve(
     nitro.options.output.serverDir,
     ".vc-config.json"
   );
   const functionConfig: VercelServerlessFunctionConfig = {
-    runtime: runtimeVersion,
+    runtime,
+    ...nitro.options.vercel?.functions,
     handler: "index.mjs",
     launcherType: "Nodejs",
     shouldAddHelpers: false,
     supportsResponseStreaming: true,
-    ...nitro.options.vercel?.functions,
   };
   await writeFile(functionConfigPath, JSON.stringify(functionConfig, null, 2));
 
@@ -57,34 +79,10 @@ export async function generateFunctionFiles(nitro: Nitro) {
       continue;
     }
 
-    // Normalize route rule
-    let isrConfig = value.isr;
-    if (typeof isrConfig === "number") {
-      isrConfig = { expiration: isrConfig };
-    } else if (isrConfig === true) {
-      isrConfig = { expiration: false };
-    } else {
-      isrConfig = { ...isrConfig };
-    }
-
-    // Generate prerender config
-    const prerenderConfig: PrerenderFunctionConfig = {
-      expiration: isrConfig.expiration ?? false,
-      bypassToken: nitro.options.vercel?.config?.bypassToken,
-      ...isrConfig,
-    };
-
-    // Allow query parameter for wildcard routes
-    if (key.includes("/**") /* wildcard */) {
-      isrConfig.allowQuery = isrConfig.allowQuery || [];
-      if (!isrConfig.allowQuery.includes("url")) {
-        isrConfig.allowQuery.push("url");
-      }
-    }
-
     const funcPrefix = resolve(
       nitro.options.output.serverDir,
-      ".." + generateEndpoint(key)
+      "..",
+      normalizeRouteDest(key) + ISR_SUFFIX
     );
     await fsp.mkdir(dirname(funcPrefix), { recursive: true });
     await fsp.symlink(
@@ -92,14 +90,27 @@ export async function generateFunctionFiles(nitro: Nitro) {
       funcPrefix + ".func",
       "junction"
     );
-    await writeFile(
+    await writePrerenderConfig(
       funcPrefix + ".prerender-config.json",
-      JSON.stringify(prerenderConfig, null, 2)
+      value.isr,
+      nitro.options.vercel?.config?.bypassToken
     );
   }
 
   // Write observability routes
+  if (o11Routes.length === 0) {
+    return;
+  }
+  const _routeRulesMatcher = toRouteMatcher(
+    createRadixRouter({ routes: nitro.options.routeRules })
+  );
+  const _getRouteRules = (path: string) =>
+    defu({}, ..._routeRulesMatcher.matchAll(path).reverse()) as NitroRouteRules;
   for (const route of o11Routes) {
+    const routeRules = _getRouteRules(route.src);
+    if (routeRules.isr) {
+      continue; // #3563
+    }
     const funcPrefix = resolve(
       nitro.options.output.serverDir,
       "..",
@@ -198,42 +209,41 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
 
   config.routes!.push(
     // ISR rules
+    // ...If we are using an ISR function for /, then we need to write this explicitly
+    ...(nitro.options.routeRules["/"]?.isr
+      ? [
+          {
+            src: "(?<url>/)",
+            dest: `/index${ISR_SUFFIX}?url=$url`,
+          },
+        ]
+      : []),
+    // ...Add rest of the ISR routes
     ...rules
-      .filter(
-        ([key, value]) =>
-          // value.isr === false || (value.isr && key.includes("/**"))
-          value.isr !== undefined && key !== "/"
-      )
+      .filter(([key, value]) => value.isr !== undefined && key !== "/")
       .map(([key, value]) => {
-        const src = key.replace(/^(.*)\/\*\*/, "(?<url>$1/.*)");
+        const src = `(?<url>${normalizeRouteSrc(key)})`;
         if (value.isr === false) {
-          // we need to write a rule to avoid route being shadowed by another cache rule elsewhere
+          // We need to write a rule to avoid route being shadowed by another cache rule elsewhere
           return {
             src,
-            dest: "/__fallback",
+            dest: FALLBACK_ROUTE,
           };
         }
         return {
           src,
           dest:
             nitro.options.preset === "vercel-edge"
-              ? "/__fallback?url=$url"
-              : generateEndpoint(key) + "?url=$url",
+              ? FALLBACK_ROUTE + "?url=$url"
+              : withLeadingSlash(
+                  normalizeRouteDest(key) + ISR_SUFFIX + "?url=$url"
+                ),
         };
       }),
-    // If we are using an ISR function for /, then we need to write this explicitly
-    ...(nitro.options.routeRules["/"]?.isr
-      ? [
-          {
-            src: "(?<url>/)",
-            dest: "/__fallback-index?url=$url",
-          },
-        ]
-      : []),
     // Observability routes
     ...(o11Routes || []).map((route) => ({
       src: joinURL(nitro.options.baseURL, route.src),
-      dest: "/" + route.dest,
+      dest: withLeadingSlash(route.dest),
     })),
     // If we are using an ISR function as a fallback
     // then we do not need to output the below fallback route as well
@@ -242,22 +252,12 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
       : [
           {
             src: "/(.*)",
-            dest: "/__fallback",
+            dest: FALLBACK_ROUTE,
           },
         ])
   );
 
   return config;
-}
-
-function generateEndpoint(url: string) {
-  if (url === "/") {
-    return "/__fallback-index";
-  }
-  return url.includes("/**")
-    ? "/__fallback-" +
-        withoutLeadingSlash(url.replace(/\/\*\*.*/, "").replace(/[^a-z]/g, "-"))
-    : url;
 }
 
 export function deprecateSWR(nitro: Nitro) {
@@ -286,6 +286,23 @@ export function deprecateSWR(nitro: Nitro) {
       "Nitro now uses `isr` option to configure ISR behavior on Vercel. Backwards-compatible support for `static` and `swr` options within the Vercel Build Options API will be removed in the future versions. Set `future.nativeSWR: true` nitro config disable this warning."
     );
   }
+}
+
+// --- vercel.json ---
+
+// https://vercel.com/docs/project-configuration
+// https://openapi.vercel.sh/vercel.json
+export interface VercelConfig {
+  bunVersion?: string;
+}
+
+export async function readVercelConfig(rootDir: string): Promise<VercelConfig> {
+  const vercelConfigPath = resolve(rootDir, "vercel.json");
+  const vercelConfig = await fsp
+    .readFile(vercelConfigPath)
+    .then((config) => JSON.parse(config.toString()))
+    .catch(() => ({}));
+  return vercelConfig as VercelConfig;
 }
 
 function _hasProp(obj: any, prop: string) {
@@ -406,7 +423,31 @@ function normalizeRouteDest(route: string) {
         return segment;
       })
       // Only use filesystem-safe characters
-      .map((segment) => segment.replace(/[^a-zA-Z0-9_.[\]]/g, "-"))
+      .map((segment) => segment.replace(SAFE_FS_CHAR_RE, "-"))
       .join("/") || "index"
   );
+}
+
+async function writePrerenderConfig(
+  filename: string,
+  isrConfig: NitroRouteRules["isr"],
+  bypassToken?: string
+) {
+  // Normalize route rule
+  if (typeof isrConfig === "number") {
+    isrConfig = { expiration: isrConfig };
+  } else if (isrConfig === true) {
+    isrConfig = { expiration: false };
+  } else {
+    isrConfig = { ...isrConfig };
+  }
+
+  // Generate prerender config
+  const prerenderConfig: PrerenderFunctionConfig = {
+    expiration: isrConfig.expiration ?? false,
+    bypassToken,
+    ...isrConfig,
+  };
+
+  await writeFile(filename, JSON.stringify(prerenderConfig, null, 2));
 }
