@@ -5,7 +5,7 @@ import type { ExternalsTraceOptions } from "nf3";
 import { pathToFileURL } from "node:url";
 import { isAbsolute, join } from "pathe";
 import { resolveModulePath } from "exsolve";
-import { toRegExp } from "../../utils/regex.ts";
+import { escapeRegExp, toRegExp } from "../../utils/regex.ts";
 import { builtinModules, createRequire } from "node:module";
 
 export type ExternalsOptions = {
