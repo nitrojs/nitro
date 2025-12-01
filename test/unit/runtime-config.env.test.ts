@@ -4,9 +4,8 @@ vi.mock("#nitro-internal-virtual/runtime-config", () => ({
   runtimeConfig: {},
 }));
 
-const { applyEnv } = await import(
-  "../../src/runtime/internal/runtime-config.ts"
-);
+const { applyEnv } =
+  await import("../../src/runtime/internal/runtime-config.ts");
 
 describe("env utils", () => {
   describe("applyEnv", () => {
