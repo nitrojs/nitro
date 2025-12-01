@@ -298,6 +298,7 @@ export interface NitroConfig
         | "_config"
         | "_c12"
         | "serverEntry"
+        | "renderer"
       >
     >,
     C12InputConfig<NitroConfig> {
@@ -309,6 +310,7 @@ export interface NitroConfig
   unenv?: UnenvPreset | UnenvPreset[];
   serverDir?: boolean | "./" | "./server" | (string & {});
   serverEntry?: string | NitroOptions["serverEntry"];
+  renderer?: false | NitroOptions["renderer"];
 }
 
 // ------------------------------------------------------------

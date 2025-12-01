@@ -1,6 +1,6 @@
 import { prettyPath, resolveNitroPath } from "../../utils/fs.ts";
 import { pkgDir, runtimeDir } from "nitro/meta";
-import type { NitroOptions } from "nitro/types";
+import type { NitroOptions, NitroConfig } from "nitro/types";
 import { join, resolve } from "pathe";
 import { findWorkspaceDir } from "pkg-types";
 import { NitroDefaults } from "../defaults.ts";
@@ -133,47 +133,53 @@ export async function resolvePathOptions(options: NitroOptions) {
     }
   }
 
-  // Resolve renderer handler
-  if (options.renderer?.handler) {
-    options.renderer.handler = resolveModulePath(
-      resolveNitroPath(options.renderer?.handler, options),
-      {
-        from: [options.rootDir, ...options.scanDirs],
-        extensions: RESOLVE_EXTENSIONS,
-      }
-    );
-  }
-
-  // Resolve renderer template
-  if (options.renderer?.template) {
-    options.renderer.template = resolveModulePath(
-      resolveNitroPath(options.renderer?.template, options),
-      {
-        from: [options.rootDir, ...options.scanDirs],
-        extensions: [".html"],
-      }
-    )!;
-  } else if (!options.renderer?.handler) {
-    const defaultIndex = resolveModulePath("./index.html", {
-      from: [options.rootDir, ...options.scanDirs],
-      extensions: [".html"],
-      try: true,
-    });
-    if (defaultIndex) {
-      options.renderer ??= {};
-      options.renderer.template = defaultIndex;
-      consola.info(
-        `Using \`${prettyPath(defaultIndex)}\` as renderer template.`
+  if ((options as NitroConfig).renderer === false) {
+    // Skip (auto) resolve renderer, 
+    // and reset it to meet "NitroOptions" requirements
+    options.renderer = undefined;
+  } else {
+    // Resolve renderer handler
+    if (options.renderer?.handler) {
+      options.renderer.handler = resolveModulePath(
+        resolveNitroPath(options.renderer?.handler, options),
+        {
+          from: [options.rootDir, ...options.scanDirs],
+          extensions: RESOLVE_EXTENSIONS,
+        }
       );
     }
-  }
 
-  // Default renderer handler if template is set
-  if (options.renderer?.template && !options.renderer?.handler) {
-    options.renderer ??= {};
-    options.renderer.handler = join(
-      runtimeDir,
-      "internal/routes/renderer-template" + (options.dev ? ".dev" : "")
-    );
+    // Resolve renderer template
+    if (options.renderer?.template) {
+      options.renderer.template = resolveModulePath(
+        resolveNitroPath(options.renderer?.template, options),
+        {
+          from: [options.rootDir, ...options.scanDirs],
+          extensions: [".html"],
+        }
+      )!;
+    } else if (!options.renderer?.handler) {
+      const defaultIndex = resolveModulePath("./index.html", {
+        from: [options.rootDir, ...options.scanDirs],
+        extensions: [".html"],
+        try: true,
+      });
+      if (defaultIndex) {
+        options.renderer ??= {};
+        options.renderer.template = defaultIndex;
+        consola.info(
+          `Using \`${prettyPath(defaultIndex)}\` as renderer template.`
+        );
+      }
+    }
+
+    // Default renderer handler if template is set
+    if (options.renderer?.template && !options.renderer?.handler) {
+      options.renderer ??= {};
+      options.renderer.handler = join(
+        runtimeDir,
+        "internal/routes/renderer-template" + (options.dev ? ".dev" : "")
+      );
+    }
   }
 }
