@@ -3,7 +3,7 @@ import type { OXCOptions } from "nitro/types";
 import type { Plugin } from "rollup";
 
 import { transform } from "oxc-transform";
-import { minify } from "oxc-minify";
+import { minifySync } from "oxc-minify";
 
 export function oxc(
   options: OXCOptions & { sourcemap: boolean; minify: boolean | MinifyOptions }
@@ -23,7 +23,7 @@ export function oxc(
     },
     renderChunk(code, chunk) {
       if (options.minify) {
-        return minify(chunk.fileName, code, {
+        return minifySync(chunk.fileName, code, {
           sourcemap: options.sourcemap,
           ...(typeof options.minify === "object" ? options.minify : {}),
         });
