@@ -12,7 +12,7 @@ export function oxc(
     name: "nitro:oxc",
     transform: {
       filter: {
-        id: /^(?!.*\/node_modules\/).*\.[mj]?[jt]sx?$/,
+        id: /^(?!.*\/node_modules\/).*\.m?[jt]sx?$/,
       },
       handler(code, id) {
         return transform(id, code, {
