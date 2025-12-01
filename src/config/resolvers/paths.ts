@@ -134,7 +134,7 @@ export async function resolvePathOptions(options: NitroOptions) {
   }
 
   if ((options as NitroConfig).renderer === false) {
-    // Skip (auto) resolve renderer, 
+    // Skip (auto) resolve renderer,
     // and reset it to meet "NitroOptions" requirements
     options.renderer = undefined;
   } else {
