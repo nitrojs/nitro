@@ -10,8 +10,8 @@ import type { PackageJson } from "pkg-types";
 export type ExternalsOptions = {
   rootDir: string;
   conditions: string[];
-  exclude?: (string | RegExp)[];
-  include?: (string | RegExp)[];
+  exclude?: RegExp[];
+  include?: RegExp[];
   trace?:
     | false
     | Omit<
@@ -25,11 +25,11 @@ const PLUGIN_NAME = "nitro:externals";
 export function externals(opts: ExternalsOptions): Plugin {
   const exclude: RegExp[] = [
     /^(?:[\0#~.]|[a-z0-9]{2,}:)|\?/,
-    ...(opts?.exclude || []).map((i) => toRegexFilter(i)),
+    ...(opts?.exclude || []),
   ];
 
   const include: RegExp[] | undefined = opts?.include
-    ? (opts?.include || []).map((i) => toRegexFilter(i))
+    ? opts?.include || []
     : undefined;
 
   const filter = (id: string) => {
@@ -148,16 +148,6 @@ export function externals(opts: ExternalsOptions): Plugin {
 }
 
 // ---- Internal utils ----
-
-function toRegexFilter(input: string | RegExp): RegExp {
-  if (input instanceof RegExp) {
-    return input;
-  }
-  if (typeof input === "string") {
-    return new RegExp("^" + escapeRegExp(input));
-  }
-  throw new TypeError("Expected a string or RegExp", { cause: input });
-}
 
 const NODE_MODULES_RE =
   /^(?<dir>.+\/node_modules\/)(?<name>[^/@]+|@[^/]+\/[^/]+)(?:\/(?<subpath>.+))?$/;

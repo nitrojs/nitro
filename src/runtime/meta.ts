@@ -6,9 +6,10 @@ export const version: string = packageJson.version;
 
 const resolve = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 
-export const pkgDir: string = /* @__PURE__ */ resolve("../../");
 export const runtimeDir: string = /* @__PURE__ */ resolve("./");
+export const distDir: string = /* @__PURE__ */ resolve("../");
 export const presetsDir: string = /* @__PURE__ */ resolve("../presets/");
+export const pkgDir: string = /* @__PURE__ */ resolve("../../");
 
 export const runtimeDependencies: string[] = [
   "crossws", // dep

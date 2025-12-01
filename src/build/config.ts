@@ -1,7 +1,6 @@
 import type { Nitro, NitroImportMeta } from "nitro/types";
-import { dirname } from "pathe";
 import { defineEnv } from "unenv";
-import { runtimeDependencies, presetsDir, runtimeDir } from "nitro/meta";
+import { runtimeDependencies, distDir } from "nitro/meta";
 import { escapeRegExp } from "../utils/regex.ts";
 
 export type BaseBuildConfig = ReturnType<typeof baseBuildConfig>;
@@ -34,25 +33,6 @@ export function baseBuildConfig(nitro: Nitro) {
     ...nitro.options.replace,
   };
 
-  const noExternal: (string | RegExp)[] = [
-    /^(?:[\0#~.]|virtual:)/,
-    /^nitro$/,
-    /nitro\/(dist|app|cache|storage|context|database|task|runtime-config|~internal)/,
-    runtimeDir,
-    presetsDir,
-    !nitro.options.dev && nitro.options.buildDir,
-    new RegExp(escapeRegExp(nitro.options.rootDir) + "(?!.*node_modules)"),
-    ...nitro.options.scanDirs,
-    dirname(nitro.options.entry),
-    ...(nitro.options.wasm === false ? [] : [/\.wasm$/]),
-    ...nitro.options.handlers
-      .map((m) => m.handler)
-      .filter((i) => typeof i === "string"),
-    ...(nitro.options.dev || nitro.options.preset === "nitro-prerender"
-      ? []
-      : runtimeDependencies),
-  ].filter(Boolean) as string[];
-
   const { env } = defineEnv({
     nodeCompat: isNodeless,
     resolve: true,
@@ -64,8 +44,9 @@ export function baseBuildConfig(nitro: Nitro) {
 
   const aliases = resolveAliases({ ...env.alias });
 
+  const noExternal: RegExp[] = getNoExternals(nitro);
+
   return {
-    presetsDir,
     extensions,
     isNodeless,
     replacements,
@@ -73,6 +54,42 @@ export function baseBuildConfig(nitro: Nitro) {
     aliases,
     noExternal,
   };
+}
+
+function getNoExternals(nitro: Nitro): RegExp[] {
+  const noExternal = [
+    /^(?:[\0#~.]|virtual:)/,
+    /nitro\/(dist|app|cache|storage|context|database|task|runtime-config|~internal)/,
+    nitro.options.wasm && /\.wasm$/,
+    new RegExp("^" + escapeRegExp(distDir)),
+    new RegExp(
+      "^" + escapeRegExp(nitro.options.rootDir) + "(?!.*node_modules)"
+    ),
+    ...nitro.options.scanDirs,
+    ...nitro.options.handlers
+      .map((m) => m.handler)
+      .filter((i) => typeof i === "string"),
+  ];
+
+  if (!nitro.options.dev && nitro.options.preset !== "nitro-prerender") {
+    noExternal.push(
+      new RegExp(
+        `node_modules/${runtimeDependencies.map((dep) => escapeRegExp(dep)).join("|")}`
+      )
+    );
+  }
+
+  if (Array.isArray(nitro.options.noExternals)) {
+    noExternal.push(...nitro.options.noExternals);
+  }
+
+  return (
+    noExternal
+      .filter(Boolean)
+      .map((item) =>
+        typeof item === "string" ? new RegExp(escapeRegExp(item)) : item
+      ) as RegExp[]
+  ).sort((a, b) => a.source.length - b.source.length);
 }
 
 export function resolveAliases(_aliases: Record<string, string>) {
