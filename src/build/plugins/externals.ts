@@ -100,9 +100,6 @@ export function externals(opts: ExternalsOptions): Plugin {
           if (!tryResolve(importId, importer)) {
             const guessed = await guessSubpath(resolvedPath, opts.conditions);
             if (!guessed) {
-              console.log(
-                `[${PLUGIN_NAME}] Unable to trace external: ${id} (resolved to ${resolvedPath})`
-              );
               return resolved;
             }
             importId = guessed;
@@ -133,7 +130,6 @@ export function externals(opts: ExternalsOptions): Plugin {
         if (!opts.trace || tracedPaths.size === 0) {
           return;
         }
-        console.log(tracedPaths);
         const { traceNodeModules } = await import("nf3");
         await traceNodeModules([...tracedPaths], {
           ...opts.trace,
