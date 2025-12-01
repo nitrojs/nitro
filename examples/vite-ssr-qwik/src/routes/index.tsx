@@ -9,8 +9,8 @@ export const useLoader = routeLoader$(() => {
 export const useAction = routeAction$(async (data) => {
   return {
     success: true,
-    firstName: data.firstName.toString(),
-    lastName: data.lastName.toString(),
+    firstName: data?.firstName?.toString(),
+    lastName: data?.lastName?.toString(),
   };
 });
 
