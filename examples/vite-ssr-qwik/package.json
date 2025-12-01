@@ -1,7 +1,7 @@
 {
   "type": "module",
   "scripts": {
-    "build": "vite build",
+    "build": "vite build --ssr",
     "dev": "vite",
     "preview": "vite preview"
   },
