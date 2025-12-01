@@ -1,24 +1,14 @@
 import { setServerPlatform } from "@qwik.dev/core/server";
-import type {
-  ClientConn,
-  ServerRenderOptions,
-  ServerRequestEvent,
-} from "@qwik.dev/router/middleware/request-handler";
 import {
+  type ClientConn,
+  type ServerRenderOptions,
+  type ServerRequestEvent,
   getNotFound,
   isStaticPath,
   mergeHeadersCookies,
   requestHandler,
 } from "@qwik.dev/router/middleware/request-handler";
 
-/** @public */
-export interface NetAddr {
-  transport: "tcp" | "udp";
-  hostname: string;
-  port: number;
-}
-
-/** @public */
 export function createQwikRouter(opts: QwikRouterFetchOptions) {
   if (opts.manifest) {
     setServerPlatform(opts.manifest);
@@ -66,9 +56,9 @@ export function createQwikRouter(opts: QwikRouterFetchOptions) {
 
       // qwik router did not have a route for this request
       return null;
-    } catch (e: any) {
-      console.error(e);
-      return new Response(String(e || "Error"), {
+    } catch (error: any) {
+      console.error(error);
+      return new Response(String(error || "Error"), {
         status: 500,
         headers: {
           "Content-Type": "text/plain; charset=utf-8",
@@ -96,9 +86,9 @@ export function createQwikRouter(opts: QwikRouterFetchOptions) {
           "X-Not-Found": url.pathname,
         },
       });
-    } catch (e) {
-      console.error(e);
-      return new Response(String(e || "Error"), {
+    } catch (error) {
+      console.error(error);
+      return new Response(String(error || "Error"), {
         status: 500,
         headers: {
           "Content-Type": "text/plain; charset=utf-8",
@@ -113,14 +103,9 @@ export function createQwikRouter(opts: QwikRouterFetchOptions) {
   };
 }
 
-/**
- * @deprecated Use `createQwikRouter` instead. Will be removed in V3
- * @public
- */
-export const createQwikCity = createQwikRouter;
-
-/** @public */
-export interface QwikRouterFetchOptions
-  extends Omit<ServerRenderOptions, "qwikCityPlan"> {
+export interface QwikRouterFetchOptions extends Omit<
+  ServerRenderOptions,
+  "qwikCityPlan"
+> {
   getClientConn?: (request: Request) => ClientConn;
 }

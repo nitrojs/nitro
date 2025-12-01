@@ -512,10 +512,10 @@ importers:
   examples/vite-ssr-qwik:
     devDependencies:
       '@qwik.dev/core':
-        specifier: ^2.0.0-beta.11
+        specifier: ^2.0.0-beta.15
         version: 2.0.0-beta.15(prettier@3.7.3)(vite@7.2.6(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))(vitest@4.0.14(@edge-runtime/vm@5.0.0)(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
       '@qwik.dev/router':
-        specifier: ^2.0.0-beta.11
+        specifier: ^2.0.0-beta.15
         version: 2.0.0-beta.15(@qwik.dev/core@2.0.0-beta.15(prettier@3.7.3)(vite@7.2.6(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))(vitest@4.0.14(@edge-runtime/vm@5.0.0)(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2)))(rollup@4.53.3)(typescript@5.9.3)(vite@7.2.6(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
       nitro:
         specifier: link:../..
@@ -526,9 +526,6 @@ importers:
       vite:
         specifier: ^7.1.10
         version: 7.2.6(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2)
-      vite-tsconfig-paths:
-        specifier: ^5.1.4
-        version: 5.1.4(typescript@5.9.3)(vite@7.2.6(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
 
   examples/vite-ssr-react:
     devDependencies:
