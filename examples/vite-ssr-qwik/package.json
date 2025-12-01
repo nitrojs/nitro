@@ -1,20 +1,15 @@
 {
   "type": "module",
   "scripts": {
-    "build": "qwik build",
-    "build.client": "vite build",
-    "build.preview": "vite build --ssr",
-    "build.types": "tsc --incremental --noEmit",
-    "dev": "vite --open",
-    "preview": "qwik build preview && cp -r ./dist/* ./.output/public/ && vite preview --open",
-    "qwik": "qwik"
+    "build": "vite build",
+    "dev": "vite",
+    "preview": "vite preview"
   },
   "devDependencies": {
-    "@qwik.dev/core": "^2.0.0-beta.11",
-    "@qwik.dev/router": "^2.0.0-beta.11",
+    "@qwik.dev/core": "^2.0.0-beta.15",
+    "@qwik.dev/router": "^2.0.0-beta.15",
     "nitro": "latest",
     "typescript": "^5.9.3",
-    "vite": "^7.1.10",
-    "vite-tsconfig-paths": "^5.1.4"
+    "vite": "^7.1.10"
   }
 }

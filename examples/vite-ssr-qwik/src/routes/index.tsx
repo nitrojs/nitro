@@ -1,11 +1,6 @@
-import {
-  Form,
-  routeAction$,
-  routeLoader$,
-  server$,
-  type DocumentHead,
-} from "@qwik.dev/router";
 import { component$, useSignal } from "@qwik.dev/core";
+import { Form, routeAction$, routeLoader$, server$ } from "@qwik.dev/router";
+import type { DocumentHead } from "@qwik.dev/router";
 
 export const useLoader = routeLoader$(() => {
   return "data from routeLoader$";

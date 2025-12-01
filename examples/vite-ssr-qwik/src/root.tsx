@@ -1,10 +1,10 @@
+import { component$ } from "@qwik.dev/core";
 import {
   DocumentHeadTags,
   RouterOutlet,
   useLocation,
   useQwikRouter,
 } from "@qwik.dev/router";
-import { component$ } from "@qwik.dev/core";
 
 import "./global.css";
 
