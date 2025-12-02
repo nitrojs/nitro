@@ -6,7 +6,7 @@
   },
   "devDependencies": {
     "@types/express": "^5.0.5",
-    "express": "^5.1.0",
+    "express": "^5.2.0",
     "nitro": "latest"
   }
 }
