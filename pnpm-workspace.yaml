@@ -34,3 +34,5 @@ trustPolicyExclude:
   - "undici-types@6.21.0"
   - "rxjs@7.8.2"
   - "semver@6.3.1"
+  - "@netlify/edge-functions@2.19.0"
+  - "@netlify/edge-bundler@14.9.0"

@@ -1,0 +1,11 @@
+{
+  "extends": "nitro/tsconfig",
+  "compilerOptions": {
+    "lib": ["es2022", "DOM", "WebWorker", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "jsxImportSource": "@qwik.dev/core",
+    "paths": {
+      "~/*": ["./src/*"]
+    }
+  }
+}
