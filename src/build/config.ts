@@ -1,6 +1,6 @@
 import type { Nitro, NitroImportMeta } from "nitro/types";
 import { defineEnv } from "unenv";
-import { runtimeDependencies, pkgDir } from "nitro/meta";
+import { pkgDir } from "nitro/meta";
 import { pathRegExp, toPathRegExp } from "../utils/regex.ts";
 
 export type BaseBuildConfig = ReturnType<typeof baseBuildConfig>;
@@ -72,16 +72,6 @@ function getNoExternals(nitro: Nitro): RegExp[] {
 
   if (nitro.options.wasm !== false) {
     noExternal.push(/\.wasm$/);
-  }
-
-  const isDevOrPrerender =
-    nitro.options.dev || nitro.options.preset === "nitro-prerender";
-  if (!isDevOrPrerender) {
-    noExternal.push(
-      new RegExp(
-        `${pathRegExp("node_modules/")}${runtimeDependencies.map((dep) => pathRegExp(dep)).join("|")}`
-      )
-    );
   }
 
   if (Array.isArray(nitro.options.noExternals)) {
