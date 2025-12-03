@@ -12,9 +12,17 @@ import { rollupNodeFileTrace } from "nf3";
 import { nitroResolveIds } from "./plugins/resolve.ts";
 import { sourcemapMinify } from "./plugins/sourcemap-min.ts";
 import { raw } from "./plugins/raw.ts";
+import { serverEntryExports } from "./plugins/server-entry-exports.ts";
 
 import { virtualTemplates } from "./virtual/_all.ts";
 
+/**
+ * Assembles Rollup plugins required for Nitro's base server build.
+ *
+ * @param nitro - Nitro instance providing build options and runtime context used to configure plugins
+ * @param base - Base build configuration (env polyfills, replacements, noExternal) used to tailor the plugin set
+ * @returns The array of Rollup plugins configured for the base build
+ */
 export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const plugins: Plugin[] = [];
 
@@ -41,6 +49,9 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   if (nitro.options.experimental.openAPI) {
     plugins.push(routeMeta(nitro));
   }
+
+  // Server entry re-exports
+  plugins.push(serverEntryExports(nitro));
 
   // Virtual templates
   const virtualPlugin = virtual(

@@ -11,6 +11,7 @@ import routingMeta from "./routing-meta.ts";
 import routing from "./routing.ts";
 import runtimeConfig from "./runtime-config.ts";
 import serverAssets from "./server-assets.ts";
+import serverEntry from "./server-entry.ts";
 import storage from "./storage.ts";
 import tasks from "./tasks.ts";
 
@@ -19,6 +20,13 @@ type VirtualTemplate = {
   template: string | (() => string | Promise<string>);
 };
 
+/**
+ * Assemble the full list of virtual templates available to Nitro by combining built-in and user-defined templates.
+ *
+ * @param nitro - Nitro runtime/configuration object used to obtain built-in templates and access `nitro.options.virtual`
+ * @param _polyfills - Polyfill module IDs passed through to each built-in template factory
+ * @returns An array of `VirtualTemplate` objects composed of built-in templates (from multiple modules) followed by custom templates from `nitro.options.virtual`
+ */
 export function virtualTemplates(
   nitro: Nitro,
   _polyfills: string[]
@@ -35,6 +43,7 @@ export function virtualTemplates(
     routing,
     runtimeConfig,
     serverAssets,
+    serverEntry,
     storage,
     tasks,
   ].flatMap((t) => t(nitro, _polyfills));
