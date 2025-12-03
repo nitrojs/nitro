@@ -71,7 +71,9 @@ function getNoExternals(nitro: Nitro): RegExp[] {
     noExternal.push(/\.wasm$/);
   }
 
-  if (!nitro.options.dev && nitro.options.preset !== "nitro-prerender") {
+  const isDevOrPrerender =
+    nitro.options.dev || nitro.options.preset === "nitro-prerender";
+  if (!isDevOrPrerender) {
     noExternal.push(
       new RegExp(
         `${pathRegExp("node_modules/")}${runtimeDependencies.map((dep) => pathRegExp(dep)).join("|")}`

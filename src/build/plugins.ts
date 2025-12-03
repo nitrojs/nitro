@@ -58,13 +58,15 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
 
   // Externals (require Node.js compatible resolution)
   if (nitro.options.node && nitro.options.noExternals !== true) {
+    const isDevOrPrerender =
+      nitro.options.dev || nitro.options.preset === "nitro-prerender";
     plugins.push(
       externals({
         rootDir: nitro.options.rootDir,
         conditions: nitro.options.exportConditions || ["default"],
         exclude: [...base.noExternal],
-        include: nitro.options.dev ? undefined : nitro.options.traceDeps,
-        trace: nitro.options.dev
+        include: isDevOrPrerender ? undefined : nitro.options.traceDeps,
+        trace: isDevOrPrerender
           ? false
           : { outDir: nitro.options.output.serverDir },
       })
