@@ -48,9 +48,9 @@ async function resolveEntrypoint(nitro: Nitro) {
 
   if (!entry && nitro.options.cloudflare?.entrypoint) {
     nitro.logger.warn(
-      "You're defined custom Cloudflare entrypoint file not exists."
+      `Your custom Cloudflare entrypoint \`${prettyPath(nitro.options.cloudflare.entrypoint)}\` file does not exist.`
     );
-  } else if (!nitro.options.cloudflare?.entrypoint) {
+  } else if (entry && !nitro.options.cloudflare?.entrypoint) {
     nitro.logger.info(
       `Detected \`${prettyPath(entry)}\` as Cloudflare entrypoint.`
     );
