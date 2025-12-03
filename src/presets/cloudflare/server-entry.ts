@@ -7,7 +7,7 @@ import { resolveNitroPath, prettyPath } from "../../utils/fs.ts";
 
 const RESOLVE_EXTENSIONS = [".ts", ".js", ".mts", ".mjs"];
 
-export async function maybeServerEntry(nitro: Nitro, durable: boolean = false) {
+export async function maybeServerEntry(nitro: Nitro) {
   const entrypoint = resolveEntrypoint(nitro);
   if (!entrypoint) return;
 

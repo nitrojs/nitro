@@ -39,6 +39,9 @@ importers:
       oxc-minify:
         specifier: ^0.101.0
         version: 0.101.0
+      oxc-parser:
+        specifier: ^0.101.0
+        version: 0.101.0
       oxc-transform:
         specifier: ^0.101.0
         version: 0.101.0
