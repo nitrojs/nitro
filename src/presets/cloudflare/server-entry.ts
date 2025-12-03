@@ -27,7 +27,7 @@ export async function maybeServerEntry(nitro: Nitro) {
   const id = (nitro.options.entry =
     "#nitro-internal-virtual/cloudflare-server-entry");
   nitro.options.virtual[id] = `/* ts */
-      export { ${entryExports.join(", ")} } from "${entrypoint}";
+      export * from "${entrypoint}";
       export { ${exports.join(", ")} } from "${internalEntry}";
   `;
 }
@@ -63,7 +63,7 @@ async function resolveModuleExportNames(path: string) {
   const parsed = parseSync(path, content, { sourceType: "module" });
   const exports = parsed.module.staticExports
     .flatMap((exp) => exp.entries.map((e) => e.exportName))
-    .filter((e) => (e.kind === "Default" || e.kind === "Name") && e.name);
+    .filter((e) => e.kind === "Default" || e.kind === "Name");
 
-  return exports.map((e) => e.name);
+  return exports.map((e) => e.name ?? "default");
 }
