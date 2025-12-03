@@ -27,9 +27,6 @@ importers:
       jiti:
         specifier: ^2.6.1
         version: 2.6.1
-      nf3:
-        specifier: ^0.1.12
-        version: 0.1.12
       ofetch:
         specifier: ^2.0.0-alpha.3
         version: 2.0.0-alpha.3
@@ -223,6 +220,9 @@ importers:
       mlly:
         specifier: ^1.8.0
         version: 1.8.0
+      nf3:
+        specifier: ^0.1.12
+        version: 0.1.12
       nypm:
         specifier: ^0.6.2
         version: 0.6.2

@@ -7,6 +7,7 @@ import { builtinModules, createRequire } from "node:module";
 import { isAbsolute, join } from "pathe";
 import { resolveModulePath } from "exsolve";
 import { escapeRegExp, toPathRegExp } from "../../utils/regex.ts";
+import { importDep } from "../../utils/dep.ts";
 
 export type ExternalsOptions = {
   rootDir: string;
@@ -136,7 +137,11 @@ export function externals(opts: ExternalsOptions): Plugin {
         if (!opts.trace || tracedPaths.size === 0) {
           return;
         }
-        const { traceNodeModules } = await import("nf3");
+        const { traceNodeModules } = await importDep<typeof import("nf3")>({
+          id: "nf3",
+          dir: opts.rootDir,
+          reason: "tracing external dependencies",
+        });
         await traceNodeModules([...tracedPaths], {
           ...opts.trace,
           exportConditions: opts.conditions,
