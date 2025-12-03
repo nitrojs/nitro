@@ -3,10 +3,10 @@ import type { PackageJson } from "pkg-types";
 import type { ExternalsTraceOptions } from "nf3";
 
 import { pathToFileURL } from "node:url";
+import { builtinModules, createRequire } from "node:module";
 import { isAbsolute, join } from "pathe";
 import { resolveModulePath } from "exsolve";
 import { escapeRegExp, toPathRegExp } from "../../utils/regex.ts";
-import { builtinModules, createRequire } from "node:module";
 
 export type ExternalsOptions = {
   rootDir: string;
@@ -67,6 +67,11 @@ export function externals(opts: ExternalsOptions): Plugin {
             external: true,
             id: id.includes(":") ? id : `node:${id}`,
           };
+        }
+
+        // Skip nested rollup-node resolutions
+        if (rOpts.custom?.["node-resolve"]) {
+          return null;
         }
 
         // Resolve by other resolvers
