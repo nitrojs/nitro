@@ -1,6 +1,6 @@
 import type { Nitro, NitroImportMeta } from "nitro/types";
 import { defineEnv } from "unenv";
-import { runtimeDependencies, distDir } from "nitro/meta";
+import { runtimeDependencies, pkgDir } from "nitro/meta";
 import { pathRegExp, toPathRegExp } from "../utils/regex.ts";
 
 export type BaseBuildConfig = ReturnType<typeof baseBuildConfig>;
@@ -60,11 +60,14 @@ function getNoExternals(nitro: Nitro): RegExp[] {
   const noExternal: RegExp[] = [
     /\.[mc]?tsx?$/,
     /^(?:[\0#~.]|virtual:)/,
-    /nitro\/(dist|app|cache|storage|context|database|task|runtime-config|~internal)/,
-    new RegExp("^" + pathRegExp(distDir)),
-    ...[nitro.options.rootDir, ...nitro.options.scanDirs].map(
-      (dir) => new RegExp("^" + pathRegExp(dir) + "(?!.*node_modules)")
-    ),
+    new RegExp("^" + pathRegExp(pkgDir) + "(?!.*node_modules)"),
+    ...[
+      nitro.options.rootDir,
+      ...nitro.options.scanDirs.filter(
+        (dir) =>
+          dir.includes("node_modules") || !dir.startsWith(nitro.options.rootDir)
+      ),
+    ].map((dir) => new RegExp("^" + pathRegExp(dir) + "(?!.*node_modules)")),
   ];
 
   if (nitro.options.wasm !== false) {
