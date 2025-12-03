@@ -7,6 +7,7 @@ on:
 jobs:
   tests-checks:
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
     strategy:
       matrix:
         os: [ubuntu-latest]
@@ -21,6 +22,7 @@ jobs:
       - run: pnpm test:types
   tests-rollup:
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
@@ -46,6 +48,7 @@ jobs:
         env: { NITRO_BUILDER: rollup }
   tests-rolldown:
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
@@ -67,6 +70,7 @@ jobs:
         env: { NITRO_BUILDER: rolldown }
   publish-pkg-pr-new:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs: [tests-checks, tests-rollup, tests-rolldown]
     steps:
       - uses: actions/checkout@v6
@@ -79,6 +83,7 @@ jobs:
       - run: pnpm dlx pkg-pr-new publish || true
   publish-nitro-nightly:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions: { id-token: write, contents: read }
     needs: [tests-checks, tests-rollup, tests-rolldown]
     if: contains('refs/heads/main', github.ref) && github.event_name == 'push'
