@@ -7,7 +7,7 @@ import { resolveModuleExportNames } from "mlly";
 const RESOLVE_EXTENSIONS = [".ts", ".js", ".mts", ".mjs"];
 
 export async function maybeServerEntry(nitro: Nitro, durable: boolean = false) {
-  const entrypoint = await resolveEntrypoint(nitro);
+  const entrypoint = resolveEntrypoint(nitro);
   if (!entrypoint) return;
 
   const entryExports = await resolveModuleExportNames(entrypoint);
@@ -17,13 +17,10 @@ export async function maybeServerEntry(nitro: Nitro, durable: boolean = false) {
     );
   }
 
-  const internalEntry = resolveModulePath(
-    resolveNitroPath(nitro.options.entry, nitro.options),
-    {
-      from: [presetsDir, nitro.options.rootDir, ...nitro.options.scanDirs],
-      extensions: RESOLVE_EXTENSIONS,
-    }
-  )!;
+  const internalEntry = resolveModulePath(nitro.options.entry, {
+    from: [presetsDir, nitro.options.rootDir, ...nitro.options.scanDirs],
+    extensions: RESOLVE_EXTENSIONS,
+  })!;
 
   const exports = await resolveModuleExportNames(internalEntry);
   const id = (nitro.options.entry =
@@ -34,7 +31,7 @@ export async function maybeServerEntry(nitro: Nitro, durable: boolean = false) {
   `;
 }
 
-async function resolveEntrypoint(nitro: Nitro) {
+function resolveEntrypoint(nitro: Nitro) {
   const entry = resolveModulePath(
     resolveNitroPath(
       nitro.options.cloudflare?.entrypoint ?? "cloudflare",
@@ -43,6 +40,7 @@ async function resolveEntrypoint(nitro: Nitro) {
     {
       from: nitro.options.rootDir,
       extensions: RESOLVE_EXTENSIONS,
+      try: true,
     }
   );
 
