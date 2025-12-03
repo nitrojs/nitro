@@ -67,7 +67,7 @@ function getNoExternals(nitro: Nitro): RegExp[] {
     ),
   ];
 
-  if (nitro.options.wasm) {
+  if (nitro.options.wasm !== false) {
     noExternal.push(/\.wasm$/);
   }
 

@@ -156,7 +156,7 @@
     "unctx": "^2.4.1",
     "unimport": "^5.5.0",
     "untyped": "^2.0.0",
-    "unwasm": "^0.5.1",
+    "unwasm": "^0.5.2",
     "vitest": "^4.0.15",
     "wrangler": "^4.51.0",
     "xml2js": "^0.6.2",
