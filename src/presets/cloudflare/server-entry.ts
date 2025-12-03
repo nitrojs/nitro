@@ -1,8 +1,9 @@
 import type { Nitro } from "nitro/types";
+import { readFile } from "node:fs/promises";
 import { presetsDir } from "nitro/meta";
 import { resolveModulePath } from "exsolve";
+import { parseSync } from "oxc-parser";
 import { resolveNitroPath, prettyPath } from "../../utils/fs.ts";
-import { resolveModuleExportNames } from "mlly";
 
 const RESOLVE_EXTENSIONS = [".ts", ".js", ".mts", ".mjs"];
 
@@ -55,4 +56,14 @@ function resolveEntrypoint(nitro: Nitro) {
   }
 
   return entry;
+}
+
+async function resolveModuleExportNames(path: string) {
+  const content = await readFile(path, "utf8");
+  const parsed = parseSync(path, content, { sourceType: "module" });
+  const exports = parsed.module.staticExports
+    .flatMap((exp) => exp.entries.map((e) => e.exportName))
+    .filter((e) => (e.kind === "Default" || e.kind === "Name") && e.name);
+
+  return exports.map((e) => e.name);
 }
