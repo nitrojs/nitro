@@ -92,6 +92,11 @@ export interface CloudflareOptions {
      */
     defaultRoutes?: boolean;
   };
+
+  /**
+   * Custom Cloudflare WorkerEntrypoint to override Nitro's default behavior and export additional classes such as WorkflowEntrypoint.
+   */
+  entrypoint?: string;
 }
 
 type DurableObjectState = ConstructorParameters<typeof DurableObject>[0];

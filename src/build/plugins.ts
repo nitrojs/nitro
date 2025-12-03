@@ -12,7 +12,6 @@ import { rollupNodeFileTrace } from "nf3";
 import { nitroResolveIds } from "./plugins/resolve.ts";
 import { sourcemapMinify } from "./plugins/sourcemap-min.ts";
 import { raw } from "./plugins/raw.ts";
-import { serverEntryExports } from "./plugins/server-entry-exports.ts";
 
 import { virtualTemplates } from "./virtual/_all.ts";
 
@@ -42,9 +41,6 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   if (nitro.options.experimental.openAPI) {
     plugins.push(routeMeta(nitro));
   }
-
-  // Server entry re-exports
-  plugins.push(serverEntryExports(nitro));
 
   // Virtual templates
   const virtualPlugin = virtual(
