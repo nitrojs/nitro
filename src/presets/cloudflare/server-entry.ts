@@ -21,7 +21,7 @@ export async function maybeServerEntry(nitro: Nitro, durable: boolean = false) {
   const internalEntry = resolveModulePath(nitro.options.entry, {
     from: [presetsDir, nitro.options.rootDir, ...nitro.options.scanDirs],
     extensions: RESOLVE_EXTENSIONS,
-  })!;
+  });
 
   const exports = await resolveModuleExportNames(internalEntry);
   const id = (nitro.options.entry =
