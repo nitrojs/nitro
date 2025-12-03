@@ -5,7 +5,7 @@ import type { ExternalsTraceOptions } from "nf3";
 import { pathToFileURL } from "node:url";
 import { isAbsolute, join } from "pathe";
 import { resolveModulePath } from "exsolve";
-import { escapeRegExp, toRegExp } from "../../utils/regex.ts";
+import { escapeRegExp, toPathRegExp } from "../../utils/regex.ts";
 import { builtinModules, createRequire } from "node:module";
 
 export type ExternalsOptions = {
@@ -25,12 +25,12 @@ const PLUGIN_NAME = "nitro:externals";
 
 export function externals(opts: ExternalsOptions): Plugin {
   const include: RegExp[] | undefined = opts?.include
-    ? opts.include.map((p) => toRegExp(p))
+    ? opts.include.map((p) => toPathRegExp(p))
     : undefined;
 
   const exclude: RegExp[] = [
     /^(?:[\0#~.]|[a-z0-9]{2,}:)|\?/,
-    ...(opts?.exclude || []).map((p) => toRegExp(p)),
+    ...(opts?.exclude || []).map((p) => toPathRegExp(p)),
   ];
 
   const filter = (id: string) => {

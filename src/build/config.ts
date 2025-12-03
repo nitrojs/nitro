@@ -1,7 +1,7 @@
 import type { Nitro, NitroImportMeta } from "nitro/types";
 import { defineEnv } from "unenv";
 import { runtimeDependencies, distDir } from "nitro/meta";
-import { escapeRegExp } from "../utils/regex.ts";
+import { pathRegExp, toPathRegExp } from "../utils/regex.ts";
 
 export type BaseBuildConfig = ReturnType<typeof baseBuildConfig>;
 
@@ -57,39 +57,37 @@ export function baseBuildConfig(nitro: Nitro) {
 }
 
 function getNoExternals(nitro: Nitro): RegExp[] {
-  const noExternal = [
+  const noExternal: RegExp[] = [
+    /\.[mc]?tsx?$/,
     /^(?:[\0#~.]|virtual:)/,
     /nitro\/(dist|app|cache|storage|context|database|task|runtime-config|~internal)/,
-    nitro.options.wasm && /\.wasm$/,
-    new RegExp("^" + escapeRegExp(distDir)),
-    new RegExp(
-      "^" + escapeRegExp(nitro.options.rootDir) + "(?!.*node_modules)"
+    new RegExp("^" + pathRegExp(distDir)),
+    ...[nitro.options.rootDir, ...nitro.options.scanDirs].map(
+      (dir) => new RegExp("^" + pathRegExp(dir) + "(?!.*node_modules)")
     ),
-    ...nitro.options.scanDirs,
-    ...nitro.options.handlers
-      .map((m) => m.handler)
-      .filter((i) => typeof i === "string"),
   ];
+
+  if (nitro.options.wasm) {
+    noExternal.push(/\.wasm$/);
+  }
 
   if (!nitro.options.dev && nitro.options.preset !== "nitro-prerender") {
     noExternal.push(
       new RegExp(
-        `node_modules/${runtimeDependencies.map((dep) => escapeRegExp(dep)).join("|")}`
+        `${pathRegExp("node_modules/")}${runtimeDependencies.map((dep) => pathRegExp(dep)).join("|")}`
       )
     );
   }
 
   if (Array.isArray(nitro.options.noExternals)) {
-    noExternal.push(...nitro.options.noExternals);
+    noExternal.push(
+      ...nitro.options.noExternals
+        .filter(Boolean)
+        .map((item) => toPathRegExp(item as string | RegExp))
+    );
   }
 
-  return (
-    noExternal
-      .filter(Boolean)
-      .map((item) =>
-        typeof item === "string" ? new RegExp(escapeRegExp(item)) : item
-      ) as RegExp[]
-  ).sort((a, b) => a.source.length - b.source.length);
+  return noExternal.sort((a, b) => a.source.length - b.source.length);
 }
 
 export function resolveAliases(_aliases: Record<string, string>) {
