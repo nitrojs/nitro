@@ -6,7 +6,7 @@ settings:
 
 overrides:
   nitro: link:.
-  undici: ^7.11.0
+  undici: ^7.16.0
 
 importers:
 
@@ -28,8 +28,8 @@ importers:
         specifier: ^2.6.1
         version: 2.6.1
       nf3:
-        specifier: ^0.1.12
-        version: 0.1.12
+        specifier: ^0.2.0
+        version: 0.2.0
       ofetch:
         specifier: ^2.0.0-alpha.3
         version: 2.0.0-alpha.3
@@ -46,7 +46,7 @@ importers:
         specifier: ^0.9.7
         version: 0.9.7
       undici:
-        specifier: ^7.11.0
+        specifier: ^7.16.0
         version: 7.16.0
       unenv:
         specifier: ^2.0.0-rc.24
@@ -55,7 +55,7 @@ importers:
         specifier: ^2.0.0-alpha.4
         version: 2.0.0-alpha.4(@azure/identity@4.13.0)(chokidar@5.0.0)(db0@0.3.4)(ofetch@2.0.0-alpha.3)
       vite:
-        specifier: ^7
+        specifier: ^7.2.6
         version: 7.2.6(@types/node@24.10.1)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2)
     devDependencies:
       '@azure/functions':
@@ -5550,8 +5550,8 @@ packages:
     resolution: {integrity: sha512-8Ofs/AUQh8MaEcrlq5xOX0CQ9ypTF5dl78mjlMNfOK08fzpgTHQRQPBxcPlEtIw0yRpws+Zo/3r+5WRby7u3Gg==}
     engines: {node: '>= 0.6'}
 
-  nf3@0.1.12:
-    resolution: {integrity: sha512-qbMXT7RTGh74MYWPeqTIED8nDW70NXOULVHpdWcdZ7IVHVnAsMV9fNugSNnvooipDc1FMOzpis7T9nXJEbJhvQ==}
+  nf3@0.2.0:
+    resolution: {integrity: sha512-TtkYFah0uejbqjkDHIf75pasYzbnXNPoZ4eRZHIBV/GwMfLG8woxXIawEo82R/Kaanw0UDxTjO47k2sI+fhcHg==}
 
   node-abi@3.85.0:
     resolution: {integrity: sha512-zsFhmbkAzwhTft6nd3VxcG0cvJsT70rL+BIGHWVq5fi6MwGrHwzqKaxXE+Hl2GmnGItnDKPPkO5/LQqjVkIdFg==}
@@ -12470,7 +12470,7 @@ snapshots:
 
   negotiator@1.0.0: {}
 
-  nf3@0.1.12: {}
+  nf3@0.2.0: {}
 
   node-abi@3.85.0:
     dependencies:

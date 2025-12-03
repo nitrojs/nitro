@@ -55,7 +55,7 @@
   },
   "resolutions": {
     "nitro": "link:.",
-    "undici": "^7.11.0"
+    "undici": "^7.16.0"
   },
   "dependencies": {
     "consola": "^3.4.2",
@@ -63,7 +63,7 @@
     "db0": "^0.3.4",
     "h3": "2.0.1-rc.5",
     "jiti": "^2.6.1",
-    "nf3": "^0.1.12",
+    "nf3": "^0.2.0",
     "ofetch": "^2.0.0-alpha.3",
     "ohash": "^2.0.11",
     "oxc-minify": "^0.101.0",
@@ -165,8 +165,8 @@
   },
   "peerDependencies": {
     "rolldown": "*",
-    "rollup": "^4",
-    "vite": "^7",
+    "rollup": "^4.53.3",
+    "vite": "^7.2.6",
     "xml2js": "^0.6.2"
   },
   "peerDependenciesMeta": {
@@ -183,7 +183,7 @@
       "optional": true
     }
   },
-  "packageManager": "pnpm@10.22.0",
+  "packageManager": "pnpm@10.24.0",
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
   }
