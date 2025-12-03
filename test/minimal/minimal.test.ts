@@ -49,6 +49,12 @@ describe("minimal fixture", () => {
           expect(await res.text()).toBe("ok");
         });
 
+        it("server entry exports (omit default) work", async () => {
+          const entry = join(outDir, "server/index.mjs");
+          const { other } = await import(entry);
+          expect(other).toBe(true);
+        });
+
         it("bundle size", async () => {
           const { sizeKB } = await analyzeDir(outDir);
           const expectedSize = bundleSizes[builder]![minify ? 1 : 0];
