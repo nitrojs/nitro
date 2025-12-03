@@ -13,7 +13,7 @@ export async function maybeServerEntry(nitro: Nitro, durable: boolean = false) {
   const entryExports = await resolveModuleExportNames(entrypoint);
   if (entryExports.includes("default")) {
     throw new Error(
-      `Unsupported Cloudflare entrypoint (${entrypoint}) exports default.`
+      `Unsupported Cloudflare entrypoint \`${prettyPath(entrypoint)}\` exports default.`
     );
   }
 
