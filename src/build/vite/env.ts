@@ -3,7 +3,7 @@ import type { NitroPluginContext, ServiceConfig } from "./types.ts";
 
 import { NodeDevWorker } from "../../dev/worker.ts";
 import { join, resolve } from "node:path";
-import { runtimeDir } from "nitro/meta";
+import { runtimeDependencies, runtimeDir } from "nitro/meta";
 import { resolveModulePath } from "exsolve";
 import { createFetchableDevEnvironment } from "./dev.ts";
 import { isAbsolute } from "pathe";
@@ -38,7 +38,11 @@ export function createNitroEnvironment(
     },
     resolve: {
       noExternal: ctx.nitro!.options.dev
-        ? ctx.rollupConfig!.base.noExternal
+        ? [
+            /^nitro$/, // i have absolutely no idea why and how it fixes issues!
+            new RegExp(`^(${runtimeDependencies.join("|")})$`), // virtual resolutions in vite skip plugin hooks
+            ...ctx.rollupConfig!.base.noExternal,
+          ]
         : true, // production build is standalone
       conditions: ctx.nitro!.options.exportConditions,
       externalConditions: ctx.nitro!.options.exportConditions,
