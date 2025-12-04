@@ -1,3 +1,3 @@
 export function myScheduled() {
-    console.log("scheduled!");
+  console.log("scheduled!");
 }
