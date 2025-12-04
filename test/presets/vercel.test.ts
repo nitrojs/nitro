@@ -1,6 +1,6 @@
 import { promises as fsp } from "node:fs";
 import { resolve, join, basename } from "pathe";
-import { describe, expect, it, vi, afterAll } from "vitest";
+import { describe, expect, it, vi, beforeAll, afterAll } from "vitest";
 import { setupTest, testNitro, fixtureDir } from "../tests.ts";
 import { toFetchHandler } from "srvx/node";
 
@@ -519,14 +519,17 @@ describe("nitro:preset:vercel:bun", async () => {
 
 describe.skip("nitro:preset:vercel:bun-verceljson", async () => {
   const vercelJsonPath = join(fixtureDir, "vercel.json");
-  // Need to make sure vercel.json is created before setupTest is called
-  await fsp.writeFile(vercelJsonPath, JSON.stringify({ bunVersion: "1.x" }));
 
   const ctx = await setupTest("vercel", {
     outDirSuffix: "-bun-verceljson",
     config: {
       preset: "vercel",
     },
+  });
+
+  beforeAll(async () => {
+    // Need to make sure vercel.json is created before setupTest is called
+    await fsp.writeFile(vercelJsonPath, JSON.stringify({ bunVersion: "1.x" }));
   });
 
   afterAll(async () => {

@@ -23,7 +23,6 @@ import type { UnimportPluginOptions } from "unimport/unplugin";
 import type { BuiltinDriverName } from "unstorage";
 import type { UnwasmPluginOptions } from "unwasm/plugin";
 import type { DeepPartial } from "./_utils.ts";
-import type { NitroDevServerOptions } from "./dev.ts";
 import type {
   EventHandlerFormat,
   NitroDevEventHandler,
@@ -36,7 +35,7 @@ import type { NitroFrameworkInfo } from "./nitro.ts";
 import type { NitroOpenAPIConfig } from "./openapi.ts";
 export type { NitroOpenAPIConfig } from "./openapi.ts";
 import type { NitroPreset } from "./preset.ts";
-import type { NodeExternalsOptions, OXCOptions } from "./rollup.ts";
+import type { OXCOptions } from "./rollup.ts";
 import type { RollupConfig } from "./rollup.ts";
 import type { NitroRouteConfig, NitroRouteRules } from "./route-rules.ts";
 
@@ -174,7 +173,11 @@ export interface NitroOptions extends PresetOptions {
 
   // Dev
   dev: boolean;
-  devServer: NitroDevServerOptions;
+  devServer: {
+    port: number;
+    hostname: string;
+    watch: string[];
+  };
   watchOptions: ChokidarOptions;
   devProxy: Record<string, string | ProxyServerOptions>;
 
@@ -238,11 +241,11 @@ export interface NitroOptions extends PresetOptions {
   node: boolean;
   moduleSideEffects: string[];
   oxc?: OXCOptions;
-  noExternals: boolean;
-  externals: NodeExternalsOptions;
   replace: Record<string, string | ((id: string) => string)>;
   commonJS?: RollupCommonJSOptions;
   exportConditions?: string[];
+  noExternals?: boolean | (string | RegExp)[];
+  traceDeps?: (string | RegExp)[];
 
   // Advanced
   typescript: {

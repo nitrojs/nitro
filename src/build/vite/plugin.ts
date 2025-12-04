@@ -13,7 +13,7 @@ import { createNitro, prepare } from "../../builder.ts";
 import { getViteRollupConfig } from "./rollup.ts";
 import { buildEnvironments, prodSetup } from "./prod.ts";
 import {
-  createDevWorker,
+  getEnvRunner,
   createNitroEnvironment,
   createServiceEnvironments,
 } from "./env.ts";
@@ -432,16 +432,25 @@ async function setupNitroContext(
     ctx.rollupConfig.config
   );
 
-  // Create dev worker
-  if (ctx.nitro.options.dev && !ctx.devWorker) {
-    ctx.devWorker = createDevWorker(ctx);
-    ctx.nitro.fetch = (req) => ctx.devWorker!.fetch(req);
+  // Warm up env runner for dev
+  if (ctx.nitro.options.dev) {
+    getEnvRunner(ctx);
   }
+
+  // Attach nitro.fetch to env runner
+  ctx.nitro.fetch = (req) => getEnvRunner(ctx).fetch(req);
 
   // Create dev app
   if (ctx.nitro.options.dev && !ctx.devApp) {
     ctx.devApp = new NitroDevApp(ctx.nitro);
   }
+
+  // Cleanup resources after close {
+  ctx.nitro.hooks.hook("close", async () => {
+    if (ctx._envRunner) {
+      await ctx._envRunner.close();
+    }
+  });
 }
 
 function getEntry(input: InputOption | undefined): string | undefined {

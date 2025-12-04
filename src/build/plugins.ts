@@ -1,19 +1,18 @@
-import type { Nitro, NodeExternalsOptions } from "nitro/types";
+import type { Nitro } from "nitro/types";
 import type { Plugin } from "rollup";
 import type { BaseBuildConfig } from "./config.ts";
-import { defu } from "defu";
+
+import { virtualTemplates } from "./virtual/_all.ts";
 import unimportPlugin from "unimport/unplugin";
-import { unwasm } from "unwasm/plugin";
 import replace from "@rollup/plugin-replace";
+import { unwasm } from "unwasm/plugin";
 import { routeMeta } from "./plugins/route-meta.ts";
 import { serverMain } from "./plugins/server-main.ts";
 import { virtual } from "./plugins/virtual.ts";
-import { rollupNodeFileTrace } from "nf3";
 import { nitroResolveIds } from "./plugins/resolve.ts";
 import { sourcemapMinify } from "./plugins/sourcemap-min.ts";
 import { raw } from "./plugins/raw.ts";
-
-import { virtualTemplates } from "./virtual/_all.ts";
+import { externals } from "./plugins/externals.ts";
 
 export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const plugins: Plugin[] = [];
@@ -49,7 +48,7 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   nitro.vfs = virtualPlugin.api.modules;
   plugins.push(virtualPlugin);
 
-  // Replace Plugin
+  // Replace
   plugins.push(
     (replace as unknown as typeof replace.default)({
       preventAssignment: true,
@@ -57,28 +56,20 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
     })
   );
 
-  // Externals Plugin
-  if (!nitro.options.noExternals) {
+  // Externals (require Node.js compatible resolution)
+  if (nitro.options.node && nitro.options.noExternals !== true) {
+    const isDevOrPrerender =
+      nitro.options.dev || nitro.options.preset === "nitro-prerender";
     plugins.push(
-      rollupNodeFileTrace(
-        defu(nitro.options.externals, {
-          outDir: nitro.options.output.serverDir,
-          moduleDirectories: nitro.options.nodeModulesDirs,
-          external: nitro.options.nodeModulesDirs,
-          inline: [...base.noExternal],
-          traceOptions: {
-            base: "/",
-            processCwd: nitro.options.rootDir,
-            exportsOnly: true,
-          },
-          traceAlias: {
-            "h3-nightly": "h3",
-            ...nitro.options.externals?.traceAlias,
-          },
-          exportConditions: nitro.options.exportConditions as string[],
-          writePackageJson: true,
-        } satisfies NodeExternalsOptions)
-      )
+      externals({
+        rootDir: nitro.options.rootDir,
+        conditions: nitro.options.exportConditions || ["default"],
+        exclude: [...base.noExternal],
+        include: isDevOrPrerender ? undefined : nitro.options.traceDeps,
+        trace: isDevOrPrerender
+          ? false
+          : { outDir: nitro.options.output.serverDir },
+      })
     );
   }
 

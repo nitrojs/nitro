@@ -1,7 +1,7 @@
 import type { Nitro, NitroImportMeta } from "nitro/types";
-import { dirname } from "pathe";
 import { defineEnv } from "unenv";
-import { pkgDir, runtimeDependencies, presetsDir } from "nitro/meta";
+import { pkgDir } from "nitro/meta";
+import { pathRegExp, toPathRegExp } from "../utils/regex.ts";
 
 export type BaseBuildConfig = ReturnType<typeof baseBuildConfig>;
 
@@ -33,29 +33,6 @@ export function baseBuildConfig(nitro: Nitro) {
     ...nitro.options.replace,
   };
 
-  const noExternal: (string | RegExp | ((id: string) => boolean))[] = [
-    "#",
-    "~",
-    "@/",
-    "~~",
-    "@@/",
-    "virtual:",
-    "nitro",
-    pkgDir,
-    nitro.options.serverDir,
-    nitro.options.buildDir,
-    dirname(nitro.options.entry),
-    ...(nitro.options.wasm === false
-      ? []
-      : [(id: string) => id.endsWith(".wasm")]),
-    ...nitro.options.handlers
-      .map((m) => m.handler)
-      .filter((i) => typeof i === "string"),
-    ...(nitro.options.dev || nitro.options.preset === "nitro-prerender"
-      ? []
-      : runtimeDependencies),
-  ].filter(Boolean) as string[];
-
   const { env } = defineEnv({
     nodeCompat: isNodeless,
     resolve: true,
@@ -67,8 +44,9 @@ export function baseBuildConfig(nitro: Nitro) {
 
   const aliases = resolveAliases({ ...env.alias });
 
+  const noExternal: RegExp[] = getNoExternals(nitro);
+
   return {
-    presetsDir,
     extensions,
     isNodeless,
     replacements,
@@ -76,6 +54,35 @@ export function baseBuildConfig(nitro: Nitro) {
     aliases,
     noExternal,
   };
+}
+
+function getNoExternals(nitro: Nitro): RegExp[] {
+  const noExternal: RegExp[] = [
+    /\.[mc]?tsx?$/,
+    /^(?:[\0#~.]|virtual:)/,
+    new RegExp("^" + pathRegExp(pkgDir) + "(?!.*node_modules)"),
+    ...[
+      nitro.options.rootDir,
+      ...nitro.options.scanDirs.filter(
+        (dir) =>
+          dir.includes("node_modules") || !dir.startsWith(nitro.options.rootDir)
+      ),
+    ].map((dir) => new RegExp("^" + pathRegExp(dir) + "(?!.*node_modules)")),
+  ];
+
+  if (nitro.options.wasm !== false) {
+    noExternal.push(/\.wasm$/);
+  }
+
+  if (Array.isArray(nitro.options.noExternals)) {
+    noExternal.push(
+      ...nitro.options.noExternals
+        .filter(Boolean)
+        .map((item) => toPathRegExp(item as string | RegExp))
+    );
+  }
+
+  return noExternal.sort((a, b) => a.source.length - b.source.length);
 }
 
 export function resolveAliases(_aliases: Record<string, string>) {

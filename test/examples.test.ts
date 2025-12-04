@@ -18,9 +18,7 @@ const skip = new Set<string>(["websocket"]);
 
 const skipDev = new Set<string>(["auto-imports", "cached-handler"]);
 
-const skipProd = new Set<string>([
-  "vite-ssr-tss-react", // seroval export condition (only happens to test env)
-]);
+const skipProd = new Set<string>([]);
 
 for (const example of await readdir(examplesDir)) {
   if (example.startsWith("_")) continue;

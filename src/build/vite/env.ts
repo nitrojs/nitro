@@ -1,25 +1,19 @@
 import type { EnvironmentOptions } from "vite";
 import type { NitroPluginContext, ServiceConfig } from "./types.ts";
 
-import { NodeDevWorker } from "../../dev/worker.ts";
+import { NodeEnvRunner } from "../../runner/node.ts";
 import { join, resolve } from "node:path";
 import { runtimeDependencies, runtimeDir } from "nitro/meta";
 import { resolveModulePath } from "exsolve";
 import { createFetchableDevEnvironment } from "./dev.ts";
 import { isAbsolute } from "pathe";
 
-export function createDevWorker(ctx: NitroPluginContext) {
-  return new NodeDevWorker({
+export function getEnvRunner(ctx: NitroPluginContext) {
+  return (ctx._envRunner ??= new NodeEnvRunner({
     name: "nitro-vite",
-    entry: resolve(runtimeDir, "internal/vite/dev-worker.mjs"),
-    hooks: {},
-    data: {
-      server: true,
-      globals: {
-        __NITRO_RUNTIME_CONFIG__: ctx.nitro!.options.runtimeConfig,
-      },
-    },
-  });
+    entry: resolve(runtimeDir, "internal/vite/node-runner.mjs"),
+    data: { server: true },
+  }));
 }
 
 export function createNitroEnvironment(
@@ -39,12 +33,11 @@ export function createNitroEnvironment(
     resolve: {
       noExternal: ctx.nitro!.options.dev
         ? [
-            ...ctx.rollupConfig!.base.noExternal.filter(
-              (i) => typeof i === "string" || i instanceof RegExp
-            ),
-            ...runtimeDependencies,
+            /^nitro$/, // i have absolutely no idea why and how it fixes issues!
+            new RegExp(`^(${runtimeDependencies.join("|")})$`), // virtual resolutions in vite skip plugin hooks
+            ...ctx.rollupConfig!.base.noExternal,
           ]
-        : true, // in production, NF3 tracks externals
+        : true, // production build is standalone
       conditions: ctx.nitro!.options.exportConditions,
       externalConditions: ctx.nitro!.options.exportConditions,
     },
@@ -53,7 +46,7 @@ export function createNitroEnvironment(
         createFetchableDevEnvironment(
           envName,
           envConfig,
-          ctx.devWorker!,
+          getEnvRunner(ctx),
           resolve(runtimeDir, "internal/vite/dev-entry.mjs")
         ),
     },
@@ -75,6 +68,9 @@ export function createServiceEnvironment(
       emptyOutDir: true,
     },
     resolve: {
+      noExternal: ctx.nitro!.options.dev
+        ? ctx.rollupConfig!.base.noExternal
+        : true, // production build is standalone
       conditions: ctx.nitro!.options.exportConditions,
       externalConditions: ctx.nitro!.options.exportConditions,
     },
@@ -83,7 +79,7 @@ export function createServiceEnvironment(
         createFetchableDevEnvironment(
           envName,
           envConfig,
-          ctx.devWorker!,
+          getEnvRunner(ctx),
           tryResolve(serviceConfig.entry)
         ),
     },

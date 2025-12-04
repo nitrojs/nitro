@@ -7,7 +7,6 @@ export default defineConfig({
   esbuild: { jsx: "preserve", jsxImportSource: "solid-js" },
   environments: {
     ssr: {
-      resolve: { noExternal: true /* fixes tests */ },
       build: { rollupOptions: { input: "./src/entry-server.tsx" } },
     },
     client: {

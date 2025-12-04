@@ -1,5 +1,5 @@
 import type { Plugin } from "rollup";
-import { escapeRegExp } from "../../utils/regex.ts";
+import { escapeRegExp, pathRegExp } from "../../utils/regex.ts";
 
 const PREFIX = "\0nitro:virtual:";
 
@@ -29,7 +29,7 @@ export function virtual(input: VirtualModule[]): Plugin {
       order: "pre",
       filter: {
         id: new RegExp(
-          `^(${[...modules.keys()].map((id) => escapeRegExp(id)).join("|")})$`
+          `^(${[...modules.keys()].map((id) => pathRegExp(id)).join("|")})$`
         ),
       },
       handler: (id) => {

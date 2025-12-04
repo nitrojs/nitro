@@ -1,6 +1,5 @@
 import { defineConfig } from "nitro";
 
-import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { existsSync } from "node:fs";
 
@@ -51,11 +50,7 @@ export default defineConfig({
       ignorePath: true,
     },
   },
-  alias: {
-    "#fixture-nitro-utils-extra-absolute": fileURLToPath(
-      new URL("node_modules/@fixture/nitro-utils/extra2.mjs", import.meta.url)
-    ),
-  },
+  traceDeps: ["@fixture"],
   serverAssets: [
     {
       baseName: "files",

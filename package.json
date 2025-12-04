@@ -49,8 +49,8 @@
     "release": "pnpm test && pnpm build && changelogen --release --prerelease --push",
     "stub": "obuild --stub",
     "test": "pnpm lint && pnpm test:types && pnpm test:rollup && pnpm test:rolldown",
-    "test:rollup": "NITRO_BUILDER=rollup pnpm vitest",
     "test:rolldown": "NITRO_BUILDER=rolldown pnpm vitest",
+    "test:rollup": "NITRO_BUILDER=rollup pnpm vitest",
     "test:types": "tsc --noEmit"
   },
   "resolutions": {
@@ -63,7 +63,6 @@
     "db0": "^0.3.4",
     "h3": "2.0.1-rc.5",
     "jiti": "^2.6.1",
-    "nf3": "^0.1.12",
     "ofetch": "^2.0.0-alpha.3",
     "ohash": "^2.0.11",
     "oxc-minify": "^0.101.0",
@@ -130,6 +129,7 @@
     "mime": "^4.1.0",
     "miniflare": "^4.20251128.0",
     "mlly": "^1.8.0",
+    "nf3": "^0.1.12",
     "nypm": "^0.6.2",
     "obuild": "^0.4.4",
     "pathe": "^2.0.3",
@@ -157,7 +157,7 @@
     "unctx": "^2.4.1",
     "unimport": "^5.5.0",
     "untyped": "^2.0.0",
-    "unwasm": "^0.5.1",
+    "unwasm": "^0.5.2",
     "vitest": "^4.0.15",
     "wrangler": "^4.51.0",
     "xml2js": "^0.6.2",
@@ -165,12 +165,16 @@
     "youch-core": "^0.3.3"
   },
   "peerDependencies": {
+    "nf3": ">=0.2",
     "rolldown": "*",
     "rollup": "^4",
     "vite": "^7",
     "xml2js": "^0.6.2"
   },
   "peerDependenciesMeta": {
+    "nf3": {
+      "optional": true
+    },
     "rolldown": {
       "optional": true
     },

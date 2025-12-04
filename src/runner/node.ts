@@ -2,8 +2,8 @@ import type { IncomingMessage, OutgoingMessage } from "node:http";
 import type { Duplex } from "node:stream";
 import type { HTTPProxy } from "./proxy.ts";
 import type {
-  DevMessageListener,
-  DevWorker,
+  RunnerMessageListener,
+  EnvRunner,
   WorkerAddress,
   WorkerHooks,
 } from "nitro/types";
@@ -15,18 +15,17 @@ import consola from "consola";
 import { isCI, isTest } from "std-env";
 import { createHTTPProxy, fetchAddress } from "./proxy.ts";
 
-export interface DevWorkerData {
+export interface EnvRunnerData {
   name?: string;
-  globals?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
-export class NodeDevWorker implements DevWorker {
+export class NodeEnvRunner implements EnvRunner {
   closed: boolean = false;
 
   #name: string;
   #entry: string;
-  #data?: DevWorkerData;
+  #data?: EnvRunnerData;
   #hooks: Partial<WorkerHooks>;
   #worker?: Worker & { _exitCode?: number };
   #address?: WorkerAddress;
@@ -35,14 +34,14 @@ export class NodeDevWorker implements DevWorker {
 
   constructor(opts: {
     name: string;
-    hooks: WorkerHooks;
     entry: string;
-    data?: DevWorkerData;
+    hooks?: WorkerHooks;
+    data?: EnvRunnerData;
   }) {
     this.#name = opts.name;
     this.#entry = opts.entry;
     this.#data = opts.data;
-    this.#hooks = opts.hooks;
+    this.#hooks = opts.hooks || {};
 
     this.#proxy = createHTTPProxy();
     this.#messageListeners = new Set();
@@ -65,7 +64,9 @@ export class NodeDevWorker implements DevWorker {
       await new Promise((r) => setTimeout(r, 100 * Math.pow(2, i)));
     }
     if (!(this.#address && this.#proxy)) {
-      return new Response("Dev worker is unavailable", { status: 503 });
+      return new Response("Node env runner worker is unavailable", {
+        status: 503,
+      });
     }
     return fetchAddress(this.#address, input, init);
   }
@@ -91,17 +92,17 @@ export class NodeDevWorker implements DevWorker {
   sendMessage(message: unknown) {
     if (!this.#worker) {
       throw new Error(
-        "Dev worker should be initialized before sending messages."
+        "Node env worker should be initialized before sending messages."
       );
     }
     this.#worker.postMessage(message);
   }
 
-  onMessage(listener: DevMessageListener) {
+  onMessage(listener: RunnerMessageListener) {
     this.#messageListeners.add(listener);
   }
 
-  offMessage(listener: DevMessageListener) {
+  offMessage(listener: RunnerMessageListener) {
     this.#messageListeners.delete(listener);
   }
 
@@ -121,7 +122,7 @@ export class NodeDevWorker implements DevWorker {
   [Symbol.for("nodejs.util.inspect.custom")]() {
     // eslint-disable-next-line unicorn/no-nested-ternary
     const status = this.closed ? "closed" : this.ready ? "ready" : "pending";
-    return `NodeDevWorker#${this.#name}(${status})`;
+    return `NodeEnvRunner#${this.#name}(${status})`;
   }
 
   // #endregion
@@ -197,9 +198,8 @@ export class NodeDevWorker implements DevWorker {
         const gracefulShutdownTimeoutMs =
           Number.parseInt(process.env.NITRO_SHUTDOWN_TIMEOUT || "", 10) || 5000;
         const timeout = setTimeout(() => {
-          if (process.env.DEBUG) {
-            consola.warn(`force closing dev worker...`);
-          }
+          consola.warn(`force closing node env runner worker...`);
+          resolve();
         }, gracefulShutdownTimeoutMs);
 
         this.#worker?.on("message", (message) => {
