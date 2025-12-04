@@ -1,4 +1,4 @@
-import type { DevWorkerData } from "../dev/worker.ts";
+import type { EnvRunnerData } from "../runner/node.ts";
 import type { NitroConfig } from "./config.ts";
 import type { Nitro, NitroTypes } from "./nitro.ts";
 import type { PrerenderRoute } from "./prerender.ts";
@@ -13,7 +13,7 @@ export interface NitroHooks {
   compiled: (nitro: Nitro) => HookResult;
   "dev:reload": (payload?: {
     entry?: string;
-    workerData?: DevWorkerData;
+    workerData?: EnvRunnerData;
   }) => HookResult;
   "dev:start": () => HookResult;
   "dev:error": (cause?: unknown) => HookResult;

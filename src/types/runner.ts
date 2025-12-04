@@ -3,7 +3,7 @@ import type { Duplex } from "node:stream";
 
 export type FetchHandler = (req: Request) => Promise<Response>;
 
-export type DevMessageListener = (data: unknown) => void;
+export type RunnerMessageListener = (data: unknown) => void;
 
 export type UpgradeHandler = (
   req: IncomingMessage,
@@ -11,30 +11,24 @@ export type UpgradeHandler = (
   head: any
 ) => void;
 
-export interface DevRPCHooks {
+export interface RunnerRPCHooks {
   sendMessage: (message: unknown) => void;
-  onMessage: (listener: DevMessageListener) => void;
-  offMessage: (listener: DevMessageListener) => void;
+  onMessage: (listener: RunnerMessageListener) => void;
+  offMessage: (listener: RunnerMessageListener) => void;
 }
 
 export type WorkerAddress = { host: string; port: number; socketPath?: string };
 
 export interface WorkerHooks {
-  onClose?: (worker: DevWorker, cause?: unknown) => void;
-  onReady?: (worker: DevWorker, address?: WorkerAddress) => void;
+  onClose?: (worker: EnvRunner, cause?: unknown) => void;
+  onReady?: (worker: EnvRunner, address?: WorkerAddress) => void;
 }
 
-export interface DevWorker extends WorkerHooks, DevRPCHooks {
+export interface EnvRunner extends WorkerHooks, RunnerRPCHooks {
   readonly ready: boolean;
   readonly closed: boolean;
 
   fetch: FetchHandler;
   upgrade: UpgradeHandler;
   close(): Promise<void>;
-}
-
-export interface NitroDevServerOptions {
-  port: number;
-  hostname: string;
-  watch: string[];
 }

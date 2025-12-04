@@ -2,13 +2,13 @@ import type { IncomingMessage, OutgoingMessage } from "node:http";
 import type { Duplex } from "node:stream";
 import type { FSWatcher } from "chokidar";
 import type { ServerOptions, Server } from "srvx";
-import { NodeDevWorker } from "./worker.ts";
-import type { DevWorkerData } from "./worker.ts";
+import { NodeEnvRunner } from "../runner/node.ts";
+import type { EnvRunnerData } from "../runner/node.ts";
 import type {
   Nitro,
-  DevMessageListener,
-  DevRPCHooks,
-  DevWorker,
+  RunnerMessageListener,
+  RunnerRPCHooks,
+  EnvRunner,
 } from "nitro/types";
 
 import { HTTPError } from "h3";
@@ -26,17 +26,17 @@ export function createDevServer(nitro: Nitro): NitroDevServer {
   return new NitroDevServer(nitro);
 }
 
-export class NitroDevServer extends NitroDevApp implements DevRPCHooks {
+export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
   #entry: string;
-  #workerData: DevWorkerData = {};
+  #workerData: EnvRunnerData = {};
   #listeners: Server[] = [];
   #watcher?: FSWatcher;
-  #workers: DevWorker[] = [];
+  #workers: EnvRunner[] = [];
   #workerIdCtr: number = 0;
   #workerError?: unknown;
   #building?: boolean = true; // Assume initial build will start soon
   #buildError?: unknown;
-  #messageListeners: Set<DevMessageListener> = new Set();
+  #messageListeners: Set<RunnerMessageListener> = new Set();
 
   constructor(nitro: Nitro) {
     super(nitro, async (event) => {
@@ -157,16 +157,10 @@ export class NitroDevServer extends NitroDevApp implements DevRPCHooks {
     for (const worker of this.#workers) {
       worker.close();
     }
-    const worker = new NodeDevWorker({
+    const worker = new NodeEnvRunner({
       name: `Nitro_${this.#workerIdCtr++}`,
       entry: this.#entry,
-      data: {
-        ...this.#workerData,
-        globals: {
-          __NITRO_RUNTIME_CONFIG__: this.nitro.options.runtimeConfig,
-          ...this.#workerData.globals,
-        },
-      },
+      data: this.#workerData,
       hooks: {
         onClose: (worker, cause) => {
           this.#workerError = cause;
@@ -196,14 +190,14 @@ export class NitroDevServer extends NitroDevApp implements DevRPCHooks {
     }
   }
 
-  onMessage(listener: DevMessageListener) {
+  onMessage(listener: RunnerMessageListener) {
     this.#messageListeners.add(listener);
     for (const worker of this.#workers) {
       worker.onMessage(listener);
     }
   }
 
-  offMessage(listener: DevMessageListener) {
+  offMessage(listener: RunnerMessageListener) {
     this.#messageListeners.delete(listener);
     for (const worker of this.#workers) {
       worker.offMessage(listener);

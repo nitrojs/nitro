@@ -1,25 +1,19 @@
 import type { EnvironmentOptions } from "vite";
 import type { NitroPluginContext, ServiceConfig } from "./types.ts";
 
-import { NodeDevWorker } from "../../dev/worker.ts";
+import { NodeEnvRunner } from "../../runner/node.ts";
 import { join, resolve } from "node:path";
 import { runtimeDependencies, runtimeDir } from "nitro/meta";
 import { resolveModulePath } from "exsolve";
 import { createFetchableDevEnvironment } from "./dev.ts";
 import { isAbsolute } from "pathe";
 
-export function createDevWorker(ctx: NitroPluginContext) {
-  return new NodeDevWorker({
+export function getEnvRunner(ctx: NitroPluginContext) {
+  return (ctx._envRunner ??= new NodeEnvRunner({
     name: "nitro-vite",
-    entry: resolve(runtimeDir, "internal/vite/dev-worker.mjs"),
-    hooks: {},
-    data: {
-      server: true,
-      globals: {
-        __NITRO_RUNTIME_CONFIG__: ctx.nitro!.options.runtimeConfig,
-      },
-    },
-  });
+    entry: resolve(runtimeDir, "internal/vite/node-runner.mjs"),
+    data: { server: true },
+  }));
 }
 
 export function createNitroEnvironment(
@@ -52,7 +46,7 @@ export function createNitroEnvironment(
         createFetchableDevEnvironment(
           envName,
           envConfig,
-          ctx.devWorker!,
+          getEnvRunner(ctx),
           resolve(runtimeDir, "internal/vite/dev-entry.mjs")
         ),
     },
@@ -85,7 +79,7 @@ export function createServiceEnvironment(
         createFetchableDevEnvironment(
           envName,
           envConfig,
-          ctx.devWorker!,
+          getEnvRunner(ctx),
           tryResolve(serviceConfig.entry)
         ),
     },

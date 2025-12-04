@@ -155,11 +155,6 @@ parentPort.on("message", (payload) => {
 
 async function reload() {
   try {
-    // Apply globals
-    for (const [key, value] of Object.entries(workerData.globals || {})) {
-      globalThis[key] = value;
-    }
-    // Reload all envs
     await Promise.all(Object.values(envs).map((env) => env?.reload()));
   } catch (error) {
     console.error(error);
@@ -195,6 +190,10 @@ if (workerData.server) {
   parentPort.on("message", async (message) => {
     if (message?.type === "full-reload") {
       await reload();
+    } else if (message?.event === "shutdown") {
+      server.close(() => {
+        parentPort.postMessage({ event: "exit" });
+      });
     }
   });
   await listen(server);
@@ -228,6 +227,32 @@ function httpError(status, message) {
 }
 
 async function renderError(req, error) {
+  if (req.headers.get("accept")?.includes("application/json")) {
+    return new Response(
+      JSON.stringify(
+        {
+          status: error.status || 500,
+          name: error.name || "Error",
+          message: error.message,
+          stack: error.stack
+            .split("\n")
+            .splice(1)
+            .map((l) => l.trim()),
+        },
+        null,
+        2
+      ),
+      {
+        status: error.status || 500,
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-store, max-age=0, must-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      }
+    );
+  }
   const { Youch } = await import("youch");
   const youch = new Youch();
   return new Response(await youch.toHTML(error), {

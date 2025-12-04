@@ -14,6 +14,7 @@ import { watch as fsWatch } from "node:fs";
 import { join } from "pathe";
 import { debounce } from "perfect-debounce";
 import { scanHandlers } from "../../scan.ts";
+import { getEnvRunner } from "./env.ts";
 
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
 
@@ -131,7 +132,7 @@ export async function configureViteDevServer(
         // Vite upgrade. TODO: Is there a better way?
         return;
       }
-      ctx.devWorker?.upgrade(req, socket, head);
+      getEnvRunner(ctx).upgrade?.(req, socket, head);
     });
   }
 
