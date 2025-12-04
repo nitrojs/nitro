@@ -6,36 +6,37 @@ import { parseSync } from "oxc-parser";
 import { resolveNitroPath, prettyPath } from "../../utils/fs.ts";
 
 const RESOLVE_EXTENSIONS = [".ts", ".js", ".mts", ".mjs"];
+const DEFAULT_DETECTD_EXPORTS_FILENAME = "exports.cloudflare";
 
-export async function maybeServerEntry(nitro: Nitro) {
-  const entrypoint = resolveEntrypoint(nitro);
-  if (!entrypoint) return;
+export async function setupEntryExports(nitro: Nitro) {
+  const exportsEntry = resolveExportsEntry(nitro);
+  if (!exportsEntry) return;
 
-  const entryExports = await resolveModuleExportNames(entrypoint);
-  if (entryExports.includes("default")) {
+  const exports = await resolveModuleExportNames(exportsEntry);
+  if (exports.includes("default")) {
     throw new Error(
-      `Unsupported Cloudflare entrypoint \`${prettyPath(entrypoint)}\` exports default.`
+      `Unsupported Cloudflare exports entry \`${prettyPath(exportsEntry)}\` exports default.`
     );
   }
 
-  const internalEntry = resolveModulePath(nitro.options.entry, {
+  const serverEntry = resolveModulePath(nitro.options.entry, {
     from: [presetsDir, nitro.options.rootDir, ...nitro.options.scanDirs],
     extensions: RESOLVE_EXTENSIONS,
   });
 
-  const exports = await resolveModuleExportNames(internalEntry);
+  const serverEntryExports = await resolveModuleExportNames(serverEntry);
   const id = (nitro.options.entry =
     "#nitro-internal-virtual/cloudflare-server-entry");
   nitro.options.virtual[id] = `/* ts */
-      export * from "${entrypoint}";
-      export { ${exports.join(", ")} } from "${internalEntry}";
+      export * from "${exportsEntry}";
+      export { ${serverEntryExports.join(", ")} } from "${serverEntry}";
   `;
 }
 
-function resolveEntrypoint(nitro: Nitro) {
+function resolveExportsEntry(nitro: Nitro) {
   const entry = resolveModulePath(
     resolveNitroPath(
-      nitro.options.cloudflare?.entrypoint ?? "cloudflare",
+      nitro.options.cloudflare?.exports ?? DEFAULT_DETECTD_EXPORTS_FILENAME,
       nitro.options
     ),
     {
@@ -45,11 +46,11 @@ function resolveEntrypoint(nitro: Nitro) {
     }
   );
 
-  if (!entry && nitro.options.cloudflare?.entrypoint) {
+  if (!entry && nitro.options.cloudflare?.exports) {
     nitro.logger.warn(
-      `Your custom Cloudflare entrypoint \`${prettyPath(nitro.options.cloudflare.entrypoint)}\` file does not exist.`
+      `Your custom Cloudflare entrypoint \`${prettyPath(nitro.options.cloudflare.exports)}\` file does not exist.`
     );
-  } else if (entry && !nitro.options.cloudflare?.entrypoint) {
+  } else if (entry && !nitro.options.cloudflare?.exports) {
     nitro.logger.info(
       `Detected \`${prettyPath(entry)}\` as Cloudflare entrypoint.`
     );

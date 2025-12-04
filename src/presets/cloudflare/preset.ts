@@ -11,7 +11,7 @@ import {
   writeCFPagesRedirects,
 } from "./utils.ts";
 import { cloudflareDevModule } from "./dev.ts";
-import { maybeServerEntry } from "./server-entry.ts";
+import { setupEntryExports } from "./entry-exports.ts";
 
 export type { CloudflareOptions as PresetOptions } from "./types.ts";
 
@@ -50,7 +50,7 @@ const cloudflarePages = defineNitroPreset(
       "build:before": async (nitro) => {
         nitro.options.unenv.push(unenvCfExternals);
         await enableNodeCompat(nitro);
-        await maybeServerEntry(nitro);
+        await setupEntryExports(nitro);
       },
       async compiled(nitro: Nitro) {
         await writeWranglerConfig(nitro, "pages");
@@ -133,7 +133,7 @@ const cloudflareModule = defineNitroPreset(
       "build:before": async (nitro) => {
         nitro.options.unenv.push(unenvCfExternals);
         await enableNodeCompat(nitro);
-        await maybeServerEntry(nitro);
+        await setupEntryExports(nitro);
       },
       async compiled(nitro: Nitro) {
         await writeWranglerConfig(nitro, "module");
