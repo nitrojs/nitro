@@ -69,6 +69,34 @@ You can use [runtime hooks](/docs/plugins#nitro-runtime-hooks) below in order to
 - [`cloudflare:tail`](https://developers.cloudflare.com/workers/runtime-apis/handlers/tail/)
 - `cloudflare:trace`
 
+### Custom Exports
+
+You can add a `cloudflare.ts` file to your project root to export additional handlers or properties to the Cloudflare Worker entrypoint.
+
+```ts [cloudflare.ts]
+export class MyWorkflow extends WorkflowEntrypoint {
+  async run(event: WorkflowEvent, step: WorkflowStep) {
+    // ...
+  }
+}
+```
+
+Nitro will automatically detect this file and include its exports in the final build.
+
+::warning
+The `cloudflare.ts` file must not have a default export.
+::
+
+You can also customize the entrypoint file location using the `cloudflare.entrypoint` option in your `nitro.config.ts`:
+
+```ts [nitro.config.ts]
+export default defineConfig({
+  cloudflare: {
+    entrypoint: "custom-entry.ts"
+  }
+})
+```
+
 
 ## Cloudflare Pages
 
