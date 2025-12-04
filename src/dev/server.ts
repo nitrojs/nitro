@@ -115,6 +115,12 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
         statusText: "No worker available.",
       });
     }
+    if (!worker.upgrade) {
+      throw new HTTPError({
+        status: 501,
+        statusText: "Worker does not support upgrades.",
+      });
+    }
     return worker.upgrade(req, socket, head);
   }
 

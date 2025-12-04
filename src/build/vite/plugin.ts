@@ -432,7 +432,7 @@ async function setupNitroContext(
     ctx.rollupConfig.config
   );
 
-  // Warm uop env runner for dev
+  // Warm up env runner for dev
   if (ctx.nitro.options.dev) {
     getEnvRunner(ctx);
   }

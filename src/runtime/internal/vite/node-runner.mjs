@@ -234,7 +234,7 @@ async function renderError(req, error) {
           status: error.status || 500,
           name: error.name || "Error",
           message: error.message,
-          stack: error.stack
+          stack: (error.stack || "")
             .split("\n")
             .splice(1)
             .map((l) => l.trim()),

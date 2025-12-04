@@ -29,6 +29,6 @@ export interface EnvRunner extends WorkerHooks, RunnerRPCHooks {
   readonly closed: boolean;
 
   fetch: FetchHandler;
-  upgrade: UpgradeHandler;
+  upgrade?: UpgradeHandler;
   close(): Promise<void>;
 }
