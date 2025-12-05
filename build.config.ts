@@ -3,7 +3,6 @@ import { defineBuildConfig } from "obuild/config";
 
 import { resolveModulePath } from "exsolve";
 import { traceNodeModules } from "nf3";
-import { parseNodeModulePath } from "mlly";
 
 const isStub = process.argv.includes("--stub");
 
@@ -78,30 +77,13 @@ export default defineBuildConfig({
       );
     },
     rolldownOutput(config) {
-      config.advancedChunks ||= {};
-      config.advancedChunks.groups = [
-        {
-          test: /node_modules/,
-          name: (moduleId) => {
-            const pkgName = parseNodeModulePath(moduleId)
-              ?.name?.split("/")
-              .pop();
-            return `_libs/${pkgName || "_common"}`;
-          },
-        },
-        // {
-        //   test: /src\/presets\/\w+\//,
-        //   name: (moduleId) => {
-        //     const presetName = /src\/presets\/(\w+)\//.exec(moduleId)?.[1];
-        //     return `_presets/${presetName || "_common"}`;
-        //   },
-        // },
-      ];
-
       // Use better chunk names (without degrading optimization)
       config.chunkFileNames = (chunk) => {
         if (chunk.name.startsWith("_")) {
           return `[name].mjs`;
+        }
+        if (chunk.name.startsWith("libs/")) {
+          return `_[name].mjs`;
         }
         if (chunk.moduleIds.every((id) => /src\/cli\//.test(id))) {
           return `cli/_chunks/[name].mjs`;
