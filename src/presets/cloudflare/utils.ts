@@ -16,7 +16,7 @@ import {
   withTrailingSlash,
   withoutLeadingSlash,
 } from "ufo";
-import { unencCfNodeCompat } from "./unenv/preset.ts";
+import { unenvCfNodeCompat } from "./unenv/preset.ts";
 
 export async function writeCFRoutes(nitro: Nitro) {
   const _cfPagesConfig = nitro.options.cloudflare?.pages || {};
@@ -192,7 +192,7 @@ export async function enableNodeCompat(nitro: Nitro) {
   nitro.options.cloudflare.deployConfig ??= true;
   nitro.options.cloudflare.nodeCompat ??= true;
   if (nitro.options.cloudflare.nodeCompat) {
-    nitro.options.unenv.push(unencCfNodeCompat);
+    nitro.options.unenv.push(unenvCfNodeCompat);
   }
 }
 
