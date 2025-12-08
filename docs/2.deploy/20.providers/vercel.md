@@ -86,7 +86,7 @@ To revalidate a page on demand:
 
 ### Fine-grained ISR config via route rules
 
-By default, query paramas are ignored by cache.
+By default, query params are considered when caching ISR routes.
 
 You can pass an options object to `isr` route rule to configure caching behavior.
 
