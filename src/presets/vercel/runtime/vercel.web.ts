@@ -1,5 +1,5 @@
 import "#nitro-internal-polyfills";
-import { useNitroApp } from "nitro/app";
+import { useNitroApp, getRouteRules } from "nitro/app";
 
 import type { ServerRequest } from "srvx";
 import { isrRouteRewrite } from "./isr.ts";
@@ -17,7 +17,10 @@ export default {
       req.headers.get("x-now-route-matches")
     );
     if (isrURL) {
-      req = new Request(new URL(isrURL, req.url).href, req);
+      const { routeRules } = getRouteRules("", isrURL);
+      if (routeRules?.isr) {
+        req = new Request(new URL(isrURL, req.url).href, req);
+      }
     }
 
     // srvx compatibility
