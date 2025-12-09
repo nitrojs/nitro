@@ -11,6 +11,7 @@ import type {
 } from "./types";
 import { isTest } from "std-env";
 import { createRouter as createRadixRouter, toRouteMatcher } from "radix3";
+import { ISR_URL_PARAM } from "./runtime/consts";
 
 // https://vercel.com/docs/build-output-api/configuration
 
@@ -233,8 +234,8 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     ...(nitro.options.routeRules["/"]?.isr
       ? [
           {
-            src: "(?<url>/)",
-            dest: `/index${ISR_SUFFIX}?url=$url`,
+            src: `(?<${ISR_URL_PARAM}>/)`,
+            dest: `/index${ISR_SUFFIX}?${ISR_URL_PARAM}=$${ISR_URL_PARAM}`,
           },
         ]
       : []),
@@ -242,7 +243,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     ...rules
       .filter(([key, value]) => value.isr !== undefined && key !== "/")
       .map(([key, value]) => {
-        const src = `(?<url>${normalizeRouteSrc(key)})`;
+        const src = `(?<${ISR_URL_PARAM}>${normalizeRouteSrc(key)})`;
         if (value.isr === false) {
           // We need to write a rule to avoid route being shadowed by another cache rule elsewhere
           return {
@@ -254,9 +255,11 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
           src,
           dest:
             nitro.options.preset === "vercel-edge"
-              ? FALLBACK_ROUTE + "?url=$url"
+              ? FALLBACK_ROUTE + `?${ISR_URL_PARAM}=$${ISR_URL_PARAM}`
               : withLeadingSlash(
-                  normalizeRouteDest(key) + ISR_SUFFIX + "?url=$url"
+                  normalizeRouteDest(key) +
+                    ISR_SUFFIX +
+                    `?${ISR_URL_PARAM}=$${ISR_URL_PARAM}`
                 ),
         };
       }),
@@ -468,6 +471,13 @@ async function writePrerenderConfig(
     bypassToken,
     ...isrConfig,
   };
+
+  if (
+    prerenderConfig.allowQuery &&
+    !prerenderConfig.allowQuery.includes(ISR_URL_PARAM)
+  ) {
+    prerenderConfig.allowQuery.push(ISR_URL_PARAM);
+  }
 
   await writeFile(filename, JSON.stringify(prerenderConfig, null, 2));
 }
