@@ -57,14 +57,29 @@ export const getViteRollupConfig = (
     output: {
       format: "esm",
       entryFileNames: "index.mjs",
-      chunkFileNames: (chunk) => getChunkName(nitro, chunk.moduleIds),
+      chunkFileNames: (chunk) => getChunkName(chunk, nitro),
+      // @ts-expect-error rolldown config
+      advancedChunks: {
+        groups: [
+          {
+            test: /node_modules/,
+            name: (moduleId: string) => {
+              const pkgName = moduleId.match(
+                /.*\/node_modules\/(?<package>@[^/]+\/[^/]+|[^/]+)/
+              )?.groups?.package;
+              console.log(moduleId, "~>", pkgName);
+              return `_libs/${pkgName || "common"}`;
+            },
+          },
+        ],
+      },
       inlineDynamicImports: nitro.options.inlineDynamicImports,
       dir: nitro.options.output.serverDir,
       generatedCode: {
         // constBindings is not supported in rolldown
         ...(ctx._isRolldown ? {} : { constBindings: true }),
       },
-      sanitizeFileName: sanitizeFilePath,
+      // sanitizeFileName: sanitizeFilePath,
       // sourcemapExcludeSources is not supported in rolldown
       ...(ctx._isRolldown ? {} : { sourcemapExcludeSources: true }),
       sourcemapIgnoreList: (id) => id.includes("node_modules"),

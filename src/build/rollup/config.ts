@@ -72,7 +72,7 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
     output: {
       format: "esm",
       entryFileNames: "index.mjs",
-      chunkFileNames: (chunk) => getChunkName(nitro, chunk.moduleIds),
+      chunkFileNames: (chunk) => getChunkName(chunk, nitro),
       dir: nitro.options.output.serverDir,
       inlineDynamicImports: nitro.options.inlineDynamicImports,
       generatedCode: { constBindings: true },

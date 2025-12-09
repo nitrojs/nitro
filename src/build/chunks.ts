@@ -1,15 +1,30 @@
 import type { Nitro } from "nitro/types";
 import { presetsDir, runtimeDir } from "../runtime/meta.ts";
-import { parseNodeModulePath } from "mlly";
 
 const virtualRe = /^\0|^virtual:/;
 
-export function getChunkName(nitro: Nitro, moduleIds: string[]) {
-  const ids = moduleIds.filter((id) => !virtualRe.test(id));
+export function getChunkName(
+  chunk: { name: string; moduleIds: string[] },
+  nitro: Nitro
+) {
+  // Known groups
+  if (chunk.name.startsWith("_libs/")) {
+    return `${chunk.name}.mjs`;
+  }
+  if (chunk.name === "rolldown-runtime") {
+    return "_runtime/rolldown.mjs";
+  }
+
+  // No moduleIds
+  if (chunk.moduleIds.length === 0) {
+    return `_chunks/${chunk.name}.mjs`;
+  }
+
+  const ids = chunk.moduleIds.filter((id) => !virtualRe.test(id));
 
   // All virtual
   if (ids.length === 0) {
-    if (moduleIds.every((id) => id.includes("virtual:raw"))) {
+    if (chunk.moduleIds.every((id) => id.includes("virtual:raw"))) {
       return `_raw/[name].mjs`;
     }
     return `_virtual/[name].mjs`;
@@ -55,24 +70,7 @@ export function getChunkName(nitro: Nitro, moduleIds: string[]) {
     }
   }
 
-  // Only node_modules
-  if (ids.every((id) => id.includes("node_modules"))) {
-    if (ids.length > 3) {
-      return `_lib/[hash].mjs`;
-    }
-    const pkgNames = [
-      ...new Set(
-        ids
-          .map((id) => parseNodeModulePath(id)?.name?.replace(/^@.+\//, ""))
-          .filter((id) => id && !id.startsWith("."))
-          .sort()
-      ),
-    ].join("+");
-    return `_lib/${pkgNames.length < 50 ? pkgNames : "[hash]"}.mjs`;
-  }
-
-  // Mixed chunk
-  return `_/[hash].mjs`;
+  return `_chunks/[name].mjs`;
 }
 
 function routeToFsPath(route: string) {

@@ -54,7 +54,21 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
     output: {
       format: "esm",
       entryFileNames: "index.mjs",
-      chunkFileNames: (chunk) => getChunkName(nitro, chunk.moduleIds),
+      chunkFileNames: (chunk) => getChunkName(chunk, nitro),
+      advancedChunks: {
+        groups: [
+          {
+            test: /node_modules/,
+            name: (moduleId: string) => {
+              const pkgName = moduleId.match(
+                /.*\/node_modules\/(?<package>@[^/]+\/[^/]+|[^/]+)/
+              )?.groups?.package;
+              console.log(moduleId, "~>", pkgName);
+              return `_libs/${pkgName || "common"}`;
+            },
+          },
+        ],
+      },
       dir: nitro.options.output.serverDir,
       inlineDynamicImports: nitro.options.inlineDynamicImports,
       minify: nitro.options.minify,

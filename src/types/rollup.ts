@@ -2,14 +2,16 @@ import type {
   InputOptions as RollupInputOptions,
   OutputOptions as RollupOutputOptions,
 } from "rollup";
+import type { InputOptions as RolldownInputOptions } from "rolldown";
 import type { MinifyOptions } from "oxc-minify";
 import type { JsxOptions, TransformOptions } from "oxc-transform";
 
 export type { ExternalsPluginOptions as NodeExternalsOptions } from "nf3";
 
-export type RollupConfig = RollupInputOptions & {
-  output: RollupOutputOptions;
-};
+export type RollupConfig = RollupInputOptions &
+  RolldownInputOptions & {
+    output: RollupOutputOptions;
+  };
 
 export type VirtualModule = string | (() => string | Promise<string>);
 
