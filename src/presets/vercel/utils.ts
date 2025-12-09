@@ -39,23 +39,38 @@ export async function generateFunctionFiles(nitro: Nitro) {
   const buildConfig = generateBuildConfig(nitro, o11Routes);
   await writeFile(buildConfigPath, JSON.stringify(buildConfig, null, 2));
 
-  const systemNodeVersion = getSystemNodeVersion();
-  const usedNodeVersion =
-    SUPPORTED_NODE_VERSIONS.find((version) => version >= systemNodeVersion) ??
-    SUPPORTED_NODE_VERSIONS.at(-1);
+  // Runtime
+  // 1. Respect explicit runtime from nitro config
+  let runtime: VercelServerlessFunctionConfig["runtime"] =
+    nitro.options.vercel?.functions?.runtime;
+  // 2. Read runtime from vercel.json if specified
+  if (!runtime) {
+    const vercelConfig = await readVercelConfig(nitro.options.rootDir);
+    // Use bun runtime if bunVersion is specified or bun used to build
+    if (vercelConfig.bunVersion || "Bun" in globalThis) {
+      runtime = `bun${vercelConfig.bunVersion || "1.x"}`;
+    } else {
+      // 3. Auto-detect runtime based on system Node.js version
+      const systemNodeVersion = getSystemNodeVersion();
+      const usedNodeVersion =
+        SUPPORTED_NODE_VERSIONS.find(
+          (version) => version >= systemNodeVersion
+        ) ?? SUPPORTED_NODE_VERSIONS.at(-1);
+      runtime = `nodejs${usedNodeVersion}.x`;
+    }
+  }
 
-  const runtimeVersion = `nodejs${usedNodeVersion}.x`;
   const functionConfigPath = resolve(
     nitro.options.output.serverDir,
     ".vc-config.json"
   );
   const functionConfig: VercelServerlessFunctionConfig = {
-    runtime: runtimeVersion,
+    runtime,
+    ...nitro.options.vercel?.functions,
     handler: "index.mjs",
     launcherType: "Nodejs",
     shouldAddHelpers: false,
     supportsResponseStreaming: true,
-    ...nitro.options.vercel?.functions,
   };
   await writeFile(functionConfigPath, JSON.stringify(functionConfig, null, 2));
 
@@ -173,6 +188,26 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
           }
           return route;
         }),
+      // Skew protection
+      ...(nitro.options.vercel?.skewProtection &&
+      process.env.VERCEL_DEPLOYMENT_ID
+        ? [
+            {
+              src: "/.*",
+              has: [
+                {
+                  type: "header",
+                  key: "Sec-Fetch-Dest",
+                  value: "document",
+                },
+              ],
+              headers: {
+                "Set-Cookie": `__vdpl=${process.env.VERCEL_DEPLOYMENT_ID}; Path=${nitro.options.baseURL}; SameSite=Strict; Secure; HttpOnly`,
+              },
+              continue: true,
+            },
+          ]
+        : []),
       // Public asset rules
       ...nitro.options.publicAssets
         .filter((asset) => !asset.fallthrough)
@@ -274,6 +309,23 @@ export function deprecateSWR(nitro: Nitro) {
       "Nitro now uses `isr` option to configure ISR behavior on Vercel. Backwards-compatible support for `static` and `swr` options within the Vercel Build Options API will be removed in the future versions. Set `future.nativeSWR: true` nitro config disable this warning."
     );
   }
+}
+
+// --- vercel.json ---
+
+// https://vercel.com/docs/project-configuration
+// https://openapi.vercel.sh/vercel.json
+export interface VercelConfig {
+  bunVersion?: string;
+}
+
+export async function readVercelConfig(rootDir: string): Promise<VercelConfig> {
+  const vercelConfigPath = resolve(rootDir, "vercel.json");
+  const vercelConfig = await fsp
+    .readFile(vercelConfigPath)
+    .then((config) => JSON.parse(config.toString()))
+    .catch(() => ({}));
+  return vercelConfig as VercelConfig;
 }
 
 function _hasProp(obj: any, prop: string) {

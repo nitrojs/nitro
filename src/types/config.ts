@@ -266,7 +266,8 @@ export interface NitroOptions extends PresetOptions {
  * Nitro input config (nitro.config)
  */
 export interface NitroConfig
-  extends DeepPartial<
+  extends
+    DeepPartial<
       Omit<
         NitroOptions,
         "routeRules" | "rollupConfig" | "preset" | "compatibilityDate" | "unenv"

@@ -246,6 +246,7 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
   rollupConfig.plugins.push(
     replace({
       preventAssignment: true,
+      delimiters: [String.raw`\b`, String.raw`\b(?![\.$])`],
       values: {
         "typeof window": '"undefined"',
         _import_meta_url_: "import.meta.url",

@@ -113,6 +113,20 @@ export const cloudflareDev = defineNitroPreset(
       async (nitro) =>
         await import("./dev").then((m) => m.cloudflareDev(nitro)),
     ],
+    esbuild: {
+      options: {
+        target: "es2022",
+      },
+    },
+    unenv: {
+      meta: {
+        name: "cloudflare-dev",
+      },
+      alias: {
+        "cloudflare:workers":
+          "nitropack/presets/cloudflare/runtime/shims/workers.dev",
+      },
+    },
   },
   {
     name: "cloudflare-dev" as const,
