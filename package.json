@@ -105,7 +105,7 @@
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-replace": "^6.0.3",
     "@rollup/plugin-terser": "^0.4.4",
-    "@vercel/nft": "^0.30.4",
+    "@vercel/nft": "^1.1.1",
     "archiver": "^7.0.1",
     "c12": "^3.3.2",
     "chokidar": "^4.0.3",
