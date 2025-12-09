@@ -231,7 +231,9 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
         return {
           src,
           dest: withLeadingSlash(
-            normalizeRouteDest(key) + `?${ISR_URL_PARAM}=$${ISR_URL_PARAM}`
+            normalizeRouteDest(key) +
+              ISR_SUFFIX +
+              `?${ISR_URL_PARAM}=$${ISR_URL_PARAM}`
           ),
         };
       }),
