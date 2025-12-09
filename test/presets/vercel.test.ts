@@ -118,7 +118,7 @@ describe("nitro:preset:vercel:web", async () => {
                 "handle": "filesystem",
               },
               {
-                "dest": "/rules/_/noncached/cached?__isr_route=$__isr_route",
+                "dest": "/rules/_/noncached/cached-isr?__isr_route=$__isr_route",
                 "src": "/rules/_/noncached/cached",
               },
               {
@@ -130,7 +130,7 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "(?<__isr_route>/rules/_/noncached/.*)",
               },
               {
-                "dest": "/rules/_/cached/[...]?__isr_route=$__isr_route",
+                "dest": "/rules/_/cached/[...]-isr?__isr_route=$__isr_route",
                 "src": "(?<__isr_route>/rules/_/cached/.*)",
               },
               {
@@ -138,19 +138,19 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/rules/dynamic",
               },
               {
-                "dest": "/rules/isr/[...]?__isr_route=$__isr_route",
+                "dest": "/rules/isr/[...]-isr?__isr_route=$__isr_route",
                 "src": "(?<__isr_route>/rules/isr/.*)",
               },
               {
-                "dest": "/rules/isr-ttl/[...]?__isr_route=$__isr_route",
+                "dest": "/rules/isr-ttl/[...]-isr?__isr_route=$__isr_route",
                 "src": "(?<__isr_route>/rules/isr-ttl/.*)",
               },
               {
-                "dest": "/rules/swr/[...]?__isr_route=$__isr_route",
+                "dest": "/rules/swr/[...]-isr?__isr_route=$__isr_route",
                 "src": "(?<__isr_route>/rules/swr/.*)",
               },
               {
-                "dest": "/rules/swr-ttl/[...]?__isr_route=$__isr_route",
+                "dest": "/rules/swr-ttl/[...]-isr?__isr_route=$__isr_route",
                 "src": "(?<__isr_route>/rules/swr-ttl/.*)",
               },
               {
