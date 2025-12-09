@@ -164,7 +164,7 @@
     "unplugin-utils": "^0.3.1",
     "unstorage": "^1.17.3",
     "untyped": "^2.0.0",
-    "unwasm": "^0.3.11",
+    "unwasm": "^0.5.0",
     "youch": "^4.1.0-beta.13",
     "youch-core": "^0.3.3"
   },
