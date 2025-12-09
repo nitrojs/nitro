@@ -187,6 +187,26 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
           }
           return route;
         }),
+      // Skew protection
+      ...(nitro.options.vercel?.skewProtection &&
+      process.env.VERCEL_DEPLOYMENT_ID
+        ? [
+            {
+              src: "/.*",
+              has: [
+                {
+                  type: "header",
+                  key: "Sec-Fetch-Dest",
+                  value: "document",
+                },
+              ],
+              headers: {
+                "Set-Cookie": `__vdpl=${process.env.VERCEL_DEPLOYMENT_ID}; Path=${nitro.options.baseURL}; SameSite=Strict; Secure; HttpOnly`,
+              },
+              continue: true,
+            },
+          ]
+        : []),
       // Public asset rules
       ...nitro.options.publicAssets
         .filter((asset) => !asset.fallthrough)
