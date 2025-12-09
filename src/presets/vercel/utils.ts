@@ -10,6 +10,7 @@ import type {
   VercelServerlessFunctionConfig,
 } from "./types.ts";
 import { isTest } from "std-env";
+import { ISR_URL_PARAM } from "./runtime/isr.ts";
 
 // https://vercel.com/docs/build-output-api/configuration
 
@@ -210,8 +211,8 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     ...(nitro.options.routeRules["/"]?.isr
       ? [
           {
-            src: "(?<url>/)",
-            dest: `/index${ISR_SUFFIX}?url=$url`,
+            src: `(?<${ISR_URL_PARAM}>/)`,
+            dest: `/index${ISR_SUFFIX}?${ISR_URL_PARAM}=$${ISR_URL_PARAM}`,
           },
         ]
       : []),
@@ -219,7 +220,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     ...rules
       .filter(([key, value]) => value.isr !== undefined && key !== "/")
       .map(([key, value]) => {
-        const src = key.replace(/^(.*)\/\*\*/, "(?<url>$1/.*)");
+        const src = key.replace(/^(.*)\/\*\*/, `(?<${ISR_URL_PARAM}>$1/.*)`);
         if (value.isr === false) {
           // We need to write a rule to avoid route being shadowed by another cache rule elsewhere
           return {
@@ -230,7 +231,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
         return {
           src,
           dest: withLeadingSlash(
-            normalizeRouteDest(key) + ISR_SUFFIX + "?url=$url"
+            normalizeRouteDest(key) + `?${ISR_URL_PARAM}=$${ISR_URL_PARAM}`
           ),
         };
       }),
@@ -475,6 +476,13 @@ async function writePrerenderConfig(
     bypassToken,
     ...isrConfig,
   };
+
+  if (
+    prerenderConfig.allowQuery &&
+    !prerenderConfig.allowQuery.includes(ISR_URL_PARAM)
+  ) {
+    prerenderConfig.allowQuery.push(ISR_URL_PARAM);
+  }
 
   await writeFile(filename, JSON.stringify(prerenderConfig, null, 2));
 }

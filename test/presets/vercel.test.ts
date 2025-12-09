@@ -118,7 +118,7 @@ describe("nitro:preset:vercel:web", async () => {
                 "handle": "filesystem",
               },
               {
-                "dest": "/rules/_/noncached/cached-isr?url=$url",
+                "dest": "/rules/_/noncached/cached?__isr_route=$__isr_route",
                 "src": "/rules/_/noncached/cached",
               },
               {
@@ -127,31 +127,31 @@ describe("nitro:preset:vercel:web", async () => {
               },
               {
                 "dest": "/__server",
-                "src": "(?<url>/rules/_/noncached/.*)",
+                "src": "(?<__isr_route>/rules/_/noncached/.*)",
               },
               {
-                "dest": "/rules/_/cached/[...]-isr?url=$url",
-                "src": "(?<url>/rules/_/cached/.*)",
+                "dest": "/rules/_/cached/[...]?__isr_route=$__isr_route",
+                "src": "(?<__isr_route>/rules/_/cached/.*)",
               },
               {
                 "dest": "/__server",
                 "src": "/rules/dynamic",
               },
               {
-                "dest": "/rules/isr/[...]-isr?url=$url",
-                "src": "(?<url>/rules/isr/.*)",
+                "dest": "/rules/isr/[...]?__isr_route=$__isr_route",
+                "src": "(?<__isr_route>/rules/isr/.*)",
               },
               {
-                "dest": "/rules/isr-ttl/[...]-isr?url=$url",
-                "src": "(?<url>/rules/isr-ttl/.*)",
+                "dest": "/rules/isr-ttl/[...]?__isr_route=$__isr_route",
+                "src": "(?<__isr_route>/rules/isr-ttl/.*)",
               },
               {
-                "dest": "/rules/swr/[...]-isr?url=$url",
-                "src": "(?<url>/rules/swr/.*)",
+                "dest": "/rules/swr/[...]?__isr_route=$__isr_route",
+                "src": "(?<__isr_route>/rules/swr/.*)",
               },
               {
-                "dest": "/rules/swr-ttl/[...]-isr?url=$url",
-                "src": "(?<url>/rules/swr-ttl/.*)",
+                "dest": "/rules/swr-ttl/[...]?__isr_route=$__isr_route",
+                "src": "(?<__isr_route>/rules/swr-ttl/.*)",
               },
               {
                 "dest": "/wasm/static-import",
@@ -365,7 +365,7 @@ describe("nitro:preset:vercel:web", async () => {
         );
         expect(JSON.parse(isrRouteConfig)).toMatchObject({
           expiration: false,
-          allowQuery: ["q"],
+          allowQuery: ["q", "__isr_route"],
         });
       });
 

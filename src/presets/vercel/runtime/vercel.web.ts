@@ -2,6 +2,7 @@ import "#nitro-internal-polyfills";
 import { useNitroApp } from "nitro/app";
 
 import type { ServerRequest } from "srvx";
+import { isrRouteRewrite } from "./isr.ts";
 
 const nitroApp = useNitroApp();
 
@@ -10,14 +11,13 @@ export default {
     req: ServerRequest,
     context: { waitUntil: (promise: Promise<any>) => void }
   ) {
-    // Check for ISR request
-    const query = req.headers.get("x-now-route-matches");
-    if (query) {
-      const urlParam = new URLSearchParams(query).get("url");
-      if (urlParam) {
-        const url = new URL(decodeURIComponent(urlParam), req.url).href;
-        req = new Request(url, req);
-      }
+    // ISR route rewrite
+    const isrURL = isrRouteRewrite(
+      req.url,
+      req.headers.get("x-now-route-matches")
+    );
+    if (isrURL) {
+      req = new Request(new URL(isrURL, req.url).href, req);
     }
 
     // srvx compatibility
