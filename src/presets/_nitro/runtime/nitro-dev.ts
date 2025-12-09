@@ -20,7 +20,7 @@ import {
 
 // globalThis.crypto support for Node.js 18
 if (!globalThis.crypto) {
-  globalThis.crypto = nodeCrypto as unknown as Crypto;
+  globalThis.crypto = nodeCrypto.webcrypto as unknown as Crypto;
 }
 
 const { NITRO_NO_UNIX_SOCKET, NITRO_DEV_WORKER_ID } = process.env;
