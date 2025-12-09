@@ -214,7 +214,7 @@
       "optional": true
     }
   },
-  "packageManager": "pnpm@10.3.0",
+  "packageManager": "pnpm@10.25.0",
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
   },
