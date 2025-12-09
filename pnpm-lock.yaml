@@ -81,8 +81,8 @@ importers:
         specifier: ^10.1.0
         version: 10.1.0
       esbuild:
-        specifier: ^0.25.12
-        version: 0.25.12
+        specifier: ^0.27.1
+        version: 0.27.1
       escape-string-regexp:
         specifier: ^5.0.0
         version: 5.0.0
