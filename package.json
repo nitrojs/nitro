@@ -124,7 +124,7 @@
     "escape-string-regexp": "^5.0.0",
     "etag": "^1.8.1",
     "exsolve": "^1.0.8",
-    "globby": "^15.0.0",
+    "globby": "^16.0.0",
     "gzip-size": "^7.0.0",
     "h3": "^1.15.4",
     "hookable": "^5.5.3",
