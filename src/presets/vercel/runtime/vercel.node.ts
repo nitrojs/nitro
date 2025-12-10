@@ -18,9 +18,9 @@ export default function nodeHandler(
     req.headers["x-now-route-matches"] as string
   );
   if (isrURL) {
-    const { routeRules } = getRouteRules("", isrURL);
+    const { routeRules } = getRouteRules("", isrURL[0]);
     if (routeRules?.isr) {
-      req.url = isrURL;
+      req.url = isrURL[0] + (isrURL[1] ? `?${isrURL[1]}` : "");
     }
   }
 
