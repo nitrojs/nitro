@@ -3,9 +3,9 @@ import { execaCommand } from "execa";
 import { globby } from "globby";
 import { resolve } from "pathe";
 
-const nightlyPackages = {
-  h3: "h3-nightly",
-} as Record<string, string>;
+// const nightlyPackages = {
+//   h3: "h3-nightly",
+// } as Record<string, string>;
 
 async function loadPackage(dir: string) {
   const pkgPath = resolve(dir, "package.json");
@@ -129,11 +129,11 @@ async function main() {
       `${pkg.data.version}-${fmtDate(new Date())}.${commit}`
     );
     workspace.rename(pkg.data.name, pkg.data.name + "-nightly");
-    pkg.updateDeps((dep) => {
-      if (nightlyPackages[dep.name]) {
-        dep.range = "npm:" + nightlyPackages[dep.name] + "@latest";
-      }
-    });
+    // pkg.updateDeps((dep) => {
+    //   if (nightlyPackages[dep.name]) {
+    //     dep.range = "npm:" + nightlyPackages[dep.name] + "@latest";
+    //   }
+    // });
   }
 
   await workspace.save();
