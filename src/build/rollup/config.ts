@@ -1,6 +1,5 @@
 import type { Nitro, RollupConfig } from "nitro/types";
 import { defu } from "defu";
-import { sanitizeFilePath } from "mlly";
 import alias from "@rollup/plugin-alias";
 import commonjs from "@rollup/plugin-commonjs";
 import inject from "@rollup/plugin-inject";
@@ -9,7 +8,7 @@ import { nodeResolve } from "@rollup/plugin-node-resolve";
 import { oxc } from "../plugins/oxc.ts";
 import { baseBuildConfig } from "../config.ts";
 import { baseBuildPlugins } from "../plugins.ts";
-import { getChunkName } from "../chunks.ts";
+import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
 
 export const getRollupConfig = (nitro: Nitro): RollupConfig => {
   const base = baseBuildConfig(nitro);
@@ -76,10 +75,14 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
       dir: nitro.options.output.serverDir,
       inlineDynamicImports: nitro.options.inlineDynamicImports,
       generatedCode: { constBindings: true },
-      sanitizeFileName: sanitizeFilePath,
       sourcemap: nitro.options.sourcemap,
       sourcemapExcludeSources: true,
       sourcemapIgnoreList: (id) => id.includes("node_modules"),
+      manualChunks(id: string) {
+        if (NODE_MODULES_RE.test(id)) {
+          return libChunkName(id);
+        }
+      },
     },
   } satisfies RollupConfig;
 

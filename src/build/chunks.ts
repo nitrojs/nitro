@@ -3,6 +3,15 @@ import { presetsDir, runtimeDir } from "nitro/meta";
 
 const virtualRe = /^\0|^virtual:/;
 
+export const NODE_MODULES_RE = /node_modules[/\\][^.]/;
+
+export function libChunkName(id: string) {
+  const pkgName = id.match(
+    /.*(?:[/\\])node_modules(?:[/\\])(?<package>@[^/\\]+[/\\][^/\\]+|[^/\\.][^/\\]*)/
+  )?.groups?.package;
+  return `_libs/${pkgName || "common"}`;
+}
+
 export function getChunkName(
   chunk: { name: string; moduleIds: string[] },
   nitro: Nitro

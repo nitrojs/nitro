@@ -1,11 +1,10 @@
 import type { Nitro } from "nitro/types";
 import type { RolldownOptions, RolldownPlugin } from "rolldown";
-import { sanitizeFilePath } from "mlly";
 import { baseBuildConfig } from "../config.ts";
 import { baseBuildPlugins } from "../plugins.ts";
 import { builtinModules } from "node:module";
 import { defu } from "defu";
-import { getChunkName } from "../chunks.ts";
+import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
 
 export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
   const base = baseBuildConfig(nitro);
@@ -56,23 +55,11 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
       entryFileNames: "index.mjs",
       chunkFileNames: (chunk) => getChunkName(chunk, nitro),
       advancedChunks: {
-        groups: [
-          {
-            test: /node_modules/,
-            name: (moduleId: string) => {
-              const pkgName = moduleId.match(
-                /.*\/node_modules\/(?<package>@[^/]+\/[^/]+|[^/]+)/
-              )?.groups?.package;
-              console.log(moduleId, "~>", pkgName);
-              return `_libs/${pkgName || "common"}`;
-            },
-          },
-        ],
+        groups: [{ test: NODE_MODULES_RE, name: (id) => libChunkName(id) }],
       },
       dir: nitro.options.output.serverDir,
       inlineDynamicImports: nitro.options.inlineDynamicImports,
       minify: nitro.options.minify,
-      sanitizeFileName: sanitizeFilePath,
       sourcemap: nitro.options.sourcemap,
       sourcemapIgnoreList(relativePath) {
         return relativePath.includes("node_modules");

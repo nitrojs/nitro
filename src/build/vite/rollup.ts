@@ -4,7 +4,7 @@ import { resolve, dirname } from "pathe";
 import alias from "@rollup/plugin-alias";
 import inject from "@rollup/plugin-inject";
 import { baseBuildConfig, type BaseBuildConfig } from "../config.ts";
-import { getChunkName } from "../chunks.ts";
+import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
 import { baseBuildPlugins } from "../plugins.ts";
 import type { OutputBundle, Plugin as RollupPlugin } from "rollup";
 import type { NitroPluginContext } from "./types.ts";
@@ -43,21 +43,24 @@ export const getViteRollupConfig = (
       format: "esm",
       entryFileNames: "index.mjs",
       chunkFileNames: (chunk) => getChunkName(chunk, nitro),
-      // @ts-expect-error rolldown config
-      advancedChunks: {
-        groups: [
-          {
-            test: /node_modules/,
-            name: (moduleId: string) => {
-              const pkgName = moduleId.match(
-                /.*\/node_modules\/(?<package>@[^/]+\/[^/]+|[^/]+)/
-              )?.groups?.package;
-              console.log(moduleId, "~>", pkgName);
-              return `_libs/${pkgName || "common"}`;
+      ...(ctx._isRolldown
+        ? {
+            advancedChunks: {
+              groups: [
+                {
+                  test: NODE_MODULES_RE,
+                  name: (id: string) => libChunkName(id),
+                },
+              ],
             },
-          },
-        ],
-      },
+          }
+        : {
+            manualChunks(id: string) {
+              if (NODE_MODULES_RE.test(id)) {
+                return libChunkName(id);
+              }
+            },
+          }),
       inlineDynamicImports: nitro.options.inlineDynamicImports,
       dir: nitro.options.output.serverDir,
       generatedCode: {
