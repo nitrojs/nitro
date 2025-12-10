@@ -55,9 +55,12 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
     ],
     onwarn(warning, rollupWarn) {
       if (
-        !["EVAL", "CIRCULAR_DEPENDENCY", "THIS_IS_UNDEFINED"].includes(
-          warning.code || ""
-        ) &&
+        ![
+          "EVAL",
+          "CIRCULAR_DEPENDENCY",
+          "THIS_IS_UNDEFINED",
+          "EMPTY_CHUNK",
+        ].includes(warning.code || "") &&
         !warning.message.includes("Unsupported source map comment")
       ) {
         rollupWarn(warning);
