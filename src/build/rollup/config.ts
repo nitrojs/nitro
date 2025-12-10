@@ -88,8 +88,9 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
 
   config = defu(nitro.options.rollupConfig as any, config);
 
-  if (config.output.format === "iife") {
-    delete config.output.manualChunks;
+  const outputConfig = config.output as RollupConfig["output"];
+  if (outputConfig.inlineDynamicImports || outputConfig.format === "iife") {
+    delete outputConfig.manualChunks;
   }
 
   return config;

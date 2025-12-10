@@ -69,8 +69,9 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
 
   config = defu(nitro.options.rollupConfig as any, config);
 
-  if ((config!.output as OutputOptions).format === "iife") {
-    delete (config!.output as OutputOptions).advancedChunks;
+  const outputConfig = config.output as OutputOptions;
+  if (outputConfig.inlineDynamicImports || outputConfig.format === "iife") {
+    delete outputConfig.advancedChunks;
   }
 
   return config as RolldownOptions;
