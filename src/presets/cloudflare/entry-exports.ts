@@ -1,44 +1,27 @@
 import type { Nitro } from "nitro/types";
-import { readFile } from "node:fs/promises";
-import { presetsDir } from "nitro/meta";
 import { resolveModulePath } from "exsolve";
-import { parseSync } from "oxc-parser";
-import { resolveNitroPath, prettyPath } from "../../utils/fs.ts";
+import { prettyPath } from "../../utils/fs.ts";
 
 const RESOLVE_EXTENSIONS = [".ts", ".js", ".mts", ".mjs"];
-const DEFAULT_DETECTD_EXPORTS_FILENAME = "exports.cloudflare";
 
 export async function setupEntryExports(nitro: Nitro) {
   const exportsEntry = resolveExportsEntry(nitro);
   if (!exportsEntry) return;
 
-  const exports = await resolveModuleExportNames(exportsEntry);
-  if (exports.includes("default")) {
-    throw new Error(
-      `Unsupported Cloudflare exports entry \`${prettyPath(exportsEntry)}\` exports default.`
-    );
-  }
+  const originalEntry = nitro.options.entry;
 
-  const serverEntry = resolveModulePath(nitro.options.entry, {
-    from: [presetsDir, nitro.options.rootDir, ...nitro.options.scanDirs],
-    extensions: RESOLVE_EXTENSIONS,
-  });
-
-  const serverEntryExports = await resolveModuleExportNames(serverEntry);
-  const id = (nitro.options.entry =
+  const virtualEntryId = (nitro.options.entry =
     "#nitro-internal-virtual/cloudflare-server-entry");
-  nitro.options.virtual[id] = `/* ts */
+  nitro.options.virtual[virtualEntryId] = /* ts */ `
       export * from "${exportsEntry}";
-      export { ${serverEntryExports.join(", ")} } from "${serverEntry}";
+      export * from "${originalEntry}";
+      export { default } from "${originalEntry}";
   `;
 }
 
 function resolveExportsEntry(nitro: Nitro) {
   const entry = resolveModulePath(
-    resolveNitroPath(
-      nitro.options.cloudflare?.exports ?? DEFAULT_DETECTD_EXPORTS_FILENAME,
-      nitro.options
-    ),
+    nitro.options.cloudflare?.exports || "./exports.cloudflare.ts",
     {
       from: nitro.options.rootDir,
       extensions: RESOLVE_EXTENSIONS,
@@ -57,14 +40,4 @@ function resolveExportsEntry(nitro: Nitro) {
   }
 
   return entry;
-}
-
-async function resolveModuleExportNames(path: string) {
-  const content = await readFile(path, "utf8");
-  const parsed = parseSync(path, content, { sourceType: "module" });
-  const exports = parsed.module.staticExports
-    .flatMap((exp) => exp.entries.map((e) => e.exportName))
-    .filter((e) => e.kind === "Default" || e.kind === "Name");
-
-  return exports.map((e) => e.name ?? "default");
 }
