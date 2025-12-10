@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions: { id-token: write, contents: read }
     needs: tests
-    if: contains('refs/heads/main', github.ref) && github.event_name == 'push'
+    if: contains('refs/heads/v2', github.ref) && github.event_name == 'push'
     steps:
       - uses: actions/checkout@v6
         with: { fetch-depth: 0 }
