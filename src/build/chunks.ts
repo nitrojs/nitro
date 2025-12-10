@@ -1,5 +1,5 @@
 import type { Nitro } from "nitro/types";
-import { presetsDir, runtimeDir } from "../runtime/meta.ts";
+import { presetsDir, runtimeDir } from "nitro/meta";
 
 const virtualRe = /^\0|^virtual:/;
 

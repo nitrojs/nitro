@@ -53,7 +53,7 @@ export function createHTTPProxy(defaults: ProxyServerOptions = {}): HTTPProxy {
   };
 }
 
-export function fetchAddress(
+export async function fetchAddress(
   addr: { port?: number; host?: string; socketPath?: string },
   input: string | URL | Request,
   inputInit?: RequestInit
@@ -77,16 +77,25 @@ export function fetchAddress(
     redirect: "manual",
     ...init,
   };
+  let res: Response;
   if (addr.socketPath) {
     url.protocol = "http:";
-    return fetch(url, {
+    res = await fetch(url, {
       ...init,
       ...fetchSocketOptions(addr.socketPath),
     });
+  } else {
+    const origin = `http://${addr.host}${addr.port ? `:${addr.port}` : ""}`;
+    const outURL = new URL(url.pathname + url.search, origin);
+    res = await fetch(outURL, init);
   }
-  const origin = `http://${addr.host}${addr.port ? `:${addr.port}` : ""}`;
-  const outURL = new URL(url.pathname + url.search, origin);
-  return fetch(outURL, init);
+  const headers = new Headers(res.headers);
+  headers.delete("transfer-encoding");
+  return new Response(res.body, {
+    status: res.status,
+    statusText: res.statusText,
+    headers,
+  });
 }
 
 function fetchSocketOptions(socketPath: string) {

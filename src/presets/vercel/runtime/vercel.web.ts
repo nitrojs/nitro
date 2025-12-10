@@ -1,7 +1,8 @@
 import "#nitro-internal-polyfills";
-import { useNitroApp } from "nitro/app";
+import { useNitroApp, getRouteRules } from "nitro/app";
 
 import type { ServerRequest } from "srvx";
+import { isrRouteRewrite } from "./isr.ts";
 
 const nitroApp = useNitroApp();
 
@@ -10,13 +11,18 @@ export default {
     req: ServerRequest,
     context: { waitUntil: (promise: Promise<any>) => void }
   ) {
-    // Check for ISR request
-    const query = req.headers.get("x-now-route-matches");
-    if (query) {
-      const urlParam = new URLSearchParams(query).get("url");
-      if (urlParam) {
-        const url = new URL(decodeURIComponent(urlParam), req.url).href;
-        req = new Request(url, req);
+    // ISR route rewrite
+    const isrURL = isrRouteRewrite(
+      req.url,
+      req.headers.get("x-now-route-matches")
+    );
+    if (isrURL) {
+      const { routeRules } = getRouteRules("", isrURL[0]);
+      if (routeRules?.isr) {
+        req = new Request(
+          new URL(isrURL[0] + (isrURL[1] ? `?${isrURL[1]}` : ""), req.url).href,
+          req
+        );
       }
     }
 
