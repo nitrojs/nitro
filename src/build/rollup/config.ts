@@ -15,7 +15,7 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
 
   const tsc = nitro.options.typescript.tsConfig?.compilerOptions;
 
-  let config = {
+  let config: RollupConfig = {
     input: nitro.options.entry,
     external: [...base.env.external],
     plugins: [
@@ -87,6 +87,10 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
   } satisfies RollupConfig;
 
   config = defu(nitro.options.rollupConfig as any, config);
+
+  if (config.output.format === "iife") {
+    delete config.output.manualChunks;
+  }
 
   return config;
 };

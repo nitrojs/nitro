@@ -1,5 +1,5 @@
 import type { Nitro } from "nitro/types";
-import type { RolldownOptions, RolldownPlugin } from "rolldown";
+import type { OutputOptions, RolldownOptions, RolldownPlugin } from "rolldown";
 import { baseBuildConfig } from "../config.ts";
 import { baseBuildPlugins } from "../plugins.ts";
 import { builtinModules } from "node:module";
@@ -11,7 +11,7 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
 
   const tsc = nitro.options.typescript.tsConfig?.compilerOptions;
 
-  let config = {
+  let config: RolldownOptions = {
     platform: nitro.options.node ? "node" : "neutral",
     cwd: nitro.options.rootDir,
     input: nitro.options.entry,
@@ -68,6 +68,10 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
   } satisfies RolldownOptions;
 
   config = defu(nitro.options.rollupConfig as any, config);
+
+  if ((config!.output as OutputOptions).format === "iife") {
+    delete (config!.output as OutputOptions).advancedChunks;
+  }
 
   return config as RolldownOptions;
 };
