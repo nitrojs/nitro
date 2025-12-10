@@ -24,7 +24,7 @@ export async function cloudflareDevModule(nitro: Nitro) {
 
   // Try to resolve wrangler
   const wranglerPath = await resolveModulePath("wrangler", {
-    from: nitro.options.nodeModulesDirs,
+    from: nitro.options.rootDir,
     try: true,
   });
   if (!wranglerPath) {

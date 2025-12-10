@@ -269,7 +269,6 @@ export interface NitroOptions extends PresetOptions {
     tsconfigPath: string;
   };
   hooks: NestedHooks<NitroHooks>;
-  nodeModulesDirs: string[];
   commands: {
     preview: string;
     deploy: string;

@@ -42,7 +42,6 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
         extensions: base.extensions,
         preferBuiltins: !!nitro.options.node,
         rootDir: nitro.options.rootDir,
-        modulePaths: nitro.options.nodeModulesDirs,
         // 'module' is intentionally not supported because of externals
         mainFields: ["main"],
         exportConditions: nitro.options.exportConditions,
