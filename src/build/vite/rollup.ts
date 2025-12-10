@@ -1,6 +1,5 @@
 import type { RollupConfig } from "nitro/types";
 import { defu } from "defu";
-import { sanitizeFilePath } from "mlly";
 import { resolve, dirname } from "pathe";
 import alias from "@rollup/plugin-alias";
 import inject from "@rollup/plugin-inject";
@@ -9,20 +8,6 @@ import { getChunkName } from "../chunks.ts";
 import { baseBuildPlugins } from "../plugins.ts";
 import type { OutputBundle, Plugin as RollupPlugin } from "rollup";
 import type { NitroPluginContext } from "./types.ts";
-
-/**
- * Removed from base rollup config:
- *  - nodeResolve
- *  - commonjs
- *  - esbuild
- *  - sourcemapMinify
- *  - json
- *  - raw
- *
- * TODO: Reuse with rollup:
- * - chunkFileNames
- * - moduleSideEffects
- */
 
 export const getViteRollupConfig = (
   ctx: NitroPluginContext
