@@ -1,4 +1,4 @@
-import type { EnvironmentOptions } from "vite";
+import type { EnvironmentOptions, RollupCommonJSOptions } from "vite";
 import type { NitroPluginContext, ServiceConfig } from "./types.ts";
 
 import { NodeEnvRunner } from "../../runner/node.ts";
@@ -22,13 +22,11 @@ export function createNitroEnvironment(
   return {
     consumer: "server",
     build: {
-      rollupOptions: ctx.rollupConfig!.config as any,
+      rollupOptions: ctx.rollupConfig!.config,
       minify: ctx.nitro!.options.minify,
       emptyOutDir: false,
       sourcemap: ctx.nitro!.options.sourcemap,
-      commonjsOptions: {
-        ...(ctx.nitro!.options.commonJS as any),
-      },
+      commonjsOptions: ctx.nitro!.options.commonJS as RollupCommonJSOptions,
     },
     resolve: {
       noExternal: ctx.nitro!.options.dev
@@ -41,6 +39,12 @@ export function createNitroEnvironment(
       conditions: ctx.nitro!.options.exportConditions,
       externalConditions: ctx.nitro!.options.exportConditions?.filter(
         (c) => !/browser|wasm/.test(c)
+      ),
+    },
+    define: {
+      // Workaround for tanstack-start (devtools)
+      "process.env.NODE_ENV": JSON.stringify(
+        ctx.nitro!.options.dev ? "development" : "production"
       ),
     },
     dev: {
