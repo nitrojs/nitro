@@ -46,8 +46,18 @@ export function routeMeta(nitro: Nitro) {
         let meta: NitroEventHandler["meta"] | null = null;
 
         try {
-          const jsCode = transformSync(id, code).code;
-          const ast = this.parse(jsCode);
+          const transformRes = transformSync(id, code);
+          if (transformRes.errors?.length > 0) {
+            for (const error of transformRes.errors) {
+              this.warn(error);
+            }
+            return {
+              code: `export default {};`,
+              map: null,
+            };
+          }
+
+          const ast = this.parse(transformRes.code);
           for (const node of ast.body) {
             if (
               node.type === "ExpressionStatement" &&

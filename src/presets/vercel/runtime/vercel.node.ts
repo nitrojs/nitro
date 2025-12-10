@@ -1,7 +1,8 @@
 import "#nitro-internal-polyfills";
 import type { NodeServerRequest, NodeServerResponse } from "srvx";
 import { toNodeHandler } from "srvx/node";
-import { useNitroApp } from "nitro/app";
+import { useNitroApp, getRouteRules } from "nitro/app";
+import { isrRouteRewrite } from "./isr.ts";
 
 const nitroApp = useNitroApp();
 
@@ -11,12 +12,17 @@ export default function nodeHandler(
   req: NodeServerRequest,
   res: NodeServerResponse
 ) {
-  const query = req.headers["x-now-route-matches"] as string;
-  if (query) {
-    const url = new URLSearchParams(query).get("url");
-    if (url) {
-      req.url = decodeURIComponent(url);
+  // ISR route rewrite
+  const isrURL = isrRouteRewrite(
+    req.url!,
+    req.headers["x-now-route-matches"] as string
+  );
+  if (isrURL) {
+    const { routeRules } = getRouteRules("", isrURL[0]);
+    if (routeRules?.isr) {
+      req.url = isrURL[0] + (isrURL[1] ? `?${isrURL[1]}` : "");
     }
   }
+
   return handler(req, res);
 }

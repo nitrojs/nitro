@@ -2,7 +2,7 @@ import type { MinifyOptions } from "oxc-minify";
 import type { OXCOptions } from "nitro/types";
 import type { Plugin } from "rollup";
 
-import { transform } from "oxc-transform";
+import { transformSync } from "oxc-transform";
 import { minifySync } from "oxc-minify";
 
 export function oxc(
@@ -15,10 +15,14 @@ export function oxc(
         id: /^(?!.*\/node_modules\/).*\.m?[jt]sx?$/,
       },
       handler(code, id) {
-        return transform(id, code, {
+        const res = transformSync(id, code, {
           sourcemap: options.sourcemap,
           ...options.transform,
         });
+        if (res.errors?.length > 0) {
+          this.error(res.errors.join("\n"));
+        }
+        return res;
       },
     },
     renderChunk(code, chunk) {

@@ -5,8 +5,6 @@ import type {
 import type { MinifyOptions } from "oxc-minify";
 import type { JsxOptions, TransformOptions } from "oxc-transform";
 
-export type { ExternalsPluginOptions as NodeExternalsOptions } from "nf3";
-
 export type RollupConfig = RollupInputOptions & {
   output: RollupOutputOptions;
 };

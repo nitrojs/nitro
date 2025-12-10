@@ -194,7 +194,11 @@ export class Router<T> {
     if (onlyWildcard) {
       // Optimize for single wildcard route
       const data = (opts?.serialize || JSON.stringify)(this.routes[0].data);
-      this._compiled = /* js */ `/* @__PURE__ */ (() => {const data=${data};return ((_m, p)=>{return {data,params:{"_":p.slice(1)}};})})()`;
+      let retCode = `{data,params:{"_":p.slice(1)}}`;
+      if (opts?.matchAll) {
+        retCode = `[${retCode}]`;
+      }
+      this._compiled = /* js */ `/* @__PURE__ */ (() => {const data=${data};return ((_m, p)=>{return ${retCode};})})()`;
     }
 
     return this._compiled;

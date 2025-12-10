@@ -1,6 +1,5 @@
 import type { Nitro, RollupConfig } from "nitro/types";
 import { defu } from "defu";
-import { sanitizeFilePath } from "mlly";
 import alias from "@rollup/plugin-alias";
 import commonjs from "@rollup/plugin-commonjs";
 import inject from "@rollup/plugin-inject";
@@ -9,14 +8,14 @@ import { nodeResolve } from "@rollup/plugin-node-resolve";
 import { oxc } from "../plugins/oxc.ts";
 import { baseBuildConfig } from "../config.ts";
 import { baseBuildPlugins } from "../plugins.ts";
-import { getChunkName } from "../chunks.ts";
+import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
 
 export const getRollupConfig = (nitro: Nitro): RollupConfig => {
   const base = baseBuildConfig(nitro);
 
   const tsc = nitro.options.typescript.tsConfig?.compilerOptions;
 
-  let config = {
+  let config: RollupConfig = {
     input: nitro.options.entry,
     external: [...base.env.external],
     plugins: [
@@ -43,7 +42,6 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
         extensions: base.extensions,
         preferBuiltins: !!nitro.options.node,
         rootDir: nitro.options.rootDir,
-        modulePaths: nitro.options.nodeModulesDirs,
         // 'module' is intentionally not supported because of externals
         mainFields: ["main"],
         exportConditions: nitro.options.exportConditions,
@@ -56,9 +54,12 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
     ],
     onwarn(warning, rollupWarn) {
       if (
-        !["EVAL", "CIRCULAR_DEPENDENCY", "THIS_IS_UNDEFINED"].includes(
-          warning.code || ""
-        ) &&
+        ![
+          "EVAL",
+          "CIRCULAR_DEPENDENCY",
+          "THIS_IS_UNDEFINED",
+          "EMPTY_CHUNK",
+        ].includes(warning.code || "") &&
         !warning.message.includes("Unsupported source map comment")
       ) {
         rollupWarn(warning);
@@ -72,18 +73,27 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
     output: {
       format: "esm",
       entryFileNames: "index.mjs",
-      chunkFileNames: (chunk) => getChunkName(nitro, chunk.moduleIds),
+      chunkFileNames: (chunk) => getChunkName(chunk, nitro),
       dir: nitro.options.output.serverDir,
       inlineDynamicImports: nitro.options.inlineDynamicImports,
       generatedCode: { constBindings: true },
-      sanitizeFileName: sanitizeFilePath,
       sourcemap: nitro.options.sourcemap,
       sourcemapExcludeSources: true,
       sourcemapIgnoreList: (id) => id.includes("node_modules"),
+      manualChunks(id: string) {
+        if (NODE_MODULES_RE.test(id)) {
+          return libChunkName(id);
+        }
+      },
     },
   } satisfies RollupConfig;
 
   config = defu(nitro.options.rollupConfig as any, config);
+
+  const outputConfig = config.output as RollupConfig["output"];
+  if (outputConfig.inlineDynamicImports || outputConfig.format === "iife") {
+    delete outputConfig.manualChunks;
+  }
 
   return config;
 };

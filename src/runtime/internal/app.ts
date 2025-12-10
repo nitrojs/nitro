@@ -202,7 +202,7 @@ function createH3App(config: H3Config) {
   return h3App;
 }
 
-function getRouteRules(
+export function getRouteRules(
   method: string,
   pathname: string
 ): {

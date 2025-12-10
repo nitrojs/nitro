@@ -1,28 +1,13 @@
 import type { RollupConfig } from "nitro/types";
 import { defu } from "defu";
-import { sanitizeFilePath } from "mlly";
 import { resolve, dirname } from "pathe";
 import alias from "@rollup/plugin-alias";
 import inject from "@rollup/plugin-inject";
 import { baseBuildConfig, type BaseBuildConfig } from "../config.ts";
-import { getChunkName } from "../chunks.ts";
+import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
 import { baseBuildPlugins } from "../plugins.ts";
 import type { OutputBundle, Plugin as RollupPlugin } from "rollup";
 import type { NitroPluginContext } from "./types.ts";
-
-/**
- * Removed from base rollup config:
- *  - nodeResolve
- *  - commonjs
- *  - esbuild
- *  - sourcemapMinify
- *  - json
- *  - raw
- *
- * TODO: Reuse with rollup:
- * - chunkFileNames
- * - moduleSideEffects
- */
 
 export const getViteRollupConfig = (
   ctx: NitroPluginContext
@@ -57,14 +42,32 @@ export const getViteRollupConfig = (
     output: {
       format: "esm",
       entryFileNames: "index.mjs",
-      chunkFileNames: (chunk) => getChunkName(nitro, chunk.moduleIds),
+      chunkFileNames: (chunk) => getChunkName(chunk, nitro),
+      ...(ctx._isRolldown
+        ? {
+            advancedChunks: {
+              groups: [
+                {
+                  test: NODE_MODULES_RE,
+                  name: (id: string) => libChunkName(id),
+                },
+              ],
+            },
+          }
+        : {
+            manualChunks(id: string) {
+              if (NODE_MODULES_RE.test(id)) {
+                return libChunkName(id);
+              }
+            },
+          }),
       inlineDynamicImports: nitro.options.inlineDynamicImports,
       dir: nitro.options.output.serverDir,
       generatedCode: {
         // constBindings is not supported in rolldown
         ...(ctx._isRolldown ? {} : { constBindings: true }),
       },
-      sanitizeFileName: sanitizeFilePath,
+      // sanitizeFileName: sanitizeFilePath,
       // sourcemapExcludeSources is not supported in rolldown
       ...(ctx._isRolldown ? {} : { sourcemapExcludeSources: true }),
       sourcemapIgnoreList: (id) => id.includes("node_modules"),
