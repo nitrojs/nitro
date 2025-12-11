@@ -77,5 +77,5 @@ function getEnv(key: string, opts: EnvOptions) {
 }
 
 function _isObject(input: unknown) {
-  return typeof input === "object" && !Array.isArray(input);
+  return input !== null && typeof input === "object" && !Array.isArray(input);
 }
