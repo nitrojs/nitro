@@ -461,6 +461,12 @@ importers:
         specifier: ^3.15.0
         version: 3.19.0
 
+  examples/virtual-routes:
+    devDependencies:
+      nitro:
+        specifier: link:../..
+        version: link:../..
+
   examples/vite-nitro-plugin:
     devDependencies:
       nitro:
