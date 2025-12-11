@@ -166,6 +166,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/wait-until",
               },
               {
+                "dest": "/virtual",
+                "src": "/virtual",
+              },
+              {
                 "dest": "/stream",
                 "src": "/stream",
               },
@@ -455,6 +459,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/static-flags.func (symlink)",
             "functions/stream.func (symlink)",
             "functions/tasks/[...name].func (symlink)",
+            "functions/virtual.func (symlink)",
             "functions/wait-until.func (symlink)",
             "functions/wasm/dynamic-import.func (symlink)",
             "functions/wasm/static-import.func (symlink)",
