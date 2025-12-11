@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { isAbsolute } from "pathe";
 import { transformSync } from "oxc-transform";
 import type { Expression, Literal } from "estree";
 import type { Nitro, NitroEventHandler } from "nitro/types";
@@ -34,7 +35,11 @@ export function routeMeta(nitro: Nitro) {
       handler(id) {
         if (id.startsWith(PREFIX)) {
           const fullPath = id.slice(PREFIX.length);
-          return readFile(fullPath, { encoding: "utf8" });
+          if (isAbsolute(fullPath)) {
+            return readFile(fullPath, { encoding: "utf8" });
+          } else {
+            return "export default undefined;";
+          }
         }
       },
     },

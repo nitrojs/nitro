@@ -31,6 +31,10 @@ export default defineConfig({
       },
     },
   },
+  virtual: {
+    "#virtual-route": () =>
+      `export default () => new Response("Hello from virtual entry!")`,
+  },
   handlers: [
     {
       route: "/api/test/*/foo",
@@ -41,6 +45,10 @@ export default defineConfig({
       route: "/api/hello2",
       handler: "./server/routes/api/hello.ts",
       middleware: true,
+    },
+    {
+      route: "/virtual",
+      handler: "#virtual-route",
     },
   ],
   devProxy: {
