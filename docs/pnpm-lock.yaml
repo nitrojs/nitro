@@ -12,8 +12,8 @@ importers:
         specifier: ^2.0.674
         version: 2.0.674
       undocs:
-        specifier: ^0.4.10
-        version: 0.4.10(@babel/parser@7.28.4)(@netlify/blobs@9.1.2)(@parcel/watcher@2.5.1)(@types/node@24.2.0)(@vue/compiler-sfc@3.5.21)(@vueuse/core@13.9.0(vue@3.5.21(typescript@5.9.2)))(db0@0.3.2)(embla-carousel@8.6.0)(ioredis@5.7.0)(jwt-decode@4.0.0)(lightningcss@1.30.1)(magicast@0.3.5)(rollup@4.50.2)(terser@5.43.1)(typescript@5.9.2)(vite@7.1.6(@types/node@24.2.0)(jiti@2.5.1)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.8.1))(yaml@2.8.1)(zod@3.25.76)
+        specifier: ^0.4.11
+        version: 0.4.11(@babel/parser@7.28.4)(@netlify/blobs@9.1.2)(@parcel/watcher@2.5.1)(@types/node@24.2.0)(@vue/compiler-sfc@3.5.21)(@vueuse/core@13.9.0(vue@3.5.21(typescript@5.9.2)))(db0@0.3.2)(embla-carousel@8.6.0)(ioredis@5.7.0)(jwt-decode@4.0.0)(lightningcss@1.30.1)(magicast@0.3.5)(rollup@4.50.2)(terser@5.43.1)(typescript@5.9.2)(vite@7.1.6(@types/node@24.2.0)(jiti@2.5.1)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.8.1))(yaml@2.8.1)(zod@3.25.76)
 
 packages:
 
@@ -4451,8 +4451,8 @@ packages:
   undici-types@7.10.0:
     resolution: {integrity: sha512-t5Fy/nfn+14LuOc2KNYg75vZqClpAiqscVvMygNnlsHBFpSXdJaYtXMcdNLpl/Qvc3P2cB3s6lOV51nqsFq4ag==}
 
-  undocs@0.4.10:
-    resolution: {integrity: sha512-NZGfAaKN4OGFhgllnbtQ4vSenQaTOKD2ROleVuirPdW/sPqlva38nwWSa9xY/i0ZtcDnZBl9Sz1hjNqrOSAYIg==}
+  undocs@0.4.11:
+    resolution: {integrity: sha512-S5V1sGz5sBCG3JNgCBR0WEvSIK/vgEMTwGG8a1+KepWunzvEpHWCoOOvCLAp3PZndj1xNQpC3hj2PPVFU/LK7Q==}
     hasBin: true
 
   unenv@2.0.0-rc.21:
@@ -10342,7 +10342,7 @@ snapshots:
   undici-types@7.10.0:
     optional: true
 
-  undocs@0.4.10(@babel/parser@7.28.4)(@netlify/blobs@9.1.2)(@parcel/watcher@2.5.1)(@types/node@24.2.0)(@vue/compiler-sfc@3.5.21)(@vueuse/core@13.9.0(vue@3.5.21(typescript@5.9.2)))(db0@0.3.2)(embla-carousel@8.6.0)(ioredis@5.7.0)(jwt-decode@4.0.0)(lightningcss@1.30.1)(magicast@0.3.5)(rollup@4.50.2)(terser@5.43.1)(typescript@5.9.2)(vite@7.1.6(@types/node@24.2.0)(jiti@2.5.1)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.8.1))(yaml@2.8.1)(zod@3.25.76):
+  undocs@0.4.11(@babel/parser@7.28.4)(@netlify/blobs@9.1.2)(@parcel/watcher@2.5.1)(@types/node@24.2.0)(@vue/compiler-sfc@3.5.21)(@vueuse/core@13.9.0(vue@3.5.21(typescript@5.9.2)))(db0@0.3.2)(embla-carousel@8.6.0)(ioredis@5.7.0)(jwt-decode@4.0.0)(lightningcss@1.30.1)(magicast@0.3.5)(rollup@4.50.2)(terser@5.43.1)(typescript@5.9.2)(vite@7.1.6(@types/node@24.2.0)(jiti@2.5.1)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.8.1))(yaml@2.8.1)(zod@3.25.76):
     dependencies:
       '@headlessui/vue': 1.7.23(vue@3.5.21(typescript@5.9.2))
       '@iconify-json/logos': 1.2.9
