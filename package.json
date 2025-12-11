@@ -24,12 +24,12 @@
     "./task": "./dist/runtime/task.mjs",
     "./tsconfig": "./lib/tsconfig.json",
     "./types": "./dist/types/index.mjs",
-    "./vite": "./dist/vite.mjs"
+    "./vite": "./dist/vite.mjs",
+    "./vite/runtime": "./dist/runtime/vite.mjs"
   },
   "imports": {
     "#nitro/runtime/*": "./dist/runtime/internal/*.mjs",
-    "#nitro/vite/runtime": "./dist/runtime/vite-runtime.mjs",
-    "#nitro/virtual/*": "./dist/builder/virtual/*.mjs"
+    "#nitro/virtual/*": "./dist/runtime/virtual/*.mjs"
   },
   "types": "./lib/index.d.mts",
   "bin": {
