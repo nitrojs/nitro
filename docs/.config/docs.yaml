@@ -9,6 +9,11 @@ socials:
   bluesky: "https://bsky.app/profile/nitro.build"
   discord: https://discord.nitro.build
 themeColor: "red"
+versions:
+  - label: "v2"
+    active: true
+  - label: "v3 (alpha)"
+    to: "https://v3.nitro.build"
 automd: true
 redirects:
   /deploy/node: /deploy/runtimes/node
