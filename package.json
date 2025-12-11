@@ -27,8 +27,9 @@
     "./vite": "./dist/vite.mjs"
   },
   "imports": {
-    "#runtime/*": "./dist/runtime/internal/*.mjs",
-    "#vite-runtime": "./dist/runtime/vite-runtime.mjs"
+    "#nitro/runtime/*": "./dist/runtime/internal/*.mjs",
+    "#nitro/vite/runtime": "./dist/runtime/vite-runtime.mjs",
+    "#nitro/virtual/*": "./dist/builder/virtual/*.mjs"
   },
   "types": "./lib/index.d.mts",
   "bin": {

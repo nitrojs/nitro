@@ -11,7 +11,7 @@ export async function setupEntryExports(nitro: Nitro) {
   const originalEntry = nitro.options.entry;
 
   const virtualEntryId = (nitro.options.entry =
-    "#nitro-internal-virtual/cloudflare-server-entry");
+    "#nitro/virtual/cloudflare-server-entry");
   nitro.options.virtual[virtualEntryId] = /* ts */ `
       export * from "${exportsEntry}";
       export * from "${originalEntry}";

@@ -14,11 +14,8 @@ export function nitroResolveIds(): Plugin {
       order: "pre",
       handler(id, importer, rOpts) {
         // Resolve ids with a virtual template parent
-        if (
-          importer &&
-          importer.startsWith("\0nitro:virtual:#nitro-internal-virtual")
-        ) {
-          return this.resolve(id, runtimeDir, { skipSelf: true });
+        if (importer?.includes("#nitro/virtual")) {
+          return this.resolve(id, runtimeDir, { ...rOpts });
         }
         // Resolve mapped subpaths
         const mappedId = subpathMap[id as keyof typeof subpathMap];

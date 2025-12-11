@@ -2,7 +2,7 @@ import type { Nitro } from "nitro/types";
 
 export default function routingMeta(nitro: Nitro) {
   return {
-    id: "#nitro-internal-virtual/routing-meta",
+    id: "#nitro/virtual/routing-meta",
     template: () => {
       const routeHandlers = uniqueBy(
         Object.values(nitro.routing.routes.routes).flatMap((h) => h.data),

@@ -17,7 +17,7 @@ interface ResolvedAsset {
 
 export default function serverAssets(nitro: Nitro) {
   return {
-    id: "#nitro-internal-virtual/server-assets",
+    id: "#nitro/virtual/server-assets",
     template: async () => {
       if (nitro.options.dev || nitro.options.preset === "nitro-prerender") {
         return /* js */ `

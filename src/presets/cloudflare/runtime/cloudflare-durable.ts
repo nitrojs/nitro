@@ -5,9 +5,9 @@ import wsAdapter from "crossws/adapters/cloudflare";
 import { createHandler, fetchHandler } from "./_module-handler.ts";
 
 import { useNitroApp, useNitroHooks } from "nitro/app";
-import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
-import { resolveWebsocketHooks } from "#runtime/app";
-import { hasWebSocket } from "#nitro-internal-virtual/feature-flags";
+import { isPublicAssetURL } from "#nitro/virtual/public-assets";
+import { resolveWebsocketHooks } from "#nitro/runtime/app";
+import { hasWebSocket } from "#nitro/virtual/feature-flags";
 
 const DURABLE_BINDING = "$DurableObject";
 const DURABLE_INSTANCE = "server";

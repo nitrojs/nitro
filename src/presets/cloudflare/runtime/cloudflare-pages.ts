@@ -8,10 +8,10 @@ import type {
 import wsAdapter from "crossws/adapters/cloudflare";
 
 import { useNitroApp } from "nitro/app";
-import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
-import { runCronTasks } from "#runtime/task";
-import { resolveWebsocketHooks } from "#runtime/app";
-import { hasWebSocket } from "#nitro-internal-virtual/feature-flags";
+import { isPublicAssetURL } from "#nitro/virtual/public-assets";
+import { runCronTasks } from "#nitro/runtime/task";
+import { resolveWebsocketHooks } from "#nitro/runtime/app";
+import { hasWebSocket } from "#nitro/virtual/feature-flags";
 
 /**
  * Reference: https://developers.cloudflare.com/workers/runtime-apis/fetch-event/#parameters

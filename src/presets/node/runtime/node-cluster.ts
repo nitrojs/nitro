@@ -4,10 +4,10 @@ import { NodeRequest, serve } from "srvx/node";
 import wsAdapter from "crossws/adapters/node";
 
 import { useNitroApp } from "nitro/app";
-import { startScheduleRunner } from "#runtime/task";
-import { trapUnhandledErrors } from "#runtime/error/hooks";
-import { resolveWebsocketHooks } from "#runtime/app";
-import { hasWebSocket } from "#nitro-internal-virtual/feature-flags";
+import { startScheduleRunner } from "#nitro/runtime/task";
+import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
+import { resolveWebsocketHooks } from "#nitro/runtime/app";
+import { hasWebSocket } from "#nitro/virtual/feature-flags";
 
 const port =
   Number.parseInt(process.env.NITRO_PORT || process.env.PORT || "") || 3000;

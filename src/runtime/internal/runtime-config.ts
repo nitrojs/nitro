@@ -1,6 +1,6 @@
 import type { NitroRuntimeConfig } from "nitro/types";
 import { applyEnv } from "./runtime-config.utils.ts";
-import { runtimeConfig } from "#nitro-internal-virtual/runtime-config";
+import { runtimeConfig } from "#nitro/virtual/runtime-config";
 
 export function useRuntimeConfig(): NitroRuntimeConfig {
   return ((useRuntimeConfig as any)._cached ||= getRuntimeConfig());

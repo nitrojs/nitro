@@ -2,10 +2,10 @@ import "#nitro-internal-polyfills";
 import type { fetch } from "@cloudflare/workers-types";
 import wsAdapter from "crossws/adapters/cloudflare";
 
-import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
+import { isPublicAssetURL } from "#nitro/virtual/public-assets";
 import { createHandler } from "./_module-handler.ts";
-import { resolveWebsocketHooks } from "#runtime/app";
-import { hasWebSocket } from "#nitro-internal-virtual/feature-flags";
+import { resolveWebsocketHooks } from "#nitro/runtime/app";
+import { hasWebSocket } from "#nitro/virtual/feature-flags";
 
 const ws = hasWebSocket
   ? wsAdapter({ resolve: resolveWebsocketHooks })

@@ -7,7 +7,7 @@ import type {
   TaskPayload,
   TaskResult,
 } from "nitro/types";
-import { scheduledTasks, tasks } from "#nitro-internal-virtual/tasks";
+import { scheduledTasks, tasks } from "#nitro/virtual/tasks";
 
 /** @experimental */
 export function defineTask<RT = unknown>(def: Task<RT>): Task<RT> {

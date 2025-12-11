@@ -1,7 +1,7 @@
 import { H3 } from "h3";
 import { runTask } from "../task.ts";
 
-import { scheduledTasks, tasks } from "#nitro-internal-virtual/tasks";
+import { scheduledTasks, tasks } from "#nitro/virtual/tasks";
 
 export default new H3()
   .get("/_nitro/tasks", async () => {

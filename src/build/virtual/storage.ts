@@ -4,7 +4,7 @@ import { builtinDrivers } from "unstorage";
 
 export default function storage(nitro: Nitro) {
   return {
-    id: "#nitro-internal-virtual/storage",
+    id: "#nitro/virtual/storage",
     template: () => {
       const mounts: { path: string; driver: string; opts: object }[] = [];
 
@@ -29,7 +29,7 @@ export default function storage(nitro: Nitro) {
 
       return /* js */ `
 import { createStorage } from 'unstorage'
-import { assets } from '#nitro-internal-virtual/server-assets'
+import { assets } from '#nitro/virtual/server-assets'
 
 ${driverImports.map((i) => genImport(i, genSafeVariableName(i))).join("\n")}
 

@@ -12,14 +12,14 @@ import { HookableCore } from "hookable";
 import { nitroAsyncContext } from "./context.ts";
 
 // IMPORTANT: virtual imports and user code should be imported last to avoid initialization order issues
-import errorHandler from "#nitro-internal-virtual/error-handler";
-import { plugins } from "#nitro-internal-virtual/plugins";
+import errorHandler from "#nitro/virtual/error-handler";
+import { plugins } from "#nitro/virtual/plugins";
 import {
   findRoute,
   findRouteRules,
   globalMiddleware,
   findRoutedMiddleware,
-} from "#nitro-internal-virtual/routing";
+} from "#nitro/virtual/routing";
 import {
   hasRouteRules,
   hasRoutedMiddleware,
@@ -27,7 +27,7 @@ import {
   hasRoutes,
   hasHooks,
   hasPlugins,
-} from "#nitro-internal-virtual/feature-flags";
+} from "#nitro/virtual/feature-flags";
 
 declare global {
   var __nitro__: NitroApp | undefined;
@@ -87,7 +87,9 @@ function initNitroApp(): NitroApp {
   if (hasPlugins) {
     for (const plugin of plugins) {
       try {
-        plugin(nitroApp);
+        plugin(
+          nitroApp as NitroApp & { hooks: NonNullable<NitroApp["hooks"]> }
+        );
       } catch (error: any) {
         nitroApp.captureError?.(error, { tags: ["plugin"] });
         throw error;

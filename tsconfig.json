@@ -11,7 +11,7 @@
     "lib": ["es2022", "webworker", "dom.iterable"],
     "types": ["node", "@cloudflare/workers-types"],
     "paths": {
-      "#nitro-internal-virtual/*": ["./src/build/virtual/types/*.ts"]
+      "#nitro/virtual/*": ["./src/runtime/internal/virtual/*.ts"]
     }
   },
   "exclude": [

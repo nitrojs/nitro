@@ -6,10 +6,10 @@ import { toNodeHandler } from "srvx/node";
 import { getSocketAddress, isSocketSupported } from "get-port-please";
 
 import { useNitroApp, useNitroHooks } from "nitro/app";
-import { startScheduleRunner } from "#runtime/task";
-import { trapUnhandledErrors } from "#runtime/error/hooks";
-import { resolveWebsocketHooks } from "#runtime/app";
-import { hasWebSocket } from "#nitro-internal-virtual/feature-flags";
+import { startScheduleRunner } from "#nitro/runtime/task";
+import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
+import { resolveWebsocketHooks } from "#nitro/runtime/app";
+import { hasWebSocket } from "#nitro/virtual/feature-flags";
 
 // Listen for shutdown signal from runner
 parentPort?.on("message", (msg) => {

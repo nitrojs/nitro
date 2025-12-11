@@ -3,7 +3,7 @@ import type * as CF from "@cloudflare/workers-types";
 import type { ExportedHandler } from "@cloudflare/workers-types";
 import type { ServerRequest } from "srvx";
 
-import { runCronTasks } from "#runtime/task";
+import { runCronTasks } from "#nitro/runtime/task";
 import { useNitroApp, useNitroHooks } from "nitro/app";
 
 type MaybePromise<T> = T | Promise<T>;
