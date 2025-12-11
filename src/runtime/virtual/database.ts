@@ -1,3 +1,4 @@
+import "./_runtime_warn.ts";
 import type { Connector } from "db0";
 
 export const connectionConfigs: {

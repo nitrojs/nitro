@@ -1,3 +1,4 @@
+import "./_runtime_warn.ts";
 import type { PublicAsset } from "nitro/types";
 
 export const publicAssetBases: string[] = [];

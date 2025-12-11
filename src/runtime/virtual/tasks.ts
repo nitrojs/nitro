@@ -1,3 +1,4 @@
+import "./_runtime_warn.ts";
 import type { Task, TaskMeta } from "nitro/types";
 
 export const tasks: Record<

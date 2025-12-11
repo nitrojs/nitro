@@ -1,3 +1,5 @@
+import "./_runtime_warn.ts";
+
 export function rendererTemplate(_req: Request): string | Promise<string> {
   return `<!-- Renderer template not available -->`;
 }

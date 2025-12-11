@@ -1,5 +1,6 @@
-import type { Storage } from "unstorage";
+import "./_runtime_warn.ts";
+import { type Storage, createStorage } from "unstorage";
 
 export function initStorage(): Storage {
-  throw new Error("Storage is only available in a Nitro runtime.");
+  return createStorage();
 }

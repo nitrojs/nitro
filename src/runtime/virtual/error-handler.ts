@@ -1,5 +1,6 @@
-import type { NitroErrorHandler } from "nitro/types";
+import "./_runtime_warn.ts";
 import { H3Event, toResponse } from "h3";
+import type { NitroErrorHandler } from "nitro/types";
 
 type EParams = Parameters<NitroErrorHandler>;
 type EReturn = ReturnType<NitroErrorHandler>;

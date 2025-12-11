@@ -1,3 +1,5 @@
+import "./_runtime_warn.ts";
+
 import type { Middleware, H3Route } from "h3";
 import type { MatchedRoute } from "rou3";
 import type { MatchedRouteRule } from "nitro/types";

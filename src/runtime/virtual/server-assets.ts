@@ -1,3 +1,4 @@
+import "./_runtime_warn.ts";
 import type { AssetMeta } from "nitro/types";
 
 export function readAsset<T = any>(_id: string): Promise<T> {

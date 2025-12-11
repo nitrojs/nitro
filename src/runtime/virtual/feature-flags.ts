@@ -1,3 +1,5 @@
+import "./_runtime_warn.ts";
+
 export const hasRoutes: boolean = true;
 export const hasRouteRules: boolean = true;
 export const hasGlobalMiddleware: boolean = true;
