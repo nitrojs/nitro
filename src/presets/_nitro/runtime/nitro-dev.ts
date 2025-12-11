@@ -6,9 +6,9 @@ import { toNodeHandler } from "srvx/node";
 import { getSocketAddress, isSocketSupported } from "get-port-please";
 
 import { useNitroApp, useNitroHooks } from "nitro/app";
-import { startScheduleRunner } from "nitro/~internal/runtime/task";
-import { trapUnhandledErrors } from "nitro/~internal/runtime/error/hooks";
-import { resolveWebsocketHooks } from "nitro/~internal/runtime/app";
+import { startScheduleRunner } from "#runtime/task";
+import { trapUnhandledErrors } from "#runtime/error/hooks";
+import { resolveWebsocketHooks } from "#runtime/app";
 import { hasWebSocket } from "#nitro-internal-virtual/feature-flags";
 
 // Listen for shutdown signal from runner

@@ -9,8 +9,8 @@ import wsAdapter from "crossws/adapters/cloudflare";
 
 import { useNitroApp } from "nitro/app";
 import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
-import { runCronTasks } from "nitro/~internal/runtime/task";
-import { resolveWebsocketHooks } from "nitro/~internal/runtime/app";
+import { runCronTasks } from "#runtime/task";
+import { resolveWebsocketHooks } from "#runtime/app";
 import { hasWebSocket } from "#nitro-internal-virtual/feature-flags";
 
 /**

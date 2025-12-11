@@ -4,7 +4,7 @@ import wsAdapter from "crossws/adapters/cloudflare";
 
 import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
 import { createHandler } from "./_module-handler.ts";
-import { resolveWebsocketHooks } from "nitro/~internal/runtime/app";
+import { resolveWebsocketHooks } from "#runtime/app";
 import { hasWebSocket } from "#nitro-internal-virtual/feature-flags";
 
 const ws = hasWebSocket

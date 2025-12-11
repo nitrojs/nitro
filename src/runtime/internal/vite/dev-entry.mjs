@@ -2,7 +2,7 @@ import "#nitro-internal-polyfills";
 import wsAdapter from "crossws/adapters/node";
 
 import { useNitroApp } from "nitro/app";
-import { resolveWebsocketHooks } from "nitro/~internal/runtime/app";
+import { resolveWebsocketHooks } from "#runtime/app";
 import { hasWebSocket } from "#nitro-internal-virtual/feature-flags";
 
 const nitroApp = useNitroApp();

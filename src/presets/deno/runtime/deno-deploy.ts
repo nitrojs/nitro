@@ -4,7 +4,7 @@ import type { Deno as _Deno } from "@deno/types";
 import wsAdapter from "crossws/adapters/deno";
 
 import { useNitroApp } from "nitro/app";
-import { resolveWebsocketHooks } from "nitro/~internal/runtime/app";
+import { resolveWebsocketHooks } from "#runtime/app";
 import { hasWebSocket } from "#nitro-internal-virtual/feature-flags";
 
 declare global {

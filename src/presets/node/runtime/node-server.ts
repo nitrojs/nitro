@@ -3,9 +3,9 @@ import { NodeRequest, serve } from "srvx/node";
 import wsAdapter from "crossws/adapters/node";
 
 import { useNitroApp } from "nitro/app";
-import { startScheduleRunner } from "nitro/~internal/runtime/task";
-import { trapUnhandledErrors } from "nitro/~internal/runtime/error/hooks";
-import { resolveWebsocketHooks } from "nitro/~internal/runtime/app";
+import { startScheduleRunner } from "#runtime/task";
+import { trapUnhandledErrors } from "#runtime/error/hooks";
+import { resolveWebsocketHooks } from "#runtime/app";
 import { hasWebSocket } from "#nitro-internal-virtual/feature-flags";
 
 const port =

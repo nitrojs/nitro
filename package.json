@@ -24,9 +24,11 @@
     "./task": "./dist/runtime/task.mjs",
     "./tsconfig": "./lib/tsconfig.json",
     "./types": "./dist/types/index.mjs",
-    "./vite": "./dist/vite.mjs",
-    "./vite/runtime": "./dist/runtime/vite-runtime.mjs",
-    "./~internal/runtime/*": "./dist/runtime/internal/*.mjs"
+    "./vite": "./dist/vite.mjs"
+  },
+  "imports": {
+    "#runtime/*": "./dist/runtime/internal/*.mjs",
+    "#vite-runtime": "./dist/runtime/vite-runtime.mjs"
   },
   "types": "./lib/index.d.mts",
   "bin": {
