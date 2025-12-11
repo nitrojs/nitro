@@ -452,6 +452,14 @@ export function testNitro(
       expect(headers["content-type"]).toBe("text/plain; charset=utf-8");
     });
 
+    it("serve static asset /build/test.js.gz", async () => {
+      const { status, headers } = await callHandler({
+        url: "/build/test.js.gz",
+      });
+      expect(status).toBe(200);
+      expect(headers["content-encoding"]).toBe("gzip");
+    });
+
     it("stores content-type for prerendered routes", async () => {
       const { data, headers } = await callHandler({
         url: "/api/param/prerender4",
