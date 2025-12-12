@@ -9,7 +9,7 @@ export async function viteBuild(nitro: Nitro) {
     );
   }
   const { createBuilder } = await import(
-    process.env.NITRO_VITE_PKG || (nitro.options as any).__vitePkg__ || "vite"
+    (nitro.options as any).__vitePkg__ || "vite"
   );
   const builder = await createBuilder({
     base: nitro.options.rootDir,
