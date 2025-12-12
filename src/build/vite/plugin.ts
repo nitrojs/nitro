@@ -150,10 +150,6 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
         builder: {
           sharedConfigBuild: true,
         },
-        experimental: {
-          // TODO: Fix issue with rolldown-vite native plugins
-          ...({ enableNativePlugin: false } as any),
-        },
         server: {
           port:
             Number.parseInt(process.env.PORT || "") ||
