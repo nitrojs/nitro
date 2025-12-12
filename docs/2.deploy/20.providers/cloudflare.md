@@ -342,7 +342,7 @@ export default defineNitroConfig({
 
 Next we install the `nitro-cloudflare-dev` module as well as the required `wrangler` package (if not already installed):
 
-:pm-install{name="nitro-cloudflare-dev wrangler -D"}
+:pm-install{name="-D nitro-cloudflare-dev wrangler"}
 
 Then define module:
 
