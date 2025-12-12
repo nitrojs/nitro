@@ -20,6 +20,8 @@ jobs:
       - run: pnpm install
       - run: pnpm stub && pnpm lint
       - run: pnpm test:types
+      - run: pnpm vitest run test/unit
+      - run: pnpm vitest run test/minimal
   tests-rollup:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 5
@@ -44,8 +46,11 @@ jobs:
       - run: pnpm test:types
         if: ${{ matrix.os != 'windows-latest' }}
       - run: pnpm build
-      - run: pnpm vitest run
-        env: { NITRO_BUILDER: rollup }
+      - run: pnpm vitest run test/examples
+        env: { NITRO_BUILDER: rollup, NITRO_VITE_PKG: vite-7 }
+      - run: pnpm vitest run test/presets
+        env: { NITRO_BUILDER: rollup, NITRO_VITE_PKG: vite-7 }
+
   tests-rolldown:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 5
@@ -66,8 +71,10 @@ jobs:
         with: { deno-version: v2.x }
       - run: pnpm install
       - run: pnpm build
-      - run: pnpm vitest run
-        env: { NITRO_BUILDER: rolldown }
+      - run: pnpm vitest run test/examples
+        env: { NITRO_BUILDER: rolldown, NITRO_VITE_PKG: vite-8 }
+      - run: pnpm vitest run test/presets
+        env: { NITRO_BUILDER: rolldown, NITRO_VITE_PKG: vite-8 }
   publish-pkg-pr-new:
     runs-on: ubuntu-latest
     timeout-minutes: 5

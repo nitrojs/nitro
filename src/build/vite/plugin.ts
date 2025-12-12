@@ -318,6 +318,7 @@ async function setupNitroContext(
   // Nitro config overrides
   const nitroConfig: NitroConfig = {
     dev: configEnv.command === "serve",
+    builder: "vite",
     rootDir: userConfig.root,
     ...defu(
       ctx.pluginConfig,
@@ -334,13 +335,8 @@ async function setupNitroContext(
     }
   }
 
-  nitroConfig.builder = ctx._isRolldown ? "rolldown-vite" : "vite";
-  debug("[init] Using builder:", nitroConfig.builder);
-
   // Initialize a new Nitro instance
   ctx.nitro = ctx.pluginConfig._nitro || (await createNitro(nitroConfig));
-
-  ctx.nitro.options.builder = ctx._isRolldown ? "rolldown-vite" : "vite";
 
   // Config ssr env as a fetchable ssr service
   if (!ctx.services?.ssr) {

@@ -1,18 +1,18 @@
-import type { ViteDevServer } from "vite";
-import type { ViteDevServer as RolldownViteDevServer } from "rolldown-vite";
 import { join } from "node:path";
 import { readdir } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { toRequest } from "h3";
-import { describe, test, expect, beforeAll, afterAll } from "vitest";
 import { isWindows } from "std-env";
+import { describe, test, expect, beforeAll, afterAll } from "vitest";
+
+import type { ViteDevServer as Vite7DevServer } from "vite-7";
+import type { ViteDevServer as Vite8DevServer } from "vite-8";
 
 const examplesDir = fileURLToPath(new URL("../examples", import.meta.url));
 
-const useRolldown = process.env.NITRO_BUILDER === "rolldown";
-const { createServer, createBuilder } = useRolldown
-  ? await import("rolldown-vite")
-  : await import("vite");
+const { createServer, createBuilder } = await import(
+  process.env.NITRO_VITE_PKG || "vite"
+);
 
 const skip = new Set<string>(["websocket"]);
 
@@ -42,7 +42,7 @@ function setupTest(name: string) {
     }
 
     describe.skipIf(skipDev.has(name))(`${name} (dev)`, () => {
-      let server: ViteDevServer | RolldownViteDevServer;
+      let server: Vite7DevServer | Vite8DevServer;
       const context: TestContext = {} as any;
 
       beforeAll(async () => {

@@ -7,8 +7,6 @@
   },
   "devDependencies": {
     "nitro": "latest",
-    "rolldown-vite": "^7.1.20",
-    "tinyglobby": "^0.2.15",
-    "vite": "^7.1.12"
+    "vite": "beta"
   }
 }
