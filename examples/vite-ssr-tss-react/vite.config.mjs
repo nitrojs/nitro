@@ -11,6 +11,9 @@ export default defineConfig({
     viteReact(),
     nitro(),
   ],
+  experimental: {
+    enableNativePlugin: false,
+  },
   environments: {
     ssr: { build: { rollupOptions: { input: "./server.ts" } } },
   },
