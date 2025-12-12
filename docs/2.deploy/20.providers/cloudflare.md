@@ -279,12 +279,9 @@ defineHandler(async (event) => {
 
 ### Access to the bindings in local dev
 
-> [!NOTE]
-> We suggest replacing `nitro-cloudflare-dev` with any Cloudflare preset in Nitro config to leverage built-in dev preset support.
+To access bindings in dev mode, we first define them. You can do this in a `wrangler.toml`/`wrangler.json` file, or directly in your Nitro config under `cloudflare.wrangler` (accepts the same type as `wrangler.json`).
 
-In order to access bindings in dev mode we start by defining the bindings. You can do this in a `wrangler.toml`/`wrangler.json` file, or directly in your Nitro config under `cloudflare.wrangler` (accepts the same type as `wrangler.json`).
-
-For example to define a variable and a KV namespace in a `wrangler.toml`
+For example, to define a variable and a KV namespace in `wrangler.toml`:
 
 ::code-group
 
