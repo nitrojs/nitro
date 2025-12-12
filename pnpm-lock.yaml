@@ -6,7 +6,7 @@ settings:
 
 overrides:
   nitro: link:.
-  undici: ^7.11.0
+  undici: ^7.16.0
 
 importers:
 
@@ -43,7 +43,7 @@ importers:
         specifier: ^0.9.8
         version: 0.9.8
       undici:
-        specifier: ^7.11.0
+        specifier: ^7.16.0
         version: 7.16.0
       unenv:
         specifier: ^2.0.0-rc.24
@@ -59,7 +59,7 @@ importers:
         specifier: ^2.0.7
         version: 2.0.7
       '@cloudflare/workers-types':
-        specifier: ^4.20251210.0
+        specifier: ^4.20251212.0
         version: 4.20251212.0
       '@deno/types':
         specifier: ^0.0.1
@@ -92,7 +92,7 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3(rollup@4.53.3)
       '@scalar/api-reference':
-        specifier: ^1.40.3
+        specifier: ^1.40.5
         version: 1.40.5(axios@1.13.2)(jwt-decode@4.0.0)(tailwindcss@4.1.18)(typescript@5.9.3)
       '@types/aws-lambda':
         specifier: ^8.10.159
@@ -212,7 +212,7 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0
       miniflare:
-        specifier: ^4.20251202.1
+        specifier: ^4.20251210.0
         version: 4.20251210.0
       mlly:
         specifier: ^1.8.0
@@ -242,7 +242,7 @@ importers:
         specifier: ^7.1.0
         version: 7.1.0
       react:
-        specifier: ^19.2.0
+        specifier: ^19.2.3
         version: 19.2.3
       rendu:
         specifier: ^0.0.7
@@ -311,7 +311,7 @@ importers:
         specifier: ^4.0.15
         version: 4.0.15(@edge-runtime/vm@5.0.0)(@types/node@25.0.1)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2)
       wrangler:
-        specifier: ^4.53.0
+        specifier: ^4.54.0
         version: 4.54.0(@cloudflare/workers-types@4.20251212.0)
       xml2js:
         specifier: ^0.6.2
