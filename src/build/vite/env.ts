@@ -7,6 +7,7 @@ import { runtimeDependencies, runtimeDir } from "nitro/meta";
 import { resolveModulePath } from "exsolve";
 import { createFetchableDevEnvironment } from "./dev.ts";
 import { isAbsolute } from "pathe";
+import type { RolldownOptions } from "rolldown";
 
 export function getEnvRunner(ctx: NitroPluginContext) {
   return (ctx._envRunner ??= new NodeEnvRunner({
@@ -22,7 +23,7 @@ export function createNitroEnvironment(
   return {
     consumer: "server",
     build: {
-      rollupOptions: ctx.rollupConfig!.config,
+      rollupOptions: ctx.rollupConfig!.config as RolldownOptions /* TODO */,
       minify: ctx.nitro!.options.minify,
       emptyOutDir: false,
       sourcemap: ctx.nitro!.options.sourcemap,
