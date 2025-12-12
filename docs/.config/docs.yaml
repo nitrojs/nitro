@@ -12,6 +12,7 @@ sponsors:
   api: https://sponsors.pi0.io/sponsors.json
 themeColor: "rose"
 automd: true
+branch: main
 versions:
   - label: "v3 (alpha)"
     active: true
