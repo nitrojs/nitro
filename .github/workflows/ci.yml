@@ -47,9 +47,9 @@ jobs:
         if: ${{ matrix.os != 'windows-latest' }}
       - run: pnpm build
       - run: pnpm vitest run test/examples
-        env: { NITRO_BUILDER: rollup, NITRO_VITE_PKG: vite-7 }
+        env: { NITRO_BUILDER: rollup, NITRO_VITE_PKG: vite7 }
       - run: pnpm vitest run test/presets
-        env: { NITRO_BUILDER: rollup, NITRO_VITE_PKG: vite-7 }
+        env: { NITRO_BUILDER: rollup, NITRO_VITE_PKG: vite7 }
 
   tests-rolldown:
     runs-on: ${{ matrix.os }}
@@ -72,9 +72,9 @@ jobs:
       - run: pnpm install
       - run: pnpm build
       - run: pnpm vitest run test/examples
-        env: { NITRO_BUILDER: rolldown, NITRO_VITE_PKG: vite-8 }
+        env: { NITRO_BUILDER: rolldown, NITRO_VITE_PKG: vite }
       - run: pnpm vitest run test/presets
-        env: { NITRO_BUILDER: rolldown, NITRO_VITE_PKG: vite-8 }
+        env: { NITRO_BUILDER: rolldown, NITRO_VITE_PKG: vite }
   publish-pkg-pr-new:
     runs-on: ubuntu-latest
     timeout-minutes: 5

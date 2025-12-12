@@ -6,6 +6,10 @@
   "repository": "nitrojs/nitro",
   "license": "MIT",
   "type": "module",
+  "imports": {
+    "#nitro/runtime/*": "./dist/runtime/internal/*.mjs",
+    "#nitro/virtual/*": "./dist/runtime/virtual/*.mjs"
+  },
   "exports": {
     ".": "./dist/runtime/nitro.mjs",
     "./app": "./dist/runtime/app.mjs",
@@ -26,10 +30,6 @@
     "./types": "./dist/types/index.mjs",
     "./vite": "./dist/vite.mjs",
     "./vite/runtime": "./dist/runtime/vite.mjs"
-  },
-  "imports": {
-    "#nitro/runtime/*": "./dist/runtime/internal/*.mjs",
-    "#nitro/virtual/*": "./dist/runtime/virtual/*.mjs"
   },
   "types": "./lib/index.d.mts",
   "bin": {
@@ -159,8 +159,8 @@
     "unimport": "^5.5.0",
     "untyped": "^2.0.0",
     "unwasm": "^0.5.2",
-    "vite-7": "npm:vite@^7.2.7",
-    "vite-8": "npm:vite@^8.0.0-beta.2",
+    "vite": "npm:vite@^8.0.0-beta.2",
+    "vite7": "npm:vite@^7.2.7",
     "vitest": "^4.0.15",
     "wrangler": "^4.53.0",
     "xml2js": "^0.6.2",

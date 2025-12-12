@@ -5,14 +5,13 @@ import { toRequest } from "h3";
 import { isWindows } from "std-env";
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
 
-import type { ViteDevServer as Vite7DevServer } from "vite-7";
-import type { ViteDevServer as Vite8DevServer } from "vite-8";
+import type { ViteDevServer } from "vite";
 
 const examplesDir = fileURLToPath(new URL("../examples", import.meta.url));
 
-const { createServer, createBuilder } = await import(
-  process.env.NITRO_VITE_PKG || "vite-8"
-);
+const { createServer, createBuilder } = (await import(
+  process.env.NITRO_VITE_PKG || "vite"
+)) as typeof import("vite");
 
 const skip = new Set<string>(["websocket"]);
 
@@ -42,7 +41,7 @@ function setupTest(name: string) {
     }
 
     describe.skipIf(skipDev.has(name))(`${name} (dev)`, () => {
-      let server: Vite7DevServer | Vite8DevServer;
+      let server: ViteDevServer;
       const context: TestContext = {} as any;
 
       beforeAll(async () => {
