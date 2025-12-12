@@ -11,7 +11,7 @@
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^5.1.0",
     "nitro": "latest",
-    "vite": "^7.1.12",
+    "vite": "beta",
     "@tanstack/react-router": "^1.134.9",
     "@tanstack/react-router-devtools": "^1.134.9",
     "react": "^19.2.0",
