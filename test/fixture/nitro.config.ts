@@ -7,11 +7,8 @@ export default defineConfig({
   compressPublicAssets: true,
   compatibilityDate: "latest",
   serverDir: "server",
-  builder: (process.env.NITRO_BUILDER as any) || "rollup",
-  framework: {
-    name: "nitro",
-    version: "2.x",
-  },
+  builder: (process.env.NITRO_BUILDER as any) || "rolldown",
+  framework: { name: "nitro", version: "3.x" },
   imports: {
     presets: [
       {

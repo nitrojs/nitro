@@ -11,7 +11,7 @@ import type { ViteDevServer as Vite8DevServer } from "vite-8";
 const examplesDir = fileURLToPath(new URL("../examples", import.meta.url));
 
 const { createServer, createBuilder } = await import(
-  process.env.NITRO_VITE_PKG || "vite"
+  process.env.NITRO_VITE_PKG || "vite-8"
 );
 
 const skip = new Set<string>(["websocket"]);
