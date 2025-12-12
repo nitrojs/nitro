@@ -2,7 +2,6 @@ import { join } from "node:path";
 import { readdir } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { toRequest } from "h3";
-import { isWindows } from "std-env";
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
 
 import type { ViteDevServer } from "vite";
@@ -27,7 +26,7 @@ for (const example of await readdir(examplesDir)) {
 function setupTest(name: string) {
   const rootDir = join(examplesDir, name);
 
-  describe.skipIf(skip.has(name) || isWindows)(name, () => {
+  describe.skipIf(skip.has(name))(name, () => {
     type TestContext = {
       fetch: typeof globalThis.fetch;
     };
