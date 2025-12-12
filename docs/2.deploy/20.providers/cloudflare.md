@@ -280,7 +280,7 @@ defineHandler(async (event) => {
 ### Access to the bindings in local dev
 
 > [!NOTE]
-> The `nitro-cloudflare-dev` module is experimental. The Nitro team is looking into a more native integration  which could in the near future make the module unneeded.
+> We suggest replacing `nitro-cloudflare-dev` with any Cloudflare preset in Nitro config to leverage built-in dev preset support.
 
 In order to access bindings in dev mode we start by defining the bindings. You can do this in a `wrangler.toml`/`wrangler.json` file, or directly in your Nitro config under `cloudflare.wrangler` (accepts the same type as `wrangler.json`).
 
@@ -318,7 +318,6 @@ Or in your Nitro config:
 
 ```js [nitro.config.js]
 import { defineNitroConfig } from "nitro/config";
-import nitroCloudflareBindings from "nitro-cloudflare-dev";
 
 export default defineNitroConfig({
     cloudflare: {
@@ -340,19 +339,9 @@ export default defineNitroConfig({
 > [!NOTE]
 > Only bindings in the default environment are recognized.
 
-Next we install the `nitro-cloudflare-dev` module as well as the required `wrangler` package (if not already installed):
+Next we install the required `wrangler` package (if not already installed):
 
-:pm-install{name="nitro-cloudflare-dev wrangler -D"}
-
-Then define module:
-
-```js [nitro.config.js]
-import nitroCloudflareBindings from "nitro-cloudflare-dev";
-
-export default defineNitroConfig({
-  modules: [nitroCloudflareBindings],
-});
-```
+:pm-install{name="wrangler -D"}
 
 From this moment, when running
 
