@@ -68,6 +68,7 @@
     "jiti": "^2.6.1",
     "ofetch": "^2.0.0-alpha.3",
     "ohash": "^2.0.11",
+    "open": "^11.0.0",
     "oxc-minify": "^0.102.0",
     "oxc-transform": "^0.102.0",
     "srvx": "^0.9.8",

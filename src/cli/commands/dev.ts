@@ -5,6 +5,7 @@ import { build, createNitro, prepare } from "nitro/builder";
 import { resolve } from "pathe";
 import { commonArgs } from "../common.ts";
 import { NitroDevServer } from "../../dev/server.ts";
+import open from "open";
 
 const hmrKeyRe = /^runtimeConfig\.|routeRules\./;
 
@@ -15,6 +16,10 @@ export default defineCommand({
   },
   args: {
     ...commonArgs,
+    open: {
+      type: "boolean",
+      description: "open dev server in default browser",
+    },
     port: { type: "string", description: "specify port" },
     host: { type: "string", description: "specify hostname " },
   },
@@ -60,10 +65,15 @@ export default defineCommand({
       nitro.hooks.hookOnce("restart", reload);
       const server = new NitroDevServer(nitro);
 
-      await server.listen({
-        port: args.port,
-        hostname: args.host,
-      });
+      const url = (
+        await server.listen({
+          port: args.port,
+          hostname: args.host,
+        })
+      ).url;
+
+      if (args.open && url) open(url);
+
       await prepare(nitro);
       await build(nitro);
     };
