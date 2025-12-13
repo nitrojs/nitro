@@ -78,7 +78,7 @@
   "devDependencies": {
     "@azure/functions": "^3.5.1",
     "@azure/static-web-apps-cli": "^2.0.7",
-    "@cloudflare/workers-types": "^4.20251212.0",
+    "@cloudflare/workers-types": "^4.20251213.0",
     "@deno/types": "^0.0.1",
     "@hiogawa/vite-plugin-fullstack": "npm:@pi0/vite-plugin-fullstack@0.0.5-pr-1297",
     "@netlify/edge-functions": "^3.0.3",
@@ -114,7 +114,7 @@
     "dot-prop": "^10.1.0",
     "edge-runtime": "^4.0.1",
     "escape-string-regexp": "^5.0.0",
-    "eslint": "^9.39.1",
+    "eslint": "^9.39.2",
     "eslint-config-unjs": "^0.5.0",
     "etag": "^1.8.1",
     "execa": "^9.6.1",
@@ -170,8 +170,8 @@
   "peerDependencies": {
     "nf3": ">=0.3.1",
     "rolldown": "*",
-    "rollup": "^4",
-    "vite": ">=7",
+    "rollup": "^4.53.3",
+    "vite": ">=7.2.7",
     "xml2js": "^0.6.2"
   },
   "peerDependenciesMeta": {
