@@ -11,7 +11,7 @@ describeIf(!isWindows, "nitro:preset:vercel-edge", async () => {
     },
   });
   testNitro(ctx, async () => {
-    const entry = resolve(ctx.outDir, "functions/__nitro.func/index.mjs");
+    const entry = resolve(ctx.outDir, "functions/__fallback.func/index.mjs");
 
     const init = (await fsp.readFile(entry, "utf8"))
       .replace(

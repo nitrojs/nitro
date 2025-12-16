@@ -1,68 +1,49 @@
 name: ci
 
 on:
-  push:
-    branches:
-      - v2
-      - v3
-  pull_request:
-    branches:
-      - v2
-      - v3
+  push: { branches: [v2] }
+  pull_request: { branches: [v2] }
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - run: npm i -g --force corepack && corepack enable
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install
-      - run: pnpm stub
-      - run: pnpm lint
-
-  ci:
+  tests:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v6
       - run: npm i -g --force corepack && corepack enable
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
+      - uses: actions/setup-node@v6
+        with: { node-version: lts/*, cache: pnpm }
       - uses: oven-sh/setup-bun@v2
         if: ${{ matrix.os != 'windows-latest' }}
-        with:
-          bun-version: latest
+        with: { bun-version: latest }
       - uses: denoland/setup-deno@v1
         if: ${{ matrix.os != 'windows-latest' }}
-        with:
-          deno-version: v2.x
+        with: { deno-version: v2.x }
       - run: pnpm install
+      - run: pnpm stub && pnpm lint
+        if: ${{ matrix.os != 'windows-latest' }}
       - run: pnpm test:types
         if: ${{ matrix.os != 'windows-latest' }}
       - run: pnpm build
       - run: pnpm vitest --coverage
-        env:
-          NODE_OPTIONS: --experimental-vm-modules --enable-source-maps
       # - uses: codecov/codecov-action@v3
-      - name: Release Nightly
-        if: |
-          github.event_name == 'push' &&
-          !contains(github.event.head_commit.message, '[skip-release]') &&
-          !startsWith(github.event.head_commit.message, 'chore') &&
-          !startsWith(github.event.head_commit.message, 'docs')
-        run: ./scripts/release-nightly.sh
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.NODE_AUTH_TOKEN}}
+      - run: pnpm dlx pkg-pr-new publish
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+
+  publish:
+    runs-on: ubuntu-latest
+    permissions: { id-token: write, contents: read }
+    needs: tests
+    if: contains('refs/heads/v2', github.ref) && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v6
+        with: { fetch-depth: 0 }
+      - run: npm i -fg corepack && corepack enable
+      - uses: actions/setup-node@v6
+        with: { node-version: lts/*, cache: "pnpm" }
+      - run: pnpm install
+      - run: pnpm changelogen --bump --canary nightly
+      - run: npm i -g npm@latest && npm publish --tag latest

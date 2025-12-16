@@ -13,8 +13,7 @@ import {
   fromNodeMiddleware,
   toNodeListener,
 } from "h3";
-import {
-  default as devErrorHandler,
+import devErrorHandler, {
   defaultHandler as devErrorHandlerInternal,
   loadStackTrace,
 } from "../../runtime/internal/error/dev";
@@ -218,7 +217,20 @@ class DevServer {
         this.nitro.options.runtimeConfig.app.baseURL,
         asset.baseURL || "/"
       );
-      app.use(url, fromNodeMiddleware(serveStatic(asset.dir)));
+      app.use(
+        url,
+        fromNodeMiddleware(
+          serveStatic(asset.dir, {
+            dotfiles: "allow",
+            setHeaders(res, path) {
+              // https://github.com/nitrojs/nitro/issues/3379
+              if (path.endsWith(".gz")) {
+                res.setHeader("Content-Encoding", "gzip");
+              }
+            },
+          })
+        )
+      );
       if (!asset.fallthrough) {
         app.use(url, fromNodeMiddleware(servePlaceholder()));
       }

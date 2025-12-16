@@ -13,7 +13,7 @@ const serviceWorker = defineNitroPreset(
         serverDir: "{{ output.dir }}/public/server",
       },
       commands: {
-        preview: "npx serve ./public",
+        preview: "npx serve {{ output.publicDir }}",
       },
       hooks: {
         "prerender:generate"(route, nitro) {

@@ -313,6 +313,11 @@ export function testNitro(
     expect(data).toMatch("<h1 >Hello JSX!</h1>");
   });
 
+  it("replace", async () => {
+    const { data } = await callHandler({ url: "/replace" });
+    expect(data).toMatchObject({ window: false });
+  });
+
   it.runIf(ctx.nitro?.options.serveStatic)(
     "handles custom Vary header",
     async () => {
@@ -447,6 +452,14 @@ export function testNitro(
       expect(headers["content-type"]).toBe("text/plain; charset=utf-8");
     });
 
+    it("serve static asset /build/test.js.gz", async () => {
+      const { status, headers } = await callHandler({
+        url: "/build/test.js.gz",
+      });
+      expect(status).toBe(200);
+      expect(headers["content-encoding"]).toBe("gzip");
+    });
+
     it("stores content-type for prerendered routes", async () => {
       const { data, headers } = await callHandler({
         url: "/api/param/prerender4",
@@ -567,12 +580,8 @@ export function testNitro(
         "server-config": true,
       },
       sharedRuntimeConfig: {
-        // Cloudflare environment variables are set after first request
         dynamic:
-          ctx.preset.includes("cloudflare") &&
-          ctx.preset !== "cloudflare-worker"
-            ? "initial"
-            : "from-env",
+          ctx.preset === "cloudflare-module-legacy" ? "initial" : "from-env",
         // url: "https://test.com",
         app: {
           baseURL: "/",

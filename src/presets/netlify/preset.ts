@@ -95,6 +95,7 @@ const netlifyEdge = defineNitroPreset(
               name: "edge server handler",
               function: "server",
               generator: getGeneratorString(nitro),
+              cache: "manual",
             },
           ],
         };
@@ -122,7 +123,7 @@ const netlifyStatic = defineNitroPreset(
       publicDir: "{{ rootDir }}/dist/{{ baseURL }}",
     },
     commands: {
-      preview: "npx serve ./",
+      preview: "npx serve {{ output.dir }}",
     },
     hooks: {
       async compiled(nitro: Nitro) {

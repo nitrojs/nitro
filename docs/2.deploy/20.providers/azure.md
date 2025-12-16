@@ -21,7 +21,7 @@ Install [Azure Functions Core Tools](https://docs.microsoft.com/en-us/azure/azur
 You can invoke a development environment to preview before deploying.
 
 ```bash
-NITRO_PRESET=azure npx nypm@latest build
+NITRO_PRESET=azure npx nypm@latest run build
 npx @azure/static-web-apps-cli start .output/public --api-location .output/server
 ```
 
@@ -86,7 +86,7 @@ Install [Azure Functions Core Tools](https://docs.microsoft.com/en-us/azure/azur
 You can invoke a development environment from the serverless directory.
 
 ```bash
-NITRO_PRESET=azure_functions npx nypm@latest build
+NITRO_PRESET=azure_functions npx nypm@latest run build
 cd .output
 func start
 ```
