@@ -1,1 +1,16 @@
 const hello = "world";
+
+const forcemIpsum = {
+  1: "Did you hear that? They've shut down the main reactor. We'll be destroyed for sure. This is madness! We're doomed! There'll be no escape for the Princess this time. What's that? Artoo! Artoo-Detoo, where are you? At last! Where have you been? They're heading in this direction. What are we going to do? We'll be sent to the spice mine of Kessel or smashed into who knows what! Wait a minute, where are you going? The Death Star plans are not in the main computer. Where are those transmissions you intercepted? What have you done with those plans? We intercepted no transmissions.",
+  2: "I think she was a passenger on our last voyage. A person of some importance, sir -- I believe. Our captain was attached to. Is there more to this recording? Behave yourself, Artoo. You're going to get us in trouble. It's all right, you can trust him.",
+  3: "If you're right, he must not be allowed to escape. Escape is not his plan. I must face him alone. Chewie! Get behind me! Get behind me! Can't get out that way.",
+  4: "Try to brace it with something. Wait a minute! Threepio! Come in Threepio! Threepio! Where could he be? Take over! See to him! Look there! They're madmen! They're heading for the prison level. If you hurry, you might catch them. Follow me! You stand guard.",
+  5: "It's all right, you can trust him. He's our new master. He says he's the property of Obi-Wan Kenobi, a resident of these parts. And it's a private message for him. Quite frankly, sir I don't know what he's talking about.",
+  6: "I'll be right back. Just you reconsider playing that message for him. No, I don't think he likes you at all. No, I don't like you either.",
+  7: "Okay. Han, you put these on. Don't worry, Chewie. I think I know what he has in mind.",
+  8: "Be patient, Luke. Stay and watch over the droids. But he can. They must be delivered safely or other star systems will suffer the same fate as Alderaan.",
+  9: "We'll be safe enough once we make the jump to hyperspace. Besides, I know a few maneuvers. We'll lose them! Here's where the fun begins! How long before you can make the jump to light speed? It'll take a few moments to get the coordinates from the navi-computer. Are you kidding? At the rate they're gaining. Traveling through hyperspace isn't like dusting crops, boy! Without precise calculations we could fly right through a star or bounce too close to a supernova and that'd end your trip real quick, wouldn't it? What's that flashing? We're losing our deflector shield. Go strap yourself in, I'm going to make the jump to light speed.",
+  10: "So it'll be the last time. Where is the Rebel base? Dantooine. They're on Dantooine. There. You see Lord Vader, she can be reasonable.",
+  11: "Have you been in many battles? Several, I think. Actually, there's not much to tell. I'm not much more than an interpreter, and not very good at telling stories. Well, not at making them interesting, anyways.",
+  12: "Oh, he's not dead, not...not yet. You know him! Well of course, of course I know him. He's me! I haven't gone by the name Obi-Wan since oh, before you were born. Then the droid does belong to you. Don't seem to remember ever owning a droid.",
+};
