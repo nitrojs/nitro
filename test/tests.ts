@@ -755,6 +755,26 @@ export function testNitro(
         }
       }
     );
+    describe("cache", () => {
+      it.skipIf(ctx.isIsolated)(
+        "should handle args in the validate function",
+        async () => {
+          const {
+            data: { value },
+          } = await callHandler({ url: "/api/cachedFunction" });
+
+          const calls = await Promise.all([
+            callHandler({ url: "/api/cachedFunction" }),
+            callHandler({ url: "/api/cachedFunction" }),
+            callHandler({ url: "/api/cachedFunction" }),
+          ]);
+
+          for (const call of calls) {
+            expect(call.data.value).toBe(value);
+          }
+        }
+      );
+    });
   });
 
   describe("scanned files", () => {
