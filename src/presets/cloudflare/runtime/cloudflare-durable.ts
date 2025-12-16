@@ -6,7 +6,7 @@ import { useNitroApp } from "nitropack/runtime";
 import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
 import { createHandler, fetchHandler } from "./_module-handler";
 
-const DURABLE_BINDING = "$DurableObject";
+const DURABLE_BINDING = import.meta._durableBindingName || "$DurableObject";
 const DURABLE_INSTANCE = "server";
 
 interface Env {
