@@ -12,8 +12,8 @@ const ws = import.meta._websocket
 
 // @ts-expect-error
 const server = Bun.serve({
-  idleTimeout: Number.parseInt(process.env.NITRO_BUN_IDLE_TIMEOUT) || undefined,
   port: process.env.NITRO_PORT || process.env.PORT || 3000,
+  idleTimeout: Number.parseInt(process.env.NITRO_BUN_IDLE_TIMEOUT) || undefined,
   websocket: import.meta._websocket ? ws!.websocket : (undefined as any),
   async fetch(req: Request, server: any) {
     // https://crossws.unjs.io/adapters/bun
