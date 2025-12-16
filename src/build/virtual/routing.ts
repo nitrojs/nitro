@@ -1,6 +1,4 @@
 import type { Nitro, NitroEventHandler, NitroRouteRules } from "nitro/types";
-import { runtimeDir } from "../../runtime/meta.ts";
-import { join } from "pathe";
 
 export const RuntimeRouteRules = [
   "headers",
