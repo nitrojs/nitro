@@ -56,4 +56,9 @@ export interface NitroOpenAPIConfig {
           route?: string;
         };
   };
+
+  /**
+   * Excluded tags from OpenAPI generation
+   */
+  excludedTags?: string[];
 }
