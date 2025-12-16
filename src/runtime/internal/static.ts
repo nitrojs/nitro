@@ -36,13 +36,6 @@ export default eventHandler((event) => {
     withLeadingSlash(withoutTrailingSlash(parseURL(event.path).pathname))
   );
 
-  for (const encoding of Object.values(EncodingMap)) {
-    if (getAsset(id + encoding)) {
-      appendResponseHeader(event, "Vary", "Accept-Encoding");
-      break;
-    }
-  }
-
   let asset: PublicAsset | undefined;
 
   const encodingHeader = String(

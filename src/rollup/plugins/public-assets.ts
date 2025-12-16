@@ -66,7 +66,7 @@ export function publicAssets(nitro: Nitro): Plugin {
         }
 
         for (const key in assets) {
-          if (key.endsWith(".gz") || key.endsWith(".br")) {
+          if (/\.(gz|br)$/.test(key)) {
             const originalKey = key.replace(/\.(gz|br)$/, "");
             if (
               assets[originalKey] &&
