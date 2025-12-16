@@ -334,12 +334,12 @@ export async function writeWranglerConfig(
       const bindingName =
         nitro.options.cloudflare?.durable?.bindingName || "$DurableObject";
       wranglerConfig.durable_objects ??= { bindings: [] };
-      if (
-        !wranglerConfig.durable_objects.bindings?.some(
-          (b) => b.class_name === "$DurableObject"
-        )
-      ) {
-        wranglerConfig.durable_objects.bindings?.push({
+      wranglerConfig.durable_objects.bindings ??= [];
+      const hasBinding = wranglerConfig.durable_objects.bindings.some(
+        (b) => b.name === bindingName && b.class_name === "$DurableObject"
+      );
+      if (!hasBinding) {
+        wranglerConfig.durable_objects.bindings.push({
           name: bindingName,
           class_name: "$DurableObject",
         });
