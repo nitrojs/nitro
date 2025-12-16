@@ -264,12 +264,39 @@ defineEventHandler(async (event) => {
 })
 ```
 
-### Access to the bindings in local dev
+## Dev Preset
 
-> [!NOTE]
-> The `nitro-cloudflare-dev` module is experimental. The Nitro team is looking into a more native integration  which could in the near future make the module unneeded.
+Cloudflare preset can be enabled in development mode for production environment emulation and access to the bindings in local dev.
 
-In order to access bindings in dev mode we start by defining the bindings. You can do this in a `wrangler.toml`/`wrangler.json` file, or directly in your Nitro config under `cloudflare.wrangler` (accepts the same type as `wrangler.json`).
+In order to enable dev preset, make sure using latest nitro version (>=2.12) and install [`wrangler`](https://npmjs.com/package/wrangler) as a dependency.
+
+:pm-install{name="-D wrangler"}
+
+Then, update config:
+
+```ts [nitro.config.ts]
+export default defineNitroConfig({
+    compatibilityDate: "2025-07-15", // or "latest"
+    preset: "cloudflare-module" // or "cloudflare-pages"
+})
+```
+
+```ts [nuxt.config.ts]
+export default defineNuxtConfig({
+    compatibilityDate: "2025-07-15", // or "latest"
+    nitro: {
+        preset: "cloudflare-module" // or "cloudflare-pages"
+    }
+})
+```
+
+In development terminal, you should see a message like this:
+
+```sh
+ℹ Using cloudflare-dev emulation in development mode.
+```
+
+In order to access bindings in dev mode we start by defining the bindings. You can do this in a `wrangler.toml`/`wrangler.jsonc` file, or directly in your Nitro config under `cloudflare.wrangler` (accepts the same type as `wrangler.json`).
 
 For example to define a variable and a KV namespace in a `wrangler.toml`
 
@@ -284,10 +311,7 @@ id = "xxx"
 
 Or in your Nitro config:
 
-
 ```js [nitro.config.js]
-import nitroCloudflareBindings from "nitro-cloudflare-dev";
-
 export default defineNitroConfig({
     cloudflare: {
       wrangler: {
@@ -307,33 +331,5 @@ export default defineNitroConfig({
 
 > [!NOTE]
 > Only bindings in the default environment are recognized.
-
-Next we install the `nitro-cloudflare-dev` module as well as the required `wrangler` package (if not already installed):
-
-:pm-install{name="-D nitro-cloudflare-dev wrangler"}
-
-Then define module:
-
-::code-group
-
-```js [nitro.config.js]
-import nitroCloudflareBindings from "nitro-cloudflare-dev";
-
-export default defineNitroConfig({
-  modules: [nitroCloudflareBindings],
-});
-```
-
-```ts [nuxt.config.ts]
-export default defineNuxtConfig({
-  modules: ['nitro-cloudflare-dev']
-})
-```
-
-::
-
-From this moment, when running
-
-:pm-run{script="dev"}
 
 you will be able to access the `MY_VARIABLE` and `MY_KV` from the request event just as illustrated above.

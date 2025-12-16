@@ -89,6 +89,7 @@ export interface NitroOptions extends PresetOptions {
   bundledStorage: string[];
   timing: boolean;
   renderer?: string;
+  ssrRoutes: string[];
   serveStatic: boolean | "node" | "deno" | "inline";
   noPublicDir: boolean;
 
@@ -265,7 +266,8 @@ export interface NitroOptions extends PresetOptions {
  * Nitro input config (nitro.config)
  */
 export interface NitroConfig
-  extends DeepPartial<
+  extends
+    DeepPartial<
       Omit<
         NitroOptions,
         "routeRules" | "rollupConfig" | "preset" | "compatibilityDate" | "unenv"

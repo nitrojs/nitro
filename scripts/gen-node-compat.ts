@@ -11,6 +11,7 @@ const platforms = {
       "events",
       "net",
       "stream",
+      "constants",
     ],
   },
   vercel: {

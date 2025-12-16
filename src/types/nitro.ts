@@ -8,6 +8,7 @@ import type { NitroConfig, NitroOptions } from "./config";
 import type { NitroEventHandler } from "./handler";
 import type { NitroHooks } from "./hooks";
 import type { PrerenderRoute } from "./prerender";
+import type { TSConfig } from "pkg-types";
 
 export interface Nitro {
   options: NitroOptions;
@@ -32,6 +33,7 @@ export type NitroDynamicConfig = Pick<
 
 export type NitroTypes = {
   routes: Record<string, Partial<Record<RouterMethod | "default", string[]>>>;
+  tsConfig?: TSConfig;
 };
 
 export interface NitroFrameworkInfo {
