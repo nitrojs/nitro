@@ -18,16 +18,21 @@ export function nitroVirtualDeps(): Plugin {
         ),
       },
       handler(id, importer) {
-        // rolldown does not support conditional resolveId hooks for importer
+        // https://github.com/rolldown/rolldown/issues/7529
         if (!importer || !importer.startsWith("#nitro/virtual")) {
           return;
         }
         let resolved = cache.get(id);
         if (!resolved) {
-          resolved = this.resolve(id, runtimeDir).then((_resolved) => {
-            cache.set(id, _resolved!);
-            return _resolved;
-          });
+          resolved = this.resolve(id, runtimeDir)
+            .then((_resolved) => {
+              cache.set(id, _resolved);
+              return _resolved;
+            })
+            .catch((error) => {
+              cache.delete(id);
+              throw error;
+            });
         }
         return resolved;
       },
