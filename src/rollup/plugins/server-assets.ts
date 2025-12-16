@@ -48,7 +48,9 @@ export function serverAssets(nitro: Nitro): Plugin {
               type += "; charset=utf-8";
             }
             const etag = createEtag(await fsp.readFile(fsPath));
-            const mtime = await fsp.stat(fsPath).then((s) => s.mtime.toJSON());
+            const mtime = process.env.SOURCE_DATE_EPOCH
+              ? new Date(Number(process.env.SOURCE_DATE_EPOCH) * 1000).toJSON()
+              : await fsp.stat(fsPath).then((s) => s.mtime.toJSON());
             assets[id].meta = { type, etag, mtime };
           }
         }

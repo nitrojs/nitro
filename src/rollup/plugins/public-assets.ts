@@ -41,6 +41,11 @@ export function publicAssets(nitro: Nitro): Plugin {
           const assetData = await fsp.readFile(fullPath);
           const etag = createEtag(assetData);
           const stat = await fsp.stat(fullPath);
+          const mtime = (
+            process.env.SOURCE_DATE_EPOCH
+              ? new Date(Number(process.env.SOURCE_DATE_EPOCH) * 1000)
+              : stat.mtime
+          ).toJSON();
 
           const assetId = "/" + decodeURIComponent(id);
 
@@ -55,7 +60,7 @@ export function publicAssets(nitro: Nitro): Plugin {
             type: nitro._prerenderMeta?.[assetId]?.contentType || mimeType,
             encoding,
             etag,
-            mtime: stat.mtime.toJSON(),
+            mtime,
             size: stat.size,
             path: relative(nitro.options.output.serverDir, fullPath),
             data:
