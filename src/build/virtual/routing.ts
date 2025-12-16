@@ -25,7 +25,7 @@ export default function routing(nitro: Nitro) {
       );
 
       return /* js */ `
-import * as __routeRules__ from "${join(runtimeDir, "internal/route-rules")}";
+import * as __routeRules__ from "${join(runtimeDir, "/internal/route-rules")}";
 import * as srvxNode from "srvx/node"
 import * as h3 from "h3";
 
