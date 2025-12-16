@@ -328,6 +328,23 @@ export async function writeWranglerConfig(
         globs: ["**/*.mjs", "**/*.js"],
       });
     }
+
+    // Durable Objects config for cloudflare-durable preset
+    if (nitro.options.preset === "cloudflare-durable") {
+      const bindingName =
+        nitro.options.cloudflare?.durable?.bindingName || "$DurableObject";
+      wranglerConfig.durable_objects ??= { bindings: [] };
+      if (
+        !wranglerConfig.durable_objects.bindings?.some(
+          (b) => b.class_name === "$DurableObject"
+        )
+      ) {
+        wranglerConfig.durable_objects.bindings?.push({
+          name: bindingName,
+          class_name: "$DurableObject",
+        });
+      }
+    }
   }
 
   // Write wrangler.json
