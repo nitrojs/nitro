@@ -21,7 +21,7 @@ export function virtual(input: VirtualModule[]): Plugin {
   const include: RegExp[] = [/^#nitro\/virtual/];
 
   const extraIds = [...modules.keys()].filter(
-    (key) => !key.startsWith("#nitro")
+    (key) => !key.startsWith("#nitro/virtual")
   );
   if (extraIds.length > 0) {
     include.push(
