@@ -222,6 +222,12 @@ class DevServer {
         fromNodeMiddleware(
           serveStatic(asset.dir, {
             dotfiles: "allow",
+            setHeaders(res, path) {
+              // https://github.com/nitrojs/nitro/issues/3379
+              if (path.endsWith(".gz")) {
+                res.setHeader("Content-Encoding", "gzip");
+              }
+            },
           })
         )
       );
