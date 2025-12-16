@@ -1,3 +1,4 @@
+import nodeCrypto from "node:crypto";
 import { defineCommand } from "citty";
 import type { DateString } from "compatx";
 import {
@@ -9,6 +10,11 @@ import {
 } from "nitropack/core";
 import { resolve } from "pathe";
 import { commonArgs } from "../common";
+
+// globalThis.crypto support for Node.js 18
+if (!globalThis.crypto) {
+  globalThis.crypto = nodeCrypto.webcrypto as unknown as Crypto;
+}
 
 export default defineCommand({
   meta: {

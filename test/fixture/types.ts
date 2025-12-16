@@ -254,7 +254,7 @@ describe("API routes", () => {
 describe("defineNitroConfig", () => {
   it("should not accept functions to routeRules.cache", () => {
     defineNitroConfig({
-      compatibilityDate: "2025-01-30",
+      compatibilityDate: "latest",
       routeRules: {
         "/**": {
           cache: {

@@ -1,13 +1,14 @@
 import { existsSync, promises as fsp } from "node:fs";
 import { platform } from "node:os";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { nodeFileTrace } from "@vercel/nft";
 import {
   isValidNodeImport,
   lookupNodeModuleSubpath,
   normalizeid,
   parseNodeModulePath,
-  resolvePath,
 } from "mlly";
+import { resolveModuleURL } from "exsolve";
 import { isDirectory } from "nitropack/kit";
 import type { NodeExternalsOptions } from "nitropack/types";
 import { dirname, isAbsolute, join, normalize, relative, resolve } from "pathe";
@@ -19,21 +20,24 @@ import semver from "semver";
 export function externals(opts: NodeExternalsOptions): Plugin {
   const trackedExternals = new Set<string>();
 
-  const _resolveCache = new Map();
-  const _resolve = async (id: string): Promise<string> => {
+  const tryResolve = (
+    id: string,
+    importer: undefined | string
+  ): string | undefined => {
     if (id.startsWith("\0")) {
       return id;
     }
-    let resolved = _resolveCache.get(id);
-    if (resolved) {
-      return resolved;
-    }
-    resolved = await resolvePath(id, {
+    const res = resolveModuleURL(id, {
+      try: true,
       conditions: opts.exportConditions,
-      url: opts.moduleDirectories,
+      from:
+        importer && isAbsolute(importer)
+          ? [pathToFileURL(importer), ...opts.moduleDirectories!]
+          : opts.moduleDirectories,
+      suffixes: ["", "/index"],
+      extensions: [".mjs", ".cjs", ".js", ".mts", ".cts", ".ts", ".json"],
     });
-    _resolveCache.set(id, resolved);
-    return resolved;
+    return res?.startsWith("file://") ? fileURLToPath(res) : res;
   };
 
   // Normalize options
@@ -97,13 +101,13 @@ export function externals(opts: NodeExternalsOptions): Plugin {
         return null;
       }
 
-      // Try resolving with mlly as fallback
+      // Try resolving with Node.js algorithm as fallback
       if (
         !isAbsolute(resolved.id) ||
         !existsSync(resolved.id) ||
         (await isDirectory(resolved.id))
       ) {
-        resolved.id = await _resolve(resolved.id).catch(() => resolved.id);
+        resolved.id = tryResolve(resolved.id, importer) || resolved.id;
       }
 
       // Inline invalid node imports
@@ -135,24 +139,26 @@ export function externals(opts: NodeExternalsOptions): Plugin {
       if (pkgName !== originalId) {
         // Subpath export
         if (!isAbsolute(originalId)) {
-          const fullPath = await _resolve(originalId);
-          trackedExternals.add(fullPath);
-          return {
-            id: originalId,
-            external: true,
-          };
+          const fullPath = tryResolve(originalId, importer);
+          if (fullPath) {
+            trackedExternals.add(fullPath);
+            return {
+              id: originalId,
+              external: true,
+            };
+          }
         }
 
         // Absolute path, we are not sure about subpath to generate import statement
         // Guess as main subpath export
-        const packageEntry = await _resolve(pkgName).catch(() => null);
+        const packageEntry = tryResolve(pkgName, importer);
         if (packageEntry !== id) {
           // Reverse engineer subpath export
           const guessedSubpath: string | null | undefined =
             await lookupNodeModuleSubpath(id).catch(() => null);
           const resolvedGuess =
             guessedSubpath &&
-            (await _resolve(join(pkgName, guessedSubpath)).catch(() => null));
+            tryResolve(join(pkgName, guessedSubpath), importer);
           if (resolvedGuess === id) {
             trackedExternals.add(resolvedGuess);
             return {
@@ -315,6 +321,9 @@ export function externals(opts: NodeExternalsOptions): Plugin {
           const dst = join(opts.outDir, "node_modules", pkgPath, subpath);
           await fsp.mkdir(dirname(dst), { recursive: true });
           await fsp.copyFile(src, dst);
+          if (opts.chmod) {
+            await fsp.chmod(dst, opts.chmod === true ? 0o644 : opts.chmod);
+          }
         }
 
         // Copy package.json

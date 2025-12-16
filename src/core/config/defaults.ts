@@ -73,7 +73,6 @@ export const NitroDefaults: NitroConfig = {
   },
 
   // Rollup
-  unenv: {},
   analyze: false,
   moduleSideEffects: [
     "unenv/polyfill/",

@@ -313,6 +313,11 @@ export function testNitro(
     expect(data).toMatch("<h1 >Hello JSX!</h1>");
   });
 
+  it("replace", async () => {
+    const { data } = await callHandler({ url: "/replace" });
+    expect(data).toMatchObject({ window: false });
+  });
+
   it.runIf(ctx.nitro?.options.serveStatic)(
     "handles custom Vary header",
     async () => {
@@ -396,10 +401,10 @@ export function testNitro(
     });
 
     const { data } = await callHandler({
-      url: "/api/error?custom_error_handler",
+      url: "/api/error?json",
     });
     expect(status).toBe(503);
-    expect(data).toBe("custom_error_handler");
+    expect(data.json.error).toBe(true);
   });
 
   it.skipIf(isWindows && ctx.preset === "nitro-dev")(
@@ -483,38 +488,42 @@ export function testNitro(
     }
   );
 
-  it.skipIf(ctx.isIsolated)("useStorage (with base)", async () => {
-    const putRes = await callHandler({
-      url: "/api/storage/item?key=test:hello",
-      method: "PUT",
-      body: "world",
-    });
-    expect(putRes.data).toBe("world");
+  it.skipIf(ctx.isIsolated)(
+    "useStorage (with base)",
+    { retry: 5 },
+    async () => {
+      const putRes = await callHandler({
+        url: "/api/storage/item?key=test:hello",
+        method: "PUT",
+        body: "world",
+      });
+      expect(putRes.data).toBe("world");
 
-    expect(
-      (
-        await callHandler({
-          url: "/api/storage/item?key=:",
-        })
-      ).data
-    ).toMatchObject(["test:hello"]);
+      expect(
+        (
+          await callHandler({
+            url: "/api/storage/item?key=:",
+          })
+        ).data
+      ).toMatchObject(["test:hello"]);
 
-    expect(
-      (
-        await callHandler({
-          url: "/api/storage/item?base=test&key=:",
-        })
-      ).data
-    ).toMatchObject(["hello"]);
+      expect(
+        (
+          await callHandler({
+            url: "/api/storage/item?base=test&key=:",
+          })
+        ).data
+      ).toMatchObject(["hello"]);
 
-    expect(
-      (
-        await callHandler({
-          url: "/api/storage/item?base=test&key=hello",
-        })
-      ).data
-    ).toBe("world");
-  });
+      expect(
+        (
+          await callHandler({
+            url: "/api/storage/item?base=test&key=hello",
+          })
+        ).data
+      ).toBe("world");
+    }
+  );
 
   if (additionalTests) {
     additionalTests(ctx, callHandler);
@@ -563,12 +572,8 @@ export function testNitro(
         "server-config": true,
       },
       sharedRuntimeConfig: {
-        // Cloudflare environment variables are set after first request
         dynamic:
-          ctx.preset.includes("cloudflare") &&
-          ctx.preset !== "cloudflare-worker"
-            ? "initial"
-            : "from-env",
+          ctx.preset === "cloudflare-module-legacy" ? "initial" : "from-env",
         // url: "https://test.com",
         app: {
           baseURL: "/",
@@ -807,13 +812,20 @@ export function testNitro(
   });
 
   it.skipIf(
-    ["cloudflare-worker", "cloudflare-module-legacy", "vercel-edge"].includes(
-      ctx.preset
-    )
+    ["cloudflare-worker", "cloudflare-module-legacy"].includes(ctx.preset)
   )("nodejs compatibility", async () => {
     const { data, status } = await callHandler({ url: "/node-compat" });
     expect(status).toBe(200);
     for (const key in data) {
+      if (
+        ctx.preset === "vercel-edge" &&
+        (key === "crypto:createHash" || key === "tls:connect")
+      ) {
+        continue;
+      }
+      if (ctx.preset === "deno-server" && key === "globals:BroadcastChannel") {
+        continue; // unstable API
+      }
       expect(data[key], key).toBe(true);
     }
   });

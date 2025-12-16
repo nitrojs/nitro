@@ -13,6 +13,24 @@ Integration with this provider is possible with [zero configuration](/deploy/#ze
 Normally, the deployment to Netlify does not require any configuration.
 Nitro will auto-detect that you are in a [Netlify](https://www.netlify.com) build environment and build the correct version of your server.
 
+To enabling Netlify Functions 2.0 and using its features (e.g. streaming responses and [Netlify Blobs](https://docs.netlify.com/blobs/overview/)), you need a compatibility date set to `2024-05-07` or later in your nitro configuration file.
+
+::code-group
+
+```ts [nitro.config.ts]
+export default defineNitroConfig({
+    compatibilityDate: "2024-05-07",
+})
+```
+
+```ts [nuxt.config.ts]
+export default defineNuxtConfig({
+    compatibilityDate: "2024-05-07",
+})
+```
+
+::
+
 For new sites, Netlify will detect that you are using Nitro and set the publish directory to `dist` and build command to `npm run build`.
 
 If you are upgrading an existing site you should check these and update them if needed.

@@ -38,8 +38,10 @@ async function _handleEvent(event: FetchEvent) {
       headers: event.request.headers,
       context: {
         waitUntil: (promise: Promise<any>) => event.waitUntil(promise),
-        winterjs: {
-          event,
+        _platform: {
+          winterjs: {
+            event,
+          },
         },
       },
     });

@@ -15,7 +15,7 @@ describe("nitro:preset:cloudflare-module", async () => {
       modulesRules: [{ type: "CompiledWasm", include: ["**/*.wasm"] }],
       assets: {
         directory: resolve(ctx.outDir, "public"),
-        routingConfig: { has_user_worker: true },
+        routerConfig: { has_user_worker: true },
         assetConfig: {
           // https://developers.cloudflare.com/workers/static-assets/routing/#routing-configuration
           html_handling: "auto-trailing-slash" /* default */,

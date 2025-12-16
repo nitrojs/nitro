@@ -1,7 +1,12 @@
 import type { RollupCommonJSOptions } from "@rollup/plugin-commonjs";
-import type { C12InputConfig, ConfigWatcher, ResolvedConfig } from "c12";
+import type {
+  C12InputConfig,
+  ConfigWatcher,
+  DotenvOptions,
+  ResolvedConfig,
+} from "c12";
 import type { WatchConfigOptions } from "c12";
-import type { WatchOptions } from "chokidar";
+import type { ChokidarOptions } from "chokidar";
 import type { CompatibilityDateSpec, CompatibilityDates } from "compatx";
 import type { LogLevel } from "consola";
 import type { ConnectorName } from "db0";
@@ -84,6 +89,7 @@ export interface NitroOptions extends PresetOptions {
   bundledStorage: string[];
   timing: boolean;
   renderer?: string;
+  ssrRoutes: string[];
   serveStatic: boolean | "node" | "deno" | "inline";
   noPublicDir: boolean;
 
@@ -166,7 +172,7 @@ export interface NitroOptions extends PresetOptions {
   // Dev
   dev: boolean;
   devServer: DevServerOptions;
-  watchOptions: WatchOptions;
+  watchOptions: ChokidarOptions;
   devProxy: Record<string, string | ProxyServerOptions>;
 
   // Logging
@@ -195,6 +201,7 @@ export interface NitroOptions extends PresetOptions {
     ignore: Array<
       string | RegExp | ((path: string) => undefined | null | boolean)
     >;
+    ignoreUnprefixedPublicAssets: boolean;
     routes: string[];
     /**
      * Amount of retries. Pass Infinity to retry indefinitely.
@@ -211,7 +218,7 @@ export interface NitroOptions extends PresetOptions {
   // Rollup
   rollupConfig?: RollupConfig;
   entry: string;
-  unenv: UnenvPreset;
+  unenv: UnenvPreset[];
   alias: Record<string, string>;
   minify: boolean;
   inlineDynamicImports: boolean;
@@ -259,10 +266,11 @@ export interface NitroOptions extends PresetOptions {
  * Nitro input config (nitro.config)
  */
 export interface NitroConfig
-  extends DeepPartial<
+  extends
+    DeepPartial<
       Omit<
         NitroOptions,
-        "routeRules" | "rollupConfig" | "preset" | "compatibilityDate"
+        "routeRules" | "rollupConfig" | "preset" | "compatibilityDate" | "unenv"
       >
     >,
     C12InputConfig<NitroConfig> {
@@ -271,6 +279,7 @@ export interface NitroConfig
   routeRules?: { [path: string]: NitroRouteConfig };
   rollupConfig?: Partial<RollupConfig>;
   compatibilityDate?: CompatibilityDateSpec;
+  unenv?: UnenvPreset | UnenvPreset[];
 }
 
 // ------------------------------------------------------------
@@ -281,6 +290,7 @@ export interface LoadConfigOptions {
   watch?: boolean;
   c12?: WatchConfigOptions;
   compatibilityDate?: CompatibilityDateSpec;
+  dotenv?: boolean | DotenvOptions;
 }
 
 // ------------------------------------------------------------

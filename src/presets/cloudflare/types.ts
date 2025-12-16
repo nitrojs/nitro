@@ -30,18 +30,40 @@ export interface CloudflarePagesRoutes {
 
 export interface CloudflareOptions {
   /**
-   * Configuration for the Cloudflare Deployments
+   * Configuration for the Cloudflare Deployments.
+   *
+   * **NOTE:** This option is only effective if `deployConfig` is enabled.
    */
   wrangler?: WranglerConfig;
 
   /**
-   * Disable the automatic generation of .wrangler/deploy/config.json
+   * Enable automatic generation of `.wrangler/deploy/config.json`.
+   *
+   * **IMPORTANT:** Enabling this option will cause settings from cloudflare dashboard (including environment variables) to be disabled and discarded.
    *
    * More info: https://developers.cloudflare.com/workers/wrangler/configuration#generated-wrangler-configuration
    */
-  noWranglerDeployConfig?: boolean;
+  deployConfig?: boolean;
 
-  pages: {
+  /**
+   * Enable native Node.js compatibility support.
+   *
+   * If this option disabled, pure unenv polyfills will be used instead.
+   *
+   * If not set, will be auto enabled if `nodejs_compat` or `nodejs_compat_v2` is detected in `wrangler.toml` or `wrangler.json`.
+   */
+  nodeCompat?: boolean;
+
+  /**
+   * Options for dev emulation.
+   */
+  dev?: {
+    configPath?: string;
+    environment?: string;
+    persistDir?: string;
+  };
+
+  pages?: {
     /**
      * Nitro will automatically generate a `_routes.json` that controls which files get served statically and
      * which get served by the Worker. Using this config will override the automatic `_routes.json`. Or, if the

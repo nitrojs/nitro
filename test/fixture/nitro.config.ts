@@ -4,7 +4,7 @@ import { dirname, resolve } from "node:path";
 
 export default defineNitroConfig({
   compressPublicAssets: true,
-  compatibilityDate: "2025-01-30",
+  compatibilityDate: "latest",
   framework: {
     name: "nitro",
     version: "2.x",

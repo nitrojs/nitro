@@ -6,6 +6,7 @@ import {
   generateFunctionFiles,
   generateStaticFiles,
 } from "./utils";
+import { builtnNodeModules } from "../_unenv/node-compat/vercel";
 
 export type { VercelOptions as PresetOptions } from "./types";
 
@@ -15,14 +16,17 @@ const vercel = defineNitroPreset(
   {
     extends: "node",
     entry: "./runtime/vercel",
+    vercel: {
+      skewProtection: !!process.env.VERCEL_SKEW_PROTECTION_ENABLED,
+    },
     output: {
       dir: "{{ rootDir }}/.vercel/output",
-      serverDir: "{{ output.dir }}/functions/__nitro.func",
+      serverDir: "{{ output.dir }}/functions/__fallback.func",
       publicDir: "{{ output.dir }}/static/{{ baseURL }}",
     },
     commands: {
-      deploy: "",
       preview: "",
+      deploy: "npx vercel deploy --prebuilt",
     },
     hooks: {
       "rollup:before": (nitro: Nitro) => {
@@ -47,21 +51,27 @@ const vercelEdge = defineNitroPreset(
     exportConditions: ["edge-light"],
     output: {
       dir: "{{ rootDir }}/.vercel/output",
-      serverDir: "{{ output.dir }}/functions/__nitro.func",
+      serverDir: "{{ output.dir }}/functions/__fallback.func",
       publicDir: "{{ output.dir }}/static/{{ baseURL }}",
     },
     commands: {
-      deploy: "",
       preview: "",
+      deploy: "npx vercel deploy --prebuilt",
+    },
+    unenv: {
+      external: builtnNodeModules.flatMap((m) => `node:${m}`),
+      alias: {
+        ...Object.fromEntries(
+          builtnNodeModules.flatMap((m) => [
+            [m, `node:${m}`],
+            [`node:${m}`, `node:${m}`],
+          ])
+        ),
+      },
     },
     rollupConfig: {
       output: {
         format: "module",
-      },
-    },
-    unenv: {
-      inject: {
-        process: undefined,
       },
     },
     wasm: {
@@ -86,12 +96,16 @@ const vercelEdge = defineNitroPreset(
 const vercelStatic = defineNitroPreset(
   {
     extends: "static",
+    vercel: {
+      skewProtection: !!process.env.VERCEL_SKEW_PROTECTION_ENABLED,
+    },
     output: {
       dir: "{{ rootDir }}/.vercel/output",
       publicDir: "{{ output.dir }}/static/{{ baseURL }}",
     },
     commands: {
-      preview: "npx serve ./static",
+      preview: "npx serve {{ output.publicDir }}",
+      deploy: "npx vercel deploy --prebuilt",
     },
     hooks: {
       "rollup:before": (nitro: Nitro) => {

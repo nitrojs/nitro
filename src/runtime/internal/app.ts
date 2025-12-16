@@ -22,15 +22,18 @@ import {
   fetchNodeRequestHandler,
   callNodeRequestHandler,
   type AbstractRequest,
+  type NodeRequestHandler,
 } from "node-mock-http";
-import errorHandler from "#nitro-internal-virtual/error-handler";
-import { plugins } from "#nitro-internal-virtual/plugins";
-import { handlers } from "#nitro-internal-virtual/server-handlers";
 import { cachedEventHandler } from "./cache";
 import { useRuntimeConfig } from "./config";
 import { nitroAsyncContext } from "./context";
 import { createRouteRulesHandler, getRouteRulesForPath } from "./route-rules";
 import { normalizeFetchResponse } from "./utils";
+
+// IMPORTANT: virtuals and user code should be imported last to avoid initialization order issues
+import errorHandler from "#nitro-internal-virtual/error-handler";
+import { plugins } from "#nitro-internal-virtual/plugins";
+import { handlers } from "#nitro-internal-virtual/server-handlers";
 
 function createNitroApp(): NitroApp {
   const config = useRuntimeConfig();
@@ -61,6 +64,50 @@ function createNitroApp(): NitroApp {
       return errorHandler(error as H3Error, event);
     },
     onRequest: async (event) => {
+      // Init nitro context
+      event.context.nitro = event.context.nitro || { errors: [] };
+
+      // Support platform context provided by local fetch
+      const fetchContext = (event.node.req as any)?.__unenv__ as
+        | undefined
+        | {
+            waitUntil?: H3Event["waitUntil"];
+            _platform?: Record<string, any>;
+          };
+      if (fetchContext?._platform) {
+        event.context = {
+          _platform: fetchContext?._platform, // #3335
+          ...fetchContext._platform,
+          ...event.context,
+        };
+      }
+      if (!event.context.waitUntil && fetchContext?.waitUntil) {
+        event.context.waitUntil = fetchContext.waitUntil;
+      }
+
+      // Assign bound fetch to context
+      event.fetch = (req, init) =>
+        fetchWithEvent(event, req, init, { fetch: localFetch });
+      event.$fetch = (req, init) =>
+        fetchWithEvent(event, req, init as RequestInit, {
+          fetch: $fetch as any,
+        });
+
+      // https://github.com/nitrojs/nitro/issues/1420
+      event.waitUntil = (promise) => {
+        if (!event.context.nitro._waitUntilPromises) {
+          event.context.nitro._waitUntilPromises = [];
+        }
+        event.context.nitro._waitUntilPromises.push(promise);
+        if (event.context.waitUntil) {
+          event.context.waitUntil(promise);
+        }
+      };
+
+      event.captureError = (error, context) => {
+        captureError(error, { event, ...context });
+      };
+
       await nitroApp.hooks.callHook("request", event).catch((error) => {
         captureError(error, { event, tags: ["request"] });
       });
@@ -86,15 +133,18 @@ function createNitroApp(): NitroApp {
   });
 
   // Create local fetch caller
-  const nodeHandler = toNodeListener(h3App);
+  const nodeHandler = toNodeListener(h3App); // TODO: Update h3 v1 types
   const localCall = (aRequest: AbstractRequest) =>
-    callNodeRequestHandler(nodeHandler, aRequest);
+    callNodeRequestHandler(
+      nodeHandler as unknown as NodeRequestHandler,
+      aRequest
+    );
   const localFetch: typeof fetch = (input, init) => {
     if (!input.toString().startsWith("/")) {
       return globalThis.fetch(input, init);
     }
     return fetchNodeRequestHandler(
-      nodeHandler,
+      nodeHandler as unknown as NodeRequestHandler,
       input as string /* TODO */,
       init
     ).then((response) => normalizeFetchResponse(response));
@@ -110,45 +160,6 @@ function createNitroApp(): NitroApp {
 
   // Register route rule handlers
   h3App.use(createRouteRulesHandler({ localFetch }));
-
-  // A generic event handler give nitro access to the requests
-  h3App.use(
-    eventHandler((event) => {
-      // Init nitro context
-      event.context.nitro = event.context.nitro || { errors: [] };
-
-      // Support platform context provided by local fetch
-      const envContext: { waitUntil?: H3Event["waitUntil"] } | undefined = (
-        event.node.req as unknown as { __unenv__: any }
-      )?.__unenv__;
-      if (envContext) {
-        Object.assign(event.context, envContext);
-      }
-
-      // Assign bound fetch to context
-      event.fetch = (req, init) =>
-        fetchWithEvent(event, req, init, { fetch: localFetch });
-      event.$fetch = (req, init) =>
-        fetchWithEvent(event, req, init as RequestInit, {
-          fetch: $fetch as any,
-        });
-
-      // https://github.com/nitrojs/nitro/issues/1420
-      event.waitUntil = (promise) => {
-        if (!event.context.nitro._waitUntilPromises) {
-          event.context.nitro._waitUntilPromises = [];
-        }
-        event.context.nitro._waitUntilPromises.push(promise);
-        if (envContext?.waitUntil) {
-          envContext.waitUntil(promise);
-        }
-      };
-
-      event.captureError = (error, context) => {
-        captureError(error, { event, ...context });
-      };
-    })
-  );
 
   for (const h of handlers) {
     let handler = h.lazy ? lazyEventHandler(h.handler) : h.handler;

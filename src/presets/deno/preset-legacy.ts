@@ -14,11 +14,11 @@ export const denoServerLegacy = defineNitroPreset(
     entry: "./runtime/deno-server",
     exportConditions: ["deno"],
     commands: {
-      preview: "deno task --config ./deno.json start",
+      preview: "deno task --config {{ output.dir }}/deno.json start",
     },
     unenv: {
       inject: {
-        global: ["unenv/polyfill/global-this", "default"],
+        global: ["unenv/polyfill/globalthis-global", "default"],
         Buffer: ["node:buffer", "Buffer"],
         setTimeout: ["node:timers", "setTimeout"],
         clearTimeout: ["node:timers", "clearTimeout"],

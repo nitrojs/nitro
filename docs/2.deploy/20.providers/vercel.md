@@ -1,111 +1,77 @@
 # Vercel
 
-> Deploy Nitro apps to Vercel functions or edge.
+> Deploy Nitro apps to Vercel.
 
 **Preset:** `vercel`
 
-:read-more{title="Vercel Functions" to="https://vercel.com/docs/functions"}
+:read-more{title="Vercel Framework Support" to="https://vercel.com/docs/frameworks"}
 
 ::note
 Integration with this provider is possible with [zero configuration](/deploy/#zero-config-providers).
 ::
 
-## Deploy using git
+## Getting started
 
-1. Push your code to your git repository (GitHub, GitLab, Bitbucket).
-2. [Import your project](https://vercel.com/new) into Vercel.
-3. Vercel will detect that you are using Nitro and will enable the correct settings for your deployment.
-4. Your application is deployed!
+Deploying to Vercel comes with the following features:
+- [Preview deployments](https://vercel.com/docs/deployments/environments)
+- [Fluid compute](https://vercel.com/docs/fluid-compute)
+- [Observability](https://vercel.com/docs/observability)
+- [Vercel Firewall](https://vercel.com/docs/vercel-firewall)
 
-After your project has been imported and deployed, all subsequent pushes to branches will generate [Preview Deployments](https://vercel.com/docs/concepts/deployments/environments#preview), and all changes made to the Production Branch (commonly “main”) will result in a [Production Deployment](https://vercel.com/docs/concepts/deployments/environments#production).
+And much more. Learn more in [the Vercel documentation](https://vercel.com/docs).
 
-Learn more about Vercel’s [Git Integration](https://vercel.com/docs/concepts/git).
+### Deploy with Git
 
-## Monorepo
+Vercel supports Nitro with zero-configuration. [Deploy Nitro to Vercel now](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fvercel%2Ftree%2Fmain%2Fexamples%2Fnitro).
 
-Monorepo is supported by Vercel. However a custom "[Root Directory](https://vercel.com/docs/deployments/configure-a-build#root-directory)" must be specified in "Project Settings > General" tab. Also make sure that "Include source files outside of the Root Directory" is checked.
+## Observability
 
-Examples of values for "Root Directory": `apps/web` or `packages/app`.
+Nitro (>=2.12) generates routing hints for [functions observability insights](https://vercel.com/docs/observability/insights#vercel-functions), providing a detailed view of performance broken down by route.
 
-## Vercel edge functions
-
-**Preset:** `vercel_edge`
-
-:read-more{title="Vercel Edge Functions" to="https://vercel.com/docs/concepts/functions/edge-functions"}
-
-It is possible to deploy your nitro applications directly on [Vercel Edge Functions](https://vercel.com/docs/concepts/functions/edge-functions).
-
-In order to enable this target, please set `NITRO_PRESET` environment variable to `vercel_edge`.
-
-## Vercel KV storage
-
-You can easily use [Vercel KV Storage](https://vercel.com/docs/storage/vercel-kv) with [Nitro Storage](/guide/storage).
-
-::warning
-This feature is currently in beta. Please check [driver docs](https://unstorage.unjs.io/drivers/vercel-kv).
-::
-
-1. Install `@vercel/kv` dependency:
-
-```json [package.json]
-{
-  "devDependencies": {
-    "@vercel/kv": "latest"
-  }
-}
-```
-
-Update your configuration:
-
-::code-group
+To enable this feature, ensure you are using a compatibility date of `2025-07-15` or later.
 
 ```ts [nitro.config.ts]
 export default defineNitroConfig({
-  storage: {
-    data: { driver: 'vercelKV' }
-  }
+    compatibilityDate: "2025-07-15", // or "latest"
 })
 ```
 
 ```ts [nuxt.config.ts]
 export default defineNuxtConfig({
-  nitro: {
-    storage: {
-      data: { driver: 'vercelKV' }
+    compatibilityDate: "2025-07-15", // or "latest"
+})
+```
+
+Framework integrations can use the `ssrRoutes` configuration to declare SSR routes. For more information, see [#3475](https://github.com/nitrojs/nitro/pull/3475).
+
+## Bun runtime
+
+:read-more{title="Vercel" to="https://vercel.com/docs/functions/runtimes/bun"}
+
+You can use [Bun](https://bun.com) instead of Node.js by specifying the runtime using the `vercel.functions` key inside `nitro.config`:
+
+```ts [nitro.config.ts]
+export default defineNitroConfig({
+  vercel: {
+    functions: {
+      runtime: "bun1.x"
     }
   }
 })
 ```
 
-::
+Alternatively, Nitro also detects Bun automatically if you specify a `bunVersion` property in your `vercel.json`:
 
-::note
-You need to either set `KV_REST_API_URL` and `KV_REST_API_TOKEN` environment variables or pass `url` and `token` to driver options. Check [driver docs](https://unstorage.unjs.io/drivers/vercel-kv) for more information about usage.
-::
-
-You can now access data store in any event handler:
-
-```ts
-export default defineEventHandler(async (event) => {
-  const dataStorage = useStorage("data");
-  await dataStorage.setItem("hello", "world");
-  return {
-    hello: await dataStorage.getItem("hello"),
-  };
-});
+```json [vercel.json]
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "bunVersion": "1.x"
+}
 ```
-
-## API routes
-
-Nitro `/api` directory isn't compatible with Vercel.
-Instead, you have to use :
-
-- `routes/api/` for standalone usage
-- `server/api/` with [Nuxt](https://nuxt.com).
 
 ## Custom build output configuration
 
-You can provide additional [build output configuration](https://vercel.com/docs/build-output-api/v3) using `vercel.config` key inside `nitro.config`. It will be merged with built-in auto generated config.
+You can provide additional [build output configuration](https://vercel.com/docs/build-output-api/v3) using `vercel.config` key inside `nitro.config`. It will be merged with built-in auto-generated config.
 
 ## On-Demand incremental static regeneration (ISR)
 
@@ -113,10 +79,10 @@ On-demand revalidation allows you to purge the cache for an ISR route whenever y
 
 To revalidate a page on demand:
 
-1. Create an Environment Variable which will store a revalidation secret
+- Create an Environment Variable which will store a revalidation secret
     - You can use the command `openssl rand -base64 32` or [Generate a Secret](https://generate-secret.vercel.app/32) to generate a random value.
 
-2. Update your configuration:
+- Update your configuration:
 
     ::code-group
 
@@ -144,7 +110,7 @@ To revalidate a page on demand:
 
     ::
 
-3. To trigger "On-Demand Incremental Static Regeneration (ISR)" and revalidate a path to a Prerender Function, make a GET or HEAD request to that path with a header of x-prerender-revalidate: `bypassToken`. When that Prerender Function endpoint is accessed with this header set, the cache will be revalidated. The next request to that function should return a fresh response.
+- To trigger "On-Demand Incremental Static Regeneration (ISR)" and revalidate a path to a Prerender Function, make a GET or HEAD request to that path with a header of x-prerender-revalidate: `bypassToken`. When that Prerender Function endpoint is accessed with this header set, the cache will be revalidated. The next request to that function should return a fresh response.
 
 ### Fine-grained ISR config via route rules
 
@@ -173,3 +139,9 @@ export default defineNitroConfig({
   },
 });
 ```
+
+## Vercel edge functions
+
+**Preset:** `vercel_edge` (deprecated)
+
+We recommend migrating to the default Node.js runtime and enabling [Fluid compute](https://vercel.com/docs/functions/fluid-compute).
