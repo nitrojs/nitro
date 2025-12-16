@@ -103,7 +103,7 @@ describe("nitro:preset:netlify", async () => {
           "export { default } from "./main.mjs";
           export const config = {
             name: "server handler",
-            generator: "nitro@2.x",
+            generator: "nitro@3.x",
             path: "/*",
             nodeBundler: "none",
             includedFiles: ["**"],

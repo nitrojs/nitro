@@ -1,6 +1,5 @@
 import { resolve } from "node:path";
 import { promises as fs } from "node:fs";
-import { fileURLToPath } from "mlly";
 import type { Nitro } from "nitro/types";
 import { findFile } from "pkg-types";
 import { resolveModulePath } from "exsolve";
@@ -25,7 +24,7 @@ export async function cloudflareDevModule(nitro: Nitro) {
 
   // Try to resolve wrangler
   const wranglerPath = await resolveModulePath("wrangler", {
-    from: nitro.options.nodeModulesDirs,
+    from: nitro.options.rootDir,
     try: true,
   });
   if (!wranglerPath) {
@@ -81,12 +80,6 @@ export async function cloudflareDevModule(nitro: Nitro) {
     persistDir,
     environment: config.environment,
   };
-
-  // Make sure runtime is transpiled
-  nitro.options.externals.inline = nitro.options.externals.inline || [];
-  nitro.options.externals.inline.push(
-    fileURLToPath(new URL("runtime/", import.meta.url))
-  );
 
   // Add plugin to inject bindings to dev server
   nitro.options.plugins = nitro.options.plugins || [];

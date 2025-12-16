@@ -92,6 +92,11 @@ export interface CloudflareOptions {
      */
     defaultRoutes?: boolean;
   };
+
+  /**
+   * Custom Cloudflare exports additional classes such as WorkflowEntrypoint.
+   */
+  exports?: string;
 }
 
 type DurableObjectState = ConstructorParameters<typeof DurableObject>[0];

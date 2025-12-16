@@ -8,7 +8,7 @@ import {
 
 export default function rendererTemplate(nitro: Nitro) {
   return {
-    id: "#nitro-internal-virtual/renderer-template",
+    id: "#nitro/virtual/renderer-template",
     template: async () => {
       const template = nitro.options.renderer?.template;
       if (typeof template !== "string") {

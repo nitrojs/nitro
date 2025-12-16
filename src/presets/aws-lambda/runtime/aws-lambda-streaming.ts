@@ -1,4 +1,4 @@
-import "#nitro-internal-polyfills";
+import "#nitro/virtual/polyfills";
 import { useNitroApp } from "nitro/app";
 import { awsRequest, awsResponseHeaders } from "./_utils.ts";
 

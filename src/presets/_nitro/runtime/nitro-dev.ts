@@ -1,4 +1,4 @@
-import "#nitro-internal-polyfills";
+import "#nitro/virtual/polyfills";
 import { Server } from "node:http";
 import { parentPort, threadId } from "node:worker_threads";
 import wsAdapter from "crossws/adapters/node";
@@ -6,10 +6,10 @@ import { toNodeHandler } from "srvx/node";
 import { getSocketAddress, isSocketSupported } from "get-port-please";
 
 import { useNitroApp, useNitroHooks } from "nitro/app";
-import { startScheduleRunner } from "nitro/~internal/runtime/task";
-import { trapUnhandledErrors } from "nitro/~internal/runtime/error/hooks";
-import { resolveWebsocketHooks } from "nitro/~internal/runtime/app";
-import { hasWebSocket } from "#nitro-internal-virtual/feature-flags";
+import { startScheduleRunner } from "#nitro/runtime/task";
+import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
+import { resolveWebsocketHooks } from "#nitro/runtime/app";
+import { hasWebSocket } from "#nitro/virtual/feature-flags";
 
 // Listen for shutdown signal from runner
 parentPort?.on("message", (msg) => {

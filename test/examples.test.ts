@@ -1,26 +1,22 @@
-import type { ViteDevServer } from "vite";
-import type { ViteDevServer as RolldownViteDevServer } from "rolldown-vite";
 import { join } from "node:path";
 import { readdir } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { toRequest } from "h3";
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
-import { isWindows } from "std-env";
+
+import type { ViteDevServer } from "vite";
 
 const examplesDir = fileURLToPath(new URL("../examples", import.meta.url));
 
-const useRolldown = process.env.NITRO_BUILDER === "rolldown";
-const { createServer, createBuilder } = useRolldown
-  ? await import("rolldown-vite")
-  : await import("vite");
+const { createServer, createBuilder } = (await import(
+  process.env.NITRO_VITE_PKG || "vite"
+)) as typeof import("vite");
 
 const skip = new Set<string>(["websocket"]);
 
 const skipDev = new Set<string>(["auto-imports", "cached-handler"]);
 
-const skipProd = new Set<string>([
-  "vite-ssr-tss-react", // seroval export condition (only happens to test env)
-]);
+const skipProd = new Set<string>([]);
 
 for (const example of await readdir(examplesDir)) {
   if (example.startsWith("_")) continue;
@@ -30,7 +26,7 @@ for (const example of await readdir(examplesDir)) {
 function setupTest(name: string) {
   const rootDir = join(examplesDir, name);
 
-  describe.skipIf(skip.has(name) || isWindows)(name, () => {
+  describe.skipIf(skip.has(name))(name, () => {
     type TestContext = {
       fetch: typeof globalThis.fetch;
     };
@@ -44,7 +40,7 @@ function setupTest(name: string) {
     }
 
     describe.skipIf(skipDev.has(name))(`${name} (dev)`, () => {
-      let server: ViteDevServer | RolldownViteDevServer;
+      let server: ViteDevServer;
       const context: TestContext = {} as any;
 
       beforeAll(async () => {
@@ -76,6 +72,8 @@ function setupTest(name: string) {
         process.env.NITRO_PRESET = "standard";
         const builder = await createBuilder({ logLevel: "warn" });
         await builder.buildApp();
+
+        delete globalThis.__nitro__;
 
         const { default: entryMod } = await import(
           pathToFileURL(join(rootDir, ".output/server/index.mjs")).href

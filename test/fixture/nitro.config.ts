@@ -1,6 +1,5 @@
 import { defineConfig } from "nitro";
 
-import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { existsSync } from "node:fs";
 
@@ -8,11 +7,10 @@ export default defineConfig({
   compressPublicAssets: true,
   compatibilityDate: "latest",
   serverDir: "server",
-  builder: (process.env.NITRO_BUILDER as any) || "rollup",
-  framework: {
-    name: "nitro",
-    version: "2.x",
-  },
+  builder: (process.env.NITRO_BUILDER as any) || "rolldown",
+  // @ts-expect-error
+  __vitePkg__: process.env.NITRO_VITE_PKG,
+  framework: { name: "nitro", version: "3.x" },
   imports: {
     presets: [
       {
@@ -32,6 +30,10 @@ export default defineConfig({
       },
     },
   },
+  virtual: {
+    "#virtual-route": () =>
+      `export default () => new Response("Hello from virtual entry!")`,
+  },
   handlers: [
     {
       route: "/api/test/*/foo",
@@ -43,6 +45,10 @@ export default defineConfig({
       handler: "./server/routes/api/hello.ts",
       middleware: true,
     },
+    {
+      route: "/virtual",
+      handler: "#virtual-route",
+    },
   ],
   devProxy: {
     "/proxy/example": {
@@ -51,11 +57,7 @@ export default defineConfig({
       ignorePath: true,
     },
   },
-  alias: {
-    "#fixture-nitro-utils-extra-absolute": fileURLToPath(
-      new URL("node_modules/@fixture/nitro-utils/extra2.mjs", import.meta.url)
-    ),
-  },
+  traceDeps: ["@fixture"],
   serverAssets: [
     {
       baseName: "files",

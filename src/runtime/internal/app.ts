@@ -12,14 +12,14 @@ import { HookableCore } from "hookable";
 import { nitroAsyncContext } from "./context.ts";
 
 // IMPORTANT: virtual imports and user code should be imported last to avoid initialization order issues
-import errorHandler from "#nitro-internal-virtual/error-handler";
-import { plugins } from "#nitro-internal-virtual/plugins";
+import errorHandler from "#nitro/virtual/error-handler";
+import { plugins } from "#nitro/virtual/plugins";
 import {
   findRoute,
   findRouteRules,
   globalMiddleware,
   findRoutedMiddleware,
-} from "#nitro-internal-virtual/routing";
+} from "#nitro/virtual/routing";
 import {
   hasRouteRules,
   hasRoutedMiddleware,
@@ -27,14 +27,30 @@ import {
   hasRoutes,
   hasHooks,
   hasPlugins,
-} from "#nitro-internal-virtual/feature-flags";
+} from "#nitro/virtual/feature-flags";
 
 declare global {
-  var __nitro__: NitroApp | undefined;
+  var __nitro__:
+    | Partial<
+        Record<"default" | "prerender" | (string & {}), NitroApp | undefined>
+      >
+    | undefined;
 }
 
+const APP_ID = import.meta.prerender ? "prerender" : "default";
+
 export function useNitroApp(): NitroApp {
-  return ((useNitroApp as any).__instance__ ??= initNitroApp());
+  let instance: NitroApp | undefined = (useNitroApp as any)._instance;
+  if (instance) {
+    return instance;
+  }
+  instance = (useNitroApp as any)._instance = createNitroApp();
+  globalThis.__nitro__ = globalThis.__nitro__ || {};
+  globalThis.__nitro__[APP_ID] = instance;
+  if (hasPlugins) {
+    initNitroPlugins(instance);
+  }
+  return instance;
 }
 
 export function useNitroHooks(): HookableCore<NitroRuntimeHooks> {
@@ -80,22 +96,6 @@ export function fetch(
   }
   resource = (resource as any)._request || resource; // unwrap srvx request
   return fetch(resource, init);
-}
-
-function initNitroApp(): NitroApp {
-  const nitroApp = createNitroApp();
-  if (hasPlugins) {
-    for (const plugin of plugins) {
-      try {
-        plugin(nitroApp);
-      } catch (error: any) {
-        nitroApp.captureError?.(error, { tags: ["plugin"] });
-        throw error;
-      }
-    }
-  }
-  globalThis.__nitro__ = nitroApp;
-  return nitroApp;
 }
 
 function createNitroApp(): NitroApp {
@@ -163,6 +163,18 @@ function createNitroApp(): NitroApp {
   return app;
 }
 
+function initNitroPlugins(app: NitroApp) {
+  for (const plugin of plugins) {
+    try {
+      plugin(app as NitroApp & { hooks: NonNullable<NitroApp["hooks"]> });
+    } catch (error: any) {
+      app.captureError?.(error, { tags: ["plugin"] });
+      throw error;
+    }
+  }
+  return app;
+}
+
 function createH3App(config: H3Config) {
   // Create H3 app
   const h3App = new H3Core(config);
@@ -202,7 +214,7 @@ function createH3App(config: H3Config) {
   return h3App;
 }
 
-function getRouteRules(
+export function getRouteRules(
   method: string,
   pathname: string
 ): {

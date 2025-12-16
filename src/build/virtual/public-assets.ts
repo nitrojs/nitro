@@ -22,7 +22,7 @@ export default function publicAssets(nitro: Nitro) {
   return [
     // public-assets-data
     {
-      id: "#nitro-internal-virtual/public-assets-data",
+      id: "#nitro/virtual/public-assets-data",
       template: async () => {
         const assets: Record<string, PublicAsset> = {};
         const files = await glob("**", {
@@ -73,7 +73,7 @@ export default function publicAssets(nitro: Nitro) {
 
     // public-assets
     {
-      id: "#nitro-internal-virtual/public-assets",
+      id: "#nitro/virtual/public-assets",
       template: () => {
         const publicAssetBases = Object.fromEntries(
           nitro.options.publicAssets
@@ -90,10 +90,10 @@ export default function publicAssets(nitro: Nitro) {
         type _serveStaticAsKey = Exclude<typeof nitro.options.serveStatic, boolean> | "true" | "false";
         // prettier-ignore
         const handlerName = readAssetHandler[nitro.options.serveStatic as _serveStaticAsKey] || "null";
-        const readAssetImport = `#nitro-internal-virtual/public-assets-${handlerName}`;
+        const readAssetImport = `#nitro/virtual/public-assets-${handlerName}`;
 
         return /* js */ `
-import assets from '#nitro-internal-virtual/public-assets-data'
+import assets from '#nitro/virtual/public-assets-data'
 export { readAsset } from "${readAssetImport}"
 export const publicAssetBases = ${JSON.stringify(publicAssetBases)}
 
@@ -125,13 +125,13 @@ export function getAsset (id) {
 
     // public-assets-node
     {
-      id: "#nitro-internal-virtual/public-assets-node",
+      id: "#nitro/virtual/public-assets-node",
       template: () => {
         return /* js */ `
 import { promises as fsp } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { resolve, dirname } from 'node:path'
-import assets from '#nitro-internal-virtual/public-assets-data'
+import assets from '#nitro/virtual/public-assets-data'
 export function readAsset (id) {
   const serverDir = dirname(fileURLToPath(globalThis.__nitro_main__))
   return fsp.readFile(resolve(serverDir, assets[id].path))
@@ -141,10 +141,10 @@ export function readAsset (id) {
 
     // public-assets-deno
     {
-      id: "#nitro-internal-virtual/public-assets-deno",
+      id: "#nitro/virtual/public-assets-deno",
       template: () => {
         return /* js */ `
-import assets from '#nitro-internal-virtual/public-assets-data'
+import assets from '#nitro/virtual/public-assets-data'
 export function readAsset (id) {
   // https://deno.com/deploy/docs/serve-static-assets
   const path = '.' + decodeURIComponent(new URL(\`../public\${id}\`, 'file://').pathname)
@@ -155,7 +155,7 @@ export function readAsset (id) {
 
     // public-assets-null
     {
-      id: "#nitro-internal-virtual/public-assets-null",
+      id: "#nitro/virtual/public-assets-null",
       template: () => {
         return /* js */ `
     export function readAsset (id) {
@@ -166,10 +166,10 @@ export function readAsset (id) {
 
     // public-assets-inline
     {
-      id: "#nitro-internal-virtual/public-assets-inline",
+      id: "#nitro/virtual/public-assets-inline",
       template: () => {
         return /* js */ `
-  import assets from '#nitro-internal-virtual/public-assets-data'
+  import assets from '#nitro/virtual/public-assets-data'
   export function readAsset (id) {
     if (!assets[id]) { return undefined }
     if (assets[id]._data) { return assets[id]._data }

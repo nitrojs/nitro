@@ -1,7 +1,6 @@
 import type { NitroRuntimeConfig } from "nitro/types";
-import { runtimeConfig } from "#nitro-internal-virtual/runtime-config";
-
 import { snakeCase } from "scule";
+import { runtimeConfig } from "#nitro/virtual/runtime-config";
 
 export function useRuntimeConfig(): NitroRuntimeConfig {
   return ((useRuntimeConfig as any)._cached ||= getRuntimeConfig());
@@ -9,7 +8,6 @@ export function useRuntimeConfig(): NitroRuntimeConfig {
 
 function getRuntimeConfig() {
   const env = globalThis.process?.env || {};
-
   applyEnv(runtimeConfig, {
     prefix: "NITRO_",
     altPrefix: runtimeConfig.nitro?.envPrefix ?? env?.NITRO_ENV_PREFIX ?? "_",
@@ -17,26 +15,16 @@ function getRuntimeConfig() {
       runtimeConfig.nitro?.envExpansion ?? env?.NITRO_ENV_EXPANSION ?? false
     ),
   });
-
   return runtimeConfig;
 }
+
+// ---- utils ----
 
 type EnvOptions = {
   prefix?: string;
   altPrefix?: string;
   envExpansion?: boolean;
 };
-
-function getEnv(key: string, opts: EnvOptions) {
-  const envKey = snakeCase(key).toUpperCase();
-  return (
-    process.env[opts.prefix + envKey] ?? process.env[opts.altPrefix + envKey]
-  );
-}
-
-function _isObject(input: unknown) {
-  return typeof input === "object" && !Array.isArray(input);
-}
 
 export function applyEnv(
   obj: Record<string, any>,
@@ -79,4 +67,15 @@ function _expandFromEnv(value: string) {
   return value.replace(envExpandRx, (match, key) => {
     return process.env[key] || match;
   });
+}
+
+function getEnv(key: string, opts: EnvOptions) {
+  const envKey = snakeCase(key).toUpperCase();
+  return (
+    process.env[opts.prefix + envKey] ?? process.env[opts.altPrefix + envKey]
+  );
+}
+
+function _isObject(input: unknown) {
+  return input !== null && typeof input === "object" && !Array.isArray(input);
 }

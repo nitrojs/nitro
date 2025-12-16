@@ -1,6 +1,6 @@
 import { promises as fsp } from "node:fs";
 import { resolve, join, basename } from "pathe";
-import { describe, expect, it, vi, afterAll } from "vitest";
+import { describe, expect, it, vi, beforeAll, afterAll } from "vitest";
 import { setupTest, testNitro, fixtureDir } from "../tests.ts";
 import { toFetchHandler } from "srvx/node";
 
@@ -118,40 +118,40 @@ describe("nitro:preset:vercel:web", async () => {
                 "handle": "filesystem",
               },
               {
-                "dest": "/rules/_/noncached/cached-isr?url=$url",
-                "src": "/rules/_/noncached/cached",
+                "dest": "/rules/_/noncached/cached-isr?__isr_route=$__isr_route",
+                "src": "(?<__isr_route>/rules/_/noncached/cached)",
               },
               {
                 "dest": "/__server",
-                "src": "/rules/_/cached/noncached",
+                "src": "(?<__isr_route>/rules/_/cached/noncached)",
               },
               {
                 "dest": "/__server",
-                "src": "(?<url>/rules/_/noncached/.*)",
+                "src": "(?<__isr_route>/rules/_/noncached/(?:.*))",
               },
               {
-                "dest": "/rules/_/cached/[...]-isr?url=$url",
-                "src": "(?<url>/rules/_/cached/.*)",
+                "dest": "/rules/_/cached/[...]-isr?__isr_route=$__isr_route",
+                "src": "(?<__isr_route>/rules/_/cached/(?:.*))",
               },
               {
                 "dest": "/__server",
-                "src": "/rules/dynamic",
+                "src": "(?<__isr_route>/rules/dynamic)",
               },
               {
-                "dest": "/rules/isr/[...]-isr?url=$url",
-                "src": "(?<url>/rules/isr/.*)",
+                "dest": "/rules/isr/[...]-isr?__isr_route=$__isr_route",
+                "src": "(?<__isr_route>/rules/isr/(?:.*))",
               },
               {
-                "dest": "/rules/isr-ttl/[...]-isr?url=$url",
-                "src": "(?<url>/rules/isr-ttl/.*)",
+                "dest": "/rules/isr-ttl/[...]-isr?__isr_route=$__isr_route",
+                "src": "(?<__isr_route>/rules/isr-ttl/(?:.*))",
               },
               {
-                "dest": "/rules/swr/[...]-isr?url=$url",
-                "src": "(?<url>/rules/swr/.*)",
+                "dest": "/rules/swr/[...]-isr?__isr_route=$__isr_route",
+                "src": "(?<__isr_route>/rules/swr/(?:.*))",
               },
               {
-                "dest": "/rules/swr-ttl/[...]-isr?url=$url",
-                "src": "(?<url>/rules/swr-ttl/.*)",
+                "dest": "/rules/swr-ttl/[...]-isr?__isr_route=$__isr_route",
+                "src": "(?<__isr_route>/rules/swr-ttl/(?:.*))",
               },
               {
                 "dest": "/wasm/static-import",
@@ -164,6 +164,10 @@ describe("nitro:preset:vercel:web", async () => {
               {
                 "dest": "/wait-until",
                 "src": "/wait-until",
+              },
+              {
+                "dest": "/virtual",
+                "src": "/virtual",
               },
               {
                 "dest": "/stream",
@@ -365,7 +369,7 @@ describe("nitro:preset:vercel:web", async () => {
         );
         expect(JSON.parse(isrRouteConfig)).toMatchObject({
           expiration: false,
-          allowQuery: ["q"],
+          allowQuery: ["q", "__isr_route"],
         });
       });
 
@@ -455,6 +459,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/static-flags.func (symlink)",
             "functions/stream.func (symlink)",
             "functions/tasks/[...name].func (symlink)",
+            "functions/virtual.func (symlink)",
             "functions/wait-until.func (symlink)",
             "functions/wasm/dynamic-import.func (symlink)",
             "functions/wasm/static-import.func (symlink)",
@@ -519,14 +524,17 @@ describe("nitro:preset:vercel:bun", async () => {
 
 describe.skip("nitro:preset:vercel:bun-verceljson", async () => {
   const vercelJsonPath = join(fixtureDir, "vercel.json");
-  // Need to make sure vercel.json is created before setupTest is called
-  await fsp.writeFile(vercelJsonPath, JSON.stringify({ bunVersion: "1.x" }));
 
   const ctx = await setupTest("vercel", {
     outDirSuffix: "-bun-verceljson",
     config: {
       preset: "vercel",
     },
+  });
+
+  beforeAll(async () => {
+    // Need to make sure vercel.json is created before setupTest is called
+    await fsp.writeFile(vercelJsonPath, JSON.stringify({ bunVersion: "1.x" }));
   });
 
   afterAll(async () => {

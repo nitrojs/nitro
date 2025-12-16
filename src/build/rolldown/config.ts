@@ -1,18 +1,17 @@
 import type { Nitro } from "nitro/types";
-import type { RolldownOptions, RolldownPlugin } from "rolldown";
-import { sanitizeFilePath } from "mlly";
+import type { OutputOptions, RolldownOptions, RolldownPlugin } from "rolldown";
 import { baseBuildConfig } from "../config.ts";
 import { baseBuildPlugins } from "../plugins.ts";
 import { builtinModules } from "node:module";
 import { defu } from "defu";
-import { getChunkName } from "../chunks.ts";
+import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
 
 export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
   const base = baseBuildConfig(nitro);
 
   const tsc = nitro.options.typescript.tsConfig?.compilerOptions;
 
-  let config = {
+  let config: RolldownOptions = {
     platform: nitro.options.node ? "node" : "neutral",
     cwd: nitro.options.rootDir,
     input: nitro.options.entry,
@@ -39,10 +38,8 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
       },
     },
     onwarn(warning, warn) {
-      if (
-        !["CIRCULAR_DEPENDENCY", "EVAL"].includes(warning.code || "") &&
-        !warning.message.includes("Unsupported source map comment")
-      ) {
+      if (!base.ignoreWarningCodes.has(warning.code || "")) {
+        console.log(warning.code);
         warn(warning);
       }
     },
@@ -54,11 +51,13 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
     output: {
       format: "esm",
       entryFileNames: "index.mjs",
-      chunkFileNames: (chunk) => getChunkName(nitro, chunk.moduleIds),
+      chunkFileNames: (chunk) => getChunkName(chunk, nitro),
+      advancedChunks: {
+        groups: [{ test: NODE_MODULES_RE, name: (id) => libChunkName(id) }],
+      },
       dir: nitro.options.output.serverDir,
       inlineDynamicImports: nitro.options.inlineDynamicImports,
       minify: nitro.options.minify,
-      sanitizeFileName: sanitizeFilePath,
       sourcemap: nitro.options.sourcemap,
       sourcemapIgnoreList(relativePath) {
         return relativePath.includes("node_modules");
@@ -67,6 +66,11 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
   } satisfies RolldownOptions;
 
   config = defu(nitro.options.rollupConfig as any, config);
+
+  const outputConfig = config.output as OutputOptions;
+  if (outputConfig.inlineDynamicImports || outputConfig.format === "iife") {
+    delete outputConfig.advancedChunks;
+  }
 
   return config as RolldownOptions;
 };

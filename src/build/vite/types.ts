@@ -1,6 +1,5 @@
-import type { OutputBundle } from "rollup";
 import type { getViteRollupConfig } from "./rollup.ts";
-import type { DevWorker, Nitro, NitroConfig, NitroModule } from "nitro/types";
+import type { EnvRunner, Nitro, NitroConfig, NitroModule } from "nitro/types";
 import type { NitroDevApp } from "../../dev/app.ts";
 
 declare module "vite" {
@@ -11,12 +10,6 @@ declare module "vite" {
     nitro?: NitroConfig;
   }
 
-  interface Plugin {
-    nitro?: NitroModule;
-  }
-}
-
-declare module "rollup" {
   interface Plugin {
     nitro?: NitroModule;
   }
@@ -60,13 +53,13 @@ export interface NitroPluginContext {
   nitro?: Nitro;
   pluginConfig: NitroPluginConfig;
   rollupConfig?: ReturnType<typeof getViteRollupConfig>;
-  devWorker?: DevWorker;
   devApp?: NitroDevApp;
   services: Record<string, ServiceConfig>;
 
   _isRolldown?: boolean;
   _initialized?: boolean;
+  _envRunner?: EnvRunner;
   _publicDistDir?: string;
   _entryPoints: Record<string, string>;
-  _serviceBundles: Record<string, OutputBundle>;
+  _serviceBundles: Record<string, any>;
 }

@@ -10,7 +10,7 @@ import type {
 } from "../../../types/openapi-ts.ts";
 import { joinURL } from "ufo";
 import { defu } from "defu";
-import { handlersMeta } from "#nitro-internal-virtual/routing-meta";
+import { handlersMeta } from "#nitro/virtual/routing-meta";
 import { useRuntimeConfig } from "../runtime-config.ts";
 
 // Served as /_openapi.json

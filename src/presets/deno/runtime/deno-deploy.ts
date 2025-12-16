@@ -1,11 +1,11 @@
-import "#nitro-internal-polyfills";
+import "#nitro/virtual/polyfills";
 import type { ServerRequest } from "srvx";
 import type { Deno as _Deno } from "@deno/types";
 import wsAdapter from "crossws/adapters/deno";
 
 import { useNitroApp } from "nitro/app";
-import { resolveWebsocketHooks } from "nitro/~internal/runtime/app";
-import { hasWebSocket } from "#nitro-internal-virtual/feature-flags";
+import { resolveWebsocketHooks } from "#nitro/runtime/app";
+import { hasWebSocket } from "#nitro/virtual/feature-flags";
 
 declare global {
   var Deno: typeof _Deno;

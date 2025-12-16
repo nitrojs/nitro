@@ -1,7 +1,9 @@
 import { definePlugin } from "nitro";
+import { useNitroHooks } from "nitro/app";
 
 export default definePlugin((nitroApp) => {
-  nitroApp.hooks.hook("response", (event) => {
+  const hooks = useNitroHooks();
+  hooks.hook("response", (event) => {
     event.headers.set("content-type", "html; charset=utf-8");
   });
 });

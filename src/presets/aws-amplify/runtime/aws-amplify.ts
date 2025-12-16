@@ -1,4 +1,4 @@
-import "#nitro-internal-polyfills";
+import "#nitro/virtual/polyfills";
 import { useNitroApp } from "nitro/app";
 
 import { Server } from "node:http";

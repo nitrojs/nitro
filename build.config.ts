@@ -3,7 +3,6 @@ import { defineBuildConfig } from "obuild/config";
 
 import { resolveModulePath } from "exsolve";
 import { traceNodeModules } from "nf3";
-import { parseNodeModulePath } from "mlly";
 
 const isStub = process.argv.includes("--stub");
 
@@ -69,7 +68,6 @@ export default defineBuildConfig({
         "get-port-please",
         "cloudflare:workers",
         "@cloudflare/workers-types",
-        "rolldown-vite",
         // unplugin deps
         "@rspack/core",
         "@farmfe/core",
@@ -78,30 +76,15 @@ export default defineBuildConfig({
       );
     },
     rolldownOutput(config) {
-      config.advancedChunks ||= {};
-      config.advancedChunks.groups = [
-        {
-          test: /node_modules/,
-          name: (moduleId) => {
-            const pkgName = parseNodeModulePath(moduleId)
-              ?.name?.split("/")
-              .pop();
-            return `_libs/${pkgName || "_common"}`;
-          },
-        },
-        // {
-        //   test: /src\/presets\/\w+\//,
-        //   name: (moduleId) => {
-        //     const presetName = /src\/presets\/(\w+)\//.exec(moduleId)?.[1];
-        //     return `_presets/${presetName || "_common"}`;
-        //   },
-        // },
-      ];
-
-      // Use better chunk names (without degrading optimization)
       config.chunkFileNames = (chunk) => {
         if (chunk.name.startsWith("_")) {
           return `[name].mjs`;
+        }
+        if (chunk.name === "rolldown-runtime") {
+          return `_rolldown.mjs`;
+        }
+        if (chunk.name.startsWith("libs/")) {
+          return `_[name].mjs`;
         }
         if (chunk.moduleIds.every((id) => /src\/cli\//.test(id))) {
           return `cli/_chunks/[name].mjs`;
@@ -126,11 +109,18 @@ export default defineBuildConfig({
           return `_presets.mjs`;
         }
         if (
-          chunk.moduleIds.every((id) => /src\/build\/|src\/presets/.test(id))
+          chunk.moduleIds.every((id) =>
+            /src\/build\/|src\/presets|src\/utils/.test(id)
+          )
         ) {
-          return `_build/common.mjs`;
+          return `_build/shared.mjs`;
         }
-        return "_chunks/[hash].mjs";
+        if (
+          chunk.moduleIds.every((id) => /src\/(runner|dev|runtime)/.test(id))
+        ) {
+          return `_dev.mjs`;
+        }
+        return "_nitro.mjs";
       };
     },
     async end() {

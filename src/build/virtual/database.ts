@@ -4,7 +4,7 @@ import { camelCase } from "scule";
 
 export default function database(nitro: Nitro) {
   return {
-    id: "#nitro-internal-virtual/database",
+    id: "#nitro/virtual/database",
     template: () => {
       if (!nitro.options.experimental.database) {
         return /* js */ `export const connectionConfigs = {};`;

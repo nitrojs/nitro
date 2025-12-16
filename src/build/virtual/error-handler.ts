@@ -4,7 +4,7 @@ import { join } from "pathe";
 
 export default function errorHandler(nitro: Nitro) {
   return {
-    id: "#nitro-internal-virtual/error-handler",
+    id: "#nitro/virtual/error-handler",
     template: () => {
       const errorHandlers = Array.isArray(nitro.options.errorHandler)
         ? nitro.options.errorHandler

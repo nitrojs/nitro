@@ -4,6 +4,10 @@ import { nitro } from "nitro/vite";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
-  plugins: [nitro(), tailwindcss()],
-  nitro: { serverDir: "./" },
+  plugins: [
+    nitro({
+      serverDir: "./",
+    }),
+    tailwindcss(),
+  ],
 });

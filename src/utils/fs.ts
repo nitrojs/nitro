@@ -28,6 +28,11 @@ export function resolveNitroPath(
     }
   }
 
+  // eslint-disable-next-line no-control-regex
+  if (/^[#\u0000]/.test(path)) {
+    return path;
+  }
+
   return resolve(base || nitroOptions.rootDir, path);
 }
 

@@ -10,7 +10,7 @@
     "@tailwindcss/vite": "^4.1.14",
     "nitro": "latest",
     "tailwindcss": "^4.1.14",
-    "vite": "^7.1.8",
+    "vite": "beta",
     "preact": "^10.27.2",
     "preact-render-to-string": "^6.6.2"
   }

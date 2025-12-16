@@ -7,26 +7,30 @@ on:
 jobs:
   tests-checks:
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
     strategy:
       matrix:
         os: [ubuntu-latest]
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - run: npm i -g --force corepack && corepack enable
       - uses: actions/setup-node@v6
         with: { node-version: lts/*, cache: pnpm }
       - run: pnpm install
       - run: pnpm stub && pnpm lint
       - run: pnpm test:types
+      - run: pnpm vitest run test/unit
+      - run: pnpm vitest run test/minimal
   tests-rollup:
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - run: npm i -g --force corepack && corepack enable
       - uses: actions/setup-node@v6
         with: { node-version: lts/*, cache: pnpm }
@@ -35,23 +39,27 @@ jobs:
         with: { bun-version: latest }
       - uses: denoland/setup-deno@v1
         if: ${{ matrix.os != 'windows-latest' }}
-        with: { deno-version: v2.x }
+        with: { deno-version: 2.6.0 }
       - run: pnpm install
       - run: pnpm stub && pnpm lint
         if: ${{ matrix.os != 'windows-latest' }}
       - run: pnpm test:types
         if: ${{ matrix.os != 'windows-latest' }}
       - run: pnpm build
-      - run: pnpm vitest run
-        env: { NITRO_BUILDER: rollup }
+      - run: pnpm vitest run test/examples
+        env: { NITRO_BUILDER: rollup, NITRO_VITE_PKG: vite7 }
+      - run: pnpm vitest run test/presets
+        env: { NITRO_BUILDER: rollup, NITRO_VITE_PKG: vite7 }
+
   tests-rolldown:
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - run: npm i -g --force corepack && corepack enable
       - uses: actions/setup-node@v6
         with: { node-version: lts/*, cache: pnpm }
@@ -60,16 +68,19 @@ jobs:
         with: { bun-version: latest }
       - uses: denoland/setup-deno@v1
         if: ${{ matrix.os != 'windows-latest' }}
-        with: { deno-version: v2.x }
+        with: { deno-version: 2.6.0 }
       - run: pnpm install
       - run: pnpm build
-      - run: pnpm vitest run
-        env: { NITRO_BUILDER: rolldown }
+      - run: pnpm vitest run test/examples
+        env: { NITRO_BUILDER: rolldown, NITRO_VITE_PKG: vite }
+      - run: pnpm vitest run test/presets
+        env: { NITRO_BUILDER: rolldown, NITRO_VITE_PKG: vite }
   publish-pkg-pr-new:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs: [tests-checks, tests-rollup, tests-rolldown]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with: { fetch-depth: 0 }
       - run: npm i -fg corepack && corepack enable
       - uses: actions/setup-node@v6
@@ -79,11 +90,12 @@ jobs:
       - run: pnpm dlx pkg-pr-new publish || true
   publish-nitro-nightly:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions: { id-token: write, contents: read }
     needs: [tests-checks, tests-rollup, tests-rolldown]
     if: contains('refs/heads/main', github.ref) && github.event_name == 'push'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with: { fetch-depth: 0 }
       - run: npm i -fg corepack && corepack enable
       - uses: actions/setup-node@v6

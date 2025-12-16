@@ -18,8 +18,10 @@ export interface NitroRouteConfig {
   static?: boolean | number;
 }
 
-export interface NitroRouteRules
-  extends Omit<NitroRouteConfig, "redirect" | "cors" | "swr" | "static"> {
+export interface NitroRouteRules extends Omit<
+  NitroRouteConfig,
+  "redirect" | "cors" | "swr" | "static"
+> {
   redirect?: { to: string; status: HTTPstatus };
   proxy?: { to: string } & ProxyOptions;
   [key: string]: any;

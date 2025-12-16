@@ -2,7 +2,7 @@ import type { Nitro } from "nitro/types";
 
 export default function featureFlags(nitro: Nitro) {
   return {
-    id: "#nitro-internal-virtual/feature-flags",
+    id: "#nitro/virtual/feature-flags",
     template: () => {
       const featureFlags: Record<string, boolean> = {
         // Routing

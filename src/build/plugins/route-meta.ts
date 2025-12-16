@@ -1,68 +1,91 @@
 import { readFile } from "node:fs/promises";
+import { isAbsolute } from "pathe";
 import { transformSync } from "oxc-transform";
 import type { Expression, Literal } from "estree";
 import type { Nitro, NitroEventHandler } from "nitro/types";
 import type { Plugin } from "rollup";
+import { escapeRegExp } from "../../utils/regex.ts";
 
-const virtualPrefix = "\0nitro-handler-meta:";
+const PREFIX = "\0nitro:route-meta:";
 
 export function routeMeta(nitro: Nitro) {
   return {
     name: "nitro:route-meta",
-    async resolveId(id, importer, resolveOpts) {
-      if (id.startsWith("\0")) {
-        return;
-      }
-      if (id.endsWith(`?meta`)) {
-        const resolved = await this.resolve(
-          id.replace(`?meta`, ``),
-          importer,
-          resolveOpts
-        );
-        if (!resolved) {
-          return;
+    resolveId: {
+      // eslint-disable-next-line no-control-regex
+      filter: { id: /^(?!\u0000)(.+)\?meta$/ },
+      async handler(id, importer, resolveOpts) {
+        if (id.endsWith("?meta")) {
+          const resolved = await this.resolve(
+            id.replace("?meta", ""),
+            importer,
+            resolveOpts
+          );
+          if (!resolved) {
+            return;
+          }
+          return PREFIX + resolved.id;
         }
-        return virtualPrefix + resolved.id;
-      }
+      },
     },
-    load(id) {
-      if (id.startsWith(virtualPrefix)) {
-        const fullPath = id.slice(virtualPrefix.length);
-        return readFile(fullPath, { encoding: "utf8" });
-      }
-    },
-    async transform(code, id) {
-      if (!id.startsWith(virtualPrefix)) {
-        return;
-      }
-
-      let meta: NitroEventHandler["meta"] | null = null;
-
-      try {
-        const jsCode = transformSync(id, code).code;
-        const ast = this.parse(jsCode);
-        for (const node of ast.body) {
-          if (
-            node.type === "ExpressionStatement" &&
-            node.expression.type === "CallExpression" &&
-            node.expression.callee.type === "Identifier" &&
-            node.expression.callee.name === "defineRouteMeta" &&
-            node.expression.arguments.length === 1
-          ) {
-            meta = astToObject(node.expression.arguments[0] as any);
-            break;
+    load: {
+      filter: {
+        id: new RegExp(`^${escapeRegExp(PREFIX)}`),
+      },
+      handler(id) {
+        if (id.startsWith(PREFIX)) {
+          const fullPath = id.slice(PREFIX.length);
+          if (isAbsolute(fullPath)) {
+            return readFile(fullPath, { encoding: "utf8" });
+          } else {
+            return "export default undefined;";
           }
         }
-      } catch (error) {
-        nitro.logger.warn(
-          `[handlers-meta] Cannot extra route meta for: ${id}: ${error}`
-        );
-      }
+      },
+    },
+    transform: {
+      filter: {
+        id: new RegExp(`^${escapeRegExp(PREFIX)}`),
+      },
+      async handler(code, id) {
+        let meta: NitroEventHandler["meta"] | null = null;
 
-      return {
-        code: `export default ${JSON.stringify(meta)};`,
-        map: null,
-      };
+        try {
+          const transformRes = transformSync(id, code);
+          if (transformRes.errors?.length > 0) {
+            for (const error of transformRes.errors) {
+              this.warn(error);
+            }
+            return {
+              code: `export default {};`,
+              map: null,
+            };
+          }
+
+          const ast = this.parse(transformRes.code);
+          for (const node of ast.body) {
+            if (
+              node.type === "ExpressionStatement" &&
+              node.expression.type === "CallExpression" &&
+              node.expression.callee.type === "Identifier" &&
+              node.expression.callee.name === "defineRouteMeta" &&
+              node.expression.arguments.length === 1
+            ) {
+              meta = astToObject(node.expression.arguments[0] as any);
+              break;
+            }
+          }
+        } catch (error) {
+          nitro.logger.warn(
+            `[handlers-meta] Cannot extra route meta for: ${id}: ${error}`
+          );
+        }
+
+        return {
+          code: `export default ${JSON.stringify(meta)};`,
+          map: null,
+        };
+      },
     },
   } satisfies Plugin;
 }

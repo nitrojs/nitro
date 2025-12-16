@@ -1,4 +1,4 @@
-import "#nitro-internal-polyfills";
+import "#nitro/virtual/polyfills";
 import { parseURL } from "ufo";
 import { useNitroApp } from "nitro/app";
 import { getAzureParsedCookiesFromHeaders } from "./_utils.ts";

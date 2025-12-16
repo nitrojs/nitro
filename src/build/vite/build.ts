@@ -8,10 +8,9 @@ export async function viteBuild(nitro: Nitro) {
       "Nitro dev CLI does not supports vite. Please use `vite dev` instead."
     );
   }
-  const { createBuilder } =
-    nitro.options.builder === "rolldown-vite"
-      ? await import("rolldown-vite").catch(() => import("vite"))
-      : await import("vite");
+  const { createBuilder } = await import(
+    (nitro.options as any).__vitePkg__ || "vite"
+  );
   const builder = await createBuilder({
     base: nitro.options.rootDir,
     plugins: [await nitroPlugin({ _nitro: nitro })],

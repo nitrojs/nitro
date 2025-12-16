@@ -9,7 +9,7 @@ export const RuntimeRouteRules = [
 
 export default function routing(nitro: Nitro) {
   return {
-    id: "#nitro-internal-virtual/routing",
+    id: "#nitro/virtual/routing",
     template: () => {
       const allHandlers = uniqueBy(
         [
@@ -23,7 +23,7 @@ export default function routing(nitro: Nitro) {
       );
 
       return /* js */ `
-import * as __routeRules__ from "nitro/~internal/runtime/route-rules";
+import * as __routeRules__ from "#nitro/runtime/route-rules";
 import * as srvxNode from "srvx/node"
 import * as h3 from "h3";
 

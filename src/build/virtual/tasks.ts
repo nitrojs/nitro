@@ -3,7 +3,7 @@ import { normalize } from "pathe";
 
 export default function tasks(nitro: Nitro) {
   return {
-    id: "#nitro-internal-virtual/tasks",
+    id: "#nitro/virtual/tasks",
     template: () => {
       const _scheduledTasks = Object.entries(nitro.options.scheduledTasks || {})
         .map(([cron, _tasks]) => {

@@ -11,7 +11,7 @@ import {
   getAsset,
   isPublicAssetURL,
   readAsset,
-} from "#nitro-internal-virtual/public-assets";
+} from "#nitro/virtual/public-assets";
 
 const METHODS = new Set(["HEAD", "GET"] as HTTPMethod[]);
 

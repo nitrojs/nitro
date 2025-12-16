@@ -297,6 +297,12 @@ export function testNitro(
     expect(res.status).toBe(404);
   });
 
+  it("Virtual route", async () => {
+    const res = await callHandler({ url: "/virtual" });
+    expect(res.status).toBe(200);
+    expect(res.data).toBe("Hello from virtual entry!");
+  });
+
   // TODO
   it.todo("Handle 405 method not allowed", async () => {
     const res = await callHandler({ url: "/api/upload" });

@@ -9,7 +9,7 @@ import { stat } from "node:fs/promises";
 import { createReadStream } from "node:fs";
 import { createGzip, createBrotliCompress } from "node:zlib";
 import { createVFSHandler } from "./vfs.ts";
-import { createHTTPProxy } from "./proxy.ts";
+import { createHTTPProxy } from "../runner/proxy.ts";
 
 import devErrorHandler, {
   defaultHandler as devErrorHandlerInternal,

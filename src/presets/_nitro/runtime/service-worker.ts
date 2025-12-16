@@ -1,6 +1,6 @@
-import "#nitro-internal-polyfills";
+import "#nitro/virtual/polyfills";
 import { useNitroApp } from "nitro/app";
-import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
+import { isPublicAssetURL } from "#nitro/virtual/public-assets";
 import type { ServerRequest } from "srvx";
 
 const nitroApp = useNitroApp();

@@ -3,7 +3,7 @@ import { hash } from "ohash";
 
 export default function plugins(nitro: Nitro) {
   return {
-    id: "#nitro-internal-virtual/plugins",
+    id: "#nitro/virtual/plugins",
     template: () => {
       const nitroPlugins = [...new Set(nitro.options.plugins)];
 

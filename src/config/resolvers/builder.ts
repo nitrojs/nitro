@@ -2,7 +2,7 @@ import consola from "consola";
 import type { NitroOptions } from "nitro/types";
 import { createRequire } from "node:module";
 
-const VALID_BUILDERS = ["rollup", "rolldown", "vite", "rolldown-vite"] as const;
+const VALID_BUILDERS = ["rolldown", "rollup", "vite"] as const;
 
 export async function resolveBuilder(options: NitroOptions) {
   // NITRO_BUILDER environment variable
@@ -17,7 +17,7 @@ export async function resolveBuilder(options: NitroOptions) {
       );
     }
     // Check if the builder package is installed
-    const pkg = options.builder === "rolldown-vite" ? "vite" : options.builder;
+    const pkg = options.builder;
     if (!isPkgInstalled(pkg, options.rootDir)) {
       const shouldInstall = await consola.prompt(
         `Nitro builder package \`${pkg}\` is not installed. Would you like to install it?`,
@@ -76,6 +76,5 @@ function isPkgInstalled(pkg: string, root: string) {
 
 async function installPkg(pkg: string, root: string) {
   const { addDevDependency } = await import("nypm");
-  const pkgSpec = pkg === "rolldown-vite" ? "vite@npm:rolldown-vite" : pkg;
-  return addDevDependency(pkgSpec, { cwd: root });
+  return addDevDependency(pkg, { cwd: root });
 }

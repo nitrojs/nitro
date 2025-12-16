@@ -33,6 +33,7 @@ export const NitroDefaults: NitroConfig = {
   virtual: {},
   compressPublicAssets: false,
   ignore: [],
+  wasm: {},
 
   // Dev
   dev: false,
@@ -71,6 +72,7 @@ export const NitroDefaults: NitroConfig = {
   replace: {},
   node: true,
   sourcemap: false,
+  traceDeps: [],
 
   // Advanced
   typescript: {
@@ -80,7 +82,6 @@ export const NitroDefaults: NitroConfig = {
     tsconfigPath: "tsconfig.json",
     tsConfig: undefined,
   },
-  nodeModulesDirs: [],
   hooks: {},
   commands: {},
 

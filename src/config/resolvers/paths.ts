@@ -1,5 +1,5 @@
 import { prettyPath, resolveNitroPath } from "../../utils/fs.ts";
-import { pkgDir, runtimeDir } from "nitro/meta";
+import { runtimeDir } from "nitro/meta";
 import type { NitroOptions, NitroConfig } from "nitro/types";
 import { join, resolve } from "pathe";
 import { findWorkspaceDir } from "pkg-types";
@@ -63,18 +63,6 @@ export async function resolvePathOptions(options: NitroOptions) {
       options,
       options.rootDir
     ) + "/";
-
-  options.nodeModulesDirs.push(resolve(options.rootDir, "node_modules"));
-  options.nodeModulesDirs.push(resolve(options.workspaceDir, "node_modules"));
-  options.nodeModulesDirs.push(resolve(pkgDir, "dist/node_modules"));
-  options.nodeModulesDirs.push(resolve(pkgDir, "node_modules"));
-  options.nodeModulesDirs.push(resolve(pkgDir, "..")); // pnpm
-  options.nodeModulesDirs = [
-    ...new Set(
-      // Adding trailing slash to optimize resolve performance (path is explicitly a dir)
-      options.nodeModulesDirs.map((dir) => resolve(options.rootDir, dir) + "/")
-    ),
-  ];
 
   // Resolve plugin paths
   options.plugins = options.plugins.map((p) => resolveNitroPath(p, options));

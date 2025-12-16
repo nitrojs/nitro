@@ -13,7 +13,7 @@ import { createNitro, prepare } from "../../builder.ts";
 import { getViteRollupConfig } from "./rollup.ts";
 import { buildEnvironments, prodSetup } from "./prod.ts";
 import {
-  createDevWorker,
+  getEnvRunner,
   createNitroEnvironment,
   createServiceEnvironments,
 } from "./env.ts";
@@ -150,10 +150,6 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
         builder: {
           sharedConfigBuild: true,
         },
-        experimental: {
-          // TODO: Fix issue with rolldown-vite native plugins
-          ...({ enableNativePlugin: false } as any),
-        },
         server: {
           port:
             Number.parseInt(process.env.PORT || "") ||
@@ -273,6 +269,7 @@ function nitroService(ctx: NitroPluginContext): VitePlugin {
     applyToEnvironment: (env) => env.name === "nitro",
 
     resolveId: {
+      filter: { id: /^#nitro-vite-setup$/ },
       async handler(id) {
         // Virtual modules
         if (id === "#nitro-vite-setup") {
@@ -282,6 +279,7 @@ function nitroService(ctx: NitroPluginContext): VitePlugin {
     },
 
     load: {
+      filter: { id: /^#nitro-vite-setup$/ },
       async handler(id) {
         // Virtual modules
         if (id === "#nitro-vite-setup") {
@@ -318,6 +316,7 @@ async function setupNitroContext(
   // Nitro config overrides
   const nitroConfig: NitroConfig = {
     dev: configEnv.command === "serve",
+    builder: "vite",
     rootDir: userConfig.root,
     ...defu(
       ctx.pluginConfig,
@@ -334,13 +333,8 @@ async function setupNitroContext(
     }
   }
 
-  nitroConfig.builder = ctx._isRolldown ? "rolldown-vite" : "vite";
-  debug("[init] Using builder:", nitroConfig.builder);
-
   // Initialize a new Nitro instance
   ctx.nitro = ctx.pluginConfig._nitro || (await createNitro(nitroConfig));
-
-  ctx.nitro.options.builder = ctx._isRolldown ? "rolldown-vite" : "vite";
 
   // Config ssr env as a fetchable ssr service
   if (!ctx.services?.ssr) {
@@ -432,16 +426,25 @@ async function setupNitroContext(
     ctx.rollupConfig.config
   );
 
-  // Create dev worker
-  if (ctx.nitro.options.dev && !ctx.devWorker) {
-    ctx.devWorker = createDevWorker(ctx);
-    ctx.nitro.fetch = (req) => ctx.devWorker!.fetch(req);
+  // Warm up env runner for dev
+  if (ctx.nitro.options.dev) {
+    getEnvRunner(ctx);
   }
+
+  // Attach nitro.fetch to env runner
+  ctx.nitro.fetch = (req) => getEnvRunner(ctx).fetch(req);
 
   // Create dev app
   if (ctx.nitro.options.dev && !ctx.devApp) {
     ctx.devApp = new NitroDevApp(ctx.nitro);
   }
+
+  // Cleanup resources after close {
+  ctx.nitro.hooks.hook("close", async () => {
+    if (ctx._envRunner) {
+      await ctx._envRunner.close();
+    }
+  });
 }
 
 function getEntry(input: InputOption | undefined): string | undefined {

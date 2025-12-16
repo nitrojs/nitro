@@ -13,12 +13,11 @@ const bundleSizes: Record<string, [kb: number, minKB: number]> = {
   rollup: [15, 10],
   rolldown: [20, 8],
   vite: [15, 8],
-  "rolldown-vite": [15, 9],
+  vite7: [15, 8],
 };
 
 describe("minimal fixture", () => {
-  const builders = ["vite", "rollup", "rolldown", "rolldown-vite"] as const;
-
+  const builders = ["rolldown", "rollup", "vite", "vite7"] as const;
   const results: any[] = [];
 
   for (const builder of builders) {
@@ -31,9 +30,13 @@ describe("minimal fixture", () => {
           await mkdir(outDir, { recursive: true });
           const nitro = await createNitro({
             rootDir: fixtureDir,
-            builder,
             minify,
             output: { dir: outDir },
+            // @ts-expect-error for testing
+            __vitePkg__: builder,
+            builder: builder.includes("vite")
+              ? "vite"
+              : (builder as "rollup" | "rolldown"),
           });
           await prepare(nitro);
           const start = Date.now();

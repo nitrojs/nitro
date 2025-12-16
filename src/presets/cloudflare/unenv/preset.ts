@@ -3,7 +3,7 @@ import * as workerdNodeCompat from "./node-compat.ts";
 
 // https://platform-node-compat.pi0.workers.dev/
 
-export const unencCfNodeCompat: Preset = {
+export const unenvCfNodeCompat: Preset = {
   meta: {
     name: "nitro:cloudflare-node-compat",
   },
