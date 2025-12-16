@@ -1,4 +1,4 @@
-import "#nitro-internal-polyfills";
+import "#nitro/virtual/polyfills";
 import type * as CF from "@cloudflare/workers-types";
 import { DurableObject } from "cloudflare:workers";
 import wsAdapter from "crossws/adapters/cloudflare";

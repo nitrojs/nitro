@@ -1,4 +1,4 @@
-import "#nitro-internal-polyfills";
+import "#nitro/virtual/polyfills";
 import type { NodeServerRequest, NodeServerResponse } from "srvx";
 import { toNodeHandler } from "srvx/node";
 import { useNitroApp, getRouteRules } from "nitro/app";

@@ -1,5 +1,5 @@
 // @ts-nocheck TODO: Remove after removing polyfills
-import "#nitro-internal-polyfills";
+import "#nitro/virtual/polyfills";
 import { useNitroApp } from "nitro/app";
 import { hasProtocol, joinURL } from "ufo";
 

@@ -1,7 +1,5 @@
 import type { Plugin } from "rollup";
-import { escapeRegExp, pathRegExp } from "../../utils/regex.ts";
-
-const PREFIX = "\0nitro:virtual:";
+import { pathRegExp } from "../../utils/regex.ts";
 
 export type VirtualModule = {
   id: string;
@@ -20,6 +18,17 @@ export function virtual(input: VirtualModule[]): Plugin {
     modules.set(mod.id, { module: mod, render });
   }
 
+  const include: RegExp[] = [/^#nitro\/virtual/];
+
+  const extraIds = [...modules.keys()].filter(
+    (key) => !key.startsWith("#nitro")
+  );
+  if (extraIds.length > 0) {
+    include.push(
+      new RegExp(`^(${extraIds.map((id) => pathRegExp(id)).join("|")})$`)
+    );
+  }
+
   return {
     name: "nitro:virtual",
     api: {
@@ -27,32 +36,24 @@ export function virtual(input: VirtualModule[]): Plugin {
     },
     resolveId: {
       order: "pre",
-      filter: {
-        id: new RegExp(
-          `^(${[...modules.keys()].map((id) => pathRegExp(id)).join("|")})$`
-        ),
-      },
+      filter: { id: include },
       handler: (id) => {
         const mod = modules.get(id);
-        if (!mod) {
-          return null;
+        if (mod) {
+          return {
+            id,
+            moduleSideEffects: mod.module.moduleSideEffects ?? false,
+          };
         }
-        return {
-          id: PREFIX + id,
-          moduleSideEffects: mod.module.moduleSideEffects ?? false,
-        };
       },
     },
     load: {
       order: "pre",
-      filter: {
-        id: new RegExp(`^${escapeRegExp(PREFIX)}`),
-      },
+      filter: { id: include },
       handler: async (id) => {
-        const idNoPrefix = id.slice(PREFIX.length);
-        const mod = modules.get(idNoPrefix);
+        const mod = modules.get(id);
         if (!mod) {
-          throw new Error(`Virtual module ${idNoPrefix} not found.`);
+          throw new Error(`Virtual module ${id} not found.`);
         }
         return {
           code: await mod.render(),

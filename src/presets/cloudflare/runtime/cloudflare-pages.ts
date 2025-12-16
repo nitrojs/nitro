@@ -1,4 +1,4 @@
-import "#nitro-internal-polyfills";
+import "#nitro/virtual/polyfills";
 import type { ServerRequest } from "srvx";
 import type {
   Request as CFRequest,

@@ -1,4 +1,4 @@
-import "#nitro-internal-polyfills";
+import "#nitro/virtual/polyfills";
 import { useNitroApp } from "nitro/app";
 import { awsResponseBody } from "../../aws-lambda/runtime/_utils.ts";
 
