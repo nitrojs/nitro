@@ -1,8 +1,10 @@
-import "#nitro-internal-pollyfills";
+import "#nitro/virtual/polyfills";
 import type * as CF from "@cloudflare/workers-types";
 import type { ExportedHandler } from "@cloudflare/workers-types";
-import { useNitroApp } from "nitro/runtime";
-import { runCronTasks } from "nitro/runtime/internal";
+import type { ServerRequest } from "srvx";
+
+import { runCronTasks } from "#nitro/runtime/task";
+import { useNitroApp, useNitroHooks } from "nitro/app";
 
 type MaybePromise<T> = T | Promise<T>;
 
@@ -16,8 +18,9 @@ export function createHandler<Env>(hooks: {
   ) => MaybePromise<Response | CF.Response | undefined>;
 }) {
   const nitroApp = useNitroApp();
+  const nitroHooks = useNitroHooks();
 
-  return <ExportedHandler<Env>>{
+  return {
     async fetch(request, env, context) {
       const ctxExt = {};
       const url = new URL(request.url);
@@ -30,13 +33,20 @@ export function createHandler<Env>(hooks: {
         }
       }
 
-      return fetchHandler(request, env, context, url, nitroApp, ctxExt);
+      return fetchHandler(
+        request,
+        env,
+        context,
+        url,
+        nitroApp,
+        ctxExt
+      ) as Promise<any /* CF response! */>;
     },
 
     scheduled(controller, env, context) {
       (globalThis as any).__env__ = env;
       context.waitUntil(
-        nitroApp.hooks.callHook("cloudflare:scheduled", {
+        nitroHooks.callHook("cloudflare:scheduled", {
           controller,
           env,
           context,
@@ -60,7 +70,7 @@ export function createHandler<Env>(hooks: {
     email(message, env, context) {
       (globalThis as any).__env__ = env;
       context.waitUntil(
-        nitroApp.hooks.callHook("cloudflare:email", {
+        nitroHooks.callHook("cloudflare:email", {
           message,
           event: message, // backward compat
           env,
@@ -72,7 +82,7 @@ export function createHandler<Env>(hooks: {
     queue(batch, env, context) {
       (globalThis as any).__env__ = env;
       context.waitUntil(
-        nitroApp.hooks.callHook("cloudflare:queue", {
+        nitroHooks.callHook("cloudflare:queue", {
           batch,
           event: batch,
           env,
@@ -84,7 +94,7 @@ export function createHandler<Env>(hooks: {
     tail(traces, env, context) {
       (globalThis as any).__env__ = env;
       context.waitUntil(
-        nitroApp.hooks.callHook("cloudflare:tail", {
+        nitroHooks.callHook("cloudflare:tail", {
           traces,
           env,
           context,
@@ -95,38 +105,32 @@ export function createHandler<Env>(hooks: {
     trace(traces, env, context) {
       (globalThis as any).__env__ = env;
       context.waitUntil(
-        nitroApp.hooks.callHook("cloudflare:trace", {
+        nitroHooks.callHook("cloudflare:trace", {
           traces,
           env,
           context,
         })
       );
     },
-  };
+  } satisfies ExportedHandler<Env>;
 }
 
 export async function fetchHandler(
-  request: Request | CF.Request,
+  cfReq: Request | CF.Request,
   env: unknown,
   context: CF.ExecutionContext | DurableObjectState,
-  url: URL = new URL(request.url),
+  url: URL = new URL(cfReq.url),
   nitroApp = useNitroApp(),
   ctxExt: any
 ) {
   // Expose latest env to the global context
   (globalThis as any).__env__ = env;
 
-  return nitroApp.fetch(request as unknown as Request, undefined, {
-    waitUntil: (promise: Promise<any>) => context.waitUntil(promise),
-    _platform: {
-      cf: (request as any).cf,
-      cloudflare: {
-        request,
-        env,
-        context,
-        url,
-        ...ctxExt,
-      },
-    },
-  }) as unknown as Promise<Response>;
+  // srvx compatibility
+  const req = cfReq as ServerRequest;
+  req.runtime ??= { name: "cloudflare" };
+  req.runtime.cloudflare ??= { context, env } as any;
+  req.waitUntil = context.waitUntil.bind(context);
+
+  return nitroApp.fetch(req) as unknown as Promise<Response>;
 }

@@ -1,6 +1,6 @@
-import "#nitro-internal-pollyfills";
-import { useNitroApp } from "nitro/runtime";
-import { awsRequest, awsResponseHeaders } from "./_utils";
+import "#nitro/virtual/polyfills";
+import { useNitroApp } from "nitro/app";
+import { awsRequest, awsResponseHeaders } from "./_utils.ts";
 
 import type { StreamingResponse } from "@netlify/functions";
 import type { Readable } from "node:stream";
@@ -10,11 +10,9 @@ const nitroApp = useNitroApp();
 
 export const handler = awslambda.streamifyResponse(
   async (event: APIGatewayProxyEventV2, responseStream, context) => {
-    const request = awsRequest(event);
+    const request = awsRequest(event, context);
 
-    const response = await nitroApp.fetch(request, undefined, {
-      _platform: { aws: { event, context } },
-    });
+    const response = await nitroApp.fetch(request);
 
     response.headers.set("transfer-encoding", "chunked");
 
@@ -23,16 +21,24 @@ export const handler = awslambda.streamifyResponse(
       ...awsResponseHeaders(response),
     };
 
-    if (response.body) {
-      const writer = awslambda.HttpResponseStream.from(
-        // @ts-expect-error TODO: IMPORTANT! It should be a Writable according to the aws-lambda types
-        responseStream,
-        httpResponseMetadata
-      );
-      const reader = response.body.getReader();
-      await streamToNodeStream(reader, responseStream);
-      writer.end();
-    }
+    const body =
+      response.body ??
+      new ReadableStream<string>({
+        start(controller) {
+          controller.enqueue("");
+          controller.close();
+        },
+      });
+
+    const writer = awslambda.HttpResponseStream.from(
+      // @ts-expect-error TODO: IMPORTANT! It should be a Writable according to the aws-lambda types
+      responseStream,
+      httpResponseMetadata
+    );
+
+    const reader = body.getReader();
+    await streamToNodeStream(reader, responseStream);
+    writer.end();
   }
 );
 

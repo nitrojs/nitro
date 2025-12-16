@@ -1,9 +1,9 @@
+import { promises as fsp } from "node:fs";
 import { Miniflare } from "miniflare";
 import { resolve } from "pathe";
-import { describe } from "vitest";
-import { splitSetCookieString } from "cookie-es";
+import { describe, expect, it } from "vitest";
 
-import { setupTest, testNitro } from "../tests";
+import { setupTest, testNitro } from "../tests.ts";
 
 describe("nitro:preset:cloudflare-module", async () => {
   const ctx = await setupTest("cloudflare-module");
@@ -37,5 +37,13 @@ describe("nitro:preset:cloudflare-module", async () => {
 
       return res as unknown as Response;
     };
+  });
+
+  it("should export the correct functions", async () => {
+    const entry = await fsp.readFile(
+      resolve(ctx.outDir, "server", "index.mjs"),
+      "utf8"
+    );
+    expect(entry).toMatch(/export \{.*myScheduled.*\}/);
   });
 });

@@ -79,9 +79,4 @@ test/fixture/functions
 .pnpm-store
 .wrangler
 
-# mirror pkg
-.mirror
-
-# Generated types
-*.d.ts
-!runtime-meta.d.ts
+CHANGELOG.md

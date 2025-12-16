@@ -1,4 +1,4 @@
-import { defineNitroPreset } from "../_utils/preset";
+import { defineNitroPreset } from "../_utils/preset.ts";
 
 const alwaysdata = defineNitroPreset(
   {
@@ -11,7 +11,6 @@ const alwaysdata = defineNitroPreset(
   },
   {
     name: "alwaysdata" as const,
-    url: import.meta.url,
   }
 );
 

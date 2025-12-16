@@ -1,3 +1,7 @@
-export { resolvePreset } from "./_resolve";
+export { resolvePreset } from "./_resolve.ts";
 
-export type { PresetOptions, PresetName, PresetNameInput } from "./_types.gen";
+export type {
+  PresetOptions,
+  PresetName,
+  PresetNameInput,
+} from "./_types.gen.ts";

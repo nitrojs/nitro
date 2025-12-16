@@ -1,6 +1,6 @@
 import type { ArgsDef } from "citty";
 
-export const commonArgs = <ArgsDef>{
+export const commonArgs = {
   dir: {
     type: "string",
     description: "project root directory",
@@ -10,4 +10,4 @@ export const commonArgs = <ArgsDef>{
     default: ".",
     description: "project root directory (prefer using `--dir`)",
   },
-};
+} satisfies ArgsDef;

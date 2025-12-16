@@ -2,8 +2,8 @@ import { promises as fsp } from "node:fs";
 import type { Context as FunctionContext } from "@netlify/functions";
 import { resolve } from "pathe";
 import { describe, expect, it } from "vitest";
-import { getStaticPaths } from "../../src/presets/netlify/utils";
-import { getPresetTmpDir, setupTest, testNitro } from "../tests";
+import { getStaticPaths } from "../../src/presets/netlify/utils.ts";
+import { getPresetTmpDir, setupTest, testNitro } from "../tests.ts";
 
 describe("nitro:preset:netlify", async () => {
   const ctx = await setupTest("netlify", {
@@ -103,7 +103,7 @@ describe("nitro:preset:netlify", async () => {
           "export { default } from "./main.mjs";
           export const config = {
             name: "server handler",
-            generator: "nitro@2.x",
+            generator: "nitro@3.x",
             path: "/*",
             nodeBundler: "none",
             includedFiles: ["**"],

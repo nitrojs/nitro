@@ -1,18 +1,30 @@
 import { resolve } from "node:path";
 import { promises as fs } from "node:fs";
-import { fileURLToPath } from "mlly";
 import type { Nitro } from "nitro/types";
 import { findFile } from "pkg-types";
 import { resolveModulePath } from "exsolve";
+import { presetsDir } from "nitro/meta";
 
-export async function cloudflareDev(nitro: Nitro) {
+export async function cloudflareDevModule(nitro: Nitro) {
   if (!nitro.options.dev) {
     return; // Production doesn't need this
   }
 
+  nitro.options.unenv.push({
+    meta: {
+      name: "nitro:cloudflare-dev",
+    },
+    alias: {
+      "cloudflare:workers": resolve(
+        presetsDir,
+        "cloudflare/runtime/shims/workers.dev.mjs"
+      ),
+    },
+  });
+
   // Try to resolve wrangler
   const wranglerPath = await resolveModulePath("wrangler", {
-    from: nitro.options.nodeModulesDirs,
+    from: nitro.options.rootDir,
     try: true,
   });
   if (!wranglerPath) {
@@ -34,7 +46,7 @@ export async function cloudflareDev(nitro: Nitro) {
     configPath = await findFile(
       ["wrangler.json", "wrangler.jsonc", "wrangler.toml"],
       {
-        startingFrom: nitro.options.srcDir,
+        startingFrom: nitro.options.rootDir,
       }
     ).catch(() => undefined);
   }
@@ -50,14 +62,14 @@ export async function cloudflareDev(nitro: Nitro) {
     startingFrom: nitro.options.rootDir,
   }).catch(() => undefined);
 
-  let addedToGitIgnore = false;
+  // let addedToGitIgnore = false;
   if (gitIgnorePath && persistDir === ".wrangler/state/v3") {
     const gitIgnore = await fs.readFile(gitIgnorePath, "utf8");
     if (!gitIgnore.includes(".wrangler/state/v3")) {
       await fs
         .writeFile(gitIgnorePath, gitIgnore + "\n.wrangler/state/v3\n")
         .catch(() => {});
-      addedToGitIgnore = true;
+      // addedToGitIgnore = true;
     }
   }
 
@@ -69,15 +81,12 @@ export async function cloudflareDev(nitro: Nitro) {
     environment: config.environment,
   };
 
-  // Make sure runtime is transpiled
-  nitro.options.externals.inline = nitro.options.externals.inline || [];
-  nitro.options.externals.inline.push(
-    fileURLToPath(new URL("runtime/", import.meta.url))
-  );
-
   // Add plugin to inject bindings to dev server
   nitro.options.plugins = nitro.options.plugins || [];
-  nitro.options.plugins.push(
-    fileURLToPath(new URL("runtime/plugin.dev", import.meta.url))
+  nitro.options.plugins.unshift(
+    resolveModulePath("./cloudflare/runtime/plugin.dev", {
+      from: presetsDir,
+      extensions: [".mjs", ".ts"],
+    })
   );
 }

@@ -1,24 +1,15 @@
-import "#nitro-internal-pollyfills";
-import { useNitroApp } from "nitro/runtime";
-import { runTask } from "nitro/runtime";
-import { trapUnhandledNodeErrors } from "nitro/runtime/internal";
-import { startScheduleRunner } from "nitro/runtime/internal";
-import { scheduledTasks, tasks } from "#nitro-internal-virtual/tasks";
+import "#nitro/virtual/polyfills";
 import { Server } from "node:http";
-import nodeCrypto from "node:crypto";
 import { parentPort, threadId } from "node:worker_threads";
-import { defineHandler, getRouterParam } from "h3";
 import wsAdapter from "crossws/adapters/node";
 import { toNodeHandler } from "srvx/node";
 import { getSocketAddress, isSocketSupported } from "get-port-please";
 
-// globalThis.crypto support for Node.js 18
-if (!globalThis.crypto) {
-  globalThis.crypto = nodeCrypto as unknown as Crypto;
-}
-
-// Trap unhandled errors
-trapUnhandledNodeErrors();
+import { useNitroApp, useNitroHooks } from "nitro/app";
+import { startScheduleRunner } from "#nitro/runtime/task";
+import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
+import { resolveWebsocketHooks } from "#nitro/runtime/app";
+import { hasWebSocket } from "#nitro/virtual/feature-flags";
 
 // Listen for shutdown signal from runner
 parentPort?.on("message", (msg) => {
@@ -28,6 +19,9 @@ parentPort?.on("message", (msg) => {
 });
 
 const nitroApp = useNitroApp();
+const nitroHooks = useNitroHooks();
+
+trapUnhandledErrors();
 
 const server = new Server(toNodeHandler(nitroApp.fetch));
 let listener: Server | undefined;
@@ -40,44 +34,10 @@ listen()
   });
 
 // https://crossws.unjs.io/adapters/node
-if (import.meta._websocket) {
-  // @ts-expect-error
-  const { handleUpgrade } = wsAdapter(nitroApp.h3App.websocket);
+if (hasWebSocket) {
+  const { handleUpgrade } = wsAdapter({ resolve: resolveWebsocketHooks });
   server.on("upgrade", handleUpgrade);
 }
-
-// Register tasks handlers
-nitroApp._h3?.get(
-  "/_nitro/tasks",
-  defineHandler(async (event) => {
-    const _tasks = await Promise.all(
-      Object.entries(tasks).map(async ([name, task]) => {
-        const _task = await task.resolve?.();
-        return [name, { description: _task?.meta?.description }];
-      })
-    );
-    return {
-      tasks: Object.fromEntries(_tasks),
-      scheduledTasks,
-    };
-  })
-);
-
-nitroApp._h3?.use(
-  "/_nitro/tasks/:name",
-  defineHandler(async (event) => {
-    const name = getRouterParam(event, "name") as string;
-    const body = (await event.req.json().catch(() => ({}))) as Record<
-      string,
-      unknown
-    >;
-    const payload = {
-      ...Object.fromEntries(event.url.searchParams.entries()),
-      ...body,
-    };
-    return await runTask(name, { payload });
-  })
-);
 
 // Scheduled tasks
 if (import.meta._tasks) {
@@ -118,7 +78,7 @@ async function shutdown() {
   server.closeAllConnections?.();
   await Promise.all([
     new Promise((resolve) => listener?.close(resolve)),
-    nitroApp.hooks.callHook("close").catch(console.error),
-  ]);
+    nitroHooks.callHook("close"),
+  ]).catch(console.error);
   parentPort?.postMessage({ event: "exit" });
 }

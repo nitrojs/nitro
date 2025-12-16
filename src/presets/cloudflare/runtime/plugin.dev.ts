@@ -1,36 +1,26 @@
 import type { NitroAppPlugin } from "nitro/types";
 import type { GetPlatformProxyOptions, PlatformProxy } from "wrangler";
-// @ts-ignore
-import { useRuntimeConfig, getRequestURL } from "#imports";
 
-const _proxy = _getPlatformProxy()
-  .catch((error) => {
-    console.error("Failed to initialize wrangler bindings proxy", error);
-    return _createStubProxy();
-  })
-  // eslint-disable-next-line unicorn/prefer-top-level-await
-  .then((proxy) => {
-    (globalThis as any).__env__ = proxy.env;
-    return proxy;
-  });
+import { useRuntimeConfig } from "nitro/runtime-config";
 
-// eslint-disable-next-line unicorn/prefer-top-level-await
-(globalThis as any).__env__ = _proxy.then((proxy) => proxy.env);
+const proxy = await _getPlatformProxy().catch((error) => {
+  console.error("Failed to initialize wrangler bindings proxy", error);
+  return _createStubProxy();
+});
 
-export default <NitroAppPlugin>function (nitroApp) {
+(globalThis as any).__env__ = proxy.env;
+(globalThis as any).__wait_until__ = proxy.ctx.waitUntil.bind(proxy.ctx);
+
+const cloudflareDevPlugin: NitroAppPlugin = function (nitroApp) {
   nitroApp.hooks.hook("request", async (event) => {
     event.req.context ??= {};
-
-    const proxy = await _proxy;
 
     // Inject the various cf values from the proxy in event and event.context
     event.req.context.cf = proxy.cf;
     event.req.context.waitUntil = proxy.ctx.waitUntil.bind(proxy.ctx);
 
-    const request = new Request(event.req.url) as Request & {
-      cf: typeof proxy.cf;
-    };
-    request.cf = proxy.cf;
+    const request = event.req;
+    (request as any).cf = proxy.cf;
 
     event.req.context.cloudflare = {
       ...event.req.context.cloudflare!,
@@ -56,17 +46,21 @@ export default <NitroAppPlugin>function (nitroApp) {
 
   // Dispose proxy when Nitro is closed
   nitroApp.hooks.hook("close", () => {
-    return _proxy?.then((proxy) => proxy.dispose);
+    return proxy?.dispose();
   });
 };
 
+export default cloudflareDevPlugin;
+
 async function _getPlatformProxy() {
-  const _pkg = "wrangler"; // Bypass bundling!
-  const { getPlatformProxy } = (await import(_pkg).catch(() => {
-    throw new Error(
-      "Package `wrangler` not found, please install it with: `npx nypm@latest add -D wrangler`"
-    );
-  })) as typeof import("wrangler");
+  const pkg = "wrangler"; // bypass bundler
+  const { getPlatformProxy } = (await import(/* @vite-ignore */ pkg).catch(
+    () => {
+      throw new Error(
+        "Package `wrangler` not found, please install it with: `npx nypm@latest add -D wrangler`"
+      );
+    }
+  )) as typeof import("wrangler");
 
   const runtimeConfig: {
     wrangler: {
@@ -74,7 +68,7 @@ async function _getPlatformProxy() {
       persistDir: string;
       environment?: string;
     };
-  } = useRuntimeConfig();
+  } = useRuntimeConfig() as any;
 
   const proxyOptions: GetPlatformProxyOptions = {
     configPath: runtimeConfig.wrangler.configPath,

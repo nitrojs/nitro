@@ -2,7 +2,7 @@ import { execa, execaCommandSync } from "execa";
 import { getRandomPort, waitForPort } from "get-port-please";
 import { resolve } from "pathe";
 import { describe } from "vitest";
-import { setupTest, testNitro } from "../tests";
+import { setupTest, testNitro } from "../tests.ts";
 
 const hasBun =
   execaCommandSync("bun --version", { stdio: "ignore", reject: false })
@@ -13,7 +13,7 @@ describe.runIf(hasBun)("nitro:preset:bun", async () => {
   testNitro(ctx, async () => {
     const port = await getRandomPort();
     process.env.PORT = String(port);
-    const p = execa("bun", [resolve(ctx.outDir, "server/index.mjs")], {
+    execa("bun", [resolve(ctx.outDir, "server/index.mjs")], {
       stdio: "inherit",
     });
     ctx.server = {

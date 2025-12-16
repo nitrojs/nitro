@@ -7,8 +7,7 @@ import type {
   TaskPayload,
   TaskResult,
 } from "nitro/types";
-import { isTest } from "std-env";
-import { scheduledTasks, tasks } from "#nitro-internal-virtual/tasks";
+import { scheduledTasks, tasks } from "#nitro/virtual/tasks";
 
 /** @experimental */
 export function defineTask<RT = unknown>(def: Task<RT>): Task<RT> {
@@ -62,7 +61,7 @@ export async function runTask<RT = unknown>(
 
 /** @experimental */
 export function startScheduleRunner() {
-  if (!scheduledTasks || scheduledTasks.length === 0 || isTest) {
+  if (!scheduledTasks || scheduledTasks.length === 0 || process.env.TEST) {
     return;
   }
 
@@ -71,7 +70,7 @@ export function startScheduleRunner() {
   };
 
   for (const schedule of scheduledTasks) {
-    const cron = new Cron(schedule.cron, async () => {
+    new Cron(schedule.cron, async () => {
       await Promise.all(
         schedule.tasks.map((name) =>
           runTask(name, {

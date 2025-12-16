@@ -1,3 +1,3 @@
-export * from "./_match";
-export * from "./_serialize";
-export * from "./fetch";
+export * from "./_match.ts";
+export * from "./_serialize.ts";
+export * from "./fetch.ts";

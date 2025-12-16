@@ -1,12 +1,21 @@
-import type { EnvironmentOptions } from "vite";
-import type { NitroPluginContext, ServiceConfig } from "./types";
+import type { EnvironmentOptions, RollupCommonJSOptions } from "vite";
+import type { NitroPluginContext, ServiceConfig } from "./types.ts";
 
-import { NodeDevWorker } from "../../dev/worker";
+import { NodeEnvRunner } from "../../runner/node.ts";
 import { join, resolve } from "node:path";
-import { runtimeDependencies, runtimeDir } from "nitro/runtime/meta";
+import { runtimeDependencies, runtimeDir } from "nitro/meta";
 import { resolveModulePath } from "exsolve";
-import { createFetchableDevEnvironment } from "./dev";
+import { createFetchableDevEnvironment } from "./dev.ts";
 import { isAbsolute } from "pathe";
+import type { RolldownOptions } from "rolldown";
+
+export function getEnvRunner(ctx: NitroPluginContext) {
+  return (ctx._envRunner ??= new NodeEnvRunner({
+    name: "nitro-vite",
+    entry: resolve(runtimeDir, "internal/vite/node-runner.mjs"),
+    data: { server: true },
+  }));
+}
 
 export function createNitroEnvironment(
   ctx: NitroPluginContext
@@ -14,42 +23,38 @@ export function createNitroEnvironment(
   return {
     consumer: "server",
     build: {
-      rollupOptions: ctx.rollupConfig!.config,
+      rollupOptions: ctx.rollupConfig!.config as RolldownOptions /* TODO */,
       minify: ctx.nitro!.options.minify,
-      commonjsOptions: {
-        strictRequires: "auto", // TODO: set to true (default) in v3
-        esmExternals: (id) => !id.startsWith("unenv/"),
-        requireReturnsDefault: "auto",
-        ...(ctx.nitro!.options.commonJS as any),
-      },
+      emptyOutDir: false,
+      sourcemap: ctx.nitro!.options.sourcemap,
+      commonjsOptions: ctx.nitro!.options.commonJS as RollupCommonJSOptions,
     },
     resolve: {
       noExternal: ctx.nitro!.options.dev
-        ? // Workaround for dev: external dependencies are not resolvable with respect to nodeModulePaths
-          new RegExp(runtimeDependencies.join("|"))
-        : // Workaround for production: externals tracing currently does not work with Vite rollup build
-          true,
+        ? [
+            /^nitro$/, // i have absolutely no idea why and how it fixes issues!
+            new RegExp(`^(${runtimeDependencies.join("|")})$`), // virtual resolutions in vite skip plugin hooks
+            ...ctx.rollupConfig!.base.noExternal,
+          ]
+        : true, // production build is standalone
       conditions: ctx.nitro!.options.exportConditions,
-      externalConditions: ctx.nitro!.options.exportConditions,
+      externalConditions: ctx.nitro!.options.exportConditions?.filter(
+        (c) => !/browser|wasm/.test(c)
+      ),
+    },
+    define: {
+      // Workaround for tanstack-start (devtools)
+      "process.env.NODE_ENV": JSON.stringify(
+        ctx.nitro!.options.dev ? "development" : "production"
+      ),
     },
     dev: {
       createEnvironment: (envName, envConfig) =>
         createFetchableDevEnvironment(
           envName,
           envConfig,
-          new NodeDevWorker({
-            name: envName,
-            entry: resolve(runtimeDir, "internal/vite/worker.mjs"),
-            data: {
-              name: envName,
-              server: true,
-              viteEntry: resolve(runtimeDir, "internal/vite/nitro-dev.mjs"),
-              globals: {
-                __NITRO_RUNTIME_CONFIG__: ctx.nitro!.options.runtimeConfig,
-              },
-            },
-            hooks: {},
-          })
+          getEnvRunner(ctx),
+          resolve(runtimeDir, "internal/vite/dev-entry.mjs")
         ),
     },
   };
@@ -65,30 +70,23 @@ export function createServiceEnvironment(
     build: {
       rollupOptions: { input: serviceConfig.entry },
       minify: ctx.nitro!.options.minify,
-      outDir: join(ctx.nitro!.options.buildDir, "vite", "services", name),
+      sourcemap: ctx.nitro!.options.sourcemap,
+      outDir: join(ctx.nitro!.options.buildDir, "vite/services", name),
       emptyOutDir: true,
     },
     resolve: {
-      noExternal: ctx.nitro!.options.dev ? undefined : true,
       conditions: ctx.nitro!.options.exportConditions,
-      externalConditions: ctx.nitro!.options.exportConditions,
+      externalConditions: ctx.nitro!.options.exportConditions?.filter(
+        (c) => !/browser|wasm/.test(c)
+      ),
     },
     dev: {
       createEnvironment: (envName, envConfig) =>
         createFetchableDevEnvironment(
           envName,
           envConfig,
-          new NodeDevWorker({
-            name: name,
-            entry: resolve(runtimeDir, "internal/vite/worker.mjs"),
-            data: {
-              name: name,
-              server: true,
-              viteEntry: tryResolve(serviceConfig.entry),
-              globals: {},
-            },
-            hooks: {},
-          })
+          getEnvRunner(ctx),
+          tryResolve(serviceConfig.entry)
         ),
     },
   };
@@ -98,7 +96,7 @@ export function createServiceEnvironments(
   ctx: NitroPluginContext
 ): Record<string, EnvironmentOptions> {
   return Object.fromEntries(
-    Object.entries(ctx.pluginConfig.services || {}).map(([name, config]) => [
+    Object.entries(ctx.services).map(([name, config]) => [
       name,
       createServiceEnvironment(ctx, name, config),
     ])

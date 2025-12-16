@@ -1,4 +1,4 @@
-import { defineNitroPreset } from "../_utils/preset";
+import { defineNitroPreset } from "../_utils/preset.ts";
 
 const cleavr = defineNitroPreset(
   {
@@ -8,7 +8,6 @@ const cleavr = defineNitroPreset(
   {
     name: "cleavr" as const,
     stdName: "cleavr",
-    url: import.meta.url,
   }
 );
 

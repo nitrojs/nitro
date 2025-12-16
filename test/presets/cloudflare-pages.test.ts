@@ -4,7 +4,7 @@ import { resolve } from "pathe";
 import { describe, expect, it } from "vitest";
 
 import { isWindows } from "std-env";
-import { setupTest, testNitro } from "../tests";
+import { setupTest, testNitro } from "../tests.ts";
 
 describe.skipIf(isWindows)("nitro:preset:cloudflare-pages", async () => {
   const ctx = await setupTest("cloudflare-pages");
@@ -46,13 +46,14 @@ describe.skipIf(isWindows)("nitro:preset:cloudflare-pages", async () => {
           "/_openapi.json.gz",
           "/_scalar",
           "/_swagger",
-          "/_unignored.txt",
           "/favicon.ico",
           "/foo.css",
           "/foo.js",
           "/json-string",
           "/prerender",
           "/prerender-custom",
+          "/_scalar/index.html.br",
+          "/_scalar/index.html.gz",
           "/_swagger/index.html.br",
           "/_swagger/index.html.gz",
           "/api/hello",
@@ -71,5 +72,13 @@ describe.skipIf(isWindows)("nitro:preset:cloudflare-pages", async () => {
         "version": 1,
       }
     `);
+  });
+
+  it("should export the correct functions", async () => {
+    const entry = await fsp.readFile(
+      resolve(ctx.outDir, "_worker.js", "index.js"),
+      "utf8"
+    );
+    expect(entry).toMatch(/export \{.*myScheduled.*\}/);
   });
 });

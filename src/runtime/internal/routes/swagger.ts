@@ -1,10 +1,11 @@
-import { defineHandler, type EventHandler } from "h3";
-import { useRuntimeConfig } from "../config";
+import { defineHandler } from "h3";
+import type { EventHandler } from "h3";
+import { useRuntimeConfig } from "../runtime-config.ts";
 
 // https://github.com/swagger-api/swagger-ui
 
 export default defineHandler((event) => {
-  const runtimeConfig = useRuntimeConfig(event);
+  const runtimeConfig = useRuntimeConfig();
   const title = runtimeConfig.nitro.openAPI?.meta?.title || "API Reference";
   const description = runtimeConfig.nitro.openAPI?.meta?.description || "";
   const openAPIEndpoint =

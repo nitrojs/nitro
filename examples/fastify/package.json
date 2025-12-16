@@ -1,0 +1,11 @@
+{
+  "type": "module",
+  "scripts": {
+    "build": "nitro build",
+    "dev": "nitro dev"
+  },
+  "devDependencies": {
+    "fastify": "^5.6.1",
+    "nitro": "latest"
+  }
+}

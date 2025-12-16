@@ -28,7 +28,32 @@ Vercel supports Nitro with zero-configuration. [Deploy Nitro to Vercel now](http
 
 Nitro `/api` directory isn't compatible with Vercel. Instead, you should use:
 
-- `server/routes/api/` for standalone usage
+- `routes/api/` for standalone usage
+
+## Bun runtime
+
+:read-more{title="Vercel" to="https://vercel.com/docs/functions/runtimes/bun"}
+
+You can use [Bun](https://bun.com) instead of Node.js by specifying the runtime using the `vercel.functions` key inside `nitro.config`:
+
+```ts [nitro.config.ts]
+export default defineNitroConfig({
+  vercel: {
+    functions: {
+      runtime: "bun1.x"
+    }
+  }
+})
+```
+
+Alternatively, Nitro also detects Bun automatically if you specify a `bunVersion` property in your `vercel.json`:
+
+```json [vercel.json]
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "bunVersion": "1.x"
+}
+```
 
 ## Custom build output configuration
 
@@ -45,9 +70,9 @@ To revalidate a page on demand:
 
 2. Update your configuration:
 
-    ::code-group
-
     ```ts [nitro.config.ts]
+    import { defineNitroConfig } from "nitro/config";
+
     export default defineNitroConfig({
       vercel: {
         config: {
@@ -57,25 +82,11 @@ To revalidate a page on demand:
     })
     ```
 
-    ```ts [nuxt.config.ts]
-    export default defineNuxtConfig({
-      nitro: {
-        vercel: {
-          config: {
-            bypassToken: process.env.VERCEL_BYPASS_TOKEN
-          }
-        }
-      }
-    })
-    ```
-
-    ::
-
 3. To trigger "On-Demand Incremental Static Regeneration (ISR)" and revalidate a path to a Prerender Function, make a GET or HEAD request to that path with a header of x-prerender-revalidate: `bypassToken`. When that Prerender Function endpoint is accessed with this header set, the cache will be revalidated. The next request to that function should return a fresh response.
 
 ### Fine-grained ISR config via route rules
 
-By default, query paramas are ignored by cache.
+By default, query params affect cache keys but are not passed to the route handler unless specified.
 
 You can pass an options object to `isr` route rule to configure caching behavior.
 

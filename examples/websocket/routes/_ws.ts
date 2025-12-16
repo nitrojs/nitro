@@ -1,3 +1,5 @@
+import { defineWebSocketHandler } from "nitro/h3";
+
 export default defineWebSocketHandler({
   open(peer) {
     peer.send({ user: "server", message: `Welcome ${peer}!` });

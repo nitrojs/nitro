@@ -1,13 +1,8 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import type {
-  Nitro,
-  NitroBuildInfo,
-  TaskEvent,
-  TaskRunnerOptions,
-} from "nitro/types";
+import type { NitroBuildInfo, TaskEvent, TaskRunnerOptions } from "nitro/types";
 import { ofetch } from "ofetch";
-import { normalize, resolve } from "pathe";
+import { resolve } from "pathe";
 
 /** @experimental */
 export async function runTask(
@@ -31,60 +26,15 @@ export async function listTasks(opts?: TaskRunnerOptions) {
   return res.tasks;
 }
 
-// --- nitro internal ---
-export function addNitroTasksVirtualFile(nitro: Nitro) {
-  nitro.options.virtual["#nitro-internal-virtual/tasks"] = () => {
-    const _scheduledTasks = Object.entries(nitro.options.scheduledTasks || {})
-      .map(([cron, _tasks]) => {
-        const tasks = (Array.isArray(_tasks) ? _tasks : [_tasks]).filter(
-          (name) => {
-            if (!nitro.options.tasks[name]) {
-              nitro.logger.warn(`Scheduled task \`${name}\` is not defined!`);
-              return false;
-            }
-            return true;
-          }
-        );
-        return { cron, tasks };
-      })
-      .filter((e) => e.tasks.length > 0);
-    const scheduledTasks: false | { cron: string; tasks: string[] }[] =
-      _scheduledTasks.length > 0 ? _scheduledTasks : false;
-
-    return /* js */ `
-export const scheduledTasks = ${JSON.stringify(scheduledTasks)};
-
-export const tasks = {
-  ${Object.entries(nitro.options.tasks)
-    .map(
-      ([name, task]) =>
-        `"${name}": {
-          meta: {
-            description: ${JSON.stringify(task.description)},
-          },
-          resolve: ${
-            task.handler
-              ? `() => import("${normalize(
-                  task.handler
-                )}").then(r => r.default || r)`
-              : "undefined"
-          },
-        }`
-    )
-    .join(",\n")}
-};`;
-  };
-}
-
 // --- module internal ---
 
 const _devHint = `(is dev server running?)`;
 
 async function _getTasksContext(opts?: TaskRunnerOptions) {
   const cwd = resolve(process.cwd(), opts?.cwd || ".");
-  const outDir = resolve(cwd, opts?.buildDir || ".nitro");
+  const buildDir = resolve(cwd, opts?.buildDir || "node_modules/.nitro");
 
-  const buildInfoPath = resolve(outDir, "nitro.json");
+  const buildInfoPath = resolve(buildDir, "nitro.dev.json");
   if (!existsSync(buildInfoPath)) {
     throw new Error(`Missing info file: \`${buildInfoPath}\` ${_devHint}`);
   }

@@ -18,9 +18,9 @@ To use Workers with Static Assets, you need a Nitro compatibility date set to `2
 
 The following shows an example `nitro.config.ts` file for deploying a Nitro app to Cloudflare Workers.
 
-::code-group
-
 ```ts [nitro.config.ts]
+import { defineNitroConfig } from "nitro/config";
+
 export default defineNitroConfig({
     compatibilityDate: "2024-09-19",
     preset: "cloudflare_module",
@@ -30,20 +30,6 @@ export default defineNitroConfig({
     }
 })
 ```
-
-```ts [nuxt.config.ts]
-export default defineNuxtConfig({
-    compatibilityDate: "2024-09-19",
-    nitro: {
-      preset: "cloudflare_module",
-      cloudflare: {
-        deployConfig: true,
-        nodeCompat: true
-      }
-    }
-})
-```
-::
 
 By setting `deployConfig: true`, Nitro will automatically generate a `wrangler.json` for you with the correct configuration.
 If you need to add [Cloudflare Workers configuration](https://developers.cloudflare.com/workers/wrangler/configuration/), such as [bindings](https://developers.cloudflare.com/workers/runtime-apis/bindings/), you can either:
@@ -73,7 +59,7 @@ Then you can deploy the application with:
 
 ### Runtime Hooks
 
-You can use [runtime hooks](/guide/plugins#nitro-runtime-hooks) below in order to extend [Worker handlers](https://developers.cloudflare.com/workers/runtime-apis/handlers/).
+You can use [runtime hooks](/docs/plugins#nitro-runtime-hooks) below in order to extend [Worker handlers](https://developers.cloudflare.com/workers/runtime-apis/handlers/).
 
 :read-more{to="/guide/plugins#nitro-runtime-hooks"}
 
@@ -83,6 +69,33 @@ You can use [runtime hooks](/guide/plugins#nitro-runtime-hooks) below in order t
 - [`cloudflare:tail`](https://developers.cloudflare.com/workers/runtime-apis/handlers/tail/)
 - `cloudflare:trace`
 
+### Additional Exports
+
+You can add a `exports.cloudflare.ts` file to your project root to export additional handlers or properties to the Cloudflare Worker entrypoint.
+
+```ts [exports.cloudflare.ts]
+export class MyWorkflow extends WorkflowEntrypoint {
+  async run(event: WorkflowEvent, step: WorkflowStep) {
+    // ...
+  }
+}
+```
+
+Nitro will automatically detect this file and include its exports in the final build.
+
+::warning
+The `exports.cloudflare.ts` file must not have a default export.
+::
+
+You can also customize the entrypoint file location using the `cloudflare.exports` option in your `nitro.config.ts`:
+
+```ts [nitro.config.ts]
+export default defineConfig({
+  cloudflare: {
+    exports: "custom-exports-entry.ts"
+  }
+})
+```
 
 ## Cloudflare Pages
 
@@ -100,9 +113,9 @@ Cloudflare [Workers Module](#cloudflare-workers) is the new recommended preset f
 
 The following shows an example `nitro.config.ts` file for deploying a Nitro app to Cloudflare Pages.
 
-::code-group
-
 ```ts [nitro.config.ts]
+import { defineNitroConfig } from "nitro/config";
+
 export default defineNitroConfig({
     preset: "cloudflare_pages",
     cloudflare: {
@@ -111,19 +124,6 @@ export default defineNitroConfig({
     }
 })
 ```
-
-```ts [nuxt.config.ts]
-export default defineNuxtConfig({
-    nitro: {
-      preset: "cloudflare_pages",
-      cloudflare: {
-        deployConfig: true,
-        nodeCompat:true
-      }
-    }
-})
-```
-::
 
 Nitro automatically generates a `_routes.json` file that controls which routes get served from files and which are served from the Worker script. The auto-generated routes file can be overridden with the config option `cloudflare.pages.routes` ([read more](https://developers.cloudflare.com/pages/platform/functions/routing/#functions-invocation-routes)).
 
@@ -166,9 +166,11 @@ Make sure to only access environment variables **within the event lifecycle**  a
 **Example:** If you have set the `SECRET` and `NITRO_HELLO_THERE` environment variables set you can access them in the following way:
 
 ```ts
+import { defineHandler } from "nitro/h3";
+
 console.log(process.env.SECRET) // note that this is in the global scope! so it doesn't actually work and the variable is undefined!
 
-export default defineEventHandler((event) => {
+export default defineHandler((event) => {
   // note that all the below are valid ways of accessing the above mentioned variables
   useRuntimeConfig(event).helloThere
   useRuntimeConfig(event).secret
@@ -214,6 +216,8 @@ Note that this isn't recommend for sensitive data like secrets.
 
 **Example:**
 
+::code-group
+
 ```ini [wrangler.toml]
 # Shared
 [vars]
@@ -226,6 +230,26 @@ NITRO_HELLO_THERE="captain"
 SECRET="top-secret"
 ```
 
+```json [wrangler.json]
+{
+  "vars": {
+    "NITRO_HELLO_THERE": "general",
+    "SECRET": "secret"
+  },
+  "env": {
+    "production": {
+      "vars": {
+        "NITRO_HELLO_THERE": "captain",
+        "SECRET": "top-secret"
+      }
+    }
+  }
+}
+
+```
+
+::
+
 ## Direct access to Cloudflare bindings
 
 Bindings are what allows you to interact with resources from the Cloudflare platform, examples of such resources are key-value data storages ([KVs](https://developers.cloudflare.com/kv/)) and serverless SQL databases ([D1s](https://developers.cloudflare.com/d1/)).
@@ -235,16 +259,18 @@ For more details on Bindings and how to use them please refer to the Cloudflare 
 ::
 
 > [!TIP]
-> Nitro provides high level API to interact with primitives such as [KV Storage](/guide/storage) and [Database](/guide/database) and you are highly recommended to prefer using them instead of directly depending on low-level APIs for usage stability.
+> Nitro provides high level API to interact with primitives such as [KV Storage](/docs/storage) and [Database](/docs/database) and you are highly recommended to prefer using them instead of directly depending on low-level APIs for usage stability.
 
-:read-more{title="Database Layer" to="/guide/database"}
+:read-more{title="Database Layer" to="/docs/database"}
 
-:read-more{title="KV Storage" to="/guide/storage"}
+:read-more{title="KV Storage" to="/docs/storage"}
 
 In runtime, you can access bindings from the request event, by accessing its `context.cloudflare.env` field, this is for example how you can access a D1 bindings:
 
 ```ts
-defineEventHandler(async (event) => {
+import { defineHandler } from "nitro/h3";
+
+defineHandler(async (event) => {
   const { cloudflare } = event.context
   const stmt = await cloudflare.env.MY_D1.prepare('SELECT id FROM table')
   const { results } = await stmt.all()
@@ -253,12 +279,11 @@ defineEventHandler(async (event) => {
 
 ### Access to the bindings in local dev
 
-> [!NOTE]
-> The `nitro-cloudflare-dev` module is experimental. The Nitro team is looking into a more native integration  which could in the near future make the module unneeded.
+To access bindings in dev mode, we first define them. You can do this in a `wrangler.toml`/`wrangler.json` file, or directly in your Nitro config under `cloudflare.wrangler` (accepts the same type as `wrangler.json`).
 
-In order to access bindings in dev mode we start by defining the bindings. You can do this in a `wrangler.toml`/`wrangler.json` file, or directly in your Nitro config under `cloudflare.wrangler` (accepts the same type as `wrangler.json`).
+For example, to define a variable and a KV namespace in `wrangler.toml`:
 
-For example to define a variable and a KV namespace in a `wrangler.toml`
+::code-group
 
 ```ini [wrangler.toml]
 [vars]
@@ -269,11 +294,27 @@ binding = "MY_KV"
 id = "xxx"
 ```
 
+```json [wrangler.json]
+{
+  "vars": {
+    "MY_VARIABLE": "my-value",
+  },
+  "kv_namespaces": [
+    {
+      "binding": "MY_KV",
+      "id": "xxx"
+    }
+  ]
+}
+```
+
+::
+
 Or in your Nitro config:
 
 
 ```js [nitro.config.js]
-import nitroCloudflareBindings from "nitro-cloudflare-dev";
+import { defineNitroConfig } from "nitro/config";
 
 export default defineNitroConfig({
     cloudflare: {
@@ -295,29 +336,9 @@ export default defineNitroConfig({
 > [!NOTE]
 > Only bindings in the default environment are recognized.
 
-Next we install the `nitro-cloudflare-dev` module as well as the required `wrangler` package (if not already installed):
+Next we install the required `wrangler` package (if not already installed):
 
-:pm-install{name="-D nitro-cloudflare-dev wrangler"}
-
-Then define module:
-
-::code-group
-
-```js [nitro.config.js]
-import nitroCloudflareBindings from "nitro-cloudflare-dev";
-
-export default defineNitroConfig({
-  modules: [nitroCloudflareBindings],
-});
-```
-
-```ts [nuxt.config.ts]
-export default defineNuxtConfig({
-  modules: ['nitro-cloudflare-dev']
-})
-```
-
-::
+:pm-install{name="wrangler -D"}
 
 From this moment, when running
 

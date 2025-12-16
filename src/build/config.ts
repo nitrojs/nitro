@@ -1,79 +1,31 @@
-import type { Nitro, NitroStaticBuildFlags } from "nitro/types";
-import { pathToFileURL } from "node:url";
-import { join, resolve } from "pathe";
-import { isWindows } from "std-env";
+import type { Nitro, NitroImportMeta } from "nitro/types";
 import { defineEnv } from "unenv";
-import { runtimeDir } from "nitro/runtime/meta";
+import { pkgDir } from "nitro/meta";
+import { pathRegExp, toPathRegExp } from "../utils/regex.ts";
 
 export type BaseBuildConfig = ReturnType<typeof baseBuildConfig>;
 
 export function baseBuildConfig(nitro: Nitro) {
-  const buildServerDir = join(nitro.options.buildDir, "dist/server");
-  const presetsDir = resolve(runtimeDir, "../presets");
-
   // prettier-ignore
   const extensions: string[] = [".ts", ".mjs", ".js", ".json", ".node", ".tsx", ".jsx" ];
 
   const isNodeless = nitro.options.node === false;
 
-  // Build-time environment variables
-  let NODE_ENV = nitro.options.dev ? "development" : "production";
-  if (nitro.options.preset === "nitro-prerender") {
-    NODE_ENV = "prerender";
-  }
-
-  const buildEnvVars = {
-    NODE_ENV,
-    prerender: nitro.options.preset === "nitro-prerender",
-    server: true,
-    client: false,
-    dev: String(nitro.options.dev),
-    DEBUG: nitro.options.dev,
-  };
-
-  const staticFlags: NitroStaticBuildFlags = {
+  const importMetaInjections: NitroImportMeta = {
     dev: nitro.options.dev,
     preset: nitro.options.preset,
     prerender: nitro.options.preset === "nitro-prerender",
+    nitro: true,
     server: true,
     client: false,
-    nitro: true,
     baseURL: nitro.options.baseURL,
-    // @ts-expect-error
-    "versions.nitro": "",
-    "versions?.nitro": "",
-    // Internal
     _asyncContext: nitro.options.experimental.asyncContext,
-    _websocket: nitro.options.experimental.websocket,
     _tasks: nitro.options.experimental.tasks,
   };
 
   const replacements = {
-    "typeof window": '"undefined"',
-    _import_meta_url_: "import.meta.url",
-    "globalThis.process.": "process.",
-    "process.env.RUNTIME_CONFIG": () =>
-      JSON.stringify(nitro.options.runtimeConfig, null, 2),
     ...Object.fromEntries(
-      Object.entries(buildEnvVars).map(([key, val]) => [
-        `process.env.${key}`,
-        JSON.stringify(val),
-      ])
-    ),
-    ...Object.fromEntries(
-      Object.entries(buildEnvVars).map(([key, val]) => [
-        `import.meta.env.${key}`,
-        JSON.stringify(val),
-      ])
-    ),
-    ...Object.fromEntries(
-      Object.entries(staticFlags).map(([key, val]) => [
-        `process.${key}`,
-        JSON.stringify(val),
-      ])
-    ),
-    ...Object.fromEntries(
-      Object.entries(staticFlags).map(([key, val]) => [
+      Object.entries(importMetaInjections).map(([key, val]) => [
         `import.meta.${key}`,
         JSON.stringify(val),
       ])
@@ -83,7 +35,6 @@ export function baseBuildConfig(nitro: Nitro) {
 
   const { env } = defineEnv({
     nodeCompat: isNodeless,
-    npmShims: true,
     resolve: true,
     presets: nitro.options.unenv,
     overrides: {
@@ -91,36 +42,55 @@ export function baseBuildConfig(nitro: Nitro) {
     },
   });
 
-  let buildDir = nitro.options.buildDir;
-  // Windows (native) dynamic imports should be file:// urls
-  if (
-    isWindows &&
-    nitro.options.externals?.trace === false &&
-    nitro.options.dev
-  ) {
-    buildDir = pathToFileURL(buildDir).href;
-  }
+  const aliases = resolveAliases({ ...env.alias });
 
-  const aliases = resolveAliases({
-    "#build": buildDir,
-    "#internal/nitro": runtimeDir,
-    "nitro/runtime": runtimeDir,
-    "nitropack/runtime": runtimeDir, // Backwards compatibility
-    ...env.alias,
-  });
+  const noExternal: RegExp[] = getNoExternals(nitro);
+
+  const ignoreWarningCodes = new Set([
+    "EVAL",
+    "CIRCULAR_DEPENDENCY",
+    "THIS_IS_UNDEFINED",
+    "EMPTY_BUNDLE",
+  ]);
 
   return {
-    buildDir,
-    buildServerDir,
-    presetsDir,
     extensions,
     isNodeless,
-    buildEnvVars,
-    staticFlags,
     replacements,
     env,
     aliases,
+    noExternal,
+    ignoreWarningCodes,
   };
+}
+
+function getNoExternals(nitro: Nitro): RegExp[] {
+  const noExternal: RegExp[] = [
+    /\.[mc]?tsx?$/,
+    /^(?:[\0#~.]|virtual:)/,
+    new RegExp("^" + pathRegExp(pkgDir) + "(?!.*node_modules)"),
+    ...[
+      nitro.options.rootDir,
+      ...nitro.options.scanDirs.filter(
+        (dir) =>
+          dir.includes("node_modules") || !dir.startsWith(nitro.options.rootDir)
+      ),
+    ].map((dir) => new RegExp("^" + pathRegExp(dir) + "(?!.*node_modules)")),
+  ];
+
+  if (nitro.options.wasm !== false) {
+    noExternal.push(/\.wasm$/);
+  }
+
+  if (Array.isArray(nitro.options.noExternals)) {
+    noExternal.push(
+      ...nitro.options.noExternals
+        .filter(Boolean)
+        .map((item) => toPathRegExp(item as string | RegExp))
+    );
+  }
+
+  return noExternal.sort((a, b) => a.source.length - b.source.length);
 }
 
 export function resolveAliases(_aliases: Record<string, string>) {

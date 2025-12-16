@@ -1,47 +1,106 @@
 name: ci
 
 on:
-  push: { branches: [v2, v3] }
-  pull_request: { branches: [v2, v3] }
+  push: { branches: [main] }
+  pull_request: { branches: [main] }
 
 jobs:
-  tests:
+  tests-checks:
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    steps:
+      - uses: actions/checkout@v6
+      - run: npm i -g --force corepack && corepack enable
+      - uses: actions/setup-node@v6
+        with: { node-version: lts/*, cache: pnpm }
+      - run: pnpm install
+      - run: pnpm stub && pnpm lint
+      - run: pnpm test:types
+      - run: pnpm vitest run test/unit
+      - run: pnpm vitest run test/minimal
+  tests-rollup:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - run: npm i -g --force corepack && corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with: { node-version: lts/*, cache: pnpm }
       - uses: oven-sh/setup-bun@v2
         if: ${{ matrix.os != 'windows-latest' }}
         with: { bun-version: latest }
       - uses: denoland/setup-deno@v1
         if: ${{ matrix.os != 'windows-latest' }}
-        with: { deno-version: v2.x }
+        with: { deno-version: 2.6.0 }
       - run: pnpm install
       - run: pnpm stub && pnpm lint
         if: ${{ matrix.os != 'windows-latest' }}
       - run: pnpm test:types
         if: ${{ matrix.os != 'windows-latest' }}
       - run: pnpm build
-      - run: pnpm vitest --coverage
-      # - uses: codecov/codecov-action@v3
+      - run: pnpm vitest run test/examples
+        env: { NITRO_BUILDER: rollup, NITRO_VITE_PKG: vite7 }
+      - run: pnpm vitest run test/presets
+        env: { NITRO_BUILDER: rollup, NITRO_VITE_PKG: vite7 }
 
-  publish:
-    runs-on: ubuntu-latest
-    permissions: { id-token: write, contents: read }
-    needs: tests
-    if: contains('refs/heads/v2,refs/heads/v3', github.ref) && github.event_name == 'push'
+  tests-rolldown:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+      - run: npm i -g --force corepack && corepack enable
+      - uses: actions/setup-node@v6
+        with: { node-version: lts/*, cache: pnpm }
+      - uses: oven-sh/setup-bun@v2
+        if: ${{ matrix.os != 'windows-latest' }}
+        with: { bun-version: latest }
+      - uses: denoland/setup-deno@v1
+        if: ${{ matrix.os != 'windows-latest' }}
+        with: { deno-version: 2.6.0 }
+      - run: pnpm install
+      - run: pnpm build
+      - run: pnpm vitest run test/examples
+        env: { NITRO_BUILDER: rolldown, NITRO_VITE_PKG: vite }
+      - run: pnpm vitest run test/presets
+        env: { NITRO_BUILDER: rolldown, NITRO_VITE_PKG: vite }
+  publish-pkg-pr-new:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [tests-checks, tests-rollup, tests-rolldown]
+    steps:
+      - uses: actions/checkout@v6
         with: { fetch-depth: 0 }
       - run: npm i -fg corepack && corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with: { node-version: lts/*, cache: "pnpm" }
       - run: pnpm install
-      - run: pnpm changelogen --bump --canary nightly
+      - run: pnpm build
+      - run: pnpm dlx pkg-pr-new publish || true
+  publish-nitro-nightly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: { id-token: write, contents: read }
+    needs: [tests-checks, tests-rollup, tests-rolldown]
+    if: contains('refs/heads/main', github.ref) && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v6
+        with: { fetch-depth: 0 }
+      - run: npm i -fg corepack && corepack enable
+      - uses: actions/setup-node@v6
+        with: { node-version: lts/*, cache: "pnpm" }
+      - run: pnpm install
+      - run: pnpm build
+      - run: pnpm changelogen --bump -r 3.0.1 --canary nightly
       - run: npm i -g npm@latest && npm publish --tag latest

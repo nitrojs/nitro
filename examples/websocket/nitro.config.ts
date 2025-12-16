@@ -1,6 +1,7 @@
-export default defineNitroConfig({
-  compatibilityDate: "2025-03-01",
-  experimental: {
-    websocket: true,
-  },
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  serverDir: "./",
+  renderer: { static: true },
+  features: { websocket: true },
 });

@@ -1,64 +1,51 @@
 import type { IncomingMessage, OutgoingMessage } from "node:http";
 import type { Duplex } from "node:stream";
-import type { GetPortInput } from "get-port-please";
 import type { FSWatcher } from "chokidar";
-import type { Listener, ListenOptions } from "listhen";
-import { NodeDevWorker, type DevWorkerData } from "./worker";
+import type { ServerOptions, Server } from "srvx";
+import { NodeEnvRunner } from "../runner/node.ts";
+import type { EnvRunnerData } from "../runner/node.ts";
 import type {
-  DevMessageListener,
-  DevRPCHooks,
-  DevWorker,
   Nitro,
-  NitroBuildInfo,
-  WorkerAddress,
+  RunnerMessageListener,
+  RunnerRPCHooks,
+  EnvRunner,
 } from "nitro/types";
 
-import {
-  H3,
-  HTTPError,
-  defineHandler,
-  fromNodeHandler,
-  withBase,
-  type EventHandler,
-} from "h3";
-import { toNodeHandler } from "srvx/node";
-import devErrorHandler, {
-  defaultHandler as devErrorHandlerInternal,
-  loadStackTrace,
-} from "../runtime/internal/error/dev";
-import { version as nitroVersion } from "nitro/meta";
+import { HTTPError } from "h3";
+
 import consola from "consola";
-import serveStatic from "serve-static";
-import { writeFile } from "node:fs/promises";
 import { resolve } from "pathe";
 import { watch } from "chokidar";
-import { listen as listhen } from "listhen";
-import { joinURL } from "ufo";
-import { createVFSHandler } from "./vfs";
+import { serve } from "srvx/node";
 import { debounce } from "perfect-debounce";
 import { isTest, isCI } from "std-env";
-import { createHTTPProxy } from "./proxy";
+import { NitroDevApp } from "./app.ts";
+import { writeDevBuildInfo } from "../build/info.ts";
 
 export function createDevServer(nitro: Nitro): NitroDevServer {
   return new NitroDevServer(nitro);
 }
 
-export class NitroDevServer implements DevRPCHooks {
-  #nitro: Nitro;
+export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
   #entry: string;
-  #workerData: DevWorkerData = {};
-  #app: H3;
-  #listeners: Listener[] = [];
+  #workerData: EnvRunnerData = {};
+  #listeners: Server[] = [];
   #watcher?: FSWatcher;
-  #workers: DevWorker[] = [];
+  #workers: EnvRunner[] = [];
   #workerIdCtr: number = 0;
   #workerError?: unknown;
   #building?: boolean = true; // Assume initial build will start soon
   #buildError?: unknown;
-  #messageListeners: Set<DevMessageListener> = new Set();
+  #messageListeners: Set<RunnerMessageListener> = new Set();
 
   constructor(nitro: Nitro) {
-    this.#nitro = nitro;
+    super(nitro, async (event) => {
+      const worker = await this.#getWorker();
+      if (!worker) {
+        return this.#generateError();
+      }
+      return worker.fetch(event.req as Request);
+    });
 
     // Bind all methods to `this`
     for (const key of Object.getOwnPropertyNames(NitroDevServer.prototype)) {
@@ -68,13 +55,14 @@ export class NitroDevServer implements DevRPCHooks {
       }
     }
 
+    // Attach to Nitro.fetch
+    nitro.fetch = this.fetch.bind(this);
+
     this.#entry = resolve(
       nitro.options.output.dir,
       nitro.options.output.serverDir,
       "index.mjs"
     );
-
-    this.#app = this.#createApp();
 
     nitro.hooks.hook("close", () => this.close());
 
@@ -115,10 +103,6 @@ export class NitroDevServer implements DevRPCHooks {
 
   // #region Public Methods
 
-  fetch(req: Request): Response | Promise<Response> {
-    return this.#app.fetch(req);
-  }
-
   async upgrade(
     req: IncomingMessage,
     socket: OutgoingMessage<IncomingMessage> | Duplex,
@@ -131,19 +115,28 @@ export class NitroDevServer implements DevRPCHooks {
         statusText: "No worker available.",
       });
     }
+    if (!worker.upgrade) {
+      throw new HTTPError({
+        status: 501,
+        statusText: "Worker does not support upgrades.",
+      });
+    }
     return worker.upgrade(req, socket, head);
   }
 
-  async listen(port: GetPortInput, opts?: Partial<ListenOptions>) {
-    const listener = await listhen(toNodeHandler(this.#app.fetch), {
-      port,
+  listen(opts?: Partial<Omit<ServerOptions, "fetch">>): Server {
+    const server = serve({
       ...opts,
+      fetch: this.fetch,
+      gracefulShutdown: false,
     });
-    this.#listeners.push(listener);
-    listener.server.on("upgrade", (req, sock, head) =>
-      this.upgrade(req, sock, head)
-    );
-    return listener;
+    this.#listeners.push(server);
+    if (server.node?.server) {
+      server.node.server.on("upgrade", (req, sock, head) =>
+        this.upgrade(req, sock, head)
+      );
+    }
+    return server;
   }
 
   async close() {
@@ -170,16 +163,10 @@ export class NitroDevServer implements DevRPCHooks {
     for (const worker of this.#workers) {
       worker.close();
     }
-    const worker = new NodeDevWorker({
+    const worker = new NodeEnvRunner({
       name: `Nitro_${this.#workerIdCtr++}`,
       entry: this.#entry,
-      data: {
-        ...this.#workerData,
-        globals: {
-          __NITRO_RUNTIME_CONFIG__: this.#nitro.options.runtimeConfig,
-          ...this.#workerData.globals,
-        },
-      },
+      data: this.#workerData,
       hooks: {
         onClose: (worker, cause) => {
           this.#workerError = cause;
@@ -188,8 +175,8 @@ export class NitroDevServer implements DevRPCHooks {
             this.#workers.splice(index, 1);
           }
         },
-        onReady: (worker, addr) => {
-          this.#writeBuildInfo(worker, addr);
+        onReady: async (_worker, addr) => {
+          writeDevBuildInfo(this.nitro, addr).catch(() => {});
         },
       },
     });
@@ -209,14 +196,14 @@ export class NitroDevServer implements DevRPCHooks {
     }
   }
 
-  onMessage(listener: DevMessageListener) {
+  onMessage(listener: RunnerMessageListener) {
     this.#messageListeners.add(listener);
     for (const worker of this.#workers) {
       worker.onMessage(listener);
     }
   }
 
-  offMessage(listener: DevMessageListener) {
+  offMessage(listener: RunnerMessageListener) {
     this.#messageListeners.delete(listener);
     for (const worker of this.#workers) {
       worker.offMessage(listener);
@@ -226,27 +213,6 @@ export class NitroDevServer implements DevRPCHooks {
   // #endregion
 
   // #region Private Methods
-
-  #writeBuildInfo(_worker: DevWorker, addr?: WorkerAddress) {
-    const buildInfoPath = resolve(this.#nitro.options.buildDir, "nitro.json");
-    const buildInfo: NitroBuildInfo = {
-      date: new Date().toJSON(),
-      preset: this.#nitro.options.preset,
-      framework: this.#nitro.options.framework,
-      versions: {
-        nitro: nitroVersion,
-      },
-      dev: {
-        pid: process.pid,
-        workerAddress: addr,
-      },
-    };
-    writeFile(buildInfoPath, JSON.stringify(buildInfo, null, 2)).catch(
-      (error) => {
-        consola.error(error);
-      }
-    );
-  }
 
   async #getWorker() {
     let retry = 0;
@@ -261,77 +227,6 @@ export class NitroDevServer implements DevRPCHooks {
       }
       await new Promise((resolve) => setTimeout(resolve, 600));
     }
-  }
-
-  #createApp() {
-    // Init h3 app
-    const app = new H3({
-      debug: true,
-      onError: async (error, event) => {
-        const errorHandler =
-          this.#nitro.options.devErrorHandler || devErrorHandler;
-        await loadStackTrace(error).catch(() => {});
-        return errorHandler(error, event, {
-          defaultHandler: devErrorHandlerInternal,
-        });
-      },
-    });
-
-    // Dev-only handlers
-    for (const handler of this.#nitro.options.devHandlers) {
-      app.use(handler.route || "/", handler.handler);
-      if (handler.route) {
-        app.all(handler.route, handler.handler);
-      } else {
-        app.use(handler.handler); // global middleware
-      }
-    }
-
-    // Debugging endpoint to view vfs
-    app.get("/_vfs", createVFSHandler(this.#nitro));
-
-    // Serve asset dirs
-    for (const asset of this.#nitro.options.publicAssets) {
-      const assetRoute = joinURL(
-        this.#nitro.options.runtimeConfig.app.baseURL,
-        asset.baseURL || "/",
-        "**"
-      );
-      // TODO: serve placeholder as fallback
-      let handler: EventHandler = fromNodeHandler(
-        // @ts-expect-error (HTTP2 types)
-        serveStatic(asset.dir, { dotfiles: "allow" })
-      );
-      if (asset.baseURL?.length || 0 > 1) {
-        handler = withBase(asset.baseURL!, handler);
-      }
-      app.use(assetRoute, handler);
-    }
-
-    // User defined dev proxy
-    const routes = Object.keys(this.#nitro.options.devProxy).sort().reverse();
-    for (const route of routes) {
-      let opts = this.#nitro.options.devProxy[route];
-      if (typeof opts === "string") {
-        opts = { target: opts };
-      }
-      const proxy = createHTTPProxy(opts);
-      app.all(route, proxy.handleEvent);
-    }
-
-    // Main handler
-    app.all(
-      "/**",
-      defineHandler(async (event) => {
-        const worker = await this.#getWorker();
-        if (!worker) {
-          return this.#generateError();
-        }
-        return worker.fetch(event.req as Request);
-      })
-    );
-
-    return app;
   }
 
   #generateError() {

@@ -3,7 +3,7 @@ import type { NitroOptions } from "nitro/types";
 export async function resolveExportConditionsOptions(options: NitroOptions) {
   options.exportConditions = _resolveExportConditions(
     options.exportConditions || [],
-    { dev: options.dev, node: options.node, wasm: options.experimental.wasm }
+    { dev: options.dev, node: options.node, wasm: options.wasm !== false }
   );
 }
 
@@ -44,6 +44,13 @@ function _resolveExportConditions(
 
   // 5. Add default conditions
   resolvedConditions.push("import", "default");
+
+  // 6. Auto detect bun and deno (builder)
+  if ("Bun" in globalThis) {
+    resolvedConditions.push("bun");
+  } else if ("Deno" in globalThis) {
+    resolvedConditions.push("deno");
+  }
 
   // Dedup with preserving order
   return resolvedConditions.filter(

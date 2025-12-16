@@ -6,7 +6,7 @@ import type {
   AmplifyDeployManifest,
   AmplifyRoute,
   AmplifyRouteTarget,
-} from "./types";
+} from "./types.ts";
 
 export async function writeAmplifyFiles(nitro: Nitro) {
   const outDir = nitro.options.output.dir;

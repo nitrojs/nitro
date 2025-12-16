@@ -6,7 +6,8 @@ import consola from "consola";
 import { ErrorParser } from "youch-core";
 import { Youch } from "youch";
 import { SourceMapConsumer } from "source-map";
-import { defineNitroErrorHandler, type InternalHandlerResponse } from "./utils";
+import { defineNitroErrorHandler } from "./utils.ts";
+import type { InternalHandlerResponse } from "./utils.ts";
 import { FastResponse } from "srvx";
 
 export default defineNitroErrorHandler(

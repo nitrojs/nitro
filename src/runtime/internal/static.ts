@@ -1,14 +1,9 @@
-import {
-  type EventHandler,
-  type HTTPMethod,
-  HTTPError,
-  defineHandler,
-} from "h3";
+import { HTTPError, defineHandler } from "h3";
+import type { EventHandler, HTTPMethod } from "h3";
 import type { PublicAsset } from "nitro/types";
 import {
   decodePath,
   joinURL,
-  parseURL,
   withLeadingSlash,
   withoutTrailingSlash,
 } from "ufo";
@@ -16,7 +11,7 @@ import {
   getAsset,
   isPublicAssetURL,
   readAsset,
-} from "#nitro-internal-virtual/public-assets";
+} from "#nitro/virtual/public-assets";
 
 const METHODS = new Set(["HEAD", "GET"] as HTTPMethod[]);
 

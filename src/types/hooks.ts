@@ -1,8 +1,8 @@
-import type { DevWorkerData } from "../dev/worker";
-import type { NitroConfig } from "./config";
-import type { Nitro, NitroTypes } from "./nitro";
-import type { PrerenderRoute } from "./prerender";
-import type { RollupConfig } from "./rollup";
+import type { EnvRunnerData } from "../runner/node.ts";
+import type { NitroConfig } from "./config.ts";
+import type { Nitro, NitroTypes } from "./nitro.ts";
+import type { PrerenderRoute } from "./prerender.ts";
+import type { RollupConfig } from "./rollup.ts";
 
 type HookResult = void | Promise<void>;
 
@@ -13,7 +13,7 @@ export interface NitroHooks {
   compiled: (nitro: Nitro) => HookResult;
   "dev:reload": (payload?: {
     entry?: string;
-    workerData?: DevWorkerData;
+    workerData?: EnvRunnerData;
   }) => HookResult;
   "dev:start": () => HookResult;
   "dev:error": (cause?: unknown) => HookResult;

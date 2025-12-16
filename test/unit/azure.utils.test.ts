@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getAzureParsedCookiesFromHeaders } from "../../src/presets/azure/runtime/_utils";
+import { getAzureParsedCookiesFromHeaders } from "../../src/presets/azure/runtime/_utils.ts";
 
 describe("getAzureParsedCookiesFromHeaders", () => {
   it("returns empty array if no cookies", () => {

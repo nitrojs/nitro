@@ -1,4 +1,5 @@
-import defu from "defu";
+import { defu } from "defu";
+
 import type {
   NitroConfig,
   NitroOptions,
@@ -13,7 +14,7 @@ export function normalizeRuntimeConfig(config: NitroConfig) {
   provideFallbackValues(config.runtimeConfig || {});
   const runtimeConfig: NitroRuntimeConfig = defu(
     config.runtimeConfig as NitroRuntimeConfig,
-    <NitroRuntimeConfig>{
+    {
       app: {
         baseURL: config.baseURL,
       },
@@ -21,7 +22,7 @@ export function normalizeRuntimeConfig(config: NitroConfig) {
         envExpansion: config.experimental?.envExpansion,
         openAPI: config.openAPI,
       },
-    }
+    } as NitroRuntimeConfig
   );
   runtimeConfig.nitro.routeRules = config.routeRules;
   checkSerializableRuntimeConfig(runtimeConfig);

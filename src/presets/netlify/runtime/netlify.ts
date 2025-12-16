@@ -1,15 +1,15 @@
-import "#nitro-internal-pollyfills";
-import { useNitroApp } from "nitro/runtime";
-import { getRouteRulesForPath } from "nitro/runtime/internal";
+import "#nitro/virtual/polyfills";
+import { useNitroApp } from "nitro/app";
+import type { ServerRequest } from "srvx";
 
 const nitroApp = useNitroApp();
 
 const ONE_YEAR_IN_SECONDS = 365 * 24 * 60 * 60;
 
-const handler = async (request: Request): Promise<Response> => {
-  const response = await nitroApp.fetch(request);
+const handler = async (req: Request): Promise<Response> => {
+  const response = await nitroApp.fetch(req);
 
-  const { isr } = getRouteRulesForPath(new URL(request.url).pathname);
+  const isr = ((req as ServerRequest).context?.routeRules || {})?.isr?.options;
   if (isr) {
     const maxAge = typeof isr === "number" ? isr : ONE_YEAR_IN_SECONDS;
     const revalidateDirective =

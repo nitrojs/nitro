@@ -1,0 +1,12 @@
+{
+  "name": "nitro-test-fixture-minimal",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "TEST_DEBUG=1 vitest"
+  },
+  "devDependencies": {
+    "nitro": "latest",
+    "vite": "beta"
+  }
+}

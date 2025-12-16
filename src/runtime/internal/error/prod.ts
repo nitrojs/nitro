@@ -1,14 +1,17 @@
 import type { H3Event, HTTPError, HTTPEvent } from "h3";
-import { getRequestURL } from "h3";
-import { defineNitroErrorHandler, type InternalHandlerResponse } from "./utils";
+import type { InternalHandlerResponse } from "./utils.ts";
 import { FastResponse } from "srvx";
+import type { NitroErrorHandler } from "nitro/types";
 
-export default defineNitroErrorHandler(
-  function defaultNitroErrorHandler(error, event) {
-    const res = defaultHandler(error, event);
-    return new FastResponse(JSON.stringify(res.body, null, 2), res);
-  }
-);
+const errorHandler: NitroErrorHandler = (error, event) => {
+  const res = defaultHandler(error, event);
+  return new FastResponse(
+    typeof res.body === "string" ? res.body : JSON.stringify(res.body, null, 2),
+    res
+  );
+};
+
+export default errorHandler;
 
 export function defaultHandler(
   error: HTTPError,
@@ -17,8 +20,7 @@ export function defaultHandler(
 ): InternalHandlerResponse {
   const isSensitive = error.unhandled;
   const status = error.status || 500;
-  // prettier-ignore
-  const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true })
+  const url = (event as H3Event).url || new URL(event.req.url);
 
   if (status === 404) {
     const baseURL = import.meta.baseURL || "/";
@@ -46,13 +48,9 @@ export function defaultHandler(
   // Send response
   const headers: HeadersInit = {
     "content-type": "application/json",
-    // Prevent browser from guessing the MIME types of resources.
     "x-content-type-options": "nosniff",
-    // Prevent error page from being embedded in an iframe
     "x-frame-options": "DENY",
-    // Prevent browsers from sending the Referer header
     "referrer-policy": "no-referrer",
-    // Disable the execution of any js
     "content-security-policy": "script-src 'none'; frame-ancestors 'none';",
   };
 

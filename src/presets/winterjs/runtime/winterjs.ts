@@ -1,6 +1,6 @@
 // @ts-nocheck TODO: Remove after removing polyfills
-import "#nitro-internal-pollyfills";
-import { useNitroApp } from "nitro/runtime";
+import "#nitro/virtual/polyfills";
+import { useNitroApp } from "nitro/app";
 import { hasProtocol, joinURL } from "ufo";
 
 // Types are reverse engineered from runtime

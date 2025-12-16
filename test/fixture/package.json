@@ -1,0 +1,14 @@
+{
+  "name": "nitro-test-fixture",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "nitro build",
+    "preview": "nitro preview",
+    "dev": "nitro dev"
+  },
+  "devDependencies": {
+    "mono-jsx": "^0.7.5",
+    "nitro": "latest"
+  }
+}

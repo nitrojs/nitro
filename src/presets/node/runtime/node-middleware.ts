@@ -1,21 +1,21 @@
-import "#nitro-internal-pollyfills";
+import "#nitro/virtual/polyfills";
 import { toNodeHandler } from "srvx/node";
-import { useNitroApp } from "nitro/runtime";
-import {
-  startScheduleRunner,
-  trapUnhandledNodeErrors,
-} from "nitro/runtime/internal";
+import wsAdapter from "crossws/adapters/node";
+
+import { useNitroApp } from "nitro/app";
+import { startScheduleRunner } from "#nitro/runtime/task";
+import { resolveWebsocketHooks } from "#nitro/runtime/app";
+import { hasWebSocket } from "#nitro/virtual/feature-flags";
 
 const nitroApp = useNitroApp();
 
 export const middleware = toNodeHandler(nitroApp.fetch);
 
-// TODO
-/** @experimental */
-export const websocket = import.meta._websocket ? undefined : undefined;
+const ws = hasWebSocket
+  ? wsAdapter({ resolve: resolveWebsocketHooks })
+  : undefined;
 
-// Trap unhandled errors
-trapUnhandledNodeErrors();
+export const handleUpgrade = ws?.handleUpgrade;
 
 // Scheduled tasks
 if (import.meta._tasks) {

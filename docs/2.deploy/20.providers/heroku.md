@@ -39,7 +39,7 @@
 
 1. Add the heroku Nginx buildpack [here](https://github.com/heroku/heroku-buildpack-nginx.git)
 
-1. Change to the 'node' preset in your `nuxt.config`
+1. Change to the 'node' preset in your `nitro.config`
 
    ```json5
    "nitro": {
@@ -68,7 +68,7 @@
    ```ts
    import fs from "fs"
 
-   export default defineNitroPlugin((nitroApp) => {
+   export default definePlugin((nitroApp) => {
       if((process.env.NODE_ENV || 'development') != 'development') {
          fs.openSync('/tmp/app-initialized', 'w')
       }

@@ -1,0 +1,11 @@
+{
+  "type": "module",
+  "scripts": {
+    "build": "nitro build",
+    "dev": "nitro dev"
+  },
+  "devDependencies": {
+    "hono": "^4.10.4",
+    "nitro": "latest"
+  }
+}

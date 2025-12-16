@@ -1,4 +1,4 @@
-import type { InternalApi } from "./fetch";
+import type { InternalApi } from "./fetch.ts";
 
 type MatchResult<
   Key extends string,
@@ -95,7 +95,7 @@ export type MatchedRoutes<
 > = Route extends "/"
   ? keyof InternalApi // root middleware
   : Extract<Matches, { exact: true }> extends never
-    ?
+    ? // @ts-ignore
         | Extract<
             Exclude<Matches, { score: never }>,
             { score: MaxTuple<Matches["score"]> }

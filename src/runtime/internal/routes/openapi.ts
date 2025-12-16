@@ -1,9 +1,5 @@
-import {
-  type EventHandler,
-  type HTTPMethod,
-  defineHandler,
-  getRequestURL,
-} from "h3";
+import { defineHandler, getRequestURL } from "h3";
+import type { EventHandler, HTTPMethod } from "h3";
 import type {
   Extensable,
   OpenAPI3,
@@ -11,15 +7,15 @@ import type {
   ParameterObject,
   PathItemObject,
   PathsObject,
-} from "#internal/types/openapi-ts";
+} from "../../../types/openapi-ts.ts";
 import { joinURL } from "ufo";
 import { defu } from "defu";
-import { handlersMeta } from "#nitro-internal-virtual/server-handlers-meta";
-import { useRuntimeConfig } from "../config";
+import { handlersMeta } from "#nitro/virtual/routing-meta";
+import { useRuntimeConfig } from "../runtime-config.ts";
 
 // Served as /_openapi.json
 export default defineHandler((event) => {
-  const runtimeConfig = useRuntimeConfig(event);
+  const runtimeConfig = useRuntimeConfig();
 
   const base = runtimeConfig.app?.baseURL;
   const url = joinURL(getRequestURL(event).origin, base);
@@ -38,11 +34,11 @@ export default defineHandler((event) => {
     Object.entries(globalsRest).filter(([key]) => key.startsWith("x-"))
   );
 
-  return <OpenAPI3>{
+  return {
     openapi: "3.1.0",
     info: {
       title: meta?.title,
-      version: meta?.version,
+      version: meta?.version || "1.0.0",
       description: meta?.description,
     },
     servers: [
@@ -55,7 +51,7 @@ export default defineHandler((event) => {
     paths,
     components,
     ...extensible,
-  };
+  } satisfies OpenAPI3;
 }) as EventHandler;
 
 type OpenAPIGlobals = Pick<OpenAPI3, "components"> & Extensable;
@@ -74,14 +70,14 @@ function getHandlersMeta(): {
     const { $global, ...openAPI } = h.meta?.openAPI || {};
 
     const item: PathItemObject = {
-      [method]: <OperationObject>{
+      [method]: {
         tags,
         parameters,
         responses: {
           200: { description: "OK" },
         },
         ...openAPI,
-      },
+      } satisfies OperationObject,
     };
 
     if ($global) {

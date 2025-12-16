@@ -1,25 +1,35 @@
 import type { ConsolaInstance } from "consola";
 import type { HTTPMethod } from "h3";
 import type { Hookable } from "hookable";
-import type { PresetName, PresetOptions } from "nitro/presets";
+import type { PresetName, PresetOptions } from "../presets/index.ts";
 import type { Unimport } from "unimport";
-import type { Storage } from "unstorage";
-import type { NitroConfig, NitroOptions } from "./config";
-import type { NitroEventHandler } from "./handler";
-import type { NitroHooks } from "./hooks";
-import type { PrerenderRoute } from "./prerender";
+import type { NitroConfig, NitroOptions } from "./config.ts";
+import type { NitroEventHandler } from "./handler.ts";
+import type { NitroHooks } from "./hooks.ts";
+import type { PrerenderRoute } from "./prerender.ts";
 import type { TSConfig } from "pkg-types";
+import type { Router } from "../routing.ts";
+import type { NitroRouteRules } from "./route-rules.ts";
+
+type MaybeArray<T> = T | T[];
 
 export interface Nitro {
   options: NitroOptions;
   scannedHandlers: NitroEventHandler[];
-  vfs: Record<string, string>;
+  vfs: Map<string, { render: () => string | Promise<string> }>;
   hooks: Hookable<NitroHooks>;
   unimport?: Unimport;
   logger: ConsolaInstance;
-  storage: Storage;
+  fetch: (input: Request) => Response | Promise<Response>;
   close: () => Promise<void>;
   updateConfig: (config: NitroDynamicConfig) => void | Promise<void>;
+  routing: Readonly<{
+    sync: () => void;
+    routeRules: Router<NitroRouteRules & { _route: string }>;
+    routes: Router<MaybeArray<NitroEventHandler & { _importHash: string }>>;
+    globalMiddleware: (NitroEventHandler & { _importHash: string })[];
+    routedMiddleware: Router<NitroEventHandler & { _importHash: string }>;
+  }>;
 
   /* @internal */
   _prerenderedRoutes?: PrerenderRoute[];

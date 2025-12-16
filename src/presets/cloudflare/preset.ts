@@ -1,23 +1,26 @@
-import { defineNitroPreset } from "../_utils/preset";
-import { writeFile } from "../_utils/fs";
+import { defineNitroPreset } from "../_utils/preset.ts";
+import { writeFile } from "../_utils/fs.ts";
 import type { Nitro } from "nitro/types";
 import { resolve } from "pathe";
-import { unenvCfExternals } from "../_unenv/preset-workerd";
+import { unenvCfExternals } from "./unenv/preset.ts";
 import {
   enableNodeCompat,
   writeWranglerConfig,
   writeCFRoutes,
   writeCFHeaders,
   writeCFPagesRedirects,
-} from "./utils";
+} from "./utils.ts";
+import { cloudflareDevModule } from "./dev.ts";
+import { setupEntryExports } from "./entry-exports.ts";
 
-export type { CloudflareOptions as PresetOptions } from "./types";
+export type { CloudflareOptions as PresetOptions } from "./types.ts";
 
 const cloudflarePages = defineNitroPreset(
   {
     extends: "base-worker",
-    entry: "./runtime/cloudflare-pages",
+    entry: "./cloudflare/runtime/cloudflare-pages",
     exportConditions: ["workerd"],
+    minify: false,
     commands: {
       preview: "npx wrangler --cwd ./ pages dev",
       deploy: "npx wrangler --cwd ./ pages deploy",
@@ -27,7 +30,6 @@ const cloudflarePages = defineNitroPreset(
       publicDir: "{{ output.dir }}/{{ baseURL }}",
       serverDir: "{{ output.dir }}/_worker.js",
     },
-    unenv: [unenvCfExternals],
     alias: {
       // Hotfix: Cloudflare appends /index.html if mime is not found and things like ico are not in standard lite.js!
       // https://github.com/nitrojs/nitro/pull/933
@@ -46,7 +48,9 @@ const cloudflarePages = defineNitroPreset(
     },
     hooks: {
       "build:before": async (nitro) => {
+        nitro.options.unenv.push(unenvCfExternals);
         await enableNodeCompat(nitro);
+        await setupEntryExports(nitro);
       },
       async compiled(nitro: Nitro) {
         await writeWranglerConfig(nitro, "pages");
@@ -59,7 +63,6 @@ const cloudflarePages = defineNitroPreset(
   {
     name: "cloudflare-pages" as const,
     stdName: "cloudflare_pages",
-    url: import.meta.url,
   }
 );
 
@@ -84,7 +87,7 @@ const cloudflarePagesStatic = defineNitroPreset(
   {
     name: "cloudflare-pages-static" as const,
     stdName: "cloudflare_pages",
-    url: import.meta.url,
+
     static: true,
   }
 );
@@ -92,16 +95,12 @@ const cloudflarePagesStatic = defineNitroPreset(
 export const cloudflareDev = defineNitroPreset(
   {
     extends: "nitro-dev",
-    modules: [
-      async (nitro) =>
-        await import("./dev").then((m) => m.cloudflareDev(nitro)),
-    ],
+    modules: [cloudflareDevModule],
   },
   {
     name: "cloudflare-dev" as const,
     aliases: ["cloudflare-module", "cloudflare-durable", "cloudflare-pages"],
     compatibilityDate: "2025-07-13",
-    url: import.meta.url,
     dev: true,
   }
 );
@@ -109,16 +108,16 @@ export const cloudflareDev = defineNitroPreset(
 const cloudflareModule = defineNitroPreset(
   {
     extends: "base-worker",
-    entry: "./runtime/cloudflare-module",
+    entry: "./cloudflare/runtime/cloudflare-module",
     output: {
       publicDir: "{{ output.dir }}/public/{{ baseURL }}",
     },
     exportConditions: ["workerd"],
+    minify: false,
     commands: {
       preview: "npx wrangler --cwd ./ dev",
       deploy: "npx wrangler --cwd ./ deploy",
     },
-    unenv: [unenvCfExternals],
     rollupConfig: {
       output: {
         format: "esm",
@@ -132,7 +131,9 @@ const cloudflareModule = defineNitroPreset(
     },
     hooks: {
       "build:before": async (nitro) => {
+        nitro.options.unenv.push(unenvCfExternals);
         await enableNodeCompat(nitro);
+        await setupEntryExports(nitro);
       },
       async compiled(nitro: Nitro) {
         await writeWranglerConfig(nitro, "module");
@@ -152,18 +153,16 @@ const cloudflareModule = defineNitroPreset(
   {
     name: "cloudflare-module" as const,
     stdName: "cloudflare_workers",
-    url: import.meta.url,
   }
 );
 
 const cloudflareDurable = defineNitroPreset(
   {
     extends: "cloudflare-module",
-    entry: "./runtime/cloudflare-durable",
+    entry: "./cloudflare/runtime/cloudflare-durable",
   },
   {
     name: "cloudflare-durable" as const,
-    url: import.meta.url,
   }
 );
 

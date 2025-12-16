@@ -22,23 +22,13 @@ const { statusCode, headers, body } = handler({ rawPath: '/' })
 
 Nitro output, by default uses dynamic chunks for lazy loading code only when needed. However this sometimes can not be ideal for performance. (See discussions in [nitrojs/nitro#650](https://github.com/nitrojs/nitro/pull/650)). You can enabling chunk inlining behavior using [`inlineDynamicImports`](/config#inlinedynamicimports) config.
 
-::code-group
-
 ```ts [nitro.config.ts]
+import { defineNitroConfig } from "nitro/config";
+
 export default defineNitroConfig({
   inlineDynamicImports: true
 });
 ```
-
-```ts [nuxt.config.ts]
-export default defineNuxtConfig({
-  nitro: {
-    inlineDynamicImports: true
-  }
-})
-```
-
-::
 
 
 ## Response streaming
@@ -48,6 +38,8 @@ export default defineNuxtConfig({
 In order to enable response streaming, enable `awsLambda.streaming` flag:
 
 ```ts [nitro.config.ts]
+import { defineNitroConfig } from "nitro/config";
+
 export default defineNitroConfig({
   awsLambda: {
     streaming: true

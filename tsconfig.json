@@ -1,41 +1,20 @@
 {
+  "extends": "./lib/tsconfig.json",
   "compilerOptions": {
-    "esModuleInterop": false,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "allowSyntheticDefaultImports": true,
-    "skipLibCheck": true,
-    "target": "es2022",
-    "allowJs": true,
-    "resolveJsonModule": true,
-    "moduleDetection": "force",
-    "isolatedModules": true,
-    "verbatimModuleSyntax": true,
-    "strict": true,
-    // "noUncheckedIndexedAccess": true,
-    "forceConsistentCasingInFileNames": true,
-    "noImplicitOverride": true,
-    "module": "preserve",
-    "noEmit": true,
+    "erasableSyntaxOnly": true,
+    "noUncheckedIndexedAccess": false,
+    "noImplicitReturns": false,
     "jsx": "preserve",
-    "jsxFactory": "h",
-    "jsxFragmentFactory": "Fragment",
     "lib": ["es2022", "webworker", "dom.iterable"],
-    "types": ["node", "@cloudflare/workers-types"],
-    "paths": {
-      "nitro": ["./src/index"],
-      "nitro/runtime": ["./src/runtime"],
-      "nitro/runtime/internal": ["./src/runtime/internal"],
-      "nitro/presets": ["./src/presets"],
-      "nitro/vite": ["./src/vite"],
-      "nitro/types": ["./src/types"],
-      "nitro/config": ["./lib/config.mjs"],
-      "nitro/meta": ["./lib/meta.mjs"],
-      "nitro/runtime/meta": ["./lib/runtime-meta.mjs"],
-      "#nitro-internal-virtual/*": ["./src/types/virtual/*"],
-      "#internal/nitro": ["./src/runtime"],
-      "#internal/nitro/*": ["./src/runtime/*"],
-      "#internal/types/openapi-ts": ["./src/types/openapi-ts"]
-    }
+    "types": ["node", "@cloudflare/workers-types"]
   },
-  "include": ["src", "test", "scripts/gen-mirror.ts"],
-  "exclude": ["dist", "lib", "examples", "playground", "test/fixture"]
+  "exclude": [
+    "examples/import-alias/**",
+    "test/fixture/server/routes/jsx.tsx",
+    "examples/vite-ssr-solid/src/entry-server.tsx",
+    "examples/vite-ssr-solid/src/entry-client.tsx"
+  ]
 }

@@ -3,7 +3,7 @@ import { execa } from "execa";
 import { getRandomPort, waitForPort } from "get-port-please";
 import { resolve } from "pathe";
 import { describe, expect, it } from "vitest";
-import { setupTest, testNitro } from "../tests";
+import { setupTest, testNitro } from "../tests.ts";
 
 describe("nitro:preset:azure-swa", { timeout: 10_000 }, async () => {
   const customConfig = {

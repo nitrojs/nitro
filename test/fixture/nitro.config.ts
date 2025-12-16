@@ -1,14 +1,16 @@
-import { fileURLToPath } from "node:url";
-import { defineNitroConfig } from "nitro/config";
-import { dirname, resolve } from "node:path";
+import { defineConfig } from "nitro";
 
-export default defineNitroConfig({
+import { dirname, resolve } from "node:path";
+import { existsSync } from "node:fs";
+
+export default defineConfig({
   compressPublicAssets: true,
   compatibilityDate: "latest",
-  framework: {
-    name: "nitro",
-    version: "2.x",
-  },
+  serverDir: "server",
+  builder: (process.env.NITRO_BUILDER as any) || "rolldown",
+  // @ts-expect-error
+  __vitePkg__: process.env.NITRO_VITE_PKG,
+  framework: { name: "nitro", version: "3.x" },
   imports: {
     presets: [
       {
@@ -18,25 +20,34 @@ export default defineNitroConfig({
       },
     ],
   },
+  sourcemap: true,
   rollupConfig: {
     output: {
-      // TODO: when output.dir is outside of src, rollup emits wrong relative sourcemap paths
       sourcemapPathTransform: (relativeSourcePath, sourcemapPath) => {
         const sourcemapDir = dirname(sourcemapPath);
         const sourcePath = resolve(sourcemapDir, relativeSourcePath);
-        return sourcePath;
+        return existsSync(sourcePath) ? sourcePath : relativeSourcePath;
       },
     },
+  },
+  virtual: {
+    "#virtual-route": () =>
+      `export default () => new Response("Hello from virtual entry!")`,
   },
   handlers: [
     {
       route: "/api/test/*/foo",
-      handler: "api/hello.ts",
+      handler: "./server/routes/api/hello.ts",
       method: "GET",
     },
     {
       route: "/api/hello2",
-      handler: "api/hello.ts",
+      handler: "./server/routes/api/hello.ts",
+      middleware: true,
+    },
+    {
+      route: "/virtual",
+      handler: "#virtual-route",
     },
   ],
   devProxy: {
@@ -46,23 +57,18 @@ export default defineNitroConfig({
       ignorePath: true,
     },
   },
-  alias: {
-    "#fixture-nitro-utils-extra-absolute": fileURLToPath(
-      new URL("node_modules/@fixture/nitro-utils/extra2.mjs", import.meta.url)
-    ),
-  },
+  traceDeps: ["@fixture"],
   serverAssets: [
     {
       baseName: "files",
-      dir: "files",
+      dir: "server/files",
     },
   ],
   ignore: [
-    "api/**/_*",
+    "routes/api/**/_*",
     "middleware/_ignored.ts",
     "routes/_*.ts",
     "**/_*.txt",
-    "!**/_unignored.txt",
   ],
   runtimeConfig: {
     dynamic: "initial",
@@ -117,7 +123,6 @@ export default defineNitroConfig({
   experimental: {
     openAPI: true,
     asyncContext: true,
-    wasm: true,
     envExpansion: true,
     database: true,
     tasks: true,
@@ -126,8 +131,6 @@ export default defineNitroConfig({
     "* * * * *": "test",
   },
   cloudflare: {
-    nodeCompat: true,
-    deployConfig: true,
     pages: {
       routes: {
         include: ["/*"],
@@ -138,17 +141,16 @@ export default defineNitroConfig({
       compatibility_date: "2024-01-01",
     },
   },
+  typescript: {
+    generateRuntimeConfigTypes: true,
+    generateTsConfig: true,
+  },
   openAPI: {
     production: "prerender",
     meta: {
       title: "Nitro Test Fixture",
       description: "Nitro Test Fixture API",
       version: "2.0",
-    },
-    ui: {
-      scalar: {
-        theme: "purple",
-      },
     },
   },
 });

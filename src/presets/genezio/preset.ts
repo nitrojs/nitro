@@ -1,4 +1,4 @@
-import { defineNitroPreset } from "../_utils/preset";
+import { defineNitroPreset } from "../_utils/preset.ts";
 
 const genezio = defineNitroPreset(
   {
@@ -6,7 +6,6 @@ const genezio = defineNitroPreset(
   },
   {
     name: "genezio" as const,
-    url: import.meta.url,
   }
 );
 export default [genezio] as const;

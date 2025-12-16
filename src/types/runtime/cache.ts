@@ -32,11 +32,10 @@ export interface ResponseCacheEntry {
   body: string | undefined;
 }
 
-export interface CachedEventHandlerOptions
-  extends Omit<
-    CacheOptions<ResponseCacheEntry, [HTTPEvent]>,
-    "transform" | "validate"
-  > {
+export interface CachedEventHandlerOptions extends Omit<
+  CacheOptions<ResponseCacheEntry, [HTTPEvent]>,
+  "transform" | "validate"
+> {
   headersOnly?: boolean;
   varies?: string[] | readonly string[];
 }

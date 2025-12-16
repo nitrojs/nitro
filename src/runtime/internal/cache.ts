@@ -1,15 +1,9 @@
-import {
-  defineHandler,
-  handleCacheHeaders,
-  isEvent,
-  isHTTPEvent,
-  toResponse,
-} from "h3";
-import { FastResponse, type ServerRequest } from "srvx";
+import { defineHandler, handleCacheHeaders, isHTTPEvent, toResponse } from "h3";
+import { FastResponse } from "srvx";
 import { parseURL } from "ufo";
-import { useNitroApp } from "./app";
-import { useStorage } from "./storage";
 import { hash } from "ohash";
+import { useNitroApp } from "./app.ts";
+import { useStorage } from "./storage.ts";
 
 import type { H3Event, EventHandler, HTTPEvent } from "h3";
 import type { TransactionOptions } from "unstorage";
@@ -62,7 +56,7 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
         .getItem(cacheKey)
         .catch((error) => {
           console.error(`[cache] Cache read error.`, error);
-          useNitroApp().captureError(error, { event, tags: ["cache"] });
+          useNitroApp().captureError?.(error, { event, tags: ["cache"] });
         })) as unknown) || {};
 
     // https://github.com/nitrojs/nitro/issues/2160
@@ -70,7 +64,7 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
       entry = {};
       const error = new Error("Malformed data read from cache.");
       console.error("[cache]", error);
-      useNitroApp().captureError(error, { event, tags: ["cache"] });
+      useNitroApp().captureError?.(error, { event, tags: ["cache"] });
     }
 
     const ttl = (opts.maxAge ?? 0) * 1000;
@@ -126,7 +120,7 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
             .setItem(cacheKey, entry, setOpts)
             .catch((error) => {
               console.error(`[cache] Cache write error.`, error);
-              useNitroApp().captureError(error, { event, tags: ["cache"] });
+              useNitroApp().captureError?.(error, { event, tags: ["cache"] });
             });
           if (typeof event?.req?.waitUntil === "function") {
             event.req.waitUntil(promise);
@@ -146,7 +140,7 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
     if (opts.swr && validate(entry) !== false) {
       _resolvePromise.catch((error) => {
         console.error(`[cache] SWR handler error.`, error);
-        useNitroApp().captureError(error, { event, tags: ["cache"] });
+        useNitroApp().captureError?.(error, { event, tags: ["cache"] });
       });
       return entry as ResolvedCacheEntry<T>;
     }
@@ -190,7 +184,7 @@ function escapeKey(key: string | string[]) {
   return String(key).replace(/\W/g, "");
 }
 
-export function defineCachedEventHandler(
+export function defineCachedHandler(
   handler: EventHandler,
   opts: CachedEventHandlerOptions = defaultCacheOptions()
 ): EventHandler {
@@ -257,11 +251,15 @@ export function defineCachedEventHandler(
       );
 
       try {
+        const originalReq = event.req;
         // @ts-expect-error assigning to publicly readonly property
         event.req = new Request(event.req.url, {
           method: event.req.method,
           headers: filteredHeaders,
         });
+        // Inherit srvx context
+        event.req.runtime = originalReq.runtime;
+        event.req.waitUntil = originalReq.waitUntil;
       } catch (error) {
         console.error("[cache] Failed to filter headers:", error);
       }
@@ -343,5 +341,3 @@ export function defineCachedEventHandler(
     });
   });
 }
-
-export const cachedEventHandler = defineCachedEventHandler;

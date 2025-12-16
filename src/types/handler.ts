@@ -1,34 +1,47 @@
-import type { EventHandler, HTTPError, HTTPMethod, HTTPEvent } from "h3";
-import type { PresetName } from "nitro/presets";
+import type { HTTPError, HTTPMethod, HTTPEvent, HTTPHandler } from "h3";
+import type { PresetName } from "../presets/index.ts";
 import type {
   OperationObject,
   OpenAPI3,
   Extensable,
-} from "../types/openapi-ts";
+} from "../types/openapi-ts.ts";
 
 type MaybeArray<T> = T | T[];
 
-/** @exprerimental */
+/** @experimental */
 export interface NitroRouteMeta {
   openAPI?: OperationObject & {
     $global?: Pick<OpenAPI3, "components"> & Extensable;
   };
 }
 
-export interface NitroEventHandler {
+interface NitroHandlerCommon {
   /**
-   * Path prefix or route
+   * HTTP pathname pattern to match
    *
-   * If an empty string used, will be used as a middleware
+   * Examples: `/test`, `/api/:id`, `/blog/**`
    */
-  route?: string;
+  route: string;
 
   /**
-   * Specifies this is a middleware handler.
-   * Middleware are called on every route and should normally return nothing to pass to the next handlers
+   * HTTP method to match
+   */
+  method?: HTTPMethod;
+
+  /**
+   * Run handler as a middleware before other route handlings
    */
   middleware?: boolean;
 
+  /**
+   * Extra Meta
+   */
+  meta?: NitroRouteMeta;
+}
+
+export type EventHandlerFormat = "web" | "node";
+
+export interface NitroEventHandler extends NitroHandlerCommon {
   /**
    * Use lazy loading to import handler
    */
@@ -36,37 +49,27 @@ export interface NitroEventHandler {
 
   /**
    * Path to event handler
-   *
    */
   handler: string;
 
   /**
-   * Router method matcher
+   * Event handler type.
+   *
+   * Default is `"web"`. If set to `"node"`, the handler will be converted into a web compatible handler.
    */
-  method?: HTTPMethod;
-
-  /**
-   * Meta
-   */
-  meta?: NitroRouteMeta;
+  format?: EventHandlerFormat;
 
   /*
-   * Environments to include this handler
+   * Environments to include and bundle this handler
    */
   env?: MaybeArray<"dev" | "prod" | "prerender" | PresetName | (string & {})>;
 }
 
-export interface NitroDevEventHandler {
+export interface NitroDevEventHandler extends NitroHandlerCommon {
   /**
-   * Path prefix or route
+   * Event handler function
    */
-  route?: string;
-
-  /**
-   * Event handler
-   *
-   */
-  handler: EventHandler;
+  handler: HTTPHandler;
 }
 
 type MaybePromise<T> = T | Promise<T>;
@@ -86,4 +89,4 @@ export type NitroErrorHandler = (
       body: string | Record<string, any>;
     }>;
   }
-) => Response | Promise<Response>;
+) => MaybePromise<Response | void>;

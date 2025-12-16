@@ -1,15 +1,13 @@
 import type { Nitro } from "nitro/types";
-import type { Plugin } from "rollup";
-import type { WranglerConfig, CloudflarePagesRoutes } from "./types";
+import type { WranglerConfig, CloudflarePagesRoutes } from "./types.ts";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { relative, dirname, extname } from "node:path";
-import { writeFile } from "../_utils/fs";
+import { writeFile } from "../_utils/fs.ts";
 import { parseTOML, parseJSONC } from "confbox";
 import { readGitConfig, readPackageJSON, findNearestFile } from "pkg-types";
 import { defu } from "defu";
-import { globby } from "globby";
-import { provider } from "std-env";
+import { glob } from "tinyglobby";
 import { join, resolve } from "pathe";
 import {
   joinURL,
@@ -18,10 +16,7 @@ import {
   withTrailingSlash,
   withoutLeadingSlash,
 } from "ufo";
-import {
-  workerdHybridNodeCompatPlugin,
-  unenvWorkerdWithNodeCompat,
-} from "../_unenv/preset-workerd";
+import { unenvCfNodeCompat } from "./unenv/preset.ts";
 
 export async function writeCFRoutes(nitro: Nitro) {
   const _cfPagesConfig = nitro.options.cloudflare?.pages || {};
@@ -70,7 +65,7 @@ export async function writeCFRoutes(nitro: Nitro) {
   );
 
   // Unprefixed assets
-  const publicAssetFiles = await globby("**", {
+  const publicAssetFiles = await glob("**", {
     cwd: nitro.options.output.dir,
     absolute: false,
     dot: true,
@@ -194,40 +189,11 @@ export async function writeCFPagesRedirects(nitro: Nitro) {
 export async function enableNodeCompat(nitro: Nitro) {
   nitro.options.cloudflare ??= {};
 
-  // Enable deploy config for workers CI by default
-  // TODO: enable this by default once API could assert no config overrides will happen
-  if (
-    nitro.options.cloudflare.deployConfig === undefined &&
-    provider === "cloudflare_workers"
-  ) {
-    nitro.options.cloudflare.deployConfig = true;
+  nitro.options.cloudflare.deployConfig ??= true;
+  nitro.options.cloudflare.nodeCompat ??= true;
+  if (nitro.options.cloudflare.nodeCompat) {
+    nitro.options.unenv.push(unenvCfNodeCompat);
   }
-
-  // Infer nodeCompat from user config
-  if (nitro.options.cloudflare.nodeCompat === undefined) {
-    const { config } = await readWranglerConfig(nitro);
-    const userCompatibilityFlags = new Set(config?.compatibility_flags || []);
-    if (
-      userCompatibilityFlags.has("nodejs_compat") ||
-      userCompatibilityFlags.has("nodejs_compat_v2") ||
-      nitro.options.cloudflare.deployConfig
-    ) {
-      nitro.options.cloudflare.nodeCompat = true;
-    }
-  }
-
-  if (!nitro.options.cloudflare.nodeCompat) {
-    if (nitro.options.cloudflare.nodeCompat === undefined) {
-      nitro.logger.warn("[cloudflare] Node.js compatibility is not enabled.");
-    }
-    return;
-  }
-
-  nitro.options.unenv.push(unenvWorkerdWithNodeCompat);
-  nitro.options.rollupConfig!.plugins ??= [];
-  (nitro.options.rollupConfig!.plugins as Plugin[]).push(
-    workerdHybridNodeCompatPlugin
-  );
 }
 
 const extensionParsers = {
@@ -340,29 +306,29 @@ export async function writeWranglerConfig(
   }
 
   // Compatibility flags
-  // prettier-ignore
-  const compatFlags = new Set(wranglerConfig.compatibility_flags || [])
-  if (nitro.options.cloudflare?.nodeCompat) {
-    if (
-      compatFlags.has("nodejs_compat_v2") &&
-      compatFlags.has("no_nodejs_compat_v2")
-    ) {
-      nitro.logger.warn(
-        "[cloudflare] Wrangler config `compatibility_flags` contains both `nodejs_compat_v2` and `no_nodejs_compat_v2`. Ignoring `nodejs_compat_v2`."
-      );
-      compatFlags.delete("nodejs_compat_v2");
+  wranglerConfig.compatibility_flags ??= [];
+  if (
+    nitro.options.cloudflare?.nodeCompat &&
+    !wranglerConfig.compatibility_flags.includes("nodejs_compat")
+  ) {
+    wranglerConfig.compatibility_flags.push("nodejs_compat");
+  }
+
+  if (cfTarget === "module") {
+    // Avoid double bundling
+    if (wranglerConfig.no_bundle === undefined) {
+      wranglerConfig.no_bundle = true;
     }
-    if (compatFlags.has("nodejs_compat_v2")) {
-      nitro.logger.warn(
-        "[cloudflare] Please consider replacing `nodejs_compat_v2` with `nodejs_compat` in your `compatibility_flags` or USE IT AT YOUR OWN RISK as it can cause issues with nitro."
-      );
-    } else {
-      // Add default compatibility flags
-      compatFlags.add("nodejs_compat");
-      compatFlags.add("no_nodejs_compat_v2");
+
+    // Scan all server/ chunks
+    wranglerConfig.rules ??= [];
+    if (!wranglerConfig.rules.some((rule) => rule.type === "ESModule")) {
+      wranglerConfig.rules.push({
+        type: "ESModule",
+        globs: ["**/*.mjs", "**/*.js"],
+      });
     }
   }
-  wranglerConfig.compatibility_flags = [...compatFlags];
 
   // Write wrangler.json
   await writeFile(

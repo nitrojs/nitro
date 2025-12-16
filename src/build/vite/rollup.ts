@@ -1,30 +1,13 @@
-import type { Nitro, RollupConfig } from "nitro/types";
+import type { RollupConfig } from "nitro/types";
 import { defu } from "defu";
-import { sanitizeFilePath } from "mlly";
-import { normalize, resolve, dirname } from "pathe";
-import { runtimeDir } from "nitro/runtime/meta";
+import { resolve, dirname } from "pathe";
 import alias from "@rollup/plugin-alias";
 import inject from "@rollup/plugin-inject";
-import json from "@rollup/plugin-json";
-import { visualizer } from "rollup-plugin-visualizer";
-import { replace } from "../plugins/replace";
-import { baseBuildConfig, type BaseBuildConfig } from "../config";
-import { baseBuildPlugins } from "../plugins";
+import { baseBuildConfig, type BaseBuildConfig } from "../config.ts";
+import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
+import { baseBuildPlugins } from "../plugins.ts";
 import type { OutputBundle, Plugin as RollupPlugin } from "rollup";
-import type { NitroPluginContext } from "./types";
-
-/**
- * Removed from base rollup config:
- *  - nodeResolve
- *  - commonjs
- *  - esbuild
- *  - sourcemapMininify
- *
- * TODO: Reuse with rollup:
- * - chunkFileNames
- * - moduleSideEffects
- * - visualizer
- */
+import type { NitroPluginContext } from "./types.ts";
 
 export const getViteRollupConfig = (
   ctx: NitroPluginContext
@@ -32,129 +15,71 @@ export const getViteRollupConfig = (
   const nitro = ctx.nitro!;
   const base = baseBuildConfig(nitro);
 
-  const chunkNamePrefixes = [
-    [nitro.options.buildDir, "build"],
-    [base.buildServerDir, "app"],
-    [runtimeDir, "nitro"],
-    [base.presetsDir, "nitro"],
-    ["\0raw:", "raw"],
-    ["\0nitro-wasm:", "wasm"],
-    ["\0", "virtual"],
-  ] as const;
-
-  function getChunkGroup(id: string): string | void {
-    if (id.startsWith(runtimeDir) || id.startsWith(base.presetsDir)) {
-      return "nitro";
-    }
-  }
-
   let config = {
     input: nitro.options.entry,
     external: [...base.env.external],
     plugins: [
-      virtualBundlePlugin(ctx._serviceBundles),
+      ctx.pluginConfig.experimental?.vite?.virtualBundle &&
+        virtualBundlePlugin(ctx._serviceBundles),
       ...baseBuildPlugins(nitro, base),
       alias({ entries: base.aliases }),
-      replace({ preventAssignment: true, values: base.replacements }),
-      json(),
-      inject(base.env.inject),
-    ],
+      !ctx._isRolldown &&
+        (inject as unknown as typeof inject.default)(base.env.inject),
+    ].filter(Boolean) as RollupPlugin[],
+    // rolldown-specific config
+    ...(ctx._isRolldown
+      ? {
+          transform: {
+            inject: base.env.inject as Record<string, string>,
+          },
+        }
+      : {}),
     treeshake: {
       moduleSideEffects(id) {
-        const normalizedId = normalize(id);
-        const idWithoutNodeModules = normalizedId.split("node_modules/").pop();
-        if (!idWithoutNodeModules) {
-          return false;
-        }
-        if (
-          normalizedId.startsWith(runtimeDir) ||
-          idWithoutNodeModules.startsWith(runtimeDir)
-        ) {
-          return true;
-        }
-        return nitro.options.moduleSideEffects.some(
-          (m) =>
-            normalizedId.startsWith(m) || idWithoutNodeModules.startsWith(m)
-        );
+        return nitro.options.moduleSideEffects.some((p) => id.startsWith(p));
       },
     },
+    onwarn(warning, warn) {
+      if (!base.ignoreWarningCodes.has(warning.code || "")) {
+        warn(warning);
+      }
+    },
     output: {
-      dir: nitro.options.output.serverDir,
-      entryFileNames: "index.mjs",
-      chunkFileNames(chunk) {
-        const id = normalize(chunk.moduleIds.at(-1) || "");
-        // Known path prefixes
-        for (const [dir, name] of chunkNamePrefixes) {
-          if (id.startsWith(dir)) {
-            return `chunks/${name}/[name].mjs`;
-          }
-        }
-
-        // Route handlers
-        const routeHandler =
-          nitro.options.handlers.find((h) =>
-            id.startsWith(h.handler as string)
-          ) ||
-          nitro.scannedHandlers.find((h) => id.startsWith(h.handler as string));
-        if (routeHandler?.route) {
-          const path =
-            routeHandler.route
-              .replace(/:([^/]+)/g, "_$1")
-              .replace(/\/[^/]+$/g, "") || "/";
-          return `chunks/routes/${path}/[name].mjs`.replace(/\/+/g, "/");
-        }
-
-        // Task handlers
-        const taskHandler = Object.entries(nitro.options.tasks).find(
-          ([_, task]) => task.handler === id
-        );
-        if (taskHandler) {
-          return `chunks/tasks/[name].mjs`;
-        }
-
-        // Unknown path
-        return `chunks/_/[name].mjs`;
-      },
-      manualChunks(id) {
-        return getChunkGroup(id);
-      },
-      inlineDynamicImports: nitro.options.inlineDynamicImports,
       format: "esm",
-      exports: "auto",
-      intro: "",
-      outro: "",
+      entryFileNames: "index.mjs",
+      chunkFileNames: (chunk) => getChunkName(chunk, nitro),
+      ...(ctx._isRolldown
+        ? {
+            advancedChunks: {
+              groups: [
+                {
+                  test: NODE_MODULES_RE,
+                  name: (id: string) => libChunkName(id),
+                },
+              ],
+            },
+          }
+        : {
+            manualChunks(id: string) {
+              if (NODE_MODULES_RE.test(id)) {
+                return libChunkName(id);
+              }
+            },
+          }),
+      inlineDynamicImports: nitro.options.inlineDynamicImports,
+      dir: nitro.options.output.serverDir,
       generatedCode: {
-        constBindings: true,
+        // constBindings is not supported in rolldown
+        ...(ctx._isRolldown ? {} : { constBindings: true }),
       },
-      sanitizeFileName: sanitizeFilePath,
-      sourcemapExcludeSources: true,
-      sourcemapIgnoreList(relativePath) {
-        return relativePath.includes("node_modules");
-      },
+      // sanitizeFileName: sanitizeFilePath,
+      // sourcemapExcludeSources is not supported in rolldown
+      ...(ctx._isRolldown ? {} : { sourcemapExcludeSources: true }),
+      sourcemapIgnoreList: (id) => id.includes("node_modules"),
     },
   } satisfies RollupConfig;
 
   config = defu(nitro.options.rollupConfig as any, config);
-
-  if (config.output.inlineDynamicImports) {
-    // @ts-ignore
-    delete config.output.manualChunks;
-  }
-
-  // Bundle analyzer
-  if (nitro.options.analyze) {
-    config.plugins.push(
-      // https://github.com/btd/rollup-plugin-visualizer
-      visualizer({
-        ...nitro.options.analyze,
-        filename: (nitro.options.analyze.filename || "stats.html").replace(
-          "{name}",
-          "nitro"
-        ),
-        title: "Nitro Server bundle stats",
-      })
-    );
-  }
 
   return { config, base };
 };

@@ -1,39 +1,56 @@
-import "#nitro-internal-pollyfills";
-import { useNitroApp } from "nitro/runtime";
-import { startScheduleRunner } from "nitro/runtime/internal";
-
+import "#nitro/virtual/polyfills";
+import type { ServerRequest } from "srvx";
+import { serve } from "srvx/bun";
 import wsAdapter from "crossws/adapters/bun";
+
+import { useNitroApp } from "nitro/app";
+import { startScheduleRunner } from "#nitro/runtime/task";
+import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
+import { resolveWebsocketHooks } from "#nitro/runtime/app";
+import { hasWebSocket } from "#nitro/virtual/feature-flags";
+
+const port =
+  Number.parseInt(process.env.NITRO_PORT || process.env.PORT || "") || 3000;
+const host = process.env.NITRO_HOST || process.env.HOST;
+const cert = process.env.NITRO_SSL_CERT;
+const key = process.env.NITRO_SSL_KEY;
+// const socketPath = process.env.NITRO_UNIX_SOCKET; // TODO
 
 const nitroApp = useNitroApp();
 
-const ws = import.meta._websocket
-  ? // @ts-expect-error
-    wsAdapter(nitroApp.h3App.websocket)
+let _fetch = nitroApp.fetch;
+
+const ws = hasWebSocket
+  ? wsAdapter({ resolve: resolveWebsocketHooks })
   : undefined;
 
-// @ts-expect-error
-const server = Bun.serve({
-  port: process.env.NITRO_PORT || process.env.PORT || 3000,
-  host: process.env.NITRO_HOST || process.env.HOST,
-  websocket: import.meta._websocket ? ws!.websocket : (undefined as any),
-  async fetch(request: Request, server: any) {
-    // https://crossws.unjs.io/adapters/bun
-    if (
-      import.meta._websocket &&
-      request.headers.get("upgrade") === "websocket"
-    ) {
-      return ws!.handleUpgrade(request, server);
+if (hasWebSocket) {
+  _fetch = (req: ServerRequest) => {
+    if (req.headers.get("upgrade") === "websocket") {
+      return ws!.handleUpgrade(
+        req,
+        req.runtime!.bun!.server
+      ) as Promise<Response>;
     }
+    return nitroApp.fetch(req);
+  };
+}
 
-    return nitroApp.fetch(request, undefined, {
-      _platform: { bun: { request, server } },
-    });
+serve({
+  port,
+  hostname: host,
+  tls: cert && key ? { cert, key } : undefined,
+  fetch: _fetch,
+  bun: {
+    websocket: hasWebSocket ? ws?.websocket : undefined,
   },
 });
 
-console.log(`Listening on ${server.url}...`);
+trapUnhandledErrors();
 
 // Scheduled tasks
 if (import.meta._tasks) {
   startScheduleRunner();
 }
+
+export default {};

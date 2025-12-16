@@ -1,6 +1,5 @@
-import { createWriteStream } from "node:fs";
 import fsp from "node:fs/promises";
-import { writeFile } from "../_utils/fs";
+import { writeFile } from "../_utils/fs.ts";
 import type { Nitro } from "nitro/types";
 import { join, resolve } from "pathe";
 
@@ -10,7 +9,7 @@ export async function writeSWARoutes(nitro: Nitro) {
   };
 
   // https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-node?tabs=typescript%2Cwindows%2Cazure-cli&pivots=nodejs-model-v4#supported-versions
-  const supportedNodeVersions = new Set(["16", "18", "20"]);
+  const supportedNodeVersions = new Set(["20", "22"]);
   let nodeVersion = "18";
   try {
     const currentNodeVersion = JSON.parse(
