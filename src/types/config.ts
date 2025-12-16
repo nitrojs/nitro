@@ -1,5 +1,10 @@
 import type { RollupCommonJSOptions } from "@rollup/plugin-commonjs";
-import type { C12InputConfig, ConfigWatcher, ResolvedConfig } from "c12";
+import type {
+  C12InputConfig,
+  ConfigWatcher,
+  DotenvOptions,
+  ResolvedConfig,
+} from "c12";
 import type { WatchConfigOptions } from "c12";
 import type { ChokidarOptions } from "chokidar";
 import type { CompatibilityDateSpec, CompatibilityDates } from "compatx";
@@ -7,29 +12,32 @@ import type { LogLevel } from "consola";
 import type { ConnectorName } from "db0";
 import type { NestedHooks } from "hookable";
 import type { ProxyServerOptions } from "httpxy";
-import type { PresetName, PresetNameInput, PresetOptions } from "nitro/presets";
+import type {
+  PresetName,
+  PresetNameInput,
+  PresetOptions,
+} from "../presets/index.ts";
 import type { TSConfig } from "pkg-types";
-import type { PluginVisualizerOptions } from "rollup-plugin-visualizer";
 import type { Preset as UnenvPreset } from "unenv";
 import type { UnimportPluginOptions } from "unimport/unplugin";
 import type { BuiltinDriverName } from "unstorage";
 import type { UnwasmPluginOptions } from "unwasm/plugin";
-import type { DeepPartial } from "./_utils";
-import type { DevServerOptions } from "./dev";
+import type { DeepPartial } from "./_utils.ts";
 import type {
+  EventHandlerFormat,
   NitroDevEventHandler,
   NitroErrorHandler,
   NitroEventHandler,
-} from "./handler";
-import type { NitroHooks } from "./hooks";
-import type { NitroModuleInput } from "./module";
-import type { NitroFrameworkInfo } from "./nitro";
-import type { NitroOpenAPIConfig } from "./openapi";
-export type { NitroOpenAPIConfig } from "./openapi";
-import type { NitroPreset } from "./preset";
-import type { EsbuildOptions, NodeExternalsOptions } from "./rollup";
-import type { RollupConfig } from "./rollup";
-import type { NitroRouteConfig, NitroRouteRules } from "./route-rules";
+} from "./handler.ts";
+import type { NitroHooks } from "./hooks.ts";
+import type { NitroModuleInput } from "./module.ts";
+import type { NitroFrameworkInfo } from "./nitro.ts";
+import type { NitroOpenAPIConfig } from "./openapi.ts";
+export type { NitroOpenAPIConfig } from "./openapi.ts";
+import type { NitroPreset } from "./preset.ts";
+import type { OXCOptions } from "./rollup.ts";
+import type { RollupConfig } from "./rollup.ts";
+import type { NitroRouteConfig, NitroRouteRules } from "./route-rules.ts";
 
 /**
  * Nitro normalized options (nitro.options)
@@ -55,7 +63,7 @@ export interface NitroOptions extends PresetOptions {
   // Dirs
   workspaceDir: string;
   rootDir: string;
-  srcDir: string;
+  serverDir: string | false;
   scanDirs: string[];
   apiDir: string;
   routesDir: string;
@@ -66,22 +74,40 @@ export interface NitroOptions extends PresetOptions {
     publicDir: string;
   };
 
+  /** @deprecated migrate to `serverDir` */
+  srcDir: string;
+
   // Features
   storage: StorageMounts;
   devStorage: StorageMounts;
   database: DatabaseConnectionConfigs;
   devDatabase: DatabaseConnectionConfigs;
-  bundledStorage: string[];
-  renderer?: string;
+  renderer?: { handler?: string; static?: boolean; template?: string };
+  ssrRoutes: string[];
   serveStatic: boolean | "node" | "deno" | "inline";
   noPublicDir: boolean;
+  manifest?: {
+    deploymentId?: string;
+  };
+  features: {
+    /**
+     * Enable runtime hooks for request and response.
+     *
+     * By default this feature will be enabled if there is at least one nitro plugin.
+     */
+    runtimeHooks: boolean;
+
+    /**
+     * Enable WebSocket support
+     */
+    websocket: boolean;
+  };
 
   /**
-   * @experimental Requires `experimental.wasm` to work
    *
    * @see https://github.com/unjs/unwasm
    */
-  wasm?: UnwasmPluginOptions;
+  wasm?: false | UnwasmPluginOptions;
   openAPI?: NitroOpenAPIConfig;
   experimental: {
     openAPI?: boolean;
@@ -90,19 +116,9 @@ export interface NitroOptions extends PresetOptions {
      */
     typescriptBundlerResolution?: boolean;
     /**
-     * Enable native async context support for useEvent()
+     * Enable native async context support for useRequest()
      */
     asyncContext?: boolean;
-    /**
-     * Enable Experimental WebAssembly Support
-     *
-     * @see https://github.com/unjs/unwasm
-     */
-    wasm?: boolean;
-    /**
-     * Disable Experimental bundling of Nitro Runtime Dependencies
-     */
-    bundleRuntimeDependencies?: false;
     /**
      * Disable Experimental Sourcemap Minification
      */
@@ -114,9 +130,11 @@ export interface NitroOptions extends PresetOptions {
      */
     envExpansion?: boolean;
     /**
-     * Enable experimental WebSocket support
+     * Enable WebSocket support
      *
      * @see https://nitro.build/guide/websocket
+     *
+     * @deprecated use `features.websocket` instead.
      */
     websocket?: boolean;
     /**
@@ -131,6 +149,12 @@ export interface NitroOptions extends PresetOptions {
      * @see https://nitro.build/guide/tasks
      */
     tasks?: boolean;
+    /**
+     * Infer path aliases from tsconfig.json
+     *
+     * @default true
+     */
+    tsconfigPaths?: boolean;
   };
   future: {
     nativeSWR: boolean;
@@ -149,7 +173,11 @@ export interface NitroOptions extends PresetOptions {
 
   // Dev
   dev: boolean;
-  devServer: DevServerOptions;
+  devServer: {
+    port: number;
+    hostname: string;
+    watch: string[];
+  };
   watchOptions: ChokidarOptions;
   devProxy: Record<string, string | ProxyServerOptions>;
 
@@ -162,11 +190,19 @@ export interface NitroOptions extends PresetOptions {
   // Routing
   baseURL: string;
   apiBaseURL: string;
+
+  serverEntry: false | { handler: string; format?: EventHandlerFormat };
   handlers: NitroEventHandler[];
-  routeRules: { [path: string]: NitroRouteRules };
   devHandlers: NitroDevEventHandler[];
+  routeRules: { [path: string]: NitroRouteRules };
+  routes: Record<
+    string,
+    string | Omit<NitroEventHandler, "route" | "middleware">
+  >;
+
   errorHandler: string | string[];
   devErrorHandler: NitroErrorHandler;
+
   prerender: {
     /**
      * Prerender HTML routes within subfolders (`/test` would produce `/test/index.html`)
@@ -194,38 +230,45 @@ export interface NitroOptions extends PresetOptions {
   };
 
   // Rollup
-  builder?: "rollup" | "rolldown";
+  builder?: "rollup" | "rolldown" | "vite";
   rollupConfig?: RollupConfig;
   entry: string;
   unenv: UnenvPreset[];
   alias: Record<string, string>;
   minify: boolean;
   inlineDynamicImports: boolean;
-  sourceMap: boolean | "inline" | "hidden";
+  sourcemap: boolean;
   node: boolean;
   moduleSideEffects: string[];
-  esbuild?: {
-    options?: Partial<EsbuildOptions>;
-  };
-  noExternals: boolean;
-  externals: NodeExternalsOptions;
-  analyze: false | PluginVisualizerOptions;
+  oxc?: OXCOptions;
   replace: Record<string, string | ((id: string) => string)>;
   commonJS?: RollupCommonJSOptions;
   exportConditions?: string[];
+  noExternals?: boolean | (string | RegExp)[];
+  traceDeps?: (string | RegExp)[];
 
   // Advanced
   typescript: {
     strict?: boolean;
-    internalPaths?: boolean;
     generateRuntimeConfigTypes?: boolean;
     generateTsConfig?: boolean;
-    /** the path of the generated `tsconfig.json`, relative to buildDir */
-    tsconfigPath: string;
     tsConfig?: Partial<TSConfig>;
+
+    /**
+     * Path of the generated types directory.
+     *
+     * Default is `node_modules/.nitro/types`
+     */
+    generatedTypesDir?: string;
+
+    /**
+     * Path of the generated `tsconfig.json` relative to `typescript.generatedTypesDir`
+     *
+     * Default is `tsconfig.json` (`node_modules/.nitro/types/tsconfig.json`)
+     */
+    tsconfigPath: string;
   };
   hooks: NestedHooks<NitroHooks>;
-  nodeModulesDirs: string[];
   commands: {
     preview: string;
     deploy: string;
@@ -245,7 +288,8 @@ export interface NitroOptions extends PresetOptions {
  * Nitro input config (nitro.config)
  */
 export interface NitroConfig
-  extends DeepPartial<
+  extends
+    DeepPartial<
       Omit<
         NitroOptions,
         | "routeRules"
@@ -253,8 +297,11 @@ export interface NitroConfig
         | "preset"
         | "compatibilityDate"
         | "unenv"
+        | "serverDir"
         | "_config"
         | "_c12"
+        | "serverEntry"
+        | "renderer"
       >
     >,
     C12InputConfig<NitroConfig> {
@@ -264,6 +311,9 @@ export interface NitroConfig
   rollupConfig?: Partial<RollupConfig>;
   compatibilityDate?: CompatibilityDateSpec;
   unenv?: UnenvPreset | UnenvPreset[];
+  serverDir?: boolean | "./" | "./server" | (string & {});
+  serverEntry?: string | NitroOptions["serverEntry"];
+  renderer?: false | NitroOptions["renderer"];
 }
 
 // ------------------------------------------------------------
@@ -274,6 +324,7 @@ export interface LoadConfigOptions {
   watch?: boolean;
   c12?: WatchConfigOptions;
   compatibilityDate?: CompatibilityDateSpec;
+  dotenv?: boolean | DotenvOptions;
 }
 
 // ------------------------------------------------------------
@@ -327,7 +378,6 @@ export type DatabaseConnectionConfigs = Record<
 // Runtime config
 
 export interface NitroRuntimeConfigApp {
-  baseURL: string;
   [key: string]: any;
 }
 

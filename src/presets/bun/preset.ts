@@ -1,18 +1,17 @@
-import { defineNitroPreset } from "../_utils/preset";
+import { defineNitroPreset } from "../_utils/preset.ts";
 
 const bun = defineNitroPreset(
   {
-    entry: "./runtime/bun",
+    entry: "./bun/runtime/bun",
     serveStatic: true,
     // https://bun.sh/docs/runtime/modules#resolution
-    exportConditions: ["bun", "worker", "node", "import", "default"],
+    exportConditions: ["bun", "node", "import", "default"],
     commands: {
       preview: "bun run ./server/index.mjs",
     },
   },
   {
     name: "bun" as const,
-    url: import.meta.url,
   }
 );
 

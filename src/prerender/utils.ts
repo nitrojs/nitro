@@ -86,8 +86,7 @@ export function formatPrerenderRoute(route: PrerenderRoute) {
 
   if (route.error) {
     const parents = linkParents.get(route.route);
-    const errorColor =
-      colors[route.error.statusCode === 404 ? "yellow" : "red"];
+    const errorColor = colors[route.error.status === 404 ? "yellow" : "red"];
     const errorLead = parents?.size ? "├──" : "└──";
     str += `\n  │ ${errorLead} ${errorColor(route.error.message)}`;
 
@@ -112,7 +111,7 @@ type IgnorePattern =
   | ((path: string) => undefined | null | boolean);
 export function matchesIgnorePattern(path: string, pattern: IgnorePattern) {
   if (typeof pattern === "string") {
-    // TODO: support radix3 patterns
+    // TODO: support rou3 patterns
     return path.startsWith(pattern as string);
   }
 

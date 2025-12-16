@@ -1,15 +1,16 @@
-import { defineNitroPreset } from "../_utils/preset";
-export type { AwsLambdaOptions as PresetOptions } from "./types";
+import { defineNitroPreset } from "../_utils/preset.ts";
+
+export type { AwsLambdaOptions as PresetOptions } from "./types.ts";
 
 const awsLambda = defineNitroPreset(
   {
-    entry: "./runtime/aws-lambda",
+    entry: "./aws-lambda/runtime/aws-lambda",
     awsLambda: {
       streaming: false,
     },
     hooks: {
       "rollup:before": (nitro, rollupConfig) => {
-        if (nitro.options.awsLambda.streaming) {
+        if (nitro.options.awsLambda?.streaming) {
           (rollupConfig.input as string) += "-streaming";
         }
       },
@@ -17,7 +18,6 @@ const awsLambda = defineNitroPreset(
   },
   {
     name: "aws-lambda" as const,
-    url: import.meta.url,
   }
 );
 

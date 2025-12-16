@@ -1,7 +1,7 @@
-import errorHandler from "./error";
+import { defineConfig } from "nitro";
+// import errorHandler from "./error";
 
-export default defineNitroConfig({
-  compatibilityDate: "2025-03-01",
-  errorHandler: "~/error",
-  devErrorHandler: errorHandler,
+export default defineConfig({
+  errorHandler: "./error.ts",
+  // devErrorHandler: errorHandler,
 });

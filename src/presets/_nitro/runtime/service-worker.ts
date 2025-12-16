@@ -1,6 +1,7 @@
-import "#nitro-internal-pollyfills";
-import { useNitroApp } from "nitro/runtime";
-import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
+import "#nitro/virtual/polyfills";
+import { useNitroApp } from "nitro/app";
+import { isPublicAssetURL } from "#nitro/virtual/public-assets";
+import type { ServerRequest } from "srvx";
 
 const nitroApp = useNitroApp();
 
@@ -11,24 +12,15 @@ addEventListener("fetch", (event: FetchEvent) => {
     return;
   }
 
-  event.respondWith(handleEvent(url, event));
+  // srvx compatibility
+  const req = event.request as unknown as ServerRequest;
+  req.runtime ??= { name: "service-worker" };
+  // @ts-expect-error (add to srvx types)
+  req.runtime.serviceWorker ??= { event } as any;
+  req.waitUntil = event.waitUntil.bind(event);
+
+  event.respondWith(nitroApp.fetch(req));
 });
-
-async function handleEvent(url: URL, event: FetchEvent) {
-  let body;
-  if (event.request.body) {
-    body = await event.request.arrayBuffer();
-  }
-
-  return nitroApp.localFetch(url.pathname + url.search, {
-    host: url.hostname,
-    protocol: url.protocol,
-    headers: event.request.headers,
-    method: event.request.method,
-    redirect: event.request.redirect,
-    body,
-  });
-}
 
 declare const self: ServiceWorkerGlobalScope;
 

@@ -1,12 +1,10 @@
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { consola } from "consola";
-import { createJiti } from "jiti";
 import { findTypeExports } from "mlly";
 import type { NitroPreset, NitroPresetMeta } from "nitro/types";
 import { camelCase, kebabCase, pascalCase, snakeCase } from "scule";
-import { stubAlias } from "../build.config";
 
 const autoGenHeader = /* ts */ `// Auto-generated using gen-presets script\n`;
 
@@ -22,13 +20,12 @@ const presetDirs: string[] = readdirSync(presetsDir, { withFileTypes: true })
   .map((dir) => dir.name);
 
 // --- Load presets ---
-const jiti = createJiti(presetsDir, { alias: stubAlias });
 const allPresets: (NitroPreset & { _meta?: NitroPresetMeta })[] = [];
 for (const preset of presetDirs) {
   const presetPath = resolve(presetsDir, preset, "preset.ts");
-  const _presets = await jiti
-    .import(presetPath)
-    .then((mod) => (mod as any).default || mod);
+  const _presets = await import(pathToFileURL(presetPath).href).then(
+    (mod) => (mod as any).default || mod
+  );
   if (!Array.isArray(_presets)) {
     throw new TypeError(`Preset ${preset} does not export an array`);
   }
@@ -45,7 +42,7 @@ for (const preset of allPresets) {
   const names = [preset._meta.name, ...(preset._meta.aliases || [])];
   for (const name of names) {
     if (_names.has(name)) {
-      if (!preset._meta.compatibilityDate) {
+      if (!preset._meta.compatibilityDate && !preset._meta.dev) {
         consola.warn(`Preset ${name} is duplicated`);
       }
       continue;
@@ -64,7 +61,7 @@ writeFileSync(
   resolve(presetsDir, "_all.gen.ts"),
   /* ts */ `${autoGenHeader}
 ${presetDirs
-  .map((preset) => `import _${camelCase(preset)} from "./${preset}/preset";`)
+  .map((preset) => `import _${camelCase(preset)} from "./${preset}/preset.ts";`)
   .join("\n")}
 
 export default [
@@ -87,13 +84,13 @@ ${presetsWithType
     (preset) =>
       `import type { PresetOptions as ${pascalCase(
         preset
-      )}Options } from "./${preset}/preset";`
+      )}Options } from "./${preset}/preset.ts";`
   )
   .join("\n")}
 
 export interface PresetOptions {
 ${presetsWithType
-  .map((preset) => `  ${camelCase(preset)}: ${pascalCase(preset)}Options;`)
+  .map((preset) => `  ${camelCase(preset)}?: ${pascalCase(preset)}Options;`)
   .join("\n")}
 }
 

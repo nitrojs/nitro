@@ -1,18 +1,12 @@
-import nodeCrypto from "node:crypto";
+import type { Nitro } from "nitro/types";
 import { defineCommand } from "citty";
 import { consola } from "consola";
-import { getArgs, parseArgs } from "listhen/cli";
-import { build, createDevServer, createNitro, prepare } from "nitro";
-import type { Nitro } from "nitro/types";
+import { build, createNitro, prepare } from "nitro/builder";
 import { resolve } from "pathe";
-import { commonArgs } from "../common";
+import { commonArgs } from "../common.ts";
+import { NitroDevServer } from "../../dev/server.ts";
 
 const hmrKeyRe = /^runtimeConfig\.|routeRules\./;
-
-// globalThis.crypto support for Node.js 18
-if (!globalThis.crypto) {
-  globalThis.crypto = nodeCrypto as unknown as Crypto;
-}
 
 export default defineCommand({
   meta: {
@@ -21,7 +15,8 @@ export default defineCommand({
   },
   args: {
     ...commonArgs,
-    ...getArgs(),
+    port: { type: "string", description: "specify port" },
+    host: { type: "string", description: "specify hostname " },
   },
   async run({ args }) {
     const rootDir = resolve((args.dir || args._dir || ".") as string);
@@ -38,7 +33,6 @@ export default defineCommand({
         {
           rootDir,
           dev: true,
-          preset: "nitro-dev",
           _cli: { command: "dev" },
         },
         {
@@ -64,9 +58,12 @@ export default defineCommand({
         }
       );
       nitro.hooks.hookOnce("restart", reload);
-      const server = createDevServer(nitro);
-      const listhenOptions = parseArgs(args);
-      await server.listen(listhenOptions.port || 3000, listhenOptions);
+      const server = new NitroDevServer(nitro);
+
+      await server.listen({
+        port: args.port,
+        hostname: args.host,
+      });
       await prepare(nitro);
       await build(nitro);
     };

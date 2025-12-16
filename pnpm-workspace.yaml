@@ -1,2 +1,36 @@
 packages:
-  - "examples/**"
+  - examples/**
+  - playground
+  - test/fixture
+  - test/minimal
+
+ignoreWorkspaceRootCheck: true
+
+ignoredBuiltDependencies:
+  - keytar
+  - protobufjs
+  - vue-demi
+
+onlyBuiltDependencies:
+  - "@parcel/watcher"
+  - esbuild
+  - sharp
+  - workerd
+
+peerDependencyRules:
+  ignoreMissing:
+    - react
+    - "@types/react"
+    - react-dom
+    - "@algolia/client-search"
+
+shellEmulator: true
+
+trustPolicy: no-downgrade
+trustPolicyExclude:
+  - chokidar@4.0.3
+  - tailwind-merge@2.6.0
+  - "@headlessui/vue@1.7.23"
+  - "undici-types@6.21.0"
+  - "rxjs@7.8.2"
+  - "semver@6.3.1"

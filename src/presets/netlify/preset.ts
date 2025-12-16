@@ -1,25 +1,35 @@
 import { promises as fsp } from "node:fs";
-import { defineNitroPreset } from "../_utils/preset";
+import { defineNitroPreset } from "../_utils/preset.ts";
 import type { Nitro } from "nitro/types";
+import type { Config, Manifest } from "@netlify/edge-functions";
 import { dirname, join } from "pathe";
-import { unenvDenoPreset } from "../_unenv/preset-deno";
+import { unenvDeno } from "../deno/unenv/preset.ts";
 import {
   generateNetlifyFunction,
   getGeneratorString,
   getStaticPaths,
   writeHeaders,
   writeRedirects,
-} from "./utils";
+} from "./utils.ts";
 
-export type { NetlifyOptions as PresetOptions } from "./types";
+export type { NetlifyOptions as PresetOptions } from "./types.ts";
 
 // Netlify functions
 const netlify = defineNitroPreset(
   {
-    entry: "./runtime/netlify",
+    entry: "./netlify/runtime/netlify",
+    manifest: {
+      deploymentId: process.env.DEPLOY_ID,
+    },
     output: {
       dir: "{{ rootDir }}/.netlify/functions-internal",
       publicDir: "{{ rootDir }}/dist/{{ baseURL }}",
+    },
+    prerender: {
+      // Prevents an unnecessary redirect from /page/ to /page when accessing prerendered content.
+      // Reference: https://answers.netlify.com/t/support-guide-how-can-i-alter-trailing-slash-behaviour-in-my-urls-will-enabling-pretty-urls-help/31191
+      // Reference: https://nitro.build/config#prerender
+      autoSubfolderIndex: false,
     },
     rollupConfig: {
       output: {
@@ -36,7 +46,12 @@ const netlify = defineNitroPreset(
           generateNetlifyFunction(nitro)
         );
 
-        if (nitro.options.netlify) {
+        if (nitro.options.netlify?.images) {
+          nitro.options.netlify.config ||= {};
+          nitro.options.netlify.config.images ||= nitro.options.netlify?.images;
+        }
+
+        if (Object.keys(nitro.options.netlify?.config || {}).length > 0) {
           const configPath = join(
             nitro.options.output.dir,
             "../deploy/v1/config.json"
@@ -44,7 +59,7 @@ const netlify = defineNitroPreset(
           await fsp.mkdir(dirname(configPath), { recursive: true });
           await fsp.writeFile(
             configPath,
-            JSON.stringify(nitro.options.netlify),
+            JSON.stringify(nitro.options.netlify?.config),
             "utf8"
           );
         }
@@ -54,7 +69,6 @@ const netlify = defineNitroPreset(
   {
     name: "netlify" as const,
     stdName: "netlify",
-    url: import.meta.url,
   }
 );
 
@@ -62,11 +76,20 @@ const netlify = defineNitroPreset(
 const netlifyEdge = defineNitroPreset(
   {
     extends: "base-worker",
-    entry: "./runtime/netlify-edge",
+    entry: "./netlify/runtime/netlify-edge",
+    manifest: {
+      deploymentId: process.env.DEPLOY_ID,
+    },
     exportConditions: ["netlify"],
     output: {
       serverDir: "{{ rootDir }}/.netlify/edge-functions/server",
       publicDir: "{{ rootDir }}/dist/{{ baseURL }}",
+    },
+    prerender: {
+      // Prevents an unnecessary redirect from /page/ to /page when accessing prerendered content.
+      // Reference: https://answers.netlify.com/t/support-guide-how-can-i-alter-trailing-slash-behaviour-in-my-urls-will-enabling-pretty-urls-help/31191
+      // Reference: https://nitro.build/config#prerender
+      autoSubfolderIndex: false,
     },
     rollupConfig: {
       output: {
@@ -74,14 +97,14 @@ const netlifyEdge = defineNitroPreset(
         format: "esm",
       },
     },
-    unenv: unenvDenoPreset,
+    unenv: unenvDeno,
     hooks: {
       async compiled(nitro: Nitro) {
         await writeHeaders(nitro);
         await writeRedirects(nitro);
 
         // https://docs.netlify.com/edge-functions/create-integration/
-        const manifest = {
+        const manifest: Manifest = {
           version: 1,
           functions: [
             {
@@ -89,7 +112,7 @@ const netlifyEdge = defineNitroPreset(
               excludedPath: getStaticPaths(
                 nitro.options.publicAssets,
                 nitro.options.baseURL
-              ),
+              ) as Config["excludedPath"],
               name: "edge server handler",
               function: "server",
               generator: getGeneratorString(nitro),
@@ -107,16 +130,24 @@ const netlifyEdge = defineNitroPreset(
   },
   {
     name: "netlify-edge" as const,
-    url: import.meta.url,
   }
 );
 
 const netlifyStatic = defineNitroPreset(
   {
     extends: "static",
+    manifest: {
+      deploymentId: process.env.DEPLOY_ID,
+    },
     output: {
       dir: "{{ rootDir }}/dist",
       publicDir: "{{ rootDir }}/dist/{{ baseURL }}",
+    },
+    prerender: {
+      // Prevents an unnecessary redirect from /page/ to /page when accessing prerendered content.
+      // Reference: https://answers.netlify.com/t/support-guide-how-can-i-alter-trailing-slash-behaviour-in-my-urls-will-enabling-pretty-urls-help/31191
+      // Reference: https://nitro.build/config#prerender
+      autoSubfolderIndex: false,
     },
     commands: {
       preview: "npx serve ./",
@@ -132,7 +163,6 @@ const netlifyStatic = defineNitroPreset(
     name: "netlify-static" as const,
     stdName: "netlify",
     static: true,
-    url: import.meta.url,
   }
 );
 

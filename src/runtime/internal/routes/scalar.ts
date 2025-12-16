@@ -1,10 +1,10 @@
 import type { ApiReferenceConfiguration } from "@scalar/api-reference";
-import { eventHandler } from "h3";
-import { useRuntimeConfig } from "../config";
+import { defineHandler, type EventHandler } from "h3";
+import { useRuntimeConfig } from "../runtime-config.ts";
 
 // Served as /_scalar
-export default eventHandler((event) => {
-  const runtimeConfig = useRuntimeConfig(event);
+export default defineHandler((event) => {
+  const runtimeConfig = useRuntimeConfig();
   const title = runtimeConfig.nitro.openAPI?.meta?.title || "API Reference";
   const description = runtimeConfig.nitro.openAPI?.meta?.description || "";
   const openAPIEndpoint =
@@ -16,12 +16,13 @@ export default eventHandler((event) => {
   const scalarConfig: ApiReferenceConfiguration = {
     ..._config,
     url: openAPIEndpoint,
-    // @ts-expect-error (missing types?)
+    // @ts-expect-error
     spec: { url: openAPIEndpoint, ..._config?.spec },
   };
 
   // The default page title
 
+  event.res.headers.set("Content-Type", "text/html");
   return /* html */ `<!doctype html>
     <html lang="en">
       <head>
@@ -43,7 +44,7 @@ export default eventHandler((event) => {
         <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
       </body>
     </html>`;
-});
+}) as EventHandler;
 
 const customTheme = /* css */ `/* basic theme */
   .light-mode,

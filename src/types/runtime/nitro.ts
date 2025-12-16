@@ -1,47 +1,46 @@
-import type { AppOptions, App as H3App, H3Event, Router } from "h3";
-import type { Hookable } from "hookable";
-import type { AbstractRequest, AbstractResponse } from "node-mock-http";
+import type { H3Core, HTTPEvent } from "h3";
+import type { HookableCore } from "hookable";
+import type { ServerRequest } from "srvx";
 
 export interface NitroApp {
-  h3App: H3App;
-  router: Router;
-  hooks: Hookable<NitroRuntimeHooks>;
-  localCall: (aRequest: AbstractRequest) => Promise<AbstractResponse>;
-  localFetch: (
-    req: string | URL | Request,
-    init?: RequestInit & AbstractRequest
-  ) => Promise<Response>;
-  captureError: CaptureError;
+  fetch: (req: Request) => Response | Promise<Response>;
+  h3?: H3Core;
+  hooks?: HookableCore<NitroRuntimeHooks>;
+  captureError?: CaptureError;
 }
 
 export interface NitroAppPlugin {
-  (nitro: NitroApp): void;
+  (
+    nitro: NitroApp & {
+      hooks: NonNullable<NitroApp["hooks"]>;
+    }
+  ): void;
 }
 
 export interface NitroAsyncContext {
-  event: H3Event;
+  request: ServerRequest;
 }
 
 export interface RenderResponse {
   body: any;
-  statusCode: number;
-  statusMessage: string;
+  status: number;
+  statusText: string;
   headers: Record<string, string>;
 }
 
 export type RenderHandler = (
-  event: H3Event
+  event: HTTPEvent
 ) => Partial<RenderResponse> | Promise<Partial<RenderResponse>>;
 
 export interface RenderContext {
-  event: H3Event;
+  event: HTTPEvent;
   render: RenderHandler;
   response?: Partial<RenderResponse>;
 }
 
 export interface CapturedErrorContext {
-  event?: H3Event;
-  [key: string]: unknown;
+  event?: HTTPEvent;
+  tags?: string[];
 }
 
 export type CaptureError = (
@@ -52,15 +51,6 @@ export type CaptureError = (
 export interface NitroRuntimeHooks {
   close: () => void;
   error: CaptureError;
-
-  request: NonNullable<AppOptions["onRequest"]>;
-  beforeResponse: NonNullable<AppOptions["onBeforeResponse"]>;
-  afterResponse: NonNullable<AppOptions["onAfterResponse"]>;
-
-  "render:before": (context: RenderContext) => void;
-
-  "render:response": (
-    response: Partial<RenderResponse>,
-    context: RenderContext
-  ) => void;
+  request: (event: HTTPEvent) => void | Promise<void>;
+  response: (res: Response, event: HTTPEvent) => void | Promise<void>;
 }

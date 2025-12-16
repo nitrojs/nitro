@@ -1,0 +1,12 @@
+{
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "preview": "vite preview",
+    "dev": "vite dev"
+  },
+  "devDependencies": {
+    "nitro": "latest",
+    "vite": "beta"
+  }
+}

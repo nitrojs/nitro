@@ -1,4 +1,4 @@
-import { defineNitroPreset } from "../_utils/preset";
+import { defineNitroPreset } from "../_utils/preset.ts";
 
 const koyeb = defineNitroPreset(
   {
@@ -7,7 +7,6 @@ const koyeb = defineNitroPreset(
   },
   {
     name: "koyeb" as const,
-    url: import.meta.url,
   }
 );
 

@@ -1,53 +1,34 @@
-import "#nitro-internal-pollyfills";
-import { useNitroApp } from "nitro/runtime";
-
+import "#nitro/virtual/polyfills";
+import type { ServerRequest } from "srvx";
 import type { Deno as _Deno } from "@deno/types";
 import wsAdapter from "crossws/adapters/deno";
 
+import { useNitroApp } from "nitro/app";
+import { resolveWebsocketHooks } from "#nitro/runtime/app";
+import { hasWebSocket } from "#nitro/virtual/feature-flags";
+
+declare global {
+  var Deno: typeof _Deno;
+}
+
 const nitroApp = useNitroApp();
 
-const ws = import.meta._websocket
-  ? wsAdapter(nitroApp.h3App.websocket)
+const ws = hasWebSocket
+  ? wsAdapter({ resolve: resolveWebsocketHooks })
   : undefined;
 
-Deno.serve((request: Request, info: _Deno.ServeHandlerInfo) => {
+// TODO: Migrate to srvx to provide request IP
+Deno.serve((denoReq: Request, info: _Deno.ServeHandlerInfo) => {
+  // srvx compatibility
+  const req = denoReq as unknown as ServerRequest;
+  req.runtime ??= { name: "deno" };
+  req.runtime.deno ??= { info } as any;
+  // TODO: Support remoteAddr
+
   // https://crossws.unjs.io/adapters/deno
-  if (
-    import.meta._websocket &&
-    request.headers.get("upgrade") === "websocket"
-  ) {
-    return ws!.handleUpgrade(request, info);
+  if (hasWebSocket && req.headers.get("upgrade") === "websocket") {
+    return ws!.handleUpgrade(req, info);
   }
-  return handleRequest(request, info);
+
+  return nitroApp.fetch(req);
 });
-
-async function handleRequest(request: Request, info: _Deno.ServeHandlerInfo) {
-  const url = new URL(request.url);
-
-  const headers = new Headers(request.headers);
-
-  // Add client IP address to headers
-  // (rightmost is most trustable)
-  headers.append("x-forwarded-for", info.remoteAddr.hostname);
-
-  // There is currently no way to know if the request was made over HTTP or HTTPS
-  // Deno deploy force redirects to HTTPS so we assume HTTPS by default
-  if (!headers.has("x-forwarded-proto")) {
-    headers.set("x-forwarded-proto", "https");
-  }
-
-  // https://deno.land/api?s=Body
-  let body;
-  if (request.body) {
-    body = await request.arrayBuffer();
-  }
-
-  return nitroApp.localFetch(url.pathname + url.search, {
-    host: url.hostname,
-    protocol: url.protocol,
-    headers,
-    method: request.method,
-    redirect: request.redirect,
-    body,
-  });
-}

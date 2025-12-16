@@ -1,7 +1,7 @@
 import { execa, execaCommandSync } from "execa";
 import { getRandomPort, waitForPort } from "get-port-please";
 import { describe } from "vitest";
-import { setupTest, testNitro } from "../tests";
+import { setupTest, testNitro } from "../tests.ts";
 
 const hasDeno =
   execaCommandSync("deno --version", { stdio: "ignore", reject: false })
@@ -11,7 +11,7 @@ describe.runIf(hasDeno)("nitro:preset:deno-server", async () => {
   const ctx = await setupTest("deno-server");
   testNitro(ctx, async () => {
     const port = await getRandomPort();
-    const p = execa("deno", ["task", "start"], {
+    execa("deno", ["task", "start"], {
       cwd: ctx.outDir,
       // stdio: "inherit",
       stdio: "ignore",

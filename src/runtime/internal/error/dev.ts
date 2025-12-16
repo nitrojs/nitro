@@ -1,49 +1,39 @@
-import {
-  type H3Event,
-  type H3Error,
-  send,
-  getRequestHeader,
-  getRequestHeaders,
-  getRequestURL,
-  getResponseHeader,
-  setResponseHeaders,
-  setResponseStatus,
-} from "h3";
+import type { H3Event, HTTPError, HTTPEvent } from "h3";
+import { getRequestURL } from "h3";
 import { readFile } from "node:fs/promises";
 import { resolve, dirname } from "node:path";
 import consola from "consola";
 import { ErrorParser } from "youch-core";
 import { Youch } from "youch";
 import { SourceMapConsumer } from "source-map";
-import { defineNitroErrorHandler, type InternalHandlerResponse } from "./utils";
+import { defineNitroErrorHandler } from "./utils.ts";
+import type { InternalHandlerResponse } from "./utils.ts";
+import { FastResponse } from "srvx";
 
 export default defineNitroErrorHandler(
   async function defaultNitroErrorHandler(error, event) {
     const res = await defaultHandler(error, event);
-    setResponseHeaders(event, res.headers!);
-    setResponseStatus(event, res.status, res.statusText);
-    return send(
-      event,
+    return new FastResponse(
       typeof res.body === "string"
         ? res.body
-        : JSON.stringify(res.body, null, 2)
+        : JSON.stringify(res.body, null, 2),
+      res
     );
   }
 );
 
 export async function defaultHandler(
-  error: H3Error,
-  event: H3Event,
+  error: HTTPError,
+  event: HTTPEvent,
   opts?: { silent?: boolean; json?: boolean }
 ): Promise<InternalHandlerResponse> {
-  const isSensitive = error.unhandled || error.fatal;
-  const statusCode = error.statusCode || 500;
-  const statusMessage = error.statusMessage || "Server Error";
+  const isSensitive = error.unhandled;
+  const status = error.status || 500;
   // prettier-ignore
   const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true })
 
   // Redirects with base URL
-  if (statusCode === 404) {
+  if (status === 404) {
     const baseURL = import.meta.baseURL || "/";
     if (/^\/[^/]/.test(baseURL) && !url.pathname.startsWith(baseURL)) {
       const redirectTo = `${baseURL}${url.pathname.slice(1)}${url.search}`;
@@ -65,19 +55,19 @@ export async function defaultHandler(
   // Console output
   if (isSensitive && !opts?.silent) {
     // prettier-ignore
-    const tags = [error.unhandled && "[unhandled]", error.fatal && "[fatal]"].filter(Boolean).join(" ")
+    const tags = [error.unhandled && "[unhandled]"].filter(Boolean).join(" ")
     const ansiError = await (
       await youch.toANSI(error)
     ).replaceAll(process.cwd(), ".");
     consola.error(
-      `[request error] ${tags} [${event.method}] ${url}\n\n`,
+      `[request error] ${tags} [${event.req.method}] ${url}\n\n`,
       ansiError
     );
   }
 
   // Use HTML response only when user-agent expects it (browsers)
   const useJSON =
-    opts?.json || !getRequestHeader(event, "accept")?.includes("text/html");
+    opts?.json || !event.req.headers.get("accept")?.includes("text/html");
 
   // Prepare headers
   const headers: HeadersInit = {
@@ -92,7 +82,8 @@ export async function defaultHandler(
     "content-security-policy":
       "script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self';",
   };
-  if (statusCode === 404 || !getResponseHeader(event, "cache-control")) {
+
+  if (status === 404 || !(event as H3Event).res.headers.has("cache-control")) {
     headers["cache-control"] = "no-cache";
   }
 
@@ -101,8 +92,8 @@ export async function defaultHandler(
     ? {
         error: true,
         url,
-        statusCode,
-        statusMessage,
+        status,
+        statusText: error.statusText,
         message: error.message,
         data: error.data,
         stack: error.stack?.split("\n").map((line) => line.trim()),
@@ -110,14 +101,14 @@ export async function defaultHandler(
     : await youch.toHTML(error, {
         request: {
           url: url.href,
-          method: event.method,
-          headers: getRequestHeaders(event),
+          method: event.req.method,
+          headers: Object.fromEntries(event.req.headers.entries()),
         },
       });
 
   return {
-    status: statusCode,
-    statusText: statusMessage,
+    status,
+    statusText: error.statusText,
     headers,
     body,
   };

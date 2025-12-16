@@ -10,7 +10,7 @@ import type { DurableObject } from "cloudflare:workers";
 import type {
   Config as _Config,
   ComputedFields as _ComputedFields,
-} from "./wrangler/config";
+} from "./wrangler/config.ts";
 
 export type WranglerConfig = Partial<Omit<_Config, keyof _ComputedFields>>;
 
@@ -54,6 +54,15 @@ export interface CloudflareOptions {
    */
   nodeCompat?: boolean;
 
+  /**
+   * Options for dev emulation.
+   */
+  dev?: {
+    configPath?: string;
+    environment?: string;
+    persistDir?: string;
+  };
+
   pages?: {
     /**
      * Nitro will automatically generate a `_routes.json` that controls which files get served statically and
@@ -83,6 +92,11 @@ export interface CloudflareOptions {
      */
     defaultRoutes?: boolean;
   };
+
+  /**
+   * Custom Cloudflare exports additional classes such as WorkflowEntrypoint.
+   */
+  exports?: string;
 }
 
 type DurableObjectState = ConstructorParameters<typeof DurableObject>[0];

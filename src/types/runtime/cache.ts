@@ -1,4 +1,4 @@
-import type { H3Event } from "h3";
+import type { HTTPEvent } from "h3";
 
 export interface CacheEntry<T = any> {
   value?: T;
@@ -25,17 +25,17 @@ export interface CacheOptions<T = any, ArgsT extends unknown[] = any[]> {
   base?: string;
 }
 
-export interface ResponseCacheEntry<T = any> {
-  body: T | undefined;
-  code: number;
-  headers: Record<string, string | number | string[] | undefined>;
+export interface ResponseCacheEntry {
+  status: number;
+  statusText: string | undefined;
+  headers: Record<string, string>;
+  body: string | undefined;
 }
 
-export interface CachedEventHandlerOptions<T = any>
-  extends Omit<
-    CacheOptions<ResponseCacheEntry<T>, [H3Event]>,
-    "transform" | "validate"
-  > {
+export interface CachedEventHandlerOptions extends Omit<
+  CacheOptions<ResponseCacheEntry, [HTTPEvent]>,
+  "transform" | "validate"
+> {
   headersOnly?: boolean;
   varies?: string[] | readonly string[];
 }

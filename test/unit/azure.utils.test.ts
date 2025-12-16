@@ -1,23 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { getAzureParsedCookiesFromHeaders } from "../../src/runtime/internal/utils.azure";
+import { getAzureParsedCookiesFromHeaders } from "../../src/presets/azure/runtime/_utils.ts";
 
 describe("getAzureParsedCookiesFromHeaders", () => {
   it("returns empty array if no cookies", () => {
-    expect(getAzureParsedCookiesFromHeaders({})).toMatchObject([]);
-  });
-  it("returns empty array if no set-cookie header", () => {
-    expect(
-      getAzureParsedCookiesFromHeaders({ "set-cookie": undefined })
-    ).toMatchObject([]);
+    expect(getAzureParsedCookiesFromHeaders(new Headers({}))).toMatchObject([]);
   });
   it("returns empty array if empty set-cookie header", () => {
     expect(
-      getAzureParsedCookiesFromHeaders({ "set-cookie": " " })
+      getAzureParsedCookiesFromHeaders(new Headers({ "set-cookie": " " }))
     ).toMatchObject([]);
   });
   it("returns single cookie", () => {
     expect(
-      getAzureParsedCookiesFromHeaders({ "set-cookie": "foo=bar" })
+      getAzureParsedCookiesFromHeaders(new Headers({ "set-cookie": "foo=bar" }))
     ).toMatchObject([
       {
         name: "foo",
@@ -27,9 +22,11 @@ describe("getAzureParsedCookiesFromHeaders", () => {
   });
   it('returns cookie with "expires" attribute', () => {
     expect(
-      getAzureParsedCookiesFromHeaders({
-        "set-cookie": "foo=bar; expires=Thu, 01 Jan 1970 00:00:00 GMT",
-      })
+      getAzureParsedCookiesFromHeaders(
+        new Headers({
+          "set-cookie": "foo=bar; expires=Thu, 01 Jan 1970 00:00:00 GMT",
+        })
+      )
     ).toMatchObject([
       {
         name: "foo",
@@ -40,11 +37,12 @@ describe("getAzureParsedCookiesFromHeaders", () => {
   });
   it("returns a complex cookie", () => {
     expect(
-      getAzureParsedCookiesFromHeaders({
-        "set-cookie": [
-          "session=xyz; Path=/; Expires=Sun, 24 Mar 2024 09:13:27 GMT; HttpOnly; SameSite=Strict",
-        ],
-      })
+      getAzureParsedCookiesFromHeaders(
+        new Headers({
+          "set-cookie":
+            "session=xyz; Path=/; Expires=Sun, 24 Mar 2024 09:13:27 GMT; HttpOnly; SameSite=Strict",
+        })
+      )
     ).toMatchObject([
       {
         name: "session",
@@ -58,25 +56,12 @@ describe("getAzureParsedCookiesFromHeaders", () => {
   });
   it("returns multiple cookies", () => {
     expect(
-      getAzureParsedCookiesFromHeaders({
-        "set-cookie": ["foo=bar", "baz=qux"],
-      })
-    ).toMatchObject([
-      {
-        name: "foo",
-        value: "bar",
-      },
-      {
-        name: "baz",
-        value: "qux",
-      },
-    ]);
-  });
-  it("returns multiple cookies given as string", () => {
-    expect(
-      getAzureParsedCookiesFromHeaders({
-        "set-cookie": "foo=bar, baz=qux",
-      })
+      getAzureParsedCookiesFromHeaders(
+        new Headers([
+          ["set-cookie", "foo=bar"],
+          ["set-cookie", "baz=qux"],
+        ])
+      )
     ).toMatchObject([
       {
         name: "foo",

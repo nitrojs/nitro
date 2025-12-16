@@ -1,4 +1,4 @@
-import { defineNitroPreset } from "../_utils/preset";
+import { defineNitroPreset } from "../_utils/preset.ts";
 
 const renderCom = defineNitroPreset(
   {
@@ -7,7 +7,6 @@ const renderCom = defineNitroPreset(
   },
   {
     name: "render-com" as const,
-    url: import.meta.url,
   }
 );
 

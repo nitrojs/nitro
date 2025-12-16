@@ -1,19 +1,9 @@
-import {
-  type HTTPMethod,
-  createError,
-  eventHandler,
-  getRequestHeader,
-  getResponseHeader,
-  removeResponseHeader,
-  setResponseHeader,
-  appendResponseHeader,
-  setResponseStatus,
-} from "h3";
+import { HTTPError, defineHandler } from "h3";
+import type { EventHandler, HTTPMethod } from "h3";
 import type { PublicAsset } from "nitro/types";
 import {
   decodePath,
   joinURL,
-  parseURL,
   withLeadingSlash,
   withoutTrailingSlash,
 } from "ufo";
@@ -21,26 +11,24 @@ import {
   getAsset,
   isPublicAssetURL,
   readAsset,
-} from "#nitro-internal-virtual/public-assets";
+} from "#nitro/virtual/public-assets";
 
 const METHODS = new Set(["HEAD", "GET"] as HTTPMethod[]);
 
 const EncodingMap = { gzip: ".gz", br: ".br" } as const;
 
-export default eventHandler((event) => {
-  if (event.method && !METHODS.has(event.method)) {
+export default defineHandler((event) => {
+  if (event.req.method && !METHODS.has(event.req.method as HTTPMethod)) {
     return;
   }
 
   let id = decodePath(
-    withLeadingSlash(withoutTrailingSlash(parseURL(event.path).pathname))
+    withLeadingSlash(withoutTrailingSlash(event.url.pathname))
   );
 
   let asset: PublicAsset | undefined;
 
-  const encodingHeader = String(
-    getRequestHeader(event, "accept-encoding") || ""
-  );
+  const encodingHeader = event.req.headers.get("accept-encoding") || "";
   const encodings = [
     ...encodingHeader
       .split(",")
@@ -50,7 +38,7 @@ export default eventHandler((event) => {
     "",
   ];
   if (encodings.length > 1) {
-    appendResponseHeader(event, "Vary", "Accept-Encoding");
+    event.res.headers.append("Vary", "Accept-Encoding");
   }
 
   for (const encoding of encodings) {
@@ -66,51 +54,50 @@ export default eventHandler((event) => {
 
   if (!asset) {
     if (isPublicAssetURL(id)) {
-      removeResponseHeader(event, "Cache-Control");
-      throw createError({
-        statusMessage: "Cannot find static asset " + id,
-        statusCode: 404,
-      });
+      event.res.headers.delete("Cache-Control");
+      throw new HTTPError({ status: 404 });
     }
     return;
   }
 
-  const ifNotMatch = getRequestHeader(event, "if-none-match") === asset.etag;
+  const ifNotMatch = event.req.headers.get("if-none-match") === asset.etag;
   if (ifNotMatch) {
-    setResponseStatus(event, 304, "Not Modified");
+    event.res.status = 304;
+    event.res.statusText = "Not Modified";
     return "";
   }
 
-  const ifModifiedSinceH = getRequestHeader(event, "if-modified-since");
+  const ifModifiedSinceH = event.req.headers.get("if-modified-since");
   const mtimeDate = new Date(asset.mtime);
   if (
     ifModifiedSinceH &&
     asset.mtime &&
     new Date(ifModifiedSinceH) >= mtimeDate
   ) {
-    setResponseStatus(event, 304, "Not Modified");
+    event.res.status = 304;
+    event.res.statusText = "Not Modified";
     return "";
   }
 
-  if (asset.type && !getResponseHeader(event, "Content-Type")) {
-    setResponseHeader(event, "Content-Type", asset.type);
+  if (asset.type) {
+    event.res.headers.set("Content-Type", asset.type);
   }
 
-  if (asset.etag && !getResponseHeader(event, "ETag")) {
-    setResponseHeader(event, "ETag", asset.etag);
+  if (asset.etag && !event.res.headers.has("ETag")) {
+    event.res.headers.set("ETag", asset.etag);
   }
 
-  if (asset.mtime && !getResponseHeader(event, "Last-Modified")) {
-    setResponseHeader(event, "Last-Modified", mtimeDate.toUTCString());
+  if (asset.mtime && !event.res.headers.has("Last-Modified")) {
+    event.res.headers.set("Last-Modified", mtimeDate.toUTCString());
   }
 
-  if (asset.encoding && !getResponseHeader(event, "Content-Encoding")) {
-    setResponseHeader(event, "Content-Encoding", asset.encoding);
+  if (asset.encoding && !event.res.headers.has("Content-Encoding")) {
+    event.res.headers.set("Content-Encoding", asset.encoding);
   }
 
-  if (asset.size > 0 && !getResponseHeader(event, "Content-Length")) {
-    setResponseHeader(event, "Content-Length", asset.size);
+  if (asset.size > 0 && !event.res.headers.has("Content-Length")) {
+    event.res.headers.set("Content-Length", asset.size.toString());
   }
 
   return readAsset(id);
-});
+}) as EventHandler;

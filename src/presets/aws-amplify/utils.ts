@@ -6,7 +6,7 @@ import type {
   AmplifyDeployManifest,
   AmplifyRoute,
   AmplifyRouteTarget,
-} from "./types";
+} from "./types.ts";
 
 export async function writeAmplifyFiles(nitro: Nitro) {
   const outDir = nitro.options.output.dir;
@@ -89,7 +89,7 @@ export async function writeAmplifyFiles(nitro: Nitro) {
           {
             name: "default",
             entrypoint: "server.js",
-            runtime: "nodejs18.x",
+            runtime: nitro.options.awsAmplify?.runtime || "nodejs20.x",
           },
         ],
     framework: {

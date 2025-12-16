@@ -1,11 +1,15 @@
-import { defineNitroPreset } from "../_utils/preset";
-import { writeAmplifyFiles } from "./utils";
+import { defineNitroPreset } from "../_utils/preset.ts";
+import { writeAmplifyFiles } from "./utils.ts";
 
-export type { AWSAmplifyOptions as PresetOptions } from "./types";
+export type { AWSAmplifyOptions as PresetOptions } from "./types.ts";
 
 const awsAmplify = defineNitroPreset(
   {
-    entry: "./runtime/aws-amplify",
+    entry: "./aws-amplify/runtime/aws-amplify",
+    manifest: {
+      // https://docs.aws.amazon.com/amplify/latest/userguide/environment-variables.html#amplify-console-environment-variables
+      deploymentId: process.env.AWS_JOB_ID,
+    },
     serveStatic: true,
     output: {
       dir: "{{ rootDir }}/.amplify-hosting",
@@ -24,7 +28,6 @@ const awsAmplify = defineNitroPreset(
   {
     name: "aws-amplify" as const,
     stdName: "aws_amplify",
-    url: import.meta.url,
   }
 );
 

@@ -1,9 +1,9 @@
+import { promises as fsp } from "node:fs";
 import { Miniflare } from "miniflare";
 import { resolve } from "pathe";
-import { Response as _Response } from "undici";
-import { describe } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { setupTest, testNitro } from "../tests";
+import { setupTest, testNitro } from "../tests.ts";
 
 describe("nitro:preset:cloudflare-module", async () => {
   const ctx = await setupTest("cloudflare-module");
@@ -11,6 +11,7 @@ describe("nitro:preset:cloudflare-module", async () => {
   testNitro(ctx, () => {
     const mf = new Miniflare({
       modules: true,
+      compatibilityDate: "2025-04-01",
       scriptPath: resolve(ctx.outDir, "server/index.mjs"),
       modulesRules: [{ type: "CompiledWasm", include: ["**/*.wasm"] }],
       assets: {
@@ -22,11 +23,7 @@ describe("nitro:preset:cloudflare-module", async () => {
           not_found_handling: "none" /* default */,
         },
       },
-      compatibilityFlags: [
-        "streams_enable_constructors",
-        "nodejs_compat",
-        "no_nodejs_compat_v2",
-      ],
+      compatibilityFlags: ["nodejs_compat", "no_nodejs_compat_v2"],
       bindings: { ...ctx.env },
     });
 
@@ -37,7 +34,16 @@ describe("nitro:preset:cloudflare-module", async () => {
         redirect: "manual",
         body,
       });
+
       return res as unknown as Response;
     };
+  });
+
+  it("should export the correct functions", async () => {
+    const entry = await fsp.readFile(
+      resolve(ctx.outDir, "server", "index.mjs"),
+      "utf8"
+    );
+    expect(entry).toMatch(/export \{.*myScheduled.*\}/);
   });
 });

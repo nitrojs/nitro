@@ -1,4 +1,3 @@
-import { defu } from "defu";
 import type {
   NitroConfig,
   NitroOptions,
@@ -8,9 +7,6 @@ import type {
 import { withLeadingSlash } from "ufo";
 
 export async function resolveRouteRulesOptions(options: NitroOptions) {
-  // Backward compatibility for options.routes
-  options.routeRules = defu(options.routeRules, (options as any).routes || {});
-
   options.routeRules = normalizeRouteRules(options);
 }
 
@@ -31,7 +27,7 @@ export function normalizeRouteRules(
       routeRules.redirect = {
         // @ts-ignore
         to: "/",
-        statusCode: 307,
+        status: 307,
         ...(typeof routeConfig.redirect === "string"
           ? { to: routeConfig.redirect }
           : routeConfig.redirect),

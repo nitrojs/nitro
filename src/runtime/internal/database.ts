@@ -1,6 +1,6 @@
 import type { Database } from "db0";
 import { createDatabase } from "db0";
-import { connectionConfigs } from "#nitro-internal-virtual/database";
+import { connectionConfigs } from "#nitro/virtual/database";
 
 const instances: Record<string, Database> = Object.create(null);
 

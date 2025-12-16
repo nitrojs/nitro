@@ -1,9 +1,12 @@
-import type { RouterMethod } from "h3";
+import type { HTTPMethod } from "h3";
 import type { FetchOptions, FetchRequest, FetchResponse } from "ofetch";
-import type { MatchedRoutes } from "./_match";
+import type { MatchedRoutes } from "./_match.ts";
 
 // An interface to extend in a local project
 export interface InternalApi {}
+
+// TODO: upgrade to uppercase for h3 v2 types and web consistency
+type RouterMethod = Lowercase<HTTPMethod>;
 
 export type NitroFetchRequest =
   | Exclude<keyof InternalApi, `/_${string}` | `/api/_${string}`>
@@ -107,17 +110,6 @@ export interface $Fetch<
   create<T = DefaultT, R extends NitroFetchRequest = DefaultR>(
     defaults: FetchOptions
   ): $Fetch<T, R>;
-}
-
-declare global {
-  // eslint-disable-next-line no-var
-  var $fetch: $Fetch;
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace NodeJS {
-    interface Global {
-      $fetch: $Fetch;
-    }
-  }
 }
 
 export type {};

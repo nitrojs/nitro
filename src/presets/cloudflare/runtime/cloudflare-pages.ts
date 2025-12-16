@@ -1,14 +1,17 @@
-import "#nitro-internal-pollyfills";
-import { useNitroApp } from "nitro/runtime";
-import { requestHasBody, runCronTasks } from "nitro/runtime/internal";
-import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
-
+import "#nitro/virtual/polyfills";
+import type { ServerRequest } from "srvx";
 import type {
   Request as CFRequest,
   EventContext,
   ExecutionContext,
 } from "@cloudflare/workers-types";
 import wsAdapter from "crossws/adapters/cloudflare";
+
+import { useNitroApp } from "nitro/app";
+import { isPublicAssetURL } from "#nitro/virtual/public-assets";
+import { runCronTasks } from "#nitro/runtime/task";
+import { resolveWebsocketHooks } from "#nitro/runtime/app";
+import { hasWebSocket } from "#nitro/virtual/feature-flags";
 
 /**
  * Reference: https://developers.cloudflare.com/workers/runtime-apis/fetch-event/#parameters
@@ -25,60 +28,41 @@ interface CFPagesEnv {
 
 const nitroApp = useNitroApp();
 
-const ws = import.meta._websocket
-  ? wsAdapter(nitroApp.h3App.websocket)
+const ws = hasWebSocket
+  ? wsAdapter({ resolve: resolveWebsocketHooks })
   : undefined;
 
 export default {
   async fetch(
-    request: CFRequest,
+    cfReq: CFRequest,
     env: CFPagesEnv,
     context: EventContext<CFPagesEnv, string, any>
   ) {
+    // srvx compatibility
+    const req = cfReq as unknown as ServerRequest;
+    req.runtime ??= { name: "cloudflare" };
+    req.runtime.cloudflare ??= { context, env } as any;
+    req.waitUntil = context.waitUntil.bind(context);
+
     // Websocket upgrade
     // https://crossws.unjs.io/adapters/cloudflare
-    if (
-      import.meta._websocket &&
-      request.headers.get("upgrade") === "websocket"
-    ) {
+    if (hasWebSocket && cfReq.headers.get("upgrade") === "websocket") {
       return ws!.handleUpgrade(
-        request as any,
+        cfReq as any,
         env,
         context as unknown as ExecutionContext
       );
     }
 
-    const url = new URL(request.url);
+    const url = new URL(cfReq.url);
     if (env.ASSETS /* !miniflare */ && isPublicAssetURL(url.pathname)) {
-      return env.ASSETS.fetch(request);
-    }
-
-    let body;
-    if (requestHasBody(request as unknown as Request)) {
-      body = Buffer.from(await request.arrayBuffer());
+      return env.ASSETS.fetch(cfReq);
     }
 
     // Expose latest env to the global context
     (globalThis as any).__env__ = env;
 
-    return nitroApp.localFetch(url.pathname + url.search, {
-      context: {
-        waitUntil: (promise: Promise<any>) => context.waitUntil(promise),
-        _platform: {
-          cf: request.cf,
-          cloudflare: {
-            request,
-            env,
-            context,
-          },
-        },
-      },
-      host: url.hostname,
-      protocol: url.protocol,
-      method: request.method,
-      headers: request.headers as unknown as Headers,
-      body,
-    });
+    return nitroApp.fetch(req);
   },
   scheduled(event: any, env: CFPagesEnv, context: ExecutionContext) {
     if (import.meta._tasks) {

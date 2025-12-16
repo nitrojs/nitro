@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { defu } from "defu";
-import { writeFile } from "../_utils/fs";
+import { writeFile } from "../_utils/fs.ts";
 import type { Nitro } from "nitro/types";
 import { resolve } from "pathe";
 

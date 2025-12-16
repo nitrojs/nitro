@@ -1,69 +1,104 @@
-import type { RollupVirtualOptions, VirtualModule } from "nitro/types";
-import { dirname, resolve } from "pathe";
-import type { Plugin } from "rollup";
+import type { Plugin, ResolvedId } from "rollup";
+import { pathRegExp } from "../../utils/regex.ts";
+import { runtimeDependencies, runtimeDir } from "../../runtime/meta.ts";
 
-// Based on https://github.com/rollup/plugins/blob/master/packages/virtual/src/index.ts
+export type VirtualModule = {
+  id: string;
+  moduleSideEffects?: boolean;
+  template: string | (() => string | Promise<string>);
+};
 
-const PREFIX = "\0virtual:";
+export function virtual(input: VirtualModule[]): Plugin {
+  const modules = new Map<
+    string,
+    { module: VirtualModule; render: () => string | Promise<string> }
+  >();
+  for (const mod of input) {
+    const render = () =>
+      typeof mod.template === "function" ? mod.template() : mod.template;
+    modules.set(mod.id, { module: mod, render });
+  }
 
-export function virtual(
-  modules: RollupVirtualOptions,
-  cache: Record<string, VirtualModule> = {}
-): Plugin {
-  const _modules = new Map<string, VirtualModule>();
+  const include: RegExp[] = [/^#nitro\/virtual/];
 
-  for (const [id, mod] of Object.entries(modules)) {
-    cache[id] = mod;
-    _modules.set(id, mod);
-    _modules.set(resolve(id), mod);
+  const extraIds = [...modules.keys()].filter(
+    (key) => !key.startsWith("#nitro/virtual")
+  );
+  if (extraIds.length > 0) {
+    include.push(
+      new RegExp(`^(${extraIds.map((id) => pathRegExp(id)).join("|")})$`)
+    );
   }
 
   return {
-    name: "virtual",
-
-    resolveId(id, importer) {
-      if (id in modules) {
-        return PREFIX + id;
-      }
-
-      if (importer) {
-        const importerNoPrefix = importer.startsWith(PREFIX)
-          ? importer.slice(PREFIX.length)
-          : importer;
-        const resolved = resolve(dirname(importerNoPrefix), id);
-        if (_modules.has(resolved)) {
-          return PREFIX + resolved;
-        }
-      }
-
-      return null;
+    name: "nitro:virtual",
+    api: {
+      modules,
     },
+    resolveId: {
+      order: "pre",
+      filter: { id: include },
+      handler: (id) => {
+        const mod = modules.get(id);
+        if (mod) {
+          return {
+            id,
+            moduleSideEffects: mod.module.moduleSideEffects ?? false,
+          };
+        }
+      },
+    },
+    load: {
+      order: "pre",
+      filter: { id: include },
+      handler: async (id) => {
+        const mod = modules.get(id);
+        if (!mod) {
+          throw new Error(`Virtual module ${id} not found.`);
+        }
+        return {
+          code: await mod.render(),
+          map: null,
+        };
+      },
+    },
+  };
+}
 
-    async load(id) {
-      if (!id.startsWith(PREFIX)) {
-        return null;
-      }
+export function virtualDeps(): Plugin {
+  const cache = new Map<
+    string,
+    ResolvedId | null | Promise<ResolvedId | null>
+  >();
 
-      const idNoPrefix = id.slice(PREFIX.length);
-      if (!_modules.has(idNoPrefix)) {
-        return null;
-      }
-
-      let m = _modules.get(idNoPrefix);
-      if (typeof m === "function") {
-        m = await m();
-      }
-
-      if (!m) {
-        return null;
-      }
-
-      cache[id.replace(PREFIX, "")] = m;
-
-      return {
-        code: m as string,
-        map: null,
-      };
+  return {
+    name: "nitro:virtual-deps",
+    resolveId: {
+      order: "pre",
+      filter: {
+        id: new RegExp(
+          `^(#nitro|${runtimeDependencies.map((dep) => pathRegExp(dep)).join("|")})`
+        ),
+      },
+      handler(id, importer) {
+        // https://github.com/rolldown/rolldown/issues/7529
+        if (!importer || !importer.startsWith("#nitro/virtual")) {
+          return;
+        }
+        let resolved = cache.get(id);
+        if (!resolved) {
+          resolved = this.resolve(id, runtimeDir)
+            .then((_resolved) => {
+              cache.set(id, _resolved);
+              return _resolved;
+            })
+            .catch((error) => {
+              cache.delete(id);
+              throw error;
+            });
+        }
+        return resolved;
+      },
     },
   };
 }

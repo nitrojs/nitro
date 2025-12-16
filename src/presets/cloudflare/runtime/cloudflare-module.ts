@@ -1,14 +1,14 @@
-import "#nitro-internal-pollyfills";
+import "#nitro/virtual/polyfills";
 import type { fetch } from "@cloudflare/workers-types";
 import wsAdapter from "crossws/adapters/cloudflare";
-import { useNitroApp } from "nitro/runtime";
-import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
-import { createHandler } from "./_module-handler";
 
-const nitroApp = useNitroApp();
+import { isPublicAssetURL } from "#nitro/virtual/public-assets";
+import { createHandler } from "./_module-handler.ts";
+import { resolveWebsocketHooks } from "#nitro/runtime/app";
+import { hasWebSocket } from "#nitro/virtual/feature-flags";
 
-const ws = import.meta._websocket
-  ? wsAdapter(nitroApp.h3App.websocket)
+const ws = hasWebSocket
+  ? wsAdapter({ resolve: resolveWebsocketHooks })
   : undefined;
 
 interface Env {
@@ -24,10 +24,7 @@ export default createHandler<Env>({
 
     // Websocket upgrade
     // https://crossws.unjs.io/adapters/cloudflare
-    if (
-      import.meta._websocket &&
-      request.headers.get("upgrade") === "websocket"
-    ) {
+    if (hasWebSocket && request.headers.get("upgrade") === "websocket") {
       return ws!.handleUpgrade(request as any, env, context);
     }
   },

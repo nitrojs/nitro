@@ -1,4 +1,4 @@
-import { defineNitroPreset } from "../_utils/preset";
+import { defineNitroPreset } from "../_utils/preset.ts";
 
 const platformSh = defineNitroPreset(
   {
@@ -7,7 +7,6 @@ const platformSh = defineNitroPreset(
   },
   {
     name: "platform-sh" as const,
-    url: import.meta.url,
   }
 );
 

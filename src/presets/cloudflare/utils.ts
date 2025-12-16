@@ -1,14 +1,13 @@
 import type { Nitro } from "nitro/types";
-import type { Plugin } from "rollup";
-import type { WranglerConfig, CloudflarePagesRoutes } from "./types";
+import type { WranglerConfig, CloudflarePagesRoutes } from "./types.ts";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { relative, dirname, extname } from "node:path";
-import { writeFile } from "../_utils/fs";
+import { writeFile } from "../_utils/fs.ts";
 import { parseTOML, parseJSONC } from "confbox";
 import { readGitConfig, readPackageJSON, findNearestFile } from "pkg-types";
 import { defu } from "defu";
-import { globby } from "globby";
+import { glob } from "tinyglobby";
 import { join, resolve } from "pathe";
 import {
   joinURL,
@@ -17,10 +16,7 @@ import {
   withTrailingSlash,
   withoutLeadingSlash,
 } from "ufo";
-import {
-  workerdHybridNodeCompatPlugin,
-  unenvWorkerdWithNodeCompat,
-} from "../_unenv/preset-workerd";
+import { unenvCfNodeCompat } from "./unenv/preset.ts";
 
 export async function writeCFRoutes(nitro: Nitro) {
   const _cfPagesConfig = nitro.options.cloudflare?.pages || {};
@@ -69,7 +65,7 @@ export async function writeCFRoutes(nitro: Nitro) {
   );
 
   // Unprefixed assets
-  const publicAssetFiles = await globby("**", {
+  const publicAssetFiles = await glob("**", {
     cwd: nitro.options.output.dir,
     absolute: false,
     dot: true,
@@ -104,8 +100,16 @@ function comparePaths(a: string, b: string) {
   return a.split("/").length - b.split("/").length || a.localeCompare(b);
 }
 
-export async function writeCFPagesHeaders(nitro: Nitro) {
-  const headersPath = join(nitro.options.output.dir, "_headers");
+export async function writeCFHeaders(
+  nitro: Nitro,
+  outdir: "public" | "output"
+) {
+  const headersPath = join(
+    outdir === "public"
+      ? nitro.options.output.publicDir
+      : nitro.options.output.dir,
+    "_headers"
+  );
   const contents = [];
 
   const rules = Object.entries(nitro.options.routeRules).sort(
@@ -157,7 +161,7 @@ export async function writeCFPagesRedirects(nitro: Nitro) {
   for (const [key, routeRules] of rules.filter(
     ([_, routeRules]) => routeRules.redirect
   )) {
-    const code = routeRules.redirect!.statusCode;
+    const code = routeRules.redirect!.status;
     const from = joinURL(nitro.options.baseURL, key.replace("/**", "/*"));
     const to = hasProtocol(routeRules.redirect!.to, { acceptRelative: true })
       ? routeRules.redirect!.to
@@ -183,35 +187,17 @@ export async function writeCFPagesRedirects(nitro: Nitro) {
 }
 
 export async function enableNodeCompat(nitro: Nitro) {
-  // Infer nodeCompat from user config
-  if (nitro.options.cloudflare?.nodeCompat === undefined) {
-    const { config } = await readWranglerConfig(nitro);
-    const userCompatibilityFlags = new Set(config?.compatibility_flags || []);
-    if (
-      userCompatibilityFlags.has("nodejs_compat") ||
-      userCompatibilityFlags.has("nodejs_compat_v2")
-    ) {
-      nitro.options.cloudflare ??= {};
-      nitro.options.cloudflare.nodeCompat = true;
-    }
-  }
+  nitro.options.cloudflare ??= {};
 
-  if (!nitro.options.cloudflare?.nodeCompat) {
-    if (nitro.options.cloudflare?.nodeCompat === undefined) {
-      nitro.logger.warn("[cloudflare] Node.js compatibility is not enabled.");
-    }
-    return;
+  nitro.options.cloudflare.deployConfig ??= true;
+  nitro.options.cloudflare.nodeCompat ??= true;
+  if (nitro.options.cloudflare.nodeCompat) {
+    nitro.options.unenv.push(unenvCfNodeCompat);
   }
-
-  nitro.options.unenv.push(unenvWorkerdWithNodeCompat);
-  nitro.options.rollupConfig!.plugins ??= [];
-  (nitro.options.rollupConfig!.plugins as Plugin[]).push(
-    workerdHybridNodeCompatPlugin
-  );
 }
 
 const extensionParsers = {
-  ".json": JSON.parse,
+  ".json": parseJSONC,
   ".jsonc": parseJSONC,
   ".toml": parseTOML,
 } as const;
@@ -278,7 +264,13 @@ export async function writeWranglerConfig(
     );
     overrides.assets = {
       binding: "ASSETS",
-      directory: relative(wranglerConfigDir, nitro.options.output.publicDir),
+      directory: relative(
+        wranglerConfigDir,
+        resolve(
+          nitro.options.output.publicDir,
+          "..".repeat(nitro.options.baseURL.split("/").filter(Boolean).length)
+        )
+      ),
     };
   }
 
@@ -314,29 +306,29 @@ export async function writeWranglerConfig(
   }
 
   // Compatibility flags
-  // prettier-ignore
-  const compatFlags = new Set(wranglerConfig.compatibility_flags || [])
-  if (nitro.options.cloudflare?.nodeCompat) {
-    if (
-      compatFlags.has("nodejs_compat_v2") &&
-      compatFlags.has("no_nodejs_compat_v2")
-    ) {
-      nitro.logger.warn(
-        "[cloudflare] Wrangler config `compatibility_flags` contains both `nodejs_compat_v2` and `no_nodejs_compat_v2`. Ignoring `nodejs_compat_v2`."
-      );
-      compatFlags.delete("nodejs_compat_v2");
+  wranglerConfig.compatibility_flags ??= [];
+  if (
+    nitro.options.cloudflare?.nodeCompat &&
+    !wranglerConfig.compatibility_flags.includes("nodejs_compat")
+  ) {
+    wranglerConfig.compatibility_flags.push("nodejs_compat");
+  }
+
+  if (cfTarget === "module") {
+    // Avoid double bundling
+    if (wranglerConfig.no_bundle === undefined) {
+      wranglerConfig.no_bundle = true;
     }
-    if (compatFlags.has("nodejs_compat_v2")) {
-      nitro.logger.warn(
-        "[cloudflare] Please consider replacing `nodejs_compat_v2` with `nodejs_compat` in your `compatibility_flags` or USE IT AT YOUR OWN RISK as it can cause issues with nitro."
-      );
-    } else {
-      // Add default compatibility flags
-      compatFlags.add("nodejs_compat");
-      compatFlags.add("no_nodejs_compat_v2");
+
+    // Scan all server/ chunks
+    wranglerConfig.rules ??= [];
+    if (!wranglerConfig.rules.some((rule) => rule.type === "ESModule")) {
+      wranglerConfig.rules.push({
+        type: "ESModule",
+        globs: ["**/*.mjs", "**/*.js"],
+      });
     }
   }
-  wranglerConfig.compatibility_flags = [...compatFlags];
 
   // Write wrangler.json
   await writeFile(
@@ -372,6 +364,7 @@ async function generateWorkerName(nitro: Nitro) {
   const pkgName = pkgJSON?.name;
   const subpath = relative(nitro.options.workspaceDir, nitro.options.rootDir);
   return `${gitRepo || pkgName}/${subpath}`
+    .toLowerCase()
     .replace(/[^a-zA-Z0-9-]/g, "-")
     .replace(/-$/, "");
 }

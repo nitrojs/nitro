@@ -1,130 +1,155 @@
 import type { IncomingMessage, OutgoingMessage } from "node:http";
 import type { Duplex } from "node:stream";
-import type { GetPortInput } from "get-port-please";
 import type { FSWatcher } from "chokidar";
-import type { App } from "h3";
-import type { Listener, ListenOptions } from "listhen";
-import { NodeDevWorker, type DevWorker, type WorkerAddress } from "./worker";
-import type { Nitro, NitroBuildInfo, NitroDevServer } from "nitro/types";
-import {
-  createApp,
-  createError,
-  eventHandler,
-  fromNodeMiddleware,
-  toNodeListener,
-} from "h3";
-import {
-  default as devErrorHandler,
-  defaultHandler as devErrorHandlerInternal,
-  loadStackTrace,
-} from "../runtime/internal/error/dev";
-import { version as nitroVersion } from "nitro/meta";
+import type { ServerOptions, Server } from "srvx";
+import { NodeEnvRunner } from "../runner/node.ts";
+import type { EnvRunnerData } from "../runner/node.ts";
+import type {
+  Nitro,
+  RunnerMessageListener,
+  RunnerRPCHooks,
+  EnvRunner,
+} from "nitro/types";
+
+import { HTTPError } from "h3";
+
 import consola from "consola";
-import serveStatic from "serve-static";
-import { writeFile } from "node:fs/promises";
 import { resolve } from "pathe";
 import { watch } from "chokidar";
-import { listen as listhen } from "listhen";
-import { servePlaceholder } from "serve-placeholder";
-import { joinURL } from "ufo";
-import { createVFSHandler } from "./vfs";
+import { serve } from "srvx/node";
 import { debounce } from "perfect-debounce";
 import { isTest, isCI } from "std-env";
-import { createHTTPProxy } from "./proxy";
+import { NitroDevApp } from "./app.ts";
+import { writeDevBuildInfo } from "../build/info.ts";
 
 export function createDevServer(nitro: Nitro): NitroDevServer {
-  const devServer = new DevServer(nitro);
-  return {
-    reload: () => devServer.reload(),
-    listen: (port, opts) => devServer.listen(port, opts),
-    close: () => devServer.close(),
-    upgrade: (req, socket, head) => devServer.handleUpgrade(req, socket, head),
-    get app() {
-      return devServer.app;
-    },
-    get watcher() {
-      return devServer.watcher;
-    },
-  };
+  return new NitroDevServer(nitro);
 }
 
-let workerIdCtr = 0;
-
-class DevServer {
-  nitro: Nitro;
-  workerDir: string;
-  app: App;
-  listeners: Listener[] = [];
-  reloadPromise?: Promise<void>;
-  watcher?: FSWatcher;
-  workers: DevWorker[] = [];
-
-  workerError?: unknown;
-
-  building?: boolean = true /* assume initial build will start soon */;
-  buildError?: unknown;
+export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
+  #entry: string;
+  #workerData: EnvRunnerData = {};
+  #listeners: Server[] = [];
+  #watcher?: FSWatcher;
+  #workers: EnvRunner[] = [];
+  #workerIdCtr: number = 0;
+  #workerError?: unknown;
+  #building?: boolean = true; // Assume initial build will start soon
+  #buildError?: unknown;
+  #messageListeners: Set<RunnerMessageListener> = new Set();
 
   constructor(nitro: Nitro) {
-    this.nitro = nitro;
+    super(nitro, async (event) => {
+      const worker = await this.#getWorker();
+      if (!worker) {
+        return this.#generateError();
+      }
+      return worker.fetch(event.req as Request);
+    });
 
-    this.workerDir = resolve(
+    // Bind all methods to `this`
+    for (const key of Object.getOwnPropertyNames(NitroDevServer.prototype)) {
+      const value = (this as any)[key];
+      if (typeof value === "function" && key !== "constructor") {
+        (this as any)[key] = value.bind(this);
+      }
+    }
+
+    // Attach to Nitro.fetch
+    nitro.fetch = this.fetch.bind(this);
+
+    this.#entry = resolve(
       nitro.options.output.dir,
-      nitro.options.output.serverDir
+      nitro.options.output.serverDir,
+      "index.mjs"
     );
-
-    this.app = this.createApp();
 
     nitro.hooks.hook("close", () => this.close());
 
     nitro.hooks.hook("dev:start", () => {
-      this.building = true;
-      this.buildError = undefined;
+      this.#building = true;
+      this.#buildError = undefined;
     });
 
-    nitro.hooks.hook("dev:reload", () => {
-      this.buildError = undefined;
-      this.building = false;
+    nitro.hooks.hook("dev:reload", (payload) => {
+      this.#buildError = undefined;
+      this.#building = false;
+      if (payload?.entry) {
+        this.#entry = payload.entry;
+      }
+      if (payload?.workerData) {
+        this.#workerData = payload.workerData;
+      }
       this.reload();
     });
 
     nitro.hooks.hook("dev:error", (cause: unknown) => {
-      this.buildError = cause;
-      this.building = false;
-      for (const worker of this.workers) {
+      this.#buildError = cause;
+      this.#building = false;
+      for (const worker of this.#workers) {
         worker.close();
       }
     });
 
     if (nitro.options.devServer.watch.length > 0) {
       const debouncedReload = debounce(() => this.reload());
-      this.watcher = watch(
+      this.#watcher = watch(
         nitro.options.devServer.watch,
         nitro.options.watchOptions
       );
-      this.watcher.on("add", debouncedReload).on("change", debouncedReload);
+      this.#watcher.on("add", debouncedReload).on("change", debouncedReload);
     }
   }
 
-  async listen(port: GetPortInput, opts?: Partial<ListenOptions>) {
-    const listener = await listhen(toNodeListener(this.app), { port, ...opts });
-    this.listeners.push(listener);
-    listener.server.on("upgrade", (req, sock, head) =>
-      this.handleUpgrade(req, sock, head)
-    );
-    return listener;
+  // #region Public Methods
+
+  async upgrade(
+    req: IncomingMessage,
+    socket: OutgoingMessage<IncomingMessage> | Duplex,
+    head: any
+  ) {
+    const worker = await this.#getWorker();
+    if (!worker) {
+      throw new HTTPError({
+        status: 503,
+        statusText: "No worker available.",
+      });
+    }
+    if (!worker.upgrade) {
+      throw new HTTPError({
+        status: 501,
+        statusText: "Worker does not support upgrades.",
+      });
+    }
+    return worker.upgrade(req, socket, head);
+  }
+
+  listen(opts?: Partial<Omit<ServerOptions, "fetch">>): Server {
+    const server = serve({
+      ...opts,
+      fetch: this.fetch,
+      gracefulShutdown: false,
+    });
+    this.#listeners.push(server);
+    if (server.node?.server) {
+      server.node.server.on("upgrade", (req, sock, head) =>
+        this.upgrade(req, sock, head)
+      );
+    }
+    return server;
   }
 
   async close() {
     await Promise.all(
       [
-        Promise.all(this.listeners.map((l) => l.close())).then(() => {
-          this.listeners = [];
+        Promise.all(this.#listeners.map((l) => l.close())).then(() => {
+          this.#listeners = [];
         }),
-        Promise.all(this.workers.map((w) => w.close())).then(() => {
-          this.workers = [];
+        Promise.all(this.#workers.map((w) => w.close())).then(() => {
+          this.#workers = [];
         }),
-        Promise.resolve(this.watcher?.close()).then(() => {
-          this.watcher = undefined;
+        Promise.resolve(this.#watcher?.close()).then(() => {
+          this.#watcher = undefined;
         }),
       ].map((p) =>
         p.catch((error) => {
@@ -135,34 +160,68 @@ class DevServer {
   }
 
   reload() {
-    for (const worker of this.workers) {
+    for (const worker of this.#workers) {
       worker.close();
     }
-    const worker = new NodeDevWorker(++workerIdCtr, this.workerDir, {
-      onClose: (worker, cause) => {
-        this.workerError = cause;
-        const index = this.workers.indexOf(worker);
-        if (index !== -1) {
-          this.workers.splice(index, 1);
-        }
-      },
-      onReady: (worker, addr) => {
-        this.writeBuildInfo(worker, addr);
+    const worker = new NodeEnvRunner({
+      name: `Nitro_${this.#workerIdCtr++}`,
+      entry: this.#entry,
+      data: this.#workerData,
+      hooks: {
+        onClose: (worker, cause) => {
+          this.#workerError = cause;
+          const index = this.#workers.indexOf(worker);
+          if (index !== -1) {
+            this.#workers.splice(index, 1);
+          }
+        },
+        onReady: async (_worker, addr) => {
+          writeDevBuildInfo(this.nitro, addr).catch(() => {});
+        },
       },
     });
     if (!worker.closed) {
-      this.workers.unshift(worker);
+      for (const listener of this.#messageListeners) {
+        worker.onMessage(listener);
+      }
+      this.#workers.unshift(worker);
     }
   }
 
-  async getWorker() {
+  sendMessage(message: unknown) {
+    for (const worker of this.#workers) {
+      if (!worker.closed) {
+        worker.sendMessage(message);
+      }
+    }
+  }
+
+  onMessage(listener: RunnerMessageListener) {
+    this.#messageListeners.add(listener);
+    for (const worker of this.#workers) {
+      worker.onMessage(listener);
+    }
+  }
+
+  offMessage(listener: RunnerMessageListener) {
+    this.#messageListeners.delete(listener);
+    for (const worker of this.#workers) {
+      worker.offMessage(listener);
+    }
+  }
+
+  // #endregion
+
+  // #region Private Methods
+
+  async #getWorker() {
     let retry = 0;
     const maxRetries = isTest || isCI ? 100 : 10;
-    while (this.building || ++retry < maxRetries) {
-      if ((this.workers.length === 0 || this.buildError) && !this.building) {
+    while (this.#building || ++retry < maxRetries) {
+      if ((this.#workers.length === 0 || this.#buildError) && !this.#building) {
         return;
       }
-      const activeWorker = this.workers.find((w) => w.ready);
+      const activeWorker = this.#workers.find((w) => w.ready);
       if (activeWorker) {
         return activeWorker;
       }
@@ -170,105 +229,8 @@ class DevServer {
     }
   }
 
-  writeBuildInfo(_worker: DevWorker, addr?: WorkerAddress) {
-    const buildInfoPath = resolve(this.nitro.options.buildDir, "nitro.json");
-    const buildInfo: NitroBuildInfo = {
-      date: new Date().toJSON(),
-      preset: this.nitro.options.preset,
-      framework: this.nitro.options.framework,
-      versions: {
-        nitro: nitroVersion,
-      },
-      dev: {
-        pid: process.pid,
-        workerAddress: addr,
-      },
-    };
-    writeFile(buildInfoPath, JSON.stringify(buildInfo, null, 2)).catch(
-      (error) => {
-        consola.error(error);
-      }
-    );
-  }
-
-  createApp() {
-    // Init h3 app
-    const app = createApp({
-      onError: async (error, event) => {
-        const errorHandler =
-          this.nitro.options.devErrorHandler || devErrorHandler;
-        await loadStackTrace(error).catch(() => {});
-        return errorHandler(error, event, {
-          defaultHandler: devErrorHandlerInternal,
-        });
-      },
-    });
-
-    // Dev-only handlers
-    for (const handler of this.nitro.options.devHandlers) {
-      app.use(handler.route || "/", handler.handler);
-    }
-
-    // Debugging endpoint to view vfs
-    app.use("/_vfs", createVFSHandler(this.nitro));
-
-    // Serve asset dirs
-    for (const asset of this.nitro.options.publicAssets) {
-      const url = joinURL(
-        this.nitro.options.runtimeConfig.app.baseURL,
-        asset.baseURL || "/"
-      );
-      app.use(url, fromNodeMiddleware(serveStatic(asset.dir)));
-      if (!asset.fallthrough) {
-        app.use(url, fromNodeMiddleware(servePlaceholder()));
-      }
-    }
-
-    // User defined dev proxy
-    const routes = Object.keys(this.nitro.options.devProxy).sort().reverse();
-    for (const route of routes) {
-      let opts = this.nitro.options.devProxy[route];
-      if (typeof opts === "string") {
-        opts = { target: opts };
-      }
-      const proxy = createHTTPProxy(opts);
-      app.use(
-        route,
-        eventHandler((event) => proxy.handleEvent(event))
-      );
-    }
-
-    // Main handler
-    app.use(
-      eventHandler(async (event) => {
-        const worker = await this.getWorker();
-        if (!worker) {
-          return this.#generateError();
-        }
-        return worker.handleEvent(event);
-      })
-    );
-
-    return app;
-  }
-
-  async handleUpgrade(
-    req: IncomingMessage,
-    socket: OutgoingMessage<IncomingMessage> | Duplex,
-    head: any
-  ) {
-    const worker = await this.getWorker();
-    if (!worker) {
-      throw createError({
-        statusCode: 503,
-        message: "No worker available.",
-      });
-    }
-    return worker.handleUpgrade(req, socket, head);
-  }
-
   #generateError() {
-    const error: any = this.buildError || this.workerError;
+    const error: any = this.#buildError || this.#workerError;
     if (error) {
       try {
         error.unhandled = false;
@@ -288,7 +250,7 @@ class DevServer {
       } catch {
         // ignore
       }
-      return createError(error);
+      return new HTTPError(error);
     }
 
     return new Response(
@@ -311,4 +273,6 @@ class DevServer {
       }
     );
   }
+
+  // #endregion
 }

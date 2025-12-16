@@ -1,158 +1,76 @@
 import type { Nitro } from "nitro/types";
-import type { RolldownOptions, RolldownPlugin } from "rolldown";
-import { sanitizeFilePath } from "mlly";
-import { normalize } from "pathe";
-import { resolveModulePath } from "exsolve";
-import { runtimeDir } from "nitro/runtime/meta";
-import json from "@rollup/plugin-json";
-import { baseBuildConfig } from "../config";
-import { baseBuildPlugins } from "../plugins";
+import type { OutputOptions, RolldownOptions, RolldownPlugin } from "rolldown";
+import { baseBuildConfig } from "../config.ts";
+import { baseBuildPlugins } from "../plugins.ts";
 import { builtinModules } from "node:module";
+import { defu } from "defu";
+import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
 
 export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
   const base = baseBuildConfig(nitro);
 
-  const chunkNamePrefixes = [
-    [nitro.options.buildDir, "build"],
-    [base.buildServerDir, "app"],
-    [runtimeDir, "nitro"],
-    [base.presetsDir, "nitro"],
-    ["\0raw:", "raw"],
-    ["\0nitro-wasm:", "wasm"],
-    ["\0", "virtual"],
-  ] as const;
+  const tsc = nitro.options.typescript.tsConfig?.compilerOptions;
 
-  const config = {
+  let config: RolldownOptions = {
+    platform: nitro.options.node ? "node" : "neutral",
+    cwd: nitro.options.rootDir,
     input: nitro.options.entry,
     external: [
       ...base.env.external,
       ...builtinModules,
       ...builtinModules.map((m) => `node:${m}`),
     ],
-    plugins: [
-      ...(baseBuildPlugins(nitro, base) as RolldownPlugin[]),
-      json() as RolldownPlugin,
-    ],
+    plugins: [...(baseBuildPlugins(nitro, base) as RolldownPlugin[])],
     resolve: {
-      alias: {
-        ...base.aliases,
-        "node-mock-http/_polyfill/events": "node-mock-http/_polyfill/events",
-        "node-mock-http/_polyfill/buffer": "node-mock-http/_polyfill/buffer",
-      },
+      alias: base.aliases,
       extensions: base.extensions,
       mainFields: ["main"], // "module" is intentionally not supported because of externals
       conditionNames: nitro.options.exportConditions,
     },
-    // @ts-expect-error (readonly values)
-    inject: base.env.inject,
-    define: {
-      ...Object.fromEntries(
-        Object.entries(base.replacements)
-          .filter(
-            ([key, val]) =>
-              val &&
-              (key.startsWith("import.meta.env.") ||
-                key.startsWith("process.env."))
-          )
-          .map(([key, value]) => [
-            key,
-            typeof value === "function" ? value() : value,
-          ])
-      ),
+    transform: {
+      inject: base.env.inject as Record<string, string>,
+      jsx: {
+        runtime: tsc?.jsx === "react" ? "classic" : "automatic",
+        pragma: tsc?.jsxFactory,
+        pragmaFrag: tsc?.jsxFragmentFactory,
+        importSource: tsc?.jsxImportSource,
+        development: nitro.options.dev,
+      },
     },
-    jsx: "react-jsx",
     onwarn(warning, warn) {
-      if (
-        !["CIRCULAR_DEPENDENCY", "EVAL"].includes(warning.code || "") &&
-        !warning.message.includes("Unsupported source map comment")
-      ) {
+      if (!base.ignoreWarningCodes.has(warning.code || "")) {
+        console.log(warning.code);
         warn(warning);
       }
     },
     treeshake: {
       moduleSideEffects(id) {
-        const normalizedId = normalize(id);
-        const idWithoutNodeModules = normalizedId.split("node_modules/").pop();
-        if (!idWithoutNodeModules) {
-          return false;
-        }
-        if (
-          normalizedId.startsWith(runtimeDir) ||
-          idWithoutNodeModules.startsWith(runtimeDir)
-        ) {
-          return true;
-        }
-        return nitro.options.moduleSideEffects.some(
-          (m) =>
-            normalizedId.startsWith(m) || idWithoutNodeModules.startsWith(m)
-        );
+        return nitro.options.moduleSideEffects.some((p) => id.startsWith(p));
       },
     },
     output: {
-      dir: nitro.options.output.serverDir,
-      entryFileNames: "index.mjs",
-      chunkFileNames(chunk) {
-        const id = normalize(chunk.moduleIds.at(-1) || "");
-        // Known path prefixes
-        for (const [dir, name] of chunkNamePrefixes) {
-          if (id.startsWith(dir)) {
-            return `chunks/${name}/[name].mjs`;
-          }
-        }
-
-        // Route handlers
-        const routeHandler =
-          nitro.options.handlers.find((h) =>
-            id.startsWith(h.handler as string)
-          ) ||
-          nitro.scannedHandlers.find((h) => id.startsWith(h.handler as string));
-        if (routeHandler?.route) {
-          const path =
-            routeHandler.route
-              .replace(/:([^/]+)/g, "_$1")
-              .replace(/\/[^/]+$/g, "") || "/";
-          return `chunks/routes${path}/[name].mjs`;
-        }
-
-        // Task handlers
-        const taskHandler = Object.entries(nitro.options.tasks).find(
-          ([_, task]) => task.handler === id
-        );
-        if (taskHandler) {
-          return `chunks/tasks/[name].mjs`;
-        }
-
-        // Unknown path
-        return `chunks/_/[name].mjs`;
-      },
-      inlineDynamicImports: nitro.options.inlineDynamicImports,
       format: "esm",
-      exports: "auto",
-      intro: "",
-      outro: "",
-      sanitizeFileName: sanitizeFilePath,
-      sourcemap: nitro.options.sourceMap,
+      entryFileNames: "index.mjs",
+      chunkFileNames: (chunk) => getChunkName(chunk, nitro),
+      advancedChunks: {
+        groups: [{ test: NODE_MODULES_RE, name: (id) => libChunkName(id) }],
+      },
+      dir: nitro.options.output.serverDir,
+      inlineDynamicImports: nitro.options.inlineDynamicImports,
+      minify: nitro.options.minify,
+      sourcemap: nitro.options.sourcemap,
       sourcemapIgnoreList(relativePath) {
         return relativePath.includes("node_modules");
       },
     },
   } satisfies RolldownOptions;
 
-  config.plugins.push({
-    name: "nitro:rolldown-resolves",
-    async resolveId(id, parent, options) {
-      if (parent?.startsWith("\0virtual:#nitro-internal-virtual")) {
-        const internalRes = await this.resolve(id, import.meta.url, options);
-        if (internalRes) {
-          return internalRes;
-        }
-        return resolveModulePath(id, {
-          from: [nitro.options.rootDir, import.meta.url],
-          try: true,
-        });
-      }
-    },
-  });
+  config = defu(nitro.options.rollupConfig as any, config);
+
+  const outputConfig = config.output as OutputOptions;
+  if (outputConfig.inlineDynamicImports || outputConfig.format === "iife") {
+    delete outputConfig.advancedChunks;
+  }
 
   return config as RolldownOptions;
 };

@@ -1,13 +1,13 @@
 import {
-  type CompatibilityDateSpec,
-  type PlatformName,
   resolveCompatibilityDatesFromEnv,
   formatCompatibilityDate,
 } from "compatx";
+import type { CompatibilityDateSpec, PlatformName } from "compatx";
 import type { NitroPreset, NitroPresetMeta } from "nitro/types";
 import { kebabCase } from "scule";
-import { type ProviderName, provider } from "std-env";
-import allPresets from "./_all.gen";
+import { provider, runtime } from "std-env";
+import type { ProviderName } from "std-env";
+import allPresets from "./_all.gen.ts";
 
 // std-env has more specific keys for providers than compatx
 const _stdProviderMap: Partial<Record<ProviderName, PlatformName>> = {
@@ -18,8 +18,16 @@ const _stdProviderMap: Partial<Record<ProviderName, PlatformName>> = {
 
 export async function resolvePreset(
   name: string,
-  opts: { static?: boolean; compatibilityDate?: false | CompatibilityDateSpec }
+  opts: {
+    static?: boolean;
+    compatibilityDate?: false | CompatibilityDateSpec;
+    dev?: boolean;
+  } = {}
 ): Promise<(NitroPreset & { _meta?: NitroPresetMeta }) | undefined> {
+  if (name === ".") {
+    return undefined; // invalid input
+  }
+
   const _name = kebabCase(name) || provider;
 
   const _compatDates = opts.compatibilityDate
@@ -31,6 +39,11 @@ export async function resolvePreset(
       // prettier-ignore
       const names = [preset._meta.name, preset._meta.stdName, ...(preset._meta.aliases || [])].filter(Boolean);
       if (!names.includes(_name)) {
+        return false;
+      }
+
+      // Match dev|prod
+      if ((opts.dev && !preset._meta.dev) || (!opts.dev && preset._meta.dev)) {
         return false;
       }
 
@@ -70,10 +83,13 @@ export async function resolvePreset(
     return preset();
   }
 
+  // Auto-detect preset
   if (!name && !preset) {
-    return opts?.static
-      ? resolvePreset("static", opts)
-      : resolvePreset("node-server", opts);
+    if (opts?.static) {
+      return resolvePreset("static", opts);
+    }
+    const runtimeMap = { deno: "deno", bun: "bun" } as Record<string, string>;
+    return resolvePreset(runtimeMap[runtime] || "node", opts);
   }
 
   if (name && !preset) {

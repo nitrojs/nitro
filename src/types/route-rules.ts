@@ -1,13 +1,13 @@
-import type { ProxyOptions, RouterMethod } from "h3";
-import type { ExcludeFunctions, IntRange } from "./_utils";
-import type { CachedEventHandlerOptions } from "./runtime";
+import type { Middleware, ProxyOptions } from "h3";
+import type { ExcludeFunctions, IntRange } from "./_utils.ts";
+import type { CachedEventHandlerOptions } from "./runtime/index.ts";
 
-export type HTTPStatusCode = IntRange<100, 600>;
+export type HTTPstatus = IntRange<100, 600>;
 
 export interface NitroRouteConfig {
   cache?: ExcludeFunctions<CachedEventHandlerOptions> | false;
   headers?: Record<string, string>;
-  redirect?: string | { to: string; statusCode?: HTTPStatusCode };
+  redirect?: string | { to: string; status?: HTTPstatus };
   prerender?: boolean;
   proxy?: string | ({ to: string } & ProxyOptions);
   isr?: number /* expiration */ | boolean | VercelISRConfig;
@@ -18,11 +18,26 @@ export interface NitroRouteConfig {
   static?: boolean | number;
 }
 
-export interface NitroRouteRules
-  extends Omit<NitroRouteConfig, "redirect" | "cors" | "swr" | "static"> {
-  redirect?: { to: string; statusCode: HTTPStatusCode };
+export interface NitroRouteRules extends Omit<
+  NitroRouteConfig,
+  "redirect" | "cors" | "swr" | "static"
+> {
+  redirect?: { to: string; status: HTTPstatus };
   proxy?: { to: string } & ProxyOptions;
+  [key: string]: any;
 }
+
+export type MatchedRouteRule<K extends keyof NitroRouteRules = "custom"> = {
+  name: K;
+  options: Exclude<NitroRouteRules[K], false>;
+  route: string;
+  params?: Record<string, string>;
+  handler?: (opts: unknown) => Middleware;
+};
+
+export type MatchedRouteRules = {
+  [K in keyof NitroRouteRules]: MatchedRouteRule<K>;
+};
 
 interface VercelISRConfig {
   /**

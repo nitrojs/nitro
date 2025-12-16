@@ -1,34 +1,20 @@
-import type { NitroConfig, NitroOptions } from "./config";
-import type { NitroModule } from "./module";
+import type { NitroOptions } from "./config.ts";
 
-export interface NitroStaticBuildFlags {
-  _asyncContext?: boolean;
-  _websocket?: boolean;
-  _tasks?: boolean;
+export interface NitroImportMeta {
   dev?: boolean;
-  client?: boolean;
-  nitro?: boolean;
-  baseURL?: string;
-  prerender?: boolean;
   preset?: NitroOptions["preset"];
+  prerender?: boolean;
+  nitro?: boolean;
   server?: boolean;
-  versions?: {
-    nitro?: string;
-  };
+  client?: boolean;
+  baseURL?: string;
+  runtimeConfig?: Record<string, any>;
+  _asyncContext?: boolean;
+  _tasks?: boolean;
 }
 
 declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace NodeJS {
-    interface Process extends NitroStaticBuildFlags {}
-  }
-
-  interface ImportMeta extends NitroStaticBuildFlags {}
-}
-
-declare global {
-  const defineNitroConfig: (config: NitroConfig) => NitroConfig;
-  const defineNitroModule: (definition: NitroModule) => NitroModule;
+  interface ImportMeta extends NitroImportMeta {}
 }
 
 export type {};

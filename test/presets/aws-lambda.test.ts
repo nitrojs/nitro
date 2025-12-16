@@ -1,77 +1,98 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyEventV2 } from "aws-lambda";
-import destr from "destr";
 import { resolve } from "pathe";
 import { describe } from "vitest";
-import { setupTest, testNitro } from "../tests";
+import { parseURL, parseQuery } from "ufo";
+import { setupTest, testNitro } from "../tests.ts";
 
-describe("nitro:preset:aws-lambda", async () => {
+describe("nitro:preset:aws-lambda-v2", async () => {
   const ctx = await setupTest("aws-lambda");
-  // Lambda v1 paylod
-  testNitro({ ...ctx, lambdaV1: true }, async () => {
-    const { handler } = await import(resolve(ctx.outDir, "server/index.mjs"));
-    return async ({ url: rawRelativeUrl, headers, method, body }) => {
-      // creating new URL object to parse query easier
-      const url = new URL(`https://example.com${rawRelativeUrl}`);
-      const queryStringParameters = Object.fromEntries(
-        url.searchParams.entries()
-      );
-      const event: Partial<APIGatewayProxyEvent> = {
-        resource: "/my/path",
-        path: url.pathname,
-        headers: headers || {},
-        httpMethod: method || "GET",
-        queryStringParameters,
-        body: body || "",
-      };
-      const res = await handler(event);
-      return makeResponse(res);
-    };
-  });
-  // Lambda v2 paylod
   testNitro(ctx, async () => {
     const { handler } = await import(resolve(ctx.outDir, "server/index.mjs"));
-    return async ({ url: rawRelativeUrl, headers, method, body }) => {
-      // creating new URL object to parse query easier
-      const url = new URL(`https://example.com${rawRelativeUrl}`);
-      const queryStringParameters = Object.fromEntries(
-        url.searchParams.entries()
-      );
-      const event: Partial<APIGatewayProxyEventV2> = {
-        rawPath: url.pathname,
+    return async ({ url, headers, method, body }) => {
+      const { pathname, search } = parseURL(url);
+      const event = {
+        rawPath: pathname,
         headers: headers || {},
+        rawQueryString: search.slice(1),
+        queryStringParameters: parseQuery(search) as Record<string, string>,
+        body: body || "",
+        isBase64Encoded: false,
+        version: "2",
+        routeKey: "",
         requestContext: {
-          ...Object.fromEntries([
-            ["accountId"],
-            ["apiId"],
-            ["domainName"],
-            ["domainPrefix"],
-          ]),
+          accountId: "",
+          apiId: "",
+          domainName: "",
+          domainPrefix: "",
+          requestId: "",
+          routeKey: "",
+          stage: "",
+          time: "",
+          timeEpoch: 0,
           http: {
             path: url.pathname,
             protocol: "http",
-            ...Object.fromEntries([["userAgent"], ["sourceIp"]]),
+            userAgent: "",
+            sourceIp: "",
             method: method || "GET",
           },
         },
-        queryStringParameters,
-        body: body || "",
-      };
+      } satisfies APIGatewayProxyEventV2;
       const res = await handler(event);
-      return makeResponse(res);
+      return webResponse(res);
     };
   });
 });
 
-const makeResponse = (response: any) => {
-  const headers = response.headers;
+describe("nitro:preset:aws-lambda-v1", async () => {
+  const ctx = await setupTest("aws-lambda");
+  testNitro({ ...ctx, lambdaV1: true }, async () => {
+    const { handler } = await import(resolve(ctx.outDir, "server/index.mjs"));
+    return async ({ url, headers, method, body }) => {
+      const { pathname, search } = parseURL(url);
+      const event = {
+        stageVariables: {},
+        resource: "",
+        httpMethod: method || "GET",
+        path: pathname,
+        pathParameters: {},
+        queryStringParameters: parseQuery(search) as Record<string, string>,
+        multiValueQueryStringParameters: {},
+        headers: headers || {},
+        multiValueHeaders: {},
+        body: body || "",
+        isBase64Encoded: false,
+        requestContext: {} as any,
+      } satisfies APIGatewayProxyEvent;
+      const res = await handler(event);
+      return webResponse(res);
+    };
+  });
+});
 
-  // APIgw v2 uses cookies, v1 uses multiValueHeaders
-  headers["set-cookie"] =
-    response?.cookies ?? response?.multiValueHeaders?.["set-cookie"];
+function webResponse(awsResponse: any) {
+  const headers = new Headers(awsResponse.headers);
+  const setCookie =
+    awsResponse?.cookies /* v2 */ ??
+    awsResponse?.multiValueHeaders /* v1 */?.["set-cookie"] ??
+    [];
+  headers.delete("set-cookie");
+  for (const cookie of setCookie) {
+    if (Array.isArray(cookie)) {
+      for (const c of cookie) {
+        headers.append("set-cookie", c);
+      }
+    } else {
+      headers.append("set-cookie", cookie);
+    }
+  }
 
-  return {
-    data: destr(response.body),
-    status: response.statusCode,
+  const body = awsResponse.isBase64Encoded
+    ? Buffer.from(awsResponse.body, "base64")
+    : (awsResponse.body as string);
+
+  return new Response(body, {
+    status: awsResponse.statusCode,
     headers,
-  };
-};
+  });
+}

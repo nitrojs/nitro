@@ -1,11 +1,12 @@
 import type { Nitro } from "nitro/types";
 import type { RolldownWatcher, RolldownOptions } from "rolldown";
-import { watch } from "chokidar";
+import { watch as chokidarWatch } from "chokidar";
+import { watch } from "node:fs";
 import { join } from "pathe";
 import { debounce } from "perfect-debounce";
-import { scanHandlers } from "../../scan";
-import { nitroServerName } from "../../utils/nitro";
-import { writeTypes } from "../types";
+import { scanHandlers } from "../../scan.ts";
+import { writeTypes } from "../types.ts";
+import { formatCompatibilityDate } from "compatx";
 
 export async function watchDev(nitro: Nitro, config: RolldownOptions) {
   const rolldown = await import("rolldown");
@@ -17,12 +18,13 @@ export async function watchDev(nitro: Nitro, config: RolldownOptions) {
       await watcher.close();
     }
     await scanHandlers(nitro);
+    nitro.routing.sync();
     watcher = startWatcher(nitro, config);
     await writeTypes(nitro);
   }
   const reload = debounce(load);
 
-  const watchPatterns = nitro.options.scanDirs.flatMap((dir) => [
+  const scanDirs = nitro.options.scanDirs.flatMap((dir) => [
     join(dir, nitro.options.apiDir || "api"),
     join(dir, nitro.options.routesDir || "routes"),
     join(dir, "middleware"),
@@ -31,10 +33,19 @@ export async function watchDev(nitro: Nitro, config: RolldownOptions) {
   ]);
 
   const watchReloadEvents = new Set(["add", "addDir", "unlink", "unlinkDir"]);
-  const reloadWatcher = watch(watchPatterns, { ignoreInitial: true }).on(
-    "all",
-    (event) => {
-      if (watchReloadEvents.has(event)) {
+  const scanDirsWatcher = chokidarWatch(scanDirs, {
+    ignoreInitial: true,
+  }).on("all", (event) => {
+    if (watchReloadEvents.has(event)) {
+      reload();
+    }
+  });
+
+  const rootDirWatcher = watch(
+    nitro.options.rootDir,
+    { persistent: false },
+    (_event, filename) => {
+      if (filename && /^server\.[mc]?[jt]sx?$/.test(filename)) {
         reload();
       }
     }
@@ -42,7 +53,8 @@ export async function watchDev(nitro: Nitro, config: RolldownOptions) {
 
   nitro.hooks.hook("close", () => {
     watcher.close();
-    reloadWatcher.close();
+    scanDirsWatcher.close();
+    rootDirWatcher.close();
   });
 
   nitro.hooks.hook("rollup:reload", () => reload());
@@ -60,6 +72,9 @@ export async function watchDev(nitro: Nitro, config: RolldownOptions) {
       switch (event.code) {
         case "START": {
           start = Date.now();
+          nitro.logger.info(
+            `Starting dev watcher (builder: \`rolldown\`, preset: \`${nitro.options.preset}\`, compatibility date: \`${formatCompatibilityDate(nitro.options.compatibilityDate)}\`)`
+          );
           nitro.hooks.callHook("dev:start");
           break;
         }
@@ -67,7 +82,7 @@ export async function watchDev(nitro: Nitro, config: RolldownOptions) {
           nitro.hooks.callHook("compiled", nitro);
           if (nitro.options.logging.buildSuccess) {
             nitro.logger.success(
-              `${nitroServerName(nitro)} built with rolldown`,
+              `Server built`,
               start ? `in ${Date.now() - start}ms` : ""
             );
           }
@@ -75,6 +90,7 @@ export async function watchDev(nitro: Nitro, config: RolldownOptions) {
           break;
         }
         case "ERROR": {
+          nitro.logger.error(event.error);
           nitro.hooks.callHook("dev:error", event.error);
         }
       }

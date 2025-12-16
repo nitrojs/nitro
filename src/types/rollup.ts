@@ -1,11 +1,9 @@
-import type { FilterPattern } from "unplugin-utils";
-import type { NodeFileTraceOptions } from "@vercel/nft";
-import type { Loader as ESBuildLoader } from "esbuild";
-import type { TransformOptions as ESBuildTransformOptions } from "esbuild";
 import type {
   InputOptions as RollupInputOptions,
   OutputOptions as RollupOutputOptions,
 } from "rollup";
+import type { MinifyOptions } from "oxc-minify";
+import type { JsxOptions, TransformOptions } from "oxc-transform";
 
 export type RollupConfig = RollupInputOptions & {
   output: RollupOutputOptions;
@@ -17,38 +15,9 @@ export interface RollupVirtualOptions {
   [id: string]: VirtualModule;
 }
 
-export interface EsbuildOptions extends ESBuildTransformOptions {
-  include?: FilterPattern;
-  exclude?: FilterPattern;
-  sourceMap?: boolean | "inline" | "hidden";
-  /**
-   * Map extension to esbuild loader
-   * Note that each entry (the extension) needs to start with a dot
-   */
-  loaders?: {
-    [ext: string]: ESBuildLoader | false;
-  };
-}
-
-export interface NodeExternalsOptions {
-  inline?: Array<
-    | string
-    | RegExp
-    | ((id: string, importer?: string) => Promise<boolean> | boolean)
-  >;
-  external?: Array<
-    | string
-    | RegExp
-    | ((id: string, importer?: string) => Promise<boolean> | boolean)
-  >;
-  rootDir?: string;
-  outDir: string;
-  trace?: boolean;
-  traceOptions?: NodeFileTraceOptions;
-  moduleDirectories?: string[];
-  exportConditions?: string[];
-  traceInclude?: string[];
-  traceAlias?: Record<string, string>;
+export interface OXCOptions {
+  minify?: MinifyOptions;
+  transform?: Omit<TransformOptions, "jsx"> & { jsx?: JsxOptions };
 }
 
 export interface ServerAssetOptions {
@@ -59,8 +28,4 @@ export interface ServerAssetOptions {
       meta?: boolean;
     };
   };
-}
-
-export interface RawOptions {
-  extensions?: string[];
 }

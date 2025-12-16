@@ -6,10 +6,6 @@
 
 :read-more{title="flightcontrol.dev" to="https://flightcontrol.dev?ref=nitro"}
 
-::note
-Flightcontrol has zero config support for [Nuxt](https://nuxt.com/) projects.
-::
-
 ## Set Up your flightcontrol account
 
 On a high level, the steps you will need to follow to deploy a project for the first time are:

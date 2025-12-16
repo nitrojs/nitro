@@ -1,6 +1,5 @@
-import { defineNitroConfig } from "nitro/config";
+import { defineConfig } from "nitro";
 
-export default defineNitroConfig({
-  srcDir: "server",
-  compatibilityDate: "2025-03-01",
+export default defineConfig({
+  serverDir: "./server",
 });

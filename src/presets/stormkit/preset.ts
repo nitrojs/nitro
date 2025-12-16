@@ -1,8 +1,8 @@
-import { defineNitroPreset } from "../_utils/preset";
+import { defineNitroPreset } from "../_utils/preset.ts";
 
 const stormkit = defineNitroPreset(
   {
-    entry: "./runtime/stormkit",
+    entry: "./stormkit/runtime/stormkit",
     output: {
       dir: "{{ rootDir }}/.stormkit",
       publicDir: "{{ rootDir }}/.stormkit/public/{{ baseURL }}",
@@ -11,7 +11,6 @@ const stormkit = defineNitroPreset(
   {
     name: "stormkit" as const,
     stdName: "stormkit",
-    url: import.meta.url,
   }
 );
 

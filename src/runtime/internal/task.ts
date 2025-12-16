@@ -1,5 +1,5 @@
 import { Cron } from "croner";
-import { createError } from "h3";
+import { HTTPError } from "h3";
 import type {
   Task,
   TaskContext,
@@ -7,8 +7,7 @@ import type {
   TaskPayload,
   TaskResult,
 } from "nitro/types";
-import { isTest } from "std-env";
-import { scheduledTasks, tasks } from "#nitro-internal-virtual/tasks";
+import { scheduledTasks, tasks } from "#nitro/virtual/tasks";
 
 /** @experimental */
 export function defineTask<RT = unknown>(def: Task<RT>): Task<RT> {
@@ -35,16 +34,16 @@ export async function runTask<RT = unknown>(
   }
 
   if (!(name in tasks)) {
-    throw createError({
+    throw new HTTPError({
       message: `Task \`${name}\` is not available!`,
-      statusCode: 404,
+      status: 404,
     });
   }
 
   if (!tasks[name].resolve) {
-    throw createError({
+    throw new HTTPError({
       message: `Task \`${name}\` is not implemented!`,
-      statusCode: 501,
+      status: 501,
     });
   }
 
@@ -62,7 +61,7 @@ export async function runTask<RT = unknown>(
 
 /** @experimental */
 export function startScheduleRunner() {
-  if (!scheduledTasks || scheduledTasks.length === 0 || isTest) {
+  if (!scheduledTasks || scheduledTasks.length === 0 || process.env.TEST) {
     return;
   }
 
@@ -71,7 +70,7 @@ export function startScheduleRunner() {
   };
 
   for (const schedule of scheduledTasks) {
-    const cron = new Cron(schedule.cron, async () => {
+    new Cron(schedule.cron, async () => {
       await Promise.all(
         schedule.tasks.map((name) =>
           runTask(name, {

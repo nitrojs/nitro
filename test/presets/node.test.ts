@@ -1,8 +1,8 @@
 import { existsSync } from "node:fs";
 import { resolve } from "pathe";
-import { isWindows } from "std-env";
+// import { isWindows } from "std-env";
 import { describe, expect, it } from "vitest";
-import { setupTest, startServer, testNitro } from "../tests";
+import { setupTest, startServer, testNitro } from "../tests.ts";
 
 describe("nitro:preset:node-middleware", async () => {
   const ctx = await setupTest("node-middleware");
@@ -33,13 +33,10 @@ describe("nitro:preset:node-middleware", async () => {
     expect(noncached2.headers.get("etag")).toBeNull();
   });
 
-  it.skipIf(isWindows)("should not bundle externals", () => {
+  it("should trace externals", () => {
     const serverNodeModules = resolve(ctx.outDir, "server/node_modules");
     expect(
       existsSync(resolve(serverNodeModules, "@fixture/nitro-utils/extra.mjs"))
-    ).toBe(true);
-    expect(
-      existsSync(resolve(serverNodeModules, "@fixture/nitro-utils/extra2.mjs"))
     ).toBe(true);
   });
 });

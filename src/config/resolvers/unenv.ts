@@ -7,11 +7,11 @@ export const common: Preset = {
     url: import.meta.url,
   },
   alias: {
-    "node-mock-http/_polyfill/events": "node:events",
-    "node-mock-http/_polyfill/buffer": "node:buffer",
     "buffer/": "node:buffer",
     "buffer/index": "node:buffer",
     "buffer/index.js": "node:buffer",
+    "string_decoder/": "node:string_decoder",
+    "process/": "node:process",
   },
 };
 

@@ -1,7 +1,9 @@
 import { loadConfig, watchConfig } from "c12";
-import { type CompatibilityDateSpec, resolveCompatibilityDates } from "compatx";
+import consola from "consola";
+import { resolveCompatibilityDates } from "compatx";
+import type { CompatibilityDateSpec } from "compatx";
 import { klona } from "klona/full";
-import type { PresetName } from "nitro/presets";
+import type { PresetName } from "../presets/index.ts";
 import type {
   LoadConfigOptions,
   NitroConfig,
@@ -9,29 +11,28 @@ import type {
   NitroPresetMeta,
 } from "nitro/types";
 
-import { NitroDefaults } from "./defaults";
+import { NitroDefaults } from "./defaults.ts";
 
 // Resolvers
-import { resolveAssetsOptions } from "./resolvers/assets";
-import {
-  fallbackCompatibilityDate,
-  resolveCompatibilityOptions,
-} from "./resolvers/compatibility";
-import { resolveDatabaseOptions } from "./resolvers/database";
-import { resolveExportConditionsOptions } from "./resolvers/export-conditions";
-import { resolveImportsOptions } from "./resolvers/imports";
-import { resolveOpenAPIOptions } from "./resolvers/open-api";
-import { resolvePathOptions } from "./resolvers/paths";
-import { resolveRouteRulesOptions } from "./resolvers/route-rules";
-import { resolveRuntimeConfigOptions } from "./resolvers/runtime-config";
-import { resolveStorageOptions } from "./resolvers/storage";
-import { resolveURLOptions } from "./resolvers/url";
-import { resolveErrorOptions } from "./resolvers/error";
-import { resolveUnenv } from "./resolvers/unenv";
-import { resolveBuilder } from "./resolvers/builder";
+import { resolveAssetsOptions } from "./resolvers/assets.ts";
+import { resolveCompatibilityOptions } from "./resolvers/compatibility.ts";
+import { resolveDatabaseOptions } from "./resolvers/database.ts";
+import { resolveExportConditionsOptions } from "./resolvers/export-conditions.ts";
+import { resolveImportsOptions } from "./resolvers/imports.ts";
+import { resolveOpenAPIOptions } from "./resolvers/open-api.ts";
+import { resolveTsconfig } from "./resolvers/tsconfig.ts";
+import { resolvePathOptions } from "./resolvers/paths.ts";
+import { resolveRouteRulesOptions } from "./resolvers/route-rules.ts";
+import { resolveRuntimeConfigOptions } from "./resolvers/runtime-config.ts";
+import { resolveStorageOptions } from "./resolvers/storage.ts";
+import { resolveURLOptions } from "./resolvers/url.ts";
+import { resolveErrorOptions } from "./resolvers/error.ts";
+import { resolveUnenv } from "./resolvers/unenv.ts";
+import { resolveBuilder } from "./resolvers/builder.ts";
 
 const configResolvers = [
   resolveCompatibilityOptions,
+  resolveTsconfig,
   resolvePathOptions,
   resolveImportsOptions,
   resolveRouteRulesOptions,
@@ -62,15 +63,6 @@ async function _loadUserConfig(
   configOverrides: NitroConfig = {},
   opts: LoadConfigOptions = {}
 ): Promise<NitroOptions> {
-  // Preset
-  let presetOverride =
-    (configOverrides.preset as string) ||
-    process.env.NITRO_PRESET ||
-    process.env.SERVER_PRESET;
-  if (configOverrides.dev) {
-    presetOverride = "nitro-dev";
-  }
-
   // Load configuration and preset
   configOverrides = klona(configOverrides);
 
@@ -86,10 +78,14 @@ async function _loadUserConfig(
       process.env.COMPATIBILITY_DATE) as CompatibilityDateSpec);
 
   // Preset resolver
-  const { resolvePreset } = (await import(
-    "nitro/" + "presets"
-  )) as typeof import("nitro/presets");
+  const { resolvePreset } = await import("../presets/index.ts");
 
+  // prettier-ignore
+  let preset: string | undefined = (configOverrides.preset as string) || process.env.NITRO_PRESET || process.env.SERVER_PRESET
+
+  const _dotenv =
+    opts.dotenv ??
+    (configOverrides.dev && { fileName: [".env", ".env.local"] });
   const loadedConfig = await (
     opts.watch
       ? watchConfig<NitroConfig & { _meta?: NitroPresetMeta }>
@@ -97,38 +93,8 @@ async function _loadUserConfig(
   )({
     name: "nitro",
     cwd: configOverrides.rootDir,
-    dotenv: configOverrides.dev,
+    dotenv: _dotenv,
     extend: { extendKey: ["extends", "preset"] },
-    overrides: {
-      ...configOverrides,
-      preset: presetOverride,
-    },
-    async defaultConfig({ configs }) {
-      const getConf = <K extends keyof NitroConfig>(key: K) =>
-        (configOverrides[key] ??
-          configs.main?.[key] ??
-          configs.rc?.[key] ??
-          configs.packageJson?.[key]) as NitroConfig[K];
-
-      if (!compatibilityDate) {
-        compatibilityDate = getConf("compatibilityDate");
-      }
-      const framework = configs.overrides?.framework || configs.main?.framework;
-      return {
-        typescript: {
-          generateRuntimeConfigTypes:
-            !framework?.name || framework.name === "nitro",
-        },
-        preset:
-          presetOverride ||
-          (
-            await resolvePreset("" /* auto detect */, {
-              static: getConf("static"),
-              compatibilityDate: compatibilityDate || fallbackCompatibilityDate,
-            })
-          )?._meta?.name,
-      };
-    },
     defaults: NitroDefaults,
     jitiOptions: {
       alias: {
@@ -136,10 +102,59 @@ async function _loadUserConfig(
         "nitro/config": "nitro/config",
       },
     },
+    async overrides({ rawConfigs }) {
+      // prettier-ignore
+      const getConf = <K extends keyof NitroConfig>(key: K) => (configOverrides[key] ?? (rawConfigs.main as NitroConfig)?.[key] ?? (rawConfigs.rc as NitroConfig)?.[key] ?? (rawConfigs.packageJson as NitroConfig)?.[key]) as NitroConfig[K];
+
+      if (!compatibilityDate) {
+        compatibilityDate = getConf("compatibilityDate");
+      }
+
+      // prettier-ignore
+      const framework = getConf("framework")
+      const isCustomFramework = framework?.name && framework.name !== "nitro";
+
+      if (!preset) {
+        preset = getConf("preset");
+      }
+
+      if (configOverrides.dev) {
+        // Check if preset has compatible dev support
+        // Otherwise use default nitro-dev preset
+        preset =
+          preset && preset !== "nitro-dev"
+            ? await resolvePreset(preset, {
+                static: getConf("static"),
+                dev: true,
+                compatibilityDate: compatibilityDate || "latest",
+              })
+                .then((p) => p?._meta?.name || "nitro-dev")
+                .catch(() => "nitro-dev")
+            : "nitro-dev";
+      } else if (!preset) {
+        // Auto detect production preset
+        preset = await resolvePreset("" /* auto detect */, {
+          static: getConf("static"),
+          dev: false,
+          compatibilityDate: compatibilityDate || "latest",
+        }).then((p) => p?._meta?.name);
+      }
+
+      return {
+        ...configOverrides,
+        preset,
+        typescript: {
+          generateRuntimeConfigTypes: !isCustomFramework,
+          ...getConf("typescript"),
+          ...configOverrides.typescript,
+        },
+      };
+    },
     async resolve(id: string) {
       const preset = await resolvePreset(id, {
         static: configOverrides.static,
-        compatibilityDate: compatibilityDate || fallbackCompatibilityDate,
+        compatibilityDate: compatibilityDate || "latest",
+        dev: configOverrides.dev,
       });
       if (preset) {
         return {
@@ -157,13 +172,17 @@ async function _loadUserConfig(
 
   const _presetName =
     (loadedConfig.layers || []).find((l) => l.config?._meta?.name)?.config
-      ?._meta?.name || presetOverride;
+      ?._meta?.name || preset;
   options.preset = _presetName as PresetName;
 
   options.compatibilityDate = resolveCompatibilityDates(
     compatibilityDate,
     options.compatibilityDate
   );
+
+  if (options.dev && options.preset !== "nitro-dev") {
+    consola.info(`Using \`${options.preset}\` emulation in development mode.`);
+  }
 
   return options;
 }

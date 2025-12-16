@@ -54,7 +54,8 @@ export interface VercelBuildConfigV3 {
 }
 
 /**
- * https://vercel.com/docs/build-output-api/v3/primitives#serverless-function-configuration
+ * https://vercel.com/docs/build-output-api/primitives#serverless-function-configuration
+ * https://vercel.com/docs/build-output-api/primitives#node.js-config
  */
 export interface VercelServerlessFunctionConfig {
   /**
@@ -63,9 +64,27 @@ export interface VercelServerlessFunctionConfig {
   memory?: number;
 
   /**
+   * Specifies the instruction set "architecture" the Vercel Function supports.
+   *
+   * Either `x86_64` or `arm64`. The default value is `x86_64`
+   */
+  architecture?: "x86_64" | "arm64";
+
+  /**
    * Maximum execution duration (in seconds) that will be allowed for the Serverless Function.
    */
   maxDuration?: number;
+
+  /**
+   * Map of additional environment variables that will be available to the Vercel Function,
+   * in addition to the env vars specified in the Project Settings.
+   */
+  environment?: Record<string, string>;
+
+  /**
+   * List of Vercel Regions where the Vercel Function will be deployed to.
+   */
+  regions?: string[];
 
   /**
    * True if a custom runtime has support for Lambda runtime wrappers.
@@ -77,11 +96,29 @@ export interface VercelServerlessFunctionConfig {
    */
   supportsResponseStreaming?: boolean;
 
+  /**
+   * Enables source map generation.
+   */
+  shouldAddSourcemapSupport?: boolean;
+
+  /**
+   * The runtime to use. Defaults to the auto-detected Node.js version.
+   */
+  runtime?: "nodejs20.x" | "nodejs22.x" | "bun1.x" | (string & {});
+
   [key: string]: unknown;
 }
 
 export interface VercelOptions {
   config: VercelBuildConfigV3;
+
+  /**
+   * If you have enabled skew protection in the Vercel dashboard, it will
+   * be enabled by default.
+   *
+   * You can disable the Nitro integration by setting this option to `false`.
+   */
+  skewProtection?: boolean;
 
   /**
    * If you are using `vercel-edge`, you can specify the region(s) for your edge function.
@@ -90,6 +127,15 @@ export interface VercelOptions {
   regions?: string[];
 
   functions?: VercelServerlessFunctionConfig;
+
+  /**
+   * Handler format to use for Vercel Serverless Functions.
+   *
+   * Using `node` format enables compatibility with Node.js specific APIs in your Nitro application (e.g., `req.runtime.node`).
+   *
+   * Possible values are: `web` (default) and `node`.
+   */
+  entryFormat?: "web" | "node";
 }
 
 /**

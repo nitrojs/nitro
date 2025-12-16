@@ -23,31 +23,18 @@ Integration with this provider is possible with [zero configuration](/deploy/#ze
 
 You can configure advanced options of this preset using `awsAmplify` option.
 
-::code-group
-
 ```ts [nitro.config.ts]
+import { defineNitroConfig } from "nitro/config";
+
 export default defineNitroConfig({
   awsAmplify: {
       // catchAllStaticFallback: true,
       // imageOptimization: { path: "/_image", cacheControl: "public, max-age=3600, immutable" },
       // imageSettings: { ... },
+      // runtime: "nodejs18.x", // default: "nodejs18.x" | "nodejs16.x" | "nodejs20.x"
   }
 })
 ```
-
-```ts [nuxt.config.ts]
-export default defineNuxtConfig({
-  nitro: {
-    awsAmplify: {
-      // catchAllStaticFallback: true,
-      // imageOptimization: { "/_image", cacheControl: "public, max-age=3600, immutable" },
-      // imageSettings: { ... },
-    }
-  }
-})
-```
-
-::
 
 ### `amplify.yml`
 

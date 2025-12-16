@@ -1,20 +1,18 @@
 import { consola } from "consola";
-import { createDebugger, createHooks } from "hookable";
-import { runtimeDir } from "nitro/runtime/meta";
+import { Hookable, createDebugger } from "hookable";
 import type {
   LoadConfigOptions,
   Nitro,
   NitroConfig,
   NitroDynamicConfig,
 } from "nitro/types";
-import { join } from "pathe";
 import { createUnimport } from "unimport";
-import { loadOptions } from "./config/loader";
-import { updateNitroConfig } from "./config/update";
-import { installModules } from "./module";
-import { scanAndSyncOptions, scanHandlers } from "./scan";
-import { addNitroTasksVirtualFile } from "./task";
-import { createStorage } from "./utils/storage";
+import { loadOptions } from "./config/loader.ts";
+import { updateNitroConfig } from "./config/update.ts";
+import { installModules } from "./module.ts";
+import { scanAndSyncOptions, scanHandlers } from "./scan.ts";
+import { initNitroRouting } from "./routing.ts";
+import { registerNitroInstance } from "./global.ts";
 
 export async function createNitro(
   config: NitroConfig = {},
@@ -26,31 +24,33 @@ export async function createNitro(
   // Create nitro context
   const nitro: Nitro = {
     options,
-    hooks: createHooks(),
-    vfs: {},
+    hooks: new Hookable(),
+    vfs: new Map(),
+    routing: {} as any,
     logger: consola.withTag("nitro"),
     scannedHandlers: [],
-    close: () => nitro.hooks.callHook("close"),
-    storage: undefined as any,
+    fetch: () => {
+      throw new Error("no dev server attached!");
+    },
+    close: () => Promise.resolve(nitro.hooks.callHook("close")),
     async updateConfig(config: NitroDynamicConfig) {
       updateNitroConfig(nitro, config);
     },
   };
 
-  // Scan dirs and sync options
+  // Global setup
+  registerNitroInstance(nitro);
+
+  // Init routers
+  initNitroRouting(nitro);
+
+  // Scan dirs (plugins, tasks, modules) and sync options
   // TODO: Make it side-effect free to allow proper watching
   await scanAndSyncOptions(nitro);
-
-  // Storage
-  nitro.storage = await createStorage(nitro);
-  nitro.hooks.hook("close", async () => {
-    await nitro.storage.dispose();
-  });
 
   // Debug
   if (nitro.options.debug) {
     createDebugger(nitro.hooks, { tag: "nitro" });
-    nitro.options.plugins.push(join(runtimeDir, "internal/debug"));
   }
 
   // Logger
@@ -60,9 +60,6 @@ export async function createNitro(
 
   // Hooks
   nitro.hooks.addHooks(nitro.options.hooks);
-
-  // Tasks
-  addNitroTasksVirtualFile(nitro);
 
   // Scan and install modules
   await installModules(nitro);
@@ -80,6 +77,9 @@ export async function createNitro(
 
   // Ensure initial handlers are populated
   await scanHandlers(nitro);
+
+  // Sync routers
+  nitro.routing.sync();
 
   return nitro;
 }

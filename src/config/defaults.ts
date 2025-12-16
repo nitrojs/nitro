@@ -1,17 +1,17 @@
-import { runtimeDir } from "nitro/runtime/meta";
 import type { NitroConfig } from "nitro/types";
-import { resolve } from "pathe";
 import { isDebug, isTest } from "std-env";
 
 export const NitroDefaults: NitroConfig = {
   // General
+  compatibilityDate: "latest",
   debug: isDebug,
   logLevel: isTest ? 1 : 3,
   runtimeConfig: { app: {}, nitro: {} },
 
   // Dirs
+  serverDir: false,
   scanDirs: [],
-  buildDir: ".nitro",
+  buildDir: `node_modules/.nitro`,
   output: {
     dir: "{{ rootDir }}/.output",
     serverDir: "{{ output.dir }}/server",
@@ -19,25 +19,21 @@ export const NitroDefaults: NitroConfig = {
   },
 
   // Features
+  features: {},
   experimental: {},
   future: {},
   storage: {},
   devStorage: {},
-  bundledStorage: [],
   publicAssets: [],
   serverAssets: [],
   plugins: [],
   tasks: {},
   scheduledTasks: {},
-  imports: {
-    exclude: [],
-    dirs: [],
-    presets: [],
-    virtualImports: ["#imports"],
-  },
+  imports: false,
   virtual: {},
   compressPublicAssets: false,
   ignore: [],
+  wasm: {},
 
   // Dev
   dev: false,
@@ -56,6 +52,7 @@ export const NitroDefaults: NitroConfig = {
   handlers: [],
   devHandlers: [],
   errorHandler: undefined,
+  routes: {},
   routeRules: {},
   prerender: {
     autoSubfolderIndex: true,
@@ -71,28 +68,20 @@ export const NitroDefaults: NitroConfig = {
 
   // Rollup
   builder: undefined,
-  analyze: false,
-  moduleSideEffects: ["unenv/polyfill/", resolve(runtimeDir, "polyfill/")],
+  moduleSideEffects: ["unenv/polyfill/"],
   replace: {},
   node: true,
-  sourceMap: true,
-  esbuild: {
-    options: {
-      jsxFactory: "h",
-      jsxFragment: "Fragment",
-    },
-  },
+  sourcemap: false,
+  traceDeps: [],
 
   // Advanced
   typescript: {
     strict: true,
-    generateTsConfig: true,
-    generateRuntimeConfigTypes: true,
-    tsconfigPath: "types/tsconfig.json",
-    internalPaths: false,
-    tsConfig: {},
+    generateRuntimeConfigTypes: false,
+    generateTsConfig: false,
+    tsconfigPath: "tsconfig.json",
+    tsConfig: undefined,
   },
-  nodeModulesDirs: [],
   hooks: {},
   commands: {},
 

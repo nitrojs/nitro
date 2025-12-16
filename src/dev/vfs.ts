@@ -1,41 +1,45 @@
-import { createError, eventHandler, getRequestHeader, getRequestIP } from "h3";
+import { HTTPError, defineHandler, getRequestIP } from "h3";
 import type { Nitro } from "nitro/types";
 
 export function createVFSHandler(nitro: Nitro) {
-  return eventHandler(async (event) => {
-    const ip = getRequestIP(event, { xForwardedFor: false });
+  return defineHandler(async (event) => {
+    const { socket } = event.runtime?.node?.req || {};
+
+    // prettier-ignore
+    const isUnixSocket =
+      // No network addresses
+      (!socket?.remoteAddress && !socket?.localAddress) &&
+      // Empty address object
+      Object.keys(socket?.address?.() || {}).length === 0 &&
+      // Socket is readable/writable but has no port info
+      socket?.readable && socket?.writable && !socket?.remotePort;
+
+    const ip = getRequestIP(event, { xForwardedFor: isUnixSocket });
+
     const isLocalRequest = ip && /^::1$|^127\.\d+\.\d+\.\d+$/.test(ip);
     if (!isLocalRequest) {
-      throw createError({
-        message: `Forbidden IP: "${ip || "?"}"`,
-        statusCode: 403,
+      throw new HTTPError({
+        statusText: `Forbidden IP: "${ip || "?"}"`,
+        status: 403,
       });
     }
 
-    const vfsEntries = {
-      ...nitro.vfs,
-      ...nitro.options.virtual,
-    };
-
-    const url = event.path || "";
+    const url = event.context.params?._ || "";
     const isJson =
       url.endsWith(".json") ||
-      getRequestHeader(event, "accept")?.includes("application/json");
+      event.req.headers.get("accept")?.includes("application/json");
     const id = decodeURIComponent(url.replace(/^(\.json)?\/?/, "") || "");
 
-    if (id && !(id in vfsEntries)) {
-      throw createError({ message: "File not found", statusCode: 404 });
+    if (id && !nitro.vfs.has(id)) {
+      throw new HTTPError({ message: "File not found", status: 404 });
     }
 
-    let content = id ? vfsEntries[id] : undefined;
-    if (typeof content === "function") {
-      content = await content();
-    }
+    const content = id ? await nitro.vfs.get(id)?.render() : undefined;
 
     if (isJson) {
       return {
         rootDir: nitro.options.rootDir,
-        entries: Object.keys(vfsEntries).map((id) => ({
+        entries: [...nitro.vfs.keys()].map((id) => ({
           id,
           path: "/_vfs.json/" + encodeURIComponent(id),
         })),
@@ -49,7 +53,7 @@ export function createVFSHandler(nitro: Nitro) {
     }
 
     const directories: Record<string, any> = { [nitro.options.rootDir]: {} };
-    const fpaths = Object.keys(vfsEntries);
+    const fpaths = [...nitro.vfs.keys()];
 
     for (const item of fpaths) {
       const segments = item
@@ -135,6 +139,7 @@ export function createVFSHandler(nitro: Nitro) {
         </div>
       `;
 
+    event.res.headers.set("Content-Type", "text/html; charset=utf-8");
     return /* html */ `
 <!doctype html>
 <html>

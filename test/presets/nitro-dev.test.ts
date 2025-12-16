@@ -1,6 +1,6 @@
-import type { OpenAPI3 } from "../../src/types/openapi-ts";
+import type { OpenAPI3 } from "../../src/types/openapi-ts.ts";
 import { describe, expect, it } from "vitest";
-import { setupTest, testNitro } from "../tests";
+import { setupTest, testNitro } from "../tests.ts";
 
 describe("nitro:preset:nitro-dev", async () => {
   const ctx = await setupTest("nitro-dev");
@@ -17,16 +17,13 @@ describe("nitro:preset:nitro-dev", async () => {
       };
     },
     (_ctx, callHandler) => {
-      it("returns correct status for devProxy", async () => {
-        const { status } = await callHandler({ url: "/proxy/example" });
-        expect(status).toBe(200);
-      });
-
-      it("dev storage", async () => {
-        const { data } = await callHandler({ url: "/api/storage/dev" });
-        expect(data.keys.length).toBeGreaterThan(0);
-        expect(data.keys).includes("src:public:favicon.ico");
-      });
+      it.skipIf(process.env.OFFLINE)(
+        "returns correct status for devProxy",
+        async () => {
+          const { status } = await callHandler({ url: "/proxy/example" });
+          expect(status).toBe(200);
+        }
+      );
 
       describe("openAPI", () => {
         let spec: OpenAPI3;
