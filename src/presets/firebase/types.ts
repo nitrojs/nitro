@@ -1,4 +1,4 @@
-import type { RuntimeOptions, region } from "firebase-functions";
+import type { RuntimeOptions, region } from "firebase-functions/v1";
 import type { HttpsOptions } from "firebase-functions/v2/https";
 
 export type FirebaseOptions = FirebaseFunctionsOptions | AppHostingOptions;
