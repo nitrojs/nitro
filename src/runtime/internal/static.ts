@@ -76,6 +76,10 @@ export default eventHandler((event) => {
     return;
   }
 
+  if (asset.encoding !== undefined) {
+    appendResponseHeader(event, "Vary", "Accept-Encoding");
+  }
+
   const ifNotMatch = getRequestHeader(event, "if-none-match") === asset.etag;
   if (ifNotMatch) {
     setResponseStatus(event, 304, "Not Modified");

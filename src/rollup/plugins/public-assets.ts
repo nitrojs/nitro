@@ -65,6 +65,19 @@ export function publicAssets(nitro: Nitro): Plugin {
           };
         }
 
+        for (const key in assets) {
+          if (key.endsWith(".gz") || key.endsWith(".br")) {
+            const originalKey = key.replace(/\.(gz|br)$/, "");
+            if (
+              assets[originalKey] &&
+              assets[originalKey].encoding === undefined
+            ) {
+              // Add a flag indicating there is a precompressed version to add Vary header
+              assets[originalKey].encoding = null;
+            }
+          }
+        }
+
         return `export default ${JSON.stringify(assets, null, 2)};`;
       },
       // #nitro-internal-virtual/public-assets-node
