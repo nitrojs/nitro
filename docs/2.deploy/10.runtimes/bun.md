@@ -20,6 +20,6 @@ bun run ./.output/server/index.mjs
 
 ## Environment Variables
 
-You can use the `PORT` or `NITRO_PORT` environment variables to set the server port.
+You can use the `PORT` or `NITRO_PORT` and `HOST` or `NITRO_HOST` environment variables to set the server port.
 
 Use the `NITRO_BUN_IDLE_TIMEOUT` environment variable to change the default [idleTimeout](https://bun.sh/docs/runtime/http/server#idletimeout).
