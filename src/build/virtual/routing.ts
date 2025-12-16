@@ -1,5 +1,6 @@
 import type { Nitro, NitroEventHandler, NitroRouteRules } from "nitro/types";
 import { runtimeDir } from "../../runtime/meta.ts";
+import { join } from "pathe";
 
 export const RuntimeRouteRules = [
   "headers",
@@ -24,7 +25,7 @@ export default function routing(nitro: Nitro) {
       );
 
       return /* js */ `
-import * as __routeRules__ from "${runtimeDir}/internal/route-rules";
+import * as __routeRules__ from "${join(runtimeDir, "internal/route-rules")}";
 import * as srvxNode from "srvx/node"
 import * as h3 from "h3";
 
