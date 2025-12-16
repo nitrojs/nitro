@@ -92,6 +92,18 @@ export interface CloudflareOptions {
      */
     defaultRoutes?: boolean;
   };
+
+  /**
+   * Options for the `cloudflare-durable` preset.
+   */
+  durable?: {
+    /**
+     * The binding name for the Durable Object used by `defineWebSocketHandler`.
+     *
+     * @default "$DurableObject"
+     */
+    bindingName?: string;
+  };
 }
 
 type DurableObjectState = ConstructorParameters<typeof DurableObject>[0];
