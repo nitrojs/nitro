@@ -11,7 +11,8 @@ const cloudflare = defineNitroPreset(
     entry: "./runtime/cloudflare-worker",
     exportConditions: ["workerd"],
     commands: {
-      preview: "npx wrangler dev ./server/index.mjs --site ./public",
+      preview:
+        "npx wrangler dev {{ output.serverDir }}/index.mjs --site {{ output.publicDir }}",
       deploy: "npx wrangler deploy",
     },
     wasm: {
@@ -43,7 +44,8 @@ const cloudflareModuleLegacy = defineNitroPreset(
     entry: "./runtime/cloudflare-module-legacy",
     exportConditions: ["workerd"],
     commands: {
-      preview: "npx wrangler dev ./server/index.mjs --site ./public",
+      preview:
+        "npx wrangler dev {{ output.serverDir }}/index.mjs --site {{ output.publicDir }}",
       deploy: "npx wrangler deploy",
     },
     rollupConfig: {

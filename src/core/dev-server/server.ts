@@ -13,8 +13,7 @@ import {
   fromNodeMiddleware,
   toNodeListener,
 } from "h3";
-import {
-  default as devErrorHandler,
+import devErrorHandler, {
   defaultHandler as devErrorHandlerInternal,
   loadStackTrace,
 } from "../../runtime/internal/error/dev";
@@ -223,6 +222,12 @@ class DevServer {
         fromNodeMiddleware(
           serveStatic(asset.dir, {
             dotfiles: "allow",
+            setHeaders(res, path) {
+              // https://github.com/nitrojs/nitro/issues/3379
+              if (path.endsWith(".gz")) {
+                res.setHeader("Content-Encoding", "gzip");
+              }
+            },
           })
         )
       );

@@ -1,0 +1,11 @@
+{
+  "name": "nitro-playground",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "nitro dev",
+    "build": "nitro build"
+  },
+  "devDependencies": {
+    "nitropack": "^2"
+  }
+}
