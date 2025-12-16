@@ -8,8 +8,7 @@ import replace from "@rollup/plugin-replace";
 import { unwasm } from "unwasm/plugin";
 import { routeMeta } from "./plugins/route-meta.ts";
 import { serverMain } from "./plugins/server-main.ts";
-import { virtual } from "./plugins/virtual.ts";
-import { nitroVirtualDeps } from "./plugins/virtual-deps.ts";
+import { virtual, virtualDeps } from "./plugins/virtual.ts";
 import { sourcemapMinify } from "./plugins/sourcemap-min.ts";
 import { raw } from "./plugins/raw.ts";
 import { externals } from "./plugins/externals.ts";
@@ -22,7 +21,7 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
     virtualTemplates(nitro, [...base.env.polyfill])
   );
   nitro.vfs = virtualPlugin.api.modules;
-  plugins.push(virtualPlugin, nitroVirtualDeps());
+  plugins.push(virtualPlugin, virtualDeps());
 
   // Auto imports
   if (nitro.options.imports) {
