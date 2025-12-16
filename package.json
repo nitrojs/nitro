@@ -18,8 +18,6 @@
     "./config": "./dist/runtime/config.mjs",
     "./context": "./dist/runtime/context.mjs",
     "./database": "./dist/runtime/database.mjs",
-    "./deps/h3": "./lib/deps/h3.mjs",
-    "./deps/ofetch": "./lib/deps/ofetch.mjs",
     "./h3": "./lib/deps/h3.mjs",
     "./meta": "./dist/runtime/meta.mjs",
     "./package.json": "./package.json",

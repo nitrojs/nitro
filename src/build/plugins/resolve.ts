@@ -3,8 +3,6 @@ import type { Plugin } from "rollup";
 
 const subpathMap = {
   "nitro/h3": "h3",
-  "nitro/deps/h3": "h3",
-  "nitro/deps/ofetch": "ofetch",
 };
 
 export function nitroResolveIds(): Plugin {
