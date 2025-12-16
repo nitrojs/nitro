@@ -61,8 +61,8 @@ export default defineCommand({
       const server = new NitroDevServer(nitro);
 
       await server.listen({
-        port: args.port,
-        hostname: args.host,
+        port: args.port || nitro.options.devServer.port,
+        hostname: args.host || nitro.options.devServer.hostname,
       });
       await prepare(nitro);
       await build(nitro);
