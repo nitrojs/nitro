@@ -223,10 +223,10 @@ class DevServer {
           serveStatic(asset.dir, {
             dotfiles: "allow",
             setHeaders(res, path) {
+              // https://github.com/nitrojs/nitro/issues/3379
               if (path.endsWith(".gz")) {
                 res.setHeader("Content-Encoding", "gzip");
               }
-              // Or expand to other encodings if needed
             },
           })
         )
