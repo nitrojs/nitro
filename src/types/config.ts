@@ -342,7 +342,7 @@ export interface PublicAssetDir {
    * pass an array of glob patterns to ignore (which will override global
    * nitro.ignore patterns).
    */
-  ignore: false | string[];
+  ignore?: false | string[];
 }
 
 // Public assets compression
