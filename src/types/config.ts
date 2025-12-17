@@ -337,6 +337,12 @@ export interface PublicAssetDir {
   fallthrough?: boolean;
   maxAge: number;
   dir: string;
+  /**
+   * Pass false to disable ignore patterns when scanning the directory, or
+   * pass an array of glob patterns to ignore (which will override global
+   * nitro.ignore patterns).
+   */
+  ignore: false | string[];
 }
 
 // Public assets compression
