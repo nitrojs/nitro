@@ -24,7 +24,6 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
     resolve: {
       alias: base.aliases,
       extensions: base.extensions,
-      mainFields: ["main"], // "module" is intentionally not supported because of externals
       conditionNames: nitro.options.exportConditions,
     },
     transform: {

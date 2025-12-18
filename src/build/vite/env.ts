@@ -39,7 +39,7 @@ export function createNitroEnvironment(
         : true, // production build is standalone
       conditions: ctx.nitro!.options.exportConditions,
       externalConditions: ctx.nitro!.options.exportConditions?.filter(
-        (c) => !/browser|wasm/.test(c)
+        (c) => !/browser|wasm|module/.test(c)
       ),
     },
     define: {
