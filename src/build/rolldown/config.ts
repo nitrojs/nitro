@@ -24,7 +24,6 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
     resolve: {
       alias: base.aliases,
       extensions: base.extensions,
-      mainFields: ["main"], // "module" is intentionally not supported because of externals
       conditionNames: nitro.options.exportConditions,
     },
     transform: {
@@ -48,6 +47,9 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
         return nitro.options.moduleSideEffects.some((p) => id.startsWith(p));
       },
     },
+    optimization: {
+      inlineConst: true,
+    },
     output: {
       format: "esm",
       entryFileNames: "index.mjs",
@@ -57,7 +59,8 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
       },
       dir: nitro.options.output.serverDir,
       inlineDynamicImports: nitro.options.inlineDynamicImports,
-      minify: nitro.options.minify,
+      // https://github.com/rolldown/rolldown/issues/7235
+      minify: nitro.options.minify ? true : "dce-only",
       sourcemap: nitro.options.sourcemap,
       sourcemapIgnoreList(relativePath) {
         return relativePath.includes("node_modules");

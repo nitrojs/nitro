@@ -199,8 +199,8 @@ importers:
         specifier: ^7.0.0
         version: 7.0.0
       hookable:
-        specifier: 6.0.0-rc.1
-        version: 6.0.0-rc.1
+        specifier: ^6.0.0
+        version: 6.0.0
       httpxy:
         specifier: ^0.1.7
         version: 0.1.7
@@ -4590,8 +4590,8 @@ packages:
   hookable@5.5.3:
     resolution: {integrity: sha512-Yc+BQe8SvoXH1643Qez1zqLRmbA5rCL+sSmk6TVos0LWVfNIB7PGncdlId77WzLGSIB5KaWgTaNTs2lNVEI6VQ==}
 
-  hookable@6.0.0-rc.1:
-    resolution: {integrity: sha512-HTdlk761/7uL1OuzvMicnj5F5pGq+iITNCYuKVXakQGn95zyYl5b8u/t407RrU34Jv0vYMiqtkFXEJKHYSFViQ==}
+  hookable@6.0.0:
+    resolution: {integrity: sha512-mJdm7+WIvB8VymBXXqJbqpXzi8Ahjsnx3p9mvG0kD3YS8jLw3c9VSBGaAVW1Q89M50aBVwQ92z7Gg4FoXwa3QQ==}
 
   html-entities@2.3.3:
     resolution: {integrity: sha512-DV5Ln36z34NNTDgnz0EWGBLZENelNAtkiFA4kyNOG2tDI6Mz1uSWiq1wAKdyjnJwyDiDO7Fa2SO1CTxPXL8VxA==}
@@ -11266,7 +11266,7 @@ snapshots:
 
   hookable@5.5.3: {}
 
-  hookable@6.0.0-rc.1: {}
+  hookable@6.0.0: {}
 
   html-entities@2.3.3: {}
 

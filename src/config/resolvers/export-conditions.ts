@@ -43,7 +43,8 @@ function _resolveExportConditions(
   }
 
   // 5. Add default conditions
-  resolvedConditions.push("import", "default");
+  // "module" is NOT A STANDARD CONDITION but widely used in the ecosystem adding helps with compatibility
+  resolvedConditions.push("import", "default", "module");
 
   // 6. Auto detect bun and deno (builder)
   if ("Bun" in globalThis) {

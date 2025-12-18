@@ -112,7 +112,11 @@ function createNitroApp(): NitroApp {
       if (errors) {
         errors.push({ error, context: errorCtx });
       }
-      if (hasHooks && typeof errorCtx.event.req.waitUntil === "function") {
+      if (
+        hasHooks &&
+        promise &&
+        typeof errorCtx.event.req.waitUntil === "function"
+      ) {
         errorCtx.event.req.waitUntil(promise);
       }
     }

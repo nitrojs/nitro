@@ -50,7 +50,7 @@ export function createHandler<Env>(hooks: {
           controller,
           env,
           context,
-        })
+        }) || Promise.resolve()
       );
       if (import.meta._tasks) {
         context.waitUntil(
@@ -75,7 +75,7 @@ export function createHandler<Env>(hooks: {
           event: message, // backward compat
           env,
           context,
-        })
+        }) || Promise.resolve()
       );
     },
 
@@ -87,7 +87,7 @@ export function createHandler<Env>(hooks: {
           event: batch,
           env,
           context,
-        })
+        }) || Promise.resolve()
       );
     },
 
@@ -98,7 +98,7 @@ export function createHandler<Env>(hooks: {
           traces,
           env,
           context,
-        })
+        }) || Promise.resolve()
       );
     },
 
@@ -109,7 +109,7 @@ export function createHandler<Env>(hooks: {
           traces,
           env,
           context,
-        })
+        }) || Promise.resolve()
       );
     },
   } satisfies ExportedHandler<Env>;

@@ -167,13 +167,14 @@ Make sure to only access environment variables **within the event lifecycle**  a
 
 ```ts
 import { defineHandler } from "nitro/h3";
+import { useRuntimeConfig } from "nitro/runtime-config";
 
 console.log(process.env.SECRET) // note that this is in the global scope! so it doesn't actually work and the variable is undefined!
 
 export default defineHandler((event) => {
   // note that all the below are valid ways of accessing the above mentioned variables
-  useRuntimeConfig(event).helloThere
-  useRuntimeConfig(event).secret
+  useRuntimeConfig().helloThere
+  useRuntimeConfig().secret
   process.env.NITRO_HELLO_THERE
   import.meta.env.SECRET
 });
