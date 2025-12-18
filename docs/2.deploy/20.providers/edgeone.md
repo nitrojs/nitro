@@ -10,7 +10,7 @@
 ## Using the control panel
 
 1. In the [EdgeOne control panel](https://console.tencentcloud.com/edgeone/pages), click **Create project**.
-2. Choose **Import Git repository** as your deployment method. We support deployment on Github, GitLab, Gitee, and CNB.
+2. Choose **Import Git repository** as your deployment method. We support deployment on GitHub, GitLab, Gitee, and CNB.
 3. Choose the GitHub **repository** and **branch** containing your application code.
 4. Complete your project setup.
 5. Click the **Deploy** button.

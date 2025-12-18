@@ -5,7 +5,8 @@ import consola from "consola";
 import { colors } from "consola/utils";
 interface FrameworkRoute {
   path: string;
-  isStatic?: Boolean;
+  isStatic?: boolean;
+  isr?: number;
 }
 
 export async function writeEdgeOneRoutes(nitro: Nitro) {
@@ -67,12 +68,11 @@ export async function writeEdgeOneRoutes(nitro: Nitro) {
     }));
   swrRouteRules.forEach((route) => {
     const maxAge = route.cache.maxAge;
-    meta.frameworkRoutes.map((frameworkRoute) => {
+    meta.frameworkRoutes.forEach((frameworkRoute) => {
       if (frameworkRoute.path === route.path) {
         Reflect.set(frameworkRoute, "isStatic", false);
         Reflect.set(frameworkRoute, "isr", maxAge);
       }
-      return frameworkRoute;
     });
   });
 
