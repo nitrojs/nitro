@@ -77,7 +77,7 @@ export function createServiceEnvironment(
     resolve: {
       conditions: ctx.nitro!.options.exportConditions,
       externalConditions: ctx.nitro!.options.exportConditions?.filter(
-        (c) => !/browser|wasm/.test(c)
+        (c) => !/browser|wasm|module/.test(c)
       ),
     },
     dev: {

@@ -43,7 +43,7 @@ function _resolveExportConditions(
   }
 
   // 5. Add default conditions
-  // "module" is NOT A STANDARD CONDITION but some pOpUlAr packages like tslib use it and can help fixing bundling issues.
+  // "module" is NOT A STANDARD CONDITION but widely used in the ecosystem adding helps with compatibility
   resolvedConditions.push("import", "default", "module");
 
   // 6. Auto detect bun and deno (builder)
