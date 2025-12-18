@@ -147,9 +147,11 @@ export async function prerender(nitro: Nitro) {
     }
 
     // Check for explicitly ignored routes
-    for (const pattern of nitro.options.prerender.ignore) {
-      if (matchesIgnorePattern(route, pattern)) {
-        return false;
+    if (nitro.options.prerender.ignore) {
+      for (const pattern of nitro.options.prerender.ignore) {
+        if (matchesIgnorePattern(route, pattern)) {
+          return false;
+        }
       }
     }
 
@@ -322,7 +324,7 @@ export async function prerender(nitro: Nitro) {
         dataBuff!.toString("utf8"),
         route,
         res,
-        nitro.options.prerender.crawlLinks
+        nitro.options.prerender.crawlLinks ?? false
       );
       for (const _link of extractedLinks) {
         if (canPrerender(_link)) {
@@ -345,7 +347,7 @@ export async function prerender(nitro: Nitro) {
   );
 
   await runParallel(routes, generateRoute, {
-    concurrency: nitro.options.prerender.concurrency,
+    concurrency: nitro.options.prerender.concurrency || 1,
     interval: nitro.options.prerender.interval,
   });
 
