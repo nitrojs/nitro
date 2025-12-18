@@ -16,12 +16,6 @@ export type ExcludeFunctions<G extends Record<string, any>> = Pick<
   { [P in keyof G]: NonNullable<G[P]> extends Function ? never : P }[keyof G]
 >;
 
-export type DeepPartial<T> = T extends (...args: never) => any
-  ? T
-  : T extends Record<string, any>
-    ? { [P in keyof T]?: DeepPartial<T[P]> }
-    : T;
-
 export type KebabCase<
   T extends string,
   A extends string = "",

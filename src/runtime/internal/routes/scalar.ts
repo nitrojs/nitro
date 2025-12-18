@@ -5,13 +5,13 @@ import { useRuntimeConfig } from "../runtime-config.ts";
 // Served as /_scalar
 export default defineHandler((event) => {
   const runtimeConfig = useRuntimeConfig();
-  const title = runtimeConfig.nitro.openAPI?.meta?.title || "API Reference";
-  const description = runtimeConfig.nitro.openAPI?.meta?.description || "";
+  const title = runtimeConfig.nitro?.openAPI?.meta?.title || "API Reference";
+  const description = runtimeConfig.nitro?.openAPI?.meta?.description || "";
   const openAPIEndpoint =
-    runtimeConfig.nitro.openAPI?.route || "./_openapi.json";
+    runtimeConfig.nitro?.openAPI?.route || "./_openapi.json";
 
   // https://github.com/scalar/scalar
-  const _config = runtimeConfig.nitro.openAPI?.ui
+  const _config = runtimeConfig.nitro?.openAPI?.ui
     ?.scalar as ApiReferenceConfiguration;
   const scalarConfig: ApiReferenceConfiguration = {
     ..._config,

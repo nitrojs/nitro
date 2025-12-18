@@ -91,12 +91,10 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
       }
     });
 
-    if (nitro.options.devServer.watch.length > 0) {
+    const devWatch = nitro.options.devServer.watch;
+    if (devWatch && devWatch.length > 0) {
       const debouncedReload = debounce(() => this.reload());
-      this.#watcher = watch(
-        nitro.options.devServer.watch,
-        nitro.options.watchOptions
-      );
+      this.#watcher = watch(devWatch, nitro.options.watchOptions);
       this.#watcher.on("add", debouncedReload).on("change", debouncedReload);
     }
   }

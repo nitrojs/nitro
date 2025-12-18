@@ -110,7 +110,7 @@ export interface VercelServerlessFunctionConfig {
 }
 
 export interface VercelOptions {
-  config: VercelBuildConfigV3;
+  config?: VercelBuildConfigV3;
 
   /**
    * If you have enabled skew protection in the Vercel dashboard, it will

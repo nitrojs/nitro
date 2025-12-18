@@ -190,7 +190,7 @@ export async function writeTypes(nitro: Nitro) {
   if (nitro.options.typescript.generateTsConfig) {
     const tsConfigPath = resolve(
       generatedTypesDir,
-      nitro.options.typescript.tsconfigPath
+      nitro.options.typescript.tsconfigPath || "tsconfig.json"
     );
     const tsconfigDir = dirname(tsConfigPath);
     const tsConfig: TSConfig = defu(nitro.options.typescript.tsConfig, {

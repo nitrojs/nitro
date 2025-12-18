@@ -22,7 +22,6 @@ import type { Preset as UnenvPreset } from "unenv";
 import type { UnimportPluginOptions } from "unimport/unplugin";
 import type { BuiltinDriverName } from "unstorage";
 import type { UnwasmPluginOptions } from "unwasm/plugin";
-import type { DeepPartial } from "./_utils.ts";
 import type {
   EventHandlerFormat,
   NitroDevEventHandler,
@@ -95,12 +94,12 @@ export interface NitroOptions extends PresetOptions {
      *
      * By default this feature will be enabled if there is at least one nitro plugin.
      */
-    runtimeHooks: boolean;
+    runtimeHooks?: boolean;
 
     /**
      * Enable WebSocket support
      */
-    websocket: boolean;
+    websocket?: boolean;
   };
 
   /**
@@ -157,15 +156,15 @@ export interface NitroOptions extends PresetOptions {
     tsconfigPaths?: boolean;
   };
   future: {
-    nativeSWR: boolean;
+    nativeSWR?: boolean;
   };
   serverAssets: ServerAssetDir[];
   publicAssets: PublicAssetDir[];
 
-  imports: UnimportPluginOptions | false;
+  imports: Partial<UnimportPluginOptions> | false;
   modules?: NitroModuleInput[];
   plugins: string[];
-  tasks: { [name: string]: { handler: string; description: string } };
+  tasks: { [name: string]: { handler?: string; description?: string } };
   scheduledTasks: { [cron: string]: string | string[] };
   virtual: Record<string, string | (() => string | Promise<string>)>;
   compressPublicAssets: boolean | CompressOptions;
@@ -174,17 +173,17 @@ export interface NitroOptions extends PresetOptions {
   // Dev
   dev: boolean;
   devServer: {
-    port: number;
-    hostname: string;
-    watch: string[];
+    port?: number;
+    hostname?: string;
+    watch?: string[];
   };
   watchOptions: ChokidarOptions;
   devProxy: Record<string, string | ProxyServerOptions>;
 
   // Logging
   logging: {
-    compressedSizes: boolean;
-    buildSuccess: boolean;
+    compressedSizes?: boolean;
+    buildSuccess?: boolean;
   };
 
   // Routing
@@ -207,26 +206,26 @@ export interface NitroOptions extends PresetOptions {
     /**
      * Prerender HTML routes within subfolders (`/test` would produce `/test/index.html`)
      */
-    autoSubfolderIndex: boolean;
-    concurrency: number;
-    interval: number;
-    crawlLinks: boolean;
-    failOnError: boolean;
-    ignore: Array<
+    autoSubfolderIndex?: boolean;
+    concurrency?: number;
+    interval?: number;
+    crawlLinks?: boolean;
+    failOnError?: boolean;
+    ignore?: Array<
       string | RegExp | ((path: string) => undefined | null | boolean)
     >;
-    ignoreUnprefixedPublicAssets: boolean;
-    routes: string[];
+    ignoreUnprefixedPublicAssets?: boolean;
+    routes?: string[];
     /**
      * Amount of retries. Pass Infinity to retry indefinitely.
      * @default 3
      */
-    retry: number;
+    retry?: number;
     /**
      * Delay between each retry in ms.
      * @default 500
      */
-    retryDelay: number;
+    retryDelay?: number;
   };
 
   // Rollup
@@ -266,12 +265,12 @@ export interface NitroOptions extends PresetOptions {
      *
      * Default is `tsconfig.json` (`node_modules/.nitro/types/tsconfig.json`)
      */
-    tsconfigPath: string;
+    tsconfigPath?: string;
   };
   hooks: NestedHooks<NitroHooks>;
   commands: {
-    preview: string;
-    deploy: string;
+    preview?: string;
+    deploy?: string;
   };
 
   // Framework
@@ -289,7 +288,7 @@ export interface NitroOptions extends PresetOptions {
  */
 export interface NitroConfig
   extends
-    DeepPartial<
+    Partial<
       Omit<
         NitroOptions,
         | "routeRules"
@@ -302,6 +301,7 @@ export interface NitroConfig
         | "_c12"
         | "serverEntry"
         | "renderer"
+        | "output"
       >
     >,
     C12InputConfig<NitroConfig> {
@@ -314,6 +314,7 @@ export interface NitroConfig
   serverDir?: boolean | "./" | "./server" | (string & {});
   serverEntry?: string | NitroOptions["serverEntry"];
   renderer?: false | NitroOptions["renderer"];
+  output?: Partial<NitroOptions["output"]>;
 }
 
 // ------------------------------------------------------------
@@ -388,8 +389,7 @@ export interface NitroRuntimeConfigApp {
 }
 
 export interface NitroRuntimeConfig {
-  app: NitroRuntimeConfigApp;
-  nitro: {
+  nitro?: {
     envPrefix?: string;
     envExpansion?: boolean;
     routeRules?: {

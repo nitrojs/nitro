@@ -24,6 +24,7 @@ export function normalizeRuntimeConfig(config: NitroConfig) {
       },
     } as NitroRuntimeConfig
   );
+  runtimeConfig.nitro ??= {};
   runtimeConfig.nitro.routeRules = config.routeRules;
   checkSerializableRuntimeConfig(runtimeConfig);
   return runtimeConfig as NitroRuntimeConfig;

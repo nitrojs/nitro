@@ -2,6 +2,7 @@ import type { NitroOptions } from "nitro/types";
 
 export async function resolveDatabaseOptions(options: NitroOptions) {
   if (options.experimental.database && options.imports) {
+    options.imports.presets ??= [];
     options.imports.presets.push({
       from: "nitro/database",
       imports: ["useDatabase"],
