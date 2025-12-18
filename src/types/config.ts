@@ -35,8 +35,8 @@ import type { NitroFrameworkInfo } from "./nitro.ts";
 import type { NitroOpenAPIConfig } from "./openapi.ts";
 export type { NitroOpenAPIConfig } from "./openapi.ts";
 import type { NitroPreset } from "./preset.ts";
-import type { OXCOptions } from "./rollup.ts";
-import type { RollupConfig } from "./rollup.ts";
+import type { OXCOptions, RolldownConfig } from "./build.ts";
+import type { RollupConfig } from "./build.ts";
 import type { NitroRouteConfig, NitroRouteRules } from "./route-rules.ts";
 
 /**
@@ -232,6 +232,7 @@ export interface NitroOptions extends PresetOptions {
   // Rollup
   builder?: "rollup" | "rolldown" | "vite";
   rollupConfig?: RollupConfig;
+  rolldownConfig?: RolldownConfig;
   entry: string;
   unenv: UnenvPreset[];
   alias: Record<string, string>;

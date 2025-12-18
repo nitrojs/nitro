@@ -20,6 +20,6 @@ export * from "./module.ts";
 export * from "./nitro.ts";
 export * from "./prerender.ts";
 export * from "./preset.ts";
-export * from "./rollup.ts";
+export * from "./build.ts";
 export * from "./route-rules.ts";
 export * from "./srvx.ts";
