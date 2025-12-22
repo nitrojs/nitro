@@ -65,8 +65,8 @@ importers:
         specifier: ^0.0.1
         version: 0.0.1
       '@hiogawa/vite-plugin-fullstack':
-        specifier: https://pkg.pr.new/hi-ogawa/vite-plugin-fullstack/@hiogawa/vite-plugin-fullstack@6c38cce
-        version: https://pkg.pr.new/hi-ogawa/vite-plugin-fullstack/@hiogawa/vite-plugin-fullstack@6c38cce(vite@8.0.0-beta.2(@types/node@25.0.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
+        specifier: ^0.0.11
+        version: 0.0.11(vite@8.0.0-beta.2(@types/node@25.0.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
       '@netlify/edge-functions':
         specifier: ^3.0.3
         version: 3.0.3
@@ -1476,9 +1476,8 @@ packages:
     peerDependencies:
       vue: ^3.2.0
 
-  '@hiogawa/vite-plugin-fullstack@https://pkg.pr.new/hi-ogawa/vite-plugin-fullstack/@hiogawa/vite-plugin-fullstack@6c38cce':
-    resolution: {integrity: sha512-3rcAwv1ueYW/TZHpkj0fRzX0DgJah8t3KFSUGxNl26Vj76ZhWiJeDtfQGMih8VOO/jq36VF2rRsbbuj14DX8KQ==, tarball: https://pkg.pr.new/hi-ogawa/vite-plugin-fullstack/@hiogawa/vite-plugin-fullstack@6c38cce}
-    version: 0.0.10
+  '@hiogawa/vite-plugin-fullstack@0.0.11':
+    resolution: {integrity: sha512-PEA5TmioqP0aqbWUA2upmgmjap7sqrHFo3+xx2+/B15vBD3uWeeWvJbCeaxjRGbnjPXpxJTZstZv8m0UB8FUQw==}
     peerDependencies:
       vite: ^7.0.0
 
@@ -7851,7 +7850,7 @@ snapshots:
       '@tanstack/vue-virtual': 3.13.13(vue@3.5.25(typescript@5.9.3))
       vue: 3.5.25(typescript@5.9.3)
 
-  '@hiogawa/vite-plugin-fullstack@https://pkg.pr.new/hi-ogawa/vite-plugin-fullstack/@hiogawa/vite-plugin-fullstack@6c38cce(vite@8.0.0-beta.2(@types/node@25.0.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))':
+  '@hiogawa/vite-plugin-fullstack@0.0.11(vite@8.0.0-beta.2(@types/node@25.0.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))':
     dependencies:
       '@rolldown/pluginutils': 1.0.0-beta.55
       magic-string: 0.30.21
