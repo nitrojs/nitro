@@ -17,8 +17,8 @@ onlyBuiltDependencies:
   - sharp
   - workerd
 
-patchedDependencies:
-  '@hiogawa/vite-plugin-fullstack': patches/@hiogawa__vite-plugin-fullstack.patch
+# patchedDependencies:
+#   '@hiogawa/vite-plugin-fullstack': patches/@hiogawa__vite-plugin-fullstack.patch
 
 peerDependencyRules:
   ignoreMissing:

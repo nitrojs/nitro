@@ -24,7 +24,7 @@ import { defu } from "defu";
 import { prettyPath } from "../../utils/fs.ts";
 import { NitroDevApp } from "../../dev/app.ts";
 import { nitroPreviewPlugin } from "./preview.ts";
-import { assetsPlugin } from "@hiogawa/vite-plugin-fullstack";
+import assetsPlugin from "@hiogawa/vite-plugin-fullstack/assets";
 import type { NitroConfig } from "nitro/types";
 
 // https://vite.dev/guide/api-environment-plugins

@@ -8,11 +8,6 @@ overrides:
   nitro: link:.
   undici: ^7.16.0
 
-patchedDependencies:
-  '@hiogawa/vite-plugin-fullstack':
-    hash: aef5693ec569067da78c3402c9b2884429e322ae23571cf5474f77028b4264d1
-    path: patches/@hiogawa__vite-plugin-fullstack.patch
-
 importers:
 
   .:
@@ -70,8 +65,8 @@ importers:
         specifier: ^0.0.1
         version: 0.0.1
       '@hiogawa/vite-plugin-fullstack':
-        specifier: ^0.0.8
-        version: 0.0.8(patch_hash=aef5693ec569067da78c3402c9b2884429e322ae23571cf5474f77028b4264d1)(vite@8.0.0-beta.2(@types/node@25.0.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
+        specifier: https://pkg.pr.new/hi-ogawa/vite-plugin-fullstack/@hiogawa/vite-plugin-fullstack@9e38f9c
+        version: https://pkg.pr.new/hi-ogawa/vite-plugin-fullstack/@hiogawa/vite-plugin-fullstack@9e38f9c(vite@8.0.0-beta.2(@types/node@25.0.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
       '@netlify/edge-functions':
         specifier: ^3.0.3
         version: 3.0.3
@@ -1481,8 +1476,9 @@ packages:
     peerDependencies:
       vue: ^3.2.0
 
-  '@hiogawa/vite-plugin-fullstack@0.0.8':
-    resolution: {integrity: sha512-vzHUjwI1LxI7ThzGFSyNJEMLKk5E3CYZZFbFWqEkLjvAfaqie+/Wk1nGNQE4vKMK54sQEmNVIj/fEQGOnsH9Iw==}
+  '@hiogawa/vite-plugin-fullstack@https://pkg.pr.new/hi-ogawa/vite-plugin-fullstack/@hiogawa/vite-plugin-fullstack@9e38f9c':
+    resolution: {integrity: sha512-Bh7MP8CS7ClFcA89HYZFCixUtVJvKYqwUkI0UD8l2bUHdI/Ujcc4BaFpjZcfs05Y73InOAvrz6N3JSKr2DsFPA==, tarball: https://pkg.pr.new/hi-ogawa/vite-plugin-fullstack/@hiogawa/vite-plugin-fullstack@9e38f9c}
+    version: 0.0.10
     peerDependencies:
       vite: ^7.0.0
 
@@ -7855,10 +7851,11 @@ snapshots:
       '@tanstack/vue-virtual': 3.13.13(vue@3.5.25(typescript@5.9.3))
       vue: 3.5.25(typescript@5.9.3)
 
-  '@hiogawa/vite-plugin-fullstack@0.0.8(patch_hash=aef5693ec569067da78c3402c9b2884429e322ae23571cf5474f77028b4264d1)(vite@8.0.0-beta.2(@types/node@25.0.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))':
+  '@hiogawa/vite-plugin-fullstack@https://pkg.pr.new/hi-ogawa/vite-plugin-fullstack/@hiogawa/vite-plugin-fullstack@9e38f9c(vite@8.0.0-beta.2(@types/node@25.0.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))':
     dependencies:
+      '@rolldown/pluginutils': 1.0.0-beta.55
       magic-string: 0.30.21
-      srvx: 0.8.16
+      srvx: 0.9.8
       strip-literal: 3.1.0
       vite: 8.0.0-beta.2(@types/node@25.0.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
 
