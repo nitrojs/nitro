@@ -24,7 +24,7 @@ const edgeone = defineNitroPreset(
     }
   },
   {
-    name: "edgeone" as const,
+    name: "edgeone-pages" as const,
   }
 );
 

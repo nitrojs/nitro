@@ -1,7 +1,7 @@
-import "#nitro-internal-polyfills";
+import "#nitro/virtual/polyfills";
+import { NodeRequest } from "srvx/node";
 import { useNitroApp } from "nitro/app";
 import type { IncomingMessage } from "node:http";
-import { normalizeHeaders } from "./_utils.ts";
 
 const nitroApp = useNitroApp();
 
@@ -9,23 +9,13 @@ interface EdgeOneRequest extends IncomingMessage {
   url: string;
   method: string;
   headers: Record<string, string | string[] | undefined>;
-  body: string;
 }
 
 // EdgeOne bootstrap expects: async (req, context) => Response
-export default async function handle(req: EdgeOneRequest, context: unknown) {
-  // Build full URL from Node.js request headers
-  const host = req.headers['eo-pages-host'] || req.headers['host'] || 'localhost';
-  const protocol = req.headers['x-forwarded-proto'] || 'https';
-  const url = `${protocol}://${host}${req.url}`;
-
-  // Create Web Request from Node.js request
-  const request = new Request(url, {
-    method: req.method || 'GET',
-    headers: normalizeHeaders(req.headers),
-    body: req.body,
-  });
-
+export default async function handle(req: EdgeOneRequest) {
+  // Use srvx NodeRequest to convert Node.js request to Web Request
+  const request = new NodeRequest({ req });
+  
   return nitroApp.fetch(request);
 }
 
