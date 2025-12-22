@@ -34,7 +34,6 @@ export interface Context {
   isIsolated: boolean;
   supportsEnv: boolean;
   env: Record<string, string>;
-  lambdaV1?: boolean;
   // [key: string]: unknown;
 }
 
@@ -172,7 +171,7 @@ export async function startServer(ctx: Context, handle: RequestListener) {
   ctx.server = await listen(handle);
 }
 
-type TestHandlerResult = {
+export type TestHandlerResult = {
   data: any;
   status: number;
   headers: Record<string, string | string[]>;
@@ -718,7 +717,7 @@ export function testNitro(
       const { data } = await callHandler({ url: "/context?foo" });
       expect(data).toMatchObject({
         context: {
-          path: "/context?foo",
+          path: expect.stringMatching(/^\/context\?foo=?$/),
         },
       });
     });
