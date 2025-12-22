@@ -79,7 +79,7 @@
     "@azure/static-web-apps-cli": "^2.0.7",
     "@cloudflare/workers-types": "^4.20251217.0",
     "@deno/types": "^0.0.1",
-    "@hiogawa/vite-plugin-fullstack": "https://pkg.pr.new/hi-ogawa/vite-plugin-fullstack/@hiogawa/vite-plugin-fullstack@9e38f9c",
+    "@hiogawa/vite-plugin-fullstack": "https://pkg.pr.new/hi-ogawa/vite-plugin-fullstack/@hiogawa/vite-plugin-fullstack@6c38cce",
     "@netlify/edge-functions": "^3.0.3",
     "@netlify/functions": "^5.1.1",
     "@rollup/plugin-alias": "^6.0.0",
