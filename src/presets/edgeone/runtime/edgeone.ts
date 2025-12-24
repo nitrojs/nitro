@@ -15,8 +15,6 @@ interface EdgeOneRequest extends IncomingMessage {
 export default async function handle(req: EdgeOneRequest) {
   // Use srvx NodeRequest to convert Node.js request to Web Request
   const request = new NodeRequest({ req });
-  
+
   return nitroApp.fetch(request);
 }
-
-

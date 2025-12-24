@@ -20,8 +20,8 @@ const edgeone = defineNitroPreset(
     hooks: {
       async compiled(nitro: Nitro) {
         await writeEdgeOneRoutes(nitro);
-      }
-    }
+      },
+    },
   },
   {
     name: "edgeone-pages" as const,

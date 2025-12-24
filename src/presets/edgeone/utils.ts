@@ -14,7 +14,7 @@ export async function writeEdgeOneRoutes(nitro: Nitro) {
   nitro.routing.sync();
   const meta = {
     conf: {
-      ssr404: true
+      ssr404: true,
     },
     frameworkRoutes: [] as FrameworkRoute[],
   };
@@ -31,12 +31,11 @@ export async function writeEdgeOneRoutes(nitro: Nitro) {
       method: route.method || "*",
       handler: Array.isArray(route.data) ? route.data[0] : route.data,
     }));
-  apiRoutes.forEach((route) => {
+  for (const route of apiRoutes) {
     meta.frameworkRoutes.push({
       path: route.path,
     });
-  });
-
+  }
 
   // 2. Get all page routes (prerendered routes)
   const pageRoutes = (nitro._prerenderedRoutes || []).map((route) => ({
@@ -66,15 +65,15 @@ export async function writeEdgeOneRoutes(nitro: Nitro) {
       path,
       cache: rules.cache as { swr?: boolean; maxAge?: number },
     }));
-  swrRouteRules.forEach((route) => {
+  for (const route of swrRouteRules) {
     const maxAge = route.cache.maxAge;
-    meta.frameworkRoutes.forEach((frameworkRoute) => {
+    for (const frameworkRoute of meta.frameworkRoutes) {
       if (frameworkRoute.path === route.path) {
         Reflect.set(frameworkRoute, "isStatic", false);
         Reflect.set(frameworkRoute, "isr", maxAge);
       }
-    });
-  });
+    }
+  }
 
   // Merge all prerender routes
   const allPrerenderRoutes = [
@@ -84,15 +83,21 @@ export async function writeEdgeOneRoutes(nitro: Nitro) {
       ...pageRoutes.map((r) => r.path),
     ]),
   ];
-  allPrerenderRoutes.forEach((route) => {
+  for (const route of allPrerenderRoutes) {
     meta.frameworkRoutes.push({
       path: route,
       isStatic: true,
     });
-  });
+  }
 
-  await writeFile(join(nitro.options.output.dir, "meta.json"), JSON.stringify(meta, null, 2));
-  await writeFile(join(nitro.options.output.serverDir, "meta.json"), JSON.stringify(meta, null, 2));
+  await writeFile(
+    join(nitro.options.output.dir, "meta.json"),
+    JSON.stringify(meta, null, 2)
+  );
+  await writeFile(
+    join(nitro.options.output.serverDir, "meta.json"),
+    JSON.stringify(meta, null, 2)
+  );
 
   // Return all route information
   return {
@@ -110,11 +115,7 @@ function prettyPath(p: string, highlight = true) {
   return highlight ? colors.cyan(p) : p;
 }
 
-async function writeFile(
-  file: string,
-  contents: Buffer | string,
-  log = false
-) {
+async function writeFile(file: string, contents: Buffer | string, log = false) {
   await fsp.mkdir(dirname(file), { recursive: true });
   await fsp.writeFile(
     file,
@@ -125,4 +126,3 @@ async function writeFile(
     consola.info("Generated", prettyPath(file));
   }
 }
-
