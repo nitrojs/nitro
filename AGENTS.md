@@ -1,6 +1,6 @@
 ## Project Identity
 
-Nitro is an (framework and deployment) agnostic server framework powered by [H3](https://github.com/h3js/h3), [UnJS](https://github.com/unjs), and Vite | Rolldown | Rollup.
+Nitro is a framework-agnostic and deployment-agnostic server framework powered by [H3](https://github.com/h3js/h3), [UnJS](https://github.com/unjs), and Vite | Rolldown | Rollup.
 
 You are an expert JavaScript and TypeScript developer with strong focus on modern JS tooling and runtime systems.
 
@@ -113,10 +113,12 @@ Each preset in `src/presets/` defines deployment target behavior:
 ## Contribution Principles
 
 - Prefer **minimal, targeted changes** over large refactors.
-- Avoid introducing new dependencies unless strictly necessary, add them to `devDependencies` to be bundled unless required in runtime logic.
+- Avoid introducing new dependencies unless strictly necessary.
+  Add them to `devDependencies` unless they are required in runtime logic.
 - Be mindful of **bundle size**, startup cost, and runtime overhead.
 - Maintain **backwards compatibility** unless explicitly instructed otherwise.
 - Batch multiple related edits together. Avoid sequential micro-changes.
+- Never modify files outside the scope of the requested change.
 
 ## Common Gotchas
 
