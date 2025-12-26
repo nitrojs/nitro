@@ -69,14 +69,154 @@ You can use [runtime hooks](/docs/plugins#nitro-runtime-hooks) below in order to
 - [`cloudflare:tail`](https://developers.cloudflare.com/workers/runtime-apis/handlers/tail/)
 - `cloudflare:trace`
 
+### Workflows
+
+**Cloudflare Workflows** are durable, fault-tolerant execution environments for orchestrating complex, multi-step operations with automatic retries and state management.
+
+:read-more{title="Cloudflare Workflows" to="https://developers.cloudflare.com/workflows/"}
+
+#### Configuring Workflows
+
+Configure workflows in your `nitro.config.ts`:
+
+```ts [nitro.config.ts]
+export default defineNitroConfig({
+  preset: "cloudflare_module",
+  cloudflare: {
+    deployConfig: true,
+    workflows: [
+      {
+        name: "order-processing",
+        className: "OrderProcessingWorkflow",
+        binding: "ORDER_WORKFLOW"
+      }
+    ]
+  }
+})
+```
+
+#### Defining Workflow Classes
+
+Create workflow classes in `exports.cloudflare.ts`:
+
+```ts [exports.cloudflare.ts]
+export class OrderProcessingWorkflow {
+  async run(event: any, step: any) {
+    // Step 1: Validate order
+    const order = await step.do("validate-order", async () => {
+      return { orderId: event.orderId, valid: true };
+    });
+
+    // Step 2: Process payment
+    await step.do("process-payment", async () => {
+      console.log("Processing payment for:", order.orderId);
+    });
+
+    return { completed: true };
+  }
+}
+```
+
+#### Using Workflows in Routes
+
+Access workflows from your route handlers:
+
+```ts [routes/api/order.ts]
+export default defineEventHandler(async (event) => {
+  const env = event.context.cloudflare?.env;
+
+  // Create a workflow instance
+  const instance = await env.ORDER_WORKFLOW.create({
+    params: { orderId: "123" }
+  });
+
+  return { instanceId: instance.id };
+});
+```
+
+#### Workflow Runtime Hooks
+
+Use runtime hooks to extend workflow behavior:
+
+- `cloudflare:workflow:init` - Called when a workflow is initialized
+- `cloudflare:workflow:run` - Called when a workflow runs
+
+```ts [plugins/workflows.ts]
+export default defineNitroPlugin((nitro) => {
+  nitro.hooks.hook("cloudflare:workflow:run", async (workflow, { event, step }) => {
+    // Custom workflow logic
+  });
+});
+```
+
+:read-more{title="Workflows Example" to="https://github.com/nitrojs/nitro/tree/main/examples/cloudflare-workflows"}
+
+### Containers
+
+**Cloudflare Containers** enable running containerized applications alongside Durable Objects at the edge.
+
+:read-more{title="Cloudflare Containers" to="https://developers.cloudflare.com/containers/"}
+
+::note
+Containers require Durable Objects and are only available in production deployments (not in local dev mode).
+::
+
+#### Configuring Containers
+
+Configure containers in your `nitro.config.ts`:
+
+```ts [nitro.config.ts]
+export default defineNitroConfig({
+  preset: "cloudflare-durable",
+  cloudflare: {
+    deployConfig: true,
+    containers: [
+      {
+        className: "ProcessorDO",
+        image: "./Dockerfile",
+        instanceType: "basic",
+        maxInstances: 10
+      }
+    ]
+  }
+})
+```
+
+#### Container Configuration Options
+
+- `className` - The Durable Object class the container connects to
+- `image` - Path to Dockerfile or image URI
+- `instanceType` - Instance size: `dev`, `basic`, or `standard`
+- `maxInstances` - Maximum number of container instances
+- `imageBuildContext` - Custom build context directory
+- `imageVars` - Build-time environment variables
+- `schedulingPolicy` - Scheduling policy: `regional`, `moon`, or `default`
+
+#### Creating the Durable Object
+
+Containers connect to Durable Objects defined in `exports.cloudflare.ts`:
+
+```ts [exports.cloudflare.ts]
+import { DurableObject } from "cloudflare:workers";
+
+export class ProcessorDO extends DurableObject {
+  async fetch(request: Request) {
+    // Handle requests from your Worker or Container
+    return new Response("Hello from Durable Object!");
+  }
+}
+```
+
+:read-more{title="Containers Example" to="https://github.com/nitrojs/nitro/tree/main/examples/cloudflare-containers"}
+
 ### Additional Exports
 
 You can add a `exports.cloudflare.ts` file to your project root to export additional handlers or properties to the Cloudflare Worker entrypoint.
 
 ```ts [exports.cloudflare.ts]
-export class MyWorkflow extends WorkflowEntrypoint {
-  async run(event: WorkflowEvent, step: WorkflowStep) {
-    // ...
+export class MyWorkflow {
+  async run(event: any, step: any) {
+    // Workflow logic
   }
 }
 ```

@@ -330,6 +330,42 @@ export async function writeWranglerConfig(
     }
   }
 
+  // Workflows configuration
+  if (nitro.options.cloudflare?.workflows?.length) {
+    wranglerConfig.workflows = nitro.options.cloudflare.workflows.map(
+      (workflow) => ({
+        binding: workflow.binding,
+        name: workflow.name,
+        class_name: workflow.className,
+        ...(workflow.scriptName && { script_name: workflow.scriptName }),
+      })
+    );
+  }
+
+  // Containers configuration
+  if (nitro.options.cloudflare?.containers?.length) {
+    wranglerConfig.containers = nitro.options.cloudflare.containers.map(
+      (container) => ({
+        name: container.name,
+        class_name: container.className,
+        image: container.image,
+        ...(container.instanceType && {
+          instance_type: container.instanceType,
+        }),
+        ...(container.maxInstances && {
+          max_instances: container.maxInstances,
+        }),
+        ...(container.imageBuildContext && {
+          image_build_context: container.imageBuildContext,
+        }),
+        ...(container.imageVars && { image_vars: container.imageVars }),
+        ...(container.schedulingPolicy && {
+          scheduling_policy: container.schedulingPolicy,
+        }),
+      })
+    );
+  }
+
   // Write wrangler.json
   await writeFile(
     wranglerConfigPath,

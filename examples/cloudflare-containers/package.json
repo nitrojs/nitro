@@ -1,0 +1,15 @@
+{
+  "name": "example-cloudflare-containers",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nitro dev",
+    "build": "nitro build",
+    "preview": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "nitro": "workspace:*",
+    "wrangler": "^3.94.0"
+  }
+}

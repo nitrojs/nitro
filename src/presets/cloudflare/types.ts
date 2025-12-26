@@ -97,6 +97,64 @@ export interface CloudflareOptions {
    * Custom Cloudflare exports additional classes such as WorkflowEntrypoint.
    */
   exports?: string;
+
+  /**
+   * Cloudflare Workflows configuration.
+   *
+   * Workflows are durable, fault-tolerant execution environments for orchestrating complex operations.
+   *
+   * @see https://developers.cloudflare.com/workflows/
+   */
+  workflows?: WorkflowConfig[];
+
+  /**
+   * Cloudflare Containers configuration.
+   *
+   * Containers enable running containerized applications alongside Durable Objects.
+   *
+   * @see https://developers.cloudflare.com/containers/
+   */
+  containers?: ContainerConfig[];
+}
+
+/**
+ * Simplified Workflow configuration for Nitro.
+ *
+ * This will be transformed into wrangler-compatible format.
+ */
+export interface WorkflowConfig {
+  /** The name of the Workflow */
+  name: string;
+  /** The exported class name of the Workflow */
+  className: string;
+  /** The binding name used to refer to the Workflow from your Worker */
+  binding: string;
+  /** The script where the Workflow is defined (if it's external to this Worker) */
+  scriptName?: string;
+}
+
+/**
+ * Simplified Container configuration for Nitro.
+ *
+ * This will be transformed into wrangler-compatible format.
+ */
+export interface ContainerConfig {
+  /** Name of the container application (defaults to worker_name-class_name) */
+  name?: string;
+  /** The class name of the Durable Object the container is connected to */
+  className: string;
+  /** The path to a Dockerfile, or an image URI for the Cloudflare registry */
+  image: string;
+  /** The instance type to be used for the container */
+  instanceType?: "dev" | "basic" | "standard";
+  /** Number of maximum application instances */
+  maxInstances?: number;
+  /** Build context of the application */
+  imageBuildContext?: string;
+  /** Image variables to be passed along the image at build time */
+  imageVars?: Record<string, string>;
+  /** The scheduling policy of the application */
+  schedulingPolicy?: "regional" | "moon" | "default";
 }
 
 type DurableObjectState = ConstructorParameters<typeof DurableObject>[0];
@@ -146,5 +204,22 @@ declare module "nitro/types" {
     ) => void;
 
     "cloudflare:durable:alarm": (durable: DurableObject) => void;
+
+    // https://developers.cloudflare.com/workflows/
+    "cloudflare:workflow:init": (
+      workflow: unknown,
+      _: {
+        env: unknown;
+        ctx: ExecutionContext;
+      }
+    ) => void;
+
+    "cloudflare:workflow:run": (
+      workflow: unknown,
+      _: {
+        event: unknown;
+        step: unknown;
+      }
+    ) => void;
   }
 }
