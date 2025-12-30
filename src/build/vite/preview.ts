@@ -68,7 +68,7 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
       consola.info(buildInfo.commands?.preview);
       console.log("");
 
-      const { getRandomPort } = await import("get-port-please");
+      const { getRandomPort, waitForPort } = await import("get-port-please");
       const randomPort = await getRandomPort();
       const child = spawn(command, args, {
         stdio: "inherit",
@@ -116,6 +116,8 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
           res.end(`Nitro preview server is not running.`);
         }
       });
+
+      await waitForPort(randomPort, { retries: 20, delay: 500 });
     },
   } satisfies VitePlugin;
 }
