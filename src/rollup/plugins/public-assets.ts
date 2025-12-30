@@ -43,8 +43,11 @@ export function publicAssets(nitro: Nitro): Plugin {
             }
             const fullPath = resolve(nitro.options.output.publicDir, id);
 
-            const [assetData, stat] = await Promise.all([fsp.readFile(fullPath), fsp.stat(fullPath)])
-            
+            const [assetData, stat] = await Promise.all([
+              fsp.readFile(fullPath),
+              fsp.stat(fullPath),
+            ]);
+
             const etag = createEtag(assetData);
             const assetId = "/" + decodeURIComponent(id);
 
