@@ -80,7 +80,7 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
         },
       });
 
-      const killChild = (signal: NodeJS.Signals = "SIGTERM") => {
+      const killChild = (signal: NodeJS.Signals) => {
         if (child && !child.killed) {
           child.kill(signal);
         }
@@ -94,11 +94,11 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
         });
       }
 
-      server.httpServer.on("close", () => {
-        killChild();
+      server.httpServer.once("close", () => {
+        killChild("SIGTERM");
       });
 
-      child.on("exit", (code) => {
+      child.once("exit", (code) => {
         if (code && code !== 0) {
           consola.error(`[nitro] Preview server exited with code ${code}`);
         }
