@@ -1,4 +1,4 @@
-import type { getViteRollupConfig } from "./rollup.ts";
+import type { getViteRollupConfig } from "./bundler.ts";
 import type { EnvRunner, Nitro, NitroConfig, NitroModule } from "nitro/types";
 import type { NitroDevApp } from "../../dev/app.ts";
 
