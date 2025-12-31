@@ -41,9 +41,12 @@ export default function publicAssets(nitro: Nitro) {
               mimeType += "; charset=utf-8";
             }
             const fullPath = resolve(nitro.options.output.publicDir, id);
-            const assetData = await fsp.readFile(fullPath);
+            const [assetData, stat] = await Promise.all([
+              fsp.readFile(fullPath),
+              fsp.stat(fullPath),
+            ]);
+
             const etag = createEtag(assetData);
-            const stat = await fsp.stat(fullPath);
 
             const assetId = joinURL(
               nitro.options.baseURL,
