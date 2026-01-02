@@ -66,7 +66,7 @@ export const NitroDefaults: NitroConfig = {
     routes: [],
   },
 
-  // Rollup
+  // Builder
   builder: undefined,
   moduleSideEffects: ["unenv/polyfill/"],
   replace: {},
