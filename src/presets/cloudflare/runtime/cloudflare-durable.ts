@@ -52,6 +52,16 @@ export default createHandler<Env>({
     // Websocket upgrade
     // https://crossws.unjs.io/adapters/cloudflare#durable-objects
     if (hasWebSocket && request.headers.get("upgrade") === "websocket") {
+      // Ensure Cloudflare bindings are available on `peer.context` inside WebSocket handlers.
+      // crossws will forward `request.context` to `peer.context`.
+      let wsContext = (request as any).context;
+      if (!wsContext) {
+        wsContext = {};
+        Object.defineProperty(request as any, "context", { enumerable: true, value: wsContext });
+      }
+      wsContext.cloudflare ||= {};
+      wsContext.cloudflare.env ||= env;
+      wsContext.cloudflare.context ||= context;
       return ws!.handleUpgrade(request, env, context);
     }
   },
