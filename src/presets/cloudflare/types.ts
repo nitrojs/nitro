@@ -97,6 +97,20 @@ export interface CloudflareOptions {
    * Custom Cloudflare exports additional classes such as WorkflowEntrypoint.
    */
   exports?: string;
+
+  /**
+   * Options for Durable Objects.
+   */
+  durable?: {
+    /**
+     * The binding name for the Durable Object used by `defineWebSocketHandler`.
+     *
+     * Must match the `name` field in your wrangler.json `durable_objects.bindings` config.
+     *
+     * @default "$DurableObject"
+     */
+    bindingName?: string;
+  };
 }
 
 type DurableObjectState = ConstructorParameters<typeof DurableObject>[0];
