@@ -6,12 +6,16 @@ import { nitro } from "nitro/vite";
 export default defineConfig({
   plugins: [
     nitro({
-      services: {
-        ssr: {
-          entry: "./src/framework/entry.ssr.tsx",
-        },
-        rsc: {
-          entry: "./src/framework/entry.rsc.tsx",
+      experimental: {
+        vite: {
+          services: {
+            ssr: {
+              entry: "./src/framework/entry.ssr.tsx",
+            },
+            rsc: {
+              entry: "./src/framework/entry.rsc.tsx",
+            },
+          },
         },
       },
     }) as any,

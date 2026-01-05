@@ -21,12 +21,6 @@ export interface NitroPluginConfig extends NitroConfig {
    */
   _nitro?: Nitro;
 
-  /**
-   * Additional Vite environment services to register.
-   * TODO: move to experimental.vite.services
-   */
-  services?: Record<string, ServiceConfig>;
-
   experimental?: NitroConfig["experimental"] & {
     vite: {
       /**
@@ -40,7 +34,12 @@ export interface NitroPluginConfig extends NitroConfig {
        *
        * @default true
        */
-      serverReload: boolean;
+      serverReload?: boolean;
+
+      /**
+       * Additional Vite environment services to register.
+       */
+      services?: Record<string, ServiceConfig>;
     };
   };
 }

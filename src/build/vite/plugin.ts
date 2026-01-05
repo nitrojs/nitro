@@ -285,7 +285,7 @@ function nitroService(ctx: NitroPluginContext): VitePlugin {
 function createContext(pluginConfig: NitroPluginConfig): NitroPluginContext {
   return {
     pluginConfig,
-    services: { ...pluginConfig.services },
+    services: { ...pluginConfig.experimental?.vite?.services },
     _entryPoints: {},
   };
 }
