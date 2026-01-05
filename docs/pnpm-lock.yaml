@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       shaders:
-        specifier: ^2.2.24
-        version: 2.2.24
+        specifier: ^2.2.40
+        version: 2.2.40
       undocs:
         specifier: ^0.4.11
         version: 0.4.11(@babel/parser@7.28.4)(@netlify/blobs@9.1.2)(@parcel/watcher@2.5.1)(@types/node@24.2.0)(@vue/compiler-sfc@3.5.21)(@vueuse/core@13.9.0(vue@3.5.21(typescript@5.9.2)))(db0@0.3.2)(embla-carousel@8.6.0)(ioredis@5.7.0)(jwt-decode@4.0.0)(lightningcss@1.30.1)(magicast@0.3.5)(rollup@4.50.2)(terser@5.43.1)(typescript@5.9.2)(vite@7.1.6(@types/node@24.2.0)(jiti@2.5.1)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.8.1))(yaml@2.8.1)(zod@3.25.76)
@@ -4165,8 +4165,8 @@ packages:
   setprototypeof@1.2.0:
     resolution: {integrity: sha512-E5LDX7Wrp85Kil5bhZv46j8jOeboKq5JMmYM3gVGdGH8xFpPWXUMsNrlODCrkoxMEeNi/XZIwuRvY4XNwYMJpw==}
 
-  shaders@2.2.24:
-    resolution: {integrity: sha512-9LkEpX5mxEspWPAJ0tgpNkp0iB6Jod0xkkPjB2lvhbuF4i012y0OKOuWCbezETlptgxubp4Q3qIahipAIKqV6g==}
+  shaders@2.2.40:
+    resolution: {integrity: sha512-TIQDd2IQ1ZyEJnmtsZkBvgiBqy111qlXBEzhRZuXdN6JPIompCJPnVRD8fMv/LNx3rs8NQxRx/3cshT3aQx1WQ==}
 
   shebang-command@2.0.0:
     resolution: {integrity: sha512-kHxr2zZpYtdmrN1qDjrrX/Z1rR1kG8Dx+gkpK1G4eXmvXswmcE1hTWBWYUzlraYw1/yZp6YuDY77YtvbN0dmDA==}
@@ -4379,6 +4379,9 @@ packages:
 
   text-decoder@1.2.3:
     resolution: {integrity: sha512-3/o9z3X0X0fTupwsYvR03pJ/DjWuqqrfwBgTQzdWDiQSm9KitAyz/9WqsT2JQW7KV2m+bC2ol/zqpW37NHxLaA==}
+
+  three@0.181.2:
+    resolution: {integrity: sha512-k/CjiZ80bYss6Qs7/ex1TBlPD11whT9oKfT8oTGiHa34W4JRd1NiH/Tr1DbHWQ2/vMUypxksLnF2CfmlmM5XFQ==}
 
   tiny-inflate@1.0.3:
     resolution: {integrity: sha512-pkY1fj1cKHb2seWDy0B16HeWyczlJA9/WW3u3c4z/NiWDsO3DOU5D7nhTLE9CF0yXv/QZFY7sEJmj24dK+Rrqw==}
@@ -10049,7 +10052,9 @@ snapshots:
 
   setprototypeof@1.2.0: {}
 
-  shaders@2.2.24: {}
+  shaders@2.2.40:
+    dependencies:
+      three: 0.181.2
 
   shebang-command@2.0.0:
     dependencies:
@@ -10288,6 +10293,8 @@ snapshots:
   text-decoder@1.2.3:
     dependencies:
       b4a: 1.6.7
+
+  three@0.181.2: {}
 
   tiny-inflate@1.0.3: {}
 
