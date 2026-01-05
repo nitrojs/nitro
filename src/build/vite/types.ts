@@ -21,6 +21,11 @@ export interface NitroPluginConfig extends NitroConfig {
    */
   _nitro?: Nitro;
 
+  /**
+   * Additional Vite environment services to register.
+   */
+  services?: Record<string, ServiceConfig>;
+
   experimental?: NitroConfig["experimental"] & {
     vite: {
       /**
