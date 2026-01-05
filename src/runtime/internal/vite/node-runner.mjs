@@ -10,19 +10,6 @@ const envs = (globalThis.__nitro_vite_envs__ ??= {
   ssr: undefined,
 });
 
-// define __VITE_ENVIRONMENT_RUNNER_IMPORT__ for RSC support
-// https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-rsc/README.md#__vite_environment_runner_import__
-globalThis.__VITE_ENVIRONMENT_RUNNER_IMPORT__ = async function (
-  environmentName,
-  id
-) {
-  const env = envs[environmentName];
-  if (!env) {
-    throw new Error(`Vite environment "${environmentName}" is not registered`);
-  }
-  return env.runner.import(id);
-};
-
 class EnvRunner {
   constructor({ name, entry }) {
     this.name = name;
@@ -167,6 +154,22 @@ parentPort.on("message", (payload) => {
 // Trap unhandled errors to avoid worker crash
 process.on("unhandledRejection", (error) => console.error(error));
 process.on("uncaughtException", (error) => console.error(error));
+
+// ----- RSC Support -----
+
+// define __VITE_ENVIRONMENT_RUNNER_IMPORT__ for RSC support
+// https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-rsc/README.md#__vite_environment_runner_import__
+
+globalThis.__VITE_ENVIRONMENT_RUNNER_IMPORT__ = async function (
+  environmentName,
+  id
+) {
+  const env = envs[environmentName];
+  if (!env) {
+    throw new Error(`Vite environment "${environmentName}" is not registered`);
+  }
+  return env.runner.import(id);
+};
 
 // ----- Server -----
 
