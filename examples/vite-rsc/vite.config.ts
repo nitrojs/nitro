@@ -1,6 +1,6 @@
-import rsc from '@vitejs/plugin-rsc'
-import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
+import rsc from "@vitejs/plugin-rsc";
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
 import { nitro } from "nitro/vite";
 
 export default defineConfig({
@@ -46,7 +46,7 @@ export default defineConfig({
       build: {
         rollupOptions: {
           input: {
-            index: './src/framework/entry.rsc.tsx',
+            index: "./src/framework/entry.rsc.tsx",
           },
         },
       },
@@ -60,7 +60,7 @@ export default defineConfig({
       build: {
         rollupOptions: {
           input: {
-            index: './src/framework/entry.ssr.tsx',
+            index: "./src/framework/entry.ssr.tsx",
           },
         },
       },
@@ -76,10 +76,10 @@ export default defineConfig({
       build: {
         rollupOptions: {
           input: {
-            index: './src/framework/entry.browser.tsx',
+            index: "./src/framework/entry.browser.tsx",
           },
         },
       },
     },
   },
-})
+});
