@@ -20,6 +20,6 @@
     "@vitejs/plugin-rsc": "https://pkg.pr.new/@vitejs/plugin-rsc@687458d",
     "nitro": "latest",
     "rsc-html-stream": "^0.0.7",
-    "vite": "^7.3.0"
+    "vite": "beta"
   }
 }

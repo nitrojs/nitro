@@ -18,7 +18,7 @@ export default defineConfig({
           },
         },
       },
-    }) as any,
+    }),
     rsc({
       serverHandler: false,
     }),
