@@ -1,11 +1,3 @@
-import type { NitroPluginContext } from "./types.ts";
-import type {
-  DevEnvironmentContext,
-  HotChannel,
-  ResolvedConfig,
-  ViteDevServer,
-} from "vite";
-
 import { IncomingMessage, ServerResponse } from "node:http";
 import { NodeRequest, sendNodeResponse } from "srvx/node";
 import { DevEnvironment } from "vite";
@@ -16,70 +8,69 @@ import { debounce } from "perfect-debounce";
 import { scanHandlers } from "../../scan.ts";
 import { getEnvRunner } from "./env.ts";
 
+import type { Runner } from "nitro/types";
+import type { NitroPluginContext } from "./types.ts";
+import type {
+  DevEnvironmentContext,
+  HotChannel,
+  ResolvedConfig,
+  ViteDevServer,
+} from "vite";
+
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
 
 // ---- Types ----
 
 export type FetchHandler = (req: Request) => Promise<Response>;
 
-export interface TransportHooks {
-  sendMessage: (data: any) => void;
-  onMessage: (listener: (value: any) => void) => void;
-  offMessage: (listener: (value: any) => void) => void;
-}
-
-export interface DevServer extends TransportHooks {
-  fetch: FetchHandler;
-  init?: () => void | Promise<void>;
-}
-
 // ---- Fetchable Dev Environment ----
 
 export function createFetchableDevEnvironment(
   name: string,
   config: ResolvedConfig,
-  devServer: DevServer,
+  runner: Runner,
   entry: string
 ): FetchableDevEnvironment {
-  const transport = createTransport(name, devServer);
+  const transport = createTransport(name, runner);
   const context: DevEnvironmentContext = { hot: true, transport };
-  return new FetchableDevEnvironment(name, config, context, devServer, entry);
+  return new FetchableDevEnvironment(name, config, context, runner, entry);
 }
 
 export class FetchableDevEnvironment extends DevEnvironment {
-  devServer: DevServer;
+  runner: Runner;
+  opts: { name: string; entry: string };
 
   constructor(
     name: string,
     config: ResolvedConfig,
     context: DevEnvironmentContext,
-    devServer: DevServer,
+    runner: Runner,
     entry: string
   ) {
     super(name, config, context);
-    this.devServer = devServer;
-
-    this.devServer.sendMessage({
-      type: "custom",
-      event: "nitro:vite-env",
-      data: { name, entry },
-    });
+    this.runner = runner;
+    this.opts = { name, entry };
   }
 
   async dispatchFetch(request: Request): Promise<Response> {
-    return this.devServer.fetch(request);
+    return this.runner.fetch(request);
   }
 
   override async init(...args: any[]): Promise<void> {
-    await this.devServer.init?.();
+    this.runner.sendMessage({
+      type: "custom",
+      event: "nitro:vite-env",
+      data: { name: this.opts.name, entry: this.opts.entry },
+    });
+    // await this.runner.init?.();
     return super.init(...args);
   }
 }
 
-function createTransport(name: string, hooks: TransportHooks): HotChannel {
+function createTransport(name: string, runner: Runner): HotChannel {
   const listeners = new WeakMap();
   return {
-    send: (data) => hooks.sendMessage({ ...data, viteEnv: name }),
+    send: (data) => runner.sendMessage({ ...data, viteEnv: name }),
     on: (event: string, handler: any) => {
       if (event === "connection") return;
       const listener = (value: any) => {
@@ -90,18 +81,18 @@ function createTransport(name: string, hooks: TransportHooks): HotChannel {
         ) {
           handler(value.data, {
             send: (payload: any) =>
-              hooks.sendMessage({ ...payload, viteEnv: name }),
+              runner.sendMessage({ ...payload, viteEnv: name }),
           });
         }
       };
       listeners.set(handler, listener);
-      hooks.onMessage(listener);
+      runner.onMessage(listener);
     },
     off: (event, handler) => {
       if (event === "connection") return;
       const listener = listeners.get(handler);
       if (listener) {
-        hooks.offMessage(listener);
+        runner.offMessage(listener);
         listeners.delete(handler);
       }
     },
@@ -188,13 +179,13 @@ export async function configureViteDevServer(
         );
     },
   };
-  nitroEnv.devServer.onMessage(async (payload) => {
+  nitroEnv.runner.onMessage(async (payload: any) => {
     if (payload.type === "custom" && payload.event === "nitro:vite-invoke") {
       const methodName = payload.data.name as keyof typeof hostIPC;
       const res = await hostIPC[methodName](payload.data.data)
         .then((data) => ({ data }))
         .catch((error) => ({ error }));
-      nitroEnv.devServer.sendMessage({
+      nitroEnv.runner.sendMessage({
         type: "custom",
         event: "nitro:vite-invoke-response",
         data: { id: payload.data.id, data: res },

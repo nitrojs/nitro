@@ -1,4 +1,3 @@
-import type { EnvRunnerData } from "../runner/node.ts";
 import type { NitroConfig } from "./config.ts";
 import type { Nitro, NitroTypes } from "./nitro.ts";
 import type { PrerenderRoute } from "./prerender.ts";
@@ -11,10 +10,7 @@ export interface NitroHooks {
   "build:before": (nitro: Nitro) => HookResult;
   "rollup:before": (nitro: Nitro, config: RollupConfig) => HookResult;
   compiled: (nitro: Nitro) => HookResult;
-  "dev:reload": (payload?: {
-    entry?: string;
-    workerData?: EnvRunnerData;
-  }) => HookResult;
+  "dev:reload": (payload?: { entry?: string; workerData?: any }) => HookResult;
   "dev:start": () => HookResult;
   "dev:error": (cause?: unknown) => HookResult;
   "rollup:reload": () => HookResult;

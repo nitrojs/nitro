@@ -1,34 +1,41 @@
 import type { IncomingMessage, OutgoingMessage } from "node:http";
 import type { Duplex } from "node:stream";
 
-export type FetchHandler = (req: Request) => Promise<Response>;
-
 export type RunnerMessageListener = (data: unknown) => void;
 
-export type UpgradeHandler = (
-  req: IncomingMessage,
-  socket: OutgoingMessage<IncomingMessage> | Duplex,
-  head: any
-) => void;
+export type RunnerAddress = { host: string; port: number; socketPath?: string };
 
-export interface RunnerRPCHooks {
+export type RunnerHooks = {
+  onClose?: ((worker: Runner, cause?: unknown) => void) | undefined;
+  onReady?: ((worker: Runner, address?: RunnerAddress) => void) | undefined;
+};
+
+export type RunnerOptions = {
+  id: string;
+  entry?: string;
+  hooks?: RunnerHooks;
+  data?: any;
+};
+
+export declare class Runner {
+  // State
+  readonly ready?: boolean;
+  readonly closed?: boolean;
+
+  // Lifecycle
+  constructor(opts: RunnerOptions);
+  close(): void | Promise<void>;
+
+  // Server
+  fetch: (req: Request) => Promise<Response>;
+  upgrade?: (
+    req: IncomingMessage,
+    socket: OutgoingMessage<IncomingMessage> | Duplex,
+    head: any
+  ) => void;
+
+  // RPC
   sendMessage: (message: unknown) => void;
   onMessage: (listener: RunnerMessageListener) => void;
   offMessage: (listener: RunnerMessageListener) => void;
-}
-
-export type WorkerAddress = { host: string; port: number; socketPath?: string };
-
-export interface WorkerHooks {
-  onClose?: (worker: EnvRunner, cause?: unknown) => void;
-  onReady?: (worker: EnvRunner, address?: WorkerAddress) => void;
-}
-
-export interface EnvRunner extends WorkerHooks, RunnerRPCHooks {
-  readonly ready: boolean;
-  readonly closed: boolean;
-
-  fetch: FetchHandler;
-  upgrade?: UpgradeHandler;
-  close(): Promise<void>;
 }

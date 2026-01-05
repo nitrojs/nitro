@@ -1,4 +1,4 @@
-import type { Nitro, NitroBuildInfo, WorkerAddress } from "nitro/types";
+import type { Nitro, NitroBuildInfo, RunnerAddress } from "nitro/types";
 import { join, relative, resolve } from "pathe";
 import { version as nitroVersion } from "nitro/meta";
 import { presetsWithConfig } from "../presets/_types.gen.ts";
@@ -83,7 +83,7 @@ export async function writeBuildInfo(nitro: Nitro): Promise<NitroBuildInfo> {
 
 export async function writeDevBuildInfo(
   nitro: Nitro,
-  addr?: WorkerAddress
+  addr?: RunnerAddress
 ): Promise<void> {
   const buildInfoPath = join(
     nitro.options.rootDir,

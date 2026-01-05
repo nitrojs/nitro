@@ -1,19 +1,23 @@
 import type { EnvironmentOptions, RollupCommonJSOptions } from "vite";
 import type { NitroPluginContext, ServiceConfig } from "./types.ts";
 
-import { NodeEnvRunner } from "../../runner/node.ts";
+import { NodeWorkerRunner } from "../../runner/node-worker.ts";
 import { join, resolve } from "node:path";
 import { runtimeDependencies, runtimeDir } from "nitro/meta";
 import { resolveModulePath } from "exsolve";
 import { createFetchableDevEnvironment } from "./dev.ts";
 import { isAbsolute } from "pathe";
 import type { RolldownOptions } from "rolldown";
+import { RunnerPool } from "../../runner/pool.ts";
 
 export function getEnvRunner(ctx: NitroPluginContext) {
-  return (ctx._envRunner ??= new NodeEnvRunner({
-    name: "nitro-vite",
-    entry: resolve(runtimeDir, "internal/vite/node-runner.mjs"),
-    data: { server: true },
+  return (ctx.runner ??= new RunnerPool({
+    runner: NodeWorkerRunner,
+    runnerOptions: {
+      entry: resolve(runtimeDir, "internal/vite/node-runner.mjs"),
+      data: { server: true },
+      hooks: {},
+    },
   }));
 }
 

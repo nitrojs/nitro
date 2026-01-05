@@ -3,42 +3,37 @@ import type { Duplex } from "node:stream";
 import type { HTTPProxy } from "./proxy.ts";
 import type {
   RunnerMessageListener,
-  EnvRunner,
-  WorkerAddress,
-  WorkerHooks,
+  Runner,
+  RunnerAddress,
+  RunnerHooks,
 } from "nitro/types";
 
+import consola from "consola";
 import { existsSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { Worker } from "node:worker_threads";
-import consola from "consola";
 import { isCI, isTest } from "std-env";
 import { createHTTPProxy, fetchAddress } from "./proxy.ts";
 
-export interface EnvRunnerData {
-  name?: string;
-  [key: string]: unknown;
-}
-
-export class NodeEnvRunner implements EnvRunner {
+export class NodeWorkerRunner implements Runner {
   closed: boolean = false;
 
-  #name: string;
+  #id: string;
   #entry: string;
-  #data?: EnvRunnerData;
-  #hooks: Partial<WorkerHooks>;
+  #data?: any;
+  #hooks: Partial<RunnerHooks>;
   #worker?: Worker & { _exitCode?: number };
-  #address?: WorkerAddress;
+  #address?: RunnerAddress;
   #proxy?: HTTPProxy;
   #messageListeners: Set<(data: unknown) => void>;
 
   constructor(opts: {
-    name: string;
+    id: string;
     entry: string;
-    hooks?: WorkerHooks;
-    data?: EnvRunnerData;
+    hooks?: RunnerHooks;
+    data?: any;
   }) {
-    this.#name = opts.name;
+    this.#id = opts.id;
     this.#entry = opts.entry;
     this.#data = opts.data;
     this.#hooks = opts.hooks || {};
@@ -53,8 +48,6 @@ export class NodeEnvRunner implements EnvRunner {
       !this.closed && this.#address && this.#proxy && this.#worker
     );
   }
-
-  // #region Public methods
 
   async fetch(
     input: string | URL | Request,
@@ -119,16 +112,6 @@ export class NodeEnvRunner implements EnvRunner {
     await this.#closeSocket().catch(onError);
   }
 
-  [Symbol.for("nodejs.util.inspect.custom")]() {
-    // eslint-disable-next-line unicorn/no-nested-ternary
-    const status = this.closed ? "closed" : this.ready ? "ready" : "pending";
-    return `NodeEnvRunner#${this.#name}(${status})`;
-  }
-
-  // #endregion
-
-  // #region Private methods
-
   #initWorker() {
     if (!existsSync(this.#entry)) {
       this.close(`worker entry not found in "${this.#entry}".`);
@@ -140,7 +123,7 @@ export class NodeEnvRunner implements EnvRunner {
         ...process.env,
       },
       workerData: {
-        name: this.#name,
+        id: this.#id,
         ...this.#data,
       },
     }) as Worker & { _exitCode?: number };
@@ -216,6 +199,4 @@ export class NodeEnvRunner implements EnvRunner {
     });
     this.#worker = undefined;
   }
-
-  // #endregion
 }

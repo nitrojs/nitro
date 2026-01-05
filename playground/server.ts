@@ -1,5 +1,8 @@
 export default {
   fetch(req: Request) {
-    return new Response("Hello from Nitro playground!");
+    setTimeout(() => {
+      process.exit(1);
+    }, 1000);
+    return new Response("Hello from Nitro playground!!");
   },
 };

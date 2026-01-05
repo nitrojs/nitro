@@ -1,18 +1,4 @@
-import type { IncomingMessage, OutgoingMessage } from "node:http";
-import type { Duplex } from "node:stream";
-import type { FSWatcher } from "chokidar";
-import type { ServerOptions, Server } from "srvx";
-import { NodeEnvRunner } from "../runner/node.ts";
-import type { EnvRunnerData } from "../runner/node.ts";
-import type {
-  Nitro,
-  RunnerMessageListener,
-  RunnerRPCHooks,
-  EnvRunner,
-} from "nitro/types";
-
 import { HTTPError } from "h3";
-
 import consola from "consola";
 import { resolve } from "pathe";
 import { watch } from "chokidar";
@@ -21,17 +7,27 @@ import { debounce } from "perfect-debounce";
 import { isTest, isCI } from "std-env";
 import { NitroDevApp } from "./app.ts";
 import { writeDevBuildInfo } from "../build/info.ts";
+import { NodeWorkerRunner } from "../runner/node-worker.ts";
+
+import type { IncomingMessage, OutgoingMessage } from "node:http";
+import type { Duplex } from "node:stream";
+import type { FSWatcher } from "chokidar";
+import type { ServerOptions, Server } from "srvx";
+import type { Nitro, RunnerMessageListener, Runner } from "nitro/types";
 
 export function createDevServer(nitro: Nitro): NitroDevServer {
   return new NitroDevServer(nitro);
 }
 
-export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
+export class NitroDevServer
+  extends NitroDevApp
+  implements Pick<Runner, "onMessage" | "offMessage">
+{
   #entry: string;
-  #workerData: EnvRunnerData = {};
+  #workerData: any = {};
   #listeners: Server[] = [];
   #watcher?: FSWatcher;
-  #workers: EnvRunner[] = [];
+  #workers: Runner[] = [];
   #workerIdCtr: number = 0;
   #workerError?: unknown;
   #building?: boolean = true; // Assume initial build will start soon
@@ -161,8 +157,8 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
     for (const worker of this.#workers) {
       worker.close();
     }
-    const worker = new NodeEnvRunner({
-      name: `Nitro_${this.#workerIdCtr++}`,
+    const worker = new NodeWorkerRunner({
+      id: `Nitro_${this.#workerIdCtr++}`,
       entry: this.#entry,
       data: this.#workerData,
       hooks: {

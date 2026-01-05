@@ -1,6 +1,7 @@
 import type { getViteRollupConfig } from "./rollup.ts";
-import type { EnvRunner, Nitro, NitroConfig, NitroModule } from "nitro/types";
+import type { Nitro, NitroConfig, NitroModule } from "nitro/types";
 import type { NitroDevApp } from "../../dev/app.ts";
+import type { RunnerPool } from "../../runner/pool.ts";
 
 declare module "vite" {
   interface UserConfig {
@@ -49,10 +50,10 @@ export interface NitroPluginContext {
   rollupConfig?: ReturnType<typeof getViteRollupConfig>;
   devApp?: NitroDevApp;
   services: Record<string, ServiceConfig>;
+  runner?: RunnerPool;
 
   _isRolldown?: boolean;
   _initialized?: boolean;
-  _envRunner?: EnvRunner;
   _publicDistDir?: string;
   _entryPoints: Record<string, string>;
 }

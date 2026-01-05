@@ -430,8 +430,8 @@ async function setupNitroContext(
 
   // Cleanup resources after close {
   ctx.nitro.hooks.hook("close", async () => {
-    if (ctx._envRunner) {
-      await ctx._envRunner.close();
+    if (ctx.runner) {
+      await ctx.runner.close();
     }
   });
 }
