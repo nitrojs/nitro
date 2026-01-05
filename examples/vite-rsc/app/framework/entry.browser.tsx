@@ -13,17 +13,17 @@ import type { RscPayload } from "./entry.rsc";
 import { createRscRenderRequest } from "./request";
 
 async function main() {
-  // stash `setPayload` function to trigger re-rendering
+  // Stash `setPayload` function to trigger re-rendering
   // from outside of `BrowserRoot` component (e.g. server function call, navigation, hmr)
   let setPayload: (v: RscPayload) => void;
 
-  // deserialize RSC stream back to React VDOM for CSR
+  // Deserialize RSC stream back to React VDOM for CSR
   const initialPayload = await createFromReadableStream<RscPayload>(
-    // initial RSC stream is injected in SSR stream as <script>...FLIGHT_DATA...</script>
+    // Initial RSC stream is injected in SSR stream as <script>...FLIGHT_DATA...</script>
     rscStream
   );
 
-  // browser root component to (re-)render RSC payload as state
+  // Browser root component to (re-)render RSC payload as state
   function BrowserRoot() {
     const [payload, setPayload_] = React.useState(initialPayload);
 
@@ -31,7 +31,7 @@ async function main() {
       setPayload = (v) => React.startTransition(() => setPayload_(v));
     }, [setPayload_]);
 
-    // re-fetch/render on client side navigation
+    // Re-fetch/render on client side navigation
     React.useEffect(() => {
       return listenNavigation(() => fetchRscPayload());
     }, []);
@@ -39,14 +39,14 @@ async function main() {
     return payload.root;
   }
 
-  // re-fetch RSC and trigger re-rendering
+  // Re-fetch RSC and trigger re-rendering
   async function fetchRscPayload() {
     const renderRequest = createRscRenderRequest(globalThis.location.href);
     const payload = await createFromFetch<RscPayload>(fetch(renderRequest));
     setPayload(payload);
   }
 
-  // register a handler which will be internally called by React
+  // Register a handler which will be internally called by React
   // on server function request after hydration.
   setServerCallback(async (id, args) => {
     const temporaryReferences = createTemporaryReferenceSet();
@@ -63,7 +63,7 @@ async function main() {
     return data;
   });
 
-  // hydration
+  // Hydration
   const browserRoot = (
     <React.StrictMode>
       <GlobalErrorBoundary>
@@ -79,7 +79,7 @@ async function main() {
     });
   }
 
-  // implement server HMR by triggering re-fetch/render of RSC upon server code change
+  // Implement server HMR by triggering re-fetch/render of RSC upon server code change
   if (import.meta.hot) {
     import.meta.hot.on("rsc:update", () => {
       fetchRscPayload();
@@ -87,7 +87,7 @@ async function main() {
   }
 }
 
-// a little helper to setup events interception for client side navigation
+// A little helper to setup events interception for client side navigation
 function listenNavigation(onNavigation: () => void) {
   globalThis.addEventListener("popstate", onNavigation);
 

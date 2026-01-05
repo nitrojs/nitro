@@ -20,7 +20,7 @@ class ErrorBoundary extends React.Component<{
     reset: () => void;
   }>;
 }> {
-  state: { error?: Error } = {};
+  override state: { error?: Error } = {};
 
   static getDerivedStateFromError(error: Error) {
     return { error };
@@ -30,7 +30,7 @@ class ErrorBoundary extends React.Component<{
     this.setState({ error: null });
   };
 
-  render() {
+  override render() {
     const error = this.state.error;
     if (error) {
       return <this.props.errorComponent error={error} reset={this.reset} />;
