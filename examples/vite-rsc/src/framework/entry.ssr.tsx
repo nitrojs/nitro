@@ -73,31 +73,11 @@ export async function renderHTML(
   return { stream: responseStream, status };
 }
 
-// https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-rsc/README.md#__vite_environment_runner_import__
-declare global {
-  var __nitro_vite_envs__: any;
-  var __VITE_ENVIRONMENT_RUNNER_IMPORT__: (
-    environmentName: string,
-    id: string
-  ) => Promise<any>;
-}
-
-globalThis.__VITE_ENVIRONMENT_RUNNER_IMPORT__ = async function (
-  environmentName: string,
-  id: string
-) {
-  return await globalThis.__nitro_vite_envs__[environmentName].runner.import(
-    id
-  );
-};
-
-async function ssrHandler(request: Request) {
-  const rscEntryModule = await import.meta.viteRsc.loadModule<
-    typeof import("./entry.rsc")
-  >("rsc", "index");
-  return rscEntryModule.default(request);
-}
-
 export default {
-  fetch: ssrHandler,
+  fetch: async (request: Request) => {
+    const rscEntryModule = await import.meta.viteRsc.loadModule<
+      typeof import("./entry.rsc")
+    >("rsc", "index");
+    return rscEntryModule.default(request);
+  },
 };
