@@ -1,9 +1,21 @@
 import rsc from '@vitejs/plugin-rsc'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
+import { nitro } from "nitro/vite";
 
 export default defineConfig({
   plugins: [
+    nitro({
+      services: {
+        ssr: {
+          entry: "./src/framework/entry.ssr.tsx",
+        },
+        rsc: {
+          entry: "./src/framework/entry.rsc.tsx",
+        },
+      },
+    }) as any,
+
     rsc({
       // `entries` option is only a shorthand for specifying each `rollupOptions.input` below
       // > entries: { rsc, ssr, client },
@@ -11,6 +23,7 @@ export default defineConfig({
       // by default, the plugin setup request handler based on `default export` of `rsc` environment `rollupOptions.input.index`.
       // This can be disabled when setting up own server handler e.g. `@cloudflare/vite-plugin`.
       // > serverHandler: false
+      serverHandler: false,
     }),
 
     // use any of react plugins https://github.com/vitejs/vite-plugin-react
