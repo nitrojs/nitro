@@ -10,7 +10,7 @@ import type { InputOption } from "rollup";
 import type { NitroPluginConfig, NitroPluginContext } from "./types.ts";
 import { resolve, join } from "pathe";
 import { createNitro, prepare } from "../../builder.ts";
-import { getViteRollupConfig } from "./rollup.ts";
+import { getViteRollupConfig } from "./bundler.ts";
 import { buildEnvironments, prodSetup } from "./prod.ts";
 import {
   getEnvRunner,
