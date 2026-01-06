@@ -495,8 +495,8 @@ importers:
         specifier: latest
         version: 5.1.2(vite@8.0.0-beta.5(@types/node@25.0.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
       '@vitejs/plugin-rsc':
-        specifier: https://pkg.pr.new/@vitejs/plugin-rsc@687458d
-        version: https://pkg.pr.new/@vitejs/plugin-rsc@687458d(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(vite@8.0.0-beta.5(@types/node@25.0.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
+        specifier: https://pkg.pr.new/@vitejs/plugin-rsc@55585b4
+        version: https://pkg.pr.new/@vitejs/plugin-rsc@55585b4(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(vite@8.0.0-beta.5(@types/node@25.0.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
       nitro:
         specifier: link:../..
         version: link:../..
@@ -3178,8 +3178,8 @@ packages:
     peerDependencies:
       vite: ^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0
 
-  '@vitejs/plugin-rsc@https://pkg.pr.new/@vitejs/plugin-rsc@687458d':
-    resolution: {integrity: sha512-0s8D3QrdMOF2cbrtDVq3bbjKUFAW6SL6StTqPVIMlcQQUAg2bCv5prg1B/drYcENrfRPOJVYhPVcDlGCJU27gQ==, tarball: https://pkg.pr.new/@vitejs/plugin-rsc@687458d}
+  '@vitejs/plugin-rsc@https://pkg.pr.new/@vitejs/plugin-rsc@55585b4':
+    resolution: {integrity: sha512-rpdT0ip4YOGVZL3k9gcPIkqC1oWq55R1md5B5sQjwwTOzj0g7T0NAK9UIsk0IJecCchyAF7JSARIBChn8sOg6A==, tarball: https://pkg.pr.new/@vitejs/plugin-rsc@55585b4}
     version: 0.5.10
     peerDependencies:
       react: '*'
@@ -9558,7 +9558,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@vitejs/plugin-rsc@https://pkg.pr.new/@vitejs/plugin-rsc@687458d(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(vite@8.0.0-beta.5(@types/node@25.0.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))':
+  '@vitejs/plugin-rsc@https://pkg.pr.new/@vitejs/plugin-rsc@55585b4(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(vite@8.0.0-beta.5(@types/node@25.0.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))':
     dependencies:
       es-module-lexer: 2.0.0
       estree-walker: 3.0.3
