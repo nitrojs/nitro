@@ -12,6 +12,7 @@ import { virtual, virtualDeps } from "./plugins/virtual.ts";
 import { sourcemapMinify } from "./plugins/sourcemap-min.ts";
 import { raw } from "./plugins/raw.ts";
 import { externals } from "./plugins/externals.ts";
+import { NodeNativePackages } from "nf3";
 
 export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const plugins: Plugin[] = [];
@@ -56,12 +57,21 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   if (nitro.options.node && nitro.options.noExternals !== true) {
     const isDevOrPrerender =
       nitro.options.dev || nitro.options.preset === "nitro-prerender";
+    const traceDeps = [
+      ...new Set([...NodeNativePackages, ...(nitro.options.traceDeps || [])]),
+    ];
     plugins.push(
       externals({
         rootDir: nitro.options.rootDir,
         conditions: nitro.options.exportConditions || ["default"],
         exclude: [...base.noExternal],
-        include: isDevOrPrerender ? undefined : nitro.options.traceDeps,
+        include: isDevOrPrerender
+          ? undefined
+          : [
+              new RegExp(
+                `^(?:${traceDeps.join("|")})|[/\\\\]node_modules[/\\\\](?:${traceDeps.join("|")})(?:[/\\\\])`
+              ),
+            ],
         trace: isDevOrPrerender
           ? false
           : { outDir: nitro.options.output.serverDir },

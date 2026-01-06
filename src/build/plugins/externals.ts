@@ -7,7 +7,7 @@ import { builtinModules, createRequire } from "node:module";
 import { isAbsolute, join } from "pathe";
 import { resolveModulePath } from "exsolve";
 import { escapeRegExp, toPathRegExp } from "../../utils/regex.ts";
-import { importDep } from "../../utils/dep.ts";
+import consola from "consola";
 
 export type ExternalsOptions = {
   rootDir: string;
@@ -143,17 +143,38 @@ export function externals(opts: ExternalsOptions): Plugin {
         if (!opts.trace || tracedPaths.size === 0) {
           return;
         }
-        const { traceNodeModules } = await importDep<typeof import("nf3")>({
-          id: "nf3",
-          dir: opts.rootDir,
-          reason: "tracing external dependencies",
-        });
+        const { traceNodeModules } = await import("nf3");
+        const traceTime = Date.now();
+        let traceFilesCount = 0;
+        let tracedPkgsCount = 0;
         await traceNodeModules([...tracedPaths], {
           ...opts.trace,
           conditions: opts.conditions,
           rootDir: opts.rootDir,
           writePackageJson: true, // deno compat
+          hooks: {
+            tracedFiles(result) {
+              traceFilesCount = Object.keys(result).length;
+            },
+            tracedPackages: (pkgs) => {
+              tracedPkgsCount = Object.keys(pkgs).length;
+              consola.info(
+                `Tracing dependencies:\n${Object.entries(pkgs)
+                  .map(
+                    ([name, versions]) =>
+                      `- \`${name}\` (${Object.keys(versions.versions).join(", ")})`
+                  )
+                  .join("\n")}`
+              );
+            },
+          },
         });
+        consola.success(
+          `Traced ${tracedPkgsCount} dependencies (${traceFilesCount} files) in ${Date.now() - traceTime}ms.`
+        );
+        consola.info(
+          `Ensure your production environment matches the builder OS and architecture (\`${process.platform}-${process.arch}\`) to avoid native module issues.`
+        );
       },
     },
   };
