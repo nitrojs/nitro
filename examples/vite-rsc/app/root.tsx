@@ -57,13 +57,13 @@ function App(props: { url: URL }) {
         <li>
           Edit <code>src/root.tsx</code> to test server HMR.
         </li>
-        {/* <li>
+        <li>
           Visit{" "}
-          <a href="?__rsc" target="_blank">
-            <code>?__rsc</code>
+          <a href="./_.rsc" target="_blank">
+            <code>_.rsc</code>
           </a>{" "}
           to view RSC stream payload.
-        </li> */}
+        </li>
         <li>
           Visit{" "}
           <a href="?__nojs" target="_blank">
