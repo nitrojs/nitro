@@ -93,6 +93,7 @@ describe("nitro:preset:netlify-legacy", async () => {
             x-test: test
           /build/*
             cache-control: public, max-age=3600, immutable
+            x-build-header: works
           /*
             x-test: test
           "

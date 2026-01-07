@@ -107,6 +107,7 @@ export default defineNitroConfig({
     "/rules/_/cached/noncached": { cache: false, swr: false, isr: false },
     "/rules/_/cached/**": { swr: true },
     "/api/proxy/**": { proxy: "/api/echo" },
+    "/build/**": { headers: { "x-build-header": "works" } },
     "**": { headers: { "x-test": "test" } },
   },
   prerender: {
