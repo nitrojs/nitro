@@ -247,7 +247,8 @@ class DevServer {
               );
               if (rules.headers) {
                 for (const [k, v] of Object.entries(rules.headers)) {
-                  res.appendHeader(k, v);
+                  if (k !== 'cache-control') // avoid long caching dev assets
+                    res.appendHeader(k, v);
                 }
               }
             },
