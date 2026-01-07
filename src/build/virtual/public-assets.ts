@@ -32,7 +32,7 @@ export default function publicAssets(nitro: Nitro) {
           dot: true,
         });
 
-        await runParallel(
+        const { errors } = await runParallel(
           new Set(files),
           async (id) => {
             let mimeType =
@@ -75,6 +75,13 @@ export default function publicAssets(nitro: Nitro) {
           },
           { concurrency: 25 }
         );
+
+        if (errors.length > 0) {
+          throw new Error(
+            `Failed to process public assets:\n${errors.join("\n")}`,
+            { cause: errors }
+          );
+        }
 
         return `export default ${JSON.stringify(assets, null, 2)};`;
       },

@@ -2,7 +2,8 @@ export async function runParallel<T>(
   inputs: Set<T>,
   cb: (input: T) => unknown | Promise<unknown>,
   opts: { concurrency: number; interval?: number }
-) {
+): Promise<{ errors: unknown[] }> {
+  const errors: unknown[] = [];
   const tasks = new Set<Promise<unknown>>();
 
   function queueNext(): undefined | Promise<unknown> {
@@ -37,4 +38,6 @@ export async function runParallel<T>(
   }
 
   await refillQueue();
+
+  return { errors };
 }
