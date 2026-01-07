@@ -6,17 +6,14 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [
-    nitro({
-      experimental: {
-        vite: {
-          services: {
-            ssr: { entry: "./app/framework/entry.ssr.tsx" },
-            rsc: { entry: "./app/framework/entry.rsc.tsx" },
-          },
-        },
+    nitro(),
+    rsc({
+      serverHandler: false,
+      entries: {
+        ssr: "./app/framework/entry.ssr.tsx",
+        rsc: "./app/framework/entry.rsc.tsx",
       },
     }),
-    rsc({ serverHandler: false }),
     react(),
   ],
 
