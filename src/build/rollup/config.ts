@@ -10,7 +10,7 @@ import { baseBuildConfig } from "../config.ts";
 import { baseBuildPlugins } from "../plugins.ts";
 import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
 
-export const getRollupConfig = (nitro: Nitro): RollupConfig => {
+export const getRollupConfig = async (nitro: Nitro): Promise<RollupConfig> => {
   const base = baseBuildConfig(nitro);
 
   const tsc = nitro.options.typescript.tsConfig?.compilerOptions;
@@ -19,7 +19,7 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
     input: nitro.options.entry,
     external: [...base.env.external],
     plugins: [
-      ...baseBuildPlugins(nitro, base),
+      ...(await baseBuildPlugins(nitro, base)),
       oxc({
         sourcemap: !!nitro.options.sourcemap,
         minify: nitro.options.minify ? { ...nitro.options.oxc?.minify } : false,

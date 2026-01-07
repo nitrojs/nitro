@@ -1,0 +1,25 @@
+{
+  "name": "@vitejs/plugin-rsc-examples-starter",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.2",
+    "@vitejs/plugin-rsc": "^0.5.11",
+    "nitro": "latest",
+    "rsc-html-stream": "^0.0.7",
+    "vite": "beta"
+  }
+}

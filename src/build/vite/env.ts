@@ -68,7 +68,7 @@ export function createServiceEnvironment(
   return {
     consumer: "server",
     build: {
-      rollupOptions: { input: serviceConfig.entry },
+      rollupOptions: { input: { index: serviceConfig.entry } },
       minify: ctx.nitro!.options.minify,
       sourcemap: ctx.nitro!.options.sourcemap,
       outDir: join(ctx.nitro!.options.buildDir, "vite/services", name),

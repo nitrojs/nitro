@@ -6,6 +6,6 @@
   },
   "devDependencies": {
     "nitro": "latest",
-    "shiki": "^3.20.0"
+    "shiki": "^3.21.0"
   }
 }

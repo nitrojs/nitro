@@ -32,9 +32,9 @@ export default defineBuildConfig({
       type: "bundle",
       input: [
         "src/builder.ts",
-        "src/vite.ts",
         "src/cli/index.ts",
         "src/types/index.ts",
+        "src/vite.ts",
       ],
     },
     {
@@ -52,6 +52,13 @@ export default defineBuildConfig({
   hooks: {
     rolldownConfig(config) {
       config.platform = "node";
+
+      config.resolve ??= {};
+      config.resolve.alias ??= {};
+      Object.assign(config.resolve.alias, {
+        "node-fetch-native/proxy": "node-fetch-native/native",
+        "node-fetch-native": "node-fetch-native/native",
+      });
 
       config.external ??= [];
       (config.external as string[]).push(
@@ -76,12 +83,20 @@ export default defineBuildConfig({
       );
     },
     rolldownOutput(config) {
+      // config.advancedChunks!.includeDependenciesRecursively = false;
+      config.advancedChunks!.groups?.unshift(
+        {
+          test: /src\/build\/(plugins|virtual|\w+\.ts)/,
+          name: "_build/common",
+        },
+        { test: /src\/(utils)\//, name: "_chunks/utils" }
+      );
       config.chunkFileNames = (chunk) => {
         if (chunk.name.startsWith("_")) {
           return `[name].mjs`;
         }
         if (chunk.name === "rolldown-runtime") {
-          return `_rolldown.mjs`;
+          return `_common.mjs`;
         }
         if (chunk.name.startsWith("libs/")) {
           return `_[name].mjs`;
@@ -118,9 +133,9 @@ export default defineBuildConfig({
         if (
           chunk.moduleIds.every((id) => /src\/(runner|dev|runtime)/.test(id))
         ) {
-          return `_dev.mjs`;
+          return `_chunks/dev.mjs`;
         }
-        return "_nitro.mjs";
+        return "_chunks/nitro.mjs";
       };
     },
     async end() {

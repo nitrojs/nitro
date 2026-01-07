@@ -8,7 +8,7 @@
   "dependencies": {
     "@tanstack/react-router": "^1.142.8",
     "@tanstack/react-router-devtools": "^1.142.8",
-    "@tanstack/react-start": "^1.142.8",
+    "@tanstack/react-start": "^1.145.9",
     "nitro": "latest",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",

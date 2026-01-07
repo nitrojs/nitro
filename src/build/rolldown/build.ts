@@ -5,7 +5,7 @@ import { buildProduction } from "./prod.ts";
 
 export async function rolldownBuild(nitro: Nitro) {
   await nitro.hooks.callHook("build:before", nitro);
-  const config = getRolldownConfig(nitro);
+  const config = await getRolldownConfig(nitro);
   await nitro.hooks.callHook("rollup:before", nitro, config as any);
   return nitro.options.dev
     ? watchDev(nitro, config)

@@ -1,6 +1,6 @@
 import type { Nitro } from "nitro/types";
-import { nitro as nitroPlugin } from "./plugin.ts";
 import { isTest } from "std-env";
+import { nitro as nitroPlugin } from "nitro/vite";
 
 export async function viteBuild(nitro: Nitro) {
   if (nitro.options.dev) {

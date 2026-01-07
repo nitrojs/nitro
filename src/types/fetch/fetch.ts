@@ -112,4 +112,5 @@ export interface $Fetch<
   ): $Fetch<T, R>;
 }
 
+// eslint-disable-next-line unicorn/require-module-specifiers
 export type {};

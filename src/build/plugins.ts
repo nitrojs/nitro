@@ -3,7 +3,6 @@ import type { Plugin } from "rollup";
 import type { BaseBuildConfig } from "./config.ts";
 
 import { virtualTemplates } from "./virtual/_all.ts";
-import unimportPlugin from "unimport/unplugin";
 import replace from "@rollup/plugin-replace";
 import { unwasm } from "unwasm/plugin";
 import { routeMeta } from "./plugins/route-meta.ts";
@@ -12,8 +11,9 @@ import { virtual, virtualDeps } from "./plugins/virtual.ts";
 import { sourcemapMinify } from "./plugins/sourcemap-min.ts";
 import { raw } from "./plugins/raw.ts";
 import { externals } from "./plugins/externals.ts";
+import { NodeNativePackages } from "nf3";
 
-export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
+export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const plugins: Plugin[] = [];
 
   // Virtual
@@ -25,7 +25,10 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
 
   // Auto imports
   if (nitro.options.imports) {
-    plugins.push(unimportPlugin.rollup(nitro.options.imports) as Plugin);
+    const unimportPlugin = await import("unimport/unplugin");
+    plugins.push(
+      unimportPlugin.default.rollup(nitro.options.imports) as Plugin
+    );
   }
 
   // WASM loader
@@ -56,12 +59,21 @@ export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   if (nitro.options.node && nitro.options.noExternals !== true) {
     const isDevOrPrerender =
       nitro.options.dev || nitro.options.preset === "nitro-prerender";
+    const traceDeps = [
+      ...new Set([...NodeNativePackages, ...(nitro.options.traceDeps || [])]),
+    ];
     plugins.push(
       externals({
         rootDir: nitro.options.rootDir,
         conditions: nitro.options.exportConditions || ["default"],
         exclude: [...base.noExternal],
-        include: isDevOrPrerender ? undefined : nitro.options.traceDeps,
+        include: isDevOrPrerender
+          ? undefined
+          : [
+              new RegExp(
+                `^(?:${traceDeps.join("|")})|[/\\\\]node_modules[/\\\\](?:${traceDeps.join("|")})(?:[/\\\\])`
+              ),
+            ],
         trace: isDevOrPrerender
           ? false
           : { outDir: nitro.options.output.serverDir },
