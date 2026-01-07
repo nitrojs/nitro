@@ -35,4 +35,5 @@ declare module "h3" {
   }
 }
 
+// eslint-disable-next-line unicorn/require-module-specifiers
 export type {};
