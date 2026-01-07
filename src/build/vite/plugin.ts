@@ -119,17 +119,16 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
         return;
       }
 
-      if (name === "nitro") {
-        return;
-      }
-
       // Skip if already registered as a service
-      if (ctx.services[name]) {
+      if (name === "nitro" || ctx.services[name]) {
         return;
       }
 
       // Auto-register server consumer environments as services
-      const entry = getEntry(config.build?.rollupOptions?.input);
+      const entry = getEntry(
+        config.build?.rolldownOptions?.input ||
+          config.build?.rollupOptions?.input
+      );
       if (typeof entry !== "string") {
         return;
       }
