@@ -8,6 +8,7 @@ import { relative, resolve } from "pathe";
 import type { Plugin } from "rollup";
 import { withTrailingSlash } from "ufo";
 import { virtual } from "./virtual";
+import { runParallel } from "../../core/utils/parallel";
 
 const readAssetHandler: Record<
   Exclude<Nitro["options"]["serveStatic"] | "true" | "false", boolean>,
@@ -31,38 +32,54 @@ export function publicAssets(nitro: Nitro): Plugin {
           absolute: false,
           dot: true,
         });
-        for (const id of files) {
-          let mimeType =
-            mime.getType(id.replace(/\.(gz|br)$/, "")) || "text/plain";
-          if (mimeType.startsWith("text")) {
-            mimeType += "; charset=utf-8";
-          }
-          const fullPath = resolve(nitro.options.output.publicDir, id);
-          const assetData = await fsp.readFile(fullPath);
-          const etag = createEtag(assetData);
-          const stat = await fsp.stat(fullPath);
 
-          const assetId = "/" + decodeURIComponent(id);
+        const { errors } = await runParallel(
+          new Set(files),
+          async (id) => {
+            let mimeType =
+              mime.getType(id.replace(/\.(gz|br)$/, "")) || "text/plain";
+            if (mimeType.startsWith("text")) {
+              mimeType += "; charset=utf-8";
+            }
+            const fullPath = resolve(nitro.options.output.publicDir, id);
 
-          let encoding;
-          if (id.endsWith(".gz")) {
-            encoding = "gzip";
-          } else if (id.endsWith(".br")) {
-            encoding = "br";
-          }
+            const [assetData, stat] = await Promise.all([
+              fsp.readFile(fullPath),
+              fsp.stat(fullPath),
+            ]);
 
-          assets[assetId] = {
-            type: nitro._prerenderMeta?.[assetId]?.contentType || mimeType,
-            encoding,
-            etag,
-            mtime: stat.mtime.toJSON(),
-            size: stat.size,
-            path: relative(nitro.options.output.serverDir, fullPath),
-            data:
-              nitro.options.serveStatic === "inline"
-                ? assetData.toString("base64")
-                : undefined,
-          };
+            const etag = createEtag(assetData);
+            const assetId = "/" + decodeURIComponent(id);
+
+            let encoding;
+            if (id.endsWith(".gz")) {
+              encoding = "gzip";
+            } else if (id.endsWith(".br")) {
+              encoding = "br";
+            }
+
+            assets[assetId] = {
+              type: nitro._prerenderMeta?.[assetId]?.contentType || mimeType,
+              encoding,
+              etag,
+              mtime: stat.mtime.toJSON(),
+              size: stat.size,
+              path: relative(nitro.options.output.serverDir, fullPath),
+              data:
+                nitro.options.serveStatic === "inline"
+                  ? assetData.toString("base64")
+                  : undefined,
+            };
+          },
+          { concurrency: 25 }
+        );
+
+        if (errors.length > 0) {
+          throw new Error(
+            `Failed to process some public assets:\n- ${errors
+              .map((e) => (e instanceof Error ? e.message : String(e)))
+              .join("\n- ")}`
+          );
         }
 
         for (const key in assets) {
