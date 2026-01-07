@@ -383,6 +383,32 @@ async function setupNitroContext(
     ctx.nitro!.routing.sync();
   }
 
+  // Auto-register server consumer environments as services
+  for (const [envName, envConfig] of Object.entries(
+    userConfig.environments || {}
+  )) {
+    if (
+      envName === "ssr" ||
+      envName === "client" ||
+      envName === "nitro" ||
+      envConfig.consumer !== "server" ||
+      ctx.services[envName]
+    ) {
+      continue;
+    }
+    const entry = getEntry(envConfig.build?.rollupOptions?.input);
+    if (typeof entry === "string") {
+      const resolvedEntry =
+        resolveModulePath(entry, {
+          from: [ctx.nitro.options.rootDir, ...ctx.nitro.options.scanDirs],
+          extensions: DEFAULT_EXTENSIONS,
+          suffixes: ["", "/index"],
+          try: true,
+        }) || entry;
+      ctx.services[envName] = { entry: resolvedEntry };
+    }
+  }
+
   // Determine default Vite dist directory
   const publicDistDir = (ctx._publicDistDir =
     userConfig.build?.outDir ||
