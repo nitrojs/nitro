@@ -19,7 +19,9 @@ import { type FetchOptions, fetch } from "ofetch";
 import { join, resolve } from "pathe";
 import { isWindows, nodeMajorVersion } from "std-env";
 import { joinURL } from "ufo";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import consola from "consola";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import type { MockInstance } from "vitest";
 
 export interface Context {
   preset: string;
@@ -36,6 +38,7 @@ export interface Context {
   env: Record<string, string>;
   lambdaV1?: boolean;
   // [key: string]: unknown;
+  consolaError: MockInstance<typeof consola.error>;
 }
 
 // https://github.com/nitrojs/nitro/pull/1240
@@ -109,6 +112,7 @@ export async function setupTest(
         redirect: "manual",
         ...(opts as any),
       }),
+    consolaError: vi.spyOn(consola, "error").mockImplementation(() => {}),
   };
 
   // Set environment variables for process compatible presets
@@ -157,6 +161,7 @@ export async function setupTest(
   }
 
   afterAll(async () => {
+    ctx.consolaError.mockRestore();
     if (ctx.server) {
       await ctx.server.close();
     }
@@ -470,6 +475,12 @@ export function testNitro(
       });
       expect(data).toBe("prerender4");
       expect(headers["content-type"]).toBe("text/plain; charset=utf-16");
+    });
+
+    it("show details for 5xx handled errors", async () => {
+      expect(ctx.consolaError.mock.calls.flat().join(" ")).toContain(
+        "Prerender error test"
+      );
     });
   }
 
