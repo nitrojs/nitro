@@ -33,7 +33,7 @@ export function publicAssets(nitro: Nitro): Plugin {
           dot: true,
         });
 
-        await runParallel(
+        const { errors } = await runParallel(
           new Set(files),
           async (id) => {
             let mimeType =
@@ -73,6 +73,14 @@ export function publicAssets(nitro: Nitro): Plugin {
           },
           { concurrency: 25 }
         );
+
+        if (errors.length > 0) {
+          throw new Error(
+            `Failed to process some public assets:\n- ${errors
+              .map((e) => (e instanceof Error ? e.message : String(e)))
+              .join("\n- ")}`
+          );
+        }
 
         for (const key in assets) {
           if (/\.(gz|br)$/.test(key)) {
