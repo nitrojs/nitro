@@ -238,18 +238,19 @@ class DevServer {
               if (path.endsWith(".gz")) {
                 res.setHeader("Content-Encoding", "gzip");
               }
-              if (!res.req.url) {
-                return;
-              }
-              const rules: NitroRouteRules = defu(
-                {},
-                ...routeRulesMatcher.matchAll(res.req.url).reverse()
-              );
-              if (rules.headers) {
-                for (const [k, v] of Object.entries(rules.headers)) {
-                  if (k !== "cache-control")
-                    // avoid long caching dev assets
+              const pathname = (res.req as any)?._parsedOriginalUrl
+                ?.pathname as string;
+              if (pathname) {
+                const rules: NitroRouteRules = defu(
+                  {},
+                  ...routeRulesMatcher.matchAll(pathname).reverse()
+                );
+                if (rules.headers) {
+                  for (const [k, v] of Object.entries(rules.headers)) {
+                    // Avoid long caching dev assets
+                    if (k === "cache-control") continue;
                     res.appendHeader(k, v);
+                  }
                 }
               }
             },
