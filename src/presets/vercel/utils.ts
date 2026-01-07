@@ -371,11 +371,14 @@ function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
     }
   }
 
+  const prerendered = nitro._prerenderedRoutes || [];
   return [
     ...normalizeRoutes(staticRoutes),
     ...normalizeRoutes(dynamicRoutes),
     ...normalizeRoutes(catchAllRoutes),
-  ];
+  ].filter((route) => {
+    return !prerendered.some((r) => route.src === r.route);
+  });
 }
 
 function normalizeRoutes(routes: string[]) {

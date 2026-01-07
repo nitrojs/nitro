@@ -182,14 +182,6 @@ describe("nitro:preset:vercel", async () => {
                 "src": "/raw",
               },
               {
-                "dest": "/prerender-custom.html",
-                "src": "/prerender-custom.html",
-              },
-              {
-                "dest": "/prerender",
-                "src": "/prerender",
-              },
-              {
                 "dest": "/node-compat",
                 "src": "/node-compat",
               },
@@ -200,10 +192,6 @@ describe("nitro:preset:vercel", async () => {
               {
                 "dest": "/jsx",
                 "src": "/jsx",
-              },
-              {
-                "dest": "/json-string",
-                "src": "/json-string",
               },
               {
                 "dest": "/imports",
@@ -326,16 +314,8 @@ describe("nitro:preset:vercel", async () => {
                 "src": "/api/import-meta",
               },
               {
-                "dest": "/api/hey",
-                "src": "/api/hey",
-              },
-              {
                 "dest": "/api/hello2",
                 "src": "/api/hello2",
-              },
-              {
-                "dest": "/api/hello",
-                "src": "/api/hello",
               },
               {
                 "dest": "/api/headers",
@@ -364,18 +344,6 @@ describe("nitro:preset:vercel", async () => {
               {
                 "dest": "/500",
                 "src": "/500",
-              },
-              {
-                "dest": "/_swagger",
-                "src": "/_swagger",
-              },
-              {
-                "dest": "/_scalar",
-                "src": "/_scalar",
-              },
-              {
-                "dest": "/_openapi.json",
-                "src": "/_openapi.json",
               },
               {
                 "dest": "/assets/[id]",
@@ -501,18 +469,13 @@ describe("nitro:preset:vercel", async () => {
             "functions/__fallback.func/node_modules",
             "functions/__fallback.func/package.json",
             "functions/__fallback.func/timing.js",
-            "functions/_openapi.json.func (symlink)",
-            "functions/_scalar.func (symlink)",
-            "functions/_swagger.func (symlink)",
             "functions/api/cached.func (symlink)",
             "functions/api/db.func (symlink)",
             "functions/api/echo.func (symlink)",
             "functions/api/error.func (symlink)",
             "functions/api/errors.func (symlink)",
             "functions/api/headers.func (symlink)",
-            "functions/api/hello.func (symlink)",
             "functions/api/hello2.func (symlink)",
-            "functions/api/hey.func (symlink)",
             "functions/api/import-meta.func (symlink)",
             "functions/api/kebab.func (symlink)",
             "functions/api/meta/test.func (symlink)",
@@ -557,12 +520,9 @@ describe("nitro:preset:vercel", async () => {
             "functions/file.func (symlink)",
             "functions/icon.png.func (symlink)",
             "functions/imports.func (symlink)",
-            "functions/json-string.func (symlink)",
             "functions/jsx.func (symlink)",
             "functions/modules.func (symlink)",
             "functions/node-compat.func (symlink)",
-            "functions/prerender-custom.html.func (symlink)",
-            "functions/prerender.func (symlink)",
             "functions/raw.func (symlink)",
             "functions/replace.func (symlink)",
             "functions/route-group.func (symlink)",
