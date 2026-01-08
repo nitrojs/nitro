@@ -71,6 +71,7 @@ export class $DurableObject extends DurableObject {
   }
 
   override fetch(request: Request) {
+    (globalThis as any).__env__ = this.env;
     if (
       import.meta._websocket &&
       request.headers.get("upgrade") === "websocket"
@@ -101,6 +102,7 @@ export class $DurableObject extends DurableObject {
     client: WebSocket,
     message: ArrayBuffer | string
   ) {
+    (globalThis as any).__env__ = this.env;
     if (import.meta._websocket) {
       return ws!.handleDurableMessage(this, client, message);
     }
@@ -112,6 +114,7 @@ export class $DurableObject extends DurableObject {
     reason: string,
     wasClean: boolean
   ) {
+    (globalThis as any).__env__ = this.env;
     if (import.meta._websocket) {
       return ws!.handleDurableClose(this, client, code, reason, wasClean);
     }
