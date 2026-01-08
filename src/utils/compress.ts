@@ -30,12 +30,13 @@ export async function compressPublicAssets(nitro: Nitro) {
       } = compressPublicAssets === true
         ? { gzip: true, brotli: true, zstd: true }
         : compressPublicAssets;
+      const zstdSupported = zlib.zstdCompress !== undefined;
       const filePath = resolve(nitro.options.output.publicDir, fileName);
 
       if (
         (gzip && existsSync(filePath + EncodingMap.gzip)) ||
         (brotli && existsSync(filePath + EncodingMap.br)) ||
-        (zstd && existsSync(filePath + EncodingMap.zstd))
+        (zstd && zstdSupported && existsSync(filePath + EncodingMap.zstd))
       ) {
         return;
       }
@@ -54,7 +55,7 @@ export async function compressPublicAssets(nitro: Nitro) {
       const encodings = [
         gzip && ("gzip" as const),
         brotli && ("br" as const),
-        zstd && ("zstd" as const),
+        zstd && zstdSupported && ("zstd" as const),
       ].filter((v): v is keyof typeof EncodingMap => v !== false);
 
       await Promise.all(
@@ -73,12 +74,6 @@ export async function compressPublicAssets(nitro: Nitro) {
               zlib.constants.BROTLI_MAX_QUALITY,
             [zlib.constants.BROTLI_PARAM_SIZE_HINT]: fileContents.length,
           };
-          const zstdOptions = {
-            params: {
-              [zlib.constants.ZSTD_c_compressionLevel]: 19,
-              [zlib.constants.ZSTD_c_strategy]: zlib.constants.ZSTD_btultra2,
-            },
-          };
           const compressedBuff: Buffer = await new Promise(
             (resolve, reject) => {
               const cb = (error: Error | null, result: Buffer) =>
@@ -87,8 +82,18 @@ export async function compressPublicAssets(nitro: Nitro) {
                 zlib.gzip(fileContents, gzipOptions, cb);
               } else if (encoding === "br") {
                 zlib.brotliCompress(fileContents, brotliOptions, cb);
-              } else {
-                zlib.zstdCompress(fileContents, zstdOptions, cb);
+              } else if (zstdSupported) {
+                zlib.zstdCompress(
+                  fileContents,
+                  {
+                    params: {
+                      [zlib.constants.ZSTD_c_compressionLevel]: 19,
+                      [zlib.constants.ZSTD_c_strategy]:
+                        zlib.constants.ZSTD_btultra2,
+                    },
+                  },
+                  cb
+                );
               }
             }
           );
