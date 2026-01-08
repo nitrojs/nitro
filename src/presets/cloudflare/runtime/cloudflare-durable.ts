@@ -57,7 +57,10 @@ export default createHandler<Env>({
       let wsContext = (request as any).context;
       if (!wsContext) {
         wsContext = {};
-        Object.defineProperty(request as any, "context", { enumerable: true, value: wsContext });
+        Object.defineProperty(request as any, "context", {
+          enumerable: true,
+          value: wsContext,
+        });
       }
       wsContext.cloudflare ||= {};
       wsContext.cloudflare.env ||= env;
