@@ -17,4 +17,5 @@ declare global {
   interface ImportMeta extends NitroImportMeta {}
 }
 
+// eslint-disable-next-line unicorn/require-module-specifiers
 export type {};

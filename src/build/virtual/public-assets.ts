@@ -6,6 +6,7 @@ import type { Nitro } from "nitro/types";
 import type { PublicAsset } from "nitro/types";
 import { relative, resolve } from "pathe";
 import { joinURL, withTrailingSlash } from "ufo";
+import { runParallel } from "../../utils/parallel.ts";
 
 const readAssetHandler: Record<
   Exclude<Nitro["options"]["serveStatic"] | "true" | "false", boolean>,
@@ -30,41 +31,56 @@ export default function publicAssets(nitro: Nitro) {
           absolute: false,
           dot: true,
         });
-        for (const id of files) {
-          let mimeType =
-            mime.getType(id.replace(/\.(gz|br)$/, "")) || "text/plain";
-          if (mimeType.startsWith("text")) {
-            mimeType += "; charset=utf-8";
-          }
-          const fullPath = resolve(nitro.options.output.publicDir, id);
-          const assetData = await fsp.readFile(fullPath);
-          const etag = createEtag(assetData);
-          const stat = await fsp.stat(fullPath);
 
-          const assetId = joinURL(
-            nitro.options.baseURL,
-            decodeURIComponent(id)
+        const { errors } = await runParallel(
+          new Set(files),
+          async (id) => {
+            let mimeType =
+              mime.getType(id.replace(/\.(gz|br)$/, "")) || "text/plain";
+            if (mimeType.startsWith("text")) {
+              mimeType += "; charset=utf-8";
+            }
+            const fullPath = resolve(nitro.options.output.publicDir, id);
+            const [assetData, stat] = await Promise.all([
+              fsp.readFile(fullPath),
+              fsp.stat(fullPath),
+            ]);
+
+            const etag = createEtag(assetData);
+
+            const assetId = joinURL(
+              nitro.options.baseURL,
+              decodeURIComponent(id)
+            );
+
+            let encoding;
+            if (id.endsWith(".gz")) {
+              encoding = "gzip";
+            } else if (id.endsWith(".br")) {
+              encoding = "br";
+            }
+
+            assets[assetId] = {
+              type: nitro._prerenderMeta?.[assetId]?.contentType || mimeType,
+              encoding,
+              etag,
+              mtime: stat.mtime.toJSON(),
+              size: stat.size,
+              path: relative(nitro.options.output.serverDir, fullPath),
+              data:
+                nitro.options.serveStatic === "inline"
+                  ? assetData.toString("base64")
+                  : undefined,
+            };
+          },
+          { concurrency: 25 }
+        );
+
+        if (errors.length > 0) {
+          throw new Error(
+            `Failed to process public assets:\n${errors.join("\n")}`,
+            { cause: errors }
           );
-
-          let encoding;
-          if (id.endsWith(".gz")) {
-            encoding = "gzip";
-          } else if (id.endsWith(".br")) {
-            encoding = "br";
-          }
-
-          assets[assetId] = {
-            type: nitro._prerenderMeta?.[assetId]?.contentType || mimeType,
-            encoding,
-            etag,
-            mtime: stat.mtime.toJSON(),
-            size: stat.size,
-            path: relative(nitro.options.output.serverDir, fullPath),
-            data:
-              nitro.options.serveStatic === "inline"
-                ? assetData.toString("base64")
-                : undefined,
-          };
         }
 
         return `export default ${JSON.stringify(assets, null, 2)};`;

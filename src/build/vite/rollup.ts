@@ -8,9 +8,9 @@ import { baseBuildPlugins } from "../plugins.ts";
 import type { Plugin as RollupPlugin } from "rollup";
 import type { NitroPluginContext } from "./types.ts";
 
-export const getViteRollupConfig = (
+export const getViteRollupConfig = async (
   ctx: NitroPluginContext
-): { config: RollupConfig; base: BaseBuildConfig } => {
+): Promise<{ config: RollupConfig; base: BaseBuildConfig }> => {
   const nitro = ctx.nitro!;
   const base = baseBuildConfig(nitro);
 
@@ -18,7 +18,7 @@ export const getViteRollupConfig = (
     input: nitro.options.entry,
     external: [...base.env.external],
     plugins: [
-      ...baseBuildPlugins(nitro, base),
+      ...(await baseBuildPlugins(nitro, base)),
       alias({ entries: base.aliases }),
       !ctx._isRolldown &&
         (inject as unknown as typeof inject.default)(base.env.inject),

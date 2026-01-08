@@ -34,7 +34,12 @@ export interface NitroPluginConfig extends NitroConfig {
        *
        * @default true
        */
-      serverReload: boolean;
+      serverReload?: boolean;
+
+      /**
+       * Additional Vite environment services to register.
+       */
+      services?: Record<string, ServiceConfig>;
     };
   };
 }
@@ -46,7 +51,7 @@ export interface ServiceConfig {
 export interface NitroPluginContext {
   nitro?: Nitro;
   pluginConfig: NitroPluginConfig;
-  rollupConfig?: ReturnType<typeof getViteRollupConfig>;
+  rollupConfig?: Awaited<ReturnType<typeof getViteRollupConfig>>;
   devApp?: NitroDevApp;
   services: Record<string, ServiceConfig>;
 

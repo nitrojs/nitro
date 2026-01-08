@@ -24,5 +24,5 @@ export default function nodeHandler(
     }
   }
 
-  return handler(req, res);
+  return handler(req as any, res as any);
 }

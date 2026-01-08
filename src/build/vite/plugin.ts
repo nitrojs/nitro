@@ -16,6 +16,7 @@ import {
   getEnvRunner,
   createNitroEnvironment,
   createServiceEnvironments,
+  createServiceEnvironment,
 } from "./env.ts";
 import { configureViteDevServer } from "./dev.ts";
 import { runtimeDir } from "nitro/meta";
@@ -115,6 +116,54 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
         );
         config.build!.emptyOutDir = false;
         config.build!.outDir = useNitro(ctx).options.output.publicDir;
+        return;
+      }
+
+      // Skip if already registered as a service
+      if (name === "nitro" || ctx.services[name]) {
+        return;
+      }
+
+      // Auto-register server consumer environments as services
+      const entry = getEntry(
+        config.build?.rolldownOptions?.input ||
+          config.build?.rollupOptions?.input
+      );
+      if (typeof entry !== "string") {
+        return;
+      }
+
+      // Resolve and register as a service
+      const resolvedEntry =
+        resolveModulePath(entry, {
+          from: [ctx.nitro!.options.rootDir, ...ctx.nitro!.options.scanDirs],
+          extensions: DEFAULT_EXTENSIONS,
+          suffixes: ["", "/index"],
+          try: true,
+        }) || entry;
+
+      ctx.services[name] = { entry: resolvedEntry };
+      debug(
+        `[env]  Auto-detected service "${name}" with entry: ${resolvedEntry}`
+      );
+
+      // Return service environment configuration to merge
+      return createServiceEnvironment(ctx, name, { entry: resolvedEntry });
+    },
+
+    configResolved() {
+      // Setup default SSR renderer after all environments are configured
+      if (
+        !ctx.nitro!.options.renderer?.handler &&
+        !ctx.nitro!.options.renderer?.template &&
+        ctx.services.ssr?.entry
+      ) {
+        ctx.nitro!.options.renderer ??= {};
+        ctx.nitro!.options.renderer.handler = resolve(
+          runtimeDir,
+          "internal/vite/ssr-renderer"
+        );
+        ctx.nitro!.routing.sync();
       }
     },
   };
@@ -285,7 +334,7 @@ function nitroService(ctx: NitroPluginContext): VitePlugin {
 function createContext(pluginConfig: NitroPluginConfig): NitroPluginContext {
   return {
     pluginConfig,
-    services: {},
+    services: { ...pluginConfig.experimental?.vite?.services },
     _entryPoints: {},
   };
 }
@@ -367,20 +416,6 @@ async function setupNitroContext(
       `Nitro server entry and Vite SSR both set to ${prettyPath(ctx.services.ssr.entry)}. Use a separate SSR entry (e.g. \`src/server.ts\`).`
     );
     ctx.nitro.options.serverEntry = false;
-  }
-
-  // Default SSR renderer
-  if (
-    !ctx.nitro.options.renderer?.handler &&
-    !ctx.nitro.options.renderer?.template &&
-    ctx.services.ssr?.entry
-  ) {
-    ctx.nitro.options.renderer ??= {};
-    ctx.nitro.options.renderer.handler = resolve(
-      runtimeDir,
-      "internal/vite/ssr-renderer"
-    );
-    ctx.nitro!.routing.sync();
   }
 
   // Determine default Vite dist directory
