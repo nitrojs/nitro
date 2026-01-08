@@ -6,19 +6,37 @@ import mime from "mime";
 import type { Nitro } from "nitro/types";
 import { resolve } from "pathe";
 
+const EncodingMap = { gzip: ".gz", br: ".br", zstd: ".zst" } as const;
+
 export async function compressPublicAssets(nitro: Nitro) {
   const publicFiles = await glob("**", {
     cwd: nitro.options.output.publicDir,
     absolute: false,
     dot: true,
-    ignore: ["**/*.gz", "**/*.br"],
+    ignore: ["**/*.gz", "**/*.br", "**/*.zst"],
   });
 
   await Promise.all(
     publicFiles.map(async (fileName) => {
+      const compressPublicAssets = nitro.options.compressPublicAssets;
+      if (compressPublicAssets === false) {
+        return;
+      }
+
+      const {
+        gzip = false,
+        brotli = false,
+        zstd = false,
+      } = compressPublicAssets === true
+        ? { gzip: true, brotli: true, zstd: true }
+        : compressPublicAssets;
       const filePath = resolve(nitro.options.output.publicDir, fileName);
 
-      if (existsSync(filePath + ".gz") || existsSync(filePath + ".br")) {
+      if (
+        (gzip && existsSync(filePath + EncodingMap.gzip)) ||
+        (brotli && existsSync(filePath + EncodingMap.br)) ||
+        (zstd && existsSync(filePath + EncodingMap.zstd))
+      ) {
         return;
       }
 
@@ -33,17 +51,15 @@ export async function compressPublicAssets(nitro: Nitro) {
         return;
       }
 
-      const { gzip, brotli } =
-        nitro.options.compressPublicAssets || ({} as any);
-
       const encodings = [
-        gzip !== false && "gzip",
-        brotli !== false && "br",
-      ].filter(Boolean);
+        gzip && ("gzip" as const),
+        brotli && ("br" as const),
+        zstd && ("zstd" as const),
+      ].filter((v): v is keyof typeof EncodingMap => v !== false);
 
       await Promise.all(
         encodings.map(async (encoding) => {
-          const suffix = "." + (encoding === "gzip" ? "gz" : "br");
+          const suffix = EncodingMap[encoding];
           const compressedPath = filePath + suffix;
           if (existsSync(compressedPath)) {
             return;
@@ -57,14 +73,19 @@ export async function compressPublicAssets(nitro: Nitro) {
               zlib.constants.BROTLI_MAX_QUALITY,
             [zlib.constants.BROTLI_PARAM_SIZE_HINT]: fileContents.length,
           };
+          const zstdOptions = {
+            params: { [zlib.constants.ZSTD_c_compressionLevel]: 22 },
+          };
           const compressedBuff: Buffer = await new Promise(
             (resolve, reject) => {
               const cb = (error: Error | null, result: Buffer) =>
                 error ? reject(error) : resolve(result);
               if (encoding === "gzip") {
                 zlib.gzip(fileContents, gzipOptions, cb);
-              } else {
+              } else if (encoding === "br") {
                 zlib.brotliCompress(fileContents, brotliOptions, cb);
+              } else {
+                zlib.zstdCompress(fileContents, zstdOptions, cb);
               }
             }
           );
