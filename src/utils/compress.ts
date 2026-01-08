@@ -74,7 +74,10 @@ export async function compressPublicAssets(nitro: Nitro) {
             [zlib.constants.BROTLI_PARAM_SIZE_HINT]: fileContents.length,
           };
           const zstdOptions = {
-            params: { [zlib.constants.ZSTD_c_compressionLevel]: 22 },
+            params: {
+              [zlib.constants.ZSTD_c_compressionLevel]: 19,
+              [zlib.constants.ZSTD_c_strategy]: zlib.constants.ZSTD_btultra2,
+            },
           };
           const compressedBuff: Buffer = await new Promise(
             (resolve, reject) => {
