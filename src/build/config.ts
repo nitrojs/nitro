@@ -21,6 +21,8 @@ export function baseBuildConfig(nitro: Nitro) {
     baseURL: nitro.options.baseURL,
     _asyncContext: nitro.options.experimental.asyncContext,
     _tasks: nitro.options.experimental.tasks,
+    _durableBindingName:
+      nitro.options.cloudflare?.durable?.bindingName || "$DurableObject",
   };
 
   const replacements = {
