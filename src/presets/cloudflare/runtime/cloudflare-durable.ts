@@ -73,7 +73,10 @@ export class $DurableObject extends DurableObject {
   }
 
   override fetch(request: Request) {
-    augmentReq(request, this.env, this.ctx);
+    augmentReq(request, {
+      env: this.env,
+      context: this.ctx as any,
+    });
 
     if (hasWebSocket && request.headers.get("upgrade") === "websocket") {
       return ws!.handleDurableUpgrade(this, request);

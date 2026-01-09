@@ -1,6 +1,6 @@
 import "#nitro/virtual/polyfills";
 import type * as CF from "@cloudflare/workers-types";
-import type { ServerRequest } from "srvx";
+import type { ServerRequest, ServerRuntimeContext } from "srvx";
 
 import { runCronTasks } from "#nitro/runtime/task";
 import { useNitroApp, useNitroHooks } from "nitro/app";
@@ -22,7 +22,7 @@ export function createHandler<Env>(hooks: {
   return {
     async fetch(request, env, context) {
       (globalThis as any).__env__ = env;
-      augmentReq(request as any, env, context);
+      augmentReq(request as any, { env: env as any, context });
 
       const ctxExt = {};
       const url = new URL(request.url);
@@ -66,8 +66,8 @@ export function createHandler<Env>(hooks: {
       (globalThis as any).__env__ = env;
       context.waitUntil(
         nitroHooks.callHook("cloudflare:email", {
-          message,
-          event: message, // backward compat
+          message: message as any,
+          event: message as any, // backward compat
           env,
           context,
         }) || Promise.resolve()
@@ -112,15 +112,13 @@ export function createHandler<Env>(hooks: {
 
 export function augmentReq(
   cfReq: Request | CF.Request,
-  env: unknown,
-  context: CF.ExecutionContext | CF.DurableObjectState
+  ctx: NonNullable<ServerRuntimeContext["cloudflare"]>
 ) {
   const req = cfReq as ServerRequest;
+  req.waitUntil = ctx.context?.waitUntil.bind(ctx.context);
   req.runtime ??= { name: "cloudflare" };
   req.runtime.cloudflare = {
     ...req.runtime.cloudflare,
-    env: env as any,
-    context: context as any,
+    ...ctx,
   };
-  req.waitUntil = context.waitUntil.bind(context);
 }

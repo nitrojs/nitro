@@ -38,7 +38,10 @@ export default {
     env: CFPagesEnv,
     context: EventContext<CFPagesEnv, string, any>
   ) {
-    augmentReq(cfReq, env, context as any);
+    augmentReq(cfReq, {
+      env,
+      context: context as any,
+    });
 
     // Websocket upgrade
     // https://crossws.unjs.io/adapters/cloudflare
