@@ -16,16 +16,16 @@ interface Env {
 }
 
 export default createHandler<Env>({
-  fetch(request, env, context, url) {
+  fetch(cfRequest, env, context, url) {
     // Static assets fallback (optional binding)
     if (env.ASSETS && isPublicAssetURL(url.pathname)) {
-      return env.ASSETS.fetch(request);
+      return env.ASSETS.fetch(cfRequest as any);
     }
 
     // Websocket upgrade
     // https://crossws.unjs.io/adapters/cloudflare
-    if (hasWebSocket && request.headers.get("upgrade") === "websocket") {
-      return ws!.handleUpgrade(request as any, env, context);
+    if (hasWebSocket && cfRequest.headers.get("upgrade") === "websocket") {
+      return ws!.handleUpgrade(cfRequest, env, context);
     }
   },
 });

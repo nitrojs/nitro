@@ -1,5 +1,4 @@
 import "#nitro/virtual/polyfills";
-import type { ServerRequest } from "srvx";
 import type {
   Request as CFRequest,
   EventContext,
@@ -12,7 +11,7 @@ import { isPublicAssetURL } from "#nitro/virtual/public-assets";
 import { runCronTasks } from "#nitro/runtime/task";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
 import { hasWebSocket } from "#nitro/virtual/feature-flags";
-import { augmentContext } from "./_module-handler.ts";
+import { augmentReq } from "./_module-handler.ts";
 
 /**
  * Reference: https://developers.cloudflare.com/workers/runtime-apis/fetch-event/#parameters
@@ -39,15 +38,13 @@ export default {
     env: CFPagesEnv,
     context: EventContext<CFPagesEnv, string, any>
   ) {
-    // srvx + crossws compatibility (runtime/cloudflare + request.context.cloudflare)
-    const req = cfReq as unknown as ServerRequest;
-    augmentContext(cfReq, env, context as any);
+    augmentReq(cfReq, env, context as any);
 
     // Websocket upgrade
     // https://crossws.unjs.io/adapters/cloudflare
     if (hasWebSocket && cfReq.headers.get("upgrade") === "websocket") {
       return ws!.handleUpgrade(
-        cfReq as any,
+        cfReq,
         env,
         context as unknown as ExecutionContext
       );
@@ -58,7 +55,7 @@ export default {
       return env.ASSETS.fetch(cfReq);
     }
 
-    return nitroApp.fetch(req);
+    return nitroApp.fetch(cfReq as any);
   },
   scheduled(event: any, env: CFPagesEnv, context: ExecutionContext) {
     if (import.meta._tasks) {

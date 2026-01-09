@@ -2,11 +2,7 @@ import "#nitro/virtual/polyfills";
 import type * as CF from "@cloudflare/workers-types";
 import { DurableObject } from "cloudflare:workers";
 import wsAdapter from "crossws/adapters/cloudflare";
-import {
-  augmentContext,
-  createHandler,
-  fetchHandler,
-} from "./_module-handler.ts";
+import { createHandler, augmentReq } from "./_module-handler.ts";
 
 import { useNitroApp, useNitroHooks } from "nitro/app";
 import { isPublicAssetURL } from "#nitro/virtual/public-assets";
@@ -37,21 +33,22 @@ const getDurableStub = (env: Env) => {
 
 const ws = hasWebSocket
   ? wsAdapter({
-    resolve: resolveWebsocketHooks,
-    instanceName: DURABLE_INSTANCE,
-    bindingName: DURABLE_BINDING,
-  })
+      resolve: resolveWebsocketHooks,
+      instanceName: DURABLE_INSTANCE,
+      bindingName: DURABLE_BINDING,
+    })
   : undefined;
 
 export default createHandler<Env>({
   fetch(request, env, context, url, ctxExt) {
     // Static assets fallback (optional binding)
     if (env.ASSETS && isPublicAssetURL(url.pathname)) {
-      return env.ASSETS.fetch(request);
+      return env.ASSETS.fetch(request as any);
     }
 
     // Expose stub fetch to the context
-    ctxExt.durableFetch = (req = request) => getDurableStub(env).fetch(req);
+    ctxExt.durableFetch = (req = request) =>
+      getDurableStub(env).fetch(req as any);
 
     // Websocket upgrade
     // https://crossws.unjs.io/adapters/cloudflare#durable-objects
@@ -76,15 +73,13 @@ export class $DurableObject extends DurableObject {
   }
 
   override fetch(request: Request) {
+    augmentReq(request, this.env, this.ctx);
+
     if (hasWebSocket && request.headers.get("upgrade") === "websocket") {
-      augmentContext(request, this.env, this.ctx);
       return ws!.handleDurableUpgrade(this, request);
     }
-    // Main handler
-    const url = new URL(request.url);
-    return fetchHandler(request, this.env, this.ctx, url, nitroApp, {
-      durable: this,
-    });
+
+    return nitroApp.fetch(request);
   }
 
   override alarm(): void | Promise<void> {

@@ -7,40 +7,6 @@ import { useNitroApp, useNitroHooks } from "nitro/app";
 
 type MaybePromise<T> = T | Promise<T>;
 
-export function augmentContext(
-  cfReq: Request | CF.Request,
-  env: unknown,
-  context: CF.ExecutionContext | DurableObjectState
-) {
-  // Expose latest env to the global context
-  (globalThis as any).__env__ = env;
-
-  // srvx compatibility
-  const req = cfReq as ServerRequest;
-  req.runtime ??= { name: "cloudflare" };
-  (req.runtime as any).cloudflare = {
-    ...(req.runtime as any).cloudflare,
-    env,
-    context,
-  };
-  req.waitUntil = context.waitUntil.bind(context);
-
-  // crossws compatibility: request.context is forwarded to peer.context
-  let reqContext = (req as any).context;
-  if (!reqContext || typeof reqContext !== "object") {
-    reqContext = {};
-    Object.defineProperty(req as any, "context", {
-      enumerable: true,
-      value: reqContext,
-    });
-  }
-  reqContext.cloudflare = {
-    ...reqContext.cloudflare,
-    env,
-    context,
-  };
-}
-
 export function createHandler<Env>(hooks: {
   fetch: (
     ...params: [
@@ -55,10 +21,11 @@ export function createHandler<Env>(hooks: {
 
   return {
     async fetch(request, env, context) {
+      (globalThis as any).__env__ = env;
+      augmentReq(request as any, env, context);
+
       const ctxExt = {};
       const url = new URL(request.url);
-
-      augmentContext(request as any, env, context);
 
       // Preset-specific logic
       if (hooks.fetch) {
@@ -68,14 +35,7 @@ export function createHandler<Env>(hooks: {
         }
       }
 
-      return fetchHandler(
-        request,
-        env,
-        context,
-        url,
-        nitroApp,
-        ctxExt
-      ) as Promise<any /* CF response! */>;
+      return (await nitroApp.fetch(request)) as any;
     },
 
     scheduled(controller, env, context) {
@@ -150,16 +110,17 @@ export function createHandler<Env>(hooks: {
   } satisfies ExportedHandler<Env>;
 }
 
-export async function fetchHandler(
+export function augmentReq(
   cfReq: Request | CF.Request,
   env: unknown,
-  context: CF.ExecutionContext | DurableObjectState,
-  url: URL = new URL(cfReq.url),
-  nitroApp = useNitroApp(),
-  ctxExt: any
+  context: CF.ExecutionContext | DurableObjectState
 ) {
-  augmentContext(cfReq, env, context);
   const req = cfReq as ServerRequest;
-
-  return nitroApp.fetch(req) as unknown as Promise<Response>;
+  req.runtime ??= { name: "cloudflare" };
+  (req.runtime as any).cloudflare = {
+    ...(req.runtime as any).cloudflare,
+    env,
+    context,
+  };
+  req.waitUntil = context.waitUntil.bind(context);
 }
