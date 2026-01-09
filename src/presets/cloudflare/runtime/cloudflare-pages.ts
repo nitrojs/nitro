@@ -12,6 +12,7 @@ import { isPublicAssetURL } from "#nitro/virtual/public-assets";
 import { runCronTasks } from "#nitro/runtime/task";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
 import { hasWebSocket } from "#nitro/virtual/feature-flags";
+import { augmentContext } from "./_module-handler.ts";
 
 /**
  * Reference: https://developers.cloudflare.com/workers/runtime-apis/fetch-event/#parameters
@@ -38,11 +39,9 @@ export default {
     env: CFPagesEnv,
     context: EventContext<CFPagesEnv, string, any>
   ) {
-    // srvx compatibility
+    // srvx + crossws compatibility (runtime/cloudflare + request.context.cloudflare)
     const req = cfReq as unknown as ServerRequest;
-    req.runtime ??= { name: "cloudflare" };
-    req.runtime.cloudflare ??= { context, env } as any;
-    req.waitUntil = context.waitUntil.bind(context);
+    augmentContext(cfReq, env, context as any);
 
     // Websocket upgrade
     // https://crossws.unjs.io/adapters/cloudflare
@@ -58,9 +57,6 @@ export default {
     if (env.ASSETS /* !miniflare */ && isPublicAssetURL(url.pathname)) {
       return env.ASSETS.fetch(cfReq);
     }
-
-    // Expose latest env to the global context
-    (globalThis as any).__env__ = env;
 
     return nitroApp.fetch(req);
   },

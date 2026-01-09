@@ -1,12 +1,45 @@
 import "#nitro/virtual/polyfills";
 import type * as CF from "@cloudflare/workers-types";
-import type { ExportedHandler } from "@cloudflare/workers-types";
 import type { ServerRequest } from "srvx";
 
 import { runCronTasks } from "#nitro/runtime/task";
 import { useNitroApp, useNitroHooks } from "nitro/app";
 
 type MaybePromise<T> = T | Promise<T>;
+
+export function augmentContext(
+  cfReq: Request | CF.Request,
+  env: unknown,
+  context: CF.ExecutionContext | DurableObjectState
+) {
+  // Expose latest env to the global context
+  (globalThis as any).__env__ = env;
+
+  // srvx compatibility
+  const req = cfReq as ServerRequest;
+  req.runtime ??= { name: "cloudflare" };
+  (req.runtime as any).cloudflare = {
+    ...(req.runtime as any).cloudflare,
+    env,
+    context,
+  };
+  req.waitUntil = context.waitUntil.bind(context);
+
+  // crossws compatibility: request.context is forwarded to peer.context
+  let reqContext = (req as any).context;
+  if (!reqContext || typeof reqContext !== "object") {
+    reqContext = {};
+    Object.defineProperty(req as any, "context", {
+      enumerable: true,
+      value: reqContext,
+    });
+  }
+  reqContext.cloudflare = {
+    ...reqContext.cloudflare,
+    env,
+    context,
+  };
+}
 
 export function createHandler<Env>(hooks: {
   fetch: (
@@ -24,6 +57,8 @@ export function createHandler<Env>(hooks: {
     async fetch(request, env, context) {
       const ctxExt = {};
       const url = new URL(request.url);
+
+      augmentContext(request as any, env, context);
 
       // Preset-specific logic
       if (hooks.fetch) {
@@ -123,14 +158,8 @@ export async function fetchHandler(
   nitroApp = useNitroApp(),
   ctxExt: any
 ) {
-  // Expose latest env to the global context
-  (globalThis as any).__env__ = env;
-
-  // srvx compatibility
+  augmentContext(cfReq, env, context);
   const req = cfReq as ServerRequest;
-  req.runtime ??= { name: "cloudflare" };
-  req.runtime.cloudflare ??= { context, env } as any;
-  req.waitUntil = context.waitUntil.bind(context);
 
   return nitroApp.fetch(req) as unknown as Promise<Response>;
 }

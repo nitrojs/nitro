@@ -2,7 +2,11 @@ import "#nitro/virtual/polyfills";
 import type * as CF from "@cloudflare/workers-types";
 import { DurableObject } from "cloudflare:workers";
 import wsAdapter from "crossws/adapters/cloudflare";
-import { createHandler, fetchHandler } from "./_module-handler.ts";
+import {
+  augmentContext,
+  createHandler,
+  fetchHandler,
+} from "./_module-handler.ts";
 
 import { useNitroApp, useNitroHooks } from "nitro/app";
 import { isPublicAssetURL } from "#nitro/virtual/public-assets";
@@ -33,10 +37,10 @@ const getDurableStub = (env: Env) => {
 
 const ws = hasWebSocket
   ? wsAdapter({
-      resolve: resolveWebsocketHooks,
-      instanceName: DURABLE_INSTANCE,
-      bindingName: DURABLE_BINDING,
-    })
+    resolve: resolveWebsocketHooks,
+    instanceName: DURABLE_INSTANCE,
+    bindingName: DURABLE_BINDING,
+  })
   : undefined;
 
 export default createHandler<Env>({
@@ -52,19 +56,6 @@ export default createHandler<Env>({
     // Websocket upgrade
     // https://crossws.unjs.io/adapters/cloudflare#durable-objects
     if (hasWebSocket && request.headers.get("upgrade") === "websocket") {
-      // Ensure Cloudflare bindings are available on `peer.context` inside WebSocket handlers.
-      // crossws will forward `request.context` to `peer.context`.
-      let wsContext = (request as any).context;
-      if (!wsContext) {
-        wsContext = {};
-        Object.defineProperty(request as any, "context", {
-          enumerable: true,
-          value: wsContext,
-        });
-      }
-      wsContext.cloudflare ||= {};
-      wsContext.cloudflare.env ||= env;
-      wsContext.cloudflare.context ||= context;
       return ws!.handleUpgrade(request, env, context);
     }
   },
@@ -86,6 +77,7 @@ export class $DurableObject extends DurableObject {
 
   override fetch(request: Request) {
     if (hasWebSocket && request.headers.get("upgrade") === "websocket") {
+      augmentContext(request, this.env, this.ctx);
       return ws!.handleDurableUpgrade(this, request);
     }
     // Main handler
