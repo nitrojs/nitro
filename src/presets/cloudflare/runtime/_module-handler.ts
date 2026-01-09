@@ -117,10 +117,10 @@ export function augmentReq(
 ) {
   const req = cfReq as ServerRequest;
   req.runtime ??= { name: "cloudflare" };
-  (req.runtime as any).cloudflare = {
-    ...(req.runtime as any).cloudflare,
-    env,
-    context,
+  req.runtime.cloudflare = {
+    ...req.runtime.cloudflare,
+    env: env as any,
+    context: context as any,
   };
   req.waitUntil = context.waitUntil.bind(context);
 }
