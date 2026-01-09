@@ -115,10 +115,7 @@ export function augmentReq(
   ctx: NonNullable<ServerRuntimeContext["cloudflare"]>
 ) {
   const req = cfReq as ServerRequest;
-  req.waitUntil = ctx.context?.waitUntil.bind(ctx.context);
   req.runtime ??= { name: "cloudflare" };
-  req.runtime.cloudflare = {
-    ...req.runtime.cloudflare,
-    ...ctx,
-  };
+  req.runtime.cloudflare = { ...req.runtime.cloudflare, ...ctx };
+  req.waitUntil = ctx.context?.waitUntil.bind(ctx.context);
 }
