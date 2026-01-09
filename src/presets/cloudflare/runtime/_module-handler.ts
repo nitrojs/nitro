@@ -113,7 +113,7 @@ export function createHandler<Env>(hooks: {
 export function augmentReq(
   cfReq: Request | CF.Request,
   env: unknown,
-  context: CF.ExecutionContext | DurableObjectState
+  context: CF.ExecutionContext | CF.DurableObjectState
 ) {
   const req = cfReq as ServerRequest;
   req.runtime ??= { name: "cloudflare" };
