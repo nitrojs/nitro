@@ -15,7 +15,7 @@ import {
 
 const METHODS = new Set(["HEAD", "GET"] as HTTPMethod[]);
 
-const EncodingMap = { gzip: ".gz", br: ".br" } as const;
+const EncodingMap = { gzip: ".gz", br: ".br", zstd: ".zst" } as const;
 
 export default defineHandler((event) => {
   if (event.req.method && !METHODS.has(event.req.method as HTTPMethod)) {
