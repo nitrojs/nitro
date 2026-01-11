@@ -245,10 +245,16 @@ export async function prerender(nitro: Nitro) {
 
     // https://developer.mozilla.org/en-US/docs/Web/HTTP/Redirections
     const redirectCodes = [301, 302, 303, 304, 307, 308];
+    const isRedirect = redirectCodes.includes(res.status);
     if (![200, ...redirectCodes].includes(res.status)) {
       _route.error = new Error(`[${res.status}] ${res.statusText}`) as any;
       _route.error!.statusCode = res.status;
       _route.error!.statusMessage = res.statusText;
+    }
+
+    // Skip writing redirect responses to disk - they would conflict with actual HTML files
+    if (isRedirect) {
+      _route.skip = true;
     }
 
     // Measure actual time taken for generating route
