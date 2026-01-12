@@ -1,6 +1,6 @@
 import type { HTTPMethod } from "h3";
 import type { FetchOptions, FetchRequest, FetchResponse } from "ofetch";
-import type { MatchedRoutes } from "./_match.ts";
+import type { MatchedRouteMethods } from "./_match.ts";
 
 // An interface to extend in a local project
 export interface InternalApi {}
@@ -8,16 +8,38 @@ export interface InternalApi {}
 // TODO: upgrade to uppercase for h3 v2 types and web consistency
 type RouterMethod = Lowercase<HTTPMethod>;
 
+type StripMethodsKey<T> = T extends "$" ? never : T;
+
+type JoinPath<Prefix extends string, Segment extends string> = Prefix extends ""
+  ? `/${Segment}`
+  : `${Prefix}/${Segment}`;
+
+type RootPath<Prefix extends string> = Prefix extends "" ? "/" : Prefix;
+
+type RoutePaths<Routes, Prefix extends string = ""> = Routes extends object
+  ?
+      | (Routes extends { $: any } ? RootPath<Prefix> : never)
+      | {
+          [K in keyof Routes]: K extends string
+            ? StripMethodsKey<K> extends never
+              ? never
+              : RoutePaths<Routes[K], JoinPath<Prefix, K>>
+            : never;
+        }[keyof Routes]
+  : never;
+
+type InternalApiPaths = RoutePaths<InternalApi>;
+
 export type NitroFetchRequest =
-  | Exclude<keyof InternalApi, `/_${string}` | `/api/_${string}`>
+  | Exclude<InternalApiPaths, `/_${string}` | `/api/_${string}`>
   | Exclude<FetchRequest, string>
   | (string & {});
 
 export type MiddlewareOf<
   Route extends string,
   Method extends RouterMethod | "default",
-> = Method extends keyof InternalApi[MatchedRoutes<Route>]
-  ? InternalApi[MatchedRoutes<Route>][Method]
+> = Method extends keyof MatchedRouteMethods<Route>
+  ? MatchedRouteMethods<Route>[Method]
   : never;
 
 export type TypedInternalResponse<
@@ -40,13 +62,10 @@ export type TypedInternalResponse<
 // Defaults to all methods if there aren't any methods available or if there is a catch-all route.
 export type AvailableRouterMethod<R extends NitroFetchRequest> =
   R extends string
-    ? keyof InternalApi[MatchedRoutes<R>] extends undefined
+    ? keyof MatchedRouteMethods<R> extends undefined
       ? RouterMethod
-      : Extract<
-            keyof InternalApi[MatchedRoutes<R>],
-            "default"
-          > extends undefined
-        ? Extract<RouterMethod, keyof InternalApi[MatchedRoutes<R>]>
+      : Extract<keyof MatchedRouteMethods<R>, "default"> extends undefined
+        ? Extract<RouterMethod, keyof MatchedRouteMethods<R>>
         : RouterMethod
     : RouterMethod;
 
