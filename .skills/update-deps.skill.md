@@ -2,16 +2,14 @@
 
 This skill guides you through the process of updating dependencies in the Nitro repository.
 
-## Prerequisites
-
-- Clean working directory on main branch
-- Latest changes pulled from remote
-
 ## Step-by-Step Process
 
 ### 1. Ensure Clean State
 
-Check that you're on a clean main branch with latest changes:
+Check that you're on a clean main branch with latest changes.
+
+- Clean working directory on main branch
+- Latest changes pulled from remote
 
 ```bash
 git checkout main
@@ -19,50 +17,51 @@ git pull origin main
 git status  # Should show "nothing to commit, working tree clean"
 ```
 
+(if branch name starts with chore, you can stay in it, no need to pull or change branch or clean state)
+
 ### 2. Initial Install
 
 Run an initial install to ensure everything is up to date:
 
 ```bash
-pnpm i
+pnpm install
 ```
 
 ### 3. Check for Outdated Dependencies
 
-Find outdated dependencies:
+Find outdated stable dependencies:
 
 ```bash
 pnpm outdated
 ```
 
-For any pinned beta tags or specific versions, check for the latest version manually:
+**IMPORTANT**: Check for newer beta/alpha/rc versions manually. `pnpm outdated` doesn't show pre-release updates.
+
+Check each package with beta/alpha/rc versions in package.json:
 
 ```bash
-pnpm show <package-name>
+# List all versions including pre-releases
+pnpm show vite versions --json | grep -E "beta|alpha|rc" | tail -5
+pnpm show youch versions --json | grep -E "beta|alpha|rc" | tail -5
 ```
 
-This will display all available versions including beta/alpha tags.
+Or check all versions for a specific package:
+
+```bash
+pnpm show <package-name> versions
+```
 
 ### 4. Update Dependencies
 
 Manually update all dependencies to their latest versions in [package.json](../package.json):
 
-- Keep the range prefix (e.g., `^` for caret ranges)
 - Update both `dependencies` and `devDependencies`
-- For beta/alpha packages, update to the latest tag found in step 3
+- Keep the range prefix (e.g., `^` for caret ranges)
+- **For beta/alpha/rc packages**: Update to the latest pre-release tag found in step 3
+  - Example: `vite: "8.0.0-beta.6"` → `"8.0.0-beta.7"`
+  - Example: `h3: "^2.0.1-rc.7"` → `"^2.0.1-rc.8"` (if available)
 - Maintain version range conventions (prefer `^` over exact versions)
-
-Example:
-```json
-{
-  "dependencies": {
-    "package-a": "^1.2.3"  // Update to ^1.3.0
-  },
-  "devDependencies": {
-    "package-b": "^2.1.0"  // Update to ^2.2.0
-  }
-}
-```
+- **Do not update** `@azure/functions`
 
 ### 5. Clean Install
 
@@ -89,14 +88,6 @@ Build the project to ensure compatibility:
 pnpm build
 ```
 
-### 8. Type Check
-
-Run type tests to catch any TypeScript issues:
-
-```bash
-pnpm test:types
-```
-
 ### 9. Fix Remaining Issues
 
 If there are lint or type errors:
@@ -104,15 +95,11 @@ If there are lint or type errors:
 1. Review the output carefully
 2. Fix issues manually following the project conventions
 3. Re-run `pnpm lint:fix` to verify lint fixes
-4. Re-run `pnpm test:types` to verify type fixes
+4. Re-run `pnpm test:types` to verify type fixes. Ignore errors, only report them in the end.
 
-### 10. Run Full Tests
+### 10. Final
 
-Before committing, run the full test suite:
-
-```bash
-pnpm vitest run
-```
+Do not commit changes. Only summarize what happened.
 
 ## Common Issues
 
@@ -134,23 +121,5 @@ If the build fails after updates:
 
 ### Lock File Conflicts
 
-If you encounter lock file issues:
-
-- Ensure you're using the correct pnpm version (check `.nvmrc` for Node version)
-- Run `corepack enable` to ensure pnpm is properly configured
-
-## Best Practices
-
-- Update dependencies regularly (e.g., weekly or bi-weekly)
 - Test thoroughly after updates, especially major version bumps
 - Review changelogs for significant updates
-- Update related packages together (e.g., all eslint plugins)
-- Keep an eye on bundle size impact for runtime dependencies
-- For runtime dependencies, verify cross-runtime compatibility
-
-## Notes
-
-- This is a manual process to give you control over each update
-- Always review the changes before committing
-- Breaking changes should be documented if they affect users
-- Runtime dependencies require extra scrutiny (check [src/runtime/](../src/runtime/))
