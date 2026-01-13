@@ -1,0 +1,15 @@
+{
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@trpc/client": "^11.8.1",
+    "@trpc/server": "^11.8.1",
+    "nitro": "latest",
+    "vite": "beta",
+    "zod": "^4.3.5"
+  }
+}
