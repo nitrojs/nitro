@@ -6,7 +6,7 @@ import type {
   CloudflareHeaderTreeNode,
 } from "./types";
 import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { readFile, rename, rm } from "node:fs/promises";
 import { relative, dirname, extname } from "node:path";
 import { writeFile } from "nitropack/kit";
 import { parseTOML, parseJSONC } from "confbox";
@@ -223,10 +223,13 @@ export async function writeCFHeaders(
   nitro: Nitro,
   outdir: "public" | "output"
 ) {
-  const headersPath = join(
-    outdir === "public"
-      ? nitro.options.output.publicDir
-      : nitro.options.output.dir,
+  const publicRootPath = join(
+    nitro.options.output.dir,
+    outdir === "public" ? "public" : "",
+    "_headers"
+  );
+  const publicBasePath = join(
+    (outdir === "public" && nitro.options.baseURL !== "") ? nitro.options.output.publicDir : publicRootPath,
     "_headers"
   );
 
@@ -235,13 +238,19 @@ export async function writeCFHeaders(
     buildHeaderTree(nitro.options.routeRules)
   );
 
-  if (existsSync(headersPath)) {
-    const currentHeaders = await readFile(headersPath, "utf8");
+  if (existsSync(publicBasePath)) {
+    const currentHeaders = await readFile(publicBasePath, "utf8");
     if (/^\/\* /m.test(currentHeaders)) {
+      if (publicBasePath != publicRootPath) {
+        await rename(publicBasePath, publicRootPath);
+      }
       nitro.logger.info(
         "Not adding Nitro fallback to `_headers` (as an existing fallback was found)."
       );
       return;
+    }
+    if (publicBasePath != publicRootPath) {
+      await rm(publicBasePath);
     }
     nitro.logger.info(
       "Adding Nitro fallback to `_headers` to handle all unmatched routes."
@@ -249,7 +258,7 @@ export async function writeCFHeaders(
     contents.unshift(currentHeaders);
   }
 
-  await writeFile(headersPath, contents.join("\n"), true);
+  await writeFile(publicRootPath, contents.join("\n"), true);
 }
 
 export async function writeCFPagesRedirects(nitro: Nitro) {
