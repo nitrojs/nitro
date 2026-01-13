@@ -113,6 +113,7 @@ describe("nitro:preset:cloudflare-module", async () => {
         x-cf-test-root: test
       /build/*
         cache-control: public, max-age=3600, immutable
+        x-build-header: works
       /cf/_header/*
         x-cf-test: 0
       /cf/_header/1/*
