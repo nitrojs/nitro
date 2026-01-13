@@ -71,7 +71,7 @@
     "oxc-minify": "^0.108.0",
     "oxc-transform": "^0.108.0",
     "srvx": "^0.10.0",
-    "undici": "^7.17.0",
+    "undici": "^7.18.2",
     "unenv": "^2.0.0-rc.24",
     "unstorage": "^2.0.0-alpha.5"
   },
@@ -132,7 +132,7 @@
     "miniflare": "^4.20260111.0",
     "mlly": "^1.8.0",
     "nypm": "^0.6.2",
-    "obuild": "^0.4.13",
+    "obuild": "^0.4.14",
     "pathe": "^2.0.3",
     "perfect-debounce": "^2.0.0",
     "pkg-types": "^2.3.0",

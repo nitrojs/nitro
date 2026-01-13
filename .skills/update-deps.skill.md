@@ -4,7 +4,7 @@ This skill guides you through the process of updating dependencies in the Nitro 
 
 ## Step-by-Step Process
 
-### 1. Ensure Clean State
+### Ensure Clean State
 
 Check that you're on a clean main branch with latest changes.
 
@@ -19,7 +19,7 @@ git status  # Should show "nothing to commit, working tree clean"
 
 (if branch name starts with chore, you can stay in it, no need to pull or change branch or clean state)
 
-### 2. Initial Install
+### Initial Install
 
 Run an initial install to ensure everything is up to date:
 
@@ -27,12 +27,48 @@ Run an initial install to ensure everything is up to date:
 pnpm install
 ```
 
-### 3. Check for Outdated Dependencies
+### Run pnpm upgrade -r
 
-Find outdated stable dependencies:
+Run `pnpm upgrade -r` to update non-major versions.
+
+After upgrade, check git diff:
+
+- Make sure range types does not change in `dependencies` field (example: `"h3": "^2.0.1-rc.7"` should remain `"h3": "^2.0.1-rc.7",` not `"h3": "2.0.1-rc.7",`)
+- Make sure dependencies are not converted to `link:..` (example: `"nitro": "latest",` should remain same, instead of `"nitro": "link:../.."`)
+
+**Fix workspace package link references:**
+
+`pnpm upgrade -r` often incorrectly converts workspace package references (like `"nitro": "latest"`) to link format (`"nitro": "link:../.."`) in monorepo packages.
+
+Check git diff for any workspace packages that were converted to `link:` format:
 
 ```bash
-pnpm outdated
+# Check for any link: conversions in modified files
+git diff --name-only | xargs grep -l '"link:' 2>/dev/null
+```
+
+If found, revert them back to their original format. For this repo, `"nitro"` should always be `"latest"`:
+
+```bash
+# Revert nitro link references back to latest in all modified package.json files
+git diff --name-only | grep 'package.json$' | while read file; do
+  if grep -q '"nitro": "link:' "$file" 2>/dev/null; then
+    sed -i 's/"nitro": "link:[^"]*"/"nitro": "latest"/g' "$file"
+    echo "Fixed: $file"
+  fi
+done
+```
+
+**Fix caret prefix removal:**
+
+If any dependencies in root `package.json` lost their `^` prefix, restore them manually.
+
+### Check for Outdated Dependencies
+
+Find outdated dependencies:
+
+```bash
+pnpm outdated -r
 ```
 
 **IMPORTANT**: Check for newer beta/alpha/rc versions manually. `pnpm outdated` doesn't show pre-release updates.
