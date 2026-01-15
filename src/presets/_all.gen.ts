@@ -11,6 +11,7 @@ import _cleavr from "./cleavr/preset.ts";
 import _cloudflare from "./cloudflare/preset.ts";
 import _deno from "./deno/preset.ts";
 import _digitalocean from "./digitalocean/preset.ts";
+import _edgeone from "./edgeone/preset.ts";
 import _firebase from "./firebase/preset.ts";
 import _flightcontrol from "./flightcontrol/preset.ts";
 import _genezio from "./genezio/preset.ts";
@@ -40,6 +41,7 @@ export default [
   ..._cloudflare,
   ..._deno,
   ..._digitalocean,
+  ..._edgeone,
   ..._firebase,
   ..._flightcontrol,
   ..._genezio,
