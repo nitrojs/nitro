@@ -6,10 +6,14 @@ const nitroApp = useNitroApp();
 
 const ONE_YEAR_IN_SECONDS = 365 * 24 * 60 * 60;
 
-const handler = async (req: Request): Promise<Response> => {
+const handler = async (netlifyReq: Request): Promise<Response> => {
+  const req = netlifyReq as unknown as ServerRequest;
+  req.ip = netlifyReq.headers.get("x-nf-client-connection-ip") || undefined;
+
+  req.runtime ??= { name: "netlify" };
   const response = await nitroApp.fetch(req);
 
-  const isr = ((req as ServerRequest).context?.routeRules || {})?.isr?.options;
+  const isr = (req.context?.routeRules || {})?.isr?.options;
   if (isr) {
     const maxAge = typeof isr === "number" ? isr : ONE_YEAR_IN_SECONDS;
     const revalidateDirective =
