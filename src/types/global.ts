@@ -11,6 +11,7 @@ export interface NitroImportMeta {
   runtimeConfig?: Record<string, any>;
   _asyncContext?: boolean;
   _tasks?: boolean;
+  _durableBindingName?: string;
 }
 
 declare global {
