@@ -2,6 +2,17 @@
   "name": "nitro",
   "version": "3.0.1-alpha.1",
   "description": "Build and Deploy Universal JavaScript Servers",
+  "keywords": [
+    "api-routes",
+    "full-stack",
+    "h3",
+    "nitro",
+    "server",
+    "typescript",
+    "vite",
+    "vite-plugin",
+    "web"
+  ],
   "homepage": "https://nitro.build",
   "repository": "nitrojs/nitro",
   "license": "MIT",
@@ -167,9 +178,9 @@
     "youch-core": "^0.3.3"
   },
   "peerDependencies": {
-    "rolldown": "*",
-    "rollup": "^4.55.1",
-    "vite": ">=7.3.1",
+    "rolldown": ">=1.0.0-beta.0",
+    "rollup": "^4",
+    "vite": "^7 || ^8 || >=8.0.0-0",
     "xml2js": "^0.6.2"
   },
   "peerDependenciesMeta": {
@@ -189,5 +200,20 @@
   "packageManager": "pnpm@10.28.0",
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
+  },
+  "compatiblePackages": {
+    "schemaVersion": 1,
+    "vite": {
+      "type": "compatible",
+      "versions": "^7 || ^8 || >=8.0.0-0"
+    },
+    "rollup": {
+      "type": "compatible",
+      "versions": "^4"
+    },
+    "rolldown": {
+      "type": "compatible",
+      "versions": ">=1.0.0-beta.0"
+    }
   }
 }
