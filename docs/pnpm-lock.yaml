@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       shaders:
-        specifier: ^2.2.40
-        version: 2.2.40
+        specifier: ^2.2.43
+        version: 2.2.43
       undocs:
         specifier: ^0.4.11
         version: 0.4.11(@babel/parser@7.28.4)(@netlify/blobs@9.1.2)(@parcel/watcher@2.5.1)(@types/node@24.2.0)(@vue/compiler-sfc@3.5.21)(@vueuse/core@13.9.0(vue@3.5.21(typescript@5.9.2)))(db0@0.3.2)(embla-carousel@8.6.0)(ioredis@5.7.0)(jwt-decode@4.0.0)(lightningcss@1.30.1)(magicast@0.3.5)(rollup@4.50.2)(terser@5.43.1)(typescript@5.9.2)(vite@7.1.6(@types/node@24.2.0)(jiti@2.5.1)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.8.1))(yaml@2.8.1)(zod@3.25.76)
@@ -4165,8 +4165,8 @@ packages:
   setprototypeof@1.2.0:
     resolution: {integrity: sha512-E5LDX7Wrp85Kil5bhZv46j8jOeboKq5JMmYM3gVGdGH8xFpPWXUMsNrlODCrkoxMEeNi/XZIwuRvY4XNwYMJpw==}
 
-  shaders@2.2.40:
-    resolution: {integrity: sha512-TIQDd2IQ1ZyEJnmtsZkBvgiBqy111qlXBEzhRZuXdN6JPIompCJPnVRD8fMv/LNx3rs8NQxRx/3cshT3aQx1WQ==}
+  shaders@2.2.43:
+    resolution: {integrity: sha512-Rngjht8wFLcJavPkjYv7IzzzSUW4FhjeO9p+ujP5ImDHMahIBuWLZQv3PP2Wn6IwfOgFAy9K+ArcVyOOBOY0zA==}
 
   shebang-command@2.0.0:
     resolution: {integrity: sha512-kHxr2zZpYtdmrN1qDjrrX/Z1rR1kG8Dx+gkpK1G4eXmvXswmcE1hTWBWYUzlraYw1/yZp6YuDY77YtvbN0dmDA==}
@@ -10052,7 +10052,7 @@ snapshots:
 
   setprototypeof@1.2.0: {}
 
-  shaders@2.2.40:
+  shaders@2.2.43:
     dependencies:
       three: 0.181.2
 
