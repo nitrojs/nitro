@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       undocs:
-        specifier: ^0.4.12
-        version: 0.4.12(@babel/parser@7.28.6)(@parcel/watcher@2.5.4)(@vue/compiler-sfc@3.5.26)(@vueuse/core@13.9.0(vue@3.5.26(typescript@5.9.3)))(cac@6.7.14)(db0@0.3.4)(embla-carousel@8.6.0)(ioredis@5.9.1)(lightningcss@1.30.2)(magicast@0.5.1)(rollup@4.55.1)(terser@5.44.1)(typescript@5.9.3)(vite@7.3.1(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.1)(yaml@2.8.2))(yaml@2.8.2)(zod@3.25.76)
+        specifier: ^0.4.13
+        version: 0.4.13(@babel/parser@7.28.6)(@parcel/watcher@2.5.4)(@vue/compiler-sfc@3.5.26)(@vueuse/core@13.9.0(vue@3.5.26(typescript@5.9.3)))(cac@6.7.14)(db0@0.3.4)(embla-carousel@8.6.0)(ioredis@5.9.1)(lightningcss@1.30.2)(magicast@0.5.1)(rollup@4.55.1)(terser@5.44.1)(typescript@5.9.3)(vite@7.3.1(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.1)(yaml@2.8.2))(yaml@2.8.2)(zod@3.25.76)
 
 packages:
 
@@ -4577,8 +4577,8 @@ packages:
   unctx@2.5.0:
     resolution: {integrity: sha512-p+Rz9x0R7X+CYDkT+Xg8/GhpcShTlU8n+cf9OtOEf7zEQsNcCZO1dPKNRDqvUTaq+P32PMMkxWHwfrxkqfqAYg==}
 
-  undocs@0.4.12:
-    resolution: {integrity: sha512-nZTIWmHkM4YU2GOtqmM/hEYM+UAPmGIJhrpaB6918u0IHBueCoqSPeYqv1EkAClnDTysVeobF35BtkWn1WDsHw==}
+  undocs@0.4.13:
+    resolution: {integrity: sha512-LLq1fJCD/wHbBDS3yxaVwwwTs/DcSoq6asAXEeV0Lrqh9Vyu299xoIUI/xshdr9cZd4R8USkA4A+ju4JYPnhOw==}
     hasBin: true
 
   unenv@2.0.0-rc.24:
@@ -10556,7 +10556,7 @@ snapshots:
       magic-string: 0.30.21
       unplugin: 2.3.11
 
-  undocs@0.4.12(@babel/parser@7.28.6)(@parcel/watcher@2.5.4)(@vue/compiler-sfc@3.5.26)(@vueuse/core@13.9.0(vue@3.5.26(typescript@5.9.3)))(cac@6.7.14)(db0@0.3.4)(embla-carousel@8.6.0)(ioredis@5.9.1)(lightningcss@1.30.2)(magicast@0.5.1)(rollup@4.55.1)(terser@5.44.1)(typescript@5.9.3)(vite@7.3.1(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.1)(yaml@2.8.2))(yaml@2.8.2)(zod@3.25.76):
+  undocs@0.4.13(@babel/parser@7.28.6)(@parcel/watcher@2.5.4)(@vue/compiler-sfc@3.5.26)(@vueuse/core@13.9.0(vue@3.5.26(typescript@5.9.3)))(cac@6.7.14)(db0@0.3.4)(embla-carousel@8.6.0)(ioredis@5.9.1)(lightningcss@1.30.2)(magicast@0.5.1)(rollup@4.55.1)(terser@5.44.1)(typescript@5.9.3)(vite@7.3.1(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.1)(yaml@2.8.2))(yaml@2.8.2)(zod@3.25.76):
     dependencies:
       '@headlessui/vue': 1.7.23(vue@3.5.26(typescript@5.9.3))
       '@iconify-json/logos': 1.2.10
