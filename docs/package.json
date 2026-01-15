@@ -4,11 +4,8 @@
     "dev": "undocs dev",
     "build": "undocs build"
   },
-  "resolutions": {
-    "@nuxt/ui": "4.2.0"
-  },
   "devDependencies": {
     "shaders": "^2.2.40",
-    "undocs": "npm:undocs-nightly@0.4.12-20260114-185559-46cf48c"
+    "undocs": "^0.4.12"
   }
 }
