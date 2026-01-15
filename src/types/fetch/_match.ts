@@ -1,104 +1,139 @@
 import type { InternalApi } from "./fetch.ts";
 
-type MatchResult<
-  Key extends string,
-  Exact extends boolean = false,
-  Score extends any[] = [],
-  catchAll extends boolean = false,
-> = {
-  [k in Key]: { key: k; exact: Exact; score: Score; catchAll: catchAll };
-}[Key];
+type MatchResult<Node, Path extends string, Exact extends boolean> = {
+  node: Node;
+  path: Path;
+  exact: Exact;
+};
 
-type Subtract<
-  Minuend extends any[] = [],
-  Subtrahend extends any[] = [],
-> = Minuend extends [...Subtrahend, ...infer Remainder] ? Remainder : never;
+type RouteMethods<Node> = Node extends { $: infer Methods } ? Methods : never;
 
-type TupleIfDiff<
-  First extends string,
-  Second extends string,
-  Tuple extends any[] = [],
-> = First extends `${Second}${infer Diff}`
-  ? Diff extends ""
-    ? []
-    : Tuple
-  : [];
+type StripQuery<Route extends string> = Route extends `${infer Clean}?${string}`
+  ? Clean
+  : Route;
 
-type MaxTuple<N extends any[] = [], T extends any[] = []> = {
-  current: T;
-  result: MaxTuple<N, ["", ...T]>;
-}[[N["length"]] extends [Partial<T>["length"]] ? "current" : "result"];
+type StripHash<Route extends string> = Route extends `${infer Clean}#${string}`
+  ? Clean
+  : Route;
 
-type CalcMatchScore<
-  Key extends string,
-  Route extends string,
-  Score extends any[] = [],
-  Init extends boolean = false,
-  FirstKeySegMatcher extends string = Init extends true ? ":Invalid:" : "",
-> = `${Key}/` extends `${infer KeySeg}/${infer KeyRest}`
-  ? KeySeg extends FirstKeySegMatcher // return score if `KeySeg` is empty string (except first pass)
-    ? Subtract<
-        [...Score, ...TupleIfDiff<Route, Key, ["", ""]>],
-        TupleIfDiff<Key, Route, ["", ""]>
-      >
-    : `${Route}/` extends `${infer RouteSeg}/${infer RouteRest}`
-      ? `${RouteSeg}?` extends `${infer RouteSegWithoutQuery}?${string}`
-        ? RouteSegWithoutQuery extends KeySeg
-          ? CalcMatchScore<KeyRest, RouteRest, [...Score, "", ""]> // exact match
-          : KeySeg extends `:${string}`
-            ? RouteSegWithoutQuery extends ""
-              ? never
-              : CalcMatchScore<KeyRest, RouteRest, [...Score, ""]> // param match
-            : KeySeg extends RouteSegWithoutQuery
-              ? CalcMatchScore<KeyRest, RouteRest, [...Score, ""]> // match by ${string}
-              : never
-        : never
-      : never
+type StripLeadingSlash<Route extends string> = Route extends `/${infer Rest}`
+  ? Rest
+  : Route;
+
+type StripTrailingSlash<Route extends string> = Route extends `${infer Rest}/`
+  ? Rest
+  : Route;
+
+type NormalizePath<Route extends string> = StripTrailingSlash<
+  StripLeadingSlash<StripHash<StripQuery<Route>>>
+>;
+
+type SplitPath<Route extends string> =
+  Route extends `${infer Head}/${infer Tail}`
+    ? [Head, ...SplitPath<Tail>]
+    : Route extends ""
+      ? []
+      : [Route];
+
+type JoinPath<Prefix extends string, Segment extends string> = Prefix extends ""
+  ? `/${Segment}`
+  : `${Prefix}/${Segment}`;
+
+type RootPath<Prefix extends string> = Prefix extends "" ? "/" : Prefix;
+
+type ParamKey<Routes> = Extract<keyof Routes, `:${string}`>;
+type CatchAllKey<Routes> = Extract<keyof Routes, `**${string}`>;
+
+type ExactMatch<
+  Routes,
+  Segments extends string[],
+  Prefix extends string = "",
+> = Segments extends [infer Head extends string, ...infer Tail extends string[]]
+  ? Head extends keyof Routes
+    ? ExactMatch<Routes[Head], Tail, JoinPath<Prefix, Head>>
+    : never
+  : Routes extends { $: any }
+    ? MatchResult<Routes, RootPath<Prefix>, true>
+    : never;
+
+type LooseMatch<
+  Routes,
+  Segments extends string[],
+  Prefix extends string = "",
+  Fallback = never,
+  CatchAll = never,
+> = Routes extends object
+  ? Segments extends [infer Head extends string, ...infer Tail extends string[]]
+    ? LooseMatchStep<Routes, Head, Tail, Prefix, Fallback, CatchAll>
+    :
+        | (Routes extends { $: any }
+            ? MatchResult<Routes, RootPath<Prefix>, false>
+            : Fallback)
+        | CatchAll
   : never;
 
-type _MatchedRoutes<
-  Route extends string,
-  MatchedResultUnion extends MatchResult<string> = MatchResult<
-    keyof InternalApi
-  >,
-> = MatchedResultUnion["key"] extends infer MatchedKeys // spread union type
-  ? MatchedKeys extends string
-    ? Route extends MatchedKeys
-      ? MatchResult<MatchedKeys, true> // exact match
-      : MatchedKeys extends `${infer Root}/**${string}`
-        ? MatchedKeys extends `${string}/**`
-          ? Route extends `${Root}/${string}`
-            ? MatchResult<MatchedKeys, false, [], true>
-            : never // catchAll match
-          : MatchResult<
-              MatchedKeys,
-              false,
-              CalcMatchScore<Root, Route, [], true>
-            > // glob match
-        : MatchResult<
-            MatchedKeys,
-            false,
-            CalcMatchScore<MatchedKeys, Route, [], true>
-          > // partial match
+type LooseMatchStep<
+  Routes extends object,
+  Head extends string,
+  Tail extends string[],
+  Prefix extends string,
+  Fallback,
+  CatchAll,
+> = (
+  Routes extends { $: any }
+    ? MatchResult<Routes, RootPath<Prefix>, false>
+    : Fallback
+) extends infer NextFallback
+  ? (
+      CatchAllKey<Routes> extends never
+        ? CatchAll
+        :
+            | CatchAll
+            | MatchResult<
+                Routes[CatchAllKey<Routes>],
+                JoinPath<Prefix, CatchAllKey<Routes> & string>,
+                false
+              >
+    ) extends infer NextCatchAll
+    ? Head extends keyof Routes
+      ? LooseMatch<
+          Routes[Head],
+          Tail,
+          JoinPath<Prefix, Head>,
+          NextFallback,
+          NextCatchAll
+        >
+      : ParamKey<Routes> extends never
+        ? CatchAllKey<Routes> extends never
+          ? NextFallback | NextCatchAll
+          :
+              | MatchResult<
+                  Routes[CatchAllKey<Routes>],
+                  JoinPath<Prefix, CatchAllKey<Routes> & string>,
+                  false
+                >
+              | NextCatchAll
+              | NextFallback
+        : LooseMatch<
+            Routes[ParamKey<Routes>],
+            Tail,
+            JoinPath<Prefix, ParamKey<Routes> & string>,
+            NextFallback,
+            NextCatchAll
+          >
     : never
   : never;
 
-export type MatchedRoutes<
-  Route extends string,
-  MatchedKeysResult extends MatchResult<string> = MatchResult<
-    keyof InternalApi
-  >,
-  Matches extends MatchResult<string> = _MatchedRoutes<
-    Route,
-    MatchedKeysResult
-  >,
-> = Route extends "/"
-  ? keyof InternalApi // root middleware
-  : Extract<Matches, { exact: true }> extends never
-    ? // @ts-ignore
-        | Extract<
-            Exclude<Matches, { score: never }>,
-            { score: MaxTuple<Matches["score"]> }
-          >["key"]
-        | Extract<Matches, { catchAll: true }>["key"] // partial, glob and catchAll matches
-    : Extract<Matches, { exact: true }>["key"]; // exact matches
+type MatchRoute<Route extends string> =
+  ExactMatch<InternalApi, SplitPath<NormalizePath<Route>>> extends infer Exact
+    ? [Exact] extends [never]
+      ? LooseMatch<InternalApi, SplitPath<NormalizePath<Route>>>
+      : Exact
+    : never;
+
+export type MatchedRouteMethods<Route extends string> =
+  MatchRoute<Route> extends MatchResult<infer Node, any, any>
+    ? RouteMethods<Node>
+    : never;
+
+export type MatchedRoutes<Route extends string> = MatchedRouteMethods<Route>;
