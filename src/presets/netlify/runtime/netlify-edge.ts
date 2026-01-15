@@ -13,6 +13,7 @@ export default async function netlifyEdge(
 ) {
   // srvx compatibility
   const req = netlifyReq as unknown as ServerRequest;
+  req.ip = context.ip;
   req.runtime ??= { name: "netlify-edge" };
   // @ts-expect-error (add to srvx types)
   req.runtime.netlify ??= { context } as any;
