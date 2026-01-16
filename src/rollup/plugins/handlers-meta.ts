@@ -97,7 +97,9 @@ function astToObject(node: Expression | Literal): any {
       return obj;
     }
     case "ArrayExpression": {
-      return node.elements.map((el) => astToObject(el as any)).filter(Boolean);
+      return node.elements
+        .map((el) => astToObject(el as any))
+        .filter((obj) => obj !== undefined);
     }
     case "Literal": {
       return node.value;
