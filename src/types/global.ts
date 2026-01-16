@@ -5,6 +5,7 @@ export interface NitroStaticBuildFlags {
   _asyncContext?: boolean;
   _websocket?: boolean;
   _tasks?: boolean;
+  _durableBindingName?: string;
   dev?: boolean;
   client?: boolean;
   nitro?: boolean;
