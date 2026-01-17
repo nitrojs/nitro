@@ -2,8 +2,11 @@ import "#nitro-internal-pollyfills";
 import { useNitroApp } from "nitropack/runtime";
 import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
 import type { Context } from "@netlify/edge-functions";
+import { toWebHandler } from "h3";
 
 const nitroApp = useNitroApp();
+
+const handler = toWebHandler(nitroApp.h3App);
 
 // https://docs.netlify.com/edge-functions/api/
 export default async function netlifyEdge(request: Request, _context: Context) {
@@ -17,17 +20,5 @@ export default async function netlifyEdge(request: Request, _context: Context) {
     request.headers.set("x-forwarded-proto", "https");
   }
 
-  let body;
-  if (request.body) {
-    body = await request.arrayBuffer();
-  }
-
-  return nitroApp.localFetch(url.pathname + url.search, {
-    host: url.hostname,
-    protocol: url.protocol,
-    headers: request.headers,
-    method: request.method,
-    redirect: request.redirect,
-    body,
-  });
+  return handler(request);
 }
