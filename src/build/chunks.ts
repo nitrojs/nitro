@@ -33,7 +33,7 @@ export function getChunkName(
               )?.groups?.package
           )
           .filter(Boolean)
-          .map((name) => name!.split("/").pop()!)
+          .map((name) => name!.split(/[/\\]/).pop()!)
           .filter(Boolean)
       ),
     ].sort((a, b) => a.length - b.length);
