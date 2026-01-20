@@ -56,7 +56,7 @@ export const getRolldownConfig = async (
       format: "esm",
       entryFileNames: "index.mjs",
       chunkFileNames: (chunk) => getChunkName(chunk, nitro),
-      advancedChunks: {
+      codeSplitting: {
         groups: [{ test: NODE_MODULES_RE, name: (id) => libChunkName(id) }],
       },
       dir: nitro.options.output.serverDir,
@@ -74,7 +74,7 @@ export const getRolldownConfig = async (
 
   const outputConfig = config.output as OutputOptions;
   if (outputConfig.inlineDynamicImports || outputConfig.format === "iife") {
-    delete outputConfig.advancedChunks;
+    delete outputConfig.codeSplitting;
   }
 
   return config as RolldownOptions;

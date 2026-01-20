@@ -83,8 +83,7 @@ export default defineBuildConfig({
       );
     },
     rolldownOutput(config) {
-      // config.advancedChunks!.includeDependenciesRecursively = false;
-      config.advancedChunks!.groups?.unshift(
+      config.codeSplitting!.groups?.unshift(
         {
           test: /src\/build\/(plugins|virtual|\w+\.ts)/,
           name: "_build/common",

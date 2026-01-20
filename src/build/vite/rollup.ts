@@ -47,7 +47,7 @@ export const getViteRollupConfig = async (
       chunkFileNames: (chunk) => getChunkName(chunk, nitro),
       ...(ctx._isRolldown
         ? {
-            advancedChunks: {
+            codeSplitting: {
               groups: [
                 {
                   test: NODE_MODULES_RE,
