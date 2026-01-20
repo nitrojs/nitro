@@ -50,7 +50,7 @@ export async function writeTypes(nitro: Nitro) {
 
     const allImports = await nitro.unimport.getImports();
 
-    autoImportExports = toExports(allImports).replace(
+    autoImportExports = toExports(allImports, undefined, false, { declaration: true }).replace(
       /#internal\/nitro/g,
       relative(typesDir, runtimeDir)
     );
