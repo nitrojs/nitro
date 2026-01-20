@@ -5,7 +5,7 @@
     "dev": "nitro dev"
   },
   "devDependencies": {
-    "elysia": "^1.4.15",
+    "elysia": "^1.4.21",
     "nitro": "latest"
   }
 }

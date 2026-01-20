@@ -7,11 +7,11 @@
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.2",
-    "@tailwindcss/vite": "^4.1.14",
+    "@tailwindcss/vite": "^4.1.18",
     "nitro": "latest",
-    "tailwindcss": "^4.1.14",
-    "vite": "beta",
-    "preact": "^10.27.2",
-    "preact-render-to-string": "^6.6.2"
+    "preact": "^10.28.2",
+    "preact-render-to-string": "^6.6.5",
+    "tailwindcss": "^4.1.18",
+    "vite": "beta"
   }
 }

@@ -1,4 +1,4 @@
-import type { RollupCommonJSOptions } from "@rollup/plugin-commonjs";
+import type commonjs from "@rollup/plugin-commonjs";
 import type {
   C12InputConfig,
   ConfigWatcher,
@@ -37,6 +37,10 @@ import type { NitroPreset } from "./preset.ts";
 import type { OXCOptions, RolldownConfig } from "./build.ts";
 import type { RollupConfig } from "./build.ts";
 import type { NitroRouteConfig, NitroRouteRules } from "./route-rules.ts";
+
+type RollupCommonJSOptions = NonNullable<
+  Parameters<typeof commonjs.default>[0]
+>;
 
 /**
  * Nitro normalized options (nitro.options)

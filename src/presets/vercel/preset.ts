@@ -26,7 +26,8 @@ const vercel = defineNitroPreset(
       publicDir: "{{ output.dir }}/static/{{ baseURL }}",
     },
     commands: {
-      preview: "",
+      preview:
+        "npx srvx --static ../../static ./functions/__server.func/index.mjs",
       deploy: "npx vercel deploy --prebuilt",
     },
     hooks: {

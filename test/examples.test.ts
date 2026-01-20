@@ -8,15 +8,17 @@ import type { ViteDevServer } from "vite";
 
 const examplesDir = fileURLToPath(new URL("../examples", import.meta.url));
 
-const { createServer, createBuilder } = (await import(
+const { createServer, createBuilder, rolldownVersion } = (await import(
   process.env.NITRO_VITE_PKG || "vite"
 )) as typeof import("vite");
+
+const isRolldown = !!rolldownVersion;
 
 const skip = new Set<string>(["websocket"]);
 
 const skipDev = new Set<string>(["auto-imports", "cached-handler"]);
 
-const skipProd = new Set<string>([]);
+const skipProd = new Set<string>(isRolldown ? [] : ["vite-rsc"]);
 
 for (const example of await readdir(examplesDir)) {
   if (example.startsWith("_")) continue;

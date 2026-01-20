@@ -17,9 +17,6 @@ onlyBuiltDependencies:
   - sharp
   - workerd
 
-patchedDependencies:
-  '@hiogawa/vite-plugin-fullstack': patches/@hiogawa__vite-plugin-fullstack.patch
-
 peerDependencyRules:
   ignoreMissing:
     - react
@@ -29,7 +26,9 @@ peerDependencyRules:
 
 shellEmulator: true
 
-trustPolicy: no-downgrade
+# typescript-eslint is affected by
+# https://github.com/pnpm/pnpm/issues/10329
+# trustPolicy: no-downgrade
 
 trustPolicyExclude:
   - chokidar@4.0.3

@@ -52,7 +52,7 @@ export default defineConfig({
   ],
   devProxy: {
     "/proxy/example": {
-      target: "https://example.com",
+      target: "https://icanhazip.com",
       changeOrigin: true,
       ignorePath: true,
     },

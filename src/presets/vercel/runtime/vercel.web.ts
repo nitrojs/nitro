@@ -26,11 +26,20 @@ export default {
       }
     }
 
-    // srvx compatibility
-    req.runtime ??= { name: "vercel" };
+    req.runtime = {
+      name: "vercel",
+      // @ts-expect-error (add to srvx types)
+      vercel: { context },
+    };
 
-    // @ts-expect-error (add to srvx types)
-    req.runtime.vercel = { context };
+    let ip: string | undefined;
+    Object.defineProperty(req, "ip", {
+      get() {
+        const h = req.headers.get("x-forwarded-for");
+        return (ip ??= h?.split(",").shift()?.trim());
+      },
+    });
+
     req.waitUntil = context?.waitUntil;
 
     return nitroApp.fetch(req);

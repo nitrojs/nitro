@@ -144,7 +144,7 @@ export interface Route<T = unknown> {
 export class Router<T> {
   _routes?: Route<T>[];
   _router?: RouterContext<T>;
-  _compiled?: string;
+  _compiled?: Record<string, string>;
   _baseURL: string;
 
   constructor(baseURL?: string) {
@@ -181,10 +181,12 @@ export class Router<T> {
   }
 
   compileToString(opts?: RouterCompilerOptions<T>) {
-    if (this._compiled) {
-      return this._compiled;
+    const key = opts ? hash(opts) : "";
+    this._compiled ||= {};
+    if (this._compiled[key]) {
+      return this._compiled[key];
     }
-    this._compiled = compileRouterToString(this._router!, undefined, opts);
+    this._compiled[key] = compileRouterToString(this._router!, undefined, opts);
 
     // TODO: Upstream to rou3 compiler
     const onlyWildcard =
@@ -198,10 +200,11 @@ export class Router<T> {
       if (opts?.matchAll) {
         retCode = `[${retCode}]`;
       }
-      this._compiled = /* js */ `/* @__PURE__ */ (() => {const data=${data};return ((_m, p)=>{return ${retCode};})})()`;
+      this._compiled[key] =
+        /* js */ `/* @__PURE__ */ (() => {const data=${data};return ((_m, p)=>{return ${retCode};})})()`;
     }
 
-    return this._compiled;
+    return this._compiled[key];
   }
 
   match(method: string, path: string): undefined | T {

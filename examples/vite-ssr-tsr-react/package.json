@@ -6,15 +6,15 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@tanstack/router-plugin": "^1.134.9",
-    "@types/react": "^19.2.2",
-    "@types/react-dom": "^19.2.2",
-    "@vitejs/plugin-react": "^5.1.0",
+    "@tanstack/react-router": "^1.149.3",
+    "@tanstack/react-router-devtools": "^1.149.3",
+    "@tanstack/router-plugin": "^1.149.3",
+    "@types/react": "^19.2.8",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.2",
     "nitro": "latest",
-    "vite": "beta",
-    "@tanstack/react-router": "^1.134.9",
-    "@tanstack/react-router-devtools": "^1.134.9",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "vite": "beta"
   }
 }

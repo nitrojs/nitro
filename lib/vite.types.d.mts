@@ -1,4 +1,4 @@
-// Based on https://github.com/hi-ogawa/vite-plugins/blob/main/packages/fullstack/types/query.d.ts
+// Based on https://github.com/hi-ogawa/vite-plugin-fullstack/blob/main/types/query.d.ts
 
 type ImportAssetsResult = ImportAssetsResultRaw & {
   merge(...args: ImportAssetsResultRaw[]): ImportAssetsResult;

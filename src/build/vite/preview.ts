@@ -68,7 +68,7 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
       consola.info(buildInfo.commands?.preview);
       console.log("");
 
-      const { getRandomPort } = await import("get-port-please");
+      const { getRandomPort, waitForPort } = await import("get-port-please");
       const randomPort = await getRandomPort();
       const child = spawn(command, args, {
         stdio: "inherit",
@@ -79,16 +79,26 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
           PORT: String(randomPort),
         },
       });
+
+      const killChild = (signal: NodeJS.Signals) => {
+        if (child && !child.killed) {
+          child.kill(signal);
+        }
+      };
+
       for (const sig of ["SIGINT", "SIGHUP"] as const) {
         process.once(sig, () => {
           consola.info(`Stopping preview server...`);
-          if (child.killed === false) {
-            child.kill(sig);
-            process.exit();
-          }
+          killChild(sig);
+          process.exit();
         });
       }
-      child.on("exit", (code) => {
+
+      server.httpServer.once("close", () => {
+        killChild("SIGTERM");
+      });
+
+      child.once("exit", (code) => {
         if (code && code !== 0) {
           consola.error(`[nitro] Preview server exited with code ${code}`);
         }
@@ -106,6 +116,8 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
           res.end(`Nitro preview server is not running.`);
         }
       });
+
+      await waitForPort(randomPort, { retries: 20, delay: 500 });
     },
   } satisfies VitePlugin;
 }

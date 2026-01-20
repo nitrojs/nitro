@@ -31,7 +31,6 @@ export const handler = awslambda.streamifyResponse(
       });
 
     const writer = awslambda.HttpResponseStream.from(
-      // @ts-expect-error TODO: IMPORTANT! It should be a Writable according to the aws-lambda types
       responseStream,
       httpResponseMetadata
     );
