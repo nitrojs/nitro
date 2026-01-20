@@ -28,8 +28,9 @@ export function getChunkName(
         chunk.moduleIds
           .map(
             (id) =>
-              id.match(/.*\/node_modules\/(?<package>@[^/]+\/[^/]+|[^/]+)/)
-                ?.groups?.package
+              id.match(
+                /.*[/\\]node_modules[/\\](?<package>@[^/\\]+[/\\][^/\\]+|[^/\\]+)/
+              )?.groups?.package
           )
           .filter(Boolean)
           .map((name) => name!.split("/").pop()!)

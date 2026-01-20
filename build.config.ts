@@ -104,7 +104,7 @@ export default defineBuildConfig({
                 .map(
                   (id) =>
                     id.match(
-                      /.*\/node_modules\/(?<package>@[^/]+\/[^/]+|[^/]+)/
+                      /.*[/\\]node_modules[/\\](?<package>@[^/\\]+[/\\][^/\\]+|[^/\\]+)/
                     )?.groups?.package
                 )
                 .filter(Boolean)
