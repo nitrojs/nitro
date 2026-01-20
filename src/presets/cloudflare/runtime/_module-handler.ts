@@ -115,6 +115,9 @@ export function augmentReq(
   ctx: NonNullable<ServerRuntimeContext["cloudflare"]>
 ) {
   const req = cfReq as ServerRequest;
+
+  req.ip = cfReq.headers.get("cf-connecting-ip") || undefined;
+
   req.runtime ??= { name: "cloudflare" };
   req.runtime.cloudflare = { ...req.runtime.cloudflare, ...ctx };
   req.waitUntil = ctx.context?.waitUntil.bind(ctx.context);
