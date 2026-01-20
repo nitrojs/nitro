@@ -12,10 +12,14 @@ export default function nodeHandler(
   req: NodeServerRequest,
   res: NodeServerResponse
 ) {
-  // Replace req.socket.remoteAddress with the X-Forwarded-For header.
-  // req.socket.remoteAddress is used by the srvx Node adapter to obtain the client IP.
+  // https://vercel.com/docs/headers/request-headers#x-forwarded-for
+  // srvx node adapter uses req.socket.remoteAddress for req.ip
+  let ip: string | undefined;
   Object.defineProperty(req.socket, "remoteAddress", {
-    value: req.headers["x-forwarded-for"],
+    get() {
+      const h = req.headers["x-forwarded-for"] as string;
+      return (ip ??= h?.split?.(",").shift()?.trim());
+    },
   });
 
   // ISR route rewrite

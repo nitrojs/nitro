@@ -32,8 +32,13 @@ export default {
       vercel: { context },
     };
 
-    // there's also x-vercel-forwarded-for, x-vercel-proxied-for, x-real-ip
-    req.ip = req.headers.get("x-forwarded-for") || undefined;
+    let ip: string | undefined;
+    Object.defineProperty(req, "ip", {
+      get() {
+        const h = req.headers.get("x-forwarded-for");
+        return (ip ??= h?.split(",").shift()?.trim());
+      },
+    });
 
     req.waitUntil = context?.waitUntil;
 
