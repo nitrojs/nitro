@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       shaders:
-        specifier: ^2.2.43
-        version: 2.2.43
+        specifier: ^2.2.46
+        version: 2.2.46
       undocs:
         specifier: ^0.4.13
         version: 0.4.13(@babel/parser@7.28.6)(@parcel/watcher@2.5.4)(@vue/compiler-sfc@3.5.26)(@vueuse/core@13.9.0(vue@3.5.26(typescript@5.9.3)))(cac@6.7.14)(db0@0.3.4)(embla-carousel@8.6.0)(ioredis@5.9.1)(lightningcss@1.30.2)(magicast@0.5.1)(rollup@4.55.1)(terser@5.44.1)(typescript@5.9.3)(vite@7.3.1(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.1)(yaml@2.8.2))(yaml@2.8.2)(zod@3.25.76)
@@ -4301,8 +4301,8 @@ packages:
     engines: {node: '>= 0.10'}
     hasBin: true
 
-  shaders@2.2.43:
-    resolution: {integrity: sha512-Rngjht8wFLcJavPkjYv7IzzzSUW4FhjeO9p+ujP5ImDHMahIBuWLZQv3PP2Wn6IwfOgFAy9K+ArcVyOOBOY0zA==}
+  shaders@2.2.46:
+    resolution: {integrity: sha512-HHgr6Gm0lfiHW4sVPvy+4s68OToWrhfvqqEXBElyQTWNdiqK5I9mR624A5yR553VuWTSOgVMmacYS9xGWoHhzA==}
 
   shebang-command@2.0.0:
     resolution: {integrity: sha512-kHxr2zZpYtdmrN1qDjrrX/Z1rR1kG8Dx+gkpK1G4eXmvXswmcE1hTWBWYUzlraYw1/yZp6YuDY77YtvbN0dmDA==}
@@ -4497,6 +4497,7 @@ packages:
   tar@7.5.2:
     resolution: {integrity: sha512-7NyxrTE4Anh8km8iEy7o0QYPs+0JKBTj5ZaqHg6B39erLg0qYXN3BijtShwbsNSvQ+LN75+KV+C4QR/f6Gwnpg==}
     engines: {node: '>=18'}
+    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exhorbitant rates) by contacting i@izs.me
 
   terser@5.44.1:
     resolution: {integrity: sha512-t/R3R/n0MSwnnazuPpPNVO60LX0SKL45pyl9YlvxIdkH0Of7D5qM2EVe+yASRIlY5pZ73nclYJfNANGWPwFDZw==}
@@ -10283,7 +10284,7 @@ snapshots:
       safe-buffer: 5.2.1
       to-buffer: 1.2.2
 
-  shaders@2.2.43:
+  shaders@2.2.46:
     dependencies:
       three: 0.181.2
 

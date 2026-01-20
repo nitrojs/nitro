@@ -5,7 +5,7 @@
     "build": "undocs build"
   },
   "devDependencies": {
-    "shaders": "^2.2.43",
+    "shaders": "^2.2.46",
     "undocs": "^0.4.13"
   }
 }

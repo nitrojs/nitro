@@ -89,7 +89,7 @@
   "devDependencies": {
     "@azure/functions": "^3.5.1",
     "@azure/static-web-apps-cli": "^2.0.7",
-    "@cloudflare/workers-types": "^4.20260118.0",
+    "@cloudflare/workers-types": "^4.20260120.0",
     "@deno/types": "^0.0.1",
     "@hiogawa/vite-plugin-fullstack": "^0.0.11",
     "@netlify/edge-functions": "^3.0.3",
@@ -115,7 +115,7 @@
     "c12": "^3.3.3",
     "changelogen": "^0.6.2",
     "chokidar": "^5.0.0",
-    "citty": "^0.1.6",
+    "citty": "^0.2.0",
     "compatx": "^0.2.0",
     "confbox": "^0.2.2",
     "cookie-es": "^2.0.0",
@@ -142,7 +142,7 @@
     "mime": "^4.1.0",
     "miniflare": "^4.20260114.0",
     "mlly": "^1.8.0",
-    "nypm": "^0.6.2",
+    "nypm": "^0.6.3",
     "obuild": "^0.4.18",
     "pathe": "^2.0.3",
     "perfect-debounce": "^2.0.0",
@@ -178,8 +178,8 @@
     "youch-core": "^0.3.3"
   },
   "peerDependencies": {
-    "rolldown": ">=1.0.0-beta.0",
-    "rollup": "^4",
+    "rolldown": ">=1.0.0-beta.60",
+    "rollup": "^4.55.2",
     "vite": "^7 || ^8 || >=8.0.0-0",
     "xml2js": "^0.6.2"
   },
@@ -197,7 +197,7 @@
       "optional": true
     }
   },
-  "packageManager": "pnpm@10.28.0",
+  "packageManager": "pnpm@10.28.1",
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
   },
