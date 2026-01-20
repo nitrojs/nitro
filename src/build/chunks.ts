@@ -40,7 +40,7 @@ export function getChunkName(
     for (const name of pkgNames) {
       const separator = chunkName ? "+" : "";
       if ((chunkName + separator + name).length > 30) {
-        break;
+        return `_libs/_[hash].mjs`;
       }
       chunkName += separator + name;
     }
