@@ -83,13 +83,14 @@ export default defineBuildConfig({
       );
     },
     rolldownOutput(config) {
-      config.codeSplitting!.groups?.unshift(
-        {
-          test: /src\/build\/(plugins|virtual|\w+\.ts)/,
-          name: "_build/common",
-        },
-        { test: /src\/(utils)\//, name: "_chunks/utils" }
-      );
+      config.advancedChunks = {}; // force overide obuild config for lib chunks
+      // config.advancedChunks!.groups?.unshift(
+      //   {
+      //     test: /src\/build\/(plugins|virtual|\w+\.ts)/,
+      //     name: "_build/common",
+      //   },
+      //   { test: /src\/(utils)\//, name: "_chunks/utils" }
+      // );
       config.chunkFileNames = (chunk) => {
         if (chunk.name.startsWith("_")) {
           return `[name].mjs`;
@@ -99,6 +100,23 @@ export default defineBuildConfig({
         }
         if (chunk.name.startsWith("libs/")) {
           return `_[name].mjs`;
+        }
+        if (chunk.moduleIds.every((id) => id.includes("node_modules"))) {
+          const pkgNames = [
+            ...new Set(
+              chunk.moduleIds
+                .map(
+                  (id) =>
+                    id.match(
+                      /.*\/node_modules\/(?<package>@[^/]+\/[^/]+|[^/]+)/
+                    )?.groups?.package
+                )
+                .filter(Boolean)
+                .map((name) => name!.split("/").pop()!)
+                .filter(Boolean)
+            ),
+          ].sort();
+          return `_libs/${pkgNames.join("+") || "_"}.mjs`;
         }
         if (chunk.moduleIds.every((id) => /src\/cli\//.test(id))) {
           return `cli/_chunks/[name].mjs`;
