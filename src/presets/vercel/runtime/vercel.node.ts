@@ -12,7 +12,8 @@ export default function nodeHandler(
   req: NodeServerRequest,
   res: NodeServerResponse
 ) {
-  // replace req.socket.remoteAddress with x-forwarded-for because req.socket.remoteAddress is not accurate and req.socket.remoteAddress is how the srvx node adapter reads the ip. this is subject to debate
+  // Replace req.socket.remoteAddress with the X-Forwarded-For header.
+  // req.socket.remoteAddress is used by the srvx Node adapter to obtain the client IP.
   Object.defineProperty(req.socket, "remoteAddress", {
     value: req.headers["x-forwarded-for"],
   });

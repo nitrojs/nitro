@@ -6,11 +6,10 @@ const nitroApp = useNitroApp();
 
 const ONE_YEAR_IN_SECONDS = 365 * 24 * 60 * 60;
 
-const handler = async (netlifyReq: Request): Promise<Response> => {
-  const req = netlifyReq as unknown as ServerRequest;
-  req.ip = netlifyReq.headers.get("x-nf-client-connection-ip") || undefined;
-
+const handler = async (req: ServerRequest): Promise<Response> => {
   req.runtime ??= { name: "netlify" };
+  req.ip = req.headers.get("x-nf-client-connection-ip") || undefined;
+
   const response = await nitroApp.fetch(req);
 
   const isr = (req.context?.routeRules || {})?.isr?.options;
