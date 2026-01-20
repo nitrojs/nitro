@@ -61,34 +61,33 @@ Nitro extends your Vite application with a production-ready server, compatible w
 ::
 
 ::div{class="bg-neutral-50 dark:bg-neutral-950/30 py-10 border-y border-default"}
-  ::u-container
-    ::u-page-grid
-      ::u-page-feature
+  :::u-container
+    ::::u-page-grid
+      :::::u-page-feature
       #title
       Fast
 
       #description
       Enjoy the Vite development experience with HMR on the server and optimized for production.
-      ::
+      :::::
 
-      ::u-page-feature
+      :::::u-page-feature
       #title
       Versatile
 
       #description
       Deploy the same codebase to any deployment provider with zero config, no vendor lock-in.
-      ::
+      :::::
 
-      ::u-page-feature
+      :::::u-page-feature
       #title
       Minimal
 
       #description
       Minimal design to fit into any solution with minimum overhead.
-      ::
-
-    ::
-  ::
+      :::::
+    ::::
+  :::
 ::
 
 ::u-page-section

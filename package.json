@@ -2,6 +2,17 @@
   "name": "nitro",
   "version": "3.0.1-alpha.1",
   "description": "Build and Deploy Universal JavaScript Servers",
+  "keywords": [
+    "api-routes",
+    "full-stack",
+    "h3",
+    "nitro",
+    "server",
+    "typescript",
+    "vite",
+    "vite-plugin",
+    "web"
+  ],
   "homepage": "https://nitro.build",
   "repository": "nitrojs/nitro",
   "license": "MIT",
@@ -57,20 +68,20 @@
   },
   "resolutions": {
     "nitro": "link:.",
-    "undici": "^7.18.0"
+    "undici": "^7.18.2"
   },
   "dependencies": {
     "consola": "^3.4.2",
-    "crossws": "^0.4.1",
+    "crossws": "^0.4.3",
     "db0": "^0.3.4",
-    "h3": "^2.0.1-rc.7",
+    "h3": "^2.0.1-rc.9",
     "jiti": "^2.6.1",
-    "nf3": "^0.3.4",
+    "nf3": "^0.3.5",
     "ofetch": "^2.0.0-alpha.3",
     "ohash": "^2.0.11",
-    "oxc-minify": "^0.108.0",
-    "oxc-transform": "^0.108.0",
-    "srvx": "^0.10.0",
+    "oxc-minify": "^0.109.0",
+    "oxc-transform": "^0.109.0",
+    "srvx": "^0.10.1",
     "undici": "^7.18.2",
     "unenv": "^2.0.0-rc.24",
     "unstorage": "^2.0.0-alpha.5"
@@ -78,7 +89,7 @@
   "devDependencies": {
     "@azure/functions": "^3.5.1",
     "@azure/static-web-apps-cli": "^2.0.7",
-    "@cloudflare/workers-types": "^4.20260113.0",
+    "@cloudflare/workers-types": "^4.20260118.0",
     "@deno/types": "^0.0.1",
     "@hiogawa/vite-plugin-fullstack": "^0.0.11",
     "@netlify/edge-functions": "^3.0.3",
@@ -89,13 +100,13 @@
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-replace": "^6.0.3",
-    "@scalar/api-reference": "^1.43.3",
-    "@types/aws-lambda": "^8.10.159",
+    "@scalar/api-reference": "^1.43.8",
+    "@types/aws-lambda": "^8.10.160",
     "@types/estree": "^1.0.8",
     "@types/etag": "^1.8.4",
     "@types/fs-extra": "^11.0.4",
     "@types/http-proxy": "^1.17.17",
-    "@types/node": "^25.0.8",
+    "@types/node": "^25.0.9",
     "@types/node-fetch": "^2.6.13",
     "@types/semver": "^7.7.1",
     "@types/xml2js": "^0.4.14",
@@ -129,19 +140,19 @@
     "knitwork": "^1.3.0",
     "magic-string": "^0.30.21",
     "mime": "^4.1.0",
-    "miniflare": "^4.20260111.0",
+    "miniflare": "^4.20260114.0",
     "mlly": "^1.8.0",
     "nypm": "^0.6.2",
-    "obuild": "^0.4.14",
+    "obuild": "^0.4.16",
     "pathe": "^2.0.3",
     "perfect-debounce": "^2.0.0",
     "pkg-types": "^2.3.0",
-    "prettier": "^3.7.4",
+    "prettier": "^3.8.0",
     "pretty-bytes": "^7.1.0",
     "react": "^19.2.3",
     "rendu": "^0.0.7",
-    "rolldown": "^1.0.0-beta.59",
-    "rollup": "^4.55.1",
+    "rolldown": "1.0.0-beta.60",
+    "rollup": "^4.55.2",
     "rou3": "^0.7.12",
     "scule": "^1.3.0",
     "semver": "^7.7.3",
@@ -151,25 +162,25 @@
     "tinyglobby": "^0.2.15",
     "tsconfck": "^3.1.6",
     "typescript": "^5.9.3",
-    "ufo": "^1.6.2",
+    "ufo": "^1.6.3",
     "ultrahtml": "^1.6.0",
     "uncrypto": "^0.1.3",
     "unctx": "^2.5.0",
     "unimport": "^5.6.0",
     "untyped": "^2.0.0",
     "unwasm": "^0.5.3",
-    "vite": "8.0.0-beta.7",
+    "vite": "8.0.0-beta.8",
     "vite7": "npm:vite@^7.3.1",
     "vitest": "^4.0.17",
-    "wrangler": "~4.59.1",
+    "wrangler": "~4.59.2",
     "xml2js": "^0.6.2",
     "youch": "4.1.0-beta.13",
     "youch-core": "^0.3.3"
   },
   "peerDependencies": {
-    "rolldown": "*",
-    "rollup": "^4.55.1",
-    "vite": ">=7.3.0",
+    "rolldown": ">=1.0.0-beta.0",
+    "rollup": "^4",
+    "vite": "^7 || ^8 || >=8.0.0-0",
     "xml2js": "^0.6.2"
   },
   "peerDependenciesMeta": {
@@ -186,8 +197,23 @@
       "optional": true
     }
   },
-  "packageManager": "pnpm@10.27.0",
+  "packageManager": "pnpm@10.28.0",
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
+  },
+  "compatiblePackages": {
+    "schemaVersion": 1,
+    "vite": {
+      "type": "compatible",
+      "versions": "^7 || ^8 || >=8.0.0-0"
+    },
+    "rollup": {
+      "type": "compatible",
+      "versions": "^4"
+    },
+    "rolldown": {
+      "type": "compatible",
+      "versions": ">=1.0.0-beta.0"
+    }
   }
 }

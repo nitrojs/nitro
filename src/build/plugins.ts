@@ -13,6 +13,9 @@ import { raw } from "./plugins/raw.ts";
 import { externals } from "./plugins/externals.ts";
 import { NodeNativePackages } from "nf3";
 
+// Additional dependencies known to have bundling issues
+const FORCE_TRACE_DEPS = ["pg"];
+
 export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const plugins: Plugin[] = [];
 
@@ -60,7 +63,11 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
     const isDevOrPrerender =
       nitro.options.dev || nitro.options.preset === "nitro-prerender";
     const traceDeps = [
-      ...new Set([...NodeNativePackages, ...(nitro.options.traceDeps || [])]),
+      ...new Set([
+        ...NodeNativePackages,
+        ...FORCE_TRACE_DEPS,
+        ...(nitro.options.traceDeps || []),
+      ]),
     ];
     plugins.push(
       externals({
