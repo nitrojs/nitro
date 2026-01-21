@@ -1,4 +1,4 @@
-import type { EnvironmentOptions, RollupCommonJSOptions, Rollup } from "vite";
+import type { EnvironmentOptions, RollupCommonJSOptions } from "vite";
 import type { NitroPluginContext, ServiceConfig } from "./types.ts";
 
 import { NodeEnvRunner } from "../../runner/node.ts";
