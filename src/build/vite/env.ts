@@ -1,4 +1,4 @@
-import type { EnvironmentOptions, RollupCommonJSOptions } from "vite";
+import type { EnvironmentOptions, RollupCommonJSOptions, Rollup } from "vite";
 import type { NitroPluginContext, ServiceConfig } from "./types.ts";
 
 import { NodeEnvRunner } from "../../runner/node.ts";
@@ -7,7 +7,6 @@ import { runtimeDependencies, runtimeDir } from "nitro/meta";
 import { resolveModulePath } from "exsolve";
 import { createFetchableDevEnvironment } from "./dev.ts";
 import { isAbsolute } from "pathe";
-import type { RolldownOptions } from "rolldown";
 
 export function getEnvRunner(ctx: NitroPluginContext) {
   return (ctx._envRunner ??= new NodeEnvRunner({
@@ -23,7 +22,8 @@ export function createNitroEnvironment(
   return {
     consumer: "server",
     build: {
-      rollupOptions: ctx.rollupConfig!.config as RolldownOptions /* TODO */,
+      rollupOptions: ctx.bundlerConfig!.rollupConfig as any,
+      rolldownOptions: ctx.bundlerConfig!.rolldownConfig,
       minify: ctx.nitro!.options.minify,
       emptyOutDir: false,
       sourcemap: ctx.nitro!.options.sourcemap,
@@ -34,7 +34,7 @@ export function createNitroEnvironment(
         ? [
             /^nitro$/, // i have absolutely no idea why and how it fixes issues!
             new RegExp(`^(${runtimeDependencies.join("|")})$`), // virtual resolutions in vite skip plugin hooks
-            ...ctx.rollupConfig!.base.noExternal,
+            ...ctx.bundlerConfig!.base.noExternal,
           ]
         : true, // production build is standalone
       conditions: ctx.nitro!.options.exportConditions,

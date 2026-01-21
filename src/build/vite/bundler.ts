@@ -9,13 +9,13 @@ import type { RolldownConfig, RollupConfig } from "nitro/types";
 import type { Plugin as RollupPlugin } from "rollup";
 import type { NitroPluginContext } from "./types.ts";
 
-export const getBundlerConfig = (
+export const getBundlerConfig = async (
   ctx: NitroPluginContext
-): {
-  rollupConfig: RollupConfig;
-  rolldownConfig: RolldownConfig;
+): Promise<{
   base: BaseBuildConfig;
-} => {
+  rollupConfig?: RollupConfig;
+  rolldownConfig?: RolldownConfig;
+}> => {
   const nitro = ctx.nitro!;
   const base = baseBuildConfig(nitro);
 
@@ -23,7 +23,7 @@ export const getBundlerConfig = (
     input: nitro.options.entry,
     external: [...base.env.external],
     plugins: [
-      ...baseBuildPlugins(nitro, base),
+      ...(await baseBuildPlugins(nitro, base)),
       alias({ entries: base.aliases }),
     ].filter(Boolean) as RollupPlugin[],
     treeshake: {
@@ -49,12 +49,12 @@ export const getBundlerConfig = (
 
   if (ctx._isRolldown) {
     // Rolldown
-    const rolldownConfig: RolldownConfig = {
+    const rolldownConfig = {
       transform: {
         inject: base.env.inject as Record<string, string>,
       },
       output: {
-        advancedChunks: {
+        codeSplitting: {
           groups: [
             {
               test: NODE_MODULES_RE,
@@ -64,6 +64,17 @@ export const getBundlerConfig = (
         },
       },
     } satisfies RolldownConfig;
+
+    return {
+      base,
+      rollupConfig: undefined,
+      rolldownConfig: defu(
+        rolldownConfig,
+        nitro.options.rolldownConfig,
+        nitro.options.rollupConfig as RolldownConfig, // Added for backward compatibility
+        commonConfig satisfies RolldownConfig
+      ),
+    };
   } else {
     // Rollup
     const rollupConfig: RollupConfig = defu(
@@ -85,7 +96,16 @@ export const getBundlerConfig = (
       } satisfies RollupConfig,
       commonConfig
     );
-  }
 
-  return { rollupConfig, rolldownConfig, base };
+    return {
+      base,
+      rolldownConfig: undefined,
+      rollupConfig: defu(
+        rollupConfig,
+        nitro.options.rolldownConfig as RollupConfig, // Added for backward compatibility
+        nitro.options.rollupConfig,
+        commonConfig
+      ),
+    };
+  }
 };

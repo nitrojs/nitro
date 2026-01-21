@@ -10,7 +10,7 @@ import type { InputOption } from "rollup";
 import type { NitroPluginConfig, NitroPluginContext } from "./types.ts";
 import { resolve, join } from "pathe";
 import { createNitro, prepare } from "../../builder.ts";
-import { getViteRollupConfig } from "./bundler.ts";
+import { getBundlerConfig } from "./bundler.ts";
 import { buildEnvironments, prodSetup } from "./prod.ts";
 import {
   getEnvRunner,
@@ -177,7 +177,7 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
 
     async config(userConfig, _configEnv) {
       debug("[main] Extending config (appType, resolve, server)");
-      if (!ctx.rollupConfig) {
+      if (!ctx.bundlerConfig) {
         throw new Error("Nitro rollup config is not initialized yet.");
       }
       return {
@@ -185,7 +185,7 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
         resolve: {
           // TODO: environment specific aliases not working
           // https://github.com/vitejs/vite/pull/17583 (seems not effective)
-          alias: ctx.rollupConfig.base.aliases,
+          alias: ctx.bundlerConfig.base.aliases,
         },
         builder: {
           sharedConfigBuild: true,
@@ -441,13 +441,13 @@ async function setupNitroContext(
   await ctx.nitro.hooks.callHook("build:before", ctx.nitro);
 
   // Resolve common rollup options
-  ctx.rollupConfig = await getViteRollupConfig(ctx);
+  ctx.bundlerConfig = await getBundlerConfig(ctx);
 
   // Call rollup:before hook to allow modifying rollup config
   await ctx.nitro.hooks.callHook(
     "rollup:before",
     ctx.nitro,
-    ctx.rollupConfig.config
+    ctx.bundlerConfig.rollupConfig || (ctx.bundlerConfig.rolldownConfig as any)
   );
 
   // Warm up env runner for dev
