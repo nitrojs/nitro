@@ -3,13 +3,12 @@ import wsAdapter from "crossws/adapters/node";
 
 import { useNitroApp } from "nitro/app";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
-import { hasWebSocket } from "#nitro/virtual/feature-flags";
 
 const nitroApp = useNitroApp();
 
 export const fetch = nitroApp.fetch;
 
-const ws = hasWebSocket
+const ws = import.meta._websocket
   ? wsAdapter({ resolve: resolveWebsocketHooks })
   : undefined;
 

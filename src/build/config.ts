@@ -21,6 +21,7 @@ export function baseBuildConfig(nitro: Nitro) {
     baseURL: nitro.options.baseURL,
     _asyncContext: nitro.options.experimental.asyncContext,
     _tasks: nitro.options.experimental.tasks,
+    _websocket: nitro.options.features.websocket,
   };
 
   const replacements = {

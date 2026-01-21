@@ -124,9 +124,10 @@ export async function configureViteDevServer(
   }
 
   // Websocket
-  const hasWebSocket =
-    nitro.options.features.websocket ?? nitro.options.experimental.websocket;
-  if (hasWebSocket) {
+  if (
+    nitro.options.features.websocket ??
+    nitro.options.experimental.websocket
+  ) {
     server.httpServer!.on("upgrade", (req, socket, head) => {
       if (req.url?.startsWith("/?token")) {
         // Vite upgrade. TODO: Is there a better way?

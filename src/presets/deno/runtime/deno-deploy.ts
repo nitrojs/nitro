@@ -5,7 +5,6 @@ import wsAdapter from "crossws/adapters/deno";
 
 import { useNitroApp } from "nitro/app";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
-import { hasWebSocket } from "#nitro/virtual/feature-flags";
 
 declare global {
   var Deno: typeof _Deno;
@@ -13,7 +12,7 @@ declare global {
 
 const nitroApp = useNitroApp();
 
-const ws = hasWebSocket
+const ws = import.meta._websocket
   ? wsAdapter({ resolve: resolveWebsocketHooks })
   : undefined;
 
@@ -26,7 +25,7 @@ Deno.serve((denoReq: Request, info: _Deno.ServeHandlerInfo) => {
   // TODO: Support remoteAddr
 
   // https://crossws.unjs.io/adapters/deno
-  if (hasWebSocket && req.headers.get("upgrade") === "websocket") {
+  if (import.meta._websocket && req.headers.get("upgrade") === "websocket") {
     return ws!.handleUpgrade(req, info);
   }
 

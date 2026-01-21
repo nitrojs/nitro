@@ -15,11 +15,6 @@ export default function featureFlags(nitro: Nitro) {
         hasHooks:
           nitro.options.features?.runtimeHooks ??
           nitro.options.plugins.length > 0,
-        // Features
-        hasWebSocket:
-          nitro.options.features?.websocket ??
-          nitro.options.experimental.websocket ??
-          false,
       };
       return /* js */ Object.entries(featureFlags)
         .map(

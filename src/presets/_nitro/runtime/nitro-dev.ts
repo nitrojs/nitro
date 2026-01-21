@@ -9,7 +9,7 @@ import { useNitroApp, useNitroHooks } from "nitro/app";
 import { startScheduleRunner } from "#nitro/runtime/task";
 import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
-import { hasWebSocket } from "#nitro/virtual/feature-flags";
+
 import type { NodeHttp1Handler } from "srvx";
 
 // Listen for shutdown signal from runner
@@ -35,7 +35,7 @@ listen()
   });
 
 // https://crossws.unjs.io/adapters/node
-if (hasWebSocket) {
+if (import.meta._websocket) {
   const { handleUpgrade } = wsAdapter({ resolve: resolveWebsocketHooks });
   server.on("upgrade", handleUpgrade);
 }

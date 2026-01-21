@@ -6,4 +6,3 @@ export const hasGlobalMiddleware: boolean = true;
 export const hasRoutedMiddleware: boolean = true;
 export const hasPlugins: boolean = true;
 export const hasHooks: boolean = true;
-export const hasWebSocket: boolean = true;

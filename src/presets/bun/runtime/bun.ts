@@ -7,7 +7,6 @@ import { useNitroApp } from "nitro/app";
 import { startScheduleRunner } from "#nitro/runtime/task";
 import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
-import { hasWebSocket } from "#nitro/virtual/feature-flags";
 
 const port =
   Number.parseInt(process.env.NITRO_PORT || process.env.PORT || "") || 3000;
@@ -20,11 +19,11 @@ const nitroApp = useNitroApp();
 
 let _fetch = nitroApp.fetch;
 
-const ws = hasWebSocket
+const ws = import.meta._websocket
   ? wsAdapter({ resolve: resolveWebsocketHooks })
   : undefined;
 
-if (hasWebSocket) {
+if (import.meta._websocket) {
   _fetch = (req: ServerRequest) => {
     if (req.headers.get("upgrade") === "websocket") {
       return ws!.handleUpgrade(
@@ -42,7 +41,7 @@ serve({
   tls: cert && key ? { cert, key } : undefined,
   fetch: _fetch,
   bun: {
-    websocket: hasWebSocket ? ws?.websocket : undefined,
+    websocket: import.meta._websocket ? ws?.websocket : undefined,
   },
 });
 
