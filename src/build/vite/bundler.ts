@@ -81,23 +81,20 @@ export const getBundlerConfig = async (
       (await import("@rollup/plugin-alias")) as unknown as typeof import("@rollup/plugin-alias")
     ).default;
 
-    const rollupConfig: RollupConfig = defu(
-      {
-        plugins: [inject(base.env.inject), alias({ entries: base.aliases })],
-        output: {
-          sourcemapExcludeSources: true,
-          generatedCode: {
-            constBindings: true,
-          },
-          manualChunks(id: string) {
-            if (NODE_MODULES_RE.test(id)) {
-              return libChunkName(id);
-            }
-          },
+    const rollupConfig: RollupConfig = {
+      plugins: [inject(base.env.inject), alias({ entries: base.aliases })],
+      output: {
+        sourcemapExcludeSources: true,
+        generatedCode: {
+          constBindings: true,
         },
-      } satisfies RollupConfig,
-      commonConfig
-    );
+        manualChunks(id: string) {
+          if (NODE_MODULES_RE.test(id)) {
+            return libChunkName(id);
+          }
+        },
+      },
+    } satisfies RollupConfig;
 
     return {
       base,
