@@ -1,6 +1,4 @@
 import { defu } from "defu";
-import alias from "@rollup/plugin-alias";
-import inject from "@rollup/plugin-inject";
 import { baseBuildConfig, type BaseBuildConfig } from "../config.ts";
 import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
 import { baseBuildPlugins } from "../plugins.ts";
@@ -22,10 +20,9 @@ export const getBundlerConfig = async (
   const commonConfig = {
     input: nitro.options.entry,
     external: [...base.env.external],
-    plugins: [
-      ...(await baseBuildPlugins(nitro, base)),
-      alias({ entries: base.aliases }),
-    ].filter(Boolean) as RollupPlugin[],
+    plugins: [...(await baseBuildPlugins(nitro, base))].filter(
+      Boolean
+    ) as RollupPlugin[],
     treeshake: {
       moduleSideEffects(id) {
         return nitro.options.moduleSideEffects.some((p) => id.startsWith(p));
@@ -77,11 +74,16 @@ export const getBundlerConfig = async (
     };
   } else {
     // Rollup
+    const inject = (
+      (await import("@rollup/plugin-inject")) as unknown as typeof import("@rollup/plugin-inject")
+    ).default;
+    const alias = (
+      (await import("@rollup/plugin-alias")) as unknown as typeof import("@rollup/plugin-alias")
+    ).default;
+
     const rollupConfig: RollupConfig = defu(
       {
-        plugins: [
-          (inject as unknown as typeof inject.default)(base.env.inject),
-        ],
+        plugins: [inject(base.env.inject), alias({ entries: base.aliases })],
         output: {
           sourcemapExcludeSources: true,
           generatedCode: {
