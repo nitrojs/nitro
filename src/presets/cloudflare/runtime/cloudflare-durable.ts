@@ -9,7 +9,7 @@ import { isPublicAssetURL } from "#nitro/virtual/public-assets";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
 import { hasWebSocket } from "#nitro/virtual/feature-flags";
 
-const DURABLE_BINDING = "$DurableObject";
+const DURABLE_BINDING = import.meta._durableBindingName || "$DurableObject";
 const DURABLE_INSTANCE = "server";
 
 interface Env {
