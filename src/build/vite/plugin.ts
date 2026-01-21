@@ -182,7 +182,7 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
     async config(userConfig, _configEnv) {
       debug("[main] Extending config (appType, resolve, server)");
       if (!ctx.bundlerConfig) {
-        throw new Error("Nitro rollup config is not initialized yet.");
+        throw new Error("Bundler config is not initialized yet!");
       }
       return {
         appType: userConfig.appType || "custom",
