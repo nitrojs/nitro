@@ -74,7 +74,11 @@ function nitroInit(ctx: NitroPluginContext): VitePlugin {
     applyToEnvironment(env) {
       if (env.name === "nitro" && ctx.nitro?.options.dev) {
         debug("[init] Adding rollup plugins for dev");
-        return [...((ctx.rollupConfig?.config.plugins as VitePlugin[]) || [])];
+        const plugins =
+          (ctx.bundlerConfig?.rolldownConfig?.plugins as VitePlugin[]) ||
+          (ctx.bundlerConfig?.rollupConfig?.plugins as VitePlugin[]) ||
+          [];
+        return [...(plugins || [])];
       }
     },
   };
