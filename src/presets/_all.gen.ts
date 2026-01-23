@@ -21,6 +21,7 @@ import _netlify from "./netlify/preset.ts";
 import _node from "./node/preset.ts";
 import _platformSh from "./platform.sh/preset.ts";
 import _renderCom from "./render.com/preset.ts";
+import _scaleway from "./scaleway/preset.ts";
 import _standard from "./standard/preset.ts";
 import _stormkit from "./stormkit/preset.ts";
 import _vercel from "./vercel/preset.ts";
@@ -50,6 +51,7 @@ export default [
   ..._node,
   ..._platformSh,
   ..._renderCom,
+  ..._scaleway,
   ..._standard,
   ..._stormkit,
   ..._vercel,
