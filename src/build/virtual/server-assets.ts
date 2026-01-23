@@ -56,13 +56,9 @@ export default function serverAssets(nitro: Nitro) {
 const _assets = {\n${Object.entries(assets)
         .map(
           ([id, asset]) =>
-            `  [${JSON.stringify(
-              normalizeKey(id)
-            )}]: {\n    import: () => import(${JSON.stringify(
+            `  [${JSON.stringify(normalizeKey(id))}]: {\n    import: () => import(${JSON.stringify(
               "raw:" + asset.fsPath
-            )}).then(r => r.default || r),\n    meta: ${JSON.stringify(
-              asset.meta
-            )}\n  }`
+            )}).then(r => r.default || r),\n    meta: ${JSON.stringify(asset.meta)}\n  }`
         )
         .join(",\n")}\n}
 

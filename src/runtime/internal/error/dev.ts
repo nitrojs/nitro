@@ -10,17 +10,13 @@ import { defineNitroErrorHandler } from "./utils.ts";
 import type { InternalHandlerResponse } from "./utils.ts";
 import { FastResponse } from "srvx";
 
-export default defineNitroErrorHandler(
-  async function defaultNitroErrorHandler(error, event) {
-    const res = await defaultHandler(error, event);
-    return new FastResponse(
-      typeof res.body === "string"
-        ? res.body
-        : JSON.stringify(res.body, null, 2),
-      res
-    );
-  }
-);
+export default defineNitroErrorHandler(async function defaultNitroErrorHandler(error, event) {
+  const res = await defaultHandler(error, event);
+  return new FastResponse(
+    typeof res.body === "string" ? res.body : JSON.stringify(res.body, null, 2),
+    res
+  );
+});
 
 export async function defaultHandler(
   error: HTTPError,
@@ -56,18 +52,12 @@ export async function defaultHandler(
   if (isSensitive && !opts?.silent) {
     // prettier-ignore
     const tags = [error.unhandled && "[unhandled]"].filter(Boolean).join(" ")
-    const ansiError = await (
-      await youch.toANSI(error)
-    ).replaceAll(process.cwd(), ".");
-    consola.error(
-      `[request error] ${tags} [${event.req.method}] ${url}\n\n`,
-      ansiError
-    );
+    const ansiError = await (await youch.toANSI(error)).replaceAll(process.cwd(), ".");
+    consola.error(`[request error] ${tags} [${event.req.method}] ${url}\n\n`, ansiError);
   }
 
   // Use HTML response only when user-agent expects it (browsers)
-  const useJSON =
-    opts?.json ?? !event.req.headers.get("accept")?.includes("text/html");
+  const useJSON = opts?.json ?? !event.req.headers.get("accept")?.includes("text/html");
 
   // Prepare headers
   const headers: HeadersInit = {
@@ -120,14 +110,9 @@ export async function loadStackTrace(error: any) {
   if (!(error instanceof Error)) {
     return;
   }
-  const parsed = await new ErrorParser()
-    .defineSourceLoader(sourceLoader)
-    .parse(error);
+  const parsed = await new ErrorParser().defineSourceLoader(sourceLoader).parse(error);
 
-  const stack =
-    error.message +
-    "\n" +
-    parsed.frames.map((frame) => fmtFrame(frame)).join("\n");
+  const stack = error.message + "\n" + parsed.frames.map((frame) => fmtFrame(frame)).join("\n");
 
   Object.defineProperty(error, "stack", { value: stack });
 

@@ -21,9 +21,7 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
     async configurePreviewServer(server) {
       const { outputDir, buildInfo } = await getBuildInfo(server.config.root);
       if (!buildInfo) {
-        throw this.error(
-          "Cannot load nitro build info. Make sure to build first."
-        );
+        throw this.error("Cannot load nitro build info. Make sure to build first.");
       }
 
       const info = [
@@ -34,9 +32,7 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
         buildInfo.framework?.name !== "nitro" && [
           "Framework:",
           buildInfo.framework?.name +
-            (buildInfo.framework?.version
-              ? ` (v${buildInfo.framework.version})`
-              : ""),
+            (buildInfo.framework?.version ? ` (v${buildInfo.framework.version})` : ""),
         ],
       ].filter((i) => i && i[1]) as [string, string][];
       consola.box({

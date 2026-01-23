@@ -11,6 +11,4 @@ type CamelCase<S extends string> = string extends S
     ? `${T}${PascalCase<U>}`
     : S;
 
-export type CamelCaseKey<K extends PropertyKey> = K extends string
-  ? Exclude<CamelCase<K>, "">
-  : K;
+export type CamelCaseKey<K extends PropertyKey> = K extends string ? Exclude<CamelCase<K>, ""> : K;

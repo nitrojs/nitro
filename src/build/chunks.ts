@@ -12,10 +12,7 @@ export function libChunkName(id: string) {
   return `_libs/${pkgName || "common"}`;
 }
 
-export function getChunkName(
-  chunk: { name: string; moduleIds: string[] },
-  nitro: Nitro
-) {
+export function getChunkName(chunk: { name: string; moduleIds: string[] }, nitro: Nitro) {
   // Known groups
   if (chunk.name === "rolldown-runtime") {
     return "_runtime.mjs";
@@ -28,9 +25,8 @@ export function getChunkName(
         chunk.moduleIds
           .map(
             (id) =>
-              id.match(
-                /.*[/\\]node_modules[/\\](?<package>@[^/\\]+[/\\][^/\\]+|[^/\\]+)/
-              )?.groups?.package
+              id.match(/.*[/\\]node_modules[/\\](?<package>@[^/\\]+[/\\][^/\\]+|[^/\\]+)/)?.groups
+                ?.package
           )
           .filter(Boolean)
           .map((name) => name!.split(/[/\\]/).pop()!)
@@ -79,9 +75,7 @@ export function getChunkName(
   }
 
   // Only nitro runtime
-  if (
-    ids.every((id) => id.startsWith(runtimeDir) || id.startsWith(presetsDir))
-  ) {
+  if (ids.every((id) => id.startsWith(runtimeDir) || id.startsWith(presetsDir))) {
     return `_nitro/[name].mjs`;
   }
 
@@ -111,10 +105,7 @@ function routeToFsPath(route: string) {
     route
       .split("/")
       .slice(1)
-      .map(
-        (s) =>
-          `${s.replace(/[:*]+/g, "$").replace(/[^$a-zA-Z0-9_.[\]/]/g, "_")}`
-      )
+      .map((s) => `${s.replace(/[:*]+/g, "$").replace(/[^$a-zA-Z0-9_.[\]/]/g, "_")}`)
       .join("/") || "index"
   );
 }

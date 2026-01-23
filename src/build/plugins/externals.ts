@@ -14,12 +14,7 @@ export type ExternalsOptions = {
   conditions: string[];
   exclude?: (string | RegExp)[];
   include?: (string | RegExp)[];
-  trace?:
-    | false
-    | Omit<
-        ExternalsTraceOptions,
-        "rootDir" | "exportConditions" | "traceOptions"
-      >;
+  trace?: false | Omit<ExternalsTraceOptions, "rootDir" | "exportConditions" | "traceOptions">;
 };
 
 const PLUGIN_NAME = "nitro:externals";
@@ -185,13 +180,11 @@ export function externals(opts: ExternalsOptions): Plugin {
 const NODE_MODULES_RE =
   /^(?<dir>.+[\\/]node_modules[\\/])(?<name>[^@\\/]+|@[^\\/]+[\\/][^\\/]+)(?:[\\/](?<subpath>.+))?$/;
 
-const IMPORT_RE =
-  /^(?!\.)(?<name>[^@/\\]+|@[^/\\]+[/\\][^/\\]+)(?:[/\\](?<subpath>.+))?$/;
+const IMPORT_RE = /^(?!\.)(?<name>[^@/\\]+|@[^/\\]+[/\\][^/\\]+)(?:[/\\](?<subpath>.+))?$/;
 
 function toImport(id: string): string | undefined {
   if (isAbsolute(id)) {
-    const { name, subpath } =
-      NODE_MODULES_RE.exec(id)?.groups || ({} as Record<string, string>);
+    const { name, subpath } = NODE_MODULES_RE.exec(id)?.groups || ({} as Record<string, string>);
     if (name && subpath) {
       return join(name, subpath);
     }
@@ -251,14 +244,10 @@ function flattenExports(
   parentSubpath = "./"
 ): { subpath: string; fsPath: string; condition?: string }[] {
   return Object.entries(exports).flatMap(([key, value]) => {
-    const [subpath, condition] = key.startsWith(".")
-      ? [key.slice(1)]
-      : [undefined, key];
+    const [subpath, condition] = key.startsWith(".") ? [key.slice(1)] : [undefined, key];
     const _subPath = join(parentSubpath, subpath || "");
     if (typeof value === "string") {
-      return [
-        { subpath: _subPath, fsPath: value.replace(/^\.\//, ""), condition },
-      ];
+      return [{ subpath: _subPath, fsPath: value.replace(/^\.\//, ""), condition }];
     }
     return typeof value === "object" ? flattenExports(value, _subPath) : [];
   });

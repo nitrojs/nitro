@@ -46,8 +46,7 @@ export default defineCommand({
               }
 
               consola.info(
-                "Nitro config updated:\n" +
-                  diff.map((entry) => `  ${entry.toString()}`).join("\n")
+                "Nitro config updated:\n" + diff.map((entry) => `  ${entry.toString()}`).join("\n")
               );
 
               await (diff.every((e) => hmrKeyRe.test(e.key))

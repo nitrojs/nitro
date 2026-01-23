@@ -9,10 +9,7 @@ export default {
   },
 };
 
-function tokenizedStream(
-  text: string,
-  delay: number
-): ReadableStream<Uint8Array> {
+function tokenizedStream(text: string, delay: number): ReadableStream<Uint8Array> {
   const tokens = text.split(" ");
   return new ReadableStream({
     start(controller) {

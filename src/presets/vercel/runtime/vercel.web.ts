@@ -7,15 +7,9 @@ import { isrRouteRewrite } from "./isr.ts";
 const nitroApp = useNitroApp();
 
 export default {
-  fetch(
-    req: ServerRequest,
-    context: { waitUntil: (promise: Promise<any>) => void }
-  ) {
+  fetch(req: ServerRequest, context: { waitUntil: (promise: Promise<any>) => void }) {
     // ISR route rewrite
-    const isrURL = isrRouteRewrite(
-      req.url,
-      req.headers.get("x-now-route-matches")
-    );
+    const isrURL = isrRouteRewrite(req.url, req.headers.get("x-now-route-matches"));
     if (isrURL) {
       const { routeRules } = getRouteRules("", isrURL[0]);
       if (routeRules?.isr) {

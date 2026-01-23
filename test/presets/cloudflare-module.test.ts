@@ -40,10 +40,7 @@ describe("nitro:preset:cloudflare-module", async () => {
   });
 
   it("should export the correct functions", async () => {
-    const entry = await fsp.readFile(
-      resolve(ctx.outDir, "server", "index.mjs"),
-      "utf8"
-    );
+    const entry = await fsp.readFile(resolve(ctx.outDir, "server", "index.mjs"), "utf8");
     expect(entry).toMatch(/export \{.*myScheduled.*\}/);
   });
 });

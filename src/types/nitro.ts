@@ -36,10 +36,7 @@ export interface Nitro {
   _prerenderMeta?: Record<string, { contentType?: string }>;
 }
 
-export type NitroDynamicConfig = Pick<
-  NitroConfig,
-  "runtimeConfig" | "routeRules"
->;
+export type NitroDynamicConfig = Pick<NitroConfig, "runtimeConfig" | "routeRules">;
 
 export type NitroTypes = {
   routes: Record<string, Partial<Record<HTTPMethod | "default", string[]>>>;

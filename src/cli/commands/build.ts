@@ -1,12 +1,6 @@
 import { defineCommand } from "citty";
 import type { DateString } from "compatx";
-import {
-  build,
-  copyPublicAssets,
-  createNitro,
-  prepare,
-  prerender,
-} from "nitro/builder";
+import { build, copyPublicAssets, createNitro, prepare, prerender } from "nitro/builder";
 import { resolve } from "pathe";
 import { commonArgs } from "../common.ts";
 
@@ -29,8 +23,7 @@ export default defineCommand({
     },
     builder: {
       type: "string",
-      description:
-        "The builder to use (you can also use `NITRO_BUILDER` environment variable).",
+      description: "The builder to use (you can also use `NITRO_BUILDER` environment variable).",
     },
     compatibilityDate: {
       type: "string",

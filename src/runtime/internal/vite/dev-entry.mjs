@@ -8,8 +8,6 @@ const nitroApp = useNitroApp();
 
 export const fetch = nitroApp.fetch;
 
-const ws = import.meta._websocket
-  ? wsAdapter({ resolve: resolveWebsocketHooks })
-  : undefined;
+const ws = import.meta._websocket ? wsAdapter({ resolve: resolveWebsocketHooks }) : undefined;
 
 export const handleUpgrade = ws?.handleUpgrade;

@@ -18,10 +18,7 @@ export default new H3()
   })
   .get("/_nitro/tasks/:name", async (event) => {
     const name = event.context.params?.name;
-    const body = (await event.req.json().catch(() => ({}))) as Record<
-      string,
-      unknown
-    >;
+    const body = (await event.req.json().catch(() => ({}))) as Record<string, unknown>;
     const payload = {
       ...Object.fromEntries(event.url.searchParams.entries()),
       ...body,

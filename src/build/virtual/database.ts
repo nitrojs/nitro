@@ -10,14 +10,10 @@ export default function database(nitro: Nitro) {
         return /* js */ `export const connectionConfigs = {};`;
       }
 
-      const dbConfigs =
-        (nitro.options.dev && nitro.options.devDatabase) ||
-        nitro.options.database;
+      const dbConfigs = (nitro.options.dev && nitro.options.devDatabase) || nitro.options.database;
 
       const connectorsNames = [
-        ...new Set(
-          Object.values(dbConfigs || {}).map((config) => config?.connector)
-        ),
+        ...new Set(Object.values(dbConfigs || {}).map((config) => config?.connector)),
       ].filter(Boolean);
 
       for (const name of connectorsNames) {
@@ -28,10 +24,7 @@ export default function database(nitro: Nitro) {
 
       return /* js */ `
 ${connectorsNames
-  .map(
-    (name) =>
-      /* js */ `import ${camelCase(name)}Connector from "${connectors[name]}";`
-  )
+  .map((name) => /* js */ `import ${camelCase(name)}Connector from "${connectors[name]}";`)
   .join("\n")}
 
 export const connectionConfigs = {

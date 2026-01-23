@@ -16,9 +16,7 @@ export function getEnvRunner(ctx: NitroPluginContext) {
   }));
 }
 
-export function createNitroEnvironment(
-  ctx: NitroPluginContext
-): EnvironmentOptions {
+export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOptions {
   return {
     consumer: "server",
     build: {
@@ -44,9 +42,7 @@ export function createNitroEnvironment(
     },
     define: {
       // Workaround for tanstack-start (devtools)
-      "process.env.NODE_ENV": JSON.stringify(
-        ctx.nitro!.options.dev ? "development" : "production"
-      ),
+      "process.env.NODE_ENV": JSON.stringify(ctx.nitro!.options.dev ? "development" : "production"),
     },
     dev: {
       createEnvironment: (envName, envConfig) =>

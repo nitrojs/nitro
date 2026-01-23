@@ -31,8 +31,7 @@ export class NitroDevApp {
     const app = new H3({
       debug: true,
       onError: async (error, event) => {
-        const errorHandler =
-          this.nitro.options.devErrorHandler || devErrorHandler;
+        const errorHandler = this.nitro.options.devErrorHandler || devErrorHandler;
         await loadStackTrace(error).catch(() => {});
         return errorHandler(error, event, {
           defaultHandler: devErrorHandlerInternal,
@@ -65,10 +64,7 @@ export class NitroDevApp {
 
     // Serve asset dirs
     for (const asset of this.nitro.options.publicAssets) {
-      const assetBase = joinURL(
-        this.nitro.options.baseURL,
-        asset.baseURL || "/"
-      );
+      const assetBase = joinURL(this.nitro.options.baseURL, asset.baseURL || "/");
       app.use(joinURL(assetBase, "**"), (event) =>
         serveStaticDir(event, {
           dir: asset.dir,

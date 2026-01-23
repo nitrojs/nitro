@@ -45,9 +45,7 @@ export async function importDep<T>(
   consola.start(`Installing \`${opts.id}\` in \`${opts.dir}\`...`);
   const { addDevDependency } = await import("nypm");
   await addDevDependency(opts.id, { cwd: opts.dir });
-  consola.success(
-    `Installed \`${opts.id}\` in ${opts.dir} (${Date.now() - start}ms).`
-  );
+  consola.success(`Installed \`${opts.id}\` in ${opts.dir} (${Date.now() - start}ms).`);
 
   return importDep<T>(opts, true);
 }

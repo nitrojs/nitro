@@ -13,8 +13,7 @@ export async function resolveOpenAPIOptions(options: NitroOptions) {
     return;
   }
 
-  const shouldPrerender =
-    !options.dev && options.openAPI?.production === "prerender";
+  const shouldPrerender = !options.dev && options.openAPI?.production === "prerender";
 
   const handlersEnv = shouldPrerender ? "prerender" : "";
 

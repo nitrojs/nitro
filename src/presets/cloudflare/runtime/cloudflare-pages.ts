@@ -28,16 +28,10 @@ interface CFPagesEnv {
 
 const nitroApp = useNitroApp();
 
-const ws = import.meta._websocket
-  ? wsAdapter({ resolve: resolveWebsocketHooks })
-  : undefined;
+const ws = import.meta._websocket ? wsAdapter({ resolve: resolveWebsocketHooks }) : undefined;
 
 export default {
-  async fetch(
-    cfReq: CFRequest,
-    env: CFPagesEnv,
-    context: EventContext<CFPagesEnv, string, any>
-  ) {
+  async fetch(cfReq: CFRequest, env: CFPagesEnv, context: EventContext<CFPagesEnv, string, any>) {
     augmentReq(cfReq, {
       env,
       context: context as any,
@@ -45,15 +39,8 @@ export default {
 
     // Websocket upgrade
     // https://crossws.unjs.io/adapters/cloudflare
-    if (
-      import.meta._websocket &&
-      cfReq.headers.get("upgrade") === "websocket"
-    ) {
-      return ws!.handleUpgrade(
-        cfReq,
-        env,
-        context as unknown as ExecutionContext
-      );
+    if (import.meta._websocket && cfReq.headers.get("upgrade") === "websocket") {
+      return ws!.handleUpgrade(cfReq, env, context as unknown as ExecutionContext);
     }
 
     const url = new URL(cfReq.url);

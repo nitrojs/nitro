@@ -8,8 +8,7 @@ export default function storage(nitro: Nitro) {
     template: () => {
       const mounts: { path: string; driver: string; opts: object }[] = [];
 
-      const isDevOrPrerender =
-        nitro.options.dev || nitro.options.preset === "nitro-prerender";
+      const isDevOrPrerender = nitro.options.dev || nitro.options.preset === "nitro-prerender";
       const storageMounts = isDevOrPrerender
         ? { ...nitro.options.storage, ...nitro.options.devStorage }
         : nitro.options.storage;
@@ -18,9 +17,7 @@ export default function storage(nitro: Nitro) {
         const { driver: driverName, ...driverOpts } = storageMounts[path];
         mounts.push({
           path,
-          driver:
-            builtinDrivers[driverName as keyof typeof builtinDrivers] ||
-            driverName,
+          driver: builtinDrivers[driverName as keyof typeof builtinDrivers] || driverName,
           opts: driverOpts,
         });
       }
@@ -39,9 +36,7 @@ export function initStorage() {
   ${mounts
     .map(
       (m) =>
-        `storage.mount('${m.path}', ${genSafeVariableName(
-          m.driver
-        )}(${JSON.stringify(m.opts)}))`
+        `storage.mount('${m.path}', ${genSafeVariableName(m.driver)}(${JSON.stringify(m.opts)}))`
     )
     .join("\n")}
   return storage

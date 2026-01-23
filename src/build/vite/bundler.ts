@@ -20,9 +20,7 @@ export const getBundlerConfig = async (
   const commonConfig = {
     input: nitro.options.entry,
     external: [...base.env.external],
-    plugins: [...(await baseBuildPlugins(nitro, base))].filter(
-      Boolean
-    ) as RollupPlugin[],
+    plugins: [...(await baseBuildPlugins(nitro, base))].filter(Boolean) as RollupPlugin[],
     treeshake: {
       moduleSideEffects(id) {
         return nitro.options.moduleSideEffects.some((p) => id.startsWith(p));
@@ -37,8 +35,7 @@ export const getBundlerConfig = async (
       dir: nitro.options.output.serverDir,
       format: "esm",
       entryFileNames: "index.mjs",
-      chunkFileNames: (chunk: { name: string; moduleIds: string[] }) =>
-        getChunkName(chunk, nitro),
+      chunkFileNames: (chunk: { name: string; moduleIds: string[] }) => getChunkName(chunk, nitro),
       inlineDynamicImports: nitro.options.inlineDynamicImports,
       sourcemapIgnoreList: (id) => id.includes("node_modules"),
     },
@@ -68,10 +65,7 @@ export const getBundlerConfig = async (
     );
 
     const outputConfig = rolldownConfig.output;
-    if (
-      outputConfig.inlineDynamicImports ||
-      outputConfig.format === ("iife" as string)
-    ) {
+    if (outputConfig.inlineDynamicImports || outputConfig.format === ("iife" as string)) {
       delete outputConfig.codeSplitting;
     }
 
@@ -106,10 +100,7 @@ export const getBundlerConfig = async (
     );
 
     const outputConfig = rollupConfig.output;
-    if (
-      outputConfig.inlineDynamicImports ||
-      outputConfig.format === ("iife" as string)
-    ) {
+    if (outputConfig.inlineDynamicImports || outputConfig.format === ("iife" as string)) {
       delete outputConfig.manualChunks;
     }
 

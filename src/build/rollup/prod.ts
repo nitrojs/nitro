@@ -7,10 +7,7 @@ import { writeTypes } from "../types.ts";
 import { writeBuildInfo } from "../info.ts";
 import { formatRollupError } from "./error.ts";
 
-export async function buildProduction(
-  nitro: Nitro,
-  rollupConfig: RollupConfig
-) {
+export async function buildProduction(nitro: Nitro, rollupConfig: RollupConfig) {
   const rollup = await import("rollup");
 
   const buildStartTime = Date.now();
@@ -54,16 +51,12 @@ export async function buildProduction(
   };
   if (buildInfo.commands!.preview) {
     nitro.logger.success(
-      `You can preview this build using \`${rewriteRelativePaths(
-        buildInfo.commands!.preview
-      )}\``
+      `You can preview this build using \`${rewriteRelativePaths(buildInfo.commands!.preview)}\``
     );
   }
   if (buildInfo.commands!.deploy) {
     nitro.logger.success(
-      `You can deploy this build using \`${rewriteRelativePaths(
-        buildInfo.commands!.deploy
-      )}\``
+      `You can deploy this build using \`${rewriteRelativePaths(buildInfo.commands!.deploy)}\``
     );
   }
 }

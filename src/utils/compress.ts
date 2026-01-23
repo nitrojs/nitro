@@ -33,13 +33,9 @@ export async function compressPublicAssets(nitro: Nitro) {
         return;
       }
 
-      const { gzip, brotli } =
-        nitro.options.compressPublicAssets || ({} as any);
+      const { gzip, brotli } = nitro.options.compressPublicAssets || ({} as any);
 
-      const encodings = [
-        gzip !== false && "gzip",
-        brotli !== false && "br",
-      ].filter(Boolean);
+      const encodings = [gzip !== false && "gzip", brotli !== false && "br"].filter(Boolean);
 
       await Promise.all(
         encodings.map(async (encoding) => {
@@ -53,21 +49,18 @@ export async function compressPublicAssets(nitro: Nitro) {
             [zlib.constants.BROTLI_PARAM_MODE]: isTextMime(mimeType)
               ? zlib.constants.BROTLI_MODE_TEXT
               : zlib.constants.BROTLI_MODE_GENERIC,
-            [zlib.constants.BROTLI_PARAM_QUALITY]:
-              zlib.constants.BROTLI_MAX_QUALITY,
+            [zlib.constants.BROTLI_PARAM_QUALITY]: zlib.constants.BROTLI_MAX_QUALITY,
             [zlib.constants.BROTLI_PARAM_SIZE_HINT]: fileContents.length,
           };
-          const compressedBuff: Buffer = await new Promise(
-            (resolve, reject) => {
-              const cb = (error: Error | null, result: Buffer) =>
-                error ? reject(error) : resolve(result);
-              if (encoding === "gzip") {
-                zlib.gzip(fileContents, gzipOptions, cb);
-              } else {
-                zlib.brotliCompress(fileContents, brotliOptions, cb);
-              }
+          const compressedBuff: Buffer = await new Promise((resolve, reject) => {
+            const cb = (error: Error | null, result: Buffer) =>
+              error ? reject(error) : resolve(result);
+            if (encoding === "gzip") {
+              zlib.gzip(fileContents, gzipOptions, cb);
+            } else {
+              zlib.brotliCompress(fileContents, brotliOptions, cb);
             }
-          );
+          });
           await fsp.writeFile(compressedPath, compressedBuff);
         })
       );

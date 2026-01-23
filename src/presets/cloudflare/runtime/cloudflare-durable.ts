@@ -22,9 +22,7 @@ const nitroHooks = useNitroHooks();
 const getDurableStub = (env: Env) => {
   const binding = env[DURABLE_BINDING];
   if (!binding) {
-    throw new Error(
-      `Durable Object binding "${DURABLE_BINDING}" not available.`
-    );
+    throw new Error(`Durable Object binding "${DURABLE_BINDING}" not available.`);
   }
   const id = binding.idFromName(DURABLE_INSTANCE);
   return binding.get(id);
@@ -46,15 +44,11 @@ export default createHandler<Env>({
     }
 
     // Expose stub fetch to the context
-    ctxExt.durableFetch = (req = request) =>
-      getDurableStub(env).fetch(req as any);
+    ctxExt.durableFetch = (req = request) => getDurableStub(env).fetch(req as any);
 
     // Websocket upgrade
     // https://crossws.unjs.io/adapters/cloudflare#durable-objects
-    if (
-      import.meta._websocket &&
-      request.headers.get("upgrade") === "websocket"
-    ) {
+    if (import.meta._websocket && request.headers.get("upgrade") === "websocket") {
       return ws!.handleUpgrade(request, env, context);
     }
   },
@@ -80,10 +74,7 @@ export class $DurableObject extends DurableObject {
       context: this.ctx as any,
     });
 
-    if (
-      import.meta._websocket &&
-      request.headers.get("upgrade") === "websocket"
-    ) {
+    if (import.meta._websocket && request.headers.get("upgrade") === "websocket") {
       return ws!.handleDurableUpgrade(this, request);
     }
 
@@ -91,15 +82,10 @@ export class $DurableObject extends DurableObject {
   }
 
   override alarm(): void | Promise<void> {
-    this.ctx.waitUntil(
-      nitroHooks.callHook("cloudflare:durable:alarm", this) || Promise.resolve()
-    );
+    this.ctx.waitUntil(nitroHooks.callHook("cloudflare:durable:alarm", this) || Promise.resolve());
   }
 
-  override async webSocketMessage(
-    client: WebSocket,
-    message: ArrayBuffer | string
-  ) {
+  override async webSocketMessage(client: WebSocket, message: ArrayBuffer | string) {
     if (import.meta._websocket) {
       return ws!.handleDurableMessage(this, client, message);
     }

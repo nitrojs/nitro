@@ -6,9 +6,7 @@ import { builtinModules } from "node:module";
 import { defu } from "defu";
 import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
 
-export const getRolldownConfig = async (
-  nitro: Nitro
-): Promise<RolldownOptions> => {
+export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> => {
   const base = baseBuildConfig(nitro);
 
   const tsc = nitro.options.typescript.tsConfig?.compilerOptions;
@@ -17,11 +15,7 @@ export const getRolldownConfig = async (
     platform: nitro.options.node ? "node" : "neutral",
     cwd: nitro.options.rootDir,
     input: nitro.options.entry,
-    external: [
-      ...base.env.external,
-      ...builtinModules,
-      ...builtinModules.map((m) => `node:${m}`),
-    ],
+    external: [...base.env.external, ...builtinModules, ...builtinModules.map((m) => `node:${m}`)],
     plugins: [...((await baseBuildPlugins(nitro, base)) as RolldownPlugin[])],
     resolve: {
       alias: base.aliases,

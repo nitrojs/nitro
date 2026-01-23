@@ -1,11 +1,6 @@
 import { consola } from "consola";
 import { Hookable, createDebugger } from "hookable";
-import type {
-  LoadConfigOptions,
-  Nitro,
-  NitroConfig,
-  NitroDynamicConfig,
-} from "nitro/types";
+import type { LoadConfigOptions, Nitro, NitroConfig, NitroDynamicConfig } from "nitro/types";
 import { loadOptions } from "./config/loader.ts";
 import { updateNitroConfig } from "./config/update.ts";
 import { installModules } from "./module.ts";

@@ -68,7 +68,6 @@ Temporary Items
 .vercel
 .amplify-hosting
 staticwebapp.config.json
-.eslintcache
 playground/firebase.json
 .zeabur
 .apphosting

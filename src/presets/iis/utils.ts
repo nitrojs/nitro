@@ -6,17 +6,11 @@ import type { Nitro } from "nitro/types";
 import { resolve } from "pathe";
 
 export async function writeIISFiles(nitro: Nitro) {
-  await writeFile(
-    resolve(nitro.options.output.dir, "web.config"),
-    await iisXmlTemplate(nitro)
-  );
+  await writeFile(resolve(nitro.options.output.dir, "web.config"), await iisXmlTemplate(nitro));
 }
 
 export async function writeIISNodeFiles(nitro: Nitro) {
-  await writeFile(
-    resolve(nitro.options.output.dir, "web.config"),
-    await iisnodeXmlTemplate(nitro)
-  );
+  await writeFile(resolve(nitro.options.output.dir, "web.config"), await iisnodeXmlTemplate(nitro));
 
   await writeFile(
     resolve(nitro.options.output.dir, "index.js"),
@@ -99,10 +93,8 @@ async function iisnodeXmlTemplate(nitro: Nitro) {
 `;
   if (existsSync(path)) {
     const fileString = await readFile(path, "utf8");
-    const originalWebConfig: Record<string, unknown> =
-      await parseXmlDoc(originalString);
-    const fileWebConfig: Record<string, unknown> =
-      await parseXmlDoc(fileString);
+    const originalWebConfig: Record<string, unknown> = await parseXmlDoc(originalString);
+    const fileWebConfig: Record<string, unknown> = await parseXmlDoc(fileString);
 
     if (nitro.options.iis?.mergeConfig && !nitro.options.iis.overrideConfig) {
       return buildNewXmlDoc(defu(fileWebConfig, originalWebConfig));
@@ -133,10 +125,8 @@ async function iisXmlTemplate(nitro: Nitro) {
 `;
   if (existsSync(path)) {
     const fileString = await readFile(path, "utf8");
-    const originalWebConfig: Record<string, unknown> =
-      await parseXmlDoc(originalString);
-    const fileWebConfig: Record<string, unknown> =
-      await parseXmlDoc(fileString);
+    const originalWebConfig: Record<string, unknown> = await parseXmlDoc(originalString);
+    const fileWebConfig: Record<string, unknown> = await parseXmlDoc(fileString);
 
     if (nitro.options.iis?.mergeConfig && !nitro.options.iis.overrideConfig) {
       return buildNewXmlDoc(defu(fileWebConfig, originalWebConfig));
@@ -163,9 +153,7 @@ async function parseXmlDoc(xml: string): Promise<Record<string, unknown>> {
   return parsedRecord;
 }
 
-async function buildNewXmlDoc(
-  xmlObj: Record<string, unknown>
-): Promise<string> {
+async function buildNewXmlDoc(xmlObj: Record<string, unknown>): Promise<string> {
   const { Builder } = await import("xml2js");
   const builder = new Builder();
   return builder.buildObject({ ...xmlObj });

@@ -8,9 +8,7 @@ import { getContext } from "unctx";
 export const nitroAsyncContext = /* @__PURE__ */ (() =>
   getContext<NitroAsyncContext>("nitro-app", {
     asyncContext: import.meta._asyncContext,
-    AsyncLocalStorage: import.meta._asyncContext
-      ? AsyncLocalStorage
-      : undefined,
+    AsyncLocalStorage: import.meta._asyncContext ? AsyncLocalStorage : undefined,
   }))();
 
 /**

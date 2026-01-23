@@ -4,9 +4,7 @@ import { resolve } from "pathe";
 import { describe } from "vitest";
 import { setupTest, testNitro } from "../tests.ts";
 
-const hasBun =
-  execaCommandSync("bun --version", { stdio: "ignore", reject: false })
-    .exitCode === 0;
+const hasBun = execaCommandSync("bun --version", { stdio: "ignore", reject: false }).exitCode === 0;
 
 describe.runIf(hasBun)("nitro:preset:bun", async () => {
   const ctx = await setupTest("bun");

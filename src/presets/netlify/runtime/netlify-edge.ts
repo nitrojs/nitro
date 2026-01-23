@@ -7,10 +7,7 @@ import type { ServerRequest } from "srvx";
 const nitroApp = useNitroApp();
 
 // https://docs.netlify.com/edge-functions/api/
-export default async function netlifyEdge(
-  netlifyReq: Request,
-  context: Context
-) {
+export default async function netlifyEdge(netlifyReq: Request, context: Context) {
   // srvx compatibility
   const req = netlifyReq as unknown as ServerRequest;
   req.ip = context.ip;

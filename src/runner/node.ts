@@ -1,12 +1,7 @@
 import type { IncomingMessage, OutgoingMessage } from "node:http";
 import type { Duplex } from "node:stream";
 import type { HTTPProxy } from "./proxy.ts";
-import type {
-  RunnerMessageListener,
-  EnvRunner,
-  WorkerAddress,
-  WorkerHooks,
-} from "nitro/types";
+import type { RunnerMessageListener, EnvRunner, WorkerAddress, WorkerHooks } from "nitro/types";
 
 import { existsSync } from "node:fs";
 import { rm } from "node:fs/promises";
@@ -32,12 +27,7 @@ export class NodeEnvRunner implements EnvRunner {
   #proxy?: HTTPProxy;
   #messageListeners: Set<(data: unknown) => void>;
 
-  constructor(opts: {
-    name: string;
-    entry: string;
-    hooks?: WorkerHooks;
-    data?: EnvRunnerData;
-  }) {
+  constructor(opts: { name: string; entry: string; hooks?: WorkerHooks; data?: EnvRunnerData }) {
     this.#name = opts.name;
     this.#entry = opts.entry;
     this.#data = opts.data;
@@ -49,17 +39,12 @@ export class NodeEnvRunner implements EnvRunner {
   }
 
   get ready() {
-    return Boolean(
-      !this.closed && this.#address && this.#proxy && this.#worker
-    );
+    return Boolean(!this.closed && this.#address && this.#proxy && this.#worker);
   }
 
   // #region Public methods
 
-  async fetch(
-    input: string | URL | Request,
-    init?: RequestInit
-  ): Promise<Response> {
+  async fetch(input: string | URL | Request, init?: RequestInit): Promise<Response> {
     for (let i = 0; i < 5 && !(this.#address && this.#proxy); i++) {
       await new Promise((r) => setTimeout(r, 100 * Math.pow(2, i)));
     }
@@ -71,29 +56,25 @@ export class NodeEnvRunner implements EnvRunner {
     return fetchAddress(this.#address, input, init);
   }
 
-  upgrade(
-    req: IncomingMessage,
-    socket: OutgoingMessage<IncomingMessage> | Duplex,
-    head: any
-  ) {
+  upgrade(req: IncomingMessage, socket: OutgoingMessage<IncomingMessage> | Duplex, head: any) {
     if (!this.ready) {
       return;
     }
-    return this.#proxy!.proxy.ws(
-      req,
-      socket as OutgoingMessage<IncomingMessage>,
-      { target: this.#address, xfwd: true },
-      head
-    ).catch((error) => {
-      consola.error("WebSocket proxy error:", error);
-    });
+    return this.#proxy!.proxy
+      .ws(
+        req,
+        socket as OutgoingMessage<IncomingMessage>,
+        { target: this.#address, xfwd: true },
+        head
+      )
+      .catch((error) => {
+        consola.error("WebSocket proxy error:", error);
+      });
   }
 
   sendMessage(message: unknown) {
     if (!this.#worker) {
-      throw new Error(
-        "Node env worker should be initialized before sending messages."
-      );
+      throw new Error("Node env worker should be initialized before sending messages.");
     }
     this.#worker.postMessage(message);
   }
@@ -177,11 +158,7 @@ export class NodeEnvRunner implements EnvRunner {
 
   async #closeSocket() {
     const socketPath = this.#address?.socketPath;
-    if (
-      socketPath &&
-      socketPath[0] !== "\0" &&
-      !socketPath.startsWith(String.raw`\\.\pipe`)
-    ) {
+    if (socketPath && socketPath[0] !== "\0" && !socketPath.startsWith(String.raw`\\.\pipe`)) {
       await rm(socketPath).catch(() => {});
     }
     this.#address = undefined;

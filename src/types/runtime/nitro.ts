@@ -43,10 +43,7 @@ export interface CapturedErrorContext {
   tags?: string[];
 }
 
-export type CaptureError = (
-  error: Error,
-  context: CapturedErrorContext
-) => void;
+export type CaptureError = (error: Error, context: CapturedErrorContext) => void;
 
 export interface NitroRuntimeHooks {
   close: () => void;

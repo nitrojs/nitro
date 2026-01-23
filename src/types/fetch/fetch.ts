@@ -38,17 +38,13 @@ export type TypedInternalResponse<
 
 // Extracts the available http methods based on the route.
 // Defaults to all methods if there aren't any methods available or if there is a catch-all route.
-export type AvailableRouterMethod<R extends NitroFetchRequest> =
-  R extends string
-    ? keyof InternalApi[MatchedRoutes<R>] extends undefined
-      ? RouterMethod
-      : Extract<
-            keyof InternalApi[MatchedRoutes<R>],
-            "default"
-          > extends undefined
-        ? Extract<RouterMethod, keyof InternalApi[MatchedRoutes<R>]>
-        : RouterMethod
-    : RouterMethod;
+export type AvailableRouterMethod<R extends NitroFetchRequest> = R extends string
+  ? keyof InternalApi[MatchedRoutes<R>] extends undefined
+    ? RouterMethod
+    : Extract<keyof InternalApi[MatchedRoutes<R>], "default"> extends undefined
+      ? Extract<RouterMethod, keyof InternalApi[MatchedRoutes<R>]>
+      : RouterMethod
+  : RouterMethod;
 
 // Argumented fetch options to include the correct request methods.
 // This overrides the default, which is only narrowed to a string.
@@ -80,11 +76,7 @@ export type Base$Fetch<
   request: R,
   opts?: O
 ) => Promise<
-  TypedInternalResponse<
-    R,
-    T,
-    NitroFetchOptions<R> extends O ? "get" : ExtractedRouteMethod<R, O>
-  >
+  TypedInternalResponse<R, T, NitroFetchOptions<R> extends O ? "get" : ExtractedRouteMethod<R, O>>
 >;
 
 export interface $Fetch<

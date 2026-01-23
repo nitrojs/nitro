@@ -7,9 +7,7 @@ import serverAssets from "./entry-server?assets=ssr";
 export default {
   async fetch(req: Request): Promise<Response> {
     const appHTML = await renderToStringAsync(() => <App />);
-    const rootHTML = await renderToStringAsync(() => (
-      <Root appHTML={appHTML} />
-    ));
+    const rootHTML = await renderToStringAsync(() => <Root appHTML={appHTML} />);
     return new Response(rootHTML, {
       headers: { "Content-Type": "text/html" },
     });

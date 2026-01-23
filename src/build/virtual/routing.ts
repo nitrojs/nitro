@@ -1,11 +1,6 @@
 import type { Nitro, NitroEventHandler, NitroRouteRules } from "nitro/types";
 
-export const RuntimeRouteRules = [
-  "headers",
-  "redirect",
-  "proxy",
-  "cache",
-] as string[];
+export const RuntimeRouteRules = ["headers", "redirect", "proxy", "cache"] as string[];
 
 export default function routing(nitro: Nitro) {
   return {
@@ -14,9 +9,7 @@ export default function routing(nitro: Nitro) {
       const allHandlers = uniqueBy(
         [
           ...Object.values(nitro.routing.routes.routes).flatMap((h) => h.data),
-          ...Object.values(nitro.routing.routedMiddleware.routes).map(
-            (h) => h.data
-          ),
+          ...Object.values(nitro.routing.routedMiddleware.routes).map((h) => h.data),
           ...nitro.routing.globalMiddleware,
         ],
         "_importHash"
@@ -68,9 +61,7 @@ function uniqueBy<T>(arr: T[], key: keyof T): T[] {
 
 type MaybeArray<T> = T | T[];
 
-function serializeHandler(
-  h: MaybeArray<NitroEventHandler & { _importHash: string }>
-): string {
+function serializeHandler(h: MaybeArray<NitroEventHandler & { _importHash: string }>): string {
   const meta = Array.isArray(h) ? h[0] : h;
 
   return `{${[
@@ -87,9 +78,7 @@ function serializeHandler(
     .join(",")}}`;
 }
 
-function serializeHandlerFn(
-  h: NitroEventHandler & { _importHash: string }
-): string {
+function serializeHandlerFn(h: NitroEventHandler & { _importHash: string }): string {
   let code = h._importHash;
   if (!h.lazy) {
     if (h.format === "node") {

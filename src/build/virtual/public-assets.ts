@@ -35,8 +35,7 @@ export default function publicAssets(nitro: Nitro) {
         const { errors } = await runParallel(
           new Set(files),
           async (id) => {
-            let mimeType =
-              mime.getType(id.replace(/\.(gz|br)$/, "")) || "text/plain";
+            let mimeType = mime.getType(id.replace(/\.(gz|br)$/, "")) || "text/plain";
             if (mimeType.startsWith("text")) {
               mimeType += "; charset=utf-8";
             }
@@ -48,10 +47,7 @@ export default function publicAssets(nitro: Nitro) {
 
             const etag = createEtag(assetData);
 
-            const assetId = joinURL(
-              nitro.options.baseURL,
-              decodeURIComponent(id)
-            );
+            const assetId = joinURL(nitro.options.baseURL, decodeURIComponent(id));
 
             let encoding;
             if (id.endsWith(".gz")) {
@@ -68,19 +64,16 @@ export default function publicAssets(nitro: Nitro) {
               size: stat.size,
               path: relative(nitro.options.output.serverDir, fullPath),
               data:
-                nitro.options.serveStatic === "inline"
-                  ? assetData.toString("base64")
-                  : undefined,
+                nitro.options.serveStatic === "inline" ? assetData.toString("base64") : undefined,
             };
           },
           { concurrency: 25 }
         );
 
         if (errors.length > 0) {
-          throw new Error(
-            `Failed to process public assets:\n${errors.join("\n")}`,
-            { cause: errors }
-          );
+          throw new Error(`Failed to process public assets:\n${errors.join("\n")}`, {
+            cause: errors,
+          });
         }
 
         return `export default ${JSON.stringify(assets, null, 2)};`;
@@ -95,9 +88,7 @@ export default function publicAssets(nitro: Nitro) {
           nitro.options.publicAssets
             .filter((dir) => !dir.fallthrough && dir.baseURL !== "/")
             .map((dir) => [
-              withTrailingSlash(
-                joinURL(nitro.options.baseURL, dir.baseURL || "/")
-              ),
+              withTrailingSlash(joinURL(nitro.options.baseURL, dir.baseURL || "/")),
               { maxAge: dir.maxAge },
             ])
         );

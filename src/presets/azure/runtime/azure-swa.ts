@@ -3,11 +3,7 @@ import { parseURL } from "ufo";
 import { useNitroApp } from "nitro/app";
 import { getAzureParsedCookiesFromHeaders } from "./_utils.ts";
 
-import type {
-  HttpRequest,
-  HttpResponse,
-  HttpResponseSimple,
-} from "@azure/functions";
+import type { HttpRequest, HttpResponse, HttpResponseSimple } from "@azure/functions";
 
 const nitroApp = useNitroApp();
 

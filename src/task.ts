@@ -43,14 +43,10 @@ async function _getTasksContext(opts?: TaskRunnerOptions) {
     throw new Error(`Missing info file: \`${buildInfoPath}\` ${_devHint}`);
   }
 
-  const buildInfo = JSON.parse(
-    await readFile(buildInfoPath, "utf8")
-  ) as NitroBuildInfo;
+  const buildInfo = JSON.parse(await readFile(buildInfoPath, "utf8")) as NitroBuildInfo;
 
   if (!buildInfo.dev?.pid || !buildInfo.dev?.workerAddress) {
-    throw new Error(
-      `Missing dev server info in: \`${buildInfoPath}\` ${_devHint}`
-    );
+    throw new Error(`Missing dev server info in: \`${buildInfoPath}\` ${_devHint}`);
   }
 
   if (!_pidIsRunning(buildInfo.dev.pid)) {
@@ -85,10 +81,7 @@ async function _getTasksContext(opts?: TaskRunnerOptions) {
           },
         },
         (response) => {
-          if (
-            !response.statusCode ||
-            (response.statusCode >= 400 && response.statusCode < 600)
-          ) {
+          if (!response.statusCode || (response.statusCode >= 400 && response.statusCode < 600)) {
             reject(new Error(response.statusMessage));
             return;
           }

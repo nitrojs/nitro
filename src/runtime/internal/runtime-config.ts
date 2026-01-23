@@ -11,9 +11,7 @@ function getRuntimeConfig() {
   applyEnv(runtimeConfig, {
     prefix: "NITRO_",
     altPrefix: runtimeConfig.nitro?.envPrefix ?? env?.NITRO_ENV_PREFIX ?? "_",
-    envExpansion: Boolean(
-      runtimeConfig.nitro?.envExpansion ?? env?.NITRO_ENV_EXPANSION ?? false
-    ),
+    envExpansion: Boolean(runtimeConfig.nitro?.envExpansion ?? env?.NITRO_ENV_EXPANSION ?? false),
   });
   return runtimeConfig;
 }
@@ -26,11 +24,7 @@ type EnvOptions = {
   envExpansion?: boolean;
 };
 
-export function applyEnv(
-  obj: Record<string, any>,
-  opts: EnvOptions,
-  parentKey = ""
-) {
+export function applyEnv(obj: Record<string, any>, opts: EnvOptions, parentKey = "") {
   for (const key in obj) {
     const subKey = parentKey ? `${parentKey}_${key}` : key;
     const envValue = getEnv(subKey, opts);
@@ -71,9 +65,7 @@ function _expandFromEnv(value: string) {
 
 function getEnv(key: string, opts: EnvOptions) {
   const envKey = snakeCase(key).toUpperCase();
-  return (
-    process.env[opts.prefix + envKey] ?? process.env[opts.altPrefix + envKey]
-  );
+  return process.env[opts.prefix + envKey] ?? process.env[opts.altPrefix + envKey];
 }
 
 function _isObject(input: unknown) {

@@ -1,10 +1,5 @@
 import type commonjs from "@rollup/plugin-commonjs";
-import type {
-  C12InputConfig,
-  ConfigWatcher,
-  DotenvOptions,
-  ResolvedConfig,
-} from "c12";
+import type { C12InputConfig, ConfigWatcher, DotenvOptions, ResolvedConfig } from "c12";
 import type { WatchConfigOptions } from "c12";
 import type { ChokidarOptions } from "chokidar";
 import type { CompatibilityDateSpec, CompatibilityDates } from "compatx";
@@ -12,11 +7,7 @@ import type { LogLevel } from "consola";
 import type { ConnectorName } from "db0";
 import type { NestedHooks } from "hookable";
 import type { ProxyServerOptions } from "httpxy";
-import type {
-  PresetName,
-  PresetNameInput,
-  PresetOptions,
-} from "../presets/index.ts";
+import type { PresetName, PresetNameInput, PresetOptions } from "../presets/index.ts";
 import type { TSConfig } from "pkg-types";
 import type { Preset as UnenvPreset } from "unenv";
 import type { UnimportPluginOptions } from "unimport/unplugin";
@@ -38,9 +29,7 @@ import type { OXCOptions, RolldownConfig } from "./build.ts";
 import type { RollupConfig } from "./build.ts";
 import type { NitroRouteConfig, NitroRouteRules } from "./route-rules.ts";
 
-type RollupCommonJSOptions = NonNullable<
-  Parameters<typeof commonjs.default>[0]
->;
+type RollupCommonJSOptions = NonNullable<Parameters<typeof commonjs.default>[0]>;
 
 /**
  * Nitro normalized options (nitro.options)
@@ -198,10 +187,7 @@ export interface NitroOptions extends PresetOptions {
   handlers: NitroEventHandler[];
   devHandlers: NitroDevEventHandler[];
   routeRules: { [path: string]: NitroRouteRules };
-  routes: Record<
-    string,
-    string | Omit<NitroEventHandler, "route" | "middleware">
-  >;
+  routes: Record<string, string | Omit<NitroEventHandler, "route" | "middleware">>;
 
   errorHandler: string | string[];
   devErrorHandler: NitroErrorHandler;
@@ -215,9 +201,7 @@ export interface NitroOptions extends PresetOptions {
     interval?: number;
     crawlLinks?: boolean;
     failOnError?: boolean;
-    ignore?: Array<
-      string | RegExp | ((path: string) => undefined | null | boolean)
-    >;
+    ignore?: Array<string | RegExp | ((path: string) => undefined | null | boolean)>;
     ignoreUnprefixedPublicAssets?: boolean;
     routes?: string[];
     /**
@@ -382,10 +366,7 @@ export type DatabaseConnectionConfig = {
     [key: string]: any;
   };
 };
-export type DatabaseConnectionConfigs = Record<
-  DatabaseConnectionName,
-  DatabaseConnectionConfig
->;
+export type DatabaseConnectionConfigs = Record<DatabaseConnectionName, DatabaseConnectionConfig>;
 
 // Runtime config
 

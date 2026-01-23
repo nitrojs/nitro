@@ -6,10 +6,6 @@ function _captureError(error: Error, type: string) {
 }
 
 export function trapUnhandledErrors() {
-  process.on("unhandledRejection", (error: Error) =>
-    _captureError(error, "unhandledRejection")
-  );
-  process.on("uncaughtException", (error: Error) =>
-    _captureError(error, "uncaughtException")
-  );
+  process.on("unhandledRejection", (error: Error) => _captureError(error, "unhandledRejection"));
+  process.on("uncaughtException", (error: Error) => _captureError(error, "uncaughtException"));
 }

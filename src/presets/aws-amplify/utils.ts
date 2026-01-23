@@ -2,11 +2,7 @@ import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { Nitro } from "nitro/types";
 import { joinURL } from "ufo";
-import type {
-  AmplifyDeployManifest,
-  AmplifyRoute,
-  AmplifyRouteTarget,
-} from "./types.ts";
+import type { AmplifyDeployManifest, AmplifyRoute, AmplifyRouteTarget } from "./types.ts";
 
 export async function writeAmplifyFiles(nitro: Nitro) {
   const outDir = nitro.options.output.dir;
@@ -17,8 +13,7 @@ export async function writeAmplifyFiles(nitro: Nitro) {
   let hasWildcardPublicAsset = false;
 
   if (nitro.options.awsAmplify?.imageOptimization && !nitro.options.static) {
-    const { path, cacheControl } =
-      nitro.options.awsAmplify?.imageOptimization || {};
+    const { path, cacheControl } = nitro.options.awsAmplify?.imageOptimization || {};
     if (path) {
       routes.push({
         path,
@@ -44,9 +39,7 @@ export async function writeAmplifyFiles(nitro: Nitro) {
       target: {
         kind: "Static",
         cacheControl:
-          publicAsset.maxAge > 0
-            ? `public, max-age=${publicAsset.maxAge}, immutable`
-            : undefined,
+          publicAsset.maxAge > 0 ? `public, max-age=${publicAsset.maxAge}, immutable` : undefined,
       },
       fallback: publicAsset.fallthrough ? computeTarget : undefined,
     });
@@ -97,16 +90,10 @@ export async function writeAmplifyFiles(nitro: Nitro) {
       version: nitro.options.framework.version || "0.0.0",
     },
   };
-  await writeFile(
-    resolve(outDir, "deploy-manifest.json"),
-    JSON.stringify(deployManifest, null, 2)
-  );
+  await writeFile(resolve(outDir, "deploy-manifest.json"), JSON.stringify(deployManifest, null, 2));
 
   // Write server.js (CJS)
   if (!nitro.options.static) {
-    await writeFile(
-      resolve(outDir, "compute/default/server.js"),
-      `import("./index.mjs")`
-    );
+    await writeFile(resolve(outDir, "compute/default/server.js"), `import("./index.mjs")`);
   }
 }

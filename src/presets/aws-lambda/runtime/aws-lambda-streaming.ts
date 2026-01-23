@@ -30,10 +30,7 @@ export const handler = awslambda.streamifyResponse(
         },
       });
 
-    const writer = awslambda.HttpResponseStream.from(
-      responseStream,
-      httpResponseMetadata
-    );
+    const writer = awslambda.HttpResponseStream.from(responseStream, httpResponseMetadata);
 
     const reader = body.getReader();
     await streamToNodeStream(reader, responseStream);

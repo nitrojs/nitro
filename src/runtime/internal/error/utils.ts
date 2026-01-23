@@ -1,8 +1,6 @@
 import type { NitroErrorHandler } from "nitro/types";
 
-export function defineNitroErrorHandler(
-  handler: NitroErrorHandler
-): NitroErrorHandler {
+export function defineNitroErrorHandler(handler: NitroErrorHandler): NitroErrorHandler {
   return handler;
 }
 

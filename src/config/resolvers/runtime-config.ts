@@ -1,10 +1,6 @@
 import { defu } from "defu";
 
-import type {
-  NitroConfig,
-  NitroOptions,
-  NitroRuntimeConfig,
-} from "nitro/types";
+import type { NitroConfig, NitroOptions, NitroRuntimeConfig } from "nitro/types";
 
 export async function resolveRuntimeConfigOptions(options: NitroOptions) {
   options.runtimeConfig = normalizeRuntimeConfig(options);
@@ -69,9 +65,5 @@ function checkSerializableRuntimeConfig(obj: any, path: string[] = []) {
 }
 
 function isPrimitiveValue(value: any) {
-  return (
-    typeof value === "string" ||
-    typeof value === "number" ||
-    typeof value === "boolean"
-  );
+  return typeof value === "string" || typeof value === "number" || typeof value === "boolean";
 }

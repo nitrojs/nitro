@@ -16,18 +16,14 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const plugins: Plugin[] = [];
 
   // Virtual
-  const virtualPlugin = virtual(
-    virtualTemplates(nitro, [...base.env.polyfill])
-  );
+  const virtualPlugin = virtual(virtualTemplates(nitro, [...base.env.polyfill]));
   nitro.vfs = virtualPlugin.api.modules;
   plugins.push(virtualPlugin, virtualDeps());
 
   // Auto imports
   if (nitro.options.imports) {
     const unimportPlugin = await import("unimport/unplugin");
-    plugins.push(
-      unimportPlugin.default.rollup(nitro.options.imports) as Plugin
-    );
+    plugins.push(unimportPlugin.default.rollup(nitro.options.imports) as Plugin);
   }
 
   // WASM loader
@@ -56,10 +52,8 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
 
   // Externals (require Node.js compatible resolution)
   if (nitro.options.node && nitro.options.noExternals !== true) {
-    const isDevOrPrerender =
-      nitro.options.dev || nitro.options.preset === "nitro-prerender";
-    const { NodeNativePackages, NonBundleablePackages } =
-      await import("nf3/db");
+    const isDevOrPrerender = nitro.options.dev || nitro.options.preset === "nitro-prerender";
+    const { NodeNativePackages, NonBundleablePackages } = await import("nf3/db");
     const traceDeps = [
       ...new Set([
         ...NodeNativePackages,
@@ -79,9 +73,7 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
                 `^(?:${traceDeps.join("|")})|[/\\\\]node_modules[/\\\\](?:${traceDeps.join("|")})(?:[/\\\\])`
               ),
             ],
-        trace: isDevOrPrerender
-          ? false
-          : { outDir: nitro.options.output.serverDir },
+        trace: isDevOrPrerender ? false : { outDir: nitro.options.output.serverDir },
       })
     );
   }

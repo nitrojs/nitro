@@ -12,9 +12,7 @@ declare global {
 
 const nitroApp = useNitroApp();
 
-const ws = import.meta._websocket
-  ? wsAdapter({ resolve: resolveWebsocketHooks })
-  : undefined;
+const ws = import.meta._websocket ? wsAdapter({ resolve: resolveWebsocketHooks }) : undefined;
 
 // TODO: Migrate to srvx to provide request IP
 Deno.serve((denoReq: Request, info: _Deno.ServeHandlerInfo) => {

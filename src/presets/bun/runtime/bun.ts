@@ -8,8 +8,7 @@ import { startScheduleRunner } from "#nitro/runtime/task";
 import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
 
-const port =
-  Number.parseInt(process.env.NITRO_PORT || process.env.PORT || "") || 3000;
+const port = Number.parseInt(process.env.NITRO_PORT || process.env.PORT || "") || 3000;
 const host = process.env.NITRO_HOST || process.env.HOST;
 const cert = process.env.NITRO_SSL_CERT;
 const key = process.env.NITRO_SSL_KEY;
@@ -19,17 +18,12 @@ const nitroApp = useNitroApp();
 
 let _fetch = nitroApp.fetch;
 
-const ws = import.meta._websocket
-  ? wsAdapter({ resolve: resolveWebsocketHooks })
-  : undefined;
+const ws = import.meta._websocket ? wsAdapter({ resolve: resolveWebsocketHooks }) : undefined;
 
 if (import.meta._websocket) {
   _fetch = (req: ServerRequest) => {
     if (req.headers.get("upgrade") === "websocket") {
-      return ws!.handleUpgrade(
-        req,
-        req.runtime!.bun!.server
-      ) as Promise<Response>;
+      return ws!.handleUpgrade(req, req.runtime!.bun!.server) as Promise<Response>;
     }
     return nitroApp.fetch(req);
   };

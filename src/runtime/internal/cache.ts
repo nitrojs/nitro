@@ -81,11 +81,7 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
     const _resolve = async () => {
       const isPending = pending[key];
       if (!isPending) {
-        if (
-          entry.value !== undefined &&
-          (opts.staleMaxAge || 0) >= 0 &&
-          opts.swr === false
-        ) {
+        if (entry.value !== undefined && (opts.staleMaxAge || 0) >= 0 && opts.swr === false) {
           // Remove cached entry to prevent using expired cache on concurrent requests
           entry.value = undefined;
           entry.integrity = undefined;
@@ -208,9 +204,7 @@ export function defineCachedHandler(
       const _path = event.url.pathname + event.url.search;
       let _pathname: string;
       try {
-        _pathname =
-          escapeKey(decodeURI(parseURL(_path).pathname)).slice(0, 16) ||
-          "index";
+        _pathname = escapeKey(decodeURI(parseURL(_path).pathname)).slice(0, 16) || "index";
       } catch {
         _pathname = "-";
       }
@@ -243,71 +237,68 @@ export function defineCachedHandler(
     integrity: opts.integrity || hash([handler, opts]),
   };
 
-  const _cachedHandler = cachedFunction<ResponseCacheEntry>(
-    async (event: H3Event) => {
-      // Filter non variable headers
-      const filteredHeaders = [...event.req.headers.entries()].filter(
-        ([key]) => !variableHeaderNames.includes(key.toLowerCase())
-      );
+  const _cachedHandler = cachedFunction<ResponseCacheEntry>(async (event: H3Event) => {
+    // Filter non variable headers
+    const filteredHeaders = [...event.req.headers.entries()].filter(
+      ([key]) => !variableHeaderNames.includes(key.toLowerCase())
+    );
 
-      try {
-        const originalReq = event.req;
-        // @ts-expect-error assigning to publicly readonly property
-        event.req = new Request(event.req.url, {
-          method: event.req.method,
-          headers: filteredHeaders,
-        });
-        // Inherit srvx context
-        event.req.runtime = originalReq.runtime;
-        event.req.waitUntil = originalReq.waitUntil;
-      } catch (error) {
-        console.error("[cache] Failed to filter headers:", error);
+    try {
+      const originalReq = event.req;
+      // @ts-expect-error assigning to publicly readonly property
+      event.req = new Request(event.req.url, {
+        method: event.req.method,
+        headers: filteredHeaders,
+      });
+      // Inherit srvx context
+      event.req.runtime = originalReq.runtime;
+      event.req.waitUntil = originalReq.waitUntil;
+    } catch (error) {
+      console.error("[cache] Failed to filter headers:", error);
+    }
+
+    // Call handler
+    const rawValue = await handler(event);
+    const res = await toResponse(rawValue, event);
+
+    // Stringified body
+    // TODO: support binary responses
+    const body = await res.text();
+
+    if (!res.headers.has("etag")) {
+      res.headers.set("etag", `W/"${hash(body)}"`);
+    }
+
+    if (!res.headers.has("last-modified")) {
+      res.headers.set("last-modified", new Date().toUTCString());
+    }
+
+    const cacheControl = [];
+    if (opts.swr) {
+      if (opts.maxAge) {
+        cacheControl.push(`s-maxage=${opts.maxAge}`);
       }
-
-      // Call handler
-      const rawValue = await handler(event);
-      const res = await toResponse(rawValue, event);
-
-      // Stringified body
-      // TODO: support binary responses
-      const body = await res.text();
-
-      if (!res.headers.has("etag")) {
-        res.headers.set("etag", `W/"${hash(body)}"`);
+      if (opts.staleMaxAge) {
+        cacheControl.push(`stale-while-revalidate=${opts.staleMaxAge}`);
+      } else {
+        cacheControl.push("stale-while-revalidate");
       }
+    } else if (opts.maxAge) {
+      cacheControl.push(`max-age=${opts.maxAge}`);
+    }
+    if (cacheControl.length > 0) {
+      res.headers.set("cache-control", cacheControl.join(", "));
+    }
 
-      if (!res.headers.has("last-modified")) {
-        res.headers.set("last-modified", new Date().toUTCString());
-      }
+    const cacheEntry: ResponseCacheEntry = {
+      status: res.status,
+      statusText: res.statusText,
+      headers: Object.fromEntries(res.headers.entries()),
+      body,
+    };
 
-      const cacheControl = [];
-      if (opts.swr) {
-        if (opts.maxAge) {
-          cacheControl.push(`s-maxage=${opts.maxAge}`);
-        }
-        if (opts.staleMaxAge) {
-          cacheControl.push(`stale-while-revalidate=${opts.staleMaxAge}`);
-        } else {
-          cacheControl.push("stale-while-revalidate");
-        }
-      } else if (opts.maxAge) {
-        cacheControl.push(`max-age=${opts.maxAge}`);
-      }
-      if (cacheControl.length > 0) {
-        res.headers.set("cache-control", cacheControl.join(", "));
-      }
-
-      const cacheEntry: ResponseCacheEntry = {
-        status: res.status,
-        statusText: res.statusText,
-        headers: Object.fromEntries(res.headers.entries()),
-        body,
-      };
-
-      return cacheEntry;
-    },
-    _opts
-  );
+    return cacheEntry;
+  }, _opts);
 
   return defineHandler(async (event) => {
     // Headers-only mode
