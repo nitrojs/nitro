@@ -113,7 +113,7 @@ pnpm i
 Run linting and auto-fix issues:
 
 ```bash
-pnpm lint:fix
+pnpm format
 ```
 
 ### 7. Build Project
@@ -130,7 +130,7 @@ If there are lint or type errors:
 
 1. Review the output carefully
 2. Fix issues manually following the project conventions
-3. Re-run `pnpm lint:fix` to verify lint fixes
+3. Re-run `pnpm format` to verify lint fixes
 4. Re-run `pnpm test:types` to verify type fixes. Ignore errors, only report them in the end.
 
 ### 10. Final

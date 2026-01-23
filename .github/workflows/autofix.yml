@@ -24,7 +24,7 @@ jobs:
       - run: pnpm stub
       - run: pnpm gen-presets
       - name: Fix lint issues
-        run: npm run lint:fix
+        run: npm run format
       - uses: autofix-ci/action@635ffb0c9798bd160680f18fd73371e355b85f27
         with:
           commit-message: "chore: apply automated updates"
