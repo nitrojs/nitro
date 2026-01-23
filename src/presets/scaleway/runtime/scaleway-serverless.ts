@@ -9,14 +9,16 @@ type Event = Parameters<Parameters<typeof serveHandler>[0]>[0];
 type Context = Parameters<Parameters<typeof serveHandler>[0]>[1];
 
 export async function handler(event: Event, context: Context) {
-  const headers = Object.fromEntries(
-    Object.entries(event.headers!).map(([key, value]) => [key, String(value)])
+  const headers = new Headers(
+    Object.fromEntries(
+      Object.entries(event.headers!).map(([key, value]) => [key, String(value)])
+    )
   );
 
   const url = withQuery(
     joinURL(
-      headers?.["X-Forwarded-Proto"] === "http" ? "http://" : "https://",
-      headers.host,
+      headers.get("X-Forwarded-Proto") === "http" ? "http://" : "https://",
+      headers.get("Host")!,
       event.path
     ),
     event.queryStringParameters ?? {}
