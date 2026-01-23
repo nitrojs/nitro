@@ -19,7 +19,7 @@ export async function handler(event: Event, context: Context) {
       headers.host,
       event.path
     ),
-    event.queryStringParameters!
+    event.queryStringParameters ?? {}
   );
 
   const request = new Request(url, {
