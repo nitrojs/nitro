@@ -65,13 +65,12 @@ export async function compressPublicAssets(nitro: Nitro) {
           if (existsSync(compressedPath)) {
             return;
           }
-          const gzipOptions = { level: zlib.constants.Z_BEST_COMPRESSION };
           const brotliOptions = {
             [zlib.constants.BROTLI_PARAM_MODE]: isTextMime(mimeType)
               ? zlib.constants.BROTLI_MODE_TEXT
               : zlib.constants.BROTLI_MODE_GENERIC,
             [zlib.constants.BROTLI_PARAM_QUALITY]:
-              zlib.constants.BROTLI_MAX_QUALITY,
+              zlib.constants.BROTLI_DEFAULT_QUALITY,
             [zlib.constants.BROTLI_PARAM_SIZE_HINT]: fileContents.length,
           };
           const compressedBuff: Buffer = await new Promise(
@@ -79,21 +78,11 @@ export async function compressPublicAssets(nitro: Nitro) {
               const cb = (error: Error | null, result: Buffer) =>
                 error ? reject(error) : resolve(result);
               if (encoding === "gzip") {
-                zlib.gzip(fileContents, gzipOptions, cb);
+                zlib.gzip(fileContents, cb);
               } else if (encoding === "br") {
                 zlib.brotliCompress(fileContents, brotliOptions, cb);
               } else if (zstdSupported) {
-                zlib.zstdCompress(
-                  fileContents,
-                  {
-                    params: {
-                      [zlib.constants.ZSTD_c_compressionLevel]: 19,
-                      [zlib.constants.ZSTD_c_strategy]:
-                        zlib.constants.ZSTD_btultra2,
-                    },
-                  },
-                  cb
-                );
+                zlib.zstdCompress(fileContents, cb);
               }
             }
           );
