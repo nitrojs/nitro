@@ -14,12 +14,14 @@ export const handler = awslambda.streamifyResponse(
 
     const response = await nitroApp.fetch(request);
 
-    response.headers.set("transfer-encoding", "chunked");
-
     const httpResponseMetadata: Omit<StreamingResponse, "body"> = {
       statusCode: response.status,
       ...awsResponseHeaders(response),
     };
+
+    if (!httpResponseMetadata.headers!["transfer-encoding"]) {
+      httpResponseMetadata.headers!["transfer-encoding"] = "chunked";
+    }
 
     const body =
       response.body ??
@@ -30,7 +32,10 @@ export const handler = awslambda.streamifyResponse(
         },
       });
 
-    const writer = awslambda.HttpResponseStream.from(responseStream, httpResponseMetadata);
+    const writer = awslambda.HttpResponseStream.from(
+      responseStream,
+      httpResponseMetadata
+    );
 
     const reader = body.getReader();
     await streamToNodeStream(reader, responseStream);

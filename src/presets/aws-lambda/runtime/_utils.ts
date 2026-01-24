@@ -23,7 +23,9 @@ export function awsRequest(
   return new Request(url, { method, headers, body });
 }
 
-function awsEventMethod(event: APIGatewayProxyEvent | APIGatewayProxyEventV2): string {
+function awsEventMethod(
+  event: APIGatewayProxyEvent | APIGatewayProxyEventV2
+): string {
   return (
     (event as APIGatewayProxyEvent).httpMethod ||
     (event as APIGatewayProxyEventV2).requestContext?.http?.method ||
@@ -31,20 +33,31 @@ function awsEventMethod(event: APIGatewayProxyEvent | APIGatewayProxyEventV2): s
   );
 }
 
-function awsEventURL(event: APIGatewayProxyEvent | APIGatewayProxyEventV2): URL {
+function awsEventURL(
+  event: APIGatewayProxyEvent | APIGatewayProxyEventV2
+): URL {
   const hostname =
-    event.headers.host || event.headers.Host || event.requestContext?.domainName || ".";
+    event.headers.host ||
+    event.headers.Host ||
+    event.requestContext?.domainName ||
+    ".";
 
-  const path = (event as APIGatewayProxyEvent).path || (event as APIGatewayProxyEventV2).rawPath;
+  const path =
+    (event as APIGatewayProxyEvent).path ||
+    (event as APIGatewayProxyEventV2).rawPath;
 
   const query = awsEventQuery(event);
 
   const protocol =
-    (event.headers["X-Forwarded-Proto"] || event.headers["x-forwarded-proto"]) === "http"
+    (event.headers["X-Forwarded-Proto"] ||
+      event.headers["x-forwarded-proto"]) === "http"
       ? "http"
       : "https";
 
-  return new URL(`${path}${query ? `?${query}` : ""}`, `${protocol}://${hostname}`);
+  return new URL(
+    `${path}${query ? `?${query}` : ""}`,
+    `${protocol}://${hostname}`
+  );
 }
 
 function awsEventQuery(event: APIGatewayProxyEvent | APIGatewayProxyEventV2) {
@@ -58,7 +71,9 @@ function awsEventQuery(event: APIGatewayProxyEvent | APIGatewayProxyEventV2) {
   return stringifyQuery(queryObj);
 }
 
-function awsEventHeaders(event: APIGatewayProxyEvent | APIGatewayProxyEventV2): Headers {
+function awsEventHeaders(
+  event: APIGatewayProxyEvent | APIGatewayProxyEventV2
+): Headers {
   const headers = new Headers();
   for (const [key, value] of Object.entries(event.headers)) {
     if (value) {
@@ -73,7 +88,9 @@ function awsEventHeaders(event: APIGatewayProxyEvent | APIGatewayProxyEventV2): 
   return headers;
 }
 
-function awsEventBody(event: APIGatewayProxyEvent | APIGatewayProxyEventV2): BodyInit | undefined {
+function awsEventBody(
+  event: APIGatewayProxyEvent | APIGatewayProxyEventV2
+): BodyInit | undefined {
   if (!event.body) {
     return undefined;
   }
@@ -86,7 +103,7 @@ function awsEventBody(event: APIGatewayProxyEvent | APIGatewayProxyEventV2): Bod
 // Outgoing (Web => AWS)
 
 export function awsResponseHeaders(response: Response) {
-  const headers = Object.create(null);
+  const headers: Record<string, string> = Object.create(null);
   for (const [key, value] of response.headers) {
     if (value) {
       headers[key] = Array.isArray(value) ? value.join(",") : String(value);
