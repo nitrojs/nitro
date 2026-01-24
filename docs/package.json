@@ -5,6 +5,6 @@
     "build": "undocs build"
   },
   "devDependencies": {
-    "undocs": "^0.4.14"
+    "undocs": "^0.4.15"
   }
 }
