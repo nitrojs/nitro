@@ -313,16 +313,16 @@ id = "xxx"
 
 If you have multiple Wrangler environments, you can specify which Wrangler environment to use during Cloudflare dev emulation:
 
-```ts [nuxt.config.ts]
-export default defineNuxtConfig({
-  nitro: {
-    preset: 'cloudflare-module',
-    cloudflare: {
-      dev: {
-        environment: 'preview'
-      }
+```ts [nitro.config.ts]
+import { defineNitroConfig } from "nitro/config";
+
+export default defineNitroConfig({
+  preset: 'cloudflare-module',
+  cloudflare: {
+    dev: {
+      environment: 'preview'
     }
-  },
+  }
 })
 ```
 
