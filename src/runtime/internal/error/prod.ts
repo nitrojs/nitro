@@ -62,7 +62,7 @@ export function defaultHandler(
     statusText: error.statusText,
     message: isSensitive ? "Server Error" : error.message,
     data: isSensitive ? undefined : error.data,
-    ...(isSensitive ? {} : error.body),
+    ...(isSensitive ? {} : error.body || {}),
   };
 
   return {
