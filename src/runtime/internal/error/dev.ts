@@ -86,6 +86,7 @@ export async function defaultHandler(
         statusText: error.statusText,
         message: error.message,
         data: error.data,
+        ...error.body,
         stack: error.stack?.split("\n").map((line) => line.trim()),
       }
     : await youch.toHTML(error, {
