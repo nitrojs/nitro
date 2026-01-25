@@ -311,31 +311,20 @@ id = "xxx"
 
 ::
 
-Or in your Nitro config:
+If you have multiple Wrangler environments, you can specify which Wrangler environment to use during Cloudflare dev emulation:
 
-
-```js [nitro.config.js]
-import { defineNitroConfig } from "nitro/config";
-
-export default defineNitroConfig({
+```ts [nuxt.config.ts]
+export default defineNuxtConfig({
+  nitro: {
+    preset: 'cloudflare-module',
     cloudflare: {
-      wrangler: {
-        vars: {
-          MY_VARIABLE: "my-value"
-        },
-        kv_namespaces: [
-          {
-            binding: "MY_KV",
-            id: "xxx"
-          }
-        ]
+      dev: {
+        environment: 'preview'
       }
     }
-});
+  },
+})
 ```
-
-> [!NOTE]
-> Only bindings in the default environment are recognized.
 
 Next we install the required `wrangler` package (if not already installed):
 
