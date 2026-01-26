@@ -1,5 +1,5 @@
 import { existsSync, promises as fsp } from "node:fs";
-import { globby } from "globby";
+import { glob } from "tinyglobby";
 import { isDirectory, prettyPath } from "nitropack/kit";
 import type { Nitro } from "nitropack/types";
 import { join, relative, resolve } from "pathe";
@@ -19,7 +19,7 @@ export async function scanUnprefixedPublicAssets(nitro: Nitro) {
       continue;
     }
     const includePatterns = getIncludePatterns(nitro, asset.dir);
-    const publicAssets = await globby(includePatterns, {
+    const publicAssets = await glob(includePatterns, {
       cwd: asset.dir,
       absolute: false,
       dot: true,
@@ -40,7 +40,7 @@ export async function copyPublicAssets(nitro: Nitro) {
     const dstDir = join(nitro.options.output.publicDir, asset.baseURL!);
     if (await isDirectory(srcDir)) {
       const includePatterns = getIncludePatterns(nitro, srcDir);
-      const publicAssets = await globby(includePatterns, {
+      const publicAssets = await glob(includePatterns, {
         cwd: srcDir,
         absolute: false,
         dot: true,

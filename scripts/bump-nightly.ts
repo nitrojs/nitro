@@ -1,6 +1,6 @@
 import { promises as fsp } from "node:fs";
 import { execaCommand } from "execa";
-import { globby } from "globby";
+import { glob } from "tinyglobby";
 import { resolve } from "pathe";
 
 // const nightlyPackages = {
@@ -48,7 +48,7 @@ type Package = ThenArg<ReturnType<typeof loadPackage>>;
 
 async function loadWorkspace(dir: string) {
   const workspacePkg = await loadPackage(dir);
-  const pkgDirs = await globby(workspacePkg.data.workspaces || [], {
+  const pkgDirs = await glob(workspacePkg.data.workspaces || [], {
     onlyDirectories: true,
   });
 

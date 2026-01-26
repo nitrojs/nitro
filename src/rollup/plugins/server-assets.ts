@@ -1,6 +1,6 @@
 import { promises as fsp } from "node:fs";
 import createEtag from "etag";
-import { globby } from "globby";
+import { glob } from "tinyglobby";
 import mime from "mime";
 import type { Nitro } from "nitropack/types";
 import { resolve } from "pathe";
@@ -33,7 +33,7 @@ export function serverAssets(nitro: Nitro): Plugin {
         // Scan all assets
         const assets: Record<string, ResolvedAsset> = {};
         for (const asset of nitro.options.serverAssets) {
-          const files = await globby(asset.pattern || "**/*", {
+          const files = await glob(asset.pattern || "**/*", {
             cwd: asset.dir,
             absolute: false,
             ignore: asset.ignore,
