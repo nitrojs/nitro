@@ -54,13 +54,11 @@ export default cloudflareDevPlugin;
 
 async function _getPlatformProxy() {
   const pkg = "wrangler"; // bypass bundler
-  const { getPlatformProxy } = (await import(/* @vite-ignore */ pkg).catch(
-    () => {
-      throw new Error(
-        "Package `wrangler` not found, please install it with: `npx nypm@latest add -D wrangler`"
-      );
-    }
-  )) as typeof import("wrangler");
+  const { getPlatformProxy } = (await import(/* @vite-ignore */ pkg).catch(() => {
+    throw new Error(
+      "Package `wrangler` not found, please install it with: `npx nypm@latest add -D wrangler`"
+    );
+  })) as typeof import("wrangler");
 
   const runtimeConfig: {
     wrangler: {

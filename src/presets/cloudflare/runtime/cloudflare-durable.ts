@@ -2,12 +2,11 @@ import "#nitro/virtual/polyfills";
 import type * as CF from "@cloudflare/workers-types";
 import { DurableObject } from "cloudflare:workers";
 import wsAdapter from "crossws/adapters/cloudflare";
-import { createHandler, fetchHandler } from "./_module-handler.ts";
+import { createHandler, augmentReq } from "./_module-handler.ts";
 
 import { useNitroApp, useNitroHooks } from "nitro/app";
 import { isPublicAssetURL } from "#nitro/virtual/public-assets";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
-import { hasWebSocket } from "#nitro/virtual/feature-flags";
 
 const DURABLE_BINDING = "$DurableObject";
 const DURABLE_INSTANCE = "server";
@@ -23,15 +22,13 @@ const nitroHooks = useNitroHooks();
 const getDurableStub = (env: Env) => {
   const binding = env[DURABLE_BINDING];
   if (!binding) {
-    throw new Error(
-      `Durable Object binding "${DURABLE_BINDING}" not available.`
-    );
+    throw new Error(`Durable Object binding "${DURABLE_BINDING}" not available.`);
   }
   const id = binding.idFromName(DURABLE_INSTANCE);
   return binding.get(id);
 };
 
-const ws = hasWebSocket
+const ws = import.meta._websocket
   ? wsAdapter({
       resolve: resolveWebsocketHooks,
       instanceName: DURABLE_INSTANCE,
@@ -43,15 +40,15 @@ export default createHandler<Env>({
   fetch(request, env, context, url, ctxExt) {
     // Static assets fallback (optional binding)
     if (env.ASSETS && isPublicAssetURL(url.pathname)) {
-      return env.ASSETS.fetch(request);
+      return env.ASSETS.fetch(request as any);
     }
 
     // Expose stub fetch to the context
-    ctxExt.durableFetch = (req = request) => getDurableStub(env).fetch(req);
+    ctxExt.durableFetch = (req = request) => getDurableStub(env).fetch(req as any);
 
     // Websocket upgrade
     // https://crossws.unjs.io/adapters/cloudflare#durable-objects
-    if (hasWebSocket && request.headers.get("upgrade") === "websocket") {
+    if (import.meta._websocket && request.headers.get("upgrade") === "websocket") {
       return ws!.handleUpgrade(request, env, context);
     }
   },
@@ -66,33 +63,30 @@ export class $DurableObject extends DurableObject {
         env,
       }) || Promise.resolve()
     );
-    if (hasWebSocket) {
+    if (import.meta._websocket) {
       ws!.handleDurableInit(this, state, env);
     }
   }
 
   override fetch(request: Request) {
-    if (hasWebSocket && request.headers.get("upgrade") === "websocket") {
+    augmentReq(request, {
+      env: this.env,
+      context: this.ctx as any,
+    });
+
+    if (import.meta._websocket && request.headers.get("upgrade") === "websocket") {
       return ws!.handleDurableUpgrade(this, request);
     }
-    // Main handler
-    const url = new URL(request.url);
-    return fetchHandler(request, this.env, this.ctx, url, nitroApp, {
-      durable: this,
-    });
+
+    return nitroApp.fetch(request);
   }
 
   override alarm(): void | Promise<void> {
-    this.ctx.waitUntil(
-      nitroHooks.callHook("cloudflare:durable:alarm", this) || Promise.resolve()
-    );
+    this.ctx.waitUntil(nitroHooks.callHook("cloudflare:durable:alarm", this) || Promise.resolve());
   }
 
-  override async webSocketMessage(
-    client: WebSocket,
-    message: ArrayBuffer | string
-  ) {
-    if (hasWebSocket) {
+  override async webSocketMessage(client: WebSocket, message: ArrayBuffer | string) {
+    if (import.meta._websocket) {
       return ws!.handleDurableMessage(this, client, message);
     }
   }
@@ -103,7 +97,7 @@ export class $DurableObject extends DurableObject {
     reason: string,
     wasClean: boolean
   ) {
-    if (hasWebSocket) {
+    if (import.meta._websocket) {
       return ws!.handleDurableClose(this, client, code, reason, wasClean);
     }
   }

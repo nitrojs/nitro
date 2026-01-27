@@ -280,7 +280,7 @@ defineHandler(async (event) => {
 
 ### Access to the bindings in local dev
 
-To access bindings in dev mode, we first define them. You can do this in a `wrangler.toml`/`wrangler.json` file, or directly in your Nitro config under `cloudflare.wrangler` (accepts the same type as `wrangler.json`).
+To access bindings in dev mode, we first define them. You can do this in a `wrangler.jsonc`/`wrangler.json`/`wrangler.toml` file
 
 For example, to define a variable and a KV namespace in `wrangler.toml`:
 
@@ -311,32 +311,6 @@ id = "xxx"
 
 ::
 
-Or in your Nitro config:
-
-
-```js [nitro.config.js]
-import { defineNitroConfig } from "nitro/config";
-
-export default defineNitroConfig({
-    cloudflare: {
-      wrangler: {
-        vars: {
-          MY_VARIABLE: "my-value"
-        },
-        kv_namespaces: [
-          {
-            binding: "MY_KV",
-            id: "xxx"
-          }
-        ]
-      }
-    }
-});
-```
-
-> [!NOTE]
-> Only bindings in the default environment are recognized.
-
 Next we install the required `wrangler` package (if not already installed):
 
 :pm-install{name="wrangler -D"}
@@ -346,3 +320,20 @@ From this moment, when running
 :pm-run{script="dev"}
 
 you will be able to access the `MY_VARIABLE` and `MY_KV` from the request event just as illustrated above.
+
+#### Wrangler environments 
+
+If you have multiple Wrangler environments, you can specify which Wrangler environment to use during Cloudflare dev emulation:
+
+```ts [nitro.config.ts]
+import { defineNitroConfig } from "nitro/config";
+
+export default defineNitroConfig({
+  preset: 'cloudflare-module',
+  cloudflare: {
+    dev: {
+      environment: 'preview'
+    }
+  }
+})
+```

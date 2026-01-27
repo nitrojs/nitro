@@ -26,8 +26,7 @@ const vercel = defineNitroPreset(
       publicDir: "{{ output.dir }}/static/{{ baseURL }}",
     },
     commands: {
-      preview:
-        "npx srvx --static ../../static ./functions/__server.func/index.mjs",
+      preview: "npx srvx --static ../../static ./functions/__server.func/index.mjs",
       deploy: "npx vercel deploy --prebuilt",
     },
     hooks: {
@@ -36,10 +35,7 @@ const vercel = defineNitroPreset(
 
         // Runtime
         const runtime = await resolveVercelRuntime(nitro);
-        if (
-          runtime.startsWith("bun") &&
-          !nitro.options.exportConditions!.includes("bun")
-        ) {
+        if (runtime.startsWith("bun") && !nitro.options.exportConditions!.includes("bun")) {
           nitro.options.exportConditions!.push("bun");
         }
         logger.info(`Using \`${runtime}\` runtime.`);
@@ -53,10 +49,7 @@ const vercel = defineNitroPreset(
           serverFormat = hasNodeHandler ? "node" : "web";
         }
         logger.info(`Using \`${serverFormat}\` entry format.`);
-        nitro.options.entry = nitro.options.entry.replace(
-          "{format}",
-          serverFormat
-        );
+        nitro.options.entry = nitro.options.entry.replace("{format}", serverFormat);
       },
       "rollup:before": (nitro: Nitro) => {
         deprecateSWR(nitro);

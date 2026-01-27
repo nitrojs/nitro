@@ -39,11 +39,7 @@ export interface Context {
 }
 
 // https://github.com/nitrojs/nitro/pull/1240
-export const describeIf = (
-  condition: boolean,
-  title: string,
-  factory: () => any
-) =>
+export const describeIf = (condition: boolean, title: string, factory: () => any) =>
   condition
     ? describe(title, factory)
     : describe(title, () => {
@@ -52,21 +48,14 @@ export const describeIf = (
         });
       });
 
-export const fixtureDir = fileURLToPath(
-  new URL("fixture", import.meta.url).href
-);
+export const fixtureDir = fileURLToPath(new URL("fixture", import.meta.url).href);
 
 export const getPresetTmpDir = (preset: string) => {
   if (preset.startsWith("cloudflare")) {
-    return fileURLToPath(
-      new URL(`.tmp/${preset}`, import.meta.url) as any /* remove me */
-    );
+    return fileURLToPath(new URL(`.tmp/${preset}`, import.meta.url) as any /* remove me */);
   }
 
-  return resolve(
-    process.env.NITRO_TEST_TMP_DIR || join(tmpdir(), "nitro-tests"),
-    preset
-  );
+  return resolve(process.env.NITRO_TEST_TMP_DIR || join(tmpdir(), "nitro-tests"), preset);
 };
 
 export async function setupTest(
@@ -329,12 +318,7 @@ export function testNitro(
     const { data } = await callHandler({ url: "/icon.png" }, { binary: true });
     // Check if buffer is a png
     function isBufferPng(buffer: Buffer) {
-      return (
-        buffer[0] === 0x89 &&
-        buffer[1] === 0x50 &&
-        buffer[2] === 0x4e &&
-        buffer[3] === 0x47
-      );
+      return buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47;
     }
     expect(isBufferPng(data)).toBe(true);
   });
@@ -352,42 +336,39 @@ export function testNitro(
     expect(data).toMatchObject({ window: false });
   });
 
-  it.runIf(ctx.nitro?.options.serveStatic)(
-    "handles custom Vary header",
-    async () => {
-      let headers = (
-        await callHandler({
-          url: "/foo.css",
-          headers: { "Accept-Encoding": "gzip" },
-        })
-      ).headers;
-      if (headers["vary"]) {
-        expect(headers["vary"].includes("Origin")).toBeTruthy();
-        expect(headers["vary"].includes("Accept-Encoding")).toBeTruthy();
-      }
-
-      headers = (
-        await callHandler({
-          url: "/foo.css",
-          headers: { "Accept-Encoding": "" },
-        })
-      ).headers;
-      if (headers["vary"]) {
-        expect(headers["vary"]).toBe("Origin");
-      }
-
-      headers = (
-        await callHandler({
-          url: "/foo.js",
-          headers: { "Accept-Encoding": "gzip" },
-        })
-      ).headers;
-      if (headers["vary"]) {
-        expect(headers["vary"].includes("Origin")).toBeTruthy();
-        expect(headers["vary"].includes("Accept-Encoding")).toBeTruthy();
-      }
+  it.runIf(ctx.nitro?.options.serveStatic)("handles custom Vary header", async () => {
+    let headers = (
+      await callHandler({
+        url: "/foo.css",
+        headers: { "Accept-Encoding": "gzip" },
+      })
+    ).headers;
+    if (headers["vary"]) {
+      expect(headers["vary"].includes("Origin")).toBeTruthy();
+      expect(headers["vary"].includes("Accept-Encoding")).toBeTruthy();
     }
-  );
+
+    headers = (
+      await callHandler({
+        url: "/foo.css",
+        headers: { "Accept-Encoding": "" },
+      })
+    ).headers;
+    if (headers["vary"]) {
+      expect(headers["vary"]).toBe("Origin");
+    }
+
+    headers = (
+      await callHandler({
+        url: "/foo.js",
+        headers: { "Accept-Encoding": "gzip" },
+      })
+    ).headers;
+    if (headers["vary"]) {
+      expect(headers["vary"].includes("Origin")).toBeTruthy();
+      expect(headers["vary"].includes("Accept-Encoding")).toBeTruthy();
+    }
+  });
 
   it("handles route rules - headers", async () => {
     const { headers } = await callHandler({ url: "/rules/headers" });
@@ -443,9 +424,7 @@ export function testNitro(
 
   it.skipIf(
     // TODO!
-    ctx.preset === "vercel" &&
-      ctx.nitro?.options.vercel?.entryFormat === "node" &&
-      isWindows
+    ctx.preset === "vercel" && ctx.nitro?.options.vercel?.entryFormat === "node" && isWindows
   )("handles custom server assets", async () => {
     const { data: html, status: htmlStatus } = await callHandler({
       url: "/file?filename=index.html",
@@ -503,56 +482,49 @@ export function testNitro(
     });
   });
 
-  it.skipIf(ctx.preset === "deno-server")(
-    "resolve module version conflicts",
-    async () => {
-      const { data } = await callHandler({ url: "/modules" });
-      expect(data).toMatchObject({
-        depA: "@fixture/nitro-lib@1.0.0+@fixture/nested-lib@1.0.0",
-        depB: "@fixture/nitro-lib@2.0.1+@fixture/nested-lib@2.0.1",
-        depLib: "@fixture/nitro-lib@2.0.0+@fixture/nested-lib@2.0.0",
-        subpathLib: "@fixture/nitro-lib@2.0.0",
-        extraUtils: "@fixture/nitro-utils/extra",
-      });
-    }
-  );
+  it.skipIf(ctx.preset === "deno-server")("resolve module version conflicts", async () => {
+    const { data } = await callHandler({ url: "/modules" });
+    expect(data).toMatchObject({
+      depA: "@fixture/nitro-lib@1.0.0+@fixture/nested-lib@1.0.0",
+      depB: "@fixture/nitro-lib@2.0.1+@fixture/nested-lib@2.0.1",
+      depLib: "@fixture/nitro-lib@2.0.0+@fixture/nested-lib@2.0.0",
+      subpathLib: "@fixture/nitro-lib@2.0.0",
+      extraUtils: "@fixture/nitro-utils/extra",
+    });
+  });
 
-  it.skipIf(ctx.isIsolated)(
-    "useStorage (with base)",
-    { retry: 5 },
-    async () => {
-      const putRes = await callHandler({
-        url: "/api/storage/item?key=test:hello",
-        method: "PUT",
-        body: `"world"`,
-      });
-      expect(putRes.data).toBe("world");
+  it.skipIf(ctx.isIsolated)("useStorage (with base)", { retry: 5 }, async () => {
+    const putRes = await callHandler({
+      url: "/api/storage/item?key=test:hello",
+      method: "PUT",
+      body: `"world"`,
+    });
+    expect(putRes.data).toBe("world");
 
-      expect(
-        (
-          await callHandler({
-            url: "/api/storage/item?key=:",
-          })
-        ).data
-      ).toMatchObject(["test:hello"]);
+    expect(
+      (
+        await callHandler({
+          url: "/api/storage/item?key=:",
+        })
+      ).data
+    ).toMatchObject(["test:hello"]);
 
-      expect(
-        (
-          await callHandler({
-            url: "/api/storage/item?base=test&key=:",
-          })
-        ).data
-      ).toMatchObject(["hello"]);
+    expect(
+      (
+        await callHandler({
+          url: "/api/storage/item?base=test&key=:",
+        })
+      ).data
+    ).toMatchObject(["hello"]);
 
-      expect(
-        (
-          await callHandler({
-            url: "/api/storage/item?base=test&key=hello",
-          })
-        ).data
-      ).toBe("world");
-    }
-  );
+    expect(
+      (
+        await callHandler({
+          url: "/api/storage/item?base=test&key=hello",
+        })
+      ).data
+    ).toBe("world");
+  });
 
   if (additionalTests) {
     additionalTests(ctx, callHandler);
@@ -566,12 +538,7 @@ export function testNitro(
       },
     });
     expect(data.url).toBe("/api/echo?foo=bar");
-    if (
-      !(
-        ctx.preset === "vercel" &&
-        ctx.nitro?.options.vercel?.entryFormat === "node"
-      )
-    ) {
+    if (!(ctx.preset === "vercel" && ctx.nitro?.options.vercel?.entryFormat === "node")) {
       // TODO: Investigate why headers are missing in this case
       expect(data.headers["x-test"]).toBe("foobar");
     }
@@ -597,8 +564,7 @@ export function testNitro(
         },
       },
       sharedRuntimeConfig: {
-        dynamic:
-          ctx.preset === "cloudflare-module-legacy" ? "initial" : "from-env",
+        dynamic: ctx.preset === "cloudflare-module-legacy" ? "initial" : "from-env",
         // url: "https://test.com",
         app: {
           baseURL: "/",
@@ -633,13 +599,10 @@ export function testNitro(
       expect((await callHandler({ url: "/_ignored" })).status).toBe(404);
     });
 
-    it.skipIf(ctx.isWorker || ctx.isDev)(
-      "public files should be ignored",
-      async () => {
-        expect((await callHandler({ url: "/_ignored.txt" })).status).toBe(404);
-        expect((await callHandler({ url: "/favicon.ico" })).status).toBe(200);
-      }
-    );
+    it.skipIf(ctx.isWorker || ctx.isDev)("public files should be ignored", async () => {
+      expect((await callHandler({ url: "/_ignored.txt" })).status).toBe(404);
+      expect((await callHandler({ url: "/favicon.ico" })).status).toBe(200);
+    });
   });
 
   describe("headers", () => {
@@ -660,9 +623,7 @@ export function testNitro(
   describe("errors", () => {
     it.skipIf(ctx.isIsolated)("captures errors", async () => {
       const { data } = await callHandler({ url: "/api/errors" });
-      const allErrorMessages = (data.allErrors || []).map(
-        (entry: any) => entry.message
-      );
+      const allErrorMessages = (data.allErrors || []).map((entry: any) => entry.message);
       expect(allErrorMessages).to.includes("Service Unavailable");
     });
 
@@ -727,23 +688,17 @@ export function testNitro(
   describe("scanned files", () => {
     it("Allow having extra method in file name", async () => {
       expect((await callHandler({ url: "/api/methods/get" })).data).toBe("get");
-      expect((await callHandler({ url: "/api/methods/foo.get" })).data).toBe(
-        "foo.get"
-      );
+      expect((await callHandler({ url: "/api/methods/foo.get" })).data).toBe("foo.get");
     });
   });
 
   describe.skipIf(ctx.preset === "cloudflare-worker")("wasm", () => {
     it("dynamic import wasm", async () => {
-      expect((await callHandler({ url: "/wasm/dynamic-import" })).data).toBe(
-        "2+3=5"
-      );
+      expect((await callHandler({ url: "/wasm/dynamic-import" })).data).toBe("2+3=5");
     });
 
     it("static import wasm", async () => {
-      expect((await callHandler({ url: "/wasm/static-import" })).data).toBe(
-        "2+3=5"
-      );
+      expect((await callHandler({ url: "/wasm/static-import" })).data).toBe("2+3=5");
     });
   });
 
@@ -752,13 +707,7 @@ export function testNitro(
       !ctx.nitro!.options.node ||
       ctx.isLambda ||
       ctx.isWorker ||
-      [
-        "bun",
-        "deno-server",
-        "deno-deploy",
-        "netlify",
-        "netlify-legacy",
-      ].includes(ctx.preset)
+      ["bun", "deno-server", "deno-deploy", "netlify", "netlify-legacy"].includes(ctx.preset)
   )("Database", () => {
     it("works", async () => {
       const { data } = await callHandler({ url: "/api/db" });

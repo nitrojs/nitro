@@ -1,7 +1,6 @@
 import "#nitro/virtual/polyfills";
 import type * as CF from "@cloudflare/workers-types";
-import type { ExportedHandler } from "@cloudflare/workers-types";
-import type { ServerRequest } from "srvx";
+import type { ServerRequest, ServerRuntimeContext } from "srvx";
 
 import { runCronTasks } from "#nitro/runtime/task";
 import { useNitroApp, useNitroHooks } from "nitro/app";
@@ -22,6 +21,9 @@ export function createHandler<Env>(hooks: {
 
   return {
     async fetch(request, env, context) {
+      (globalThis as any).__env__ = env;
+      augmentReq(request as any, { env: env as any, context });
+
       const ctxExt = {};
       const url = new URL(request.url);
 
@@ -33,14 +35,7 @@ export function createHandler<Env>(hooks: {
         }
       }
 
-      return fetchHandler(
-        request,
-        env,
-        context,
-        url,
-        nitroApp,
-        ctxExt
-      ) as Promise<any /* CF response! */>;
+      return (await nitroApp.fetch(request)) as any;
     },
 
     scheduled(controller, env, context) {
@@ -71,8 +66,8 @@ export function createHandler<Env>(hooks: {
       (globalThis as any).__env__ = env;
       context.waitUntil(
         nitroHooks.callHook("cloudflare:email", {
-          message,
-          event: message, // backward compat
+          message: message as any,
+          event: message as any, // backward compat
           env,
           context,
         }) || Promise.resolve()
@@ -115,22 +110,15 @@ export function createHandler<Env>(hooks: {
   } satisfies ExportedHandler<Env>;
 }
 
-export async function fetchHandler(
+export function augmentReq(
   cfReq: Request | CF.Request,
-  env: unknown,
-  context: CF.ExecutionContext | DurableObjectState,
-  url: URL = new URL(cfReq.url),
-  nitroApp = useNitroApp(),
-  ctxExt: any
+  ctx: NonNullable<ServerRuntimeContext["cloudflare"]>
 ) {
-  // Expose latest env to the global context
-  (globalThis as any).__env__ = env;
-
-  // srvx compatibility
   const req = cfReq as ServerRequest;
-  req.runtime ??= { name: "cloudflare" };
-  req.runtime.cloudflare ??= { context, env } as any;
-  req.waitUntil = context.waitUntil.bind(context);
 
-  return nitroApp.fetch(req) as unknown as Promise<Response>;
+  req.ip = cfReq.headers.get("cf-connecting-ip") || undefined;
+
+  req.runtime ??= { name: "cloudflare" };
+  req.runtime.cloudflare = { ...req.runtime.cloudflare, ...ctx };
+  req.waitUntil = ctx.context?.waitUntil.bind(ctx.context);
 }

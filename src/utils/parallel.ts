@@ -21,6 +21,7 @@ export async function runParallel<T>(
       .then(() => cb(route))
       .catch((error) => {
         console.error(error);
+        errors.push(error);
       });
 
     tasks.add(task);

@@ -70,10 +70,7 @@ class EnvRunner {
     try {
       const entryFetch = this.entry.fetch || this.entry.default?.fetch;
       if (!entryFetch) {
-        throw httpError(
-          500,
-          `No fetch handler exported from ${this.entryPath}`
-        );
+        throw httpError(500, `No fetch handler exported from ${this.entryPath}`);
       }
       return await entryFetch(req, init);
     } catch (error) {
@@ -160,10 +157,7 @@ process.on("uncaughtException", (error) => console.error(error));
 // define __VITE_ENVIRONMENT_RUNNER_IMPORT__ for RSC support
 // https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-rsc/README.md#__vite_environment_runner_import__
 
-globalThis.__VITE_ENVIRONMENT_RUNNER_IMPORT__ = async function (
-  environmentName,
-  id
-) {
+globalThis.__VITE_ENVIRONMENT_RUNNER_IMPORT__ = async function (environmentName, id) {
   const env = envs[environmentName];
   if (!env) {
     throw new Error(`Vite environment "${environmentName}" is not registered`);
@@ -189,14 +183,10 @@ if (workerData.server) {
   const { toNodeHandler } = await import("srvx/node");
   const server = createServer(
     toNodeHandler(async (req, init) => {
-      const viteEnv =
-        init?.viteEnv || req?.headers.get("x-vite-env") || "nitro"; // TODO
+      const viteEnv = init?.viteEnv || req?.headers.get("x-vite-env") || "nitro"; // TODO
       const env = envs[viteEnv];
       if (!env) {
-        return renderError(
-          req,
-          httpError(500, `Unknown vite environment "${viteEnv}"`)
-        );
+        return renderError(req, httpError(500, `Unknown vite environment "${viteEnv}"`));
       }
       return env.fetch(req, init);
     })

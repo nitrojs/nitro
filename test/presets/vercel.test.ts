@@ -361,10 +361,7 @@ describe("nitro:preset:vercel:web", async () => {
 
       it("should generate prerender config", async () => {
         const isrRouteConfig = await fsp.readFile(
-          resolve(
-            ctx.outDir,
-            "functions/rules/isr/[...]-isr.prerender-config.json"
-          ),
+          resolve(ctx.outDir, "functions/rules/isr/[...]-isr.prerender-config.json"),
           "utf8"
         );
         expect(JSON.parse(isrRouteConfig)).toMatchObject({
@@ -385,11 +382,7 @@ describe("nitro:preset:vercel:web", async () => {
           } else if (/_\/|_.+|node_modules/.test(entry.name)) {
             items.push(`${dirname}/${entry.name}`);
           } else if (entry.isDirectory()) {
-            items.push(
-              ...(await walkDir(join(path, entry.name))).map(
-                (i) => `${dirname}/${i}`
-              )
-            );
+            items.push(...(await walkDir(join(path, entry.name))).map((i) => `${dirname}/${i}`));
           }
         }
         items.sort();
@@ -478,9 +471,9 @@ describe("nitro:preset:vercel:node", async () => {
     },
   });
   testNitro(ctx, async () => {
-    const nodeHandler = await import(
-      resolve(ctx.outDir, "functions/__server.func/index.mjs")
-    ).then((r) => r.default || r);
+    const nodeHandler = await import(resolve(ctx.outDir, "functions/__server.func/index.mjs")).then(
+      (r) => r.default || r
+    );
     const fetchHandler = toFetchHandler(nodeHandler);
     return async ({ url, ...options }) => {
       const req = new Request(new URL(url, "https://example.com"), options);
@@ -505,10 +498,7 @@ describe("nitro:preset:vercel:bun", async () => {
 
   it("should generate function config with bun runtime", async () => {
     const config = await fsp
-      .readFile(
-        resolve(ctx.outDir, "functions/__server.func/.vc-config.json"),
-        "utf8"
-      )
+      .readFile(resolve(ctx.outDir, "functions/__server.func/.vc-config.json"), "utf8")
       .then((r) => JSON.parse(r));
     expect(config).toMatchInlineSnapshot(`
       {
@@ -543,10 +533,7 @@ describe.skip("nitro:preset:vercel:bun-verceljson", async () => {
 
   it("should detect bun runtime from vercel.json", async () => {
     const config = await fsp
-      .readFile(
-        resolve(ctx.outDir, "functions/__server.func/.vc-config.json"),
-        "utf8"
-      )
+      .readFile(resolve(ctx.outDir, "functions/__server.func/.vc-config.json"), "utf8")
       .then((r) => JSON.parse(r));
     expect(config).toMatchInlineSnapshot(`
       {

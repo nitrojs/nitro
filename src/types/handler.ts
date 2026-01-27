@@ -1,10 +1,6 @@
 import type { HTTPError, HTTPMethod, HTTPEvent, HTTPHandler } from "h3";
 import type { PresetName } from "../presets/index.ts";
-import type {
-  OperationObject,
-  OpenAPI3,
-  Extensable,
-} from "../types/openapi-ts.ts";
+import type { OperationObject, OpenAPI3, Extensable } from "../types/openapi-ts.ts";
 
 type MaybeArray<T> = T | T[];
 

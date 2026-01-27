@@ -177,9 +177,7 @@ export async function writeTypes(nitro: Nitro) {
 
   buildFiles.push({
     path: join(generatedTypesDir, "nitro-imports.d.ts"),
-    contents: [...autoImportedTypes, autoImportExports || "export {}"].join(
-      "\n"
-    ),
+    contents: [...autoImportedTypes, autoImportExports || "export {}"].join("\n"),
   });
 
   buildFiles.push({
@@ -217,29 +215,18 @@ export async function writeTypes(nitro: Nitro) {
         jsxFactory: "h",
         jsxFragmentFactory: "Fragment",
         paths: {
-          "#imports": [
-            relativeWithDot(
-              tsconfigDir,
-              join(generatedTypesDir, "nitro-imports")
-            ),
-          ],
+          "#imports": [relativeWithDot(tsconfigDir, join(generatedTypesDir, "nitro-imports"))],
         },
       },
       include: [
-        relativeWithDot(
-          tsconfigDir,
-          join(generatedTypesDir, "nitro.d.ts")
-        ).replace(/^(?=[^.])/, "./"),
+        relativeWithDot(tsconfigDir, join(generatedTypesDir, "nitro.d.ts")).replace(
+          /^(?=[^.])/,
+          "./"
+        ),
         join(relativeWithDot(tsconfigDir, nitro.options.rootDir), "**/*"),
-        ...(!nitro.options.serverDir ||
-        nitro.options.serverDir === nitro.options.rootDir
+        ...(!nitro.options.serverDir || nitro.options.serverDir === nitro.options.rootDir
           ? []
-          : [
-              join(
-                relativeWithDot(tsconfigDir, nitro.options.serverDir),
-                "**/*"
-              ),
-            ]),
+          : [join(relativeWithDot(tsconfigDir, nitro.options.serverDir), "**/*")]),
       ],
     });
 
@@ -249,14 +236,10 @@ export async function writeTypes(nitro: Nitro) {
           if (!isAbsolute(path)) {
             return path;
           }
-          const stats = await fsp
-            .stat(path)
-            .catch(() => null /* file does not exist */);
+          const stats = await fsp.stat(path).catch(() => null /* file does not exist */);
           return relativeWithDot(
             tsconfigDir,
-            stats?.isFile()
-              ? path.replace(/(?<=\w)\.\w+$/g, "") /* remove extension */
-              : path
+            stats?.isFile() ? path.replace(/(?<=\w)\.\w+$/g, "") /* remove extension */ : path
           );
         })
       );
@@ -265,17 +248,13 @@ export async function writeTypes(nitro: Nitro) {
 
     tsConfig.include = [
       ...new Set(
-        tsConfig.include!.map((p) =>
-          isAbsolute(p) ? relativeWithDot(tsconfigDir, p) : p
-        )
+        tsConfig.include!.map((p) => (isAbsolute(p) ? relativeWithDot(tsconfigDir, p) : p))
       ),
     ];
     if (tsConfig.exclude) {
       tsConfig.exclude = [
         ...new Set(
-          tsConfig.exclude!.map((p) =>
-            isAbsolute(p) ? relativeWithDot(tsconfigDir, p) : p
-          )
+          tsConfig.exclude!.map((p) => (isAbsolute(p) ? relativeWithDot(tsconfigDir, p) : p))
         ),
       ];
     }

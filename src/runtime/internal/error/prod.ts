@@ -39,10 +39,7 @@ export function defaultHandler(
   if (isSensitive && !opts?.silent) {
     // prettier-ignore
     const tags = [error.unhandled && "[unhandled]"].filter(Boolean).join(" ")
-    console.error(
-      `[request error] ${tags} [${event.req.method}] ${url}\n`,
-      error
-    );
+    console.error(`[request error] ${tags} [${event.req.method}] ${url}\n`, error);
   }
 
   // Send response

@@ -1,7 +1,1 @@
-export {
-  useNitroApp,
-  useNitroHooks,
-  serverFetch,
-  getRouteRules,
-  fetch,
-} from "./internal/app.ts";
+export { useNitroApp, useNitroHooks, serverFetch, getRouteRules, fetch } from "./internal/app.ts";

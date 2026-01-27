@@ -31,9 +31,7 @@ import {
 
 declare global {
   var __nitro__:
-    | Partial<
-        Record<"default" | "prerender" | (string & {}), NitroApp | undefined>
-      >
+    | Partial<Record<"default" | "prerender" | (string & {}), NitroApp | undefined>>
     | undefined;
 }
 
@@ -77,12 +75,9 @@ export function serverFetch(
   }
 }
 
-export async function resolveWebsocketHooks(
-  req: ServerRequest
-): Promise<Partial<WebSocketHooks>> {
+export async function resolveWebsocketHooks(req: ServerRequest): Promise<Partial<WebSocketHooks>> {
   // https://github.com/h3js/h3/blob/c11ca743d476e583b3b47de1717e6aae92114357/src/utils/ws.ts#L37
-  const hooks = ((await serverFetch(req)) as any)
-    .crossws as Partial<WebSocketHooks>;
+  const hooks = ((await serverFetch(req)) as any).crossws as Partial<WebSocketHooks>;
   return hooks || {};
 }
 
@@ -112,11 +107,7 @@ function createNitroApp(): NitroApp {
       if (errors) {
         errors.push({ error, context: errorCtx });
       }
-      if (
-        hasHooks &&
-        promise &&
-        typeof errorCtx.event.req.waitUntil === "function"
-      ) {
+      if (hasHooks && promise && typeof errorCtx.event.req.waitUntil === "function") {
         errorCtx.event.req.waitUntil(promise);
       }
     }
@@ -184,9 +175,7 @@ function createH3App(config: H3Config) {
   const h3App = new H3Core(config);
 
   // Compiled route matching
-  hasRoutes &&
-    (h3App["~findRoute"] = (event) =>
-      findRoute(event.req.method, event.url.pathname));
+  hasRoutes && (h3App["~findRoute"] = (event) => findRoute(event.req.method, event.url.pathname));
 
   hasGlobalMiddleware && h3App["~middleware"].push(...globalMiddleware);
 
@@ -205,9 +194,7 @@ function createH3App(config: H3Config) {
       }
       hasGlobalMiddleware && middleware.push(...h3App["~middleware"]);
       hasRoutedMiddleware &&
-        middleware.push(
-          ...findRoutedMiddleware(method!, pathname!).map((r) => r.data)
-        );
+        middleware.push(...findRoutedMiddleware(method!, pathname!).map((r) => r.data));
       if (hasRoutes && route?.data?.middleware?.length) {
         middleware.push(...route.data.middleware);
       }
@@ -239,10 +226,7 @@ export function getRouteRules(
           delete routeRules[rule.name];
           continue;
         }
-        if (
-          typeof currentRule.options === "object" &&
-          typeof rule.options === "object"
-        ) {
+        if (typeof currentRule.options === "object" && typeof rule.options === "object") {
           // Merge nested rule objects
           currentRule.options = { ...currentRule.options, ...rule.options };
         } else {

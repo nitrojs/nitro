@@ -9,10 +9,7 @@ export default function plugins(nitro: Nitro) {
 
       return /* js */ `
   ${nitroPlugins
-    .map(
-      (plugin) =>
-        /* js */ `import _${hash(plugin).replace(/-/g, "")} from "${plugin}";`
-    )
+    .map((plugin) => /* js */ `import _${hash(plugin).replace(/-/g, "")} from "${plugin}";`)
     .join("\n")}
 
   export const plugins = [

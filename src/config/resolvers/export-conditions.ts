@@ -1,10 +1,11 @@
 import type { NitroOptions } from "nitro/types";
 
 export async function resolveExportConditionsOptions(options: NitroOptions) {
-  options.exportConditions = _resolveExportConditions(
-    options.exportConditions || [],
-    { dev: options.dev, node: options.node, wasm: options.wasm !== false }
-  );
+  options.exportConditions = _resolveExportConditions(options.exportConditions || [], {
+    dev: options.dev,
+    node: options.node,
+    wasm: options.wasm !== false,
+  });
 }
 
 function _resolveExportConditions(
@@ -54,7 +55,5 @@ function _resolveExportConditions(
   }
 
   // Dedup with preserving order
-  return resolvedConditions.filter(
-    (c, i) => resolvedConditions.indexOf(c) === i
-  );
+  return resolvedConditions.filter((c, i) => resolvedConditions.indexOf(c) === i);
 }

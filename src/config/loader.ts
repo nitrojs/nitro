@@ -4,12 +4,7 @@ import { resolveCompatibilityDates } from "compatx";
 import type { CompatibilityDateSpec } from "compatx";
 import { klona } from "klona/full";
 import type { PresetName } from "../presets/index.ts";
-import type {
-  LoadConfigOptions,
-  NitroConfig,
-  NitroOptions,
-  NitroPresetMeta,
-} from "nitro/types";
+import type { LoadConfigOptions, NitroConfig, NitroOptions, NitroPresetMeta } from "nitro/types";
 
 import { NitroDefaults } from "./defaults.ts";
 
@@ -83,9 +78,7 @@ async function _loadUserConfig(
   // prettier-ignore
   let preset: string | undefined = (configOverrides.preset as string) || process.env.NITRO_PRESET || process.env.SERVER_PRESET
 
-  const _dotenv =
-    opts.dotenv ??
-    (configOverrides.dev && { fileName: [".env", ".env.local"] });
+  const _dotenv = opts.dotenv ?? (configOverrides.dev && { fileName: [".env", ".env.local"] });
   const loadedConfig = await (
     opts.watch
       ? watchConfig<NitroConfig & { _meta?: NitroPresetMeta }>
@@ -171,8 +164,7 @@ async function _loadUserConfig(
   options._c12 = loadedConfig;
 
   const _presetName =
-    (loadedConfig.layers || []).find((l) => l.config?._meta?.name)?.config
-      ?._meta?.name || preset;
+    (loadedConfig.layers || []).find((l) => l.config?._meta?.name)?.config?._meta?.name || preset;
   options.preset = _presetName as PresetName;
 
   options.compatibilityDate = resolveCompatibilityDates(

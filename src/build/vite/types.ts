@@ -1,4 +1,4 @@
-import type { getViteRollupConfig } from "./rollup.ts";
+import type { getBundlerConfig } from "./bundler.ts";
 import type { EnvRunner, Nitro, NitroConfig, NitroModule } from "nitro/types";
 import type { NitroDevApp } from "../../dev/app.ts";
 
@@ -51,7 +51,7 @@ export interface ServiceConfig {
 export interface NitroPluginContext {
   nitro?: Nitro;
   pluginConfig: NitroPluginConfig;
-  rollupConfig?: Awaited<ReturnType<typeof getViteRollupConfig>>;
+  bundlerConfig?: Awaited<ReturnType<typeof getBundlerConfig>>;
   devApp?: NitroDevApp;
   services: Record<string, ServiceConfig>;
 

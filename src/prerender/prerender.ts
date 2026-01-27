@@ -2,12 +2,7 @@ import { pathToFileURL } from "node:url";
 import { defu } from "defu";
 import mime from "mime";
 import { writeFile } from "../utils/fs.ts";
-import type {
-  Nitro,
-  NitroRouteRules,
-  PrerenderRoute,
-  PublicAssetDir,
-} from "nitro/types";
+import type { Nitro, NitroRouteRules, PrerenderRoute, PublicAssetDir } from "nitro/types";
 import { join, relative, resolve } from "pathe";
 import { createRouter, addRoute, findAllRoutes } from "rou3";
 import { joinURL, withBase, withoutBase, withTrailingSlash } from "ufo";
@@ -15,11 +10,7 @@ import { build } from "../build/build.ts";
 import { createNitro } from "../nitro.ts";
 import { compressPublicAssets } from "../utils/compress.ts";
 import { runParallel } from "../utils/parallel.ts";
-import {
-  extractLinks,
-  formatPrerenderRoute,
-  matchesIgnorePattern,
-} from "./utils.ts";
+import { extractLinks, formatPrerenderRoute, matchesIgnorePattern } from "./utils.ts";
 import { scanUnprefixedPublicAssets } from "../build/assets.ts";
 import { toRequest } from "h3";
 
@@ -29,16 +20,12 @@ const JsonSigRx = /^\s*["[{]|^\s*-?\d{1,16}(\.\d{1,17})?([Ee][+-]?\d+)?\s*$/; //
 
 export async function prerender(nitro: Nitro) {
   if (nitro.options.noPublicDir) {
-    nitro.logger.warn(
-      "Skipping prerender since `noPublicDir` option is enabled."
-    );
+    nitro.logger.warn("Skipping prerender since `noPublicDir` option is enabled.");
     return;
   }
 
   if (nitro.options.builder === "vite") {
-    nitro.logger.warn(
-      "Skipping prerender since not supported with vite builder yet..."
-    );
+    nitro.logger.warn("Skipping prerender since not supported with vite builder yet...");
     return;
   }
 
@@ -94,14 +81,10 @@ export async function prerender(nitro: Nitro) {
 
   // Import renderer entry
   const serverFilename =
-    typeof nitroRenderer.options.rollupConfig?.output?.entryFileNames ===
-    "string"
+    typeof nitroRenderer.options.rollupConfig?.output?.entryFileNames === "string"
       ? nitroRenderer.options.rollupConfig.output.entryFileNames
       : "index.mjs";
-  const serverEntrypoint = resolve(
-    nitroRenderer.options.output.serverDir,
-    serverFilename
-  );
+  const serverEntrypoint = resolve(nitroRenderer.options.output.serverDir, serverFilename);
   const entryURL = pathToFileURL(serverEntrypoint).href;
   const prerenderer = (await import(entryURL).then((m: any) => m.default)) as {
     close: () => Promise<void>;
@@ -135,8 +118,7 @@ export async function prerender(nitro: Nitro) {
     )
     .map((a) => withTrailingSlash(a.baseURL));
 
-  const scannedPublicAssets = nitro.options.prerender
-    .ignoreUnprefixedPublicAssets
+  const scannedPublicAssets = nitro.options.prerender.ignoreUnprefixedPublicAssets
     ? new Set(await scanUnprefixedPublicAssets(nitro))
     : new Set<string>();
 
@@ -182,8 +164,7 @@ export async function prerender(nitro: Nitro) {
     const FS_MAX_SEGMENT = 255;
     // 1024 is the max path length on APFS (undocumented)
     const FS_MAX_PATH = 1024;
-    const FS_MAX_PATH_PUBLIC_HTML =
-      FS_MAX_PATH - (nitro.options.output.publicDir.length + 10);
+    const FS_MAX_PATH_PUBLIC_HTML = FS_MAX_PATH - (nitro.options.output.publicDir.length + 10);
 
     if (
       (route.route.length >= FS_MAX_PATH_PUBLIC_HTML ||
@@ -375,9 +356,7 @@ export async function prerender(nitro: Nitro) {
 
   const prerenderTimeInMs = Date.now() - prerenderStartTime;
   nitro.logger.info(
-    `Prerendered ${nitro._prerenderedRoutes.length} routes in ${
-      prerenderTimeInMs / 1000
-    } seconds`
+    `Prerendered ${nitro._prerenderedRoutes.length} routes in ${prerenderTimeInMs / 1000} seconds`
   );
 
   if (nitro.options.compressPublicAssets) {

@@ -48,16 +48,12 @@ export async function buildProduction(nitro: Nitro, config: RolldownOptions) {
   };
   if (buildInfo.commands!.preview) {
     nitro.logger.success(
-      `You can preview this build using \`${rewriteRelativePaths(
-        buildInfo.commands!.preview
-      )}\``
+      `You can preview this build using \`${rewriteRelativePaths(buildInfo.commands!.preview)}\``
     );
   }
   if (buildInfo.commands!.deploy) {
     nitro.logger.success(
-      `You can deploy this build using \`${rewriteRelativePaths(
-        buildInfo.commands!.deploy
-      )}\``
+      `You can deploy this build using \`${rewriteRelativePaths(buildInfo.commands!.deploy)}\``
     );
   }
 }

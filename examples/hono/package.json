@@ -5,7 +5,7 @@
     "dev": "nitro dev"
   },
   "devDependencies": {
-    "hono": "^4.11.1",
+    "hono": "^4.11.4",
     "nitro": "latest"
   }
 }

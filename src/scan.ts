@@ -53,11 +53,7 @@ export async function scanHandlers(nitro: Nitro) {
   const middleware = await scanMiddleware(nitro);
 
   const handlers = await Promise.all([
-    scanServerRoutes(
-      nitro,
-      nitro.options.apiDir || "api",
-      nitro.options.apiBaseURL || "/api"
-    ),
+    scanServerRoutes(nitro, nitro.options.apiDir || "api", nitro.options.apiBaseURL || "/api"),
     scanServerRoutes(nitro, nitro.options.routesDir || "routes"),
   ]).then((r) => r.flat());
 
@@ -66,8 +62,7 @@ export async function scanHandlers(nitro: Nitro) {
     ...handlers.filter((h, index, array) => {
       return (
         array.findIndex(
-          (h2) =>
-            h.route === h2.route && h.method === h2.method && h.env === h2.env
+          (h2) => h.route === h2.route && h.method === h2.method && h.env === h2.env
         ) === index
       );
     }),
@@ -87,11 +82,7 @@ export async function scanMiddleware(nitro: Nitro) {
   });
 }
 
-export async function scanServerRoutes(
-  nitro: Nitro,
-  dir: string,
-  prefix = "/"
-) {
+export async function scanServerRoutes(nitro: Nitro, dir: string, prefix = "/") {
   const files = await scanFiles(nitro, dir);
   return files.map((file) => {
     let route = file.path
@@ -152,11 +143,7 @@ async function scanFiles(nitro: Nitro, name: string): Promise<FileInfo[]> {
   return files;
 }
 
-async function scanDir(
-  nitro: Nitro,
-  dir: string,
-  name: string
-): Promise<FileInfo[]> {
+async function scanDir(nitro: Nitro, dir: string, name: string): Promise<FileInfo[]> {
   const fileNames = await glob(join(name, GLOB_SCAN_PATTERN), {
     cwd: dir,
     dot: true,
@@ -164,9 +151,7 @@ async function scanDir(
     absolute: true,
   }).catch((error) => {
     if (error?.code === "ENOTDIR") {
-      nitro.logger.warn(
-        `Ignoring \`${join(dir, name)}\`. It must be a directory.`
-      );
+      nitro.logger.warn(`Ignoring \`${join(dir, name)}\`. It must be a directory.`);
       return [];
     }
     throw error;

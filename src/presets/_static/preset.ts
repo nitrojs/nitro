@@ -37,10 +37,7 @@ const githubPages = defineNitroPreset(
     },
     hooks: {
       async compiled(nitro) {
-        await fsp.writeFile(
-          join(nitro.options.output.publicDir, ".nojekyll"),
-          ""
-        );
+        await fsp.writeFile(join(nitro.options.output.publicDir, ".nojekyll"), "");
       },
     },
   },

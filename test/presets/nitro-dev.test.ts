@@ -17,13 +17,10 @@ describe("nitro:preset:nitro-dev", async () => {
       };
     },
     (_ctx, callHandler) => {
-      it.skipIf(process.env.OFFLINE)(
-        "returns correct status for devProxy",
-        async () => {
-          const { status } = await callHandler({ url: "/proxy/example" });
-          expect(status).toBe(200);
-        }
-      );
+      it.skipIf(process.env.OFFLINE)("returns correct status for devProxy", async () => {
+        const { status } = await callHandler({ url: "/proxy/example" });
+        expect(status).toBe(200);
+      });
 
       describe("openAPI", () => {
         let spec: OpenAPI3;

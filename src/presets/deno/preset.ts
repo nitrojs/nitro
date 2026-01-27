@@ -17,8 +17,7 @@ const denoDeploy = defineNitroPreset(
     serveStatic: "deno",
     commands: {
       preview: "",
-      deploy:
-        "cd ./ && deployctl deploy --project=<project_name> server/index.ts",
+      deploy: "cd ./ && deployctl deploy --project=<project_name> server/index.ts",
     },
     unenv: unenvDeno,
     rollupConfig: {
@@ -46,9 +45,7 @@ const denoServer = defineNitroPreset(
     },
     rollupConfig: {
       external: (id) =>
-        id.startsWith("https://") ||
-        id.startsWith("node:") ||
-        builtinModules.includes(id),
+        id.startsWith("https://") || id.startsWith("node:") || builtinModules.includes(id),
       output: {
         hoistTransitiveImports: false,
       },

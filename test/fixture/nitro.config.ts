@@ -31,8 +31,7 @@ export default defineConfig({
     },
   },
   virtual: {
-    "#virtual-route": () =>
-      `export default () => new Response("Hello from virtual entry!")`,
+    "#virtual-route": () => `export default () => new Response("Hello from virtual entry!")`,
   },
   handlers: [
     {
@@ -64,12 +63,7 @@ export default defineConfig({
       dir: "server/files",
     },
   ],
-  ignore: [
-    "routes/api/**/_*",
-    "middleware/_ignored.ts",
-    "routes/_*.ts",
-    "**/_*.txt",
-  ],
+  ignore: ["routes/api/**/_*", "middleware/_ignored.ts", "routes/_*.ts", "**/_*.txt"],
   runtimeConfig: {
     dynamic: "initial",
     url: "https://{{APP_DOMAIN}}",

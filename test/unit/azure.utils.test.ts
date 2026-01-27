@@ -6,9 +6,7 @@ describe("getAzureParsedCookiesFromHeaders", () => {
     expect(getAzureParsedCookiesFromHeaders(new Headers({}))).toMatchObject([]);
   });
   it("returns empty array if empty set-cookie header", () => {
-    expect(
-      getAzureParsedCookiesFromHeaders(new Headers({ "set-cookie": " " }))
-    ).toMatchObject([]);
+    expect(getAzureParsedCookiesFromHeaders(new Headers({ "set-cookie": " " }))).toMatchObject([]);
   });
   it("returns single cookie", () => {
     expect(

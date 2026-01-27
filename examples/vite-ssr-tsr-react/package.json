@@ -6,10 +6,10 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@tanstack/react-router": "^1.142.8",
-    "@tanstack/react-router-devtools": "^1.142.8",
-    "@tanstack/router-plugin": "^1.142.8",
-    "@types/react": "^19.2.7",
+    "@tanstack/react-router": "^1.149.3",
+    "@tanstack/react-router-devtools": "^1.149.3",
+    "@tanstack/router-plugin": "^1.149.3",
+    "@types/react": "^19.2.8",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.2",
     "nitro": "latest",

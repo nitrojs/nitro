@@ -39,23 +39,19 @@ export async function writeCFRoutes(nitro: Nitro) {
   }
 
   // Exclude public assets from hitting the worker
-  const explicitPublicAssets = nitro.options.publicAssets.filter(
-    (dir, index, array) => {
-      if (dir.fallthrough || !dir.baseURL) {
-        return false;
-      }
-
-      const normalizedBase = withoutLeadingSlash(dir.baseURL);
-
-      return !array.some(
-        (otherDir, otherIndex) =>
-          otherIndex !== index &&
-          normalizedBase.startsWith(
-            withoutLeadingSlash(withTrailingSlash(otherDir.baseURL))
-          )
-      );
+  const explicitPublicAssets = nitro.options.publicAssets.filter((dir, index, array) => {
+    if (dir.fallthrough || !dir.baseURL) {
+      return false;
     }
-  );
+
+    const normalizedBase = withoutLeadingSlash(dir.baseURL);
+
+    return !array.some(
+      (otherDir, otherIndex) =>
+        otherIndex !== index &&
+        normalizedBase.startsWith(withoutLeadingSlash(withTrailingSlash(otherDir.baseURL)))
+    );
+  });
 
   // Explicit prefixes
   routes.exclude!.push(
@@ -73,9 +69,7 @@ export async function writeCFRoutes(nitro: Nitro) {
       "_worker.js",
       "_worker.js.map",
       "nitro.json",
-      ...routes.exclude!.map((path) =>
-        withoutLeadingSlash(path.replace(/\/\*$/, "/**"))
-      ),
+      ...routes.exclude!.map((path) => withoutLeadingSlash(path.replace(/\/\*$/, "/**"))),
     ],
   });
   // Remove index.html or the .html extension to support pages pre-rendering
@@ -100,14 +94,9 @@ function comparePaths(a: string, b: string) {
   return a.split("/").length - b.split("/").length || a.localeCompare(b);
 }
 
-export async function writeCFHeaders(
-  nitro: Nitro,
-  outdir: "public" | "output"
-) {
+export async function writeCFHeaders(nitro: Nitro, outdir: "public" | "output") {
   const headersPath = join(
-    outdir === "public"
-      ? nitro.options.output.publicDir
-      : nitro.options.output.dir,
+    outdir === "public" ? nitro.options.output.publicDir : nitro.options.output.dir,
     "_headers"
   );
   const contents = [];
@@ -116,9 +105,7 @@ export async function writeCFHeaders(
     (a, b) => b[0].split(/\/(?!\*)/).length - a[0].split(/\/(?!\*)/).length
   );
 
-  for (const [path, routeRules] of rules.filter(
-    ([_, routeRules]) => routeRules.headers
-  )) {
+  for (const [path, routeRules] of rules.filter(([_, routeRules]) => routeRules.headers)) {
     const headers = [
       joinURL(nitro.options.baseURL, path.replace("/**", "/*")),
       ...Object.entries({ ...routeRules.headers }).map(
@@ -137,9 +124,7 @@ export async function writeCFHeaders(
       );
       return;
     }
-    nitro.logger.info(
-      "Adding Nitro fallback to `_headers` to handle all unmatched routes."
-    );
+    nitro.logger.info("Adding Nitro fallback to `_headers` to handle all unmatched routes.");
     contents.unshift(currentHeaders);
   }
 
@@ -148,9 +133,7 @@ export async function writeCFHeaders(
 
 export async function writeCFPagesRedirects(nitro: Nitro) {
   const redirectsPath = join(nitro.options.output.dir, "_redirects");
-  const staticFallback = existsSync(
-    join(nitro.options.output.publicDir, "404.html")
-  )
+  const staticFallback = existsSync(join(nitro.options.output.publicDir, "404.html"))
     ? `${joinURL(nitro.options.baseURL, "/*")} ${joinURL(nitro.options.baseURL, "/404.html")} 404`
     : "";
   const contents = [staticFallback];
@@ -158,9 +141,7 @@ export async function writeCFPagesRedirects(nitro: Nitro) {
     (a, b) => a[0].split(/\/(?!\*)/).length - b[0].split(/\/(?!\*)/).length
   );
 
-  for (const [key, routeRules] of rules.filter(
-    ([_, routeRules]) => routeRules.redirect
-  )) {
+  for (const [key, routeRules] of rules.filter(([_, routeRules]) => routeRules.redirect)) {
     const code = routeRules.redirect!.status;
     const from = joinURL(nitro.options.baseURL, key.replace("/**", "/*"));
     const to = hasProtocol(routeRules.redirect!.to, { acceptRelative: true })
@@ -177,9 +158,7 @@ export async function writeCFPagesRedirects(nitro: Nitro) {
       );
       return;
     }
-    nitro.logger.info(
-      "Adding Nitro fallback to `_redirects` to handle all unmatched routes."
-    );
+    nitro.logger.info("Adding Nitro fallback to `_redirects` to handle all unmatched routes.");
     contents.unshift(currentRedirects);
   }
 
@@ -205,18 +184,14 @@ const extensionParsers = {
 async function readWranglerConfig(
   nitro: Nitro
 ): Promise<{ configPath?: string; config?: WranglerConfig }> {
-  const configPath = await findNearestFile(
-    ["wrangler.json", "wrangler.jsonc", "wrangler.toml"],
-    {
-      startingFrom: nitro.options.rootDir,
-    }
-  ).catch(() => undefined);
+  const configPath = await findNearestFile(["wrangler.json", "wrangler.jsonc", "wrangler.toml"], {
+    startingFrom: nitro.options.rootDir,
+  }).catch(() => undefined);
   if (!configPath) {
     return {};
   }
   const userConfigText = await readFile(configPath, "utf8");
-  const parser =
-    extensionParsers[extname(configPath) as keyof typeof extensionParsers];
+  const parser = extensionParsers[extname(configPath) as keyof typeof extensionParsers];
   if (!parser) {
     /* unreachable */
     throw new Error(`Unsupported config file format: ${configPath}`);
@@ -226,10 +201,7 @@ async function readWranglerConfig(
 }
 
 // https://developers.cloudflare.com/workers/wrangler/configuration/#generated-wrangler-configuration
-export async function writeWranglerConfig(
-  nitro: Nitro,
-  cfTarget: "pages" | "module"
-) {
+export async function writeWranglerConfig(nitro: Nitro, cfTarget: "pages" | "module") {
   // Skip if not enabled
   if (!nitro.options.cloudflare?.deployConfig) {
     return;
@@ -247,21 +219,14 @@ export async function writeWranglerConfig(
 
   // Compatibility date
   defaults.compatibility_date =
-    nitro.options.compatibilityDate.cloudflare ||
-    nitro.options.compatibilityDate.default;
+    nitro.options.compatibilityDate.cloudflare || nitro.options.compatibilityDate.default;
 
   if (cfTarget === "pages") {
     // Pages
-    overrides.pages_build_output_dir = relative(
-      wranglerConfigDir,
-      nitro.options.output.dir
-    );
+    overrides.pages_build_output_dir = relative(wranglerConfigDir, nitro.options.output.dir);
   } else {
     // Modules
-    overrides.main = relative(
-      wranglerConfigDir,
-      join(nitro.options.output.serverDir, "index.mjs")
-    );
+    overrides.main = relative(wranglerConfigDir, join(nitro.options.output.serverDir, "index.mjs"));
     overrides.assets = {
       binding: "ASSETS",
       directory: relative(
@@ -290,19 +255,12 @@ export async function writeWranglerConfig(
   }
 
   // (first argument takes precedence)
-  const wranglerConfig = defu(
-    overrides,
-    ctxConfig,
-    userConfig,
-    defaults
-  ) as WranglerConfig;
+  const wranglerConfig = defu(overrides, ctxConfig, userConfig, defaults) as WranglerConfig;
 
   // Name is required
   if (!wranglerConfig.name) {
     wranglerConfig.name = await generateWorkerName(nitro)!;
-    nitro.logger.info(
-      `Using auto generated worker name: \`${wranglerConfig.name}\``
-    );
+    nitro.logger.info(`Using auto generated worker name: \`${wranglerConfig.name}\``);
   }
 
   // Compatibility flags
@@ -331,16 +289,9 @@ export async function writeWranglerConfig(
   }
 
   // Write wrangler.json
-  await writeFile(
-    wranglerConfigPath,
-    JSON.stringify(wranglerConfig, null, 2),
-    true
-  );
+  await writeFile(wranglerConfigPath, JSON.stringify(wranglerConfig, null, 2), true);
 
-  const configPath = join(
-    nitro.options.rootDir,
-    ".wrangler/deploy/config.json"
-  );
+  const configPath = join(nitro.options.rootDir, ".wrangler/deploy/config.json");
 
   await writeFile(
     configPath,
@@ -352,15 +303,11 @@ export async function writeWranglerConfig(
 }
 
 async function generateWorkerName(nitro: Nitro) {
-  const gitConfig = await readGitConfig(nitro.options.rootDir).catch(
-    () => undefined
-  );
+  const gitConfig = await readGitConfig(nitro.options.rootDir).catch(() => undefined);
   const gitRepo = gitConfig?.remote?.origin?.url
     ?.replace(/\.git$/, "")
     .match(/[/:]([^/]+\/[^/]+)$/)?.[1];
-  const pkgJSON = await readPackageJSON(nitro.options.rootDir).catch(
-    () => undefined
-  );
+  const pkgJSON = await readPackageJSON(nitro.options.rootDir).catch(() => undefined);
   const pkgName = pkgJSON?.name;
   const subpath = relative(nitro.options.workspaceDir, nitro.options.rootDir);
   return `${gitRepo || pkgName}/${subpath}`

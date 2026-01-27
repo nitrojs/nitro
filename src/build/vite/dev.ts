@@ -1,10 +1,5 @@
 import type { NitroPluginContext } from "./types.ts";
-import type {
-  DevEnvironmentContext,
-  HotChannel,
-  ResolvedConfig,
-  ViteDevServer,
-} from "vite";
+import type { DevEnvironmentContext, HotChannel, ResolvedConfig, ViteDevServer } from "vite";
 
 import { IncomingMessage, ServerResponse } from "node:http";
 import { NodeRequest, sendNodeResponse } from "srvx/node";
@@ -83,14 +78,9 @@ function createTransport(name: string, hooks: TransportHooks): HotChannel {
     on: (event: string, handler: any) => {
       if (event === "connection") return;
       const listener = (value: any) => {
-        if (
-          value?.type === "custom" &&
-          value.event === event &&
-          value.viteEnv === name
-        ) {
+        if (value?.type === "custom" && value.event === event && value.viteEnv === name) {
           handler(value.data, {
-            send: (payload: any) =>
-              hooks.sendMessage({ ...payload, viteEnv: name }),
+            send: (payload: any) => hooks.sendMessage({ ...payload, viteEnv: name }),
           });
         }
       };
@@ -110,10 +100,7 @@ function createTransport(name: string, hooks: TransportHooks): HotChannel {
 
 // ---- Vite Dev Server Integration ----
 
-export async function configureViteDevServer(
-  ctx: NitroPluginContext,
-  server: ViteDevServer
-) {
+export async function configureViteDevServer(ctx: NitroPluginContext, server: ViteDevServer) {
   const nitro = ctx.nitro!;
   const nitroEnv = server.environments.nitro as FetchableDevEnvironment;
 
@@ -124,9 +111,7 @@ export async function configureViteDevServer(
   }
 
   // Websocket
-  const hasWebSocket =
-    nitro.options.features.websocket ?? nitro.options.experimental.websocket;
-  if (hasWebSocket) {
+  if (nitro.options.features.websocket ?? nitro.options.experimental.websocket) {
     server.httpServer!.on("upgrade", (req, socket, head) => {
       if (req.url?.startsWith("/?token")) {
         // Vite upgrade. TODO: Is there a better way?

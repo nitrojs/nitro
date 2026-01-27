@@ -8,11 +8,7 @@ declare global {
   var __nitro_vite_envs__: Record<string, FetchableEnv>;
 }
 
-export function fetchViteEnv(
-  viteEnvName: string,
-  input: RequestInfo | URL,
-  init?: RequestInit
-) {
+export function fetchViteEnv(viteEnvName: string, input: RequestInfo | URL, init?: RequestInit) {
   const envs = globalThis.__nitro_vite_envs__ || {};
   const viteEnv = envs[viteEnvName as keyof typeof envs] as FetchableEnv;
   if (!viteEnv) {

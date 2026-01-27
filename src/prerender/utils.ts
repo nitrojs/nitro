@@ -16,18 +16,10 @@ const HTML_ENTITIES = {
 } as Record<string, string>;
 
 function escapeHtml(text: string) {
-  return text.replace(
-    /&(lt|gt|amp|apos|quot);/g,
-    (ch) => HTML_ENTITIES[ch] || ch
-  );
+  return text.replace(/&(lt|gt|amp|apos|quot);/g, (ch) => HTML_ENTITIES[ch] || ch);
 }
 
-export async function extractLinks(
-  html: string,
-  from: string,
-  res: Response,
-  crawlLinks: boolean
-) {
+export async function extractLinks(html: string, from: string, res: Response, crawlLinks: boolean) {
   const links: string[] = [];
   const _links: string[] = [];
 
@@ -39,10 +31,7 @@ export async function extractLinks(
       }
 
       const link = escapeHtml(node.attributes.href);
-      if (
-        !decodeURIComponent(link).startsWith("#") &&
-        allowedExtensions.has(getExtension(link))
-      ) {
+      if (!decodeURIComponent(link).startsWith("#") && allowedExtensions.has(getExtension(link))) {
         _links.push(link);
       }
     });
@@ -91,9 +80,7 @@ export function formatPrerenderRoute(route: PrerenderRoute) {
     str += `\n  │ ${errorLead} ${errorColor(route.error.message)}`;
 
     if (parents?.size) {
-      str += `\n${[...parents.values()]
-        .map((link) => `  │ └── Linked from ${link}`)
-        .join("\n")}`;
+      str += `\n${[...parents.values()].map((link) => `  │ └── Linked from ${link}`).join("\n")}`;
     }
   }
 

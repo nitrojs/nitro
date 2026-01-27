@@ -6,11 +6,7 @@ export function sourcemapMinify() {
     generateBundle(_options, bundle) {
       for (const [key, asset] of Object.entries(bundle)) {
         // Only process sourcemaps
-        if (
-          !key.endsWith(".map") ||
-          !("source" in asset) ||
-          typeof asset.source !== "string"
-        ) {
+        if (!key.endsWith(".map") || !("source" in asset) || typeof asset.source !== "string") {
           continue;
         }
 

@@ -10,9 +10,7 @@ describe("nitro:standard", async () => {
     const fetchHandler = await import(entryPath).then((m) => m.default.fetch);
 
     return async ({ url, ...init }) => {
-      const res = await fetchHandler(
-        new Request(`https://test.com${url}`, init)
-      );
+      const res = await fetchHandler(new Request(`https://test.com${url}`, init));
       return res;
     };
   });

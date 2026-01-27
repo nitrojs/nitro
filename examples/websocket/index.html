@@ -8,11 +8,7 @@
       }
     </style>
     <script type="module">
-      import {
-        createApp,
-        reactive,
-        nextTick,
-      } from "https://esm.sh/petite-vue@0.4.1";
+      import { createApp, reactive, nextTick } from "https://esm.sh/petite-vue@0.4.1";
 
       let ws;
 
@@ -71,17 +67,11 @@
         ws = new WebSocket(url);
 
         ws.addEventListener("message", async (event) => {
-          let data =
-            typeof event.data === "string"
-              ? event.data
-              : await event.data.text();
+          let data = typeof event.data === "string" ? event.data : await event.data.text();
           const { user = "system", message = "" } = data.startsWith("{")
             ? JSON.parse(data)
             : { message: data };
-          log(
-            user,
-            typeof message === "string" ? message : JSON.stringify(message)
-          );
+          log(user, typeof message === "string" ? message : JSON.stringify(message));
         });
 
         await new Promise((resolve) => ws.addEventListener("open", resolve));
@@ -146,9 +136,7 @@
       </div>
 
       <!-- Chatbox -->
-      <div
-        class="bg-gray-800 px-4 py-2 flex items-center justify-between fixed bottom-0 w-full"
-      >
+      <div class="bg-gray-800 px-4 py-2 flex items-center justify-between fixed bottom-0 w-full">
         <div class="w-full min-w-6">
           <input
             type="text"
@@ -159,22 +147,13 @@
           />
         </div>
         <div class="flex">
-          <button
-            class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4"
-            @click="send"
-          >
+          <button class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4" @click="send">
             Send
           </button>
-          <button
-            class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4"
-            @click="ping"
-          >
+          <button class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4" @click="ping">
             Ping
           </button>
-          <button
-            class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4"
-            @click="connect"
-          >
+          <button class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4" @click="connect">
             Reconnect
           </button>
           <button

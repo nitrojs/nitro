@@ -1,7 +1,4 @@
-import {
-  resolveCompatibilityDatesFromEnv,
-  formatCompatibilityDate,
-} from "compatx";
+import { resolveCompatibilityDatesFromEnv, formatCompatibilityDate } from "compatx";
 import type { CompatibilityDateSpec, PlatformName } from "compatx";
 import type { NitroPreset, NitroPresetMeta } from "nitro/types";
 import { kebabCase } from "scule";
@@ -49,9 +46,7 @@ export async function resolvePreset(
 
       if (_compatDates) {
         const _date =
-          _compatDates[
-            _stdProviderMap[preset._meta.stdName!] as PlatformName
-          ] ||
+          _compatDates[_stdProviderMap[preset._meta.stdName!] as PlatformName] ||
           _compatDates[preset._meta.stdName as PlatformName] ||
           _compatDates[preset._meta.name as PlatformName] ||
           _compatDates.default;
@@ -74,9 +69,7 @@ export async function resolvePreset(
     });
 
   const preset =
-    matches.find(
-      (p) => (p._meta.static || false) === (opts?.static || false)
-    ) || matches[0];
+    matches.find((p) => (p._meta.static || false) === (opts?.static || false)) || matches[0];
 
   if (typeof preset === "function") {
     // @ts-expect-error unreachable

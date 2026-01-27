@@ -42,9 +42,7 @@ export async function writeSWARoutes(nitro: Nitro) {
 
   const routeFiles = nitro._prerenderedRoutes || [];
 
-  const indexFileExists = routeFiles.some(
-    (route) => route.fileName === "/index.html"
-  );
+  const indexFileExists = routeFiles.some((route) => route.fileName === "/index.html");
   if (!indexFileExists) {
     config.routes.unshift(
       {
@@ -71,18 +69,12 @@ export async function writeSWARoutes(nitro: Nitro) {
   }
 
   for (const { fileName } of routeFiles) {
-    if (
-      !fileName ||
-      !fileName.endsWith(".html") ||
-      fileName.endsWith("index.html")
-    ) {
+    if (!fileName || !fileName.endsWith(".html") || fileName.endsWith("index.html")) {
       continue;
     }
 
     const route = fileName.slice(0, -".html".length);
-    const existingRouteIndex = config.routes.findIndex(
-      (_route) => _route.route === route
-    );
+    const existingRouteIndex = config.routes.findIndex((_route) => _route.route === route);
     if (existingRouteIndex !== -1) {
       config.routes.splice(existingRouteIndex, 1);
     }
@@ -141,10 +133,7 @@ export async function writeSWARoutes(nitro: Nitro) {
     resolve(nitro.options.output.serverDir, "../host.json"),
     JSON.stringify(host, null, 2)
   );
-  const stubPackageJson = resolve(
-    nitro.options.output.serverDir,
-    "../package.json"
-  );
+  const stubPackageJson = resolve(nitro.options.output.serverDir, "../package.json");
   await writeFile(stubPackageJson, JSON.stringify({ private: true }));
   await writeFile(
     resolve(nitro.options.rootDir, "staticwebapp.config.json"),

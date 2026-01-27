@@ -10,9 +10,11 @@ export default defineHandler(async (event) => {
     throw new HTTPError({ message: `Asset ${id} not found`, status: 404 });
   }
 
-  const meta = (await serverAssets.getMeta(
-    event.context.params!.id
-  )) as unknown as { type: string; etag: string; mtime: string };
+  const meta = (await serverAssets.getMeta(event.context.params!.id)) as unknown as {
+    type: string;
+    etag: string;
+    mtime: string;
+  };
 
   if (meta.type) {
     event.res.headers.set("content-type", meta.type);

@@ -26,35 +26,31 @@ type StormkitResponse = {
 
 const nitroApp = useNitroApp();
 
-export const handler: Handler<StormkitEvent, StormkitResponse> =
-  async function (event, context) {
-    const req = new Request(event.url, {
-      method: event.method || "GET",
-      headers: event.headers,
-      body: event.body,
-    }) as ServerRequest;
+export const handler: Handler<StormkitEvent, StormkitResponse> = async function (event, context) {
+  const req = new Request(event.url, {
+    method: event.method || "GET",
+    headers: event.headers,
+    body: event.body,
+  }) as ServerRequest;
 
-    // srvx compatibility
-    req.runtime ??= { name: "stormkit" };
-    // @ts-expect-error (add to srvx types)
-    req.runtime.stormkit ??= { event, context } as any;
+  // srvx compatibility
+  req.runtime ??= { name: "stormkit" };
+  // @ts-expect-error (add to srvx types)
+  req.runtime.stormkit ??= { event, context } as any;
 
-    const response = await nitroApp.fetch(req);
+  const response = await nitroApp.fetch(req);
 
-    const { body, isBase64Encoded } = await awsResponseBody(response);
+  const { body, isBase64Encoded } = await awsResponseBody(response);
 
-    return {
-      statusCode: response.status,
-      headers: normalizeOutgoingHeaders(response.headers),
-      [isBase64Encoded ? "buffer" : "body"]: body,
-    } satisfies StormkitResponse;
-  };
+  return {
+    statusCode: response.status,
+    headers: normalizeOutgoingHeaders(response.headers),
+    [isBase64Encoded ? "buffer" : "body"]: body,
+  } satisfies StormkitResponse;
+};
 
 function normalizeOutgoingHeaders(headers: Headers): Record<string, string> {
   return Object.fromEntries(
-    Object.entries(headers).map(([k, v]) => [
-      k,
-      Array.isArray(v) ? v.join(",") : String(v),
-    ])
+    Object.entries(headers).map(([k, v]) => [k, Array.isArray(v) ? v.join(",") : String(v)])
   );
 }

@@ -34,9 +34,7 @@ describe("minimal fixture", () => {
             output: { dir: outDir },
             // @ts-expect-error for testing
             __vitePkg__: builder,
-            builder: builder.includes("vite")
-              ? "vite"
-              : (builder as "rollup" | "rolldown"),
+            builder: builder.includes("vite") ? "vite" : (builder as "rollup" | "rolldown"),
           });
           await prepare(nitro);
           const start = Date.now();

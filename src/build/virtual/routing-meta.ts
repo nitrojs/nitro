@@ -11,9 +11,7 @@ export default function routingMeta(nitro: Nitro) {
 
       return /* js */ `
   ${routeHandlers
-    .map(
-      (h) => /* js */ `import ${h._importHash}Meta from "${h.handler}?meta";`
-    )
+    .map((h) => /* js */ `import ${h._importHash}Meta from "${h.handler}?meta";`)
     .join("\n")}
 export const handlersMeta = [
   ${routeHandlers

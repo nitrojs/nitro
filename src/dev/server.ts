@@ -4,12 +4,7 @@ import type { FSWatcher } from "chokidar";
 import type { ServerOptions, Server } from "srvx";
 import { NodeEnvRunner } from "../runner/node.ts";
 import type { EnvRunnerData } from "../runner/node.ts";
-import type {
-  Nitro,
-  RunnerMessageListener,
-  RunnerRPCHooks,
-  EnvRunner,
-} from "nitro/types";
+import type { Nitro, RunnerMessageListener, RunnerRPCHooks, EnvRunner } from "nitro/types";
 
 import { HTTPError } from "h3";
 
@@ -58,11 +53,7 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
     // Attach to Nitro.fetch
     nitro.fetch = this.fetch.bind(this);
 
-    this.#entry = resolve(
-      nitro.options.output.dir,
-      nitro.options.output.serverDir,
-      "index.mjs"
-    );
+    this.#entry = resolve(nitro.options.output.dir, nitro.options.output.serverDir, "index.mjs");
 
     nitro.hooks.hook("close", () => this.close());
 
@@ -130,9 +121,7 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
     });
     this.#listeners.push(server);
     if (server.node?.server) {
-      server.node.server.on("upgrade", (req, sock, head) =>
-        this.upgrade(req, sock, head)
-      );
+      server.node.server.on("upgrade", (req, sock, head) => this.upgrade(req, sock, head));
     }
     return server;
   }
@@ -235,15 +224,11 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
         let id = error.id || error.path;
         if (id) {
           const cause = (error as { errors?: any[] }).errors?.[0];
-          const loc =
-            error.location || error.loc || cause?.location || cause?.loc;
+          const loc = error.location || error.loc || cause?.location || cause?.loc;
           if (loc) {
             id += `:${loc.line}:${loc.column}`;
           }
-          error.stack = (error.stack || "").replace(
-            /(^\s*at\s+.+)/m,
-            `    at ${id}\n$1`
-          );
+          error.stack = (error.stack || "").replace(/(^\s*at\s+.+)/m, `    at ${id}\n$1`);
         }
       } catch {
         // ignore

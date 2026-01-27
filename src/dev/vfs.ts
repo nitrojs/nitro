@@ -26,8 +26,7 @@ export function createVFSHandler(nitro: Nitro) {
 
     const url = event.context.params?._ || "";
     const isJson =
-      url.endsWith(".json") ||
-      event.req.headers.get("accept")?.includes("application/json");
+      url.endsWith(".json") || event.req.headers.get("accept")?.includes("application/json");
     const id = decodeURIComponent(url.replace(/^(\.json)?\/?/, "") || "");
 
     if (id && !nitro.vfs.has(id)) {
@@ -56,10 +55,7 @@ export function createVFSHandler(nitro: Nitro) {
     const fpaths = [...nitro.vfs.keys()];
 
     for (const item of fpaths) {
-      const segments = item
-        .replace(nitro.options.rootDir, "")
-        .split("/")
-        .filter(Boolean);
+      const segments = item.replace(nitro.options.rootDir, "").split("/").filter(Boolean);
       let currentDir = item.startsWith(nitro.options.rootDir)
         ? directories[nitro.options.rootDir]
         : directories;
@@ -73,10 +69,7 @@ export function createVFSHandler(nitro: Nitro) {
       }
     }
 
-    const generateHTML = (
-      directory: Record<string, any>,
-      path: string[] = []
-    ): string =>
+    const generateHTML = (directory: Record<string, any>, path: string[] = []): string =>
       Object.entries(directory)
         .map(([fname, value = {}]) => {
           const subpath = [...path, fname];
@@ -84,9 +77,7 @@ export function createVFSHandler(nitro: Nitro) {
           const encodedUrl = encodeURIComponent(key);
 
           const linkClass =
-            url === `/${encodedUrl}`
-              ? "bg-gray-700 text-white"
-              : "hover:bg-gray-800 text-gray-200";
+            url === `/${encodedUrl}` ? "bg-gray-700 text-white" : "hover:bg-gray-800 text-gray-200";
 
           return Object.keys(value).length === 0
             ? `
@@ -113,9 +104,7 @@ export function createVFSHandler(nitro: Nitro) {
 
     const rootDirectory = directories[nitro.options.rootDir];
     delete directories[nitro.options.rootDir];
-    const items =
-      generateHTML(rootDirectory, [nitro.options.rootDir]) +
-      generateHTML(directories);
+    const items = generateHTML(rootDirectory, [nitro.options.rootDir]) + generateHTML(directories);
 
     const files = `
       <div class="h-full overflow-auto border-r border-gray:10">
@@ -185,9 +174,7 @@ const editorTemplate = (options: Record<string, any>) => `
 
   setTimeout(() => {
     require(['vs/editor/editor.main'], function () {
-      monaco.editor.create(document.getElementById('editor'), ${JSON.stringify(
-        options
-      )})
+      monaco.editor.create(document.getElementById('editor'), ${JSON.stringify(options)})
     })
   }, 0);
 </script>

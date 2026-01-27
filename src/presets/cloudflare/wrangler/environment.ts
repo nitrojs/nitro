@@ -12,8 +12,7 @@
  *
  * This could be the top-level default environment, or a specific named environment.
  */
-export interface Environment
-  extends EnvironmentInheritable, EnvironmentNonInheritable {}
+export interface Environment extends EnvironmentInheritable, EnvironmentNonInheritable {}
 
 type SimpleRoute = string;
 export type ZoneIdRoute = {
@@ -27,11 +26,7 @@ export type ZoneNameRoute = {
   custom_domain?: boolean;
 };
 export type CustomDomainRoute = { pattern: string; custom_domain: boolean };
-export type Route =
-  | SimpleRoute
-  | ZoneIdRoute
-  | ZoneNameRoute
-  | CustomDomainRoute;
+export type Route = SimpleRoute | ZoneIdRoute | ZoneNameRoute | CustomDomainRoute;
 
 /**
  * Configuration in wrangler for Cloudchamber
@@ -1117,11 +1112,7 @@ export type Assets = {
   /** Name of `env` binding property in the User Worker. */
   binding?: string;
   /** How to handle HTML requests. */
-  html_handling?:
-    | "auto-trailing-slash"
-    | "force-trailing-slash"
-    | "drop-trailing-slash"
-    | "none";
+  html_handling?: "auto-trailing-slash" | "force-trailing-slash" | "drop-trailing-slash" | "none";
   /** How to handle requests that do not match an asset. */
   not_found_handling?: "single-page-application" | "404-page" | "none";
   /**

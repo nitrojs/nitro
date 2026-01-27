@@ -3,9 +3,7 @@ import type { NitroConfig } from "nitro/types";
 import type { ServerRequestContext } from "srvx";
 import { toRequest, type H3EventContext } from "h3";
 
-export function defineConfig(
-  config: Omit<NitroConfig, "rootDir">
-): Omit<NitroConfig, "rootDir"> {
+export function defineConfig(config: Omit<NitroConfig, "rootDir">): Omit<NitroConfig, "rootDir"> {
   return config;
 }
 

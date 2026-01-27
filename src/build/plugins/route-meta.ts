@@ -16,11 +16,7 @@ export function routeMeta(nitro: Nitro) {
       filter: { id: /^(?!\u0000)(.+)\?meta$/ },
       async handler(id, importer, resolveOpts) {
         if (id.endsWith("?meta")) {
-          const resolved = await this.resolve(
-            id.replace("?meta", ""),
-            importer,
-            resolveOpts
-          );
+          const resolved = await this.resolve(id.replace("?meta", ""), importer, resolveOpts);
           if (!resolved) {
             return;
           }
@@ -76,9 +72,7 @@ export function routeMeta(nitro: Nitro) {
             }
           }
         } catch (error) {
-          nitro.logger.warn(
-            `[handlers-meta] Cannot extra route meta for: ${id}: ${error}`
-          );
+          nitro.logger.warn(`[handlers-meta] Cannot extra route meta for: ${id}: ${error}`);
         }
 
         return {
@@ -103,9 +97,7 @@ function astToObject(node: Expression | Literal): any {
       return obj;
     }
     case "ArrayExpression": {
-      return node.elements
-        .map((el) => astToObject(el as any))
-        .filter((obj) => obj !== undefined);
+      return node.elements.map((el) => astToObject(el as any)).filter((obj) => obj !== undefined);
     }
     case "Literal": {
       return node.value;

@@ -16,10 +16,7 @@ const BuilderNames = {
   ssr: C.blue("SSR"),
 } as Record<string, string>;
 
-export async function buildEnvironments(
-  ctx: NitroPluginContext,
-  builder: ViteBuilder
-) {
+export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBuilder) {
   const nitro = ctx.nitro!;
 
   // ----------------------------------------------
@@ -29,11 +26,7 @@ export async function buildEnvironments(
   for (const [envName, env] of Object.entries(builder.environments)) {
     // prettier-ignore
     const fmtName = BuilderNames[envName] || (envName.length <= 3 ? envName.toUpperCase() : envName[0].toUpperCase() + envName.slice(1));
-    if (
-      envName === "nitro" ||
-      !env.config.build.rollupOptions.input ||
-      env.isBuilt
-    ) {
+    if (envName === "nitro" || !env.config.build.rollupOptions.input || env.isBuilt) {
       if (!["nitro", "ssr", "client"].includes(envName)) {
         nitro.logger.info(
           env.isBuilt
@@ -50,16 +43,9 @@ export async function buildEnvironments(
 
   // Use transformed client input for renderer template generation
   const nitroOptions = ctx.nitro!.options;
-  const clientInput =
-    builder.environments.client?.config?.build?.rollupOptions?.input;
-  if (
-    nitroOptions.renderer?.template &&
-    nitroOptions.renderer?.template === clientInput
-  ) {
-    const outputPath = resolve(
-      nitroOptions.output.publicDir,
-      basename(clientInput as string)
-    );
+  const clientInput = builder.environments.client?.config?.build?.rollupOptions?.input;
+  if (nitroOptions.renderer?.template && nitroOptions.renderer?.template === clientInput) {
+    const outputPath = resolve(nitroOptions.output.publicDir, basename(clientInput as string));
     if (existsSync(outputPath)) {
       const html = await readFile(outputPath, "utf8").then((r) =>
         r.replace(
@@ -141,16 +127,12 @@ export async function buildEnvironments(
   if (!isTest && !isCI) console.log();
   if (nitro.options.commands.preview) {
     nitro.logger.success(
-      `You can preview this build using \`${rewriteRelativePaths(
-        nitro.options.commands.preview
-      )}\``
+      `You can preview this build using \`${rewriteRelativePaths(nitro.options.commands.preview)}\``
     );
   }
   if (nitro.options.commands.deploy) {
     nitro.logger.success(
-      `You can deploy this build using \`${rewriteRelativePaths(
-        nitro.options.commands.deploy
-      )}\``
+      `You can deploy this build using \`${rewriteRelativePaths(nitro.options.commands.deploy)}\``
     );
   }
 }

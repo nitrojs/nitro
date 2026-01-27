@@ -7,7 +7,6 @@ import { runtimeDependencies, runtimeDir } from "nitro/meta";
 import { resolveModulePath } from "exsolve";
 import { createFetchableDevEnvironment } from "./dev.ts";
 import { isAbsolute } from "pathe";
-import type { RolldownOptions } from "rolldown";
 
 export function getEnvRunner(ctx: NitroPluginContext) {
   return (ctx._envRunner ??= new NodeEnvRunner({
@@ -17,13 +16,12 @@ export function getEnvRunner(ctx: NitroPluginContext) {
   }));
 }
 
-export function createNitroEnvironment(
-  ctx: NitroPluginContext
-): EnvironmentOptions {
+export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOptions {
   return {
     consumer: "server",
     build: {
-      rollupOptions: ctx.rollupConfig!.config as RolldownOptions /* TODO */,
+      rollupOptions: ctx.bundlerConfig!.rollupConfig as any,
+      rolldownOptions: ctx.bundlerConfig!.rolldownConfig,
       minify: ctx.nitro!.options.minify,
       emptyOutDir: false,
       sourcemap: ctx.nitro!.options.sourcemap,
@@ -34,7 +32,7 @@ export function createNitroEnvironment(
         ? [
             /^nitro$/, // i have absolutely no idea why and how it fixes issues!
             new RegExp(`^(${runtimeDependencies.join("|")})$`), // virtual resolutions in vite skip plugin hooks
-            ...ctx.rollupConfig!.base.noExternal,
+            ...ctx.bundlerConfig!.base.noExternal,
           ]
         : true, // production build is standalone
       conditions: ctx.nitro!.options.exportConditions,
@@ -44,9 +42,7 @@ export function createNitroEnvironment(
     },
     define: {
       // Workaround for tanstack-start (devtools)
-      "process.env.NODE_ENV": JSON.stringify(
-        ctx.nitro!.options.dev ? "development" : "production"
-      ),
+      "process.env.NODE_ENV": JSON.stringify(ctx.nitro!.options.dev ? "development" : "production"),
     },
     dev: {
       createEnvironment: (envName, envConfig) =>

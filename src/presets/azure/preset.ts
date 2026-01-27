@@ -12,8 +12,7 @@ const azureSWA = defineNitroPreset(
       publicDir: "{{ output.dir }}/public/{{ baseURL }}",
     },
     commands: {
-      preview:
-        "npx @azure/static-web-apps-cli start ./public --api-location ./server",
+      preview: "npx @azure/static-web-apps-cli start ./public --api-location ./server",
     },
     hooks: {
       async compiled(ctx: Nitro) {

@@ -21,9 +21,7 @@ describe("nitro:preset:netlify", async () => {
   testNitro(
     ctx,
     async () => {
-      const { default: handler } = (await import(
-        resolve(ctx.outDir, "server/main.mjs")
-      )) as {
+      const { default: handler } = (await import(resolve(ctx.outDir, "server/main.mjs"))) as {
         default: (req: Request, _ctx: FunctionContext) => Promise<Response>;
       };
       return async ({ url: rawRelativeUrl, headers, method, body }) => {
@@ -40,10 +38,7 @@ describe("nitro:preset:netlify", async () => {
     },
     (_ctx, callHandler) => {
       it("adds route rules - redirects", async () => {
-        const redirects = await fsp.readFile(
-          resolve(ctx.outDir, "../dist/_redirects"),
-          "utf8"
-        );
+        const redirects = await fsp.readFile(resolve(ctx.outDir, "../dist/_redirects"), "utf8");
 
         expect(redirects).toMatchInlineSnapshot(`
         "/rules/nested/override	/other	302
@@ -56,10 +51,7 @@ describe("nitro:preset:netlify", async () => {
       });
 
       it("adds route rules - headers", async () => {
-        const headers = await fsp.readFile(
-          resolve(ctx.outDir, "../dist/_headers"),
-          "utf8"
-        );
+        const headers = await fsp.readFile(resolve(ctx.outDir, "../dist/_headers"), "utf8");
 
         expect(headers).toMatchInlineSnapshot(`
           "/rules/headers
@@ -116,9 +108,9 @@ describe("nitro:preset:netlify", async () => {
       describe("matching ISR route rule with no max-age", () => {
         it("sets Netlify-CDN-Cache-Control header with revalidation after 1 year and durable directive", async () => {
           const { headers } = await callHandler({ url: "/rules/isr" });
-          expect(
-            (headers as Record<string, string>)["netlify-cdn-cache-control"]
-          ).toBe("public, max-age=31536000, must-revalidate, durable");
+          expect((headers as Record<string, string>)["netlify-cdn-cache-control"]).toBe(
+            "public, max-age=31536000, must-revalidate, durable"
+          );
         });
 
         it("sets Cache-Control header with immediate revalidation", async () => {
@@ -132,9 +124,7 @@ describe("nitro:preset:netlify", async () => {
       describe("matching ISR route rule with a max-age", () => {
         it("sets Netlify-CDN-Cache-Control header with SWC=1yr, given max-age, and durable directive", async () => {
           const { headers } = await callHandler({ url: "/rules/isr-ttl" });
-          expect(
-            (headers as Record<string, string>)["netlify-cdn-cache-control"]
-          ).toBe(
+          expect((headers as Record<string, string>)["netlify-cdn-cache-control"]).toBe(
             "public, max-age=60, stale-while-revalidate=31536000, durable"
           );
         });
@@ -149,12 +139,8 @@ describe("nitro:preset:netlify", async () => {
 
       it("does not overwrite Cache-Control headers given a matching non-ISR route rule", async () => {
         const { headers } = await callHandler({ url: "/rules/dynamic" });
-        expect(
-          (headers as Record<string, string>)["cache-control"]
-        ).not.toBeDefined();
-        expect(
-          (headers as Record<string, string>)["netlify-cdn-cache-control"]
-        ).not.toBeDefined();
+        expect((headers as Record<string, string>)["cache-control"]).not.toBeDefined();
+        expect((headers as Record<string, string>)["netlify-cdn-cache-control"]).not.toBeDefined();
       });
 
       // Regression test for https://github.com/nitrojs/nitro/issues/2431
@@ -162,9 +148,9 @@ describe("nitro:preset:netlify", async () => {
         const { headers } = await callHandler({
           url: "/rules/isr-ttl?foo=bar",
         });
-        expect(
-          (headers as Record<string, string>)["netlify-cdn-cache-control"]
-        ).toBe("public, max-age=60, stale-while-revalidate=31536000, durable");
+        expect((headers as Record<string, string>)["netlify-cdn-cache-control"]).toBe(
+          "public, max-age=60, stale-while-revalidate=31536000, durable"
+        );
       });
     }
   );
