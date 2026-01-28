@@ -173,8 +173,8 @@
     "youch-core": "^0.3.3"
   },
   "peerDependencies": {
-    "rolldown": ">=1.0.0-beta.0",
-    "rollup": "^4",
+    "rolldown": ">=1.0.0-rc.2",
+    "rollup": "^4.57.0",
     "vite": "^7 || ^8 || >=8.0.0-0",
     "xml2js": "^0.6.2"
   },
@@ -194,7 +194,7 @@
   },
   "resolutions": {
     "nitro": "link:.",
-    "undici": "^7.18.2"
+    "undici": "^7.19.2"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"

@@ -6,7 +6,7 @@ settings:
 
 overrides:
   nitro: link:.
-  undici: ^7.18.2
+  undici: ^7.19.2
 
 importers:
 
@@ -46,7 +46,7 @@ importers:
         specifier: ^0.10.1
         version: 0.10.1
       undici:
-        specifier: ^7.18.2
+        specifier: ^7.19.2
         version: 7.19.2
       unenv:
         specifier: ^2.0.0-rc.24
