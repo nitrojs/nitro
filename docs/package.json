@@ -4,6 +4,9 @@
     "dev": "undocs dev",
     "build": "undocs build"
   },
+  "dependencies": {
+    "zod": "^4.3.6"
+  },
   "devDependencies": {
     "shaders": "^2.2.43",
     "undocs": "^0.4.15"
