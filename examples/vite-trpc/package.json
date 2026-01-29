@@ -10,6 +10,6 @@
     "@trpc/server": "^11.8.1",
     "nitro": "latest",
     "vite": "beta",
-    "zod": "^4.3.5"
+    "zod": "^4.3.6"
   }
 }

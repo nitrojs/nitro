@@ -6,7 +6,7 @@
     "dev": "vite dev"
   },
   "devDependencies": {
-    "@preact/preset-vite": "^2.10.2",
+    "@preact/preset-vite": "^2.10.3",
     "@tailwindcss/vite": "^4.1.18",
     "nitro": "latest",
     "preact": "^10.28.2",
