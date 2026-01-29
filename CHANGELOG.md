@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## v2.13.1
+
+[compare changes](https://github.com/nitrojs/nitro/compare/v2.13.0...v2.13.1)
+
+### 🏡 Chore
+
+- Update deps ([696dc3a9](https://github.com/nitrojs/nitro/commit/696dc3a9))
+
+### ❤️ Contributors
+
+- Pooya Parsa ([@pi0](https://github.com/pi0))
+
 ## v2.13.0
 
 [compare changes](https://github.com/nitrojs/nitro/compare/v2.12.9...v2.13.0)
