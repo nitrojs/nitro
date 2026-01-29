@@ -4,20 +4,24 @@ category: framework
 
 # Elysia
 
-> Use Elysia framework with Nitro.
+> Integrate Elysia with Nitro using the server entry.
 
-## Project Structure
+<!-- automd:dir-tree -->
 
 ```
-elysia/
-├── server.ts             # Elysia app
 ├── nitro.config.ts
+├── package.json
+├── README.md
+├── server.ts
+├── tsconfig.json
 └── vite.config.ts
 ```
 
-## How It Works
+<!-- /automd -->
 
-Create an Elysia app and export the compiled handler:
+## Server Entry
+
+<!-- automd:file src="server.ts" code -->
 
 ```ts [server.ts]
 import { Elysia } from "elysia";
@@ -29,6 +33,13 @@ app.get("/", () => "Hello, Elysia with Nitro!");
 export default app.compile();
 ```
 
+<!-- /automd -->
+
+Nitro auto-detects `server.ts` in your project root and uses it as the server entry. The Elysia app handles all incoming requests, giving you full control over routing and middleware.
+
+Call `app.compile()` before exporting to optimize the router for production.
+
 ## Learn More
 
+- [Server Entry](/docs/server-entry)
 - [Elysia Documentation](https://elysiajs.com/)

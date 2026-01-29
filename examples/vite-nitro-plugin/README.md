@@ -4,21 +4,26 @@ category: vite
 
 # Vite Nitro Plugin
 
-> Use Nitro as a Vite plugin.
+> Use Nitro as a Vite plugin for programmatic configuration.
 
-## Project Structure
+Instead of using a separate `nitro.config.ts`, you can configure Nitro directly in your Vite config. This gives you access to Nitro's setup hook where you can register routes and virtual modules programmatically.
+
+<!-- automd:dir-tree -->
 
 ```
-vite-nitro-plugin/
-├── vite.config.mjs       # Vite config with Nitro plugin
-└── tsconfig.json
+├── package.json
+├── README.md
+├── tsconfig.json
+└── vite.config.mjs
 ```
 
-## How It Works
+<!-- /automd -->
 
-Add Nitro as a Vite plugin:
+## Vite Configuration
 
-```ts [vite.config.mjs]
+<!-- automd:file src="vite.config.mjs" code -->
+
+```mjs [vite.config.mjs]
 import { defineConfig } from "vite";
 import { nitro } from "nitro/vite";
 
@@ -38,6 +43,10 @@ export default defineConfig({
   ],
 });
 ```
+
+<!-- /automd -->
+
+The config adds two plugins: the `nitro()` plugin and a custom plugin that uses the `nitro.setup` hook. Inside the setup function, you have access to Nitro's options object. This example registers a virtual route at `/` that maps to a virtual module `#virtual-by-plugin`, then defines that module inline.
 
 ## Learn More
 

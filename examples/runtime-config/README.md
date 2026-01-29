@@ -6,21 +6,28 @@ category: config
 
 > Environment-aware configuration with runtime access.
 
-## Project Structure
+Runtime config lets you define configuration values that can be overridden by environment variables at runtime.
+
+<!-- automd:dir-tree -->
 
 ```
-runtime-config/
-├── .env                  # Environment variables
-├── server.ts             # Access runtime config
-├── nitro.config.ts       # Define config schema
+├── .env
+├── .gitignore
+├── nitro.config.ts
+├── package.json
+├── README.md
+├── server.ts
+├── tsconfig.json
 └── vite.config.ts
 ```
 
-## How It Works
+<!-- /automd -->
 
-### Define Config Schema
+## Define Config Schema
 
-Declare your runtime config in `nitro.config.ts`:
+Declare your runtime config with default values in `nitro.config.ts`:
+
+<!-- automd:file src="nitro.config.ts" code -->
 
 ```ts [nitro.config.ts]
 import { defineConfig } from "nitro";
@@ -33,9 +40,13 @@ export default defineConfig({
 });
 ```
 
-### Access at Runtime
+<!-- /automd -->
 
-Use `useRuntimeConfig` to access values:
+## Access at Runtime
+
+Use `useRuntimeConfig` to access configuration values in your handlers:
+
+<!-- automd:file src="server.ts" code -->
 
 ```ts [server.ts]
 import { defineHandler } from "nitro/h3";
@@ -47,13 +58,20 @@ export default defineHandler((event) => {
 });
 ```
 
-### Environment Variables
+<!-- /automd -->
 
-Set values via environment variables prefixed with `NITRO_`:
+## Environment Variables
 
-```bash [.env]
-NITRO_API_KEY=your-secret-key
+Override config values via environment variables prefixed with `NITRO_`:
+
+<!-- automd:file src=".env" code -->
+
+```env [.env]
+# NEVER COMMIT SENSITIVE DATA. THIS IS ONLY FOR DEMO PURPOSES.
+NITRO_API_KEY=secret-api-key
 ```
+
+<!-- /automd -->
 
 ## Learn More
 

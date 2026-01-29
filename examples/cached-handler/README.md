@@ -6,18 +6,24 @@ category: features
 
 > Cache route responses with configurable bypass logic.
 
-## Project Structure
+This example shows how to cache an expensive operation (a 500 ms delay) and conditionally bypass the cache using a query parameter. On first request, the handler executes and caches the result. Subsequent requests return the cached response instantly until the cache expires or is bypassed.
+
+<!-- automd:dir-tree -->
 
 ```
-cached-handler/
-├── server.ts             # Cached handler
 ├── nitro.config.ts
+├── package.json
+├── README.md
+├── server.ts
+├── tsconfig.json
 └── vite.config.ts
 ```
 
+<!-- /automd -->
+
 ## How It Works
 
-Use `defineCachedHandler` to cache expensive operations:
+<!-- automd:file src="server.ts" code -->
 
 ```ts [server.ts]
 import { html } from "nitro/h3";
@@ -26,24 +32,18 @@ import { defineCachedHandler } from "nitro/cache";
 export default defineCachedHandler(
   async () => {
     await new Promise((resolve) => setTimeout(resolve, 500));
-
     return html`
       Response generated at ${new Date().toISOString()} (took 500ms)
       <br />(<a href="?skipCache=true">skip cache</a>)
     `;
   },
-  {
-    shouldBypassCache: ({ req }) => req.url.includes("skipCache=true")
-  }
+  { shouldBypassCache: ({ req }) => req.url.includes("skipCache=true") }
 );
 ```
 
-### Cache Options
+<!-- /automd -->
 
-- `maxAge` - Cache duration in seconds
-- `staleMaxAge` - Stale-while-revalidate duration
-- `shouldBypassCache` - Function to conditionally skip cache
-- `getKey` - Custom cache key generation
+The handler simulates a slow operation with a 500ms delay. As `defineCachedHandler` wraps it, the response is cached after the first execution. The `shouldBypassCache` option checks for `?skipCache=true` in the URL and when present the cache is skipped and the handler runs fresh.
 
 ## Learn More
 

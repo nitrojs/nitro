@@ -6,33 +6,58 @@ category: config
 
 > Automatic imports for utilities and composables.
 
-## Project Structure
+Functions exported from `server/utils/` are automatically available without explicit imports when auto-imports are enabled. Define a utility once and use it anywhere in your server code.
+
+<!-- automd:dir-tree -->
 
 ```
-auto-imports/
 ├── server/
 │   └── utils/
-│       └── hello.ts      # Auto-imported utility
-├── server.ts             # Uses auto-imported function
+│       └── hello.ts
 ├── nitro.config.ts
+├── package.json
+├── README.md
+├── server.ts
+├── tsconfig.json
 └── vite.config.ts
 ```
 
-## How It Works
+<!-- /automd -->
 
-### Defining Utilities
+## Configuration
 
-Create utilities in `server/utils/`:
+Enable auto-imports by setting `imports` in your config:
 
-```ts [server/utils/hello.ts]
+<!-- automd:file src="nitro.config.ts" code -->
+
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  serverDir: true,
+  imports: {},
+});
+```
+
+<!-- /automd -->
+
+## Using Auto Imports
+
+1. Create a utility file in `server/utils/`:
+
+<!-- automd:file src="server/utils/hello.ts" code -->
+
+```ts [hello.ts]
 export function makeGreeting(name: string) {
   return `Hello, ${name}!`;
 }
 ```
 
-### Using Auto-Imports
+<!-- /automd -->
 
-Utilities are automatically available without explicit imports:
+2. The function is available without importing it:
+
+<!-- automd:file src="server.ts" code -->
 
 ```ts [server.ts]
 import { defineHandler } from "nitro/h3";
@@ -40,6 +65,10 @@ import { makeGreeting } from "./server/utils/hello.ts";
 
 export default defineHandler(() => `<h1>${makeGreeting("Nitro")}</h1>`);
 ```
+
+<!-- /automd -->
+
+With this setup, any function exported from `server/utils/` becomes globally available. Nitro scans the directory and generates the necessary imports automatically.
 
 ## Learn More
 

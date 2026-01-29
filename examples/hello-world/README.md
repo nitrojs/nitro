@@ -6,18 +6,24 @@ category: features
 
 > Minimal Nitro server using the web standard fetch handler.
 
-## Project Structure
+The simplest Nitro server. Export an object with a `fetch` method that receives a standard `Request` and returns a `Response`. No frameworks, no abstractions, just the web platform.
+
+<!-- automd:dir-tree -->
 
 ```
-hello-world/
-├── server.ts         # Main server entry
-├── nitro.config.ts   # Nitro configuration
-└── vite.config.ts    # Vite configuration
+├── nitro.config.ts
+├── package.json
+├── README.md
+├── server.ts
+├── tsconfig.json
+└── vite.config.ts
 ```
 
-## How It Works
+<!-- /automd -->
 
-The `server.ts` file exports a default object with a `fetch` method that follows the web standard Fetch API:
+## Server Entry
+
+<!-- automd:file src="server.ts" code -->
 
 ```ts [server.ts]
 export default {
@@ -27,8 +33,26 @@ export default {
 };
 ```
 
-This is the foundation of all Nitro servers. The `fetch` handler receives a standard `Request` object and returns a `Response`.
+<!-- /automd -->
+
+The `fetch` method follows the same signature as Service Workers and Cloudflare Workers. This pattern works across all deployment targets because it uses web standards.
+
+## Vite Integration
+
+<!-- automd:file src="vite.config.ts" code -->
+
+```ts [vite.config.ts]
+import { defineConfig } from "vite";
+import { nitro } from "nitro/vite";
+
+export default defineConfig({ plugins: [nitro()] });
+```
+
+<!-- /automd -->
+
+Add the Nitro plugin to Vite and it handles the rest: dev server, hot reloading, and production builds.
 
 ## Learn More
 
 - [Server Entry](/docs/server-entry)
+- [Configuration](/docs/configuration)

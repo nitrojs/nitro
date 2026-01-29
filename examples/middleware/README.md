@@ -6,37 +6,50 @@ category: features
 
 > Request middleware for authentication, logging, and request modification.
 
-## Project Structure
+Middleware functions run before route handlers on every request. They can modify the request, add context, or return early responses.
+
+<!-- automd:dir-tree -->
 
 ```
-middleware/
 ├── server/
 │   └── middleware/
-│       └── auth.ts       # Auth middleware
-├── server.ts             # Main handler
+│       └── auth.ts
 ├── nitro.config.ts
+├── package.json
+├── README.md
+├── server.ts
+├── tsconfig.json
 └── vite.config.ts
 ```
 
-## How It Works
+<!-- /automd -->
 
-### Defining Middleware
+## Defining Middleware
 
-Middleware runs before route handlers. Create files in `server/middleware/`:
+Create files in `server/middleware/`. They run in alphabetical order:
 
-```ts [server/middleware/auth.ts]
+<!-- automd:file src="server/middleware/auth.ts" code -->
+
+```ts [auth.ts]
 import { defineMiddleware } from "nitro/h3";
 
 export default defineMiddleware((event) => {
-  event.context.auth = {
-    name: "User " + Math.round(Math.random() * 100)
-  };
+  event.context.auth = { name: "User " + Math.round(Math.random() * 100) };
 });
 ```
 
-### Accessing Context
+<!-- /automd -->
 
-Access middleware-added context in your handlers:
+Middleware can:
+- Add data to `event.context` for use in handlers
+- Return a response early to short-circuit the request
+- Modify request headers or other properties
+
+## Accessing Context in Handlers
+
+Data added to `event.context` in middleware is available in all subsequent handlers:
+
+<!-- automd:file src="server.ts" code -->
 
 ```ts [server.ts]
 import { defineHandler } from "nitro/h3";
@@ -45,6 +58,8 @@ export default defineHandler((event) => ({
   auth: event.context.auth,
 }));
 ```
+
+<!-- /automd -->
 
 ## Learn More
 

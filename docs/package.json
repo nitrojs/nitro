@@ -9,6 +9,6 @@
   },
   "devDependencies": {
     "shaders": "^2.2.43",
-    "undocs": "^0.4.15"
+    "undocs": "npm:undocs-nightly@latest"
   }
 }

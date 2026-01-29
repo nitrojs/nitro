@@ -6,17 +6,23 @@ category: features
 
 > Define routes programmatically using Nitro's virtual module system.
 
-## Project Structure
+Virtual routes let you define handlers as strings in your config instead of creating separate files. This is useful when generating routes dynamically, building plugins, or keeping simple routes inline.
+
+<!-- automd:dir-tree -->
 
 ```
-virtual-routes/
-├── nitro.config.ts       # Virtual route configuration
+├── nitro.config.ts
+├── package.json
+├── README.md
+├── tsconfig.json
 └── vite.config.ts
 ```
 
-## How It Works
+<!-- /automd -->
 
-Define virtual routes in your Nitro configuration:
+## Configuration
+
+<!-- automd:file src="nitro.config.ts" code -->
 
 ```ts [nitro.config.ts]
 import { defineConfig } from "nitro";
@@ -27,16 +33,16 @@ export default defineConfig({
   },
   virtual: {
     "#virtual-route": () =>
-      `export default () => new Response("Hello from virtual entry!")`,
+      /* js */ `export default () => new Response("Hello from virtual entry!")`,
   },
 });
 ```
 
-### How Virtual Modules Work
+<!-- /automd -->
 
-1. The `routes` option maps URL paths to virtual module identifiers
-2. The `virtual` option defines the module content as a string or function
-3. At build time, Nitro resolves these virtual modules
+The `routes` option maps URL paths to virtual module identifiers (prefixed with `#`). The `virtual` option defines the module content as a string or function returning a string. At build time, Nitro resolves these virtual modules to actual handlers.
+
+There are no route files in this project. The entire handler is defined inline in the config, and Nitro generates the route at build time.
 
 ## Learn More
 

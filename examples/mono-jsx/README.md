@@ -4,29 +4,38 @@ category: rendering
 
 # Mono JSX
 
-> Lightweight JSX rendering with mono-jsx.
+> Server-side JSX rendering in Nitro with mono-jsx.
 
-## Project Structure
+<!-- automd:dir-tree -->
 
 ```
-mono-jsx/
-├── server.tsx            # JSX server entry
 ├── nitro.config.ts
+├── package.json
+├── README.md
+├── server.tsx
+├── tsconfig.json
 └── vite.config.ts
 ```
 
-## How It Works
+<!-- /automd -->
 
-Use JSX syntax directly in your server entry:
+## Server Entry
+
+<!-- automd:file src="server.tsx" code -->
 
 ```tsx [server.tsx]
 export default () => (
   <html>
-    <h1>Nitro + mono-jsx works!</h1>
+    <h1>Nitro + mongo-jsx works!</h1>
   </html>
 );
 ```
 
+<!-- /automd -->
+
+Nitro auto-detects `server.tsx` and uses mono-jsx to transform JSX into HTML. Export a function that returns JSX, and Nitro sends the rendered HTML as the response.
+
 ## Learn More
 
 - [Renderer](/docs/renderer)
+- [mono-jsx](https://github.com/aspect-dev/mono-jsx)

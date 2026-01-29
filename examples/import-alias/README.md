@@ -6,25 +6,32 @@ category: config
 
 > Custom import aliases for cleaner module paths.
 
-## Project Structure
+Import aliases like `~` and `#` let you reference modules with shorter paths instead of relative imports.
+
+<!-- automd:dir-tree -->
 
 ```
-import-alias/
 ├── server/
 │   ├── routes/
-│   │   └── index.ts      # Route using aliases
+│   │   └── index.ts
 │   └── utils/
-│       └── math.ts       # Utility module
+│       └── math.ts
 ├── nitro.config.ts
+├── package.json
+├── README.md
+├── tsconfig.json
 └── vite.config.ts
 ```
 
-## How It Works
+<!-- /automd -->
 
-Import modules using configured aliases:
+## Importingi Using Aliases
 
-```ts [server/routes/index.ts]
+<!-- automd:file src="server/routes/index.ts" code -->
+
+```ts [index.ts]
 import { sum } from "~server/utils/math.ts";
+
 import { rand } from "#server/utils/math.ts";
 
 export default () => {
@@ -33,6 +40,14 @@ export default () => {
   return `The sum of ${a} + ${b} = ${result}`;
 };
 ```
+
+<!-- /automd -->
+
+The route imports the `sum` function using `~server/` and `rand` using `#server/`. Both resolve to the same `server/utils/math.ts` file. The handler generates two random numbers and returns their sum.
+
+<!-- /automd -->
+
+## Configuration
 
 Aliases can be configured in `package.json` imports field or `nitro.config.ts`.
 

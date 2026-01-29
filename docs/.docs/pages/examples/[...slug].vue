@@ -32,11 +32,6 @@ const exampleName = computed(() => {
   return route.path.replace(/^\/examples\//, '')
 })
 
-// StackBlitz URL for the example
-const stackblitzUrl = computed(() => {
-  return `https://stackblitz.com/fork/github/nitrojs/nitro/tree/main/examples/${exampleName.value}`
-})
-
 const breadcrumb = computed(() => [
   { label: 'Examples', icon: 'i-lucide-folder-code', to: '/examples' },
   { label: page.value?.title || exampleName.value },
@@ -75,24 +70,16 @@ useHead({
       </template>
       <template #links>
         <UButton
-          v-if="stackblitzUrl"
-          icon="i-simple-icons-stackblitz"
-          label="Open in StackBlitz"
-          color="neutral"
-          variant="outline"
-          size="sm"
-          :to="stackblitzUrl"
-          target="_blank"
-        />
-        <UButton
           icon="i-simple-icons-github"
           label="View Source"
           color="neutral"
-          variant="outline"
+          variant="soft"
           size="sm"
           :to="`https://github.com/${appConfig.docs.github}/tree/${appConfig.docs.branch || 'main'}/examples/${exampleName}`"
           target="_blank"
         />
+
+        <PageHeaderLinks />
       </template>
     </UPageHeader>
 

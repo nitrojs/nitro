@@ -4,20 +4,24 @@ category: rendering
 
 # Nano JSX
 
-> Lightweight JSX rendering with nano-jsx.
+> Server-side JSX rendering in Nitro with nano-jsx.
 
-## Project Structure
+<!-- automd:dir-tree -->
 
 ```
-nano-jsx/
-├── server.tsx            # JSX server entry
 ├── nitro.config.ts
+├── package.json
+├── README.md
+├── server.tsx
+├── tsconfig.json
 └── vite.config.ts
 ```
 
-## How It Works
+<!-- /automd -->
 
-Use nano-jsx for server-side JSX rendering:
+## Server Entry
+
+<!-- automd:file src="server.tsx" code -->
 
 ```tsx [server.tsx]
 import { defineHandler, html } from "h3";
@@ -28,7 +32,11 @@ export default defineHandler(() => {
 });
 ```
 
+<!-- /automd -->
+
+Nitro auto-detects `server.tsx` and uses it as the server entry. Use `renderSSR` from nano-jsx to convert JSX into an HTML string. The `html` helper from H3 sets the correct content type header.
+
 ## Learn More
 
-- [nano-jsx Documentation](https://nanojsx.io/)
 - [Renderer](/docs/renderer)
+- [nano-jsx](https://nanojsx.io/)
