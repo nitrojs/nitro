@@ -35,7 +35,7 @@ export default function publicAssets(nitro: Nitro) {
         const { errors } = await runParallel(
           new Set(files),
           async (id) => {
-            let mimeType = mime.getType(id.replace(/\.(gz|br)$/, "")) || "text/plain";
+            let mimeType = mime.getType(id.replace(/\.(gz|br|zst)$/, "")) || "text/plain";
             if (mimeType.startsWith("text")) {
               mimeType += "; charset=utf-8";
             }
@@ -54,6 +54,8 @@ export default function publicAssets(nitro: Nitro) {
               encoding = "gzip";
             } else if (id.endsWith(".br")) {
               encoding = "br";
+            } else if (id.endsWith(".zst")) {
+              encoding = "zstd";
             }
 
             assets[assetId] = {

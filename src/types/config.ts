@@ -339,6 +339,7 @@ export interface PublicAssetDir {
 export interface CompressOptions {
   gzip?: boolean;
   brotli?: boolean;
+  zstd?: boolean;
 }
 
 // Server assets
