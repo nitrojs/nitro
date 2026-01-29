@@ -9,7 +9,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "undocs": "npm:undocs-nightly@latest",
-    "shaders": "^2.2.48"
+    "shaders": "^2.2.48",
+    "undocs": "npm:undocs-nightly@latest"
   }
 }
