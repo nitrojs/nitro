@@ -422,6 +422,21 @@ export function testNitro(
     expect(data.json.error).toBe(true);
   });
 
+  it("handles errors with body property", async () => {
+    const { status, data } = await callHandler({
+      url: "/api/error-body",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    expect(status).toBe(500);
+    expect(data.error).toBe(true);
+    expect(data.message).toBe("Custom error message");
+    expect(data.data).toEqual({ instance: "local" });
+    // Body properties should be spread at top level
+    expect(data.code).toBe("urn:nitro:missing-error-code");
+  });
+
   it.skipIf(
     // TODO!
     ctx.preset === "vercel" && ctx.nitro?.options.vercel?.entryFormat === "node" && isWindows
