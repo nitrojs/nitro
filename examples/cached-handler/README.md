@@ -1,5 +1,7 @@
 ---
 category: features
+icon: i-lucide-clock
+defaultFile: server.ts
 ---
 
 # Cached Handler

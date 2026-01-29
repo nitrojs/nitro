@@ -1,5 +1,7 @@
 ---
 category: integrations
+icon: i-lucide-highlighter
+defaultFile: api/highlight.ts
 ---
 
 # Shiki

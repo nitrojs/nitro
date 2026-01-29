@@ -1,5 +1,7 @@
 ---
 category: config
+icon: i-lucide-at-sign
+defaultFile: server/routes/index.ts
 ---
 
 # Import Alias

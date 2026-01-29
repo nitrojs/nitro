@@ -1,5 +1,7 @@
 ---
-category: vite
+category: server side rendering
+icon: i-logos-html-5
+defaultFile: app/entry-server.ts
 ---
 
 # Vite SSR HTML

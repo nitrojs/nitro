@@ -1,5 +1,7 @@
 ---
-category: vite
+category: server side rendering
+icon: i-simple-icons-tanstack
+defaultFile: src/main.tsx
 ---
 
 # Vite SSR with TanStack Router

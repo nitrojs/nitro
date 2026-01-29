@@ -1,5 +1,7 @@
 ---
-category: rendering
+category: server side rendering
+icon: i-lucide-brackets
+defaultFile: server.tsx
 ---
 
 # Mono JSX

@@ -1,5 +1,7 @@
 ---
-category: framework
+category: backend frameworks
+icon: i-skill-icons-elysia-dark
+defaultFile: server.ts
 ---
 
 # Elysia

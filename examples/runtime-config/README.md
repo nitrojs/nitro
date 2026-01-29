@@ -1,5 +1,7 @@
 ---
 category: config
+icon: i-lucide-settings
+defaultFile: nitro.config.ts
 ---
 
 # Runtime Config

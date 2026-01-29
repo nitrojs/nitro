@@ -1,5 +1,7 @@
 ---
-category: vite
+category: server side rendering
+icon: i-logos-vue
+defaultFile: app/entry-server.ts
 ---
 
 # Vite SSR with Vue Router

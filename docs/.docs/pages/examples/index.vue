@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { categoryOrder, categoryIcons } from '~/utils/examples'
+
 definePageMeta({
   layout: 'examples',
 })
@@ -8,7 +10,7 @@ const appConfig = useAppConfig()
 // Fetch all examples
 const { data: examples } = await useAsyncData('examples-list', () =>
   queryCollection('examples')
-    .select('title', 'description', 'category', 'path')
+    .select('title', 'description', 'category', 'path', 'icon')
     .all(),
 )
 
@@ -26,18 +28,18 @@ const groupedExamples = computed(() => {
     groups[category].push(example)
   }
 
-  return groups
-})
+  // Sort groups by categoryOrder
+  const sortedEntries = Object.entries(groups).sort(([a], [b]) => {
+    const aIndex = categoryOrder.indexOf(a.toLowerCase())
+    const bIndex = categoryOrder.indexOf(b.toLowerCase())
+    if (aIndex === -1 && bIndex === -1) return a.localeCompare(b)
+    if (aIndex === -1) return 1
+    if (bIndex === -1) return -1
+    return aIndex - bIndex
+  })
 
-const categoryIcons: Record<string, string> = {
-  vite: 'i-logos-vitejs',
-  framework: 'i-lucide-puzzle',
-  features: 'i-lucide-sparkles',
-  rendering: 'i-lucide-brush',
-  config: 'i-lucide-settings',
-  integrations: 'i-lucide-plug',
-  other: 'i-lucide-folder',
-}
+  return Object.fromEntries(sortedEntries)
+})
 
 usePageSEO({
   title: `Examples - ${appConfig.site.name}`,
@@ -80,8 +82,8 @@ usePageSEO({
             :to="example.path.replace(/\/readme$/i, '')"
             :title="example.title"
             :description="example.description"
-          >
-          </UPageCard>
+            :icon="example.icon"
+          />
         </div>
       </div>
 

@@ -1,5 +1,7 @@
 ---
 category: vite
+icon: i-simple-icons-trpc
+defaultFile: server/trpc.ts
 ---
 
 # Vite + tRPC

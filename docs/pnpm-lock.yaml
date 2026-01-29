@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      automd:
+        specifier: ^0.4.3
+        version: 0.4.3(magicast@0.5.1)
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -2304,8 +2307,8 @@ packages:
   async@3.2.6:
     resolution: {integrity: sha512-htCUDlxyyCLMgaM3xXg0C0LW2xqfuQ6p05pCEIsXuyQ+a1koYKTuBMzRNwmybfLgvJDMd0r1LTn4+E0Ti6C2AA==}
 
-  automd@0.4.2:
-    resolution: {integrity: sha512-9Gey0OG4gu2IzoLbwRj2fqyntJPbEFox/5KdOgg0zflkzq5lyOapWE324xYOvVdk9hgyjiMvDcT6XUPAIJhmag==}
+  automd@0.4.3:
+    resolution: {integrity: sha512-5WJNEiaNpFm8h0OmQzhnESthadUQhJwQfka/TmmJpMudZ8qU9MZao9p0G1g7WYA9pVTz6FMMOSvxnfQ9g8q9vQ==}
     hasBin: true
 
   autoprefixer@10.4.23:
@@ -8171,11 +8174,11 @@ snapshots:
 
   async@3.2.6: {}
 
-  automd@0.4.2(magicast@0.5.1):
+  automd@0.4.3(magicast@0.5.1):
     dependencies:
       '@parcel/watcher': 2.5.6
       c12: 3.3.3(magicast@0.5.1)
-      citty: 0.1.6
+      citty: 0.2.0
       consola: 3.4.2
       defu: 6.1.4
       destr: 2.0.5
@@ -11740,7 +11743,7 @@ snapshots:
       '@nuxt/ui': 4.4.0(@nuxt/content@3.11.0(magicast@0.5.1))(@tiptap/extensions@3.17.1(@tiptap/core@3.17.1(@tiptap/pm@3.17.1))(@tiptap/pm@3.17.1))(@tiptap/y-tiptap@3.0.2(prosemirror-model@1.25.4)(prosemirror-state@1.4.4)(prosemirror-view@1.41.5)(y-protocols@1.0.7(yjs@13.6.29))(yjs@13.6.29))(db0@0.3.4)(embla-carousel@8.6.0)(ioredis@5.9.2)(magicast@0.5.1)(tailwindcss@4.1.18)(typescript@5.9.3)(vite@7.3.1(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2))(vue-router@4.6.4(vue@3.5.27(typescript@5.9.3)))(vue@3.5.27(typescript@5.9.3))(yjs@13.6.29)(zod@4.3.6)
       '@nuxtjs/plausible': 2.0.1(magicast@0.5.1)
       '@resvg/resvg-wasm': 2.6.2
-      automd: 0.4.2(magicast@0.5.1)
+      automd: 0.4.3(magicast@0.5.1)
       c12: 3.3.3(magicast@0.5.1)
       citty: 0.2.0
       consola: 3.4.2

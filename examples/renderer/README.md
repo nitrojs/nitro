@@ -1,5 +1,7 @@
 ---
-category: rendering
+category: server side rendering
+icon: i-lucide-code
+defaultFile: renderer.ts
 ---
 
 # Custom Renderer

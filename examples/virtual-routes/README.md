@@ -1,5 +1,7 @@
 ---
 category: features
+icon: i-lucide-box
+defaultFile: nitro.config.ts
 ---
 
 # Virtual Routes

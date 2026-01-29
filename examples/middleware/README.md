@@ -1,5 +1,7 @@
 ---
 category: features
+icon: i-lucide-layers
+defaultFile: server/middleware/auth.ts
 ---
 
 # Middleware

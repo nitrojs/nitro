@@ -1,5 +1,7 @@
 ---
 category: vite
+icon: i-logos-vitejs
+defaultFile: vite.config.mjs
 ---
 
 # Vite Nitro Plugin

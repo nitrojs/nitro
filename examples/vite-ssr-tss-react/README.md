@@ -1,5 +1,7 @@
 ---
-category: vite
+category: server side rendering
+icon: i-simple-icons-tanstack
+defaultFile: server.ts
 ---
 
 # Vite SSR with TanStack Start

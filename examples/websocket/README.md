@@ -1,5 +1,7 @@
 ---
 category: features
+icon: i-lucide-radio
+defaultFile: routes/_ws.ts
 ---
 
 # WebSocket

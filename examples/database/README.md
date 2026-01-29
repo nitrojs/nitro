@@ -1,5 +1,7 @@
 ---
 category: features
+icon: i-lucide-database
+defaultFile: server.ts
 ---
 
 # Database

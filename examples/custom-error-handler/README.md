@@ -1,5 +1,7 @@
 ---
 category: features
+icon: i-lucide-alert-circle
+defaultFile: error.ts
 ---
 
 # Custom Error Handler

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ContentNavigationItem } from '@nuxt/content'
+import { categoryOrder } from '~/utils/examples'
 
 // Fetch all examples and group by category
 const { data: examples } = await useAsyncData('examples-nav', () =>
@@ -25,9 +26,18 @@ const groupedExamples = computed(() => {
     })
   }
 
-  // Convert to navigation items with children
-  return Object.entries(groups).map(([category, items]) => ({
-    title: category.charAt(0).toUpperCase() + category.slice(1),
+  // Convert to navigation items with children, sorted by categoryOrder
+  const sortedEntries = Object.entries(groups).sort(([a], [b]) => {
+    const aIndex = categoryOrder.indexOf(a.toLowerCase())
+    const bIndex = categoryOrder.indexOf(b.toLowerCase())
+    if (aIndex === -1 && bIndex === -1) return a.localeCompare(b)
+    if (aIndex === -1) return 1
+    if (bIndex === -1) return -1
+    return aIndex - bIndex
+  })
+
+  return sortedEntries.map(([category, items]) => ({
+    title: category.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
     path: '',
     children: items,
   }))

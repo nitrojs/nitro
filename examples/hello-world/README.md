@@ -1,5 +1,7 @@
 ---
 category: features
+icon: i-lucide-sparkles
+defaultFile: server.ts
 ---
 
 # Hello World

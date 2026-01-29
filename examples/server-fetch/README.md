@@ -1,5 +1,7 @@
 ---
 category: features
+icon: i-lucide-arrow-right-left
+defaultFile: routes/index.ts
 ---
 
 # Server Fetch

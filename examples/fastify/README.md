@@ -1,5 +1,7 @@
 ---
-category: framework
+category: backend frameworks
+icon: i-simple-icons-fastify
+defaultFile: server.node.ts
 ---
 
 # Fastify

@@ -1,5 +1,7 @@
 ---
 category: vite
+icon: i-logos-react
+defaultFile: app/root.tsx
 ---
 
 # Vite RSC

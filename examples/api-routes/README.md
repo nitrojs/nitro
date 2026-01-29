@@ -1,5 +1,7 @@
 ---
 category: features
+icon: i-lucide-route
+defaultFile: api/hello.ts
 ---
 
 # API Routes

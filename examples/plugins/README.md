@@ -1,5 +1,7 @@
 ---
 category: features
+icon: i-lucide-plug
+defaultFile: server/plugins/test.ts
 ---
 
 # Plugins

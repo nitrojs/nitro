@@ -1,5 +1,7 @@
 ---
 category: config
+icon: i-lucide-import
+defaultFile: nitro.config.ts
 ---
 
 # Auto Imports

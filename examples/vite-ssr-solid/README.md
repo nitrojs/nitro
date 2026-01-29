@@ -1,5 +1,7 @@
 ---
-category: vite
+category: server side rendering
+icon: i-logos-solidjs-icon
+defaultFile: src/entry-server.tsx
 ---
 
 # Vite SSR with SolidJS

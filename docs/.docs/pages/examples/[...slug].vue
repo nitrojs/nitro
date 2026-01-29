@@ -92,7 +92,7 @@ useHead({
         repo="nitrojs/nitro"
         branch="main"
         :dir="`examples/${exampleName}`"
-        file="vite.config.ts"
+        :file="page.defaultFile"
         class="!mb-6"
       />
 

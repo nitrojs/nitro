@@ -1,5 +1,7 @@
 ---
-category: framework
+category: backend frameworks
+icon: i-logos-hono
+defaultFile: server.ts
 ---
 
 # Hono
