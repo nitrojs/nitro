@@ -1,23 +1,62 @@
 ---
 category: backend frameworks
 icon: i-logos-hono
-defaultFile: server.ts
 ---
 
 # Hono
 
 > Integrate Hono with Nitro using the server entry.
 
-<!-- automd:dir-tree -->
+<!-- automd:ui-code-tree src="." default="server.ts" ignore="README.md" expandAll -->
 
+::code-tree{defaultValue="server.ts" expandAll}
+
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({});
 ```
-├── nitro.config.ts
-├── package.json
-├── README.md
-├── server.ts
-├── tsconfig.json
-└── vite.config.ts
+
+```json [package.json]
+{
+  "type": "module",
+  "scripts": {
+    "build": "nitro build",
+    "dev": "nitro dev"
+  },
+  "devDependencies": {
+    "hono": "^4.11.7",
+    "nitro": "latest"
+  }
+}
 ```
+
+```ts [server.ts]
+import { Hono } from "hono";
+
+const app = new Hono();
+
+app.get("/", (c) => {
+  return c.text("Hello, Hono with Nitro!");
+});
+
+export default app;
+```
+
+```json [tsconfig.json]
+{
+  "extends": "nitro/tsconfig"
+}
+```
+
+```ts [vite.config.ts]
+import { defineConfig } from "vite";
+import { nitro } from "nitro/vite";
+
+export default defineConfig({ plugins: [nitro()] });
+```
+
+::
 
 <!-- /automd -->
 

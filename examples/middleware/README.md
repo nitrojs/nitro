@@ -1,30 +1,71 @@
 ---
 category: features
 icon: i-lucide-layers
-defaultFile: server/middleware/auth.ts
 ---
 
 # Middleware
 
 > Request middleware for authentication, logging, and request modification.
 
-Middleware functions run before route handlers on every request. They can modify the request, add context, or return early responses.
+<!-- automd:ui-code-tree src="." default="server/middleware/auth.ts" ignore="README.md" expandAll -->
 
-<!-- automd:dir-tree -->
+::code-tree{defaultValue="server/middleware/auth.ts" expandAll}
 
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  serverDir: true,
+});
 ```
-├── server/
-│   └── middleware/
-│       └── auth.ts
-├── nitro.config.ts
-├── package.json
-├── README.md
-├── server.ts
-├── tsconfig.json
-└── vite.config.ts
+
+```json [package.json]
+{
+  "type": "module",
+  "scripts": {
+    "dev": "nitro dev",
+    "build": "nitro build"
+  },
+  "devDependencies": {
+    "nitro": "latest"
+  }
+}
 ```
+
+```ts [server.ts]
+import { defineHandler } from "nitro/h3";
+
+export default defineHandler((event) => ({
+  auth: event.context.auth,
+}));
+```
+
+```json [tsconfig.json]
+{
+  "extends": "nitro/tsconfig"
+}
+```
+
+```ts [vite.config.ts]
+import { defineConfig } from "vite";
+import { nitro } from "nitro/vite";
+
+export default defineConfig({ plugins: [nitro()] });
+```
+
+```ts [server/middleware/auth.ts]
+import { defineMiddleware } from "nitro/h3";
+
+export default defineMiddleware((event) => {
+  event.context.auth = { name: "User " + Math.round(Math.random() * 100) };
+});
+```
+
+::
 
 <!-- /automd -->
+
+Middleware functions run before route handlers on every request. They can modify the request, add context, or return early responses.
 
 ## Defining Middleware
 

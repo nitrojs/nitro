@@ -1,29 +1,84 @@
 ---
 category: server side rendering
 icon: i-lucide-code
-defaultFile: renderer.ts
 ---
 
 # Custom Renderer
 
 > Build a custom HTML renderer in Nitro with server-side data fetching.
 
-Create a custom renderer that generates HTML responses with data from API routes. Use Nitro's internal `fetch` to call routes without network overhead.
+<!-- automd:ui-code-tree src="." default="renderer.ts" ignore="README.md" expandAll -->
 
-<!-- automd:dir-tree -->
+::code-tree{defaultValue="renderer.ts" expandAll}
 
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  serverDir: "./",
+  renderer: { handler: "./renderer" },
+});
 ```
-├── api/
-│   └── hello.ts
-├── nitro.config.ts
-├── package.json
-├── README.md
-├── renderer.ts
-├── tsconfig.json
-└── vite.config.ts
+
+```json [package.json]
+{
+  "type": "module",
+  "scripts": {
+    "dev": "nitro dev",
+    "build": "nitro build"
+  },
+  "devDependencies": {
+    "nitro": "latest"
+  }
+}
 ```
+
+```ts [renderer.ts]
+import { fetch } from "nitro";
+
+export default async function renderer({ url }: { req: Request; url: URL }) {
+  const apiRes = await fetch("/api/hello").then((res) => res.text());
+  return new Response(
+    /* html */ `<!DOCTYPE html>
+    <html>
+    <head>
+      <title>Custom Renderer</title>
+    </head>
+    <body>
+      <h1>Hello from custom renderer!</h1>
+      <p>Current path: ${url.pathname}</p>
+      <p>API says: ${apiRes}</p>
+    </body>
+    </html>`,
+    { headers: { "content-type": "text/html; charset=utf-8" } }
+  );
+}
+```
+
+```json [tsconfig.json]
+{
+  "extends": "nitro/tsconfig"
+}
+```
+
+```ts [vite.config.ts]
+import { defineConfig } from "vite";
+import { nitro } from "nitro/vite";
+
+export default defineConfig({ plugins: [nitro()] });
+```
+
+```ts [api/hello.ts]
+import { defineHandler } from "nitro/h3";
+
+export default defineHandler(() => "Nitro is amazing!");
+```
+
+::
 
 <!-- /automd -->
+
+Create a custom renderer that generates HTML responses with data from API routes. Use Nitro's internal `fetch` to call routes without network overhead.
 
 ## Renderer
 

@@ -1,29 +1,188 @@
 ---
 category: vite
 icon: i-simple-icons-trpc
-defaultFile: server/trpc.ts
 ---
 
 # Vite + tRPC
 
 > End-to-end typesafe APIs with tRPC in Nitro using Vite.
 
-Set up tRPC with Vite and Nitro for end-to-end typesafe APIs without code generation. This example builds a counter with server-side rendering for the initial value and client-side updates.
+<!-- automd:ui-code-tree src="." default="server/trpc.ts" ignore="README.md" expandAll -->
 
-<!-- automd:dir-tree -->
+::code-tree{defaultValue="server/trpc.ts" expandAll}
 
+```text [.gitignore]
+node_modules
+dist
 ```
-├── server/
-│   └── trpc.ts
-├── .gitignore
-├── index.html
-├── package.json
-├── README.md
-├── tsconfig.json
-└── vite.config.ts
+
+```html [index.html]
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>tRPC Counter</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        background: #0f1115;
+        color: #e5e7eb;
+        display: grid;
+        place-items: center;
+        height: 100vh;
+        margin: 0;
+      }
+
+      .box {
+        background: #181b22;
+        padding: 24px 32px;
+        border-radius: 10px;
+        text-align: center;
+        min-width: 200px;
+      }
+
+      button {
+        background: #2563eb;
+        border: none;
+        color: white;
+        padding: 8px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+        margin-top: 12px;
+        font-size: 14px;
+      }
+
+      button:hover {
+        background: #1d4ed8;
+      }
+
+      .value {
+        font-size: 36px;
+        margin: 12px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <div>Counter</div>
+      <div class="value" id="value">
+        <script server>
+          // Server-side Rendering
+          const { result } = await serverFetch("/trpc/get").then(r => r.json())
+          echo(result?.data?.value)
+        </script>
+      </div>
+      <button id="inc">Increment</button>
+    </div>
+
+    <script setup>
+      const valueEl = document.getElementById("value");
+      const incBtn = document.getElementById("inc");
+
+      async function call(path, body) {
+        const res = await fetch(`/trpc/${path}`, {
+          method: body ? "POST" : "GET",
+          headers: { "content-type": "application/json" },
+          body: body ? JSON.stringify(body) : undefined,
+        });
+
+        const json = await res.json();
+        return json.result.data;
+      }
+
+      async function refresh() {
+        const data = await call("get");
+        valueEl.textContent = data.value;
+      }
+
+      incBtn.onclick = async () => {
+        const data = await call("inc", {});
+        valueEl.textContent = data.value;
+      };
+
+      refresh();
+    </script>
+  </body>
+</html>
 ```
+
+```json [package.json]
+{
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@trpc/client": "^11.8.1",
+    "@trpc/server": "^11.8.1",
+    "nitro": "latest",
+    "vite": "beta",
+    "zod": "^4.3.6"
+  }
+}
+```
+
+```json [tsconfig.json]
+{
+  "extends": "nitro/tsconfig",
+  "compilerOptions": {}
+}
+```
+
+```ts [vite.config.ts]
+import { defineConfig } from "vite";
+import { nitro } from "nitro/vite";
+
+export default defineConfig({
+  plugins: [
+    nitro({
+      routes: {
+        "/trpc/**": "./server/trpc.ts",
+      },
+    }),
+  ],
+});
+```
+
+```ts [server/trpc.ts]
+import { initTRPC } from "@trpc/server";
+import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
+
+let counter = 0;
+
+const t = initTRPC.create();
+
+export const appRouter = t.router({
+  get: t.procedure.query(() => {
+    return { value: counter };
+  }),
+
+  inc: t.procedure.mutation(() => {
+    counter++;
+    return { value: counter };
+  }),
+});
+
+export type AppRouter = typeof appRouter;
+
+export default {
+  async fetch(request: Request): Promise<Response> {
+    return fetchRequestHandler({
+      endpoint: "/trpc",
+      req: request,
+      router: appRouter,
+    });
+  },
+};
+```
+
+::
 
 <!-- /automd -->
+
+Set up tRPC with Vite and Nitro for end-to-end typesafe APIs without code generation. This example builds a counter with server-side rendering for the initial value and client-side updates.
 
 ## Overview
 

@@ -1,26 +1,62 @@
 ---
 category: features
 icon: i-lucide-box
-defaultFile: nitro.config.ts
 ---
 
 # Virtual Routes
 
 > Define routes programmatically using Nitro's virtual module system.
 
-Virtual routes let you define handlers as strings in your config instead of creating separate files. This is useful when generating routes dynamically, building plugins, or keeping simple routes inline.
+<!-- automd:ui-code-tree src="." default="nitro.config.ts" ignore="README.md" expandAll -->
 
-<!-- automd:dir-tree -->
+::code-tree{defaultValue="nitro.config.ts" expandAll}
 
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  routes: {
+    "/": "#virtual-route",
+  },
+  virtual: {
+    "#virtual-route": () =>
+      /* js */ `export default () => new Response("Hello from virtual entry!")`,
+  },
+});
 ```
-├── nitro.config.ts
-├── package.json
-├── README.md
-├── tsconfig.json
-└── vite.config.ts
+
+```json [package.json]
+{
+  "type": "module",
+  "scripts": {
+    "build": "nitro build",
+    "dev": "nitro dev",
+    "preview": "node .output/server/index.mjs"
+  },
+  "devDependencies": {
+    "nitro": "latest"
+  }
+}
 ```
+
+```json [tsconfig.json]
+{
+  "extends": "nitro/tsconfig"
+}
+```
+
+```ts [vite.config.ts]
+import { defineConfig } from "vite";
+import { nitro } from "nitro/vite";
+
+export default defineConfig({ plugins: [nitro()] });
+```
+
+::
 
 <!-- /automd -->
+
+Virtual routes let you define handlers as strings in your config instead of creating separate files. This is useful when generating routes dynamically, building plugins, or keeping simple routes inline.
 
 ## Configuration
 

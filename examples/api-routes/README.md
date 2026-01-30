@@ -1,33 +1,104 @@
 ---
 category: features
 icon: i-lucide-route
-defaultFile: api/hello.ts
 ---
 
 # API Routes
 
 > File-based API routing with HTTP method support and dynamic parameters.
 
-Nitro supports file-based routing in the `api/` or `routes/` directory. Each file becomes an API endpoint based on its path.
+<!-- automd:ui-code-tree src="." default="api/hello.ts" ignore="README.md" expandAll -->
 
-<!-- automd:dir-tree -->
+::code-tree{defaultValue="api/hello.ts" expandAll}
 
+```html [index.html]
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>API Routes</title>
+  </head>
+  <body>
+    <h2>API Routes:</h2>
+    <ul>
+      <li><a href="/api/hello">/api/hello</a></li>
+      <li><a href="/api/hello/world">/api/hello/world</a></li>
+      <li><a href="/api/test">/api/test</a></li>
+    </ul>
+  </body>
+</html>
 ```
-├── api/
-│   ├── hello/
-│   │   └── [name].ts
-│   ├── hello.ts
-│   ├── test.get.ts
-│   └── test.post.ts
-├── index.html
-├── nitro.config.ts
-├── package.json
-├── README.md
-├── tsconfig.json
-└── vite.config.ts
+
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  serverDir: "./",
+});
 ```
+
+```json [package.json]
+{
+  "type": "module",
+  "scripts": {
+    "dev": "nitro dev",
+    "build": "nitro build"
+  },
+  "devDependencies": {
+    "nitro": "latest"
+  }
+}
+```
+
+```json [tsconfig.json]
+{
+  "extends": "nitro/tsconfig"
+}
+```
+
+```ts [vite.config.ts]
+import { defineConfig } from "vite";
+import { nitro } from "nitro/vite";
+
+export default defineConfig({ plugins: [nitro()] });
+```
+
+```ts [api/hello.ts]
+import { defineHandler } from "nitro/h3";
+
+export default defineHandler(() => "Nitro is amazing!");
+```
+
+```ts [api/test.get.ts]
+import { defineHandler } from "nitro/h3";
+
+export default defineHandler(() => "Test get handler");
+```
+
+```ts [api/test.post.ts]
+import { defineHandler } from "h3";
+
+export default defineHandler(async (event) => {
+  const body = await event.req.json();
+  return {
+    message: "Test post handler",
+    body,
+  };
+});
+```
+
+```ts [api/hello/[name].ts]
+import { defineHandler } from "nitro/h3";
+
+export default defineHandler((event) => `Hello (param: ${event.context.params!.name})!`);
+```
+
+::
 
 <!-- /automd -->
+
+Nitro supports file-based routing in the `api/` or `routes/` directory. Each file becomes an API endpoint based on its path.
 
 ## Basic Route
 

@@ -1,27 +1,63 @@
 ---
 category: features
 icon: i-lucide-sparkles
-defaultFile: server.ts
 ---
 
 # Hello World
 
 > Minimal Nitro server using the web standard fetch handler.
 
-The simplest Nitro server. Export an object with a `fetch` method that receives a standard `Request` and returns a `Response`. No frameworks, no abstractions, just the web platform.
+<!-- automd:ui-code-tree src="." default="server.ts" ignore="README.md" expandAll -->
 
-<!-- automd:dir-tree -->
+::code-tree{defaultValue="server.ts" expandAll}
 
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({});
 ```
-├── nitro.config.ts
-├── package.json
-├── README.md
-├── server.ts
-├── tsconfig.json
-└── vite.config.ts
+
+```json [package.json]
+{
+  "type": "module",
+  "scripts": {
+    "build": "nitro build",
+    "dev": "nitro dev",
+    "preview": "node .output/server/index.mjs"
+  },
+  "devDependencies": {
+    "nitro": "latest"
+  }
+}
 ```
+
+```ts [server.ts]
+export default {
+  fetch(req: Request) {
+    return new Response("Nitro Works!");
+  },
+};
+```
+
+```json [tsconfig.json]
+{
+  "extends": "nitro/tsconfig"
+}
+```
+
+```ts [vite.config.ts]
+import { defineConfig } from "vite";
+import { nitro } from "nitro/vite";
+
+export default defineConfig({ plugins: [nitro()] });
+```
+
+::
 
 <!-- /automd -->
+
+The simplest Nitro server. Export an object with a `fetch` method that receives a standard `Request` and returns a `Response`. No frameworks, no abstractions, just the web platform.
+
 
 ## Server Entry
 
@@ -39,16 +75,6 @@ export default {
 
 The `fetch` method follows the same signature as Service Workers and Cloudflare Workers. This pattern works across all deployment targets because it uses web standards.
 
-## Vite Integration
-
-<!-- automd:file src="vite.config.ts" code -->
-
-```ts [vite.config.ts]
-import { defineConfig } from "vite";
-import { nitro } from "nitro/vite";
-
-export default defineConfig({ plugins: [nitro()] });
-```
 
 <!-- /automd -->
 

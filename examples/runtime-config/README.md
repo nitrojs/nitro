@@ -1,29 +1,78 @@
 ---
 category: config
 icon: i-lucide-settings
-defaultFile: nitro.config.ts
 ---
 
 # Runtime Config
 
 > Environment-aware configuration with runtime access.
 
-Runtime config lets you define configuration values that can be overridden by environment variables at runtime.
+<!-- automd:ui-code-tree src="." default="nitro.config.ts" ignore="README.md" expandAll -->
 
-<!-- automd:dir-tree -->
+::code-tree{defaultValue="nitro.config.ts" expandAll}
 
+```text [.env]
+# NEVER COMMIT SENSITIVE DATA. THIS IS ONLY FOR DEMO PURPOSES.
+NITRO_API_KEY=secret-api-key
 ```
-├── .env
-├── .gitignore
-├── nitro.config.ts
-├── package.json
-├── README.md
-├── server.ts
-├── tsconfig.json
-└── vite.config.ts
+
+```text [.gitignore]
+# THIS IS ONLY FOR DEMO. DO NOT COMMIT SENSITIVE DATA IN REAL PROJECTS
+!.env
 ```
+
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  serverDir: "./",
+  runtimeConfig: {
+    apiKey: "",
+  },
+});
+```
+
+```json [package.json]
+{
+  "type": "module",
+  "scripts": {
+    "dev": "nitro dev",
+    "build": "nitro build"
+  },
+  "devDependencies": {
+    "nitro": "latest"
+  }
+}
+```
+
+```ts [server.ts]
+import { defineHandler } from "nitro/h3";
+import { useRuntimeConfig } from "nitro/runtime-config";
+
+export default defineHandler((event) => {
+  const runtimeConfig = useRuntimeConfig();
+  return { runtimeConfig };
+});
+```
+
+```json [tsconfig.json]
+{
+  "extends": "nitro/tsconfig"
+}
+```
+
+```ts [vite.config.ts]
+import { defineConfig } from "vite";
+import { nitro } from "nitro/vite";
+
+export default defineConfig({ plugins: [nitro()] });
+```
+
+::
 
 <!-- /automd -->
+
+Runtime config lets you define configuration values that can be overridden by environment variables at runtime.
 
 ## Define Config Schema
 

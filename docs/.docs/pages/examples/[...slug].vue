@@ -70,8 +70,18 @@ useHead({
       </template>
       <template #links>
         <UButton
+          icon="i-simple-icons-stackblitz"
+          label="Open in Playground"
+          color="neutral"
+          variant="soft"
+          size="sm"
+          :to="`https://stackblitz.com/fork/github/${appConfig.docs.github}/tree/${appConfig.docs.branch || 'main'}/examples/${exampleName}`"
+          target="_blank"
+        />
+
+        <UButton
           icon="i-simple-icons-github"
-          label="View Source"
+          label="Source"
           color="neutral"
           variant="soft"
           size="sm"
@@ -88,14 +98,6 @@ useHead({
     </template>
 
     <UPageBody prose class="break-words">
-      <Sandbox
-        repo="nitrojs/nitro"
-        branch="main"
-        :dir="`examples/${exampleName}`"
-        :file="page.defaultFile"
-        class="!mb-6"
-      />
-
       <ContentRenderer v-if="page.body" :value="page" />
 
       <div class="space-y-6">

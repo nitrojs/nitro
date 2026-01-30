@@ -1,30 +1,73 @@
 ---
 category: features
 icon: i-lucide-plug
-defaultFile: server/plugins/test.ts
 ---
 
 # Plugins
 
 > Extend Nitro with custom plugins for hooks and lifecycle events.
 
-Plugins let you hook into Nitro's runtime lifecycle. This example shows a plugin that modifies the `Content-Type` header on every response. Create files in `server/plugins/` and they're automatically loaded at startup.
+<!-- automd:ui-code-tree src="." default="server/plugins/test.ts" ignore="README.md" expandAll -->
 
-<!-- automd:dir-tree -->
+::code-tree{defaultValue="server/plugins/test.ts" expandAll}
 
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  serverDir: true,
+});
 ```
-├── server/
-│   └── plugins/
-│       └── test.ts
-├── nitro.config.ts
-├── package.json
-├── README.md
-├── server.ts
-├── tsconfig.json
-└── vite.config.ts
+
+```json [package.json]
+{
+  "type": "module",
+  "scripts": {
+    "dev": "nitro dev",
+    "build": "nitro build"
+  },
+  "devDependencies": {
+    "nitro": "latest"
+  }
+}
 ```
+
+```ts [server.ts]
+import { eventHandler } from "h3";
+
+export default eventHandler(() => "<h1>Hello Nitro!</h1>");
+```
+
+```json [tsconfig.json]
+{
+  "extends": "nitro/tsconfig"
+}
+```
+
+```ts [vite.config.ts]
+import { defineConfig } from "vite";
+import { nitro } from "nitro/vite";
+
+export default defineConfig({ plugins: [nitro()] });
+```
+
+```ts [server/plugins/test.ts]
+import { definePlugin } from "nitro";
+import { useNitroHooks } from "nitro/app";
+
+export default definePlugin((nitroApp) => {
+  const hooks = useNitroHooks();
+  hooks.hook("response", (event) => {
+    event.headers.set("content-type", "html; charset=utf-8");
+  });
+});
+```
+
+::
 
 <!-- /automd -->
+
+Plugins let you hook into Nitro's runtime lifecycle. This example shows a plugin that modifies the `Content-Type` header on every response. Create files in `server/plugins/` and they're automatically loaded at startup.
 
 ## Defining a Plugin
 

@@ -1,25 +1,63 @@
 ---
 category: vite
 icon: i-logos-vitejs
-defaultFile: vite.config.mjs
 ---
 
 # Vite Nitro Plugin
 
 > Use Nitro as a Vite plugin for programmatic configuration.
 
-Instead of using a separate `nitro.config.ts`, you can configure Nitro directly in your Vite config. This gives you access to Nitro's setup hook where you can register routes and virtual modules programmatically.
+<!-- automd:ui-code-tree src="." default="vite.config.mjs" ignore="README.md" expandAll -->
 
-<!-- automd:dir-tree -->
+::code-tree{defaultValue="vite.config.mjs" expandAll}
 
+```json [package.json]
+{
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "preview": "vite preview",
+    "dev": "vite dev"
+  },
+  "devDependencies": {
+    "nitro": "latest",
+    "vite": "beta"
+  }
+}
 ```
-├── package.json
-├── README.md
-├── tsconfig.json
-└── vite.config.mjs
+
+```json [tsconfig.json]
+{
+  "extends": "nitro/tsconfig"
+}
 ```
+
+```js [vite.config.mjs]
+import { defineConfig } from "vite";
+import { nitro } from "nitro/vite";
+
+export default defineConfig({
+  plugins: [
+    nitro(),
+    {
+      name: "my-nitro-plugin",
+      nitro: {
+        setup: (nitro) => {
+          nitro.options.routes["/"] = "#virtual-by-plugin";
+          nitro.options.virtual["#virtual-by-plugin"] =
+            `export default () => new Response("Hello from virtual entry!")`;
+        },
+      },
+    },
+  ],
+});
+```
+
+::
 
 <!-- /automd -->
+
+Instead of using a separate `nitro.config.ts`, you can configure Nitro directly in your Vite config. This gives you access to Nitro's setup hook where you can register routes and virtual modules programmatically.
 
 ## Vite Configuration
 

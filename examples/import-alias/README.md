@@ -1,31 +1,89 @@
 ---
 category: config
 icon: i-lucide-at-sign
-defaultFile: server/routes/index.ts
 ---
 
 # Import Alias
 
 > Custom import aliases for cleaner module paths.
 
-Import aliases like `~` and `#` let you reference modules with shorter paths instead of relative imports.
+<!-- automd:ui-code-tree src="." default="server/routes/index.ts" ignore="README.md" expandAll -->
 
-<!-- automd:dir-tree -->
+::code-tree{defaultValue="server/routes/index.ts" expandAll}
 
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  serverDir: true,
+  experimental: {
+    tsconfigPaths: true,
+  },
+});
 ```
-├── server/
-│   ├── routes/
-│   │   └── index.ts
-│   └── utils/
-│       └── math.ts
-├── nitro.config.ts
-├── package.json
-├── README.md
-├── tsconfig.json
-└── vite.config.ts
+
+```json [package.json]
+{
+  "type": "module",
+  "imports": {
+    "#server/*": "./server/*"
+  },
+  "scripts": {
+    "build": "nitro build",
+    "dev": "nitro dev",
+    "preview": "node .output/server/index.mjs"
+  },
+  "devDependencies": {
+    "nitro": "latest"
+  }
+}
 ```
+
+```json [tsconfig.json]
+{
+  "extends": "nitro/tsconfig",
+  "compilerOptions": {
+    "paths": {
+      "~server/*": ["./server/*"]
+    }
+  }
+}
+```
+
+```ts [vite.config.ts]
+import { defineConfig } from "vite";
+import { nitro } from "nitro/vite";
+
+export default defineConfig({ plugins: [nitro()] });
+```
+
+```ts [server/routes/index.ts]
+import { sum } from "~server/utils/math.ts";
+
+import { rand } from "#server/utils/math.ts";
+
+export default () => {
+  const [a, b] = [rand(1, 10), rand(1, 10)];
+  const result = sum(a, b);
+  return `The sum of ${a} + ${b} = ${result}`;
+};
+```
+
+```ts [server/utils/math.ts]
+export function rand(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+export function sum(a: number, b: number): number {
+  return a + b;
+}
+```
+
+::
 
 <!-- /automd -->
+
+Import aliases like `~` and `#` let you reference modules with shorter paths instead of relative imports.
 
 ## Importingi Using Aliases
 

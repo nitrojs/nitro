@@ -1,23 +1,62 @@
 ---
 category: backend frameworks
 icon: i-simple-icons-fastify
-defaultFile: server.node.ts
 ---
 
 # Fastify
 
 > Integrate Fastify with Nitro using the server entry.
 
-<!-- automd:dir-tree -->
+<!-- automd:ui-code-tree src="." default="server.node.ts" ignore="README.md" expandAll -->
 
+::code-tree{defaultValue="server.node.ts" expandAll}
+
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({});
 ```
-├── nitro.config.ts
-├── package.json
-├── README.md
-├── server.node.ts
-├── tsconfig.json
-└── vite.config.ts
+
+```json [package.json]
+{
+  "type": "module",
+  "scripts": {
+    "build": "nitro build",
+    "dev": "nitro dev"
+  },
+  "devDependencies": {
+    "fastify": "^5.7.2",
+    "nitro": "latest"
+  }
+}
 ```
+
+```ts [server.node.ts]
+import Fastify from "fastify";
+
+const app = Fastify();
+
+app.get("/", () => "Hello, Fastify with Nitro!");
+
+await app.ready();
+
+export default app.routing;
+```
+
+```json [tsconfig.json]
+{
+  "extends": "nitro/tsconfig"
+}
+```
+
+```ts [vite.config.ts]
+import { defineConfig } from "vite";
+import { nitro } from "nitro/vite";
+
+export default defineConfig({ plugins: [nitro()] });
+```
+
+::
 
 <!-- /automd -->
 

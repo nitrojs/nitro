@@ -14,7 +14,6 @@ export default defineContentConfig({
       schema: z.object({
         category: z.string().optional(),
         icon: z.string().optional(),
-        defaultFile: z.string().optional(),
       }),
     }),
   },

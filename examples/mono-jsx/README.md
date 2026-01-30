@@ -1,23 +1,62 @@
 ---
 category: server side rendering
 icon: i-lucide-brackets
-defaultFile: server.tsx
 ---
 
 # Mono JSX
 
 > Server-side JSX rendering in Nitro with mono-jsx.
 
-<!-- automd:dir-tree -->
+<!-- automd:ui-code-tree src="." default="server.tsx" ignore="README.md" expandAll -->
 
+::code-tree{defaultValue="server.tsx" expandAll}
+
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({});
 ```
-├── nitro.config.ts
-├── package.json
-├── README.md
-├── server.tsx
-├── tsconfig.json
-└── vite.config.ts
+
+```json [package.json]
+{
+  "type": "module",
+  "scripts": {
+    "dev": "nitro dev",
+    "build": "nitro build"
+  },
+  "devDependencies": {
+    "mono-jsx": "latest",
+    "nitro": "latest"
+  }
+}
 ```
+
+```tsx [server.tsx]
+export default () => (
+  <html>
+    <h1>Nitro + mongo-jsx works!</h1>
+  </html>
+);
+```
+
+```json [tsconfig.json]
+{
+  "extends": "nitro/tsconfig",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "mono-jsx"
+  }
+}
+```
+
+```ts [vite.config.ts]
+import { defineConfig } from "vite";
+import { nitro } from "nitro/vite";
+
+export default defineConfig({ plugins: [nitro()] });
+```
+
+::
 
 <!-- /automd -->
 
