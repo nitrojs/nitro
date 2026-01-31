@@ -3,7 +3,7 @@ category: server side rendering
 icon: i-simple-icons-tanstack
 ---
 
-# Vite SSR with TanStack Router
+# SSR with TanStack Router
 
 > Client-side routing with TanStack Router in Nitro using Vite.
 

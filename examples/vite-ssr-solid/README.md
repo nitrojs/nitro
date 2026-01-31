@@ -3,7 +3,7 @@ category: server side rendering
 icon: i-logos-solidjs-icon
 ---
 
-# Vite SSR with SolidJS
+# SSR with SolidJS
 
 > Server-side rendering with SolidJS in Nitro using Vite.
 

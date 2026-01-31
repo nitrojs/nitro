@@ -3,7 +3,7 @@ category: server side rendering
 icon: i-logos-react
 ---
 
-# Vite SSR with React
+# SSR with React
 
 > Server-side rendering with React in Nitro using Vite.
 

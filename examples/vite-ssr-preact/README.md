@@ -3,7 +3,7 @@ category: server side rendering
 icon: i-logos-preact
 ---
 
-# Vite SSR with Preact
+# SSR with Preact
 
 > Server-side rendering with Preact in Nitro using Vite.
 

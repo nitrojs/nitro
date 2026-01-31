@@ -3,7 +3,7 @@ category: server side rendering
 icon: i-simple-icons-tanstack
 ---
 
-# Vite SSR with TanStack Start
+# SSR with TanStack Start
 
 > Full-stack React with TanStack Start in Nitro using Vite.
 

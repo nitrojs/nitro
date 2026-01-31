@@ -3,7 +3,7 @@ category: server side rendering
 icon: i-logos-vue
 ---
 
-# Vite SSR with Vue Router
+# SSR with Vue Router
 
 > Server-side rendering with Vue Router in Nitro using Vite.
 
