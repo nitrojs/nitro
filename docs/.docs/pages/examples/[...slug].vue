@@ -21,9 +21,14 @@ if (!page.value) {
   })
 }
 
-const { data: surround } = await useAsyncData(`${kebabCase(route.path)}-surround`, () => {
-  return queryCollectionItemSurroundings('examples', `${route.path}/readme`, {
+const { data: surround } = await useAsyncData(`${kebabCase(route.path)}-surround`, async () => {
+  const data = await queryCollectionItemSurroundings('examples', `${route.path}/readme`, {
     fields: ['description'],
+  }).where('category', '=', page.value?.category)
+
+  return data?.map((item) => {
+    if (!item) return null
+    return { ...item, path: item.path?.replace('/readme', '') }
   })
 })
 

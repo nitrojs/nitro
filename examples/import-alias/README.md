@@ -85,7 +85,7 @@ export function sum(a: number, b: number): number {
 
 Import aliases like `~` and `#` let you reference modules with shorter paths instead of relative imports.
 
-## Importingi Using Aliases
+## Importing Using Aliases
 
 <!-- automd:file src="server/routes/index.ts" code -->
 
