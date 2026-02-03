@@ -4,9 +4,11 @@ Nitro supports file-based routing in the `api/` or `routes/` directory. Each fil
 
 Create a file in the `api/` directory to define a route. The file path becomes the URL path:
 
-<!-- automd:file src="api/hello.ts" code -->
+```ts [api/hello.ts]
+import { defineHandler } from "nitro/h3";
 
-<!-- /automd -->
+export default defineHandler(() => "Nitro is amazing!");
+```
 
 This creates a `GET /api/hello` endpoint.
 
@@ -14,9 +16,11 @@ This creates a `GET /api/hello` endpoint.
 
 Use square brackets `[param]` for dynamic URL segments. Access params via `event.context.params`:
 
-<!-- automd:file src="api/hello/[name].ts" code -->
+```ts [api/hello/[name].ts]
+import { defineHandler } from "nitro/h3";
 
-<!-- /automd -->
+export default defineHandler((event) => `Hello (param: ${event.context.params!.name})!`);
+```
 
 This creates a `GET /api/hello/:name` endpoint (e.g., `/api/hello/world`).
 
@@ -26,12 +30,22 @@ Suffix your file with the HTTP method (`.get.ts`, `.post.ts`, `.put.ts`, `.delet
 
 ### GET Handler
 
-<!-- automd:file src="api/test.get.ts" code -->
+```ts [api/test.get.ts]
+import { defineHandler } from "nitro/h3";
 
-<!-- /automd -->
+export default defineHandler(() => "Test get handler");
+```
 
 ### POST Handler
 
-<!-- automd:file src="api/test.post.ts" code -->
+```ts [api/test.post.ts]
+import { defineHandler } from "h3";
 
-<!-- /automd -->
+export default defineHandler(async (event) => {
+  const body = await event.req.json();
+  return {
+    message: "Test post handler",
+    body,
+  };
+});
+```

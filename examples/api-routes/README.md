@@ -98,21 +98,19 @@ export default defineHandler((event) => `Hello (param: ${event.context.params!.n
 
 <!-- /automd -->
 
+<!-- automd:file src="GUIDE.md" -->
+
 Nitro supports file-based routing in the `api/` or `routes/` directory. Each file becomes an API endpoint based on its path.
 
 ## Basic Route
 
 Create a file in the `api/` directory to define a route. The file path becomes the URL path:
 
-<!-- automd:file src="api/hello.ts" code -->
-
-```ts [hello.ts]
+```ts [api/hello.ts]
 import { defineHandler } from "nitro/h3";
 
 export default defineHandler(() => "Nitro is amazing!");
 ```
-
-<!-- /automd -->
 
 This creates a `GET /api/hello` endpoint.
 
@@ -120,15 +118,11 @@ This creates a `GET /api/hello` endpoint.
 
 Use square brackets `[param]` for dynamic URL segments. Access params via `event.context.params`:
 
-<!-- automd:file src="api/hello/[name].ts" code -->
-
-```ts [[name].ts]
+```ts [api/hello/[name].ts]
 import { defineHandler } from "nitro/h3";
 
 export default defineHandler((event) => `Hello (param: ${event.context.params!.name})!`);
 ```
-
-<!-- /automd -->
 
 This creates a `GET /api/hello/:name` endpoint (e.g., `/api/hello/world`).
 
@@ -138,21 +132,15 @@ Suffix your file with the HTTP method (`.get.ts`, `.post.ts`, `.put.ts`, `.delet
 
 ### GET Handler
 
-<!-- automd:file src="api/test.get.ts" code -->
-
-```ts [test.get.ts]
+```ts [api/test.get.ts]
 import { defineHandler } from "nitro/h3";
 
 export default defineHandler(() => "Test get handler");
 ```
 
-<!-- /automd -->
-
 ### POST Handler
 
-<!-- automd:file src="api/test.post.ts" code -->
-
-```ts [test.post.ts]
+```ts [api/test.post.ts]
 import { defineHandler } from "h3";
 
 export default defineHandler(async (event) => {
