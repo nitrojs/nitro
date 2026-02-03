@@ -61,6 +61,8 @@ export interface NitroBuildInfo {
     preview?: string;
     deploy?: string;
   };
+  serverEntry?: string;
+  publicDir?: string;
   dev?: {
     pid: number;
     workerAddress?: { host: string; port: number; socketPath?: string };

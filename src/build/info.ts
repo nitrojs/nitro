@@ -5,6 +5,8 @@ import { presetsWithConfig } from "../presets/_types.gen.ts";
 import { writeFile } from "../utils/fs.ts";
 import { mkdir, readFile, stat } from "node:fs/promises";
 import { dirname } from "node:path";
+import type { RolldownOutput } from "rolldown";
+import type { RollupOutput } from "rollup";
 
 const NITRO_WELLKNOWN_DIR = "node_modules/.nitro";
 
@@ -42,7 +44,12 @@ export async function findLastBuildDir(root: string): Promise<string> {
   return outputDir;
 }
 
-export async function writeBuildInfo(nitro: Nitro): Promise<NitroBuildInfo> {
+export async function writeBuildInfo(
+  nitro: Nitro,
+  output: RolldownOutput | RollupOutput | undefined
+): Promise<NitroBuildInfo> {
+  const serverEntryName = output?.output?.find((o) => o.type === "chunk" && o.isEntry)?.fileName;
+
   const buildInfoPath = resolve(nitro.options.output.dir, "nitro.json");
   const buildInfo: NitroBuildInfo = {
     date: new Date().toJSON(),
@@ -51,6 +58,13 @@ export async function writeBuildInfo(nitro: Nitro): Promise<NitroBuildInfo> {
     versions: {
       nitro: nitroVersion,
     },
+    serverEntry: serverEntryName
+      ? relative(nitro.options.output.dir, join(nitro.options.output.serverDir, serverEntryName))
+      : undefined,
+    publicDir: relative(
+      nitro.options.output.dir,
+      resolve(nitro.options.output.dir, nitro.options.output.publicDir)
+    ),
     commands: {
       preview: nitro.options.commands.preview,
       deploy: nitro.options.commands.deploy,
