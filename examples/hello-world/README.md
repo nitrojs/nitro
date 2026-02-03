@@ -7,7 +7,7 @@ icon: i-lucide-sparkles
 
 > Minimal Nitro server using the web standard fetch handler.
 
-<!-- automd:ui-code-tree src="." default="server.ts" ignore="README.md" expandAll -->
+<!-- automd:ui-code-tree src="." default="server.ts" ignore="README.md,GUIDE.md" expandAll -->
 
 ::code-tree{defaultValue="server.ts" expandAll}
 
@@ -56,12 +56,12 @@ export default defineConfig({ plugins: [nitro()] });
 
 <!-- /automd -->
 
+<!-- automd:file src="GUIDE.md" -->
+
 The simplest Nitro server. Export an object with a `fetch` method that receives a standard `Request` and returns a `Response`. No frameworks, no abstractions, just the web platform.
 
 
 ## Server Entry
-
-<!-- automd:file src="server.ts" code -->
 
 ```ts [server.ts]
 export default {
@@ -71,14 +71,11 @@ export default {
 };
 ```
 
-<!-- /automd -->
-
 The `fetch` method follows the same signature as Service Workers and Cloudflare Workers. This pattern works across all deployment targets because it uses web standards.
 
+Add the Nitro plugin to Vite and it handles the rest: dev server, hot reloading, and production builds.
 
 <!-- /automd -->
-
-Add the Nitro plugin to Vite and it handles the rest: dev server, hot reloading, and production builds.
 
 ## Learn More
 

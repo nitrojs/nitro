@@ -7,7 +7,7 @@ icon: i-lucide-alert-circle
 
 > Customize error responses with a global error handler.
 
-<!-- automd:ui-code-tree src="." default="error.ts" ignore="README.md" expandAll -->
+<!-- automd:ui-code-tree src="." default="error.ts" ignore="README.md,GUIDE.md" expandAll -->
 
 ::code-tree{defaultValue="error.ts" expandAll}
 
@@ -70,13 +70,13 @@ export default defineConfig({ plugins: [nitro()] });
 
 <!-- /automd -->
 
+<!-- automd:file src="GUIDE.md" -->
+
 This example shows how to intercept all errors and return a custom response format. When any route throws an error, Nitro calls your error handler instead of returning the default error page.
 
 ## Error Handler
 
 Create an `error.ts` file in your project root to define the global error handler:
-
-<!-- automd:file src="error.ts" code -->
 
 ```ts [error.ts]
 import { defineErrorHandler } from "nitro";
@@ -89,15 +89,11 @@ export default defineErrorHandler((error, _event) => {
 });
 ```
 
-<!-- /automd -->
-
 The handler receives the thrown error and the H3 event object. You can use the event to access request details like headers, cookies, or the URL path to customize responses per route.
 
 ## Triggering an Error
 
 The main handler throws an error to demonstrate the custom error handler:
-
-<!-- automd:file src="server.ts" code -->
 
 ```ts [server.ts]
 import { defineHandler, HTTPError } from "nitro/h3";
@@ -107,9 +103,9 @@ export default defineHandler(() => {
 });
 ```
 
-<!-- /automd -->
-
 When you visit the page, instead of seeing a generic error page, you'll see "Custom Error Handler: Example Error!" because the error handler intercepts the thrown error.
+
+<!-- /automd -->
 
 ## Learn More
 

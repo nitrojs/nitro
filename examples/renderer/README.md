@@ -7,7 +7,7 @@ icon: i-lucide-code
 
 > Build a custom HTML renderer in Nitro with server-side data fetching.
 
-<!-- automd:ui-code-tree src="." default="renderer.ts" ignore="README.md" expandAll -->
+<!-- automd:ui-code-tree src="." default="renderer.ts" ignore="README.md,GUIDE.md" expandAll -->
 
 ::code-tree{defaultValue="renderer.ts" expandAll}
 
@@ -78,11 +78,11 @@ export default defineHandler(() => "Nitro is amazing!");
 
 <!-- /automd -->
 
+<!-- automd:file src="GUIDE.md" -->
+
 Create a custom renderer that generates HTML responses with data from API routes. Use Nitro's internal `fetch` to call routes without network overhead.
 
 ## Renderer
-
-<!-- automd:file src="renderer.ts" code -->
 
 ```ts [renderer.ts]
 import { fetch } from "nitro";
@@ -106,25 +106,21 @@ export default async function renderer({ url }: { req: Request; url: URL }) {
 }
 ```
 
-<!-- /automd -->
-
 Nitro auto-detects `renderer.ts` in your project root and uses it for all non-API routes. The renderer function receives the request URL and returns a `Response`.
 
 Use `fetch` from `nitro` to call API routes without network overhead—these requests stay in-process.
 
 ## API Route
 
-<!-- automd:file src="api/hello.ts" code -->
-
-```ts [hello.ts]
+```ts [api/hello.ts]
 import { defineHandler } from "nitro/h3";
 
 export default defineHandler(() => "Nitro is amazing!");
 ```
 
-<!-- /automd -->
-
 Define API routes in the `api/` directory. When the renderer calls `fetch("/api/hello")`, this handler runs and returns its response.
+
+<!-- /automd -->
 
 ## Learn More
 

@@ -7,7 +7,7 @@ icon: i-lucide-at-sign
 
 > Custom import aliases for cleaner module paths.
 
-<!-- automd:ui-code-tree src="." default="server/routes/index.ts" ignore="README.md" expandAll -->
+<!-- automd:ui-code-tree src="." default="server/routes/index.ts" ignore="README.md,GUIDE.md" expandAll -->
 
 ::code-tree{defaultValue="server/routes/index.ts" expandAll}
 
@@ -83,13 +83,13 @@ export function sum(a: number, b: number): number {
 
 <!-- /automd -->
 
+<!-- automd:file src="GUIDE.md" -->
+
 Import aliases like `~` and `#` let you reference modules with shorter paths instead of relative imports.
 
 ## Importing Using Aliases
 
-<!-- automd:file src="server/routes/index.ts" code -->
-
-```ts [index.ts]
+```ts [server/routes/index.ts]
 import { sum } from "~server/utils/math.ts";
 
 import { rand } from "#server/utils/math.ts";
@@ -101,15 +101,13 @@ export default () => {
 };
 ```
 
-<!-- /automd -->
-
 The route imports the `sum` function using `~server/` and `rand` using `#server/`. Both resolve to the same `server/utils/math.ts` file. The handler generates two random numbers and returns their sum.
-
-<!-- /automd -->
 
 ## Configuration
 
 Aliases can be configured in `package.json` imports field or `nitro.config.ts`.
+
+<!-- /automd -->
 
 ## Learn More
 

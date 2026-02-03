@@ -7,7 +7,7 @@ icon: i-simple-icons-express
 
 > Integrate Express with Nitro using the server entry.
 
-<!-- automd:ui-code-tree src="." default="server.node.ts" ignore="README.md" expandAll -->
+<!-- automd:ui-code-tree src="." default="server.node.ts" ignore="README.md,GUIDE.md" expandAll -->
 
 ::code-tree{defaultValue="server.node.ts" expandAll}
 
@@ -61,9 +61,9 @@ export default defineConfig({ plugins: [nitro()] });
 
 <!-- /automd -->
 
-## Server Entry
+<!-- automd:file src="GUIDE.md" -->
 
-<!-- automd:file src="server.node.ts" code -->
+## Server Entry
 
 ```ts [server.node.ts]
 import Express from "express";
@@ -77,13 +77,13 @@ app.use("/", (_req, res) => {
 export default app;
 ```
 
-<!-- /automd -->
-
 Nitro auto-detects `server.node.ts` in your project root and uses it as the server entry. The Express app handles all incoming requests, giving you full control over routing and middleware.
 
 ::note
 The `.node.ts` suffix indicates this entry is Node.js specific and won't work in other runtimes like Cloudflare Workers or Deno.
 ::
+
+<!-- /automd -->
 
 ## Learn More
 

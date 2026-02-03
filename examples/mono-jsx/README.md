@@ -7,7 +7,7 @@ icon: i-lucide-brackets
 
 > Server-side JSX rendering in Nitro with mono-jsx.
 
-<!-- automd:ui-code-tree src="." default="server.tsx" ignore="README.md" expandAll -->
+<!-- automd:ui-code-tree src="." default="server.tsx" ignore="README.md,GUIDE.md" expandAll -->
 
 ::code-tree{defaultValue="server.tsx" expandAll}
 
@@ -60,9 +60,9 @@ export default defineConfig({ plugins: [nitro()] });
 
 <!-- /automd -->
 
-## Server Entry
+<!-- automd:file src="GUIDE.md" -->
 
-<!-- automd:file src="server.tsx" code -->
+## Server Entry
 
 ```tsx [server.tsx]
 export default () => (
@@ -72,9 +72,9 @@ export default () => (
 );
 ```
 
-<!-- /automd -->
-
 Nitro auto-detects `server.tsx` and uses mono-jsx to transform JSX into HTML. Export a function that returns JSX, and Nitro sends the rendered HTML as the response.
+
+<!-- /automd -->
 
 ## Learn More
 

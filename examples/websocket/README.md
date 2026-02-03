@@ -7,7 +7,7 @@ icon: i-lucide-radio
 
 > Real-time bidirectional communication with WebSocket support.
 
-<!-- automd:ui-code-tree src="." default="routes/_ws.ts" ignore="README.md" expandAll -->
+<!-- automd:ui-code-tree src="." default="routes/_ws.ts" ignore="README.md,GUIDE.md" expandAll -->
 
 ::code-tree{defaultValue="routes/_ws.ts" expandAll}
 
@@ -251,15 +251,15 @@ export default defineWebSocketHandler({
 
 <!-- /automd -->
 
+<!-- automd:file src="GUIDE.md" -->
+
 This example implements a simple chat room using WebSockets. Clients connect, send messages, and receive messages from other users in real-time. The server broadcasts messages to all connected clients using pub/sub channels.
 
 ## WebSocket Handler
 
 Create a WebSocket route using `defineWebSocketHandler`.
 
-<!-- automd:file src="routes/_ws.ts" code -->
-
-```ts [_ws.ts]
+```ts [routes/_ws.ts]
 import { defineWebSocketHandler } from "nitro/h3";
 
 export default defineWebSocketHandler({
@@ -286,9 +286,9 @@ export default defineWebSocketHandler({
 });
 ```
 
-<!-- /automd -->
-
 Different hooks are exposed by `defineWebSocketHandler()` to integrate with different parts of the websocket lifecycle.
+
+<!-- /automd -->
 
 ## Learn More
 

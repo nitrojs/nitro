@@ -7,7 +7,7 @@ icon: i-simple-icons-tanstack
 
 > Client-side routing with TanStack Router in Nitro using Vite.
 
-<!-- automd:ui-code-tree src="." default="src/main.tsx" ignore="README.md" expandAll -->
+<!-- automd:ui-code-tree src="." default="src/main.tsx" ignore="README.md,GUIDE.md" expandAll -->
 
 ::code-tree{defaultValue="src/main.tsx" expandAll}
 
@@ -311,6 +311,8 @@ function Index() {
 
 <!-- /automd -->
 
+<!-- automd:file src="GUIDE.md" -->
+
 Set up TanStack Router with React, Vite, and Nitro. This setup provides file-based routing with type-safe navigation and automatic code splitting.
 
 ## Overview
@@ -324,9 +326,7 @@ Set up TanStack Router with React, Vite, and Nitro. This setup provides file-bas
 
 Add the Nitro, React, and TanStack Router plugins to your Vite config:
 
-<!-- automd:file src="vite.config.mjs" code -->
-
-```mjs [vite.config.mjs]
+```js [vite.config.mjs]
 import { defineConfig } from "vite";
 import { nitro } from "nitro/vite";
 import react from "@vitejs/plugin-react";
@@ -337,15 +337,11 @@ export default defineConfig({
 });
 ```
 
-<!-- /automd -->
-
 The `tanstackRouter` plugin generates a route tree from your `routes/` directory structure. Enable `autoCodeSplitting` to automatically split routes into separate chunks. Place the TanStack Router plugin before the React plugin in the array.
 
 ## 2. Create the HTML Template
 
 Create an HTML file that serves as your app shell:
-
-<!-- automd:file src="index.html" code lang="html" -->
 
 ```html [index.html]
 <!doctype html>
@@ -363,15 +359,11 @@ Create an HTML file that serves as your app shell:
 </html>
 ```
 
-<!-- /automd -->
-
 ## 3. Create the App Entry
 
 Create the main entry that initializes TanStack Router:
 
-<!-- automd:file src="src/main.tsx" code -->
-
-```tsx [main.tsx]
+```tsx [src/main.tsx]
 import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
@@ -401,17 +393,13 @@ if (!rootElement.innerHTML) {
 }
 ```
 
-<!-- /automd -->
-
 The `routeTree.gen.ts` file is auto-generated from your `routes/` directory structure. The `Register` interface declaration provides full type inference for route paths and params. The `!rootElement.innerHTML` check prevents re-rendering during hot module replacement.
 
 ## 4. Create the Root Route
 
 The root route (`__root.tsx`) defines your app's layout:
 
-<!-- automd:file src="src/routes/__root.tsx" code -->
-
-```tsx [__root.tsx]
+```tsx [src/routes/__root.tsx]
 import { createRootRoute, Link, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
@@ -431,17 +419,13 @@ const RootLayout = () => (
 export const Route = createRootRoute({ component: RootLayout });
 ```
 
-<!-- /automd -->
-
 Use `Link` for type-safe navigation with active state styling. The `Outlet` component renders child routes. Include `TanStackRouterDevtools` for development tools (automatically removed in production).
 
 ## 5. Create Page Routes
 
 Page routes use `createFileRoute` and can include loaders:
 
-<!-- automd:file src="src/routes/index.tsx" code -->
-
-```tsx [index.tsx]
+```tsx [src/routes/index.tsx]
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
@@ -463,9 +447,9 @@ function Index() {
 }
 ```
 
-<!-- /automd -->
-
 Fetch data before rendering with the `loader` function—data is available via `Route.useLoaderData()`. File paths determine URL paths: `routes/index.tsx` maps to `/`, `routes/about.tsx` to `/about`, and `routes/users/$id.tsx` to `/users/:id`.
+
+<!-- /automd -->
 
 ## Learn More
 

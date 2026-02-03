@@ -7,7 +7,7 @@ icon: i-simple-icons-fastify
 
 > Integrate Fastify with Nitro using the server entry.
 
-<!-- automd:ui-code-tree src="." default="server.node.ts" ignore="README.md" expandAll -->
+<!-- automd:ui-code-tree src="." default="server.node.ts" ignore="README.md,GUIDE.md" expandAll -->
 
 ::code-tree{defaultValue="server.node.ts" expandAll}
 
@@ -60,9 +60,9 @@ export default defineConfig({ plugins: [nitro()] });
 
 <!-- /automd -->
 
-## Server Entry
+<!-- automd:file src="GUIDE.md" -->
 
-<!-- automd:file src="server.node.ts" code -->
+## Server Entry
 
 ```ts [server.node.ts]
 import Fastify from "fastify";
@@ -76,8 +76,6 @@ await app.ready();
 export default app.routing;
 ```
 
-<!-- /automd -->
-
 Nitro auto-detects `server.node.ts` in your project root and uses it as the server entry.
 
 Call `await app.ready()` to initialize all registered plugins before exporting. Export `app.routing` (not `app`) to provide Nitro with the request handler function.
@@ -85,6 +83,8 @@ Call `await app.ready()` to initialize all registered plugins before exporting. 
 ::note
 The `.node.ts` suffix indicates this entry is Node.js specific and won't work in other runtimes like Cloudflare Workers or Deno.
 ::
+
+<!-- /automd -->
 
 ## Learn More
 

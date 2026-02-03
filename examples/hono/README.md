@@ -7,7 +7,7 @@ icon: i-logos-hono
 
 > Integrate Hono with Nitro using the server entry.
 
-<!-- automd:ui-code-tree src="." default="server.ts" ignore="README.md" expandAll -->
+<!-- automd:ui-code-tree src="." default="server.ts" ignore="README.md,GUIDE.md" expandAll -->
 
 ::code-tree{defaultValue="server.ts" expandAll}
 
@@ -60,9 +60,9 @@ export default defineConfig({ plugins: [nitro()] });
 
 <!-- /automd -->
 
-## Server Entry
+<!-- automd:file src="GUIDE.md" -->
 
-<!-- automd:file src="server.ts" code -->
+## Server Entry
 
 ```ts [server.ts]
 import { Hono } from "hono";
@@ -76,11 +76,11 @@ app.get("/", (c) => {
 export default app;
 ```
 
-<!-- /automd -->
-
 Nitro auto-detects `server.ts` in your project root and uses it as the server entry. The Hono app handles all incoming requests, giving you full control over routing and middleware.
 
 Hono is cross-runtime compatible, so this server entry works across all Nitro deployment targets including Node.js, Deno, Bun, and Cloudflare Workers.
+
+<!-- /automd -->
 
 ## Learn More
 

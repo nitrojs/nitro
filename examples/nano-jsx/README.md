@@ -7,7 +7,7 @@ icon: i-lucide-brackets
 
 > Server-side JSX rendering in Nitro with nano-jsx.
 
-<!-- automd:ui-code-tree src="." default="server.tsx" ignore="README.md" expandAll -->
+<!-- automd:ui-code-tree src="." default="server.tsx" ignore="README.md,GUIDE.md" expandAll -->
 
 ::code-tree{defaultValue="server.tsx" expandAll}
 
@@ -61,9 +61,9 @@ export default defineConfig({ plugins: [nitro()] });
 
 <!-- /automd -->
 
-## Server Entry
+<!-- automd:file src="GUIDE.md" -->
 
-<!-- automd:file src="server.tsx" code -->
+## Server Entry
 
 ```tsx [server.tsx]
 import { defineHandler, html } from "h3";
@@ -74,9 +74,9 @@ export default defineHandler(() => {
 });
 ```
 
-<!-- /automd -->
-
 Nitro auto-detects `server.tsx` and uses it as the server entry. Use `renderSSR` from nano-jsx to convert JSX into an HTML string. The `html` helper from H3 sets the correct content type header.
+
+<!-- /automd -->
 
 ## Learn More
 

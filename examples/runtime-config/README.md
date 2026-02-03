@@ -7,7 +7,7 @@ icon: i-lucide-settings
 
 > Environment-aware configuration with runtime access.
 
-<!-- automd:ui-code-tree src="." default="nitro.config.ts" ignore="README.md" expandAll -->
+<!-- automd:ui-code-tree src="." default="nitro.config.ts" ignore="README.md,GUIDE.md" expandAll -->
 
 ::code-tree{defaultValue="nitro.config.ts" expandAll}
 
@@ -72,13 +72,13 @@ export default defineConfig({ plugins: [nitro()] });
 
 <!-- /automd -->
 
+<!-- automd:file src="GUIDE.md" -->
+
 Runtime config lets you define configuration values that can be overridden by environment variables at runtime.
 
 ## Define Config Schema
 
 Declare your runtime config with default values in `nitro.config.ts`:
-
-<!-- automd:file src="nitro.config.ts" code -->
 
 ```ts [nitro.config.ts]
 import { defineConfig } from "nitro";
@@ -91,13 +91,9 @@ export default defineConfig({
 });
 ```
 
-<!-- /automd -->
-
 ## Access at Runtime
 
 Use `useRuntimeConfig` to access configuration values in your handlers:
-
-<!-- automd:file src="server.ts" code -->
 
 ```ts [server.ts]
 import { defineHandler } from "nitro/h3";
@@ -109,15 +105,11 @@ export default defineHandler((event) => {
 });
 ```
 
-<!-- /automd -->
-
 ## Environment Variables
 
 Override config values via environment variables prefixed with `NITRO_`:
 
-<!-- automd:file src=".env" code -->
-
-```env [.env]
+```sh [.env]
 # NEVER COMMIT SENSITIVE DATA. THIS IS ONLY FOR DEMO PURPOSES.
 NITRO_API_KEY=secret-api-key
 ```

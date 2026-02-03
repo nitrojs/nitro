@@ -7,7 +7,7 @@ icon: i-lucide-layers
 
 > Request middleware for authentication, logging, and request modification.
 
-<!-- automd:ui-code-tree src="." default="server/middleware/auth.ts" ignore="README.md" expandAll -->
+<!-- automd:ui-code-tree src="." default="server/middleware/auth.ts" ignore="README.md,GUIDE.md" expandAll -->
 
 ::code-tree{defaultValue="server/middleware/auth.ts" expandAll}
 
@@ -65,23 +65,21 @@ export default defineMiddleware((event) => {
 
 <!-- /automd -->
 
+<!-- automd:file src="GUIDE.md" -->
+
 Middleware functions run before route handlers on every request. They can modify the request, add context, or return early responses.
 
 ## Defining Middleware
 
 Create files in `server/middleware/`. They run in alphabetical order:
 
-<!-- automd:file src="server/middleware/auth.ts" code -->
-
-```ts [auth.ts]
+```ts [server/middleware/auth.ts]
 import { defineMiddleware } from "nitro/h3";
 
 export default defineMiddleware((event) => {
   event.context.auth = { name: "User " + Math.round(Math.random() * 100) };
 });
 ```
-
-<!-- /automd -->
 
 Middleware can:
 - Add data to `event.context` for use in handlers
@@ -91,8 +89,6 @@ Middleware can:
 ## Accessing Context in Handlers
 
 Data added to `event.context` in middleware is available in all subsequent handlers:
-
-<!-- automd:file src="server.ts" code -->
 
 ```ts [server.ts]
 import { defineHandler } from "nitro/h3";

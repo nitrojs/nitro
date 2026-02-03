@@ -7,7 +7,7 @@ icon: i-lucide-route
 
 > File-based API routing with HTTP method support and dynamic parameters.
 
-<!-- automd:ui-code-tree src="." default="api/hello.ts" ignore="README.md" expandAll -->
+<!-- automd:ui-code-tree src="." default="api/hello.ts" ignore="README.md,GUIDE.md" expandAll -->
 
 ::code-tree{defaultValue="api/hello.ts" expandAll}
 

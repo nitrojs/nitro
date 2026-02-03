@@ -8,7 +8,7 @@ icon: i-logos-html-5
 > Server-side rendering with vanilla HTML, Vite, and Nitro.
 
 
-<!-- automd:ui-code-tree src="." default="app/entry-server.ts" ignore="README.md" expandAll -->
+<!-- automd:ui-code-tree src="." default="app/entry-server.ts" ignore="README.md,GUIDE.md" expandAll -->
 
 ::code-tree{defaultValue="app/entry-server.ts" expandAll}
 
@@ -206,6 +206,8 @@ export default async function quotesHandler() {
 
 <!-- /automd -->
 
+<!-- automd:file src="GUIDE.md" -->
+
 This example renders an HTML template with server-side data and streams the response word by word. It demonstrates how to use Nitro's Vite SSR integration without a framework.
 
 ## Overview
@@ -222,6 +224,8 @@ The `index.html` file contains an `<!--ssr-outlet-->` comment that marks where s
 The server entry exports an object with a `fetch` method. It calls the `/quote` API route using Nitro's internal fetch, then returns a `ReadableStream` that emits the quote text word by word with a 50ms delay between each word.
 
 The quote route fetches a JSON file of quotes from GitHub, caches the result, and returns a random quote. The server entry calls this route to get content for the page.
+
+<!-- /automd -->
 
 ## Learn More
 

@@ -7,7 +7,7 @@ icon: i-skill-icons-elysia-dark
 
 > Integrate Elysia with Nitro using the server entry.
 
-<!-- automd:ui-code-tree src="." default="server.ts" ignore="README.md" expandAll -->
+<!-- automd:ui-code-tree src="." default="server.ts" ignore="README.md,GUIDE.md" expandAll -->
 
 ::code-tree{defaultValue="server.ts" expandAll}
 
@@ -58,9 +58,9 @@ export default defineConfig({ plugins: [nitro()] });
 
 <!-- /automd -->
 
-## Server Entry
+<!-- automd:file src="GUIDE.md" -->
 
-<!-- automd:file src="server.ts" code -->
+## Server Entry
 
 ```ts [server.ts]
 import { Elysia } from "elysia";
@@ -72,11 +72,11 @@ app.get("/", () => "Hello, Elysia with Nitro!");
 export default app.compile();
 ```
 
-<!-- /automd -->
-
 Nitro auto-detects `server.ts` in your project root and uses it as the server entry. The Elysia app handles all incoming requests, giving you full control over routing and middleware.
 
 Call `app.compile()` before exporting to optimize the router for production.
+
+<!-- /automd -->
 
 ## Learn More
 

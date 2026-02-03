@@ -7,7 +7,7 @@ icon: i-lucide-highlighter
 
 > Server-side syntax highlighting in Nitro with Shiki.
 
-<!-- automd:ui-code-tree src="." default="api/highlight.ts" ignore="README.md" expandAll -->
+<!-- automd:ui-code-tree src="." default="api/highlight.ts" ignore="README.md,GUIDE.md" expandAll -->
 
 ::code-tree{defaultValue="api/highlight.ts" expandAll}
 
@@ -146,13 +146,13 @@ export default async ({ req }: { req: Request }) => {
 
 <!-- /automd -->
 
+<!-- automd:file src="GUIDE.md" -->
+
 Use Shiki for syntax highlighting with TextMate grammars. This example highlights code on the server using Nitro's server scripts feature, which runs JavaScript inside HTML files before sending the response.
 
 ## API Route
 
-<!-- automd:file src="api/highlight.ts" code -->
-
-```ts [highlight.ts]
+```ts [api/highlight.ts]
 import { createHighlighterCore } from "shiki/core";
 import { createOnigurumaEngine } from "shiki/engine/oniguruma";
 
@@ -174,13 +174,9 @@ export default async ({ req }: { req: Request }) => {
 };
 ```
 
-<!-- /automd -->
-
 Create a Shiki highlighter with the Vitesse Dark theme and TypeScript language support. When the API receives a POST request, it reads the code from the request body and returns highlighted HTML.
 
 ## Server-Side Rendering
-
-<!-- automd:file src="index.html" code lang="html" -->
 
 ```html [index.html]
 <!doctype html>
@@ -207,9 +203,9 @@ Create a Shiki highlighter with the Vitesse Dark theme and TypeScript language s
 </html>
 ```
 
-<!-- /automd -->
-
 The `<script server>` tag runs on the server before the HTML is sent. It defines a helper function that calls the highlight API using `serverFetch`. The triple-brace syntax `{{{ }}}` outputs the result without escaping, so the highlighted HTML renders correctly.
+
+<!-- /automd -->
 
 ## Learn More
 
