@@ -195,6 +195,7 @@
   },
   "resolutions": {
     "nitro": "link:.",
+    "srvx": "^0.11.0",
     "undici": "^7.19.2",
     "vite": "8.0.0-beta.11"
   },

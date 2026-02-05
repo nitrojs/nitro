@@ -12,7 +12,6 @@ export default async function netlifyEdge(netlifyReq: Request, context: Context)
   const req = netlifyReq as unknown as ServerRequest;
   req.ip = context.ip;
   req.runtime ??= { name: "netlify-edge" };
-  // @ts-expect-error (add to srvx types)
   req.runtime.netlify ??= { context } as any;
 
   const url = new URL(req.url);

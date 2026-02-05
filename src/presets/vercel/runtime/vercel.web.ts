@@ -22,7 +22,6 @@ export default {
 
     req.runtime = {
       name: "vercel",
-      // @ts-expect-error (add to srvx types)
       vercel: { context },
     };
 
