@@ -14,7 +14,15 @@ const { createServer, createBuilder, rolldownVersion } = (await import(
 
 const isRolldown = !!rolldownVersion;
 
-const skip = new Set<string>(["websocket", ...(isRolldown ? [] : ["vite-rsc"])]);
+const skip = new Set<string>([
+  "websocket",
+  ...(isRolldown
+    ? [
+        // https://github.com/rolldown/rolldown/issues/8211
+        "vite-rsc",
+      ]
+    : ["vite-rsc"]),
+]);
 
 const skipDev = new Set<string>(["auto-imports", "cached-handler"]);
 
