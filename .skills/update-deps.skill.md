@@ -131,7 +131,7 @@ If there are lint or type errors:
 1. Review the output carefully
 2. Fix issues manually following the project conventions
 3. Re-run `pnpm format` to verify lint fixes
-4. Re-run `pnpm test:types` to verify type fixes. Ignore errors, only report them in the end.
+4. Re-run `pnpm typecheck` to verify type fixes. Ignore errors, only report them in the end.
 
 ### 10. Final
 
@@ -151,7 +151,7 @@ If a dependency has breaking changes:
 
 If the build fails after updates:
 
-- Check for TypeScript errors first: `pnpm test:types`
+- Check for TypeScript errors first: `pnpm typecheck`
 - Review error messages for deprecated APIs
 - Consider updating dependencies one at a time to isolate issues
 

@@ -1,7 +1,8 @@
-import type { Plugin as VitePlugin } from "vite";
+import type { Plugin as VitePlugin, PreviewServer } from "vite";
 import type { NitroPluginContext } from "./types.ts";
 import { spawn } from "node:child_process";
 import consola from "consola";
+import { join, resolve } from "pathe";
 import { prettyPath } from "../../utils/fs.ts";
 import { getBuildInfo } from "../info.ts";
 
@@ -40,11 +41,6 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
         message: info.map((i) => `- ${i[0]} ${i[1]}`).join("\n"),
       });
 
-      if (!buildInfo.commands?.preview) {
-        consola.warn("No nitro build preview command found for this preset.");
-        return;
-      }
-
       // Load .env files for preview mode
       const dotEnvEntries = await loadPreviewDotEnv(server.config.root);
       if (dotEnvEntries.length > 0) {
@@ -58,62 +54,55 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
         });
       }
 
-      const [command, ...args] = buildInfo.commands.preview.split(" ");
-
-      consola.info(`Spawning preview server...`);
-      consola.info(buildInfo.commands?.preview);
-      console.log("");
-
-      const { getRandomPort, waitForPort } = await import("get-port-please");
-      const randomPort = await getRandomPort();
-      const child = spawn(command, args, {
-        stdio: "inherit",
-        cwd: outputDir,
-        env: {
-          ...process.env,
-          ...Object.fromEntries(dotEnvEntries),
-          PORT: String(randomPort),
-        },
-      });
-
-      const killChild = (signal: NodeJS.Signals) => {
-        if (child && !child.killed) {
-          child.kill(signal);
+      // Currently cloudflare preset strictly requires preview command
+      if (buildInfo.preset.includes("cloudflare")) {
+        if (!buildInfo.commands?.preview) {
+          throw this.error(
+            `No nitro build preview command found for the "${buildInfo.preset}" preset.`
+          );
         }
-      };
+        await runPreviewCommand({
+          server,
+          command: buildInfo.commands.preview,
+          cwd: server.config.root,
+        });
+        return;
+      }
 
-      for (const sig of ["SIGINT", "SIGHUP"] as const) {
-        process.once(sig, () => {
-          consola.info(`Stopping preview server...`);
-          killChild(sig);
-          process.exit();
+      // Import handler and use in-process function calling
+      const { NodeRequest, sendNodeResponse } = await import("srvx/node");
+
+      if (buildInfo.publicDir) {
+        const { serveStatic } = await import("srvx/static");
+        const staticHandler = serveStatic({ dir: join(outputDir, buildInfo.publicDir) });
+
+        server.middlewares.use(async (req, res, next) => {
+          const nodeReq = new NodeRequest({ req, res });
+          const staticRes: Response | undefined = await staticHandler(
+            nodeReq,
+            () => undefined as any
+          );
+          if (staticRes) {
+            await sendNodeResponse(res, staticRes).catch(next);
+          } else {
+            next();
+          }
         });
       }
 
-      server.httpServer.once("close", () => {
-        killChild("SIGTERM");
-      });
-
-      child.once("exit", (code) => {
-        if (code && code !== 0) {
-          consola.error(`[nitro] Preview server exited with code ${code}`);
+      if (buildInfo.serverEntry) {
+        const { loadServerEntry } = await import("srvx/loader");
+        const entryPath = resolve(outputDir, buildInfo.serverEntry);
+        const entry = await loadServerEntry({ entry: entryPath });
+        if (entry.notFound || !entry.fetch) {
+          throw new Error(`Cannot load nitro server entry: ${entryPath}`);
         }
-      });
-
-      const { createProxyServer } = await import("httpxy");
-      const proxy = createProxyServer({
-        target: `http://localhost:${randomPort}`,
-      });
-
-      server.middlewares.use((req, res, next) => {
-        if (child && !child.killed) {
-          proxy.web(req, res).catch(next);
-        } else {
-          res.end(`Nitro preview server is not running.`);
-        }
-      });
-
-      await waitForPort(randomPort, { retries: 20, delay: 500 });
+        server.middlewares.use(async (req, res, next) => {
+          const nodeReq = new NodeRequest({ req, res });
+          await sendNodeResponse(res, await entry.fetch!(nodeReq)).catch(next);
+        });
+        return;
+      }
     },
   } satisfies VitePlugin;
 }
@@ -125,4 +114,68 @@ async function loadPreviewDotEnv(root: string): Promise<[string, string][]> {
     fileName: [".env.preview", ".env.production", ".env"],
   });
   return Object.entries(env).filter(([_key, val]) => val) as [string, string][];
+}
+
+async function runPreviewCommand(opts: {
+  server: PreviewServer;
+  command: string;
+  cwd: string;
+  env?: [string, string][];
+}) {
+  const [arg0, ...args] = opts.command.split(" ");
+
+  consola.info(`Spawning preview server...`);
+  consola.info(opts.command);
+  console.log("");
+
+  const { getRandomPort, waitForPort } = await import("get-port-please");
+  const randomPort = await getRandomPort();
+  const child = spawn(arg0, [...args, "--port", String(randomPort)], {
+    stdio: "inherit",
+    cwd: opts.cwd,
+    env: {
+      ...process.env,
+      ...Object.fromEntries(opts.env ?? []),
+      PORT: String(randomPort),
+    },
+  });
+
+  const killChild = (signal: NodeJS.Signals) => {
+    if (child && !child.killed) {
+      child.kill(signal);
+    }
+  };
+
+  for (const sig of ["SIGINT", "SIGHUP"] as const) {
+    process.once(sig, () => {
+      consola.info(`Stopping preview server...`);
+      killChild(sig);
+      process.exit();
+    });
+  }
+
+  opts.server.httpServer.once("close", () => {
+    killChild("SIGTERM");
+  });
+
+  child.once("exit", (code) => {
+    if (code && code !== 0) {
+      consola.error(`[nitro] Preview server exited with code ${code}`);
+    }
+  });
+
+  const { createProxyServer } = await import("httpxy");
+  const proxy = createProxyServer({
+    target: `http://localhost:${randomPort}`,
+  });
+
+  opts.server.middlewares.use((req, res, next) => {
+    if (child && !child.killed) {
+      proxy.web(req, res).catch(next);
+    } else {
+      res.end(`Nitro preview server is not running.`);
+    }
+  });
+
+  await waitForPort(randomPort, { retries: 20, delay: 500 });
 }

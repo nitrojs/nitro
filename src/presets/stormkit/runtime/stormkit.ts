@@ -35,7 +35,6 @@ export const handler: Handler<StormkitEvent, StormkitResponse> = async function 
 
   // srvx compatibility
   req.runtime ??= { name: "stormkit" };
-  // @ts-expect-error (add to srvx types)
   req.runtime.stormkit ??= { event, context } as any;
 
   const response = await nitroApp.fetch(req);

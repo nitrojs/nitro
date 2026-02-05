@@ -6,8 +6,8 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@trpc/client": "^11.8.1",
-    "@trpc/server": "^11.8.1",
+    "@trpc/client": "^11.9.0",
+    "@trpc/server": "^11.9.0",
     "nitro": "latest",
     "vite": "beta",
     "zod": "^4.3.6"

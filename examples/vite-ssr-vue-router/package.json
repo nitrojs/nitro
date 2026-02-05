@@ -6,7 +6,7 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^6.0.3",
+    "@vitejs/plugin-vue": "^6.0.4",
     "nitro": "latest",
     "unhead": "^2.1.2",
     "vite": "beta",

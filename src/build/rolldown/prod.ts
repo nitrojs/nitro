@@ -7,6 +7,7 @@ import { scanHandlers } from "../../scan.ts";
 import { generateFSTree } from "../../utils/fs-tree.ts";
 import { writeTypes } from "../types.ts";
 import { writeBuildInfo } from "../info.ts";
+import type { RolldownOutput } from "rolldown";
 
 export async function buildProduction(nitro: Nitro, config: RolldownOptions) {
   const rolldown = await import("rolldown");
@@ -16,15 +17,16 @@ export async function buildProduction(nitro: Nitro, config: RolldownOptions) {
   await scanHandlers(nitro);
   await writeTypes(nitro);
 
+  let output: RolldownOutput | undefined;
   if (!nitro.options.static) {
     nitro.logger.info(
       `Building server (builder: \`rolldown\`, preset: \`${nitro.options.preset}\`, compatibility date: \`${formatCompatibilityDate(nitro.options.compatibilityDate)}\`)`
     );
     const build = await rolldown.rolldown(config);
-    await build.write(config.output as OutputOptions);
+    output = (await build.write(config.output as OutputOptions)) as RolldownOutput;
   }
 
-  const buildInfo = await writeBuildInfo(nitro);
+  const buildInfo = await writeBuildInfo(nitro, output);
 
   if (!nitro.options.static) {
     if (nitro.options.logging.buildSuccess) {

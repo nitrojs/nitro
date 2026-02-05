@@ -57,14 +57,12 @@ export async function scanHandlers(nitro: Nitro) {
     scanServerRoutes(nitro, nitro.options.routesDir || "routes"),
   ]).then((r) => r.flat());
 
+  const seenHandlers = new Set<string>();
   nitro.scannedHandlers = [
     ...middleware,
-    ...handlers.filter((h, index, array) => {
-      return (
-        array.findIndex(
-          (h2) => h.route === h2.route && h.method === h2.method && h.env === h2.env
-        ) === index
-      );
+    ...handlers.filter((h) => {
+      const key = `${h.route}\0${h.method}\0${h.env}`;
+      return seenHandlers.has(key) ? false : (seenHandlers.add(key), true);
     }),
   ];
 
