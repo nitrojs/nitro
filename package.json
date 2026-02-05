@@ -77,7 +77,7 @@
     "ohash": "^2.0.11",
     "oxc-minify": "^0.112.0",
     "oxc-transform": "^0.112.0",
-    "srvx": "npm:srvx-nightly@0.11.0-20260203-210006-3b224b8",
+    "srvx": "^0.11.0",
     "undici": "^7.20.0",
     "unenv": "^2.0.0-rc.24",
     "unstorage": "^2.0.0-alpha.5"
@@ -195,7 +195,6 @@
   },
   "resolutions": {
     "nitro": "link:.",
-    "srvx": "npm:srvx-nightly@0.11.0-20260203-221737-20796e2",
     "undici": "^7.19.2",
     "vite": "8.0.0-beta.11"
   },

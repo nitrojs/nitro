@@ -2,9 +2,9 @@ import type { Plugin as VitePlugin, PreviewServer } from "vite";
 import type { NitroPluginContext } from "./types.ts";
 import { spawn } from "node:child_process";
 import consola from "consola";
+import { join, resolve } from "pathe";
 import { prettyPath } from "../../utils/fs.ts";
 import { getBuildInfo } from "../info.ts";
-import { join, resolve } from "node:path";
 
 export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
   return {
@@ -83,7 +83,7 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
             () => undefined as any
           );
           if (staticRes) {
-            await sendNodeResponse(res, staticRes);
+            await sendNodeResponse(res, staticRes).catch(next);
           } else {
             next();
           }
@@ -99,7 +99,7 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
         }
         server.middlewares.use(async (req, res, next) => {
           const nodeReq = new NodeRequest({ req, res });
-          await sendNodeResponse(res, await entry.fetch!(nodeReq));
+          await sendNodeResponse(res, await entry.fetch!(nodeReq)).catch(next);
         });
         return;
       }
