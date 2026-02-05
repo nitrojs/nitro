@@ -91,6 +91,7 @@ export async function fetchAddress(
   }
   const headers = new Headers(res.headers);
   headers.delete("transfer-encoding");
+  headers.delete("keep-alive");
   return new Response(res.body, {
     status: res.status,
     statusText: res.statusText,

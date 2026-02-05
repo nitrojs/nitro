@@ -39,7 +39,7 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
 
   // Route meta
   if (nitro.options.experimental.openAPI) {
-    plugins.push(routeMeta(nitro));
+    plugins.push(await routeMeta(nitro));
   }
 
   // Replace
