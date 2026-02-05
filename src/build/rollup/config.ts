@@ -25,6 +25,7 @@ export const getRollupConfig = async (nitro: Nitro): Promise<RollupConfig> => {
         minify: nitro.options.minify ? { ...nitro.options.oxc?.minify } : false,
         transform: {
           target: "esnext",
+          // @ts-expect-error TODO: does option exists?
           cwd: nitro.options.rootDir,
           ...nitro.options.oxc?.transform,
           jsx: {

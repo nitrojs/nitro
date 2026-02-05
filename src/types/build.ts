@@ -21,6 +21,6 @@ export type RolldownConfig = RolldownInputOptions & {
 export interface OXCOptions {
   minify?: RolldownMinifyOptions;
   transform?: Omit<RolldownTransformOptions, "jsx"> & {
-    jsx?: Exclude<RolldownTransformOptions["jsx"], false | "react" | "react-jsx">;
+    jsx?: Exclude<RolldownTransformOptions["jsx"], false | string>;
   };
 }
