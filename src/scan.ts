@@ -60,10 +60,10 @@ export async function scanHandlers(nitro: Nitro) {
   const seenHandlers = new Set<string>();
   nitro.scannedHandlers = [
     ...middleware,
-    ...handlers.filter(h => {
+    ...handlers.filter((h) => {
       const key = `${h.route}\0${h.method}\0${h.env}`;
       return seenHandlers.has(key) ? false : (seenHandlers.add(key), true);
-    })
+    }),
   ];
 
   return handlers;
