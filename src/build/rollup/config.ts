@@ -20,7 +20,7 @@ export const getRollupConfig = async (nitro: Nitro): Promise<RollupConfig> => {
     external: [...base.env.external],
     plugins: [
       ...(await baseBuildPlugins(nitro, base)),
-      oxc({
+      await oxc({
         sourcemap: !!nitro.options.sourcemap,
         minify: nitro.options.minify ? { ...nitro.options.oxc?.minify } : false,
         transform: {
