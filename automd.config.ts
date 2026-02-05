@@ -86,7 +86,7 @@ async function collectFiles(
   baseDir: string,
   ignorePatterns: string[],
   maxDepth: number,
-  currentDepth: number = 0,
+  currentDepth: number = 0
 ): Promise<FileEntry[]> {
   if (maxDepth > 0 && currentDepth >= maxDepth) {
     return [];
@@ -109,7 +109,7 @@ async function collectFiles(
         baseDir,
         ignorePatterns,
         maxDepth,
-        currentDepth + 1,
+        currentDepth + 1
       );
       files.push(...nestedFiles);
     } else {
@@ -148,7 +148,7 @@ function sortFiles(files: FileEntry[]): FileEntry[] {
 
 function generateCodeTree(
   files: FileEntry[],
-  options: { defaultValue?: string; expandAll?: boolean } = {},
+  options: { defaultValue?: string; expandAll?: boolean } = {}
 ): string {
   const sortedFiles = sortFiles(files);
   const codeBlocks: string[] = [];
@@ -210,7 +210,15 @@ export default {
     },
     "ui-code-tree": {
       name: "ui-code-tree",
-      async generate({ args, config, url }: { args: Record<string, unknown>; config: { dir?: string }; url?: string }) {
+      async generate({
+        args,
+        config,
+        url,
+      }: {
+        args: Record<string, unknown>;
+        config: { dir?: string };
+        url?: string;
+      }) {
         const srcPath = (args.src as string) || ".";
         const fullPath = resolvePath(srcPath, { url, dir: config.dir });
 
