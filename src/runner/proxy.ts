@@ -1,11 +1,12 @@
-import type { IncomingMessage, OutgoingMessage } from "node:http";
+import type { IncomingMessage, OutgoingMessage, RequestOptions } from "node:http";
 import type { TLSSocket } from "node:tls";
 import type { ProxyServerOptions, ProxyServer } from "httpxy";
 import type { H3Event } from "h3";
 
+import { request as httpRequest } from "node:http";
+import { Readable } from "node:stream";
 import { createProxyServer } from "httpxy";
 import { HTTPError, fromNodeHandler } from "h3";
-import { Agent } from "undici";
 
 export type HTTPProxy = {
   proxy: ProxyServer;
@@ -53,13 +54,14 @@ export function createHTTPProxy(defaults: ProxyServerOptions = {}): HTTPProxy {
   };
 }
 
+// Tests in @test/unit/proxy.test.ts
 export async function fetchAddress(
   addr: { port?: number; host?: string; socketPath?: string },
   input: string | URL | Request,
   inputInit?: RequestInit
 ) {
   let url: URL;
-  let init: (RequestInit & { duplex?: string }) | undefined;
+  let init: RequestInit | undefined;
   if (input instanceof Request) {
     url = new URL(input.url);
     init = {
@@ -73,50 +75,64 @@ export async function fetchAddress(
     init = inputInit;
   }
   init = {
-    duplex: "half",
     redirect: "manual",
     ...init,
   };
-  let res: Response;
-  if (addr.socketPath) {
-    url.protocol = "http:";
-    res = await fetch(url, {
-      ...init,
-      ...fetchSocketOptions(addr.socketPath),
-    });
-  } else {
-    const origin = `http://${addr.host}${addr.port ? `:${addr.port}` : ""}`;
-    const outURL = new URL(url.pathname + url.search, origin);
-    res = await fetch(outURL, init);
+
+  const path = url.pathname + url.search;
+  const reqHeaders: Record<string, string> = {};
+  if (init.headers) {
+    const h =
+      init.headers instanceof Headers ? init.headers : new Headers(init.headers as HeadersInit);
+    for (const [key, value] of h) {
+      reqHeaders[key] = value;
+    }
   }
-  const headers = new Headers(res.headers);
-  headers.delete("transfer-encoding");
-  headers.delete("keep-alive");
-  return new Response(res.body, {
-    status: res.status,
-    statusText: res.statusText,
+
+  const res = await new Promise<IncomingMessage>((resolve, reject) => {
+    const reqOpts: RequestOptions = {
+      method: init!.method || "GET",
+      path,
+      headers: reqHeaders,
+    };
+
+    if (addr.socketPath) {
+      reqOpts.socketPath = addr.socketPath;
+    } else {
+      reqOpts.hostname = addr.host || "localhost";
+      reqOpts.port = addr.port;
+    }
+
+    const req = httpRequest(reqOpts, resolve);
+    req.on("error", reject);
+
+    if (init!.body instanceof ReadableStream) {
+      Readable.fromWeb(init!.body as import("node:stream/web").ReadableStream).pipe(req);
+    } else if (init!.body) {
+      req.end(init!.body);
+    } else {
+      req.end();
+    }
+  });
+
+  const headers = new Headers();
+  for (const [key, value] of Object.entries(res.headers)) {
+    if (key === "transfer-encoding" || key === "keep-alive") {
+      continue;
+    }
+    if (Array.isArray(value)) {
+      for (const v of value) {
+        headers.append(key, v);
+      }
+    } else if (value) {
+      headers.set(key, value);
+    }
+  }
+
+  const hasBody = res.statusCode !== 204 && res.statusCode !== 304;
+  return new Response(hasBody ? (Readable.toWeb(res) as ReadableStream) : null, {
+    status: res.statusCode,
+    statusText: res.statusMessage,
     headers,
   });
-}
-
-function fetchSocketOptions(socketPath: string) {
-  if ("Bun" in globalThis) {
-    // https://bun.sh/guides/http/fetch-unix
-    return { unix: socketPath };
-  }
-  if ("Deno" in globalThis) {
-    // https://github.com/denoland/deno/pull/29154
-    return {
-      // @ts-ignore
-      client: Deno.createHttpClient({
-        // @ts-ignore Missing types?
-        transport: "unix",
-        path: socketPath,
-      }),
-    };
-  }
-  // https://github.com/nodejs/undici/issues/2970
-  return {
-    dispatcher: new Agent({ connect: { socketPath } }),
-  };
 }
