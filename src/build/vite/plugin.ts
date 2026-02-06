@@ -117,6 +117,7 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
         debug("[env]  Configuring client environment", name === "client" ? "" : ` (${name})`);
         config.build!.emptyOutDir = false;
         config.build!.outDir = useNitro(ctx).options.output.publicDir;
+        config.build!.copyPublicDir ??= false;
         return;
       }
 

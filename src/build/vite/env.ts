@@ -26,6 +26,7 @@ export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOpti
       emptyOutDir: false,
       sourcemap: ctx.nitro!.options.sourcemap,
       commonjsOptions: ctx.nitro!.options.commonJS as RollupCommonJSOptions,
+      copyPublicDir: false,
     },
     resolve: {
       noExternal: ctx.nitro!.options.dev
@@ -69,6 +70,7 @@ export function createServiceEnvironment(
       sourcemap: ctx.nitro!.options.sourcemap,
       outDir: join(ctx.nitro!.options.buildDir, "vite/services", name),
       emptyOutDir: true,
+      copyPublicDir: false,
     },
     resolve: {
       conditions: ctx.nitro!.options.exportConditions,
