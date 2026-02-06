@@ -55,6 +55,42 @@ Alternatively, Nitro also detects Bun automatically if you specify a `bunVersion
 }
 ```
 
+## Proxy route rules
+
+Nitro automatically optimizes `proxy` route rules on Vercel by generating [CDN-level rewrites](https://vercel.com/docs/rewrites) at build time. This means matching requests are proxied at the edge without invoking a serverless function, reducing latency and cost.
+
+```ts [nitro.config.ts]
+export default defineNitroConfig({
+  routeRules: {
+    // Proxied at CDN level — no function invocation
+    "/api/**": {
+      proxy: "https://api.example.com/**",
+    },
+  },
+});
+```
+
+### When CDN rewrites apply
+
+A proxy rule is offloaded to a Vercel CDN rewrite when **all** of the following are true:
+
+- The target is an **external URL** (starts with `http://` or `https://`).
+- No advanced `ProxyOptions` are set on the rule.
+
+### Fallback to runtime proxy
+
+When the proxy rule uses any of the following `ProxyOptions`, Nitro keeps it as a runtime proxy handled by the serverless function:
+
+- `headers` — custom headers on the outgoing request to the upstream
+- `forwardHeaders` / `filterHeaders` — header filtering
+- `fetchOptions` — custom fetch options
+- `cookieDomainRewrite` / `cookiePathRewrite` — cookie manipulation
+- `onResponse` — response callback
+
+::note
+Response headers defined on the route rule via the `headers` option are still applied to CDN-level rewrites. Only request-level `ProxyOptions.headers` (sent to the upstream) require a runtime proxy.
+::
+
 ## Custom build output configuration
 
 You can provide additional [build output configuration](https://vercel.com/docs/build-output-api/v3) using `vercel.config` key inside `nitro.config`. It will be merged with built-in auto-generated config.

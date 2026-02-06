@@ -17,6 +17,18 @@ import { ISR_URL_PARAM } from "./runtime/isr.ts";
 // https://vercel.com/docs/functions/runtimes/node-js/node-js-versions
 const SUPPORTED_NODE_VERSIONS = [20, 22, 24];
 
+// h3 ProxyOptions that Vercel CDN rewrites cannot handle at the edge.
+// https://vercel.com/docs/rewrites
+const UNSUPPORTED_PROXY_OPTIONS = [
+  "headers", // headers added to the outgoing request to the upstream
+  "forwardHeaders",
+  "filterHeaders",
+  "fetchOptions",
+  "cookieDomainRewrite",
+  "cookiePathRewrite",
+  "onResponse",
+] as const;
+
 const FALLBACK_ROUTE = "/__server";
 
 const ISR_SUFFIX = "-isr"; // Avoid using . as it can conflict with routing
@@ -116,6 +128,13 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     (a, b) => b[0].split(/\/(?!\*)/).length - a[0].split(/\/(?!\*)/).length
   );
 
+  // Determine which proxy rules can be offloaded to Vercel CDN rewrites
+  const cdnProxyPaths = new Set(
+    rules
+      .filter(([_, routeRules]) => routeRules.proxy && canUseVercelRewrite(routeRules.proxy))
+      .map(([path]) => path)
+  );
+
   const config = defu(nitro.options.vercel?.config, {
     version: 3,
     overrides: {
@@ -130,9 +149,11 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
       ),
     },
     routes: [
-      // Redirect and header rules
+      // Redirect and header rules (excluding paths handled as CDN proxy rewrites)
       ...rules
-        .filter(([_, routeRules]) => routeRules.redirect || routeRules.headers)
+        .filter(([path, routeRules]) =>
+          (routeRules.redirect || routeRules.headers) && !cdnProxyPaths.has(path)
+        )
         .map(([path, routeRules]) => {
           let route = {
             src: path.replace("/**", "/(.*)"),
@@ -147,6 +168,21 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
           }
           if (routeRules.headers) {
             route = defu(route, { headers: routeRules.headers });
+          }
+          return route;
+        }),
+      // Proxy rewrite rules (CDN-level reverse proxy)
+      // https://vercel.com/docs/rewrites
+      ...rules
+        .filter(([path]) => cdnProxyPaths.has(path))
+        .map(([path, routeRules]) => {
+          const proxy = routeRules.proxy!;
+          const route: Record<string, any> = {
+            src: path.replace("/**", "/(.*)"),
+            dest: proxy.to.replace("/**", "/$1"),
+          };
+          if (routeRules.headers) {
+            route.headers = routeRules.headers;
           }
           return route;
         }),
@@ -318,6 +354,30 @@ export async function readVercelConfig(rootDir: string): Promise<VercelConfig> {
 
 function _hasProp(obj: any, prop: string) {
   return obj && typeof obj === "object" && prop in obj;
+}
+
+/**
+ * Check if a proxy rule can be offloaded to a Vercel CDN rewrite.
+ * A proxy is eligible when it targets an external URL and uses no
+ * ProxyOptions that Vercel's routing layer cannot handle at the edge.
+ */
+function canUseVercelRewrite(
+  proxy: NitroRouteRules["proxy"]
+): proxy is { to: string } {
+  if (!proxy?.to) {
+    return false;
+  }
+  // Must be an external URL
+  if (!/^https?:\/\//.test(proxy.to.replace(/\/\*\*$/, ""))) {
+    return false;
+  }
+  // Must not use any ProxyOptions unsupported by Vercel rewrites
+  for (const key of UNSUPPORTED_PROXY_OPTIONS) {
+    if ((proxy as any)[key] !== undefined) {
+      return false;
+    }
+  }
+  return true;
 }
 
 // --- utils for observability ---

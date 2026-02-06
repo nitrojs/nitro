@@ -7,17 +7,13 @@ export interface VercelBuildConfigV3 {
   routes?: (
     | {
         src: string;
-        headers: {
-          "cache-control": string;
-        };
-        continue: boolean;
+        dest?: string;
+        headers?: Record<string, string>;
+        continue?: boolean;
+        status?: number;
       }
     | {
         handle: string;
-      }
-    | {
-        src: string;
-        dest: string;
       }
   )[];
   images?: {

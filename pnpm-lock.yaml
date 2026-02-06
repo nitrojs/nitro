@@ -431,6 +431,12 @@ importers:
         specifier: link:../..
         version: link:../..
 
+  examples/route-rules:
+    devDependencies:
+      nitro:
+        specifier: link:../..
+        version: link:../..
+
   examples/runtime-config:
     devDependencies:
       nitro:
