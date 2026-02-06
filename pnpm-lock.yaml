@@ -6,7 +6,6 @@ settings:
 
 overrides:
   nitro: link:.
-  undici: ^7.19.2
   vite: 8.0.0-beta.13
 
 importers:
@@ -43,9 +42,6 @@ importers:
       srvx:
         specifier: ^0.11.2
         version: 0.11.2
-      undici:
-        specifier: ^7.19.2
-        version: 7.20.0
       unenv:
         specifier: ^2.0.0-rc.24
         version: 2.0.0-rc.24
@@ -6052,6 +6048,10 @@ packages:
   undici-types@7.16.0:
     resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
 
+  undici@7.18.2:
+    resolution: {integrity: sha512-y+8YjDFzWdQlSE9N5nzKMT3g4a5UBX1HKowfdXh0uvAnTaqqwqB92Jt4UXBAeKekDs5IaDKyJFR4X1gYVCgXcw==}
+    engines: {node: '>=20.18.1'}
+
   undici@7.20.0:
     resolution: {integrity: sha512-MJZrkjyd7DeC+uPZh+5/YaMDxFiiEEaDgbUSVMXayofAkDWF1088CDo+2RPg7B1BuS1qf1vgNE7xqwPxE0DuSQ==}
     engines: {node: '>=20.18.1'}
@@ -11220,7 +11220,7 @@ snapshots:
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
       sharp: 0.34.5
-      undici: 7.20.0
+      undici: 7.18.2
       workerd: 1.20260205.0
       ws: 8.18.0
       youch: 4.1.0-beta.10
@@ -12422,6 +12422,8 @@ snapshots:
   undici-types@6.21.0: {}
 
   undici-types@7.16.0: {}
+
+  undici@7.18.2: {}
 
   undici@7.20.0: {}
 
