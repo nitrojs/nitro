@@ -105,6 +105,7 @@ export default defineConfig({
     "/rules/_/cached/noncached": { cache: false, swr: false, isr: false },
     "/rules/_/cached/**": { swr: true },
     "/api/proxy/**": { proxy: "/api/echo" },
+    "/cdn/**": { proxy: "https://cdn.jsdelivr.net/**" },
     "**": { headers: { "x-test": "test" } },
   },
   prerender: {

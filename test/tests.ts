@@ -544,6 +544,15 @@ export function testNitro(
     }
   });
 
+  it("external proxy", async () => {
+    const { data, headers, status } = await callHandler({
+      url: "/cdn/npm/bootstrap@5.3.8/dist/js/bootstrap.min.js",
+    });
+    expect(status).toBe(200);
+    expect(headers["etag"]).toMatch(/W\/".+"/);
+    expect(data).toContain("Bootstrap");
+  });
+
   it.skipIf(ctx.preset === "bun" /* TODO */)("stream", async () => {
     const { data } = await callHandler({
       url: "/stream",

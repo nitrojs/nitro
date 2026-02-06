@@ -108,6 +108,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/(.*)",
               },
               {
+                "dest": "https://cdn.jsdelivr.net/$1",
+                "src": "/cdn/(.*)",
+              },
+              {
                 "continue": true,
                 "headers": {
                   "cache-control": "public,max-age=31536000,immutable",
