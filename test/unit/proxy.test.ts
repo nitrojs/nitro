@@ -112,7 +112,7 @@ describe("fetchAddress", () => {
         `http://localhost/headers`,
         { headers: { "x-custom": "test-value" } }
       );
-      const body = await res.json();
+      const body = (await res.json()) as { headers: Record<string, string> };
       expect(body.headers["x-custom"]).toBe("test-value");
     });
 
