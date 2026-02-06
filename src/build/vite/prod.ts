@@ -9,6 +9,7 @@ import { existsSync } from "node:fs";
 import { writeBuildInfo } from "../info.ts";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { isTest, isCI } from "std-env";
+import type { RolldownOutput } from "rolldown";
 
 const BuilderNames = {
   nitro: C.magenta("Nitro"),
@@ -107,7 +108,7 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
   // await prerender(nitro);
 
   // Build the Nitro server bundle
-  await builder.build(builder.environments.nitro);
+  const output = (await builder.build(builder.environments.nitro)) as RolldownOutput;
 
   // Close the Nitro instance
   await nitro.close();
@@ -116,7 +117,7 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
   await nitro.hooks.callHook("compiled", nitro);
 
   // Write build info
-  await writeBuildInfo(nitro);
+  await writeBuildInfo(nitro, output);
 
   // Show deploy and preview commands
   const rOutput = relative(process.cwd(), nitro.options.output.dir);

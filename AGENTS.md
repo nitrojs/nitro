@@ -22,9 +22,9 @@ You are an expert JavaScript and TypeScript developer with strong focus on moder
 - `pnpm lint` — Lint and format code.
 - `pnpm format` — Automatically fix lint and formatting issues.
 - `pnpm test` — Run all tests.
-- `pnpm test:types` — Run type tests.
+- `pnpm typecheck` — Run type tests.
 
-**Always run** `pnpm format` and `pnpm test:types` after making changes.
+**Always run** `pnpm format` and `pnpm typecheck` after making changes.
 
 ## Repository Structure
 
@@ -107,7 +107,7 @@ Each preset in `src/presets/` defines deployment target behavior:
 2. Run `pnpm build --stub` if you changed build logic.
 3. Test with `pnpm test`.
 4. Run `pnpm format`.
-5. Run `pnpm test:types`.
+5. Run `pnpm typecheck`.
 6. Run `pnpm vitest run`.
 
 ## Contribution Principles

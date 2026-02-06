@@ -20,11 +20,12 @@ export const getRollupConfig = async (nitro: Nitro): Promise<RollupConfig> => {
     external: [...base.env.external],
     plugins: [
       ...(await baseBuildPlugins(nitro, base)),
-      oxc({
+      await oxc({
         sourcemap: !!nitro.options.sourcemap,
         minify: nitro.options.minify ? { ...nitro.options.oxc?.minify } : false,
         transform: {
           target: "esnext",
+          // @ts-expect-error TODO: does option exists?
           cwd: nitro.options.rootDir,
           ...nitro.options.oxc?.transform,
           jsx: {

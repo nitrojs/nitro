@@ -3,6 +3,7 @@ import { defineBuildConfig } from "obuild/config";
 import { resolveModulePath } from "exsolve";
 import { traceNodeModules } from "nf3";
 import { readFile, writeFile } from "node:fs/promises";
+import type { CodeSplittingOptions } from "rolldown";
 
 const isStub = process.argv.includes("--stub");
 
@@ -74,7 +75,7 @@ export default defineBuildConfig({
       );
     },
     rolldownOutput(config) {
-      config.codeSplitting!.groups?.unshift(
+      (config.codeSplitting as CodeSplittingOptions).groups?.unshift(
         {
           test: /src\/build\/(plugins|virtual|\w+\.ts)/,
           name: "_build/common",

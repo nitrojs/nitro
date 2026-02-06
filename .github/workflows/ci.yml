@@ -19,7 +19,7 @@ jobs:
         with: { node-version: lts/*, cache: pnpm }
       - run: pnpm install
       - run: pnpm stub && pnpm lint
-      - run: pnpm test:types
+      - run: pnpm typecheck
       - run: pnpm vitest run test/unit
       - run: pnpm vitest run test/minimal
   tests-rollup:
@@ -39,11 +39,10 @@ jobs:
         with: { bun-version: latest }
       - uses: denoland/setup-deno@v1
         if: ${{ matrix.os != 'windows-latest' }}
-        with: { deno-version: 2.6.4 }
+        with: { deno-version: 2.6.6 }
+      - run: node scripts/vite7.ts
       - run: pnpm install
       - run: pnpm stub && pnpm lint
-        if: ${{ matrix.os != 'windows-latest' }}
-      - run: pnpm test:types
         if: ${{ matrix.os != 'windows-latest' }}
       - run: pnpm build
       - run: pnpm vitest run test/examples
@@ -68,7 +67,7 @@ jobs:
         with: { bun-version: latest }
       - uses: denoland/setup-deno@v1
         if: ${{ matrix.os != 'windows-latest' }}
-        with: { deno-version: 2.6.4 }
+        with: { deno-version: 2.6.6 }
       - run: pnpm install
       - run: pnpm build
       - run: pnpm vitest run test/examples
