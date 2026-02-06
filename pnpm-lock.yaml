@@ -431,12 +431,6 @@ importers:
         specifier: link:../..
         version: link:../..
 
-  examples/route-rules:
-    devDependencies:
-      nitro:
-        specifier: link:../..
-        version: link:../..
-
   examples/runtime-config:
     devDependencies:
       nitro:
@@ -457,6 +451,12 @@ importers:
       shiki:
         specifier: ^3.22.0
         version: 3.22.0
+
+  examples/vercel-route-rules:
+    devDependencies:
+      nitro:
+        specifier: link:../..
+        version: link:../..
 
   examples/virtual-routes:
     devDependencies:
