@@ -151,8 +151,9 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     routes: [
       // Redirect and header rules (excluding paths handled as CDN proxy rewrites)
       ...rules
-        .filter(([path, routeRules]) =>
-          (routeRules.redirect || routeRules.headers) && !cdnProxyPaths.has(path)
+        .filter(
+          ([path, routeRules]) =>
+            (routeRules.redirect || routeRules.headers) && !cdnProxyPaths.has(path)
         )
         .map(([path, routeRules]) => {
           let route = {
@@ -361,9 +362,7 @@ function _hasProp(obj: any, prop: string) {
  * A proxy is eligible when it targets an external URL and uses no
  * ProxyOptions that Vercel's routing layer cannot handle at the edge.
  */
-function canUseVercelRewrite(
-  proxy: NitroRouteRules["proxy"]
-): proxy is { to: string } {
+function canUseVercelRewrite(proxy: NitroRouteRules["proxy"]): proxy is { to: string } {
   if (!proxy?.to) {
     return false;
   }
