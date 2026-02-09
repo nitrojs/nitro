@@ -11,9 +11,7 @@ type Context = Parameters<Parameters<typeof serveHandler>[0]>[1];
 
 export async function handler(event: Event, context: Context) {
   const headers = new Headers(
-    Object.fromEntries(
-      Object.entries(event.headers!).map(([key, value]) => [key, String(value)])
-    )
+    Object.fromEntries(Object.entries(event.headers!).map(([key, value]) => [key, String(value)]))
   );
 
   const url = withQuery(
@@ -25,17 +23,12 @@ export async function handler(event: Event, context: Context) {
     event.queryStringParameters ?? {}
   );
 
-  const body = event.isBase64Encoded
-    ? Buffer.from(event.body, "base64")
-    : event.body;
+  const body = event.isBase64Encoded ? Buffer.from(event.body, "base64") : event.body;
 
   const request = new Request(url, {
     method: event.httpMethod,
     headers,
-    body:
-      event.httpMethod === "GET" || event.httpMethod === "HEAD"
-        ? undefined
-        : body,
+    body: event.httpMethod === "GET" || event.httpMethod === "HEAD" ? undefined : body,
   });
   return nitroApp.fetch(request);
 }
