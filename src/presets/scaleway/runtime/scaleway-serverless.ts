@@ -2,6 +2,7 @@ import "#nitro/virtual/polyfills";
 import { useNitroApp } from "nitro/app";
 import { joinURL, withQuery } from "ufo";
 import type { serveHandler } from "@scaleway/serverless-functions";
+import { Buffer } from "node:buffer";
 
 const nitroApp = useNitroApp();
 
@@ -24,13 +25,17 @@ export async function handler(event: Event, context: Context) {
     event.queryStringParameters ?? {}
   );
 
+  const body = event.isBase64Encoded
+    ? Buffer.from(event.body, "base64")
+    : event.body;
+
   const request = new Request(url, {
     method: event.httpMethod,
     headers,
     body:
       event.httpMethod === "GET" || event.httpMethod === "HEAD"
         ? undefined
-        : event.body,
+        : body,
   });
   return nitroApp.fetch(request);
 }
