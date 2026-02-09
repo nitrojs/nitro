@@ -39,7 +39,7 @@ jobs:
         with: { bun-version: latest }
       - uses: denoland/setup-deno@v1
         if: ${{ matrix.os != 'windows-latest' }}
-        with: { deno-version: 2.6.6 }
+        with: { deno-version: 2.6.8 }
       - run: node scripts/vite7.ts
       - run: pnpm install
       - run: pnpm stub && pnpm lint
@@ -67,7 +67,7 @@ jobs:
         with: { bun-version: latest }
       - uses: denoland/setup-deno@v1
         if: ${{ matrix.os != 'windows-latest' }}
-        with: { deno-version: 2.6.6 }
+        with: { deno-version: 2.6.8 }
       - run: pnpm install
       - run: pnpm build
       - run: pnpm vitest run test/examples

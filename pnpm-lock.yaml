@@ -28,7 +28,7 @@ importers:
         specifier: ^2.0.1-rc.14
         version: 2.0.1-rc.14(crossws@0.4.4(srvx@0.11.2))
       jiti:
-        specifier: ^2
+        specifier: ^2.6.1
         version: 2.6.1
       nf3:
         specifier: ^0.3.10
