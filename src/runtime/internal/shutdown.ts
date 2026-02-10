@@ -25,6 +25,8 @@ async function _shutdownHandler() {
 }
 
 export function setupShutdownHooks() {
-  process.on("SIGTERM", _shutdownHandler);
-  process.on("SIGINT", _shutdownHandler);
+  if (typeof process !== "undefined" && process.on) {
+    process.on("SIGTERM", _shutdownHandler);
+    process.on("SIGINT", _shutdownHandler);
+  }
 }

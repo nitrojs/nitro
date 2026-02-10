@@ -96,6 +96,22 @@ describe("setupShutdownHooks", () => {
     });
   });
 
+  it("awaits the close hook promise", async () => {
+    let resolved = false;
+    callHook.mockImplementation(
+      () =>
+        new Promise<void>((r) => {
+          setTimeout(() => {
+            resolved = true;
+            r();
+          }, 50);
+        })
+    );
+    setupShutdownHooks();
+    process.emit("SIGTERM", "SIGTERM");
+    await vi.waitFor(() => expect(resolved).toBe(true));
+  });
+
   it("logs error if close hook throws", async () => {
     const error = new Error("cleanup failed");
     callHook.mockRejectedValueOnce(error);
