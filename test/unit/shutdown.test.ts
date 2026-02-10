@@ -47,6 +47,18 @@ describe("resolveGracefulShutdownConfig", () => {
     expect(resolveGracefulShutdownConfig()).toBe(false);
   });
 
+  it("does not disable for 'false'", () => {
+    process.env = { ...env, NITRO_SHUTDOWN_DISABLED: "false" };
+    delete process.env.NITRO_SHUTDOWN_TIMEOUT;
+    expect(resolveGracefulShutdownConfig()).toBeUndefined();
+  });
+
+  it("does not disable for empty string", () => {
+    process.env = { ...env, NITRO_SHUTDOWN_DISABLED: "" };
+    delete process.env.NITRO_SHUTDOWN_TIMEOUT;
+    expect(resolveGracefulShutdownConfig()).toBeUndefined();
+  });
+
   it("ignores non-numeric timeout", () => {
     process.env = { ...env, NITRO_SHUTDOWN_TIMEOUT: "abc" };
     delete process.env.NITRO_SHUTDOWN_DISABLED;
@@ -68,8 +80,8 @@ describe("setupShutdownHooks", () => {
   afterEach(() => {
     process.removeAllListeners("SIGTERM");
     process.removeAllListeners("SIGINT");
-    for (const fn of savedSIGTERM) process.on("SIGTERM", fn as NodeJS.SignalsListener);
-    for (const fn of savedSIGINT) process.on("SIGINT", fn as NodeJS.SignalsListener);
+    for (const fn of savedSIGTERM) process.on("SIGTERM", fn as () => void);
+    for (const fn of savedSIGINT) process.on("SIGINT", fn as () => void);
   });
 
   it("registers SIGTERM and SIGINT handlers", () => {
@@ -119,7 +131,10 @@ describe("setupShutdownHooks", () => {
     setupShutdownHooks();
     process.emit("SIGTERM", "SIGTERM");
     await vi.waitFor(() => {
-      expect(consoleSpy).toHaveBeenCalledWith("[nitro] Error running close hook:", error);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "[nitro] Error running close hook:",
+        error
+      );
     });
     consoleSpy.mockRestore();
   });

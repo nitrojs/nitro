@@ -2,7 +2,7 @@ import { useNitroApp } from "../app.ts";
 import type { ServerOptions } from "srvx";
 
 export function resolveGracefulShutdownConfig(): ServerOptions["gracefulShutdown"] {
-  if (process.env.NITRO_SHUTDOWN_DISABLED) {
+  if (process.env.NITRO_SHUTDOWN_DISABLED === "true") {
     return false;
   }
 
