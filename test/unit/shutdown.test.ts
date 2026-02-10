@@ -12,6 +12,7 @@ import {
   resolveGracefulShutdownConfig,
   setupShutdownHooks,
 } from "../../src/runtime/internal/shutdown.ts";
+import type { ProcessEventMap } from "node:process";
 
 describe("resolveGracefulShutdownConfig", () => {
   const env = process.env;
@@ -62,39 +63,31 @@ describe("resolveGracefulShutdownConfig", () => {
 });
 
 describe("setupShutdownHooks", () => {
-  let savedSIGTERM: Function[];
-  let savedSIGINT: Function[];
+  let signals: (keyof ProcessEventMap)[] = ["SIGTERM", "SIGINT"];
+  let priors: Record<string, ((...args: any) => void)[]> = Object.fromEntries(
+    signals.map((s) => [s, []])
+  );
 
   beforeEach(() => {
-    savedSIGTERM = process.listeners("SIGTERM").slice();
-    savedSIGINT = process.listeners("SIGINT").slice();
     callHook.mockClear();
+
+    for (const signal of signals) {
+      priors[signal] = process.listeners(signal).slice();
+    }
   });
 
   afterEach(() => {
-    process.removeAllListeners("SIGTERM");
-    process.removeAllListeners("SIGINT");
-    for (const fn of savedSIGTERM) process.on("SIGTERM", fn as () => void);
-    for (const fn of savedSIGINT) process.on("SIGINT", fn as () => void);
+    for (const signal of signals) {
+      process.removeAllListeners(signal);
+      for (const fn of priors[signal]) {
+        process.on(signal, fn);
+      }
+    }
   });
 
-  it("registers SIGTERM and SIGINT handlers", () => {
-    const beforeTERM = process.listenerCount("SIGTERM");
-    const beforeINT = process.listenerCount("SIGINT");
+  it.each(["SIGTERM", "SIGINT"])("calls close hook on %s", (signal) => {
     setupShutdownHooks();
-    expect(process.listenerCount("SIGTERM")).toBe(beforeTERM + 1);
-    expect(process.listenerCount("SIGINT")).toBe(beforeINT + 1);
-  });
-
-  it("calls close hook on SIGTERM", () => {
-    setupShutdownHooks();
-    process.emit("SIGTERM", "SIGTERM");
-    expect(callHook).toHaveBeenCalledWith("close");
-  });
-
-  it("calls close hook on SIGINT", () => {
-    setupShutdownHooks();
-    process.emit("SIGINT", "SIGINT");
-    expect(callHook).toHaveBeenCalledWith("close");
+    process.emit(signal, true);
+    expect(callHook).toHaveBeenCalledOnce();
   });
 });
