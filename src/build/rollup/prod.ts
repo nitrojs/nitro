@@ -5,6 +5,7 @@ import { scanHandlers } from "../../scan.ts";
 import { generateFSTree } from "../../utils/fs-tree.ts";
 import { writeTypes } from "../types.ts";
 import { writeBuildInfo } from "../info.ts";
+import { rewriteBuilderlessImports } from "../rewrite.ts";
 import { formatRollupError } from "./error.ts";
 import type { RollupOutput } from "rollup";
 
@@ -27,6 +28,7 @@ export async function buildProduction(nitro: Nitro, rollupConfig: RollupConfig) 
     });
 
     output = await build.write(rollupConfig.output);
+    await rewriteBuilderlessImports(nitro);
   }
 
   const buildInfo = await writeBuildInfo(nitro, output);

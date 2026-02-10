@@ -216,8 +216,13 @@ export interface NitroOptions extends PresetOptions {
     retryDelay?: number;
   };
 
-  // Rollup
+  // Builder
   builder?: "rollup" | "rolldown" | "vite";
+  /**
+   * Keep Nitro runtime bundling while leaving user handlers/modules unbundled.
+   * Useful when a downstream platform bundler (e.g. Wrangler) should bundle app code.
+   */
+  builderless?: boolean;
   rollupConfig?: RollupConfig;
   rolldownConfig?: RolldownConfig;
   entry: string;

@@ -7,6 +7,7 @@ import { scanHandlers } from "../../scan.ts";
 import { generateFSTree } from "../../utils/fs-tree.ts";
 import { writeTypes } from "../types.ts";
 import { writeBuildInfo } from "../info.ts";
+import { rewriteBuilderlessImports } from "../rewrite.ts";
 import type { RolldownOutput } from "rolldown";
 
 export async function buildProduction(nitro: Nitro, config: RolldownOptions) {
@@ -24,6 +25,7 @@ export async function buildProduction(nitro: Nitro, config: RolldownOptions) {
     );
     const build = await rolldown.rolldown(config);
     output = (await build.write(config.output as OutputOptions)) as RolldownOutput;
+    await rewriteBuilderlessImports(nitro);
   }
 
   const buildInfo = await writeBuildInfo(nitro, output);

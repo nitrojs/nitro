@@ -11,6 +11,7 @@ import { virtual, virtualDeps } from "./plugins/virtual.ts";
 import { sourcemapMinify } from "./plugins/sourcemap-min.ts";
 import { raw } from "./plugins/raw.ts";
 import { externals } from "./plugins/externals.ts";
+import { userCodeExternal } from "./plugins/user-code-external.ts";
 
 export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const plugins: Plugin[] = [];
@@ -19,6 +20,10 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const virtualPlugin = virtual(virtualTemplates(nitro, [...base.env.polyfill]));
   nitro.vfs = virtualPlugin.api.modules;
   plugins.push(virtualPlugin, virtualDeps());
+
+  if (nitro.options.builderless) {
+    plugins.push(userCodeExternal(nitro));
+  }
 
   // Auto imports
   if (nitro.options.imports) {

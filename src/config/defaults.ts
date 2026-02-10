@@ -68,6 +68,7 @@ export const NitroDefaults: NitroConfig = {
 
   // Builder
   builder: undefined,
+  builderless: false,
   moduleSideEffects: ["unenv/polyfill/"],
   replace: {},
   node: true,

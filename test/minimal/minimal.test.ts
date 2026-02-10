@@ -2,8 +2,9 @@ import { afterAll, describe, expect, it } from "vitest";
 import { createNitro, build, prepare } from "nitro/builder";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { mkdir, rm, stat } from "node:fs/promises";
+import { mkdir, readFile, rm, stat } from "node:fs/promises";
 import { glob } from "tinyglobby";
+import escapeRE from "escape-string-regexp";
 
 const fixtureDir = fileURLToPath(new URL("./", import.meta.url));
 const tmpDir = fileURLToPath(new URL(".tmp", import.meta.url));
@@ -64,6 +65,34 @@ describe("minimal fixture", () => {
       });
     }
   }
+
+  describe("builderless", () => {
+    let outDir: string;
+
+    it("externalizes app code with rolldown", async () => {
+      outDir = join(tmpDir, "output", "builderless-rolldown");
+      await rm(outDir, { recursive: true, force: true });
+      await mkdir(outDir, { recursive: true });
+      const nitro = await createNitro({
+        rootDir: fixtureDir,
+        output: { dir: outDir },
+        builder: "rolldown",
+        builderless: true,
+      });
+      await prepare(nitro);
+      await build(nitro);
+      await nitro.close();
+    });
+
+    it("rewrites absolute imports to relative paths", async () => {
+      const files = await glob("server/**/*.{mjs,js}", { cwd: outDir, absolute: true });
+      const contents = (await Promise.all(files.map((file) => readFile(file, "utf8")))).join("\n");
+      const rootDirPattern = new RegExp(escapeRE(fileURLToPath(new URL("./", import.meta.url))));
+
+      expect(contents).toMatch(/from "(?:\.\.\/)+server\.ts"/);
+      expect(contents).not.toMatch(rootDirPattern);
+    });
+  });
 
   if (process.env.TEST_DEBUG) {
     afterAll(() => {
