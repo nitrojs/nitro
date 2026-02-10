@@ -67,7 +67,7 @@ describe("minimal fixture", () => {
   }
 
   describe("builderless", () => {
-    const builders = ["rolldown", "vite", "vite7"] as const;
+    const builders = ["rolldown", "rollup", "vite", "vite7"] as const;
 
     for (const builder of builders) {
       describe(builder, () => {
@@ -80,7 +80,7 @@ describe("minimal fixture", () => {
           const nitro = await createNitro({
             rootDir: fixtureDir,
             output: { dir: outDir },
-            builder: builder.includes("vite") ? "vite" : "rolldown",
+            builder: builder.includes("vite") ? "vite" : (builder as "rolldown" | "rollup"),
             // @ts-expect-error for testing
             __vitePkg__: builder.includes("vite") ? builder : undefined,
             builderless: true,
@@ -99,7 +99,7 @@ describe("minimal fixture", () => {
             escapeRE(fileURLToPath(new URL("./", import.meta.url)))
           );
 
-          expect(contents).toMatch(/from "(?:\.\.\/)+server\.ts"/);
+          expect(contents).toMatch(/from ['"](?:\.\.\/)+server\.ts['"]/);
           expect(contents).not.toMatch(rootDirPattern);
         });
       });
