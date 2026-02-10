@@ -275,7 +275,7 @@ export async function writeWranglerConfig(nitro: Nitro, cfTarget: "pages" | "mod
   if (cfTarget === "module") {
     // Avoid double bundling
     if (wranglerConfig.no_bundle === undefined) {
-      wranglerConfig.no_bundle = true;
+      wranglerConfig.no_bundle = !nitro.options.builderless;
     }
 
     // Scan all server/ chunks
