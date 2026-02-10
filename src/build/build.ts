@@ -1,10 +1,6 @@
 import type { Nitro } from "nitro/types";
 
 export async function build(nitro: Nitro) {
-  if (nitro.options.builderless && nitro.options.builder === "vite") {
-    throw new Error("`builderless` is currently supported only with `rollup` and `rolldown`.");
-  }
-
   switch (nitro.options.builder) {
     case "rollup": {
       const { rollupBuild } = await import("./rollup/build.ts");

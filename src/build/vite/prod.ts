@@ -7,6 +7,7 @@ import { colors as C } from "consola/utils";
 import { copyPublicAssets } from "../../builder.ts";
 import { existsSync } from "node:fs";
 import { writeBuildInfo } from "../info.ts";
+import { rewriteBuilderlessImports } from "../rewrite.ts";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { isTest, isCI } from "std-env";
 import type { RolldownOutput } from "rolldown";
@@ -109,6 +110,7 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
 
   // Build the Nitro server bundle
   const output = (await builder.build(builder.environments.nitro)) as RolldownOutput;
+  await rewriteBuilderlessImports(nitro);
 
   // Close the Nitro instance
   await nitro.close();
