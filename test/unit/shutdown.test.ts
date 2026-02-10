@@ -68,10 +68,8 @@ describe("setupShutdownHooks", () => {
   afterEach(() => {
     process.removeAllListeners("SIGTERM");
     process.removeAllListeners("SIGINT");
-    for (const fn of savedSIGTERM)
-      process.on("SIGTERM", fn as NodeJS.SignalsListener);
-    for (const fn of savedSIGINT)
-      process.on("SIGINT", fn as NodeJS.SignalsListener);
+    for (const fn of savedSIGTERM) process.on("SIGTERM", fn as NodeJS.SignalsListener);
+    for (const fn of savedSIGINT) process.on("SIGINT", fn as NodeJS.SignalsListener);
   });
 
   it("registers SIGTERM and SIGINT handlers", () => {
@@ -105,10 +103,7 @@ describe("setupShutdownHooks", () => {
     setupShutdownHooks();
     process.emit("SIGTERM", "SIGTERM");
     await vi.waitFor(() => {
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "[nitro] Error running close hook:",
-        error
-      );
+      expect(consoleSpy).toHaveBeenCalledWith("[nitro] Error running close hook:", error);
     });
     consoleSpy.mockRestore();
   });

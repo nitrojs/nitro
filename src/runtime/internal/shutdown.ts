@@ -6,10 +6,7 @@ export function resolveGracefulShutdownConfig(): ServerOptions["gracefulShutdown
     return false;
   }
 
-  const timeoutMs = Number.parseInt(
-    process.env.NITRO_SHUTDOWN_TIMEOUT ?? "",
-    10
-  );
+  const timeoutMs = Number.parseInt(process.env.NITRO_SHUTDOWN_TIMEOUT ?? "", 10);
 
   if (timeoutMs > 0) {
     // srvx expects timeout in seconds

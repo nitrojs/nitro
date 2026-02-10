@@ -6,15 +6,10 @@ import wsAdapter from "crossws/adapters/bun";
 import { useNitroApp } from "nitro/app";
 import { startScheduleRunner } from "#nitro/runtime/task";
 import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
-import {
-  resolveGracefulShutdownConfig,
-  setupShutdownHooks,
-} from "#nitro/runtime/shutdown";
+import { resolveGracefulShutdownConfig, setupShutdownHooks } from "#nitro/runtime/shutdown";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
 
-const _parsedPort = Number.parseInt(
-  process.env.NITRO_PORT ?? process.env.PORT ?? ""
-);
+const _parsedPort = Number.parseInt(process.env.NITRO_PORT ?? process.env.PORT ?? "");
 const port = Number.isNaN(_parsedPort) ? 3000 : _parsedPort;
 const host = process.env.NITRO_HOST || process.env.HOST;
 const cert = process.env.NITRO_SSL_CERT;
@@ -26,17 +21,12 @@ const nitroApp = useNitroApp();
 
 let _fetch = nitroApp.fetch;
 
-const ws = import.meta._websocket
-  ? wsAdapter({ resolve: resolveWebsocketHooks })
-  : undefined;
+const ws = import.meta._websocket ? wsAdapter({ resolve: resolveWebsocketHooks }) : undefined;
 
 if (import.meta._websocket) {
   _fetch = (req: ServerRequest) => {
     if (req.headers.get("upgrade") === "websocket") {
-      return ws!.handleUpgrade(
-        req,
-        req.runtime!.bun!.server
-      ) as Promise<Response>;
+      return ws!.handleUpgrade(req, req.runtime!.bun!.server) as Promise<Response>;
     }
     return nitroApp.fetch(req);
   };
