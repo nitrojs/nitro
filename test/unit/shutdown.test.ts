@@ -27,9 +27,16 @@ describe("resolveGracefulShutdownConfig", () => {
     expect(resolveGracefulShutdownConfig()).toBeUndefined();
   });
 
-  it("returns false when NITRO_SHUTDOWN_DISABLED is 'true'", () => {
-    process.env = { ...env, NITRO_SHUTDOWN_DISABLED: "true" };
-    expect(resolveGracefulShutdownConfig()).toBe(false);
+  it.each([
+    { value: "true", expected: false },
+    { value: "false", expected: undefined },
+    { value: "", expected: undefined },
+    { value: "1", expected: undefined },
+    { value: "yes", expected: undefined },
+  ])("NITRO_SHUTDOWN_DISABLED=$value returns $expected", ({ value, expected }) => {
+    process.env = { ...env, NITRO_SHUTDOWN_DISABLED: value };
+    delete process.env.NITRO_SHUTDOWN_TIMEOUT;
+    expect(resolveGracefulShutdownConfig()).toBe(expected);
   });
 
   it("returns gracefulTimeout in seconds from NITRO_SHUTDOWN_TIMEOUT ms", () => {
@@ -45,18 +52,6 @@ describe("resolveGracefulShutdownConfig", () => {
       NITRO_SHUTDOWN_TIMEOUT: "10000",
     };
     expect(resolveGracefulShutdownConfig()).toBe(false);
-  });
-
-  it("does not disable for 'false'", () => {
-    process.env = { ...env, NITRO_SHUTDOWN_DISABLED: "false" };
-    delete process.env.NITRO_SHUTDOWN_TIMEOUT;
-    expect(resolveGracefulShutdownConfig()).toBeUndefined();
-  });
-
-  it("does not disable for empty string", () => {
-    process.env = { ...env, NITRO_SHUTDOWN_DISABLED: "" };
-    delete process.env.NITRO_SHUTDOWN_TIMEOUT;
-    expect(resolveGracefulShutdownConfig()).toBeUndefined();
   });
 
   it("ignores non-numeric timeout", () => {
