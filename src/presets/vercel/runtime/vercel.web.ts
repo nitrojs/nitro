@@ -20,10 +20,8 @@ export default {
       }
     }
 
-    req.runtime = {
-      name: "vercel",
-      vercel: { context },
-    };
+    req.runtime ??= { name: "vercel" };
+    req.runtime.vercel = { context };
 
     let ip: string | undefined;
     Object.defineProperty(req, "ip", {

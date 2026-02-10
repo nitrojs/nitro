@@ -1,5 +1,5 @@
-import type { IncomingMessage, OutgoingMessage } from "node:http";
-import type { Duplex } from "node:stream";
+import type { IncomingMessage } from "node:http";
+import type { Socket } from "node:net";
 import type { FSWatcher } from "chokidar";
 import type { ServerOptions, Server } from "srvx";
 import { NodeEnvRunner } from "../runner/node.ts";
@@ -92,11 +92,7 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
 
   // #region Public Methods
 
-  async upgrade(
-    req: IncomingMessage,
-    socket: OutgoingMessage<IncomingMessage> | Duplex,
-    head: any
-  ) {
+  async upgrade(req: IncomingMessage, socket: Socket, head: any) {
     const worker = await this.#getWorker();
     if (!worker) {
       throw new HTTPError({

@@ -1,4 +1,4 @@
-import type { IncomingMessage, OutgoingMessage, RequestOptions } from "node:http";
+import type { IncomingMessage, RequestOptions, ServerResponse } from "node:http";
 import type { TLSSocket } from "node:tls";
 import type { ProxyServerOptions, ProxyServer } from "httpxy";
 import type { H3Event } from "h3";
@@ -26,7 +26,7 @@ export function createHTTPProxy(defaults: ProxyServerOptions = {}): HTTPProxy {
     if (!proxyReq.hasHeader("x-forwarded-port")) {
       const localPort = req?.socket?.localPort;
       if (localPort) {
-        proxyReq.setHeader("x-forwarded-port", req.socket.localPort);
+        proxyReq.setHeader("x-forwarded-port", localPort);
       }
     }
     if (!proxyReq.hasHeader("x-forwarded-Proto")) {
@@ -40,7 +40,7 @@ export function createHTTPProxy(defaults: ProxyServerOptions = {}): HTTPProxy {
     async handleEvent(event, opts) {
       try {
         return await fromNodeHandler((req, res) =>
-          proxy.web(req as IncomingMessage, res as OutgoingMessage, opts)
+          proxy.web(req as IncomingMessage, res as ServerResponse, opts)
         )(event);
       } catch (error: any) {
         event.res.headers.set("refresh", "3");

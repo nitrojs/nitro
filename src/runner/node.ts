@@ -1,5 +1,5 @@
-import type { IncomingMessage, OutgoingMessage } from "node:http";
-import type { Duplex } from "node:stream";
+import type { IncomingMessage } from "node:http";
+import type { Socket } from "node:net";
 import type { HTTPProxy } from "./proxy.ts";
 import type { RunnerMessageListener, EnvRunner, WorkerAddress, WorkerHooks } from "nitro/types";
 
@@ -56,17 +56,12 @@ export class NodeEnvRunner implements EnvRunner {
     return fetchAddress(this.#address, input, init);
   }
 
-  upgrade(req: IncomingMessage, socket: OutgoingMessage<IncomingMessage> | Duplex, head: any) {
+  upgrade(req: IncomingMessage, socket: Socket, head: any) {
     if (!this.ready) {
       return;
     }
     return this.#proxy!.proxy
-      .ws(
-        req,
-        socket as OutgoingMessage<IncomingMessage>,
-        { target: this.#address, xfwd: true },
-        head
-      )
+      .ws(req, socket, { target: this.#address, xfwd: true }, head)
       .catch((error) => {
         consola.error("WebSocket proxy error:", error);
       });

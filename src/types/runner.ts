@@ -1,15 +1,11 @@
-import type { IncomingMessage, OutgoingMessage } from "node:http";
-import type { Duplex } from "node:stream";
+import type { IncomingMessage } from "node:http";
+import type { Socket } from "node:net";
 
 export type FetchHandler = (req: Request) => Promise<Response>;
 
 export type RunnerMessageListener = (data: unknown) => void;
 
-export type UpgradeHandler = (
-  req: IncomingMessage,
-  socket: OutgoingMessage<IncomingMessage> | Duplex,
-  head: any
-) => void;
+export type UpgradeHandler = (req: IncomingMessage, socket: Socket, head: any) => void;
 
 export interface RunnerRPCHooks {
   sendMessage: (message: unknown) => void;
