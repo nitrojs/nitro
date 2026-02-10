@@ -8,7 +8,10 @@ vi.mock("../../src/runtime/internal/app.ts", () => ({
   }),
 }));
 
-import { resolveGracefulShutdownConfig, setupShutdownHooks } from "../../src/runtime/internal/shutdown.ts";
+import {
+  resolveGracefulShutdownConfig,
+  setupShutdownHooks,
+} from "../../src/runtime/internal/shutdown.ts";
 
 describe("resolveGracefulShutdownConfig", () => {
   const env = process.env;
