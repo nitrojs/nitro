@@ -1,13 +1,28 @@
 import type { Nitro } from "nitro/types";
 import type { OutputOptions, RolldownOptions, RolldownPlugin } from "rolldown";
+import { esmExternalRequirePlugin } from "rolldown/plugins";
 import { baseBuildConfig } from "../config.ts";
 import { baseBuildPlugins } from "../plugins.ts";
 import { builtinModules } from "node:module";
 import { defu } from "defu";
 import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
+import { requireConditionResolver } from "./require-condition.ts";
 
 export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> => {
   const base = baseBuildConfig(nitro);
+  const builtinExternals = [...builtinModules, ...builtinModules.map((m) => `node:${m}`)];
+  const plugins: RolldownPlugin[] = [
+    requireConditionResolver(nitro),
+    ...(!nitro.options.node
+      ? [
+          esmExternalRequirePlugin({
+            external: builtinExternals,
+            skipDuplicateCheck: true,
+          }) as RolldownPlugin,
+        ]
+      : []),
+    ...((await baseBuildPlugins(nitro, base)) as RolldownPlugin[]),
+  ];
 
   const tsc = nitro.options.typescript.tsConfig?.compilerOptions;
 
@@ -15,8 +30,10 @@ export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> 
     platform: nitro.options.node ? "node" : "neutral",
     cwd: nitro.options.rootDir,
     input: nitro.options.entry,
-    external: [...base.env.external, ...builtinModules, ...builtinModules.map((m) => `node:${m}`)],
-    plugins: [...((await baseBuildPlugins(nitro, base)) as RolldownPlugin[])],
+    external: nitro.options.node
+      ? [...base.env.external, ...builtinExternals]
+      : [...base.env.external],
+    plugins,
     resolve: {
       alias: base.aliases,
       extensions: base.extensions,
