@@ -1,23 +1,33 @@
 import { useNitroApp } from "../app.ts";
+import type { ServerOptions } from "srvx";
 
-export function resolveGracefulShutdownConfig() {
-  const _timeout = Number.parseInt(process.env.NITRO_SHUTDOWN_TIMEOUT || "", 10);
-  return process.env.NITRO_SHUTDOWN_DISABLED === "true"
-    ? false
-    : _timeout > 0
-      ? { gracefulTimeout: _timeout / 1000 }
-      : undefined;
+export function resolveGracefulShutdownConfig(): ServerOptions["gracefulShutdown"] {
+  if (!!process.env.NITRO_SHUTDOWN_DISABLED) {
+    return false;
+  }
+
+  const timeoutMs = Number.parseInt(
+    process.env.NITRO_SHUTDOWN_TIMEOUT ?? "",
+    10
+  );
+
+  if (timeoutMs > 0) {
+    // srvx expects timeout in seconds
+    return { gracefulTimeout: timeoutMs / 1000 };
+  }
+
+  return undefined;
+}
+
+async function _shutdownHandler() {
+  try {
+    await useNitroApp().hooks?.callHook("close");
+  } catch (error) {
+    console.error("[nitro] Error running close hook:", error);
+  }
 }
 
 export function setupShutdownHooks() {
-  const handler = async () => {
-    try {
-      await useNitroApp().hooks?.callHook("close");
-    } catch (error) {
-      console.error("[nitro] Error running close hook:", error);
-    }
-  };
-  for (const sig of ["SIGTERM", "SIGINT"] as const) {
-    process.on(sig, handler);
-  }
+  process.on("SIGTERM", _shutdownHandler);
+  process.on("SIGINT", _shutdownHandler);
 }
