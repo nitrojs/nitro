@@ -9,7 +9,6 @@ vi.mock("../../src/runtime/internal/app.ts", () => ({
 }));
 
 import {
-  _resetShutdownState,
   resolveGracefulShutdownConfig,
   setupShutdownHooks,
 } from "../../src/runtime/internal/shutdown.ts";
@@ -70,8 +69,6 @@ describe("setupShutdownHooks", () => {
     savedSIGTERM = process.listeners("SIGTERM").slice();
     savedSIGINT = process.listeners("SIGINT").slice();
     callHook.mockClear();
-    callHook.mockResolvedValue(undefined);
-    _resetShutdownState();
   });
 
   afterEach(() => {
@@ -89,58 +86,15 @@ describe("setupShutdownHooks", () => {
     expect(process.listenerCount("SIGINT")).toBe(beforeINT + 1);
   });
 
-  it("calls close hook on SIGTERM", async () => {
+  it("calls close hook on SIGTERM", () => {
     setupShutdownHooks();
     process.emit("SIGTERM", "SIGTERM");
-    await vi.waitFor(() => {
-      expect(callHook).toHaveBeenCalledWith("close");
-    });
+    expect(callHook).toHaveBeenCalledWith("close");
   });
 
-  it("calls close hook on SIGINT", async () => {
+  it("calls close hook on SIGINT", () => {
     setupShutdownHooks();
     process.emit("SIGINT", "SIGINT");
-    await vi.waitFor(() => {
-      expect(callHook).toHaveBeenCalledWith("close");
-    });
-  });
-
-  it("awaits the close hook promise", async () => {
-    let resolved = false;
-    callHook.mockImplementation(
-      () =>
-        new Promise<void>((r) => {
-          setTimeout(() => {
-            resolved = true;
-            r();
-          }, 50);
-        })
-    );
-    setupShutdownHooks();
-    process.emit("SIGTERM", "SIGTERM");
-    await vi.waitFor(() => expect(resolved).toBe(true));
-  });
-
-  it("only calls close hook once across multiple signals", async () => {
-    setupShutdownHooks();
-    process.emit("SIGTERM", "SIGTERM");
-    process.emit("SIGINT", "SIGINT");
-    process.emit("SIGTERM", "SIGTERM");
-    await vi.waitFor(() => {
-      expect(callHook).toHaveBeenCalledWith("close");
-    });
-    expect(callHook).toHaveBeenCalledTimes(1);
-  });
-
-  it("logs error if close hook throws", async () => {
-    const error = new Error("cleanup failed");
-    callHook.mockRejectedValueOnce(error);
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    setupShutdownHooks();
-    process.emit("SIGTERM", "SIGTERM");
-    await vi.waitFor(() => {
-      expect(consoleSpy).toHaveBeenCalledWith("[nitro] Error running close hook:", error);
-    });
-    consoleSpy.mockRestore();
+    expect(callHook).toHaveBeenCalledWith("close");
   });
 });

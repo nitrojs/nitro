@@ -16,27 +16,11 @@ export function resolveGracefulShutdownConfig(): ServerOptions["gracefulShutdown
   return undefined;
 }
 
-let _isShuttingDown = false;
-
-async function _shutdownHandler() {
-  if (_isShuttingDown) {
-    return;
-  }
-  _isShuttingDown = true;
-  try {
-    await useNitroApp().hooks?.callHook("close");
-  } catch (error) {
-    console.error("[nitro] Error running close hook:", error);
-  }
+function _onShutdownSignal() {
+  useNitroApp().hooks?.callHook("close");
 }
 
 export function setupShutdownHooks() {
-  if (typeof process !== "undefined" && process.on) {
-    process.on("SIGTERM", _shutdownHandler);
-    process.on("SIGINT", _shutdownHandler);
-  }
-}
-
-export function _resetShutdownState() {
-  _isShuttingDown = false;
+  process.on("SIGTERM", _onShutdownSignal);
+  process.on("SIGINT", _onShutdownSignal);
 }
