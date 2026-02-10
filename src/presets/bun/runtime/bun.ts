@@ -6,6 +6,7 @@ import wsAdapter from "crossws/adapters/bun";
 import { useNitroApp } from "nitro/app";
 import { startScheduleRunner } from "#nitro/runtime/task";
 import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
+import { setupShutdownHooks } from "#nitro/runtime/shutdown";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
 
 const _parsedPort = Number.parseInt(process.env.NITRO_PORT ?? process.env.PORT ?? "");
@@ -41,6 +42,7 @@ serve({
 });
 
 trapUnhandledErrors();
+setupShutdownHooks();
 
 // Scheduled tasks
 if (import.meta._tasks) {
