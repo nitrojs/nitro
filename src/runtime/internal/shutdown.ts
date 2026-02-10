@@ -1,5 +1,14 @@
 import { useNitroApp } from "../app.ts";
 
+export function resolveGracefulShutdownConfig() {
+  const _timeout = Number.parseInt(process.env.NITRO_SHUTDOWN_TIMEOUT || "", 10);
+  return process.env.NITRO_SHUTDOWN_DISABLED === "true"
+    ? false
+    : _timeout > 0
+      ? { gracefulTimeout: _timeout / 1000 }
+      : undefined;
+}
+
 export function setupShutdownHooks() {
   const handler = async () => {
     try {

@@ -6,7 +6,7 @@ import wsAdapter from "crossws/adapters/deno";
 import { useNitroApp } from "nitro/app";
 import { startScheduleRunner } from "#nitro/runtime/task";
 import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
-import { setupShutdownHooks } from "#nitro/runtime/shutdown";
+import { resolveGracefulShutdownConfig, setupShutdownHooks } from "#nitro/runtime/shutdown";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
 
 const _parsedPort = Number.parseInt(process.env.NITRO_PORT ?? process.env.PORT ?? "");
@@ -15,14 +15,7 @@ const port = Number.isNaN(_parsedPort) ? 3000 : _parsedPort;
 const host = process.env.NITRO_HOST || process.env.HOST;
 const cert = process.env.NITRO_SSL_CERT;
 const key = process.env.NITRO_SSL_KEY;
-
-const _shutdownTimeout = Number.parseInt(process.env.NITRO_SHUTDOWN_TIMEOUT || "", 10);
-const gracefulShutdown =
-  process.env.NITRO_SHUTDOWN_DISABLED === "true"
-    ? false
-    : _shutdownTimeout > 0
-      ? { gracefulTimeout: _shutdownTimeout / 1000 }
-      : undefined;
+const gracefulShutdown = resolveGracefulShutdownConfig();
 
 const nitroApp = useNitroApp();
 

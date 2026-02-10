@@ -8,7 +8,44 @@ vi.mock("../../src/runtime/internal/app.ts", () => ({
   }),
 }));
 
-import { setupShutdownHooks } from "../../src/runtime/internal/shutdown.ts";
+import { resolveGracefulShutdownConfig, setupShutdownHooks } from "../../src/runtime/internal/shutdown.ts";
+
+describe("resolveGracefulShutdownConfig", () => {
+  const env = process.env;
+
+  afterEach(() => {
+    process.env = env;
+  });
+
+  it("returns undefined by default", () => {
+    process.env = { ...env };
+    delete process.env.NITRO_SHUTDOWN_DISABLED;
+    delete process.env.NITRO_SHUTDOWN_TIMEOUT;
+    expect(resolveGracefulShutdownConfig()).toBeUndefined();
+  });
+
+  it("returns false when NITRO_SHUTDOWN_DISABLED is 'true'", () => {
+    process.env = { ...env, NITRO_SHUTDOWN_DISABLED: "true" };
+    expect(resolveGracefulShutdownConfig()).toBe(false);
+  });
+
+  it("returns gracefulTimeout in seconds from NITRO_SHUTDOWN_TIMEOUT ms", () => {
+    process.env = { ...env, NITRO_SHUTDOWN_TIMEOUT: "10000" };
+    delete process.env.NITRO_SHUTDOWN_DISABLED;
+    expect(resolveGracefulShutdownConfig()).toEqual({ gracefulTimeout: 10 });
+  });
+
+  it("disabled takes priority over timeout", () => {
+    process.env = { ...env, NITRO_SHUTDOWN_DISABLED: "true", NITRO_SHUTDOWN_TIMEOUT: "10000" };
+    expect(resolveGracefulShutdownConfig()).toBe(false);
+  });
+
+  it("ignores non-numeric timeout", () => {
+    process.env = { ...env, NITRO_SHUTDOWN_TIMEOUT: "abc" };
+    delete process.env.NITRO_SHUTDOWN_DISABLED;
+    expect(resolveGracefulShutdownConfig()).toBeUndefined();
+  });
+});
 
 describe("setupShutdownHooks", () => {
   let savedSIGTERM: Function[];
