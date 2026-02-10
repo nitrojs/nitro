@@ -1,38 +1,17 @@
 import type { Plugin } from "rollup";
 import type { Nitro } from "nitro/types";
-import { isAbsolute, relative } from "pathe";
-import { presetsDir, runtimeDir } from "nitro/meta";
+import { isBuilderlessUserCodePath, splitSpecifier } from "../utils/builderless-path.ts";
 
 export const BUILDERLESS_EXTERNAL_MARKER = "nitro:user-code-external";
 
 export function userCodeExternal(nitro: Nitro): Plugin {
-  const includeRoots = [...new Set([nitro.options.rootDir, ...nitro.options.scanDirs])];
-  const excludeRoots = [
-    runtimeDir,
-    presetsDir,
-    nitro.options.buildDir,
-    nitro.options.output.dir,
-    nitro.options.output.serverDir,
-    nitro.options.output.publicDir,
-  ];
-
-  const shouldExternalize = (id: string) => {
-    if (!isAbsolute(id) || isNodeModulesPath(id)) {
-      return false;
-    }
-    if (!includeRoots.some((root) => isSubpath(id, root))) {
-      return false;
-    }
-    return !excludeRoots.some((root) => isSubpath(id, root));
-  };
-
   return {
     name: BUILDERLESS_EXTERNAL_MARKER,
     resolveId: {
       order: "pre",
       handler(id) {
         const [path] = splitSpecifier(id);
-        if (!path || !shouldExternalize(path)) {
+        if (!path || !isBuilderlessUserCodePath(path, nitro)) {
           return null;
         }
         return {
@@ -43,21 +22,4 @@ export function userCodeExternal(nitro: Nitro): Plugin {
       },
     },
   };
-}
-
-function splitSpecifier(specifier: string) {
-  const queryIndex = specifier.indexOf("?");
-  if (queryIndex < 0) {
-    return [specifier, ""] as const;
-  }
-  return [specifier.slice(0, queryIndex), specifier.slice(queryIndex)] as const;
-}
-
-function isNodeModulesPath(path: string) {
-  return /[/\\]node_modules[/\\]/.test(path);
-}
-
-function isSubpath(path: string, parent: string) {
-  const rel = relative(parent, path);
-  return !rel || (!rel.startsWith("..") && !isAbsolute(rel));
 }

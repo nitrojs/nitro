@@ -1,9 +1,9 @@
 import type { Nitro } from "nitro/types";
 import { readFile } from "node:fs/promises";
 import { glob } from "tinyglobby";
-import { dirname, isAbsolute, relative } from "pathe";
+import { dirname, relative } from "pathe";
 import { writeFile } from "../utils/fs.ts";
-import { presetsDir, runtimeDir } from "nitro/meta";
+import { isBuilderlessUserCodePath, splitSpecifier } from "./utils/builderless-path.ts";
 
 export async function rewriteBuilderlessImports(nitro: Nitro) {
   if (!nitro.options.builderless) {
@@ -43,52 +43,13 @@ function rewriteModuleImports(source: string, fromFile: string, nitro: Nitro) {
 
 function rewriteSpecifier(specifier: string, fromFile: string, nitro: Nitro) {
   const [path, query] = splitSpecifier(specifier);
-  if (!path || !isAbsolute(path) || !shouldRewrite(path, nitro)) {
+  if (!path || !isBuilderlessUserCodePath(path, nitro)) {
     return specifier;
   }
 
   const relativePath = toPosixPath(relative(dirname(fromFile), path));
   const normalized = relativePath.startsWith(".") ? relativePath : `./${relativePath}`;
   return normalized + query;
-}
-
-function shouldRewrite(path: string, nitro: Nitro) {
-  if (isSubpath(path, runtimeDir) || isSubpath(path, presetsDir)) {
-    return false;
-  }
-  if (isNodeModulesPath(path)) {
-    return false;
-  }
-
-  const includeRoots = [...new Set([nitro.options.rootDir, ...nitro.options.scanDirs])];
-  const excludeRoots = [
-    nitro.options.buildDir,
-    nitro.options.output.dir,
-    nitro.options.output.serverDir,
-    nitro.options.output.publicDir,
-  ];
-
-  if (!includeRoots.some((root) => isSubpath(path, root))) {
-    return false;
-  }
-  return !excludeRoots.some((root) => isSubpath(path, root));
-}
-
-function splitSpecifier(specifier: string) {
-  const queryIndex = specifier.indexOf("?");
-  if (queryIndex < 0) {
-    return [specifier, ""] as const;
-  }
-  return [specifier.slice(0, queryIndex), specifier.slice(queryIndex)] as const;
-}
-
-function isNodeModulesPath(path: string) {
-  return /[/\\]node_modules[/\\]/.test(path);
-}
-
-function isSubpath(path: string, parent: string) {
-  const rel = relative(parent, path);
-  return !rel || (!rel.startsWith("..") && !isAbsolute(rel));
 }
 
 function toPosixPath(path: string) {
