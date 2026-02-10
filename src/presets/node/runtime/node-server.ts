@@ -14,7 +14,15 @@ const port = Number.isNaN(_parsedPort) ? 3000 : _parsedPort;
 const host = process.env.NITRO_HOST || process.env.HOST;
 const cert = process.env.NITRO_SSL_CERT;
 const key = process.env.NITRO_SSL_KEY;
-// const socketPath = process.env.NITRO_UNIX_SOCKET; // TODO
+const socketPath = process.env.NITRO_UNIX_SOCKET;
+
+const _shutdownTimeout = Number.parseInt(process.env.NITRO_SHUTDOWN_TIMEOUT || "", 10);
+const gracefulShutdown =
+  process.env.NITRO_SHUTDOWN_DISABLED === "true"
+    ? false
+    : _shutdownTimeout > 0
+      ? { gracefulTimeout: _shutdownTimeout / 1000 }
+      : undefined;
 
 const nitroApp = useNitroApp();
 
@@ -23,6 +31,8 @@ const server = serve({
   hostname: host,
   tls: cert && key ? { cert, key } : undefined,
   fetch: nitroApp.fetch,
+  gracefulShutdown,
+  node: socketPath ? { path: socketPath } : undefined,
 });
 
 if (import.meta._websocket) {
