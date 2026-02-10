@@ -160,4 +160,11 @@ export type PrerenderFunctionConfig = {
    * When `true`, the query string will be present on the `request` argument passed to the invoked function. The `allowQuery` filter still applies.
    */
   passQuery?: boolean;
+
+  /**
+   * (vercel)
+   *
+   * When `true`, expose the response body regardless of status code including error status codes. (default `false`)
+   */
+  exposeErrBody?: boolean;
 };
