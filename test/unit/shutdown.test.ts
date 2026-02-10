@@ -9,6 +9,7 @@ vi.mock("../../src/runtime/internal/app.ts", () => ({
 }));
 
 import {
+  _resetShutdownState,
   resolveGracefulShutdownConfig,
   setupShutdownHooks,
 } from "../../src/runtime/internal/shutdown.ts";
@@ -70,6 +71,7 @@ describe("setupShutdownHooks", () => {
     savedSIGINT = process.listeners("SIGINT").slice();
     callHook.mockClear();
     callHook.mockResolvedValue(undefined);
+    _resetShutdownState();
   });
 
   afterEach(() => {
@@ -117,6 +119,17 @@ describe("setupShutdownHooks", () => {
     setupShutdownHooks();
     process.emit("SIGTERM", "SIGTERM");
     await vi.waitFor(() => expect(resolved).toBe(true));
+  });
+
+  it("only calls close hook once across multiple signals", async () => {
+    setupShutdownHooks();
+    process.emit("SIGTERM", "SIGTERM");
+    process.emit("SIGINT", "SIGINT");
+    process.emit("SIGTERM", "SIGTERM");
+    await vi.waitFor(() => {
+      expect(callHook).toHaveBeenCalledWith("close");
+    });
+    expect(callHook).toHaveBeenCalledTimes(1);
   });
 
   it("logs error if close hook throws", async () => {
