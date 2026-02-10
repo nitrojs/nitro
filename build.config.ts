@@ -15,7 +15,6 @@ const tracePkgs = [
   "defu", // used by open-api runtime
   "destr", // used by node-server and deno-server
   "get-port-please", // used by dev server
-  "hookable", // used by app.ts
   "rendu", // used by HTML renderer template
   "scule", // used by runtime config
   "source-map", // used by dev error runtime
