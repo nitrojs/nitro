@@ -1,4 +1,5 @@
 import { defineNitroPreset } from "../_utils/preset.ts";
+import type { Nitro } from "nitro/types";
 import { builtinModules } from "node:module";
 import { rm } from "node:fs/promises";
 
@@ -32,10 +33,21 @@ const edgeScripting = defineNitroPreset(
     minify: true,
 
     hooks: {
-      async compiled(nitro) {
-        const publicDir = nitro.options.output.publicDir;
-        // remove the public dir and all its files, as they are inlined in the server bundle
-        await rm(publicDir, { recursive: true, force: true });
+      "build:before": (nitro: Nitro) => {
+        if (nitro.options.serveStatic !== "inline" && nitro.options.serveStatic !== false) {
+          nitro.options.serveStatic = "inline";
+          nitro.logger.warn(
+            "Bunny Edge Scripting preset requires `serveStatic` to be `inline` or `false`. Overriding to `inline`."
+          )
+        }
+      },
+      async compiled(nitro: Nitro) {
+        // Remove public dir when inlined, usecase is for
+        // managing assets directly in Bunny Storage
+        if (nitro.options.serveStatic === "inline") {
+          const publicDir = nitro.options.output.publicDir;
+          await rm(publicDir, { recursive: true, force: true });
+        }
       },
     },
   },

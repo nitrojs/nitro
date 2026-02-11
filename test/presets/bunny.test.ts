@@ -44,7 +44,12 @@ describe.runIf(hasDeno)("nitro:preset:bunny", async () => {
 
   it("should not have a public directory (assets should be inlined)", async () => {
     const serverFiles = await fsp.readdir(resolve(ctx.outDir));
-    expect(serverFiles).not.toContain("public");
+    if (ctx.nitro?.options.serveStatic === "inline") {
+      expect(serverFiles).not.toContain("public");
+    }
+    else {
+      expect(serverFiles).toContain("public");
+    }
   });
 
   it("should have minified output", async () => {
