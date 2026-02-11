@@ -4,7 +4,7 @@ import { rm } from "node:fs/promises";
 
 const edgeScripting = defineNitroPreset(
   {
-    entry: "./bunny/runtime/edge-scripting.ts",
+    entry: "./bunny/runtime/edge-scripting",
 
     exportConditions: ["deno"],
     commands: {
