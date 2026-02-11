@@ -46,8 +46,7 @@ describe.runIf(hasDeno)("nitro:preset:bunny", async () => {
     const serverFiles = await fsp.readdir(resolve(ctx.outDir));
     if (ctx.nitro?.options.serveStatic === "inline") {
       expect(serverFiles).not.toContain("public");
-    }
-    else {
+    } else {
       expect(serverFiles).toContain("public");
     }
   });

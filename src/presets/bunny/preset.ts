@@ -38,7 +38,7 @@ const edgeScripting = defineNitroPreset(
           nitro.options.serveStatic = "inline";
           nitro.logger.warn(
             "Bunny Edge Scripting preset requires `serveStatic` to be `inline` or `false`. Overriding to `inline`."
-          )
+          );
         }
       },
       async compiled(nitro: Nitro) {
