@@ -13,7 +13,7 @@ describe.runIf(hasDeno)("nitro:preset:bunny", async () => {
 
   testNitro(ctx, async () => {
     const port = await getRandomPort();
-    execa("deno", ["run", "-A", "./bunny-edge-scripting.mjs"], {
+    const p = execa("deno", ["run", "-A", "./bunny-edge-scripting.mjs"], {
       cwd: ctx.outDir,
       stdio: "ignore",
       env: {
@@ -23,9 +23,7 @@ describe.runIf(hasDeno)("nitro:preset:bunny", async () => {
     });
     ctx.server = {
       url: `http://127.0.0.1:${port}`,
-      close: () => {
-        // Process cleanup handled by test teardown
-      },
+      close: () => p.kill(),
     } as any;
     await waitForPort(port, { delay: 1000, retries: 20, host: "127.0.0.1" });
     return async ({ url, ...opts }) => {
