@@ -76,7 +76,7 @@
     "ofetch": "^2.0.0-alpha.3",
     "ohash": "^2.0.11",
     "rolldown": "^1.0.0-rc.3",
-    "srvx": "^0.11.3",
+    "srvx": "^0.11.4",
     "unenv": "^2.0.0-rc.24",
     "unstorage": "^2.0.0-alpha.5"
   },

@@ -13,6 +13,7 @@ const main = defineCommand({
     build: () => import("./commands/build.ts").then((r) => r.default),
     prepare: () => import("./commands/prepare.ts").then((r) => r.default),
     task: () => import("./commands/task/index.ts").then((r) => r.default),
+    preview: () => import("./commands/preview.ts").then((r) => r.default),
   },
 });
 
