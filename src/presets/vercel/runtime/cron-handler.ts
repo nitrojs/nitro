@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { H3, HTTPError } from "h3";
 import { runCronTasks } from "#nitro/runtime/task";
 
@@ -5,8 +6,11 @@ export default new H3().get("/_nitro/tasks/vercel", async (event) => {
   // Validate CRON_SECRET if set - https://vercel.com/docs/cron-jobs/manage-cron-jobs#securing-cron-jobs
   const cronSecret = process.env.CRON_SECRET;
   if (cronSecret) {
-    const authHeader = event.req.headers.get("authorization");
-    if (authHeader !== `Bearer ${cronSecret}`) {
+    const authHeader = event.req.headers.get("authorization") || "";
+    const expected = `Bearer ${cronSecret}`;
+    const a = Buffer.from(authHeader);
+    const b = Buffer.from(expected);
+    if (a.length !== b.length || !timingSafeEqual(a, b)) {
       throw new HTTPError("Unauthorized", { status: 401 });
     }
   }
