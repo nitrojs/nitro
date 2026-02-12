@@ -27,11 +27,6 @@ export function getChunkName(chunk: { name: string; moduleIds: string[] }, nitro
     return "_runtime.mjs";
   }
 
-  // _ chunks are preserved
-  if (chunk.name.startsWith("_")) {
-    return `${chunk.name}.mjs`;
-  }
-
   // Library chunks
   if (chunk.moduleIds.every((id) => NODE_MODULES_RE.test(id))) {
     const chunkName = joinPkgNames(chunk.moduleIds);
@@ -39,6 +34,11 @@ export function getChunkName(chunk: { name: string; moduleIds: string[] }, nitro
       return `_libs/_[hash].mjs`;
     }
     return `_libs/${chunkName || "_"}.mjs`;
+  }
+
+  // _ chunks are preserved (should be after library normalization)
+  if (chunk.name.startsWith("_")) {
+    return `${chunk.name}.mjs`;
   }
 
   // No moduleIds
