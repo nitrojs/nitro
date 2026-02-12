@@ -92,11 +92,11 @@ describe("getChunkName", () => {
     ],
     [
       "node_modules names exceed 30 chars",
-      createChunk("vendor", [
+      createChunk("_libs/vendor", [
         "/node_modules/some-very-long-package-name/index.js",
         "/node_modules/another-very-long-name/index.js",
       ]),
-      "_libs/_[hash].mjs",
+      "_libs/vendor+[...].mjs",
     ],
     [
       "3 node_modules sorted a-z",

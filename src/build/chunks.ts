@@ -31,7 +31,7 @@ export function getChunkName(chunk: { name: string; moduleIds: string[] }, nitro
   if (chunk.moduleIds.every((id) => NODE_MODULES_RE.test(id))) {
     const chunkName = joinPkgNames(chunk.moduleIds);
     if (chunkName.length > 30) {
-      return `_libs/_[hash].mjs`;
+      return `${chunk.name}+[...].mjs`;
     }
     return `_libs/${chunkName || "_"}.mjs`;
   }
