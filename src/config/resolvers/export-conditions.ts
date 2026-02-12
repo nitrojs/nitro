@@ -12,48 +12,32 @@ function _resolveExportConditions(
   conditions: string[],
   opts: { dev: boolean; node: boolean; wasm?: boolean }
 ) {
+  const negated = new Set(conditions.filter((c) => c.startsWith("!")).map((c) => c.slice(1)));
+
   const resolvedConditions: string[] = [];
 
   // 1. Add dev or production
   resolvedConditions.push(opts.dev ? "development" : "production");
 
   // 2. Add user specified conditions
-  resolvedConditions.push(...conditions);
+  resolvedConditions.push(...conditions.filter((c) => !c.startsWith("!")));
 
-  // 3. Add runtime conditions (node or web)
-  if (opts.node) {
-    resolvedConditions.push("node");
-  } else {
-    // https://runtime-keys.proposal.wintercg.org/
-    resolvedConditions.push(
-      "wintercg",
-      "worker",
-      "web",
-      "browser",
-      "workerd",
-      "edge-light",
-      "netlify",
-      "edge-routine",
-      "deno"
-    );
-  }
-
-  // 4. Add unwasm conditions
+  // 3. Add unwasm conditions
   if (opts.wasm) {
     resolvedConditions.push("wasm", "unwasm");
   }
 
-  // 5. Add default conditions
+  // 4. Add default conditions
   // "module" is NOT A STANDARD CONDITION but widely used in the ecosystem adding helps with compatibility
-  resolvedConditions.push("import", "default", "module");
+  resolvedConditions.push("module");
 
-  // 6. Auto detect bun and deno (builder)
+  // 5. Auto detect bun and deno (builder)
   if ("Bun" in globalThis) {
     resolvedConditions.push("bun");
   } else if ("Deno" in globalThis) {
     resolvedConditions.push("deno");
   }
 
-  // Dedup with preserving order
-  return resolvedConditions.filter((c, i) => resolvedConditions.indexOf(c) === i);
+  // 6. Remove negated conditions
+  return [...new Set(resolvedConditions)].filter((c) => !negated.has(c));
 }
