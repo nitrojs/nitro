@@ -91,6 +91,34 @@ When the proxy rule uses any of the following `ProxyOptions`, Nitro keeps it as 
 Response headers defined on the route rule via the `headers` option are still applied to CDN-level rewrites. Only request-level `ProxyOptions.headers` (sent to the upstream) require a runtime proxy.
 ::
 
+## Scheduled tasks (Cron Jobs)
+
+:read-more{title="Vercel Cron Jobs" to="https://vercel.com/docs/cron-jobs"}
+
+Nitro automatically converts your [`scheduledTasks`](/docs/tasks#scheduled-tasks) configuration into [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs) at build time. Define your schedules in your Nitro config and deploy - no manual `vercel.json` cron configuration required.
+
+```ts [nitro.config.ts]
+import { defineNitroConfig } from "nitro/config";
+
+export default defineNitroConfig({
+  experimental: {
+    tasks: true
+  },
+  scheduledTasks: {
+    // Run `cms:update` every hour
+    '0 * * * *': ['cms:update'],
+    // Run `db:cleanup` every day at midnight
+    '0 0 * * *': ['db:cleanup']
+  }
+})
+```
+
+### Secure cron job endpoints
+
+:read-more{title="Securing cron jobs" to="https://vercel.com/docs/cron-jobs/manage-cron-jobs#securing-cron-jobs"}
+
+To prevent unauthorized access to the cron handler, set a `CRON_SECRET` environment variable in your Vercel project settings. When `CRON_SECRET` is set, Nitro validates the `Authorization` header on every cron invocation.
+
 ## Custom build output configuration
 
 You can provide additional [build output configuration](https://vercel.com/docs/build-output-api/v3) using `vercel.config` key inside `nitro.config`. It will be merged with built-in auto-generated config.
