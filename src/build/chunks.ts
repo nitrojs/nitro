@@ -1,15 +1,24 @@
 import type { Nitro } from "nitro/types";
-import { presetsDir, runtimeDir } from "nitro/meta";
+
+// Tests in @test/unit/chunks.test.ts
 
 const virtualRe = /^(?:\0|#|virtual:)/;
 
 export const NODE_MODULES_RE = /node_modules[/\\][^.]/;
 
 export function libChunkName(id: string) {
-  const pkgName = id.match(
-    /.*(?:[/\\])node_modules(?:[/\\])(?<package>@[^/\\]+[/\\][^/\\]+|[^/\\.][^/\\]*)/
-  )?.groups?.package;
-  return `_libs/${pkgName || "common"}`;
+  const pkgName = pathToPkgName(id);
+  return pkgName ? `_libs/${pkgName}` : `_libs/common`;
+}
+
+export function pathToPkgName(path: string): string | undefined {
+  let pkgName = path.match(
+    /.*(?:[/\\])node_modules(?:[/\\])(?<name>@[^/\\]+[/\\][^/\\]+|[^/\\.][^/\\]*)/
+  )?.groups?.name;
+  if (pkgName?.endsWith("-nightly")) {
+    pkgName = pkgName.slice(0, -8);
+  }
+  return pkgName;
 }
 
 export function getChunkName(chunk: { name: string; moduleIds: string[] }, nitro: Nitro) {
@@ -19,15 +28,11 @@ export function getChunkName(chunk: { name: string; moduleIds: string[] }, nitro
   }
 
   // Library chunks
-  if (chunk.moduleIds.every((id) => /node_modules[/\\]\w/.test(id))) {
+  if (chunk.moduleIds.every((id) => NODE_MODULES_RE.test(id))) {
     const pkgNames = [
       ...new Set(
         chunk.moduleIds
-          .map(
-            (id) =>
-              id.match(/.*[/\\]node_modules[/\\](?<package>@[^/\\]+[/\\][^/\\]+|[^/\\]+)/)?.groups
-                ?.package
-          )
+          .map((id) => pathToPkgName(id))
           .filter(Boolean)
           .map((name) => name!.split(/[/\\]/).pop()!)
           .filter(Boolean)
@@ -74,11 +79,6 @@ export function getChunkName(chunk: { name: string; moduleIds: string[] }, nitro
     return `_build/[name].mjs`;
   }
 
-  // Only nitro runtime
-  if (ids.every((id) => id.startsWith(runtimeDir) || id.startsWith(presetsDir))) {
-    return `_nitro/[name].mjs`;
-  }
-
   // Try to match user defined routes or tasks
   const mainId = ids.at(-1);
   if (mainId) {
@@ -100,7 +100,7 @@ export function getChunkName(chunk: { name: string; moduleIds: string[] }, nitro
   return `_chunks/[name].mjs`;
 }
 
-function routeToFsPath(route: string) {
+export function routeToFsPath(route: string) {
   return (
     route
       .split("/")
