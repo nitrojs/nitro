@@ -1,5 +1,7 @@
 import { defineNitroPreset } from "../_utils/preset.ts";
 import type { Nitro } from "nitro/types";
+import { presetsDir } from "nitro/meta";
+import { join } from "pathe";
 import {
   deprecateSWR,
   generateFunctionFiles,
@@ -50,6 +52,18 @@ const vercel = defineNitroPreset(
         }
         logger.info(`Using \`${serverFormat}\` entry format.`);
         nitro.options.entry = nitro.options.entry.replace("{format}", serverFormat);
+
+        // Cron tasks handler
+        if (
+          nitro.options.experimental.tasks &&
+          Object.keys(nitro.options.scheduledTasks || {}).length > 0
+        ) {
+          nitro.options.handlers.push({
+            route: "/_nitro/tasks/vercel",
+            lazy: true,
+            handler: join(presetsDir, "vercel/runtime/cron-handler"),
+          });
+        }
       },
       "rollup:before": (nitro: Nitro) => {
         deprecateSWR(nitro);

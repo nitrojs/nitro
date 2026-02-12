@@ -221,6 +221,18 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     ],
   } as VercelBuildConfigV3);
 
+  // Cron jobs from scheduledTasks
+  if (
+    nitro.options.experimental.tasks &&
+    Object.keys(nitro.options.scheduledTasks || {}).length > 0
+  ) {
+    const cronEntries = Object.keys(nitro.options.scheduledTasks).map((schedule) => ({
+      path: "/_nitro/tasks/vercel",
+      schedule,
+    }));
+    config.crons = [...cronEntries, ...(config.crons || [])];
+  }
+
   // Early return if we are building a static site
   if (nitro.options.static) {
     return config;
