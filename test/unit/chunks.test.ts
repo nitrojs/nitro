@@ -66,9 +66,9 @@ describe("libChunkName", () => {
 describe("routeToFsPath", () => {
   it.each([
     ["/api/hello", "api/hello"],
-    ["/api/users/:id", "api/users/$id"],
+    ["/api/users/:id", "api/users/[id]"],
     ["/", "index"],
-    ["/api/users/:id/posts/*", "api/users/$id/posts/$"],
+    ["/api/users/:id/posts/*", "api/users/[id]/posts/[...]"],
   ])("%s → %s", (route, expected) => {
     expect(routeToFsPath(route)).toBe(expected);
   });
@@ -162,7 +162,7 @@ describe("getChunkName", () => {
       },
     } as any);
     expect(getChunkName(createChunk("route", ["/src/routes/api/users/[id].ts"]), n)).toBe(
-      "_routes/api/users/$id.mjs"
+      "_routes/api/users/[id].mjs"
     );
   });
 

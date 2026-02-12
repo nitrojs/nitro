@@ -109,7 +109,12 @@ export function routeToFsPath(route: string) {
     route
       .split("/")
       .slice(1)
-      .map((s) => `${s.replace(/[:*]+/g, "$").replace(/[^$a-zA-Z0-9_.[\]/]/g, "_")}`)
+      .map((s) =>
+        s
+          .replace(/:(\w+)/g, "[$1]")
+          .replace(/\*+/g, "[...]")
+          .replace(/[^a-zA-Z0-9_.[\]]/g, "_")
+      )
       .join("/") || "index"
   );
 }
