@@ -28,6 +28,9 @@ describe("NODE_MODULES_RE", () => {
     ["/foo/node_modules/bar/index.js", true],
     ["node_modules/bar/index.js", true],
     ["node_modules\\bar\\index.js", true],
+    ["/foo/node_modules/nitro/dist/index.js", false],
+    ["/foo/node_modules/nitro-nightly/dist/index.js", false],
+    ["/foo/node_modules/.nitro", false],
     ["/foo/node_modules/.cache", false],
     ["/foo/src/bar.js", false],
   ])("%s → %s", (path, expected) => {

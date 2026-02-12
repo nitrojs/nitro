@@ -4,7 +4,7 @@ import type { Nitro } from "nitro/types";
 
 const virtualRe = /^(?:\0|#|virtual:)/;
 
-export const NODE_MODULES_RE = /node_modules[/\\][^.]/;
+export const NODE_MODULES_RE = /node_modules[/\\](?!(?:nitro|nitro-nightly)[/\\])[^.]/;
 
 export function libChunkName(id: string) {
   const pkgName = pathToPkgName(id);
