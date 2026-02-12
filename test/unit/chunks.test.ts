@@ -53,7 +53,7 @@ describe("libChunkName", () => {
   it.each([
     ["/node_modules/express/index.js", "_libs/express"],
     ["/node_modules/@h3/core/index.js", "_libs/@h3/core"],
-    ["/src/utils/foo.ts", "_libs/common"],
+    ["/src/utils/foo.ts", undefined],
     ["/node_modules/nitro-nightly/dist/index.js", "_libs/nitro"],
   ])("%s → %s", (id, expected) => {
     expect(libChunkName(id)).toBe(expected);
@@ -76,10 +76,11 @@ describe("getChunkName", () => {
 
   it.each<[string, { name: string; moduleIds: string[] }, string]>([
     ["rolldown-runtime", createChunk("rolldown-runtime", []), "_runtime.mjs"],
+    ["_ chunks are preserved", createChunk("_shared", ["/src/foo.ts"]), "_shared.mjs"],
     [
-      "all node_modules (sorted by length)",
+      "all node_modules (sorted a-z)",
       createChunk("vendor", ["/node_modules/express/index.js", "/node_modules/h3/dist/index.mjs"]),
-      "_libs/h3+express.mjs",
+      "_libs/express+h3.mjs",
     ],
     [
       "single node_modules package",
@@ -95,13 +96,21 @@ describe("getChunkName", () => {
       "_libs/_[hash].mjs",
     ],
     [
-      "3 node_modules sorted by length",
+      "3 node_modules sorted a-z",
       createChunk("vendor", [
         "/node_modules/zod/index.js",
         "/node_modules/ab/index.js",
         "/node_modules/h3/dist/index.mjs",
       ]),
       "_libs/ab+h3+zod.mjs",
+    ],
+    [
+      "scoped packages use __ separator",
+      createChunk("vendor", [
+        "/node_modules/@h3/core/index.js",
+        "/node_modules/defu/index.js",
+      ]),
+      "_libs/defu+h3__core.mjs",
     ],
     ["empty moduleIds (vacuous every())", createChunk("my-chunk", []), "_libs/_.mjs"],
     [

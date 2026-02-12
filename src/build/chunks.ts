@@ -8,7 +8,7 @@ export const NODE_MODULES_RE = /node_modules[/\\][^.]/;
 
 export function libChunkName(id: string) {
   const pkgName = pathToPkgName(id);
-  return pkgName ? `_libs/${pkgName}` : `_libs/common`;
+  return pkgName ? `_libs/${pkgName}` : undefined;
 }
 
 export function pathToPkgName(path: string): string | undefined {
@@ -27,24 +27,16 @@ export function getChunkName(chunk: { name: string; moduleIds: string[] }, nitro
     return "_runtime.mjs";
   }
 
+  // _ chunks are preserved
+  if (chunk.name.startsWith("_")) {
+    return `${chunk.name}.mjs`;
+  }
+
   // Library chunks
   if (chunk.moduleIds.every((id) => NODE_MODULES_RE.test(id))) {
-    const pkgNames = [
-      ...new Set(
-        chunk.moduleIds
-          .map((id) => pathToPkgName(id))
-          .filter(Boolean)
-          .map((name) => name!.split(/[/\\]/).pop()!)
-          .filter(Boolean)
-      ),
-    ].sort((a, b) => a.length - b.length);
-    let chunkName = "";
-    for (const name of pkgNames) {
-      const separator = chunkName ? "+" : "";
-      if ((chunkName + separator + name).length > 30) {
-        return `_libs/_[hash].mjs`;
-      }
-      chunkName += separator + name;
+    const chunkName = joinPkgNames(chunk.moduleIds);
+    if (chunkName.length > 30) {
+      return `_libs/_[hash].mjs`;
     }
     return `_libs/${chunkName || "_"}.mjs`;
   }
@@ -98,6 +90,18 @@ export function getChunkName(chunk: { name: string; moduleIds: string[] }, nitro
   }
 
   return `_chunks/[name].mjs`;
+}
+
+function joinPkgNames(moduleIds: string[]): string {
+  const names = [
+    ...new Set(
+      moduleIds
+        .map((id) => pathToPkgName(id))
+        .filter(Boolean)
+        .map((name) => name!.replace(/^@/, "").replace(/[/\\]/g, "__"))
+    ),
+  ].sort();
+  return names.join("+");
 }
 
 export function routeToFsPath(route: string) {
