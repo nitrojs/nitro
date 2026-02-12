@@ -196,6 +196,86 @@ describe("fetchAddress", () => {
     });
   });
 
+  describe("Request as inputInit", () => {
+    it("uses Request object as inputInit", async () => {
+      const initReq = new Request("http://localhost/echo", {
+        method: "POST",
+        body: "from-request-init",
+      });
+      const res = await fetchAddress(
+        { host: "127.0.0.1", port: tcpPort },
+        `http://localhost/echo`,
+        initReq
+      );
+      expect(res.status).toBe(200);
+      expect(await res.text()).toBe("from-request-init");
+    });
+
+    it("inputInit Request overrides input Request properties", async () => {
+      const input = new Request("http://localhost/echo", { method: "GET" });
+      const initReq = new Request("http://localhost/echo", {
+        method: "POST",
+        headers: { "x-from": "init-request" },
+        body: "override-body",
+      });
+      const res = await fetchAddress({ host: "127.0.0.1", port: tcpPort }, input, initReq);
+      expect(res.status).toBe(200);
+      expect(await res.text()).toBe("override-body");
+    });
+
+    it("inputInit Request with streaming body", async () => {
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode("init-stream"));
+          controller.close();
+        },
+      });
+      const initReq = new Request("http://localhost/echo", {
+        method: "POST",
+        body: stream,
+        // @ts-expect-error duplex
+        duplex: "half",
+      });
+      const res = await fetchAddress(
+        { host: "127.0.0.1", port: tcpPort },
+        `http://localhost/echo`,
+        initReq
+      );
+      expect(res.status).toBe(200);
+      expect(await res.text()).toBe("init-stream");
+    });
+  });
+
+  describe("Request input with body", () => {
+    it("POST body from Request input", async () => {
+      const req = new Request("http://localhost/echo", {
+        method: "POST",
+        body: "request-body",
+      });
+      const res = await fetchAddress({ host: "127.0.0.1", port: tcpPort }, req);
+      expect(res.status).toBe(200);
+      expect(await res.text()).toBe("request-body");
+    });
+
+    it("POST streaming body from Request input", async () => {
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode("req-stream"));
+          controller.close();
+        },
+      });
+      const req = new Request("http://localhost/echo", {
+        method: "POST",
+        body: stream,
+        // @ts-expect-error duplex
+        duplex: "half",
+      });
+      const res = await fetchAddress({ host: "127.0.0.1", port: tcpPort }, req);
+      expect(res.status).toBe(200);
+      expect(await res.text()).toBe("req-stream");
+    });
+  });
+
   describe("error handling", () => {
     it("rejects on connection error", async () => {
       await expect(

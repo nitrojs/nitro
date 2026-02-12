@@ -58,26 +58,28 @@ export function createHTTPProxy(defaults: ProxyServerOptions = {}): HTTPProxy {
 export async function fetchAddress(
   addr: { port?: number; host?: string; socketPath?: string },
   input: string | URL | Request,
-  inputInit?: RequestInit
+  inputInit?: RequestInit | Request
 ) {
   let url: URL;
   let init: RequestInit | undefined;
+
   if (input instanceof Request) {
     url = new URL(input.url);
     init = {
-      method: input.method,
-      headers: input.headers,
-      body: input.body,
-      ...inputInit,
+      ...toInit(input),
+      ...toInit(inputInit),
     };
   } else {
     url = new URL(input);
-    init = inputInit;
+    init = toInit(inputInit);
   }
   init = {
     redirect: "manual",
     ...init,
   };
+  if (init.body) {
+    (init as RequestInit & { duplex: string }).duplex = "half";
+  }
 
   const path = url.pathname + url.search;
   const reqHeaders: Record<string, string> = {};
@@ -135,4 +137,19 @@ export async function fetchAddress(
     statusText: res.statusMessage,
     headers,
   });
+}
+
+function toInit(init?: RequestInit | Request): RequestInit | undefined {
+  if (!init) {
+    return undefined;
+  }
+  if (init instanceof Request) {
+    return {
+      method: init.method,
+      headers: init.headers,
+      body: init.body,
+      duplex: init.body ? "half" : undefined,
+    } as RequestInit;
+  }
+  return init;
 }

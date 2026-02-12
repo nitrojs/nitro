@@ -4,6 +4,7 @@ import consola from "consola";
 import { join, resolve } from "pathe";
 import { prettyPath } from "./utils/fs.ts";
 import { getBuildInfo } from "./build/info.ts";
+import { fetchAddress } from "./runner/proxy.ts";
 
 export interface PreviewInstance {
   fetch: ServerHandler;
@@ -112,7 +113,7 @@ async function runPreviewCommand(opts: {
 
   const { getRandomPort, waitForPort } = await import("get-port-please");
   const randomPort = await getRandomPort();
-  const child = spawn(arg0, [...args, "--port", String(randomPort)], {
+  const child = spawn(arg0, [...args, "--port", String(randomPort), "--host", "localhost"], {
     stdio: "inherit",
     cwd: opts.rootDir,
     env: {
@@ -140,13 +141,20 @@ async function runPreviewCommand(opts: {
     }
   });
 
-  await waitForPort(randomPort, { retries: 20, delay: 500 });
+  await waitForPort(randomPort, { retries: 20, delay: 500, host: "localhost" });
 
   const url = `http://localhost:${randomPort}`;
 
   return {
     async fetch(req: ServerRequest) {
-      return fetch(url + req.url);
+      const reqURL = new URL(req.url);
+      const targetURL = url + reqURL.pathname + reqURL.search;
+      const res = await fetchAddress({ port: randomPort, host: "localhost" }, targetURL, {
+        method: req.method,
+        headers: req.headers,
+        body: req.body,
+      });
+      return res;
     },
     async close() {
       killChild("SIGTERM");
