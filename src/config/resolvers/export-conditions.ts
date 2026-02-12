@@ -38,6 +38,6 @@ function _resolveExportConditions(
     resolvedConditions.push("deno");
   }
 
-  // 6. Remove negated conditions
+  // 6. Dedup and remove negated conditions
   return [...new Set(resolvedConditions)].filter((c) => !negated.has(c));
 }
