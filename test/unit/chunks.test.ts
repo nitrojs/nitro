@@ -106,10 +106,7 @@ describe("getChunkName", () => {
     ],
     [
       "scoped packages use __ separator",
-      createChunk("vendor", [
-        "/node_modules/@h3/core/index.js",
-        "/node_modules/defu/index.js",
-      ]),
+      createChunk("vendor", ["/node_modules/@h3/core/index.js", "/node_modules/defu/index.js"]),
       "_libs/defu+h3__core.mjs",
     ],
     ["empty moduleIds (vacuous every())", createChunk("my-chunk", []), "_libs/_.mjs"],
