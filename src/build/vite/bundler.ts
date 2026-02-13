@@ -64,7 +64,7 @@ export const getBundlerConfig = async (
       commonConfig satisfies RolldownConfig
     );
 
-    const outputConfig = rolldownConfig.output;
+    const outputConfig = rolldownConfig.output!;
     if (outputConfig.inlineDynamicImports || outputConfig.format === ("iife" as string)) {
       delete outputConfig.inlineDynamicImports;
       outputConfig.codeSplitting = false;
@@ -100,7 +100,7 @@ export const getBundlerConfig = async (
       commonConfig
     );
 
-    const outputConfig = rollupConfig.output;
+    const outputConfig = rollupConfig.output!;
     if (outputConfig.inlineDynamicImports || outputConfig.format === ("iife" as string)) {
       delete outputConfig.manualChunks;
     }

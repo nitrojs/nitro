@@ -64,7 +64,7 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
     plugins.push(
       externals({
         rootDir: nitro.options.rootDir,
-        conditions: nitro.options.exportConditions || ["default"],
+        conditions: nitro.options.exportConditions!,
         exclude: [...base.noExternal],
         include: isDevOrPrerender
           ? undefined
