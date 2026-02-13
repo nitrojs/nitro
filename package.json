@@ -95,6 +95,7 @@
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-replace": "^6.0.3",
     "@scalar/api-reference": "^1.44.15",
+    "@scaleway/serverless-functions": "^1.1.2",
     "@types/aws-lambda": "^8.10.160",
     "@types/estree": "^1.0.8",
     "@types/etag": "^1.8.4",
