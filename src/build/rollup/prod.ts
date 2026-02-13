@@ -14,6 +14,7 @@ export async function buildProduction(nitro: Nitro, rollupConfig: RollupConfig) 
   const buildStartTime = Date.now();
 
   await scanHandlers(nitro);
+  nitro.routing.sync();
   await writeTypes(nitro);
 
   let output: RollupOutput | undefined;
