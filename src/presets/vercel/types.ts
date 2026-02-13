@@ -43,6 +43,9 @@ export interface VercelBuildConfigV3 {
   >;
   cache?: string[];
   bypassToken?: string;
+  framework?: {
+    version: string;
+  };
   crons?: {
     path: string;
     schedule: string;
