@@ -1,8 +1,8 @@
 import { timingSafeEqual } from "node:crypto";
-import { H3, HTTPError } from "h3";
+import { defineHandler, HTTPError } from "nitro/h3";
 import { runCronTasks } from "#nitro/runtime/task";
 
-export default new H3().get("/_nitro/tasks/vercel", async (event) => {
+export default defineHandler(async (event) => {
   // Validate CRON_SECRET if set - https://vercel.com/docs/cron-jobs/manage-cron-jobs#securing-cron-jobs
   const cronSecret = process.env.CRON_SECRET;
   if (cronSecret) {
