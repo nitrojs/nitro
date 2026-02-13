@@ -21,7 +21,7 @@ const vercel = defineNitroPreset(
     },
     vercel: {
       skewProtection: !!process.env.VERCEL_SKEW_PROTECTION_ENABLED,
-      cronHandlerPath: "/_vercel/cron",
+      cronHandlerRoute: "/_vercel/cron",
     },
     output: {
       dir: "{{ rootDir }}/.vercel/output",
@@ -60,7 +60,7 @@ const vercel = defineNitroPreset(
           Object.keys(nitro.options.scheduledTasks || {}).length > 0
         ) {
           nitro.options.handlers.push({
-            route: nitro.options.vercel!.cronHandlerPath!,
+            route: nitro.options.vercel!.cronHandlerRoute || "/_vercel/cron",
             lazy: true,
             handler: join(presetsDir, "vercel/runtime/cron-handler"),
           });

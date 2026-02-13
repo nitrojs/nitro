@@ -143,7 +143,7 @@ export interface VercelOptions {
    * @default "/_vercel/cron"
    * @see https://vercel.com/docs/cron-jobs
    */
-  cronHandlerPath?: string;
+  cronHandlerRoute?: string;
 }
 
 /**

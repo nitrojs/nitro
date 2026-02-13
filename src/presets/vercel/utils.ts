@@ -226,7 +226,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     nitro.options.experimental.tasks &&
     Object.keys(nitro.options.scheduledTasks || {}).length > 0
   ) {
-    const cronPath = nitro.options.vercel!.cronHandlerPath!;
+    const cronPath = nitro.options.vercel!.cronHandlerRoute || "/_vercel/cron";
     const cronEntries = Object.keys(nitro.options.scheduledTasks).map((schedule) => ({
       path: cronPath,
       schedule,
