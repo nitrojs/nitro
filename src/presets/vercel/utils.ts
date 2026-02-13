@@ -1,6 +1,7 @@
 import fsp from "node:fs/promises";
 import { defu } from "defu";
 import { writeFile } from "../_utils/fs.ts";
+import { version as nitroVersion } from "nitro/meta";
 import type { Nitro, NitroRouteRules } from "nitro/types";
 import { dirname, relative, resolve } from "pathe";
 import { joinURL, withLeadingSlash, withoutLeadingSlash } from "ufo";
@@ -137,6 +138,9 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
 
   const config = defu(nitro.options.vercel?.config, {
     version: 3,
+    framework: {
+      version: nitroVersion,
+    },
     overrides: {
       // Nitro static prerendered route overrides
       ...Object.fromEntries(
