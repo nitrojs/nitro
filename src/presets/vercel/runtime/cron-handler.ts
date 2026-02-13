@@ -20,12 +20,12 @@ export default defineHandler(async (event) => {
     throw new HTTPError("Missing x-vercel-cron-schedule header", { status: 400 });
   }
 
-  const result = await runCronTasks(cron, {
+  await runCronTasks(cron, {
     context: {},
     payload: {
       scheduledTime: Date.now(),
     },
   });
 
-  return { cron, tasks: result };
+  return { success: true };
 });

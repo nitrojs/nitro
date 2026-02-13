@@ -15,7 +15,6 @@ export async function buildProduction(nitro: Nitro, config: RolldownOptions) {
   const buildStartTime = Date.now();
 
   await scanHandlers(nitro);
-  nitro.routing.sync();
   await writeTypes(nitro);
 
   let output: RolldownOutput | undefined;
