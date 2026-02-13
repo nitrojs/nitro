@@ -30,9 +30,14 @@ export interface NitroPluginConfig extends NitroConfig {
       assetsImport?: boolean;
 
       /**
-       * Reload the page when a server module is updated.
+       * Reload the browser page when a server-only module is updated.
        *
-       * @default true
+       * When disabled, server-only module changes will still invalidate the
+       * server runtime but won't trigger a browser full-reload. This prevents
+       * destroying client-side HMR updates when a file produces both client
+       * and server-only modules.
+       *
+       * @default false
        */
       serverReload?: boolean;
 
