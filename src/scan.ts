@@ -66,6 +66,8 @@ export async function scanHandlers(nitro: Nitro) {
     }),
   ];
 
+  nitro.routing.sync();
+
   return handlers;
 }
 
