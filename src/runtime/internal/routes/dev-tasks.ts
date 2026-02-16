@@ -23,5 +23,11 @@ export default new H3()
       ...Object.fromEntries(event.url.searchParams.entries()),
       ...body,
     };
-    return await runTask(name!, { payload });
+    return await runTask(name!, {
+      context: {
+        req: event.req,
+        waitUntil: event.req.waitUntil,
+      },
+      payload,
+    });
   });

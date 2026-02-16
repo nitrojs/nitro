@@ -51,7 +51,7 @@ export async function runTask<RT = unknown>(
 }
 
 /** @experimental */
-export function startScheduleRunner() {
+export function startScheduleRunner(waitUntil: (promise: Promise<void>) => void) {
   if (!scheduledTasks || scheduledTasks.length === 0 || process.env.TEST) {
     return;
   }
@@ -66,7 +66,9 @@ export function startScheduleRunner() {
         schedule.tasks.map((name) =>
           runTask(name, {
             payload,
-            context: {},
+            context: {
+              waitUntil,
+            },
           }).catch((error) => {
             console.error(`Error while running scheduled task "${name}"`, error);
           })
