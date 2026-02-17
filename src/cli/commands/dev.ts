@@ -64,7 +64,9 @@ export default defineCommand({
       );
       nitro.hooks.hookOnce("restart", reload);
       const server = createDevServer(nitro);
-      const listhenOptions = parseArgs(args as any /* incompatible citty types */);
+      const listhenOptions = parseArgs(
+        args as any /* incompatible citty types */
+      );
       await server.listen(listhenOptions.port || 3000, listhenOptions);
       await prepare(nitro);
       await build(nitro);
