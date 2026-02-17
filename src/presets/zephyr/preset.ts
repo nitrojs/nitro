@@ -1,41 +1,62 @@
 import { defineNitroPreset } from "../_utils/preset.ts";
-import { createUploadRunner } from "./utils.ts";
 import type { Nitro } from "nitro/types";
+import {
+  DEFAULT_BASE_PRESET,
+  LOGGER_TAG,
+  ZEPHYR_PLATFORM,
+  createZephyrMetadataPlugin,
+  resolveBundlerOutputDir,
+  toError,
+  uploadNitroOutputToZephyr,
+} from "./utils.ts";
 
 const zephyr = defineNitroPreset(
   {
-    extends: "standard",
-    entry: "./standard/runtime/server",
-    serveStatic: "inline",
+    extends: DEFAULT_BASE_PRESET,
     hooks: {
-      "build:before"() {
-        // TODO: Determine preset here....
+      "build:before": (nitro: Nitro) => {
+        nitro.logger.info(
+          `[${LOGGER_TAG}] PLATFORM=${ZEPHYR_PLATFORM}; using preset \`${DEFAULT_BASE_PRESET}\`.`
+        );
+      },
+      "rollup:before": (nitro: Nitro, config) => {
+        const outputDir = resolveBundlerOutputDir(nitro, config);
+        const plugin = createZephyrMetadataPlugin(nitro, outputDir);
+
+        if (!Array.isArray(config.plugins)) {
+          config.plugins = [plugin];
+          return;
+        }
+
+        config.plugins.push(plugin);
       },
       compiled: async (nitro: Nitro) => {
-        const startTime = Date.now();
-        const { ZephyrEngine } = await import("zephyr-agent");
-        const { zephyr_engine_defer, zephyr_defer_create } = ZephyrEngine.defer_create();
-        let initialized = false;
+        const deployOutputDir = nitro.options.output.dir;
+        nitro.logger.info(
+          `[${LOGGER_TAG}] Uploading Nitro output to Zephyr from ${deployOutputDir}.`
+        );
 
-        const initEngine = () => {
-          if (initialized) return;
-          initialized = true;
-          zephyr_defer_create({
-            builder: "unknown",
-            context: nitro.options.rootDir,
-          });
-        };
+        try {
+          const { deploymentUrl, entrypoint } = await uploadNitroOutputToZephyr(
+            nitro,
+            deployOutputDir
+          );
 
-        const runUpload = createUploadRunner({
-          nitro,
-          zephyrEngineDefer: zephyr_engine_defer,
-          initEngine,
-        });
+          if (entrypoint) {
+            nitro.logger.info(`[${LOGGER_TAG}] Zephyr SSR entrypoint: ${entrypoint}.`);
+          }
 
-        await runUpload();
+          if (deploymentUrl) {
+            nitro.logger.success(`[${LOGGER_TAG}] Zephyr deployment URL: ${deploymentUrl}`);
+            return;
+          }
 
-        const endTime = Date.now();
-        console.log(`Zephyr deploy completed in ${(endTime - startTime) / 1000}s`);
+          nitro.logger.success(
+            `[${LOGGER_TAG}] Zephyr deploy completed but no deployment URL was returned.`
+          );
+        } catch (error) {
+          throw toError(error);
+        }
       },
     },
   },
