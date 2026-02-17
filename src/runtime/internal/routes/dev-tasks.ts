@@ -24,10 +24,7 @@ export default new H3()
       ...body,
     };
     return await runTask(name!, {
-      context: {
-        req: event.req,
-        waitUntil: event.req.waitUntil,
-      },
+      context: { waitUntil: event.req.waitUntil },
       payload,
     });
   });

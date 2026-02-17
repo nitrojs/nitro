@@ -42,7 +42,7 @@ if (import.meta._websocket) {
 
 // Scheduled tasks
 if (import.meta._tasks) {
-  startScheduleRunner(server.waitUntil);
+  startScheduleRunner({});
 }
 
 // --- utils ---
