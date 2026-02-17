@@ -3,7 +3,6 @@ import type { Nitro } from "nitro/types";
 import {
   DEFAULT_BASE_PRESET,
   LOGGER_TAG,
-  ZEPHYR_PLATFORM,
   createZephyrMetadataPlugin,
   resolveBundlerOutputDir,
   toError,
@@ -15,9 +14,9 @@ const zephyr = defineNitroPreset(
     extends: DEFAULT_BASE_PRESET,
     hooks: {
       "build:before": (nitro: Nitro) => {
-        nitro.logger.info(
-          `[${LOGGER_TAG}] PLATFORM=${ZEPHYR_PLATFORM}; using preset \`${DEFAULT_BASE_PRESET}\`.`
-        );
+        // Zephyr deploy flow replaces Nitro preset command hints (wrangler).
+        delete nitro.options.commands.preview;
+        delete nitro.options.commands.deploy;
       },
       "rollup:before": (nitro: Nitro, config) => {
         const outputDir = resolveBundlerOutputDir(nitro, config);
@@ -31,29 +30,9 @@ const zephyr = defineNitroPreset(
         config.plugins.push(plugin);
       },
       compiled: async (nitro: Nitro) => {
-        const deployOutputDir = nitro.options.output.dir;
-        nitro.logger.info(
-          `[${LOGGER_TAG}] Uploading Nitro output to Zephyr from ${deployOutputDir}.`
-        );
-
         try {
-          const { deploymentUrl, entrypoint } = await uploadNitroOutputToZephyr(
-            nitro,
-            deployOutputDir
-          );
-
-          if (entrypoint) {
-            nitro.logger.info(`[${LOGGER_TAG}] Zephyr SSR entrypoint: ${entrypoint}.`);
-          }
-
-          if (deploymentUrl) {
-            nitro.logger.success(`[${LOGGER_TAG}] Zephyr deployment URL: ${deploymentUrl}`);
-            return;
-          }
-
-          nitro.logger.success(
-            `[${LOGGER_TAG}] Zephyr deploy completed but no deployment URL was returned.`
-          );
+          await uploadNitroOutputToZephyr(nitro, nitro.options.output.dir);
+          nitro.logger.success(`[${LOGGER_TAG}] Zephyr deployment succeeded.`);
         } catch (error) {
           throw toError(error);
         }

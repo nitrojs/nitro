@@ -1,6 +1,6 @@
 import type { Nitro, RollupConfig } from "nitro/types";
 import type { Plugin } from "rollup";
-import { dirname, isAbsolute, join, normalize, relative } from "pathe";
+import { dirname, isAbsolute, normalize, relative } from "pathe";
 
 export const LOGGER_TAG = "zephyr-nitro-preset";
 export const ZEPHYR_PLATFORM = "cloudflare";
@@ -129,17 +129,11 @@ export function resolveBundlerOutputDir(nitro: Nitro, config: RollupConfig): str
 }
 
 export function createZephyrMetadataPlugin(nitro: Nitro, outputDir: string): Plugin {
-  const metadataPath = normalizeMetadataFile(DEFAULT_METADATA_FILE);
-  const emittedMetadataPath = join(outputDir, metadataPath);
-
   return {
     name: "zephyr-nitro-metadata",
     generateBundle() {
       const asset = createZephyrNitroMetadataAsset(nitro, outputDir);
       this.emitFile(asset);
-      nitro.logger.success(
-        `[${LOGGER_TAG}] Emitted Nitro metadata asset at ${emittedMetadataPath}.`
-      );
     },
   };
 }
