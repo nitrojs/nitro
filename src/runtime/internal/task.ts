@@ -55,7 +55,7 @@ export function startScheduleRunner({
   waitUntil,
 }: {
   waitUntil?: ((promise: Promise<unknown>) => void) | undefined;
-}) {
+} = {}) {
   if (!scheduledTasks || scheduledTasks.length === 0 || process.env.TEST) {
     return;
   }
