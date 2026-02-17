@@ -155,8 +155,8 @@ export async function prerender(nitro: Nitro) {
   };
 
   const canWriteToDisk = (route: PrerenderRoute) => {
-    // Cannot write routes with query
-    if (route.route.includes("?")) {
+    // Cannot write routes with query or containing ..
+    if (route.route.includes("?") || route.route.includes("..")) {
       return false;
     }
 
@@ -296,8 +296,10 @@ export async function prerender(nitro: Nitro) {
     // Write to the disk
     if (canWriteToDisk(_route)) {
       const filePath = join(nitro.options.output.publicDir, _route.fileName);
-      await writeFile(filePath, dataBuff);
-      nitro._prerenderedRoutes!.push(_route);
+      if (filePath.startsWith(nitro.options.output.publicDir)) {
+        await writeFile(filePath, dataBuff);
+        nitro._prerenderedRoutes!.push(_route);
+      }
     } else {
       _route.skip = true;
     }
