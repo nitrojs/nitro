@@ -294,12 +294,13 @@ export async function prerender(nitro: Nitro) {
     }
 
     // Write to the disk
-    if (canWriteToDisk(_route)) {
-      const filePath = join(nitro.options.output.publicDir, _route.fileName);
-      if (filePath.startsWith(nitro.options.output.publicDir)) {
-        await writeFile(filePath, dataBuff);
-        nitro._prerenderedRoutes!.push(_route);
-      }
+    const filePath = join(nitro.options.output.publicDir, _route.fileName);
+    if (
+      canWriteToDisk(_route) &&
+      filePath.startsWith(nitro.options.output.publicDir)
+    ) {
+      await writeFile(filePath, dataBuff);
+      nitro._prerenderedRoutes!.push(_route);
     } else {
       _route.skip = true;
     }
