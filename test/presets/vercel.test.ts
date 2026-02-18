@@ -1,7 +1,6 @@
 import { promises as fsp } from "node:fs";
 import { resolve, join, basename } from "pathe";
 import { describe, expect, it, vi, beforeAll, afterAll } from "vitest";
-import { version as nitroVersion } from "nitro/meta";
 import { setupTest, testNitro, fixtureDir } from "../tests.ts";
 import { toFetchHandler } from "srvx/node";
 
