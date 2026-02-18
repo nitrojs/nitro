@@ -1,5 +1,5 @@
 import type { IncomingMessage, OutgoingMessage } from "node:http";
-import type { Duplex } from "node:stream";
+import type { Socket } from "node:net";
 import type { GetPortInput } from "get-port-please";
 import type { FSWatcher } from "chokidar";
 import type { App } from "h3";
@@ -292,7 +292,7 @@ class DevServer {
 
   async handleUpgrade(
     req: IncomingMessage,
-    socket: OutgoingMessage<IncomingMessage> | Duplex,
+    socket: Socket,
     head: any
   ) {
     const worker = await this.getWorker();
