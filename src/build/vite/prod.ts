@@ -126,11 +126,7 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
   };
 
   if (!isTest && !isCI) console.log();
-  if (nitro.options.commands.preview) {
-    nitro.logger.success(
-      `You can preview this build using \`${rewriteRelativePaths(nitro.options.commands.preview)}\``
-    );
-  }
+  nitro.logger.success(`You can preview this build using \`npx vite preview\``);
   if (nitro.options.commands.deploy) {
     nitro.logger.success(
       `You can deploy this build using \`${rewriteRelativePaths(nitro.options.commands.deploy)}\``
