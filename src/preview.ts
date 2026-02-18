@@ -62,6 +62,11 @@ export async function startPreview(rootDir: string): Promise<PreviewInstance> {
     Promise.resolve(new Response("Not Found", { status: 404 }));
 
   if (buildInfo.serverEntry) {
+    for (const [key, val] of dotEnvEntries) {
+      if (!process.env[key]) {
+        process.env[key] = val;
+      }
+    }
     const { loadServerEntry } = await import("srvx/loader");
     const entryPath = resolve(outputDir, buildInfo.serverEntry);
     const entry = await loadServerEntry({ entry: entryPath });
