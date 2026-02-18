@@ -45,11 +45,11 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
   const group = opts.group || "nitro/functions";
   const name = opts.name || fn.name || "_";
   const integrity = opts.integrity || hash([fn, opts]);
-  const validate = opts.validate || ((entry) => entry.value !== undefined);
 
   async function get(
     key: string,
     resolver: () => T | Promise<T>,
+    validate: (entry: CacheEntry) => boolean,
     shouldInvalidateCache?: boolean,
     event?: H3Event
   ): Promise<ResolvedCacheEntry<T>> {
@@ -162,10 +162,12 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
       return fn(...args);
     }
     const key = await (opts.getKey || getKey)(...args);
+    const validate = opts.validate || ((entry) => entry.value !== undefined);
     const shouldInvalidateCache = await opts.shouldInvalidateCache?.(...args);
     const entry = await get(
       key,
       () => fn(...args),
+      (entry) => validate(entry, ...args),
       shouldInvalidateCache,
       args[0] && isEvent(args[0]) ? args[0] : undefined
     );

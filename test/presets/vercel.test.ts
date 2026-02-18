@@ -338,6 +338,10 @@ describe("nitro:preset:vercel", async () => {
                 "src": "/api/db",
               },
               {
+                "dest": "/api/cachedFunction",
+                "src": "/api/cachedFunction",
+              },
+              {
                 "dest": "/api/cached",
                 "src": "/api/cached",
               },
