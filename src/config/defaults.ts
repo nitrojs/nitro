@@ -1,5 +1,6 @@
 import type { NitroConfig } from "nitro/types";
 import { isDebug, isTest } from "std-env";
+import { version as nitroVersion } from "nitro/meta";
 
 export const NitroDefaults: NitroConfig = {
   // General
@@ -88,6 +89,6 @@ export const NitroDefaults: NitroConfig = {
   // Framework
   framework: {
     name: "nitro",
-    version: "",
+    version: nitroVersion,
   },
 };
