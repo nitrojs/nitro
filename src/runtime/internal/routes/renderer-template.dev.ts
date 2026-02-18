@@ -8,7 +8,7 @@ import {
 import { HTTPResponse } from "h3";
 import { hasTemplateSyntax, renderToResponse, compileTemplate } from "rendu";
 
-export default async function renderIndexHTML(event: H3Event) {
+export default async function renderIndexHTML(event: H3Event): Promise<HTTPResponse | Response> {
   let html = await rendererTemplate(event.req as Request);
 
   if ((globalThis as any).__transform_html__) {

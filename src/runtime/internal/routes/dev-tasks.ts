@@ -3,7 +3,7 @@ import { runTask } from "../task.ts";
 
 import { scheduledTasks, tasks } from "#nitro/virtual/tasks";
 
-export default new H3()
+const app: H3 = new H3()
   .get("/_nitro/tasks", async () => {
     const _tasks = await Promise.all(
       Object.entries(tasks).map(async ([name, task]) => {
@@ -28,3 +28,5 @@ export default new H3()
       payload,
     });
   });
+
+export default app;

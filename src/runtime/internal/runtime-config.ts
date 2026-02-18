@@ -24,7 +24,11 @@ type EnvOptions = {
   envExpansion?: boolean;
 };
 
-export function applyEnv(obj: Record<string, any>, opts: EnvOptions, parentKey = "") {
+export function applyEnv(
+  obj: Record<string, any>,
+  opts: EnvOptions,
+  parentKey = ""
+): Record<string, any> {
   for (const key in obj) {
     const subKey = parentKey ? `${parentKey}_${key}` : key;
     const envValue = getEnv(subKey, opts);
