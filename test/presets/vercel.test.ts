@@ -28,10 +28,12 @@ describe("nitro:preset:vercel:web", async () => {
         const config = await fsp
           .readFile(resolve(ctx.outDir, "config.json"), "utf8")
           .then((r) => JSON.parse(r));
-        expect(config.framework).toEqual({ version: nitroVersion });
-        delete config.framework;
         expect(config).toMatchInlineSnapshot(`
           {
+            "framework": {
+              "name": "nitro",
+              "version": "3.x",
+            },
             "overrides": {
               "_scalar/index.html": {
                 "path": "_scalar",
