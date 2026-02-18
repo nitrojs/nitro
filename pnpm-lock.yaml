@@ -105,8 +105,8 @@ importers:
         specifier: ^5.5.3
         version: 5.5.3
       httpxy:
-        specifier: ^0.1.7
-        version: 0.1.7
+        specifier: ^0.3.0
+        version: 0.3.0
       ioredis:
         specifier: ^5.9.3
         version: 5.9.3
@@ -3700,8 +3700,8 @@ packages:
     resolution: {integrity: sha512-vK9P5/iUfdl95AI+JVyUuIcVtd4ofvtrOr3HNtM2yxC9bnMbEdp3x01OhQNnjb8IJYi38VlTE3mBXwcfvywuSw==}
     engines: {node: '>= 14'}
 
-  httpxy@0.1.7:
-    resolution: {integrity: sha512-pXNx8gnANKAndgga5ahefxc++tJvNL87CXoRwxn1cJE2ZkWEojF3tNfQIEhZX/vfpt+wzeAzpUI4qkediX1MLQ==}
+  httpxy@0.3.0:
+    resolution: {integrity: sha512-9SDNHQJWnid8KPHdyzDNUcS3O3p8c/3hNKREqCIpKNw0axwgYzprwEbYrBwTh28En1C+5fbiiJfuHsH8+IfhPA==}
 
   human-signals@2.1.0:
     resolution: {integrity: sha512-B4FFZ6q/T2jhhksgkbEW3HBvWIfDW85snkQgawt07S7J5QXTk6BkNV+0yAeZrM5QpMAdYlocGoljn0sJ/WQkFw==}
@@ -9948,7 +9948,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  httpxy@0.1.7: {}
+  httpxy@0.3.0: {}
 
   human-signals@2.1.0: {}
 
