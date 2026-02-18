@@ -16,8 +16,8 @@ importers:
         version: 4.3.6
     devDependencies:
       shaders:
-        specifier: ^2.3.63
-        version: 2.3.63
+        specifier: ^2.3.65
+        version: 2.3.65
       undocs:
         specifier: ^0.4.16
         version: 0.4.16(@parcel/watcher@2.5.6)(@tiptap/extensions@3.18.0(@tiptap/core@3.18.0(@tiptap/pm@3.18.0))(@tiptap/pm@3.18.0))(@tiptap/y-tiptap@3.0.2(prosemirror-model@1.25.4)(prosemirror-state@1.4.4)(prosemirror-view@1.41.5)(y-protocols@1.0.7(yjs@13.6.29))(yjs@13.6.29))(@vue/compiler-sfc@3.5.27)(@vueuse/core@14.2.0(vue@3.5.27(typescript@5.9.3)))(cac@6.7.14)(db0@0.3.4)(embla-carousel@8.6.0)(ioredis@5.9.2)(lightningcss@1.31.1)(magicast@0.5.1)(rollup@4.57.1)(terser@5.46.0)(typescript@5.9.3)(vite@7.3.1(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2))(vue-router@4.6.4(vue@3.5.27(typescript@5.9.3)))(yaml@2.8.2)(yjs@13.6.29)(zod@4.3.6)
@@ -4841,8 +4841,8 @@ packages:
     engines: {node: '>= 0.10'}
     hasBin: true
 
-  shaders@2.3.63:
-    resolution: {integrity: sha512-QfKQYG+6MF+9DuLrDwPOd4n4sufO+JheKb3260ccpB11LVqELGUlE/uJ1w8l/9zvDW5G0lJuws8vIdgaQx/MXw==}
+  shaders@2.3.65:
+    resolution: {integrity: sha512-BD/H8XIQg0fLomLQW/FunfrRXvOfQCGUOIcYu5QgZN7QRpiSe15CM0jfu2e5jaqLLtq1K5w7Zy6aMEpsvxR+DA==}
 
   shebang-command@2.0.0:
     resolution: {integrity: sha512-kHxr2zZpYtdmrN1qDjrrX/Z1rR1kG8Dx+gkpK1G4eXmvXswmcE1hTWBWYUzlraYw1/yZp6YuDY77YtvbN0dmDA==}
@@ -11369,7 +11369,7 @@ snapshots:
       safe-buffer: 5.2.1
       to-buffer: 1.2.2
 
-  shaders@2.3.63:
+  shaders@2.3.65:
     dependencies:
       three: 0.182.0
 
