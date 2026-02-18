@@ -160,18 +160,9 @@ async function runPreviewCommand(opts: {
 
   await waitForPort(randomPort, { retries: 20, delay: 500, host: "localhost" });
 
-  const url = `http://localhost:${randomPort}`;
-
   return {
-    async fetch(req: ServerRequest) {
-      const reqURL = new URL(req.url);
-      const targetURL = url + reqURL.pathname + reqURL.search;
-      const res = await proxyFetch({ port: randomPort, host: "localhost" }, targetURL, {
-        method: req.method,
-        headers: req.headers,
-        body: req.body,
-      });
-      return res;
+    fetch(req: ServerRequest) {
+      return proxyFetch({ port: randomPort, host: "localhost" }, req);
     },
     async upgrade(req, socket, head, opts) {
       await proxyUpgrade({ port: randomPort, host: "localhost" }, req, socket, head, opts);
