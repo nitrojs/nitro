@@ -41,7 +41,7 @@ export default defineNitroConfig({
     },
   ],
   devProxy: {
-    "/proxy/example": { target: "https://example.com", changeOrigin: true },
+    "/proxy/example": { target: "https://icanhazip.com", changeOrigin: true },
   },
   alias: {
     "#fixture-nitro-utils-extra-absolute": fileURLToPath(
