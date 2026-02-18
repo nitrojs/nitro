@@ -290,11 +290,7 @@ class DevServer {
     return app;
   }
 
-  async handleUpgrade(
-    req: IncomingMessage,
-    socket: Socket,
-    head: any
-  ) {
+  async handleUpgrade(req: IncomingMessage, socket: Socket, head: any) {
     const worker = await this.getWorker();
     if (!worker) {
       throw createError({

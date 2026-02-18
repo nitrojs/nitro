@@ -23,9 +23,5 @@ export interface NitroDevServer {
   app: App;
   close: () => Promise<void>;
   watcher?: FSWatcher;
-  upgrade: (
-    req: IncomingMessage,
-    socket: Socket,
-    head: Buffer
-  ) => void;
+  upgrade: (req: IncomingMessage, socket: Socket, head: Buffer) => void;
 }

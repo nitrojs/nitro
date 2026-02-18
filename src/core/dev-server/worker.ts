@@ -22,11 +22,7 @@ export interface DevWorker {
   readonly closed: boolean;
   close(): Promise<void>;
   handleEvent: (event: H3Event) => Promise<void>;
-  handleUpgrade: (
-    req: IncomingMessage,
-    socket: Socket,
-    head: any
-  ) => void;
+  handleUpgrade: (req: IncomingMessage, socket: Socket, head: any) => void;
 }
 
 export class NodeDevWorker implements DevWorker {
@@ -63,17 +59,13 @@ export class NodeDevWorker implements DevWorker {
     await this.#proxy.handleEvent(event, { target: this.#address });
   }
 
-  handleUpgrade(
-    req: IncomingMessage,
-    socket: Socket,
-    head: any
-  ) {
+  handleUpgrade(req: IncomingMessage, socket: Socket, head: any) {
     if (!this.ready) {
       return;
     }
     return this.#proxy!.proxy.ws(
       req,
-      socket ,
+      socket,
       { target: this.#address, xfwd: true },
       head
     );
