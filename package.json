@@ -76,7 +76,7 @@
     "ofetch": "^2.0.0-alpha.3",
     "ohash": "^2.0.11",
     "rolldown": "^1.0.0-rc.4",
-    "srvx": "^0.11.5",
+    "srvx": "^0.11.7",
     "unenv": "^2.0.0-rc.24",
     "unstorage": "^2.0.0-alpha.5"
   },
@@ -128,7 +128,7 @@
     "get-port-please": "^3.2.0",
     "giget": "^3.1.2",
     "gzip-size": "^7.0.0",
-    "httpxy": "^0.3.0",
+    "httpxy": "^0.3.1",
     "klona": "^2.0.6",
     "knitwork": "^1.3.0",
     "magic-string": "^0.30.21",

@@ -1,18 +1,30 @@
 import type { ServerHandler, ServerRequest } from "srvx";
+import type { LoadOptions } from "srvx/loader";
 import { spawn } from "node:child_process";
 import consola from "consola";
 import { join, resolve } from "pathe";
-import { proxyFetch } from "httpxy";
+import { proxyFetch, proxyUpgrade, type ProxyUpgradeOptions } from "httpxy";
 import { prettyPath } from "./utils/fs.ts";
 import { getBuildInfo } from "./build/info.ts";
+import type { IncomingMessage } from "node:http";
+import type { Duplex } from "node:stream";
 
 export interface PreviewInstance {
   fetch: ServerHandler;
+  upgrade?: (
+    req: IncomingMessage,
+    socket: Duplex,
+    head?: Buffer,
+    opts?: ProxyUpgradeOptions
+  ) => Promise<void>;
   close: () => Promise<void>;
 }
 
-export async function startPreview(rootDir: string): Promise<PreviewInstance> {
-  const { outputDir, buildInfo } = await getBuildInfo(rootDir);
+export async function startPreview(opts: {
+  rootDir: string;
+  loader?: LoadOptions;
+}): Promise<PreviewInstance> {
+  const { outputDir, buildInfo } = await getBuildInfo(opts.rootDir);
   if (!buildInfo) {
     throw new Error("Cannot load nitro build info. Make sure to build first.");
   }
@@ -34,7 +46,7 @@ export async function startPreview(rootDir: string): Promise<PreviewInstance> {
   });
 
   // Load .env files for preview mode
-  const dotEnvEntries = await loadPreviewDotEnv(rootDir);
+  const dotEnvEntries = await loadPreviewDotEnv(opts.rootDir);
   if (dotEnvEntries.length > 0) {
     consola.box({
       title: " [Environment Variables] ",
@@ -53,7 +65,7 @@ export async function startPreview(rootDir: string): Promise<PreviewInstance> {
     }
     return await runPreviewCommand({
       command: buildInfo.commands.preview,
-      rootDir,
+      rootDir: opts.rootDir,
       env: dotEnvEntries,
     });
   }
@@ -69,7 +81,7 @@ export async function startPreview(rootDir: string): Promise<PreviewInstance> {
     }
     const { loadServerEntry } = await import("srvx/loader");
     const entryPath = resolve(outputDir, buildInfo.serverEntry);
-    const entry = await loadServerEntry({ entry: entryPath });
+    const entry = await loadServerEntry({ entry: entryPath, ...opts.loader });
     if (entry.fetch) {
       fetchHandler = entry.fetch;
     }
@@ -160,6 +172,9 @@ async function runPreviewCommand(opts: {
         body: req.body,
       });
       return res;
+    },
+    async upgrade(req, socket, head, opts) {
+      await proxyUpgrade({ port: randomPort, host: "localhost" }, req, socket, head, opts);
     },
     async close() {
       killChild("SIGTERM");

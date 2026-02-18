@@ -18,15 +18,26 @@ export default defineCommand({
   async run({ args }) {
     const rootDir = resolve((args.dir || args._dir || ".") as string);
 
-    const preview = await startPreview(rootDir);
-
     const server = serve({
-      fetch: preview.fetch,
+      fetch(req) {
+        return preview.fetch(req);
+      },
       middleware: [log()],
       gracefulShutdown: false,
       port: args.port,
       hostname: args.host,
     });
+
+    const preview = await startPreview({
+      rootDir,
+      loader: { srvxServer: server },
+    });
+
+    if (preview.upgrade) {
+      server.node?.server?.on("upgrade", (req, socket, head) => {
+        preview.upgrade!(req, socket, head);
+      });
+    }
 
     process.on("SIGINT", async () => {
       await server.close();

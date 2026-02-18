@@ -17,7 +17,10 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
 
     async configurePreviewServer(server) {
       // Init Nitro preview handler
-      const preview = await startPreview(server.config.root);
+      const preview = await startPreview({
+        rootDir: server.config.root,
+        loader: { nodeServer: server.httpServer },
+      });
 
       // Close preview server when Vite's preview server is closed
       server.httpServer.once("close", async () => {
@@ -36,6 +39,13 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
         const previewRes: Response = await preview.fetch(nodeReq);
         await sendNodeResponse(res, previewRes).catch(next);
       });
+
+      // Handle WebSocket upgrade requests with Nitro preview handler if supported
+      if (preview.upgrade) {
+        server.httpServer.on("upgrade", (req, socket, head) => {
+          preview.upgrade!(req, socket, head);
+        });
+      }
     },
   } satisfies VitePlugin;
 }
