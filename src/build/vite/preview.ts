@@ -26,11 +26,6 @@ export function nitroPreviewPlugin(ctx: NitroPluginContext): VitePlugin {
       server.httpServer.once("close", async () => {
         await preview.close();
       });
-      for (const sig of ["SIGINT", "SIGHUP"] as const) {
-        process.on(sig, async () => {
-          await preview.close();
-        });
-      }
 
       // Handle all requests with Nitro preview handler (also handles production static assets)
       const { NodeRequest, sendNodeResponse } = await import("srvx/node");
