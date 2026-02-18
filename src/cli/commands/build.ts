@@ -4,33 +4,34 @@ import { build, copyPublicAssets, createNitro, prepare, prerender } from "nitro/
 import { resolve } from "pathe";
 import { commonArgs } from "../common.ts";
 
+export const buildArgs = {
+  ...commonArgs,
+  minify: {
+    type: "boolean",
+    description:
+      "Minify the output (overrides preset defaults you can also use `--no-minify` to disable).",
+  },
+  preset: {
+    type: "string",
+    description: "The build preset to use (you can also use `NITRO_PRESET` environment variable).",
+  },
+  builder: {
+    type: "string",
+    description: "The builder to use (you can also use `NITRO_BUILDER` environment variable).",
+  },
+  compatibilityDate: {
+    type: "string",
+    description:
+      "The date to use for preset compatibility (you can also use `NITRO_COMPATIBILITY_DATE` environment variable).",
+  },
+} as const;
+
 export default defineCommand({
   meta: {
     name: "build",
     description: "Build nitro project for production",
   },
-  args: {
-    ...commonArgs,
-    minify: {
-      type: "boolean",
-      description:
-        "Minify the output (overrides preset defaults you can also use `--no-minify` to disable).",
-    },
-    preset: {
-      type: "string",
-      description:
-        "The build preset to use (you can also use `NITRO_PRESET` environment variable).",
-    },
-    builder: {
-      type: "string",
-      description: "The builder to use (you can also use `NITRO_BUILDER` environment variable).",
-    },
-    compatibilityDate: {
-      type: "string",
-      description:
-        "The date to use for preset compatibility (you can also use `NITRO_COMPATIBILITY_DATE` environment variable).",
-    },
-  },
+  args: buildArgs,
   async run({ args }) {
     const rootDir = resolve((args.dir || args._dir || ".") as string);
     const nitro = await createNitro(

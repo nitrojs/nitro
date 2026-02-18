@@ -1,6 +1,5 @@
 import type { Nitro, RollupConfig } from "nitro/types";
 import { formatCompatibilityDate } from "compatx";
-import { relative } from "pathe";
 import { scanHandlers } from "../../scan.ts";
 import { generateFSTree } from "../../utils/fs-tree.ts";
 import { writeTypes } from "../types.ts";
@@ -47,14 +46,8 @@ export async function buildProduction(nitro: Nitro, rollupConfig: RollupConfig) 
   await nitro.hooks.callHook("compiled", nitro);
 
   // Show deploy and preview hints
-  const rOutput = relative(process.cwd(), nitro.options.output.dir);
-  const rewriteRelativePaths = (input: string) => {
-    return input.replace(/([\s:])\.\/(\S*)/g, `$1${rOutput}/$2`);
-  };
-  nitro.logger.success(`You can preview this build using \`npx nitro preview\``);
+  nitro.logger.success("You can preview this build using `npx nitro preview`");
   if (buildInfo.commands!.deploy) {
-    nitro.logger.success(
-      `You can deploy this build using \`${rewriteRelativePaths(buildInfo.commands!.deploy)}\``
-    );
+    nitro.logger.success("You can deploy this build using `npx nitro deploy`");
   }
 }
