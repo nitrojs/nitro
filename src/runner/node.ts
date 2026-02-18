@@ -7,8 +7,9 @@ import { existsSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { Worker } from "node:worker_threads";
 import consola from "consola";
+import { proxyFetch } from "httpxy";
 import { isCI, isTest } from "std-env";
-import { createHTTPProxy, fetchAddress } from "./proxy.ts";
+import { createHTTPProxy } from "./proxy.ts";
 
 export interface EnvRunnerData {
   name?: string;
@@ -53,7 +54,7 @@ export class NodeEnvRunner implements EnvRunner {
         status: 503,
       });
     }
-    return fetchAddress(this.#address, input, init);
+    return proxyFetch(this.#address, input, init);
   }
 
   upgrade(req: IncomingMessage, socket: Socket, head: any) {

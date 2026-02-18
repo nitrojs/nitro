@@ -2,9 +2,9 @@ import type { ServerHandler, ServerRequest } from "srvx";
 import { spawn } from "node:child_process";
 import consola from "consola";
 import { join, resolve } from "pathe";
+import { proxyFetch } from "httpxy";
 import { prettyPath } from "./utils/fs.ts";
 import { getBuildInfo } from "./build/info.ts";
-import { fetchAddress } from "./runner/proxy.ts";
 
 export interface PreviewInstance {
   fetch: ServerHandler;
@@ -149,7 +149,7 @@ async function runPreviewCommand(opts: {
     async fetch(req: ServerRequest) {
       const reqURL = new URL(req.url);
       const targetURL = url + reqURL.pathname + reqURL.search;
-      const res = await fetchAddress({ port: randomPort, host: "localhost" }, targetURL, {
+      const res = await proxyFetch({ port: randomPort, host: "localhost" }, targetURL, {
         method: req.method,
         headers: req.headers,
         body: req.body,
