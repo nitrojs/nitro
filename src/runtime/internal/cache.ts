@@ -145,7 +145,13 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
       event.waitUntil(_resolvePromise);
     }
 
-    if (opts.swr && validate(entry) !== false) {
+    const staleTtl = (opts.staleMaxAge ?? 0) * 1000;
+    const staleExpired =
+      shouldInvalidateCache ||
+      entry.integrity !== integrity ||
+      (staleTtl && Date.now() - (entry.mtime || 0) > staleTtl) ||
+      validate(entry) === false;
+    if (opts.swr && !staleExpired) {
       _resolvePromise.catch((error) => {
         console.error(`[cache] SWR handler error.`, error);
         useNitroApp().captureError(error, { event, tags: ["cache"] });
