@@ -26,7 +26,7 @@ export async function buildProduction(nitro: Nitro, rollupConfig: RollupConfig) 
       throw error;
     });
 
-    output = await build.write(rollupConfig.output);
+    output = await build.write(rollupConfig.output!);
   }
 
   const buildInfo = await writeBuildInfo(nitro, output);

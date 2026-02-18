@@ -137,6 +137,10 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
 
   const config = defu(nitro.options.vercel?.config, {
     version: 3,
+    framework: {
+      name: nitro.options.framework.name,
+      version: nitro.options.framework.version,
+    },
     overrides: {
       // Nitro static prerendered route overrides
       ...Object.fromEntries(
@@ -220,6 +224,19 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
       { handle: "filesystem" },
     ],
   } as VercelBuildConfigV3);
+
+  // Cron jobs from scheduledTasks
+  if (
+    nitro.options.experimental.tasks &&
+    Object.keys(nitro.options.scheduledTasks || {}).length > 0
+  ) {
+    const cronPath = nitro.options.vercel!.cronHandlerRoute || "/_vercel/cron";
+    const cronEntries = Object.keys(nitro.options.scheduledTasks).map((schedule) => ({
+      path: cronPath,
+      schedule,
+    }));
+    config.crons = [...cronEntries, ...(config.crons || [])];
+  }
 
   // Early return if we are building a static site
   if (nitro.options.static) {

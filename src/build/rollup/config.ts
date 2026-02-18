@@ -81,7 +81,7 @@ export const getRollupConfig = async (nitro: Nitro): Promise<RollupConfig> => {
 
   config = defu(nitro.options.rollupConfig as any, config);
 
-  const outputConfig = config.output as RollupConfig["output"];
+  const outputConfig = config.output as NonNullable<RollupConfig["output"]>;
   if (outputConfig.inlineDynamicImports || outputConfig.format === "iife") {
     delete outputConfig.manualChunks;
   }

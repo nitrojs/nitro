@@ -43,6 +43,9 @@ export interface VercelBuildConfigV3 {
   >;
   cache?: string[];
   bypassToken?: string;
+  framework?: {
+    version: string;
+  };
   crons?: {
     path: string;
     schedule: string;
@@ -132,6 +135,18 @@ export interface VercelOptions {
    * Possible values are: `web` (default) and `node`.
    */
   entryFormat?: "web" | "node";
+
+  /**
+   * The route path for the Vercel cron handler endpoint.
+   *
+   * When `experimental.tasks` and `scheduledTasks` are configured,
+   * Nitro registers a cron handler at this path that Vercel invokes
+   * on each scheduled cron trigger.
+   *
+   * @default "/_vercel/cron"
+   * @see https://vercel.com/docs/cron-jobs
+   */
+  cronHandlerRoute?: string;
 }
 
 /**
