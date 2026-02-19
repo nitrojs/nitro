@@ -97,6 +97,30 @@ export default defineConfig({
 })
 ```
 
+### Scheduled Tasks (Cron Triggers)
+
+When using [Nitro tasks](/docs/tasks) with `scheduledTasks`, Nitro automatically generates [Cron Triggers](https://developers.cloudflare.com/workers/configuration/cron-triggers/) in the wrangler config at build time.
+
+```ts [nitro.config.ts]
+import { defineNitroConfig } from "nitro/config";
+
+export default defineNitroConfig({
+  preset: "cloudflare_module",
+  experimental: {
+    tasks: true,
+  },
+  scheduledTasks: {
+    "* * * * *": ["cms:update"],
+    "0 15 1 * *": ["db:cleanup"],
+  },
+  cloudflare: {
+    deployConfig: true,
+  },
+})
+```
+
+No manual Wrangler configuration is needed - Nitro handles it for you.
+
 ## Cloudflare Pages
 
 **Preset:** `cloudflare_pages`
@@ -321,7 +345,7 @@ From this moment, when running
 
 you will be able to access the `MY_VARIABLE` and `MY_KV` from the request event just as illustrated above.
 
-#### Wrangler environments 
+#### Wrangler environments
 
 If you have multiple Wrangler environments, you can specify which Wrangler environment to use during Cloudflare dev emulation:
 
