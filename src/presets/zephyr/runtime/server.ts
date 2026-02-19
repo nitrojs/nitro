@@ -1,8 +1,6 @@
 import "#nitro/virtual/polyfills";
-import { useNitroApp } from "nitro/app";
+import { createHandler } from "../../cloudflare/runtime/_module-handler.ts";
 
-const nitroApp = useNitroApp();
-
-export default {
-  fetch: nitroApp.fetch,
-};
+export default createHandler({
+  fetch() {},
+});

@@ -1,25 +1,16 @@
-import type { Nitro, RollupConfig } from "nitro/types";
-import type { Plugin } from "rollup";
-import { dirname, isAbsolute, normalize, relative, resolve } from "pathe";
+import type { Nitro } from "nitro/types";
+import { resolve } from "pathe";
 
 export const LOGGER_TAG = "zephyr-nitro-preset";
 const PROVIDER_PRESET_MAP = {
-  cloudflare: "cloudflare-module",
+  cloudflare: true,
 } as const;
 export type ZephyrProvider = keyof typeof PROVIDER_PRESET_MAP;
-export const DEFAULT_BASE_PRESET = PROVIDER_PRESET_MAP.cloudflare;
 
-const DEFAULT_METADATA_FILE = ".zephyr/nitro-build.json";
 const DEFAULT_DEPLOY_TARGET = "web";
 const DEFAULT_DEPLOY_SSR = true;
 const SKIP_DEPLOY_PATTERNS = [/\.map$/i, /node_modules\//i, /\.git\//i, /\.DS_Store$/i];
 let pulledProvider: ZephyrProvider | undefined;
-
-interface ZephyrNitroBuildMetadata {
-  generatedBy: "zephyr-nitro-preset";
-  preset: string;
-  outputDir: string;
-}
 
 interface DirectoryAsset {
   content: Buffer;
@@ -97,7 +88,7 @@ function resolveAssetPath(
   if (fullPath.startsWith(`${publicRoot}/`)) {
     const staticRelative = fullPath.slice(publicRoot.length + 1);
     const basePath = normalizeBaseURL(baseURL);
-    return basePath ? `${basePath}/${staticRelative}` : staticRelative;
+    return basePath ? `client/${basePath}/${staticRelative}` : `client/${staticRelative}`;
   }
 
   return toPosixPath(file.relativePath);
@@ -134,21 +125,6 @@ function resolveProvider(appPlatform: unknown): ZephyrProvider {
   return pulledProvider;
 }
 
-function normalizeMetadataFile(metadataFile: string): string {
-  if (isAbsolute(metadataFile)) {
-    throw new TypeError(
-      `[${LOGGER_TAG}] \`metadataFile\` must be relative when using the bundler lifecycle.`
-    );
-  }
-
-  const normalized = normalize(metadataFile).replace(/\\/g, "/").replace(/^\/+/, "");
-  if (!normalized || normalized === ".") {
-    throw new TypeError(`[${LOGGER_TAG}] \`metadataFile\` must point to a file path.`);
-  }
-
-  return normalized;
-}
-
 function toPosixPath(filePath: string): string {
   return filePath.replace(/\\/g, "/");
 }
@@ -157,19 +133,17 @@ function shouldSkipDeployAsset(filePath: string): boolean {
   return SKIP_DEPLOY_PATTERNS.some((pattern) => pattern.test(filePath));
 }
 
-function normalizeEntrypoint(entrypoint: string): string {
-  let normalized = entrypoint.trim().replace(/\\/g, "/");
-  while (normalized.startsWith("./")) {
-    normalized = normalized.slice(2);
-  }
-  while (normalized.startsWith("/")) {
-    normalized = normalized.slice(1);
-  }
-  return normalized;
-}
-
 function resolveDeployEntrypoint(assets: Record<string, DirectoryAsset>): string | undefined {
-  const candidates = ["index.mjs", "index.js", "server/index.mjs", "server/index.js"];
+  const candidates = [
+    "server/index.js",
+    "server/index.mjs",
+    "server/server.js",
+    "server/server.mjs",
+    "server/_worker.js",
+    "server/_worker.mjs",
+    "index.mjs",
+    "index.js",
+  ];
   for (const candidate of candidates) {
     if (Object.prototype.hasOwnProperty.call(assets, candidate)) {
       return candidate;
@@ -177,75 +151,6 @@ function resolveDeployEntrypoint(assets: Record<string, DirectoryAsset>): string
   }
 
   return undefined;
-}
-
-function toImportSpecifier(fromFile: string, toFile: string): string {
-  const relativePath = relative(dirname(fromFile), toFile);
-  if (!relativePath) {
-    return "./";
-  }
-  return relativePath.startsWith(".") ? relativePath : `./${relativePath}`;
-}
-
-function createCloudflareEntrypointWrapper(entrypoint: string): {
-  wrapperPath: string;
-  source: string;
-} {
-  const wrapperPath = ".zephyr/entrypoint.mjs";
-  const importPath = toImportSpecifier(wrapperPath, entrypoint);
-  const source = `import nitroHandler from '${importPath}';
-
-const base = nitroHandler?.default ?? nitroHandler;
-
-export default {
-  ...base,
-  async fetch(request, env = {}, context) {
-    if (typeof base?.fetch === 'function') {
-      return base.fetch(request, env ?? {}, context);
-    }
-
-    if (typeof base === 'function') {
-      return base(request, env ?? {}, context);
-    }
-
-    throw new TypeError('[${LOGGER_TAG}] Invalid Nitro Cloudflare entrypoint export.');
-  },
-};
-`;
-
-  return { wrapperPath, source };
-}
-
-function createZephyrNitroMetadata(nitro: Nitro, outputDir: string): ZephyrNitroBuildMetadata {
-  return {
-    generatedBy: "zephyr-nitro-preset",
-    preset: nitro.options.preset,
-    outputDir,
-  };
-}
-
-function createZephyrNitroMetadataAsset(nitro: Nitro, outputDir: string) {
-  const fileName = normalizeMetadataFile(DEFAULT_METADATA_FILE);
-  return {
-    type: "asset" as const,
-    fileName,
-    source: `${JSON.stringify(createZephyrNitroMetadata(nitro, outputDir), null, 2)}\n`,
-  };
-}
-
-export function resolveBundlerOutputDir(nitro: Nitro, config: RollupConfig): string {
-  const output = Array.isArray(config.output) ? config.output[0] : config.output;
-  return output?.dir || nitro.options.output.serverDir || nitro.options.output.dir;
-}
-
-export function createZephyrMetadataPlugin(nitro: Nitro, outputDir: string): Plugin {
-  return {
-    name: "zephyr-nitro-metadata",
-    generateBundle() {
-      const asset = createZephyrNitroMetadataAsset(nitro, outputDir);
-      this.emitFile(asset);
-    },
-  };
 }
 
 export async function uploadNitroOutputToZephyr(
@@ -272,16 +177,11 @@ export async function uploadNitroOutputToZephyr(
     throw new TypeError(`[${LOGGER_TAG}] No deployable assets found in ${outputDir}.`);
   }
 
-  let entrypoint = resolveDeployEntrypoint(assets);
-
-  if (DEFAULT_DEPLOY_SSR && entrypoint) {
-    const { wrapperPath, source } = createCloudflareEntrypointWrapper(
-      normalizeEntrypoint(entrypoint)
+  const entrypoint = resolveDeployEntrypoint(assets);
+  if (DEFAULT_DEPLOY_SSR && !entrypoint) {
+    throw new TypeError(
+      `[${LOGGER_TAG}] Could not detect SSR entrypoint in ${outputDir}. Expected one of: server/index.js, server/index.mjs, server/server.js, server/server.mjs, server/_worker.js, server/_worker.mjs, index.mjs, index.js.`
     );
-    assets[wrapperPath] = {
-      content: Buffer.from(source, "utf8"),
-    };
-    entrypoint = wrapperPath;
   }
 
   const assetsMap = zephyrAgent.buildAssetsMap(
