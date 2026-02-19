@@ -90,7 +90,9 @@ The `exports.cloudflare.ts` file must not have a default export.
 You can also customize the entrypoint file location using the `cloudflare.exports` option in your `nitro.config.ts`:
 
 ```ts [nitro.config.ts]
-export default defineConfig({
+import { defineNitroConfig } from "nitro/config";
+
+export default defineNitroConfig({
   cloudflare: {
     exports: "custom-exports-entry.ts"
   }
