@@ -40,6 +40,7 @@ export default defineBuildConfig({
       input: "src/presets/",
       outDir: "dist/presets",
       filter: (id) => id.includes("runtime/"),
+      dts: false,
     },
   ],
   hooks: {

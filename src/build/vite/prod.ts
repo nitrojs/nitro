@@ -1,7 +1,7 @@
 import type { ViteBuilder } from "vite";
 import type { NitroPluginContext } from "./types.ts";
 
-import { basename, dirname, relative, resolve } from "pathe";
+import { basename, dirname, resolve } from "pathe";
 import { formatCompatibilityDate } from "compatx";
 import { colors as C } from "consola/utils";
 import { copyPublicAssets } from "../../builder.ts";
@@ -120,21 +120,10 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
   await writeBuildInfo(nitro, output);
 
   // Show deploy and preview commands
-  const rOutput = relative(process.cwd(), nitro.options.output.dir);
-  const rewriteRelativePaths = (input: string) => {
-    return input.replace(/([\s:])\.\/(\S*)/g, `$1${rOutput}/$2`);
-  };
-
   if (!isTest && !isCI) console.log();
-  if (nitro.options.commands.preview) {
-    nitro.logger.success(
-      `You can preview this build using \`${rewriteRelativePaths(nitro.options.commands.preview)}\``
-    );
-  }
+  nitro.logger.success("You can preview this build using `npx vite preview`");
   if (nitro.options.commands.deploy) {
-    nitro.logger.success(
-      `You can deploy this build using \`${rewriteRelativePaths(nitro.options.commands.deploy)}\``
-    );
+    nitro.logger.success("You can deploy this build using `npx nitro deploy --prebuilt`");
   }
 }
 

@@ -21,7 +21,7 @@ export default defineHandler(async (event) => {
   }
 
   await runCronTasks(cron, {
-    context: {},
+    context: { waitUntil: event.req.waitUntil },
     payload: {
       scheduledTime: Date.now(),
     },
