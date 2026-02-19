@@ -222,6 +222,11 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       if (nodeRes.writableEnded || nodeRes.headersSent) {
         return;
       }
+      if (envRes.status === 404) {
+        // Allow Vite to try
+        nodeReq._nitroHandled = false;
+        return next();
+      }
       return await sendNodeResponse(nodeRes, envRes);
     } catch (error) {
       return next(error);
@@ -236,8 +241,6 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     if (
       // Originating from browser tab or no fetch dest (curl, fetch, etc) and (not script, style, image, etc)
       (!fetchDest || /^(document|iframe|frame|empty)$/.test(fetchDest)) &&
-      // No file extension (not /src/index.ts)
-      !req.url!.match(/\.([a-z0-9]+)(?:[?#]|$)/i)?.[1] &&
       // Special prefixes (/__vue-router/auto-routes, /@vite-plugin-layouts/, etc)
       !/^\/(?:__|@)/.test(req.url!)
     ) {
