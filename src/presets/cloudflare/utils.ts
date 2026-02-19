@@ -288,6 +288,22 @@ export async function writeWranglerConfig(nitro: Nitro, cfTarget: "pages" | "mod
     }
   }
 
+  // Nitro Tasks cron triggers
+  if (
+    nitro.options.experimental.tasks &&
+    Object.keys(nitro.options.scheduledTasks || {}).length > 0 &&
+    cfTarget !== "pages"
+  ) {
+    const schedules = Object.keys(nitro.options.scheduledTasks!);
+    wranglerConfig.triggers = defu(wranglerConfig.triggers, { crons: [] });
+    const existingCrons = new Set(wranglerConfig.triggers!.crons);
+    for (const schedule of schedules) {
+      if (!existingCrons.has(schedule)) {
+        wranglerConfig.triggers!.crons!.push(schedule);
+      }
+    }
+  }
+
   // Write wrangler.json
   await writeFile(wranglerConfigPath, JSON.stringify(wranglerConfig, null, 2), true);
 
