@@ -48,6 +48,6 @@ export async function buildProduction(nitro: Nitro, rollupConfig: RollupConfig) 
   // Show deploy and preview hints
   nitro.logger.success("You can preview this build using `npx nitro preview`");
   if (buildInfo.commands!.deploy) {
-    nitro.logger.success("You can deploy this build using `npx nitro deploy`");
+    nitro.logger.success("You can deploy this build using `npx nitro deploy --prebuilt`");
   }
 }

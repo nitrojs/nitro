@@ -1,5 +1,7 @@
 import { defineCommand } from "citty";
 import { relative, resolve } from "pathe";
+import consola from "consola";
+import { execSync } from "node:child_process";
 import { getBuildInfo } from "../../build/info.ts";
 import buildCmd, { buildArgs } from "./build.ts";
 
@@ -22,18 +24,22 @@ export default defineCommand({
     const rootDir = resolve((ctx.args.dir || ctx.args._dir || ".") as string);
     const { buildInfo, outputDir } = await getBuildInfo(rootDir);
     if (!buildInfo) {
-      throw new Error("No build info found, cannot deploy.");
+      // throw new Error("No build info found, cannot deploy.");
+      consola.error("No build info found, cannot deploy.");
+      process.exit(1);
     }
     if (!buildInfo.commands?.deploy) {
-      throw new Error("No deploy command found for this preset (are you missing --preset?).");
+      consola.error(
+        `The \`${buildInfo.preset}\` preset does not have a default deploy command.\n\nTry using a different preset with the \`--preset\` option, or configure a deploy command in the Nitro config, or deploy manually.`
+      );
+      process.exit(1);
     }
-    const { execSync } = await import("node:child_process");
 
     const deployCommand = buildInfo.commands.deploy.replace(
       /([\s:])\.\/(\S*)/g,
       `$1${relative(process.cwd(), outputDir)}/$2`
     );
-    console.log(`$ ${deployCommand}`);
+    consola.info(`$ ${deployCommand}`);
     execSync(deployCommand, { stdio: "inherit" });
   },
 });
