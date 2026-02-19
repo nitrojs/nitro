@@ -35,10 +35,17 @@ export default defineCommand({
       process.exit(1);
     }
 
-    const deployCommand = buildInfo.commands.deploy.replace(
-      /([\s:])\.\/(\S*)/g,
-      `$1${relative(process.cwd(), outputDir)}/$2`
-    );
+    const extraArgs =
+      ctx.rawArgs.indexOf("--") !== -1
+        ? ctx.rawArgs.slice(ctx.rawArgs.indexOf("--") + 1).join(" ")
+        : "";
+
+    const deployCommand =
+      buildInfo.commands.deploy.replace(
+        /([\s:])\.\/(\S*)/g,
+        `$1${relative(process.cwd(), outputDir)}/$2`
+      ) + (extraArgs ? ` ${extraArgs}` : "");
+
     consola.info(`$ ${deployCommand}`);
     execSync(deployCommand, { stdio: "inherit" });
   },
