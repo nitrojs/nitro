@@ -291,7 +291,8 @@ export async function writeWranglerConfig(nitro: Nitro, cfTarget: "pages" | "mod
   // Nitro Tasks cron triggers
   if (
     nitro.options.experimental.tasks &&
-    Object.keys(nitro.options.scheduledTasks || {}).length > 0
+    Object.keys(nitro.options.scheduledTasks || {}).length > 0 &&
+    cfTarget !== "pages"
   ) {
     const schedules = Object.keys(nitro.options.scheduledTasks!);
     wranglerConfig.triggers = defu(wranglerConfig.triggers, { crons: [] });
