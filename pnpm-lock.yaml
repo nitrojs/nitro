@@ -459,6 +459,12 @@ importers:
         specifier: ^3.22.0
         version: 3.22.0
 
+  examples/tracing:
+    devDependencies:
+      nitro:
+        specifier: link:../..
+        version: link:../..
+
   examples/virtual-routes:
     devDependencies:
       nitro:

@@ -24,6 +24,7 @@ import { resolveURLOptions } from "./resolvers/url.ts";
 import { resolveErrorOptions } from "./resolvers/error.ts";
 import { resolveUnenv } from "./resolvers/unenv.ts";
 import { resolveBuilder } from "./resolvers/builder.ts";
+import { resolveTracingOptions } from "./resolvers/tracing.ts";
 
 const configResolvers = [
   resolveCompatibilityOptions,
@@ -41,6 +42,7 @@ const configResolvers = [
   resolveErrorOptions,
   resolveUnenv,
   resolveBuilder,
+  resolveTracingOptions,
 ] as const;
 
 export async function loadOptions(
