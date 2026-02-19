@@ -251,15 +251,14 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
       const clientEnvs = Object.values(server.environments).filter(
         (env) => env.config.consumer === "client"
       );
-      let hasServerOnlyModule = false;
+      let hasServerModule = false;
       const invalidated = new Set<EnvironmentModuleNode>();
       for (const mod of modules) {
-        if (mod.id && !clientEnvs.some((env) => env.moduleGraph.getModuleById(mod.id!))) {
-          hasServerOnlyModule = true;
-          env.moduleGraph.invalidateModule(mod, invalidated, timestamp, false);
-        }
+        if (!mod.id) continue;
+        hasServerModule = true;
+        env.moduleGraph.invalidateModule(mod, invalidated, timestamp, false);
       }
-      if (hasServerOnlyModule) {
+      if (hasServerModule) {
         env.hot.send({ type: "full-reload" });
         server.ws.send({ type: "full-reload" });
         return [];
