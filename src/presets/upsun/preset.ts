@@ -1,13 +1,13 @@
 import { defineNitroPreset } from "../_utils/preset.ts";
 
-const platformSh = defineNitroPreset(
+const upsun = defineNitroPreset(
   {
     extends: "node-server",
     serveStatic: true,
   },
   {
-    name: "platform-sh" as const,
+    name: "upsun" as const,
   }
 );
 
-export default [platformSh] as const;
+export default [upsun] as const;
