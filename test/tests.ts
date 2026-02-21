@@ -386,6 +386,56 @@ export function testNitro(
     expect(headers).toMatchObject(expectedHeaders);
   });
 
+  describe("handles route rules - basic auth", () => {
+    it("rejects request without credentials", async () => {
+      const { status } = await callHandler({ url: "/rules/auth/test" });
+      expect(status).toBe(401);
+    });
+
+    it("rejects request with wrong password", async () => {
+      const { status } = await callHandler({
+        url: "/rules/auth/test",
+        headers: {
+          Authorization: "Basic " + btoa("user:wrongpass"),
+        },
+      });
+      expect(status).toBe(401);
+    });
+
+    it("allows request with correct password", async () => {
+      const { status } = await callHandler({
+        url: "/rules/auth/test",
+        headers: {
+          Authorization: "Basic " + btoa("user:testpass"),
+        },
+      });
+      expect(status).toBe(200);
+    });
+
+    it("validates username when configured", async () => {
+      const { status: wrongUser } = await callHandler({
+        url: "/rules/auth-user/test",
+        headers: {
+          Authorization: "Basic " + btoa("wrong:secret"),
+        },
+      });
+      expect(wrongUser).toBe(401);
+
+      const { status: correctUser } = await callHandler({
+        url: "/rules/auth-user/test",
+        headers: {
+          Authorization: "Basic " + btoa("admin:secret"),
+        },
+      });
+      expect(correctUser).toBe(200);
+    });
+
+    it("skips auth when set to false", async () => {
+      const { status } = await callHandler({ url: "/rules/no-auth/test" });
+      expect(status).toBe(200);
+    });
+  });
+
   it("handles route rules - allowing overriding", async () => {
     const override = await callHandler({ url: "/rules/nested/override" });
     expect(override.headers.location).toBe("/other");

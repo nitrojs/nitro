@@ -1,6 +1,6 @@
 import type { Nitro, NitroEventHandler, NitroRouteRules } from "nitro/types";
 
-export const RuntimeRouteRules = ["headers", "redirect", "proxy", "cache"] as string[];
+export const RuntimeRouteRules = ["headers", "redirect", "proxy", "cache", "auth"] as string[];
 
 export default function routing(nitro: Nitro) {
   return {

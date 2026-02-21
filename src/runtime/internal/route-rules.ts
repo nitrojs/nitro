@@ -1,10 +1,10 @@
-import { proxyRequest, redirect as sendRedirect } from "h3";
+import { proxyRequest, redirect as sendRedirect, requireBasicAuth } from "h3";
 import type { EventHandler, Middleware } from "h3";
 import type { MatchedRouteRule, NitroRouteRules } from "nitro/types";
 import { joinURL, withQuery, withoutBase } from "ufo";
 import { defineCachedHandler } from "./cache.ts";
 
-// Note: Remember to update RuntimeRouteRules in src/routing.ts when adding new route rules
+// Note: Remember to update RuntimeRouteRules in src/build/virtual/routing.ts when adding new route rules
 
 type RouteRuleCtor<T extends keyof NitroRouteRules> = (m: MatchedRouteRule<T>) => Middleware;
 
@@ -79,3 +79,12 @@ export const cache: RouteRuleCtor<"cache"> = ((m) =>
     }
     return cachedHandler(event);
   }) satisfies RouteRuleCtor<"cache">;
+
+// Auth route rule
+export const auth: RouteRuleCtor<"auth"> = ((m) =>
+  function authRouteRule(event) {
+    if (!m.options) {
+      return;
+    }
+    return requireBasicAuth(event, m.options);
+  }) satisfies RouteRuleCtor<"auth">;

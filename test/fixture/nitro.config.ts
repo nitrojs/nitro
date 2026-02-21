@@ -106,6 +106,9 @@ export default defineConfig({
     "/rules/_/cached/**": { swr: true },
     "/api/proxy/**": { proxy: "/api/echo" },
     "/cdn/**": { proxy: "https://cdn.jsdelivr.net/**" },
+    "/rules/auth/**": { auth: { password: "testpass" } },
+    "/rules/auth-user/**": { auth: { username: "admin", password: "secret" } },
+    "/rules/no-auth/**": { auth: false },
     "**": { headers: { "x-test": "test" } },
   },
   prerender: {
