@@ -4,6 +4,26 @@ import type { CachedEventHandlerOptions } from "./runtime/index.ts";
 
 export type HTTPstatus = IntRange<100, 600>;
 
+export interface NitroBasicAuthOptions {
+  /**
+   * Username for basic auth validation.
+   */
+  username?: string;
+
+  /**
+   * Password for basic auth validation.
+   */
+  password: string;
+
+  /**
+   * Realm for the basic auth challenge.
+   *
+   * @default ""
+   * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/WWW-Authenticate#realm
+   */
+  realm?: string;
+}
+
 export interface NitroRouteConfig {
   cache?: ExcludeFunctions<CachedEventHandlerOptions> | false;
   headers?: Record<string, string>;
@@ -11,6 +31,7 @@ export interface NitroRouteConfig {
   prerender?: boolean;
   proxy?: string | ({ to: string } & ProxyOptions);
   isr?: number /* expiration */ | boolean | VercelISRConfig;
+  auth?: NitroBasicAuthOptions | false;
 
   // Shortcuts
   cors?: boolean;
