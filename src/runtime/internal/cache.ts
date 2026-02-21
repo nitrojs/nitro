@@ -109,8 +109,11 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
         delete pending[key];
         if (validate(entry) !== false) {
           let setOpts: TransactionOptions | undefined;
-          if (opts.maxAge && !opts.swr /* TODO: respect staleMaxAge */) {
+          if (opts.maxAge && !opts.swr) {
             setOpts = { ttl: opts.maxAge };
+          } else if (opts.swr && opts.staleMaxAge && opts.staleMaxAge > 0) {
+            // Add staleMaxAge to maxAge key TTL if SWR is enabled
+            setOpts = { ttl: (opts.maxAge || 0) + opts.staleMaxAge };
           }
           const promise = useStorage()
             .setItem(cacheKey, entry, setOpts)
