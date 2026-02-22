@@ -51,3 +51,7 @@ async function streamToNodeStream(
   }
   writer.end();
 }
+
+export default {
+  fetch: nitroApp.fetch,
+};

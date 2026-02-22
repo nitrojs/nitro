@@ -26,3 +26,7 @@ export async function handler(
     ...(await awsResponseBody(response)),
   };
 }
+
+export default {
+  fetch: nitroApp.fetch,
+};
