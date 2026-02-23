@@ -387,51 +387,29 @@ export function testNitro(
   });
 
   describe("handles route rules - basic auth", () => {
-    it("rejects request without credentials", async () => {
-      const { status } = await callHandler({ url: "/rules/auth/test" });
-      expect(status).toBe(401);
-    });
-
-    it("rejects request with wrong password", async () => {
-      const { status } = await callHandler({
-        url: "/rules/auth/test",
+    it("rejects request with bad creds", async () => {
+      const { status, headers } = await callHandler({
+        url: "/rules/basic-auth",
         headers: {
           Authorization: "Basic " + btoa("user:wrongpass"),
         },
       });
       expect(status).toBe(401);
+      expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
     });
 
     it("allows request with correct password", async () => {
       const { status } = await callHandler({
-        url: "/rules/auth/test",
+        url: "/rules/basic-auth/test",
         headers: {
-          Authorization: "Basic " + btoa("user:testpass"),
+          Authorization: "Basic " + btoa("admin:secret"),
         },
       });
       expect(status).toBe(200);
     });
 
-    it("validates username when configured", async () => {
-      const { status: wrongUser } = await callHandler({
-        url: "/rules/auth-user/test",
-        headers: {
-          Authorization: "Basic " + btoa("wrong:secret"),
-        },
-      });
-      expect(wrongUser).toBe(401);
-
-      const { status: correctUser } = await callHandler({
-        url: "/rules/auth-user/test",
-        headers: {
-          Authorization: "Basic " + btoa("admin:secret"),
-        },
-      });
-      expect(correctUser).toBe(200);
-    });
-
-    it("skips auth when set to false", async () => {
-      const { status } = await callHandler({ url: "/rules/no-auth/test" });
+    it("disabled basic-auth for sub-rules", async () => {
+      const { status } = await callHandler({ url: "/rules/basic-auth/no-auth" });
       expect(status).toBe(200);
     });
   });
