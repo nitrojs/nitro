@@ -30,7 +30,8 @@ export interface NitroPluginConfig extends NitroConfig {
       assetsImport?: boolean;
 
       /**
-       * Reload the page when a server module is updated.
+       *
+       * Invalidate server-only modules and optionally reload the browser when a server-only module is updated.
        *
        * @default true
        */
