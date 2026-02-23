@@ -241,6 +241,9 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
     // Invalidate server-only modules and optionally reload the browser
     // see: https://github.com/vitejs/vite/issues/19114
     async hotUpdate({ server, modules, timestamp }) {
+      if (ctx.pluginConfig.experimental?.vite?.serverReload === false) {
+        return;
+      }
       const env = this.environment;
       if (env.config.consumer === "client") {
         return;
@@ -261,7 +264,7 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
       }
       if (serverOnlyModules.length > 0) {
         env.hot.send({ type: "full-reload" });
-        if (sharedModules.length === 0 && ctx.pluginConfig.experimental?.vite?.serverReload) {
+        if (sharedModules.length === 0 && serverOnlyModules.some((m) => m.environment !== "ssr")) {
           server.ws.send({ type: "full-reload" });
         }
         return sharedModules;
