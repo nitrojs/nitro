@@ -80,8 +80,8 @@ export const cache: RouteRuleCtor<"cache"> = ((m) =>
     return cachedHandler(event);
   }) satisfies RouteRuleCtor<"cache">;
 
-// Auth route rule
-export const auth: RouteRuleCtor<"auth"> = ((m) =>
+// basicAuth auth route rule
+export const basicAuth: RouteRuleCtor<"auth"> = ((m) =>
   async function authRouteRule(event, next) {
     if (!m.options) {
       return;

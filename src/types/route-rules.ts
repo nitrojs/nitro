@@ -11,7 +11,7 @@ export interface NitroRouteConfig {
   prerender?: boolean;
   proxy?: string | ({ to: string } & ProxyOptions);
   isr?: number /* expiration */ | boolean | VercelISRConfig;
-  auth?: Pick<BasicAuthOptions, "password" | "username" | "realm"> | false;
+  basicAuth?: Pick<BasicAuthOptions, "password" | "username" | "realm"> | false;
 
   // Shortcuts
   cors?: boolean;
