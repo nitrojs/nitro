@@ -1,3 +1,3 @@
-import { state } from "../shared.json" with { type: "json" };
+import { state } from "../shared.ts";
 
 export default () => ({ state });

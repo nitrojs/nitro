@@ -1,3 +1,3 @@
-import * as shared from "../shared.json" with { type: "json" };
+import { state } from "../shared.ts";
 
-document.getElementById("client-state-value")!.textContent = shared.state + " (modified)";
+document.getElementById("client-state-value")!.textContent = state + " (modified)";

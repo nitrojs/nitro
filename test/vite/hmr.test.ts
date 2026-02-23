@@ -18,7 +18,7 @@ describe("vite:hmr", { sequential: true }, () => {
   const files = {
     client: openFileForEditing(join(rootDir, "app/entry-client.ts")),
     api: openFileForEditing(join(rootDir, "api/state.ts")),
-    shared: openFileForEditing(join(rootDir, "shared.json")),
+    shared: openFileForEditing(join(rootDir, "shared.ts")),
     ssr: openFileForEditing(join(rootDir, "app/entry-server.ts")),
   };
 
@@ -83,7 +83,7 @@ describe("vite:hmr", { sequential: true }, () => {
   });
 
   test("Editing shared entry", async () => {
-    files.shared.update((content) => content.replace(`"state": 1`, `"state": 2`));
+    files.shared.update((content) => content.replace(`state = 1`, `state = 2`));
     await pollResponse(
       `${serverURL}`,
       (txt) => txt.includes("state: 2") && !txt.includes("state: 1")
