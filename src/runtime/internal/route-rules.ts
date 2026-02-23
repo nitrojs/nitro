@@ -1,5 +1,5 @@
 import { proxyRequest, redirect as sendRedirect, requireBasicAuth } from "h3";
-import type { EventHandler, Middleware } from "h3";
+import type { BasicAuthOptions, EventHandler, Middleware } from "h3";
 import type { MatchedRouteRule, NitroRouteRules } from "nitro/types";
 import { joinURL, withQuery, withoutBase } from "ufo";
 import { defineCachedHandler } from "./cache.ts";
@@ -82,9 +82,10 @@ export const cache: RouteRuleCtor<"cache"> = ((m) =>
 
 // Auth route rule
 export const auth: RouteRuleCtor<"auth"> = ((m) =>
-  function authRouteRule(event) {
+  async function authRouteRule(event, next) {
     if (!m.options) {
       return;
     }
-    return requireBasicAuth(event, m.options);
+    await requireBasicAuth(event, m.options as BasicAuthOptions);
+    return next();
   }) satisfies RouteRuleCtor<"auth">;
