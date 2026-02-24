@@ -28,8 +28,8 @@ export async function defaultHandler(
   event: HTTPEvent,
   opts?: { silent?: boolean; json?: boolean }
 ): Promise<InternalHandlerResponse> {
-  const status = error.status || 500;
   const unhandled = error.unhandled ?? !HTTPError.isError(error);
+  const { status = 500, statusText = "" } = unhandled ? {} : error;
   const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true });
 
   // Redirects with base URL
@@ -60,26 +60,27 @@ export async function defaultHandler(
   // Use HTML response only when user-agent expects it (browsers)
   const useJSON = opts?.json ?? !event.req.headers.get("accept")?.includes("text/html");
 
+  const headers = new Headers(unhandled ? {} : error.headers);
+
   if (useJSON) {
-    const headers = new Headers(error.headers);
     headers.set("Content-Type", "application/json; charset=utf-8");
     return {
       status,
-      statusText: error.statusText,
+      statusText,
       headers,
       body: {
-        ...error?.toJSON?.(),
+        error: true,
         stack: error.stack?.split("\n").map((line) => line.trim()),
+        ...error?.toJSON?.(),
       },
     };
   }
 
   // HTML response
-  const headers = new Headers(error.headers);
   headers.set("Content-Type", "text/html; charset=utf-8");
   return {
     status,
-    statusText: error.statusText,
+    statusText: unhandled ? "" : error.statusText,
     headers,
     body: await youch.toHTML(error, {
       request: {

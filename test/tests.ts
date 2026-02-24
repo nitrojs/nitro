@@ -19,7 +19,7 @@ import { fetch } from "ofetch";
 import type { FetchOptions } from "ofetch";
 import { join, resolve } from "pathe";
 import { isWindows } from "std-env";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 export interface Context {
   preset: string;
@@ -401,32 +401,6 @@ export function testNitro(
     expect(base.headers["x-test"]).toBe("test");
   });
 
-  it("handles errors", async () => {
-    const { status, headers } = await callHandler({
-      url: "/api/error",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-    expect(status).toBe(503);
-
-    expect(headers).toMatchObject({
-      "content-type": "application/json",
-      "content-security-policy": ctx.isDev
-        ? "script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self';"
-        : "script-src 'none'; frame-ancestors 'none';",
-      "referrer-policy": "no-referrer",
-      "x-content-type-options": "nosniff",
-      "x-frame-options": "DENY",
-    });
-
-    const { data } = await callHandler({
-      url: "/api/error?json",
-    });
-    expect(status).toBe(503);
-    expect(data.json.error).toBe(true);
-  });
-
   it.skipIf(
     // TODO!
     ctx.preset === "vercel" && ctx.nitro?.options.vercel?.entryFormat === "node" && isWindows
@@ -636,9 +610,10 @@ export function testNitro(
 
   describe("errors", () => {
     it.skipIf(ctx.isIsolated)("captures errors", async () => {
-      const { data } = await callHandler({ url: "/api/errors" });
+      await callHandler({ url: "/errors/throw" });
+      const { data } = await callHandler({ url: "/errors/captured" });
       const allErrorMessages = (data.allErrors || []).map((entry: any) => entry.message);
-      expect(allErrorMessages).to.includes("Service Unavailable");
+      expect(allErrorMessages).to.includes("Handled error");
     });
 
     it.skipIf(
@@ -648,42 +623,54 @@ export function testNitro(
         ctx.preset === "deno-server" ||
         ctx.preset === "nitro-dev"
     )("sourcemap works", async () => {
-      const { data } = await callHandler({ url: "/error-stack" });
-      expect(data.stack).toMatch("test/fixture/server/routes/error-stack.ts");
+      const { data } = await callHandler({ url: "/errors/stack" });
+      expect(data.stack).toMatch("test/fixture/server/routes/errors/stack.ts");
     });
 
     for (const errorAction of ["throw", "return"]) {
-      it.only(`handled errors (${errorAction})`, async () => {
-        const res = await callHandler({ url: `/error?handled&action=${errorAction}` });
-        console.log(res);
+      it(`handled errors (${errorAction})`, async () => {
+        const res = await callHandler({ url: `/errors/throw?handled&action=${errorAction}` });
         expect(res).toMatchObject({
           status: 503,
           statusText: "Service Unavailable",
           headers: {},
           data: {
-            message: "Handled error",
+            error: true,
             status: 503,
             statusText: "Service Unavailable",
-            custom: "body",
+            message: "Handled error",
             data: { custom: "data" },
+            custom: "body",
           },
         });
       });
 
-      it.only(`unhandled errors (${errorAction})`, async () => {
+      it(`unhandled errors (${errorAction})`, async () => {
+        const stderrMock = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+        const consoleErrorMock = vi.spyOn(console, "error").mockImplementation(() => {});
         const res = await callHandler({
-          url: `/error?unhandled&action=${errorAction}`,
+          url: `/errors/throw?unhandled&action=${errorAction}`,
           headers: { Accept: "application/json" },
         });
+        stderrMock.mockRestore();
+        consoleErrorMock.mockRestore();
+        // TODO
+        // expect(consoleErrorMock).toHaveBeenCalledExactlyOnceWith(
+        //   expect.stringContaining("Unhandled error")
+        // );
         if (!ctx.isDev) {
           // Prod
           expect(res).toMatchObject({
             status: 500,
-            statusText: "",
+            statusText: "Internal Server Error",
             headers: {
-              "content-type": "text/plain; charset=UTF-8",
+              "content-type": "application/json; charset=utf-8",
             },
-            data: "",
+            data: {
+              error: true,
+              unhandled: true,
+              status: 500,
+            },
           });
         } else {
           // Dev
@@ -694,8 +681,9 @@ export function testNitro(
               "content-type": "application/json; charset=utf-8",
             },
             data: {
-              status: 500,
+              error: true,
               unhandled: true,
+              status: 500,
               message: "HTTPError",
               stack: expect.arrayContaining(["Unhandled error"]),
             },

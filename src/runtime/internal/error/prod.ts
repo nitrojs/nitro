@@ -13,16 +13,12 @@ const errorHandler: NitroErrorHandler = (error, event) => {
 
 export default errorHandler;
 
-export function defaultHandler(
-  error: HTTPError,
-  event: HTTPEvent,
-  opts?: { silent?: boolean; json?: boolean }
-): InternalHandlerResponse {
-  const status = error.status || 500;
+export function defaultHandler(error: HTTPError, event: HTTPEvent): InternalHandlerResponse {
   const unhandled = error.unhandled ?? !HTTPError.isError(error);
-  const url = (event as H3Event).url || new URL(event.req.url);
+  const { status = 500, statusText = "" } = unhandled ? {} : error;
 
   if (status === 404) {
+    const url = (event as H3Event).url || new URL(event.req.url);
     const baseURL = import.meta.baseURL || "/";
     if (/^\/[^/]/.test(baseURL) && !url.pathname.startsWith(baseURL)) {
       return {
@@ -32,16 +28,16 @@ export function defaultHandler(
     }
   }
 
-  if (unhandled) {
-    !opts?.silent &&
-      console.error(new Error(`[request error] [${event.req.method}] ${url}`, { cause: error }));
-    return { status };
-  }
+  const headers = new Headers(unhandled ? {} : error.headers);
+  headers.set("content-type", "application/json; charset=utf-8");
 
   return {
     status,
-    statusText: error.statusText,
-    headers: new Headers(error.headers),
-    body: error.toJSON?.(),
+    statusText,
+    headers,
+    body: {
+      error: true,
+      ...(unhandled ? { status, unhandled: true } : error.toJSON?.()),
+    },
   };
 }
