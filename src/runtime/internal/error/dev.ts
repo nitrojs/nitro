@@ -1,4 +1,4 @@
-import type { H3Event, HTTPError, HTTPEvent } from "h3";
+import { HTTPError, type HTTPEvent } from "h3";
 import { getRequestURL } from "h3";
 import { readFile } from "node:fs/promises";
 import { resolve, dirname } from "node:path";
@@ -28,20 +28,18 @@ export async function defaultHandler(
   event: HTTPEvent,
   opts?: { silent?: boolean; json?: boolean }
 ): Promise<InternalHandlerResponse> {
-  const isSensitive = error.unhandled;
   const status = error.status || 500;
-  // prettier-ignore
-  const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true })
+  const unhandled = error.unhandled ?? !HTTPError.isError(error);
+  const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true });
 
   // Redirects with base URL
   if (status === 404) {
     const baseURL = import.meta.baseURL || "/";
     if (/^\/[^/]/.test(baseURL) && !url.pathname.startsWith(baseURL)) {
-      const redirectTo = `${baseURL}${url.pathname.slice(1)}${url.search}`;
       return {
         status: 302,
         statusText: "Found",
-        headers: { location: redirectTo },
+        headers: new Headers({ location: `${baseURL}${url.pathname.slice(1)}${url.search}` }),
         body: `Redirecting...`,
       };
     }
@@ -54,58 +52,42 @@ export async function defaultHandler(
   const youch = new Youch();
 
   // Console output
-  if (isSensitive && !opts?.silent) {
-    // prettier-ignore
-    const tags = [error.unhandled && "[unhandled]"].filter(Boolean).join(" ")
-    const ansiError = await (await youch.toANSI(error)).replaceAll(process.cwd(), ".");
-    consola.error(`[request error] ${tags} [${event.req.method}] ${url}\n\n`, ansiError);
+  if (unhandled && !opts?.silent) {
+    const ansiError = (await youch.toANSI(error)).replaceAll(process.cwd(), ".");
+    consola.error(`[request error] [${event.req.method}] ${url}\n\n`, ansiError);
   }
 
   // Use HTML response only when user-agent expects it (browsers)
   const useJSON = opts?.json ?? !event.req.headers.get("accept")?.includes("text/html");
 
-  // Prepare headers
-  const headers: HeadersInit = {
-    "content-type": useJSON ? "application/json" : "text/html",
-    // Prevent browser from guessing the MIME types of resources.
-    "x-content-type-options": "nosniff",
-    // Prevent error page from being embedded in an iframe
-    "x-frame-options": "DENY",
-    // Prevent browsers from sending the Referer header
-    "referrer-policy": "no-referrer",
-    // Disable the execution of any js
-    "content-security-policy":
-      "script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self';",
-  };
-
-  if (status === 404 || !(event as H3Event).res.headers.has("cache-control")) {
-    headers["cache-control"] = "no-cache";
+  if (useJSON) {
+    const headers = new Headers(error.headers);
+    headers.set("Content-Type", "application/json; charset=utf-8");
+    return {
+      status,
+      statusText: error.statusText,
+      headers,
+      body: {
+        ...error?.toJSON?.(),
+        stack: error.stack?.split("\n").map((line) => line.trim()),
+      },
+    };
   }
 
-  // Prepare body
-  const body = useJSON
-    ? {
-        error: true,
-        url,
-        status,
-        statusText: error.statusText,
-        message: error.message,
-        data: error.data,
-        stack: error.stack?.split("\n").map((line) => line.trim()),
-      }
-    : await youch.toHTML(error, {
-        request: {
-          url: url.href,
-          method: event.req.method,
-          headers: Object.fromEntries(event.req.headers.entries()),
-        },
-      });
-
+  // HTML response
+  const headers = new Headers(error.headers);
+  headers.set("Content-Type", "text/html; charset=utf-8");
   return {
     status,
     statusText: error.statusText,
     headers,
-    body,
+    body: await youch.toHTML(error, {
+      request: {
+        url: url.href,
+        method: event.req.method,
+        headers: Object.fromEntries(event.req.headers.entries()),
+      },
+    }),
   };
 }
 

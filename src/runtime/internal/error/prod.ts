@@ -1,4 +1,4 @@
-import type { H3Event, HTTPError, HTTPEvent } from "h3";
+import { HTTPError, type H3Event, type HTTPEvent } from "h3";
 import type { InternalHandlerResponse } from "./utils.ts";
 import { FastResponse } from "srvx";
 import type { NitroErrorHandler } from "nitro/types";
@@ -18,56 +18,30 @@ export function defaultHandler(
   event: HTTPEvent,
   opts?: { silent?: boolean; json?: boolean }
 ): InternalHandlerResponse {
-  const isSensitive = error.unhandled;
   const status = error.status || 500;
+  const unhandled = error.unhandled ?? !HTTPError.isError(error);
   const url = (event as H3Event).url || new URL(event.req.url);
 
   if (status === 404) {
     const baseURL = import.meta.baseURL || "/";
     if (/^\/[^/]/.test(baseURL) && !url.pathname.startsWith(baseURL)) {
-      const redirectTo = `${baseURL}${url.pathname.slice(1)}${url.search}`;
       return {
         status: 302,
-        statusText: "Found",
-        headers: { location: redirectTo },
-        body: `Redirecting...`,
+        headers: new Headers({ location: `${baseURL}${url.pathname.slice(1)}${url.search}` }),
       };
     }
   }
 
-  // Console output
-  if (isSensitive && !opts?.silent) {
-    // prettier-ignore
-    const tags = [error.unhandled && "[unhandled]"].filter(Boolean).join(" ")
-    console.error(`[request error] ${tags} [${event.req.method}] ${url}\n`, error);
+  if (unhandled) {
+    !opts?.silent &&
+      console.error(new Error(`[request error] [${event.req.method}] ${url}`, { cause: error }));
+    return { status };
   }
-
-  // Send response
-  const headers: HeadersInit = {
-    "content-type": "application/json",
-    "x-content-type-options": "nosniff",
-    "x-frame-options": "DENY",
-    "referrer-policy": "no-referrer",
-    "content-security-policy": "script-src 'none'; frame-ancestors 'none';",
-  };
-
-  if (status === 404 || !(event as H3Event).res.headers.has("cache-control")) {
-    headers["cache-control"] = "no-cache";
-  }
-
-  const body = {
-    error: true,
-    url: url.href,
-    status,
-    statusText: error.statusText,
-    message: isSensitive ? "Server Error" : error.message,
-    data: isSensitive ? undefined : error.data,
-  };
 
   return {
     status,
     statusText: error.statusText,
-    headers,
-    body,
+    headers: new Headers(error.headers),
+    body: error.toJSON?.(),
   };
 }

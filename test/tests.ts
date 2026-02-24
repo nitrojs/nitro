@@ -186,6 +186,7 @@ export async function startServer(ctx: Context, handle: RequestListener) {
 type TestHandlerResult = {
   data: any;
   status: number;
+  statusText?: string;
   headers: Record<string, string | string[]>;
 };
 type TestHandler = (options: any) => Promise<TestHandlerResult | Response>;
@@ -228,12 +229,16 @@ export function testNitro(
       }
     }
     headers["set-cookie"] = (result as Response).headers.getSetCookie();
+    if (headers["set-cookie"].length === 0) {
+      delete headers["set-cookie"];
+    }
 
     return {
       data: callOpts.binary
         ? Buffer.from(await (result as Response).arrayBuffer())
         : destr(await (result as Response).text()),
       status: result.status,
+      statusText: result.statusText,
       headers,
     };
   }
@@ -646,6 +651,58 @@ export function testNitro(
       const { data } = await callHandler({ url: "/error-stack" });
       expect(data.stack).toMatch("test/fixture/server/routes/error-stack.ts");
     });
+
+    for (const errorAction of ["throw", "return"]) {
+      it.only(`handled errors (${errorAction})`, async () => {
+        const res = await callHandler({ url: `/error?handled&action=${errorAction}` });
+        console.log(res);
+        expect(res).toMatchObject({
+          status: 503,
+          statusText: "Service Unavailable",
+          headers: {},
+          data: {
+            message: "Handled error",
+            status: 503,
+            statusText: "Service Unavailable",
+            custom: "body",
+            data: { custom: "data" },
+          },
+        });
+      });
+
+      it.only(`unhandled errors (${errorAction})`, async () => {
+        const res = await callHandler({
+          url: `/error?unhandled&action=${errorAction}`,
+          headers: { Accept: "application/json" },
+        });
+        if (!ctx.isDev) {
+          // Prod
+          expect(res).toMatchObject({
+            status: 500,
+            statusText: "",
+            headers: {
+              "content-type": "text/plain; charset=UTF-8",
+            },
+            data: "",
+          });
+        } else {
+          // Dev
+          expect(res).toMatchObject({
+            status: 500,
+            statusText: "Internal Server Error",
+            headers: {
+              "content-type": "application/json; charset=utf-8",
+            },
+            data: {
+              status: 500,
+              unhandled: true,
+              message: "HTTPError",
+              stack: expect.arrayContaining(["Unhandled error"]),
+            },
+          });
+        }
+      });
+    }
   });
 
   describe("async context", () => {
