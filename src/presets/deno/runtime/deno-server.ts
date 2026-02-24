@@ -30,7 +30,7 @@ if (import.meta._websocket) {
   };
 }
 
-serve({
+const server = serve({
   port,
   hostname: host,
   tls: cert && key ? { cert, key } : undefined,
@@ -41,7 +41,7 @@ trapUnhandledErrors();
 
 // Scheduled tasks
 if (import.meta._tasks) {
-  startScheduleRunner();
+  startScheduleRunner({ waitUntil: server.waitUntil });
 }
 
 export default {};

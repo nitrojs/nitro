@@ -9,7 +9,7 @@ import { defineCachedHandler } from "./cache.ts";
 type RouteRuleCtor<T extends keyof NitroRouteRules> = (m: MatchedRouteRule<T>) => Middleware;
 
 // Headers route rule
-export const headers = ((m) =>
+export const headers: RouteRuleCtor<"headers"> = ((m) =>
   function headersRouteRule(event) {
     for (const [key, value] of Object.entries(m.options || {})) {
       event.res.headers.set(key, value);
@@ -17,7 +17,7 @@ export const headers = ((m) =>
   }) satisfies RouteRuleCtor<"headers">;
 
 // Redirect route rule
-export const redirect = ((m) =>
+export const redirect: RouteRuleCtor<"redirect"> = ((m) =>
   function redirectRouteRule(event) {
     let target = m.options?.to;
     if (!target) {
@@ -37,7 +37,7 @@ export const redirect = ((m) =>
   }) satisfies RouteRuleCtor<"redirect">;
 
 // Proxy route rule
-export const proxy = ((m) =>
+export const proxy: RouteRuleCtor<"proxy"> = ((m) =>
   function proxyRouteRule(event) {
     let target = m.options?.to;
     if (!target) {
@@ -59,7 +59,7 @@ export const proxy = ((m) =>
   }) satisfies RouteRuleCtor<"proxy">;
 
 // Cache route rule
-export const cache = ((m) =>
+export const cache: RouteRuleCtor<"cache"> = ((m) =>
   function cacheRouteRule(event, next) {
     if (!event.context.matchedRoute) {
       return next();

@@ -17,7 +17,7 @@ const denoDeploy = defineNitroPreset(
     serveStatic: "deno",
     commands: {
       preview: "",
-      deploy: "cd ./ && deployctl deploy --project=<project_name> server/index.ts",
+      deploy: "cd ./ && deno run -A jsr:@deno/deployctl deploy server/index.ts",
     },
     unenv: unenvDeno,
     rollupConfig: {

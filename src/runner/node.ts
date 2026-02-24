@@ -1,14 +1,13 @@
 import type { IncomingMessage } from "node:http";
 import type { Socket } from "node:net";
-import type { HTTPProxy } from "./proxy.ts";
 import type { RunnerMessageListener, EnvRunner, WorkerAddress, WorkerHooks } from "nitro/types";
 
 import { existsSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { Worker } from "node:worker_threads";
 import consola from "consola";
+import { proxyFetch, proxyUpgrade } from "httpxy";
 import { isCI, isTest } from "std-env";
-import { createHTTPProxy, fetchAddress } from "./proxy.ts";
 
 export interface EnvRunnerData {
   name?: string;
@@ -24,7 +23,6 @@ export class NodeEnvRunner implements EnvRunner {
   #hooks: Partial<WorkerHooks>;
   #worker?: Worker & { _exitCode?: number };
   #address?: WorkerAddress;
-  #proxy?: HTTPProxy;
   #messageListeners: Set<(data: unknown) => void>;
 
   constructor(opts: { name: string; entry: string; hooks?: WorkerHooks; data?: EnvRunnerData }) {
@@ -33,38 +31,33 @@ export class NodeEnvRunner implements EnvRunner {
     this.#data = opts.data;
     this.#hooks = opts.hooks || {};
 
-    this.#proxy = createHTTPProxy();
     this.#messageListeners = new Set();
     this.#initWorker();
   }
 
   get ready() {
-    return Boolean(!this.closed && this.#address && this.#proxy && this.#worker);
+    return Boolean(!this.closed && this.#address && this.#worker);
   }
 
   // #region Public methods
 
   async fetch(input: string | URL | Request, init?: RequestInit): Promise<Response> {
-    for (let i = 0; i < 5 && !(this.#address && this.#proxy); i++) {
+    for (let i = 0; i < 5 && !this.#address; i++) {
       await new Promise((r) => setTimeout(r, 100 * Math.pow(2, i)));
     }
-    if (!(this.#address && this.#proxy)) {
+    if (!this.#address) {
       return new Response("Node env runner worker is unavailable", {
         status: 503,
       });
     }
-    return fetchAddress(this.#address, input, init);
+    return proxyFetch(this.#address, input, init);
   }
 
-  upgrade(req: IncomingMessage, socket: Socket, head: any) {
-    if (!this.ready) {
+  async upgrade(req: IncomingMessage, socket: Socket, head: any) {
+    if (!this.ready || !this.#address) {
       return;
     }
-    return this.#proxy!.proxy
-      .ws(req, socket, { target: this.#address, xfwd: true }, head)
-      .catch((error) => {
-        consola.error("WebSocket proxy error:", error);
-      });
+    await proxyUpgrade(this.#address, req, socket, head);
   }
 
   sendMessage(message: unknown) {
@@ -91,7 +84,6 @@ export class NodeEnvRunner implements EnvRunner {
     this.#hooks = {};
     const onError = (error: unknown) => consola.error(error);
     await this.#closeWorker().catch(onError);
-    await this.#closeProxy().catch(onError);
     await this.#closeSocket().catch(onError);
   }
 
@@ -142,13 +134,6 @@ export class NodeEnvRunner implements EnvRunner {
     });
 
     this.#worker = worker;
-  }
-
-  async #closeProxy() {
-    this.#proxy?.proxy?.close(() => {
-      // TODO: it will be never called! Investigate why and then await on it.
-    });
-    this.#proxy = undefined;
   }
 
   async #closeSocket() {

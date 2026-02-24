@@ -13,7 +13,9 @@ export interface RunnerRPCHooks {
   offMessage: (listener: RunnerMessageListener) => void;
 }
 
-export type WorkerAddress = { host: string; port: number; socketPath?: string };
+export type WorkerAddress =
+  | { host?: string; port: number; socketPath?: undefined }
+  | { host?: undefined; port?: undefined; socketPath: string };
 
 export interface WorkerHooks {
   onClose?: (worker: EnvRunner, cause?: unknown) => void;

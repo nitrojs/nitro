@@ -35,6 +35,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "schedule": "* * * * *",
               },
             ],
+            "framework": {
+              "name": "nitro",
+              "version": "3.x",
+            },
             "overrides": {
               "_scalar/index.html": {
                 "path": "_scalar",

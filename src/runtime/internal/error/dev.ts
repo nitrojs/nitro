@@ -9,14 +9,19 @@ import { SourceMapConsumer } from "source-map";
 import { defineNitroErrorHandler } from "./utils.ts";
 import type { InternalHandlerResponse } from "./utils.ts";
 import { FastResponse } from "srvx";
+import type { NitroErrorHandler } from "nitro/types";
 
-export default defineNitroErrorHandler(async function defaultNitroErrorHandler(error, event) {
-  const res = await defaultHandler(error, event);
-  return new FastResponse(
-    typeof res.body === "string" ? res.body : JSON.stringify(res.body, null, 2),
-    res
-  );
-});
+const errorHandler: NitroErrorHandler = defineNitroErrorHandler(
+  async function defaultNitroErrorHandler(error, event) {
+    const res = await defaultHandler(error, event);
+    return new FastResponse(
+      typeof res.body === "string" ? res.body : JSON.stringify(res.body, null, 2),
+      res
+    );
+  }
+);
+
+export default errorHandler;
 
 export async function defaultHandler(
   error: HTTPError,
@@ -106,7 +111,7 @@ export async function defaultHandler(
 
 // ---- Source Map support ----
 
-export async function loadStackTrace(error: any) {
+export async function loadStackTrace(error: any): Promise<void> {
   if (!(error instanceof Error)) {
     return;
   }
