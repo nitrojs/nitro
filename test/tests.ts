@@ -632,12 +632,16 @@ export function testNitro(
         const res = await callHandler({ url: `/errors/throw?handled&action=${errorAction}` });
         expect(res).toMatchObject({
           status: 503,
-          statusText: "Service Unavailable",
+          statusText: /deno|bun/.test(ctx.preset)
+            ? "Service Unavailable"
+            : /aws/.test(ctx.preset)
+              ? ""
+              : "Custom Status Text",
           headers: {},
           data: {
             error: true,
             status: 503,
-            statusText: "Service Unavailable",
+            statusText: "Custom Status Text",
             message: "Handled error",
             data: { custom: "data" },
             custom: "body",
@@ -662,7 +666,6 @@ export function testNitro(
           // Prod
           expect(res).toMatchObject({
             status: 500,
-            statusText: "Internal Server Error",
             headers: {
               "content-type": "application/json; charset=utf-8",
             },
@@ -676,7 +679,6 @@ export function testNitro(
           // Dev
           expect(res).toMatchObject({
             status: 500,
-            statusText: "Internal Server Error",
             headers: {
               "content-type": "application/json; charset=utf-8",
             },

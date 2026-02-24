@@ -8,7 +8,7 @@ export default ({ url }: H3Event) => {
     ? new Error("Unhandled error")
     : new HTTPError({
         status: 503,
-        statusText: "Service Unavailable",
+        statusText: "Custom Status Text",
         message: "Handled error",
         data: { custom: "data" },
         body: { custom: "body" },
