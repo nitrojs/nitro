@@ -755,6 +755,34 @@ export function testNitro(
         }
       }
     );
+
+    it.skipIf(ctx.isIsolated || (isWindows && ctx.preset === "nitro-dev"))(
+      "should invalidate cache when SWR revalidation returns error",
+      async () => {
+        // 1. Prime the cache with a successful response
+        const { data, status } = await callHandler({ url: "/api/cached-error" });
+        expect(status).toBe(200);
+        expect(data.timestamp).toBeDefined();
+
+        // 2. Toggle error state so handler throws 404
+        await callHandler({ url: "/api/cached-error-toggle" });
+
+        // 3. Wait for cache to expire (maxAge: 1 second)
+        await new Promise((resolve) => setTimeout(resolve, 1100));
+
+        // 4. First request after expiry: SWR serves stale, triggers background revalidation
+        const staleResult = await callHandler({ url: "/api/cached-error" });
+        expect(staleResult.status).toBe(200);
+        expect(staleResult.data.timestamp).toBe(data.timestamp);
+
+        // 5. Wait for background revalidation to complete and remove cache entry
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // 6. Subsequent request should return 404 (cache entry removed)
+        const errorResult = await callHandler({ url: "/api/cached-error" });
+        expect(errorResult.status).toBe(404);
+      }
+    );
   });
 
   describe("scanned files", () => {
