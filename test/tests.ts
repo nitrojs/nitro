@@ -760,7 +760,9 @@ export function testNitro(
       "should invalidate cache when SWR revalidation returns error",
       async () => {
         // 1. Prime the cache with a successful response
-        const { data, status } = await callHandler({ url: "/api/cached-error" });
+        const { data, status } = await callHandler({
+          url: "/api/cached-error",
+        });
         expect(status).toBe(200);
         expect(data.timestamp).toBeDefined();
 
