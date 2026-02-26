@@ -1,5 +1,5 @@
 export let cachedErrorShouldError = false;
 
-export function toggleCachedError() {
-  cachedErrorShouldError = !cachedErrorShouldError;
+export function setCachedError(value: boolean) {
+  cachedErrorShouldError = value;
 }

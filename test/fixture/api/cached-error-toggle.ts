@@ -1,6 +1,7 @@
-import { toggleCachedError } from "../utils/cached-error-state";
+import { setCachedError } from "../utils/cached-error-state";
 
-export default defineEventHandler(() => {
-  toggleCachedError();
-  return { toggled: true };
+export default defineEventHandler((event) => {
+  const { error } = getQuery(event);
+  setCachedError(error === "true");
+  return { shouldError: error === "true" };
 });

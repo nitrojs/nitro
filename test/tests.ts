@@ -759,6 +759,9 @@ export function testNitro(
     it.skipIf(ctx.isIsolated || (isWindows && ctx.preset === "nitro-dev"))(
       "should invalidate cache when SWR revalidation returns error",
       async () => {
+        // 0. Reset error state
+        await callHandler({ url: "/api/cached-error-toggle?error=false" });
+
         // 1. Prime the cache with a successful response
         const { data, status } = await callHandler({
           url: "/api/cached-error",
@@ -766,8 +769,8 @@ export function testNitro(
         expect(status).toBe(200);
         expect(data.timestamp).toBeDefined();
 
-        // 2. Toggle error state so handler throws 404
-        await callHandler({ url: "/api/cached-error-toggle" });
+        // 2. Enable error state so handler throws 404
+        await callHandler({ url: "/api/cached-error-toggle?error=true" });
 
         // 3. Wait for cache to expire (maxAge: 1 second)
         await new Promise((resolve) => setTimeout(resolve, 1100));
