@@ -1,7 +1,8 @@
 import { defineNitroPreset } from "../_utils/preset.ts";
 import type { Nitro } from "nitro/types";
 import { unenvCfExternals, unenvCfNodeCompat } from "../cloudflare/unenv/preset.ts";
-import { LOGGER_TAG, toError, uploadNitroOutputToZephyr } from "./utils.ts";
+import { LOGGER_TAG, uploadNitroOutputToZephyr } from "./utils.ts";
+import { resolve } from "pathe";
 
 const zephyr = defineNitroPreset(
   {
@@ -29,10 +30,18 @@ const zephyr = defineNitroPreset(
       },
       compiled: async (nitro: Nitro) => {
         try {
-          await uploadNitroOutputToZephyr(nitro, nitro.options.output.dir);
+          await uploadNitroOutputToZephyr({
+            rootDir: nitro.options.rootDir,
+            baseURL: nitro.options.baseURL,
+            outputDir: nitro.options.output.dir,
+            publicDir: resolve(nitro.options.output.dir, nitro.options.output.publicDir),
+          });
           nitro.logger.success(`[${LOGGER_TAG}] Zephyr deployment succeeded.`);
         } catch (error) {
-          throw toError(error);
+          if (error instanceof Error) {
+            throw error;
+          }
+          throw new TypeError(`[${LOGGER_TAG}] ${String(error)}`);
         }
       },
     },

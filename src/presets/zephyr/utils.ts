@@ -1,11 +1,11 @@
-import type { Nitro } from "nitro/types";
-import { resolve } from "pathe";
+import { normalize } from "pathe";
+import { importDep } from "../../utils/dep.ts";
 
 export const LOGGER_TAG = "zephyr-nitro-preset";
-const PROVIDER_PRESET_MAP = {
-  cloudflare: true,
-} as const;
-export type ZephyrProvider = keyof typeof PROVIDER_PRESET_MAP;
+
+export type ZephyrProvider = "cloudflare" | (string & {});
+
+const SUPPORTED_PROVIDERS = new Set(["cloudflare"]);
 
 const DEFAULT_DEPLOY_TARGET = "web";
 const DEFAULT_DEPLOY_SSR = true;
@@ -51,7 +51,7 @@ interface ZephyrAgentModule {
 }
 
 function isZephyrProvider(provider: unknown): provider is ZephyrProvider {
-  return typeof provider === "string" && provider in PROVIDER_PRESET_MAP;
+  return SUPPORTED_PROVIDERS.has(provider as string);
 }
 
 function parsePulledProvider(platform: unknown): ZephyrProvider {
@@ -63,6 +63,9 @@ function parsePulledProvider(platform: unknown): ZephyrProvider {
   return platform;
 }
 
+/**
+ * Strips leading `./` and `/`, trailing `/`, and normalizes backslashes to get a bare path segment.
+ */
 function normalizeBaseURL(baseURL: string): string {
   let normalized = baseURL.trim().replace(/\\/g, "/");
   while (normalized.startsWith("./")) {
@@ -82,34 +85,14 @@ function resolveAssetPath(
   publicDir: string,
   baseURL: string
 ): string {
-  const fullPath = toPosixPath(file.fullPath);
-  const publicRoot = toPosixPath(publicDir).replace(/\/+$/, "");
-
+  const fullPath = normalize(file.fullPath);
+  const publicRoot = normalize(publicDir).replace(/\/+$/, "");
   if (fullPath.startsWith(`${publicRoot}/`)) {
     const staticRelative = fullPath.slice(publicRoot.length + 1);
     const basePath = normalizeBaseURL(baseURL);
     return basePath ? `client/${basePath}/${staticRelative}` : `client/${staticRelative}`;
   }
-
-  return toPosixPath(file.relativePath);
-}
-
-async function loadZephyrAgent(): Promise<ZephyrAgentModule> {
-  try {
-    return (await import("zephyr-agent")) as unknown as ZephyrAgentModule;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (
-      message.includes("Cannot find package 'zephyr-agent'") ||
-      message.includes("Cannot find module 'zephyr-agent'") ||
-      message.includes("ERR_MODULE_NOT_FOUND")
-    ) {
-      throw new TypeError(
-        `[${LOGGER_TAG}] Missing optional dependency \`zephyr-agent\`. Install with \`pnpm add -D zephyr-agent\`.`
-      );
-    }
-    throw error;
-  }
+  return normalize(file.relativePath);
 }
 
 function resolveProvider(appPlatform: unknown): ZephyrProvider {
@@ -123,10 +106,6 @@ function resolveProvider(appPlatform: unknown): ZephyrProvider {
     );
   }
   return pulledProvider;
-}
-
-function toPosixPath(filePath: string): string {
-  return filePath.replace(/\\/g, "/");
 }
 
 function shouldSkipDeployAsset(filePath: string): boolean {
@@ -153,16 +132,22 @@ function resolveDeployEntrypoint(assets: Record<string, DirectoryAsset>): string
   return undefined;
 }
 
-export async function uploadNitroOutputToZephyr(
-  nitro: Nitro,
-  outputDir: string
-): Promise<{ deploymentUrl: string | null; entrypoint?: string }> {
-  const zephyrAgent = await loadZephyrAgent();
-  const publicDir = resolve(outputDir, nitro.options.output.publicDir);
-  const files = await zephyrAgent.readDirRecursiveWithContents(outputDir);
+export async function uploadNitroOutputToZephyr(opts: {
+  rootDir: string;
+  baseURL: string;
+  outputDir: string;
+  publicDir: string;
+}): Promise<{ deploymentUrl: string | null; entrypoint?: string }> {
+  const zephyrAgent = await importDep<ZephyrAgentModule>({
+    id: "zephyr-agent",
+    reason: "deploying to Zephyr",
+    dir: opts.rootDir,
+  });
+
+  const files = await zephyrAgent.readDirRecursiveWithContents(opts.outputDir);
 
   const assets = files.reduce<Record<string, DirectoryAsset>>((memo, file) => {
-    const relativePath = resolveAssetPath(file, publicDir, nitro.options.baseURL);
+    const relativePath = resolveAssetPath(file, opts.publicDir, opts.baseURL);
     if (shouldSkipDeployAsset(relativePath)) {
       return memo;
     }
@@ -174,13 +159,13 @@ export async function uploadNitroOutputToZephyr(
   }, {});
 
   if (Object.keys(assets).length === 0) {
-    throw new TypeError(`[${LOGGER_TAG}] No deployable assets found in ${outputDir}.`);
+    throw new TypeError(`[${LOGGER_TAG}] No deployable assets found in ${opts.outputDir}.`);
   }
 
   const entrypoint = resolveDeployEntrypoint(assets);
   if (DEFAULT_DEPLOY_SSR && !entrypoint) {
     throw new TypeError(
-      `[${LOGGER_TAG}] Could not detect SSR entrypoint in ${outputDir}. Expected one of: server/index.js, server/index.mjs, server/server.js, server/server.mjs, server/_worker.js, server/_worker.mjs, index.mjs, index.js.`
+      `[${LOGGER_TAG}] Could not detect SSR entrypoint in ${opts.outputDir}. Expected one of: server/index.js, server/index.mjs, server/server.js, server/server.mjs, server/_worker.js, server/_worker.mjs, index.mjs, index.js.`
     );
   }
 
@@ -192,7 +177,7 @@ export async function uploadNitroOutputToZephyr(
 
   const zephyrEngine = await zephyrAgent.ZephyrEngine.create({
     builder: "unknown",
-    context: nitro.options.rootDir || process.cwd(),
+    context: opts.rootDir || process.cwd(),
   });
 
   const appConfig = await zephyrEngine.application_configuration;
@@ -222,11 +207,4 @@ export async function uploadNitroOutputToZephyr(
   });
 
   return { deploymentUrl, entrypoint };
-}
-
-export function toError(error: unknown): Error {
-  if (error instanceof Error) {
-    return error;
-  }
-  return new TypeError(`[${LOGGER_TAG}] ${String(error)}`);
 }
