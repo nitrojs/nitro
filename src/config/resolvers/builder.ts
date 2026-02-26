@@ -1,6 +1,8 @@
+import { existsSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import consola from "consola";
 import type { NitroOptions } from "nitro/types";
-import { createRequire } from "node:module";
+import { resolve } from "pathe";
 
 const VALID_BUILDERS = ["rolldown", "rollup", "vite"] as const;
 
@@ -16,9 +18,9 @@ export async function resolveBuilder(options: NitroOptions) {
         `Invalid nitro builder "${options.builder}". Valid builders are: ${VALID_BUILDERS.join(", ")}.`
       );
     }
-    // Check if the builder package is installed
+    // Check if the builder package is installed (rolldown is a direct dep)
     const pkg = options.builder;
-    if (!isPkgInstalled(pkg, options.rootDir)) {
+    if (pkg !== "rolldown" && !isPkgInstalled(pkg, options.rootDir)) {
       const shouldInstall = await consola.prompt(
         `Nitro builder package \`${pkg}\` is not installed. Would you like to install it?`,
         { type: "confirm", default: true, cancel: "null" }
@@ -33,41 +35,21 @@ export async function resolveBuilder(options: NitroOptions) {
     return;
   }
 
-  // Auto-detect installed builder
-  for (const pkg of ["rolldown", "rollup", "vite"] as const) {
-    if (isPkgInstalled(pkg, options.rootDir)) {
-      options.builder = pkg;
-      return;
-    }
+  // Auto-detect: check for vite.config with nitro() plugin
+  if (isPkgInstalled("vite", options.rootDir) && hasNitroViteConfig(options)) {
+    options.builder = "vite";
+    return;
   }
 
-  // Prompt to choose and install a builder if none detected
-  const pkgToInstall = await consola.prompt(
-    `No nitro builder specified. Which builder would you like to install?`,
-    {
-      type: "select",
-      cancel: "null",
-      options: VALID_BUILDERS.map((b) => ({ label: b, value: b })),
-    }
-  );
-
-  if (!pkgToInstall) {
-    throw new Error(
-      `No nitro builder specified. Please install one of the following packages: ${VALID_BUILDERS.join(
-        ", "
-      )} and set it as the builder in your nitro config or via the NITRO_BUILDER environment variable.`
-    );
-  }
-
-  await installPkg(pkgToInstall, options.rootDir);
-  options.builder = pkgToInstall;
+  // Default to rolldown (direct dependency of nitro)
+  options.builder = "rolldown";
 }
 
-const require = createRequire(process.cwd() + "/_index.js");
+const _require = createRequire(import.meta.url);
 
 function isPkgInstalled(pkg: string, root: string) {
   try {
-    require.resolve(pkg, { paths: [root] });
+    _require.resolve(pkg, { paths: [root] });
     return true;
   } catch {
     return false;
@@ -77,4 +59,20 @@ function isPkgInstalled(pkg: string, root: string) {
 async function installPkg(pkg: string, root: string) {
   const { addDevDependency } = await import("nypm");
   return addDevDependency(pkg, { cwd: root });
+}
+
+function hasNitroViteConfig(options: NitroOptions): boolean {
+  const configExts = [".ts", ".mts", ".js", ".mjs"];
+  for (const ext of configExts) {
+    const configPath = resolve(options.rootDir, `vite.config${ext}`);
+    if (existsSync(configPath)) {
+      try {
+        const content = readFileSync(configPath, "utf8");
+        if (content.includes("nitro(")) {
+          return true;
+        }
+      } catch {}
+    }
+  }
+  return false;
 }
