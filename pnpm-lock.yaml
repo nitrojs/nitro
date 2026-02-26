@@ -321,8 +321,8 @@ importers:
         specifier: ^0.3.3
         version: 0.3.3
       zephyr-agent:
-        specifier: ^0.1.10
-        version: 0.1.10(https-proxy-agent@7.0.6)
+        specifier: ^0.1.13
+        version: 0.1.13(https-proxy-agent@7.0.6)
 
   examples/api-routes:
     devDependencies:
@@ -6615,13 +6615,13 @@ packages:
   youch@4.1.0-beta.10:
     resolution: {integrity: sha512-rLfVLB4FgQneDr0dv1oddCVZmKjcJ6yX6mS4pU82Mq/Dt9a3cLZQ62pDBL4AUO+uVrCvtWz3ZFUL2HFAFJ/BXQ==}
 
-  zephyr-agent@0.1.10:
-    resolution: {integrity: sha512-wL9RDvemIEs3jh0LI0nloI0dbefFTDMuFDM+HEV1A1k6pLJ/xZ6gLmGp+by8idnCxH4+snDR5ITSbyetQa5vOQ==}
+  zephyr-agent@0.1.13:
+    resolution: {integrity: sha512-M6c0RlLXw4Asup8+RMoze9P9o8Oi5W9jX29bFLJbqschd0Bxzgh3RA8h+hFYB53E4hANVhJXegdyKAaAD/S8QA==}
     peerDependencies:
       https-proxy-agent: ^7.0.6
 
-  zephyr-edge-contract@0.1.10:
-    resolution: {integrity: sha512-bAqXtBWljq4p13ko+oqo0FiLxK8Cqf382lxUHOEWaU3zn/ErQ20o40QVm+hXVwDFvovupI4vMQLmuGPUYF45NA==}
+  zephyr-edge-contract@0.1.13:
+    resolution: {integrity: sha512-S3vauLHCc45wACTP+8SxqFS5RyL9VqA0ETi0bzVdXj/XEvfpDqQqLauF0XDOxdHH/I8ZwCaL0egEv2pMqoRBug==}
 
   zimmerframe@1.1.4:
     resolution: {integrity: sha512-B58NGBEoc8Y9MWWCQGl/gq9xBCe4IiKM0a2x7GZdQKOW5Exr8S1W24J6OgM1njK8xCRGvAJIL/MxXHf6SkmQKQ==}
@@ -9253,7 +9253,7 @@ snapshots:
       '@fastify/error': 4.2.0
       fastq: 1.20.1
 
-  axios-retry@4.5.0(axios@1.13.5):
+  axios-retry@4.5.0(axios@1.13.5(debug@4.4.3)):
     dependencies:
       axios: 1.13.5(debug@4.4.3)
       is-retry-allowed: 2.2.0
@@ -13003,11 +13003,11 @@ snapshots:
       cookie: 1.1.1
       youch-core: 0.3.3
 
-  zephyr-agent@0.1.10(https-proxy-agent@7.0.6):
+  zephyr-agent@0.1.13(https-proxy-agent@7.0.6):
     dependencies:
       '@toon-format/toon': 0.9.0
       axios: 1.13.5(debug@4.4.3)
-      axios-retry: 4.5.0(axios@1.13.5)
+      axios-retry: 4.5.0(axios@1.13.5(debug@4.4.3))
       debug: 4.4.3
       eventsource: 4.1.0
       git-url-parse: 15.0.0
@@ -13018,11 +13018,11 @@ snapshots:
       open: 10.2.0
       proper-lockfile: 4.1.2
       tslib: 2.8.1
-      zephyr-edge-contract: 0.1.10
+      zephyr-edge-contract: 0.1.13
     transitivePeerDependencies:
       - supports-color
 
-  zephyr-edge-contract@0.1.10:
+  zephyr-edge-contract@0.1.13:
     dependencies:
       tslib: 2.8.1
 
