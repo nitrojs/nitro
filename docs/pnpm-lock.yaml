@@ -16,8 +16,8 @@ importers:
         version: 4.3.6
     devDependencies:
       shaders:
-        specifier: ^2.3.63
-        version: 2.3.63
+        specifier: ^2.3.73
+        version: 2.3.73(vue@3.5.27(typescript@5.9.3))
       undocs:
         specifier: ^0.4.16
         version: 0.4.16(@parcel/watcher@2.5.6)(@tiptap/extensions@3.18.0(@tiptap/core@3.18.0(@tiptap/pm@3.18.0))(@tiptap/pm@3.18.0))(@tiptap/y-tiptap@3.0.2(prosemirror-model@1.25.4)(prosemirror-state@1.4.4)(prosemirror-view@1.41.5)(y-protocols@1.0.7(yjs@13.6.29))(yjs@13.6.29))(@vue/compiler-sfc@3.5.27)(@vueuse/core@14.2.0(vue@3.5.27(typescript@5.9.3)))(cac@6.7.14)(db0@0.3.4)(embla-carousel@8.6.0)(ioredis@5.9.2)(lightningcss@1.31.1)(magicast@0.5.1)(rollup@4.57.1)(terser@5.46.0)(typescript@5.9.3)(vite@7.3.1(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2))(vue-router@4.6.4(vue@3.5.27(typescript@5.9.3)))(yaml@2.8.2)(yjs@13.6.29)(zod@4.3.6)
@@ -4841,8 +4841,25 @@ packages:
     engines: {node: '>= 0.10'}
     hasBin: true
 
-  shaders@2.3.63:
-    resolution: {integrity: sha512-QfKQYG+6MF+9DuLrDwPOd4n4sufO+JheKb3260ccpB11LVqELGUlE/uJ1w8l/9zvDW5G0lJuws8vIdgaQx/MXw==}
+  shaders@2.3.73:
+    resolution: {integrity: sha512-z6hlHPvZL+zXJvgVetYbe0RNF13WT0q7oG5xLAbl7BL3ahiuvU/Y5KVElyPZJi8wYUolryvj7ZXxzBz+8AzjgA==}
+    peerDependencies:
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+      solid-js: ^1.8.0
+      svelte: ^5
+      vue: ^3.0.0
+    peerDependenciesMeta:
+      react:
+        optional: true
+      react-dom:
+        optional: true
+      solid-js:
+        optional: true
+      svelte:
+        optional: true
+      vue:
+        optional: true
 
   shebang-command@2.0.0:
     resolution: {integrity: sha512-kHxr2zZpYtdmrN1qDjrrX/Z1rR1kG8Dx+gkpK1G4eXmvXswmcE1hTWBWYUzlraYw1/yZp6YuDY77YtvbN0dmDA==}
@@ -5047,8 +5064,8 @@ packages:
   text-decoder@1.2.3:
     resolution: {integrity: sha512-3/o9z3X0X0fTupwsYvR03pJ/DjWuqqrfwBgTQzdWDiQSm9KitAyz/9WqsT2JQW7KV2m+bC2ol/zqpW37NHxLaA==}
 
-  three@0.182.0:
-    resolution: {integrity: sha512-GbHabT+Irv+ihI1/f5kIIsZ+Ef9Sl5A1Y7imvS5RQjWgtTPfPnZ43JmlYI7NtCRDK9zir20lQpfg8/9Yd02OvQ==}
+  three@0.183.1:
+    resolution: {integrity: sha512-Psv6bbd3d/M/01MT2zZ+VmD0Vj2dbWTNhfe4CuSg7w5TuW96M3NOyCVuh9SZQ05CpGmD7NEcJhZw4GVjhCYxfQ==}
 
   tiny-inflate@1.0.3:
     resolution: {integrity: sha512-pkY1fj1cKHb2seWDy0B16HeWyczlJA9/WW3u3c4z/NiWDsO3DOU5D7nhTLE9CF0yXv/QZFY7sEJmj24dK+Rrqw==}
@@ -5221,6 +5238,7 @@ packages:
 
   unplugin-vue-router@0.19.2:
     resolution: {integrity: sha512-u5dgLBarxE5cyDK/hzJGfpCTLIAyiTXGlo85COuD4Nssj6G7NxS+i9mhCWz/1p/ud1eMwdcUbTXehQe41jYZUA==}
+    deprecated: 'Merged into vuejs/router. Migrate: https://router.vuejs.org/guide/migration/v4-to-v5.html'
     peerDependencies:
       '@vue/compiler-sfc': ^3.5.17
       vue-router: ^4.6.0
@@ -11369,9 +11387,11 @@ snapshots:
       safe-buffer: 5.2.1
       to-buffer: 1.2.2
 
-  shaders@2.3.63:
+  shaders@2.3.73(vue@3.5.27(typescript@5.9.3)):
     dependencies:
-      three: 0.182.0
+      three: 0.183.1
+    optionalDependencies:
+      vue: 3.5.27(typescript@5.9.3)
 
   shebang-command@2.0.0:
     dependencies:
@@ -11591,7 +11611,7 @@ snapshots:
     transitivePeerDependencies:
       - react-native-b4a
 
-  three@0.182.0: {}
+  three@0.183.1: {}
 
   tiny-inflate@1.0.3: {}
 
