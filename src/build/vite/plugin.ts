@@ -97,22 +97,28 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
         nitro: createNitroEnvironment(ctx),
       };
 
-      let clientEntry: string | undefined =
-        getEntry(
-          userConfig.environments?.client?.build?.rolldownOptions?.input ||
-            userConfig.environments?.client?.build?.rollupOptions?.input
-        ) || useNitro(ctx).options.renderer?.template;
+      let clientEntryConfigured = false;
+      let clientEntry: string | undefined = getEntry(
+        userConfig.environments?.client?.build?.rolldownOptions?.input ||
+          userConfig.environments?.client?.build?.rollupOptions?.input
+      );
+
+      if (clientEntry) {
+        clientEntryConfigured = true;
+      } else {
+        clientEntry = useNitro(ctx).options.renderer?.template;
+      }
 
       if (!clientEntry) {
         // Auto-detect client entry
         clientEntry = resolveModulePath("./entry-client", {
+          try: true,
+          extensions: DEFAULT_EXTENSIONS,
           from: ["app", "src", ""].flatMap((d) =>
             [ctx.nitro!.options.rootDir, ...ctx.nitro!.options.scanDirs].map(
               (s) => join(s, d) + "/"
             )
           ),
-          extensions: DEFAULT_EXTENSIONS,
-          try: true,
         });
         if (clientEntry) {
           ctx.nitro!.logger.info(`Using \`${prettyPath(clientEntry)}\` as vite client entry.`);
@@ -121,14 +127,13 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
       if (clientEntry) {
         environments.client = {
           consumer: userConfig.environments?.client?.consumer ?? "client",
-          build: {
-            rollupOptions: {
-              input: clientEntry ? { index: clientEntry } : undefined,
-            },
-            rolldownOptions: {
-              input: clientEntry ? { index: clientEntry } : undefined,
-            },
-          },
+          build: clientEntryConfigured
+            ? undefined
+            : {
+                rollupOptions: {
+                  input: clientEntry ? { index: clientEntry } : undefined,
+                },
+              },
         };
         debug("[env]  Environments:", Object.keys(environments).join(", "));
       }
