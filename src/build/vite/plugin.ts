@@ -97,31 +97,33 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
         nitro: createNitroEnvironment(ctx),
       };
 
-      let clientEntryConfigured = false;
-      let clientEntry: string | undefined = getEntry(
+      let clientEntry: string | undefined;
+      let clientEntryConfigured = !!getEntry(
         userConfig.environments?.client?.build?.rolldownOptions?.input ||
           userConfig.environments?.client?.build?.rollupOptions?.input
       );
-
-      if (clientEntry) {
-        clientEntryConfigured = true;
-      } else {
-        clientEntry = useNitro(ctx).options.renderer?.template;
-      }
-
-      if (!clientEntry) {
-        // Auto-detect client entry
-        clientEntry = resolveModulePath("./entry-client", {
-          try: true,
-          extensions: DEFAULT_EXTENSIONS,
-          from: ["app", "src", ""].flatMap((d) =>
-            [ctx.nitro!.options.rootDir, ...ctx.nitro!.options.scanDirs].map(
-              (s) => join(s, d) + "/"
-            )
-          ),
-        });
-        if (clientEntry) {
-          ctx.nitro!.logger.info(`Using \`${prettyPath(clientEntry)}\` as vite client entry.`);
+      if (!clientEntryConfigured) {
+        const rendererTemplate = useNitro(ctx).options.renderer?.template;
+        if (rendererTemplate) {
+          // Use Nitro renderer template as client entry
+          clientEntry = rendererTemplate;
+          ctx.nitro!.logger.info(
+            `Using Nitro renderer template \`${prettyPath(rendererTemplate)}\` as vite client entry.`
+          );
+        } else {
+          // Auto-detect client entry
+          clientEntry = resolveModulePath("./entry-client", {
+            try: true,
+            extensions: DEFAULT_EXTENSIONS,
+            from: ["app", "src", ""].flatMap((d) =>
+              [ctx.nitro!.options.rootDir, ...ctx.nitro!.options.scanDirs].map(
+                (s) => join(s, d) + "/"
+              )
+            ),
+          });
+          if (clientEntry) {
+            ctx.nitro!.logger.info(`Using \`${prettyPath(clientEntry)}\` as vite client entry.`);
+          }
         }
       }
       if (clientEntry) {
