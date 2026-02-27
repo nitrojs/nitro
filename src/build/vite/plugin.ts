@@ -96,18 +96,43 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
         ...createServiceEnvironments(ctx),
         nitro: createNitroEnvironment(ctx),
       };
-      environments.client = {
-        consumer: userConfig.environments?.client?.consumer ?? "client",
-        build: {
-          rollupOptions: {
-            input:
-              userConfig.environments?.client?.build?.rollupOptions?.input ??
-              ctx._clientEntry ??
-              useNitro(ctx).options.renderer?.template,
+
+      let clientEntry: string | undefined =
+        getEntry(
+          userConfig.environments?.client?.build?.rolldownOptions?.input ||
+            userConfig.environments?.client?.build?.rollupOptions?.input
+        ) || useNitro(ctx).options.renderer?.template;
+
+      if (!clientEntry) {
+        // Auto-detect client entry
+        clientEntry = resolveModulePath("./entry-client", {
+          from: ["app", "src", ""].flatMap((d) =>
+            [ctx.nitro!.options.rootDir, ...ctx.nitro!.options.scanDirs].map(
+              (s) => join(s, d) + "/"
+            )
+          ),
+          extensions: DEFAULT_EXTENSIONS,
+          try: true,
+        });
+        if (clientEntry) {
+          ctx.nitro!.logger.info(`Using \`${prettyPath(clientEntry)}\` as vite client entry.`);
+        }
+      }
+      if (clientEntry) {
+        environments.client = {
+          consumer: userConfig.environments?.client?.consumer ?? "client",
+          build: {
+            rollupOptions: {
+              input: clientEntry ? { index: clientEntry } : undefined,
+            },
+            rolldownOptions: {
+              input: clientEntry ? { index: clientEntry } : undefined,
+            },
           },
-        },
-      };
-      debug("[env]  Environments:", Object.keys(environments).join(", "));
+        };
+        debug("[env]  Environments:", Object.keys(environments).join(", "));
+      }
+
       return {
         environments,
       };
@@ -405,37 +430,6 @@ async function setupNitroContext(
       `Nitro server entry and Vite SSR both set to ${prettyPath(ctx.services.ssr.entry)}. Use a separate SSR entry (e.g. \`src/server.ts\`).`
     );
     ctx.nitro.options.serverEntry = false;
-  }
-
-  // Auto-detect client entry
-  if (!ctx._clientEntry) {
-    if (userConfig.environments?.client === undefined) {
-      const clientEntry = resolveModulePath("./entry-client", {
-        from: ["app", "src", ""].flatMap((d) =>
-          [ctx.nitro!.options.rootDir, ...ctx.nitro!.options.scanDirs].map((s) => join(s, d) + "/")
-        ),
-        extensions: DEFAULT_EXTENSIONS,
-        try: true,
-      });
-      if (clientEntry) {
-        ctx._clientEntry = clientEntry;
-        ctx.nitro!.logger.info(`Using \`${prettyPath(clientEntry)}\` as vite client entry.`);
-      }
-    } else {
-      let clientEntry = getEntry(
-        userConfig.environments.client.build?.rolldownOptions?.input ||
-          userConfig.environments.client.build?.rollupOptions?.input
-      );
-      if (typeof clientEntry === "string") {
-        ctx._clientEntry =
-          resolveModulePath(clientEntry, {
-            from: [ctx.nitro.options.rootDir, ...ctx.nitro.options.scanDirs],
-            extensions: DEFAULT_EXTENSIONS,
-            suffixes: ["", "/index"],
-            try: true,
-          }) || clientEntry;
-      }
-    }
   }
 
   // Determine default Vite dist directory

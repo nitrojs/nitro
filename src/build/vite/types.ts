@@ -59,7 +59,6 @@ export interface NitroPluginContext {
   _isRolldown?: boolean;
   _initialized?: boolean;
   _envRunner?: EnvRunner;
-  _clientEntry?: string;
   _publicDistDir?: string;
   _entryPoints: Record<string, string>;
 }
