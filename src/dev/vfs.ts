@@ -65,7 +65,11 @@ export function createVFSHandler(nitro: Nitro) {
           currentDir[segment] = {};
         }
 
-        currentDir = currentDir[segment];
+    for (const key of Object.keys(data)) {
+      if (key !== "__proto__" && key !== "constructor" && key !== "prototype") {
+        result[key] = data[key];
+      }
+    }
       }
     }
 
