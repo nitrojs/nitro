@@ -290,14 +290,19 @@ For more details on Bindings and how to use them please refer to the Cloudflare 
 
 :read-more{title="KV Storage" to="/docs/storage"}
 
-In runtime, you can access bindings from the request event, by accessing its `context.cloudflare.env` field, this is for example how you can access a D1 bindings:
+In runtime, you can access bindings from the request event via `event.req.runtime.cloudflare.env`. This is for example how you can access a D1 binding:
+
+::warning
+**Nitro v3 Breaking Change:** The `event.context.cloudflare.env` pattern from Nitro v2 no longer works in production. Use `event.req.runtime.cloudflare.env` instead. The old pattern may still appear to work in local dev (via the Wrangler proxy plugin) but will be `undefined` in production deployments.
+::
 
 ```ts
 import { defineHandler } from "nitro/h3";
 
 defineHandler(async (event) => {
-  const { cloudflare } = event.context
-  const stmt = await cloudflare.env.MY_D1.prepare('SELECT id FROM table')
+  // Nitro v3: access Cloudflare bindings via event.req.runtime.cloudflare.env
+  const { env } = event.req.runtime.cloudflare
+  const stmt = await env.MY_D1.prepare('SELECT id FROM table')
   const { results } = await stmt.all()
 })
 ```
