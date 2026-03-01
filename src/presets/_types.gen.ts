@@ -7,6 +7,7 @@ import type { PresetOptions as CloudflareOptions } from "./cloudflare/preset.ts"
 import type { PresetOptions as FirebaseOptions } from "./firebase/preset.ts";
 import type { PresetOptions as NetlifyOptions } from "./netlify/preset.ts";
 import type { PresetOptions as VercelOptions } from "./vercel/preset.ts";
+import type { PresetOptions as ZephyrOptions } from "./zephyr/preset.ts";
 
 export interface PresetOptions {
   awsAmplify?: AwsAmplifyOptions;
@@ -16,9 +17,10 @@ export interface PresetOptions {
   firebase?: FirebaseOptions;
   netlify?: NetlifyOptions;
   vercel?: VercelOptions;
+  zephyr?: ZephyrOptions;
 }
 
-export const presetsWithConfig = ["awsAmplify","awsLambda","azure","cloudflare","firebase","netlify","vercel"] as const;
+export const presetsWithConfig = ["awsAmplify","awsLambda","azure","cloudflare","firebase","netlify","vercel","zephyr"] as const;
 
 export type PresetName = "alwaysdata" | "aws-amplify" | "aws-lambda" | "azure-swa" | "base-worker" | "bun" | "cleavr" | "cloudflare-dev" | "cloudflare-durable" | "cloudflare-module" | "cloudflare-pages" | "cloudflare-pages-static" | "deno" | "deno-deploy" | "deno-server" | "digital-ocean" | "firebase-app-hosting" | "flight-control" | "genezio" | "github-pages" | "gitlab-pages" | "heroku" | "iis-handler" | "iis-node" | "koyeb" | "netlify" | "netlify-edge" | "netlify-static" | "nitro-dev" | "nitro-prerender" | "node" | "node-cluster" | "node-middleware" | "node-server" | "platform-sh" | "render-com" | "standard" | "static" | "stormkit" | "vercel" | "vercel-static" | "winterjs" | "zeabur" | "zeabur-static" | "zephyr" | "zerops" | "zerops-static";
 
