@@ -96,17 +96,50 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
         ...createServiceEnvironments(ctx),
         nitro: createNitroEnvironment(ctx),
       };
-      environments.client = {
-        consumer: userConfig.environments?.client?.consumer ?? "client",
-        build: {
-          rollupOptions: {
-            input:
-              userConfig.environments?.client?.build?.rollupOptions?.input ??
-              useNitro(ctx).options.renderer?.template,
-          },
-        },
-      };
-      debug("[env]  Environments:", Object.keys(environments).join(", "));
+
+      let clientEntry: string | undefined;
+      let clientEntryConfigured = !!getEntry(
+        userConfig.environments?.client?.build?.rolldownOptions?.input ||
+          userConfig.environments?.client?.build?.rollupOptions?.input
+      );
+      if (!clientEntryConfigured) {
+        const rendererTemplate = useNitro(ctx).options.renderer?.template;
+        if (rendererTemplate) {
+          // Use Nitro renderer template as client entry
+          clientEntry = rendererTemplate;
+          ctx.nitro!.logger.info(
+            `Using Nitro renderer template \`${prettyPath(rendererTemplate)}\` as vite client entry.`
+          );
+        } else {
+          // Auto-detect client entry
+          clientEntry = resolveModulePath("./entry-client", {
+            try: true,
+            extensions: DEFAULT_EXTENSIONS,
+            from: ["app", "src", ""].flatMap((d) =>
+              [ctx.nitro!.options.rootDir, ...ctx.nitro!.options.scanDirs].map(
+                (s) => join(s, d) + "/"
+              )
+            ),
+          });
+          if (clientEntry) {
+            ctx.nitro!.logger.info(`Using \`${prettyPath(clientEntry)}\` as vite client entry.`);
+          }
+        }
+      }
+      if (clientEntry) {
+        environments.client = {
+          consumer: userConfig.environments?.client?.consumer ?? "client",
+          build: clientEntryConfigured
+            ? undefined
+            : {
+                rollupOptions: {
+                  input: clientEntry ? { index: clientEntry } : undefined,
+                },
+              },
+        };
+        debug("[env]  Environments:", Object.keys(environments).join(", "));
+      }
+
       return {
         environments,
       };
@@ -380,7 +413,10 @@ async function setupNitroContext(
         ctx.nitro!.logger.info(`Using \`${prettyPath(ssrEntry)}\` as vite ssr entry.`);
       }
     } else {
-      let ssrEntry = getEntry(userConfig.environments.ssr.build?.rollupOptions?.input);
+      let ssrEntry = getEntry(
+        userConfig.environments.ssr.build?.rolldownOptions?.input ||
+          userConfig.environments.ssr.build?.rollupOptions?.input
+      );
       if (typeof ssrEntry === "string") {
         ssrEntry =
           resolveModulePath(ssrEntry, {
