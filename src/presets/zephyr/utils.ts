@@ -179,7 +179,7 @@ export async function uploadNitroOutputToZephyr(opts: {
 
   const zephyrEngine = await zephyrAgent.ZephyrEngine.create({
     builder: "unknown",
-    context: opts.rootDir || process.cwd(),
+    context: opts.rootDir,
   });
 
   const appConfig = await zephyrEngine.application_configuration;

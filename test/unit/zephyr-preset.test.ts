@@ -93,7 +93,7 @@ describe("zephyr preset", () => {
       publicDir: "/tmp/zephyr-output/client/docs",
     });
     expect(nitro.logger.success).toHaveBeenCalledWith(
-      "[zephyr-nitro-preset] Zephyr deployment succeeded."
+      "[zephyr-nitro-preset] Zephyr deployment succeeded: https://example.zephyr-cloud.io"
     );
     expect(nitro.logger.info).not.toHaveBeenCalled();
   });

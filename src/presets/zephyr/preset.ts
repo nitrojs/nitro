@@ -40,13 +40,17 @@ const zephyr = defineNitroPreset(
             return;
           }
 
-          await uploadNitroOutputToZephyr({
+          const { deploymentUrl } = await uploadNitroOutputToZephyr({
             rootDir: nitro.options.rootDir,
             outputDir: nitro.options.output.dir,
             baseURL: nitro.options.baseURL,
             publicDir: resolve(nitro.options.output.dir, nitro.options.output.publicDir),
           });
-          nitro.logger.success(`[${LOGGER_TAG}] Zephyr deployment succeeded.`);
+          if (deploymentUrl) {
+            nitro.logger.success(`[${LOGGER_TAG}] Zephyr deployment succeeded: ${deploymentUrl}`);
+          } else {
+            nitro.logger.success(`[${LOGGER_TAG}] Zephyr deployment succeeded.`);
+          }
         } catch (error) {
           if (error instanceof Error) {
             throw error;

@@ -178,7 +178,7 @@
     "rollup": "^4.59.0",
     "vite": "^7 || ^8 || >=8.0.0-0",
     "xml2js": "^0.6.2",
-    "zephyr-agent": "*"
+    "zephyr-agent": "^0.1.13"
   },
   "peerDependenciesMeta": {
     "dotenv": {
