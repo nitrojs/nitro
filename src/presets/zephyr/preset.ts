@@ -1,12 +1,7 @@
 import { defineNitroPreset } from "../_utils/preset.ts";
 import type { Nitro } from "nitro/types";
 import { unenvCfExternals, unenvCfNodeCompat } from "../cloudflare/unenv/preset.ts";
-import {
-  LOGGER_TAG,
-  ZEPHYR_DEPLOY_SCRIPT_RELATIVE_PATH,
-  uploadNitroOutputToZephyr,
-  writeZephyrDeployArtifacts,
-} from "./utils.ts";
+import { LOGGER_TAG, uploadNitroOutputToZephyr } from "./utils.ts";
 import { resolve } from "pathe";
 
 export type { ZephyrOptions as PresetOptions } from "./types.ts";
@@ -20,9 +15,6 @@ const zephyr = defineNitroPreset(
     },
     exportConditions: ["node"],
     minify: false,
-    commands: {
-      deploy: `node ./${ZEPHYR_DEPLOY_SCRIPT_RELATIVE_PATH}`,
-    },
     rollupConfig: {
       output: {
         format: "esm",
@@ -40,21 +32,18 @@ const zephyr = defineNitroPreset(
       },
       compiled: async (nitro: Nitro) => {
         try {
-          await writeZephyrDeployArtifacts({
-            outputDir: nitro.options.output.dir,
-          });
-
-          if (nitro.options.zephyr?.deployOnBuild === false) {
-            nitro.logger.info(
-              `[${LOGGER_TAG}] Zephyr deploy skipped (zephyr.deployOnBuild=false).`
-            );
+          if (
+            nitro.options.zephyr?.deployOnBuild === false ||
+            process.env.NITRO_INTERNAL_ZEPHYR_SKIP_DEPLOY_ON_BUILD === "1"
+          ) {
+            nitro.logger.info(`[${LOGGER_TAG}] Zephyr deploy skipped on build.`);
             return;
           }
 
           await uploadNitroOutputToZephyr({
             rootDir: nitro.options.rootDir,
-            baseURL: nitro.options.baseURL,
             outputDir: nitro.options.output.dir,
+            baseURL: nitro.options.baseURL,
             publicDir: resolve(nitro.options.output.dir, nitro.options.output.publicDir),
           });
           nitro.logger.success(`[${LOGGER_TAG}] Zephyr deployment succeeded.`);
