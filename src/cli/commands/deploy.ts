@@ -40,17 +40,9 @@ export default defineCommand({
       process.exit(1);
     }
     if (buildInfo.preset === "zephyr") {
-      const buildPublicDir = (buildInfo.publicDir || "").replace(/\\/g, "/");
-      const publicDir = resolve(outputDir, buildInfo.publicDir || "client");
-      const basePath = buildPublicDir.startsWith("client/")
-        ? buildPublicDir.slice("client/".length).replace(/^\/+|\/+$/g, "")
-        : "";
-      const baseURL = basePath ? `/${basePath}/` : "/";
       const { deploymentUrl } = await uploadNitroOutputToZephyr({
         rootDir,
         outputDir,
-        publicDir,
-        baseURL,
       });
       if (deploymentUrl) {
         consola.success(`[${LOGGER_TAG}] Zephyr deployment succeeded: ${deploymentUrl}`);
