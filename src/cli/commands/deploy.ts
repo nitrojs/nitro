@@ -4,7 +4,6 @@ import consola from "consola";
 import { execSync } from "node:child_process";
 import { getBuildInfo } from "../../build/info.ts";
 import buildCmd, { buildArgs } from "./build.ts";
-import { LOGGER_TAG, uploadNitroOutputToZephyr } from "../../presets/zephyr/utils.ts";
 
 export default defineCommand({
   meta: {
@@ -20,17 +19,7 @@ export default defineCommand({
   },
   async run(ctx) {
     if (!ctx.args.prebuilt) {
-      const previousSkip = process.env.NITRO_INTERNAL_ZEPHYR_SKIP_DEPLOY_ON_BUILD;
-      process.env.NITRO_INTERNAL_ZEPHYR_SKIP_DEPLOY_ON_BUILD = "1";
-      try {
-        await buildCmd.run!(ctx as any);
-      } finally {
-        if (previousSkip === undefined) {
-          delete process.env.NITRO_INTERNAL_ZEPHYR_SKIP_DEPLOY_ON_BUILD;
-        } else {
-          process.env.NITRO_INTERNAL_ZEPHYR_SKIP_DEPLOY_ON_BUILD = previousSkip;
-        }
-      }
+      await buildCmd.run!(ctx as any);
     }
     const rootDir = resolve((ctx.args.dir || ctx.args._dir || ".") as string);
     const { buildInfo, outputDir } = await getBuildInfo(rootDir);
@@ -38,18 +27,6 @@ export default defineCommand({
       // throw new Error("No build info found, cannot deploy.");
       consola.error("No build info found, cannot deploy.");
       process.exit(1);
-    }
-    if (buildInfo.preset === "zephyr") {
-      const { deploymentUrl } = await uploadNitroOutputToZephyr({
-        rootDir,
-        outputDir,
-      });
-      if (deploymentUrl) {
-        consola.success(`[${LOGGER_TAG}] Zephyr deployment succeeded: ${deploymentUrl}`);
-      } else {
-        consola.success(`[${LOGGER_TAG}] Zephyr deployment succeeded.`);
-      }
-      return;
     }
     if (!buildInfo.commands?.deploy) {
       consola.error(
