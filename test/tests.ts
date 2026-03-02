@@ -312,6 +312,17 @@ export function testNitro(
     });
     expect(wildcard.status).toBe(307);
     expect(wildcard.headers.location).toBe("https://nitro.build/nuxt");
+
+    const wildcardQuery = await callHandler({
+      url: "/rules/redirect/wildcard-query/FOO",
+    });
+    expect(wildcardQuery.status).toBe(301);
+    expect(wildcardQuery.headers.location).toBe("/target?param=FOO");
+
+    const wildcardQueryEmpty = await callHandler({
+      url: "/rules/redirect/wildcard-query/",
+    });
+    expect(wildcardQueryEmpty.status).not.toBe(301);
   });
 
   it("binary response", async () => {
