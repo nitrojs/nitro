@@ -59,6 +59,7 @@ describe("config loader env layers", () => {
 
     expect(options.routeRules["/prod"]?.headers?.["x-env"]).toBe("production");
     expect(options.routeRules["/dev"]).toBeUndefined();
+    expect(options.routeRules["/base"]?.headers?.["x-env"]).toBe("base");
   });
 
   it("applies $development when NODE_ENV is unset and dev=true", async () => {
@@ -70,5 +71,6 @@ describe("config loader env layers", () => {
 
     expect(options.routeRules["/dev"]?.headers?.["x-env"]).toBe("development");
     expect(options.routeRules["/prod"]).toBeUndefined();
+    expect(options.routeRules["/base"]?.headers?.["x-env"]).toBe("base");
   });
 });
