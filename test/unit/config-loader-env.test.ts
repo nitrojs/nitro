@@ -43,7 +43,12 @@ async function createFixtureConfig() {
 }
 
 afterEach(async () => {
-  process.env.NODE_ENV = originalNodeEnv;
+  if (originalNodeEnv === undefined) {
+    delete process.env.NODE_ENV;
+  } else {
+    process.env.NODE_ENV = originalNodeEnv;
+  }
+
   for (const dir of tempDirs.splice(0, tempDirs.length)) {
     await rm(dir, { recursive: true, force: true });
   }
