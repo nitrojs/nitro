@@ -3,7 +3,7 @@ import wsAdapter from "crossws/adapters/node";
 
 import { useNitroApp } from "nitro/app";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
-import { startScheduleRunner } from "../task.ts";
+import { startScheduleRunner } from "#nitro/runtime/task";
 
 const nitroApp = useNitroApp();
 
