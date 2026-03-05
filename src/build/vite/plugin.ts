@@ -98,7 +98,7 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
       };
 
       let clientEntry: string | undefined;
-      let clientEntryConfigured = !!getEntry(
+      let clientEntryConfigured = !!(
         userConfig.environments?.client?.build?.rolldownOptions?.input ||
           userConfig.environments?.client?.build?.rollupOptions?.input
       );
