@@ -1,10 +1,12 @@
 import { defineNitroPreset } from "../_utils/preset.ts";
 import type { Nitro } from "nitro/types";
 import { unenvCfExternals, unenvCfNodeCompat } from "../cloudflare/unenv/preset.ts";
-import { LOGGER_TAG, uploadNitroOutputToZephyr } from "./utils.ts";
 import { resolve } from "pathe";
+import { importDep } from "../../utils/dep.ts";
 
 export type { ZephyrOptions as PresetOptions } from "./types.ts";
+const LOGGER_TAG = "zephyr-nitro-preset";
+type ZephyrAgentModule = Pick<typeof import("zephyr-agent"), "uploadOutputToZephyr">;
 
 const zephyr = defineNitroPreset(
   {
@@ -40,7 +42,13 @@ const zephyr = defineNitroPreset(
             return;
           }
 
-          const { deploymentUrl } = await uploadNitroOutputToZephyr({
+          const zephyrAgent = await importDep<ZephyrAgentModule>({
+            id: "zephyr-agent",
+            reason: "deploying to Zephyr",
+            dir: nitro.options.rootDir,
+          });
+
+          const { deploymentUrl } = await zephyrAgent.uploadOutputToZephyr({
             rootDir: nitro.options.rootDir,
             outputDir: nitro.options.output.dir,
             baseURL: nitro.options.baseURL,

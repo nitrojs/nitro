@@ -321,8 +321,8 @@ importers:
         specifier: ^0.3.3
         version: 0.3.3
       zephyr-agent:
-        specifier: ^0.1.13
-        version: 0.1.13(https-proxy-agent@7.0.6)
+        specifier: ^0.1.14
+        version: 0.1.14(https-proxy-agent@7.0.6)
 
   examples/api-routes:
     devDependencies:
@@ -6615,13 +6615,13 @@ packages:
   youch@4.1.0-beta.10:
     resolution: {integrity: sha512-rLfVLB4FgQneDr0dv1oddCVZmKjcJ6yX6mS4pU82Mq/Dt9a3cLZQ62pDBL4AUO+uVrCvtWz3ZFUL2HFAFJ/BXQ==}
 
-  zephyr-agent@0.1.13:
-    resolution: {integrity: sha512-M6c0RlLXw4Asup8+RMoze9P9o8Oi5W9jX29bFLJbqschd0Bxzgh3RA8h+hFYB53E4hANVhJXegdyKAaAD/S8QA==}
+  zephyr-agent@0.1.14:
+    resolution: {integrity: sha512-8FKP7Ity/gCQ4jKa4WIqkk50K7c2zf7m9jZ+ZXQRAyKqJlrSedSKd3YpiA5oyGRydE8NysxElWoZQyEBOZvg3Q==}
     peerDependencies:
       https-proxy-agent: ^7.0.6
 
-  zephyr-edge-contract@0.1.13:
-    resolution: {integrity: sha512-S3vauLHCc45wACTP+8SxqFS5RyL9VqA0ETi0bzVdXj/XEvfpDqQqLauF0XDOxdHH/I8ZwCaL0egEv2pMqoRBug==}
+  zephyr-edge-contract@0.1.14:
+    resolution: {integrity: sha512-cb4t30OmILN3FobvaPaOTneqff3Z5kyaDM29OP1jaEW+zBHQ7OtrFpHJgVcddeKckLSUJuFkBinZ8xw3vxcnqw==}
 
   zimmerframe@1.1.4:
     resolution: {integrity: sha512-B58NGBEoc8Y9MWWCQGl/gq9xBCe4IiKM0a2x7GZdQKOW5Exr8S1W24J6OgM1njK8xCRGvAJIL/MxXHf6SkmQKQ==}
@@ -13003,7 +13003,7 @@ snapshots:
       cookie: 1.1.1
       youch-core: 0.3.3
 
-  zephyr-agent@0.1.13(https-proxy-agent@7.0.6):
+  zephyr-agent@0.1.14(https-proxy-agent@7.0.6):
     dependencies:
       '@toon-format/toon': 0.9.0
       axios: 1.13.5(debug@4.4.3)
@@ -13018,11 +13018,11 @@ snapshots:
       open: 10.2.0
       proper-lockfile: 4.1.2
       tslib: 2.8.1
-      zephyr-edge-contract: 0.1.13
+      zephyr-edge-contract: 0.1.14
     transitivePeerDependencies:
       - supports-color
 
-  zephyr-edge-contract@0.1.13:
+  zephyr-edge-contract@0.1.14:
     dependencies:
       tslib: 2.8.1
 
