@@ -37,4 +37,11 @@ export interface CachedEventHandlerOptions<T = any> extends Omit<
 > {
   headersOnly?: boolean;
   varies?: string[] | readonly string[];
+  /**
+   * List of query string parameter names that will be considered for caching.
+   * - If undefined, all query parameters are included in the cache key.
+   * - If an empty array `[]`, all query parameters are ignored (only pathname is used for caching).
+   * - If a list of parameter names, only those parameters are included in the cache key.
+   */
+  allowQuery?: string[];
 }
