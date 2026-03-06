@@ -44,5 +44,5 @@ export interface CachedEventHandlerOptions extends Omit<
    * - If an empty array `[]`, all query parameters are ignored (only pathname is used for caching).
    * - If a list of parameter names, only those parameters are included in the cache key.
    */
-  allowQuery?: string[];
+  allowQuery?: string[] | readonly string[];
 }
