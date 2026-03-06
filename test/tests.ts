@@ -692,6 +692,27 @@ export function testNitro(
         }
       }
     );
+
+    it.skipIf(ctx.isIsolated || (isWindows && ctx.preset === "nitro-dev"))(
+      "allowQuery should ignore unlisted query params in cache key",
+      async () => {
+        const { data: first } = await callHandler({
+          url: "/api/cached-allow-query?q=search&utm_source=email",
+        });
+
+        // Same q param, different unlisted param should hit cache
+        const { data: second } = await callHandler({
+          url: "/api/cached-allow-query?q=search&utm_source=twitter",
+        });
+        expect(second.timestamp).toBe(first.timestamp);
+
+        // Different q param should get a different cache entry
+        const { data: third } = await callHandler({
+          url: "/api/cached-allow-query?q=other&utm_source=email",
+        });
+        expect(third.timestamp).not.toBe(first.timestamp);
+      }
+    );
   });
 
   describe("scanned files", () => {

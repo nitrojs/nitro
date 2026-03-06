@@ -201,7 +201,20 @@ export function defineCachedHandler(
         return escapeKey(customKey);
       }
       // Auto-generated key
-      const _path = event.url.pathname + event.url.search;
+      let _path: string;
+      if (opts.allowQuery) {
+        const params = new URLSearchParams();
+        for (const key of opts.allowQuery) {
+          const value = event.url.searchParams.get(key);
+          if (value !== null) {
+            params.set(key, value);
+          }
+        }
+        const search = params.size > 0 ? `?${params.toString()}` : "";
+        _path = event.url.pathname + search;
+      } else {
+        _path = event.url.pathname + event.url.search;
+      }
       let _pathname: string;
       try {
         _pathname = escapeKey(decodeURI(parseURL(_path).pathname)).slice(0, 16) || "index";

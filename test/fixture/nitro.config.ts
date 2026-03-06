@@ -90,6 +90,7 @@ export default defineConfig({
     },
     "/rules/dynamic": { cache: false, isr: false },
     "/rules/redirect": { redirect: "/base" },
+    "/rules/allow-query/**": { cache: { swr: true, maxAge: 60, allowQuery: ["q"] } },
     "/rules/isr/**": { isr: { allowQuery: ["q"] } },
     "/rules/isr-ttl/**": { isr: 60 },
     "/rules/swr/**": { swr: true },
