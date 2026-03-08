@@ -395,8 +395,16 @@ async function setupNitroContext(
     }
   }
 
+  // @see https://vite.dev/guide/env-and-mode#env-files
+  const dotenvFileNames = [".env", ".env.local"];
+  if (configEnv.mode) {
+    dotenvFileNames.push(`.env.${configEnv.mode}`, `.env.${configEnv.mode}.local`);
+  }
+
   // Initialize a new Nitro instance
-  ctx.nitro = ctx.pluginConfig._nitro || (await createNitro(nitroConfig));
+  ctx.nitro =
+    ctx.pluginConfig._nitro ||
+    (await createNitro(nitroConfig, { dotenv: { fileName: dotenvFileNames } }));
 
   // Config ssr env as a fetchable ssr service
   if (!ctx.services?.ssr) {
