@@ -35,8 +35,8 @@ const zephyr = defineNitroPreset(
       compiled: async (nitro: Nitro) => {
         try {
           if (
-            nitro.options.zephyr?.deployOnBuild === false ||
-            process.env.NITRO_INTERNAL_ZEPHYR_SKIP_DEPLOY_ON_BUILD === "1"
+            !(globalThis as any).__nitroDeploying__ &&
+            nitro.options.zephyr?.deployOnBuild === false
           ) {
             nitro.logger.info(`[${LOGGER_TAG}] Zephyr deploy skipped on build.`);
             return;
@@ -59,6 +59,8 @@ const zephyr = defineNitroPreset(
           } else {
             nitro.logger.success(`[${LOGGER_TAG}] Zephyr deployment succeeded.`);
           }
+
+          (globalThis as any).__nitroDeployed__ = true;
         } catch (error) {
           if (error instanceof Error) {
             throw error;
