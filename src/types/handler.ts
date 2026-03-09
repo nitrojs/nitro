@@ -81,7 +81,7 @@ export type NitroErrorHandler = (
     ) => MaybePromise<{
       status?: number;
       statusText?: string;
-      headers?: Headers;
+      headers?: HeadersInit;
       body?: string | Record<string, any>;
     }>;
   }

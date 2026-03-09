@@ -64,6 +64,10 @@ export async function defaultHandler(
 
   if (useJSON) {
     headers.set("Content-Type", "application/json; charset=utf-8");
+    const jsonBody =
+      typeof error.toJSON === "function"
+        ? error.toJSON()
+        : { status, statusText, message: error.message };
     return {
       status,
       statusText,
@@ -71,7 +75,7 @@ export async function defaultHandler(
       body: {
         error: true,
         stack: error.stack?.split("\n").map((line) => line.trim()),
-        ...error?.toJSON?.(),
+        ...jsonBody,
       },
     };
   }

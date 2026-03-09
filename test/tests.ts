@@ -637,7 +637,10 @@ export function testNitro(
             : /aws/.test(ctx.preset)
               ? ""
               : "Custom Status Text",
-          headers: {},
+          headers: {
+            "content-type": "application/json; charset=utf-8",
+            "x-custom-error": "custom-value",
+          },
           data: {
             error: true,
             status: 503,
@@ -652,12 +655,16 @@ export function testNitro(
       it(`unhandled errors (${errorAction})`, async () => {
         const stderrMock = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
         const consoleErrorMock = vi.spyOn(console, "error").mockImplementation(() => {});
-        const res = await callHandler({
-          url: `/errors/throw?unhandled&action=${errorAction}`,
-          headers: { Accept: "application/json" },
-        });
-        stderrMock.mockRestore();
-        consoleErrorMock.mockRestore();
+        let res;
+        try {
+          res = await callHandler({
+            url: `/errors/throw?unhandled&action=${errorAction}`,
+            headers: { Accept: "application/json" },
+          });
+        } finally {
+          stderrMock.mockRestore();
+          consoleErrorMock.mockRestore();
+        }
         // TODO
         // expect(consoleErrorMock).toHaveBeenCalledExactlyOnceWith(
         //   expect.stringContaining("Unhandled error")

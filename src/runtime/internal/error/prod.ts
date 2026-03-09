@@ -31,13 +31,19 @@ export function defaultHandler(error: HTTPError, event: HTTPEvent): InternalHand
   const headers = new Headers(unhandled ? {} : error.headers);
   headers.set("content-type", "application/json; charset=utf-8");
 
+  const jsonBody = unhandled
+    ? { status, unhandled: true }
+    : typeof error.toJSON === "function"
+      ? error.toJSON()
+      : { status, statusText, message: error.message };
+
   return {
     status,
     statusText,
     headers,
     body: {
       error: true,
-      ...(unhandled ? { status, unhandled: true } : error.toJSON?.()),
+      ...jsonBody,
     },
   };
 }

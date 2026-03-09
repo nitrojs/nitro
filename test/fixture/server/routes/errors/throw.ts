@@ -10,6 +10,7 @@ export default ({ url }: H3Event) => {
         status: 503,
         statusText: "Custom Status Text",
         message: "Handled error",
+        headers: { "x-custom-error": "custom-value" },
         data: { custom: "data" },
         body: { custom: "body" },
       });

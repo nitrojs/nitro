@@ -7,6 +7,6 @@ export function defineNitroErrorHandler(handler: NitroErrorHandler): NitroErrorH
 export type InternalHandlerResponse = {
   status?: number;
   statusText?: string | undefined;
-  headers?: Headers;
+  headers?: HeadersInit;
   body?: string | Record<string, any>;
 };
