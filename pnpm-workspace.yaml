@@ -14,6 +14,7 @@ ignoredBuiltDependencies:
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - esbuild
+  - ocache
   - sharp
   - workerd
 

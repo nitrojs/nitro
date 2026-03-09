@@ -37,6 +37,9 @@ importers:
       nf3:
         specifier: ^0.3.11
         version: 0.3.11
+      ocache:
+        specifier: ^0.1.2
+        version: 0.1.2
       ofetch:
         specifier: ^2.0.0-alpha.3
         version: 2.0.0-alpha.3
@@ -97,7 +100,7 @@ importers:
         version: 6.0.3(rollup@4.59.0)
       '@scalar/api-reference':
         specifier: ^1.48.0
-        version: 1.48.0(axios@1.13.5(debug@4.4.3))(jwt-decode@4.0.0)(tailwindcss@4.2.1)(typescript@5.9.3)
+        version: 1.48.0(axios@1.13.5)(jwt-decode@4.0.0)(tailwindcss@4.2.1)(typescript@5.9.3)
       '@types/aws-lambda':
         specifier: ^8.10.161
         version: 8.10.161
@@ -5297,6 +5300,9 @@ packages:
     resolution: {integrity: sha512-U6NNt0ZL6lCE6B6aU+qcBwbFU4g2DwrO/68aKhyXNUXgq0jf+fyHg9s9+ETZOLmlfJvQwub5mHF3aohGgWGYKQ==}
     hasBin: true
 
+  ocache@0.1.2:
+    resolution: {integrity: sha512-lI34wjM7cahEdrq2I5obbF7MEdE97vULf6vNj6ZCzwEadzyXO1w7QOl2qzzG4IL8cyO7wDtXPj9CqW/aG3mn7g==}
+
   ofetch@1.5.1:
     resolution: {integrity: sha512-2W4oUZlVaqAPAil6FUg/difl6YhqhUR7x2eZY4bQCko22UXg3hptq9KLQdqFClV+Wu85UX7hNtdGTngi/1BxcA==}
 
@@ -8254,10 +8260,10 @@ snapshots:
       '@sagold/json-pointer': 5.1.2
       ebnf: 1.9.1
 
-  '@scalar/agent-chat@0.9.0(axios@1.13.5(debug@4.4.3))(jwt-decode@4.0.0)(tailwindcss@4.2.1)(typescript@5.9.3)':
+  '@scalar/agent-chat@0.9.0(axios@1.13.5)(jwt-decode@4.0.0)(tailwindcss@4.2.1)(typescript@5.9.3)':
     dependencies:
       '@ai-sdk/vue': 3.0.33(vue@3.5.29(typescript@5.9.3))(zod@4.3.6)
-      '@scalar/api-client': 2.33.0(axios@1.13.5(debug@4.4.3))(jwt-decode@4.0.0)(tailwindcss@4.2.1)(typescript@5.9.3)
+      '@scalar/api-client': 2.33.0(axios@1.13.5)(jwt-decode@4.0.0)(tailwindcss@4.2.1)(typescript@5.9.3)
       '@scalar/components': 0.20.1(typescript@5.9.3)
       '@scalar/helpers': 0.3.0
       '@scalar/icons': 0.6.0(typescript@5.9.3)
@@ -8294,7 +8300,7 @@ snapshots:
     dependencies:
       zod: 4.3.6
 
-  '@scalar/api-client@2.33.0(axios@1.13.5(debug@4.4.3))(jwt-decode@4.0.0)(tailwindcss@4.2.1)(typescript@5.9.3)':
+  '@scalar/api-client@2.33.0(axios@1.13.5)(jwt-decode@4.0.0)(tailwindcss@4.2.1)(typescript@5.9.3)':
     dependencies:
       '@headlessui/tailwindcss': 0.2.2(tailwindcss@4.2.1)
       '@headlessui/vue': 1.7.23(vue@3.5.29(typescript@5.9.3))
@@ -8321,7 +8327,7 @@ snapshots:
       '@scalar/workspace-store': 0.37.0(typescript@5.9.3)
       '@types/har-format': 1.2.16
       '@vueuse/core': 13.9.0(vue@3.5.29(typescript@5.9.3))
-      '@vueuse/integrations': 13.9.0(axios@1.13.5(debug@4.4.3))(focus-trap@7.8.0)(fuse.js@7.1.0)(jwt-decode@4.0.0)(vue@3.5.29(typescript@5.9.3))
+      '@vueuse/integrations': 13.9.0(axios@1.13.5)(focus-trap@7.8.0)(fuse.js@7.1.0)(jwt-decode@4.0.0)(vue@3.5.29(typescript@5.9.3))
       focus-trap: 7.8.0
       fuse.js: 7.1.0
       js-base64: 3.7.8
@@ -8354,11 +8360,11 @@ snapshots:
       - typescript
       - universal-cookie
 
-  '@scalar/api-reference@1.48.0(axios@1.13.5(debug@4.4.3))(jwt-decode@4.0.0)(tailwindcss@4.2.1)(typescript@5.9.3)':
+  '@scalar/api-reference@1.48.0(axios@1.13.5)(jwt-decode@4.0.0)(tailwindcss@4.2.1)(typescript@5.9.3)':
     dependencies:
       '@headlessui/vue': 1.7.23(vue@3.5.29(typescript@5.9.3))
-      '@scalar/agent-chat': 0.9.0(axios@1.13.5(debug@4.4.3))(jwt-decode@4.0.0)(tailwindcss@4.2.1)(typescript@5.9.3)
-      '@scalar/api-client': 2.33.0(axios@1.13.5(debug@4.4.3))(jwt-decode@4.0.0)(tailwindcss@4.2.1)(typescript@5.9.3)
+      '@scalar/agent-chat': 0.9.0(axios@1.13.5)(jwt-decode@4.0.0)(tailwindcss@4.2.1)(typescript@5.9.3)
+      '@scalar/api-client': 2.33.0(axios@1.13.5)(jwt-decode@4.0.0)(tailwindcss@4.2.1)(typescript@5.9.3)
       '@scalar/code-highlight': 0.3.0
       '@scalar/components': 0.20.1(typescript@5.9.3)
       '@scalar/helpers': 0.3.0
@@ -9354,7 +9360,7 @@ snapshots:
       '@vueuse/shared': 13.9.0(vue@3.5.29(typescript@5.9.3))
       vue: 3.5.29(typescript@5.9.3)
 
-  '@vueuse/integrations@13.9.0(axios@1.13.5(debug@4.4.3))(focus-trap@7.8.0)(fuse.js@7.1.0)(jwt-decode@4.0.0)(vue@3.5.29(typescript@5.9.3))':
+  '@vueuse/integrations@13.9.0(axios@1.13.5)(focus-trap@7.8.0)(fuse.js@7.1.0)(jwt-decode@4.0.0)(vue@3.5.29(typescript@5.9.3))':
     dependencies:
       '@vueuse/core': 13.9.0(vue@3.5.29(typescript@5.9.3))
       '@vueuse/shared': 13.9.0(vue@3.5.29(typescript@5.9.3))
@@ -9507,7 +9513,7 @@ snapshots:
       '@fastify/error': 4.2.0
       fastq: 1.20.1
 
-  axios-retry@4.5.0(axios@1.13.5(debug@4.4.3)):
+  axios-retry@4.5.0(axios@1.13.5):
     dependencies:
       axios: 1.13.5(debug@4.4.3)
       is-retry-allowed: 2.2.0
@@ -11777,6 +11783,10 @@ snapshots:
       - typescript
       - vue-tsc
 
+  ocache@0.1.2:
+    dependencies:
+      ohash: 2.0.11
+
   ofetch@1.5.1:
     dependencies:
       destr: 2.0.5
@@ -13430,7 +13440,7 @@ snapshots:
     dependencies:
       '@toon-format/toon': 0.9.0
       axios: 1.13.5(debug@4.4.3)
-      axios-retry: 4.5.0(axios@1.13.5(debug@4.4.3))
+      axios-retry: 4.5.0(axios@1.13.5)
       debug: 4.4.3
       eventsource: 4.1.0
       git-url-parse: 15.0.0
