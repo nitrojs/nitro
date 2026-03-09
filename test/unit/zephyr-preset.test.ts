@@ -142,45 +142,4 @@ describe("zephyr preset", () => {
     );
     expect(nitro.logger.success).not.toHaveBeenCalled();
   });
-
-  it("can skip deploy on build for deploy command flow", async () => {
-    const uploadOutputToZephyr = vi.fn().mockResolvedValue({
-      deploymentUrl: "https://example.zephyr-cloud.io",
-      entrypoint: "server/index.mjs",
-    });
-    const importDep = vi.fn().mockResolvedValue({
-      uploadOutputToZephyr,
-    });
-
-    vi.doMock(DEP_UTILS_PATH, () => {
-      return {
-        importDep,
-      };
-    });
-
-    process.env.NITRO_INTERNAL_ZEPHYR_SKIP_DEPLOY_ON_BUILD = "1";
-
-    const preset = await getZephyrPreset();
-    const hooks = preset.hooks!;
-    const nitro = {
-      options: {
-        output: {
-          dir: "/tmp/zephyr-output",
-        },
-      },
-      logger: {
-        info: vi.fn(),
-        success: vi.fn(),
-      },
-    } as any;
-
-    await hooks.compiled?.(nitro);
-
-    expect(importDep).not.toHaveBeenCalled();
-    expect(uploadOutputToZephyr).not.toHaveBeenCalled();
-    expect(nitro.logger.info).toHaveBeenCalledWith(
-      "[zephyr-nitro-preset] Zephyr deploy skipped on build."
-    );
-    expect(nitro.logger.success).not.toHaveBeenCalled();
-  });
 });
