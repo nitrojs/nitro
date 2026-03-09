@@ -38,6 +38,10 @@ const debug = process.env.NITRO_DEBUG
   : () => {};
 
 export function nitro(pluginConfig: NitroPluginConfig = {}): VitePlugin[] {
+  if ((globalThis as any).__nitro_build__) {
+    // We are in `nitro build` context. Nitro injects vite plugin itself
+    return [];
+  }
   const ctx: NitroPluginContext = createContext(pluginConfig);
   return [
     nitroInit(ctx),
