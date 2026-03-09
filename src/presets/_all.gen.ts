@@ -7,6 +7,7 @@ import _awsAmplify from "./aws-amplify/preset.ts";
 import _awsLambda from "./aws-lambda/preset.ts";
 import _azure from "./azure/preset.ts";
 import _bun from "./bun/preset.ts";
+import _bunny from "./bunny/preset.ts";
 import _cleavr from "./cleavr/preset.ts";
 import _cloudflare from "./cloudflare/preset.ts";
 import _deno from "./deno/preset.ts";
@@ -36,6 +37,7 @@ export default [
   ..._awsLambda,
   ..._azure,
   ..._bun,
+  ..._bunny,
   ..._cleavr,
   ..._cloudflare,
   ..._deno,
