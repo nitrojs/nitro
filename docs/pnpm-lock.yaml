@@ -16,8 +16,8 @@ importers:
         version: 4.3.6
     devDependencies:
       shaders:
-        specifier: ^2.3.73
-        version: 2.3.73(vue@3.5.27(typescript@5.9.3))
+        specifier: ^2.3.75
+        version: 2.3.75(vue@3.5.27(typescript@5.9.3))
       undocs:
         specifier: ^0.4.16
         version: 0.4.16(@parcel/watcher@2.5.6)(@tiptap/extensions@3.18.0(@tiptap/core@3.18.0(@tiptap/pm@3.18.0))(@tiptap/pm@3.18.0))(@tiptap/y-tiptap@3.0.2(prosemirror-model@1.25.4)(prosemirror-state@1.4.4)(prosemirror-view@1.41.5)(y-protocols@1.0.7(yjs@13.6.29))(yjs@13.6.29))(@vue/compiler-sfc@3.5.27)(@vueuse/core@14.2.0(vue@3.5.27(typescript@5.9.3)))(cac@6.7.14)(db0@0.3.4)(embla-carousel@8.6.0)(ioredis@5.9.2)(lightningcss@1.31.1)(magicast@0.5.1)(rollup@4.57.1)(terser@5.46.0)(typescript@5.9.3)(vite@7.3.1(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.0)(yaml@2.8.2))(vue-router@4.6.4(vue@3.5.27(typescript@5.9.3)))(yaml@2.8.2)(yjs@13.6.29)(zod@4.3.6)
@@ -4841,15 +4841,18 @@ packages:
     engines: {node: '>= 0.10'}
     hasBin: true
 
-  shaders@2.3.73:
-    resolution: {integrity: sha512-z6hlHPvZL+zXJvgVetYbe0RNF13WT0q7oG5xLAbl7BL3ahiuvU/Y5KVElyPZJi8wYUolryvj7ZXxzBz+8AzjgA==}
+  shaders@2.3.75:
+    resolution: {integrity: sha512-j68fkmrmPy0RnNTjvO2r4kpnGh2HBws70M8IHTiO54H+Rv6cClFZCCFz6l7dKeYp3aLR+UQstsijlWPOyi5K2Q==}
     peerDependencies:
+      pixi.js: ^8.0.0
       react: ^18.0.0 || ^19.0.0
       react-dom: ^18.0.0 || ^19.0.0
       solid-js: ^1.8.0
       svelte: ^5
       vue: ^3.0.0
     peerDependenciesMeta:
+      pixi.js:
+        optional: true
       react:
         optional: true
       react-dom:
@@ -11387,7 +11390,7 @@ snapshots:
       safe-buffer: 5.2.1
       to-buffer: 1.2.2
 
-  shaders@2.3.73(vue@3.5.27(typescript@5.9.3)):
+  shaders@2.3.75(vue@3.5.27(typescript@5.9.3)):
     dependencies:
       three: 0.183.1
     optionalDependencies:
