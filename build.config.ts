@@ -2,7 +2,7 @@ import { defineBuildConfig } from "obuild/config";
 
 import { resolveModulePath } from "exsolve";
 import { traceNodeModules } from "nf3";
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rmdir, writeFile } from "node:fs/promises";
 import type { CodeSplittingOptions } from "rolldown";
 
 const isStub = process.argv.includes("--stub");
@@ -146,6 +146,18 @@ export default defineBuildConfig({
       if (isStub) {
         return;
       }
+
+      // Bundle docs
+      const { DocsManager, DocsSourceFS, exportDocsToFS } = await import("mdzilla");
+      const man = new DocsManager(new DocsSourceFS("./docs"));
+      await man.load();
+      await rmdir("./skills/nitro/docs").catch(() => {});
+      await mkdir("./skills/nitro/docs", { recursive: true });
+      await exportDocsToFS(man, "./skills/nitro/docs", {
+        title: "Nitro Documentation",
+        tocFile: "TOC.md",
+        filter: (e: { entry: { path: string } }) => !e.entry.path.startsWith("/blog"),
+      });
 
       // Trace included dependencies
       await traceNodeModules(
