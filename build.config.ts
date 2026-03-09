@@ -151,7 +151,7 @@ export default defineBuildConfig({
       const { DocsManager, DocsSourceFS, exportDocsToFS } = await import("mdzilla");
       const man = new DocsManager(new DocsSourceFS("./docs"));
       await man.load();
-      await rmdir("./skills/nitro/docs", { recursive: true }).catch(() => {});
+      await rmdir("./skills/nitro/docs").catch(() => {});
       await mkdir("./skills/nitro/docs", { recursive: true });
       await exportDocsToFS(man, "./skills/nitro/docs", {
         title: "Nitro Documentation",
