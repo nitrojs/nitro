@@ -5,7 +5,6 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  env-runner: ^0.1.2
   nitro: link:.
   rolldown: ^1.0.0-rc.8
   vite: ^8.0.0-beta.18
@@ -27,8 +26,8 @@ importers:
         specifier: '*'
         version: 17.3.1
       env-runner:
-        specifier: ^0.1.2
-        version: 0.1.3(miniflare@4.20260305.0)
+        specifier: ^0.1.4
+        version: 0.1.4(miniflare@4.20260305.0)
       h3:
         specifier: ^2.0.1-rc.16
         version: 2.0.1-rc.16(crossws@0.4.4(srvx@0.11.9))
@@ -3879,8 +3878,8 @@ packages:
     resolution: {integrity: sha512-TWrgLOFUQTH994YUyl1yT4uyavY5nNB5muff+RtWaqNVCAK408b5ZnnbNAUEWLTCpum9w6arT70i1XdQ4UeOPA==}
     engines: {node: '>=0.12'}
 
-  env-runner@0.1.3:
-    resolution: {integrity: sha512-N6r19wUw6G6SvqmQy62DYstLAlaUNpTnkPiL5zMWcduZh1fxP01A49NcQLhd/5NgieuVNQ9ilIyp7P0149E8wg==}
+  env-runner@0.1.4:
+    resolution: {integrity: sha512-S8Zq/sjSqHxDKZBwqcJ89fEDpxGcwXms9JAW38fwegDlKphgbrroUhBwaiup68RmZnx5v2174eY4A0fJ/BbKDw==}
     hasBin: true
     peerDependencies:
       miniflare: ^4.0.0
@@ -10127,7 +10126,7 @@ snapshots:
 
   entities@7.0.1: {}
 
-  env-runner@0.1.3(miniflare@4.20260305.0):
+  env-runner@0.1.4(miniflare@4.20260305.0):
     dependencies:
       crossws: 0.4.4(srvx@0.11.9)
       httpxy: 0.3.1
