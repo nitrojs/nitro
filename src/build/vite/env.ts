@@ -14,8 +14,7 @@ export async function initEnvRunner(ctx: NitroPluginContext) {
     (ctx.nitro!.options.devServer.runner || "node-worker") as RunnerName,
     {
       name: "nitro-vite",
-      workerEntry: resolve(runtimeDir, "internal/vite/node-runner.mjs"),
-      data: { server: true },
+      data: { entry: resolve(runtimeDir, "internal/vite/node-runner.mjs") },
     }
   ));
 }

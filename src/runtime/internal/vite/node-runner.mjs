@@ -1,6 +1,9 @@
-import { parentPort, threadId, workerData } from "node:worker_threads";
 import { ModuleRunner, ESModulesEvaluator } from "vite/module-runner";
-import { getSocketAddress, isSocketSupported } from "get-port-please";
+
+// ----- IPC -----
+
+let sendMessage;
+const messageListeners = new Set();
 
 // ----- Environment runners -----
 
@@ -9,7 +12,7 @@ const envs = (globalThis.__nitro_vite_envs__ ??= {
   ssr: undefined,
 });
 
-class EnvRunner {
+class ViteEnvRunner {
   constructor({ name, entry }) {
     this.name = name;
     this.entryPath = entry;
@@ -23,16 +26,16 @@ class EnvRunner {
     this.runner = new ModuleRunner(
       {
         transport: {
-          connect({ onMessage, onDisconnection }) {
-            parentPort.on("message", (payload) => {
+          connect({ onMessage }) {
+            const listener = (payload) => {
               if (payload?.type === "custom" && payload.viteEnv === name) {
                 onMessage(payload);
               }
-            });
-            parentPort.on("close", onDisconnection);
+            };
+            messageListeners.add(listener);
           },
           send(payload) {
-            parentPort.postMessage({ ...payload, viteEnv: name });
+            sendMessage?.({ ...payload, viteEnv: name });
           },
         },
       },
@@ -106,46 +109,13 @@ async function requestToViteHost(
     };
   });
   viteHostRequests.set(id, { resolve, reject });
-  parentPort.postMessage({
+  sendMessage?.({
     type: "custom",
     event: "nitro:vite-invoke",
     data: { name, id, data },
   });
   return promise;
 }
-
-parentPort.on("message", (payload) => {
-  if (payload?.type !== "custom") {
-    return;
-  }
-  switch (payload.event) {
-    case "nitro:vite-server-addr": {
-      viteServerAddr = payload.data;
-      break;
-    }
-    case "nitro:vite-env": {
-      const { name, entry } = payload.data;
-      if (envs[name]) {
-        console.error(`Vite environment "${name}" already registered!`);
-      } else {
-        envs[name] = new EnvRunner({ name, entry });
-      }
-      break;
-    }
-    case "nitro:vite-invoke-response": {
-      const { id, data: response } = payload.data;
-      const req = viteHostRequests.get(id);
-      if (req) {
-        if (response.error) {
-          req.reject(response.error);
-        } else {
-          req.resolve(response.data);
-        }
-      }
-      break;
-    }
-  }
-});
 
 // Trap unhandled errors to avoid worker crash
 process.on("unhandledRejection", (error) => console.error(error));
@@ -164,7 +134,7 @@ globalThis.__VITE_ENVIRONMENT_RUNNER_IMPORT__ = async function (environmentName,
   return env.runner.import(id);
 };
 
-// ----- Server -----
+// ----- Reload -----
 
 async function reload() {
   try {
@@ -177,45 +147,6 @@ async function reload() {
 // eslint-disable-next-line unicorn/prefer-top-level-await
 reload();
 
-if (workerData.server) {
-  const { createServer } = await import("node:http");
-  const { toNodeHandler } = await import("srvx/node");
-  const server = createServer(
-    toNodeHandler(async (req, init) => {
-      const viteEnv = init?.viteEnv || req?.headers.get("x-vite-env") || "nitro"; // TODO
-      const env = envs[viteEnv];
-      if (!env) {
-        return renderError(req, httpError(500, `Unknown vite environment "${viteEnv}"`));
-      }
-      return env.fetch(req, init);
-    })
-  );
-
-  server.on("upgrade", (req, socket, head) => {
-    const handleUpgrade = envs["nitro"]?.entry?.handleUpgrade;
-    handleUpgrade?.(req, socket, head);
-  });
-
-  parentPort.on("message", async (message) => {
-    if (message?.type === "full-reload") {
-      await reload();
-    } else if (message?.event === "shutdown") {
-      server.close(() => {
-        parentPort.postMessage({ event: "exit" });
-      });
-    }
-  });
-  await listen(server);
-  const address = server.address();
-  parentPort?.postMessage({
-    event: "listen",
-    address:
-      typeof address === "string"
-        ? { socketPath: address }
-        : { host: "localhost", port: address?.port },
-  });
-}
-
 // ----- HTML Transform -----
 
 globalThis.__transform_html__ = async function (html) {
@@ -224,6 +155,58 @@ globalThis.__transform_html__ = async function (html) {
     return html;
   });
   return html;
+};
+
+// ----- Exports (env-runner AppEntry) -----
+
+export function fetch(req) {
+  const viteEnv = req?.headers.get("x-vite-env") || "nitro";
+  const env = envs[viteEnv];
+  if (!env) {
+    return renderError(req, httpError(500, `Unknown vite environment "${viteEnv}"`));
+  }
+  return env.fetch(req);
+}
+
+export const ipc = {
+  onOpen(ctx) {
+    sendMessage = ctx.sendMessage;
+  },
+  onMessage(message) {
+    if (message?.type === "custom") {
+      switch (message.event) {
+        case "nitro:vite-env": {
+          const { name, entry } = message.data;
+          if (envs[name]) {
+            console.error(`Vite environment "${name}" already registered!`);
+          } else {
+            envs[name] = new ViteEnvRunner({ name, entry });
+          }
+          return;
+        }
+        case "nitro:vite-invoke-response": {
+          const { id, data: response } = message.data;
+          const req = viteHostRequests.get(id);
+          if (req) {
+            if (response.error) {
+              req.reject(response.error);
+            } else {
+              req.resolve(response.data);
+            }
+          }
+          return;
+        }
+      }
+    }
+    if (message?.type === "full-reload") {
+      reload();
+      return;
+    }
+    for (const listener of messageListeners) {
+      listener(message);
+    }
+  },
+  onClose() {},
 };
 
 // ----- Error handling -----
@@ -272,24 +255,5 @@ async function renderError(req, error) {
       Pragma: "no-cache",
       Expires: "0",
     },
-  });
-}
-
-// ----- Server -----
-
-async function listen(server) {
-  const listenAddr = (await isSocketSupported())
-    ? getSocketAddress({
-        name: `nitro-vite-${threadId}`,
-        pid: true,
-        random: true,
-      })
-    : { port: 0, host: "localhost" };
-  return new Promise((resolve, reject) => {
-    try {
-      server.listen(listenAddr, () => resolve());
-    } catch (error) {
-      reject(error);
-    }
   });
 }
