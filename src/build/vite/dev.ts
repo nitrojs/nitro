@@ -1,9 +1,11 @@
 import type { NitroPluginContext } from "./types.ts";
-import type { DevEnvironmentContext, HotChannel, ResolvedConfig, ViteDevServer } from "vite";
+import type { DevEnvironmentContext, ResolvedConfig, ViteDevServer } from "vite";
+import type { RunnerRPCHooks } from "env-runner";
 
 import { IncomingMessage, ServerResponse } from "node:http";
 import { NodeRequest, sendNodeResponse } from "srvx/node";
 import { DevEnvironment } from "vite";
+import { createViteHotChannel } from "env-runner/vite";
 import { watch as chokidarWatch } from "chokidar";
 import { watch as fsWatch } from "node:fs";
 import { join } from "pathe";
@@ -17,13 +19,7 @@ import { getEnvRunner } from "./env.ts";
 
 export type FetchHandler = (req: Request) => Promise<Response>;
 
-export interface TransportHooks {
-  sendMessage: (data: any) => void;
-  onMessage: (listener: (value: any) => void) => void;
-  offMessage: (listener: (value: any) => void) => void;
-}
-
-export interface DevServer extends TransportHooks {
+export interface DevServer extends RunnerRPCHooks {
   fetch: FetchHandler;
   init?: () => void | Promise<void>;
 }
@@ -36,7 +32,7 @@ export function createFetchableDevEnvironment(
   devServer: DevServer,
   entry: string
 ): FetchableDevEnvironment {
-  const transport = createTransport(name, devServer);
+  const transport = createViteHotChannel(devServer, name);
   const context: DevEnvironmentContext = { hot: true, transport };
   return new FetchableDevEnvironment(name, config, context, devServer, entry);
 }
@@ -69,33 +65,6 @@ export class FetchableDevEnvironment extends DevEnvironment {
     await this.devServer.init?.();
     return super.init(...args);
   }
-}
-
-function createTransport(name: string, hooks: TransportHooks): HotChannel {
-  const listeners = new WeakMap();
-  return {
-    send: (data) => hooks.sendMessage({ ...data, viteEnv: name }),
-    on: (event: string, handler: any) => {
-      if (event === "connection") return;
-      const listener = (value: any) => {
-        if (value?.type === "custom" && value.event === event && value.viteEnv === name) {
-          handler(value.data, {
-            send: (payload: any) => hooks.sendMessage({ ...payload, viteEnv: name }),
-          });
-        }
-      };
-      listeners.set(handler, listener);
-      hooks.onMessage(listener);
-    },
-    off: (event, handler) => {
-      if (event === "connection") return;
-      const listener = listeners.get(handler);
-      if (listener) {
-        hooks.offMessage(listener);
-        listeners.delete(handler);
-      }
-    },
-  };
 }
 
 // ---- Vite Dev Server Integration ----
@@ -160,30 +129,19 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     rootDirWatcher.close();
   });
 
-  // Worker => Host IPC
-  const hostIPC = {
-    async transformHTML(html: string) {
-      return server
-        .transformIndexHtml("/", html)
+  // Worker => Host RPC
+  nitroEnv.devServer.onMessage(async (message: any) => {
+    if (message?.__rpc === "transformHTML") {
+      const html = await server
+        .transformIndexHtml("/", message.data)
         .then((r) =>
           r.replace(
             "<!--ssr-outlet-->",
             `{{{ globalThis.__nitro_vite_envs__?.["ssr"]?.fetch($REQUEST) || "" }}}`
           )
-        );
-    },
-  };
-  nitroEnv.devServer.onMessage(async (payload) => {
-    if (payload.type === "custom" && payload.event === "nitro:vite-invoke") {
-      const methodName = payload.data.name as keyof typeof hostIPC;
-      const res = await hostIPC[methodName](payload.data.data)
-        .then((data) => ({ data }))
+        )
         .catch((error) => ({ error }));
-      nitroEnv.devServer.sendMessage({
-        type: "custom",
-        event: "nitro:vite-invoke-response",
-        data: { id: payload.data.id, data: res },
-      });
+      nitroEnv.devServer.sendMessage({ __rpc_id: message.__rpc_id, data: html });
     }
   });
 

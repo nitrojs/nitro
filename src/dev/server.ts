@@ -180,10 +180,8 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
   // #region Private Methods
 
   async #waitForBuild() {
-    const maxRetries = isTest || isCI ? 100 : 10;
-    for (let i = 0; i < maxRetries && this.#building; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 600));
-    }
+    const timeout = isTest || isCI ? 60_000 : 6000;
+    await this.#manager.waitForReady(timeout);
   }
 
   #generateError() {

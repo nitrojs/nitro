@@ -1,4 +1,5 @@
 import { ModuleRunner, ESModulesEvaluator } from "vite/module-runner";
+import { createViteTransport } from "env-runner/vite";
 
 // ----- IPC -----
 
@@ -22,23 +23,10 @@ class ViteEnvRunner {
 
     // Create Vite Module Runner
     // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
-    this.runnerHooks = {};
+    const onMessage = (listener) => messageListeners.add(listener);
+    const transport = createViteTransport((data) => sendMessage?.(data), onMessage, name);
     this.runner = new ModuleRunner(
-      {
-        transport: {
-          connect({ onMessage }) {
-            const listener = (payload) => {
-              if (payload?.type === "custom" && payload.viteEnv === name) {
-                onMessage(payload);
-              }
-            };
-            messageListeners.add(listener);
-          },
-          send(payload) {
-            sendMessage?.({ ...payload, viteEnv: name });
-          },
-        },
-      },
+      { transport },
       new ESModulesEvaluator(),
       process.env.NITRO_DEBUG ? console.debug : undefined
     );
@@ -81,40 +69,20 @@ class ViteEnvRunner {
   }
 }
 
-// ----- RPC listeners -----
+// ----- RPC -----
 
-const viteHostRequests = new Map();
+const rpcRequests = new Map();
 
-async function requestToViteHost(
-  name,
-  data,
-  id = Math.random().toString(16).slice(2),
-  timeout = 3000
-) {
-  setTimeout(() => {
-    if (viteHostRequests.has(id)) {
-      viteHostRequests.delete(id);
-      reject(new Error(`Request to vite host timed out (${name}:${id})`));
-    }
-  }, timeout);
-  let resolve, reject;
-  const promise = new Promise((_resolve, _reject) => {
-    resolve = (value) => {
-      viteHostRequests.delete(id);
-      return _resolve(value);
-    };
-    reject = (err) => {
-      viteHostRequests.delete(id);
-      return _reject(err);
-    };
+function rpc(name, data, timeout = 3000) {
+  const id = Math.random().toString(36).slice(2);
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      rpcRequests.delete(id);
+      reject(new Error(`RPC "${name}" timed out`));
+    }, timeout);
+    rpcRequests.set(id, { resolve, reject, timer });
+    sendMessage?.({ __rpc: name, __rpc_id: id, data });
   });
-  viteHostRequests.set(id, { resolve, reject });
-  sendMessage?.({
-    type: "custom",
-    event: "nitro:vite-invoke",
-    data: { name, id, data },
-  });
-  return promise;
 }
 
 // Trap unhandled errors to avoid worker crash
@@ -150,7 +118,7 @@ reload();
 // ----- HTML Transform -----
 
 globalThis.__transform_html__ = async function (html) {
-  html = await requestToViteHost("transformHTML", html).catch((error) => {
+  html = await rpc("transformHTML", html).catch((error) => {
     console.warn("Failed to transform HTML via Vite:", error);
     return html;
   });
@@ -173,29 +141,28 @@ export const ipc = {
     sendMessage = ctx.sendMessage;
   },
   onMessage(message) {
+    if (message?.__rpc_id) {
+      const req = rpcRequests.get(message.__rpc_id);
+      if (req) {
+        clearTimeout(req.timer);
+        rpcRequests.delete(message.__rpc_id);
+        if (message.error) {
+          req.reject(typeof message.error === "string" ? new Error(message.error) : message.error);
+        } else {
+          req.resolve(message.data);
+        }
+      }
+      return;
+    }
     if (message?.type === "custom") {
-      switch (message.event) {
-        case "nitro:vite-env": {
-          const { name, entry } = message.data;
-          if (envs[name]) {
-            console.error(`Vite environment "${name}" already registered!`);
-          } else {
-            envs[name] = new ViteEnvRunner({ name, entry });
-          }
-          return;
+      if (message.event === "nitro:vite-env") {
+        const { name, entry } = message.data;
+        if (envs[name]) {
+          console.error(`Vite environment "${name}" already registered!`);
+        } else {
+          envs[name] = new ViteEnvRunner({ name, entry });
         }
-        case "nitro:vite-invoke-response": {
-          const { id, data: response } = message.data;
-          const req = viteHostRequests.get(id);
-          if (req) {
-            if (response.error) {
-              req.reject(response.error);
-            } else {
-              req.resolve(response.data);
-            }
-          }
-          return;
-        }
+        return;
       }
     }
     if (message?.type === "full-reload") {
