@@ -13,6 +13,7 @@ import type { Preset as UnenvPreset } from "unenv";
 import type { UnimportPluginOptions } from "unimport/unplugin";
 import type { BuiltinDriverName } from "unstorage";
 import type { UnwasmPluginOptions } from "unwasm/plugin";
+import type { RunnerName } from "env-runner";
 import type {
   EventHandlerFormat,
   NitroDevEventHandler,
@@ -169,6 +170,7 @@ export interface NitroOptions extends PresetOptions {
     port?: number;
     hostname?: string;
     watch?: string[];
+    runner?: RunnerName;
   };
   watchOptions: ChokidarOptions;
   devProxy: Record<string, string | ProxyServerOptions>;

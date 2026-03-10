@@ -244,8 +244,16 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/fetch",
               },
               {
-                "dest": "/error-stack",
-                "src": "/error-stack",
+                "dest": "/errors/throw",
+                "src": "/errors/throw",
+              },
+              {
+                "dest": "/errors/stack",
+                "src": "/errors/stack",
+              },
+              {
+                "dest": "/errors/captured",
+                "src": "/errors/captured",
               },
               {
                 "dest": "/env",
@@ -302,14 +310,6 @@ describe("nitro:preset:vercel:web", async () => {
               {
                 "dest": "/api/headers",
                 "src": "/api/headers",
-              },
-              {
-                "dest": "/api/errors",
-                "src": "/api/errors",
-              },
-              {
-                "dest": "/api/error",
-                "src": "/api/error",
               },
               {
                 "dest": "/api/echo",
@@ -421,8 +421,6 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/api/cached.func (symlink)",
             "functions/api/db.func (symlink)",
             "functions/api/echo.func (symlink)",
-            "functions/api/error.func (symlink)",
-            "functions/api/errors.func (symlink)",
             "functions/api/headers.func (symlink)",
             "functions/api/hello.func (symlink)",
             "functions/api/hey.func (symlink)",
@@ -441,7 +439,9 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/config.func (symlink)",
             "functions/context.func (symlink)",
             "functions/env.func (symlink)",
-            "functions/error-stack.func (symlink)",
+            "functions/errors/captured.func (symlink)",
+            "functions/errors/stack.func (symlink)",
+            "functions/errors/throw.func (symlink)",
             "functions/fetch.func (symlink)",
             "functions/file.func (symlink)",
             "functions/icon.png.func (symlink)",

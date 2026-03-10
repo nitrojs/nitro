@@ -13,6 +13,7 @@ import { createNitro, prepare } from "../../builder.ts";
 import { getBundlerConfig } from "./bundler.ts";
 import { buildEnvironments, prodSetup } from "./prod.ts";
 import {
+  initEnvRunner,
   getEnvRunner,
   createNitroEnvironment,
   createServiceEnvironments,
@@ -38,6 +39,10 @@ const debug = process.env.NITRO_DEBUG
   : () => {};
 
 export function nitro(pluginConfig: NitroPluginConfig = {}): VitePlugin[] {
+  if ((globalThis as any).__nitro_build__) {
+    // We are in `nitro build` context. Nitro injects vite plugin itself
+    return [];
+  }
   const ctx: NitroPluginContext = createContext(pluginConfig);
   return [
     nitroInit(ctx),
@@ -362,8 +367,16 @@ async function setupNitroContext(
     }
   }
 
+  // @see https://vite.dev/guide/env-and-mode#env-files
+  const dotenvFileNames = [".env", ".env.local"];
+  if (configEnv.mode) {
+    dotenvFileNames.push(`.env.${configEnv.mode}`, `.env.${configEnv.mode}.local`);
+  }
+
   // Initialize a new Nitro instance
-  ctx.nitro = ctx.pluginConfig._nitro || (await createNitro(nitroConfig));
+  ctx.nitro =
+    ctx.pluginConfig._nitro ||
+    (await createNitro(nitroConfig, { dotenv: { fileName: dotenvFileNames } }));
 
   // Config ssr env as a fetchable ssr service
   if (!ctx.services?.ssr) {
@@ -436,7 +449,7 @@ async function setupNitroContext(
 
   // Warm up env runner for dev
   if (ctx.nitro.options.dev) {
-    getEnvRunner(ctx);
+    await initEnvRunner(ctx);
   }
 
   // Attach nitro.fetch to env runner

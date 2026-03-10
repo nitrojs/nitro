@@ -77,7 +77,7 @@ export function formatPrerenderRoute(route: PrerenderRoute) {
     const parents = linkParents.get(route.route);
     const errorColor = colors[route.error.status === 404 ? "yellow" : "red"];
     const errorLead = parents?.size ? "├──" : "└──";
-    str += `\n  │ ${errorLead} ${errorColor(route.error.message)}`;
+    str += `\n  │ ${errorLead} ${errorColor(route.error.message || "unknown error")}`;
 
     if (parents?.size) {
       str += `\n${[...parents.values()].map((link) => `  │ └── Linked from ${link}`).join("\n")}`;

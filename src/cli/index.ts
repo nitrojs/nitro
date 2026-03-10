@@ -15,6 +15,7 @@ const main = defineCommand({
     prepare: () => import("./commands/prepare.ts").then((r) => r.default),
     task: () => import("./commands/task/index.ts").then((r) => r.default),
     preview: () => import("./commands/preview.ts").then((r) => r.default),
+    docs: () => import("./commands/docs.ts").then((r) => r.default),
   },
 });
 
