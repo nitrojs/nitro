@@ -1,5 +1,6 @@
 import type { NitroPluginContext } from "./types.ts";
 import type { DevEnvironmentContext, ResolvedConfig, ViteDevServer } from "vite";
+import type { FetchFunctionOptions, FetchResult } from "vite/module-runner";
 import type { RunnerRPCHooks } from "env-runner";
 
 import { IncomingMessage, ServerResponse } from "node:http";
@@ -30,28 +31,58 @@ export function createFetchableDevEnvironment(
   name: string,
   config: ResolvedConfig,
   devServer: DevServer,
-  entry: string
+  entry: string,
+  opts?: { preventExternalize?: boolean }
 ): FetchableDevEnvironment {
   const transport = createViteHotChannel(devServer, name);
   const context: DevEnvironmentContext = { hot: true, transport };
-  return new FetchableDevEnvironment(name, config, context, devServer, entry);
+  return new FetchableDevEnvironment(name, config, context, devServer, entry, opts);
 }
 
 export class FetchableDevEnvironment extends DevEnvironment {
   devServer: DevServer;
 
   #entry: string;
+  #preventExternalize: boolean;
 
   constructor(
     name: string,
     config: ResolvedConfig,
     context: DevEnvironmentContext,
     devServer: DevServer,
-    entry: string
+    entry: string,
+    opts?: { preventExternalize?: boolean }
   ) {
     super(name, config, context);
     this.devServer = devServer;
     this.#entry = entry;
+    this.#preventExternalize = opts?.preventExternalize ?? false;
+  }
+
+  override async fetchModule(
+    id: string,
+    importer?: string,
+    options?: FetchFunctionOptions
+  ): Promise<FetchResult> {
+    // workerd cannot handle CJS/Node modules loaded via import().
+    // Bare imports (like "vue") are normally externalized by Vite's fetchModule,
+    // resolved using mainFields: ["main"] which often picks CJS entries.
+    // We intercept bare imports, resolve them through the environment's plugin
+    // pipeline (which respects resolve.conditions and picks ESM), then route
+    // the resolved path through transformRequest for proper SSR processing.
+    if (
+      this.#preventExternalize &&
+      !id.startsWith("file://") &&
+      importer &&
+      id[0] !== "." &&
+      id[0] !== "/"
+    ) {
+      const resolved = await this.pluginContainer.resolveId(id, importer);
+      if (resolved && !resolved.external) {
+        return super.fetchModule(resolved.id, importer, options);
+      }
+    }
+    return super.fetchModule(id, importer, options);
   }
 
   async dispatchFetch(request: Request): Promise<Response> {
