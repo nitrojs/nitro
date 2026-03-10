@@ -11,6 +11,22 @@ orientation: horizontal
 ::code-group
   :::prose-pre
   ---
+  filename: vite.config.ts
+  ---
+  ```ts
+  import { defineConfig } from 'vite'
+  import { nitro } from 'nitro/vite'
+
+  export default defineConfig({
+    plugins: [nitro()],
+    nitro: {
+      serverDir: "./server"
+    }
+  })
+  ```
+  :::
+  :::prose-pre
+  ---
   filename: nitro.config.ts
   ---
   ```ts
@@ -21,27 +37,12 @@ orientation: horizontal
   })
   ```
   :::
-  :::prose-pre
-  ---
-  filename: vite.config.ts
-  ---
-  ```ts
-  import { defineConfig } from 'vite'
-  import { nitro } from 'nitro/vite'
-
-  export default defineConfig({
-    plugins: [
-      nitro()
-    ]
-  })
-  ```
-  :::
 ::
 
 :hero-background
 
 #title
-Ship [Full-Stack]{.text-primary} Vite Apps
+Run [Servers]{.text-primary} Anywhere
 
 #description
 Nitro extends your Vite application with a production-ready server, compatible with any runtime. Add server routes to your application and deploy many hosting platform with a zero-config experience.
@@ -99,117 +100,86 @@ Nitro extends your Vite application with a production-ready server, compatible w
   :::
 ::
 
-::u-page-section
----
-orientation: horizontal
-features:
-  - title: 'routes/'
-    description: 'Create server routes in the routes/ folder and they will be automatically registered.'
-    icon: 'i-lucide-folder-tree'
-  - title: 'server.ts'
-    description: 'Go full Web standard and pick standard library of your choice to create server routes using the server.ts file.'
-    icon: 'i-lucide-file-code'
----
-#title
-Create Server Routes
+::landing-features
+#body
+  :::feature-card
+  ---
+  headline: Routing
+  link: /docs/routing
+  link-label: Routing docs
+  ---
+  #title
+  File-system routing
 
-#description
-Start creating API routes in the routes/ folder or start with your favorite backend framework in a `server.ts` file.
+  #description
+  Create server routes in the routes/ folder and they are automatically registered. Or bring your own framework — H3, Hono, Elysia, Express — via a server.ts entry.
+  :::
 
-#default
-::div{class="min-h-[506px]"}
-  ::tabs
-    ::tabs-item{label="FS Routing" icon="i-lucide-folder"}
-      ::code-tree{defaultValue="routes/hello.ts" expand-all}
-        ::prose-pre{filename="vite.config.ts"}
-        ```ts
-        import { defineConfig } from 'vite'
-        import { nitro } from 'nitro/vite'
+  :::feature-card
+  ---
+  headline: Versatile
+  link: /deploy
+  link-label: Explore deploy targets
+  ---
+  #title
+  Deploy everywhere
 
-        export default defineConfig({
-          plugins: [
-            nitro()
-          ],
-        });
-        ```
-        ::
-        ::prose-pre{filename="routes/hello.ts"}
-        ```ts
-        import { defineHandler } from 'nitro/h3'
+  #description
+  The same codebase deploys to Node.js, Cloudflare Workers, Deno, Bun, AWS Lambda, Vercel, Netlify, and more — zero config, no vendor lock-in.
+  :::
 
-        export default defineHandler(({ req }) => {
-          return { api: 'works!' }
-        })
-        ```
-        ::
-        ::prose-pre{filename="index.html"}
-        ```html
-          <html>
-          <head>
-            <title>Nitro + Vite</title>
-          </head>
-          <body>
-            <h1>Hey, there!</h1>
-          </body>
-          </html>
-        ```
-        ::
-      ::
-    ::
-    ::tabs-item{label="Web Standard" icon="i-lucide-globe"}
-      ::prose-pre{filename="server.ts"}
-      ```ts
-      export default {
-        async fetch(req: Request): Promise<Response> {
-          return new Response(`Hello world! (${req.url})`);
-        },
-      };
-      ```
-      ::
-    ::
-    ::tabs-item{label="H3" icon="i-undocs-h3"}
-      ::prose-pre{filename="server.ts"}
-      ```ts
-      import { H3 } from 'h3'
+  :::feature-card
+  ---
+  headline: Storage
+  link: /docs/storage
+  link-label: Storage docs
+  ---
+  #title
+  Universal storage
 
-      const app = new H3()
+  #description
+  Built-in key-value storage abstraction powered by unstorage. Works with filesystem, Redis, Cloudflare KV, and more — same API everywhere.
+  :::
 
-      app.get("/", () => '⚡️ Hello from H3!')
+  :::feature-card
+  ---
+  headline: Caching
+  link: /docs/cache
+  link-label: Caching docs
+  ---
+  #title
+  Built-in caching
 
-      export default app
-      ```
-      ::
-    ::
-    ::tabs-item{label="Hono" icon="i-undocs-hono"}
-      ::prose-pre{filename="server.ts"}
-      ```ts
-      import { Hono } from 'hono'
+  #description
+  Cache route handlers and arbitrary functions with a simple API. Supports multiple storage backends and stale-while-revalidate patterns.
+  :::
 
-      const app = new Hono()
+  :::feature-card
+  ---
+  headline: Server Entry
+  link: /docs/server-entry
+  link-label: Server entry docs
+  ---
+  #title
+  Web standard server
 
-      app.get("/", (c) => c.text('🔥 Hello from Hono!'))
+  #description
+  Go full Web standard and pick the library of your choice. Use H3, Hono, Elysia, Express, or the raw fetch API — Nitro handles the rest.
+  :::
 
-      export default app
-      ```
-      ::
-    ::
-    ::tabs-item{label="Elysia" icon="i-undocs-elysia"}
-      ::prose-pre{filename="server.ts"}
-      ```ts
-      import { Elysia } from 'elysia'
+  :::feature-card
+  ---
+  headline: Renderer
+  link: /docs/renderer
+  link-label: Renderer docs
+  ---
+  #title
+  Universal renderer
 
-      const app = new Elysia()
-
-      app.get("/", (c) => '🦊 Hello from Elysia!')
-
-      export default app
-      ```
-      ::
-    ::
-  ::
-::
+  #description
+  Use any frontend framework as your renderer. Nitro provides the server layer while your framework handles the UI.
+  :::
 ::
 
-:page-sponsors
 
-:page-contributors
+::page-sponsors

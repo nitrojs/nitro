@@ -6,6 +6,7 @@
   },
   "dependencies": {
     "automd": "^0.4.3",
+    "motion-v": "^2.0.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
