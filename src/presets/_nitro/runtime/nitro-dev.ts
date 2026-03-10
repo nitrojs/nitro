@@ -18,9 +18,7 @@ if (import.meta._tasks) {
   startScheduleRunner({});
 }
 
-const ws = import.meta._websocket
-  ? wsAdapter({ resolve: resolveWebsocketHooks })
-  : undefined;
+const ws = import.meta._websocket ? wsAdapter({ resolve: resolveWebsocketHooks }) : undefined;
 
 export default {
   fetch: nitroApp.fetch,
