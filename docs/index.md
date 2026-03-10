@@ -11,6 +11,18 @@ orientation: horizontal
 ::code-group
   :::prose-pre
   ---
+  filename: nitro.config.ts
+  ---
+  ```ts
+  import { defineConfig } from 'nitro'
+
+  export default defineConfig({
+    serverDir: './server'
+  })
+  ```
+  :::
+  :::prose-pre
+  ---
   filename: vite.config.ts
   ---
   ```ts
@@ -20,10 +32,7 @@ orientation: horizontal
   export default defineConfig({
     plugins: [
       nitro()
-    ],
-    nitro: {
-      preset: 'standard'
-    }
+    ]
   })
   ```
   :::
