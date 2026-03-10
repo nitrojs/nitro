@@ -10,13 +10,18 @@ import { createFetchableDevEnvironment } from "./dev.ts";
 import { isAbsolute } from "pathe";
 
 export async function initEnvRunner(ctx: NitroPluginContext) {
-  return (ctx._envRunner ??= await loadRunner(
-    (ctx.nitro!.options.devServer.runner || "node-worker") as RunnerName,
-    {
-      name: "nitro-vite",
-      data: { entry: resolve(runtimeDir, "internal/vite/node-runner.mjs") },
-    }
-  ));
+  if (!ctx._envRunner) {
+    const runner = await loadRunner(
+      (ctx.nitro!.options.devServer.runner || "node-worker") as RunnerName,
+      {
+        name: "nitro-vite",
+        data: { entry: resolve(runtimeDir, "internal/vite/node-runner.mjs") },
+      }
+    );
+    await runner.waitForReady();
+    ctx._envRunner = runner;
+  }
+  return ctx._envRunner;
 }
 
 export function getEnvRunner(ctx: NitroPluginContext) {

@@ -208,6 +208,7 @@
     }
   },
   "resolutions": {
+    "env-runner": "^0.1.2",
     "nitro": "link:.",
     "rolldown": "^1.0.0-rc.8",
     "vite": "^8.0.0-beta.18"

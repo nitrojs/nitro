@@ -3,9 +3,7 @@ import { getRequestURL } from "h3";
 import { readFile } from "node:fs/promises";
 import { resolve, dirname } from "node:path";
 import consola from "consola";
-import { ErrorParser } from "youch-core";
-import { Youch } from "youch";
-import { SourceMapConsumer } from "source-map";
+import type { ErrorParser } from "youch-core";
 import { defineNitroErrorHandler } from "./utils.ts";
 import type { InternalHandlerResponse } from "./utils.ts";
 import { FastResponse } from "srvx";
@@ -47,6 +45,8 @@ export async function defaultHandler(
 
   // Load stack trace with source maps
   await loadStackTrace(error).catch(consola.error);
+
+  const { Youch } = await import("youch");
 
   // https://github.com/poppinss/youch
   const youch = new Youch();
@@ -102,6 +102,9 @@ export async function loadStackTrace(error: any): Promise<void> {
   if (!(error instanceof Error)) {
     return;
   }
+
+  const { ErrorParser } = await import("youch-core");
+
   const parsed = await new ErrorParser().defineSourceLoader(sourceLoader).parse(error);
 
   const stack = error.message + "\n" + parsed.frames.map((frame) => fmtFrame(frame)).join("\n");
@@ -124,6 +127,7 @@ async function sourceLoader(frame: StackFrame) {
     // prettier-ignore
     const rawSourceMap = await readFile(`${frame.fileName}.map`, "utf8").catch(() => {});
     if (rawSourceMap) {
+      const { SourceMapConsumer } = await import("source-map");
       const consumer = await new SourceMapConsumer(rawSourceMap);
       // prettier-ignore
       const originalPosition = consumer.originalPositionFor({ line: frame.lineNumber!, column: frame.columnNumber! });

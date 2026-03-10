@@ -40,6 +40,8 @@ export function createFetchableDevEnvironment(
 export class FetchableDevEnvironment extends DevEnvironment {
   devServer: DevServer;
 
+  #entry: string;
+
   constructor(
     name: string,
     config: ResolvedConfig,
@@ -49,12 +51,7 @@ export class FetchableDevEnvironment extends DevEnvironment {
   ) {
     super(name, config, context);
     this.devServer = devServer;
-
-    this.devServer.sendMessage({
-      type: "custom",
-      event: "nitro:vite-env",
-      data: { name, entry },
-    });
+    this.#entry = entry;
   }
 
   async dispatchFetch(request: Request): Promise<Response> {
@@ -63,7 +60,12 @@ export class FetchableDevEnvironment extends DevEnvironment {
 
   override async init(...args: any[]): Promise<void> {
     await this.devServer.init?.();
-    return super.init(...args);
+    await super.init(...args);
+    this.devServer.sendMessage({
+      type: "custom",
+      event: "nitro:vite-env",
+      data: { name: this.name, entry: this.#entry },
+    });
   }
 }
 

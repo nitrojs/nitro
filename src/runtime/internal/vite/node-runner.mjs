@@ -1,6 +1,28 @@
 import { ModuleRunner, ESModulesEvaluator } from "vite/module-runner";
 import { createViteTransport } from "env-runner/vite";
 
+// Custom evaluator for workerd where `new AsyncFunction()` is disallowed.
+// Uses the unsafeEvalBinding exposed by the env-runner miniflare wrapper.
+class WorkerdModuleEvaluator {
+  startOffset = 0;
+
+  async runInlinedModule(context, code) {
+    const unsafeEval = globalThis.__ENV_RUNNER_UNSAFE_EVAL__;
+    const keys = Object.keys(context);
+    const fn = unsafeEval.newAsyncFunction(
+      '"use strict";' + code,
+      "runInlinedModule",
+      ...keys,
+    );
+    await fn(...keys.map((k) => context[k]));
+    Object.seal(context[Object.keys(context)[0]]);
+  }
+
+  runExternalModule(filepath) {
+    return import(filepath);
+  }
+}
+
 // ----- IPC -----
 
 let sendMessage;
@@ -25,9 +47,12 @@ class ViteEnvRunner {
     // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
     const onMessage = (listener) => messageListeners.add(listener);
     const transport = createViteTransport((data) => sendMessage?.(data), onMessage, name);
+    const evaluator = globalThis.__ENV_RUNNER_UNSAFE_EVAL__
+      ? new WorkerdModuleEvaluator()
+      : new ESModulesEvaluator();
     this.runner = new ModuleRunner(
       { transport },
-      new ESModulesEvaluator(),
+      evaluator,
       process.env.NITRO_DEBUG ? console.debug : undefined
     );
 
@@ -212,15 +237,30 @@ async function renderError(req, error) {
       }
     );
   }
-  const { Youch } = await import("youch");
-  const youch = new Youch();
-  return new Response(await youch.toHTML(error), {
-    status: error.status || 500,
-    headers: {
-      "Content-Type": "text/html",
-      "Cache-Control": "no-store, max-age=0, must-revalidate",
-      Pragma: "no-cache",
-      Expires: "0",
-    },
-  });
+  try {
+    const { Youch } = await envs.nitro?.runner.import("youch") || await import("youch");
+    const youch = new Youch();
+    return new Response(await youch.toHTML(error), {
+      status: error.status || 500,
+      headers: {
+        "Content-Type": "text/html",
+        "Cache-Control": "no-store, max-age=0, must-revalidate",
+        Pragma: "no-cache",
+        Expires: "0",
+      },
+    });
+  } catch {
+    return new Response(
+      `<pre>${error.stack || error.message || error}</pre>`,
+      {
+        status: error.status || 500,
+        headers: {
+          "Content-Type": "text/html",
+          "Cache-Control": "no-store, max-age=0, must-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      }
+    );
+  }
 }
