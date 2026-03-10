@@ -10,10 +10,10 @@ socials:
   discord: https://discord.nitro.build
 themeColor: "red"
 versions:
-  - label: "v2"
+  - label: "v2 (Legacy)"
     active: true
-  - label: "v3 (alpha)"
-    to: "https://v3.nitro.build"
+  - label: "v3"
+    to: "https://nitro.build"
 automd: true
 redirects:
   /deploy/node: /deploy/runtimes/node
