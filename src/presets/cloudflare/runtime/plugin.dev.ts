@@ -1,8 +1,7 @@
-import type { NitroAppPlugin } from "nitropack";
+import type { NitroAppPlugin } from "nitropack/types";
 import type { GetPlatformProxyOptions, PlatformProxy } from "wrangler";
-
-// @ts-ignore
-import { useRuntimeConfig, getRequestURL } from "#imports";
+import { useRuntimeConfig } from "nitropack/runtime";
+import { getRequestURL } from "h3";
 
 const proxy = await _getPlatformProxy().catch((error) => {
   console.error("Failed to initialize wrangler bindings proxy", error);
