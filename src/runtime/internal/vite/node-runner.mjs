@@ -157,6 +157,13 @@ export function fetch(req) {
   return env.fetch(req);
 }
 
+export function upgrade(context) {
+  const handleUpgrade = envs.nitro?.entry?.handleUpgrade;
+  if (handleUpgrade) {
+    handleUpgrade(context.node.req, context.node.socket, context.node.head);
+  }
+}
+
 export const ipc = {
   onOpen(ctx) {
     sendMessage = ctx.sendMessage;
