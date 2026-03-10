@@ -155,7 +155,8 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
   }
 
   async #reload() {
-    const runnerName = this.nitro.options.devServer.runner || "node-worker";
+    const runnerName =
+      this.nitro.options.devServer.runner || process.env.NITRO_DEV_RUNNER || "node-worker";
     const runner = await loadRunner(runnerName as RunnerName, {
       name: `Nitro_${this.#workerIdCtr++}`,
       data: { entry: this.#entry, ...this.#workerData },

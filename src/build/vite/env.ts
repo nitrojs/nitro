@@ -12,7 +12,9 @@ import { isAbsolute } from "pathe";
 export async function initEnvRunner(ctx: NitroPluginContext) {
   if (!ctx._envRunner) {
     const runner = await loadRunner(
-      (ctx.nitro!.options.devServer.runner || "node-worker") as RunnerName,
+      (ctx.nitro!.options.devServer.runner ||
+        process.env.NITRO_DEV_RUNNER ||
+        "node-worker") as RunnerName,
       {
         name: "nitro-vite",
         data: { entry: resolve(runtimeDir, "internal/vite/node-runner.mjs") },
