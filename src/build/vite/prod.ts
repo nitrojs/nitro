@@ -4,7 +4,7 @@ import type { NitroPluginContext } from "./types.ts";
 import { basename, dirname, resolve } from "pathe";
 import { formatCompatibilityDate } from "compatx";
 import { colors as C } from "consola/utils";
-import { copyPublicAssets } from "../../builder.ts";
+import { copyPublicAssets, prerender } from "../../builder.ts";
 import { existsSync } from "node:fs";
 import { writeBuildInfo } from "../info.ts";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
@@ -104,8 +104,7 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
   ctx.nitro!.routing.sync();
 
   // Prerender routes if configured
-  // TODO
-  // await prerender(nitro);
+  await prerender(nitro);
 
   // Build the Nitro server bundle
   const output = (await builder.build(builder.environments.nitro)) as RolldownOutput;

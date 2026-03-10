@@ -2,7 +2,13 @@ import { pathToFileURL } from "node:url";
 import { defu } from "defu";
 import mime from "mime";
 import { writeFile } from "../utils/fs.ts";
-import type { Nitro, NitroRouteRules, PrerenderRoute, PublicAssetDir } from "nitro/types";
+import type {
+  Nitro,
+  NitroConfig,
+  NitroRouteRules,
+  PrerenderRoute,
+  PublicAssetDir,
+} from "nitro/types";
 import { join, relative, resolve } from "pathe";
 import { createRouter, addRoute, findAllRoutes } from "rou3";
 import { joinURL, withBase, withoutBase, withTrailingSlash } from "ufo";
@@ -21,11 +27,6 @@ const JsonSigRx = /^\s*["[{]|^\s*-?\d{1,16}(\.\d{1,17})?([Ee][+-]?\d+)?\s*$/; //
 export async function prerender(nitro: Nitro) {
   if (nitro.options.noPublicDir) {
     nitro.logger.warn("Skipping prerender since `noPublicDir` option is enabled.");
-    return;
-  }
-
-  if (nitro.options.builder === "vite") {
-    nitro.logger.warn("Skipping prerender since not supported with vite builder yet...");
     return;
   }
 
@@ -63,6 +64,7 @@ export async function prerender(nitro: Nitro) {
     rootDir: nitro.options.rootDir,
     logLevel: 0,
     preset: "nitro-prerender",
+    builder: nitro.options.builder === "vite" ? "rolldown" : nitro.options.builder,
   };
   await nitro.hooks.callHook("prerender:config", prerendererConfig);
   const nitroRenderer = await createNitro(prerendererConfig);
