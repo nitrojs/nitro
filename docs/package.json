@@ -4,13 +4,12 @@
     "dev": "undocs dev",
     "build": "undocs build"
   },
-  "dependencies": {
-    "automd": "^0.4.3",
-    "motion-v": "^2.0.0",
-    "zod": "^4.3.6"
-  },
   "devDependencies": {
+    "automd": "^0.4.3",
+    "geist": "^1.7.0",
+    "motion-v": "^2.0.0",
     "shaders": "^2.3.75",
-    "undocs": "^0.4.16"
+    "undocs": "npm:undocs-nightly@0.4.17-20260310-203057-c3c295a",
+    "zod": "^4.3.6"
   }
 }

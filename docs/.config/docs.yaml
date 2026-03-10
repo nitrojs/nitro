@@ -10,6 +10,28 @@ socials:
   discord: https://discord.nitro.build
 sponsors:
   api: https://sponsors.pi0.io/sponsors.json
+redirects:
+  # v2 guide → v3 docs
+  "/guide": "/docs"
+  "/guide/getting-started": "/docs"
+  "/guide/utils": "/docs/routing"
+  "/guide/routing": "/docs/routing"
+  "/guide/websocket": "/docs/routing"
+  "/guide/cache": "/docs/cache"
+  "/guide/storage": "/docs/storage"
+  "/guide/database": "/docs/database"
+  "/guide/fetch": "/docs/routing"
+  "/guide/assets": "/docs/assets"
+  "/guide/plugins": "/docs/plugins"
+  "/guide/configuration": "/docs/configuration"
+  "/guide/typescript": "/docs/configuration"
+  "/guide/tasks": "/docs/tasks"
+  "/guide/nightly": "/docs/nightly"
+  # v2 deploy
+  "/deploy/workers": "/deploy"
+  "/deploy/runtimes/winterjs": "/deploy"
+  "/deploy/custom-presets": "/deploy"
+  "/deploy/providers/edgio": "/deploy"
 themeColor: "rose"
 automd: true
 branch: main

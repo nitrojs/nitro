@@ -61,7 +61,7 @@ Then you can deploy the application with:
 
 You can use [runtime hooks](/docs/plugins#nitro-runtime-hooks) below in order to extend [Worker handlers](https://developers.cloudflare.com/workers/runtime-apis/handlers/).
 
-:read-more{to="/guide/plugins#nitro-runtime-hooks"}
+:read-more{to="/docs/plugins#nitro-runtime-hooks"}
 
 - [`cloudflare:scheduled`](https://developers.cloudflare.com/workers/runtime-apis/handlers/scheduled/)
 - [`cloudflare:email`](https://developers.cloudflare.com/email-routing/email-workers/runtime-api/)
