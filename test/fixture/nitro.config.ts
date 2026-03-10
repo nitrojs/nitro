@@ -94,6 +94,9 @@ export default defineNitroConfig({
     "/rules/redirect": { redirect: "/base" },
     "/rules/isr/**": { isr: { allowQuery: ["q"] } },
     "/rules/isr-ttl/**": { isr: 60 },
+    "/rules/allow-query/**": {
+      cache: { swr: true, maxAge: 60, allowQuery: ["q"] },
+    },
     "/rules/swr/**": { swr: true },
     "/rules/swr-ttl/**": { swr: 60 },
     "/rules/redirect/obj": {
