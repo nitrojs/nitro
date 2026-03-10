@@ -32,6 +32,7 @@ redirects:
   "/deploy/runtimes/winterjs": "/deploy"
   "/deploy/custom-presets": "/deploy"
   "/deploy/providers/edgio": "/deploy"
+  "/deploy/node": "/deploy/runtimes/node"
 themeColor: "rose"
 automd: true
 branch: main
