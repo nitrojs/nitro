@@ -1,5 +1,4 @@
 import "#nitro/virtual/polyfills";
-import wsAdapter from "crossws/adapters/node";
 
 import { useNitroApp, useNitroHooks } from "nitro/app";
 import { startScheduleRunner } from "#nitro/runtime/task";
@@ -18,7 +17,11 @@ if (import.meta._tasks) {
   startScheduleRunner({});
 }
 
-const ws = import.meta._websocket ? wsAdapter({ resolve: resolveWebsocketHooks }) : undefined;
+const ws = import.meta._websocket
+  ? await import("crossws/adapters/node").then((m) =>
+      (m.default || m)({ resolve: resolveWebsocketHooks })
+    )
+  : undefined;
 
 export default {
   fetch: nitroApp.fetch,

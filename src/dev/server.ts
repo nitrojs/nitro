@@ -67,7 +67,11 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
 
     this.#manager = new RunnerManager();
     this.#manager.onReady = async (_runner, addr) => {
-      writeDevBuildInfo(this.nitro, addr).catch(() => {});
+      writeDevBuildInfo(this.nitro, addr).catch((error) => {
+        this.nitro.logger.warn(
+          `Failed to write dev build info: ${error instanceof Error ? error.message : String(error)}`
+        );
+      });
     };
     this.#manager.onClose = (_runner, cause) => {
       this.#workerError = cause;
@@ -149,8 +153,13 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
   }
 
   reload() {
-    this.#reloadPromise = this.#reload().finally(() => {
-      this.#reloadPromise = undefined;
+    const nextReload = (this.#reloadPromise ?? Promise.resolve())
+      .catch(() => {})
+      .then(() => this.#reload());
+    this.#reloadPromise = nextReload.finally(() => {
+      if (this.#reloadPromise === nextReload) {
+        this.#reloadPromise = undefined;
+      }
     });
   }
 

@@ -2,7 +2,7 @@ import type { Nitro, RollupConfig } from "nitro/types";
 import type { RollupWatcher } from "rollup";
 import { watch as chokidarWatch } from "chokidar";
 import { defu } from "defu";
-import { join } from "pathe";
+import { basename, join } from "pathe";
 import { debounce } from "perfect-debounce";
 import { scanHandlers } from "../../scan.ts";
 import { formatRollupError } from "./error.ts";
@@ -47,7 +47,7 @@ export async function watchDev(nitro: Nitro, rollupConfig: RollupConfig) {
     ignoreInitial: true,
     depth: 0,
   }).on("all", (event, path) => {
-    if (watchReloadEvents.has(event) && serverEntryRe.test(path.split("/").pop() || "")) {
+    if (watchReloadEvents.has(event) && serverEntryRe.test(basename(path))) {
       reload();
     }
   });

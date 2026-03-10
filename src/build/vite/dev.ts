@@ -134,16 +134,18 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   // Worker => Host RPC
   nitroEnv.devServer.onMessage(async (message: any) => {
     if (message?.__rpc === "transformHTML") {
-      const html = await server
-        .transformIndexHtml("/", message.data)
-        .then((r) =>
-          r.replace(
-            "<!--ssr-outlet-->",
-            `{{{ globalThis.__nitro_vite_envs__?.["ssr"]?.fetch($REQUEST) || "" }}}`
-          )
-        )
-        .catch((error) => ({ error }));
-      nitroEnv.devServer.sendMessage({ __rpc_id: message.__rpc_id, data: html });
+      try {
+        const html = (await server.transformIndexHtml("/", message.data)).replace(
+          "<!--ssr-outlet-->",
+          `{{{ globalThis.__nitro_vite_envs__?.["ssr"]?.fetch($REQUEST) || "" }}}`
+        );
+        nitroEnv.devServer.sendMessage({ __rpc_id: message.__rpc_id, data: html });
+      } catch (error) {
+        nitroEnv.devServer.sendMessage({
+          __rpc_id: message.__rpc_id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
   });
 

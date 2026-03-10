@@ -1,7 +1,7 @@
 import type { Nitro } from "nitro/types";
 import type { RolldownWatcher, RolldownOptions } from "rolldown";
 import { watch as chokidarWatch } from "chokidar";
-import { join } from "pathe";
+import { basename, join } from "pathe";
 import { debounce } from "perfect-debounce";
 import { scanHandlers } from "../../scan.ts";
 import { writeTypes } from "../types.ts";
@@ -45,7 +45,7 @@ export async function watchDev(nitro: Nitro, config: RolldownOptions) {
     ignoreInitial: true,
     depth: 0,
   }).on("all", (event, path) => {
-    if (watchReloadEvents.has(event) && serverEntryRe.test(path.split("/").pop() || "")) {
+    if (watchReloadEvents.has(event) && serverEntryRe.test(basename(path))) {
       reload();
     }
   });

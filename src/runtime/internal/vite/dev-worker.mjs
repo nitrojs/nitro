@@ -46,11 +46,9 @@ class ViteEnvRunner {
     const evaluator = globalThis.__ENV_RUNNER_UNSAFE_EVAL__
       ? new WorkerdModuleEvaluator()
       : new ESModulesEvaluator();
-    this.runner = new ModuleRunner(
-      { transport },
-      evaluator,
-      process.env.NITRO_DEBUG ? console.debug : undefined
-    );
+    const debug =
+      typeof process !== "undefined" && process.env?.NITRO_DEBUG ? console.debug : undefined;
+    this.runner = new ModuleRunner({ transport }, evaluator, debug);
 
     this.reload();
   }
@@ -107,8 +105,10 @@ function rpc(name, data, timeout = 3000) {
 }
 
 // Trap unhandled errors to avoid worker crash
-process.on("unhandledRejection", (error) => console.error(error));
-process.on("uncaughtException", (error) => console.error(error));
+if (typeof process !== "undefined" && typeof process.on === "function") {
+  process.on("unhandledRejection", (error) => console.error(error));
+  process.on("uncaughtException", (error) => console.error(error));
+}
 
 // ----- RSC Support -----
 
