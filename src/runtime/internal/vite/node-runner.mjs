@@ -9,11 +9,7 @@ class WorkerdModuleEvaluator {
   async runInlinedModule(context, code) {
     const unsafeEval = globalThis.__ENV_RUNNER_UNSAFE_EVAL__;
     const keys = Object.keys(context);
-    const fn = unsafeEval.newAsyncFunction(
-      '"use strict";' + code,
-      "runInlinedModule",
-      ...keys,
-    );
+    const fn = unsafeEval.newAsyncFunction('"use strict";' + code, "runInlinedModule", ...keys);
     await fn(...keys.map((k) => context[k]));
     Object.seal(context[Object.keys(context)[0]]);
   }
@@ -238,7 +234,7 @@ async function renderError(req, error) {
     );
   }
   try {
-    const { Youch } = await envs.nitro?.runner.import("youch") || await import("youch");
+    const { Youch } = (await envs.nitro?.runner.import("youch")) || (await import("youch"));
     const youch = new Youch();
     return new Response(await youch.toHTML(error), {
       status: error.status || 500,
@@ -250,17 +246,14 @@ async function renderError(req, error) {
       },
     });
   } catch {
-    return new Response(
-      `<pre>${error.stack || error.message || error}</pre>`,
-      {
-        status: error.status || 500,
-        headers: {
-          "Content-Type": "text/html",
-          "Cache-Control": "no-store, max-age=0, must-revalidate",
-          Pragma: "no-cache",
-          Expires: "0",
-        },
-      }
-    );
+    return new Response(`<pre>${error.stack || error.message || error}</pre>`, {
+      status: error.status || 500,
+      headers: {
+        "Content-Type": "text/html",
+        "Cache-Control": "no-store, max-age=0, must-revalidate",
+        Pragma: "no-cache",
+        Expires: "0",
+      },
+    });
   }
 }
