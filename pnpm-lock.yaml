@@ -99,7 +99,7 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3(rollup@4.59.0)
       '@scalar/api-reference':
-        specifier: ^1.48.0
+        specifier: ^1.48.2
         version: 1.48.2(axios@1.13.6(debug@4.4.3))(jwt-decode@4.0.0)(tailwindcss@4.2.1)(typescript@5.9.3)
       '@types/aws-lambda':
         specifier: ^8.10.161
@@ -7538,7 +7538,7 @@ snapshots:
   '@floating-ui/vue@1.1.9(vue@3.5.30(typescript@5.9.3))':
     dependencies:
       '@floating-ui/dom': 1.7.6
-      '@floating-ui/utils': 0.2.10
+      '@floating-ui/utils': 0.2.11
       vue-demi: 0.14.10(vue@3.5.30(typescript@5.9.3))
     transitivePeerDependencies:
       - '@vue/composition-api'

@@ -96,7 +96,7 @@
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-replace": "^6.0.3",
-    "@scalar/api-reference": "^1.48.0",
+    "@scalar/api-reference": "^1.48.2",
     "@types/aws-lambda": "^8.10.161",
     "@types/estree": "^1.0.8",
     "@types/etag": "^1.8.4",
@@ -181,7 +181,7 @@
     "rollup": "^4.59.0",
     "vite": "^7 || ^8 || >=8.0.0-0",
     "xml2js": "^0.6.2",
-    "zephyr-agent": "^0.1.14"
+    "zephyr-agent": "^0.1.15"
   },
   "peerDependenciesMeta": {
     "dotenv": {
@@ -214,7 +214,7 @@
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
   },
-  "packageManager": "pnpm@10.31.0",
+  "packageManager": "pnpm@10.32.0",
   "compatiblePackages": {
     "schemaVersion": 1,
     "vite": {
