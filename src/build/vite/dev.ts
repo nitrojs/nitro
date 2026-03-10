@@ -117,7 +117,7 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
         // Vite upgrade. TODO: Is there a better way?
         return;
       }
-      getEnvRunner(ctx).upgrade?.(req, socket, head);
+      getEnvRunner(ctx).upgrade?.({ node: { req, socket, head } });
     });
   }
 

@@ -13,6 +13,7 @@ import { createNitro, prepare } from "../../builder.ts";
 import { getBundlerConfig } from "./bundler.ts";
 import { buildEnvironments, prodSetup } from "./prod.ts";
 import {
+  initEnvRunner,
   getEnvRunner,
   createNitroEnvironment,
   createServiceEnvironments,
@@ -440,7 +441,7 @@ async function setupNitroContext(
 
   // Warm up env runner for dev
   if (ctx.nitro.options.dev) {
-    getEnvRunner(ctx);
+    await initEnvRunner(ctx);
   }
 
   // Attach nitro.fetch to env runner

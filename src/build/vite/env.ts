@@ -1,19 +1,30 @@
 import type { EnvironmentOptions, RollupCommonJSOptions } from "vite";
 import type { NitroPluginContext, ServiceConfig } from "./types.ts";
 
-import { NodeEnvRunner } from "../../runner/node.ts";
+import type { RunnerName } from "env-runner";
+import { loadRunner } from "env-runner";
 import { join, resolve } from "node:path";
 import { runtimeDependencies, runtimeDir } from "nitro/meta";
 import { resolveModulePath } from "exsolve";
 import { createFetchableDevEnvironment } from "./dev.ts";
 import { isAbsolute } from "pathe";
 
+export async function initEnvRunner(ctx: NitroPluginContext) {
+  return (ctx._envRunner ??= await loadRunner(
+    (ctx.nitro!.options.devServer.runner || "node-worker") as RunnerName,
+    {
+      name: "nitro-vite",
+      workerEntry: resolve(runtimeDir, "internal/vite/node-runner.mjs"),
+      data: { server: true },
+    }
+  ));
+}
+
 export function getEnvRunner(ctx: NitroPluginContext) {
-  return (ctx._envRunner ??= new NodeEnvRunner({
-    name: "nitro-vite",
-    entry: resolve(runtimeDir, "internal/vite/node-runner.mjs"),
-    data: { server: true },
-  }));
+  if (!ctx._envRunner) {
+    throw new Error("Env runner not initialized. Call initEnvRunner() first.");
+  }
+  return ctx._envRunner;
 }
 
 export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOptions {
