@@ -54,7 +54,7 @@ Then your normal build command is enough:
 After the build finishes, Nitro uploads the generated output to Zephyr, deploys it to the edge, and prints the deployment URL:
 
 ```txt
-◐ Building [Nitro] (preset: zephyr, compatibility: 2026-03-10)
+◐ Building [Nitro] (preset: zephyr, compatibility: YYYY-MM-DD)
 ...
 ZEPHYR   Uploaded local snapshot in 110ms
 ZEPHYR   Deployed to Zephyr's edge in 700ms.
