@@ -17,9 +17,33 @@
     >
       Star on GitHub
     </UButton>
-    <NuxtLink to="/llms.txt" class="basis-full text-sm text-muted hover:text-default transition-colors inline-flex items-center justify-center gap-1">
-      <UIcon name="i-lucide-bot" />
-      Docs for Agents
-    </NuxtLink>
+    <a
+      :href="`${baseURL}llms.txt`"
+      target="_blank"
+      class="basis-full text-sm text-muted hover:text-default transition-colors inline-flex items-center justify-center gap-1"
+      @click.prevent="copyPrompt"
+    >
+      <UIcon :name="copied ? 'i-lucide-clipboard-check' : 'i-lucide-bot'" />
+      Docs for AI
+    </a>
   </div>
 </template>
+
+<script setup lang="ts">
+const copied = ref(false)
+const baseURL = computed(() => {
+  if (import.meta.client) {
+    return `${window.location.origin}/`
+  }
+  return '/'
+})
+
+function copyPrompt() {
+  const text = `Read nitro docs from ${baseURL.value}docs/quick-start so I can ask questions about it.`
+  navigator.clipboard.writeText(text)
+  copied.value = true
+  setTimeout(() => {
+    copied.value = false
+  }, 2000)
+}
+</script>
