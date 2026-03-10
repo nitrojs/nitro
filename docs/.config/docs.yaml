@@ -12,7 +12,7 @@ themeColor: "red"
 versions:
   - label: "v2 (legacy)"
     active: true
-  - label: "v3"
+  - label: "v3 (beta)"
     to: "https://nitro.build"
 automd: true
 redirects:
