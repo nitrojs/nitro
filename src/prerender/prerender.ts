@@ -244,7 +244,9 @@ export async function prerender(nitro: Nitro) {
     const redirectCodes = [301, 302, 303, 304, 307, 308];
     if (![200, ...redirectCodes].includes(res.status)) {
       _route.error = new Error(`[${res.status}] ${res.statusText}`) as any;
+      // @ts-expect-error (typed as readonly)
       _route.error!.status = res.status;
+      // @ts-expect-error (typed as readonly)
       _route.error!.statusText = res.statusText;
     }
 

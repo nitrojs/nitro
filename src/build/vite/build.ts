@@ -7,10 +7,13 @@ export async function viteBuild(nitro: Nitro) {
     throw new Error("Nitro dev CLI does not supports vite. Please use `vite dev` instead.");
   }
   const { createBuilder } = await import((nitro.options as any).__vitePkg__ || "vite");
+  const pluginInstance = nitroPlugin({ _nitro: nitro });
+  (globalThis as any).__nitro_build__ = true;
   const builder = await createBuilder({
     base: nitro.options.rootDir,
-    plugins: [await nitroPlugin({ _nitro: nitro })],
+    plugins: [pluginInstance],
     logLevel: isTest ? "warn" : undefined,
   });
+  delete (globalThis as any).__nitro_build__;
   await builder.buildApp();
 }
