@@ -47,7 +47,7 @@ zerops:
     build:
       base: nodejs@20
       envVariables:
-        SERVER_PRESET: zerops
+        NITRO_PRESET: zerops
       buildCommands:
         - pnpm i
         - pnpm run build
@@ -68,7 +68,7 @@ zerops:
     build:
       base: nodejs@20
       envVariables:
-        SERVER_PRESET: zerops-static
+        NITRO_PRESET: zerops-static
       buildCommands:
         - pnpm i
         - pnpm build

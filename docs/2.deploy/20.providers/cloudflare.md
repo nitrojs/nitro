@@ -353,7 +353,7 @@ If you have multiple Wrangler environments, you can specify which Wrangler envir
 import { defineNitroConfig } from "nitro/config";
 
 export default defineNitroConfig({
-  preset: 'cloudflare-module',
+  preset: 'cloudflare_module',
   cloudflare: {
     dev: {
       environment: 'preview'
