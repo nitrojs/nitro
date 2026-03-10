@@ -30,6 +30,7 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
   #manager: RunnerManager;
   #workerIdCtr: number = 0;
   #workerError?: unknown;
+  #workerRetries: number = 0;
   #building?: boolean = true; // Assume initial build will start soon
   #buildError?: unknown;
   #reloadPromise?: Promise<void>;
@@ -67,6 +68,7 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
 
     this.#manager = new RunnerManager();
     this.#manager.onReady(async (_runner, addr) => {
+      this.#workerRetries = 0;
       writeDevBuildInfo(this.nitro, addr).catch((error) => {
         this.nitro.logger.warn(
           `Failed to write dev build info: ${error instanceof Error ? error.message : String(error)}`
@@ -75,6 +77,15 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
     });
     this.#manager.onClose((_runner, cause) => {
       this.#workerError = cause;
+      if (this.#workerRetries++ < 3) {
+        this.nitro.logger.info("Restarting dev worker...", cause ? `Cause: ${cause}` : "");
+        this.reload();
+      } else {
+        this.nitro.logger.error(
+          "Dev worker failed after 3 retries.",
+          cause ? `Last cause: ${cause}` : ""
+        );
+      }
     });
 
     nitro.hooks.hook("close", () => this.close());
