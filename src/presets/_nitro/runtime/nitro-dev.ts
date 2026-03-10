@@ -18,15 +18,16 @@ if (import.meta._tasks) {
   startScheduleRunner({});
 }
 
+const ws = import.meta._websocket
+  ? wsAdapter({ resolve: resolveWebsocketHooks })
+  : undefined;
+
 export default {
   fetch: nitroApp.fetch,
-  plugins: import.meta._websocket
-    ? [
-        (server) => {
-          const { handleUpgrade } = wsAdapter({ resolve: resolveWebsocketHooks });
-          server.node?.server?.on("upgrade", handleUpgrade);
-        },
-      ]
+  upgrade: ws
+    ? (context: { node: { req: any; socket: any; head: any } }) => {
+        ws.handleUpgrade(context.node.req, context.node.socket, context.node.head);
+      }
     : undefined,
   ipc: {
     onClose: () => nitroHooks.callHook("close"),
