@@ -59,7 +59,7 @@ Nitro extends your Vite application with a production-ready server, compatible w
 ---
 features:
   - title: Fast
-    description: Enjoy the fast Vite development experience with HMR on the server and optimized for production.
+    description: Enjoy the fast Vite 8 (rolldown powered) development experience with HMR on the server and optimized for production.
     icon: i-lucide-zap
     color: text-amber-500
     bgColor: bg-amber-500/10
