@@ -14,7 +14,7 @@ themeColor: "rose"
 automd: true
 branch: main
 versions:
-  - label: "v3 (alpha)"
+  - label: "v3 (beta)"
     active: true
   - label: "v2"
     to: "https://nitro.build"
