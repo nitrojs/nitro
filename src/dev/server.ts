@@ -66,16 +66,16 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
     this.#entry = resolve(nitro.options.output.dir, nitro.options.output.serverDir, "index.mjs");
 
     this.#manager = new RunnerManager();
-    this.#manager.onReady = async (_runner, addr) => {
+    this.#manager.onReady(async (_runner, addr) => {
       writeDevBuildInfo(this.nitro, addr).catch((error) => {
         this.nitro.logger.warn(
           `Failed to write dev build info: ${error instanceof Error ? error.message : String(error)}`
         );
       });
-    };
-    this.#manager.onClose = (_runner, cause) => {
+    });
+    this.#manager.onClose((_runner, cause) => {
       this.#workerError = cause;
-    };
+    });
 
     nitro.hooks.hook("close", () => this.close());
 

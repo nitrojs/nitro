@@ -26,8 +26,8 @@ importers:
         specifier: '*'
         version: 17.3.1
       env-runner:
-        specifier: ^0.1.5
-        version: 0.1.5(miniflare@4.20260305.0)
+        specifier: ^0.1.6
+        version: 0.1.6(miniflare@4.20260305.0)
       h3:
         specifier: ^2.0.1-rc.16
         version: 2.0.1-rc.16(crossws@0.4.4(srvx@0.11.9))
@@ -3878,8 +3878,8 @@ packages:
     resolution: {integrity: sha512-TWrgLOFUQTH994YUyl1yT4uyavY5nNB5muff+RtWaqNVCAK408b5ZnnbNAUEWLTCpum9w6arT70i1XdQ4UeOPA==}
     engines: {node: '>=0.12'}
 
-  env-runner@0.1.5:
-    resolution: {integrity: sha512-MmYNXgEcTO3scohItjQ8CZ+UK/Spfj+v8NN3ptGBNZZOswbhOdcILAu04i9j8J5fQuaduqk3+xwxS7wxSOlKQw==}
+  env-runner@0.1.6:
+    resolution: {integrity: sha512-fSb7X1zdda8k6611a6/SdSQpDe7a/bqMz2UWdbHjk9YWzpUR4/fn9YtE/hqgGQ2nhvVN0zUtcL1SRMKwIsDbAA==}
     hasBin: true
     peerDependencies:
       miniflare: ^4.0.0
@@ -10126,7 +10126,7 @@ snapshots:
 
   entities@7.0.1: {}
 
-  env-runner@0.1.5(miniflare@4.20260305.0):
+  env-runner@0.1.6(miniflare@4.20260305.0):
     dependencies:
       crossws: 0.4.4(srvx@0.11.9)
       httpxy: 0.3.1

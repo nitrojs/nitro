@@ -185,9 +185,7 @@ export const ipc = {
     if (message?.type === "custom") {
       if (message.event === "nitro:vite-env") {
         const { name, entry } = message.data;
-        if (envs[name]) {
-          console.error(`Vite environment "${name}" already registered!`);
-        } else {
+        if (!envs[name]) {
           envs[name] = new ViteEnvRunner({ name, entry });
         }
         return;
@@ -241,7 +239,7 @@ async function renderError(req, error) {
     );
   }
   try {
-    const { Youch } = (await envs.nitro?.runner.import("youch")) || (await import("youch"));
+    const { Youch } = await import("youch");
     const youch = new Youch();
     return new Response(await youch.toHTML(error), {
       status: error.status || 500,
