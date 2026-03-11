@@ -53,13 +53,13 @@ export default defineConfig({ plugins: [nitro()] });
 ```
 
 ```ts [routes/hello.ts]
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 
 export default defineHandler(() => "Hello!");
 ```
 
 ```ts [routes/index.ts]
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 import { fetch } from "nitro";
 
 export default defineHandler(() => fetch("/hello"));
@@ -76,7 +76,7 @@ When you need one route to call another, use Nitro's `fetch` function instead of
 ## Main Route
 
 ```ts [routes/index.ts]
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 import { fetch } from "nitro";
 
 export default defineHandler(() => fetch("/hello"));
@@ -87,7 +87,7 @@ The index route imports `fetch` from `nitro` (not the global fetch) and calls th
 ## Internal API Route
 
 ```ts [routes/hello.ts]
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 
 export default defineHandler(() => "Hello!");
 ```

@@ -32,7 +32,8 @@ export default defineConfig({});
 ```
 
 ```tsx [server.tsx]
-import { defineHandler, html } from "h3";
+import { defineHandler } from "nitro";
+import { html } from "nitro/h3";
 import { renderSSR } from "nano-jsx";
 
 export default defineHandler(() => {
@@ -66,7 +67,8 @@ export default defineConfig({ plugins: [nitro()] });
 ## Server Entry
 
 ```tsx [server.tsx]
-import { defineHandler, html } from "h3";
+import { defineHandler } from "nitro";
+import { html } from "nitro/h3";
 import { renderSSR } from "nano-jsx";
 
 export default defineHandler(() => {

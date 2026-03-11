@@ -1,4 +1,4 @@
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 import { useDatabase } from "nitro/database";
 
 export default defineHandler(async () => {

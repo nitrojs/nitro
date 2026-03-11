@@ -46,7 +46,8 @@ export default defineConfig({
 ```
 
 ```ts [server.ts]
-import { defineHandler, HTTPError } from "nitro/h3";
+import { defineHandler } from "nitro";
+import { HTTPError } from "nitro/h3";
 
 export default defineHandler(() => {
   throw new HTTPError("Example Error!", { status: 500 });
@@ -96,7 +97,8 @@ The handler receives the thrown error and the H3 event object. You can use the e
 The main handler throws an error to demonstrate the custom error handler:
 
 ```ts [server.ts]
-import { defineHandler, HTTPError } from "nitro/h3";
+import { defineHandler } from "nitro";
+import { HTTPError } from "nitro/h3";
 
 export default defineHandler(() => {
   throw new HTTPError("Example Error!", { status: 500 });

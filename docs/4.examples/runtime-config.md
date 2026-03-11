@@ -46,7 +46,7 @@ export default defineConfig({
 ```
 
 ```ts [server.ts]
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 import { useRuntimeConfig } from "nitro/runtime-config";
 
 export default defineHandler((event) => {
@@ -96,7 +96,7 @@ export default defineConfig({
 Use `useRuntimeConfig` to access configuration values in your handlers:
 
 ```ts [server.ts]
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 import { useRuntimeConfig } from "nitro/runtime-config";
 
 export default defineHandler((event) => {

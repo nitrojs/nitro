@@ -69,9 +69,13 @@ export default defineConfig({ plugins: [nitro()] });
 ```
 
 ```ts [api/hello.ts]
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 
 export default defineHandler(() => "Nitro is amazing!");
+```
+
+```json [.wrangler/deploy/config.json]
+{"configPath":"../../.output/server/wrangler.json"}
 ```
 
 ::
@@ -113,7 +117,7 @@ Use `fetch` from `nitro` to call API routes without network overhead—these req
 ## API Route
 
 ```ts [api/hello.ts]
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 
 export default defineHandler(() => "Nitro is amazing!");
 ```

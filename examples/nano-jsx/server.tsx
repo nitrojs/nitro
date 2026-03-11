@@ -1,4 +1,5 @@
-import { defineHandler, html } from "h3";
+import { defineHandler } from "nitro";
+import { html } from "nitro/h3";
 import { renderSSR } from "nano-jsx";
 
 export default defineHandler(() => {
