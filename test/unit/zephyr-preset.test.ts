@@ -1,7 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const DEP_UTILS_PATH = "../../src/utils/dep.ts";
 const ZEPHYR_PRESET_PATH = "../../src/presets/zephyr/preset.ts";
+
+const importDepMock = vi.hoisted(() => vi.fn());
+vi.mock("../../src/utils/dep.ts", () => ({
+  importDep: importDepMock,
+}));
 
 async function getZephyrPreset() {
   const { default: presets } = await import(ZEPHYR_PRESET_PATH);
@@ -11,8 +15,9 @@ async function getZephyrPreset() {
 describe("zephyr preset", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.clearAllMocks();
     vi.resetModules();
-    vi.doUnmock(DEP_UTILS_PATH);
+    delete (globalThis as any).__nitroDeploying__;
     delete process.env.NITRO_INTERNAL_ZEPHYR_SKIP_DEPLOY_ON_BUILD;
   });
 
@@ -55,15 +60,7 @@ describe("zephyr preset", () => {
       deploymentUrl: "https://example.zephyr-cloud.io",
       entrypoint: "server/index.mjs",
     });
-    const importDep = vi.fn().mockResolvedValue({
-      uploadOutputToZephyr,
-    });
-
-    vi.doMock(DEP_UTILS_PATH, () => {
-      return {
-        importDep,
-      };
-    });
+    importDepMock.mockResolvedValue({ uploadOutputToZephyr });
 
     (globalThis as any).__nitroDeploying__ = true;
 
@@ -87,9 +84,7 @@ describe("zephyr preset", () => {
 
     await hooks.compiled?.(nitro);
 
-    delete (globalThis as any).__nitroDeploying__;
-
-    expect(importDep).toHaveBeenCalledWith({
+    expect(importDepMock).toHaveBeenCalledWith({
       id: "zephyr-agent",
       reason: "deploying to Zephyr",
       dir: "/tmp/project",
@@ -111,15 +106,7 @@ describe("zephyr preset", () => {
       deploymentUrl: "https://example.zephyr-cloud.io",
       entrypoint: "server/index.mjs",
     });
-    const importDep = vi.fn().mockResolvedValue({
-      uploadOutputToZephyr,
-    });
-
-    vi.doMock(DEP_UTILS_PATH, () => {
-      return {
-        importDep,
-      };
-    });
+    importDepMock.mockResolvedValue({ uploadOutputToZephyr });
 
     const preset = await getZephyrPreset();
     const hooks = preset.hooks!;
@@ -140,7 +127,7 @@ describe("zephyr preset", () => {
 
     await hooks.compiled?.(nitro);
 
-    expect(importDep).not.toHaveBeenCalled();
+    expect(importDepMock).not.toHaveBeenCalled();
     expect(uploadOutputToZephyr).not.toHaveBeenCalled();
     expect(nitro.logger.info).toHaveBeenCalledWith(
       "[zephyr-nitro-preset] Zephyr deploy skipped on build."

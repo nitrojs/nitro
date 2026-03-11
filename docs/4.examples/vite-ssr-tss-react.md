@@ -11,29 +11,6 @@ icon: i-simple-icons-tanstack
 
 ::code-tree{defaultValue="server.ts" expandAll}
 
-```text [.gitignore]
-node_modules
-package-lock.json
-yarn.lock
-
-.DS_Store
-.cache
-.env
-.vercel
-.output
-.nitro
-/build/
-/api/
-/server/build
-/public/build# Sentry Config File
-.env.sentry-build-plugin
-/test-results/
-/playwright-report/
-/blob-report/
-/playwright/.cache/
-.tanstack
-```
-
 ```json [package.json]
 {
   "type": "module",

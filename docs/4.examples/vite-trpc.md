@@ -11,11 +11,6 @@ icon: i-simple-icons-trpc
 
 ::code-tree{defaultValue="server/trpc.ts" expandAll}
 
-```text [.gitignore]
-node_modules
-dist
-```
-
 ```html [index.html]
 <!doctype html>
 <html lang="en">

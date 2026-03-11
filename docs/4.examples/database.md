@@ -39,7 +39,7 @@ export default defineConfig({
 ```
 
 ```ts [server.ts]
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 import { useDatabase } from "nitro/database";
 
 export default defineHandler(async () => {
@@ -110,7 +110,7 @@ Nitro provides a built-in database layer that uses SQL template literals for saf
 ## Querying the Database
 
 ```ts [server.ts]
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 import { useDatabase } from "nitro/database";
 
 export default defineHandler(async () => {

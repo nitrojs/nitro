@@ -1,0 +1,51 @@
+name: npm-publish
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions: {}
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    if: github.repository == 'nitrojs/nitro'
+    timeout-minutes: 30
+    environment: npm-publish
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - run: npm i -g --force corepack && corepack enable
+
+      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version: lts/*
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install
+      - run: pnpm build
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test:rolldown
+
+      - name: Publish to npm with provenance
+        # Uses OIDC trusted publishing — no NPM_TOKEN needed.
+        run: npm publish --provenance --access public --tag latest
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" \
+            --notes "$(pnpm changelogen --from=$(git describe --tags --abbrev=0 "$TAG^"))" \
+            --title "$TAG"

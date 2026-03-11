@@ -11,16 +11,6 @@ icon: i-lucide-settings
 
 ::code-tree{defaultValue="nitro.config.ts" expandAll}
 
-```text [.env]
-# NEVER COMMIT SENSITIVE DATA. THIS IS ONLY FOR DEMO PURPOSES.
-NITRO_API_KEY=secret-api-key
-```
-
-```text [.gitignore]
-# THIS IS ONLY FOR DEMO. DO NOT COMMIT SENSITIVE DATA IN REAL PROJECTS
-!.env
-```
-
 ```ts [nitro.config.ts]
 import { defineConfig } from "nitro";
 
@@ -46,7 +36,7 @@ export default defineConfig({
 ```
 
 ```ts [server.ts]
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 import { useRuntimeConfig } from "nitro/runtime-config";
 
 export default defineHandler((event) => {
@@ -96,7 +86,7 @@ export default defineConfig({
 Use `useRuntimeConfig` to access configuration values in your handlers:
 
 ```ts [server.ts]
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 import { useRuntimeConfig } from "nitro/runtime-config";
 
 export default defineHandler((event) => {

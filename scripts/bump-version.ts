@@ -11,7 +11,7 @@ const c = {
   bold: (s: string) => `\x1B[1m${s}\x1B[0m`,
 };
 
-function fmtDate(d: Date): string {
+export function fmtDate(d: Date): string {
   const y = d.getFullYear() % 100;
   const m = (d.getMonth() + 1).toString().padStart(2, "0");
   const day = d.getDate().toString().padStart(2, "0");
@@ -36,22 +36,23 @@ async function fetchExistingVersions(pkgName: string): Promise<string[]> {
   }
 }
 
-async function resolveDateSuffix(pkgName: string, dateStr: string): Promise<string> {
+export async function resolveVersion(
+  pkgName: string,
+  dateStr: string,
+  prerelease = "beta"
+): Promise<string> {
   const versions = await fetchExistingVersions(pkgName);
-  const prefix = `3.0.${dateStr}-beta`;
+  const base = `3.0.${dateStr}`;
+  const prefix = prerelease ? `${base}-${prerelease}` : base;
   const matching = versions.filter((v) => v.startsWith(prefix));
 
-  if (matching.length === 0) {
-    console.log(c.gray(`  No existing releases for ${c.cyan(dateStr)}`));
-    return dateStr;
-  }
-
+  const sep = prerelease ? "." : "-";
   let max = 0;
   for (const v of matching) {
     const rest = v.slice(prefix.length);
     if (rest === "") {
       max = Math.max(max, 1);
-    } else if (rest.startsWith(".")) {
+    } else if (rest.startsWith(sep)) {
       const n = Number.parseInt(rest.slice(1), 10);
       if (!Number.isNaN(n)) {
         max = Math.max(max, n);
@@ -59,9 +60,9 @@ async function resolveDateSuffix(pkgName: string, dateStr: string): Promise<stri
     }
   }
 
-  const suffix = `${dateStr}.${max + 1}`;
-  console.log(c.gray(`  Using suffix ${c.cyan(suffix)}`));
-  return suffix;
+  const version = max === 0 ? prefix : `${prefix}${sep}${max + 1}`;
+  console.log(c.gray(`  Resolved version: ${c.cyan(version)}`));
+  return version;
 }
 
 async function main() {
@@ -74,8 +75,7 @@ async function main() {
   const dateStr = fmtDate(new Date());
   console.log(c.gray(`Date: ${c.cyan(dateStr)}`));
 
-  const suffix = await resolveDateSuffix(pkg.name, dateStr);
-  const newVersion = `3.0.${suffix}-beta`;
+  const newVersion = await resolveVersion(pkg.name, dateStr);
 
   console.log();
   console.log(`  ${c.cyan(pkg.name)} ${c.gray(oldVersion)} → ${c.green(newVersion)}`);
@@ -86,7 +86,9 @@ async function main() {
   console.log(c.green(`\nDone!\n`));
 }
 
-main().catch((error) => {
-  console.error(c.red(`\nError: ${error.message}\n`));
-  process.exit(1);
-});
+if (process.argv[1] && import.meta.url.endsWith(process.argv[1])) {
+  main().catch((error) => {
+    console.error(c.red(`\nError: ${error.message}\n`));
+    process.exit(1);
+  });
+}

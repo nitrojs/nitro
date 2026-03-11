@@ -34,7 +34,7 @@ export default defineConfig({
 ```
 
 ```ts [server.ts]
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 import { makeGreeting } from "./server/utils/hello.ts";
 
 export default defineHandler(() => `<h1>${makeGreeting("Nitro")}</h1>`);
@@ -93,7 +93,7 @@ export function makeGreeting(name: string) {
 2. The function is available without importing it:
 
 ```ts [server.ts]
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 import { makeGreeting } from "./server/utils/hello.ts";
 
 export default defineHandler(() => `<h1>${makeGreeting("Nitro")}</h1>`);

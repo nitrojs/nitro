@@ -1,4 +1,4 @@
-import { defineWebSocketHandler } from "nitro/h3";
+import { defineWebSocketHandler } from "nitro";
 
 export default defineWebSocketHandler({
   open(peer) {

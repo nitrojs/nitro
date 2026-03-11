@@ -12,6 +12,17 @@ export { defineNitroPlugin as definePlugin } from "./internal/plugin.ts";
 export { defineRouteMeta } from "./internal/meta.ts";
 export { defineNitroErrorHandler as defineErrorHandler } from "./internal/error/utils.ts";
 
+// H3
+export {
+  defineHandler,
+  defineMiddleware,
+  defineWebSocketHandler,
+  html,
+  HTTPError,
+  HTTPResponse,
+} from "h3";
+export type { H3Event } from "h3";
+
 // Runtime
 export function serverFetch(
   resource: string | URL | Request,

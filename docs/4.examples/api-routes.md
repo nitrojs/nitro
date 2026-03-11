@@ -65,19 +65,19 @@ export default defineConfig({ plugins: [nitro()] });
 ```
 
 ```ts [api/hello.ts]
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 
 export default defineHandler(() => "Nitro is amazing!");
 ```
 
 ```ts [api/test.get.ts]
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 
 export default defineHandler(() => "Test get handler");
 ```
 
 ```ts [api/test.post.ts]
-import { defineHandler } from "h3";
+import { defineHandler } from "nitro";
 
 export default defineHandler(async (event) => {
   const body = await event.req.json();
@@ -89,7 +89,7 @@ export default defineHandler(async (event) => {
 ```
 
 ```ts [api/hello/[name].ts]
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 
 export default defineHandler((event) => `Hello (param: ${event.context.params!.name})!`);
 ```
@@ -107,7 +107,7 @@ Nitro supports file-based routing in the `api/` or `routes/` directory. Each fil
 Create a file in the `api/` directory to define a route. The file path becomes the URL path:
 
 ```ts [api/hello.ts]
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 
 export default defineHandler(() => "Nitro is amazing!");
 ```
@@ -119,7 +119,7 @@ This creates a `GET /api/hello` endpoint.
 Use square brackets `[param]` for dynamic URL segments. Access params via `event.context.params`:
 
 ```ts [api/hello/[name].ts]
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 
 export default defineHandler((event) => `Hello (param: ${event.context.params!.name})!`);
 ```
@@ -133,7 +133,7 @@ Suffix your file with the HTTP method (`.get.ts`, `.post.ts`, `.put.ts`, `.delet
 ### GET Handler
 
 ```ts [api/test.get.ts]
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 
 export default defineHandler(() => "Test get handler");
 ```
@@ -141,7 +141,7 @@ export default defineHandler(() => "Test get handler");
 ### POST Handler
 
 ```ts [api/test.post.ts]
-import { defineHandler } from "h3";
+import { defineHandler } from "nitro";
 
 export default defineHandler(async (event) => {
   const body = await event.req.json();

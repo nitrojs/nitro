@@ -190,7 +190,7 @@ Make sure to only access environment variables **within the event lifecycle**  a
 **Example:** If you have set the `SECRET` and `NITRO_HELLO_THERE` environment variables set you can access them in the following way:
 
 ```ts
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 import { useRuntimeConfig } from "nitro/runtime-config";
 
 console.log(process.env.SECRET) // note that this is in the global scope! so it doesn't actually work and the variable is undefined!
@@ -297,7 +297,7 @@ In runtime, you can access bindings from the request event via `event.req.runtim
 ::
 
 ```ts
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 
 defineHandler(async (event) => {
   // Nitro v3: access Cloudflare bindings via event.req.runtime.cloudflare.env

@@ -33,7 +33,7 @@ export default defineConfig({
 ```
 
 ```ts [server.ts]
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 
 export default defineHandler((event) => ({
   auth: event.context.auth,
@@ -54,7 +54,7 @@ export default defineConfig({ plugins: [nitro()] });
 ```
 
 ```ts [server/middleware/auth.ts]
-import { defineMiddleware } from "nitro/h3";
+import { defineMiddleware } from "nitro";
 
 export default defineMiddleware((event) => {
   event.context.auth = { name: "User " + Math.round(Math.random() * 100) };
@@ -74,7 +74,7 @@ Middleware functions run before route handlers on every request. They can modify
 Create files in `server/middleware/`. They run in alphabetical order:
 
 ```ts [server/middleware/auth.ts]
-import { defineMiddleware } from "nitro/h3";
+import { defineMiddleware } from "nitro";
 
 export default defineMiddleware((event) => {
   event.context.auth = { name: "User " + Math.round(Math.random() * 100) };
@@ -91,7 +91,7 @@ Middleware can:
 Data added to `event.context` in middleware is available in all subsequent handlers:
 
 ```ts [server.ts]
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 
 export default defineHandler((event) => ({
   auth: event.context.auth,
