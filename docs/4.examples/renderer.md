@@ -74,10 +74,6 @@ import { defineHandler } from "nitro";
 export default defineHandler(() => "Nitro is amazing!");
 ```
 
-```json [.wrangler/deploy/config.json]
-{"configPath":"../../.output/server/wrangler.json"}
-```
-
 ::
 
 <!-- /automd -->

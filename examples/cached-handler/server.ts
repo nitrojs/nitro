@@ -1,4 +1,4 @@
-import { html } from "nitro/h3";
+import { html } from "nitro";
 import { defineCachedHandler } from "nitro/cache";
 
 export default defineCachedHandler(

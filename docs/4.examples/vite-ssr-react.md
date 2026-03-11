@@ -124,10 +124,6 @@ button {
 }
 ```
 
-```json [.wrangler/deploy/config.json]
-{"configPath":"../../.output/server/wrangler.json"}
-```
-
 ::
 
 <!-- /automd -->

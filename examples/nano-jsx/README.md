@@ -1,8 +1,7 @@
 ## Server Entry
 
 ```tsx [server.tsx]
-import { defineHandler } from "nitro";
-import { html } from "nitro/h3";
+import { defineHandler, html } from "nitro";
 import { renderSSR } from "nano-jsx";
 
 export default defineHandler(() => {

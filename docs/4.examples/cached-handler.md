@@ -31,7 +31,7 @@ export default defineConfig({});
 ```
 
 ```ts [server.ts]
-import { html } from "nitro/h3";
+import { html } from "nitro";
 import { defineCachedHandler } from "nitro/cache";
 
 export default defineCachedHandler(
@@ -70,7 +70,7 @@ This example shows how to cache an expensive operation (a 500 ms delay) and cond
 ## How It Works
 
 ```ts [server.ts]
-import { html } from "nitro/h3";
+import { html } from "nitro";
 import { defineCachedHandler } from "nitro/cache";
 
 export default defineCachedHandler(

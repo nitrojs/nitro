@@ -11,11 +11,6 @@ icon: i-logos-react
 
 ::code-tree{defaultValue="app/root.tsx" expandAll}
 
-```text [.gitignore]
-node_modules
-dist
-```
-
 ```json [package.json]
 {
   "name": "@vitejs/plugin-rsc-examples-starter",

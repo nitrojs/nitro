@@ -5,7 +5,7 @@ Middleware functions run before route handlers on every request. They can modify
 Create files in `server/middleware/`. They run in alphabetical order:
 
 ```ts [server/middleware/auth.ts]
-import { defineMiddleware } from "nitro/h3";
+import { defineMiddleware } from "nitro";
 
 export default defineMiddleware((event) => {
   event.context.auth = { name: "User " + Math.round(Math.random() * 100) };

@@ -11,16 +11,6 @@ icon: i-lucide-settings
 
 ::code-tree{defaultValue="nitro.config.ts" expandAll}
 
-```text [.env]
-# NEVER COMMIT SENSITIVE DATA. THIS IS ONLY FOR DEMO PURPOSES.
-NITRO_API_KEY=secret-api-key
-```
-
-```text [.gitignore]
-# THIS IS ONLY FOR DEMO. DO NOT COMMIT SENSITIVE DATA IN REAL PROJECTS
-!.env
-```
-
 ```ts [nitro.config.ts]
 import { defineConfig } from "nitro";
 
