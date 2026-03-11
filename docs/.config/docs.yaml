@@ -39,5 +39,5 @@ branch: main
 versions:
   - label: "v3 (beta)"
     active: true
-  - label: "v2"
-    to: "https://nitro.build"
+  - label: "v2 (legacy)"
+    to: "https://v2.nitro.build"

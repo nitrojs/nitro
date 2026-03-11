@@ -135,14 +135,25 @@ Each preset in `src/presets/` defines deployment target behavior:
 - Examples in `examples/` should reflect best practices and be added for new integrations.
 - Add migration notes for breaking changes.
 
-## Best Practices
+## Code Conventions
 
-- Use **ESM** and modern JavaScript.
+- Use **ESM** and modern JavaScript; use explicit extensions (`.ts`, `.mjs`) in imports.
+- For `.json` imports, use `with { "type": "json" }`.
+- Avoid barrel files (`index.ts` re-exports); import directly from specific modules.
+- Place non-exported/internal helpers at the end of the file.
+- For multi-arg functions, use an options object as the second parameter.
+- Split logic across files; avoid long single-file modules (>200 LoC). Use `_*` prefix for internal files.
 - Prefer **Web APIs** over Node.js APIs where possible.
 - Do not add comments explaining what the line does unless prompted.
-- Before adding new code, always study surrounding patterns, naming conventions, and architectural decisions.
+- Before adding new code, study surrounding patterns, naming conventions, and architectural decisions.
 - Use existing UnJS utilities and dependencies before adding new packages.
 - Keep runtime code minimal and fast.
+
+## Commit Conventions
+
+- Use **semantic commit messages**, lower-case (e.g., `fix(cli): resolve path issue`).
+- Prefer to include scope (e.g., `feat(runtime):`, `fix(build):`).
+- Add a short description on the second line when helpful.
 
 ## Detailed References
 

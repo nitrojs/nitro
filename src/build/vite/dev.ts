@@ -115,8 +115,9 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   // Websocket
   if (nitro.options.features.websocket ?? nitro.options.experimental.websocket) {
     server.httpServer!.on("upgrade", (req, socket, head) => {
-      if (req.url?.startsWith("/?token")) {
-        // Vite upgrade. TODO: Is there a better way?
+      const protocol = req.headers["sec-websocket-protocol"];
+      if (protocol?.startsWith("vite-")) {
+        // Vite HMR WebSocket connection
         return;
       }
       getEnvRunner(ctx).upgrade?.({ node: { req, socket, head } });

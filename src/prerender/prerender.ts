@@ -2,13 +2,7 @@ import { pathToFileURL } from "node:url";
 import { defu } from "defu";
 import mime from "mime";
 import { writeFile } from "../utils/fs.ts";
-import type {
-  Nitro,
-  NitroConfig,
-  NitroRouteRules,
-  PrerenderRoute,
-  PublicAssetDir,
-} from "nitro/types";
+import type { Nitro, NitroRouteRules, PrerenderRoute, PublicAssetDir } from "nitro/types";
 import { join, relative, resolve } from "pathe";
 import { createRouter, addRoute, findAllRoutes } from "rou3";
 import { joinURL, withBase, withoutBase, withTrailingSlash } from "ufo";

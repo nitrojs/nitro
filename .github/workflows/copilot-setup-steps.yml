@@ -1,0 +1,16 @@
+name: "Copilot Setup Steps"
+
+on: workflow_dispatch
+
+jobs:
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - run: npm i -g --force corepack && corepack enable
+      - uses: actions/setup-node@v6
+        with: { node-version: lts/*, cache: pnpm }
+      - run: pnpm install
+      - run: pnpm build --stub
