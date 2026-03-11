@@ -1,17 +1,5 @@
 import type { Readable } from "node:stream";
-import type { APIGatewayProxyEventHeaders } from "aws-lambda";
-import { toBuffer } from "./utils";
-
-export function normalizeLambdaIncomingHeaders(
-  headers?: APIGatewayProxyEventHeaders
-): Record<string, string | string[] | undefined> {
-  return Object.fromEntries(
-    Object.entries(headers || {}).map(([key, value]) => [
-      key.toLowerCase(),
-      value,
-    ])
-  );
-}
+import { toBuffer } from "../utils";
 
 export function normalizeLambdaOutgoingHeaders(
   headers: Record<string, number | string | string[] | undefined>,
