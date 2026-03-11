@@ -13,30 +13,16 @@ const proxy = await _getPlatformProxy().catch((error) => {
 
 const cloudflareDevPlugin: NitroAppPlugin = function (nitroApp) {
   nitroApp.hooks.hook("request", async (event) => {
-    event.req.context ??= {};
-
-    // Inject the various cf values from the proxy in event and event.context
-    event.req.context.cf = proxy.cf;
-    event.req.context.waitUntil = proxy.ctx.waitUntil.bind(proxy.ctx);
-
     const request = event.req;
-    (request as any).cf = proxy.cf;
 
-    event.req.context.cloudflare = {
-      ...event.req.context.cloudflare!,
-      request,
+    (request as any).runtime ??= { name: "cloudflare" };
+    (request as any).runtime.cloudflare = {
+      ...(request as any).runtime.cloudflare,
       env: proxy.env,
       context: proxy.ctx,
     };
-
-    // Replicate Nitro production behavior
-    // https://github.com/unjs/nitro/blob/main/src/runtime/entries/cloudflare-pages.ts#L55
-    // https://github.com/unjs/nitro/blob/main/src/runtime/app.ts#L120
-    // TODO: Update for v3
-    // (event.node.req as any).__unenv__ = {
-    //   ...(event.node.req as any).__unenv__,
-    //   waitUntil: event.context.waitUntil,
-    // };
+    (request as any).waitUntil = proxy.ctx.waitUntil.bind(proxy.ctx);
+    (request as any).cf = proxy.cf;
   });
 
   // https://github.com/pi0/nitro-cloudflare-dev/issues/5
