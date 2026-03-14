@@ -199,8 +199,12 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       return next();
     }
     nodeReq._nitroHandled = true;
+
+    const baseURL = nitro.options.baseURL || "/";
     const originalURL = nodeReq.url;
-    nodeReq.url = withBase(nodeReq.url, nitro.options.baseURL);
+    if (baseURL !== "/") {
+      nodeReq.url = withBase(nodeReq.url, baseURL);
+    }
     try {
       // Create web API compat request
       const req = new NodeRequest({ req: nodeReq, res: nodeRes });
@@ -223,7 +227,9 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     } catch (error) {
       return next(error);
     } finally {
-      nodeReq.url = originalURL;
+      if (baseURL !== "/") {
+        nodeReq.url = originalURL;
+      }
     }
   };
 
