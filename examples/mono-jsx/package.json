@@ -5,7 +5,7 @@
     "build": "nitro build"
   },
   "devDependencies": {
-    "mono-jsx": "^0.7.5",
+    "mono-jsx": "latest",
     "nitro": "latest"
   }
 }

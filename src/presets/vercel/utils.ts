@@ -15,7 +15,19 @@ import { ISR_URL_PARAM } from "./runtime/isr.ts";
 // https://vercel.com/docs/build-output-api/configuration
 
 // https://vercel.com/docs/functions/runtimes/node-js/node-js-versions
-const SUPPORTED_NODE_VERSIONS = [20, 22];
+const SUPPORTED_NODE_VERSIONS = [20, 22, 24];
+
+// h3 ProxyOptions that Vercel CDN rewrites cannot handle at the edge.
+// https://vercel.com/docs/rewrites
+const UNSUPPORTED_PROXY_OPTIONS = [
+  "headers", // headers added to the outgoing request to the upstream
+  "forwardHeaders",
+  "filterHeaders",
+  "fetchOptions",
+  "cookieDomainRewrite",
+  "cookiePathRewrite",
+  "onResponse",
+] as const;
 
 const FALLBACK_ROUTE = "/__server";
 
@@ -24,9 +36,7 @@ const ISR_SUFFIX = "-isr"; // Avoid using . as it can conflict with routing
 const SAFE_FS_CHAR_RE = /[^a-zA-Z0-9_.[\]/]/g;
 
 function getSystemNodeVersion() {
-  const systemNodeVersion = Number.parseInt(
-    process.versions.node.split(".")[0]
-  );
+  const systemNodeVersion = Number.parseInt(process.versions.node.split(".")[0]);
 
   return Number.isNaN(systemNodeVersion) ? 22 : systemNodeVersion;
 }
@@ -38,10 +48,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
   const buildConfig = generateBuildConfig(nitro, o11Routes);
   await writeFile(buildConfigPath, JSON.stringify(buildConfig, null, 2));
 
-  const functionConfigPath = resolve(
-    nitro.options.output.serverDir,
-    ".vc-config.json"
-  );
+  const functionConfigPath = resolve(nitro.options.output.serverDir, ".vc-config.json");
   const functionConfig: VercelServerlessFunctionConfig = {
     handler: "index.mjs",
     launcherType: "Nodejs",
@@ -80,20 +87,13 @@ export async function generateFunctionFiles(nitro: Nitro) {
     return;
   }
   const _getRouteRules = (path: string) =>
-    defu(
-      {},
-      ...nitro.routing.routeRules.matchAll("", path).reverse()
-    ) as NitroRouteRules;
+    defu({}, ...nitro.routing.routeRules.matchAll("", path).reverse()) as NitroRouteRules;
   for (const route of o11Routes) {
     const routeRules = _getRouteRules(route.src);
     if (routeRules.isr) {
       continue; // #3563
     }
-    const funcPrefix = resolve(
-      nitro.options.output.serverDir,
-      "..",
-      route.dest
-    );
+    const funcPrefix = resolve(nitro.options.output.serverDir, "..", route.dest);
     await fsp.mkdir(dirname(funcPrefix), { recursive: true });
     await fsp.symlink(
       "./" + relative(dirname(funcPrefix), nitro.options.output.serverDir),
@@ -108,10 +108,7 @@ export async function generateEdgeFunctionFiles(nitro: Nitro) {
   const buildConfig = generateBuildConfig(nitro);
   await writeFile(buildConfigPath, JSON.stringify(buildConfig, null, 2));
 
-  const functionConfigPath = resolve(
-    nitro.options.output.serverDir,
-    ".vc-config.json"
-  );
+  const functionConfigPath = resolve(nitro.options.output.serverDir, ".vc-config.json");
   const functionConfig = {
     runtime: "edge",
     entrypoint: "index.mjs",
@@ -131,23 +128,37 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     (a, b) => b[0].split(/\/(?!\*)/).length - a[0].split(/\/(?!\*)/).length
   );
 
+  // Determine which proxy rules can be offloaded to Vercel CDN rewrites
+  const cdnProxyPaths = new Set(
+    rules
+      .filter(([_, routeRules]) => routeRules.proxy && canUseVercelRewrite(routeRules.proxy))
+      .map(([path]) => path)
+  );
+
   const config = defu(nitro.options.vercel?.config, {
     version: 3,
+    framework: {
+      name: nitro.options.framework.name,
+      version: nitro.options.framework.version,
+    },
     overrides: {
       // Nitro static prerendered route overrides
       ...Object.fromEntries(
-        (
-          nitro._prerenderedRoutes?.filter((r) => r.fileName !== r.route) || []
-        ).map(({ route, fileName }) => [
-          withoutLeadingSlash(fileName),
-          { path: route.replace(/^\//, "") },
-        ])
+        (nitro._prerenderedRoutes?.filter((r) => r.fileName !== r.route) || []).map(
+          ({ route, fileName }) => [
+            withoutLeadingSlash(fileName),
+            { path: route.replace(/^\//, "") },
+          ]
+        )
       ),
     },
     routes: [
-      // Redirect and header rules
+      // Redirect and header rules (excluding paths handled as CDN proxy rewrites)
       ...rules
-        .filter(([_, routeRules]) => routeRules.redirect || routeRules.headers)
+        .filter(
+          ([path, routeRules]) =>
+            (routeRules.redirect || routeRules.headers) && !cdnProxyPaths.has(path)
+        )
         .map(([path, routeRules]) => {
           let route = {
             src: path.replace("/**", "/(.*)"),
@@ -165,9 +176,23 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
           }
           return route;
         }),
+      // Proxy rewrite rules (CDN-level reverse proxy)
+      // https://vercel.com/docs/rewrites
+      ...rules
+        .filter(([path]) => cdnProxyPaths.has(path))
+        .map(([path, routeRules]) => {
+          const proxy = routeRules.proxy!;
+          const route: Record<string, any> = {
+            src: path.replace("/**", "/(.*)"),
+            dest: proxy.to.replace("/**", "/$1"),
+          };
+          if (routeRules.headers) {
+            route.headers = routeRules.headers;
+          }
+          return route;
+        }),
       // Skew protection
-      ...(nitro.options.vercel?.skewProtection &&
-      nitro.options.manifest?.deploymentId
+      ...(nitro.options.vercel?.skewProtection && nitro.options.manifest?.deploymentId
         ? [
             {
               src: "/.*",
@@ -200,6 +225,19 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     ],
   } as VercelBuildConfigV3);
 
+  // Cron jobs from scheduledTasks
+  if (
+    nitro.options.experimental.tasks &&
+    Object.keys(nitro.options.scheduledTasks || {}).length > 0
+  ) {
+    const cronPath = nitro.options.vercel!.cronHandlerRoute || "/_vercel/cron";
+    const cronEntries = Object.keys(nitro.options.scheduledTasks).map((schedule) => ({
+      path: cronPath,
+      schedule,
+    }));
+    config.crons = [...cronEntries, ...(config.crons || [])];
+  }
+
   // Early return if we are building a static site
   if (nitro.options.static) {
     return config;
@@ -231,9 +269,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
         return {
           src,
           dest: withLeadingSlash(
-            normalizeRouteDest(key) +
-              ISR_SUFFIX +
-              `?${ISR_URL_PARAM}=$${ISR_URL_PARAM}`
+            normalizeRouteDest(key) + ISR_SUFFIX + `?${ISR_URL_PARAM}=$${ISR_URL_PARAM}`
           ),
         };
       }),
@@ -295,8 +331,7 @@ export interface VercelConfig {
 
 export async function resolveVercelRuntime(nitro: Nitro) {
   // 1. Respect explicit runtime from nitro config
-  let runtime: VercelServerlessFunctionConfig["runtime"] =
-    nitro.options.vercel?.functions?.runtime;
+  let runtime: VercelServerlessFunctionConfig["runtime"] = nitro.options.vercel?.functions?.runtime;
 
   if (runtime) {
     // Already specified
@@ -339,6 +374,28 @@ function _hasProp(obj: any, prop: string) {
   return obj && typeof obj === "object" && prop in obj;
 }
 
+/**
+ * Check if a proxy rule can be offloaded to a Vercel CDN rewrite.
+ * A proxy is eligible when it targets an external URL and uses no
+ * ProxyOptions that Vercel's routing layer cannot handle at the edge.
+ */
+function canUseVercelRewrite(proxy: NitroRouteRules["proxy"]): proxy is { to: string } {
+  if (!proxy?.to) {
+    return false;
+  }
+  // Must be an external URL
+  if (!/^https?:\/\//.test(proxy.to.replace(/\/\*\*$/, ""))) {
+    return false;
+  }
+  // Must not use any ProxyOptions unsupported by Vercel rewrites
+  for (const key of UNSUPPORTED_PROXY_OPTIONS) {
+    if ((proxy as any)[key] !== undefined) {
+      return false;
+    }
+  }
+  return true;
+}
+
 // --- utils for observability ---
 
 type ObservabilityRoute = {
@@ -348,8 +405,7 @@ type ObservabilityRoute = {
 
 function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
   const compatDate =
-    nitro.options.compatibilityDate.vercel ||
-    nitro.options.compatibilityDate.default;
+    nitro.options.compatibilityDate.vercel || nitro.options.compatibilityDate.default;
   if (compatDate < "2025-07-15") {
     return [];
   }
@@ -406,9 +462,7 @@ function normalizeRouteSrc(route: string): string {
     .split("/")
     .map((segment) => {
       if (segment.startsWith("**")) {
-        return segment === "**"
-          ? "(?:.*)"
-          : `?(?<${namedGroup(segment.slice(3))}>.+)`;
+        return segment === "**" ? "(?:.*)" : `?(?<${namedGroup(segment.slice(3))}>.+)`;
       }
       if (segment === "*") {
         return `(?<_${idCtr++}>[^/]*)`;
@@ -479,10 +533,7 @@ async function writePrerenderConfig(
     ...isrConfig,
   };
 
-  if (
-    prerenderConfig.allowQuery &&
-    !prerenderConfig.allowQuery.includes(ISR_URL_PARAM)
-  ) {
+  if (prerenderConfig.allowQuery && !prerenderConfig.allowQuery.includes(ISR_URL_PARAM)) {
     prerenderConfig.allowQuery.push(ISR_URL_PARAM);
   }
 

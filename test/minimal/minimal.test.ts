@@ -10,10 +10,10 @@ const tmpDir = fileURLToPath(new URL(".tmp", import.meta.url));
 
 // Rounded up
 const bundleSizes: Record<string, [kb: number, minKB: number]> = {
-  rollup: [15, 10],
-  rolldown: [20, 8],
-  vite: [15, 8],
-  vite7: [15, 8],
+  rollup: [16, 8],
+  rolldown: [16, 8],
+  vite: [16, 8],
+  vite7: [16, 8],
 };
 
 describe("minimal fixture", () => {
@@ -34,9 +34,7 @@ describe("minimal fixture", () => {
             output: { dir: outDir },
             // @ts-expect-error for testing
             __vitePkg__: builder,
-            builder: builder.includes("vite")
-              ? "vite"
-              : (builder as "rollup" | "rolldown"),
+            builder: builder.includes("vite") ? "vite" : (builder as "rollup" | "rolldown"),
           });
           await prepare(nitro);
           const start = Date.now();

@@ -20,10 +20,7 @@ type VirtualTemplate = {
   template: string | (() => string | Promise<string>);
 };
 
-export function virtualTemplates(
-  nitro: Nitro,
-  _polyfills: string[]
-): VirtualTemplate[] {
+export function virtualTemplates(nitro: Nitro, _polyfills: string[]): VirtualTemplate[] {
   const nitroTemplates = [
     cloudflareDurable,
     database,
@@ -41,9 +38,10 @@ export function virtualTemplates(
     tasks,
   ].flatMap((t) => t(nitro, _polyfills));
 
-  const customTemplates = Object.entries(nitro.options.virtual).map(
-    ([id, template]) => ({ id, template })
-  );
+  const customTemplates = Object.entries(nitro.options.virtual).map(([id, template]) => ({
+    id,
+    template,
+  }));
 
   return [...nitroTemplates, ...customTemplates];
 }

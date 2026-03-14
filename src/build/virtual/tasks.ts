@@ -7,15 +7,13 @@ export default function tasks(nitro: Nitro) {
     template: () => {
       const _scheduledTasks = Object.entries(nitro.options.scheduledTasks || {})
         .map(([cron, _tasks]) => {
-          const tasks = (Array.isArray(_tasks) ? _tasks : [_tasks]).filter(
-            (name) => {
-              if (!nitro.options.tasks[name]) {
-                nitro.logger.warn(`Scheduled task \`${name}\` is not defined!`);
-                return false;
-              }
-              return true;
+          const tasks = (Array.isArray(_tasks) ? _tasks : [_tasks]).filter((name) => {
+            if (!nitro.options.tasks[name]) {
+              nitro.logger.warn(`Scheduled task \`${name}\` is not defined!`);
+              return false;
             }
-          );
+            return true;
+          });
           return { cron, tasks };
         })
         .filter((e) => e.tasks.length > 0);
@@ -35,9 +33,7 @@ export const tasks = {
           },
           resolve: ${
             task.handler
-              ? /* js */ `() => import("${normalize(
-                  task.handler
-                )}").then(r => r.default || r)`
+              ? /* js */ `() => import("${normalize(task.handler)}").then(r => r.default || r)`
               : "undefined"
           },
         }`

@@ -7,17 +7,13 @@ export interface VercelBuildConfigV3 {
   routes?: (
     | {
         src: string;
-        headers: {
-          "cache-control": string;
-        };
-        continue: boolean;
+        dest?: string;
+        headers?: Record<string, string>;
+        continue?: boolean;
+        status?: number;
       }
     | {
         handle: string;
-      }
-    | {
-        src: string;
-        dest: string;
       }
   )[];
   images?: {
@@ -47,6 +43,9 @@ export interface VercelBuildConfigV3 {
   >;
   cache?: string[];
   bypassToken?: string;
+  framework?: {
+    version: string;
+  };
   crons?: {
     path: string;
     schedule: string;
@@ -110,7 +109,7 @@ export interface VercelServerlessFunctionConfig {
 }
 
 export interface VercelOptions {
-  config: VercelBuildConfigV3;
+  config?: VercelBuildConfigV3;
 
   /**
    * If you have enabled skew protection in the Vercel dashboard, it will
@@ -136,6 +135,18 @@ export interface VercelOptions {
    * Possible values are: `web` (default) and `node`.
    */
   entryFormat?: "web" | "node";
+
+  /**
+   * The route path for the Vercel cron handler endpoint.
+   *
+   * When `experimental.tasks` and `scheduledTasks` are configured,
+   * Nitro registers a cron handler at this path that Vercel invokes
+   * on each scheduled cron trigger.
+   *
+   * @default "/_vercel/cron"
+   * @see https://vercel.com/docs/cron-jobs
+   */
+  cronHandlerRoute?: string;
 }
 
 /**
@@ -169,4 +180,11 @@ export type PrerenderFunctionConfig = {
    * When `true`, the query string will be present on the `request` argument passed to the invoked function. The `allowQuery` filter still applies.
    */
   passQuery?: boolean;
+
+  /**
+   * (vercel)
+   *
+   * When `true`, expose the response body regardless of status code including error status codes. (default `false`)
+   */
+  exposeErrBody?: boolean;
 };

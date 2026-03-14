@@ -16,10 +16,7 @@ const zeabur = defineNitroPreset(
     },
     hooks: {
       async compiled(nitro: Nitro) {
-        const buildConfigPath = resolve(
-          nitro.options.output.dir,
-          "config.json"
-        );
+        const buildConfigPath = resolve(nitro.options.output.dir, "config.json");
         const cfg = {
           containerized: false,
           routes: [{ src: ".*", dest: "/__nitro" }],
@@ -31,14 +28,10 @@ const zeabur = defineNitroPreset(
           if (!value.isr) {
             continue;
           }
-          const funcPrefix = resolve(
-            nitro.options.output.serverDir,
-            ".." + key
-          );
+          const funcPrefix = resolve(nitro.options.output.serverDir, ".." + key);
           await fsp.mkdir(dirname(funcPrefix), { recursive: true });
           await fsp.symlink(
-            "./" +
-              relative(dirname(funcPrefix), nitro.options.output.serverDir),
+            "./" + relative(dirname(funcPrefix), nitro.options.output.serverDir),
             funcPrefix + ".func",
             "junction"
           );

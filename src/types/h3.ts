@@ -4,10 +4,7 @@ import type { Base$Fetch, NitroFetchRequest } from "./fetch/fetch.ts";
 import type { NitroRuntimeConfig } from "./config.ts";
 import type { MatchedRouteRules } from "./route-rules.ts";
 
-export type H3EventFetch = (
-  request: NitroFetchRequest,
-  init?: RequestInit
-) => Promise<Response>;
+export type H3EventFetch = (request: NitroFetchRequest, init?: RequestInit) => Promise<Response>;
 
 export type H3Event$Fetch = Base$Fetch<unknown, NitroFetchRequest>;
 
@@ -24,4 +21,5 @@ declare module "srvx" {
   }
 }
 
+// eslint-disable-next-line unicorn/require-module-specifiers
 export type {};

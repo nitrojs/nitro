@@ -10,7 +10,7 @@ import { baseBuildConfig } from "../config.ts";
 import { baseBuildPlugins } from "../plugins.ts";
 import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
 
-export const getRollupConfig = (nitro: Nitro): RollupConfig => {
+export const getRollupConfig = async (nitro: Nitro): Promise<RollupConfig> => {
   const base = baseBuildConfig(nitro);
 
   const tsc = nitro.options.typescript.tsConfig?.compilerOptions;
@@ -19,12 +19,13 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
     input: nitro.options.entry,
     external: [...base.env.external],
     plugins: [
-      ...baseBuildPlugins(nitro, base),
-      oxc({
+      ...(await baseBuildPlugins(nitro, base)),
+      await oxc({
         sourcemap: !!nitro.options.sourcemap,
         minify: nitro.options.minify ? { ...nitro.options.oxc?.minify } : false,
         transform: {
           target: "esnext",
+          // @ts-expect-error TODO: does option exists?
           cwd: nitro.options.rootDir,
           ...nitro.options.oxc?.transform,
           jsx: {
@@ -42,8 +43,6 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
         extensions: base.extensions,
         preferBuiltins: !!nitro.options.node,
         rootDir: nitro.options.rootDir,
-        // 'module' is intentionally not supported because of externals
-        mainFields: ["main"],
         exportConditions: nitro.options.exportConditions,
       }),
       (commonjs as unknown as typeof commonjs.default)({
@@ -82,7 +81,7 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
 
   config = defu(nitro.options.rollupConfig as any, config);
 
-  const outputConfig = config.output as RollupConfig["output"];
+  const outputConfig = config.output as NonNullable<RollupConfig["output"]>;
   if (outputConfig.inlineDynamicImports || outputConfig.format === "iife") {
     delete outputConfig.manualChunks;
   }

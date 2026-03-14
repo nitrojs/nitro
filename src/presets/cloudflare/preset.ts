@@ -175,7 +175,4 @@ export default [
   cloudflareDev,
 ];
 
-export {
-  type CloudflareDurableResolver,
-  type CloudflareDurableResolverContext,
-} from "./types.ts";
+export { type CloudflareDurableResolver, type CloudflareDurableResolverContext } from "./types.ts";

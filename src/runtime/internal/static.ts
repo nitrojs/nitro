@@ -1,30 +1,19 @@
 import { HTTPError, defineHandler } from "h3";
 import type { EventHandler, HTTPMethod } from "h3";
 import type { PublicAsset } from "nitro/types";
-import {
-  decodePath,
-  joinURL,
-  withLeadingSlash,
-  withoutTrailingSlash,
-} from "ufo";
-import {
-  getAsset,
-  isPublicAssetURL,
-  readAsset,
-} from "#nitro/virtual/public-assets";
+import { decodePath, joinURL, withLeadingSlash, withoutTrailingSlash } from "ufo";
+import { getAsset, isPublicAssetURL, readAsset } from "#nitro/virtual/public-assets";
 
 const METHODS = new Set(["HEAD", "GET"] as HTTPMethod[]);
 
-const EncodingMap = { gzip: ".gz", br: ".br" } as const;
+const EncodingMap = { gzip: ".gz", br: ".br", zstd: ".zst" } as const;
 
 export default defineHandler((event) => {
   if (event.req.method && !METHODS.has(event.req.method as HTTPMethod)) {
     return;
   }
 
-  let id = decodePath(
-    withLeadingSlash(withoutTrailingSlash(event.url.pathname))
-  );
+  let id = decodePath(withLeadingSlash(withoutTrailingSlash(event.url.pathname)));
 
   let asset: PublicAsset | undefined;
 
@@ -37,9 +26,6 @@ export default defineHandler((event) => {
       .sort(),
     "",
   ];
-  if (encodings.length > 1) {
-    event.res.headers.append("Vary", "Accept-Encoding");
-  }
 
   for (const encoding of encodings) {
     for (const _id of [id + encoding, joinURL(id, "index.html" + encoding)]) {
@@ -60,6 +46,10 @@ export default defineHandler((event) => {
     return;
   }
 
+  if (encodings.length > 1) {
+    event.res.headers.append("Vary", "Accept-Encoding");
+  }
+
   const ifNotMatch = event.req.headers.get("if-none-match") === asset.etag;
   if (ifNotMatch) {
     event.res.status = 304;
@@ -69,11 +59,7 @@ export default defineHandler((event) => {
 
   const ifModifiedSinceH = event.req.headers.get("if-modified-since");
   const mtimeDate = new Date(asset.mtime);
-  if (
-    ifModifiedSinceH &&
-    asset.mtime &&
-    new Date(ifModifiedSinceH) >= mtimeDate
-  ) {
+  if (ifModifiedSinceH && asset.mtime && new Date(ifModifiedSinceH) >= mtimeDate) {
     event.res.status = 304;
     event.res.statusText = "Not Modified";
     return "";

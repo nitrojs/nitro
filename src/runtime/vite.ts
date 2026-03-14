@@ -12,7 +12,7 @@ export function fetchViteEnv(
   viteEnvName: string,
   input: RequestInfo | URL,
   init?: RequestInit
-) {
+): Promise<Response> {
   const envs = globalThis.__nitro_vite_envs__ || {};
   const viteEnv = envs[viteEnvName as keyof typeof envs] as FetchableEnv;
   if (!viteEnv) {

@@ -31,8 +31,7 @@ export default defineConfig({
     },
   },
   virtual: {
-    "#virtual-route": () =>
-      `export default () => new Response("Hello from virtual entry!")`,
+    "#virtual-route": () => `export default () => new Response("Hello from virtual entry!")`,
   },
   handlers: [
     {
@@ -52,7 +51,7 @@ export default defineConfig({
   ],
   devProxy: {
     "/proxy/example": {
-      target: "https://example.com",
+      target: "https://icanhazip.com",
       changeOrigin: true,
       ignorePath: true,
     },
@@ -64,12 +63,7 @@ export default defineConfig({
       dir: "server/files",
     },
   ],
-  ignore: [
-    "routes/api/**/_*",
-    "middleware/_ignored.ts",
-    "routes/_*.ts",
-    "**/_*.txt",
-  ],
+  ignore: ["routes/api/**/_*", "middleware/_ignored.ts", "routes/_*.ts", "**/_*.txt"],
   runtimeConfig: {
     dynamic: "initial",
     url: "https://{{APP_DOMAIN}}",
@@ -111,6 +105,11 @@ export default defineConfig({
     "/rules/_/cached/noncached": { cache: false, swr: false, isr: false },
     "/rules/_/cached/**": { swr: true },
     "/api/proxy/**": { proxy: "/api/echo" },
+    "/cdn/**": { proxy: "https://cdn.jsdelivr.net/**" },
+    "/rules/basic-auth/**": {
+      basicAuth: { username: "admin", password: "secret", realm: "Secure Area" },
+    },
+    "/rules/basic-auth/no-auth/**": { basicAuth: false },
     "**": { headers: { "x-test": "test" } },
   },
   prerender: {

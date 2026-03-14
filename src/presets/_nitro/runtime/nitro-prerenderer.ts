@@ -1,4 +1,4 @@
-import "#nitro-internal-polyfills";
+import "#nitro/virtual/polyfills";
 import consola from "consola";
 import { HTTPError } from "h3";
 import { useNitroApp, useNitroHooks } from "nitro/app";

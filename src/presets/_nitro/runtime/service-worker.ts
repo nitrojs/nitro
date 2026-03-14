@@ -1,4 +1,4 @@
-import "#nitro-internal-polyfills";
+import "#nitro/virtual/polyfills";
 import { useNitroApp } from "nitro/app";
 import { isPublicAssetURL } from "#nitro/virtual/public-assets";
 import type { ServerRequest } from "srvx";
@@ -15,7 +15,6 @@ addEventListener("fetch", (event: FetchEvent) => {
   // srvx compatibility
   const req = event.request as unknown as ServerRequest;
   req.runtime ??= { name: "service-worker" };
-  // @ts-expect-error (add to srvx types)
   req.runtime.serviceWorker ??= { event } as any;
   req.waitUntil = event.waitUntil.bind(event);
 

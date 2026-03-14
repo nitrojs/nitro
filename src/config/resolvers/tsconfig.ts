@@ -8,10 +8,7 @@ export async function resolveTsconfig(options: NitroOptions) {
   if (!options.typescript.tsConfig) {
     options.typescript.tsConfig = await loadTsconfig(root);
   }
-  if (
-    options.experimental.tsconfigPaths &&
-    options.typescript.tsConfig.compilerOptions?.paths
-  ) {
+  if (options.experimental.tsconfigPaths && options.typescript.tsConfig.compilerOptions?.paths) {
     options.alias = {
       ...tsConfigToAliasObj(options.typescript.tsConfig, root),
       ...options.alias,
@@ -36,10 +33,7 @@ async function loadTsconfig(root: string): Promise<TSConfig> {
   return tsconfig;
 }
 
-function tsConfigToAliasObj(
-  tsconfig: TSConfig,
-  root: string
-): Record<string, string> {
+function tsConfigToAliasObj(tsconfig: TSConfig, root: string): Record<string, string> {
   const compilerOptions = tsconfig?.compilerOptions;
   if (!compilerOptions?.paths) {
     return {};
@@ -57,9 +51,7 @@ function tsConfigToAliasObj(
     }
     if (target.startsWith(".")) {
       if (!compilerOptions.baseUrl) continue; // skip relative paths if no baseUrl is set
-      target =
-        resolve(root, compilerOptions.baseUrl, target) +
-        (key.endsWith("*") ? "/" : "");
+      target = resolve(root, compilerOptions.baseUrl, target) + (key.endsWith("*") ? "/" : "");
     }
     alias[source] = target;
   }

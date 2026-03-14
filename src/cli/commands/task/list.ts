@@ -23,11 +23,7 @@ export default defineCommand({
       buildDir: options?.buildDir || ".nitro",
     });
     for (const [name, task] of Object.entries(tasks)) {
-      consola.log(
-        ` - \`${name}\`${
-          task.meta?.description ? ` - ${task.meta.description}` : ""
-        }`
-      );
+      consola.log(` - \`${name}\`${task.meta?.description ? ` - ${task.meta.description}` : ""}`);
     }
   },
 });

@@ -85,13 +85,7 @@ export type AmplifyImageSettings = {
   }[];
 
   /** Array of allowed output image formats. */
-  formats: (
-    | "image/avif"
-    | "image/webp"
-    | "image/gif"
-    | "image/png"
-    | "image/jpeg"
-  )[];
+  formats: ("image/avif" | "image/webp" | "image/gif" | "image/png" | "image/jpeg")[];
 
   /** Cache duration (in seconds) for the optimized images. */
   minimumCacheTTL: number;

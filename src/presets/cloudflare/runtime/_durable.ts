@@ -1,8 +1,5 @@
 import type * as CF from "@cloudflare/workers-types";
-import type {
-  CloudflareDurableResolver,
-  CloudflareDurableResolverContext,
-} from "../types.ts";
+import type { CloudflareDurableResolver, CloudflareDurableResolverContext } from "../types.ts";
 
 type MaybePromise<T> = T | Promise<T>;
 

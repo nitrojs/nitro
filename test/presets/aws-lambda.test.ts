@@ -73,9 +73,7 @@ describe("nitro:preset:aws-lambda-v1", async () => {
 function webResponse(awsResponse: any) {
   const headers = new Headers(awsResponse.headers);
   const setCookie =
-    awsResponse?.cookies /* v2 */ ??
-    awsResponse?.multiValueHeaders /* v1 */?.["set-cookie"] ??
-    [];
+    awsResponse?.cookies /* v2 */ ?? awsResponse?.multiValueHeaders /* v1 */?.["set-cookie"] ?? [];
   headers.delete("set-cookie");
   for (const cookie of setCookie) {
     if (Array.isArray(cookie)) {

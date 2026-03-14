@@ -2,8 +2,8 @@ import { promises as fsp } from "node:fs";
 import mime from "mime";
 import type { Plugin } from "rollup";
 
-const HELPER_ID = "\0nitro-raw-helpers";
-const RESOLVED_PREFIX = "\0nitro:raw:";
+const HELPER_ID = "virtual:nitro-raw-helpers";
+const RESOLVED_PREFIX = "virtual:nitro:raw:";
 const PREFIX = "raw:";
 
 export function raw(): Plugin {
@@ -19,9 +19,8 @@ export function raw(): Plugin {
           return id;
         }
         if (id.startsWith(PREFIX)) {
-          const resolvedId = (
-            await this.resolve(id.slice(PREFIX.length), importer, resolveOpts)
-          )?.id;
+          const resolvedId = (await this.resolve(id.slice(PREFIX.length), importer, resolveOpts))
+            ?.id;
           if (!resolvedId) {
             return null;
           }
@@ -40,10 +39,7 @@ export function raw(): Plugin {
         }
         if (id.startsWith(RESOLVED_PREFIX)) {
           // this.addWatchFile(id.substring(RESOLVED_PREFIX.length));
-          return fsp.readFile(
-            id.slice(RESOLVED_PREFIX.length),
-            isBinary(id) ? "binary" : "utf8"
-          );
+          return fsp.readFile(id.slice(RESOLVED_PREFIX.length), isBinary(id) ? "binary" : "utf8");
         }
       },
     },

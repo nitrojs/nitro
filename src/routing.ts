@@ -8,8 +8,7 @@ import { addRoute, createRouter, findRoute, findAllRoutes } from "rou3";
 import { compileRouterToString } from "rou3/compiler";
 import { hash } from "ohash";
 
-const isGlobalMiddleware = (h: NitroEventHandler) =>
-  !h.method && (!h.route || h.route === "/**");
+const isGlobalMiddleware = (h: NitroEventHandler) => !h.method && (!h.route || h.route === "/**");
 
 export function initNitroRouting(nitro: Nitro) {
   const envConditions = new Set(
@@ -26,19 +25,17 @@ export function initNitroRouting(nitro: Nitro) {
   };
 
   type MaybeArray<T> = T | T[];
-  const routes = new Router<
-    MaybeArray<NitroEventHandler & { _importHash: string }>
-  >(nitro.options.baseURL);
-
-  const routeRules = new Router<NitroRouteRules & { _route: string }>(
+  const routes = new Router<MaybeArray<NitroEventHandler & { _importHash: string }>>(
     nitro.options.baseURL
   );
 
+  const routeRules = new Router<NitroRouteRules & { _route: string }>(nitro.options.baseURL);
+
   const globalMiddleware: (NitroEventHandler & { _importHash: string })[] = [];
 
-  const routedMiddleware = new Router<
-    NitroEventHandler & { _importHash: string }
-  >(nitro.options.baseURL);
+  const routedMiddleware = new Router<NitroEventHandler & { _importHash: string }>(
+    nitro.options.baseURL
+  );
 
   const sync = () => {
     // Update route rules
@@ -89,10 +86,9 @@ export function initNitroRouting(nitro: Nitro) {
     );
 
     // Update middleware
-    const _middleware = [
-      ...nitro.scannedHandlers,
-      ...nitro.options.handlers,
-    ].filter((h) => h && h.middleware && matchesEnv(h));
+    const _middleware = [...nitro.scannedHandlers, ...nitro.options.handlers].filter(
+      (h) => h && h.middleware && matchesEnv(h)
+    );
     if (nitro.options.serveStatic) {
       _middleware.unshift({
         route: "/**",
@@ -103,9 +99,7 @@ export function initNitroRouting(nitro: Nitro) {
     globalMiddleware.splice(
       0,
       globalMiddleware.length,
-      ..._middleware
-        .filter((h) => isGlobalMiddleware(h))
-        .map((m) => handlerWithImportHash(m))
+      ..._middleware.filter((h) => isGlobalMiddleware(h)).map((m) => handlerWithImportHash(m))
     );
     routedMiddleware._update(
       _middleware
@@ -128,8 +122,7 @@ export function initNitroRouting(nitro: Nitro) {
 }
 
 function handlerWithImportHash(h: NitroEventHandler) {
-  const id =
-    (h.lazy ? "_lazy_" : "_") + hash(h.handler).replace(/-/g, "").slice(0, 6);
+  const id = (h.lazy ? "_lazy_" : "_") + hash(h.handler).replace(/-/g, "").slice(0, 6);
   return { ...h, _importHash: id };
 }
 
@@ -144,7 +137,7 @@ export interface Route<T = unknown> {
 export class Router<T> {
   _routes?: Route<T>[];
   _router?: RouterContext<T>;
-  _compiled?: string;
+  _compiled?: Record<string, string>;
   _baseURL: string;
 
   constructor(baseURL?: string) {
@@ -164,12 +157,7 @@ export class Router<T> {
     this._router = createRouter<T>();
     this._compiled = undefined;
     for (const route of routes) {
-      addRoute(
-        this._router,
-        route.method,
-        this._baseURL + route.route,
-        route.data
-      );
+      addRoute(this._router, route.method, this._baseURL + route.route, route.data);
     }
     if (opts?.merge) {
       mergeCatchAll(this._router);
@@ -181,16 +169,16 @@ export class Router<T> {
   }
 
   compileToString(opts?: RouterCompilerOptions<T>) {
-    if (this._compiled) {
-      return this._compiled;
+    const key = opts ? hash(opts) : "";
+    this._compiled ||= {};
+    if (this._compiled[key]) {
+      return this._compiled[key];
     }
-    this._compiled = compileRouterToString(this._router!, undefined, opts);
+    this._compiled[key] = compileRouterToString(this._router!, undefined, opts);
 
     // TODO: Upstream to rou3 compiler
     const onlyWildcard =
-      this.routes.length === 1 &&
-      this.routes[0].route === "/**" &&
-      this.routes[0].method === "";
+      this.routes.length === 1 && this.routes[0].route === "/**" && this.routes[0].method === "";
     if (onlyWildcard) {
       // Optimize for single wildcard route
       const data = (opts?.serialize || JSON.stringify)(this.routes[0].data);
@@ -198,10 +186,11 @@ export class Router<T> {
       if (opts?.matchAll) {
         retCode = `[${retCode}]`;
       }
-      this._compiled = /* js */ `/* @__PURE__ */ (() => {const data=${data};return ((_m, p)=>{return ${retCode};})})()`;
+      this._compiled[key] =
+        /* js */ `/* @__PURE__ */ (() => {const data=${data};return ((_m, p)=>{return ${retCode};})})()`;
     }
 
-    return this._compiled;
+    return this._compiled[key];
   }
 
   match(method: string, path: string): undefined | T {
@@ -210,9 +199,7 @@ export class Router<T> {
 
   matchAll(method: string, path: string): T[] {
     // Returns from less specific to more specific matches
-    return findAllRoutes(this._router!, method, path).map(
-      (route) => route.data
-    );
+    return findAllRoutes(this._router!, method, path).map((route) => route.data);
   }
 }
 

@@ -1,7 +1,6 @@
 import type { Nitro } from "nitro/types";
 
-const nitroInstances: Nitro[] = ((globalThis as any).__nitro_instances__ ||=
-  []);
+const nitroInstances: Nitro[] = ((globalThis as any).__nitro_instances__ ||= []);
 
 const globalKey = "__nitro_builder__";
 

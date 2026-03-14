@@ -1,4 +1,4 @@
-import "#nitro-internal-polyfills";
+import "#nitro/virtual/polyfills";
 import { NodeRequest, serve } from "srvx/node";
 import wsAdapter from "crossws/adapters/node";
 
@@ -6,10 +6,9 @@ import { useNitroApp } from "nitro/app";
 import { startScheduleRunner } from "#nitro/runtime/task";
 import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
-import { hasWebSocket } from "#nitro/virtual/feature-flags";
 
-const port =
-  Number.parseInt(process.env.NITRO_PORT || process.env.PORT || "") || 3000;
+const _parsedPort = Number.parseInt(process.env.NITRO_PORT ?? process.env.PORT ?? "");
+const port = Number.isNaN(_parsedPort) ? 3000 : _parsedPort;
 
 const host = process.env.NITRO_HOST || process.env.HOST;
 const cert = process.env.NITRO_SSL_CERT;
@@ -25,7 +24,7 @@ const server = serve({
   fetch: nitroApp.fetch,
 });
 
-if (hasWebSocket) {
+if (import.meta._websocket) {
   const { handleUpgrade } = wsAdapter({ resolve: resolveWebsocketHooks });
   server.node!.server!.on("upgrade", (req, socket, head) => {
     handleUpgrade(
@@ -42,7 +41,7 @@ trapUnhandledErrors();
 
 // Scheduled tasks
 if (import.meta._tasks) {
-  startScheduleRunner();
+  startScheduleRunner({ waitUntil: server.waitUntil });
 }
 
 export default {};

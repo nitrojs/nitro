@@ -29,6 +29,16 @@ describe("nitro:preset:vercel:web", async () => {
           .then((r) => JSON.parse(r));
         expect(config).toMatchInlineSnapshot(`
           {
+            "crons": [
+              {
+                "path": "/_vercel/cron",
+                "schedule": "* * * * *",
+              },
+            ],
+            "framework": {
+              "name": "nitro",
+              "version": "3.x",
+            },
             "overrides": {
               "_scalar/index.html": {
                 "path": "_scalar",
@@ -106,6 +116,10 @@ describe("nitro:preset:vercel:web", async () => {
                   "x-test": "test",
                 },
                 "src": "/(.*)",
+              },
+              {
+                "dest": "https://cdn.jsdelivr.net/$1",
+                "src": "/cdn/(.*)",
               },
               {
                 "continue": true,
@@ -230,8 +244,16 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/fetch",
               },
               {
-                "dest": "/error-stack",
-                "src": "/error-stack",
+                "dest": "/errors/throw",
+                "src": "/errors/throw",
+              },
+              {
+                "dest": "/errors/stack",
+                "src": "/errors/stack",
+              },
+              {
+                "dest": "/errors/captured",
+                "src": "/errors/captured",
               },
               {
                 "dest": "/env",
@@ -290,14 +312,6 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/api/headers",
               },
               {
-                "dest": "/api/errors",
-                "src": "/api/errors",
-              },
-              {
-                "dest": "/api/error",
-                "src": "/api/error",
-              },
-              {
                 "dest": "/api/echo",
                 "src": "/api/echo",
               },
@@ -312,6 +326,10 @@ describe("nitro:preset:vercel:web", async () => {
               {
                 "dest": "/500",
                 "src": "/500",
+              },
+              {
+                "dest": "/_vercel/cron",
+                "src": "/_vercel/cron",
               },
               {
                 "dest": "/_swagger",
@@ -361,10 +379,7 @@ describe("nitro:preset:vercel:web", async () => {
 
       it("should generate prerender config", async () => {
         const isrRouteConfig = await fsp.readFile(
-          resolve(
-            ctx.outDir,
-            "functions/rules/isr/[...]-isr.prerender-config.json"
-          ),
+          resolve(ctx.outDir, "functions/rules/isr/[...]-isr.prerender-config.json"),
           "utf8"
         );
         expect(JSON.parse(isrRouteConfig)).toMatchObject({
@@ -385,11 +400,7 @@ describe("nitro:preset:vercel:web", async () => {
           } else if (/_\/|_.+|node_modules/.test(entry.name)) {
             items.push(`${dirname}/${entry.name}`);
           } else if (entry.isDirectory()) {
-            items.push(
-              ...(await walkDir(join(path, entry.name))).map(
-                (i) => `${dirname}/${i}`
-              )
-            );
+            items.push(...(await walkDir(join(path, entry.name))).map((i) => `${dirname}/${i}`));
           }
         }
         items.sort();
@@ -406,11 +417,10 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/_openapi.json.func (symlink)",
             "functions/_scalar.func (symlink)",
             "functions/_swagger.func (symlink)",
+            "functions/_vercel",
             "functions/api/cached.func (symlink)",
             "functions/api/db.func (symlink)",
             "functions/api/echo.func (symlink)",
-            "functions/api/error.func (symlink)",
-            "functions/api/errors.func (symlink)",
             "functions/api/headers.func (symlink)",
             "functions/api/hello.func (symlink)",
             "functions/api/hey.func (symlink)",
@@ -429,7 +439,9 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/config.func (symlink)",
             "functions/context.func (symlink)",
             "functions/env.func (symlink)",
-            "functions/error-stack.func (symlink)",
+            "functions/errors/captured.func (symlink)",
+            "functions/errors/stack.func (symlink)",
+            "functions/errors/throw.func (symlink)",
             "functions/fetch.func (symlink)",
             "functions/file.func (symlink)",
             "functions/icon.png.func (symlink)",
@@ -478,9 +490,9 @@ describe("nitro:preset:vercel:node", async () => {
     },
   });
   testNitro(ctx, async () => {
-    const nodeHandler = await import(
-      resolve(ctx.outDir, "functions/__server.func/index.mjs")
-    ).then((r) => r.default || r);
+    const nodeHandler = await import(resolve(ctx.outDir, "functions/__server.func/index.mjs")).then(
+      (r) => r.default || r
+    );
     const fetchHandler = toFetchHandler(nodeHandler);
     return async ({ url, ...options }) => {
       const req = new Request(new URL(url, "https://example.com"), options);
@@ -505,10 +517,7 @@ describe("nitro:preset:vercel:bun", async () => {
 
   it("should generate function config with bun runtime", async () => {
     const config = await fsp
-      .readFile(
-        resolve(ctx.outDir, "functions/__server.func/.vc-config.json"),
-        "utf8"
-      )
+      .readFile(resolve(ctx.outDir, "functions/__server.func/.vc-config.json"), "utf8")
       .then((r) => JSON.parse(r));
     expect(config).toMatchInlineSnapshot(`
       {
@@ -543,10 +552,7 @@ describe.skip("nitro:preset:vercel:bun-verceljson", async () => {
 
   it("should detect bun runtime from vercel.json", async () => {
     const config = await fsp
-      .readFile(
-        resolve(ctx.outDir, "functions/__server.func/.vc-config.json"),
-        "utf8"
-      )
+      .readFile(resolve(ctx.outDir, "functions/__server.func/.vc-config.json"), "utf8")
       .then((r) => JSON.parse(r));
     expect(config).toMatchInlineSnapshot(`
       {

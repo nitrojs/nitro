@@ -1,10 +1,6 @@
 import type { Nitro } from "nitro/types";
 import { readFile } from "node:fs/promises";
-import {
-  hasTemplateSyntax,
-  compileTemplateToString,
-  RENDER_CONTEXT_KEYS,
-} from "rendu";
+import { hasTemplateSyntax, compileTemplateToString, RENDER_CONTEXT_KEYS } from "rendu";
 
 export default function rendererTemplate(nitro: Nitro) {
   return {
@@ -29,8 +25,7 @@ export default function rendererTemplate(nitro: Nitro) {
       } else {
         // Production
         const html = await readFile(template, "utf8");
-        const isStatic =
-          nitro.options.renderer?.static ?? !hasTemplateSyntax(html);
+        const isStatic = nitro.options.renderer?.static ?? !hasTemplateSyntax(html);
         if (isStatic) {
           return /* js */ `
               import { HTTPResponse } from "h3";

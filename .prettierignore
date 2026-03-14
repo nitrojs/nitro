@@ -1,5 +1,0 @@
-*.md
-**/*.gen.ts
-pnpm-lock.yaml
-**/.docs
-**/dist/**

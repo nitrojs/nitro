@@ -1,10 +1,6 @@
 import type { HTTPError, HTTPMethod, HTTPEvent, HTTPHandler } from "h3";
 import type { PresetName } from "../presets/index.ts";
-import type {
-  OperationObject,
-  OpenAPI3,
-  Extensable,
-} from "../types/openapi-ts.ts";
+import type { OperationObject, OpenAPI3, Extensable } from "../types/openapi-ts.ts";
 
 type MaybeArray<T> = T | T[];
 
@@ -83,10 +79,10 @@ export type NitroErrorHandler = (
       event: HTTPEvent,
       opts?: { silent?: boolean; json?: boolean }
     ) => MaybePromise<{
-      status: number;
-      statusText: string | undefined;
-      headers: Record<string, string>;
-      body: string | Record<string, any>;
+      status?: number;
+      statusText?: string;
+      headers?: HeadersInit;
+      body?: string | Record<string, any>;
     }>;
   }
 ) => MaybePromise<Response | void>;

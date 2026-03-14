@@ -6,7 +6,7 @@
   },
   "devDependencies": {
     "nitro": "latest",
-    "solid-js": "^1.9.10",
+    "solid-js": "^1.9.11",
     "vite": "beta",
     "vite-plugin-solid": "^2.11.10"
   }

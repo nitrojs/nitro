@@ -7,10 +7,7 @@ import type {
 } from "@cloudflare/workers-types";
 import type { DurableObject } from "cloudflare:workers";
 
-import type {
-  Config as _Config,
-  ComputedFields as _ComputedFields,
-} from "./wrangler/config.ts";
+import type { Config as _Config, ComputedFields as _ComputedFields } from "./wrangler/config.ts";
 
 export type WranglerConfig = Partial<Omit<_Config, keyof _ComputedFields>>;
 
@@ -117,20 +114,6 @@ export interface CloudflareOptions {
    * Custom Cloudflare exports additional classes such as WorkflowEntrypoint.
    */
   exports?: string;
-
-  /**
-   * Options for Durable Objects.
-   */
-  durable?: {
-    /**
-     * The binding name for the Durable Object used by `defineWebSocketHandler`.
-     *
-     * Must match the `name` field in your wrangler.json `durable_objects.bindings` config.
-     *
-     * @default "$DurableObject"
-     */
-    bindingName?: string;
-  };
 }
 
 type DurableObjectState = ConstructorParameters<typeof DurableObject>[0];

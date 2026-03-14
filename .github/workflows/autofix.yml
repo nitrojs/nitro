@@ -12,7 +12,7 @@ permissions:
 jobs:
   autofix:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
       - run: npm i -g --force corepack && corepack enable
@@ -24,7 +24,7 @@ jobs:
       - run: pnpm stub
       - run: pnpm gen-presets
       - name: Fix lint issues
-        run: npm run lint:fix
-      - uses: autofix-ci/action@635ffb0c9798bd160680f18fd73371e355b85f27
+        run: npm run format
+      - uses: autofix-ci/action@7a166d7532b277f34e16238930461bf77f9d7ed8
         with:
           commit-message: "chore: apply automated updates"

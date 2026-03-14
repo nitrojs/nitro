@@ -2,10 +2,7 @@ import "./styles.css";
 import { renderToReadableStream } from "preact-render-to-string/stream";
 import { App } from "./app.jsx";
 
-// @ts-ignore
 import clientAssets from "./entry-client?assets=client";
-
-// @ts-ignore
 import serverAssets from "./entry-server?assets=ssr";
 
 export default {

@@ -3,6 +3,9 @@ import { useState } from "react";
 export function App() {
   const [count, setCount] = useState(0);
   return (
-    <button onClick={() => setCount((c) => c + 1)}>Count is {count}</button>
+    <>
+      <h1 className="hero">Nitro + Vite + React</h1>
+      <button onClick={() => setCount((c) => c + 1)}>Count is {count}</button>
+    </>
   );
 }

@@ -15,10 +15,7 @@ export async function cloudflareDevModule(nitro: Nitro) {
       name: "nitro:cloudflare-dev",
     },
     alias: {
-      "cloudflare:workers": resolve(
-        presetsDir,
-        "cloudflare/runtime/shims/workers.dev.mjs"
-      ),
+      "cloudflare:workers": resolve(presetsDir, "cloudflare/runtime/shims/workers.dev.mjs"),
     },
   });
 
@@ -43,19 +40,13 @@ export async function cloudflareDevModule(nitro: Nitro) {
   // Find wrangler.json > wrangler.jsonc > wrangler.toml
   let configPath = config.configPath;
   if (!configPath) {
-    configPath = await findFile(
-      ["wrangler.json", "wrangler.jsonc", "wrangler.toml"],
-      {
-        startingFrom: nitro.options.rootDir,
-      }
-    ).catch(() => undefined);
+    configPath = await findFile(["wrangler.json", "wrangler.jsonc", "wrangler.toml"], {
+      startingFrom: nitro.options.rootDir,
+    }).catch(() => undefined);
   }
 
   // Resolve the persist dir
-  const persistDir = resolve(
-    nitro.options.rootDir,
-    config.persistDir || ".wrangler/state/v3"
-  );
+  const persistDir = resolve(nitro.options.rootDir, config.persistDir || ".wrangler/state/v3");
 
   // Add `.wrangler/state/v3` to `.gitignore`
   const gitIgnorePath = await findFile(".gitignore", {
@@ -66,9 +57,7 @@ export async function cloudflareDevModule(nitro: Nitro) {
   if (gitIgnorePath && persistDir === ".wrangler/state/v3") {
     const gitIgnore = await fs.readFile(gitIgnorePath, "utf8");
     if (!gitIgnore.includes(".wrangler/state/v3")) {
-      await fs
-        .writeFile(gitIgnorePath, gitIgnore + "\n.wrangler/state/v3\n")
-        .catch(() => {});
+      await fs.writeFile(gitIgnorePath, gitIgnore + "\n.wrangler/state/v3\n").catch(() => {});
       // addedToGitIgnore = true;
     }
   }

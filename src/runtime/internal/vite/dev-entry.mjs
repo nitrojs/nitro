@@ -1,16 +1,18 @@
-import "#nitro-internal-polyfills";
+import "#nitro/virtual/polyfills";
 import wsAdapter from "crossws/adapters/node";
 
 import { useNitroApp } from "nitro/app";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
-import { hasWebSocket } from "#nitro/virtual/feature-flags";
+import { startScheduleRunner } from "#nitro/runtime/task";
 
 const nitroApp = useNitroApp();
 
 export const fetch = nitroApp.fetch;
 
-const ws = hasWebSocket
-  ? wsAdapter({ resolve: resolveWebsocketHooks })
-  : undefined;
+const ws = import.meta._websocket ? wsAdapter({ resolve: resolveWebsocketHooks }) : undefined;
+
+if (import.meta._tasks) {
+  startScheduleRunner({});
+}
 
 export const handleUpgrade = ws?.handleUpgrade;

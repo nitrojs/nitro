@@ -14,7 +14,7 @@ Then in repository create `.platform.app.yaml` file:
 
 ```yaml [.platform.app.yaml]
 name: nitro-app
-type: 'nodejs:18'
+type: 'nodejs:20'
 disk: 128
 web:
   commands:
@@ -25,7 +25,7 @@ hooks:
   build: |
     corepack enable
     npx nypm install
-    NITR_PRESET=platform_sh npm run build
+    NITRO_PRESET=platform_sh npm run build
 mounts:
     '.data':
         source: local

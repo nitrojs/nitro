@@ -9,9 +9,7 @@ export async function resolveAssetsOptions(options: NitroOptions) {
   // 1. Normalize user paths
   for (const publicAsset of options.publicAssets) {
     publicAsset.dir = resolve(options.rootDir, publicAsset.dir);
-    publicAsset.baseURL = withLeadingSlash(
-      withoutTrailingSlash(publicAsset.baseURL || "/")
-    );
+    publicAsset.baseURL = withLeadingSlash(withoutTrailingSlash(publicAsset.baseURL || "/"));
   }
   // 2. Add public/ directories from each layer
   for (const dir of [options.rootDir, ...options.scanDirs]) {
@@ -42,8 +40,7 @@ export async function resolveAssetsOptions(options: NitroOptions) {
     const isTopLevel = asset.baseURL === "/";
     asset.fallthrough = asset.fallthrough ?? isTopLevel;
     const routeRule = options.routeRules[asset.baseURL + "/**"];
-    asset.maxAge =
-      (routeRule?.cache as { maxAge: number })?.maxAge ?? asset.maxAge ?? 0;
+    asset.maxAge = (routeRule?.cache as { maxAge: number })?.maxAge ?? asset.maxAge ?? 0;
     if (asset.maxAge && !asset.fallthrough) {
       options.routeRules[asset.baseURL + "/**"] = defu(routeRule, {
         headers: {

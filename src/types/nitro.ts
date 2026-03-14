@@ -10,6 +10,7 @@ import type { PrerenderRoute } from "./prerender.ts";
 import type { TSConfig } from "pkg-types";
 import type { Router } from "../routing.ts";
 import type { NitroRouteRules } from "./route-rules.ts";
+import type { WorkerAddress } from "./runner.ts";
 
 type MaybeArray<T> = T | T[];
 
@@ -36,10 +37,7 @@ export interface Nitro {
   _prerenderMeta?: Record<string, { contentType?: string }>;
 }
 
-export type NitroDynamicConfig = Pick<
-  NitroConfig,
-  "runtimeConfig" | "routeRules"
->;
+export type NitroDynamicConfig = Pick<NitroConfig, "runtimeConfig" | "routeRules">;
 
 export type NitroTypes = {
   routes: Record<string, Partial<Record<HTTPMethod | "default", string[]>>>;
@@ -64,9 +62,11 @@ export interface NitroBuildInfo {
     preview?: string;
     deploy?: string;
   };
+  serverEntry?: string;
+  publicDir?: string;
   dev?: {
     pid: number;
-    workerAddress?: { host: string; port: number; socketPath?: string };
+    workerAddress?: WorkerAddress;
   };
   config?: Partial<PresetOptions>;
 }

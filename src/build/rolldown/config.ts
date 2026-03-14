@@ -6,7 +6,7 @@ import { builtinModules } from "node:module";
 import { defu } from "defu";
 import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
 
-export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
+export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> => {
   const base = baseBuildConfig(nitro);
 
   const tsc = nitro.options.typescript.tsConfig?.compilerOptions;
@@ -15,16 +15,11 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
     platform: nitro.options.node ? "node" : "neutral",
     cwd: nitro.options.rootDir,
     input: nitro.options.entry,
-    external: [
-      ...base.env.external,
-      ...builtinModules,
-      ...builtinModules.map((m) => `node:${m}`),
-    ],
-    plugins: [...(baseBuildPlugins(nitro, base) as RolldownPlugin[])],
+    external: [...base.env.external, ...builtinModules, ...builtinModules.map((m) => `node:${m}`)],
+    plugins: [...((await baseBuildPlugins(nitro, base)) as RolldownPlugin[])],
     resolve: {
       alias: base.aliases,
       extensions: base.extensions,
-      mainFields: ["main"], // "module" is intentionally not supported because of externals
       conditionNames: nitro.options.exportConditions,
     },
     transform: {
@@ -48,16 +43,20 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
         return nitro.options.moduleSideEffects.some((p) => id.startsWith(p));
       },
     },
+    optimization: {
+      inlineConst: true,
+    },
     output: {
       format: "esm",
       entryFileNames: "index.mjs",
       chunkFileNames: (chunk) => getChunkName(chunk, nitro),
-      advancedChunks: {
+      codeSplitting: {
         groups: [{ test: NODE_MODULES_RE, name: (id) => libChunkName(id) }],
       },
       dir: nitro.options.output.serverDir,
       inlineDynamicImports: nitro.options.inlineDynamicImports,
-      minify: nitro.options.minify,
+      // https://github.com/rolldown/rolldown/issues/7235
+      minify: nitro.options.minify ? true : "dce-only",
       sourcemap: nitro.options.sourcemap,
       sourcemapIgnoreList(relativePath) {
         return relativePath.includes("node_modules");
@@ -65,11 +64,16 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
     },
   } satisfies RolldownOptions;
 
-  config = defu(nitro.options.rollupConfig as any, config);
+  config = defu(
+    nitro.options.rolldownConfig,
+    nitro.options.rollupConfig as RolldownOptions,
+    config
+  );
 
   const outputConfig = config.output as OutputOptions;
   if (outputConfig.inlineDynamicImports || outputConfig.format === "iife") {
-    delete outputConfig.advancedChunks;
+    delete outputConfig.inlineDynamicImports;
+    outputConfig.codeSplitting = false;
   }
 
   return config as RolldownOptions;

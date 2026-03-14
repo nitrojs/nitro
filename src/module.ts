@@ -3,9 +3,7 @@ import { resolveModuleURL } from "exsolve";
 
 export async function installModules(nitro: Nitro) {
   const _modules = [...(nitro.options.modules || [])];
-  const modules = await Promise.all(
-    _modules.map((mod) => _resolveNitroModule(mod, nitro.options))
-  );
+  const modules = await Promise.all(_modules.map((mod) => _resolveNitroModule(mod, nitro.options)));
   const _installedURLs = new Set<string>();
   for (const mod of modules) {
     if (mod._url) {
@@ -25,7 +23,7 @@ async function _resolveNitroModule(
   let _url: string | undefined;
 
   if (typeof mod === "string") {
-    const _url = resolveModuleURL(mod, {
+    _url = resolveModuleURL(mod, {
       from: [nitroOptions.rootDir],
       extensions: [".mjs", ".cjs", ".js", ".mts", ".cts", ".ts"],
     });

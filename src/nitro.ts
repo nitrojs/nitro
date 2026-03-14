@@ -1,12 +1,6 @@
 import { consola } from "consola";
 import { Hookable, createDebugger } from "hookable";
-import type {
-  LoadConfigOptions,
-  Nitro,
-  NitroConfig,
-  NitroDynamicConfig,
-} from "nitro/types";
-import { createUnimport } from "unimport";
+import type { LoadConfigOptions, Nitro, NitroConfig, NitroDynamicConfig } from "nitro/types";
 import { loadOptions } from "./config/loader.ts";
 import { updateNitroConfig } from "./config/update.ts";
 import { installModules } from "./module.ts";
@@ -67,6 +61,7 @@ export async function createNitro(
   // Auto imports
   if (nitro.options.imports) {
     // Create unimport instance
+    const { createUnimport } = await import("unimport");
     nitro.unimport = createUnimport(nitro.options.imports);
     await nitro.unimport.init();
     // Support for importing from '#imports'

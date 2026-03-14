@@ -1,10 +1,5 @@
-import type { RollupCommonJSOptions } from "@rollup/plugin-commonjs";
-import type {
-  C12InputConfig,
-  ConfigWatcher,
-  DotenvOptions,
-  ResolvedConfig,
-} from "c12";
+import type commonjs from "@rollup/plugin-commonjs";
+import type { C12InputConfig, ConfigWatcher, DotenvOptions, ResolvedConfig } from "c12";
 import type { WatchConfigOptions } from "c12";
 import type { ChokidarOptions } from "chokidar";
 import type { CompatibilityDateSpec, CompatibilityDates } from "compatx";
@@ -12,17 +7,13 @@ import type { LogLevel } from "consola";
 import type { ConnectorName } from "db0";
 import type { NestedHooks } from "hookable";
 import type { ProxyServerOptions } from "httpxy";
-import type {
-  PresetName,
-  PresetNameInput,
-  PresetOptions,
-} from "../presets/index.ts";
+import type { PresetName, PresetNameInput, PresetOptions } from "../presets/index.ts";
 import type { TSConfig } from "pkg-types";
 import type { Preset as UnenvPreset } from "unenv";
 import type { UnimportPluginOptions } from "unimport/unplugin";
 import type { BuiltinDriverName } from "unstorage";
 import type { UnwasmPluginOptions } from "unwasm/plugin";
-import type { DeepPartial } from "./_utils.ts";
+import type { RunnerName } from "env-runner";
 import type {
   EventHandlerFormat,
   NitroDevEventHandler,
@@ -35,9 +26,11 @@ import type { NitroFrameworkInfo } from "./nitro.ts";
 import type { NitroOpenAPIConfig } from "./openapi.ts";
 export type { NitroOpenAPIConfig } from "./openapi.ts";
 import type { NitroPreset } from "./preset.ts";
-import type { OXCOptions } from "./rollup.ts";
-import type { RollupConfig } from "./rollup.ts";
+import type { OXCOptions, RolldownConfig } from "./build.ts";
+import type { RollupConfig } from "./build.ts";
 import type { NitroRouteConfig, NitroRouteRules } from "./route-rules.ts";
+
+type RollupCommonJSOptions = NonNullable<Parameters<typeof commonjs.default>[0]>;
 
 /**
  * Nitro normalized options (nitro.options)
@@ -95,12 +88,12 @@ export interface NitroOptions extends PresetOptions {
      *
      * By default this feature will be enabled if there is at least one nitro plugin.
      */
-    runtimeHooks: boolean;
+    runtimeHooks?: boolean;
 
     /**
      * Enable WebSocket support
      */
-    websocket: boolean;
+    websocket?: boolean;
   };
 
   /**
@@ -157,15 +150,15 @@ export interface NitroOptions extends PresetOptions {
     tsconfigPaths?: boolean;
   };
   future: {
-    nativeSWR: boolean;
+    nativeSWR?: boolean;
   };
   serverAssets: ServerAssetDir[];
   publicAssets: PublicAssetDir[];
 
-  imports: UnimportPluginOptions | false;
+  imports: Partial<UnimportPluginOptions> | false;
   modules?: NitroModuleInput[];
   plugins: string[];
-  tasks: { [name: string]: { handler: string; description: string } };
+  tasks: { [name: string]: { handler?: string; description?: string } };
   scheduledTasks: { [cron: string]: string | string[] };
   virtual: Record<string, string | (() => string | Promise<string>)>;
   compressPublicAssets: boolean | CompressOptions;
@@ -174,17 +167,18 @@ export interface NitroOptions extends PresetOptions {
   // Dev
   dev: boolean;
   devServer: {
-    port: number;
-    hostname: string;
-    watch: string[];
+    port?: number;
+    hostname?: string;
+    watch?: string[];
+    runner?: RunnerName;
   };
   watchOptions: ChokidarOptions;
   devProxy: Record<string, string | ProxyServerOptions>;
 
   // Logging
   logging: {
-    compressedSizes: boolean;
-    buildSuccess: boolean;
+    compressedSizes?: boolean;
+    buildSuccess?: boolean;
   };
 
   // Routing
@@ -195,10 +189,7 @@ export interface NitroOptions extends PresetOptions {
   handlers: NitroEventHandler[];
   devHandlers: NitroDevEventHandler[];
   routeRules: { [path: string]: NitroRouteRules };
-  routes: Record<
-    string,
-    string | Omit<NitroEventHandler, "route" | "middleware">
-  >;
+  routes: Record<string, string | Omit<NitroEventHandler, "route" | "middleware">>;
 
   errorHandler: string | string[];
   devErrorHandler: NitroErrorHandler;
@@ -207,31 +198,30 @@ export interface NitroOptions extends PresetOptions {
     /**
      * Prerender HTML routes within subfolders (`/test` would produce `/test/index.html`)
      */
-    autoSubfolderIndex: boolean;
-    concurrency: number;
-    interval: number;
-    crawlLinks: boolean;
-    failOnError: boolean;
-    ignore: Array<
-      string | RegExp | ((path: string) => undefined | null | boolean)
-    >;
-    ignoreUnprefixedPublicAssets: boolean;
-    routes: string[];
+    autoSubfolderIndex?: boolean;
+    concurrency?: number;
+    interval?: number;
+    crawlLinks?: boolean;
+    failOnError?: boolean;
+    ignore?: Array<string | RegExp | ((path: string) => undefined | null | boolean)>;
+    ignoreUnprefixedPublicAssets?: boolean;
+    routes?: string[];
     /**
      * Amount of retries. Pass Infinity to retry indefinitely.
      * @default 3
      */
-    retry: number;
+    retry?: number;
     /**
      * Delay between each retry in ms.
      * @default 500
      */
-    retryDelay: number;
+    retryDelay?: number;
   };
 
   // Rollup
   builder?: "rollup" | "rolldown" | "vite";
   rollupConfig?: RollupConfig;
+  rolldownConfig?: RolldownConfig;
   entry: string;
   unenv: UnenvPreset[];
   alias: Record<string, string>;
@@ -266,12 +256,12 @@ export interface NitroOptions extends PresetOptions {
      *
      * Default is `tsconfig.json` (`node_modules/.nitro/types/tsconfig.json`)
      */
-    tsconfigPath: string;
+    tsconfigPath?: string;
   };
   hooks: NestedHooks<NitroHooks>;
   commands: {
-    preview: string;
-    deploy: string;
+    preview?: string;
+    deploy?: string;
   };
 
   // Framework
@@ -289,7 +279,7 @@ export interface NitroOptions extends PresetOptions {
  */
 export interface NitroConfig
   extends
-    DeepPartial<
+    Partial<
       Omit<
         NitroOptions,
         | "routeRules"
@@ -301,6 +291,8 @@ export interface NitroConfig
         | "_config"
         | "_c12"
         | "serverEntry"
+        | "renderer"
+        | "output"
       >
     >,
     C12InputConfig<NitroConfig> {
@@ -312,6 +304,8 @@ export interface NitroConfig
   unenv?: UnenvPreset | UnenvPreset[];
   serverDir?: boolean | "./" | "./server" | (string & {});
   serverEntry?: string | NitroOptions["serverEntry"];
+  renderer?: false | NitroOptions["renderer"];
+  output?: Partial<NitroOptions["output"]>;
 }
 
 // ------------------------------------------------------------
@@ -335,12 +329,19 @@ export interface PublicAssetDir {
   fallthrough?: boolean;
   maxAge: number;
   dir: string;
+  /**
+   * Pass false to disable ignore patterns when scanning the directory, or
+   * pass an array of glob patterns to ignore (which will override global
+   * nitro.ignore patterns).
+   */
+  ignore?: false | string[];
 }
 
 // Public assets compression
 export interface CompressOptions {
   gzip?: boolean;
   brotli?: boolean;
+  zstd?: boolean;
 }
 
 // Server assets
@@ -368,10 +369,7 @@ export type DatabaseConnectionConfig = {
     [key: string]: any;
   };
 };
-export type DatabaseConnectionConfigs = Record<
-  DatabaseConnectionName,
-  DatabaseConnectionConfig
->;
+export type DatabaseConnectionConfigs = Record<DatabaseConnectionName, DatabaseConnectionConfig>;
 
 // Runtime config
 
@@ -380,8 +378,7 @@ export interface NitroRuntimeConfigApp {
 }
 
 export interface NitroRuntimeConfig {
-  app: NitroRuntimeConfigApp;
-  nitro: {
+  nitro?: {
     envPrefix?: string;
     envExpansion?: boolean;
     routeRules?: {

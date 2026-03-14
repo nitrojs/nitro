@@ -1,4 +1,4 @@
-import "#nitro-internal-polyfills";
+import "#nitro/virtual/polyfills";
 import { useNitroApp } from "nitro/app";
 import { awsRequest, awsResponseHeaders } from "./_utils.ts";
 
@@ -14,12 +14,14 @@ export const handler = awslambda.streamifyResponse(
 
     const response = await nitroApp.fetch(request);
 
-    response.headers.set("transfer-encoding", "chunked");
-
     const httpResponseMetadata: Omit<StreamingResponse, "body"> = {
       statusCode: response.status,
       ...awsResponseHeaders(response),
     };
+
+    if (!httpResponseMetadata.headers!["transfer-encoding"]) {
+      httpResponseMetadata.headers!["transfer-encoding"] = "chunked";
+    }
 
     const body =
       response.body ??
@@ -30,11 +32,7 @@ export const handler = awslambda.streamifyResponse(
         },
       });
 
-    const writer = awslambda.HttpResponseStream.from(
-      // @ts-expect-error TODO: IMPORTANT! It should be a Writable according to the aws-lambda types
-      responseStream,
-      httpResponseMetadata
-    );
+    const writer = awslambda.HttpResponseStream.from(responseStream, httpResponseMetadata);
 
     const reader = body.getReader();
     await streamToNodeStream(reader, responseStream);

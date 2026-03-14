@@ -1,7 +1,6 @@
-import type { Plugin } from "rollup";
-import { escapeRegExp, pathRegExp } from "../../utils/regex.ts";
-
-const PREFIX = "\0nitro:virtual:";
+import type { Plugin, ResolvedId } from "rollup";
+import { pathRegExp } from "../../utils/regex.ts";
+import { runtimeDependencies, runtimeDir } from "nitro/meta";
 
 export type VirtualModule = {
   id: string;
@@ -15,9 +14,15 @@ export function virtual(input: VirtualModule[]): Plugin {
     { module: VirtualModule; render: () => string | Promise<string> }
   >();
   for (const mod of input) {
-    const render = () =>
-      typeof mod.template === "function" ? mod.template() : mod.template;
+    const render = () => (typeof mod.template === "function" ? mod.template() : mod.template);
     modules.set(mod.id, { module: mod, render });
+  }
+
+  const include: RegExp[] = [/^#nitro\/virtual/];
+
+  const extraIds = [...modules.keys()].filter((key) => !key.startsWith("#nitro/virtual"));
+  if (extraIds.length > 0) {
+    include.push(new RegExp(`^(${extraIds.map((id) => pathRegExp(id)).join("|")})$`));
   }
 
   return {
@@ -27,37 +32,62 @@ export function virtual(input: VirtualModule[]): Plugin {
     },
     resolveId: {
       order: "pre",
-      filter: {
-        id: new RegExp(
-          `^(${[...modules.keys()].map((id) => pathRegExp(id)).join("|")})$`
-        ),
-      },
+      filter: { id: include },
       handler: (id) => {
         const mod = modules.get(id);
-        if (!mod) {
-          return null;
+        if (mod) {
+          return {
+            id,
+            moduleSideEffects: mod.module.moduleSideEffects ?? false,
+          };
         }
-        return {
-          id: PREFIX + id,
-          moduleSideEffects: mod.module.moduleSideEffects ?? false,
-        };
       },
     },
     load: {
       order: "pre",
-      filter: {
-        id: new RegExp(`^${escapeRegExp(PREFIX)}`),
-      },
+      filter: { id: include },
       handler: async (id) => {
-        const idNoPrefix = id.slice(PREFIX.length);
-        const mod = modules.get(idNoPrefix);
+        const mod = modules.get(id);
         if (!mod) {
-          throw new Error(`Virtual module ${idNoPrefix} not found.`);
+          throw new Error(`Virtual module ${id} not found.`);
         }
         return {
           code: await mod.render(),
           map: null,
         };
+      },
+    },
+  };
+}
+
+export function virtualDeps(): Plugin {
+  const cache = new Map<string, ResolvedId | null | Promise<ResolvedId | null>>();
+
+  return {
+    name: "nitro:virtual-deps",
+    resolveId: {
+      order: "pre",
+      filter: {
+        id: new RegExp(`^(#nitro|${runtimeDependencies.map((dep) => pathRegExp(dep)).join("|")})`),
+      },
+      handler(id, importer) {
+        // https://github.com/rolldown/rolldown/issues/7529
+        if (!importer || !importer.startsWith("#nitro/virtual")) {
+          return;
+        }
+        let resolved = cache.get(id);
+        if (!resolved) {
+          resolved = this.resolve(id, runtimeDir)
+            .then((_resolved) => {
+              cache.set(id, _resolved);
+              return _resolved;
+            })
+            .catch((error) => {
+              cache.delete(id);
+              throw error;
+            });
+        }
+        return resolved;
       },
     },
   };

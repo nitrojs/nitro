@@ -1,5 +1,7 @@
 import { defineNitroPreset } from "../_utils/preset.ts";
 import type { Nitro } from "nitro/types";
+import { presetsDir } from "nitro/meta";
+import { join } from "pathe";
 import {
   deprecateSWR,
   generateFunctionFiles,
@@ -19,6 +21,7 @@ const vercel = defineNitroPreset(
     },
     vercel: {
       skewProtection: !!process.env.VERCEL_SKEW_PROTECTION_ENABLED,
+      cronHandlerRoute: "/_vercel/cron",
     },
     output: {
       dir: "{{ rootDir }}/.vercel/output",
@@ -26,7 +29,7 @@ const vercel = defineNitroPreset(
       publicDir: "{{ output.dir }}/static/{{ baseURL }}",
     },
     commands: {
-      preview: "",
+      preview: "npx srvx --static ../../static ./functions/__server.func/index.mjs",
       deploy: "npx vercel deploy --prebuilt",
     },
     hooks: {
@@ -35,10 +38,7 @@ const vercel = defineNitroPreset(
 
         // Runtime
         const runtime = await resolveVercelRuntime(nitro);
-        if (
-          runtime.startsWith("bun") &&
-          !nitro.options.exportConditions!.includes("bun")
-        ) {
+        if (runtime.startsWith("bun") && !nitro.options.exportConditions!.includes("bun")) {
           nitro.options.exportConditions!.push("bun");
         }
         logger.info(`Using \`${runtime}\` runtime.`);
@@ -52,10 +52,19 @@ const vercel = defineNitroPreset(
           serverFormat = hasNodeHandler ? "node" : "web";
         }
         logger.info(`Using \`${serverFormat}\` entry format.`);
-        nitro.options.entry = nitro.options.entry.replace(
-          "{format}",
-          serverFormat
-        );
+        nitro.options.entry = nitro.options.entry.replace("{format}", serverFormat);
+
+        // Cron tasks handler
+        if (
+          nitro.options.experimental.tasks &&
+          Object.keys(nitro.options.scheduledTasks || {}).length > 0
+        ) {
+          nitro.options.handlers.push({
+            route: nitro.options.vercel!.cronHandlerRoute || "/_vercel/cron",
+            lazy: true,
+            handler: join(presetsDir, "vercel/runtime/cron-handler"),
+          });
+        }
       },
       "rollup:before": (nitro: Nitro) => {
         deprecateSWR(nitro);

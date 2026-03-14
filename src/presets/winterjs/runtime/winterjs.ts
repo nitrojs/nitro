@@ -1,5 +1,5 @@
 // @ts-nocheck TODO: Remove after removing polyfills
-import "#nitro-internal-polyfills";
+import "#nitro/virtual/polyfills";
 import { useNitroApp } from "nitro/app";
 import { hasProtocol, joinURL } from "ufo";
 
@@ -43,16 +43,14 @@ async function _handleEvent(event: FetchEvent) {
         },
       },
     });
-    const body =
-      typeof res.body === "string" ? res.body : await toBuffer(res.body as any);
+    const body = typeof res.body === "string" ? res.body : await toBuffer(res.body as any);
     return new Response(body, {
       status: res.status,
       statusText: res.statusText,
       headers: res.headers,
     });
   } catch (error: unknown) {
-    const errString =
-      (error as Error)?.message + "\n" + (error as Error)?.stack;
+    const errString = (error as Error)?.message + "\n" + (error as Error)?.stack;
     console.error(errString);
     return new Response(errString, { status: 500 });
   }

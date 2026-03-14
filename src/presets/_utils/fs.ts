@@ -8,17 +8,9 @@ export function prettyPath(p: string, highlight = true) {
   return highlight ? colors.cyan(p) : p;
 }
 
-export async function writeFile(
-  file: string,
-  contents: Buffer | string,
-  log = false
-) {
+export async function writeFile(file: string, contents: Buffer | string, log = false) {
   await fsp.mkdir(dirname(file), { recursive: true });
-  await fsp.writeFile(
-    file,
-    contents,
-    typeof contents === "string" ? "utf8" : undefined
-  );
+  await fsp.writeFile(file, contents, typeof contents === "string" ? "utf8" : undefined);
   if (log) {
     consola.info("Generated", prettyPath(file));
   }

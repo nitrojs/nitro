@@ -6,10 +6,9 @@ import { useRuntimeConfig } from "../runtime-config.ts";
 
 export default defineHandler((event) => {
   const runtimeConfig = useRuntimeConfig();
-  const title = runtimeConfig.nitro.openAPI?.meta?.title || "API Reference";
-  const description = runtimeConfig.nitro.openAPI?.meta?.description || "";
-  const openAPIEndpoint =
-    runtimeConfig.nitro.openAPI?.route || "./_openapi.json";
+  const title = runtimeConfig.nitro?.openAPI?.meta?.title || "API Reference";
+  const description = runtimeConfig.nitro?.openAPI?.meta?.description || "";
+  const openAPIEndpoint = runtimeConfig.nitro?.openAPI?.route || "./_openapi.json";
 
   const CDN_BASE = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@^5";
   event.res.headers.set("Content-Type", "text/html");

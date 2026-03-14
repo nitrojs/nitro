@@ -1,3 +1,13 @@
+import "nitro";
+import "nitro/app";
+import "nitro/cache";
+import "nitro/context";
+import "nitro/database";
+import "nitro/h3";
+import "nitro/runtime-config";
+import "nitro/storage";
+import "nitro/task";
+
 export * from "./fetch/index.ts";
 export * from "./runtime/index.ts";
 export * from "./config.ts";
@@ -14,6 +24,6 @@ export * from "./module.ts";
 export * from "./nitro.ts";
 export * from "./prerender.ts";
 export * from "./preset.ts";
-export * from "./rollup.ts";
+export * from "./build.ts";
 export * from "./route-rules.ts";
 export * from "./srvx.ts";

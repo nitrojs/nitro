@@ -1,14 +1,7 @@
 /**
  * @link https://github.com/remix-run/remix/blob/2248669ed59fd716e267ea41df5d665d4781f4a9/packages/remix-server-runtime/serialize.ts
  */
-type JsonPrimitive =
-  | string
-  | number
-  | boolean
-  | string
-  | number
-  | boolean
-  | null;
+type JsonPrimitive = string | number | boolean | string | number | boolean | null;
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 type NonJsonPrimitive = undefined | Function | symbol;
 

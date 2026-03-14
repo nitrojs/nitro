@@ -11,11 +11,9 @@ export default function cloudflareDurable(nitro: Nitro) {
     id: "#nitro/virtual/cloudflare-durable",
     template: async () => {
       const bindingName =
-        nitro.options.cloudflare?.durable?.bindingName ||
-        DEFAULT_DURABLE_BINDING_NAME;
+        nitro.options.cloudflare?.durable?.bindingName || DEFAULT_DURABLE_BINDING_NAME;
       const instanceName =
-        nitro.options.cloudflare?.durable?.instanceName ||
-        DEFAULT_DURABLE_INSTANCE_NAME;
+        nitro.options.cloudflare?.durable?.instanceName || DEFAULT_DURABLE_INSTANCE_NAME;
       const resolver = resolveDurableResolver(nitro);
 
       return /* js */ `

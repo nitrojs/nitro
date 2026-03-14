@@ -30,10 +30,7 @@ import type { CamelCaseKey } from "./_utils.ts";
  * - `@breaking`: the deprecation/optionality is a breaking change from Wrangler v1.
  * - `@todo`: there's more work to be done (with details attached).
  */
-export type Config = ComputedFields &
-  ConfigFields<DevConfig> &
-  PagesConfigFields &
-  Environment;
+export type Config = ComputedFields & ConfigFields<DevConfig> & PagesConfigFields & Environment;
 
 export type RawConfig = Partial<ConfigFields<RawDevConfig>> &
   PagesConfigFields &

@@ -3,5 +3,4 @@ import type { CloudflareDurableResolver } from "nitro/types";
 
 export const bindingName = "$DurableObject";
 export const instanceName = "server";
-export const resolveInstanceName: CloudflareDurableResolver | undefined =
-  undefined;
+export const resolveInstanceName: CloudflareDurableResolver | undefined = undefined;

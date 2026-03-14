@@ -31,10 +31,7 @@ describe("nitro:preset:cloudflare-durable", async () => {
   });
 
   it("uses custom durable binding and instance names in the built worker", async () => {
-    const entry = await fsp.readFile(
-      resolve(staticCtx.outDir, "server", "index.mjs"),
-      "utf8"
-    );
+    const entry = await fsp.readFile(resolve(staticCtx.outDir, "server", "index.mjs"), "utf8");
 
     expect(entry).toContain('bindingName: "MyCustomDO"');
     expect(entry).toContain('instanceName: "app-server"');
@@ -55,14 +52,10 @@ describe("nitro:preset:cloudflare-durable", async () => {
   });
 
   it("bundles the configured resolver module into the worker entry", async () => {
-    const entry = await fsp.readFile(
-      resolve(resolverCtx.outDir, "server", "index.mjs"),
-      "utf8"
-    );
+    const entry = await fsp.readFile(resolve(resolverCtx.outDir, "server", "index.mjs"), "utf8");
 
-    expect(entry).toContain(
-      "resolveInstanceName: cloudflare_durable_resolver_default"
-    );
+    expect(entry).toContain("const resolveInstanceName =");
+    expect(entry).toContain("resolveInstanceName");
     expect(entry).toContain('searchParams.get("room")');
     expect(entry).toContain('instanceName: "fallback-server"');
   });

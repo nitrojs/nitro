@@ -1,9 +1,6 @@
 import type { CloudflareDurableResolver } from "nitro/types";
 
-const resolveInstanceName: CloudflareDurableResolver = ({
-  request,
-  defaultInstanceName,
-}) => {
+const resolveInstanceName: CloudflareDurableResolver = ({ request, defaultInstanceName }) => {
   if (!request) {
     return;
   }
