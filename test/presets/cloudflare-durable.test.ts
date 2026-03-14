@@ -5,22 +5,65 @@ import { describe, expect, it } from "vitest";
 import { setupTest } from "../tests.ts";
 
 describe("nitro:preset:cloudflare-durable", async () => {
-  const ctx = await setupTest("cloudflare-durable");
-
-  it("should use custom durable binding name from config", async () => {
-    const entry = await fsp.readFile(
-      resolve(ctx.outDir, "server", "chunks", "nitro", "nitro.mjs"),
-      "utf8"
-    );
-    // Check that custom binding name is used instead of default $DurableObject
-    expect(entry).toContain("MyCustomDO");
+  const staticCtx = await setupTest("cloudflare-durable", {
+    outDirSuffix: "-static",
+    config: {
+      cloudflare: {
+        durable: {
+          bindingName: "MyCustomDO",
+          instanceName: "app-server",
+        },
+      },
+    },
   });
 
-  it("should export $DurableObject class", async () => {
+  const resolverCtx = await setupTest("cloudflare-durable", {
+    outDirSuffix: "-resolver",
+    config: {
+      cloudflare: {
+        durable: {
+          bindingName: "ResolverDO",
+          instanceName: "fallback-server",
+          resolver: "./server/utils/cloudflare-durable-resolver.ts",
+        },
+      },
+    },
+  });
+
+  it("uses custom durable binding and instance names in the built worker", async () => {
     const entry = await fsp.readFile(
-      resolve(ctx.outDir, "server", "index.mjs"),
+      resolve(staticCtx.outDir, "server", "index.mjs"),
       "utf8"
     );
-    expect(entry).toMatch(/\$DurableObject/);
+
+    expect(entry).toContain('bindingName: "MyCustomDO"');
+    expect(entry).toContain('instanceName: "app-server"');
+    expect(entry).not.toContain('instanceName: "server"');
+  });
+
+  it("generates a durable object binding for the configured binding name", async () => {
+    const wranglerConfig = await fsp
+      .readFile(resolve(staticCtx.outDir, "server", "wrangler.json"), "utf8")
+      .then((r) => JSON.parse(r));
+
+    expect(wranglerConfig.durable_objects?.bindings).toEqual([
+      {
+        name: "MyCustomDO",
+        class_name: "$DurableObject",
+      },
+    ]);
+  });
+
+  it("bundles the configured resolver module into the worker entry", async () => {
+    const entry = await fsp.readFile(
+      resolve(resolverCtx.outDir, "server", "index.mjs"),
+      "utf8"
+    );
+
+    expect(entry).toContain(
+      "resolveInstanceName: cloudflare_durable_resolver_default"
+    );
+    expect(entry).toContain('searchParams.get("room")');
+    expect(entry).toContain('instanceName: "fallback-server"');
   });
 });

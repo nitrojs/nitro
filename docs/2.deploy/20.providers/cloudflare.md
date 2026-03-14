@@ -146,6 +146,49 @@ Then you can deploy the application with:
 
 :pm-x{command="wrangler pages deploy"}
 
+## Cloudflare Durable Objects
+
+**Preset:** `cloudflare_durable`
+
+Use this preset when Nitro should route websocket traffic through its internal Durable Object.
+
+```ts [nitro.config.ts]
+import { defineNitroConfig } from "nitro/config";
+
+export default defineNitroConfig({
+  preset: "cloudflare_durable",
+  cloudflare: {
+    deployConfig: true,
+    durable: {
+      bindingName: "NitroDurable",
+      instanceName: "app-server",
+      resolver: "./server/utils/cloudflare-durable-resolver.ts"
+    }
+  }
+})
+```
+
+Nitro defaults to one internal binding named `$DurableObject` and one default instance named `server`.
+The optional resolver must export a default function that returns the instance name for a request; returning `undefined` falls back to `instanceName`, then `server`.
+
+```ts [server/utils/cloudflare-durable-resolver.ts]
+import type { CloudflareDurableResolver } from "nitro/types";
+
+const resolveInstanceName: CloudflareDurableResolver = ({
+  request,
+  defaultInstanceName
+}) => {
+  const room = request
+    ? new URL(request.url).searchParams.get("room")
+    : undefined;
+  return room || defaultInstanceName;
+};
+
+export default resolveInstanceName;
+```
+
+With `deployConfig: true`, Nitro still generates one Durable Object binding in `wrangler.json` for its internal `$DurableObject` class. Resolver-based sharding only changes the runtime instance id. If you do not want Nitro-managed Durable Object routing, use `cloudflare_module` instead.
+
 
 ## Deploy within CI/CD using GitHub Actions
 

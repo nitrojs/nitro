@@ -14,6 +14,17 @@ import type {
 
 export type WranglerConfig = Partial<Omit<_Config, keyof _ComputedFields>>;
 
+export interface CloudflareDurableResolverContext {
+  request?: Request;
+  env: unknown;
+  context?: ExecutionContext;
+  defaultInstanceName: string;
+}
+
+export type CloudflareDurableResolver = (
+  context: CloudflareDurableResolverContext
+) => string | undefined | Promise<string | undefined>;
+
 /**
  * https://developers.cloudflare.com/pages/platform/functions/routing/#functions-invocation-routes
  */
@@ -61,6 +72,15 @@ export interface CloudflareOptions {
     configPath?: string;
     environment?: string;
     persistDir?: string;
+  };
+
+  durable?: {
+    /** @default "$DurableObject" */
+    bindingName?: string;
+    /** @default "server" */
+    instanceName?: string;
+    /** Path to a module exporting the default instance-name resolver. */
+    resolver?: string;
   };
 
   pages?: {

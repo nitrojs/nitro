@@ -140,9 +140,6 @@ export default defineConfig({
     wrangler: {
       compatibility_date: "2024-01-01",
     },
-    durable: {
-      bindingName: "MyCustomDO",
-    },
   },
   typescript: {
     generateRuntimeConfigTypes: true,

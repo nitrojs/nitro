@@ -11,11 +11,12 @@ export interface NitroImportMeta {
   runtimeConfig?: Record<string, any>;
   _asyncContext?: boolean;
   _tasks?: boolean;
-  _durableBindingName?: string;
+  _websocket?: boolean;
 }
 
 declare global {
   interface ImportMeta extends NitroImportMeta {}
 }
 
+// eslint-disable-next-line unicorn/require-module-specifiers
 export type {};

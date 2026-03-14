@@ -18,6 +18,9 @@ import {
 } from "ufo";
 import { unenvCfNodeCompat } from "./unenv/preset.ts";
 
+const DURABLE_CLASS_NAME = "$DurableObject";
+const DURABLE_BINDING_NAME = "$DurableObject";
+
 export async function writeCFRoutes(nitro: Nitro) {
   const _cfPagesConfig = nitro.options.cloudflare?.pages || {};
   const routes: CloudflarePagesRoutes = {
@@ -329,19 +332,22 @@ export async function writeWranglerConfig(
       });
     }
 
-    // Durable Objects config for cloudflare-durable preset
     if (nitro.options.preset === "cloudflare-durable") {
       const bindingName =
-        nitro.options.cloudflare?.durable?.bindingName || "$DurableObject";
+        nitro.options.cloudflare?.durable?.bindingName || DURABLE_BINDING_NAME;
       wranglerConfig.durable_objects ??= { bindings: [] };
       wranglerConfig.durable_objects.bindings ??= [];
-      const hasBinding = wranglerConfig.durable_objects.bindings.some(
-        (b) => b.name === bindingName && b.class_name === "$DurableObject"
-      );
-      if (!hasBinding) {
+
+      if (
+        !wranglerConfig.durable_objects.bindings.some(
+          (binding) =>
+            binding.name === bindingName &&
+            binding.class_name === DURABLE_CLASS_NAME
+        )
+      ) {
         wranglerConfig.durable_objects.bindings.push({
           name: bindingName,
-          class_name: "$DurableObject",
+          class_name: DURABLE_CLASS_NAME,
         });
       }
     }
