@@ -11,6 +11,10 @@ import "nitro/task";
 export * from "./fetch/index.ts";
 export * from "./runtime/index.ts";
 export * from "./config.ts";
+export type {
+  CloudflareDurableResolver,
+  CloudflareDurableResolverContext,
+} from "../presets/cloudflare/types.ts";
 export * from "./runner.ts";
 export * from "./global.ts";
 export * from "./h3.ts";

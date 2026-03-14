@@ -2,6 +2,7 @@ import { defineNitroPreset } from "../_utils/preset.ts";
 import { writeFile } from "../_utils/fs.ts";
 import type { Nitro } from "nitro/types";
 import { resolve } from "pathe";
+import type { CloudflareOptions } from "./types.ts";
 import { unenvCfExternals } from "./unenv/preset.ts";
 import {
   enableNodeCompat,
@@ -13,7 +14,7 @@ import {
 import { cloudflareDevModule } from "./dev.ts";
 import { setupEntryExports } from "./entry-exports.ts";
 
-export type { CloudflareOptions as PresetOptions } from "./types.ts";
+export type PresetOptions = CloudflareOptions;
 
 const cloudflarePages = defineNitroPreset(
   {
@@ -173,3 +174,8 @@ export default [
   cloudflareDurable,
   cloudflareDev,
 ];
+
+export {
+  type CloudflareDurableResolver,
+  type CloudflareDurableResolverContext,
+} from "./types.ts";

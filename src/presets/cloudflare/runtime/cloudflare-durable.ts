@@ -6,36 +6,36 @@ import { createHandler, augmentReq } from "./_module-handler.ts";
 
 import { useNitroApp, useNitroHooks } from "nitro/app";
 import { isPublicAssetURL } from "#nitro/virtual/public-assets";
+import {
+  bindingName,
+  instanceName,
+  resolveInstanceName,
+} from "#nitro/virtual/cloudflare-durable";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
 import { hasWebSocket } from "#nitro/virtual/feature-flags";
-
-const DURABLE_BINDING = "$DurableObject";
-const DURABLE_INSTANCE = "server";
+import { getDurableStub } from "./_durable.ts";
 
 interface Env {
   ASSETS?: { fetch: typeof CF.fetch };
-  [DURABLE_BINDING]?: CF.DurableObjectNamespace;
+  [key: string]: unknown;
 }
 
 const nitroApp = useNitroApp();
 const nitroHooks = useNitroHooks();
 
-const getDurableStub = (env: Env) => {
-  const binding = env[DURABLE_BINDING];
-  if (!binding) {
-    throw new Error(
-      `Durable Object binding "${DURABLE_BINDING}" not available.`
-    );
-  }
-  const id = binding.idFromName(DURABLE_INSTANCE);
-  return binding.get(id);
-};
-
 const ws = hasWebSocket
   ? wsAdapter({
       resolve: resolveWebsocketHooks,
-      instanceName: DURABLE_INSTANCE,
-      bindingName: DURABLE_BINDING,
+      resolveDurableStub(request, env, context) {
+        return getDurableStub({
+          bindingName,
+          instanceName,
+          request: request as Request | undefined,
+          env: env as Env,
+          context,
+          resolveInstanceName,
+        });
+      },
     })
   : undefined;
 
@@ -47,8 +47,17 @@ export default createHandler<Env>({
     }
 
     // Expose stub fetch to the context
-    ctxExt.durableFetch = (req = request) =>
-      getDurableStub(env).fetch(req as any);
+    ctxExt.durableFetch = async (req = request) =>
+      (
+        await getDurableStub({
+          bindingName,
+          instanceName,
+          request,
+          env,
+          context,
+          resolveInstanceName,
+        })
+      ).fetch(req as any);
 
     // Websocket upgrade
     // https://crossws.unjs.io/adapters/cloudflare#durable-objects
