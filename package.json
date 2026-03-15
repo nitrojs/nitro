@@ -121,7 +121,7 @@
     "destr": "^2.0.5",
     "dot-prop": "^10.1.0",
     "edge-runtime": "^4.0.1",
-    "escape-string-regexp": "^5.0.0",
+    "tiny-escape": "^1.1.0",
     "etag": "^1.8.1",
     "execa": "^9.6.1",
     "expect-type": "^1.3.0",

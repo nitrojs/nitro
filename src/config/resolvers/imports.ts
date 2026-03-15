@@ -1,4 +1,4 @@
-import escapeRE from "escape-string-regexp";
+import escapeRE from "tiny-escape";
 import type { NitroOptions } from "nitro/types";
 import { join } from "pathe";
 
