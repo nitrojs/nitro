@@ -30,6 +30,24 @@ export const redirect: RouteRuleCtor<"redirect"> = ((m) =>
         targetPath = withoutBase(targetPath, strpBase);
       }
       target = joinURL(target.slice(0, -3), targetPath);
+    } else if (target.includes("**")) {
+      // Wildcard ** in a non-trailing position (e.g., "/target?param=**")
+      // Use only pathname (not search) to avoid redirect loops
+      let targetPath = event.url.pathname;
+      const strpBase = (m.options as any)._redirectStripBase;
+      if (strpBase) {
+        targetPath = withoutBase(targetPath, strpBase);
+      }
+      targetPath = targetPath.replace(/^\//, "");
+      if (!targetPath) {
+        // No captured path -> skip redirect to avoid infinite loop
+        return;
+      }
+      target = target.replace("**", targetPath);
+      // Merge any original query params into the target
+      if (event.url.search) {
+        target = withQuery(target, Object.fromEntries(event.url.searchParams));
+      }
     } else if (event.url.search) {
       target = withQuery(target, Object.fromEntries(event.url.searchParams));
     }
@@ -50,6 +68,24 @@ export const proxy: RouteRuleCtor<"proxy"> = ((m) =>
         targetPath = withoutBase(targetPath, strpBase);
       }
       target = joinURL(target.slice(0, -3), targetPath);
+    } else if (target.includes("**")) {
+      // Wildcard ** in a non-trailing position (e.g., "/target?param=**")
+      // Use only pathname (not search) to avoid redirect loops
+      let targetPath = event.url.pathname;
+      const strpBase = (m.options as any)._proxyStripBase;
+      if (strpBase) {
+        targetPath = withoutBase(targetPath, strpBase);
+      }
+      targetPath = targetPath.replace(/^\//, "");
+      if (!targetPath) {
+        // No captured path -> skip proxy to avoid infinite loop
+        return;
+      }
+      target = target.replace("**", targetPath);
+      // Merge any original query params into the target
+      if (event.url.search) {
+        target = withQuery(target, Object.fromEntries(event.url.searchParams));
+      }
     } else if (event.url.search) {
       target = withQuery(target, Object.fromEntries(event.url.searchParams));
     }
