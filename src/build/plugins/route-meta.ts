@@ -1,9 +1,9 @@
-import { readFile } from "node:fs/promises"
-import { isAbsolute } from "pathe"
-import type { Expression, Literal } from "estree"
-import type { Nitro, NitroEventHandler } from "nitro/types"
-import type { Plugin } from "rollup"
-import { escapeRegExp } from "../../utils/regex.ts"
+import { readFile } from "node:fs/promises";
+import { isAbsolute } from "pathe";
+import type { Expression, Literal } from "estree";
+import type { Nitro, NitroEventHandler } from "nitro/types";
+import type { Plugin } from "rollup";
+import { escapeRegExp } from "../../utils/regex.ts";
 
 const PREFIX = "\0nitro:route-meta:";
 
