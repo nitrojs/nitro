@@ -79,6 +79,7 @@ export interface NitroOptions extends PresetOptions {
   ssrRoutes: string[];
   serveStatic: boolean | "node" | "deno" | "inline";
   noPublicDir: boolean;
+  tracing?: undefined | TracingOptions;
   manifest?: {
     deploymentId?: string;
   };
@@ -293,6 +294,7 @@ export interface NitroConfig
         | "serverEntry"
         | "renderer"
         | "output"
+        | "tracing"
       >
     >,
     C12InputConfig<NitroConfig> {
@@ -306,6 +308,7 @@ export interface NitroConfig
   serverEntry?: string | NitroOptions["serverEntry"];
   renderer?: false | NitroOptions["renderer"];
   output?: Partial<NitroOptions["output"]>;
+  tracing?: boolean | TracingOptions;
 }
 
 // ------------------------------------------------------------
@@ -350,6 +353,11 @@ export interface ServerAssetDir {
   pattern?: string;
   dir: string;
   ignore?: string[];
+}
+
+export interface TracingOptions {
+  srvx?: boolean;
+  h3?: boolean;
 }
 
 // Storage mounts
