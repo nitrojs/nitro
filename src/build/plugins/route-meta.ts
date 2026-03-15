@@ -1,14 +1,14 @@
-import { readFile } from "node:fs/promises";
-import { isAbsolute } from "pathe";
-import type { Expression, Literal } from "estree";
-import type { Nitro, NitroEventHandler } from "nitro/types";
-import type { Plugin } from "rollup";
-import { escapeRegExp } from "../../utils/regex.ts";
+import { readFile } from "node:fs/promises"
+import { isAbsolute } from "pathe"
+import type { Expression, Literal } from "estree"
+import type { Nitro, NitroEventHandler } from "nitro/types"
+import type { Plugin } from "rollup"
+import { escapeRegExp } from "../../utils/regex.ts"
 
 const PREFIX = "\0nitro:route-meta:";
 
 export async function routeMeta(nitro: Nitro) {
-  const { transformSync } = await import("rolldown/experimental");
+  const { transformSync } = await import("rolldown/utils");
   return {
     name: "nitro:route-meta",
     resolveId: {
@@ -47,7 +47,7 @@ export async function routeMeta(nitro: Nitro) {
         let meta: NitroEventHandler["meta"] | null = null;
 
         try {
-          const transformRes = transformSync(id, code);
+          const transformRes = transformSync(id, code, { tsconfig: false });
           if (transformRes.errors?.length > 0) {
             for (const error of transformRes.errors) {
               this.warn(error);
