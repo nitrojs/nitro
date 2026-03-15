@@ -1,7 +1,5 @@
 // Auto-generated using gen-presets script
 
-import _nitro from "./_nitro/preset.ts";
-import _static from "./_static/preset.ts";
 import _alwaysdata from "./alwaysdata/preset.ts";
 import _awsAmplify from "./aws-amplify/preset.ts";
 import _awsLambda from "./aws-lambda/preset.ts";
@@ -28,10 +26,10 @@ import _winterjs from "./winterjs/preset.ts";
 import _zeabur from "./zeabur/preset.ts";
 import _zephyr from "./zephyr/preset.ts";
 import _zerops from "./zerops/preset.ts";
+import _nitro from "./_nitro/preset.ts";
+import _static from "./_static/preset.ts";
 
 export default [
-  ..._nitro,
-  ..._static,
   ..._alwaysdata,
   ..._awsAmplify,
   ..._awsLambda,
@@ -58,4 +56,6 @@ export default [
   ..._zeabur,
   ..._zephyr,
   ..._zerops,
+  ..._nitro,
+  ..._static,
 ] as const;

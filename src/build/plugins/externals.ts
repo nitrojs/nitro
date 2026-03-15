@@ -71,21 +71,33 @@ export function externals(opts: ExternalsOptions): Plugin {
           };
         }
 
-        // Skip nested rollup-node resolutions
+        let resolved;
+
         if (rOpts.custom?.["node-resolve"]) {
-          return null;
-        }
-
-        // Resolve by other resolvers
-        let resolved = await this.resolve(id, importer, rOpts);
-
-        // Skip rolldown-plugin-commonjs resolver for externals
-        const cjsResolved = resolved?.meta?.commonjs?.resolved;
-        if (cjsResolved) {
-          if (!filter(cjsResolved.id)) {
-            return resolved; // Bundled and wrapped by CJS plugin
+          // For nested node-resolve resolutions (e.g., CJS require()),
+          // resolve directly to avoid recursion but still externalize
+          // modules that match the include filter (e.g., native deps).
+          // Only applies when tracing is active (production builds).
+          if (!opts.trace) {
+            return null;
           }
-          resolved = cjsResolved /* non-wrapped */;
+          const resolvedPath = tryResolve(id, importer);
+          if (!resolvedPath || !filter(resolvedPath)) {
+            return null;
+          }
+          resolved = { id: resolvedPath };
+        } else {
+          // Resolve by other resolvers
+          resolved = await this.resolve(id, importer, rOpts);
+
+          // Skip rolldown-plugin-commonjs resolver for externals
+          const cjsResolved = resolved?.meta?.commonjs?.resolved;
+          if (cjsResolved) {
+            if (!filter(cjsResolved.id)) {
+              return resolved; // Bundled and wrapped by CJS plugin
+            }
+            resolved = cjsResolved /* non-wrapped */;
+          }
         }
 
         // Check if not resolved or explicitly marked as excluded

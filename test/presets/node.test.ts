@@ -37,4 +37,15 @@ describe("nitro:preset:node-middleware", async () => {
     const serverNodeModules = resolve(ctx.outDir, "server/node_modules");
     expect(existsSync(resolve(serverNodeModules, "@fixture/nitro-utils/extra.mjs"))).toBe(true);
   });
+
+  it("should trace CJS require() dependencies", () => {
+    // Verifies that packages loaded via CJS require() inside bundled code
+    // are properly externalized and traced (not silently bundled as JS).
+    // This covers the case where @rollup/plugin-node-resolve resolves a
+    // require() call with custom: { "node-resolve": { isRequire: true } }.
+    const serverNodeModules = resolve(ctx.outDir, "server/node_modules");
+    expect(existsSync(resolve(serverNodeModules, "@fixture/nitro-native-mock/index.js"))).toBe(
+      true
+    );
+  });
 });
