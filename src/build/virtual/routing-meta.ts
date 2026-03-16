@@ -7,7 +7,7 @@ export default function routingMeta(nitro: Nitro) {
       const handlers = Object.values(nitro.routing.routes.routes).flatMap((h) => h.data);
       const routeHandlers = uniqueBy(
         handlers,
-        (h) => `${h._importHash}_${h.method?.toLowerCase() || ""}_${h.route || ""}`
+        "_importHash"
       );
 
       return /* js */ `
@@ -29,6 +29,6 @@ export const handlersMeta = [
   };
 }
 
-function uniqueBy<T>(arr: T[], key: (item: T) => string): T[] {
-  return [...new Map(arr.map((item) => [key(item), item])).values()];
+function uniqueBy<T>(arr: T[], key: keyof T): T[] {
+  return [...new Map(arr.map((item) => [item[key], item])).values()];
 }
