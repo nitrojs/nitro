@@ -14,7 +14,16 @@ export function createVFSHandler(nitro: Nitro) {
       // Socket is readable/writable but has no port info
       socket?.readable && socket?.writable && !socket?.remotePort;
 
-    const ip = getRequestIP(event, { xForwardedFor: isUnixSocket });
+    // Never trust X-Forwarded-For for VFS access - it's attacker-controlled
+    const ip = getRequestIP(event, { xForwardedFor: false });
+
+    // Deny access on Unix socket since IP cannot be reliably determined
+    if (isUnixSocket) {
+      throw new HTTPError({
+        statusText: "VFS access not available on Unix socket",
+        status: 403,
+      });
+    }
 
     const isLocalRequest = ip && /^::1$|^127\.\d+\.\d+\.\d+$/.test(ip);
     if (!isLocalRequest) {
