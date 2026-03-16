@@ -34,7 +34,7 @@ export default defineConfig({});
 ```tsx [server.tsx]
 export default () => (
   <html>
-    <h1>Nitro + mongo-jsx works!</h1>
+    <h1>Nitro + mono-jsx works!</h1>
   </html>
 );
 ```
@@ -67,7 +67,7 @@ export default defineConfig({ plugins: [nitro()] });
 ```tsx [server.tsx]
 export default () => (
   <html>
-    <h1>Nitro + mongo-jsx works!</h1>
+    <h1>Nitro + mono-jsx works!</h1>
   </html>
 );
 ```
