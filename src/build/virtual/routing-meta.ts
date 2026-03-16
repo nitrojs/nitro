@@ -5,10 +5,7 @@ export default function routingMeta(nitro: Nitro) {
     id: "#nitro/virtual/routing-meta",
     template: () => {
       const handlers = Object.values(nitro.routing.routes.routes).flatMap((h) => h.data);
-      const routeHandlers = uniqueBy(
-        handlers,
-        "_importHash"
-      );
+      const routeHandlers = uniqueBy(handlers, "_importHash");
 
       return /* js */ `
   ${routeHandlers
