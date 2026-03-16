@@ -3,6 +3,13 @@ import { mockEvent } from "h3";
 import { createVFSHandler } from "../../src/dev/vfs.ts";
 import type { Nitro } from "nitro/types";
 
+function createMockNitro() {
+  return {
+    options: { rootDir: "/test/root" },
+    vfs: new Map([["/test/root/test.js", { render: () => "test content" }]]),
+  } as unknown as Nitro;
+}
+
 // Mock a socket that appears to be a Unix socket
 function createUnixSocketMock() {
   return {
@@ -52,13 +59,7 @@ function createMockEvent(
 
 describe("VFS Security - X-Forwarded-For spoofing on Unix socket", () => {
   it("should reject requests with spoofed X-Forwarded-For header on Unix socket", async () => {
-    // Create a mock Nitro instance with some VFS content
-    const mockNitro = {
-      options: {
-        rootDir: "/test/root",
-      },
-      vfs: new Map([["/test/root/test.js", { render: () => "test content" }]]),
-    } as unknown as Nitro;
+    const mockNitro = createMockNitro();
 
     const handler = createVFSHandler(mockNitro);
 
@@ -73,12 +74,7 @@ describe("VFS Security - X-Forwarded-For spoofing on Unix socket", () => {
   });
 
   it("should reject requests without X-Forwarded-For on Unix socket", async () => {
-    const mockNitro = {
-      options: {
-        rootDir: "/test/root",
-      },
-      vfs: new Map([["/test/root/test.js", { render: () => "test content" }]]),
-    } as unknown as Nitro;
+    const mockNitro = createMockNitro();
 
     const handler = createVFSHandler(mockNitro);
 
@@ -91,12 +87,7 @@ describe("VFS Security - X-Forwarded-For spoofing on Unix socket", () => {
   });
 
   it("should reject requests from non-local IP on regular network socket", async () => {
-    const mockNitro = {
-      options: {
-        rootDir: "/test/root",
-      },
-      vfs: new Map([["/test/root/test.js", { render: () => "test content" }]]),
-    } as unknown as Nitro;
+    const mockNitro = createMockNitro();
 
     const handler = createVFSHandler(mockNitro);
 
@@ -109,12 +100,7 @@ describe("VFS Security - X-Forwarded-For spoofing on Unix socket", () => {
   });
 
   it("should NOT trust X-Forwarded-For header on regular network socket", async () => {
-    const mockNitro = {
-      options: {
-        rootDir: "/test/root",
-      },
-      vfs: new Map([["/test/root/test.js", { render: () => "test content" }]]),
-    } as unknown as Nitro;
+    const mockNitro = createMockNitro();
 
     const handler = createVFSHandler(mockNitro);
 
