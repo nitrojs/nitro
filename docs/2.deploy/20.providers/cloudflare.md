@@ -304,19 +304,26 @@ defineHandler(async (event) => {
 
 ### Access to the bindings in local dev
 
-To access bindings in dev mode, we first define them. You can do this in a `wrangler.jsonc`/`wrangler.json`/`wrangler.toml` file
+In dev mode, Nitro runs your code inside a [Miniflare](https://miniflare.dev/) (workerd) runtime, providing an environment close to production. Bindings defined in your `wrangler.jsonc`/`wrangler.json`/`wrangler.toml` or `clouflare.wrangler` in `nitro.config.ts` are automatically configured.
 
-For example, to define a variable and a KV namespace in `wrangler.toml`:
+For example, to define a variable and a KV namespace:
 
 ::code-group
 
-```ini [wrangler.toml]
-[vars]
-MY_VARIABLE="my-value"
-
-[[kv_namespaces]]
-binding = "MY_KV"
-id = "xxx"
+```json [wrangler.jsonc]
+{
+  // Variables
+  "vars": {
+    "MY_VARIABLE": "my-value",
+  },
+  // KV namespaces
+  "kv_namespaces": [
+    {
+      "binding": "MY_KV",
+      "id": "xxx"
+    }
+  ]
+}
 ```
 
 ```json [wrangler.json]
@@ -333,21 +340,47 @@ id = "xxx"
 }
 ```
 
+```ini [wrangler.toml]
+[vars]
+MY_VARIABLE="my-value"
+
+[[kv_namespaces]]
+binding = "MY_KV"
+id = "xxx"
+```
+
 ::
 
-Next we install the required `wrangler` package (if not already installed):
+Install the required `wrangler` package (if not already installed):
 
 :pm-install{name="wrangler -D"}
 
-From this moment, when running
+When running dev mode, you will be able to access `MY_VARIABLE` and `MY_KV` from the request event just as illustrated above.
 
 :pm-run{script="dev"}
 
-you will be able to access the `MY_VARIABLE` and `MY_KV` from the request event just as illustrated above.
+You can also override wrangler config from your Nitro config using `cloudflare.wrangler`:
+
+```ts [nitro.config.ts]
+import { defineNitroConfig } from "nitro/config";
+
+export default defineNitroConfig({
+  preset: 'cloudflare_module',
+  cloudflare: {
+    wrangler: {
+      kv_namespaces: [{ binding: "MY_KV", id: "xxx" }]
+    }
+  }
+})
+```
 
 #### Wrangler environments
 
-If you have multiple Wrangler environments, you can specify which Wrangler environment to use during Cloudflare dev emulation:
+You can use [Wrangler environments](https://developers.cloudflare.com/workers/wrangler/environments/) to define different configurations for different deployment targets. Nitro supports selecting a Wrangler environment for dev mode using the `CLOUDFLARE_ENV` environment variable or the `cloudflare.dev.environment` config option:
+
+```bash
+CLOUDFLARE_ENV=staging npx nitro dev
+```
 
 ```ts [nitro.config.ts]
 import { defineConfig } from "nitro";
@@ -356,8 +389,24 @@ export default defineConfig({
   preset: 'cloudflare_module',
   cloudflare: {
     dev: {
-      environment: 'preview'
+      environment: 'staging'
     }
   }
 })
+```
+
+#### Remote bindings
+
+Individual bindings can be configured to use remote (production) resources during development by setting `remote = true` in your wrangler config. This requires authentication with your Cloudflare account.
+
+```json [wrangler.json]
+{
+  "kv_namespaces": [
+    {
+      "binding": "MY_KV",
+      "id": "xxx",
+      "remote": true
+    }
+  ]
+}
 ```

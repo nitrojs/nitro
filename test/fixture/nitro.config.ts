@@ -158,7 +158,7 @@ export default defineConfig({
       },
     },
     wrangler: {
-      compatibility_date: "2024-01-01",
+      compatibility_date: "2026-03-10",
     },
   },
   typescript: {

@@ -170,19 +170,11 @@ async function _loadRunner(ctx: NitroPluginContext, manager: RunnerManager) {
     process.env.NITRO_DEV_RUNNER ||
     "node-worker") as RunnerName;
   const entry = resolve(runtimeDir, "internal/vite/dev-worker.mjs");
-  let runner;
-  if (runnerName === "miniflare") {
-    const { MiniflareEnvRunner } = await import("env-runner/runners/miniflare");
-    runner = new MiniflareEnvRunner({
-      name: "nitro-vite",
-      data: { entry },
-    });
-  } else {
-    runner = await loadRunner(runnerName, {
-      name: "nitro-vite",
-      data: { entry },
-    });
-  }
+  const runner = await loadRunner(runnerName, {
+    name: "nitro-vite",
+    data: { entry },
+    miniflareOptions: ctx.nitro!.options.devServer.miniflareOptions,
+  });
   await manager.reload(runner);
 }
 

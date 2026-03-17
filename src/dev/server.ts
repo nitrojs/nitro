@@ -180,6 +180,7 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
     const runner = await loadRunner(runnerName as RunnerName, {
       name: `Nitro_${this.#workerIdCtr++}`,
       data: { entry: this.#entry, ...this.#workerData },
+      miniflareOptions: this.nitro.options.devServer.miniflareOptions,
     });
     await this.#manager.reload(runner);
   }

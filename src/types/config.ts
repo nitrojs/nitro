@@ -531,6 +531,7 @@ export interface NitroOptions extends PresetOptions {
     watch?: string[];
     /** Runtime runner to use for the dev server. */
     runner?: RunnerName;
+    miniflareOptions?: Record<string, unknown>;
   };
 
   /**
