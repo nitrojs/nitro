@@ -3,7 +3,7 @@ import { defu } from "defu";
 import { writeFile } from "../_utils/fs.ts";
 import type { Nitro, NitroRouteRules } from "nitro/types";
 import { dirname, relative, resolve } from "pathe";
-import { Router } from "../../routing.ts";
+import { createRouter, addRoute, findRoute } from "rou3";
 import { joinURL, withLeadingSlash, withoutLeadingSlash } from "ufo";
 import type {
   PrerenderFunctionConfig,
@@ -56,33 +56,18 @@ export async function generateFunctionFiles(nitro: Nitro) {
     supportsResponseStreaming: true,
     ...nitro.options.vercel?.functions,
   };
-
-  if (
-    Array.isArray(baseFunctionConfig.experimentalTriggers) &&
-    baseFunctionConfig.experimentalTriggers.length > 0
-  ) {
-    nitro.logger.warn(
-      "`experimentalTriggers` on the base `vercel.functions` config applies to the catch-all function and is likely not what you want. " +
-        "Routes with queue triggers are not accesible on the web." +
-        "Use `vercel.functionRules` to attach triggers to specific routes instead."
-    );
-  }
-
   const functionConfigPath = resolve(nitro.options.output.serverDir, ".vc-config.json");
   await writeFile(functionConfigPath, JSON.stringify(baseFunctionConfig, null, 2));
 
-  const functionRules = nitro.options.vercel?.functionRules;
-  const hasfunctionRules = functionRules && Object.keys(functionRules).length > 0;
-  let routeFuncRouter: Router<VercelServerlessFunctionConfig> | undefined;
-  if (hasfunctionRules) {
-    routeFuncRouter = new Router<VercelServerlessFunctionConfig>();
-    routeFuncRouter._update(
-      Object.entries(functionRules).map(([route, data]) => ({
-        route,
-        method: "",
-        data,
-      }))
-    );
+  // Build rou3 router for routeFunctionConfig matching
+  const routeFunctionConfig = nitro.options.vercel?.routeFunctionConfig;
+  const hasRouteFunctionConfig = routeFunctionConfig && Object.keys(routeFunctionConfig).length > 0;
+  let routeFuncRouter: ReturnType<typeof createRouter<VercelServerlessFunctionConfig>> | undefined;
+  if (hasRouteFunctionConfig) {
+    routeFuncRouter = createRouter<VercelServerlessFunctionConfig>();
+    for (const [pattern, overrides] of Object.entries(routeFunctionConfig)) {
+      addRoute(routeFuncRouter, "", pattern, overrides);
+    }
   }
 
   // Write ISR functions
@@ -99,17 +84,13 @@ export async function generateFunctionFiles(nitro: Nitro) {
     );
     await fsp.mkdir(dirname(funcPrefix), { recursive: true });
 
-    const matchData = routeFuncRouter?.match("", key);
-    if (matchData) {
-      isrFuncDirs.add(
-        resolve(nitro.options.output.serverDir, "..", normalizeRouteDest(key) + ".func")
-      );
+    const match = routeFuncRouter && findRoute(routeFuncRouter, "", key);
+    if (match) {
       await createFunctionDirWithCustomConfig(
         funcPrefix + ".func",
         nitro.options.output.serverDir,
         baseFunctionConfig,
-        matchData,
-        normalizeRouteDest(key) + ISR_SUFFIX
+        match.data
       );
     } else {
       await fsp.symlink(
@@ -126,25 +107,20 @@ export async function generateFunctionFiles(nitro: Nitro) {
     );
   }
 
-  // Write functionRules custom function directories
+  // Write routeFunctionConfig custom function directories
   const createdFuncDirs = new Set<string>();
-  if (hasfunctionRules) {
-    for (const [pattern, overrides] of Object.entries(functionRules!)) {
+  if (hasRouteFunctionConfig) {
+    for (const [pattern, overrides] of Object.entries(routeFunctionConfig!)) {
       const funcDir = resolve(
         nitro.options.output.serverDir,
         "..",
         normalizeRouteDest(pattern) + ".func"
       );
-      // Skip if ISR already created a custom config function for this route
-      if (isrFuncDirs.has(funcDir)) {
-        continue;
-      }
       await createFunctionDirWithCustomConfig(
         funcDir,
         nitro.options.output.serverDir,
         baseFunctionConfig,
-        overrides,
-        normalizeRouteDest(pattern)
+        overrides
       );
       createdFuncDirs.add(funcDir);
     }
@@ -164,19 +140,18 @@ export async function generateFunctionFiles(nitro: Nitro) {
     const funcPrefix = resolve(nitro.options.output.serverDir, "..", route.dest);
     const funcDir = funcPrefix + ".func";
 
-    // Skip if already created by functionRules
+    // Skip if already created by routeFunctionConfig
     if (createdFuncDirs.has(funcDir)) {
       continue;
     }
 
-    const matchData = routeFuncRouter?.match("", route.src);
-    if (matchData) {
+    const match = routeFuncRouter && findRoute(routeFuncRouter, "", route.src);
+    if (match) {
       await createFunctionDirWithCustomConfig(
         funcDir,
         nitro.options.output.serverDir,
         baseFunctionConfig,
-        matchData,
-        route.dest
+        match.data
       );
     } else {
       await fsp.mkdir(dirname(funcPrefix), { recursive: true });
@@ -360,9 +335,9 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
         };
       }),
     // Route function config routes
-    ...(nitro.options.vercel?.functionRules
-      ? Object.keys(nitro.options.vercel.functionRules).map((pattern) => ({
-          src: joinURL(nitro.options.baseURL, normalizeRouteSrc(pattern)),
+    ...(nitro.options.vercel?.routeFunctionConfig
+      ? Object.keys(nitro.options.vercel.routeFunctionConfig).map((pattern) => ({
+          src: normalizeRouteSrc(pattern),
           dest: withLeadingSlash(normalizeRouteDest(pattern)),
         }))
       : []),
@@ -605,58 +580,22 @@ function normalizeRouteDest(route: string) {
   );
 }
 
-/**
- * Encodes a function path into a consumer name for queue/v2beta triggers.
- * Mirrors the encoding from @vercel/build-utils sanitizeConsumerName().
- * @see https://github.com/vercel/vercel/blob/main/packages/build-utils/src/lambda.ts
- */
-function sanitizeConsumerName(functionPath: string): string {
-  let result = "";
-  for (const char of functionPath) {
-    if (char === "_") {
-      result += "__";
-    } else if (char === "/") {
-      result += "_S";
-    } else if (char === ".") {
-      result += "_D";
-    } else if (/[A-Za-z0-9-]/.test(char)) {
-      result += char;
-    } else {
-      result += "_" + char.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0");
-    }
-  }
-  return result;
-}
-
 async function createFunctionDirWithCustomConfig(
   funcDir: string,
   serverDir: string,
   baseFunctionConfig: VercelServerlessFunctionConfig,
-  overrides: VercelServerlessFunctionConfig,
-  functionPath: string
+  overrides: VercelServerlessFunctionConfig
 ) {
-  // Copy the entire server directory instead of symlinking individual
-  // entries. Vercel's build container preserves symlinks in the Lambda
-  // zip, but symlinks pointing outside the .func directory break at
-  // runtime because the target path doesn't exist on Lambda.
-  await fsp.cp(serverDir, funcDir, { recursive: true });
+  await fsp.mkdir(funcDir, { recursive: true });
+  const entries = await fsp.readdir(serverDir);
+  for (const entry of entries) {
+    if (entry === ".vc-config.json") {
+      continue;
+    }
+    const target = "./" + relative(funcDir, resolve(serverDir, entry));
+    await fsp.symlink(target, resolve(funcDir, entry), "junction");
+  }
   const mergedConfig = defu(overrides, baseFunctionConfig);
-  for (const [key, value] of Object.entries(overrides)) {
-    if (Array.isArray(value)) {
-      (mergedConfig as Record<string, unknown>)[key] = value;
-    }
-  }
-
-  // Auto-derive consumer for queue/v2beta triggers
-  const triggers = mergedConfig.experimentalTriggers;
-  if (Array.isArray(triggers)) {
-    for (const trigger of triggers as Array<Record<string, unknown>>) {
-      if (trigger.type === "queue/v2beta" && !trigger.consumer) {
-        trigger.consumer = sanitizeConsumerName(functionPath);
-      }
-    }
-  }
-
   await writeFile(resolve(funcDir, ".vc-config.json"), JSON.stringify(mergedConfig, null, 2));
 }
 

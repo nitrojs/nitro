@@ -156,7 +156,7 @@ export interface VercelOptions {
    *
    * @example
    * ```ts
-   * functionRules: {
+   * routeFunctionConfig: {
    *   '/api/my-slow-routes/**': { maxDuration: 3600 },
    *   '/api/queues/fulfill-order': {
    *     experimentalTriggers: [{ type: 'queue/v2beta', topic: 'orders' }],
@@ -164,7 +164,7 @@ export interface VercelOptions {
    * }
    * ```
    */
-  functionRules?: Record<string, VercelServerlessFunctionConfig>;
+  routeFunctionConfig?: Record<string, VercelServerlessFunctionConfig>;
 }
 
 /**

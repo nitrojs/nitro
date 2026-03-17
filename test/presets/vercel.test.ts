@@ -584,6 +584,78 @@ describe("nitro:preset:vercel:bun", async () => {
   });
 });
 
+describe("nitro:preset:vercel:route-function-config", async () => {
+  const ctx = await setupTest("vercel", {
+    outDirSuffix: "-route-func-config",
+    config: {
+      preset: "vercel",
+      vercel: {
+        routeFunctionConfig: {
+          "/api/hello": {
+            maxDuration: 300,
+          },
+          "/api/echo": {
+            experimentalTriggers: [{ type: "queue/v2beta", topic: "orders" }],
+          },
+        },
+      },
+    },
+  });
+
+  it("should create custom function directory (not symlink)", async () => {
+    const funcDir = resolve(ctx.outDir, "functions/api/hello.func");
+    const stat = await fsp.lstat(funcDir);
+    expect(stat.isDirectory()).toBe(true);
+    expect(stat.isSymbolicLink()).toBe(false);
+  });
+
+  it("should write merged .vc-config.json with overrides", async () => {
+    const config = await fsp
+      .readFile(resolve(ctx.outDir, "functions/api/hello.func/.vc-config.json"), "utf8")
+      .then((r) => JSON.parse(r));
+    expect(config.maxDuration).toBe(300);
+    expect(config.handler).toBe("index.mjs");
+    expect(config.launcherType).toBe("Nodejs");
+    expect(config.supportsResponseStreaming).toBe(true);
+  });
+
+  it("should write custom config with arbitrary fields", async () => {
+    const config = await fsp
+      .readFile(resolve(ctx.outDir, "functions/api/echo.func/.vc-config.json"), "utf8")
+      .then((r) => JSON.parse(r));
+    expect(config.experimentalTriggers).toEqual([{ type: "queue/v2beta", topic: "orders" }]);
+    expect(config.handler).toBe("index.mjs");
+  });
+
+  it("should symlink files inside custom function directory to __server.func", async () => {
+    const funcDir = resolve(ctx.outDir, "functions/api/hello.func");
+    const entries = await fsp.readdir(funcDir, { withFileTypes: true });
+    const indexEntry = entries.find((e) => e.name === "index.mjs");
+    expect(indexEntry).toBeDefined();
+    const indexStat = await fsp.lstat(resolve(funcDir, "index.mjs"));
+    expect(indexStat.isSymbolicLink()).toBe(true);
+  });
+
+  it("should add routing entries for custom function routes in config.json", async () => {
+    const config = await fsp
+      .readFile(resolve(ctx.outDir, "config.json"), "utf8")
+      .then((r) => JSON.parse(r));
+    const routes = config.routes as { src: string; dest: string }[];
+    const helloRoute = routes.find((r) => r.dest === "/api/hello" && r.src === "/api/hello");
+    expect(helloRoute).toBeDefined();
+    const echoRoute = routes.find((r) => r.dest === "/api/echo" && r.src === "/api/echo");
+    expect(echoRoute).toBeDefined();
+  });
+
+  it("should keep base __server.func with standard config", async () => {
+    const config = await fsp
+      .readFile(resolve(ctx.outDir, "functions/__server.func/.vc-config.json"), "utf8")
+      .then((r) => JSON.parse(r));
+    expect(config.maxDuration).toBeUndefined();
+    expect(config.handler).toBe("index.mjs");
+  });
+});
+
 describe.skip("nitro:preset:vercel:bun-verceljson", async () => {
   const vercelJsonPath = join(fixtureDir, "vercel.json");
 
