@@ -1,5 +1,6 @@
 import type { Nitro } from "nitro/types";
 
+import cloudflareDurable from "./cloudflare-durable.ts";
 import database from "./database.ts";
 import errorHandler from "./error-handler.ts";
 import featureFlags from "./feature-flags.ts";
@@ -21,6 +22,7 @@ type VirtualTemplate = {
 
 export function virtualTemplates(nitro: Nitro, _polyfills: string[]): VirtualTemplate[] {
   const nitroTemplates = [
+    cloudflareDurable,
     database,
     errorHandler,
     featureFlags,
