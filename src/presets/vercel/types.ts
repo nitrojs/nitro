@@ -147,6 +147,24 @@ export interface VercelOptions {
    * @see https://vercel.com/docs/cron-jobs
    */
   cronHandlerRoute?: string;
+
+  /**
+   * Per-route function configuration overrides.
+   *
+   * Keys are route patterns (e.g., `/api/queues/*`, `/api/slow-routes/**`).
+   * Values are partial {@link VercelServerlessFunctionConfig} objects.
+   *
+   * @example
+   * ```ts
+   * routeFunctionConfig: {
+   *   '/api/my-slow-routes/**': { maxDuration: 3600 },
+   *   '/api/queues/fulfill-order': {
+   *     experimentalTriggers: [{ type: 'queue/v2beta', topic: 'orders' }],
+   *   },
+   * }
+   * ```
+   */
+  routeFunctionConfig?: Record<string, VercelServerlessFunctionConfig>;
 }
 
 /**

@@ -3,6 +3,7 @@ import { defu } from "defu";
 import { writeFile } from "../_utils/fs.ts";
 import type { Nitro, NitroRouteRules } from "nitro/types";
 import { dirname, relative, resolve } from "pathe";
+import { createRouter, addRoute, findRoute } from "rou3";
 import { joinURL, withLeadingSlash, withoutLeadingSlash } from "ufo";
 import type {
   PrerenderFunctionConfig,
@@ -48,15 +49,26 @@ export async function generateFunctionFiles(nitro: Nitro) {
   const buildConfig = generateBuildConfig(nitro, o11Routes);
   await writeFile(buildConfigPath, JSON.stringify(buildConfig, null, 2));
 
-  const functionConfigPath = resolve(nitro.options.output.serverDir, ".vc-config.json");
-  const functionConfig: VercelServerlessFunctionConfig = {
+  const baseFunctionConfig: VercelServerlessFunctionConfig = {
     handler: "index.mjs",
     launcherType: "Nodejs",
     shouldAddHelpers: false,
     supportsResponseStreaming: true,
     ...nitro.options.vercel?.functions,
   };
-  await writeFile(functionConfigPath, JSON.stringify(functionConfig, null, 2));
+  const functionConfigPath = resolve(nitro.options.output.serverDir, ".vc-config.json");
+  await writeFile(functionConfigPath, JSON.stringify(baseFunctionConfig, null, 2));
+
+  // Build rou3 router for routeFunctionConfig matching
+  const routeFunctionConfig = nitro.options.vercel?.routeFunctionConfig;
+  const hasRouteFunctionConfig = routeFunctionConfig && Object.keys(routeFunctionConfig).length > 0;
+  let routeFuncRouter: ReturnType<typeof createRouter<VercelServerlessFunctionConfig>> | undefined;
+  if (hasRouteFunctionConfig) {
+    routeFuncRouter = createRouter<VercelServerlessFunctionConfig>();
+    for (const [pattern, overrides] of Object.entries(routeFunctionConfig)) {
+      addRoute(routeFuncRouter, "", pattern, overrides);
+    }
+  }
 
   // Write ISR functions
   for (const [key, value] of Object.entries(nitro.options.routeRules)) {
@@ -70,16 +82,47 @@ export async function generateFunctionFiles(nitro: Nitro) {
       normalizeRouteDest(key) + ISR_SUFFIX
     );
     await fsp.mkdir(dirname(funcPrefix), { recursive: true });
-    await fsp.symlink(
-      "./" + relative(dirname(funcPrefix), nitro.options.output.serverDir),
-      funcPrefix + ".func",
-      "junction"
-    );
+
+    const match = routeFuncRouter && findRoute(routeFuncRouter, "", key);
+    if (match) {
+      await createFunctionDirWithCustomConfig(
+        funcPrefix + ".func",
+        nitro.options.output.serverDir,
+        baseFunctionConfig,
+        match.data
+      );
+    } else {
+      await fsp.symlink(
+        "./" + relative(dirname(funcPrefix), nitro.options.output.serverDir),
+        funcPrefix + ".func",
+        "junction"
+      );
+    }
+
     await writePrerenderConfig(
       funcPrefix + ".prerender-config.json",
       value.isr,
       nitro.options.vercel?.config?.bypassToken
     );
+  }
+
+  // Write routeFunctionConfig custom function directories
+  const createdFuncDirs = new Set<string>();
+  if (hasRouteFunctionConfig) {
+    for (const [pattern, overrides] of Object.entries(routeFunctionConfig!)) {
+      const funcDir = resolve(
+        nitro.options.output.serverDir,
+        "..",
+        normalizeRouteDest(pattern) + ".func"
+      );
+      await createFunctionDirWithCustomConfig(
+        funcDir,
+        nitro.options.output.serverDir,
+        baseFunctionConfig,
+        overrides
+      );
+      createdFuncDirs.add(funcDir);
+    }
   }
 
   // Write observability routes
@@ -94,12 +137,29 @@ export async function generateFunctionFiles(nitro: Nitro) {
       continue; // #3563
     }
     const funcPrefix = resolve(nitro.options.output.serverDir, "..", route.dest);
-    await fsp.mkdir(dirname(funcPrefix), { recursive: true });
-    await fsp.symlink(
-      "./" + relative(dirname(funcPrefix), nitro.options.output.serverDir),
-      funcPrefix + ".func",
-      "junction"
-    );
+    const funcDir = funcPrefix + ".func";
+
+    // Skip if already created by routeFunctionConfig
+    if (createdFuncDirs.has(funcDir)) {
+      continue;
+    }
+
+    const match = routeFuncRouter && findRoute(routeFuncRouter, "", route.src);
+    if (match) {
+      await createFunctionDirWithCustomConfig(
+        funcDir,
+        nitro.options.output.serverDir,
+        baseFunctionConfig,
+        match.data
+      );
+    } else {
+      await fsp.mkdir(dirname(funcPrefix), { recursive: true });
+      await fsp.symlink(
+        "./" + relative(dirname(funcPrefix), nitro.options.output.serverDir),
+        funcDir,
+        "junction"
+      );
+    }
   }
 }
 
@@ -273,6 +333,13 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
           ),
         };
       }),
+    // Route function config routes
+    ...(nitro.options.vercel?.routeFunctionConfig
+      ? Object.keys(nitro.options.vercel.routeFunctionConfig).map((pattern) => ({
+          src: normalizeRouteSrc(pattern),
+          dest: withLeadingSlash(normalizeRouteDest(pattern)),
+        }))
+      : []),
     // Observability routes
     ...(o11Routes || []).map((route) => ({
       src: joinURL(nitro.options.baseURL, route.src),
@@ -510,6 +577,25 @@ function normalizeRouteDest(route: string) {
       .map((segment) => segment.replace(SAFE_FS_CHAR_RE, "-"))
       .join("/") || "index"
   );
+}
+
+async function createFunctionDirWithCustomConfig(
+  funcDir: string,
+  serverDir: string,
+  baseFunctionConfig: VercelServerlessFunctionConfig,
+  overrides: VercelServerlessFunctionConfig
+) {
+  await fsp.mkdir(funcDir, { recursive: true });
+  const entries = await fsp.readdir(serverDir);
+  for (const entry of entries) {
+    if (entry === ".vc-config.json") {
+      continue;
+    }
+    const target = "./" + relative(funcDir, resolve(serverDir, entry));
+    await fsp.symlink(target, resolve(funcDir, entry), "junction");
+  }
+  const mergedConfig = defu(overrides, baseFunctionConfig);
+  await writeFile(resolve(funcDir, ".vc-config.json"), JSON.stringify(mergedConfig, null, 2));
 }
 
 async function writePrerenderConfig(
