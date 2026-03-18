@@ -49,8 +49,8 @@ export function normalizeRouteRules(config: NitroConfig): Record<string, NitroRo
         ...routeRules.headers,
       };
     }
-    // Cache: swr
-    if (routeConfig.swr) {
+    // Cache: swr - allow `swr: 0` to set maxAge=0 (no cache)
+    if (routeConfig.swr != null && routeConfig.swr !== false) {
       routeRules.cache = routeRules.cache || {};
       routeRules.cache.swr = true;
       if (typeof routeConfig.swr === "number") {
