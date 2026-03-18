@@ -596,6 +596,11 @@ async function createFunctionDirWithCustomConfig(
     await fsp.symlink(target, resolve(funcDir, entry), "junction");
   }
   const mergedConfig = defu(overrides, baseFunctionConfig);
+  for (const [key, value] of Object.entries(overrides)) {
+    if (Array.isArray(value)) {
+      (mergedConfig as Record<string, unknown>)[key] = value;
+    }
+  }
   await writeFile(resolve(funcDir, ".vc-config.json"), JSON.stringify(mergedConfig, null, 2));
 }
 
