@@ -168,6 +168,14 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "(?<__isr_route>/rules/swr-ttl/(?:.*))",
               },
               {
+                "dest": "/api/hello",
+                "src": "/api/hello",
+              },
+              {
+                "dest": "/api/echo",
+                "src": "/api/echo",
+              },
+              {
                 "dest": "/wasm/static-import",
                 "src": "/wasm/static-import",
               },
@@ -420,9 +428,47 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/_vercel",
             "functions/api/cached.func (symlink)",
             "functions/api/db.func (symlink)",
-            "functions/api/echo.func (symlink)",
+            "functions/api/echo.func/.vc-config.json",
+            "functions/api/echo.func/_...name_.mjs (symlink)",
+            "functions/api/echo.func/_...name_.mjs.map (symlink)",
+            "functions/api/echo.func/_...param_.mjs (symlink)",
+            "functions/api/echo.func/_...param_.mjs.map (symlink)",
+            "functions/api/echo.func/_...slug_.mjs (symlink)",
+            "functions/api/echo.func/_...slug_.mjs.map (symlink)",
+            "functions/api/echo.func/_chunks (symlink)",
+            "functions/api/echo.func/_id_.mjs (symlink)",
+            "functions/api/echo.func/_id_.mjs.map (symlink)",
+            "functions/api/echo.func/_libs (symlink)",
+            "functions/api/echo.func/_routes (symlink)",
+            "functions/api/echo.func/_tasks (symlink)",
+            "functions/api/echo.func/_test-id_.mjs (symlink)",
+            "functions/api/echo.func/_test-id_.mjs.map (symlink)",
+            "functions/api/echo.func/_virtual (symlink)",
+            "functions/api/echo.func/index.mjs (symlink)",
+            "functions/api/echo.func/index.mjs.map (symlink)",
+            "functions/api/echo.func/node_modules (symlink)",
+            "functions/api/echo.func/package.json (symlink)",
             "functions/api/headers.func (symlink)",
-            "functions/api/hello.func (symlink)",
+            "functions/api/hello.func/.vc-config.json",
+            "functions/api/hello.func/_...name_.mjs (symlink)",
+            "functions/api/hello.func/_...name_.mjs.map (symlink)",
+            "functions/api/hello.func/_...param_.mjs (symlink)",
+            "functions/api/hello.func/_...param_.mjs.map (symlink)",
+            "functions/api/hello.func/_...slug_.mjs (symlink)",
+            "functions/api/hello.func/_...slug_.mjs.map (symlink)",
+            "functions/api/hello.func/_chunks (symlink)",
+            "functions/api/hello.func/_id_.mjs (symlink)",
+            "functions/api/hello.func/_id_.mjs.map (symlink)",
+            "functions/api/hello.func/_libs (symlink)",
+            "functions/api/hello.func/_routes (symlink)",
+            "functions/api/hello.func/_tasks (symlink)",
+            "functions/api/hello.func/_test-id_.mjs (symlink)",
+            "functions/api/hello.func/_test-id_.mjs.map (symlink)",
+            "functions/api/hello.func/_virtual (symlink)",
+            "functions/api/hello.func/index.mjs (symlink)",
+            "functions/api/hello.func/index.mjs.map (symlink)",
+            "functions/api/hello.func/node_modules (symlink)",
+            "functions/api/hello.func/package.json (symlink)",
             "functions/api/hey.func (symlink)",
             "functions/api/kebab.func (symlink)",
             "functions/api/meta/test.func (symlink)",
@@ -478,6 +524,45 @@ describe("nitro:preset:vercel:web", async () => {
           ]
         `);
       });
+
+      it("should create custom function directory for routeFunctionConfig (not symlink)", async () => {
+        const funcDir = resolve(ctx.outDir, "functions/api/hello.func");
+        const stat = await fsp.lstat(funcDir);
+        expect(stat.isDirectory()).toBe(true);
+        expect(stat.isSymbolicLink()).toBe(false);
+      });
+
+      it("should write merged .vc-config.json with routeFunctionConfig overrides", async () => {
+        const config = await fsp
+          .readFile(resolve(ctx.outDir, "functions/api/hello.func/.vc-config.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        expect(config.maxDuration).toBe(300);
+        expect(config.handler).toBe("index.mjs");
+        expect(config.launcherType).toBe("Nodejs");
+        expect(config.supportsResponseStreaming).toBe(true);
+      });
+
+      it("should write routeFunctionConfig with arbitrary fields", async () => {
+        const config = await fsp
+          .readFile(resolve(ctx.outDir, "functions/api/echo.func/.vc-config.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        expect(config.experimentalTriggers).toEqual([{ type: "queue/v2beta", topic: "orders" }]);
+        expect(config.handler).toBe("index.mjs");
+      });
+
+      it("should symlink files inside routeFunctionConfig directory to __server.func", async () => {
+        const funcDir = resolve(ctx.outDir, "functions/api/hello.func");
+        const indexStat = await fsp.lstat(resolve(funcDir, "index.mjs"));
+        expect(indexStat.isSymbolicLink()).toBe(true);
+      });
+
+      it("should keep base __server.func without routeFunctionConfig overrides", async () => {
+        const config = await fsp
+          .readFile(resolve(ctx.outDir, "functions/__server.func/.vc-config.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        expect(config.maxDuration).toBeUndefined();
+        expect(config.handler).toBe("index.mjs");
+      });
     }
   );
 });
@@ -528,78 +613,6 @@ describe("nitro:preset:vercel:bun", async () => {
         "supportsResponseStreaming": true,
       }
     `);
-  });
-});
-
-describe("nitro:preset:vercel:route-function-config", async () => {
-  const ctx = await setupTest("vercel", {
-    outDirSuffix: "-route-func-config",
-    config: {
-      preset: "vercel",
-      vercel: {
-        routeFunctionConfig: {
-          "/api/hello": {
-            maxDuration: 300,
-          },
-          "/api/echo": {
-            experimentalTriggers: [{ type: "queue/v2beta", topic: "orders" }],
-          },
-        },
-      },
-    },
-  });
-
-  it("should create custom function directory (not symlink)", async () => {
-    const funcDir = resolve(ctx.outDir, "functions/api/hello.func");
-    const stat = await fsp.lstat(funcDir);
-    expect(stat.isDirectory()).toBe(true);
-    expect(stat.isSymbolicLink()).toBe(false);
-  });
-
-  it("should write merged .vc-config.json with overrides", async () => {
-    const config = await fsp
-      .readFile(resolve(ctx.outDir, "functions/api/hello.func/.vc-config.json"), "utf8")
-      .then((r) => JSON.parse(r));
-    expect(config.maxDuration).toBe(300);
-    expect(config.handler).toBe("index.mjs");
-    expect(config.launcherType).toBe("Nodejs");
-    expect(config.supportsResponseStreaming).toBe(true);
-  });
-
-  it("should write custom config with arbitrary fields", async () => {
-    const config = await fsp
-      .readFile(resolve(ctx.outDir, "functions/api/echo.func/.vc-config.json"), "utf8")
-      .then((r) => JSON.parse(r));
-    expect(config.experimentalTriggers).toEqual([{ type: "queue/v2beta", topic: "orders" }]);
-    expect(config.handler).toBe("index.mjs");
-  });
-
-  it("should symlink files inside custom function directory to __server.func", async () => {
-    const funcDir = resolve(ctx.outDir, "functions/api/hello.func");
-    const entries = await fsp.readdir(funcDir, { withFileTypes: true });
-    const indexEntry = entries.find((e) => e.name === "index.mjs");
-    expect(indexEntry).toBeDefined();
-    const indexStat = await fsp.lstat(resolve(funcDir, "index.mjs"));
-    expect(indexStat.isSymbolicLink()).toBe(true);
-  });
-
-  it("should add routing entries for custom function routes in config.json", async () => {
-    const config = await fsp
-      .readFile(resolve(ctx.outDir, "config.json"), "utf8")
-      .then((r) => JSON.parse(r));
-    const routes = config.routes as { src: string; dest: string }[];
-    const helloRoute = routes.find((r) => r.dest === "/api/hello" && r.src === "/api/hello");
-    expect(helloRoute).toBeDefined();
-    const echoRoute = routes.find((r) => r.dest === "/api/echo" && r.src === "/api/echo");
-    expect(echoRoute).toBeDefined();
-  });
-
-  it("should keep base __server.func with standard config", async () => {
-    const config = await fsp
-      .readFile(resolve(ctx.outDir, "functions/__server.func/.vc-config.json"), "utf8")
-      .then((r) => JSON.parse(r));
-    expect(config.maxDuration).toBeUndefined();
-    expect(config.handler).toBe("index.mjs");
   });
 });
 

@@ -4,6 +4,16 @@ import { dirname, resolve } from "node:path";
 import { existsSync } from "node:fs";
 
 export default defineConfig({
+  vercel: {
+    routeFunctionConfig: {
+      "/api/hello": {
+        maxDuration: 300,
+      },
+      "/api/echo": {
+        experimentalTriggers: [{ type: "queue/v2beta", topic: "orders" }],
+      },
+    },
+  },
   compressPublicAssets: true,
   compatibilityDate: "latest",
   serverDir: "server",
