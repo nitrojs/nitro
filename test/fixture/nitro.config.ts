@@ -5,15 +5,12 @@ import { existsSync } from "node:fs";
 
 export default defineConfig({
   vercel: {
-    functionRules: {
+    routeFunctionConfig: {
       "/api/hello": {
-        maxDuration: 100,
+        maxDuration: 300,
       },
       "/api/echo": {
         experimentalTriggers: [{ type: "queue/v2beta", topic: "orders" }],
-      },
-      "/rules/isr/**": {
-        regions: ["lhr1", "cdg1"],
       },
     },
   },
