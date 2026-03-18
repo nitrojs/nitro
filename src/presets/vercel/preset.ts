@@ -2,6 +2,7 @@ import { defineNitroPreset } from "../_utils/preset.ts";
 import type { Nitro } from "nitro/types";
 import { presetsDir } from "nitro/meta";
 import { join } from "pathe";
+import { importDep } from "../../utils/dep.ts";
 import {
   deprecateSWR,
   generateFunctionFiles,
@@ -64,6 +65,35 @@ const vercel = defineNitroPreset(
             lazy: true,
             handler: join(presetsDir, "vercel/runtime/cron-handler"),
           });
+        }
+
+        // Queue consumer handler
+        const queues = nitro.options.vercel?.queues;
+        if (queues?.triggers?.length) {
+          await importDep({
+            id: "@vercel/queue",
+            dir: nitro.options.rootDir,
+            reason: "Vercel Queues",
+          });
+
+          const handlerRoute = queues.handlerRoute || "/_vercel/queues/consumer";
+
+          nitro.options.handlers.push({
+            route: handlerRoute,
+            lazy: true,
+            handler: join(presetsDir, "vercel/runtime/queue-handler"),
+          });
+
+          nitro.options.vercel!.routeFunctionConfig = {
+            ...nitro.options.vercel!.routeFunctionConfig,
+            [handlerRoute]: {
+              ...nitro.options.vercel!.routeFunctionConfig?.[handlerRoute],
+              experimentalTriggers: queues.triggers.map((t) => ({
+                type: "queue/v2beta" as const,
+                topic: t.topic,
+              })),
+            },
+          };
         }
       },
       "rollup:before": (nitro: Nitro) => {

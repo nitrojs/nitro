@@ -148,6 +148,67 @@ export default defineNitroConfig({
 
 To prevent unauthorized access to the cron handler, set a `CRON_SECRET` environment variable in your Vercel project settings. When `CRON_SECRET` is set, Nitro validates the `Authorization` header on every cron invocation.
 
+## Queues
+
+:read-more{title="Vercel Queues" to="https://vercel.com/docs/queues"}
+
+Nitro integrates with [Vercel Queues](https://vercel.com/docs/queues) to process messages asynchronously. Define your queue topics in the Nitro config and handle incoming messages with the `vercel:queue` runtime hook.
+
+```ts [nitro.config.ts]
+export default defineNitroConfig({
+  vercel: {
+    queues: {
+      triggers: [
+        { topic: "orders" },
+        { topic: "notifications" },
+      ],
+    },
+  },
+});
+```
+
+### Handling messages
+
+Use the `vercel:queue` hook in a [Nitro plugin](/guide/plugins) to process incoming queue messages:
+
+```ts [server/plugins/queues.ts]
+export default defineNitroPlugin((nitro) => {
+  nitro.hooks.hook("vercel:queue", ({ message, metadata }) => {
+    console.log(`[${metadata.topicName}] Message ${metadata.messageId}:`, message);
+  });
+});
+```
+
+### Running tasks from queue messages
+
+You can use queue messages to trigger [Nitro tasks](/tasks):
+
+```ts [server/plugins/queues.ts]
+import { runTask } from "nitro/task";
+
+export default defineNitroPlugin((nitro) => {
+  nitro.hooks.hook("vercel:queue", async ({ message, metadata }) => {
+    if (metadata.topicName === "orders") {
+      await runTask("orders:fulfill", { payload: message });
+    }
+  });
+});
+```
+
+### Sending messages
+
+Use the `@vercel/queue` package directly to send messages to a topic:
+
+```ts [server/routes/api/orders.post.ts]
+import { send } from "@vercel/queue";
+
+export default defineEventHandler(async (event) => {
+  const order = await event.req.json();
+  const { messageId } = await send("orders", order);
+  return { messageId };
+});
+```
+
 ## Custom build output configuration
 
 You can provide additional [build output configuration](https://vercel.com/docs/build-output-api/v3) using `vercel.config` key inside `nitro.config`. It will be merged with built-in auto-generated config.

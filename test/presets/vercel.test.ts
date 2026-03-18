@@ -661,6 +661,46 @@ describe("nitro:preset:vercel:bun", async () => {
   });
 });
 
+describe("nitro:preset:vercel:queues", async () => {
+  const ctx = await setupTest("vercel", {
+    outDirSuffix: "-queues",
+    config: {
+      preset: "vercel",
+      vercel: {
+        queues: {
+          triggers: [{ topic: "orders" }, { topic: "notifications" }],
+        },
+      },
+    },
+  });
+
+  it("should create queue consumer function directory with experimentalTriggers", async () => {
+    const funcDir = resolve(ctx.outDir, "functions/_vercel/queues/consumer.func");
+    const stat = await fsp.lstat(funcDir);
+    expect(stat.isDirectory()).toBe(true);
+    expect(stat.isSymbolicLink()).toBe(false);
+
+    const config = await fsp
+      .readFile(resolve(funcDir, ".vc-config.json"), "utf8")
+      .then((r) => JSON.parse(r));
+    expect(config.experimentalTriggers).toEqual([
+      { type: "queue/v2beta", topic: "orders" },
+      { type: "queue/v2beta", topic: "notifications" },
+    ]);
+    expect(config.handler).toBe("index.mjs");
+  });
+
+  it("should add queue consumer route in config.json", async () => {
+    const config = await fsp
+      .readFile(resolve(ctx.outDir, "config.json"), "utf8")
+      .then((r) => JSON.parse(r));
+    const routes = config.routes as { src: string; dest: string }[];
+    const queueRoute = routes.find(
+      (r) => r.dest === "/_vercel/queues/consumer" && r.src === "/_vercel/queues/consumer"
+    );
+    expect(queueRoute).toBeDefined();
+  });
+});
 describe.skip("nitro:preset:vercel:bun-verceljson", async () => {
   const vercelJsonPath = join(fixtureDir, "vercel.json");
 

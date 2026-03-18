@@ -149,6 +149,44 @@ export interface VercelOptions {
   cronHandlerRoute?: string;
 
   /**
+   * Vercel Queues configuration.
+   *
+   * Messages are delivered via the `vercel:queue` runtime hook.
+   *
+   * @example
+   * ```ts
+   * // nitro.config.ts
+   * export default defineNitroConfig({
+   *   vercel: {
+   *     queues: {
+   *       triggers: [{ topic: "orders" }],
+   *     },
+   *   },
+   * });
+   * ```
+   *
+   * ```ts
+   * // server/plugins/queues.ts
+   * export default defineNitroPlugin((nitro) => {
+   *   nitro.hooks.hook("vercel:queue", ({ message, metadata }) => {
+   *     console.log(`Received message on ${metadata.topicName}:`, message);
+   *   });
+   * });
+   * ```
+   *
+   * @see https://vercel.com/docs/queues
+   */
+  queues?: {
+    /**
+     * Route path for the queue consumer handler.
+     * @default "/_vercel/queues/consumer"
+     */
+    handlerRoute?: string;
+    /** Queue topic triggers to subscribe to. */
+    triggers: Array<{ topic: string }>;
+  };
+
+  /**
    * Per-route function configuration overrides.
    *
    * Keys are route patterns (e.g., `/api/queues/*`, `/api/slow-routes/**`).
@@ -206,3 +244,12 @@ export type PrerenderFunctionConfig = {
    */
   exposeErrBody?: boolean;
 };
+
+declare module "nitro/types" {
+  export interface NitroRuntimeHooks {
+    "vercel:queue": (_: {
+      message: unknown;
+      metadata: import("@vercel/queue").MessageMetadata;
+    }) => void;
+  }
+}
