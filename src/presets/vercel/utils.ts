@@ -336,7 +336,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     // Route function config routes
     ...(nitro.options.vercel?.routeFunctionConfig
       ? Object.keys(nitro.options.vercel.routeFunctionConfig).map((pattern) => ({
-          src: normalizeRouteSrc(pattern),
+          src: joinURL(nitro.options.baseURL, normalizeRouteSrc(pattern)),
           dest: withLeadingSlash(normalizeRouteDest(pattern)),
         }))
       : []),
