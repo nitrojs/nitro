@@ -26,13 +26,10 @@ function guardCreateRequire(): Plugin {
     name: "nitro:cloudflare-guard-createRequire",
     generateBundle(_options, bundle) {
       for (const chunk of Object.values(bundle)) {
-        if (
-          chunk.type === "chunk" &&
-          chunk.code?.includes("createRequire(import.meta.url)")
-        ) {
+        if (chunk.type === "chunk" && chunk.code?.includes("createRequire(import.meta.url)")) {
           chunk.code = chunk.code.replace(
             /createRequire\(import\.meta\.url\)/g,
-            'createRequire(import.meta.url || "file:///")',
+            'createRequire(import.meta.url || "file:///")'
           );
         }
       }
