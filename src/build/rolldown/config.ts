@@ -91,6 +91,10 @@ export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> 
     config
   );
 
+  if (isNodeless && Array.isArray(config.external)) {
+    config.external = config.external.filter((id) => !String(id).startsWith("node:"));
+  }
+
   const outputConfig = config.output as OutputOptions;
   if (outputConfig.inlineDynamicImports || outputConfig.format === "iife") {
     delete outputConfig.inlineDynamicImports;
@@ -105,21 +109,17 @@ function getNodeBuiltinAliases(aliases: Record<string, string>) {
     .filter(([find, replacement]) => !find.startsWith("node:") && replacement.startsWith("node:"))
     .map(([find, replacement]) => ({
       key: find,
-      find: new RegExp(`^${escapeRegExp(find)}$`),
+      find,
       replacement,
     }));
 }
 
 function omitAliases(
   aliases: Record<string, string>,
-  omittedAliases: { key: string; find: RegExp; replacement: string }[]
+  omittedAliases: { key: string; find: string; replacement: string }[]
 ) {
   const omitted = new Set(omittedAliases.map((entry) => entry.key));
   return Object.fromEntries(Object.entries(aliases).filter(([key]) => !omitted.has(key)));
-}
-
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function nodeBuiltinImportExternalPlugin(): RolldownPlugin {
