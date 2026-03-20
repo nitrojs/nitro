@@ -320,6 +320,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/api/db",
               },
               {
+                "dest": "/api/cjs-builtin",
+                "src": "/api/cjs-builtin",
+              },
+              {
                 "dest": "/api/cached",
                 "src": "/api/cached",
               },
@@ -419,6 +423,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/_swagger.func (symlink)",
             "functions/_vercel",
             "functions/api/cached.func (symlink)",
+            "functions/api/cjs-builtin.func (symlink)",
             "functions/api/db.func (symlink)",
             "functions/api/echo.func (symlink)",
             "functions/api/headers.func (symlink)",
