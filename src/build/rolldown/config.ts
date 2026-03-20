@@ -27,9 +27,11 @@ export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> 
     input: nitro.options.entry,
     external,
     plugins: [
-      ...(isNodeless && nodeBuiltinAliases.length > 0
+      ...(isNodeless
         ? [
-            viteAliasPlugin({ entries: nodeBuiltinAliases }),
+            ...(nodeBuiltinAliases.length > 0
+              ? [viteAliasPlugin({ entries: nodeBuiltinAliases })]
+              : []),
             nodeBuiltinImportExternalPlugin(),
             esmExternalRequirePlugin({ external: [/^node:/] }),
           ]
