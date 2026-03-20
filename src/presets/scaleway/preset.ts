@@ -2,7 +2,7 @@ import { defineNitroPreset } from "../_utils/preset.ts";
 
 const scalewayServerless = defineNitroPreset(
   {
-    entry: "./scaleway/runtime/scaleway-serverless",
+    entry: "./scaleway/runtime/scaleway-functions",
     rollupConfig: {
       output: {
         entryFileNames: "index.mjs",
