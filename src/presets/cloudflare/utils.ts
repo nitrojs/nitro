@@ -171,7 +171,8 @@ export async function enableNodeCompat(nitro: Nitro) {
   nitro.options.cloudflare.deployConfig ??= true;
   nitro.options.cloudflare.nodeCompat ??= true;
   if (nitro.options.cloudflare.nodeCompat) {
-    nitro.options.node = true;
+    nitro.options.rolldownConfig ??= {};
+    nitro.options.rolldownConfig.platform ??= "node";
     nitro.options.unenv.push(unenvCfNodeCompat);
   }
 }
