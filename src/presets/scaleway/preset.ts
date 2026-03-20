@@ -11,8 +11,8 @@ const scalewayServerless = defineNitroPreset(
     },
   },
   {
-    name: "scaleway-serverless" as const,
-  }
+    name: "scaleway-functions" as const,
+  },
 );
 
 export default [scalewayServerless] as const;

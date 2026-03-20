@@ -5,7 +5,7 @@ import { getRandomPort, waitForPort } from "get-port-please";
 import { setupTest, testNitro } from "../tests.ts";
 
 describe("nitro:preset:scaleway", async () => {
-  const ctx = await setupTest("scaleway-serverless");
+  const ctx = await setupTest("scaleway-functions");
 
   testNitro(ctx, async () => {
     const { handler } = await import(resolve(ctx.outDir, "server/index.mjs"));
