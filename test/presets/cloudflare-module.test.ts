@@ -7,26 +7,25 @@ import { setupTest, testNitro } from "../tests.ts";
 
 describe("nitro:preset:cloudflare-module", async () => {
   const ctx = await setupTest("cloudflare-module");
+  const mf = new Miniflare({
+    modules: true,
+    compatibilityDate: "2025-04-01",
+    scriptPath: resolve(ctx.outDir, "server/index.mjs"),
+    modulesRules: [{ type: "CompiledWasm", include: ["**/*.wasm"] }],
+    assets: {
+      directory: resolve(ctx.outDir, "public"),
+      routerConfig: { has_user_worker: true },
+      assetConfig: {
+        // https://developers.cloudflare.com/workers/static-assets/routing/#routing-configuration
+        html_handling: "auto-trailing-slash" /* default */,
+        not_found_handling: "none" /* default */,
+      },
+    },
+    compatibilityFlags: ["nodejs_compat", "no_nodejs_compat_v2"],
+    bindings: { ...ctx.env },
+  });
 
   testNitro(ctx, () => {
-    const mf = new Miniflare({
-      modules: true,
-      compatibilityDate: "2025-04-01",
-      scriptPath: resolve(ctx.outDir, "server/index.mjs"),
-      modulesRules: [{ type: "CompiledWasm", include: ["**/*.wasm"] }],
-      assets: {
-        directory: resolve(ctx.outDir, "public"),
-        routerConfig: { has_user_worker: true },
-        assetConfig: {
-          // https://developers.cloudflare.com/workers/static-assets/routing/#routing-configuration
-          html_handling: "auto-trailing-slash" /* default */,
-          not_found_handling: "none" /* default */,
-        },
-      },
-      compatibilityFlags: ["nodejs_compat", "no_nodejs_compat_v2"],
-      bindings: { ...ctx.env },
-    });
-
     return async ({ url, headers, method, body }) => {
       const res = await mf.dispatchFetch("http://localhost" + url, {
         headers: headers || {},
@@ -50,6 +49,16 @@ describe("nitro:preset:cloudflare-module", async () => {
       .then((r) => JSON.parse(r));
     expect(wranglerConfig.triggers).toEqual({
       crons: ["* * * * *"],
+    });
+  });
+
+  it("should handle cjs builtin requires imported through esm wrappers", async () => {
+    const res = await mf.dispatchFetch("http://localhost/api/cjs-builtin");
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toMatchObject({
+      ok: true,
+      clientName: "Client",
+      eventEmitterType: "function",
     });
   });
 });
