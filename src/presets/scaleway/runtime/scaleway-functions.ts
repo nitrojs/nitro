@@ -2,7 +2,6 @@ import "#nitro/virtual/polyfills";
 import { useNitroApp } from "nitro/app";
 import { joinURL, withQuery } from "ufo";
 import type { serveHandler } from "@scaleway/serverless-functions";
-import { Buffer } from "node:buffer";
 
 const nitroApp = useNitroApp();
 
