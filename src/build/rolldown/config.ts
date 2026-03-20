@@ -8,9 +8,7 @@ import { builtinModules } from "node:module";
 import { defu } from "defu";
 import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
 
-export const getRolldownConfig = async (
-  nitro: Nitro
-): Promise<RolldownOptions> => {
+export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> => {
   const base = baseBuildConfig(nitro);
   const isNodeless = nitro.options.node === false;
   const builtinExternal = isNodeless
@@ -39,9 +37,7 @@ export const getRolldownConfig = async (
       ...((await baseBuildPlugins(nitro, base)) as RolldownPlugin[]),
     ],
     resolve: {
-      alias: isNodeless
-        ? omitAliases(base.aliases, nodeBuiltinAliases)
-        : base.aliases,
+      alias: isNodeless ? omitAliases(base.aliases, nodeBuiltinAliases) : base.aliases,
       extensions: base.extensions,
       conditionNames: nitro.options.exportConditions,
     },
@@ -104,10 +100,7 @@ export const getRolldownConfig = async (
 
 function getNodeBuiltinAliases(aliases: Record<string, string>) {
   return Object.entries(aliases)
-    .filter(
-      ([find, replacement]) =>
-        !find.startsWith("node:") && replacement.startsWith("node:")
-    )
+    .filter(([find, replacement]) => !find.startsWith("node:") && replacement.startsWith("node:"))
     .map(([find, replacement]) => ({
       key: find,
       find: new RegExp(`^${escapeRegExp(find)}$`),
@@ -120,9 +113,7 @@ function omitAliases(
   omittedAliases: { key: string; find: RegExp; replacement: string }[]
 ) {
   const omitted = new Set(omittedAliases.map((entry) => entry.key));
-  return Object.fromEntries(
-    Object.entries(aliases).filter(([key]) => !omitted.has(key))
-  );
+  return Object.fromEntries(Object.entries(aliases).filter(([key]) => !omitted.has(key)));
 }
 
 function escapeRegExp(value: string) {
