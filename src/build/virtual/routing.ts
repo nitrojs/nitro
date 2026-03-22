@@ -32,7 +32,7 @@ ${allHandlers
   .filter((h) => !h.lazy)
   .map(
     (h) =>
-      /* js */ `const { default: ${h._importHash} } = await import("${h.handler}").catch(() => {})`
+      /* js */ `const ${h._importHash} = await import("${h.handler}").then(m => m.default).catch(() => {})`
   )
   .join("\n")}
 
