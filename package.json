@@ -207,7 +207,7 @@
   },
   "resolutions": {
     "nitro": "link:.",
-    "vite": "^7"
+    "vite": "^8.0.1"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
