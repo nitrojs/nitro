@@ -18,10 +18,18 @@ const skip = new Set<string>([
   "websocket",
   ...(isRolldown
     ? [
-        // https://github.com/rolldown/rolldown/issues/8211
+        // TODO: Cannot read properties of null (reading 'use')
         "vite-rsc",
       ]
-    : ["vite-rsc"]),
+    : [
+        "vite-rsc",
+        // No tsConfigPaths support in rollup
+        "import-alias",
+        // @vitejs/plugin-react depends on vite 8 vite/internal import
+        "vite-ssr-react",
+        "vite-ssr-tsr-react",
+        "vite-ssr-tss-react",
+      ]),
 ]);
 
 const skipDev = new Set<string>(["auto-imports", "cached-handler"]);

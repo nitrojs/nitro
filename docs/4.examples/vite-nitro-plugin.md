@@ -21,7 +21,7 @@ icon: i-logos-vitejs
   },
   "devDependencies": {
     "nitro": "latest",
-    "vite": "beta"
+    "vite": "latest"
   }
 }
 ```

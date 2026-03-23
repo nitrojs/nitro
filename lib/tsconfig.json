@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "target": "ESNext",
+    "lib": ["ESNext", "DOM"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "moduleDetection": "force",
@@ -13,15 +14,12 @@
     "noEmit": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
+    "resolvePackageJsonImports": true,
 
     "forceConsistentCasingInFileNames": true,
     "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "useUnknownInCatchVariables": true,
-    "noUnusedLocals": true
+    "noFallthroughCasesInSwitch": true
   }
 }

@@ -16,9 +16,6 @@ import { defineConfig } from "nitro";
 
 export default defineConfig({
   serverDir: true,
-  experimental: {
-    tsconfigPaths: true,
-  },
 });
 ```
 
@@ -54,7 +51,7 @@ export default defineConfig({
 import { defineConfig } from "vite";
 import { nitro } from "nitro/vite";
 
-export default defineConfig({ plugins: [nitro()] });
+export default defineConfig({ plugins: [nitro()], resolve: { tsconfigPaths: true } });
 ```
 
 ```ts [server/routes/index.ts]
