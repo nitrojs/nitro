@@ -29,15 +29,21 @@ describe("vite:baseURL dotted params", { sequential: true }, () => {
   });
 
   test("serves Nitro API routes with dotted params under baseURL without redirecting", async () => {
-    const response = await fetch(`${serverURL}/subdir/api/proxy/todos/Package.todos.Entity.3`, {
-      headers: {
-        "sec-fetch-dest": "empty",
-      },
-      redirect: "manual",
-    });
+    for (const fetchDest of ["empty", "document", undefined]) {
+      const headers: Record<string, string> = {};
+      if (fetchDest) {
+        headers["sec-fetch-dest"] = fetchDest;
+      }
+      const response = await fetch(`${serverURL}/subdir/api/proxy/todos/Package.todos.Entity.3`, {
+        headers,
+        redirect: "manual",
+      });
 
-    expect(response.status).toBe(200);
-    expect(response.headers.get("location")).toBeNull();
-    expect(await response.text()).toBe("todos/Package.todos.Entity.3");
+      expect(response.status, `sec-fetch-dest: ${fetchDest}`).toBe(200);
+      expect(response.headers.get("location"), `sec-fetch-dest: ${fetchDest}`).toBeNull();
+      expect(await response.text(), `sec-fetch-dest: ${fetchDest}`).toBe(
+        "todos/Package.todos.Entity.3"
+      );
+    }
   });
 });
