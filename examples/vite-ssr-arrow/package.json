@@ -1,0 +1,17 @@
+{
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "preview": "vite preview",
+    "dev": "vite dev"
+  },
+  "devDependencies": {
+    "@arrow-js/core": "latest",
+    "@arrow-js/framework": "latest",
+    "@arrow-js/hydrate": "latest",
+    "@arrow-js/ssr": "latest",
+    "jsdom": "latest",
+    "nitro": "latest",
+    "vite": "latest"
+  }
+}

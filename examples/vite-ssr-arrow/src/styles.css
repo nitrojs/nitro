@@ -1,0 +1,159 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+body {
+  font-family: system-ui, sans-serif;
+  background: #1a1a2e;
+  color: #eee;
+  display: flex;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.app {
+  max-width: 480px;
+  width: 100%;
+}
+
+h1 {
+  font-size: 1.8rem;
+  color: #e2b340;
+}
+
+.subtitle {
+  color: #888;
+  margin-bottom: 1.5rem;
+}
+
+.input-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.input-row input {
+  flex: 1;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #333;
+  border-radius: 6px;
+  background: #16213e;
+  color: #eee;
+  font-size: 0.95rem;
+}
+
+.input-row input:focus {
+  outline: none;
+  border-color: #e2b340;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  padding: 0.5rem 0.8rem;
+  background: #16213e;
+  color: #ccc;
+  transition: background 0.15s;
+}
+
+button:hover {
+  background: #1a2744;
+}
+
+button.add {
+  background: #e2b340;
+  color: #1a1a2e;
+  font-weight: 600;
+}
+
+button.add:hover {
+  background: #f0c850;
+}
+
+.filters {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.filters button.active {
+  background: #e2b340;
+  color: #1a1a2e;
+}
+
+.todo-list {
+  list-style: none;
+  padding: 0;
+}
+
+.todo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid #222;
+}
+
+.todo.done span {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+.todo span {
+  flex: 1;
+}
+
+.todo .toggle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid #444;
+  background: transparent;
+  color: #4caf50;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.todo.done .toggle {
+  border-color: #4caf50;
+}
+
+.todo .remove {
+  background: transparent;
+  color: #e74c3c;
+  font-size: 1.1rem;
+  opacity: 0;
+  transition: opacity 0.15s;
+  padding: 0.2rem 0.5rem;
+}
+
+.todo:hover .remove {
+  opacity: 1;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid #222;
+  color: #888;
+  font-size: 0.85rem;
+}
+
+button.clear {
+  color: #e74c3c;
+  background: transparent;
+  font-size: 0.8rem;
+}
+
+button.clear:hover {
+  background: rgba(231, 76, 60, 0.1);
+}
