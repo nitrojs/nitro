@@ -1,5 +1,5 @@
 import "./styles.css";
-import { renderToString } from "@arrow-js/ssr";
+import { renderToString, serializePayload } from "@arrow-js/ssr";
 import { App } from "./app.ts";
 
 import clientAssets from "./entry-client?assets=client";
@@ -31,6 +31,7 @@ export default {
   </head>
   <body>
     <div id="app">${result.html}</div>
+    ${serializePayload(result.payload)}
   </body>
 </html>`;
 

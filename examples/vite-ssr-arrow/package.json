@@ -10,11 +10,8 @@
     "@arrow-js/framework": "latest",
     "@arrow-js/hydrate": "latest",
     "@arrow-js/ssr": "latest",
+    "jsdom": "latest",
     "nitro": "latest",
     "vite": "latest"
-  },
-  "TODO": [
-    "@arrow-js/vite-plugin-arrow - investigate workspace alias plugin for external use",
-    "@arrow-js/hydrate - investigate hydration adoption (currently using client-side takeover)"
-  ]
+  }
 }

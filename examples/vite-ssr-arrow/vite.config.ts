@@ -8,20 +8,4 @@ export default defineConfig({
       build: { rollupOptions: { input: "./src/entry-client.ts" } },
     },
   },
-  optimizeDeps: {
-    exclude: [
-      "@arrow-js/core",
-      "@arrow-js/framework",
-      "@arrow-js/ssr",
-      "@arrow-js/hydrate",
-    ],
-  },
-  ssr: {
-    noExternal: [
-      "@arrow-js/core",
-      "@arrow-js/framework",
-      "@arrow-js/ssr",
-      "@arrow-js/hydrate",
-    ],
-  },
 });
