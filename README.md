@@ -1,4 +1,5 @@
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/nitrojs/nitro)
+[![Stack Health](https://indiestack.ai/api/badge/health/nitrojs/nitro.svg)](https://indiestack.ai/audit?repo=nitrojs/nitro)
 
 # Nitro
 
