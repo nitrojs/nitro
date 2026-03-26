@@ -12,6 +12,8 @@ describe("vite:app", () => {
 
   const rootDir = fileURLToPath(new URL("./app-fixture", import.meta.url));
 
+  const originalCwd = process.cwd();
+
   beforeAll(async () => {
     process.chdir(rootDir);
     server = await createServer({ root: rootDir });
@@ -26,6 +28,7 @@ describe("vite:app", () => {
 
   afterAll(async () => {
     await server?.close();
+    process.chdir(originalCwd);
   });
 
   test("SSR entry can use nitro/storage (shared with nitro env)", async () => {
