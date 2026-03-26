@@ -18,6 +18,7 @@ import {
   createNitroEnvironment,
   createServiceEnvironments,
   createServiceEnvironment,
+  nitroServiceProxy,
 } from "./env.ts";
 import { configureViteDevServer } from "./dev.ts";
 import { runtimeDir } from "nitro/meta";
@@ -50,6 +51,7 @@ export function nitro(pluginConfig: NitroPluginConfig = {}): VitePlugin[] {
     nitroMain(ctx),
     nitroPrepare(ctx),
     nitroService(ctx),
+    nitroServiceProxy(),
     nitroPreviewPlugin(ctx),
     pluginConfig.experimental?.vite?.assetsImport !== false &&
       assetsPlugin({
