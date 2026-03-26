@@ -10,17 +10,19 @@ export default {
     const viteClientScript = "<script type='module' src='/@vite/client'></script>";
     const clientScript = "<script type='module' src='/app/entry-client.ts'></script>";
     return html`
-    <!doctype html>
-    <html lang="en">
-      <head>${viteClientScript}</head>
-      <body>
-        <h1>SSR Page</h1>
-        <p>[SSR] state: ${state}</p>
-        <p>[API] state: ${apiData.state}</p>
-        <p id="client-state">[Client] state: <span id="client-state-value">?</span></p>
-        ${clientScript}
-      </body>
-    </html>
-  `;
+      <!doctype html>
+      <html lang="en">
+        <head>
+          ${viteClientScript}
+        </head>
+        <body>
+          <h1>SSR Page</h1>
+          <p>[SSR] state: ${state}</p>
+          <p>[API] state: ${apiData.state}</p>
+          <p id="client-state">[Client] state: <span id="client-state-value">?</span></p>
+          ${clientScript}
+        </body>
+      </html>
+    `;
   },
 };

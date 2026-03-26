@@ -11,6 +11,7 @@ import { watch as chokidarWatch } from "chokidar";
 import { watch as fsWatch } from "node:fs";
 import { join } from "pathe";
 import { debounce } from "perfect-debounce";
+import { withBase } from "ufo";
 import { scanHandlers } from "../../scan.ts";
 import { getEnvRunner } from "./env.ts";
 
@@ -198,6 +199,12 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       return next();
     }
     nodeReq._nitroHandled = true;
+
+    const baseURL = nitro.options.baseURL || "/";
+    const originalURL = nodeReq.url;
+    if (baseURL !== "/") {
+      nodeReq.url = withBase(nodeReq.url, baseURL);
+    }
     try {
       // Create web API compat request
       const req = new NodeRequest({ req: nodeReq, res: nodeRes });
@@ -219,6 +226,10 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       return await sendNodeResponse(nodeRes, envRes);
     } catch (error) {
       return next(error);
+    } finally {
+      if (baseURL !== "/") {
+        nodeReq.url = originalURL;
+      }
     }
   };
 
@@ -226,12 +237,19 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   // https://github.com/vitejs/vite/pull/20866
   server.middlewares.use(function nitroDevMiddlewarePre(req, res, next) {
     const fetchDest = req.headers["sec-fetch-dest"];
+    const ext = req.url!.match(/\.([a-z0-9]+)(?:[?#]|$)/i)?.[1];
+    const isNitroRoute = ext
+      ? !!nitro.routing.routes.match(
+          req.method || "",
+          new URL(withBase(req.url!, nitro.options.baseURL), "http://localhost").pathname
+        )
+      : false;
     res.setHeader("vary", "sec-fetch-dest");
     if (
       // Originating from browser tab or no fetch dest (curl, fetch, etc) and (not script, style, image, etc)
       (!fetchDest || /^(document|iframe|frame|empty)$/.test(fetchDest)) &&
-      // No file extension (not /src/index.ts)
-      !req.url!.match(/\.([a-z0-9]+)(?:[?#]|$)/i)?.[1] &&
+      // No file extension (not /src/index.ts) unless it is an explicit Nitro route
+      (!ext || isNitroRoute) &&
       // Special prefixes (/__vue-router/auto-routes, /@vite-plugin-layouts/, etc)
       !/^\/(?:__|@)/.test(req.url!)
     ) {

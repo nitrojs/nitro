@@ -25,7 +25,7 @@ export default defineConfig({});
     "dev": "nitro dev"
   },
   "devDependencies": {
-    "elysia": "^1.4.22",
+    "elysia": "^1.4.28",
     "nitro": "latest"
   }
 }

@@ -8,7 +8,7 @@
     "dev": "nitro dev"
   },
   "devDependencies": {
-    "mono-jsx": "^0.8.2",
+    "mono-jsx": "latest",
     "nitro": "latest"
   }
 }

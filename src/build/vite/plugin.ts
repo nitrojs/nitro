@@ -18,6 +18,7 @@ import {
   createNitroEnvironment,
   createServiceEnvironments,
   createServiceEnvironment,
+  nitroServiceProxy,
 } from "./env.ts";
 import { configureViteDevServer } from "./dev.ts";
 import { runtimeDir } from "nitro/meta";
@@ -50,6 +51,7 @@ export function nitro(pluginConfig: NitroPluginConfig = {}): VitePlugin[] {
     nitroMain(ctx),
     nitroPrepare(ctx),
     nitroService(ctx),
+    nitroServiceProxy(),
     nitroPreviewPlugin(ctx),
     pluginConfig.experimental?.vite?.assetsImport !== false &&
       assetsPlugin({
@@ -220,12 +222,23 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
 
         // Find entry point of this service
         let entryFile: string | undefined;
+        const serviceEntry =
+          isRegisteredService && ctx.services[environment.name]?.entry
+            ? resolve(ctx.services[environment.name].entry)
+            : undefined;
         for (const [_name, file] of Object.entries(bundle)) {
           if (file.type === "chunk" && isRegisteredService && file.isEntry) {
+            if (
+              serviceEntry &&
+              file.facadeModuleId &&
+              resolve(file.facadeModuleId) === serviceEntry
+            ) {
+              entryFile = file.fileName;
+              break;
+            }
+            // Fallback: use first entry chunk if no facadeModuleId match
             if (entryFile === undefined) {
               entryFile = file.fileName;
-            } else {
-              this.warn(`Multiple entry points found for service "${environment.name}"`);
             }
           }
         }
