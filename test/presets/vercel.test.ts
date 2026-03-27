@@ -176,6 +176,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/api/echo",
               },
               {
+                "dest": "/rules/isr/[...]",
+                "src": "/rules/isr/(?:.*)",
+              },
+              {
                 "dest": "/wasm/static-import",
                 "src": "/wasm/static-import",
               },
@@ -508,8 +512,47 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/rules/_/noncached/cached-isr.prerender-config.json",
             "functions/rules/isr-ttl/[...]-isr.func (symlink)",
             "functions/rules/isr-ttl/[...]-isr.prerender-config.json",
-            "functions/rules/isr/[...]-isr.func (symlink)",
+            "functions/rules/isr/[...]-isr.func/.vc-config.json",
+            "functions/rules/isr/[...]-isr.func/_...name_.mjs (symlink)",
+            "functions/rules/isr/[...]-isr.func/_...name_.mjs.map (symlink)",
+            "functions/rules/isr/[...]-isr.func/_...param_.mjs (symlink)",
+            "functions/rules/isr/[...]-isr.func/_...param_.mjs.map (symlink)",
+            "functions/rules/isr/[...]-isr.func/_...slug_.mjs (symlink)",
+            "functions/rules/isr/[...]-isr.func/_...slug_.mjs.map (symlink)",
+            "functions/rules/isr/[...]-isr.func/_chunks (symlink)",
+            "functions/rules/isr/[...]-isr.func/_id_.mjs (symlink)",
+            "functions/rules/isr/[...]-isr.func/_id_.mjs.map (symlink)",
+            "functions/rules/isr/[...]-isr.func/_libs (symlink)",
+            "functions/rules/isr/[...]-isr.func/_routes (symlink)",
+            "functions/rules/isr/[...]-isr.func/_tasks (symlink)",
+            "functions/rules/isr/[...]-isr.func/_test-id_.mjs (symlink)",
+            "functions/rules/isr/[...]-isr.func/_test-id_.mjs.map (symlink)",
+            "functions/rules/isr/[...]-isr.func/_virtual (symlink)",
+            "functions/rules/isr/[...]-isr.func/index.mjs (symlink)",
+            "functions/rules/isr/[...]-isr.func/index.mjs.map (symlink)",
+            "functions/rules/isr/[...]-isr.func/node_modules (symlink)",
+            "functions/rules/isr/[...]-isr.func/package.json (symlink)",
             "functions/rules/isr/[...]-isr.prerender-config.json",
+            "functions/rules/isr/[...].func/.vc-config.json",
+            "functions/rules/isr/[...].func/_...name_.mjs (symlink)",
+            "functions/rules/isr/[...].func/_...name_.mjs.map (symlink)",
+            "functions/rules/isr/[...].func/_...param_.mjs (symlink)",
+            "functions/rules/isr/[...].func/_...param_.mjs.map (symlink)",
+            "functions/rules/isr/[...].func/_...slug_.mjs (symlink)",
+            "functions/rules/isr/[...].func/_...slug_.mjs.map (symlink)",
+            "functions/rules/isr/[...].func/_chunks (symlink)",
+            "functions/rules/isr/[...].func/_id_.mjs (symlink)",
+            "functions/rules/isr/[...].func/_id_.mjs.map (symlink)",
+            "functions/rules/isr/[...].func/_libs (symlink)",
+            "functions/rules/isr/[...].func/_routes (symlink)",
+            "functions/rules/isr/[...].func/_tasks (symlink)",
+            "functions/rules/isr/[...].func/_test-id_.mjs (symlink)",
+            "functions/rules/isr/[...].func/_test-id_.mjs.map (symlink)",
+            "functions/rules/isr/[...].func/_virtual (symlink)",
+            "functions/rules/isr/[...].func/index.mjs (symlink)",
+            "functions/rules/isr/[...].func/index.mjs.map (symlink)",
+            "functions/rules/isr/[...].func/node_modules (symlink)",
+            "functions/rules/isr/[...].func/package.json (symlink)",
             "functions/rules/swr-ttl/[...]-isr.func (symlink)",
             "functions/rules/swr-ttl/[...]-isr.prerender-config.json",
             "functions/rules/swr/[...]-isr.func (symlink)",
@@ -536,7 +579,7 @@ describe("nitro:preset:vercel:web", async () => {
         const config = await fsp
           .readFile(resolve(ctx.outDir, "functions/api/hello.func/.vc-config.json"), "utf8")
           .then((r) => JSON.parse(r));
-        expect(config.maxDuration).toBe(300);
+        expect(config.maxDuration).toBe(100);
         expect(config.handler).toBe("index.mjs");
         expect(config.launcherType).toBe("Nodejs");
         expect(config.supportsResponseStreaming).toBe(true);
