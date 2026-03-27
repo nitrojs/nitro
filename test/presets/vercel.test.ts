@@ -476,7 +476,6 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/rules/isr-ttl/[...]-isr.prerender-config.json",
             "functions/rules/isr/[...]-isr.func",
             "functions/rules/isr/[...]-isr.prerender-config.json",
-            "functions/rules/isr/[...].func",
             "functions/rules/swr-ttl/[...]-isr.func (symlink)",
             "functions/rules/swr-ttl/[...]-isr.prerender-config.json",
             "functions/rules/swr/[...]-isr.func (symlink)",
