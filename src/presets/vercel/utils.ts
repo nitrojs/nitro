@@ -36,6 +36,29 @@ const ISR_SUFFIX = "-isr"; // Avoid using . as it can conflict with routing
 
 const SAFE_FS_CHAR_RE = /[^a-zA-Z0-9_.[\]/]/g;
 
+/**
+ * Encodes a function path into a consumer name for queue/v2beta triggers.
+ * Mirrors the encoding from @vercel/build-utils sanitizeConsumerName().
+ * @see https://github.com/vercel/vercel/blob/main/packages/build-utils/src/lambda.ts
+ */
+function sanitizeConsumerName(functionPath: string): string {
+  let result = "";
+  for (const char of functionPath) {
+    if (char === "_") {
+      result += "__";
+    } else if (char === "/") {
+      result += "_S";
+    } else if (char === ".") {
+      result += "_D";
+    } else if (/[A-Za-z0-9-]/.test(char)) {
+      result += char;
+    } else {
+      result += "_" + char.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0");
+    }
+  }
+  return result;
+}
+
 function getSystemNodeVersion() {
   const systemNodeVersion = Number.parseInt(process.versions.node.split(".")[0]);
 
@@ -56,6 +79,18 @@ export async function generateFunctionFiles(nitro: Nitro) {
     supportsResponseStreaming: true,
     ...nitro.options.vercel?.functions,
   };
+
+  if (
+    Array.isArray(baseFunctionConfig.experimentalTriggers) &&
+    baseFunctionConfig.experimentalTriggers.length > 0
+  ) {
+    nitro.logger.warn(
+      "`experimentalTriggers` on the base `vercel.functions` config applies to the catch-all function and is likely not what you want. " +
+        "Routes with queue triggers are not accesible on the web." +
+        "Use `vercel.routeFunctionConfig` to attach triggers to specific routes instead."
+    );
+  }
+
   const functionConfigPath = resolve(nitro.options.output.serverDir, ".vc-config.json");
   await writeFile(functionConfigPath, JSON.stringify(baseFunctionConfig, null, 2));
 
@@ -89,7 +124,8 @@ export async function generateFunctionFiles(nitro: Nitro) {
         funcPrefix + ".func",
         nitro.options.output.serverDir,
         baseFunctionConfig,
-        match.data
+        match.data,
+        normalizeRouteDest(key) + ISR_SUFFIX
       );
     } else {
       await fsp.symlink(
@@ -119,7 +155,8 @@ export async function generateFunctionFiles(nitro: Nitro) {
         funcDir,
         nitro.options.output.serverDir,
         baseFunctionConfig,
-        overrides
+        overrides,
+        normalizeRouteDest(pattern)
       );
       createdFuncDirs.add(funcDir);
     }
@@ -150,7 +187,8 @@ export async function generateFunctionFiles(nitro: Nitro) {
         funcDir,
         nitro.options.output.serverDir,
         baseFunctionConfig,
-        match.data
+        match.data,
+        route.dest
       );
     } else {
       await fsp.mkdir(dirname(funcPrefix), { recursive: true });
@@ -583,6 +621,9 @@ async function createFunctionDirWithCustomConfig(
   funcDir: string,
   serverDir: string,
   baseFunctionConfig: VercelServerlessFunctionConfig,
+  overrides: VercelServerlessFunctionConfig,
+  functionPath: string
+) {
   overrides: VercelServerlessFunctionConfig
 ) {
   await fsp.mkdir(funcDir, { recursive: true });
@@ -600,6 +641,17 @@ async function createFunctionDirWithCustomConfig(
       (mergedConfig as Record<string, unknown>)[key] = value;
     }
   }
+
+  // Auto-derive consumer for queue/v2beta triggers
+  const triggers = mergedConfig.experimentalTriggers;
+  if (Array.isArray(triggers)) {
+    for (const trigger of triggers as Array<Record<string, unknown>>) {
+      if (trigger.type === "queue/v2beta" && !trigger.consumer) {
+        trigger.consumer = sanitizeConsumerName(functionPath);
+      }
+    }
+  }
+
   await writeFile(resolve(funcDir, ".vc-config.json"), JSON.stringify(mergedConfig, null, 2));
 }
 

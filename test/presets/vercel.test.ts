@@ -546,7 +546,9 @@ describe("nitro:preset:vercel:web", async () => {
         const config = await fsp
           .readFile(resolve(ctx.outDir, "functions/api/echo.func/.vc-config.json"), "utf8")
           .then((r) => JSON.parse(r));
-        expect(config.experimentalTriggers).toEqual([{ type: "queue/v2beta", topic: "orders" }]);
+        expect(config.experimentalTriggers).toEqual([
+          { type: "queue/v2beta", topic: "orders", consumer: "api_Secho" },
+        ]);
         expect(config.handler).toBe("index.mjs");
       });
 
