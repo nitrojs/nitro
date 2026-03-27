@@ -36,29 +36,6 @@ const ISR_SUFFIX = "-isr"; // Avoid using . as it can conflict with routing
 
 const SAFE_FS_CHAR_RE = /[^a-zA-Z0-9_.[\]/]/g;
 
-/**
- * Encodes a function path into a consumer name for queue/v2beta triggers.
- * Mirrors the encoding from @vercel/build-utils sanitizeConsumerName().
- * @see https://github.com/vercel/vercel/blob/main/packages/build-utils/src/lambda.ts
- */
-function sanitizeConsumerName(functionPath: string): string {
-  let result = "";
-  for (const char of functionPath) {
-    if (char === "_") {
-      result += "__";
-    } else if (char === "/") {
-      result += "_S";
-    } else if (char === ".") {
-      result += "_D";
-    } else if (/[A-Za-z0-9-]/.test(char)) {
-      result += char;
-    } else {
-      result += "_" + char.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0");
-    }
-  }
-  return result;
-}
-
 function getSystemNodeVersion() {
   const systemNodeVersion = Number.parseInt(process.versions.node.split(".")[0]);
 
@@ -618,6 +595,29 @@ function normalizeRouteDest(route: string) {
       .map((segment) => segment.replace(SAFE_FS_CHAR_RE, "-"))
       .join("/") || "index"
   );
+}
+
+/**
+ * Encodes a function path into a consumer name for queue/v2beta triggers.
+ * Mirrors the encoding from @vercel/build-utils sanitizeConsumerName().
+ * @see https://github.com/vercel/vercel/blob/main/packages/build-utils/src/lambda.ts
+ */
+function sanitizeConsumerName(functionPath: string): string {
+  let result = "";
+  for (const char of functionPath) {
+    if (char === "_") {
+      result += "__";
+    } else if (char === "/") {
+      result += "_S";
+    } else if (char === ".") {
+      result += "_D";
+    } else if (/[A-Za-z0-9-]/.test(char)) {
+      result += char;
+    } else {
+      result += "_" + char.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0");
+    }
+  }
+  return result;
 }
 
 async function createFunctionDirWithCustomConfig(
