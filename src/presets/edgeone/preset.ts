@@ -1,0 +1,31 @@
+import { defineNitroPreset } from "../_utils/preset.ts";
+import { writeEdgeOneConfig } from "./utils.ts";
+import type { Nitro } from "nitro/types";
+
+const edgeone = defineNitroPreset(
+  {
+    extends: "node-server",
+    entry: "./edgeone/runtime/edgeone",
+    serveStatic: true,
+    output: {
+      dir: "{{ rootDir }}/.edgeone",
+      serverDir: "{{ output.dir }}/cloud-functions/ssr-node",
+      publicDir: "{{ output.dir }}/assets",
+    },
+    rollupConfig: {
+      output: {
+        entryFileNames: "handler.js",
+      },
+    },
+    hooks: {
+      async compiled(nitro: Nitro) {
+        await writeEdgeOneConfig(nitro);
+      },
+    },
+  },
+  {
+    name: "edgeone-pages" as const,
+  }
+);
+
+export default [edgeone] as const;
