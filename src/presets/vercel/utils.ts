@@ -86,6 +86,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
   }
 
   // Write ISR functions
+  const isrFuncDirs = new Set<string>();
   for (const [key, value] of Object.entries(nitro.options.routeRules)) {
     if (!value.isr) {
       continue;
@@ -100,6 +101,9 @@ export async function generateFunctionFiles(nitro: Nitro) {
 
     const matchData = routeFuncRouter?.match("", key);
     if (matchData) {
+      isrFuncDirs.add(
+        resolve(nitro.options.output.serverDir, "..", normalizeRouteDest(key) + ".func")
+      );
       await createFunctionDirWithCustomConfig(
         funcPrefix + ".func",
         nitro.options.output.serverDir,
@@ -131,6 +135,10 @@ export async function generateFunctionFiles(nitro: Nitro) {
         "..",
         normalizeRouteDest(pattern) + ".func"
       );
+      // Skip if ISR already created a custom config function for this route
+      if (isrFuncDirs.has(funcDir)) {
+        continue;
+      }
       await createFunctionDirWithCustomConfig(
         funcDir,
         nitro.options.output.serverDir,
