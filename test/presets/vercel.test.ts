@@ -491,14 +491,14 @@ describe("nitro:preset:vercel:web", async () => {
         `);
       });
 
-      it("should create custom function directory for routeFunctionConfig (not symlink)", async () => {
+      it("should create custom function directory for functionRules (not symlink)", async () => {
         const funcDir = resolve(ctx.outDir, "functions/api/hello.func");
         const stat = await fsp.lstat(funcDir);
         expect(stat.isDirectory()).toBe(true);
         expect(stat.isSymbolicLink()).toBe(false);
       });
 
-      it("should write merged .vc-config.json with routeFunctionConfig overrides", async () => {
+      it("should write merged .vc-config.json with functionRules overrides", async () => {
         const config = await fsp
           .readFile(resolve(ctx.outDir, "functions/api/hello.func/.vc-config.json"), "utf8")
           .then((r) => JSON.parse(r));
@@ -508,7 +508,7 @@ describe("nitro:preset:vercel:web", async () => {
         expect(config.supportsResponseStreaming).toBe(true);
       });
 
-      it("should write routeFunctionConfig with arbitrary fields", async () => {
+      it("should write functionRules with arbitrary fields", async () => {
         const config = await fsp
           .readFile(resolve(ctx.outDir, "functions/api/echo.func/.vc-config.json"), "utf8")
           .then((r) => JSON.parse(r));
@@ -518,13 +518,13 @@ describe("nitro:preset:vercel:web", async () => {
         expect(config.handler).toBe("index.mjs");
       });
 
-      it("should copy files inside routeFunctionConfig directory from __server.func", async () => {
+      it("should copy files inside functionRules directory from __server.func", async () => {
         const funcDir = resolve(ctx.outDir, "functions/api/hello.func");
         const indexStat = await fsp.lstat(resolve(funcDir, "index.mjs"));
         expect(indexStat.isFile()).toBe(true);
       });
 
-      it("should keep base __server.func without routeFunctionConfig overrides", async () => {
+      it("should keep base __server.func without functionRules overrides", async () => {
         const config = await fsp
           .readFile(resolve(ctx.outDir, "functions/__server.func/.vc-config.json"), "utf8")
           .then((r) => JSON.parse(r));

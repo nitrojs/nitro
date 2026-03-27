@@ -5,7 +5,7 @@ import { existsSync } from "node:fs";
 
 export default defineConfig({
   vercel: {
-    routeFunctionConfig: {
+    functionRules: {
       "/api/hello": {
         maxDuration: 100,
       },

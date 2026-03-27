@@ -64,20 +64,20 @@ export async function generateFunctionFiles(nitro: Nitro) {
     nitro.logger.warn(
       "`experimentalTriggers` on the base `vercel.functions` config applies to the catch-all function and is likely not what you want. " +
         "Routes with queue triggers are not accesible on the web." +
-        "Use `vercel.routeFunctionConfig` to attach triggers to specific routes instead."
+        "Use `vercel.functionRules` to attach triggers to specific routes instead."
     );
   }
 
   const functionConfigPath = resolve(nitro.options.output.serverDir, ".vc-config.json");
   await writeFile(functionConfigPath, JSON.stringify(baseFunctionConfig, null, 2));
 
-  const routeFunctionConfig = nitro.options.vercel?.routeFunctionConfig;
-  const hasRouteFunctionConfig = routeFunctionConfig && Object.keys(routeFunctionConfig).length > 0;
+  const functionRules = nitro.options.vercel?.functionRules;
+  const hasfunctionRules = functionRules && Object.keys(functionRules).length > 0;
   let routeFuncRouter: Router<VercelServerlessFunctionConfig> | undefined;
-  if (hasRouteFunctionConfig) {
+  if (hasfunctionRules) {
     routeFuncRouter = new Router<VercelServerlessFunctionConfig>();
     routeFuncRouter._update(
-      Object.entries(routeFunctionConfig).map(([route, data]) => ({
+      Object.entries(functionRules).map(([route, data]) => ({
         route,
         method: "",
         data,
@@ -126,10 +126,10 @@ export async function generateFunctionFiles(nitro: Nitro) {
     );
   }
 
-  // Write routeFunctionConfig custom function directories
+  // Write functionRules custom function directories
   const createdFuncDirs = new Set<string>();
-  if (hasRouteFunctionConfig) {
-    for (const [pattern, overrides] of Object.entries(routeFunctionConfig!)) {
+  if (hasfunctionRules) {
+    for (const [pattern, overrides] of Object.entries(functionRules!)) {
       const funcDir = resolve(
         nitro.options.output.serverDir,
         "..",
@@ -164,7 +164,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
     const funcPrefix = resolve(nitro.options.output.serverDir, "..", route.dest);
     const funcDir = funcPrefix + ".func";
 
-    // Skip if already created by routeFunctionConfig
+    // Skip if already created by functionRules
     if (createdFuncDirs.has(funcDir)) {
       continue;
     }
@@ -360,8 +360,8 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
         };
       }),
     // Route function config routes
-    ...(nitro.options.vercel?.routeFunctionConfig
-      ? Object.keys(nitro.options.vercel.routeFunctionConfig).map((pattern) => ({
+    ...(nitro.options.vercel?.functionRules
+      ? Object.keys(nitro.options.vercel.functionRules).map((pattern) => ({
           src: joinURL(nitro.options.baseURL, normalizeRouteSrc(pattern)),
           dest: withLeadingSlash(normalizeRouteDest(pattern)),
         }))
