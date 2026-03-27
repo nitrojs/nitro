@@ -625,17 +625,11 @@ async function createFunctionDirWithCustomConfig(
   overrides: VercelServerlessFunctionConfig,
   functionPath: string
 ) {
-  overrides: VercelServerlessFunctionConfig
-) {
-  await fsp.mkdir(funcDir, { recursive: true });
-  const entries = await fsp.readdir(serverDir);
-  for (const entry of entries) {
-    if (entry === ".vc-config.json") {
-      continue;
-    }
-    const target = "./" + relative(funcDir, resolve(serverDir, entry));
-    await fsp.symlink(target, resolve(funcDir, entry), "junction");
-  }
+  // Copy the entire server directory instead of symlinking individual
+  // entries. Vercel's build container preserves symlinks in the Lambda
+  // zip, but symlinks pointing outside the .func directory break at
+  // runtime because the target path doesn't exist on Lambda.
+  await fsp.cp(serverDir, funcDir, { recursive: true });
   const mergedConfig = defu(overrides, baseFunctionConfig);
   for (const [key, value] of Object.entries(overrides)) {
     if (Array.isArray(value)) {
