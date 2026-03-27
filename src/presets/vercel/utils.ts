@@ -3,7 +3,7 @@ import { defu } from "defu";
 import { writeFile } from "../_utils/fs.ts";
 import type { Nitro, NitroRouteRules } from "nitro/types";
 import { dirname, relative, resolve } from "pathe";
-import { createRouter, addRoute, findRoute } from "rou3";
+import { Router } from "../../routing.ts";
 import { joinURL, withLeadingSlash, withoutLeadingSlash } from "ufo";
 import type {
   PrerenderFunctionConfig,
@@ -94,15 +94,18 @@ export async function generateFunctionFiles(nitro: Nitro) {
   const functionConfigPath = resolve(nitro.options.output.serverDir, ".vc-config.json");
   await writeFile(functionConfigPath, JSON.stringify(baseFunctionConfig, null, 2));
 
-  // Build rou3 router for routeFunctionConfig matching
   const routeFunctionConfig = nitro.options.vercel?.routeFunctionConfig;
   const hasRouteFunctionConfig = routeFunctionConfig && Object.keys(routeFunctionConfig).length > 0;
-  let routeFuncRouter: ReturnType<typeof createRouter<VercelServerlessFunctionConfig>> | undefined;
+  let routeFuncRouter: Router<VercelServerlessFunctionConfig> | undefined;
   if (hasRouteFunctionConfig) {
-    routeFuncRouter = createRouter<VercelServerlessFunctionConfig>();
-    for (const [pattern, overrides] of Object.entries(routeFunctionConfig)) {
-      addRoute(routeFuncRouter, "", pattern, overrides);
-    }
+    routeFuncRouter = new Router<VercelServerlessFunctionConfig>();
+    routeFuncRouter._update(
+      Object.entries(routeFunctionConfig).map(([route, data]) => ({
+        route,
+        method: "",
+        data,
+      }))
+    );
   }
 
   // Write ISR functions
@@ -119,13 +122,13 @@ export async function generateFunctionFiles(nitro: Nitro) {
     );
     await fsp.mkdir(dirname(funcPrefix), { recursive: true });
 
-    const match = routeFuncRouter && findRoute(routeFuncRouter, "", key);
-    if (match) {
+    const matchData = routeFuncRouter?.match("", key);
+    if (matchData) {
       await createFunctionDirWithCustomConfig(
         funcPrefix + ".func",
         nitro.options.output.serverDir,
         baseFunctionConfig,
-        match.data,
+        matchData,
         normalizeRouteDest(key) + ISR_SUFFIX
       );
     } else {
@@ -182,13 +185,13 @@ export async function generateFunctionFiles(nitro: Nitro) {
       continue;
     }
 
-    const match = routeFuncRouter && findRoute(routeFuncRouter, "", route.src);
-    if (match) {
+    const matchData = routeFuncRouter?.match("", route.src);
+    if (matchData) {
       await createFunctionDirWithCustomConfig(
         funcDir,
         nitro.options.output.serverDir,
         baseFunctionConfig,
-        match.data,
+        matchData,
         route.dest
       );
     } else {
