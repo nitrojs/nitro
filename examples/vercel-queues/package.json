@@ -1,0 +1,13 @@
+{
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "nitro": "latest"
+  },
+  "dependencies": {
+    "@vercel/queue": "latest"
+  }
+}

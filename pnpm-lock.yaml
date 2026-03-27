@@ -467,6 +467,16 @@ importers:
         specifier: latest
         version: 4.0.2
 
+  examples/vercel-queues:
+    dependencies:
+      '@vercel/queue':
+        specifier: latest
+        version: 0.1.4
+    devDependencies:
+      nitro:
+        specifier: link:../..
+        version: link:../..
+
   examples/virtual-routes:
     devDependencies:
       nitro:
