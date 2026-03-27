@@ -595,10 +595,10 @@ describe("nitro:preset:vercel:web", async () => {
         expect(config.handler).toBe("index.mjs");
       });
 
-      it("should symlink files inside routeFunctionConfig directory to __server.func", async () => {
+      it("should copy files inside routeFunctionConfig directory from __server.func", async () => {
         const funcDir = resolve(ctx.outDir, "functions/api/hello.func");
         const indexStat = await fsp.lstat(resolve(funcDir, "index.mjs"));
-        expect(indexStat.isSymbolicLink()).toBe(true);
+        expect(indexStat.isFile()).toBe(true);
       });
 
       it("should keep base __server.func without routeFunctionConfig overrides", async () => {
