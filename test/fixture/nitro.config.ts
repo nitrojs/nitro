@@ -7,10 +7,13 @@ export default defineConfig({
   vercel: {
     routeFunctionConfig: {
       "/api/hello": {
-        maxDuration: 300,
+        maxDuration: 100,
       },
       "/api/echo": {
         experimentalTriggers: [{ type: "queue/v2beta", topic: "orders" }],
+      },
+      "/rules/isr/**": {
+        regions: ["lhr1", "cdg1"],
       },
     },
   },
