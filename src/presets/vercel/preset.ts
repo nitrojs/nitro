@@ -84,10 +84,10 @@ const vercel = defineNitroPreset(
             handler: join(presetsDir, "vercel/runtime/queue-handler"),
           });
 
-          nitro.options.vercel!.routeFunctionConfig = {
-            ...nitro.options.vercel!.routeFunctionConfig,
+          nitro.options.vercel!.functionRules = {
+            ...nitro.options.vercel!.functionRules,
             [handlerRoute]: {
-              ...nitro.options.vercel!.routeFunctionConfig?.[handlerRoute],
+              ...nitro.options.vercel!.functionRules?.[handlerRoute],
               experimentalTriggers: queues.triggers.map((t) => ({
                 type: "queue/v2beta" as const,
                 topic: t.topic,
