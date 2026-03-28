@@ -10,6 +10,7 @@ import { stat } from "node:fs/promises";
 import { createReadStream } from "node:fs";
 import { createGzip, createBrotliCompress } from "node:zlib";
 import { createVFSHandler } from "./vfs.ts";
+import type { CompressOptions } from "../types/config.ts";
 
 import devErrorHandler, {
   defaultHandler as devErrorHandlerInternal,
@@ -70,6 +71,7 @@ export class NitroDevApp {
           dir: asset.dir,
           base: assetBase,
           fallthrough: asset.fallthrough,
+          compress: this.nitro.options.compressPublicAssets,
         })
       );
     }
@@ -97,7 +99,7 @@ export class NitroDevApp {
 // TODO: upstream to h3/node
 function serveStaticDir(
   event: H3Event,
-  opts: { dir: string; base: string; fallthrough?: boolean }
+  opts: { dir: string; base: string; fallthrough?: boolean; compress?: boolean | CompressOptions }
 ) {
   const dir = resolve(opts.dir) + "/";
   const r = (id: string) => {
@@ -107,6 +109,15 @@ function serveStaticDir(
       return resolved;
     }
   };
+
+  // Determine compression settings
+  const compressOpts =
+    opts.compress === true
+      ? { gzip: true, brotli: true, zstd: false }
+      : opts.compress === false
+        ? { gzip: false, brotli: false, zstd: false }
+        : opts.compress || { gzip: false, brotli: false, zstd: false };
+
   return serveStatic(event, {
     fallthrough: opts.fallthrough,
     getMeta: async (id) => {
@@ -126,12 +137,12 @@ function serveStaticDir(
       if (!path) return;
       const stream = createReadStream(path);
       const acceptEncoding = event.req.headers.get("accept-encoding") || "";
-      if (acceptEncoding.includes("br")) {
+      if (compressOpts.brotli && acceptEncoding.includes("br")) {
         event.res.headers.set("Content-Encoding", "br");
         event.res.headers.delete("Content-Length");
         event.res.headers.set("Vary", "Accept-Encoding");
         return stream.pipe(createBrotliCompress());
-      } else if (acceptEncoding.includes("gzip")) {
+      } else if (compressOpts.gzip && acceptEncoding.includes("gzip")) {
         event.res.headers.set("Content-Encoding", "gzip");
         event.res.headers.delete("Content-Length");
         event.res.headers.set("Vary", "Accept-Encoding");
