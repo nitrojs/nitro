@@ -70,9 +70,14 @@ export const cache: RouteRuleCtor<"cache"> = ((m) =>
     const key = `${m.route}:${route}`;
     let cachedHandler = cachedHandlers.get(key);
     if (!cachedHandler) {
+      // Sanitize the name to avoid filesystem path conflicts.
+      // Route paths contain "/" which unstorage's fs drivers interpret as
+      // directory separators, causing ENOTDIR when a path like "/foo" is
+      // cached as a file but "/foo/bar" needs it to be a directory.
+      const safeName = key.replace(/\//g, "_");
       cachedHandler = defineCachedHandler(handler, {
-        group: "nitro/route-rules",
-        name: key,
+        group: "nitro-route-rules",
+        name: safeName,
         ...m.options,
       });
       cachedHandlers.set(key, cachedHandler);
