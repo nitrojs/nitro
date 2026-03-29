@@ -168,6 +168,18 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "(?<__isr_route>/rules/swr-ttl/(?:.*))",
               },
               {
+                "dest": "/api/hello",
+                "src": "/api/hello",
+              },
+              {
+                "dest": "/api/echo",
+                "src": "/api/echo",
+              },
+              {
+                "dest": "/rules/isr/[...]",
+                "src": "/rules/isr/(?:.*)",
+              },
+              {
                 "dest": "/wasm/static-import",
                 "src": "/wasm/static-import",
               },
@@ -397,7 +409,7 @@ describe("nitro:preset:vercel:web", async () => {
             items.push(`${dirname}/${entry.name}`);
           } else if (entry.isSymbolicLink()) {
             items.push(`${dirname}/${entry.name} (symlink)`);
-          } else if (/_\/|_.+|node_modules/.test(entry.name)) {
+          } else if (/_\/|_.+|node_modules/.test(entry.name) || entry.name.endsWith(".func")) {
             items.push(`${dirname}/${entry.name}`);
           } else if (entry.isDirectory()) {
             items.push(...(await walkDir(join(path, entry.name))).map((i) => `${dirname}/${i}`));
@@ -420,9 +432,9 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/_vercel",
             "functions/api/cached.func (symlink)",
             "functions/api/db.func (symlink)",
-            "functions/api/echo.func (symlink)",
+            "functions/api/echo.func",
             "functions/api/headers.func (symlink)",
-            "functions/api/hello.func (symlink)",
+            "functions/api/hello.func",
             "functions/api/hey.func (symlink)",
             "functions/api/kebab.func (symlink)",
             "functions/api/meta/test.func (symlink)",
@@ -462,7 +474,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/rules/_/noncached/cached-isr.prerender-config.json",
             "functions/rules/isr-ttl/[...]-isr.func (symlink)",
             "functions/rules/isr-ttl/[...]-isr.prerender-config.json",
-            "functions/rules/isr/[...]-isr.func (symlink)",
+            "functions/rules/isr/[...]-isr.func",
             "functions/rules/isr/[...]-isr.prerender-config.json",
             "functions/rules/swr-ttl/[...]-isr.func (symlink)",
             "functions/rules/swr-ttl/[...]-isr.prerender-config.json",
@@ -477,6 +489,47 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/wasm/static-import.func (symlink)",
           ]
         `);
+      });
+
+      it("should create custom function directory for functionRules (not symlink)", async () => {
+        const funcDir = resolve(ctx.outDir, "functions/api/hello.func");
+        const stat = await fsp.lstat(funcDir);
+        expect(stat.isDirectory()).toBe(true);
+        expect(stat.isSymbolicLink()).toBe(false);
+      });
+
+      it("should write merged .vc-config.json with functionRules overrides", async () => {
+        const config = await fsp
+          .readFile(resolve(ctx.outDir, "functions/api/hello.func/.vc-config.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        expect(config.maxDuration).toBe(100);
+        expect(config.handler).toBe("index.mjs");
+        expect(config.launcherType).toBe("Nodejs");
+        expect(config.supportsResponseStreaming).toBe(true);
+      });
+
+      it("should write functionRules with arbitrary fields", async () => {
+        const config = await fsp
+          .readFile(resolve(ctx.outDir, "functions/api/echo.func/.vc-config.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        expect(config.experimentalTriggers).toEqual([
+          { type: "queue/v2beta", topic: "orders", consumer: "api_Secho" },
+        ]);
+        expect(config.handler).toBe("index.mjs");
+      });
+
+      it("should copy files inside functionRules directory from __server.func", async () => {
+        const funcDir = resolve(ctx.outDir, "functions/api/hello.func");
+        const indexStat = await fsp.lstat(resolve(funcDir, "index.mjs"));
+        expect(indexStat.isFile()).toBe(true);
+      });
+
+      it("should keep base __server.func without functionRules overrides", async () => {
+        const config = await fsp
+          .readFile(resolve(ctx.outDir, "functions/__server.func/.vc-config.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        expect(config.maxDuration).toBeUndefined();
+        expect(config.handler).toBe("index.mjs");
       });
     }
   );
