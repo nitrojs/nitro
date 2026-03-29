@@ -47,9 +47,9 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
 ): (...args: ArgsT) => Promise<T> {
   ensureStorage();
   return _defineCachedFunction(fn, {
-    group: "nitro-functions",
     onError: defaultOnError,
     ...opts,
+    group: sanitizeCacheKey(opts.group || "nitro-functions"),
     name: sanitizeCacheKey(opts.name),
   });
 }
@@ -60,12 +60,12 @@ export function defineCachedHandler(
 ): EventHandler {
   ensureStorage();
   const ocacheHandler = _defineCachedHandler(handler as any, {
-    group: "nitro-handlers",
     onError: defaultOnError,
     toResponse: (value, event) => toResponse(value, event as H3Event),
     createResponse: (body, init) => new FastResponse(body, init),
     handleCacheHeaders: (event, conditions) => handleCacheHeaders(event as H3Event, conditions),
     ...opts,
+    group: sanitizeCacheKey(opts.group || "nitro-handlers"),
     name: sanitizeCacheKey(opts.name),
   });
   return defineHandler((event) => ocacheHandler(event as any));
