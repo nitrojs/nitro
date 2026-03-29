@@ -56,9 +56,6 @@ export const getRollupConfig = async (nitro: Nitro): Promise<RollupConfig> => {
         rollupWarn(warning);
       }
     },
-    treeshake: {
-      moduleSideEffects: true,
-    },
     output: {
       format: "esm",
       entryFileNames: "index.mjs",
