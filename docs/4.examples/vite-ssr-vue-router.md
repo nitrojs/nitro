@@ -48,6 +48,7 @@ export default defineConfig((_env) => ({
   environments: {
     client: { build: { rollupOptions: { input: "./app/entry-client.ts" } } },
     ssr: { build: { rollupOptions: { input: "./app/entry-server.ts" } } },
+    nitro: { build: { rollupOptions: { treeshake: { moduleSideEffects: () => false } } } },
   },
 }));
 
