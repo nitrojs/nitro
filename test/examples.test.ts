@@ -53,6 +53,10 @@ function setupTest(name: string) {
       test(`${name} (${mode})`, async () => {
         const res = await ctx.fetch("/");
         const expectedStatus = name === "custom-error-handler" ? 500 : 200;
+        if (res.status !== expectedStatus) {
+          const text = await res.text();
+          console.error(`Unexpected response ${res.status} ${res.statusText}\n${text}`);
+        }
         expect(res.status, res.statusText).toBe(expectedStatus);
       });
     }
