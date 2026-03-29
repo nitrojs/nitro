@@ -223,7 +223,6 @@ export interface NitroOptions extends PresetOptions {
   inlineDynamicImports: boolean;
   sourcemap: boolean;
   node: boolean;
-  moduleSideEffects: string[];
   oxc?: OXCOptions;
   replace: Record<string, string | ((id: string) => string)>;
   commonJS?: RollupCommonJSOptions;

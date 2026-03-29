@@ -21,11 +21,6 @@ export const getBundlerConfig = async (
     input: nitro.options.entry,
     external: [...base.env.external],
     plugins: [...(await baseBuildPlugins(nitro, base))].filter(Boolean) as RollupPlugin[],
-    treeshake: {
-      moduleSideEffects(id) {
-        return nitro.options.moduleSideEffects.some((p) => id.startsWith(p));
-      },
-    },
     onwarn(warning, warn) {
       if (!base.ignoreWarningCodes.has(warning.code || "")) {
         warn(warning);
@@ -45,6 +40,11 @@ export const getBundlerConfig = async (
     // Rolldown
     const rolldownConfig: RolldownConfig = defu(
       {
+        treeshake: {
+          moduleSideEffects(id: string) {
+            return id.startsWith(nitro.options.rootDir) && !id.includes("/node_modules/");
+          },
+        },
         transform: {
           inject: base.env.inject as Record<string, string>,
         },
@@ -82,6 +82,9 @@ export const getBundlerConfig = async (
 
     const rollupConfig: RollupConfig = defu(
       {
+        treeshake: {
+          moduleSideEffects: true,
+        },
         plugins: [inject(base.env.inject), alias({ entries: base.aliases })],
         output: {
           sourcemapExcludeSources: true,

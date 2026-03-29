@@ -57,9 +57,7 @@ export const getRollupConfig = async (nitro: Nitro): Promise<RollupConfig> => {
       }
     },
     treeshake: {
-      moduleSideEffects(id) {
-        return nitro.options.moduleSideEffects.some((p) => id.startsWith(p));
-      },
+      moduleSideEffects: true,
     },
     output: {
       format: "esm",
