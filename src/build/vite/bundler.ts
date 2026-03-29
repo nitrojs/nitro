@@ -40,11 +40,6 @@ export const getBundlerConfig = async (
     // Rolldown
     const rolldownConfig: RolldownConfig = defu(
       {
-        treeshake: {
-          moduleSideEffects(id: string) {
-            return id.startsWith(nitro.options.rootDir) && !id.includes("/node_modules/");
-          },
-        },
         transform: {
           inject: base.env.inject as Record<string, string>,
         },
@@ -82,9 +77,6 @@ export const getBundlerConfig = async (
 
     const rollupConfig: RollupConfig = defu(
       {
-        treeshake: {
-          moduleSideEffects: true,
-        },
         plugins: [inject(base.env.inject), alias({ entries: base.aliases })],
         output: {
           sourcemapExcludeSources: true,

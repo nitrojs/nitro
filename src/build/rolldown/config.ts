@@ -38,11 +38,6 @@ export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> 
         warn(warning);
       }
     },
-    treeshake: {
-      moduleSideEffects(id: string) {
-        return id.startsWith(nitro.options.rootDir) && !id.includes("/node_modules/");
-      },
-    },
     optimization: {
       inlineConst: true,
     },
