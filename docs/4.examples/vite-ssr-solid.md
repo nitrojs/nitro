@@ -20,7 +20,7 @@ icon: i-logos-solidjs-icon
   },
   "devDependencies": {
     "nitro": "latest",
-    "solid-js": "^1.9.11",
+    "solid-js": "^1.9.12",
     "vite": "latest",
     "vite-plugin-solid": "^2.11.11"
   }
