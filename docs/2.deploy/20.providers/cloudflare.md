@@ -236,7 +236,7 @@ For production, use the Cloudflare dashboard or the [`wrangler secret`](https://
 You can specify a custom `wrangler.toml`/`wrangler.json` file and define vars inside.
 
 ::warning
-Note that this isn't recommend for sensitive data like secrets.
+Note that this isn't recommended for sensitive data like secrets.
 ::
 
 **Example:**
