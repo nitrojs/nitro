@@ -468,11 +468,10 @@ importers:
         version: 4.0.2
 
   examples/vercel-queues:
-    dependencies:
-      '@vercel/queue':
-        specifier: latest
-        version: 0.1.4
     devDependencies:
+      '@vercel/queue':
+        specifier: ^0.1.4
+        version: 0.1.4
       nitro:
         specifier: link:../..
         version: link:../..
