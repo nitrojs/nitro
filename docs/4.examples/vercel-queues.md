@@ -34,10 +34,8 @@ export default defineConfig({
     "dev": "vite dev",
     "build": "vite build"
   },
-  "dependencies": {
-    "@vercel/queue": "latest"
-  },
   "devDependencies": {
+    "@vercel/queue": "^0.1.4",
     "nitro": "latest"
   }
 }
