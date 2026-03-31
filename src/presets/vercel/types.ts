@@ -72,7 +72,7 @@ export interface VercelServerlessFunctionConfig {
   /**
    * Maximum execution duration (in seconds) that will be allowed for the Serverless Function. `max` automatically sets the duration to the maximum allowed value.
    */
-  maxDuration?: number | 'max';
+  maxDuration?: number | "max";
 
   /**
    * Map of additional environment variables that will be available to the Vercel Function,
