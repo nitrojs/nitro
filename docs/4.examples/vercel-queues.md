@@ -36,7 +36,8 @@ export default defineConfig({
   },
   "devDependencies": {
     "@vercel/queue": "^0.1.4",
-    "nitro": "latest"
+    "nitro": "latest",
+    "vite": "latest"
   }
 }
 ```
