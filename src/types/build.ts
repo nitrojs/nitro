@@ -11,11 +11,11 @@ import type {
 } from "rolldown";
 
 export type RollupConfig = RollupInputOptions & {
-  output: RollupOutputOptions;
+  output?: RollupOutputOptions;
 };
 
 export type RolldownConfig = RolldownInputOptions & {
-  output: RolldownOutputOptions;
+  output?: RolldownOutputOptions;
 };
 
 export interface OXCOptions {

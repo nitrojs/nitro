@@ -43,4 +43,13 @@ describe("nitro:preset:cloudflare-module", async () => {
     const entry = await fsp.readFile(resolve(ctx.outDir, "server", "index.mjs"), "utf8");
     expect(entry).toMatch(/export \{.*myScheduled.*\}/);
   });
+
+  it("should auto-generate cron triggers in wrangler.json", async () => {
+    const wranglerConfig = await fsp
+      .readFile(resolve(ctx.outDir, "server", "wrangler.json"), "utf8")
+      .then((r) => JSON.parse(r));
+    expect(wranglerConfig.triggers).toEqual({
+      crons: ["* * * * *"],
+    });
+  });
 });

@@ -43,7 +43,7 @@ trapUnhandledErrors();
 
 // Scheduled tasks
 if (import.meta._tasks) {
-  startScheduleRunner();
+  startScheduleRunner({ waitUntil: server.waitUntil });
 }
 
 export default {};

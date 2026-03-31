@@ -19,7 +19,7 @@ export function sourcemapMinify() {
         // Remove x_google_ignoreList
         delete sourcemap.x_google_ignoreList;
 
-        if ((sourcemap.sources || []).some((s) => s.includes("node_modules"))) {
+        if ((sourcemap.sources || []).every((s) => s.includes("node_modules"))) {
           sourcemap.mappings = ""; // required key
         }
 

@@ -13,6 +13,7 @@ import type { Preset as UnenvPreset } from "unenv";
 import type { UnimportPluginOptions } from "unimport/unplugin";
 import type { BuiltinDriverName } from "unstorage";
 import type { UnwasmPluginOptions } from "unwasm/plugin";
+import type { RunnerName } from "env-runner";
 import type {
   EventHandlerFormat,
   NitroDevEventHandler,
@@ -142,12 +143,6 @@ export interface NitroOptions extends PresetOptions {
      * @see https://nitro.build/guide/tasks
      */
     tasks?: boolean;
-    /**
-     * Infer path aliases from tsconfig.json
-     *
-     * @default true
-     */
-    tsconfigPaths?: boolean;
   };
   future: {
     nativeSWR?: boolean;
@@ -170,6 +165,7 @@ export interface NitroOptions extends PresetOptions {
     port?: number;
     hostname?: string;
     watch?: string[];
+    runner?: RunnerName;
   };
   watchOptions: ChokidarOptions;
   devProxy: Record<string, string | ProxyServerOptions>;
@@ -228,7 +224,6 @@ export interface NitroOptions extends PresetOptions {
   inlineDynamicImports: boolean;
   sourcemap: boolean;
   node: boolean;
-  moduleSideEffects: string[];
   oxc?: OXCOptions;
   replace: Record<string, string | ((id: string) => string)>;
   commonJS?: RollupCommonJSOptions;
@@ -342,6 +337,7 @@ export interface PublicAssetDir {
 export interface CompressOptions {
   gzip?: boolean;
   brotli?: boolean;
+  zstd?: boolean;
 }
 
 // Server assets

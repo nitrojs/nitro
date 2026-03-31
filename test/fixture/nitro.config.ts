@@ -4,6 +4,19 @@ import { dirname, resolve } from "node:path";
 import { existsSync } from "node:fs";
 
 export default defineConfig({
+  vercel: {
+    functionRules: {
+      "/api/hello": {
+        maxDuration: 100,
+      },
+      "/api/echo": {
+        experimentalTriggers: [{ type: "queue/v2beta", topic: "orders" }],
+      },
+      "/rules/isr/**": {
+        regions: ["lhr1", "cdg1"],
+      },
+    },
+  },
   compressPublicAssets: true,
   compatibilityDate: "latest",
   serverDir: "server",
@@ -105,6 +118,11 @@ export default defineConfig({
     "/rules/_/cached/noncached": { cache: false, swr: false, isr: false },
     "/rules/_/cached/**": { swr: true },
     "/api/proxy/**": { proxy: "/api/echo" },
+    "/cdn/**": { proxy: "https://cdn.jsdelivr.net/**" },
+    "/rules/basic-auth/**": {
+      basicAuth: { username: "admin", password: "secret", realm: "Secure Area" },
+    },
+    "/rules/basic-auth/no-auth/**": { basicAuth: false },
     "**": { headers: { "x-test": "test" } },
   },
   prerender: {

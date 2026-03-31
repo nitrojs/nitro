@@ -1,15 +1,24 @@
 import type { Nitro } from "nitro/types";
-import { presetsDir, runtimeDir } from "nitro/meta";
+
+// Tests in @test/unit/chunks.test.ts
 
 const virtualRe = /^(?:\0|#|virtual:)/;
 
-export const NODE_MODULES_RE = /node_modules[/\\][^.]/;
+export const NODE_MODULES_RE = /node_modules[/\\](?!(?:nitro|nitro-nightly)[/\\])[^.]/;
 
 export function libChunkName(id: string) {
-  const pkgName = id.match(
-    /.*(?:[/\\])node_modules(?:[/\\])(?<package>@[^/\\]+[/\\][^/\\]+|[^/\\.][^/\\]*)/
-  )?.groups?.package;
-  return `_libs/${pkgName || "common"}`;
+  const pkgName = pathToPkgName(id);
+  return pkgName ? `_libs/${pkgName}` : undefined;
+}
+
+export function pathToPkgName(path: string): string | undefined {
+  let pkgName = path.match(
+    /.*(?:[/\\])node_modules(?:[/\\])(?<name>@[^/\\]+[/\\][^/\\]+|[^/\\.][^/\\]*)/
+  )?.groups?.name;
+  if (pkgName?.endsWith("-nightly")) {
+    pkgName = pkgName.slice(0, -8);
+  }
+  return pkgName;
 }
 
 export function getChunkName(chunk: { name: string; moduleIds: string[] }, nitro: Nitro) {
@@ -19,29 +28,17 @@ export function getChunkName(chunk: { name: string; moduleIds: string[] }, nitro
   }
 
   // Library chunks
-  if (chunk.moduleIds.every((id) => /node_modules[/\\]\w/.test(id))) {
-    const pkgNames = [
-      ...new Set(
-        chunk.moduleIds
-          .map(
-            (id) =>
-              id.match(/.*[/\\]node_modules[/\\](?<package>@[^/\\]+[/\\][^/\\]+|[^/\\]+)/)?.groups
-                ?.package
-          )
-          .filter(Boolean)
-          .map((name) => name!.split(/[/\\]/).pop()!)
-          .filter(Boolean)
-      ),
-    ].sort((a, b) => a.length - b.length);
-    let chunkName = "";
-    for (const name of pkgNames) {
-      const separator = chunkName ? "+" : "";
-      if ((chunkName + separator + name).length > 30) {
-        return `_libs/_[hash].mjs`;
-      }
-      chunkName += separator + name;
+  if (chunk.moduleIds.every((id) => NODE_MODULES_RE.test(id))) {
+    const chunkName = joinPkgNames(chunk.moduleIds);
+    if (chunkName.length > 30) {
+      return `${chunk.name}+[...].mjs`;
     }
     return `_libs/${chunkName || "_"}.mjs`;
+  }
+
+  // _ chunks are preserved (should be after library normalization)
+  if (chunk.name.startsWith("_")) {
+    return `${chunk.name}.mjs`;
   }
 
   // No moduleIds
@@ -74,11 +71,6 @@ export function getChunkName(chunk: { name: string; moduleIds: string[] }, nitro
     return `_build/[name].mjs`;
   }
 
-  // Only nitro runtime
-  if (ids.every((id) => id.startsWith(runtimeDir) || id.startsWith(presetsDir))) {
-    return `_nitro/[name].mjs`;
-  }
-
   // Try to match user defined routes or tasks
   const mainId = ids.at(-1);
   if (mainId) {
@@ -100,12 +92,29 @@ export function getChunkName(chunk: { name: string; moduleIds: string[] }, nitro
   return `_chunks/[name].mjs`;
 }
 
-function routeToFsPath(route: string) {
+function joinPkgNames(moduleIds: string[]): string {
+  const names = [
+    ...new Set(
+      moduleIds
+        .map((id) => pathToPkgName(id))
+        .filter(Boolean)
+        .map((name) => name!.replace(/^@/, "").replace(/[/\\]/g, "__"))
+    ),
+  ].sort();
+  return names.join("+");
+}
+
+export function routeToFsPath(route: string) {
   return (
     route
       .split("/")
       .slice(1)
-      .map((s) => `${s.replace(/[:*]+/g, "$").replace(/[^$a-zA-Z0-9_.[\]/]/g, "_")}`)
+      .map((s) =>
+        s
+          .replace(/:(\w+)/g, "[$1]")
+          .replace(/\*+/g, "[...]")
+          .replace(/[^a-zA-Z0-9_.[\]]/g, "_")
+      )
       .join("/") || "index"
   );
 }

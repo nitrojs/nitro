@@ -6,7 +6,7 @@ import { getAsset, isPublicAssetURL, readAsset } from "#nitro/virtual/public-ass
 
 const METHODS = new Set(["HEAD", "GET"] as HTTPMethod[]);
 
-const EncodingMap = { gzip: ".gz", br: ".br" } as const;
+const EncodingMap = { gzip: ".gz", br: ".br", zstd: ".zst" } as const;
 
 export default defineHandler((event) => {
   if (event.req.method && !METHODS.has(event.req.method as HTTPMethod)) {
@@ -26,9 +26,6 @@ export default defineHandler((event) => {
       .sort(),
     "",
   ];
-  if (encodings.length > 1) {
-    event.res.headers.append("Vary", "Accept-Encoding");
-  }
 
   for (const encoding of encodings) {
     for (const _id of [id + encoding, joinURL(id, "index.html" + encoding)]) {
@@ -47,6 +44,10 @@ export default defineHandler((event) => {
       throw new HTTPError({ status: 404 });
     }
     return;
+  }
+
+  if (encodings.length > 1) {
+    event.res.headers.append("Vary", "Accept-Encoding");
   }
 
   const ifNotMatch = event.req.headers.get("if-none-match") === asset.etag;

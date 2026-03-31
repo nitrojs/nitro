@@ -1,7 +1,0 @@
-*.md
-pnpm*.yaml
-**/*.gen.ts
-**/.docs
-**/dist/**
-
-

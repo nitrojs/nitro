@@ -7,17 +7,13 @@ export interface VercelBuildConfigV3 {
   routes?: (
     | {
         src: string;
-        headers: {
-          "cache-control": string;
-        };
-        continue: boolean;
+        dest?: string;
+        headers?: Record<string, string>;
+        continue?: boolean;
+        status?: number;
       }
     | {
         handle: string;
-      }
-    | {
-        src: string;
-        dest: string;
       }
   )[];
   images?: {
@@ -47,6 +43,9 @@ export interface VercelBuildConfigV3 {
   >;
   cache?: string[];
   bypassToken?: string;
+  framework?: {
+    version: string;
+  };
   crons?: {
     path: string;
     schedule: string;
@@ -136,6 +135,36 @@ export interface VercelOptions {
    * Possible values are: `web` (default) and `node`.
    */
   entryFormat?: "web" | "node";
+
+  /**
+   * The route path for the Vercel cron handler endpoint.
+   *
+   * When `experimental.tasks` and `scheduledTasks` are configured,
+   * Nitro registers a cron handler at this path that Vercel invokes
+   * on each scheduled cron trigger.
+   *
+   * @default "/_vercel/cron"
+   * @see https://vercel.com/docs/cron-jobs
+   */
+  cronHandlerRoute?: string;
+
+  /**
+   * Per-route function configuration overrides.
+   *
+   * Keys are route patterns (e.g., `/api/queues/*`, `/api/slow-routes/**`).
+   * Values are partial {@link VercelServerlessFunctionConfig} objects.
+   *
+   * @example
+   * ```ts
+   * functionRules: {
+   *   '/api/my-slow-routes/**': { maxDuration: 3600 },
+   *   '/api/queues/fulfill-order': {
+   *     experimentalTriggers: [{ type: 'queue/v2beta', topic: 'orders' }],
+   *   },
+   * }
+   * ```
+   */
+  functionRules?: Record<string, VercelServerlessFunctionConfig>;
 }
 
 /**
@@ -169,4 +198,11 @@ export type PrerenderFunctionConfig = {
    * When `true`, the query string will be present on the `request` argument passed to the invoked function. The `allowQuery` filter still applies.
    */
   passQuery?: boolean;
+
+  /**
+   * (vercel)
+   *
+   * When `true`, expose the response body regardless of status code including error status codes. (default `false`)
+   */
+  exposeErrBody?: boolean;
 };

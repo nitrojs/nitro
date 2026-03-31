@@ -5,7 +5,7 @@ import type { Plugin } from "rollup";
 export async function oxc(
   options: OXCOptions & { sourcemap: boolean; minify: boolean | MinifyOptions }
 ): Promise<Plugin> {
-  const { minifySync, transformSync } = await import("rolldown/experimental");
+  const { minifySync, transformSync } = await import("rolldown/utils");
   return {
     name: "nitro:oxc",
     transform: {
@@ -15,6 +15,7 @@ export async function oxc(
       handler(code, id) {
         const res = transformSync(id, code, {
           sourcemap: options.sourcemap,
+          tsconfig: false,
           ...options.transform,
         });
         if (res.errors?.length > 0) {

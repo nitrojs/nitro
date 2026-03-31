@@ -15,7 +15,6 @@ const tracePkgs = [
   "defu", // used by open-api runtime
   "destr", // used by node-server and deno-server
   "get-port-please", // used by dev server
-  "hookable", // used by app.ts
   "rendu", // used by HTML renderer template
   "scule", // used by runtime config
   "source-map", // used by dev error runtime
@@ -41,6 +40,7 @@ export default defineBuildConfig({
       input: "src/presets/",
       outDir: "dist/presets",
       filter: (id) => id.includes("runtime/"),
+      dts: false,
     },
   ],
   hooks: {
@@ -77,10 +77,10 @@ export default defineBuildConfig({
     rolldownOutput(config) {
       (config.codeSplitting as CodeSplittingOptions).groups?.unshift(
         {
-          test: /src\/build\/(plugins|virtual|\w+\.ts)/,
+          test: /src[/\\]build[/\\](plugins|virtual|\w+\.ts)/,
           name: "_build/common",
         },
-        { test: /src\/(utils)\//, name: "_chunks/utils" }
+        { test: /src[/\\](utils)[/\\]/, name: "_chunks/utils" }
       );
       config.chunkFileNames = (chunk) => {
         if (chunk.name.startsWith("_")) {
@@ -113,28 +113,30 @@ export default defineBuildConfig({
           }
           return `_libs/${chunkName || "_"}.mjs`;
         }
-        if (chunk.moduleIds.every((id) => /src\/cli\//.test(id))) {
+        if (chunk.moduleIds.every((id) => /src[/\\]cli[/\\]/.test(id))) {
           return `cli/_chunks/[name].mjs`;
         }
-        if (chunk.moduleIds.every((id) => /build\/vite\//.test(id))) {
+        if (chunk.moduleIds.every((id) => /build[/\\]vite[/\\]/.test(id))) {
           return `_build/vite.[name].mjs`;
         }
-        if (chunk.moduleIds.every((id) => /build\/rolldown\//.test(id))) {
+        if (chunk.moduleIds.every((id) => /build[/\\]rolldown[/\\]/.test(id))) {
           return `_build/rolldown.mjs`;
         }
-        if (chunk.moduleIds.every((id) => /build\/rollup\/|build\/plugins/.test(id))) {
+        if (chunk.moduleIds.every((id) => /build[/\\]rollup[/\\]|build[/\\]plugins/.test(id))) {
           return `_build/rollup.mjs`;
         }
-        if (chunk.moduleIds.every((id) => /src\/dev\/|src\/runtime/.test(id))) {
+        if (chunk.moduleIds.every((id) => /src[/\\]dev[/\\]|src[/\\]runtime/.test(id))) {
           return `_dev.mjs`;
         }
-        if (chunk.moduleIds.every((id) => /src\/presets/.test(id))) {
+        if (chunk.moduleIds.every((id) => /src[/\\]presets/.test(id))) {
           return `_presets.mjs`;
         }
-        if (chunk.moduleIds.every((id) => /src\/build\/|src\/presets|src\/utils/.test(id))) {
+        if (
+          chunk.moduleIds.every((id) => /src[/\\]build[/\\]|src[/\\]presets|src[/\\]utils/.test(id))
+        ) {
           return `_build/shared.mjs`;
         }
-        if (chunk.moduleIds.every((id) => /src\/(runner|dev|runtime)/.test(id))) {
+        if (chunk.moduleIds.every((id) => /src[/\\](runner|dev|runtime)/.test(id))) {
           return `_chunks/dev.mjs`;
         }
         return "_chunks/nitro.mjs";
@@ -144,6 +146,13 @@ export default defineBuildConfig({
       if (isStub) {
         return;
       }
+
+      // Bundle docs
+      const { exportSource } = await import("mdzilla");
+      await exportSource("./docs", "./dist/docs", {
+        title: "Nitro Documentation",
+        filter: (e: { entry: { path: string } }) => !e.entry.path.startsWith("/blog"),
+      });
 
       // Trace included dependencies
       await traceNodeModules(
