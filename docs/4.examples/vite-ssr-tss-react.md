@@ -20,9 +20,9 @@ icon: i-simple-icons-tanstack
     "start": "node .output/server/index.mjs"
   },
   "dependencies": {
-    "@tanstack/react-router": "^1.168.1",
-    "@tanstack/react-router-devtools": "^1.166.10",
-    "@tanstack/react-start": "^1.167.1",
+    "@tanstack/react-router": "^1.168.8",
+    "@tanstack/react-router-devtools": "^1.166.11",
+    "@tanstack/react-start": "^1.167.13",
     "nitro": "latest",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
@@ -36,7 +36,7 @@ icon: i-simple-icons-tanstack
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "tailwindcss": "^4.2.2",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.2",
     "vite": "latest",
     "vite-tsconfig-paths": "^6.1.1"
   }

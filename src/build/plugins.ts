@@ -53,27 +53,18 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   // Externals (require Node.js compatible resolution)
   if (nitro.options.node && nitro.options.noExternals !== true) {
     const isDevOrPrerender = nitro.options.dev || nitro.options.preset === "nitro-prerender";
-    const { NodeNativePackages, NonBundleablePackages } = await import("nf3/db");
-    const traceDeps = [
-      ...new Set([
-        ...NodeNativePackages,
-        ...NonBundleablePackages,
-        ...(nitro.options.traceDeps || []),
-      ]),
-    ];
     plugins.push(
       externals({
         rootDir: nitro.options.rootDir,
         conditions: nitro.options.exportConditions!,
+        include: nitro.options.traceDeps || [],
         exclude: [...base.noExternal],
-        include: isDevOrPrerender
-          ? undefined
-          : [
-              new RegExp(
-                `^(?:${traceDeps.join("|")})|[/\\\\]node_modules[/\\\\](?:${traceDeps.join("|")})(?:[/\\\\])`
-              ),
-            ],
-        trace: isDevOrPrerender ? false : { outDir: nitro.options.output.serverDir },
+        trace: isDevOrPrerender
+          ? false
+          : {
+              ...nitro.options.traceOpts,
+              outDir: nitro.options.output.serverDir,
+            },
       })
     );
   }

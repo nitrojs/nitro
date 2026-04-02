@@ -25,7 +25,7 @@ icon: i-logos-vue
     "unhead": "^2.1.12",
     "vite": "latest",
     "vite-plugin-devtools-json": "^1.0.0",
-    "vue": "^3.5.30",
+    "vue": "^3.5.31",
     "vue-router": "^5.0.4"
   }
 }
@@ -48,6 +48,7 @@ export default defineConfig((_env) => ({
   environments: {
     client: { build: { rollupOptions: { input: "./app/entry-client.ts" } } },
     ssr: { build: { rollupOptions: { input: "./app/entry-server.ts" } } },
+    nitro: { build: { rollupOptions: { treeshake: { moduleSideEffects: () => false } } } },
   },
 }));
 
