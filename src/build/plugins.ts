@@ -54,26 +54,17 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   if (nitro.options.node && nitro.options.noExternals !== true) {
     const isDevOrPrerender = nitro.options.dev || nitro.options.preset === "nitro-prerender";
     const { NodeNativePackages, NonBundleablePackages, FullTracePackages } = await import("nf3/db");
-    const userTraceDeps = nitro.options.traceDeps || [];
-    const negated = new Set(
-      userTraceDeps
-        .filter((d): d is string => typeof d === "string" && d.startsWith("!"))
-        .map((d) => d.slice(1))
-    );
-    const fullTraceExtra = userTraceDeps
-      .filter((d): d is string => typeof d === "string" && d.endsWith("*"))
-      .map((d) => d.slice(0, -1));
-    const normalDeps = userTraceDeps.filter(
-      (d) => typeof d !== "string" || (!d.startsWith("!") && !d.endsWith("*"))
-    );
-    const traceDeps = [
-      ...new Set([
-        ...NodeNativePackages,
-        ...NonBundleablePackages,
-        ...normalDeps,
-        ...fullTraceExtra,
-      ]),
-    ].filter((d) => typeof d !== "string" || !negated.has(d));
+    const negated = new Set<string>();
+    const fullTraceExtra: string[] = [];
+    const extraDeps: (string | RegExp)[] = [];
+    for (const d of nitro.options.traceDeps || []) {
+      if (typeof d !== "string") { extraDeps.push(d); }
+      else if (d.startsWith("!")) { negated.add(d.slice(1)); }
+      else if (d.endsWith("*")) { const name = d.slice(0, -1); fullTraceExtra.push(name); extraDeps.push(name); }
+      else { extraDeps.push(d); }
+    }
+    const traceDeps = [...new Set([...NodeNativePackages, ...NonBundleablePackages, ...extraDeps])]
+      .filter((d) => typeof d !== "string" || !negated.has(d));
     const fullTraceInclude = [...new Set([...FullTracePackages, ...fullTraceExtra])];
     plugins.push(
       externals({
