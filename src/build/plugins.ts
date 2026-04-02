@@ -85,11 +85,11 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
         rootDir: nitro.options.rootDir,
         conditions: nitro.options.exportConditions!,
         exclude: [...base.noExternal],
-        include: isDevOrPrerender
+        include: isDevOrPrerender || !tracePattern
           ? undefined
           : [
               new RegExp(
-                `^(?:(?:${tracePattern})|[/\\\\]node_modules[/\\\\](?:${tracePattern})(?:[/\\\\]))`
+                `(?:^(?:${tracePattern})(?:[/\\\\])|[/\\\\]node_modules[/\\\\](?:${tracePattern})(?:[/\\\\]))`
               ),
             ],
         trace: isDevOrPrerender
