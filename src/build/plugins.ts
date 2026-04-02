@@ -11,7 +11,6 @@ import { virtual, virtualDeps } from "./plugins/virtual.ts";
 import { sourcemapMinify } from "./plugins/sourcemap-min.ts";
 import { raw } from "./plugins/raw.ts";
 import { externals } from "./plugins/externals.ts";
-import { escapeRegExp } from "../utils/regex.ts";
 
 export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const plugins: Plugin[] = [];
@@ -54,49 +53,16 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   // Externals (require Node.js compatible resolution)
   if (nitro.options.node && nitro.options.noExternals !== true) {
     const isDevOrPrerender = nitro.options.dev || nitro.options.preset === "nitro-prerender";
-    const { NodeNativePackages, NonBundleablePackages, FullTracePackages } = await import("nf3/db");
-    const negated = new Set<string>();
-    const userTraceDeps: (string | RegExp)[] = [];
-    const userFullTrace: string[] = [];
-    for (const d of nitro.options.traceDeps || []) {
-      if (typeof d !== "string") {
-        userTraceDeps.push(d);
-      } else if (d === "!" || d === "*") {
-        throw new Error(`Invalid traceDeps selector: "${d}"`);
-      } else if (d.startsWith("!")) {
-        negated.add(d.slice(1));
-      } else if (d.endsWith("*")) {
-        const name = d.slice(0, -1);
-        userFullTrace.push(name);
-        userTraceDeps.push(name);
-      } else {
-        userTraceDeps.push(d);
-      }
-    }
-    const traceDeps = [
-      ...new Set([...NodeNativePackages, ...NonBundleablePackages, ...userTraceDeps]),
-    ].filter((d) => typeof d !== "string" || !negated.has(d));
-    const tracePattern = traceDeps
-      .map((d) => (d instanceof RegExp ? d.source : escapeRegExp(d)))
-      .join("|");
-    const fullTraceInclude = [...new Set([...FullTracePackages, ...userFullTrace])];
     plugins.push(
       externals({
         rootDir: nitro.options.rootDir,
         conditions: nitro.options.exportConditions!,
         exclude: [...base.noExternal],
-        include: isDevOrPrerender || !tracePattern
-          ? undefined
-          : [
-              new RegExp(
-                `(?:^(?:${tracePattern})(?:[/\\\\])|[/\\\\]node_modules[/\\\\](?:${tracePattern})(?:[/\\\\]))`
-              ),
-            ],
         trace: isDevOrPrerender
           ? false
           : {
               outDir: nitro.options.output.serverDir,
-              fullTraceInclude,
+              traceDeps: nitro.options.traceDeps || [],
             },
       })
     );

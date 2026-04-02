@@ -6,22 +6,29 @@ import { pathToFileURL } from "node:url";
 import { builtinModules, createRequire } from "node:module";
 import { isAbsolute, join } from "pathe";
 import { resolveModulePath } from "exsolve";
-import { escapeRegExp, toPathRegExp } from "../../utils/regex.ts";
 import consola from "consola";
+
+import { escapeRegExp, toPathRegExp } from "../../utils/regex.ts";
+import { NodeNativePackages, NonBundleablePackages, FullTracePackages } from "nf3/db";
 
 export type ExternalsOptions = {
   rootDir: string;
   conditions: string[];
   exclude?: (string | RegExp)[];
-  include?: (string | RegExp)[];
-  trace?: false | Omit<ExternalsTraceOptions, "rootDir" | "exportConditions" | "traceOptions">;
+  trace?:
+    | false
+    | (Omit<ExternalsTraceOptions, "rootDir" | "exportConditions" | "traceOptions"> & {
+        traceDeps: (string | RegExp)[];
+      });
 };
 
 const PLUGIN_NAME = "nitro:externals";
 
 export function externals(opts: ExternalsOptions): Plugin {
-  const include: RegExp[] | undefined = opts?.include
-    ? opts.include.map((p) => toPathRegExp(p))
+  const resolved = opts.trace ? resolveTraceDeps(opts.trace.traceDeps) : undefined;
+
+  const include: RegExp[] | undefined = resolved?.includePattern
+    ? [resolved.includePattern]
     : undefined;
 
   const exclude: RegExp[] = [
@@ -50,7 +57,7 @@ export function externals(opts: ExternalsOptions): Plugin {
 
   const tracedPaths = new Set<string>();
 
-  if (include && include.length === 0) {
+  if (opts.trace && !resolved?.includePattern) {
     return {
       name: PLUGIN_NAME,
     };
@@ -138,12 +145,14 @@ export function externals(opts: ExternalsOptions): Plugin {
         if (!opts.trace || tracedPaths.size === 0) {
           return;
         }
+        const { traceDeps: _traceDeps, ...traceOpts } = opts.trace;
         const { traceNodeModules } = await import("nf3");
         const traceTime = Date.now();
         let traceFilesCount = 0;
         let tracedPkgsCount = 0;
         await traceNodeModules([...tracedPaths], {
-          ...opts.trace,
+          ...traceOpts,
+          fullTraceInclude: resolved?.fullTraceInclude,
           conditions: opts.conditions,
           rootDir: opts.rootDir,
           writePackageJson: true, // deno compat
@@ -172,6 +181,52 @@ export function externals(opts: ExternalsOptions): Plugin {
         );
       },
     },
+  };
+}
+
+const _builtinPackages: readonly string[] = [...NodeNativePackages, ...NonBundleablePackages];
+
+export function resolveTraceDeps(
+  traceDeps: (string | RegExp)[],
+  opts: {
+    builtinPackages?: readonly string[];
+    builtinFullTrace?: readonly string[];
+  } = {}
+) {
+  const builtinPackages = opts.builtinPackages ?? _builtinPackages;
+  const builtinFullTrace = opts.builtinFullTrace ?? FullTracePackages;
+  const negated = new Set<string>();
+  const userTraceDeps: (string | RegExp)[] = [];
+  const userFullTrace: string[] = [];
+  for (const d of traceDeps) {
+    if (typeof d !== "string") {
+      userTraceDeps.push(d);
+    } else if (d === "!" || d === "*") {
+      throw new Error(`Invalid traceDeps selector: "${d}"`);
+    } else if (d.startsWith("!")) {
+      negated.add(d.slice(1));
+    } else if (d.endsWith("*")) {
+      const name = d.slice(0, -1);
+      userFullTrace.push(name);
+      userTraceDeps.push(name);
+    } else {
+      userTraceDeps.push(d);
+    }
+  }
+  const resolved = [...new Set([...builtinPackages, ...userTraceDeps])].filter(
+    (d) => typeof d !== "string" || !negated.has(d)
+  );
+  const tracePattern = resolved
+    .map((d) => (d instanceof RegExp ? d.source : escapeRegExp(d)))
+    .join("|");
+  const fullTraceInclude = [...new Set([...builtinFullTrace, ...userFullTrace])];
+  return {
+    includePattern: tracePattern
+      ? new RegExp(
+          `(?:^(?:${tracePattern})(?:[/\\\\])|[/\\\\]node_modules[/\\\\](?:${tracePattern})(?:[/\\\\]))`
+        )
+      : undefined,
+    fullTraceInclude,
   };
 }
 
