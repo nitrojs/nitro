@@ -80,6 +80,13 @@ describe("resolveTraceDeps", () => {
     expect(result.includePattern!.test("not-sharp/lib.js")).toBe(false);
   });
 
+  it("matches non-scoped package in absolute node_modules path", () => {
+    const result = resolveTraceDeps(["sharp"], defaults);
+    expect(result.includePattern!.test("/project/node_modules/sharp")).toBe(true);
+    expect(result.includePattern!.test("/project/node_modules/sharp/lib/index.js")).toBe(true);
+    expect(result.includePattern!.test("/project/node_modules/sharpened")).toBe(false);
+  });
+
   it("throws on empty string selector", () => {
     expect(() => resolveTraceDeps([""], defaults)).toThrow('Invalid traceDeps selector: ""');
   });

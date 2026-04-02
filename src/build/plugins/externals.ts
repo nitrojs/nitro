@@ -142,7 +142,7 @@ export function externals(opts: ExternalsOptions): Plugin {
         if (!opts.trace || tracedPaths.size === 0) {
           return;
         }
-        const { include: _include, hooks: userHooks, ...traceOpts } = opts.trace;
+        const { hooks: userHooks, ...traceOpts } = opts.trace;
         const { traceNodeModules } = await import("nf3");
         const traceTime = Date.now();
         let traceFilesCount = 0;
