@@ -141,4 +141,3 @@ export async function writeEdgeOneConfig(nitro: Nitro) {
     apiRoutes,
   };
 }
-
