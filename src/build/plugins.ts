@@ -61,6 +61,8 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
     for (const d of nitro.options.traceDeps || []) {
       if (typeof d !== "string") {
         userTraceDeps.push(d);
+      } else if (d === "!" || d === "*") {
+        throw new Error(`Invalid traceDeps selector: "${d}"`);
       } else if (d.startsWith("!")) {
         negated.add(d.slice(1));
       } else if (d.endsWith("*")) {
