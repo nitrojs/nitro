@@ -64,6 +64,7 @@ describe("resolveTraceDeps", () => {
       builtinFullTrace: [],
     });
     expect(result.includePattern).toBeUndefined();
+    expect(result.fullTraceInclude).toBeUndefined();
   });
 
   it("escapes special regex characters in package names", () => {
@@ -75,6 +76,7 @@ describe("resolveTraceDeps", () => {
   it("matches bare imports (anchored at start)", () => {
     const result = resolveTraceDeps(["sharp"], defaults);
     expect(result.includePattern!.test("sharp/native.node")).toBe(true);
+    expect(result.includePattern!.test("sharp")).toBe(true);
     expect(result.includePattern!.test("not-sharp/lib.js")).toBe(false);
   });
 
@@ -83,10 +85,16 @@ describe("resolveTraceDeps", () => {
     expect(
       result.includePattern!.test("/Users/dev/project/node_modules/@fixture/utils/index.mjs")
     ).toBe(true);
+    expect(result.includePattern!.test("/Users/dev/project/node_modules/@fixture/utils")).toBe(
+      true
+    );
     expect(
       result.includePattern!.test(
         "C:\\Users\\dev\\project\\node_modules\\@fixture/utils\\index.mjs"
       )
+    ).toBe(true);
+    expect(
+      result.includePattern!.test("C:\\Users\\dev\\project\\node_modules\\@fixture/utils")
     ).toBe(true);
   });
 });

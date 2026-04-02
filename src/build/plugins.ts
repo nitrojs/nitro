@@ -61,6 +61,7 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
         trace: isDevOrPrerender
           ? false
           : {
+              ...nitro.options.traceOpts,
               outDir: nitro.options.output.serverDir,
               traceDeps: nitro.options.traceDeps || [],
             },

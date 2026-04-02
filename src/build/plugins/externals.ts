@@ -145,7 +145,7 @@ export function externals(opts: ExternalsOptions): Plugin {
         if (!opts.trace || tracedPaths.size === 0) {
           return;
         }
-        const { traceDeps: _traceDeps, ...traceOpts } = opts.trace;
+        const { traceDeps: _traceDeps, hooks: userHooks, ...traceOpts } = opts.trace;
         const { traceNodeModules } = await import("nf3");
         const traceTime = Date.now();
         let traceFilesCount = 0;
@@ -157,8 +157,10 @@ export function externals(opts: ExternalsOptions): Plugin {
           rootDir: opts.rootDir,
           writePackageJson: true, // deno compat
           hooks: {
+            ...userHooks,
             tracedFiles(result) {
               traceFilesCount = Object.keys(result).length;
+              userHooks?.tracedFiles?.(result);
             },
             tracedPackages: (pkgs) => {
               tracedPkgsCount = Object.keys(pkgs).length;
@@ -170,6 +172,7 @@ export function externals(opts: ExternalsOptions): Plugin {
                   )
                   .join("\n")}`
               );
+              userHooks?.tracedPackages?.(pkgs);
             },
           },
         });
@@ -223,10 +226,10 @@ export function resolveTraceDeps(
   return {
     includePattern: tracePattern
       ? new RegExp(
-          `(?:^(?:${tracePattern})(?:[/\\\\])|[/\\\\]node_modules[/\\\\](?:${tracePattern})(?:[/\\\\]))`
+          `(?:^(?:${tracePattern})(?:[/\\\\]|$)|[/\\\\]node_modules[/\\\\](?:${tracePattern})(?:[/\\\\]|$))`
         )
       : undefined,
-    fullTraceInclude,
+    fullTraceInclude: fullTraceInclude.length > 0 ? fullTraceInclude : undefined,
   };
 }
 
