@@ -11,6 +11,7 @@ import { virtual, virtualDeps } from "./plugins/virtual.ts";
 import { sourcemapMinify } from "./plugins/sourcemap-min.ts";
 import { raw } from "./plugins/raw.ts";
 import { externals } from "./plugins/externals.ts";
+import { escapeRegExp } from "../utils/regex.ts";
 
 export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const plugins: Plugin[] = [];
@@ -73,6 +74,9 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
     const traceDeps = [
       ...new Set([...NodeNativePackages, ...NonBundleablePackages, ...userTraceDeps]),
     ].filter((d) => typeof d !== "string" || !negated.has(d));
+    const tracePattern = traceDeps
+      .map((d) => (d instanceof RegExp ? d.source : escapeRegExp(d)))
+      .join("|");
     const fullTraceInclude = [...new Set([...FullTracePackages, ...userFullTrace])];
     plugins.push(
       externals({
@@ -83,7 +87,7 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
           ? undefined
           : [
               new RegExp(
-                `^(?:${traceDeps.join("|")})|[/\\\\]node_modules[/\\\\](?:${traceDeps.join("|")})(?:[/\\\\])`
+                `^(?:${tracePattern})|[/\\\\]node_modules[/\\\\](?:${tracePattern})(?:[/\\\\])`
               ),
             ],
         trace: isDevOrPrerender
