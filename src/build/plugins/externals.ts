@@ -15,17 +15,14 @@ export type ExternalsOptions = {
   rootDir: string;
   conditions: string[];
   exclude?: (string | RegExp)[];
-  trace?:
-    | false
-    | (Omit<ExternalsTraceOptions, "rootDir" | "exportConditions" | "traceOptions"> & {
-        traceDeps: (string | RegExp)[];
-      });
+  include: (string | RegExp)[];
+  trace?: false | Omit<ExternalsTraceOptions, "rootDir" | "exportConditions" | "traceOptions">;
 };
 
 const PLUGIN_NAME = "nitro:externals";
 
 export function externals(opts: ExternalsOptions): Plugin {
-  const resolved = opts.trace ? resolveTraceDeps(opts.trace.traceDeps) : undefined;
+  const resolved = opts.trace ? resolveTraceDeps(opts.include) : undefined;
 
   const include: RegExp[] | undefined = resolved?.includePattern
     ? [resolved.includePattern]
@@ -145,7 +142,7 @@ export function externals(opts: ExternalsOptions): Plugin {
         if (!opts.trace || tracedPaths.size === 0) {
           return;
         }
-        const { traceDeps: _traceDeps, hooks: userHooks, ...traceOpts } = opts.trace;
+        const { include: _include, hooks: userHooks, ...traceOpts } = opts.trace;
         const { traceNodeModules } = await import("nf3");
         const traceTime = Date.now();
         let traceFilesCount = 0;
@@ -187,8 +184,6 @@ export function externals(opts: ExternalsOptions): Plugin {
   };
 }
 
-const _builtinPackages: readonly string[] = [...NodeNativePackages, ...NonBundleablePackages];
-
 export function resolveTraceDeps(
   traceDeps: (string | RegExp)[],
   opts: {
@@ -196,7 +191,7 @@ export function resolveTraceDeps(
     builtinFullTrace?: readonly string[];
   } = {}
 ) {
-  const builtinPackages = opts.builtinPackages ?? _builtinPackages;
+  const builtinPackages = opts.builtinPackages ?? [...NodeNativePackages, ...NonBundleablePackages];
   const builtinFullTrace = opts.builtinFullTrace ?? FullTracePackages;
   const negated = new Set<string>();
   const userTraceDeps: (string | RegExp)[] = [];

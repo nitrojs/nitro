@@ -57,13 +57,13 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
       externals({
         rootDir: nitro.options.rootDir,
         conditions: nitro.options.exportConditions!,
+        include: nitro.options.traceDeps || [],
         exclude: [...base.noExternal],
         trace: isDevOrPrerender
           ? false
           : {
               ...nitro.options.traceOpts,
               outDir: nitro.options.output.serverDir,
-              traceDeps: nitro.options.traceDeps || [],
             },
       })
     );
