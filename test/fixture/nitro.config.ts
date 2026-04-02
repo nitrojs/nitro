@@ -3,6 +3,19 @@ import { defineNitroConfig } from "nitropack/config";
 import { dirname, resolve } from "node:path";
 
 export default defineNitroConfig({
+  vercel: {
+    functionRules: {
+      "/api/hello": {
+        maxDuration: 100,
+      },
+      "/api/echo": {
+        experimentalTriggers: [{ type: "queue/v2beta", topic: "orders" }],
+      },
+      "/rules/isr/**": {
+        regions: ["lhr1", "cdg1"],
+      },
+    },
+  },
   compressPublicAssets: true,
   compatibilityDate: "latest",
   framework: {
