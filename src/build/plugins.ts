@@ -89,7 +89,7 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
           ? undefined
           : [
               new RegExp(
-                `^(?:${tracePattern})|[/\\\\]node_modules[/\\\\](?:${tracePattern})(?:[/\\\\])`
+                `^(?:(?:${tracePattern})|[/\\\\]node_modules[/\\\\](?:${tracePattern})(?:[/\\\\]))`
               ),
             ],
         trace: isDevOrPrerender

@@ -30,11 +30,11 @@ export function externals(opts: ExternalsOptions): Plugin {
   ];
 
   const filter = (id: string) => {
-    // Most match at least one include (if specified)
+    // Must match at least one include (if specified)
     if (include && !include.some((r) => r.test(id))) {
       return false;
     }
-    // Most not match any exclude
+    // Must not match any exclude
     if (exclude.some((r) => r.test(id))) {
       return false;
     }
