@@ -227,9 +227,7 @@ export function resolveTraceDeps(
   );
   return {
     includePattern: tracePattern
-      ? new RegExp(
-          `(?:^|[/\\\\]node_modules[/\\\\])(?:${tracePattern})(?:[/\\\\]|$)`
-        )
+      ? new RegExp(`(?:^|[/\\\\]node_modules[/\\\\])(?:${tracePattern})(?:[/\\\\]|$)`)
       : undefined,
     fullTraceInclude: fullTraceInclude.length > 0 ? fullTraceInclude : undefined,
   };
