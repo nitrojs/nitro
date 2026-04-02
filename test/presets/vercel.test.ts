@@ -454,7 +454,10 @@ describe("nitro:preset:vercel", async () => {
             items.push(`${dirname}/${entry.name}`);
           } else if (entry.isSymbolicLink()) {
             items.push(`${dirname}/${entry.name} (symlink)`);
-          } else if (/chunks|node_modules/.test(entry.name) || (entry.name.endsWith(".func") && entry.name !== "__fallback.func")) {
+          } else if (
+            /chunks|node_modules/.test(entry.name) ||
+            (entry.name.endsWith(".func") && entry.name !== "__fallback.func")
+          ) {
             items.push(`${dirname}/${entry.name}`);
           } else if (entry.isDirectory()) {
             items.push(
@@ -572,10 +575,7 @@ describe("nitro:preset:vercel", async () => {
       it("should write merged .vc-config.json with functionRules overrides", async () => {
         const config = await fsp
           .readFile(
-            resolve(
-              ctx.outDir,
-              "functions/api/hello.func/.vc-config.json"
-            ),
+            resolve(ctx.outDir, "functions/api/hello.func/.vc-config.json"),
             "utf8"
           )
           .then((r) => JSON.parse(r));
@@ -588,10 +588,7 @@ describe("nitro:preset:vercel", async () => {
       it("should write functionRules with arbitrary fields", async () => {
         const config = await fsp
           .readFile(
-            resolve(
-              ctx.outDir,
-              "functions/api/echo.func/.vc-config.json"
-            ),
+            resolve(ctx.outDir, "functions/api/echo.func/.vc-config.json"),
             "utf8"
           )
           .then((r) => JSON.parse(r));
@@ -610,10 +607,7 @@ describe("nitro:preset:vercel", async () => {
       it("should keep base __fallback.func without functionRules overrides", async () => {
         const config = await fsp
           .readFile(
-            resolve(
-              ctx.outDir,
-              "functions/__fallback.func/.vc-config.json"
-            ),
+            resolve(ctx.outDir, "functions/__fallback.func/.vc-config.json"),
             "utf8"
           )
           .then((r) => JSON.parse(r));

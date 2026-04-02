@@ -92,9 +92,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
   const functionRules = nitro.options.vercel?.functionRules;
   const hasFunctionRules =
     functionRules && Object.keys(functionRules).length > 0;
-  let routeFuncMatcher:
-    | ReturnType<typeof toRouteMatcher>
-    | undefined;
+  let routeFuncMatcher: ReturnType<typeof toRouteMatcher> | undefined;
   if (hasFunctionRules) {
     routeFuncMatcher = toRouteMatcher(
       createRadixRouter({ routes: functionRules })
@@ -116,7 +114,10 @@ export async function generateFunctionFiles(nitro: Nitro) {
     await fsp.mkdir(dirname(funcPrefix), { recursive: true });
 
     const matchedRules = routeFuncMatcher
-      ? defu({}, ...routeFuncMatcher.matchAll(key).reverse()) as VercelServerlessFunctionConfig
+      ? (defu(
+          {},
+          ...routeFuncMatcher.matchAll(key).reverse()
+        ) as VercelServerlessFunctionConfig)
       : undefined;
     if (matchedRules && Object.keys(matchedRules).length > 0) {
       isrFuncDirs.add(
@@ -199,7 +200,10 @@ export async function generateFunctionFiles(nitro: Nitro) {
     }
 
     const matchedRules = routeFuncMatcher
-      ? defu({}, ...routeFuncMatcher.matchAll(route.src).reverse()) as VercelServerlessFunctionConfig
+      ? (defu(
+          {},
+          ...routeFuncMatcher.matchAll(route.src).reverse()
+        ) as VercelServerlessFunctionConfig)
       : undefined;
     if (matchedRules && Object.keys(matchedRules).length > 0) {
       await createFunctionDirWithCustomConfig(
