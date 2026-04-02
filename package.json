@@ -120,7 +120,7 @@
     "defu": "^6.1.6",
     "destr": "^2.0.5",
     "dot-prop": "^10.1.0",
-    "esbuild": "^0.27.4",
+    "esbuild": "^0.27.5",
     "escape-string-regexp": "^5.0.0",
     "etag": "^1.8.1",
     "exsolve": "^1.0.8",
