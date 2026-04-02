@@ -58,13 +58,21 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
     const fullTraceExtra: string[] = [];
     const extraDeps: (string | RegExp)[] = [];
     for (const d of nitro.options.traceDeps || []) {
-      if (typeof d !== "string") { extraDeps.push(d); }
-      else if (d.startsWith("!")) { negated.add(d.slice(1)); }
-      else if (d.endsWith("*")) { const name = d.slice(0, -1); fullTraceExtra.push(name); extraDeps.push(name); }
-      else { extraDeps.push(d); }
+      if (typeof d !== "string") {
+        extraDeps.push(d);
+      } else if (d.startsWith("!")) {
+        negated.add(d.slice(1));
+      } else if (d.endsWith("*")) {
+        const name = d.slice(0, -1);
+        fullTraceExtra.push(name);
+        extraDeps.push(name);
+      } else {
+        extraDeps.push(d);
+      }
     }
-    const traceDeps = [...new Set([...NodeNativePackages, ...NonBundleablePackages, ...extraDeps])]
-      .filter((d) => typeof d !== "string" || !negated.has(d));
+    const traceDeps = [
+      ...new Set([...NodeNativePackages, ...NonBundleablePackages, ...extraDeps]),
+    ].filter((d) => typeof d !== "string" || !negated.has(d));
     const fullTraceInclude = [...new Set([...FullTracePackages, ...fullTraceExtra])];
     plugins.push(
       externals({
