@@ -154,8 +154,8 @@ describe("nitro:preset:vercel", async () => {
                 "src": "/api/hello",
               },
               {
-                "dest": "/api/echo",
-                "src": "/api/echo",
+                "dest": "/api/storage/[...]",
+                "src": "/api/storage/(?:.*)",
               },
               {
                 "dest": "/wasm/static-import",
@@ -504,8 +504,9 @@ describe("nitro:preset:vercel", async () => {
             "functions/api/serialized/set.func (symlink)",
             "functions/api/serialized/tuple.func (symlink)",
             "functions/api/serialized/void.func (symlink)",
-            "functions/api/storage/dev.func (symlink)",
-            "functions/api/storage/item.func (symlink)",
+            "functions/api/storage/[...].func",
+            "functions/api/storage/dev.func",
+            "functions/api/storage/item.func",
             "functions/api/test/[-]/foo.func (symlink)",
             "functions/api/typed/catchall/[slug]/[...another].func (symlink)",
             "functions/api/typed/catchall/some/[...test].func (symlink)",
@@ -624,6 +625,20 @@ describe("nitro:preset:vercel", async () => {
           .then((r) => JSON.parse(r));
         expect(config.maxDuration).toBeUndefined();
         expect(config.handler).toBe("index.mjs");
+      });
+
+      it("should apply wildcard functionRules to observability route directories", async () => {
+        // /api/storage/dev is an o11y route that matches the /api/storage/** functionRule
+        const funcDir = resolve(ctx.outDir, "functions/api/storage/dev.func");
+        const stat = await fsp.lstat(funcDir);
+        expect(stat.isDirectory()).toBe(true);
+        expect(stat.isSymbolicLink()).toBe(false);
+        const config = await fsp
+          .readFile(resolve(funcDir, ".vc-config.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        expect(config.maxDuration).toBe(60);
+        expect(config.handler).toBe("index.mjs");
+        expect(config.supportsResponseStreaming).toBe(true);
       });
     }
   );

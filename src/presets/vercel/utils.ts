@@ -107,7 +107,9 @@ export async function generateFunctionFiles(nitro: Nitro) {
   }
 
   // Write ISR functions
-  const isrFuncDirs = new Set<string>();
+  // Tracks base (non-ISR-suffixed) func paths for routes that have ISR,
+  // so functionRules loop can skip patterns already handled here.
+  const isrBasePaths = new Set<string>();
   for (const [key, value] of Object.entries(nitro.options.routeRules)) {
     if (!value.isr) {
       continue;
@@ -127,7 +129,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
         ) as VercelServerlessFunctionConfig)
       : undefined;
     if (matchedRules && Object.keys(matchedRules).length > 0) {
-      isrFuncDirs.add(
+      isrBasePaths.add(
         resolve(
           nitro.options.output.serverDir,
           "..",
@@ -166,7 +168,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
         normalizeRouteDest(pattern) + ".func"
       );
       // Skip if ISR already created a custom config function for this route
-      if (isrFuncDirs.has(funcDir)) {
+      if (isrBasePaths.has(funcDir)) {
         continue;
       }
       await createFunctionDirWithCustomConfig(
@@ -190,7 +192,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
   const _getRouteRules = (path: string) =>
     defu({}, ..._routeRulesMatcher.matchAll(path).reverse()) as NitroRouteRules;
   for (const route of o11Routes) {
-    const routeRules = _getRouteRules(route.src);
+    const routeRules = _getRouteRules(route.pattern);
     if (routeRules.isr) {
       continue; // #3563
     }
@@ -209,7 +211,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
     const matchedRules = routeFuncMatcher
       ? (defu(
           {},
-          ...routeFuncMatcher.matchAll(route.src).reverse()
+          ...routeFuncMatcher.matchAll(route.pattern).reverse()
         ) as VercelServerlessFunctionConfig)
       : undefined;
     if (matchedRules && Object.keys(matchedRules).length > 0) {
@@ -368,13 +370,16 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
                 ),
         };
       }),
-    // Route function config routes (skip patterns already handled by ISR)
+    // Route function config routes (skip patterns already handled by ISR or observability)
     ...(nitro.options.vercel?.functionRules
       ? Object.keys(nitro.options.vercel.functionRules)
           .map((p) => withLeadingSlash(p))
           .filter(
             (pattern) =>
-              !rules.some(([key, value]) => value.isr && key === pattern)
+              !rules.some(([key, value]) => value.isr && key === pattern) &&
+              !(o11Routes || []).some(
+                (r) => r.dest === normalizeRouteDest(pattern)
+              )
           )
           .map((pattern) => ({
             src: joinURL(nitro.options.baseURL, normalizeRouteSrc(pattern)),
@@ -453,8 +458,9 @@ function _hasProp(obj: any, prop: string) {
 // --- utils for observability ---
 
 type ObservabilityRoute = {
-  src: string; // route pattern
+  src: string; // PCRE-compatible route pattern for config.json
   dest: string; // function name
+  pattern: string; // original radix3-compatible route pattern
 };
 
 function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
@@ -508,6 +514,7 @@ function normalizeRoutes(routes: string[]) {
     .map((route) => ({
       src: normalizeRouteSrc(route),
       dest: normalizeRouteDest(route),
+      pattern: route,
     }));
 }
 

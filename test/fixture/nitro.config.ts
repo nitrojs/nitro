@@ -14,6 +14,9 @@ export default defineNitroConfig({
       "/rules/isr/**": {
         regions: ["lhr1", "cdg1"],
       },
+      "/api/storage/**": {
+        maxDuration: 60,
+      },
     },
   },
   compressPublicAssets: true,
