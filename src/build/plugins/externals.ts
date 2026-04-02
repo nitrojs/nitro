@@ -158,11 +158,11 @@ export function externals(opts: ExternalsOptions): Plugin {
           writePackageJson: true, // deno compat
           hooks: {
             ...userHooks,
-            tracedFiles(result) {
+            tracedFiles: async (result) => {
               traceFilesCount = Object.keys(result).length;
-              userHooks?.tracedFiles?.(result);
+              await userHooks?.tracedFiles?.(result);
             },
-            tracedPackages: (pkgs) => {
+            tracedPackages: async (pkgs) => {
               tracedPkgsCount = Object.keys(pkgs).length;
               consola.info(
                 `Tracing dependencies:\n${Object.entries(pkgs)
@@ -172,7 +172,7 @@ export function externals(opts: ExternalsOptions): Plugin {
                   )
                   .join("\n")}`
               );
-              userHooks?.tracedPackages?.(pkgs);
+              await userHooks?.tracedPackages?.(pkgs);
             },
           },
         });
