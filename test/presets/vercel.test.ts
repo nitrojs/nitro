@@ -158,10 +158,6 @@ describe("nitro:preset:vercel", async () => {
                 "src": "/api/echo",
               },
               {
-                "dest": "/rules/isr/[...]",
-                "src": "/rules/isr/(?:.*)",
-              },
-              {
                 "dest": "/wasm/static-import",
                 "src": "/wasm/static-import",
               },
@@ -602,6 +598,21 @@ describe("nitro:preset:vercel", async () => {
         const funcDir = resolve(ctx.outDir, "functions/api/hello.func");
         const indexStat = await fsp.lstat(resolve(funcDir, "index.mjs"));
         expect(indexStat.isFile()).toBe(true);
+      });
+
+      it("should apply functionRules overrides to ISR function directories", async () => {
+        const config = await fsp
+          .readFile(
+            resolve(
+              ctx.outDir,
+              "functions/rules/isr/[...]-isr.func/.vc-config.json"
+            ),
+            "utf8"
+          )
+          .then((r) => JSON.parse(r));
+        expect(config.regions).toEqual(["lhr1", "cdg1"]);
+        expect(config.handler).toBe("index.mjs");
+        expect(config.supportsResponseStreaming).toBe(true);
       });
 
       it("should keep base __fallback.func without functionRules overrides", async () => {

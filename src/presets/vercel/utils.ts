@@ -62,11 +62,11 @@ export async function generateFunctionFiles(nitro: Nitro) {
 
   const baseFunctionConfig: VercelServerlessFunctionConfig = {
     runtime,
+    ...nitro.options.vercel?.functions,
     handler: "index.mjs",
     launcherType: "Nodejs",
     shouldAddHelpers: false,
     supportsResponseStreaming: true,
-    ...nitro.options.vercel?.functions,
   };
 
   if (
@@ -89,7 +89,14 @@ export async function generateFunctionFiles(nitro: Nitro) {
     JSON.stringify(baseFunctionConfig, null, 2)
   );
 
-  const functionRules = nitro.options.vercel?.functionRules;
+  const functionRules = nitro.options.vercel?.functionRules
+    ? Object.fromEntries(
+        Object.entries(nitro.options.vercel.functionRules).map(([k, v]) => [
+          withLeadingSlash(k),
+          v,
+        ])
+      )
+    : undefined;
   const hasFunctionRules =
     functionRules && Object.keys(functionRules).length > 0;
   let routeFuncMatcher: ReturnType<typeof toRouteMatcher> | undefined;
@@ -361,12 +368,18 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
                 ),
         };
       }),
-    // Route function config routes
+    // Route function config routes (skip patterns already handled by ISR)
     ...(nitro.options.vercel?.functionRules
-      ? Object.keys(nitro.options.vercel.functionRules).map((pattern) => ({
-          src: joinURL(nitro.options.baseURL, normalizeRouteSrc(pattern)),
-          dest: withLeadingSlash(normalizeRouteDest(pattern)),
-        }))
+      ? Object.keys(nitro.options.vercel.functionRules)
+          .map((p) => withLeadingSlash(p))
+          .filter(
+            (pattern) =>
+              !rules.some(([key, value]) => value.isr && key === pattern)
+          )
+          .map((pattern) => ({
+            src: joinURL(nitro.options.baseURL, normalizeRouteSrc(pattern)),
+            dest: withLeadingSlash(normalizeRouteDest(pattern)),
+          }))
       : []),
     // Observability routes
     ...(o11Routes || []).map((route) => ({
@@ -603,12 +616,13 @@ async function createFunctionDirWithCustomConfig(
   // zip, but symlinks pointing outside the .func directory break at
   // runtime because the target path doesn't exist on Lambda.
   await fsp.cp(serverDir, funcDir, { recursive: true });
-  const mergedConfig = defu(overrides, baseFunctionConfig);
-  for (const [key, value] of Object.entries(overrides)) {
-    if (Array.isArray(value)) {
-      (mergedConfig as Record<string, unknown>)[key] = value;
-    }
-  }
+  // defu merges arrays, but for function config we want overrides to replace arrays entirely
+  const mergedConfig = {
+    ...defu(overrides, baseFunctionConfig),
+    ...Object.fromEntries(
+      Object.entries(overrides).filter(([, v]) => Array.isArray(v))
+    ),
+  };
 
   // Auto-derive consumer for queue/v2beta triggers
   const triggers = mergedConfig.experimentalTriggers;
