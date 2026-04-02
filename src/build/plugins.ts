@@ -53,14 +53,28 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   // Externals (require Node.js compatible resolution)
   if (nitro.options.node && nitro.options.noExternals !== true) {
     const isDevOrPrerender = nitro.options.dev || nitro.options.preset === "nitro-prerender";
-    const { NodeNativePackages, NonBundleablePackages } = await import("nf3/db");
+    const { NodeNativePackages, NonBundleablePackages, FullTracePackages } = await import("nf3/db");
+    const userTraceDeps = nitro.options.traceDeps || [];
+    const negated = new Set(
+      userTraceDeps
+        .filter((d): d is string => typeof d === "string" && d.startsWith("!"))
+        .map((d) => d.slice(1))
+    );
+    const fullTraceExtra = userTraceDeps
+      .filter((d): d is string => typeof d === "string" && d.endsWith("*"))
+      .map((d) => d.slice(0, -1));
+    const normalDeps = userTraceDeps.filter(
+      (d) => typeof d !== "string" || (!d.startsWith("!") && !d.endsWith("*"))
+    );
     const traceDeps = [
       ...new Set([
         ...NodeNativePackages,
         ...NonBundleablePackages,
-        ...(nitro.options.traceDeps || []),
+        ...normalDeps,
+        ...fullTraceExtra,
       ]),
-    ];
+    ].filter((d) => typeof d !== "string" || !negated.has(d));
+    const fullTraceInclude = [...new Set([...FullTracePackages, ...fullTraceExtra])];
     plugins.push(
       externals({
         rootDir: nitro.options.rootDir,
@@ -73,7 +87,12 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
                 `^(?:${traceDeps.join("|")})|[/\\\\]node_modules[/\\\\](?:${traceDeps.join("|")})(?:[/\\\\])`
               ),
             ],
-        trace: isDevOrPrerender ? false : { outDir: nitro.options.output.serverDir },
+        trace: isDevOrPrerender
+          ? false
+          : {
+              outDir: nitro.options.output.serverDir,
+              fullTraceInclude: fullTraceInclude,
+            },
       })
     );
   }
