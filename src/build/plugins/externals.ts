@@ -14,9 +14,9 @@ import { NodeNativePackages, NonBundleablePackages, FullTracePackages } from "nf
 export type ExternalsOptions = {
   rootDir: string;
   conditions: string[];
-  exclude?: (string | RegExp)[];
+  exclude: (string | RegExp)[];
   include: (string | RegExp)[];
-  trace?: false | Omit<ExternalsTraceOptions, "rootDir" | "exportConditions" | "traceOptions">;
+  trace: false | Omit<ExternalsTraceOptions, "rootDir" | "exportConditions" | "traceOptions">;
 };
 
 const PLUGIN_NAME = "nitro:externals";
