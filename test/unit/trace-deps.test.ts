@@ -18,8 +18,8 @@ describe("resolveTraceDeps", () => {
     const result = resolveTraceDeps(["sharp"], defaults);
     const source = result.includePattern!.source;
     const matches = source.match(/sharp/g);
-    // "sharp" appears twice in the pattern (bare import + node_modules branch)
-    expect(matches!.length).toBe(2);
+    // "sharp" appears only once — pattern is shared across both branches
+    expect(matches!.length).toBe(1);
   });
 
   it("negates builtin packages with ! prefix", () => {
@@ -78,6 +78,22 @@ describe("resolveTraceDeps", () => {
     expect(result.includePattern!.test("sharp/native.node")).toBe(true);
     expect(result.includePattern!.test("sharp")).toBe(true);
     expect(result.includePattern!.test("not-sharp/lib.js")).toBe(false);
+  });
+
+  it("throws on empty string selector", () => {
+    expect(() => resolveTraceDeps([""], defaults)).toThrow('Invalid traceDeps selector: ""');
+  });
+
+  it("filters negated packages from fullTraceInclude", () => {
+    const result = resolveTraceDeps(["my-pkg*", "!prisma"], defaults);
+    expect(result.fullTraceInclude).toContain("my-pkg");
+    expect(result.fullTraceInclude).not.toContain("prisma");
+  });
+
+  it("negation of full-trace user entry removes from both", () => {
+    const result = resolveTraceDeps(["my-pkg*", "!my-pkg"], defaults);
+    expect(result.includePattern!.test("my-pkg/lib.js")).toBe(false);
+    expect(result.fullTraceInclude).not.toContain("my-pkg");
   });
 
   it("matches resolved absolute paths with node_modules", () => {

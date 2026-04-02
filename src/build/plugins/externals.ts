@@ -204,7 +204,7 @@ export function resolveTraceDeps(
   for (const d of traceDeps) {
     if (typeof d !== "string") {
       userTraceDeps.push(d);
-    } else if (d === "!" || d === "*") {
+    } else if (d === "!" || d === "*" || d === "") {
       throw new Error(`Invalid traceDeps selector: "${d}"`);
     } else if (d.startsWith("!")) {
       negated.add(d.slice(1));
@@ -222,11 +222,13 @@ export function resolveTraceDeps(
   const tracePattern = resolved
     .map((d) => (d instanceof RegExp ? d.source : escapeRegExp(d)))
     .join("|");
-  const fullTraceInclude = [...new Set([...builtinFullTrace, ...userFullTrace])];
+  const fullTraceInclude = [...new Set([...builtinFullTrace, ...userFullTrace])].filter(
+    (d) => !negated.has(d)
+  );
   return {
     includePattern: tracePattern
       ? new RegExp(
-          `(?:^(?:${tracePattern})(?:[/\\\\]|$)|[/\\\\]node_modules[/\\\\](?:${tracePattern})(?:[/\\\\]|$))`
+          `(?:^|[/\\\\]node_modules[/\\\\])(?:${tracePattern})(?:[/\\\\]|$)`
         )
       : undefined,
     fullTraceInclude: fullTraceInclude.length > 0 ? fullTraceInclude : undefined,
