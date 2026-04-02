@@ -37,8 +37,8 @@ importers:
         specifier: ^2.6.1
         version: 2.6.1
       nf3:
-        specifier: ^0.3.15
-        version: 0.3.15
+        specifier: ^0.3.16
+        version: 0.3.16
       ocache:
         specifier: ^0.1.4
         version: 0.1.4
@@ -5534,8 +5534,8 @@ packages:
     peerDependencies:
       typescript: '5'
 
-  nf3@0.3.15:
-    resolution: {integrity: sha512-/AaL//gzosJCABzzlwDO4ZHGQ9zXqCdL0i4qXtROFaKYGHrfI5W/0sTSPRssY+qvTjCuMKPB9G3OUfYJ+1zUQw==}
+  nf3@0.3.16:
+    resolution: {integrity: sha512-Gs0xRPpUm2nDkqbi40NJ9g7qDIcjcJzgExiydnq6LAyqhI2jfno8wG3NKTL+IiJsx799UHOb1CnSd4Wg4SG4Pw==}
 
   node-abi@3.89.0:
     resolution: {integrity: sha512-6u9UwL0HlAl21+agMN3YAMXcKByMqwGx+pq+P76vii5f7hTPtKDp08/H9py6DY+cfDw7kQNTGEj/rly3IgbNQA==}
@@ -12231,7 +12231,7 @@ snapshots:
     dependencies:
       typescript: 6.0.2
 
-  nf3@0.3.15: {}
+  nf3@0.3.16: {}
 
   node-abi@3.89.0:
     dependencies:
