@@ -175,7 +175,13 @@ function createH3App(config: H3Config) {
   const h3App = new H3Core(config);
 
   // Compiled route matching
-  hasRoutes && (h3App["~findRoute"] = (event) => findRoute(event.req.method, event.url.pathname));
+  hasRoutes && (h3App["~findRoute"] = (event) => {
+    const match = findRoute(event.req.method, event.url.pathname);
+    if (match) {
+      event.context.params = { ...event.context.params, ...match.params };
+    }
+    return match;
+  });
 
   hasGlobalMiddleware && h3App["~middleware"].push(...globalMiddleware);
 
