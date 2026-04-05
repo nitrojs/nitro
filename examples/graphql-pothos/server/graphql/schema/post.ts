@@ -3,6 +3,8 @@ import { builder } from "../builder";
 import { Comment } from "./comment";
 import { User } from "./user";
 
+const DEFAULT_PAGE_SIZE = 10;
+
 export const Post = builder.objectRef<IPost>("Post");
 
 Post.implement({
@@ -30,5 +32,17 @@ builder.queryFields((t) => ({
       id: t.arg.id({ required: true }),
     },
     resolve: (_root, args) => Posts.get(String(args.id)),
+  }),
+
+
+  posts: t.field({
+    type: [Post],
+    nullable: true,
+    args: {
+      take: t.arg.int(),
+      skip: t.arg.int(),
+    },
+    resolve: (_root, { skip, take }) =>
+      [...Posts.values()].slice(skip ?? 0, (skip ?? 0) + (take ?? DEFAULT_PAGE_SIZE)),
   }),
 }));

@@ -5,8 +5,6 @@ import { User } from "./user";
 
 export const Comment = builder.objectRef<IComment>("Comment");
 
-const DEFAULT_PAGE_SIZE = 10;
-
 Comment.implement({
   fields: (t) => ({
     id: t.exposeID("id"),
@@ -22,16 +20,3 @@ Comment.implement({
     }),
   }),
 });
-
-builder.queryFields((t) => ({
-  posts: t.field({
-    type: [Post],
-    nullable: true,
-    args: {
-      take: t.arg.int(),
-      skip: t.arg.int(),
-    },
-    resolve: (_root, { skip, take }) =>
-      [...Posts.values()].slice(skip ?? 0, (skip ?? 0) + (take ?? DEFAULT_PAGE_SIZE)),
-  }),
-}));
