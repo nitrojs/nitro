@@ -12,6 +12,7 @@ import type { TSConfig } from "pkg-types";
 import type { Preset as UnenvPreset } from "unenv";
 import type { UnimportPluginOptions } from "unimport/unplugin";
 import type { BuiltinDriverName } from "unstorage";
+import type { ExternalsTraceOptions } from "nf3";
 import type { UnwasmPluginOptions } from "unwasm/plugin";
 import type { RunnerName } from "env-runner";
 import type {
@@ -229,6 +230,7 @@ export interface NitroOptions extends PresetOptions {
   exportConditions?: string[];
   noExternals?: boolean | (string | RegExp)[];
   traceDeps?: (string | RegExp)[];
+  traceOpts?: Pick<ExternalsTraceOptions, "nft" | "traceAlias" | "chmod" | "transform" | "hooks">;
 
   // Advanced
   typescript: {

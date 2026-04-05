@@ -70,9 +70,9 @@ export interface VercelServerlessFunctionConfig {
   architecture?: "x86_64" | "arm64";
 
   /**
-   * Maximum execution duration (in seconds) that will be allowed for the Serverless Function.
+   * Maximum execution duration (in seconds) that will be allowed for the Serverless Function. `max` automatically sets the duration to the maximum allowed value.
    */
-  maxDuration?: number;
+  maxDuration?: number | "max";
 
   /**
    * Map of additional environment variables that will be available to the Vercel Function,
