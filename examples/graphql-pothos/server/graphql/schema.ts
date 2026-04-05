@@ -1,6 +1,6 @@
 import { builder } from "./builder";
 
-// Run all sideffects to add the fields
+// Run all side effects to add the fields
 import.meta.glob("./schema/**/*.ts", { eager: true });
 
 export const schema = builder.toSchema();
