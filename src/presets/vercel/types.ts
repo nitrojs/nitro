@@ -70,9 +70,9 @@ export interface VercelServerlessFunctionConfig {
   architecture?: "x86_64" | "arm64";
 
   /**
-   * Maximum execution duration (in seconds) that will be allowed for the Serverless Function.
+   * Maximum execution duration (in seconds) that will be allowed for the Serverless Function. `max` automatically sets the duration to the maximum allowed value.
    */
-  maxDuration?: number;
+  maxDuration?: number | "max";
 
   /**
    * Map of additional environment variables that will be available to the Vercel Function,
@@ -147,6 +147,24 @@ export interface VercelOptions {
    * @see https://vercel.com/docs/cron-jobs
    */
   cronHandlerRoute?: string;
+
+  /**
+   * Per-route function configuration overrides.
+   *
+   * Keys are route patterns (e.g., `/api/queues/*`, `/api/slow-routes/**`).
+   * Values are partial {@link VercelServerlessFunctionConfig} objects.
+   *
+   * @example
+   * ```ts
+   * functionRules: {
+   *   '/api/my-slow-routes/**': { maxDuration: 3600 },
+   *   '/api/queues/fulfill-order': {
+   *     experimentalTriggers: [{ type: 'queue/v2beta', topic: 'orders' }],
+   *   },
+   * }
+   * ```
+   */
+  functionRules?: Record<string, VercelServerlessFunctionConfig>;
 }
 
 /**

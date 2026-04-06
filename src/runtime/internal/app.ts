@@ -90,7 +90,7 @@ export function fetch(
     return serverFetch(resource, init, context);
   }
   resource = (resource as any)._request || resource; // unwrap srvx request
-  return fetch(resource, init);
+  return globalThis.fetch(resource, init);
 }
 
 function createNitroApp(): NitroApp {

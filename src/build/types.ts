@@ -137,7 +137,7 @@ export async function writeTypes(nitro: Nitro) {
           await resolveSchema(
             Object.fromEntries(
               Object.entries(nitro.options.runtimeConfig).filter(
-                ([key]) => !["app", "nitro"].includes(key)
+                ([key]) => !["app", "nitro", "wrangler"].includes(key)
               )
             ) as Record<string, JSValue>
           ),

@@ -61,7 +61,7 @@ Then you can deploy the application with:
 
 You can use [runtime hooks](/docs/plugins#nitro-runtime-hooks) below in order to extend [Worker handlers](https://developers.cloudflare.com/workers/runtime-apis/handlers/).
 
-:read-more{to="/guide/plugins#nitro-runtime-hooks"}
+:read-more{to="/docs/plugins#nitro-runtime-hooks"}
 
 - [`cloudflare:scheduled`](https://developers.cloudflare.com/workers/runtime-apis/handlers/scheduled/)
 - [`cloudflare:email`](https://developers.cloudflare.com/email-routing/email-workers/runtime-api/)
@@ -96,6 +96,30 @@ export default defineConfig({
   }
 })
 ```
+
+### Scheduled Tasks (Cron Triggers)
+
+When using [Nitro tasks](/docs/tasks) with `scheduledTasks`, Nitro automatically generates [Cron Triggers](https://developers.cloudflare.com/workers/configuration/cron-triggers/) in the wrangler config at build time.
+
+```ts [nitro.config.ts]
+import { defineNitroConfig } from "nitro/config";
+
+export default defineNitroConfig({
+  preset: "cloudflare_module",
+  experimental: {
+    tasks: true,
+  },
+  scheduledTasks: {
+    "* * * * *": ["cms:update"],
+    "0 15 1 * *": ["db:cleanup"],
+  },
+  cloudflare: {
+    deployConfig: true,
+  },
+})
+```
+
+No manual Wrangler configuration is needed - Nitro handles it for you.
 
 ## Cloudflare Pages
 
@@ -166,7 +190,7 @@ Make sure to only access environment variables **within the event lifecycle**  a
 **Example:** If you have set the `SECRET` and `NITRO_HELLO_THERE` environment variables set you can access them in the following way:
 
 ```ts
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 import { useRuntimeConfig } from "nitro/runtime-config";
 
 console.log(process.env.SECRET) // note that this is in the global scope! so it doesn't actually work and the variable is undefined!
@@ -212,7 +236,7 @@ For production, use the Cloudflare dashboard or the [`wrangler secret`](https://
 You can specify a custom `wrangler.toml`/`wrangler.json` file and define vars inside.
 
 ::warning
-Note that this isn't recommend for sensitive data like secrets.
+Note that this isn't recommended for sensitive data like secrets.
 ::
 
 **Example:**
@@ -266,14 +290,14 @@ For more details on Bindings and how to use them please refer to the Cloudflare 
 
 :read-more{title="KV Storage" to="/docs/storage"}
 
-In runtime, you can access bindings from the request event, by accessing its `context.cloudflare.env` field, this is for example how you can access a D1 bindings:
+In runtime, you can access bindings from the request event via `event.req.runtime.cloudflare.env`. This is for example how you can access a D1 binding:
 
 ```ts
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 
 defineHandler(async (event) => {
-  const { cloudflare } = event.context
-  const stmt = await cloudflare.env.MY_D1.prepare('SELECT id FROM table')
+  const { env } = event.req.runtime.cloudflare
+  const stmt = await env.MY_D1.prepare('SELECT id FROM table')
   const { results } = await stmt.all()
 })
 ```
@@ -321,7 +345,7 @@ From this moment, when running
 
 you will be able to access the `MY_VARIABLE` and `MY_KV` from the request event just as illustrated above.
 
-#### Wrangler environments 
+#### Wrangler environments
 
 If you have multiple Wrangler environments, you can specify which Wrangler environment to use during Cloudflare dev emulation:
 
@@ -329,7 +353,7 @@ If you have multiple Wrangler environments, you can specify which Wrangler envir
 import { defineNitroConfig } from "nitro/config";
 
 export default defineNitroConfig({
-  preset: 'cloudflare-module',
+  preset: 'cloudflare_module',
   cloudflare: {
     dev: {
       environment: 'preview'

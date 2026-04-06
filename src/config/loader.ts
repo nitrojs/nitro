@@ -79,6 +79,7 @@ async function _loadUserConfig(
   let preset: string | undefined = (configOverrides.preset as string) || process.env.NITRO_PRESET || process.env.SERVER_PRESET
 
   const _dotenv = opts.dotenv ?? (configOverrides.dev && { fileName: [".env", ".env.local"] });
+  const envName = opts.c12?.envName ?? (configOverrides.dev ? "development" : "production");
   const loadedConfig = await (
     opts.watch
       ? watchConfig<NitroConfig & { _meta?: NitroPresetMeta }>
@@ -87,6 +88,7 @@ async function _loadUserConfig(
     name: "nitro",
     cwd: configOverrides.rootDir,
     dotenv: _dotenv,
+    envName,
     extend: { extendKey: ["extends", "preset"] },
     defaults: NitroDefaults,
     async overrides({ rawConfigs }) {

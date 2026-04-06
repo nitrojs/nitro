@@ -24,11 +24,6 @@ export async function prerender(nitro: Nitro) {
     return;
   }
 
-  if (nitro.options.builder === "vite") {
-    nitro.logger.warn("Skipping prerender since not supported with vite builder yet...");
-    return;
-  }
-
   // Initial list of routes to prerender
   const routes = new Set(nitro.options.prerender.routes);
 
@@ -63,6 +58,7 @@ export async function prerender(nitro: Nitro) {
     rootDir: nitro.options.rootDir,
     logLevel: 0,
     preset: "nitro-prerender",
+    builder: nitro.options.builder === "vite" ? "rolldown" : nitro.options.builder,
   };
   await nitro.hooks.callHook("prerender:config", prerendererConfig);
   const nitroRenderer = await createNitro(prerendererConfig);
@@ -244,7 +240,9 @@ export async function prerender(nitro: Nitro) {
     const redirectCodes = [301, 302, 303, 304, 307, 308];
     if (![200, ...redirectCodes].includes(res.status)) {
       _route.error = new Error(`[${res.status}] ${res.statusText}`) as any;
+      // @ts-expect-error (typed as readonly)
       _route.error!.status = res.status;
+      // @ts-expect-error (typed as readonly)
       _route.error!.statusText = res.statusText;
     }
 

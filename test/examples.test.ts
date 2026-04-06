@@ -18,10 +18,18 @@ const skip = new Set<string>([
   "websocket",
   ...(isRolldown
     ? [
-        // https://github.com/rolldown/rolldown/issues/8211
+        // TODO: Cannot read properties of null (reading 'use')
         "vite-rsc",
       ]
-    : ["vite-rsc"]),
+    : [
+        "vite-rsc",
+        // No tsConfigPaths support in rollup
+        "import-alias",
+        // @vitejs/plugin-react depends on vite 8 vite/internal import
+        "vite-ssr-react",
+        "vite-ssr-tsr-react",
+        "vite-ssr-tss-react",
+      ]),
 ]);
 
 const skipDev = new Set<string>(["auto-imports", "cached-handler"]);
@@ -45,6 +53,10 @@ function setupTest(name: string) {
       test(`${name} (${mode})`, async () => {
         const res = await ctx.fetch("/");
         const expectedStatus = name === "custom-error-handler" ? 500 : 200;
+        if (res.status !== expectedStatus) {
+          const text = await res.text();
+          console.error(`Unexpected response ${res.status} ${res.statusText}\n${text}`);
+        }
         expect(res.status, res.statusText).toBe(expectedStatus);
       });
     }

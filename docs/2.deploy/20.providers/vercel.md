@@ -55,6 +55,35 @@ Alternatively, Nitro also detects Bun automatically if you specify a `bunVersion
 }
 ```
 
+## Per-route function configuration
+
+Use `vercel.functionRules` to override [serverless function settings](https://vercel.com/docs/build-output-api/primitives#serverless-function-configuration) for specific routes. Each key is a route pattern and its value is a partial function configuration object that gets merged with the base `vercel.functions` config. Note: array properties (e.g., `regions`) from route config will replace the base config arrays rather than merging them.
+
+This is useful when certain routes need different resource limits, regions, or features like [Vercel Queues triggers](https://vercel.com/docs/queues).
+
+```ts [nitro.config.ts]
+import { defineNitroConfig } from "nitro/config";
+
+export default defineNitroConfig({
+  vercel: {
+    functionRules: {
+      "/api/heavy-computation": {
+        maxDuration: 800,
+        memory: 4096,
+      },
+      "/api/regional": {
+        regions: ["lhr1", "cdg1"],
+      },
+      "/api/queues/process-order": {
+        experimentalTriggers: [{ type: "queue/v2beta", topic: "orders" }],
+      },
+    },
+  },
+});
+```
+
+Route patterns support wildcards via [rou3](https://github.com/h3js/rou3) matching (e.g., `/api/slow/**` matches all routes under `/api/slow/`).
+
 ## Proxy route rules
 
 Nitro automatically optimizes `proxy` route rules on Vercel by generating [CDN-level rewrites](https://vercel.com/docs/rewrites) at build time. This means matching requests are proxied at the edge without invoking a serverless function, reducing latency and cost.

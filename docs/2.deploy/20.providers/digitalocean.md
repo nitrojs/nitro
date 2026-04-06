@@ -23,7 +23,7 @@
    ```json
    {
       "engines": {
-         "node": "16.x"
+         "node": "20.x"
       }
    }
    ```

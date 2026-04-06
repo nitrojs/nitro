@@ -19,7 +19,7 @@ import { fetch } from "ofetch";
 import type { FetchOptions } from "ofetch";
 import { join, resolve } from "pathe";
 import { isWindows } from "std-env";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 export interface Context {
   preset: string;
@@ -186,6 +186,7 @@ export async function startServer(ctx: Context, handle: RequestListener) {
 type TestHandlerResult = {
   data: any;
   status: number;
+  statusText?: string;
   headers: Record<string, string | string[]>;
 };
 type TestHandler = (options: any) => Promise<TestHandlerResult | Response>;
@@ -228,12 +229,16 @@ export function testNitro(
       }
     }
     headers["set-cookie"] = (result as Response).headers.getSetCookie();
+    if (headers["set-cookie"].length === 0) {
+      delete headers["set-cookie"];
+    }
 
     return {
       data: callOpts.binary
         ? Buffer.from(await (result as Response).arrayBuffer())
         : destr(await (result as Response).text()),
       status: result.status,
+      statusText: result.statusText,
       headers,
     };
   }
@@ -386,6 +391,34 @@ export function testNitro(
     expect(headers).toMatchObject(expectedHeaders);
   });
 
+  describe("handles route rules - basic auth", () => {
+    it("rejects request with bad creds", async () => {
+      const { status, headers } = await callHandler({
+        url: "/rules/basic-auth",
+        headers: {
+          Authorization: "Basic " + btoa("user:wrongpass"),
+        },
+      });
+      expect(status).toBe(401);
+      expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
+    });
+
+    it("allows request with correct password", async () => {
+      const { status } = await callHandler({
+        url: "/rules/basic-auth/test",
+        headers: {
+          Authorization: "Basic " + btoa("admin:secret"),
+        },
+      });
+      expect(status).toBe(200);
+    });
+
+    it("disabled basic-auth for sub-rules", async () => {
+      const { status } = await callHandler({ url: "/rules/basic-auth/no-auth" });
+      expect(status).toBe(200);
+    });
+  });
+
   it("handles route rules - allowing overriding", async () => {
     const override = await callHandler({ url: "/rules/nested/override" });
     expect(override.headers.location).toBe("/other");
@@ -394,32 +427,6 @@ export function testNitro(
     const base = await callHandler({ url: "/rules/nested/base" });
     expect(base.headers.location).toBe("/base");
     expect(base.headers["x-test"]).toBe("test");
-  });
-
-  it("handles errors", async () => {
-    const { status, headers } = await callHandler({
-      url: "/api/error",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-    expect(status).toBe(503);
-
-    expect(headers).toMatchObject({
-      "content-type": "application/json",
-      "content-security-policy": ctx.isDev
-        ? "script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self';"
-        : "script-src 'none'; frame-ancestors 'none';",
-      "referrer-policy": "no-referrer",
-      "x-content-type-options": "nosniff",
-      "x-frame-options": "DENY",
-    });
-
-    const { data } = await callHandler({
-      url: "/api/error?json",
-    });
-    expect(status).toBe(503);
-    expect(data.json.error).toBe(true);
   });
 
   it.skipIf(
@@ -631,9 +638,10 @@ export function testNitro(
 
   describe("errors", () => {
     it.skipIf(ctx.isIsolated)("captures errors", async () => {
-      const { data } = await callHandler({ url: "/api/errors" });
+      await callHandler({ url: "/errors/throw" });
+      const { data } = await callHandler({ url: "/errors/captured" });
       const allErrorMessages = (data.allErrors || []).map((entry: any) => entry.message);
-      expect(allErrorMessages).to.includes("Service Unavailable");
+      expect(allErrorMessages).to.includes("Handled error");
     });
 
     it.skipIf(
@@ -643,9 +651,83 @@ export function testNitro(
         ctx.preset === "deno-server" ||
         ctx.preset === "nitro-dev"
     )("sourcemap works", async () => {
-      const { data } = await callHandler({ url: "/error-stack" });
-      expect(data.stack).toMatch("test/fixture/server/routes/error-stack.ts");
+      const { data } = await callHandler({ url: "/errors/stack" });
+      expect(data.stack).toMatch("test/fixture/server/routes/errors/stack.ts");
     });
+
+    for (const errorAction of ["throw", "return"]) {
+      it(`handled errors (${errorAction})`, async () => {
+        const res = await callHandler({ url: `/errors/throw?handled&action=${errorAction}` });
+        expect(res).toMatchObject({
+          status: 503,
+          statusText: /deno|bun/.test(ctx.preset)
+            ? "Service Unavailable"
+            : /aws/.test(ctx.preset)
+              ? ""
+              : "Custom Status Text",
+          headers: {
+            "content-type": "application/json; charset=utf-8",
+            "x-custom-error": "custom-value",
+          },
+          data: {
+            error: true,
+            status: 503,
+            statusText: "Custom Status Text",
+            message: "Handled error",
+            data: { custom: "data" },
+            custom: "body",
+          },
+        });
+      });
+
+      it(`unhandled errors (${errorAction})`, async () => {
+        const stderrMock = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+        const consoleErrorMock = vi.spyOn(console, "error").mockImplementation(() => {});
+        let res;
+        try {
+          res = await callHandler({
+            url: `/errors/throw?unhandled&action=${errorAction}`,
+            headers: { Accept: "application/json" },
+          });
+        } finally {
+          stderrMock.mockRestore();
+          consoleErrorMock.mockRestore();
+        }
+        // TODO
+        // expect(consoleErrorMock).toHaveBeenCalledExactlyOnceWith(
+        //   expect.stringContaining("Unhandled error")
+        // );
+        if (!ctx.isDev) {
+          // Prod
+          expect(res).toMatchObject({
+            status: 500,
+            headers: {
+              "content-type": "application/json; charset=utf-8",
+            },
+            data: {
+              error: true,
+              unhandled: true,
+              status: 500,
+            },
+          });
+        } else {
+          // Dev
+          expect(res).toMatchObject({
+            status: 500,
+            headers: {
+              "content-type": "application/json; charset=utf-8",
+            },
+            data: {
+              error: true,
+              unhandled: true,
+              status: 500,
+              message: "HTTPError",
+              stack: expect.arrayContaining(["Unhandled error"]),
+            },
+          });
+        }
+      });
+    }
   });
 
   describe("async context", () => {

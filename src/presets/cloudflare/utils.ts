@@ -171,6 +171,8 @@ export async function enableNodeCompat(nitro: Nitro) {
   nitro.options.cloudflare.deployConfig ??= true;
   nitro.options.cloudflare.nodeCompat ??= true;
   if (nitro.options.cloudflare.nodeCompat) {
+    nitro.options.rolldownConfig ??= {};
+    nitro.options.rolldownConfig.platform ??= "node";
     nitro.options.unenv.push(unenvCfNodeCompat);
   }
 }
@@ -285,6 +287,22 @@ export async function writeWranglerConfig(nitro: Nitro, cfTarget: "pages" | "mod
         type: "ESModule",
         globs: ["**/*.mjs", "**/*.js"],
       });
+    }
+  }
+
+  // Nitro Tasks cron triggers
+  if (
+    nitro.options.experimental.tasks &&
+    Object.keys(nitro.options.scheduledTasks || {}).length > 0 &&
+    cfTarget !== "pages"
+  ) {
+    const schedules = Object.keys(nitro.options.scheduledTasks!);
+    wranglerConfig.triggers = defu(wranglerConfig.triggers, { crons: [] });
+    const existingCrons = new Set(wranglerConfig.triggers!.crons);
+    for (const schedule of schedules) {
+      if (!existingCrons.has(schedule)) {
+        wranglerConfig.triggers!.crons!.push(schedule);
+      }
     }
   }
 

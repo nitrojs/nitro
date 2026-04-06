@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { joinURL } from 'ufo'
 import { kebabCase } from 'scule'
 
 definePageMeta({
@@ -10,7 +9,7 @@ const appConfig = useAppConfig()
 const route = useRoute()
 
 const { data: page } = await useAsyncData(kebabCase(route.path), () =>
-  queryCollection('examples').path(`${route.path}/readme`).first(),
+  queryCollection('content').path(route.path).first(),
 )
 if (!page.value) {
   throw createError({
@@ -21,16 +20,11 @@ if (!page.value) {
   })
 }
 
-const { data: surround } = await useAsyncData(`${kebabCase(route.path)}-surround`, async () => {
-  const data = await queryCollectionItemSurroundings('examples', `${route.path}/readme`, {
+const { data: surround } = await useAsyncData(`${kebabCase(route.path)}-surround`, () =>
+  queryCollectionItemSurroundings('content', route.path, {
     fields: ['description'],
-  }).where('category', '=', page.value?.category)
-
-  return data?.map((item) => {
-    if (!item) return null
-    return { ...item, path: item.path?.replace('/readme', '') }
-  })
-})
+  }),
+)
 
 // Extract example name from route (e.g., "/examples/vite-ssr-html" -> "vite-ssr-html")
 const exampleName = computed(() => {
@@ -48,17 +42,6 @@ usePageSEO({
   description: page.value?.description,
 })
 
-const path = computed(() => route.path.replace(/\/$/, ''))
-prerenderRoutes([joinURL('/raw', `${path.value}.md`)])
-useHead({
-  link: [
-    {
-      rel: 'alternate',
-      href: joinURL(appConfig.site.url, 'raw', `${path.value}.md`),
-      type: 'text/markdown',
-    },
-  ],
-})
 </script>
 
 <template>
@@ -114,7 +97,7 @@ useHead({
               {
                 icon: 'i-lucide-pencil',
                 label: 'Edit this page',
-                to: `https://github.com/${appConfig.docs.github}/edit/${appConfig.docs.branch || 'main'}/examples/${exampleName}/README.md`,
+                to: `https://github.com/${appConfig.docs.github}/edit/${appConfig.docs.branch || 'main'}/docs/4.examples/${exampleName}.md`,
                 target: '_blank',
               },
             ]"

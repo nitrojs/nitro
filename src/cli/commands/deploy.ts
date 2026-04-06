@@ -18,8 +18,12 @@ export default defineCommand({
     },
   },
   async run(ctx) {
+    (globalThis as any).__nitroDeploying__ = true;
     if (!ctx.args.prebuilt) {
       await buildCmd.run!(ctx as any);
+    }
+    if ((globalThis as any).__nitroDeployed__) {
+      return;
     }
     const rootDir = resolve((ctx.args.dir || ctx.args._dir || ".") as string);
     const { buildInfo, outputDir } = await getBuildInfo(rootDir);

@@ -1,0 +1,23 @@
+:root {
+  --font-sans: "Geist", sans-serif !important;
+  --font-mono: "Geist Mono", monospace !important;
+}
+
+h1[data-slot="title"] {
+  font-family: "Geist Pixels", sans-serif !important;
+}
+
+.landing-code {
+  --ui-bg-muted: #0c0c0e;
+  --ui-border-muted: #27272a;
+  --ui-bg: #0c0c0e;
+}
+
+.landing-code pre[style] {
+  background-color: #0c0c0e !important;
+}
+
+.landing-code > div > div {
+  margin-top: 0;
+  margin-bottom: 0;
+}
