@@ -18,8 +18,12 @@ export interface SwaggerUIConfig {
   requestSnippetsEnabled?: boolean;
   showExtensions?: boolean;
   showCommonExtensions?: boolean;
-  tagsSorter?: "alpha" | ((a: string, b: string) => number);
-  onComplete?: () => void;
+  /** Only "alpha" is supported (function values are not JSON-serializable). */
+  tagsSorter?: "alpha";
+  /**
+   * Note: function callbacks cannot be passed via Nitro configuration (not JSON-serializable).
+   */
+  onComplete?: never;
   layout?: string;
   configUrl?: string;
   oauth2RedirectUrl?: string;

@@ -13,6 +13,8 @@ export default defineHandler((event) => {
   const { route: _route, ...swaggerConfig } =
     (runtimeConfig.nitro?.openAPI?.ui?.swagger as Record<string, unknown>) || {};
 
+  const safeSwaggerConfig = JSON.stringify(swaggerConfig).replace(/<\//g, "<\\/");
+
   const CDN_BASE = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@^5";
   event.res.headers.set("Content-Type", "text/html");
   return /* html */ `<!doctype html>
@@ -39,7 +41,7 @@ export default defineHandler((event) => {
                 SwaggerUIStandalonePreset,
               ],
               layout: "StandaloneLayout",
-              ...${JSON.stringify(swaggerConfig)},
+              ...${safeSwaggerConfig},
               url: ${JSON.stringify(openAPIEndpoint)},
               dom_id: "#swagger-ui",
             });
