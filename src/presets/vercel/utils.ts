@@ -63,10 +63,9 @@ export async function generateFunctionFiles(nitro: Nitro) {
   ) {
     nitro.logger.warn(
       "`experimentalTriggers` on the base `vercel.functions` config applies to the catch-all function and is likely not what you want. " +
-        "Routes with queue triggers are not accesible on the web." +
+        "Routes with queue triggers are not accessible on the web. " +
         "Use `vercel.functionRules` to attach triggers to specific routes instead."
     );
-  }
 
   const functionConfigPath = resolve(nitro.options.output.serverDir, ".vc-config.json");
   await writeFile(functionConfigPath, JSON.stringify(baseFunctionConfig, null, 2));
