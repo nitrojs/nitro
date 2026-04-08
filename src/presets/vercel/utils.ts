@@ -66,6 +66,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
         "Routes with queue triggers are not accessible on the web. " +
         "Use `vercel.functionRules` to attach triggers to specific routes instead."
     );
+  }
 
   const functionConfigPath = resolve(nitro.options.output.serverDir, ".vc-config.json");
   await writeFile(functionConfigPath, JSON.stringify(baseFunctionConfig, null, 2));
