@@ -14,7 +14,14 @@ import type { WorkerAddress } from "./runner.ts";
 
 type MaybeArray<T> = T | T[];
 
+export interface NitroMeta {
+  version: string;
+  majorVersion: number;
+  [key: string]: unknown;
+}
+
 export interface Nitro {
+  meta: NitroMeta;
   options: NitroOptions;
   scannedHandlers: NitroEventHandler[];
   vfs: Map<string, { render: () => string | Promise<string> }>;
