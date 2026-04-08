@@ -88,9 +88,10 @@ const vercel = defineNitroPreset(
             ...nitro.options.vercel!.functionRules,
             [handlerRoute]: {
               ...nitro.options.vercel!.functionRules?.[handlerRoute],
-              experimentalTriggers: queues.triggers.map((t) => ({
+              experimentalTriggers: queues.triggers.map(({ topic, ...opts }) => ({
                 type: "queue/v2beta" as const,
-                topic: t.topic,
+                topic,
+                ...opts,
               })),
             },
           };

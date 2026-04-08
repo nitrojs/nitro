@@ -185,7 +185,11 @@ export interface VercelOptions {
      */
     handlerRoute?: string;
     /** Queue topic triggers to subscribe to. */
-    triggers: Array<{ topic: string }>;
+    triggers: Array<{
+      topic: string;
+      retryAfterSeconds?: number;
+      initialDelaySeconds?: number;
+    }>;
   };
 
   /**

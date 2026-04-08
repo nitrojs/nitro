@@ -591,7 +591,10 @@ describe("nitro:preset:vercel:queues", async () => {
       preset: "vercel",
       vercel: {
         queues: {
-          triggers: [{ topic: "orders" }, { topic: "notifications" }],
+          triggers: [
+            { topic: "orders", retryAfterSeconds: 60 },
+            { topic: "notifications", initialDelaySeconds: 10 },
+          ],
         },
       },
     },
@@ -607,8 +610,18 @@ describe("nitro:preset:vercel:queues", async () => {
       .readFile(resolve(funcDir, ".vc-config.json"), "utf8")
       .then((r) => JSON.parse(r));
     expect(config.experimentalTriggers).toEqual([
-      { type: "queue/v2beta", topic: "orders" },
-      { type: "queue/v2beta", topic: "notifications" },
+      {
+        type: "queue/v2beta",
+        topic: "orders",
+        retryAfterSeconds: 60,
+        consumer: "__vercel_Squeues_Sconsumer",
+      },
+      {
+        type: "queue/v2beta",
+        topic: "notifications",
+        initialDelaySeconds: 10,
+        consumer: "__vercel_Squeues_Sconsumer",
+      },
     ]);
     expect(config.handler).toBe("index.mjs");
   });

@@ -159,8 +159,9 @@ export default defineNitroConfig({
   vercel: {
     queues: {
       triggers: [
-        { topic: "orders" },
+        // Only `topic` is required
         { topic: "notifications" },
+        { topic: "orders", retryAfterSeconds: 60, initialDelaySeconds: 5 },
       ],
     },
   },
@@ -173,7 +174,7 @@ Use the `vercel:queue` hook in a [Nitro plugin](/guide/plugins) to process incom
 
 ```ts [server/plugins/queues.ts]
 export default defineNitroPlugin((nitro) => {
-  nitro.hooks.hook("vercel:queue", ({ message, metadata }) => {
+  nitro.hooks.hook("vercel:queue", ({ message, metadata, send }) => {
     console.log(`[${metadata.topicName}] Message ${metadata.messageId}:`, message);
   });
 });
