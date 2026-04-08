@@ -1,4 +1,4 @@
-import type { send } from '@vercel/queue';
+import type { send } from "@vercel/queue";
 
 /**
  * Vercel Build Output Configuration
