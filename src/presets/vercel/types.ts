@@ -1,3 +1,5 @@
+import type { send } from '@vercel/queue';
+
 /**
  * Vercel Build Output Configuration
  * @see https://vercel.com/docs/build-output-api/v3
@@ -250,6 +252,7 @@ declare module "nitro/types" {
     "vercel:queue": (_: {
       message: unknown;
       metadata: import("@vercel/queue").MessageMetadata;
+      send: typeof send;
     }) => void;
   }
 }
