@@ -10,7 +10,14 @@ import type { NitroHooks } from "./hooks";
 import type { PrerenderRoute } from "./prerender";
 import type { TSConfig } from "pkg-types";
 
+export interface NitroMeta {
+  version: string;
+  majorVersion: number;
+  [key: string]: unknown;
+}
+
 export interface Nitro {
+  meta: NitroMeta;
   options: NitroOptions;
   scannedHandlers: NitroEventHandler[];
   vfs: Record<string, string>;
