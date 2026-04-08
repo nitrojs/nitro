@@ -1,10 +1,15 @@
-import { handleCallback } from "@vercel/queue";
+import { handleCallback, send } from "@vercel/queue";
 import { defineHandler } from "nitro";
-import { useNitroHooks } from "nitro/app";
-import { send } from "@vercel/queue";
+import { useNitroApp, useNitroHooks } from "nitro/app";
 
 export default defineHandler((event) => {
   return handleCallback(async (message, metadata) => {
-    await useNitroHooks().callHook("vercel:queue", { message, metadata, send });
+    try {
+      await useNitroHooks().callHook("vercel:queue", { message, metadata, send });
+    } catch (error) {
+      console.error("[vercel:queue]", error);
+      useNitroApp().captureError?.(error as Error, { event,tags: ["vercel:queue"] });
+      throw error;
+    }
   })(event.req as Request);
 });
