@@ -28,7 +28,7 @@ export async function createNitro(
   const nitro: Nitro = {
     meta: {
       version: nitroVersion,
-      majorVersion: 2
+      majorVersion: 2,
     },
     options,
     hooks: createHooks(),
