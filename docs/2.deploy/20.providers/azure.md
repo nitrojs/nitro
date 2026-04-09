@@ -6,7 +6,7 @@
 
 **Preset:** `azure-swa`
 
-:read-more{title="Azure Static Web Apps" to="[https://azure.microsoft.com/en-us/products/app-service/static"}](https://azure.microsoft.com/en-us/products/app-service/static"})
+:read-more{title="Azure Static Web Apps" to="https://azure.microsoft.com/en-us/products/app-service/static"}
 
 ::note
 Integration with this provider is possible with [zero configuration](/deploy/#zero-config-providers).
