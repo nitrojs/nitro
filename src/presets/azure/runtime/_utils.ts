@@ -1,4 +1,4 @@
-import type { Cookie } from "@azure/functions";
+import type { Cookie, HttpRequest } from "@azure/functions";
 import { parse } from "cookie-es";
 
 export function getAzureParsedCookiesFromHeaders(headers: Headers): Cookie[] {
@@ -30,6 +30,24 @@ export function getAzureParsedCookiesFromHeaders(headers: Headers): Cookie[] {
     azureCookies.push(cookieObject);
   }
   return azureCookies;
+}
+
+export function resolveBaseUrl(req: HttpRequest) {
+  const forwardedProto = req.headers["x-forwarded-proto"];
+  const forwardedHost = req.headers["x-forwarded-host"];
+  const host = forwardedHost || req.headers["host"];
+  if (host) {
+    return `${forwardedProto || "http"}://${host}`;
+  }
+  const originalUrl = req.headers["x-ms-original-url"];
+  if (originalUrl) {
+    try {
+      return new URL(originalUrl).origin;
+    } catch {
+      // ignore invalid original URL
+    }
+  }
+  return "http://localhost";
 }
 
 function parseNumberOrDate(expires: string) {
