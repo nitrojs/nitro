@@ -142,6 +142,10 @@ describe("nitro:preset:vercel", async () => {
                 "src": "(?<__isr_route>/rules/isr-ttl/(?:.*))",
               },
               {
+                "dest": "/rules/allow-query/[...]-isr?__isr_route=$__isr_route",
+                "src": "(?<__isr_route>/rules/allow-query/(?:.*))",
+              },
+              {
                 "dest": "/rules/swr/[...]-isr?__isr_route=$__isr_route",
                 "src": "(?<__isr_route>/rules/swr/(?:.*))",
               },
@@ -338,6 +342,10 @@ describe("nitro:preset:vercel", async () => {
                 "src": "/api/db",
               },
               {
+                "dest": "/api/cached-allow-query",
+                "src": "/api/cached-allow-query",
+              },
+              {
                 "dest": "/api/cached",
                 "src": "/api/cached",
               },
@@ -469,6 +477,7 @@ describe("nitro:preset:vercel", async () => {
             "functions/__fallback.func/node_modules",
             "functions/__fallback.func/package.json",
             "functions/__fallback.func/timing.js",
+            "functions/api/cached-allow-query.func (symlink)",
             "functions/api/cached.func (symlink)",
             "functions/api/db.func (symlink)",
             "functions/api/echo.func (symlink)",
@@ -531,6 +540,8 @@ describe("nitro:preset:vercel", async () => {
             "functions/rules/_/cached/[...]-isr.prerender-config.json",
             "functions/rules/_/noncached/cached-isr.func (symlink)",
             "functions/rules/_/noncached/cached-isr.prerender-config.json",
+            "functions/rules/allow-query/[...]-isr.func (symlink)",
+            "functions/rules/allow-query/[...]-isr.prerender-config.json",
             "functions/rules/isr-ttl/[...]-isr.func (symlink)",
             "functions/rules/isr-ttl/[...]-isr.prerender-config.json",
             "functions/rules/isr/[...]-isr.func (symlink)",

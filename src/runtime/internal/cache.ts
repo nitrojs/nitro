@@ -237,8 +237,24 @@ export function defineCachedEventHandler<
         return escapeKey(customKey);
       }
       // Auto-generated key
-      const _path =
+      const _rawPath =
         event.node.req.originalUrl || event.node.req.url || event.path;
+      let _path: string;
+      if (opts.allowQuery) {
+        const parsed = parseURL(_rawPath);
+        const params = new URLSearchParams(parsed.search);
+        const filtered = new URLSearchParams();
+        for (const key of opts.allowQuery) {
+          const value = params.get(key);
+          if (value !== null) {
+            filtered.set(key, value);
+          }
+        }
+        const search = filtered.size > 0 ? `?${filtered.toString()}` : "";
+        _path = parsed.pathname + search;
+      } else {
+        _path = _rawPath;
+      }
       let _pathname: string;
       try {
         _pathname =
