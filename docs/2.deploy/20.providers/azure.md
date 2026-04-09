@@ -29,7 +29,7 @@ npx @azure/static-web-apps-cli start .output/public --api-location .output/serve
 
 Azure Static Web Apps are [configured](https://learn.microsoft.com/en-us/azure/static-web-apps/configuration) using the `staticwebapp.config.json` file.
 
-Nitro automatically generates this configuration file whenever the application is built with the `azure` preset.
+Nitro automatically generates this configuration file whenever the application is built with the `azure-swa` preset.
 
 Nitro will automatically add the following properties based on the following criteria:
 
