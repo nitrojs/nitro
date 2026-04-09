@@ -28,8 +28,7 @@ export async function createNitro(
   const nitro: Nitro = {
     meta: {
       version: nitroVersion,
-      majorVersion: Number.parseInt(nitroVersion.split(".")[0]),
-      [nitroVersion.split(".")[0]]: {},
+      majorVersion: 2
     },
     options,
     hooks: createHooks(),
