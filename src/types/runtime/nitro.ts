@@ -45,6 +45,12 @@ export interface CapturedErrorContext {
 
 export type CaptureError = (error: Error, context: CapturedErrorContext) => void;
 
+/**
+ * Runtime hooks available in Nitro plugins.
+ *
+ * @see https://nitro.build/docs/plugins
+ * @see https://nitro.build/docs/lifecycle
+ */
 export interface NitroRuntimeHooks {
   close: () => void;
   error: CaptureError;
