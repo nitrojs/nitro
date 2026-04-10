@@ -2,6 +2,8 @@
 
 /**
  * Nitro OpenAPI configuration
+ *
+ * @see https://nitro.build/docs/openapi
  */
 export interface NitroOpenAPIConfig {
   /**

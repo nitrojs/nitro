@@ -102,8 +102,18 @@ export interface NitroOptions extends PresetOptions {
    * @see https://github.com/unjs/unwasm
    */
   wasm?: false | UnwasmPluginOptions;
+  /**
+   * OpenAPI configuration
+   *
+   * @see https://nitro.build/docs/openapi
+   */
   openAPI?: NitroOpenAPIConfig;
   experimental: {
+    /**
+     * Enable experimental OpenAPI support
+     *
+     * @see https://nitro.build/docs/openapi
+     */
     openAPI?: boolean;
     /**
      * See https://github.com/microsoft/TypeScript/pull/51669
