@@ -37,7 +37,7 @@ Nitro `/api` directory isn't compatible with Vercel. Instead, you should use:
 You can use [Bun](https://bun.com) instead of Node.js by specifying the runtime using the `vercel.functions` key inside `nitro.config`:
 
 ```ts [nitro.config.ts]
-export default defineNitroConfig({
+export default defineConfig({
   vercel: {
     functions: {
       runtime: "bun1.x"
@@ -62,9 +62,9 @@ Use `vercel.functionRules` to override [serverless function settings](https://ve
 This is useful when certain routes need different resource limits, regions, or features like [Vercel Queues triggers](https://vercel.com/docs/queues).
 
 ```ts [nitro.config.ts]
-import { defineNitroConfig } from "nitro/config";
+import { defineConfig } from "nitro";
 
-export default defineNitroConfig({
+export default defineConfig({
   vercel: {
     functionRules: {
       "/api/heavy-computation": {
@@ -89,7 +89,7 @@ Route patterns support wildcards via [rou3](https://github.com/h3js/rou3) matchi
 Nitro automatically optimizes `proxy` route rules on Vercel by generating [CDN-level rewrites](https://vercel.com/docs/rewrites) at build time. This means matching requests are proxied at the edge without invoking a serverless function, reducing latency and cost.
 
 ```ts [nitro.config.ts]
-export default defineNitroConfig({
+export default defineConfig({
   routeRules: {
     // Proxied at CDN level — no function invocation
     "/api/**": {
@@ -127,9 +127,9 @@ Response headers defined on the route rule via the `headers` option are still ap
 Nitro automatically converts your [`scheduledTasks`](/docs/tasks#scheduled-tasks) configuration into [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs) at build time. Define your schedules in your Nitro config and deploy - no manual `vercel.json` cron configuration required.
 
 ```ts [nitro.config.ts]
-import { defineNitroConfig } from "nitro/config";
+import { defineConfig } from "nitro";
 
-export default defineNitroConfig({
+export default defineConfig({
   experimental: {
     tasks: true
   },
@@ -164,9 +164,9 @@ To revalidate a page on demand:
 2. Update your configuration:
 
     ```ts [nitro.config.ts]
-    import { defineNitroConfig } from "nitro/config";
+    import { defineConfig } from "nitro";
 
-    export default defineNitroConfig({
+    export default defineConfig({
       vercel: {
         config: {
           bypassToken: process.env.VERCEL_BYPASS_TOKEN
@@ -193,7 +193,7 @@ You can pass an options object to `isr` route rule to configure caching behavior
 - `exposeErrBody`: When `true`, expose the response body regardless of status code including error status codes. (default `false`
 
 ```ts
-export default defineNitroConfig({
+export default defineConfig({
   routeRules: {
     "/products/**": {
       isr: {
