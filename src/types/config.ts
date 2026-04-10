@@ -458,7 +458,7 @@ export interface NitroOptions extends PresetOptions {
    * ```ts
    * scheduledTasks: {
    *   "0 * * * *": "cleanup:temp",
-   *   "**​/5 * * * *": ["health:check", "metrics:collect"],
+   *   "*​/5 * * * *": ["health:check", "metrics:collect"],
    * }
    * ```
    *
