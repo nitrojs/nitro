@@ -165,7 +165,7 @@
     "untyped": "^2.0.0",
     "unwasm": "^0.5.3",
     "vite": "^8.0.8",
-    "vite7": "npm:vite@^7.3.1",
+    "vite7": "npm:vite@^7.3.2",
     "vitest": "^4.1.4",
     "wrangler": "^4.81.1",
     "xml2js": "^0.6.2",
@@ -180,7 +180,7 @@
     "rollup": "^4.60.1",
     "vite": "^7 || ^8",
     "xml2js": "^0.6.2",
-    "zephyr-agent": "^0.1.15"
+    "zephyr-agent": "^0.2.0"
   },
   "peerDependenciesMeta": {
     "dotenv": {
@@ -212,7 +212,7 @@
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
   },
-  "packageManager": "pnpm@10.32.0",
+  "packageManager": "pnpm@10.33.0",
   "compatiblePackages": {
     "schemaVersion": 1,
     "vite": {
