@@ -37,9 +37,9 @@ Zephyr is a little different here from most Nitro providers: we recommend enabli
 If your CI pipeline already runs `nitro build`, enable deployment during the build step:
 
 ```ts [nitro.config.ts]
-import { defineNitroConfig } from "nitro/config";
+import { defineConfig } from "nitro";
 
-export default defineNitroConfig({
+export default defineConfig({
   preset: "zephyr",
   zephyr: {
     deployOnBuild: true,
