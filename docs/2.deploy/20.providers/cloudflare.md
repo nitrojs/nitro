@@ -19,9 +19,9 @@ To use Workers with Static Assets, you need a Nitro compatibility date set to `2
 The following shows an example `nitro.config.ts` file for deploying a Nitro app to Cloudflare Workers.
 
 ```ts [nitro.config.ts]
-import { defineNitroConfig } from "nitro/config";
+import { defineConfig } from "nitro";
 
-export default defineNitroConfig({
+export default defineConfig({
     compatibilityDate: "2024-09-19",
     preset: "cloudflare_module",
     cloudflare: {
@@ -102,9 +102,9 @@ export default defineConfig({
 When using [Nitro tasks](/docs/tasks) with `scheduledTasks`, Nitro automatically generates [Cron Triggers](https://developers.cloudflare.com/workers/configuration/cron-triggers/) in the wrangler config at build time.
 
 ```ts [nitro.config.ts]
-import { defineNitroConfig } from "nitro/config";
+import { defineConfig } from "nitro";
 
-export default defineNitroConfig({
+export default defineConfig({
   preset: "cloudflare_module",
   experimental: {
     tasks: true,
@@ -138,9 +138,9 @@ Cloudflare [Workers Module](#cloudflare-workers) is the new recommended preset f
 The following shows an example `nitro.config.ts` file for deploying a Nitro app to Cloudflare Pages.
 
 ```ts [nitro.config.ts]
-import { defineNitroConfig } from "nitro/config";
+import { defineConfig } from "nitro";
 
-export default defineNitroConfig({
+export default defineConfig({
     preset: "cloudflare_pages",
     cloudflare: {
       deployConfig: true,
@@ -236,7 +236,7 @@ For production, use the Cloudflare dashboard or the [`wrangler secret`](https://
 You can specify a custom `wrangler.toml`/`wrangler.json` file and define vars inside.
 
 ::warning
-Note that this isn't recommend for sensitive data like secrets.
+Note that this isn't recommended for sensitive data like secrets.
 ::
 
 **Example:**
@@ -350,9 +350,9 @@ you will be able to access the `MY_VARIABLE` and `MY_KV` from the request event 
 If you have multiple Wrangler environments, you can specify which Wrangler environment to use during Cloudflare dev emulation:
 
 ```ts [nitro.config.ts]
-import { defineNitroConfig } from "nitro/config";
+import { defineConfig } from "nitro";
 
-export default defineNitroConfig({
+export default defineConfig({
   preset: 'cloudflare_module',
   cloudflare: {
     dev: {

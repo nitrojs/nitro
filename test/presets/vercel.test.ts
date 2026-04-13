@@ -4,9 +4,22 @@ import { describe, expect, it, vi, beforeAll, afterAll } from "vitest";
 import { setupTest, testNitro, fixtureDir } from "../tests.ts";
 import { toFetchHandler } from "srvx/node";
 
+// NOTE: Always prefer extending the existing `nitro:preset:vercel:web` matrix
+// (its setup/build is shared across assertions) over adding new top-level
+// `describe` blocks, which trigger a separate build and slow down CI.
 describe("nitro:preset:vercel:web", async () => {
   const ctx = await setupTest("vercel", {
     outDirSuffix: "-web",
+    config: {
+      vercel: {
+        queues: {
+          triggers: [
+            { topic: "orders", retryAfterSeconds: 60 },
+            { topic: "notifications", initialDelaySeconds: 10 },
+          ],
+        },
+      },
+    },
   });
   testNitro(
     ctx,
@@ -180,6 +193,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/rules/isr/(?:.*)",
               },
               {
+                "dest": "/_vercel/queues/consumer",
+                "src": "/_vercel/queues/consumer",
+              },
+              {
                 "dest": "/wasm/static-import",
                 "src": "/wasm/static-import",
               },
@@ -338,6 +355,10 @@ describe("nitro:preset:vercel:web", async () => {
               {
                 "dest": "/500",
                 "src": "/500",
+              },
+              {
+                "dest": "/_vercel/queues/consumer",
+                "src": "/_vercel/queues/consumer",
               },
               {
                 "dest": "/_vercel/cron",
@@ -530,6 +551,43 @@ describe("nitro:preset:vercel:web", async () => {
           .then((r) => JSON.parse(r));
         expect(config.maxDuration).toBeUndefined();
         expect(config.handler).toBe("index.mjs");
+      });
+
+      it("should create queue consumer function directory with experimentalTriggers", async () => {
+        const funcDir = resolve(ctx.outDir, "functions/_vercel/queues/consumer.func");
+        const stat = await fsp.lstat(funcDir);
+        expect(stat.isDirectory()).toBe(true);
+        expect(stat.isSymbolicLink()).toBe(false);
+
+        const config = await fsp
+          .readFile(resolve(funcDir, ".vc-config.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        expect(config.experimentalTriggers).toEqual([
+          {
+            type: "queue/v2beta",
+            topic: "orders",
+            retryAfterSeconds: 60,
+            consumer: "__vercel_Squeues_Sconsumer",
+          },
+          {
+            type: "queue/v2beta",
+            topic: "notifications",
+            initialDelaySeconds: 10,
+            consumer: "__vercel_Squeues_Sconsumer",
+          },
+        ]);
+        expect(config.handler).toBe("index.mjs");
+      });
+
+      it("should add queue consumer route in config.json", async () => {
+        const config = await fsp
+          .readFile(resolve(ctx.outDir, "config.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        const routes = config.routes as { src: string; dest: string }[];
+        const queueRoute = routes.find(
+          (r) => r.dest === "/_vercel/queues/consumer" && r.src === "/_vercel/queues/consumer"
+        );
+        expect(queueRoute).toBeDefined();
       });
     }
   );

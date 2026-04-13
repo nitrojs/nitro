@@ -63,7 +63,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
   ) {
     nitro.logger.warn(
       "`experimentalTriggers` on the base `vercel.functions` config applies to the catch-all function and is likely not what you want. " +
-        "Routes with queue triggers are not accesible on the web." +
+        "Routes with queue triggers are not accessible on the web. " +
         "Use `vercel.functionRules` to attach triggers to specific routes instead."
     );
   }
@@ -72,9 +72,9 @@ export async function generateFunctionFiles(nitro: Nitro) {
   await writeFile(functionConfigPath, JSON.stringify(baseFunctionConfig, null, 2));
 
   const functionRules = nitro.options.vercel?.functionRules;
-  const hasfunctionRules = functionRules && Object.keys(functionRules).length > 0;
+  const hasRouteFunctionConfig = functionRules && Object.keys(functionRules).length > 0;
   let routeFuncRouter: Router<VercelServerlessFunctionConfig> | undefined;
-  if (hasfunctionRules) {
+  if (hasRouteFunctionConfig) {
     routeFuncRouter = new Router<VercelServerlessFunctionConfig>();
     routeFuncRouter._update(
       Object.entries(functionRules).map(([route, data]) => ({
@@ -128,7 +128,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
 
   // Write functionRules custom function directories
   const createdFuncDirs = new Set<string>();
-  if (hasfunctionRules) {
+  if (hasRouteFunctionConfig) {
     for (const [pattern, overrides] of Object.entries(functionRules!)) {
       const funcDir = resolve(
         nitro.options.output.serverDir,

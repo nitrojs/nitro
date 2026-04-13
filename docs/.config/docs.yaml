@@ -16,7 +16,7 @@ redirects:
   "/guide/getting-started": "/docs"
   "/guide/utils": "/docs/routing"
   "/guide/routing": "/docs/routing"
-  "/guide/websocket": "/docs/routing"
+  "/guide/websocket": "/docs/websocket"
   "/guide/cache": "/docs/cache"
   "/guide/storage": "/docs/storage"
   "/guide/database": "/docs/database"

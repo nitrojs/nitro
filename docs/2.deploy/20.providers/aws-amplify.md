@@ -24,9 +24,9 @@ Integration with this provider is possible with [zero configuration](/deploy/#ze
 You can configure advanced options of this preset using `awsAmplify` option.
 
 ```ts [nitro.config.ts]
-import { defineNitroConfig } from "nitro/config";
+import { defineConfig } from "nitro";
 
-export default defineNitroConfig({
+export default defineConfig({
   awsAmplify: {
       // catchAllStaticFallback: true,
       // imageOptimization: { path: "/_image", cacheControl: "public, max-age=3600, immutable" },

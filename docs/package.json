@@ -7,9 +7,9 @@
   "devDependencies": {
     "automd": "^0.4.3",
     "geist": "^1.7.0",
-    "motion-v": "^2.0.0",
-    "shaders": "^2.3.75",
-    "undocs": "npm:undocs-nightly@0.4.17-20260310-213525-c3c295a",
+    "motion-v": "^2.2.0",
+    "shaders": "^2.5.92",
+    "undocs": "npm:undocs-nightly@0.4.17-20260310-213704-c3c295a",
     "zod": "^4.3.6"
   }
 }

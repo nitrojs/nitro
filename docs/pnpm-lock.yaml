@@ -15,14 +15,14 @@ importers:
         specifier: ^1.7.0
         version: 1.7.0(next@16.1.6(@babel/core@7.29.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))
       motion-v:
-        specifier: ^2.0.0
-        version: 2.0.0(@vueuse/core@14.2.1(vue@3.5.30(typescript@5.9.3)))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vue@3.5.30(typescript@5.9.3))
+        specifier: ^2.2.0
+        version: 2.2.0(@vueuse/core@14.2.1(vue@3.5.30(typescript@5.9.3)))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vue@3.5.30(typescript@5.9.3))
       shaders:
-        specifier: ^2.3.75
-        version: 2.3.75(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vue@3.5.30(typescript@5.9.3))
+        specifier: ^2.5.92
+        version: 2.5.92(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vue@3.5.30(typescript@5.9.3))
       undocs:
-        specifier: npm:undocs-nightly@0.4.17-20260310-213525-c3c295a
-        version: undocs-nightly@0.4.17-20260310-213525-c3c295a(@parcel/watcher@2.5.6)(@tiptap/extensions@3.20.1(@tiptap/core@3.20.1(@tiptap/pm@3.20.1))(@tiptap/pm@3.20.1))(@tiptap/y-tiptap@3.0.2(prosemirror-model@1.25.4)(prosemirror-state@1.4.4)(prosemirror-view@1.41.6)(y-protocols@1.0.7(yjs@13.6.29))(yjs@13.6.29))(@vue/compiler-sfc@3.5.30)(@vueuse/core@14.2.1(vue@3.5.30(typescript@5.9.3)))(cac@6.7.14)(chokidar@5.0.0)(db0@0.3.4)(dotenv@17.3.1)(embla-carousel@8.6.0)(giget@3.1.2)(ioredis@5.10.0)(jiti@2.6.1)(lightningcss@1.32.0)(magicast@0.5.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.9.3)(vite@7.3.1(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.0)(yaml@2.8.2))(vue-router@4.6.4(vue@3.5.30(typescript@5.9.3)))(yaml@2.8.2)(yjs@13.6.29)(zod@4.3.6)
+        specifier: npm:undocs-nightly@0.4.17-20260310-213704-c3c295a
+        version: undocs-nightly@0.4.17-20260310-213704-c3c295a(@parcel/watcher@2.5.6)(@tiptap/extensions@3.20.1(@tiptap/core@3.20.1(@tiptap/pm@3.20.1))(@tiptap/pm@3.20.1))(@tiptap/y-tiptap@3.0.2(prosemirror-model@1.25.4)(prosemirror-state@1.4.4)(prosemirror-view@1.41.6)(y-protocols@1.0.7(yjs@13.6.29))(yjs@13.6.29))(@vue/compiler-sfc@3.5.30)(@vueuse/core@14.2.1(vue@3.5.30(typescript@5.9.3)))(cac@6.7.14)(chokidar@5.0.0)(db0@0.3.4)(dotenv@17.3.1)(embla-carousel@8.6.0)(giget@3.1.2)(ioredis@5.10.0)(jiti@2.6.1)(lightningcss@1.32.0)(magicast@0.5.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.9.3)(vite@7.3.1(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.0)(yaml@2.8.2))(vue-router@4.6.4(vue@3.5.30(typescript@5.9.3)))(yaml@2.8.2)(yjs@13.6.29)(zod@4.3.6)
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -3299,6 +3299,20 @@ packages:
       react-dom:
         optional: true
 
+  framer-motion@12.38.0:
+    resolution: {integrity: sha512-rFYkY/pigbcswl1XQSb7q424kSTQ8q6eAC+YUsSKooHQYuLdzdHjrt6uxUC+PRAO++q5IS7+TamgIw1AphxR+g==}
+    peerDependencies:
+      '@emotion/is-prop-valid': '*'
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      '@emotion/is-prop-valid':
+        optional: true
+      react:
+        optional: true
+      react-dom:
+        optional: true
+
   fresh@2.0.0:
     resolution: {integrity: sha512-Rx/WycZ60HOaqLKAi6cHRKKI7zxWbJ31MhntmtwMoaTeF7XFH9hhBp8vITaMidfljRQ6eYWCKkaTK+ykVJHP2A==}
     engines: {node: '>= 0.8'}
@@ -4189,8 +4203,14 @@ packages:
   motion-dom@12.35.2:
     resolution: {integrity: sha512-pWXFMTwvGDbx1Fe9YL5HZebv2NhvGBzRtiNUv58aoK7+XrsuaydQ0JGRKK2r+bTKlwgSWwWxHbP5249Qr/BNpg==}
 
+  motion-dom@12.38.0:
+    resolution: {integrity: sha512-pdkHLD8QYRp8VfiNLb8xIBJis1byQ9gPT3Jnh2jqfFtAsWUA3dEepDlsWe/xMpO8McV+VdpKVcp+E+TGJEtOoA==}
+
   motion-utils@12.29.2:
     resolution: {integrity: sha512-G3kc34H2cX2gI63RqU+cZq+zWRRPSsNIOjpdl9TN4AQwC4sgwYPl/Q/Obf/d53nOm569T0fYK+tcoSV50BWx8A==}
+
+  motion-utils@12.36.0:
+    resolution: {integrity: sha512-eHWisygbiwVvf6PZ1vhaHCLamvkSbPIeAYxWUuL3a2PD/TROgE7FvfHWTIH4vMl798QLfMw15nRqIaRDXTlYRg==}
 
   motion-v@1.10.3:
     resolution: {integrity: sha512-9Ewo/wwGv7FO3PqYJpllBF/Efc7tbeM1iinVrM73s0RUQrnXHwMZCaRX98u4lu0PQCrZghPPfCsQ14pWKIEbnQ==}
@@ -4198,8 +4218,8 @@ packages:
       '@vueuse/core': '>=10.0.0'
       vue: '>=3.0.0'
 
-  motion-v@2.0.0:
-    resolution: {integrity: sha512-oQuQMrPhti+Zps6OosOaW3b/eqzaGAuwI54XHJKq/dIWtQWcNzfyhTo4VB5xmp7yLN+3BE9FKF6skLsynfgbHQ==}
+  motion-v@2.2.0:
+    resolution: {integrity: sha512-8rrUBt9UMwy45MfLMwHer9J7xBY/rL31S+0U3ZUAouqjH3AOVHvS0NGuXwF4mfWfvb22rfZEv59ZsBc2f1epxQ==}
     peerDependencies:
       '@vueuse/core': '>=10.0.0'
       vue: '>=3.0.0'
@@ -4982,15 +5002,15 @@ packages:
     engines: {node: '>= 0.10'}
     hasBin: true
 
-  shaders@2.3.75:
-    resolution: {integrity: sha512-j68fkmrmPy0RnNTjvO2r4kpnGh2HBws70M8IHTiO54H+Rv6cClFZCCFz6l7dKeYp3aLR+UQstsijlWPOyi5K2Q==}
+  shaders@2.5.92:
+    resolution: {integrity: sha512-vCCFNjGcJRVMKI2oBqbDEEHvi8kUv05sjtjAtNlGQI7dq78M121Q7DJi7ZkYIMLF8+702TYvWdMUuvjdILiovw==}
     peerDependencies:
       pixi.js: ^8.0.0
       react: ^18.0.0 || ^19.0.0
       react-dom: ^18.0.0 || ^19.0.0
       solid-js: ^1.8.0
       svelte: ^5
-      vue: ^3.0.0
+      vue: ^3.5.0
     peerDependenciesMeta:
       pixi.js:
         optional: true
@@ -5307,8 +5327,8 @@ packages:
   unctx@2.5.0:
     resolution: {integrity: sha512-p+Rz9x0R7X+CYDkT+Xg8/GhpcShTlU8n+cf9OtOEf7zEQsNcCZO1dPKNRDqvUTaq+P32PMMkxWHwfrxkqfqAYg==}
 
-  undocs-nightly@0.4.17-20260310-213525-c3c295a:
-    resolution: {integrity: sha512-e5mrhsll9v+u0rkbt0QxoIDLJHmwtV0yGUwu8J5UcHr6n2fVFhZFr2QEmeX6s8PKemtLOIzB0tOmLl422/hmQQ==}
+  undocs-nightly@0.4.17-20260310-213704-c3c295a:
+    resolution: {integrity: sha512-kYTGDtFRK9DMK/JQZdpGJJqqAItQGGcXLZRxu9VB2hJwgKdKKPGJ32Qqe2UTHyurdJeohV9cJbCADLwRuxqC2A==}
     hasBin: true
 
   unenv@2.0.0-rc.24:
@@ -9252,6 +9272,15 @@ snapshots:
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
 
+  framer-motion@12.38.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
+    dependencies:
+      motion-dom: 12.38.0
+      motion-utils: 12.36.0
+      tslib: 2.8.1
+    optionalDependencies:
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
+
   fresh@2.0.0: {}
 
   fsevents@2.3.3:
@@ -10378,7 +10407,13 @@ snapshots:
     dependencies:
       motion-utils: 12.29.2
 
+  motion-dom@12.38.0:
+    dependencies:
+      motion-utils: 12.36.0
+
   motion-utils@12.29.2: {}
+
+  motion-utils@12.36.0: {}
 
   motion-v@1.10.3(@vueuse/core@14.2.1(vue@3.5.30(typescript@5.9.3)))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vue@3.5.30(typescript@5.9.3)):
     dependencies:
@@ -10392,13 +10427,13 @@ snapshots:
       - react
       - react-dom
 
-  motion-v@2.0.0(@vueuse/core@14.2.1(vue@3.5.30(typescript@5.9.3)))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vue@3.5.30(typescript@5.9.3)):
+  motion-v@2.2.0(@vueuse/core@14.2.1(vue@3.5.30(typescript@5.9.3)))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vue@3.5.30(typescript@5.9.3)):
     dependencies:
       '@vueuse/core': 14.2.1(vue@3.5.30(typescript@5.9.3))
-      framer-motion: 12.35.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      framer-motion: 12.38.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       hey-listen: 1.0.8
-      motion-dom: 12.35.2
-      motion-utils: 12.29.2
+      motion-dom: 12.38.0
+      motion-utils: 12.36.0
       vue: 3.5.30(typescript@5.9.3)
     transitivePeerDependencies:
       - '@emotion/is-prop-valid'
@@ -11576,7 +11611,7 @@ snapshots:
       safe-buffer: 5.2.1
       to-buffer: 1.2.2
 
-  shaders@2.3.75(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vue@3.5.30(typescript@5.9.3)):
+  shaders@2.5.92(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vue@3.5.30(typescript@5.9.3)):
     dependencies:
       three: 0.183.2
     optionalDependencies:
@@ -11923,7 +11958,7 @@ snapshots:
       magic-string: 0.30.21
       unplugin: 2.3.11
 
-  undocs-nightly@0.4.17-20260310-213525-c3c295a(@parcel/watcher@2.5.6)(@tiptap/extensions@3.20.1(@tiptap/core@3.20.1(@tiptap/pm@3.20.1))(@tiptap/pm@3.20.1))(@tiptap/y-tiptap@3.0.2(prosemirror-model@1.25.4)(prosemirror-state@1.4.4)(prosemirror-view@1.41.6)(y-protocols@1.0.7(yjs@13.6.29))(yjs@13.6.29))(@vue/compiler-sfc@3.5.30)(@vueuse/core@14.2.1(vue@3.5.30(typescript@5.9.3)))(cac@6.7.14)(chokidar@5.0.0)(db0@0.3.4)(dotenv@17.3.1)(embla-carousel@8.6.0)(giget@3.1.2)(ioredis@5.10.0)(jiti@2.6.1)(lightningcss@1.32.0)(magicast@0.5.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.9.3)(vite@7.3.1(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.0)(yaml@2.8.2))(vue-router@4.6.4(vue@3.5.30(typescript@5.9.3)))(yaml@2.8.2)(yjs@13.6.29)(zod@4.3.6):
+  undocs-nightly@0.4.17-20260310-213704-c3c295a(@parcel/watcher@2.5.6)(@tiptap/extensions@3.20.1(@tiptap/core@3.20.1(@tiptap/pm@3.20.1))(@tiptap/pm@3.20.1))(@tiptap/y-tiptap@3.0.2(prosemirror-model@1.25.4)(prosemirror-state@1.4.4)(prosemirror-view@1.41.6)(y-protocols@1.0.7(yjs@13.6.29))(yjs@13.6.29))(@vue/compiler-sfc@3.5.30)(@vueuse/core@14.2.1(vue@3.5.30(typescript@5.9.3)))(cac@6.7.14)(chokidar@5.0.0)(db0@0.3.4)(dotenv@17.3.1)(embla-carousel@8.6.0)(giget@3.1.2)(ioredis@5.10.0)(jiti@2.6.1)(lightningcss@1.32.0)(magicast@0.5.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(rollup@4.59.0)(terser@5.46.0)(typescript@5.9.3)(vite@7.3.1(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.0)(yaml@2.8.2))(vue-router@4.6.4(vue@3.5.30(typescript@5.9.3)))(yaml@2.8.2)(yjs@13.6.29)(zod@4.3.6):
     dependencies:
       '@headlessui/vue': 1.7.23(vue@3.5.30(typescript@5.9.3))
       '@nuxt/content': 3.12.0(magicast@0.5.2)
@@ -11939,7 +11974,7 @@ snapshots:
       md4w: 0.2.7
       mdream: 0.17.0
       mermaid: 11.13.0
-      motion-v: 2.0.0(@vueuse/core@14.2.1(vue@3.5.30(typescript@5.9.3)))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vue@3.5.30(typescript@5.9.3))
+      motion-v: 2.2.0(@vueuse/core@14.2.1(vue@3.5.30(typescript@5.9.3)))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vue@3.5.30(typescript@5.9.3))
       nuxi: 3.33.1
       nuxt: 4.3.1(@parcel/watcher@2.5.6)(@vue/compiler-sfc@3.5.30)(cac@6.7.14)(db0@0.3.4)(ioredis@5.10.0)(lightningcss@1.32.0)(magicast@0.5.2)(rollup@4.59.0)(terser@5.46.0)(typescript@5.9.3)(vite@7.3.1(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.0)(yaml@2.8.2))(yaml@2.8.2)
       nuxt-llms: 0.2.0(magicast@0.5.2)
