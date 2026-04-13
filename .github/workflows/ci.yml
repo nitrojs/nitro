@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-node@v6
         with: { node-version: lts/*, cache: pnpm }
       - run: pnpm install
-      - run: pnpm stub && pnpm lint
+      - run: pnpm build
       - run: pnpm typecheck
       - run: pnpm vitest run test/unit
       - run: pnpm vitest run test/minimal

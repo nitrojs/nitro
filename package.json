@@ -62,7 +62,7 @@
     "nitro": "node ./src/cli/index.ts",
     "release": "node ./scripts/release.js",
     "stub": "obuild --stub",
-    "test": "pnpm lint && pnpm typecheck && pnpm test:rollup && pnpm test:rolldown",
+    "test": "pnpm lint && pnpm build && pnpm typecheck && pnpm test:rollup && pnpm test:rolldown",
     "test:rolldown": "NITRO_BUILDER=rolldown pnpm vitest",
     "test:rollup": "NITRO_BUILDER=rollup pnpm vitest",
     "typecheck": "tsgo --noEmit --skipLibCheck"
