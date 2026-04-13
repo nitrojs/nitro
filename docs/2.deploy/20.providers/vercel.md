@@ -182,7 +182,7 @@ export default defineNitroPlugin((nitro) => {
 
 ### Running tasks from queue messages
 
-You can use queue messages to trigger [Nitro tasks](/tasks):
+You can use queue messages to trigger [Nitro tasks](/docs/tasks):
 
 ```ts [server/plugins/queues.ts]
 import { runTask } from "nitro/task";
