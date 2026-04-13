@@ -107,8 +107,21 @@ export interface VercelServerlessFunctionConfig {
    */
   runtime?: "nodejs20.x" | "nodejs22.x" | "bun1.x" | (string & {});
 
+  /**
+   * Experimental trigger configuration (e.g., Vercel Queues).
+   */
+  experimentalTriggers?: VercelFunctionTrigger[];
+
   [key: string]: unknown;
 }
+
+export type VercelFunctionTrigger = {
+  type: "queue/v2beta";
+  topic: string;
+  retryAfterSeconds?: number;
+  initialDelaySeconds?: number;
+  consumer?: string;
+};
 
 export interface VercelOptions {
   config?: VercelBuildConfigV3;
