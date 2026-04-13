@@ -10,6 +10,8 @@ import {
   resolveVercelRuntime,
 } from "./utils.ts";
 
+import type { VercelServerlessFunctionConfig } from "./types.ts";
+
 export type { VercelOptions as PresetOptions } from "./types.ts";
 
 // https://vercel.com/docs/build-output-api/v3
@@ -84,15 +86,22 @@ const vercel = defineNitroPreset(
             handler: join(presetsDir, "vercel/runtime/queue-handler"),
           });
 
+          const queueTriggers = queues.triggers.map(({ topic, ...opts }) => ({
+            type: "queue/v2beta" as const,
+            topic,
+            ...opts,
+          }));
+          const existingRule = nitro.options.vercel!.functionRules?.[handlerRoute] as
+            | (VercelServerlessFunctionConfig & { experimentalTriggers?: unknown[] })
+            | undefined;
           nitro.options.vercel!.functionRules = {
             ...nitro.options.vercel!.functionRules,
             [handlerRoute]: {
-              ...nitro.options.vercel!.functionRules?.[handlerRoute],
-              experimentalTriggers: queues.triggers.map(({ topic, ...opts }) => ({
-                type: "queue/v2beta" as const,
-                topic,
-                ...opts,
-              })),
+              ...existingRule,
+              experimentalTriggers: [
+                ...(existingRule?.experimentalTriggers || []),
+                ...queueTriggers,
+              ],
             },
           };
         }
