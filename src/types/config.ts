@@ -80,7 +80,7 @@ export interface NitroOptions extends PresetOptions {
   ssrRoutes: string[];
   serveStatic: boolean | "node" | "deno" | "inline";
   noPublicDir: boolean;
-  tracing?: undefined | TracingOptions;
+  tracingChannel?: undefined | TracingOptions;
   manifest?: {
     deploymentId?: string;
   };
@@ -299,7 +299,7 @@ export interface NitroConfig
         | "serverEntry"
         | "renderer"
         | "output"
-        | "tracing"
+        | "tracingChannel"
       >
     >,
     C12InputConfig<NitroConfig> {
@@ -313,7 +313,7 @@ export interface NitroConfig
   serverEntry?: string | NitroOptions["serverEntry"];
   renderer?: false | NitroOptions["renderer"];
   output?: Partial<NitroOptions["output"]>;
-  tracing?: boolean | TracingOptions;
+  tracingChannel?: boolean | TracingOptions;
 }
 
 // ------------------------------------------------------------

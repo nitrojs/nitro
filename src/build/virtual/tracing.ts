@@ -4,16 +4,25 @@ export default function tracing(nitro: Nitro) {
   return {
     id: "#nitro/virtual/tracing",
     template: () => {
-      return /* js */ `
-        import { tracingPlugin as h3Tracing } from "h3/tracing";
-        import { tracingPlugin as srvxTracing } from 'srvx/tracing'
+      const { srvx, h3 } = nitro.options.tracingChannel || {};
+      const imports: string[] = [];
+      const setup: string[] = [];
 
-        export const tracingSrvxPlugins = ${nitro.options.tracing!.srvx ? "[srvxTracing()]" : "[]"};
+      if (srvx) {
+        imports.push(`import { tracingPlugin as srvxTracing } from "srvx/tracing";`);
+      }
+      if (h3) {
+        imports.push(`import { tracingPlugin as h3Tracing } from "h3/tracing";`);
+        setup.push(`  h3Tracing()(nitroApp.h3);`);
+      }
 
-        export default function tracing(nitroApp) {
-          h3Tracing()(nitroApp.h3);
-        };
-      `;
+      return [
+        ...imports,
+        `export const tracingSrvxPlugins = [${srvx ? "srvxTracing()" : ""}];`,
+        `export default function tracing(nitroApp) {`,
+        ...setup,
+        `};`,
+      ].join("\n");
     },
   };
 }
