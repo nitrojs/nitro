@@ -3,7 +3,7 @@ import type { HTTPEvent } from "h3";
 export type { CacheEntry, CacheOptions, ResponseCacheEntry } from "ocache";
 
 /**
- * Options for `defineCachedEventHandler` and `defineCachedFunction`.
+ * Options for `defineCachedHandler` and `defineCachedFunction`.
  *
  * @see https://nitro.build/docs/cache
  */
