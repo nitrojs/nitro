@@ -173,6 +173,7 @@
     "zephyr-agent": "^1.0.1"
   },
   "peerDependencies": {
+    "@vercel/queue": "^0.1.4",
     "dotenv": "*",
     "giget": "*",
     "jiti": "^2.6.1",
@@ -182,6 +183,9 @@
     "zephyr-agent": "^0.2.0"
   },
   "peerDependenciesMeta": {
+    "@vercel/queue": {
+      "optional": true
+    },
     "dotenv": {
       "optional": true
     },
