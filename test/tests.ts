@@ -417,6 +417,24 @@ export function testNitro(
       const { status } = await callHandler({ url: "/rules/basic-auth/no-auth" });
       expect(status).toBe(200);
     });
+
+    it("runs before redirect rule from a less specific layer", async () => {
+      const { status, headers } = await callHandler({
+        url: "/rules/ba-redirect/secure/page",
+        headers: { Authorization: "Basic " + btoa("user:wrongpass") },
+      });
+      expect(status).toBe(401);
+      expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
+    });
+
+    it("runs before proxy rule from a less specific layer", async () => {
+      const { status, headers } = await callHandler({
+        url: "/rules/ba-proxy/secure/page",
+        headers: { Authorization: "Basic " + btoa("user:wrongpass") },
+      });
+      expect(status).toBe(401);
+      expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
+    });
   });
 
   it("handles route rules - allowing overriding", async () => {

@@ -123,6 +123,14 @@ export default defineConfig({
       basicAuth: { username: "admin", password: "secret", realm: "Secure Area" },
     },
     "/rules/basic-auth/no-auth/**": { basicAuth: false },
+    "/rules/ba-redirect/**": { redirect: "/base" },
+    "/rules/ba-redirect/secure/**": {
+      basicAuth: { username: "admin", password: "secret", realm: "Secure Area" },
+    },
+    "/rules/ba-proxy/**": { proxy: "/api/echo" },
+    "/rules/ba-proxy/secure/**": {
+      basicAuth: { username: "admin", password: "secret", realm: "Secure Area" },
+    },
     "**": { headers: { "x-test": "test" } },
   },
   prerender: {

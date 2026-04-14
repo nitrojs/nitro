@@ -34,6 +34,10 @@ export type MatchedRouteRule<K extends keyof NitroRouteRules = "custom"> = {
   route: string;
   params?: Record<string, string>;
   handler?: (opts: unknown) => Middleware;
+  /**
+   * Execution order of route rule middleware (lower runs first, default `0`).
+   */
+  order?: number;
 };
 
 export type MatchedRouteRules = {

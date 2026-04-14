@@ -89,3 +89,11 @@ export const basicAuth: RouteRuleCtor<"auth"> = ((m) =>
     await requireBasicAuth(event, m.options as BasicAuthOptions);
     return next();
   }) satisfies RouteRuleCtor<"auth">;
+
+// Execution order for route rule middleware (lower runs first).
+// Rules not listed default to `0`.
+// `basicAuth` must run before `redirect`/`proxy`/`cache` so that unauthorized
+// requests are not redirected or proxied.
+export const RouteRuleOrder: Record<string, number> = {
+  basicAuth: -1,
+};
