@@ -1,3 +1,12 @@
+/**
+ * EdgeOne Pages Build Output API v3 config generator.
+ *
+ * Writes `.edgeone/cloud-functions/ssr-node/config.json` describing how the
+ * platform should route incoming requests between static assets (served from
+ * `.edgeone/assets/`) and the SSR function (`handler.js`).
+ *
+ * Spec: https://pages.edgeone.ai/document/building-output-configuration
+ */
 import type { Nitro } from "nitro/types";
 import { join } from "pathe";
 import { writeFile } from "../../utils/fs.ts";
@@ -23,17 +32,22 @@ interface EdgeOneConfig {
 }
 
 /**
- * Convert a Nitro route pattern to a RE2-compatible regex string.
- * e.g. "/api/posts/:id" -> "^/api/posts/([^/]+)$"
- *      "/blog/**" -> "^/blog/(.*)$"
- *      "/about" -> "^/about$"
+ * Convert a Nitro/h3 route pattern to a RE2-compatible regex string.
+ *
+ * EdgeOne's `routes[].src` uses Go's RE2 engine (no lookaround, no backrefs).
+ * We do this in a single pass so a later replacement can't match a token
+ * (e.g. the `*` inside `(.*)`) that a previous replacement just inserted.
+ *
+ *   "/about"          -> "^/about$"
+ *   "/api/posts/:id"  -> "^/api/posts/([^/]+)$"
+ *   "/blog/*"         -> "^/blog/([^/]+)$"
+ *   "/blog/**"        -> "^/blog/(.*)$"
  */
 function routeToRegex(route: string): string {
   return (
     "^" +
     route.replace(/\*\*|\*|:[^/]+/g, (m) => {
       if (m === "**") return "(.*)";
-      if (m === "*") return "([^/]+)";
       return "([^/]+)";
     }) +
     "$"
@@ -41,7 +55,6 @@ function routeToRegex(route: string): string {
 }
 
 export async function writeEdgeOneConfig(nitro: Nitro) {
-  // Ensure routes are synced
   nitro.routing.sync();
 
   const config: EdgeOneConfig = {
@@ -49,13 +62,12 @@ export async function writeEdgeOneConfig(nitro: Nitro) {
     routes: [],
   };
 
-  // === Phase 1: Pre-processing routes (before filesystem) ===
-
+  // Phase 1 — rules evaluated before the filesystem handler (redirects, headers).
+  // Sorted shallow-to-deep so more specific rules override more general ones.
   const rules = Object.entries(nitro.options.routeRules || {}).sort(
     (a, b) => a[0].split(/\/(?!\*)/).length - b[0].split(/\/(?!\*)/).length
   );
 
-  // Redirect and header rules
   config.routes.push(
     ...rules
       .filter(([_, routeRules]) => routeRules.redirect || routeRules.headers)
@@ -79,12 +91,12 @@ export async function writeEdgeOneConfig(nitro: Nitro) {
       })
   );
 
-  // === Filesystem handler (dividing line) ===
+  // The filesystem handler serves any matching file under `.edgeone/assets/`.
+  // Requests that don't match a static file fall through to the rules below,
+  // which forward dynamic paths to the SSR function.
   config.routes.push({ handle: "filesystem" });
 
-  // === Phase 2: Origin routes (after filesystem) ===
-
-  // 1. Collect all API routes (server-side route handlers)
+  // Phase 2 — dynamic routes evaluated after the filesystem handler.
   const apiRoutes = nitro.routing.routes.routes
     .filter((route) => {
       const handler = Array.isArray(route.data) ? route.data[0] : route.data;
@@ -105,7 +117,7 @@ export async function writeEdgeOneConfig(nitro: Nitro) {
     config.routes.push(sourceRoute);
   }
 
-  // 2. Collect SSR page routes (from framework like Nuxt)
+  // SSR page routes declared by the framework (e.g. Nuxt) plus any scanned handlers.
   const ssrRoutes = [
     ...new Set([
       ...(nitro.options.ssrRoutes || []),
@@ -116,7 +128,6 @@ export async function writeEdgeOneConfig(nitro: Nitro) {
   ];
 
   for (const route of ssrRoutes) {
-    // Skip routes already added as API routes
     if (apiRoutes.some((r) => r.path === route)) {
       continue;
     }
@@ -125,16 +136,14 @@ export async function writeEdgeOneConfig(nitro: Nitro) {
     });
   }
 
-  // 3. Add catch-all route (must be last)
+  // Final catch-all forwards anything unmatched above to the SSR function.
   config.routes.push({
     src: "^/(.*)$",
   });
 
-  // Write config.json to the server directory
   const configContent = JSON.stringify(config, null, 2);
   await writeFile(join(nitro.options.output.serverDir, "config.json"), configContent, true);
 
-  // Return route information for debugging
   return {
     apiRoutes,
   };
