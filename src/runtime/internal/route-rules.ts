@@ -85,12 +85,14 @@ export const cache: RouteRuleCtor<"cache"> = ((m) =>
 // basicAuth auth route rule
 // Must run before `redirect`/`proxy`/`cache` so unauthorized requests are
 // neither redirected nor proxied.
-export const basicAuth: RouteRuleCtor<"auth"> = ((m) =>
-  async function authRouteRule(event, next) {
-    if (!m.options) {
-      return;
-    }
-    await requireBasicAuth(event, m.options as BasicAuthOptions);
-    return next();
-  }) satisfies RouteRuleCtor<"auth">;
-basicAuth.order = -1;
+export const basicAuth: RouteRuleCtor<"auth"> = /* @__PURE__ */ Object.assign(
+  ((m) =>
+    async function authRouteRule(event, next) {
+      if (!m.options) {
+        return;
+      }
+      await requireBasicAuth(event, m.options as BasicAuthOptions);
+      return next();
+    }) satisfies RouteRuleCtor<"auth">,
+  { order: -1 }
+);
