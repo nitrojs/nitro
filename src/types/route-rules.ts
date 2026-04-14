@@ -33,7 +33,11 @@ export type MatchedRouteRule<K extends keyof NitroRouteRules = "custom"> = {
   options: Exclude<NitroRouteRules[K], false>;
   route: string;
   params?: Record<string, string>;
-  handler?: (opts: unknown) => Middleware;
+  /**
+   * Middleware constructor. May expose an `order` property — lower runs first
+   * (default `0`).
+   */
+  handler?: ((opts: unknown) => Middleware) & { order?: number };
 };
 
 export type MatchedRouteRules = {

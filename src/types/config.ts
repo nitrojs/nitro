@@ -12,6 +12,7 @@ import type { TSConfig } from "pkg-types";
 import type { Preset as UnenvPreset } from "unenv";
 import type { UnimportPluginOptions } from "unimport/unplugin";
 import type { BuiltinDriverName } from "unstorage";
+import type { ExternalsTraceOptions } from "nf3";
 import type { UnwasmPluginOptions } from "unwasm/plugin";
 import type { RunnerName } from "env-runner";
 import type {
@@ -79,6 +80,7 @@ export interface NitroOptions extends PresetOptions {
   ssrRoutes: string[];
   serveStatic: boolean | "node" | "deno" | "inline";
   noPublicDir: boolean;
+  tracingChannel?: undefined | TracingOptions;
   manifest?: {
     deploymentId?: string;
   };
@@ -101,8 +103,18 @@ export interface NitroOptions extends PresetOptions {
    * @see https://github.com/unjs/unwasm
    */
   wasm?: false | UnwasmPluginOptions;
+  /**
+   * OpenAPI configuration
+   *
+   * @see https://nitro.build/docs/openapi
+   */
   openAPI?: NitroOpenAPIConfig;
   experimental: {
+    /**
+     * Enable experimental OpenAPI support
+     *
+     * @see https://nitro.build/docs/openapi
+     */
     openAPI?: boolean;
     /**
      * See https://github.com/microsoft/TypeScript/pull/51669
@@ -223,13 +235,13 @@ export interface NitroOptions extends PresetOptions {
   inlineDynamicImports: boolean;
   sourcemap: boolean;
   node: boolean;
-  moduleSideEffects: string[];
   oxc?: OXCOptions;
   replace: Record<string, string | ((id: string) => string)>;
   commonJS?: RollupCommonJSOptions;
   exportConditions?: string[];
   noExternals?: boolean | (string | RegExp)[];
   traceDeps?: (string | RegExp)[];
+  traceOpts?: Pick<ExternalsTraceOptions, "nft" | "traceAlias" | "chmod" | "transform" | "hooks">;
 
   // Advanced
   typescript: {
@@ -287,6 +299,7 @@ export interface NitroConfig
         | "serverEntry"
         | "renderer"
         | "output"
+        | "tracingChannel"
       >
     >,
     C12InputConfig<NitroConfig> {
@@ -300,6 +313,7 @@ export interface NitroConfig
   serverEntry?: string | NitroOptions["serverEntry"];
   renderer?: false | NitroOptions["renderer"];
   output?: Partial<NitroOptions["output"]>;
+  tracingChannel?: boolean | TracingOptions;
 }
 
 // ------------------------------------------------------------
@@ -344,6 +358,11 @@ export interface ServerAssetDir {
   pattern?: string;
   dir: string;
   ignore?: string[];
+}
+
+export interface TracingOptions {
+  srvx?: boolean;
+  h3?: boolean;
 }
 
 // Storage mounts

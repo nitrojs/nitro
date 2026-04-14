@@ -36,9 +36,9 @@ icon: i-simple-icons-tanstack
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@tanstack/react-router": "^1.168.1",
-    "@tanstack/react-router-devtools": "^1.166.10",
-    "@tanstack/router-plugin": "^1.167.1",
+    "@tanstack/react-router": "^1.168.8",
+    "@tanstack/react-router-devtools": "^1.166.11",
+    "@tanstack/router-plugin": "^1.167.9",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",

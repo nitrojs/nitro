@@ -37,6 +37,25 @@ function guardCreateRequire(): Plugin {
   };
 }
 
+// When code-splitting is enabled, bundlers hoist externalized `node:*` built-in
+// imports as bare side-effect imports (`import "node:buffer"`) into entry and
+// chunk files. These are no-ops (Node.js built-ins have no meaningful
+// module-level side effects) but they can cause issues on worker runtimes where
+// `node:*` modules may not be available or trigger unnecessary warnings.
+const BARE_NODE_IMPORT_RE = /^import\s*['"]node:[^'"]+['"];?\s*$/gm;
+function stripBareNodeImports(): Plugin {
+  return {
+    name: "nitro:cloudflare-strip-bare-node-imports",
+    generateBundle(_options, bundle) {
+      for (const chunk of Object.values(bundle)) {
+        if (chunk.type === "chunk" && chunk.code.includes("node:")) {
+          chunk.code = chunk.code.replace(BARE_NODE_IMPORT_RE, "");
+        }
+      }
+    },
+  };
+}
+
 export type { CloudflareOptions as PresetOptions } from "./types.ts";
 
 const cloudflarePages = defineNitroPreset(
@@ -69,7 +88,7 @@ const cloudflarePages = defineNitroPreset(
         format: "esm",
         inlineDynamicImports: false,
       },
-      plugins: [guardCreateRequire()],
+      plugins: [guardCreateRequire(), stripBareNodeImports()],
     },
     hooks: {
       "build:before": async (nitro) => {
@@ -149,7 +168,7 @@ const cloudflareModule = defineNitroPreset(
         exports: "named",
         inlineDynamicImports: false,
       },
-      plugins: [guardCreateRequire()],
+      plugins: [guardCreateRequire(), stripBareNodeImports()],
     },
     wasm: {
       lazy: false,

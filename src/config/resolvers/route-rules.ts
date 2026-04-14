@@ -50,7 +50,9 @@ export function normalizeRouteRules(config: NitroConfig): Record<string, NitroRo
       };
     }
     // Cache: swr
-    if (routeConfig.swr) {
+    // Note: 0 is a valid swr value (serve stale, revalidate immediately),
+    // so we must not use a falsy check here.
+    if (routeConfig.swr !== undefined && routeConfig.swr !== false) {
       routeRules.cache = routeRules.cache || {};
       routeRules.cache.swr = true;
       if (typeof routeConfig.swr === "number") {

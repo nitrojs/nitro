@@ -1,3 +1,3 @@
-import { eventHandler } from "h3";
+import { defineHandler } from "nitro";
 
-export default eventHandler(() => "<h1>Hello Nitro!</h1>");
+export default defineHandler(() => "<h1>Hello Nitro!</h1>");
