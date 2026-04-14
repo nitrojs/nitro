@@ -9,6 +9,7 @@
  */
 import type { Nitro } from "nitro/types";
 import { join } from "pathe";
+import { joinURL } from "ufo";
 import { writeFile } from "../../utils/fs.ts";
 
 type SourceRoute = {
@@ -43,10 +44,11 @@ interface EdgeOneConfig {
  *   "/blog/*"         -> "^/blog/([^/]+)$"
  *   "/blog/**"        -> "^/blog/(.*)$"
  */
-function routeToRegex(route: string): string {
+function routeToRegex(route: string, baseURL = "/"): string {
+  const withBase = joinURL(baseURL, route);
   return (
     "^" +
-    route.replace(/\*\*|\*|:[^/]+/g, (m) => {
+    withBase.replace(/\*\*|\*|:[^/]+/g, (m) => {
       if (m === "**") return "(.*)";
       return "([^/]+)";
     }) +
@@ -56,6 +58,8 @@ function routeToRegex(route: string): string {
 
 export async function writeEdgeOneConfig(nitro: Nitro) {
   nitro.routing.sync();
+
+  const baseURL = nitro.options.baseURL || "/";
 
   const config: EdgeOneConfig = {
     version: 3,
@@ -73,12 +77,12 @@ export async function writeEdgeOneConfig(nitro: Nitro) {
       .filter(([_, routeRules]) => routeRules.redirect || routeRules.headers)
       .map(([path, routeRules]) => {
         const route: SourceRoute = {
-          src: routeToRegex(path),
+          src: routeToRegex(path, baseURL),
         };
         if (routeRules.redirect) {
           route.status = routeRules.redirect.status || 302;
           route.headers = {
-            Location: routeRules.redirect.to.replace("/**", "/$1"),
+            Location: joinURL(baseURL, routeRules.redirect.to.replace("/**", "/$1")),
           };
         }
         if (routeRules.headers) {
@@ -109,7 +113,7 @@ export async function writeEdgeOneConfig(nitro: Nitro) {
 
   for (const route of apiRoutes) {
     const sourceRoute: SourceRoute = {
-      src: routeToRegex(route.path),
+      src: routeToRegex(route.path, baseURL),
     };
     if (route.method !== "*") {
       sourceRoute.methods = [route.method.toUpperCase()];
@@ -132,14 +136,21 @@ export async function writeEdgeOneConfig(nitro: Nitro) {
       continue;
     }
     config.routes.push({
-      src: routeToRegex(route),
+      src: routeToRegex(route, baseURL),
     });
   }
 
   // Final catch-all forwards anything unmatched above to the SSR function.
+  // Includes requests without the baseURL prefix so the runtime can redirect
+  // or normalize them instead of returning a platform-level 404.
   config.routes.push({
-    src: "^/(.*)$",
+    src: "^" + joinURL(baseURL, "/(.*)") + "$",
   });
+  if (baseURL !== "/") {
+    config.routes.push({
+      src: "^/(.*)$",
+    });
+  }
 
   const configContent = JSON.stringify(config, null, 2);
   await writeFile(join(nitro.options.output.serverDir, "config.json"), configContent, true);
