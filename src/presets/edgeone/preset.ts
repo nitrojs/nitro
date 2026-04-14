@@ -6,11 +6,10 @@ const edgeone = defineNitroPreset(
   {
     extends: "node-server",
     entry: "./edgeone/runtime/edgeone",
-    serveStatic: true,
     output: {
       dir: "{{ rootDir }}/.edgeone",
       serverDir: "{{ output.dir }}/cloud-functions/ssr-node",
-      publicDir: "{{ output.dir }}/assets",
+      publicDir: "{{ output.dir }}/assets/{{ baseURL }}",
     },
     rollupConfig: {
       output: {
