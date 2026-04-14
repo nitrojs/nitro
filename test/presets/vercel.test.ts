@@ -120,6 +120,13 @@ describe("nitro:preset:vercel:web", async () => {
               },
               {
                 "headers": {
+                  "Location": "/base",
+                },
+                "src": "/rules/ba-redirect/(.*)",
+                "status": 307,
+              },
+              {
+                "headers": {
                   "cache-control": "public, max-age=3600, immutable",
                 },
                 "src": "/build/(.*)",
