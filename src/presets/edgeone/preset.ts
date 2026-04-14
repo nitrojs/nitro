@@ -6,6 +6,7 @@ const edgeone = defineNitroPreset(
   {
     extends: "node-server",
     entry: "./edgeone/runtime/edgeone",
+    serveStatic: false, // EdgeOne serves static assets from `.edgeone/assets/`
     output: {
       dir: "{{ rootDir }}/.edgeone",
       serverDir: "{{ output.dir }}/cloud-functions/ssr-node",
