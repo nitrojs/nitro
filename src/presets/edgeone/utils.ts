@@ -31,13 +31,11 @@ interface EdgeOneConfig {
 function routeToRegex(route: string): string {
   return (
     "^" +
-    route
-      // Handle wildcard "**" (catch-all)
-      .replace(/\*\*/g, "(.*)")
-      // Handle single wildcard "*"
-      .replace(/(?<!\()\*/g, "([^/]+)")
-      // Handle named params like :id, :slug
-      .replace(/:([^/]+)/g, "([^/]+)") +
+    route.replace(/\*\*|\*|:[^/]+/g, (m) => {
+      if (m === "**") return "(.*)";
+      if (m === "*") return "([^/]+)";
+      return "([^/]+)";
+    }) +
     "$"
   );
 }
