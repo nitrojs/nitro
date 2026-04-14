@@ -6,7 +6,9 @@ import { defineCachedHandler } from "./cache.ts";
 
 // Note: Remember to update RuntimeRouteRules in src/build/virtual/routing.ts when adding new route rules
 
-type RouteRuleCtor<T extends keyof NitroRouteRules> = (m: MatchedRouteRule<T>) => Middleware;
+type RouteRuleCtor<T extends keyof NitroRouteRules> = ((m: MatchedRouteRule<T>) => Middleware) & {
+  order?: number;
+};
 
 // Headers route rule
 export const headers: RouteRuleCtor<"headers"> = ((m) =>
@@ -81,6 +83,8 @@ export const cache: RouteRuleCtor<"cache"> = ((m) =>
   }) satisfies RouteRuleCtor<"cache">;
 
 // basicAuth auth route rule
+// Must run before `redirect`/`proxy`/`cache` so unauthorized requests are
+// neither redirected nor proxied.
 export const basicAuth: RouteRuleCtor<"auth"> = ((m) =>
   async function authRouteRule(event, next) {
     if (!m.options) {
@@ -89,11 +93,4 @@ export const basicAuth: RouteRuleCtor<"auth"> = ((m) =>
     await requireBasicAuth(event, m.options as BasicAuthOptions);
     return next();
   }) satisfies RouteRuleCtor<"auth">;
-
-// Execution order for route rule middleware (lower runs first).
-// Rules not listed default to `0`.
-// `basicAuth` must run before `redirect`/`proxy`/`cache` so that unauthorized
-// requests are not redirected or proxied.
-export const RouteRuleOrder: Record<string, number> = {
-  basicAuth: -1,
-};
+basicAuth.order = -1;

@@ -10,7 +10,6 @@ import type { H3Config, H3EventContext, Middleware, WebSocketHooks } from "h3";
 import { H3Core, toRequest } from "h3";
 import { HookableCore } from "hookable";
 import { nitroAsyncContext } from "./context.ts";
-import { RouteRuleOrder } from "./route-rules.ts";
 
 // IMPORTANT: virtual imports and user code should be imported last to avoid initialization order issues
 import errorHandler from "#nitro/virtual/error-handler";
@@ -244,7 +243,7 @@ export function getRouteRules(
   }
   const middleware = [];
   const orderedRules = Object.values(routeRules).sort(
-    (a, b) => (RouteRuleOrder[a.name] || 0) - (RouteRuleOrder[b.name] || 0)
+    (a, b) => (a.handler?.order || 0) - (b.handler?.order || 0)
   );
   for (const rule of orderedRules) {
     if (rule.options === false || !rule.handler) {
