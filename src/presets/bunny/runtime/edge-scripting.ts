@@ -8,11 +8,6 @@ import { resolveWebsocketHooks } from "#nitro/runtime/app";
 import { tracingSrvxPlugins } from "#nitro/virtual/tracing";
 import { startScheduleRunner } from "#nitro/runtime/task";
 
-const _parsedPort = Number.parseInt(process.env.NITRO_PORT ?? process.env.PORT ?? "");
-
-const port = Number.isNaN(_parsedPort) ? 3000 : _parsedPort;
-const host = process.env.NITRO_HOST || process.env.HOST;
-
 const nitroApp = useNitroApp();
 
 let _fetch = nitroApp.fetch;
@@ -28,8 +23,6 @@ if (import.meta._websocket) {
 }
 
 const server = serve({
-  port,
-  hostname: host,
   fetch: _fetch,
   plugins: [...tracingSrvxPlugins],
 });
