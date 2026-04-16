@@ -6,7 +6,6 @@ import wsAdapter from "crossws/adapters/bunny";
 import { useNitroApp } from "nitro/app";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
 import { tracingSrvxPlugins } from "#nitro/virtual/tracing";
-import { startScheduleRunner } from "#nitro/runtime/task";
 
 const nitroApp = useNitroApp();
 
@@ -22,14 +21,9 @@ if (import.meta._websocket) {
   };
 }
 
-const server = serve({
+serve({
   fetch: _fetch,
   plugins: [...tracingSrvxPlugins],
 });
-
-// Scheduled tasks
-if (import.meta._tasks) {
-  startScheduleRunner({ waitUntil: server.waitUntil });
-}
 
 export default {};
