@@ -86,9 +86,12 @@ export interface NitroOptions extends PresetOptions {
   preset: PresetName;
 
   /**
-   * Enable static site generation mode.
+   * Disable the server build and only output prerendered static assets.
    *
-   * When `true`, all routes are prerendered at build time.
+   * When `true`, the server bundle is skipped entirely and only the public directory is produced.
+   * Typically used by the `static` preset and its derivatives (e.g., `github-pages`, `vercel-static`).
+   *
+   * Note: This does not enable prerendering on its own — configure `prerender` options separately.
    *
    * @see https://nitro.build/config#static
    */
