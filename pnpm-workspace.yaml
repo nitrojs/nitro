@@ -6,17 +6,17 @@ packages:
 
 ignoreWorkspaceRootCheck: true
 
-ignoredBuiltDependencies:
-  - keytar
-  - protobufjs
-  - vue-demi
+allowBuilds:
+  keytar: false
+  protobufjs: false
+  vue-demi: false
+  '@parcel/watcher': true
+  esbuild: true
+  ocache: true
+  sharp: true
+  workerd: true
 
-onlyBuiltDependencies:
-  - '@parcel/watcher'
-  - esbuild
-  - ocache
-  - sharp
-  - workerd
+dedupePeers: true
 
 peerDependencyRules:
   ignoreMissing:
