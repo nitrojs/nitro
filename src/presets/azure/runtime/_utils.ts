@@ -37,7 +37,15 @@ export function resolveBaseUrl(req: HttpRequest) {
   const forwardedHost = req.headers["x-forwarded-host"];
   const host = forwardedHost || req.headers["host"];
   if (host) {
-    return `${forwardedProto || "http"}://${host}`;
+    const candidate = `${forwardedProto || "http"}://${host}`;
+    try {
+      return new URL(candidate).origin;
+    } catch (error) {
+      console.warn("[nitro] Invalid Azure SWA forwarded origin", {
+        candidate,
+        error,
+      });
+    }
   }
   const originalUrl = req.headers["x-ms-original-url"];
   if (originalUrl) {
@@ -46,6 +54,8 @@ export function resolveBaseUrl(req: HttpRequest) {
     } catch {
       // ignore invalid original URL
     }
+  }
+}
   }
   return "http://localhost";
 }
