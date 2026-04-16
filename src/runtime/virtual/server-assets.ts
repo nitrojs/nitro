@@ -1,9 +1,9 @@
 import "./_runtime_warn.ts";
-import { createStorage } from "unstorage";
+import { createStorage, type Storage } from "unstorage";
 
 import type { AssetMeta } from "nitro/types";
 
-export const assets = createStorage();
+export const assets: Storage = createStorage();
 
 export function readAsset<T = any>(_id: string): Promise<T> {
   return Promise.resolve({} as T);

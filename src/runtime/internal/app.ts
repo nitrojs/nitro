@@ -90,7 +90,7 @@ export function fetch(
     return serverFetch(resource, init, context);
   }
   resource = (resource as any)._request || resource; // unwrap srvx request
-  return fetch(resource, init);
+  return globalThis.fetch(resource, init);
 }
 
 function createNitroApp(): NitroApp {
@@ -242,7 +242,10 @@ export function getRouteRules(
     }
   }
   const middleware = [];
-  for (const rule of Object.values(routeRules)) {
+  const orderedRules = Object.values(routeRules).sort(
+    (a, b) => (a.handler?.order || 0) - (b.handler?.order || 0)
+  );
+  for (const rule of orderedRules) {
     if (rule.options === false || !rule.handler) {
       continue;
     }

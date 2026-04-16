@@ -41,12 +41,13 @@ describe("nitro:preset:netlify", async () => {
         const redirects = await fsp.readFile(resolve(ctx.outDir, "../dist/_redirects"), "utf8");
 
         expect(redirects).toMatchInlineSnapshot(`
-        "/rules/nested/override	/other	302
-        /rules/redirect/wildcard/*	https://nitro.build/:splat	302
-        /rules/redirect/obj	https://nitro.build/	301
-        /rules/nested/*	/base	302
-        /rules/redirect	/base	302
-        "
+          "/rules/nested/override	/other	302
+          /rules/redirect/wildcard/*	https://nitro.build/:splat	302
+          /rules/redirect/obj	https://nitro.build/	301
+          /rules/ba-redirect/*	/base	302
+          /rules/nested/*	/base	302
+          /rules/redirect	/base	302
+          "
         `);
       });
 

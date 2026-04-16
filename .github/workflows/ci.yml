@@ -18,10 +18,11 @@ jobs:
       - uses: actions/setup-node@v6
         with: { node-version: lts/*, cache: pnpm }
       - run: pnpm install
-      - run: pnpm stub && pnpm lint
+      - run: pnpm build
       - run: pnpm typecheck
       - run: pnpm vitest run test/unit
       - run: pnpm vitest run test/minimal
+      - run: pnpm vitest run test/vite
   tests-rollup:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
@@ -39,7 +40,7 @@ jobs:
         with: { bun-version: latest }
       - uses: denoland/setup-deno@v1
         if: ${{ matrix.os != 'windows-latest' }}
-        with: { deno-version: 2.6.8 }
+        with: { deno-version: 2.7.12 }
       - run: node scripts/vite7.ts
       - run: pnpm install
       - run: pnpm stub && pnpm lint
@@ -67,7 +68,7 @@ jobs:
         with: { bun-version: latest }
       - uses: denoland/setup-deno@v1
         if: ${{ matrix.os != 'windows-latest' }}
-        with: { deno-version: 2.6.8 }
+        with: { deno-version: 2.7.12 }
       - run: pnpm install
       - run: pnpm build
       - run: pnpm vitest run test/examples
@@ -90,6 +91,7 @@ jobs:
   publish-nitro-nightly:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    environment: npm-publish-nightly
     permissions: { id-token: write, contents: read }
     needs: [tests-checks, tests-rollup, tests-rolldown]
     if: contains('refs/heads/main', github.ref) && github.event_name == 'push'

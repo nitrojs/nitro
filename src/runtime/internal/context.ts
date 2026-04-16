@@ -3,9 +3,9 @@ import type { ServerRequest } from "srvx";
 
 import { AsyncLocalStorage } from "node:async_hooks";
 import { HTTPError } from "h3";
-import { getContext } from "unctx";
+import { getContext, type UseContext } from "unctx";
 
-export const nitroAsyncContext = /* @__PURE__ */ (() =>
+export const nitroAsyncContext: UseContext<NitroAsyncContext> = /* @__PURE__ */ (() =>
   getContext<NitroAsyncContext>("nitro-app", {
     asyncContext: import.meta._asyncContext,
     AsyncLocalStorage: import.meta._asyncContext ? AsyncLocalStorage : undefined,

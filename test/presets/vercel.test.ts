@@ -4,9 +4,22 @@ import { describe, expect, it, vi, beforeAll, afterAll } from "vitest";
 import { setupTest, testNitro, fixtureDir } from "../tests.ts";
 import { toFetchHandler } from "srvx/node";
 
+// NOTE: Always prefer extending the existing `nitro:preset:vercel:web` matrix
+// (its setup/build is shared across assertions) over adding new top-level
+// `describe` blocks, which trigger a separate build and slow down CI.
 describe("nitro:preset:vercel:web", async () => {
   const ctx = await setupTest("vercel", {
     outDirSuffix: "-web",
+    config: {
+      vercel: {
+        queues: {
+          triggers: [
+            { topic: "orders", retryAfterSeconds: 60 },
+            { topic: "notifications", initialDelaySeconds: 10 },
+          ],
+        },
+      },
+    },
   });
   testNitro(
     ctx,
@@ -29,6 +42,16 @@ describe("nitro:preset:vercel:web", async () => {
           .then((r) => JSON.parse(r));
         expect(config).toMatchInlineSnapshot(`
           {
+            "crons": [
+              {
+                "path": "/_vercel/cron",
+                "schedule": "* * * * *",
+              },
+            ],
+            "framework": {
+              "name": "nitro",
+              "version": "3.x",
+            },
             "overrides": {
               "_scalar/index.html": {
                 "path": "_scalar",
@@ -97,6 +120,13 @@ describe("nitro:preset:vercel:web", async () => {
               },
               {
                 "headers": {
+                  "Location": "/base",
+                },
+                "src": "/rules/ba-redirect/(.*)",
+                "status": 307,
+              },
+              {
+                "headers": {
                   "cache-control": "public, max-age=3600, immutable",
                 },
                 "src": "/build/(.*)",
@@ -156,6 +186,22 @@ describe("nitro:preset:vercel:web", async () => {
               {
                 "dest": "/rules/swr-ttl/[...]-isr?__isr_route=$__isr_route",
                 "src": "(?<__isr_route>/rules/swr-ttl/(?:.*))",
+              },
+              {
+                "dest": "/api/hello",
+                "src": "/api/hello",
+              },
+              {
+                "dest": "/api/echo",
+                "src": "/api/echo",
+              },
+              {
+                "dest": "/rules/isr/[...]",
+                "src": "/rules/isr/(?:.*)",
+              },
+              {
+                "dest": "/_vercel/queues/consumer",
+                "src": "/_vercel/queues/consumer",
               },
               {
                 "dest": "/wasm/static-import",
@@ -234,8 +280,16 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/fetch",
               },
               {
-                "dest": "/error-stack",
-                "src": "/error-stack",
+                "dest": "/errors/throw",
+                "src": "/errors/throw",
+              },
+              {
+                "dest": "/errors/stack",
+                "src": "/errors/stack",
+              },
+              {
+                "dest": "/errors/captured",
+                "src": "/errors/captured",
               },
               {
                 "dest": "/env",
@@ -294,14 +348,6 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/api/headers",
               },
               {
-                "dest": "/api/errors",
-                "src": "/api/errors",
-              },
-              {
-                "dest": "/api/error",
-                "src": "/api/error",
-              },
-              {
                 "dest": "/api/echo",
                 "src": "/api/echo",
               },
@@ -316,6 +362,14 @@ describe("nitro:preset:vercel:web", async () => {
               {
                 "dest": "/500",
                 "src": "/500",
+              },
+              {
+                "dest": "/_vercel/queues/consumer",
+                "src": "/_vercel/queues/consumer",
+              },
+              {
+                "dest": "/_vercel/cron",
+                "src": "/_vercel/cron",
               },
               {
                 "dest": "/_swagger",
@@ -383,7 +437,7 @@ describe("nitro:preset:vercel:web", async () => {
             items.push(`${dirname}/${entry.name}`);
           } else if (entry.isSymbolicLink()) {
             items.push(`${dirname}/${entry.name} (symlink)`);
-          } else if (/_\/|_.+|node_modules/.test(entry.name)) {
+          } else if (/_\/|_.+|node_modules/.test(entry.name) || entry.name.endsWith(".func")) {
             items.push(`${dirname}/${entry.name}`);
           } else if (entry.isDirectory()) {
             items.push(...(await walkDir(join(path, entry.name))).map((i) => `${dirname}/${i}`));
@@ -403,13 +457,12 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/_openapi.json.func (symlink)",
             "functions/_scalar.func (symlink)",
             "functions/_swagger.func (symlink)",
+            "functions/_vercel",
             "functions/api/cached.func (symlink)",
             "functions/api/db.func (symlink)",
-            "functions/api/echo.func (symlink)",
-            "functions/api/error.func (symlink)",
-            "functions/api/errors.func (symlink)",
+            "functions/api/echo.func",
             "functions/api/headers.func (symlink)",
-            "functions/api/hello.func (symlink)",
+            "functions/api/hello.func",
             "functions/api/hey.func (symlink)",
             "functions/api/kebab.func (symlink)",
             "functions/api/meta/test.func (symlink)",
@@ -426,7 +479,9 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/config.func (symlink)",
             "functions/context.func (symlink)",
             "functions/env.func (symlink)",
-            "functions/error-stack.func (symlink)",
+            "functions/errors/captured.func (symlink)",
+            "functions/errors/stack.func (symlink)",
+            "functions/errors/throw.func (symlink)",
             "functions/fetch.func (symlink)",
             "functions/file.func (symlink)",
             "functions/icon.png.func (symlink)",
@@ -447,7 +502,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/rules/_/noncached/cached-isr.prerender-config.json",
             "functions/rules/isr-ttl/[...]-isr.func (symlink)",
             "functions/rules/isr-ttl/[...]-isr.prerender-config.json",
-            "functions/rules/isr/[...]-isr.func (symlink)",
+            "functions/rules/isr/[...]-isr.func",
             "functions/rules/isr/[...]-isr.prerender-config.json",
             "functions/rules/swr-ttl/[...]-isr.func (symlink)",
             "functions/rules/swr-ttl/[...]-isr.prerender-config.json",
@@ -462,6 +517,84 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/wasm/static-import.func (symlink)",
           ]
         `);
+      });
+
+      it("should create custom function directory for functionRules (not symlink)", async () => {
+        const funcDir = resolve(ctx.outDir, "functions/api/hello.func");
+        const stat = await fsp.lstat(funcDir);
+        expect(stat.isDirectory()).toBe(true);
+        expect(stat.isSymbolicLink()).toBe(false);
+      });
+
+      it("should write merged .vc-config.json with functionRules overrides", async () => {
+        const config = await fsp
+          .readFile(resolve(ctx.outDir, "functions/api/hello.func/.vc-config.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        expect(config.maxDuration).toBe(100);
+        expect(config.handler).toBe("index.mjs");
+        expect(config.launcherType).toBe("Nodejs");
+        expect(config.supportsResponseStreaming).toBe(true);
+      });
+
+      it("should write functionRules with arbitrary fields", async () => {
+        const config = await fsp
+          .readFile(resolve(ctx.outDir, "functions/api/echo.func/.vc-config.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        expect(config.experimentalTriggers).toEqual([
+          { type: "queue/v2beta", topic: "orders", consumer: "api_Secho" },
+        ]);
+        expect(config.handler).toBe("index.mjs");
+      });
+
+      it("should copy files inside functionRules directory from __server.func", async () => {
+        const funcDir = resolve(ctx.outDir, "functions/api/hello.func");
+        const indexStat = await fsp.lstat(resolve(funcDir, "index.mjs"));
+        expect(indexStat.isFile()).toBe(true);
+      });
+
+      it("should keep base __server.func without functionRules overrides", async () => {
+        const config = await fsp
+          .readFile(resolve(ctx.outDir, "functions/__server.func/.vc-config.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        expect(config.maxDuration).toBeUndefined();
+        expect(config.handler).toBe("index.mjs");
+      });
+
+      it("should create queue consumer function directory with experimentalTriggers", async () => {
+        const funcDir = resolve(ctx.outDir, "functions/_vercel/queues/consumer.func");
+        const stat = await fsp.lstat(funcDir);
+        expect(stat.isDirectory()).toBe(true);
+        expect(stat.isSymbolicLink()).toBe(false);
+
+        const config = await fsp
+          .readFile(resolve(funcDir, ".vc-config.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        expect(config.experimentalTriggers).toEqual([
+          {
+            type: "queue/v2beta",
+            topic: "orders",
+            retryAfterSeconds: 60,
+            consumer: "__vercel_Squeues_Sconsumer",
+          },
+          {
+            type: "queue/v2beta",
+            topic: "notifications",
+            initialDelaySeconds: 10,
+            consumer: "__vercel_Squeues_Sconsumer",
+          },
+        ]);
+        expect(config.handler).toBe("index.mjs");
+      });
+
+      it("should add queue consumer route in config.json", async () => {
+        const config = await fsp
+          .readFile(resolve(ctx.outDir, "config.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        const routes = config.routes as { src: string; dest: string }[];
+        const queueRoute = routes.find(
+          (r) => r.dest === "/_vercel/queues/consumer" && r.src === "/_vercel/queues/consumer"
+        );
+        expect(queueRoute).toBeDefined();
       });
     }
   );

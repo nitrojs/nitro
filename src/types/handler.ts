@@ -79,10 +79,10 @@ export type NitroErrorHandler = (
       event: HTTPEvent,
       opts?: { silent?: boolean; json?: boolean }
     ) => MaybePromise<{
-      status: number;
-      statusText: string | undefined;
-      headers: Record<string, string>;
-      body: string | Record<string, any>;
+      status?: number;
+      statusText?: string;
+      headers?: HeadersInit;
+      body?: string | Record<string, any>;
     }>;
   }
 ) => MaybePromise<Response | void>;

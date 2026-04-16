@@ -1,15 +1,17 @@
-import { proxyRequest, redirect as sendRedirect } from "h3";
-import type { EventHandler, Middleware } from "h3";
+import { proxyRequest, redirect as sendRedirect, requireBasicAuth } from "h3";
+import type { BasicAuthOptions, EventHandler, Middleware } from "h3";
 import type { MatchedRouteRule, NitroRouteRules } from "nitro/types";
 import { joinURL, withQuery, withoutBase } from "ufo";
 import { defineCachedHandler } from "./cache.ts";
 
-// Note: Remember to update RuntimeRouteRules in src/routing.ts when adding new route rules
+// Note: Remember to update RuntimeRouteRules in src/build/virtual/routing.ts when adding new route rules
 
-type RouteRuleCtor<T extends keyof NitroRouteRules> = (m: MatchedRouteRule<T>) => Middleware;
+type RouteRuleCtor<T extends keyof NitroRouteRules> = ((m: MatchedRouteRule<T>) => Middleware) & {
+  order?: number;
+};
 
 // Headers route rule
-export const headers = ((m) =>
+export const headers: RouteRuleCtor<"headers"> = ((m) =>
   function headersRouteRule(event) {
     for (const [key, value] of Object.entries(m.options || {})) {
       event.res.headers.set(key, value);
@@ -17,7 +19,7 @@ export const headers = ((m) =>
   }) satisfies RouteRuleCtor<"headers">;
 
 // Redirect route rule
-export const redirect = ((m) =>
+export const redirect: RouteRuleCtor<"redirect"> = ((m) =>
   function redirectRouteRule(event) {
     let target = m.options?.to;
     if (!target) {
@@ -37,7 +39,7 @@ export const redirect = ((m) =>
   }) satisfies RouteRuleCtor<"redirect">;
 
 // Proxy route rule
-export const proxy = ((m) =>
+export const proxy: RouteRuleCtor<"proxy"> = ((m) =>
   function proxyRouteRule(event) {
     let target = m.options?.to;
     if (!target) {
@@ -59,7 +61,7 @@ export const proxy = ((m) =>
   }) satisfies RouteRuleCtor<"proxy">;
 
 // Cache route rule
-export const cache = ((m) =>
+export const cache: RouteRuleCtor<"cache"> = ((m) =>
   function cacheRouteRule(event, next) {
     if (!event.context.matchedRoute) {
       return next();
@@ -79,3 +81,18 @@ export const cache = ((m) =>
     }
     return cachedHandler(event);
   }) satisfies RouteRuleCtor<"cache">;
+
+// basicAuth auth route rule
+// Must run before `redirect`/`proxy`/`cache` so unauthorized requests are
+// neither redirected nor proxied.
+export const basicAuth: RouteRuleCtor<"auth"> = /* @__PURE__ */ Object.assign(
+  ((m) =>
+    async function authRouteRule(event, next) {
+      if (!m.options) {
+        return;
+      }
+      await requireBasicAuth(event, m.options as BasicAuthOptions);
+      return next();
+    }) satisfies RouteRuleCtor<"auth">,
+  { order: -1 }
+);

@@ -13,10 +13,12 @@ import { createNitro, prepare } from "../../builder.ts";
 import { getBundlerConfig } from "./bundler.ts";
 import { buildEnvironments, prodSetup } from "./prod.ts";
 import {
+  initEnvRunner,
   getEnvRunner,
   createNitroEnvironment,
   createServiceEnvironments,
   createServiceEnvironment,
+  nitroServiceProxy,
 } from "./env.ts";
 import { configureViteDevServer } from "./dev.ts";
 import { runtimeDir } from "nitro/meta";
@@ -38,6 +40,10 @@ const debug = process.env.NITRO_DEBUG
   : () => {};
 
 export function nitro(pluginConfig: NitroPluginConfig = {}): VitePlugin[] {
+  if ((globalThis as any).__nitro_build__) {
+    // We are in `nitro build` context. Nitro injects vite plugin itself
+    return [];
+  }
   const ctx: NitroPluginContext = createContext(pluginConfig);
   return [
     nitroInit(ctx),
@@ -45,6 +51,7 @@ export function nitro(pluginConfig: NitroPluginConfig = {}): VitePlugin[] {
     nitroMain(ctx),
     nitroPrepare(ctx),
     nitroService(ctx),
+    nitroServiceProxy(),
     nitroPreviewPlugin(ctx),
     pluginConfig.experimental?.vite?.assetsImport !== false &&
       assetsPlugin({
@@ -215,12 +222,23 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
 
         // Find entry point of this service
         let entryFile: string | undefined;
+        const serviceEntry =
+          isRegisteredService && ctx.services[environment.name]?.entry
+            ? resolve(ctx.services[environment.name].entry)
+            : undefined;
         for (const [_name, file] of Object.entries(bundle)) {
           if (file.type === "chunk" && isRegisteredService && file.isEntry) {
+            if (
+              serviceEntry &&
+              file.facadeModuleId &&
+              resolve(file.facadeModuleId) === serviceEntry
+            ) {
+              entryFile = file.fileName;
+              break;
+            }
+            // Fallback: use first entry chunk if no facadeModuleId match
             if (entryFile === undefined) {
               entryFile = file.fileName;
-            } else {
-              this.warn(`Multiple entry points found for service "${environment.name}"`);
             }
           }
         }
@@ -238,31 +256,36 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
       return configureViteDevServer(ctx, server);
     },
 
-    // Automatically reload the client when a server module is updated
+    // Invalidate server-only modules and optionally reload the browser
     // see: https://github.com/vitejs/vite/issues/19114
     async hotUpdate({ server, modules, timestamp }) {
+      if (ctx.pluginConfig.experimental?.vite?.serverReload === false) {
+        return;
+      }
       const env = this.environment;
-      if (
-        ctx.pluginConfig.experimental?.vite.serverReload === false ||
-        env.config.consumer === "client"
-      ) {
+      if (env.config.consumer === "client") {
         return;
       }
       const clientEnvs = Object.values(server.environments).filter(
         (env) => env.config.consumer === "client"
       );
-      let hasServerOnlyModule = false;
+      const serverOnlyModules: EnvironmentModuleNode[] = [];
+      const sharedModules: EnvironmentModuleNode[] = [];
       const invalidated = new Set<EnvironmentModuleNode>();
       for (const mod of modules) {
         if (mod.id && !clientEnvs.some((env) => env.moduleGraph.getModuleById(mod.id!))) {
-          hasServerOnlyModule = true;
+          serverOnlyModules.push(mod);
           env.moduleGraph.invalidateModule(mod, invalidated, timestamp, false);
+        } else {
+          sharedModules.push(mod);
         }
       }
-      if (hasServerOnlyModule) {
+      if (serverOnlyModules.length > 0) {
         env.hot.send({ type: "full-reload" });
-        server.ws.send({ type: "full-reload" });
-        return [];
+        if (sharedModules.length === 0 && serverOnlyModules.some((m) => m.environment !== "ssr")) {
+          server.ws.send({ type: "full-reload" });
+        }
+        return sharedModules;
       }
     },
   };
@@ -357,8 +380,16 @@ async function setupNitroContext(
     }
   }
 
+  // @see https://vite.dev/guide/env-and-mode#env-files
+  const dotenvFileNames = [".env", ".env.local"];
+  if (configEnv.mode) {
+    dotenvFileNames.push(`.env.${configEnv.mode}`, `.env.${configEnv.mode}.local`);
+  }
+
   // Initialize a new Nitro instance
-  ctx.nitro = ctx.pluginConfig._nitro || (await createNitro(nitroConfig));
+  ctx.nitro =
+    ctx.pluginConfig._nitro ||
+    (await createNitro(nitroConfig, { dotenv: { fileName: dotenvFileNames } }));
 
   // Config ssr env as a fetchable ssr service
   if (!ctx.services?.ssr) {
@@ -431,7 +462,7 @@ async function setupNitroContext(
 
   // Warm up env runner for dev
   if (ctx.nitro.options.dev) {
-    getEnvRunner(ctx);
+    await initEnvRunner(ctx);
   }
 
   // Attach nitro.fetch to env runner

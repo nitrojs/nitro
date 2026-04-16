@@ -40,6 +40,7 @@ export default defineBuildConfig({
       input: "src/presets/",
       outDir: "dist/presets",
       filter: (id) => id.includes("runtime/"),
+      dts: false,
     },
   ],
   hooks: {
@@ -145,6 +146,13 @@ export default defineBuildConfig({
       if (isStub) {
         return;
       }
+
+      // Bundle docs
+      const { exportSource } = await import("mdzilla");
+      await exportSource("./docs", "./dist/docs", {
+        title: "Nitro Documentation",
+        filter: (e: { entry: { path: string } }) => !e.entry.path.startsWith("/blog"),
+      });
 
       // Trace included dependencies
       await traceNodeModules(

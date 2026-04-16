@@ -234,7 +234,7 @@ export default {
           : [];
 
         const gitignorePatterns = await parseGitignore(fullPath);
-        const ignorePatterns = [...gitignorePatterns, ...userIgnore];
+        const ignorePatterns = [...gitignorePatterns, ...userIgnore, "README.md", ".*"];
 
         const maxDepth = args.maxDepth ? Number(args.maxDepth) : 0;
         const defaultValue = (args.defaultValue || args.default) as string | undefined;

@@ -7,7 +7,7 @@ import { useNitroApp } from "nitro/app";
 import { startScheduleRunner } from "#nitro/runtime/task";
 import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
-
+import { tracingSrvxPlugins } from "#nitro/virtual/tracing";
 const _parsedPort = Number.parseInt(process.env.NITRO_PORT ?? process.env.PORT ?? "");
 const port = Number.isNaN(_parsedPort) ? 3000 : _parsedPort;
 const host = process.env.NITRO_HOST || process.env.HOST;
@@ -30,7 +30,7 @@ if (import.meta._websocket) {
   };
 }
 
-serve({
+const server = serve({
   port,
   hostname: host,
   tls: cert && key ? { cert, key } : undefined,
@@ -38,13 +38,14 @@ serve({
   bun: {
     websocket: import.meta._websocket ? ws?.websocket : undefined,
   },
+  plugins: [...tracingSrvxPlugins],
 });
 
 trapUnhandledErrors();
 
 // Scheduled tasks
 if (import.meta._tasks) {
-  startScheduleRunner();
+  startScheduleRunner({ waitUntil: server.waitUntil });
 }
 
 export default {};

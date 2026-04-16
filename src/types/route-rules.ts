@@ -1,4 +1,4 @@
-import type { Middleware, ProxyOptions } from "h3";
+import type { Middleware, ProxyOptions, BasicAuthOptions } from "h3";
 import type { ExcludeFunctions, IntRange } from "./_utils.ts";
 import type { CachedEventHandlerOptions } from "./runtime/index.ts";
 
@@ -11,6 +11,7 @@ export interface NitroRouteConfig {
   prerender?: boolean;
   proxy?: string | ({ to: string } & ProxyOptions);
   isr?: number /* expiration */ | boolean | VercelISRConfig;
+  basicAuth?: Pick<BasicAuthOptions, "password" | "username" | "realm"> | false;
 
   // Shortcuts
   cors?: boolean;
@@ -32,7 +33,11 @@ export type MatchedRouteRule<K extends keyof NitroRouteRules = "custom"> = {
   options: Exclude<NitroRouteRules[K], false>;
   route: string;
   params?: Record<string, string>;
-  handler?: (opts: unknown) => Middleware;
+  /**
+   * Middleware constructor. May expose an `order` property — lower runs first
+   * (default `0`).
+   */
+  handler?: ((opts: unknown) => Middleware) & { order?: number };
 };
 
 export type MatchedRouteRules = {
