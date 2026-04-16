@@ -680,7 +680,7 @@ export function testNitro(
         const res = await callHandler({ url: `/errors/throw?handled&action=${errorAction}` });
         expect(res).toMatchObject({
           status: 503,
-          statusText: /deno|bun/.test(ctx.preset)
+          statusText: /^(deno|bun)($|-)/.test(ctx.preset)
             ? "Service Unavailable"
             : /aws/.test(ctx.preset)
               ? ""

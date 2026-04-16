@@ -1,34 +1,48 @@
 import { promises as fsp } from "node:fs";
-import { execa, execaCommandSync } from "execa";
-import { getRandomPort, waitForPort } from "get-port-please";
+import { RunnerManager } from "env-runner";
+import { SelfEnvRunner } from "env-runner/runners/self";
 import { resolve } from "pathe";
 import { describe, expect, it } from "vitest";
 import { setupTest, testNitro } from "../tests.ts";
 
-const hasDeno =
-  execaCommandSync("deno --version", { stdio: "ignore", reject: false }).exitCode === 0;
-
-describe.runIf(hasDeno)("nitro:preset:bunny", async () => {
+describe("nitro:preset:bunny", async () => {
   const ctx = await setupTest("bunny-edge-scripting");
 
   testNitro(ctx, async () => {
-    const port = await getRandomPort();
-    const p = execa("deno", ["run", "-A", "./bunny-edge-scripting.mjs"], {
-      cwd: ctx.outDir,
-      stdio: "ignore",
-      env: {
-        NITRO_PORT: String(port),
-        NITRO_HOST: "127.0.0.1",
-      },
+    const wrapperPath = resolve(ctx.outDir, "bunny-edge-scripting.entry.mjs");
+    await fsp.writeFile(
+      wrapperPath,
+      [
+        "let _fetch;",
+        "globalThis.Bunny = {",
+        "  v1: { serve: (fn) => { _fetch = fn; } },",
+        "  unstable: { waitUntil: (p) => p },",
+        "};",
+        'await import("./bunny-edge-scripting.mjs");',
+        "export default { fetch: (req) => _fetch(req) };",
+        "",
+      ].join("\n")
+    );
+
+    const runner = new SelfEnvRunner({
+      name: "bunny",
+      data: { entry: wrapperPath },
     });
+    const manager = new RunnerManager(runner);
+    await runner.waitForReady(10_000);
+
     ctx.server = {
-      url: `http://127.0.0.1:${port}`,
-      close: () => p.kill(),
-    } as any;
-    await waitForPort(port, { delay: 1000, retries: 20, host: "127.0.0.1" });
-    return async ({ url, ...opts }) => {
-      const res = await ctx.fetch(url, opts);
-      return res;
+      url: "http://localhost",
+      close: () => manager.close(),
+    };
+
+    return async ({ url, headers, method, body }) => {
+      return await manager.fetch("http://localhost" + url, {
+        headers: headers || {},
+        method: method || "GET",
+        redirect: "manual",
+        body,
+      });
     };
   });
 
@@ -53,10 +67,8 @@ describe.runIf(hasDeno)("nitro:preset:bunny", async () => {
 
   it("should have minified output", async () => {
     const entry = await fsp.readFile(resolve(ctx.outDir, "bunny-edge-scripting.mjs"), "utf8");
-    // Check file is actually minified - should have very few newlines relative to size
     const newlineCount = (entry.match(/\n/g) || []).length;
     const ratio = entry.length / Math.max(1, newlineCount);
-    // Fixture is small, so we expect a high ratio of characters to newlines in minified code
     expect(ratio).toBeGreaterThan(500);
   });
 
