@@ -265,19 +265,24 @@ export interface NitroOptions extends PresetOptions {
   ssrRoutes: string[];
 
   /**
-   * Serve `public/` assets in production.
+   * Include a static asset handler in the server bundle to serve public assets.
    *
-   * It is recommended that your edge CDN (Nginx, Apache, Cloud) serves the
-   * `.output/public/` directory instead to enable compression and caching.
+   * - `true` or `"node"` — read assets from the filesystem using Node.js `fs`.
+   * - `"deno"` — read assets using Deno file APIs.
+   * - `"inline"` — base64-encode assets directly into the server bundle.
+   * - `false` — do not serve static assets from the server (rely on a CDN or reverse proxy).
+   *
+   * Most self-hosted presets (e.g. `node-server`, `bun`) enable this by default.
    *
    * @see https://nitro.build/config#servestatic
    */
   serveStatic: boolean | "node" | "deno" | "inline";
 
   /**
-   * Disable `.output/public` directory creation.
+   * Disable the public output directory entirely.
    *
-   * Skips copying the `public/` dir and disables pre-rendering.
+   * Skips preparing the `.output/public` directory, copying public
+   * assets, and prerendering routes.
    *
    * @see https://nitro.build/config#nopublicdir
    */
@@ -351,7 +356,9 @@ export interface NitroOptions extends PresetOptions {
      */
     asyncContext?: boolean;
     /**
-     * Disable Experimental Sourcemap Minification
+     * Set to `false` to disable sourcemap minification in production builds.
+     *
+     * Sourcemap minification is enabled by default when `sourcemap` is on.
      */
     sourcemapMinify?: false;
     /**
@@ -386,7 +393,7 @@ export interface NitroOptions extends PresetOptions {
    * @see https://nitro.build/config#future
    */
   future: {
-    /** Use built-in SWR (caching layer + storage) instead of ISR on Vercel. */
+    /** Opt in to Nitro's native `isr` route rule handling on Vercel and suppress backwards-compatibility warnings for legacy `swr`/`static` route options. */
     nativeSWR?: boolean;
   };
 
@@ -487,8 +494,9 @@ export interface NitroOptions extends PresetOptions {
   /**
    * Pre-compress public assets and prerendered routes.
    *
-   * Generates gzip, brotli, and/or zstd versions of assets larger than
-   * 1024 bytes. Enables zero-overhead compression without a CDN.
+   * Generates gzip and brotli (and zstd when available)
+   * variants of compressible assets larger than 1024 bytes. Pass an
+   * object to selectively enable/disable each encoding.
    *
    * @see https://nitro.build/config#compresspublicassets
    */
@@ -699,9 +707,9 @@ export interface NitroOptions extends PresetOptions {
   /**
    * Bundler to use for production builds.
    *
-   * When not set, defaults to `"vite"` if a `vite.config` with the
-   * `nitro()` plugin is detected, otherwise `"rolldown"`. Can also be
-   * set via the `NITRO_BUILDER` environment variable.
+   * Auto-detected when not set: `"vite"` if a `vite.config` with the
+   * `nitro()` plugin is found, otherwise `"rolldown"` (bundled with Nitro).
+   * Use the `NITRO_BUILDER` environment variable as an alternative.
    *
    * @see https://nitro.build/config#builder
    */
@@ -776,10 +784,13 @@ export interface NitroOptions extends PresetOptions {
   sourcemap: boolean;
 
   /**
-   * Target Node.js runtime.
+   * Target a Node.js-compatible runtime.
    *
-   * When `false`, Nitro mocks Node.js dependencies using unenv and
-   * adjusts behavior for non-Node.js runtimes.
+   * When `true` (default), the bundler targets the `node` platform, prefers
+   * Node.js built-in modules, and enables dependency externalization.
+   *
+   * When `false`, Nitro prepends the `nodeless` unenv preset to polyfill
+   * Node.js globals and built-ins for non-Node runtimes (workers, edge, Deno).
    *
    * @see https://nitro.build/config#node
    */
