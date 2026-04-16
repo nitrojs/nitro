@@ -55,8 +55,6 @@ export function resolveBaseUrl(req: HttpRequest) {
       // ignore invalid original URL
     }
   }
-}
-  }
   return "http://localhost";
 }
 
