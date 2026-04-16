@@ -86,8 +86,8 @@ export interface NitroRouteConfig {
    * - `true` — never expires until the next deployment.
    * - `false` — disable ISR for this route.
    *
-   * Platform presets (e.g. Vercel, Netlify) map this to native rules.
-   * On other platforms it may fall back to HTTP cache headers.
+   * Only handled by presets with native support (e.g. Vercel, Netlify).
+   * Ignored on platforms without ISR support.
    *
    * @see https://nitro.build/docs/routing#isr-vercel
    */
