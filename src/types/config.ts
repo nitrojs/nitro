@@ -283,7 +283,7 @@ export interface NitroOptions extends PresetOptions {
 
   /**
    * Build manifest options.
-   */  manifest?: {
+   */ manifest?: {
     /** Custom deployment identifier included in the build manifest. */
     deploymentId?: string;
   };
