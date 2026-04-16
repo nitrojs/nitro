@@ -77,7 +77,7 @@ export interface NitroFrameworkInfo {
 
 /**
  * Build info written to `.output/nitro.json` (production) or
- * `.nitro/dev/nitro.json` (development).
+ * `node_modules/.nitro/nitro.dev.json` (development).
  *
  * Contains preset, framework, version, and command information.
  */

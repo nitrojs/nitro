@@ -22,7 +22,7 @@ export interface NitroRouteConfig {
    * Server-side response caching options.
    *
    * When set to an options object, matching handlers are wrapped with
-   * `defineCachedEventHandler`. Set to `false` to disable caching.
+   * `defineCachedHandler`. Set to `false` to disable caching.
    *
    * @see https://nitro.build/docs/cache
    */

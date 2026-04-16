@@ -56,8 +56,9 @@ export interface NitroOptions extends PresetOptions {
    *
    * Providers introduce new features that Nitro presets can leverage, but
    * some need to be explicitly opted into. Set to the latest tested date
-   * in `YYYY-MM-DD` format. Defaults to `"latest"` behavior when unset.
+   * in `YYYY-MM-DD` format.
    *
+   * @default "latest"
    * @see https://nitro.build/config#compatibilitydate
    */
   compatibilityDate: CompatibilityDates;
@@ -107,7 +108,8 @@ export interface NitroOptions extends PresetOptions {
    * Server runtime configuration accessible via `useRuntimeConfig()`.
    *
    * Values can be overridden at runtime using environment variables with
-   * the `NITRO_` prefix (configurable via `nitro.envPrefix`).
+   * the `NITRO_` prefix. An alternative prefix can be configured via
+   * `runtimeConfig.nitro.envPrefix` or `NITRO_ENV_PREFIX`.
    *
    * **Note:** The `nitro` namespace is reserved for internal use.
    *
@@ -142,11 +144,12 @@ export interface NitroOptions extends PresetOptions {
 
   /**
    * Server directory for scanning `api/`, `routes/`, `plugins/`, `utils/`,
-   * `middleware/`, `assets/`, and `tasks/` folders.
+   * `middleware/`, `modules/`, and `tasks/` folders.
    *
    * Set to `false` to disable automatic directory scanning, `"./"` to use
    * the root directory, or `"./server"` to use a `server/` subdirectory.
    *
+   * @default false
    * @see https://nitro.build/config#serverdir
    */
   serverDir: string | false;
@@ -380,7 +383,7 @@ export interface NitroOptions extends PresetOptions {
    * @see https://nitro.build/config#future
    */
   future: {
-    /** Use built-in SWR (caching layer + storage) instead of ISR on Netlify and Vercel. */
+    /** Use built-in SWR (caching layer + storage) instead of ISR on Vercel. */
     nativeSWR?: boolean;
   };
 
@@ -407,6 +410,7 @@ export interface NitroOptions extends PresetOptions {
    *
    * Set to `false` to disable auto-imports. Pass an object to customize.
    *
+   * @default false
    * @see https://nitro.build/config#imports
    * @see https://github.com/unjs/unimport
    */
@@ -634,7 +638,8 @@ export interface NitroOptions extends PresetOptions {
   /**
    * Path(s) to custom runtime error handler(s).
    *
-   * Replaces Nitro's built-in error page.
+   * Custom handlers run before the built-in error handler, which is
+   * always added as a fallback.
    *
    * @see https://nitro.build/config#errorhandler
    */
@@ -691,7 +696,9 @@ export interface NitroOptions extends PresetOptions {
   /**
    * Bundler to use for production builds.
    *
-   * Auto-detected when not set.
+   * When not set, defaults to `"vite"` if a `vite.config` with the
+   * `nitro()` plugin is detected, otherwise `"rolldown"`. Can also be
+   * set via the `NITRO_BUILDER` environment variable.
    *
    * @see https://nitro.build/config#builder
    */
@@ -1071,7 +1078,8 @@ export interface NitroRuntimeConfigApp {
  * Server runtime configuration accessible via `useRuntimeConfig()`.
  *
  * Values can be overridden at runtime using environment variables with
- * the `NITRO_` prefix (configurable via `nitro.envPrefix`).
+ * the `NITRO_` prefix. An alternative prefix can be configured via
+ * `nitro.envPrefix` or `NITRO_ENV_PREFIX`.
  *
  * @see https://nitro.build/config#runtimeconfig
  */
