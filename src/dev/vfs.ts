@@ -15,8 +15,9 @@ export function createVFSHandler(nitro: Nitro) {
       socket?.readable && socket?.writable && !socket?.remotePort;
 
     const ip = getRequestIP(event, { xForwardedFor: isUnixSocket });
+    const v4 = ip?.toLowerCase().startsWith("::ffff:") ? ip.slice(7) : ip;
 
-    const isLocalRequest = ip && /^::1$|^127\.\d+\.\d+\.\d+$/.test(ip);
+    const isLocalRequest = v4 && /^(?:::1|127\.\d+\.\d+\.\d+)$/.test(v4);
     if (!isLocalRequest) {
       throw new HTTPError({
         statusText: `Forbidden IP: "${ip || "?"}"`,
