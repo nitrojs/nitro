@@ -7,10 +7,11 @@ export async function runParallel<T>(
   const tasks = new Set<Promise<unknown>>();
 
   function queueNext(): undefined | Promise<unknown> {
-    const route = inputs.values().next().value;
-    if (!route) {
+    const nextInput = inputs.values().next();
+    if (nextInput.done) {
       return;
     }
+    const route = nextInput.value;
 
     inputs.delete(route);
     const task = (
