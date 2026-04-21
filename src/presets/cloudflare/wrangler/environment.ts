@@ -1135,6 +1135,11 @@ export interface Observability {
     /** Set to false to disable invocation logs */
     invocation_logs?: boolean;
   };
+  traces?: {
+    enabled?: boolean;
+    /** The sampling rate */
+    head_sampling_rate?: number;
+  };
 }
 
 export type DockerConfiguration = {
