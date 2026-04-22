@@ -2,7 +2,6 @@
 
 shellEmulator: true
 dedupePeers: true
-trustPolicy: no-downgrade
 ignoreWorkspaceRootCheck: true
 
 packages:
@@ -11,12 +10,15 @@ packages:
   - test/fixture
   - test/minimal
 
+trustPolicy: no-downgrade
+trustPolicyExclude:
+  - "semver@6.3.1"
+
+blockExoticSubdeps: true
+strictDepBuilds: true
 allowBuilds: {}
 
 peerDependencyRules:
   allowedVersions:
     vite: "8"
     typescript: "6"
-
-trustPolicyExclude:
-  - "semver@6.3.1"
