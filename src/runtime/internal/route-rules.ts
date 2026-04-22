@@ -29,6 +29,9 @@ export const redirect: RouteRuleCtor<"redirect"> = ((m) =>
       let targetPath = event.url.pathname + event.url.search;
       const strpBase = (m.options as any)._redirectStripBase;
       if (strpBase) {
+        if (!isPathInScope(event.url.pathname, strpBase)) {
+          throw new HTTPError({ status: 400, message: "Invalid request path" });
+        }
         targetPath = withoutBase(targetPath, strpBase);
       }
       target = joinURL(target.slice(0, -3), targetPath);
@@ -103,7 +106,8 @@ export const basicAuth: RouteRuleCtor<"auth"> = /* @__PURE__ */ Object.assign(
 // Check whether `pathname`, after canonicalization, stays within `base`.
 // Prevents match/forward differentials where an encoded traversal like `..%2f`
 // bypasses the `/**` scope at match time but escapes the base once the
-// upstream decodes `%2f` → `/` (GHSA-5w89-w975-hf9q).
+// downstream (proxy upstream or redirect target) decodes `%2f` → `/`
+// (GHSA-5w89-w975-hf9q).
 //
 // WHATWG URL keeps `%2F` and `%5C` opaque in paths, so we pre-decode those,
 // then let `new URL` resolve `.`/`..`/`%2E%2E` segments and normalize `\`.

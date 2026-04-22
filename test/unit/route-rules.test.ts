@@ -32,7 +32,8 @@ describe("normalizeRouteRules - swr", () => {
 });
 
 // Regression for GHSA-5w89-w975-hf9q: an encoded traversal like `..%2f` must
-// not let a request escape a `/**` proxy scope once the upstream decodes it.
+// not let a request escape a `/**` proxy/redirect scope once the downstream
+// decodes it.
 describe("isPathInScope", () => {
   it("accepts in-scope paths", () => {
     expect(isPathInScope("/api/orders/list.json", "/api/orders")).toBe(true);
