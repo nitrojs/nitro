@@ -1,8 +1,9 @@
 # https://pnpm.io/settings
 
-ignoreWorkspaceRootCheck: true
 shellEmulator: true
 dedupePeers: true
+trustPolicy: no-downgrade
+ignoreWorkspaceRootCheck: true
 
 packages:
   - examples/**
@@ -16,3 +17,6 @@ peerDependencyRules:
   allowedVersions:
     vite: "8"
     typescript: "6"
+
+trustPolicyExclude:
+  - "semver@6.3.1"
