@@ -30,7 +30,7 @@ export const redirect: RouteRuleCtor<"redirect"> = ((m) =>
       const strpBase = (m.options as any)._redirectStripBase;
       if (strpBase) {
         if (!isPathInScope(event.url.pathname, strpBase)) {
-          throw new HTTPError({ status: 400, message: "Invalid request path" });
+          throw new HTTPError({ status: 400 });
         }
         targetPath = withoutBase(targetPath, strpBase);
       }
@@ -53,7 +53,7 @@ export const proxy: RouteRuleCtor<"proxy"> = ((m) =>
       const strpBase = (m.options as any)._proxyStripBase;
       if (strpBase) {
         if (!isPathInScope(event.url.pathname, strpBase)) {
-          throw new HTTPError({ status: 400, message: "Invalid request path" });
+          throw new HTTPError({ status: 400 });
         }
         targetPath = withoutBase(targetPath, strpBase);
       }
