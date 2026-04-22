@@ -1,6 +1,7 @@
 import defu from "defu";
 import {
   type H3Event,
+  createError,
   eventHandler,
   proxyRequest,
   sendRedirect,
@@ -10,6 +11,7 @@ import type { NitroRouteRules } from "nitropack/types";
 import { createRouter as createRadixRouter, toRouteMatcher } from "radix3";
 import { getQuery, joinURL, withQuery, withoutBase } from "ufo";
 import { useRuntimeConfig } from "./config";
+import { isPathInScope } from "./route-rules-utils";
 
 const config = useRuntimeConfig();
 const _routeRulesMatcher = toRouteMatcher(
@@ -49,6 +51,12 @@ export function createRouteRulesHandler(ctx: {
         let targetPath = event.path;
         const strpBase = (routeRules.proxy as any)._proxyStripBase;
         if (strpBase) {
+          if (!isPathInScope(event.path.split("?")[0], strpBase)) {
+            throw createError({
+              statusCode: 400,
+              statusMessage: "Invalid request path",
+            });
+          }
           targetPath = withoutBase(targetPath, strpBase);
         }
         target = joinURL(target.slice(0, -3), targetPath);
