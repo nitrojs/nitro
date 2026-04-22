@@ -35,6 +35,9 @@ export function createRouteRulesHandler(ctx: {
         let targetPath = event.path;
         const strpBase = (routeRules.redirect as any)._redirectStripBase;
         if (strpBase) {
+          if (!isPathInScope(event.path.split("?")[0], strpBase)) {
+            throw createError({ statusCode: 400 });
+          }
           targetPath = withoutBase(targetPath, strpBase);
         }
         target = joinURL(target.slice(0, -3), targetPath);
@@ -52,10 +55,7 @@ export function createRouteRulesHandler(ctx: {
         const strpBase = (routeRules.proxy as any)._proxyStripBase;
         if (strpBase) {
           if (!isPathInScope(event.path.split("?")[0], strpBase)) {
-            throw createError({
-              statusCode: 400,
-              statusMessage: "Invalid request path",
-            });
+            throw createError({ statusCode: 400 });
           }
           targetPath = withoutBase(targetPath, strpBase);
         }
