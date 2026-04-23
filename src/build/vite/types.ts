@@ -24,7 +24,7 @@ export interface NitroPluginConfig extends NitroConfig {
   _nitro?: Nitro;
 
   experimental?: NitroConfig["experimental"] & {
-    vite: {
+    vite?: {
       /**
        * @experimental Enable `?assets` import proposed by https://github.com/vitejs/vite/discussions/20913
        * @default true
