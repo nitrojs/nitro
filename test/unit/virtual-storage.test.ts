@@ -31,12 +31,8 @@ describe("virtual/storage template", () => {
   });
 
   it("wraps storage with withTracing when tracingChannel.unstorage is true", () => {
-    const template = storage(
-      createNitroStub({ srvx: true, h3: true, unstorage: true })
-    ).template();
-    expect(template).toContain(
-      `import { withTracing } from 'unstorage/tracing'`
-    );
+    const template = storage(createNitroStub({ srvx: true, h3: true, unstorage: true })).template();
+    expect(template).toContain(`import { withTracing } from 'unstorage/tracing'`);
     expect(template).toContain("return withTracing(storage)");
   });
 });

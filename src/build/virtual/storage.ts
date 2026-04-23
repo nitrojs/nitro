@@ -25,8 +25,7 @@ export default function storage(nitro: Nitro) {
       const driverImports = [...new Set(mounts.map((m) => m.driver))];
 
       const tracingEnabled = !!(
-        typeof nitro.options.tracingChannel === "object" &&
-        nitro.options.tracingChannel?.unstorage
+        typeof nitro.options.tracingChannel === "object" && nitro.options.tracingChannel?.unstorage
       );
 
       return /* js */ `
