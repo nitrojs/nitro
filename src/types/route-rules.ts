@@ -3,7 +3,7 @@ import type { ExcludeFunctions, IntRange } from "./_utils.ts";
 import type { CachedEventHandlerOptions } from "./runtime/index.ts";
 
 /** Valid HTTP status code range (100–599). */
-export type HTTPstatus = IntRange<100, "600">;
+export type HTTPstatus = IntRange<100, 599>;
 
 /**
  * Route rule options that can be applied to matching route patterns.
