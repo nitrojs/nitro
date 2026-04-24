@@ -25,8 +25,6 @@ export interface NitroMeta {
  *
  * Provides access to resolved options, hooks, the virtual file system,
  * scanned handlers, and utility methods.
- *
- * @see https://nitro.build/docs/lifecycle
  */
 export interface Nitro {
   meta: NitroMeta;
@@ -64,9 +62,7 @@ export type NitroTypes = {
 };
 
 /**
- * Metadata about the higher-level framework using Nitro (e.g. Nuxt).
- *
- * Used by presets and included in build info output.
+ * Metadata about the framework using Nitro.
  *
  * @see https://nitro.build/config#framework
  */
@@ -76,8 +72,9 @@ export interface NitroFrameworkInfo {
 }
 
 /**
- * Build info written to `.output/nitro.json` (production) or
- * `node_modules/.nitro/nitro.dev.json` (development).
+ * Build info written to `<output.dir>/nitro.json` (production, default
+ * `.output/nitro.json`) or `<rootDir>/node_modules/.nitro/nitro.dev.json`
+ * (development).
  *
  * Contains preset, framework, version, and command information.
  */
