@@ -3,7 +3,7 @@ import type { ExcludeFunctions, IntRange } from "./_utils.ts";
 import type { CachedEventHandlerOptions } from "./runtime/index.ts";
 
 /** Valid HTTP status code range (100–599). */
-export type HTTPstatus = IntRange<100, 600>;
+export type HTTPstatus = IntRange<100, "600">;
 
 /**
  * Route rule options that can be applied to matching route patterns.
@@ -12,14 +12,12 @@ export type HTTPstatus = IntRange<100, 600>;
  * `app.baseURL`) using rou3 pattern matching. When multiple patterns match,
  * their options are deep-merged with more-specific patterns taking precedence.
  *
- * Shortcut fields (`cors`, `swr`, `static`) are normalized into their
- * canonical forms in {@link NitroRouteRules} at runtime.
  *
  * @see https://nitro.build/docs/routing#route-rules
  */
 export interface NitroRouteConfig {
   /**
-   * Server-side response caching options.
+   * Enables runtime caching.
    *
    * When set to an options object, matching handlers are wrapped with
    * `defineCachedHandler`. Set to `false` to disable caching.
@@ -75,6 +73,8 @@ export interface NitroRouteConfig {
    * H3 {@link ProxyOptions}. Wildcard `/**` tail behavior works the same
    * as {@link NitroRouteConfig.redirect | redirect}.
    *
+   * **IMPORTANT:** Proxy target should be a trusted and safe origin.
+   *
    * @see https://nitro.build/docs/routing#proxy
    */
   proxy?: string | ({ to: string } & ProxyOptions);
@@ -95,6 +95,8 @@ export interface NitroRouteConfig {
 
   /**
    * Protect matching routes with HTTP Basic Authentication.
+   *
+   * **IMPORTANT:** Depending on the deployment platform, this might not apply to public assets.
    *
    * Set to `false` to disable auth inherited from a less-specific pattern.
    *
@@ -120,26 +122,15 @@ export interface NitroRouteConfig {
    * - `true` — enable SWR with no explicit `maxAge`.
    * - `number` — enable SWR with the given `maxAge` in seconds.
    *
-   * Prefer {@link NitroRouteConfig.isr | isr} on platforms with native support.
-   *
    * @see https://nitro.build/docs/routing#caching-swr-static
    */
   swr?: boolean | number;
 
-  /**
-   * Legacy caching shortcut. Prefer {@link NitroRouteConfig.isr | isr}.
-   *
-   * @see https://nitro.build/docs/routing#caching-swr-static
-   */
   static?: boolean | number;
 }
 
 /**
  * Normalized route rules used at runtime after shortcut resolution.
- *
- * - `redirect` is always an object with a required `status`.
- * - `proxy` is always an object with `to` plus any {@link ProxyOptions}.
- * - Shortcut fields (`cors`, `swr`, `static`) are omitted after normalization.
  */
 export interface NitroRouteRules extends Omit<
   NitroRouteConfig,
