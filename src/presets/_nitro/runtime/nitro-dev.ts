@@ -20,7 +20,7 @@ import {
 
 // globalThis.crypto support for Node.js 18
 if (!globalThis.crypto) {
-  globalThis.crypto = nodeCrypto as unknown as Crypto;
+  globalThis.crypto = nodeCrypto.webcrypto as unknown as Crypto;
 }
 
 const { NITRO_NO_UNIX_SOCKET, NITRO_DEV_WORKER_ID } = process.env;
@@ -94,8 +94,8 @@ if (import.meta._tasks) {
 function listen(
   useRandomPort: boolean = Boolean(
     NITRO_NO_UNIX_SOCKET ||
-      process.versions.webcontainer ||
-      ("Bun" in globalThis && process.platform === "win32")
+    process.versions.webcontainer ||
+    ("Bun" in globalThis && process.platform === "win32")
   )
 ) {
   return new Promise<void>((resolve, reject) => {

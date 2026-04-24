@@ -1,5 +1,5 @@
-import type { IncomingMessage, OutgoingMessage } from "node:http";
-import type { Duplex } from "node:stream";
+import type { IncomingMessage } from "node:http";
+import type { Socket } from "node:net";
 import { createError, type H3Event } from "h3";
 import type { HTTPProxy } from "./proxy";
 import { existsSync } from "node:fs";
@@ -22,11 +22,7 @@ export interface DevWorker {
   readonly closed: boolean;
   close(): Promise<void>;
   handleEvent: (event: H3Event) => Promise<void>;
-  handleUpgrade: (
-    req: IncomingMessage,
-    socket: OutgoingMessage<IncomingMessage> | Duplex,
-    head: any
-  ) => void;
+  handleUpgrade: (req: IncomingMessage, socket: Socket, head: any) => void;
 }
 
 export class NodeDevWorker implements DevWorker {
@@ -63,17 +59,13 @@ export class NodeDevWorker implements DevWorker {
     await this.#proxy.handleEvent(event, { target: this.#address });
   }
 
-  handleUpgrade(
-    req: IncomingMessage,
-    socket: OutgoingMessage<IncomingMessage> | Duplex,
-    head: any
-  ) {
+  handleUpgrade(req: IncomingMessage, socket: Socket, head: any) {
     if (!this.ready) {
       return;
     }
     return this.#proxy!.proxy.ws(
       req,
-      socket as OutgoingMessage<IncomingMessage>,
+      socket,
       { target: this.#address, xfwd: true },
       head
     );

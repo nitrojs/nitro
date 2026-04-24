@@ -22,6 +22,7 @@ import {
   fetchNodeRequestHandler,
   callNodeRequestHandler,
   type AbstractRequest,
+  type NodeRequestHandler,
 } from "node-mock-http";
 import { cachedEventHandler } from "./cache";
 import { useRuntimeConfig } from "./config";
@@ -132,15 +133,18 @@ function createNitroApp(): NitroApp {
   });
 
   // Create local fetch caller
-  const nodeHandler = toNodeListener(h3App);
+  const nodeHandler = toNodeListener(h3App); // TODO: Update h3 v1 types
   const localCall = (aRequest: AbstractRequest) =>
-    callNodeRequestHandler(nodeHandler, aRequest);
+    callNodeRequestHandler(
+      nodeHandler as unknown as NodeRequestHandler,
+      aRequest
+    );
   const localFetch: typeof fetch = (input, init) => {
     if (!input.toString().startsWith("/")) {
       return globalThis.fetch(input, init);
     }
     return fetchNodeRequestHandler(
-      nodeHandler,
+      nodeHandler as unknown as NodeRequestHandler,
       input as string /* TODO */,
       init
     ).then((response) => normalizeFetchResponse(response));

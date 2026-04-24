@@ -11,7 +11,6 @@ function _base64ToArray(base64: string) {
   const str = atob(base64);
   const bytes = new Uint8Array(str.length);
   for (let i = 0; i < str.length; i++) {
-    // eslint-disable-next-line unicorn/prefer-code-point
     bytes[i] = str.charCodeAt(i);
   }
   return bytes;

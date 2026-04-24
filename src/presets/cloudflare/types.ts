@@ -54,6 +54,15 @@ export interface CloudflareOptions {
    */
   nodeCompat?: boolean;
 
+  /**
+   * Options for dev emulation.
+   */
+  dev?: {
+    configPath?: string;
+    environment?: string;
+    persistDir?: string;
+  };
+
   pages?: {
     /**
      * Nitro will automatically generate a `_routes.json` that controls which files get served statically and

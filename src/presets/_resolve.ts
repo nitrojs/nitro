@@ -18,8 +18,16 @@ const _stdProviderMap: Partial<Record<ProviderName, PlatformName>> = {
 
 export async function resolvePreset(
   name: string,
-  opts: { static?: boolean; compatibilityDate?: false | CompatibilityDateSpec }
+  opts: {
+    static?: boolean;
+    compatibilityDate?: false | CompatibilityDateSpec;
+    dev?: boolean;
+  } = {}
 ): Promise<(NitroPreset & { _meta?: NitroPresetMeta }) | undefined> {
+  if (name === ".") {
+    return undefined; // invalid input
+  }
+
   const _name = kebabCase(name) || provider;
 
   const _compatDates = opts.compatibilityDate
@@ -31,6 +39,11 @@ export async function resolvePreset(
       // prettier-ignore
       const names = [preset._meta.name, preset._meta.stdName, ...(preset._meta.aliases || [])].filter(Boolean);
       if (!names.includes(_name)) {
+        return false;
+      }
+
+      // Match dev|prod
+      if ((opts.dev && !preset._meta.dev) || (!opts.dev && preset._meta.dev)) {
         return false;
       }
 
@@ -69,6 +82,7 @@ export async function resolvePreset(
     return preset();
   }
 
+  // Auto-detect preset
   if (!name && !preset) {
     return opts?.static
       ? resolvePreset("static", opts)

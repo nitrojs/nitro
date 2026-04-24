@@ -18,5 +18,6 @@ export default unjs({
     "unicorn/consistent-function-scoping": 0,
     "@typescript-eslint/no-empty-object-type": 0,
     "unicorn/no-empty-file": 0,
+    "unicorn/prefer-single-call": 0,
   },
 });

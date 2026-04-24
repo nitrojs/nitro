@@ -13,7 +13,7 @@ const awsAmplify = defineNitroPreset(
       publicDir: "{{ output.dir }}/static{{ baseURL }}",
     },
     commands: {
-      preview: "node ./compute/default/server.js",
+      preview: "node {{ output.serverDir }}/server.js",
     },
     hooks: {
       async compiled(nitro) {

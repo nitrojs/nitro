@@ -321,6 +321,9 @@ export function externals(opts: NodeExternalsOptions): Plugin {
           const dst = join(opts.outDir, "node_modules", pkgPath, subpath);
           await fsp.mkdir(dirname(dst), { recursive: true });
           await fsp.copyFile(src, dst);
+          if (opts.chmod) {
+            await fsp.chmod(dst, opts.chmod === true ? 0o644 : opts.chmod);
+          }
         }
 
         // Copy package.json

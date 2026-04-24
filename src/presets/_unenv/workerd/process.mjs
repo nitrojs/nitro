@@ -3,9 +3,14 @@
 
 import workerdProcess from "#workerd/node:process";
 
+import { env as WorkerEnv } from "cloudflare:workers";
+
 import { Process as UnenvProcess } from "unenv/node/internal/process/process";
 import { env as UnenvEnv } from "unenv/node/internal/process/env";
 import { hrtime as UnenvHrTime } from "unenv/node/internal/process/hrtime";
+
+// Polyfill for unenv (without Node.js compatibility)
+globalThis.__env__ = WorkerEnv;
 
 const mixedProcess = new UnenvProcess({
   env: UnenvEnv,

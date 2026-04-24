@@ -1,11 +1,16 @@
 import type { IncomingMessage, OutgoingMessage } from "node:http";
-import type { Duplex } from "node:stream";
+import type { Socket } from "node:net";
 import type { GetPortInput } from "get-port-please";
 import type { FSWatcher } from "chokidar";
 import type { App } from "h3";
 import type { Listener, ListenOptions } from "listhen";
 import { NodeDevWorker, type DevWorker, type WorkerAddress } from "./worker";
-import type { Nitro, NitroBuildInfo, NitroDevServer } from "nitropack/types";
+import type {
+  Nitro,
+  NitroBuildInfo,
+  NitroDevServer,
+  NitroRouteRules,
+} from "nitropack/types";
 import {
   createApp,
   createError,
@@ -13,8 +18,9 @@ import {
   fromNodeMiddleware,
   toNodeListener,
 } from "h3";
-import {
-  default as devErrorHandler,
+import { createRouter as createRadixRouter, toRouteMatcher } from "radix3";
+import defu from "defu";
+import devErrorHandler, {
   defaultHandler as devErrorHandlerInternal,
   loadStackTrace,
 } from "../../runtime/internal/error/dev";
@@ -212,6 +218,10 @@ class DevServer {
     // Debugging endpoint to view vfs
     app.use("/_vfs", createVFSHandler(this.nitro));
 
+    const routeRulesMatcher = toRouteMatcher(
+      createRadixRouter({ routes: this.nitro.options.routeRules })
+    );
+
     // Serve asset dirs
     for (const asset of this.nitro.options.publicAssets) {
       const url = joinURL(
@@ -223,6 +233,27 @@ class DevServer {
         fromNodeMiddleware(
           serveStatic(asset.dir, {
             dotfiles: "allow",
+            setHeaders(res, path) {
+              // https://github.com/nitrojs/nitro/issues/3379
+              if (path.endsWith(".gz")) {
+                res.setHeader("Content-Encoding", "gzip");
+              }
+              const pathname = (res.req as any)?._parsedOriginalUrl
+                ?.pathname as string;
+              if (pathname) {
+                const rules: NitroRouteRules = defu(
+                  {},
+                  ...routeRulesMatcher.matchAll(pathname).reverse()
+                );
+                if (rules.headers) {
+                  for (const [k, v] of Object.entries(rules.headers)) {
+                    // Avoid long caching dev assets
+                    if (k === "cache-control") continue;
+                    res.appendHeader(k, v);
+                  }
+                }
+              }
+            },
           })
         )
       );
@@ -259,11 +290,7 @@ class DevServer {
     return app;
   }
 
-  async handleUpgrade(
-    req: IncomingMessage,
-    socket: OutgoingMessage<IncomingMessage> | Duplex,
-    head: any
-  ) {
+  async handleUpgrade(req: IncomingMessage, socket: Socket, head: any) {
     const worker = await this.getWorker();
     if (!worker) {
       throw createError({

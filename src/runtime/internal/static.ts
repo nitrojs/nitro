@@ -49,9 +49,6 @@ export default eventHandler((event) => {
       .sort(),
     "",
   ];
-  if (encodings.length > 1) {
-    appendResponseHeader(event, "Vary", "Accept-Encoding");
-  }
 
   for (const encoding of encodings) {
     for (const _id of [id + encoding, joinURL(id, "index.html" + encoding)]) {
@@ -70,6 +67,10 @@ export default eventHandler((event) => {
       throw createError({ statusCode: 404 });
     }
     return;
+  }
+
+  if (asset.encoding !== undefined) {
+    appendResponseHeader(event, "Vary", "Accept-Encoding");
   }
 
   const ifNotMatch = getRequestHeader(event, "if-none-match") === asset.etag;

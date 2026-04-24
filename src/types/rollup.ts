@@ -49,6 +49,7 @@ export interface NodeExternalsOptions {
   exportConditions?: string[];
   traceInclude?: string[];
   traceAlias?: Record<string, string>;
+  chmod?: boolean | number;
 }
 
 export interface ServerAssetOptions {

@@ -66,7 +66,7 @@ const zeaburStatic = defineNitroPreset(
       publicDir: "{{ output.dir }}/static",
     },
     commands: {
-      preview: "npx serve ./static",
+      preview: "npx serve {{ output.publicDir }}",
     },
   },
   {

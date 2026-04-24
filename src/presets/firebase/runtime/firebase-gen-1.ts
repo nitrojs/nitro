@@ -2,7 +2,7 @@ import "#nitro-internal-pollyfills";
 import { useNitroApp } from "nitropack/runtime";
 import { useAppConfig } from "nitropack/runtime";
 
-import functions from "firebase-functions";
+import functions from "firebase-functions/v1";
 import { toNodeListener } from "h3";
 
 const nitroApp = useNitroApp();

@@ -14,7 +14,7 @@ export const denoServerLegacy = defineNitroPreset(
     entry: "./runtime/deno-server",
     exportConditions: ["deno"],
     commands: {
-      preview: "deno task --config ./deno.json start",
+      preview: "deno task --config {{ output.dir }}/deno.json start",
     },
     unenv: {
       inject: {

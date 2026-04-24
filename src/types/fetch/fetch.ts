@@ -110,7 +110,6 @@ export interface $Fetch<
 }
 
 declare global {
-  // eslint-disable-next-line no-var
   var $fetch: $Fetch;
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace NodeJS {
@@ -120,4 +119,5 @@ declare global {
   }
 }
 
+// eslint-disable-next-line unicorn/require-module-specifiers
 export type {};

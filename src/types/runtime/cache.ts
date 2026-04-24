@@ -31,11 +31,10 @@ export interface ResponseCacheEntry<T = any> {
   headers: Record<string, string | number | string[] | undefined>;
 }
 
-export interface CachedEventHandlerOptions<T = any>
-  extends Omit<
-    CacheOptions<ResponseCacheEntry<T>, [H3Event]>,
-    "transform" | "validate"
-  > {
+export interface CachedEventHandlerOptions<T = any> extends Omit<
+  CacheOptions<ResponseCacheEntry<T>, [H3Event]>,
+  "transform" | "validate"
+> {
   headersOnly?: boolean;
   varies?: string[] | readonly string[];
 }

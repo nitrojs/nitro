@@ -80,7 +80,7 @@ export async function defaultHandler(
 
   // Use HTML response only when user-agent expects it (browsers)
   const useJSON =
-    opts?.json || !getRequestHeader(event, "accept")?.includes("text/html");
+    opts?.json ?? !getRequestHeader(event, "accept")?.includes("text/html");
 
   // Prepare headers
   const headers: HeadersInit = {

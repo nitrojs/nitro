@@ -7,8 +7,8 @@ const edgio = defineNitroPreset(
   {
     extends: "node-server",
     commands: {
-      deploy: "cd ./ && npm run deploy",
-      preview: "cd ./ && npm run preview",
+      deploy: "cd {{ output.dir }} && npm run deploy",
+      preview: "cd {{ output.dir }} && npm run preview",
     },
     hooks: {
       async compiled(nitro) {
