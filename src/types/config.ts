@@ -52,7 +52,7 @@ export interface NitroOptions extends PresetOptions {
   // General
 
   /**
-   * Opt-in date for deployment provider features.
+   * Opt-in date for deployment provider and runtime compatibility features.
    *
    * Providers introduce new features that Nitro presets can leverage, but
    * some need to be explicitly opted into. Set to the latest tested date
@@ -64,10 +64,7 @@ export interface NitroOptions extends PresetOptions {
   compatibilityDate: CompatibilityDates;
 
   /**
-   * Enable debug mode for verbose logging and additional development
-   * information.
-   *
-   * Automatically enabled when the `DEBUG` environment variable is set.
+   * Enables debugging nitro (build time) hooks in the console.
    *
    * @see https://nitro.build/config#debug
    */
@@ -316,7 +313,7 @@ export interface NitroOptions extends PresetOptions {
   };
 
   /**
-   * WASM import support configuration.
+   * Native wasm compatibility/bundling support configuration.
    *
    * Set to `false` to disable.
    *
@@ -368,7 +365,7 @@ export interface NitroOptions extends PresetOptions {
      */
     envExpansion?: boolean;
     /**
-     * Enable WebSocket support
+     * Enable WebSocket upgrade support
      *
      * @deprecated Use `features.websocket` instead.
      */
