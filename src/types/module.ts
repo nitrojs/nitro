@@ -18,12 +18,14 @@ export type NitroModuleInput = string | NitroModule | NitroModule["setup"] | { n
  *
  * @example
  * ```ts
- * const myModule: NitroModule = {
+ * export default {
  *   name: "my-module",
- *   setup(nitro) {
- *     nitro.hooks.hook("compiled", () => {
- *       console.log("Build complete!");
- *     });
+ *   nitro: {
+ *     setup(nitro) {
+ *       nitro.hooks.hook("compiled", () => {
+ *         console.log("Build complete!");
+ *       });
+ *     },
  *   },
  * };
  * ```
