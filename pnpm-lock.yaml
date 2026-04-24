@@ -173,9 +173,6 @@ importers:
       edge-runtime:
         specifier: ^4.0.1
         version: 4.0.1
-      escape-string-regexp:
-        specifier: ^5.0.0
-        version: 5.0.0
       etag:
         specifier: ^1.8.1
         version: 1.8.1
