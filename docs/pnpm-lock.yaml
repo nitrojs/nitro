@@ -18,8 +18,8 @@ importers:
         specifier: ^2.2.1
         version: 2.2.1(@vueuse/core@14.2.1(vue@3.5.32(typescript@5.9.3)))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vue@3.5.32(typescript@5.9.3))
       shaders:
-        specifier: ^2.5.103
-        version: 2.5.103(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vue@3.5.32(typescript@5.9.3))
+        specifier: ^2.5.109
+        version: 2.5.109(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vue@3.5.32(typescript@5.9.3))
       undocs:
         specifier: npm:undocs-nightly@0.4.17-20260413-104322-a4a49c4
         version: undocs-nightly@0.4.17-20260413-104322-a4a49c4(@babel/core@7.29.0)(@babel/plugin-syntax-jsx@7.28.6(@babel/core@7.29.0))(@parcel/watcher@2.5.6)(@tiptap/extensions@3.22.4(@tiptap/core@3.22.4(@tiptap/pm@3.22.4))(@tiptap/pm@3.22.4))(@tiptap/y-tiptap@3.0.2(prosemirror-model@1.25.4)(prosemirror-state@1.4.4)(prosemirror-view@1.41.6)(y-protocols@1.0.7(yjs@13.6.29))(yjs@13.6.29))(@vue/compiler-sfc@3.5.32)(@vueuse/core@14.2.1(vue@3.5.32(typescript@5.9.3)))(cac@6.7.14)(chokidar@5.0.0)(db0@0.3.4)(dotenv@17.3.1)(embla-carousel@8.6.0)(giget@3.1.2)(ioredis@5.10.0)(jiti@2.6.1)(lightningcss@1.32.0)(magicast@0.5.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(rollup-plugin-visualizer@6.0.11(rollup@4.59.0))(rollup@4.59.0)(terser@5.46.0)(typescript@5.9.3)(vite@7.3.1(jiti@2.6.1)(lightningcss@1.32.0)(terser@5.46.0)(yaml@2.8.2))(vue-router@5.0.4(@vue/compiler-sfc@3.5.32)(vue@3.5.32(typescript@5.9.3)))(yaml@2.8.2)(yjs@13.6.29)(zod@4.3.6)
@@ -4984,8 +4984,8 @@ packages:
     engines: {node: '>= 0.10'}
     hasBin: true
 
-  shaders@2.5.103:
-    resolution: {integrity: sha512-MJUptrqUEUL0/xUs7jSqv7Q2pgLISzx4RkLVap6FTEDRyDVJzo64eTBA2p9vK73Ht6i3fJugvF3jxO/K5i2aoA==}
+  shaders@2.5.109:
+    resolution: {integrity: sha512-7lrVAAAxVDzR0P+XgWgs9PlAAZQtLGrxvV0jaV4edkUIM//6/oEOQQP9fxYYJa6ERFobsRnZ43ejcFOn1Etxsw==}
     peerDependencies:
       pixi.js: ^8.0.0
       react: ^18.0.0 || ^19.0.0
@@ -11605,7 +11605,7 @@ snapshots:
       safe-buffer: 5.2.1
       to-buffer: 1.2.2
 
-  shaders@2.5.103(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vue@3.5.32(typescript@5.9.3)):
+  shaders@2.5.109(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vue@3.5.32(typescript@5.9.3)):
     dependencies:
       three: 0.184.0
     optionalDependencies:
