@@ -1,40 +1,30 @@
+# https://pnpm.io/settings
+
+shellEmulator: true
+dedupePeers: true
+ignoreWorkspaceRootCheck: true
+
 packages:
   - examples/**
   - playground
   - test/fixture
   - test/minimal
 
-ignoreWorkspaceRootCheck: true
+trustPolicy: no-downgrade
+trustPolicyExclude:
+  - "semver@6.3.1"
 
-ignoredBuiltDependencies:
-  - keytar
-  - protobufjs
-  - vue-demi
-
-onlyBuiltDependencies:
-  - '@parcel/watcher'
-  - esbuild
-  - ocache
-  - sharp
-  - workerd
+blockExoticSubdeps: true
+strictDepBuilds: true
+allowBuilds:
+  "@parcel/watcher": false
+  esbuild: false
+  keytar: false
+  sharp: false
+  vue-demi: false
+  workerd: false
 
 peerDependencyRules:
-  ignoreMissing:
-    - react
-    - '@types/react'
-    - react-dom
-    - '@algolia/client-search'
-
-shellEmulator: true
-
-# typescript-eslint is affected by
-# https://github.com/pnpm/pnpm/issues/10329
-# trustPolicy: no-downgrade
-
-trustPolicyExclude:
-  - chokidar@4.0.3
-  - tailwind-merge@2.6.0
-  - '@headlessui/vue@1.7.23'
-  - undici-types@6.21.0
-  - rxjs@7.8.2
-  - semver@6.3.1
+  allowedVersions:
+    vite: "8"
+    typescript: "6"

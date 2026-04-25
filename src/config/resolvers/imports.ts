@@ -1,6 +1,6 @@
-import escapeRE from "escape-string-regexp";
 import type { NitroOptions } from "nitro/types";
 import { join } from "pathe";
+import { escapeRegExp } from "../../utils/regex.ts";
 
 export async function resolveImportsOptions(options: NitroOptions) {
   // Skip loader entirely if imports disabled
@@ -27,7 +27,7 @@ export async function resolveImportsOptions(options: NitroOptions) {
     options.imports.exclude.push(
       scanDirsInNodeModules.length > 0
         ? new RegExp(
-            `node_modules\\/(?!${scanDirsInNodeModules.map((dir) => escapeRE(dir)).join("|")})`
+            `node_modules\\/(?!${scanDirsInNodeModules.map((dir) => escapeRegExp(dir)).join("|")})`
           )
         : /[/\\]node_modules[/\\]/
     );
