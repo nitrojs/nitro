@@ -8,6 +8,7 @@ import { runtimeDependencies, runtimeDir } from "nitro/meta";
 import { resolveModulePath } from "exsolve";
 import { createFetchableDevEnvironment } from "./dev.ts";
 import { isAbsolute } from "pathe";
+import { getSourceExtensions } from "../../utils/source-extensions.ts";
 
 export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOptions {
   const isWorkerdRunner = _isWorkerdRunner(ctx);
@@ -89,7 +90,7 @@ export function createServiceEnvironment(
     },
     dev: {
       createEnvironment: (envName, envConfig) => {
-        const entry = tryResolve(serviceConfig.entry);
+        const entry = tryResolve(serviceConfig.entry, ctx.nitro!.options.sourceExtensions);
         (ctx._viteEnvs ??= new Map()).set(envName, entry);
         return createFetchableDevEnvironment(envName, envConfig, getEnvRunner(ctx), entry, {
           preventExternalize: isWorkerdRunner,
@@ -237,13 +238,14 @@ function _isWorkerdRunner(ctx: NitroPluginContext): boolean {
   return runnerName === "miniflare";
 }
 
-function tryResolve(id: string) {
+function tryResolve(id: string, sourceExtensions: string[] = []) {
   if (/^[~#/\0]/.test(id) || isAbsolute(id)) {
     return id;
   }
+  const resolvableSourceExtensions = getSourceExtensions({ sourceExtensions });
   const resolved = resolveModulePath(id, {
     suffixes: ["", "/index"],
-    extensions: ["", ".ts", ".mjs", ".cjs", ".js", ".mts", ".cts"],
+    extensions: ["", ...resolvableSourceExtensions],
     try: true,
   });
   return resolved || id;
