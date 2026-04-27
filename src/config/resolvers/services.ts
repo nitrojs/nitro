@@ -1,6 +1,7 @@
 import type { NitroOptions, NitroServiceConfig } from "nitro/types";
 import { resolveModulePath } from "exsolve";
 import { isAbsolute, resolve } from "pathe";
+import { getSourceExtensions } from "../../utils/source-extensions.ts";
 
 export const SERVICE_EXTENSIONS = [".ts", ".js", ".mts", ".mjs", ".tsx", ".jsx"];
 
@@ -10,7 +11,7 @@ export function resolveServicesOptions(options: NitroOptions) {
 
 /** Resolves the path entries of services (bare specifiers are resolved by the builder). */
 export function resolveServices(
-  options: Pick<NitroOptions, "rootDir" | "scanDirs">,
+  options: Pick<NitroOptions, "rootDir" | "scanDirs" | "sourceExtensions">,
   services: Record<string, NitroServiceConfig> | undefined
 ): Record<string, NitroServiceConfig> {
   return Object.fromEntries(
@@ -28,13 +29,13 @@ export function resolveServices(
 
 /** Resolves a service entry from the root and scan directories (with or without extension). */
 export function resolveServiceEntry(
-  options: Pick<NitroOptions, "rootDir" | "scanDirs">,
+  options: Pick<NitroOptions, "rootDir" | "scanDirs" | "sourceExtensions">,
   entry: string
 ): string {
   return (
     resolveModulePath(entry, {
       from: [options.rootDir, ...options.scanDirs],
-      extensions: SERVICE_EXTENSIONS,
+      extensions: getSourceExtensions(options, SERVICE_EXTENSIONS),
       suffixes: ["", "/index"],
       try: true,
     }) || (entry.startsWith(".") ? resolve(options.rootDir, entry) : entry)

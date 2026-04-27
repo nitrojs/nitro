@@ -4,6 +4,7 @@ import { resolve } from "pathe";
 import { runtimeDir } from "#nitro/meta";
 import { SERVICE_EXTENSIONS } from "../config/resolvers/services.ts";
 import { prettyPath } from "../utils/fs.ts";
+import { getSourceExtensions } from "../utils/source-extensions.ts";
 
 /** Finds an `entry-server` file in `app/`, `src/` or the root of the root and scan directories. */
 export function findSSREntry(nitro: Nitro): string | undefined {
@@ -11,7 +12,7 @@ export function findSSREntry(nitro: Nitro): string | undefined {
     from: ["app", "src", ""].flatMap((dir) =>
       [nitro.options.rootDir, ...nitro.options.scanDirs].map((base) => resolve(base, dir) + "/")
     ),
-    extensions: SERVICE_EXTENSIONS,
+    extensions: getSourceExtensions(nitro.options, SERVICE_EXTENSIONS),
     try: true,
   });
 }

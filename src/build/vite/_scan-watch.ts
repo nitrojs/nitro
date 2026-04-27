@@ -2,9 +2,9 @@ import type { Nitro } from "nitro/types";
 import type { DevEnvironment, ViteDevServer } from "vite";
 import { basename, dirname, join, normalize } from "pathe";
 import { scanHandlers } from "../../scan.ts";
+import { getSourceExtensionPattern } from "../../utils/source-extensions.ts";
 import { onWatchError } from "../../utils/watch.ts";
 
-const serverEntryRe = /^server\.[mc]?[jt]sx?$/;
 const watchReloadEvents = new Set(["add", "addDir", "unlink", "unlinkDir"]);
 
 /**
@@ -12,6 +12,9 @@ const watchReloadEvents = new Set(["add", "addDir", "unlink", "unlinkDir"]);
  * entry), when a `public/` dir is removed, and on the `build:reload` hook.
  */
 export function watchScanDirs(nitro: Nitro, server: ViteDevServer, onChange: () => void): void {
+  const sourceExtensionPattern = getSourceExtensionPattern(nitro.options);
+  const serverEntryRe = new RegExp(String.raw`^server\.(?:${sourceExtensionPattern})$`);
+
   const scanDirs = nitro.options.scanDirs.flatMap((dir) => [
     join(dir, nitro.options.apiDir || "api"),
     join(dir, nitro.options.routesDir || "routes"),

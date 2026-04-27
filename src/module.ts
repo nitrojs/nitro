@@ -1,5 +1,6 @@
 import type { Nitro, NitroModule, NitroModuleInput } from "nitro/types";
 import { resolveModuleURL } from "exsolve";
+import { getSourceExtensions } from "./utils/source-extensions.ts";
 
 // Modules already installed for a Nitro instance, keyed by resolved URL (string inputs)
 // or by `setup` identity (inline modules) to keep `installModules` idempotent.
@@ -33,7 +34,7 @@ async function _resolveNitroModule(
   if (typeof mod === "string") {
     _url = resolveModuleURL(mod, {
       from: [nitroOptions.rootDir],
-      extensions: [".mjs", ".cjs", ".js", ".mts", ".cts", ".ts"],
+      extensions: getSourceExtensions(nitroOptions),
     });
     mod = (await import(_url).then((m: any) => m.default || m)) as NitroModule;
   }

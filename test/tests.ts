@@ -388,6 +388,11 @@ export function testNitro(
     expect(deepIndex).toEqual({ route: "catch-all", params: { slug: "foo" } });
   });
 
+  it("configured source extensions work", async () => {
+    const { data } = await callHandler({ url: "/api/civet" });
+    expect(data).toBe("civet");
+  });
+
   it("group routes", async () => {
     const { status } = await callHandler({ url: "/route-group" });
     expect(status).toBe(200);
