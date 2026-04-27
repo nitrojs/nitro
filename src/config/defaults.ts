@@ -12,6 +12,7 @@ export const NitroDefaults: NitroConfig = {
   // Dirs
   serverDir: false,
   scanDirs: [],
+  sourceExtensions: [],
   buildDir: `node_modules/.nitro`,
   output: {
     dir: "{{ rootDir }}/.output",

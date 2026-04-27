@@ -1,8 +1,7 @@
 import type { Nitro } from "nitro/types";
 import { resolveModulePath } from "exsolve";
 import { prettyPath } from "../../utils/fs.ts";
-
-const RESOLVE_EXTENSIONS = [".ts", ".js", ".mts", ".mjs"];
+import { getSourceExtensions } from "../../utils/source-extensions.ts";
 
 export async function setupEntryExports(nitro: Nitro) {
   const exportsEntry = resolveExportsEntry(nitro);
@@ -21,7 +20,7 @@ export async function setupEntryExports(nitro: Nitro) {
 function resolveExportsEntry(nitro: Nitro) {
   const entry = resolveModulePath(nitro.options.cloudflare?.exports || "./exports.cloudflare.ts", {
     from: nitro.options.rootDir,
-    extensions: RESOLVE_EXTENSIONS,
+    extensions: getSourceExtensions(nitro.options),
     try: true,
   });
 
