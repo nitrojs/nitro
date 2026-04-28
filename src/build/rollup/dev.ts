@@ -44,7 +44,7 @@ export async function watchDev(nitro: Nitro, rollupConfig: RollupConfig) {
   });
 
   const sourceExtensionPattern = getSourceExtensionPattern(nitro.options);
-  const serverEntryRe = new RegExp(String.raw`^server\.(?:${sourceExtensionPattern})$`);
+  const serverEntryRe = new RegExp(String.raw`^server(?:\.node)?\.(?:${sourceExtensionPattern})$`);
   const rootDirWatcher = chokidarWatch(nitro.options.rootDir, {
     ignoreInitial: true,
     depth: 0,

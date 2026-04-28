@@ -114,7 +114,7 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   const nitro = ctx.nitro!;
   const nitroEnv = server.environments.nitro as FetchableDevEnvironment;
   const sourceExtensionPattern = getSourceExtensionPattern(nitro.options);
-  const serverEntryRe = new RegExp(String.raw`^server\.(?:${sourceExtensionPattern})$`);
+  const serverEntryRe = new RegExp(String.raw`^server(?:\.node)?\.(?:${sourceExtensionPattern})$`);
 
   // Restart with nitro.config changes
   const nitroConfigFile = nitro.options._c12.configFile;
