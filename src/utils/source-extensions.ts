@@ -15,7 +15,12 @@ export const BASE_SOURCE_EXTENSIONS = [...moduleExtensions.js, ...moduleExtensio
 export function normalizeSourceExtensions(extensions: string[] = []) {
   return extensions
     .map((ext) => ext.trim())
-    .filter((ext) => ext.trim().length !== 0)
+    .filter((ext) => {
+      const trimmedExt = ext.trim();
+      const isEmpty = trimmedExt.length === 0
+      const isInvalid = isEmpty || trimmedExt === "."
+      return !isInvalid
+    })
     .map((ext) => (ext.startsWith(".") ? ext : `.${ext}`));
 }
 
