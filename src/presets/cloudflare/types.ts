@@ -7,9 +7,9 @@ import type {
 } from "@cloudflare/workers-types";
 import type { DurableObject } from "cloudflare:workers";
 
-import type { Config as _Config, ComputedFields as _ComputedFields } from "./wrangler/config.ts";
+import type { Unstable_RawConfig } from "wrangler";
 
-export type WranglerConfig = Partial<Omit<_Config, keyof _ComputedFields>>;
+export type WranglerConfig = Partial<Unstable_RawConfig>;
 
 /**
  * https://developers.cloudflare.com/pages/platform/functions/routing/#functions-invocation-routes
