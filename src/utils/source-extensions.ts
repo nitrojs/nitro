@@ -17,9 +17,9 @@ export function normalizeSourceExtensions(extensions: string[] = []) {
     .map((ext) => ext.trim())
     .filter((ext) => {
       const trimmedExt = ext.trim();
-      const isEmpty = trimmedExt.length === 0
-      const isInvalid = isEmpty || trimmedExt === "."
-      return !isInvalid
+      const isEmpty = trimmedExt.length === 0;
+      const isInvalid = isEmpty || trimmedExt === ".";
+      return !isInvalid;
     })
     .map((ext) => (ext.startsWith(".") ? ext : `.${ext}`));
 }
