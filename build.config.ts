@@ -67,7 +67,9 @@ export default defineBuildConfig({
         "get-port-please",
         "cloudflare:workers",
         "@cloudflare/workers-types",
+        "@cloudflare/workers-types/experimental",
         "miniflare",
+        "undici",
         // unplugin deps
         "@rspack/core",
         "@farmfe/core",
