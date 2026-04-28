@@ -38,9 +38,9 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         if: ${{ matrix.os != 'windows-latest' }}
         with: { bun-version: latest }
-      - uses: denoland/setup-deno@v1
+      - uses: denoland/setup-deno@v2.0.4
         if: ${{ matrix.os != 'windows-latest' }}
-        with: { deno-version: 2.7.12 }
+        with: { deno-version: 2.7.13 }
       - run: node scripts/vite7.ts
       - run: pnpm install
       - run: pnpm stub && pnpm lint
@@ -66,9 +66,9 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         if: ${{ matrix.os != 'windows-latest' }}
         with: { bun-version: latest }
-      - uses: denoland/setup-deno@v1
+      - uses: denoland/setup-deno@v2.0.4
         if: ${{ matrix.os != 'windows-latest' }}
-        with: { deno-version: 2.7.12 }
+        with: { deno-version: 2.7.13 }
       - run: pnpm install
       - run: pnpm build
       - run: pnpm vitest run test/examples
