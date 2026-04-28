@@ -13,7 +13,7 @@ const watchReloadEvents = new Set(["add", "addDir", "unlink", "unlinkDir"]);
  */
 export function watchScanDirs(nitro: Nitro, server: ViteDevServer, onChange: () => void): void {
   const sourceExtensionPattern = getSourceExtensionPattern(nitro.options);
-  const serverEntryRe = new RegExp(String.raw`^server\.(?:${sourceExtensionPattern})$`);
+  const serverEntryRe = new RegExp(String.raw`^server(?:\.node)?\.(?:${sourceExtensionPattern})$`);
 
   const scanDirs = nitro.options.scanDirs.flatMap((dir) => [
     join(dir, nitro.options.apiDir || "api"),

@@ -3,6 +3,7 @@ import { basename, join, resolve } from "pathe";
 import { debounce } from "perfect-debounce";
 import { formatCompatibilityDate } from "compatx";
 import { scanHandlers } from "../../scan.ts";
+import { getSourceExtensionPattern } from "../../utils/source-extensions.ts";
 import { createWatcher } from "../../utils/watch.ts";
 import type { PluginContainer } from "./_plugins.ts";
 import { bundle } from "./_bundle.ts";
@@ -82,7 +83,8 @@ export async function watchDev(nitro: Nitro, config: BunConfig, container: Plugi
     }
   });
 
-  const serverEntryRe = /^server\.[mc]?[jt]sx?$/;
+  const sourceExtensionPattern = getSourceExtensionPattern(nitro.options);
+  const serverEntryRe = new RegExp(String.raw`^server(?:\.node)?\.(?:${sourceExtensionPattern})$`);
   const rootDirWatcher = createWatcher(nitro, nitro.options.rootDir, {
     ...watchOptions,
     depth: 0,

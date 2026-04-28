@@ -44,7 +44,7 @@ export async function watchDev(
   });
 
   const sourceExtensionPattern = getSourceExtensionPattern(nitro.options);
-  const serverEntryRe = new RegExp(String.raw`^server\.(?:${sourceExtensionPattern})$`);
+  const serverEntryRe = new RegExp(String.raw`^server(?:\.node)?\.(?:${sourceExtensionPattern})$`);
   const rootDirWatcher = createWatcher(nitro, nitro.options.rootDir, {
     ignoreInitial: true,
     depth: 0,
