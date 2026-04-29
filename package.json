@@ -60,7 +60,7 @@
     "lint": "oxlint . && oxfmt --check .",
     "format": "automd && oxlint --fix . && oxfmt .",
     "nitro": "node ./src/cli/index.ts",
-    "release": "node ./scripts/release.js",
+    "release": "node ./scripts/release.ts",
     "stub": "obuild --stub",
     "test": "pnpm lint && pnpm build && pnpm typecheck && pnpm test:rollup && pnpm test:rolldown",
     "test:rolldown": "NITRO_BUILDER=rolldown pnpm vitest",
