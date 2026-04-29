@@ -155,7 +155,7 @@
     "serve-static": "^2.2.1",
     "source-map": "^0.7.6",
     "std-env": "^4.0.0",
-    "ufo": "^1.6.3",
+    "ufo": "^1.6.4",
     "ultrahtml": "^1.6.0",
     "uncrypto": "^0.1.3",
     "unctx": "^2.5.0",

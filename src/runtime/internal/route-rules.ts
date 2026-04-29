@@ -39,6 +39,8 @@ export function createRouteRulesHandler(ctx: {
             throw createError({ statusCode: 400 });
           }
           targetPath = withoutBase(targetPath, strpBase);
+        } else if (targetPath.startsWith("//")) {
+          targetPath = targetPath.replace(/^\/+/, "/");
         }
         target = joinURL(target.slice(0, -3), targetPath);
       } else if (event.path.includes("?")) {
@@ -58,6 +60,8 @@ export function createRouteRulesHandler(ctx: {
             throw createError({ statusCode: 400 });
           }
           targetPath = withoutBase(targetPath, strpBase);
+        } else if (targetPath.startsWith("//")) {
+          targetPath = targetPath.replace(/^\/+/, "/");
         }
         target = joinURL(target.slice(0, -3), targetPath);
       } else if (event.path.includes("?")) {
