@@ -1,6 +1,6 @@
 {
   "name": "nitro",
-  "version": "3.0.260415-beta",
+  "version": "3.0.260429-beta",
   "description": "Build and Deploy Universal JavaScript Servers",
   "keywords": [
     "api-routes",
