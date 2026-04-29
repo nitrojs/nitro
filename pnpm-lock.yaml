@@ -8,6 +8,7 @@ settings:
 overrides:
   cookie-es: ^3.1.1
   nitro: link:.
+  oxc-parser: link:./shims/oxc-parser
 
 importers:
 
@@ -227,6 +228,9 @@ importers:
       obuild:
         specifier: ^0.4.33
         version: 0.4.33(@typescript/native-preview@7.0.0-dev.20260429.1)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.6.1)(magicast@0.5.2)(picomatch@4.0.4)(rollup@4.60.2)(typescript@6.0.3)
+      oxc-parser:
+        specifier: link:shims/oxc-parser
+        version: link:shims/oxc-parser
       oxfmt:
         specifier: ^0.47.0
         version: 0.47.0
@@ -295,7 +299,7 @@ importers:
         version: 2.5.0
       unimport:
         specifier: ^6.2.0
-        version: 6.2.0
+        version: 6.2.0(oxc-parser@shims+oxc-parser)
       untyped:
         specifier: ^2.0.0
         version: 2.0.0
@@ -12968,7 +12972,7 @@ snapshots:
       trough: 2.2.0
       vfile: 6.0.3
 
-  unimport@6.2.0:
+  unimport@6.2.0(oxc-parser@shims+oxc-parser):
     dependencies:
       acorn: 8.16.0
       escape-string-regexp: 5.0.0
@@ -12984,6 +12988,8 @@ snapshots:
       tinyglobby: 0.2.16
       unplugin: 3.0.0
       unplugin-utils: 0.3.1
+    optionalDependencies:
+      oxc-parser: link:shims/oxc-parser
 
   unist-util-find-after@5.0.0:
     dependencies:

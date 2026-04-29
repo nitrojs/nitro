@@ -89,15 +89,12 @@ export default defineBuildConfig({
         if (chunk.name === "rolldown-runtime") {
           return `_common.mjs`;
         }
-        if (chunk.moduleIds.every((id) => id.includes("node_modules"))) {
+        const pkgRe = /.*[/\\](?:node_modules|shims)[/\\](?<package>@[^/\\]+[/\\][^/\\]+|[^/\\]+)/;
+        if (chunk.moduleIds.every((id) => pkgRe.test(id))) {
           const pkgNames = [
             ...new Set(
               chunk.moduleIds
-                .map(
-                  (id) =>
-                    id.match(/.*[/\\]node_modules[/\\](?<package>@[^/\\]+[/\\][^/\\]+|[^/\\]+)/)
-                      ?.groups?.package
-                )
+                .map((id) => id.match(pkgRe)?.groups?.package)
                 .filter(Boolean)
                 .map((name) => name!.split(/[/\\]/).pop()!)
                 .filter(Boolean)
