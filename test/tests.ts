@@ -578,6 +578,15 @@ export function testNitro(
     }
   });
 
+  it("runtime proxy collapses leading slashes after wildcard prefix", async () => {
+    // Regression test for GHSA-9phm-9p8f-hw5m: a leading `//` after the
+    // wildcard prefix must not be forwarded verbatim to the upstream.
+    const { data } = await callHandler({
+      url: "/rules/proxy/legacy//evil.com",
+    });
+    expect(data).toBe("evil.com");
+  });
+
   it("external proxy", async () => {
     const { data, headers, status } = await callHandler({
       url: "/cdn/npm/bootstrap@5.3.8/dist/js/bootstrap.min.js",

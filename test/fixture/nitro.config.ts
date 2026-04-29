@@ -119,6 +119,7 @@ export default defineConfig({
     "/rules/_/cached/noncached": { cache: false, swr: false, isr: false },
     "/rules/_/cached/**": { swr: true },
     "/api/proxy/**": { proxy: "/api/echo" },
+    "/rules/proxy/legacy/**": { proxy: "/api/wildcard/**" },
     "/cdn/**": { proxy: "https://cdn.jsdelivr.net/**" },
     "/rules/basic-auth/**": {
       basicAuth: { username: "admin", password: "secret", realm: "Secure Area" },
