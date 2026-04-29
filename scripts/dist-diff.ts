@@ -1,12 +1,6 @@
 #!/usr/bin/env node
 import { execSync, spawnSync } from "node:child_process";
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { dirname, join, relative } from "pathe";
@@ -49,14 +43,10 @@ const stdout = flags.has("--stdout");
 const outDir = join(rootDir, ".tmp");
 const outPath = stdout ? null : join(outDir, `dist-diff-${version}.patch`);
 
-const result = spawnSync(
-  "diff",
-  ["-ruN", releasedDist, localDist],
-  {
-    encoding: "utf8",
-    maxBuffer: 256 * 1024 * 1024,
-  }
-);
+const result = spawnSync("diff", ["-ruN", releasedDist, localDist], {
+  encoding: "utf8",
+  maxBuffer: 256 * 1024 * 1024,
+});
 
 const patch = result.stdout || "";
 
@@ -71,10 +61,9 @@ if (result.status !== 1) {
   process.exit(result.status ?? 1);
 }
 
-const summary = execSync(
-  `diff -r --brief ${releasedDist} ${localDist} || true`,
-  { encoding: "utf8" }
-);
+const summary = execSync(`diff -r --brief ${releasedDist} ${localDist} || true`, {
+  encoding: "utf8",
+});
 console.log(summary);
 
 if (stdout) {
@@ -108,8 +97,7 @@ function writeDiffTree(
     const match = header.match(/^diff -ruN (\S+) (\S+)$/);
     if (!match) continue;
     const [, releasedPath, localPath] = match;
-    const rel =
-      relative(releasedRoot, releasedPath) || relative(localRoot, localPath);
+    const rel = relative(releasedRoot, releasedPath) || relative(localRoot, localPath);
     if (!rel || rel.startsWith("..")) continue;
     const target = join(treeDir, `${rel}.patch`);
     mkdirSync(dirname(target), { recursive: true });
