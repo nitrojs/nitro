@@ -317,6 +317,15 @@ export function testNitro(
     });
     expect(wildcard.status).toBe(307);
     expect(wildcard.headers.location).toBe("https://nitro.build/nuxt");
+
+    // Regression test for GHSA-9phm-9p8f-hw5m: a leading `//` after the
+    // wildcard prefix must not be forwarded as a protocol-relative URL.
+    const legacy = await callHandler({
+      url: "/rules/redirect/legacy//evil.com",
+    });
+    expect(legacy.status).toBe(307);
+    expect(legacy.headers.location).not.toMatch(/^\/\//);
+    expect(legacy.headers.location).toBe("/evil.com");
   });
 
   it("binary response", async () => {
@@ -567,6 +576,15 @@ export function testNitro(
       // TODO: Investigate why headers are missing in this case
       expect(data.headers["x-test"]).toBe("foobar");
     }
+  });
+
+  it("runtime proxy collapses leading slashes after wildcard prefix", async () => {
+    // Regression test for GHSA-9phm-9p8f-hw5m: a leading `//` after the
+    // wildcard prefix must not be forwarded verbatim to the upstream.
+    const { data } = await callHandler({
+      url: "/rules/proxy/legacy//evil.com",
+    });
+    expect(data).toBe("evil.com");
   });
 
   it("external proxy", async () => {
