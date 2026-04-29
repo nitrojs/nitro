@@ -32,7 +32,7 @@ export const redirect: RouteRuleCtor<"redirect"> = ((m) =>
         if (!isPathInScope(event.url.pathname, strpBase)) {
           throw new HTTPError({ status: 400 });
         }
-        targetPath = withoutBase(targetPath, strpBase);
+        targetPath = collapseLeadingSlashes(withoutBase(targetPath, strpBase));
       }
       target = joinURL(target.slice(0, -3), targetPath);
     } else if (event.url.search) {
@@ -55,7 +55,7 @@ export const proxy: RouteRuleCtor<"proxy"> = ((m) =>
         if (!isPathInScope(event.url.pathname, strpBase)) {
           throw new HTTPError({ status: 400 });
         }
-        targetPath = withoutBase(targetPath, strpBase);
+        targetPath = collapseLeadingSlashes(withoutBase(targetPath, strpBase));
       }
       target = joinURL(target.slice(0, -3), targetPath);
     } else if (event.url.search) {
@@ -120,4 +120,13 @@ export function isPathInScope(pathname: string, base: string): boolean {
     return false;
   }
   return !base || canonical === base || canonical.startsWith(base + "/");
+}
+
+// Collapse any leading run of slashes to a single slash. After `withoutBase`
+// strips the wildcard prefix, a request like `/legacy//evil.com` leaves
+// `//evil.com`, which `joinURL("", "//evil.com")` would emit verbatim and the
+// browser would interpret as a protocol-relative URL pointing at an external
+// host (GHSA-9phm-9p8f-hw5m).
+function collapseLeadingSlashes(path: string): string {
+  return path.startsWith("//") ? path.replace(/^\/+/, "/") : path;
 }
