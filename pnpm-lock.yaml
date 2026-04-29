@@ -74,6 +74,9 @@ importers:
       '@cloudflare/workers-types':
         specifier: ^4.20260425.1
         version: 4.20260425.1
+      '@cloudflare/workers-utils':
+        specifier: ^0.18.0
+        version: 0.18.0
       '@deno/types':
         specifier: ^0.0.1
         version: 0.0.1
@@ -1052,6 +1055,9 @@ packages:
 
   '@cloudflare/workers-types@4.20260425.1':
     resolution: {integrity: sha512-f6dlo3SsA+TNqjveavPDN73nxRfCOOd0iMdf8iEosgR/RJtQlrGwfr5L5Vf7x/5cpeeguxScKevuaMmdjpOECw==}
+
+  '@cloudflare/workers-utils@0.18.0':
+    resolution: {integrity: sha512-4yXUjaAcG7jPdGscA4H71Tg2e7z2ioOLfPrzAX8iLAM3CiANlxC01O82SRaIzPuzwW8Rs5gmGIbyjBWaFHLeoA==}
 
   '@codemirror/autocomplete@6.20.1':
     resolution: {integrity: sha512-1cvg3Vz1dSSToCNlJfRA2WSI4ht3K+WplO0UMOgmUYPivCyy2oueZY6Lx7M9wThm7SDUBViRmuT+OG/i8+ON9A==}
@@ -7332,6 +7338,8 @@ snapshots:
     optional: true
 
   '@cloudflare/workers-types@4.20260425.1': {}
+
+  '@cloudflare/workers-utils@0.18.0': {}
 
   '@codemirror/autocomplete@6.20.1':
     dependencies:

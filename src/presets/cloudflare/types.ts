@@ -7,9 +7,9 @@ import type {
 } from "@cloudflare/workers-types";
 import type { DurableObject } from "cloudflare:workers";
 
-import type { Unstable_RawConfig } from "wrangler";
+import type { RawConfig } from "@cloudflare/workers-utils";
 
-export type WranglerConfig = Partial<Unstable_RawConfig>;
+export type WranglerConfig = Partial<RawConfig>;
 
 /**
  * https://developers.cloudflare.com/pages/platform/functions/routing/#functions-invocation-routes
