@@ -92,7 +92,9 @@ function serializeHandlerFn(h: NitroEventHandler & { _importHash: string }): str
   return code;
 }
 
-function tracedSerializeHandler(h: MaybeArray<NitroEventHandler & { _importHash: string }>): string {
+function tracedSerializeHandler(
+  h: MaybeArray<NitroEventHandler & { _importHash: string }>
+): string {
   const meta = Array.isArray(h) ? h[0] : h;
 
   return `{${[
