@@ -54,6 +54,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
     launcherType: "Nodejs",
     shouldAddHelpers: false,
     supportsResponseStreaming: true,
+    ...(nitro.options.sourcemap ? { shouldAddSourcemapSupport: true } : {}),
     ...nitro.options.vercel?.functions,
   };
 
