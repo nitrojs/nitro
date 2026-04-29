@@ -345,6 +345,14 @@ describe("nitro:preset:vercel", async () => {
                 "src": "/api/db",
               },
               {
+                "dest": "/api/cached-error-toggle",
+                "src": "/api/cached-error-toggle",
+              },
+              {
+                "dest": "/api/cached-error",
+                "src": "/api/cached-error",
+              },
+              {
                 "dest": "/api/cached",
                 "src": "/api/cached",
               },
@@ -476,6 +484,8 @@ describe("nitro:preset:vercel", async () => {
             "functions/__fallback.func/node_modules",
             "functions/__fallback.func/package.json",
             "functions/__fallback.func/timing.js",
+            "functions/api/cached-error-toggle.func (symlink)",
+            "functions/api/cached-error.func (symlink)",
             "functions/api/cached.func (symlink)",
             "functions/api/db.func (symlink)",
             "functions/api/echo.func (symlink)",
