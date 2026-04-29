@@ -12,10 +12,14 @@ export default function tracing(nitro: Nitro) {
         imports.push(`import { tracingPlugin as srvxTracing } from "srvx/tracing";`);
       }
       if (h3) {
-        imports.push(`import { tracingPlugin as h3Tracing, wrapFindRouteWithTracing } from "h3/tracing";`);
+        imports.push(
+          `import { tracingPlugin as h3Tracing, wrapFindRouteWithTracing } from "h3/tracing";`
+        );
         setup.push(`  h3Tracing()(nitroApp.h3);`);
         setup.push(`  if (nitroApp.h3["~findRoute"]) {`);
-        setup.push(`    nitroApp.h3["~findRoute"] = wrapFindRouteWithTracing(nitroApp.h3["~findRoute"]);`);
+        setup.push(
+          `    nitroApp.h3["~findRoute"] = wrapFindRouteWithTracing(nitroApp.h3["~findRoute"]);`
+        );
         setup.push(`  }`);
       }
 
