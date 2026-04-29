@@ -30,7 +30,10 @@ const multiHandler = (...handlers) => {
 
 ${allHandlers
   .filter((h) => !h.lazy)
-  .map((h) => /* js */ `import ${h._importHash} from "${h.handler}";`)
+  .map(
+    (h) =>
+      /* js */ `const ${h._importHash} = await import("${h.handler}").then(m => m.default).catch(() => {})`
+  )
   .join("\n")}
 
 ${allHandlers
