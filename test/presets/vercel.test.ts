@@ -643,6 +643,7 @@ describe("nitro:preset:vercel:bun", async () => {
         "launcherType": "Nodejs",
         "runtime": "bun1.x",
         "shouldAddHelpers": false,
+        "shouldAddSourcemapSupport": true,
         "supportsResponseStreaming": true,
       }
     `);
