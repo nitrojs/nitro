@@ -46,4 +46,22 @@ describe("vite:baseURL dotted params", { sequential: true }, () => {
       );
     }
   });
+
+  // Browsers omit Sec-Fetch-* on plain-HTTP non-loopback origins (e.g. http://10.0.0.x:3000). Without that signal, a splat Nitro route would swallow `<script src=".../entry-client.ts">` requests. Accept + asset extension is used as a fallback to keep asset loads routed to Vite.
+  test("does not misroute asset loads to splat Nitro routes when sec-fetch-dest is absent", async () => {
+    const response = await fetch(`${serverURL}/subdir/api/proxy/entry-client.ts`, {
+      headers: { accept: "*/*" },
+      redirect: "manual",
+    });
+    expect(await response.text()).not.toBe("entry-client.ts");
+  });
+
+  test("navigation without sec-fetch-dest still routes to Nitro (Accept: text/html)", async () => {
+    const response = await fetch(`${serverURL}/subdir/api/proxy/page.html`, {
+      headers: { accept: "text/html,application/xhtml+xml" },
+      redirect: "manual",
+    });
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("page.html");
+  });
 });

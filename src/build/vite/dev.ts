@@ -17,6 +17,12 @@ import { getEnvRunner } from "./env.ts";
 
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
 
+// Extensions that strongly indicate a browser asset load (script/style/font/image/media).
+// Used as a fallback signal when `Sec-Fetch-Dest` is absent (plain-HTTP non-loopback origins).
+// Kept narrow on purpose so that arbitrary dotted Nitro route params (e.g. `.../foo.bar.1`) keep reaching Nitro.
+const ASSET_EXT_RE =
+  /^(?:[jt]sx?|mjs|cjs|css|s[ac]ss|less|styl|vue|svelte|astro|mdx?|map|wasm|png|jpe?g|gif|svg|webp|avif|ico|bmp|woff2?|ttf|otf|eot|mp[34]|webm|wav|ogg|m4a)$/i;
+
 // ---- Types ----
 
 export type FetchHandler = (req: Request) => Promise<Response>;
@@ -237,6 +243,7 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   // https://github.com/vitejs/vite/pull/20866
   server.middlewares.use(function nitroDevMiddlewarePre(req, res, next) {
     const fetchDest = req.headers["sec-fetch-dest"];
+    const accept = req.headers["accept"];
     const ext = req.url!.match(/\.([a-z0-9]+)(?:[?#]|$)/i)?.[1];
     const isNitroRoute = ext
       ? !!nitro.routing.routes.match(
@@ -244,10 +251,17 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
           new URL(withBase(req.url!, nitro.options.baseURL), "http://localhost").pathname
         )
       : false;
-    res.setHeader("vary", "sec-fetch-dest");
+    // Sec-Fetch-* is only sent on "potentially trustworthy" origins, so on plain-HTTP non-loopback (e.g. http://10.0.0.x) it's absent and a splat Nitro route may swallow browser asset loads (#4234). When the header is missing, treat known asset extensions without `text/html` in Accept as asset loads and let Vite handle them.
+    const isDocumentLike = fetchDest
+      ? /^(document|iframe|frame|empty)$/.test(fetchDest)
+      : !(
+          ext &&
+          ASSET_EXT_RE.test(ext) &&
+          !(typeof accept === "string" && /\btext\/html\b/.test(accept))
+        );
+    res.setHeader("vary", "sec-fetch-dest, accept");
     if (
-      // Originating from browser tab or no fetch dest (curl, fetch, etc) and (not script, style, image, etc)
-      (!fetchDest || /^(document|iframe|frame|empty)$/.test(fetchDest)) &&
+      isDocumentLike &&
       // No file extension (not /src/index.ts) unless it is an explicit Nitro route
       (!ext || isNitroRoute) &&
       // Special prefixes (/__vue-router/auto-routes, /@vite-plugin-layouts/, etc)
@@ -255,6 +269,12 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     ) {
       nitroDevMiddleware(req, res, next);
     } else {
+      if (!isDocumentLike) {
+        // This is an asset load — Vite is the definitive handler. Mark the
+        // request so the catch-all `nitroDevMiddleware` registered after Vite
+        // doesn't fall back into a splat Nitro route on a 404.
+        (req as IncomingMessage & { _nitroHandled?: boolean })._nitroHandled = true;
+      }
       next();
     }
   });
