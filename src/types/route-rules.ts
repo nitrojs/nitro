@@ -11,6 +11,7 @@ export interface NitroRouteConfig {
   prerender?: boolean;
   proxy?: string | ({ to: string } & ProxyOptions);
   isr?: number /* expiration */ | boolean | VercelISRConfig;
+  openAPIEnabled?: boolean;
 
   // Shortcuts
   cors?: boolean;
