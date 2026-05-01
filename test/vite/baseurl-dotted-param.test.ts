@@ -67,6 +67,16 @@ describe("vite:baseURL dotted params", { sequential: true }, () => {
     expect(await response.text()).not.toBe("entry-client.ts");
   });
 
+  // The extension extraction must look at the path only — a `.png` in the query string (e.g. `?file=bar.png`) must not flag the request as an asset and divert it to Vite.
+  test("ignores asset-like extensions inside the query string when routing to Nitro", async () => {
+    const response = await fetch(`${serverURL}/subdir/api/proxy/data?file=bar.png`, {
+      headers: { "sec-fetch-dest": "image", accept: "image/*" },
+      redirect: "manual",
+    });
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("data");
+  });
+
   test("navigation without sec-fetch-dest still routes to Nitro (Accept: text/html)", async () => {
     const response = await fetch(`${serverURL}/subdir/api/proxy/page.html`, {
       headers: { accept: "text/html,application/xhtml+xml" },

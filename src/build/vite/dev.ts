@@ -244,7 +244,7 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   server.middlewares.use(function nitroDevMiddlewarePre(req, res, next) {
     const fetchDest = req.headers["sec-fetch-dest"];
     const accept = req.headers["accept"];
-    const ext = req.url!.match(/\.([a-z0-9]+)(?:[?#]|$)/i)?.[1];
+    const ext = req.url!.split(/[?#]/, 1)[0].match(/\.([a-z0-9]+)$/i)?.[1];
     const isNitroRoute = !!nitro.routing.routes.match(
       req.method || "",
       new URL(withBase(req.url!, nitro.options.baseURL), "http://localhost").pathname
