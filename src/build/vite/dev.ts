@@ -245,31 +245,29 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     const fetchDest = req.headers["sec-fetch-dest"];
     const accept = req.headers["accept"];
     const ext = req.url!.match(/\.([a-z0-9]+)(?:[?#]|$)/i)?.[1];
-    const isNitroRoute = ext
-      ? !!nitro.routing.routes.match(
-          req.method || "",
-          new URL(withBase(req.url!, nitro.options.baseURL), "http://localhost").pathname
-        )
-      : false;
+    const isNitroRoute = !!nitro.routing.routes.match(
+      req.method || "",
+      new URL(withBase(req.url!, nitro.options.baseURL), "http://localhost").pathname
+    );
     // Sec-Fetch-* is only sent on "potentially trustworthy" origins, so on plain-HTTP non-loopback (e.g. http://10.0.0.x) it's absent and a splat Nitro route may swallow browser asset loads (#4234). When the header is missing, treat known asset extensions without `text/html` in Accept as asset loads and let Vite handle them.
-    const isDocumentLike = fetchDest
-      ? /^(document|iframe|frame|empty)$/.test(fetchDest)
-      : !(
-          ext &&
-          ASSET_EXT_RE.test(ext) &&
-          !(typeof accept === "string" && /\btext\/html\b/.test(accept))
-        );
+    const isAssetByDest =
+      typeof fetchDest === "string" && !/^(document|iframe|frame|empty)$/.test(fetchDest);
+    const isAssetByExt = !!ext && ASSET_EXT_RE.test(ext);
+    const acceptsHTML = typeof accept === "string" && /\btext\/html\b/.test(accept);
+    const treatAsAsset = isAssetByDest || (!fetchDest && isAssetByExt && !acceptsHTML);
     res.setHeader("vary", "sec-fetch-dest, accept");
-    if (
-      isDocumentLike &&
-      // No file extension (not /src/index.ts) unless it is an explicit Nitro route
-      (!ext || isNitroRoute) &&
+    // An explicit Nitro route reaches Nitro even when the request is tagged as an asset (e.g. `<img src="/api/image">` with `sec-fetch-dest: image`, #4241), UNLESS the URL also has an asset-like extension — in that case Vite stays the definitive handler so a splat doesn't swallow `<script src=".../entry-client.ts">` (#4234).
+    const nitroWins = isNitroRoute && !(isAssetByExt && treatAsAsset);
+    // Fallback for unknown URLs: extensionless, non-asset requests default to Nitro (page navigation, SSR catch-all).
+    const documentFallback = !ext && !treatAsAsset;
+    const routeToNitro =
+      (nitroWins || documentFallback) &&
       // Special prefixes (/__vue-router/auto-routes, /@vite-plugin-layouts/, etc)
-      !/^\/(?:__|@)/.test(req.url!)
-    ) {
+      !/^\/(?:__|@)/.test(req.url!);
+    if (routeToNitro) {
       nitroDevMiddleware(req, res, next);
     } else {
-      if (!isDocumentLike) {
+      if (treatAsAsset) {
         // This is an asset load — Vite is the definitive handler. Mark the
         // request so the catch-all `nitroDevMiddleware` registered after Vite
         // doesn't fall back into a splat Nitro route on a 404.
