@@ -8,8 +8,7 @@ export default function storage(nitro: Nitro) {
     template: () => {
       const mounts: { path: string; driver: string; opts: object }[] = [];
 
-      const isDevOrPrerender =
-        nitro.options.dev || nitro.options.preset === "nitro-prerender";
+      const isDevOrPrerender = nitro.options.dev || nitro.options.preset === "nitro-prerender";
       const storageMounts = isDevOrPrerender
         ? { ...nitro.options.storage, ...nitro.options.devStorage }
         : nitro.options.storage;
@@ -18,17 +17,20 @@ export default function storage(nitro: Nitro) {
         const { driver: driverName, ...driverOpts } = storageMounts[path];
         mounts.push({
           path,
-          driver:
-            builtinDrivers[driverName as keyof typeof builtinDrivers] ||
-            driverName,
+          driver: builtinDrivers[driverName as keyof typeof builtinDrivers] || driverName,
           opts: driverOpts,
         });
       }
 
       const driverImports = [...new Set(mounts.map((m) => m.driver))];
 
+      const tracingEnabled = !!(
+        typeof nitro.options.tracingChannel === "object" && nitro.options.tracingChannel?.unstorage
+      );
+
       return /* js */ `
 import { createStorage } from 'unstorage'
+${tracingEnabled ? `import { withTracing } from 'unstorage/tracing'` : ""}
 import { assets } from '#nitro/virtual/server-assets'
 
 ${driverImports.map((i) => genImport(i, genSafeVariableName(i))).join("\n")}
@@ -39,12 +41,10 @@ export function initStorage() {
   ${mounts
     .map(
       (m) =>
-        `storage.mount('${m.path}', ${genSafeVariableName(
-          m.driver
-        )}(${JSON.stringify(m.opts)}))`
+        `storage.mount('${m.path}', ${genSafeVariableName(m.driver)}(${JSON.stringify(m.opts)}))`
     )
     .join("\n")}
-  return storage
+  return ${tracingEnabled ? "withTracing(storage)" : "storage"}
 }
 `;
     },

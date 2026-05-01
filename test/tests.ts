@@ -19,7 +19,7 @@ import { fetch } from "ofetch";
 import type { FetchOptions } from "ofetch";
 import { join, resolve } from "pathe";
 import { isWindows } from "std-env";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 export interface Context {
   preset: string;
@@ -39,11 +39,7 @@ export interface Context {
 }
 
 // https://github.com/nitrojs/nitro/pull/1240
-export const describeIf = (
-  condition: boolean,
-  title: string,
-  factory: () => any
-) =>
+export const describeIf = (condition: boolean, title: string, factory: () => any) =>
   condition
     ? describe(title, factory)
     : describe(title, () => {
@@ -52,21 +48,14 @@ export const describeIf = (
         });
       });
 
-export const fixtureDir = fileURLToPath(
-  new URL("fixture", import.meta.url).href
-);
+export const fixtureDir = fileURLToPath(new URL("fixture", import.meta.url).href);
 
 export const getPresetTmpDir = (preset: string) => {
   if (preset.startsWith("cloudflare")) {
-    return fileURLToPath(
-      new URL(`.tmp/${preset}`, import.meta.url) as any /* remove me */
-    );
+    return fileURLToPath(new URL(`.tmp/${preset}`, import.meta.url) as any /* remove me */);
   }
 
-  return resolve(
-    process.env.NITRO_TEST_TMP_DIR || join(tmpdir(), "nitro-tests"),
-    preset
-  );
+  return resolve(process.env.NITRO_TEST_TMP_DIR || join(tmpdir(), "nitro-tests"), preset);
 };
 
 export async function setupTest(
@@ -197,6 +186,7 @@ export async function startServer(ctx: Context, handle: RequestListener) {
 type TestHandlerResult = {
   data: any;
   status: number;
+  statusText?: string;
   headers: Record<string, string | string[]>;
 };
 type TestHandler = (options: any) => Promise<TestHandlerResult | Response>;
@@ -239,12 +229,16 @@ export function testNitro(
       }
     }
     headers["set-cookie"] = (result as Response).headers.getSetCookie();
+    if (headers["set-cookie"].length === 0) {
+      delete headers["set-cookie"];
+    }
 
     return {
       data: callOpts.binary
         ? Buffer.from(await (result as Response).arrayBuffer())
         : destr(await (result as Response).text()),
       status: result.status,
+      statusText: result.statusText,
       headers,
     };
   }
@@ -323,18 +317,22 @@ export function testNitro(
     });
     expect(wildcard.status).toBe(307);
     expect(wildcard.headers.location).toBe("https://nitro.build/nuxt");
+
+    // Regression test for GHSA-9phm-9p8f-hw5m: a leading `//` after the
+    // wildcard prefix must not be forwarded as a protocol-relative URL.
+    const legacy = await callHandler({
+      url: "/rules/redirect/legacy//evil.com",
+    });
+    expect(legacy.status).toBe(307);
+    expect(legacy.headers.location).not.toMatch(/^\/\//);
+    expect(legacy.headers.location).toBe("/evil.com");
   });
 
   it("binary response", async () => {
     const { data } = await callHandler({ url: "/icon.png" }, { binary: true });
     // Check if buffer is a png
     function isBufferPng(buffer: Buffer) {
-      return (
-        buffer[0] === 0x89 &&
-        buffer[1] === 0x50 &&
-        buffer[2] === 0x4e &&
-        buffer[3] === 0x47
-      );
+      return buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47;
     }
     expect(isBufferPng(data)).toBe(true);
   });
@@ -352,42 +350,39 @@ export function testNitro(
     expect(data).toMatchObject({ window: false });
   });
 
-  it.runIf(ctx.nitro?.options.serveStatic)(
-    "handles custom Vary header",
-    async () => {
-      let headers = (
-        await callHandler({
-          url: "/foo.css",
-          headers: { "Accept-Encoding": "gzip" },
-        })
-      ).headers;
-      if (headers["vary"]) {
-        expect(headers["vary"].includes("Origin")).toBeTruthy();
-        expect(headers["vary"].includes("Accept-Encoding")).toBeTruthy();
-      }
-
-      headers = (
-        await callHandler({
-          url: "/foo.css",
-          headers: { "Accept-Encoding": "" },
-        })
-      ).headers;
-      if (headers["vary"]) {
-        expect(headers["vary"]).toBe("Origin");
-      }
-
-      headers = (
-        await callHandler({
-          url: "/foo.js",
-          headers: { "Accept-Encoding": "gzip" },
-        })
-      ).headers;
-      if (headers["vary"]) {
-        expect(headers["vary"].includes("Origin")).toBeTruthy();
-        expect(headers["vary"].includes("Accept-Encoding")).toBeTruthy();
-      }
+  it.runIf(ctx.nitro?.options.serveStatic)("handles custom Vary header", async () => {
+    let headers = (
+      await callHandler({
+        url: "/foo.css",
+        headers: { "Accept-Encoding": "gzip" },
+      })
+    ).headers;
+    if (headers["vary"]) {
+      expect(headers["vary"].includes("Origin")).toBeTruthy();
+      expect(headers["vary"].includes("Accept-Encoding")).toBeTruthy();
     }
-  );
+
+    headers = (
+      await callHandler({
+        url: "/foo.css",
+        headers: { "Accept-Encoding": "" },
+      })
+    ).headers;
+    if (headers["vary"]) {
+      expect(headers["vary"]).toBe("Origin");
+    }
+
+    headers = (
+      await callHandler({
+        url: "/foo.js",
+        headers: { "Accept-Encoding": "gzip" },
+      })
+    ).headers;
+    if (headers["vary"]) {
+      expect(headers["vary"].includes("Origin")).toBeTruthy();
+      expect(headers["vary"].includes("Accept-Encoding")).toBeTruthy();
+    }
+  });
 
   it("handles route rules - headers", async () => {
     const { headers } = await callHandler({ url: "/rules/headers" });
@@ -405,6 +400,52 @@ export function testNitro(
     expect(headers).toMatchObject(expectedHeaders);
   });
 
+  describe("handles route rules - basic auth", () => {
+    it("rejects request with bad creds", async () => {
+      const { status, headers } = await callHandler({
+        url: "/rules/basic-auth",
+        headers: {
+          Authorization: "Basic " + btoa("user:wrongpass"),
+        },
+      });
+      expect(status).toBe(401);
+      expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
+    });
+
+    it("allows request with correct password", async () => {
+      const { status } = await callHandler({
+        url: "/rules/basic-auth/test",
+        headers: {
+          Authorization: "Basic " + btoa("admin:secret"),
+        },
+      });
+      expect(status).toBe(200);
+    });
+
+    it("disabled basic-auth for sub-rules", async () => {
+      const { status } = await callHandler({ url: "/rules/basic-auth/no-auth" });
+      expect(status).toBe(200);
+    });
+
+    it("runs before redirect rule from a less specific layer", async () => {
+      const { status, headers } = await callHandler({
+        url: "/rules/ba-redirect/secure/page",
+        headers: { Authorization: "Basic " + btoa("user:wrongpass") },
+      });
+      expect(status).toBe(401);
+      expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
+    });
+
+    it("runs before proxy rule from a less specific layer", async () => {
+      const { status, headers } = await callHandler({
+        url: "/rules/ba-proxy/secure/page",
+        headers: { Authorization: "Basic " + btoa("user:wrongpass") },
+      });
+      expect(status).toBe(401);
+      expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
+    });
+  });
+
   it("handles route rules - allowing overriding", async () => {
     const override = await callHandler({ url: "/rules/nested/override" });
     expect(override.headers.location).toBe("/other");
@@ -415,37 +456,9 @@ export function testNitro(
     expect(base.headers["x-test"]).toBe("test");
   });
 
-  it("handles errors", async () => {
-    const { status, headers } = await callHandler({
-      url: "/api/error",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-    expect(status).toBe(503);
-
-    expect(headers).toMatchObject({
-      "content-type": "application/json",
-      "content-security-policy": ctx.isDev
-        ? "script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self';"
-        : "script-src 'none'; frame-ancestors 'none';",
-      "referrer-policy": "no-referrer",
-      "x-content-type-options": "nosniff",
-      "x-frame-options": "DENY",
-    });
-
-    const { data } = await callHandler({
-      url: "/api/error?json",
-    });
-    expect(status).toBe(503);
-    expect(data.json.error).toBe(true);
-  });
-
   it.skipIf(
     // TODO!
-    ctx.preset === "vercel" &&
-      ctx.nitro?.options.vercel?.entryFormat === "node" &&
-      isWindows
+    ctx.preset === "vercel" && ctx.nitro?.options.vercel?.entryFormat === "node" && isWindows
   )("handles custom server assets", async () => {
     const { data: html, status: htmlStatus } = await callHandler({
       url: "/file?filename=index.html",
@@ -503,56 +516,49 @@ export function testNitro(
     });
   });
 
-  it.skipIf(ctx.preset === "deno-server")(
-    "resolve module version conflicts",
-    async () => {
-      const { data } = await callHandler({ url: "/modules" });
-      expect(data).toMatchObject({
-        depA: "@fixture/nitro-lib@1.0.0+@fixture/nested-lib@1.0.0",
-        depB: "@fixture/nitro-lib@2.0.1+@fixture/nested-lib@2.0.1",
-        depLib: "@fixture/nitro-lib@2.0.0+@fixture/nested-lib@2.0.0",
-        subpathLib: "@fixture/nitro-lib@2.0.0",
-        extraUtils: "@fixture/nitro-utils/extra",
-      });
-    }
-  );
+  it.skipIf(ctx.preset === "deno-server")("resolve module version conflicts", async () => {
+    const { data } = await callHandler({ url: "/modules" });
+    expect(data).toMatchObject({
+      depA: "@fixture/nitro-lib@1.0.0+@fixture/nested-lib@1.0.0",
+      depB: "@fixture/nitro-lib@2.0.1+@fixture/nested-lib@2.0.1",
+      depLib: "@fixture/nitro-lib@2.0.0+@fixture/nested-lib@2.0.0",
+      subpathLib: "@fixture/nitro-lib@2.0.0",
+      extraUtils: "@fixture/nitro-utils/extra",
+    });
+  });
 
-  it.skipIf(ctx.isIsolated)(
-    "useStorage (with base)",
-    { retry: 5 },
-    async () => {
-      const putRes = await callHandler({
-        url: "/api/storage/item?key=test:hello",
-        method: "PUT",
-        body: `"world"`,
-      });
-      expect(putRes.data).toBe("world");
+  it.skipIf(ctx.isIsolated)("useStorage (with base)", { retry: 5 }, async () => {
+    const putRes = await callHandler({
+      url: "/api/storage/item?key=test:hello",
+      method: "PUT",
+      body: `"world"`,
+    });
+    expect(putRes.data).toBe("world");
 
-      expect(
-        (
-          await callHandler({
-            url: "/api/storage/item?key=:",
-          })
-        ).data
-      ).toMatchObject(["test:hello"]);
+    expect(
+      (
+        await callHandler({
+          url: "/api/storage/item?key=:",
+        })
+      ).data
+    ).toMatchObject(["test:hello"]);
 
-      expect(
-        (
-          await callHandler({
-            url: "/api/storage/item?base=test&key=:",
-          })
-        ).data
-      ).toMatchObject(["hello"]);
+    expect(
+      (
+        await callHandler({
+          url: "/api/storage/item?base=test&key=:",
+        })
+      ).data
+    ).toMatchObject(["hello"]);
 
-      expect(
-        (
-          await callHandler({
-            url: "/api/storage/item?base=test&key=hello",
-          })
-        ).data
-      ).toBe("world");
-    }
-  );
+    expect(
+      (
+        await callHandler({
+          url: "/api/storage/item?base=test&key=hello",
+        })
+      ).data
+    ).toBe("world");
+  });
 
   if (additionalTests) {
     additionalTests(ctx, callHandler);
@@ -566,15 +572,28 @@ export function testNitro(
       },
     });
     expect(data.url).toBe("/api/echo?foo=bar");
-    if (
-      !(
-        ctx.preset === "vercel" &&
-        ctx.nitro?.options.vercel?.entryFormat === "node"
-      )
-    ) {
+    if (!(ctx.preset === "vercel" && ctx.nitro?.options.vercel?.entryFormat === "node")) {
       // TODO: Investigate why headers are missing in this case
       expect(data.headers["x-test"]).toBe("foobar");
     }
+  });
+
+  it("runtime proxy collapses leading slashes after wildcard prefix", async () => {
+    // Regression test for GHSA-9phm-9p8f-hw5m: a leading `//` after the
+    // wildcard prefix must not be forwarded verbatim to the upstream.
+    const { data } = await callHandler({
+      url: "/rules/proxy/legacy//evil.com",
+    });
+    expect(data).toBe("evil.com");
+  });
+
+  it("external proxy", async () => {
+    const { data, headers, status } = await callHandler({
+      url: "/cdn/npm/bootstrap@5.3.8/dist/js/bootstrap.min.js",
+    });
+    expect(status).toBe(200);
+    expect(headers["etag"]).toMatch(/W\/".+"/);
+    expect(data).toContain("Bootstrap");
   });
 
   it.skipIf(ctx.preset === "bun" /* TODO */)("stream", async () => {
@@ -597,8 +616,7 @@ export function testNitro(
         },
       },
       sharedRuntimeConfig: {
-        dynamic:
-          ctx.preset === "cloudflare-module-legacy" ? "initial" : "from-env",
+        dynamic: ctx.preset === "cloudflare-module-legacy" ? "initial" : "from-env",
         // url: "https://test.com",
         app: {
           baseURL: "/",
@@ -633,13 +651,10 @@ export function testNitro(
       expect((await callHandler({ url: "/_ignored" })).status).toBe(404);
     });
 
-    it.skipIf(ctx.isWorker || ctx.isDev)(
-      "public files should be ignored",
-      async () => {
-        expect((await callHandler({ url: "/_ignored.txt" })).status).toBe(404);
-        expect((await callHandler({ url: "/favicon.ico" })).status).toBe(200);
-      }
-    );
+    it.skipIf(ctx.isWorker || ctx.isDev)("public files should be ignored", async () => {
+      expect((await callHandler({ url: "/_ignored.txt" })).status).toBe(404);
+      expect((await callHandler({ url: "/favicon.ico" })).status).toBe(200);
+    });
   });
 
   describe("headers", () => {
@@ -659,11 +674,10 @@ export function testNitro(
 
   describe("errors", () => {
     it.skipIf(ctx.isIsolated)("captures errors", async () => {
-      const { data } = await callHandler({ url: "/api/errors" });
-      const allErrorMessages = (data.allErrors || []).map(
-        (entry: any) => entry.message
-      );
-      expect(allErrorMessages).to.includes("Service Unavailable");
+      await callHandler({ url: "/errors/throw" });
+      const { data } = await callHandler({ url: "/errors/captured" });
+      const allErrorMessages = (data.allErrors || []).map((entry: any) => entry.message);
+      expect(allErrorMessages).to.includes("Handled error");
     });
 
     it.skipIf(
@@ -673,9 +687,83 @@ export function testNitro(
         ctx.preset === "deno-server" ||
         ctx.preset === "nitro-dev"
     )("sourcemap works", async () => {
-      const { data } = await callHandler({ url: "/error-stack" });
-      expect(data.stack).toMatch("test/fixture/server/routes/error-stack.ts");
+      const { data } = await callHandler({ url: "/errors/stack" });
+      expect(data.stack).toMatch("test/fixture/server/routes/errors/stack.ts");
     });
+
+    for (const errorAction of ["throw", "return"]) {
+      it(`handled errors (${errorAction})`, async () => {
+        const res = await callHandler({ url: `/errors/throw?handled&action=${errorAction}` });
+        expect(res).toMatchObject({
+          status: 503,
+          statusText: /deno|bun/.test(ctx.preset)
+            ? "Service Unavailable"
+            : /aws/.test(ctx.preset)
+              ? ""
+              : "Custom Status Text",
+          headers: {
+            "content-type": "application/json; charset=utf-8",
+            "x-custom-error": "custom-value",
+          },
+          data: {
+            error: true,
+            status: 503,
+            statusText: "Custom Status Text",
+            message: "Handled error",
+            data: { custom: "data" },
+            custom: "body",
+          },
+        });
+      });
+
+      it(`unhandled errors (${errorAction})`, async () => {
+        const stderrMock = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+        const consoleErrorMock = vi.spyOn(console, "error").mockImplementation(() => {});
+        let res;
+        try {
+          res = await callHandler({
+            url: `/errors/throw?unhandled&action=${errorAction}`,
+            headers: { Accept: "application/json" },
+          });
+        } finally {
+          stderrMock.mockRestore();
+          consoleErrorMock.mockRestore();
+        }
+        // TODO
+        // expect(consoleErrorMock).toHaveBeenCalledExactlyOnceWith(
+        //   expect.stringContaining("Unhandled error")
+        // );
+        if (!ctx.isDev) {
+          // Prod
+          expect(res).toMatchObject({
+            status: 500,
+            headers: {
+              "content-type": "application/json; charset=utf-8",
+            },
+            data: {
+              error: true,
+              unhandled: true,
+              status: 500,
+            },
+          });
+        } else {
+          // Dev
+          expect(res).toMatchObject({
+            status: 500,
+            headers: {
+              "content-type": "application/json; charset=utf-8",
+            },
+            data: {
+              error: true,
+              unhandled: true,
+              status: 500,
+              message: "HTTPError",
+              stack: expect.arrayContaining(["Unhandled error"]),
+            },
+          });
+        }
+      });
+    }
   });
 
   describe("async context", () => {
@@ -727,23 +815,17 @@ export function testNitro(
   describe("scanned files", () => {
     it("Allow having extra method in file name", async () => {
       expect((await callHandler({ url: "/api/methods/get" })).data).toBe("get");
-      expect((await callHandler({ url: "/api/methods/foo.get" })).data).toBe(
-        "foo.get"
-      );
+      expect((await callHandler({ url: "/api/methods/foo.get" })).data).toBe("foo.get");
     });
   });
 
   describe.skipIf(ctx.preset === "cloudflare-worker")("wasm", () => {
     it("dynamic import wasm", async () => {
-      expect((await callHandler({ url: "/wasm/dynamic-import" })).data).toBe(
-        "2+3=5"
-      );
+      expect((await callHandler({ url: "/wasm/dynamic-import" })).data).toBe("2+3=5");
     });
 
     it("static import wasm", async () => {
-      expect((await callHandler({ url: "/wasm/static-import" })).data).toBe(
-        "2+3=5"
-      );
+      expect((await callHandler({ url: "/wasm/static-import" })).data).toBe("2+3=5");
     });
   });
 
@@ -752,13 +834,7 @@ export function testNitro(
       !ctx.nitro!.options.node ||
       ctx.isLambda ||
       ctx.isWorker ||
-      [
-        "bun",
-        "deno-server",
-        "deno-deploy",
-        "netlify",
-        "netlify-legacy",
-      ].includes(ctx.preset)
+      ["bun", "deno-server", "deno-deploy", "netlify", "netlify-legacy"].includes(ctx.preset)
   )("Database", () => {
     it("works", async () => {
       const { data } = await callHandler({ url: "/api/db" });

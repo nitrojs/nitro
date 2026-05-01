@@ -36,8 +36,7 @@ body {
 }
 pre {
   margin: 0;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace;
   font-size: 14px;
   background: transparent;
   white-space: pre;

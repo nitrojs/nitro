@@ -476,15 +476,7 @@ export type SchemaObject = {
   | NullSubtype
   | ObjectSubtype
   | {
-      type: (
-        | "string"
-        | "number"
-        | "integer"
-        | "array"
-        | "boolean"
-        | "null"
-        | "object"
-      )[];
+      type: ("string" | "number" | "integer" | "array" | "boolean" | "null" | "object")[];
     }
 );
 
@@ -528,11 +520,7 @@ export interface NullSubtype {
 export interface ObjectSubtype {
   type: "object" | ["object", "null"];
   properties?: { [name: string]: SchemaObject | ReferenceObject };
-  additionalProperties?:
-    | boolean
-    | Record<string, never>
-    | SchemaObject
-    | ReferenceObject;
+  additionalProperties?: boolean | Record<string, never> | SchemaObject | ReferenceObject;
   required?: string[];
   allOf?: (SchemaObject | ReferenceObject)[];
   anyOf?: (SchemaObject | ReferenceObject)[];

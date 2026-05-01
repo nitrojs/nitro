@@ -15,6 +15,7 @@
     "examples/import-alias/**",
     "examples/vite-rsc/**",
     "test/fixture/server/routes/jsx.tsx",
+    "examples/vite-ssr-html/vite.config.ts",
     "examples/vite-ssr-solid/src/entry-server.tsx",
     "examples/vite-ssr-solid/src/entry-client.tsx"
   ]

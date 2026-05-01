@@ -19,9 +19,9 @@ To use Workers with Static Assets, you need a Nitro compatibility date set to `2
 The following shows an example `nitro.config.ts` file for deploying a Nitro app to Cloudflare Workers.
 
 ```ts [nitro.config.ts]
-import { defineNitroConfig } from "nitro/config";
+import { defineConfig } from "nitro";
 
-export default defineNitroConfig({
+export default defineConfig({
     compatibilityDate: "2024-09-19",
     preset: "cloudflare_module",
     cloudflare: {
@@ -61,7 +61,7 @@ Then you can deploy the application with:
 
 You can use [runtime hooks](/docs/plugins#nitro-runtime-hooks) below in order to extend [Worker handlers](https://developers.cloudflare.com/workers/runtime-apis/handlers/).
 
-:read-more{to="/guide/plugins#nitro-runtime-hooks"}
+:read-more{to="/docs/plugins#nitro-runtime-hooks"}
 
 - [`cloudflare:scheduled`](https://developers.cloudflare.com/workers/runtime-apis/handlers/scheduled/)
 - [`cloudflare:email`](https://developers.cloudflare.com/email-routing/email-workers/runtime-api/)
@@ -97,6 +97,30 @@ export default defineConfig({
 })
 ```
 
+### Scheduled Tasks (Cron Triggers)
+
+When using [Nitro tasks](/docs/tasks) with `scheduledTasks`, Nitro automatically generates [Cron Triggers](https://developers.cloudflare.com/workers/configuration/cron-triggers/) in the wrangler config at build time.
+
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  preset: "cloudflare_module",
+  experimental: {
+    tasks: true,
+  },
+  scheduledTasks: {
+    "* * * * *": ["cms:update"],
+    "0 15 1 * *": ["db:cleanup"],
+  },
+  cloudflare: {
+    deployConfig: true,
+  },
+})
+```
+
+No manual Wrangler configuration is needed - Nitro handles it for you.
+
 ## Cloudflare Pages
 
 **Preset:** `cloudflare_pages`
@@ -114,9 +138,9 @@ Cloudflare [Workers Module](#cloudflare-workers) is the new recommended preset f
 The following shows an example `nitro.config.ts` file for deploying a Nitro app to Cloudflare Pages.
 
 ```ts [nitro.config.ts]
-import { defineNitroConfig } from "nitro/config";
+import { defineConfig } from "nitro";
 
-export default defineNitroConfig({
+export default defineConfig({
     preset: "cloudflare_pages",
     cloudflare: {
       deployConfig: true,
@@ -166,7 +190,7 @@ Make sure to only access environment variables **within the event lifecycle**  a
 **Example:** If you have set the `SECRET` and `NITRO_HELLO_THERE` environment variables set you can access them in the following way:
 
 ```ts
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 import { useRuntimeConfig } from "nitro/runtime-config";
 
 console.log(process.env.SECRET) // note that this is in the global scope! so it doesn't actually work and the variable is undefined!
@@ -212,7 +236,7 @@ For production, use the Cloudflare dashboard or the [`wrangler secret`](https://
 You can specify a custom `wrangler.toml`/`wrangler.json` file and define vars inside.
 
 ::warning
-Note that this isn't recommend for sensitive data like secrets.
+Note that this isn't recommended for sensitive data like secrets.
 ::
 
 **Example:**
@@ -266,21 +290,21 @@ For more details on Bindings and how to use them please refer to the Cloudflare 
 
 :read-more{title="KV Storage" to="/docs/storage"}
 
-In runtime, you can access bindings from the request event, by accessing its `context.cloudflare.env` field, this is for example how you can access a D1 bindings:
+In runtime, you can access bindings from the request event via `event.req.runtime.cloudflare.env`. This is for example how you can access a D1 binding:
 
 ```ts
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 
 defineHandler(async (event) => {
-  const { cloudflare } = event.context
-  const stmt = await cloudflare.env.MY_D1.prepare('SELECT id FROM table')
+  const { env } = event.req.runtime.cloudflare
+  const stmt = await env.MY_D1.prepare('SELECT id FROM table')
   const { results } = await stmt.all()
 })
 ```
 
 ### Access to the bindings in local dev
 
-To access bindings in dev mode, we first define them. You can do this in a `wrangler.toml`/`wrangler.json` file, or directly in your Nitro config under `cloudflare.wrangler` (accepts the same type as `wrangler.json`).
+To access bindings in dev mode, we first define them. You can do this in a `wrangler.jsonc`/`wrangler.json`/`wrangler.toml` file
 
 For example, to define a variable and a KV namespace in `wrangler.toml`:
 
@@ -311,32 +335,6 @@ id = "xxx"
 
 ::
 
-Or in your Nitro config:
-
-
-```js [nitro.config.js]
-import { defineNitroConfig } from "nitro/config";
-
-export default defineNitroConfig({
-    cloudflare: {
-      wrangler: {
-        vars: {
-          MY_VARIABLE: "my-value"
-        },
-        kv_namespaces: [
-          {
-            binding: "MY_KV",
-            id: "xxx"
-          }
-        ]
-      }
-    }
-});
-```
-
-> [!NOTE]
-> Only bindings in the default environment are recognized.
-
 Next we install the required `wrangler` package (if not already installed):
 
 :pm-install{name="wrangler -D"}
@@ -346,3 +344,20 @@ From this moment, when running
 :pm-run{script="dev"}
 
 you will be able to access the `MY_VARIABLE` and `MY_KV` from the request event just as illustrated above.
+
+#### Wrangler environments
+
+If you have multiple Wrangler environments, you can specify which Wrangler environment to use during Cloudflare dev emulation:
+
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  preset: 'cloudflare_module',
+  cloudflare: {
+    dev: {
+      environment: 'preview'
+    }
+  }
+})
+```

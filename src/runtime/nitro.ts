@@ -3,9 +3,7 @@ import type { NitroConfig } from "nitro/types";
 import type { ServerRequestContext } from "srvx";
 import { toRequest, type H3EventContext } from "h3";
 
-export function defineConfig(
-  config: Omit<NitroConfig, "rootDir">
-): Omit<NitroConfig, "rootDir"> {
+export function defineConfig(config: Omit<NitroConfig, "rootDir">): Omit<NitroConfig, "rootDir"> {
   return config;
 }
 
@@ -13,6 +11,17 @@ export function defineConfig(
 export { defineNitroPlugin as definePlugin } from "./internal/plugin.ts";
 export { defineRouteMeta } from "./internal/meta.ts";
 export { defineNitroErrorHandler as defineErrorHandler } from "./internal/error/utils.ts";
+
+// H3
+export {
+  defineHandler,
+  defineMiddleware,
+  defineWebSocketHandler,
+  html,
+  HTTPError,
+  HTTPResponse,
+} from "h3";
+export type { H3Event } from "h3";
 
 // Runtime
 export function serverFetch(

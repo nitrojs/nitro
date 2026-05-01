@@ -20,11 +20,12 @@ export const getRollupConfig = async (nitro: Nitro): Promise<RollupConfig> => {
     external: [...base.env.external],
     plugins: [
       ...(await baseBuildPlugins(nitro, base)),
-      oxc({
+      await oxc({
         sourcemap: !!nitro.options.sourcemap,
         minify: nitro.options.minify ? { ...nitro.options.oxc?.minify } : false,
         transform: {
           target: "esnext",
+          // @ts-expect-error TODO: does option exists?
           cwd: nitro.options.rootDir,
           ...nitro.options.oxc?.transform,
           jsx: {
@@ -55,11 +56,6 @@ export const getRollupConfig = async (nitro: Nitro): Promise<RollupConfig> => {
         rollupWarn(warning);
       }
     },
-    treeshake: {
-      moduleSideEffects(id) {
-        return nitro.options.moduleSideEffects.some((p) => id.startsWith(p));
-      },
-    },
     output: {
       format: "esm",
       entryFileNames: "index.mjs",
@@ -80,7 +76,7 @@ export const getRollupConfig = async (nitro: Nitro): Promise<RollupConfig> => {
 
   config = defu(nitro.options.rollupConfig as any, config);
 
-  const outputConfig = config.output as RollupConfig["output"];
+  const outputConfig = config.output as NonNullable<RollupConfig["output"]>;
   if (outputConfig.inlineDynamicImports || outputConfig.format === "iife") {
     delete outputConfig.manualChunks;
   }

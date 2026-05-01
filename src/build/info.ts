@@ -5,6 +5,8 @@ import { presetsWithConfig } from "../presets/_types.gen.ts";
 import { writeFile } from "../utils/fs.ts";
 import { mkdir, readFile, stat } from "node:fs/promises";
 import { dirname } from "node:path";
+import type { RolldownOutput } from "rolldown";
+import type { RollupOutput } from "rollup";
 
 const NITRO_WELLKNOWN_DIR = "node_modules/.nitro";
 
@@ -37,14 +39,17 @@ export async function findLastBuildDir(root: string): Promise<string> {
   const lastBuildLink = join(root, NITRO_WELLKNOWN_DIR, "last-build.json");
   const outputDir = await readFile(lastBuildLink, "utf8")
     .then(JSON.parse)
-    .then((data) =>
-      resolve(lastBuildLink, data.outputDir || "../../../.output")
-    )
+    .then((data) => resolve(lastBuildLink, data.outputDir || "../../../.output"))
     .catch(() => resolve(root, ".output"));
   return outputDir;
 }
 
-export async function writeBuildInfo(nitro: Nitro): Promise<NitroBuildInfo> {
+export async function writeBuildInfo(
+  nitro: Nitro,
+  output: RolldownOutput | RollupOutput | undefined
+): Promise<NitroBuildInfo> {
+  const serverEntryName = output?.output?.find((o) => o.type === "chunk" && o.isEntry)?.fileName;
+
   const buildInfoPath = resolve(nitro.options.output.dir, "nitro.json");
   const buildInfo: NitroBuildInfo = {
     date: new Date().toJSON(),
@@ -53,24 +58,25 @@ export async function writeBuildInfo(nitro: Nitro): Promise<NitroBuildInfo> {
     versions: {
       nitro: nitroVersion,
     },
+    serverEntry: serverEntryName
+      ? relative(nitro.options.output.dir, join(nitro.options.output.serverDir, serverEntryName))
+      : undefined,
+    publicDir: relative(
+      nitro.options.output.dir,
+      resolve(nitro.options.output.dir, nitro.options.output.publicDir)
+    ),
     commands: {
       preview: nitro.options.commands.preview,
       deploy: nitro.options.commands.deploy,
     },
     config: {
-      ...Object.fromEntries(
-        presetsWithConfig.map((key) => [key, nitro.options[key]])
-      ),
+      ...Object.fromEntries(presetsWithConfig.map((key) => [key, nitro.options[key]])),
     },
   };
 
   await writeFile(buildInfoPath, JSON.stringify(buildInfo, null, 2), true);
 
-  const lastBuild = join(
-    nitro.options.rootDir,
-    NITRO_WELLKNOWN_DIR,
-    "last-build.json"
-  );
+  const lastBuild = join(nitro.options.rootDir, NITRO_WELLKNOWN_DIR, "last-build.json");
   await mkdir(dirname(lastBuild), { recursive: true });
   await writeFile(
     lastBuild,
@@ -81,15 +87,8 @@ export async function writeBuildInfo(nitro: Nitro): Promise<NitroBuildInfo> {
   return buildInfo;
 }
 
-export async function writeDevBuildInfo(
-  nitro: Nitro,
-  addr?: WorkerAddress
-): Promise<void> {
-  const buildInfoPath = join(
-    nitro.options.rootDir,
-    NITRO_WELLKNOWN_DIR,
-    "nitro.dev.json"
-  );
+export async function writeDevBuildInfo(nitro: Nitro, addr?: WorkerAddress): Promise<void> {
+  const buildInfoPath = join(nitro.options.rootDir, NITRO_WELLKNOWN_DIR, "nitro.dev.json");
   const buildInfo: NitroBuildInfo = {
     date: new Date().toJSON(),
     preset: nitro.options.preset,

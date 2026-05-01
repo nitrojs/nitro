@@ -4,8 +4,7 @@ import { describe } from "vitest";
 import { setupTest, testNitro } from "../tests.ts";
 
 const hasDeno =
-  execaCommandSync("deno --version", { stdio: "ignore", reject: false })
-    .exitCode === 0;
+  execaCommandSync("deno --version", { stdio: "ignore", reject: false }).exitCode === 0;
 
 describe.runIf(hasDeno)("nitro:preset:deno-server", async () => {
   const ctx = await setupTest("deno-server");

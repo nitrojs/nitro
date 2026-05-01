@@ -26,7 +26,7 @@
 3. On your admin panel, [create a new site](https://admin.alwaysdata.com/site/add/) for your app with the following features:
    - *Addresses*: `[account_name].alwaysdata.net`
    - *Type*: Node.js
-   - *Command*: `node ./output/server/index.mjs`
+   - *Command*: `node .output/server/index.mjs`
    - *Working directory*: `www/my-app` (adapt it to your deployment path)
    - *Environment*:
 

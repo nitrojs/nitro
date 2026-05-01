@@ -8,8 +8,12 @@ export default defineHandler((event) => {
   const runtimeConfig = useRuntimeConfig();
   const title = runtimeConfig.nitro?.openAPI?.meta?.title || "API Reference";
   const description = runtimeConfig.nitro?.openAPI?.meta?.description || "";
-  const openAPIEndpoint =
-    runtimeConfig.nitro?.openAPI?.route || "./_openapi.json";
+  const openAPIEndpoint = runtimeConfig.nitro?.openAPI?.route || "./_openapi.json";
+
+  const { route: _route, ...swaggerConfig } =
+    (runtimeConfig.nitro?.openAPI?.ui?.swagger as Record<string, unknown>) || {};
+
+  const safeSwaggerConfig = JSON.stringify(swaggerConfig).replace(/<\//g, "<\\/");
 
   const CDN_BASE = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@^5";
   event.res.headers.set("Content-Type", "text/html");
@@ -32,13 +36,14 @@ export default defineHandler((event) => {
         <script>
           window.onload = () => {
             window.ui = SwaggerUIBundle({
-              url: ${JSON.stringify(openAPIEndpoint)},
-              dom_id: "#swagger-ui",
               presets: [
                 SwaggerUIBundle.presets.apis,
                 SwaggerUIStandalonePreset,
               ],
-              layout2: "StandaloneLayout",
+              layout: "StandaloneLayout",
+              ...${safeSwaggerConfig},
+              url: ${JSON.stringify(openAPIEndpoint)},
+              dom_id: "#swagger-ui",
             });
           };
         </script>

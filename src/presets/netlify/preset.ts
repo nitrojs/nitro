@@ -52,16 +52,9 @@ const netlify = defineNitroPreset(
         }
 
         if (Object.keys(nitro.options.netlify?.config || {}).length > 0) {
-          const configPath = join(
-            nitro.options.output.dir,
-            "../deploy/v1/config.json"
-          );
+          const configPath = join(nitro.options.output.dir, "../deploy/v1/config.json");
           await fsp.mkdir(dirname(configPath), { recursive: true });
-          await fsp.writeFile(
-            configPath,
-            JSON.stringify(nitro.options.netlify?.config),
-            "utf8"
-          );
+          await fsp.writeFile(configPath, JSON.stringify(nitro.options.netlify?.config), "utf8");
         }
       },
     },
@@ -119,10 +112,7 @@ const netlifyEdge = defineNitroPreset(
             },
           ],
         };
-        const manifestPath = join(
-          nitro.options.rootDir,
-          ".netlify/edge-functions/manifest.json"
-        );
+        const manifestPath = join(nitro.options.rootDir, ".netlify/edge-functions/manifest.json");
         await fsp.mkdir(dirname(manifestPath), { recursive: true });
         await fsp.writeFile(manifestPath, JSON.stringify(manifest, null, 2));
       },

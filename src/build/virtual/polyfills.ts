@@ -6,8 +6,7 @@ export default function polyfills(_nitro: Nitro, polyfills: string[]) {
     moduleSideEffects: true,
     template: () => {
       return (
-        polyfills.map((p) => /* js */ `import '${p}';`).join("\n") ||
-        /* js */ `/* No polyfills */`
+        polyfills.map((p) => /* js */ `import '${p}';`).join("\n") || /* js */ `/* No polyfills */`
       );
     },
   };

@@ -4,6 +4,19 @@ import { dirname, resolve } from "node:path";
 import { existsSync } from "node:fs";
 
 export default defineConfig({
+  vercel: {
+    functionRules: {
+      "/api/hello": {
+        maxDuration: 100,
+      },
+      "/api/echo": {
+        experimentalTriggers: [{ type: "queue/v2beta", topic: "orders" }],
+      },
+      "/rules/isr/**": {
+        regions: ["lhr1", "cdg1"],
+      },
+    },
+  },
   compressPublicAssets: true,
   compatibilityDate: "latest",
   serverDir: "server",
@@ -31,8 +44,7 @@ export default defineConfig({
     },
   },
   virtual: {
-    "#virtual-route": () =>
-      `export default () => new Response("Hello from virtual entry!")`,
+    "#virtual-route": () => `export default () => new Response("Hello from virtual entry!")`,
   },
   handlers: [
     {
@@ -64,12 +76,7 @@ export default defineConfig({
       dir: "server/files",
     },
   ],
-  ignore: [
-    "routes/api/**/_*",
-    "middleware/_ignored.ts",
-    "routes/_*.ts",
-    "**/_*.txt",
-  ],
+  ignore: ["routes/api/**/_*", "middleware/_ignored.ts", "routes/_*.ts", "**/_*.txt"],
   runtimeConfig: {
     dynamic: "initial",
     url: "https://{{APP_DOMAIN}}",
@@ -104,6 +111,7 @@ export default defineConfig({
       redirect: { to: "https://nitro.build/", status: 308 },
     },
     "/rules/redirect/wildcard/**": { redirect: "https://nitro.build/**" },
+    "/rules/redirect/legacy/**": { redirect: "/**" },
     "/rules/nested/**": { redirect: "/base", headers: { "x-test": "test" } },
     "/rules/nested/override": { redirect: { to: "/other" } },
     "/rules/_/noncached/cached": { swr: true },
@@ -111,6 +119,20 @@ export default defineConfig({
     "/rules/_/cached/noncached": { cache: false, swr: false, isr: false },
     "/rules/_/cached/**": { swr: true },
     "/api/proxy/**": { proxy: "/api/echo" },
+    "/rules/proxy/legacy/**": { proxy: "/api/wildcard/**" },
+    "/cdn/**": { proxy: "https://cdn.jsdelivr.net/**" },
+    "/rules/basic-auth/**": {
+      basicAuth: { username: "admin", password: "secret", realm: "Secure Area" },
+    },
+    "/rules/basic-auth/no-auth/**": { basicAuth: false },
+    "/rules/ba-redirect/**": { redirect: "/base" },
+    "/rules/ba-redirect/secure/**": {
+      basicAuth: { username: "admin", password: "secret", realm: "Secure Area" },
+    },
+    "/rules/ba-proxy/**": { proxy: "/api/echo" },
+    "/rules/ba-proxy/secure/**": {
+      basicAuth: { username: "admin", password: "secret", realm: "Secure Area" },
+    },
     "**": { headers: { "x-test": "test" } },
   },
   prerender: {

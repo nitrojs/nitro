@@ -1,5 +1,7 @@
-import type { getViteRollupConfig } from "./rollup.ts";
-import type { EnvRunner, Nitro, NitroConfig, NitroModule } from "nitro/types";
+import type { TransformResult } from "vite";
+import type { getBundlerConfig } from "./bundler.ts";
+import type { Nitro, NitroConfig, NitroModule } from "nitro/types";
+import type { RunnerManager } from "env-runner";
 import type { NitroDevApp } from "../../dev/app.ts";
 
 declare module "vite" {
@@ -22,7 +24,7 @@ export interface NitroPluginConfig extends NitroConfig {
   _nitro?: Nitro;
 
   experimental?: NitroConfig["experimental"] & {
-    vite: {
+    vite?: {
       /**
        * @experimental Enable `?assets` import proposed by https://github.com/vitejs/vite/discussions/20913
        * @default true
@@ -30,7 +32,8 @@ export interface NitroPluginConfig extends NitroConfig {
       assetsImport?: boolean;
 
       /**
-       * Reload the page when a server module is updated.
+       *
+       * Invalidate server-only modules and optionally reload the browser when a server-only module is updated.
        *
        * @default true
        */
@@ -51,13 +54,16 @@ export interface ServiceConfig {
 export interface NitroPluginContext {
   nitro?: Nitro;
   pluginConfig: NitroPluginConfig;
-  rollupConfig?: Awaited<ReturnType<typeof getViteRollupConfig>>;
+  bundlerConfig?: Awaited<ReturnType<typeof getBundlerConfig>>;
   devApp?: NitroDevApp;
   services: Record<string, ServiceConfig>;
 
   _isRolldown?: boolean;
   _initialized?: boolean;
-  _envRunner?: EnvRunner;
+  _envRunner?: RunnerManager;
+  _initPromise?: Promise<RunnerManager>;
+  _viteEnvs?: Map<string, string>;
+  _transformRequest?: (id: string) => Promise<TransformResult | null | undefined>;
   _publicDistDir?: string;
   _entryPoints: Record<string, string>;
 }

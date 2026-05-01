@@ -1,6 +1,6 @@
-import escapeRE from "escape-string-regexp";
 import type { NitroOptions } from "nitro/types";
 import { join } from "pathe";
+import { escapeRegExp } from "../../utils/regex.ts";
 
 export async function resolveImportsOptions(options: NitroOptions) {
   // Skip loader entirely if imports disabled
@@ -12,15 +12,10 @@ export async function resolveImportsOptions(options: NitroOptions) {
 
   // Auto imports from utils dirs
   options.imports.dirs ??= [];
-  options.imports.dirs.push(
-    ...options.scanDirs.map((dir) => join(dir, "utils/**/*"))
-  );
+  options.imports.dirs.push(...options.scanDirs.map((dir) => join(dir, "utils/**/*")));
 
   // Normalize exclude
-  if (
-    Array.isArray(options.imports.exclude) &&
-    options.imports.exclude.length === 0
-  ) {
+  if (Array.isArray(options.imports.exclude) && options.imports.exclude.length === 0) {
     // Exclude .git and buildDir by default
     options.imports.exclude.push(/[/\\]\.git[/\\]/);
     options.imports.exclude.push(options.buildDir);
@@ -32,9 +27,7 @@ export async function resolveImportsOptions(options: NitroOptions) {
     options.imports.exclude.push(
       scanDirsInNodeModules.length > 0
         ? new RegExp(
-            `node_modules\\/(?!${scanDirsInNodeModules
-              .map((dir) => escapeRE(dir))
-              .join("|")})`
+            `node_modules\\/(?!${scanDirsInNodeModules.map((dir) => escapeRegExp(dir)).join("|")})`
           )
         : /[/\\]node_modules[/\\]/
     );

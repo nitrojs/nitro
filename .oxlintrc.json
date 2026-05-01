@@ -1,0 +1,13 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["unicorn", "typescript", "oxc"],
+  "rules": {
+    "no-control-regex": "off",
+    "no-unused-expressions": "off",
+    "no-unused-vars": "off",
+    "typescript/no-useless-empty-export": "off",
+    "unicorn/no-empty-file": "off",
+    "unicorn/no-invalid-fetch-options": "off",
+    "unicorn/no-useless-spread": "off"
+  }
+}

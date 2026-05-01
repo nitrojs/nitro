@@ -6,11 +6,7 @@ export function sourcemapMinify() {
     generateBundle(_options, bundle) {
       for (const [key, asset] of Object.entries(bundle)) {
         // Only process sourcemaps
-        if (
-          !key.endsWith(".map") ||
-          !("source" in asset) ||
-          typeof asset.source !== "string"
-        ) {
+        if (!key.endsWith(".map") || !("source" in asset) || typeof asset.source !== "string") {
           continue;
         }
 
@@ -23,7 +19,7 @@ export function sourcemapMinify() {
         // Remove x_google_ignoreList
         delete sourcemap.x_google_ignoreList;
 
-        if ((sourcemap.sources || []).some((s) => s.includes("node_modules"))) {
+        if ((sourcemap.sources || []).every((s) => s.includes("node_modules"))) {
           sourcemap.mappings = ""; // required key
         }
 

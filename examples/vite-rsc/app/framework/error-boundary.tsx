@@ -4,11 +4,7 @@ import React from "react";
 
 // Minimal ErrorBoundary example to handle errors globally on browser
 export function GlobalErrorBoundary(props: { children?: React.ReactNode }) {
-  return (
-    <ErrorBoundary errorComponent={DefaultGlobalErrorPage}>
-      {props.children}
-    </ErrorBoundary>
-  );
+  return <ErrorBoundary errorComponent={DefaultGlobalErrorPage}>{props.children}</ErrorBoundary>;
 }
 
 // https://github.com/vercel/next.js/blob/33f8428f7066bf8b2ec61f025427ceb2a54c4bdf/packages/next/src/client/components/error-boundary.tsx
@@ -62,9 +58,7 @@ function DefaultGlobalErrorPage(props: { error: Error; reset: () => void }) {
         <p>Caught an unexpected error</p>
         <pre>
           Error:{" "}
-          {import.meta.env.DEV && "message" in props.error
-            ? props.error.message
-            : "(Unknown)"}
+          {import.meta.env.DEV && "message" in props.error ? props.error.message : "(Unknown)"}
         </pre>
         <button
           onClick={() => {

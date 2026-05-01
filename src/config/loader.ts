@@ -4,12 +4,7 @@ import { resolveCompatibilityDates } from "compatx";
 import type { CompatibilityDateSpec } from "compatx";
 import { klona } from "klona/full";
 import type { PresetName } from "../presets/index.ts";
-import type {
-  LoadConfigOptions,
-  NitroConfig,
-  NitroOptions,
-  NitroPresetMeta,
-} from "nitro/types";
+import type { LoadConfigOptions, NitroConfig, NitroOptions, NitroPresetMeta } from "nitro/types";
 
 import { NitroDefaults } from "./defaults.ts";
 
@@ -29,6 +24,7 @@ import { resolveURLOptions } from "./resolvers/url.ts";
 import { resolveErrorOptions } from "./resolvers/error.ts";
 import { resolveUnenv } from "./resolvers/unenv.ts";
 import { resolveBuilder } from "./resolvers/builder.ts";
+import { resolveTracingOptions } from "./resolvers/tracing.ts";
 
 const configResolvers = [
   resolveCompatibilityOptions,
@@ -46,6 +42,7 @@ const configResolvers = [
   resolveErrorOptions,
   resolveUnenv,
   resolveBuilder,
+  resolveTracingOptions,
 ] as const;
 
 export async function loadOptions(
@@ -83,9 +80,8 @@ async function _loadUserConfig(
   // prettier-ignore
   let preset: string | undefined = (configOverrides.preset as string) || process.env.NITRO_PRESET || process.env.SERVER_PRESET
 
-  const _dotenv =
-    opts.dotenv ??
-    (configOverrides.dev && { fileName: [".env", ".env.local"] });
+  const _dotenv = opts.dotenv ?? (configOverrides.dev && { fileName: [".env", ".env.local"] });
+  const envName = opts.c12?.envName ?? (configOverrides.dev ? "development" : "production");
   const loadedConfig = await (
     opts.watch
       ? watchConfig<NitroConfig & { _meta?: NitroPresetMeta }>
@@ -94,14 +90,9 @@ async function _loadUserConfig(
     name: "nitro",
     cwd: configOverrides.rootDir,
     dotenv: _dotenv,
+    envName,
     extend: { extendKey: ["extends", "preset"] },
     defaults: NitroDefaults,
-    jitiOptions: {
-      alias: {
-        nitropack: "nitro/config",
-        "nitro/config": "nitro/config",
-      },
-    },
     async overrides({ rawConfigs }) {
       // prettier-ignore
       const getConf = <K extends keyof NitroConfig>(key: K) => (configOverrides[key] ?? (rawConfigs.main as NitroConfig)?.[key] ?? (rawConfigs.rc as NitroConfig)?.[key] ?? (rawConfigs.packageJson as NitroConfig)?.[key]) as NitroConfig[K];
@@ -171,8 +162,7 @@ async function _loadUserConfig(
   options._c12 = loadedConfig;
 
   const _presetName =
-    (loadedConfig.layers || []).find((l) => l.config?._meta?.name)?.config
-      ?._meta?.name || preset;
+    (loadedConfig.layers || []).find((l) => l.config?._meta?.name)?.config?._meta?.name || preset;
   options.preset = _presetName as PresetName;
 
   options.compatibilityDate = resolveCompatibilityDates(

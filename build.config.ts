@@ -3,12 +3,11 @@ import { defineBuildConfig } from "obuild/config";
 import { resolveModulePath } from "exsolve";
 import { traceNodeModules } from "nf3";
 import { readFile, writeFile } from "node:fs/promises";
+import type { CodeSplittingOptions } from "rolldown";
 
 const isStub = process.argv.includes("--stub");
 
-const pkg = await import("./package.json", { with: { type: "json" } }).then(
-  (r) => r.default || r
-);
+const pkg = await import("./package.json", { with: { type: "json" } }).then((r) => r.default || r);
 
 const tracePkgs = [
   "cookie-es", // used by azure runtime
@@ -16,7 +15,6 @@ const tracePkgs = [
   "defu", // used by open-api runtime
   "destr", // used by node-server and deno-server
   "get-port-please", // used by dev server
-  "hookable", // used by app.ts
   "rendu", // used by HTML renderer template
   "scule", // used by runtime config
   "source-map", // used by dev error runtime
@@ -30,12 +28,8 @@ export default defineBuildConfig({
   entries: [
     {
       type: "bundle",
-      input: [
-        "src/builder.ts",
-        "src/cli/index.ts",
-        "src/types/index.ts",
-        "src/vite.ts",
-      ],
+      input: ["src/builder.ts", "src/cli/index.ts", "src/types/index.ts", "src/vite.ts"],
+      license: { gzip: true },
     },
     {
       type: "transform",
@@ -47,6 +41,7 @@ export default defineBuildConfig({
       input: "src/presets/",
       outDir: "dist/presets",
       filter: (id) => id.includes("runtime/"),
+      dts: false,
     },
   ],
   hooks: {
@@ -63,9 +58,7 @@ export default defineBuildConfig({
       config.external ??= [];
       (config.external as string[]).push(
         "nitro",
-        ...Object.keys(pkg.exports || {}).map((key) =>
-          key.replace(/^./, "nitro")
-        ),
+        ...Object.keys(pkg.exports || {}).map((key) => key.replace(/^./, "nitro")),
         ...Object.keys(pkg.dependencies),
         ...Object.keys(pkg.peerDependencies),
         ...tracePkgs,
@@ -83,13 +76,12 @@ export default defineBuildConfig({
       );
     },
     rolldownOutput(config) {
-      // config.advancedChunks!.includeDependenciesRecursively = false;
-      config.advancedChunks!.groups?.unshift(
+      (config.codeSplitting as CodeSplittingOptions).groups?.unshift(
         {
-          test: /src\/build\/(plugins|virtual|\w+\.ts)/,
+          test: /src[/\\]build[/\\](plugins|virtual|\w+\.ts)/,
           name: "_build/common",
         },
-        { test: /src\/(utils)\//, name: "_chunks/utils" }
+        { test: /src[/\\](utils)[/\\]/, name: "_chunks/utils" }
       );
       config.chunkFileNames = (chunk) => {
         if (chunk.name.startsWith("_")) {
@@ -98,41 +90,51 @@ export default defineBuildConfig({
         if (chunk.name === "rolldown-runtime") {
           return `_common.mjs`;
         }
-        if (chunk.name.startsWith("libs/")) {
-          return `_[name].mjs`;
+        const pkgRe = /.*[/\\](?:node_modules|shims)[/\\](?<package>@[^/\\]+[/\\][^/\\]+|[^/\\]+)/;
+        if (chunk.moduleIds.every((id) => pkgRe.test(id))) {
+          const pkgNames = [
+            ...new Set(
+              chunk.moduleIds
+                .map((id) => id.match(pkgRe)?.groups?.package)
+                .filter(Boolean)
+                .map((name) => name!.split(/[/\\]/).pop()!)
+                .filter(Boolean)
+            ),
+          ].sort((a, b) => a.length - b.length);
+          let chunkName = "";
+          for (const name of pkgNames) {
+            const separator = chunkName ? "+" : "";
+            if ((chunkName + separator + name).length > 30) {
+              break;
+            }
+            chunkName += separator + name;
+          }
+          return `_libs/${chunkName || "_"}.mjs`;
         }
-        if (chunk.moduleIds.every((id) => /src\/cli\//.test(id))) {
+        if (chunk.moduleIds.every((id) => /src[/\\]cli[/\\]/.test(id))) {
           return `cli/_chunks/[name].mjs`;
         }
-        if (chunk.moduleIds.every((id) => /build\/vite\//.test(id))) {
+        if (chunk.moduleIds.every((id) => /build[/\\]vite[/\\]/.test(id))) {
           return `_build/vite.[name].mjs`;
         }
-        if (chunk.moduleIds.every((id) => /build\/rolldown\//.test(id))) {
+        if (chunk.moduleIds.every((id) => /build[/\\]rolldown[/\\]/.test(id))) {
           return `_build/rolldown.mjs`;
         }
-        if (
-          chunk.moduleIds.every((id) =>
-            /build\/rollup\/|build\/plugins/.test(id)
-          )
-        ) {
+        if (chunk.moduleIds.every((id) => /build[/\\]rollup[/\\]|build[/\\]plugins/.test(id))) {
           return `_build/rollup.mjs`;
         }
-        if (chunk.moduleIds.every((id) => /src\/dev\/|src\/runtime/.test(id))) {
+        if (chunk.moduleIds.every((id) => /src[/\\]dev[/\\]|src[/\\]runtime/.test(id))) {
           return `_dev.mjs`;
         }
-        if (chunk.moduleIds.every((id) => /src\/presets/.test(id))) {
+        if (chunk.moduleIds.every((id) => /src[/\\]presets/.test(id))) {
           return `_presets.mjs`;
         }
         if (
-          chunk.moduleIds.every((id) =>
-            /src\/build\/|src\/presets|src\/utils/.test(id)
-          )
+          chunk.moduleIds.every((id) => /src[/\\]build[/\\]|src[/\\]presets|src[/\\]utils/.test(id))
         ) {
           return `_build/shared.mjs`;
         }
-        if (
-          chunk.moduleIds.every((id) => /src\/(runner|dev|runtime)/.test(id))
-        ) {
+        if (chunk.moduleIds.every((id) => /src[/\\](runner|dev|runtime)/.test(id))) {
           return `_chunks/dev.mjs`;
         }
         return "_chunks/nitro.mjs";
@@ -142,6 +144,13 @@ export default defineBuildConfig({
       if (isStub) {
         return;
       }
+
+      // Bundle docs
+      const { exportSource } = await import("mdzilla");
+      await exportSource("./docs", "./dist/docs", {
+        title: "Nitro Documentation",
+        filter: (e: { entry: { path: string } }) => !e.entry.path.startsWith("/blog"),
+      });
 
       // Trace included dependencies
       await traceNodeModules(

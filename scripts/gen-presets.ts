@@ -82,9 +82,7 @@ writeFileSync(
 ${presetsWithType
   .map(
     (preset) =>
-      `import type { PresetOptions as ${pascalCase(
-        preset
-      )}Options } from "./${preset}/preset.ts";`
+      `import type { PresetOptions as ${pascalCase(preset)}Options } from "./${preset}/preset.ts";`
   )
   .join("\n")}
 
@@ -100,9 +98,7 @@ export type PresetName = ${names.map((name) => `"${name}"`).join(" | ")};
 
 export type PresetNameInput = ${names
     .flatMap((name) =>
-      [...new Set([kebabCase(name), camelCase(name), snakeCase(name)])].map(
-        (n) => `"${n}"`
-      )
+      [...new Set([kebabCase(name), camelCase(name), snakeCase(name)])].map((n) => `"${n}"`)
     )
     .join(" | ")} | (string & {});
 `

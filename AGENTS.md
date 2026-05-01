@@ -1,14 +1,6 @@
 ## Project Identity
 
-Nitro is a framework-agnostic and deployment-agnostic server framework powered by [H3](https://github.com/h3js/h3), [UnJS](https://github.com/unjs), and Vite | Rolldown | Rollup.
-
-You are an expert JavaScript and TypeScript developer with strong focus on modern JS tooling and runtime systems.
-
-## Project Setup
-
-- **Language**: TypeScript / JavaScript
-- **Package Manager**: `pnpm`
-- **Node Version**: >= 22
+Nitro is a framework-agnostic and deployment-agnostic server framework powered by [H3](https://github.com/h3js/h3) (v2), [UnJS] (https://github.com/unjs), and Vite | Rolldown | Rollup.
 
 ## First-time Setup for Development
 
@@ -20,11 +12,11 @@ You are an expert JavaScript and TypeScript developer with strong focus on moder
 
 - `pnpm build --stub` — Fast stub build for development.
 - `pnpm lint` — Lint and format code.
-- `pnpm lint:fix` — Automatically fix lint and formatting issues.
+- `pnpm fmt` — Automatically fix lint and formatting issues.
 - `pnpm test` — Run all tests.
-- `pnpm test:types` — Run type tests.
+- `pnpm typecheck` — Run type tests.
 
-**Always run** `pnpm lint:fix` and `pnpm test:types` after making changes.
+**Always run** `pnpm fmt` and `pnpm typecheck` after making changes.
 
 ## Repository Structure
 
@@ -106,8 +98,8 @@ Each preset in `src/presets/` defines deployment target behavior:
 1. Make changes in `src/`.
 2. Run `pnpm build --stub` if you changed build logic.
 3. Test with `pnpm test`.
-4. Run `pnpm lint:fix`.
-5. Run `pnpm test:types`.
+4. Run `pnpm fmt`.
+5. Run `pnpm typecheck`.
 6. Run `pnpm vitest run`.
 
 ## Contribution Principles
@@ -143,22 +135,34 @@ Each preset in `src/presets/` defines deployment target behavior:
 - Examples in `examples/` should reflect best practices and be added for new integrations.
 - Add migration notes for breaking changes.
 
-## When to Ask
+## Code Conventions
 
-Reach out or flag for review when:
-
-- Uncertain about runtime compatibility.
-- Considering new dependencies.
-- Breaking changes are required.
-- Making architectural decisions in `src/build` or `src/runtime`.
-- Changing preset behavior.
-- Modifying virtual module system.
-
-## Best Practices
-
-- Use **ESM** and modern JavaScript.
+- Use **ESM** and modern JavaScript; use explicit extensions (`.ts`, `.mjs`) in imports.
+- For `.json` imports, use `with { "type": "json" }`.
+- Avoid barrel files (`index.ts` re-exports); import directly from specific modules.
+- Place non-exported/internal helpers at the end of the file.
+- For multi-arg functions, use an options object as the second parameter.
+- Split logic across files; avoid long single-file modules (>200 LoC). Use `_*` prefix for internal files.
 - Prefer **Web APIs** over Node.js APIs where possible.
 - Do not add comments explaining what the line does unless prompted.
-- Before adding new code, always study surrounding patterns, naming conventions, and architectural decisions.
+- Before adding new code, study surrounding patterns, naming conventions, and architectural decisions.
 - Use existing UnJS utilities and dependencies before adding new packages.
 - Keep runtime code minimal and fast.
+
+## Commit Conventions
+
+- Use **semantic commit messages**, lower-case (e.g., `fix(cli): resolve path issue`).
+- Prefer to include scope (e.g., `feat(runtime):`, `fix(build):`).
+- Add a short description on the second line when helpful.
+
+## Detailed References
+
+For deeper context, see `.agents/`:
+
+- [`.agents/architecture.md`](.agents/architecture.md) — Full architecture: core instance, build system, config resolution, virtual modules, runtime internals, dev server, routing, key libraries.
+- [`.agents/presets.md`](.agents/presets.md) — All 31 presets, preset structure, how to create presets, resolution logic.
+- [`.agents/testing.md`](.agents/testing.md) — Test structure, how tests work, adding regression tests, running tests.
+- [`.agents/vite.md`](.agents/vite.md) — Vite build system: plugin architecture (6 sub-plugins), environments API, dev server integration, production build stages, bundler config, HMR, runtime worker.
+- [`.agents/docs.md`](.agents/docs.md) — Documentation conventions: structure, preset naming (underscore), H3 v2 API patterns, import paths, common mistakes.
+
+- **Important:** H3 v2 updated docs is at `node_modules/h3/skills/h3/docs/TOC.md`

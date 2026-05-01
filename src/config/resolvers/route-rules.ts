@@ -1,18 +1,11 @@
-import type {
-  NitroConfig,
-  NitroOptions,
-  NitroRouteConfig,
-  NitroRouteRules,
-} from "nitro/types";
+import type { NitroConfig, NitroOptions, NitroRouteConfig, NitroRouteRules } from "nitro/types";
 import { withLeadingSlash } from "ufo";
 
 export async function resolveRouteRulesOptions(options: NitroOptions) {
   options.routeRules = normalizeRouteRules(options);
 }
 
-export function normalizeRouteRules(
-  config: NitroConfig
-): Record<string, NitroRouteRules> {
+export function normalizeRouteRules(config: NitroConfig): Record<string, NitroRouteRules> {
   const normalizedRules: Record<string, NitroRouteRules> = {};
   for (let path in config.routeRules) {
     const routeConfig = config.routeRules[path] as NitroRouteConfig;
@@ -40,9 +33,7 @@ export function normalizeRouteRules(
     // Proxy
     if (routeConfig.proxy) {
       routeRules.proxy =
-        typeof routeConfig.proxy === "string"
-          ? { to: routeConfig.proxy }
-          : routeConfig.proxy;
+        typeof routeConfig.proxy === "string" ? { to: routeConfig.proxy } : routeConfig.proxy;
       if (path.endsWith("/**")) {
         // Internal flag
         (routeRules.proxy as any)._proxyStripBase = path.slice(0, -3);
@@ -59,7 +50,9 @@ export function normalizeRouteRules(
       };
     }
     // Cache: swr
-    if (routeConfig.swr) {
+    // Note: 0 is a valid swr value (serve stale, revalidate immediately),
+    // so we must not use a falsy check here.
+    if (routeConfig.swr !== undefined && routeConfig.swr !== false) {
       routeRules.cache = routeRules.cache || {};
       routeRules.cache.swr = true;
       if (typeof routeConfig.swr === "number") {

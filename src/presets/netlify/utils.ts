@@ -8,9 +8,7 @@ export async function writeRedirects(nitro: Nitro) {
 
   let contents = "";
   if (nitro.options.static) {
-    const staticFallback = existsSync(
-      join(nitro.options.output.publicDir, "404.html")
-    )
+    const staticFallback = existsSync(join(nitro.options.output.publicDir, "404.html"))
       ? "/* /404.html 404"
       : "";
     contents += staticFallback;
@@ -20,9 +18,7 @@ export async function writeRedirects(nitro: Nitro) {
     (a, b) => a[0].split(/\/(?!\*)/).length - b[0].split(/\/(?!\*)/).length
   );
 
-  for (const [key, routeRules] of rules.filter(
-    ([_, routeRules]) => routeRules.redirect
-  )) {
+  for (const [key, routeRules] of rules.filter(([_, routeRules]) => routeRules.redirect)) {
     let code = routeRules.redirect!.status;
     // TODO: Remove map when netlify support 307/308
     if (code === 307) {
@@ -46,9 +42,7 @@ export async function writeRedirects(nitro: Nitro) {
       );
       return;
     }
-    nitro.logger.info(
-      "Adding Nitro fallback to `_redirects` to handle all unmatched routes."
-    );
+    nitro.logger.info("Adding Nitro fallback to `_redirects` to handle all unmatched routes.");
     contents = currentRedirects + "\n" + contents;
   }
 
@@ -63,9 +57,7 @@ export async function writeHeaders(nitro: Nitro) {
     (a, b) => b[0].split(/\/(?!\*)/).length - a[0].split(/\/(?!\*)/).length
   );
 
-  for (const [path, routeRules] of rules.filter(
-    ([_, routeRules]) => routeRules.headers
-  )) {
+  for (const [path, routeRules] of rules.filter(([_, routeRules]) => routeRules.headers)) {
     const headers = [
       path.replace("/**", "/*"),
       ...Object.entries({ ...routeRules.headers }).map(
@@ -84,19 +76,14 @@ export async function writeHeaders(nitro: Nitro) {
       );
       return;
     }
-    nitro.logger.info(
-      "Adding Nitro fallback to `_headers` to handle all unmatched routes."
-    );
+    nitro.logger.info("Adding Nitro fallback to `_headers` to handle all unmatched routes.");
     contents = currentHeaders + "\n" + contents;
   }
 
   await fsp.writeFile(headersPath, contents);
 }
 
-export function getStaticPaths(
-  publicAssets: PublicAssetDir[],
-  baseURL: string
-): string[] {
+export function getStaticPaths(publicAssets: PublicAssetDir[], baseURL: string): string[] {
   return [
     "/.netlify/*", // TODO: should this be also be prefixed with baseURL?
     ...publicAssets

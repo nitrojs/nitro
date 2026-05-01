@@ -7,6 +7,7 @@ import { scanHandlers } from "../../scan.ts";
 import { generateFSTree } from "../../utils/fs-tree.ts";
 import { writeTypes } from "../types.ts";
 import { writeBuildInfo } from "../info.ts";
+import type { RolldownOutput } from "rolldown";
 
 export async function buildProduction(nitro: Nitro, config: RolldownOptions) {
   const rolldown = await import("rolldown");
@@ -16,15 +17,16 @@ export async function buildProduction(nitro: Nitro, config: RolldownOptions) {
   await scanHandlers(nitro);
   await writeTypes(nitro);
 
+  let output: RolldownOutput | undefined;
   if (!nitro.options.static) {
     nitro.logger.info(
       `Building server (builder: \`rolldown\`, preset: \`${nitro.options.preset}\`, compatibility date: \`${formatCompatibilityDate(nitro.options.compatibilityDate)}\`)`
     );
     const build = await rolldown.rolldown(config);
-    await build.write(config.output as OutputOptions);
+    output = (await build.write(config.output as OutputOptions)) as RolldownOutput;
   }
 
-  const buildInfo = await writeBuildInfo(nitro);
+  const buildInfo = await writeBuildInfo(nitro, output);
 
   if (!nitro.options.static) {
     if (nitro.options.logging.buildSuccess) {
@@ -46,18 +48,10 @@ export async function buildProduction(nitro: Nitro, config: RolldownOptions) {
   const rewriteRelativePaths = (input: string) => {
     return input.replace(/([\s:])\.\/(\S*)/g, `$1${rOutput}/$2`);
   };
-  if (buildInfo.commands!.preview) {
-    nitro.logger.success(
-      `You can preview this build using \`${rewriteRelativePaths(
-        buildInfo.commands!.preview
-      )}\``
-    );
-  }
+  nitro.logger.success("You can preview this build using `npx nitro preview`");
   if (buildInfo.commands!.deploy) {
     nitro.logger.success(
-      `You can deploy this build using \`${rewriteRelativePaths(
-        buildInfo.commands!.deploy
-      )}\``
+      rewriteRelativePaths("You can deploy this build using `npx nitro deploy --prebuilt`")
     );
   }
 }

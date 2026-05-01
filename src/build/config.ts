@@ -21,6 +21,7 @@ export function baseBuildConfig(nitro: Nitro) {
     baseURL: nitro.options.baseURL,
     _asyncContext: nitro.options.experimental.asyncContext,
     _tasks: nitro.options.experimental.tasks,
+    _websocket: nitro.options.features.websocket ?? nitro.options.experimental.websocket,
   };
 
   const replacements = {
@@ -72,8 +73,7 @@ function getNoExternals(nitro: Nitro): RegExp[] {
     ...[
       nitro.options.rootDir,
       ...nitro.options.scanDirs.filter(
-        (dir) =>
-          dir.includes("node_modules") || !dir.startsWith(nitro.options.rootDir)
+        (dir) => dir.includes("node_modules") || !dir.startsWith(nitro.options.rootDir)
       ),
     ].map((dir) => new RegExp("^" + pathRegExp(dir) + "(?!.*node_modules)")),
   ];
@@ -97,8 +97,7 @@ export function resolveAliases(_aliases: Record<string, string>) {
   // Sort aliases from specific to general (ie. fs/promises before fs)
   const aliases = Object.fromEntries(
     Object.entries(_aliases).sort(
-      ([a], [b]) =>
-        b.split("/").length - a.split("/").length || b.length - a.length
+      ([a], [b]) => b.split("/").length - a.split("/").length || b.length - a.length
     )
   );
   // Resolve alias values in relation to each other

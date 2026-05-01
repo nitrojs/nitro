@@ -7,7 +7,5 @@ export async function rollupBuild(nitro: Nitro) {
   await nitro.hooks.callHook("build:before", nitro);
   const config = await getRollupConfig(nitro);
   await nitro.hooks.callHook("rollup:before", nitro, config);
-  return nitro.options.dev
-    ? watchDev(nitro, config)
-    : buildProduction(nitro, config);
+  return nitro.options.dev ? watchDev(nitro, config) : buildProduction(nitro, config);
 }

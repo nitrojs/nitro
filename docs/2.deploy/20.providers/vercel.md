@@ -37,7 +37,7 @@ Nitro `/api` directory isn't compatible with Vercel. Instead, you should use:
 You can use [Bun](https://bun.com) instead of Node.js by specifying the runtime using the `vercel.functions` key inside `nitro.config`:
 
 ```ts [nitro.config.ts]
-export default defineNitroConfig({
+export default defineConfig({
   vercel: {
     functions: {
       runtime: "bun1.x"
@@ -53,6 +53,161 @@ Alternatively, Nitro also detects Bun automatically if you specify a `bunVersion
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "bunVersion": "1.x"
 }
+```
+
+## Per-route function configuration
+
+Use `vercel.functionRules` to override [serverless function settings](https://vercel.com/docs/build-output-api/primitives#serverless-function-configuration) for specific routes. Each key is a route pattern and its value is a partial function configuration object that gets merged with the base `vercel.functions` config. Note: array properties (e.g., `regions`) from route config will replace the base config arrays rather than merging them.
+
+This is useful when certain routes need different resource limits, regions, or features like [Vercel Queues triggers](https://vercel.com/docs/queues).
+
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  vercel: {
+    functionRules: {
+      "/api/heavy-computation": {
+        maxDuration: 800,
+        memory: 4096,
+      },
+      "/api/regional": {
+        regions: ["lhr1", "cdg1"],
+      },
+      "/api/queues/process-order": {
+        experimentalTriggers: [{ type: "queue/v2beta", topic: "orders" }],
+      },
+    },
+  },
+});
+```
+
+Route patterns support wildcards via [rou3](https://github.com/h3js/rou3) matching (e.g., `/api/slow/**` matches all routes under `/api/slow/`).
+
+## Proxy route rules
+
+Nitro automatically optimizes `proxy` route rules on Vercel by generating [CDN-level rewrites](https://vercel.com/docs/rewrites) at build time. This means matching requests are proxied at the edge without invoking a serverless function, reducing latency and cost.
+
+```ts [nitro.config.ts]
+export default defineConfig({
+  routeRules: {
+    // Proxied at CDN level — no function invocation
+    "/api/**": {
+      proxy: "https://api.example.com/**",
+    },
+  },
+});
+```
+
+### When CDN rewrites apply
+
+A proxy rule is offloaded to a Vercel CDN rewrite when **all** of the following are true:
+
+- The target is an **external URL** (starts with `http://` or `https://`).
+- No advanced `ProxyOptions` are set on the rule.
+
+### Fallback to runtime proxy
+
+When the proxy rule uses any of the following `ProxyOptions`, Nitro keeps it as a runtime proxy handled by the serverless function:
+
+- `headers` — custom headers on the outgoing request to the upstream
+- `forwardHeaders` / `filterHeaders` — header filtering
+- `fetchOptions` — custom fetch options
+- `cookieDomainRewrite` / `cookiePathRewrite` — cookie manipulation
+- `onResponse` — response callback
+
+::note
+Response headers defined on the route rule via the `headers` option are still applied to CDN-level rewrites. Only request-level `ProxyOptions.headers` (sent to the upstream) require a runtime proxy.
+::
+
+## Scheduled tasks (Cron Jobs)
+
+:read-more{title="Vercel Cron Jobs" to="https://vercel.com/docs/cron-jobs"}
+
+Nitro automatically converts your [`scheduledTasks`](/docs/tasks#scheduled-tasks) configuration into [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs) at build time. Define your schedules in your Nitro config and deploy - no manual `vercel.json` cron configuration required.
+
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  experimental: {
+    tasks: true
+  },
+  scheduledTasks: {
+    // Run `cms:update` every hour
+    '0 * * * *': ['cms:update'],
+    // Run `db:cleanup` every day at midnight
+    '0 0 * * *': ['db:cleanup']
+  }
+})
+```
+
+### Secure cron job endpoints
+
+:read-more{title="Securing cron jobs" to="https://vercel.com/docs/cron-jobs/manage-cron-jobs#securing-cron-jobs"}
+
+To prevent unauthorized access to the cron handler, set a `CRON_SECRET` environment variable in your Vercel project settings. When `CRON_SECRET` is set, Nitro validates the `Authorization` header on every cron invocation.
+
+## Queues
+
+:read-more{title="Vercel Queues" to="https://vercel.com/docs/queues"}
+
+Nitro integrates with [Vercel Queues](https://vercel.com/docs/queues) to process messages asynchronously. Define your queue topics in the Nitro config and handle incoming messages with the `vercel:queue` runtime hook.
+
+```ts [nitro.config.ts]
+export default defineNitroConfig({
+  vercel: {
+    queues: {
+      triggers: [
+        // Only `topic` is required
+        { topic: "notifications" },
+        { topic: "orders", retryAfterSeconds: 60, initialDelaySeconds: 5 },
+      ],
+    },
+  },
+});
+```
+
+### Handling messages
+
+Use the `vercel:queue` hook in a [Nitro plugin](/guide/plugins) to process incoming queue messages:
+
+```ts [server/plugins/queues.ts]
+export default defineNitroPlugin((nitro) => {
+  nitro.hooks.hook("vercel:queue", ({ message, metadata, send }) => {
+    console.log(`[${metadata.topicName}] Message ${metadata.messageId}:`, message);
+  });
+});
+```
+
+### Running tasks from queue messages
+
+You can use queue messages to trigger [Nitro tasks](/docs/tasks):
+
+```ts [server/plugins/queues.ts]
+import { runTask } from "nitro/task";
+
+export default defineNitroPlugin((nitro) => {
+  nitro.hooks.hook("vercel:queue", async ({ message, metadata }) => {
+    if (metadata.topicName === "orders") {
+      await runTask("orders:fulfill", { payload: message });
+    }
+  });
+});
+```
+
+### Sending messages
+
+Use the `@vercel/queue` package directly to send messages to a topic:
+
+```ts [server/routes/api/orders.post.ts]
+import { send } from "@vercel/queue";
+
+export default defineEventHandler(async (event) => {
+  const order = await event.req.json();
+  const { messageId } = await send("orders", order);
+  return { messageId };
+});
 ```
 
 ## Custom build output configuration
@@ -71,9 +226,9 @@ To revalidate a page on demand:
 2. Update your configuration:
 
     ```ts [nitro.config.ts]
-    import { defineNitroConfig } from "nitro/config";
+    import { defineConfig } from "nitro";
 
-    export default defineNitroConfig({
+    export default defineConfig({
       vercel: {
         config: {
           bypassToken: process.env.VERCEL_BYPASS_TOKEN
@@ -96,16 +251,17 @@ You can pass an options object to `isr` route rule to configure caching behavior
   - If an empty array, query values are not considered for caching.
   - If `undefined` each unique query value is cached independently.
   - For wildcard `/**` route rules, `url` is always added
-
 - `passQuery`: When `true`, the query string will be present on the `request` argument passed to the invoked function. The `allowQuery` filter still applies.
+- `exposeErrBody`: When `true`, expose the response body regardless of status code including error status codes. (default `false`
 
 ```ts
-export default defineNitroConfig({
+export default defineConfig({
   routeRules: {
     "/products/**": {
       isr: {
         allowQuery: ["q"],
         passQuery: true,
+        exposeErrBody: true
       },
     },
   },

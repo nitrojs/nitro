@@ -44,22 +44,29 @@ describe.skipIf(isWindows)("nitro:preset:cloudflare-pages", async () => {
           "/_openapi.json",
           "/_openapi.json.br",
           "/_openapi.json.gz",
+          "/_openapi.json.zst",
           "/_scalar",
           "/_swagger",
           "/favicon.ico",
           "/foo.css",
           "/foo.js",
           "/json-string",
+          "/nitro.json.br",
+          "/nitro.json.gz",
+          "/nitro.json.zst",
           "/prerender",
           "/prerender-custom",
           "/_scalar/index.html.br",
           "/_scalar/index.html.gz",
+          "/_scalar/index.html.zst",
           "/_swagger/index.html.br",
           "/_swagger/index.html.gz",
+          "/_swagger/index.html.zst",
           "/api/hello",
           "/api/hey",
           "/prerender/index.html.br",
           "/prerender/index.html.gz",
+          "/prerender/index.html.zst",
           "/api/param/foo.json",
           "/api/param/hidden",
           "/api/param/prerender1",
@@ -75,10 +82,7 @@ describe.skipIf(isWindows)("nitro:preset:cloudflare-pages", async () => {
   });
 
   it("should export the correct functions", async () => {
-    const entry = await fsp.readFile(
-      resolve(ctx.outDir, "_worker.js", "index.js"),
-      "utf8"
-    );
+    const entry = await fsp.readFile(resolve(ctx.outDir, "_worker.js", "index.js"), "utf8");
     expect(entry).toMatch(/export \{.*myScheduled.*\}/);
   });
 });

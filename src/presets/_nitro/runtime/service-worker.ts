@@ -15,7 +15,6 @@ addEventListener("fetch", (event: FetchEvent) => {
   // srvx compatibility
   const req = event.request as unknown as ServerRequest;
   req.runtime ??= { name: "service-worker" };
-  // @ts-expect-error (add to srvx types)
   req.runtime.serviceWorker ??= { event } as any;
   req.waitUntil = event.waitUntil.bind(event);
 

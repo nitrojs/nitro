@@ -7,9 +7,10 @@ import type { RscPayload } from "./entry.rsc";
 
 export default {
   fetch: async (request: Request) => {
-    const rscEntryModule = await import.meta.viteRsc.loadModule<
-      typeof import("./entry.rsc")
-    >("rsc", "index");
+    const rscEntryModule = await import.meta.viteRsc.loadModule<typeof import("./entry.rsc")>(
+      "rsc",
+      "index"
+    );
     return rscEntryModule.default(request);
   },
 };
@@ -37,17 +38,14 @@ export async function renderHTML(
   }
 
   // Render HTML (traditional SSR)
-  const bootstrapScriptContent =
-    await import.meta.viteRsc.loadBootstrapScriptContent("index");
+  const bootstrapScriptContent = await import.meta.viteRsc.loadBootstrapScriptContent("index");
 
   let htmlStream: ReadableStream<Uint8Array>;
   let status: number | undefined;
 
   try {
     htmlStream = await renderToReadableStream(<SsrRoot />, {
-      bootstrapScriptContent: options?.debugNoJS
-        ? undefined
-        : bootstrapScriptContent,
+      bootstrapScriptContent: options?.debugNoJS ? undefined : bootstrapScriptContent,
       nonce: options?.nonce,
       formState: options?.formState,
     });
@@ -63,8 +61,7 @@ export async function renderHTML(
       </html>,
       {
         bootstrapScriptContent:
-          `self.__NO_HYDRATE=1;` +
-          (options?.debugNoJS ? "" : bootstrapScriptContent),
+          `self.__NO_HYDRATE=1;` + (options?.debugNoJS ? "" : bootstrapScriptContent),
         nonce: options?.nonce,
       }
     );

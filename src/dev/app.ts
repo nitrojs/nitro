@@ -1,7 +1,8 @@
 import type { Nitro } from "nitro/types";
 import type { H3Event, HTTPHandler } from "h3";
-
-import { H3, toEventHandler, serveStatic } from "h3";
+import { createProxyServer, type ProxyServerOptions } from "httpxy";
+import type { IncomingMessage, ServerResponse } from "node:http";
+import { H3, toEventHandler, serveStatic, fromNodeHandler, HTTPError } from "h3";
 import { joinURL } from "ufo";
 import mime from "mime";
 import { join, resolve, extname } from "pathe";
@@ -9,7 +10,6 @@ import { stat } from "node:fs/promises";
 import { createReadStream } from "node:fs";
 import { createGzip, createBrotliCompress } from "node:zlib";
 import { createVFSHandler } from "./vfs.ts";
-import { createHTTPProxy } from "../runner/proxy.ts";
 
 import devErrorHandler, {
   defaultHandler as devErrorHandlerInternal,
@@ -31,8 +31,7 @@ export class NitroDevApp {
     const app = new H3({
       debug: true,
       onError: async (error, event) => {
-        const errorHandler =
-          this.nitro.options.devErrorHandler || devErrorHandler;
+        const errorHandler = this.nitro.options.devErrorHandler || devErrorHandler;
         await loadStackTrace(error).catch(() => {});
         return errorHandler(error, event, {
           defaultHandler: devErrorHandlerInternal,
@@ -65,10 +64,7 @@ export class NitroDevApp {
 
     // Serve asset dirs
     for (const asset of this.nitro.options.publicAssets) {
-      const assetBase = joinURL(
-        this.nitro.options.baseURL,
-        asset.baseURL || "/"
-      );
+      const assetBase = joinURL(this.nitro.options.baseURL, asset.baseURL || "/");
       app.use(joinURL(assetBase, "**"), (event) =>
         serveStaticDir(event, {
           dir: asset.dir,
@@ -144,4 +140,25 @@ function serveStaticDir(
       return stream as any;
     },
   });
+}
+
+function createHTTPProxy(defaults: ProxyServerOptions = {}) {
+  const proxy = createProxyServer({ xfwd: true, ...defaults });
+  return {
+    proxy,
+    async handleEvent(event: H3Event, opts?: ProxyServerOptions) {
+      try {
+        return await fromNodeHandler((req, res) => {
+          return proxy.web(req as IncomingMessage, res as ServerResponse, opts);
+        })(event);
+      } catch (error: any) {
+        event.res.headers.set("refresh", "3");
+        throw new HTTPError({
+          status: 503,
+          message: "Dev server is unavailable.",
+          cause: error,
+        });
+      }
+    },
+  };
 }

@@ -24,9 +24,7 @@ export async function scanUnprefixedPublicAssets(nitro: Nitro) {
       absolute: false,
       dot: true,
     });
-    scannedPaths.push(
-      ...publicAssets.map((file) => join(asset.baseURL || "/", file))
-    );
+    scannedPaths.push(...publicAssets.map((file) => join(asset.baseURL || "/", file)));
   }
   return scannedPaths;
 }
@@ -59,9 +57,7 @@ export async function copyPublicAssets(nitro: Nitro) {
   if (nitro.options.compressPublicAssets) {
     await compressPublicAssets(nitro);
   }
-  nitro.logger.success(
-    "Generated public " + prettyPath(nitro.options.output.publicDir)
-  );
+  nitro.logger.success("Generated public " + prettyPath(nitro.options.output.publicDir));
 }
 
 function getIncludePatterns(

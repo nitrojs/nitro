@@ -14,10 +14,7 @@ export const nodeCluster = defineNitroPreset(
     },
     hooks: {
       async compiled(nitro) {
-        await writeFile(
-          resolve(nitro.options.output.serverDir, "index.mjs"),
-          nodeClusterEntry()
-        );
+        await writeFile(resolve(nitro.options.output.serverDir, "index.mjs"), nodeClusterEntry());
       },
     },
   },

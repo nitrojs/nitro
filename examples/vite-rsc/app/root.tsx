@@ -29,14 +29,11 @@ function App(props: { url: URL }) {
         <a href="https://vite.dev" target="_blank">
           <img src={viteLogo} className="logo" alt="Vite logo" />
         </a>
-        <a
-          href="https://react.dev/reference/rsc/server-components"
-          target="_blank"
-        >
+        <a href="https://react.dev/reference/rsc/server-components" target="_blank">
           <img src={reactLogo} className="logo react" alt="React logo" />
         </a>
 
-        <a href="https://v3.nitro.build" target="_blank">
+        <a href="https://nitro.build" target="_blank">
           <img src={nitroLogo} className="logo" alt="Nitro logo" />
         </a>
       </div>

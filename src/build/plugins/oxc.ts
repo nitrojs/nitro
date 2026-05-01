@@ -1,13 +1,11 @@
-import type { MinifyOptions } from "oxc-minify";
+import type { MinifyOptions } from "rolldown/experimental";
 import type { OXCOptions } from "nitro/types";
 import type { Plugin } from "rollup";
 
-import { transformSync } from "oxc-transform";
-import { minifySync } from "oxc-minify";
-
-export function oxc(
+export async function oxc(
   options: OXCOptions & { sourcemap: boolean; minify: boolean | MinifyOptions }
-): Plugin {
+): Promise<Plugin> {
+  const { minifySync, transformSync } = await import("rolldown/utils");
   return {
     name: "nitro:oxc",
     transform: {
@@ -17,6 +15,7 @@ export function oxc(
       handler(code, id) {
         const res = transformSync(id, code, {
           sourcemap: options.sourcemap,
+          tsconfig: false,
           ...options.transform,
         });
         if (res.errors?.length > 0) {
