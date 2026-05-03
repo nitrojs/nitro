@@ -88,8 +88,8 @@ if (applied > 0) {
   console.log("\nRunning pnpm install...");
   run("rm -f pnpm-lock.yaml && pnpm install");
 
-  console.log("\nRunning pnpm format...");
-  run("pnpm format");
+  console.log("\nRunning pnpm fmt...");
+  run("pnpm fmt");
 
   console.log("\nRunning pnpm build...");
   run("pnpm build");

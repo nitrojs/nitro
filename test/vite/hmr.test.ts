@@ -101,6 +101,11 @@ function openFileForEditing(path: string) {
     update(cb: (content: string) => string) {
       const currentContent = readFileSync(path, "utf-8");
       const newContent = cb(currentContent);
+      if (newContent === currentContent) {
+        throw new Error(
+          `update(${path}) was a no-op — the fixture is likely already in the modified state.`
+        );
+      }
       writeFileSync(path, newContent);
     },
     restore() {

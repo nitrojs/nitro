@@ -42,6 +42,7 @@ describe("nitro:preset:netlify", async () => {
 
         expect(redirects).toMatchInlineSnapshot(`
           "/rules/nested/override	/other	302
+          /rules/redirect/legacy/*	/:splat	302
           /rules/redirect/wildcard/*	https://nitro.build/:splat	302
           /rules/redirect/obj	https://nitro.build/	301
           /rules/ba-redirect/*	/base	302

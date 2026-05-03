@@ -28,3 +28,7 @@ peerDependencyRules:
   allowedVersions:
     vite: "8"
     typescript: "6"
+
+updateConfig:
+  ignoreDependencies:
+    - vite7
