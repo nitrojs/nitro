@@ -479,7 +479,7 @@ importers:
     dependencies:
       '@better-auth/cli':
         specifier: ^1.4.21
-        version: 1.4.21(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260501.1)(@opentelemetry/api@1.9.0)(@tanstack/react-start@1.167.42)(better-call@1.1.8)(jose@6.2.2)(kysely@0.28.16)(magicast@0.5.2)(nanostores@1.3.0)(react-dom@19.2.5)(react@19.2.5)(solid-js@1.9.12)(vitest@4.1.5)(vue@3.5.33)
+        version: 1.4.21(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260505.1)(@opentelemetry/api@1.9.0)(@tanstack/react-start@1.167.42)(better-call@1.1.8)(jose@6.2.2)(kysely@0.28.16)(magicast@0.5.2)(nanostores@1.3.0)(react-dom@19.2.5)(react@19.2.5)(solid-js@1.9.12)(vitest@4.1.5)(vue@3.5.33)
       '@radix-ui/react-checkbox':
         specifier: ^1.3.3
         version: 1.3.3(@types/react-dom@19.2.3)(@types/react@19.2.14)(react-dom@19.2.5)(react@19.2.5)
@@ -506,7 +506,7 @@ importers:
         version: 6.0.1(vite@8.0.10)
       better-auth:
         specifier: ^1.6.9
-        version: 1.6.9(@cloudflare/workers-types@4.20260501.1)(@opentelemetry/api@1.9.0)(@prisma/client@5.22.0)(@tanstack/react-start@1.167.42)(better-sqlite3@12.5.0)(drizzle-orm@0.41.0)(pg@8.16.3)(react-dom@19.2.5)(react@19.2.5)(solid-js@1.9.12)(vitest@4.1.5)(vue@3.5.33)
+        version: 1.6.9(@cloudflare/workers-types@4.20260505.1)(@opentelemetry/api@1.9.0)(@prisma/client@5.22.0)(@tanstack/react-start@1.167.42)(better-sqlite3@12.5.0)(drizzle-orm@0.41.0)(pg@8.16.3)(react-dom@19.2.5)(react@19.2.5)(solid-js@1.9.12)(vitest@4.1.5)(vue@3.5.33)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -525,9 +525,6 @@ importers:
       react-dom:
         specifier: ^19.2.3
         version: 19.2.5(react@19.2.5)
-      sonner:
-        specifier: ^2.0.7
-        version: 2.0.7(react-dom@19.2.5)(react@19.2.5)
       tailwind-merge:
         specifier: ^3.3.0
         version: 3.5.0
@@ -2399,7 +2396,6 @@ packages:
       prisma:
         optional: true
 
-<<<<<<< HEAD
   '@radix-ui/primitive@1.1.3':
     resolution: {integrity: sha512-JTF99U/6XIjCBo0wqkU5sK10glYe27MRRsfwoiq5zzOEZLHU3A3KCMa5X/azekYRCJ0HlwI0crAXS/5dEHTzDg==}
 
@@ -2615,9 +2611,6 @@ packages:
       '@types/react':
         optional: true
 
-||||||| e4c50b09
-=======
->>>>>>> main
   '@replit/codemirror-css-color-picker@6.3.0':
     resolution: {integrity: sha512-19biDANghUm7Fz7L1SNMIhK48tagaWuCOHj4oPPxc7hxPGkTVY2lU/jVZ8tsbTKQPVG7BO2CBDzs7CBwb20t4A==}
     peerDependencies:
@@ -4036,7 +4029,6 @@ packages:
     engines: {node: '>=6.0.0'}
     hasBin: true
 
-<<<<<<< HEAD
   better-auth@1.4.21:
     resolution: {integrity: sha512-qdrIZS7xnGF2HPBV5wYNPWTkPojhauOOjz1+MhLvwFy+zXpgLofQmWsI5I9DY+ef845NKt93XcgpyAc4RPPT9A==}
     peerDependencies:
@@ -4177,9 +4169,6 @@ packages:
       zod:
         optional: true
 
-||||||| e4c50b09
-=======
->>>>>>> main
   better-sqlite3@12.5.0:
     resolution: {integrity: sha512-WwCZ/5Diz7rsF29o27o0Gcc1Du+l7Zsv7SYtVPG0X3G/uUI1LqdxrQI7c9Hs2FWpqXXERjW9hp6g3/tH7DlVKg==}
     engines: {node: 20.x || 22.x || 23.x || 24.x || 25.x}
@@ -6924,12 +6913,6 @@ packages:
   sonic-boom@4.2.1:
     resolution: {integrity: sha512-w6AxtubXa2wTXAUsZMMWERrsIRAdrK0Sc+FUytWvYAhBJLyuI4llrMIC1DtlNSdI99EI86KZum2MMq3EAZlF9Q==}
 
-  sonner@2.0.7:
-    resolution: {integrity: sha512-W6ZN4p58k8aDKA4XPcx2hpIQXBRAgyiWVkYhT7CvK6D3iAu7xjvVyhQHg2/iaKJZ1XVJ4r7XuwGL+WGEK37i9w==}
-    peerDependencies:
-      react: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
-      react-dom: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
-
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
@@ -8313,7 +8296,7 @@ snapshots:
 
   '@bcoe/v8-coverage@1.0.2': {}
 
-  '@better-auth/cli@1.4.21(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260501.1)(@opentelemetry/api@1.9.0)(@tanstack/react-start@1.167.42)(better-call@1.1.8)(jose@6.2.2)(kysely@0.28.16)(magicast@0.5.2)(nanostores@1.3.0)(react-dom@19.2.5)(react@19.2.5)(solid-js@1.9.12)(vitest@4.1.5)(vue@3.5.33)':
+  '@better-auth/cli@1.4.21(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260505.1)(@opentelemetry/api@1.9.0)(@tanstack/react-start@1.167.42)(better-call@1.1.8)(jose@6.2.2)(kysely@0.28.16)(magicast@0.5.2)(nanostores@1.3.0)(react-dom@19.2.5)(react@19.2.5)(solid-js@1.9.12)(vitest@4.1.5)(vue@3.5.33)':
     dependencies:
       '@babel/core': 7.29.0
       '@babel/preset-react': 7.28.5(@babel/core@7.29.0)
@@ -8331,7 +8314,7 @@ snapshots:
       chalk: 5.6.2
       commander: 12.1.0
       dotenv: 17.4.2
-      drizzle-orm: 0.41.0(@cloudflare/workers-types@4.20260501.1)(@opentelemetry/api@1.9.0)(@prisma/client@5.22.0)(@types/pg@8.20.0)(better-sqlite3@12.5.0)(kysely@0.28.16)(pg@8.16.3)
+      drizzle-orm: 0.41.0(@cloudflare/workers-types@4.20260505.1)(@opentelemetry/api@1.9.0)(@prisma/client@5.22.0)(@types/pg@8.20.0)(better-sqlite3@12.5.0)(kysely@0.28.16)(pg@8.16.3)
       open: 10.2.0
       pg: 8.16.3
       prettier: 3.8.3
@@ -8396,7 +8379,7 @@ snapshots:
       nanostores: 1.3.0
       zod: 4.3.6
 
-  '@better-auth/core@1.6.9(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260501.1)(@opentelemetry/api@1.9.0)(better-call@1.3.5)(jose@6.2.2)(kysely@0.28.16)(nanostores@1.3.0)':
+  '@better-auth/core@1.6.9(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260505.1)(@opentelemetry/api@1.9.0)(better-call@1.3.5)(jose@6.2.2)(kysely@0.28.16)(nanostores@1.3.0)':
     dependencies:
       '@better-auth/utils': 0.4.0
       '@better-fetch/fetch': 1.1.21
@@ -8408,36 +8391,36 @@ snapshots:
       nanostores: 1.3.0
       zod: 4.3.6
     optionalDependencies:
-      '@cloudflare/workers-types': 4.20260501.1
+      '@cloudflare/workers-types': 4.20260505.1
       '@opentelemetry/api': 1.9.0
 
   '@better-auth/drizzle-adapter@1.6.9(@better-auth/core@1.6.9)(@better-auth/utils@0.4.0)(drizzle-orm@0.41.0)':
     dependencies:
-      '@better-auth/core': 1.6.9(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260501.1)(@opentelemetry/api@1.9.0)(better-call@1.3.5)(jose@6.2.2)(kysely@0.28.16)(nanostores@1.3.0)
+      '@better-auth/core': 1.6.9(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260505.1)(@opentelemetry/api@1.9.0)(better-call@1.3.5)(jose@6.2.2)(kysely@0.28.16)(nanostores@1.3.0)
       '@better-auth/utils': 0.4.0
     optionalDependencies:
-      drizzle-orm: 0.41.0(@cloudflare/workers-types@4.20260501.1)(@opentelemetry/api@1.9.0)(@prisma/client@5.22.0)(@types/pg@8.20.0)(better-sqlite3@12.5.0)(kysely@0.28.16)(pg@8.16.3)
+      drizzle-orm: 0.41.0(@cloudflare/workers-types@4.20260505.1)(@opentelemetry/api@1.9.0)(@prisma/client@5.22.0)(@types/pg@8.20.0)(better-sqlite3@12.5.0)(kysely@0.28.16)(pg@8.16.3)
 
   '@better-auth/kysely-adapter@1.6.9(@better-auth/core@1.6.9)(@better-auth/utils@0.4.0)(kysely@0.28.16)':
     dependencies:
-      '@better-auth/core': 1.6.9(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260501.1)(@opentelemetry/api@1.9.0)(better-call@1.3.5)(jose@6.2.2)(kysely@0.28.16)(nanostores@1.3.0)
+      '@better-auth/core': 1.6.9(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260505.1)(@opentelemetry/api@1.9.0)(better-call@1.3.5)(jose@6.2.2)(kysely@0.28.16)(nanostores@1.3.0)
       '@better-auth/utils': 0.4.0
     optionalDependencies:
       kysely: 0.28.16
 
   '@better-auth/memory-adapter@1.6.9(@better-auth/core@1.6.9)(@better-auth/utils@0.4.0)':
     dependencies:
-      '@better-auth/core': 1.6.9(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260501.1)(@opentelemetry/api@1.9.0)(better-call@1.3.5)(jose@6.2.2)(kysely@0.28.16)(nanostores@1.3.0)
+      '@better-auth/core': 1.6.9(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260505.1)(@opentelemetry/api@1.9.0)(better-call@1.3.5)(jose@6.2.2)(kysely@0.28.16)(nanostores@1.3.0)
       '@better-auth/utils': 0.4.0
 
   '@better-auth/mongo-adapter@1.6.9(@better-auth/core@1.6.9)(@better-auth/utils@0.4.0)':
     dependencies:
-      '@better-auth/core': 1.6.9(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260501.1)(@opentelemetry/api@1.9.0)(better-call@1.3.5)(jose@6.2.2)(kysely@0.28.16)(nanostores@1.3.0)
+      '@better-auth/core': 1.6.9(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260505.1)(@opentelemetry/api@1.9.0)(better-call@1.3.5)(jose@6.2.2)(kysely@0.28.16)(nanostores@1.3.0)
       '@better-auth/utils': 0.4.0
 
   '@better-auth/prisma-adapter@1.6.9(@better-auth/core@1.6.9)(@better-auth/utils@0.4.0)(@prisma/client@5.22.0)':
     dependencies:
-      '@better-auth/core': 1.6.9(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260501.1)(@opentelemetry/api@1.9.0)(better-call@1.3.5)(jose@6.2.2)(kysely@0.28.16)(nanostores@1.3.0)
+      '@better-auth/core': 1.6.9(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260505.1)(@opentelemetry/api@1.9.0)(better-call@1.3.5)(jose@6.2.2)(kysely@0.28.16)(nanostores@1.3.0)
       '@better-auth/utils': 0.4.0
     optionalDependencies:
       '@prisma/client': 5.22.0
@@ -8450,7 +8433,7 @@ snapshots:
 
   '@better-auth/telemetry@1.6.9(@better-auth/core@1.6.9)(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)':
     dependencies:
-      '@better-auth/core': 1.6.9(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260501.1)(@opentelemetry/api@1.9.0)(better-call@1.3.5)(jose@6.2.2)(kysely@0.28.16)(nanostores@1.3.0)
+      '@better-auth/core': 1.6.9(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260505.1)(@opentelemetry/api@1.9.0)(better-call@1.3.5)(jose@6.2.2)(kysely@0.28.16)(nanostores@1.3.0)
       '@better-auth/utils': 0.4.0
       '@better-fetch/fetch': 1.1.21
 
@@ -9360,7 +9343,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-<<<<<<< HEAD
   '@prisma/client@5.22.0': {}
 
   '@radix-ui/primitive@1.1.3': {}
@@ -9541,11 +9523,6 @@ snapshots:
       react: 19.2.5
     optionalDependencies:
       '@types/react': 19.2.14
-||||||| e4c50b09
-=======
-  '@prisma/client@5.22.0':
-    optional: true
->>>>>>> main
 
   '@replit/codemirror-css-color-picker@6.3.0(@codemirror/language@6.12.3)(@codemirror/state@6.6.0)(@codemirror/view@6.41.1)':
     dependencies:
@@ -10633,11 +10610,6 @@ snapshots:
       '@types/node': 25.6.0
       pg-protocol: 1.10.3
       pg-types: 2.2.0
-<<<<<<< HEAD
-||||||| e4c50b09
-=======
-    optional: true
->>>>>>> main
 
   '@types/qs@6.15.0': {}
 
@@ -11121,7 +11093,6 @@ snapshots:
 
   baseline-browser-mapping@2.10.20: {}
 
-<<<<<<< HEAD
   better-auth@1.4.21(@prisma/client@5.22.0)(@tanstack/react-start@1.167.42)(better-sqlite3@12.5.0)(drizzle-orm@0.41.0)(pg@8.16.3)(react-dom@19.2.5)(react@19.2.5)(solid-js@1.9.12)(vitest@4.1.5)(vue@3.5.33):
     dependencies:
       '@better-auth/core': 1.4.21(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.8)(jose@6.2.2)(kysely@0.28.16)(nanostores@1.3.0)
@@ -11140,7 +11111,7 @@ snapshots:
       '@prisma/client': 5.22.0
       '@tanstack/react-start': 1.167.42(@vitejs/plugin-rsc@0.5.24)(crossws@0.4.5)(react-dom@19.2.5)(react@19.2.5)(vite-plugin-solid@2.11.12)(vite@8.0.10)
       better-sqlite3: 12.5.0
-      drizzle-orm: 0.41.0(@cloudflare/workers-types@4.20260501.1)(@opentelemetry/api@1.9.0)(@prisma/client@5.22.0)(@types/pg@8.20.0)(better-sqlite3@12.5.0)(kysely@0.28.16)(pg@8.16.3)
+      drizzle-orm: 0.41.0(@cloudflare/workers-types@4.20260505.1)(@opentelemetry/api@1.9.0)(@prisma/client@5.22.0)(@types/pg@8.20.0)(better-sqlite3@12.5.0)(kysely@0.28.16)(pg@8.16.3)
       pg: 8.16.3
       react: 19.2.5
       react-dom: 19.2.5(react@19.2.5)
@@ -11148,9 +11119,9 @@ snapshots:
       vitest: 4.1.5(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.0)(@types/node@25.6.0)(@vitest/coverage-v8@4.1.5)(vite@8.0.10)
       vue: 3.5.33(typescript@6.0.3)
 
-  better-auth@1.6.9(@cloudflare/workers-types@4.20260501.1)(@opentelemetry/api@1.9.0)(@prisma/client@5.22.0)(@tanstack/react-start@1.167.42)(better-sqlite3@12.5.0)(drizzle-orm@0.41.0)(pg@8.16.3)(react-dom@19.2.5)(react@19.2.5)(solid-js@1.9.12)(vitest@4.1.5)(vue@3.5.33):
+  better-auth@1.6.9(@cloudflare/workers-types@4.20260505.1)(@opentelemetry/api@1.9.0)(@prisma/client@5.22.0)(@tanstack/react-start@1.167.42)(better-sqlite3@12.5.0)(drizzle-orm@0.41.0)(pg@8.16.3)(react-dom@19.2.5)(react@19.2.5)(solid-js@1.9.12)(vitest@4.1.5)(vue@3.5.33):
     dependencies:
-      '@better-auth/core': 1.6.9(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260501.1)(@opentelemetry/api@1.9.0)(better-call@1.3.5)(jose@6.2.2)(kysely@0.28.16)(nanostores@1.3.0)
+      '@better-auth/core': 1.6.9(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260505.1)(@opentelemetry/api@1.9.0)(better-call@1.3.5)(jose@6.2.2)(kysely@0.28.16)(nanostores@1.3.0)
       '@better-auth/drizzle-adapter': 1.6.9(@better-auth/core@1.6.9)(@better-auth/utils@0.4.0)(drizzle-orm@0.41.0)
       '@better-auth/kysely-adapter': 1.6.9(@better-auth/core@1.6.9)(@better-auth/utils@0.4.0)(kysely@0.28.16)
       '@better-auth/memory-adapter': 1.6.9(@better-auth/core@1.6.9)(@better-auth/utils@0.4.0)
@@ -11171,7 +11142,7 @@ snapshots:
       '@prisma/client': 5.22.0
       '@tanstack/react-start': 1.167.42(@vitejs/plugin-rsc@0.5.24)(crossws@0.4.5)(react-dom@19.2.5)(react@19.2.5)(vite-plugin-solid@2.11.12)(vite@8.0.10)
       better-sqlite3: 12.5.0
-      drizzle-orm: 0.41.0(@cloudflare/workers-types@4.20260501.1)(@opentelemetry/api@1.9.0)(@prisma/client@5.22.0)(@types/pg@8.20.0)(better-sqlite3@12.5.0)(kysely@0.28.16)(pg@8.16.3)
+      drizzle-orm: 0.41.0(@cloudflare/workers-types@4.20260505.1)(@opentelemetry/api@1.9.0)(@prisma/client@5.22.0)(@types/pg@8.20.0)(better-sqlite3@12.5.0)(kysely@0.28.16)(pg@8.16.3)
       pg: 8.16.3
       react: 19.2.5
       react-dom: 19.2.5(react@19.2.5)
@@ -11204,25 +11175,12 @@ snapshots:
     dependencies:
       bindings: 1.5.0
       prebuild-install: 7.1.3
-||||||| e4c50b09
-=======
-  better-sqlite3@12.5.0:
-    dependencies:
-      bindings: 1.5.0
-      prebuild-install: 7.1.3
-    optional: true
->>>>>>> main
 
   binary-extensions@2.3.0: {}
 
   bindings@1.5.0:
     dependencies:
       file-uri-to-path: 1.0.0
-<<<<<<< HEAD
-||||||| e4c50b09
-=======
-    optional: true
->>>>>>> main
 
   birpc@2.9.0: {}
 
@@ -11585,13 +11543,7 @@ snapshots:
   db0@0.3.4(better-sqlite3@12.5.0)(drizzle-orm@0.41.0):
     optionalDependencies:
       better-sqlite3: 12.5.0
-<<<<<<< HEAD
-      drizzle-orm: 0.41.0(@cloudflare/workers-types@4.20260501.1)(@opentelemetry/api@1.9.0)(@prisma/client@5.22.0)(@types/pg@8.20.0)(better-sqlite3@12.5.0)(kysely@0.28.16)(pg@8.16.3)
-||||||| e4c50b09
-  db0@0.3.4: {}
-=======
       drizzle-orm: 0.41.0(@cloudflare/workers-types@4.20260505.1)(@opentelemetry/api@1.9.0)(@prisma/client@5.22.0)(@types/pg@8.20.0)(better-sqlite3@12.5.0)(kysely@0.28.16)(pg@8.16.3)
->>>>>>> main
 
   debug@2.6.9:
     dependencies:
@@ -11726,18 +11678,6 @@ snapshots:
 
   dotenv@17.4.2: {}
 
-<<<<<<< HEAD
-  drizzle-orm@0.41.0(@cloudflare/workers-types@4.20260501.1)(@opentelemetry/api@1.9.0)(@prisma/client@5.22.0)(@types/pg@8.20.0)(better-sqlite3@12.5.0)(kysely@0.28.16)(pg@8.16.3):
-    optionalDependencies:
-      '@cloudflare/workers-types': 4.20260501.1
-      '@opentelemetry/api': 1.9.0
-      '@prisma/client': 5.22.0
-      '@types/pg': 8.20.0
-      better-sqlite3: 12.5.0
-      kysely: 0.28.16
-      pg: 8.16.3
-||||||| e4c50b09
-=======
   drizzle-orm@0.41.0(@cloudflare/workers-types@4.20260505.1)(@opentelemetry/api@1.9.0)(@prisma/client@5.22.0)(@types/pg@8.20.0)(better-sqlite3@12.5.0)(kysely@0.28.16)(pg@8.16.3):
     optionalDependencies:
       '@cloudflare/workers-types': 4.20260505.1
@@ -11747,8 +11687,6 @@ snapshots:
       better-sqlite3: 12.5.0
       kysely: 0.28.16
       pg: 8.16.3
-    optional: true
->>>>>>> main
 
   dts-resolver@2.1.3: {}
 
@@ -12070,13 +12008,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-<<<<<<< HEAD
   file-uri-to-path@1.0.0: {}
-||||||| e4c50b09
-=======
-  file-uri-to-path@1.0.0:
-    optional: true
->>>>>>> main
 
   fill-range@7.1.1:
     dependencies:
@@ -12730,13 +12662,7 @@ snapshots:
 
   ky@1.14.3: {}
 
-<<<<<<< HEAD
   kysely@0.28.16: {}
-||||||| e4c50b09
-=======
-  kysely@0.28.16:
-    optional: true
->>>>>>> main
 
   latest-version@9.0.0:
     dependencies:
@@ -13646,7 +13572,6 @@ snapshots:
   pg-cloudflare@1.2.7:
     optional: true
 
-<<<<<<< HEAD
   pg-connection-string@2.9.1: {}
 
   pg-int8@1.0.1: {}
@@ -13678,47 +13603,6 @@ snapshots:
   pgpass@1.0.5:
     dependencies:
       split2: 4.2.0
-||||||| e4c50b09
-=======
-  pg-connection-string@2.9.1:
-    optional: true
-
-  pg-int8@1.0.1:
-    optional: true
-
-  pg-pool@3.10.1(pg@8.16.3):
-    dependencies:
-      pg: 8.16.3
-    optional: true
-
-  pg-protocol@1.10.3:
-    optional: true
-
-  pg-types@2.2.0:
-    dependencies:
-      pg-int8: 1.0.1
-      postgres-array: 2.0.0
-      postgres-bytea: 1.0.1
-      postgres-date: 1.0.7
-      postgres-interval: 1.2.0
-    optional: true
-
-  pg@8.16.3:
-    dependencies:
-      pg-connection-string: 2.9.1
-      pg-pool: 3.10.1(pg@8.16.3)
-      pg-protocol: 1.10.3
-      pg-types: 2.2.0
-      pgpass: 1.0.5
-    optionalDependencies:
-      pg-cloudflare: 1.2.7
-    optional: true
-
-  pgpass@1.0.5:
-    dependencies:
-      split2: 4.2.0
-    optional: true
->>>>>>> main
 
   picocolors@1.1.1: {}
 
@@ -13764,7 +13648,6 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
-<<<<<<< HEAD
   postgres-array@2.0.0: {}
 
   postgres-bytea@1.0.1: {}
@@ -13774,22 +13657,6 @@ snapshots:
   postgres-interval@1.2.0:
     dependencies:
       xtend: 4.0.2
-||||||| e4c50b09
-=======
-  postgres-array@2.0.0:
-    optional: true
-
-  postgres-bytea@1.0.1:
-    optional: true
-
-  postgres-date@1.0.7:
-    optional: true
-
-  postgres-interval@1.2.0:
-    dependencies:
-      xtend: 4.0.2
-    optional: true
->>>>>>> main
 
   preact-render-to-string@6.6.7(preact@10.29.1):
     dependencies:
@@ -14405,11 +14272,6 @@ snapshots:
   sonic-boom@4.2.1:
     dependencies:
       atomic-sleep: 1.0.0
-
-  sonner@2.0.7(react-dom@19.2.5)(react@19.2.5):
-    dependencies:
-      react: 19.2.5
-      react-dom: 19.2.5(react@19.2.5)
 
   source-map-js@1.2.1: {}
 
@@ -15070,7 +14932,6 @@ snapshots:
       '@cloudflare/workerd-linux-arm64': 1.20260430.1
       '@cloudflare/workerd-windows-64': 1.20260430.1
 
-<<<<<<< HEAD
   wouter@3.9.0(react@19.2.5):
     dependencies:
       mitt: 3.0.1
@@ -15078,12 +14939,7 @@ snapshots:
       regexparam: 3.0.0
       use-sync-external-store: 1.6.0(react@19.2.5)
 
-  wrangler@4.87.0(@cloudflare/workers-types@4.20260501.1):
-||||||| e4c50b09
-  wrangler@4.87.0(@cloudflare/workers-types@4.20260501.1):
-=======
   wrangler@4.87.0(@cloudflare/workers-types@4.20260505.1):
->>>>>>> main
     dependencies:
       '@cloudflare/kv-asset-handler': 0.5.0
       '@cloudflare/unenv-preset': 2.16.1(unenv@2.0.0-rc.24)(workerd@1.20260430.1)
@@ -15142,13 +14998,7 @@ snapshots:
 
   xmlbuilder@11.0.1: {}
 
-<<<<<<< HEAD
   xtend@4.0.2: {}
-||||||| e4c50b09
-=======
-  xtend@4.0.2:
-    optional: true
->>>>>>> main
 
   y18n@5.0.8: {}
 
