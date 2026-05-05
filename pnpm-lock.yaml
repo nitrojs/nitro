@@ -30,8 +30,8 @@ importers:
         specifier: ^0.1.7
         version: 0.1.7(miniflare@4.20260426.0)
       h3:
-        specifier: ^2.0.1-rc.20
-        version: 2.0.1-rc.20(crossws@0.4.5)
+        specifier: ^2.0.1-rc.22
+        version: 2.0.1-rc.22(crossws@0.4.5)
       hookable:
         specifier: ^6.1.1
         version: 6.1.1
@@ -4373,6 +4373,16 @@ packages:
 
   h3@2.0.1-rc.20:
     resolution: {integrity: sha512-28ljodXuUp0fZovdiSRq4G9OgrxCztrJe5VdYzXAB7ueRvI7pIUqLU14Xi3XqdYJ/khXjfpUOOD2EQa6CmBgsg==}
+    engines: {node: '>=20.11.1'}
+    hasBin: true
+    peerDependencies:
+      crossws: ^0.4.1
+    peerDependenciesMeta:
+      crossws:
+        optional: true
+
+  h3@2.0.1-rc.22:
+    resolution: {integrity: sha512-Esv0DMIuPkCTSWCA0vO73vcTqwzH1wjSrAO1TXNu/K3up1sZHa9EKMapbmxCDYBeymC3fVTk4qxp7ogQWQ+KgA==}
     engines: {node: '>=20.11.1'}
     hasBin: true
     peerDependencies:
@@ -10653,6 +10663,13 @@ snapshots:
       duplexer: 0.1.2
 
   h3@2.0.1-rc.20(crossws@0.4.5):
+    dependencies:
+      rou3: 0.8.1
+      srvx: 0.11.15
+    optionalDependencies:
+      crossws: 0.4.5(srvx@0.11.15)
+
+  h3@2.0.1-rc.22(crossws@0.4.5):
     dependencies:
       rou3: 0.8.1
       srvx: 0.11.15
