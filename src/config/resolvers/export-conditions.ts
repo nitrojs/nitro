@@ -21,6 +21,9 @@ function _resolveExportConditions(
   }
 
   if (opts.node) {
+    if ("Bun" in globalThis) {
+      conditions.push("bun");
+    }
     conditions.push("node");
   }
 
