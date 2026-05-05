@@ -22,7 +22,6 @@
     "nitro": "latest",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.0",
     "tailwindcss": "^4.1.18",
     "wouter": "^3.9.0"

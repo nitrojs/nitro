@@ -23,6 +23,7 @@ export default function () {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   return (
     <Card className="max-w-md">
@@ -76,22 +77,35 @@ export default function () {
             <Label htmlFor="remember">Remember me</Label>
           </div>
 
+          {error && (
+            <p
+              role="alert"
+              className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2"
+            >
+              {error}
+            </p>
+          )}
+
           <Button
             type="submit"
             className="w-full"
             disabled={loading}
             onClick={async () => {
+              setError(null);
               await signIn.email(
                 {
                   email,
                   password,
                 },
                 {
-                  onRequest: (ctx) => {
+                  onRequest: () => {
                     setLoading(true);
                   },
-                  onResponse: (ctx) => {
+                  onResponse: () => {
                     setLoading(false);
+                  },
+                  onError: (ctx) => {
+                    setError(ctx.error.message);
                   },
                   onSuccess: () => {
                     setLocation("/?signed-in");

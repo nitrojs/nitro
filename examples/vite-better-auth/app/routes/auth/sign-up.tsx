@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { toast } from "sonner";
 import { Loader2, X } from "lucide-react";
 import { signUp } from "@/app/utils/auth";
 
@@ -26,6 +25,7 @@ export default function () {
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -142,11 +142,21 @@ export default function () {
               </div>
             </div>
           </div>
+          {error && (
+            <p
+              role="alert"
+              className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2"
+            >
+              {error}
+            </p>
+          )}
+
           <Button
             type="submit"
             className="w-full"
             disabled={loading}
             onClick={async () => {
+              setError(null);
               await signUp.email({
                 email,
                 password,
@@ -161,7 +171,7 @@ export default function () {
                     setLoading(true);
                   },
                   onError: (ctx) => {
-                    toast.error(ctx.error.message);
+                    setError(ctx.error.message);
                   },
                   onSuccess: async () => {
                     setLocation("?signed-up");

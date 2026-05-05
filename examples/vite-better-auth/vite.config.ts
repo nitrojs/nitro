@@ -11,7 +11,8 @@ export default defineConfig({
     nitro({
       serverDir: "./server",
       routes: {
-        "/api/auth/**": "./auth.ts",
+        "/api/auth/**": "auth.ts",
+        // "/api/auth/**": { handler: "./auth.ts", lazy: true },
       },
     }),
   ],
