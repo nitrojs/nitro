@@ -22,6 +22,58 @@ describe("nitro:preset:nitro-dev", async () => {
         expect(status).toBe(200);
       });
 
+      describe("tasks", () => {
+        it("GET /_nitro/tasks lists tasks", async () => {
+          const { data, status } = await callHandler({ url: "/_nitro/tasks" });
+          expect(status).toBe(200);
+          expect(data.tasks).toBeTypeOf("object");
+          expect(data.tasks.test).toMatchObject({ description: "task to debug" });
+          expect(data.tasks["db:migrate"]).toMatchObject({
+            description: "Run database migrations",
+          });
+          expect(data.scheduledTasks).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({ cron: "* * * * *", tasks: ["test"] }),
+            ])
+          );
+        });
+
+        it("GET /_nitro/tasks/:name runs a task", async () => {
+          const { data, status } = await callHandler({
+            url: "/_nitro/tasks/db:migrate",
+          });
+          expect(status).toBe(200);
+          expect(data.result).toBe("Success");
+        });
+
+        it("POST /_nitro/tasks/:name runs a task", async () => {
+          const { data, status } = await callHandler({
+            url: "/_nitro/tasks/db:migrate",
+            method: "POST",
+          });
+          expect(status).toBe(200);
+          expect(data.result).toBe("Success");
+        });
+
+        it("POST /_nitro/tasks/:name accepts payload", async () => {
+          const { data, status } = await callHandler({
+            url: "/_nitro/tasks/test",
+            method: "POST",
+            body: JSON.stringify({ payload: { key: "value" } }),
+          });
+          expect(status).toBe(200);
+          expect(data.result.payload.key).toBe("value");
+        });
+
+        it("GET /_nitro/tasks/:name accepts query params as payload", async () => {
+          const { data, status } = await callHandler({
+            url: "/_nitro/tasks/test?key=value",
+          });
+          expect(status).toBe(200);
+          expect(data.result.payload.key).toBe("value");
+        });
+      });
+
       describe("openAPI", () => {
         let spec: OpenAPI3;
         it("/_openapi.json", async () => {

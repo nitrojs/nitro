@@ -20,7 +20,7 @@ Deno.serve((denoReq: Request, info: _Deno.ServeHandlerInfo) => {
   const req = denoReq as unknown as ServerRequest;
   req.runtime ??= { name: "deno" };
   req.runtime.deno ??= { info } as any;
-  // TODO: Support remoteAddr
+  req.ip = info.remoteAddr.hostname;
 
   // https://crossws.unjs.io/adapters/deno
   if (import.meta._websocket && req.headers.get("upgrade") === "websocket") {

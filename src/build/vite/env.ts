@@ -15,7 +15,7 @@ export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOpti
     consumer: "server",
     build: {
       rollupOptions: ctx.bundlerConfig!.rollupConfig as any,
-      rolldownOptions: ctx.bundlerConfig!.rolldownConfig,
+      rolldownOptions: ctx.bundlerConfig!.rolldownConfig as any,
       minify: ctx.nitro!.options.minify,
       emptyOutDir: false,
       sourcemap: ctx.nitro!.options.sourcemap,

@@ -71,6 +71,7 @@ staticwebapp.config.json
 playground/firebase.json
 .zeabur
 .apphosting
+.edgeone
 
 test/fixture/functions
 .data

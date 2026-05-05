@@ -18,10 +18,11 @@ jobs:
       - uses: actions/setup-node@v6
         with: { node-version: lts/*, cache: pnpm }
       - run: pnpm install
-      - run: pnpm stub && pnpm lint
+      - run: pnpm build
       - run: pnpm typecheck
       - run: pnpm vitest run test/unit
       - run: pnpm vitest run test/minimal
+      - run: pnpm vitest run test/vite
   tests-rollup:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
@@ -37,9 +38,9 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         if: ${{ matrix.os != 'windows-latest' }}
         with: { bun-version: latest }
-      - uses: denoland/setup-deno@v1
+      - uses: denoland/setup-deno@v2.0.4
         if: ${{ matrix.os != 'windows-latest' }}
-        with: { deno-version: 2.7.4 }
+        with: { deno-version: 2.7.14 }
       - run: node scripts/vite7.ts
       - run: pnpm install
       - run: pnpm stub && pnpm lint
@@ -65,9 +66,9 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         if: ${{ matrix.os != 'windows-latest' }}
         with: { bun-version: latest }
-      - uses: denoland/setup-deno@v1
+      - uses: denoland/setup-deno@v2.0.4
         if: ${{ matrix.os != 'windows-latest' }}
-        with: { deno-version: 2.7.4 }
+        with: { deno-version: 2.7.14 }
       - run: pnpm install
       - run: pnpm build
       - run: pnpm vitest run test/examples

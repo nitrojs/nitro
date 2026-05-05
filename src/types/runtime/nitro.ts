@@ -2,6 +2,11 @@ import type { H3Core, HTTPEvent } from "h3";
 import type { HookableCore } from "hookable";
 import type { ServerRequest } from "srvx";
 
+/**
+ * The runtime Nitro application instance accessible via `useNitroApp()`.
+ *
+ * @see https://nitro.build/docs/plugins
+ */
 export interface NitroApp {
   fetch: (req: Request) => Response | Promise<Response>;
   h3?: H3Core;
@@ -9,6 +14,14 @@ export interface NitroApp {
   captureError?: CaptureError;
 }
 
+/**
+ * A Nitro runtime plugin function.
+ *
+ * Receives the {@link NitroApp} instance (with `hooks` guaranteed to exist)
+ * and can register runtime hooks or modify the app.
+ *
+ * @see https://nitro.build/docs/plugins
+ */
 export interface NitroAppPlugin {
   (
     nitro: NitroApp & {
@@ -38,13 +51,21 @@ export interface RenderContext {
   response?: Partial<RenderResponse>;
 }
 
+/** Context provided when an error is captured at runtime. */
 export interface CapturedErrorContext {
   event?: HTTPEvent;
   tags?: string[];
 }
 
+/** Error capture callback used by `nitroApp.captureError`. */
 export type CaptureError = (error: Error, context: CapturedErrorContext) => void;
 
+/**
+ * Runtime hooks available in Nitro plugins.
+ *
+ * @see https://nitro.build/docs/plugins
+ * @see https://nitro.build/docs/lifecycle
+ */
 export interface NitroRuntimeHooks {
   close: () => void;
   error: CaptureError;

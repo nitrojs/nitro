@@ -70,7 +70,9 @@ describe("vite:hmr", { sequential: true }, () => {
 
   test("Editing client entry (no full-reload)", async () => {
     files.client.update((content) => content.replace(`+ ""`, `+ " (modified)"`));
-    await pollResponse(`${serverURL}/app/entry-client.ts`, /modified/);
+    await pollResponse(`${serverURL}/app/entry-client.ts`, /modified/, 5000, {
+      "sec-fetch-dest": "script",
+    });
     expect(wsMessages.length).toBe(0);
   });
 
@@ -99,6 +101,11 @@ function openFileForEditing(path: string) {
     update(cb: (content: string) => string) {
       const currentContent = readFileSync(path, "utf-8");
       const newContent = cb(currentContent);
+      if (newContent === currentContent) {
+        throw new Error(
+          `update(${path}) was a no-op — the fixture is likely already in the modified state.`
+        );
+      }
       writeFileSync(path, newContent);
     },
     restore() {
@@ -128,14 +135,15 @@ function waitFor(check: () => boolean, duration: number): Promise<void> {
 function pollResponse(
   url: string,
   match: RegExp | ((txt: string) => boolean),
-  timeout = 5000
+  timeout = 5000,
+  headers?: Record<string, string>
 ): Promise<string> {
   const start = Date.now();
   let lastResponse = "";
   return new Promise((resolve, reject) => {
     const check = async () => {
       try {
-        const response = await fetch(url);
+        const response = await fetch(url, headers ? { headers } : undefined);
         lastResponse = await response.text();
         if (typeof match === "function" ? match(lastResponse) : match.test(lastResponse)) {
           resolve(lastResponse);

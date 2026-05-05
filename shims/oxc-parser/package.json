@@ -1,0 +1,15 @@
+{
+  "name": "oxc-parser",
+  "version": "0.127.0",
+  "private": true,
+  "description": "Local shim that re-exports parseSync from rolldown/utils.",
+  "type": "module",
+  "main": "./index.mjs",
+  "exports": {
+    ".": "./index.mjs",
+    "./package.json": "./package.json"
+  },
+  "peerDependencies": {
+    "rolldown": "*"
+  }
+}
