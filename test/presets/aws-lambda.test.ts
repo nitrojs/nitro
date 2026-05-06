@@ -1,6 +1,6 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyEventV2 } from "aws-lambda";
 import { resolve } from "pathe";
-import { describe } from "vitest";
+import { describe, expect, it } from "vitest";
 import { parseURL, parseQuery } from "ufo";
 import { setupTest, testNitro } from "../tests.ts";
 
@@ -42,6 +42,14 @@ describe("nitro:preset:aws-lambda-v2", async () => {
       return webResponse(res);
     };
   });
+
+  it("exports a preview fetch through the Lambda adapter", async () => {
+    const entry = await import(resolve(ctx.outDir, "server/index.mjs"));
+    const response = await entry.default.fetch(new Request("http://localhost/api/hello"));
+    await expect(response.json()).resolves.toMatchObject({
+      message: "Hello API",
+    });
+  });
 });
 
 describe("nitro:preset:aws-lambda-v1", async () => {
@@ -67,6 +75,25 @@ describe("nitro:preset:aws-lambda-v1", async () => {
       const res = await handler(event);
       return webResponse(res);
     };
+  });
+});
+
+describe("nitro:preset:aws-lambda-streaming", async () => {
+  const ctx = await setupTest("aws-lambda", {
+    config: {
+      awsLambda: {
+        streaming: true,
+      },
+    },
+    outDirSuffix: "-streaming",
+  });
+
+  it("exports a preview fetch through the streaming Lambda adapter", async () => {
+    const entry = await import(resolve(ctx.outDir, "server/index.mjs"));
+    const response = await entry.default.fetch(new Request("http://localhost/api/hello"));
+    await expect(response.json()).resolves.toMatchObject({
+      message: "Hello API",
+    });
   });
 });
 

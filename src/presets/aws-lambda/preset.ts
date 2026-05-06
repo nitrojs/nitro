@@ -5,6 +5,9 @@ export type { AwsLambdaOptions as PresetOptions } from "./types.ts";
 const awsLambda = defineNitroPreset(
   {
     entry: "./aws-lambda/runtime/aws-lambda",
+    commands: {
+      preview: "npx srvx --prod ./",
+    },
     awsLambda: {
       streaming: false,
     },

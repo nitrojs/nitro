@@ -1,28 +1,15 @@
 import "#nitro/virtual/polyfills";
 import { useNitroApp } from "nitro/app";
-import { awsRequest, awsResponseHeaders, awsResponseBody } from "./_utils.ts";
-
-import type {
-  APIGatewayProxyEvent,
-  APIGatewayProxyEventV2,
-  APIGatewayProxyResult,
-  APIGatewayProxyResultV2,
-  Context,
-} from "aws-lambda";
+import { invokeLambdaHandler, toLambdaHandler } from "srvx/aws-lambda";
+import { tracingSrvxPlugins } from "#nitro/virtual/tracing";
 
 const nitroApp = useNitroApp();
 
-export async function handler(
-  event: APIGatewayProxyEvent | APIGatewayProxyEventV2,
-  context: Context
-): Promise<APIGatewayProxyResult | APIGatewayProxyResultV2> {
-  const request = awsRequest(event, context);
+export const handler = toLambdaHandler({
+  fetch: nitroApp.fetch,
+  plugins: [...tracingSrvxPlugins],
+});
 
-  const response = await nitroApp.fetch(request);
-
-  return {
-    statusCode: response.status,
-    ...awsResponseHeaders(response),
-    ...(await awsResponseBody(response)),
-  };
-}
+export default {
+  fetch: (request: Request) => invokeLambdaHandler(handler, request),
+};

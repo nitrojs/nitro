@@ -1,53 +1,52 @@
 import "#nitro/virtual/polyfills";
 import { useNitroApp } from "nitro/app";
-import { awsRequest, awsResponseHeaders } from "./_utils.ts";
+import {
+  handleLambdaEventWithStream,
+  invokeLambdaHandler,
+  toLambdaHandler,
+  type AWSLambdaHandler,
+  type AWSLambdaResponseStream,
+  type AWSLambdaStreamingHandler,
+  type AwsLambdaEvent,
+} from "srvx/aws-lambda";
+import { tracingSrvxPlugins } from "#nitro/virtual/tracing";
 
-import type { StreamingResponse } from "@netlify/functions";
-import type { Readable } from "node:stream";
-import type { APIGatewayProxyEventV2 } from "aws-lambda";
+import type { Context } from "aws-lambda";
 
 const nitroApp = useNitroApp();
 
-export const handler = awslambda.streamifyResponse(
-  async (event: APIGatewayProxyEventV2, responseStream, context) => {
-    const request = awsRequest(event, context);
+const lambdaHandler = toLambdaHandler({
+  fetch: nitroApp.fetch,
+  plugins: [...tracingSrvxPlugins],
+});
 
-    const response = await nitroApp.fetch(request);
-
-    const httpResponseMetadata: Omit<StreamingResponse, "body"> = {
-      statusCode: response.status,
-      ...awsResponseHeaders(response),
-    };
-
-    if (!httpResponseMetadata.headers!["transfer-encoding"]) {
-      httpResponseMetadata.headers!["transfer-encoding"] = "chunked";
-    }
-
-    const body =
-      response.body ??
-      new ReadableStream<string>({
-        start(controller) {
-          controller.enqueue("");
-          controller.close();
-        },
-      });
-
-    const writer = awslambda.HttpResponseStream.from(responseStream, httpResponseMetadata);
-
-    const reader = body.getReader();
-    await streamToNodeStream(reader, responseStream);
-    writer.end();
+const handlerWithPreviewFallback = ((
+  event: AwsLambdaEvent,
+  responseStreamOrContext: AWSLambdaResponseStream | Context,
+  context?: Context
+) => {
+  if (context) {
+    return handleLambdaEventWithStream(
+      nitroApp.fetch,
+      event,
+      responseStreamOrContext as AWSLambdaResponseStream,
+      context
+    );
   }
-);
 
-async function streamToNodeStream(
-  reader: Readable | ReadableStreamDefaultReader,
-  writer: NodeJS.WritableStream
-) {
-  let readResult = await reader.read();
-  while (!readResult.done) {
-    writer.write(readResult.value);
-    readResult = await reader.read();
-  }
-  writer.end();
-}
+  return lambdaHandler(event, responseStreamOrContext as Context);
+}) as AWSLambdaStreamingHandler & AWSLambdaHandler;
+
+const awsLambdaGlobal = globalThis as typeof globalThis & {
+  awslambda?: {
+    streamifyResponse: (handler: AWSLambdaStreamingHandler) => AWSLambdaStreamingHandler;
+  };
+};
+
+export const handler = awsLambdaGlobal.awslambda?.streamifyResponse
+  ? awsLambdaGlobal.awslambda.streamifyResponse(handlerWithPreviewFallback)
+  : handlerWithPreviewFallback;
+
+export default {
+  fetch: (request: Request) => invokeLambdaHandler(lambdaHandler, request),
+};
