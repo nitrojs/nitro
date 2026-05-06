@@ -767,7 +767,7 @@ export function testNitro(
   });
 
   describe("async context", () => {
-    it.skipIf(!ctx.nitro!.options.node)("works", async () => {
+    it.skipIf(!ctx.nitro!.options.node || ctx.lambdaV1)("works", async () => {
       const { data } = await callHandler({ url: "/context?foo" });
       expect(data).toMatchObject({
         context: {
@@ -775,6 +775,18 @@ export function testNitro(
         },
       });
     });
+
+    it.runIf(ctx.nitro!.options.node && ctx.lambdaV1)(
+      "works with Lambda v1 query string normalization",
+      async () => {
+        const { data } = await callHandler({ url: "/context?foo" });
+        expect(data).toMatchObject({
+          context: {
+            path: "/context?foo=",
+          },
+        });
+      }
+    );
   });
 
   describe.skipIf(!ctx.supportsEnv)("environment variables", () => {
