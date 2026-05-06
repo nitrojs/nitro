@@ -8,7 +8,7 @@ export interface AmplifyComputeConfig {
    * The runtime property dictates the runtime of the provisioned compute resource.
    * Values are subset of https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html
    */
-  runtime: "nodejs20.x" | "nodejs22.x";
+  runtime: "nodejs20.x" | "nodejs22.x" | "nodejs24.x";
 
   /**
    * Specifies the starting file from which code will run for the given compute resource.
@@ -130,7 +130,7 @@ export interface AmplifyDeployManifest {
    * [
    *   {
    *     name: 'default',
-   *     runtime: 'nodejs16.x',
+   *     runtime: 'nodejs20.x',
    *     entrypoint: 'index.js',
    *   }
    * ]
@@ -152,5 +152,5 @@ export interface AWSAmplifyOptions {
     cacheControl?: string;
   };
   imageSettings?: AmplifyImageSettings;
-  runtime?: "nodejs20.x" | "nodejs22.x";
+  runtime?: "nodejs20.x" | "nodejs22.x" | "nodejs24.x";
 }
