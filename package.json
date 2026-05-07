@@ -84,9 +84,11 @@
     "unstorage": "^2.0.0-alpha.7"
   },
   "devDependencies": {
+    "@apphosting/common": "^0.0.9",
     "@azure/functions": "^3.5.1",
     "@azure/static-web-apps-cli": "^2.0.9",
     "@cloudflare/workers-types": "^4.20260507.1",
+    "@cloudflare/workers-utils": "^0.18.0",
     "@deno/types": "^0.0.1",
     "@hiogawa/vite-plugin-fullstack": "^0.0.11",
     "@netlify/edge-functions": "^3.0.6",
@@ -98,6 +100,7 @@
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-replace": "^6.0.3",
     "@scalar/api-reference": "^1.55.3",
+    "@scalar/openapi-types": "^0.7.0",
     "@types/aws-lambda": "^8.10.161",
     "@types/estree": "^1.0.9",
     "@types/etag": "^1.8.4",

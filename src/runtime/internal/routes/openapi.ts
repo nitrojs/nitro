@@ -77,7 +77,7 @@ function getHandlersMeta(): {
           200: { description: "OK" },
         },
         ...openAPI,
-      } satisfies OperationObject,
+      } as OperationObject,
     };
 
     if ($global) {

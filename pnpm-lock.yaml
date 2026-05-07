@@ -63,6 +63,9 @@ importers:
         specifier: ^2.0.0-alpha.7
         version: 2.0.0-alpha.7(@azure/identity@4.13.1)(chokidar@5.0.0)(db0@0.3.4)(ofetch@2.0.0-alpha.3)
     devDependencies:
+      '@apphosting/common':
+        specifier: ^0.0.9
+        version: 0.0.9
       '@azure/functions':
         specifier: ^3.5.1
         version: 3.5.1
@@ -72,6 +75,9 @@ importers:
       '@cloudflare/workers-types':
         specifier: ^4.20260507.1
         version: 4.20260507.1
+      '@cloudflare/workers-utils':
+        specifier: ^0.18.0
+        version: 0.18.0
       '@deno/types':
         specifier: ^0.0.1
         version: 0.0.1
@@ -105,6 +111,9 @@ importers:
       '@scalar/api-reference':
         specifier: ^1.55.3
         version: 1.55.3(@vue/compiler-sfc@3.5.34)(axios@1.16.0)(jwt-decode@4.0.0)(tailwindcss@4.2.4)(typescript@6.0.3)
+      '@scalar/openapi-types':
+        specifier: ^0.7.0
+        version: 0.7.0
       '@types/aws-lambda':
         specifier: ^8.10.161
         version: 8.10.161
@@ -783,6 +792,9 @@ packages:
     peerDependencies:
       vue: ^3.3.4
 
+  '@apphosting/common@0.0.9':
+    resolution: {integrity: sha512-ZbPZDcVhEN+8m0sf90PmQN4xWaKmmySnBSKKPaIOD0JvcDsRr509WenFEFlojP++VSxwFZDGG/TYsHs1FMMqpw==}
+
   '@azure/abort-controller@1.1.0':
     resolution: {integrity: sha512-TrRLIoSQVzfAJX9H1JeFjzAoDGcoK1IYX1UImfceTZpsyYfWr09Ss1aHW1y5TrrR3iq6RZLBwJ3E24uwPhwahw==}
     engines: {node: '>=12.0.0'}
@@ -1047,6 +1059,9 @@ packages:
 
   '@cloudflare/workers-types@4.20260507.1':
     resolution: {integrity: sha512-QChtMFu8EeVKaL4dW5r5wfZzlbH5CUnZU5Ef6E1cPjXzqryQuCwmEDNr+Oj2obbKR9jsVIUHPF/pkFaKWdYl2g==}
+
+  '@cloudflare/workers-utils@0.18.0':
+    resolution: {integrity: sha512-4yXUjaAcG7jPdGscA4H71Tg2e7z2ioOLfPrzAX8iLAM3CiANlxC01O82SRaIzPuzwW8Rs5gmGIbyjBWaFHLeoA==}
 
   '@codemirror/autocomplete@6.20.2':
     resolution: {integrity: sha512-G5FPkgIiLjOgZMjqVjvuKQ1rGPtHogLldJr33eFJdVLtmwY+giGrlv/ewljLz6b9BSQLkjxuwBc6g6omDM+YxQ==}
@@ -2690,6 +2705,10 @@ packages:
 
   '@scalar/oas-utils@0.15.3':
     resolution: {integrity: sha512-c3B1RnbZU/pI5cmsAKas+g5Zod+smx+CgyR6EaSreKKTO/cNNG/PUfwU7B72eLYWTcMn6wrunn6oBaxpInDzNQ==}
+    engines: {node: '>=22'}
+
+  '@scalar/openapi-types@0.7.0':
+    resolution: {integrity: sha512-kN0PwlJW0de4bwQ4ib+mBHzKJUvBCyR/gwU4zLEq6SCbj+GfgYUh+2a0/yl1WYVUiSkkwFsHjfmQ8KjhR3HK0Q==}
     engines: {node: '>=22'}
 
   '@scalar/openapi-types@0.8.0':
@@ -7177,6 +7196,8 @@ snapshots:
     transitivePeerDependencies:
       - zod
 
+  '@apphosting/common@0.0.9': {}
+
   '@azure/abort-controller@1.1.0':
     dependencies:
       tslib: 2.8.1
@@ -7559,6 +7580,8 @@ snapshots:
     optional: true
 
   '@cloudflare/workers-types@4.20260507.1': {}
+
+  '@cloudflare/workers-utils@0.18.0': {}
 
   '@codemirror/autocomplete@6.20.2':
     dependencies:
@@ -8908,6 +8931,8 @@ snapshots:
       yaml: 2.8.4
     transitivePeerDependencies:
       - typescript
+
+  '@scalar/openapi-types@0.7.0': {}
 
   '@scalar/openapi-types@0.8.0': {}
 
