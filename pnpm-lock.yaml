@@ -5,6 +5,11 @@ settings:
   dedupePeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  nitro: workspace:*
+  cookie-es: ^3.1.1
+  oxc-parser: link:./shims/oxc-parser
+
 importers:
 
   .:
@@ -72,7 +77,7 @@ importers:
         version: 0.0.1
       '@hiogawa/vite-plugin-fullstack':
         specifier: ^0.0.11
-        version: 0.0.11(vite@8.0.10)
+        version: 0.0.11(vite@8.0.11)
       '@netlify/edge-functions':
         specifier: ^3.0.6
         version: 3.0.6
@@ -224,8 +229,8 @@ importers:
         specifier: ^0.4.35
         version: 0.4.35(@typescript/native-preview@7.0.0-dev.20260507.1)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(magicast@0.5.2)(typescript@6.0.3)
       oxc-parser:
-        specifier: '*'
-        version: 0.129.0
+        specifier: link:shims/oxc-parser
+        version: link:shims/oxc-parser
       oxfmt:
         specifier: ^0.48.0
         version: 0.48.0
@@ -294,7 +299,7 @@ importers:
         version: 2.5.0
       unimport:
         specifier: ^6.2.0
-        version: 6.2.0(oxc-parser@0.129.0)
+        version: 6.2.0(oxc-parser@shims+oxc-parser)
       untyped:
         specifier: ^2.0.0
         version: 2.0.0
@@ -302,14 +307,14 @@ importers:
         specifier: ^0.5.3
         version: 0.5.3
       vite:
-        specifier: ^8.0.10
-        version: 8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.8.4)
+        specifier: ^8.0.11
+        version: 8.0.11(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.8.4)
       vite7:
         specifier: npm:vite@^7.3.2
         version: vite@7.3.2(@types/node@25.6.0)(jiti@2.7.0)(lightningcss@1.32.0)(yaml@2.8.4)
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.0)(@types/node@25.6.0)(@vitest/coverage-v8@4.1.5)(vite@8.0.10)
+        version: 4.1.5(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.0)(@types/node@25.6.0)(@vitest/coverage-v8@4.1.5)(vite@8.0.11)
       wrangler:
         specifier: ^4.88.0
         version: 4.88.0(@cloudflare/workers-types@4.20260507.1)
@@ -329,32 +334,32 @@ importers:
   examples/api-routes:
     devDependencies:
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
 
   examples/auto-imports:
     devDependencies:
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
 
   examples/cached-handler:
     devDependencies:
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
 
   examples/custom-error-handler:
     devDependencies:
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
 
   examples/database:
     devDependencies:
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
 
   examples/elysia:
     devDependencies:
@@ -362,8 +367,8 @@ importers:
         specifier: ^1.4.28
         version: 1.4.28(@sinclair/typebox@0.34.49)(exact-mirror@1.0.0)(file-type@22.0.1)(openapi-types@12.1.3)(typescript@6.0.3)
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
 
   examples/express:
     devDependencies:
@@ -374,8 +379,8 @@ importers:
         specifier: ^5.2.1
         version: 5.2.1
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
 
   examples/fastify:
     devDependencies:
@@ -383,14 +388,14 @@ importers:
         specifier: ^5.8.4
         version: 5.8.5
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
 
   examples/hello-world:
     devDependencies:
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
 
   examples/hono:
     devDependencies:
@@ -398,20 +403,20 @@ importers:
         specifier: ^4.12.9
         version: 4.12.17
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
 
   examples/import-alias:
     devDependencies:
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
 
   examples/middleware:
     devDependencies:
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
 
   examples/mono-jsx:
     devDependencies:
@@ -419,8 +424,8 @@ importers:
         specifier: latest
         version: 0.9.14
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
 
   examples/nano-jsx:
     devDependencies:
@@ -428,38 +433,38 @@ importers:
         specifier: ^0.2.1
         version: 0.2.1
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
 
   examples/plugins:
     devDependencies:
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
 
   examples/renderer:
     devDependencies:
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
 
   examples/runtime-config:
     devDependencies:
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
 
   examples/server-fetch:
     devDependencies:
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
 
   examples/shiki:
     devDependencies:
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
       shiki:
         specifier: latest
         version: 4.0.2
@@ -467,14 +472,14 @@ importers:
   examples/virtual-routes:
     devDependencies:
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
 
   examples/vite-nitro-plugin:
     devDependencies:
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
       vite:
         specifier: latest
         version: 8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.8.4)
@@ -501,8 +506,8 @@ importers:
         specifier: ^0.5.21
         version: 0.5.25(react-dom@19.2.5)(react@19.2.5)(vite@8.0.10)
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
       rsc-html-stream:
         specifier: ^0.0.7
         version: 0.0.7
@@ -516,8 +521,8 @@ importers:
         specifier: ^4.2.2
         version: 4.2.4(vite@8.0.10)
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
       tailwindcss:
         specifier: ^4.2.2
         version: 4.2.4
@@ -534,8 +539,8 @@ importers:
         specifier: ^4.2.2
         version: 4.2.4(vite@8.0.10)
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
       preact:
         specifier: ^10.29.0
         version: 10.29.1
@@ -561,8 +566,8 @@ importers:
         specifier: ^6.0.1
         version: 6.0.1(vite@8.0.10)
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
       react:
         specifier: ^19.2.4
         version: 19.2.5
@@ -579,8 +584,8 @@ importers:
   examples/vite-ssr-solid:
     devDependencies:
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
       solid-js:
         specifier: ^1.9.12
         version: 1.9.12
@@ -612,8 +617,8 @@ importers:
         specifier: ^6.0.1
         version: 6.0.1(vite@8.0.10)
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
       react:
         specifier: ^19.2.4
         version: 19.2.5
@@ -636,8 +641,8 @@ importers:
         specifier: ^1.167.13
         version: 1.167.64(@vitejs/plugin-rsc@0.5.25)(crossws@0.4.5)(react-dom@19.2.5)(react@19.2.5)(vite-plugin-solid@2.11.12)(vite@8.0.10)
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
       react:
         specifier: ^19.2.4
         version: 19.2.5
@@ -685,8 +690,8 @@ importers:
         specifier: ^6.0.5
         version: 6.0.6(vite@8.0.10)(vue@3.5.34)
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
       unhead:
         specifier: ^2.1.12
         version: 2.1.13
@@ -712,8 +717,8 @@ importers:
         specifier: ^11.16.0
         version: 11.17.0(typescript@6.0.3)
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
       vite:
         specifier: latest
         version: 8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.8.4)
@@ -724,13 +729,13 @@ importers:
   examples/websocket:
     devDependencies:
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
 
   playground:
     devDependencies:
       nitro:
-        specifier: link:..
+        specifier: workspace:*
         version: link:..
       vite:
         specifier: latest
@@ -742,14 +747,14 @@ importers:
         specifier: latest
         version: 0.9.14
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
 
   test/minimal:
     devDependencies:
       nitro:
-        specifier: latest
-        version: 3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0)
+        specifier: workspace:*
+        version: link:../..
       vite:
         specifier: latest
         version: 8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.8.4)
@@ -1728,133 +1733,6 @@ packages:
   '@opentelemetry/api@1.9.0':
     resolution: {integrity: sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg==}
     engines: {node: '>=8.0.0'}
-
-  '@oxc-parser/binding-android-arm-eabi@0.129.0':
-    resolution: {integrity: sha512-sG37CfXLlYXdDrggAFO/mKcO4w36piwf862xAZXIuf3nzKhWK1FvW4dqie+06++z+mDto2QeOQSvhyzBeK5jsQ==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm]
-    os: [android]
-
-  '@oxc-parser/binding-android-arm64@0.129.0':
-    resolution: {integrity: sha512-DVyLFN2+S0VOhT6lm5++tFqlu3x2Njiby6y5DhTzjV5uRsZWpifsBn6+yjtwAxl105peEjs5BHE3ToBJuQjLTg==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
-    os: [android]
-
-  '@oxc-parser/binding-darwin-arm64@0.129.0':
-    resolution: {integrity: sha512-QeqThtB8qax4IL+NFBWgshudyKkj5c076L8vyd8PCEx7U1wHyIbH49MEQ5J5iURFhUW5jiFmdnLKEwyOo0GAJA==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
-    os: [darwin]
-
-  '@oxc-parser/binding-darwin-x64@0.129.0':
-    resolution: {integrity: sha512-zn5+7nv4DlK4uFgblmhKm6xRV0QUHXOHyIDkjmhxJ53xSA9ahkb3pHNiHesNPXn/nK/VWU+C+Z6JYHdatZBh7g==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [x64]
-    os: [darwin]
-
-  '@oxc-parser/binding-freebsd-x64@0.129.0':
-    resolution: {integrity: sha512-SPTcDBiHWlgRpWFC1jnoi0sBWqCw4DFR+4b8+dV+NAhUu2ONERWyIVIOCfcE9a8BlvZsDCuXf3l/x7wQUs1Rsw==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [x64]
-    os: [freebsd]
-
-  '@oxc-parser/binding-linux-arm-gnueabihf@0.129.0':
-    resolution: {integrity: sha512-Rgc9+WNKLbc+chyDTXyyJ7gbgLo+ve27CrRnmIwGgucGflrBZbutge5jdPPegcgf46RrR4dkBbMCp0/x16mdig==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm]
-    os: [linux]
-
-  '@oxc-parser/binding-linux-arm-musleabihf@0.129.0':
-    resolution: {integrity: sha512-YtSsJ51VysXqlO8Cs2mWTyXvxBRemTHj4WDQjXwKl0SAxh+CVrEdXrdH+RnjxLj3JCUMFeYuHs5c+/DImfbKkg==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm]
-    os: [linux]
-
-  '@oxc-parser/binding-linux-arm64-gnu@0.129.0':
-    resolution: {integrity: sha512-9oK8iQr9KtgI5JhaJ+5IwiQsXEo6NuasFgovtJGrdK/RxbA0bO4YKRvVY7M+8lozUCVz1U7XrFFODv3emIOPRA==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
-    os: [linux]
-    libc: [glibc]
-
-  '@oxc-parser/binding-linux-arm64-musl@0.129.0':
-    resolution: {integrity: sha512-GghE/bf9ZqgqZFxLacgP0ImVD6UiLKQOpvpgUoIsqjopu2ms/+p1L0d0Dv2Sck+8p0FbKS2WE3IjqmIlLbxJgA==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
-    os: [linux]
-    libc: [musl]
-
-  '@oxc-parser/binding-linux-ppc64-gnu@0.129.0':
-    resolution: {integrity: sha512-A2PW0UbERzKGV6fKX1zoe2Tkc1zVcEJSSPW9IUSKbZAPuPe+M5/5hTA+6fQbWmevabe2B3IDky66a1lFGjpBKA==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [ppc64]
-    os: [linux]
-    libc: [glibc]
-
-  '@oxc-parser/binding-linux-riscv64-gnu@0.129.0':
-    resolution: {integrity: sha512-omwxd9H+jrl1T72RI666k4ho7Eli2iHdELzf+dL0D+uXThNZXYJCbKjm5rK2hrHmDy4O+NWv7+khBrEkorLsgw==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [riscv64]
-    os: [linux]
-    libc: [glibc]
-
-  '@oxc-parser/binding-linux-riscv64-musl@0.129.0':
-    resolution: {integrity: sha512-v2hi8id+M8C0uY8uuG2t2a5vr8H9XyHXiHL12yMdMNtgn04nnM/8hlOGuoJuxVc07PhClNiaoSaY2eXehSRa7w==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [riscv64]
-    os: [linux]
-    libc: [musl]
-
-  '@oxc-parser/binding-linux-s390x-gnu@0.129.0':
-    resolution: {integrity: sha512-UXrdDyLh1Obgj5X+IVVXWoo5/FJbFsU8/uLQ/M9lkVUwBUKpRFxNEhzwBNv21qqdKgAh+pr2CCVD8J1JfRPsIQ==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [s390x]
-    os: [linux]
-    libc: [glibc]
-
-  '@oxc-parser/binding-linux-x64-gnu@0.129.0':
-    resolution: {integrity: sha512-hsL/3/kdX9FGLqOj8DR3Eki4Y6zO1i3+ZHhiPwX0hDt4n+18abkfUzePCv3h8SShprwCmwdxPnlrebZ5+MZ+cw==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [x64]
-    os: [linux]
-    libc: [glibc]
-
-  '@oxc-parser/binding-linux-x64-musl@0.129.0':
-    resolution: {integrity: sha512-kdXvJ4crOeRld3vWl0J0VU4nmnT4pZ3lKGA5tZ1y0UPWsBtElDYd+jsz4lE36tpAbCiWm0M0PG0laUNBSE+Wlw==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [x64]
-    os: [linux]
-    libc: [musl]
-
-  '@oxc-parser/binding-openharmony-arm64@0.129.0':
-    resolution: {integrity: sha512-DusJfcK7EGwf9TEakB+z6SXCLdHGvDZ8U8882bzWb4oVrORHpbkFl9npS7cN3YC2axcVKoktbxZevS1nxVCKFw==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
-    os: [openharmony]
-
-  '@oxc-parser/binding-wasm32-wasi@0.129.0':
-    resolution: {integrity: sha512-Iie9CcII+ELSinKFnxTR15xhI9qriVivEhbFh3driRNbzms/5ioDAU0fwe8Mf1FEaz3n2FtiUVX0h0nwKLYk0A==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [wasm32]
-
-  '@oxc-parser/binding-win32-arm64-msvc@0.129.0':
-    resolution: {integrity: sha512-99kH1udLyrts+wGm+u0VhPbogkb2wxc/6J1XMKOpS6Kx5DjBWGRZZfBjfCGI3xKSInpYbZn4TLWLX1Q1GURYwg==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
-    os: [win32]
-
-  '@oxc-parser/binding-win32-ia32-msvc@0.129.0':
-    resolution: {integrity: sha512-tmSBR1A4yH697qV291xKyDe4OAWFchJ+cXf2wuipx/vK3n5d5Ej9MVLRtXlIcZ38n8qAjsF0/AnskaYgxM151A==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [ia32]
-    os: [win32]
-
-  '@oxc-parser/binding-win32-x64-msvc@0.129.0':
-    resolution: {integrity: sha512-Z1PbJvkPeLASIUxa3AnrQ5H+vv1K9zC0IGnQqoKfM0ZvsvCSe0d3u5m7d9iuy+HB7GrcElHuwKb0d0qFdtG0iA==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [x64]
-    os: [win32]
 
   '@oxc-project/types@0.127.0':
     resolution: {integrity: sha512-aIYXQBo4lCbO4z0R3FHeucQHpF46l2LbMdxRvqvuRuW2OxdnSkcng5B8+K12spgLDj93rtN3+J2Vac/TIO+ciQ==}
@@ -5611,37 +5489,6 @@ packages:
   nf3@0.3.16:
     resolution: {integrity: sha512-Gs0xRPpUm2nDkqbi40NJ9g7qDIcjcJzgExiydnq6LAyqhI2jfno8wG3NKTL+IiJsx799UHOb1CnSd4Wg4SG4Pw==}
 
-  nitro@3.0.260429-beta:
-    resolution: {integrity: sha512-KweLVCUN5X9v9g+4yxAyRcz3FcOlnjmt9FyrAIWDxJETJmNT7I0JV0clgsONjo2nI0U5gwedXYA3RaNtF5XWzg==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    hasBin: true
-    peerDependencies:
-      '@vercel/queue': ^0.1.6
-      dotenv: '*'
-      giget: '*'
-      jiti: ^2.6.1
-      rollup: ^4.60.2
-      vite: ^7 || ^8
-      xml2js: ^0.6.2
-      zephyr-agent: ^0.2.0
-    peerDependenciesMeta:
-      '@vercel/queue':
-        optional: true
-      dotenv:
-        optional: true
-      giget:
-        optional: true
-      jiti:
-        optional: true
-      rollup:
-        optional: true
-      vite:
-        optional: true
-      xml2js:
-        optional: true
-      zephyr-agent:
-        optional: true
-
   node-abi@3.91.0:
     resolution: {integrity: sha512-B+S7X/GS3Un6wMICtnsNjQD7oSpVBQrZftHE6GZ1Fe9/k3XOOoqbM5DZZ0GO4x3YiSCQfrM28yj1ppplwgIsfg==}
     engines: {node: '>=10'}
@@ -5766,10 +5613,6 @@ packages:
   os-tmpdir@1.0.2:
     resolution: {integrity: sha512-D2FR03Vir7FIu45XBY20mTb+/ZSWB00sjU9jdQXt83gDrI4Ztz5Fs7/yy74g2N5SVQY4xY1qDr4rNddwYRVX0g==}
     engines: {node: '>=0.10.0'}
-
-  oxc-parser@0.129.0:
-    resolution: {integrity: sha512-S6eFI+VLkpyA+/Lf8z6qURjDV6Mgo74SLNznNopHTlQW3hedv2MB/z31kBRuBCCTqZN9HHdva0ojljEhPnBKFA==}
-    engines: {node: ^20.19.0 || >=22.12.0}
 
   oxfmt@0.48.0:
     resolution: {integrity: sha512-AVaLh+7XeGx+R1zfFV+f6VV61nT2MWVJXVUDhbTm5LBWGyNt64xAyh3NYYyjeY2WykNt9AvqSQLPHcbWquYF9g==}
@@ -6973,6 +6816,49 @@ packages:
       yaml:
         optional: true
 
+  vite@8.0.11:
+    resolution: {integrity: sha512-Jz1mxtUBR5xTT65VOdJZUUeoyLtqljmFkiUXhPTLZka3RDc9vpi/xXkyrnsdRcm2lIi3l3GPMnAidTsEGIj3Ow==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    hasBin: true
+    peerDependencies:
+      '@types/node': ^20.19.0 || >=22.12.0
+      '@vitejs/devtools': ^0.1.18
+      esbuild: ^0.27.0 || ^0.28.0
+      jiti: '>=1.21.0'
+      less: ^4.0.0
+      sass: ^1.70.0
+      sass-embedded: ^1.70.0
+      stylus: '>=0.54.8'
+      sugarss: ^5.0.0
+      terser: ^5.16.0
+      tsx: ^4.8.1
+      yaml: ^2.4.2
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+      '@vitejs/devtools':
+        optional: true
+      esbuild:
+        optional: true
+      jiti:
+        optional: true
+      less:
+        optional: true
+      sass:
+        optional: true
+      sass-embedded:
+        optional: true
+      stylus:
+        optional: true
+      sugarss:
+        optional: true
+      terser:
+        optional: true
+      tsx:
+        optional: true
+      yaml:
+        optional: true
+
   vitefu@1.1.3:
     resolution: {integrity: sha512-ub4okH7Z5KLjb6hDyjqrGXqWtWvoYdU3IGm/NorpgHncKoLTCfRIbvlhBm7r0YstIaQRYlp4yEbFqDcKSzXSSg==}
     peerDependencies:
@@ -8016,13 +7902,13 @@ snapshots:
       '@tanstack/vue-virtual': 3.13.24(vue@3.5.34)
       vue: 3.5.34(typescript@6.0.3)
 
-  '@hiogawa/vite-plugin-fullstack@0.0.11(vite@8.0.10)':
+  '@hiogawa/vite-plugin-fullstack@0.0.11(vite@8.0.11)':
     dependencies:
       '@rolldown/pluginutils': 1.0.0-beta.55
       magic-string: 0.30.21
       srvx: 0.9.8
       strip-literal: 3.1.0
-      vite: 8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.8.4)
+      vite: 8.0.11(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.8.4)
 
   '@img/colour@1.1.0': {}
 
@@ -8244,70 +8130,6 @@ snapshots:
   '@oozcitak/util@10.0.0': {}
 
   '@opentelemetry/api@1.9.0': {}
-
-  '@oxc-parser/binding-android-arm-eabi@0.129.0':
-    optional: true
-
-  '@oxc-parser/binding-android-arm64@0.129.0':
-    optional: true
-
-  '@oxc-parser/binding-darwin-arm64@0.129.0':
-    optional: true
-
-  '@oxc-parser/binding-darwin-x64@0.129.0':
-    optional: true
-
-  '@oxc-parser/binding-freebsd-x64@0.129.0':
-    optional: true
-
-  '@oxc-parser/binding-linux-arm-gnueabihf@0.129.0':
-    optional: true
-
-  '@oxc-parser/binding-linux-arm-musleabihf@0.129.0':
-    optional: true
-
-  '@oxc-parser/binding-linux-arm64-gnu@0.129.0':
-    optional: true
-
-  '@oxc-parser/binding-linux-arm64-musl@0.129.0':
-    optional: true
-
-  '@oxc-parser/binding-linux-ppc64-gnu@0.129.0':
-    optional: true
-
-  '@oxc-parser/binding-linux-riscv64-gnu@0.129.0':
-    optional: true
-
-  '@oxc-parser/binding-linux-riscv64-musl@0.129.0':
-    optional: true
-
-  '@oxc-parser/binding-linux-s390x-gnu@0.129.0':
-    optional: true
-
-  '@oxc-parser/binding-linux-x64-gnu@0.129.0':
-    optional: true
-
-  '@oxc-parser/binding-linux-x64-musl@0.129.0':
-    optional: true
-
-  '@oxc-parser/binding-openharmony-arm64@0.129.0':
-    optional: true
-
-  '@oxc-parser/binding-wasm32-wasi@0.129.0':
-    dependencies:
-      '@emnapi/core': 1.10.0
-      '@emnapi/runtime': 1.10.0
-      '@napi-rs/wasm-runtime': 1.1.4(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
-    optional: true
-
-  '@oxc-parser/binding-win32-arm64-msvc@0.129.0':
-    optional: true
-
-  '@oxc-parser/binding-win32-ia32-msvc@0.129.0':
-    optional: true
-
-  '@oxc-parser/binding-win32-x64-msvc@0.129.0':
-    optional: true
 
   '@oxc-project/types@0.127.0': {}
 
@@ -9840,7 +9662,7 @@ snapshots:
       obug: 2.1.1
       std-env: 4.1.0
       tinyrainbow: 3.1.0
-      vitest: 4.1.5(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.0)(@types/node@25.6.0)(@vitest/coverage-v8@4.1.5)(vite@8.0.10)
+      vitest: 4.1.5(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.0)(@types/node@25.6.0)(@vitest/coverage-v8@4.1.5)(vite@8.0.11)
 
   '@vitest/expect@4.1.5':
     dependencies:
@@ -9851,13 +9673,13 @@ snapshots:
       chai: 6.2.2
       tinyrainbow: 3.1.0
 
-  '@vitest/mocker@4.1.5(vite@8.0.10)':
+  '@vitest/mocker@4.1.5(vite@8.0.11)':
     dependencies:
       '@vitest/spy': 4.1.5
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
-      vite: 8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.8.4)
+      vite: 8.0.11(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.8.4)
 
   '@vitest/pretty-format@4.1.5':
     dependencies:
@@ -12241,62 +12063,6 @@ snapshots:
 
   nf3@0.3.16: {}
 
-  nitro@3.0.260429-beta(@azure/identity@4.13.1)(@vercel/queue@0.1.6)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(miniflare@4.20260504.0)(rollup@4.60.3)(vite@8.0.10)(xml2js@0.6.2)(zephyr-agent@1.1.0):
-    dependencies:
-      consola: 3.4.2
-      crossws: 0.4.5(srvx@0.11.15)
-      db0: 0.3.4
-      env-runner: 0.1.7(miniflare@4.20260504.0)
-      h3: 2.0.1-rc.22(crossws@0.4.5)
-      hookable: 6.1.1
-      nf3: 0.3.16
-      ocache: 0.1.4
-      ofetch: 2.0.0-alpha.3
-      ohash: 2.0.11
-      rolldown: 1.0.0-rc.18
-      srvx: 0.11.15
-      unenv: 2.0.0-rc.24
-      unstorage: 2.0.0-alpha.7(@azure/identity@4.13.1)(chokidar@5.0.0)(db0@0.3.4)(ofetch@2.0.0-alpha.3)
-    optionalDependencies:
-      '@vercel/queue': 0.1.6
-      dotenv: 17.4.2
-      giget: 3.2.0
-      jiti: 2.7.0
-      rollup: 4.60.3
-      vite: 8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.8.4)
-      xml2js: 0.6.2
-      zephyr-agent: 1.1.0
-    transitivePeerDependencies:
-      - '@azure/app-configuration'
-      - '@azure/cosmos'
-      - '@azure/data-tables'
-      - '@azure/identity'
-      - '@azure/keyvault-secrets'
-      - '@azure/storage-blob'
-      - '@capacitor/preferences'
-      - '@deno/kv'
-      - '@electric-sql/pglite'
-      - '@libsql/client'
-      - '@netlify/blobs'
-      - '@netlify/runtime'
-      - '@planetscale/database'
-      - '@upstash/redis'
-      - '@vercel/blob'
-      - '@vercel/functions'
-      - '@vercel/kv'
-      - aws4fetch
-      - better-sqlite3
-      - chokidar
-      - drizzle-orm
-      - idb-keyval
-      - ioredis
-      - lru-cache
-      - miniflare
-      - mongodb
-      - mysql2
-      - sqlite3
-      - uploadthing
-
   node-abi@3.91.0:
     dependencies:
       semver: 7.7.4
@@ -12443,31 +12209,6 @@ snapshots:
       wcwidth: 1.0.1
 
   os-tmpdir@1.0.2: {}
-
-  oxc-parser@0.129.0:
-    dependencies:
-      '@oxc-project/types': 0.129.0
-    optionalDependencies:
-      '@oxc-parser/binding-android-arm-eabi': 0.129.0
-      '@oxc-parser/binding-android-arm64': 0.129.0
-      '@oxc-parser/binding-darwin-arm64': 0.129.0
-      '@oxc-parser/binding-darwin-x64': 0.129.0
-      '@oxc-parser/binding-freebsd-x64': 0.129.0
-      '@oxc-parser/binding-linux-arm-gnueabihf': 0.129.0
-      '@oxc-parser/binding-linux-arm-musleabihf': 0.129.0
-      '@oxc-parser/binding-linux-arm64-gnu': 0.129.0
-      '@oxc-parser/binding-linux-arm64-musl': 0.129.0
-      '@oxc-parser/binding-linux-ppc64-gnu': 0.129.0
-      '@oxc-parser/binding-linux-riscv64-gnu': 0.129.0
-      '@oxc-parser/binding-linux-riscv64-musl': 0.129.0
-      '@oxc-parser/binding-linux-s390x-gnu': 0.129.0
-      '@oxc-parser/binding-linux-x64-gnu': 0.129.0
-      '@oxc-parser/binding-linux-x64-musl': 0.129.0
-      '@oxc-parser/binding-openharmony-arm64': 0.129.0
-      '@oxc-parser/binding-wasm32-wasi': 0.129.0
-      '@oxc-parser/binding-win32-arm64-msvc': 0.129.0
-      '@oxc-parser/binding-win32-ia32-msvc': 0.129.0
-      '@oxc-parser/binding-win32-x64-msvc': 0.129.0
 
   oxfmt@0.48.0:
     dependencies:
@@ -13553,7 +13294,7 @@ snapshots:
       trough: 2.2.0
       vfile: 6.0.3
 
-  unimport@6.2.0(oxc-parser@0.129.0):
+  unimport@6.2.0(oxc-parser@shims+oxc-parser):
     dependencies:
       acorn: 8.16.0
       escape-string-regexp: 5.0.0
@@ -13570,7 +13311,7 @@ snapshots:
       unplugin: 3.0.0
       unplugin-utils: 0.3.1
     optionalDependencies:
-      oxc-parser: 0.129.0
+      oxc-parser: link:shims/oxc-parser
 
   unist-util-find-after@5.0.0:
     dependencies:
@@ -13763,14 +13504,28 @@ snapshots:
       jiti: 2.7.0
       yaml: 2.8.4
 
+  vite@8.0.11(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.8.4):
+    dependencies:
+      lightningcss: 1.32.0
+      picomatch: 4.0.4
+      postcss: 8.5.14
+      rolldown: 1.0.0-rc.18
+      tinyglobby: 0.2.16
+    optionalDependencies:
+      '@types/node': 25.6.0
+      esbuild: 0.27.7
+      fsevents: 2.3.3
+      jiti: 2.7.0
+      yaml: 2.8.4
+
   vitefu@1.1.3(vite@8.0.10):
     optionalDependencies:
       vite: 8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.8.4)
 
-  vitest@4.1.5(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.0)(@types/node@25.6.0)(@vitest/coverage-v8@4.1.5)(vite@8.0.10):
+  vitest@4.1.5(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.0)(@types/node@25.6.0)(@vitest/coverage-v8@4.1.5)(vite@8.0.11):
     dependencies:
       '@vitest/expect': 4.1.5
-      '@vitest/mocker': 4.1.5(vite@8.0.10)
+      '@vitest/mocker': 4.1.5(vite@8.0.11)
       '@vitest/pretty-format': 4.1.5
       '@vitest/runner': 4.1.5
       '@vitest/snapshot': 4.1.5
@@ -13787,7 +13542,7 @@ snapshots:
       tinyexec: 1.1.2
       tinyglobby: 0.2.16
       tinyrainbow: 3.1.0
-      vite: 8.0.10(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.8.4)
+      vite: 8.0.11(@types/node@25.6.0)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.8.4)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@edge-runtime/vm': 5.0.0

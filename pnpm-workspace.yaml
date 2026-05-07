@@ -3,6 +3,12 @@
 shellEmulator: true
 dedupePeers: true
 ignoreWorkspaceRootCheck: true
+linkWorkspacePackages: "deep"
+
+overrides:
+  "nitro": "workspace:*"
+  "cookie-es": "^3.1.1"
+  "oxc-parser": "link:./shims/oxc-parser"
 
 packages:
   - examples/**
