@@ -1,7 +1,6 @@
 import type { NitroAppPlugin } from "nitro/types";
 import type { GetPlatformProxyOptions, PlatformProxy } from "wrangler";
-// @ts-ignore
-import { useRuntimeConfig, getRequestURL } from "#imports";
+import { useRuntimeConfig } from "nitro/runtime";
 
 const _proxy = _getPlatformProxy()
   .catch((error) => {
@@ -68,13 +67,13 @@ async function _getPlatformProxy() {
     );
   })) as typeof import("wrangler");
 
-  const runtimeConfig: {
+  const runtimeConfig = useRuntimeConfig() as unknown as {
     wrangler: {
       configPath: string;
       persistDir: string;
       environment?: string;
     };
-  } = useRuntimeConfig();
+  };
 
   const proxyOptions: GetPlatformProxyOptions = {
     configPath: runtimeConfig.wrangler.configPath,
