@@ -78,7 +78,7 @@
     "ocache": "^0.1.4",
     "ofetch": "^2.0.0-alpha.3",
     "ohash": "^2.0.11",
-    "rolldown": "^1.0.0-rc.18",
+    "rolldown": "^1.0.0",
     "srvx": "^0.11.15",
     "unenv": "^2.0.0-rc.24",
     "unstorage": "^2.0.0-alpha.7"
@@ -231,7 +231,7 @@
     },
     "rolldown": {
       "type": "compatible",
-      "versions": ">=1.0.0-rc.0"
+      "versions": ">=1.0.0"
     }
   }
 }
