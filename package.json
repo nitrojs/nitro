@@ -58,7 +58,7 @@
     "gen-node-compat": "node scripts/gen-node-compat.ts",
     "gen-presets": "obuild --stub && node ./scripts/gen-presets.ts",
     "lint": "oxlint . && oxfmt --check .",
-    "format": "automd && oxlint --fix . && oxfmt .",
+    "fmt": "automd && oxlint --fix . && oxfmt .",
     "nitro": "node ./src/cli/index.ts",
     "release": "node ./scripts/release.ts",
     "stub": "obuild --stub",
@@ -78,15 +78,17 @@
     "ocache": "^0.1.4",
     "ofetch": "^2.0.0-alpha.3",
     "ohash": "^2.0.11",
-    "rolldown": "^1.0.0-rc.17",
+    "rolldown": "^1.0.0",
     "srvx": "^0.11.15",
     "unenv": "^2.0.0-rc.24",
     "unstorage": "^2.0.0-alpha.7"
   },
   "devDependencies": {
+    "@apphosting/common": "^0.0.9",
     "@azure/functions": "^3.5.1",
     "@azure/static-web-apps-cli": "^2.0.9",
-    "@cloudflare/workers-types": "^4.20260426.1",
+    "@cloudflare/workers-types": "^4.20260507.1",
+    "@cloudflare/workers-utils": "^0.18.0",
     "@deno/types": "^0.0.1",
     "@hiogawa/vite-plugin-fullstack": "^0.0.11",
     "@netlify/edge-functions": "^3.0.6",
@@ -97,20 +99,21 @@
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-replace": "^6.0.3",
-    "@scalar/api-reference": "^1.53.1",
+    "@scalar/api-reference": "^1.55.3",
+    "@scalar/openapi-types": "^0.7.0",
     "@types/aws-lambda": "^8.10.161",
-    "@types/estree": "^1.0.8",
+    "@types/estree": "^1.0.9",
     "@types/etag": "^1.8.4",
     "@types/http-proxy": "^1.17.17",
     "@types/node": "^25.6.0",
     "@types/node-fetch": "^2.6.13",
     "@types/semver": "^7.7.1",
     "@types/xml2js": "^0.4.14",
-    "@typescript/native-preview": "^7.0.0-dev.20260429.1",
+    "@typescript/native-preview": "^7.0.0-dev.20260507.1",
     "@vercel/queue": "^0.1.6",
     "@vitest/coverage-v8": "^4.1.5",
     "automd": "^0.4.3",
-    "c12": "^4.0.0-beta.4",
+    "c12": "^4.0.0-beta.5",
     "changelogen": "^0.6.2",
     "chokidar": "^5.0.0",
     "citty": "^0.2.2",
@@ -135,20 +138,20 @@
     "magic-string": "^0.30.21",
     "mdzilla": "^0.2.1",
     "mime": "^4.1.0",
-    "miniflare": "^4.20260426.0",
+    "miniflare": "^4.20260504.0",
     "mlly": "^1.8.2",
     "nypm": "^0.6.6",
-    "obuild": "^0.4.33",
+    "obuild": "^0.4.35",
     "oxc-parser": "*",
-    "oxfmt": "^0.47.0",
-    "oxlint": "^1.62.0",
+    "oxfmt": "^0.48.0",
+    "oxlint": "^1.63.0",
     "pathe": "^2.0.3",
     "perfect-debounce": "^2.1.0",
     "pkg-types": "^2.3.1",
     "pretty-bytes": "^7.1.0",
-    "react": "^19.2.5",
+    "react": "^19.2.6",
     "rendu": "^0.1.0",
-    "rollup": "^4.60.2",
+    "rollup": "^4.60.3",
     "rou3": "^0.8.1",
     "scule": "^1.3.0",
     "semver": "^7.7.4",
@@ -165,21 +168,21 @@
     "unimport": "^6.2.0",
     "untyped": "^2.0.0",
     "unwasm": "^0.5.3",
-    "vite": "^8.0.10",
+    "vite": "^8.0.11",
     "vite7": "npm:vite@^7.3.2",
     "vitest": "^4.1.5",
-    "wrangler": "^4.86.0",
+    "wrangler": "^4.88.0",
     "xml2js": "^0.6.2",
     "youch": "^4.1.1",
     "youch-core": "^0.3.3",
-    "zephyr-agent": "^1.0.2"
+    "zephyr-agent": "^1.1.0"
   },
   "peerDependencies": {
     "@vercel/queue": "^0.1.6",
     "dotenv": "*",
     "giget": "*",
     "jiti": "^2.6.1",
-    "rollup": "^4.60.2",
+    "rollup": "^4.60.3",
     "vite": "^7 || ^8",
     "xml2js": "^0.6.2",
     "zephyr-agent": "^0.2.0"
@@ -210,15 +213,10 @@
       "optional": true
     }
   },
-  "resolutions": {
-    "cookie-es": "^3.1.1",
-    "nitro": "link:.",
-    "oxc-parser": "link:./shims/oxc-parser"
-  },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
   },
-  "packageManager": "pnpm@10.33.2",
+  "packageManager": "pnpm@11.0.8",
   "compatiblePackages": {
     "schemaVersion": 1,
     "vite": {
@@ -231,7 +229,7 @@
     },
     "rolldown": {
       "type": "compatible",
-      "versions": ">=1.0.0-rc.0"
+      "versions": ">=1.0.0"
     }
   }
 }
