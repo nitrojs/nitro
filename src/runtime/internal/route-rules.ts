@@ -33,6 +33,8 @@ export const redirect: RouteRuleCtor<"redirect"> = ((m) =>
           throw new HTTPError({ status: 400 });
         }
         targetPath = withoutBase(targetPath, strpBase);
+      } else if (targetPath.startsWith("//")) {
+        targetPath = targetPath.replace(/^\/+/, "/");
       }
       target = joinURL(target.slice(0, -3), targetPath);
     } else if (event.url.search) {
@@ -56,6 +58,8 @@ export const proxy: RouteRuleCtor<"proxy"> = ((m) =>
           throw new HTTPError({ status: 400 });
         }
         targetPath = withoutBase(targetPath, strpBase);
+      } else if (targetPath.startsWith("//")) {
+        targetPath = targetPath.replace(/^\/+/, "/");
       }
       target = joinURL(target.slice(0, -3), targetPath);
     } else if (event.url.search) {

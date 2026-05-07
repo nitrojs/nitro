@@ -111,6 +111,7 @@ export default defineConfig({
       redirect: { to: "https://nitro.build/", status: 308 },
     },
     "/rules/redirect/wildcard/**": { redirect: "https://nitro.build/**" },
+    "/rules/redirect/legacy/**": { redirect: "/**" },
     "/rules/nested/**": { redirect: "/base", headers: { "x-test": "test" } },
     "/rules/nested/override": { redirect: { to: "/other" } },
     "/rules/_/noncached/cached": { swr: true },
@@ -118,6 +119,7 @@ export default defineConfig({
     "/rules/_/cached/noncached": { cache: false, swr: false, isr: false },
     "/rules/_/cached/**": { swr: true },
     "/api/proxy/**": { proxy: "/api/echo" },
+    "/rules/proxy/legacy/**": { proxy: "/api/wildcard/**" },
     "/cdn/**": { proxy: "https://cdn.jsdelivr.net/**" },
     "/rules/basic-auth/**": {
       basicAuth: { username: "admin", password: "secret", realm: "Secure Area" },

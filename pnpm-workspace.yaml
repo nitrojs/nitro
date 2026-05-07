@@ -17,7 +17,11 @@ trustPolicyExclude:
 blockExoticSubdeps: true
 strictDepBuilds: true
 allowBuilds:
+  # Allowed
+  "better-sqlite3": true
+  # Blocked
   "@parcel/watcher": false
+  "@prisma/client": false
   esbuild: false
   keytar: false
   sharp: false
@@ -28,3 +32,7 @@ peerDependencyRules:
   allowedVersions:
     vite: "8"
     typescript: "6"
+
+updateConfig:
+  ignoreDependencies:
+    - vite7
