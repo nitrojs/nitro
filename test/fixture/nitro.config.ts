@@ -20,6 +20,7 @@ export default defineConfig({
   compressPublicAssets: true,
   compatibilityDate: "latest",
   serverDir: "server",
+  sourceExtensions: [".civet"],
   builder: (process.env.NITRO_BUILDER as any) || "rolldown",
   // @ts-expect-error
   __vitePkg__: process.env.NITRO_VITE_PKG,

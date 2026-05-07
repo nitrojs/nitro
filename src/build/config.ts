@@ -2,12 +2,16 @@ import type { Nitro, NitroImportMeta } from "nitro/types";
 import { defineEnv } from "unenv";
 import { pkgDir } from "nitro/meta";
 import { pathRegExp, toPathRegExp } from "../utils/regex.ts";
+import {
+  getSourceExtensionPattern,
+  getSourceExtensions,
+  TS_SOURCE_EXTENSIONS,
+} from "../utils/source-extensions.ts";
 
 export type BaseBuildConfig = ReturnType<typeof baseBuildConfig>;
 
 export function baseBuildConfig(nitro: Nitro) {
-  // prettier-ignore
-  const extensions: string[] = [".ts", ".mjs", ".js", ".json", ".node", ".tsx", ".jsx" ];
+  const extensions: string[] = [...getSourceExtensions(nitro.options), ".json", ".node"];
 
   const isNodeless = nitro.options.node === false;
 
@@ -66,8 +70,9 @@ export function baseBuildConfig(nitro: Nitro) {
 }
 
 function getNoExternals(nitro: Nitro): RegExp[] {
+  const extensionPattern = getSourceExtensionPattern(nitro.options, TS_SOURCE_EXTENSIONS);
   const noExternal: RegExp[] = [
-    /\.[mc]?tsx?$/,
+    new RegExp(String.raw`\.(?:${extensionPattern})$`),
     /^(?:[\0#~.]|virtual:)/,
     new RegExp("^" + pathRegExp(pkgDir) + "(?!.*node_modules)"),
     ...[

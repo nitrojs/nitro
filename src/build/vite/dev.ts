@@ -13,6 +13,7 @@ import { join } from "pathe";
 import { debounce } from "perfect-debounce";
 import { withBase } from "ufo";
 import { scanHandlers } from "../../scan.ts";
+import { getSourceExtensionPattern } from "../../utils/source-extensions.ts";
 import { getEnvRunner } from "./env.ts";
 
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
@@ -112,6 +113,8 @@ export class FetchableDevEnvironment extends DevEnvironment {
 export async function configureViteDevServer(ctx: NitroPluginContext, server: ViteDevServer) {
   const nitro = ctx.nitro!;
   const nitroEnv = server.environments.nitro as FetchableDevEnvironment;
+  const sourceExtensionPattern = getSourceExtensionPattern(nitro.options);
+  const serverEntryRe = new RegExp(String.raw`^server(?:\.node)?\.(?:${sourceExtensionPattern})$`);
 
   // Restart with nitro.config changes
   const nitroConfigFile = nitro.options._c12.configFile;
@@ -160,7 +163,7 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     nitro.options.rootDir,
     { persistent: false },
     (_event, filename) => {
-      if (filename && /^server\.[mc]?[jt]sx?$/.test(filename)) {
+      if (filename && serverEntryRe.test(filename)) {
         reload();
       }
     }
