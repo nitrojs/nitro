@@ -45,11 +45,18 @@ export function externals(opts: ExternalsOptions): Plugin {
     return true;
   };
 
+  // exsolve uses only the supplied conditions (no implicit `import`/`default`).
+  // Add `import` so packages whose `exports` only declares the `import` condition
+  // (e.g. lightningcss) resolve correctly when externalizing for ESM output.
+  const resolveConditions = opts.conditions.includes("import")
+    ? opts.conditions
+    : [...opts.conditions, "import"];
+
   const tryResolve = (id: string, from: string | undefined) =>
     resolveModulePath(id, {
       try: true,
       from: from && isAbsolute(from) ? from : opts.rootDir,
-      conditions: opts.conditions,
+      conditions: resolveConditions,
     });
 
   const tracedPaths = new Set<string>();
@@ -110,7 +117,7 @@ export function externals(opts: ExternalsOptions): Plugin {
             return resolved;
           }
           if (!tryResolve(importId, importer)) {
-            const guessed = await guessSubpath(resolvedPath, opts.conditions);
+            const guessed = await guessSubpath(resolvedPath, resolveConditions);
             if (!guessed) {
               return resolved;
             }
