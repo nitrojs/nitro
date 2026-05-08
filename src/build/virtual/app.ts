@@ -23,13 +23,13 @@ export default function app(nitro: Nitro) {
       const code: string[] = [];
 
       imports.push(
-        /* js */ `import { H3Core } from "h3";`,
-        /* js */ `import errorHandler from "#nitro/virtual/error-handler";`
+        `import { H3Core } from "h3";`,
+        `import errorHandler from "#nitro/virtual/error-handler";`
       );
 
       // --- createNitroApp() ---
 
-      code.push(``, /* js */ `export function createNitroApp() {`);
+      code.push(``, `export function createNitroApp() {`);
 
       if (hasHooks) {
         imports.push(`import { HookableCore } from "hookable";`);
