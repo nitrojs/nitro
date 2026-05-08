@@ -29,11 +29,10 @@ import { NitroDevApp } from "../../dev/app.ts";
 import { nitroPreviewPlugin } from "./preview.ts";
 import assetsPlugin from "@hiogawa/vite-plugin-fullstack/assets";
 import type { NitroConfig } from "nitro/types";
+import { getSourceExtensions } from "../../utils/source-extensions.ts";
 
 // https://vite.dev/guide/api-environment-plugins
 // https://vite.dev/guide/api-environment-frameworks.html
-
-const DEFAULT_EXTENSIONS = [".ts", ".js", ".mts", ".mjs", ".tsx", ".jsx"];
 
 const debug = process.env.NITRO_DEBUG
   ? (...args: any[]) => console.log("[nitro]", ...args)
@@ -145,7 +144,7 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
       const resolvedEntry =
         resolveModulePath(entry, {
           from: [ctx.nitro!.options.rootDir, ...ctx.nitro!.options.scanDirs],
-          extensions: DEFAULT_EXTENSIONS,
+          extensions: getSourceExtensions(ctx.nitro!.options),
           suffixes: ["", "/index"],
           try: true,
         }) || entry;
@@ -398,7 +397,7 @@ async function setupNitroContext(
         from: ["app", "src", ""].flatMap((d) =>
           [ctx.nitro!.options.rootDir, ...ctx.nitro!.options.scanDirs].map((s) => join(s, d) + "/")
         ),
-        extensions: DEFAULT_EXTENSIONS,
+        extensions: getSourceExtensions(ctx.nitro!.options),
         try: true,
       });
       if (ssrEntry) {
@@ -411,7 +410,7 @@ async function setupNitroContext(
         ssrEntry =
           resolveModulePath(ssrEntry, {
             from: [ctx.nitro.options.rootDir, ...ctx.nitro.options.scanDirs],
-            extensions: DEFAULT_EXTENSIONS,
+            extensions: getSourceExtensions(ctx.nitro.options),
             suffixes: ["", "/index"],
             try: true,
           }) || ssrEntry;

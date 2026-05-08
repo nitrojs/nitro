@@ -4,6 +4,7 @@ import { watch as chokidarWatch } from "chokidar";
 import { basename, join } from "pathe";
 import { debounce } from "perfect-debounce";
 import { scanHandlers } from "../../scan.ts";
+import { getSourceExtensionPattern } from "../../utils/source-extensions.ts";
 import { writeTypes } from "../types.ts";
 import { formatCompatibilityDate } from "compatx";
 
@@ -40,7 +41,8 @@ export async function watchDev(nitro: Nitro, config: RolldownOptions) {
     }
   });
 
-  const serverEntryRe = /^server\.[mc]?[jt]sx?$/;
+  const sourceExtensionPattern = getSourceExtensionPattern(nitro.options);
+  const serverEntryRe = new RegExp(String.raw`^server(?:\.node)?\.(?:${sourceExtensionPattern})$`);
   const rootDirWatcher = chokidarWatch(nitro.options.rootDir, {
     ignoreInitial: true,
     depth: 0,

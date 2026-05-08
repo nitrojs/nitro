@@ -2,8 +2,7 @@ import { glob } from "tinyglobby";
 import type { Nitro } from "nitro/types";
 import { join, relative } from "pathe";
 import { withBase, withLeadingSlash, withoutTrailingSlash } from "ufo";
-
-export const GLOB_SCAN_PATTERN = "**/*.{js,mjs,cjs,ts,mts,cts,tsx,jsx}";
+import { getScanPattern, stripSourceExtension } from "./utils/source-extensions.ts";
 type FileInfo = { path: string; fullPath: string };
 
 const suffixRegex =
@@ -85,8 +84,7 @@ export async function scanMiddleware(nitro: Nitro) {
 export async function scanServerRoutes(nitro: Nitro, dir: string, prefix = "/") {
   const files = await scanFiles(nitro, dir);
   return files.map((file) => {
-    let route = file.path
-      .replace(/\.[A-Za-z]+$/, "")
+    let route = stripSourceExtension(file.path, nitro.options)
       .replace(/\(([^(/\\]+)\)[/\\]/g, "")
       .replace(/\[\.{3}]/g, "**")
       .replace(/\[\.{3}([^\]]+)]/g, (_, p) => "**:" + p.replace(/[^\w-]/g, "_"))
@@ -123,9 +121,8 @@ export async function scanPlugins(nitro: Nitro) {
 export async function scanTasks(nitro: Nitro) {
   const files = await scanFiles(nitro, "tasks");
   return files.map((f) => {
-    const name = f.path
+    const name = stripSourceExtension(f.path, nitro.options)
       .replace(/\/index$/, "")
-      .replace(/\.[A-Za-z]+$/, "")
       .replace(/\//g, ":");
     return { name, handler: f.fullPath };
   });
@@ -144,7 +141,7 @@ async function scanFiles(nitro: Nitro, name: string): Promise<FileInfo[]> {
 }
 
 async function scanDir(nitro: Nitro, dir: string, name: string): Promise<FileInfo[]> {
-  const fileNames = await glob(join(name, GLOB_SCAN_PATTERN), {
+  const fileNames = await glob(join(name, getScanPattern(nitro.options)), {
     cwd: dir,
     dot: true,
     ignore: nitro.options.ignore,

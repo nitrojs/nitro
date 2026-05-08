@@ -12,6 +12,7 @@ import type { TSConfig } from "pkg-types";
 import type { JSValue } from "untyped";
 import { generateTypes, resolveSchema } from "untyped";
 import { toExports } from "unimport";
+import { getSourceExtensions, stripSourceExtension } from "../utils/source-extensions.ts";
 
 export async function writeTypes(nitro: Nitro) {
   const types: NitroTypes = {
@@ -29,10 +30,10 @@ export async function writeTypes(nitro: Nitro) {
     if (typeof mw.handler !== "string" || !mw.route) {
       continue;
     }
-    const relativePath = relative(
-      generatedTypesDir,
-      resolveNitroPath(mw.handler, nitro.options)
-    ).replace(/\.(js|mjs|cjs|ts|mts|cts|tsx|jsx)$/, "");
+    const relativePath = stripSourceExtension(
+      relative(generatedTypesDir, resolveNitroPath(mw.handler, nitro.options)),
+      nitro.options
+    );
 
     const method = mw.method || "default";
 
@@ -72,7 +73,7 @@ export async function writeTypes(nitro: Nitro) {
           from: nitro.options.rootDir,
           conditions: ["type", "node", "import"],
           suffixes: ["", "/index"],
-          extensions: [".mjs", ".cjs", ".js", ".mts", ".cts", ".ts"],
+          extensions: getSourceExtensions(nitro.options),
         });
         if (resolvedPath) {
           const { dir, name } = parseNodeModulePath(resolvedPath);

@@ -163,6 +163,27 @@ export interface NitroOptions extends PresetOptions {
   scanDirs: string[];
 
   /**
+   * Additional script-like source file extensions Nitro should treat like
+   * built-in JS/TS server files.
+   *
+   * These extensions are appended to Nitro's built-in source extensions and
+   * are used for file scanning, entry resolution, generated route types, and
+   * development reload detection.
+   *
+   * When used for Nitro `modules`, custom extensions must also be supported
+   * by the current JS runtime. For example:
+   * `NODE_OPTIONS="--import @danielx/civet/register" pnpm dev`
+   *
+   * @example
+   * ```ts
+   * sourceExtensions: [".civet", ".res"]
+   * ```
+   *
+   * @see https://nitro.build/config#sourceextensions
+   */
+  sourceExtensions: string[];
+
+  /**
    * Directory name to scan for API route handlers.
    *
    * @default "api"

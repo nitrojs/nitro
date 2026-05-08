@@ -2,6 +2,7 @@ import { join } from "pathe";
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { ViteDevServer } from "vite";
+import { nitro } from "nitro/vite";
 import { describe, test, expect, beforeAll, afterEach, afterAll } from "vitest";
 
 const { createServer } = (await import(
@@ -91,6 +92,55 @@ describe("vite:hmr", { sequential: true }, () => {
       (txt) => txt.includes("state: 2") && !txt.includes("state: 1")
     );
     expect(wsMessages).toMatchObject([{ type: "full-reload" }]);
+  });
+
+  test("editing custom source extension API entry", async () => {
+    const customAPI = openFileForEditing(join(rootDir, "api/state-source-extension.civet"));
+    const customMessages: any[] = [];
+    const customServer = await createServer({
+      root: rootDir,
+      configFile: false,
+      plugins: [
+        {
+          name: "test:source-extensions",
+          enforce: "pre",
+          transform(code: any, id: any) {
+            if (id.endsWith(".civet")) {
+              return { code, map: null };
+            }
+          },
+        },
+        nitro({ serverDir: "./", sourceExtensions: [".civet"] }),
+      ],
+    });
+    const originalSend = customServer.ws.send.bind(customServer.ws);
+    customServer.ws.send = function (payload: any) {
+      customMessages.push(payload);
+      return originalSend(payload);
+    };
+
+    try {
+      await customServer.listen("0" as unknown as number);
+      const addr = customServer.httpServer?.address() as {
+        port: number;
+        address: string;
+        family: string;
+      };
+      const customServerURL = `http://${addr.family === "IPv6" ? `[${addr.address}]` : addr.address}:${addr.port}`;
+      const initialResponse = await fetch(`${customServerURL}/api/state-source-extension`).then(
+        (r) => r.text()
+      );
+      expect(initialResponse).toContain('"state":1');
+
+      customAPI.update((content) =>
+        content.replace("({ state })", '({ state: state + " (modified)" })')
+      );
+      await pollResponse(`${customServerURL}/api/state-source-extension`, /modified/);
+      expect(customMessages).toMatchObject([{ type: "full-reload" }]);
+    } finally {
+      customAPI.restore();
+      await customServer.close();
+    }
   });
 });
 
