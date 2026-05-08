@@ -20,8 +20,7 @@ export default function routing(nitro: Nitro) {
       return /* js */ `
 import * as __routeRules__ from "#nitro/runtime/route-rules";
 import * as srvxNode from "srvx/node"
-import * as h3 from "h3";
-${traceH3 ? `import { wrapHandlerWithTracing as __wrapHandler__ } from "h3/tracing";` : ""}
+import * as h3 from "h3";${traceH3 ? `\nimport { wrapHandlerWithTracing } from "h3/tracing";` : ""}
 
 export const findRouteRules = ${nitro.routing.routeRules.compileToString({ serialize: serializeRouteRule, matchAll: true })}
 
@@ -101,7 +100,7 @@ function tracedSerializeHandler(
     `route:${JSON.stringify(meta.route)}`,
     meta.method && `method:${JSON.stringify(meta.method)}`,
     meta.meta && `meta:${JSON.stringify(meta.meta)}`,
-    `handler:__wrapHandler__(${
+    `handler:wrapHandlerWithTracing(${
       Array.isArray(h)
         ? `multiHandler(${h.map((handler) => serializeHandlerFn(handler)).join(",")})`
         : serializeHandlerFn(h)
