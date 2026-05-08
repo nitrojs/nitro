@@ -58,6 +58,18 @@ export interface CloudflareOptions {
     configPath?: string;
     environment?: string;
     persistDir?: string;
+    /**
+     * Cloudflare API token used to authenticate the remote bindings proxy session.
+     *
+     * Falls back to `CLOUDFLARE_API_TOKEN` and then to credentials from `wrangler login`.
+     */
+    apiToken?: string;
+    /**
+     * Cloudflare account ID used to authenticate the remote bindings proxy session.
+     *
+     * Falls back to `CLOUDFLARE_ACCOUNT_ID`, then `account_id` from the wrangler config.
+     */
+    accountId?: string;
   };
 
   pages?: {

@@ -397,7 +397,7 @@ export default defineConfig({
 
 #### Remote bindings
 
-Individual bindings can be configured to use remote (production) resources during development by setting `remote = true` in your wrangler config. This requires authentication with your Cloudflare account.
+Individual bindings can be configured to use remote (production) resources during development by setting `remote = true` in your wrangler config. AI, Vectorize, AI Search, and VPC service/network bindings are always remote.
 
 ```json [wrangler.json]
 {
@@ -410,3 +410,31 @@ Individual bindings can be configured to use remote (production) resources durin
   ]
 }
 ```
+
+When any remote binding is detected, Nitro starts a [remote proxy session](https://developers.cloudflare.com/workers/development-testing/) on dev startup that routes those bindings to live Cloudflare resources. Local-only bindings continue to run in the local miniflare runtime.
+
+##### Authentication
+
+The remote proxy session needs Cloudflare API credentials. Nitro resolves them in this order:
+
+1. `cloudflare.dev.apiToken` in your Nitro config.
+2. `CLOUDFLARE_API_TOKEN` environment variable.
+3. Credentials stored by `wrangler login`.
+
+The account ID is resolved from `cloudflare.dev.accountId`, then `CLOUDFLARE_ACCOUNT_ID`, then `account_id` in your wrangler config.
+
+```ts [nitro.config.ts]
+import { defineNitroConfig } from "nitro/config";
+
+export default defineNitroConfig({
+  preset: 'cloudflare_module',
+  cloudflare: {
+    dev: {
+      apiToken: process.env.MY_CLOUDFLARE_TOKEN,
+      accountId: process.env.MY_CLOUDFLARE_ACCOUNT_ID
+    }
+  }
+});
+```
+
+For interactive local development, run `wrangler login` to authenticate. For CI or headless environments, set `CLOUDFLARE_API_TOKEN` (and `CLOUDFLARE_ACCOUNT_ID` if you have multiple accounts).
