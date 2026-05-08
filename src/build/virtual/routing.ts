@@ -43,7 +43,7 @@ ${allHandlers
   )
   .join("\n")}
 
-export const findRoute = ${nitro.routing.routes.compileToString({ serialize: traceH3 ? tracedSerializeHandler : serializeHandler })}
+export const findRoute = ${nitro.routing.routes.compileToString({ serialize: (h) => serializeHandler(h, { tracing: traceH3 }) })}
 
 export const findRoutedMiddleware = ${nitro.routing.routedMiddleware.compileToString({ serialize: serializeHandler, matchAll: true })};
 
@@ -63,18 +63,20 @@ function uniqueBy<T>(arr: T[], key: keyof T): T[] {
 
 type MaybeArray<T> = T | T[];
 
-function serializeHandler(h: MaybeArray<NitroEventHandler & { _importHash: string }>): string {
+function serializeHandler(
+  h: MaybeArray<NitroEventHandler & { _importHash: string }>,
+  opts: { tracing?: boolean } = {}
+): string {
   const meta = Array.isArray(h) ? h[0] : h;
+  const handler = Array.isArray(h)
+    ? `multiHandler(${h.map((handler) => serializeHandlerFn(handler)).join(",")})`
+    : serializeHandlerFn(h);
 
   return `{${[
     `route:${JSON.stringify(meta.route)}`,
     meta.method && `method:${JSON.stringify(meta.method)}`,
     meta.meta && `meta:${JSON.stringify(meta.meta)}`,
-    `handler:${
-      Array.isArray(h)
-        ? `multiHandler(${h.map((handler) => serializeHandlerFn(handler)).join(",")})`
-        : serializeHandlerFn(h)
-    }`,
+    `handler:${opts.tracing ? `wrapHandlerWithTracing(${handler})` : handler}`,
   ]
     .filter(Boolean)
     .join(",")}}`;
@@ -89,25 +91,6 @@ function serializeHandlerFn(h: NitroEventHandler & { _importHash: string }): str
     code = `h3.toEventHandler(${code})`;
   }
   return code;
-}
-
-function tracedSerializeHandler(
-  h: MaybeArray<NitroEventHandler & { _importHash: string }>
-): string {
-  const meta = Array.isArray(h) ? h[0] : h;
-
-  return `{${[
-    `route:${JSON.stringify(meta.route)}`,
-    meta.method && `method:${JSON.stringify(meta.method)}`,
-    meta.meta && `meta:${JSON.stringify(meta.meta)}`,
-    `handler:wrapHandlerWithTracing(${
-      Array.isArray(h)
-        ? `multiHandler(${h.map((handler) => serializeHandlerFn(handler)).join(",")})`
-        : serializeHandlerFn(h)
-    })`,
-  ]
-    .filter(Boolean)
-    .join(",")}}`;
 }
 
 function serializeRouteRule(h: NitroRouteRules & { _route: string }): string {
