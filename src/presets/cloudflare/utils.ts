@@ -292,20 +292,27 @@ export async function writeWranglerConfig(
     );
   } else {
     // Modules
-    overrides.main = relative(
+    const assetsDirectory = relative(
       wranglerConfigDir,
-      join(nitro.options.output.serverDir, "index.mjs")
+      resolve(
+        nitro.options.output.publicDir,
+        "..".repeat(nitro.options.baseURL.split("/").filter(Boolean).length)
+      )
     );
-    overrides.assets = {
-      binding: "ASSETS",
-      directory: relative(
+    if (nitro.options.static) {
+      // Static build: no worker entry, deploy as pure static assets
+      // https://developers.cloudflare.com/workers/static-assets/
+      overrides.assets = { directory: assetsDirectory };
+    } else {
+      overrides.main = relative(
         wranglerConfigDir,
-        resolve(
-          nitro.options.output.publicDir,
-          "..".repeat(nitro.options.baseURL.split("/").filter(Boolean).length)
-        )
-      ),
-    };
+        join(nitro.options.output.serverDir, "index.mjs")
+      );
+      overrides.assets = {
+        binding: "ASSETS",
+        directory: assetsDirectory,
+      };
+    }
   }
 
   // Read user config
