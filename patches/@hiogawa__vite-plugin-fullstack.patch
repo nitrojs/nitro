@@ -1,5 +1,5 @@
 diff --git a/dist/plugin-B4MlD0Bd.js b/dist/plugin-B4MlD0Bd.js
-index 7ddbbcf1630129b133dbf3e8621942478b5348b8..644f2ffece292a0f5631def23f0b6dae01826b7e 100644
+index 7ddbbcf1630129b133dbf3e8621942478b5348b8..d73f971411782d1952391aefbf1bb5ed7c35b0dc 100644
 --- a/dist/plugin-B4MlD0Bd.js
 +++ b/dist/plugin-B4MlD0Bd.js
 @@ -1,5 +1,4 @@
@@ -22,3 +22,13 @@ index 7ddbbcf1630129b133dbf3e8621942478b5348b8..644f2ffece292a0f5631def23f0b6dae
  function injectQuery(url, queryToInject) {
  	const { file, postfix } = splitFileAndPostfix(url);
  	return `${isWindows ? slash(file) : file}?${queryToInject}${postfix[0] === "?" ? `&${postfix.slice(1)}` : postfix}`;
+@@ -502,7 +508,8 @@ function collectAssetDepsInner(fileName, bundle) {
+ 	};
+ }
+ function patchViteClientPlugin() {
+-	const viteClientPath = normalizePath(fileURLToPath(import.meta.resolve("vite/dist/client/client.mjs")));
++	let viteClientPath
++	try { viteClientPath = normalizePath(fileURLToPath(import.meta.resolve("vite/dist/client/client.mjs"))); } catch {}
+ 	function endIndexOf(code, searchValue) {
+ 		const i = code.lastIndexOf(searchValue);
+ 		return i === -1 ? i : i + searchValue.length;
