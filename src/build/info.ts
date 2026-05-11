@@ -46,7 +46,7 @@ export async function findLastBuildDir(root: string): Promise<string> {
 
 export async function writeBuildInfo(
   nitro: Nitro,
-  output: RolldownOutput | RollupOutput | undefined
+  output?: RolldownOutput | RollupOutput | undefined
 ): Promise<NitroBuildInfo> {
   const serverEntryName = output?.output?.find((o) => o.type === "chunk" && o.isEntry)?.fileName;
 

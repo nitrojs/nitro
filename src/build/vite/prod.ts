@@ -106,17 +106,22 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
   // Prerender routes if configured
   await prerender(nitro);
 
-  // Build the Nitro server bundle
-  const output = (await builder.build(builder.environments.nitro)) as RolldownOutput;
+  if (!nitro.options.static) {
+    // Build the Nitro server bundle
+    const output = (await builder.build(builder.environments.nitro)) as RolldownOutput;
+
+    // Call compiled hook
+    await nitro.hooks.callHook("compiled", nitro);
+
+    // Write build info
+    await writeBuildInfo(nitro, output);
+  } else {
+    nitro.logger.success("Static build complete");
+    await writeBuildInfo(nitro);
+  }
 
   // Close the Nitro instance
   await nitro.close();
-
-  // Call compiled hook
-  await nitro.hooks.callHook("compiled", nitro);
-
-  // Write build info
-  await writeBuildInfo(nitro, output);
 
   // Show deploy and preview commands
   if (!isTest && !isCI) console.log();
