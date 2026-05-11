@@ -45,8 +45,9 @@ export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOpti
       "process.env.NODE_ENV": JSON.stringify(ctx.nitro!.options.dev ? "development" : "production"),
     },
     dev: {
-      createEnvironment: (envName, envConfig) => {
+      createEnvironment: async (envName, envConfig) => {
         const entry = resolve(runtimeDir, "internal/vite/dev-entry.mjs");
+        const { createFetchableDevEnvironment } = await import("./dev.ts");
         const env = createFetchableDevEnvironment(envName, envConfig, getEnvRunner(ctx), entry, {
           preventExternalize: isWorkerdRunner,
         });
