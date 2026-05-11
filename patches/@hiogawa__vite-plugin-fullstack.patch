@@ -28,7 +28,7 @@ index 7ddbbcf1630129b133dbf3e8621942478b5348b8..d73f971411782d1952391aefbf1bb5ed
  function patchViteClientPlugin() {
 -	const viteClientPath = normalizePath(fileURLToPath(import.meta.resolve("vite/dist/client/client.mjs")));
 +	let viteClientPath
-+	try { viteClientPath = normalizePath(fileURLToPath(import.meta.resolve("vite/dist/client/client.mjs"))); } catch {}
++	try { viteClientPath = normalizePath(fileURLToPath(import.meta.resolve("vite/dist/client/client.mjs"))); } catch { return null; }
  	function endIndexOf(code, searchValue) {
  		const i = code.lastIndexOf(searchValue);
  		return i === -1 ? i : i + searchValue.length;

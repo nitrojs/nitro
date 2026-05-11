@@ -11,7 +11,7 @@ overrides:
   oxc-parser: link:./shims/oxc-parser
 
 patchedDependencies:
-  '@hiogawa/vite-plugin-fullstack': 3acb477ca58ccd202ce7b8365ea24886b8355ce46a824232ec68a385e3edcb3c
+  '@hiogawa/vite-plugin-fullstack': 07fae0b67c822caf17077800582de7d566ace9f74ee59baba4de19a6288b720a
 
 importers:
 
@@ -86,7 +86,7 @@ importers:
         version: 0.0.1
       '@hiogawa/vite-plugin-fullstack':
         specifier: ^0.0.11
-        version: 0.0.11(patch_hash=3acb477ca58ccd202ce7b8365ea24886b8355ce46a824232ec68a385e3edcb3c)(vite@8.0.11)
+        version: 0.0.11(patch_hash=07fae0b67c822caf17077800582de7d566ace9f74ee59baba4de19a6288b720a)(vite@8.0.11)
       '@netlify/edge-functions':
         specifier: ^3.0.6
         version: 3.0.6
@@ -7928,7 +7928,7 @@ snapshots:
       '@tanstack/vue-virtual': 3.13.24(vue@3.5.34)
       vue: 3.5.34(typescript@6.0.3)
 
-  '@hiogawa/vite-plugin-fullstack@0.0.11(patch_hash=3acb477ca58ccd202ce7b8365ea24886b8355ce46a824232ec68a385e3edcb3c)(vite@8.0.11)':
+  '@hiogawa/vite-plugin-fullstack@0.0.11(patch_hash=07fae0b67c822caf17077800582de7d566ace9f74ee59baba4de19a6288b720a)(vite@8.0.11)':
     dependencies:
       '@rolldown/pluginutils': 1.0.0-beta.55
       magic-string: 0.30.21
