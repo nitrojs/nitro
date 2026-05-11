@@ -10,6 +10,9 @@ overrides:
   cookie-es: ^3.1.1
   oxc-parser: link:./shims/oxc-parser
 
+patchedDependencies:
+  '@hiogawa/vite-plugin-fullstack': 7176bb7cd1cc54ef03b75fb1daff982030f5685ec1ecf33d3f35257a2a820b78
+
 importers:
 
   .:
@@ -83,7 +86,7 @@ importers:
         version: 0.0.1
       '@hiogawa/vite-plugin-fullstack':
         specifier: ^0.0.11
-        version: 0.0.11(vite@8.0.11)
+        version: 0.0.11(patch_hash=7176bb7cd1cc54ef03b75fb1daff982030f5685ec1ecf33d3f35257a2a820b78)(vite@8.0.11)
       '@netlify/edge-functions':
         specifier: ^3.0.6
         version: 3.0.6
@@ -7925,7 +7928,7 @@ snapshots:
       '@tanstack/vue-virtual': 3.13.24(vue@3.5.34)
       vue: 3.5.34(typescript@6.0.3)
 
-  '@hiogawa/vite-plugin-fullstack@0.0.11(vite@8.0.11)':
+  '@hiogawa/vite-plugin-fullstack@0.0.11(patch_hash=7176bb7cd1cc54ef03b75fb1daff982030f5685ec1ecf33d3f35257a2a820b78)(vite@8.0.11)':
     dependencies:
       '@rolldown/pluginutils': 1.0.0-beta.55
       magic-string: 0.30.21
