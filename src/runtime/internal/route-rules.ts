@@ -10,6 +10,64 @@ type RouteRuleCtor<T extends keyof NitroRouteRules> = ((m: MatchedRouteRule<T>) 
   order?: number;
 };
 
+// ---------------------------------------------------------------------------
+// SSRF protection: prevent proxy targets from reaching internal/private hosts
+// ---------------------------------------------------------------------------
+
+const PRIVATE_IPV4_RANGES = [
+  /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/,
+  /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/,
+  /^169\.254\.\d{1,3}\.\d{1,3}$/,
+  /^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/,
+  /^192\.168\.\d{1,3}\.\d{1,3}$/,
+  /^0\.0\.0\.0$/,
+];
+
+function isPrivateHost(hostname: string): boolean {
+  // Block localhost and .local domains
+  if (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "::1" ||
+    hostname.endsWith(".local") ||
+    hostname === "0.0.0.0"
+  ) {
+    return true;
+  }
+
+  // Block private IPv4 ranges
+  for (const range of PRIVATE_IPV4_RANGES) {
+    if (range.test(hostname)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Validate that a proxy target does not point to a private/internal host.
+ * Throws an HTTP 400 error if the target is unsafe.
+ */
+function assertSafeProxyTarget(target: string): void {
+  try {
+    const url = new URL(target);
+    if (isPrivateHost(url.hostname)) {
+      throw new HTTPError({
+        status: 400,
+        statusMessage: `Proxy targets must not be private or internal hosts.`,
+      });
+    }
+  } catch (e) {
+    // If target is not a valid URL (e.g., relative path), it's safe
+    // as it can only point to paths within the same origin.
+    if (e instanceof TypeError) {
+      return;
+    }
+    throw e;
+  }
+}
+
 // Headers route rule
 export const headers: RouteRuleCtor<"headers"> = ((m) =>
   function headersRouteRule(event) {
@@ -65,6 +123,7 @@ export const proxy: RouteRuleCtor<"proxy"> = ((m) =>
     } else if (event.url.search) {
       target = withQuery(target, Object.fromEntries(event.url.searchParams));
     }
+    assertSafeProxyTarget(target);
     return proxyRequest(event, target, {
       ...m.options,
     });
@@ -118,7 +177,14 @@ export const basicAuth: RouteRuleCtor<"auth"> = /* @__PURE__ */ Object.assign(
 export function isPathInScope(pathname: string, base: string): boolean {
   let canonical: string;
   try {
-    const pre = pathname.replace(/%2f/gi, "/").replace(/%5c/gi, "\\");
+    // Recursively decode %2f and %5c to prevent double-encoding bypass
+    // (e.g. ..%252f..%252f would decode to ..%2f..%2f then to ../..)
+    let pre = pathname;
+    let prev = "";
+    while (pre !== prev) {
+      prev = pre;
+      pre = pre.replace(/%2f/gi, "/").replace(/%5c/gi, "\\");
+    }
     canonical = new URL(pre, "http://_").pathname;
   } catch {
     return false;
