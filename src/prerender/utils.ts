@@ -39,7 +39,27 @@ export async function extractLinks(html: string, from: string, res: Response, cr
 
   // Extract from x-nitro-prerender headers
   const header = res.headers.get("x-nitro-prerender") || "";
-  _links.push(...header.split(",").map((i) => decodeURIComponent(i.trim())));
+  const prerenderLinks = header
+    .split(",")
+    .map((i) => decodeURIComponent(i.trim()))
+    .filter((link) => {
+      // Validate prerender header links to prevent injection of
+      // malicious paths, traversal sequences, or external URLs
+      if (!link || link.includes("..") || link.includes("//")) {
+        return false;
+      }
+      try {
+        const parsed = new URL(link, "http://localhost");
+        // Reject absolute URLs (external redirects) and URLs not starting with /
+        if (parsed.protocol !== "http:" || parsed.host !== "localhost") {
+          return false;
+        }
+        return parsed.pathname.startsWith("/");
+      } catch {
+        return false;
+      }
+    });
+  _links.push(...prerenderLinks);
 
   for (const link of _links.filter(Boolean)) {
     const _link = parseURL(link);
