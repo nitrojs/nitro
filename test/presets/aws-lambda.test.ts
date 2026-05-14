@@ -1,5 +1,6 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyEventV2 } from "aws-lambda";
 import { resolve } from "pathe";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { parseURL, parseQuery } from "ufo";
 import { setupTest, testNitro } from "../tests.ts";
@@ -93,6 +94,60 @@ describe("nitro:preset:aws-lambda-streaming", async () => {
     const response = await entry.default.fetch(new Request("http://localhost/api/hello"));
     await expect(response.json()).resolves.toMatchObject({
       message: "Hello API",
+    });
+  });
+});
+
+describe("nitro:preset:aws-lambda-streaming-vite-ssr", async () => {
+  const ctx = await setupTest("aws-lambda", {
+    config: {
+      builder: "vite",
+      rootDir: fileURLToPath(new URL("../vite/lambda-ssr-fixture", import.meta.url)),
+      awsLambda: {
+        streaming: true,
+      },
+    },
+    outDirSuffix: "-streaming-vite-ssr",
+  });
+
+  it("handles SSR services with named fetch exports on the streaming handler path", async () => {
+    const { handler } = await import(resolve(ctx.outDir, "server/index.mjs"));
+    const event = {
+      rawPath: "/",
+      headers: {
+        host: "localhost",
+      },
+      rawQueryString: "",
+      queryStringParameters: {},
+      body: "",
+      isBase64Encoded: false,
+      version: "2",
+      routeKey: "",
+      requestContext: {
+        accountId: "",
+        apiId: "",
+        domainName: "localhost",
+        domainPrefix: "",
+        requestId: "",
+        routeKey: "",
+        stage: "",
+        time: "",
+        timeEpoch: 0,
+        http: {
+          path: "/",
+          protocol: "http",
+          userAgent: "",
+          sourceIp: "",
+          method: "GET",
+        },
+      },
+    } satisfies APIGatewayProxyEventV2;
+
+    const response = await handler(event);
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.body)).toMatchObject({
+      ok: true,
     });
   });
 });
