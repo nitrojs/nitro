@@ -1,4 +1,36 @@
 import "#nitro/virtual/polyfills";
+
+// React 19's server.edge.js uses ReadableStream({ type: "direct", ... }), a
+// Cloudflare Workers extension. Bun follows the web spec strictly and throws
+// ERR_INVALID_ARG_VALUE for unknown `type` values. Strip it before it reaches
+// Bun's constructor so prerendering works without switching to the node preset.
+const _OriginalReadableStream = globalThis.ReadableStream;
+// @ts-expect-error -- intentional global override for compat
+globalThis.ReadableStream = function ReadableStream(
+  underlyingSource?: UnderlyingDefaultSource | UnderlyingByteSource,
+  strategy?: QueuingStrategy,
+) {
+  if (
+    underlyingSource &&
+    (underlyingSource as Record<string, unknown>).type === "direct"
+  ) {
+    const { type: _type, ...rest } = underlyingSource as Record<string, unknown>;
+    return new _OriginalReadableStream(
+      rest as UnderlyingDefaultSource,
+      strategy,
+    );
+  }
+  return new _OriginalReadableStream(
+    underlyingSource as UnderlyingDefaultSource,
+    strategy,
+  );
+} as unknown as typeof ReadableStream;
+Object.setPrototypeOf(globalThis.ReadableStream, _OriginalReadableStream);
+Object.setPrototypeOf(
+  globalThis.ReadableStream.prototype,
+  _OriginalReadableStream.prototype,
+);
+
 import type { ServerRequest } from "srvx";
 import { serve } from "srvx/bun";
 import wsAdapter from "crossws/adapters/bun";
