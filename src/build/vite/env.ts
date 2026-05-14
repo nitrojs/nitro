@@ -6,7 +6,6 @@ import { RunnerManager, loadRunner } from "env-runner";
 import { join, resolve } from "node:path";
 import { runtimeDependencies, runtimeDir } from "nitro/meta";
 import { resolveModulePath } from "exsolve";
-import { createFetchableDevEnvironment } from "./dev.ts";
 import { isAbsolute } from "pathe";
 
 export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOptions {
@@ -46,8 +45,9 @@ export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOpti
       "process.env.NODE_ENV": JSON.stringify(ctx.nitro!.options.dev ? "development" : "production"),
     },
     dev: {
-      createEnvironment: (envName, envConfig) => {
+      createEnvironment: async (envName, envConfig) => {
         const entry = resolve(runtimeDir, "internal/vite/dev-entry.mjs");
+        const { createFetchableDevEnvironment } = await import("./dev.ts");
         const env = createFetchableDevEnvironment(envName, envConfig, getEnvRunner(ctx), entry, {
           preventExternalize: isWorkerdRunner,
         });
@@ -88,9 +88,10 @@ export function createServiceEnvironment(
       ),
     },
     dev: {
-      createEnvironment: (envName, envConfig) => {
+      createEnvironment: async (envName, envConfig) => {
         const entry = tryResolve(serviceConfig.entry);
         (ctx._viteEnvs ??= new Map()).set(envName, entry);
+        const { createFetchableDevEnvironment } = await import("./dev.ts");
         return createFetchableDevEnvironment(envName, envConfig, getEnvRunner(ctx), entry, {
           preventExternalize: isWorkerdRunner,
         });
