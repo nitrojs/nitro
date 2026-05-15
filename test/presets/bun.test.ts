@@ -1,7 +1,7 @@
 import { execa, execaSync } from "execa";
 import { getRandomPort, waitForPort } from "get-port-please";
 import { resolve } from "pathe";
-import { describe } from "vitest";
+import { describe, it, expect } from "vitest";
 import { setupTest, testNitro } from "../tests.ts";
 import { testCloseHook } from "./_close-hook.ts";
 
@@ -27,6 +27,11 @@ describe.runIf(hasBun)("nitro:preset:bun", async () => {
       const res = await ctx.fetch(url, opts);
       return res;
     };
+  }, (ctx, callHandler) => {
+    it("bun: ReadableStream polyfill works", async () => {
+      const { data } = await callHandler({ url: "/bun-direct-stream" });
+      expect(data.isStream).toBe(true);
+    });
   });
 
   testCloseHook(ctx, { command: "bun", args: (entry) => [entry] });
