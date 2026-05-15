@@ -4,29 +4,25 @@ import "#nitro/virtual/polyfills";
 // Cloudflare Workers extension. Bun follows the web spec strictly and throws
 // ERR_INVALID_ARG_VALUE for unknown `type` values. Strip it before it reaches
 // Bun's constructor so prerendering works without switching to the node preset.
+// Using class extends preserves the prototype chain so instanceof checks work correctly.
 const _OriginalReadableStream = globalThis.ReadableStream;
-const _PatchedReadableStream = function ReadableStream(
-  underlyingSource?: UnderlyingDefaultSource | UnderlyingByteSource,
-  strategy?: QueuingStrategy,
-) {
-  if (
-    underlyingSource &&
-    (underlyingSource as Record<string, unknown>).type === "direct"
+class _PatchedReadableStream extends _OriginalReadableStream {
+  constructor(
+    underlyingSource?: UnderlyingDefaultSource | UnderlyingByteSource,
+    strategy?: QueuingStrategy,
   ) {
-    const { type: _type, ...rest } = underlyingSource as Record<string, unknown>;
-    return new _OriginalReadableStream(
-      rest as UnderlyingDefaultSource,
-      strategy,
-    );
+    if (
+      underlyingSource &&
+      (underlyingSource as Record<string, unknown>).type === "direct"
+    ) {
+      const { type: _type, ...rest } =
+        underlyingSource as Record<string, unknown>;
+      super(rest as UnderlyingDefaultSource, strategy);
+    } else {
+      super(underlyingSource as UnderlyingDefaultSource, strategy);
+    }
   }
-  return new _OriginalReadableStream(
-    underlyingSource as UnderlyingDefaultSource,
-    strategy,
-  );
-} as unknown as typeof ReadableStream;
-
-Object.setPrototypeOf(_PatchedReadableStream, _OriginalReadableStream);
-_PatchedReadableStream.prototype = _OriginalReadableStream.prototype;
+}
 
 // @ts-expect-error -- intentional global override for compat
 globalThis.ReadableStream = _PatchedReadableStream;
