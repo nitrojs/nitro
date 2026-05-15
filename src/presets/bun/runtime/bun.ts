@@ -5,8 +5,7 @@ import "#nitro/virtual/polyfills";
 // ERR_INVALID_ARG_VALUE for unknown `type` values. Strip it before it reaches
 // Bun's constructor so prerendering works without switching to the node preset.
 const _OriginalReadableStream = globalThis.ReadableStream;
-// @ts-expect-error -- intentional global override for compat
-globalThis.ReadableStream = function ReadableStream(
+const _PatchedReadableStream = function ReadableStream(
   underlyingSource?: UnderlyingDefaultSource | UnderlyingByteSource,
   strategy?: QueuingStrategy,
 ) {
@@ -25,11 +24,12 @@ globalThis.ReadableStream = function ReadableStream(
     strategy,
   );
 } as unknown as typeof ReadableStream;
-Object.setPrototypeOf(globalThis.ReadableStream, _OriginalReadableStream);
-Object.setPrototypeOf(
-  globalThis.ReadableStream.prototype,
-  _OriginalReadableStream.prototype,
-);
+
+Object.setPrototypeOf(_PatchedReadableStream, _OriginalReadableStream);
+_PatchedReadableStream.prototype = _OriginalReadableStream.prototype;
+
+// @ts-expect-error -- intentional global override for compat
+globalThis.ReadableStream = _PatchedReadableStream;
 
 import type { ServerRequest } from "srvx";
 import { serve } from "srvx/bun";
