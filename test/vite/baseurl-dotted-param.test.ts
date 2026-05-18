@@ -29,7 +29,6 @@ describe("vite:baseURL dotted params", { sequential: true }, () => {
   });
 
   test("serves Nitro API routes with dotted params under baseURL without redirecting", async () => {
-    // `image` is included to cover #4241 — `<img src="/api/...">` requests carry `sec-fetch-dest: image` but should still reach an explicit Nitro route.
     for (const fetchDest of ["empty", "document", "image", undefined]) {
       const headers: Record<string, string> = {};
       if (fetchDest) {
@@ -58,16 +57,43 @@ describe("vite:baseURL dotted params", { sequential: true }, () => {
     expect(await response.text()).toBe("image");
   });
 
-  // Browsers omit Sec-Fetch-* on plain-HTTP non-loopback origins (e.g. http://10.0.0.x:3000). Without that signal, a splat Nitro route would swallow `<script src=".../entry-client.ts">` requests. Accept + asset extension is used as a fallback to keep asset loads routed to Vite.
-  test("does not misroute asset loads to splat Nitro routes when sec-fetch-dest is absent", async () => {
-    const response = await fetch(`${serverURL}/subdir/api/proxy/entry-client.ts`, {
-      headers: { accept: "*/*" },
-      redirect: "manual",
-    });
-    expect(await response.text()).not.toBe("entry-client.ts");
+  test("prefixed splat routes win over Vite assets even with asset extensions and sec-fetch-dest", async () => {
+    for (const fetchDest of ["script", "style", "image", undefined]) {
+      const headers: Record<string, string> = { accept: "*/*" };
+      if (fetchDest) {
+        headers["sec-fetch-dest"] = fetchDest;
+      }
+      const response = await fetch(`${serverURL}/subdir/api/proxy/entry-client.ts`, {
+        headers,
+        redirect: "manual",
+      });
+      expect(response.status, `fetchDest: ${fetchDest}`).toBe(200);
+      expect(await response.text(), `fetchDest: ${fetchDest}`).toBe("entry-client.ts");
+    }
   });
 
-  // The extension extraction must look at the path only — a `.png` in the query string (e.g. `?file=bar.png`) must not flag the request as an asset and divert it to Vite.
+  test("root-level wildcards do not swallow Vite assets (protects #4234)", async () => {
+    for (const fetchDest of ["script", "style", "image", undefined]) {
+      const headers: Record<string, string> = { accept: "*/*" };
+      if (fetchDest) {
+        headers["sec-fetch-dest"] = fetchDest;
+      }
+      const response = await fetch(`${serverURL}/subdir/entry-client.ts`, {
+        headers,
+        redirect: "manual",
+      });
+      expect(response.status, `fetchDest: ${fetchDest}`).toBe(404);
+    }
+  });
+
+  test("root-level wildcards *do* swallow Vite assets when NOT an asset extension", async () => {
+    const response = await fetch(`${serverURL}/subdir/some-page`, {
+      redirect: "manual",
+    });
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("root-wildcard:some-page");
+  });
+
   test("ignores asset-like extensions inside the query string when routing to Nitro", async () => {
     const response = await fetch(`${serverURL}/subdir/api/proxy/data?file=bar.png`, {
       headers: { "sec-fetch-dest": "image", accept: "image/*" },

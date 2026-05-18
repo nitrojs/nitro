@@ -245,10 +245,9 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     const fetchDest = req.headers["sec-fetch-dest"];
     const accept = req.headers["accept"];
     const ext = req.url!.split(/[?#]/, 1)[0].match(/\.([a-z0-9]+)$/i)?.[1];
-    const isNitroRoute = !!nitro.routing.routes.match(
-      req.method || "",
-      new URL(withBase(req.url!, nitro.options.baseURL), "http://localhost").pathname
-    );
+    const reqPathname = new URL(withBase(req.url!, nitro.options.baseURL), "http://localhost").pathname;
+    const nitroRouteMatch = nitro.routing.routes.match(req.method || "", reqPathname);
+    const isNitroRoute = !!nitroRouteMatch;
     // Sec-Fetch-* is only sent on "potentially trustworthy" origins, so on plain-HTTP non-loopback (e.g. http://10.0.0.x) it's absent and a splat Nitro route may swallow browser asset loads (#4234). When the header is missing, treat known asset extensions without `text/html` in Accept as asset loads and let Vite handle them.
     const isAssetByDest =
       typeof fetchDest === "string" && !/^(document|iframe|frame|empty)$/.test(fetchDest);
@@ -256,8 +255,17 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     const acceptsHTML = typeof accept === "string" && /\btext\/html\b/.test(accept);
     const treatAsAsset = isAssetByDest || (!fetchDest && isAssetByExt && !acceptsHTML);
     res.setHeader("vary", "sec-fetch-dest, accept");
-    // An explicit Nitro route reaches Nitro even when the request is tagged as an asset (e.g. `<img src="/api/image">` with `sec-fetch-dest: image`, #4241), UNLESS the URL also has an asset-like extension — in that case Vite stays the definitive handler so a splat doesn't swallow `<script src=".../entry-client.ts">` (#4234).
-    const nitroWins = isNitroRoute && !(isAssetByExt && treatAsAsset);
+    // An explicit Nitro route reaches Nitro even when the request is tagged as an asset (#4241).
+    // The asset-extension guard only applies to root-level wildcards (/**) to prevent a renderer
+    // or user catch-all from swallowing Vite's own <script>/<link> serves (#4234). Specific
+    // prefixed routes (e.g. /api/photos/**) are never wildcards on Vite-managed paths (#4252).
+    const matchedRoutePattern = Array.isArray(nitroRouteMatch)
+      ? nitroRouteMatch[0]?.route
+      : nitroRouteMatch?.route;
+    const isRootWildcard =
+      matchedRoutePattern === "/**" ||
+      matchedRoutePattern?.startsWith("/**:");
+    const nitroWins = isNitroRoute && (!isRootWildcard || !(isAssetByExt && treatAsAsset));
     // Fallback for unknown URLs: extensionless, non-asset requests default to Nitro (page navigation, SSR catch-all).
     const documentFallback = !ext && !treatAsAsset;
     const routeToNitro =
