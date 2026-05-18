@@ -72,6 +72,16 @@ describe("vite:app", () => {
     expect(res.status).not.toBe(200);
   });
 
+  // `Sec-Fetch-Dest: empty` (fetch/XHR) is ambiguous: a `fetch()`ed asset matching only the SSR
+  // `/**` catch-all must reach Vite via the extension heuristic, not be swallowed by the renderer.
+  test("does not let the SSR catch-all swallow fetch()ed assets (sec-fetch-dest: empty)", async () => {
+    const res = await fetch(`${serverURL}/missing-asset.css`, {
+      headers: { "sec-fetch-dest": "empty" },
+      redirect: "manual",
+    });
+    expect(res.status).not.toBe(200);
+  });
+
   // A page navigation matching only the SSR `/**` catch-all must reach the renderer.
   test("routes page navigations to the SSR catch-all renderer", async () => {
     const res = await fetch(`${serverURL}/some/nested/page`, {

@@ -269,13 +269,18 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     res.setHeader("vary", "sec-fetch-dest, accept");
     const fetchDest = req.headers["sec-fetch-dest"];
     const ext = req.url!.split(/[?#]/, 1)[0].match(/\.([a-z0-9]+)$/i)?.[1];
-    // `Sec-Fetch-*` is only sent on "potentially trustworthy" origins, so on plain-HTTP
-    // non-loopback (e.g. http://10.0.0.x) it's absent (#4234); fall back to a known asset
-    // extension without `text/html` in `Accept`.
+    // A known asset extension without `text/html` in `Accept` — the fallback signal when
+    // `Sec-Fetch-Dest` is unavailable. The header is absent on plain-HTTP non-loopback origins
+    // (e.g. http://10.0.0.x, #4234), and `empty` (fetch/XHR) is ambiguous: it tags both API
+    // calls and `fetch()`ed assets, so it falls back to the extension like a missing header.
+    const isAssetByExt =
+      !!ext && ASSET_EXT_RE.test(ext) && !/\btext\/html\b/.test(req.headers["accept"] || "");
+    // `document`/`iframe`/`frame` are definite navigations; any other concrete `Sec-Fetch-Dest`
+    // (`image`, `video`, `style`, ...) is a definite asset load.
     const isAsset =
-      typeof fetchDest === "string"
-        ? !/^(?:document|iframe|frame|empty)$/.test(fetchDest)
-        : !!ext && ASSET_EXT_RE.test(ext) && !/\btext\/html\b/.test(req.headers["accept"] || "");
+      typeof fetchDest === "string" && fetchDest !== "empty"
+        ? !/^(?:document|iframe|frame)$/.test(fetchDest)
+        : isAssetByExt;
 
     // Non-asset requests go to Nitro: the SSR catch-all renders them, and bare (extensionless)
     // unmatched URLs default to Nitro as page navigations.
