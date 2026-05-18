@@ -1,4 +1,5 @@
 import type { NitroPluginContext } from "./types.ts";
+import type { NitroEventHandler } from "nitro/types";
 import type { DevEnvironmentContext, ResolvedConfig, ViteDevServer } from "vite";
 import type { FetchFunctionOptions, FetchResult } from "vite/module-runner";
 import type { RunnerRPCHooks } from "env-runner";
@@ -242,42 +243,69 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   // Handle server routes first to avoid conflicts with static assets served by Vite from the root
   // https://github.com/vitejs/vite/pull/20866
   server.middlewares.use(function nitroDevMiddlewarePre(req, res, next) {
-    const fetchDest = req.headers["sec-fetch-dest"];
-    const accept = req.headers["accept"];
-    const ext = req.url!.split(/[?#]/, 1)[0].match(/\.([a-z0-9]+)$/i)?.[1];
-    const isNitroRoute = !!nitro.routing.routes.match(
-      req.method || "",
-      new URL(withBase(req.url!, nitro.options.baseURL), "http://localhost").pathname
-    );
-    // Sec-Fetch-* is only sent on "potentially trustworthy" origins, so on plain-HTTP non-loopback (e.g. http://10.0.0.x) it's absent and a splat Nitro route may swallow browser asset loads (#4234). When the header is missing, treat known asset extensions without `text/html` in Accept as asset loads and let Vite handle them.
-    const isAssetByDest =
-      typeof fetchDest === "string" && !/^(document|iframe|frame|empty)$/.test(fetchDest);
-    const isAssetByExt = !!ext && ASSET_EXT_RE.test(ext);
-    const acceptsHTML = typeof accept === "string" && /\btext\/html\b/.test(accept);
-    const treatAsAsset = isAssetByDest || (!fetchDest && isAssetByExt && !acceptsHTML);
-    res.setHeader("vary", "sec-fetch-dest, accept");
-    // An explicit Nitro route reaches Nitro even when the request is tagged as an asset (e.g. `<img src="/api/image">` with `sec-fetch-dest: image`, #4241), UNLESS the URL also has an asset-like extension — in that case Vite stays the definitive handler so a splat doesn't swallow `<script src=".../entry-client.ts">` (#4234).
-    const nitroWins = isNitroRoute && !(isAssetByExt && treatAsAsset);
-    // Fallback for unknown URLs: extensionless, non-asset requests default to Nitro (page navigation, SSR catch-all).
-    const documentFallback = !ext && !treatAsAsset;
-    const routeToNitro =
-      (nitroWins || documentFallback) &&
-      // Special prefixes (/__vue-router/auto-routes, /@vite-plugin-layouts/, etc)
-      !/^\/(?:__|@)/.test(req.url!);
-    if (routeToNitro) {
-      nitroDevMiddleware(req, res, next);
-    } else {
-      if (treatAsAsset) {
-        // This is an asset load — Vite is the definitive handler. Mark the
-        // request so the catch-all `nitroDevMiddleware` registered after Vite
-        // doesn't fall back into a splat Nitro route on a 404.
-        (req as IncomingMessage & { _nitroHandled?: boolean })._nitroHandled = true;
-      }
-      next();
+    // Vite-internal prefixes (/@vite/client, /__vue-router/auto-routes, ...) are never Nitro's.
+    if (/^\/(?:__|@)/.test(req.url!)) {
+      return next();
     }
+
+    // `nitro.routing.routes` always includes the SSR catch-all `/**` in SSR apps, so an
+    // explicit user route must be told apart from the catch-all (see `classifyRouteMatch`).
+    const matchKind = classifyRouteMatch(
+      nitro.routing.routes.match(
+        req.method || "",
+        new URL(withBase(req.url!, nitro.options.baseURL), "http://localhost").pathname
+      )
+    );
+
+    // An explicit user route is a deterministic match and always wins, regardless of how the
+    // browser tags the request (#4108, #4241, #4252, #4270) — no heuristic may override it.
+    if (matchKind === "explicit") {
+      return nitroDevMiddleware(req, res, next);
+    }
+
+    // Otherwise the request is unmatched or matched only by the SSR catch-all `/**` — genuinely
+    // ambiguous between a page navigation (-> Nitro) and an asset load (-> Vite). A wrong guess
+    // here only affects the catch-all fallback, never an explicit route.
+    res.setHeader("vary", "sec-fetch-dest, accept");
+    const fetchDest = req.headers["sec-fetch-dest"];
+    const ext = req.url!.split(/[?#]/, 1)[0].match(/\.([a-z0-9]+)$/i)?.[1];
+    // `Sec-Fetch-*` is only sent on "potentially trustworthy" origins, so on plain-HTTP
+    // non-loopback (e.g. http://10.0.0.x) it's absent (#4234); fall back to a known asset
+    // extension without `text/html` in `Accept`.
+    const isAsset =
+      typeof fetchDest === "string"
+        ? !/^(?:document|iframe|frame|empty)$/.test(fetchDest)
+        : !!ext && ASSET_EXT_RE.test(ext) && !/\btext\/html\b/.test(req.headers["accept"] || "");
+
+    // Non-asset requests go to Nitro: the SSR catch-all renders them, and bare (extensionless)
+    // unmatched URLs default to Nitro as page navigations.
+    if (!isAsset && (matchKind === "catchall" || !ext)) {
+      return nitroDevMiddleware(req, res, next);
+    }
+
+    if (isAsset) {
+      // Vite is the definitive handler — mark the request so the catch-all `nitroDevMiddleware`
+      // registered after Vite doesn't fall back into a splat Nitro route on a 404.
+      (req as IncomingMessage & { _nitroHandled?: boolean })._nitroHandled = true;
+    }
+    next();
   });
 
   return () => {
     server.middlewares.use(nitroDevMiddleware);
   };
+}
+
+// Classify a `nitro.routing.routes` match into an explicit user route, the SSR catch-all `/**`,
+// or no match. In SSR apps the catch-all `/**` (renderer/serverEntry) matches every URL, so a
+// truthy match alone can't tell whether route matching is authoritative (explicit route) or
+// whether a heuristic is needed (catch-all only).
+function classifyRouteMatch(
+  match: undefined | NitroEventHandler | NitroEventHandler[]
+): "explicit" | "catchall" | "none" {
+  if (!match) {
+    return "none";
+  }
+  const handlers = Array.isArray(match) ? match : [match];
+  return handlers.some((h) => h?.route !== "/**") ? "explicit" : "catchall";
 }
