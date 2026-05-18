@@ -58,8 +58,8 @@ describe("vite:baseURL dotted params", { sequential: true }, () => {
     expect(await response.text()).toBe("image");
   });
 
-  // #4234: a `.ts`/asset URL that matches no explicit Nitro route (only the SSR `/**` splat renderer) must be handled by Vite, not swallowed by the splat. Browsers omit Sec-Fetch-* on plain-HTTP non-loopback origins, so the asset extension is the only signal.
-  test("does not misroute asset loads to the splat renderer when sec-fetch-dest is absent", async () => {
+  // #4234: a `.ts`/asset URL that matches no Nitro route must be handled by Vite, not diverted to Nitro. Browsers omit Sec-Fetch-* on plain-HTTP non-loopback origins, so the asset extension is the only signal.
+  test("does not misroute unmatched asset loads to Nitro when sec-fetch-dest is absent", async () => {
     const response = await fetch(`${serverURL}/subdir/src/entry-client.ts`, {
       headers: { accept: "*/*" },
       redirect: "manual",
