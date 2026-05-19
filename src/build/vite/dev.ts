@@ -301,10 +301,12 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   };
 }
 
-// Classify a `nitro.routing.routes` match into an explicit user route, the SSR catch-all `/**`,
+// Classify a `nitro.routing.routes` match into an explicit user route, a root-level catch-all,
 // or no match. In SSR apps the catch-all `/**` (renderer/serverEntry) matches every URL, so a
 // truthy match alone can't tell whether route matching is authoritative (explicit route) or
-// whether a heuristic is needed (catch-all only).
+// whether a heuristic is needed (catch-all only). A root-level user catch-all (`routes/[...].ts`
+// -> `/**`, `routes/[...slug].ts` -> `/**:slug`) is just as authoritative as the SSR `/**` and
+// must not swallow Vite asset serves either, so both forms count as catch-all.
 function classifyRouteMatch(
   match: undefined | NitroEventHandler | NitroEventHandler[]
 ): "explicit" | "catchall" | "none" {
@@ -312,5 +314,11 @@ function classifyRouteMatch(
     return "none";
   }
   const handlers = Array.isArray(match) ? match : [match];
-  return handlers.some((h) => h?.route !== "/**") ? "explicit" : "catchall";
+  return handlers.some((h) => h?.route && !isRootCatchAll(h.route)) ? "explicit" : "catchall";
+}
+
+// A root-level catch-all: literal `/**` or a named root wildcard like `/**:slug`. Prefixed
+// splat routes (`/api/photos/**`) are deterministic user routes and are never root catch-alls.
+function isRootCatchAll(route: string): boolean {
+  return route === "/**" || route.startsWith("/**:");
 }
