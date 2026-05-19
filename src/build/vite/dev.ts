@@ -1,5 +1,4 @@
 import type { NitroPluginContext } from "./types.ts";
-import type { NitroEventHandler } from "nitro/types";
 import type { DevEnvironmentContext, ResolvedConfig, ViteDevServer } from "vite";
 import type { FetchFunctionOptions, FetchResult } from "vite/module-runner";
 import type { RunnerRPCHooks } from "env-runner";
@@ -248,18 +247,23 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       return next();
     }
 
-    // `nitro.routing.routes` always includes the SSR catch-all `/**` in SSR apps, so an
-    // explicit user route must be told apart from the catch-all (see `classifyRouteMatch`).
-    const matchKind = classifyRouteMatch(
-      nitro.routing.routes.match(
-        req.method || "",
-        new URL(withBase(req.url!, nitro.options.baseURL), "http://localhost").pathname
-      )
+    // `nitro.routing.routes` always includes the SSR catch-all `/**` in SSR apps, so an explicit
+    // user route must be told apart from the catch-all. A root-level user catch-all
+    // (`routes/[...].ts` -> `/**`, `routes/[...slug].ts` -> `/**:slug`) is as authoritative as the
+    // SSR `/**` and must not swallow Vite asset serves either, so both forms count as catch-all;
+    // prefixed splat routes (`/api/photos/**`) are deterministic user routes and stay explicit.
+    const match = nitro.routing.routes.match(
+      req.method || "",
+      new URL(withBase(req.url!, nitro.options.baseURL), "http://localhost").pathname
+    );
+    const matchedHandlers = match ? (Array.isArray(match) ? match : [match]) : [];
+    const isExplicitRoute = matchedHandlers.some(
+      (h) => h?.route && h.route !== "/**" && !h.route.startsWith("/**:")
     );
 
     // An explicit user route is a deterministic match and always wins, regardless of how the
     // browser tags the request (#4108, #4241, #4252, #4270) — no heuristic may override it.
-    if (matchKind === "explicit") {
+    if (isExplicitRoute) {
       return nitroDevMiddleware(req, res, next);
     }
 
@@ -269,12 +273,14 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     res.setHeader("vary", "sec-fetch-dest, accept");
     const fetchDest = req.headers["sec-fetch-dest"];
     const ext = req.url!.split(/[?#]/, 1)[0].match(/\.([a-z0-9]+)$/i)?.[1];
+
     // A known asset extension without `text/html` in `Accept` — the fallback signal when
     // `Sec-Fetch-Dest` is unavailable. The header is absent on plain-HTTP non-loopback origins
     // (e.g. http://10.0.0.x, #4234), and `empty` (fetch/XHR) is ambiguous: it tags both API
     // calls and `fetch()`ed assets, so it falls back to the extension like a missing header.
     const isAssetByExt =
       !!ext && ASSET_EXT_RE.test(ext) && !/\btext\/html\b/.test(req.headers["accept"] || "");
+
     // `document`/`iframe`/`frame` are definite navigations; any other concrete `Sec-Fetch-Dest`
     // (`image`, `video`, `style`, ...) is a definite asset load.
     const isAsset =
@@ -282,9 +288,10 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
         ? !/^(?:document|iframe|frame)$/.test(fetchDest)
         : isAssetByExt;
 
-    // Non-asset requests go to Nitro: the SSR catch-all renders them, and bare (extensionless)
-    // unmatched URLs default to Nitro as page navigations.
-    if (!isAsset && (matchKind === "catchall" || !ext)) {
+    // Non-asset requests go to Nitro: the catch-all (`matchedHandlers` are all catch-all here,
+    // since explicit routes already returned) renders them, and bare (extensionless) unmatched
+    // URLs default to Nitro as page navigations.
+    if (!isAsset && (matchedHandlers.length > 0 || !ext)) {
       return nitroDevMiddleware(req, res, next);
     }
 
@@ -299,23 +306,4 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   return () => {
     server.middlewares.use(nitroDevMiddleware);
   };
-}
-
-// Classify a `nitro.routing.routes` match into an explicit user route, a root-level catch-all,
-// or no match. In SSR apps the catch-all `/**` (renderer/serverEntry) matches every URL, so a
-// truthy match alone can't tell whether route matching is authoritative (explicit route) or
-// whether a heuristic is needed (catch-all only). A root-level user catch-all (`routes/[...].ts`
-// -> `/**`, `routes/[...slug].ts` -> `/**:slug`) is just as authoritative as the SSR `/**` and
-// must not swallow Vite asset serves either, so both forms count as catch-all. Prefixed splat
-// routes (`/api/photos/**`) are deterministic user routes and stay explicit.
-function classifyRouteMatch(
-  match: undefined | NitroEventHandler | NitroEventHandler[]
-): "explicit" | "catchall" | "none" {
-  if (!match) {
-    return "none";
-  }
-  const handlers = Array.isArray(match) ? match : [match];
-  return handlers.some((h) => h?.route && h.route !== "/**" && !h.route.startsWith("/**:"))
-    ? "explicit"
-    : "catchall";
 }
