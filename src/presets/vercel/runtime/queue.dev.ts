@@ -21,8 +21,8 @@ const queueDevPlugin: NitroAppPlugin = (nitroApp) => {
 
   const unregisters: Array<() => void> = [];
 
-  for (const trigger of triggers) {
-    const unregister = registerVercelQueueConsumer({
+  const registrations = triggers.map((trigger) =>
+    registerVercelQueueConsumer({
       topic: trigger.topic,
       retryAfterSeconds: trigger.retryAfterSeconds,
       handler: async (message: unknown, metadata: unknown) => {
@@ -41,9 +41,15 @@ const queueDevPlugin: NitroAppPlugin = (nitroApp) => {
           throw error;
         }
       },
-    });
-    unregisters.push(unregister);
-  }
+    }).then((unregister) => {
+      unregisters.push(unregister);
+    }),
+  );
+
+  // Surface SDK load / registration failures rather than swallowing them.
+  Promise.all(registrations).catch((error) => {
+    console.error("[vercel:queue] failed to register dev consumer:", error);
+  });
 
   nitroApp.hooks.hook("close", () => {
     for (const unregister of unregisters) {
