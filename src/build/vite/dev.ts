@@ -252,14 +252,13 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     // (`routes/[...].ts` -> `/**`, `routes/[...slug].ts` -> `/**:slug`) is as authoritative as the
     // SSR `/**` and must not swallow Vite asset serves either, so both forms count as catch-all;
     // prefixed splat routes (`/api/photos/**`) are deterministic user routes and stay explicit.
-    const match = nitro.routing.routes.match(
-      req.method || "",
-      new URL(withBase(req.url!, nitro.options.baseURL), "http://localhost").pathname
-    );
+    const pathname = new URL(withBase(req.url!, nitro.options.baseURL), "http://localhost")
+      .pathname;
+    const match = nitro.routing.routes.match(req.method || "", pathname);
     const matchedHandlers = match ? (Array.isArray(match) ? match : [match]) : [];
-    const isExplicitRoute = matchedHandlers.some(
-      (h) => h?.route && h.route !== "/**" && !h.route.startsWith("/**:")
-    );
+    const isExplicitRoute =
+      matchedHandlers.some((h) => h?.route && h.route !== "/**" && !h.route.startsWith("/**:")) ||
+      matchesStartRoute(pathname);
 
     // An explicit user route is a deterministic match and always wins, regardless of how the
     // browser tags the request (#4108, #4241, #4252, #4270) — no heuristic may override it.
@@ -306,4 +305,44 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   return () => {
     server.middlewares.use(nitroDevMiddleware);
   };
+}
+
+// ---- TanStack Start route manifest probe ----
+// Start's router plugin publishes a filesystem-routes manifest on globalThis for sibling Vite
+// plugins to consume (see `@tanstack/start-plugin-core` `routes-manifest-plugin`). When present,
+// any URL matching one of Start's routes is treated as explicit so it flows through Nitro's
+// middleware (where Start's devApp gets first shot) instead of the asset/page heuristic.
+
+type StartRoutesManifest = Record<string, { filePath?: string; children?: string[] } | undefined>;
+
+let cachedStartManifest: StartRoutesManifest | undefined;
+let cachedStartMatchers: RegExp[] = [];
+
+function matchesStartRoute(pathname: string): boolean {
+  const manifest = (globalThis as { TSS_ROUTES_MANIFEST?: StartRoutesManifest })
+    .TSS_ROUTES_MANIFEST;
+  if (!manifest) return false;
+  if (manifest !== cachedStartManifest) {
+    cachedStartManifest = manifest;
+    cachedStartMatchers = [];
+    for (const [routePath, entry] of Object.entries(manifest)) {
+      if (!entry || routePath === "__root__") continue;
+      cachedStartMatchers.push(startRouteToRegex(routePath));
+    }
+  }
+  return cachedStartMatchers.some((re) => re.test(pathname));
+}
+
+function startRouteToRegex(routePath: string): RegExp {
+  let path = routePath.replace(/\/$/, "");
+  let splat = false;
+  if (path.endsWith("/$")) {
+    splat = true;
+    path = path.slice(0, -2);
+  }
+  const parts = path.split("/").map((seg) => {
+    if (seg.startsWith("$")) return "[^/]+";
+    return seg.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  });
+  return new RegExp(`^${parts.join("/")}${splat ? "(?:/.*)?" : ""}/?$`);
 }
