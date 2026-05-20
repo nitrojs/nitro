@@ -43,7 +43,7 @@ const queueDevPlugin: NitroAppPlugin = (nitroApp) => {
       },
     }).then((unregister) => {
       unregisters.push(unregister);
-    }),
+    })
   );
 
   // Surface SDK load / registration failures rather than swallowing them.
