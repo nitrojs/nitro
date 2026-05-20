@@ -20,9 +20,9 @@ icon: i-simple-icons-tanstack
     "start": "node .output/server/index.mjs"
   },
   "dependencies": {
-    "@tanstack/react-router": "^1.168.8",
-    "@tanstack/react-router-devtools": "^1.166.11",
-    "@tanstack/react-start": "^1.167.13",
+    "@tanstack/react-router": "^1.170.4",
+    "@tanstack/react-router-devtools": "^1.167.0",
+    "@tanstack/react-start": "^1.168.6",
     "nitro": "latest",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",

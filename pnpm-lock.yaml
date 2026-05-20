@@ -644,13 +644,13 @@ importers:
   examples/vite-ssr-tss-react:
     dependencies:
       '@tanstack/react-router':
-        specifier: ^1.168.8
+        specifier: ^1.170.4
         version: 1.170.4(react-dom@19.2.6)(react@19.2.6)
       '@tanstack/react-router-devtools':
-        specifier: ^1.166.11
+        specifier: ^1.167.0
         version: 1.167.0(@tanstack/react-router@1.170.4)(@tanstack/router-core@1.171.2)(csstype@3.2.3)(react-dom@19.2.6)(react@19.2.6)
       '@tanstack/react-start':
-        specifier: ^1.167.13
+        specifier: ^1.168.6
         version: 1.168.6(@vitejs/plugin-rsc@0.5.26)(crossws@0.4.5)(react-dom@19.2.6)(react@19.2.6)(vite-plugin-solid@2.11.12)(vite@8.0.13)
       nitro:
         specifier: workspace:*
