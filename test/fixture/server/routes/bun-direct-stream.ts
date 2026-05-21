@@ -11,5 +11,6 @@ export default () => {
 
   return {
     isStream: stream instanceof ReadableStream,
+    hasCorrectPrototype: Object.getPrototypeOf(stream) === ReadableStream.prototype,
   };
 };
