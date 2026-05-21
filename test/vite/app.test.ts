@@ -50,4 +50,46 @@ describe("vite:app", () => {
     const value = await res.text();
     expect(value).toBe("value-from-ssr");
   });
+
+  // #4234: a request matching only the SSR `/**` catch-all (no explicit route) that looks like
+  // an asset must be handled by Vite, not swallowed by the catch-all renderer.
+  test("does not let the SSR catch-all swallow asset-tagged requests", async () => {
+    const res = await fetch(`${serverURL}/missing-asset.css`, {
+      headers: { "sec-fetch-dest": "style" },
+      redirect: "manual",
+    });
+    // The SSR renderer would answer 200 with JSON; Vite 404s a missing asset.
+    expect(res.status).not.toBe(200);
+  });
+
+  // #4234: with `Sec-Fetch-*` absent (plain-HTTP non-loopback origins), a known asset extension
+  // is the only signal — such a catch-all-only request must still reach Vite, not the renderer.
+  test("does not let the SSR catch-all swallow asset loads when sec-fetch-dest is absent", async () => {
+    const res = await fetch(`${serverURL}/missing-asset.js`, {
+      headers: { accept: "*/*" },
+      redirect: "manual",
+    });
+    expect(res.status).not.toBe(200);
+  });
+
+  // `Sec-Fetch-Dest: empty` (fetch/XHR) is ambiguous: a `fetch()`ed asset matching only the SSR
+  // `/**` catch-all must reach Vite via the extension heuristic, not be swallowed by the renderer.
+  test("does not let the SSR catch-all swallow fetch()ed assets (sec-fetch-dest: empty)", async () => {
+    const res = await fetch(`${serverURL}/missing-asset.css`, {
+      headers: { "sec-fetch-dest": "empty" },
+      redirect: "manual",
+    });
+    expect(res.status).not.toBe(200);
+  });
+
+  // A page navigation matching only the SSR `/**` catch-all must reach the renderer.
+  test("routes page navigations to the SSR catch-all renderer", async () => {
+    const res = await fetch(`${serverURL}/some/nested/page`, {
+      headers: { "sec-fetch-dest": "document", accept: "text/html" },
+      redirect: "manual",
+    });
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as { config: string };
+    expect(data.config).toBe("NITRO_");
+  });
 });

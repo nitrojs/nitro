@@ -4,6 +4,7 @@ shellEmulator: true
 dedupePeers: true
 ignoreWorkspaceRootCheck: true
 linkWorkspacePackages: "deep"
+minimumReleaseAge: 1440
 
 overrides:
   "nitro": "workspace:*"
