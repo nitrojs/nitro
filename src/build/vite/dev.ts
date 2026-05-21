@@ -77,15 +77,17 @@ export class FetchableDevEnvironment extends DevEnvironment {
     // We intercept bare imports, resolve them through the environment's plugin
     // pipeline (which respects resolve.conditions and picks ESM), then route
     // the resolved path through transformRequest for proper SSR processing.
+    // We also intercept imports with Vite-specific query suffixes (like ?url)
+    // to ensure they are handled by Vite's asset plugins instead of being externalized.
+    const hasQuery = id.includes("?");
     if (
-      this.#preventExternalize &&
+      (this.#preventExternalize || hasQuery) &&
       !id.startsWith("file://") &&
       importer &&
-      id[0] !== "." &&
-      id[0] !== "/"
+      (hasQuery || (id[0] !== "." && id[0] !== "/"))
     ) {
       const resolved = await this.pluginContainer.resolveId(id, importer);
-      if (resolved && !resolved.external) {
+      if (resolved && (!resolved.external || hasQuery)) {
         return super.fetchModule(resolved.id, importer, options);
       }
     }

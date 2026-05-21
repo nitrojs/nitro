@@ -28,6 +28,7 @@ export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOpti
           : [
               /^nitro$/, // i have absolutely no idea why and how it fixes issues!
               new RegExp(`^(${runtimeDependencies.join("|")})$`), // virtual resolutions in vite skip plugin hooks
+              /\?(url|raw|inline|worker)(?:&|$)/,
               ...ctx.bundlerConfig!.base.noExternal,
             ]
         : true, // production build is standalone
