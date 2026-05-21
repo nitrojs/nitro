@@ -6,17 +6,14 @@ import "#nitro/virtual/polyfills";
 // Bun's constructor so prerendering works without switching to the node preset.
 // Using class extends preserves the prototype chain so instanceof checks work correctly.
 const _OriginalReadableStream = globalThis.ReadableStream;
+// @ts-expect-error -- TypeScript cannot resolve overloaded ReadableStream constructor generics via class extends
 class _PatchedReadableStream extends _OriginalReadableStream {
   constructor(
     underlyingSource?: UnderlyingDefaultSource | UnderlyingByteSource,
-    strategy?: QueuingStrategy,
+    strategy?: QueuingStrategy
   ) {
-    if (
-      underlyingSource &&
-      (underlyingSource as Record<string, unknown>).type === "direct"
-    ) {
-      const { type: _type, ...rest } =
-        underlyingSource as Record<string, unknown>;
+    if (underlyingSource && (underlyingSource as Record<string, unknown>).type === "direct") {
+      const { type: _type, ...rest } = underlyingSource as Record<string, unknown>;
       super(rest as UnderlyingDefaultSource, strategy);
     } else {
       super(underlyingSource as UnderlyingDefaultSource, strategy);
@@ -24,7 +21,6 @@ class _PatchedReadableStream extends _OriginalReadableStream {
   }
 }
 
-// @ts-expect-error -- intentional global override for compat
 globalThis.ReadableStream = _PatchedReadableStream;
 
 import type { ServerRequest } from "srvx";
