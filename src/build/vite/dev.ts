@@ -17,6 +17,9 @@ import { getEnvRunner } from "./env.ts";
 
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
 
+// Vite-specific query suffixes that must be resolved through the plugin container.
+const VITE_QUERY_RE = /\?(url|raw|inline|worker)(?:&|$)/;
+
 // Extensions that strongly indicate a browser asset load (script/style/font/image/media).
 // Used as a fallback signal when `Sec-Fetch-Dest` is absent (plain-HTTP non-loopback origins).
 // Kept narrow on purpose so that arbitrary dotted Nitro route params (e.g. `.../foo.bar.1`) keep reaching Nitro.
@@ -77,17 +80,17 @@ export class FetchableDevEnvironment extends DevEnvironment {
     // We intercept bare imports, resolve them through the environment's plugin
     // pipeline (which respects resolve.conditions and picks ESM), then route
     // the resolved path through transformRequest for proper SSR processing.
-    // We also intercept imports with Vite-specific query suffixes (like ?url)
-    // to ensure they are handled by Vite's asset plugins instead of being externalized.
-    const hasQuery = id.includes("?");
+    // Intercept Vite-specific query suffixes (?url, ?raw, ?inline, ?worker) so they
+    // are resolved through the plugin container rather than externalized.
+    const hasViteQuery = VITE_QUERY_RE.test(id);
     if (
-      (this.#preventExternalize || hasQuery) &&
+      (this.#preventExternalize || hasViteQuery) &&
       !id.startsWith("file://") &&
       importer &&
-      (hasQuery || (id[0] !== "." && id[0] !== "/"))
+      (hasViteQuery || (id[0] !== "." && id[0] !== "/"))
     ) {
       const resolved = await this.pluginContainer.resolveId(id, importer);
-      if (resolved && (!resolved.external || hasQuery)) {
+      if (resolved && (!resolved.external || hasViteQuery)) {
         return super.fetchModule(resolved.id, importer, options);
       }
     }
@@ -247,7 +250,8 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     const fetchDest = req.headers["sec-fetch-dest"];
     const accept = req.headers["accept"];
     const ext = req.url!.split(/[?#]/, 1)[0].match(/\.([a-z0-9]+)$/i)?.[1];
-    const reqPathname = new URL(withBase(req.url!, nitro.options.baseURL), "http://localhost").pathname;
+    const reqPathname = new URL(withBase(req.url!, nitro.options.baseURL), "http://localhost")
+      .pathname;
     const nitroRouteMatch = nitro.routing.routes.match(req.method || "", reqPathname);
     const isNitroRoute = !!nitroRouteMatch;
     // Sec-Fetch-* is only sent on "potentially trustworthy" origins, so on plain-HTTP non-loopback (e.g. http://10.0.0.x) it's absent and a splat Nitro route may swallow browser asset loads (#4234). When the header is missing, treat known asset extensions without `text/html` in Accept as asset loads and let Vite handle them.
@@ -264,9 +268,7 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     const matchedRoutePattern = Array.isArray(nitroRouteMatch)
       ? nitroRouteMatch[0]?.route
       : nitroRouteMatch?.route;
-    const isRootWildcard =
-      matchedRoutePattern === "/**" ||
-      matchedRoutePattern?.startsWith("/**:");
+    const isRootWildcard = matchedRoutePattern === "/**" || matchedRoutePattern?.startsWith("/**:");
     const nitroWins = isNitroRoute && (!isRootWildcard || !(isAssetByExt && treatAsAsset));
     // Fallback for unknown URLs: extensionless, non-asset requests default to Nitro (page navigation, SSR catch-all).
     const documentFallback = !ext && !treatAsAsset;
