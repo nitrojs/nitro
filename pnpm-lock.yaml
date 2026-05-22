@@ -30,8 +30,8 @@ importers:
         specifier: '*'
         version: 17.4.2
       env-runner:
-        specifier: ^0.1.8
-        version: 0.1.8(@vercel/queue@0.2.0)(miniflare@4.20260520.0)
+        specifier: ^0.1.9
+        version: 0.1.9(@vercel/queue@0.2.0)(miniflare@4.20260520.0)
       h3:
         specifier: ^2.0.1-rc.22
         version: 2.0.1-rc.22(crossws@0.4.5)
@@ -4053,8 +4053,8 @@ packages:
     resolution: {integrity: sha512-TWrgLOFUQTH994YUyl1yT4uyavY5nNB5muff+RtWaqNVCAK408b5ZnnbNAUEWLTCpum9w6arT70i1XdQ4UeOPA==}
     engines: {node: '>=0.12'}
 
-  env-runner@0.1.8:
-    resolution: {integrity: sha512-xl/4V//2wJ07QXcwnYxnz/G6+v1BgFc0cj6qNZLA8XtXw3R0kEx+U6jJ/G4glXMhbTAK2zXWhKkcHZ4UYtkCxQ==}
+  env-runner@0.1.9:
+    resolution: {integrity: sha512-W9AiZlPx0uXtghAJiTBkeZOgyQdecVvoln3cHoOEZswPq0cVMi+WBhUQjdUn+JcZFAFgOt+i5fcO7C2zniZoCg==}
     hasBin: true
     peerDependencies:
       '@netlify/runtime': ^4.1.23
@@ -10179,7 +10179,7 @@ snapshots:
 
   entities@7.0.1: {}
 
-  env-runner@0.1.8(@vercel/queue@0.2.0)(miniflare@4.20260520.0):
+  env-runner@0.1.9(@vercel/queue@0.2.0)(miniflare@4.20260520.0):
     dependencies:
       crossws: 0.4.5(srvx@0.11.15)
       exsolve: 1.0.8
