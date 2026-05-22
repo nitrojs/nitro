@@ -29,6 +29,7 @@ export default defineBuildConfig({
     {
       type: "bundle",
       input: ["src/builder.ts", "src/cli/index.ts", "src/types/index.ts", "src/vite.ts"],
+      license: { gzip: true },
     },
     {
       type: "transform",
