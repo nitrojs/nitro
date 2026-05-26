@@ -495,7 +495,7 @@ export function testNitro(
     });
   });
 
-  it.skipIf(ctx.preset === "deno-server")(
+  it.skipIf(["deno-server", "deno-handler"].includes(ctx.preset))(
     "resolve module version conflicts",
     async () => {
       const { data } = await callHandler({ url: "/modules" });
@@ -690,6 +690,7 @@ export function testNitro(
         "nitro-dev",
         "vercel",
         (nodeMajorVersion || 0) < 18 && "deno-server",
+        (nodeMajorVersion || 0) < 18 && "deno-handler",
         (nodeMajorVersion || 0) < 18 && "bun",
       ].filter(Boolean);
       if (notSplittingPresets.includes(ctx.preset)) {
@@ -724,6 +725,7 @@ export function testNitro(
         // TODO: Investigate
         ctx.preset === "bun" ||
         ctx.preset === "deno-server" ||
+        ctx.preset === "deno-handler" ||
         ctx.preset === "nitro-dev"
     )("sourcemap works", async () => {
       const { data } = await callHandler({ url: "/error-stack" });
@@ -806,6 +808,7 @@ export function testNitro(
       [
         "bun",
         "deno-server",
+        "deno-handler",
         "deno-deploy",
         "netlify",
         "netlify-legacy",
@@ -853,7 +856,10 @@ export function testNitro(
       ) {
         continue;
       }
-      if (ctx.preset === "deno-server" && key === "globals:BroadcastChannel") {
+      if (
+        ["deno-server", "deno-handler"].includes(ctx.preset) &&
+        key === "globals:BroadcastChannel"
+      ) {
         continue; // unstable API
       }
       expect(data[key], key).toBe(true);

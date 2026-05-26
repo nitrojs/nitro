@@ -72,4 +72,23 @@ const denoServer = defineNitroPreset(
   }
 );
 
-export default [denoServerLegacy, denoDeploy, denoServer] as const;
+const denoHandler = defineNitroPreset(
+  {
+    extends: "node-server",
+    entry: "./runtime/deno-handler",
+    exportConditions: ["deno"],
+    rollupConfig: {
+      external: (id) => id.startsWith("https://"),
+      output: {
+        hoistTransitiveImports: false,
+      },
+    },
+  },
+  {
+    name: "deno-handler" as const,
+    compatibilityDate: "2025-05-20",
+    url: import.meta.url,
+  }
+);
+
+export default [denoServerLegacy, denoDeploy, denoServer, denoHandler] as const;
