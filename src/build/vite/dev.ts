@@ -11,7 +11,7 @@ import { watch as chokidarWatch } from "chokidar";
 import { watch as fsWatch } from "node:fs";
 import { join } from "pathe";
 import { debounce } from "perfect-debounce";
-import { withBase } from "ufo";
+import { joinURL, withBase } from "ufo";
 import { scanHandlers } from "../../scan.ts";
 import { getEnvRunner } from "./env.ts";
 
@@ -121,11 +121,38 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
 
   // Websocket
   if (nitro.options.features.websocket ?? nitro.options.experimental.websocket) {
+    // Mirror Vite's own HMR upgrade claim condition so we only defer the upgrades
+    // Vite itself will handle. Vite claims an upgrade when the subprotocol is
+    // `vite-hmr`/`vite-ping` AND the request path equals its resolved HMR base.
+    // Skipping every `vite-*` upgrade is too broad: it discards proxied
+    // upstream-Vite HMR sockets on non-HMR paths, which then hang forever since
+    // neither Vite nor Nitro completes the handshake.
+    const resolveViteHmrBase = (): string | undefined => {
+      const { base, server: serverConfig } = server.config;
+      const hmr = serverConfig.hmr;
+      // When HMR runs on a separate server/port, Vite attaches no listener to
+      // this httpServer, so there is nothing to defer to.
+      if (
+        hmr === false ||
+        (typeof hmr === "object" && !!(hmr.server || (hmr.port && hmr.port !== serverConfig.port)))
+      ) {
+        return undefined;
+      }
+      const hmrPath = typeof hmr === "object" ? hmr.path : undefined;
+      return hmrPath ? joinURL(base, hmrPath) : base;
+    };
+
     server.httpServer!.on("upgrade", (req, socket, head) => {
       const protocol = req.headers["sec-websocket-protocol"];
-      if (protocol?.startsWith("vite-")) {
-        // Vite HMR WebSocket connection
-        return;
+      if (protocol === "vite-hmr" || protocol === "vite-ping") {
+        const hmrBase = resolveViteHmrBase();
+        // Defer to Vite only when it will actually claim this upgrade.
+        if (hmrBase !== undefined) {
+          const pathname = new URL(`http://localhost${req.url}`).pathname;
+          if (pathname === hmrBase) {
+            return;
+          }
+        }
       }
       getEnvRunner(ctx).upgrade?.({ node: { req, socket, head } });
     });
