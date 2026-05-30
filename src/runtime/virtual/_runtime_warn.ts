@@ -1,5 +1,7 @@
 import consola from "consola";
-import { isTest } from "std-env";
+
+const env: Record<string, string | undefined> | undefined = globalThis.process?.env;
+const isTest: boolean = env?.NODE_ENV === "test" || !!env?.TEST;
 
 if (!isTest) {
   consola.warn(
