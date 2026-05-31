@@ -120,7 +120,7 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
 
   // Show deploy and preview commands
   if (!isTest && !isCI) console.log();
-  const previewCommand = nitro.options.framework.previewCommand || "npx nitro preview";
+  const previewCommand = nitro.options.framework.previewCommand || "npx vite preview";
   nitro.logger.success(`You can preview this build using \`${previewCommand}\``);
   if (nitro.options.commands.deploy) {
     const deployCommand = nitro.options.framework.deployCommand || "npx nitro deploy --prebuilt";
