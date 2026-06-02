@@ -18,7 +18,7 @@ For deeper architectural context, refer to the `.agents/` directory:
 - `.agents/vite.md` — Vite build system, plugin architecture, dev server, HMR.
 - `.agents/docs.md` — Documentation conventions, H3 v2 API patterns.
 
-H3 v2 docs are at `nnode_modules/h3/dist/docs/README.md`.
+H3 v2 docs are at `node_modules/h3/dist/docs/README.md`.
 
 ## Key principles
 
