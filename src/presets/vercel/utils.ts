@@ -20,6 +20,8 @@ const SUPPORTED_NODE_VERSIONS = [18, 20, 22];
 
 const FALLBACK_ROUTE = "/__fallback";
 
+export const DEFAULT_QUEUE_HANDLER_ROUTE = "/_vercel/queues/consumer";
+
 const ISR_SUFFIX = "-isr"; // Avoid using . as it can conflict with routing
 
 const SAFE_FS_CHAR_RE = /[^a-zA-Z0-9_.[\]/]/g;
@@ -74,6 +76,40 @@ export async function generateFunctionFiles(nitro: Nitro) {
   };
   await writeFile(functionConfigPath, JSON.stringify(functionConfig, null, 2));
 
+  // Write queue consumer function (Vercel Queues)
+  const queues = nitro.options.vercel?.queues;
+  if (queues?.triggers?.length) {
+    const handlerRoute = queues.handlerRoute || DEFAULT_QUEUE_HANDLER_ROUTE;
+    const funcDest = normalizeRouteDest(handlerRoute);
+    const funcDir = resolve(
+      nitro.options.output.serverDir,
+      "..",
+      funcDest + ".func"
+    );
+
+    // The Vercel preset symlinks every route to the fallback function, but a
+    // queue consumer needs its own `.vc-config.json` with `experimentalTriggers`.
+    // Replace any existing entry with a real copy of the server bundle so the
+    // triggers can be attached to it. (Symlinks pointing outside the `.func`
+    // directory also break at runtime on Vercel.)
+    await fsp.rm(funcDir, { recursive: true, force: true });
+    await fsp.mkdir(dirname(funcDir), { recursive: true });
+    await fsp.cp(nitro.options.output.serverDir, funcDir, { recursive: true });
+
+    const consumer = sanitizeConsumerName(funcDest);
+    const experimentalTriggers = queues.triggers.map(({ topic, ...opts }) => ({
+      type: "queue/v2beta" as const,
+      topic,
+      ...opts,
+      consumer,
+    }));
+
+    await writeFile(
+      resolve(funcDir, ".vc-config.json"),
+      JSON.stringify({ ...functionConfig, experimentalTriggers }, null, 2)
+    );
+  }
+
   // Write ISR functions
   for (const [key, value] of Object.entries(nitro.options.routeRules)) {
     if (!value.isr) {
@@ -126,7 +162,16 @@ export async function generateFunctionFiles(nitro: Nitro) {
   }
 }
 
+function warnUnsupportedQueues(nitro: Nitro) {
+  if (nitro.options.vercel?.queues?.triggers?.length) {
+    nitro.logger.warn(
+      `\`vercel.queues\` is only supported by the \`vercel\` preset and is ignored for \`${nitro.options.preset}\`.`
+    );
+  }
+}
+
 export async function generateEdgeFunctionFiles(nitro: Nitro) {
+  warnUnsupportedQueues(nitro);
   const buildConfigPath = resolve(nitro.options.output.dir, "config.json");
   const buildConfig = generateBuildConfig(nitro);
   await writeFile(buildConfigPath, JSON.stringify(buildConfig, null, 2));
@@ -144,6 +189,7 @@ export async function generateEdgeFunctionFiles(nitro: Nitro) {
 }
 
 export async function generateStaticFiles(nitro: Nitro) {
+  warnUnsupportedQueues(nitro);
   const buildConfigPath = resolve(nitro.options.output.dir, "config.json");
   const buildConfig = generateBuildConfig(nitro);
   await writeFile(buildConfigPath, JSON.stringify(buildConfig, null, 2));
@@ -153,6 +199,10 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
   const rules = Object.entries(nitro.options.routeRules).sort(
     (a, b) => b[0].split(/\/(?!\*)/).length - a[0].split(/\/(?!\*)/).length
   );
+
+  const queueHandlerRoute = nitro.options.vercel?.queues?.triggers?.length
+    ? nitro.options.vercel.queues.handlerRoute || DEFAULT_QUEUE_HANDLER_ROUTE
+    : undefined;
 
   const config = defu(nitro.options.vercel?.config, <VercelBuildConfigV3>{
     version: 3,
@@ -229,6 +279,20 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
   }
 
   config.routes!.push(
+    // Queue consumer route (Vercel Queues)
+    // ...Emitted before ISR/observability routes so a catch-all (`/**`) rule
+    // cannot shadow the dedicated consumer function.
+    ...(queueHandlerRoute
+      ? [
+          {
+            src: joinURL(
+              nitro.options.baseURL,
+              normalizeRouteSrc(queueHandlerRoute)
+            ),
+            dest: withLeadingSlash(normalizeRouteDest(queueHandlerRoute)),
+          },
+        ]
+      : []),
     // ISR rules
     // ...If we are using an ISR function for /, then we need to write this explicitly
     ...(nitro.options.routeRules["/"]?.isr
@@ -347,6 +411,12 @@ function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
     return [];
   }
 
+  // The queue consumer gets its own (non-symlinked) function directory with
+  // `experimentalTriggers`, so exclude it from the observability symlinks.
+  const queueHandlerRoute = nitro.options.vercel?.queues?.triggers?.length
+    ? nitro.options.vercel.queues.handlerRoute || DEFAULT_QUEUE_HANDLER_ROUTE
+    : undefined;
+
   // Sort routes by how much specific they are
   const routePatterns = [
     ...new Set([
@@ -355,7 +425,7 @@ function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
         .filter((h) => !h.middleware && h.route)
         .map((h) => h.route!),
     ]),
-  ];
+  ].filter((route) => route !== queueHandlerRoute);
 
   const staticRoutes: string[] = [];
   const dynamicRoutes: string[] = [];
@@ -452,6 +522,38 @@ function normalizeRouteDest(route: string) {
       .map((segment) => segment.replace(SAFE_FS_CHAR_RE, "-"))
       .join("/") || "index"
   );
+}
+
+/**
+ * Encodes a function path into a consumer name for queue/v2beta triggers.
+ * Mirrors the encoding from @vercel/build-utils sanitizeConsumerName().
+ * @see https://github.com/vercel/vercel/blob/main/packages/build-utils/src/lambda.ts
+ */
+function sanitizeConsumerName(functionPath: string): string {
+  let result = "";
+  for (const char of functionPath) {
+    switch (char) {
+      case "_": {
+        result += "__";
+        break;
+      }
+      case "/": {
+        result += "_S";
+        break;
+      }
+      case ".": {
+        result += "_D";
+        break;
+      }
+      default: {
+        result += /[A-Za-z0-9-]/.test(char)
+          ? char
+          : "_" +
+            char.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0");
+      }
+    }
+  }
+  return result;
 }
 
 async function writePrerenderConfig(
