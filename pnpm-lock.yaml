@@ -39,7 +39,7 @@ importers:
         specifier: ^6.1.1
         version: 6.1.1
       jiti:
-        specifier: ^2.6.1
+        specifier: ^2.7.0
         version: 2.7.0
       nf3:
         specifier: ^0.3.17
@@ -54,10 +54,10 @@ importers:
         specifier: ^2.0.11
         version: 2.0.11
       rolldown:
-        specifier: ^1.0.2
+        specifier: ^1.0.3
         version: 1.0.3
       srvx:
-        specifier: ^0.11.15
+        specifier: ^0.11.16
         version: 0.11.16
       unenv:
         specifier: ^2.0.0-rc.24
