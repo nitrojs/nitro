@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { defineNitroPreset } from "nitropack/kit";
 import type { Nitro } from "nitropack/types";
 import {
@@ -18,6 +19,7 @@ const vercel = defineNitroPreset(
     entry: "./runtime/vercel",
     vercel: {
       skewProtection: !!process.env.VERCEL_SKEW_PROTECTION_ENABLED,
+      cronHandlerRoute: "/_vercel/cron",
     },
     output: {
       dir: "{{ rootDir }}/.vercel/output",
@@ -31,6 +33,20 @@ const vercel = defineNitroPreset(
     hooks: {
       "rollup:before": (nitro: Nitro) => {
         deprecateSWR(nitro);
+
+        // Cron tasks handler
+        if (
+          nitro.options.experimental.tasks &&
+          Object.keys(nitro.options.scheduledTasks || {}).length > 0
+        ) {
+          nitro.options.handlers.push({
+            route: nitro.options.vercel?.cronHandlerRoute || "/_vercel/cron",
+            lazy: true,
+            handler: fileURLToPath(
+              new URL("runtime/cron-handler", import.meta.url)
+            ),
+          });
+        }
       },
       async compiled(nitro: Nitro) {
         await generateFunctionFiles(nitro);

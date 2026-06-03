@@ -127,6 +127,18 @@ export interface VercelOptions {
   regions?: string[];
 
   functions?: VercelServerlessFunctionConfig;
+
+  /**
+   * The route path for the Vercel cron handler endpoint.
+   *
+   * When `experimental.tasks` and `scheduledTasks` are configured,
+   * Nitro registers a cron handler at this path that Vercel invokes
+   * on each scheduled cron trigger.
+   *
+   * @default "/_vercel/cron"
+   * @see https://vercel.com/docs/cron-jobs
+   */
+  cronHandlerRoute?: string;
 }
 
 /**

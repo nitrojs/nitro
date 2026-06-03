@@ -24,6 +24,12 @@ describe("nitro:preset:vercel", async () => {
           .then((r) => JSON.parse(r));
         expect(config).toMatchInlineSnapshot(`
           {
+            "crons": [
+              {
+                "path": "/_vercel/cron",
+                "schedule": "* * * * *",
+              },
+            ],
             "overrides": {
               "_scalar/index.html": {
                 "path": "_scalar",
@@ -346,6 +352,10 @@ describe("nitro:preset:vercel", async () => {
                 "src": "/500",
               },
               {
+                "dest": "/_vercel/cron",
+                "src": "/_vercel/cron",
+              },
+              {
                 "dest": "/assets/[id]",
                 "src": "/assets/(?<id>[^/]+)",
               },
@@ -469,6 +479,7 @@ describe("nitro:preset:vercel", async () => {
             "functions/__fallback.func/node_modules",
             "functions/__fallback.func/package.json",
             "functions/__fallback.func/timing.js",
+            "functions/_vercel/cron.func (symlink)",
             "functions/api/cached.func (symlink)",
             "functions/api/db.func (symlink)",
             "functions/api/echo.func (symlink)",
