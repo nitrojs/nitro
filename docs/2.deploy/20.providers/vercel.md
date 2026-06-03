@@ -210,6 +210,12 @@ export default defineEventHandler(async (event) => {
 });
 ```
 
+### Local development
+
+Queues work in `nitro dev` — `send()` delivers messages straight to your `vercel:queue` hook, so you can iterate without deploying. Pull your Vercel environment first with `vercel link` and `vercel env pull` so the SDK can authenticate.
+
+If your hook throws, the message is retried locally. Retries honour `retryAfterSeconds` from each trigger when set.
+
 ## Custom build output configuration
 
 You can provide additional [build output configuration](https://vercel.com/docs/build-output-api/v3) using `vercel.config` key inside `nitro.config`. It will be merged with built-in auto-generated config.

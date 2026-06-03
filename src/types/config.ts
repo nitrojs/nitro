@@ -952,6 +952,22 @@ export interface NitroConfig
     >,
     C12InputConfig<NitroConfig> {
   preset?: PresetNameInput;
+
+  /**
+   * Customize the preset used as the **fallback** when no `preset` is set and
+   * none of the known hosting providers are auto-detected.
+   *
+   * By default, Nitro falls back to the runtime-based preset (`node`, and
+   * `deno` or `bun` when running on those runtimes). An explicit `preset`,
+   * the `NITRO_PRESET` environment variable, and auto-detected providers
+   * (Vercel, Netlify, Cloudflare Pages, …) all take precedence over this.
+   *
+   * Accepts a preset name or an inline preset definition.
+   *
+   * @see https://nitro.build/config#defaultpreset
+   */
+  defaultPreset?: PresetNameInput | NitroPreset;
+
   extends?: string | string[] | NitroPreset;
   routeRules?: { [path: string]: NitroRouteConfig };
   rollupConfig?: Partial<RollupConfig>;

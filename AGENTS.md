@@ -165,4 +165,4 @@ For deeper context, see `.agents/`:
 - [`.agents/vite.md`](.agents/vite.md) — Vite build system: plugin architecture (6 sub-plugins), environments API, dev server integration, production build stages, bundler config, HMR, runtime worker.
 - [`.agents/docs.md`](.agents/docs.md) — Documentation conventions: structure, preset naming (underscore), H3 v2 API patterns, import paths, common mistakes.
 
-- **Important:** H3 v2 updated docs is at `node_modules/h3/skills/h3/docs/TOC.md`
+H3 v2 updated docs is at `node_modules/h3/dist/docs/README.md`

@@ -47,3 +47,49 @@ updateConfig:
 
 patchedDependencies:
   '@hiogawa/vite-plugin-fullstack': patches/@hiogawa__vite-plugin-fullstack.patch
+
+minimumReleaseAgeExclude:
+  - automd*
+  - c12*
+  - changelogen*
+  - citty*
+  - compatx*
+  - confbox*
+  - consola*
+  - cookie-es*
+  - crossws*
+  - db0*
+  - defu*
+  - destr*
+  - env-runner*
+  - exsolve*
+  - get-port-please*
+  - giget*
+  - h3*
+  - hookable*
+  - httpxy*
+  - knitwork*
+  - mdzilla*
+  - mlly*
+  - nf3*
+  - nypm*
+  - obuild*
+  - ocache*
+  - ofetch*
+  - ohash*
+  - pathe*
+  - perfect-debounce*
+  - pkg-types*
+  - rou3*
+  - scule*
+  - serve-placeholder*
+  - srvx*
+  - std-env*
+  - ufo*
+  - uncrypto*
+  - unctx*
+  - unenv*
+  - unimport*
+  - unstorage*
+  - untyped*
+  - unwasm*
