@@ -148,13 +148,15 @@ globalThis.__transform_html__ = async function (html) {
 
 // ----- Exports (env-runner AppEntry) -----
 
-export function fetch(req) {
+export async function fetch(req) {
   const viteEnv = req?.headers.get("x-vite-env") || "nitro";
-  const env = envs[viteEnv];
+  const env = await waitForViteEnv(viteEnv);
   if (!env) {
-    return renderError(req, httpError(500, `Unknown vite environment "${viteEnv}"`));
+    return normalizeBunResponse(
+      await renderError(req, httpError(500, `Unknown vite environment "${viteEnv}"`))
+    );
   }
-  return env.fetch(req);
+  return normalizeBunResponse(await env.fetch(req));
 }
 
 export function upgrade(context) {
@@ -209,6 +211,28 @@ function httpError(status, message) {
   error.status = status;
   error.name = "NitroViteError";
   return error;
+}
+
+async function waitForViteEnv(name) {
+  let env = envs[name];
+  for (let i = 0; i < 5 && !env; i++) {
+    await new Promise((resolve) => setTimeout(resolve, 100 * Math.pow(2, i)));
+    env = envs[name];
+  }
+  return env;
+}
+
+export function normalizeBunResponse(response) {
+  if (typeof Bun === "undefined") {
+    return response;
+  }
+  const headers = new Headers(response.headers);
+  headers.delete("content-length");
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
 }
 
 async function renderError(req, error) {

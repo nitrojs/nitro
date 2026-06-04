@@ -167,9 +167,7 @@ export async function reloadEnvRunner(ctx: NitroPluginContext) {
 }
 
 async function _loadRunner(ctx: NitroPluginContext, manager: RunnerManager) {
-  const runnerName = (ctx.nitro!.options.devServer.runner ||
-    process.env.NITRO_DEV_RUNNER ||
-    "node-worker") as RunnerName;
+  const runnerName = getDevRunnerName(ctx);
   const entry = resolve(runtimeDir, "internal/vite/dev-worker.mjs");
   let runner;
   if (runnerName === "miniflare") {
@@ -233,9 +231,7 @@ export function nitroServiceProxy(): VitePlugin {
 // workerd-based runners (miniflare) cannot handle CJS externals via import(),
 // so all dependencies must be processed through Vite's transform pipeline.
 function _isWorkerdRunner(ctx: NitroPluginContext): boolean {
-  const runnerName =
-    ctx.nitro!.options.devServer.runner || process.env.NITRO_DEV_RUNNER || "node-worker";
-  return runnerName === "miniflare";
+  return getDevRunnerName(ctx) === "miniflare";
 }
 
 function tryResolve(id: string) {
@@ -248,4 +244,16 @@ function tryResolve(id: string) {
     try: true,
   });
   return resolved || id;
+}
+
+function getDevRunnerName(ctx: NitroPluginContext): RunnerName {
+  return (ctx.nitro!.options.devServer.runner ||
+    process.env.NITRO_DEV_RUNNER ||
+    getDefaultDevRunnerName()) as RunnerName;
+}
+
+function getDefaultDevRunnerName(): RunnerName {
+  return typeof (globalThis as typeof globalThis & { Bun?: unknown }).Bun === "undefined"
+    ? "node-worker"
+    : "bun-process";
 }
