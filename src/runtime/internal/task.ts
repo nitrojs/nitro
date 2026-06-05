@@ -46,17 +46,23 @@ export async function runTask<RT = unknown>(
   const taskEvent: TaskEvent = { name, payload, context };
   const concurrency: TaskConcurrency = handler.concurrency ?? { mode: "dedupe" };
 
-  if (concurrency.mode === "parallel") {
-    return _callTask(handler, taskEvent);
+  switch (concurrency.mode) {
+    case "parallel": {
+      return _callTask(handler, taskEvent);
+    }
+    case "dedupe": {
+      const key = _getTaskConcurrencyKey(concurrency, taskEvent);
+      return _runTaskOnce(key, () => _callTask(handler, taskEvent));
+    }
+    case "serial": {
+      const key = _getTaskConcurrencyKey(concurrency, taskEvent);
+      return _runTaskSerially(key, () => _callTask(handler, taskEvent));
+    }
+    default: {
+      const mode = (concurrency as { mode: string }).mode;
+      throw new Error(`Task \`${name}\` has an invalid concurrency mode: "${mode}"`);
+    }
   }
-
-  const key = _getTaskConcurrencyKey(concurrency, taskEvent);
-
-  if (concurrency.mode === "serial") {
-    return _runTaskSerially(key, () => _callTask(handler, taskEvent));
-  }
-
-  return _runTaskOnce(key, () => _callTask(handler, taskEvent));
 }
 
 async function _callTask<RT>(handler: Task<RT>, taskEvent: TaskEvent): Promise<TaskResult<RT>> {

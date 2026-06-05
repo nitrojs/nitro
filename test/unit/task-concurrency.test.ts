@@ -216,6 +216,19 @@ describe("task concurrency", () => {
     });
   });
 
+  it("throws for unknown concurrency modes", async () => {
+    const run = vi.fn(async () => ({ result: "should not run" }));
+    registerTask("invalid-mode", {
+      run,
+      concurrency: { mode: "batched" } as unknown as Task["concurrency"],
+    });
+
+    await expect(runTask("invalid-mode")).rejects.toThrow(
+      'Task `invalid-mode` has an invalid concurrency mode: "batched"'
+    );
+    expect(run).not.toHaveBeenCalled();
+  });
+
   it("throws for unknown or unresolved tasks", async () => {
     mockTasks["no-handler"] = { meta: {} };
 
