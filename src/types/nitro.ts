@@ -69,6 +69,22 @@ export type NitroTypes = {
 export interface NitroFrameworkInfo {
   name?: "nitro" | (string & {});
   version?: string;
+  /**
+   * Command shown in build output as the suggested preview command.
+   *
+   * Display-only: Nitro never executes this. Use this when the framework
+   * wraps `nitro preview` with its own CLI (e.g. `npx nuxt preview`).
+   * Defaults to `npx nitro preview`.
+   */
+  previewCommand?: string;
+  /**
+   * Command shown in build output as the suggested deploy command.
+   *
+   * Display-only: Nitro never executes this. Use this when the framework
+   * wraps `nitro deploy` with its own CLI (e.g. `npx nuxt deploy`).
+   * Defaults to `npx nitro deploy --prebuilt`.
+   */
+  deployCommand?: string;
 }
 
 /**
