@@ -48,10 +48,12 @@ export async function buildProduction(nitro: Nitro, config: RolldownOptions) {
   const rewriteRelativePaths = (input: string) => {
     return input.replace(/([\s:])\.\/(\S*)/g, `$1${rOutput}/$2`);
   };
-  nitro.logger.success("You can preview this build using `npx nitro preview`");
+  const previewCommand = nitro.options.framework.previewCommand || "npx nitro preview";
+  nitro.logger.success(`You can preview this build using \`${previewCommand}\``);
   if (buildInfo.commands!.deploy) {
+    const deployCommand = nitro.options.framework.deployCommand || "npx nitro deploy --prebuilt";
     nitro.logger.success(
-      rewriteRelativePaths("You can deploy this build using `npx nitro deploy --prebuilt`")
+      rewriteRelativePaths(`You can deploy this build using \`${deployCommand}\``)
     );
   }
 }

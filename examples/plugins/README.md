@@ -19,9 +19,9 @@ The plugin uses `useNitroHooks()` to access the hooks system, then registers a `
 ## Main Handler
 
 ```ts [server.ts]
-import { eventHandler } from "h3";
+import { defineHandler } from "nitro";
 
-export default eventHandler(() => "<h1>Hello Nitro!</h1>");
+export default defineHandler(() => "<h1>Hello Nitro!</h1>");
 ```
 
 The handler returns HTML without setting a content type. The plugin automatically adds the correct `Content-Type: html; charset=utf-8` header to the response.

@@ -1,3 +1,5 @@
+import type { send } from "@vercel/queue";
+
 /**
  * Vercel Build Output Configuration
  * @see https://vercel.com/docs/build-output-api/v3
@@ -105,8 +107,21 @@ export interface VercelServerlessFunctionConfig {
    */
   runtime?: "nodejs20.x" | "nodejs22.x" | "bun1.x" | (string & {});
 
+  /**
+   * Experimental trigger configuration (e.g., Vercel Queues).
+   */
+  experimentalTriggers?: VercelFunctionTrigger[];
+
   [key: string]: unknown;
 }
+
+export type VercelFunctionTrigger = {
+  type: "queue/v2beta";
+  topic: string;
+  retryAfterSeconds?: number;
+  initialDelaySeconds?: number;
+  consumer?: string;
+};
 
 export interface VercelOptions {
   config?: VercelBuildConfigV3;
@@ -147,6 +162,48 @@ export interface VercelOptions {
    * @see https://vercel.com/docs/cron-jobs
    */
   cronHandlerRoute?: string;
+
+  /**
+   * Vercel Queues configuration.
+   *
+   * Messages are delivered via the `vercel:queue` runtime hook.
+   *
+   * @example
+   * ```ts
+   * // nitro.config.ts
+   * export default defineNitroConfig({
+   *   vercel: {
+   *     queues: {
+   *       triggers: [{ topic: "orders" }],
+   *     },
+   *   },
+   * });
+   * ```
+   *
+   * ```ts
+   * // server/plugins/queues.ts
+   * export default defineNitroPlugin((nitro) => {
+   *   nitro.hooks.hook("vercel:queue", ({ message, metadata }) => {
+   *     console.log(`Received message on ${metadata.topicName}:`, message);
+   *   });
+   * });
+   * ```
+   *
+   * @see https://vercel.com/docs/queues
+   */
+  queues?: {
+    /**
+     * Route path for the queue consumer handler.
+     * @default "/_vercel/queues/consumer"
+     */
+    handlerRoute?: string;
+    /** Queue topic triggers to subscribe to. */
+    triggers: Array<{
+      topic: string;
+      retryAfterSeconds?: number;
+      initialDelaySeconds?: number;
+    }>;
+  };
 
   /**
    * Per-route function configuration overrides.
@@ -206,3 +263,13 @@ export type PrerenderFunctionConfig = {
    */
   exposeErrBody?: boolean;
 };
+
+declare module "nitro/types" {
+  export interface NitroRuntimeHooks {
+    "vercel:queue": (_: {
+      message: unknown;
+      metadata: import("@vercel/queue").MessageMetadata;
+      send: typeof send;
+    }) => void;
+  }
+}

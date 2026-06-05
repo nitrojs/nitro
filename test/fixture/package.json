@@ -9,6 +9,6 @@
   },
   "devDependencies": {
     "mono-jsx": "latest",
-    "nitro": "latest"
+    "nitro": "workspace:*"
   }
 }

@@ -14,7 +14,20 @@ import type { WorkerAddress } from "./runner.ts";
 
 type MaybeArray<T> = T | T[];
 
+/** Nitro package metadata including version information. */
+export interface NitroMeta {
+  version: string;
+  majorVersion: number;
+}
+
+/**
+ * The core Nitro instance available throughout the build lifecycle.
+ *
+ * Provides access to resolved options, hooks, the virtual file system,
+ * scanned handlers, and utility methods.
+ */
 export interface Nitro {
+  meta: NitroMeta;
   options: NitroOptions;
   scannedHandlers: NitroEventHandler[];
   vfs: Map<string, { render: () => string | Promise<string> }>;
@@ -37,6 +50,10 @@ export interface Nitro {
   _prerenderMeta?: Record<string, { contentType?: string }>;
 }
 
+/**
+ * Subset of {@link NitroConfig} that can be updated at runtime via
+ * `nitro.updateConfig()`.
+ */
 export type NitroDynamicConfig = Pick<NitroConfig, "runtimeConfig" | "routeRules">;
 
 export type NitroTypes = {
@@ -44,12 +61,39 @@ export type NitroTypes = {
   tsConfig?: TSConfig;
 };
 
+/**
+ * Metadata about the framework using Nitro.
+ *
+ * @see https://nitro.build/config#framework
+ */
 export interface NitroFrameworkInfo {
   name?: "nitro" | (string & {});
   version?: string;
+  /**
+   * Command shown in build output as the suggested preview command.
+   *
+   * Display-only: Nitro never executes this. Use this when the framework
+   * wraps `nitro preview` with its own CLI (e.g. `npx nuxt preview`).
+   * Defaults to `npx nitro preview`.
+   */
+  previewCommand?: string;
+  /**
+   * Command shown in build output as the suggested deploy command.
+   *
+   * Display-only: Nitro never executes this. Use this when the framework
+   * wraps `nitro deploy` with its own CLI (e.g. `npx nuxt deploy`).
+   * Defaults to `npx nitro deploy --prebuilt`.
+   */
+  deployCommand?: string;
 }
 
-/** Build info written to `.output/nitro.json` or `.nitro/dev/nitro.json` */
+/**
+ * Build info written to `<output.dir>/nitro.json` (production, default
+ * `.output/nitro.json`) or `<rootDir>/node_modules/.nitro/nitro.dev.json`
+ * (development).
+ *
+ * Contains preset, framework, version, and command information.
+ */
 export interface NitroBuildInfo {
   date: string;
   preset: PresetName;

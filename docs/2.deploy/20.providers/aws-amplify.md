@@ -24,14 +24,14 @@ Integration with this provider is possible with [zero configuration](/deploy/#ze
 You can configure advanced options of this preset using `awsAmplify` option.
 
 ```ts [nitro.config.ts]
-import { defineNitroConfig } from "nitro/config";
+import { defineConfig } from "nitro";
 
-export default defineNitroConfig({
+export default defineConfig({
   awsAmplify: {
       // catchAllStaticFallback: true,
       // imageOptimization: { path: "/_image", cacheControl: "public, max-age=3600, immutable" },
       // imageSettings: { ... },
-      // runtime: "nodejs18.x", // default: "nodejs18.x" | "nodejs16.x" | "nodejs20.x"
+      // runtime: "nodejs24.x", // default: "nodejs20.x" | "nodejs22.x" | "nodejs24.x"
   }
 })
 ```
@@ -48,7 +48,7 @@ frontend:
   phases:
     preBuild:
       commands:
-        - nvm use 18 && node --version
+        - nvm use 24 && node --version
         - corepack enable && npx --yes nypm install
     build:
       commands:
@@ -66,7 +66,7 @@ applications:
       phases:
         preBuild:
           commands:
-          - nvm use 18 && node --version
+          - nvm use 24 && node --version
           - corepack enable && npx --yes nypm install
         build:
           commands:

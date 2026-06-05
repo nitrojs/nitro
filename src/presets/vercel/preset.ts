@@ -2,12 +2,16 @@ import { defineNitroPreset } from "../_utils/preset.ts";
 import type { Nitro } from "nitro/types";
 import { presetsDir } from "nitro/meta";
 import { join } from "pathe";
+import { importDep } from "../../utils/dep.ts";
 import {
   deprecateSWR,
   generateFunctionFiles,
   generateStaticFiles,
   resolveVercelRuntime,
 } from "./utils.ts";
+import { vercelDevModule } from "./dev.ts";
+
+import type { VercelFunctionTrigger } from "./types.ts";
 
 export type { VercelOptions as PresetOptions } from "./types.ts";
 
@@ -65,6 +69,35 @@ const vercel = defineNitroPreset(
             handler: join(presetsDir, "vercel/runtime/cron-handler"),
           });
         }
+
+        // Queue consumer handler
+        const queues = nitro.options.vercel?.queues;
+        if (queues?.triggers?.length) {
+          await importDep({
+            id: "@vercel/queue",
+            dir: nitro.options.rootDir,
+            reason: "Vercel Queues",
+          });
+
+          const handlerRoute = queues.handlerRoute || "/_vercel/queues/consumer";
+
+          nitro.options.handlers.push({
+            route: handlerRoute,
+            lazy: true,
+            handler: join(presetsDir, "vercel/runtime/queue-handler"),
+          });
+
+          const queueTriggers: VercelFunctionTrigger[] = queues.triggers.map(
+            ({ topic, ...opts }) => ({ type: "queue/v2beta", topic, ...opts })
+          );
+          nitro.options.vercel ??= {};
+          nitro.options.vercel.functionRules ??= {};
+          const existingRule = nitro.options.vercel.functionRules[handlerRoute];
+          nitro.options.vercel.functionRules[handlerRoute] = {
+            ...existingRule,
+            experimentalTriggers: [...(existingRule?.experimentalTriggers || []), ...queueTriggers],
+          };
+        }
       },
       "rollup:before": (nitro: Nitro) => {
         deprecateSWR(nitro);
@@ -112,4 +145,17 @@ const vercelStatic = defineNitroPreset(
   }
 );
 
-export default [vercel, vercelStatic] as const;
+export const vercelDev = defineNitroPreset(
+  {
+    extends: "nitro-dev",
+    devServer: { runner: "vercel" },
+    modules: [vercelDevModule],
+  },
+  {
+    name: "vercel-dev" as const,
+    aliases: ["vercel"],
+    dev: true,
+  }
+);
+
+export default [vercel, vercelStatic, vercelDev] as const;

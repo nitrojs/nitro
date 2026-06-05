@@ -17,6 +17,12 @@ import { getEnvRunner } from "./env.ts";
 
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
 
+// Extensions that strongly indicate a browser asset load (script/style/font/image/media).
+// Used as a fallback signal when `Sec-Fetch-Dest` is absent (plain-HTTP non-loopback origins).
+// Kept narrow on purpose so that arbitrary dotted Nitro route params (e.g. `.../foo.bar.1`) keep reaching Nitro.
+const ASSET_EXT_RE =
+  /^(?:[jt]sx?|mjs|cjs|css|s[ac]ss|less|styl|vue|svelte|astro|mdx?|map|wasm|png|jpe?g|gif|svg|webp|avif|ico|bmp|woff2?|ttf|otf|eot|mp[34]|webm|wav|ogg|m4a)$/i;
+
 // ---- Types ----
 
 export type FetchHandler = (req: Request) => Promise<Response>;
@@ -236,27 +242,65 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   // Handle server routes first to avoid conflicts with static assets served by Vite from the root
   // https://github.com/vitejs/vite/pull/20866
   server.middlewares.use(function nitroDevMiddlewarePre(req, res, next) {
-    const fetchDest = req.headers["sec-fetch-dest"];
-    const ext = req.url!.match(/\.([a-z0-9]+)(?:[?#]|$)/i)?.[1];
-    const isNitroRoute = ext
-      ? !!nitro.routing.routes.match(
-          req.method || "",
-          new URL(withBase(req.url!, nitro.options.baseURL), "http://localhost").pathname
-        )
-      : false;
-    res.setHeader("vary", "sec-fetch-dest");
-    if (
-      // Originating from browser tab or no fetch dest (curl, fetch, etc) and (not script, style, image, etc)
-      (!fetchDest || /^(document|iframe|frame|empty)$/.test(fetchDest)) &&
-      // No file extension (not /src/index.ts) unless it is an explicit Nitro route
-      (!ext || isNitroRoute) &&
-      // Special prefixes (/__vue-router/auto-routes, /@vite-plugin-layouts/, etc)
-      !/^\/(?:__|@)/.test(req.url!)
-    ) {
-      nitroDevMiddleware(req, res, next);
-    } else {
-      next();
+    // Vite-internal prefixes (/@vite/client, /__vue-router/auto-routes, ...) are never Nitro's.
+    if (/^\/(?:__|@)/.test(req.url!)) {
+      return next();
     }
+
+    // `nitro.routing.routes` always includes the SSR catch-all `/**` in SSR apps, so an explicit
+    // user route must be told apart from the catch-all. A root-level user catch-all
+    // (`routes/[...].ts` -> `/**`, `routes/[...slug].ts` -> `/**:slug`) is as authoritative as the
+    // SSR `/**` and must not swallow Vite asset serves either, so both forms count as catch-all;
+    // prefixed splat routes (`/api/photos/**`) are deterministic user routes and stay explicit.
+    const match = nitro.routing.routes.match(
+      req.method || "",
+      new URL(withBase(req.url!, nitro.options.baseURL), "http://localhost").pathname
+    );
+    const matchedHandlers = match ? (Array.isArray(match) ? match : [match]) : [];
+    const isExplicitRoute = matchedHandlers.some(
+      (h) => h?.route && h.route !== "/**" && !h.route.startsWith("/**:")
+    );
+
+    // An explicit user route is a deterministic match and always wins, regardless of how the
+    // browser tags the request (#4108, #4241, #4252, #4270) — no heuristic may override it.
+    if (isExplicitRoute) {
+      return nitroDevMiddleware(req, res, next);
+    }
+
+    // Otherwise the request is unmatched or matched only by the SSR catch-all `/**` — genuinely
+    // ambiguous between a page navigation (-> Nitro) and an asset load (-> Vite). A wrong guess
+    // here only affects the catch-all fallback, never an explicit route.
+    res.setHeader("vary", "sec-fetch-dest, accept");
+    const fetchDest = req.headers["sec-fetch-dest"];
+    const ext = req.url!.split(/[?#]/, 1)[0].match(/\.([a-z0-9]+)$/i)?.[1];
+
+    // A known asset extension without `text/html` in `Accept` — the fallback signal when
+    // `Sec-Fetch-Dest` is unavailable. The header is absent on plain-HTTP non-loopback origins
+    // (e.g. http://10.0.0.x, #4234), and `empty` (fetch/XHR) is ambiguous: it tags both API
+    // calls and `fetch()`ed assets, so it falls back to the extension like a missing header.
+    const isAssetByExt =
+      !!ext && ASSET_EXT_RE.test(ext) && !/\btext\/html\b/.test(req.headers["accept"] || "");
+
+    // `document`/`iframe`/`frame` are definite navigations; any other concrete `Sec-Fetch-Dest`
+    // (`image`, `video`, `style`, ...) is a definite asset load.
+    const isAsset =
+      typeof fetchDest === "string" && fetchDest !== "empty"
+        ? !/^(?:document|iframe|frame)$/.test(fetchDest)
+        : isAssetByExt;
+
+    // Non-asset requests go to Nitro: the catch-all (`matchedHandlers` are all catch-all here,
+    // since explicit routes already returned) renders them, and bare (extensionless) unmatched
+    // URLs default to Nitro as page navigations.
+    if (!isAsset && (matchedHandlers.length > 0 || !ext)) {
+      return nitroDevMiddleware(req, res, next);
+    }
+
+    if (isAsset) {
+      // Vite is the definitive handler — mark the request so the catch-all `nitroDevMiddleware`
+      // registered after Vite doesn't fall back into a splat Nitro route on a 404.
+      (req as IncomingMessage & { _nitroHandled?: boolean })._nitroHandled = true;
+    }
+    next();
   });
 
   return () => {

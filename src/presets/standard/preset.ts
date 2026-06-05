@@ -16,6 +16,7 @@ const standard = defineNitroPreset(
       "srvx/deno": "srvx/deno",
       "srvx/node": "srvx/node",
       "srvx/generic": "srvx/generic",
+      "srvx/tracing": "srvx/tracing",
     },
   },
   {

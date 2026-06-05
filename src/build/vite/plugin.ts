@@ -20,7 +20,6 @@ import {
   createServiceEnvironment,
   nitroServiceProxy,
 } from "./env.ts";
-import { configureViteDevServer } from "./dev.ts";
 import { runtimeDir } from "nitro/meta";
 import { resolveModulePath } from "exsolve";
 import { defu } from "defu";
@@ -251,8 +250,9 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
       },
     },
 
-    configureServer: (server) => {
+    configureServer: async (server) => {
       debug("[main] Configuring dev server");
+      const { configureViteDevServer } = await import("./dev.ts");
       return configureViteDevServer(ctx, server);
     },
 

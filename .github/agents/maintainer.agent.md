@@ -18,7 +18,7 @@ For deeper architectural context, refer to the `.agents/` directory:
 - `.agents/vite.md` — Vite build system, plugin architecture, dev server, HMR.
 - `.agents/docs.md` — Documentation conventions, H3 v2 API patterns.
 
-H3 v2 docs are at `node_modules/h3/skills/h3/docs/TOC.md`.
+H3 v2 docs are at `node_modules/h3/dist/docs/README.md`.
 
 ## Key principles
 
@@ -27,5 +27,5 @@ H3 v2 docs are at `node_modules/h3/skills/h3/docs/TOC.md`.
 - Use `pathe` instead of `node:path`.
 - Use existing UnJS utilities (`defu`, `consola`, `unstorage`) before adding new packages.
 - Bug fixes MUST include a failing regression test first.
-- Always run `pnpm format` and `pnpm typecheck` after changes.
+- Always run `pnpm fmt` and `pnpm typecheck` after changes.
 - Use semantic commit messages with scope (e.g., `fix(runtime): ...`).

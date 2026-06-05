@@ -12,11 +12,11 @@ Nitro is a framework-agnostic and deployment-agnostic server framework powered b
 
 - `pnpm build --stub` — Fast stub build for development.
 - `pnpm lint` — Lint and format code.
-- `pnpm format` — Automatically fix lint and formatting issues.
+- `pnpm fmt` — Automatically fix lint and formatting issues.
 - `pnpm test` — Run all tests.
 - `pnpm typecheck` — Run type tests.
 
-**Always run** `pnpm format` and `pnpm typecheck` after making changes.
+**Always run** `pnpm fmt` and `pnpm typecheck` after making changes.
 
 ## Repository Structure
 
@@ -98,7 +98,7 @@ Each preset in `src/presets/` defines deployment target behavior:
 1. Make changes in `src/`.
 2. Run `pnpm build --stub` if you changed build logic.
 3. Test with `pnpm test`.
-4. Run `pnpm format`.
+4. Run `pnpm fmt`.
 5. Run `pnpm typecheck`.
 6. Run `pnpm vitest run`.
 
@@ -165,4 +165,4 @@ For deeper context, see `.agents/`:
 - [`.agents/vite.md`](.agents/vite.md) — Vite build system: plugin architecture (6 sub-plugins), environments API, dev server integration, production build stages, bundler config, HMR, runtime worker.
 - [`.agents/docs.md`](.agents/docs.md) — Documentation conventions: structure, preset naming (underscore), H3 v2 API patterns, import paths, common mistakes.
 
-- **Important:** H3 v2 updated docs is at `node_modules/h3/skills/h3/docs/TOC.md`
+H3 v2 updated docs is at `node_modules/h3/dist/docs/README.md`
