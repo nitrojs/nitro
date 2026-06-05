@@ -67,280 +67,280 @@ importers:
         version: 2.0.0-alpha.7(@azure/identity@4.13.1)(chokidar@5.0.0)(db0@0.3.4)(ofetch@2.0.0-alpha.3)
     devDependencies:
       '@apphosting/common':
-        specifier: ^0.0.9
+        specifier: 0.0.9
         version: 0.0.9
       '@azure/functions':
-        specifier: ^3.5.1
+        specifier: 3.5.1
         version: 3.5.1
       '@azure/static-web-apps-cli':
-        specifier: ^2.0.9
+        specifier: 2.0.9
         version: 2.0.9
       '@cloudflare/workers-types':
-        specifier: ^4.20260521.1
+        specifier: 4.20260602.1
         version: 4.20260602.1
       '@cloudflare/workers-utils':
-        specifier: ^0.22.1
+        specifier: 0.22.1
         version: 0.22.1(vitest@4.1.8)
       '@deno/types':
-        specifier: ^0.0.1
+        specifier: 0.0.1
         version: 0.0.1
       '@hiogawa/vite-plugin-fullstack':
-        specifier: ^0.0.11
+        specifier: 0.0.11
         version: 0.0.11(patch_hash=07fae0b67c822caf17077800582de7d566ace9f74ee59baba4de19a6288b720a)(vite@8.0.16)
       '@netlify/edge-functions':
-        specifier: ^3.0.7
+        specifier: 3.0.8
         version: 3.0.8
       '@netlify/functions':
-        specifier: ^5.2.2
+        specifier: 5.3.0
         version: 5.3.0
       '@rollup/plugin-alias':
-        specifier: ^6.0.0
+        specifier: 6.0.0
         version: 6.0.0(rollup@4.61.0)
       '@rollup/plugin-commonjs':
-        specifier: ^29.0.2
+        specifier: 29.0.3
         version: 29.0.3(rollup@4.61.0)
       '@rollup/plugin-inject':
-        specifier: ^5.0.5
+        specifier: 5.0.5
         version: 5.0.5(rollup@4.61.0)
       '@rollup/plugin-json':
-        specifier: ^6.1.0
+        specifier: 6.1.0
         version: 6.1.0(rollup@4.61.0)
       '@rollup/plugin-node-resolve':
-        specifier: ^16.0.3
+        specifier: 16.0.3
         version: 16.0.3(rollup@4.61.0)
       '@rollup/plugin-replace':
-        specifier: ^6.0.3
+        specifier: 6.0.3
         version: 6.0.3(rollup@4.61.0)
       '@scalar/api-reference':
-        specifier: ^1.57.2
+        specifier: 1.58.0
         version: 1.58.0(axios@1.16.1)(jwt-decode@4.0.0)(tailwindcss@4.3.0)(typescript@6.0.3)(zod@4.4.3)
       '@scalar/openapi-types':
-        specifier: ^0.9.1
+        specifier: 0.9.1
         version: 0.9.1
       '@types/aws-lambda':
-        specifier: ^8.10.161
+        specifier: 8.10.161
         version: 8.10.161
       '@types/estree':
-        specifier: ^1.0.9
+        specifier: 1.0.9
         version: 1.0.9
       '@types/etag':
-        specifier: ^1.8.4
+        specifier: 1.8.4
         version: 1.8.4
       '@types/http-proxy':
-        specifier: ^1.17.17
+        specifier: 1.17.17
         version: 1.17.17
       '@types/node':
-        specifier: ^25.9.1
+        specifier: 25.9.1
         version: 25.9.1
       '@types/node-fetch':
-        specifier: ^2.6.13
+        specifier: 2.6.13
         version: 2.6.13
       '@types/semver':
-        specifier: ^7.7.1
+        specifier: 7.7.1
         version: 7.7.1
       '@types/xml2js':
-        specifier: ^0.4.14
+        specifier: 0.4.14
         version: 0.4.14
       '@typescript/native-preview':
         specifier: 7.0.0-dev.20260602.1
         version: 7.0.0-dev.20260602.1
       '@vercel/queue':
-        specifier: ^0.2.0
+        specifier: 0.2.0
         version: 0.2.0
       '@vitest/coverage-v8':
-        specifier: ^4.1.7
+        specifier: 4.1.8
         version: 4.1.8(vitest@4.1.8)
       automd:
-        specifier: ^0.4.3
+        specifier: 0.4.3
         version: 0.4.3(magicast@0.5.3)
       c12:
-        specifier: ^4.0.0-beta.5
+        specifier: 4.0.0-beta.5
         version: 4.0.0-beta.5(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(magicast@0.5.3)
       changelogen:
-        specifier: ^0.6.2
+        specifier: 0.6.2
         version: 0.6.2(magicast@0.5.3)
       chokidar:
-        specifier: ^5.0.0
+        specifier: 5.0.0
         version: 5.0.0
       citty:
-        specifier: ^0.2.2
+        specifier: 0.2.2
         version: 0.2.2
       compatx:
-        specifier: ^0.2.0
+        specifier: 0.2.0
         version: 0.2.0
       confbox:
-        specifier: ^0.2.4
+        specifier: 0.2.4
         version: 0.2.4
       cookie-es:
         specifier: ^3.1.1
         version: 3.1.1
       croner:
-        specifier: ^10.0.1
+        specifier: 10.0.1
         version: 10.0.1
       defu:
-        specifier: ^6.1.7
+        specifier: 6.1.7
         version: 6.1.7
       destr:
-        specifier: ^2.0.5
+        specifier: 2.0.5
         version: 2.0.5
       dot-prop:
-        specifier: ^10.1.0
+        specifier: 10.1.0
         version: 10.1.0
       edge-runtime:
-        specifier: ^4.0.1
+        specifier: 4.0.1
         version: 4.0.1
       etag:
-        specifier: ^1.8.1
+        specifier: 1.8.1
         version: 1.8.1
       execa:
-        specifier: ^9.6.1
+        specifier: 9.6.1
         version: 9.6.1
       expect-type:
-        specifier: ^1.3.0
+        specifier: 1.3.0
         version: 1.3.0
       exsolve:
-        specifier: ^1.0.8
+        specifier: 1.0.8
         version: 1.0.8
       get-port-please:
-        specifier: ^3.2.0
+        specifier: 3.2.0
         version: 3.2.0
       giget:
-        specifier: ^3.2.0
+        specifier: 3.2.0
         version: 3.2.0
       gzip-size:
-        specifier: ^7.0.0
+        specifier: 7.0.0
         version: 7.0.0
       httpxy:
-        specifier: ^0.5.3
+        specifier: 0.5.3
         version: 0.5.3
       klona:
-        specifier: ^2.0.6
+        specifier: 2.0.6
         version: 2.0.6
       knitwork:
-        specifier: ^1.3.0
+        specifier: 1.3.0
         version: 1.3.0
       magic-string:
-        specifier: ^0.30.21
+        specifier: 0.30.21
         version: 0.30.21
       mdzilla:
-        specifier: ^0.2.1
+        specifier: 0.2.1
         version: 0.2.1
       mime:
-        specifier: ^4.1.0
+        specifier: 4.1.0
         version: 4.1.0
       miniflare:
-        specifier: ^4.20260520.0
+        specifier: 4.20260601.0
         version: 4.20260601.0
       mlly:
-        specifier: ^1.8.2
+        specifier: 1.8.2
         version: 1.8.2
       nypm:
-        specifier: ^0.6.6
+        specifier: 0.6.6
         version: 0.6.6
       obuild:
-        specifier: ^0.4.36
+        specifier: 0.4.36
         version: 0.4.36(@typescript/native-preview@7.0.0-dev.20260602.1)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(magicast@0.5.3)(typescript@6.0.3)
       oxc-parser:
         specifier: link:shims/oxc-parser
         version: link:shims/oxc-parser
       oxfmt:
-        specifier: ^0.53.0
+        specifier: 0.53.0
         version: 0.53.0
       oxlint:
-        specifier: ^1.66.0
+        specifier: 1.68.0
         version: 1.68.0
       pathe:
-        specifier: ^2.0.3
+        specifier: 2.0.3
         version: 2.0.3
       perfect-debounce:
-        specifier: ^2.1.0
+        specifier: 2.1.0
         version: 2.1.0
       pkg-types:
-        specifier: ^2.3.1
+        specifier: 2.3.1
         version: 2.3.1
       pretty-bytes:
-        specifier: ^7.1.0
+        specifier: 7.1.0
         version: 7.1.0
       react:
-        specifier: ^19.2.6
+        specifier: 19.2.7
         version: 19.2.7
       rendu:
-        specifier: ^0.1.0
+        specifier: 0.1.0
         version: 0.1.0
       rollup:
-        specifier: ^4.60.4
+        specifier: 4.61.0
         version: 4.61.0
       rou3:
-        specifier: ^0.8.1
+        specifier: 0.8.1
         version: 0.8.1
       scule:
-        specifier: ^1.3.0
+        specifier: 1.3.0
         version: 1.3.0
       semver:
-        specifier: ^7.8.0
+        specifier: 7.8.1
         version: 7.8.1
       serve-placeholder:
-        specifier: ^2.0.2
+        specifier: 2.0.2
         version: 2.0.2
       source-map:
-        specifier: ^0.7.6
+        specifier: 0.7.6
         version: 0.7.6
       std-env:
-        specifier: ^4.1.0
+        specifier: 4.1.0
         version: 4.1.0
       tinyglobby:
-        specifier: ^0.2.16
+        specifier: 0.2.17
         version: 0.2.17
       tsconfck:
-        specifier: ^3.1.6
+        specifier: 3.1.6
         version: 3.1.6(typescript@6.0.3)
       typescript:
-        specifier: ^6.0.3
+        specifier: 6.0.3
         version: 6.0.3
       ufo:
-        specifier: ^1.6.4
+        specifier: 1.6.4
         version: 1.6.4
       ultrahtml:
-        specifier: ^1.6.0
+        specifier: 1.6.0
         version: 1.6.0
       uncrypto:
-        specifier: ^0.1.3
+        specifier: 0.1.3
         version: 0.1.3
       unctx:
-        specifier: ^2.5.0
+        specifier: 2.5.0
         version: 2.5.0
       unimport:
-        specifier: ^6.3.0
+        specifier: 6.3.0
         version: 6.3.0(oxc-parser@shims+oxc-parser)(rolldown@1.0.3)
       untyped:
-        specifier: ^2.0.0
+        specifier: 2.0.0
         version: 2.0.0
       unwasm:
-        specifier: ^0.5.3
+        specifier: 0.5.3
         version: 0.5.3
       vite:
-        specifier: ^8.0.14
+        specifier: 8.0.16
         version: 8.0.16(@types/node@25.9.1)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.0)
       vite7:
-        specifier: npm:vite@^7.3.2
+        specifier: npm:vite@7.3.5
         version: vite@7.3.5(@types/node@25.9.1)(jiti@2.7.0)(lightningcss@1.32.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.7
+        specifier: 4.1.8
         version: 4.1.8(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.0)(@types/node@25.9.1)(@vitest/coverage-v8@4.1.8)(vite@8.0.16)
       wrangler:
-        specifier: ^4.93.1
+        specifier: 4.97.0
         version: 4.97.0(@cloudflare/workers-types@4.20260602.1)
       xml2js:
-        specifier: ^0.6.2
+        specifier: 0.6.2
         version: 0.6.2
       youch:
-        specifier: ^4.1.1
+        specifier: 4.1.1
         version: 4.1.1
       youch-core:
-        specifier: ^0.3.3
+        specifier: 0.3.3
         version: 0.3.3
       zephyr-agent:
-        specifier: ^1.1.1
+        specifier: 1.1.1
         version: 1.1.1
 
   examples/api-routes:
@@ -479,7 +479,7 @@ importers:
         version: link:../..
       shiki:
         specifier: latest
-        version: 4.1.0
+        version: 4.2.0
 
   examples/virtual-routes:
     devDependencies:
@@ -2558,32 +2558,32 @@ packages:
   '@sec-ant/readable-stream@0.4.1':
     resolution: {integrity: sha512-831qok9r2t8AlxLko40y2ebgSDhenenCatLVeW/uBtnHPyhHOvG0C7TvfgecV+wHzIm5KUICgzmVpWS+IMEAeg==}
 
-  '@shikijs/core@4.1.0':
-    resolution: {integrity: sha512-jLJtSJeuFffqX6/inRE1zqU5aFv2hrszvYgq3OjbAgFRZiWv7abKMDdQzYxuSDfmUPQozZvI/kuy6VMTvnvqTQ==}
+  '@shikijs/core@4.2.0':
+    resolution: {integrity: sha512-Hc87Ab1Ld/vEbZRCbwx344I5v+4RU8CVToUTRkqXL1+TjbuOp9U5Xa0M23V4GEWHxVn+yO5otb+HkQVm3ptWQQ==}
     engines: {node: '>=20'}
 
-  '@shikijs/engine-javascript@4.1.0':
-    resolution: {integrity: sha512-YquhawCUgaBfhsS72e2Y/dI59gCBNPHu3fEO/tvLaXrTssxZrY5ddjtNLTwndrMgPo8b3IscE+xoICDzpTmlFQ==}
+  '@shikijs/engine-javascript@4.2.0':
+    resolution: {integrity: sha512-fjETeq1k5ffyXqRgS6+3hpvqseLalp1kjNfRbXpUgWR8FpZ1CmQfiNHovc5lncYjt/Vg5JK/WJEmLahjwMa0og==}
     engines: {node: '>=20'}
 
-  '@shikijs/engine-oniguruma@4.1.0':
-    resolution: {integrity: sha512-axLpjVs45YBvvINa+dJF+NPW+KtFkNXsFr4SDw2BMj9GdeMnGxVB9PQb2xXlJYovslt/nz6giedAyOANkfc7hg==}
+  '@shikijs/engine-oniguruma@4.2.0':
+    resolution: {integrity: sha512-hTorK1dffPkpbMUk6Z+828PgRo7d07HbnizoP0hNPFjhxMHctj0Px/qoHeGMYafc6ju+u9iMldN4JbVzNQM++g==}
     engines: {node: '>=20'}
 
-  '@shikijs/langs@4.1.0':
-    resolution: {integrity: sha512-nwOMruEkbgdZfQ/b8CgpNBVOpvG1k0N5tbmgiFeqsan401+x3ILqlzZJowSla4Agmq4hG2Uf2wh5jLTEhR8VSg==}
+  '@shikijs/langs@4.2.0':
+    resolution: {integrity: sha512-bwrVRlJ0wUhZxAbVdvBbv2TTC9yLsh4C/IO5Ofz0T8MQntgDvyVnkbjw9vi50r1kx7RCIJdnJnjZAwmAsXFLZQ==}
     engines: {node: '>=20'}
 
-  '@shikijs/primitive@4.1.0':
-    resolution: {integrity: sha512-zx2/2Uwj2q9X3KSyYREEhXO23xBw5WUhP4orK2lE4r+t9JGITmEe0JH+wPmJhqHpOT2bRRs6lAL945+LDvOAGw==}
+  '@shikijs/primitive@4.2.0':
+    resolution: {integrity: sha512-NOq+DtUkVBJtZMVXL5A0vI0Xk8nvDYaXetFHSJFlOqjDZIVhIPRYFdGkSoElDqNuegikcc3A76SNUa8dTqtAYA==}
     engines: {node: '>=20'}
 
-  '@shikijs/themes@4.1.0':
-    resolution: {integrity: sha512-emCcTnUM7yO2wltYbaxm+yLvcCI4+h8XBKc4KmJ7EZUXoSGjcCHifkI//R4OFit9ewpg7H2/9tjOuXrT2v/Knw==}
+  '@shikijs/themes@4.2.0':
+    resolution: {integrity: sha512-RX8IHYeLv8Cu2W6ruc3RxUqWn0IYCqSrMBzi/uRGAmfyDNOnNO5BF/Px7o97n4XTpmFTo5GbRaazuOWj+2ak2w==}
     engines: {node: '>=20'}
 
-  '@shikijs/types@4.1.0':
-    resolution: {integrity: sha512-3EQWX54fMpniOrDblzAhiwiJwpiTMW6+B9DWyUd9ska483tbayFYuw47UxwuPknI31bKnySfVQ/QW+jFL4rFdA==}
+  '@shikijs/types@4.2.0':
+    resolution: {integrity: sha512-VT/MKtlpOhEPZloSH3Pb9WCZEBDoQVMa9jedp5UAwmJOar1DVc9DRODAxmYPW9M93IK4ryuqRejFfmlvlVDemw==}
     engines: {node: '>=20'}
 
   '@shikijs/vscode-textmate@10.0.2':
@@ -5886,8 +5886,8 @@ packages:
     resolution: {integrity: sha512-VsC6n6vz1ihYYyZZwX7YZSF5l5x36ca17OC+a69h94YqB7X6XLwf+5MOgynYir2SLFUbl8gIYvBo8K8RoNQ6bQ==}
     engines: {node: '>= 0.4'}
 
-  shiki@4.1.0:
-    resolution: {integrity: sha512-l/ABZPUR5v70jI10EzqfMS/I96vjSGv2y0ihUV+WYFzv0EfvW4s54m0Lg8wCrrL+2IkwBzFTuxkZjPf8b2NX9Q==}
+  shiki@4.2.0:
+    resolution: {integrity: sha512-hjNax6o/ylDy9lefQEaSDtzaT3iVNtZ3WmpQnbuQNoG4xvnSKf2kSKbihZVO4JRG1TTMejs7CmNRYlWgAL66pQ==}
     engines: {node: '>=20'}
 
   side-channel-list@1.0.1:
@@ -7528,7 +7528,7 @@ snapshots:
   '@floating-ui/vue@1.1.9(vue@3.5.35)':
     dependencies:
       '@floating-ui/dom': 1.7.6
-      '@floating-ui/utils': 0.2.10
+      '@floating-ui/utils': 0.2.11
       vue-demi: 0.14.10(vue@3.5.35)
     transitivePeerDependencies:
       - '@vue/composition-api'
@@ -8539,40 +8539,40 @@ snapshots:
 
   '@sec-ant/readable-stream@0.4.1': {}
 
-  '@shikijs/core@4.1.0':
+  '@shikijs/core@4.2.0':
     dependencies:
-      '@shikijs/primitive': 4.1.0
-      '@shikijs/types': 4.1.0
+      '@shikijs/primitive': 4.2.0
+      '@shikijs/types': 4.2.0
       '@shikijs/vscode-textmate': 10.0.2
       '@types/hast': 3.0.4
       hast-util-to-html: 9.0.5
 
-  '@shikijs/engine-javascript@4.1.0':
+  '@shikijs/engine-javascript@4.2.0':
     dependencies:
-      '@shikijs/types': 4.1.0
+      '@shikijs/types': 4.2.0
       '@shikijs/vscode-textmate': 10.0.2
       oniguruma-to-es: 4.3.6
 
-  '@shikijs/engine-oniguruma@4.1.0':
+  '@shikijs/engine-oniguruma@4.2.0':
     dependencies:
-      '@shikijs/types': 4.1.0
+      '@shikijs/types': 4.2.0
       '@shikijs/vscode-textmate': 10.0.2
 
-  '@shikijs/langs@4.1.0':
+  '@shikijs/langs@4.2.0':
     dependencies:
-      '@shikijs/types': 4.1.0
+      '@shikijs/types': 4.2.0
 
-  '@shikijs/primitive@4.1.0':
+  '@shikijs/primitive@4.2.0':
     dependencies:
-      '@shikijs/types': 4.1.0
+      '@shikijs/types': 4.2.0
       '@shikijs/vscode-textmate': 10.0.2
       '@types/hast': 3.0.4
 
-  '@shikijs/themes@4.1.0':
+  '@shikijs/themes@4.2.0':
     dependencies:
-      '@shikijs/types': 4.1.0
+      '@shikijs/types': 4.2.0
 
-  '@shikijs/types@4.1.0':
+  '@shikijs/types@4.2.0':
     dependencies:
       '@shikijs/vscode-textmate': 10.0.2
       '@types/hast': 3.0.4
@@ -12306,14 +12306,14 @@ snapshots:
 
   shell-quote@1.8.4: {}
 
-  shiki@4.1.0:
+  shiki@4.2.0:
     dependencies:
-      '@shikijs/core': 4.1.0
-      '@shikijs/engine-javascript': 4.1.0
-      '@shikijs/engine-oniguruma': 4.1.0
-      '@shikijs/langs': 4.1.0
-      '@shikijs/themes': 4.1.0
-      '@shikijs/types': 4.1.0
+      '@shikijs/core': 4.2.0
+      '@shikijs/engine-javascript': 4.2.0
+      '@shikijs/engine-oniguruma': 4.2.0
+      '@shikijs/langs': 4.2.0
+      '@shikijs/themes': 4.2.0
+      '@shikijs/types': 4.2.0
       '@shikijs/vscode-textmate': 10.0.2
       '@types/hast': 3.0.4
 
