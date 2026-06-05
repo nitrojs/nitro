@@ -9,6 +9,7 @@ import { isrRouteRewrite } from "./isr.ts";
 const nitroApp = useNitroApp();
 
 const handler = toNodeHandler(nitroApp.fetch);
+
 const ws = import.meta._websocket ? wsAdapter({ resolve: resolveWebsocketHooks }) : undefined;
 
 export default async function nodeHandler(req: NodeServerRequest, res: NodeServerResponse) {

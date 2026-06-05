@@ -14,7 +14,7 @@ export default {
   async fetch(req: ServerRequest, context: { waitUntil: (promise: Promise<any>) => void }) {
     // Websocket upgrade
     // https://crossws.unjs.io/adapters/vercel
-    if (ws && req.headers.get("upgrade") === "websocket") {
+    if (ws && req.headers.get("upgrade")?.toLowerCase() === "websocket") {
       const response = await ws.handleWebUpgrade(req);
       if (response) {
         return response;
