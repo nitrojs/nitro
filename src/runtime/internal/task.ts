@@ -65,6 +65,49 @@ export async function runTask<RT = unknown>(
   }
 }
 
+/** @experimental */
+export function startScheduleRunner({
+  waitUntil,
+}: {
+  waitUntil?: ((promise: Promise<unknown>) => void) | undefined;
+} = {}): void {
+  if (!scheduledTasks || scheduledTasks.length === 0 || process.env.TEST) {
+    return;
+  }
+
+  const payload: TaskPayload = {
+    scheduledTime: Date.now(),
+  };
+
+  for (const schedule of scheduledTasks) {
+    new Cron(schedule.cron, async () => {
+      await Promise.all(
+        schedule.tasks.map((name) =>
+          runTask(name, {
+            payload,
+            context: { waitUntil },
+          }).catch((error) => {
+            console.error(`Error while running scheduled task "${name}"`, error);
+          })
+        )
+      );
+    });
+  }
+}
+
+/** @experimental */
+export function getCronTasks(cron: string): string[] {
+  return (scheduledTasks || []).find((task) => task.cron === cron)?.tasks || [];
+}
+
+/** @experimental */
+export function runCronTasks(
+  cron: string,
+  ctx: { payload?: TaskPayload; context?: TaskContext }
+): Promise<TaskResult[]> {
+  return Promise.all(getCronTasks(cron).map((name) => runTask(name, ctx)));
+}
+
 async function _callTask<RT>(handler: Task<RT>, taskEvent: TaskEvent): Promise<TaskResult<RT>> {
   return await handler.run(taskEvent);
 }
@@ -112,47 +155,4 @@ function _runTaskSerially<RT>(
   __serialQueues__.set(key, queue);
 
   return promise;
-}
-
-/** @experimental */
-export function startScheduleRunner({
-  waitUntil,
-}: {
-  waitUntil?: ((promise: Promise<unknown>) => void) | undefined;
-} = {}): void {
-  if (!scheduledTasks || scheduledTasks.length === 0 || process.env.TEST) {
-    return;
-  }
-
-  const payload: TaskPayload = {
-    scheduledTime: Date.now(),
-  };
-
-  for (const schedule of scheduledTasks) {
-    new Cron(schedule.cron, async () => {
-      await Promise.all(
-        schedule.tasks.map((name) =>
-          runTask(name, {
-            payload,
-            context: { waitUntil },
-          }).catch((error) => {
-            console.error(`Error while running scheduled task "${name}"`, error);
-          })
-        )
-      );
-    });
-  }
-}
-
-/** @experimental */
-export function getCronTasks(cron: string): string[] {
-  return (scheduledTasks || []).find((task) => task.cron === cron)?.tasks || [];
-}
-
-/** @experimental */
-export function runCronTasks(
-  cron: string,
-  ctx: { payload?: TaskPayload; context?: TaskContext }
-): Promise<TaskResult[]> {
-  return Promise.all(getCronTasks(cron).map((name) => runTask(name, ctx)));
 }
