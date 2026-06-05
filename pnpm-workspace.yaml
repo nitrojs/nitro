@@ -10,6 +10,7 @@ overrides:
   "nitro": "workspace:*"
   "cookie-es": "^3.1.1"
   "oxc-parser": "link:./shims/oxc-parser"
+  "crossws": "file:./crossws-0.4.5.tgz"
   # "vite": "^7"
 
 packages:

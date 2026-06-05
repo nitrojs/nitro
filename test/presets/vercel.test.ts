@@ -644,20 +644,20 @@ describe("nitro:preset:vercel:websocket", async () => {
     },
   });
 
-  it("should use the node entry format when websocket support is enabled", async () => {
-    const nodeHandler = await import(resolve(ctx.outDir, "functions/__server.func/index.mjs")).then(
+  it("should keep the web entry format when websocket support is enabled", async () => {
+    const entry = await import(resolve(ctx.outDir, "functions/__server.func/index.mjs")).then(
       (r) => r.default || r
     );
 
-    expect(nodeHandler).toBeTypeOf("function");
+    expect(entry.fetch).toBeTypeOf("function");
   });
 
   it.skipIf(typeof WebSocket !== "function")(
     "should handle Vercel request context websocket upgrades",
     async () => {
-      const nodeHandler = await import(
-        resolve(ctx.outDir, "functions/__server.func/index.mjs")
-      ).then((r) => r.default || r);
+      const entry = await import(resolve(ctx.outDir, "functions/__server.func/index.mjs")).then(
+        (r) => r.default || r
+      );
 
       const requestContextSymbol = Symbol.for("@vercel/request-context");
       const previousRequestContext = (globalThis as Record<symbol, unknown>)[requestContextSymbol];
@@ -671,13 +671,12 @@ describe("nitro:preset:vercel:websocket", async () => {
         };
 
         try {
-          await nodeHandler(req, {
-            headersSent: false,
-            writableEnded: false,
-            end() {
-              this.writableEnded = true;
-            },
+          const host = req.headers.host || "127.0.0.1";
+          const webRequest = new Request(`http://${host}${req.url || "/"}`, {
+            method: req.method,
+            headers: req.headers as Record<string, string>,
           });
+          await entry.fetch(webRequest, { waitUntil: () => {} });
         } catch (error) {
           socket.destroy(error as Error);
         } finally {
