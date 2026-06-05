@@ -1,8 +1,11 @@
 import { promises as fsp } from "node:fs";
+import { Server } from "node:http";
 import { resolve, join, basename } from "pathe";
 import { describe, expect, it, vi, beforeAll, afterAll } from "vitest";
 import { setupTest, testNitro, fixtureDir } from "../tests.ts";
 import { toFetchHandler } from "srvx/node";
+
+const presetFixturesDir = resolve(import.meta.dirname, "fixtures");
 
 // NOTE: Always prefer extending the existing `nitro:preset:vercel:web` matrix
 // (its setup/build is shared across assertions) over adding new top-level
@@ -625,6 +628,97 @@ describe("nitro:preset:vercel:node", async () => {
       return res;
     };
   });
+});
+
+describe("nitro:preset:vercel:websocket", async () => {
+  const ctx = await setupTest("vercel", {
+    outDirSuffix: "-websocket",
+    config: {
+      features: { websocket: true },
+      handlers: [
+        {
+          route: "/_ws",
+          handler: resolve(presetFixturesDir, "vercel-websocket.ts"),
+        },
+      ],
+    },
+  });
+
+  it("should use the node entry format when websocket support is enabled", async () => {
+    const nodeHandler = await import(resolve(ctx.outDir, "functions/__server.func/index.mjs")).then(
+      (r) => r.default || r
+    );
+
+    expect(nodeHandler).toBeTypeOf("function");
+  });
+
+  it.skipIf(typeof WebSocket !== "function")(
+    "should handle Vercel request context websocket upgrades",
+    async () => {
+      const nodeHandler = await import(
+        resolve(ctx.outDir, "functions/__server.func/index.mjs")
+      ).then((r) => r.default || r);
+
+      const requestContextSymbol = Symbol.for("@vercel/request-context");
+      const previousRequestContext = (globalThis as Record<symbol, unknown>)[requestContextSymbol];
+      const server = new Server();
+
+      server.on("upgrade", async (req, socket, head) => {
+        (globalThis as Record<symbol, unknown>)[requestContextSymbol] = {
+          get: () => ({
+            upgradeWebSocket: () => ({ req, socket, head }),
+          }),
+        };
+
+        try {
+          await nodeHandler(req, {
+            headersSent: false,
+            writableEnded: false,
+            end() {
+              this.writableEnded = true;
+            },
+          });
+        } catch (error) {
+          socket.destroy(error as Error);
+        } finally {
+          (globalThis as Record<symbol, unknown>)[requestContextSymbol] = previousRequestContext;
+        }
+      });
+
+      try {
+        await new Promise<void>((resolve, reject) => {
+          server.once("error", reject);
+          server.listen(0, "127.0.0.1", () => resolve());
+        });
+        const port = (server.address() as { port: number }).port;
+
+        await expect(
+          new Promise((resolve, reject) => {
+            const ws = new WebSocket(`ws://127.0.0.1:${port}/_ws`);
+            const timeout = setTimeout(() => {
+              ws.close();
+              reject(new Error("Timed out waiting for websocket message"));
+            }, 5000);
+
+            ws.addEventListener("message", (event) => {
+              clearTimeout(timeout);
+              ws.close();
+              resolve(event.data);
+            });
+            ws.addEventListener("error", () => {
+              clearTimeout(timeout);
+              reject(new Error("WebSocket connection failed"));
+            });
+          })
+        ).resolves.toBe("ready");
+      } finally {
+        await new Promise<void>((resolve, reject) => {
+          server.close((error) => (error ? reject(error) : resolve()));
+        });
+        (globalThis as Record<symbol, unknown>)[requestContextSymbol] = previousRequestContext;
+      }
+    }
+  );
 });
 
 describe("nitro:preset:vercel:bun", async () => {

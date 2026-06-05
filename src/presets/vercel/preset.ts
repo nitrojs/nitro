@@ -50,10 +50,12 @@ const vercel = defineNitroPreset(
         // Entry handler format
         let serverFormat = nitro.options.vercel?.entryFormat;
         if (!serverFormat) {
+          const hasWebsocket =
+            nitro.options.features.websocket ?? nitro.options.experimental.websocket;
           const hasNodeHandler = nitro.routing.routes.routes
             .flatMap((r) => r.data)
             .some((h) => h.format === "node");
-          serverFormat = hasNodeHandler ? "node" : "web";
+          serverFormat = hasWebsocket || hasNodeHandler ? "node" : "web";
         }
         logger.info(`Using \`${serverFormat}\` entry format.`);
         nitro.options.entry = nitro.options.entry.replace("{format}", serverFormat);
