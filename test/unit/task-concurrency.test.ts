@@ -23,7 +23,7 @@ describe("task concurrency", () => {
     }
   });
 
-  it("dedupes concurrent calls by task name by default", async () => {
+  it("dedupes concurrent calls by task name and payload by default", async () => {
     let calls = 0;
     registerTask("default", {
       run: vi.fn(async () => {
@@ -32,11 +32,15 @@ describe("task concurrency", () => {
       }),
     });
 
-    const results = await runMany("default", 3);
+    const results = await Promise.all([
+      runTask("default", { payload: { id: 1 } }),
+      runTask("default", { payload: { id: 1 } }),
+      runTask("default", { payload: { id: 2 } }),
+    ]);
     const next = await runTask("default");
 
-    expect(results.map((result) => result.result)).toEqual([1, 1, 1]);
-    expect(next.result).toBe(2);
+    expect(results.map((result) => result.result)).toEqual([1, 1, 2]);
+    expect(next.result).toBe(3);
   });
 
   it("dedupes concurrent calls with the same custom key", async () => {

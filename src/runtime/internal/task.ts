@@ -1,5 +1,6 @@
 import { Cron } from "croner";
 import { HTTPError } from "h3";
+import { hash } from "ohash";
 import type {
   Task,
   TaskContext,
@@ -116,8 +117,8 @@ function _getTaskConcurrencyKey(
   concurrency: Exclude<TaskConcurrency, { mode: "parallel" }>,
   taskEvent: TaskEvent
 ): string {
-  const key = concurrency.key?.(taskEvent);
-  return key === undefined ? taskEvent.name : `${taskEvent.name}:${key}`;
+  const key = concurrency.key ? concurrency.key(taskEvent) : hash(taskEvent.payload);
+  return `${taskEvent.name}:${key}`;
 }
 
 function _runTaskOnce<RT>(

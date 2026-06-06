@@ -43,9 +43,9 @@ export type TaskConcurrency =
       mode: "dedupe" | "serial";
       /**
        * Derives the dedupe or serial queue key from the task event.
-       * If omitted, the task name is used.
+       * If omitted, the task payload hash is used.
        *
-       * @default (event) => event.name
+       * @default (event) => hash(event.payload)
        */
       key?: (event: TaskEvent) => string;
     };
