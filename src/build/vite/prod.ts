@@ -146,11 +146,11 @@ function lazyService(loader) {
   let promise, mod
   return {
     fetch(req) {
-      if (mod) { return mod.fetch(req) }
+      if (mod) { return (mod.fetch || mod.default?.fetch)(req) }
       if (!promise) {
-        promise = loader().then(_mod => (mod = _mod.default || _mod))
+        promise = loader().then(_mod => (mod = _mod))
       }
-      return promise.then(mod => mod.fetch(req))
+      return promise.then(mod => (mod.fetch || mod.default?.fetch)(req))
     }
   }
 }
