@@ -71,7 +71,7 @@ export function createServiceEnvironment(
     build: {
       rollupOptions: {
         input: { index: serviceConfig.entry },
-        ...(isDev ? { external: [/^nitro(\/|$)/] } : {}),
+        ...(isDev ? {} : { external: [/^nitro(\/|$)/] }),
       },
       minify: ctx.nitro!.options.minify,
       sourcemap: ctx.nitro!.options.sourcemap,
