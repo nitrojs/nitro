@@ -38,8 +38,8 @@ export default function rendererTemplate(nitro: Nitro) {
           return /* js */ `
             import { renderToResponse } from 'rendu'
             import { fetch, serverFetch } from 'nitro/app'
-            ${nitro.options.builder === 'vite' ? `import { fetchViteEnv } from "nitro/vite/runtime"` : ''}
-            const context = { fetch, serverFetch${nitro.options.builder === 'vite' ? ', fetchViteEnv' : ''} }
+            ${nitro.options.builder === "vite" ? `import { fetchViteEnv } from "nitro/vite/runtime"` : ""}
+            const context = { fetch, serverFetch${nitro.options.builder === "vite" ? ", fetchViteEnv" : ""} }
             const template = ${template};
             export const rendererTemplate = (request) => renderToResponse(template, { request, context })
             `;

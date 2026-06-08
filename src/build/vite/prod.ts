@@ -49,10 +49,7 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
     const outputPath = resolve(nitroOptions.output.publicDir, basename(clientInput as string));
     if (existsSync(outputPath)) {
       const html = await readFile(outputPath, "utf8").then((r) =>
-        r.replace(
-          "<!--ssr-outlet-->",
-          `{{{ fetchViteEnv("ssr", $REQUEST) || "" }}}`
-        )
+        r.replace("<!--ssr-outlet-->", `{{{ fetchViteEnv("ssr", $REQUEST) || "" }}}`)
       );
       await rm(outputPath);
       const tmp = resolve(nitroOptions.buildDir, "vite/index.html");
