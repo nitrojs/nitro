@@ -65,7 +65,7 @@ export async function prerender(nitro: Nitro) {
   const nitroRenderer = await createNitro(prerendererConfig);
   const prerenderStartTime = Date.now();
   await nitro.hooks.callHook("prerender:init", nitroRenderer);
-  await nitroRenderer.routing.sync()
+  await nitroRenderer.routing.sync();
 
   // Set path to preview prerendered routes relative to the "host" nitro preset
   let path = relative(nitro.options.output.dir, nitro.options.output.publicDir);
