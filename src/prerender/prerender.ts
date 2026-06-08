@@ -56,6 +56,7 @@ export async function prerender(nitro: Nitro) {
     ...nitro.options._config,
     static: false,
     rootDir: nitro.options.rootDir,
+    renderer: nitro.options.renderer,
     logLevel: 0,
     preset: "nitro-prerender",
     builder: nitro.options.builder === "vite" ? "rolldown" : nitro.options.builder,
@@ -64,6 +65,7 @@ export async function prerender(nitro: Nitro) {
   const nitroRenderer = await createNitro(prerendererConfig);
   const prerenderStartTime = Date.now();
   await nitro.hooks.callHook("prerender:init", nitroRenderer);
+  await nitroRenderer.routing.sync()
 
   // Set path to preview prerendered routes relative to the "host" nitro preset
   let path = relative(nitro.options.output.dir, nitro.options.output.publicDir);
