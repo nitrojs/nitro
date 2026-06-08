@@ -26,7 +26,7 @@ export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOpti
         ? isWorkerdRunner
           ? true
           : [
-              /^nitro$/, // i have absolutely no idea why and how it fixes issues!
+              /^nitro(\/|$)/,
               new RegExp(`^(${runtimeDependencies.join("|")})$`), // virtual resolutions in vite skip plugin hooks
               ...ctx.bundlerConfig!.base.noExternal,
             ]
@@ -64,13 +64,14 @@ export function createServiceEnvironment(
   name: string,
   serviceConfig: ServiceConfig
 ): EnvironmentOptions {
+  const isDev = ctx.nitro!.options.dev;
   const isWorkerdRunner = _isWorkerdRunner(ctx);
   return {
     consumer: "server",
     build: {
       rollupOptions: {
         input: { index: serviceConfig.entry },
-        external: [/^nitro(\/|$)/],
+        ...(isDev ? { external: [/^nitro(\/|$)/] } : {}),
       },
       minify: ctx.nitro!.options.minify,
       sourcemap: ctx.nitro!.options.sourcemap,
@@ -79,7 +80,7 @@ export function createServiceEnvironment(
       copyPublicDir: false,
     },
     resolve: {
-      ...(isWorkerdRunner ? { noExternal: true } : {}),
+      ...(isDev ? { noExternal: isWorkerdRunner ? true : [/^nitro(\/|$)/] } : {}),
       conditions: isWorkerdRunner
         ? ["workerd", "worker", ...ctx.nitro!.options.exportConditions!.filter((c) => c !== "node")]
         : ctx.nitro!.options.exportConditions,
