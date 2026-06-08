@@ -13,6 +13,7 @@ import { runParallel } from "../utils/parallel.ts";
 import { extractLinks, formatPrerenderRoute, matchesIgnorePattern } from "./utils.ts";
 import { scanUnprefixedPublicAssets } from "../build/assets.ts";
 import { toRequest } from "h3";
+import { EnvServer } from 'env-runner'
 
 const JsonSigRx = /^\s*["[{]|^\s*-?\d{1,16}(\.\d{1,17})?([Ee][+-]?\d+)?\s*$/; // From unjs/destr
 
@@ -83,11 +84,13 @@ export async function prerender(nitro: Nitro) {
       ? nitroRenderer.options.rollupConfig.output.entryFileNames
       : "index.mjs";
   const serverEntrypoint = resolve(nitroRenderer.options.output.serverDir, serverFilename);
-  const entryURL = pathToFileURL(serverEntrypoint).href;
-  const prerenderer = (await import(entryURL).then((m: any) => m.default)) as {
-    close: () => Promise<void>;
-    fetch: (req: Request) => Promise<Response>;
-  };
+
+  // Run prerender server in an isolate worker
+  const prerenderer = await new EnvServer({
+    runner: "node-worker",
+    entry: serverEntrypoint,
+  }).start()
+  await prerenderer.start()
 
   // Create route rule matcher
   const routeRules = createRouter<NitroRouteRules>();
