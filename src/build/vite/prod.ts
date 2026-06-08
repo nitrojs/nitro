@@ -51,7 +51,7 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
       const html = await readFile(outputPath, "utf8").then((r) =>
         r.replace(
           "<!--ssr-outlet-->",
-          `{{{ globalThis.__nitro_vite_envs__?.["ssr"]?.fetch($REQUEST) || "" }}}`
+          `{{{ fetchViteEnv("ssr", $REQUEST) || "" }}}`
         )
       );
       await rm(outputPath);
@@ -126,44 +126,4 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
     const deployCommand = nitro.options.framework.deployCommand || "npx nitro deploy --prebuilt";
     nitro.logger.success(`You can deploy this build using \`${deployCommand}\``);
   }
-}
-
-export function prodSetup(ctx: NitroPluginContext): string {
-  const serviceNames = Object.keys(ctx.services);
-
-  const serviceEntries = serviceNames.map((name) => {
-    const entry = resolve(
-      ctx.nitro!.options.buildDir,
-      "vite/services",
-      name,
-      ctx._entryPoints[name]
-    );
-    return [name, entry];
-  });
-
-  return /* js */ `
-function lazyService(loader) {
-  let promise, mod
-  return {
-    fetch(req) {
-      if (mod) { return mod.fetch(req) }
-      if (!promise) {
-        promise = loader().then(_mod => (mod = _mod.default || _mod))
-      }
-      return promise.then(mod => mod.fetch(req))
-    }
-  }
-}
-
-const services = {
-${serviceEntries
-  .map(
-    ([name, entry]) =>
-      /* js */ `[${JSON.stringify(name)}]: lazyService(() => import(${JSON.stringify(entry)}))`
-  )
-  .join(",\n")}
-};
-
-globalThis.__nitro_vite_envs__ = services;
-  `;
 }
