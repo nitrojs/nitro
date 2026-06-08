@@ -90,7 +90,6 @@ export async function prerender(nitro: Nitro) {
     runner: "node-worker",
     entry: serverEntrypoint,
   }).start()
-  await prerenderer.start()
 
   // Create route rule matcher
   const routeRules = createRouter<NitroRouteRules>();
