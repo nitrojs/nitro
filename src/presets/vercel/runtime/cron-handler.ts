@@ -3,16 +3,20 @@ import { createError, eventHandler, getHeader } from "h3";
 import { runCronTasks } from "nitropack/runtime/internal";
 
 export default eventHandler(async (event) => {
-  // Validate CRON_SECRET if set - https://vercel.com/docs/cron-jobs/manage-cron-jobs#securing-cron-jobs
+  // Require and validate CRON_SECRET - https://vercel.com/docs/cron-jobs/manage-cron-jobs#securing-cron-jobs
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const authHeader = getHeader(event, "authorization") || "";
-    const expected = `Bearer ${cronSecret}`;
-    const a = Buffer.from(authHeader);
-    const b = Buffer.from(expected);
-    if (a.length !== b.length || !timingSafeEqual(a, b)) {
-      throw createError({ statusCode: 401, statusMessage: "Unauthorized" });
-    }
+  if (!cronSecret) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: "CRON_SECRET environment variable is not set",
+    });
+  }
+  const authHeader = getHeader(event, "authorization") || "";
+  const expected = `Bearer ${cronSecret}`;
+  const a = Buffer.from(authHeader);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) {
+    throw createError({ statusCode: 401, statusMessage: "Unauthorized" });
   }
 
   const cron = getHeader(event, "x-vercel-cron-schedule");
