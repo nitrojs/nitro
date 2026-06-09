@@ -1,5 +1,6 @@
 import "#nitro/virtual/polyfills";
 import type { NodeServerRequest, NodeServerResponse } from "srvx";
+import type { ServerResponse, IncomingMessage } from "node:http";
 import { toNodeHandler } from "srvx/node";
 import wsAdapter from "crossws/adapters/vercel";
 import { useNitroApp, getRouteRules } from "nitro/app";
@@ -34,7 +35,7 @@ export default async function nodeHandler(req: NodeServerRequest, res: NodeServe
 
   // Websocket upgrade
   // https://crossws.unjs.io/adapters/vercel
-  if (ws && (await ws.handleNodeUpgrade(req as any, res as any))) {
+  if (ws && (await ws.handleNodeUpgrade(req as IncomingMessage, res as ServerResponse))) {
     return;
   }
 
