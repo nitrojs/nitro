@@ -767,7 +767,7 @@ async function testVercelWebSocketUpgrade(
     };
 
     try {
-      await handleUpgrade(req, socket, head);
+      await handleUpgrade(req, socket as any, head);
     } catch (error) {
       socket.destroy(error as Error);
     } finally {
