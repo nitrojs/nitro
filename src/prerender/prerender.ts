@@ -14,7 +14,6 @@ import { extractLinks, formatPrerenderRoute, matchesIgnorePattern } from "./util
 import { scanUnprefixedPublicAssets } from "../build/assets.ts";
 import { toRequest } from "h3";
 import { EnvServer } from "env-runner";
-import { virtual } from "../build/plugins/virtual.ts";
 
 const JsonSigRx = /^\s*["[{]|^\s*-?\d{1,16}(\.\d{1,17})?([Ee][+-]?\d+)?\s*$/; // From unjs/destr
 
