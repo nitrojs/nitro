@@ -1,0 +1,21 @@
+{
+  "name": "@pothos-examples/nitro",
+  "version": "3.1.22",
+  "private": true,
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite dev",
+    "start": "node .output/server/index.mjs",
+    "type": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^10.1.0",
+    "@pothos/core": "^4.12.0",
+    "graphql": "^16.10.0",
+    "graphql-yoga": "5.17.1"
+  },
+  "devDependencies": {
+    "nitro": "^3.0.1-alpha.2",
+    "vite": "^8.0.0-beta.16"
+  }
+}
