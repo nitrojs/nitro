@@ -2,7 +2,7 @@ import { promises as fsp } from "node:fs";
 import { tmpdir } from "node:os";
 import type { Nitro } from "nitropack/types";
 import { join, resolve } from "pathe";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { generateFunctionFiles } from "../../src/presets/vercel/utils";
 
 // These tests exercise the build output directly via `generateFunctionFiles`
@@ -35,7 +35,9 @@ describe("vercel queues build output", () => {
       _prerenderedRoutes: [],
     }) as unknown as Nitro;
 
-  beforeAll(async () => {
+  // Fresh temp dir per test so generated `.func` directories can't leak
+  // between assertions.
+  beforeEach(async () => {
     outDir = await fsp.mkdtemp(join(tmpdir(), "nitro-vercel-queues-"));
     serverDir = resolve(outDir, "functions/__fallback.func");
     await fsp.mkdir(serverDir, { recursive: true });
@@ -46,7 +48,7 @@ describe("vercel queues build output", () => {
     );
   });
 
-  afterAll(async () => {
+  afterEach(async () => {
     await fsp.rm(outDir, { recursive: true, force: true });
   });
 
@@ -143,6 +145,20 @@ describe("vercel queues build output", () => {
     ).toBeDefined();
   });
 
+  it("throws (without deleting the bundle) if handlerRoute targets the server dir", async () => {
+    await expect(
+      generateFunctionFiles(
+        createNitroStub({
+          queues: { handlerRoute: "/__fallback", triggers: [{ topic: "x" }] },
+        })
+      )
+    ).rejects.toThrow(/handlerRoute/);
+
+    // The source bundle must remain intact.
+    const index = await fsp.readFile(resolve(serverDir, "index.mjs"), "utf8");
+    expect(index).toContain("export default");
+  });
+
   it("does not create a consumer function without triggers", async () => {
     await generateFunctionFiles(createNitroStub({}));
 
@@ -151,6 +167,13 @@ describe("vercel queues build output", () => {
       .then((r) => JSON.parse(r));
     const routes = buildConfig.routes as { src?: string }[];
     expect(routes.some((r) => r.src?.includes("/_vercel/queues/"))).toBe(false);
+
+    // No consumer function directory should be generated.
+    const exists = await fsp
+      .access(resolve(outDir, "functions/_vercel/queues/consumer.func"))
+      .then(() => true)
+      .catch(() => false);
+    expect(exists).toBe(false);
   });
 
   // With a modern compat date, a catch-all (`/**`) handler produces an

@@ -2,7 +2,7 @@ import fsp from "node:fs/promises";
 import { defu } from "defu";
 import { writeFile } from "nitropack/kit";
 import type { Nitro, NitroRouteRules } from "nitropack/types";
-import { dirname, relative, resolve } from "pathe";
+import { dirname, isAbsolute, relative, resolve } from "pathe";
 import { joinURL, withLeadingSlash, withoutLeadingSlash } from "ufo";
 import type {
   PrerenderFunctionConfig,
@@ -86,6 +86,16 @@ export async function generateFunctionFiles(nitro: Nitro) {
       "..",
       funcDest + ".func"
     );
+
+    // Guard against a handlerRoute that resolves to (or inside) the server
+    // bundle itself — e.g. `/__fallback`. Otherwise the `rm` below would delete
+    // the source bundle before it can be copied.
+    const relToServer = relative(nitro.options.output.serverDir, funcDir);
+    if (!relToServer.startsWith("..") && !isAbsolute(relToServer)) {
+      throw new Error(
+        `[vercel] Invalid \`vercel.queues.handlerRoute\` (\`${handlerRoute}\`).`
+      );
+    }
 
     // The Vercel preset symlinks every route to the fallback function, but a
     // queue consumer needs its own `.vc-config.json` with `experimentalTriggers`.
