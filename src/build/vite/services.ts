@@ -2,32 +2,7 @@ import type { NitroPluginContext } from "./types.ts";
 import type { Plugin as VitePlugin } from "vite";
 import { resolve } from "pathe";
 
-export function nitroServiceEntries(ctx: NitroPluginContext): VitePlugin {
-  return {
-    name: "nitro:services",
-    enforce: "pre",
-    sharedDuringBuild: true,
-    applyToEnvironment: (env) => env.name === "nitro",
-    resolveId: {
-      filter: { id: /^#nitro\/virtual\/vite-services$/ },
-      async handler(id) {
-        if (id === "#nitro/virtual/vite-services") {
-          return { id };
-        }
-      },
-    },
-    load: {
-      filter: { id: /^#nitro\/virtual\/vite-services$/ },
-      async handler(id) {
-        if (id === "#nitro/virtual/vite-services") {
-          return viteServicesTemplate(ctx);
-        }
-      },
-    },
-  };
-}
-
-function viteServicesTemplate(ctx: NitroPluginContext): string {
+export function viteServicesTemplate(ctx: NitroPluginContext): string {
   const serviceNames = Object.keys(ctx.services);
 
   if (ctx.nitro!.options.dev) {

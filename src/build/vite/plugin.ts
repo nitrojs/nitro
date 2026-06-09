@@ -27,7 +27,7 @@ import { NitroDevApp } from "../../dev/app.ts";
 import { nitroPreviewPlugin } from "./preview.ts";
 import assetsPlugin from "@hiogawa/vite-plugin-fullstack/assets";
 import type { NitroConfig } from "nitro/types";
-import { nitroServiceEntries, nitroDevServiceProxy } from "./services.ts";
+import { nitroDevServiceProxy, viteServicesTemplate } from "./services.ts";
 
 // https://vite.dev/guide/api-environment-plugins
 // https://vite.dev/guide/api-environment-frameworks.html
@@ -49,7 +49,6 @@ export function nitro(pluginConfig: NitroPluginConfig = {}): VitePlugin[] {
     nitroEnv(ctx),
     nitroMain(ctx),
     nitroPrepare(ctx),
-    nitroServiceEntries(ctx),
     nitroDevServiceProxy(),
     nitroPreviewPlugin(ctx),
     pluginConfig.experimental?.vite?.assetsImport !== false &&
@@ -331,6 +330,9 @@ async function setupNitroContext(
   configEnv: ConfigEnv,
   userConfig: UserConfig
 ) {
+  // When using `nitro build`, a pre-initialized nitro instance is provided
+  const providedNitro = ctx.pluginConfig._nitro;
+
   // Nitro config overrides
   const nitroConfig: NitroConfig = {
     dev: configEnv.command === "serve",
@@ -348,7 +350,16 @@ async function setupNitroContext(
   for (const plugin of flattenPlugins(userConfig.plugins || [])) {
     if (plugin.nitro) {
       nitroConfig.modules.push(plugin.nitro);
+      // TODO: install modules on existing providedNitro
     }
+  }
+
+  // Register service entries VFS
+  const vServicesId = "#nitro/virtual/vite-services";
+  nitroConfig.virtual ??= {};
+  nitroConfig.virtual[vServicesId] = () => viteServicesTemplate(ctx);
+  if (providedNitro) {
+    providedNitro.options.virtual[vServicesId] = nitroConfig.virtual[vServicesId];
   }
 
   // @see https://vite.dev/guide/env-and-mode#env-files
@@ -359,8 +370,7 @@ async function setupNitroContext(
 
   // Initialize a new Nitro instance
   ctx.nitro =
-    ctx.pluginConfig._nitro ||
-    (await createNitro(nitroConfig, { dotenv: { fileName: dotenvFileNames } }));
+    providedNitro || (await createNitro(nitroConfig, { dotenv: { fileName: dotenvFileNames } }));
 
   // Config ssr env as a fetchable ssr service
   if (!ctx.services?.ssr) {
