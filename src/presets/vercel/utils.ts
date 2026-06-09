@@ -232,14 +232,15 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     nitro.options.experimental.tasks &&
     Object.keys(nitro.options.scheduledTasks || {}).length > 0
   ) {
-    const cronPath = nitro.options.vercel?.cronHandlerRoute || "/_vercel/cron";
-    const cronEntries = Object.keys(nitro.options.scheduledTasks).map(
-      (schedule) => ({
-        path: cronPath,
-        schedule,
-      })
+    const cronPath = withLeadingSlash(
+      nitro.options.vercel?.cronHandlerRoute || "/_vercel/cron"
     );
-    config.crons = [...cronEntries, ...(config.crons || [])];
+    const existing = config.crons || [];
+    const seen = new Set(existing.map((c) => `${c.path}|${c.schedule}`));
+    const cronEntries = Object.keys(nitro.options.scheduledTasks)
+      .map((schedule) => ({ path: cronPath, schedule }))
+      .filter((c) => !seen.has(`${c.path}|${c.schedule}`));
+    config.crons = [...cronEntries, ...existing];
   }
 
   // Early return if we are building a static site
