@@ -69,7 +69,7 @@
   },
   "dependencies": {
     "consola": "^3.4.2",
-    "crossws": "^0.4.5",
+    "crossws": "^0.4.6",
     "db0": "^0.3.4",
     "env-runner": "^0.1.9",
     "h3": "^2.0.1-rc.22",
