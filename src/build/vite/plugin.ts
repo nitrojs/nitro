@@ -11,14 +11,13 @@ import type { NitroPluginConfig, NitroPluginContext } from "./types.ts";
 import { resolve, join } from "pathe";
 import { createNitro, prepare } from "../../builder.ts";
 import { getBundlerConfig } from "./bundler.ts";
-import { buildEnvironments, prodSetup } from "./prod.ts";
+import { buildEnvironments } from "./prod.ts";
 import {
   initEnvRunner,
   getEnvRunner,
   createNitroEnvironment,
   createServiceEnvironments,
   createServiceEnvironment,
-  nitroServiceProxy,
 } from "./env.ts";
 import { runtimeDir } from "nitro/meta";
 import { resolveModulePath } from "exsolve";
@@ -28,6 +27,7 @@ import { NitroDevApp } from "../../dev/app.ts";
 import { nitroPreviewPlugin } from "./preview.ts";
 import assetsPlugin from "@hiogawa/vite-plugin-fullstack/assets";
 import type { NitroConfig } from "nitro/types";
+import { nitroDevServiceProxy, viteServicesTemplate } from "./services.ts";
 
 // https://vite.dev/guide/api-environment-plugins
 // https://vite.dev/guide/api-environment-frameworks.html
@@ -49,8 +49,7 @@ export function nitro(pluginConfig: NitroPluginConfig = {}): VitePlugin[] {
     nitroEnv(ctx),
     nitroMain(ctx),
     nitroPrepare(ctx),
-    nitroService(ctx),
-    nitroServiceProxy(),
+    nitroDevServiceProxy(),
     nitroPreviewPlugin(ctx),
     pluginConfig.experimental?.vite?.assetsImport !== false &&
       assetsPlugin({
@@ -309,35 +308,6 @@ function nitroPrepare(ctx: NitroPluginContext): VitePlugin {
   };
 }
 
-function nitroService(ctx: NitroPluginContext): VitePlugin {
-  return {
-    name: "nitro:service",
-    enforce: "pre",
-    sharedDuringBuild: true,
-    applyToEnvironment: (env) => env.name === "nitro",
-
-    resolveId: {
-      filter: { id: /^#nitro-vite-setup$/ },
-      async handler(id) {
-        // Virtual modules
-        if (id === "#nitro-vite-setup") {
-          return { id, moduleSideEffects: true };
-        }
-      },
-    },
-
-    load: {
-      filter: { id: /^#nitro-vite-setup$/ },
-      async handler(id) {
-        // Virtual modules
-        if (id === "#nitro-vite-setup") {
-          return prodSetup(ctx);
-        }
-      },
-    },
-  };
-}
-
 // --- internal helpers ---
 
 function createContext(pluginConfig: NitroPluginConfig): NitroPluginContext {
@@ -360,6 +330,9 @@ async function setupNitroContext(
   configEnv: ConfigEnv,
   userConfig: UserConfig
 ) {
+  // When using `nitro build`, a pre-initialized nitro instance is provided
+  const providedNitro = ctx.pluginConfig._nitro;
+
   // Nitro config overrides
   const nitroConfig: NitroConfig = {
     dev: configEnv.command === "serve",
@@ -377,7 +350,16 @@ async function setupNitroContext(
   for (const plugin of flattenPlugins(userConfig.plugins || [])) {
     if (plugin.nitro) {
       nitroConfig.modules.push(plugin.nitro);
+      // TODO: install modules on existing providedNitro
     }
+  }
+
+  // Register service entries VFS
+  const vServicesId = "#nitro/virtual/vite-services";
+  nitroConfig.virtual ??= {};
+  nitroConfig.virtual[vServicesId] = () => viteServicesTemplate(ctx);
+  if (providedNitro) {
+    providedNitro.options.virtual[vServicesId] = nitroConfig.virtual[vServicesId];
   }
 
   // @see https://vite.dev/guide/env-and-mode#env-files
@@ -388,8 +370,7 @@ async function setupNitroContext(
 
   // Initialize a new Nitro instance
   ctx.nitro =
-    ctx.pluginConfig._nitro ||
-    (await createNitro(nitroConfig, { dotenv: { fileName: dotenvFileNames } }));
+    providedNitro || (await createNitro(nitroConfig, { dotenv: { fileName: dotenvFileNames } }));
 
   // Config ssr env as a fetchable ssr service
   if (!ctx.services?.ssr) {
@@ -438,14 +419,6 @@ async function setupNitroContext(
     baseURL: "/",
     fallthrough: true,
   });
-
-  // Nitro Vite Production Runtime
-  if (!ctx.nitro.options.dev) {
-    ctx.nitro.options.unenv.push({
-      meta: { name: "nitro-vite" },
-      polyfill: ["#nitro-vite-setup"],
-    });
-  }
 
   // Call build:before hook **before resolving rollup config** for compatibility
   await ctx.nitro.hooks.callHook("build:before", ctx.nitro);

@@ -1,20 +1,12 @@
 import { HTTPError, toRequest } from "h3";
-
-type FetchableEnv = {
-  fetch: (request: Request) => Response | Promise<Response>;
-};
-
-declare global {
-  var __nitro_vite_envs__: Record<string, FetchableEnv>;
-}
+import { viteServices } from "#nitro/virtual/vite-services";
 
 export function fetchViteEnv(
   viteEnvName: string,
   input: RequestInfo | URL,
   init?: RequestInit
 ): Promise<Response> {
-  const envs = globalThis.__nitro_vite_envs__ || {};
-  const viteEnv = envs[viteEnvName as keyof typeof envs] as FetchableEnv;
+  const viteEnv = viteServices[viteEnvName];
   if (!viteEnv) {
     throw HTTPError.status(404);
   }
