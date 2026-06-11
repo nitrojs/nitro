@@ -23,6 +23,12 @@ import { getEnvRunner } from "./env.ts";
 const ASSET_EXT_RE =
   /^(?:[jt]sx?|mjs|cjs|css|s[ac]ss|less|styl|vue|svelte|astro|mdx?|map|wasm|png|jpe?g|gif|svg|webp|avif|ico|bmp|woff2?|ttf|otf|eot|mp[34]|webm|wav|ogg|m4a)$/i;
 
+// workerd built-in module namespaces (`cloudflare:workers`, `cloudflare:sockets`, `workerd:...`).
+// These are provided natively by the runtime and have no host-side representation, so they must be
+// externalized for the in-worker module runner to `import()` them directly instead of being fetched
+// and transformed by Vite (which would fail with ERR_MODULE_NOT_FOUND).
+const WORKERD_BUILTIN_RE = /^(?:cloudflare|workerd):/;
+
 // ---- Types ----
 
 export type FetchHandler = (req: Request) => Promise<Response>;
@@ -77,6 +83,9 @@ export class FetchableDevEnvironment extends DevEnvironment {
     // We intercept bare imports, resolve them through the environment's plugin
     // pipeline (which respects resolve.conditions and picks ESM), then route
     // the resolved path through transformRequest for proper SSR processing.
+    if (this.#preventExternalize && WORKERD_BUILTIN_RE.test(id)) {
+      return { externalize: id, type: "builtin" };
+    }
     if (
       this.#preventExternalize &&
       !id.startsWith("file://") &&
