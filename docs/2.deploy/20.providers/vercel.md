@@ -93,7 +93,7 @@ export default defineNitroConfig({
 
 :read-more{title="Securing cron jobs" to="https://vercel.com/docs/cron-jobs/manage-cron-jobs#securing-cron-jobs"}
 
-To prevent unauthorized access to the cron handler, set a `CRON_SECRET` environment variable in your Vercel project settings. When `CRON_SECRET` is set, Nitro validates the `Authorization` header on every cron invocation.
+A `CRON_SECRET` environment variable is **required** to protect the cron handler. Set it in your Vercel project settings.
 
 ## Custom build output configuration
 
