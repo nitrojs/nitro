@@ -72,7 +72,7 @@ function getNoExternals(nitro: Nitro): RegExp[] {
     new RegExp("^" + pathRegExp(pkgDir) + "(?!.*node_modules)"),
     ...[
       nitro.options.rootDir,
-      ...nitro.options.scanDirs.filter(
+      ...[nitro.options.buildDir, ...nitro.options.scanDirs].filter(
         (dir) => dir.includes("node_modules") || !dir.startsWith(nitro.options.rootDir)
       ),
     ].map((dir) => new RegExp("^" + pathRegExp(dir) + "(?!.*node_modules)")),

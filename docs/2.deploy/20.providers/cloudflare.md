@@ -12,30 +12,15 @@
 Integration with this provider is possible with [zero configuration](/deploy#zero-config-providers) supporting [workers builds (beta)](https://developers.cloudflare.com/workers/ci-cd/builds/).
 ::
 
-::important
-To use Workers with Static Assets, you need a Nitro compatibility date set to `2024-09-19` or later.
-::
-
 The following shows an example `nitro.config.ts` file for deploying a Nitro app to Cloudflare Workers.
 
 ```ts [nitro.config.ts]
 import { defineConfig } from "nitro";
 
 export default defineConfig({
-    compatibilityDate: "2024-09-19",
-    preset: "cloudflare_module",
-    cloudflare: {
-      deployConfig: true,
-      nodeCompat: true
-    }
+    preset: "cloudflare_module"
 })
 ```
-
-By setting `deployConfig: true`, Nitro will automatically generate a `wrangler.json` for you with the correct configuration.
-If you need to add [Cloudflare Workers configuration](https://developers.cloudflare.com/workers/wrangler/configuration/), such as [bindings](https://developers.cloudflare.com/workers/runtime-apis/bindings/), you can either:
-
-- Set these in your Nitro config under the `cloudflare: { wrangler : {} }`. This has the same type as `wrangler.json`.
-- Provide your own `wrangler.json`. Nitro will merge your config with the appropriate settings, including pointing to the build output.
 
 ### Local Preview
 
@@ -112,10 +97,7 @@ export default defineConfig({
   scheduledTasks: {
     "* * * * *": ["cms:update"],
     "0 15 1 * *": ["db:cleanup"],
-  },
-  cloudflare: {
-    deployConfig: true,
-  },
+  }
 })
 ```
 
@@ -141,11 +123,7 @@ The following shows an example `nitro.config.ts` file for deploying a Nitro app 
 import { defineConfig } from "nitro";
 
 export default defineConfig({
-    preset: "cloudflare_pages",
-    cloudflare: {
-      deployConfig: true,
-      nodeCompat:true
-    }
+    preset: "cloudflare_pages"
 })
 ```
 
@@ -304,9 +282,9 @@ defineHandler(async (event) => {
 
 ### Access to the bindings in local dev
 
-To access bindings in dev mode, we first define them. You can do this in a `wrangler.jsonc`/`wrangler.json`/`wrangler.toml` file
+In development mode, Nitro emulates the Cloudflare environment using [Miniflare](https://miniflare.dev/) (the same [`workerd`](https://github.com/cloudflare/workerd) runtime used by Wrangler and cloudflare workers in production). This means bindings are available natively from the request event — no separate proxy or `wrangler` installation is required.
 
-For example, to define a variable and a KV namespace in `wrangler.toml`:
+To access bindings in dev mode, we first define them. You can do this in a `wrangler.jsonc`/`wrangler.json`/`wrangler.toml` file:
 
 ::code-group
 
@@ -335,19 +313,33 @@ id = "xxx"
 
 ::
 
-Next we install the required `wrangler` package (if not already installed):
+Alternatively, you can define bindings inline in your `nitro.config.ts` using the `cloudflare.wrangler` option (it accepts the same shape as `wrangler.json`):
 
-:pm-install{name="wrangler -D"}
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  preset: "cloudflare_module",
+  cloudflare: {
+    wrangler: {
+      vars: {
+        MY_VARIABLE: "my-value",
+      },
+      kv_namespaces: [{ binding: "MY_KV", id: "xxx" }],
+    },
+  },
+})
+```
 
 From this moment, when running
 
 :pm-run{script="dev"}
 
-you will be able to access the `MY_VARIABLE` and `MY_KV` from the request event just as illustrated above.
+you will be able to access `MY_VARIABLE` and `MY_KV` from the request event just as illustrated above.
 
 #### Wrangler environments
 
-If you have multiple Wrangler environments, you can specify which Wrangler environment to use during Cloudflare dev emulation:
+If you have multiple Wrangler environments, you can specify which one to use during local dev emulation with the `cloudflare.wranglerEnv` option:
 
 ```ts [nitro.config.ts]
 import { defineConfig } from "nitro";
@@ -355,9 +347,7 @@ import { defineConfig } from "nitro";
 export default defineConfig({
   preset: 'cloudflare_module',
   cloudflare: {
-    dev: {
-      environment: 'preview'
-    }
+    wranglerEnv: 'preview'
   }
 })
 ```
