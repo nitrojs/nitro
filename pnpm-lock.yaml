@@ -271,8 +271,8 @@ importers:
         specifier: ^0.4.14
         version: 0.4.14
       '@vercel/queue':
-        specifier: ^0.1.4
-        version: 0.1.7
+        specifier: ^0.2.0
+        version: 0.2.1
       '@vitest/coverage-v8':
         specifier: ^4.1.5
         version: 4.1.5(vitest@4.1.5)
@@ -2454,8 +2454,8 @@ packages:
     resolution: {integrity: sha512-Fw28YZpRnA3cAHHDlkt7xQHiJ0fcL+NRcIqsocZQUSmbzeIKRpwttJjik5ZGanXP+vlA4SbTg+AbA3bP363l+w==}
     engines: {node: '>= 20'}
 
-  '@vercel/queue@0.1.7':
-    resolution: {integrity: sha512-4Uk9LOvDPVYqBJGrNDk4fdLte4CmFERXCUJI2y7SRYX1d//dI96Ww7sgKZF4+YDj/YaBXoCZ11AU0HYkVwW9Eg==}
+  '@vercel/queue@0.2.1':
+    resolution: {integrity: sha512-18jVWNj/jroyQ+/GM3XFyr1/deFkinosg7RKjovrJbgQRRjusq9Y+pSGOKfpzus6vVRun2mqDlNI82hm5Rwi5Q==}
     engines: {node: '>=20.0.0'}
 
   '@vitest/coverage-v8@4.1.5':
@@ -8774,7 +8774,7 @@ snapshots:
 
   '@vercel/oidc@3.1.0': {}
 
-  '@vercel/queue@0.1.7':
+  '@vercel/queue@0.2.1':
     dependencies:
       '@vercel/oidc': 3.1.0
       minimatch: 10.2.5

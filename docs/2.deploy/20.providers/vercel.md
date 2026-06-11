@@ -90,7 +90,7 @@ export default defineNitroConfig({
 ```
 
 ::note
-The [`@vercel/queue`](https://www.npmjs.com/package/@vercel/queue) package is required when using queues. Install it in your project with your package manager.
+The [`@vercel/queue`](https://www.npmjs.com/package/@vercel/queue) package is required when using queues. Install it in your project with your package manager. Local development requires `@vercel/queue` v0.2.0 or newer.
 ::
 
 ### Handling messages
@@ -134,6 +134,12 @@ export default defineEventHandler(async (event) => {
   return { messageId };
 });
 ```
+
+### Local development
+
+Queues work in `nitro dev` — `send()` delivers messages straight to your `vercel:queue` hook, so you can iterate without deploying. Pull your Vercel environment first with `vercel link` and `vercel env pull` so the SDK can authenticate.
+
+If your hook throws, the message is retried locally. Retries honour `retryAfterSeconds` from each trigger when set.
 
 ## Custom build output configuration
 

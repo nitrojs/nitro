@@ -149,4 +149,19 @@ const vercelStatic = defineNitroPreset(
   }
 );
 
-export default [vercel, vercelEdge, vercelStatic] as const;
+export const vercelDev = defineNitroPreset(
+  {
+    extends: "nitro-dev",
+    modules: [
+      async (nitro) => await import("./dev").then((m) => m.vercelDev(nitro)),
+    ],
+  },
+  {
+    name: "vercel-dev" as const,
+    aliases: ["vercel"],
+    dev: true,
+    url: import.meta.url,
+  }
+);
+
+export default [vercel, vercelEdge, vercelStatic, vercelDev] as const;
