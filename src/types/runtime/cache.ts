@@ -11,6 +11,10 @@ export interface CacheOptions<T = any, ArgsT extends unknown[] = any[]> {
   name?: string;
   getKey?: (...args: ArgsT) => string | Promise<string>;
   transform?: (entry: CacheEntry<T>, ...args: ArgsT) => any;
+  serialize?: (
+    value: CacheEntry<T>,
+    ...args: ArgsT
+  ) => CacheEntry<T> | Promise<CacheEntry<T>>;
   validate?: (entry: CacheEntry<T>, ...args: ArgsT) => boolean;
   shouldInvalidateCache?: (...args: ArgsT) => boolean | Promise<boolean>;
   shouldBypassCache?: (...args: ArgsT) => boolean | Promise<boolean>;
