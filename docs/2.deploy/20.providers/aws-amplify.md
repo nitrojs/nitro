@@ -31,7 +31,7 @@ export default defineNitroConfig({
       // catchAllStaticFallback: true,
       // imageOptimization: { path: "/_image", cacheControl: "public, max-age=3600, immutable" },
       // imageSettings: { ... },
-      // runtime: "nodejs18.x", // default: "nodejs18.x" | "nodejs16.x" | "nodejs20.x"
+      // runtime: "nodejs24.x", // default: "nodejs20.x" | "nodejs22.x" | "nodejs24.x"
   }
 })
 ```
@@ -43,7 +43,7 @@ export default defineNuxtConfig({
       // catchAllStaticFallback: true,
       // imageOptimization: { "/_image", cacheControl: "public, max-age=3600, immutable" },
       // imageSettings: { ... },
-      // runtime: "nodejs18.x", // default: "nodejs18.x" | "nodejs16.x" | "nodejs20.x"
+      // runtime: "nodejs24.x", // default: "nodejs20.x" | "nodejs22.x" | "nodejs24.x"
     }
   }
 })
@@ -63,7 +63,7 @@ frontend:
   phases:
     preBuild:
       commands:
-        - nvm use 18 && node --version
+        - nvm use 24 && node --version
         - corepack enable && npx --yes nypm install
     build:
       commands:
@@ -81,7 +81,7 @@ applications:
       phases:
         preBuild:
           commands:
-          - nvm use 18 && node --version
+          - nvm use 24 && node --version
           - corepack enable && npx --yes nypm install
         build:
           commands:

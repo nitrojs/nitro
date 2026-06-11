@@ -61,6 +61,13 @@ describe("nitro:preset:vercel", async () => {
               },
               {
                 "headers": {
+                  "Location": "/$1",
+                },
+                "src": "/rules/redirect/legacy/(.*)",
+                "status": 307,
+              },
+              {
+                "headers": {
                   "Location": "/other",
                 },
                 "src": "/rules/nested/override",
