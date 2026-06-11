@@ -5,6 +5,7 @@ import { toRequest } from "h3";
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
 
 import type { ViteDevServer } from "vite";
+import { existsSync } from "node:fs";
 
 const examplesDir = fileURLToPath(new URL("../examples", import.meta.url));
 
@@ -38,6 +39,7 @@ const skipProd = new Set<string>(isRolldown ? [] : []);
 
 for (const example of await readdir(examplesDir)) {
   if (example.startsWith("_")) continue;
+  if (!existsSync(join(examplesDir, example, "index.html"))) continue;
   setupTest(example);
 }
 

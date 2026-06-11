@@ -63,28 +63,24 @@ class ViteEnvRunner {
     }
   }
 
+  // Errors are intentionally not caught here: like production services,
+  // they propagate to the caller (the nitro app's error handler or the
+  // env-runner fetch boundary below).
   async fetch(req, init) {
-    if (this.entryError) {
-      return renderError(req, this.entryError);
-    }
     for (let i = 0; i < 5 && !(this.entry || this.entryError); i++) {
       await new Promise((r) => setTimeout(r, 100 * Math.pow(2, i)));
     }
     if (this.entryError) {
-      return renderError(req, this.entryError);
+      throw this.entryError;
     }
     if (!this.entry) {
       throw httpError(503, `Vite environment "${this.name}" is unavailable`);
     }
-    try {
-      const entryFetch = this.entry.fetch || this.entry.default?.fetch;
-      if (!entryFetch) {
-        throw httpError(500, `No fetch handler exported from ${this.entryPath}`);
-      }
-      return await entryFetch(req, init);
-    } catch (error) {
-      return renderError(req, error);
+    const entryFetch = this.entry.fetch || this.entry.default?.fetch;
+    if (!entryFetch) {
+      throw httpError(500, `No fetch handler exported from ${this.entryPath}`);
     }
+    return entryFetch(req, init);
   }
 }
 
@@ -148,13 +144,17 @@ globalThis.__transform_html__ = async function (html) {
 
 // ----- Exports (env-runner AppEntry) -----
 
-export function fetch(req) {
+export async function fetch(req) {
   const viteEnv = req?.headers.get("x-vite-env") || "nitro";
   const env = envs[viteEnv];
   if (!env) {
     return renderError(req, httpError(500, `Unknown vite environment "${viteEnv}"`));
   }
-  return env.fetch(req);
+  try {
+    return await env.fetch(req);
+  } catch (error) {
+    return renderError(req, error);
+  }
 }
 
 export function upgrade(context) {

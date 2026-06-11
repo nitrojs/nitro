@@ -9,6 +9,7 @@ import {
   generateStaticFiles,
   resolveVercelRuntime,
 } from "./utils.ts";
+import { vercelDevModule } from "./dev.ts";
 
 import type { VercelFunctionTrigger } from "./types.ts";
 
@@ -144,4 +145,17 @@ const vercelStatic = defineNitroPreset(
   }
 );
 
-export default [vercel, vercelStatic] as const;
+export const vercelDev = defineNitroPreset(
+  {
+    extends: "nitro-dev",
+    devServer: { runner: "vercel" },
+    modules: [vercelDevModule],
+  },
+  {
+    name: "vercel-dev" as const,
+    aliases: ["vercel"],
+    dev: true,
+  }
+);
+
+export default [vercel, vercelStatic, vercelDev] as const;
