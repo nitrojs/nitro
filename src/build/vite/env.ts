@@ -1,4 +1,5 @@
-import type { EnvironmentOptions, RollupCommonJSOptions, Plugin as VitePlugin } from "vite";
+import type { EnvironmentOptions, RollupCommonJSOptions } from "vite";
+import type { CloudflareDevWorker } from "../../presets/cloudflare/dev.ts";
 import type { NitroPluginContext, ServiceConfig } from "./types.ts";
 
 import type { RunnerName } from "env-runner";
@@ -170,13 +171,21 @@ async function _loadRunner(ctx: NitroPluginContext, manager: RunnerManager) {
   let runner;
   if (runnerName === "miniflare") {
     const { MiniflareEnvRunner } = await import("env-runner/runners/miniflare");
+    let devWorker: CloudflareDevWorker | undefined;
+    if (ctx.nitro!.options.preset === "cloudflare-dev") {
+      const { composeCloudflareDevWorker } = await import("../../presets/cloudflare/dev.ts");
+      devWorker = await composeCloudflareDevWorker(ctx.nitro!, entry);
+    }
     runner = new MiniflareEnvRunner({
       name: "nitro-vite",
       wrangler: {
         ...ctx.nitro!.options.cloudflare?.wrangler,
       },
       wranglerEnv: ctx.nitro!.options.cloudflare?.wranglerEnv,
-      data: { entry },
+      exports: devWorker?.exports,
+      // disable env-runner's auto  wiring in dev
+      miniflareOptions: devWorker ? { durableObjects: {} } : undefined,
+      data: { entry: devWorker?.entry || entry },
     });
   } else {
     runner = await loadRunner(runnerName, {
