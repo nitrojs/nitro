@@ -1,6 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { defineNitroPreset } from "nitropack/kit";
 import type { Nitro } from "nitropack/types";
+import { withLeadingSlash } from "ufo";
 import {
   deprecateSWR,
   generateEdgeFunctionFiles,
@@ -40,7 +41,9 @@ const vercel = defineNitroPreset(
           Object.keys(nitro.options.scheduledTasks || {}).length > 0
         ) {
           nitro.options.handlers.push({
-            route: nitro.options.vercel?.cronHandlerRoute || "/_vercel/cron",
+            route: withLeadingSlash(
+              nitro.options.vercel?.cronHandlerRoute || "/_vercel/cron"
+            ),
             lazy: true,
             handler: fileURLToPath(
               new URL("runtime/cron-handler", import.meta.url)
