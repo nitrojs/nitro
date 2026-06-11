@@ -109,6 +109,16 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
         // Make sure entries that reject get removed.
         if (!isPending) {
           delete pending[key];
+          // Remove stale cache entry when resolver throws (e.g. handler returns 404)
+          const promise = useStorage()
+            .removeItem(cacheKey)
+            .catch((error) => {
+              console.error(`[cache] Cache remove error.`, error);
+              useNitroApp().captureError(error, { event, tags: ["cache"] });
+            });
+          if (event?.waitUntil) {
+            event.waitUntil(promise);
+          }
         }
         // Re-throw error to make sure the caller knows the task failed.
         throw error;
@@ -119,7 +129,18 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
         entry.mtime = Date.now();
         entry.integrity = integrity;
         delete pending[key];
-        if (validate(entry) !== false) {
+        if (validate(entry) === false) {
+          // Remove stale cache entry when revalidation produces an invalid response (e.g. 404)
+          const promise = useStorage()
+            .removeItem(cacheKey)
+            .catch((error) => {
+              console.error(`[cache] Cache remove error.`, error);
+              useNitroApp().captureError(error, { event, tags: ["cache"] });
+            });
+          if (event?.waitUntil) {
+            event.waitUntil(promise);
+          }
+        } else {
           let setOpts: TransactionOptions | undefined;
           if (opts.maxAge && !opts.swr /* TODO: respect staleMaxAge */) {
             setOpts = { ttl: opts.maxAge };
