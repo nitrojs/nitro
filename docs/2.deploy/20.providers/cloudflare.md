@@ -12,30 +12,15 @@
 Integration with this provider is possible with [zero configuration](/deploy#zero-config-providers) supporting [workers builds (beta)](https://developers.cloudflare.com/workers/ci-cd/builds/).
 ::
 
-::important
-To use Workers with Static Assets, you need a Nitro compatibility date set to `2024-09-19` or later.
-::
-
 The following shows an example `nitro.config.ts` file for deploying a Nitro app to Cloudflare Workers.
 
 ```ts [nitro.config.ts]
 import { defineConfig } from "nitro";
 
 export default defineConfig({
-    compatibilityDate: "2024-09-19",
-    preset: "cloudflare_module",
-    cloudflare: {
-      deployConfig: true,
-      nodeCompat: true
-    }
+    preset: "cloudflare_module"
 })
 ```
-
-By setting `deployConfig: true`, Nitro will automatically generate a `wrangler.json` for you with the correct configuration.
-If you need to add [Cloudflare Workers configuration](https://developers.cloudflare.com/workers/wrangler/configuration/), such as [bindings](https://developers.cloudflare.com/workers/runtime-apis/bindings/), you can either:
-
-- Set these in your Nitro config under the `cloudflare: { wrangler : {} }`. This has the same type as `wrangler.json`.
-- Provide your own `wrangler.json`. Nitro will merge your config with the appropriate settings, including pointing to the build output.
 
 ### Local Preview
 
@@ -112,10 +97,7 @@ export default defineConfig({
   scheduledTasks: {
     "* * * * *": ["cms:update"],
     "0 15 1 * *": ["db:cleanup"],
-  },
-  cloudflare: {
-    deployConfig: true,
-  },
+  }
 })
 ```
 
@@ -141,11 +123,7 @@ The following shows an example `nitro.config.ts` file for deploying a Nitro app 
 import { defineConfig } from "nitro";
 
 export default defineConfig({
-    preset: "cloudflare_pages",
-    cloudflare: {
-      deployConfig: true,
-      nodeCompat:true
-    }
+    preset: "cloudflare_pages"
 })
 ```
 
