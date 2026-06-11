@@ -144,14 +144,18 @@ globalThis.__transform_html__ = async function (html) {
 
 // ----- Exports (env-runner AppEntry) -----
 
-export async function fetch(req) {
-  const viteEnv = req?.headers.get("x-vite-env") || "nitro";
-  const env = envs[viteEnv];
-  if (!env) {
-    return renderError(req, httpError(500, `Unknown vite environment "${viteEnv}"`));
+export async function fetch(req, env, ctx) {
+  if (env) {
+    // only workerd-based runners (miniflare) invoke the entry as `fetch(request, env, ctx)`
+    augmentReq(req, env, ctx);
+  }
+  const viteEnvName = req?.headers.get("x-vite-env") || "nitro";
+  const viteEnv = envs[viteEnvName];
+  if (!viteEnv) {
+    return renderError(req, httpError(500, `Unknown vite environment "${viteEnvName}"`));
   }
   try {
-    return await env.fetch(req);
+    return await viteEnv.fetch(req);
   } catch (error) {
     return renderError(req, error);
   }
@@ -201,6 +205,16 @@ export const ipc = {
   },
   onClose() {},
 };
+
+// ----- Worker bindings -----
+
+function augmentReq(req, env, context) {
+  globalThis.__env__ = env;
+  req.ip = req.headers.get("cf-connecting-ip") || undefined;
+  req.runtime ??= { name: "cloudflare" };
+  req.runtime.cloudflare = { ...req.runtime.cloudflare, env, context };
+  req.waitUntil = context?.waitUntil?.bind(context);
+}
 
 // ----- Error handling -----
 
