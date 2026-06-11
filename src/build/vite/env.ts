@@ -168,7 +168,7 @@ export async function reloadEnvRunner(ctx: NitroPluginContext) {
 async function _loadRunner(ctx: NitroPluginContext, manager: RunnerManager) {
   const runnerName = (ctx.nitro!.options.devServer.runner ||
     process.env.NITRO_DEV_RUNNER ||
-    "node-worker") as RunnerName;
+    "miniflare") as RunnerName;
   const entry = resolve(runtimeDir, "internal/vite/dev-worker.mjs");
   let runner;
   if (runnerName === "miniflare") {
@@ -233,7 +233,7 @@ export function nitroServiceProxy(): VitePlugin {
 // so all dependencies must be processed through Vite's transform pipeline.
 function _isWorkerdRunner(ctx: NitroPluginContext): boolean {
   const runnerName =
-    ctx.nitro!.options.devServer.runner || process.env.NITRO_DEV_RUNNER || "node-worker";
+    ctx.nitro!.options.devServer.runner || process.env.NITRO_DEV_RUNNER || "miniflare";
   return runnerName === "miniflare";
 }
 
