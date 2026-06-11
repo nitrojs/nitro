@@ -1,6 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { defineNitroPreset } from "nitropack/kit";
 import type { Nitro } from "nitropack/types";
+import { normalize } from "pathe";
 import { withLeadingSlash } from "ufo";
 import {
   deprecateSWR,
@@ -45,8 +46,8 @@ const vercel = defineNitroPreset(
               nitro.options.vercel?.cronHandlerRoute || "/_vercel/cron"
             ),
             lazy: true,
-            handler: fileURLToPath(
-              new URL("runtime/cron-handler", import.meta.url)
+            handler: normalize(
+              fileURLToPath(new URL("runtime/cron-handler", import.meta.url))
             ),
           });
         }
