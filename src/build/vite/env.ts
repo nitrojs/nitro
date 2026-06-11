@@ -177,6 +177,10 @@ async function _loadRunner(ctx: NitroPluginContext, manager: RunnerManager) {
     const { MiniflareEnvRunner } = await import("env-runner/runners/miniflare");
     runner = new MiniflareEnvRunner({
       name: "nitro-vite",
+      wrangler: {
+        ...ctx.nitro!.options.cloudflare?.wrangler,
+      },
+      wranglerEnv: ctx.nitro!.options.cloudflare?.wranglerEnv,
       data: { entry },
     });
   } else {

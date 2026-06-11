@@ -282,9 +282,9 @@ defineHandler(async (event) => {
 
 ### Access to the bindings in local dev
 
-To access bindings in dev mode, we first define them. You can do this in a `wrangler.jsonc`/`wrangler.json`/`wrangler.toml` file
+In development mode, Nitro emulates the Cloudflare environment using [Miniflare](https://miniflare.dev/) (the same [`workerd`](https://github.com/cloudflare/workerd) runtime used by Wrangler and cloudflare workers in production). This means bindings are available natively from the request event — no separate proxy or `wrangler` installation is required.
 
-For example, to define a variable and a KV namespace in `wrangler.toml`:
+To access bindings in dev mode, we first define them. You can do this in a `wrangler.jsonc`/`wrangler.json`/`wrangler.toml` file:
 
 ::code-group
 
@@ -313,19 +313,33 @@ id = "xxx"
 
 ::
 
-Next we install the required `wrangler` package (if not already installed):
+Alternatively, you can define bindings inline in your `nitro.config.ts` using the `cloudflare.wrangler` option (it accepts the same shape as `wrangler.json`):
 
-:pm-install{name="wrangler -D"}
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  preset: "cloudflare_module",
+  cloudflare: {
+    wrangler: {
+      vars: {
+        MY_VARIABLE: "my-value",
+      },
+      kv_namespaces: [{ binding: "MY_KV", id: "xxx" }],
+    },
+  },
+})
+```
 
 From this moment, when running
 
 :pm-run{script="dev"}
 
-you will be able to access the `MY_VARIABLE` and `MY_KV` from the request event just as illustrated above.
+you will be able to access `MY_VARIABLE` and `MY_KV` from the request event just as illustrated above.
 
 #### Wrangler environments
 
-If you have multiple Wrangler environments, you can specify which Wrangler environment to use during Cloudflare dev emulation:
+If you have multiple Wrangler environments, you can specify which one to use during local dev emulation with the `cloudflare.wranglerEnv` option:
 
 ```ts [nitro.config.ts]
 import { defineConfig } from "nitro";
@@ -333,9 +347,7 @@ import { defineConfig } from "nitro";
 export default defineConfig({
   preset: 'cloudflare_module',
   cloudflare: {
-    dev: {
-      environment: 'preview'
-    }
+    wranglerEnv: 'preview'
   }
 })
 ```
