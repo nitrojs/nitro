@@ -17,7 +17,7 @@ describe("nitro:preset:vercel", async () => {
         return res;
       };
     },
-    () => {
+    (_ctx, callHandler) => {
       it("should add route rules to config", async () => {
         const config = await fsp
           .readFile(resolve(ctx.outDir, "config.json"), "utf8")
@@ -558,6 +558,74 @@ describe("nitro:preset:vercel", async () => {
             "functions/wasm/static-import.func (symlink)",
           ]
         `);
+      });
+
+      describe("cron handler", () => {
+        const cronUrl = "/_vercel/cron";
+        const schedule = "* * * * *"; // matches fixture scheduledTasks
+        const originalSecret = process.env.CRON_SECRET;
+
+        afterAll(() => {
+          if (originalSecret === undefined) {
+            delete process.env.CRON_SECRET;
+          } else {
+            process.env.CRON_SECRET = originalSecret;
+          }
+        });
+
+        it("returns 500 when CRON_SECRET is not set", async () => {
+          delete process.env.CRON_SECRET;
+          const res = await callHandler({
+            url: cronUrl,
+            ignoreResponseError: true,
+            headers: { "x-vercel-cron-schedule": schedule },
+          });
+          expect(res.status).toBe(500);
+        });
+
+        it("returns 401 with missing or wrong Authorization", async () => {
+          process.env.CRON_SECRET = "test-secret";
+          const noAuth = await callHandler({
+            url: cronUrl,
+            ignoreResponseError: true,
+            headers: { "x-vercel-cron-schedule": schedule },
+          });
+          expect(noAuth.status).toBe(401);
+
+          const wrongAuth = await callHandler({
+            url: cronUrl,
+            ignoreResponseError: true,
+            headers: {
+              authorization: "Bearer wrong-secret",
+              "x-vercel-cron-schedule": schedule,
+            },
+          });
+          expect(wrongAuth.status).toBe(401);
+        });
+
+        it("returns 400 when the cron schedule header is missing", async () => {
+          process.env.CRON_SECRET = "test-secret";
+          const res = await callHandler({
+            url: cronUrl,
+            ignoreResponseError: true,
+            headers: { authorization: "Bearer test-secret" },
+          });
+          expect(res.status).toBe(400);
+        });
+
+        it("runs tasks with valid CRON_SECRET and schedule header", async () => {
+          process.env.CRON_SECRET = "test-secret";
+          const res = await callHandler({
+            url: cronUrl,
+            ignoreResponseError: true,
+            headers: {
+              authorization: "Bearer test-secret",
+              "x-vercel-cron-schedule": schedule,
+            },
+          });
+          expect(res.status).toBe(200);
+          expect(res.data).toMatchObject({ success: true });
+        });
       });
     }
   );
