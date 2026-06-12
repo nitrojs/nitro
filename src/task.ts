@@ -37,6 +37,7 @@ const _devHint = `(is dev server running?)`;
 async function _getTasksContext(opts?: TaskRunnerOptions) {
   const cwd = resolve(process.cwd(), opts?.cwd || ".");
   const buildDir = resolve(cwd, opts?.buildDir || "node_modules/.nitro");
+  const timeout = opts?.timeout ?? 30_000;
 
   const buildInfoPath = resolve(buildDir, "nitro.dev.json");
   if (!existsSync(buildInfoPath)) {
@@ -75,6 +76,7 @@ async function _getTasksContext(opts?: TaskRunnerOptions) {
         {
           socketPath,
           method: options?.method,
+          timeout,
           headers: {
             Accept: "application/json",
             "Content-Type": "application/json",
@@ -95,6 +97,11 @@ async function _getTasksContext(opts?: TaskRunnerOptions) {
         }
       );
 
+      request.on("timeout", () => {
+        // destroy with an error so the `error` handler rejects instead of
+        // leaving the promise pending forever on a stalled socket
+        request.destroy(new Error(`Request timed out after ${timeout}ms ${_devHint}`));
+      });
       request.on("error", (e) => reject(e));
 
       if (options?.body) {
