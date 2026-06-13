@@ -1,6 +1,9 @@
 {
   "name": "nitro",
   "version": "3.0.260610-beta",
+  "bugs": {
+    "url": "https://github.com/nitrojs/nitro/issues"
+  },
   "description": "Build and Deploy Universal JavaScript Servers",
   "keywords": [
     "api-routes",
