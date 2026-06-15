@@ -1,6 +1,6 @@
 import "#nitro/virtual/polyfills";
 import { useNitroApp } from "nitro/app";
-import { getAzureParsedCookiesFromHeaders } from "./_utils.ts";
+import { azureResponseBody, getAzureParsedCookiesFromHeaders } from "./_utils.ts";
 
 import type { HttpRequest, HttpResponse, HttpResponseSimple } from "@azure/functions";
 
@@ -24,8 +24,7 @@ export async function handle(context: { res: HttpResponse }, req: HttpRequest) {
   });
 
   const response = await nitroApp.fetch(request);
-  // Azure Functions v3 expects string | Buffer, not a ReadableStream.
-  const body = response.body ? await new Response(response.body).text() : undefined;
+  const body = await azureResponseBody(response);
 
   // (v3 - current) https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-node?tabs=typescript%2Cwindows%2Cazure-cli&pivots=nodejs-model-v3#http-response
   // (v4) https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-node?tabs=typescript%2Cwindows%2Cazure-cli&pivots=nodejs-model-v4#http-response
