@@ -48,6 +48,13 @@ describe("azureResponseBody", () => {
     await expect(azureResponseBody(response)).resolves.toBe("hello");
   });
 
+  it("returns text for structured +json content types", async () => {
+    const response = new Response('{"title":"Bad Request"}', {
+      headers: { "content-type": "application/problem+json; charset=utf-8" },
+    });
+    await expect(azureResponseBody(response)).resolves.toBe('{"title":"Bad Request"}');
+  });
+
   it("returns a Buffer for binary content types", async () => {
     const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
     const response = new Response(bytes, {

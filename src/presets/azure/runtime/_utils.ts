@@ -66,5 +66,5 @@ export async function azureResponseBody(response: Response): Promise<string | Bu
 }
 
 function isTextType(contentType = "") {
-  return /^text\/|\/(javascript|json|xml)|utf-?8/i.test(contentType);
+  return /^text\/|\/(javascript|json|xml)|\+(json|xml)|utf-?8/i.test(contentType);
 }
