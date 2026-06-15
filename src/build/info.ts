@@ -44,11 +44,32 @@ export async function findLastBuildDir(root: string): Promise<string> {
   return outputDir;
 }
 
+type OutputChunk = { type: "chunk"; isEntry?: boolean; fileName: string };
+
+/**
+ * Prefer `server/index.mjs` when multiple entry chunks exist.
+ * Vite Module Federation marks expose chunks as entries too; without this,
+ * `nitro.json` can point at an expose chunk instead of the server bundle.
+ */
+export function resolveNitroServerEntryFileName(
+  output: RolldownOutput | RollupOutput | undefined
+): string | undefined {
+  const entries =
+    output?.output?.filter(
+      (o): o is OutputChunk => o.type === "chunk" && !!(o as OutputChunk).isEntry
+    ) ?? [];
+
+  if (entries.length === 0) return undefined;
+  if (entries.length === 1) return entries[0].fileName;
+
+  return (entries.find((c) => /(^|\/)index\.mjs$/.test(c.fileName)) ?? entries[0]).fileName;
+}
+
 export async function writeBuildInfo(
   nitro: Nitro,
   output: RolldownOutput | RollupOutput | undefined
 ): Promise<NitroBuildInfo> {
-  const serverEntryName = output?.output?.find((o) => o.type === "chunk" && o.isEntry)?.fileName;
+  const serverEntryName = resolveNitroServerEntryFileName(output);
 
   const buildInfoPath = resolve(nitro.options.output.dir, "nitro.json");
   const buildInfo: NitroBuildInfo = {
