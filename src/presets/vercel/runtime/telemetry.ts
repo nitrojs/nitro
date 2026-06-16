@@ -36,6 +36,56 @@ function randomSpanId(): string {
   return id === "0000000000000000" ? "0000000000000001" : id;
 }
 
+/**
+ * A single OTLP span. Declared as a class (fixed shape, shared prototype) so
+ * every span is the same hidden class — cheaper to build and serialize than ad
+ * hoc literals. The Vercel runtime validates the payload strictly, so every
+ * OTLP field is present even when empty (omitting e.g. `events` or `attributes`
+ * makes the runtime drop the whole batch).
+ */
+class Span {
+  traceId: string;
+  spanId: string;
+  // Parent on the platform root so spans appear as flat siblings.
+  parentSpanId: string;
+  name: string;
+  kind: number;
+  startTimeUnixNano: string;
+  endTimeUnixNano: string;
+  traceState = "";
+  droppedAttributesCount = 0;
+  events: never[] = [];
+  droppedEventsCount = 0;
+  links: never[] = [];
+  droppedLinksCount = 0;
+  attributes: Array<{ key: string; value: { stringValue: string } }>;
+  status: { code: number; message: string };
+
+  constructor(
+    traceId: string,
+    spanId: string,
+    parentSpanId: string,
+    name: string,
+    kind: number,
+    startTimeUnixNano: string,
+    endTimeUnixNano: string,
+    error: unknown
+  ) {
+    this.traceId = traceId;
+    this.spanId = spanId;
+    this.parentSpanId = parentSpanId;
+    this.name = name;
+    this.kind = kind;
+    this.startTimeUnixNano = startTimeUnixNano;
+    this.endTimeUnixNano = endTimeUnixNano;
+    this.attributes = [{ key: "nitro.channel", value: { stringValue: name } }];
+    this.status =
+      error === undefined
+        ? { code: 0, message: "" }
+        : { code: STATUS_CODE_ERROR, message: String((error as any)?.message ?? error) };
+  }
+}
+
 function reportSpan(channel: string, startTimeUnixNano: string, error?: unknown): void {
   const telemetry = getTelemetry();
   const root = telemetry?.rootSpanContext;
@@ -47,30 +97,16 @@ function reportSpan(channel: string, startTimeUnixNano: string, error?: unknown)
   // Respect the platform sampling decision (bit 0 of traceFlags).
   if (root.traceFlags !== undefined && (root.traceFlags & 1) === 0) return;
 
-  // The Vercel runtime deserializes spans against a strict OTLP schema, so
-  // every field must be present even when empty (omitting e.g. `events` or
-  // `attributes` makes the runtime drop the whole batch).
-  const span = {
-    traceId: root.traceId,
-    spanId: randomSpanId(),
-    traceState: "",
-    // Parent every span on the platform root (flat siblings).
-    parentSpanId: root.spanId,
-    name: channel,
-    kind: SPAN_KIND_INTERNAL,
+  const span = new Span(
+    root.traceId,
+    randomSpanId(),
+    root.spanId,
+    channel,
+    SPAN_KIND_INTERNAL,
     startTimeUnixNano,
-    endTimeUnixNano: nowUnixNano(),
-    attributes: [{ key: "nitro.channel", value: { stringValue: channel } }],
-    droppedAttributesCount: 0,
-    events: [],
-    droppedEventsCount: 0,
-    links: [],
-    droppedLinksCount: 0,
-    status:
-      error === undefined
-        ? { code: 0, message: "" }
-        : { code: STATUS_CODE_ERROR, message: String((error as any)?.message ?? error) },
-  };
+    nowUnixNano(),
+    error
+  );
 
   telemetry.reportSpans({
     resourceSpans: [
