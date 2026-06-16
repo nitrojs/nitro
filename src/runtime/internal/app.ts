@@ -4,6 +4,8 @@ import type { H3EventContext, Middleware, WebSocketHooks } from "h3";
 import { toRequest } from "h3";
 import { HookableCore } from "hookable";
 
+import { canonicalPath } from "./route-rules.ts";
+
 // IMPORTANT: virtual imports and user code should be imported last to avoid initialization order issues
 import { findRouteRules } from "#nitro/virtual/routing";
 import { createNitroApp, initNitroPlugins } from "#nitro/virtual/app";
@@ -77,7 +79,10 @@ export function getRouteRules(
   routeRules?: MatchedRouteRules;
   routeRuleMiddleware: Middleware[];
 } {
-  const m = findRouteRules(method, pathname);
+  // Match on the canonical path so encoded separators (`%2f`/`%5c`) cannot
+  // dodge a narrower rule (e.g. a `basicAuth` gate) that a broader rule would
+  // still serve once the downstream decodes them back to `/`.
+  const m = findRouteRules(method, canonicalPath(pathname));
   if (!m?.length) {
     return { routeRuleMiddleware: [] };
   }

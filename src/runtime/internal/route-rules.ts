@@ -107,21 +107,40 @@ export const basicAuth: RouteRuleCtor<"auth"> = /* @__PURE__ */ Object.assign(
   { order: -1 }
 );
 
-// Check whether `pathname`, after canonicalization, stays within `base`.
-// Prevents match/forward differentials where an encoded traversal like `..%2f`
-// bypasses the `/**` scope at match time but escapes the base once the
-// downstream (proxy upstream or redirect target) decodes `%2f` → `/`
+// Canonicalize a request pathname for route-rule matching and scope checks.
+//
+// `event.url.pathname` is already `decodeURI`-d by h3, but `%2f`/`%5c` stay
+// opaque there (`/` and `\` are reserved for `decodeURI`). We decode those
+// separators too and resolve `.`/`..`/`%2e` segments, so a request cannot
+// dodge a narrower rule (e.g. a `basicAuth` gate) or escape a `/**` scope that
+// the served path would still match once the downstream decodes `%2f` → `/`
 // (GHSA-5w89-w975-hf9q).
 //
-// WHATWG URL keeps `%2F` and `%5C` opaque in paths, so we pre-decode those,
-// then let `new URL` resolve `.`/`..`/`%2E%2E` segments and normalize `\`.
-export function isPathInScope(pathname: string, base: string): boolean {
-  let canonical: string;
-  try {
-    const pre = pathname.replace(/%2f/gi, "/").replace(/%5c/gi, "\\");
-    canonical = new URL(pre, "http://_").pathname;
-  } catch {
-    return false;
+// Done with string ops (mirroring h3's internal `resolveDotSegments`) rather
+// than `new URL`, which would re-encode characters h3 already decoded (e.g.
+// spaces, non-ASCII) and desync matching from h3's `event.url.pathname`.
+export function canonicalPath(pathname: string): string {
+  if (!pathname.includes("%") && !pathname.includes("\\") && !pathname.includes(".")) {
+    return pathname;
   }
+  const segments = pathname
+    .replace(/%2f/gi, "/")
+    .replace(/%5c/gi, "\\")
+    .replaceAll("\\", "/")
+    .split("/");
+  const resolved: string[] = [];
+  for (const segment of segments) {
+    const normalized = segment.replace(/%2e/gi, ".");
+    if (normalized === "..") {
+      if (resolved.length > 1) resolved.pop();
+    } else if (normalized !== ".") {
+      resolved.push(segment);
+    }
+  }
+  return resolved.join("/") || "/";
+}
+
+export function isPathInScope(pathname: string, base: string): boolean {
+  const canonical = canonicalPath(pathname);
   return !base || canonical === base || canonical.startsWith(base + "/");
 }

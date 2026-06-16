@@ -444,6 +444,18 @@ export function testNitro(
       expect(status).toBe(401);
       expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
     });
+
+    it("is not bypassed by a percent-encoded path separator", async () => {
+      // `secure%2fpage` must still match the `/rules/ba-proxy/secure/**` auth
+      // rule, otherwise the request is forwarded by the broader proxy rule with
+      // no credentials and the downstream decodes `%2f` back to `/`.
+      const { status, headers } = await callHandler({
+        url: "/rules/ba-proxy/secure%2fpage",
+        headers: { Authorization: "Basic " + btoa("user:wrongpass") },
+      });
+      expect(status).toBe(401);
+      expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
+    });
   });
 
   it("handles route rules - allowing overriding", async () => {
