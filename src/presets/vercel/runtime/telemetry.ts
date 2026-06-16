@@ -89,13 +89,15 @@ function reportSpan(channel: string, startTimeUnixNano: string, error?: unknown)
   });
 }
 
+// Patch `tracingChannel` once, even if the plugin initialises more than once.
+let patched = false;
+
 export default definePlugin(() => {
   const diagnostics: any = globalThis.process?.getBuiltinModule?.("node:diagnostics_channel");
-  if (!diagnostics?.tracingChannel) return;
-  // Avoid double-wrapping if the plugin is initialised more than once.
-  if (diagnostics.__nitroTracingWrapped) return;
+  if (!diagnostics?.tracingChannel || patched) return;
+  patched = true;
 
-  const createTracingChannel = diagnostics.tracingChannel;
+  const { tracingChannel: createTracingChannel } = diagnostics;
   const instrumented = new Set<string>();
 
   const instrument = (name: unknown, channel: any) => {
@@ -131,11 +133,9 @@ export default definePlugin(() => {
   // Wrap `tracingChannel` to instrument each channel as a producer creates it.
   // Registered first (see preset) so this is in place before producers run;
   // channels created at module-load time would be missed.
-  const wrapped = (nameOrChannels: any) => {
+  diagnostics.tracingChannel = (nameOrChannels: any) => {
     const channel = createTracingChannel.apply(diagnostics, [nameOrChannels]);
     instrument(nameOrChannels, channel);
     return channel;
   };
-  diagnostics.__nitroTracingWrapped = true;
-  diagnostics.tracingChannel = wrapped;
 });
