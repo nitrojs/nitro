@@ -19,23 +19,6 @@ function getTelemetry(): any {
   return (globalThis as any)[REQUEST_CONTEXT_SYMBOL]?.get?.()?.telemetry;
 }
 
-/** Wall-clock nanoseconds as a string, as required by OTLP `*UnixNano` fields. */
-function nowUnixNano(): string {
-  const ms = performance.timeOrigin + performance.now();
-  return (BigInt(Math.trunc(ms)) * 1_000_000n + BigInt(Math.round((ms % 1) * 1e6))).toString();
-}
-
-/** 8 random bytes, hex-encoded — an OTLP span id (never the all-zero sentinel). */
-function randomSpanId(): string {
-  let id = "";
-  for (let i = 0; i < 8; i++) {
-    id += Math.floor(Math.random() * 256)
-      .toString(16)
-      .padStart(2, "0");
-  }
-  return id === "0000000000000000" ? "0000000000000001" : id;
-}
-
 /**
  * A single OTLP span. Declared as a class (fixed shape, shared prototype) so
  * every span is the same hidden class — cheaper to build and serialize than ad
@@ -63,26 +46,41 @@ class Span {
 
   constructor(
     traceId: string,
-    spanId: string,
     parentSpanId: string,
     name: string,
     kind: number,
     startTimeUnixNano: string,
-    endTimeUnixNano: string,
     error: unknown
   ) {
     this.traceId = traceId;
-    this.spanId = spanId;
+    this.spanId = Span.randomSpanId();
     this.parentSpanId = parentSpanId;
     this.name = name;
     this.kind = kind;
     this.startTimeUnixNano = startTimeUnixNano;
-    this.endTimeUnixNano = endTimeUnixNano;
+    this.endTimeUnixNano = Span.nowUnixNano();
     this.attributes = [{ key: "nitro.channel", value: { stringValue: name } }];
     this.status =
       error === undefined
         ? { code: 0, message: "" }
         : { code: STATUS_CODE_ERROR, message: String((error as any)?.message ?? error) };
+  }
+
+  /** Wall-clock nanoseconds as a string, as required by OTLP `*UnixNano` fields. */
+  static nowUnixNano(): string {
+    const ms = performance.timeOrigin + performance.now();
+    return (BigInt(Math.trunc(ms)) * 1_000_000n + BigInt(Math.round((ms % 1) * 1e6))).toString();
+  }
+
+  /** 8 random bytes, hex-encoded — an OTLP span id (never the all-zero sentinel). */
+  static randomSpanId(): string {
+    let id = "";
+    for (let i = 0; i < 8; i++) {
+      id += Math.floor(Math.random() * 256)
+        .toString(16)
+        .padStart(2, "0");
+    }
+    return id === "0000000000000000" ? "0000000000000001" : id;
   }
 }
 
@@ -99,12 +97,10 @@ function reportSpan(channel: string, startTimeUnixNano: string, error?: unknown)
 
   const span = new Span(
     root.traceId,
-    randomSpanId(),
     root.spanId,
     channel,
     SPAN_KIND_INTERNAL,
     startTimeUnixNano,
-    nowUnixNano(),
     error
   );
 
@@ -129,7 +125,7 @@ function reportSpan(channel: string, startTimeUnixNano: string, error?: unknown)
 let patched = false;
 
 export default definePlugin(() => {
-  const diagnostics: any = globalThis.process?.getBuiltinModule?.("node:diagnostics_channel");
+  const diagnostics = globalThis.process?.getBuiltinModule?.("node:diagnostics_channel");
   if (!diagnostics?.tracingChannel || patched) return;
   patched = true;
 
@@ -145,7 +141,7 @@ export default definePlugin(() => {
 
     channel.subscribe({
       start(data: any) {
-        starts.set(data, nowUnixNano());
+        starts.set(data, Span.nowUnixNano());
       },
       end() {},
       asyncStart() {},
@@ -169,9 +165,9 @@ export default definePlugin(() => {
   // Wrap `tracingChannel` to instrument each channel as a producer creates it.
   // Registered first (see preset) so this is in place before producers run;
   // channels created at module-load time would be missed.
-  diagnostics.tracingChannel = (nameOrChannels: any) => {
+  diagnostics.tracingChannel = ((nameOrChannels: any) => {
     const channel = createTracingChannel.apply(diagnostics, [nameOrChannels]);
     instrument(nameOrChannels, channel);
     return channel;
-  };
+  }) as typeof diagnostics.tracingChannel;
 });
