@@ -36,6 +36,7 @@ export type FetchHandler = (req: Request) => Promise<Response>;
 export interface DevServer extends RunnerRPCHooks {
   fetch: FetchHandler;
   init?: () => void | Promise<void>;
+  close?: () => void | Promise<void>;
 }
 
 // ---- Fetchable Dev Environment ----
@@ -113,6 +114,11 @@ export class FetchableDevEnvironment extends DevEnvironment {
       event: "nitro:vite-env",
       data: { name: this.name, entry: this.#entry },
     });
+  }
+
+  override async close(): Promise<void> {
+    await super.close();
+    await this.devServer.close?.();
   }
 }
 
