@@ -1,4 +1,11 @@
 import { definePlugin } from "nitro";
+import type { TracingChannel } from "node:diagnostics_channel";
+import type {
+  IExportTraceServiceRequest,
+  IKeyValue,
+  ISpan,
+  SpanContext,
+} from "./telemetry-types.ts";
 
 /**
  * Exports Nitro tracing-channel events to the Vercel runtime as OpenTelemetry
@@ -10,13 +17,40 @@ import { definePlugin } from "nitro";
 
 const REQUEST_CONTEXT_SYMBOL = Symbol.for("@vercel/request-context");
 
-// OTLP: span kind 1 = INTERNAL, status code 2 = ERROR.
+// OTLP `SpanKind` (proto enum) Wire values: INTERNAL = 1, SERVER = 2, CLIENT = 3.
 const SPAN_KIND_INTERNAL = 1;
+const SPAN_KIND_CLIENT = 3;
+
+// OTLP `Status.StatusCode` (proto enum): UNSET = 0, OK = 1, ERROR = 2. A
 const STATUS_CODE_ERROR = 2;
+
 const SCOPE_NAME = "@nitro/vercel-tracing";
 
-function getTelemetry(): any {
-  return (globalThis as any)[REQUEST_CONTEXT_SYMBOL]?.get?.()?.telemetry;
+/**
+ * The Vercel runtime telemetry sink, exposed per-request via the global
+ * `@vercel/request-context` reader. `reportSpans` is fire-and-forget; the
+ * runtime correlates spans to the request by `rootSpanContext.traceId`.
+ */
+interface VercelTelemetry {
+  reportSpans(data: IExportTraceServiceRequest): void;
+  rootSpanContext?: SpanContext;
+}
+
+interface RequestContextReader {
+  get?(): { telemetry?: VercelTelemetry } | undefined;
+}
+
+function getTelemetry(): VercelTelemetry | undefined {
+  return (globalThis as Record<symbol, RequestContextReader | undefined>)[
+    REQUEST_CONTEXT_SYMBOL
+  ]?.get?.()?.telemetry;
+}
+
+/** Name, kind and attributes derived from a completed channel operation. */
+interface SpanInfo {
+  name: string;
+  kind: number;
+  attributes: IKeyValue[];
 }
 
 /**
@@ -132,7 +166,10 @@ export default definePlugin(() => {
   const { tracingChannel: createTracingChannel } = diagnostics;
   const instrumented = new Set<string>();
 
-  const instrument = (name: unknown, channel: any) => {
+  const instrument = (
+    name: unknown,
+    channel: TracingChannel<unknown, Record<string, unknown>>
+  ): void => {
     if (typeof name !== "string" || instrumented.has(name)) return;
     instrumented.add(name);
 
@@ -165,9 +202,10 @@ export default definePlugin(() => {
   // Wrap `tracingChannel` to instrument each channel as a producer creates it.
   // Registered first (see preset) so this is in place before producers run;
   // channels created at module-load time would be missed.
-  diagnostics.tracingChannel = ((nameOrChannels: any) => {
-    const channel = createTracingChannel.apply(diagnostics, [nameOrChannels]);
-    instrument(nameOrChannels, channel);
+  type CreateTracingChannel = typeof diagnostics.tracingChannel;
+  diagnostics.tracingChannel = ((nameOrChannels: Parameters<CreateTracingChannel>[0]) => {
+    const channel = createTracingChannel(nameOrChannels);
+    instrument(nameOrChannels, channel as TracingChannel<unknown, Record<string, unknown>>);
     return channel;
-  }) as typeof diagnostics.tracingChannel;
+  }) as CreateTracingChannel;
 });
