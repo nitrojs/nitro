@@ -1,11 +1,6 @@
 /**
  * Minimal OpenTelemetry / OTLP type surface for the Vercel telemetry plugin.
  *
- * Hand-rolled (vendored) so the plugin pulls in no `@opentelemetry/*` package
- * at build time. This mirrors what Vercel's own no-SDK runtime util does:
- * `@vercel/otel-runtime`'s `src/types.ts` likewise copies these from upstream
- * rather than importing them.
- *
  * Trimmed to the subset the Vercel telemetry IPC requires. Re-sync from upstream
  * if the OTLP shape changes:
  *  - OTLP trace types — `@opentelemetry/otlp-transformer`:
