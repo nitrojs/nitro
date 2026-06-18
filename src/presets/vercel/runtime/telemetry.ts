@@ -4,6 +4,7 @@ import type {
   IExportTraceServiceRequest,
   IKeyValue,
   ISpan,
+  ISpanEvent,
   SpanContext,
 } from "./telemetry-types.ts";
 
@@ -12,7 +13,8 @@ import type {
  * spans, without an OpenTelemetry SDK.
  *
  * Subscribes to every Node `tracingChannel` a producer (h3, srvx, unstorage, …)
- * creates and reports a full OTLP span per completed operation.
+ * creates and reports a full OTLP span per completed operation, buffered per
+ * request and flushed once via the Vercel runtime.
  */
 
 const REQUEST_CONTEXT_SYMBOL = Symbol.for("@vercel/request-context");
@@ -21,7 +23,7 @@ const REQUEST_CONTEXT_SYMBOL = Symbol.for("@vercel/request-context");
 const SPAN_KIND_INTERNAL = 1;
 const SPAN_KIND_CLIENT = 3;
 
-// OTLP `Status.StatusCode` (proto enum): UNSET = 0, OK = 1, ERROR = 2. A
+// OTLP `Status.StatusCode` (proto enum): UNSET = 0, OK = 1, ERROR = 2.
 const STATUS_CODE_ERROR = 2;
 
 const SCOPE_NAME = "@nitro/vercel-tracing";
@@ -36,14 +38,19 @@ interface VercelTelemetry {
   rootSpanContext?: SpanContext;
 }
 
-interface RequestContextReader {
-  get?(): { telemetry?: VercelTelemetry } | undefined;
+interface RequestContext {
+  telemetry?: VercelTelemetry;
+  waitUntil: (task: (() => Promise<unknown>) | Promise<unknown>) => void;
 }
 
-function getTelemetry(): VercelTelemetry | undefined {
+interface RequestContextReader {
+  get?(): RequestContext | undefined;
+}
+
+function getRequestContext(): RequestContext | undefined {
   return (globalThis as Record<symbol, RequestContextReader | undefined>)[
     REQUEST_CONTEXT_SYMBOL
-  ]?.get?.()?.telemetry;
+  ]?.get?.();
 }
 
 /** Name, kind and attributes derived from a completed channel operation. */
@@ -71,7 +78,7 @@ class Span implements ISpan {
   endTimeUnixNano: string;
   traceState = "";
   droppedAttributesCount = 0;
-  events: never[] = [];
+  events: ISpanEvent[];
   droppedEventsCount = 0;
   links: never[] = [];
   droppedLinksCount = 0;
@@ -93,10 +100,15 @@ class Span implements ISpan {
     this.attributes = info.attributes;
     this.startTimeUnixNano = startTimeUnixNano;
     this.endTimeUnixNano = Span.nowUnixNano();
-    this.status =
-      error === undefined
-        ? { code: 0, message: "" }
-        : { code: STATUS_CODE_ERROR, message: errorMessage(error) };
+    if (error === undefined) {
+      this.status = { code: 0, message: "" };
+      this.events = [];
+    } else {
+      this.status = { code: STATUS_CODE_ERROR, message: errorMessage(error) };
+      // OTEL exception semconv: record the error as an `exception` span event so
+      // backends surface its type/message/stacktrace, not just an error status.
+      this.events = [exceptionEvent(error, this.endTimeUnixNano)];
+    }
   }
 
   /** Wall-clock nanoseconds as a string, as required by OTLP `*UnixNano` fields. */
@@ -117,38 +129,66 @@ class Span implements ISpan {
   }
 }
 
+// Completed spans buffered per request (keyed by trace id) and flushed once at
+// freeze time via `waitUntil`, so one IPC message carries the whole request
+// instead of one per span (a redis-heavy request can emit a dozen).
+const pendingSpans = new Map<string, Span[]>();
+
 function reportSpan(info: SpanInfo, startTimeUnixNano: string, error: unknown): void {
-  const telemetry = getTelemetry();
+  const context = getRequestContext();
+  const telemetry = context?.telemetry;
   const root = telemetry?.rootSpanContext;
 
-  // Without a platform root span there is no trace to join
-  // The runtime correlates spans to the request by trace id and drops the rest
-  if (!root) return;
+  // Without a platform root span there is no trace to join; the runtime
+  // correlates spans to the request by trace id and drops the rest.
+  if (!context || !telemetry || !root) return;
 
   // Respect the platform sampling decision (bit 0 of traceFlags).
   if (root.traceFlags !== undefined && (root.traceFlags & 1) === 0) return;
 
   const span = new Span(root.traceId, root.spanId, info, startTimeUnixNano, error);
 
-  telemetry.reportSpans({
+  // Buffer per request; the first span schedules a single flush at freeze time.
+  let spans = pendingSpans.get(root.traceId);
+  if (!spans) {
+    spans = [];
+    const { traceId } = root;
+    const sink = telemetry;
+    context.waitUntil(async () => {
+      const batch = pendingSpans.get(traceId);
+      pendingSpans.delete(traceId);
+      if (batch && batch.length > 0) sink.reportSpans(envelope(batch));
+    });
+    pendingSpans.set(traceId, spans);
+  }
+  spans.push(span);
+}
+
+/** Wrap spans in a single OTLP `ExportTraceServiceRequest` envelope. */
+function envelope(spans: Span[]): IExportTraceServiceRequest {
+  return {
     resourceSpans: [
       {
         resource: { attributes: [], droppedAttributesCount: 0 },
         scopeSpans: [
           {
             scope: { name: SCOPE_NAME, version: "", attributes: [], droppedAttributesCount: 0 },
-            spans: [span],
+            spans,
             schemaUrl: "",
           },
         ],
         schemaUrl: "",
       },
     ],
-  });
+  };
 }
 
-/** Maps a completed channel operation to a span name, kind and attributes. */
-type ChannelDescriber = (channel: string, data: Record<string, unknown>) => SpanInfo;
+/**
+ * Maps a completed channel operation to a span name, kind and attributes. Each
+ * describer casts `data` to the payload its producer documents and reads fields
+ * directly; a malformed payload throws and is caught by `describeSpan`.
+ */
+type ChannelDescriber = (channel: string, data: unknown) => SpanInfo;
 
 // Fixed channel name → describer.
 const CHANNEL_DESCRIBERS: Record<string, ChannelDescriber> = {
@@ -189,58 +229,84 @@ function describeSpan(channel: string, data: Record<string, unknown>): SpanInfo 
   return { name: channel, kind: SPAN_KIND_INTERNAL, attributes: [attr("nitro.channel", channel)] };
 }
 
-function describeH3Request(channel: string, data: Record<string, unknown>): SpanInfo {
-  const attributes = [attr("nitro.channel", channel)];
-  const event = asRecord(data.event);
-  const method = asString(asRecord(event?.req)?.method);
-  const path = asString(asRecord(event?.url)?.pathname);
-  const type = asString(data.type);
-  if (method) attributes.push(attr("http.request.method", method));
-  if (path) attributes.push(attr("url.path", path));
-  if (type) attributes.push(attr("nitro.h3.handler_type", type));
-  const name = label(type === "middleware" ? "middleware" : undefined, method, path) || channel;
-  return { name, kind: SPAN_KIND_INTERNAL, attributes };
+/** h3's `TracingRequestEvent` (channel `h3.request`). */
+interface H3RequestData {
+  type: "middleware" | "route";
+  event: { req: { method: string }; url: { pathname: string } };
 }
 
-function describeSrvxRequest(channel: string, data: Record<string, unknown>): SpanInfo {
-  const attributes = [attr("nitro.channel", channel)];
-  const request = asRecord(data.request);
-  const method = asString(request?.method);
-  const path = urlPath(asString(request?.url));
-  const status = asNumber(asRecord(data.result)?.status);
-  if (method) attributes.push(attr("http.request.method", method));
-  if (path) attributes.push(attr("url.path", path));
-  if (status !== undefined) attributes.push(attr("http.response.status_code", status));
-  return { name: label(method, path) || channel, kind: SPAN_KIND_INTERNAL, attributes };
+function describeH3Request(channel: string, data: unknown): SpanInfo {
+  const { event, type } = data as H3RequestData;
+  const method = event.req.method;
+  const path = event.url.pathname;
+  return {
+    name: label(type === "middleware" ? "middleware" : undefined, method, path),
+    kind: SPAN_KIND_INTERNAL,
+    attributes: [
+      attr("nitro.channel", channel),
+      attr("http.request.method", method),
+      attr("url.path", path),
+      attr("nitro.h3.handler_type", type),
+    ],
+  };
 }
 
-function describeSrvxMiddleware(channel: string, data: Record<string, unknown>): SpanInfo {
-  const attributes = [attr("nitro.channel", channel)];
-  const middleware = asRecord(data.middleware);
-  const index = asNumber(middleware?.index);
-  const middlewareName = asString(asRecord(middleware?.handler)?.name);
-  const method = asString(asRecord(data.request)?.method);
-  if (index !== undefined) attributes.push(attr("nitro.middleware.index", index));
-  if (middlewareName) attributes.push(attr("nitro.middleware.name", middlewareName));
-  if (method) attributes.push(attr("http.request.method", method));
-  const name = label(
-    "middleware",
-    middlewareName ?? (index === undefined ? undefined : `#${index}`)
-  );
-  return { name, kind: SPAN_KIND_INTERNAL, attributes };
+/** srvx's `RequestEvent` (channel `srvx.request`); `result` is absent on error. */
+interface SrvxRequestData {
+  request: { method: string; url: string };
+  result?: { status: number };
 }
 
-function describeUnstorage(channel: string, data: Record<string, unknown>): SpanInfo {
-  const attributes = [attr("nitro.channel", channel)];
+function describeSrvxRequest(channel: string, data: unknown): SpanInfo {
+  const { request, result } = data as SrvxRequestData;
+  const method = request.method;
+  const path = new URL(request.url).pathname;
+  const attributes = [
+    attr("nitro.channel", channel),
+    attr("http.request.method", method),
+    attr("url.path", path),
+  ];
+  if (result) attributes.push(attr("http.response.status_code", result.status));
+  return { name: label(method, path), kind: SPAN_KIND_INTERNAL, attributes };
+}
+
+/** srvx's `RequestEvent` (channel `srvx.middleware`); handler name may be empty. */
+interface SrvxMiddlewareData {
+  request: { method: string };
+  middleware: { index: number; handler: { name: string } };
+}
+
+function describeSrvxMiddleware(channel: string, data: unknown): SpanInfo {
+  const { request, middleware } = data as SrvxMiddlewareData;
+  const handlerName = middleware.handler.name;
+  const attributes = [
+    attr("nitro.channel", channel),
+    attr("nitro.middleware.index", middleware.index),
+    attr("http.request.method", request.method),
+  ];
+  if (handlerName) attributes.push(attr("nitro.middleware.name", handlerName));
+  return {
+    name: label("middleware", handlerName || `#${middleware.index}`),
+    kind: SPAN_KIND_INTERNAL,
+    attributes,
+  };
+}
+
+/** unstorage's tracing payload (channels `unstorage.*`); driver/base optional. */
+interface UnstorageData {
+  driver?: { name?: string };
+  base?: string;
+  keys?: unknown[];
+}
+
+function describeUnstorage(channel: string, data: unknown): SpanInfo {
+  const { driver, base, keys } = data as UnstorageData;
   const operation = channel.slice("unstorage.".length);
-  const driver = asString(asRecord(data.driver)?.name);
-  const base = asString(data.base);
-  const keys = Array.isArray(data.keys) ? data.keys.length : undefined;
   // CLIENT: storage is a known outbound dependency (OTEL database semconv).
-  attributes.push(attr("db.operation", operation));
-  if (driver) attributes.push(attr("db.system", driver));
+  const attributes = [attr("nitro.channel", channel), attr("db.operation", operation)];
+  if (driver?.name) attributes.push(attr("db.system", driver.name));
   if (base) attributes.push(attr("nitro.storage.base", base));
-  if (keys !== undefined) attributes.push(attr("nitro.storage.keys_count", keys));
+  if (keys) attributes.push(attr("nitro.storage.keys_count", keys.length));
   return { name: base ? `${operation} ${base}` : operation, kind: SPAN_KIND_CLIENT, attributes };
 }
 
@@ -277,9 +343,6 @@ export default definePlugin(() => {
           const start = starts.get(message);
           if (start === undefined) return;
           starts.delete(message);
-          // This reports one span per IPC message. TODO: for high span-count
-          // requests, batch spans per request and flush once (via `waitUntil`) to
-          // cut IPC overhead as `@vercel/otel` does with its BatchSpanProcessor.
           reportSpan(describeSpan(name, message), start, message.error);
         } catch {
           // Telemetry must never break the traced operation.
@@ -320,19 +383,6 @@ function asString(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
-function asNumber(value: unknown): number | undefined {
-  return typeof value === "number" ? value : undefined;
-}
-
-function urlPath(url: string | undefined): string | undefined {
-  if (!url) return undefined;
-  try {
-    return new URL(url).pathname;
-  } catch {
-    return undefined;
-  }
-}
-
 function label(...parts: Array<string | undefined>): string {
   return parts.filter(Boolean).join(" ");
 }
@@ -340,4 +390,16 @@ function label(...parts: Array<string | undefined>): string {
 function errorMessage(error: unknown): string {
   const message = asRecord(error)?.message;
   return typeof message === "string" ? message : String(error);
+}
+
+/** An OTEL `exception` span event derived from a thrown error. */
+function exceptionEvent(error: unknown, timeUnixNano: string): ISpanEvent {
+  const err = asRecord(error);
+  const attributes: IKeyValue[] = [];
+  const type = asString(err?.name);
+  if (type) attributes.push(attr("exception.type", type));
+  attributes.push(attr("exception.message", errorMessage(error)));
+  const stack = asString(err?.stack);
+  if (stack) attributes.push(attr("exception.stacktrace", stack));
+  return { timeUnixNano, name: "exception", attributes, droppedAttributesCount: 0 };
 }

@@ -59,14 +59,22 @@ export interface ISpan {
   endTimeUnixNano: string;
   attributes?: IKeyValue[];
   droppedAttributesCount?: number;
-  // Always emitted empty by this plugin, so the element type is irrelevant.
-  events?: unknown[];
+  events?: ISpanEvent[];
   droppedEventsCount?: number;
+  // Always emitted empty by this plugin, so the element type is irrelevant.
   links?: unknown[];
   droppedLinksCount?: number;
   traceState?: string | null;
   // OTLP status code enum: UNSET = 0, OK = 1, ERROR = 2.
   status?: { message?: string; code: number };
+}
+
+/** OTLP span `Event` — e.g. a recorded `exception` (type/message/stacktrace). */
+export interface ISpanEvent {
+  timeUnixNano: string;
+  name: string;
+  attributes: IKeyValue[];
+  droppedAttributesCount?: number;
 }
 
 export interface IKeyValue {
