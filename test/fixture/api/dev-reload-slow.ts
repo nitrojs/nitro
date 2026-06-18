@@ -1,4 +1,4 @@
 export default eventHandler(async () => {
-  await new Promise((resolve) => setTimeout(resolve, 3_000));
+  await new Promise((resolve) => setTimeout(resolve, 3000));
   return { ok: true };
 });

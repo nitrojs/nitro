@@ -79,76 +79,80 @@ function createTempFixtureRoot() {
   return fixtureRoot;
 }
 
-describe("dev server reload race", { timeout: 60_000, hookTimeout: 60_000 }, () => {
-  describe("hook-based", async () => {
-    const context = await setupTest("nitro-dev");
+describe(
+  "dev server reload race",
+  { timeout: 60_000, hookTimeout: 60_000 },
+  () => {
+    describe("hook-based", async () => {
+      const context = await setupTest("nitro-dev");
 
-    it("does not hang in-flight requests during rebuild", async () => {
-      await context.nitro!.hooks.callHook("dev:start");
-      await context.nitro!.hooks.callHook("dev:reload");
-      await waitForDevWorker(context);
+      it("does not hang in-flight requests during rebuild", async () => {
+        await context.nitro!.hooks.callHook("dev:start");
+        await context.nitro!.hooks.callHook("dev:reload");
+        await waitForDevWorker(context);
 
-      await context.nitro!.hooks.callHook("dev:start");
+        await context.nitro!.hooks.callHook("dev:start");
 
-      const requestPromise = context.fetch("/api/dev-reload-slow");
+        const requestPromise = context.fetch("/api/dev-reload-slow");
 
-      await new Promise((resolvePromise) =>
-        setTimeout(resolvePromise, REQUEST_ASSIGN_DELAY_MS)
-      );
+        await new Promise((resolvePromise) =>
+          setTimeout(resolvePromise, REQUEST_ASSIGN_DELAY_MS)
+        );
 
-      await context.nitro!.hooks.callHook("dev:reload");
+        await context.nitro!.hooks.callHook("dev:reload");
 
-      const result = await parseFetchBody(
-        await assertRequestCompletes(requestPromise)
-      );
-      expect(result).toEqual({ ok: true });
+        const result = await parseFetchBody(
+          await assertRequestCompletes(requestPromise)
+        );
+        expect(result).toEqual({ ok: true });
 
-      await waitForDevWorker(context);
-    });
-  });
-
-  describeIf(!isWindows, "file edit", async () => {
-    const fixtureRoot = createTempFixtureRoot();
-    const helloPath = join(fixtureRoot, "api", "hello.ts");
-    const context = await setupTest("nitro-dev", {
-      config: {
-        rootDir: fixtureRoot,
-        srcDir: fixtureRoot,
-      },
+        await waitForDevWorker(context);
+      });
     });
 
-    it("does not hang in-flight requests on the second API edit", async () => {
-      const firstReloadPromise = waitForDevReload(context);
-      await fsp.writeFile(
-        helloPath,
-        `export default eventHandler(() => ({ message: "v1" }));\n`
-      );
-      await firstReloadPromise;
-      await waitForDevWorker(context);
+    describeIf(!isWindows, "file edit", async () => {
+      const fixtureRoot = createTempFixtureRoot();
+      const helloPath = join(fixtureRoot, "api", "hello.ts");
+      const context = await setupTest("nitro-dev", {
+        config: {
+          rootDir: fixtureRoot,
+          srcDir: fixtureRoot,
+        },
+      });
 
-      const devStartPromise = waitForDevStart(context);
-      await fsp.writeFile(
-        helloPath,
-        `export default eventHandler(() => ({ message: "v2" }));\n`
-      );
-      await devStartPromise;
+      it("does not hang in-flight requests on the second API edit", async () => {
+        const firstReloadPromise = waitForDevReload(context);
+        await fsp.writeFile(
+          helloPath,
+          `export default eventHandler(() => ({ message: "v1" }));\n`
+        );
+        await firstReloadPromise;
+        await waitForDevWorker(context);
 
-      const requestPromise = context.fetch("/api/dev-reload-slow");
+        const devStartPromise = waitForDevStart(context);
+        await fsp.writeFile(
+          helloPath,
+          `export default eventHandler(() => ({ message: "v2" }));\n`
+        );
+        await devStartPromise;
 
-      const devReloadPromise = waitForDevReload(context);
+        const requestPromise = context.fetch("/api/dev-reload-slow");
 
-      await new Promise((resolvePromise) =>
-        setTimeout(resolvePromise, REQUEST_ASSIGN_DELAY_MS)
-      );
+        const devReloadPromise = waitForDevReload(context);
 
-      await devReloadPromise;
+        await new Promise((resolvePromise) =>
+          setTimeout(resolvePromise, REQUEST_ASSIGN_DELAY_MS)
+        );
 
-      const result = await parseFetchBody(
-        await assertRequestCompletes(requestPromise)
-      );
-      expect(result).toEqual({ ok: true });
+        await devReloadPromise;
 
-      await waitForDevWorker(context);
+        const result = await parseFetchBody(
+          await assertRequestCompletes(requestPromise)
+        );
+        expect(result).toEqual({ ok: true });
+
+        await waitForDevWorker(context);
+      });
     });
-  });
-});
+  }
+);
