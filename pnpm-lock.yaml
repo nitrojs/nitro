@@ -76,7 +76,7 @@ importers:
         specifier: ^2.0.9
         version: 2.0.9(debug@4.4.3)
       '@cloudflare/workers-types':
-        specifier: ^4.20260613.1
+        specifier: ^4.20260615.1
         version: 4.20260616.1
       '@cloudflare/workers-utils':
         specifier: ^0.23.0
