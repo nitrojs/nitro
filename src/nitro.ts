@@ -78,8 +78,5 @@ export async function createNitro(
   // Ensure initial handlers are populated
   await scanHandlers(nitro);
 
-  // Sync routers
-  nitro.routing.sync();
-
   return nitro;
 }
