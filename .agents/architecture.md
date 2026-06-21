@@ -121,7 +121,8 @@ Route file conventions:
 
 ## Presets (`src/presets/`)
 
-31 presets. Structure per preset:
+Several deployment-target presets (+ internal `_nitro`/`_static`); see `.agents/presets.md`. Structure per preset:
+
 ```
 presets/<name>/
 ├── preset.ts        # defineNitroPreset()
