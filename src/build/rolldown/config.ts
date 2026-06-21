@@ -15,6 +15,10 @@ export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> 
     platform: nitro.options.node ? "node" : "neutral",
     cwd: nitro.options.rootDir,
     input: nitro.options.entry,
+    // Nitro resolves `tsconfig` and passes relevant options (e.g. `transform.jsx`) explicitly.
+    // Disable Rolldown's own tsconfig discovery to avoid `CONFIGURATION_FIELD_CONFLICT` warnings
+    // and keep behavior consistent with the Rollup builder.
+    tsconfig: false,
     external: [...base.env.external, ...builtinModules, ...builtinModules.map((m) => `node:${m}`)],
     plugins: [...((await baseBuildPlugins(nitro, base)) as RolldownPlugin[])],
     resolve: {
