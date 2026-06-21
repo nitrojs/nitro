@@ -6,7 +6,6 @@ import { pathRegExp, toPathRegExp } from "../utils/regex.ts";
 export type BaseBuildConfig = ReturnType<typeof baseBuildConfig>;
 
 const ROOT_ALIAS = "@";
-const RESOLVABLE_ALIAS_PREFIXES = new Set(["~", ROOT_ALIAS, "#"]);
 
 export function baseBuildConfig(nitro: Nitro) {
   // prettier-ignore
@@ -103,10 +102,10 @@ export function resolveAliases(_aliases: Record<string, string>) {
       ([a], [b]) => b.split("/").length - a.split("/").length || b.length - a.length
     )
   );
-  const resolvableAliases = Object.keys(aliases).filter(isResolvableAlias);
+  const resolvableAliases = Object.keys(aliases).filter(isResolvableAliasKey);
   // Resolve alias values in relation to each other
   for (const key in aliases) {
-    if (!isResolvableAlias(aliases[key])) {
+    if (!isResolvableAliasValue(aliases[key])) {
       continue;
     }
     for (const alias of resolvableAliases) {
@@ -122,6 +121,10 @@ export function resolveAliases(_aliases: Record<string, string>) {
   return aliases;
 }
 
-function isResolvableAlias(id: string) {
-  return RESOLVABLE_ALIAS_PREFIXES.has(id[0]);
+function isResolvableAliasKey(id: string) {
+  return id === ROOT_ALIAS || id[0] === "~" || id[0] === "#";
+}
+
+function isResolvableAliasValue(id: string) {
+  return id.startsWith(`${ROOT_ALIAS}/`) || id[0] === "~" || id[0] === "#";
 }

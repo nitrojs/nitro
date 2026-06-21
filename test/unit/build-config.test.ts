@@ -9,12 +9,14 @@ describe("build config", () => {
         "@": "/root",
         "#app": "@/app",
         "#build": "#app/build",
+        "#ext": "@scope/package/subpath",
         package: "/node_modules/package",
         "@scope/package": "/node_modules/@scope/package",
       })
     ).toEqual({
       "@scope/package": "/node_modules/@scope/package",
       "#build": "/root/app/build",
+      "#ext": "@scope/package/subpath",
       package: "/node_modules/package",
       "#app": "/root/app",
       "~": "/root",
