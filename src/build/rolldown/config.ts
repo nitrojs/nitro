@@ -9,8 +9,6 @@ import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
 export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> => {
   const base = baseBuildConfig(nitro);
 
-  const tsc = nitro.options.typescript.tsConfig?.compilerOptions;
-
   let config: RolldownOptions = {
     platform: nitro.options.node ? "node" : "neutral",
     cwd: nitro.options.rootDir,
@@ -22,15 +20,11 @@ export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> 
       extensions: base.extensions,
       conditionNames: nitro.options.exportConditions,
     },
+    // JSX options are resolved by Rolldown natively from `tsconfig.json` (same as the Vite
+    // builder). Injecting them via `transform.jsx` would shadow tsconfig and emit redundant
+    // `CONFIGURATION_FIELD_CONFLICT` warnings.
     transform: {
       inject: base.env.inject as Record<string, string>,
-      jsx: {
-        runtime: tsc?.jsx === "react" ? "classic" : "automatic",
-        pragma: tsc?.jsxFactory,
-        pragmaFrag: tsc?.jsxFragmentFactory,
-        importSource: tsc?.jsxImportSource,
-        development: nitro.options.dev,
-      },
     },
     onwarn(warning, warn) {
       if (!base.ignoreWarningCodes.has(warning.code || "")) {
