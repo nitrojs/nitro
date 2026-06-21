@@ -3,6 +3,8 @@ import type { TSConfig } from "pkg-types";
 import { join, resolve } from "pathe";
 import { parseTsconfig } from "get-tsconfig";
 
+const tsconfigCache = new Map<string, any>();
+
 export async function resolveTsconfig(options: NitroOptions) {
   const root = resolve(options.rootDir || ".") + "/";
   if (!options.typescript.tsConfig) {
@@ -12,10 +14,9 @@ export async function resolveTsconfig(options: NitroOptions) {
 
 function loadTsconfig(root: string): TSConfig {
   const tsConfigPath = join(root, "tsconfig.json");
-  const cache = ((loadTsconfig as any)["__cache"] ??= new Map());
   let tsconfig: TSConfig;
   try {
-    tsconfig = parseTsconfig(tsConfigPath, cache) as TSConfig;
+    tsconfig = parseTsconfig(tsConfigPath, tsconfigCache) as TSConfig;
   } catch {
     return {} as TSConfig;
   }
