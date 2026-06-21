@@ -73,12 +73,7 @@ import viteReact from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
-  plugins: [
-    tanstackStart(),
-    viteReact(),
-    tailwindcss(),
-    nitro(),
-  ],
+  plugins: [tanstackStart(), viteReact(), tailwindcss(), nitro()],
   resolve: { tsconfigPaths: true },
   environments: {
     ssr: { build: { rollupOptions: { input: "./server.ts" } } },
