@@ -77,7 +77,6 @@ export function createServiceEnvironment(
       ...(ctx._isRolldown
         ? {
             rolldownOptions: {
-              experimental: { attachDebugInfo: "none" },
               output: { minifyInternalExports: false },
             },
           }
