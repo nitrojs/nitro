@@ -88,7 +88,7 @@
     "@azure/functions": "^3.5.1",
     "@azure/static-web-apps-cli": "^2.0.9",
     "@cloudflare/workers-types": "^4.20260615.1",
-    "@cloudflare/workers-utils": "^0.23.0",
+    "@cloudflare/workers-utils": "^0.24.0",
     "@deno/types": "^0.0.1",
     "@hiogawa/vite-plugin-fullstack": "^0.0.11",
     "@netlify/edge-functions": "^3.0.8",
@@ -105,7 +105,7 @@
     "@types/estree": "^1.0.9",
     "@types/etag": "^1.8.4",
     "@types/http-proxy": "^1.17.17",
-    "@types/node": "^25.9.3",
+    "@types/node": "^26.0.0",
     "@types/node-fetch": "^2.6.13",
     "@types/semver": "^7.7.1",
     "@types/xml2js": "^0.4.14",
@@ -141,9 +141,9 @@
     "miniflare": "^4.20260611.0",
     "mlly": "^1.8.2",
     "nypm": "^0.6.7",
-    "obuild": "^0.4.36",
+    "obuild": "^0.4.37",
     "oxc-parser": "link:shims/oxc-parser",
-    "oxfmt": "^0.54.0",
+    "oxfmt": "^0.55.0",
     "oxlint": "^1.69.0",
     "pathe": "^2.0.3",
     "perfect-debounce": "^2.1.0",
@@ -175,7 +175,7 @@
     "xml2js": "^0.6.2",
     "youch": "^4.1.1",
     "youch-core": "^0.3.3",
-    "zephyr-agent": "^0.2.0"
+    "zephyr-agent": "^1.1.2"
   },
   "peerDependencies": {
     "@vercel/queue": "^0.3.1",
