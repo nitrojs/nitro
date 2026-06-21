@@ -359,6 +359,21 @@ export interface NitroOptions extends PresetOptions {
      */
     sourcemapMinify?: false;
     /**
+     * Rewrite runtime `require()` calls of bundled dependencies to their bundled copy
+     * in the server output.
+     *
+     * Works around dependencies whose vendored CommonJS leaves an unresolved
+     * `__require("react")` (e.g. `use-sync-external-store`'s shim), which otherwise
+     * breaks self-contained output or loads a duplicate React instance.
+     *
+     * - `"react"` — only the React family (`react`, `react-dom`, `react/jsx-runtime`, …).
+     * - `true` — every bundled dependency that leaked a runtime require.
+     * - `false` (default) — disabled.
+     *
+     * @see https://github.com/nitrojs/nitro/issues/4171
+     */
+    cjsRequireRewrite?: boolean | "react";
+    /**
      * Allow env expansion in runtime config
      *
      * @see https://github.com/nitrojs/nitro/pull/2043
