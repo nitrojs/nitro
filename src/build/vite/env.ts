@@ -72,7 +72,16 @@ export function createServiceEnvironment(
       rollupOptions: {
         input: { index: serviceConfig.entry },
         ...(isDev ? {} : { external: [/^nitro(\/|$)/] }),
+        output: { minifyInternalExports: false },
       },
+      ...(ctx._isRolldown
+        ? {
+            rolldownOptions: {
+              experimental: { attachDebugInfo: "none" },
+              output: { minifyInternalExports: false },
+            },
+          }
+        : {}),
       minify: ctx.nitro!.options.minify,
       sourcemap: ctx.nitro!.options.sourcemap,
       outDir: join(ctx.nitro!.options.buildDir, "vite/services", name),
