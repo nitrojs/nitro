@@ -48,6 +48,7 @@ export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> 
     output: {
       format: "esm",
       entryFileNames: "index.mjs",
+      minifyInternalExports: false,
       chunkFileNames: (chunk) => getChunkName(chunk, nitro),
       codeSplitting: {
         groups: [{ test: NODE_MODULES_RE, name: (id) => libChunkName(id) }],
