@@ -5,6 +5,9 @@ import { pathRegExp, toPathRegExp } from "../utils/regex.ts";
 
 export type BaseBuildConfig = ReturnType<typeof baseBuildConfig>;
 
+const ROOT_ALIAS = "@";
+const RESOLVABLE_ALIAS_PREFIXES = new Set(["~", ROOT_ALIAS, "#"]);
+
 export function baseBuildConfig(nitro: Nitro) {
   // prettier-ignore
   const extensions: string[] = [".ts", ".mjs", ".js", ".json", ".node", ".tsx", ".jsx" ];
@@ -100,13 +103,14 @@ export function resolveAliases(_aliases: Record<string, string>) {
       ([a], [b]) => b.split("/").length - a.split("/").length || b.length - a.length
     )
   );
+  const resolvableAliases = Object.keys(aliases).filter(isResolvableAlias);
   // Resolve alias values in relation to each other
   for (const key in aliases) {
-    for (const alias in aliases) {
-      if (!["~", "@", "#"].includes(alias[0])) {
-        continue;
-      }
-      if (alias === "@" && !aliases[key].startsWith("@/")) {
+    if (!isResolvableAlias(aliases[key])) {
+      continue;
+    }
+    for (const alias of resolvableAliases) {
+      if (alias === ROOT_ALIAS && !aliases[key].startsWith(`${ROOT_ALIAS}/`)) {
         continue;
       } // Don't resolve @foo/bar
 
@@ -116,4 +120,8 @@ export function resolveAliases(_aliases: Record<string, string>) {
     }
   }
   return aliases;
+}
+
+function isResolvableAlias(id: string) {
+  return RESOLVABLE_ALIAS_PREFIXES.has(id[0]);
 }
