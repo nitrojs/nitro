@@ -23,4 +23,24 @@ describe("build config", () => {
       "@": "/root",
     });
   });
+
+  it("resolves root double aliases (`~~` and `@@`) like single ones", () => {
+    expect(
+      resolveAliases({
+        "~": "/root/src",
+        "~~": "/root",
+        "@": "/root/src",
+        "@@": "/root",
+        "#fromTildeTilde": "~~/build",
+        "#fromAtAt": "@@/build",
+      })
+    ).toEqual({
+      "#fromTildeTilde": "/root/build",
+      "#fromAtAt": "/root/build",
+      "~~": "/root",
+      "@@": "/root",
+      "~": "/root/src",
+      "@": "/root/src",
+    });
+  });
 });

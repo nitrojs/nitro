@@ -122,9 +122,10 @@ export function resolveAliases(_aliases: Record<string, string>) {
 }
 
 function isResolvableAliasKey(id: string) {
-  return id === ROOT_ALIAS || id[0] === "~" || id[0] === "#";
+  // Internal aliases: `~`, `~~`, `@`, `@@`, `#*` (but not scoped packages like `@scope/pkg`)
+  return id[0] === "~" || id[0] === "#" || /^@+$/.test(id);
 }
 
 function isResolvableAliasValue(id: string) {
-  return id.startsWith(`${ROOT_ALIAS}/`) || id[0] === "~" || id[0] === "#";
+  return id[0] === "~" || id[0] === "#" || /^@+\//.test(id);
 }
