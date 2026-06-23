@@ -37,13 +37,14 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
   fn: (...args: ArgsT) => T | Promise<T>,
   opts: CacheOptions<T, ArgsT> = {}
 ): (...args: ArgsT) => Promise<T> {
-  opts = { ...defaultCacheOptions(), ...opts };
+  const defaults = defaultCacheOptions();
+  opts = { ...defaults, name: undefined, ...opts };
 
   const pending: { [key: string]: Promise<T> } = {};
 
   // Normalize cache params
   const group = opts.group || "nitro/functions";
-  const name = opts.name || fn.name || "_";
+  const name = opts.name || fn.name || defaults.name;
   const integrity = opts.integrity || hash([fn, opts]);
   const validate = opts.validate || ((entry) => entry.value !== undefined);
 
