@@ -1,6 +1,6 @@
 import fsp from "node:fs/promises";
 import { defu } from "defu";
-import { writeFile } from "../_utils/fs.ts";
+import { hardLinkDir, writeFile } from "../_utils/fs.ts";
 import type { Nitro, NitroRouteRules } from "nitro/types";
 import { dirname, relative, resolve } from "pathe";
 import { Router } from "../../routing.ts";
@@ -636,11 +636,9 @@ async function createFunctionDirWithCustomConfig(
   overrides: VercelServerlessFunctionConfig,
   functionPath: string
 ) {
-  // Copy the entire server directory instead of symlinking individual
-  // entries. Vercel's build container preserves symlinks in the Lambda
-  // zip, but symlinks pointing outside the .func directory break at
-  // runtime because the target path doesn't exist on Lambda.
-  await fsp.cp(serverDir, funcDir, { recursive: true });
+  await hardLinkDir(serverDir, funcDir, {
+    skip: new Set([".vc-config.json"]),
+  });
   const mergedConfig = defu(overrides, baseFunctionConfig);
   for (const [key, value] of Object.entries(overrides)) {
     if (Array.isArray(value)) {
