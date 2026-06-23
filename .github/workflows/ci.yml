@@ -15,7 +15,7 @@ jobs:
         os: [ubuntu-latest]
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with: { persist-credentials: false }
       - run: npm i -g --force corepack && corepack enable
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
@@ -34,7 +34,7 @@ jobs:
         os: [ubuntu-latest] # windows-latest disabled (flaky)
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with: { persist-credentials: false }
       - run: npm i -g --force corepack && corepack enable
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
@@ -44,7 +44,7 @@ jobs:
         with: { bun-version: latest }
       - uses: denoland/setup-deno@667a34cdef165d8d2b2e98dde39547c9daac7282 # v2.0.4
         if: ${{ matrix.os != 'windows-latest' }}
-        with: { deno-version: 2.8.1 }
+        with: { deno-version: 2.8.3 }
       - run: node scripts/vite7.ts
       - run: pnpm install
       - run: pnpm stub && pnpm lint
@@ -63,7 +63,7 @@ jobs:
         os: [ubuntu-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with: { persist-credentials: false }
       - run: npm i -g --force corepack && corepack enable
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
@@ -73,7 +73,7 @@ jobs:
         with: { bun-version: latest }
       - uses: denoland/setup-deno@667a34cdef165d8d2b2e98dde39547c9daac7282 # v2.0.4
         if: ${{ matrix.os != 'windows-latest' }}
-        with: { deno-version: 2.8.1 }
+        with: { deno-version: 2.8.3 }
       - run: pnpm install
       - run: pnpm build
       - run: pnpm vitest run test/examples
@@ -85,7 +85,7 @@ jobs:
     timeout-minutes: 10
     needs: [tests-checks, tests-rollup, tests-rolldown]
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with: { fetch-depth: 0, persist-credentials: false }
       - run: npm i -fg corepack && corepack enable
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
@@ -101,7 +101,7 @@ jobs:
     needs: [tests-checks, tests-rollup, tests-rolldown]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with: { fetch-depth: 0, persist-credentials: false }
       - run: npm i -fg corepack && corepack enable
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0

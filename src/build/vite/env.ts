@@ -26,7 +26,7 @@ export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOpti
         ? isWorkerdRunner
           ? true
           : [
-              /^nitro$/, // i have absolutely no idea why and how it fixes issues!
+              /^nitro(\/|$)/,
               new RegExp(`^(${runtimeDependencies.join("|")})$`), // virtual resolutions in vite skip plugin hooks
               ...ctx.bundlerConfig!.base.noExternal,
             ]
@@ -64,13 +64,15 @@ export function createServiceEnvironment(
   name: string,
   serviceConfig: ServiceConfig
 ): EnvironmentOptions {
+  const isDev = ctx.nitro!.options.dev;
   const isWorkerdRunner = _isWorkerdRunner(ctx);
   return {
     consumer: "server",
     build: {
       rollupOptions: {
         input: { index: serviceConfig.entry },
-        external: [/^nitro(\/|$)/],
+        ...(isDev ? {} : { external: [/^nitro(\/|$)/] }),
+        output: { minifyInternalExports: false },
       },
       minify: ctx.nitro!.options.minify,
       sourcemap: ctx.nitro!.options.sourcemap,
@@ -79,7 +81,7 @@ export function createServiceEnvironment(
       copyPublicDir: false,
     },
     resolve: {
-      ...(isWorkerdRunner ? { noExternal: true } : {}),
+      ...(isDev ? { noExternal: isWorkerdRunner ? true : [/^nitro(\/|$)/] } : {}),
       conditions: isWorkerdRunner
         ? ["workerd", "worker", ...ctx.nitro!.options.exportConditions!.filter((c) => c !== "node")]
         : ctx.nitro!.options.exportConditions,
@@ -176,6 +178,10 @@ async function _loadRunner(ctx: NitroPluginContext, manager: RunnerManager) {
     const { MiniflareEnvRunner } = await import("env-runner/runners/miniflare");
     runner = new MiniflareEnvRunner({
       name: "nitro-vite",
+      wrangler: {
+        ...ctx.nitro!.options.cloudflare?.wrangler,
+      },
+      wranglerEnv: ctx.nitro!.options.cloudflare?.wranglerEnv,
       data: { entry },
     });
   } else {
@@ -185,49 +191,6 @@ async function _loadRunner(ctx: NitroPluginContext, manager: RunnerManager) {
     });
   }
   await manager.reload(runner);
-}
-
-// Service environments (e.g. SSR) must not bundle their own copy of `nitro/*`
-// runtime modules. In dev, imports are proxied to the Nitro environment via
-// __VITE_ENVIRONMENT_RUNNER_IMPORT__. In prod, they are externalized (see createServiceEnvironment).
-const NITRO_PROXY_PREFIX = "\0nitro-env-proxy:";
-
-export function nitroServiceProxy(): VitePlugin {
-  return {
-    name: "nitro:service-proxy",
-    enforce: "pre",
-    applyToEnvironment: (env) => env.name !== "nitro" && env.config.consumer === "server",
-    apply: (_config, configEnv) => configEnv.command === "serve",
-
-    resolveId: {
-      filter: { id: /^nitro(\/|$)/ },
-      handler(id) {
-        if (id === "nitro" || id.startsWith("nitro/")) {
-          return { id: NITRO_PROXY_PREFIX + id, moduleSideEffects: false };
-        }
-      },
-    },
-
-    load: {
-      filter: { id: /^\0nitro-env-proxy:/ },
-      handler(id) {
-        if (!id.startsWith(NITRO_PROXY_PREFIX)) {
-          return;
-        }
-        const originalId = id.slice(NITRO_PROXY_PREFIX.length);
-        // __vite_ssr_exportAll__ is provided by the module runner execution context.
-        // It re-exports all enumerable own properties (except "default") from the source module.
-        return {
-          code: [
-            `const _mod = await globalThis.__VITE_ENVIRONMENT_RUNNER_IMPORT__("nitro", ${JSON.stringify(originalId)});`,
-            `__vite_ssr_exportAll__(_mod);`,
-            `export default _mod.default;`,
-          ].join("\n"),
-          map: null,
-        };
-      },
-    },
-  };
 }
 
 // workerd-based runners (miniflare) cannot handle CJS externals via import(),

@@ -82,6 +82,17 @@ describe("vite:app", () => {
     expect(res.status).not.toBe(200);
   });
 
+  // HTTPError thrown from the SSR entry must propagate to the nitro app so the h3
+  // error handler preserves its status and headers (consistent with production).
+  test("propagates HTTPError status and headers from the SSR entry", async () => {
+    const res = await fetch(`${serverURL}/?error`, {
+      headers: { "sec-fetch-dest": "document", accept: "text/html" },
+      redirect: "manual",
+    });
+    expect(res.status).toBe(418);
+    expect(res.headers.get("x-test")).toBe("123");
+  });
+
   // A page navigation matching only the SSR `/**` catch-all must reach the renderer.
   test("routes page navigations to the SSR catch-all renderer", async () => {
     const res = await fetch(`${serverURL}/some/nested/page`, {
