@@ -1,4 +1,6 @@
 import type {
+  ALBEvent,
+  ALBResult,
   APIGatewayProxyEvent,
   APIGatewayProxyEventV2,
   APIGatewayProxyResult,
@@ -10,6 +12,7 @@ import { useNitroApp } from "nitropack/runtime";
 import {
   normalizeCookieHeader,
   normalizeLambdaIncomingHeaders,
+  normalizeLambdaIncomingQuery,
   normalizeLambdaOutgoingBody,
   normalizeLambdaOutgoingHeaders,
 } from "nitropack/runtime/internal";
@@ -18,28 +21,29 @@ import { withQuery } from "ufo";
 const nitroApp = useNitroApp();
 
 export async function handler(
+  event: ALBEvent,
+  context: Context
+): Promise<ALBResult>;
+export async function handler(
   event: APIGatewayProxyEvent,
   context: Context
 ): Promise<APIGatewayProxyResult>;
 export async function handler(
-  event: APIGatewayProxyEventV2,
+  event: APIGatewayProxyEventV2, // `LambdaFunctionURLEvent` is an alias of `APIGatewayProxyEventV2`
   context: Context
-): Promise<APIGatewayProxyResultV2>;
+): Promise<APIGatewayProxyResultV2>; // `LambdaFunctionURLResult` is an alias of `APIGatewayProxyResultV2`
 export async function handler(
-  event: APIGatewayProxyEvent | APIGatewayProxyEventV2,
+  event: ALBEvent | APIGatewayProxyEvent | APIGatewayProxyEventV2,
   context: Context
-): Promise<APIGatewayProxyResult | APIGatewayProxyResultV2> {
-  const query = {
-    ...event.queryStringParameters,
-    ...(event as APIGatewayProxyEvent).multiValueQueryStringParameters,
-  };
+): Promise<ALBResult | APIGatewayProxyResult | APIGatewayProxyResultV2> {
+  const query = normalizeLambdaIncomingQuery(event);
   const url = withQuery(
-    (event as APIGatewayProxyEvent).path ||
+    (event as ALBEvent | APIGatewayProxyEvent).path ||
       (event as APIGatewayProxyEventV2).rawPath,
     query
   );
   const method =
-    (event as APIGatewayProxyEvent).httpMethod ||
+    (event as ALBEvent | APIGatewayProxyEvent).httpMethod ||
     (event as APIGatewayProxyEventV2).requestContext?.http?.method ||
     "get";
 
@@ -51,7 +55,7 @@ export async function handler(
     event,
     url,
     context,
-    headers: normalizeLambdaIncomingHeaders(event.headers) as Record<
+    headers: normalizeLambdaIncomingHeaders(event) as Record<
       string,
       string | string[]
     >,
