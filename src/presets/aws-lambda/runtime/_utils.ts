@@ -18,9 +18,9 @@ export function awsRequest(
   // srvx compatibility
   req.runtime ??= { name: "aws-lambda" };
   // @ts-expect-error (add to srvx types)
-  req.runtime.aws ??= { event, context } as any;
+  req.runtime.awsLambda ??= { event, context } as any;
 
-  return new Request(url, { method, headers, body });
+  return req;
 }
 
 function awsEventMethod(event: APIGatewayProxyEvent | APIGatewayProxyEventV2): string {
