@@ -1,33 +1,12 @@
-import type {
-  CaptureError,
-  MatchedRouteRules,
-  NitroApp,
-  NitroAsyncContext,
-  NitroRuntimeHooks,
-} from "nitro/types";
+import type { MatchedRouteRules, NitroApp, NitroRuntimeHooks } from "nitro/types";
 import type { ServerRequest, ServerRequestContext } from "srvx";
-import type { H3Config, H3EventContext, Middleware, WebSocketHooks } from "h3";
-import { H3Core, toRequest } from "h3";
+import type { H3EventContext, Middleware, WebSocketHooks } from "h3";
+import { toRequest } from "h3";
 import { HookableCore } from "hookable";
-import { nitroAsyncContext } from "./context.ts";
 
 // IMPORTANT: virtual imports and user code should be imported last to avoid initialization order issues
-import errorHandler from "#nitro/virtual/error-handler";
-import { plugins } from "#nitro/virtual/plugins";
-import {
-  findRoute,
-  findRouteRules,
-  globalMiddleware,
-  findRoutedMiddleware,
-} from "#nitro/virtual/routing";
-import {
-  hasRouteRules,
-  hasRoutedMiddleware,
-  hasGlobalMiddleware,
-  hasRoutes,
-  hasHooks,
-  hasPlugins,
-} from "#nitro/virtual/feature-flags";
+import { findRouteRules } from "#nitro/virtual/routing";
+import { createNitroApp, initNitroPlugins } from "#nitro/virtual/app";
 
 declare global {
   var __nitro__:
@@ -45,9 +24,7 @@ export function useNitroApp(): NitroApp {
   instance = (useNitroApp as any)._instance = createNitroApp();
   globalThis.__nitro__ = globalThis.__nitro__ || {};
   globalThis.__nitro__[APP_ID] = instance;
-  if (hasPlugins) {
-    initNitroPlugins(instance);
-  }
+  initNitroPlugins(instance);
   return instance;
 }
 
@@ -91,118 +68,6 @@ export function fetch(
   }
   resource = (resource as any)._request || resource; // unwrap srvx request
   return globalThis.fetch(resource, init);
-}
-
-function createNitroApp(): NitroApp {
-  const hooks = hasHooks ? new HookableCore<NitroRuntimeHooks>() : undefined;
-
-  const captureError: CaptureError = (error, errorCtx) => {
-    const promise =
-      hasHooks &&
-      hooks!.callHook("error", error, errorCtx)?.catch?.((hookError: any) => {
-        console.error("Error while capturing another error", hookError);
-      });
-    if (errorCtx?.event) {
-      const errors = errorCtx.event.req.context?.nitro?.errors;
-      if (errors) {
-        errors.push({ error, context: errorCtx });
-      }
-      if (hasHooks && promise && typeof errorCtx.event.req.waitUntil === "function") {
-        errorCtx.event.req.waitUntil(promise);
-      }
-    }
-  };
-
-  const h3App = createH3App({
-    onError(error, event) {
-      hasHooks && captureError(error, { event });
-      return errorHandler(error, event);
-    },
-  });
-
-  if (hasHooks) {
-    h3App.config.onRequest = (event) => {
-      return hooks!.callHook("request", event)?.catch?.((error: any) => {
-        captureError(error, { event, tags: ["request"] });
-      });
-    };
-    h3App.config.onResponse = (res, event) => {
-      return hooks!.callHook("response", res, event)?.catch?.((error: any) => {
-        captureError(error, { event, tags: ["response"] });
-      });
-    };
-  }
-
-  let appHandler = (req: ServerRequest): Response | Promise<Response> => {
-    req.context ||= {};
-    req.context.nitro = req.context.nitro || { errors: [] };
-    return h3App.fetch(req);
-  };
-
-  // Experimental async context support
-  if (import.meta._asyncContext) {
-    const originalHandler = appHandler;
-    appHandler = (req: ServerRequest): Promise<Response> => {
-      const asyncCtx: NitroAsyncContext = { request: req as Request };
-      return nitroAsyncContext.callAsync(asyncCtx, () => originalHandler(req));
-    };
-  }
-
-  const app: NitroApp = {
-    fetch: appHandler,
-    h3: h3App,
-    hooks,
-    captureError,
-  };
-
-  return app;
-}
-
-function initNitroPlugins(app: NitroApp) {
-  for (const plugin of plugins) {
-    try {
-      plugin(app as NitroApp & { hooks: NonNullable<NitroApp["hooks"]> });
-    } catch (error: any) {
-      app.captureError?.(error, { tags: ["plugin"] });
-      throw error;
-    }
-  }
-  return app;
-}
-
-function createH3App(config: H3Config) {
-  // Create H3 app
-  const h3App = new H3Core(config);
-
-  // Compiled route matching
-  hasRoutes && (h3App["~findRoute"] = (event) => findRoute(event.req.method, event.url.pathname));
-
-  hasGlobalMiddleware && h3App["~middleware"].push(...globalMiddleware);
-
-  if (hasRouteRules || hasRoutedMiddleware) {
-    h3App["~getMiddleware"] = (event, route) => {
-      const needsRouting = hasRouteRules || hasRoutedMiddleware;
-      const pathname = needsRouting ? event.url.pathname : undefined;
-      const method = needsRouting ? event.req.method : undefined;
-      const middleware: Middleware[] = [];
-      if (hasRouteRules) {
-        const routeRules = getRouteRules(method!, pathname!);
-        event.context.routeRules = routeRules?.routeRules;
-        if (routeRules?.routeRuleMiddleware.length) {
-          middleware.push(...routeRules.routeRuleMiddleware);
-        }
-      }
-      hasGlobalMiddleware && middleware.push(...h3App["~middleware"]);
-      hasRoutedMiddleware &&
-        middleware.push(...findRoutedMiddleware(method!, pathname!).map((r) => r.data));
-      if (hasRoutes && route?.data?.middleware?.length) {
-        middleware.push(...route.data.middleware);
-      }
-      return middleware;
-    };
-  }
-
-  return h3App;
 }
 
 export function getRouteRules(

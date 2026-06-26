@@ -57,7 +57,7 @@ icon: i-simple-icons-tanstack
     "baseUrl": ".",
     "jsx": "react-jsx",
     "paths": {
-      "@/*": ["sec/*"]
+      "@/*": ["./src/*"]
     }
   }
 }

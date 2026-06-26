@@ -3,6 +3,14 @@
 shellEmulator: true
 dedupePeers: true
 ignoreWorkspaceRootCheck: true
+linkWorkspacePackages: "deep"
+minimumReleaseAge: 1440
+
+overrides:
+  "nitro": "workspace:*"
+  "cookie-es": "^3.1.1"
+  "oxc-parser": "link:./shims/oxc-parser"
+  # "vite": "^7"
 
 packages:
   - examples/**
@@ -17,7 +25,11 @@ trustPolicyExclude:
 blockExoticSubdeps: true
 strictDepBuilds: true
 allowBuilds:
+  # Allowed
+  "better-sqlite3": true
+  # Blocked
   "@parcel/watcher": false
+  "@prisma/client": false
   esbuild: false
   keytar: false
   sharp: false
@@ -32,3 +44,52 @@ peerDependencyRules:
 updateConfig:
   ignoreDependencies:
     - vite7
+
+patchedDependencies:
+  '@hiogawa/vite-plugin-fullstack': patches/@hiogawa__vite-plugin-fullstack.patch
+
+minimumReleaseAgeExclude:
+  - automd*
+  - c12*
+  - changelogen*
+  - citty*
+  - compatx*
+  - confbox*
+  - consola*
+  - cookie-es*
+  - crossws*
+  - db0*
+  - defu*
+  - destr*
+  - env-runner*
+  - exsolve*
+  - get-port-please*
+  - giget*
+  - h3*
+  - hookable*
+  - httpxy*
+  - knitwork*
+  - mdzilla*
+  - mlly*
+  - nf3*
+  - nypm*
+  - obuild*
+  - ocache*
+  - ofetch*
+  - ohash*
+  - pathe*
+  - perfect-debounce*
+  - pkg-types*
+  - rou3*
+  - scule*
+  - serve-placeholder*
+  - srvx*
+  - std-env*
+  - ufo*
+  - uncrypto*
+  - unctx*
+  - unenv*
+  - unimport*
+  - unstorage*
+  - untyped*
+  - unwasm*

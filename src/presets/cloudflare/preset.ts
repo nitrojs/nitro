@@ -11,7 +11,6 @@ import {
   writeCFHeaders,
   writeCFPagesRedirects,
 } from "./utils.ts";
-import { cloudflareDevModule } from "./dev.ts";
 import { setupEntryExports } from "./entry-exports.ts";
 
 // Some bundlers (e.g. rolldown-vite) emit `createRequire(import.meta.url)` in
@@ -139,7 +138,9 @@ const cloudflarePagesStatic = defineNitroPreset(
 export const cloudflareDev = defineNitroPreset(
   {
     extends: "nitro-dev",
-    modules: [cloudflareDevModule],
+    devServer: {
+      runner: "miniflare",
+    },
   },
   {
     name: "cloudflare-dev" as const,

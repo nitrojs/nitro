@@ -49,7 +49,7 @@ export function virtual(input: VirtualModule[]): Plugin {
       handler: async (id) => {
         const mod = modules.get(id);
         if (!mod) {
-          throw new Error(`Virtual module ${id} not found.`);
+          return null;
         }
         return {
           code: await mod.render(),

@@ -62,7 +62,7 @@ async function installPkg(pkg: string, root: string) {
 }
 
 function hasNitroViteConfig(options: NitroOptions): boolean {
-  const configExts = [".ts", ".mts", ".js", ".mjs"];
+  const configExts = [".ts", ".mts", ".cts", ".js", ".mjs", ".cjs"];
   for (const ext of configExts) {
     const configPath = resolve(options.rootDir, `vite.config${ext}`);
     if (existsSync(configPath)) {

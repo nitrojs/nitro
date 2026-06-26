@@ -16,24 +16,18 @@ import { defineConfig } from "vite";
 import { nitro } from "nitro/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
-import viteTsConfigPaths from "vite-tsconfig-paths";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
-  plugins: [
-    viteTsConfigPaths({ projects: ["./tsconfig.json"] }),
-    tanstackStart(),
-    viteReact(),
-    tailwindcss(),
-    nitro(),
-  ],
+  plugins: [tanstackStart(), viteReact(), tailwindcss(), nitro()],
+  resolve: { tsconfigPaths: true },
   environments: {
     ssr: { build: { rollupOptions: { input: "./server.ts" } } },
   },
 });
 ```
 
-The `tanstackStart()` plugin provides full SSR integration with automatic client entry handling. Use `viteTsConfigPaths()` to enable path aliases like `~/` from tsconfig. The `environments.ssr` option points to the server entry file.
+The `tanstackStart()` plugin provides full SSR integration with automatic client entry handling. The `environments.ssr` option points to the server entry file.
 
 ## 2. Create the Server Entry
 
