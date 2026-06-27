@@ -1,5 +1,5 @@
 // Config
-import type { NitroConfig } from "nitro/types";
+import type { NitroConfig, ServerFetch } from "nitro/types";
 import type { ServerRequestContext } from "srvx";
 import { toRequest, type H3EventContext } from "h3";
 
@@ -24,7 +24,7 @@ export {
 export type { H3Event, EventHandlerRequest, EventHandlerWithFetch } from "h3";
 
 // Runtime
-export function serverFetch(
+function serverFetchImpl(
   resource: string | URL | Request,
   init?: RequestInit,
   context?: ServerRequestContext | H3EventContext
@@ -45,13 +45,15 @@ export function serverFetch(
   }
 }
 
+export const serverFetch: ServerFetch = serverFetchImpl;
+
 export function fetch(
   resource: string | URL | Request,
   init?: RequestInit,
   context?: ServerRequestContext | H3EventContext
 ): Promise<Response> {
   if (typeof resource === "string" && resource.charCodeAt(0) === 47) {
-    return serverFetch(resource, init, context);
+    return serverFetchImpl(resource, init, context);
   }
   resource = (resource as any)._request || resource; // unwrap srvx request
   return globalThis.fetch(resource, init);

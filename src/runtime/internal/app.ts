@@ -1,4 +1,4 @@
-import type { MatchedRouteRules, NitroApp, NitroRuntimeHooks } from "nitro/types";
+import type { MatchedRouteRules, NitroApp, NitroRuntimeHooks, ServerFetch } from "nitro/types";
 import type { ServerRequest, ServerRequestContext } from "srvx";
 import type { H3EventContext, Middleware, WebSocketHooks } from "h3";
 import { toRequest } from "h3";
@@ -37,7 +37,7 @@ export function useNitroHooks(): HookableCore<NitroRuntimeHooks> {
   return (nitroApp.hooks = new HookableCore<NitroRuntimeHooks>());
 }
 
-export function serverFetch(
+function serverFetchImpl(
   resource: string | URL | Request,
   init?: RequestInit,
   context?: ServerRequestContext | H3EventContext
@@ -52,9 +52,11 @@ export function serverFetch(
   }
 }
 
+export const serverFetch: ServerFetch = serverFetchImpl;
+
 export async function resolveWebsocketHooks(req: ServerRequest): Promise<Partial<WebSocketHooks>> {
   // https://github.com/h3js/h3/blob/c11ca743d476e583b3b47de1717e6aae92114357/src/utils/ws.ts#L37
-  const hooks = ((await serverFetch(req)) as any).crossws as Partial<WebSocketHooks>;
+  const hooks = ((await serverFetchImpl(req)) as any).crossws as Partial<WebSocketHooks>;
   return hooks || {};
 }
 
@@ -64,7 +66,7 @@ export function fetch(
   context?: ServerRequestContext | H3EventContext
 ): Promise<Response> {
   if (typeof resource === "string" && resource.charCodeAt(0) === 47) {
-    return serverFetch(resource, init, context);
+    return serverFetchImpl(resource, init, context);
   }
   resource = (resource as any)._request || resource; // unwrap srvx request
   return globalThis.fetch(resource, init);

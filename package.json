@@ -62,9 +62,10 @@
     "nitro": "node ./src/cli/index.ts",
     "release": "node ./scripts/release.ts",
     "stub": "obuild --stub",
-    "test": "pnpm lint && pnpm build && pnpm typecheck && pnpm test:rollup && pnpm test:rolldown",
+    "test": "pnpm lint && pnpm build && pnpm typecheck && pnpm test:types && pnpm test:rollup && pnpm test:rolldown",
     "test:rolldown": "NITRO_BUILDER=rolldown pnpm vitest",
     "test:rollup": "NITRO_BUILDER=rollup pnpm vitest",
+    "test:types": "vitest --typecheck.only",
     "typecheck": "tsgo --noEmit --skipLibCheck"
   },
   "dependencies": {
@@ -125,6 +126,7 @@
     "etag": "^1.8.1",
     "execa": "^9.6.1",
     "exsolve": "^1.0.8",
+    "fetchdts": "^0.1.7",
     "get-port-please": "^3.2.0",
     "get-tsconfig": "^4.14.0",
     "giget": "^3.3.0",
