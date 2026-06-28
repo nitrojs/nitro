@@ -157,6 +157,7 @@ export function externals(opts: ExternalsOptions): Plugin {
         await traceNodeModules([...tracedPaths], {
           ...traceOpts,
           fullTraceInclude: resolved?.fullTraceInclude,
+          traceInclude: resolved?.traceInclude,
           conditions: opts.conditions,
           rootDir: opts.rootDir,
           writePackageJson: true, // deno compat
@@ -227,11 +228,18 @@ export function resolveTraceDeps(
   const fullTraceInclude = [...new Set([...builtinFullTrace, ...userFullTrace])].filter(
     (d) => !negated.has(d)
   );
+  // Named (non-RegExp) deps to force-trace by name. nft cannot statically detect
+  // packages that are loaded dynamically (e.g. native bindings), so they are
+  // resolved and traced explicitly by `traceNodeModules`. This also makes them
+  // work under pnpm, where a nested dependency is not hoisted and only resolves
+  // from the dependent package's real `.pnpm` location.
+  const traceInclude = resolved.filter((d): d is string => typeof d === "string");
   return {
     includePattern: tracePattern
       ? new RegExp(`(?:^|[/\\\\]node_modules[/\\\\])(?:${tracePattern})(?:[/\\\\]|$)`)
       : undefined,
     fullTraceInclude: fullTraceInclude.length > 0 ? fullTraceInclude : undefined,
+    traceInclude: traceInclude.length > 0 ? traceInclude : undefined,
   };
 }
 
