@@ -162,7 +162,7 @@ describe("getChunkName", () => {
       },
     } as any);
     expect(getChunkName(createChunk("route", ["/src/routes/api/users/[id].ts"]), n)).toBe(
-      "_routes/api/users/_id_.mjs"
+      "_routes/api/users/%5Bid%5D.mjs"
     );
   });
 
@@ -185,7 +185,29 @@ describe("getChunkName", () => {
     } as any);
     expect(
       getChunkName(createChunk("route", ["/src/routes/api/applications/[id]/context.get.ts"]), n)
-    ).toBe("_routes/api/applications/_id_/context.mjs");
+    ).toBe("_routes/api/applications/%5Bid%5D/context.mjs");
+  });
+
+  it("dynamic :id and literal _id_ segment produce distinct chunk names (no collision)", () => {
+    const dynamic = createNitro({
+      routing: {
+        routes: {
+          routes: [{ data: [{ route: "/api/:id", handler: "/src/routes/api/[id].ts" }] }],
+        },
+      },
+    } as any);
+    const literal = createNitro({
+      routing: {
+        routes: {
+          routes: [{ data: [{ route: "/api/_id_", handler: "/src/routes/api/_id_.ts" }] }],
+        },
+      },
+    } as any);
+    const dynamicChunk = getChunkName(createChunk("route", ["/src/routes/api/[id].ts"]), dynamic);
+    const literalChunk = getChunkName(createChunk("route", ["/src/routes/api/_id_.ts"]), literal);
+    expect(dynamicChunk).toBe("_routes/api/%5Bid%5D.mjs");
+    expect(literalChunk).toBe("_routes/api/_id_.mjs");
+    expect(dynamicChunk).not.toBe(literalChunk);
   });
 
   it("returns _routes/index.mjs for root route", () => {

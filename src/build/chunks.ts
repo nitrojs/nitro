@@ -78,7 +78,7 @@ export function getChunkName(chunk: { name: string; moduleIds: string[] }, nitro
       .flatMap((h) => h.data)
       .find((h) => h.handler === mainId);
     if (routeHandler?.route) {
-      return `_routes/${routeToFsPath(routeHandler.route).replace(/\[([^\]]*)\]/g, "_$1_")}.mjs`;
+      return `_routes/${routeToFsPath(routeHandler.route).replace(/\[([^\]]*)\]/g, "%5B$1%5D")}.mjs`;
     }
 
     const taskHandler = Object.entries(nitro.options.tasks).find(
