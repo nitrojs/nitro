@@ -1,28 +1,11 @@
-import { HTTPError, defineHandler, getRequestIP } from "h3";
+import { HTTPError, defineHandler } from "h3";
 import type { Nitro } from "nitro/types";
+import { isLocalDevRequest } from "./_request.ts";
 
 export function createVFSHandler(nitro: Nitro) {
   return defineHandler(async (event) => {
-    const { socket } = event.runtime?.node?.req || {};
-
-    // prettier-ignore
-    const isUnixSocket =
-      // No network addresses
-      (!socket?.remoteAddress && !socket?.localAddress) &&
-      // Empty address object
-      Object.keys(socket?.address?.() || {}).length === 0 &&
-      // Socket is readable/writable but has no port info
-      socket?.readable && socket?.writable && !socket?.remotePort;
-
-    const ip = getRequestIP(event, { xForwardedFor: isUnixSocket });
-    const v4 = ip?.toLowerCase().startsWith("::ffff:") ? ip.slice(7) : ip;
-
-    const isLocalRequest = v4 && /^(?:::1|127\.\d+\.\d+\.\d+)$/.test(v4);
-    if (!isLocalRequest) {
-      throw new HTTPError({
-        statusText: `Forbidden IP: "${ip || "?"}"`,
-        status: 403,
-      });
+    if (!isLocalDevRequest(event)) {
+      throw new HTTPError({ statusText: "Forbidden IP", status: 403 });
     }
 
     const url = event.context.params?._ || "";

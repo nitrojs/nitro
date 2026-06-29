@@ -13,6 +13,7 @@ import { join } from "pathe";
 import { debounce } from "perfect-debounce";
 import { withBase } from "ufo";
 import { scanHandlers } from "../../scan.ts";
+import { writeTypes } from "../types.ts";
 import { getEnvRunner } from "./env.ts";
 
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
@@ -150,6 +151,7 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   const reload = debounce(async () => {
     await scanHandlers(nitro);
     nitro.routing.sync();
+    await writeTypes(nitro);
     nitroEnv.moduleGraph.invalidateAll();
     nitroEnv.hot.send({ type: "full-reload" });
   });
