@@ -25,7 +25,7 @@
     "skills"
   ],
   "type": "module",
-  "types": "./lib/index.d.mts",
+  "types": "./dist/runtime/nitro.d.mts",
   "imports": {
     "#nitro/runtime/*": "./dist/runtime/internal/*.mjs",
     "#nitro/virtual/*": "./dist/runtime/virtual/*.mjs"
