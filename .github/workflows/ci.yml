@@ -22,10 +22,11 @@ jobs:
         with: { node-version: lts/*, cache: pnpm }
       - run: pnpm install
       - run: pnpm build
-      - run: pnpm typecheck
-      - run: pnpm vitest run test/unit
-      - run: pnpm vitest run test/minimal
-      - run: pnpm vitest run test/vite
+      - parallel:
+          - run: pnpm typecheck
+          - run: pnpm vitest run test/unit
+          - run: pnpm vitest run test/minimal
+          - run: pnpm vitest run test/vite
   tests-rollup:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
@@ -50,10 +51,11 @@ jobs:
       - run: pnpm stub && pnpm lint
         if: ${{ matrix.os != 'windows-latest' }}
       - run: pnpm build
-      - run: pnpm vitest run test/examples
-        env: { NITRO_BUILDER: rollup, NITRO_VITE_PKG: vite7 }
-      - run: pnpm vitest run test/presets
-        env: { NITRO_BUILDER: rollup, NITRO_VITE_PKG: vite7 }
+      - parallel:
+          - run: pnpm vitest run test/examples
+            env: { NITRO_BUILDER: rollup, NITRO_VITE_PKG: vite7 }
+          - run: pnpm vitest run test/presets
+            env: { NITRO_BUILDER: rollup, NITRO_VITE_PKG: vite7 }
 
   tests-rolldown:
     runs-on: ${{ matrix.os }}
@@ -76,10 +78,11 @@ jobs:
         with: { deno-version: 2.8.3 }
       - run: pnpm install
       - run: pnpm build
-      - run: pnpm vitest run test/examples
-        env: { NITRO_BUILDER: rolldown, NITRO_VITE_PKG: vite }
-      - run: pnpm vitest run test/presets
-        env: { NITRO_BUILDER: rolldown, NITRO_VITE_PKG: vite }
+      - parallel:
+          - run: pnpm vitest run test/examples
+            env: { NITRO_BUILDER: rolldown, NITRO_VITE_PKG: vite }
+          - run: pnpm vitest run test/presets
+            env: { NITRO_BUILDER: rolldown, NITRO_VITE_PKG: vite }
   publish-pkg-pr-new:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -99,7 +102,7 @@ jobs:
     environment: npm-publish-nightly
     permissions: { id-token: write, contents: read }
     needs: [tests-checks, tests-rollup, tests-rolldown]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && github.repository == 'nitrojs/nitro'
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with: { fetch-depth: 0, persist-credentials: false }
