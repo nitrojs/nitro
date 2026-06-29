@@ -44,6 +44,7 @@ export const getBundlerConfig = async (
           inject: base.env.inject as Record<string, string>,
         },
         output: {
+          minifyInternalExports: false,
           codeSplitting: {
             groups: [
               {
