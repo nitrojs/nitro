@@ -1,3 +1,5 @@
+import type { IncomingMessage } from "node:http";
+import type { Socket } from "node:net";
 import type { FSWatcher } from "chokidar";
 import type { ServerOptions, Server } from "srvx";
 import type {
@@ -11,6 +13,7 @@ import { RunnerManager, loadRunner } from "env-runner";
 import type { Nitro } from "nitro/types";
 
 import { HTTPError } from "h3";
+import { createWebSocketProxy } from "crossws";
 
 import consola from "consola";
 import { resolve } from "pathe";
@@ -20,7 +23,6 @@ import { debounce } from "perfect-debounce";
 import { isTest, isCI } from "std-env";
 import { NitroDevApp } from "./app.ts";
 import { writeDevBuildInfo } from "../build/info.ts";
-import { createWebSocketProxyPlugin } from "./_ws-proxy.ts";
 
 export function createDevServer(nitro: Nitro): NitroDevServer {
   return new NitroDevServer(nitro);
@@ -128,18 +130,37 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
 
   // #region Public Methods
 
+  async upgrade(req: IncomingMessage, socket: Socket, head: any) {
+    if (!this.#manager.upgrade) {
+      throw new HTTPError({
+        status: 501,
+        statusText: "Worker does not support upgrades.",
+      });
+    }
+    // Upgrades can arrive while the worker is (re)building; the runner drops
+    // them when it isn't ready yet, so wait for it before proxying.
+    for (let i = 0; i < 200 && !this.#manager.ready; i++) {
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    return this.#manager.upgrade({ node: { req, socket, head } });
+  }
+
   async listen(opts?: Partial<Omit<ServerOptions, "fetch">>): Promise<Server> {
-    // Proxy WebSocket upgrades to the dev worker using `crossws` + a standard
-    // `WebSocket` client. This is runtime-native (works under Node, Bun and
-    // Deno) and avoids the Node.js `http.Server` `"upgrade"` event + raw socket
-    // proxy, which fails under `bun --bun` (Bun drops manual upgrade writes and
-    // its `node:http` client never surfaces the `101` response).
     const websocket =
       this.nitro.options.features.websocket ?? this.nitro.options.experimental.websocket;
+
     const plugins = [...(opts?.plugins ?? [])];
-    if (websocket) {
+
+    // Bun/Deno serve natively and expose no Node.js upgrade socket, so the raw
+    // `http.Server` `"upgrade"` proxy can't work there (Bun also drops manual
+    // upgrade writes and never surfaces the `101` on its `node:http` client).
+    // Bridge the WebSocket to the worker with `crossws` + a `WebSocket` client.
+    // On Node the native upgrade event proxies the raw socket directly (below).
+    const nativeRuntime = "Bun" in globalThis || "Deno" in globalThis;
+    if (websocket && nativeRuntime) {
       plugins.push(await createWebSocketProxyPlugin(() => this.#workerAddr));
     }
+
     const server = serve({
       ...opts,
       fetch: this.fetch,
@@ -147,6 +168,11 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
       gracefulShutdown: false,
     });
     this.#listeners.push(server);
+
+    if (websocket && !nativeRuntime && server.node?.server) {
+      server.node.server.on("upgrade", (req, sock, head) => this.upgrade(req, sock, head));
+    }
+
     return server;
   }
 
@@ -252,4 +278,61 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
   }
 
   // #endregion
+}
+
+type CrosswsPlugin = Awaited<typeof import("crossws/server/bun")>["plugin"];
+type SrvxPlugin = ReturnType<CrosswsPlugin>;
+
+/**
+ * WebSocket reverse-proxy plugin bridging the dev server to the worker, used on
+ * Bun/Deno. Those runtimes serve natively (no Node.js upgrade socket to proxy),
+ * so the client WebSocket is terminated with `crossws` and proxied to the dev
+ * worker over a standard `WebSocket` client.
+ */
+async function createWebSocketProxyPlugin(
+  getAddress: () => WorkerAddress | undefined
+): Promise<SrvxPlugin> {
+  const { plugin } =
+    "Bun" in globalThis ? await import("crossws/server/bun") : await import("crossws/server/deno");
+
+  const proxy = createWebSocketProxy({
+    target: (peer) => {
+      const addr = getAddress();
+      if (!addr?.port) {
+        throw new Error("Dev worker is not ready");
+      }
+      const { pathname, search } = new URL(peer.request.url);
+      return `ws://${addr.host || "127.0.0.1"}:${addr.port}${pathname}${search}`;
+    },
+    // Resolve the forwarded subprotocol defensively: on Deno the request is no
+    // longer readable inside the `open` hook (after `Deno.upgradeWebSocket()`).
+    forwardProtocol: (peer) => {
+      try {
+        const header = peer.request.headers.get("sec-websocket-protocol");
+        return header
+          ? header
+              .split(",")
+              .map((p) => p.trim())
+              .filter(Boolean)
+          : undefined;
+      } catch {
+        return undefined;
+      }
+    },
+  });
+
+  // The upgrade can arrive before the worker has reported its address (e.g.
+  // right after a reload). The `upgrade` hook is awaited by every srvx adapter,
+  // so wait here for the worker to become ready before proxying.
+  const hooks = {
+    ...proxy,
+    async upgrade(request: Request) {
+      for (let i = 0; i < 200 && !getAddress()?.port; i++) {
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      return proxy.upgrade?.(request);
+    },
+  };
+
+  return plugin({ resolve: () => hooks });
 }
