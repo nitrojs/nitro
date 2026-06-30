@@ -30,8 +30,8 @@ importers:
         specifier: '*'
         version: 17.4.2
       env-runner:
-        specifier: ^0.1.14
-        version: 0.1.14(@vercel/queue@0.3.1)(miniflare@4.20260625.0)(wrangler@4.105.0)
+        specifier: ^0.1.15
+        version: 0.1.15(@vercel/queue@0.3.1)(miniflare@4.20260625.0)(wrangler@4.105.0)
       h3:
         specifier: ^2.0.1-rc.22
         version: 2.0.1-rc.22(crossws@0.4.6)
@@ -3813,12 +3813,12 @@ packages:
     resolution: {integrity: sha512-TWrgLOFUQTH994YUyl1yT4uyavY5nNB5muff+RtWaqNVCAK408b5ZnnbNAUEWLTCpum9w6arT70i1XdQ4UeOPA==}
     engines: {node: '>=0.12'}
 
-  env-runner@0.1.14:
-    resolution: {integrity: sha512-qdk5mmgFsd+zPg3r1bkZ+IbvpfUfypyDvNhMGypSMRpz7kOa/kI6SpW8fgyukuEM4Lo24M65r+1Ne0DtT7vFBA==}
+  env-runner@0.1.15:
+    resolution: {integrity: sha512-Xiu7VUW1jlwEiZSGWJ5Wuv9D4iSC2JwIB3Bb/RI+1DBSCeCrCpdAwRvsi3e52wETPUBkV61b0Ixfi593hQmQ6w==}
     hasBin: true
     peerDependencies:
       '@netlify/runtime': ^4.1.23
-      '@vercel/queue': ^0.2.0
+      '@vercel/queue': '>=0.2.0'
       miniflare: ^4.20260515.0
       wrangler: ^4.0.0
     peerDependenciesMeta:
@@ -9787,7 +9787,7 @@ snapshots:
 
   entities@7.0.1: {}
 
-  env-runner@0.1.14(@vercel/queue@0.3.1)(miniflare@4.20260625.0)(wrangler@4.105.0):
+  env-runner@0.1.15(@vercel/queue@0.3.1)(miniflare@4.20260625.0)(wrangler@4.105.0):
     dependencies:
       crossws: 0.4.6(srvx@0.11.18)
       exsolve: 1.1.0
