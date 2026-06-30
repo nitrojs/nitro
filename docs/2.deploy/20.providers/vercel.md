@@ -69,6 +69,72 @@ Alternatively, Nitro also detects Bun automatically if you specify a `bunVersion
 }
 ```
 
+## Queues
+
+:read-more{title="Vercel Queues" to="https://vercel.com/docs/queues"}
+
+Nitro integrates with [Vercel Queues](https://vercel.com/docs/queues) to process messages asynchronously. Define your queue topics in the Nitro config and handle incoming messages with the `vercel:queue` runtime hook.
+
+```ts [nitro.config.ts]
+export default defineNitroConfig({
+  vercel: {
+    queues: {
+      triggers: [
+        // Only `topic` is required
+        { topic: "notifications" },
+        { topic: "orders", retryAfterSeconds: 60, initialDelaySeconds: 5 },
+      ],
+    },
+  },
+});
+```
+
+::note
+The [`@vercel/queue`](https://www.npmjs.com/package/@vercel/queue) package is required when using queues. Install it in your project with your package manager.
+::
+
+### Handling messages
+
+Use the `vercel:queue` hook in a [Nitro plugin](/guide/plugins) to process incoming queue messages:
+
+```ts [server/plugins/queues.ts]
+export default defineNitroPlugin((nitro) => {
+  nitro.hooks.hook("vercel:queue", ({ message, metadata, send }) => {
+    console.log(`[${metadata.topicName}] Message ${metadata.messageId}:`, message);
+  });
+});
+```
+
+### Running tasks from queue messages
+
+You can use queue messages to trigger [Nitro tasks](/guide/tasks):
+
+```ts [server/plugins/queues.ts]
+import { runTask } from "nitropack/runtime";
+
+export default defineNitroPlugin((nitro) => {
+  nitro.hooks.hook("vercel:queue", async ({ message, metadata }) => {
+    if (metadata.topicName === "orders") {
+      await runTask("orders:fulfill", { payload: message });
+    }
+  });
+});
+```
+
+### Sending messages
+
+Use the `@vercel/queue` package directly to send messages to a topic:
+
+```ts [server/routes/api/orders.post.ts]
+import { send } from "@vercel/queue";
+
+export default defineEventHandler(async (event) => {
+  const order = await readBody(event);
+  const { messageId } = await send("orders", order);
+  return { messageId };
+});
+```
+
 ## Custom build output configuration
 
 You can provide additional [build output configuration](https://vercel.com/docs/build-output-api/v3) using `vercel.config` key inside `nitro.config`. It will be merged with built-in auto-generated config.

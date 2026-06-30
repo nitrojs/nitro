@@ -1,6 +1,9 @@
+import { fileURLToPath } from "node:url";
+import { resolveModulePath } from "exsolve";
 import { defineNitroPreset } from "nitropack/kit";
 import type { Nitro } from "nitropack/types";
 import {
+  DEFAULT_QUEUE_HANDLER_ROUTE,
   deprecateSWR,
   generateEdgeFunctionFiles,
   generateFunctionFiles,
@@ -29,6 +32,28 @@ const vercel = defineNitroPreset(
       deploy: "npx vercel deploy --prebuilt",
     },
     hooks: {
+      "build:before": (nitro: Nitro) => {
+        // Queue consumer handler
+        const queues = nitro.options.vercel?.queues;
+        if (queues?.triggers?.length) {
+          const resolved = resolveModulePath("@vercel/queue", {
+            from: [nitro.options.rootDir, import.meta.url],
+            try: true,
+          });
+          if (!resolved) {
+            throw new Error(
+              "`@vercel/queue` is required for Vercel Queues. Please add it to your dependencies."
+            );
+          }
+          nitro.options.handlers.push({
+            route: queues.handlerRoute || DEFAULT_QUEUE_HANDLER_ROUTE,
+            lazy: true,
+            handler: fileURLToPath(
+              new URL("runtime/queue-handler", import.meta.url)
+            ),
+          });
+        }
+      },
       "rollup:before": (nitro: Nitro) => {
         deprecateSWR(nitro);
       },
