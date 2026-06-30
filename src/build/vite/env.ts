@@ -169,9 +169,7 @@ export async function reloadEnvRunner(ctx: NitroPluginContext) {
 }
 
 async function _loadRunner(ctx: NitroPluginContext, manager: RunnerManager) {
-  const runnerName = (ctx.nitro!.options.devServer.runner ||
-    process.env.NITRO_DEV_RUNNER ||
-    "node-worker") as RunnerName;
+  const runnerName = _devRunner(ctx);
   const entry = resolve(runtimeDir, "internal/vite/dev-worker.mjs");
   let runner;
   if (runnerName === "miniflare") {
@@ -193,14 +191,15 @@ async function _loadRunner(ctx: NitroPluginContext, manager: RunnerManager) {
   await manager.reload(runner);
 }
 
-// Resolve export conditions for the (non-workerd) dev/build environment.
-// When the Nitro dev server itself runs under Bun or Deno, prepend the matching
-// runtime condition so packages like `srvx` resolve to their runtime-native
-// adapter (which returns a native `Response`) instead of the `node` adapter,
-// whose `NodeResponse` wrapper is rejected by `Bun.serve`/`Deno.serve`.
+// Resolve export conditions for the (non-workerd) dev environment.
+// With the default `node-worker` runner, the module runner executes in a worker
+// thread of the same host runtime (Bun => Bun, Deno => Deno), so prepend the
+// matching export condition to let packages resolve their runtime-native entry
+// instead of the `node` one. Other runners (process-based or miniflare) run in a
+// different runtime, so the host condition must not leak into their resolution.
 function _devRuntimeConditions(ctx: NitroPluginContext): string[] {
   const exportConditions = ctx.nitro!.options.exportConditions!;
-  if (!ctx.nitro!.options.dev) {
+  if (!ctx.nitro!.options.dev || _devRunner(ctx) !== "node-worker") {
     return exportConditions;
   }
   const runtimeCondition =
@@ -214,12 +213,16 @@ function _devRuntimeConditions(ctx: NitroPluginContext): string[] {
     : exportConditions;
 }
 
+function _devRunner(ctx: NitroPluginContext): RunnerName {
+  return (ctx.nitro!.options.devServer.runner ||
+    process.env.NITRO_DEV_RUNNER ||
+    "node-worker") as RunnerName;
+}
+
 // workerd-based runners (miniflare) cannot handle CJS externals via import(),
 // so all dependencies must be processed through Vite's transform pipeline.
 function _isWorkerdRunner(ctx: NitroPluginContext): boolean {
-  const runnerName =
-    ctx.nitro!.options.devServer.runner || process.env.NITRO_DEV_RUNNER || "node-worker";
-  return runnerName === "miniflare";
+  return _devRunner(ctx) === "miniflare";
 }
 
 function tryResolve(id: string) {
