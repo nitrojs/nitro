@@ -27,6 +27,13 @@ export default function app(nitro: Nitro) {
         `import errorHandler from "#nitro/virtual/error-handler";`
       );
 
+      // Route handler, routed middleware and route rules must all match on the
+      // same canonical path; otherwise an encoded separator (`%2f`/`%5c`) lets a
+      // request reach a handler while dodging a narrower rule (auth bypass).
+      if (hasRoutes || hasGetMiddleware) {
+        imports.push(`import { canonicalPath } from "#nitro/runtime/route-rules";`);
+      }
+
       // --- createNitroApp() ---
 
       code.push(``, `export function createNitroApp() {`);
@@ -140,7 +147,7 @@ export default function app(nitro: Nitro) {
       code.push(``, `function createH3App(config) {`, `  const h3App = new H3Core(config);`);
       if (hasRoutes) {
         code.push(
-          `  h3App["~findRoute"] = (event) => findRoute(event.req.method, event.url.pathname);`
+          `  h3App["~findRoute"] = (event) => findRoute(event.req.method, canonicalPath(event.url.pathname));`
         );
       }
       if (hasGlobalMiddleware) {
@@ -149,7 +156,7 @@ export default function app(nitro: Nitro) {
       if (hasGetMiddleware) {
         code.push(
           `  h3App["~getMiddleware"] = (event, route) => {`,
-          `    const pathname = event.url.pathname;`,
+          `    const pathname = canonicalPath(event.url.pathname);`,
           `    const method = event.req.method;`,
           `    const middleware = [];`
         );

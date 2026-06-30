@@ -133,6 +133,9 @@ export default defineConfig({
     "/rules/ba-proxy/secure/**": {
       basicAuth: { username: "admin", password: "secret", realm: "Secure Area" },
     },
+    "/ba-single/*": {
+      basicAuth: { username: "admin", password: "secret", realm: "Secure Area" },
+    },
     "**": { headers: { "x-test": "test" } },
   },
   prerender: {

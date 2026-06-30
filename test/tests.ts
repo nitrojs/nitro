@@ -456,6 +456,20 @@ export function testNitro(
       expect(status).toBe(401);
       expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
     });
+
+    it("a single-wildcard rule is not bypassed by an encoded separator", async () => {
+      // `/ba-single/*` gates exactly one segment and the `/ba-single/[id]`
+      // handler serves exactly one segment. `a%2fb` must be matched as the
+      // two-segment path it decodes to for both rules and routing, so it can
+      // neither pose as a single segment that dodges the auth gate nor reach
+      // the handler unauthenticated — it resolves to a route that does not
+      // exist (404), never the handler's 200.
+      const { status } = await callHandler({
+        url: "/ba-single/a%2fb",
+        headers: { Authorization: "Basic " + btoa("user:wrongpass") },
+      });
+      expect(status).toBe(404);
+    });
   });
 
   it("handles route rules - allowing overriding", async () => {

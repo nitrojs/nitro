@@ -87,8 +87,19 @@ describe("canonicalPath", () => {
     expect(canonicalPath("/api/orders/..%2fadmin")).toBe("/api/admin");
   });
 
+  it("resolves plain dot segments", () => {
+    expect(canonicalPath("/a/./b")).toBe("/a/b");
+    expect(canonicalPath("/a/b/../c")).toBe("/a/c");
+  });
+
   it("leaves a plain path untouched", () => {
     expect(canonicalPath("/app/admin/panel")).toBe("/app/admin/panel");
+  });
+
+  it("keeps a dotted filename on the fast path", () => {
+    // A `.` inside a segment cannot change the path, so an asset request (the
+    // hot path) must not pay for the split/normalize/join.
+    expect(canonicalPath("/assets/app.1a2b.js")).toBe("/assets/app.1a2b.js");
   });
 
   it("does not re-encode characters h3 already decoded", () => {

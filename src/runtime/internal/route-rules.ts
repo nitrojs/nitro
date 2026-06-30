@@ -26,7 +26,7 @@ export const redirect: RouteRuleCtor<"redirect"> = ((m) =>
       return;
     }
     if (target.endsWith("/**")) {
-      let targetPath = event.url.pathname + event.url.search;
+      let targetPath = canonicalPath(event.url.pathname) + event.url.search;
       const strpBase = (m.options as any)._redirectStripBase;
       if (strpBase) {
         if (!isPathInScope(event.url.pathname, strpBase)) {
@@ -51,7 +51,7 @@ export const proxy: RouteRuleCtor<"proxy"> = ((m) =>
       return;
     }
     if (target.endsWith("/**")) {
-      let targetPath = event.url.pathname + event.url.search;
+      let targetPath = canonicalPath(event.url.pathname) + event.url.search;
       const strpBase = (m.options as any)._proxyStripBase;
       if (strpBase) {
         if (!isPathInScope(event.url.pathname, strpBase)) {
@@ -119,8 +119,14 @@ export const basicAuth: RouteRuleCtor<"auth"> = /* @__PURE__ */ Object.assign(
 // Done with string ops (mirroring h3's internal `resolveDotSegments`) rather
 // than `new URL`, which would re-encode characters h3 already decoded (e.g.
 // spaces, non-ASCII) and desync matching from h3's `event.url.pathname`.
+//
+// Matches a `.`/`..` path segment — the only `.`-related case the slow path
+// resolves. A bare `.` inside a segment (e.g. `app.1a2b.js`) never changes the
+// path and must stay on the fast path; this runs on every request.
+const DOT_SEGMENT_RE = /(?:^|\/)\.\.?(?:\/|$)/;
+
 export function canonicalPath(pathname: string): string {
-  if (!pathname.includes("%") && !pathname.includes("\\") && !pathname.includes(".")) {
+  if (!pathname.includes("%") && !pathname.includes("\\") && !DOT_SEGMENT_RE.test(pathname)) {
     return pathname;
   }
   const segments = pathname
