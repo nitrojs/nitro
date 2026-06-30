@@ -35,8 +35,8 @@ export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOpti
       // condition which often resolves to CJS entries.
       conditions: isWorkerdRunner
         ? ["workerd", "worker", ...ctx.nitro!.options.exportConditions!.filter((c) => c !== "node")]
-        : _devRuntimeConditions(ctx),
-      externalConditions: _devRuntimeConditions(ctx).filter((c) => !/browser|wasm|module/.test(c)),
+        : _resolveConditions(ctx),
+      externalConditions: _resolveConditions(ctx).filter((c) => !/browser|wasm|module/.test(c)),
     },
     define: {
       // Workaround for tanstack-start (devtools)
@@ -82,8 +82,8 @@ export function createServiceEnvironment(
       ...(isDev ? { noExternal: isWorkerdRunner ? true : [/^nitro(\/|$)/] } : {}),
       conditions: isWorkerdRunner
         ? ["workerd", "worker", ...ctx.nitro!.options.exportConditions!.filter((c) => c !== "node")]
-        : _devRuntimeConditions(ctx),
-      externalConditions: _devRuntimeConditions(ctx).filter((c) => !/browser|wasm|module/.test(c)),
+        : _resolveConditions(ctx),
+      externalConditions: _resolveConditions(ctx).filter((c) => !/browser|wasm|module/.test(c)),
     },
     dev: {
       createEnvironment: async (envName, envConfig) => {
@@ -187,13 +187,14 @@ async function _loadRunner(ctx: NitroPluginContext, manager: RunnerManager) {
   await manager.reload(runner);
 }
 
-// Resolve export conditions for the (non-workerd) dev environment.
-// With the default `node-worker` runner, the module runner executes in a worker
-// thread of the same host runtime (Bun => Bun, Deno => Deno), so prepend the
-// matching export condition to let packages resolve their runtime-native entry
-// instead of the `node` one. Other runners (process-based or miniflare) run in a
-// different runtime, so the host condition must not leak into their resolution.
-function _devRuntimeConditions(ctx: NitroPluginContext): string[] {
+// Resolve export conditions for the (non-workerd) environment.
+// In dev with the default `node-worker` runner, the module runner executes in a
+// worker thread of the same host runtime (Bun => Bun, Deno => Deno), so prepend
+// the matching export condition to let packages resolve their runtime-native
+// entry instead of the `node` one. Other runners (process-based or miniflare)
+// run in a different runtime, so the host condition must not leak into their
+// resolution; outside of dev the conditions are returned unchanged.
+function _resolveConditions(ctx: NitroPluginContext): string[] {
   const exportConditions = ctx.nitro!.options.exportConditions!;
   if (!ctx.nitro!.options.dev || _devRunner(ctx) !== "node-worker") {
     return exportConditions;
