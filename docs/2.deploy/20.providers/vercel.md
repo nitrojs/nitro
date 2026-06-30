@@ -69,6 +69,32 @@ Alternatively, Nitro also detects Bun automatically if you specify a `bunVersion
 }
 ```
 
+## Scheduled tasks (Cron Jobs)
+
+:read-more{title="Vercel Cron Jobs" to="https://vercel.com/docs/cron-jobs"}
+
+Nitro automatically converts your [`scheduledTasks`](/guide/tasks#scheduled-tasks) configuration into [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs) at build time. Define your schedules in your Nitro config and deploy - no manual `vercel.json` cron configuration required.
+
+```ts [nitro.config.ts]
+export default defineNitroConfig({
+  experimental: {
+    tasks: true
+  },
+  scheduledTasks: {
+    // Run `cms:update` every hour
+    '0 * * * *': ['cms:update'],
+    // Run `db:cleanup` every day at midnight
+    '0 0 * * *': ['db:cleanup']
+  }
+})
+```
+
+### Secure cron job endpoints
+
+:read-more{title="Securing cron jobs" to="https://vercel.com/docs/cron-jobs/manage-cron-jobs#securing-cron-jobs"}
+
+A `CRON_SECRET` environment variable is **required** to protect the cron handler. Set it in your Vercel project settings.
+
 ## Custom build output configuration
 
 You can provide additional [build output configuration](https://vercel.com/docs/build-output-api/v3) using `vercel.config` key inside `nitro.config`. It will be merged with built-in auto-generated config.
