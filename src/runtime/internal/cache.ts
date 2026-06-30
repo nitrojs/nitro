@@ -364,6 +364,7 @@ export function defineCachedEventHandler<
 
       // Call handler
       const event = createEvent(reqProxy, resProxy);
+      event._path = incomingEvent._path;
       // Assign bound fetch to context
       event.fetch = (url, fetchOptions) =>
         fetchWithEvent(event, url, fetchOptions, {
