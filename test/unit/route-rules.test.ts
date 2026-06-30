@@ -102,11 +102,13 @@ describe("canonicalPath", () => {
     expect(canonicalPath("/assets/app.1a2b.js")).toBe("/assets/app.1a2b.js");
   });
 
-  it("does not re-encode characters h3 already decoded", () => {
-    // h3 `decodeURI`s the pathname before matching, so spaces / non-ASCII
-    // arrive decoded; canonicalization must not push them back to `%xx`.
-    expect(canonicalPath("/foo bar")).toBe("/foo bar");
-    expect(canonicalPath("/café/x")).toBe("/café/x");
+  it("keeps %20 / non-ASCII encodings in sync with event.url.pathname", () => {
+    // srvx keeps `%20` and percent-encoded non-ASCII opaque in
+    // `event.url.pathname` (it is not `decodeURI`-d), so canonicalization must
+    // leave them encoded too — decoding would desync the canonical path from
+    // how route rules are matched.
+    expect(canonicalPath("/foo%20bar")).toBe("/foo%20bar");
+    expect(canonicalPath("/caf%C3%A9/x")).toBe("/caf%C3%A9/x");
   });
 
   it("keeps non-separator reserved encodings opaque", () => {

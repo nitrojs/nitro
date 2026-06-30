@@ -26,9 +26,12 @@ export const redirect: RouteRuleCtor<"redirect"> = ((m) =>
       return;
     }
     if (target.endsWith("/**")) {
-      // Forward the raw path so an opaque `%2f`/`%5c` inside a segment stays
-      // encoded for the target; the scope check below canonicalizes to catch
-      // traversal that would only surface once the downstream decodes it.
+      // Forward `event.url.pathname`: encoded separators (`%2f`/`%5c`) stay
+      // opaque, so the target receives the original separators and resolves the
+      // resource the client requested — like nginx `proxy_pass $request_uri`,
+      // not the path-decoding `proxy_pass <uri>/` form. The scope check below
+      // canonicalizes (decodes `%2f`/`%5c`, resolves `..`) to reject traversal
+      // that only surfaces once the downstream decodes those separators.
       let targetPath = event.url.pathname + event.url.search;
       const strpBase = (m.options as any)._redirectStripBase;
       if (strpBase) {
@@ -54,9 +57,12 @@ export const proxy: RouteRuleCtor<"proxy"> = ((m) =>
       return;
     }
     if (target.endsWith("/**")) {
-      // Forward the raw path so an opaque `%2f`/`%5c` inside a segment stays
-      // encoded for the upstream; the scope check below canonicalizes to catch
-      // traversal that would only surface once the upstream decodes it.
+      // Forward `event.url.pathname`: encoded separators (`%2f`/`%5c`) stay
+      // opaque, so the upstream receives the original separators and resolves
+      // the resource the client requested — like nginx `proxy_pass $request_uri`,
+      // not the path-decoding `proxy_pass <uri>/` form. The scope check below
+      // canonicalizes (decodes `%2f`/`%5c`, resolves `..`) to reject traversal
+      // that only surfaces once the upstream decodes those separators.
       let targetPath = event.url.pathname + event.url.search;
       const strpBase = (m.options as any)._proxyStripBase;
       if (strpBase) {
@@ -115,16 +121,19 @@ export const basicAuth: RouteRuleCtor<"auth"> = /* @__PURE__ */ Object.assign(
 
 // Canonicalize a request pathname for route-rule matching and scope checks.
 //
-// `event.url.pathname` is already `decodeURI`-d by h3, but `%2f`/`%5c` stay
-// opaque there (`/` and `\` are reserved for `decodeURI`). We decode those
-// separators too and resolve `.`/`..`/`%2e` segments, so a request cannot
-// dodge a narrower rule (e.g. a `basicAuth` gate) or escape a `/**` scope that
-// the served path would still match once the downstream decodes `%2f` → `/`
-// (GHSA-5w89-w975-hf9q).
+// `event.url.pathname` is NOT `decodeURI`-d: h3 exposes it via srvx's `FastURL`,
+// which keeps percent-encodings opaque (`%2f`, `%5c`, `%20`, non-ASCII, and any
+// `%2e` that isn't a whole dot-segment all stay encoded) while WHATWG-resolving
+// *literal* `.`/`..` segments and converting `\` → `/`. So an encoded separator
+// survives there, and a request can still dodge a narrower rule (e.g. a
+// `basicAuth` gate) or escape a `/**` scope that the served path would match
+// once the downstream decodes `%2f` → `/` (GHSA-5w89-w975-hf9q). We decode
+// `%2f`/`%5c` (and `%2e` dot-segments) and resolve the revealed `.`/`..`.
 //
-// Done with string ops (mirroring h3's internal `resolveDotSegments`) rather
-// than `new URL`, which would re-encode characters h3 already decoded (e.g.
-// spaces, non-ASCII) and desync matching from h3's `event.url.pathname`.
+// Kept as string ops, NOT `new URL`: `new URL` would leave `%2f`/`%5c` opaque
+// (the very separators we must decode) and re-encode chars like `^`. We also
+// must NOT decode `%20`/non-ASCII, so the canonical path stays in the same
+// representation as `event.url.pathname` and matches route rules consistently.
 //
 // Matches a `.`/`..` path segment — the only `.`-related case the slow path
 // resolves. A bare `.` inside a segment (e.g. `app.1a2b.js`) never changes the
