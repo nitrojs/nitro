@@ -819,15 +819,19 @@ export function testNitro(
     });
   });
 
-  describe.skipIf(ctx.preset === "cloudflare-worker")("wasm", () => {
-    it("dynamic import wasm", async () => {
-      expect((await callHandler({ url: "/wasm/dynamic-import" })).data).toBe("2+3=5");
-    });
+  // TODO(rspack): drop the rspack skip once unwasm-equivalent handling lands
+  describe.skipIf(ctx.preset === "cloudflare-worker" || process.env.NITRO_BUILDER === "rspack")(
+    "wasm",
+    () => {
+      it("dynamic import wasm", async () => {
+        expect((await callHandler({ url: "/wasm/dynamic-import" })).data).toBe("2+3=5");
+      });
 
-    it("static import wasm", async () => {
-      expect((await callHandler({ url: "/wasm/static-import" })).data).toBe("2+3=5");
-    });
-  });
+      it("static import wasm", async () => {
+        expect((await callHandler({ url: "/wasm/static-import" })).data).toBe("2+3=5");
+      });
+    }
+  );
 
   describe.skipIf(
     isWindows ||

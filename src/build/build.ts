@@ -14,6 +14,10 @@ export async function build(nitro: Nitro) {
       const { viteBuild } = await import("./vite/build.ts");
       return viteBuild(nitro);
     }
+    case "rspack": {
+      const { rspackBuild } = await import("./rspack/build.ts");
+      return rspackBuild(nitro);
+    }
     default: {
       throw new Error(`Unknown builder: ${nitro.options.builder}`);
     }

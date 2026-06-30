@@ -4,7 +4,11 @@ import consola from "consola";
 import type { NitroOptions } from "nitro/types";
 import { resolve } from "pathe";
 
-const VALID_BUILDERS = ["rolldown", "rollup", "vite"] as const;
+const VALID_BUILDERS = ["rolldown", "rollup", "vite", "rspack"] as const;
+
+const BUILDER_PACKAGES: Record<string, string> = {
+  rspack: "@rspack/core",
+};
 
 export async function resolveBuilder(options: NitroOptions) {
   // NITRO_BUILDER environment variable
@@ -19,8 +23,8 @@ export async function resolveBuilder(options: NitroOptions) {
       );
     }
     // Check if the builder package is installed (rolldown is a direct dep)
-    const pkg = options.builder;
-    if (pkg !== "rolldown" && !isPkgInstalled(pkg, options.rootDir)) {
+    const pkg = BUILDER_PACKAGES[options.builder] || options.builder;
+    if (options.builder !== "rolldown" && !isPkgInstalled(pkg, options.rootDir)) {
       const shouldInstall = await consola.prompt(
         `Nitro builder package \`${pkg}\` is not installed. Would you like to install it?`,
         { type: "confirm", default: true, cancel: "null" }

@@ -27,7 +27,7 @@ import type { NitroFrameworkInfo } from "./nitro.ts";
 import type { NitroOpenAPIConfig } from "./openapi.ts";
 export type { NitroOpenAPIConfig } from "./openapi.ts";
 import type { NitroPreset } from "./preset.ts";
-import type { OXCOptions, RolldownConfig } from "./build.ts";
+import type { OXCOptions, RolldownConfig, RspackConfig } from "./build.ts";
 import type { RollupConfig } from "./build.ts";
 import type { NitroRouteConfig, NitroRouteRules } from "./route-rules.ts";
 
@@ -710,7 +710,7 @@ export interface NitroOptions extends PresetOptions {
    *
    * @see https://nitro.build/config#builder
    */
-  builder?: "rollup" | "rolldown" | "vite";
+  builder?: "rollup" | "rolldown" | "vite" | "rspack";
 
   /**
    * Additional Rollup configuration.
@@ -725,6 +725,13 @@ export interface NitroOptions extends PresetOptions {
    * @see https://nitro.build/config#rolldownconfig
    */
   rolldownConfig?: RolldownConfig;
+
+  /**
+   * Additional Rspack configuration.
+   *
+   * @see https://nitro.build/config#rspackconfig
+   */
+  rspackConfig?: RspackConfig;
 
   /**
    * Bundler entry point path.

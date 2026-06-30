@@ -10,6 +10,8 @@ import type {
   TransformOptions as RolldownTransformOptions,
 } from "rolldown";
 
+import type { Configuration as RspackConfiguration } from "@rspack/core";
+
 export type RollupConfig = RollupInputOptions & {
   output?: RollupOutputOptions;
 };
@@ -17,6 +19,8 @@ export type RollupConfig = RollupInputOptions & {
 export type RolldownConfig = RolldownInputOptions & {
   output?: RolldownOutputOptions;
 };
+
+export type RspackConfig = RspackConfiguration;
 
 export interface OXCOptions {
   minify?: RolldownMinifyOptions;
