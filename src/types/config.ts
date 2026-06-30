@@ -265,7 +265,6 @@ export interface NitroOptions extends PresetOptions {
    * Include a static asset handler in the server bundle to serve public assets.
    *
    * - `true` or `"node"` — read assets from the filesystem using Node.js `fs`.
-   * - `"deno"` — read assets using Deno file APIs.
    * - `"inline"` — base64-encode assets directly into the server bundle.
    * - `false` — do not serve static assets from the server (rely on a CDN or reverse proxy).
    *
@@ -273,7 +272,7 @@ export interface NitroOptions extends PresetOptions {
    *
    * @see https://nitro.build/config#servestatic
    */
-  serveStatic: boolean | "node" | "deno" | "inline";
+  serveStatic: boolean | "node" | "inline";
 
   /**
    * Disable the public output directory entirely.
