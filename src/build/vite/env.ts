@@ -36,9 +36,7 @@ export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOpti
       conditions: isWorkerdRunner
         ? ["workerd", "worker", ...ctx.nitro!.options.exportConditions!.filter((c) => c !== "node")]
         : _devRuntimeConditions(ctx),
-      externalConditions: ctx.nitro!.options.exportConditions?.filter(
-        (c) => !/browser|wasm|module/.test(c)
-      ),
+      externalConditions: _devRuntimeConditions(ctx).filter((c) => !/browser|wasm|module/.test(c)),
     },
     define: {
       // Workaround for tanstack-start (devtools)
@@ -85,9 +83,7 @@ export function createServiceEnvironment(
       conditions: isWorkerdRunner
         ? ["workerd", "worker", ...ctx.nitro!.options.exportConditions!.filter((c) => c !== "node")]
         : _devRuntimeConditions(ctx),
-      externalConditions: ctx.nitro!.options.exportConditions?.filter(
-        (c) => !/browser|wasm|module/.test(c)
-      ),
+      externalConditions: _devRuntimeConditions(ctx).filter((c) => !/browser|wasm|module/.test(c)),
     },
     dev: {
       createEnvironment: async (envName, envConfig) => {
