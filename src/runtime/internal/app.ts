@@ -79,23 +79,26 @@ export function getRouteRules(
   routeRules?: MatchedRouteRules;
   routeRuleMiddleware: Middleware[];
 } {
-  // Match on the canonical path so encoded separators (`%2f`/`%5c`) cannot
-  // dodge a narrower rule (e.g. a `basicAuth` gate) that a broader rule would
-  // still serve once the downstream decodes them back to `/`.
-  const canonical = canonicalPath(pathname);
-  const routeRules = mergeRouteRules(findRouteRules(method, canonical));
+  // h3 routes the served handler/middleware on the raw `pathname` (`%2f`/`%5c`
+  // stay opaque), so behavioral rules (headers/cache/redirect/proxy) follow the
+  // raw path — they describe the handler that actually runs.
+  const routeRules = mergeRouteRules(findRouteRules(method, pathname));
 
-  // h3 routes handlers/middleware on the raw `event.url.pathname` (`%2f`/`%5c`
-  // stay opaque), so a request can sit inside a narrower `basicAuth` rule from
-  // the served path's point of view yet fall outside it once canonicalized —
-  // e.g. `/admin/a%2fb` matches `/admin/*` on the raw path but canonicalizes to
-  // the two-segment `/admin/a/b`. Enforce auth when the raw path matches too,
-  // so it can't be served unauthenticated (secure wins; canonical still drives
-  // every other rule).
-  if (!routeRules.basicAuth && canonical !== pathname) {
-    const rawAuth = mergeRouteRules(findRouteRules(method, pathname)).basicAuth;
-    if (rawAuth) {
-      routeRules.basicAuth = rawAuth;
+  // Security overlay: an encoded separator must not let a request dodge a
+  // narrower `basicAuth` gate it would still hit once the downstream decodes
+  // `%2f`/`%5c` back to `/` — e.g. `/secure%2fpage` is served by the broader
+  // proxy rule but canonicalizes to `/secure/page`, which an auth rule guards.
+  // If the canonical path matches an auth rule the raw path missed, enforce it
+  // too, so the request can't be served unauthenticated (GHSA-5w89-w975-hf9q).
+  // The inverse — a raw path inside an auth rule that canonicalizes out of it —
+  // is already covered by the raw match above.
+  if (!routeRules.basicAuth) {
+    const canonical = canonicalPath(pathname);
+    if (canonical !== pathname) {
+      const canonicalAuth = mergeRouteRules(findRouteRules(method, canonical)).basicAuth;
+      if (canonicalAuth) {
+        routeRules.basicAuth = canonicalAuth;
+      }
     }
   }
 

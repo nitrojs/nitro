@@ -26,11 +26,13 @@ export const redirect: RouteRuleCtor<"redirect"> = ((m) =>
       return;
     }
     if (target.endsWith("/**")) {
-      const path = canonicalPath(event.url.pathname);
-      let targetPath = path + event.url.search;
+      // Forward the raw path so an opaque `%2f`/`%5c` inside a segment stays
+      // encoded for the target; the scope check below canonicalizes to catch
+      // traversal that would only surface once the downstream decodes it.
+      let targetPath = event.url.pathname + event.url.search;
       const strpBase = (m.options as any)._redirectStripBase;
       if (strpBase) {
-        if (!isCanonicalInScope(path, strpBase)) {
+        if (!isPathInScope(event.url.pathname, strpBase)) {
           throw new HTTPError({ status: 400 });
         }
         targetPath = withoutBase(targetPath, strpBase);
@@ -52,11 +54,13 @@ export const proxy: RouteRuleCtor<"proxy"> = ((m) =>
       return;
     }
     if (target.endsWith("/**")) {
-      const path = canonicalPath(event.url.pathname);
-      let targetPath = path + event.url.search;
+      // Forward the raw path so an opaque `%2f`/`%5c` inside a segment stays
+      // encoded for the upstream; the scope check below canonicalizes to catch
+      // traversal that would only surface once the upstream decodes it.
+      let targetPath = event.url.pathname + event.url.search;
       const strpBase = (m.options as any)._proxyStripBase;
       if (strpBase) {
-        if (!isCanonicalInScope(path, strpBase)) {
+        if (!isPathInScope(event.url.pathname, strpBase)) {
           throw new HTTPError({ status: 400 });
         }
         targetPath = withoutBase(targetPath, strpBase);

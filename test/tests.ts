@@ -470,6 +470,19 @@ export function testNitro(
       expect(status).toBe(401);
       expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
     });
+
+    it("a single-wildcard non-auth rule still applies to an encoded separator", async () => {
+      // h3 serves the `/single-headers/[id]` handler on the raw path, so a
+      // behavioral rule it matches there (`/single-headers/*`) must still apply
+      // for `/single-headers/a%2fb` even though it canonicalizes to two
+      // segments — canonicalization is for auth gating, not for dropping rules
+      // off the path that is actually served.
+      const { status, headers } = await callHandler({
+        url: "/single-headers/a%2fb",
+      });
+      expect(status).toBe(200);
+      expect(headers["x-single"]).toBe("single");
+    });
   });
 
   it("handles route rules - allowing overriding", async () => {
@@ -611,6 +624,16 @@ export function testNitro(
       url: "/rules/proxy/legacy//evil.com",
     });
     expect(data).toBe("evil.com");
+  });
+
+  it("runtime proxy keeps an encoded separator opaque for the upstream", async () => {
+    // Regression: an opaque `%2f` inside a segment is a single path segment for
+    // the in-scope request and must be forwarded encoded — not decoded into a
+    // real separator (which would change the resource the upstream resolves).
+    const { data } = await callHandler({
+      url: "/rules/proxy/legacy/a%2fb",
+    });
+    expect(data).toBe("a%2fb");
   });
 
   it("external proxy", async () => {
