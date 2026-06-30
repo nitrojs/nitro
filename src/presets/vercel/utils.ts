@@ -1,8 +1,9 @@
 import fsp from "node:fs/promises";
+import { constants } from "node:fs";
 import { defu } from "defu";
-import { hardLinkDir, writeFile } from "../_utils/fs.ts";
+import { writeFile } from "../_utils/fs.ts";
 import type { Nitro, NitroRouteRules } from "nitro/types";
-import { dirname, relative, resolve } from "pathe";
+import { basename, dirname, relative, resolve } from "pathe";
 import { Router } from "../../routing.ts";
 import { joinURL, withLeadingSlash, withoutLeadingSlash } from "ufo";
 import type {
@@ -636,8 +637,10 @@ async function createFunctionDirWithCustomConfig(
   overrides: VercelServerlessFunctionConfig,
   functionPath: string
 ) {
-  await hardLinkDir(serverDir, funcDir, {
-    skip: new Set([".vc-config.json"]),
+  await fsp.cp(serverDir, funcDir, {
+    recursive: true,
+    mode: constants.COPYFILE_FICLONE,
+    filter: (src) => basename(src) !== ".vc-config.json",
   });
   const mergedConfig = defu(overrides, baseFunctionConfig);
   for (const [key, value] of Object.entries(overrides)) {
