@@ -844,7 +844,7 @@ export interface NitroOptions extends PresetOptions {
    * Advanced options for dependency tracing via nf3.
    *
    * @see https://nitro.build/config#traceopts
-   * @see https://github.com/nicolo-ribaudo/nf3
+   * @see https://github.com/unjs/nf3
    */
   traceOpts?: Pick<ExternalsTraceOptions, "nft" | "traceAlias" | "chmod" | "transform" | "hooks">;
 
