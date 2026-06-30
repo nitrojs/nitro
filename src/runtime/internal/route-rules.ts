@@ -26,10 +26,11 @@ export const redirect: RouteRuleCtor<"redirect"> = ((m) =>
       return;
     }
     if (target.endsWith("/**")) {
-      let targetPath = canonicalPath(event.url.pathname) + event.url.search;
+      const path = canonicalPath(event.url.pathname);
+      let targetPath = path + event.url.search;
       const strpBase = (m.options as any)._redirectStripBase;
       if (strpBase) {
-        if (!isPathInScope(event.url.pathname, strpBase)) {
+        if (!isCanonicalInScope(path, strpBase)) {
           throw new HTTPError({ status: 400 });
         }
         targetPath = withoutBase(targetPath, strpBase);
@@ -51,10 +52,11 @@ export const proxy: RouteRuleCtor<"proxy"> = ((m) =>
       return;
     }
     if (target.endsWith("/**")) {
-      let targetPath = canonicalPath(event.url.pathname) + event.url.search;
+      const path = canonicalPath(event.url.pathname);
+      let targetPath = path + event.url.search;
       const strpBase = (m.options as any)._proxyStripBase;
       if (strpBase) {
-        if (!isPathInScope(event.url.pathname, strpBase)) {
+        if (!isCanonicalInScope(path, strpBase)) {
           throw new HTTPError({ status: 400 });
         }
         targetPath = withoutBase(targetPath, strpBase);
@@ -147,6 +149,9 @@ export function canonicalPath(pathname: string): string {
 }
 
 export function isPathInScope(pathname: string, base: string): boolean {
-  const canonical = canonicalPath(pathname);
+  return isCanonicalInScope(canonicalPath(pathname), base);
+}
+
+function isCanonicalInScope(canonical: string, base: string): boolean {
   return !base || canonical === base || canonical.startsWith(base + "/");
 }

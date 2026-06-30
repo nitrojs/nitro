@@ -82,12 +82,48 @@ export function getRouteRules(
   // Match on the canonical path so encoded separators (`%2f`/`%5c`) cannot
   // dodge a narrower rule (e.g. a `basicAuth` gate) that a broader rule would
   // still serve once the downstream decodes them back to `/`.
-  const m = findRouteRules(method, canonicalPath(pathname));
-  if (!m?.length) {
+  const canonical = canonicalPath(pathname);
+  const routeRules = mergeRouteRules(findRouteRules(method, canonical));
+
+  // h3 routes handlers/middleware on the raw `event.url.pathname` (`%2f`/`%5c`
+  // stay opaque), so a request can sit inside a narrower `basicAuth` rule from
+  // the served path's point of view yet fall outside it once canonicalized —
+  // e.g. `/admin/a%2fb` matches `/admin/*` on the raw path but canonicalizes to
+  // the two-segment `/admin/a/b`. Enforce auth when the raw path matches too,
+  // so it can't be served unauthenticated (secure wins; canonical still drives
+  // every other rule).
+  if (!routeRules.basicAuth && canonical !== pathname) {
+    const rawAuth = mergeRouteRules(findRouteRules(method, pathname)).basicAuth;
+    if (rawAuth) {
+      routeRules.basicAuth = rawAuth;
+    }
+  }
+
+  if (Object.keys(routeRules).length === 0) {
     return { routeRuleMiddleware: [] };
   }
+  const middleware = [];
+  const orderedRules = Object.values(routeRules).sort(
+    (a, b) => (a.handler?.order || 0) - (b.handler?.order || 0)
+  );
+  for (const rule of orderedRules) {
+    if (rule.options === false || !rule.handler) {
+      continue;
+    }
+    middleware.push(rule.handler(rule));
+  }
+  return {
+    routeRules,
+    routeRuleMiddleware: middleware,
+  };
+}
+
+// Merge the matched rou3 layers (least → most specific) into a single set of
+// route rules, with more-specific options merged in and `false` resetting a
+// rule inherited from a less-specific layer.
+function mergeRouteRules(layers: any): MatchedRouteRules {
   const routeRules: MatchedRouteRules = {};
-  for (const layer of m) {
+  for (const layer of layers || []) {
     for (const rule of layer.data) {
       const currentRule = routeRules[rule.name];
       if (currentRule) {
@@ -111,18 +147,5 @@ export function getRouteRules(
       }
     }
   }
-  const middleware = [];
-  const orderedRules = Object.values(routeRules).sort(
-    (a, b) => (a.handler?.order || 0) - (b.handler?.order || 0)
-  );
-  for (const rule of orderedRules) {
-    if (rule.options === false || !rule.handler) {
-      continue;
-    }
-    middleware.push(rule.handler(rule));
-  }
-  return {
-    routeRules,
-    routeRuleMiddleware: middleware,
-  };
+  return routeRules;
 }

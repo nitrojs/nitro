@@ -458,17 +458,17 @@ export function testNitro(
     });
 
     it("a single-wildcard rule is not bypassed by an encoded separator", async () => {
-      // `/ba-single/*` gates exactly one segment and the `/ba-single/[id]`
-      // handler serves exactly one segment. `a%2fb` must be matched as the
-      // two-segment path it decodes to for both rules and routing, so it can
-      // neither pose as a single segment that dodges the auth gate nor reach
-      // the handler unauthenticated — it resolves to a route that does not
-      // exist (404), never the handler's 200.
-      const { status } = await callHandler({
+      // h3 routes the `/ba-single/[id]` handler on the raw path, so
+      // `/ba-single/a%2fb` reaches it as a single opaque segment and matches
+      // the `/ba-single/*` auth rule there — even though it canonicalizes to
+      // the two-segment `/ba-single/a/b`. Auth is matched on the raw path too,
+      // so it can't be served unauthenticated.
+      const { status, headers } = await callHandler({
         url: "/ba-single/a%2fb",
         headers: { Authorization: "Basic " + btoa("user:wrongpass") },
       });
-      expect(status).toBe(404);
+      expect(status).toBe(401);
+      expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
     });
   });
 
