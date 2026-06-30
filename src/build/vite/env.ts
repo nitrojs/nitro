@@ -35,7 +35,7 @@ export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOpti
       // condition which often resolves to CJS entries.
       conditions: isWorkerdRunner
         ? ["workerd", "worker", ...ctx.nitro!.options.exportConditions!.filter((c) => c !== "node")]
-        : ctx.nitro!.options.exportConditions,
+        : _devRuntimeConditions(ctx),
       externalConditions: ctx.nitro!.options.exportConditions?.filter(
         (c) => !/browser|wasm|module/.test(c)
       ),
@@ -84,7 +84,7 @@ export function createServiceEnvironment(
       ...(isDev ? { noExternal: isWorkerdRunner ? true : [/^nitro(\/|$)/] } : {}),
       conditions: isWorkerdRunner
         ? ["workerd", "worker", ...ctx.nitro!.options.exportConditions!.filter((c) => c !== "node")]
-        : ctx.nitro!.options.exportConditions,
+        : _devRuntimeConditions(ctx),
       externalConditions: ctx.nitro!.options.exportConditions?.filter(
         (c) => !/browser|wasm|module/.test(c)
       ),
@@ -191,6 +191,27 @@ async function _loadRunner(ctx: NitroPluginContext, manager: RunnerManager) {
     });
   }
   await manager.reload(runner);
+}
+
+// Resolve export conditions for the (non-workerd) dev/build environment.
+// When the Nitro dev server itself runs under Bun or Deno, prepend the matching
+// runtime condition so packages like `srvx` resolve to their runtime-native
+// adapter (which returns a native `Response`) instead of the `node` adapter,
+// whose `NodeResponse` wrapper is rejected by `Bun.serve`/`Deno.serve`.
+function _devRuntimeConditions(ctx: NitroPluginContext): string[] {
+  const exportConditions = ctx.nitro!.options.exportConditions!;
+  if (!ctx.nitro!.options.dev) {
+    return exportConditions;
+  }
+  const runtimeCondition =
+    typeof (globalThis as any).Bun !== "undefined"
+      ? "bun"
+      : typeof (globalThis as any).Deno !== "undefined"
+        ? "deno"
+        : undefined;
+  return runtimeCondition && !exportConditions.includes(runtimeCondition)
+    ? [runtimeCondition, ...exportConditions]
+    : exportConditions;
 }
 
 // workerd-based runners (miniflare) cannot handle CJS externals via import(),
