@@ -80,25 +80,22 @@ export function getRouteRules(
   routeRuleMiddleware: Middleware[];
 } {
   // h3 routes the served handler/middleware on the raw `pathname` (`%2f`/`%5c`
-  // stay opaque), so behavioral rules (headers/cache/redirect/proxy) follow the
-  // raw path — they describe the handler that actually runs.
+  // stay opaque), so the rules the raw path matches describe the handler that
+  // actually runs and must all apply.
   const routeRules = mergeRouteRules(findRouteRules(method, pathname));
 
-  // Security overlay: an encoded separator must not let a request dodge a
-  // narrower `basicAuth` gate it would still hit once the downstream decodes
-  // `%2f`/`%5c` back to `/` — e.g. `/secure%2fpage` is served by the broader
-  // proxy rule but canonicalizes to `/secure/page`, which an auth rule guards.
-  // If the canonical path matches an auth rule the raw path missed, enforce it
-  // too, so the request can't be served unauthenticated (GHSA-5w89-w975-hf9q).
-  // The inverse — a raw path inside an auth rule that canonicalizes out of it —
-  // is already covered by the raw match above.
-  if (!routeRules.basicAuth) {
-    const canonical = canonicalPath(pathname);
-    if (canonical !== pathname) {
-      const canonicalAuth = mergeRouteRules(findRouteRules(method, canonical)).basicAuth;
-      if (canonicalAuth) {
-        routeRules.basicAuth = canonicalAuth;
-      }
+  // An encoded separator must not let a request dodge a rule it would still hit
+  // once the downstream decodes `%2f`/`%5c` back to `/` — e.g. `/secure%2fpage`
+  // is served by a broad proxy rule on the raw path but canonicalizes to
+  // `/secure/page`, which a narrower (auth) rule guards (GHSA-5w89-w975-hf9q).
+  // So also apply any rule the canonical path matches that the raw path missed.
+  // Rules the raw path already matched win (they target the served handler);
+  // the canonical pass only fills in what would otherwise be dodged.
+  const canonical = canonicalPath(pathname);
+  if (canonical !== pathname) {
+    const canonicalRules = mergeRouteRules(findRouteRules(method, canonical));
+    for (const name in canonicalRules) {
+      routeRules[name] ??= canonicalRules[name];
     }
   }
 
