@@ -1,8 +1,11 @@
-import type { IncomingMessage } from "node:http";
-import type { Socket } from "node:net";
 import type { FSWatcher } from "chokidar";
 import type { ServerOptions, Server } from "srvx";
-import type { EnvRunnerData, RunnerMessageListener, RunnerRPCHooks } from "env-runner";
+import type {
+  EnvRunnerData,
+  RunnerMessageListener,
+  RunnerRPCHooks,
+  WorkerAddress,
+} from "env-runner";
 import type { RunnerName } from "env-runner";
 import { RunnerManager, loadRunner } from "env-runner";
 import type { Nitro } from "nitro/types";
@@ -12,11 +15,12 @@ import { HTTPError } from "h3";
 import consola from "consola";
 import { resolve } from "pathe";
 import { watch } from "chokidar";
-import { serve } from "srvx/node";
+import { serve } from "srvx";
 import { debounce } from "perfect-debounce";
 import { isTest, isCI } from "std-env";
 import { NitroDevApp } from "./app.ts";
 import { writeDevBuildInfo } from "../build/info.ts";
+import { createWebSocketProxyPlugin } from "./_ws-proxy.ts";
 
 export function createDevServer(nitro: Nitro): NitroDevServer {
   return new NitroDevServer(nitro);
@@ -31,6 +35,7 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
   #workerIdCtr: number = 0;
   #workerError?: unknown;
   #workerRetries: number = 0;
+  #workerAddr?: WorkerAddress;
   #building?: boolean = true; // Assume initial build will start soon
   #buildError?: unknown;
   #reloadPromise?: Promise<void>;
@@ -69,6 +74,7 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
     this.#manager = new RunnerManager();
     this.#manager.onReady(async (_runner, addr) => {
       this.#workerRetries = 0;
+      this.#workerAddr = addr;
       writeDevBuildInfo(this.nitro, addr).catch((error) => {
         this.nitro.logger.warn(
           `Failed to write dev build info: ${error instanceof Error ? error.message : String(error)}`
@@ -122,26 +128,25 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
 
   // #region Public Methods
 
-  async upgrade(req: IncomingMessage, socket: Socket, head: any) {
-    if (!this.#manager.upgrade) {
-      throw new HTTPError({
-        status: 501,
-        statusText: "Worker does not support upgrades.",
-      });
+  async listen(opts?: Partial<Omit<ServerOptions, "fetch">>): Promise<Server> {
+    // Proxy WebSocket upgrades to the dev worker using `crossws` + a standard
+    // `WebSocket` client. This is runtime-native (works under Node, Bun and
+    // Deno) and avoids the Node.js `http.Server` `"upgrade"` event + raw socket
+    // proxy, which fails under `bun --bun` (Bun drops manual upgrade writes and
+    // its `node:http` client never surfaces the `101` response).
+    const websocket =
+      this.nitro.options.features.websocket ?? this.nitro.options.experimental.websocket;
+    const plugins = [...(opts?.plugins ?? [])];
+    if (websocket) {
+      plugins.push(await createWebSocketProxyPlugin(() => this.#workerAddr));
     }
-    return this.#manager.upgrade({ node: { req, socket, head } });
-  }
-
-  listen(opts?: Partial<Omit<ServerOptions, "fetch">>): Server {
     const server = serve({
       ...opts,
       fetch: this.fetch,
+      plugins,
       gracefulShutdown: false,
     });
     this.#listeners.push(server);
-    if (server.node?.server) {
-      server.node.server.on("upgrade", (req, sock, head) => this.upgrade(req, sock, head));
-    }
     return server;
   }
 

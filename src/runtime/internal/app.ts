@@ -52,10 +52,21 @@ export function serverFetch(
   }
 }
 
-export async function resolveWebsocketHooks(req: ServerRequest): Promise<Partial<WebSocketHooks>> {
-  // https://github.com/h3js/h3/blob/c11ca743d476e583b3b47de1717e6aae92114357/src/utils/ws.ts#L37
-  const hooks = ((await serverFetch(req)) as any).crossws as Partial<WebSocketHooks>;
-  return hooks || {};
+// crossws resolves hooks on every lifecycle event (upgrade, open, message,
+// close) by re-running the app handler. Cache the result per request: it avoids
+// re-running the whole pipeline on each message and, more importantly, the only
+// readable point is the initial `upgrade` (e.g. on Deno the request is no longer
+// readable after `Deno.upgradeWebSocket()`).
+// https://github.com/h3js/h3/blob/c11ca743d476e583b3b47de1717e6aae92114357/src/utils/ws.ts#L37
+const websocketHooksCache = new WeakMap<object, Promise<Partial<WebSocketHooks>>>();
+
+export function resolveWebsocketHooks(req: ServerRequest): Promise<Partial<WebSocketHooks>> {
+  let hooks = websocketHooksCache.get(req);
+  if (!hooks) {
+    hooks = serverFetch(req).then((res) => ((res as any).crossws as Partial<WebSocketHooks>) || {});
+    websocketHooksCache.set(req, hooks);
+  }
+  return hooks;
 }
 
 export function fetch(
