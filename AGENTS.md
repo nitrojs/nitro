@@ -10,11 +10,13 @@ Nitro is a framework-agnostic and deployment-agnostic server framework powered b
 
 ## Key Scripts
 
-- `pnpm build --stub` — Fast stub build for development.
-- `pnpm lint` — Lint and format code.
-- `pnpm fmt` — Automatically fix lint and formatting issues.
-- `pnpm test` — Run all tests.
-- `pnpm typecheck` — Run type tests.
+- `pnpm build --stub` — Fast stub build (`obuild --stub`) for development.
+- `pnpm build` — Full build (`pnpm gen-presets && obuild`).
+- `pnpm lint` — Check lint and formatting (`oxlint` + `oxfmt --check`).
+- `pnpm fmt` — Auto-fix lint and formatting (`automd` + `oxlint --fix` + `oxfmt`).
+- `pnpm test` — Full pipeline: `lint && build && typecheck && test:rollup && test:rolldown` (runs vitest against both the rollup and rolldown builders).
+- `pnpm test:rollup` / `pnpm test:rolldown` — Run vitest against a single builder (`NITRO_BUILDER`).
+- `pnpm typecheck` — Type-check with the TypeScript native-preview compiler (`tsgo --noEmit --skipLibCheck`).
 
 **Always run** `pnpm fmt` and `pnpm typecheck` after making changes.
 
@@ -30,10 +32,10 @@ Nitro is a framework-agnostic and deployment-agnostic server framework powered b
 
 Project source is centralized under `src/`:
 
-- `src/build` — Build logic (Vite | Rolldown | Rollup config, virtual templates, plugins).
+- `src/build` — Build logic (Vite | Rolldown | Rollup config, virtual templates in `src/build/virtual/`, plugins in `src/build/plugins/`).
 - `src/cli` — `nitro` CLI subcommands (each file in `src/cli/commands` is a command).
 - `src/config/` — Config defaults (`src/config/defaults.ts`) and resolvers/normalizers (`src/config/resolvers`).
-- `src/dev` and `src/runner` — Development server logic.
+- `src/dev` — Development server logic (`app.ts`, `server.ts`, `vfs.ts`).
 - `src/prerender` — Prerender logic.
 - `src/presets` — Deployment presets and runtime entry.
 - `src/types` — Shared types.
@@ -96,11 +98,11 @@ Each preset in `src/presets/` defines deployment target behavior:
 ### Making Changes
 
 1. Make changes in `src/`.
-2. Run `pnpm build --stub` if you changed build logic.
+2. Run `pnpm stub` if you changed build logic.
 3. Test with `pnpm test`.
 4. Run `pnpm fmt`.
 5. Run `pnpm typecheck`.
-6. Run `pnpm vitest run`.
+6. Run `pnpm test:rollup` and/or `pnpm test:rolldown` to run vitest against a specific builder.
 
 ## Contribution Principles
 
@@ -115,7 +117,7 @@ Each preset in `src/presets/` defines deployment target behavior:
 ## Common Gotchas
 
 - **Don't use Node.js-specific APIs in `src/runtime/`** — Code runs in multiple runtimes (Node, workers, edge).
-- **Virtual modules must be registered** in `src/build/virtual.ts`.
+- **Virtual modules must be registered** in `src/build/virtual/_all.ts` (one template per file under `src/build/virtual/`).
 - **CLI commands** are in `src/cli/commands/` — Each file exports a command definition.
 - **Runtime size matters** — Check bundle impact with `pnpm build`.
 - **Use `pathe` not `node:path`** — Ensures cross-platform compatibility.
@@ -160,7 +162,7 @@ Each preset in `src/presets/` defines deployment target behavior:
 For deeper context, see `.agents/`:
 
 - [`.agents/architecture.md`](.agents/architecture.md) — Full architecture: core instance, build system, config resolution, virtual modules, runtime internals, dev server, routing, key libraries.
-- [`.agents/presets.md`](.agents/presets.md) — All 31 presets, preset structure, how to create presets, resolution logic.
+- [`.agents/presets.md`](.agents/presets.md) — All presets (multiple deployment targets + internal `_nitro`/`_static`), preset structure, how to create presets, resolution logic.
 - [`.agents/testing.md`](.agents/testing.md) — Test structure, how tests work, adding regression tests, running tests.
 - [`.agents/vite.md`](.agents/vite.md) — Vite build system: plugin architecture (6 sub-plugins), environments API, dev server integration, production build stages, bundler config, HMR, runtime worker.
 - [`.agents/docs.md`](.agents/docs.md) — Documentation conventions: structure, preset naming (underscore), H3 v2 API patterns, import paths, common mistakes.
