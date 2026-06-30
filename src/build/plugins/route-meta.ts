@@ -12,6 +12,7 @@ export async function routeMeta(nitro: Nitro) {
   return {
     name: "nitro:route-meta",
     resolveId: {
+      order: "pre",
       // eslint-disable-next-line no-control-regex
       filter: { id: /^(?!\u0000)(.+)\?meta$/ },
       async handler(id, importer, resolveOpts) {
@@ -25,6 +26,7 @@ export async function routeMeta(nitro: Nitro) {
       },
     },
     load: {
+      order: "pre",
       filter: {
         id: new RegExp(`^${escapeRegExp(PREFIX)}`),
       },
@@ -40,6 +42,7 @@ export async function routeMeta(nitro: Nitro) {
       },
     },
     transform: {
+      order: "pre",
       filter: {
         id: new RegExp(`^${escapeRegExp(PREFIX)}`),
       },

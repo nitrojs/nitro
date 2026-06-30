@@ -21,7 +21,7 @@ export {
   HTTPError,
   HTTPResponse,
 } from "h3";
-export type { H3Event } from "h3";
+export type { H3Event, EventHandlerRequest, EventHandlerWithFetch } from "h3";
 
 // Runtime
 export function serverFetch(
