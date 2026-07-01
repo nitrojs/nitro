@@ -1,7 +1,7 @@
 import "#nitro/virtual/polyfills";
 import { parseURL } from "ufo";
 import { useNitroApp } from "nitro/app";
-import { getAzureParsedCookiesFromHeaders } from "./_utils.ts";
+import { getAzureParsedCookiesFromHeaders, resolveBaseUrl } from "./_utils.ts";
 
 import type { HttpRequest, HttpResponse, HttpResponseSimple } from "@azure/functions";
 
@@ -19,8 +19,9 @@ export async function handle(context: { res: HttpResponse }, req: HttpRequest) {
     url = "/api/" + (req.params.url || "");
   }
 
-  const request = new Request(url, {
+  const request = new Request(new URL(url, resolveBaseUrl(req)), {
     method: req.method || undefined,
+    headers: new Headers(req.headers),
     // https://github.com/Azure/azure-functions-nodejs-worker/issues/294
     // https://github.com/Azure/azure-functions-host/issues/293
     body: req.bufferBody ?? req.rawBody,
@@ -32,7 +33,7 @@ export async function handle(context: { res: HttpResponse }, req: HttpRequest) {
   // (v4) https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-node?tabs=typescript%2Cwindows%2Cazure-cli&pivots=nodejs-model-v4#http-response
   context.res = {
     status: response.status,
-    body: response.body,
+    body: response.body ? Buffer.from(await response.arrayBuffer()) : undefined,
     cookies: getAzureParsedCookiesFromHeaders(response.headers),
     headers: Object.fromEntries(
       [...response.headers.entries()].filter(([key]) => key !== "set-cookie")
