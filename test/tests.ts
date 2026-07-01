@@ -444,6 +444,45 @@ export function testNitro(
       expect(status).toBe(401);
       expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
     });
+
+    it("is not bypassed by a percent-encoded path separator", async () => {
+      // `secure%2fpage` must still match the `/rules/ba-proxy/secure/**` auth
+      // rule, otherwise the request is forwarded by the broader proxy rule with
+      // no credentials and the downstream decodes `%2f` back to `/`.
+      const { status, headers } = await callHandler({
+        url: "/rules/ba-proxy/secure%2fpage",
+        headers: { Authorization: "Basic " + btoa("user:wrongpass") },
+      });
+      expect(status).toBe(401);
+      expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
+    });
+
+    it("a single-wildcard rule is not bypassed by an encoded separator", async () => {
+      // h3 routes the `/ba-single/[id]` handler on the raw path, so
+      // `/ba-single/a%2fb` reaches it as a single opaque segment and matches
+      // the `/ba-single/*` auth rule there — even though it canonicalizes to
+      // the two-segment `/ba-single/a/b`. Auth is matched on the raw path too,
+      // so it can't be served unauthenticated.
+      const { status, headers } = await callHandler({
+        url: "/ba-single/a%2fb",
+        headers: { Authorization: "Basic " + btoa("user:wrongpass") },
+      });
+      expect(status).toBe(401);
+      expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
+    });
+
+    it("a single-wildcard non-auth rule still applies to an encoded separator", async () => {
+      // h3 serves the `/single-headers/[id]` handler on the raw path, so a
+      // behavioral rule it matches there (`/single-headers/*`) must still apply
+      // for `/single-headers/a%2fb` even though it canonicalizes to two
+      // segments — canonicalization is for auth gating, not for dropping rules
+      // off the path that is actually served.
+      const { status, headers } = await callHandler({
+        url: "/single-headers/a%2fb",
+      });
+      expect(status).toBe(200);
+      expect(headers["x-single"]).toBe("single");
+    });
   });
 
   it("handles route rules - allowing overriding", async () => {
@@ -585,6 +624,16 @@ export function testNitro(
       url: "/rules/proxy/legacy//evil.com",
     });
     expect(data).toBe("evil.com");
+  });
+
+  it("runtime proxy keeps an encoded separator opaque for the upstream", async () => {
+    // Regression: an opaque `%2f` inside a segment is a single path segment for
+    // the in-scope request and must be forwarded encoded — not decoded into a
+    // real separator (which would change the resource the upstream resolves).
+    const { data } = await callHandler({
+      url: "/rules/proxy/legacy/a%2fb",
+    });
+    expect(data).toBe("a%2fb");
   });
 
   it("external proxy", async () => {

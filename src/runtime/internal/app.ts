@@ -4,6 +4,8 @@ import type { H3EventContext, Middleware, WebSocketHooks } from "h3";
 import { toRequest } from "h3";
 import { HookableCore } from "hookable";
 
+import { canonicalPath } from "./route-rules.ts";
+
 // IMPORTANT: virtual imports and user code should be imported last to avoid initialization order issues
 import { findRouteRules } from "#nitro/virtual/routing";
 import { createNitroApp, initNitroPlugins } from "#nitro/virtual/app";
@@ -77,12 +79,51 @@ export function getRouteRules(
   routeRules?: MatchedRouteRules;
   routeRuleMiddleware: Middleware[];
 } {
-  const m = findRouteRules(method, pathname);
-  if (!m?.length) {
+  // h3 routes the served handler/middleware on the raw `pathname` (`%2f`/`%5c`
+  // stay opaque), so the rules the raw path matches describe the handler that
+  // actually runs and must all apply.
+  const routeRules = mergeRouteRules(findRouteRules(method, pathname));
+
+  // An encoded separator must not let a request dodge a rule it would still hit
+  // once the downstream decodes `%2f`/`%5c` back to `/` — e.g. `/secure%2fpage`
+  // is served by a broad proxy rule on the raw path but canonicalizes to
+  // `/secure/page`, which a narrower (auth) rule guards (GHSA-5w89-w975-hf9q).
+  // So also apply any rule the canonical path matches that the raw path missed.
+  // Rules the raw path already matched win (they target the served handler);
+  // the canonical pass only fills in what would otherwise be dodged.
+  const canonical = canonicalPath(pathname);
+  if (canonical !== pathname) {
+    const canonicalRules = mergeRouteRules(findRouteRules(method, canonical));
+    for (const name in canonicalRules) {
+      routeRules[name] ??= canonicalRules[name];
+    }
+  }
+
+  if (Object.keys(routeRules).length === 0) {
     return { routeRuleMiddleware: [] };
   }
+  const middleware = [];
+  const orderedRules = Object.values(routeRules).sort(
+    (a, b) => (a.handler?.order || 0) - (b.handler?.order || 0)
+  );
+  for (const rule of orderedRules) {
+    if (rule.options === false || !rule.handler) {
+      continue;
+    }
+    middleware.push(rule.handler(rule));
+  }
+  return {
+    routeRules,
+    routeRuleMiddleware: middleware,
+  };
+}
+
+// Merge the matched rou3 layers (least → most specific) into a single set of
+// route rules, with more-specific options merged in and `false` resetting a
+// rule inherited from a less-specific layer.
+function mergeRouteRules(layers: any): MatchedRouteRules {
   const routeRules: MatchedRouteRules = {};
-  for (const layer of m) {
+  for (const layer of layers || []) {
     for (const rule of layer.data) {
       const currentRule = routeRules[rule.name];
       if (currentRule) {
@@ -106,18 +147,5 @@ export function getRouteRules(
       }
     }
   }
-  const middleware = [];
-  const orderedRules = Object.values(routeRules).sort(
-    (a, b) => (a.handler?.order || 0) - (b.handler?.order || 0)
-  );
-  for (const rule of orderedRules) {
-    if (rule.options === false || !rule.handler) {
-      continue;
-    }
-    middleware.push(rule.handler(rule));
-  }
-  return {
-    routeRules,
-    routeRuleMiddleware: middleware,
-  };
+  return routeRules;
 }
