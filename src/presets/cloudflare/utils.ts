@@ -183,7 +183,7 @@ const extensionParsers = {
   ".toml": parseTOML,
 } as const;
 
-async function readWranglerConfig(
+export async function readWranglerConfig(
   nitro: Nitro
 ): Promise<{ configPath?: string; config?: WranglerConfig }> {
   const configPath = await findNearestFile(["wrangler.json", "wrangler.jsonc", "wrangler.toml"], {
