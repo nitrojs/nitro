@@ -155,7 +155,11 @@ To prevent unauthorized access to the cron handler, set a `CRON_SECRET` environm
 Nitro integrates with [Vercel Queues](https://vercel.com/docs/queues) to process messages asynchronously. Define your queue topics in the Nitro config and handle incoming messages with the `vercel:queue` runtime hook.
 
 ```ts [nitro.config.ts]
-export default defineNitroConfig({
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  // Standalone Nitro scans `serverDir` for routes and plugins
+  serverDir: "./server",
   vercel: {
     queues: {
       triggers: [
@@ -173,8 +177,10 @@ export default defineNitroConfig({
 Use the `vercel:queue` hook in a [Nitro plugin](/guide/plugins) to process incoming queue messages:
 
 ```ts [server/plugins/queues.ts]
-export default defineNitroPlugin((nitro) => {
-  nitro.hooks.hook("vercel:queue", ({ message, metadata, send }) => {
+import { definePlugin } from "nitro";
+
+export default definePlugin((nitroApp) => {
+  nitroApp.hooks.hook("vercel:queue", ({ message, metadata, send }) => {
     console.log(`[${metadata.topicName}] Message ${metadata.messageId}:`, message);
   });
 });
@@ -185,10 +191,11 @@ export default defineNitroPlugin((nitro) => {
 You can use queue messages to trigger [Nitro tasks](/docs/tasks):
 
 ```ts [server/plugins/queues.ts]
+import { definePlugin } from "nitro";
 import { runTask } from "nitro/task";
 
-export default defineNitroPlugin((nitro) => {
-  nitro.hooks.hook("vercel:queue", async ({ message, metadata }) => {
+export default definePlugin((nitroApp) => {
+  nitroApp.hooks.hook("vercel:queue", async ({ message, metadata }) => {
     if (metadata.topicName === "orders") {
       await runTask("orders:fulfill", { payload: message });
     }
@@ -201,9 +208,10 @@ export default defineNitroPlugin((nitro) => {
 Use the `@vercel/queue` package directly to send messages to a topic:
 
 ```ts [server/routes/api/orders.post.ts]
+import { defineHandler } from "nitro";
 import { send } from "@vercel/queue";
 
-export default defineEventHandler(async (event) => {
+export default defineHandler(async (event) => {
   const order = await event.req.json();
   const { messageId } = await send("orders", order);
   return { messageId };
