@@ -189,6 +189,9 @@ importers:
       exsolve:
         specifier: ^1.0.8
         version: 1.1.0
+      fetchdts:
+        specifier: ^0.1.7
+        version: 0.1.7
       get-port-please:
         specifier: ^3.2.0
         version: 3.2.0

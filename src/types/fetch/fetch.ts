@@ -1,4 +1,7 @@
 import type { HTTPMethod } from "h3";
+import type { TypedResponse } from "fetchdts";
+import type { ServerRequestContext } from "srvx";
+import type { H3EventContext } from "h3";
 import type { FetchOptions, FetchRequest, FetchResponse } from "ofetch";
 import type { MatchedRoutes } from "./_match.ts";
 
@@ -56,13 +59,10 @@ export interface NitroFetchOptions<
 }
 
 // Extract the route method from options which might be undefined or without a method parameter.
-export type ExtractedRouteMethod<
-  R extends NitroFetchRequest,
-  O extends NitroFetchOptions<R>,
-> = O extends undefined
+export type ExtractedRouteMethod<O extends { method?: unknown }> = O extends undefined
   ? "get"
-  : Lowercase<Exclude<O["method"], undefined>> extends RouterMethod
-    ? Lowercase<Exclude<O["method"], undefined>>
+  : Lowercase<Extract<O["method"], string>> extends RouterMethod
+    ? Lowercase<Extract<O["method"], string>>
     : "get";
 
 export type Base$Fetch<
@@ -76,7 +76,7 @@ export type Base$Fetch<
   request: R,
   opts?: O
 ) => Promise<
-  TypedInternalResponse<R, T, NitroFetchOptions<R> extends O ? "get" : ExtractedRouteMethod<R, O>>
+  TypedInternalResponse<R, T, NitroFetchOptions<R> extends O ? "get" : ExtractedRouteMethod<O>>
 >;
 
 export interface $Fetch<
@@ -92,17 +92,34 @@ export interface $Fetch<
     opts?: O
   ): Promise<
     FetchResponse<
-      TypedInternalResponse<
-        R,
-        T,
-        NitroFetchOptions<R> extends O ? "get" : ExtractedRouteMethod<R, O>
-      >
+      TypedInternalResponse<R, T, NitroFetchOptions<R> extends O ? "get" : ExtractedRouteMethod<O>>
     >
   >;
   create<T = DefaultT, R extends NitroFetchRequest = DefaultR>(
     defaults: FetchOptions
   ): $Fetch<T, R>;
 }
+
+export type ServerFetchInit<
+  R extends NitroFetchRequest,
+  M extends AvailableRouterMethod<R> = AvailableRouterMethod<R>,
+> = Omit<RequestInit, "method"> & {
+  method?: Uppercase<M>;
+};
+
+export type ServerFetch = <
+  R extends NitroFetchRequest = NitroFetchRequest,
+  O extends ServerFetchInit<R> = ServerFetchInit<R>,
+  T = unknown,
+>(
+  resource: R,
+  init?: O,
+  context?: ServerRequestContext | H3EventContext
+) => Promise<
+  TypedResponse<
+    TypedInternalResponse<R, T, ServerFetchInit<R> extends O ? "get" : ExtractedRouteMethod<O>>
+  >
+>;
 
 // eslint-disable-next-line unicorn/require-module-specifiers
 export type {};
