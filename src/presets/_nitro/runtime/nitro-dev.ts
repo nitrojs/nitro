@@ -18,19 +18,13 @@ if (import.meta._tasks) {
   startScheduleRunner({});
 }
 
-const ws = import.meta._websocket
-  ? await import("crossws/adapters/node").then((m) =>
-      (m.default || m)({ resolve: resolveWebsocketHooks })
-    )
-  : undefined;
-
 export default {
   fetch: nitroApp.fetch,
   plugins: [...tracingSrvxPlugins],
-  upgrade: ws
-    ? (context: { node: { req: any; socket: any; head: any } }) => {
-        ws.handleUpgrade(context.node.req, context.node.socket, context.node.head);
-      }
+  // Let the dev runner attach the runtime-appropriate crossws adapter
+  // (node/bun/deno) via `crossws/server` instead of hardcoding the Node.js one.
+  websocket: import.meta._websocket
+    ? ({ resolve: resolveWebsocketHooks } as AppEntry["websocket"])
     : undefined,
   ipc: {
     onClose: () => nitroHooks.callHook("close"),
