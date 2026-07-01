@@ -40,6 +40,26 @@ describe("resolveTraceDeps", () => {
     expect(result.fullTraceInclude).toContain("prisma");
   });
 
+  it("returns named deps as traceInclude (builtins + user, RegExp excluded)", () => {
+    const result = resolveTraceDeps(["my-pkg", /my-.*-pkg/], defaults);
+    expect(result.traceInclude).toContain("sharp");
+    expect(result.traceInclude).toContain("canvas");
+    expect(result.traceInclude).toContain("my-pkg");
+    // RegExp entries cannot be resolved by name and must be excluded
+    expect(result.traceInclude!.every((d) => typeof d === "string")).toBe(true);
+  });
+
+  it("excludes negated packages from traceInclude", () => {
+    const result = resolveTraceDeps(["!sharp"], defaults);
+    expect(result.traceInclude).not.toContain("sharp");
+    expect(result.traceInclude).toContain("canvas");
+  });
+
+  it("returns undefined traceInclude when all deps are negated", () => {
+    const result = resolveTraceDeps(["!sharp", "!canvas"], defaults);
+    expect(result.traceInclude).toBeUndefined();
+  });
+
   it("throws on bare ! selector", () => {
     expect(() => resolveTraceDeps(["!"], defaults)).toThrow('Invalid traceDeps selector: "!"');
   });
