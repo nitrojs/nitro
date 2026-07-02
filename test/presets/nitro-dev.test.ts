@@ -22,6 +22,28 @@ describe("nitro:preset:nitro-dev", async () => {
         expect(status).toBe(200);
       });
 
+      describe("websocket", () => {
+        it("upgrades and echoes messages in dev mode", async () => {
+          const wsURL = ctx.server!.url.replace(/^http/, "ws") + "ws";
+          const ws = new WebSocket(wsURL);
+          const messages: string[] = [];
+          await new Promise<void>((resolve, reject) => {
+            const timer = setTimeout(() => reject(new Error("websocket timeout")), 5000);
+            ws.addEventListener("error", (error) => reject(error as any));
+            ws.addEventListener("message", (event) => {
+              messages.push(String(event.data));
+              if (messages.length === 2) {
+                clearTimeout(timer);
+                ws.close();
+                resolve();
+              }
+            });
+            ws.addEventListener("open", () => ws.send("ping"));
+          });
+          expect(messages).toEqual(["connected", "pong"]);
+        });
+      });
+
       describe("tasks", () => {
         it("GET /_nitro/tasks lists tasks", async () => {
           const { data, status } = await callHandler({ url: "/_nitro/tasks" });
