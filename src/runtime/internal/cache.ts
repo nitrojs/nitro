@@ -40,6 +40,8 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
   return _defineCachedFunction(fn, {
     group: "nitro/functions",
     onError: defaultOnError,
+    // Warn in dev when caching a value costs more than recomputing it (#2559).
+    warnWhenSlower: import.meta.dev,
     ...opts,
   });
 }
@@ -52,6 +54,7 @@ export function defineCachedHandler(
   const ocacheHandler = _defineCachedHandler(handler as any, {
     group: "nitro/handlers",
     onError: defaultOnError,
+    warnWhenSlower: import.meta.dev,
     toResponse: (value, event) => toResponse(value, event as H3Event),
     createResponse: (body, init) => new FastResponse(body, init),
     handleCacheHeaders: (event, conditions) => handleCacheHeaders(event as H3Event, conditions),
