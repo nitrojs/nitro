@@ -6,7 +6,7 @@
     "deploy": "vite build && wrangler deploy"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260601.0",
+    "@cloudflare/workers-types": "^5.20260716.1",
     "nitro": "latest",
     "wrangler": "^4.99.0"
   }
