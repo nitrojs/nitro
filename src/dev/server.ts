@@ -50,7 +50,14 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
       if (response.status === 503 && !this.#manager.ready) {
         return this.#generateError();
       }
-      return response;
+      // Reconstruct in the current realm so runtime-native instanceof checks pass.
+      // The worker bridge returns an undici Response; runtimes like Deno reject it
+      // because it was not constructed by their own Response constructor.
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: new Headers(response.headers),
+      });
     });
 
     // Bind all methods to `this`
