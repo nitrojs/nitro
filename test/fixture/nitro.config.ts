@@ -133,6 +133,12 @@ export default defineConfig({
     "/rules/ba-proxy/secure/**": {
       basicAuth: { username: "admin", password: "secret", realm: "Secure Area" },
     },
+    "/rules/ba-nested/**": {
+      basicAuth: { username: "broad", password: "secret", realm: "Broad Area" },
+    },
+    "/rules/ba-nested/admin/**": {
+      basicAuth: { username: "admin", password: "secret", realm: "Admin Area" },
+    },
     "/ba-single/*": {
       basicAuth: { username: "admin", password: "secret", realm: "Secure Area" },
     },

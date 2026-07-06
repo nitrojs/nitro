@@ -471,6 +471,20 @@ export function testNitro(
       expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
     });
 
+    it("a more specific auth rule revealed by decoding overrides a broader one", async () => {
+      // `/rules/ba-nested/admin%2fpanel` matches only the broad
+      // `/rules/ba-nested/**` rule on the raw path, but canonicalizes to
+      // `/rules/ba-nested/admin/panel`, which the narrower `.../admin/**` rule
+      // guards. The narrower (canonical) rule must win, so the challenge is for
+      // the "Admin Area" realm, not the broad "Broad Area" one.
+      const { status, headers } = await callHandler({
+        url: "/rules/ba-nested/admin%2fpanel",
+        headers: { Authorization: "Basic " + btoa("broad:secret") },
+      });
+      expect(status).toBe(401);
+      expect(headers["www-authenticate"]).toBe('Basic realm="Admin Area"');
+    });
+
     it("a single-wildcard non-auth rule still applies to an encoded separator", async () => {
       // h3 serves the `/single-headers/[id]` handler on the raw path, so a
       // behavioral rule it matches there (`/single-headers/*`) must still apply
