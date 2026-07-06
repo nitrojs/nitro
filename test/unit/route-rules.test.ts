@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { normalizeRouteRules } from "../../src/config/resolvers/route-rules.ts";
-import { isPathInScope } from "../../src/runtime/internal/route-rules.ts";
+import { canonicalPath, isPathInScope } from "../../src/runtime/internal/route-rules.ts";
 
 describe("normalizeRouteRules - swr", () => {
   it("swr: true enables SWR", () => {
@@ -70,5 +70,48 @@ describe("isPathInScope", () => {
 
   it("allows anything for an empty base (catch-all /**)", () => {
     expect(isPathInScope("/anything/here", "")).toBe(true);
+  });
+});
+
+// Used to match route rules: encoded separators must be decoded so a request
+// cannot dodge a narrower rule (e.g. a `basicAuth` gate) that a broader rule
+// would still serve once the downstream decodes them back to `/`.
+describe("canonicalPath", () => {
+  it("decodes encoded path separators", () => {
+    expect(canonicalPath("/app/admin%2fpanel")).toBe("/app/admin/panel");
+    expect(canonicalPath("/app/admin%2Fpanel")).toBe("/app/admin/panel");
+    expect(canonicalPath("/app/admin%5cpanel")).toBe("/app/admin/panel");
+  });
+
+  it("resolves traversal revealed by decoding", () => {
+    expect(canonicalPath("/api/orders/..%2fadmin")).toBe("/api/admin");
+  });
+
+  it("resolves plain dot segments", () => {
+    expect(canonicalPath("/a/./b")).toBe("/a/b");
+    expect(canonicalPath("/a/b/../c")).toBe("/a/c");
+  });
+
+  it("leaves a plain path untouched", () => {
+    expect(canonicalPath("/app/admin/panel")).toBe("/app/admin/panel");
+  });
+
+  it("keeps a dotted filename on the fast path", () => {
+    // A `.` inside a segment cannot change the path, so an asset request (the
+    // hot path) must not pay for the split/normalize/join.
+    expect(canonicalPath("/assets/app.1a2b.js")).toBe("/assets/app.1a2b.js");
+  });
+
+  it("keeps %20 / non-ASCII encodings in sync with event.url.pathname", () => {
+    // srvx keeps `%20` and percent-encoded non-ASCII opaque in
+    // `event.url.pathname` (it is not `decodeURI`-d), so canonicalization must
+    // leave them encoded too — decoding would desync the canonical path from
+    // how route rules are matched.
+    expect(canonicalPath("/foo%20bar")).toBe("/foo%20bar");
+    expect(canonicalPath("/caf%C3%A9/x")).toBe("/caf%C3%A9/x");
+  });
+
+  it("keeps non-separator reserved encodings opaque", () => {
+    expect(canonicalPath("/a%3Ab")).toBe("/a%3Ab");
   });
 });

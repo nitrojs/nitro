@@ -145,6 +145,12 @@ describe("nitro:preset:vercel:web", async () => {
               },
               {
                 "headers": {
+                  "x-single": "single",
+                },
+                "src": "/single-headers/*",
+              },
+              {
+                "headers": {
                   "cache-control": "public, max-age=3600, immutable",
                 },
                 "src": "/build/(.*)",
@@ -406,6 +412,14 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/_openapi.json",
               },
               {
+                "dest": "/single-headers/[id]",
+                "src": "/single-headers/(?<id>[^/]+)",
+              },
+              {
+                "dest": "/ba-single/[id]",
+                "src": "/ba-single/(?<id>[^/]+)",
+              },
+              {
                 "dest": "/assets/[id]",
                 "src": "/assets/(?<id>[^/]+)",
               },
@@ -499,6 +513,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/assets/[id].func (symlink)",
             "functions/assets/all.func (symlink)",
             "functions/assets/md.func (symlink)",
+            "functions/ba-single/[id].func (symlink)",
             "functions/config.func (symlink)",
             "functions/context.func (symlink)",
             "functions/env.func (symlink)",
@@ -531,6 +546,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/rules/swr-ttl/[...]-isr.prerender-config.json",
             "functions/rules/swr/[...]-isr.func (symlink)",
             "functions/rules/swr/[...]-isr.prerender-config.json",
+            "functions/single-headers/[id].func (symlink)",
             "functions/static-flags.func (symlink)",
             "functions/stream.func (symlink)",
             "functions/tasks/[...name].func (symlink)",
