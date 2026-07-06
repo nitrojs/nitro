@@ -118,7 +118,7 @@ export function getRouteRules(
   };
 }
 
-// Merge the matched rou3 layers (least → most specific) into a single set of
+// Merge the matched route layers (least → most specific) into a single set of
 // route rules, with more-specific options merged in and `false` resetting a
 // rule inherited from a less-specific layer.
 function mergeRouteRules(layers: any): MatchedRouteRules {

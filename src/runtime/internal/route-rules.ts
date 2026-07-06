@@ -1,4 +1,10 @@
-import { HTTPError, proxyRequest, redirect as sendRedirect, requireBasicAuth } from "h3";
+import {
+  HTTPError,
+  proxyRequest,
+  redirect as sendRedirect,
+  requireBasicAuth,
+  resolveDotSegments,
+} from "h3";
 import type { BasicAuthOptions, EventHandler, Middleware } from "h3";
 import type { MatchedRouteRule, NitroRouteRules } from "nitro/types";
 import { joinURL, withQuery, withoutBase } from "ufo";
@@ -121,44 +127,20 @@ export const basicAuth: RouteRuleCtor<"auth"> = /* @__PURE__ */ Object.assign(
 
 // Canonicalize a request pathname for route-rule matching and scope checks.
 //
-// `event.url.pathname` is NOT `decodeURI`-d: h3 exposes it via srvx's `FastURL`,
-// which keeps percent-encodings opaque (`%2f`, `%5c`, `%20`, non-ASCII, and any
-// `%2e` that isn't a whole dot-segment all stay encoded) while WHATWG-resolving
-// *literal* `.`/`..` segments and converting `\` → `/`. So an encoded separator
-// survives there, and a request can still dodge a narrower rule (e.g. a
-// `basicAuth` gate) or escape a `/**` scope that the served path would match
-// once the downstream decodes `%2f` → `/` (GHSA-5w89-w975-hf9q). We decode
-// `%2f`/`%5c` (and `%2e` dot-segments) and resolve the revealed `.`/`..`.
+// Delegates to h3's `resolveDotSegments`, which decodes `%2f`/`%5c` separators
+// (`decodeSlashes`) and `%2e` dot segments — at any `%25`-nesting depth — then
+// resolves the revealed `.`/`..` without escaping above root. Other encodings
+// (`%20`, non-ASCII, `%3A`, …) stay opaque, so the result keeps the same
+// representation as the un-decoded `event.url.pathname` and matches rules
+// consistently.
 //
-// Kept as string ops, NOT `new URL`: `new URL` would leave `%2f`/`%5c` opaque
-// (the very separators we must decode) and re-encode chars like `^`. We also
-// must NOT decode `%20`/non-ASCII, so the canonical path stays in the same
-// representation as `event.url.pathname` and matches route rules consistently.
-//
-// Matches a `.`/`..` path segment — the only `.`-related case the slow path
-// resolves. A bare `.` inside a segment (e.g. `app.1a2b.js`) never changes the
-// path and must stay on the fast path; this runs on every request.
-const DOT_SEGMENT_RE = /(?:^|\/)\.\.?(?:\/|$)/;
-
+// `decodeSlashes` is required here (unlike routing/dispatch): the result gates
+// auth and feeds proxy/redirect scope checks, where a downstream decodes
+// `%2f` → `/` and would otherwise let an encoded separator dodge a narrower rule
+// (e.g. a `basicAuth` gate) or escape a `/**` scope that the served path would
+// match (GHSA-5w89-w975-hf9q). Never use the result for routing/dispatch.
 export function canonicalPath(pathname: string): string {
-  if (!pathname.includes("%") && !pathname.includes("\\") && !DOT_SEGMENT_RE.test(pathname)) {
-    return pathname;
-  }
-  const segments = pathname
-    .replace(/%2f/gi, "/")
-    .replace(/%5c/gi, "\\")
-    .replaceAll("\\", "/")
-    .split("/");
-  const resolved: string[] = [];
-  for (const segment of segments) {
-    const normalized = segment.replace(/%2e/gi, ".");
-    if (normalized === "..") {
-      if (resolved.length > 1) resolved.pop();
-    } else if (normalized !== ".") {
-      resolved.push(segment);
-    }
-  }
-  return resolved.join("/") || "/";
+  return resolveDotSegments(pathname, { decodeSlashes: true });
 }
 
 export function isPathInScope(pathname: string, base: string): boolean {
