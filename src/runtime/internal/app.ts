@@ -96,11 +96,21 @@ export function getRouteRules(
     return { routeRuleMiddleware: [] };
   }
 
-  // Merge raw layers first, then canonical, so a more-specific rule the canonical
-  // path reveals wins over a broader one the raw path matched — e.g. the
-  // `/app/admin/**` auth gate overrides a broad `/app/**` rule for
-  // `/app/admin%2fpanel`. Proxy/redirect still forward the raw `event.url.pathname`.
-  const routeRules = mergeRouteRules(rawLayers, canonicalLayers);
+  // Resolve each path independently so a rule's `false` reset only affects the
+  // path it is configured for, then union the two: a rule applies if the served
+  // (raw) or the decoded (canonical) path enables it. The canonical pass can only
+  // add or override — never delete — a rule the served path resolved, so an
+  // encoded separator can neither dodge a rule nor strip one off the path that is
+  // actually served. On overlap the more-specific canonical rule wins (e.g. the
+  // `/app/admin/**` auth gate over a broad `/app/**` rule for `/app/admin%2fpanel`).
+  // Proxy/redirect still forward the raw `event.url.pathname`.
+  const routeRules = mergeRouteRules(rawLayers);
+  if (canonicalLayers?.length) {
+    const canonicalRules = mergeRouteRules(canonicalLayers);
+    for (const name in canonicalRules) {
+      mergeRouteRule(routeRules, canonicalRules[name], canonicalRules[name].params);
+    }
+  }
 
   const middleware = [];
   const orderedRules = Object.values(routeRules).sort(
@@ -118,37 +128,42 @@ export function getRouteRules(
   };
 }
 
-// Merge the matched route layers of each pass (least → most specific) into a
-// single set of route rules. Later passes and more-specific layers win: options
-// objects are merged, non-objects override, and `false` resets a rule inherited
-// from an earlier layer or pass.
-function mergeRouteRules(...passes: (any[] | undefined)[]): MatchedRouteRules {
+// Merge the matched route layers (least → most specific) of a single path into a
+// set of route rules. Resolve each path (raw / canonical) with its own call so a
+// `false` reset never leaks across paths.
+function mergeRouteRules(layers: any): MatchedRouteRules {
   const routeRules: MatchedRouteRules = {};
-  for (const layers of passes) {
-    for (const layer of layers || []) {
-      for (const rule of layer.data) {
-        const currentRule = routeRules[rule.name];
-        if (currentRule) {
-          if (rule.options === false) {
-            // Remove/Reset existing rule with `false` value
-            delete routeRules[rule.name];
-            continue;
-          }
-          if (typeof currentRule.options === "object" && typeof rule.options === "object") {
-            // Merge nested rule objects
-            currentRule.options = { ...currentRule.options, ...rule.options };
-          } else {
-            // Override rule if non object
-            currentRule.options = rule.options;
-          }
-          // Routing (route and params)
-          currentRule.route = rule.route;
-          currentRule.params = { ...currentRule.params, ...layer.params };
-        } else if (rule.options !== false) {
-          routeRules[rule.name] = { ...rule, params: layer.params };
-        }
-      }
+  for (const layer of layers || []) {
+    for (const rule of layer.data) {
+      mergeRouteRule(routeRules, rule, layer.params);
     }
   }
   return routeRules;
+}
+
+// Apply one rule (a matched layer or a resolved rule from the other path) onto
+// the accumulated set. `false` resets an inherited rule; otherwise options are
+// merged (objects) or overridden, with the incoming — more specific or later —
+// rule winning.
+function mergeRouteRule(routeRules: MatchedRouteRules, rule: any, params: any): void {
+  const currentRule = routeRules[rule.name];
+  if (currentRule) {
+    if (rule.options === false) {
+      // Remove/Reset existing rule with `false` value
+      delete routeRules[rule.name];
+      return;
+    }
+    if (typeof currentRule.options === "object" && typeof rule.options === "object") {
+      // Merge nested rule objects
+      currentRule.options = { ...currentRule.options, ...rule.options };
+    } else {
+      // Override rule if non object
+      currentRule.options = rule.options;
+    }
+    // Routing (route and params)
+    currentRule.route = rule.route;
+    currentRule.params = { ...currentRule.params, ...params };
+  } else if (rule.options !== false) {
+    routeRules[rule.name] = { ...rule, params };
+  }
 }

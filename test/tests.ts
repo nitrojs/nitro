@@ -485,6 +485,35 @@ export function testNitro(
       expect(headers["www-authenticate"]).toBe('Basic realm="Admin Area"');
     });
 
+    it("a single-segment `false` cannot dodge auth once decoded to multiple segments", async () => {
+      // `/rules/ba-off/*` disables auth for genuine single-segment paths, but
+      // `/rules/ba-off/a%2fb` decodes to the two-segment `/rules/ba-off/a/b` that
+      // the broad `/rules/ba-off/**` rule guards. The `false` reset applies to the
+      // served path's own resolution, but the canonical path still enables auth,
+      // so the encoded separator must not turn a multi-segment request into a
+      // single-segment one to dodge the gate.
+      const { status, headers } = await callHandler({
+        url: "/rules/ba-off/a%2fb",
+        headers: { Authorization: "Basic " + btoa("user:wrongpass") },
+      });
+      expect(status).toBe(401);
+      expect(headers["www-authenticate"]).toBe('Basic realm="Off Area"');
+    });
+
+    it("a `false` reset on a deeper subtree does not strip auth from the served path", async () => {
+      // `/rules/ba-strip/off%2fx` is served as a single opaque segment that only
+      // matches the broad `/rules/ba-strip/**` auth rule; the `/rules/ba-strip/off/**`
+      // disable targets the two-segment subtree the canonical path resolves to.
+      // Resolving that disable against the canonical path must not strip the auth
+      // gate off the path that is actually served (a match/serve differential).
+      const { status, headers } = await callHandler({
+        url: "/rules/ba-strip/off%2fx",
+        headers: { Authorization: "Basic " + btoa("user:wrongpass") },
+      });
+      expect(status).toBe(401);
+      expect(headers["www-authenticate"]).toBe('Basic realm="Strip Area"');
+    });
+
     it("a single-wildcard non-auth rule still applies to an encoded separator", async () => {
       // h3 serves the `/single-headers/[id]` handler on the raw path, so a
       // behavioral rule it matches there (`/single-headers/*`) must still apply

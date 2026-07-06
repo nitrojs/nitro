@@ -139,6 +139,14 @@ export default defineConfig({
     "/rules/ba-nested/admin/**": {
       basicAuth: { username: "admin", password: "secret", realm: "Admin Area" },
     },
+    "/rules/ba-off/**": {
+      basicAuth: { username: "admin", password: "secret", realm: "Off Area" },
+    },
+    "/rules/ba-off/*": { basicAuth: false },
+    "/rules/ba-strip/**": {
+      basicAuth: { username: "admin", password: "secret", realm: "Strip Area" },
+    },
+    "/rules/ba-strip/off/**": { basicAuth: false },
     "/ba-single/*": {
       basicAuth: { username: "admin", password: "secret", realm: "Secure Area" },
     },
