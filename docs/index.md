@@ -49,7 +49,7 @@ orientation: horizontal
 Build [/Servers]{.text-primary}
 
 #description
-Nitro extends your Vite application with a production-ready server, compatible with any runtime. Add server routes to your application and deploy many hosting platform with a zero-config experience.
+Nitro extends your Vite application with a production-ready server, compatible with any runtime. Add server routes to your application and deploy on many hosting platforms with a zero-config experience.
 
 #links
 :app-hero-links

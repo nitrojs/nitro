@@ -13,6 +13,7 @@ import { join } from "pathe";
 import { debounce } from "perfect-debounce";
 import { withBase } from "ufo";
 import { scanHandlers } from "../../scan.ts";
+import { writeTypes } from "../types.ts";
 import { getEnvRunner } from "./env.ts";
 
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
@@ -36,6 +37,7 @@ export type FetchHandler = (req: Request) => Promise<Response>;
 export interface DevServer extends RunnerRPCHooks {
   fetch: FetchHandler;
   init?: () => void | Promise<void>;
+  close?: () => void | Promise<void>;
 }
 
 // ---- Fetchable Dev Environment ----
@@ -114,6 +116,11 @@ export class FetchableDevEnvironment extends DevEnvironment {
       data: { name: this.name, entry: this.#entry },
     });
   }
+
+  override async close(): Promise<void> {
+    await super.close();
+    await this.devServer.close?.();
+  }
 }
 
 // ---- Vite Dev Server Integration ----
@@ -144,6 +151,7 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   const reload = debounce(async () => {
     await scanHandlers(nitro);
     nitro.routing.sync();
+    await writeTypes(nitro);
     nitroEnv.moduleGraph.invalidateAll();
     nitroEnv.hot.send({ type: "full-reload" });
   });
