@@ -1,7 +1,11 @@
 import { definePlugin } from "nitro";
-import type { IExportTraceServiceRequest, SpanContext, SpanInfo } from "./types.ts";
-import { Span } from "./span.ts";
-import { TRACED_CHANNELS } from "./channels.ts";
+import type {
+  IExportTraceServiceRequest,
+  SpanContext,
+  SpanInfo,
+} from "#nitro/runtime/telemetry/types";
+import { Span } from "#nitro/runtime/telemetry/span";
+import { subscribeTracedChannels } from "#nitro/runtime/telemetry/subscribe";
 
 /**
  * The Vercel runtime telemetry sink, `reportSpans` is fire-and-forget; the
@@ -34,47 +38,15 @@ const pendingSpans = new Map<string, Span[]>();
  * Exports Nitro tracing-channel events to the Vercel runtime as OpenTelemetry
  * spans, without an OpenTelemetry SDK.
  *
- * Subscribes to the tracing channels declared in `TRACED_CHANNELS` (produced by
- * h3, srvx, unstorage, …) and reports a full OTLP span per completed operation,
- * buffered per request and flushed once via the Vercel runtime.
+ * Subscribes to the tracing channels instrumented by Nitro (h3, srvx,
+ * unstorage, …) and reports a full OTLP span per completed operation, buffered
+ * per request and flushed once via the Vercel runtime.
+ *
+ * Registered first (unshift) so it subscribes to the traced channels at
+ * startup, before any request is handled.
  */
 export default definePlugin(() => {
-  const diagnostics = globalThis.process?.getBuiltinModule?.("node:diagnostics_channel");
-  if (!diagnostics?.subscribe) return;
-
-  // Carry the start time from `start` to `asyncEnd` without mutating the producer's context object.
-  const starts = new WeakMap<object, string>();
-
-  // A `tracingChannel(<name>)` publishes to plain named channels
-  // (`tracing:<name>:start`, `tracing:<name>:asyncEnd`, …). Subscribing to those
-  // names directly — rather than wrapping `tracingChannel` — needs no global
-  // patch and works regardless of when the producer creates the channel:
-  // `subscribe` registers against the name whether the channel exists yet or
-  // not. Channels absent from `TRACED_CHANNELS` are simply never subscribed.
-  for (const name of Object.keys(TRACED_CHANNELS)) {
-    const describe = TRACED_CHANNELS[name];
-
-    diagnostics.subscribe(`tracing:${name}:start`, (message) => {
-      starts.set(message as object, Span.nowUnixNano());
-    });
-
-    diagnostics.subscribe(`tracing:${name}:asyncEnd`, (message) => {
-      try {
-        const start = starts.get(message as object);
-        if (start === undefined) return;
-        starts.delete(message as object);
-
-        // Derive span name, kind and semantic attributes from the operation. A
-        // describer only throws on a payload shape it doesn't recognise (a
-        // producer that changed shape); drop that span via the catch below
-        // rather than emit a contentless one.
-        const info = describe(name, message);
-        reportSpan(info, start, (message as { error?: unknown }).error);
-      } catch {
-        // Malformed payload, or telemetry failure — never break the traced operation.
-      }
-    });
-  }
+  subscribeTracedChannels(reportSpan);
 });
 
 function reportSpan(info: SpanInfo, startTimeUnixNano: string, error: unknown): void {

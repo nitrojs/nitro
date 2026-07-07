@@ -381,6 +381,15 @@ export interface NitroOptions extends PresetOptions {
      * @see https://nitro.build/docs/tasks
      */
     tasks?: boolean;
+
+    /**
+     * Log Nitro tracing-channel spans to the console.
+     *
+     * Enables a built-in, dependency-free telemetry sink that `console.log`s
+     * each completed span (h3, srvx, unstorage, …). Requires `tracingChannel`
+     * to be enabled.
+     */
+    tracingLogger?: boolean;
   };
 
   /**
