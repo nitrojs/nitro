@@ -4,7 +4,7 @@ import type {
   IExportTraceServiceRequest,
   IKeyValue,
   ISpan,
-} from "../../src/presets/vercel/runtime/telemetry/types.ts";
+} from "../../src/runtime/internal/telemetry/types.ts";
 
 vi.mock("nitro", () => ({ definePlugin: (def: unknown) => def }));
 
