@@ -18,37 +18,59 @@ export const TRACED_CHANNELS: Record<string, ChannelDescriber> = {
   "h3.request"(channel: string, data: unknown): SpanInfo {
     const { event, type } = data as {
       type: "middleware" | "route";
-      event: { req: { method: string }; url: { pathname: string } };
+      event: {
+        req: { method: string };
+        url: { pathname: string };
+        context?: { matchedRoute?: { route?: string } };
+      };
     };
     const method = event.req.method;
     const path = event.url.pathname;
+    // Prefer the matched route template (`/users/:id`) for the span name so it
+    // stays low-cardinality per OTEL HTTP semconv; fall back to the concrete
+    // path when the request didn't match a route (404, middleware-only).
+    const route = event.context?.matchedRoute?.route;
+    const target = route || path;
+    const attributes: IKeyValue[] = [
+      { key: "nitro.channel", value: { stringValue: channel } },
+      { key: "http.request.method", value: { stringValue: method } },
+      { key: "url.path", value: { stringValue: path } },
+      { key: "nitro.h3.handler_type", value: { stringValue: type } },
+    ];
+    if (route) {
+      attributes.push({ key: "http.route", value: { stringValue: route } });
+    }
     return {
-      name: type === "middleware" ? `middleware ${method} ${path}` : `${method} ${path}`,
+      name: type === "middleware" ? `middleware ${method} ${target}` : `${method} ${target}`,
       kind: SPAN_KIND_INTERNAL,
-      attributes: [
-        { key: "nitro.channel", value: { stringValue: channel } },
-        { key: "http.request.method", value: { stringValue: method } },
-        { key: "url.path", value: { stringValue: path } },
-        { key: "nitro.h3.handler_type", value: { stringValue: type } },
-      ],
+      attributes,
     };
   },
   "srvx.request"(channel: string, data: unknown): SpanInfo {
     const { request, result } = data as {
-      request: { method: string; url: string };
+      request: { method: string; url: string; context?: { matchedRoute?: { route?: string } } };
       result?: { status: number };
     };
     const method = request.method;
     const path = new URL(request.url).pathname;
+    // The srvx span wraps the whole request, so by the time it closes h3 has
+    // populated `matchedRoute` on the shared request context. Prefer that route
+    // template for a low-cardinality span name (OTEL HTTP semconv), matching the
+    // `h3.request` span; fall back to the concrete path for unmatched requests
+    // (static assets, 404s).
+    const route = request.context?.matchedRoute?.route;
     const attributes: IKeyValue[] = [
       { key: "nitro.channel", value: { stringValue: channel } },
       { key: "http.request.method", value: { stringValue: method } },
       { key: "url.path", value: { stringValue: path } },
     ];
+    if (route) {
+      attributes.push({ key: "http.route", value: { stringValue: route } });
+    }
     if (result) {
       attributes.push({ key: "http.response.status_code", value: { intValue: result.status } });
     }
-    return { name: `${method} ${path}`, kind: SPAN_KIND_INTERNAL, attributes };
+    return { name: `${method} ${route || path}`, kind: SPAN_KIND_INTERNAL, attributes };
   },
   "srvx.middleware"(channel: string, data: unknown): SpanInfo {
     const { request, middleware } = data as {

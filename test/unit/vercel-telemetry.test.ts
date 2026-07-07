@@ -442,6 +442,26 @@ describe("vercel telemetry span describers", () => {
     expect(attrValue(spans[0], "url.path")).toEqual({ stringValue: "/storage" });
     expect(attrValue(spans[0], "nitro.h3.handler_type")).toEqual({ stringValue: "route" });
     expect(attrValue(spans[1], "nitro.h3.handler_type")).toEqual({ stringValue: "middleware" });
+    // No matched route in the payload → no low-cardinality http.route attribute.
+    expect(attrValue(spans[0], "http.route")).toBeUndefined();
+  });
+
+  it("names h3.request spans by the matched route template", async () => {
+    // h3 exposes the matched route on `event.context.matchedRoute` (rou3 syntax).
+    const event = {
+      req: { method: "GET" },
+      url: { pathname: "/users/123" },
+      context: { matchedRoute: { route: "/users/:id" } },
+    };
+    const spans = await traceSpans(
+      ["h3.request", { type: "route", event }],
+      ["h3.request", { type: "middleware", event }]
+    );
+    // Span name uses the low-cardinality template, not the concrete path.
+    expect(spans.map((span) => span.name)).toEqual(["GET /users/:id", "middleware GET /users/:id"]);
+    // The concrete path stays on `url.path`; the template is emitted as `http.route`.
+    expect(attrValue(spans[0], "url.path")).toEqual({ stringValue: "/users/123" });
+    expect(attrValue(spans[0], "http.route")).toEqual({ stringValue: "/users/:id" });
   });
 
   it("describes srvx.request with the response status", async () => {
@@ -456,6 +476,28 @@ describe("vercel telemetry span describers", () => {
     expect(span.kind).toBe(KIND_INTERNAL);
     expect(attrValue(span, "url.path")).toEqual({ stringValue: "/api/hello" });
     expect(attrValue(span, "http.response.status_code")).toEqual({ intValue: 201 });
+    // No matched route on the request context → concrete path, no http.route.
+    expect(attrValue(span, "http.route")).toBeUndefined();
+  });
+
+  it("names srvx.request spans by the matched route template", async () => {
+    // The srvx span wraps the whole request, so by the time it closes h3 has
+    // populated `matchedRoute` on the shared `request.context`.
+    const [span] = await traceSpans([
+      "srvx.request",
+      {
+        request: {
+          method: "GET",
+          url: "https://example.com/users/123",
+          context: { matchedRoute: { route: "/users/:id" } },
+        },
+      },
+      async () => ({ status: 200 }),
+    ]);
+    expect(span.name).toBe("GET /users/:id");
+    expect(attrValue(span, "url.path")).toEqual({ stringValue: "/users/123" });
+    expect(attrValue(span, "http.route")).toEqual({ stringValue: "/users/:id" });
+    expect(attrValue(span, "http.response.status_code")).toEqual({ intValue: 200 });
   });
 
   it("describes srvx.middleware with named and anonymous handlers", async () => {
