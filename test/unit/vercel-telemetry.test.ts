@@ -253,6 +253,19 @@ function attrValue(span: ISpan, key: string): unknown {
   return span.attributes!.find((attribute) => attribute.key === key)?.value;
 }
 
+/**
+ * Trace one or more ops in a single fresh request and return the reported spans.
+ * For tests that only assert on the resulting spans — not on harness internals
+ * (`traceId`/`reports`/`tasks`) or the traced promise's own outcome.
+ */
+async function traceSpans(...ops: Array<Parameters<typeof traced>>): Promise<ISpan[]> {
+  const harness = installVercelContext();
+  for (const op of ops) {
+    await traced(...op);
+  }
+  return flushSpans(harness);
+}
+
 // ---------------------------------------------------------------------------
 // Setup: activate the plugin once (it patches `tracingChannel` process-wide)
 // ---------------------------------------------------------------------------
@@ -273,9 +286,16 @@ afterEach(() => {
 
 // ---------------------------------------------------------------------------
 // Tests
+//
+// One `describe` per source section, in source order:
+//   1. Span class        (vercel.ts)   — OTLP payload shape + error/exception events
+//   2. reportSpan         (vercel.ts)   — per-request buffering, reporting, sampling, guards
+//   3. channel describers (channels.ts) — name/kind/attributes per producer
+//   4. instrument / patch (vercel.ts)   — tracingChannel subscription
 // ---------------------------------------------------------------------------
 
-describe("vercel telemetry plugin", () => {
+// 1. Span class (vercel.ts) — the OTLP span each completed operation produces.
+describe("vercel telemetry span payload", () => {
   it("reports a schema-valid OTLP batch joined to the platform root span", async () => {
     const harness = installVercelContext();
     const channel = uniqueChannel();
@@ -306,6 +326,47 @@ describe("vercel telemetry plugin", () => {
     expect(scopeSpans.scope?.name).toBe("@nitro/vercel-tracing");
   });
 
+  it("records rejected operations as error status + OTEL exception event", async () => {
+    const harness = installVercelContext();
+    const error = new Error("boom");
+    await expect(
+      traced(uniqueChannel(), {}, async () => {
+        throw error;
+      })
+    ).rejects.toThrow("boom");
+
+    const [span] = await flushSpans(harness);
+    expect(span.status).toEqual({ code: STATUS_ERROR, message: "boom" });
+    expect(span.events).toHaveLength(1);
+
+    const event = span.events![0];
+    expect(event.name).toBe("exception");
+    expect(event.timeUnixNano).toBe(span.endTimeUnixNano);
+    expect(event.attributes).toEqual([
+      { key: "exception.type", value: { stringValue: "Error" } },
+      { key: "exception.message", value: { stringValue: "boom" } },
+      { key: "exception.stacktrace", value: { stringValue: error.stack } },
+    ]);
+  });
+
+  it("handles non-Error rejections", async () => {
+    const harness = installVercelContext();
+    await expect(
+      traced(uniqueChannel(), {}, async () => {
+        throw "plain failure";
+      })
+    ).rejects.toBe("plain failure");
+
+    const [span] = await flushSpans(harness);
+    expect(span.status).toEqual({ code: STATUS_ERROR, message: "plain failure" });
+    expect(span.events![0].attributes).toEqual([
+      { key: "exception.message", value: { stringValue: "plain failure" } },
+    ]);
+  });
+});
+
+// 2. reportSpan (vercel.ts) — buffering per request, flushing, sampling, guards.
+describe("vercel telemetry buffering & reporting", () => {
   it("batches all spans of a request into a single reportSpans call", async () => {
     const harness = installVercelContext();
     await traced(uniqueChannel(), {});
@@ -368,54 +429,14 @@ describe("vercel telemetry plugin", () => {
   });
 });
 
-describe("vercel telemetry error reporting", () => {
-  it("records rejected operations as error status + OTEL exception event", async () => {
-    const harness = installVercelContext();
-    const error = new Error("boom");
-    await expect(
-      traced(uniqueChannel(), {}, async () => {
-        throw error;
-      })
-    ).rejects.toThrow("boom");
-
-    const [span] = await flushSpans(harness);
-    expect(span.status).toEqual({ code: STATUS_ERROR, message: "boom" });
-    expect(span.events).toHaveLength(1);
-
-    const event = span.events![0];
-    expect(event.name).toBe("exception");
-    expect(event.timeUnixNano).toBe(span.endTimeUnixNano);
-    expect(event.attributes).toEqual([
-      { key: "exception.type", value: { stringValue: "Error" } },
-      { key: "exception.message", value: { stringValue: "boom" } },
-      { key: "exception.stacktrace", value: { stringValue: error.stack } },
-    ]);
-  });
-
-  it("handles non-Error rejections", async () => {
-    const harness = installVercelContext();
-    await expect(
-      traced(uniqueChannel(), {}, async () => {
-        throw "plain failure";
-      })
-    ).rejects.toBe("plain failure");
-
-    const [span] = await flushSpans(harness);
-    expect(span.status).toEqual({ code: STATUS_ERROR, message: "plain failure" });
-    expect(span.events![0].attributes).toEqual([
-      { key: "exception.message", value: { stringValue: "plain failure" } },
-    ]);
-  });
-});
-
+// 3. channel describers (channels.ts) — name/kind/attributes per producer.
 describe("vercel telemetry span describers", () => {
   it("describes h3.request route and middleware events", async () => {
-    const harness = installVercelContext();
     const event = { req: { method: "GET" }, url: { pathname: "/storage" } };
-    await traced("h3.request", { type: "route", event });
-    await traced("h3.request", { type: "middleware", event });
-
-    const spans = await flushSpans(harness);
+    const spans = await traceSpans(
+      ["h3.request", { type: "route", event }],
+      ["h3.request", { type: "middleware", event }]
+    );
     expect(spans.map((span) => span.name)).toEqual(["GET /storage", "middleware GET /storage"]);
     expect(spans[0].kind).toBe(KIND_INTERNAL);
     expect(attrValue(spans[0], "nitro.channel")).toEqual({ stringValue: "h3.request" });
@@ -426,16 +447,13 @@ describe("vercel telemetry span describers", () => {
   });
 
   it("describes srvx.request with the response status", async () => {
-    const harness = installVercelContext();
     // `tracePromise` sets `result` on the context when the promise resolves,
     // which is how srvx exposes the response.
-    await traced(
+    const [span] = await traceSpans([
       "srvx.request",
       { request: { method: "POST", url: "https://example.com/api/hello?x=1" } },
-      async () => ({ status: 201 })
-    );
-
-    const [span] = await flushSpans(harness);
+      async () => ({ status: 201 }),
+    ]);
     expect(span.name).toBe("POST /api/hello");
     expect(span.kind).toBe(KIND_INTERNAL);
     expect(attrValue(span, "url.path")).toEqual({ stringValue: "/api/hello" });
@@ -443,15 +461,11 @@ describe("vercel telemetry span describers", () => {
   });
 
   it("describes srvx.middleware with named and anonymous handlers", async () => {
-    const harness = installVercelContext();
     const request = { method: "GET" };
-    await traced("srvx.middleware", {
-      request,
-      middleware: { index: 2, handler: { name: "auth" } },
-    });
-    await traced("srvx.middleware", { request, middleware: { index: 0, handler: { name: "" } } });
-
-    const spans = await flushSpans(harness);
+    const spans = await traceSpans(
+      ["srvx.middleware", { request, middleware: { index: 2, handler: { name: "auth" } } }],
+      ["srvx.middleware", { request, middleware: { index: 0, handler: { name: "" } } }]
+    );
     expect(spans.map((span) => span.name)).toEqual(["middleware auth", "middleware #0"]);
     expect(attrValue(spans[0], "nitro.middleware.index")).toEqual({ intValue: 2 });
     expect(attrValue(spans[0], "nitro.middleware.name")).toEqual({ stringValue: "auth" });
@@ -459,15 +473,10 @@ describe("vercel telemetry span describers", () => {
   });
 
   it("describes dynamic unstorage.* channels as CLIENT spans", async () => {
-    const harness = installVercelContext();
-    await traced("unstorage.getItem", {
-      driver: { name: "redis" },
-      base: "cache",
-      keys: ["a", "b"],
-    });
-    await traced("unstorage.setItem", {});
-
-    const spans = await flushSpans(harness);
+    const spans = await traceSpans(
+      ["unstorage.getItem", { driver: { name: "redis" }, base: "cache", keys: ["a", "b"] }],
+      ["unstorage.setItem", {}]
+    );
     expect(spans[0].name).toBe("getItem cache");
     // OTLP wire value CLIENT = 3 (NOT @opentelemetry/api's SpanKind.CLIENT = 2).
     expect(spans[0].kind).toBe(KIND_CLIENT);
@@ -479,10 +488,7 @@ describe("vercel telemetry span describers", () => {
   });
 
   it("emits a generic INTERNAL span for unknown channels", async () => {
-    const harness = installVercelContext();
-    await traced("ioredis:command", { command: { name: "GET" } });
-
-    const [span] = await flushSpans(harness);
+    const [span] = await traceSpans(["ioredis:command", { command: { name: "GET" } }]);
     expect(span.name).toBe("ioredis:command");
     expect(span.kind).toBe(KIND_INTERNAL);
     expect(span.attributes).toEqual([
@@ -503,6 +509,7 @@ describe("vercel telemetry span describers", () => {
   });
 });
 
+// 4. instrument / tracingChannel patch (vercel.ts) — one subscription per channel.
 describe("vercel telemetry instrumentation", () => {
   it("subscribes once per channel name even if the channel is re-created", async () => {
     const harness = installVercelContext();
