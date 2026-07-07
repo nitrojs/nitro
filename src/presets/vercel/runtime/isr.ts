@@ -5,34 +5,21 @@ export function isrRouteRewrite(
   xNowRouteMatches: string | null
 ): [pathname: string, search: string] | undefined {
   const queryIndex = reqUrl.indexOf("?");
-  if (xNowRouteMatches) {
-    const matches = new URLSearchParams(xNowRouteMatches);
-    const isrURL = matches.get(ISR_URL_PARAM);
-    if (isrURL) {
-      // Rebuild the query from both `x-now-route-matches` and the rewritten
-      // request URL, skipping the ISR routing param and Vercel's numeric
-      // regex-capture groups (`0`, `1`, ...). Without this, `allowQuery`
-      // params (e.g. `?lang`) are dropped and the ISR cache stores the
-      // bare-path document under the query-keyed entry.
-      const sources =
-        queryIndex === -1
-          ? [matches]
-          : [matches, new URLSearchParams(reqUrl.slice(queryIndex + 1))];
-      const params = new URLSearchParams();
-      for (const source of sources) {
-        for (const [key, value] of source) {
-          if (key === ISR_URL_PARAM || /^\d+$/.test(key)) continue;
-          if (!params.has(key)) params.set(key, value);
-        }
-      }
-      return [decodeURIComponent(isrURL), params.toString()];
-    }
-  } else if (queryIndex !== -1) {
-    const reqParams = new URLSearchParams(reqUrl.slice(queryIndex + 1));
-    const isrURL = reqParams.get(ISR_URL_PARAM);
-    if (isrURL) {
-      reqParams.delete(ISR_URL_PARAM);
-      return [decodeURIComponent(isrURL), reqParams.toString()];
-    }
-  }
+  const reqParams =
+    queryIndex === -1 ? new URLSearchParams() : new URLSearchParams(reqUrl.slice(queryIndex + 1));
+
+  // The ISR routing param is carried by `x-now-route-matches` when Vercel
+  // rewrites via the route regex, otherwise it lives on the request URL.
+  const isrURL = xNowRouteMatches
+    ? new URLSearchParams(xNowRouteMatches).get(ISR_URL_PARAM)
+    : reqParams.get(ISR_URL_PARAM);
+  if (!isrURL) return;
+
+  // Preserve `allowQuery` params, which Vercel forwards onto the rewritten
+  // request URL. `x-now-route-matches` is intentionally not merged in: it
+  // carries the route regex capture groups (named like `slug`, numeric like
+  // `0`), not user query, and merging them would pollute the render and the
+  // shared ISR cache entry.
+  reqParams.delete(ISR_URL_PARAM);
+  return [decodeURIComponent(isrURL), reqParams.toString()];
 }

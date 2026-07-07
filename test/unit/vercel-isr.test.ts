@@ -46,5 +46,24 @@ describe("isrRouteRewrite", () => {
         )
       ).toEqual(["/posts/hello", "lang=es"]);
     });
+
+    // Regression: named route capture groups (e.g. `slug` for `/posts/:slug`)
+    // are emitted by normalizeRouteSrc and echoed in `x-now-route-matches`.
+    // They must not leak into the preserved query.
+    it("skips Vercel named regex-capture groups", () => {
+      expect(
+        isrRouteRewrite(
+          "/posts/hello-isr?__isr_route=%2Fposts%2Fhello&lang=es",
+          "slug=hello&__isr_route=%2Fposts%2Fhello&lang=es"
+        )
+      ).toEqual(["/posts/hello", "lang=es"]);
+    });
+
+    it("preserves repeated (array-style) query params", () => {
+      expect(isrRouteRewrite("/index-isr?__isr_route=%2F&tag=a&tag=b", "__isr_route=%2F")).toEqual([
+        "/",
+        "tag=a&tag=b",
+      ]);
+    });
   });
 });
