@@ -35,7 +35,7 @@ export const TRACED_CHANNELS: Record<string, ChannelDescriber> = {
       { key: "nitro.channel", value: { stringValue: channel } },
       { key: "http.request.method", value: { stringValue: method } },
       { key: "url.path", value: { stringValue: path } },
-      { key: "nitro.h3.handler_type", value: { stringValue: type } },
+      { key: "h3.handler_type", value: { stringValue: type } },
     ];
     if (route) {
       attributes.push({ key: "http.route", value: { stringValue: route } });
@@ -80,11 +80,11 @@ export const TRACED_CHANNELS: Record<string, ChannelDescriber> = {
     const handlerName = middleware.handler.name;
     const attributes: IKeyValue[] = [
       { key: "nitro.channel", value: { stringValue: channel } },
-      { key: "nitro.middleware.index", value: { intValue: middleware.index } },
+      { key: "srvx.middleware.index", value: { intValue: middleware.index } },
       { key: "http.request.method", value: { stringValue: request.method } },
     ];
     if (handlerName) {
-      attributes.push({ key: "nitro.middleware.name", value: { stringValue: handlerName } });
+      attributes.push({ key: "srvx.middleware.name", value: { stringValue: handlerName } });
     }
     return {
       name: `middleware ${handlerName || `#${middleware.index}`}`,
@@ -121,9 +121,9 @@ export const TRACED_CHANNELS: Record<string, ChannelDescriber> = {
         ];
         if (driver?.name)
           attributes.push({ key: "db.system", value: { stringValue: driver.name } });
-        if (base) attributes.push({ key: "nitro.storage.base", value: { stringValue: base } });
+        if (base) attributes.push({ key: "unstorage.base", value: { stringValue: base } });
         if (keys)
-          attributes.push({ key: "nitro.storage.keys_count", value: { intValue: keys.length } });
+          attributes.push({ key: "unstorage.keys_count", value: { intValue: keys.length } });
         return {
           name: base ? `${operation} ${base}` : operation,
           kind: SPAN_KIND_CLIENT,

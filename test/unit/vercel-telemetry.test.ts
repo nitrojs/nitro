@@ -440,8 +440,8 @@ describe("vercel telemetry span describers", () => {
     expect(attrValue(spans[0], "nitro.channel")).toEqual({ stringValue: "h3.request" });
     expect(attrValue(spans[0], "http.request.method")).toEqual({ stringValue: "GET" });
     expect(attrValue(spans[0], "url.path")).toEqual({ stringValue: "/storage" });
-    expect(attrValue(spans[0], "nitro.h3.handler_type")).toEqual({ stringValue: "route" });
-    expect(attrValue(spans[1], "nitro.h3.handler_type")).toEqual({ stringValue: "middleware" });
+    expect(attrValue(spans[0], "h3.handler_type")).toEqual({ stringValue: "route" });
+    expect(attrValue(spans[1], "h3.handler_type")).toEqual({ stringValue: "middleware" });
     // No matched route in the payload → no low-cardinality http.route attribute.
     expect(attrValue(spans[0], "http.route")).toBeUndefined();
   });
@@ -507,9 +507,9 @@ describe("vercel telemetry span describers", () => {
       ["srvx.middleware", { request, middleware: { index: 0, handler: { name: "" } } }]
     );
     expect(spans.map((span) => span.name)).toEqual(["middleware auth", "middleware #0"]);
-    expect(attrValue(spans[0], "nitro.middleware.index")).toEqual({ intValue: 2 });
-    expect(attrValue(spans[0], "nitro.middleware.name")).toEqual({ stringValue: "auth" });
-    expect(attrValue(spans[1], "nitro.middleware.name")).toBeUndefined();
+    expect(attrValue(spans[0], "srvx.middleware.index")).toEqual({ intValue: 2 });
+    expect(attrValue(spans[0], "srvx.middleware.name")).toEqual({ stringValue: "auth" });
+    expect(attrValue(spans[1], "srvx.middleware.name")).toBeUndefined();
   });
 
   it("describes unstorage.* channels as CLIENT spans", async () => {
@@ -522,8 +522,8 @@ describe("vercel telemetry span describers", () => {
     expect(spans[0].kind).toBe(KIND_CLIENT);
     expect(attrValue(spans[0], "db.operation")).toEqual({ stringValue: "getItem" });
     expect(attrValue(spans[0], "db.system")).toEqual({ stringValue: "redis" });
-    expect(attrValue(spans[0], "nitro.storage.base")).toEqual({ stringValue: "cache" });
-    expect(attrValue(spans[0], "nitro.storage.keys_count")).toEqual({ intValue: 2 });
+    expect(attrValue(spans[0], "unstorage.base")).toEqual({ stringValue: "cache" });
+    expect(attrValue(spans[0], "unstorage.keys_count")).toEqual({ intValue: 2 });
     expect(spans[1].name).toBe("setItem");
   });
 
