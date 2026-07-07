@@ -1,9 +1,4 @@
-import type {
-  IKeyValue,
-  ISpan,
-  ISpanEvent,
-  SpanInfo,
-} from "./types.ts";
+import type { IKeyValue, ISpan, ISpanEvent, SpanInfo } from "./types.ts";
 
 // OTLP `Status.StatusCode` (proto enum): UNSET = 0, OK = 1, ERROR = 2.
 const STATUS_CODE_ERROR = 2;
@@ -94,5 +89,3 @@ export class Span implements ISpan {
     return id === "0000000000000000" ? "0000000000000001" : id;
   }
 }
-
-

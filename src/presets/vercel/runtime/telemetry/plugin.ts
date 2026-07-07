@@ -1,10 +1,6 @@
 import { definePlugin } from "nitro";
-import type {
-  IExportTraceServiceRequest,
-  SpanContext,
-  SpanInfo,
-} from "./types.ts";
-import { Span } from './span.ts'
+import type { IExportTraceServiceRequest, SpanContext, SpanInfo } from "./types.ts";
+import { Span } from "./span.ts";
 import { TRACED_CHANNELS } from "./channels.ts";
 
 /**
@@ -81,7 +77,6 @@ export default definePlugin(() => {
   }
 });
 
-
 function reportSpan(info: SpanInfo, startTimeUnixNano: string, error: unknown): void {
   const context = (globalThis as Record<symbol, RequestContextReader | undefined>)[
     REQUEST_CONTEXT_SYMBOL
@@ -130,4 +125,3 @@ function reportSpan(info: SpanInfo, startTimeUnixNano: string, error: unknown): 
   }
   spans.push(span);
 }
-
