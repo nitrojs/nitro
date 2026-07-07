@@ -106,6 +106,11 @@ const CATEGORY_COLOR: Record<string, string> = {
 // Attributes already conveyed by the header (method + path) — hidden per row.
 const REDUNDANT_ATTRS = new Set(["http.request.method", "url.path"]);
 
+// Per-span status markers, drawn (in the span's accent color) ahead of its name.
+// A failed span reads as `✖ setItem redis`; a successful one as `● setItem redis`.
+const MARKER_OK = "●";
+const MARKER_FAILED = "✖";
+
 /** Render a request's collected spans as a single multi-line waterfall (printed atomically). */
 function renderTimeline(trace: RequestTrace, end: bigint): string {
   const t0 = trace.start;
@@ -155,7 +160,7 @@ function renderTimeline(trace: RequestTrace, end: bigint): string {
     const accent = failed ? RED : CATEGORY_COLOR[categorize(span)];
     const share = Number(span.end - span.start) / Number(total);
 
-    const marker = failed ? "◆" : "●";
+    const marker = failed ? MARKER_FAILED : MARKER_OK;
     const label = renderLabel(prefixes[i], marker, span.name, accent, paint, dim);
     const bar = renderBar(span, t0, total, track, accent, paint, dim);
     const duration = paint(ms(span.end - span.start).padStart(9), heat(share, 0.25, 0.6));

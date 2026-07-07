@@ -75,8 +75,9 @@ describe("telemetry console logger", () => {
     const output = log.mock.calls[0][0] as string;
     expect(output).toMatch(/GET\s+\//); // header: method + path
     expect(output).toContain("2 spans");
-    expect(output).toContain("getItem redis");
-    expect(output).toContain("setItem redis");
+    // Successful spans carry the `●` status marker (its failed counterpart is `✖`).
+    expect(output).toContain("● getItem redis");
+    expect(output).toContain("● setItem redis");
     // Every span line carries a duration bar and a millisecond figure.
     expect(output).toMatch(/█+/);
     expect(output.match(/\d+\.\d{2}ms/g)?.length).toBeGreaterThanOrEqual(3);
