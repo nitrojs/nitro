@@ -206,35 +206,6 @@ const PREFIX_DESCRIBERS: Array<{ prefix: string; describe: ChannelDescriber }> =
   { prefix: "unstorage.", describe: describeUnstorage },
 ];
 
-/**
- * Derive a span name, kind and semantic attributes from a completed operation.
- *
- * First-party channels (h3/srvx/unstorage) map to OpenTelemetry semantic
- * conventions. Unknown/third-party channels — and any describer that throws on a
- * malformed payload — degrade to a generic INTERNAL span named after the
- * channel, so enrichment is best-effort and never drops a span.
- */
-function describeSpan(channel: string, data: Record<string, unknown>): SpanInfo {
-  const describe =
-    CHANNEL_DESCRIBERS[channel] ??
-    PREFIX_DESCRIBERS.find((entry) => channel.startsWith(entry.prefix))?.describe;
-
-  if (describe) {
-    try {
-      return describe(channel, data);
-    } catch {
-      // Fall through to the generic span below.
-    }
-  }
-
-  // OTLP's default kind: we have not established a remote relationship.
-  return {
-    name: channel,
-    kind: SPAN_KIND_INTERNAL,
-    attributes: [{ key: "nitro.channel", value: { stringValue: channel } }],
-  };
-}
-
 /** h3's `TracingRequestEvent` (channel `h3.request`). */
 interface H3RequestData {
   type: "middleware" | "route";
@@ -353,7 +324,31 @@ export default definePlugin(() => {
           const start = starts.get(message);
           if (start === undefined) return;
           starts.delete(message);
-          reportSpan(describeSpan(name, message), start, message.error);
+
+          // Derive span name, kind and semantic attributes from the operation.
+          // First-party channels (h3/srvx/unstorage) map to OpenTelemetry
+          // semantic conventions; unknown/third-party channels — and any
+          // describer that throws on a malformed payload — degrade to a generic
+          // INTERNAL span named after the channel (OTLP's default kind: no
+          // remote relationship established), so enrichment never drops a span.
+          const describe =
+            CHANNEL_DESCRIBERS[name] ??
+            PREFIX_DESCRIBERS.find((entry) => name.startsWith(entry.prefix))?.describe;
+          let info: SpanInfo | undefined;
+          if (describe) {
+            try {
+              info = describe(name, message);
+            } catch {
+              // Fall through to the generic span below.
+            }
+          }
+          info ??= {
+            name,
+            kind: SPAN_KIND_INTERNAL,
+            attributes: [{ key: "nitro.channel", value: { stringValue: name } }],
+          };
+
+          reportSpan(info, start, message.error);
         } catch {
           // Telemetry must never break the traced operation.
         }
