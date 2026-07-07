@@ -1,4 +1,4 @@
-import type { IKeyValue, ChannelDescriber, SpanInfo } from './types.ts'
+import type { IKeyValue, ChannelDescriber, SpanInfo } from "./types.ts";
 
 // OTLP `SpanKind` (proto enum) Wire values: INTERNAL = 1, SERVER = 2, CLIENT = 3.
 const SPAN_KIND_INTERNAL = 1;

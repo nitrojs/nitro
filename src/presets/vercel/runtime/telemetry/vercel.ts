@@ -144,8 +144,8 @@ const pendingSpans = new Map<string, Span[]>();
 function reportSpan(info: SpanInfo, startTimeUnixNano: string, error: unknown): void {
   const context = (globalThis as Record<symbol, RequestContextReader | undefined>)[
     REQUEST_CONTEXT_SYMBOL
-  ]?.get?.()
-  
+  ]?.get?.();
+
   const telemetry = context?.telemetry;
   const root = telemetry?.rootSpanContext;
 
@@ -189,7 +189,6 @@ function reportSpan(info: SpanInfo, startTimeUnixNano: string, error: unknown): 
   }
   spans.push(span);
 }
-
 
 // Patch `tracingChannel` once, even if the plugin initialises more than once.
 let patched = false;

@@ -102,4 +102,3 @@ export interface SpanInfo {
  * directly; a malformed payload throws and is caught by `describeSpan`.
  */
 export type ChannelDescriber = (channel: string, data: unknown) => SpanInfo;
-
