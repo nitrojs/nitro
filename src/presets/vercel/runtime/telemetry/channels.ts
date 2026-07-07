@@ -5,18 +5,16 @@ const SPAN_KIND_INTERNAL = 1;
 const SPAN_KIND_CLIENT = 3;
 
 /**
- * Resolve the describer for a channel: an exact first-party match, else a
- * namespaced-prefix match (first wins), else `undefined` so the caller falls
- * back to a generic span.
+ * Every tracing channel Nitro instruments, keyed by channel name and mapped to
+ * the describer that turns a completed operation into a span name, kind and
+ * attributes. The plugin subscribes to exactly these channels
+ * (`tracing:<name>:*`); channels absent from this table are not traced.
+ *
+ * Declaring the names here — instead of wrapping `tracingChannel` to discover
+ * them at runtime — is what lets the runtime patch no globals and never observe
+ * unknown/third-party channels.
  */
-export function resolveDescriber(channel: string): ChannelDescriber | undefined {
-  return (
-    CHANNEL_DESCRIBERS[channel] ??
-    PREFIX_DESCRIBERS.find((entry) => channel.startsWith(entry.prefix))?.describe
-  );
-}
-
-const CHANNEL_DESCRIBERS: Record<string, ChannelDescriber> = {
+export const TRACED_CHANNELS: Record<string, ChannelDescriber> = {
   "h3.request"(channel: string, data: unknown): SpanInfo {
     const { event, type } = data as {
       type: "middleware" | "route";
@@ -72,35 +70,44 @@ const CHANNEL_DESCRIBERS: Record<string, ChannelDescriber> = {
       attributes,
     };
   },
+  ...Object.fromEntries(
+    [
+      "getItem",
+      "getItems",
+      "getItemRaw",
+      "getMeta",
+      "getKeys",
+      "hasItem",
+      "setItem",
+      "setItems",
+      "setItemRaw",
+      "removeItem",
+      "clear",
+    ].map((operation) => [
+      `unstorage.${operation}`,
+      (channel: string, data: unknown) => {
+        const { driver, base, keys } = data as {
+          driver?: { name?: string };
+          base?: string;
+          keys?: unknown[];
+        };
+        const operation = channel.slice("unstorage.".length);
+        // CLIENT: storage is a known outbound dependency (OTEL database semconv).
+        const attributes: IKeyValue[] = [
+          { key: "nitro.channel", value: { stringValue: channel } },
+          { key: "db.operation", value: { stringValue: operation } },
+        ];
+        if (driver?.name)
+          attributes.push({ key: "db.system", value: { stringValue: driver.name } });
+        if (base) attributes.push({ key: "nitro.storage.base", value: { stringValue: base } });
+        if (keys)
+          attributes.push({ key: "nitro.storage.keys_count", value: { intValue: keys.length } });
+        return {
+          name: base ? `${operation} ${base}` : operation,
+          kind: SPAN_KIND_CLIENT,
+          attributes,
+        } satisfies SpanInfo;
+      },
+    ])
+  ),
 };
-
-// Namespaced channels with a dynamic operation suffix (e.g. `unstorage.getItem`,
-// `unstorage.setItem`). Matched by prefix; first match wins. A future `db0.*`
-// would slot in here as another entry.
-const PREFIX_DESCRIBERS: Array<{ prefix: string; describe: ChannelDescriber }> = [
-  {
-    prefix: "unstorage.",
-    describe(channel: string, data: unknown): SpanInfo {
-      const { driver, base, keys } = data as {
-        driver?: { name?: string };
-        base?: string;
-        keys?: unknown[];
-      };
-      const operation = channel.slice("unstorage.".length);
-      // CLIENT: storage is a known outbound dependency (OTEL database semconv).
-      const attributes: IKeyValue[] = [
-        { key: "nitro.channel", value: { stringValue: channel } },
-        { key: "db.operation", value: { stringValue: operation } },
-      ];
-      if (driver?.name) attributes.push({ key: "db.system", value: { stringValue: driver.name } });
-      if (base) attributes.push({ key: "nitro.storage.base", value: { stringValue: base } });
-      if (keys)
-        attributes.push({ key: "nitro.storage.keys_count", value: { intValue: keys.length } });
-      return {
-        name: base ? `${operation} ${base}` : operation,
-        kind: SPAN_KIND_CLIENT,
-        attributes,
-      };
-    },
-  },
-];

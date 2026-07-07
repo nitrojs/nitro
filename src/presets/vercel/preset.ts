@@ -58,11 +58,12 @@ const vercel = defineNitroPreset(
         logger.info(`Using \`${serverFormat}\` entry format.`);
         nitro.options.entry = nitro.options.entry.replace("{format}", serverFormat);
 
-        // Export tracing-channel spans to the Vercel runtime. Must run first
-        // (unshift) so it wraps `tracingChannel` before producers create channels.
+        // Export tracing-channel spans to the Vercel runtime. Registered first
+        // (unshift) so it subscribes to the traced channels at startup, before
+        // any request is handled.
         if (nitro.options.tracingChannel) {
           nitro.options.plugins ??= [];
-          nitro.options.plugins.unshift(join(presetsDir, "vercel/runtime/telemetry/core"));
+          nitro.options.plugins.unshift(join(presetsDir, "vercel/runtime/telemetry/plugin"));
         }
 
         // Cron tasks handler

@@ -1,5 +1,4 @@
 import { definePlugin } from "nitro";
-import type { TracingChannel } from "node:diagnostics_channel";
 import type {
   IExportTraceServiceRequest,
   IKeyValue,
@@ -9,15 +8,15 @@ import type {
   SpanInfo,
 } from "./types.ts";
 
-import { resolveDescriber } from "./channels.ts";
+import { TRACED_CHANNELS } from "./channels.ts";
 
 /**
  * Exports Nitro tracing-channel events to the Vercel runtime as OpenTelemetry
  * spans, without an OpenTelemetry SDK.
  *
- * Subscribes to every Node `tracingChannel` a producer (h3, srvx, unstorage, …)
- * creates and reports a full OTLP span per completed operation, buffered per
- * request and flushed once via the Vercel runtime.
+ * Subscribes to the tracing channels declared in `TRACED_CHANNELS` (produced by
+ * h3, srvx, unstorage, …) and reports a full OTLP span per completed operation,
+ * buffered per request and flushed once via the Vercel runtime.
  */
 
 const REQUEST_CONTEXT_SYMBOL = Symbol.for("@vercel/request-context");
@@ -190,73 +189,57 @@ function reportSpan(info: SpanInfo, startTimeUnixNano: string, error: unknown): 
   spans.push(span);
 }
 
-// Patch `tracingChannel` once, even if the plugin initialises more than once.
-let patched = false;
+// Subscribe once, even if the plugin initialises more than once.
+let subscribed = false;
 
 export default definePlugin(() => {
   const diagnostics = globalThis.process?.getBuiltinModule?.("node:diagnostics_channel");
-  if (!diagnostics?.tracingChannel || patched) return;
-  patched = true;
+  if (!diagnostics?.subscribe || subscribed) return;
+  subscribed = true;
 
-  const { tracingChannel: createTracingChannel } = diagnostics;
-  const instrumented = new Set<string>();
+  // Carry the start time from `start` to `asyncEnd` without mutating the producer's context object.
+  const starts = new WeakMap<object, string>();
 
-  const instrument = (name: unknown, channel: TracingChannel<Record<string, unknown>>): void => {
-    if (typeof name !== "string" || instrumented.has(name)) return;
-    instrumented.add(name);
+  // A `tracingChannel(<name>)` publishes to plain named channels
+  // (`tracing:<name>:start`, `tracing:<name>:asyncEnd`, …). Subscribing to those
+  // names directly — rather than wrapping `tracingChannel` — needs no global
+  // patch and works regardless of when the producer creates the channel:
+  // `subscribe` registers against the name whether the channel exists yet or
+  // not. Channels absent from `TRACED_CHANNELS` are simply never subscribed.
+  for (const name of Object.keys(TRACED_CHANNELS)) {
+    const describe = TRACED_CHANNELS[name];
 
-    // Carry the start time from `start` to `asyncEnd` without mutating the producer's context object.
-    const starts = new WeakMap<object, string>();
-
-    channel.subscribe({
-      start(message) {
-        starts.set(message, Span.nowUnixNano());
-      },
-      end() {},
-      asyncStart() {},
-      error() {},
-      asyncEnd(message) {
-        try {
-          const start = starts.get(message);
-          if (start === undefined) return;
-          starts.delete(message);
-
-          // Derive span name, kind and semantic attributes from the operation.
-          // First-party channels (h3/srvx/unstorage) map to OpenTelemetry
-          // semantic conventions; unknown/third-party channels — and any
-          // describer that throws on a malformed payload — degrade to a generic
-          // INTERNAL span named after the channel (OTLP's default kind: no
-          // remote relationship established), so enrichment never drops a span.
-          const describe = resolveDescriber(name);
-          let info: SpanInfo | undefined;
-          if (describe) {
-            try {
-              info = describe(name, message);
-            } catch {
-              // Fall through to the generic span below.
-            }
-          }
-          info ??= {
-            name,
-            kind: SPAN_KIND_INTERNAL,
-            attributes: [{ key: "nitro.channel", value: { stringValue: name } }],
-          };
-
-          reportSpan(info, start, message.error);
-        } catch {
-          // Telemetry must never break the traced operation.
-        }
-      },
+    diagnostics.subscribe(`tracing:${name}:start`, (message) => {
+      starts.set(message as object, Span.nowUnixNano());
     });
-  };
 
-  // Wrap `tracingChannel` to instrument each channel as a producer creates it.
-  // Registered first (see preset) so this is in place before producers run;
-  // channels created at module-load time would be missed.
-  type CreateTracingChannel = typeof diagnostics.tracingChannel;
-  diagnostics.tracingChannel = ((nameOrChannels: Parameters<CreateTracingChannel>[0]) => {
-    const channel = createTracingChannel(nameOrChannels);
-    instrument(nameOrChannels, channel as TracingChannel<Record<string, unknown>>);
-    return channel;
-  }) as CreateTracingChannel;
+    diagnostics.subscribe(`tracing:${name}:asyncEnd`, (message) => {
+      try {
+        const start = starts.get(message as object);
+        if (start === undefined) return;
+        starts.delete(message as object);
+
+        // Derive span name, kind and semantic attributes from the operation.
+        // A known channel whose describer throws on a malformed payload degrades
+        // to a generic INTERNAL span named after the channel (OTLP's default
+        // kind: no remote relationship established), so enrichment never drops a
+        // span.
+        let info: SpanInfo | undefined;
+        try {
+          info = describe(name, message);
+        } catch {
+          // Fall through to the generic span below.
+        }
+        info ??= {
+          name,
+          kind: SPAN_KIND_INTERNAL,
+          attributes: [{ key: "nitro.channel", value: { stringValue: name } }],
+        };
+
+        reportSpan(info, start, (message as { error?: unknown }).error);
+      } catch {
+        // Telemetry must never break the traced operation.
+      }
+    });
+  }
 });

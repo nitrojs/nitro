@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { TracingChannel } from "node:diagnostics_channel";
 import type {
   IExportTraceServiceRequest,
@@ -8,7 +8,7 @@ import type {
 
 vi.mock("nitro", () => ({ definePlugin: (def: unknown) => def }));
 
-import telemetryPlugin from "../../src/presets/vercel/runtime/telemetry/vercel.ts";
+import telemetryPlugin from "../../src/presets/vercel/runtime/telemetry/plugin.ts";
 
 const diagnostics = process.getBuiltinModule("node:diagnostics_channel");
 
@@ -218,9 +218,12 @@ function randomHex(chars: number): string {
   return hex.replaceAll("0", "1"); // never the all-zero sentinel
 }
 
-let channelCounter = 0;
-function uniqueChannel(): string {
-  return `nitro.test.op${++channelCounter}`;
+// The plugin only traces channels declared in `TRACED_CHANNELS`. Tests that
+// exercise span buffering/reporting (not a specific describer) drive this
+// declared channel; `{}` is a valid `unstorage.*` payload → a CLIENT span.
+const KNOWN_CHANNEL = "unstorage.setItem";
+function traceKnown(fn?: () => Promise<unknown>): Promise<unknown> {
+  return traced(KNOWN_CHANNEL, {}, fn);
 }
 
 /** Run one traced operation the way producers (h3/srvx/unstorage) do. */
@@ -267,17 +270,14 @@ async function traceSpans(...ops: Array<Parameters<typeof traced>>): Promise<ISp
 }
 
 // ---------------------------------------------------------------------------
-// Setup: activate the plugin once (it patches `tracingChannel` process-wide)
+// Setup: activate the plugin once (it subscribes to the traced channels
+// process-wide via `diagnostics_channel.subscribe`; no globals are patched).
 // ---------------------------------------------------------------------------
 
 const originalTracingChannel = diagnostics.tracingChannel;
 
 beforeAll(() => {
   (telemetryPlugin as unknown as () => void)();
-});
-
-afterAll(() => {
-  diagnostics.tracingChannel = originalTracingChannel;
 });
 
 afterEach(() => {
@@ -288,20 +288,19 @@ afterEach(() => {
 // Tests
 //
 // One `describe` per source section, in source order:
-//   1. Span class        (vercel.ts)   — OTLP payload shape + error/exception events
-//   2. reportSpan         (vercel.ts)   — per-request buffering, reporting, sampling, guards
+//   1. Span class        (plugin.ts)   — OTLP payload shape + error/exception events
+//   2. reportSpan         (plugin.ts)   — per-request buffering, reporting, sampling, guards
 //   3. channel describers (channels.ts) — name/kind/attributes per producer
-//   4. instrument / patch (vercel.ts)   — tracingChannel subscription
+//   4. subscription       (plugin.ts)   — channel subscription without patching globals
 // ---------------------------------------------------------------------------
 
-// 1. Span class (vercel.ts) — the OTLP span each completed operation produces.
+// 1. Span class (plugin.ts) — the OTLP span each completed operation produces.
 describe("vercel telemetry span payload", () => {
   it("reports a schema-valid OTLP batch joined to the platform root span", async () => {
     const harness = installVercelContext();
-    const channel = uniqueChannel();
 
     const before = (BigInt(Date.now()) - 5000n) * 1_000_000n;
-    await traced(channel, {});
+    await traceKnown();
     const after = (BigInt(Date.now()) + 5000n) * 1_000_000n;
 
     const spans = await flushSpans(harness);
@@ -311,8 +310,8 @@ describe("vercel telemetry span payload", () => {
     expect(span.traceId).toBe(harness.traceId);
     expect(span.parentSpanId).toBe(harness.rootSpanId);
     expect(span.spanId).not.toBe(harness.rootSpanId);
-    expect(span.name).toBe(channel);
-    expect(span.kind).toBe(KIND_INTERNAL);
+    expect(span.name).toBe("setItem");
+    expect(span.kind).toBe(KIND_CLIENT);
     expect(span.status).toEqual({ code: 0, message: "" });
     expect(span.events).toEqual([]);
 
@@ -330,7 +329,7 @@ describe("vercel telemetry span payload", () => {
     const harness = installVercelContext();
     const error = new Error("boom");
     await expect(
-      traced(uniqueChannel(), {}, async () => {
+      traceKnown(async () => {
         throw error;
       })
     ).rejects.toThrow("boom");
@@ -352,7 +351,7 @@ describe("vercel telemetry span payload", () => {
   it("handles non-Error rejections", async () => {
     const harness = installVercelContext();
     await expect(
-      traced(uniqueChannel(), {}, async () => {
+      traceKnown(async () => {
         throw "plain failure";
       })
     ).rejects.toBe("plain failure");
@@ -365,13 +364,13 @@ describe("vercel telemetry span payload", () => {
   });
 });
 
-// 2. reportSpan (vercel.ts) — buffering per request, flushing, sampling, guards.
+// 2. reportSpan (plugin.ts) — buffering per request, flushing, sampling, guards.
 describe("vercel telemetry buffering & reporting", () => {
   it("batches all spans of a request into a single reportSpans call", async () => {
     const harness = installVercelContext();
-    await traced(uniqueChannel(), {});
-    await traced(uniqueChannel(), {});
-    await traced(uniqueChannel(), {});
+    await traceKnown();
+    await traceKnown();
+    await traceKnown();
 
     // One flush scheduled for the whole request, one IPC message.
     expect(harness.tasks).toHaveLength(1);
@@ -383,18 +382,17 @@ describe("vercel telemetry buffering & reporting", () => {
 
   it("flush is idempotent (buffer cleared after reporting)", async () => {
     const harness = installVercelContext();
-    await traced(uniqueChannel(), {});
+    await traceKnown();
     await harness.flush();
     await harness.flush();
     expect(harness.reports).toHaveLength(1);
   });
 
   it("buffers concurrent requests independently by trace id", async () => {
-    const channel = uniqueChannel();
     const first = installVercelContext();
-    await traced(channel, {});
+    await traceKnown();
     const second = installVercelContext();
-    await traced(channel, {});
+    await traceKnown();
 
     const firstSpans = await flushSpans(first);
     const secondSpans = await flushSpans(second);
@@ -405,26 +403,26 @@ describe("vercel telemetry buffering & reporting", () => {
   });
 
   it("does not break traced operations when no request context exists", async () => {
-    await expect(traced(uniqueChannel(), {})).resolves.toBe("ok");
+    await expect(traceKnown()).resolves.toBe("ok");
   });
 
   it("reports nothing without telemetry or rootSpanContext", async () => {
     const noTelemetry = installVercelContext({ telemetry: false });
-    await traced(uniqueChannel(), {});
+    await traceKnown();
     expect(noTelemetry.tasks).toHaveLength(0);
 
     const noRoot = installVercelContext({ rootSpanContext: false });
-    await traced(uniqueChannel(), {});
+    await traceKnown();
     expect(noRoot.tasks).toHaveLength(0);
   });
 
   it("respects the platform sampling decision (traceFlags bit 0)", async () => {
     const unsampled = installVercelContext({ traceFlags: 0 });
-    await traced(uniqueChannel(), {});
+    await traceKnown();
     expect(unsampled.tasks).toHaveLength(0);
 
     const sampled = installVercelContext({ traceFlags: 1 });
-    await traced(uniqueChannel(), {});
+    await traceKnown();
     expect(await flushSpans(sampled)).toHaveLength(1);
   });
 });
@@ -472,7 +470,7 @@ describe("vercel telemetry span describers", () => {
     expect(attrValue(spans[1], "nitro.middleware.name")).toBeUndefined();
   });
 
-  it("describes dynamic unstorage.* channels as CLIENT spans", async () => {
+  it("describes unstorage.* channels as CLIENT spans", async () => {
     const spans = await traceSpans(
       ["unstorage.getItem", { driver: { name: "redis" }, base: "cache", keys: ["a", "b"] }],
       ["unstorage.setItem", {}]
@@ -487,13 +485,14 @@ describe("vercel telemetry span describers", () => {
     expect(spans[1].name).toBe("setItem");
   });
 
-  it("emits a generic INTERNAL span for unknown channels", async () => {
-    const [span] = await traceSpans(["ioredis:command", { command: { name: "GET" } }]);
-    expect(span.name).toBe("ioredis:command");
-    expect(span.kind).toBe(KIND_INTERNAL);
-    expect(span.attributes).toEqual([
-      { key: "nitro.channel", value: { stringValue: "ioredis:command" } },
-    ]);
+  it("does not trace unknown/undeclared channels", async () => {
+    const harness = installVercelContext();
+    // Not present in `TRACED_CHANNELS` → never subscribed, so no span is emitted
+    // and the traced operation is untouched.
+    await expect(traced("ioredis:command", { command: { name: "GET" } })).resolves.toBe("ok");
+    await harness.flush();
+    expect(harness.tasks).toHaveLength(0);
+    expect(harness.reports).toHaveLength(0);
   });
 
   it("degrades to a generic span on malformed payloads without breaking the operation", async () => {
@@ -509,21 +508,25 @@ describe("vercel telemetry span describers", () => {
   });
 });
 
-// 4. instrument / tracingChannel patch (vercel.ts) — one subscription per channel.
-describe("vercel telemetry instrumentation", () => {
-  it("subscribes once per channel name even if the channel is re-created", async () => {
+// 4. subscription (plugin.ts) — traced channels are subscribed without patching globals.
+describe("vercel telemetry subscription", () => {
+  it("does not patch the global tracingChannel", () => {
+    expect(diagnostics.tracingChannel).toBe(originalTracingChannel);
+  });
+
+  it("traces a declared channel regardless of when the producer creates it", async () => {
+    // `subscribe` binds to the channel name; a channel created now still routes
+    // to the subscription installed at plugin init.
     const harness = installVercelContext();
-    const channel = uniqueChannel();
-    diagnostics.tracingChannel(channel);
-    diagnostics.tracingChannel(channel);
-    await traced(channel, {});
+    diagnostics.tracingChannel(KNOWN_CHANNEL);
+    await traceKnown();
     expect(await flushSpans(harness)).toHaveLength(1);
   });
 
-  it("does not double-instrument when the plugin initialises twice", async () => {
+  it("does not double-subscribe when the plugin initialises twice", async () => {
     (telemetryPlugin as unknown as () => void)();
     const harness = installVercelContext();
-    await traced(uniqueChannel(), {});
+    await traceKnown();
     expect(await flushSpans(harness)).toHaveLength(1);
   });
 });
