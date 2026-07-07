@@ -1,34 +1,14 @@
 import { definePlugin } from "nitro";
 import type {
   IExportTraceServiceRequest,
-  IKeyValue,
-  ISpan,
-  ISpanEvent,
   SpanContext,
   SpanInfo,
 } from "./types.ts";
-
+import { Span } from './span.ts'
 import { TRACED_CHANNELS } from "./channels.ts";
 
 /**
- * Exports Nitro tracing-channel events to the Vercel runtime as OpenTelemetry
- * spans, without an OpenTelemetry SDK.
- *
- * Subscribes to the tracing channels declared in `TRACED_CHANNELS` (produced by
- * h3, srvx, unstorage, …) and reports a full OTLP span per completed operation,
- * buffered per request and flushed once via the Vercel runtime.
- */
-
-const REQUEST_CONTEXT_SYMBOL = Symbol.for("@vercel/request-context");
-
-// OTLP `Status.StatusCode` (proto enum): UNSET = 0, OK = 1, ERROR = 2.
-const STATUS_CODE_ERROR = 2;
-
-const SCOPE_NAME = "@nitro/vercel-tracing";
-
-/**
- * The Vercel runtime telemetry sink, exposed per-request via the global
- * `@vercel/request-context` reader. `reportSpans` is fire-and-forget; the
+ * The Vercel runtime telemetry sink, `reportSpans` is fire-and-forget; the
  * runtime correlates spans to the request by `rootSpanContext.traceId`.
  */
 interface VercelTelemetry {
@@ -45,97 +25,62 @@ interface RequestContextReader {
   get?(): RequestContext | undefined;
 }
 
-/**
- * A single OTLP span. Declared as a class (fixed shape, shared prototype) so
- * every span is the same hidden class — cheaper to build and serialize than ad
- * hoc literals. The Vercel runtime validates the payload strictly, so every
- * OTLP field is present even when empty (omitting e.g. `events` or `attributes`
- * makes the runtime drop the whole batch).
- */
-class Span implements ISpan {
-  traceId: string;
-  spanId: string;
-  // Parent on the platform root so spans appear as flat siblings.
-  parentSpanId: string;
-  name: string;
-  kind: number;
-  startTimeUnixNano: string;
-  endTimeUnixNano: string;
-  traceState = "";
-  droppedAttributesCount = 0;
-  events: ISpanEvent[];
-  droppedEventsCount = 0;
-  links: never[] = [];
-  droppedLinksCount = 0;
-  attributes: IKeyValue[];
-  status: { code: number; message: string };
+const REQUEST_CONTEXT_SYMBOL = Symbol.for("@vercel/request-context");
 
-  constructor(
-    traceId: string,
-    parentSpanId: string,
-    info: SpanInfo,
-    startTimeUnixNano: string,
-    error: unknown
-  ) {
-    this.traceId = traceId;
-    this.spanId = Span.randomSpanId();
-    this.parentSpanId = parentSpanId;
-    this.name = info.name;
-    this.kind = info.kind;
-    this.attributes = info.attributes;
-    this.startTimeUnixNano = startTimeUnixNano;
-    this.endTimeUnixNano = Span.nowUnixNano();
-    if (error === undefined) {
-      this.status = { code: 0, message: "" };
-      this.events = [];
-    } else {
-      const err = error as Partial<Error> | undefined;
-      const message = typeof err?.message === "string" ? err.message : String(error);
-      this.status = { code: STATUS_CODE_ERROR, message };
-
-      // OTEL exception semconv: record the error as an `exception` span event so
-      // backends surface its type/message/stacktrace, not just an error status.
-      const attributes: IKeyValue[] = [];
-      if (typeof err?.name === "string") {
-        attributes.push({ key: "exception.type", value: { stringValue: err.name } });
-      }
-      attributes.push({ key: "exception.message", value: { stringValue: message } });
-      if (typeof err?.stack === "string") {
-        attributes.push({ key: "exception.stacktrace", value: { stringValue: err.stack } });
-      }
-      this.events = [
-        {
-          timeUnixNano: this.endTimeUnixNano,
-          name: "exception",
-          attributes,
-          droppedAttributesCount: 0,
-        },
-      ];
-    }
-  }
-
-  /** Wall-clock nanoseconds as a string, as required by OTLP `*UnixNano` fields. */
-  static nowUnixNano(): string {
-    const ms = performance.timeOrigin + performance.now();
-    return (BigInt(Math.trunc(ms)) * 1_000_000n + BigInt(Math.round((ms % 1) * 1e6))).toString();
-  }
-
-  /** 8 random bytes, hex-encoded — an OTLP span id (never the all-zero sentinel). */
-  static randomSpanId(): string {
-    let id = "";
-    for (let i = 0; i < 8; i++) {
-      id += Math.floor(Math.random() * 256)
-        .toString(16)
-        .padStart(2, "0");
-    }
-    return id === "0000000000000000" ? "0000000000000001" : id;
-  }
-}
+const SCOPE_NAME = "@nitro/vercel-tracing";
 
 // Completed spans buffered per request (keyed by trace id) and flushed once at
 // freeze time via `waitUntil`, so one IPC message carries the whole request
 // instead of one per span (a redis-heavy request can emit a dozen).
 const pendingSpans = new Map<string, Span[]>();
+
+/**
+ * Exports Nitro tracing-channel events to the Vercel runtime as OpenTelemetry
+ * spans, without an OpenTelemetry SDK.
+ *
+ * Subscribes to the tracing channels declared in `TRACED_CHANNELS` (produced by
+ * h3, srvx, unstorage, …) and reports a full OTLP span per completed operation,
+ * buffered per request and flushed once via the Vercel runtime.
+ */
+export default definePlugin(() => {
+  const diagnostics = globalThis.process?.getBuiltinModule?.("node:diagnostics_channel");
+  if (!diagnostics?.subscribe) return;
+
+  // Carry the start time from `start` to `asyncEnd` without mutating the producer's context object.
+  const starts = new WeakMap<object, string>();
+
+  // A `tracingChannel(<name>)` publishes to plain named channels
+  // (`tracing:<name>:start`, `tracing:<name>:asyncEnd`, …). Subscribing to those
+  // names directly — rather than wrapping `tracingChannel` — needs no global
+  // patch and works regardless of when the producer creates the channel:
+  // `subscribe` registers against the name whether the channel exists yet or
+  // not. Channels absent from `TRACED_CHANNELS` are simply never subscribed.
+  for (const name of Object.keys(TRACED_CHANNELS)) {
+    const describe = TRACED_CHANNELS[name];
+
+    diagnostics.subscribe(`tracing:${name}:start`, (message) => {
+      starts.set(message as object, Span.nowUnixNano());
+    });
+
+    diagnostics.subscribe(`tracing:${name}:asyncEnd`, (message) => {
+      try {
+        const start = starts.get(message as object);
+        if (start === undefined) return;
+        starts.delete(message as object);
+
+        // Derive span name, kind and semantic attributes from the operation. A
+        // describer only throws on a payload shape it doesn't recognise (a
+        // producer that changed shape); drop that span via the catch below
+        // rather than emit a contentless one.
+        const info = describe(name, message);
+        reportSpan(info, start, (message as { error?: unknown }).error);
+      } catch {
+        // Malformed payload, or telemetry failure — never break the traced operation.
+      }
+    });
+  }
+});
+
 
 function reportSpan(info: SpanInfo, startTimeUnixNano: string, error: unknown): void {
   const context = (globalThis as Record<symbol, RequestContextReader | undefined>)[
@@ -186,45 +131,3 @@ function reportSpan(info: SpanInfo, startTimeUnixNano: string, error: unknown): 
   spans.push(span);
 }
 
-// Subscribe once, even if the plugin initialises more than once.
-let subscribed = false;
-
-export default definePlugin(() => {
-  const diagnostics = globalThis.process?.getBuiltinModule?.("node:diagnostics_channel");
-  if (!diagnostics?.subscribe || subscribed) return;
-  subscribed = true;
-
-  // Carry the start time from `start` to `asyncEnd` without mutating the producer's context object.
-  const starts = new WeakMap<object, string>();
-
-  // A `tracingChannel(<name>)` publishes to plain named channels
-  // (`tracing:<name>:start`, `tracing:<name>:asyncEnd`, …). Subscribing to those
-  // names directly — rather than wrapping `tracingChannel` — needs no global
-  // patch and works regardless of when the producer creates the channel:
-  // `subscribe` registers against the name whether the channel exists yet or
-  // not. Channels absent from `TRACED_CHANNELS` are simply never subscribed.
-  for (const name of Object.keys(TRACED_CHANNELS)) {
-    const describe = TRACED_CHANNELS[name];
-
-    diagnostics.subscribe(`tracing:${name}:start`, (message) => {
-      starts.set(message as object, Span.nowUnixNano());
-    });
-
-    diagnostics.subscribe(`tracing:${name}:asyncEnd`, (message) => {
-      try {
-        const start = starts.get(message as object);
-        if (start === undefined) return;
-        starts.delete(message as object);
-
-        // Derive span name, kind and semantic attributes from the operation. A
-        // describer only throws on a payload shape it doesn't recognise (a
-        // producer that changed shape); drop that span via the catch below
-        // rather than emit a contentless one.
-        const info = describe(name, message);
-        reportSpan(info, start, (message as { error?: unknown }).error);
-      } catch {
-        // Malformed payload, or telemetry failure — never break the traced operation.
-      }
-    });
-  }
-});

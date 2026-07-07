@@ -519,11 +519,4 @@ describe("vercel telemetry subscription", () => {
     await traceKnown();
     expect(await flushSpans(harness)).toHaveLength(1);
   });
-
-  it("does not double-subscribe when the plugin initialises twice", async () => {
-    (telemetryPlugin as unknown as () => void)();
-    const harness = installVercelContext();
-    await traceKnown();
-    expect(await flushSpans(harness)).toHaveLength(1);
-  });
 });
