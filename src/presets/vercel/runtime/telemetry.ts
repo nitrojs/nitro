@@ -104,10 +104,12 @@ class Span implements ISpan {
       this.status = { code: 0, message: "" };
       this.events = [];
     } else {
-      this.status = { code: STATUS_CODE_ERROR, message: errorMessage(error) };
+      const err = error as Partial<Error> | undefined;
+      const message = typeof err?.message === "string" ? err.message : String(error);
+      this.status = { code: STATUS_CODE_ERROR, message };
       // OTEL exception semconv: record the error as an `exception` span event so
       // backends surface its type/message/stacktrace, not just an error status.
-      this.events = [exceptionEvent(error, this.endTimeUnixNano)];
+      this.events = [exceptionEvent(err, message, this.endTimeUnixNano)];
     }
   }
 
@@ -240,7 +242,7 @@ function describeH3Request(channel: string, data: unknown): SpanInfo {
   const method = event.req.method;
   const path = event.url.pathname;
   return {
-    name: label(type === "middleware" ? "middleware" : undefined, method, path),
+    name: type === "middleware" ? `middleware ${method} ${path}` : `${method} ${path}`,
     kind: SPAN_KIND_INTERNAL,
     attributes: [
       attr("nitro.channel", channel),
@@ -267,7 +269,7 @@ function describeSrvxRequest(channel: string, data: unknown): SpanInfo {
     attr("url.path", path),
   ];
   if (result) attributes.push(attr("http.response.status_code", result.status));
-  return { name: label(method, path), kind: SPAN_KIND_INTERNAL, attributes };
+  return { name: `${method} ${path}`, kind: SPAN_KIND_INTERNAL, attributes };
 }
 
 /** srvx's `RequestEvent` (channel `srvx.middleware`); handler name may be empty. */
@@ -286,7 +288,7 @@ function describeSrvxMiddleware(channel: string, data: unknown): SpanInfo {
   ];
   if (handlerName) attributes.push(attr("nitro.middleware.name", handlerName));
   return {
-    name: label("middleware", handlerName || `#${middleware.index}`),
+    name: `middleware ${handlerName || `#${middleware.index}`}`,
     kind: SPAN_KIND_INTERNAL,
     attributes,
   };
@@ -370,33 +372,15 @@ function attr(key: string, value: string | number | boolean): IKeyValue {
   return { key, value: { stringValue: value } };
 }
 
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  return typeof value === "object" && value !== null
-    ? (value as Record<string, unknown>)
-    : undefined;
-}
-
-function asString(value: unknown): string | undefined {
-  return typeof value === "string" ? value : undefined;
-}
-
-function label(...parts: Array<string | undefined>): string {
-  return parts.filter(Boolean).join(" ");
-}
-
-function errorMessage(error: unknown): string {
-  const message = asRecord(error)?.message;
-  return typeof message === "string" ? message : String(error);
-}
-
-/** An OTEL `exception` span event derived from a thrown error. */
-function exceptionEvent(error: unknown, timeUnixNano: string): ISpanEvent {
-  const err = asRecord(error);
+/** An OTEL `exception` span event derived from a thrown error and its message. */
+function exceptionEvent(
+  err: Partial<Error> | undefined,
+  message: string,
+  timeUnixNano: string
+): ISpanEvent {
   const attributes: IKeyValue[] = [];
-  const type = asString(err?.name);
-  if (type) attributes.push(attr("exception.type", type));
-  attributes.push(attr("exception.message", errorMessage(error)));
-  const stack = asString(err?.stack);
-  if (stack) attributes.push(attr("exception.stacktrace", stack));
+  if (typeof err?.name === "string") attributes.push(attr("exception.type", err.name));
+  attributes.push(attr("exception.message", message));
+  if (typeof err?.stack === "string") attributes.push(attr("exception.stacktrace", err.stack));
   return { timeUnixNano, name: "exception", attributes, droppedAttributesCount: 0 };
 }
