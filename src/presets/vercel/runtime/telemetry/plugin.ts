@@ -46,54 +46,57 @@ const pendingSpans = new Map<string, Span[]>();
  * startup, before any request is handled.
  */
 export default definePlugin(() => {
-  subscribeTracedChannels(reportSpan);
-});
+  subscribeTracedChannels((info, startTimeUnixNano, error) => {
+    const context = (globalThis as Record<symbol, RequestContextReader | undefined>)[
+      REQUEST_CONTEXT_SYMBOL
+    ]?.get?.();
 
-function reportSpan(info: SpanInfo, startTimeUnixNano: string, error: unknown): void {
-  const context = (globalThis as Record<symbol, RequestContextReader | undefined>)[
-    REQUEST_CONTEXT_SYMBOL
-  ]?.get?.();
+    const telemetry = context?.telemetry;
+    const root = telemetry?.rootSpanContext;
 
-  const telemetry = context?.telemetry;
-  const root = telemetry?.rootSpanContext;
+    // Without a platform root span there is no trace to join; the runtime
+    // correlates spans to the request by trace id and drops the rest.
+    if (!context || !telemetry || !root) return;
 
-  // Without a platform root span there is no trace to join; the runtime
-  // correlates spans to the request by trace id and drops the rest.
-  if (!context || !telemetry || !root) return;
+    // Respect the platform sampling decision (bit 0 of traceFlags).
+    if (root.traceFlags !== undefined && (root.traceFlags & 1) === 0) return;
 
-  // Respect the platform sampling decision (bit 0 of traceFlags).
-  if (root.traceFlags !== undefined && (root.traceFlags & 1) === 0) return;
+    const span = new Span(root.traceId, root.spanId, info, startTimeUnixNano, error);
 
-  const span = new Span(root.traceId, root.spanId, info, startTimeUnixNano, error);
-
-  // Buffer per request; the first span schedules a single flush at freeze time.
-  let spans = pendingSpans.get(root.traceId);
-  if (!spans) {
-    spans = [];
-    const { traceId } = root;
-    const sink = telemetry;
-    context.waitUntil(async () => {
-      const batch = pendingSpans.get(traceId);
-      pendingSpans.delete(traceId);
-      if (!batch || batch.length === 0) return;
-      // Wrap the batch in a single OTLP `ExportTraceServiceRequest` envelope.
-      sink.reportSpans({
-        resourceSpans: [
-          {
-            resource: { attributes: [], droppedAttributesCount: 0 },
-            scopeSpans: [
-              {
-                scope: { name: SCOPE_NAME, version: "", attributes: [], droppedAttributesCount: 0 },
-                spans: batch,
-                schemaUrl: "",
-              },
-            ],
-            schemaUrl: "",
-          },
-        ],
+    // Buffer per request; the first span schedules a single flush at freeze time.
+    let spans = pendingSpans.get(root.traceId);
+    if (!spans) {
+      spans = [];
+      const { traceId } = root;
+      const sink = telemetry;
+      context.waitUntil(async () => {
+        const batch = pendingSpans.get(traceId);
+        pendingSpans.delete(traceId);
+        if (!batch || batch.length === 0) return;
+        // Wrap the batch in a single OTLP `ExportTraceServiceRequest` envelope.
+        sink.reportSpans({
+          resourceSpans: [
+            {
+              resource: { attributes: [], droppedAttributesCount: 0 },
+              scopeSpans: [
+                {
+                  scope: {
+                    name: SCOPE_NAME,
+                    version: "",
+                    attributes: [],
+                    droppedAttributesCount: 0,
+                  },
+                  spans: batch,
+                  schemaUrl: "",
+                },
+              ],
+              schemaUrl: "",
+            },
+          ],
+        });
       });
-    });
-    pendingSpans.set(traceId, spans);
-  }
-  spans.push(span);
-}
+      pendingSpans.set(traceId, spans);
+    }
+    spans.push(span);
+  });
+});
