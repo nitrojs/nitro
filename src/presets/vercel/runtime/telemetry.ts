@@ -107,9 +107,25 @@ class Span implements ISpan {
       const err = error as Partial<Error> | undefined;
       const message = typeof err?.message === "string" ? err.message : String(error);
       this.status = { code: STATUS_CODE_ERROR, message };
+
       // OTEL exception semconv: record the error as an `exception` span event so
       // backends surface its type/message/stacktrace, not just an error status.
-      this.events = [exceptionEvent(err, message, this.endTimeUnixNano)];
+      const attributes: IKeyValue[] = [];
+      if (typeof err?.name === "string") {
+        attributes.push({ key: "exception.type", value: { stringValue: err.name } });
+      }
+      attributes.push({ key: "exception.message", value: { stringValue: message } });
+      if (typeof err?.stack === "string") {
+        attributes.push({ key: "exception.stacktrace", value: { stringValue: err.stack } });
+      }
+      this.events = [
+        {
+          timeUnixNano: this.endTimeUnixNano,
+          name: "exception",
+          attributes,
+          droppedAttributesCount: 0,
+        },
+      ];
     }
   }
 
@@ -159,30 +175,27 @@ function reportSpan(info: SpanInfo, startTimeUnixNano: string, error: unknown): 
     context.waitUntil(async () => {
       const batch = pendingSpans.get(traceId);
       pendingSpans.delete(traceId);
-      if (batch && batch.length > 0) sink.reportSpans(envelope(batch));
+      if (!batch || batch.length === 0) return;
+      // Wrap the batch in a single OTLP `ExportTraceServiceRequest` envelope.
+      sink.reportSpans({
+        resourceSpans: [
+          {
+            resource: { attributes: [], droppedAttributesCount: 0 },
+            scopeSpans: [
+              {
+                scope: { name: SCOPE_NAME, version: "", attributes: [], droppedAttributesCount: 0 },
+                spans: batch,
+                schemaUrl: "",
+              },
+            ],
+            schemaUrl: "",
+          },
+        ],
+      });
     });
     pendingSpans.set(traceId, spans);
   }
   spans.push(span);
-}
-
-/** Wrap spans in a single OTLP `ExportTraceServiceRequest` envelope. */
-function envelope(spans: Span[]): IExportTraceServiceRequest {
-  return {
-    resourceSpans: [
-      {
-        resource: { attributes: [], droppedAttributesCount: 0 },
-        scopeSpans: [
-          {
-            scope: { name: SCOPE_NAME, version: "", attributes: [], droppedAttributesCount: 0 },
-            spans,
-            schemaUrl: "",
-          },
-        ],
-        schemaUrl: "",
-      },
-    ],
-  };
 }
 
 /**
@@ -366,20 +379,3 @@ export default definePlugin(() => {
     return channel;
   }) as CreateTracingChannel;
 });
-
-/** An OTEL `exception` span event derived from a thrown error and its message. */
-function exceptionEvent(
-  err: Partial<Error> | undefined,
-  message: string,
-  timeUnixNano: string
-): ISpanEvent {
-  const attributes: IKeyValue[] = [];
-  if (typeof err?.name === "string") {
-    attributes.push({ key: "exception.type", value: { stringValue: err.name } });
-  }
-  attributes.push({ key: "exception.message", value: { stringValue: message } });
-  if (typeof err?.stack === "string") {
-    attributes.push({ key: "exception.stacktrace", value: { stringValue: err.stack } });
-  }
-  return { timeUnixNano, name: "exception", attributes, droppedAttributesCount: 0 };
-}
