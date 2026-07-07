@@ -321,10 +321,7 @@ export default definePlugin(() => {
   const { tracingChannel: createTracingChannel } = diagnostics;
   const instrumented = new Set<string>();
 
-  const instrument = (
-    name: unknown,
-    channel: TracingChannel<unknown, Record<string, unknown>>
-  ): void => {
+  const instrument = (name: unknown, channel: TracingChannel<Record<string, unknown>>): void => {
     if (typeof name !== "string" || instrumented.has(name)) return;
     instrumented.add(name);
 
@@ -357,7 +354,7 @@ export default definePlugin(() => {
   type CreateTracingChannel = typeof diagnostics.tracingChannel;
   diagnostics.tracingChannel = ((nameOrChannels: Parameters<CreateTracingChannel>[0]) => {
     const channel = createTracingChannel(nameOrChannels);
-    instrument(nameOrChannels, channel as TracingChannel<unknown, Record<string, unknown>>);
+    instrument(nameOrChannels, channel as TracingChannel<Record<string, unknown>>);
     return channel;
   }) as CreateTracingChannel;
 });
