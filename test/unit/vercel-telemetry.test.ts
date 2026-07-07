@@ -4,11 +4,11 @@ import type {
   IExportTraceServiceRequest,
   IKeyValue,
   ISpan,
-} from "../../src/presets/vercel/runtime/telemetry-types.ts";
+} from "../../src/presets/vercel/runtime/telemetry/types.ts";
 
 vi.mock("nitro", () => ({ definePlugin: (def: unknown) => def }));
 
-import telemetryPlugin from "../../src/presets/vercel/runtime/telemetry.ts";
+import telemetryPlugin from "../../src/presets/vercel/runtime/telemetry/vercel.ts";
 
 const diagnostics = process.getBuiltinModule("node:diagnostics_channel");
 

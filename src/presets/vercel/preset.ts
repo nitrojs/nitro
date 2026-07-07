@@ -62,7 +62,7 @@ const vercel = defineNitroPreset(
         // (unshift) so it wraps `tracingChannel` before producers create channels.
         if (nitro.options.tracingChannel) {
           nitro.options.plugins ??= [];
-          nitro.options.plugins.unshift(join(presetsDir, "vercel/runtime/telemetry"));
+          nitro.options.plugins.unshift(join(presetsDir, "vercel/runtime/telemetry/core"));
         }
 
         // Cron tasks handler

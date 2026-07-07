@@ -6,7 +6,10 @@ import type {
   ISpan,
   ISpanEvent,
   SpanContext,
-} from "./telemetry-types.ts";
+  SpanInfo,
+} from "./types.ts";
+
+import { resolveDescriber } from "./channels.ts";
 
 /**
  * Exports Nitro tracing-channel events to the Vercel runtime as OpenTelemetry
@@ -21,7 +24,6 @@ const REQUEST_CONTEXT_SYMBOL = Symbol.for("@vercel/request-context");
 
 // OTLP `SpanKind` (proto enum) Wire values: INTERNAL = 1, SERVER = 2, CLIENT = 3.
 const SPAN_KIND_INTERNAL = 1;
-const SPAN_KIND_CLIENT = 3;
 
 // OTLP `Status.StatusCode` (proto enum): UNSET = 0, OK = 1, ERROR = 2.
 const STATUS_CODE_ERROR = 2;
@@ -45,19 +47,6 @@ interface RequestContext {
 
 interface RequestContextReader {
   get?(): RequestContext | undefined;
-}
-
-function getRequestContext(): RequestContext | undefined {
-  return (globalThis as Record<symbol, RequestContextReader | undefined>)[
-    REQUEST_CONTEXT_SYMBOL
-  ]?.get?.();
-}
-
-/** Name, kind and attributes derived from a completed channel operation. */
-interface SpanInfo {
-  name: string;
-  kind: number;
-  attributes: IKeyValue[];
 }
 
 /**
@@ -153,7 +142,10 @@ class Span implements ISpan {
 const pendingSpans = new Map<string, Span[]>();
 
 function reportSpan(info: SpanInfo, startTimeUnixNano: string, error: unknown): void {
-  const context = getRequestContext();
+  const context = (globalThis as Record<symbol, RequestContextReader | undefined>)[
+    REQUEST_CONTEXT_SYMBOL
+  ]?.get?.()
+  
   const telemetry = context?.telemetry;
   const root = telemetry?.rootSpanContext;
 
@@ -198,114 +190,6 @@ function reportSpan(info: SpanInfo, startTimeUnixNano: string, error: unknown): 
   spans.push(span);
 }
 
-/**
- * Maps a completed channel operation to a span name, kind and attributes. Each
- * describer casts `data` to the payload its producer documents and reads fields
- * directly; a malformed payload throws and is caught by `describeSpan`.
- */
-type ChannelDescriber = (channel: string, data: unknown) => SpanInfo;
-
-// Fixed channel name → describer.
-const CHANNEL_DESCRIBERS: Record<string, ChannelDescriber> = {
-  "h3.request": describeH3Request,
-  "srvx.request": describeSrvxRequest,
-  "srvx.middleware": describeSrvxMiddleware,
-};
-
-// Namespaced channels with a dynamic operation suffix (e.g. `unstorage.getItem`,
-// `unstorage.setItem`). Matched by prefix; first match wins. A future `db0.*`
-// would slot in here as another entry.
-const PREFIX_DESCRIBERS: Array<{ prefix: string; describe: ChannelDescriber }> = [
-  { prefix: "unstorage.", describe: describeUnstorage },
-];
-
-/** h3's `TracingRequestEvent` (channel `h3.request`). */
-interface H3RequestData {
-  type: "middleware" | "route";
-  event: { req: { method: string }; url: { pathname: string } };
-}
-
-function describeH3Request(channel: string, data: unknown): SpanInfo {
-  const { event, type } = data as H3RequestData;
-  const method = event.req.method;
-  const path = event.url.pathname;
-  return {
-    name: type === "middleware" ? `middleware ${method} ${path}` : `${method} ${path}`,
-    kind: SPAN_KIND_INTERNAL,
-    attributes: [
-      { key: "nitro.channel", value: { stringValue: channel } },
-      { key: "http.request.method", value: { stringValue: method } },
-      { key: "url.path", value: { stringValue: path } },
-      { key: "nitro.h3.handler_type", value: { stringValue: type } },
-    ],
-  };
-}
-
-/** srvx's `RequestEvent` (channel `srvx.request`); `result` is absent on error. */
-interface SrvxRequestData {
-  request: { method: string; url: string };
-  result?: { status: number };
-}
-
-function describeSrvxRequest(channel: string, data: unknown): SpanInfo {
-  const { request, result } = data as SrvxRequestData;
-  const method = request.method;
-  const path = new URL(request.url).pathname;
-  const attributes: IKeyValue[] = [
-    { key: "nitro.channel", value: { stringValue: channel } },
-    { key: "http.request.method", value: { stringValue: method } },
-    { key: "url.path", value: { stringValue: path } },
-  ];
-  if (result) {
-    attributes.push({ key: "http.response.status_code", value: { intValue: result.status } });
-  }
-  return { name: `${method} ${path}`, kind: SPAN_KIND_INTERNAL, attributes };
-}
-
-/** srvx's `RequestEvent` (channel `srvx.middleware`); handler name may be empty. */
-interface SrvxMiddlewareData {
-  request: { method: string };
-  middleware: { index: number; handler: { name: string } };
-}
-
-function describeSrvxMiddleware(channel: string, data: unknown): SpanInfo {
-  const { request, middleware } = data as SrvxMiddlewareData;
-  const handlerName = middleware.handler.name;
-  const attributes: IKeyValue[] = [
-    { key: "nitro.channel", value: { stringValue: channel } },
-    { key: "nitro.middleware.index", value: { intValue: middleware.index } },
-    { key: "http.request.method", value: { stringValue: request.method } },
-  ];
-  if (handlerName) {
-    attributes.push({ key: "nitro.middleware.name", value: { stringValue: handlerName } });
-  }
-  return {
-    name: `middleware ${handlerName || `#${middleware.index}`}`,
-    kind: SPAN_KIND_INTERNAL,
-    attributes,
-  };
-}
-
-/** unstorage's tracing payload (channels `unstorage.*`); driver/base optional. */
-interface UnstorageData {
-  driver?: { name?: string };
-  base?: string;
-  keys?: unknown[];
-}
-
-function describeUnstorage(channel: string, data: unknown): SpanInfo {
-  const { driver, base, keys } = data as UnstorageData;
-  const operation = channel.slice("unstorage.".length);
-  // CLIENT: storage is a known outbound dependency (OTEL database semconv).
-  const attributes: IKeyValue[] = [
-    { key: "nitro.channel", value: { stringValue: channel } },
-    { key: "db.operation", value: { stringValue: operation } },
-  ];
-  if (driver?.name) attributes.push({ key: "db.system", value: { stringValue: driver.name } });
-  if (base) attributes.push({ key: "nitro.storage.base", value: { stringValue: base } });
-  if (keys) attributes.push({ key: "nitro.storage.keys_count", value: { intValue: keys.length } });
-  return { name: base ? `${operation} ${base}` : operation, kind: SPAN_KIND_CLIENT, attributes };
-}
 
 // Patch `tracingChannel` once, even if the plugin initialises more than once.
 let patched = false;
@@ -344,9 +228,7 @@ export default definePlugin(() => {
           // describer that throws on a malformed payload — degrade to a generic
           // INTERNAL span named after the channel (OTLP's default kind: no
           // remote relationship established), so enrichment never drops a span.
-          const describe =
-            CHANNEL_DESCRIBERS[name] ??
-            PREFIX_DESCRIBERS.find((entry) => name.startsWith(entry.prefix))?.describe;
+          const describe = resolveDescriber(name);
           let info: SpanInfo | undefined;
           if (describe) {
             try {

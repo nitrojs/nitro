@@ -1,8 +1,4 @@
 /**
- * Minimal OpenTelemetry / OTLP type surface for the Vercel telemetry plugin.
- *
- * Trimmed to the subset the Vercel telemetry IPC requires. Re-sync from upstream
- * if the OTLP shape changes:
  *  - OTLP trace types — `@opentelemetry/otlp-transformer`:
  *    https://github.com/open-telemetry/opentelemetry-js/blob/main/experimental/packages/otlp-transformer/src/trace/internal-types.ts
  *  - OTLP common types (`IKeyValue`/`IAnyValue`) — `@opentelemetry/otlp-transformer`:
@@ -11,29 +7,28 @@
  *    https://github.com/open-telemetry/opentelemetry-js/blob/5954fdeb908ca2123c8dd6e9d51958147b434618/api/src/trace/span_context.ts#L25
  */
 
-/** OTLP `ExportTraceServiceRequest` — the payload `reportSpans` accepts. */
 export interface IExportTraceServiceRequest {
   resourceSpans?: IResourceSpans[];
 }
 
-interface IResourceSpans {
+export interface IResourceSpans {
   resource?: IResource;
   scopeSpans: IScopeSpans[];
   schemaUrl?: string;
 }
 
-interface IResource {
+export interface IResource {
   attributes: IKeyValue[];
   droppedAttributesCount?: number;
 }
 
-interface IScopeSpans {
+export interface IScopeSpans {
   scope?: IInstrumentationScope;
   spans?: ISpan[];
   schemaUrl?: string | null;
 }
 
-interface IInstrumentationScope {
+export interface IInstrumentationScope {
   name: string;
   version?: string;
   attributes?: IKeyValue[];
@@ -77,7 +72,7 @@ export interface IKeyValue {
   value: IAnyValue;
 }
 
-interface IAnyValue {
+export interface IAnyValue {
   stringValue?: string | null;
   boolValue?: boolean | null;
   intValue?: number | null;
@@ -85,8 +80,7 @@ interface IAnyValue {
 }
 
 /**
- * Subset of `@opentelemetry/api`'s `SpanContext` — the per-request root the
- * Vercel runtime exposes via `telemetry.rootSpanContext`.
+ * Subset of `@opentelemetry/api`'s `SpanContext`
  */
 export interface SpanContext {
   traceId: string;
@@ -94,3 +88,18 @@ export interface SpanContext {
   /** Trace flags bitmap; bit 0 is the sampled flag. */
   traceFlags?: number;
 }
+
+/** Name, kind and attributes derived from a completed channel operation. */
+export interface SpanInfo {
+  name: string;
+  kind: number;
+  attributes: IKeyValue[];
+}
+
+/**
+ * Maps a completed channel operation to a span name, kind and attributes. Each
+ * describer casts `data` to the payload its producer documents and reads fields
+ * directly; a malformed payload throws and is caught by `describeSpan`.
+ */
+export type ChannelDescriber = (channel: string, data: unknown) => SpanInfo;
+
