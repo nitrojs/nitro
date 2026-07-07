@@ -66,4 +66,33 @@ describe("isrRouteRewrite", () => {
       ]);
     });
   });
+
+  // Regression: the routing param is already percent-decoded once by
+  // `URLSearchParams`, so it must NOT be decoded a second time. A redundant
+  // `decodeURIComponent` over-decodes encoded slugs and throws `URIError` on a
+  // literal `%` (e.g. `/posts/100%off`), crashing the function.
+  describe("percent-encoded routes are decoded exactly once", () => {
+    it("does not throw on a route containing a literal percent", () => {
+      // Vercel delivers slug `100%off` as `__isr_route=%2Fposts%2F100%25off`.
+      expect(isrRouteRewrite("/x?__isr_route=%2Fposts%2F100%25off", null)).toEqual([
+        "/posts/100%off",
+        "",
+      ]);
+    });
+
+    it("does not over-decode an encoded sequence in the route", () => {
+      // Slug `a%2520b` arrives as `__isr_route=%2Fposts%2Fa%252520b`.
+      expect(isrRouteRewrite("/x?__isr_route=%2Fposts%2Fa%252520b", null)).toEqual([
+        "/posts/a%2520b",
+        "",
+      ]);
+    });
+
+    it("decodes the header branch exactly once too", () => {
+      expect(isrRouteRewrite("/x", "__isr_route=%2Fposts%2F100%25off")).toEqual([
+        "/posts/100%off",
+        "",
+      ]);
+    });
+  });
 });
