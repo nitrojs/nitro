@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveTraceDeps } from "../../src/build/plugins/externals.ts";
+import { collectPackageRoots, resolveTraceDeps } from "../../src/build/plugins/externals.ts";
 
 const defaults = {
   builtinPackages: ["sharp", "canvas"],
@@ -139,5 +139,42 @@ describe("resolveTraceDeps", () => {
     expect(
       result.includePattern!.test("C:\\Users\\dev\\project\\node_modules\\@fixture/utils")
     ).toBe(true);
+  });
+});
+
+describe("collectPackageRoots", () => {
+  it("extracts the package root from bundled module ids", () => {
+    const roots = collectPackageRoots([
+      "/app/node_modules/nitropage/dist/server.mjs",
+      "/app/node_modules/@scope/pkg/lib/index.js",
+    ]);
+    expect(roots).toEqual(["/app/node_modules/nitropage", "/app/node_modules/@scope/pkg"]);
+  });
+
+  it("resolves pnpm nested roots (deepest node_modules wins)", () => {
+    const roots = collectPackageRoots([
+      "/app/node_modules/.pnpm/nitropage@1.0.0/node_modules/nitropage/dist/index.mjs",
+    ]);
+    // The real pnpm location — so `traceInclude` names it declares resolve from here.
+    expect(roots).toEqual(["/app/node_modules/.pnpm/nitropage@1.0.0/node_modules/nitropage"]);
+  });
+
+  it("deduplicates roots across many files of the same package", () => {
+    const roots = collectPackageRoots([
+      "/app/node_modules/nitropage/dist/a.mjs",
+      "/app/node_modules/nitropage/dist/b.mjs",
+      "/app/node_modules/nitropage/package.json",
+    ]);
+    expect(roots).toEqual(["/app/node_modules/nitropage"]);
+  });
+
+  it("ignores non-node_modules and virtual ids", () => {
+    expect(
+      collectPackageRoots(["/app/src/index.ts", "\0virtual:nitro", "#internal/nitro"])
+    ).toBeUndefined();
+  });
+
+  it("returns undefined for empty input", () => {
+    expect(collectPackageRoots([])).toBeUndefined();
   });
 });

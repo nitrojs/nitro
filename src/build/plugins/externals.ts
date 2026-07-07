@@ -158,6 +158,13 @@ export function externals(opts: ExternalsOptions): Plugin {
           ...traceOpts,
           fullTraceInclude: resolved?.fullTraceInclude,
           traceInclude: resolved?.traceInclude,
+          // Roots of bundled packages, so `traceInclude` names they declare (e.g.
+          // a native dep loaded dynamically) resolve from the dependent's real
+          // location instead of only `rootDir` (which misses pnpm nested deps).
+          traceIncludeRoots:
+            resolved?.traceInclude && typeof this.getModuleIds === "function"
+              ? collectPackageRoots(this.getModuleIds())
+              : undefined,
           conditions: opts.conditions,
           rootDir: opts.rootDir,
           writePackageJson: true, // deno compat
@@ -249,6 +256,17 @@ const NODE_MODULES_RE =
   /^(?<dir>.+[\\/]node_modules[\\/])(?<name>[^@\\/]+|@[^\\/]+[\\/][^\\/]+)(?:[\\/](?<subpath>.+))?$/;
 
 const IMPORT_RE = /^(?!\.)(?<name>[^@/\\]+|@[^/\\]+[/\\][^/\\]+)(?:[/\\](?<subpath>.+))?$/;
+
+export function collectPackageRoots(moduleIds: Iterable<string>): string[] | undefined {
+  const roots = new Set<string>();
+  for (const id of moduleIds) {
+    const { dir, name } = NODE_MODULES_RE.exec(id)?.groups || {};
+    if (dir && name) {
+      roots.add(join(dir, name));
+    }
+  }
+  return roots.size > 0 ? [...roots] : undefined;
+}
 
 function toImport(id: string): string | undefined {
   if (isAbsolute(id)) {
