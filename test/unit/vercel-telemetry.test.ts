@@ -437,7 +437,6 @@ describe("vercel telemetry span describers", () => {
     );
     expect(spans.map((span) => span.name)).toEqual(["GET /storage", "middleware GET /storage"]);
     expect(spans[0].kind).toBe(KIND_INTERNAL);
-    expect(attrValue(spans[0], "nitro.channel")).toEqual({ stringValue: "h3.request" });
     expect(attrValue(spans[0], "http.request.method")).toEqual({ stringValue: "GET" });
     expect(attrValue(spans[0], "url.path")).toEqual({ stringValue: "/storage" });
     expect(attrValue(spans[0], "h3.handler_type")).toEqual({ stringValue: "route" });

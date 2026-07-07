@@ -32,7 +32,6 @@ export const TRACED_CHANNELS: Record<string, ChannelDescriber> = {
     const route = event.context?.matchedRoute?.route;
     const target = route || path;
     const attributes: IKeyValue[] = [
-      { key: "nitro.channel", value: { stringValue: channel } },
       { key: "http.request.method", value: { stringValue: method } },
       { key: "url.path", value: { stringValue: path } },
       { key: "h3.handler_type", value: { stringValue: type } },
@@ -60,7 +59,6 @@ export const TRACED_CHANNELS: Record<string, ChannelDescriber> = {
     // (static assets, 404s).
     const route = request.context?.matchedRoute?.route;
     const attributes: IKeyValue[] = [
-      { key: "nitro.channel", value: { stringValue: channel } },
       { key: "http.request.method", value: { stringValue: method } },
       { key: "url.path", value: { stringValue: path } },
     ];
@@ -79,7 +77,6 @@ export const TRACED_CHANNELS: Record<string, ChannelDescriber> = {
     };
     const handlerName = middleware.handler.name;
     const attributes: IKeyValue[] = [
-      { key: "nitro.channel", value: { stringValue: channel } },
       { key: "srvx.middleware.index", value: { intValue: middleware.index } },
       { key: "http.request.method", value: { stringValue: request.method } },
     ];
@@ -116,7 +113,6 @@ export const TRACED_CHANNELS: Record<string, ChannelDescriber> = {
         const operation = channel.slice("unstorage.".length);
         // CLIENT: storage is a known outbound dependency (OTEL database semconv).
         const attributes: IKeyValue[] = [
-          { key: "nitro.channel", value: { stringValue: channel } },
           { key: "db.operation", value: { stringValue: operation } },
         ];
         if (driver?.name)
