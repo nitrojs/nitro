@@ -21,9 +21,6 @@ import { TRACED_CHANNELS } from "./channels.ts";
 
 const REQUEST_CONTEXT_SYMBOL = Symbol.for("@vercel/request-context");
 
-// OTLP `SpanKind` (proto enum) Wire values: INTERNAL = 1, SERVER = 2, CLIENT = 3.
-const SPAN_KIND_INTERNAL = 1;
-
 // OTLP `Status.StatusCode` (proto enum): UNSET = 0, OK = 1, ERROR = 2.
 const STATUS_CODE_ERROR = 2;
 
@@ -219,26 +216,14 @@ export default definePlugin(() => {
         if (start === undefined) return;
         starts.delete(message as object);
 
-        // Derive span name, kind and semantic attributes from the operation.
-        // A known channel whose describer throws on a malformed payload degrades
-        // to a generic INTERNAL span named after the channel (OTLP's default
-        // kind: no remote relationship established), so enrichment never drops a
-        // span.
-        let info: SpanInfo | undefined;
-        try {
-          info = describe(name, message);
-        } catch {
-          // Fall through to the generic span below.
-        }
-        info ??= {
-          name,
-          kind: SPAN_KIND_INTERNAL,
-          attributes: [{ key: "nitro.channel", value: { stringValue: name } }],
-        };
-
+        // Derive span name, kind and semantic attributes from the operation. A
+        // describer only throws on a payload shape it doesn't recognise (a
+        // producer that changed shape); drop that span via the catch below
+        // rather than emit a contentless one.
+        const info = describe(name, message);
         reportSpan(info, start, (message as { error?: unknown }).error);
       } catch {
-        // Telemetry must never break the traced operation.
+        // Malformed payload, or telemetry failure — never break the traced operation.
       }
     });
   }

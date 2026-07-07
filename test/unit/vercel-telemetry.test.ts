@@ -495,16 +495,13 @@ describe("vercel telemetry span describers", () => {
     expect(harness.reports).toHaveLength(0);
   });
 
-  it("degrades to a generic span on malformed payloads without breaking the operation", async () => {
+  it("drops the span on malformed payloads without breaking the operation", async () => {
     const harness = installVercelContext();
-    // Missing `event` — the h3 describer throws and must be swallowed.
+    // Missing `event` — the h3 describer throws; the span is dropped, not emitted.
     await expect(traced("h3.request", { type: "route" })).resolves.toBe("ok");
 
-    const [span] = await flushSpans(harness);
-    expect(span.name).toBe("h3.request");
-    expect(span.attributes).toEqual([
-      { key: "nitro.channel", value: { stringValue: "h3.request" } },
-    ]);
+    await harness.flush();
+    expect(harness.reports).toHaveLength(0);
   });
 });
 
