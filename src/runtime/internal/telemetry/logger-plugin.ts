@@ -81,8 +81,12 @@ export default definePlugin((nitroApp: NitroApp) => {
   });
 });
 
-const TRACK_WIDTH = 32;
-const NAME_WIDTH = 22;
+// The waterfall track shrinks to fit narrow terminals but never below MIN.
+const MAX_TRACK = 32;
+const MIN_TRACK = 12;
+// Fixed width of the tree + name column, so bars stay aligned across rows
+// regardless of nesting depth.
+const LABEL_WIDTH = 24;
 
 // xterm-256 color codes, picked to stay legible on both light and dark terminals.
 const RED = "38;5;203";
@@ -110,10 +114,28 @@ function renderTimeline(trace: RequestTrace, end: bigint): string {
     a.start === b.start ? Number(b.end - a.end) : Number(a.start - b.start)
   );
 
-  const tty = !!globalThis.process?.stdout?.isTTY;
-  const paint = (s: string, code: string) => (tty ? `\x1b[${code}m${s}\x1b[0m` : s);
+  const proc = globalThis.process;
+  const env = proc?.env || {};
+  // Honor the NO_COLOR / FORCE_COLOR conventions, falling back to TTY detection.
+  // In the dev worker (node:worker_threads) stdout is a pipe to the host, so
+  // `isTTY`/`columns` are unset there — color and width come from FORCE_COLOR /
+  // COLUMNS, which the host is expected to propagate into the worker env.
+  const colors = env.NO_COLOR
+    ? false
+    : env.FORCE_COLOR
+      ? env.FORCE_COLOR !== "0" && env.FORCE_COLOR !== "false"
+      : !!proc?.stdout?.isTTY;
+  const paint = (s: string, code: string) => (colors ? `\x1b[${code}m${s}\x1b[0m` : s);
   const dim = (s: string) => paint(s, "2");
   const sep = dim("│");
+
+  // Without a known width (e.g. piped to a file) keep everything on one line, as
+  // before. A real terminal reports its columns, so the track adapts and long
+  // attribute lists wrap instead of being hard-wrapped mid-token by the shell.
+  const cols = Number(proc?.stdout?.columns) || Number(env.COLUMNS);
+  const width = cols > 0 ? cols : Infinity;
+  const track =
+    width === Infinity ? MAX_TRACK : clamp(width - LABEL_WIDTH - 14, MIN_TRACK, MAX_TRACK);
 
   const header =
     ` ${paint(` ${trace.method} `, `1;7;${verbColor(trace.method)}`)} ` +
@@ -121,21 +143,44 @@ function renderTimeline(trace: RequestTrace, end: bigint): string {
     `${paint(ms(total), heat(Number(total) / 1e6, 50, 200))}  ${sep}  ` +
     dim(`${ordered.length} spans`);
 
-  const rows = ordered.map((span) => {
+  const prefixes = treePrefixes(ordered);
+  // Continuation lines (wrapped attributes) sit under the bar, aligned past the
+  // tree/name column so they read as a hanging detail of the row above.
+  const contIndent = " ".repeat(LABEL_WIDTH + 3);
+  const contWidth = Math.max(24, (width === Infinity ? 0 : width) - contIndent.length);
+
+  const rows: string[] = [];
+  ordered.forEach((span, i) => {
     const failed = span.error !== undefined;
     const accent = failed ? RED : CATEGORY_COLOR[categorize(span)];
-    const durMs = Number(span.end - span.start) / 1e6;
     const share = Number(span.end - span.start) / Number(total);
 
-    const gutter = paint(failed ? "◆" : "●", accent);
-    const name = paint(padName(failed ? "✖ " + span.name : span.name), accent);
-    const bar = renderBar(span, t0, total, accent, paint, dim);
+    const marker = failed ? "◆" : "●";
+    const label = renderLabel(prefixes[i], marker, span.name, accent, paint, dim);
+    const bar = renderBar(span, t0, total, track, accent, paint, dim);
     const duration = paint(ms(span.end - span.start).padStart(9), heat(share, 0.25, 0.6));
+    const base = ` ${label} ${bar} ${duration}`;
+    const basePlainLen = LABEL_WIDTH + track + 12;
 
     const shown = span.attributes.filter((a) => !REDUNDANT_ATTRS.has(a.key));
-    const attrs = shown.length ? "  " + dim(formatAttributes(shown)) : "";
-    const err = failed ? "  " + paint(errorMessage(span.error), RED) : "";
-    return ` ${gutter} ${name} ${bar} ${duration}${attrs}${err}`;
+    const tokens = shown.map(({ key, value }) => `${key}=${formatValue(value)}`);
+    const errText = failed ? errorMessage(span.error) : "";
+    const trailingLen = tokens.join(" ").length + (errText ? errText.length + 2 : 0);
+
+    if (!tokens.length && !errText) {
+      rows.push(base);
+    } else if (basePlainLen + 2 + trailingLen <= width) {
+      const attrs = tokens.length ? dim(tokens.join(" ")) : "";
+      const err = errText ? paint(errText, RED) : "";
+      rows.push(base + "  " + [attrs, err].filter(Boolean).join("  "));
+    } else {
+      // Row overflows this terminal — hang the details on wrapped lines.
+      rows.push(base);
+      for (const line of wrap(tokens, contWidth)) rows.push(contIndent + dim(line));
+      for (const line of wrap(errText ? errText.split(/\s+/) : [], contWidth)) {
+        rows.push(contIndent + paint(line, RED));
+      }
+    }
   });
 
   return ["", header, ...rows].join("\n");
@@ -146,25 +191,79 @@ function renderBar(
   span: CollectedSpan,
   t0: bigint,
   total: bigint,
+  track: number,
   color: string,
   paint: (s: string, code: string) => string,
   dim: (s: string) => string
 ): string {
-  const startCol = clamp(
-    Number(((span.start - t0) * BigInt(TRACK_WIDTH)) / total),
-    0,
-    TRACK_WIDTH - 1
-  );
+  const startCol = clamp(Number(((span.start - t0) * BigInt(track)) / total), 0, track - 1);
   const barLen = clamp(
-    Number(((span.end - span.start) * BigInt(TRACK_WIDTH)) / total),
+    Number(((span.end - span.start) * BigInt(track)) / total),
     1,
-    TRACK_WIDTH - startCol
+    track - startCol
   );
   return (
     dim("─".repeat(startCol)) +
     paint("█".repeat(barLen), color) +
-    dim("─".repeat(TRACK_WIDTH - startCol - barLen))
+    dim("─".repeat(track - startCol - barLen))
   );
+}
+
+/**
+ * Render the fixed-width tree + name column: a dim tree prefix, the accent
+ * marker, then the (truncated) span name, padded so bars line up across rows.
+ */
+function renderLabel(
+  prefix: string,
+  marker: string,
+  name: string,
+  accent: string,
+  paint: (s: string, code: string) => string,
+  dim: (s: string) => string
+): string {
+  const budget = Math.max(1, LABEL_WIDTH - prefix.length - 2);
+  const shown = name.length > budget ? name.slice(0, budget - 1) + "…" : name;
+  const pad = " ".repeat(Math.max(0, LABEL_WIDTH - prefix.length - 2 - shown.length));
+  return dim(prefix) + paint(marker, accent) + " " + paint(shown, accent) + pad;
+}
+
+/**
+ * Assign each span a box-drawing tree prefix from parent/child nesting inferred
+ * by time containment: a span whose window sits inside another's is drawn as its
+ * child. Spans are already ordered by start (then longest first), so a stack of
+ * still-open ancestors yields each span's parent in one pass.
+ */
+function treePrefixes(spans: CollectedSpan[]): string[] {
+  const parent: number[] = [];
+  const stack: number[] = [];
+  for (let i = 0; i < spans.length; i++) {
+    while (stack.length && spans[stack[stack.length - 1]].end < spans[i].end) stack.pop();
+    parent[i] = stack.length ? stack[stack.length - 1] : -1;
+    stack.push(i);
+  }
+  const isLast = spans.map((_, i) => !spans.some((__, j) => j > i && parent[j] === parent[i]));
+  return spans.map((_, i) => {
+    const chain: number[] = [];
+    for (let p = parent[i]; p !== -1; p = parent[p]) chain.unshift(p);
+    const bars = chain.map((a) => (isLast[a] ? "  " : "│ ")).join("");
+    return bars + (isLast[i] ? "└─" : "├─");
+  });
+}
+
+/** Greedy-pack space-separated tokens into lines no wider than `width`. */
+function wrap(tokens: string[], width: number): string[] {
+  const lines: string[] = [];
+  let cur = "";
+  for (const tok of tokens) {
+    if (!cur) cur = tok;
+    else if (cur.length + 1 + tok.length <= width) cur += " " + tok;
+    else {
+      lines.push(cur);
+      cur = tok;
+    }
+  }
+  if (cur) lines.push(cur);
+  return lines;
 }
 
 /** Classify a span by its semantic attributes to pick an accent color. */
@@ -215,12 +314,6 @@ function clamp(value: number, min: number, max: number): number {
 /** Nanoseconds (bigint) as a millisecond string, e.g. `1.23ms`. */
 function ms(nanos: bigint): string {
   return `${(Number(nanos) / 1e6).toFixed(2)}ms`;
-}
-
-/** Pad or ellipsize a raw (uncolored) name to the fixed name column width. */
-function padName(name: string): string {
-  if (name.length > NAME_WIDTH) return name.slice(0, NAME_WIDTH - 1) + "…";
-  return name + " ".repeat(NAME_WIDTH - name.length);
 }
 
 function logFlat(info: SpanInfo, startTimeUnixNano: string, error: unknown): void {
