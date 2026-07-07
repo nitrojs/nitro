@@ -1,5 +1,11 @@
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { collectPackageRoots, resolveTraceDeps } from "../../src/build/plugins/externals.ts";
+import {
+  collectDirectDepRoots,
+  collectPackageRoots,
+  externals,
+  resolveTraceDeps,
+} from "../../src/build/plugins/externals.ts";
 
 const defaults = {
   builtinPackages: ["sharp", "canvas"],
@@ -176,5 +182,49 @@ describe("collectPackageRoots", () => {
 
   it("returns undefined for empty input", () => {
     expect(collectPackageRoots([])).toBeUndefined();
+  });
+});
+
+describe("collectDirectDepRoots", () => {
+  const appDir = fileURLToPath(new URL("fixtures/direct-deps", import.meta.url));
+
+  it("resolves roots of dependencies, devDependencies and optionalDependencies", () => {
+    const roots = collectDirectDepRoots(appDir, ["node"]);
+    expect(roots).toContain(`${appDir}/node_modules/dep-a`); // dependencies
+    expect(roots).toContain(`${appDir}/node_modules/@scope/dep-c`); // devDependencies (scoped)
+    expect(roots).toContain(`${appDir}/node_modules/dep-b`); // optionalDependencies
+  });
+
+  it("skips deps that are declared but not installed", () => {
+    const roots = collectDirectDepRoots(appDir, ["node"]);
+    expect(roots.some((r) => r.endsWith("missing-dep"))).toBe(false);
+  });
+
+  it("returns an empty array when rootDir has no package.json", () => {
+    const noPkgDir = fileURLToPath(new URL("fixtures", import.meta.url));
+    expect(collectDirectDepRoots(noPkgDir, ["node"])).toEqual([]);
+  });
+});
+
+describe("externals resolveId (unresolvable native deps)", () => {
+  const plugin = externals({
+    rootDir: "/app",
+    conditions: ["node"],
+    exclude: [],
+    include: [], // builtins (sharp, bcrypt, …) become the include pattern
+    trace: {},
+  });
+  // Resolution always fails, mimicking a native dep imported from a generated
+  // entry (e.g. `.nitro/vite/services/ssr`) outside its declaring package scope.
+  const handler = (plugin.resolveId as any).handler.bind({ resolve: async () => null });
+
+  it("externalizes an include-matched native dep by name when unresolvable", async () => {
+    const result = await handler("sharp", "/app/.nitro/services/ssr/index.js", {});
+    expect(result).toMatchObject({ external: true, id: "sharp" });
+  });
+
+  it("does not externalize an unresolvable dep that is not in the include set", async () => {
+    const result = await handler("left-pad", "/app/.nitro/services/ssr/index.js", {});
+    expect(result).toBeNull();
   });
 });

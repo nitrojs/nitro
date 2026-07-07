@@ -42,8 +42,8 @@ importers:
         specifier: ^2.7.0
         version: 2.7.0
       nf3:
-        specifier: ^0.3.20
-        version: 0.3.20
+        specifier: ^0.3.21
+        version: 0.3.21
       ocache:
         specifier: ^0.1.5
         version: 0.1.5
@@ -5038,8 +5038,8 @@ packages:
   neverpanic@0.0.8:
     resolution: {integrity: sha512-vVdkelrLxaow/fdWDumzNBO+jwm6X8bxeLJc34THtpj70u0C5QBkcV6CRCu2X726km7XD45N0A3QtYCla4RvKw==}
 
-  nf3@0.3.20:
-    resolution: {integrity: sha512-FAcIpBJ+abMCHpF+1IHIUJ4Mkyv8GQ36suwE7631smKih/IltiYjJ9JiljTklyEIJ1iyqiOzXfn3Q86IXbnFcA==}
+  nf3@0.3.21:
+    resolution: {integrity: sha512-DJ1Ss/jfUdqETSbouezgAyh6NmD3r2NnpX7Vhwz7nPTc8TvqFddJ/tMgYDwhWU4H/vTOUXDYG3sWsB9vGBX/HA==}
 
   node-abi@3.93.0:
     resolution: {integrity: sha512-Cu6yUpX5Iavugm8BeX7c0wgU9CvOqfd1yM6A1d2q2ZMjym7GjpASv2GdRcTq3Fx+Sb5OgBkEEpw4VnAbY6Y5RA==}
@@ -10203,7 +10203,7 @@ snapshots:
   h3@2.0.1-rc.20(crossws@0.4.9):
     dependencies:
       rou3: 0.8.1
-      srvx: 0.11.20
+      srvx: 0.11.21
     optionalDependencies:
       crossws: 0.4.9(srvx@0.11.21)
 
@@ -11234,7 +11234,7 @@ snapshots:
 
   neverpanic@0.0.8: {}
 
-  nf3@0.3.20: {}
+  nf3@0.3.21: {}
 
   node-abi@3.93.0:
     dependencies:

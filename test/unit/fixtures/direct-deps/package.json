@@ -1,0 +1,13 @@
+{
+  "name": "app",
+  "dependencies": {
+    "dep-a": "*"
+  },
+  "devDependencies": {
+    "@scope/dep-c": "*"
+  },
+  "optionalDependencies": {
+    "dep-b": "*",
+    "missing-dep": "*"
+  }
+}

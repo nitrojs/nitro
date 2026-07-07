@@ -4,7 +4,7 @@ import type { ExternalsTraceOptions } from "nf3";
 
 import { pathToFileURL } from "node:url";
 import { builtinModules, createRequire } from "node:module";
-import { isAbsolute, join } from "pathe";
+import { dirname, isAbsolute, join } from "pathe";
 import { resolveModulePath } from "exsolve";
 import consola from "consola";
 
@@ -99,8 +99,26 @@ export function externals(opts: ExternalsOptions): Plugin {
           resolved = cjsResolved /* non-wrapped */;
         }
 
-        // Check if not resolved or explicitly marked as excluded
-        if (!resolved?.id || !filter(resolved!.id)) {
+        // Unresolved bare import of a package matching the trace include-pattern.
+        // Native/non-bundleable deps (e.g. `sharp`) are often imported from a
+        // generated entry outside the declaring package's resolution scope, and
+        // under pnpm the nested dep is not resolvable from there. It is force-
+        // copied into the output by the trace (`traceInclude`/`traceIncludeRoots`),
+        // so externalize it by name instead of letting the bundler fail to resolve.
+        if (!resolved?.id) {
+          const importId = opts.trace ? toImport(id) : undefined;
+          if (importId && include?.some((r) => r.test(importId))) {
+            return {
+              resolvedBy: PLUGIN_NAME,
+              external: true,
+              id: importId,
+            };
+          }
+          return resolved;
+        }
+
+        // Check if explicitly marked as excluded
+        if (!filter(resolved.id)) {
           return resolved;
         }
 
@@ -154,17 +172,27 @@ export function externals(opts: ExternalsOptions): Plugin {
         const traceTime = Date.now();
         let traceFilesCount = 0;
         let tracedPkgsCount = 0;
+        // Roots from which `traceInclude` names may be resolved when they are not
+        // reachable from `rootDir` (pnpm's non-hoisted nested layout): packages
+        // bundled into this environment's graph, plus the app's direct deps. A
+        // framework dep can be bundled in an upstream build environment (absent
+        // from this graph) yet still declare native deps (e.g. `sharp`) that must
+        // be traced from its real location.
+        const traceIncludeRoots = resolved?.traceInclude
+          ? [
+              ...new Set([
+                ...(typeof this.getModuleIds === "function"
+                  ? (collectPackageRoots(this.getModuleIds()) ?? [])
+                  : []),
+                ...collectDirectDepRoots(opts.rootDir, opts.conditions),
+              ]),
+            ]
+          : undefined;
         await traceNodeModules([...tracedPaths], {
           ...traceOpts,
           fullTraceInclude: resolved?.fullTraceInclude,
           traceInclude: resolved?.traceInclude,
-          // Roots of bundled packages, so `traceInclude` names they declare (e.g.
-          // a native dep loaded dynamically) resolve from the dependent's real
-          // location instead of only `rootDir` (which misses pnpm nested deps).
-          traceIncludeRoots:
-            resolved?.traceInclude && typeof this.getModuleIds === "function"
-              ? collectPackageRoots(this.getModuleIds())
-              : undefined,
+          traceIncludeRoots: traceIncludeRoots?.length ? traceIncludeRoots : undefined,
           conditions: opts.conditions,
           rootDir: opts.rootDir,
           writePackageJson: true, // deno compat
@@ -266,6 +294,33 @@ export function collectPackageRoots(moduleIds: Iterable<string>): string[] | und
     }
   }
   return roots.size > 0 ? [...roots] : undefined;
+}
+
+// Resolved package roots of the app's direct dependencies. Used as declarer
+// candidates for `traceInclude`: a direct dep may be bundled (so it never
+// appears as a traced package) yet declare native deps that only resolve from
+// its own real, non-hoisted pnpm location.
+export function collectDirectDepRoots(rootDir: string, conditions: string[]): string[] {
+  const pkg = getPkgJSON(join(rootDir, "/"));
+  if (!pkg) {
+    return [];
+  }
+  const roots = new Set<string>();
+  for (const name of Object.keys({
+    ...pkg.dependencies,
+    ...pkg.devDependencies,
+    ...pkg.optionalDependencies,
+  })) {
+    const resolved = resolveModulePath(`${name}/package.json`, {
+      try: true,
+      from: rootDir,
+      conditions,
+    });
+    if (resolved) {
+      roots.add(dirname(resolved));
+    }
+  }
+  return [...roots];
 }
 
 function toImport(id: string): string | undefined {
