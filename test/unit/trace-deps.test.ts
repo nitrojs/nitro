@@ -1,5 +1,7 @@
-import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   collectDirectDepRoots,
   collectPackageRoots,
@@ -186,23 +188,49 @@ describe("collectPackageRoots", () => {
 });
 
 describe("collectDirectDepRoots", () => {
-  const appDir = fileURLToPath(new URL("fixtures/direct-deps", import.meta.url));
+  // Build a throwaway app tree at runtime so the fixture's `node_modules` (which
+  // the repo `.gitignore` would drop) is always present.
+  let appDir: string;
+  beforeAll(() => {
+    appDir = mkdtempSync(join(tmpdir(), "nitro-direct-deps-"));
+    writeFileSync(
+      join(appDir, "package.json"),
+      JSON.stringify({
+        name: "app",
+        dependencies: { "dep-a": "*" },
+        devDependencies: { "@scope/dep-c": "*" },
+        optionalDependencies: { "dep-b": "*", "missing-dep": "*" }, // missing-dep not installed
+      })
+    );
+    for (const name of ["dep-a", "dep-b", "@scope/dep-c"]) {
+      const dir = join(appDir, "node_modules", name);
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, "package.json"), JSON.stringify({ name, version: "1.0.0" }));
+    }
+  });
+  afterAll(() => rmSync(appDir, { recursive: true, force: true }));
+
+  const norm = (roots: string[]) => roots.map((r) => r.replace(/\\/g, "/"));
 
   it("resolves roots of dependencies, devDependencies and optionalDependencies", () => {
-    const roots = collectDirectDepRoots(appDir, ["node"]);
-    expect(roots).toContain(`${appDir}/node_modules/dep-a`); // dependencies
-    expect(roots).toContain(`${appDir}/node_modules/@scope/dep-c`); // devDependencies (scoped)
-    expect(roots).toContain(`${appDir}/node_modules/dep-b`); // optionalDependencies
+    const roots = norm(collectDirectDepRoots(appDir, ["node"]));
+    expect(roots.some((r) => r.endsWith("/node_modules/dep-a"))).toBe(true); // dependencies
+    expect(roots.some((r) => r.endsWith("/node_modules/@scope/dep-c"))).toBe(true); // devDependencies
+    expect(roots.some((r) => r.endsWith("/node_modules/dep-b"))).toBe(true); // optionalDependencies
   });
 
   it("skips deps that are declared but not installed", () => {
-    const roots = collectDirectDepRoots(appDir, ["node"]);
-    expect(roots.some((r) => r.endsWith("missing-dep"))).toBe(false);
+    const roots = norm(collectDirectDepRoots(appDir, ["node"]));
+    expect(roots.some((r) => r.includes("missing-dep"))).toBe(false);
   });
 
   it("returns an empty array when rootDir has no package.json", () => {
-    const noPkgDir = fileURLToPath(new URL("fixtures", import.meta.url));
-    expect(collectDirectDepRoots(noPkgDir, ["node"])).toEqual([]);
+    const emptyDir = mkdtempSync(join(tmpdir(), "nitro-empty-"));
+    try {
+      expect(collectDirectDepRoots(emptyDir, ["node"])).toEqual([]);
+    } finally {
+      rmSync(emptyDir, { recursive: true, force: true });
+    }
   });
 });
 
