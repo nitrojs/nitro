@@ -228,7 +228,11 @@ function describeSpan(channel: string, data: Record<string, unknown>): SpanInfo 
   }
 
   // OTLP's default kind: we have not established a remote relationship.
-  return { name: channel, kind: SPAN_KIND_INTERNAL, attributes: [attr("nitro.channel", channel)] };
+  return {
+    name: channel,
+    kind: SPAN_KIND_INTERNAL,
+    attributes: [{ key: "nitro.channel", value: { stringValue: channel } }],
+  };
 }
 
 /** h3's `TracingRequestEvent` (channel `h3.request`). */
@@ -245,10 +249,10 @@ function describeH3Request(channel: string, data: unknown): SpanInfo {
     name: type === "middleware" ? `middleware ${method} ${path}` : `${method} ${path}`,
     kind: SPAN_KIND_INTERNAL,
     attributes: [
-      attr("nitro.channel", channel),
-      attr("http.request.method", method),
-      attr("url.path", path),
-      attr("nitro.h3.handler_type", type),
+      { key: "nitro.channel", value: { stringValue: channel } },
+      { key: "http.request.method", value: { stringValue: method } },
+      { key: "url.path", value: { stringValue: path } },
+      { key: "nitro.h3.handler_type", value: { stringValue: type } },
     ],
   };
 }
@@ -263,12 +267,14 @@ function describeSrvxRequest(channel: string, data: unknown): SpanInfo {
   const { request, result } = data as SrvxRequestData;
   const method = request.method;
   const path = new URL(request.url).pathname;
-  const attributes = [
-    attr("nitro.channel", channel),
-    attr("http.request.method", method),
-    attr("url.path", path),
+  const attributes: IKeyValue[] = [
+    { key: "nitro.channel", value: { stringValue: channel } },
+    { key: "http.request.method", value: { stringValue: method } },
+    { key: "url.path", value: { stringValue: path } },
   ];
-  if (result) attributes.push(attr("http.response.status_code", result.status));
+  if (result) {
+    attributes.push({ key: "http.response.status_code", value: { intValue: result.status } });
+  }
   return { name: `${method} ${path}`, kind: SPAN_KIND_INTERNAL, attributes };
 }
 
@@ -281,12 +287,14 @@ interface SrvxMiddlewareData {
 function describeSrvxMiddleware(channel: string, data: unknown): SpanInfo {
   const { request, middleware } = data as SrvxMiddlewareData;
   const handlerName = middleware.handler.name;
-  const attributes = [
-    attr("nitro.channel", channel),
-    attr("nitro.middleware.index", middleware.index),
-    attr("http.request.method", request.method),
+  const attributes: IKeyValue[] = [
+    { key: "nitro.channel", value: { stringValue: channel } },
+    { key: "nitro.middleware.index", value: { intValue: middleware.index } },
+    { key: "http.request.method", value: { stringValue: request.method } },
   ];
-  if (handlerName) attributes.push(attr("nitro.middleware.name", handlerName));
+  if (handlerName) {
+    attributes.push({ key: "nitro.middleware.name", value: { stringValue: handlerName } });
+  }
   return {
     name: `middleware ${handlerName || `#${middleware.index}`}`,
     kind: SPAN_KIND_INTERNAL,
@@ -305,10 +313,13 @@ function describeUnstorage(channel: string, data: unknown): SpanInfo {
   const { driver, base, keys } = data as UnstorageData;
   const operation = channel.slice("unstorage.".length);
   // CLIENT: storage is a known outbound dependency (OTEL database semconv).
-  const attributes = [attr("nitro.channel", channel), attr("db.operation", operation)];
-  if (driver?.name) attributes.push(attr("db.system", driver.name));
-  if (base) attributes.push(attr("nitro.storage.base", base));
-  if (keys) attributes.push(attr("nitro.storage.keys_count", keys.length));
+  const attributes: IKeyValue[] = [
+    { key: "nitro.channel", value: { stringValue: channel } },
+    { key: "db.operation", value: { stringValue: operation } },
+  ];
+  if (driver?.name) attributes.push({ key: "db.system", value: { stringValue: driver.name } });
+  if (base) attributes.push({ key: "nitro.storage.base", value: { stringValue: base } });
+  if (keys) attributes.push({ key: "nitro.storage.keys_count", value: { intValue: keys.length } });
   return { name: base ? `${operation} ${base}` : operation, kind: SPAN_KIND_CLIENT, attributes };
 }
 
@@ -361,17 +372,6 @@ export default definePlugin(() => {
   }) as CreateTracingChannel;
 });
 
-/** Build an OTLP key/value, mapping JS types to the matching OTLP `AnyValue` field. */
-function attr(key: string, value: string | number | boolean): IKeyValue {
-  if (typeof value === "number") {
-    return { key, value: Number.isInteger(value) ? { intValue: value } : { doubleValue: value } };
-  }
-  if (typeof value === "boolean") {
-    return { key, value: { boolValue: value } };
-  }
-  return { key, value: { stringValue: value } };
-}
-
 /** An OTEL `exception` span event derived from a thrown error and its message. */
 function exceptionEvent(
   err: Partial<Error> | undefined,
@@ -379,8 +379,12 @@ function exceptionEvent(
   timeUnixNano: string
 ): ISpanEvent {
   const attributes: IKeyValue[] = [];
-  if (typeof err?.name === "string") attributes.push(attr("exception.type", err.name));
-  attributes.push(attr("exception.message", message));
-  if (typeof err?.stack === "string") attributes.push(attr("exception.stacktrace", err.stack));
+  if (typeof err?.name === "string") {
+    attributes.push({ key: "exception.type", value: { stringValue: err.name } });
+  }
+  attributes.push({ key: "exception.message", value: { stringValue: message } });
+  if (typeof err?.stack === "string") {
+    attributes.push({ key: "exception.stacktrace", value: { stringValue: err.stack } });
+  }
   return { timeUnixNano, name: "exception", attributes, droppedAttributesCount: 0 };
 }
