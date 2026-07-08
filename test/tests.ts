@@ -679,6 +679,22 @@ export function testNitro(
     expect(data).toBe("a%2fb");
   });
 
+  it("runtime proxy keeps wildcard scope against encoded traversal", async () => {
+    // Hardening: encoded traversal in the wildcard remainder must not escape the
+    // configured upstream base once a downstream decodes it — in any equivalent
+    // path shape. The request is rejected before the upstream is contacted.
+    for (const url of [
+      "/rules/proxy/legacy/..%2fadmin", // single slash
+      "/rules/proxy/legacy//..%2fadmin", // doubled slash
+      "/rules/proxy/legacy/..%2Fadmin", // mixed-case %2F
+      "/rules/proxy/legacy//..%252fadmin", // doubled + double-encoded
+    ]) {
+      const { status, data } = await callHandler({ url });
+      expect(status).toBe(400);
+      expect(data).not.toBe("admin");
+    }
+  });
+
   it("external proxy", async () => {
     const { data, headers, status } = await callHandler({
       url: "/cdn/npm/bootstrap@5.3.8/dist/js/bootstrap.min.js",

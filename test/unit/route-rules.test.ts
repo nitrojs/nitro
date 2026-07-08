@@ -1,6 +1,11 @@
+import type { H3Event } from "h3";
 import { describe, expect, it } from "vitest";
 import { normalizeRouteRules } from "../../src/config/resolvers/route-rules.ts";
-import { canonicalPath, isPathInScope } from "../../src/runtime/internal/route-rules.ts";
+import {
+  canonicalPath,
+  isPathInScope,
+  resolveWildcardTarget,
+} from "../../src/runtime/internal/route-rules.ts";
 
 describe("normalizeRouteRules - swr", () => {
   it("swr: true enables SWR", () => {
@@ -113,5 +118,64 @@ describe("canonicalPath", () => {
 
   it("keeps non-separator reserved encodings opaque", () => {
     expect(canonicalPath("/a%3Ab")).toBe("/a%3Ab");
+  });
+});
+
+// Hardening: a `/**` proxy/redirect target must keep the forwarded upstream
+// request within the configured upstream base, regardless of how the incoming
+// path is shaped (repeated/leading slashes, `/./`, mixed-case or double-encoded
+// separators). The scope check runs on the final resolved target, so equivalent
+// inputs cannot diverge from what actually gets forwarded.
+describe("resolveWildcardTarget", () => {
+  const to = "http://upstream/orders/**";
+  const base = "/api/orders";
+  const evt = (rawPath: string) => ({ url: new URL("http://localhost" + rawPath) }) as H3Event;
+  const resolve = (rawPath: string) => resolveWildcardTarget(evt(rawPath), to, base);
+  const blocked = (rawPath: string) => {
+    try {
+      resolve(rawPath);
+    } catch (error: any) {
+      return error?.status === 400;
+    }
+    return false;
+  };
+
+  it("forwards benign in-scope requests unchanged", () => {
+    expect(resolve("/api/orders/list.json")).toBe("http://upstream/orders/list.json");
+    expect(new URL(resolve("/api/orders/123?x=1")).pathname).toBe("/orders/123");
+    // an encoded separator inside a segment stays opaque and in-scope
+    expect(resolve("/api/orders/foo%2f..%2fbar")).toBe("http://upstream/orders/foo%2f..%2fbar");
+  });
+
+  it("blocks encoded traversal in every equivalent shape", () => {
+    expect(blocked("/api/orders/..%2fadmin%2fconfig.json")).toBe(true); // single slash
+    expect(blocked("/api/orders//..%2fadmin%2fconfig.json")).toBe(true); // doubled slash
+    expect(blocked("/api/orders/..%2Fadmin")).toBe(true); // mixed-case %2F
+    expect(blocked("/api/orders//..%252fadmin")).toBe(true); // doubled + double-encoded
+    expect(blocked("/api/orders/%2e%2e%2fadmin")).toBe(true); // encoded dot-segment
+  });
+
+  it("never resolves a /** target outside the configured base", () => {
+    const payloads = [
+      "/api/orders/list.json",
+      "/api/orders/",
+      "/api/orders//..%2fadmin",
+      "/api/orders//..%2f..%2fetc%2fpasswd",
+      "/api/orders/foo%2f..%2fbar",
+      "/api/orders/a//b%2f..%2f..%2fc",
+      "/api/orders//..%255c..%255cwin",
+      "/api/orders/%2e%2e%2f%2e%2e%2froot",
+    ];
+    for (const p of payloads) {
+      let target: string | undefined;
+      try {
+        target = resolve(p);
+      } catch (error: any) {
+        expect(error?.status).toBe(400); // out-of-scope inputs are rejected
+        continue;
+      }
+      // whatever is forwarded must canonicalize within the upstream base
+      expect(isPathInScope(new URL(target).pathname, "/orders")).toBe(true);
+    }
   });
 });

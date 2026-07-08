@@ -5,9 +5,9 @@ import {
   requireBasicAuth,
   resolveDotSegments,
 } from "h3";
-import type { BasicAuthOptions, EventHandler, Middleware } from "h3";
+import type { BasicAuthOptions, EventHandler, H3Event, Middleware } from "h3";
 import type { MatchedRouteRule, NitroRouteRules } from "nitro/types";
-import { joinURL, withQuery, withoutBase } from "ufo";
+import { joinURL, parseURL, withQuery, withoutBase } from "ufo";
 import { defineCachedHandler } from "./cache.ts";
 
 // Note: Remember to update RuntimeRouteRules in src/build/virtual/routing.ts when adding new route rules
@@ -32,23 +32,7 @@ export const redirect: RouteRuleCtor<"redirect"> = ((m) =>
       return;
     }
     if (target.endsWith("/**")) {
-      // Forward `event.url.pathname`: encoded separators (`%2f`/`%5c`) stay
-      // opaque, so the target receives the original separators and resolves the
-      // resource the client requested — like nginx `proxy_pass $request_uri`,
-      // not the path-decoding `proxy_pass <uri>/` form. The scope check below
-      // canonicalizes (decodes `%2f`/`%5c`, resolves `..`) to reject traversal
-      // that only surfaces once the downstream decodes those separators.
-      let targetPath = event.url.pathname + event.url.search;
-      const strpBase = (m.options as any)._redirectStripBase;
-      if (strpBase) {
-        if (!isPathInScope(event.url.pathname, strpBase)) {
-          throw new HTTPError({ status: 400 });
-        }
-        targetPath = withoutBase(targetPath, strpBase);
-      } else if (targetPath.startsWith("//")) {
-        targetPath = targetPath.replace(/^\/+/, "/");
-      }
-      target = joinURL(target.slice(0, -3), targetPath);
+      target = resolveWildcardTarget(event, target, (m.options as any)._redirectStripBase);
     } else if (event.url.search) {
       target = withQuery(target, Object.fromEntries(event.url.searchParams));
     }
@@ -63,23 +47,7 @@ export const proxy: RouteRuleCtor<"proxy"> = ((m) =>
       return;
     }
     if (target.endsWith("/**")) {
-      // Forward `event.url.pathname`: encoded separators (`%2f`/`%5c`) stay
-      // opaque, so the upstream receives the original separators and resolves
-      // the resource the client requested — like nginx `proxy_pass $request_uri`,
-      // not the path-decoding `proxy_pass <uri>/` form. The scope check below
-      // canonicalizes (decodes `%2f`/`%5c`, resolves `..`) to reject traversal
-      // that only surfaces once the upstream decodes those separators.
-      let targetPath = event.url.pathname + event.url.search;
-      const strpBase = (m.options as any)._proxyStripBase;
-      if (strpBase) {
-        if (!isPathInScope(event.url.pathname, strpBase)) {
-          throw new HTTPError({ status: 400 });
-        }
-        targetPath = withoutBase(targetPath, strpBase);
-      } else if (targetPath.startsWith("//")) {
-        targetPath = targetPath.replace(/^\/+/, "/");
-      }
-      target = joinURL(target.slice(0, -3), targetPath);
+      target = resolveWildcardTarget(event, target, (m.options as any)._proxyStripBase);
     } else if (event.url.search) {
       target = withQuery(target, Object.fromEntries(event.url.searchParams));
     }
@@ -149,4 +117,39 @@ export function isPathInScope(pathname: string, base: string): boolean {
 
 function isCanonicalInScope(canonical: string, base: string): boolean {
   return !base || canonical === base || canonical.startsWith(base + "/");
+}
+
+// Resolve a `/**` wildcard proxy/redirect `to`: append the matched remainder to
+// the target base and enforce that the resolved upstream path stays within that
+// base. Encoded separators (`%2f`/`%5c`) are forwarded opaque — like nginx
+// `proxy_pass $request_uri`, not the path-decoding `proxy_pass <uri>/` form — so
+// the upstream resolves the resource the client requested.
+//
+// Scope is enforced on the *final* target, not just the incoming path: the
+// remainder is appended (which collapses `//`, empty and `/.` segments) and only
+// then canonicalized (decode `%2f`/`%5c`, resolve `..`). Checking the bytes we
+// actually forward closes the gap where semantically equivalent inputs (repeated
+// or leading slashes, `/./`, mixed-case or double-encoded separators) normalize
+// differently before vs. after the remainder is joined to the base.
+export function resolveWildcardTarget(event: H3Event, to: string, stripBase?: string): string {
+  const baseTarget = to.slice(0, -3); // drop the trailing "/**"
+  let remainder = event.url.pathname + event.url.search;
+  if (stripBase) {
+    // Reject requests that escape the matched rule scope before stripping (also
+    // guards the naive prefix strip against sibling prefixes like `/ordersX`).
+    if (!isPathInScope(event.url.pathname, stripBase)) {
+      throw new HTTPError({ status: 400 });
+    }
+    remainder = withoutBase(remainder, stripBase);
+  }
+  const target = joinURL(baseTarget, remainder);
+  // Base path of the `to` (the part before `/**`); `/` means an unscoped root.
+  let basePath = parseURL(baseTarget).pathname;
+  if (basePath.endsWith("/")) {
+    basePath = basePath.slice(0, -1);
+  }
+  if (!isPathInScope(parseURL(target).pathname, basePath)) {
+    throw new HTTPError({ status: 400 });
+  }
+  return target;
 }
