@@ -135,7 +135,10 @@ describe("resolveWildcardTarget", () => {
     try {
       resolve(rawPath);
     } catch (error: any) {
-      return error?.status === 400;
+      if (error?.status === 400) {
+        return true;
+      }
+      throw error; // surface unexpected failures instead of reporting "not blocked"
     }
     return false;
   };
