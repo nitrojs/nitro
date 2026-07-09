@@ -82,11 +82,11 @@ export function getRouteRules(
   method: string,
   pathname: string
 ): {
-  routeRules?: MatchedRouteRules;
+  routeRules: MatchedRouteRules;
   routeRuleMiddleware: Middleware[];
 } {
-  // Lazily instantiate the matcher (once per app) so the `cache` rule handler's
-  // instance-scoped memoization holds across requests, and so an app without
-  // route rules tree-shakes h3-rules out entirely.
+  // Lazily instantiate the matcher: keeping the `createMatcherFromFind` call out
+  // of module scope lets an app without route rules (which never calls
+  // `getRouteRules`) tree-shake h3-rules out entirely.
   return (_matchRouteRules ??= createMatcherFromFind(findRouteRules))(method, pathname);
 }
