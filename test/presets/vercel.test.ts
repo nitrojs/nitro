@@ -21,7 +21,15 @@ describe("nitro:preset:vercel:web", async () => {
           route: "/_ws",
           handler: resolve(presetFixturesDir, "websocket.ts"),
         },
+        {
+          route: "/slash",
+          handler: resolve(presetFixturesDir, "slash.ts"),
+        },
       ],
+      prerender: {
+        // trailing slash on purpose (#4392)
+        routes: ["/slash/"],
+      },
       vercel: {
         queues: {
           triggers: [
@@ -75,6 +83,9 @@ describe("nitro:preset:vercel:web", async () => {
               },
               "prerender/index.html": {
                 "path": "prerender",
+              },
+              "slash/index.html": {
+                "path": "slash",
               },
             },
             "routes": [
@@ -547,6 +558,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/rules/swr/[...]-isr.func (symlink)",
             "functions/rules/swr/[...]-isr.prerender-config.json",
             "functions/single-headers/[id].func (symlink)",
+            "functions/slash.func (symlink)",
             "functions/static-flags.func (symlink)",
             "functions/stream.func (symlink)",
             "functions/tasks/[...name].func (symlink)",
