@@ -1,6 +1,7 @@
 import "#nitro/virtual/polyfills";
 import { useNitroApp } from "nitro/app";
 import { awsRequest, awsResponseHeaders } from "./_utils.ts";
+import { planAwsLambdaStreamingEmit } from "./streaming-body.ts";
 
 import type { StreamingResponse } from "@netlify/functions";
 import type { Readable } from "node:stream";
@@ -19,22 +20,36 @@ export const handler = awslambda.streamifyResponse(
       ...awsResponseHeaders(response),
     };
 
-    if (!httpResponseMetadata.headers!["transfer-encoding"]) {
-      httpResponseMetadata.headers!["transfer-encoding"] = "chunked";
+    const plan = planAwsLambdaStreamingEmit(response);
+
+    // Bodyless responses (redirects, 204/304, empty handlers): write the
+    // status+headers prelude and end immediately. Forcing chunked TE and
+    // enqueueing a zero-length chunk hangs the stream behind CloudFront
+    // (~Lambda timeout) even though the handler itself finishes quickly.
+    if (plan.kind === "bodyless") {
+      if (
+        !httpResponseMetadata.headers!["content-length"] &&
+        !httpResponseMetadata.headers!["Content-Length"]
+      ) {
+        httpResponseMetadata.headers!["content-length"] = plan.contentLength;
+      }
+      const writer = awslambda.HttpResponseStream.from(
+        responseStream,
+        httpResponseMetadata
+      );
+      writer.end();
+      return;
     }
 
-    const body =
-      response.body ??
-      new ReadableStream<string>({
-        start(controller) {
-          controller.enqueue("");
-          controller.close();
-        },
-      });
+    if (plan.transferEncoding) {
+      if (!httpResponseMetadata.headers!["transfer-encoding"]) {
+        httpResponseMetadata.headers!["transfer-encoding"] = plan.transferEncoding;
+      }
+    }
 
     const writer = awslambda.HttpResponseStream.from(responseStream, httpResponseMetadata);
 
-    const reader = body.getReader();
+    const reader = response.body!.getReader();
     await streamToNodeStream(reader, responseStream);
     writer.end();
   }
