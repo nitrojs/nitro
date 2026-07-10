@@ -12,7 +12,9 @@ export type SpanSink = (info: SpanInfo, startTimeUnixNano: string, error: unknow
 
 /**
  * Subscribes to the tracing channels declared in `TRACED_CHANNELS` (produced by
- * h3, srvx, unstorage, …) and invokes `onSpan` for each completed operation.
+ * h3, srvx, unstorage, …) and invokes `onSpan` once per traced operation:
+ * normally at `asyncEnd`, or at `end` when the traced function threw
+ * synchronously (`tracePromise` never publishes `asyncEnd` in that case).
  *
  * A `tracingChannel(<name>)` publishes to plain named channels
  * (`tracing:<name>:start`, `tracing:<name>:asyncEnd`, …). Subscribing to those
@@ -27,7 +29,7 @@ export function subscribeTracedChannels(onSpan: SpanSink): void {
   const diagnostics = globalThis.process?.getBuiltinModule?.("node:diagnostics_channel");
   if (!diagnostics?.subscribe) return;
 
-  // Carry the start time from `start` to `asyncEnd` without mutating the producer's context object.
+  // Carry the start time from `start` to completion without mutating the producer's context object.
   const starts = new WeakMap<object, string>();
 
   for (const name of Object.keys(TRACED_CHANNELS)) {
@@ -37,7 +39,7 @@ export function subscribeTracedChannels(onSpan: SpanSink): void {
       starts.set(message as object, Span.nowUnixNano());
     });
 
-    diagnostics.subscribe(`tracing:${name}:asyncEnd`, (message) => {
+    const complete = (message: unknown) => {
       try {
         const start = starts.get(message as object);
         if (start === undefined) return;
@@ -51,6 +53,18 @@ export function subscribeTracedChannels(onSpan: SpanSink): void {
         onSpan(info, start, (message as { error?: unknown }).error);
       } catch {
         // Malformed payload, or a sink failure — never break the traced operation.
+      }
+    };
+
+    diagnostics.subscribe(`tracing:${name}:asyncEnd`, complete);
+
+    // `tracePromise` never publishes `asyncEnd` when the traced function
+    // throws synchronously — only `end`, with `error` already set. In the
+    // normal async path `end` fires before the promise settles, while `error`
+    // is still unset, so the guard makes this a no-op there.
+    diagnostics.subscribe(`tracing:${name}:end`, (message) => {
+      if ((message as { error?: unknown }).error !== undefined) {
+        complete(message);
       }
     });
   }
