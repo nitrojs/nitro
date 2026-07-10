@@ -61,9 +61,10 @@ export default definePlugin((nitroApp: NitroApp) => {
 
   subscribeTracedChannels((info, start, error) => {
     const trace = als.getStore();
-    // No active request (e.g. storage during plugin setup, or the platform's
-    // outer request span that closes after the response) — nothing to attach to.
-    if (!trace) return;
+    // No span info (describer failed on the payload), or no active request
+    // (e.g. storage during plugin setup, or the platform's outer request span
+    // that closes after the response) — nothing to attach to.
+    if (!info || !trace) return;
     trace.spans.push({
       name: info.name,
       attributes: info.attributes,
@@ -321,7 +322,8 @@ function ms(nanos: bigint): string {
   return `${(Number(nanos) / 1e6).toFixed(2)}ms`;
 }
 
-function logFlat(info: SpanInfo, startTimeUnixNano: string, error: unknown): void {
+function logFlat(info: SpanInfo | undefined, startTimeUnixNano: string, error: unknown): void {
+  if (!info) return;
   const durationMs = Number(BigInt(Span.nowUnixNano()) - BigInt(startTimeUnixNano)) / 1e6;
   const attrs = info.attributes.length ? ` ${formatAttributes(info.attributes)}` : "";
   const line = `[trace] ${info.name} (${durationMs.toFixed(2)}ms)${attrs}`;

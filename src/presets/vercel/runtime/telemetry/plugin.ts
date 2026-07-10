@@ -47,6 +47,9 @@ const pendingSpans = new Map<string, Span[]>();
  */
 export default definePlugin(() => {
   subscribeTracedChannels((info, startTimeUnixNano, error) => {
+    // Describer failed on the completed payload — nothing to report.
+    if (!info) return;
+
     const context = (globalThis as Record<symbol, RequestContextReader | undefined>)[
       REQUEST_CONTEXT_SYMBOL
     ]?.get?.();

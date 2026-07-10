@@ -3,7 +3,7 @@ import { definePlugin } from "nitro";
 import * as cloudflare from "cloudflare:workers";
 import type { Span, Tracing } from "@cloudflare/workers-types";
 import type { IAnyValue } from "#nitro/runtime/telemetry/types";
-import { TRACED_CHANNELS } from "#nitro/runtime/telemetry/channels";
+import { subscribeTracedChannels } from "#nitro/runtime/telemetry/subscribe";
 
 // https://developers.cloudflare.com/workers/observability/traces/custom-spans/
 const tracing = (cloudflare as { tracing?: Tracing }).tracing;
@@ -18,74 +18,40 @@ interface PendingSpan {
  * alongside Cloudflare's automatic instrumentation (fetch, KV, D1, …)
  */
 export default definePlugin(() => {
-  const diagnostics = globalThis.process?.getBuiltinModule?.("node:diagnostics_channel");
-  if (!diagnostics?.subscribe || typeof tracing?.enterSpan !== "function") return;
+  if (typeof tracing?.enterSpan !== "function") return;
 
-  // Open span + closer per in-flight operation, keyed by the context object
-  // `tracingChannel` publishes to every phase of the same operation.
-  const pending = new WeakMap<object, PendingSpan>();
-
-  for (const name of Object.keys(TRACED_CHANNELS)) {
-    const describe = TRACED_CHANNELS[name];
-
-    diagnostics.subscribe(`tracing:${name}:start`, (message) => {
-      try {
-        // The span name is fixed at creation (Cloudflare has no rename API),
-        // so it is derived from the start payload; end-time data (status code,
-        // matched route) lands in the attributes set at `asyncEnd`.
-        const info = describe(name, message);
-
-        let close!: () => void;
-        const done = new Promise<void>((resolve) => {
-          close = resolve;
-        });
-        tracing.enterSpan(info.name, (span) => {
-          pending.set(message as object, { span, close });
-          return done;
-        });
-      } catch {
-        // Malformed payload, or tracing rejected the span (e.g. outside a
-        // request) — skip it, never break the traced operation.
-      }
-    });
-
-    const finalize = (message: unknown) => {
-      const entry = pending.get(message as object);
+  subscribeTracedChannels<PendingSpan>(
+    (info, _startTimeUnixNano, error, entry) => {
       if (!entry) return;
-      pending.delete(message as object);
       try {
         // Skip attribute work for unsampled requests (`head_sampling_rate`).
-        if (entry.span.isTraced) {
-          // Re-describe on the completed payload: by now producers have set
-          // end-time fields (`result.status`, `context.matchedRoute`, …).
-          const info = describe(name, message);
+        if (info && entry.span.isTraced) {
           for (const { key, value } of info.attributes) {
             entry.span.setAttribute(key, attributeValue(value));
           }
-          const error = (message as { error?: unknown }).error;
           if (error !== undefined) {
             recordException(entry.span, error);
           }
         }
-      } catch {
-        // Never break the traced operation.
       } finally {
         entry.close();
       }
-    };
-
-    diagnostics.subscribe(`tracing:${name}:asyncEnd`, finalize);
-
-    // `tracePromise` never publishes `asyncEnd` when the traced function
-    // throws synchronously — only `end`, with `error` already set. In the
-    // normal async path `end` fires before the promise settles, while `error`
-    // is still unset, so the guard makes this a no-op there.
-    diagnostics.subscribe(`tracing:${name}:end`, (message) => {
-      if ((message as { error?: unknown }).error !== undefined) {
-        finalize(message);
-      }
-    });
-  }
+    },
+    {
+      onStart(info) {
+        let close!: () => void;
+        const done = new Promise<void>((resolve) => {
+          close = resolve;
+        });
+        let entry: PendingSpan | undefined;
+        tracing.enterSpan(info.name, (span) => {
+          entry = { span, close };
+          return done;
+        });
+        return entry;
+      },
+    }
+  );
 });
 
 /** OTLP `IAnyValue` (from the shared describers) → Cloudflare attribute value. */
