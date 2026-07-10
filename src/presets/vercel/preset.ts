@@ -9,6 +9,7 @@ import {
   generateStaticFiles,
   resolveVercelRuntime,
 } from "./utils.ts";
+import { vercelDevModule } from "./dev.ts";
 
 import type { VercelFunctionTrigger } from "./types.ts";
 
@@ -56,6 +57,14 @@ const vercel = defineNitroPreset(
         }
         logger.info(`Using \`${serverFormat}\` entry format.`);
         nitro.options.entry = nitro.options.entry.replace("{format}", serverFormat);
+
+        // Export tracing-channel spans to the Vercel runtime. Registered first
+        // (unshift) so it subscribes to the traced channels at startup, before
+        // any request is handled.
+        if (nitro.options.tracingChannel) {
+          nitro.options.plugins ??= [];
+          nitro.options.plugins.unshift(join(presetsDir, "vercel/runtime/telemetry/plugin"));
+        }
 
         // Cron tasks handler
         if (
@@ -144,4 +153,17 @@ const vercelStatic = defineNitroPreset(
   }
 );
 
-export default [vercel, vercelStatic] as const;
+export const vercelDev = defineNitroPreset(
+  {
+    extends: "nitro-dev",
+    devServer: { runner: "vercel" },
+    modules: [vercelDevModule],
+  },
+  {
+    name: "vercel-dev" as const,
+    aliases: ["vercel"],
+    dev: true,
+  }
+);
+
+export default [vercel, vercelStatic, vercelDev] as const;

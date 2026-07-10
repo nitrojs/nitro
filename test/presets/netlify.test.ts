@@ -65,6 +65,8 @@ describe("nitro:preset:netlify", async () => {
             access-control-max-age: 0
           /rules/nested/*
             x-test: test
+          /single-headers/*
+            x-single: single
           /build/*
             cache-control: public, max-age=3600, immutable
           /*

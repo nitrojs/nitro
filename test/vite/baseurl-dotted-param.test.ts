@@ -58,13 +58,34 @@ describe("vite:baseURL dotted params", { sequential: true }, () => {
     expect(await response.text()).toBe("image");
   });
 
-  // Browsers omit Sec-Fetch-* on plain-HTTP non-loopback origins (e.g. http://10.0.0.x:3000). Without that signal, a splat Nitro route would swallow `<script src=".../entry-client.ts">` requests. Accept + asset extension is used as a fallback to keep asset loads routed to Vite.
-  test("does not misroute asset loads to splat Nitro routes when sec-fetch-dest is absent", async () => {
-    const response = await fetch(`${serverURL}/subdir/api/proxy/entry-client.ts`, {
+  // #4234: a `.ts`/asset URL that matches no Nitro route must be handled by Vite, not diverted to Nitro. Browsers omit Sec-Fetch-* on plain-HTTP non-loopback origins, so the asset extension is the only signal.
+  test("does not misroute unmatched asset loads to Nitro when sec-fetch-dest is absent", async () => {
+    const response = await fetch(`${serverURL}/subdir/src/entry-client.ts`, {
       headers: { accept: "*/*" },
       redirect: "manual",
     });
-    expect(await response.text()).not.toBe("entry-client.ts");
+    expect(response.status).not.toBe(200);
+    expect(await response.text()).not.toContain("fixture");
+  });
+
+  // #4252: an explicit Nitro route whose URL ends in an asset-like extension (`.jpg`) must still reach the route handler instead of being misrouted to Vite's static middleware.
+  test("routes URLs with asset-like extensions to an explicit Nitro route", async () => {
+    const response = await fetch(`${serverURL}/subdir/api/proxy/12345.jpg`, {
+      headers: { accept: "*/*" },
+      redirect: "manual",
+    });
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("12345.jpg");
+  });
+
+  // #4270: an asset `Sec-Fetch-Dest` (e.g. `video`) must not divert an explicit Nitro route to Vite, even when the URL also has an asset-like extension.
+  test("routes asset-tagged requests to an explicit Nitro route", async () => {
+    const response = await fetch(`${serverURL}/subdir/api/proxy/clip.mp4`, {
+      headers: { "sec-fetch-dest": "video" },
+      redirect: "manual",
+    });
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("clip.mp4");
   });
 
   // The extension extraction must look at the path only — a `.png` in the query string (e.g. `?file=bar.png`) must not flag the request as an asset and divert it to Vite.
