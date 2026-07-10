@@ -184,6 +184,29 @@ describe("cloudflare telemetry span lifecycle", () => {
     expect(span.attributes["exception.message"]).toBe("sync failure");
   });
 
+  it("records the exception even when the describer fails on the completed payload", async () => {
+    const error = new Error("late failure");
+    const data: Record<string, unknown> = {
+      type: "route",
+      event: { req: { method: "GET" }, url: { pathname: "/x" } },
+    };
+    await expect(
+      traced("h3.request", data, async () => {
+        // The end-time payload no longer matches the describer's shape.
+        delete data.event;
+        throw error;
+      })
+    ).rejects.toThrow("late failure");
+    await settled();
+
+    const [span] = harness.spans;
+    expect(span.ended).toBe(true);
+    // Named at start, no end-time attributes — but the error is recorded.
+    expect(span.name).toBe("GET /x");
+    expect(span.attributes["http.request.method"]).toBeUndefined();
+    expect(span.attributes["exception.message"]).toBe("late failure");
+  });
+
   it("records non-Error rejections as exception.message only", async () => {
     await expect(
       traced("unstorage.setItem", {}, async () => {
