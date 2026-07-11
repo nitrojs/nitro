@@ -3,7 +3,7 @@ import type { ServerRequest, ServerRequestContext } from "srvx";
 import type { H3EventContext, Middleware, WebSocketHooks } from "h3";
 import { toRequest } from "h3";
 import { HookableCore } from "hookable";
-import { createMatcherFromFind } from "h3-rules";
+import { createMatcherFromFind, memoizeRouteRulesMatcher } from "h3-rules";
 
 // IMPORTANT: virtual imports and user code should be imported last to avoid initialization order issues
 import { findRouteRules } from "#nitro/virtual/routing";
@@ -71,11 +71,6 @@ export function fetch(
   return globalThis.fetch(resource, init);
 }
 
-// Wrap the compiled `findRouteRules` lookup (see `src/build/virtual/routing.ts`)
-// into a matcher. h3-rules owns the dual-path (raw + canonical) union that
-// resolves the served path and the decoded path independently, so an encoded
-// separator can neither dodge a rule nor strip one off the served path
-// (GHSA-5w89-w975-hf9q).
 let _matchRouteRules: ReturnType<typeof createMatcherFromFind> | undefined;
 
 export function getRouteRules(
@@ -85,8 +80,8 @@ export function getRouteRules(
   routeRules: MatchedRouteRules;
   routeRuleMiddleware: Middleware[];
 } {
-  // Lazily instantiate the matcher: keeping the `createMatcherFromFind` call out
-  // of module scope lets an app without route rules (which never calls
-  // `getRouteRules`) tree-shake h3-rules out entirely.
-  return (_matchRouteRules ??= createMatcherFromFind(findRouteRules))(method, pathname);
+  return (_matchRouteRules ??= memoizeRouteRulesMatcher(createMatcherFromFind(findRouteRules)))(
+    method,
+    pathname
+  );
 }
