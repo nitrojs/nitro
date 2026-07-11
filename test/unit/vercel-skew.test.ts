@@ -32,8 +32,8 @@ describe("vercel skew protection cookie", () => {
     const config = generateBuildConfig(
       mockNitro({ skewProtection: true, deploymentId: "dpl_test123" })
     );
-    const skewRoute = config.routes?.find(
-      (r: any) => r.headers?.["Set-Cookie"]?.includes("__vdpl=")
+    const skewRoute = config.routes?.find((r: any) =>
+      r.headers?.["Set-Cookie"]?.includes("__vdpl=")
     );
     expect(skewRoute).toBeTruthy();
     expect(skewRoute!.headers!["Set-Cookie"]).toBe(
@@ -44,8 +44,8 @@ describe("vercel skew protection cookie", () => {
 
   it("does not emit __vdpl route when skew protection is off", () => {
     const config = generateBuildConfig(mockNitro({ skewProtection: false }));
-    const skewRoute = config.routes?.find(
-      (r: any) => r.headers?.["Set-Cookie"]?.includes("__vdpl=")
+    const skewRoute = config.routes?.find((r: any) =>
+      r.headers?.["Set-Cookie"]?.includes("__vdpl=")
     );
     expect(skewRoute).toBeUndefined();
   });
