@@ -211,7 +211,7 @@ export async function generateStaticFiles(nitro: Nitro) {
   await writeFile(buildConfigPath, JSON.stringify(buildConfig, null, 2));
 }
 
-function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
+export function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
   const rules = Object.entries(nitro.options.routeRules).sort(
     (a, b) => b[0].split(/\/(?!\*)/).length - a[0].split(/\/(?!\*)/).length
   );
@@ -292,7 +292,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
                 },
               ],
               headers: {
-                "Set-Cookie": `__vdpl=${nitro.options.manifest.deploymentId}; Path=${nitro.options.baseURL}; SameSite=Strict; Secure; HttpOnly`,
+                "Set-Cookie": `__vdpl=${nitro.options.manifest.deploymentId}; Path=${nitro.options.baseURL}; SameSite=Lax; Secure; HttpOnly`,
               },
               continue: true,
             },
