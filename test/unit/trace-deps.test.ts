@@ -48,23 +48,24 @@ describe("resolveTraceDeps", () => {
     expect(result.fullTraceInclude).toContain("prisma");
   });
 
-  it("returns named deps as traceInclude (builtins + user, RegExp excluded)", () => {
+  it("force-traces only user-declared named deps, not builtins (RegExp excluded)", () => {
     const result = resolveTraceDeps(["my-pkg", /my-.*-pkg/], defaults);
-    expect(result.traceInclude).toContain("sharp");
-    expect(result.traceInclude).toContain("canvas");
-    expect(result.traceInclude).toContain("my-pkg");
+    expect(result.traceInclude).toEqual(["my-pkg"]);
+    // Builtins are never force-traced wholesale — they would drag build-time
+    // tooling (rolldown/rollup/vite, declared by nitro) into the output.
+    expect(result.traceInclude).not.toContain("sharp");
+    expect(result.traceInclude).not.toContain("canvas");
     // RegExp entries cannot be resolved by name and must be excluded
     expect(result.traceInclude!.every((d) => typeof d === "string")).toBe(true);
   });
 
-  it("excludes negated packages from traceInclude", () => {
-    const result = resolveTraceDeps(["!sharp"], defaults);
-    expect(result.traceInclude).not.toContain("sharp");
-    expect(result.traceInclude).toContain("canvas");
+  it("returns undefined traceInclude when no user deps are declared", () => {
+    const result = resolveTraceDeps([], defaults);
+    expect(result.traceInclude).toBeUndefined();
   });
 
-  it("returns undefined traceInclude when all deps are negated", () => {
-    const result = resolveTraceDeps(["!sharp", "!canvas"], defaults);
+  it("excludes negated user deps from traceInclude", () => {
+    const result = resolveTraceDeps(["my-pkg", "!my-pkg"], defaults);
     expect(result.traceInclude).toBeUndefined();
   });
 

@@ -61,6 +61,11 @@ export function externals(opts: ExternalsOptions): Plugin {
 
   const tracedPaths = new Set<string>();
 
+  // Names to force-trace by name. Seeded with user-declared `traceDeps`; builtin
+  // native packages are added here only when observed as (unresolvable) imports
+  // during resolution, never wholesale (see `resolveTraceDeps`).
+  const forcedTraceIncludes = new Set<string>(resolved?.traceInclude);
+
   if (opts.trace && !resolved?.includePattern) {
     return {
       name: PLUGIN_NAME,
@@ -108,6 +113,8 @@ export function externals(opts: ExternalsOptions): Plugin {
         if (!resolved?.id) {
           const importId = opts.trace ? toImport(id) : undefined;
           if (importId && include?.some((r) => r.test(importId))) {
+            // Observed but unresolvable native import: force-trace it by name.
+            forcedTraceIncludes.add(importId);
             return {
               resolvedBy: PLUGIN_NAME,
               external: true,
@@ -172,13 +179,17 @@ export function externals(opts: ExternalsOptions): Plugin {
         const traceTime = Date.now();
         let traceFilesCount = 0;
         let tracedPkgsCount = 0;
+        // Only the names actually observed as imports (plus user `traceDeps`) are
+        // force-traced — never the full builtin DB, which would drag build-time
+        // tooling into the output.
+        const traceInclude = forcedTraceIncludes.size ? [...forcedTraceIncludes] : undefined;
         // Roots from which `traceInclude` names may be resolved when they are not
         // reachable from `rootDir` (pnpm's non-hoisted nested layout): packages
         // bundled into this environment's graph, plus the app's direct deps. A
         // framework dep can be bundled in an upstream build environment (absent
         // from this graph) yet still declare native deps (e.g. `sharp`) that must
         // be traced from its real location.
-        const traceIncludeRoots = resolved?.traceInclude
+        const traceIncludeRoots = traceInclude
           ? [
               ...new Set([
                 ...(typeof this.getModuleIds === "function"
@@ -191,7 +202,7 @@ export function externals(opts: ExternalsOptions): Plugin {
         await traceNodeModules([...tracedPaths], {
           ...traceOpts,
           fullTraceInclude: resolved?.fullTraceInclude,
-          traceInclude: resolved?.traceInclude,
+          traceInclude,
           traceIncludeRoots: traceIncludeRoots?.length ? traceIncludeRoots : undefined,
           conditions: opts.conditions,
           rootDir: opts.rootDir,
@@ -263,12 +274,19 @@ export function resolveTraceDeps(
   const fullTraceInclude = [...new Set([...builtinFullTrace, ...userFullTrace])].filter(
     (d) => !negated.has(d)
   );
-  // Named (non-RegExp) deps to force-trace by name. nft cannot statically detect
-  // packages that are loaded dynamically (e.g. native bindings), so they are
-  // resolved and traced explicitly by `traceNodeModules`. This also makes them
-  // work under pnpm, where a nested dependency is not hoisted and only resolves
-  // from the dependent package's real `.pnpm` location.
-  const traceInclude = resolved.filter((d): d is string => typeof d === "string");
+  // User-declared named deps to always force-trace by name. Builtin native
+  // packages are intentionally NOT force-traced wholesale: many of them are
+  // build-time-only tooling (e.g. `rolldown`/`rollup`/`vite`, declared as deps
+  // by `nitro` itself) that must never be copied into the runtime output. A
+  // builtin is force-traced only when it is actually observed as an
+  // (unresolvable) import during the build — nft cannot statically detect
+  // dynamically-loaded native bindings, so those observed names are collected at
+  // resolve time and traced explicitly. Force-tracing by name also fixes pnpm,
+  // where a nested dependency only resolves from the dependent package's real
+  // `.pnpm` location.
+  const traceInclude = userTraceDeps.filter(
+    (d): d is string => typeof d === "string" && !negated.has(d)
+  );
   return {
     includePattern: tracePattern
       ? new RegExp(`(?:^|[/\\\\]node_modules[/\\\\])(?:${tracePattern})(?:[/\\\\]|$)`)
