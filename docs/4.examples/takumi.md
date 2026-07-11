@@ -187,6 +187,15 @@ export default defineConfig({
 }
 ```
 
+```ts [vite.config.ts]
+import { defineConfig } from "vite";
+import { nitro } from "nitro/vite";
+
+export default defineConfig({
+  plugins: [nitro()],
+});
+```
+
 ```ts [routes/og.png.ts]
 import { defineHandler } from "nitro";
 import { container, text } from "takumi-js/helpers";
