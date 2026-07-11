@@ -50,14 +50,15 @@ body {
   justify-content: center;
   padding: 24px;
   font-family:
-    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   color: var(--fg);
   background:
-    radial-gradient(
-      1200px 600px at 100% -10%,
-      var(--bg-from),
-      transparent 60%
-    ),
+    radial-gradient(1200px 600px at 100% -10%, var(--bg-from), transparent 60%),
     linear-gradient(to bottom right, var(--bg-from), var(--bg-to));
   background-attachment: fixed;
 }

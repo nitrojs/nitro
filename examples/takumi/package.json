@@ -7,7 +7,7 @@
   },
   "devDependencies": {
     "nitro": "latest",
-    "vite": "latest",
-    "takumi-js": "^2.0.3"
+    "takumi-js": "^2.0.3",
+    "vite": "latest"
   }
 }
