@@ -114,7 +114,9 @@ export function externals(opts: ExternalsOptions): Plugin {
           const importId = opts.trace ? toImport(id) : undefined;
           if (importId && include?.some((r) => r.test(importId))) {
             // Observed but unresolvable native import: force-trace it by name.
-            forcedTraceIncludes.add(importId);
+            // nf3 matches `traceInclude` entries against bare dependency names,
+            // so strip any subpath (`pkg/sub` → `pkg`).
+            forcedTraceIncludes.add(IMPORT_RE.exec(importId)?.groups?.name ?? importId);
             return {
               resolvedBy: PLUGIN_NAME,
               external: true,
@@ -171,7 +173,7 @@ export function externals(opts: ExternalsOptions): Plugin {
     buildEnd: {
       order: "post",
       async handler() {
-        if (!opts.trace || tracedPaths.size === 0) {
+        if (!opts.trace || (tracedPaths.size === 0 && forcedTraceIncludes.size === 0)) {
           return;
         }
         const { hooks: userHooks, ...traceOpts } = opts.trace;

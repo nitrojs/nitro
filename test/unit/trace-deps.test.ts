@@ -1,13 +1,15 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   collectDirectDepRoots,
   collectPackageRoots,
   externals,
   resolveTraceDeps,
 } from "../../src/build/plugins/externals.ts";
+
+vi.mock("nf3", () => ({ traceNodeModules: vi.fn(() => Promise.resolve()) }));
 
 const defaults = {
   builtinPackages: ["sharp", "canvas"],
@@ -255,5 +257,29 @@ describe("externals resolveId (unresolvable native deps)", () => {
   it("does not externalize an unresolvable dep that is not in the include set", async () => {
     const result = await handler("left-pad", "/app/.nitro/services/ssr/index.js", {});
     expect(result).toBeNull();
+  });
+});
+
+describe("externals buildEnd (forced trace includes)", () => {
+  it("force-traces observed imports by bare package name, even with no traced paths", async () => {
+    const plugin = externals({
+      rootDir: "/app",
+      conditions: ["node"],
+      exclude: [],
+      include: [],
+      trace: {},
+    });
+    const handler = (plugin.resolveId as any).handler.bind({ resolve: async () => null });
+    // Subpath import of a builtin native dep, unresolvable (pnpm nested).
+    await handler("sharp/wasm", "/app/.nitro/services/ssr/index.js", {});
+    await (plugin.buildEnd as any).handler.call({});
+    const { traceNodeModules } = await import("nf3");
+    // Trace must run for observed imports even when nothing else was traced.
+    expect(traceNodeModules).toHaveBeenCalledTimes(1);
+    // nf3 matches `traceInclude` entries against bare dependency names, so the
+    // subpath must be stripped — `sharp/wasm` would never match a declarer.
+    const traceOpts = vi.mocked(traceNodeModules).mock.calls[0][1];
+    expect(traceOpts.traceInclude).toContain("sharp");
+    expect(traceOpts.traceInclude).not.toContain("sharp/wasm");
   });
 });
