@@ -81,7 +81,7 @@ const plugin: NitroAppPlugin = definePlugin((nitroApp: NitroApp) => {
   });
 });
 
-export default plugin
+export default plugin;
 
 // The waterfall track shrinks to fit narrow terminals but never below MIN.
 const MAX_TRACK = 32;
