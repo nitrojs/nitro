@@ -390,7 +390,7 @@ export function testNitro(
   });
 
   it("handles route rules - cors", async () => {
-    // `cors: true` is handled by h3's `handleCors` (via h3-rules >= 0.1.0). On a
+    // `cors: true` is handled by h3's `handleCors` (via h3-rules). On a
     // simple (non-preflight) request it sets permissive origin/methods/expose
     // headers; `access-control-allow-headers` / `access-control-max-age` are
     // preflight-only and answered on the `OPTIONS` preflight instead.
