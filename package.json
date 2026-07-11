@@ -65,7 +65,7 @@
     "test": "pnpm lint && pnpm build && pnpm typecheck && pnpm test:rollup && pnpm test:rolldown",
     "test:rolldown": "NITRO_BUILDER=rolldown pnpm vitest",
     "test:rollup": "NITRO_BUILDER=rollup pnpm vitest",
-    "typecheck": "tsgo --noEmit --skipLibCheck"
+    "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
     "consola": "^3.4.2",
