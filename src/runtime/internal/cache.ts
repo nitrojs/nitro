@@ -53,7 +53,7 @@ export function defineCachedHandler(
     group: "nitro/handlers",
     onError: defaultOnError,
     toResponse: (value, event) => toResponse(value, event as H3Event),
-    createResponse: (body, init) => new FastResponse(body, init),
+    createResponse: (body, init) => new FastResponse(body as BodyInit, init),
     handleCacheHeaders: (event, conditions) => handleCacheHeaders(event as H3Event, conditions),
     ...opts,
   });

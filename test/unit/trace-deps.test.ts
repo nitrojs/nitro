@@ -1,13 +1,15 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   collectDirectDepRoots,
   collectPackageRoots,
   externals,
   resolveTraceDeps,
 } from "../../src/build/plugins/externals.ts";
+
+vi.mock("nf3", () => ({ traceNodeModules: vi.fn(() => Promise.resolve()) }));
 
 const defaults = {
   builtinPackages: ["sharp", "canvas"],
@@ -48,23 +50,24 @@ describe("resolveTraceDeps", () => {
     expect(result.fullTraceInclude).toContain("prisma");
   });
 
-  it("returns named deps as traceInclude (builtins + user, RegExp excluded)", () => {
+  it("force-traces only user-declared named deps, not builtins (RegExp excluded)", () => {
     const result = resolveTraceDeps(["my-pkg", /my-.*-pkg/], defaults);
-    expect(result.traceInclude).toContain("sharp");
-    expect(result.traceInclude).toContain("canvas");
-    expect(result.traceInclude).toContain("my-pkg");
+    expect(result.traceInclude).toEqual(["my-pkg"]);
+    // Builtins are never force-traced wholesale — they would drag build-time
+    // tooling (rolldown/rollup/vite, declared by nitro) into the output.
+    expect(result.traceInclude).not.toContain("sharp");
+    expect(result.traceInclude).not.toContain("canvas");
     // RegExp entries cannot be resolved by name and must be excluded
     expect(result.traceInclude!.every((d) => typeof d === "string")).toBe(true);
   });
 
-  it("excludes negated packages from traceInclude", () => {
-    const result = resolveTraceDeps(["!sharp"], defaults);
-    expect(result.traceInclude).not.toContain("sharp");
-    expect(result.traceInclude).toContain("canvas");
+  it("returns undefined traceInclude when no user deps are declared", () => {
+    const result = resolveTraceDeps([], defaults);
+    expect(result.traceInclude).toBeUndefined();
   });
 
-  it("returns undefined traceInclude when all deps are negated", () => {
-    const result = resolveTraceDeps(["!sharp", "!canvas"], defaults);
+  it("excludes negated user deps from traceInclude", () => {
+    const result = resolveTraceDeps(["my-pkg", "!my-pkg"], defaults);
     expect(result.traceInclude).toBeUndefined();
   });
 
@@ -254,5 +257,29 @@ describe("externals resolveId (unresolvable native deps)", () => {
   it("does not externalize an unresolvable dep that is not in the include set", async () => {
     const result = await handler("left-pad", "/app/.nitro/services/ssr/index.js", {});
     expect(result).toBeNull();
+  });
+});
+
+describe("externals buildEnd (forced trace includes)", () => {
+  it("force-traces observed imports by bare package name, even with no traced paths", async () => {
+    const plugin = externals({
+      rootDir: "/app",
+      conditions: ["node"],
+      exclude: [],
+      include: [],
+      trace: {},
+    });
+    const handler = (plugin.resolveId as any).handler.bind({ resolve: async () => null });
+    // Subpath import of a builtin native dep, unresolvable (pnpm nested).
+    await handler("sharp/wasm", "/app/.nitro/services/ssr/index.js", {});
+    await (plugin.buildEnd as any).handler.call({});
+    const { traceNodeModules } = await import("nf3");
+    // Trace must run for observed imports even when nothing else was traced.
+    expect(traceNodeModules).toHaveBeenCalledTimes(1);
+    // nf3 matches `traceInclude` entries against bare dependency names, so the
+    // subpath must be stripped — `sharp/wasm` would never match a declarer.
+    const traceOpts = vi.mocked(traceNodeModules).mock.calls[0][1];
+    expect(traceOpts.traceInclude).toContain("sharp");
+    expect(traceOpts.traceInclude).not.toContain("sharp/wasm");
   });
 });
