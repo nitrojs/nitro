@@ -211,7 +211,7 @@ export async function generateStaticFiles(nitro: Nitro) {
   await writeFile(buildConfigPath, JSON.stringify(buildConfig, null, 2));
 }
 
-export function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
+function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
   const rules = Object.entries(nitro.options.routeRules).sort(
     (a, b) => b[0].split(/\/(?!\*)/).length - a[0].split(/\/(?!\*)/).length
   );
