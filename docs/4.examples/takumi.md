@@ -39,130 +39,15 @@ icon: i-lucide-image
       href="/og.png?title=Takumi%20%2B%20Nitro&description=Render%20OG%20images%20from%20a%20Nitro%20route."
     />
 
-    <style>
-      :root {
-        color-scheme: light dark;
-      }
-      body {
-        margin: 0;
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 24px;
-        font-family:
-          ui-sans-serif,
-          system-ui,
-          -apple-system,
-          "Segoe UI",
-          Roboto,
-          sans-serif;
-        background: linear-gradient(to bottom right, #fff1f2, #fecdd3);
-        color: #111827;
-      }
-      .card {
-        width: 100%;
-        max-width: 680px;
-        background: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(8px);
-        border: 1px solid rgba(255, 255, 255, 0.6);
-        border-radius: 20px;
-        padding: 32px;
-        box-shadow: 0 20px 45px rgba(190, 24, 93, 0.15);
-      }
-      h1 {
-        margin: 0 0 4px;
-        font-size: 28px;
-      }
-      p.lead {
-        margin: 0 0 20px;
-        color: #4b5563;
-      }
-      .preview-wrap {
-        position: relative;
-      }
-      img.preview {
-        display: block;
-        width: 100%;
-        height: auto;
-        aspect-ratio: 1200 / 630;
-        background: rgba(0, 0, 0, 0.04);
-        border-radius: 12px;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-      }
-      .timing-badge {
-        position: absolute;
-        right: 10px;
-        bottom: 10px;
-        padding: 4px 10px;
-        border-radius: 999px;
-        background: rgba(17, 24, 39, 0.72);
-        color: #fff;
-        font-size: 12px;
-        line-height: 1.4;
-        backdrop-filter: blur(4px);
-      }
-      .timing-badge[data-pending] {
-        opacity: 0.7;
-      }
-      .header-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-      }
-      .icon-link {
-        display: inline-flex;
-        flex-shrink: 0;
-        align-items: center;
-        justify-content: center;
-        width: 32px;
-        height: 32px;
-        border-radius: 999px;
-        background: rgba(0, 0, 0, 0.06);
-        color: #4b5563;
-      }
-      .icon-link:hover {
-        background: rgba(0, 0, 0, 0.12);
-        color: #111827;
-      }
-      .controls {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin: 20px 0 8px;
-      }
-      .controls input {
-        flex: 1 1 200px;
-        padding: 10px 12px;
-        border-radius: 10px;
-        border: 1px solid rgba(0, 0, 0, 0.15);
-        font-size: 14px;
-      }
-      .controls button {
-        padding: 10px 18px;
-        border-radius: 10px;
-        border: none;
-        background: #be185d;
-        color: #fff;
-        font-size: 14px;
-        cursor: pointer;
-      }
-      .controls button:hover {
-        background: #9d174d;
-      }
-      code {
-        font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
-        background: rgba(0, 0, 0, 0.06);
-        padding: 2px 6px;
-        border-radius: 6px;
-      }
-    </style>
+    <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body>
     <main class="card">
       <div class="header-row">
-        <h1>Takumi + Nitro</h1>
+        <div>
+          <span class="eyebrow">Live preview</span>
+          <h1>Takumi + Nitro</h1>
+        </div>
         <a
           id="endpoint-link"
           class="icon-link"
@@ -190,7 +75,8 @@ icon: i-lucide-image
       </div>
       <p class="lead">
         The image below is generated at request time by the
-        <code>routes/og.png.ts</code> handler.
+        <code>routes/og.png.ts</code> handler. Edit the fields to re-render it
+        live.
       </p>
 
       <div class="preview-wrap">
@@ -206,12 +92,18 @@ icon: i-lucide-image
       </div>
 
       <div class="controls">
-        <input id="title" placeholder="Title" value="Takumi + Nitro" />
-        <input
-          id="description"
-          placeholder="Description"
-          value="Render OG images from a Nitro route."
-        />
+        <div class="field">
+          <label for="title">Title</label>
+          <input id="title" placeholder="Title" value="Takumi + Nitro" />
+        </div>
+        <div class="field">
+          <label for="description">Description</label>
+          <input
+            id="description"
+            placeholder="Description"
+            value="Render OG images from a Nitro route."
+          />
+        </div>
       </div>
     </main>
 
@@ -279,13 +171,14 @@ export default defineConfig({
 {
   "type": "module",
   "scripts": {
-    "dev": "nitro dev",
-    "build": "nitro build",
+    "dev": "vite dev",
+    "build": "vite build",
     "preview": "node .output/server/index.mjs"
   },
   "devDependencies": {
     "nitro": "latest",
-    "takumi-js": "latest"
+    "vite": "latest",
+    "takumi-js": "^2.0.3"
   }
 }
 ```
@@ -340,6 +233,259 @@ export default defineHandler(async ({ url }) => {
 
   return response;
 });
+```
+
+```css [src/styles.css]
+:root {
+  color-scheme: light dark;
+
+  --bg-from: #fff1f2;
+  --bg-to: #ffe4e6;
+  --card-bg: rgba(255, 255, 255, 0.72);
+  --card-border: rgba(255, 255, 255, 0.7);
+  --card-shadow: 0 24px 60px -20px rgba(190, 24, 93, 0.35);
+  --fg: #111827;
+  --fg-muted: #6b7280;
+  --field-bg: rgba(255, 255, 255, 0.65);
+  --field-border: rgba(17, 24, 39, 0.12);
+  --field-border-focus: #be185d;
+  --surface: rgba(17, 24, 39, 0.05);
+  --surface-hover: rgba(17, 24, 39, 0.1);
+  --accent: #be185d;
+  --accent-hover: #9d174d;
+  --ring: rgba(190, 24, 93, 0.25);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-from: #1c1117;
+    --bg-to: #0b0a0f;
+    --card-bg: rgba(30, 27, 34, 0.6);
+    --card-border: rgba(255, 255, 255, 0.08);
+    --card-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.7);
+    --fg: #f4f4f5;
+    --fg-muted: #a1a1aa;
+    --field-bg: rgba(255, 255, 255, 0.04);
+    --field-border: rgba(255, 255, 255, 0.12);
+    --field-border-focus: #f472b6;
+    --surface: rgba(255, 255, 255, 0.06);
+    --surface-hover: rgba(255, 255, 255, 0.12);
+    --accent: #ec4899;
+    --accent-hover: #f472b6;
+    --ring: rgba(236, 72, 153, 0.35);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  font-family:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--fg);
+  background:
+    radial-gradient(
+      1200px 600px at 100% -10%,
+      var(--bg-from),
+      transparent 60%
+    ),
+    linear-gradient(to bottom right, var(--bg-from), var(--bg-to));
+  background-attachment: fixed;
+}
+
+.card {
+  width: 100%;
+  max-width: 680px;
+  background: var(--card-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--card-border);
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: var(--card-shadow);
+}
+
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--fg-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.eyebrow::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+h1 {
+  margin: 0;
+  font-size: 30px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+p.lead {
+  margin: 8px 0 24px;
+  color: var(--fg-muted);
+  line-height: 1.55;
+}
+
+.icon-link {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--fg-muted);
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.icon-link:hover {
+  background: var(--surface-hover);
+  color: var(--fg);
+  transform: translateY(-1px);
+}
+
+.preview-wrap {
+  position: relative;
+}
+
+img.preview {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1200 / 630;
+  background: var(--surface);
+  border-radius: 14px;
+  border: 1px solid var(--field-border);
+}
+
+.timing-badge {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(17, 24, 39, 0.78);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: opacity 0.2s ease;
+}
+
+.timing-badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #4ade80;
+}
+
+.timing-badge[data-pending] {
+  opacity: 0.85;
+}
+
+.timing-badge[data-pending]::before {
+  background: #fbbf24;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 24px 0 4px;
+}
+
+.field {
+  flex: 1 1 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg-muted);
+}
+
+.field input {
+  width: 100%;
+  padding: 11px 13px;
+  border-radius: 12px;
+  border: 1px solid var(--field-border);
+  background: var(--field-bg);
+  color: var(--fg);
+  font-size: 14px;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.field input:focus {
+  outline: none;
+  border-color: var(--field-border-focus);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+.field input::placeholder {
+  color: var(--fg-muted);
+  opacity: 0.6;
+}
+
+code {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-size: 0.9em;
+  background: var(--surface);
+  padding: 2px 6px;
+  border-radius: 6px;
+}
 ```
 
 ::

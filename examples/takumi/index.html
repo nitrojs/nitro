@@ -25,130 +25,15 @@
       href="/og.png?title=Takumi%20%2B%20Nitro&description=Render%20OG%20images%20from%20a%20Nitro%20route."
     />
 
-    <style>
-      :root {
-        color-scheme: light dark;
-      }
-      body {
-        margin: 0;
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 24px;
-        font-family:
-          ui-sans-serif,
-          system-ui,
-          -apple-system,
-          "Segoe UI",
-          Roboto,
-          sans-serif;
-        background: linear-gradient(to bottom right, #fff1f2, #fecdd3);
-        color: #111827;
-      }
-      .card {
-        width: 100%;
-        max-width: 680px;
-        background: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(8px);
-        border: 1px solid rgba(255, 255, 255, 0.6);
-        border-radius: 20px;
-        padding: 32px;
-        box-shadow: 0 20px 45px rgba(190, 24, 93, 0.15);
-      }
-      h1 {
-        margin: 0 0 4px;
-        font-size: 28px;
-      }
-      p.lead {
-        margin: 0 0 20px;
-        color: #4b5563;
-      }
-      .preview-wrap {
-        position: relative;
-      }
-      img.preview {
-        display: block;
-        width: 100%;
-        height: auto;
-        aspect-ratio: 1200 / 630;
-        background: rgba(0, 0, 0, 0.04);
-        border-radius: 12px;
-        border: 1px solid rgba(0, 0, 0, 0.08);
-      }
-      .timing-badge {
-        position: absolute;
-        right: 10px;
-        bottom: 10px;
-        padding: 4px 10px;
-        border-radius: 999px;
-        background: rgba(17, 24, 39, 0.72);
-        color: #fff;
-        font-size: 12px;
-        line-height: 1.4;
-        backdrop-filter: blur(4px);
-      }
-      .timing-badge[data-pending] {
-        opacity: 0.7;
-      }
-      .header-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-      }
-      .icon-link {
-        display: inline-flex;
-        flex-shrink: 0;
-        align-items: center;
-        justify-content: center;
-        width: 32px;
-        height: 32px;
-        border-radius: 999px;
-        background: rgba(0, 0, 0, 0.06);
-        color: #4b5563;
-      }
-      .icon-link:hover {
-        background: rgba(0, 0, 0, 0.12);
-        color: #111827;
-      }
-      .controls {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin: 20px 0 8px;
-      }
-      .controls input {
-        flex: 1 1 200px;
-        padding: 10px 12px;
-        border-radius: 10px;
-        border: 1px solid rgba(0, 0, 0, 0.15);
-        font-size: 14px;
-      }
-      .controls button {
-        padding: 10px 18px;
-        border-radius: 10px;
-        border: none;
-        background: #be185d;
-        color: #fff;
-        font-size: 14px;
-        cursor: pointer;
-      }
-      .controls button:hover {
-        background: #9d174d;
-      }
-      code {
-        font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
-        background: rgba(0, 0, 0, 0.06);
-        padding: 2px 6px;
-        border-radius: 6px;
-      }
-    </style>
+    <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body>
     <main class="card">
       <div class="header-row">
-        <h1>Takumi + Nitro</h1>
+        <div>
+          <span class="eyebrow">Live preview</span>
+          <h1>Takumi + Nitro</h1>
+        </div>
         <a
           id="endpoint-link"
           class="icon-link"
@@ -176,7 +61,8 @@
       </div>
       <p class="lead">
         The image below is generated at request time by the
-        <code>routes/og.png.ts</code> handler.
+        <code>routes/og.png.ts</code> handler. Edit the fields to re-render it
+        live.
       </p>
 
       <div class="preview-wrap">
@@ -192,12 +78,18 @@
       </div>
 
       <div class="controls">
-        <input id="title" placeholder="Title" value="Takumi + Nitro" />
-        <input
-          id="description"
-          placeholder="Description"
-          value="Render OG images from a Nitro route."
-        />
+        <div class="field">
+          <label for="title">Title</label>
+          <input id="title" placeholder="Title" value="Takumi + Nitro" />
+        </div>
+        <div class="field">
+          <label for="description">Description</label>
+          <input
+            id="description"
+            placeholder="Description"
+            value="Render OG images from a Nitro route."
+          />
+        </div>
       </div>
     </main>
 
