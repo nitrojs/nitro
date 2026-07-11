@@ -1,5 +1,5 @@
 import { definePlugin } from "nitro";
-import type { NitroApp } from "nitro/types";
+import type { NitroApp, NitroAppPlugin } from "nitro/types";
 import type { IAnyValue, IKeyValue, SpanInfo } from "./types.ts";
 import { Span } from "./span.ts";
 import { subscribeTracedChannels } from "./subscribe.ts";
@@ -32,7 +32,7 @@ interface RequestTrace {
  * request's collector, isolated from other in-flight requests. The timeline is
  * flushed on the `response` hook.
  */
-export default definePlugin((nitroApp: NitroApp) => {
+const plugin: NitroAppPlugin = definePlugin((nitroApp: NitroApp) => {
   const proc = globalThis.process;
   const diagnostics = proc?.getBuiltinModule?.("node:diagnostics_channel");
   const asyncHooks = proc?.getBuiltinModule?.("node:async_hooks");
@@ -80,6 +80,8 @@ export default definePlugin((nitroApp: NitroApp) => {
     }
   });
 });
+
+export default plugin
 
 // The waterfall track shrinks to fit narrow terminals but never below MIN.
 const MAX_TRACK = 32;
