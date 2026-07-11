@@ -75,8 +75,7 @@ icon: i-lucide-image
       </div>
       <p class="lead">
         The image below is generated at request time by the
-        <code>routes/og.png.ts</code> handler. Edit the fields to re-render it
-        live.
+        <code>routes/og.png.ts</code> handler. Edit the fields to re-render it live.
       </p>
 
       <div class="preview-wrap">
@@ -177,8 +176,8 @@ export default defineConfig({
   },
   "devDependencies": {
     "nitro": "latest",
-    "vite": "latest",
-    "takumi-js": "^2.0.3"
+    "takumi-js": "^2.0.3",
+    "vite": "latest"
   }
 }
 ```
@@ -288,14 +287,15 @@ body {
   justify-content: center;
   padding: 24px;
   font-family:
-    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   color: var(--fg);
   background:
-    radial-gradient(
-      1200px 600px at 100% -10%,
-      var(--bg-from),
-      transparent 60%
-    ),
+    radial-gradient(1200px 600px at 100% -10%, var(--bg-from), transparent 60%),
     linear-gradient(to bottom right, var(--bg-from), var(--bg-to));
   background-attachment: fixed;
 }
