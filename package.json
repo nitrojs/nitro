@@ -58,7 +58,7 @@
     "gen-node-compat": "node scripts/gen-node-compat.ts",
     "gen-presets": "obuild --stub && node ./scripts/gen-presets.ts",
     "lint": "oxlint . && oxfmt --check .",
-    "fmt": "automd && oxlint --fix . && oxfmt .",
+    "fmt": "oxlint --fix . && oxfmt . && automd && oxfmt .",
     "nitro": "node ./src/cli/index.ts",
     "release": "node ./scripts/release.ts",
     "stub": "obuild --stub",
