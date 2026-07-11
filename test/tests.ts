@@ -531,6 +531,34 @@ export function testNitro(
     });
   });
 
+  describe("handles route rules - method scoped", () => {
+    // `"POST /rules/method-scoped/**"` guards the path with basic auth for POST
+    // requests only; other methods fall through unaffected.
+    it("does not apply the POST-scoped rule to other methods", async () => {
+      const { status } = await callHandler({ url: "/rules/method-scoped/page" });
+      expect(status).toBe(200);
+    });
+
+    it("applies the POST-scoped rule to matching requests", async () => {
+      const { status, headers } = await callHandler({
+        url: "/rules/method-scoped/page",
+        method: "POST",
+        headers: { Authorization: "Basic " + btoa("user:wrongpass") },
+      });
+      expect(status).toBe(401);
+      expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
+    });
+
+    it("passes the POST-scoped rule with valid credentials", async () => {
+      const { status } = await callHandler({
+        url: "/rules/method-scoped/page",
+        method: "POST",
+        headers: { Authorization: "Basic " + btoa("admin:secret") },
+      });
+      expect(status).toBe(200);
+    });
+  });
+
   it("handles route rules - allowing overriding", async () => {
     const override = await callHandler({ url: "/rules/nested/override" });
     expect(override.headers.location).toBe("/other");
