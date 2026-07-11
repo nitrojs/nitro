@@ -1,0 +1,13 @@
+{
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "node .output/server/index.mjs"
+  },
+  "devDependencies": {
+    "nitro": "latest",
+    "takumi-js": "^2.0.3",
+    "vite": "latest"
+  }
+}
