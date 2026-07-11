@@ -36,8 +36,8 @@ importers:
         specifier: ^2.0.1-rc.25
         version: 2.0.1-rc.25(crossws@0.4.9)
       h3-rules:
-        specifier: ^0.0.1
-        version: 0.0.1(h3@2.0.1-rc.25)
+        specifier: ^0.1.0
+        version: 0.1.0(h3@2.0.1-rc.25)(ocache@0.2.0)
       hookable:
         specifier: ^6.1.1
         version: 6.1.1
@@ -4356,10 +4356,14 @@ packages:
     resolution: {integrity: sha512-O1Ld7Dr+nqPnmGpdhzLmMTQ4vAsD+rHwMm1NLUmoUFFymBOMKxCCrtDxqdBRYXdeEPEi3SyoR4TizJLQrnKBNA==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
-  h3-rules@0.0.1:
-    resolution: {integrity: sha512-2+HIW2+uzpYGvYkP2emjy6VHYDInaxvrSfjaHNGw/oY5x9JUdzN5SfcBGwcPgbKPvrAKj8gZMATGnoPKHBsuRA==}
+  h3-rules@0.1.0:
+    resolution: {integrity: sha512-MrUUH1E/yoM7hvpKVbLs/CFeindwiTn7Fcfo+zXDpfuRYbcpJDPkYGGttCSiHNJmjUQNYQ5yn9veUIqFonYXuw==}
     peerDependencies:
-      h3: ^2.0.1-rc.23
+      h3: ^2.0.1-rc.25
+      ocache: '>=0.2.0'
+    peerDependenciesMeta:
+      ocache:
+        optional: true
 
   h3@2.0.1-rc.20:
     resolution: {integrity: sha512-28ljodXuUp0fZovdiSRq4G9OgrxCztrJe5VdYzXAB7ueRvI7pIUqLU14Xi3XqdYJ/khXjfpUOOD2EQa6CmBgsg==}
@@ -5305,9 +5309,6 @@ packages:
   obuild@0.4.38:
     resolution: {integrity: sha512-82uy8eU+qmdtWkKlJb/jE47caBGMAGO3CrZVwGmc0Mn63hwc5Z4Fb82nBY7lwPzc44Dmv2eMBVuvnESdqHFT6Q==}
     hasBin: true
-
-  ocache@0.1.5:
-    resolution: {integrity: sha512-kNNnkkVQup/QDvmTz8Q84wc2ntiyoVHDxa6eHWKt5qdGAmFRBIxy83rxgCYEjW0x06UJ9E3P6VgM2yY4rOBH4w==}
 
   ocache@0.2.0:
     resolution: {integrity: sha512-QE+SxXf/A8yR01rEOg2X5KwUe+mARHo1xQXl+iwLMzLIH06S5lBOZhhHQWp7T5etfFa8nOnRhvjGuo9YBCWwig==}
@@ -10496,12 +10497,13 @@ snapshots:
     dependencies:
       duplexer: 0.1.2
 
-  h3-rules@0.0.1(h3@2.0.1-rc.25):
+  h3-rules@0.1.0(h3@2.0.1-rc.25)(ocache@0.2.0):
     dependencies:
       h3: 2.0.1-rc.25(crossws@0.4.9)
-      ocache: 0.1.5
       rou3: 0.9.1
       ufo: 1.6.4
+    optionalDependencies:
+      ocache: 0.2.0
 
   h3@2.0.1-rc.20(crossws@0.4.9):
     dependencies:
@@ -11613,10 +11615,6 @@ snapshots:
       - oxc-resolver
       - typescript
       - vue-tsc
-
-  ocache@0.1.5:
-    dependencies:
-      ohash: 2.0.11
 
   ocache@0.2.0:
     dependencies:

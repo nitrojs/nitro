@@ -1,5 +1,5 @@
 import type { Nitro, NitroEventHandler } from "nitro/types";
-import { compileRouteRulesModule } from "h3-rules/compiler";
+import { compileRouteRules } from "h3-rules/compiler";
 
 export default function routing(nitro: Nitro) {
   return {
@@ -19,8 +19,11 @@ export default function routing(nitro: Nitro) {
       // Compile route rules into a `findRouteRules(method, pathname)` lookup via
       // `h3-rules/compiler`. Only the rule handlers the app actually uses are
       // imported (tree-shaken); the matcher is built from this in `app.ts`.
-      const routeRulesModule = compileRouteRulesModule(nitro.options.routeRules, {
-        handlersImportId: "#nitro/runtime/route-rule-handlers",
+      // Built-in handlers are imported straight from `h3-rules` (and its
+      // `h3-rules/proxy` subpath) by the default preset; only `cache` is pointed
+      // at Nitro's own module so it stays bound to Nitro's cache runtime.
+      const routeRulesModule = compileRouteRules(nitro.options.routeRules, {
+        runtimeRules: { cache: "#nitro/runtime/route-rule-handlers" },
         baseURL: nitro.options.baseURL,
       });
 

@@ -1,11 +1,11 @@
-// Rule handlers for the compiled route-rules matcher (see
-// `src/build/virtual/routing.ts`). Built-in handlers come from `h3-rules`; the
-// `cache` handler is bound to Nitro's own cached-handler runtime so it keeps
-// Nitro's unstorage / `useStorage()` wiring and stable cache keys.
+// Nitro's `cache` rule handler for the compiled route-rules matcher (see
+// `src/build/virtual/routing.ts`). The built-in handlers (`headers`, `redirect`,
+// `proxy`, `basicAuth`, `cors`) are imported straight from `h3-rules` by the
+// compiler's default preset; only `cache` is overridden here so it stays bound
+// to Nitro's own cached-handler runtime, keeping Nitro's unstorage /
+// `useStorage()` wiring and stable cache keys.
 import { createCacheRuleHandler } from "h3-rules";
 import { defineCachedHandler } from "./cache.ts";
-
-export { headers, redirect, proxy, basicAuth } from "h3-rules";
 
 // `/* @__PURE__ */` so an app that uses only non-cache rules (e.g. `headers`)
 // tree-shakes this out along with `ocache`/`ohash` — importing `headers` from

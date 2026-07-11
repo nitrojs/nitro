@@ -21,15 +21,17 @@ describe("normalizeRouteRules - swr", () => {
     expect(rules["/api/**"].cache).toMatchObject({ swr: true, maxAge: 0 });
   });
 
-  it("swr: false does not enable SWR", () => {
+  it("swr: false resets cache (does not enable SWR)", () => {
+    // `swr: false` normalizes to `cache: false`, a reset marker that disables a
+    // cache rule inherited from a less-specific pattern (h3-rules >= 0.1.0).
     const rules = normalizeRouteRules({ routeRules: { "/api/**": { swr: false } } });
-    expect(rules["/api/**"].cache).toBeUndefined();
+    expect(rules["/api/**"].cache).toBe(false);
   });
 
   it("swr: 0 and swr: false are not equivalent", () => {
     const withZero = normalizeRouteRules({ routeRules: { "/api/**": { swr: 0 } } });
     const withFalse = normalizeRouteRules({ routeRules: { "/api/**": { swr: false } } });
-    expect(withZero["/api/**"].cache).toBeTruthy();
-    expect(withFalse["/api/**"].cache).toBeUndefined();
+    expect(withZero["/api/**"].cache).toMatchObject({ swr: true, maxAge: 0 });
+    expect(withFalse["/api/**"].cache).toBe(false);
   });
 });
