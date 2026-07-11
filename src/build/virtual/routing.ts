@@ -1,6 +1,5 @@
-import type { Nitro, NitroEventHandler, NitroRouteRules } from "nitro/types";
-
-export const RuntimeRouteRules = ["headers", "redirect", "proxy", "cache", "basicAuth"] as string[];
+import type { Nitro, NitroEventHandler } from "nitro/types";
+import { compileRouteRules } from "h3-rules/compiler";
 
 export default function routing(nitro: Nitro) {
   return {
@@ -17,13 +16,17 @@ export default function routing(nitro: Nitro) {
 
       const traceH3 = !!nitro.options.tracingChannel?.h3;
 
+      const routeRulesModule = compileRouteRules(nitro.options.routeRules, {
+        runtimeRules: { cache: "#nitro/runtime/route-rule-handlers" },
+        baseURL: nitro.options.baseURL,
+        preMerge: true,
+      });
+
       return /* js */ `
-import * as __routeRules__ from "#nitro/runtime/route-rules";
 import * as srvxNode from "srvx/node"
 import * as h3 from "h3";${traceH3 ? `\nimport { wrapHandlerWithTracing } from "h3/tracing";` : ""}
 
-export const findRouteRules = ${nitro.routing.routeRules.compileToString({ serialize: serializeRouteRule, matchAll: true })}
-
+${routeRulesModule}
 const multiHandler = (...handlers) => {
   const final = handlers.pop()
   const middleware = handlers.filter(Boolean).map(h => h3.toMiddleware(h));
@@ -91,21 +94,4 @@ function serializeHandlerFn(h: NitroEventHandler & { _importHash: string }): str
     code = `h3.toEventHandler(${code})`;
   }
   return code;
-}
-
-function serializeRouteRule(h: NitroRouteRules & { _route: string }): string {
-  return `[${Object.entries(h)
-    .filter(([name, options]) => options !== undefined && name[0] !== "_")
-    .map(([name, options]) => {
-      return `{${[
-        `name:${JSON.stringify(name)}`,
-        `route:${JSON.stringify(h._route)}`,
-        h._method && `method:${JSON.stringify(h._method)}`,
-        RuntimeRouteRules.includes(name) && `handler:__routeRules__.${name}`,
-        `options:${JSON.stringify(options)}`,
-      ]
-        .filter(Boolean)
-        .join(",")}}`;
-    })
-    .join(",")}]`;
 }
