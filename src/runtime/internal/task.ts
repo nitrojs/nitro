@@ -1,6 +1,7 @@
 import { Cron } from "croner";
 import { HTTPError } from "h3";
 import type { Task, TaskContext, TaskEvent, TaskPayload, TaskResult } from "nitro/types";
+import { useNitroHooks } from "#nitro/runtime/app";
 import { scheduledTasks, tasks } from "#nitro/virtual/tasks";
 
 /** @experimental */
@@ -64,19 +65,28 @@ export function startScheduleRunner({
     scheduledTime: Date.now(),
   };
 
+  const cronJobs: Cron[] = [];
+  useNitroHooks().hook("close", () => {
+    for (const job of cronJobs) {
+      job.stop();
+    }
+  });
+
   for (const schedule of scheduledTasks) {
-    new Cron(schedule.cron, { unref: true }, async () => {
-      await Promise.all(
-        schedule.tasks.map((name) =>
-          runTask(name, {
-            payload,
-            context: { waitUntil },
-          }).catch((error) => {
-            console.error(`Error while running scheduled task "${name}"`, error);
-          })
-        )
-      );
-    });
+    cronJobs.push(
+      new Cron(schedule.cron, async () => {
+        await Promise.all(
+          schedule.tasks.map((name) =>
+            runTask(name, {
+              payload,
+              context: { waitUntil },
+            }).catch((error) => {
+              console.error(`Error while running scheduled task "${name}"`, error);
+            })
+          )
+        );
+      })
+    );
   }
 }
 
