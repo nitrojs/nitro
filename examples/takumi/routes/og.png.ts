@@ -2,12 +2,13 @@ import { defineHandler } from "nitro";
 import { container, text } from "takumi-js/helpers";
 import ImageResponse from "takumi-js/response";
 
-export default defineHandler((event) => {
-  const url = new URL(event.req.url);
+export default defineHandler(async ({ url }) => {
   const title = url.searchParams.get("title") ?? "Takumi + Nitro";
   const description = url.searchParams.get("description") ?? "Render OG images from a Nitro route.";
 
-  return new ImageResponse(
+  const start = performance.now();
+
+  const response = new ImageResponse(
     container({
       style: {
         width: "100%",
@@ -23,9 +24,11 @@ export default defineHandler((event) => {
         text(description, { fontSize: 42, fontWeight: 500, color: "#4b5563" }),
       ],
     }),
-    {
-      width: 1200,
-      height: 630,
-    }
+    { width: 1200, height: 630 }
   );
+
+  await response.ready;
+  response.headers.set("Server-Timing", `render;dur=${(performance.now() - start).toFixed(1)}`);
+
+  return response;
 });

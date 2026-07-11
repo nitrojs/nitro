@@ -32,6 +32,13 @@ icon: i-lucide-image
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="/og.png" />
 
+    <!-- Start fetching the initial preview in parallel with parsing, ahead of the script's own fetch() -->
+    <link
+      rel="preload"
+      as="image"
+      href="/og.png?title=Takumi%20%2B%20Nitro&description=Render%20OG%20images%20from%20a%20Nitro%20route."
+    />
+
     <style>
       :root {
         color-scheme: light dark;
@@ -71,12 +78,53 @@ icon: i-lucide-image
         margin: 0 0 20px;
         color: #4b5563;
       }
+      .preview-wrap {
+        position: relative;
+      }
       img.preview {
         display: block;
         width: 100%;
         height: auto;
+        aspect-ratio: 1200 / 630;
+        background: rgba(0, 0, 0, 0.04);
         border-radius: 12px;
         border: 1px solid rgba(0, 0, 0, 0.08);
+      }
+      .timing-badge {
+        position: absolute;
+        right: 10px;
+        bottom: 10px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(17, 24, 39, 0.72);
+        color: #fff;
+        font-size: 12px;
+        line-height: 1.4;
+        backdrop-filter: blur(4px);
+      }
+      .timing-badge[data-pending] {
+        opacity: 0.7;
+      }
+      .header-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .icon-link {
+        display: inline-flex;
+        flex-shrink: 0;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.06);
+        color: #4b5563;
+      }
+      .icon-link:hover {
+        background: rgba(0, 0, 0, 0.12);
+        color: #111827;
       }
       .controls {
         display: flex;
@@ -113,18 +161,49 @@ icon: i-lucide-image
   </head>
   <body>
     <main class="card">
-      <h1>Takumi + Nitro</h1>
+      <div class="header-row">
+        <h1>Takumi + Nitro</h1>
+        <a
+          id="endpoint-link"
+          class="icon-link"
+          href="/og.png?title=Takumi%20%2B%20Nitro&description=Render%20OG%20images%20from%20a%20Nitro%20route."
+          target="_blank"
+          rel="noopener"
+          title="Open raw endpoint"
+          aria-label="Open raw endpoint"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+            <polyline points="15 3 21 3 21 9" />
+            <line x1="10" y1="14" x2="21" y2="3" />
+          </svg>
+        </a>
+      </div>
       <p class="lead">
         The image below is generated at request time by the
         <code>routes/og.png.ts</code> handler.
       </p>
 
-      <img
-        id="preview"
-        class="preview"
-        alt="Generated Open Graph image"
-        src="/og.png?title=Takumi%20%2B%20Nitro&description=Render%20OG%20images%20from%20a%20Nitro%20route."
-      />
+      <div class="preview-wrap">
+        <img
+          id="preview"
+          class="preview"
+          alt="Generated Open Graph image"
+          width="1200"
+          height="630"
+          src="/og.png?title=Takumi%20%2B%20Nitro&description=Render%20OG%20images%20from%20a%20Nitro%20route."
+        />
+        <span id="timing" class="timing-badge" data-pending>Generating…</span>
+      </div>
 
       <div class="controls">
         <input id="title" placeholder="Title" value="Takumi + Nitro" />
@@ -133,26 +212,56 @@ icon: i-lucide-image
           placeholder="Description"
           value="Render OG images from a Nitro route."
         />
-        <button id="generate">Generate</button>
       </div>
-      <p class="lead">
-        Endpoint:
-        <code>/og.png?title=Hello&amp;description=From%20Nitro</code>
-      </p>
     </main>
 
     <script>
       const preview = document.getElementById("preview");
       const titleInput = document.getElementById("title");
       const descInput = document.getElementById("description");
+      const timing = document.getElementById("timing");
+      const endpointLink = document.getElementById("endpoint-link");
 
-      document.getElementById("generate").addEventListener("click", () => {
+      let requestId = 0;
+
+      function formatServerTiming(header) {
+        const match = header?.match(/dur=([\d.]+)/);
+        return match ? `${Math.round(Number(match[1]))} ms` : "—";
+      }
+
+      async function loadPreview(url) {
+        const id = ++requestId;
+        timing.textContent = "Generating…";
+        timing.toggleAttribute("data-pending", true);
+        const res = await fetch(url);
+        const blob = await res.blob();
+        if (id !== requestId) return; // a newer keystroke already superseded this request
+        if (preview.src.startsWith("blob:")) URL.revokeObjectURL(preview.src);
+        preview.src = URL.createObjectURL(blob);
+        timing.textContent = formatServerTiming(res.headers.get("Server-Timing"));
+        timing.toggleAttribute("data-pending", false);
+      }
+
+      function refresh() {
         const params = new URLSearchParams({
           title: titleInput.value,
           description: descInput.value,
         });
-        preview.src = `/og.png?${params.toString()}`;
-      });
+        const url = `/og.png?${params.toString()}`;
+        endpointLink.href = url;
+        loadPreview(url);
+      }
+
+      let debounceTimer;
+      function refreshDebounced() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(refresh, 300);
+      }
+
+      titleInput.addEventListener("input", refreshDebounced);
+      descInput.addEventListener("input", refreshDebounced);
+
+      loadPreview(preview.src);
     </script>
   </body>
 </html>
@@ -201,12 +310,13 @@ import { defineHandler } from "nitro";
 import { container, text } from "takumi-js/helpers";
 import ImageResponse from "takumi-js/response";
 
-export default defineHandler((event) => {
-  const url = new URL(event.req.url);
+export default defineHandler(async ({ url }) => {
   const title = url.searchParams.get("title") ?? "Takumi + Nitro";
   const description = url.searchParams.get("description") ?? "Render OG images from a Nitro route.";
 
-  return new ImageResponse(
+  const start = performance.now();
+
+  const response = new ImageResponse(
     container({
       style: {
         width: "100%",
@@ -222,11 +332,13 @@ export default defineHandler((event) => {
         text(description, { fontSize: 42, fontWeight: 500, color: "#4b5563" }),
       ],
     }),
-    {
-      width: 1200,
-      height: 630,
-    }
+    { width: 1200, height: 630 }
   );
+
+  await response.ready;
+  response.headers.set("Server-Timing", `render;dur=${(performance.now() - start).toFixed(1)}`);
+
+  return response;
 });
 ```
 
@@ -240,20 +352,21 @@ Generate dynamic [Open Graph](https://ogp.me/) images from a Nitro route using [
 
 ## Server Route
 
-Build the node tree with Takumi [helpers](https://takumi.kane.tw/docs/helpers) — no JSX setup needed. Nitro handlers can return a `Response`, so return an `ImageResponse` directly:
+Build the node tree with Takumi [helpers](https://takumi.kane.tw/docs/helpers) — no JSX setup needed. Nitro handlers can return a `Response`, so return an `ImageResponse` directly. The handler awaits `response.ready` and adds a `Server-Timing` header so callers can see how long the render took:
 
 ```ts [routes/og.png.ts]
 import { defineHandler } from "nitro";
 import { container, text } from "takumi-js/helpers";
 import ImageResponse from "takumi-js/response";
 
-export default defineHandler((event) => {
-  const url = new URL(event.req.url);
+export default defineHandler(async ({ url }) => {
   const title = url.searchParams.get("title") ?? "Takumi + Nitro";
   const description =
     url.searchParams.get("description") ?? "Render OG images from a Nitro route.";
 
-  return new ImageResponse(
+  const start = performance.now();
+
+  const response = new ImageResponse(
     container({
       style: {
         width: "100%",
@@ -271,6 +384,11 @@ export default defineHandler((event) => {
     }),
     { width: 1200, height: 630 },
   );
+
+  await response.ready;
+  response.headers.set("Server-Timing", `render;dur=${(performance.now() - start).toFixed(1)}`);
+
+  return response;
 });
 ```
 
@@ -286,7 +404,9 @@ The `index.html` points its Open Graph tags at the route so crawlers get a fresh
 
 ## Request the Endpoint
 
-Visit `/og.png?title=Hello&description=From%20Nitro` to render an image with custom text.
+Visit `/og.png?title=Hello&description=From%20Nitro` to render an image with custom text. The response includes a `Server-Timing` header reporting the render duration; the demo page re-fetches the image as you type in the title/description fields and shows a "Generating…" / "N ms" badge overlaid in the bottom-right corner of the preview. The link icon next to the title always points at the raw endpoint for the current preview.
+
+The `index.html` head preloads the initial image so the browser starts fetching it in parallel with parsing, and the `<img>` reserves its `1200x630` aspect ratio via width/height attributes and CSS to avoid layout shift while it loads.
 
 Takumi picks the render backend from the deployment target: native bindings on the Node preset, WebAssembly on edge presets. No config is needed.
 
