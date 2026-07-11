@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { normalizeRouteRules } from "../../src/config/resolvers/route-rules.ts";
 
 // Route-rule normalization is owned by `h3-rules`; Nitro's resolver delegates to
-// it. These guard the shortcut semantics Nitro relies on (see also the `/rules/*` fixture e2e 
+// it. These guard the shortcut semantics Nitro relies on (see also the `/rules/*` fixture e2e
 // in `test/tests.ts`, which covers the dual-path scope behavior now implemented in h3-rules).
 describe("normalizeRouteRules - swr", () => {
   it("swr: true enables SWR", () => {
