@@ -66,6 +66,7 @@ minimumReleaseAgeExclude:
   - get-port-please*
   - giget*
   - h3*
+  - h3-rules*
   - hookable*
   - httpxy*
   - knitwork*

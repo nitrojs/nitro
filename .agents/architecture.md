@@ -88,7 +88,7 @@ All prefixed `#nitro/virtual/<name>`:
 - `app.ts` — NitroApp creation, H3 app setup
 - `cache.ts` — Response caching
 - `context.ts` — Async context
-- `route-rules.ts` — Route rule middleware (headers, redirect, proxy, cache, cors)
+- `route-rule-handlers.ts` — Rule handlers for the compiled matcher: h3-rules built-ins (headers, redirect, proxy, basicAuth) plus a `cache` handler bound to Nitro's cache runtime. Rule matching/normalization live in the [`h3-rules`](https://github.com/h3js/h3-rules) package.
 - `static.ts` — Static file serving
 - `task.ts` — Task execution
 - `plugin.ts` — Plugin helpers

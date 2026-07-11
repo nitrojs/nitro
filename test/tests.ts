@@ -390,11 +390,14 @@ export function testNitro(
   });
 
   it("handles route rules - cors", async () => {
+    // `cors: true` is handled by h3's `handleCors` (via h3-rules). On a
+    // simple (non-preflight) request it sets permissive origin/methods/expose
+    // headers; `access-control-allow-headers` / `access-control-max-age` are
+    // preflight-only and answered on the `OPTIONS` preflight instead.
     const expectedHeaders = {
       "access-control-allow-origin": "*",
       "access-control-allow-methods": "GET",
-      "access-control-allow-headers": "*",
-      "access-control-max-age": "0",
+      "access-control-expose-headers": "*",
     };
     const { headers } = await callHandler({ url: "/rules/cors" });
     expect(headers).toMatchObject(expectedHeaders);
@@ -525,6 +528,34 @@ export function testNitro(
       });
       expect(status).toBe(200);
       expect(headers["x-single"]).toBe("single");
+    });
+  });
+
+  describe("handles route rules - method scoped", () => {
+    // `"POST /rules/method-scoped/**"` guards the path with basic auth for POST
+    // requests only; other methods fall through unaffected.
+    it("does not apply the POST-scoped rule to other methods", async () => {
+      const { status } = await callHandler({ url: "/rules/method-scoped/page" });
+      expect(status).toBe(200);
+    });
+
+    it("applies the POST-scoped rule to matching requests", async () => {
+      const { status, headers } = await callHandler({
+        url: "/rules/method-scoped/page",
+        method: "POST",
+        headers: { Authorization: "Basic " + btoa("user:wrongpass") },
+      });
+      expect(status).toBe(401);
+      expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
+    });
+
+    it("passes the POST-scoped rule with valid credentials", async () => {
+      const { status } = await callHandler({
+        url: "/rules/method-scoped/page",
+        method: "POST",
+        headers: { Authorization: "Basic " + btoa("admin:secret") },
+      });
+      expect(status).toBe(200);
     });
   });
 
