@@ -43,7 +43,11 @@ export const nitroRuntimeHooksPlugin: ServerPlugin = (server) => {
   const close = server.close.bind(server);
   let closeHooksPromise: Promise<unknown> | undefined;
   server.close = async (...args) => {
-    closeHooksPromise ||= Promise.resolve(useNitroHooks().callHook("close"));
+    closeHooksPromise ||= Promise.resolve()
+      .then(() => useNitroHooks().callHook("close"))
+      .catch((error) => {
+        console.error("Error while running Nitro close hooks", error);
+      });
     await closeHooksPromise;
     await close(...args);
   };

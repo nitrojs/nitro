@@ -68,7 +68,11 @@ export function startScheduleRunner({
   const cronJobs: Cron[] = [];
   useNitroHooks().hook("close", () => {
     for (const job of cronJobs) {
-      job.stop();
+      try {
+        job.stop();
+      } catch (error) {
+        console.error("Error while stopping scheduled task", error);
+      }
     }
   });
 
