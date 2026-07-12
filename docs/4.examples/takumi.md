@@ -176,7 +176,7 @@ export default defineConfig({
   },
   "devDependencies": {
     "nitro": "latest",
-    "takumi-js": "^2.0.3",
+    "takumi-js": "^2.1.1",
     "vite": "latest"
   }
 }

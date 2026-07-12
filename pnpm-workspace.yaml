@@ -94,15 +94,15 @@ minimumReleaseAgeExclude:
   - unstorage*
   - untyped*
   - unwasm*
-  - '@takumi-rs/core-darwin-arm64@2.0.3'
-  - '@takumi-rs/core-darwin-x64@2.0.3'
-  - '@takumi-rs/core-linux-arm64-gnu@2.0.3'
-  - '@takumi-rs/core-linux-arm64-musl@2.0.3'
-  - '@takumi-rs/core-linux-x64-gnu@2.0.3'
-  - '@takumi-rs/core-linux-x64-musl@2.0.3'
-  - '@takumi-rs/core-win32-arm64-msvc@2.0.3'
-  - '@takumi-rs/core-win32-x64-msvc@2.0.3'
-  - '@takumi-rs/core@2.0.3'
-  - '@takumi-rs/helpers@2.0.3'
-  - '@takumi-rs/wasm@2.0.3'
-  - takumi-js@2.0.3
+  - '@takumi-rs/core-darwin-arm64@2.1.1'
+  - '@takumi-rs/core-darwin-x64@2.1.1'
+  - '@takumi-rs/core-linux-arm64-gnu@2.1.1'
+  - '@takumi-rs/core-linux-arm64-musl@2.1.1'
+  - '@takumi-rs/core-linux-x64-gnu@2.1.1'
+  - '@takumi-rs/core-linux-x64-musl@2.1.1'
+  - '@takumi-rs/core-win32-arm64-msvc@2.1.1'
+  - '@takumi-rs/core-win32-x64-msvc@2.1.1'
+  - '@takumi-rs/core@2.1.1'
+  - '@takumi-rs/helpers@2.1.1'
+  - '@takumi-rs/wasm@2.1.1'
+  - takumi-js@2.1.1
