@@ -4,7 +4,7 @@ import type { ExternalsTraceOptions } from "nf3";
 
 import { pathToFileURL } from "node:url";
 import { builtinModules, createRequire } from "node:module";
-import { isAbsolute, join } from "pathe";
+import { dirname, isAbsolute, join } from "pathe";
 import { resolveModulePath } from "exsolve";
 import consola from "consola";
 
@@ -61,6 +61,11 @@ export function externals(opts: ExternalsOptions): Plugin {
 
   const tracedPaths = new Set<string>();
 
+  // Names to force-trace by name. Seeded with user-declared `traceDeps`; builtin
+  // native packages are added here only when observed as (unresolvable) imports
+  // during resolution, never wholesale (see `resolveTraceDeps`).
+  const forcedTraceIncludes = new Set<string>(resolved?.traceInclude);
+
   if (opts.trace && !resolved?.includePattern) {
     return {
       name: PLUGIN_NAME,
@@ -99,8 +104,30 @@ export function externals(opts: ExternalsOptions): Plugin {
           resolved = cjsResolved /* non-wrapped */;
         }
 
-        // Check if not resolved or explicitly marked as excluded
-        if (!resolved?.id || !filter(resolved!.id)) {
+        // Unresolved bare import of a package matching the trace include-pattern.
+        // Native/non-bundleable deps (e.g. `sharp`) are often imported from a
+        // generated entry outside the declaring package's resolution scope, and
+        // under pnpm the nested dep is not resolvable from there. It is force-
+        // copied into the output by the trace (`traceInclude`/`traceIncludeRoots`),
+        // so externalize it by name instead of letting the bundler fail to resolve.
+        if (!resolved?.id) {
+          const importId = opts.trace ? toImport(id) : undefined;
+          if (importId && include?.some((r) => r.test(importId))) {
+            // Observed but unresolvable native import: force-trace it by name.
+            // nf3 matches `traceInclude` entries against bare dependency names,
+            // so strip any subpath (`pkg/sub` → `pkg`).
+            forcedTraceIncludes.add(IMPORT_RE.exec(importId)?.groups?.name ?? importId);
+            return {
+              resolvedBy: PLUGIN_NAME,
+              external: true,
+              id: importId,
+            };
+          }
+          return resolved;
+        }
+
+        // Check if explicitly marked as excluded
+        if (!filter(resolved.id)) {
           return resolved;
         }
 
@@ -146,7 +173,7 @@ export function externals(opts: ExternalsOptions): Plugin {
     buildEnd: {
       order: "post",
       async handler() {
-        if (!opts.trace || tracedPaths.size === 0) {
+        if (!opts.trace || (tracedPaths.size === 0 && forcedTraceIncludes.size === 0)) {
           return;
         }
         const { hooks: userHooks, ...traceOpts } = opts.trace;
@@ -154,9 +181,31 @@ export function externals(opts: ExternalsOptions): Plugin {
         const traceTime = Date.now();
         let traceFilesCount = 0;
         let tracedPkgsCount = 0;
+        // Only the names actually observed as imports (plus user `traceDeps`) are
+        // force-traced — never the full builtin DB, which would drag build-time
+        // tooling into the output.
+        const traceInclude = forcedTraceIncludes.size ? [...forcedTraceIncludes] : undefined;
+        // Roots from which `traceInclude` names may be resolved when they are not
+        // reachable from `rootDir` (pnpm's non-hoisted nested layout): packages
+        // bundled into this environment's graph, plus the app's direct deps. A
+        // framework dep can be bundled in an upstream build environment (absent
+        // from this graph) yet still declare native deps (e.g. `sharp`) that must
+        // be traced from its real location.
+        const traceIncludeRoots = traceInclude
+          ? [
+              ...new Set([
+                ...(typeof this.getModuleIds === "function"
+                  ? (collectPackageRoots(this.getModuleIds()) ?? [])
+                  : []),
+                ...collectDirectDepRoots(opts.rootDir, opts.conditions),
+              ]),
+            ]
+          : undefined;
         await traceNodeModules([...tracedPaths], {
           ...traceOpts,
           fullTraceInclude: resolved?.fullTraceInclude,
+          traceInclude,
+          traceIncludeRoots: traceIncludeRoots?.length ? traceIncludeRoots : undefined,
           conditions: opts.conditions,
           rootDir: opts.rootDir,
           writePackageJson: true, // deno compat
@@ -227,11 +276,25 @@ export function resolveTraceDeps(
   const fullTraceInclude = [...new Set([...builtinFullTrace, ...userFullTrace])].filter(
     (d) => !negated.has(d)
   );
+  // User-declared named deps to always force-trace by name. Builtin native
+  // packages are intentionally NOT force-traced wholesale: many of them are
+  // build-time-only tooling (e.g. `rolldown`/`rollup`/`vite`, declared as deps
+  // by `nitro` itself) that must never be copied into the runtime output. A
+  // builtin is force-traced only when it is actually observed as an
+  // (unresolvable) import during the build — nft cannot statically detect
+  // dynamically-loaded native bindings, so those observed names are collected at
+  // resolve time and traced explicitly. Force-tracing by name also fixes pnpm,
+  // where a nested dependency only resolves from the dependent package's real
+  // `.pnpm` location.
+  const traceInclude = userTraceDeps.filter(
+    (d): d is string => typeof d === "string" && !negated.has(d)
+  );
   return {
     includePattern: tracePattern
       ? new RegExp(`(?:^|[/\\\\]node_modules[/\\\\])(?:${tracePattern})(?:[/\\\\]|$)`)
       : undefined,
     fullTraceInclude: fullTraceInclude.length > 0 ? fullTraceInclude : undefined,
+    traceInclude: traceInclude.length > 0 ? traceInclude : undefined,
   };
 }
 
@@ -241,6 +304,44 @@ const NODE_MODULES_RE =
   /^(?<dir>.+[\\/]node_modules[\\/])(?<name>[^@\\/]+|@[^\\/]+[\\/][^\\/]+)(?:[\\/](?<subpath>.+))?$/;
 
 const IMPORT_RE = /^(?!\.)(?<name>[^@/\\]+|@[^/\\]+[/\\][^/\\]+)(?:[/\\](?<subpath>.+))?$/;
+
+export function collectPackageRoots(moduleIds: Iterable<string>): string[] | undefined {
+  const roots = new Set<string>();
+  for (const id of moduleIds) {
+    const { dir, name } = NODE_MODULES_RE.exec(id)?.groups || {};
+    if (dir && name) {
+      roots.add(join(dir, name));
+    }
+  }
+  return roots.size > 0 ? [...roots] : undefined;
+}
+
+// Resolved package roots of the app's direct dependencies. Used as declarer
+// candidates for `traceInclude`: a direct dep may be bundled (so it never
+// appears as a traced package) yet declare native deps that only resolve from
+// its own real, non-hoisted pnpm location.
+export function collectDirectDepRoots(rootDir: string, conditions: string[]): string[] {
+  const pkg = getPkgJSON(join(rootDir, "/"));
+  if (!pkg) {
+    return [];
+  }
+  const roots = new Set<string>();
+  for (const name of Object.keys({
+    ...pkg.dependencies,
+    ...pkg.devDependencies,
+    ...pkg.optionalDependencies,
+  })) {
+    const resolved = resolveModulePath(`${name}/package.json`, {
+      try: true,
+      from: rootDir,
+      conditions,
+    });
+    if (resolved) {
+      roots.add(dirname(resolved));
+    }
+  }
+  return [...roots];
+}
 
 function toImport(id: string): string | undefined {
   if (isAbsolute(id)) {

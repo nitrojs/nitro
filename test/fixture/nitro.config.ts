@@ -133,6 +133,28 @@ export default defineConfig({
     "/rules/ba-proxy/secure/**": {
       basicAuth: { username: "admin", password: "secret", realm: "Secure Area" },
     },
+    "/rules/ba-nested/**": {
+      basicAuth: { username: "broad", password: "secret", realm: "Broad Area" },
+    },
+    "/rules/ba-nested/admin/**": {
+      basicAuth: { username: "admin", password: "secret", realm: "Admin Area" },
+    },
+    "/rules/ba-off/**": {
+      basicAuth: { username: "admin", password: "secret", realm: "Off Area" },
+    },
+    "/rules/ba-off/*": { basicAuth: false },
+    "/rules/ba-strip/**": {
+      basicAuth: { username: "admin", password: "secret", realm: "Strip Area" },
+    },
+    "/rules/ba-strip/off/**": { basicAuth: false },
+    "/ba-single/*": {
+      basicAuth: { username: "admin", password: "secret", realm: "Secure Area" },
+    },
+    // Method-scoped route rule: the `"METHOD /path"` key only applies to that method.
+    "POST /rules/method-scoped/**": {
+      basicAuth: { username: "admin", password: "secret", realm: "Secure Area" },
+    },
+    "/single-headers/*": { headers: { "x-single": "single" } },
     "**": { headers: { "x-test": "test" } },
   },
   prerender: {

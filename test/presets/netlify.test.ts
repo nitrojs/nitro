@@ -59,12 +59,11 @@ describe("nitro:preset:netlify", async () => {
           "/rules/headers
             cache-control: s-maxage=60
           /rules/cors
-            access-control-allow-origin: *
             access-control-allow-methods: GET
-            access-control-allow-headers: *
-            access-control-max-age: 0
           /rules/nested/*
             x-test: test
+          /single-headers/*
+            x-single: single
           /build/*
             cache-control: public, max-age=3600, immutable
           /*

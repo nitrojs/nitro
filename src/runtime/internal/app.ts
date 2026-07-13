@@ -3,6 +3,7 @@ import type { ServerRequest, ServerRequestContext } from "srvx";
 import type { H3EventContext, Middleware, WebSocketHooks } from "h3";
 import { toRequest } from "h3";
 import { HookableCore } from "hookable";
+import { createMatcherFromFind, memoizeRouteRulesMatcher } from "h3-rules";
 
 // IMPORTANT: virtual imports and user code should be imported last to avoid initialization order issues
 import { findRouteRules } from "#nitro/virtual/routing";
@@ -70,54 +71,17 @@ export function fetch(
   return globalThis.fetch(resource, init);
 }
 
+let _matchRouteRules: ReturnType<typeof createMatcherFromFind> | undefined;
+
 export function getRouteRules(
   method: string,
   pathname: string
 ): {
-  routeRules?: MatchedRouteRules;
+  routeRules: MatchedRouteRules;
   routeRuleMiddleware: Middleware[];
 } {
-  const m = findRouteRules(method, pathname);
-  if (!m?.length) {
-    return { routeRuleMiddleware: [] };
-  }
-  const routeRules: MatchedRouteRules = {};
-  for (const layer of m) {
-    for (const rule of layer.data) {
-      const currentRule = routeRules[rule.name];
-      if (currentRule) {
-        if (rule.options === false) {
-          // Remove/Reset existing rule with `false` value
-          delete routeRules[rule.name];
-          continue;
-        }
-        if (typeof currentRule.options === "object" && typeof rule.options === "object") {
-          // Merge nested rule objects
-          currentRule.options = { ...currentRule.options, ...rule.options };
-        } else {
-          // Override rule if non object
-          currentRule.options = rule.options;
-        }
-        // Routing (route and params)
-        currentRule.route = rule.route;
-        currentRule.params = { ...currentRule.params, ...layer.params };
-      } else if (rule.options !== false) {
-        routeRules[rule.name] = { ...rule, params: layer.params };
-      }
-    }
-  }
-  const middleware = [];
-  const orderedRules = Object.values(routeRules).sort(
-    (a, b) => (a.handler?.order || 0) - (b.handler?.order || 0)
+  return (_matchRouteRules ??= memoizeRouteRulesMatcher(createMatcherFromFind(findRouteRules)))(
+    method,
+    pathname
   );
-  for (const rule of orderedRules) {
-    if (rule.options === false || !rule.handler) {
-      continue;
-    }
-    middleware.push(rule.handler(rule));
-  }
-  return {
-    routeRules,
-    routeRuleMiddleware: middleware,
-  };
 }

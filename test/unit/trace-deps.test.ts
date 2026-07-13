@@ -1,5 +1,15 @@
-import { describe, expect, it } from "vitest";
-import { resolveTraceDeps } from "../../src/build/plugins/externals.ts";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  collectDirectDepRoots,
+  collectPackageRoots,
+  externals,
+  resolveTraceDeps,
+} from "../../src/build/plugins/externals.ts";
+
+vi.mock("nf3", () => ({ traceNodeModules: vi.fn(() => Promise.resolve()) }));
 
 const defaults = {
   builtinPackages: ["sharp", "canvas"],
@@ -38,6 +48,27 @@ describe("resolveTraceDeps", () => {
     expect(result.includePattern!.test("my-pkg/lib.js")).toBe(true);
     expect(result.fullTraceInclude).toContain("my-pkg");
     expect(result.fullTraceInclude).toContain("prisma");
+  });
+
+  it("force-traces only user-declared named deps, not builtins (RegExp excluded)", () => {
+    const result = resolveTraceDeps(["my-pkg", /my-.*-pkg/], defaults);
+    expect(result.traceInclude).toEqual(["my-pkg"]);
+    // Builtins are never force-traced wholesale — they would drag build-time
+    // tooling (rolldown/rollup/vite, declared by nitro) into the output.
+    expect(result.traceInclude).not.toContain("sharp");
+    expect(result.traceInclude).not.toContain("canvas");
+    // RegExp entries cannot be resolved by name and must be excluded
+    expect(result.traceInclude!.every((d) => typeof d === "string")).toBe(true);
+  });
+
+  it("returns undefined traceInclude when no user deps are declared", () => {
+    const result = resolveTraceDeps([], defaults);
+    expect(result.traceInclude).toBeUndefined();
+  });
+
+  it("excludes negated user deps from traceInclude", () => {
+    const result = resolveTraceDeps(["my-pkg", "!my-pkg"], defaults);
+    expect(result.traceInclude).toBeUndefined();
   });
 
   it("throws on bare ! selector", () => {
@@ -119,5 +150,136 @@ describe("resolveTraceDeps", () => {
     expect(
       result.includePattern!.test("C:\\Users\\dev\\project\\node_modules\\@fixture/utils")
     ).toBe(true);
+  });
+});
+
+describe("collectPackageRoots", () => {
+  it("extracts the package root from bundled module ids", () => {
+    const roots = collectPackageRoots([
+      "/app/node_modules/nitropage/dist/server.mjs",
+      "/app/node_modules/@scope/pkg/lib/index.js",
+    ]);
+    expect(roots).toEqual(["/app/node_modules/nitropage", "/app/node_modules/@scope/pkg"]);
+  });
+
+  it("resolves pnpm nested roots (deepest node_modules wins)", () => {
+    const roots = collectPackageRoots([
+      "/app/node_modules/.pnpm/nitropage@1.0.0/node_modules/nitropage/dist/index.mjs",
+    ]);
+    // The real pnpm location — so `traceInclude` names it declares resolve from here.
+    expect(roots).toEqual(["/app/node_modules/.pnpm/nitropage@1.0.0/node_modules/nitropage"]);
+  });
+
+  it("deduplicates roots across many files of the same package", () => {
+    const roots = collectPackageRoots([
+      "/app/node_modules/nitropage/dist/a.mjs",
+      "/app/node_modules/nitropage/dist/b.mjs",
+      "/app/node_modules/nitropage/package.json",
+    ]);
+    expect(roots).toEqual(["/app/node_modules/nitropage"]);
+  });
+
+  it("ignores non-node_modules and virtual ids", () => {
+    expect(
+      collectPackageRoots(["/app/src/index.ts", "\0virtual:nitro", "#internal/nitro"])
+    ).toBeUndefined();
+  });
+
+  it("returns undefined for empty input", () => {
+    expect(collectPackageRoots([])).toBeUndefined();
+  });
+});
+
+describe("collectDirectDepRoots", () => {
+  // Build a throwaway app tree at runtime so the fixture's `node_modules` (which
+  // the repo `.gitignore` would drop) is always present.
+  let appDir: string;
+  beforeAll(() => {
+    appDir = mkdtempSync(join(tmpdir(), "nitro-direct-deps-"));
+    writeFileSync(
+      join(appDir, "package.json"),
+      JSON.stringify({
+        name: "app",
+        dependencies: { "dep-a": "*" },
+        devDependencies: { "@scope/dep-c": "*" },
+        optionalDependencies: { "dep-b": "*", "missing-dep": "*" }, // missing-dep not installed
+      })
+    );
+    for (const name of ["dep-a", "dep-b", "@scope/dep-c"]) {
+      const dir = join(appDir, "node_modules", name);
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, "package.json"), JSON.stringify({ name, version: "1.0.0" }));
+    }
+  });
+  afterAll(() => rmSync(appDir, { recursive: true, force: true }));
+
+  const norm = (roots: string[]) => roots.map((r) => r.replace(/\\/g, "/"));
+
+  it("resolves roots of dependencies, devDependencies and optionalDependencies", () => {
+    const roots = norm(collectDirectDepRoots(appDir, ["node"]));
+    expect(roots.some((r) => r.endsWith("/node_modules/dep-a"))).toBe(true); // dependencies
+    expect(roots.some((r) => r.endsWith("/node_modules/@scope/dep-c"))).toBe(true); // devDependencies
+    expect(roots.some((r) => r.endsWith("/node_modules/dep-b"))).toBe(true); // optionalDependencies
+  });
+
+  it("skips deps that are declared but not installed", () => {
+    const roots = norm(collectDirectDepRoots(appDir, ["node"]));
+    expect(roots.some((r) => r.includes("missing-dep"))).toBe(false);
+  });
+
+  it("returns an empty array when rootDir has no package.json", () => {
+    const emptyDir = mkdtempSync(join(tmpdir(), "nitro-empty-"));
+    try {
+      expect(collectDirectDepRoots(emptyDir, ["node"])).toEqual([]);
+    } finally {
+      rmSync(emptyDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("externals resolveId (unresolvable native deps)", () => {
+  const plugin = externals({
+    rootDir: "/app",
+    conditions: ["node"],
+    exclude: [],
+    include: [], // builtins (sharp, bcrypt, …) become the include pattern
+    trace: {},
+  });
+  // Resolution always fails, mimicking a native dep imported from a generated
+  // entry (e.g. `.nitro/vite/services/ssr`) outside its declaring package scope.
+  const handler = (plugin.resolveId as any).handler.bind({ resolve: async () => null });
+
+  it("externalizes an include-matched native dep by name when unresolvable", async () => {
+    const result = await handler("sharp", "/app/.nitro/services/ssr/index.js", {});
+    expect(result).toMatchObject({ external: true, id: "sharp" });
+  });
+
+  it("does not externalize an unresolvable dep that is not in the include set", async () => {
+    const result = await handler("left-pad", "/app/.nitro/services/ssr/index.js", {});
+    expect(result).toBeNull();
+  });
+});
+
+describe("externals buildEnd (forced trace includes)", () => {
+  it("force-traces observed imports by bare package name, even with no traced paths", async () => {
+    const plugin = externals({
+      rootDir: "/app",
+      conditions: ["node"],
+      exclude: [],
+      include: [],
+      trace: {},
+    });
+    const handler = (plugin.resolveId as any).handler.bind({ resolve: async () => null });
+    // Subpath import of a builtin native dep, unresolvable (pnpm nested).
+    await handler("sharp/wasm", "/app/.nitro/services/ssr/index.js", {});
+    await (plugin.buildEnd as any).handler.call({});
+    const { traceNodeModules } = await import("nf3");
+    // Trace must run for observed imports even when nothing else was traced.
+    expect(traceNodeModules).toHaveBeenCalledTimes(1);
+    // nf3 matches `traceInclude` entries against bare dependency names, so the
+    // subpath must be stripped — `sharp/wasm` would never match a declarer.
+    const traceOpts = vi.mocked(traceNodeModules).mock.calls[0][1];
+    expect(traceOpts.traceInclude).toContain("sharp");
+    expect(traceOpts.traceInclude).not.toContain("sharp/wasm");
   });
 });

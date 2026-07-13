@@ -1,8 +1,9 @@
 import fsp from "node:fs/promises";
+import { constants } from "node:fs";
 import { defu } from "defu";
 import { writeFile } from "../_utils/fs.ts";
-import type { Nitro, NitroRouteRules } from "nitro/types";
-import { dirname, relative, resolve } from "pathe";
+import type { Nitro, NitroRouteRules, ProxyRuleOptions } from "nitro/types";
+import { basename, dirname, relative, resolve } from "pathe";
 import { Router } from "../../routing.ts";
 import { joinURL, withLeadingSlash, withoutLeadingSlash } from "ufo";
 import type {
@@ -266,9 +267,11 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
       // Proxy rewrite rules (CDN-level reverse proxy)
       // https://vercel.com/docs/rewrites
       ...rules
-        .filter(([path]) => cdnProxyPaths.has(path))
+        .filter((entry): entry is [string, NitroRouteRules & { proxy: ProxyRuleOptions }] =>
+          cdnProxyPaths.has(entry[0])
+        )
         .map(([path, routeRules]) => {
-          const proxy = routeRules.proxy!;
+          const proxy = routeRules.proxy;
           const route: Record<string, any> = {
             src: path.replace("/**", "/(.*)"),
             dest: proxy.to.replace("/**", "/$1"),
@@ -291,7 +294,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
                 },
               ],
               headers: {
-                "Set-Cookie": `__vdpl=${nitro.options.manifest.deploymentId}; Path=${nitro.options.baseURL}; SameSite=Strict; Secure; HttpOnly`,
+                "Set-Cookie": `__vdpl=${nitro.options.manifest.deploymentId}; Path=${nitro.options.baseURL}; SameSite=Lax; Secure; HttpOnly`,
               },
               continue: true,
             },
@@ -474,7 +477,7 @@ function _hasProp(obj: any, prop: string) {
  * ProxyOptions that Vercel's routing layer cannot handle at the edge.
  */
 function canUseVercelRewrite(proxy: NitroRouteRules["proxy"]): proxy is { to: string } {
-  if (!proxy?.to) {
+  if (!proxy || !proxy.to) {
     return false;
   }
   // Must be an external URL
@@ -636,11 +639,11 @@ async function createFunctionDirWithCustomConfig(
   overrides: VercelServerlessFunctionConfig,
   functionPath: string
 ) {
-  // Copy the entire server directory instead of symlinking individual
-  // entries. Vercel's build container preserves symlinks in the Lambda
-  // zip, but symlinks pointing outside the .func directory break at
-  // runtime because the target path doesn't exist on Lambda.
-  await fsp.cp(serverDir, funcDir, { recursive: true });
+  await fsp.cp(serverDir, funcDir, {
+    recursive: true,
+    mode: constants.COPYFILE_FICLONE,
+    filter: (src) => basename(src) !== ".vc-config.json",
+  });
   const mergedConfig = defu(overrides, baseFunctionConfig);
   for (const [key, value] of Object.entries(overrides)) {
     if (Array.isArray(value)) {

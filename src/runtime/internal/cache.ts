@@ -5,6 +5,7 @@ import {
   defineCachedHandler as _defineCachedHandler,
   setStorage,
 } from "ocache";
+import type { CachedFunction } from "ocache";
 import { useNitroApp } from "./app.ts";
 import { useStorage } from "./storage.ts";
 
@@ -34,7 +35,7 @@ function defaultOnError(error: unknown) {
 export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
   fn: (...args: ArgsT) => T | Promise<T>,
   opts: CacheOptions<T, ArgsT> = {}
-): (...args: ArgsT) => Promise<T> {
+): CachedFunction<T, ArgsT> {
   ensureStorage();
   return _defineCachedFunction(fn, {
     group: "nitro/functions",
@@ -52,7 +53,7 @@ export function defineCachedHandler(
     group: "nitro/handlers",
     onError: defaultOnError,
     toResponse: (value, event) => toResponse(value, event as H3Event),
-    createResponse: (body, init) => new FastResponse(body, init),
+    createResponse: (body, init) => new FastResponse(body as BodyInit, init),
     handleCacheHeaders: (event, conditions) => handleCacheHeaders(event as H3Event, conditions),
     ...opts,
   });

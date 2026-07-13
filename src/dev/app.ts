@@ -10,6 +10,7 @@ import { stat } from "node:fs/promises";
 import { createReadStream } from "node:fs";
 import { createGzip, createBrotliCompress } from "node:zlib";
 import { createVFSHandler } from "./vfs.ts";
+import { isLocalDevRequest } from "./_request.ts";
 
 import devErrorHandler, {
   defaultHandler as devErrorHandlerInternal,
@@ -61,6 +62,19 @@ export class NitroDevApp {
 
     // Debugging endpoint to view vfs
     app.get("/_vfs/**", createVFSHandler(this.nitro));
+
+    // Restrict the dev task runner to local requests, mirroring the VFS viewer.
+    // The `/_nitro/tasks` routes are handled by the worker (via the catch-all)
+    // and execute server tasks with caller-supplied payload; without this gate
+    // they are reachable by any host that can reach the dev server, which binds
+    // all interfaces by default (`devServer.hostname` is unset).
+    const assertLocalTaskRequest = (event: H3Event) => {
+      if (!isLocalDevRequest(event)) {
+        throw new HTTPError({ statusText: "Forbidden IP", status: 403 });
+      }
+    };
+    app.use("/_nitro/tasks", assertLocalTaskRequest);
+    app.use("/_nitro/tasks/**", assertLocalTaskRequest);
 
     // Serve asset dirs
     for (const asset of this.nitro.options.publicAssets) {
