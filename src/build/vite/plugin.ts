@@ -77,6 +77,19 @@ function nitroInit(ctx: NitroPluginContext): VitePlugin {
       }
     },
 
+    configResolved(config) {
+      // Vite resolves its plugin list *before* running config hooks, so a plugin added by
+      // another plugin's `config` hook is discovered by Nitro but silently ignored by Vite.
+      for (const plugin of ctx._pluginModules || []) {
+        if (!config.plugins.some((p) => p === plugin || p.nitro === plugin.nitro)) {
+          useNitro(ctx).logger.warn(
+            `Vite plugin \`${plugin.name}\` registers a Nitro module but is not applied by Vite. ` +
+              `Plugins added from a \`config\` hook are ignored by Vite; add it to \`plugins\` instead.`
+          );
+        }
+      }
+    },
+
     applyToEnvironment(env) {
       if (env.name === "nitro" && ctx.nitro?.options.dev) {
         debug("[init] Adding rollup plugins for dev");
@@ -347,12 +360,8 @@ async function setupNitroContext(
   };
 
   // Register Nitro modules from Vite plugins
-  const pluginModules: NitroModule[] = [];
-  for (const plugin of await flattenPlugins(userConfig, configEnv)) {
-    if (plugin.nitro) {
-      pluginModules.push(plugin.nitro);
-    }
-  }
+  ctx._pluginModules = (await flattenPlugins(userConfig, configEnv)).filter((p) => p.nitro);
+  const pluginModules = ctx._pluginModules.map((p) => p.nitro!);
   nitroConfig.modules = [...(nitroConfig.modules || []), ...pluginModules];
 
   // Register service entries VFS

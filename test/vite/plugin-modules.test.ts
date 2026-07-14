@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url";
 import type { Plugin, PluginOption } from "vite";
 import type { Nitro } from "nitro/types";
 import { afterEach, describe, expect, test } from "vitest";
+import { consola } from "consola";
 import { nitro } from "../../src/vite.ts";
 
 const { resolveConfig } = (await import(
@@ -73,5 +74,32 @@ describe("vite: nitro modules from vite plugins", () => {
     const shared = modulePlugin("shared");
     await resolve([shared, shared, [shared]]);
     expect(installed).toEqual(["shared"]);
+  });
+
+  test("warns about plugins that Vite does not apply", async () => {
+    const warnings: string[] = [];
+    const reporter = {
+      log: (logObj: { type: string; args: unknown[] }) => {
+        if (logObj.type === "warn") {
+          warnings.push(logObj.args.join(" "));
+        }
+      },
+    };
+    consola.addReporter(reporter);
+
+    // Vite resolves its plugin list before running config hooks, so plugins added
+    // from a `config` hook are ignored by Vite (but visible to Nitro's discovery).
+    // Vite's types forbid this (`Omit<UserConfig, "plugins">`), hence the cast.
+    const injector: Plugin = {
+      name: "injector",
+      enforce: "pre",
+      config: () => ({ plugins: [modulePlugin("injected")] }) as any,
+    };
+    await resolve([injector, modulePlugin("applied")]);
+    consola.removeReporter(reporter);
+
+    expect(installed).toEqual(["applied", "injected"]);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain("`injected` registers a Nitro module but is not applied by Vite");
   });
 });
