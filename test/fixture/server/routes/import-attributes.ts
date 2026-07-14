@@ -10,6 +10,10 @@ import sql from "../files/sql.sql" with { type: "bytes" };
 // @ts-ignore
 import json from "../assets/test.json" with { type: "text" };
 
+// Build-time replacements (`import.meta.*`) must not rewrite imported file contents
+// @ts-ignore
+import replacements from "../files/replacements.txt" with { type: "text" };
+
 // `export ... from ... with { type: "..." }` goes through the same path
 import { reexportedText, reexportedBytes } from "./_import-attributes-reexport.ts";
 
@@ -51,6 +55,10 @@ export default async () => {
     txt: {
       isString: typeof txt === "string",
       text: txt.trim(),
+    },
+    replacements: {
+      isString: typeof replacements === "string",
+      text: (replacements as unknown as string).trim(),
     },
     reexported: {
       isString: typeof reexportedText === "string",

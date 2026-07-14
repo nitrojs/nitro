@@ -1002,6 +1002,10 @@ export function testNitro(
       json: { isString: true, text: '{\n  "foo": "bar"\n}' },
       txtBytes: { isUint8Array: true, text: textAsset },
       txt: { isString: true, text: textAsset },
+      replacements: {
+        isString: true,
+        text: "This file must keep import.meta.dev, import.meta.preset and import.meta.baseURL verbatim.",
+      },
       reexported: {
         isString: true,
         text: textAsset,
