@@ -986,6 +986,37 @@ export function testNitro(
     expect(data).toMatchObject({
       sql: "--",
       sqlts: "--",
+      json: { isString: true, text: '{\n  "foo": "bar"\n}' },
+      // Virtual modules are inlined from their rendered source, not read from disk
+      virtual: { isString: true, hasFlag: true, isUint8Array: true, bytesHaveFlag: true },
+    });
+  });
+
+  it("import attributes (bytes and text)", async () => {
+    const textAsset = "this is an asset from a text file from nitro";
+    const { data } = await callHandler({ url: "/import-attributes" });
+    expect(data).toMatchObject({
+      bin: {
+        isUint8Array: true,
+        bytes: Array.from({ length: 256 }, (_, i) => i).join(","),
+      },
+      sql: { isUint8Array: true, text: "--" },
+      json: { isString: true, text: '{\n  "foo": "bar"\n}' },
+      txtBytes: { isUint8Array: true, text: textAsset },
+      txt: { isString: true, text: textAsset },
+      replacements: {
+        isString: true,
+        text: "This file must keep import.meta.dev, import.meta.preset and import.meta.baseURL verbatim.",
+      },
+      reexported: {
+        isString: true,
+        text: textAsset,
+        isUint8Array: true,
+        bytesText: textAsset,
+      },
+      // Source files imported as text keep their contents (attribute syntax is not rewritten)
+      source: { verbatim: true, rewritten: false },
+      commented: { isString: true, text: textAsset },
     });
   });
 

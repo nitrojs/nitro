@@ -1,10 +1,22 @@
 import { promises as fsp } from "node:fs";
+import { isAbsolute } from "pathe";
 import mime from "mime";
 import type { Plugin } from "rollup";
 
 const HELPER_ID = "virtual:nitro-raw-helpers";
-const RESOLVED_PREFIX = "virtual:nitro:raw:";
-const PREFIX = "raw:";
+
+// `raw:` infers the module type from the file mime, `bytes:` always yields a
+// Uint8Array and `text:` always a string (import attributes ignore the file type)
+const TYPES = ["raw", "bytes", "text"] as const;
+
+const PREFIX_RE = new RegExp(`^(${TYPES.join("|")}):`);
+
+// Modules under this prefix hold file contents, not source code, so other transforms must skip them
+export const RESOLVED_RE = new RegExp(`^virtual:nitro:(${TYPES.join("|")}):`);
+
+// Resolved ids are JavaScript modules. Without this, plugins matching the original
+// extension (`@rollup/plugin-json`, vite's json plugin, ...) try to transform them again.
+const RESOLVED_SUFFIX = ".js";
 
 export function raw(): Plugin {
   return {
@@ -12,49 +24,72 @@ export function raw(): Plugin {
     resolveId: {
       order: "pre",
       filter: {
-        id: [new RegExp(`^${HELPER_ID}$`), new RegExp(`^${PREFIX}`)],
+        id: [new RegExp(`^${HELPER_ID}$`), PREFIX_RE],
       },
       async handler(id, importer, resolveOpts) {
         if (id === HELPER_ID) {
           return id;
         }
-        if (id.startsWith(PREFIX)) {
-          const resolvedId = (await this.resolve(id.slice(PREFIX.length), importer, resolveOpts))
-            ?.id;
-          if (!resolvedId) {
-            return null;
-          }
-          return { id: RESOLVED_PREFIX + resolvedId };
+        const type = PREFIX_RE.exec(id)?.[1];
+        if (!type) {
+          return;
         }
+        const specifier = id.slice(type.length + 1);
+        const resolved = await this.resolve(specifier, importer, resolveOpts);
+        // Externals are not loadable and a query is not part of a file path, so
+        // neither has contents to inline (virtual modules are handled in `load`)
+        if (!resolved?.id || resolved.external || resolved.id.includes("?")) {
+          return this.error(
+            `Could not resolve \`${specifier}\`${importer ? ` (imported by \`${importer}\`)` : ""} to contents to inline as \`${type}\`.`
+          );
+        }
+        return { id: `virtual:nitro:${type}:${resolved.id}${RESOLVED_SUFFIX}` };
       },
     },
     load: {
       order: "pre",
       filter: {
-        id: [new RegExp(`^${HELPER_ID}$`), new RegExp(`^${RESOLVED_PREFIX}`)],
+        id: [new RegExp(`^${HELPER_ID}$`), RESOLVED_RE],
       },
-      handler(id) {
+      async handler(id) {
         if (id === HELPER_ID) {
           return getHelpers();
         }
-        if (id.startsWith(RESOLVED_PREFIX)) {
-          // this.addWatchFile(id.substring(RESOLVED_PREFIX.length));
-          return fsp.readFile(id.slice(RESOLVED_PREFIX.length), isBinary(id) ? "binary" : "utf8");
+        const parsed = parseRawId(id);
+        if (!parsed) {
+          return; // In case the builder does not support filters
         }
+        const { path, binary } = parsed;
+        // Virtual modules (`nitro.vfs`, other plugins) have no file to read: inline
+        // their rendered source instead. `transform` decodes as latin1, so re-encode.
+        if (!isAbsolute(path)) {
+          const { code } = await this.load({ id: path });
+          if (code == null) {
+            return this.error(`Could not load \`${path}\` to inline its contents.`);
+          }
+          return binary ? Buffer.from(code, "utf8").toString("binary") : code;
+        }
+        this.addWatchFile(path);
+        return fsp.readFile(path, binary ? "binary" : "utf8");
       },
     },
     transform: {
       order: "pre",
       filter: {
-        id: new RegExp(`^${RESOLVED_PREFIX}`),
+        id: RESOLVED_RE,
       },
       handler(code, id) {
-        const path = id.slice(RESOLVED_PREFIX.length);
-        if (isBinary(id)) {
+        const parsed = parseRawId(id);
+        if (!parsed) {
+          return; // In case the builder does not support filters
+        }
+        const { path, binary } = parsed;
+        if (binary) {
           const serialized = Buffer.from(code, "binary").toString("base64");
           return {
             code: `import {base64ToUint8Array } from "${HELPER_ID}" \n export default base64ToUint8Array("${serialized}")`,
             map: rawAssetMap(path),
+            moduleType: "js",
           };
         }
         return {
@@ -64,6 +99,21 @@ export function raw(): Plugin {
         };
       },
     },
+  };
+}
+
+function parseRawId(id: string) {
+  const match = RESOLVED_RE.exec(id);
+  if (!match) {
+    return;
+  }
+  const [, type] = match;
+  const path = id.replace(RESOLVED_RE, "").slice(0, -RESOLVED_SUFFIX.length);
+  return {
+    path,
+    // `raw:` infers from the file mime, but virtual modules are source code and
+    // usually have no extension to infer from
+    binary: type === "bytes" || (type === "raw" && isAbsolute(path) && isBinary(path)),
   };
 }
 
