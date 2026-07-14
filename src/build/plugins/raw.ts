@@ -33,12 +33,15 @@ export function raw(): Plugin {
         if (!type) {
           return;
         }
-        const resolvedId = (await this.resolve(id.slice(type.length + 1), importer, resolveOpts))
-          ?.id;
-        if (!resolvedId) {
+        const resolved = await this.resolve(id.slice(type.length + 1), importer, resolveOpts);
+        if (!resolved?.id) {
           return null;
         }
-        return { id: `virtual:nitro:${type}:${resolvedId}${RESOLVED_SUFFIX}` };
+        // Query strings and external resolutions are not real file paths for the `load` hook to read
+        if (resolved.external || resolved.id.includes("?")) {
+          return null;
+        }
+        return { id: `virtual:nitro:${type}:${resolved.id}${RESOLVED_SUFFIX}` };
       },
     },
     load: {
@@ -50,8 +53,12 @@ export function raw(): Plugin {
         if (id === HELPER_ID) {
           return getHelpers();
         }
-        const { path, binary } = parseRawId(id);
-        // this.addWatchFile(path);
+        const parsed = parseRawId(id);
+        if (!parsed) {
+          return; // In case the builder does not support filters
+        }
+        const { path, binary } = parsed;
+        this.addWatchFile(path);
         return fsp.readFile(path, binary ? "binary" : "utf8");
       },
     },
@@ -61,7 +68,11 @@ export function raw(): Plugin {
         id: RESOLVED_RE,
       },
       handler(code, id) {
-        const { path, binary } = parseRawId(id);
+        const parsed = parseRawId(id);
+        if (!parsed) {
+          return; // In case the builder does not support filters
+        }
+        const { path, binary } = parsed;
         if (binary) {
           const serialized = Buffer.from(code, "binary").toString("base64");
           return {
@@ -81,7 +92,11 @@ export function raw(): Plugin {
 }
 
 function parseRawId(id: string) {
-  const [, type] = RESOLVED_RE.exec(id)!;
+  const match = RESOLVED_RE.exec(id);
+  if (!match) {
+    return;
+  }
+  const [, type] = match;
   const path = id.replace(RESOLVED_RE, "").slice(0, -RESOLVED_SUFFIX.length);
   return { path, binary: type === "raw" ? isBinary(path) : type === "bytes" };
 }
