@@ -1,4 +1,5 @@
 import type { Plugin } from "rollup";
+import type { ESTree } from "rolldown/utils";
 import { RESOLVED_RE as RAW_RE } from "./raw.ts";
 
 // Bundlers parse the syntax but do not implement the semantics, so imports with a
@@ -6,9 +7,19 @@ import { RESOLVED_RE as RAW_RE } from "./raw.ts";
 // https://github.com/tc39/proposal-import-bytes
 // https://github.com/tc39/proposal-import-text
 
-const TYPES = new Set(["bytes", "text"]);
+const TYPES = ["bytes", "text"] as const;
+type ImportType = (typeof TYPES)[number];
+
 const ATTR_RE = /["']?type["']?\s*:\s*["'](bytes|text)["']/;
 const JS_ID_RE = /\.[cm]?[jt]sx?(\?.*)?$/;
+
+// A module specifier with a `bytes` or `text` type attribute
+type TypedImport = {
+  source: ESTree.StringLiteral;
+  type: ImportType;
+  // End of the syntax trailing the specifier (options argument or attributes clause)
+  end: number;
+};
 
 export async function importAttributes(): Promise<Plugin> {
   const { RolldownMagicString } = await import("rolldown");
@@ -25,7 +36,7 @@ export async function importAttributes(): Promise<Plugin> {
         code: ATTR_RE,
       },
       handler(code, id) {
-        if (RAW_RE.test(id) || !ATTR_RE.test(code)) {
+        if (!JS_ID_RE.test(id) || RAW_RE.test(id) || !ATTR_RE.test(code)) {
           return; // In case the builder does not support filters
         }
         const filename = id.split("?")[0]!;
@@ -37,25 +48,15 @@ export async function importAttributes(): Promise<Plugin> {
           return;
         }
 
-        const s = new RolldownMagicString(code);
-        let modified = false;
-
-        for (const { node, type } of findTypedImports(program)) {
-          const { source } = node;
-          s.update(source.start, source.end, JSON.stringify(`${type}:${source.value}`));
-          if (node.type === "ImportExpression") {
-            // Drop the `, { with: { type: "..." } }` options argument
-            s.remove(source.end, code.lastIndexOf(")", node.end - 1));
-          } else {
-            // Drop the `with { type: "..." }` attributes clause
-            const lastAttr = node.attributes.at(-1);
-            s.remove(source.end, code.indexOf("}", lastAttr.end) + 1);
-          }
-          modified = true;
+        const imports = findTypedImports(program, code);
+        if (imports.length === 0) {
+          return;
         }
 
-        if (!modified) {
-          return;
+        const s = new RolldownMagicString(code);
+        for (const { source, type, end } of imports) {
+          s.update(source.start, source.end, JSON.stringify(`${type}:${source.value}`));
+          s.remove(source.end, end);
         }
 
         const map = s.generateMap({ hires: true, includeContent: false, source: filename });
@@ -75,47 +76,86 @@ export async function importAttributes(): Promise<Plugin> {
   };
 }
 
-function findTypedImports(program: any): { node: any; type: string }[] {
-  const imports: { node: any; type: string }[] = [];
+function findTypedImports(program: ESTree.Program, code: string): TypedImport[] {
+  const imports: TypedImport[] = [];
   walk(program, (node) => {
-    if (node.source?.type !== "Literal" || typeof node.source.value !== "string") {
-      return;
-    }
-    const type =
-      // import x from "./file" with { type: "bytes" } (also `export ... from`)
-      importType(node.attributes) ||
+    switch (node.type) {
       // import("./file", { with: { type: "bytes" } })
-      (node.type === "ImportExpression"
-        ? importType(findProperty(node.options, "with")?.properties)
-        : undefined);
-    if (type) {
-      imports.push({ node, type });
+      case "ImportExpression": {
+        const options = node.options;
+        if (!isStringLiteral(node.source) || options?.type !== "ObjectExpression") {
+          return;
+        }
+        const type = optionsType(options);
+        if (type) {
+          imports.push({ source: node.source, type, end: options.end });
+        }
+        return;
+      }
+      // import x from "./file" with { type: "bytes" } (also `export ... from`)
+      case "ImportDeclaration":
+      case "ExportNamedDeclaration":
+      case "ExportAllDeclaration": {
+        const lastAttr = node.attributes.at(-1);
+        const type = attributesType(node.attributes);
+        if (!node.source || !lastAttr || !type) {
+          return;
+        }
+        // The `with { ... }` clause has no node of its own: its closing brace is
+        // the first `}` following the last attribute.
+        imports.push({ source: node.source, type, end: code.indexOf("}", lastAttr.end) + 1 });
+      }
     }
   });
   return imports;
 }
 
-function importType(attributes: any): string | undefined {
-  for (const attr of attributes || []) {
-    if (propertyName(attr) === "type" && TYPES.has(attr.value?.value)) {
+function attributesType(attributes: ESTree.ImportAttribute[]): ImportType | undefined {
+  for (const attr of attributes) {
+    const key = attr.key.type === "Identifier" ? attr.key.name : attr.key.value;
+    if (key === "type" && isImportType(attr.value.value)) {
       return attr.value.value;
     }
   }
 }
 
-function findProperty(node: any, name: string): any {
-  if (node?.type !== "ObjectExpression") {
+function optionsType(options: ESTree.ObjectExpression): ImportType | undefined {
+  const withOption = findProperty(options, "with");
+  if (withOption?.type !== "ObjectExpression") {
     return;
   }
-  return node.properties.find((prop: any) => propertyName(prop) === name)?.value;
+  const type = findProperty(withOption, "type");
+  if (type && isStringLiteral(type) && isImportType(type.value)) {
+    return type.value;
+  }
 }
 
-function propertyName(node: any): string | undefined {
-  const key = node?.key;
-  return key?.type === "Identifier" ? key.name : key?.value;
+function findProperty(node: ESTree.ObjectExpression, name: string): ESTree.Expression | undefined {
+  for (const prop of node.properties) {
+    if (prop.type !== "Property" || prop.computed) {
+      continue;
+    }
+    const key =
+      prop.key.type === "Identifier"
+        ? prop.key.name
+        : isStringLiteral(prop.key)
+          ? prop.key.value
+          : undefined;
+    if (key === name) {
+      return prop.value;
+    }
+  }
 }
 
-function walk(node: any, visit: (node: any) => void): void {
+function isStringLiteral(node: ESTree.Node): node is ESTree.StringLiteral {
+  return node.type === "Literal" && typeof (node as ESTree.StringLiteral).value === "string";
+}
+
+function isImportType(value: string): value is ImportType {
+  return TYPES.includes(value as ImportType);
+}
+
+function walk(node: unknown, visit: (node: ESTree.Node) => void): void {
   if (Array.isArray(node)) {
     for (const child of node) {
       walk(child, visit);
@@ -125,10 +165,13 @@ function walk(node: any, visit: (node: any) => void): void {
   if (!node || typeof node !== "object") {
     return;
   }
-  if (typeof node.type === "string") {
-    visit(node);
+  const record = node as Record<string, unknown>;
+  if (typeof record.type === "string") {
+    visit(node as ESTree.Node);
   }
-  for (const key in node) {
-    walk(node[key], visit);
+  for (const key in record) {
+    if (key !== "parent") {
+      walk(record[key], visit);
+    }
   }
 }
