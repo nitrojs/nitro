@@ -1014,6 +1014,7 @@ export function testNitro(
       },
       // Source files imported as text keep their contents (attribute syntax is not rewritten)
       source: { verbatim: true, rewritten: false },
+      commented: { isString: true, text: textAsset },
     });
   });
 

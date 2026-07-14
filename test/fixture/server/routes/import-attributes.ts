@@ -21,6 +21,10 @@ import { reexportedText, reexportedBytes } from "./_import-attributes-reexport.t
 // @ts-ignore
 import source from "./_import-attributes-reexport.ts" with { type: "text" };
 
+// A `}` inside a comment must not be mistaken for the end of the attributes clause
+// @ts-ignore
+import commented from "../files/test.txt" with { type: "text" /* } */ };
+
 export default async () => {
   // TypeScript has no `bytes` and `text` attribute support yet and types imports by file type
   const jsonText = json as unknown as string;
@@ -69,6 +73,10 @@ export default async () => {
     source: {
       verbatim: sourceText.includes('from "../files/test.txt" with { type: "text" }'),
       rewritten: sourceText.includes('"text:../files/test.txt"'),
+    },
+    commented: {
+      isString: typeof commented === "string",
+      text: (commented as unknown as string).trim(),
     },
   };
 };

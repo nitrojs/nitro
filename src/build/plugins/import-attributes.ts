@@ -21,6 +21,8 @@ type TypedImport = {
   end: number;
 };
 
+type Comment = { start: number; end: number };
+
 export async function importAttributes(): Promise<Plugin> {
   const { RolldownMagicString } = await import("rolldown");
   const { parseSync } = await import("rolldown/utils");
@@ -40,7 +42,7 @@ export async function importAttributes(): Promise<Plugin> {
           return; // In case the builder does not support filters
         }
         const filename = id.split("?")[0]!;
-        const { program, errors } = parseSync(filename, code);
+        const { program, comments, errors } = parseSync(filename, code);
         if (errors.length > 0) {
           this.warn(
             `Could not parse \`${filename}\` to transform \`bytes\` and \`text\` import attributes: ${errors[0]!.message}`
@@ -48,7 +50,7 @@ export async function importAttributes(): Promise<Plugin> {
           return;
         }
 
-        const imports = findTypedImports(program, code);
+        const imports = findTypedImports(program, code, comments);
         if (imports.length === 0) {
           return;
         }
@@ -70,7 +72,11 @@ export async function importAttributes(): Promise<Plugin> {
   };
 }
 
-function findTypedImports(program: ESTree.Program, code: string): TypedImport[] {
+function findTypedImports(
+  program: ESTree.Program,
+  code: string,
+  comments: Comment[]
+): TypedImport[] {
   const imports: TypedImport[] = [];
   walk(program, (node) => {
     switch (node.type) {
@@ -95,13 +101,24 @@ function findTypedImports(program: ESTree.Program, code: string): TypedImport[] 
         if (!node.source || !lastAttr || !type) {
           return;
         }
-        // The `with { ... }` clause has no node of its own: its closing brace is
-        // the first `}` following the last attribute.
-        imports.push({ source: node.source, type, end: code.indexOf("}", lastAttr.end) + 1 });
+        const end = clauseEnd(code, lastAttr.end, comments);
+        if (end !== undefined) {
+          imports.push({ source: node.source, type, end });
+        }
       }
     }
   });
   return imports;
+}
+
+// The `with { ... }` clause has no node of its own: its closing brace is the first
+// `}` following the last attribute that is not part of a comment.
+function clauseEnd(code: string, from: number, comments: Comment[]): number | undefined {
+  for (let i = code.indexOf("}", from); i !== -1; i = code.indexOf("}", i + 1)) {
+    if (!comments.some((comment) => i >= comment.start && i < comment.end)) {
+      return i + 1;
+    }
+  }
 }
 
 function attributesType(attributes: ESTree.ImportAttribute[]): ImportType | undefined {
