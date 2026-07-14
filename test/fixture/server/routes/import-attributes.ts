@@ -10,6 +10,9 @@ import sql from "../files/sql.sql" with { type: "bytes" };
 // @ts-ignore
 import json from "../assets/test.json" with { type: "text" };
 
+// `export ... from ... with { type: "..." }` goes through the same path
+import { reexportedText, reexportedBytes } from "./_import-attributes-reexport.ts";
+
 export default async () => {
   // TypeScript has no `bytes` and `text` attribute support yet and types imports by file type
   const jsonText = json as unknown as string;
@@ -43,6 +46,12 @@ export default async () => {
     txt: {
       isString: typeof txt === "string",
       text: txt.trim(),
+    },
+    reexported: {
+      isString: typeof reexportedText === "string",
+      text: (reexportedText as unknown as string).trim(),
+      isUint8Array: (reexportedBytes as unknown) instanceof Uint8Array,
+      bytesText: new TextDecoder().decode(reexportedBytes as unknown as Uint8Array).trim(),
     },
   };
 };

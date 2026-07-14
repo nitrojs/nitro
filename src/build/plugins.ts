@@ -36,7 +36,7 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   plugins.push(serverMain(nitro));
 
   // Raw Imports
-  plugins.push(importAttributes(), raw());
+  plugins.push(await importAttributes(), raw());
 
   // Route meta
   if (nitro.options.experimental.openAPI) {

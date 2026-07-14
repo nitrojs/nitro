@@ -986,6 +986,7 @@ export function testNitro(
     expect(data).toMatchObject({
       sql: "--",
       sqlts: "--",
+      json: { isString: true, text: '{\n  "foo": "bar"\n}' },
     });
   });
 
@@ -1001,6 +1002,12 @@ export function testNitro(
       json: { isString: true, text: '{\n  "foo": "bar"\n}' },
       txtBytes: { isUint8Array: true, text: textAsset },
       txt: { isString: true, text: textAsset },
+      reexported: {
+        isString: true,
+        text: textAsset,
+        isUint8Array: true,
+        bytesText: textAsset,
+      },
     });
   });
 

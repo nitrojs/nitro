@@ -6,14 +6,10 @@ const HELPER_ID = "virtual:nitro-raw-helpers";
 
 // `raw:` infers the module type from the file mime, `bytes:` always yields a
 // Uint8Array and `text:` always a string (import attributes ignore the file type)
-const PREFIXES = [
-  ["raw:", "virtual:nitro:raw:"],
-  ["bytes:", "virtual:nitro:bytes:"],
-  ["text:", "virtual:nitro:text:"],
-] as const;
+const TYPES = ["raw", "bytes", "text"] as const;
 
-const PREFIX_RE = new RegExp(`^(${PREFIXES.map(([prefix]) => prefix.slice(0, -1)).join("|")}):`);
-const RESOLVED_RE = /^virtual:nitro:(raw|bytes|text):/;
+const PREFIX_RE = new RegExp(`^(${TYPES.join("|")}):`);
+const RESOLVED_RE = new RegExp(`^virtual:nitro:(${TYPES.join("|")}):`);
 
 // Resolved ids are JavaScript modules. Without this, plugins matching the original
 // extension (`@rollup/plugin-json`, vite's json plugin, ...) try to transform them again.
@@ -31,16 +27,16 @@ export function raw(): Plugin {
         if (id === HELPER_ID) {
           return id;
         }
-        for (const [prefix, resolvedPrefix] of PREFIXES) {
-          if (id.startsWith(prefix)) {
-            const resolvedId = (await this.resolve(id.slice(prefix.length), importer, resolveOpts))
-              ?.id;
-            if (!resolvedId) {
-              return null;
-            }
-            return { id: resolvedPrefix + resolvedId + RESOLVED_SUFFIX };
-          }
+        const type = PREFIX_RE.exec(id)?.[1];
+        if (!type) {
+          return;
         }
+        const resolvedId = (await this.resolve(id.slice(type.length + 1), importer, resolveOpts))
+          ?.id;
+        if (!resolvedId) {
+          return null;
+        }
+        return { id: `virtual:nitro:${type}:${resolvedId}${RESOLVED_SUFFIX}` };
       },
     },
     load: {

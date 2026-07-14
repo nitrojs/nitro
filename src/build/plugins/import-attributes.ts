@@ -1,5 +1,3 @@
-import { RolldownMagicString } from "rolldown";
-import { parseSync } from "rolldown/utils";
 import type { Plugin } from "rollup";
 
 // Bundlers parse the syntax but do not implement the semantics, so imports with a
@@ -11,7 +9,10 @@ const TYPES = new Set(["bytes", "text"]);
 const ATTR_RE = /["']?type["']?\s*:\s*["'](bytes|text)["']/;
 const JS_ID_RE = /\.[cm]?[jt]sx?(\?.*)?$/;
 
-export function importAttributes(): Plugin {
+export async function importAttributes(): Promise<Plugin> {
+  const { RolldownMagicString } = await import("rolldown");
+  const { parseSync } = await import("rolldown/utils");
+
   return {
     name: "nitro:import-attributes",
     transform: {
@@ -27,7 +28,10 @@ export function importAttributes(): Plugin {
         const filename = id.split("?")[0]!;
         const { program, errors } = parseSync(filename, code);
         if (errors.length > 0) {
-          return; // Let the bundler report syntax errors
+          this.warn(
+            `Could not parse \`${filename}\` to transform \`bytes\` and \`text\` import attributes: ${errors[0]!.message}`
+          );
+          return;
         }
 
         const s = new RolldownMagicString(code);
