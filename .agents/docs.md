@@ -28,14 +28,16 @@ Canonical preset names use **underscores** (e.g., `node_server`, `cloudflare_mod
 Nitro v3 uses subpath exports — not deep runtime imports:
 
 ```ts
-import { defineHandler, readBody, getQuery } from "nitro/h3";
+import { defineConfig } from "nitro"; // nitro config (nitro.config.ts)
+import { defineHandler } from "nitro"; // event handlers
+import { definePlugin } from "nitro"; // runtime plugin
+import { defineRouteMeta } from "nitro"; // route meta macro
+import { readBody, getQuery } from "nitro/h3"; // other h3 utilities
 import { defineCachedHandler, defineCachedFunction } from "nitro/cache";
 import { useStorage } from "nitro/storage";
 import { useDatabase } from "nitro/database";
 import { useRuntimeConfig } from "nitro/runtime-config";
-import { defineNitroConfig } from "nitro/config";
-import { definePlugin } from "nitro";        // runtime plugin
-import { defineRouteMeta } from "nitro";      // route meta macro
+import { defineTask, runTask } from "nitro/task";
 ```
 
 ### H3 v2 API
@@ -52,8 +54,8 @@ Nitro v3 uses H3 v2. Key differences from v1:
 ### Code Examples
 
 - **Auto imports are not available** — always show explicit imports in examples
-- Always use `defineHandler` from `"nitro/h3"` (not `eventHandler`)
-- Always use `defineNitroConfig` from `"nitro/config"` (not `defineConfig`)
+- Always use `defineHandler` from `"nitro"` (not `eventHandler`)
+- Always use `defineConfig` from `"nitro"` for nitro config (not `defineNuxtConfig` or Vite's `defineConfig`)
 - Include import statements in code examples
 - Use `"nitro/*"` imports, never `"nitropack/*"`
 
@@ -75,7 +77,7 @@ The preset env var is `NITRO_PRESET` (not `SERVER_PRESET` or any other name).
 - Using `send(event, value)` — removed in h3 v2, return values directly
 - Using `createError()` — use `new HTTPError()` or `HTTPError.status()`
 - Using `eventHandler()` — use `defineHandler()`
-- Using `defineConfig()` for nitro config — use `defineNitroConfig()`
+- Importing `defineConfig`/`defineHandler` from subpaths — both come from the main `"nitro"` entry
 - Duplicate imports (e.g., importing `defineHandler` from both `nitro/h3` and `nitro/cache`)
 - Wrong env var names (e.g., `NITR_PRESET`, `SERVER_PRESET`)
 - Outdated Node.js versions in deployment examples

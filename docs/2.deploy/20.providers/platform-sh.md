@@ -8,9 +8,9 @@
 
 ## Setup
 
-First, create a new project on platform.sh and link it to the repository you want to auto-deploy with.
+First, create a new project on Platform.sh and link it to the repository you want to auto-deploy with.
 
-Then in repository create `.platform.app.yaml` file:
+Then, create a `.platform.app.yaml` file in your repository:
 
 ```yaml [.platform.app.yaml]
 name: nitro-app
@@ -34,4 +34,4 @@ mounts:
 
 :read-more{title="Complete list of all available properties" to="https://docs.platform.sh/create-apps/app-reference.html"}
 
-:read-more{title="Complete list of all available properties" to="https://unjs.io/blog/2023-08-25-nitro-2.6#default-persistent-data-storage"}
+:read-more{title="Nitro storage layer" to="/docs/storage"}

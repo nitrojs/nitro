@@ -55,10 +55,10 @@ export default defineConfig({ plugins: [nitro()] });
 import { definePlugin } from "nitro";
 import { useNitroHooks } from "nitro/app";
 
-export default definePlugin((nitroApp) => {
+export default definePlugin(() => {
   const hooks = useNitroHooks();
-  hooks.hook("response", (event) => {
-    event.headers.set("content-type", "html; charset=utf-8");
+  hooks.hook("response", (res) => {
+    res.headers.set("content-type", "html; charset=utf-8");
   });
 });
 ```
@@ -77,15 +77,15 @@ Plugins let you hook into Nitro's runtime lifecycle. This example shows a plugin
 import { definePlugin } from "nitro";
 import { useNitroHooks } from "nitro/app";
 
-export default definePlugin((nitroApp) => {
+export default definePlugin(() => {
   const hooks = useNitroHooks();
-  hooks.hook("response", (event) => {
-    event.headers.set("content-type", "html; charset=utf-8");
+  hooks.hook("response", (res) => {
+    res.headers.set("content-type", "html; charset=utf-8");
   });
 });
 ```
 
-The plugin uses `useNitroHooks()` to access the hooks system, then registers a `response` hook that runs after every request. Here it sets the content type to HTML, but you could log requests, add security headers, or modify responses in any way.
+The plugin uses `useNitroHooks()` to access the hooks system, then registers a `response` hook that runs after every request and receives the outgoing `Response`. Here it sets the content type to HTML, but you could log requests, add security headers, or modify responses in any way.
 
 ## Main Handler
 

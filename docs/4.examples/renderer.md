@@ -106,7 +106,7 @@ export default async function renderer({ url }: { req: Request; url: URL }) {
 }
 ```
 
-Nitro auto-detects `renderer.ts` in your project root and uses it for all non-API routes. The renderer function receives the request URL and returns a `Response`.
+Configure the renderer with `renderer: { handler: "./renderer" }` in `nitro.config.ts`, and Nitro uses it for all non-API routes. The renderer function receives the request URL and returns a `Response`. (Alternatively, if an `index.html` exists in your project root, Nitro auto-detects it as a renderer template.)
 
 Use `fetch` from `nitro` to call API routes without network overhead—these requests stay in-process.
 

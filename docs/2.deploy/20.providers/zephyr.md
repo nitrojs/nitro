@@ -6,8 +6,6 @@
 
 :read-more{title="Zephyr Cloud Docs" to="https://docs.zephyr-cloud.io"}
 
-Zephyr support is built into Nitro through the `zephyr` preset.
-
 For most Zephyr-specific topics such as BYOC, cloud integrations, environments, and CI/CD authentication, refer to the [Zephyr Cloud docs](https://docs.zephyr-cloud.io).
 
 ::note
@@ -32,7 +30,7 @@ Nitro will upload the generated output using `zephyr-agent`. If `zephyr-agent` i
 
 ## Deploy during build
 
-Zephyr is a little different here from most Nitro providers: we recommend enabling deployment during `nitro build` and treating build as the primary deployment step.
+For Zephyr, the recommended workflow is to deploy during `nitro build` and treat the build as the primary deployment step.
 
 If your CI pipeline already runs `nitro build`, enable deployment during the build step:
 
@@ -64,7 +62,7 @@ ZEPHYR   https://my-app.zephyrcloud.app
 
 ## CI authentication
 
-Zephyr requires an API token for non-interactive deployments. The example below uses the simpler personal-token style setup with `ZE_SECRET_TOKEN` together with `zephyr.deployOnBuild`.
+Zephyr requires an API token for non-interactive deployments. The example below uses the simpler personal-token setup with `ZE_SECRET_TOKEN` together with `zephyr.deployOnBuild`.
 
 ```yaml [.github/workflows/deploy.yml]
 name: Deploy with Zephyr

@@ -15,13 +15,13 @@ Integration with this provider is possible with [zero configuration](/deploy/#ze
 1. Login to the [AWS Amplify Hosting Console](https://console.aws.amazon.com/amplify/)
 2. Click on "Get Started" > Amplify Hosting (Host your web app)
 3. Select and authorize access to your Git repository provider and select the main branch
-4. Choose a name for your app, make sure build settings are auto-detected and optionally set requirement environment variables under the advanced section
+4. Choose a name for your app, make sure build settings are auto-detected, and optionally set required environment variables under the advanced section
 5. Optionally, select Enable SSR logging to enable server-side logging to your Amazon CloudWatch account
 6. Confirm configuration and click on "Save and Deploy"
 
 ## Advanced Configuration
 
-You can configure advanced options of this preset using `awsAmplify` option.
+You can configure advanced options of this preset using the `awsAmplify` option.
 
 ```ts [nitro.config.ts]
 import { defineConfig } from "nitro";
