@@ -201,9 +201,11 @@ describe("cloudflare telemetry span lifecycle", () => {
 
     const [span] = harness.spans;
     expect(span.ended).toBe(true);
-    // Named at start, no end-time attributes — but the error is recorded.
+    // The completion falls back to the start-time info: the span keeps its
+    // start-time name and attributes, and the error is still recorded.
     expect(span.name).toBe("GET /x");
-    expect(span.attributes["http.request.method"]).toBeUndefined();
+    expect(span.attributes["http.request.method"]).toBe("GET");
+    expect(span.attributes["url.path"]).toBe("/x");
     expect(span.attributes["exception.message"]).toBe("late failure");
   });
 

@@ -3,15 +3,16 @@ import { TRACED_CHANNELS } from "./channels.ts";
 import { Span } from "./span.ts";
 
 /**
- * Called once per completed traced operation with the span info derived from
- * the completed payload (`undefined` when the describer failed on it), the
- * operation start time (unix nanoseconds, as an OTLP `*UnixNano` string), the
- * operation's error (`undefined` when it succeeded) and the state returned by
- * `onStart` (`undefined` without one). A sink turns this into whatever its
- * platform consumes — an OTLP export, a log line, a platform span, …
+ * Called once per completed traced operation with the span info (derived from
+ * the completed payload, falling back to the start-time payload for `onStart`
+ * subscriptions), the operation start time (unix nanoseconds, as an OTLP
+ * `*UnixNano` string), the operation's error (`undefined` when it succeeded)
+ * and the state returned by `onStart` (`undefined` without one). A sink turns
+ * this into whatever its platform consumes — an OTLP export, a log line, a
+ * platform span, …
  */
 export type SpanSink<S = unknown> = (
-  info: SpanInfo | undefined,
+  info: SpanInfo,
   startTimeUnixNano: string,
   error: unknown,
   state: S | undefined
@@ -50,18 +51,24 @@ export function subscribeTracedChannels<S = unknown>(
 
   const onStart = options?.onStart;
 
-  // Carry the start time (and any sink state) from `start` to completion
-  // without mutating the producer's context object.
-  const pending = new WeakMap<object, { start: string; state: S | undefined }>();
+  // Carry the start time (and any start-time info / sink state) from `start`
+  // to completion without mutating the producer's context object.
+  interface Pending {
+    start: string;
+    info: SpanInfo | undefined;
+    state: S | undefined;
+  }
+  const pending = new WeakMap<object, Pending>();
 
   for (const name of Object.keys(TRACED_CHANNELS)) {
     const describe = TRACED_CHANNELS[name];
 
     diagnostics.subscribe(`tracing:${name}:start`, (message) => {
-      const entry = { start: Span.nowUnixNano(), state: undefined as S | undefined };
+      const entry: Pending = { start: Span.nowUnixNano(), info: undefined, state: undefined };
       if (onStart) {
         try {
-          entry.state = onStart(describe(name, message));
+          entry.info = describe(name, message);
+          entry.state = onStart(entry.info);
         } catch {
           // Malformed payload, or a sink failure (e.g. the platform refused to
           // open a span) — no state; the completion callback still fires.
@@ -77,12 +84,15 @@ export function subscribeTracedChannels<S = unknown>(
 
       // Derive span name, kind and semantic attributes from the completed
       // operation. A describer only throws on a payload shape it doesn't
-      // recognise (a producer that changed shape); still deliver the
-      // completion — without info — so stateful sinks can release their span.
+      // recognise (a producer that changed shape); fall back to the start-time
+      // info (held for `onStart` subscriptions) so stateful sinks still get
+      // the completion and can release their span.
       let info: SpanInfo | undefined;
       try {
         info = describe(name, message);
       } catch {}
+      info ??= entry.info;
+      if (info === undefined) return;
 
       try {
         onSpan(info, entry.start, (message as { error?: unknown }).error, entry.state);

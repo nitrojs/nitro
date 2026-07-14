@@ -6,20 +6,21 @@ import { subscribeTracedChannels } from "../../src/runtime/internal/telemetry/su
 const diagnostics = process.getBuiltinModule("node:diagnostics_channel");
 
 interface Completion {
-  info: SpanInfo | undefined;
+  info: SpanInfo;
   start: string;
   error: unknown;
   state: unknown;
 }
 
 // ---------------------------------------------------------------------------
-// Setup: `diagnostics_channel.subscribe` has no per-test teardown, so a single
-// module-level subscription records every completion and delegates the
-// per-test behavior (`onStart` return value / sink failures) to swappable
-// implementations.
+// Setup: `diagnostics_channel.subscribe` has no per-test teardown, so two
+// module-level subscriptions (one stateful with `onStart`, one stateless)
+// record every completion and delegate the per-test behavior (`onStart`
+// return value / sink failures) to swappable implementations.
 // ---------------------------------------------------------------------------
 
 const completions: Completion[] = [];
+const statelessCompletions: Completion[] = [];
 const startInfos: SpanInfo[] = [];
 let onStartImpl: ((info: SpanInfo) => unknown) | undefined;
 let sinkImpl: ((completion: Completion) => void) | undefined;
@@ -38,10 +39,14 @@ beforeAll(() => {
       },
     }
   );
+  subscribeTracedChannels((info, start, error, state) => {
+    statelessCompletions.push({ info, start, error, state });
+  });
 });
 
 beforeEach(() => {
   completions.length = 0;
+  statelessCompletions.length = 0;
   startInfos.length = 0;
   onStartImpl = undefined;
   sinkImpl = undefined;
@@ -79,8 +84,13 @@ describe("subscribeTracedChannels onStart state", () => {
     expect(startInfos[0].name).toBe("setItem cache");
     expect(completions).toHaveLength(1);
     expect(completions[0].state).toBe(token);
-    expect(completions[0].info?.name).toBe("setItem cache");
+    expect(completions[0].info.name).toBe("setItem cache");
     expect(completions[0].error).toBeUndefined();
+
+    // The stateless subscription observes the same operation, without state.
+    expect(statelessCompletions).toHaveLength(1);
+    expect(statelessCompletions[0].info.name).toBe("setItem cache");
+    expect(statelessCompletions[0].state).toBeUndefined();
   });
 
   it("still delivers the completion when onStart throws", async () => {
@@ -92,7 +102,7 @@ describe("subscribeTracedChannels onStart state", () => {
 
     expect(completions).toHaveLength(1);
     expect(completions[0].state).toBeUndefined();
-    expect(completions[0].info?.name).toBe("setItem");
+    expect(completions[0].info.name).toBe("setItem");
   });
 
   it("skips onStart on a malformed start payload but still completes", async () => {
@@ -106,11 +116,11 @@ describe("subscribeTracedChannels onStart state", () => {
 
     expect(startInfos).toHaveLength(0);
     expect(completions).toHaveLength(1);
-    expect(completions[0].info?.name).toBe("GET /x");
+    expect(completions[0].info.name).toBe("GET /x");
     expect(completions[0].state).toBeUndefined();
   });
 
-  it("delivers the completion without info when the describer fails on the completed payload", async () => {
+  it("falls back to the start-time info when the describer fails on the completed payload", async () => {
     const token = { platformSpan: true };
     onStartImpl = () => token;
 
@@ -126,9 +136,15 @@ describe("subscribeTracedChannels onStart state", () => {
 
     expect(startInfos).toHaveLength(1);
     expect(completions).toHaveLength(1);
-    expect(completions[0].info).toBeUndefined();
-    // Stateful sinks still get their state back to release the platform span.
+    // Stateful sinks get the start-time info (name, start attributes) and
+    // their state back to release the platform span.
+    expect(completions[0].info).toBe(startInfos[0]);
+    expect(completions[0].info.name).toBe("GET /x");
     expect(completions[0].state).toBe(token);
+
+    // Without `onStart` there is no start-time info to fall back to, no state
+    // to release and nothing to report — the sink is not called at all.
+    expect(statelessCompletions).toHaveLength(0);
   });
 });
 
@@ -146,7 +162,7 @@ describe("subscribeTracedChannels completion semantics", () => {
 
     expect(completions).toHaveLength(1);
     expect(completions[0].error).toBe(error);
-    expect(completions[0].info?.name).toBe("setItem");
+    expect(completions[0].info.name).toBe("setItem");
   });
 
   it("reports a rejected operation exactly once, at asyncEnd", async () => {
