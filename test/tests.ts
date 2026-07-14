@@ -1008,6 +1008,8 @@ export function testNitro(
         isUint8Array: true,
         bytesText: textAsset,
       },
+      // Source files imported as text keep their contents (attribute syntax is not rewritten)
+      source: { verbatim: true, rewritten: false },
     });
   });
 

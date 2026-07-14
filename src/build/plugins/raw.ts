@@ -9,7 +9,9 @@ const HELPER_ID = "virtual:nitro-raw-helpers";
 const TYPES = ["raw", "bytes", "text"] as const;
 
 const PREFIX_RE = new RegExp(`^(${TYPES.join("|")}):`);
-const RESOLVED_RE = new RegExp(`^virtual:nitro:(${TYPES.join("|")}):`);
+
+// Modules under this prefix hold file contents, not source code, so other transforms must skip them
+export const RESOLVED_RE = new RegExp(`^virtual:nitro:(${TYPES.join("|")}):`);
 
 // Resolved ids are JavaScript modules. Without this, plugins matching the original
 // extension (`@rollup/plugin-json`, vite's json plugin, ...) try to transform them again.

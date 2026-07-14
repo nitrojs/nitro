@@ -1,4 +1,5 @@
 import type { Plugin } from "rollup";
+import { RESOLVED_RE as RAW_RE } from "./raw.ts";
 
 // Bundlers parse the syntax but do not implement the semantics, so imports with a
 // `bytes` or `text` type attribute are rewritten to the internal prefixes of the raw plugin.
@@ -18,12 +19,14 @@ export async function importAttributes(): Promise<Plugin> {
     transform: {
       order: "pre",
       filter: {
-        id: JS_ID_RE,
+        // Raw modules are file contents rather than source code. Their ids end with a `.js`
+        // suffix, so without excluding them, files imported as text would be rewritten too.
+        id: { include: JS_ID_RE, exclude: RAW_RE },
         code: ATTR_RE,
       },
       handler(code, id) {
-        if (!ATTR_RE.test(code)) {
-          return; // In case the builder does not support code filters
+        if (RAW_RE.test(id) || !ATTR_RE.test(code)) {
+          return; // In case the builder does not support filters
         }
         const filename = id.split("?")[0]!;
         const { program, errors } = parseSync(filename, code);
