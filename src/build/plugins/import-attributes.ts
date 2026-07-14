@@ -59,17 +59,11 @@ export async function importAttributes(): Promise<Plugin> {
           s.remove(source.end, end);
         }
 
-        const map = s.generateMap({ hires: true, includeContent: false, source: filename });
         return {
           code: s.toString(),
-          map: {
-            version: 3,
-            file: filename,
-            sources: [...map.sources],
-            sourcesContent: [],
-            names: [...map.names],
-            mappings: map.mappings,
-          },
+          // `generateMap` returns a napi class whose fields are prototype getters, so spreading
+          // or serializing it yields `{}`. Both builders accept a JSON source map string.
+          map: s.generateMap({ hires: true, source: filename }).toString(),
         };
       },
     },
