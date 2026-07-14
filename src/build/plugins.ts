@@ -10,6 +10,7 @@ import { serverMain } from "./plugins/server-main.ts";
 import { virtual, virtualDeps } from "./plugins/virtual.ts";
 import { sourcemapMinify } from "./plugins/sourcemap-min.ts";
 import { raw } from "./plugins/raw.ts";
+import { importAttributes } from "./plugins/import-attributes.ts";
 import { externals } from "./plugins/externals.ts";
 
 export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
@@ -35,7 +36,7 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   plugins.push(serverMain(nitro));
 
   // Raw Imports
-  plugins.push(raw());
+  plugins.push(importAttributes(), raw());
 
   // Route meta
   if (nitro.options.experimental.openAPI) {

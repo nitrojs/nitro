@@ -3,8 +3,21 @@ import mime from "mime";
 import type { Plugin } from "rollup";
 
 const HELPER_ID = "virtual:nitro-raw-helpers";
-const RESOLVED_PREFIX = "virtual:nitro:raw:";
-const PREFIX = "raw:";
+
+// `raw:` infers the module type from the file mime, `bytes:` always yields a
+// Uint8Array and `text:` always a string (import attributes ignore the file type)
+const PREFIXES = [
+  ["raw:", "virtual:nitro:raw:"],
+  ["bytes:", "virtual:nitro:bytes:"],
+  ["text:", "virtual:nitro:text:"],
+] as const;
+
+const PREFIX_RE = new RegExp(`^(${PREFIXES.map(([prefix]) => prefix.slice(0, -1)).join("|")}):`);
+const RESOLVED_RE = /^virtual:nitro:(raw|bytes|text):/;
+
+// Resolved ids are JavaScript modules. Without this, plugins matching the original
+// extension (`@rollup/plugin-json`, vite's json plugin, ...) try to transform them again.
+const RESOLVED_SUFFIX = ".js";
 
 export function raw(): Plugin {
   return {
@@ -12,49 +25,51 @@ export function raw(): Plugin {
     resolveId: {
       order: "pre",
       filter: {
-        id: [new RegExp(`^${HELPER_ID}$`), new RegExp(`^${PREFIX}`)],
+        id: [new RegExp(`^${HELPER_ID}$`), PREFIX_RE],
       },
       async handler(id, importer, resolveOpts) {
         if (id === HELPER_ID) {
           return id;
         }
-        if (id.startsWith(PREFIX)) {
-          const resolvedId = (await this.resolve(id.slice(PREFIX.length), importer, resolveOpts))
-            ?.id;
-          if (!resolvedId) {
-            return null;
+        for (const [prefix, resolvedPrefix] of PREFIXES) {
+          if (id.startsWith(prefix)) {
+            const resolvedId = (await this.resolve(id.slice(prefix.length), importer, resolveOpts))
+              ?.id;
+            if (!resolvedId) {
+              return null;
+            }
+            return { id: resolvedPrefix + resolvedId + RESOLVED_SUFFIX };
           }
-          return { id: RESOLVED_PREFIX + resolvedId };
         }
       },
     },
     load: {
       order: "pre",
       filter: {
-        id: [new RegExp(`^${HELPER_ID}$`), new RegExp(`^${RESOLVED_PREFIX}`)],
+        id: [new RegExp(`^${HELPER_ID}$`), RESOLVED_RE],
       },
       handler(id) {
         if (id === HELPER_ID) {
           return getHelpers();
         }
-        if (id.startsWith(RESOLVED_PREFIX)) {
-          // this.addWatchFile(id.substring(RESOLVED_PREFIX.length));
-          return fsp.readFile(id.slice(RESOLVED_PREFIX.length), isBinary(id) ? "binary" : "utf8");
-        }
+        const { path, binary } = parseRawId(id);
+        // this.addWatchFile(path);
+        return fsp.readFile(path, binary ? "binary" : "utf8");
       },
     },
     transform: {
       order: "pre",
       filter: {
-        id: new RegExp(`^${RESOLVED_PREFIX}`),
+        id: RESOLVED_RE,
       },
       handler(code, id) {
-        const path = id.slice(RESOLVED_PREFIX.length);
-        if (isBinary(id)) {
+        const { path, binary } = parseRawId(id);
+        if (binary) {
           const serialized = Buffer.from(code, "binary").toString("base64");
           return {
             code: `import {base64ToUint8Array } from "${HELPER_ID}" \n export default base64ToUint8Array("${serialized}")`,
             map: rawAssetMap(path),
+            moduleType: "js",
           };
         }
         return {
@@ -65,6 +80,12 @@ export function raw(): Plugin {
       },
     },
   };
+}
+
+function parseRawId(id: string) {
+  const [, type] = RESOLVED_RE.exec(id)!;
+  const path = id.replace(RESOLVED_RE, "").slice(0, -RESOLVED_SUFFIX.length);
+  return { path, binary: type === "raw" ? isBinary(path) : type === "bytes" };
 }
 
 function isBinary(id: string) {

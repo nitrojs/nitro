@@ -989,6 +989,21 @@ export function testNitro(
     });
   });
 
+  it("import attributes (bytes and text)", async () => {
+    const textAsset = "this is an asset from a text file from nitro";
+    const { data } = await callHandler({ url: "/import-attributes" });
+    expect(data).toMatchObject({
+      bin: {
+        isUint8Array: true,
+        bytes: Array.from({ length: 256 }, (_, i) => i).join(","),
+      },
+      sql: { isUint8Array: true, text: "--" },
+      json: { isString: true, text: '{\n  "foo": "bar"\n}' },
+      txtBytes: { isUint8Array: true, text: textAsset },
+      txt: { isString: true, text: textAsset },
+    });
+  });
+
   it.skipIf(
     process.env.OFFLINE /* connect */ ||
       ["cloudflare-worker", "cloudflare-module-legacy"].includes(ctx.preset)
