@@ -33,13 +33,14 @@ export function raw(): Plugin {
         if (!type) {
           return;
         }
-        const resolved = await this.resolve(id.slice(type.length + 1), importer, resolveOpts);
-        if (!resolved?.id) {
-          return null;
-        }
-        // Query strings and external resolutions are not real file paths for the `load` hook to read
-        if (resolved.external || resolved.id.includes("?")) {
-          return null;
+        const specifier = id.slice(type.length + 1);
+        const resolved = await this.resolve(specifier, importer, resolveOpts);
+        // The `load` hook reads the file from disk, so anything that is not a plain
+        // path (unresolved, external or carrying a query) cannot be inlined
+        if (!resolved?.id || resolved.external || resolved.id.includes("?")) {
+          return this.error(
+            `Could not resolve \`${specifier}\`${importer ? ` (imported by \`${importer}\`)` : ""} to a file on disk to inline it as \`${type}\`.`
+          );
         }
         return { id: `virtual:nitro:${type}:${resolved.id}${RESOLVED_SUFFIX}` };
       },
