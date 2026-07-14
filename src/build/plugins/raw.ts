@@ -1,4 +1,5 @@
 import { promises as fsp } from "node:fs";
+import { isAbsolute } from "pathe";
 import mime from "mime";
 import type { Plugin } from "rollup";
 
@@ -35,11 +36,11 @@ export function raw(): Plugin {
         }
         const specifier = id.slice(type.length + 1);
         const resolved = await this.resolve(specifier, importer, resolveOpts);
-        // The `load` hook reads the file from disk, so anything that is not a plain
-        // path (unresolved, external or carrying a query) cannot be inlined
+        // Externals are not loadable and a query is not part of a file path, so
+        // neither has contents to inline (virtual modules are handled in `load`)
         if (!resolved?.id || resolved.external || resolved.id.includes("?")) {
           return this.error(
-            `Could not resolve \`${specifier}\`${importer ? ` (imported by \`${importer}\`)` : ""} to a file on disk to inline it as \`${type}\`.`
+            `Could not resolve \`${specifier}\`${importer ? ` (imported by \`${importer}\`)` : ""} to contents to inline as \`${type}\`.`
           );
         }
         return { id: `virtual:nitro:${type}:${resolved.id}${RESOLVED_SUFFIX}` };
@@ -50,7 +51,7 @@ export function raw(): Plugin {
       filter: {
         id: [new RegExp(`^${HELPER_ID}$`), RESOLVED_RE],
       },
-      handler(id) {
+      async handler(id) {
         if (id === HELPER_ID) {
           return getHelpers();
         }
@@ -59,6 +60,15 @@ export function raw(): Plugin {
           return; // In case the builder does not support filters
         }
         const { path, binary } = parsed;
+        // Virtual modules (`nitro.vfs`, other plugins) have no file to read: inline
+        // their rendered source instead. `transform` decodes as latin1, so re-encode.
+        if (!isAbsolute(path)) {
+          const { code } = await this.load({ id: path });
+          if (code == null) {
+            return this.error(`Could not load \`${path}\` to inline its contents.`);
+          }
+          return binary ? Buffer.from(code, "utf8").toString("binary") : code;
+        }
         this.addWatchFile(path);
         return fsp.readFile(path, binary ? "binary" : "utf8");
       },
@@ -99,7 +109,12 @@ function parseRawId(id: string) {
   }
   const [, type] = match;
   const path = id.replace(RESOLVED_RE, "").slice(0, -RESOLVED_SUFFIX.length);
-  return { path, binary: type === "raw" ? isBinary(path) : type === "bytes" };
+  return {
+    path,
+    // `raw:` infers from the file mime, but virtual modules are source code and
+    // usually have no extension to infer from
+    binary: type === "bytes" || (type === "raw" && isAbsolute(path) && isBinary(path)),
+  };
 }
 
 function isBinary(id: string) {

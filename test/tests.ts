@@ -987,6 +987,8 @@ export function testNitro(
       sql: "--",
       sqlts: "--",
       json: { isString: true, text: '{\n  "foo": "bar"\n}' },
+      // Virtual modules are inlined from their rendered source, not read from disk
+      virtual: { isString: true, hasFlag: true, isUint8Array: true, bytesHaveFlag: true },
     });
   });
 
