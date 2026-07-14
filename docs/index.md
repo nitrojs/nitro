@@ -36,7 +36,7 @@ orientation: horizontal
     preset: "node",
     serverDir: "./server",
     routeRules: {
-      "/api/**": { cache: true }
+      "/api/**": { cache: { maxAge: 60 } }
     }
   })
   ```

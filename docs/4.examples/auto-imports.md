@@ -42,7 +42,7 @@ export default defineHandler(() => `<h1>${makeGreeting("Nitro")}</h1>`);
 
 ```json [tsconfig.json]
 {
-  "include": [".nitro/types/nitro-imports.d.ts", "src"]
+  "include": ["node_modules/.nitro/types/nitro.d.ts", "src"]
 }
 ```
 

@@ -16,22 +16,20 @@
 
 ## Infrastructure as Code (IaC)
 
-1. Create a file called `render.yaml` with following content at the root of your repository.
+1. Create a file called `render.yaml` with the following content at the root of your repository. This file follows Render's [Infrastructure as Code](https://render.com/docs/infrastructure-as-code) specification.
 
-> This file followed by [Infrastructure as Code](https://render.com/docs/infrastructure-as-code) on Render
-
-```yaml
-services:
-  - type: web
-    name: <PROJECTNAME>
-    env: node
-    branch: main
-    startCommand: node .output/server/index.mjs
-    buildCommand: npx nypm install && npm run build
-    envVars:
-    - key: NITRO_PRESET
-      value: render_com
-```
+   ```yaml [render.yaml]
+   services:
+     - type: web
+       name: <PROJECTNAME>
+       env: node
+       branch: main
+       startCommand: node .output/server/index.mjs
+       buildCommand: npx nypm install && npm run build
+       envVars:
+       - key: NITRO_PRESET
+         value: render_com
+   ```
 
 1. [Create a new Blueprint Instance](https://dashboard.render.com/select-repo?type=blueprint) and select the repository containing your `render.yaml` file.
 

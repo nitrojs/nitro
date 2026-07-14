@@ -6,9 +6,9 @@
 You will need to be on the [**Blaze plan**](https://firebase.google.com/pricing) (Pay as you go) to get started.
 ::
 
-## Firebase app hosting
+## Firebase App Hosting
 
-Preset: `firebase_app_hosting`
+**Preset:** `firebase_app_hosting`
 
 :read-more{title="Firebase App Hosting" to="https://firebase.google.com/docs/app-hosting"}
 
@@ -26,6 +26,28 @@ You can integrate with this provider using [zero configuration](/deploy/#zero-co
     - Import a GitHub repository (you’ll need to link your GitHub account).
     - Configure deployment settings (project root directory and branch), and enable automatic rollouts.
     - Choose a unique ID for your backend.
-4. Click Finish & Deploy to create your first rollout.
+4. Click **Finish & Deploy** to create your first rollout.
 
-When you deploy with Firebase App Hosting, the App Hosting preset will be run automatically at build time.
+When you deploy with Firebase App Hosting, the App Hosting preset is enabled automatically at build time.
+
+### Run configuration
+
+You can customize the generated [App Hosting output bundle](https://firebase.google.com/docs/app-hosting/build-config) run configuration using the `firebase.appHosting` option in your Nitro config:
+
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  firebase: {
+    appHosting: {
+      cpu: 1,
+      memoryMiB: 512,
+      concurrency: 80,
+      minInstances: 0,
+      maxInstances: 10,
+    },
+  },
+});
+```
+
+Supported values include `runCommand`, `environmentVariables`, `concurrency`, `cpu`, `memoryMiB`, `minInstances`, and `maxInstances`.

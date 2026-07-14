@@ -1,6 +1,6 @@
-# StormKit
+# Stormkit
 
-> Deploy Nitro apps to StormKit.
+> Deploy Nitro apps to Stormkit.
 
 **Preset:** `stormkit`
 
@@ -18,6 +18,6 @@ Follow the steps to [create a new app](https://app.stormkit.io/apps/new) on Stor
 
 ## Deployment
 
-By default, Stormkit will deploy your apps automatically when you push changes to your main branch. But to trigger a manual deploy (for example, you might do this for the very first deployment), you may click `Deploy now`.
+By default, Stormkit deploys your app automatically when you push changes to your main branch. To trigger a manual deploy (for example, for the very first deployment), click `Deploy now`.
 
 ![Trigger a manual deploy with Deploy Now](/images/stormkit-deploy.png)

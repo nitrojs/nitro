@@ -68,7 +68,7 @@ zerops:
     build:
       base: nodejs@22
       envVariables:
-        NITRO_PRESET: zerops-static
+        NITRO_PRESET: zerops_static
       buildCommands:
         - pnpm i
         - pnpm build
@@ -80,7 +80,7 @@ zerops:
 
 ::
 
-Now you can trigger the [build & deploy pipeline using the Zerops CLI](#building-deploying-your-app) or by connecting the app service with your [GitHub](https://docs.zerops.io/references/github-integration/) / [GitLab](https://docs.zerops.io/references/gitlab-integration) repository from inside the service detail.
+Now you can trigger the [build & deploy pipeline using the Zerops CLI](#build-and-deploy) or by connecting the app service with your [GitHub](https://docs.zerops.io/references/github-integration/) / [GitLab](https://docs.zerops.io/references/gitlab-integration) repository from inside the service detail.
 
 ## Build and deploy
 
