@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import fsp from "node:fs/promises";
 import { defu } from "defu";
 import { glob } from "tinyglobby";
@@ -24,7 +23,8 @@ const IMMUTABLE_MANIFEST = "immutable.json";
 
 // Reserved Vercel namespace under which immutable static files are served.
 // Used as the client `assetsDir` so content-addressed assets are emitted and
-// referenced here, and served without the deployment-scoped `?dpl` query.
+// referenced here.
+// TODO: use process.env.VERCEL_HASH_SALT when exists
 export const IMMUTABLE_DIR = "_vercel/immutable";
 
 interface ImmutableManifest {
@@ -37,9 +37,6 @@ export async function generateImmutableManifest(nitro: Nitro) {
   if (!nitro.options.vercel?.immutableAssets) {
     return;
   }
-
-  // The salt is factored into the hashes to provide a way to rotate file names.
-  const salt = process.env.VERCEL_HASH_SALT || "";
 
   const isImmutable = createImmutableMatcher(nitro);
 
@@ -57,7 +54,7 @@ export async function generateImmutableManifest(nitro: Nitro) {
     }
     const contents = await fsp.readFile(join(publicDir, file));
     const url = joinURL(nitro.options.baseURL, pathname);
-    hashes[url] = hashContent(contents, salt);
+    hashes[url] = ""
   }
 
   const manifest: ImmutableManifest = { version: 1, hashes };
@@ -92,9 +89,4 @@ function createImmutableMatcher(nitro: Nitro): (pathname: string) => boolean {
     const cacheControl = getRouteRules(pathname).headers?.["cache-control"];
     return !!cacheControl && cacheControl.includes("immutable");
   };
-}
-
-// Full content hash, salted so file names can be rotated via `VERCEL_HASH_SALT`.
-function hashContent(contents: Buffer, salt: string): string {
-  return createHash("sha256").update(salt).update(contents).digest("base64url");
 }
