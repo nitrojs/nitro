@@ -120,9 +120,15 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
     configEnvironment(name, config) {
       if (config.consumer === "client") {
         debug("[env]  Configuring client environment", name === "client" ? "" : ` (${name})`);
+        const nitro = useNitro(ctx);
         config.build!.emptyOutDir = false;
-        config.build!.outDir = useNitro(ctx).options.output.publicDir;
+        config.build!.outDir = nitro.options.output.publicDir;
         config.build!.copyPublicDir ??= false;
+        // Relocate generated client assets (e.g. under `_vercel/immutable`) so
+        // both client and SSR references point at the immutable base.
+        if (nitro.options.output.clientAssetsDir) {
+          config.build!.assetsDir = nitro.options.output.clientAssetsDir;
+        }
         return;
       }
 

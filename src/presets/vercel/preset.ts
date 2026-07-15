@@ -9,6 +9,7 @@ import {
   generateStaticFiles,
   resolveVercelRuntime,
 } from "./utils.ts";
+import { IMMUTABLE_DIR, generateImmutableManifest } from "./immutable.ts";
 import { vercelDevModule } from "./dev.ts";
 
 import type { VercelFunctionTrigger } from "./types.ts";
@@ -39,6 +40,13 @@ const vercel = defineNitroPreset(
     hooks: {
       "build:before": async (nitro: Nitro) => {
         const logger = nitro.logger.withTag("vercel");
+
+        // Immutable static files: emit content-addressed client assets under the
+        // reserved `_vercel/immutable` base so they can be shared across
+        // deployments. Enabled when the project opts in via Vercel.
+        if (process.env.VERCEL_IMMUTABLE_DEPLOYMENT_ID) {
+          nitro.options.output.clientAssetsDir = IMMUTABLE_DIR;
+        }
 
         // Runtime
         const runtime = await resolveVercelRuntime(nitro);
@@ -112,6 +120,7 @@ const vercel = defineNitroPreset(
       },
       async compiled(nitro: Nitro) {
         await generateFunctionFiles(nitro);
+        await generateImmutableManifest(nitro);
       },
     },
   },
@@ -143,6 +152,7 @@ const vercelStatic = defineNitroPreset(
       },
       async compiled(nitro: Nitro) {
         await generateStaticFiles(nitro);
+        await generateImmutableManifest(nitro);
       },
     },
   },
