@@ -45,7 +45,7 @@ export async function generateImmutableManifest(nitro: Nitro) {
   const manifest: ImmutableManifest = { version: 1, hashes: {} };
   for (const file of files) {
     const pathname = withLeadingSlash(file);
-    manifest.hashes[joinURL(nitro.options.baseURL, pathname)] = "";
+    manifest.hashes[joinURL(nitro.options.baseURL, pathname)] = pathname;
   }
 
   await writeFile(
