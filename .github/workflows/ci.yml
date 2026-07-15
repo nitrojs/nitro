@@ -7,6 +7,17 @@ on:
 permissions: {}
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with: { persist-credentials: false }
+      - run: npm i -g --force corepack && corepack enable
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with: { node-version: lts/*, cache: pnpm }
+      - run: pnpm install
+      - run: pnpm stub && pnpm lint
   tests-checks:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
@@ -48,8 +59,6 @@ jobs:
         with: { deno-version: 2.8.3 }
       - run: node scripts/vite7.ts
       - run: pnpm install
-      - run: pnpm stub && pnpm lint
-        if: ${{ matrix.os != 'windows-latest' }}
       - run: pnpm build
       - parallel:
           - run: pnpm vitest run test/examples
@@ -86,7 +95,7 @@ jobs:
   publish-pkg-pr-new:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [tests-checks, tests-rollup, tests-rolldown]
+    needs: [lint]
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with: { fetch-depth: 0, persist-credentials: false }
