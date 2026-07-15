@@ -28,10 +28,7 @@ export type ZoneNameRoute = {
 };
 export type CustomDomainRoute = { pattern: string; custom_domain: boolean };
 export type Route =
-  | SimpleRoute
-  | ZoneIdRoute
-  | ZoneNameRoute
-  | CustomDomainRoute;
+  SimpleRoute | ZoneIdRoute | ZoneNameRoute | CustomDomainRoute;
 
 /**
  * Configuration in wrangler for Cloudchamber

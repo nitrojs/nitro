@@ -341,7 +341,7 @@ export async function writeWranglerConfig(
 
   // Compatibility flags
   // prettier-ignore
-  const compatFlags = new Set(wranglerConfig.compatibility_flags || [])
+  const compatFlags = new Set(wranglerConfig.compatibility_flags || []);
   if (nitro.options.cloudflare?.nodeCompat) {
     if (
       compatFlags.has("nodejs_compat_v2") &&

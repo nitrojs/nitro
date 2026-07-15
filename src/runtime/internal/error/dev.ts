@@ -43,7 +43,7 @@ export async function defaultHandler(
   const statusCode = error.statusCode || 500;
   const statusMessage = error.statusMessage || "Server Error";
   // prettier-ignore
-  const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true })
+  const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true });
 
   // Redirects with base URL
   if (statusCode === 404) {
@@ -68,7 +68,7 @@ export async function defaultHandler(
   // Console output
   if (isSensitive && !opts?.silent) {
     // prettier-ignore
-    const tags = [error.unhandled && "[unhandled]", error.fatal && "[fatal]"].filter(Boolean).join(" ")
+    const tags = [error.unhandled && "[unhandled]", error.fatal && "[fatal]"].filter(Boolean).join(" ");
     const ansiError = await (
       await youch.toANSI(error)
     ).replaceAll(process.cwd(), ".");
