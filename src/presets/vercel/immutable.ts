@@ -47,7 +47,7 @@ export async function generateImmutableManifest(nitro: Nitro) {
     hashes: Object.fromEntries(
       files.map((file) => {
         const pathname = withLeadingSlash(file);
-        const url = joinURL(nitro.options.baseURL, pathname)
+        const url = joinURL(nitro.options.baseURL, pathname);
         return [url, url];
       })
     ),
