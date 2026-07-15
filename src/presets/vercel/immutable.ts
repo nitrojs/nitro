@@ -12,8 +12,8 @@ import { writeFile } from "../_utils/fs.ts";
 // https://vercel.com/docs/build-output-api/primitives
 //
 // Immutable static files are content-addressed and shared across deployments which improves cross-deployment
-// caching. 
-// 
+// caching.
+//
 // Newer deployments must never overwrite an existing file with different content, so the file names embed a content hash.
 //
 // Alongside `.vercel/output/static`, we emit a `.vercel/output/immutable.json`
