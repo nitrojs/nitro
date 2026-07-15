@@ -230,11 +230,15 @@ You can provide additional [build output configuration](https://vercel.com/docs/
 
 ## Immutable static files
 
-:read-more{title="Immutable static files" to="https://vercel.com/docs/skew-protection"}
+::important
+This feature is currently only available in the [nightly release channel](/docs/nightly) of Nitro v3.
+::
+
+<!-- :read-more{title="Immutable static files" to="https://vercel.com/docs/skew-protection"} -->
 
 Client build assets (such as JS and CSS chunks) can be emitted as **immutable static files**. These are served from the reserved `/_vercel/immutable/` path so they are shared across deployments and keep resolving even after a newer deployment no longer references them, improving cross-deployment caching.
 
-You can enable this feature with the `vercel.immutableAssets` option:
+You can enable this feature with the `vercel.immutableAssets` option or by setting the `VERCEL_IMMUTABLE_ASSETS` environment variable.
 
 ```ts [nitro.config.ts]
 import { defineConfig } from "nitro";
@@ -246,19 +250,16 @@ export default defineConfig({
 })
 ```
 
-When enabled, Nitro:
-
-- Emits content-addressed build assets under `/_vercel/immutable/` (applied to both client and server-rendered references).
-- Writes a `.vercel/output/immutable.json` manifest mapping each immutable file to its full content hash.
+When enabled, Nitro emits content-addressed build assets under `/_vercel/immutable/`.
 
 ::note
 The [`VERCEL_HASH_SALT`](https://vercel.com/docs/environment-variables/system-environment-variables) system environment variable is factored into the content hashes, providing a way to rotate the generated file names.
 ::
 
 ::note
-This works out of the box with the **Nitro + Vite** integration: Nitro sets `nitro.options.buildAssetsDir` and the Vite integration automatically applies it as the `assetsDir` for the client and server-rendered builds, so all generated asset URLs point under `/_vercel/immutable/`.
+This works out of the box with the **Nitro + Vite** integration: Nitro's vercel preset sets `buildAssetsDir` config and the Vite plugin automatically applies it as the `assetsDir` for the client and server-rendered builds, so all generated asset URLs point under `/_vercel/immutable/`.
 
-Other build integrations must apply `nitro.options.buildAssetsDir` themselves — use it as the client bundler's asset output directory (base) so generated asset URLs are emitted under that path. Without this, assets are still emitted at their default location and the immutable manifest will not match.
+Client build setups and frameworks must apply `nitro.options.buildAssetsDir` themselves — use it as the client bundler's asset output directory (base) so generated asset URLs are emitted under that path. Without this, assets are still emitted at their default location and the immutable manifest will not match.
 ::
 
 ## On-Demand incremental static regeneration (ISR)
