@@ -66,7 +66,7 @@ export function createServiceEnvironment(
   const isWorkerdRunner = _isWorkerdRunner(ctx);
   // Keep SSR-emitted asset URLs (e.g. CSS `<link>` tags) aligned with the
   // relocated client assets, so both resolve to the same content-addressed file.
-  const clientAssetsDir = ctx.nitro!.options.output.clientAssetsDir;
+  const buildAssetsDir = ctx.nitro!.options.buildAssetsDir;
   return {
     consumer: "server",
     build: {
@@ -80,7 +80,7 @@ export function createServiceEnvironment(
       outDir: join(ctx.nitro!.options.buildDir, "vite/services", name),
       emptyOutDir: true,
       copyPublicDir: false,
-      ...(clientAssetsDir ? { assetsDir: clientAssetsDir } : {}),
+      ...(buildAssetsDir ? { assetsDir: buildAssetsDir } : {}),
     },
     resolve: {
       ...(isDev ? { noExternal: isWorkerdRunner ? true : [/^nitro(\/|$)/] } : {}),

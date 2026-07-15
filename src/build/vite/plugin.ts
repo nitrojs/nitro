@@ -126,8 +126,8 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
         config.build!.copyPublicDir ??= false;
         // Relocate generated client assets (e.g. under `_vercel/immutable`) so
         // both client and SSR references point at the immutable base.
-        if (nitro.options.output.clientAssetsDir) {
-          config.build!.assetsDir = nitro.options.output.clientAssetsDir;
+        if (nitro.options.buildAssetsDir) {
+          config.build!.assetsDir = nitro.options.buildAssetsDir;
         }
         return;
       }

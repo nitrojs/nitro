@@ -45,7 +45,7 @@ const vercel = defineNitroPreset(
         // reserved `_vercel/immutable` base so they can be shared across
         // deployments. Enabled when the project opts in via Vercel.
         if (process.env.VERCEL_IMMUTABLE_DEPLOYMENT_ID) {
-          nitro.options.output.clientAssetsDir = IMMUTABLE_DIR;
+          nitro.options.buildAssetsDir = IMMUTABLE_DIR;
         }
 
         // Runtime
