@@ -1,8 +1,7 @@
-import { defu } from "defu";
 import { glob } from "tinyglobby";
-import {  resolve } from "pathe";
+import { resolve } from "pathe";
 import { joinURL, withLeadingSlash } from "ufo";
-import type { Nitro, NitroRouteRules } from "nitro/types";
+import type { Nitro } from "nitro/types";
 import { writeFile } from "../_utils/fs.ts";
 
 // Immutable Static Files
@@ -37,25 +36,19 @@ export async function generateImmutableManifest(nitro: Nitro) {
     return;
   }
 
-  const isImmutable = createImmutableMatcher(nitro);
-
-  // Walk every emitted static file and hash the immutable (content-addressed)
-  // ones. The output public dir already includes the site `baseURL`, so scanned
-  // paths are relative to it.
   const publicDir = nitro.options.output.publicDir;
-  const files = await glob("**", { cwd: publicDir, absolute: false, dot: true });
+  const files = await glob(`${IMMUTABLE_DIR}/**`, {
+    cwd: publicDir,
+    absolute: false,
+    dot: true,
+  });
 
-  const hashes: Record<string, string> = {};
+  const manifest: ImmutableManifest = { version: 1, hashes: {} };
   for (const file of files) {
     const pathname = withLeadingSlash(file);
-    if (!isImmutable(pathname)) {
-      continue;
-    }
-    const url = joinURL(nitro.options.baseURL, pathname);
-    hashes[url] = ""
+    manifest.hashes[joinURL(nitro.options.baseURL, pathname)] = "";
   }
 
-  const manifest: ImmutableManifest = { version: 1, hashes };
   await writeFile(
     resolve(nitro.options.output.dir, IMMUTABLE_MANIFEST),
     JSON.stringify(manifest, null, 2)
@@ -63,28 +56,5 @@ export async function generateImmutableManifest(nitro: Nitro) {
 
   nitro.logger
     .withTag("vercel")
-    .info(`Generated immutable manifest (${Object.keys(hashes).length} files).`);
-}
-
-// A static file is immutable when it is served with a long-lived `immutable`
-// cache-control. That covers content-addressed bundler output emitted under an
-// assets dir (marked via a route rule, e.g. Vite's `/assets/**`) as well as
-// non-fallthrough public asset dirs, while excluding user-authored files in the
-// fallthrough `public/` dir.
-function createImmutableMatcher(nitro: Nitro): (pathname: string) => boolean {
-  const immutableBaseURLs = nitro.options.publicAssets
-    .filter((asset) => !asset.fallthrough)
-    .map((asset) => withLeadingSlash(asset.baseURL || "/"))
-    .filter((baseURL) => baseURL !== "/");
-
-  const getRouteRules = (pathname: string) =>
-    defu({}, ...nitro.routing.routeRules.matchAll("", pathname).reverse()) as NitroRouteRules;
-
-  return (pathname: string) => {
-    if (immutableBaseURLs.some((baseURL) => pathname.startsWith(baseURL + "/"))) {
-      return true;
-    }
-    const cacheControl = getRouteRules(pathname).headers?.["cache-control"];
-    return !!cacheControl && cacheControl.includes("immutable");
-  };
+    .info(`Generated immutable manifest (${Object.keys(manifest.hashes).length} files).`);
 }
