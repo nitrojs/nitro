@@ -10,6 +10,7 @@ import type { InputOption } from "rollup";
 import type { NitroPluginConfig, NitroPluginContext } from "./types.ts";
 import { resolve, join } from "pathe";
 import { createNitro, prepare, writeTypes } from "../../builder.ts";
+import { installModules } from "../../module.ts";
 import { getBundlerConfig } from "./bundler.ts";
 import { buildEnvironments } from "./prod.ts";
 import {
@@ -26,7 +27,7 @@ import { prettyPath } from "../../utils/fs.ts";
 import { NitroDevApp } from "../../dev/app.ts";
 import { nitroPreviewPlugin } from "./preview.ts";
 import assetsPlugin from "@hiogawa/vite-plugin-fullstack/assets";
-import type { NitroConfig } from "nitro/types";
+import type { NitroConfig, NitroModule } from "nitro/types";
 import { nitroDevServiceProxy, viteServicesTemplate } from "./services.ts";
 
 // https://vite.dev/guide/api-environment-plugins
@@ -73,6 +74,19 @@ function nitroInit(ctx: NitroPluginContext): VitePlugin {
         debug("[init] Initializing nitro");
         ctx._initialized = true;
         await setupNitroContext(ctx, configEnv, config);
+      }
+    },
+
+    configResolved(config) {
+      // Vite resolves its plugin list *before* running config hooks, so a plugin added by
+      // another plugin's `config` hook is discovered by Nitro but silently ignored by Vite.
+      for (const plugin of ctx._pluginModules || []) {
+        if (!config.plugins.some((p) => p === plugin || p.nitro === plugin.nitro)) {
+          useNitro(ctx).logger.warn(
+            `Vite plugin \`${plugin.name}\` registers a Nitro module but is not applied by Vite. ` +
+              `Plugins added from a \`config\` hook are ignored by Vite; add it to \`plugins\` instead.`
+          );
+        }
       }
     },
 
@@ -346,13 +360,9 @@ async function setupNitroContext(
   };
 
   // Register Nitro modules from Vite plugins
-  nitroConfig.modules ??= [];
-  for (const plugin of flattenPlugins(userConfig.plugins || [])) {
-    if (plugin.nitro) {
-      nitroConfig.modules.push(plugin.nitro);
-      // TODO: install modules on existing providedNitro
-    }
-  }
+  ctx._pluginModules = (await flattenPlugins(userConfig, configEnv)).filter((p) => p.nitro);
+  const pluginModules = ctx._pluginModules.map((p) => p.nitro!);
+  nitroConfig.modules = [...(nitroConfig.modules || []), ...pluginModules];
 
   // Register service entries VFS
   const vServicesId = "#nitro/virtual/vite-services";
@@ -371,6 +381,12 @@ async function setupNitroContext(
   // Initialize a new Nitro instance
   ctx.nitro =
     providedNitro || (await createNitro(nitroConfig, { dotenv: { fileName: dotenvFileNames } }));
+
+  // Install Vite plugin modules on the provided instance (`nitro build`)
+  if (providedNitro && pluginModules.length > 0) {
+    providedNitro.options.modules = nitroConfig.modules;
+    await installModules(providedNitro, pluginModules);
+  }
 
   // Config ssr env as a fetchable ssr service
   if (!ctx.services?.ssr) {
@@ -467,8 +483,34 @@ function getEntry(input: InputOption | undefined): string | undefined {
   }
 }
 
-function flattenPlugins(plugins: PluginOption[]): VitePlugin[] {
-  return plugins
-    .flatMap((plugin) => (Array.isArray(plugin) ? flattenPlugins(plugin) : [plugin]))
-    .filter((p) => p && !(p instanceof Promise)) as VitePlugin[];
+// Flatten and filter user plugins with the same semantics Vite uses to resolve them.
+// (Vite filters by `apply` before calling config hooks but keeps `config.plugins` unfiltered)
+// https://github.com/vitejs/vite/blob/main/packages/vite/src/node/config.ts
+async function flattenPlugins(userConfig: UserConfig, configEnv: ConfigEnv): Promise<VitePlugin[]> {
+  const flat = async (plugins: PluginOption[]): Promise<VitePlugin[]> => {
+    const resolved = await Promise.all(plugins);
+    const result: VitePlugin[] = [];
+    for (const plugin of resolved) {
+      if (!plugin) {
+        continue;
+      }
+      if (Array.isArray(plugin)) {
+        result.push(...(await flat(plugin)));
+      } else {
+        result.push(plugin as VitePlugin);
+      }
+    }
+    return result;
+  };
+
+  const plugins = await flat(userConfig.plugins || []);
+
+  return plugins.filter((plugin) => {
+    if (!plugin.apply) {
+      return true;
+    }
+    return typeof plugin.apply === "function"
+      ? plugin.apply({ ...userConfig, mode: configEnv.mode }, configEnv)
+      : plugin.apply === configEnv.command;
+  });
 }
