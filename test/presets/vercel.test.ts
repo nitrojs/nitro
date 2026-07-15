@@ -12,14 +12,16 @@ const presetFixturesDir = resolve(import.meta.dirname, "fixtures");
 // NOTE: Always prefer extending the existing `nitro:preset:vercel:web` matrix
 // (its setup/build is shared across assertions) over adding new top-level
 // `describe` blocks, which trigger a separate build and slow down CI.
-// Example salt used to exercise `VERCEL_HASH_SALT` namespacing of immutable
-// static files. Set around the (build-time) `setupTest` below and restored
-// immediately after so it does not leak into other builds.
-const HASH_SALT = "test-salt";
 
 describe("nitro:preset:vercel:web", async () => {
+  const TEST_HASH_SALT = "initial";
+
+  // Example salt used to exercise `VERCEL_HASH_SALT` namespacing of immutable
+  // static files. Set around the (build-time) `setupTest` below and restored
+  // immediately after so it does not leak into other builds.
   const prevHashSalt = process.env.VERCEL_HASH_SALT;
-  process.env.VERCEL_HASH_SALT = HASH_SALT;
+  process.env.VERCEL_HASH_SALT = TEST_HASH_SALT;
+
   const ctx = await setupTest("vercel", {
     outDirSuffix: "-web",
     config: {
@@ -40,11 +42,13 @@ describe("nitro:preset:vercel:web", async () => {
       },
     },
   });
+
   if (prevHashSalt === undefined) {
     delete process.env.VERCEL_HASH_SALT;
   } else {
     process.env.VERCEL_HASH_SALT = prevHashSalt;
   }
+
   testNitro(
     ctx,
     async () => {
@@ -474,11 +478,11 @@ describe("nitro:preset:vercel:web", async () => {
         // `immutable.json` manifest mapping each file to its full content hash.
         const expectedDir = joinURL(
           "_vercel/immutable",
-          HASH_SALT,
+          TEST_HASH_SALT,
           ctx.nitro!.options.framework.name || ""
         );
         expect(ctx.nitro!.options.buildAssetsDir).toBe(expectedDir);
-        expect(expectedDir).toBe("_vercel/immutable/test-salt/nitro");
+        expect(expectedDir).toBe(`_vercel/immutable/${TEST_HASH_SALT}/nitro`);
 
         const manifest = await fsp
           .readFile(resolve(ctx.outDir, "immutable.json"), "utf8")
