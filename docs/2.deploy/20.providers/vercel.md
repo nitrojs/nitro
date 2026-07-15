@@ -238,14 +238,14 @@ This feature is currently only available in the [nightly release channel](/docs/
 
 Client build assets (such as JS and CSS chunks) can be emitted as **immutable static files**. These are served from the reserved `/_vercel/immutable/` path so they are shared across deployments and keep resolving even after a newer deployment no longer references them, improving cross-deployment caching.
 
-You can enable this feature with the `vercel.immutableAssets` option or by setting the `VERCEL_IMMUTABLE_ASSETS` environment variable.
+You can enable this feature with the `vercel.immutableStaticFiles` option or by setting the `VERCEL_IMMUTABLE_STATIC_FILES_ENABLED` environment variable.
 
 ```ts [nitro.config.ts]
 import { defineConfig } from "nitro";
 
 export default defineConfig({
   vercel: {
-    immutableAssets: true
+    immutableStaticFiles: true
   }
 })
 ```

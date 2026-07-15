@@ -146,7 +146,7 @@ export interface VercelOptions {
    *
    * @default false
    */
-  immutableAssets?: boolean;
+  immutableStaticFiles?: boolean;
 
   /**
    * If you are using `vercel-edge`, you can specify the region(s) for your edge function.

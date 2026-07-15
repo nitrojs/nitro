@@ -30,8 +30,8 @@ interface ImmutableManifest {
 }
 
 export async function generateImmutableManifest(nitro: Nitro) {
-  // Skip unless immutable static files are enabled (`vercel.immutableAssets`).
-  if (!nitro.options.vercel?.immutableAssets) {
+  // Skip unless immutable static files are enabled (`vercel.immutableStaticFiles`).
+  if (!nitro.options.vercel?.immutableStaticFiles) {
     return;
   }
 
