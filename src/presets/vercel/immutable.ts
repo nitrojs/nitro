@@ -1,7 +1,6 @@
-import fsp from "node:fs/promises";
 import { defu } from "defu";
 import { glob } from "tinyglobby";
-import { join, resolve } from "pathe";
+import {  resolve } from "pathe";
 import { joinURL, withLeadingSlash } from "ufo";
 import type { Nitro, NitroRouteRules } from "nitro/types";
 import { writeFile } from "../_utils/fs.ts";
@@ -52,7 +51,6 @@ export async function generateImmutableManifest(nitro: Nitro) {
     if (!isImmutable(pathname)) {
       continue;
     }
-    const contents = await fsp.readFile(join(publicDir, file));
     const url = joinURL(nitro.options.baseURL, pathname);
     hashes[url] = ""
   }
