@@ -26,6 +26,7 @@ const vercel = defineNitroPreset(
     },
     vercel: {
       skewProtection: !!process.env.VERCEL_SKEW_PROTECTION_ENABLED,
+      immutableAssets: false,
       cronHandlerRoute: "/_vercel/cron",
     },
     output: {
@@ -41,10 +42,10 @@ const vercel = defineNitroPreset(
       "build:before": async (nitro: Nitro) => {
         const logger = nitro.logger.withTag("vercel");
 
-        // Immutable static files: emit content-addressed client assets under the
+        // Immutable static files: emit content-addressed build assets under the
         // reserved `_vercel/immutable` base so they can be shared across
-        // deployments. Enabled when the project opts in via Vercel.
-        if (process.env.VERCEL_IMMUTABLE_DEPLOYMENT_ID) {
+        // deployments.
+        if (nitro.options.vercel?.immutableAssets) {
           nitro.options.buildAssetsDir = IMMUTABLE_DIR;
         }
 
@@ -138,6 +139,7 @@ const vercelStatic = defineNitroPreset(
     },
     vercel: {
       skewProtection: !!process.env.VERCEL_SKEW_PROTECTION_ENABLED,
+      immutableAssets: true,
     },
     output: {
       dir: "{{ rootDir }}/.vercel/output",
@@ -147,6 +149,11 @@ const vercelStatic = defineNitroPreset(
       preview: "npx serve ./static",
     },
     hooks: {
+      "build:before": (nitro: Nitro) => {
+        if (nitro.options.vercel?.immutableAssets) {
+          nitro.options.buildAssetsDir = IMMUTABLE_DIR;
+        }
+      },
       "rollup:before": (nitro: Nitro) => {
         deprecateSWR(nitro);
       },

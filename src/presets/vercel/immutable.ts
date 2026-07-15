@@ -33,9 +33,8 @@ interface ImmutableManifest {
 }
 
 export async function generateImmutableManifest(nitro: Nitro) {
-  // `VERCEL_IMMUTABLE_DEPLOYMENT_ID` is set when a project opts in to immutable
-  // static files. Skip generating the manifest otherwise.
-  if (!process.env.VERCEL_IMMUTABLE_DEPLOYMENT_ID) {
+  // Skip unless immutable static files are enabled (`vercel.immutableAssets`).
+  if (!nitro.options.vercel?.immutableAssets) {
     return;
   }
 

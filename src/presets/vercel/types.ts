@@ -135,6 +135,20 @@ export interface VercelOptions {
   skewProtection?: boolean;
 
   /**
+   * Emit content-addressed build assets as [immutable static files](https://vercel.com/docs/skew-protection).
+   *
+   * Immutable assets are served from the reserved `/_vercel/immutable/` base
+   * (without the deployment-scoped `?dpl` query), so they can be shared across
+   * deployments to improve cross-deployment caching. Nitro also writes an
+   * `immutable.json` manifest mapping each file to its full content hash.
+   *
+   * Enabled by default. Set to `false` to opt out.
+   *
+   * @default false
+   */
+  immutableAssets?: boolean;
+
+  /**
    * If you are using `vercel-edge`, you can specify the region(s) for your edge function.
    * @see https://vercel.com/docs/concepts/functions/edge-functions#edge-function-regions
    */
