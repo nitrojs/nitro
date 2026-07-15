@@ -9,7 +9,7 @@ import {
   generateStaticFiles,
   resolveVercelRuntime,
 } from "./utils.ts";
-import { IMMUTABLE_DIR, generateImmutableManifest } from "./immutable.ts";
+import { immutableDir, generateImmutableManifest } from "./immutable.ts";
 import { vercelDevModule } from "./dev.ts";
 
 import type { VercelFunctionTrigger } from "./types.ts";
@@ -46,7 +46,7 @@ const vercel = defineNitroPreset(
         // reserved `_vercel/immutable` base so they can be shared across
         // deployments.
         if (nitro.options.vercel?.immutableStaticFiles) {
-          nitro.options.buildAssetsDir = IMMUTABLE_DIR;
+          nitro.options.buildAssetsDir = immutableDir(nitro);
         }
 
         // Runtime
@@ -151,7 +151,7 @@ const vercelStatic = defineNitroPreset(
     hooks: {
       "build:before": (nitro: Nitro) => {
         if (nitro.options.vercel?.immutableStaticFiles) {
-          nitro.options.buildAssetsDir = IMMUTABLE_DIR;
+          nitro.options.buildAssetsDir = immutableDir(nitro);
         }
       },
       "rollup:before": (nitro: Nitro) => {

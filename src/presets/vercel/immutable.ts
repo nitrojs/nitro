@@ -19,11 +19,6 @@ import { writeFile } from "../_utils/fs.ts";
 
 const IMMUTABLE_MANIFEST = "immutable.json";
 
-// Reserved Vercel namespace under which immutable static files are served.
-// Used as the client `assetsDir` so content-addressed assets are emitted and
-// referenced here.
-export const IMMUTABLE_DIR = `_vercel/immutable${process.env.VERCEL_HASH_SALT ? `/${process.env.VERCEL_HASH_SALT}` : ""}`;
-
 interface ImmutableManifest {
   version: 1;
   hashes: Record<string, string>;
@@ -36,7 +31,7 @@ export async function generateImmutableManifest(nitro: Nitro) {
   }
 
   const publicDir = nitro.options.output.publicDir;
-  const files = await glob(`${IMMUTABLE_DIR}/**`, {
+  const files = await glob(`${nitro.options.buildAssetsDir}/**`, {
     cwd: publicDir,
     absolute: false,
     dot: true,
@@ -61,4 +56,16 @@ export async function generateImmutableManifest(nitro: Nitro) {
   nitro.logger
     .withTag("vercel")
     .info(`Generated immutable manifest (${Object.keys(manifest.hashes).length} files).`);
+}
+
+// Reserved Vercel namespace under which immutable static files are served.
+// Used as the client `buildAssetsDir` so content-addressed assets are emitted
+// and referenced here. The path is namespaced by an optional hash salt and the
+// framework name to avoid cross-framework collisions.
+export function immutableDir(nitro: Nitro) {
+  return joinURL(
+    "_vercel/immutable",
+    process.env.VERCEL_HASH_SALT || "",
+    nitro.options.framework.name || ""
+  );
 }
