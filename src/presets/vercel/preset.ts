@@ -26,7 +26,7 @@ const vercel = defineNitroPreset(
     },
     vercel: {
       skewProtection: !!process.env.VERCEL_SKEW_PROTECTION_ENABLED,
-      immutableAssets: false,
+      immutableAssets: !!process.env.VERCEL_IMMUTABLE_ASSETS,
       cronHandlerRoute: "/_vercel/cron",
     },
     output: {
@@ -139,7 +139,7 @@ const vercelStatic = defineNitroPreset(
     },
     vercel: {
       skewProtection: !!process.env.VERCEL_SKEW_PROTECTION_ENABLED,
-      immutableAssets: true,
+      immutableAssets: !!process.env.VERCEL_IMMUTABLE_ASSETS,
     },
     output: {
       dir: "{{ rootDir }}/.vercel/output",
