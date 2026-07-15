@@ -128,6 +128,11 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
         // both client and SSR references point at the immutable base.
         if (nitro.options.buildAssetsDir) {
           config.build!.assetsDir = nitro.options.buildAssetsDir;
+          // Content-addressed (immutable) assets benefit from longer content
+          // hashes to reduce collision risk across deployments. Only upgrade the
+          // default `[hash]` token to a longer one; never override filename
+          // patterns explicitly set by the user or other plugins.
+          useLongerAssetHashes(config.build!, ctx._isRolldown, nitro.options.buildAssetsDir);
         }
         return;
       }
@@ -461,6 +466,36 @@ async function setupNitroContext(
       await ctx._envRunner.close();
     }
   });
+}
+
+// Upgrade the default `[hash]` filename token to a longer content hash for the
+// client build output. Filename patterns already configured (by the user or
+// other plugins) are only touched to lengthen a bare `[hash]`; explicit
+// `[hash:n]` tokens and non-string patterns are left untouched.
+function useLongerAssetHashes(
+  build: NonNullable<EnvironmentOptions["build"]>,
+  isRolldown: boolean | undefined,
+  assetsDir: string
+): void {
+  const options = ((build as any)[isRolldown ? "rolldownOptions" : "rollupOptions"] ??= {});
+  const outputs = Array.isArray(options.output) ? options.output : [(options.output ??= {})];
+  const defaults: Record<string, string> = {
+    entryFileNames: `${assetsDir}/[name]-[hash:16].js`,
+    chunkFileNames: `${assetsDir}/[name]-[hash:16].js`,
+    assetFileNames: `${assetsDir}/[name]-[hash:16][extname]`,
+  };
+  for (const output of outputs) {
+    for (const key of Object.keys(defaults)) {
+      const current = output[key];
+      if (current === undefined) {
+        // Not set: opt into a longer-hash default matching Vite's own pattern.
+        output[key] = defaults[key];
+      } else if (typeof current === "string" && current.includes("[hash]")) {
+        // Already set: only lengthen a bare `[hash]` token, keep the rest as-is.
+        output[key] = current.replaceAll("[hash]", `[hash:16]`);
+      }
+    }
+  }
 }
 
 function getEntry(input: InputOption | undefined): string | undefined {
