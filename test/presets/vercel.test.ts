@@ -454,6 +454,20 @@ describe("nitro:preset:vercel:web", async () => {
         `);
       });
 
+      it("should apply immutable buildAssetsDir and write manifest", async () => {
+        // `vercel.immutableStaticFiles` relocates build assets under the
+        // reserved `_vercel/immutable` base (namespaced by the framework name)
+        // and emits an `immutable.json` manifest mapping each file to its full
+        // content hash.
+        expect(ctx.nitro!.options.buildAssetsDir).toBe("_vercel/immutable/nitro");
+
+        const manifest = await fsp
+          .readFile(resolve(ctx.outDir, "immutable.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        expect(manifest.version).toBe(1);
+        expect(manifest.hashes).toBeTypeOf("object");
+      });
+
       it("should generate prerender config", async () => {
         const isrRouteConfig = await fsp.readFile(
           resolve(ctx.outDir, "functions/rules/isr/[...]-isr.prerender-config.json"),
