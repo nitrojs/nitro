@@ -22,8 +22,7 @@ const IMMUTABLE_MANIFEST = "immutable.json";
 // Reserved Vercel namespace under which immutable static files are served.
 // Used as the client `assetsDir` so content-addressed assets are emitted and
 // referenced here.
-// TODO: use process.env.VERCEL_HASH_SALT when exists
-export const IMMUTABLE_DIR = "_vercel/immutable";
+export const IMMUTABLE_DIR = `_vercel/immutable/${process.env.VERCEL_HASH_SALT ? `/${process.env.VERCEL_HASH_SALT}` : ""}`;
 
 interface ImmutableManifest {
   version: 1;
