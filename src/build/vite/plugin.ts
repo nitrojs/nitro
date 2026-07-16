@@ -472,7 +472,11 @@ async function setupNitroContext(
 // client build output. Filename patterns already configured (by the user or
 // other plugins) are only touched to lengthen a bare `[hash]`; explicit
 // `[hash:n]` tokens and non-string patterns are left untouched.
-function useLongerAssetHashes(
+//
+// NOTE: the `[hash:16]` asset pattern must stay in sync with the SSR service
+// environment's `assetFileNames` (see `env.ts`), otherwise a `?url` asset import
+// resolves to a different filename on the client vs. the server → 404.
+export function useLongerAssetHashes(
   build: NonNullable<EnvironmentOptions["build"]>,
   isRolldown: boolean | undefined,
   assetsDir: string
