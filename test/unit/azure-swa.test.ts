@@ -12,7 +12,7 @@ describe("resolveAzureSwaRequestUrl", () => {
       resolveAzureSwaRequestUrl({
         headers: { "x-ms-original-url": "https://example.com/foo?bar=1" },
         params: {},
-      } as Parameters<typeof resolveAzureSwaRequestUrl>[0])
+      } as unknown as Parameters<typeof resolveAzureSwaRequestUrl>[0])
     ).toBe("https://example.com/foo?bar=1");
   });
 
@@ -21,7 +21,7 @@ describe("resolveAzureSwaRequestUrl", () => {
       resolveAzureSwaRequestUrl({
         headers: {},
         params: { url: "hello" },
-      } as Parameters<typeof resolveAzureSwaRequestUrl>[0])
+      } as unknown as Parameters<typeof resolveAzureSwaRequestUrl>[0])
     ).toBe("http://nitro.local/api/hello");
   });
 

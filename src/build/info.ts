@@ -1,5 +1,5 @@
 import type { Nitro, NitroBuildInfo, WorkerAddress } from "nitro/types";
-import { join, relative, resolve } from "pathe";
+import { extname, join, relative, resolve } from "pathe";
 import { version as nitroVersion } from "nitro/meta";
 import { presetsWithConfig } from "../presets/_types.gen.ts";
 import { writeFile } from "../utils/fs.ts";
@@ -44,32 +44,11 @@ export async function findLastBuildDir(root: string): Promise<string> {
   return outputDir;
 }
 
-type OutputChunk = { type: "chunk"; isEntry?: boolean; fileName: string };
-
-/**
- * Prefer `server/index.mjs` when multiple entry chunks exist.
- * Vite Module Federation marks expose chunks as entries too; without this,
- * `nitro.json` can point at an expose chunk instead of the server bundle.
- */
-export function resolveNitroServerEntryFileName(
-  output: RolldownOutput | RollupOutput | undefined
-): string | undefined {
-  const entries =
-    output?.output?.filter(
-      (o): o is OutputChunk => o.type === "chunk" && !!(o as OutputChunk).isEntry
-    ) ?? [];
-
-  if (entries.length === 0) return undefined;
-  if (entries.length === 1) return entries[0].fileName;
-
-  return (entries.find((c) => /(^|\/)index\.mjs$/.test(c.fileName)) ?? entries[0]).fileName;
-}
-
 export async function writeBuildInfo(
   nitro: Nitro,
   output: RolldownOutput | RollupOutput | undefined
 ): Promise<NitroBuildInfo> {
-  const serverEntryName = resolveNitroServerEntryFileName(output);
+  const serverEntryName = resolveNitroServerEntryFileName(output, nitro.options.entry);
 
   const buildInfoPath = resolve(nitro.options.output.dir, "nitro.json");
   const buildInfo: NitroBuildInfo = {
@@ -123,4 +102,27 @@ export async function writeDevBuildInfo(nitro: Nitro, addr?: WorkerAddress): Pro
     },
   };
   await writeFile(buildInfoPath, JSON.stringify(buildInfo, null, 2));
+}
+
+function resolveNitroServerEntryFileName(
+  output: RolldownOutput | RollupOutput | undefined,
+  nitroEntry: string
+): string | undefined {
+  return (
+    output?.output.find(
+      (entry) =>
+        entry.type === "chunk" && entry.isEntry && isNitroEntry(entry.facadeModuleId, nitroEntry)
+    ) ??
+    output?.output.find(
+      (entry) => entry.type === "chunk" && entry.isEntry && entry.fileName === "index.mjs"
+    ) ??
+    output?.output.find((entry) => entry.type === "chunk" && entry.isEntry)
+  )?.fileName;
+}
+
+function isNitroEntry(facadeModuleId: string | null, nitroEntry: string): boolean {
+  if (!facadeModuleId) return false;
+  if (facadeModuleId === nitroEntry) return true;
+  const extension = extname(facadeModuleId);
+  return !!extension && facadeModuleId.slice(0, -extension.length) === nitroEntry;
 }
