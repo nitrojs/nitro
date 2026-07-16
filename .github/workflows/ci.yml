@@ -48,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions: { id-token: write, contents: read }
     needs: tests
-    if: contains('refs/heads/v2', github.ref) && github.event_name == 'push'
+    if: github.ref == 'refs/heads/v2' && github.event_name == 'push' && github.repository == 'nitrojs/nitro'
     steps:
       - uses: actions/checkout@v6
         with: { fetch-depth: 0 }
@@ -57,4 +57,4 @@ jobs:
         with: { node-version: lts/*, cache: "pnpm" }
       - run: pnpm install
       - run: pnpm changelogen --bump --canary nightly
-      - run: npm i -g npm@latest && npm publish --tag latest
+      - run: npm i -g npm@latest && npm publish --provenance --access public --tag latest
