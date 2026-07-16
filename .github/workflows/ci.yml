@@ -30,8 +30,19 @@ jobs:
       - run: pnpm build
       - run: pnpm vitest --coverage
       # - uses: codecov/codecov-action@v3
-      - run: pnpm dlx pkg-pr-new publish
-        if: ${{ matrix.os == 'ubuntu-latest' }}
+
+  publish-pkg-pr-new:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with: { fetch-depth: 0 }
+      - run: npm i -fg corepack && corepack enable
+      - uses: actions/setup-node@v6
+        with: { node-version: lts/*, cache: "pnpm" }
+      - run: pnpm install
+      - run: pnpm build
+      - run: pnpm dlx pkg-pr-new publish || true
 
   publish:
     runs-on: ubuntu-latest
