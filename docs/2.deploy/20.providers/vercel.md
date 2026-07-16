@@ -257,7 +257,7 @@ The [`VERCEL_HASH_SALT`](https://vercel.com/docs/environment-variables/system-en
 ::
 
 ::note
-This works out of the box with the **Nitro + Vite** integration: Nitro's vercel preset sets `buildAssetsDir` config and the Vite plugin automatically applies it as the `assetsDir` for the client and server-rendered builds, so all generated asset URLs point under `/_vercel/immutable/`.
+This works out of the box with the **Nitro + Vite** integration: Nitro's Vercel preset sets `buildAssetsDir` config and the Vite plugin automatically applies it as the `assetsDir` for the client and server-rendered builds, so all generated asset URLs point under `/_vercel/immutable/`.
 
 Client build setups and frameworks must apply `nitro.options.buildAssetsDir` themselves — use it as the client bundler's asset output directory (base) so generated asset URLs are emitted under that path. Without this, assets are still emitted at their default location and the immutable manifest will not match.
 ::
