@@ -9,6 +9,10 @@ type HookResult = void | Promise<void>;
 export interface NitroHooks {
   "build:before": (nitro: Nitro) => HookResult;
   "rollup:before": (nitro: Nitro, config: RollupConfig) => HookResult;
+  /**
+   * Called before Nitro instance is closed during Vite build but after prerender process.
+   */
+  "vite:before:close": (nitro: Nitro) => HookResult;
   compiled: (nitro: Nitro) => HookResult;
   "dev:reload": (payload?: { entry?: string; workerData?: EnvRunnerData }) => HookResult;
   "dev:start": () => HookResult;
