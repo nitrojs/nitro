@@ -19,7 +19,7 @@ const nitroDev = defineNitroPreset(
     ],
     externals: { noTrace: true },
     serveStatic: true,
-    inlineDynamicImports: true, // externals plugin limitation
+    inlineDynamicImports: false,
     sourcemap: true,
   },
   {
