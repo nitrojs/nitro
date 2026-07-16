@@ -1,10 +1,26 @@
 import { promises as fsp } from "node:fs";
 import { resolve, join, basename } from "pathe";
+import { joinURL } from "ufo";
 import { describe, expect, it, afterAll } from "vitest";
 import { setupTest, startServer, testNitro, fixtureDir } from "../tests";
 
 describe("nitro:preset:vercel", async () => {
+  const TEST_HASH_SALT = "initial";
+
+  // Example salt used to exercise `VERCEL_HASH_SALT` namespacing of immutable
+  // static files. Set around the (build-time) `setupTest` below and restored
+  // immediately after so it does not leak into other builds.
+  const prevHashSalt = process.env.VERCEL_HASH_SALT;
+  process.env.VERCEL_HASH_SALT = TEST_HASH_SALT;
+
   const ctx = await setupTest("vercel");
+
+  if (prevHashSalt === undefined) {
+    delete process.env.VERCEL_HASH_SALT;
+  } else {
+    process.env.VERCEL_HASH_SALT = prevHashSalt;
+  }
+
   testNitro(
     ctx,
     async () => {
@@ -424,6 +440,26 @@ describe("nitro:preset:vercel", async () => {
             "version": 3,
           }
         `);
+      });
+
+      it("should apply immutable buildAssetsDir and write manifest", async () => {
+        // `vercel.immutableStaticFiles` relocates build assets under the
+        // reserved `_vercel/immutable` base (namespaced by the optional
+        // `VERCEL_HASH_SALT` and the framework name) and emits an
+        // `immutable.json` manifest mapping each file to its full content hash.
+        const expectedDir = joinURL(
+          "_vercel/immutable",
+          TEST_HASH_SALT,
+          ctx.nitro!.options.framework.name || ""
+        );
+        expect(ctx.nitro!.options.buildAssetsDir).toBe(expectedDir);
+        expect(expectedDir).toBe(`_vercel/immutable/${TEST_HASH_SALT}/nitro`);
+
+        const manifest = await fsp
+          .readFile(resolve(ctx.outDir, "immutable.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        expect(manifest.version).toBe(1);
+        expect(manifest.hashes).toBeTypeOf("object");
       });
 
       it("should generate prerender config", async () => {
