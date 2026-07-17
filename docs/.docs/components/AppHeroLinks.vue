@@ -21,7 +21,7 @@
       :href="`${baseURL}llms.txt`"
       target="_blank"
       class="basis-full text-sm text-muted hover:text-default transition-colors inline-flex items-center justify-center gap-1"
-      @click.prevent="copyPrompt"
+      @click="copyPrompt"
     >
       <UIcon :name="copied ? 'i-lucide-clipboard-check' : 'i-lucide-bot'" />
       Docs for AI
