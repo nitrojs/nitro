@@ -101,7 +101,7 @@ export function externals(opts: ExternalsOptions): Plugin {
           if (!filter(cjsResolved.id)) {
             return resolved; // Bundled and wrapped by CJS plugin
           }
-          resolved = cjsResolved /* non-wrapped */;
+          resolved = cjsResolved; /* non-wrapped */
         }
 
         // Unresolved bare import of a package matching the trace include-pattern.
