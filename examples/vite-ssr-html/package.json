@@ -6,9 +6,9 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.1.18",
+    "@tailwindcss/vite": "^4.2.2",
     "nitro": "latest",
-    "tailwindcss": "^4.1.18",
-    "vite": "beta"
+    "tailwindcss": "^4.2.2",
+    "vite": "latest"
   }
 }

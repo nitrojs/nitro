@@ -24,8 +24,13 @@ export default function storage(nitro: Nitro) {
 
       const driverImports = [...new Set(mounts.map((m) => m.driver))];
 
+      const tracingEnabled = !!(
+        typeof nitro.options.tracingChannel === "object" && nitro.options.tracingChannel?.unstorage
+      );
+
       return /* js */ `
 import { createStorage } from 'unstorage'
+${tracingEnabled ? `import { withTracing } from 'unstorage/tracing'` : ""}
 import { assets } from '#nitro/virtual/server-assets'
 
 ${driverImports.map((i) => genImport(i, genSafeVariableName(i))).join("\n")}
@@ -39,7 +44,7 @@ export function initStorage() {
         `storage.mount('${m.path}', ${genSafeVariableName(m.driver)}(${JSON.stringify(m.opts)}))`
     )
     .join("\n")}
-  return storage
+  return ${tracingEnabled ? "withTracing(storage)" : "storage"}
 }
 `;
     },

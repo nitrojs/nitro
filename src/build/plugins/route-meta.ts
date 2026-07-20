@@ -8,10 +8,11 @@ import { escapeRegExp } from "../../utils/regex.ts";
 const PREFIX = "\0nitro:route-meta:";
 
 export async function routeMeta(nitro: Nitro) {
-  const { transformSync } = await import("rolldown/experimental");
+  const { transformSync } = await import("rolldown/utils");
   return {
     name: "nitro:route-meta",
     resolveId: {
+      order: "pre",
       // eslint-disable-next-line no-control-regex
       filter: { id: /^(?!\u0000)(.+)\?meta$/ },
       async handler(id, importer, resolveOpts) {
@@ -25,6 +26,7 @@ export async function routeMeta(nitro: Nitro) {
       },
     },
     load: {
+      order: "pre",
       filter: {
         id: new RegExp(`^${escapeRegExp(PREFIX)}`),
       },
@@ -40,6 +42,7 @@ export async function routeMeta(nitro: Nitro) {
       },
     },
     transform: {
+      order: "pre",
       filter: {
         id: new RegExp(`^${escapeRegExp(PREFIX)}`),
       },
@@ -47,7 +50,7 @@ export async function routeMeta(nitro: Nitro) {
         let meta: NitroEventHandler["meta"] | null = null;
 
         try {
-          const transformRes = transformSync(id, code);
+          const transformRes = transformSync(id, code, { tsconfig: false });
           if (transformRes.errors?.length > 0) {
             for (const error of transformRes.errors) {
               this.warn(error);

@@ -9,6 +9,7 @@ const resolve = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 export const runtimeDir: string = /* @__PURE__ */ resolve("./");
 export const presetsDir: string = /* @__PURE__ */ resolve("../presets/");
 export const pkgDir: string = /* @__PURE__ */ resolve("../../");
+export const docsDir: string | undefined = /* @__PURE__ */ resolve("../docs");
 
 export const runtimeDependencies: string[] = [
   "crossws", // dep
@@ -20,6 +21,7 @@ export const runtimeDependencies: string[] = [
   "rou3", // sub-dep of h3
   "hookable", // traced
   "ofetch", // dep
+  "ocache", // dep
   "ohash", // traced
   "rendu", // traced
   "scule", // traced

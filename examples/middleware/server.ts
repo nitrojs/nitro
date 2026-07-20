@@ -1,4 +1,4 @@
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 
 export default defineHandler((event) => ({
   auth: event.context.auth,

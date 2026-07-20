@@ -1,5 +1,6 @@
 import type { Nitro } from "nitro/types";
 
+import app from "./app.ts";
 import database from "./database.ts";
 import errorHandler from "./error-handler.ts";
 import featureFlags from "./feature-flags.ts";
@@ -13,6 +14,7 @@ import runtimeConfig from "./runtime-config.ts";
 import serverAssets from "./server-assets.ts";
 import storage from "./storage.ts";
 import tasks from "./tasks.ts";
+import tracing from "./tracing.ts";
 
 type VirtualTemplate = {
   id: string;
@@ -21,6 +23,7 @@ type VirtualTemplate = {
 
 export function virtualTemplates(nitro: Nitro, _polyfills: string[]): VirtualTemplate[] {
   const nitroTemplates = [
+    app,
     database,
     errorHandler,
     featureFlags,
@@ -34,6 +37,7 @@ export function virtualTemplates(nitro: Nitro, _polyfills: string[]): VirtualTem
     serverAssets,
     storage,
     tasks,
+    tracing,
   ].flatMap((t) => t(nitro, _polyfills));
 
   const customTemplates = Object.entries(nitro.options.virtual).map(([id, template]) => ({

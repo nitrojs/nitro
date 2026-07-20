@@ -141,12 +141,16 @@ export async function writeCFPagesRedirects(nitro: Nitro) {
     (a, b) => a[0].split(/\/(?!\*)/).length - b[0].split(/\/(?!\*)/).length
   );
 
-  for (const [key, routeRules] of rules.filter(([_, routeRules]) => routeRules.redirect)) {
-    const code = routeRules.redirect!.status;
+  for (const [key, routeRules] of rules) {
+    const redirect = routeRules.redirect;
+    if (!redirect) {
+      continue;
+    }
+    const code = redirect.status;
     const from = joinURL(nitro.options.baseURL, key.replace("/**", "/*"));
-    const to = hasProtocol(routeRules.redirect!.to, { acceptRelative: true })
-      ? routeRules.redirect!.to
-      : joinURL(nitro.options.baseURL, routeRules.redirect!.to);
+    const to = hasProtocol(redirect.to, { acceptRelative: true })
+      ? redirect.to
+      : joinURL(nitro.options.baseURL, redirect.to);
     contents.unshift(`${from}\t${to}\t${code}`);
   }
 
@@ -171,6 +175,8 @@ export async function enableNodeCompat(nitro: Nitro) {
   nitro.options.cloudflare.deployConfig ??= true;
   nitro.options.cloudflare.nodeCompat ??= true;
   if (nitro.options.cloudflare.nodeCompat) {
+    nitro.options.rolldownConfig ??= {};
+    nitro.options.rolldownConfig.platform ??= "node";
     nitro.options.unenv.push(unenvCfNodeCompat);
   }
 }

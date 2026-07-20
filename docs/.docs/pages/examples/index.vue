@@ -9,8 +9,9 @@ const appConfig = useAppConfig()
 
 // Fetch all examples
 const { data: examples } = await useAsyncData('examples-list', () =>
-  queryCollection('examples')
-    .select('title', 'description', 'category', 'path', 'icon')
+  queryCollection('content')
+    .where('path', 'LIKE', '/examples/%')
+    .select('title', 'description', 'meta', 'path')
     .all(),
 )
 
@@ -21,7 +22,7 @@ const groupedExamples = computed(() => {
   const groups: Record<string, typeof examples.value> = {}
 
   for (const example of examples.value) {
-    const category = example.category || 'Other'
+    const category = (example.meta as Record<string, any>)?.category || 'Other'
     if (!groups[category]) {
       groups[category] = []
     }
@@ -60,15 +61,6 @@ usePageSEO({
     </UPageHeader>
 
     <UPageBody>
-      <UAlert
-        color="warning"
-        variant="subtle"
-        icon="i-lucide-triangle-alert"
-        title="Work in Progress"
-        description="Nitro v3 Alpha docs and examples are a work in progress — expect updates, rough edges, and occasional inaccuracies."
-        class="mb-8"
-      />
-
       <div v-for="(categoryExamples, category) in groupedExamples" :key="category" class="mb-12">
         <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
           <UIcon :name="categoryIcons[String(category).toLowerCase()] || categoryIcons.other" class="size-5" />
@@ -79,10 +71,10 @@ usePageSEO({
           <UPageCard
             v-for="example in categoryExamples"
             :key="example.path"
-            :to="example.path.replace(/\/readme$/i, '')"
+            :to="example.path"
             :title="example.title"
             :description="example.description"
-            :icon="example.icon"
+            :icon="(example.meta as any)?.icon"
           />
         </div>
       </div>

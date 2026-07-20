@@ -1,5 +1,7 @@
+import type { TransformResult, Plugin as VitePlugin } from "vite";
 import type { getBundlerConfig } from "./bundler.ts";
-import type { EnvRunner, Nitro, NitroConfig, NitroModule } from "nitro/types";
+import type { Nitro, NitroConfig, NitroModule } from "nitro/types";
+import type { RunnerManager } from "env-runner";
 import type { NitroDevApp } from "../../dev/app.ts";
 
 declare module "vite" {
@@ -22,7 +24,7 @@ export interface NitroPluginConfig extends NitroConfig {
   _nitro?: Nitro;
 
   experimental?: NitroConfig["experimental"] & {
-    vite: {
+    vite?: {
       /**
        * @experimental Enable `?assets` import proposed by https://github.com/vitejs/vite/discussions/20913
        * @default true
@@ -58,7 +60,11 @@ export interface NitroPluginContext {
 
   _isRolldown?: boolean;
   _initialized?: boolean;
-  _envRunner?: EnvRunner;
+  _envRunner?: RunnerManager;
+  _initPromise?: Promise<RunnerManager>;
+  _viteEnvs?: Map<string, string>;
+  _transformRequest?: (id: string) => Promise<TransformResult | null | undefined>;
   _publicDistDir?: string;
   _entryPoints: Record<string, string>;
+  _pluginModules?: VitePlugin[];
 }

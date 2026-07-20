@@ -1,6 +1,7 @@
 import { consola } from "consola";
 import { Hookable, createDebugger } from "hookable";
 import type { LoadConfigOptions, Nitro, NitroConfig, NitroDynamicConfig } from "nitro/types";
+import { version as nitroVersion } from "nitro/meta";
 import { loadOptions } from "./config/loader.ts";
 import { updateNitroConfig } from "./config/update.ts";
 import { installModules } from "./module.ts";
@@ -17,6 +18,10 @@ export async function createNitro(
 
   // Create nitro context
   const nitro: Nitro = {
+    meta: {
+      version: nitroVersion,
+      majorVersion: 3,
+    },
     options,
     hooks: new Hookable(),
     vfs: new Map(),

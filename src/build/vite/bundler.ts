@@ -21,11 +21,6 @@ export const getBundlerConfig = async (
     input: nitro.options.entry,
     external: [...base.env.external],
     plugins: [...(await baseBuildPlugins(nitro, base))].filter(Boolean) as RollupPlugin[],
-    treeshake: {
-      moduleSideEffects(id) {
-        return nitro.options.moduleSideEffects.some((p) => id.startsWith(p));
-      },
-    },
     onwarn(warning, warn) {
       if (!base.ignoreWarningCodes.has(warning.code || "")) {
         warn(warning);
@@ -49,6 +44,7 @@ export const getBundlerConfig = async (
           inject: base.env.inject as Record<string, string>,
         },
         output: {
+          minifyInternalExports: false,
           codeSplitting: {
             groups: [
               {

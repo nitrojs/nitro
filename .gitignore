@@ -71,6 +71,7 @@ staticwebapp.config.json
 playground/firebase.json
 .zeabur
 .apphosting
+.edgeone
 
 test/fixture/functions
 .data
@@ -79,3 +80,4 @@ test/fixture/functions
 .wrangler
 
 CHANGELOG.md
+RELEASE_NOTES.md

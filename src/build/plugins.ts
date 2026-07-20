@@ -9,7 +9,8 @@ import { routeMeta } from "./plugins/route-meta.ts";
 import { serverMain } from "./plugins/server-main.ts";
 import { virtual, virtualDeps } from "./plugins/virtual.ts";
 import { sourcemapMinify } from "./plugins/sourcemap-min.ts";
-import { raw } from "./plugins/raw.ts";
+import { raw, RESOLVED_RE as rawModulesRE } from "./plugins/raw.ts";
+import { importAttributes } from "./plugins/import-attributes.ts";
 import { externals } from "./plugins/externals.ts";
 
 export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
@@ -35,7 +36,7 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   plugins.push(serverMain(nitro));
 
   // Raw Imports
-  plugins.push(raw());
+  plugins.push(await importAttributes(), raw());
 
   // Route meta
   if (nitro.options.experimental.openAPI) {
@@ -43,37 +44,33 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   }
 
   // Replace
-  plugins.push(
-    (replace as unknown as typeof replace.default)({
-      preventAssignment: true,
-      values: base.replacements,
-    })
-  );
+  const replacePlugin = (replace as unknown as typeof replace.default)({
+    preventAssignment: true,
+    values: base.replacements,
+    // Raw modules hold file contents as string literals; replacing inside them
+    // corrupts the content (and can break the syntax with quoted values)
+    exclude: rawModulesRE,
+  });
+  // The plugin re-applies replacements on whole chunks, where raw module contents
+  // can no longer be excluded by id. All replaceable code goes through `transform`.
+  delete replacePlugin.renderChunk;
+  plugins.push(replacePlugin);
 
   // Externals (require Node.js compatible resolution)
   if (nitro.options.node && nitro.options.noExternals !== true) {
     const isDevOrPrerender = nitro.options.dev || nitro.options.preset === "nitro-prerender";
-    const { NodeNativePackages, NonBundleablePackages } = await import("nf3/db");
-    const traceDeps = [
-      ...new Set([
-        ...NodeNativePackages,
-        ...NonBundleablePackages,
-        ...(nitro.options.traceDeps || []),
-      ]),
-    ];
     plugins.push(
       externals({
         rootDir: nitro.options.rootDir,
         conditions: nitro.options.exportConditions!,
+        include: nitro.options.traceDeps || [],
         exclude: [...base.noExternal],
-        include: isDevOrPrerender
-          ? undefined
-          : [
-              new RegExp(
-                `^(?:${traceDeps.join("|")})|[/\\\\]node_modules[/\\\\](?:${traceDeps.join("|")})(?:[/\\\\])`
-              ),
-            ],
-        trace: isDevOrPrerender ? false : { outDir: nitro.options.output.serverDir },
+        trace: isDevOrPrerender
+          ? false
+          : {
+              ...nitro.options.traceOpts,
+              outDir: nitro.options.output.serverDir,
+            },
       })
     );
   }

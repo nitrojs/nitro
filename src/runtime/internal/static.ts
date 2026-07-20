@@ -26,9 +26,6 @@ export default defineHandler((event) => {
       .sort(),
     "",
   ];
-  if (encodings.length > 1) {
-    event.res.headers.append("Vary", "Accept-Encoding");
-  }
 
   for (const encoding of encodings) {
     for (const _id of [id + encoding, joinURL(id, "index.html" + encoding)]) {
@@ -47,6 +44,10 @@ export default defineHandler((event) => {
       throw new HTTPError({ status: 404 });
     }
     return;
+  }
+
+  if (encodings.length > 1) {
+    event.res.headers.append("Vary", "Accept-Encoding");
   }
 
   const ifNotMatch = event.req.headers.get("if-none-match") === asset.etag;

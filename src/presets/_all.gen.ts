@@ -11,6 +11,7 @@ import _cleavr from "./cleavr/preset.ts";
 import _cloudflare from "./cloudflare/preset.ts";
 import _deno from "./deno/preset.ts";
 import _digitalocean from "./digitalocean/preset.ts";
+import _edgeone from "./edgeone/preset.ts";
 import _firebase from "./firebase/preset.ts";
 import _flightcontrol from "./flightcontrol/preset.ts";
 import _genezio from "./genezio/preset.ts";
@@ -26,6 +27,7 @@ import _stormkit from "./stormkit/preset.ts";
 import _vercel from "./vercel/preset.ts";
 import _winterjs from "./winterjs/preset.ts";
 import _zeabur from "./zeabur/preset.ts";
+import _zephyr from "./zephyr/preset.ts";
 import _zerops from "./zerops/preset.ts";
 
 export default [
@@ -40,6 +42,7 @@ export default [
   ..._cloudflare,
   ..._deno,
   ..._digitalocean,
+  ..._edgeone,
   ..._firebase,
   ..._flightcontrol,
   ..._genezio,
@@ -55,5 +58,6 @@ export default [
   ..._vercel,
   ..._winterjs,
   ..._zeabur,
+  ..._zephyr,
   ..._zerops,
 ] as const;

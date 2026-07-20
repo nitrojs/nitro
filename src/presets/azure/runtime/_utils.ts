@@ -18,12 +18,12 @@ export function getAzureParsedCookiesFromHeaders(headers: Headers): Cookie[] {
     );
     const cookieObject: Cookie = {
       name: key,
-      value,
+      value: value || "",
       domain: setCookieOptions.domain,
       path: setCookieOptions.path,
-      expires: parseNumberOrDate(setCookieOptions.expires),
+      expires: parseNumberOrDate(setCookieOptions.expires || ""),
       sameSite: setCookieOptions.samesite as "Lax" | "Strict" | "None",
-      maxAge: parseNumber(setCookieOptions["max-age"]),
+      maxAge: parseNumber(setCookieOptions["max-age"] || ""),
       secure: setCookieStr.includes("Secure") ? true : undefined,
       httpOnly: setCookieStr.includes("HttpOnly") ? true : undefined,
     };

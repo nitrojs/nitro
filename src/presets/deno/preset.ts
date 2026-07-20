@@ -14,7 +14,8 @@ const denoDeploy = defineNitroPreset(
     },
     exportConditions: ["deno"],
     node: false,
-    serveStatic: "deno",
+    // Deno has native `node:` compatibility, so the Node asset reader works as-is.
+    serveStatic: true,
     commands: {
       preview: "",
       deploy: "cd ./ && deno run -A jsr:@deno/deployctl deploy server/index.ts",

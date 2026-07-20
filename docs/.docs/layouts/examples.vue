@@ -4,8 +4,9 @@ import { categoryOrder } from '~/utils/examples'
 
 // Fetch all examples and group by category
 const { data: examples } = await useAsyncData('examples-nav', () =>
-  queryCollection('examples')
-    .select('title', 'description', 'category', 'path')
+  queryCollection('content')
+    .where('path', 'LIKE', '/examples/%')
+    .select('title', 'description', 'meta', 'path')
     .all(),
 )
 
@@ -16,13 +17,13 @@ const groupedExamples = computed(() => {
   const groups: Record<string, ContentNavigationItem[]> = {}
 
   for (const example of examples.value) {
-    const category = example.category || 'Other'
+    const category = (example.meta as Record<string, any>)?.category || 'Other'
     if (!groups[category]) {
       groups[category] = []
     }
     groups[category].push({
       title: example.title,
-      path: example.path.replace(/\/readme$/i, ''),
+      path: example.path,
     })
   }
 
@@ -48,7 +49,7 @@ const flatExamples = computed(() => {
   if (!examples.value) return []
   return examples.value.map((example) => ({
     title: example.title,
-    path: example.path.replace(/\/readme$/i, ''),
+    path: example.path,
   }))
 })
 </script>

@@ -89,8 +89,8 @@ export async function scanServerRoutes(nitro: Nitro, dir: string, prefix = "/") 
       .replace(/\.[A-Za-z]+$/, "")
       .replace(/\(([^(/\\]+)\)[/\\]/g, "")
       .replace(/\[\.{3}]/g, "**")
-      .replace(/\[\.{3}(\w+)]/g, "**:$1")
-      .replace(/\[([^/\]]+)]/g, ":$1");
+      .replace(/\[\.{3}([^\]]+)]/g, (_, p) => "**:" + p.replace(/[^\w-]/g, "_"))
+      .replace(/\[([^/\]]+)]/g, (_, p) => ":" + p.replace(/[^\w-]/g, "_"));
     route = withLeadingSlash(withoutTrailingSlash(withBase(route, prefix)));
 
     const suffixMatch = route.match(suffixRegex);

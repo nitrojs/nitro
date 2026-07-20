@@ -1,14 +1,6 @@
 ## Project Identity
 
-Nitro is a framework-agnostic and deployment-agnostic server framework powered by [H3](https://github.com/h3js/h3), [UnJS](https://github.com/unjs), and Vite | Rolldown | Rollup.
-
-You are an expert JavaScript and TypeScript developer with strong focus on modern JS tooling and runtime systems.
-
-## Project Setup
-
-- **Language**: TypeScript / JavaScript
-- **Package Manager**: `pnpm`
-- **Node Version**: >= 22
+Nitro is a framework-agnostic and deployment-agnostic server framework powered by [H3](https://github.com/h3js/h3) (v2), [UnJS] (https://github.com/unjs), and Vite | Rolldown | Rollup.
 
 ## First-time Setup for Development
 
@@ -18,13 +10,15 @@ You are an expert JavaScript and TypeScript developer with strong focus on moder
 
 ## Key Scripts
 
-- `pnpm build --stub` — Fast stub build for development.
-- `pnpm lint` — Lint and format code.
-- `pnpm format` — Automatically fix lint and formatting issues.
-- `pnpm test` — Run all tests.
-- `pnpm typecheck` — Run type tests.
+- `pnpm build --stub` — Fast stub build (`obuild --stub`) for development.
+- `pnpm build` — Full build (`pnpm gen-presets && obuild`).
+- `pnpm lint` — Check lint and formatting (`oxlint` + `oxfmt --check`).
+- `pnpm fmt` — Auto-fix lint and formatting (`automd` + `oxlint --fix` + `oxfmt`).
+- `pnpm test` — Full pipeline: `lint && build && typecheck && test:rollup && test:rolldown` (runs vitest against both the rollup and rolldown builders).
+- `pnpm test:rollup` / `pnpm test:rolldown` — Run vitest against a single builder (`NITRO_BUILDER`).
+- `pnpm typecheck` — Type-check with the TypeScript native-preview compiler (`tsgo --noEmit --skipLibCheck`).
 
-**Always run** `pnpm format` and `pnpm typecheck` after making changes.
+**Always run** `pnpm fmt` and `pnpm typecheck` after making changes.
 
 ## Repository Structure
 
@@ -38,10 +32,10 @@ You are an expert JavaScript and TypeScript developer with strong focus on moder
 
 Project source is centralized under `src/`:
 
-- `src/build` — Build logic (Vite | Rolldown | Rollup config, virtual templates, plugins).
+- `src/build` — Build logic (Vite | Rolldown | Rollup config, virtual templates in `src/build/virtual/`, plugins in `src/build/plugins/`).
 - `src/cli` — `nitro` CLI subcommands (each file in `src/cli/commands` is a command).
 - `src/config/` — Config defaults (`src/config/defaults.ts`) and resolvers/normalizers (`src/config/resolvers`).
-- `src/dev` and `src/runner` — Development server logic.
+- `src/dev` — Development server logic (`app.ts`, `server.ts`, `vfs.ts`).
 - `src/prerender` — Prerender logic.
 - `src/presets` — Deployment presets and runtime entry.
 - `src/types` — Shared types.
@@ -104,11 +98,11 @@ Each preset in `src/presets/` defines deployment target behavior:
 ### Making Changes
 
 1. Make changes in `src/`.
-2. Run `pnpm build --stub` if you changed build logic.
+2. Run `pnpm stub` if you changed build logic.
 3. Test with `pnpm test`.
-4. Run `pnpm format`.
+4. Run `pnpm fmt`.
 5. Run `pnpm typecheck`.
-6. Run `pnpm vitest run`.
+6. Run `pnpm test:rollup` and/or `pnpm test:rolldown` to run vitest against a specific builder.
 
 ## Contribution Principles
 
@@ -123,7 +117,7 @@ Each preset in `src/presets/` defines deployment target behavior:
 ## Common Gotchas
 
 - **Don't use Node.js-specific APIs in `src/runtime/`** — Code runs in multiple runtimes (Node, workers, edge).
-- **Virtual modules must be registered** in `src/build/virtual.ts`.
+- **Virtual modules must be registered** in `src/build/virtual/_all.ts` (one template per file under `src/build/virtual/`).
 - **CLI commands** are in `src/cli/commands/` — Each file exports a command definition.
 - **Runtime size matters** — Check bundle impact with `pnpm build`.
 - **Use `pathe` not `node:path`** — Ensures cross-platform compatibility.
@@ -143,22 +137,34 @@ Each preset in `src/presets/` defines deployment target behavior:
 - Examples in `examples/` should reflect best practices and be added for new integrations.
 - Add migration notes for breaking changes.
 
-## When to Ask
+## Code Conventions
 
-Reach out or flag for review when:
-
-- Uncertain about runtime compatibility.
-- Considering new dependencies.
-- Breaking changes are required.
-- Making architectural decisions in `src/build` or `src/runtime`.
-- Changing preset behavior.
-- Modifying virtual module system.
-
-## Best Practices
-
-- Use **ESM** and modern JavaScript.
+- Use **ESM** and modern JavaScript; use explicit extensions (`.ts`, `.mjs`) in imports.
+- For `.json` imports, use `with { "type": "json" }`.
+- Avoid barrel files (`index.ts` re-exports); import directly from specific modules.
+- Place non-exported/internal helpers at the end of the file.
+- For multi-arg functions, use an options object as the second parameter.
+- Split logic across files; avoid long single-file modules (>200 LoC). Use `_*` prefix for internal files.
 - Prefer **Web APIs** over Node.js APIs where possible.
 - Do not add comments explaining what the line does unless prompted.
-- Before adding new code, always study surrounding patterns, naming conventions, and architectural decisions.
+- Before adding new code, study surrounding patterns, naming conventions, and architectural decisions.
 - Use existing UnJS utilities and dependencies before adding new packages.
 - Keep runtime code minimal and fast.
+
+## Commit Conventions
+
+- Use **semantic commit messages**, lower-case (e.g., `fix(cli): resolve path issue`).
+- Prefer to include scope (e.g., `feat(runtime):`, `fix(build):`).
+- Add a short description on the second line when helpful.
+
+## Detailed References
+
+For deeper context, see `.agents/`:
+
+- [`.agents/architecture.md`](.agents/architecture.md) — Full architecture: core instance, build system, config resolution, virtual modules, runtime internals, dev server, routing, key libraries.
+- [`.agents/presets.md`](.agents/presets.md) — All presets (multiple deployment targets + internal `_nitro`/`_static`), preset structure, how to create presets, resolution logic.
+- [`.agents/testing.md`](.agents/testing.md) — Test structure, how tests work, adding regression tests, running tests.
+- [`.agents/vite.md`](.agents/vite.md) — Vite build system: plugin architecture (6 sub-plugins), environments API, dev server integration, production build stages, bundler config, HMR, runtime worker.
+- [`.agents/docs.md`](.agents/docs.md) — Documentation conventions: structure, preset naming (underscore), H3 v2 API patterns, import paths, common mistakes.
+
+H3 v2 updated docs is at `node_modules/h3/dist/docs/README.md`

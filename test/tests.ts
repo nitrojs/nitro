@@ -19,7 +19,7 @@ import { fetch } from "ofetch";
 import type { FetchOptions } from "ofetch";
 import { join, resolve } from "pathe";
 import { isWindows } from "std-env";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 export interface Context {
   preset: string;
@@ -186,6 +186,7 @@ export async function startServer(ctx: Context, handle: RequestListener) {
 type TestHandlerResult = {
   data: any;
   status: number;
+  statusText?: string;
   headers: Record<string, string | string[]>;
 };
 type TestHandler = (options: any) => Promise<TestHandlerResult | Response>;
@@ -228,12 +229,16 @@ export function testNitro(
       }
     }
     headers["set-cookie"] = (result as Response).headers.getSetCookie();
+    if (headers["set-cookie"].length === 0) {
+      delete headers["set-cookie"];
+    }
 
     return {
       data: callOpts.binary
         ? Buffer.from(await (result as Response).arrayBuffer())
         : destr(await (result as Response).text()),
       status: result.status,
+      statusText: result.statusText,
       headers,
     };
   }
@@ -312,6 +317,15 @@ export function testNitro(
     });
     expect(wildcard.status).toBe(307);
     expect(wildcard.headers.location).toBe("https://nitro.build/nuxt");
+
+    // Regression test for GHSA-9phm-9p8f-hw5m: a leading `//` after the
+    // wildcard prefix must not be forwarded as a protocol-relative URL.
+    const legacy = await callHandler({
+      url: "/rules/redirect/legacy//evil.com",
+    });
+    expect(legacy.status).toBe(307);
+    expect(legacy.headers.location).not.toMatch(/^\/\//);
+    expect(legacy.headers.location).toBe("/evil.com");
   });
 
   it("binary response", async () => {
@@ -376,14 +390,173 @@ export function testNitro(
   });
 
   it("handles route rules - cors", async () => {
+    // `cors: true` is handled by h3's `handleCors` (via h3-rules). On a
+    // simple (non-preflight) request it sets permissive origin/methods/expose
+    // headers; `access-control-allow-headers` / `access-control-max-age` are
+    // preflight-only and answered on the `OPTIONS` preflight instead.
     const expectedHeaders = {
       "access-control-allow-origin": "*",
       "access-control-allow-methods": "GET",
-      "access-control-allow-headers": "*",
-      "access-control-max-age": "0",
+      "access-control-expose-headers": "*",
     };
     const { headers } = await callHandler({ url: "/rules/cors" });
     expect(headers).toMatchObject(expectedHeaders);
+  });
+
+  describe("handles route rules - basic auth", () => {
+    it("rejects request with bad creds", async () => {
+      const { status, headers } = await callHandler({
+        url: "/rules/basic-auth",
+        headers: {
+          Authorization: "Basic " + btoa("user:wrongpass"),
+        },
+      });
+      expect(status).toBe(401);
+      expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
+    });
+
+    it("allows request with correct password", async () => {
+      const { status } = await callHandler({
+        url: "/rules/basic-auth/test",
+        headers: {
+          Authorization: "Basic " + btoa("admin:secret"),
+        },
+      });
+      expect(status).toBe(200);
+    });
+
+    it("disabled basic-auth for sub-rules", async () => {
+      const { status } = await callHandler({ url: "/rules/basic-auth/no-auth" });
+      expect(status).toBe(200);
+    });
+
+    it("runs before redirect rule from a less specific layer", async () => {
+      const { status, headers } = await callHandler({
+        url: "/rules/ba-redirect/secure/page",
+        headers: { Authorization: "Basic " + btoa("user:wrongpass") },
+      });
+      expect(status).toBe(401);
+      expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
+    });
+
+    it("runs before proxy rule from a less specific layer", async () => {
+      const { status, headers } = await callHandler({
+        url: "/rules/ba-proxy/secure/page",
+        headers: { Authorization: "Basic " + btoa("user:wrongpass") },
+      });
+      expect(status).toBe(401);
+      expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
+    });
+
+    it("is not bypassed by a percent-encoded path separator", async () => {
+      // `secure%2fpage` must still match the `/rules/ba-proxy/secure/**` auth
+      // rule, otherwise the request is forwarded by the broader proxy rule with
+      // no credentials and the downstream decodes `%2f` back to `/`.
+      const { status, headers } = await callHandler({
+        url: "/rules/ba-proxy/secure%2fpage",
+        headers: { Authorization: "Basic " + btoa("user:wrongpass") },
+      });
+      expect(status).toBe(401);
+      expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
+    });
+
+    it("a single-wildcard rule is not bypassed by an encoded separator", async () => {
+      // h3 routes the `/ba-single/[id]` handler on the raw path, so
+      // `/ba-single/a%2fb` reaches it as a single opaque segment and matches
+      // the `/ba-single/*` auth rule there — even though it canonicalizes to
+      // the two-segment `/ba-single/a/b`. Auth is matched on the raw path too,
+      // so it can't be served unauthenticated.
+      const { status, headers } = await callHandler({
+        url: "/ba-single/a%2fb",
+        headers: { Authorization: "Basic " + btoa("user:wrongpass") },
+      });
+      expect(status).toBe(401);
+      expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
+    });
+
+    it("a more specific auth rule revealed by decoding overrides a broader one", async () => {
+      // `/rules/ba-nested/admin%2fpanel` matches only the broad
+      // `/rules/ba-nested/**` rule on the raw path, but canonicalizes to
+      // `/rules/ba-nested/admin/panel`, which the narrower `.../admin/**` rule
+      // guards. The narrower (canonical) rule must win, so the challenge is for
+      // the "Admin Area" realm, not the broad "Broad Area" one.
+      const { status, headers } = await callHandler({
+        url: "/rules/ba-nested/admin%2fpanel",
+        headers: { Authorization: "Basic " + btoa("broad:secret") },
+      });
+      expect(status).toBe(401);
+      expect(headers["www-authenticate"]).toBe('Basic realm="Admin Area"');
+    });
+
+    it("a single-segment `false` cannot dodge auth once decoded to multiple segments", async () => {
+      // `/rules/ba-off/*` disables auth for genuine single-segment paths, but
+      // `/rules/ba-off/a%2fb` decodes to the two-segment `/rules/ba-off/a/b` that
+      // the broad `/rules/ba-off/**` rule guards. The `false` reset applies to the
+      // served path's own resolution, but the canonical path still enables auth,
+      // so the encoded separator must not turn a multi-segment request into a
+      // single-segment one to dodge the gate.
+      const { status, headers } = await callHandler({
+        url: "/rules/ba-off/a%2fb",
+        headers: { Authorization: "Basic " + btoa("user:wrongpass") },
+      });
+      expect(status).toBe(401);
+      expect(headers["www-authenticate"]).toBe('Basic realm="Off Area"');
+    });
+
+    it("a `false` reset on a deeper subtree does not strip auth from the served path", async () => {
+      // `/rules/ba-strip/off%2fx` is served as a single opaque segment that only
+      // matches the broad `/rules/ba-strip/**` auth rule; the `/rules/ba-strip/off/**`
+      // disable targets the two-segment subtree the canonical path resolves to.
+      // Resolving that disable against the canonical path must not strip the auth
+      // gate off the path that is actually served (a match/serve differential).
+      const { status, headers } = await callHandler({
+        url: "/rules/ba-strip/off%2fx",
+        headers: { Authorization: "Basic " + btoa("user:wrongpass") },
+      });
+      expect(status).toBe(401);
+      expect(headers["www-authenticate"]).toBe('Basic realm="Strip Area"');
+    });
+
+    it("a single-wildcard non-auth rule still applies to an encoded separator", async () => {
+      // h3 serves the `/single-headers/[id]` handler on the raw path, so a
+      // behavioral rule it matches there (`/single-headers/*`) must still apply
+      // for `/single-headers/a%2fb` even though it canonicalizes to two
+      // segments — canonicalization is for auth gating, not for dropping rules
+      // off the path that is actually served.
+      const { status, headers } = await callHandler({
+        url: "/single-headers/a%2fb",
+      });
+      expect(status).toBe(200);
+      expect(headers["x-single"]).toBe("single");
+    });
+  });
+
+  describe("handles route rules - method scoped", () => {
+    // `"POST /rules/method-scoped/**"` guards the path with basic auth for POST
+    // requests only; other methods fall through unaffected.
+    it("does not apply the POST-scoped rule to other methods", async () => {
+      const { status } = await callHandler({ url: "/rules/method-scoped/page" });
+      expect(status).toBe(200);
+    });
+
+    it("applies the POST-scoped rule to matching requests", async () => {
+      const { status, headers } = await callHandler({
+        url: "/rules/method-scoped/page",
+        method: "POST",
+        headers: { Authorization: "Basic " + btoa("user:wrongpass") },
+      });
+      expect(status).toBe(401);
+      expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
+    });
+
+    it("passes the POST-scoped rule with valid credentials", async () => {
+      const { status } = await callHandler({
+        url: "/rules/method-scoped/page",
+        method: "POST",
+        headers: { Authorization: "Basic " + btoa("admin:secret") },
+      });
+      expect(status).toBe(200);
+    });
   });
 
   it("handles route rules - allowing overriding", async () => {
@@ -394,32 +567,6 @@ export function testNitro(
     const base = await callHandler({ url: "/rules/nested/base" });
     expect(base.headers.location).toBe("/base");
     expect(base.headers["x-test"]).toBe("test");
-  });
-
-  it("handles errors", async () => {
-    const { status, headers } = await callHandler({
-      url: "/api/error",
-      headers: {
-        Accept: "application/json",
-      },
-    });
-    expect(status).toBe(503);
-
-    expect(headers).toMatchObject({
-      "content-type": "application/json",
-      "content-security-policy": ctx.isDev
-        ? "script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self';"
-        : "script-src 'none'; frame-ancestors 'none';",
-      "referrer-policy": "no-referrer",
-      "x-content-type-options": "nosniff",
-      "x-frame-options": "DENY",
-    });
-
-    const { data } = await callHandler({
-      url: "/api/error?json",
-    });
-    expect(status).toBe(503);
-    expect(data.json.error).toBe(true);
   });
 
   it.skipIf(
@@ -544,6 +691,25 @@ export function testNitro(
     }
   });
 
+  it("runtime proxy collapses leading slashes after wildcard prefix", async () => {
+    // Regression test for GHSA-9phm-9p8f-hw5m: a leading `//` after the
+    // wildcard prefix must not be forwarded verbatim to the upstream.
+    const { data } = await callHandler({
+      url: "/rules/proxy/legacy//evil.com",
+    });
+    expect(data).toBe("evil.com");
+  });
+
+  it("runtime proxy keeps an encoded separator opaque for the upstream", async () => {
+    // Regression: an opaque `%2f` inside a segment is a single path segment for
+    // the in-scope request and must be forwarded encoded — not decoded into a
+    // real separator (which would change the resource the upstream resolves).
+    const { data } = await callHandler({
+      url: "/rules/proxy/legacy/a%2fb",
+    });
+    expect(data).toBe("a%2fb");
+  });
+
   it("external proxy", async () => {
     const { data, headers, status } = await callHandler({
       url: "/cdn/npm/bootstrap@5.3.8/dist/js/bootstrap.min.js",
@@ -631,9 +797,10 @@ export function testNitro(
 
   describe("errors", () => {
     it.skipIf(ctx.isIsolated)("captures errors", async () => {
-      const { data } = await callHandler({ url: "/api/errors" });
+      await callHandler({ url: "/errors/throw" });
+      const { data } = await callHandler({ url: "/errors/captured" });
       const allErrorMessages = (data.allErrors || []).map((entry: any) => entry.message);
-      expect(allErrorMessages).to.includes("Service Unavailable");
+      expect(allErrorMessages).to.includes("Handled error");
     });
 
     it.skipIf(
@@ -643,9 +810,83 @@ export function testNitro(
         ctx.preset === "deno-server" ||
         ctx.preset === "nitro-dev"
     )("sourcemap works", async () => {
-      const { data } = await callHandler({ url: "/error-stack" });
-      expect(data.stack).toMatch("test/fixture/server/routes/error-stack.ts");
+      const { data } = await callHandler({ url: "/errors/stack" });
+      expect(data.stack).toMatch("test/fixture/server/routes/errors/stack.ts");
     });
+
+    for (const errorAction of ["throw", "return"]) {
+      it(`handled errors (${errorAction})`, async () => {
+        const res = await callHandler({ url: `/errors/throw?handled&action=${errorAction}` });
+        expect(res).toMatchObject({
+          status: 503,
+          statusText: /deno|bun/.test(ctx.preset)
+            ? "Service Unavailable"
+            : /aws/.test(ctx.preset)
+              ? ""
+              : "Custom Status Text",
+          headers: {
+            "content-type": "application/json; charset=utf-8",
+            "x-custom-error": "custom-value",
+          },
+          data: {
+            error: true,
+            status: 503,
+            statusText: "Custom Status Text",
+            message: "Handled error",
+            data: { custom: "data" },
+            custom: "body",
+          },
+        });
+      });
+
+      it(`unhandled errors (${errorAction})`, async () => {
+        const stderrMock = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+        const consoleErrorMock = vi.spyOn(console, "error").mockImplementation(() => {});
+        let res;
+        try {
+          res = await callHandler({
+            url: `/errors/throw?unhandled&action=${errorAction}`,
+            headers: { Accept: "application/json" },
+          });
+        } finally {
+          stderrMock.mockRestore();
+          consoleErrorMock.mockRestore();
+        }
+        // TODO
+        // expect(consoleErrorMock).toHaveBeenCalledExactlyOnceWith(
+        //   expect.stringContaining("Unhandled error")
+        // );
+        if (!ctx.isDev) {
+          // Prod
+          expect(res).toMatchObject({
+            status: 500,
+            headers: {
+              "content-type": "application/json; charset=utf-8",
+            },
+            data: {
+              error: true,
+              unhandled: true,
+              status: 500,
+            },
+          });
+        } else {
+          // Dev
+          expect(res).toMatchObject({
+            status: 500,
+            headers: {
+              "content-type": "application/json; charset=utf-8",
+            },
+            data: {
+              error: true,
+              unhandled: true,
+              status: 500,
+              message: "HTTPError",
+              stack: expect.arrayContaining(["Unhandled error"]),
+            },
+          });
+        }
+      });
+    }
   });
 
   describe("async context", () => {
@@ -745,6 +986,37 @@ export function testNitro(
     expect(data).toMatchObject({
       sql: "--",
       sqlts: "--",
+      json: { isString: true, text: '{\n  "foo": "bar"\n}' },
+      // Virtual modules are inlined from their rendered source, not read from disk
+      virtual: { isString: true, hasFlag: true, isUint8Array: true, bytesHaveFlag: true },
+    });
+  });
+
+  it("import attributes (bytes and text)", async () => {
+    const textAsset = "this is an asset from a text file from nitro";
+    const { data } = await callHandler({ url: "/import-attributes" });
+    expect(data).toMatchObject({
+      bin: {
+        isUint8Array: true,
+        bytes: Array.from({ length: 256 }, (_, i) => i).join(","),
+      },
+      sql: { isUint8Array: true, text: "--" },
+      json: { isString: true, text: '{\n  "foo": "bar"\n}' },
+      txtBytes: { isUint8Array: true, text: textAsset },
+      txt: { isString: true, text: textAsset },
+      replacements: {
+        isString: true,
+        text: "This file must keep import.meta.dev, import.meta.preset and import.meta.baseURL verbatim.",
+      },
+      reexported: {
+        isString: true,
+        text: textAsset,
+        isUint8Array: true,
+        bytesText: textAsset,
+      },
+      // Source files imported as text keep their contents (attribute syntax is not rewritten)
+      source: { verbatim: true, rewritten: false },
+      commented: { isString: true, text: textAsset },
     });
   });
 

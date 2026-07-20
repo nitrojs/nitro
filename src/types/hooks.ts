@@ -1,4 +1,4 @@
-import type { EnvRunnerData } from "../runner/node.ts";
+import type { EnvRunnerData } from "env-runner";
 import type { NitroConfig } from "./config.ts";
 import type { Nitro, NitroTypes } from "./nitro.ts";
 import type { PrerenderRoute } from "./prerender.ts";

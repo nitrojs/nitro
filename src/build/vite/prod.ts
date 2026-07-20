@@ -4,7 +4,7 @@ import type { NitroPluginContext } from "./types.ts";
 import { basename, dirname, resolve } from "pathe";
 import { formatCompatibilityDate } from "compatx";
 import { colors as C } from "consola/utils";
-import { copyPublicAssets } from "../../builder.ts";
+import { copyPublicAssets, prerender } from "../../builder.ts";
 import { existsSync } from "node:fs";
 import { writeBuildInfo } from "../info.ts";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
@@ -49,10 +49,7 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
     const outputPath = resolve(nitroOptions.output.publicDir, basename(clientInput as string));
     if (existsSync(outputPath)) {
       const html = await readFile(outputPath, "utf8").then((r) =>
-        r.replace(
-          "<!--ssr-outlet-->",
-          `{{{ globalThis.__nitro_vite_envs__?.["ssr"]?.fetch($REQUEST) || "" }}}`
-        )
+        r.replace("<!--ssr-outlet-->", `{{{ fetchViteEnv("ssr", $REQUEST) || "" }}}`)
       );
       await rm(outputPath);
       const tmp = resolve(nitroOptions.buildDir, "vite/index.html");
@@ -104,8 +101,7 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
   ctx.nitro!.routing.sync();
 
   // Prerender routes if configured
-  // TODO
-  // await prerender(nitro);
+  await prerender(nitro);
 
   // Build the Nitro server bundle
   const output = (await builder.build(builder.environments.nitro)) as RolldownOutput;
@@ -121,48 +117,10 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
 
   // Show deploy and preview commands
   if (!isTest && !isCI) console.log();
-  nitro.logger.success("You can preview this build using `npx vite preview`");
+  const previewCommand = nitro.options.framework.previewCommand || "npx vite preview";
+  nitro.logger.success(`You can preview this build using \`${previewCommand}\``);
   if (nitro.options.commands.deploy) {
-    nitro.logger.success("You can deploy this build using `npx nitro deploy --prebuilt`");
+    const deployCommand = nitro.options.framework.deployCommand || "npx nitro deploy --prebuilt";
+    nitro.logger.success(`You can deploy this build using \`${deployCommand}\``);
   }
-}
-
-export function prodSetup(ctx: NitroPluginContext): string {
-  const serviceNames = Object.keys(ctx.services);
-
-  const serviceEntries = serviceNames.map((name) => {
-    const entry = resolve(
-      ctx.nitro!.options.buildDir,
-      "vite/services",
-      name,
-      ctx._entryPoints[name]
-    );
-    return [name, entry];
-  });
-
-  return /* js */ `
-function lazyService(loader) {
-  let promise, mod
-  return {
-    fetch(req) {
-      if (mod) { return mod.fetch(req) }
-      if (!promise) {
-        promise = loader().then(_mod => (mod = _mod.default || _mod))
-      }
-      return promise.then(mod => mod.fetch(req))
-    }
-  }
-}
-
-const services = {
-${serviceEntries
-  .map(
-    ([name, entry]) =>
-      /* js */ `[${JSON.stringify(name)}]: lazyService(() => import(${JSON.stringify(entry)}))`
-  )
-  .join(",\n")}
-};
-
-globalThis.__nitro_vite_envs__ = services;
-  `;
 }
