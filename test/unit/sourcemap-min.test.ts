@@ -20,7 +20,12 @@ function createSourcemapAsset(sourcemap: {
 
 function runPlugin(bundle: Record<string, BundleAsset>) {
   const plugin = sourcemapMininify();
-  (plugin.generateBundle as Function).call(null, {}, bundle);
+  const generateBundle = plugin.generateBundle as (
+    this: unknown,
+    options: Record<string, unknown>,
+    bundle: Record<string, BundleAsset>
+  ) => void;
+  generateBundle.call(null, {}, bundle);
   const results: Record<string, ReturnType<typeof JSON.parse>> = {};
   for (const [key, asset] of Object.entries(bundle)) {
     if (key.endsWith(".map")) {
