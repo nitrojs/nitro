@@ -82,6 +82,18 @@ describe("vite:app", () => {
     expect(res.status).not.toBe(200);
   });
 
+  // #4433: Vite marks module-graph fetches for files it has to serve as modules with an `?import`
+  // query. The marker only ever comes from the module graph, never from a page navigation, so such
+  // a request must reach Vite even when the extension is not a known asset type (`.json`) and
+  // `Sec-Fetch-Dest` is absent.
+  test("does not let the SSR catch-all swallow ?import module requests", async () => {
+    const res = await fetch(`${serverURL}/missing-module.json?import`, {
+      headers: { accept: "*/*" },
+      redirect: "manual",
+    });
+    expect(res.status).not.toBe(200);
+  });
+
   // HTTPError thrown from the SSR entry must propagate to the nitro app so the h3
   // error handler preserves its status and headers (consistent with production).
   test("propagates HTTPError status and headers from the SSR entry", async () => {
