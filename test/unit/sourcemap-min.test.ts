@@ -20,7 +20,7 @@ function createSourcemapAsset(sourcemap: {
 
 function runPlugin(bundle: Record<string, BundleAsset>) {
   const plugin = sourcemapMininify();
-  const generateBundle = plugin.generateBundle as (
+  const generateBundle = plugin.generateBundle as unknown as (
     this: unknown,
     options: Record<string, unknown>,
     bundle: Record<string, BundleAsset>
