@@ -15,9 +15,10 @@ export function sourcemapMininify() {
         }
         // Parse sourcemap
         const sourcemap: ExistingRawSourceMap = JSON.parse(asset.source);
-        // Only process sourcemaps with node_module sources
+        // Only wipe mappings when every source is from node_modules, so that
+        // chunks mixing user code with hoisted library code keep their mappings
         if (
-          !(sourcemap.sources || []).some((s) => s.includes("node_modules"))
+          !(sourcemap.sources || []).every((s) => s.includes("node_modules"))
         ) {
           continue;
         }
