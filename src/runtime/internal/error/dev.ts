@@ -1,7 +1,7 @@
 import { HTTPError, type HTTPEvent } from "h3";
 import { getRequestURL } from "h3";
 import { readFile } from "node:fs/promises";
-import { resolve, dirname } from "node:path";
+import { resolve, dirname } from "pathe";
 import consola from "consola";
 import type { ErrorParser } from "youch-core";
 import type { SourceMapConsumer } from "source-map";
