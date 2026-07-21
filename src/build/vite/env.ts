@@ -64,34 +64,19 @@ export function createServiceEnvironment(
 ): EnvironmentOptions {
   const isDev = ctx.nitro!.options.dev;
   const isWorkerdRunner = _isWorkerdRunner(ctx);
-  // Keep SSR-emitted asset URLs (e.g. CSS `<link>` tags) aligned with the
-  // relocated client assets, so both resolve to the same content-addressed file.
-  // Both the directory (`assetsDir`) and the content-hash length must match the
-  // client environment, otherwise the SSR bundle references e.g.
-  // `app-<hash:8>.css` while the client emits `app-<hash:16>.css` → 404.
-  const buildAssetsDir = ctx.nitro!.options.buildAssetsDir;
   return {
     consumer: "server",
     build: {
       rollupOptions: {
         input: { index: serviceConfig.entry },
         ...(isDev ? {} : { external: [/^nitro(\/|$)/] }),
-        output: {
-          minifyInternalExports: false,
-          // Must match the client environment's `[hash:16]` asset pattern (see
-          // `useLongerAssetHashes` in `plugin.ts`) so a `?url` asset import
-          // resolves to the same filename on both sides.
-          ...(buildAssetsDir
-            ? { assetFileNames: `${buildAssetsDir}/[name]-[hash:16][extname]` }
-            : {}),
-        },
+        output: { minifyInternalExports: false },
       },
       minify: ctx.nitro!.options.minify,
       sourcemap: ctx.nitro!.options.sourcemap,
       outDir: join(ctx.nitro!.options.buildDir, "vite/services", name),
       emptyOutDir: true,
       copyPublicDir: false,
-      ...(buildAssetsDir ? { assetsDir: buildAssetsDir } : {}),
     },
     resolve: {
       ...(isDev ? { noExternal: isWorkerdRunner ? true : [/^nitro(\/|$)/] } : {}),

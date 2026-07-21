@@ -151,6 +151,12 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
         return;
       }
 
+      const nitro = useNitro(ctx);
+      if (name !== "nitro" && nitro.options.buildAssetsDir) {
+        config.build!.assetsDir = nitro.options.buildAssetsDir;
+        useLongerAssetHashes(config.build!, ctx._isRolldown, nitro.options.buildAssetsDir);
+      }
+
       // Skip if already registered as a service
       if (name === "nitro" || ctx.services[name]) {
         return;
@@ -484,14 +490,15 @@ async function setupNitroContext(
   });
 }
 
-// Upgrade the default `[hash]` filename token to a longer content hash for the
-// client build output. Filename patterns already configured (by the user or
-// other plugins) are only touched to lengthen a bare `[hash]`; explicit
+// Upgrade the default `[hash]` filename token to a longer content hash for a
+// build environment's output. Filename patterns already configured (by the user
+// or other plugins) are only touched to lengthen a bare `[hash]`; explicit
 // `[hash:n]` tokens and non-string patterns are left untouched.
 //
-// NOTE: the `[hash:16]` asset pattern must stay in sync with the SSR service
-// environment's `assetFileNames` (see `env.ts`), otherwise a `?url` asset import
-// resolves to a different filename on the client vs. the server → 404.
+// Applied identically to the client and the server (SSR) environments so a
+// shared asset resolves to the same filename on both sides. A user/framework
+// that overrides `assetFileNames` is responsible for keeping the two in sync
+// (and such assets opt out of the `buildAssetsDir` immutable base).
 export function useLongerAssetHashes(
   build: NonNullable<EnvironmentOptions["build"]>,
   isRolldown: boolean | undefined,
