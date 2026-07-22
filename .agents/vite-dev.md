@@ -18,7 +18,7 @@ both ends:
 | Registration | Site | Runs | Role |
 |---|---|---|---|
 | `nitroDevMiddlewarePre` (`const` form) | `dev.ts:284` | **before** Vite static/transform | Classifier. Route explicit-Nitro + definite navigations to Nitro immediately; let definite assets fall through to Vite, marking them `_nitroHandled` (transparent catch-all) or `_nitroAssetCheck` (opaque catch-all / no match). |
-| `nitroDevMiddleware` | `dev.ts:371`, inside the returned `() => { ... }` | **after** Vite static/transform | Catch-all fallback. Wraps req as web `Request`, tries `ctx.devApp.fetch` then `nitroEnv.dispatchFetch`, honoring `baseURL`; inspects the response for `_nitroAssetCheck` requests. Skipped for `_nitroHandled`. |
+| `nitroDevMiddleware` | defined at `dev.ts:213`, registered inside the returned `() => { ... }` | **after** Vite static/transform | Catch-all fallback. Wraps req as web `Request`, tries `ctx.devApp.fetch` then `nitroEnv.dispatchFetch`, honoring `baseURL`; inspects the response for `_nitroAssetCheck` requests. Skipped for `_nitroHandled`. |
 
 **Why two, and why pre?** Without the pre-pass, Vite's static/transform
 middleware serves files from the project root and would answer server routes
@@ -26,8 +26,9 @@ before Nitro sees them (see upstream **vitejs/vite#20866**, which made Vite
 consult `sec-fetch-dest` to let document requests fall through — the same
 header Nitro's classifier leans on).
 
-Facts about Vite's side (verified against vite@8.1.4): Nitro forces
-`appType: "custom"` (`plugin.ts:199`), so Vite registers none of
+Facts about Vite's side (verified against vite@8.1.4): Nitro defaults
+`appType` to `"custom"` (`plugin.ts:199` — user-overridable; the reasoning
+below assumes the default), so Vite registers none of
 `htmlFallback`/`indexHtml`/`notFound` middlewares, and **every plain miss
 `next()`s** (sirv and transformMiddleware never self-emit a 404 for a missing
 file/module). The only terminal 404 is connect's `finalhandler`, which sits
