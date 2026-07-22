@@ -151,10 +151,17 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
         return;
       }
 
+      // Server environments render public asset URLs (`?url` imports, font CSS)
+      // derived from their `assetsDir`, so it must point at the immutable base
+      // where the client build actually emits the files. Only asset naming is
+      // aligned (`assetsOnly`): entry/chunk filenames are left at their defaults
+      // so each service keeps a flat entry that frameworks import by path.
       const nitro = useNitro(ctx);
-      if (name === "ssr" && nitro.options.buildAssetsDir) {
+      if (name !== "nitro" && nitro.options.buildAssetsDir) {
         config.build!.assetsDir = nitro.options.buildAssetsDir;
-        useLongerAssetHashes(config.build!, ctx._isRolldown, nitro.options.buildAssetsDir);
+        useLongerAssetHashes(config.build!, ctx._isRolldown, nitro.options.buildAssetsDir, {
+          assetsOnly: true,
+        });
       }
 
       // Skip if already registered as a service
@@ -495,20 +502,27 @@ async function setupNitroContext(
 // or other plugins) are only touched to lengthen a bare `[hash]`; explicit
 // `[hash:n]` tokens and non-string patterns are left untouched.
 //
-// Applied identically to the client and the server (SSR) environments so a
-// shared asset resolves to the same filename on both sides. A user/framework
-// that overrides `assetFileNames` is responsible for keeping the two in sync
+// Applied to the client environment (all output) and the SSR service
+// environment (`assetsOnly` — just `assetFileNames`) so a shared asset
+// resolves to the same filename on both sides. The SSR bundle's own
+// entry/chunks keep Vite's flat server layout. A user/framework that
+// overrides `assetFileNames` is responsible for keeping the two in sync
 // (and such assets opt out of the `buildAssetsDir` immutable base).
 export function useLongerAssetHashes(
   build: NonNullable<EnvironmentOptions["build"]>,
   isRolldown: boolean | undefined,
-  assetsDir: string
+  assetsDir: string,
+  opts?: { assetsOnly?: boolean }
 ): void {
   const options = ((build as any)[isRolldown ? "rolldownOptions" : "rollupOptions"] ??= {});
   const outputs = Array.isArray(options.output) ? options.output : [(options.output ??= {})];
   const defaults: Record<string, string> = {
-    entryFileNames: `${assetsDir}/[name]-[hash:16].js`,
-    chunkFileNames: `${assetsDir}/[name]-[hash:16].js`,
+    ...(opts?.assetsOnly
+      ? {}
+      : {
+          entryFileNames: `${assetsDir}/[name]-[hash:16].js`,
+          chunkFileNames: `${assetsDir}/[name]-[hash:16].js`,
+        }),
     assetFileNames: `${assetsDir}/[name]-[hash:16][extname]`,
   };
   for (const output of outputs) {
