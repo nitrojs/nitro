@@ -42,6 +42,11 @@ const WORKERD_BUILTIN_RE = /^(?:cloudflare|workerd):/;
 
 export type FetchHandler = (req: Request) => Promise<Response>;
 
+type NitroDevRequest = IncomingMessage & {
+  _nitroHandled?: boolean;
+  _nitroAssetCheck?: boolean;
+};
+
 export interface DevServer extends RunnerRPCHooks {
   fetch: FetchHandler;
   init?: () => void | Promise<void>;
@@ -214,7 +219,7 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   });
 
   const nitroDevMiddleware = async (
-    nodeReq: IncomingMessage & { _nitroHandled?: boolean; _nitroAssetCheck?: boolean },
+    nodeReq: NitroDevRequest,
     nodeRes: ServerResponse,
     next: (error?: unknown) => void
   ) => {
@@ -223,9 +228,7 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       !nodeReq.url ||
       /^\/@(?:vite|fs|id)\//.test(nodeReq.url) ||
       nodeReq._nitroHandled ||
-      server.middlewares.stack
-        .map((mw) => mw.route)
-        .some((base) => base && nodeReq.url!.startsWith(base))
+      server.middlewares.stack.some((mw) => mw.route && nodeReq.url!.startsWith(mw.route))
     ) {
       return next();
     }
@@ -276,9 +279,19 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     }
   };
 
+  // Opaque catch-alls: the SSR renderer and a custom server entry (see .agents/vite-dev.md §2).
+  const isOpaqueHandler = (h?: { handler?: string }) =>
+    !!h?.handler &&
+    (h.handler === nitro.options.renderer?.handler ||
+      h.handler === (nitro.options.serverEntry && nitro.options.serverEntry.handler));
+
   // Handle server routes first to avoid conflicts with static assets served by Vite from the root
   // https://github.com/vitejs/vite/pull/20866
-  server.middlewares.use(function nitroDevMiddlewarePre(req, res, next) {
+  const nitroDevMiddlewarePre = (
+    req: NitroDevRequest,
+    res: ServerResponse,
+    next: (error?: unknown) => void
+  ) => {
     // Vite-internal prefixes (/@vite/client, /__vue-router/auto-routes, ...) are never Nitro's.
     if (/^\/(?:__|@)/.test(req.url!)) {
       return next();
@@ -348,27 +361,15 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       // still be dispatched — the response content-type then decides (`_nitroAssetCheck`).
       // A user-file root catch-all is transparent: Nitro sees everything it can handle, so
       // Vite stays the definitive asset handler and a Vite miss must not fall back into it.
-      const opaqueHandlers = new Set(
-        [
-          nitro.options.renderer?.handler,
-          nitro.options.serverEntry && nitro.options.serverEntry.handler,
-        ].filter(Boolean)
-      );
-      const onlyOpaqueCatchAll = matchedHandlers.every(
-        (h) => h?.handler && opaqueHandlers.has(h.handler)
-      );
-      const nodeReq = req as IncomingMessage & {
-        _nitroHandled?: boolean;
-        _nitroAssetCheck?: boolean;
-      };
-      if (onlyOpaqueCatchAll) {
-        nodeReq._nitroAssetCheck = true;
+      if (matchedHandlers.every(isOpaqueHandler)) {
+        req._nitroAssetCheck = true;
       } else {
-        nodeReq._nitroHandled = true;
+        req._nitroHandled = true;
       }
     }
     next();
-  });
+  };
+  server.middlewares.use(nitroDevMiddlewarePre);
 
   return () => {
     server.middlewares.use(nitroDevMiddleware);

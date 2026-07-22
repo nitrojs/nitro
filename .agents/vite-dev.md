@@ -17,8 +17,8 @@ both ends:
 
 | Registration | Site | Runs | Role |
 |---|---|---|---|
-| `nitroDevMiddlewarePre` (`function` form) | `dev.ts:281` | **before** Vite static/transform | Classifier. Route explicit-Nitro + definite navigations to Nitro immediately; let definite assets fall through to Vite, marking them `_nitroHandled` (transparent catch-all) or `_nitroAssetCheck` (opaque catch-all / no match). |
-| `nitroDevMiddleware` | `dev.ts:374`, inside the returned `() => { ... }` | **after** Vite static/transform | Catch-all fallback. Wraps req as web `Request`, tries `ctx.devApp.fetch` then `nitroEnv.dispatchFetch`, honoring `baseURL`; inspects the response for `_nitroAssetCheck` requests. Skipped for `_nitroHandled`. |
+| `nitroDevMiddlewarePre` (`const` form) | `dev.ts:290` | **before** Vite static/transform | Classifier. Route explicit-Nitro + definite navigations to Nitro immediately; let definite assets fall through to Vite, marking them `_nitroHandled` (transparent catch-all) or `_nitroAssetCheck` (opaque catch-all / no match). |
+| `nitroDevMiddleware` | `dev.ts:375`, inside the returned `() => { ... }` | **after** Vite static/transform | Catch-all fallback. Wraps req as web `Request`, tries `ctx.devApp.fetch` then `nitroEnv.dispatchFetch`, honoring `baseURL`; inspects the response for `_nitroAssetCheck` requests. Skipped for `_nitroHandled`. |
 
 **Why two, and why pre?** Without the pre-pass, Vite's static/transform
 middleware serves files from the project root and would answer server routes
