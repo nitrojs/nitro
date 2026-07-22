@@ -178,7 +178,9 @@ a real Vite dev server and `fetch()`es with hand-set headers.
   inspection), `HTTPError` propagation, navigations, storage/config sharing.
 - `server-entry.test.ts` (`server-entry-fixture/`) — #4252 custom `server.ts`
   H3 app: asset-extensioned routes reachable under `image`/absent/`script`
-  dests (including a no-content-type string return), missing-asset 404
+  dests (including a no-content-type string return), JSON sourcemap
+  (`/generated.js.map`) passes through, `POST` to an asset-extensioned route
+  reaches its handler (non-GET/HEAD are never assets), missing-asset 404
   contract, navigation.
 - `root-wildcard.test.ts` — transparent root catch-all `/**:path`: must never
   200 for `/entry-client.ts` under `script`/`style`/`image`/absent dests
