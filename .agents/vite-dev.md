@@ -65,9 +65,13 @@ Set `Vary: sec-fetch-dest, accept`, then:
 - **`Sec-Fetch-Dest` present & concrete** (not `empty`): `document`/`iframe`/
   `frame` = navigation → Nitro; anything else (`image`, `video`, `style`, …) =
   asset.
-- **Absent or `empty`**: fall back to extension — `ASSET_EXT_RE.test(ext)`
-  **and** no `text/html` in `Accept` ⇒ asset. (`empty` = fetch/XHR is ambiguous:
-  it tags both API calls and `fetch()`ed assets.)
+- **Absent or `empty`**: a Vite `?import` module-graph marker
+  (`/[?&]import(?:[&=]|$)/` on the URL) ⇒ asset — only Vite's module graph emits
+  it, never a page navigation, so it stays authoritative for extensions left out
+  of `ASSET_EXT_RE` like imported `.json` (#4433). Otherwise fall back to
+  extension — `ASSET_EXT_RE.test(ext)` **and** no `text/html` in `Accept` ⇒
+  asset. (`empty` = fetch/XHR is ambiguous: it tags both API calls and
+  `fetch()`ed assets.)
 - **Only `GET`/`HEAD` can be assets at all** — a `POST /upload.png` is never a
   browser asset load, so other methods bypass the heuristic entirely.
 - Non-asset + (matched or extensionless) → Nitro immediately (pre-Vite).
