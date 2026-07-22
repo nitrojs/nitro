@@ -17,8 +17,8 @@ both ends:
 
 | Registration | Site | Runs | Role |
 |---|---|---|---|
-| `nitroDevMiddlewarePre` (`const` form) | `dev.ts:293` | **before** Vite static/transform | Classifier. Route explicit-Nitro + definite navigations to Nitro immediately; let definite assets fall through to Vite, marking them `_nitroHandled` (transparent catch-all) or `_nitroAssetCheck` (opaque catch-all / no match). |
-| `nitroDevMiddleware` | `dev.ts:380`, inside the returned `() => { ... }` | **after** Vite static/transform | Catch-all fallback. Wraps req as web `Request`, tries `ctx.devApp.fetch` then `nitroEnv.dispatchFetch`, honoring `baseURL`; inspects the response for `_nitroAssetCheck` requests. Skipped for `_nitroHandled`. |
+| `nitroDevMiddlewarePre` (`const` form) | `dev.ts:284` | **before** Vite static/transform | Classifier. Route explicit-Nitro + definite navigations to Nitro immediately; let definite assets fall through to Vite, marking them `_nitroHandled` (transparent catch-all) or `_nitroAssetCheck` (opaque catch-all / no match). |
+| `nitroDevMiddleware` | `dev.ts:371`, inside the returned `() => { ... }` | **after** Vite static/transform | Catch-all fallback. Wraps req as web `Request`, tries `ctx.devApp.fetch` then `nitroEnv.dispatchFetch`, honoring `baseURL`; inspects the response for `_nitroAssetCheck` requests. Skipped for `_nitroHandled`. |
 
 **Why two, and why pre?** Without the pre-pass, Vite's static/transform
 middleware serves files from the project root and would answer server routes
@@ -84,7 +84,7 @@ classified **a priori** — `/image.png` may be a real custom-entry route (#4252
 or a genuinely missing asset that a naive SSR `/**` would render as a 200 page
 (#4234). It *can* be classified from the **response**: after Vite declines and
 the post catch-all dispatches to Nitro, a 2xx with a `text/html` content-type
-(`PAGE_CONTENT_RE`, `dev.ts:34`) means the catch-all rendered a page for a
+(inline check in the post middleware) means the catch-all rendered a page for a
 missing asset → the response is discarded via `next()` (connect `finalhandler`
 404, same as before). Anything else — real asset types, JSON, `text/plain`, no
 content-type, non-2xx (framework 404 pages, redirects) — passes through
@@ -201,8 +201,8 @@ a real Vite dev server and `fetch()`es with hand-set headers.
   cause).
 - Extension detection must stay path-only (strip `?#`) and `ASSET_EXT_RE` must
   stay narrow, or dotted Nitro params regress (#4108).
-- `PAGE_CONTENT_RE` must not grow `text/plain` (bridge default for string
-  returns) and inspection must only apply to `envRes.ok` — framework 404 pages
+- The inspection's html-only check must not grow `text/plain` (bridge default
+  for string returns) or `application/json` (deliberate API serves, #7403), and it must only apply to `envRes.ok` — framework 404 pages
   and redirects pass through verbatim.
 - The websocket `upgrade` handler is a separate concern sharing the "Vite's or
   Nitro's?" theme.

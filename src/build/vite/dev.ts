@@ -24,15 +24,6 @@ import { getEnvRunner } from "./env.ts";
 const ASSET_EXT_RE =
   /^(?:[jt]sx?|mjs|cjs|css|s[ac]ss|less|styl|vue|svelte|astro|mdx?|map|wasm|png|jpe?g|gif|svg|webp|avif|ico|bmp|woff2?|ttf|otf|eot|mp[34]|webm|wav|ogg|m4a)$/i;
 
-// The content type that means "a page was rendered" rather than "an asset was served". When an
-// asset-tagged request that only an opaque catch-all (SSR renderer / custom server entry) could
-// handle comes back as HTML, the catch-all swallowed a genuinely missing asset (#4234) and the
-// response is discarded in favor of a plain 404. Only `text/html` counts: JSON is how opaque
-// frameworks deliberately answer API routes tagged as asset loads (`<img src="/api/thumbnail">`,
-// TanStack/router#7403) and sourcemaps, and `text/plain` is the bridge default for bare string
-// returns — both must pass through.
-const PAGE_CONTENT_RE = /^text\/html\b/i;
-
 // workerd built-in module namespaces (`cloudflare:workers`, `cloudflare:sockets`, `workerd:...`).
 // These are provided natively by the runtime and have no host-side representation, so they must be
 // externalized for the in-worker module runner to `import()` them directly instead of being fetched
@@ -259,13 +250,15 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
         return;
       }
       // An asset-tagged request Vite already declined that only an opaque catch-all could
-      // handle: an HTML page means the catch-all swallowed a missing asset (#4234) — fall
-      // through to the 404 instead. A deliberate serve (any other or no content-type) passes
-      // through untouched (#4252, TanStack/router#7403).
+      // handle: a 2xx `text/html` page means the catch-all swallowed a missing asset (#4234) —
+      // fall through to the 404 instead. Anything else passes through untouched: JSON is how
+      // opaque frameworks deliberately answer API routes tagged as asset loads and sourcemaps
+      // (#4252, TanStack/router#7403), and `text/plain` is the bridge default for bare string
+      // returns.
       if (
         nodeReq._nitroAssetCheck &&
         envRes.ok &&
-        PAGE_CONTENT_RE.test(envRes.headers.get("content-type") || "")
+        /^text\/html\b/i.test(envRes.headers.get("content-type") || "")
       ) {
         await envRes.body?.cancel();
         return next();
