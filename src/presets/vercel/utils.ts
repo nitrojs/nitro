@@ -223,6 +223,26 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     ],
   });
 
+  // Cron jobs from scheduledTasks
+  // Only the node `vercel` preset registers a cron handler (see preset.ts).
+  // `vercel-edge` cannot run the Node-based handler and `vercel-static` has no
+  // server function, so we skip emitting cron config for them.
+  if (
+    nitro.options.preset === "vercel" &&
+    nitro.options.experimental.tasks &&
+    Object.keys(nitro.options.scheduledTasks || {}).length > 0
+  ) {
+    const cronPath = withLeadingSlash(
+      nitro.options.vercel?.cronHandlerRoute || "/_vercel/cron"
+    );
+    const existing = config.crons || [];
+    const seen = new Set(existing.map((c) => `${c.path}|${c.schedule}`));
+    const cronEntries = Object.keys(nitro.options.scheduledTasks)
+      .map((schedule) => ({ path: cronPath, schedule }))
+      .filter((c) => !seen.has(`${c.path}|${c.schedule}`));
+    config.crons = [...cronEntries, ...existing];
+  }
+
   // Early return if we are building a static site
   if (nitro.options.static) {
     return config;
