@@ -15,7 +15,8 @@ export default {
       return Response.json({ path: pathname });
     }
     if (/\.[a-z0-9]+$/i.test(pathname)) {
-      // Naive SSR shape: render an HTML page for any unmatched path, extensioned or not.
+      // Naive SSR shape for extensioned misses: render an HTML page instead of a 404.
+      // Extensionless paths keep the JSON payload below for the storage/config tests.
       return new Response(`<!doctype html><h1>${pathname}</h1>`, {
         headers: { "content-type": "text/html" },
       });
