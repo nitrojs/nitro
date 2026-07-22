@@ -24,11 +24,6 @@ import { getEnvRunner } from "./env.ts";
 const ASSET_EXT_RE =
   /^(?:[jt]sx?|mjs|cjs|css|s[ac]ss|less|styl|vue|svelte|astro|mdx?|map|wasm|png|jpe?g|gif|svg|webp|avif|ico|bmp|woff2?|ttf|otf|eot|mp[34]|webm|wav|ogg|m4a)$/i;
 
-// Vite tags module graph fetches for files it has to serve as modules (e.g. an imported `.json`)
-// with an `?import` query. Only the module graph emits it — a page navigation never does — so it
-// stays authoritative for extensions deliberately left out of `ASSET_EXT_RE` (#4433).
-const VITE_IMPORT_QUERY_RE = /[?&]import(?:[&=]|$)/;
-
 // workerd built-in module namespaces (`cloudflare:workers`, `cloudflare:sockets`, `workerd:...`).
 // These are provided natively by the runtime and have no host-side representation, so they must be
 // externalized for the in-worker module runner to `import()` them directly instead of being fetched
@@ -347,7 +342,10 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       (!req.method || req.method === "GET" || req.method === "HEAD") &&
       (typeof fetchDest === "string" && fetchDest !== "empty"
         ? !/^(?:document|iframe|frame)$/.test(fetchDest)
-        : VITE_IMPORT_QUERY_RE.test(req.url!) || isAssetByExt);
+        : // Vite tags module-graph fetches for files it serves as modules (e.g. an imported
+          // `.json`) with an `?import` query. Only the module graph emits it — a page navigation
+          // never does — so it stays authoritative for extensions left out of `ASSET_EXT_RE` (#4433).
+          /[?&]import(?:[&=]|$)/.test(req.url!) || isAssetByExt);
 
     // Non-asset requests go to Nitro: the catch-all (`matchedHandlers` are all catch-all here,
     // since explicit routes already returned) renders them, and bare (extensionless) unmatched
