@@ -21,8 +21,8 @@ importers:
         specifier: ^2.5.135
         version: 2.5.135(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(vue@3.5.40(typescript@5.9.3))
       undocs:
-        specifier: npm:undocs-nightly@0.4.17-20260722-220341-676f6b3
-        version: undocs-nightly@0.4.17-20260722-220341-676f6b3(19f8cfca7b4c303d847abfed5fa6e833)
+        specifier: npm:undocs-nightly@0.4.17-20260722-220842-b4fbad8
+        version: undocs-nightly@0.4.17-20260722-220842-b4fbad8(19f8cfca7b4c303d847abfed5fa6e833)
       zod:
         specifier: ^4.4.3
         version: 4.4.3
@@ -5914,8 +5914,8 @@ packages:
     resolution: {integrity: sha512-ubshXMXwF3MQIMF1y/WxZdNBnjEKeSg2wF5mcGUtU55YTw34tnVVpKRlLf7ruDXZ5344KokPVX4RBx1wJm64Bw==}
     engines: {node: '>=22.19.0'}
 
-  undocs-nightly@0.4.17-20260722-220341-676f6b3:
-    resolution: {integrity: sha512-6fuNQCjHWWuCtyTP1mflAcdwsZVdzoZ+7OlHshX3DLfS2aCdsj9D82miuhX3u0R8JOi4ya7QmNdLMPSTtdTcyA==}
+  undocs-nightly@0.4.17-20260722-220842-b4fbad8:
+    resolution: {integrity: sha512-0KsgGsTKvNWpbW5JIJmY9FKIu7d1KEqSne51Qu7s0TGgrqgmgO4v4T6yuXgteLQpt4Xl4/G/0FKI3tUB9N7O3A==}
     hasBin: true
 
   unenv@2.0.0-rc.24:
@@ -13296,7 +13296,7 @@ snapshots:
 
   undici@8.8.0: {}
 
-  undocs-nightly@0.4.17-20260722-220341-676f6b3(19f8cfca7b4c303d847abfed5fa6e833):
+  undocs-nightly@0.4.17-20260722-220842-b4fbad8(19f8cfca7b4c303d847abfed5fa6e833):
     dependencies:
       '@headlessui/vue': 1.7.23(vue@3.5.40(typescript@5.9.3))
       '@nuxt/content': 3.15.1(@valibot/to-json-schema@1.7.1(valibot@1.4.2(typescript@5.9.3)))(esbuild@0.28.1)(magic-string@1.0.0)(magicast@0.5.3)(oxc-parser@0.140.0)(rolldown@1.2.0)(rollup@4.62.2)(valibot@1.4.2(typescript@5.9.3))(vite@8.1.5(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(yaml@2.9.0))
