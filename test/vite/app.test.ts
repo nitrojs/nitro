@@ -82,6 +82,23 @@ describe("vite:app", () => {
     expect(res.status).not.toBe(200);
   });
 
+  // #4252: an asset-tagged request the SSR catch-all deliberately serves (non-page content-type)
+  // must reach the renderer and pass through, even though the URL looks like an asset.
+  test("SSR catch-all can serve asset-tagged requests", async () => {
+    for (const headers of [
+      { "sec-fetch-dest": "image", accept: "image/*" },
+      { accept: "*/*" },
+    ] as Record<string, string>[]) {
+      const res = await fetch(`${serverURL}/dynamic-asset.png`, {
+        headers,
+        redirect: "manual",
+      });
+      expect(res.status, JSON.stringify(headers)).toBe(200);
+      expect(res.headers.get("content-type")).toBe("image/png");
+      expect(await res.text()).toBe("PNGDATA");
+    }
+  });
+
   // HTTPError thrown from the SSR entry must propagate to the nitro app so the h3
   // error handler preserves its status and headers (consistent with production).
   test("propagates HTTPError status and headers from the SSR entry", async () => {

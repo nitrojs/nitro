@@ -24,6 +24,14 @@ import { getEnvRunner } from "./env.ts";
 const ASSET_EXT_RE =
   /^(?:[jt]sx?|mjs|cjs|css|s[ac]ss|less|styl|vue|svelte|astro|mdx?|map|wasm|png|jpe?g|gif|svg|webp|avif|ico|bmp|woff2?|ttf|otf|eot|mp[34]|webm|wav|ogg|m4a)$/i;
 
+// Content types that mean "a page/data response was rendered" rather than "an asset was served".
+// When an asset-tagged request that only an opaque catch-all (SSR renderer / custom server entry)
+// could handle comes back with one of these, the catch-all swallowed a genuinely missing asset
+// (#4234) and the response is discarded in favor of a plain 404. `text/plain` is deliberately
+// not included: a bare string returned from a handler arrives with the fetch-spec default
+// `text/plain;charset=UTF-8` and must pass through.
+const PAGE_CONTENT_RE = /^(?:text\/html|application\/json)\b/i;
+
 // workerd built-in module namespaces (`cloudflare:workers`, `cloudflare:sockets`, `workerd:...`).
 // These are provided natively by the runtime and have no host-side representation, so they must be
 // externalized for the in-worker module runner to `import()` them directly instead of being fetched
@@ -206,7 +214,7 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   });
 
   const nitroDevMiddleware = async (
-    nodeReq: IncomingMessage & { _nitroHandled?: boolean },
+    nodeReq: IncomingMessage & { _nitroHandled?: boolean; _nitroAssetCheck?: boolean },
     nodeRes: ServerResponse,
     next: (error?: unknown) => void
   ) => {
@@ -245,6 +253,18 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       const envRes = await nitroEnv.dispatchFetch(req);
       if (nodeRes.writableEnded || nodeRes.headersSent) {
         return;
+      }
+      // An asset-tagged request Vite already declined that only an opaque catch-all could
+      // handle: a page/data response means the catch-all swallowed a missing asset (#4234) —
+      // fall through to the 404 instead. A deliberate asset serve (any other or no
+      // content-type) passes through untouched (#4252).
+      if (
+        nodeReq._nitroAssetCheck &&
+        envRes.ok &&
+        PAGE_CONTENT_RE.test(envRes.headers.get("content-type") || "")
+      ) {
+        await envRes.body?.cancel();
+        return next();
       }
       return await sendNodeResponse(nodeRes, envRes);
     } catch (error) {
@@ -323,9 +343,29 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     }
 
     if (isAsset) {
-      // Vite is the definitive handler — mark the request so the catch-all `nitroDevMiddleware`
-      // registered after Vite doesn't fall back into a splat Nitro route on a 404.
-      (req as IncomingMessage & { _nitroHandled?: boolean })._nitroHandled = true;
+      // Opaque catch-alls (the SSR renderer and a custom server entry) route requests Nitro
+      // cannot see in `nitro.routing.routes` (#4252), so an asset-tagged miss from Vite must
+      // still be dispatched — the response content-type then decides (`_nitroAssetCheck`).
+      // A user-file root catch-all is transparent: Nitro sees everything it can handle, so
+      // Vite stays the definitive asset handler and a Vite miss must not fall back into it.
+      const opaqueHandlers = new Set(
+        [
+          nitro.options.renderer?.handler,
+          nitro.options.serverEntry && nitro.options.serverEntry.handler,
+        ].filter(Boolean)
+      );
+      const onlyOpaqueCatchAll = matchedHandlers.every(
+        (h) => h?.handler && opaqueHandlers.has(h.handler)
+      );
+      const nodeReq = req as IncomingMessage & {
+        _nitroHandled?: boolean;
+        _nitroAssetCheck?: boolean;
+      };
+      if (onlyOpaqueCatchAll) {
+        nodeReq._nitroAssetCheck = true;
+      } else {
+        nodeReq._nitroHandled = true;
+      }
     }
     next();
   });

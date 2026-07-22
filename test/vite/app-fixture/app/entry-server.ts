@@ -7,6 +7,9 @@ export default {
     if (req.url.includes("?error")) {
       throw new HTTPError({ status: 418, headers: { "x-test": "123" } });
     }
+    if (new URL(req.url).pathname === "/dynamic-asset.png") {
+      return new Response("PNGDATA", { headers: { "content-type": "image/png" } });
+    }
     const storage = useStorage();
     const config = useRuntimeConfig();
     await storage.set("test:key", "value-from-ssr");
