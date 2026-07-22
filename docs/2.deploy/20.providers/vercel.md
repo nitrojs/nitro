@@ -228,6 +228,40 @@ If your hook throws, the message is retried locally. Retries honour `retryAfterS
 
 You can provide additional [build output configuration](https://vercel.com/docs/build-output-api/v3) using `vercel.config` key inside `nitro.config`. It will be merged with built-in auto-generated config.
 
+## Immutable static files
+
+::important
+This feature is currently only available in the [nightly release channel](/docs/nightly) of Nitro v3.
+::
+
+<!-- :read-more{title="Immutable static files" to="https://vercel.com/docs/skew-protection"} -->
+
+Client build assets (such as JS and CSS chunks) can be emitted as **immutable static files**. These are served from the reserved `/_vercel/immutable/` path so they are shared across deployments and keep resolving even after a newer deployment no longer references them, improving cross-deployment caching.
+
+This feature is opt-in. Enable it with the `vercel.immutableStaticFiles` option or by setting the `NITRO_VERCEL_IMMUTABLE_STATIC_FILES_ENABLED` environment variable.
+
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  vercel: {
+    immutableStaticFiles: true
+  }
+})
+```
+
+When enabled, Nitro emits content-addressed build assets under `/_vercel/immutable/`.
+
+::note
+The [`VERCEL_HASH_SALT`](https://vercel.com/docs/environment-variables/system-environment-variables) system environment variable is factored into the content hashes, providing a way to rotate the generated file names.
+::
+
+::note
+This works out of the box with the **Nitro + Vite** integration: Nitro's Vercel preset sets `buildAssetsDir` config and the Vite plugin automatically applies it as the `assetsDir` for the client and server-rendered builds, so all generated asset URLs point under `/_vercel/immutable/`.
+
+Client build setups and frameworks must apply `nitro.options.buildAssetsDir` themselves — use it as the client bundler's asset output directory (base) so generated asset URLs are emitted under that path. Without this, assets are still emitted at their default location and the immutable manifest will not match.
+::
+
 ## On-Demand incremental static regeneration (ISR)
 
 On-demand revalidation allows you to purge the cache for an ISR route whenever you want, foregoing the time interval required with background revalidation.

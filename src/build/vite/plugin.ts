@@ -134,10 +134,34 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
     configEnvironment(name, config) {
       if (config.consumer === "client") {
         debug("[env]  Configuring client environment", name === "client" ? "" : ` (${name})`);
+        const nitro = useNitro(ctx);
         config.build!.emptyOutDir = false;
-        config.build!.outDir = useNitro(ctx).options.output.publicDir;
+        config.build!.outDir = nitro.options.output.publicDir;
         config.build!.copyPublicDir ??= false;
+        // Relocate generated client assets (e.g. under `_vercel/immutable`) so
+        // both client and SSR references point at the immutable base.
+        if (nitro.options.buildAssetsDir) {
+          config.build!.assetsDir = nitro.options.buildAssetsDir;
+          // Content-addressed (immutable) assets benefit from longer content
+          // hashes to reduce collision risk across deployments. Only upgrade the
+          // default `[hash]` token to a longer one; never override filename
+          // patterns explicitly set by the user or other plugins.
+          useLongerAssetHashes(config.build!, ctx._isRolldown, nitro.options.buildAssetsDir);
+        }
         return;
+      }
+
+      // Server environments render public asset URLs (`?url` imports, font CSS)
+      // derived from their `assetsDir`, so it must point at the immutable base
+      // where the client build actually emits the files. Only asset naming is
+      // aligned (`assetsOnly`): entry/chunk filenames are left at their defaults
+      // so each service keeps a flat entry that frameworks import by path.
+      const nitro = useNitro(ctx);
+      if (name !== "nitro" && nitro.options.buildAssetsDir) {
+        config.build!.assetsDir = nitro.options.buildAssetsDir;
+        useLongerAssetHashes(config.build!, ctx._isRolldown, nitro.options.buildAssetsDir, {
+          assetsOnly: true,
+        });
       }
 
       // Skip if already registered as a service
@@ -471,6 +495,48 @@ async function setupNitroContext(
       await ctx._envRunner.close();
     }
   });
+}
+
+// Upgrade the default `[hash]` filename token to a longer content hash for a
+// build environment's output. Filename patterns already configured (by the user
+// or other plugins) are only touched to lengthen a bare `[hash]`; explicit
+// `[hash:n]` tokens and non-string patterns are left untouched.
+//
+// Applied to the client environment (all output) and the SSR service
+// environment (`assetsOnly` — just `assetFileNames`) so a shared asset
+// resolves to the same filename on both sides. The SSR bundle's own
+// entry/chunks keep Vite's flat server layout. A user/framework that
+// overrides `assetFileNames` is responsible for keeping the two in sync
+// (and such assets opt out of the `buildAssetsDir` immutable base).
+export function useLongerAssetHashes(
+  build: NonNullable<EnvironmentOptions["build"]>,
+  isRolldown: boolean | undefined,
+  assetsDir: string,
+  opts?: { assetsOnly?: boolean }
+): void {
+  const options = ((build as any)[isRolldown ? "rolldownOptions" : "rollupOptions"] ??= {});
+  const outputs = Array.isArray(options.output) ? options.output : [(options.output ??= {})];
+  const defaults: Record<string, string> = {
+    ...(opts?.assetsOnly
+      ? {}
+      : {
+          entryFileNames: `${assetsDir}/[name]-[hash:16].js`,
+          chunkFileNames: `${assetsDir}/[name]-[hash:16].js`,
+        }),
+    assetFileNames: `${assetsDir}/[name]-[hash:16][extname]`,
+  };
+  for (const output of outputs) {
+    for (const key of Object.keys(defaults)) {
+      const current = output[key];
+      if (current === undefined) {
+        // Not set: opt into a longer-hash default matching Vite's own pattern.
+        output[key] = defaults[key];
+      } else if (typeof current === "string" && current.includes("[hash]")) {
+        // Already set: only lengthen a bare `[hash]` token, keep the rest as-is.
+        output[key] = current.replaceAll("[hash]", `[hash:16]`);
+      }
+    }
+  }
 }
 
 function getEntry(input: InputOption | undefined): string | undefined {
