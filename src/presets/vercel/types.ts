@@ -142,7 +142,10 @@ export interface VercelOptions {
    * deployments to improve cross-deployment caching. Nitro also writes an
    * `immutable.json` manifest mapping each file to its full content hash.
    *
-   * Enabled by default. Set to `false` to opt out.
+   * Opt in by setting this to `true` or the `NITRO_VERCEL_IMMUTABLE_STATIC_FILES_ENABLED`
+   * environment variable. When building on Vercel, immutable output is only
+   * produced if the deployment supports it (`VERCEL_IMMUTABLE_STATIC_FILES_ENABLED`);
+   * otherwise it is skipped with a warning.
    *
    * @default false
    */

@@ -9,7 +9,7 @@ import {
   generateStaticFiles,
   resolveVercelRuntime,
 } from "./utils.ts";
-import { immutableDir, generateImmutableManifest } from "./immutable.ts";
+import { setupImmutableStaticFiles, generateImmutableManifest } from "./immutable.ts";
 import { vercelDevModule } from "./dev.ts";
 
 import type { VercelFunctionTrigger } from "./types.ts";
@@ -26,7 +26,7 @@ const vercel = defineNitroPreset(
     },
     vercel: {
       skewProtection: !!process.env.VERCEL_SKEW_PROTECTION_ENABLED,
-      immutableStaticFiles: !!process.env.VERCEL_IMMUTABLE_STATIC_FILES_ENABLED,
+      immutableStaticFiles: !!process.env.NITRO_VERCEL_IMMUTABLE_STATIC_FILES_ENABLED,
       cronHandlerRoute: "/_vercel/cron",
     },
     output: {
@@ -42,12 +42,8 @@ const vercel = defineNitroPreset(
       "build:before": async (nitro: Nitro) => {
         const logger = nitro.logger.withTag("vercel");
 
-        // Immutable static files: emit content-addressed build assets under the
-        // reserved `_vercel/immutable` base so they can be shared across
-        // deployments.
-        if (nitro.options.vercel?.immutableStaticFiles) {
-          nitro.options.buildAssetsDir = immutableDir(nitro);
-        }
+        // Immutable static files
+        setupImmutableStaticFiles(nitro);
 
         // Runtime
         const runtime = await resolveVercelRuntime(nitro);
@@ -139,7 +135,7 @@ const vercelStatic = defineNitroPreset(
     },
     vercel: {
       skewProtection: !!process.env.VERCEL_SKEW_PROTECTION_ENABLED,
-      immutableStaticFiles: !!process.env.VERCEL_IMMUTABLE_STATIC_FILES_ENABLED,
+      immutableStaticFiles: !!process.env.NITRO_VERCEL_IMMUTABLE_STATIC_FILES_ENABLED,
     },
     output: {
       dir: "{{ rootDir }}/.vercel/output",
@@ -150,9 +146,8 @@ const vercelStatic = defineNitroPreset(
     },
     hooks: {
       "build:before": (nitro: Nitro) => {
-        if (nitro.options.vercel?.immutableStaticFiles) {
-          nitro.options.buildAssetsDir = immutableDir(nitro);
-        }
+        // Immutable static files (opt-in, guarded by Vercel platform support)
+        setupImmutableStaticFiles(nitro);
       },
       "rollup:before": (nitro: Nitro) => {
         deprecateSWR(nitro);
