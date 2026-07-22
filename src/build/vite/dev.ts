@@ -342,7 +342,10 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       (!req.method || req.method === "GET" || req.method === "HEAD") &&
       (typeof fetchDest === "string" && fetchDest !== "empty"
         ? !/^(?:document|iframe|frame)$/.test(fetchDest)
-        : isAssetByExt);
+        : // Vite tags module-graph fetches for files it serves as modules (e.g. an imported
+          // `.json`) with an `?import` query. Only the module graph emits it — a page navigation
+          // never does — so it stays authoritative for extensions left out of `ASSET_EXT_RE` (#4433).
+          /[?&]import(?:[&=]|$)/.test(req.url!) || isAssetByExt);
 
     // Non-asset requests go to Nitro: the catch-all (`matchedHandlers` are all catch-all here,
     // since explicit routes already returned) renders them, and bare (extensionless) unmatched
