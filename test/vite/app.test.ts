@@ -82,6 +82,18 @@ describe("vite:app", () => {
     expect(res.status).not.toBe(200);
   });
 
+  // #4433: Vite marks module-graph fetches for files it has to serve as modules with an `?import`
+  // query. The marker only ever comes from the module graph, never from a page navigation, so such
+  // a request must reach Vite even when the extension is not a known asset type (`.json`) and
+  // `Sec-Fetch-Dest` is absent.
+  test("does not let the SSR catch-all swallow ?import module requests", async () => {
+    const res = await fetch(`${serverURL}/missing-module.json?import`, {
+      headers: { accept: "*/*" },
+      redirect: "manual",
+    });
+    expect(res.status).not.toBe(200);
+  });
+
   // #4252: an asset-tagged request the SSR catch-all deliberately serves (non-page content-type)
   // must reach the renderer and pass through, even though the URL looks like an asset.
   test("SSR catch-all can serve asset-tagged requests", async () => {
