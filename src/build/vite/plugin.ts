@@ -152,7 +152,7 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
       }
 
       const nitro = useNitro(ctx);
-      if (name !== "nitro" && nitro.options.buildAssetsDir) {
+      if (name === "ssr" && nitro.options.buildAssetsDir) {
         config.build!.assetsDir = nitro.options.buildAssetsDir;
         useLongerAssetHashes(config.build!, ctx._isRolldown, nitro.options.buildAssetsDir);
       }
