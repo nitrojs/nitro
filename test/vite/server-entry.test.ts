@@ -71,6 +71,34 @@ describe("vite:server entry", { sequential: true }, () => {
     expect(await res.text()).toContain("generated");
   });
 
+  // Sourcemaps are legitimately `application/json`, so the page/data response inspection
+  // must not discard them even though `.map` is an asset extension.
+  test("custom server entry serves JSON sourcemaps", async () => {
+    for (const headers of [{ accept: "*/*" }, { "sec-fetch-dest": "empty" }] as Record<
+      string,
+      string
+    >[]) {
+      const res = await fetch(`${serverURL}/generated.js.map`, {
+        headers,
+        redirect: "manual",
+      });
+      expect(res.status, JSON.stringify(headers)).toBe(200);
+      expect(res.headers.get("content-type")).toContain("application/json");
+    }
+  });
+
+  // Non-GET/HEAD requests are never browser asset loads — a POST to an asset-extensioned
+  // URL must reach the handler and its JSON response must pass through uninspected.
+  test("custom server entry handles POST to asset-extensioned routes", async () => {
+    const res = await fetch(`${serverURL}/upload.png`, {
+      method: "POST",
+      headers: { "sec-fetch-dest": "empty", accept: "*/*" },
+      redirect: "manual",
+    });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ uploaded: true });
+  });
+
   // #4234 contract: a genuinely missing asset must still not be answered with 200.
   test("missing assets still 404", async () => {
     for (const headers of [{ "sec-fetch-dest": "style" }, { accept: "*/*" }] as Record<

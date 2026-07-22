@@ -260,14 +260,17 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       // An asset-tagged request Vite already declined that only an opaque catch-all could
       // handle: a page/data response means the catch-all swallowed a missing asset (#4234) —
       // fall through to the 404 instead. A deliberate asset serve (any other or no
-      // content-type) passes through untouched (#4252).
-      if (
-        nodeReq._nitroAssetCheck &&
-        envRes.ok &&
-        PAGE_CONTENT_RE.test(envRes.headers.get("content-type") || "")
-      ) {
-        await envRes.body?.cancel();
-        return next();
+      // content-type) passes through untouched (#4252). Sourcemaps are legitimately
+      // `application/json`, so for `.map` URLs only an HTML page counts as a swallow.
+      if (nodeReq._nitroAssetCheck && envRes.ok) {
+        const contentType = envRes.headers.get("content-type") || "";
+        const isPageContent = nodeReq.url!.split(/[?#]/, 1)[0].endsWith(".map")
+          ? /^text\/html\b/i.test(contentType)
+          : PAGE_CONTENT_RE.test(contentType);
+        if (isPageContent) {
+          await envRes.body?.cancel();
+          return next();
+        }
       }
       return await sendNodeResponse(nodeRes, envRes);
     } catch (error) {
@@ -342,11 +345,13 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       !!ext && ASSET_EXT_RE.test(ext) && !/\btext\/html\b/.test(req.headers["accept"] || "");
 
     // `document`/`iframe`/`frame` are definite navigations; any other concrete `Sec-Fetch-Dest`
-    // (`image`, `video`, `style`, ...) is a definite asset load.
+    // (`image`, `video`, `style`, ...) is a definite asset load. Only `GET`/`HEAD` can be
+    // browser asset loads at all — other methods are never assets.
     const isAsset =
-      typeof fetchDest === "string" && fetchDest !== "empty"
+      (!req.method || req.method === "GET" || req.method === "HEAD") &&
+      (typeof fetchDest === "string" && fetchDest !== "empty"
         ? !/^(?:document|iframe|frame)$/.test(fetchDest)
-        : isAssetByExt;
+        : isAssetByExt);
 
     // Non-asset requests go to Nitro: the catch-all (`matchedHandlers` are all catch-all here,
     // since explicit routes already returned) renders them, and bare (extensionless) unmatched

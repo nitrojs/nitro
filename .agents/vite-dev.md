@@ -17,8 +17,8 @@ both ends:
 
 | Registration | Site | Runs | Role |
 |---|---|---|---|
-| `nitroDevMiddlewarePre` (`const` form) | `dev.ts:290` | **before** Vite static/transform | Classifier. Route explicit-Nitro + definite navigations to Nitro immediately; let definite assets fall through to Vite, marking them `_nitroHandled` (transparent catch-all) or `_nitroAssetCheck` (opaque catch-all / no match). |
-| `nitroDevMiddleware` | `dev.ts:375`, inside the returned `() => { ... }` | **after** Vite static/transform | Catch-all fallback. Wraps req as web `Request`, tries `ctx.devApp.fetch` then `nitroEnv.dispatchFetch`, honoring `baseURL`; inspects the response for `_nitroAssetCheck` requests. Skipped for `_nitroHandled`. |
+| `nitroDevMiddlewarePre` (`const` form) | `dev.ts:293` | **before** Vite static/transform | Classifier. Route explicit-Nitro + definite navigations to Nitro immediately; let definite assets fall through to Vite, marking them `_nitroHandled` (transparent catch-all) or `_nitroAssetCheck` (opaque catch-all / no match). |
+| `nitroDevMiddleware` | `dev.ts:380`, inside the returned `() => { ... }` | **after** Vite static/transform | Catch-all fallback. Wraps req as web `Request`, tries `ctx.devApp.fetch` then `nitroEnv.dispatchFetch`, honoring `baseURL`; inspects the response for `_nitroAssetCheck` requests. Skipped for `_nitroHandled`. |
 
 **Why two, and why pre?** Without the pre-pass, Vite's static/transform
 middleware serves files from the project root and would answer server routes
@@ -67,6 +67,8 @@ Set `Vary: sec-fetch-dest, accept`, then:
 - **Absent or `empty`**: fall back to extension — `ASSET_EXT_RE.test(ext)`
   **and** no `text/html` in `Accept` ⇒ asset. (`empty` = fetch/XHR is ambiguous:
   it tags both API calls and `fetch()`ed assets.)
+- **Only `GET`/`HEAD` can be assets at all** — a `POST /upload.png` is never a
+  browser asset load, so other methods bypass the heuristic entirely.
 - Non-asset + (matched or extensionless) → Nitro immediately (pre-Vite).
 
 Two regexes to keep intact:
@@ -92,17 +94,29 @@ Deny-list rationale (all verified empirically):
 
 - `application/json` is included because a naive SSR entry can swallow with
   JSON, not just HTML (the `app-fixture` entry does exactly that).
+- Exception: for `.map` URLs only `text/html` counts as a swallow — sourcemaps
+  are legitimately `application/json` and must pass through.
 - `text/plain` is excluded because a bare string returned from an h3 handler
-  has **no** content-type at the h3 layer but crosses the worker bridge as a
-  `Response` with the fetch-spec default `text/plain;charset=UTF-8` — it must
+  has **no** content-type at the h3 layer but arrives as `text/plain;
+  charset=UTF-8` — srvx's node-adapter default applied on the worker's HTTP hop
+  (`srvx/dist/adapters/node.mjs`; runner-dependent but converges) — and must
   pass through (custom-entry handlers returning strings).
 - Transparent (user-file) catch-alls can **not** use inspection instead of the
   divert: their string 200s arrive with no distinguishing content-type.
 
 This keeps everything zero-config, host-side only (no runtime/bundle change,
-no production behavior change). Known leftover: **production** SSR still
-renders 200 HTML for missing-asset URLs — pre-existing behavior; changing it
-is a separate, deliberate breaking-change discussion.
+no production behavior change). Known leftovers:
+
+- **Production** SSR still renders 200 HTML for missing-asset URLs —
+  pre-existing behavior; changing it is a separate, deliberate breaking-change
+  discussion.
+- Opaque semantics require registration via `renderer` / `serverEntry`. A `/**`
+  catch-all added through `routes:` / `handlers:` config or a module is
+  classified **transparent** and stays pre-empted for asset-tagged requests
+  (#4252-class limitation) — a framework integrating its renderer that way
+  should use `renderer` instead.
+- Dev-only cost: a missing asset matching an opaque catch-all triggers a full
+  (discarded) SSR render before the 404.
 
 ## 5. Issue / PR lineage (chronological)
 

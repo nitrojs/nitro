@@ -14,4 +14,8 @@ app.get("/image.png", (event) => {
 
 app.get("/generated.js", () => "console.log('generated')");
 
+app.get("/generated.js.map", () => Response.json({ version: 3, mappings: "" }));
+
+app.post("/upload.png", () => Response.json({ uploaded: true }));
+
 export default app;
