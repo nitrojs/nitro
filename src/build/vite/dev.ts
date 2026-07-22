@@ -39,6 +39,11 @@ const WORKERD_BUILTIN_RE = /^(?:cloudflare|workerd):/;
 
 export type FetchHandler = (req: Request) => Promise<Response>;
 
+type NitroDevRequest = IncomingMessage & {
+  _nitroHandled?: boolean;
+  _nitroAssetCheck?: boolean;
+};
+
 export interface DevServer extends RunnerRPCHooks {
   fetch: FetchHandler;
   init?: () => void | Promise<void>;
@@ -211,7 +216,7 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   });
 
   const nitroDevMiddleware = async (
-    nodeReq: IncomingMessage & { _nitroHandled?: boolean },
+    nodeReq: NitroDevRequest,
     nodeRes: ServerResponse,
     next: (error?: unknown) => void
   ) => {
@@ -220,9 +225,7 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       !nodeReq.url ||
       /^\/@(?:vite|fs|id)\//.test(nodeReq.url) ||
       nodeReq._nitroHandled ||
-      server.middlewares.stack
-        .map((mw) => mw.route)
-        .some((base) => base && nodeReq.url!.startsWith(base))
+      server.middlewares.stack.some((mw) => mw.route && nodeReq.url!.startsWith(mw.route))
     ) {
       return next();
     }
@@ -251,6 +254,20 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       if (nodeRes.writableEnded || nodeRes.headersSent) {
         return;
       }
+      // An asset-tagged request Vite already declined that only an opaque catch-all could
+      // handle: a 2xx `text/html` page means the catch-all swallowed a missing asset (#4234) —
+      // fall through to the 404 instead. Anything else passes through untouched: JSON is how
+      // opaque frameworks deliberately answer API routes tagged as asset loads and sourcemaps
+      // (#4252, TanStack/router#7403), and `text/plain` is the bridge default for bare string
+      // returns.
+      if (
+        nodeReq._nitroAssetCheck &&
+        envRes.ok &&
+        /^text\/html\b/i.test(envRes.headers.get("content-type") || "")
+      ) {
+        await envRes.body?.cancel();
+        return next();
+      }
       return await sendNodeResponse(nodeRes, envRes);
     } catch (error) {
       return next(error);
@@ -261,9 +278,19 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     }
   };
 
+  // Opaque catch-alls: the SSR renderer and a custom server entry (see .agents/vite-dev.md §2).
+  const isOpaqueHandler = (h?: { handler?: string }) =>
+    !!h?.handler &&
+    (h.handler === nitro.options.renderer?.handler ||
+      h.handler === (nitro.options.serverEntry && nitro.options.serverEntry.handler));
+
   // Handle server routes first to avoid conflicts with static assets served by Vite from the root
   // https://github.com/vitejs/vite/pull/20866
-  server.middlewares.use(function nitroDevMiddlewarePre(req, res, next) {
+  const nitroDevMiddlewarePre = (
+    req: NitroDevRequest,
+    res: ServerResponse,
+    next: (error?: unknown) => void
+  ) => {
     // Vite-internal prefixes (/@vite/client, /__vue-router/auto-routes, ...) are never Nitro's.
     if (/^\/(?:__|@)/.test(req.url!)) {
       return next();
@@ -314,11 +341,13 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       !!ext && ASSET_EXT_RE.test(ext) && !/\btext\/html\b/.test(req.headers["accept"] || "");
 
     // `document`/`iframe`/`frame` are definite navigations; any other concrete `Sec-Fetch-Dest`
-    // (`image`, `video`, `style`, ...) is a definite asset load.
+    // (`image`, `video`, `style`, ...) is a definite asset load. Only `GET`/`HEAD` can be
+    // browser asset loads at all — other methods are never assets.
     const isAsset =
-      typeof fetchDest === "string" && fetchDest !== "empty"
+      (!req.method || req.method === "GET" || req.method === "HEAD") &&
+      (typeof fetchDest === "string" && fetchDest !== "empty"
         ? !/^(?:document|iframe|frame)$/.test(fetchDest)
-        : VITE_IMPORT_QUERY_RE.test(req.url!) || isAssetByExt;
+        : VITE_IMPORT_QUERY_RE.test(req.url!) || isAssetByExt);
 
     // Non-asset requests go to Nitro: the catch-all (`matchedHandlers` are all catch-all here,
     // since explicit routes already returned) renders them, and bare (extensionless) unmatched
@@ -328,12 +357,20 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     }
 
     if (isAsset) {
-      // Vite is the definitive handler — mark the request so the catch-all `nitroDevMiddleware`
-      // registered after Vite doesn't fall back into a splat Nitro route on a 404.
-      (req as IncomingMessage & { _nitroHandled?: boolean })._nitroHandled = true;
+      // Opaque catch-alls (the SSR renderer and a custom server entry) route requests Nitro
+      // cannot see in `nitro.routing.routes` (#4252), so an asset-tagged miss from Vite must
+      // still be dispatched — the response content-type then decides (`_nitroAssetCheck`).
+      // A user-file root catch-all is transparent: Nitro sees everything it can handle, so
+      // Vite stays the definitive asset handler and a Vite miss must not fall back into it.
+      if (matchedHandlers.every(isOpaqueHandler)) {
+        req._nitroAssetCheck = true;
+      } else {
+        req._nitroHandled = true;
+      }
     }
     next();
-  });
+  };
+  server.middlewares.use(nitroDevMiddlewarePre);
 
   return () => {
     server.middlewares.use(nitroDevMiddleware);
