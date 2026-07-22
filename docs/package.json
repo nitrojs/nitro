@@ -9,7 +9,7 @@
     "geist": "^1.7.2",
     "motion-v": "^2.3.0",
     "shaders": "^2.5.135",
-    "undocs": "npm:undocs-nightly@0.4.17-20260722-213911-86546af",
+    "undocs": "npm:undocs-nightly@0.4.17-20260722-220341-676f6b3",
     "zod": "^4.4.3"
   }
 }
