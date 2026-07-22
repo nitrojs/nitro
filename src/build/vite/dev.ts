@@ -24,13 +24,14 @@ import { getEnvRunner } from "./env.ts";
 const ASSET_EXT_RE =
   /^(?:[jt]sx?|mjs|cjs|css|s[ac]ss|less|styl|vue|svelte|astro|mdx?|map|wasm|png|jpe?g|gif|svg|webp|avif|ico|bmp|woff2?|ttf|otf|eot|mp[34]|webm|wav|ogg|m4a)$/i;
 
-// Content types that mean "a page/data response was rendered" rather than "an asset was served".
-// When an asset-tagged request that only an opaque catch-all (SSR renderer / custom server entry)
-// could handle comes back with one of these, the catch-all swallowed a genuinely missing asset
-// (#4234) and the response is discarded in favor of a plain 404. `text/plain` is deliberately
-// not included: a bare string returned from a handler arrives with the fetch-spec default
-// `text/plain;charset=UTF-8` and must pass through.
-const PAGE_CONTENT_RE = /^(?:text\/html|application\/json)\b/i;
+// The content type that means "a page was rendered" rather than "an asset was served". When an
+// asset-tagged request that only an opaque catch-all (SSR renderer / custom server entry) could
+// handle comes back as HTML, the catch-all swallowed a genuinely missing asset (#4234) and the
+// response is discarded in favor of a plain 404. Only `text/html` counts: JSON is how opaque
+// frameworks deliberately answer API routes tagged as asset loads (`<img src="/api/thumbnail">`,
+// TanStack/router#7403) and sourcemaps, and `text/plain` is the bridge default for bare string
+// returns — both must pass through.
+const PAGE_CONTENT_RE = /^text\/html\b/i;
 
 // workerd built-in module namespaces (`cloudflare:workers`, `cloudflare:sockets`, `workerd:...`).
 // These are provided natively by the runtime and have no host-side representation, so they must be
@@ -258,19 +259,16 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
         return;
       }
       // An asset-tagged request Vite already declined that only an opaque catch-all could
-      // handle: a page/data response means the catch-all swallowed a missing asset (#4234) —
-      // fall through to the 404 instead. A deliberate asset serve (any other or no
-      // content-type) passes through untouched (#4252). Sourcemaps are legitimately
-      // `application/json`, so for `.map` URLs only an HTML page counts as a swallow.
-      if (nodeReq._nitroAssetCheck && envRes.ok) {
-        const contentType = envRes.headers.get("content-type") || "";
-        const isPageContent = nodeReq.url!.split(/[?#]/, 1)[0].endsWith(".map")
-          ? /^text\/html\b/i.test(contentType)
-          : PAGE_CONTENT_RE.test(contentType);
-        if (isPageContent) {
-          await envRes.body?.cancel();
-          return next();
-        }
+      // handle: an HTML page means the catch-all swallowed a missing asset (#4234) — fall
+      // through to the 404 instead. A deliberate serve (any other or no content-type) passes
+      // through untouched (#4252, TanStack/router#7403).
+      if (
+        nodeReq._nitroAssetCheck &&
+        envRes.ok &&
+        PAGE_CONTENT_RE.test(envRes.headers.get("content-type") || "")
+      ) {
+        await envRes.body?.cancel();
+        return next();
       }
       return await sendNodeResponse(nodeRes, envRes);
     } catch (error) {

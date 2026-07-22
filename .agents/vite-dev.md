@@ -83,19 +83,23 @@ An asset-tagged request that only an opaque catch-all could handle cannot be
 classified **a priori** — `/image.png` may be a real custom-entry route (#4252)
 or a genuinely missing asset that a naive SSR `/**` would render as a 200 page
 (#4234). It *can* be classified from the **response**: after Vite declines and
-the post catch-all dispatches to Nitro, a 2xx with a page-ish content-type
-(`PAGE_CONTENT_RE`, `dev.ts:33`: `text/html` | `application/json`) means the
-catch-all swallowed a missing asset → the response is discarded via `next()`
-(connect `finalhandler` 404, same as before). Anything else — real asset types,
-`text/plain`, no content-type, non-2xx (framework 404 pages, redirects) —
-passes through verbatim.
+the post catch-all dispatches to Nitro, a 2xx with a `text/html` content-type
+(`PAGE_CONTENT_RE`, `dev.ts:34`) means the catch-all rendered a page for a
+missing asset → the response is discarded via `next()` (connect `finalhandler`
+404, same as before). Anything else — real asset types, JSON, `text/plain`, no
+content-type, non-2xx (framework 404 pages, redirects) — passes through
+verbatim.
 
 Deny-list rationale (all verified empirically):
 
-- `application/json` is included because a naive SSR entry can swallow with
-  JSON, not just HTML (the `app-fixture` entry does exactly that).
-- Exception: for `.map` URLs only `text/html` counts as a swallow — sourcemaps
-  are legitimately `application/json` and must pass through.
+- Only `text/html` counts as a swallow. `application/json` was originally
+  denied too, but that broke real opaque frameworks: TanStack Start answers
+  API routes tagged as asset loads with JSON on purpose
+  (`<img src="/api/.../thumbnail">`, TanStack/router#7403, nitro PR #4274),
+  and sourcemaps (`.map` ∈ `ASSET_EXT_RE`) are legitimately JSON. The
+  accepted trade-off: an SSR entry that swallows missing assets with *JSON*
+  (pathological — real naive SSR renders HTML) now returns 200 JSON instead
+  of 404 in dev.
 - `text/plain` is excluded because a bare string returned from an h3 handler
   has **no** content-type at the h3 layer but arrives as `text/plain;
   charset=UTF-8` — srvx's node-adapter default applied on the worker's HTTP hop
@@ -168,7 +172,8 @@ a real Vite dev server and `fetch()`es with hand-set headers.
 
 - `app.test.ts` (`app-fixture/`) — SSR `/**` path. #4234 swallow contracts
   (missing `.css`/`.js` under `style`/absent/`empty` dests must not 200 — the
-  fixture entry swallows with **JSON**, keeping the deny-list honest), #4252
+  fixture entry renders an HTML page for extensioned misses), JSON API routes
+  under `sec-fetch-dest: image` pass through (TanStack/router#7403), #4252
   deliberate asset serve (`/dynamic-asset.png` → `image/png` passes
   inspection), `HTTPError` propagation, navigations, storage/config sharing.
 - `server-entry.test.ts` (`server-entry-fixture/`) — #4252 custom `server.ts`

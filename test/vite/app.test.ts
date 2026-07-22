@@ -58,7 +58,7 @@ describe("vite:app", () => {
       headers: { "sec-fetch-dest": "style" },
       redirect: "manual",
     });
-    // The SSR renderer would answer 200 with JSON; Vite 404s a missing asset.
+    // The SSR renderer would answer 200 with an HTML page; Vite 404s a missing asset.
     expect(res.status).not.toBe(200);
   });
 
@@ -96,6 +96,24 @@ describe("vite:app", () => {
       expect(res.status, JSON.stringify(headers)).toBe(200);
       expect(res.headers.get("content-type")).toBe("image/png");
       expect(await res.text()).toBe("PNGDATA");
+    }
+  });
+
+  // TanStack/router#7403 / #4274: JSON API routes served by the opaque SSR catch-all
+  // (`<img src="/api/.../thumbnail">`) must pass through even when tagged as asset loads —
+  // `application/json` is a deliberate serve, not a swallow.
+  test("SSR catch-all can serve JSON API routes under asset sec-fetch-dest", async () => {
+    for (const path of [
+      "/api-json/thumbnail",
+      "/api-json/foo.png",
+      "/api-json/files?filename=something.png",
+    ]) {
+      const res = await fetch(`${serverURL}${path}`, {
+        headers: { "sec-fetch-dest": "image", accept: "image/*" },
+        redirect: "manual",
+      });
+      expect(res.status, path).toBe(200);
+      expect(res.headers.get("content-type"), path).toContain("application/json");
     }
   });
 
