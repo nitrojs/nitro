@@ -21,7 +21,15 @@ export default defineHandler((event) => {
   const encodings = [
     ...encodingHeader
       .split(",")
-      .map((e) => EncodingMap[e.trim().split(";")[0].trim() as keyof typeof EncodingMap])
+      .map((entry) => {
+        const [name, ...parameters] = entry.split(";");
+        const quality = parameters
+          .map((parameter) => parameter.trim().split("="))
+          .find(([key]) => key.toLowerCase() === "q")?.[1];
+        return quality !== undefined && Number(quality) === 0
+          ? undefined
+          : EncodingMap[name.trim() as keyof typeof EncodingMap];
+      })
       .filter(Boolean)
       .sort(),
     "",
