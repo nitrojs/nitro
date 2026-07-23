@@ -10,6 +10,7 @@ export interface NitroHooks {
   "types:extend": (types: NitroTypes) => HookResult;
   "build:before": (nitro: Nitro) => HookResult;
   "rollup:before": (nitro: Nitro, config: RollupConfig) => HookResult;
+  "vite:before:compile": (nitro: Nitro) => HookResult;
   compiled: (nitro: Nitro) => HookResult;
   "dev:reload": (payload?: { entry?: string; workerData?: EnvRunnerData }) => HookResult;
   "dev:start": () => HookResult;
