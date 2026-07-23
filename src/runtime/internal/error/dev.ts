@@ -1,9 +1,10 @@
 import { HTTPError, type HTTPEvent } from "h3";
 import { getRequestURL } from "h3";
 import { readFile } from "node:fs/promises";
-import { resolve, dirname } from "node:path";
+import { resolve, dirname } from "pathe";
 import consola from "consola";
 import type { ErrorParser } from "youch-core";
+import type { SourceMapConsumer } from "source-map";
 import { defineNitroErrorHandler } from "./utils.ts";
 import type { InternalHandlerResponse } from "./utils.ts";
 import { FastResponse } from "srvx";
@@ -105,7 +106,17 @@ export async function loadStackTrace(error: any): Promise<void> {
 
   const { ErrorParser } = await import("youch-core");
 
-  const parsed = await new ErrorParser().defineSourceLoader(sourceLoader).parse(error);
+  const consumerCache = new Map<string, Promise<SourceMapConsumer | undefined>>();
+  let parsed: Awaited<ReturnType<ErrorParser["parse"]>>;
+  try {
+    parsed = await new ErrorParser()
+      .defineSourceLoader((frame) => sourceLoader(frame, consumerCache))
+      .parse(error);
+  } finally {
+    for (const consumer of consumerCache.values()) {
+      await consumer.then((c) => c?.destroy()).catch(() => {});
+    }
+  }
 
   const stack = error.message + "\n" + parsed.frames.map((frame) => fmtFrame(frame)).join("\n");
 
@@ -118,25 +129,53 @@ export async function loadStackTrace(error: any): Promise<void> {
 
 type SourceLoader = Parameters<ErrorParser["defineSourceLoader"]>[0];
 type StackFrame = Parameters<SourceLoader>[0];
-async function sourceLoader(frame: StackFrame) {
+async function loadConsumer(
+  fileName: string,
+  cache: Map<string, Promise<SourceMapConsumer | undefined>>
+): Promise<SourceMapConsumer | undefined> {
+  const cached = cache.get(fileName);
+  if (cached) {
+    return cached;
+  }
+  const promise = (async () => {
+    const rawSourceMap = await readFile(`${fileName}.map`, "utf8").catch(() => {});
+    if (!rawSourceMap) {
+      return undefined;
+    }
+    const { SourceMapConsumer } = await import("source-map");
+    return new SourceMapConsumer(rawSourceMap);
+  })().catch(() => undefined);
+  cache.set(fileName, promise);
+  return promise;
+}
+
+async function sourceLoader(
+  frame: StackFrame,
+  consumerCache: Map<string, Promise<SourceMapConsumer | undefined>>
+) {
   if (!frame.fileName || frame.fileType !== "fs" || frame.type === "native") {
     return;
   }
 
   if (frame.type === "app") {
-    // prettier-ignore
-    const rawSourceMap = await readFile(`${frame.fileName}.map`, "utf8").catch(() => {});
-    if (rawSourceMap) {
-      const { SourceMapConsumer } = await import("source-map");
-      const consumer = await new SourceMapConsumer(rawSourceMap);
-      // prettier-ignore
-      const originalPosition = consumer.originalPositionFor({ line: frame.lineNumber!, column: frame.columnNumber! });
-      if (originalPosition.source && originalPosition.line) {
+    // A bundled dev server ships one large `.mjs.map`; keep the consumer keyed on
+    // the bundle path so it is parsed once per request rather than once per frame.
+    const bundleFileName = frame.fileName;
+    try {
+      const consumer = await loadConsumer(bundleFileName, consumerCache);
+      if (consumer) {
         // prettier-ignore
-        frame.fileName = resolve(dirname(frame.fileName), originalPosition.source);
-        frame.lineNumber = originalPosition.line;
-        frame.columnNumber = originalPosition.column || 0;
+        const originalPosition = consumer.originalPositionFor({ line: frame.lineNumber!, column: frame.columnNumber! });
+        if (originalPosition.source && originalPosition.line) {
+          // prettier-ignore
+          frame.fileName = resolve(dirname(bundleFileName), originalPosition.source);
+          frame.lineNumber = originalPosition.line;
+          frame.columnNumber = originalPosition.column || 0;
+        }
       }
+    } catch {
+      // Some bundler-generated maps trip the source-map wasm decoder; degrade to
+      // the un-enhanced frame instead of throwing for every frame.
     }
   }
 
