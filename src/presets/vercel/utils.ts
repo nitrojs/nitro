@@ -5,6 +5,7 @@ import { writeFile } from "../_utils/fs.ts";
 import type { Nitro, NitroRouteRules, ProxyRuleOptions } from "nitro/types";
 import { basename, dirname, relative, resolve } from "pathe";
 import { Router } from "../../routing.ts";
+import { escapeRegExp } from "../../utils/regex.ts";
 import { joinURL, withLeadingSlash, withoutLeadingSlash } from "ufo";
 import type {
   PrerenderFunctionConfig,
@@ -223,6 +224,11 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
       .map(([path]) => path)
   );
 
+  const publicAssetRouteSources = nitro.options.publicAssets
+    .filter((asset) => !asset.fallthrough)
+    .map((asset) => joinURL(nitro.options.baseURL, asset.baseURL || "/"))
+    .map((baseURL) => joinURL(escapeRegExp(baseURL), "(.*)"));
+
   const config = defu(nitro.options.vercel?.config, {
     version: 3,
     framework: {
@@ -301,17 +307,22 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
           ]
         : []),
       // Public asset rules
-      ...nitro.options.publicAssets
-        .filter((asset) => !asset.fallthrough)
-        .map((asset) => joinURL(nitro.options.baseURL, asset.baseURL || "/"))
-        .map((baseURL) => ({
-          src: baseURL + "(.*)",
-          headers: {
-            "cache-control": "public,max-age=31536000,immutable",
-          },
-          continue: true,
-        })),
+      ...publicAssetRouteSources.map((src) => ({
+        src,
+        headers: {
+          "cache-control": "public,max-age=31536000,immutable",
+        },
+        continue: true,
+      })),
       { handle: "filesystem" },
+      ...publicAssetRouteSources.map((src) => ({
+        src,
+        status: 404,
+        headers: {
+          "cache-control": "no-store",
+        },
+        continue: false,
+      })),
     ],
   } as VercelBuildConfigV3);
 
