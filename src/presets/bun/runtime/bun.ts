@@ -8,11 +8,13 @@ import { startScheduleRunner } from "#nitro/runtime/task";
 import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
 import { tracingSrvxPlugins } from "#nitro/virtual/tracing";
+import { parseBunIdleTimeout } from "./_utils.ts";
 const _parsedPort = Number.parseInt(process.env.NITRO_PORT ?? process.env.PORT ?? "");
 const port = Number.isNaN(_parsedPort) ? 3000 : _parsedPort;
 const host = process.env.NITRO_HOST || process.env.HOST;
 const cert = process.env.NITRO_SSL_CERT;
 const key = process.env.NITRO_SSL_KEY;
+const idleTimeout = parseBunIdleTimeout(process.env.NITRO_BUN_IDLE_TIMEOUT);
 // const socketPath = process.env.NITRO_UNIX_SOCKET; // TODO
 
 const nitroApp = useNitroApp();
@@ -36,6 +38,7 @@ const server = serve({
   tls: cert && key ? { cert, key } : undefined,
   fetch: _fetch,
   bun: {
+    idleTimeout,
     websocket: import.meta._websocket ? ws?.websocket : undefined,
   },
   plugins: [...tracingSrvxPlugins],
