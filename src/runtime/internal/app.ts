@@ -1,5 +1,5 @@
 import type { MatchedRouteRules, NitroApp, NitroRuntimeHooks } from "nitro/types";
-import type { ServerRequest, ServerRequestContext } from "srvx";
+import type { ServerPlugin, ServerRequest, ServerRequestContext } from "srvx";
 import type { H3EventContext, Middleware, WebSocketHooks } from "h3";
 import { toRequest } from "h3";
 import { HookableCore } from "hookable";
@@ -37,6 +37,20 @@ export function useNitroHooks(): HookableCore<NitroRuntimeHooks> {
   }
   return (nitroApp.hooks = new HookableCore<NitroRuntimeHooks>());
 }
+
+export const nitroRuntimeHooksPlugin: ServerPlugin = (server) => {
+  const close = server.close.bind(server);
+  let closeHooksPromise: Promise<unknown> | undefined;
+  server.close = async (...args) => {
+    closeHooksPromise ||= Promise.resolve()
+      .then(() => useNitroHooks().callHook("close"))
+      .catch((error) => {
+        console.error("Error while running Nitro close hooks", error);
+      });
+    await closeHooksPromise;
+    await close(...args);
+  };
+};
 
 export function serverFetch(
   resource: string | URL | Request,

@@ -6,7 +6,7 @@ import wsAdapter from "crossws/adapters/node";
 import { useNitroApp } from "nitro/app";
 import { startScheduleRunner } from "#nitro/runtime/task";
 import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
-import { resolveWebsocketHooks } from "#nitro/runtime/app";
+import { nitroRuntimeHooksPlugin, resolveWebsocketHooks } from "#nitro/runtime/app";
 
 const _parsedPort = Number.parseInt(process.env.NITRO_PORT ?? process.env.PORT ?? "");
 const port = Number.isNaN(_parsedPort) ? 3000 : _parsedPort;
@@ -30,6 +30,7 @@ const server = serve({
   node: { exclusive: false },
   silent: clusterId ? clusterId !== "1" : undefined,
   fetch: nitroApp.fetch,
+  plugins: [nitroRuntimeHooksPlugin],
 });
 
 if (import.meta._websocket) {
