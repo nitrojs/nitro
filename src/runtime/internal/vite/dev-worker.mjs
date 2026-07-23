@@ -55,6 +55,11 @@ class ViteEnvRunner {
 
   async reload() {
     try {
+      // Drop stale evaluations so the re-import walks the whole graph.
+      // Without this, any module whose transform is already populated on the
+      // Vite side is answered with `{cache: true}` and its old evaluation is
+      // reused. Vite's own full-reload handler clears the cache the same way.
+      this.runner.evaluatedModules.clear();
       this.entry = await this.runner.import(this.entryPath);
       this.entryError = undefined;
     } catch (error) {
