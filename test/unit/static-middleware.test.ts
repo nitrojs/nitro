@@ -85,4 +85,34 @@ describe("runtime static middleware", () => {
     expect(readAsset).toHaveBeenCalledWith("/foo.css.gz");
     expect(event.res.headers.get("Content-Encoding")).toBe("gzip");
   });
+
+  it("does not match compressed assets with zero quality", async () => {
+    getAsset.mockImplementation((id: string) => {
+      if (id === "/foo.css.gz") {
+        return {
+          etag: '"compressed"',
+          mtime: "2024-01-01T00:00:00.000Z",
+          size: 4,
+          type: "text/css",
+          encoding: "gzip",
+        };
+      }
+      if (id === "/foo.css") {
+        return {
+          etag: '"plain"',
+          mtime: "2024-01-01T00:00:00.000Z",
+          size: 4,
+          type: "text/css",
+        };
+      }
+      return undefined;
+    });
+    readAsset.mockResolvedValue("body");
+    const event = createEvent("/foo.css", "gzip; q=0.0");
+
+    await handler(event);
+
+    expect(readAsset).toHaveBeenCalledWith("/foo.css");
+    expect(event.res.headers.get("Content-Encoding")).toBeNull();
+  });
 });
