@@ -191,10 +191,18 @@ describe("nitro:preset:vercel:web", async () => {
                 "headers": {
                   "cache-control": "public,max-age=31536000,immutable",
                 },
-                "src": "/build(.*)",
+                "src": "/build/(.*)",
               },
               {
                 "handle": "filesystem",
+              },
+              {
+                "continue": false,
+                "headers": {
+                  "cache-control": "no-store",
+                },
+                "src": "/build/(.*)",
+                "status": 404,
               },
               {
                 "dest": "/rules/_/noncached/cached-isr?__isr_route=$__isr_route",
@@ -460,6 +468,24 @@ describe("nitro:preset:vercel:web", async () => {
           .then((r) => JSON.parse(r));
         expect(manifest.version).toBe(1);
         expect(manifest.hashes).toBeTypeOf("object");
+      });
+
+      it("should not cache missing immutable public assets", async () => {
+        const config = await fsp
+          .readFile(resolve(ctx.outDir, "config.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        const filesystemIndex = config.routes.findIndex(
+          (route: { handle?: string }) => route.handle === "filesystem"
+        );
+
+        expect(config.routes[filesystemIndex + 1]).toEqual({
+          src: "/build/(.*)",
+          status: 404,
+          headers: {
+            "cache-control": "no-store",
+          },
+          continue: false,
+        });
       });
 
       it("should generate prerender config", async () => {
