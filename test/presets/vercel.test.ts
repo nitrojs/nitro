@@ -24,6 +24,10 @@ describe("nitro:preset:vercel", async () => {
           .then((r) => JSON.parse(r));
         expect(config).toMatchInlineSnapshot(`
           {
+            "framework": {
+              "name": "nitro",
+              "version": "2.x",
+            },
             "overrides": {
               "_scalar/index.html": {
                 "path": "_scalar",

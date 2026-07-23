@@ -1,3 +1,4 @@
+import { version as nitroVersion } from "nitropack/meta";
 import { runtimeDir } from "nitropack/runtime/meta";
 import type { NitroConfig } from "nitropack/types";
 import { resolve } from "pathe";
@@ -106,6 +107,6 @@ export const NitroDefaults: NitroConfig = {
   // Framework
   framework: {
     name: "nitro",
-    version: "",
+    version: nitroVersion,
   },
 };
