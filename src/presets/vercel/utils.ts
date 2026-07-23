@@ -156,6 +156,10 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
 
   const config = defu(nitro.options.vercel?.config, <VercelBuildConfigV3>{
     version: 3,
+    framework: {
+      name: nitro.options.framework.name,
+      version: nitro.options.framework.version,
+    },
     overrides: {
       // Nitro static prerendered route overrides
       ...Object.fromEntries(
