@@ -28,7 +28,7 @@ export default defineHandler((event) => {
           .find(([key]) => key.toLowerCase() === "q")?.[1];
         return quality !== undefined && Number(quality) === 0
           ? undefined
-          : EncodingMap[name.trim() as keyof typeof EncodingMap];
+          : EncodingMap[name.trim().toLowerCase() as keyof typeof EncodingMap];
       })
       .filter(Boolean)
       .sort(),
