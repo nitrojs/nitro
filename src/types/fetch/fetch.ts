@@ -5,13 +5,23 @@ import type { MatchedRoutes } from "./_match.ts";
 // An interface to extend in a local project
 export interface InternalApi {}
 
+// Opt-in configuration interface to augment in a local project, e.g.
+//   declare module "nitropack" {
+//     interface NitroFetchConfig { flatRequest: true }
+//   }
+export interface NitroFetchConfig {}
+
 // TODO: upgrade to uppercase for h3 v2 types and web consistency
 type RouterMethod = Lowercase<HTTPMethod>;
 
-export type NitroFetchRequest =
+type TypedNitroFetchRequest =
   | Exclude<keyof InternalApi, `/_${string}` | `/api/_${string}`>
   | Exclude<FetchRequest, string>
   | (string & {});
+
+export type NitroFetchRequest = NitroFetchConfig extends { flatRequest: true }
+  ? string
+  : TypedNitroFetchRequest;
 
 export type MiddlewareOf<
   Route extends string,
