@@ -62,4 +62,57 @@ describe("runtime static middleware", () => {
     expect(event.res.headers.get("Vary")).toContain("Origin");
     expect(event.res.headers.get("Vary")).toContain("Accept-Encoding");
   });
+
+  it("matches compressed assets when accept-encoding has quality values", async () => {
+    getAsset.mockImplementation((id: string) => {
+      if (id === "/foo.css.gz") {
+        return {
+          etag: '"test"',
+          mtime: Date.now(),
+          type: "text/css",
+          encoding: "gzip",
+          size: 1,
+        };
+      }
+      return undefined;
+    });
+    isPublicAssetURL.mockReturnValue(true);
+    readAsset.mockResolvedValue("body");
+    const event = createEvent("/foo.css", "GZIP; q=1.0, br; q=0.9");
+
+    await handler(event);
+
+    expect(readAsset).toHaveBeenCalledWith("/foo.css.gz");
+    expect(event.res.headers.get("Content-Encoding")).toBe("gzip");
+  });
+
+  it("does not match compressed assets with zero quality", async () => {
+    getAsset.mockImplementation((id: string) => {
+      if (id === "/foo.css.gz") {
+        return {
+          etag: '"compressed"',
+          mtime: "2024-01-01T00:00:00.000Z",
+          size: 4,
+          type: "text/css",
+          encoding: "gzip",
+        };
+      }
+      if (id === "/foo.css") {
+        return {
+          etag: '"plain"',
+          mtime: "2024-01-01T00:00:00.000Z",
+          size: 4,
+          type: "text/css",
+        };
+      }
+      return undefined;
+    });
+    readAsset.mockResolvedValue("body");
+    const event = createEvent("/foo.css", "gzip; q=0.0");
+
+    await handler(event);
+
+    expect(readAsset).toHaveBeenCalledWith("/foo.css");
+    expect(event.res.headers.get("Content-Encoding")).toBeNull();
+  });
 });
