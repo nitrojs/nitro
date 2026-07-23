@@ -1,6 +1,6 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join } from "pathe";
+import { dirname, join, normalize } from "pathe";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("nitro/meta", () => ({
@@ -40,12 +40,12 @@ describe("server entry detection", () => {
   it("detects `server.ts` in the root directory", async () => {
     const serverEntry = await detectServerEntry("server.ts");
     expect(serverEntry).toBeTruthy();
-    expect((serverEntry as { handler: string }).handler).toContain("/server.ts");
+    expect(normalize((serverEntry as { handler: string }).handler)).toContain("/server.ts");
   });
 
   it("detects `server/index.ts`", async () => {
     const serverEntry = await detectServerEntry("server/index.ts");
     expect(serverEntry).toBeTruthy();
-    expect((serverEntry as { handler: string }).handler).toContain("/server/index.ts");
+    expect(normalize((serverEntry as { handler: string }).handler)).toContain("/server/index.ts");
   });
 });
