@@ -337,6 +337,18 @@ importers:
         specifier: workspace:*
         version: link:../..
 
+  examples/cloudflare-durable:
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20260601.0
+        version: 4.20260701.1
+      nitro:
+        specifier: workspace:*
+        version: link:../..
+      wrangler:
+        specifier: ^4.99.0
+        version: 4.106.0(@cloudflare/workers-types@4.20260701.1)
+
   examples/custom-error-handler:
     devDependencies:
       nitro:
