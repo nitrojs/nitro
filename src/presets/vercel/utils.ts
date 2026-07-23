@@ -235,7 +235,9 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
         (nitro._prerenderedRoutes?.filter((r) => r.fileName !== r.route) || []).map(
           ({ route, fileName }) => [
             withoutLeadingSlash(fileName),
-            { path: route.replace(/^\//, "") },
+            // strip the trailing slash too — Vercel does not match override
+            // paths that keep it (#4392)
+            { path: route.replace(/^\/|\/$/g, "") },
           ]
         )
       ),
