@@ -78,7 +78,7 @@ describe("runtime static middleware", () => {
     });
     isPublicAssetURL.mockReturnValue(true);
     readAsset.mockResolvedValue("body");
-    const event = createEvent("/foo.css", "gzip; q=1.0, br; q=0.9");
+    const event = createEvent("/foo.css", "GZIP; q=1.0, br; q=0.9");
 
     await handler(event);
 
