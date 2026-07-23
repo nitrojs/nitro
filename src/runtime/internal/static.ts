@@ -21,7 +21,7 @@ export default defineHandler((event) => {
   const encodings = [
     ...encodingHeader
       .split(",")
-      .map((e) => EncodingMap[e.trim() as keyof typeof EncodingMap])
+      .map((e) => EncodingMap[e.trim().split(";")[0].trim() as keyof typeof EncodingMap])
       .filter(Boolean)
       .sort(),
     "",
