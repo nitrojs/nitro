@@ -20,6 +20,7 @@ describe("vite:hmr", { sequential: true }, () => {
     api: openFileForEditing(join(rootDir, "api/state.ts")),
     shared: openFileForEditing(join(rootDir, "shared.ts")),
     ssr: openFileForEditing(join(rootDir, "app/entry-server.ts")),
+    dep: openFileForEditing(join(rootDir, "dep.ts")),
   };
 
   beforeAll(async () => {
@@ -90,6 +91,24 @@ describe("vite:hmr", { sequential: true }, () => {
       `${serverURL}`,
       (txt) => txt.includes("state: 2") && !txt.includes("state: 1")
     );
+    expect(wsMessages).toMatchObject([{ type: "full-reload" }]);
+  });
+
+  // Regression test for the dev worker reusing stale evaluations across
+  // reloads: the fixture's `dep-crawler` plugin re-transforms `dep.ts` as a
+  // side effect of transforming `api/crawled.ts`, so by the time the
+  // reloading worker's module runner re-fetches `dep.ts`, its transform is
+  // already populated and `fetchModule` answers `{cache: true}`. Unless
+  // `reload()` clears the runner's evaluated modules, the old `dep.ts`
+  // evaluation is reused and responses stay stale until a manual restart.
+  test("editing a dependency crawled by another plugin", async () => {
+    const res = (await fetch(`${serverURL}/api/crawled`).then((r) => r.json())) as {
+      value: string;
+    };
+    expect(res.value).toBe("original");
+
+    files.dep.update((content) => content.replace(`"original"`, `"modified"`));
+    await pollResponse(`${serverURL}/api/crawled`, /modified/);
     expect(wsMessages).toMatchObject([{ type: "full-reload" }]);
   });
 });
