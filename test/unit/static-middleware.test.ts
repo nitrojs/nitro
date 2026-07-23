@@ -62,4 +62,27 @@ describe("runtime static middleware", () => {
     expect(event.res.headers.get("Vary")).toContain("Origin");
     expect(event.res.headers.get("Vary")).toContain("Accept-Encoding");
   });
+
+  it("matches compressed assets when accept-encoding has quality values", async () => {
+    getAsset.mockImplementation((id: string) => {
+      if (id === "/foo.css.gz") {
+        return {
+          etag: '"test"',
+          mtime: Date.now(),
+          type: "text/css",
+          encoding: "gzip",
+          size: 1,
+        };
+      }
+      return undefined;
+    });
+    isPublicAssetURL.mockReturnValue(true);
+    readAsset.mockResolvedValue("body");
+    const event = createEvent("/foo.css", "gzip; q=1.0, br; q=0.9");
+
+    await handler(event);
+
+    expect(readAsset).toHaveBeenCalledWith("/foo.css.gz");
+    expect(event.res.headers.get("Content-Encoding")).toBe("gzip");
+  });
 });
