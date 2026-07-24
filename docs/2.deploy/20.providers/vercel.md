@@ -253,7 +253,11 @@ export default defineConfig({
 When enabled, Nitro emits content-addressed build assets under `/_vercel/immutable/`.
 
 ::note
-The [`VERCEL_HASH_SALT`](https://vercel.com/docs/environment-variables/system-environment-variables) system environment variable is factored into the content hashes, providing a way to rotate the generated file names.
+The [`VERCEL_HASH_SALT`](https://vercel.com/docs/environment-variables/system-environment-variables) system environment variable is factored into the generated asset paths, providing a way to rotate them.
+::
+
+::warning
+Immutable static files must be served from the reserved `/_vercel/immutable/` path, so they are not supported when using a non-root `baseURL`. In that case Nitro skips the immutable output and warns during the build.
 ::
 
 ::note
