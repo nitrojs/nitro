@@ -5,7 +5,7 @@ import { generateFSTree } from "../../utils/fs-tree.ts";
 import { writeTypes } from "../types.ts";
 import { writeBuildInfo } from "../info.ts";
 import { formatRollupError } from "./error.ts";
-import type { RollupOutput } from "rollup";
+import type { RollupOptions, RollupOutput } from "rollup";
 
 export async function buildProduction(nitro: Nitro, rollupConfig: RollupConfig) {
   const rollup = await import("rollup");
@@ -20,7 +20,7 @@ export async function buildProduction(nitro: Nitro, rollupConfig: RollupConfig) 
     nitro.logger.info(
       `Building server (builder: \`rollup\`, preset: \`${nitro.options.preset}\`, compatibility date: \`${formatCompatibilityDate(nitro.options.compatibilityDate)}\`)`
     );
-    const build = await rollup.rollup(rollupConfig).catch((error) => {
+    const build = await rollup.rollup(rollupConfig as RollupOptions).catch((error) => {
       nitro.logger.error(formatRollupError(error));
       throw error;
     });
