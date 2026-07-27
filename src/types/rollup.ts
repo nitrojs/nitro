@@ -6,9 +6,13 @@ import type {
   InputOptions as RollupInputOptions,
   OutputOptions as RollupOutputOptions,
 } from "rollup";
+import type { InputOptions as RolldownInputOptions } from "rolldown";
 
-export type RollupConfig = RollupInputOptions & {
+export type RollupConfig = Omit<RollupInputOptions, "plugins"> & {
   output: RollupOutputOptions;
+  // Vite 8 / `@vitejs/plugin-vue` etc. return Rolldown-typed plugins now that
+  // Vite's `Plugin` extends `Rolldown.Plugin` instead of Rollup's own type.
+  plugins?: RollupInputOptions["plugins"] | RolldownInputOptions["plugins"];
 };
 
 export type VirtualModule = string | (() => string | Promise<string>);
