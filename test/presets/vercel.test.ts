@@ -593,6 +593,17 @@ describe("nitro:preset:vercel:web", async () => {
         expect(indexStat.isFile()).toBe(true);
       });
 
+      it("should preserve dependency symlink targets inside functionRules directories", async () => {
+        const dependencyPath = "node_modules/@fixture/nitro-lib";
+        const serverTarget = await fsp.readlink(
+          resolve(ctx.outDir, "functions/__server.func", dependencyPath)
+        );
+        const functionTarget = await fsp.readlink(
+          resolve(ctx.outDir, "functions/api/hello.func", dependencyPath)
+        );
+        expect(functionTarget).toBe(serverTarget);
+      });
+
       it("should keep base __server.func without functionRules overrides", async () => {
         const config = await fsp
           .readFile(resolve(ctx.outDir, "functions/__server.func/.vc-config.json"), "utf8")

@@ -642,6 +642,7 @@ async function createFunctionDirWithCustomConfig(
   await fsp.cp(serverDir, funcDir, {
     recursive: true,
     mode: constants.COPYFILE_FICLONE,
+    verbatimSymlinks: true,
     filter: (src) => basename(src) !== ".vc-config.json",
   });
   const mergedConfig = defu(overrides, baseFunctionConfig);
