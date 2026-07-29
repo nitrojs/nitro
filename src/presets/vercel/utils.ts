@@ -2,7 +2,7 @@ import fsp from "node:fs/promises";
 import { constants } from "node:fs";
 import { defu } from "defu";
 import { writeFile } from "../_utils/fs.ts";
-import type { Nitro, NitroRouteRules } from "nitro/types";
+import type { Nitro, NitroRouteRules, PrerenderRoute } from "nitro/types";
 import { basename, dirname, relative, resolve } from "pathe";
 import { Router } from "../../routing.ts";
 import { joinURL, withLeadingSlash, withoutLeadingSlash } from "ufo";
@@ -36,6 +36,12 @@ const FALLBACK_ROUTE = "/__server";
 const ISR_SUFFIX = "-isr"; // Avoid using . as it can conflict with routing
 
 const SAFE_FS_CHAR_RE = /[^a-zA-Z0-9_.[\]/]/g;
+
+// Vercel serves `<dir>/index.html` (and extensionless `<dir>/index`) at `<dir>`
+// using built-in directory indexes.
+const INDEX_FILE_RE = /(^|\/)index(\.html)?$/;
+
+const SURROUNDING_SLASH_RE = /^\/+|\/+$/g;
 
 function getSystemNodeVersion() {
   const systemNodeVersion = Number.parseInt(process.versions.node.split(".")[0]);
@@ -229,19 +235,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
       name: nitro.options.framework.name,
       version: nitro.options.framework.version,
     },
-    overrides: {
-      // Nitro static prerendered route overrides
-      ...Object.fromEntries(
-        (nitro._prerenderedRoutes?.filter((r) => r.fileName !== r.route) || []).map(
-          ({ route, fileName }) => [
-            withoutLeadingSlash(fileName),
-            // strip the trailing slash too — Vercel does not match override
-            // paths that keep it (#4392)
-            { path: route.replace(/^\/|\/$/g, "") },
-          ]
-        )
-      ),
-    },
+    overrides: getPrerenderOverrides(nitro._prerenderedRoutes),
     routes: [
       // Redirect and header rules (excluding paths handled as CDN proxy rewrites)
       ...rules
@@ -388,6 +382,34 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
   );
 
   return config;
+}
+
+/**
+ * Map prerendered files to the route they should be served from.
+ *
+ * Paths are always slash-free: Vercel strips slashes when matching, so a path
+ * that keeps a trailing slash matches nothing at all (#4392), and the root
+ * route has to map to an empty path (ufo's slash helpers cannot produce one).
+ *
+ * Files that Vercel already serves at the route using its built-in directory
+ * indexes are skipped.
+ */
+export function getPrerenderOverrides(prerenderedRoutes: PrerenderRoute[] = []) {
+  const overrides: Record<string, { path: string }> = {};
+
+  for (const { route, fileName } of prerenderedRoutes) {
+    // An override pointing a file at its own path would delete it
+    if (!fileName || fileName === route) {
+      continue;
+    }
+    const file = withoutLeadingSlash(fileName);
+    const path = route.replace(SURROUNDING_SLASH_RE, "");
+    if (file.replace(INDEX_FILE_RE, "") !== path) {
+      overrides[file] = { path };
+    }
+  }
+
+  return overrides;
 }
 
 export function deprecateSWR(nitro: Nitro) {
