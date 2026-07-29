@@ -23,6 +23,8 @@ describe("prerender output collision", () => {
       output: { dir: outDir },
       prerender: {
         crawlLinks: false,
+        // one at a time, so the route that claims the file is the first one listed
+        concurrency: 1,
         // both resolve to `other/index.html`
         routes: ["/other", "/other/index.html"],
       },
@@ -33,22 +35,27 @@ describe("prerender output collision", () => {
       warnings.push(args.map(String).join(" "));
     }) as typeof nitro.logger.warn;
 
-    await prepare(nitro);
-    await copyPublicAssets(nitro);
-    await prerender(nitro);
-    await build(nitro);
-    await nitro.close();
+    try {
+      await prepare(nitro);
+      await copyPublicAssets(nitro);
+      await prerender(nitro);
+      await build(nitro);
+    } finally {
+      await nitro.close();
+    }
 
     const collisionWarnings = warnings.filter((w) => w.includes("both prerender to"));
     expect(collisionWarnings).toHaveLength(1);
-    expect(collisionWarnings[0]).toContain("other/index.html");
+    expect(collisionWarnings[0]).toContain("/other");
+    expect(collisionWarnings[0]).toContain("/other/index.html");
 
-    // only one of the two routes may claim the file
+    // only one of the two routes may claim the file, and it is the one rendered first
     const written = nitro._prerenderedRoutes!.filter((r) => r.fileName === "/other/index.html");
     expect(written).toHaveLength(1);
+    expect(written[0].route).toBe("/other");
 
     // and the file holds that route's render, whole
     const contents = await readFile(join(outDir, "public/other/index.html"), "utf8");
-    expect(contents).toBe(`<!DOCTYPE html><html><body>rendered ${written[0].route}</body></html>`);
+    expect(contents).toBe(`<!DOCTYPE html><html><body>rendered /other</body></html>`);
   }, 120_000);
 });
