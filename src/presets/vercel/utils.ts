@@ -400,15 +400,19 @@ export function getPrerenderOverrides(prerenderedRoutes: PrerenderRoute[] = []) 
   const overrides: Record<string, { path: string }> = {};
 
   for (const { route, fileName } of prerenderedRoutes) {
-    // An override pointing a file at its own path would delete it
-    if (!fileName || fileName === route) {
+    if (!fileName) {
       continue;
     }
     const file = withoutLeadingSlash(fileName);
     const path = route.replace(SURROUNDING_SLASH_RE, "");
-    if (file.replace(INDEX_FILE_RE, "") !== path) {
-      overrides[file] = { path };
+    // Skip when Vercel already serves the file at `path`: either via its
+    // built-in directory index (`<dir>/index.*` at `<dir>`), or because the
+    // file already lives there. Re-keying a file onto its own path would
+    // delete it, since Vercel drops the original entry.
+    if (file === path || file.replace(INDEX_FILE_RE, "") === path) {
+      continue;
     }
+    overrides[file] = { path };
   }
 
   return overrides;

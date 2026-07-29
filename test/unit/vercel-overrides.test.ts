@@ -52,6 +52,8 @@ describe("getPrerenderOverrides", () => {
       { route: "/foo.html", fileName: "/foo.html" },
       { route: "/foo/index.html", fileName: "/foo/index.html" },
       { route: "/data.json", fileName: "/data.json" },
+      // Route and file name normalize to the same key despite different spelling
+      { route: "/self/", fileName: "/self" },
       { route: "/about", fileName: "/about.html" },
     ]);
     for (const [file, { path }] of Object.entries(overrides)) {
