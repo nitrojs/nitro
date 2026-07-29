@@ -71,23 +71,7 @@ describe("nitro:preset:vercel:web", async () => {
               "name": "nitro",
               "version": "3.x",
             },
-            "overrides": {
-              "_scalar/index.html": {
-                "path": "_scalar",
-              },
-              "_swagger/index.html": {
-                "path": "_swagger",
-              },
-              "api/hey/index.html": {
-                "path": "api/hey",
-              },
-              "prerender/index.html": {
-                "path": "prerender",
-              },
-              "slash/index.html": {
-                "path": "slash",
-              },
-            },
+            "overrides": {},
             "routes": [
               {
                 "headers": {
@@ -261,6 +245,10 @@ describe("nitro:preset:vercel:web", async () => {
               {
                 "dest": "/static-flags",
                 "src": "/static-flags",
+              },
+              {
+                "dest": "/slash",
+                "src": "/slash",
               },
               {
                 "dest": "/route-group",
