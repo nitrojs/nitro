@@ -23,14 +23,14 @@ icon: i-logos-react
     "typegen": "react-router typegen"
   },
   "dependencies": {
-    "@react-router/node": "8.1.0",
+    "@react-router/node": "^8.1.0",
     "isbot": "^5.1.44",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-router": "8.1.0"
+    "react-router": "^8.1.0"
   },
   "devDependencies": {
-    "@react-router/dev": "8.1.0",
+    "@react-router/dev": "^8.1.0",
     "@tailwindcss/vite": "^4.3.2",
     "@types/node": "^26.0.0",
     "@types/react": "^19.2.17",
