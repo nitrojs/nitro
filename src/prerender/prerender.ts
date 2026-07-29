@@ -111,9 +111,10 @@ export async function prerender(nitro: Nitro) {
   const failedRoutes = new Set<PrerenderRoute>();
   const skippedRoutes = new Set();
   const displayedLengthWarns = new Set();
-  // Resolved output file -> the route that produced it. Two routes can resolve to
-  // one file (`/other` and `/other/index.html` both become `other/index.html`),
-  // which is only known once each of them has been rendered.
+  // Output path -> the route that produced it. Two routes can resolve to one file
+  // (`/other` and `/other/index.html` both become `other/index.html`), which is only
+  // known once each of them has been rendered. Keyed by the resolved path rather
+  // than `fileName`, so aliases pointing at one file still collide.
   const routeByOutputFile = new Map<string, string>();
 
   const publicAssetBases: string[] = nitro.options.publicAssets
@@ -299,7 +300,7 @@ export async function prerender(nitro: Nitro) {
 
     // Write to the disk
     const filePath = join(nitro.options.output.publicDir, _route.fileName);
-    const writtenBy = routeByOutputFile.get(_route.fileName);
+    const writtenBy = routeByOutputFile.get(filePath);
     if (writtenBy !== undefined) {
       // Writing again would replace the first route's output with this one, so the
       // build result would depend on which of the two rendered first
@@ -310,7 +311,7 @@ export async function prerender(nitro: Nitro) {
     } else if (canWriteToDisk(_route) && filePath.startsWith(nitro.options.output.publicDir)) {
       // Claim the file before awaiting, so a concurrent render of a route resolving
       // to the same file sees it as taken
-      routeByOutputFile.set(_route.fileName, route);
+      routeByOutputFile.set(filePath, route);
       await writeFile(filePath, dataBuff!);
       nitro._prerenderedRoutes!.push(_route);
     } else {
