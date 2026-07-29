@@ -14,6 +14,8 @@ function createNitroStub(tracingChannel: Nitro["options"]["tracingChannel"]): Ni
   return {
     options: {
       tracingChannel,
+      baseURL: "/",
+      routeRules: {},
     },
     routing: {
       routes: {
@@ -26,9 +28,6 @@ function createNitroStub(tracingChannel: Nitro["options"]["tracingChannel"]): Ni
         compileToString: () => `{}`,
       },
       globalMiddleware: [],
-      routeRules: {
-        compileToString: () => `() => []`,
-      },
     },
   } as unknown as Nitro;
 }

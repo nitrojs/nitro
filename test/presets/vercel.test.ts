@@ -109,10 +109,7 @@ describe("nitro:preset:vercel:web", async () => {
               },
               {
                 "headers": {
-                  "access-control-allow-headers": "*",
                   "access-control-allow-methods": "GET",
-                  "access-control-allow-origin": "*",
-                  "access-control-max-age": "0",
                 },
                 "src": "/rules/cors",
               },
@@ -289,6 +286,10 @@ describe("nitro:preset:vercel:web", async () => {
               {
                 "dest": "/imports",
                 "src": "/imports",
+              },
+              {
+                "dest": "/import-attributes",
+                "src": "/import-attributes",
               },
               {
                 "dest": "/icon.png",
@@ -522,6 +523,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/fetch.func (symlink)",
             "functions/file.func (symlink)",
             "functions/icon.png.func (symlink)",
+            "functions/import-attributes.func (symlink)",
             "functions/imports.func (symlink)",
             "functions/json-string.func (symlink)",
             "functions/jsx.func (symlink)",

@@ -150,6 +150,10 @@ export default defineConfig({
     "/ba-single/*": {
       basicAuth: { username: "admin", password: "secret", realm: "Secure Area" },
     },
+    // Method-scoped route rule: the `"METHOD /path"` key only applies to that method.
+    "POST /rules/method-scoped/**": {
+      basicAuth: { username: "admin", password: "secret", realm: "Secure Area" },
+    },
     "/single-headers/*": { headers: { "x-single": "single" } },
     "**": { headers: { "x-test": "test" } },
   },

@@ -390,11 +390,14 @@ export function testNitro(
   });
 
   it("handles route rules - cors", async () => {
+    // `cors: true` is handled by h3's `handleCors` (via h3-rules). On a
+    // simple (non-preflight) request it sets permissive origin/methods/expose
+    // headers; `access-control-allow-headers` / `access-control-max-age` are
+    // preflight-only and answered on the `OPTIONS` preflight instead.
     const expectedHeaders = {
       "access-control-allow-origin": "*",
       "access-control-allow-methods": "GET",
-      "access-control-allow-headers": "*",
-      "access-control-max-age": "0",
+      "access-control-expose-headers": "*",
     };
     const { headers } = await callHandler({ url: "/rules/cors" });
     expect(headers).toMatchObject(expectedHeaders);
@@ -525,6 +528,34 @@ export function testNitro(
       });
       expect(status).toBe(200);
       expect(headers["x-single"]).toBe("single");
+    });
+  });
+
+  describe("handles route rules - method scoped", () => {
+    // `"POST /rules/method-scoped/**"` guards the path with basic auth for POST
+    // requests only; other methods fall through unaffected.
+    it("does not apply the POST-scoped rule to other methods", async () => {
+      const { status } = await callHandler({ url: "/rules/method-scoped/page" });
+      expect(status).toBe(200);
+    });
+
+    it("applies the POST-scoped rule to matching requests", async () => {
+      const { status, headers } = await callHandler({
+        url: "/rules/method-scoped/page",
+        method: "POST",
+        headers: { Authorization: "Basic " + btoa("user:wrongpass") },
+      });
+      expect(status).toBe(401);
+      expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
+    });
+
+    it("passes the POST-scoped rule with valid credentials", async () => {
+      const { status } = await callHandler({
+        url: "/rules/method-scoped/page",
+        method: "POST",
+        headers: { Authorization: "Basic " + btoa("admin:secret") },
+      });
+      expect(status).toBe(200);
     });
   });
 
@@ -955,6 +986,37 @@ export function testNitro(
     expect(data).toMatchObject({
       sql: "--",
       sqlts: "--",
+      json: { isString: true, text: '{\n  "foo": "bar"\n}' },
+      // Virtual modules are inlined from their rendered source, not read from disk
+      virtual: { isString: true, hasFlag: true, isUint8Array: true, bytesHaveFlag: true },
+    });
+  });
+
+  it("import attributes (bytes and text)", async () => {
+    const textAsset = "this is an asset from a text file from nitro";
+    const { data } = await callHandler({ url: "/import-attributes" });
+    expect(data).toMatchObject({
+      bin: {
+        isUint8Array: true,
+        bytes: Array.from({ length: 256 }, (_, i) => i).join(","),
+      },
+      sql: { isUint8Array: true, text: "--" },
+      json: { isString: true, text: '{\n  "foo": "bar"\n}' },
+      txtBytes: { isUint8Array: true, text: textAsset },
+      txt: { isString: true, text: textAsset },
+      replacements: {
+        isString: true,
+        text: "This file must keep import.meta.dev, import.meta.preset and import.meta.baseURL verbatim.",
+      },
+      reexported: {
+        isString: true,
+        text: textAsset,
+        isUint8Array: true,
+        bytesText: textAsset,
+      },
+      // Source files imported as text keep their contents (attribute syntax is not rewritten)
+      source: { verbatim: true, rewritten: false },
+      commented: { isString: true, text: textAsset },
     });
   });
 

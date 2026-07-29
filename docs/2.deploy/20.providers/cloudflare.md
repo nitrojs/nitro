@@ -103,6 +103,33 @@ export default defineConfig({
 
 No manual Wrangler configuration is needed - Nitro handles it for you.
 
+### Tracing
+
+**🧪 Experimental!**
+
+When the experimental [`tracingChannel`](/config#tracingchannel) option is enabled, the Cloudflare presets report Nitro's tracing-channel events (h3 routes and middleware, srvx, unstorage operations, …) as [custom spans](https://developers.cloudflare.com/workers/observability/traces/custom-spans/), alongside Cloudflare's automatic instrumentation (fetch calls, KV reads, D1 queries, …) — no OpenTelemetry SDK required.
+
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  preset: "cloudflare_module",
+  tracingChannel: true,
+});
+```
+
+Tracing must be enabled on the Worker for spans to be recorded:
+
+```jsonc [wrangler.jsonc]
+{
+  "observability": {
+    "traces": {
+      "enabled": true
+    }
+  }
+}
+```
+
 ## Cloudflare Pages
 
 **Preset:** `cloudflare_pages`
