@@ -315,27 +315,51 @@ class DevServer {
       req.url = withLeadingSlash(url.slice(match.route.length));
     }
     match.proxy.proxy.ws(req, socket, {}, head).catch((error) => {
-      consola.warn(
-        `[nitro] [dev] Failed to proxy websocket upgrade for \`${url}\`.`,
-        error
-      );
+      if (!isDisconnect(error)) {
+        consola.warn(
+          `[nitro] [dev] Failed to proxy websocket upgrade for \`${url}\`.`,
+          error
+        );
+      }
       socket.destroy();
     });
     return true;
   }
 
+  /**
+   * Proxy a websocket upgrade to a `devProxy` route or the current worker.
+   *
+   * Never rejects. Both callers -- `server.on("upgrade")` below and the
+   * `upgrade` method exposed by `createDevServer` -- drop the returned
+   * promise, so a rejection here would surface as an unhandled rejection.
+   */
   async handleUpgrade(req: IncomingMessage, socket: Socket, head: any) {
     if (this.proxyUpgrade(req, socket, head)) {
       return;
     }
-    const worker = await this.getWorker();
-    if (!worker) {
-      throw createError({
-        statusCode: 503,
-        message: "No worker available.",
-      });
+    try {
+      const worker = await this.getWorker();
+      if (!worker) {
+        // Nothing has been sent yet, so the client can still get a status.
+        // Not logged: the build error (if any) is already reported, and
+        // clients that keep reconnecting would flood the console.
+        if (socket.writable) {
+          socket.end(
+            "HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\n\r\n"
+          );
+        }
+        return;
+      }
+      await worker.handleUpgrade(req, socket, head);
+    } catch (error) {
+      // A websocket dying together with its connection is ordinary traffic: the
+      // peer went away, or the worker it was proxied to has been replaced by a
+      // reload. Only report what is not that.
+      if (!isDisconnect(error)) {
+        consola.warn("[nitro] [dev] Failed to proxy websocket upgrade.", error);
+      }
+      socket.destroy();
     }
-    return worker.handleUpgrade(req, socket, head);
   }
 
   #generateError() {
@@ -382,4 +406,18 @@ class DevServer {
       }
     );
   }
+}
+
+/**
+ * Whether an error is only the other end of a connection going away, rather
+ * than a fault worth reporting.
+ */
+function isDisconnect(error: unknown): boolean {
+  const code = (error as NodeJS.ErrnoException | undefined)?.code;
+  return (
+    code === "ECONNRESET" ||
+    code === "ECONNABORTED" ||
+    code === "EPIPE" ||
+    code === "ERR_STREAM_PREMATURE_CLOSE"
+  );
 }
