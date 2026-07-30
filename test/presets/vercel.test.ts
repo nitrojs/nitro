@@ -244,10 +244,6 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/static-flags",
               },
               {
-                "dest": "/slash",
-                "src": "/slash",
-              },
-              {
                 "dest": "/route-group",
                 "src": "/route-group",
               },
@@ -260,14 +256,6 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/raw",
               },
               {
-                "dest": "/prerender-custom.html",
-                "src": "/prerender-custom.html",
-              },
-              {
-                "dest": "/prerender",
-                "src": "/prerender",
-              },
-              {
                 "dest": "/node-compat",
                 "src": "/node-compat",
               },
@@ -278,10 +266,6 @@ describe("nitro:preset:vercel:web", async () => {
               {
                 "dest": "/jsx",
                 "src": "/jsx",
-              },
-              {
-                "dest": "/json-string",
-                "src": "/json-string",
               },
               {
                 "dest": "/imports",
@@ -360,14 +344,6 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/api/kebab",
               },
               {
-                "dest": "/api/hey",
-                "src": "/api/hey",
-              },
-              {
-                "dest": "/api/hello",
-                "src": "/api/hello",
-              },
-              {
                 "dest": "/api/headers",
                 "src": "/api/headers",
               },
@@ -398,18 +374,6 @@ describe("nitro:preset:vercel:web", async () => {
               {
                 "dest": "/_vercel/cron",
                 "src": "/_vercel/cron",
-              },
-              {
-                "dest": "/_swagger",
-                "src": "/_swagger",
-              },
-              {
-                "dest": "/_scalar",
-                "src": "/_scalar",
-              },
-              {
-                "dest": "/_openapi.json",
-                "src": "/_openapi.json",
               },
               {
                 "dest": "/single-headers/[id]",
@@ -490,9 +454,6 @@ describe("nitro:preset:vercel:web", async () => {
           [
             "functions/500.func (symlink)",
             "functions/__server.func",
-            "functions/_openapi.json.func (symlink)",
-            "functions/_scalar.func (symlink)",
-            "functions/_swagger.func (symlink)",
             "functions/_vercel",
             "functions/_ws.func (symlink)",
             "functions/api/cached.func (symlink)",
@@ -500,7 +461,6 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/api/echo.func",
             "functions/api/headers.func (symlink)",
             "functions/api/hello.func",
-            "functions/api/hey.func (symlink)",
             "functions/api/kebab.func (symlink)",
             "functions/api/meta/test.func (symlink)",
             "functions/api/methods/foo.get.func (symlink)",
@@ -525,12 +485,9 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/icon.png.func (symlink)",
             "functions/import-attributes.func (symlink)",
             "functions/imports.func (symlink)",
-            "functions/json-string.func (symlink)",
             "functions/jsx.func (symlink)",
             "functions/modules.func (symlink)",
             "functions/node-compat.func (symlink)",
-            "functions/prerender-custom.html.func (symlink)",
-            "functions/prerender.func (symlink)",
             "functions/raw.func (symlink)",
             "functions/replace.func (symlink)",
             "functions/route-group.func (symlink)",
@@ -548,7 +505,6 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/rules/swr/[...]-isr.func (symlink)",
             "functions/rules/swr/[...]-isr.prerender-config.json",
             "functions/single-headers/[id].func (symlink)",
-            "functions/slash.func (symlink)",
             "functions/static-flags.func (symlink)",
             "functions/stream.func (symlink)",
             "functions/tasks/[...name].func (symlink)",
