@@ -39,7 +39,6 @@
     "./context": "./dist/runtime/context.mjs",
     "./database": "./dist/runtime/database.mjs",
     "./h3": "./lib/h3.mjs",
-    "./srvx": "./lib/srvx.mjs",
     "./meta": "./dist/runtime/meta.mjs",
     "./package.json": "./package.json",
     "./runtime-config": "./dist/runtime/runtime-config.mjs",
