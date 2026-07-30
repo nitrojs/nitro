@@ -1,6 +1,4 @@
 export type {
-  FastResponse,
-  FastURL,
   ServerRequest,
   ServerRequestContext,
   ServerRuntimeContext,
