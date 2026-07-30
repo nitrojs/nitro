@@ -1,4 +1,9 @@
-import type { EnvironmentOptions, RollupCommonJSOptions, Plugin as VitePlugin } from "vite";
+import type {
+  EnvironmentOptions,
+  ResolvedConfig,
+  RollupCommonJSOptions,
+  Plugin as VitePlugin,
+} from "vite";
 import type { NitroPluginContext, ServiceConfig } from "./types.ts";
 
 import type { RunnerName } from "env-runner";
@@ -46,9 +51,16 @@ export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOpti
       createEnvironment: async (envName, envConfig) => {
         const entry = resolve(runtimeDir, "internal/vite/dev-entry.mjs");
         const { createFetchableDevEnvironment } = await import("./dev.ts");
-        const env = createFetchableDevEnvironment(envName, envConfig, getEnvRunner(ctx), entry, {
-          preventExternalize: isWorkerdRunner,
-        });
+        const env = createFetchableDevEnvironment(
+          envName,
+          envConfig,
+          await acquireEnvRunner(ctx, envConfig),
+          entry,
+          {
+            preventExternalize: isWorkerdRunner,
+            onClose: () => releaseEnvRunner(ctx, envConfig),
+          }
+        );
         ctx._transformRequest = (id) => env.transformRequest(id);
         (ctx._viteEnvs ??= new Map()).set(envName, entry);
         return env;
@@ -90,9 +102,16 @@ export function createServiceEnvironment(
         const entry = tryResolve(serviceConfig.entry);
         (ctx._viteEnvs ??= new Map()).set(envName, entry);
         const { createFetchableDevEnvironment } = await import("./dev.ts");
-        return createFetchableDevEnvironment(envName, envConfig, getEnvRunner(ctx), entry, {
-          preventExternalize: isWorkerdRunner,
-        });
+        return createFetchableDevEnvironment(
+          envName,
+          envConfig,
+          await acquireEnvRunner(ctx, envConfig),
+          entry,
+          {
+            preventExternalize: isWorkerdRunner,
+            onClose: () => releaseEnvRunner(ctx, envConfig),
+          }
+        );
       },
     },
   };
@@ -113,39 +132,81 @@ export async function initEnvRunner(ctx: NitroPluginContext) {
   if (ctx._envRunner) {
     return ctx._envRunner;
   }
-  if (!ctx._initPromise) {
-    ctx._initPromise = (async () => {
-      const manager = new RunnerManager();
-      let _retries = 0;
-      manager.onClose((_runner, cause) => {
-        if (_retries++ < 3) {
-          ctx.nitro!.logger.info("Restarting env runner...", cause ? `Cause: ${cause}` : "");
-          _loadRunner(ctx, manager);
-        } else {
-          ctx.nitro!.logger.error(
-            "Env runner failed after 3 retries.",
-            cause ? `Last cause: ${cause}` : ""
-          );
-        }
-      });
-      manager.onReady(() => {
-        _retries = 0;
-        if (ctx._viteEnvs) {
-          for (const [name, entry] of ctx._viteEnvs) {
-            manager.sendMessage({
-              type: "custom",
-              event: "nitro:vite-env",
-              data: { name, entry },
-            });
-          }
-        }
-      });
-      await _loadRunner(ctx, manager);
-      ctx._envRunner = manager;
-      return manager;
-    })();
-  }
+  ctx._initPromise ??= _createEnvRunner(ctx).then((manager) => {
+    ctx._envRunner = manager;
+    return manager;
+  });
   return await ctx._initPromise;
+}
+
+/**
+ * Get the runner backing a single Vite dev server, creating it on demand.
+ *
+ * A runner maps environment name to dev environment, so two dev servers cannot share one: the
+ * second to register its environments would take over module resolution for the first. Runners
+ * are therefore tracked per resolved config (one per dev server), and the runner warmed up during
+ * setup is adopted by whichever dev server is created first.
+ */
+export async function acquireEnvRunner(ctx: NitroPluginContext, config: ResolvedConfig) {
+  const runners = (ctx._serverEnvRunners ??= new WeakMap());
+  let entry = runners.get(config);
+  if (!entry) {
+    entry = {
+      refs: 0,
+      promise: ctx._primaryClaimed ? _createEnvRunner(ctx) : initEnvRunner(ctx),
+    };
+    ctx._primaryClaimed = true;
+    runners.set(config, entry);
+  }
+  entry.refs++;
+  return await entry.promise;
+}
+
+// Every environment of a dev server holds a reference to that server's runner, so the runner is
+// only closed once the last of them has been closed.
+export async function releaseEnvRunner(ctx: NitroPluginContext, config: ResolvedConfig) {
+  const entry = ctx._serverEnvRunners?.get(config);
+  if (!entry || --entry.refs > 0) {
+    return;
+  }
+  ctx._serverEnvRunners!.delete(config);
+  const manager = await entry.promise;
+  if (manager === ctx._envRunner) {
+    ctx._envRunner = undefined;
+    ctx._initPromise = undefined;
+    ctx._primaryClaimed = false;
+  }
+  await manager.close();
+}
+
+async function _createEnvRunner(ctx: NitroPluginContext): Promise<RunnerManager> {
+  const manager = new RunnerManager();
+  let _retries = 0;
+  manager.onClose((_runner, cause) => {
+    if (_retries++ < 3) {
+      ctx.nitro!.logger.info("Restarting env runner...", cause ? `Cause: ${cause}` : "");
+      _loadRunner(ctx, manager);
+    } else {
+      ctx.nitro!.logger.error(
+        "Env runner failed after 3 retries.",
+        cause ? `Last cause: ${cause}` : ""
+      );
+    }
+  });
+  manager.onReady(() => {
+    _retries = 0;
+    if (ctx._viteEnvs) {
+      for (const [name, entry] of ctx._viteEnvs) {
+        manager.sendMessage({
+          type: "custom",
+          event: "nitro:vite-env",
+          data: { name, entry },
+        });
+      }
+    }
+  });
+  await _loadRunner(ctx, manager);
+  return manager;
 }
 
 export function getEnvRunner(ctx: NitroPluginContext) {

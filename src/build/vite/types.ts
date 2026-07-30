@@ -1,4 +1,4 @@
-import type { TransformResult, Plugin as VitePlugin } from "vite";
+import type { ResolvedConfig, TransformResult, Plugin as VitePlugin } from "vite";
 import type { getBundlerConfig } from "./bundler.ts";
 import type { Nitro, NitroConfig, NitroModule } from "nitro/types";
 import type { RunnerManager } from "env-runner";
@@ -59,9 +59,11 @@ export interface NitroPluginContext {
   services: Record<string, ServiceConfig>;
 
   _isRolldown?: boolean;
-  _initialized?: boolean;
+  _setupPromise?: Promise<void>;
   _envRunner?: RunnerManager;
   _initPromise?: Promise<RunnerManager>;
+  _serverEnvRunners?: WeakMap<ResolvedConfig, { refs: number; promise: Promise<RunnerManager> }>;
+  _primaryClaimed?: boolean;
   _viteEnvs?: Map<string, string>;
   _transformRequest?: (id: string) => Promise<TransformResult | null | undefined>;
   _publicDistDir?: string;

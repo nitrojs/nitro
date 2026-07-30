@@ -70,11 +70,11 @@ function nitroInit(ctx: NitroPluginContext): VitePlugin {
 
     async config(config, configEnv) {
       ctx._isRolldown = !!(this.meta as Record<string, string>).rolldownVersion;
-      if (!ctx._initialized) {
+      if (!ctx._setupPromise) {
         debug("[init] Initializing nitro");
-        ctx._initialized = true;
-        await setupNitroContext(ctx, configEnv, config);
+        ctx._setupPromise = setupNitroContext(ctx, configEnv, config);
       }
+      await ctx._setupPromise;
     },
 
     configResolved(config) {

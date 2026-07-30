@@ -52,11 +52,20 @@ export function createFetchableDevEnvironment(
   config: ResolvedConfig,
   devServer: DevServer,
   entry: string,
-  opts?: { preventExternalize?: boolean }
+  opts?: FetchableDevEnvironmentOptions
 ): FetchableDevEnvironment {
   const transport = createViteHotChannel(devServer, name);
   const context: DevEnvironmentContext = { hot: true, transport };
   return new FetchableDevEnvironment(name, config, context, devServer, entry, opts);
+}
+
+export interface FetchableDevEnvironmentOptions {
+  preventExternalize?: boolean;
+  /**
+   * Called instead of `devServer.close()` when the environment is closed, so that a runner shared
+   * by several environments is only torn down once the last of them closes.
+   */
+  onClose?: () => void | Promise<void>;
 }
 
 export class FetchableDevEnvironment extends DevEnvironment {
@@ -64,6 +73,7 @@ export class FetchableDevEnvironment extends DevEnvironment {
 
   #entry: string;
   #preventExternalize: boolean;
+  #onClose?: () => void | Promise<void>;
 
   constructor(
     name: string,
@@ -71,12 +81,13 @@ export class FetchableDevEnvironment extends DevEnvironment {
     context: DevEnvironmentContext,
     devServer: DevServer,
     entry: string,
-    opts?: { preventExternalize?: boolean }
+    opts?: FetchableDevEnvironmentOptions
   ) {
     super(name, config, context);
     this.devServer = devServer;
     this.#entry = entry;
     this.#preventExternalize = opts?.preventExternalize ?? false;
+    this.#onClose = opts?.onClose;
   }
 
   override async fetchModule(
@@ -124,7 +135,7 @@ export class FetchableDevEnvironment extends DevEnvironment {
 
   override async close(): Promise<void> {
     await super.close();
-    await this.devServer.close?.();
+    await (this.#onClose ? this.#onClose() : this.devServer.close?.());
   }
 }
 
