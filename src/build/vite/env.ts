@@ -151,11 +151,24 @@ export async function acquireEnvRunner(ctx: NitroPluginContext, config: Resolved
   const runners = (ctx._serverEnvRunners ??= new WeakMap());
   let entry = runners.get(config);
   if (!entry) {
-    entry = {
-      refs: 0,
-      promise: ctx._primaryClaimed ? _createEnvRunner(ctx) : initEnvRunner(ctx),
-    };
+    const wasClaimed = ctx._primaryClaimed;
     ctx._primaryClaimed = true;
+    // A failed startup must not poison the plugin instance: drop the cached entry (and the
+    // primary claim, if this call made it) so a later dev server can warm a fresh runner.
+    const created: { refs: number; promise: Promise<RunnerManager> } = {
+      refs: 0,
+      promise: (wasClaimed ? _createEnvRunner(ctx) : initEnvRunner(ctx)).catch((error) => {
+        if (runners.get(config) === created) {
+          runners.delete(config);
+        }
+        if (!wasClaimed) {
+          ctx._initPromise = undefined;
+          ctx._primaryClaimed = false;
+        }
+        throw error;
+      }),
+    };
+    entry = created;
     runners.set(config, entry);
   }
   entry.refs++;
@@ -185,7 +198,9 @@ async function _createEnvRunner(ctx: NitroPluginContext): Promise<RunnerManager>
   manager.onClose((_runner, cause) => {
     if (_retries++ < 3) {
       ctx.nitro!.logger.info("Restarting env runner...", cause ? `Cause: ${cause}` : "");
-      _loadRunner(ctx, manager);
+      _loadRunner(ctx, manager).catch((error) => {
+        ctx.nitro!.logger.error("Failed to restart env runner.", error);
+      });
     } else {
       ctx.nitro!.logger.error(
         "Env runner failed after 3 retries.",

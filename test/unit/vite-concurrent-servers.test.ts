@@ -20,6 +20,23 @@ function sharedConfig(plugins: ReturnType<typeof nitro>): InlineConfig {
   };
 }
 
+// `Promise.all` rejects before the callers' `finally`, so any server that did start must be
+// closed here or it keeps the runner worker (and the vitest process) alive.
+async function createServers(plugins: ReturnType<typeof nitro>, count: number) {
+  const servers: ViteDevServer[] = [];
+  try {
+    await Promise.all(
+      Array.from({ length: count }, async () => {
+        servers.push(await createServer(sharedConfig(plugins)));
+      })
+    );
+  } catch (error) {
+    await Promise.all(servers.map((server) => server.close()));
+    throw error;
+  }
+  return servers;
+}
+
 async function hello(server: ViteDevServer) {
   const env = server.environments.nitro as FetchableDevEnvironment;
   const res = await env.dispatchFetch(new Request("http://localhost/api/hello"));
@@ -29,10 +46,7 @@ async function hello(server: ViteDevServer) {
 describe("vite dev servers sharing a plugin instance", () => {
   it("should create concurrently without racing env runner init", async () => {
     const plugins = nitro();
-    const servers = await Promise.all([
-      createServer(sharedConfig(plugins)),
-      createServer(sharedConfig(plugins)),
-    ]);
+    const servers = await createServers(plugins, 2);
     try {
       for (const server of servers) {
         expect(await hello(server)).toMatchObject({
@@ -47,10 +61,7 @@ describe("vite dev servers sharing a plugin instance", () => {
 
   it("should keep the env runner alive until the last server closes", async () => {
     const plugins = nitro();
-    const [first, second] = await Promise.all([
-      createServer(sharedConfig(plugins)),
-      createServer(sharedConfig(plugins)),
-    ]);
+    const [first, second] = await createServers(plugins, 2);
     try {
       await first.close();
       expect(await hello(second)).toMatchObject({ status: 200 });
