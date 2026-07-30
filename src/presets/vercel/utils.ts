@@ -542,12 +542,22 @@ type ObservabilityRoute = {
   dest: string; // function name
 };
 
-function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
+export function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
   const compatDate =
     nitro.options.compatibilityDate.vercel || nitro.options.compatibilityDate.default;
   if (compatDate < "2025-07-15") {
     return [];
   }
+
+  // Vercel resolves functions and static files from a single path to output
+  // map that functions are added to last, so a function at the path of a
+  // prerendered file hides that file and serves the route with SSR on every
+  // request (#4242).
+  const prerenderedPaths = new Set(
+    (nitro._prerenderedRoutes || [])
+      .filter((route) => route.fileName)
+      .map((route) => route.route.replace(SURROUNDING_SLASH_RE, ""))
+  );
 
   // Sort routes by how much specific they are
   const routePatterns = [
@@ -557,7 +567,7 @@ function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
         .filter((h) => !h.middleware && h.route)
         .map((h) => h.route!),
     ]),
-  ];
+  ].filter((route) => !prerenderedPaths.has(route.replace(SURROUNDING_SLASH_RE, "")));
 
   const staticRoutes: string[] = [];
   const dynamicRoutes: string[] = [];
