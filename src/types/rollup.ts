@@ -4,15 +4,17 @@ import type { Loader as ESBuildLoader } from "esbuild";
 import type { TransformOptions as ESBuildTransformOptions } from "esbuild";
 import type {
   InputOptions as RollupInputOptions,
+  InputPluginOption as RollupInputPluginOption,
   OutputOptions as RollupOutputOptions,
 } from "rollup";
-import type { InputOptions as RolldownInputOptions } from "rolldown";
+import type { RolldownPluginOption } from "rolldown";
 
 export type RollupConfig = Omit<RollupInputOptions, "plugins"> & {
   output: RollupOutputOptions;
   // Vite 8 / `@vitejs/plugin-vue` etc. return Rolldown-typed plugins now that
   // Vite's `Plugin` extends `Rolldown.Plugin` instead of Rollup's own type.
-  plugins?: RollupInputOptions["plugins"] | RolldownInputOptions["plugins"];
+  // Accept a mix of Rollup and Rolldown plugins in the same array.
+  plugins?: (RollupInputPluginOption | RolldownPluginOption)[];
 };
 
 export type VirtualModule = string | (() => string | Promise<string>);
