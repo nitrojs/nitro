@@ -27,13 +27,13 @@ export default defineHandler((event) => {
     "",
   ];
 
-  for (const encoding of encodings) {
+  encodingLoop: for (const encoding of encodings) {
     for (const _id of [id + encoding, joinURL(id, "index.html" + encoding)]) {
       const _asset = getAsset(_id);
       if (_asset) {
         asset = _asset;
         id = _id;
-        break;
+        break encodingLoop;
       }
     }
   }
