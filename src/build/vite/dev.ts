@@ -187,6 +187,8 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       }
     }
   );
+  nitro.hooks.hook("rollup:reload", () => reload());
+
   nitro.hooks.hook("close", () => {
     scanDirsWatcher.close();
     rootDirWatcher.close();
