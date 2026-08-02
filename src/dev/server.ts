@@ -18,6 +18,8 @@ import { isTest, isCI } from "std-env";
 import { NitroDevApp } from "./app.ts";
 import { writeDevBuildInfo } from "../build/info.ts";
 
+const SHUTDOWN_TIMEOUT = 5000;
+
 export function createDevServer(nitro: Nitro): NitroDevServer {
   return new NitroDevServer(nitro);
 }
@@ -34,6 +36,7 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
   #building?: boolean = true; // Assume initial build will start soon
   #buildError?: unknown;
   #reloadPromise?: Promise<void>;
+  #shuttingDown: boolean = false;
 
   constructor(nitro: Nitro) {
     super(nitro, async (event) => {
@@ -76,6 +79,9 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
       });
     });
     this.#manager.onClose((_runner, cause) => {
+      if (this.#shuttingDown) {
+        return;
+      }
       this.#workerError = cause;
       if (this.#workerRetries++ < 3) {
         this.nitro.logger.info("Restarting dev worker...", cause ? `Cause: ${cause}` : "");
@@ -146,6 +152,7 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
   }
 
   async close() {
+    await this.#shutdownWorker();
     await Promise.all(
       [
         Promise.all(this.#listeners.map((l) => l.close())).then(() => {
@@ -175,6 +182,7 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
   }
 
   async #reload() {
+    await this.#shutdownWorker();
     const runnerName =
       this.nitro.options.devServer.runner || process.env.NITRO_DEV_RUNNER || "node-worker";
     const runner = await loadRunner(runnerName as RunnerName, {
@@ -199,6 +207,39 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
   // #endregion
 
   // #region Private Methods
+
+  async #shutdownWorker() {
+    if (!this.#manager.ready) {
+      return;
+    }
+    this.#shuttingDown = true;
+    try {
+      await new Promise<void>((resolve) => {
+        const done = () => {
+          clearTimeout(timer);
+          this.#manager.offMessage(listener);
+          resolve();
+        };
+        const timer = setTimeout(() => {
+          this.nitro.logger.warn("Dev worker did not shut down in time, force closing it...");
+          done();
+        }, SHUTDOWN_TIMEOUT);
+        const listener = (message: any) => {
+          if (message?.event === "exit") {
+            done();
+          }
+        };
+        this.#manager.onMessage(listener);
+        try {
+          this.#manager.sendMessage({ event: "shutdown" });
+        } catch {
+          done();
+        }
+      });
+    } finally {
+      this.#shuttingDown = false;
+    }
+  }
 
   async #waitForBuild() {
     const timeout = isTest || isCI ? 60_000 : 6000;
