@@ -289,6 +289,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/imports",
               },
               {
+                "dest": "/import-attributes",
+                "src": "/import-attributes",
+              },
+              {
                 "dest": "/icon.png",
                 "src": "/icon.png",
               },
@@ -520,6 +524,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/fetch.func (symlink)",
             "functions/file.func (symlink)",
             "functions/icon.png.func (symlink)",
+            "functions/import-attributes.func (symlink)",
             "functions/imports.func (symlink)",
             "functions/json-string.func (symlink)",
             "functions/jsx.func (symlink)",
