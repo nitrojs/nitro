@@ -7,6 +7,7 @@ import { join, relative, resolve } from "pathe";
 import type { Plugin } from "rollup";
 import { normalizeKey } from "unstorage";
 import { runParallel } from "../../core/utils/parallel";
+import { isBinary } from "./raw";
 import { virtual } from "./virtual";
 
 interface ResolvedAsset {
@@ -24,11 +25,8 @@ interface ResolvedAsset {
 type EmbedMode = boolean | "inline";
 
 function resolveEmbedMode(asset: ServerAssetDir): EmbedMode {
+  // Default `true` preserves historical one-raw-module-per-file behavior.
   return asset.embed ?? true;
-}
-
-function isBinaryType(type: string): boolean {
-  return !/^(text\/|application\/(json|xml|javascript)|image\/svg)/.test(type);
 }
 
 /**
@@ -52,6 +50,7 @@ export function serverAssets(nitro: Nitro): Plugin {
     (a) => resolveEmbedMode(a) === false
   );
 
+  // Opt-in only: copy filesystem embeds after compile (does not run for default embed:true).
   if (fsAssetDirs.length > 0) {
     nitro.hooks.hook("compiled", async () => {
       for (const asset of fsAssetDirs) {
@@ -65,7 +64,7 @@ export function serverAssets(nitro: Nitro): Plugin {
     });
   }
 
-  // Production: Bundle assets (or keep on disk when embed:false)
+  // Production: Bundle assets (default) or keep on disk when embed:false
   return virtual(
     {
       "#nitro-internal-virtual/server-assets": async () => {
@@ -110,7 +109,8 @@ export function serverAssets(nitro: Nitro): Plugin {
               };
 
               if (mode === "inline") {
-                const binary = isBinaryType(type);
+                // Same binary detection as the `raw:` plugin; base64 like public-assets inline.
+                const binary = isBinary(fsPath);
                 inlineAssets[id] = {
                   fsPath,
                   meta,
@@ -120,6 +120,7 @@ export function serverAssets(nitro: Nitro): Plugin {
                   encoding: binary ? "base64" : undefined,
                 };
               } else {
+                // embed: true (default) — historical lazy raw: modules
                 rawAssets[id] = { fsPath, meta };
               }
             },
@@ -166,22 +167,43 @@ function getAssetsFs(nitro: Nitro, fsAssets: ServerAssetDir[]) {
     ignore: asset.ignore || [],
   }));
 
+  // Same shape as getAssetProdRawOnly / mixed path — wrap fsDriver so getMeta
+  // still exposes `type` (mime) like embedded assets. Default raw: path untouched.
   return `
 import { createStorage } from 'unstorage'
 import fsDriver from 'unstorage/drivers/fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'pathe'
+import mime from 'mime'
 
 const serverDir = dirname(fileURLToPath(import.meta.url))
 const mounts = ${JSON.stringify(mounts)}
 
-export const assets = createStorage()
-
+const __fs = createStorage()
 for (const asset of mounts) {
-  assets.mount(asset.baseName, fsDriver({
+  __fs.mount(asset.baseName, fsDriver({
     base: resolve(serverDir, asset.path),
     ignore: asset.ignore || [],
   }))
+}
+
+const normalizeKey = ${normalizeKey.toString()}
+
+function withType(id, meta) {
+  // @ts-ignore mime@2
+  let type = mime.getType(id) || "text/plain"
+  if (type.startsWith("text")) type += "; charset=utf-8"
+  return { ...meta, type }
+}
+
+export const assets = {
+  getKeys: () => __fs.getKeys(),
+  hasItem: (id) => __fs.hasItem(id),
+  getItem: (id) => __fs.getItem(id),
+  async getMeta (id) {
+    id = normalizeKey(id)
+    return withType(id, await __fs.getMeta(id))
+  }
 }`;
 }
 
@@ -194,7 +216,7 @@ function getAssetProd(
   const hasFs = fsAssets.length > 0;
   const hasInline = Object.keys(inlineAssets).length > 0;
 
-  // Default embed:true with no fs mounts — keep the historical template shape.
+  // Default path unchanged: only raw: embeds → original template.
   if (!hasFs && !hasInline) {
     return getAssetProdRawOnly(rawAssets);
   }
@@ -208,11 +230,12 @@ function getAssetProd(
     ignore: asset.ignore || [],
   }));
 
+  // Decode base64 like `#nitro-internal-virtual/public-assets-inline` (atob, not Buffer).
   const inlineEntries = Object.entries(inlineAssets)
     .map(([id, asset]) => {
       const dataExpr =
         asset.encoding === "base64"
-          ? `Buffer.from(${JSON.stringify(asset.data)}, "base64")`
+          ? `Uint8Array.from(atob(${JSON.stringify(asset.data)}), (c) => c.charCodeAt(0))`
           : JSON.stringify(asset.data);
       return `  [${JSON.stringify(id)}]: {\n    data: ${dataExpr},\n    meta: ${JSON.stringify(asset.meta)}\n  }`;
     })
@@ -234,13 +257,21 @@ ${
 import __fsDriver from 'unstorage/drivers/fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'pathe'
+import __mime from 'mime'
 const serverDir = dirname(fileURLToPath(import.meta.url))
 const __fsMounts = ${JSON.stringify(fsMounts)}
 const __fsAssets = __createFsStorage()
 for (const asset of __fsMounts) {
   __fsAssets.mount(asset.baseName, __fsDriver({ base: resolve(serverDir, asset.path), ignore: asset.ignore || [] }))
+}
+function __fsMetaWithType(id, meta) {
+  // @ts-ignore mime@2
+  let type = __mime.getType(id) || "text/plain"
+  if (type.startsWith("text")) type += "; charset=utf-8"
+  return { ...meta, type }
 }`
-    : `const __fsAssets = null`
+    : `const __fsAssets = null
+const __fsMetaWithType = (_id, meta) => meta`
 }
 
 const _inline = {
@@ -276,12 +307,14 @@ export const assets = {
     id = normalizeKey(id)
     if (id in _inline) return _inline[id].meta
     if (id in _raw) return _raw[id].meta
-    return __fsAssets ? __fsAssets.getMeta(id) : {}
+    if (!__fsAssets) return {}
+    return __fsMetaWithType(id, await __fsAssets.getMeta(id))
   }
 }
 `;
 }
 
+/** Historical production template — one lazy `raw:` import per file. */
 function getAssetProdRawOnly(assets: Record<string, ResolvedAsset>) {
   return `
 const _assets = {
