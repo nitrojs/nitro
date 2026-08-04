@@ -7,6 +7,13 @@ import prettyBytes from "pretty-bytes";
 import { isTest } from "std-env";
 import { runParallel } from "./parallel";
 
+/**
+ * Print a size tree for the server output.
+ *
+ * `chunks/raw/**` (Nitro serverAssets `raw:` embeds) are summarized with cheap `stat`
+ * calls instead of per-file gzip — otherwise thousands of tiny chunks dominate build wall time
+ * after Rollup (see nitrojs/nitro#1833).
+ */
 export async function generateFSTree(
   dir: string,
   options: { compressedSizes?: boolean } = {}
@@ -15,7 +22,10 @@ export async function generateFSTree(
     return;
   }
 
-  const files = await globby("**/*.*", { cwd: dir, ignore: ["*.map"] });
+  const files = await globby("**/*.*", {
+    cwd: dir,
+    ignore: ["*.map", "chunks/raw/**"],
+  });
 
   const items: { file: string; path: string; size: number; gzip: number }[] =
     [];
@@ -43,9 +53,9 @@ export async function generateFSTree(
   let treeText = "";
 
   for (const [index, item] of items.entries()) {
-    let dir = dirname(item.file);
-    if (dir === ".") {
-      dir = "";
+    let itemDir = dirname(item.file);
+    if (itemDir === ".") {
+      itemDir = "";
     }
     const rpath = relative(process.cwd(), item.path);
     const treeChar = index === items.length - 1 ? "└─" : "├─";
@@ -67,6 +77,27 @@ export async function generateFSTree(
     treeText += "\n";
     totalSize += item.size;
     totalGzip += item.gzip;
+  }
+
+  // Summarize raw serverAsset chunks without per-file gzip.
+  const rawFiles = await globby("chunks/raw/**/*.*", {
+    cwd: dir,
+    ignore: ["*.map"],
+  });
+  if (rawFiles.length > 0) {
+    let rawSize = 0;
+    await runParallel(
+      new Set(rawFiles),
+      async (file) => {
+        const st = await fsp.stat(resolve(dir, file));
+        rawSize += st.size;
+      },
+      { concurrency: 32 }
+    );
+    totalSize += rawSize;
+    treeText += colors.gray(
+      `  ├─ chunks/raw/* (${rawFiles.length} files, ${prettyBytes(rawSize)} — gzip skipped)\n`
+    );
   }
 
   treeText += `${colors.cyan("Σ Total size:")} ${prettyBytes(

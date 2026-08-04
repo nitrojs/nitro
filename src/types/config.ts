@@ -322,6 +322,17 @@ export interface ServerAssetDir {
   pattern?: string;
   dir: string;
   ignore?: string[];
+  /**
+   * How assets are included in the production server build.
+   *
+   * - `true` (default): lazy `raw:` Rollup modules (one per file). Many small files are
+   *   automatically inlined into a single virtual module (≥50 text/json files) to avoid
+   *   Rollup thrashing.
+   * - `"inline"`: always embed file contents into one virtual module (fast builds).
+   * - `false`: keep files on disk (copied to `server/assets/<baseName>`). Use on Node/Bun/Deno
+   *   when the catalog is large — skips Rollup `raw:` entirely.
+   */
+  embed?: boolean | "inline";
 }
 
 // Storage mounts
