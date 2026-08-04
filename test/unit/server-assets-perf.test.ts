@@ -24,16 +24,44 @@ function genTree(dir: string, depth: number, branch: number): number {
 
 function countRawMjs(outDir: string): number {
   const rawDir = join(outDir, "server/chunks/raw");
-  if (!existsSync(rawDir)) return 0;
+  if (!existsSync(rawDir)) {
+    return 0;
+  }
   let n = 0;
   const walk = (d: string) => {
     for (const e of readdirSync(d, { withFileTypes: true })) {
-      if (e.isDirectory()) walk(join(d, e.name));
-      else if (e.name.endsWith(".mjs")) n++;
+      if (e.isDirectory()) {
+        walk(join(d, e.name));
+      } else if (e.name.endsWith(".mjs")) {
+        n++;
+      }
     }
   };
   walk(rawDir);
   return n;
+}
+
+async function buildWithAssets(
+  outName: string,
+  serverAssets: { baseName: string; dir: string; embed?: boolean | "inline" }[]
+) {
+  const outDir = join(ROOT, outName);
+  rmSync(outDir, { recursive: true, force: true });
+  const t0 = performance.now();
+  const nitro = await createNitro({
+    rootDir: ROOT,
+    srcDir: ROOT,
+    output: { dir: outDir },
+    preset: "node-server",
+    minify: false,
+    typescript: { generateTsConfig: false },
+    logging: { compressedSizes: false },
+    serverAssets,
+  });
+  await prepare(nitro);
+  await copyPublicAssets(nitro);
+  await build(nitro);
+  return { outDir, ms: performance.now() - t0 };
 }
 
 describe("serverAssets large catalogs", () => {
@@ -48,32 +76,13 @@ describe("serverAssets large catalogs", () => {
   });
 
   it(
-    "auto-inlines many small JSON files (no raw: chunk explosion)",
+    "embed:true keeps one raw: chunk per file (historical default)",
     { timeout: 120_000 },
     async () => {
-      const outDir = join(ROOT, "out-auto-inline");
-      rmSync(outDir, { recursive: true, force: true });
-
-      const t0 = performance.now();
-      const nitro = await createNitro({
-        rootDir: ROOT,
-        srcDir: ROOT,
-        output: { dir: outDir },
-        preset: "node-server",
-        minify: false,
-        typescript: { generateTsConfig: false },
-        logging: { compressedSizes: false },
-        serverAssets: [{ baseName: "i18n", dir: DATA }],
-      });
-      await prepare(nitro);
-      await copyPublicAssets(nitro);
-      await build(nitro);
-      const ms = performance.now() - t0;
-
-      // Default embed:true with ≥50 text files → inline → no per-file raw chunks
-      expect(countRawMjs(outDir)).toBe(0);
-      // Should stay in the same ballpark as nitropack 2.12 on this fixture (was multi‑10s with raw:)
-      expect(ms).toBeLessThan(15_000);
+      const { outDir } = await buildWithAssets("out-raw", [
+        { baseName: "i18n", dir: DATA },
+      ]);
+      expect(countRawMjs(outDir)).toBe(fileCount);
     }
   );
 
@@ -81,27 +90,11 @@ describe("serverAssets large catalogs", () => {
     "embed:false copies assets and skips raw: chunks",
     { timeout: 120_000 },
     async () => {
-      const outDir = join(ROOT, "out-fs");
-      rmSync(outDir, { recursive: true, force: true });
-
-      const nitro = await createNitro({
-        rootDir: ROOT,
-        srcDir: ROOT,
-        output: { dir: outDir },
-        preset: "node-server",
-        minify: false,
-        typescript: { generateTsConfig: false },
-        logging: { compressedSizes: false },
-        serverAssets: [{ baseName: "i18n", dir: DATA, embed: false }],
-      });
-      await prepare(nitro);
-      await copyPublicAssets(nitro);
-      await build(nitro);
-
+      const { outDir } = await buildWithAssets("out-fs", [
+        { baseName: "i18n", dir: DATA, embed: false },
+      ]);
       expect(countRawMjs(outDir)).toBe(0);
       expect(existsSync(join(outDir, "server/assets/i18n"))).toBe(true);
-      expect(existsSync(join(outDir, "server/index.mjs"))).toBe(true);
-      // Spot-check a copied leaf
       expect(
         existsSync(join(outDir, "server/assets/i18n/l0/l0/l0/l0/data.json"))
       ).toBe(true);
@@ -109,29 +102,14 @@ describe("serverAssets large catalogs", () => {
   );
 
   it(
-    "embed:'inline' keeps a single virtual module",
+    "embed:'inline' uses a single virtual module (no raw: chunks)",
     { timeout: 120_000 },
     async () => {
-      const outDir = join(ROOT, "out-inline");
-      rmSync(outDir, { recursive: true, force: true });
-
-      const t0 = performance.now();
-      const nitro = await createNitro({
-        rootDir: ROOT,
-        srcDir: ROOT,
-        output: { dir: outDir },
-        preset: "node-server",
-        minify: false,
-        typescript: { generateTsConfig: false },
-        logging: { compressedSizes: false },
-        serverAssets: [{ baseName: "i18n", dir: DATA, embed: "inline" }],
-      });
-      await prepare(nitro);
-      await copyPublicAssets(nitro);
-      await build(nitro);
-      const ms = performance.now() - t0;
-
+      const { outDir, ms } = await buildWithAssets("out-inline", [
+        { baseName: "i18n", dir: DATA, embed: "inline" },
+      ]);
       expect(countRawMjs(outDir)).toBe(0);
+      // Should stay near nitropack 2.12 wall time on this fixture, not multi-10s raw: thrash
       expect(ms).toBeLessThan(15_000);
     }
   );

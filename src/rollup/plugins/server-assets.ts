@@ -1,4 +1,5 @@
 import { promises as fsp } from "node:fs";
+import createEtag from "etag";
 import { globby } from "globby";
 import mime from "mime";
 import type { Nitro, ServerAssetDir } from "nitropack/types";
@@ -15,7 +16,9 @@ interface ResolvedAsset {
     etag?: string;
     mtime?: string;
   };
-  data?: string | Uint8Array;
+  /** Set when `embed: "inline"` (utf8 text or base64 for binary). */
+  data?: string;
+  encoding?: "base64";
 }
 
 type EmbedMode = boolean | "inline";
@@ -24,36 +27,20 @@ function resolveEmbedMode(asset: ServerAssetDir): EmbedMode {
   return asset.embed ?? true;
 }
 
-/** Weak etag from size + mtime — avoids reading every file during the scan. */
-function weakEtag(size: number, mtimeMs: number): string {
-  return `W/"${size.toString(16)}-${Math.trunc(mtimeMs).toString(16)}"`;
-}
-
-function isProbablyText(type: string, id: string): boolean {
-  if (
-    type.startsWith("text") ||
-    type.includes("json") ||
-    type.includes("xml") ||
-    type.includes("javascript")
-  ) {
-    return true;
-  }
-  return /\.(json|jsonc|txt|md|html|htm|svg|css|csv|tsv|xml|yaml|yml|toml)$/i.test(
-    id
-  );
+function isBinaryType(type: string): boolean {
+  return !/^(text\/|application\/(json|xml|javascript)|image\/svg)/.test(type);
 }
 
 /**
- * Path from the main nitro chunk (`chunks/nitro/nitro.mjs`) to a server-dir relative folder.
+ * Path relative to `output.serverDir` — same convention as `public-assets`
+ * (`resolve(dirname(import.meta.url), path)` at runtime).
  */
-function relFromNitroChunk(serverDir: string, absTarget: string): string {
-  return relative(join(serverDir, "chunks/nitro"), absTarget).replace(
-    /\\/g,
-    "/"
-  );
+function pathFromServerDir(nitro: Nitro, absPath: string): string {
+  return relative(nitro.options.output.serverDir, absPath).replace(/\\/g, "/");
 }
 
 export function serverAssets(nitro: Nitro): Plugin {
+  // Development: Use filesystem
   if (nitro.options.dev || nitro.options.preset === "nitro-prerender") {
     return virtual(
       { "#nitro-internal-virtual/server-assets": getAssetsDev(nitro) },
@@ -65,7 +52,6 @@ export function serverAssets(nitro: Nitro): Plugin {
     (a) => resolveEmbedMode(a) === false
   );
 
-  // Register copy once (not inside the virtual template, which may re-run).
   if (fsAssetDirs.length > 0) {
     nitro.hooks.hook("compiled", async () => {
       for (const asset of fsAssetDirs) {
@@ -79,6 +65,7 @@ export function serverAssets(nitro: Nitro): Plugin {
     });
   }
 
+  // Production: Bundle assets (or keep on disk when embed:false)
   return virtual(
     {
       "#nitro-internal-virtual/server-assets": async () => {
@@ -87,11 +74,11 @@ export function serverAssets(nitro: Nitro): Plugin {
         );
 
         if (embedAssets.length === 0) {
-          return getAssetsFsOnly(nitro, fsAssetDirs);
+          return getAssetsFs(nitro, fsAssetDirs);
         }
 
-        const allInline: { id: string; asset: ResolvedAsset }[] = [];
-        const allRaw: { id: string; asset: ResolvedAsset }[] = [];
+        const inlineAssets: Record<string, ResolvedAsset> = {};
+        const rawAssets: Record<string, ResolvedAsset> = {};
 
         for (const asset of embedAssets) {
           const mode = resolveEmbedMode(asset);
@@ -101,49 +88,54 @@ export function serverAssets(nitro: Nitro): Plugin {
             ignore: asset.ignore,
           });
 
-          // Explicit inline, or auto-inline many small text files (avoids N× raw: modules).
-          const autoInline =
-            mode === "inline" || (mode === true && files.length >= 50);
-
-          await runParallel(
+          const { errors } = await runParallel(
             new Set(files),
             async (_id) => {
               const fsPath = resolve(asset.dir, _id);
-              const id = asset.baseName + "/" + _id;
+              const id = normalizeKey(asset.baseName + "/" + _id);
               // @ts-ignore TODO: Use mime@2 types
               let type = mime.getType(id) || "text/plain";
               if (type.startsWith("text")) {
                 type += "; charset=utf-8";
               }
-              const stat = await fsp.stat(fsPath);
+
+              const [data, stat] = await Promise.all([
+                fsp.readFile(fsPath),
+                fsp.stat(fsPath),
+              ]);
               const meta = {
                 type,
-                etag: weakEtag(stat.size, stat.mtimeMs),
+                etag: createEtag(data),
                 mtime: stat.mtime.toJSON(),
               };
-              const resolved: ResolvedAsset = { fsPath, meta };
 
-              const useInline =
-                mode === "inline" ||
-                (autoInline &&
-                  isProbablyText(type, _id) &&
-                  stat.size <= 64 * 1024);
-
-              if (useInline) {
-                const buf = await fsp.readFile(fsPath);
-                resolved.data = isProbablyText(type, _id)
-                  ? buf.toString("utf8")
-                  : buf;
-                allInline.push({ id, asset: resolved });
+              if (mode === "inline") {
+                const binary = isBinaryType(type);
+                inlineAssets[id] = {
+                  fsPath,
+                  meta,
+                  data: binary
+                    ? data.toString("base64")
+                    : data.toString("utf8"),
+                  encoding: binary ? "base64" : undefined,
+                };
               } else {
-                allRaw.push({ id, asset: resolved });
+                rawAssets[id] = { fsPath, meta };
               }
             },
-            { concurrency: 16 }
+            { concurrency: 25 }
           );
+
+          if (errors.length > 0) {
+            throw new Error(
+              `Failed to process some server assets:\n- ${errors
+                .map((e) => (e instanceof Error ? e.message : String(e)))
+                .join("\n- ")}`
+            );
+          }
         }
 
-        return getAssetProdMixed(nitro, allInline, allRaw, fsAssetDirs);
+        return getAssetProd(nitro, inlineAssets, rawAssets, fsAssetDirs);
       },
     },
     nitro.vfs
@@ -164,92 +156,92 @@ for (const asset of serverAssets) {
 }`;
 }
 
-function getAssetsFsOnly(nitro: Nitro, fsAssets: ServerAssetDir[]) {
+function getAssetsFs(nitro: Nitro, fsAssets: ServerAssetDir[]) {
   const mounts = fsAssets.map((asset) => ({
     baseName: asset.baseName,
-    rel: relFromNitroChunk(
-      nitro.options.output.serverDir,
+    path: pathFromServerDir(
+      nitro,
       join(nitro.options.output.serverDir, "assets", asset.baseName)
     ),
     ignore: asset.ignore || [],
   }));
+
   return `
 import { createStorage } from 'unstorage'
 import fsDriver from 'unstorage/drivers/fs'
 import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'pathe'
+import { dirname, resolve } from 'pathe'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
+const serverDir = dirname(fileURLToPath(import.meta.url))
 const mounts = ${JSON.stringify(mounts)}
 
 export const assets = createStorage()
 
 for (const asset of mounts) {
   assets.mount(asset.baseName, fsDriver({
-    base: join(__dirname, asset.rel),
+    base: resolve(serverDir, asset.path),
     ignore: asset.ignore || [],
   }))
-}
-`;
+}`;
 }
 
-function getAssetProdMixed(
+function getAssetProd(
   nitro: Nitro,
-  inlineAssets: { id: string; asset: ResolvedAsset }[],
-  rawAssets: { id: string; asset: ResolvedAsset }[],
+  inlineAssets: Record<string, ResolvedAsset>,
+  rawAssets: Record<string, ResolvedAsset>,
   fsAssets: ServerAssetDir[]
 ) {
-  const inlineEntries = inlineAssets
-    .map(({ id, asset }) => {
-      const payload =
-        typeof asset.data === "string"
-          ? JSON.stringify(asset.data)
-          : `Uint8Array.from(atob(${JSON.stringify(
-              Buffer.from(asset.data || []).toString("base64")
-            )}), c => c.charCodeAt(0))`;
-      return `  [${JSON.stringify(normalizeKey(id))}]: {\n    data: ${payload},\n    meta: ${JSON.stringify(asset.meta)}\n  }`;
+  const hasFs = fsAssets.length > 0;
+  const hasInline = Object.keys(inlineAssets).length > 0;
+
+  // Default embed:true with no fs mounts — keep the historical template shape.
+  if (!hasFs && !hasInline) {
+    return getAssetProdRawOnly(rawAssets);
+  }
+
+  const fsMounts = fsAssets.map((asset) => ({
+    baseName: asset.baseName,
+    path: pathFromServerDir(
+      nitro,
+      join(nitro.options.output.serverDir, "assets", asset.baseName)
+    ),
+    ignore: asset.ignore || [],
+  }));
+
+  const inlineEntries = Object.entries(inlineAssets)
+    .map(([id, asset]) => {
+      const dataExpr =
+        asset.encoding === "base64"
+          ? `Buffer.from(${JSON.stringify(asset.data)}, "base64")`
+          : JSON.stringify(asset.data);
+      return `  [${JSON.stringify(id)}]: {\n    data: ${dataExpr},\n    meta: ${JSON.stringify(asset.meta)}\n  }`;
     })
     .join(",\n");
 
-  const rawEntries = rawAssets
+  const rawEntries = Object.entries(rawAssets)
     .map(
-      ({ id, asset }) =>
-        `  [${JSON.stringify(normalizeKey(id))}]: {\n    import: () => import(${JSON.stringify(
+      ([id, asset]) =>
+        `  [${JSON.stringify(id)}]: {\n    import: () => import(${JSON.stringify(
           "raw:" + asset.fsPath
         )}).then(r => r.default || r),\n    meta: ${JSON.stringify(asset.meta)}\n  }`
     )
     .join(",\n");
 
-  const fsMounts = fsAssets.map((a) => ({
-    baseName: a.baseName,
-    rel: relFromNitroChunk(
-      nitro.options.output.serverDir,
-      join(nitro.options.output.serverDir, "assets", a.baseName)
-    ),
-    ignore: a.ignore || [],
-  }));
-
-  const fsBootstrap =
-    fsMounts.length > 0
-      ? `
-import { createStorage as __createFsStorage } from 'unstorage'
+  return `
+${
+  hasFs
+    ? `import { createStorage as __createFsStorage } from 'unstorage'
 import __fsDriver from 'unstorage/drivers/fs'
-import { fileURLToPath as __fileURLToPath } from 'node:url'
-import { dirname as __dirnameOf, join as __join } from 'pathe'
-const __dirname = __dirnameOf(__fileURLToPath(import.meta.url))
+import { fileURLToPath } from 'node:url'
+import { dirname, resolve } from 'pathe'
+const serverDir = dirname(fileURLToPath(import.meta.url))
 const __fsMounts = ${JSON.stringify(fsMounts)}
 const __fsAssets = __createFsStorage()
 for (const asset of __fsMounts) {
-  __fsAssets.mount(asset.baseName, __fsDriver({ base: __join(__dirname, asset.rel), ignore: asset.ignore || [] }))
+  __fsAssets.mount(asset.baseName, __fsDriver({ base: resolve(serverDir, asset.path), ignore: asset.ignore || [] }))
+}`
+    : `const __fsAssets = null`
 }
-`
-      : `
-const __fsAssets = null
-const __fsMounts = []
-`;
-
-  return `
-${fsBootstrap}
 
 const _inline = {
 ${inlineEntries}
@@ -265,8 +257,7 @@ export const assets = {
   async getKeys() {
     const keys = [...Object.keys(_inline), ...Object.keys(_raw)]
     if (__fsAssets) {
-      const fsKeys = await __fsAssets.getKeys()
-      keys.push(...fsKeys.map((k) => normalizeKey(k)))
+      keys.push(...(await __fsAssets.getKeys()).map((k) => normalizeKey(k)))
     }
     return keys
   },
@@ -286,6 +277,41 @@ export const assets = {
     if (id in _inline) return _inline[id].meta
     if (id in _raw) return _raw[id].meta
     return __fsAssets ? __fsAssets.getMeta(id) : {}
+  }
+}
+`;
+}
+
+function getAssetProdRawOnly(assets: Record<string, ResolvedAsset>) {
+  return `
+const _assets = {
+${Object.entries(assets)
+  .map(
+    ([id, asset]) =>
+      `  [${JSON.stringify(id)}]: {\n    import: () => import(${JSON.stringify(
+        "raw:" + asset.fsPath
+      )}).then(r => r.default || r),\n    meta: ${JSON.stringify(asset.meta)}\n  }`
+  )
+  .join(",\n")}
+}
+
+const normalizeKey = ${normalizeKey.toString()}
+
+export const assets = {
+  getKeys() {
+    return Promise.resolve(Object.keys(_assets))
+  },
+  hasItem (id) {
+    id = normalizeKey(id)
+    return Promise.resolve(id in _assets)
+  },
+  getItem (id) {
+    id = normalizeKey(id)
+    return Promise.resolve(_assets[id] ? _assets[id].import() : null)
+  },
+  getMeta (id) {
+    id = normalizeKey(id)
+    return Promise.resolve(_assets[id] ? _assets[id].meta : {})
   }
 }
 `;

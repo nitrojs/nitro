@@ -8,11 +8,11 @@ import { isTest } from "std-env";
 import { runParallel } from "./parallel";
 
 /**
- * Print a size tree for the server output.
+ * Build a printable size tree for the server output directory.
  *
- * `chunks/raw/**` (Nitro serverAssets `raw:` embeds) are summarized with cheap `stat`
- * calls instead of per-file gzip — otherwise thousands of tiny chunks dominate build wall time
- * after Rollup (see nitrojs/nitro#1833).
+ * Files under `chunks/raw/` (one Rollup module per `serverAssets` file) are
+ * summarized with `stat` only. Gzipping each of them dominated build wall time
+ * for large catalogs (nitrojs/nitro#1833).
  */
 export async function generateFSTree(
   dir: string,
@@ -53,9 +53,9 @@ export async function generateFSTree(
   let treeText = "";
 
   for (const [index, item] of items.entries()) {
-    let itemDir = dirname(item.file);
-    if (itemDir === ".") {
-      itemDir = "";
+    let _dir = dirname(item.file);
+    if (_dir === ".") {
+      _dir = "";
     }
     const rpath = relative(process.cwd(), item.path);
     const treeChar = index === items.length - 1 ? "└─" : "├─";
@@ -79,7 +79,6 @@ export async function generateFSTree(
     totalGzip += item.gzip;
   }
 
-  // Summarize raw serverAsset chunks without per-file gzip.
   const rawFiles = await globby("chunks/raw/**/*.*", {
     cwd: dir,
     ignore: ["*.map"],
@@ -89,14 +88,13 @@ export async function generateFSTree(
     await runParallel(
       new Set(rawFiles),
       async (file) => {
-        const st = await fsp.stat(resolve(dir, file));
-        rawSize += st.size;
+        rawSize += (await fsp.stat(resolve(dir, file))).size;
       },
-      { concurrency: 32 }
+      { concurrency: 25 }
     );
     totalSize += rawSize;
     treeText += colors.gray(
-      `  ├─ chunks/raw/* (${rawFiles.length} files, ${prettyBytes(rawSize)} — gzip skipped)\n`
+      `  ├─ chunks/raw/* (${rawFiles.length} files, ${prettyBytes(rawSize)}, gzip skipped)\n`
     );
   }
 
