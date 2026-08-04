@@ -7,6 +7,13 @@ import prettyBytes from "pretty-bytes";
 import { isTest } from "std-env";
 import { runParallel } from "./parallel";
 
+/**
+ * Build a printable size tree for the server output directory.
+ *
+ * Files under `chunks/raw/` (one Rollup module per `serverAssets` file) are
+ * summarized with `stat` only. Gzipping each of them dominated build wall time
+ * for large catalogs (nitrojs/nitro#1833).
+ */
 export async function generateFSTree(
   dir: string,
   options: { compressedSizes?: boolean } = {}
@@ -15,7 +22,10 @@ export async function generateFSTree(
     return;
   }
 
-  const files = await globby("**/*.*", { cwd: dir, ignore: ["*.map"] });
+  const files = await globby("**/*.*", {
+    cwd: dir,
+    ignore: ["*.map", "chunks/raw/**"],
+  });
 
   const items: { file: string; path: string; size: number; gzip: number }[] =
     [];
@@ -43,9 +53,9 @@ export async function generateFSTree(
   let treeText = "";
 
   for (const [index, item] of items.entries()) {
-    let dir = dirname(item.file);
-    if (dir === ".") {
-      dir = "";
+    let _dir = dirname(item.file);
+    if (_dir === ".") {
+      _dir = "";
     }
     const rpath = relative(process.cwd(), item.path);
     const treeChar = index === items.length - 1 ? "└─" : "├─";
@@ -67,6 +77,25 @@ export async function generateFSTree(
     treeText += "\n";
     totalSize += item.size;
     totalGzip += item.gzip;
+  }
+
+  const rawFiles = await globby("chunks/raw/**/*.*", {
+    cwd: dir,
+    ignore: ["*.map"],
+  });
+  if (rawFiles.length > 0) {
+    let rawSize = 0;
+    await runParallel(
+      new Set(rawFiles),
+      async (file) => {
+        rawSize += (await fsp.stat(resolve(dir, file))).size;
+      },
+      { concurrency: 25 }
+    );
+    totalSize += rawSize;
+    treeText += colors.gray(
+      `  ├─ chunks/raw/* (${rawFiles.length} files, ${prettyBytes(rawSize)}, gzip skipped)\n`
+    );
   }
 
   treeText += `${colors.cyan("Σ Total size:")} ${prettyBytes(

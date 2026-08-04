@@ -89,6 +89,9 @@ function isBinary(id: string) {
   return true;
 }
 
+/** Shared with server-assets inline embedding. */
+export { isBinary };
+
 function getHelpers() {
   const js = String.raw;
   return js`

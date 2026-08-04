@@ -322,6 +322,16 @@ export interface ServerAssetDir {
   pattern?: string;
   dir: string;
   ignore?: string[];
+  /**
+   * How assets are included in the production server build.
+   *
+   * - `true` (default): one lazy Rollup `raw:` module per file (historical behavior).
+   * - `"inline"`: embed contents into a single virtual module (much faster for many small files).
+   * - `false`: keep files on disk under `server/assets/<baseName>` (Node/Bun/Deno; no `raw:`).
+   *
+   * @see https://nitro.build/docs/assets#server-assets
+   */
+  embed?: boolean | "inline";
 }
 
 // Storage mounts
