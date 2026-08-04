@@ -11,15 +11,23 @@ import { isBinary } from "./raw";
 import { virtual } from "./virtual";
 
 interface ResolvedAsset {
+  /** Absolute source path (used for `raw:` imports). */
   fsPath: string;
   meta: {
     type?: string;
     etag?: string;
     mtime?: string;
   };
-  /** Set when `embed: "inline"` (utf8 text or base64 for binary). */
+  /** `embed: "inline"` — utf8 text or base64 payload. */
   data?: string;
   encoding?: "base64";
+  /**
+   * `embed: false` — path relative to `output.serverDir`
+   * (same idea as public-assets `assets[id].path` + `readAsset`).
+   */
+  path?: string;
+  /** `embed: false` — decode as Uint8Array vs utf8 string. */
+  binary?: boolean;
 }
 
 type EmbedMode = boolean | "inline";
@@ -35,6 +43,38 @@ function resolveEmbedMode(asset: ServerAssetDir): EmbedMode {
  */
 function pathFromServerDir(nitro: Nitro, absPath: string): string {
   return relative(nitro.options.output.serverDir, absPath).replace(/\\/g, "/");
+}
+
+async function collectAssetMeta(
+  asset: ServerAssetDir,
+  _id: string
+): Promise<{
+  id: string;
+  fsPath: string;
+  data: Buffer;
+  meta: ResolvedAsset["meta"];
+}> {
+  const fsPath = resolve(asset.dir, _id);
+  const id = normalizeKey(asset.baseName + "/" + _id);
+  // @ts-ignore TODO: Use mime@2 types
+  let type = mime.getType(id) || "text/plain";
+  if (type.startsWith("text")) {
+    type += "; charset=utf-8";
+  }
+  const [data, stat] = await Promise.all([
+    fsp.readFile(fsPath),
+    fsp.stat(fsPath),
+  ]);
+  return {
+    id,
+    fsPath,
+    data,
+    meta: {
+      type,
+      etag: createEtag(data),
+      mtime: stat.mtime.toJSON(),
+    },
+  };
 }
 
 export function serverAssets(nitro: Nitro): Plugin {
@@ -68,18 +108,11 @@ export function serverAssets(nitro: Nitro): Plugin {
   return virtual(
     {
       "#nitro-internal-virtual/server-assets": async () => {
-        const embedAssets = nitro.options.serverAssets.filter(
-          (a) => resolveEmbedMode(a) !== false
-        );
-
-        if (embedAssets.length === 0) {
-          return getAssetsFs(nitro, fsAssetDirs);
-        }
-
         const inlineAssets: Record<string, ResolvedAsset> = {};
         const rawAssets: Record<string, ResolvedAsset> = {};
+        const diskAssets: Record<string, ResolvedAsset> = {};
 
-        for (const asset of embedAssets) {
+        for (const asset of nitro.options.serverAssets) {
           const mode = resolveEmbedMode(asset);
           const files = await globby(asset.pattern || "**/*", {
             cwd: asset.dir,
@@ -90,26 +123,28 @@ export function serverAssets(nitro: Nitro): Plugin {
           const { errors } = await runParallel(
             new Set(files),
             async (_id) => {
-              const fsPath = resolve(asset.dir, _id);
-              const id = normalizeKey(asset.baseName + "/" + _id);
-              // @ts-ignore TODO: Use mime@2 types
-              let type = mime.getType(id) || "text/plain";
-              if (type.startsWith("text")) {
-                type += "; charset=utf-8";
-              }
+              const { id, fsPath, data, meta } = await collectAssetMeta(
+                asset,
+                _id
+              );
 
-              const [data, stat] = await Promise.all([
-                fsp.readFile(fsPath),
-                fsp.stat(fsPath),
-              ]);
-              const meta = {
-                type,
-                etag: createEtag(data),
-                mtime: stat.mtime.toJSON(),
-              };
-
-              if (mode === "inline") {
-                // Same binary detection as the `raw:` plugin; base64 like public-assets inline.
+              if (mode === false) {
+                // public-assets-node style: meta + relative path, readFile at runtime
+                diskAssets[id] = {
+                  fsPath,
+                  meta,
+                  path: pathFromServerDir(
+                    nitro,
+                    join(
+                      nitro.options.output.serverDir,
+                      "assets",
+                      asset.baseName,
+                      _id
+                    )
+                  ),
+                  binary: isBinary(fsPath),
+                };
+              } else if (mode === "inline") {
                 const binary = isBinary(fsPath);
                 inlineAssets[id] = {
                   fsPath,
@@ -136,7 +171,7 @@ export function serverAssets(nitro: Nitro): Plugin {
           }
         }
 
-        return getAssetProd(nitro, inlineAssets, rawAssets, fsAssetDirs);
+        return getAssetProd(inlineAssets, rawAssets, diskAssets);
       },
     },
     nitro.vfs
@@ -157,78 +192,24 @@ for (const asset of serverAssets) {
 }`;
 }
 
-function getAssetsFs(nitro: Nitro, fsAssets: ServerAssetDir[]) {
-  const mounts = fsAssets.map((asset) => ({
-    baseName: asset.baseName,
-    path: pathFromServerDir(
-      nitro,
-      join(nitro.options.output.serverDir, "assets", asset.baseName)
-    ),
-    ignore: asset.ignore || [],
-  }));
-
-  // Same shape as getAssetProdRawOnly / mixed path — wrap fsDriver so getMeta
-  // still exposes `type` (mime) like embedded assets. Default raw: path untouched.
-  return `
-import { createStorage } from 'unstorage'
-import fsDriver from 'unstorage/drivers/fs'
-import { fileURLToPath } from 'node:url'
-import { dirname, resolve } from 'pathe'
-import mime from 'mime'
-
-const serverDir = dirname(fileURLToPath(import.meta.url))
-const mounts = ${JSON.stringify(mounts)}
-
-const __fs = createStorage()
-for (const asset of mounts) {
-  __fs.mount(asset.baseName, fsDriver({
-    base: resolve(serverDir, asset.path),
-    ignore: asset.ignore || [],
-  }))
-}
-
-const normalizeKey = ${normalizeKey.toString()}
-
-function withType(id, meta) {
-  // @ts-ignore mime@2
-  let type = mime.getType(id) || "text/plain"
-  if (type.startsWith("text")) type += "; charset=utf-8"
-  return { ...meta, type }
-}
-
-export const assets = {
-  getKeys: () => __fs.getKeys(),
-  hasItem: (id) => __fs.hasItem(id),
-  getItem: (id) => __fs.getItem(id),
-  async getMeta (id) {
-    id = normalizeKey(id)
-    return withType(id, await __fs.getMeta(id))
-  }
-}`;
-}
-
+/**
+ * Production virtual module.
+ *
+ * - raw only → historical template (byte-identical shape to pre-change Nitro)
+ * - otherwise → same map pattern as public-assets-data (+ raw imports / inline / disk paths)
+ */
 function getAssetProd(
-  nitro: Nitro,
   inlineAssets: Record<string, ResolvedAsset>,
   rawAssets: Record<string, ResolvedAsset>,
-  fsAssets: ServerAssetDir[]
+  diskAssets: Record<string, ResolvedAsset>
 ) {
-  const hasFs = fsAssets.length > 0;
   const hasInline = Object.keys(inlineAssets).length > 0;
+  const hasDisk = Object.keys(diskAssets).length > 0;
 
   // Default path unchanged: only raw: embeds → original template.
-  if (!hasFs && !hasInline) {
+  if (!hasInline && !hasDisk) {
     return getAssetProdRawOnly(rawAssets);
   }
-
-  const fsMounts = fsAssets.map((asset) => ({
-    baseName: asset.baseName,
-    path: pathFromServerDir(
-      nitro,
-      join(nitro.options.output.serverDir, "assets", asset.baseName)
-    ),
-    ignore: asset.ignore || [],
-  }));
 
   // Decode base64 like `#nitro-internal-virtual/public-assets-inline` (atob, not Buffer).
   const inlineEntries = Object.entries(inlineAssets)
@@ -250,29 +231,23 @@ function getAssetProd(
     )
     .join(",\n");
 
+  const diskEntries = Object.entries(diskAssets)
+    .map(
+      ([id, asset]) =>
+        `  [${JSON.stringify(id)}]: {\n    path: ${JSON.stringify(
+          asset.path
+        )},\n    binary: ${asset.binary ? "true" : "false"},\n    meta: ${JSON.stringify(
+          asset.meta
+        )}\n  }`
+    )
+    .join(",\n");
+
   return `
-${
-  hasFs
-    ? `import { createStorage as __createFsStorage } from 'unstorage'
-import __fsDriver from 'unstorage/drivers/fs'
+import { promises as fsp } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'pathe'
-import __mime from 'mime'
+
 const serverDir = dirname(fileURLToPath(import.meta.url))
-const __fsMounts = ${JSON.stringify(fsMounts)}
-const __fsAssets = __createFsStorage()
-for (const asset of __fsMounts) {
-  __fsAssets.mount(asset.baseName, __fsDriver({ base: resolve(serverDir, asset.path), ignore: asset.ignore || [] }))
-}
-function __fsMetaWithType(id, meta) {
-  // @ts-ignore mime@2
-  let type = __mime.getType(id) || "text/plain"
-  if (type.startsWith("text")) type += "; charset=utf-8"
-  return { ...meta, type }
-}`
-    : `const __fsAssets = null
-const __fsMetaWithType = (_id, meta) => meta`
-}
 
 const _inline = {
 ${inlineEntries}
@@ -282,33 +257,34 @@ const _raw = {
 ${rawEntries}
 }
 
+const _disk = {
+${diskEntries}
+}
+
 const normalizeKey = ${normalizeKey.toString()}
 
 export const assets = {
   async getKeys() {
-    const keys = [...Object.keys(_inline), ...Object.keys(_raw)]
-    if (__fsAssets) {
-      keys.push(...(await __fsAssets.getKeys()).map((k) => normalizeKey(k)))
-    }
-    return keys
+    return [...Object.keys(_inline), ...Object.keys(_raw), ...Object.keys(_disk)]
   },
   async hasItem (id) {
     id = normalizeKey(id)
-    if (id in _inline || id in _raw) return true
-    return __fsAssets ? __fsAssets.hasItem(id) : false
+    return id in _inline || id in _raw || id in _disk
   },
   async getItem (id) {
     id = normalizeKey(id)
     if (id in _inline) return _inline[id].data
     if (id in _raw) return _raw[id].import()
-    return __fsAssets ? __fsAssets.getItem(id) : null
+    if (id in _disk) {
+      const a = _disk[id]
+      const buf = await fsp.readFile(resolve(serverDir, a.path))
+      return a.binary ? new Uint8Array(buf) : buf.toString('utf8')
+    }
+    return null
   },
   async getMeta (id) {
     id = normalizeKey(id)
-    if (id in _inline) return _inline[id].meta
-    if (id in _raw) return _raw[id].meta
-    if (!__fsAssets) return {}
-    return __fsMetaWithType(id, await __fsAssets.getMeta(id))
+    return _inline[id]?.meta || _raw[id]?.meta || _disk[id]?.meta || {}
   }
 }
 `;

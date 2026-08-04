@@ -170,8 +170,11 @@ describe("serverAssets large catalogs", () => {
         const url = `${server.url}read?id=${encodeURIComponent("l0/l0/l0/l0/data.json")}`;
         const res = await fetch(url).then((r) => r.json());
         expect(res.has).toBe(true);
-        expect(res.item).toMatchObject({ v: 1 });
+        const item =
+          typeof res.item === "string" ? JSON.parse(res.item) : res.item;
+        expect(item).toMatchObject({ v: 1 });
         expect(res.meta?.type).toMatch(/json/);
+        expect(res.meta?.etag).toBeTruthy();
         expect(res.keys.length).toBeGreaterThanOrEqual(fileCount);
       } finally {
         await server.close();
