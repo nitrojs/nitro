@@ -162,8 +162,30 @@ describe("getChunkName", () => {
       },
     } as any);
     expect(getChunkName(createChunk("route", ["/src/routes/api/users/[id].ts"]), n)).toBe(
-      "_routes/api/users/[id].mjs"
+      "_routes/api/users/%5Bid%5D.mjs"
     );
+  });
+
+  it("returns _routes/<path>.mjs for nested dynamic route", () => {
+    const n = createNitro({
+      routing: {
+        routes: {
+          routes: [
+            {
+              data: [
+                {
+                  route: "/api/applications/:id/context",
+                  handler: "/src/routes/api/applications/[id]/context.ts",
+                },
+              ],
+            },
+          ],
+        },
+      },
+    } as any);
+    expect(
+      getChunkName(createChunk("route", ["/src/routes/api/applications/[id]/context.ts"]), n)
+    ).toBe("_routes/api/applications/%5Bid%5D/context.mjs");
   });
 
   it("returns _routes/index.mjs for root route", () => {
