@@ -65,6 +65,7 @@
     "test": "pnpm lint && pnpm build && pnpm typecheck && pnpm test:rollup && pnpm test:rolldown",
     "test:rolldown": "NITRO_BUILDER=rolldown pnpm vitest",
     "test:rollup": "NITRO_BUILDER=rollup pnpm vitest",
+    "test:vite": "pnpm vitest run test/vite",
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
