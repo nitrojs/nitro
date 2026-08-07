@@ -104,7 +104,14 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
   await prerender(nitro);
 
   // Build the Nitro server bundle
-  const output = (await builder.build(builder.environments.nitro)) as RolldownOutput;
+  let output: RolldownOutput | undefined;
+  if (nitro.options.static) {
+    // Static presets have no server entry. Vite's `buildApp()` builds every
+    // environment when none were built, so mark this one as handled.
+    builder.environments.nitro.isBuilt = true;
+  } else {
+    output = (await builder.build(builder.environments.nitro)) as RolldownOutput;
+  }
 
   // Close the Nitro instance
   await nitro.close();
