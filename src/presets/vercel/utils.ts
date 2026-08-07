@@ -5,7 +5,7 @@ import { writeFile } from "../_utils/fs.ts";
 import type { Nitro, NitroRouteRules, PrerenderRoute, ProxyRuleOptions } from "nitro/types";
 import { basename, dirname, relative, resolve } from "pathe";
 import { Router } from "../../routing.ts";
-import { joinURL, withLeadingSlash, withoutLeadingSlash } from "ufo";
+import { joinURL, withLeadingSlash, withoutBase, withoutLeadingSlash } from "ufo";
 import type {
   PrerenderFunctionConfig,
   VercelBuildConfigV3,
@@ -85,8 +85,8 @@ export async function generateFunctionFiles(nitro: Nitro) {
   if (hasRouteFunctionConfig) {
     routeFuncRouter = new Router<VercelServerlessFunctionConfig>();
     routeFuncRouter._update(
-      Object.entries(functionRules).map(([route, data]) => ({
-        route,
+      Object.entries(functionRules).map(([pattern, data]) => ({
+        route: normalizeFunctionRulePattern(pattern),
         method: "",
         data,
       }))
@@ -137,24 +137,56 @@ export async function generateFunctionFiles(nitro: Nitro) {
   // Write functionRules custom function directories
   const createdFuncDirs = new Set<string>();
   if (hasRouteFunctionConfig) {
-    for (const [pattern, overrides] of Object.entries(functionRules!)) {
+    const patternsWithFunction = new Set(getFunctionRulePatterns(nitro));
+    // Rules skipped because their route is prerendered, collected to warn
+    // about. ISR rules never land here: they `continue` below and their config
+    // is applied to the `-isr` function instead, so nothing is ignored.
+    const ignoredRules: string[] = [];
+    for (const [pattern, overrides] of Object.entries(functionRules)) {
+      const normalized = normalizeFunctionRulePattern(pattern);
       const funcDir = resolve(
         nitro.options.output.serverDir,
         "..",
-        normalizeRouteDest(pattern) + ".func"
+        normalizeRouteDest(normalized) + ".func"
       );
       // Skip if ISR already created a custom config function for this route
       if (isrFuncDirs.has(funcDir)) {
         continue;
       }
-      await createFunctionDirWithCustomConfig(
-        funcDir,
-        nitro.options.output.serverDir,
-        baseFunctionConfig,
-        overrides,
-        normalizeRouteDest(pattern)
+      if (patternsWithFunction.has(normalized)) {
+        await createFunctionDirWithCustomConfig(
+          funcDir,
+          nitro.options.output.serverDir,
+          baseFunctionConfig,
+          overrides,
+          normalizeRouteDest(normalized)
+        );
+        createdFuncDirs.add(funcDir);
+      } else {
+        // A function here would make the prerendered file unreachable (#4242).
+        // Reported with the user's original key so it is recognizable in their
+        // config, not with the normalized route.
+        ignoredRules.push(pattern);
+      }
+    }
+
+    if (ignoredRules.length > 0 && !isTest) {
+      const label = ignoredRules.length > 1 ? "routes" : "route";
+      const pronoun = ignoredRules.length > 1 ? "them" : "it";
+      const patterns = ignoredRules.map((pattern) => `\`${pattern}\``).join(", ");
+      // Triggers only reach disk via the function config, so dropping the rule
+      // unregisters the queue consumer as well. Call that out: it breaks the
+      // consumer, which is a bigger deal than the route falling back to SSR.
+      const hasTriggers = ignoredRules.some(
+        (pattern) => functionRules[pattern]?.experimentalTriggers?.length
       );
-      createdFuncDirs.add(funcDir);
+      nitro.logger.warn(
+        `Ignoring \`vercel.functionRules\` for prerendered ${label} ${patterns}. ` +
+          "A function at the path of a prerendered file can make that file unreachable and serve the route with SSR on every request, so Nitro skips creating one. " +
+          (hasTriggers ? "Queue triggers declared in the ignored rules are dropped too. " : "") +
+          `To apply the config, stop prerendering the ${label}: remove ${pronoun} from \`prerender.routes\`, or set \`prerender: false\` in \`routeRules\`. ` +
+          "Note that `crawlLinks` also prerenders any route it finds a link to, and a route rule can opt in with `prerender: true`."
+      );
     }
   }
 
@@ -360,12 +392,10 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
         };
       }),
     // Route function config routes
-    ...(nitro.options.vercel?.functionRules
-      ? Object.keys(nitro.options.vercel.functionRules).map((pattern) => ({
-          src: joinURL(nitro.options.baseURL, normalizeRouteSrc(pattern)),
-          dest: withLeadingSlash(normalizeRouteDest(pattern)),
-        }))
-      : []),
+    ...getFunctionRulePatterns(nitro).map((pattern) => ({
+      src: joinURL(nitro.options.baseURL, normalizeRouteSrc(pattern)),
+      dest: withLeadingSlash(normalizeRouteDest(pattern)),
+    })),
     // Observability routes
     ...(o11Routes || []).map((route) => ({
       src: joinURL(nitro.options.baseURL, route.src),
@@ -416,6 +446,66 @@ export function getPrerenderOverrides(prerenderedRoutes: PrerenderRoute[] = []) 
   }
 
   return overrides;
+}
+
+/**
+ * Routes that Vercel already serves from a prerendered file.
+ *
+ * Vercel resolves functions and static files from a single path to output map
+ * that functions are added to last, so a function at one of these paths makes
+ * the prerendered file unreachable and serves the route with SSR on every
+ * request (#4242). A prerendered route never reaches server code anyway.
+ *
+ * Paths are base and slash free. The base is stripped because `route` keeps it
+ * for crawled routes but not for routes listed in `prerender.routes`, and the
+ * two have to resolve to the same path. Slashes are trimmed to match how Vercel
+ * resolves paths (#4392) and to let the root route map to an empty path.
+ */
+function getPrerenderedPaths(nitro: Nitro) {
+  return new Set(
+    (nitro._prerenderedRoutes || [])
+      .filter((route) => route.fileName)
+      .map((route) =>
+        withoutBase(route.route, nitro.options.baseURL).replace(SURROUNDING_SLASH_RE, "")
+      )
+  );
+}
+
+/**
+ * `vercel.functionRules` patterns that should get their own function output,
+ * normalized with {@link normalizeFunctionRulePattern}.
+ *
+ * Literal patterns served by a prerendered file are dropped so their function
+ * cannot hide it. Dynamic patterns are kept: their output path can never equal
+ * a resolved prerendered path, and the function still has to serve every path
+ * that was not prerendered.
+ *
+ * Prerendering is not the only reason a rule gets no function of its own: a
+ * rule matched by an `isr` route rule has its config applied to that route's
+ * `-isr` function instead. `generateFunctionFiles` decides that separately,
+ * since it depends on function directories this runs too early to know about.
+ */
+export function getFunctionRulePatterns(nitro: Nitro): string[] {
+  const functionRules = nitro.options.vercel?.functionRules;
+  if (!functionRules) {
+    return [];
+  }
+  const prerenderedPaths = getPrerenderedPaths(nitro);
+  return Object.keys(functionRules)
+    .filter((pattern) => !prerenderedPaths.has(pattern.replace(SURROUNDING_SLASH_RE, "")))
+    .map(normalizeFunctionRulePattern);
+}
+
+/**
+ * Canonical route for a `vercel.functionRules` key.
+ *
+ * Keys are hand written, so `/foo`, `/foo/` and `foo` all mean the same route.
+ * Normalizing keeps the collision check and the function output path in
+ * agreement: a trailing slash reaching `normalizeRouteDest` would otherwise
+ * produce a directory literally named `.func` (`functions/foo/.func`).
+ */
+function normalizeFunctionRulePattern(pattern: string) {
+  return withLeadingSlash(pattern.replace(SURROUNDING_SLASH_RE, ""));
 }
 
 export function deprecateSWR(nitro: Nitro) {
@@ -535,15 +625,8 @@ export function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
     return [];
   }
 
-  // Vercel resolves functions and static files from a single path to output
-  // map that functions are added to last, so a function at the path of a
-  // prerendered file hides that file and serves the route with SSR on every
-  // request (#4242).
-  const prerenderedPaths = new Set(
-    (nitro._prerenderedRoutes || [])
-      .filter((route) => route.fileName)
-      .map((route) => route.route.replace(SURROUNDING_SLASH_RE, ""))
-  );
+  // Routes served by a prerendered file should not have a function (#4242)
+  const prerenderedPaths = getPrerenderedPaths(nitro);
 
   // Sort routes by how much specific they are
   const routePatterns = [

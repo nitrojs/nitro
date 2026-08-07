@@ -6,10 +6,12 @@ import { existsSync } from "node:fs";
 export default defineConfig({
   vercel: {
     functionRules: {
+      // Prerendered by the crawler, so this rule is ignored (#4242)
       "/api/hello": {
         maxDuration: 100,
       },
       "/api/echo": {
+        maxDuration: 100,
         experimentalTriggers: [{ type: "queue/v2beta", topic: "orders" }],
       },
       "/rules/isr/**": {

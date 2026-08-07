@@ -84,6 +84,14 @@ export default defineConfig({
 
 Route patterns support wildcards via [rou3](https://github.com/h3js/rou3) matching (e.g., `/api/slow/**` matches all routes under `/api/slow/`).
 
+::warning
+Nitro ignores a `functionRules` entry when its route is prerendered, and warns at build time. A Vercel Function at the path of a prerendered file can make that file unreachable and serve the route with SSR on every request, so Nitro skips creating one.
+
+To apply the configuration, stop prerendering the route: remove it from `prerender.routes`, or set `prerender: false` in its [route rule](/config#routerules). Keep in mind that a route is also prerendered when `crawlLinks` finds a link to it, or when a route rule sets `prerender: true` — so it may never appear in `prerender.routes` at all.
+
+Nitro only affects patterns that match a prerendered route exactly. Wildcard and dynamic patterns such as `/api/slow/**` and `/api/:id` keep their configuration and still apply to every matching path Nitro does not prerender.
+::
+
 ## Proxy route rules
 
 Nitro automatically optimizes `proxy` route rules on Vercel by generating [CDN-level rewrites](https://vercel.com/docs/rewrites) at build time. This means matching requests are proxied at the edge without invoking a serverless function, reducing latency and cost.

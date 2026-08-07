@@ -204,10 +204,6 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "(?<__isr_route>/rules/swr-ttl/(?:.*))",
               },
               {
-                "dest": "/api/hello",
-                "src": "/api/hello",
-              },
-              {
                 "dest": "/api/echo",
                 "src": "/api/echo",
               },
@@ -460,7 +456,6 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/api/db.func (symlink)",
             "functions/api/echo.func",
             "functions/api/headers.func (symlink)",
-            "functions/api/hello.func",
             "functions/api/kebab.func (symlink)",
             "functions/api/meta/test.func (symlink)",
             "functions/api/methods/foo.get.func (symlink)",
@@ -517,7 +512,7 @@ describe("nitro:preset:vercel:web", async () => {
       });
 
       it("should create custom function directory for functionRules (not symlink)", async () => {
-        const funcDir = resolve(ctx.outDir, "functions/api/hello.func");
+        const funcDir = resolve(ctx.outDir, "functions/api/echo.func");
         const stat = await fsp.lstat(funcDir);
         expect(stat.isDirectory()).toBe(true);
         expect(stat.isSymbolicLink()).toBe(false);
@@ -525,12 +520,22 @@ describe("nitro:preset:vercel:web", async () => {
 
       it("should write merged .vc-config.json with functionRules overrides", async () => {
         const config = await fsp
-          .readFile(resolve(ctx.outDir, "functions/api/hello.func/.vc-config.json"), "utf8")
+          .readFile(resolve(ctx.outDir, "functions/api/echo.func/.vc-config.json"), "utf8")
           .then((r) => JSON.parse(r));
         expect(config.maxDuration).toBe(100);
         expect(config.handler).toBe("index.mjs");
         expect(config.launcherType).toBe("Nodejs");
         expect(config.supportsResponseStreaming).toBe(true);
+      });
+
+      // A function at the path of a prerendered file makes that file
+      // unreachable, so the rule is ignored instead (#4242)
+      it("should not create a functionRules function for a prerendered route", async () => {
+        await expect(
+          fsp.lstat(resolve(ctx.outDir, "functions/api/hello.func"))
+        ).rejects.toThrowError(/ENOENT/);
+        const stat = await fsp.lstat(resolve(ctx.outDir, "static/api/hello"));
+        expect(stat.isFile()).toBe(true);
       });
 
       it("should write functionRules with arbitrary fields", async () => {
@@ -544,7 +549,7 @@ describe("nitro:preset:vercel:web", async () => {
       });
 
       it("should copy files inside functionRules directory from __server.func", async () => {
-        const funcDir = resolve(ctx.outDir, "functions/api/hello.func");
+        const funcDir = resolve(ctx.outDir, "functions/api/echo.func");
         const indexStat = await fsp.lstat(resolve(funcDir, "index.mjs"));
         expect(indexStat.isFile()).toBe(true);
       });
