@@ -27,8 +27,12 @@ describe.each(Object.entries(presets))("static preset (%s)", (preset, publicDir)
       output: { dir: outDir },
       builder: "vite",
     });
-    await prepare(nitro);
-    await build(nitro);
+    try {
+      await prepare(nitro);
+      await build(nitro);
+    } finally {
+      await nitro.close();
+    }
   });
 
   it("does not emit a server bundle", () => {
