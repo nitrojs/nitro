@@ -97,6 +97,8 @@ export const getBundlerConfig = async (
     );
 
     const outputConfig = rollupConfig.output!;
+    // Same default as the rollup builder.
+    outputConfig.importAttributesKey ??= "with";
     if (outputConfig.inlineDynamicImports || outputConfig.format === ("iife" as string)) {
       delete outputConfig.manualChunks;
     }
