@@ -37,6 +37,7 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
   #buildError?: unknown;
   #reloadPromise?: Promise<void>;
   #shuttingDown: boolean = false;
+  #closing: boolean = false;
 
   constructor(nitro: Nitro) {
     super(nitro, async (event) => {
@@ -152,6 +153,8 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
   }
 
   async close() {
+    this.#closing = true;
+    await this.#reloadPromise?.catch(() => {});
     await this.#shutdownWorker();
     await Promise.all(
       [
@@ -171,6 +174,9 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
   }
 
   reload() {
+    if (this.#closing) {
+      return;
+    }
     const nextReload = (this.#reloadPromise ?? Promise.resolve())
       .catch(() => {})
       .then(() => this.#reload());
@@ -232,7 +238,10 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
         this.#manager.onMessage(listener);
         try {
           this.#manager.sendMessage({ event: "shutdown" });
-        } catch {
+        } catch (error) {
+          this.nitro.logger.warn(
+            `Could not send shutdown message to the dev worker: ${error instanceof Error ? error.message : String(error)}`
+          );
           done();
         }
       });
