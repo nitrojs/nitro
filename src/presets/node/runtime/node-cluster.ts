@@ -3,7 +3,7 @@ import cluster from "node:cluster";
 import { NodeRequest, serve } from "srvx/node";
 import wsAdapter from "crossws/adapters/node";
 
-import { useNitroApp } from "nitro/app";
+import { useNitroApp, useNitroHooks } from "nitro/app";
 import { startScheduleRunner } from "#nitro/runtime/task";
 import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
@@ -31,6 +31,22 @@ const server = serve({
   silent: clusterId ? clusterId !== "1" : undefined,
   fetch: nitroApp.fetch,
 });
+
+// Run `close` hooks on server shutdown (srvx closes the server on `SIGINT`/`SIGTERM`)
+const closeServer = server.close.bind(server);
+let closeHooksCalled = false;
+server.close = async (closeActiveConnections?: boolean) => {
+  try {
+    await closeServer(closeActiveConnections);
+  } finally {
+    if (!closeHooksCalled) {
+      closeHooksCalled = true;
+      await useNitroHooks()
+        .callHook("close")
+        ?.catch((error) => console.error("[close]", error));
+    }
+  }
+};
 
 if (import.meta._websocket) {
   const { handleUpgrade } = wsAdapter({ resolve: resolveWebsocketHooks });
