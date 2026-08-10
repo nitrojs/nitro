@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
+import { ref, onMounted, defineAsyncComponent } from 'vue'
 
 const Shader = defineAsyncComponent(() => import('shaders/vue').then(m => m.Shader))
 const ChromaFlow = defineAsyncComponent(() => import('shaders/vue').then(m => m.ChromaFlow))
@@ -8,14 +8,19 @@ const enabled = ref(false)
 const ready = ref(false)
 
 // The app shell paints its own themed `hero` aura behind the landing, which is
-// redundant once the shader is actually drawing. Flag the document only while
-// the shader is live — everyone who never gets one (no WebGPU, mobile, low-end,
-// or a GPU that gave up) still gets the aura as the fallback backdrop.
-const live = computed(() => enabled.value && ready.value)
-watch(live, (isLive: boolean) => {
-  document.documentElement.classList.toggle('has-hero-shader', isLive)
-})
-onUnmounted(() => document.documentElement.classList.remove('has-hero-shader'))
+// redundant once the shader draws. The CSS below hides it by DEFAULT and this
+// puts it back for visitors who turn out not to be getting a shader — the
+// inverse of the obvious wiring, because the landing is prerendered: the aura
+// ships in the SSR markup and paints from the first frame, so hiding it from JS
+// meant it was always briefly visible before the shader took over. Hidden by
+// default it simply never paints, and only the fallback path pays a fade-in.
+//
+// Deliberately not cleared on unmount: it records a fact about the visitor's
+// machine, not about this page, so keeping it avoids a flicker if they navigate
+// away and come back.
+function useAura() {
+  document.documentElement.classList.add('no-hero-shader')
+}
 
 // Why the shader is not running, or `null` when nothing rules it out. `shaders`
 // v3 is WebGPU-only — there is no WebGL2 fallback anymore, and on a browser
@@ -46,12 +51,14 @@ function skipReason(): string | null {
 // tinguishable from a broken one, and the library itself stays quiet by design.
 function onUnavailable(reason: string) {
   enabled.value = false
+  useAura()
   console.info(`[hero] shader background stopped — the GPU reported \`${reason}\`. Falling back to the aura backdrop.`)
 }
 
 onMounted(() => {
   const reason = skipReason()
   if (reason) {
+    useAura()
     console.info(`[hero] shader background disabled — ${reason}. Falling back to the aura backdrop.`)
     return
   }
@@ -85,16 +92,23 @@ onMounted(() => {
 </template>
 
 <style>
-/* Cross-fade the app shell's hero aura out on the same curve the shader fades
-   in on, so the landing never shows both glows stacked. Unscoped on purpose:
-   `.aura--hero` belongs to undocs' own `AuraBackground`, mounted up in the app
-   shell. Only the hero variant is touched — `.aura--docs` still runs on every
-   other page, where this component never mounts. */
+/* Hide the app shell's hero aura up front, and fade it back in only for the
+   visitors `no-hero-shader` marks as not getting a shader. This stylesheet is a
+   render-blocking `<link>` in the prerendered landing's `<head>`, so the aura
+   never paints for anyone else — no fallback glow flashing past before the
+   shader arrives.
+
+   Unscoped on purpose: `.aura--hero` belongs to undocs' own `AuraBackground`,
+   mounted up in the app shell. Only the hero variant is touched — `.aura--docs`
+   still runs on every other page, where this component never mounts. Opacity is
+   set on the wrapper, which composes with the per-theme opacity `AuraBackground`
+   puts on its inner layer rather than fighting it. */
 .aura--hero {
+  opacity: 0;
   transition: opacity 700ms;
 }
 
-:root.has-hero-shader .aura--hero {
-  opacity: 0;
+:root.no-hero-shader .aura--hero {
+  opacity: 1;
 }
 </style>
