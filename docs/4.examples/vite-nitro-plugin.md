@@ -1,5 +1,6 @@
 ---
-category: vite
+navigation:
+  category: vite
 icon: i-logos-vitejs
 ---
 

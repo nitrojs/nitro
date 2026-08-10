@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import { onMounted, ref } from 'vue'
 import { Motion } from 'motion-v'
+import AppLink from 'undocs/src/app/components/app/AppLink'
+import Icon from 'undocs/src/app/components/global/Icon.vue'
 
 defineProps<{
   headline?: string
@@ -21,18 +24,18 @@ onMounted(() => {
     :transition="{ duration: 0.5 }"
     :in-view-options="{ once: true }"
   >
-    <NuxtLink :to="link" class="block h-full" :class="link ? 'cursor-pointer' : 'cursor-default'">
-      <div class="relative overflow-hidden rounded-xl border border-default bg-white/60 dark:bg-neutral-900/60 backdrop-blur-sm p-8 h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+    <component :is="link ? AppLink : 'div'" :to="link || undefined" class="block h-full">
+      <div class="relative overflow-hidden rounded-xl border border-border bg-card/60 backdrop-blur-sm p-8 h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
         <div v-if="headline" class="text-xs font-mono uppercase tracking-widest text-primary mb-4 flex items-center gap-2">
           <span class="inline-block w-1 h-1 rounded-full bg-primary" />
           {{ headline }}
         </div>
 
-        <h3 class="text-2xl font-bold text-neutral-900 dark:text-white mb-3 tracking-tight">
+        <h3 class="text-2xl font-bold text-foreground mb-3 tracking-tight">
           <slot name="title" />
         </h3>
 
-        <p class="text-neutral-500 dark:text-neutral-400 text-sm leading-relaxed mb-6">
+        <p class="text-muted-foreground text-sm leading-relaxed mb-6">
           <slot name="description" />
         </p>
 
@@ -43,9 +46,9 @@ onMounted(() => {
           class="inline-flex items-center gap-1 text-sm text-primary mt-auto"
         >
           {{ linkLabel || 'Learn more' }}
-          <UIcon name="i-lucide-arrow-right" class="size-4" />
+          <Icon name="i-lucide-arrow-right" class="size-4" />
         </span>
       </div>
-    </NuxtLink>
+    </component>
   </Motion>
 </template>

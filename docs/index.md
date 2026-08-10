@@ -4,7 +4,7 @@ seo:
   description: Nitro extends your Vite application with a production-ready server, compatible with any runtime. Add server routes to your application and deploy many hosting platform with a zero-config experience.
 ---
 
-::u-page-hero
+::page-hero
 ---
 orientation: horizontal
 ---
@@ -43,6 +43,7 @@ orientation: horizontal
   :::
 ::
 
+#top
 :hero-background
 
 #title
@@ -61,21 +62,15 @@ features:
   - title: Fast
     description: Enjoy the fast Vite 8 (rolldown powered) development experience with HMR on the server and optimized for production.
     icon: i-lucide-zap
-    color: text-amber-500
-    bgColor: bg-amber-500/10
-    borderColor: "group-hover:border-amber-500/30"
+    color: amber
   - title: Agnostic
     description: Deploy the same codebase to any deployment provider with zero config and locked-in.
     icon: i-lucide-globe
-    color: text-sky-500
-    bgColor: bg-sky-500/10
-    borderColor: "group-hover:border-sky-500/30"
+    color: sky
   - title: Minimal
     description: Nitro adds no overhead to runtime. Build your servers with any modern tool you like.
     icon: i-lucide-feather
-    color: text-emerald-500
-    bgColor: bg-emerald-500/10
-    borderColor: "group-hover:border-emerald-500/30"
+    color: emerald
 ---
 ::
 
@@ -87,37 +82,29 @@ metrics:
     unit: RPS
     description: Using compile router, and fast paths for request handling.
     icon: i-lucide-gauge
-    color: text-emerald-500
-    bgColor: bg-emerald-500/10
+    color: emerald
     barWidth: "95%"
-    barColor: bg-emerald-500
   - label: Minimum install Size
     value: Tiny
     unit: deps
     description: Minimal dependencies. No bloated node_modules.
     icon: i-lucide-package
-    color: text-sky-500
-    bgColor: bg-sky-500/10
+    color: sky
     barWidth: "15%"
-    barColor: bg-sky-500
   - label: Small and portable output
     value: "‹ 10"
     unit: kB
     description: Standard server builds produce ultra-small output bundles.
     icon: i-lucide-file-output
-    color: text-violet-500
-    bgColor: bg-violet-500/10
+    color: violet
     barWidth: "10%"
-    barColor: bg-violet-500
   - label: FAST builds
     value: "‹ 1"
     unit: sec
     description: Cold production builds complete in seconds, not minutes.
     icon: i-lucide-timer
-    color: text-amber-500
-    bgColor: bg-amber-500/10
+    color: amber
     barWidth: "12%"
-    barColor: bg-amber-500
 ---
 ::
 
@@ -242,4 +229,4 @@ metrics:
 ::
 
 
-::page-sponsors
+::sponsors

@@ -1,86 +1,55 @@
 <script setup lang="ts">
-import type { ContentNavigationItem } from '@nuxt/content'
-import { categoryOrder } from '~/utils/examples'
+import { computed, inject, type Ref } from 'vue'
+import { useDocsNav } from 'undocs/src/app/composables/useDocsNav'
+import { useSectionTabs } from 'undocs/src/app/composables/useSectionTabs'
+import Container from 'undocs/src/app/components/Container.vue'
+import DocsNavigation from 'undocs/src/app/components/docs/DocsNavigation.vue'
+import Page from 'undocs/src/app/components/layout/Page.vue'
+import PageAnchors from 'undocs/src/app/components/layout/PageAnchors.vue'
+import PageAside from 'undocs/src/app/components/layout/PageAside.vue'
+import Separator from 'undocs/src/app/components/ui/Separator.vue'
+import type { NavItem } from 'undocs/src/server/content/types'
+import { groupExamples } from '../utils/examples'
 
-// Fetch all examples and group by category
-const { data: examples } = await useAsyncData('examples-nav', () =>
-  queryCollection('content')
-    .where('path', 'LIKE', '/examples/%')
-    .select('title', 'description', 'meta', 'path')
-    .all(),
+const docsNav = useDocsNav()
+const navigation = inject<Ref<NavItem[]>>('navigation')
+
+// Same rule as the built-in docs layout: when the section-tabs bar is on screen
+// it already switches sections, so the sidebar drops the section anchors.
+const { visible: hasSectionTabs } = useSectionTabs()
+
+const anchorLinks = computed(() => docsNav.links.filter((link) => link.title !== 'Blog'))
+
+// Category headers are not pages — `page: false` keeps `DocsNavigation` from
+// rendering them as links, and `#<category>` is only a tree key.
+const groupedExamples = computed<NavItem[]>(() =>
+  groupExamples(navigation?.value).map((group) => ({
+    title: group.title,
+    path: `#${group.category}`,
+    icon: group.icon,
+    page: false,
+    children: group.items,
+  })),
 )
-
-// Group examples by category
-const groupedExamples = computed(() => {
-  if (!examples.value) return []
-
-  const groups: Record<string, ContentNavigationItem[]> = {}
-
-  for (const example of examples.value) {
-    const category = (example.meta as Record<string, any>)?.category || 'Other'
-    if (!groups[category]) {
-      groups[category] = []
-    }
-    groups[category].push({
-      title: example.title,
-      path: example.path,
-    })
-  }
-
-  // Convert to navigation items with children, sorted by categoryOrder
-  const sortedEntries = Object.entries(groups).sort(([a], [b]) => {
-    const aIndex = categoryOrder.indexOf(a.toLowerCase())
-    const bIndex = categoryOrder.indexOf(b.toLowerCase())
-    if (aIndex === -1 && bIndex === -1) return a.localeCompare(b)
-    if (aIndex === -1) return 1
-    if (bIndex === -1) return -1
-    return aIndex - bIndex
-  })
-
-  return sortedEntries.map(([category, items]) => ({
-    title: category.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-    path: '',
-    children: items,
-  }))
-})
-
-// Flat list for navigation (no groups)
-const flatExamples = computed(() => {
-  if (!examples.value) return []
-  return examples.value.map((example) => ({
-    title: example.title,
-    path: example.path,
-  }))
-})
 </script>
 
 <template>
-  <UContainer>
-    <UPage :ui="{ left: 'lg:col-span-2 pr-2 border-r border-default' }">
+  <Container>
+    <Page :ui="{ left: 'lg:col-span-2 pr-2 border-r border-border' }">
       <template #left>
-        <UPageAside>
-          <UPageAnchors
-            :links="[
-              { label: 'Docs', icon: 'i-lucide-book-open', to: '/docs' },
-              { label: 'Deploy', icon: 'ri:upload-cloud-2-line', to: '/deploy' },
-              { label: 'Config', icon: 'ri:settings-3-line', to: '/config' },
-              { label: 'Examples', icon: 'i-lucide-folder-code', to: '/examples', active: true },
-            ]"
-          />
-          <USeparator type="dashed" class="py-6" />
-          <UContentNavigation
+        <PageAside>
+          <template v-if="!hasSectionTabs">
+            <PageAnchors :links="anchorLinks" />
+            <Separator v-if="groupedExamples.length" type="dashed" class="py-6" />
+          </template>
+          <DocsNavigation
             v-if="groupedExamples.length"
             :navigation="groupedExamples"
             :collapsible="false"
           />
-          <UContentNavigation
-            v-else-if="flatExamples.length"
-            :navigation="flatExamples"
-            :collapsible="false"
-          />
-        </UPageAside>
+        </PageAside>
       </template>
       <slot />
-    </UPage>
-  </UContainer>
+    </Page>
+  </Container>
 </template>
