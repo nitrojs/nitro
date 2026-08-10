@@ -8,6 +8,6 @@
     "automd": "^0.4.3",
     "motion-v": "^2.3.0",
     "shaders": "^2.5.135",
-    "undocs": "npm:undocs-nightly@0.10.1-20260808-114344-0ea074d"
+    "undocs": "npm:undocs-nightly@0.10.1-20260810-080950-9339f88"
   }
 }
