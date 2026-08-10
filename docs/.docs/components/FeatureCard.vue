@@ -35,9 +35,13 @@ onMounted(() => {
           <slot name="title" />
         </h3>
 
-        <p class="text-muted-foreground text-sm leading-relaxed mb-6">
+        <!-- A div, not a paragraph: the slot holds rendered markdown, which is
+             already a paragraph. Nesting them is invalid HTML, and the browser's
+             repair (hoist the inner one, synthesize one for the stray end tag)
+             leaves a DOM that no longer matches the vdom, so hydration mismatches. -->
+        <div class="text-muted-foreground text-sm leading-relaxed mb-6">
           <slot name="description" />
-        </p>
+        </div>
 
         <slot name="demo" />
 
