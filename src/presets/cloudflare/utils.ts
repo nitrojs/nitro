@@ -1,8 +1,12 @@
-import type { Nitro } from "nitropack/types";
+import type { Nitro, NitroRouteRules } from "nitropack/types";
 import type { Plugin } from "rollup";
-import type { WranglerConfig, CloudflarePagesRoutes } from "./types";
+import type {
+  WranglerConfig,
+  CloudflarePagesRoutes,
+  CloudflareHeaderTreeNode,
+} from "./types";
 import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { readFile, rename, rm } from "node:fs/promises";
 import { relative, dirname, extname } from "node:path";
 import { writeFile } from "nitropack/kit";
 import { parseTOML, parseJSONC } from "confbox";
@@ -105,42 +109,148 @@ function comparePaths(a: string, b: string) {
   return a.split("/").length - b.split("/").length || a.localeCompare(b);
 }
 
+function buildHeaderTree(rules: {
+  [p: string]: NitroRouteRules;
+}): CloudflareHeaderTreeNode {
+  const tree: CloudflareHeaderTreeNode = {
+    path: "/",
+    wildcardHeaders: undefined,
+    headers: undefined,
+    children: {},
+  };
+
+  for (const [path, routeRules] of Object.entries(rules).filter(
+    ([_, routeRules]) => routeRules.headers
+  )) {
+    const pathParts = path == "/" ? [] : path.slice(1).split("/");
+    let currentNode = tree;
+    for (const part of pathParts) {
+      if (part === "**") break;
+
+      currentNode.children[part] = currentNode.children[part] || {
+        path: (currentNode.path == "/" ? "" : currentNode.path) + "/" + part,
+        wildcardHeaders: undefined,
+        headers: undefined,
+        children: {},
+      };
+      currentNode = currentNode.children[part];
+    }
+    if (pathParts.at(-1) === "**") {
+      currentNode.wildcardHeaders = routeRules.headers;
+    } else {
+      currentNode.headers = routeRules.headers;
+    }
+  }
+
+  return tree;
+}
+function processHeaderValues(
+  parentHeaders: Record<string, string>,
+  headers: Record<string, string>
+) {
+  return Object.entries(headers)
+    .filter(
+      ([header, value]) =>
+        !parentHeaders[header.toLowerCase()] ||
+        parentHeaders[header.toLowerCase()] !== value
+    )
+    .map(([header, value]) => {
+      const values = [`  ${header}: ${value}`];
+      if (parentHeaders[header.toLowerCase()]) {
+        values.unshift(`  ! ${header}`);
+      }
+      return values.join("\n");
+    });
+}
+function processHeaderTree(
+  baseURL: string,
+  tree: CloudflareHeaderTreeNode,
+  parentHeaders?: Record<string, Record<string, string>>
+) {
+  parentHeaders = parentHeaders || { "/": {} };
+  let contents: string[] = [];
+
+  let closestWildcard = tree.path;
+  do {
+    closestWildcard = closestWildcard.split("/").slice(0, -1).join("/") || "/";
+  } while (closestWildcard !== "/" && !parentHeaders[closestWildcard]);
+
+  if (tree.wildcardHeaders) {
+    const path = joinURL(baseURL, (tree.path == "/" ? "" : tree.path) + "/*");
+    const headers = processHeaderValues(
+      parentHeaders[closestWildcard],
+      tree.wildcardHeaders
+    );
+
+    if (headers.length > 0) {
+      contents.push([path, ...headers].join("\n"));
+
+      parentHeaders[tree.path] = {
+        ...parentHeaders[closestWildcard],
+        ...Object.fromEntries(
+          Object.entries(tree.wildcardHeaders).map(([header, value]) => [
+            header.toLowerCase(),
+            value,
+          ])
+        ),
+      };
+    }
+  }
+
+  if (tree.headers) {
+    const headers = processHeaderValues(
+      parentHeaders[closestWildcard],
+      tree.headers
+    );
+    if (headers.length > 0) {
+      contents.push([joinURL(baseURL, tree.path), ...headers].join("\n"));
+    }
+  }
+
+  for (const [_, child] of Object.entries(tree.children).sort((a, b) =>
+    a[0].localeCompare(b[0])
+  )) {
+    contents = [
+      ...contents,
+      ...processHeaderTree(baseURL, child, parentHeaders),
+    ];
+  }
+
+  return contents;
+}
+
 export async function writeCFHeaders(
   nitro: Nitro,
   outdir: "public" | "output"
 ) {
-  const headersPath = join(
-    outdir === "public"
-      ? nitro.options.output.publicDir
-      : nitro.options.output.dir,
+  const publicRootPath = join(
+    nitro.options.output.dir,
+    outdir === "public" ? "public" : "",
     "_headers"
   );
-  const contents = [];
-
-  const rules = Object.entries(nitro.options.routeRules).sort(
-    (a, b) => b[0].split(/\/(?!\*)/).length - a[0].split(/\/(?!\*)/).length
+  const publicBasePath = join(
+    (outdir === "public" && nitro.options.baseURL !== "") ? nitro.options.output.publicDir : publicRootPath,
+    "_headers"
   );
 
-  for (const [path, routeRules] of rules.filter(
-    ([_, routeRules]) => routeRules.headers
-  )) {
-    const headers = [
-      joinURL(nitro.options.baseURL, path.replace("/**", "/*")),
-      ...Object.entries({ ...routeRules.headers }).map(
-        ([header, value]) => `  ${header}: ${value}`
-      ),
-    ].join("\n");
+  const contents = processHeaderTree(
+    nitro.options.baseURL,
+    buildHeaderTree(nitro.options.routeRules)
+  );
 
-    contents.push(headers);
-  }
-
-  if (existsSync(headersPath)) {
-    const currentHeaders = await readFile(headersPath, "utf8");
+  if (existsSync(publicBasePath)) {
+    const currentHeaders = await readFile(publicBasePath, "utf8");
     if (/^\/\* /m.test(currentHeaders)) {
+      if (publicBasePath != publicRootPath) {
+        await rename(publicBasePath, publicRootPath);
+      }
       nitro.logger.info(
         "Not adding Nitro fallback to `_headers` (as an existing fallback was found)."
       );
       return;
+    }
+    if (publicBasePath != publicRootPath) {
+      await rm(publicBasePath);
     }
     nitro.logger.info(
       "Adding Nitro fallback to `_headers` to handle all unmatched routes."
@@ -148,7 +258,7 @@ export async function writeCFHeaders(
     contents.unshift(currentHeaders);
   }
 
-  await writeFile(headersPath, contents.join("\n"), true);
+  await writeFile(publicRootPath, contents.join("\n"), true);
 }
 
 export async function writeCFPagesRedirects(nitro: Nitro) {
