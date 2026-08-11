@@ -88,6 +88,13 @@ const netlifyEdge = defineNitroPreset(
       output: {
         entryFileNames: "server.js",
         format: "esm",
+        // base-worker inlines dynamic imports because its iife output cannot
+        // code-split. This preset emits esm, and Netlify bundles the full
+        // module graph of the generated function, including emitted chunks,
+        // which remain dynamically importable at runtime. Keeping imports
+        // dynamic keeps lazily-imported work (e.g. WASM compilation) off the
+        // cold start path.
+        inlineDynamicImports: false,
       },
     },
     unenv: unenvDeno,
