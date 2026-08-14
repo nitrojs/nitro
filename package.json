@@ -156,7 +156,7 @@
     "typescript": "^7.0.2",
     "ufo": "^1.6.4",
     "ultrahtml": "^1.7.0",
-    "unctx": "^2.5.0",
+    "unctx": "^3.0.0",
     "unimport": "^6.3.0",
     "untyped": "^2.0.0",
     "unwasm": "^0.5.3",
