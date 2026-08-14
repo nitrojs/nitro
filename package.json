@@ -124,7 +124,7 @@
     "destr": "^2.0.5",
     "dot-prop": "^10.1.0",
     "etag": "^1.8.1",
-    "execa": "^9.6.1",
+    "execa": "^10.0.1",
     "exsolve": "^1.1.0",
     "get-port-please": "^3.2.0",
     "get-tsconfig": "^4.14.0",
