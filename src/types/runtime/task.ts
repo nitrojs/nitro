@@ -36,4 +36,10 @@ export interface Task<RT = unknown> {
 export interface TaskRunnerOptions {
   cwd?: string;
   buildDir?: string;
+  /**
+   * Timeout in milliseconds for requests to the dev server.
+   *
+   * @default 30_000
+   */
+  timeout?: number;
 }
