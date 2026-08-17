@@ -5,7 +5,7 @@ import wsAdapter from "crossws/adapters/node";
 import { useNitroApp } from "nitro/app";
 import { startScheduleRunner } from "#nitro/runtime/task";
 import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
-import { resolveWebsocketHooks } from "#nitro/runtime/app";
+import { nitroRuntimeHooksPlugin, resolveWebsocketHooks } from "#nitro/runtime/app";
 import { tracingSrvxPlugins } from "#nitro/virtual/tracing";
 
 const _parsedPort = Number.parseInt(process.env.NITRO_PORT ?? process.env.PORT ?? "");
@@ -23,7 +23,7 @@ const server = serve({
   hostname: host,
   tls: cert && key ? { cert, key } : undefined,
   fetch: nitroApp.fetch,
-  plugins: [...tracingSrvxPlugins],
+  plugins: [nitroRuntimeHooksPlugin, ...tracingSrvxPlugins],
 });
 
 if (import.meta._websocket) {
