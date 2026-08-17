@@ -54,3 +54,17 @@ function parseNumber(maxAge: string) {
     return maxAgeAsNumber;
   }
 }
+
+// Azure Functions v3 expects string | Buffer, not a ReadableStream.
+export async function azureResponseBody(response: Response): Promise<string | Buffer | undefined> {
+  if (!response.body) {
+    return undefined;
+  }
+  const buffer = Buffer.from(await new Response(response.body).arrayBuffer());
+  const contentType = response.headers.get("content-type") || "";
+  return isTextType(contentType) ? buffer.toString("utf8") : buffer;
+}
+
+function isTextType(contentType = "") {
+  return /^text\/|\/(javascript|json|xml)|\+(json|xml)|utf-?8/i.test(contentType);
+}

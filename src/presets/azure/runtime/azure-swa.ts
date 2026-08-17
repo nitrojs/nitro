@@ -1,25 +1,22 @@
 import "#nitro/virtual/polyfills";
-import { parseURL } from "ufo";
 import { useNitroApp } from "nitro/app";
-import { getAzureParsedCookiesFromHeaders } from "./_utils.ts";
+import { azureResponseBody, getAzureParsedCookiesFromHeaders } from "./_utils.ts";
 
 import type { HttpRequest, HttpResponse, HttpResponseSimple } from "@azure/functions";
 
 const nitroApp = useNitroApp();
 
-export async function handle(context: { res: HttpResponse }, req: HttpRequest) {
-  let url: string;
+/** `new Request()` requires an absolute URL; Azure SWA only provides relative paths. */
+export function resolveAzureSwaRequestUrl(req: HttpRequest): string {
   if (req.headers["x-ms-original-url"]) {
-    // This URL has been proxied as there was no static file matching it.
-    const parsedURL = parseURL(req.headers["x-ms-original-url"]);
-    url = parsedURL.pathname + parsedURL.search;
-  } else {
-    // Because Azure SWA handles /api/* calls differently they
-    // never hit the proxy and we have to reconstitute the URL.
-    url = "/api/" + (req.params.url || "");
+    return req.headers["x-ms-original-url"];
   }
+  // /api/* calls never hit the SWA proxy, so we reconstitute the URL.
+  return new URL("/api/" + (req.params.url || ""), "http://nitro.local").href;
+}
 
-  const request = new Request(url, {
+export async function handle(context: { res: HttpResponse }, req: HttpRequest) {
+  const request = new Request(resolveAzureSwaRequestUrl(req), {
     method: req.method || undefined,
     // https://github.com/Azure/azure-functions-nodejs-worker/issues/294
     // https://github.com/Azure/azure-functions-host/issues/293
@@ -27,12 +24,13 @@ export async function handle(context: { res: HttpResponse }, req: HttpRequest) {
   });
 
   const response = await nitroApp.fetch(request);
+  const body = await azureResponseBody(response);
 
   // (v3 - current) https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-node?tabs=typescript%2Cwindows%2Cazure-cli&pivots=nodejs-model-v3#http-response
   // (v4) https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-node?tabs=typescript%2Cwindows%2Cazure-cli&pivots=nodejs-model-v4#http-response
   context.res = {
     status: response.status,
-    body: response.body,
+    body,
     cookies: getAzureParsedCookiesFromHeaders(response.headers),
     headers: Object.fromEntries(
       [...response.headers.entries()].filter(([key]) => key !== "set-cookie")

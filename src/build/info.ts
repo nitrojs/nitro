@@ -1,5 +1,5 @@
 import type { Nitro, NitroBuildInfo, WorkerAddress } from "nitro/types";
-import { join, relative, resolve } from "pathe";
+import { extname, join, relative, resolve } from "pathe";
 import { version as nitroVersion } from "nitro/meta";
 import { presetsWithConfig } from "../presets/_types.gen.ts";
 import { writeFile } from "../utils/fs.ts";
@@ -48,7 +48,7 @@ export async function writeBuildInfo(
   nitro: Nitro,
   output: RolldownOutput | RollupOutput | undefined
 ): Promise<NitroBuildInfo> {
-  const serverEntryName = output?.output?.find((o) => o.type === "chunk" && o.isEntry)?.fileName;
+  const serverEntryName = resolveNitroServerEntryFileName(output, nitro.options.entry);
 
   const buildInfoPath = resolve(nitro.options.output.dir, "nitro.json");
   const buildInfo: NitroBuildInfo = {
@@ -102,4 +102,27 @@ export async function writeDevBuildInfo(nitro: Nitro, addr?: WorkerAddress): Pro
     },
   };
   await writeFile(buildInfoPath, JSON.stringify(buildInfo, null, 2));
+}
+
+function resolveNitroServerEntryFileName(
+  output: RolldownOutput | RollupOutput | undefined,
+  nitroEntry: string
+): string | undefined {
+  return (
+    output?.output.find(
+      (entry) =>
+        entry.type === "chunk" && entry.isEntry && isNitroEntry(entry.facadeModuleId, nitroEntry)
+    ) ??
+    output?.output.find(
+      (entry) => entry.type === "chunk" && entry.isEntry && entry.fileName === "index.mjs"
+    ) ??
+    output?.output.find((entry) => entry.type === "chunk" && entry.isEntry)
+  )?.fileName;
+}
+
+function isNitroEntry(facadeModuleId: string | null, nitroEntry: string): boolean {
+  if (!facadeModuleId) return false;
+  if (facadeModuleId === nitroEntry) return true;
+  const extension = extname(facadeModuleId);
+  return !!extension && facadeModuleId.slice(0, -extension.length) === nitroEntry;
 }
