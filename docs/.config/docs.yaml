@@ -27,11 +27,18 @@ redirects:
   "/guide/typescript": "/docs/configuration"
   "/guide/tasks": "/docs/tasks"
   "/guide/nightly": "/docs/nightly"
+  "/guide/nightly-channel": "/docs/nightly"
+  "/guide/migration": "/docs/migration"
+  "/guide/auto-imports": "/examples/auto-imports"
+  "/guide/community/contributing": "/docs"
   # v2 deploy
   "/deploy/workers": "/deploy"
   "/deploy/runtimes/winterjs": "/deploy"
   "/deploy/custom-presets": "/deploy"
   "/deploy/providers/edgio": "/deploy"
+  "/deploy/providers/lagon": "/deploy"
+  "/deploy/providers/layer0": "/deploy"
+  "/deploy/providers/edgeone-pages": "/deploy/providers/edgeone"
   "/deploy/node": "/deploy/runtimes/node"
 themeColor: "rose"
 automd: true

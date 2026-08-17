@@ -1,5 +1,8 @@
 <template>
-  <section class="relative bg-neutral-50 dark:bg-neutral-950/30 py-20 md:py-28">
+  <!-- Tailwind's `dark:` variant is not wired to undocs' `.dark` class (it would
+       follow the OS instead of the site toggle) — use semantic tokens and the
+       explicit `.dark` selector below. -->
+  <section class="relative bg-muted/30 py-20 md:py-28">
     <div class="absolute inset-0 dotted-bg" />
     <div class="relative max-w-6xl mx-auto px-6">
       <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

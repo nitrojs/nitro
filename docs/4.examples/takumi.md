@@ -1,5 +1,6 @@
 ---
-category: integrations
+navigation:
+  category: integrations
 icon: i-lucide-image
 ---
 
