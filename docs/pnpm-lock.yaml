@@ -18,8 +18,8 @@ importers:
         specifier: ^3.0.448
         version: 3.0.453(vue@3.5.41)
       undocs:
-        specifier: npm:undocs-nightly@0.10.1-20260817-091955-6762d4a
-        version: undocs-nightly@0.10.1-20260817-091955-6762d4a(@oxc-project/types@0.144.0)(chokidar@5.0.0)(csstype@3.2.3)(dotenv@17.4.2)(giget@3.3.1)(h3@2.0.1-rc.26(crossws@0.4.10(srvx@0.11.22)))(jiti@2.7.0)(lightningcss@1.33.0)(ocache@0.2.0)(rolldown@1.2.4)
+        specifier: npm:undocs-nightly@0.10.1-20260817-094901-8249fa4
+        version: undocs-nightly@0.10.1-20260817-094901-8249fa4(@oxc-project/types@0.144.0)(chokidar@5.0.0)(csstype@3.2.3)(dotenv@17.4.2)(giget@3.3.1)(h3@2.0.1-rc.26(crossws@0.4.10(srvx@0.11.22)))(jiti@2.7.0)(lightningcss@1.33.0)(ocache@0.2.0)(rolldown@1.2.4)
 
 packages:
 
@@ -1159,8 +1159,8 @@ packages:
   ufo@1.6.4:
     resolution: {integrity: sha512-JFNbkD1Svwe0KvGi8GOeLcP4kAWQ609twvCdcHxq1oSL8svv39ZuSvajcD8B+5D0eL4+s1Is2D/O6KN3qcTeRA==}
 
-  undocs-nightly@0.10.1-20260817-091955-6762d4a:
-    resolution: {integrity: sha512-cYsnPaw3wJGogzkWQCiEf+KBlyXlWRAZnhCO7C9yfdJSlhZ48wtiBHuPs9huzODjv+OZKIUL8XjXGDwgc7rNsA==}
+  undocs-nightly@0.10.1-20260817-094901-8249fa4:
+    resolution: {integrity: sha512-QnzQAGfFxfrYkrBB9b2Q71LuWUIFZ/8wjTV+Xv5gFp8nQBGx69BnZZxpi10cHae3X4sQPrrcgkxJnpbV6bC0Jg==}
     hasBin: true
 
   unenv@2.0.0-rc.24:
@@ -2262,7 +2262,7 @@ snapshots:
 
   ufo@1.6.4: {}
 
-  undocs-nightly@0.10.1-20260817-091955-6762d4a(@oxc-project/types@0.144.0)(chokidar@5.0.0)(csstype@3.2.3)(dotenv@17.4.2)(giget@3.3.1)(h3@2.0.1-rc.26(crossws@0.4.10(srvx@0.11.22)))(jiti@2.7.0)(lightningcss@1.33.0)(ocache@0.2.0)(rolldown@1.2.4):
+  undocs-nightly@0.10.1-20260817-094901-8249fa4(@oxc-project/types@0.144.0)(chokidar@5.0.0)(csstype@3.2.3)(dotenv@17.4.2)(giget@3.3.1)(h3@2.0.1-rc.26(crossws@0.4.10(srvx@0.11.22)))(jiti@2.7.0)(lightningcss@1.33.0)(ocache@0.2.0)(rolldown@1.2.4):
     dependencies:
       '@floating-ui/dom': 1.8.0
       '@fontsource-variable/geist': 5.3.0
