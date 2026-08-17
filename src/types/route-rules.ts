@@ -55,6 +55,9 @@ declare module "h3-rules" {
      * Only handled by presets with native support (e.g. Vercel, Netlify).
      * Ignored on platforms without ISR support.
      *
+     * Do not combine with `prerender` on the same route — prerendered pages are
+     * generated at build time and ISR will not apply.
+     *
      * @see https://nitro.build/docs/routing#isr-vercel
      */
     isr?: number /* expiration */ | boolean | VercelISRConfig;
