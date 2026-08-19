@@ -33,7 +33,13 @@ const skip = new Set<string>([
       ]),
 ]);
 
-const skipDev = new Set<string>(["auto-imports", "cached-handler"]);
+const skipDev = new Set<string>([
+  "auto-imports",
+  "cached-handler",
+  // The index.html renderer template cannot be read from inside workerd
+  // (covered by test/vite/cloudflare-do.test.ts instead)
+  "cloudflare-durable",
+]);
 
 const skipProd = new Set<string>(isRolldown ? [] : []);
 
