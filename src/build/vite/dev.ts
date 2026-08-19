@@ -11,7 +11,7 @@ import { watch as chokidarWatch } from "chokidar";
 import { watch as fsWatch } from "node:fs";
 import { join } from "pathe";
 import { debounce } from "perfect-debounce";
-import { withBase } from "ufo";
+import { withBase, withoutBase } from "ufo";
 import { scanHandlers } from "../../scan.ts";
 import { writeTypes } from "../types.ts";
 import { getEnvRunner } from "./env.ts";
@@ -134,6 +134,8 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   const nitro = ctx.nitro!;
   const nitroEnv = server.environments.nitro as FetchableDevEnvironment;
 
+  const viteBase = server.config.base || "/";
+
   // Restart with nitro.config changes
   const nitroConfigFile = nitro.options._c12.configFile;
   if (nitroConfigFile) {
@@ -220,7 +222,7 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     // Skip for vite internal requests or if already handled
     if (
       !nodeReq.url ||
-      /^\/@(?:vite|fs|id)\//.test(nodeReq.url) ||
+      /^\/@(?:vite|fs|id)\//.test(withoutBase(nodeReq.url, viteBase)) ||
       nodeReq._nitroHandled ||
       server.middlewares.stack.some((mw) => mw.route && nodeReq.url!.startsWith(mw.route))
     ) {
@@ -289,7 +291,7 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     next: (error?: unknown) => void
   ) => {
     // Vite-internal prefixes (/@vite/client, /__vue-router/auto-routes, ...) are never Nitro's.
-    if (/^\/(?:__|@)/.test(req.url!)) {
+    if (/^\/(?:__|@)/.test(withoutBase(req.url!, viteBase))) {
       return next();
     }
 
