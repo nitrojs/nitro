@@ -5,7 +5,8 @@ seo:
 ---
 
 ::page-hero
-:hero-command{command="create-nitro-app"}
+
+<!-- :hero-command{command="create-nitro-app"} -->
 
 #title
 Build [Servers]{.text-brand}
@@ -13,7 +14,7 @@ Build [Servers]{.text-brand}
 #description
 Nitro builds production-ready servers that run anywhere.
 
-Make API routes, then deploy the same codebase to Node.js, Bun, Deno, or serverless, with zero configuration.
+Write API routes, then deploy the same codebase to Node.js, Bun, Deno, or serverless, with zero configuration.
 
 #links
 :app-hero-links
