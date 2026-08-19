@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://unpkg.com/undocs/schema/config.json
 name: Nitro
-shortDescription: Ship Full-stack Vite Apps
+shortDescription: builds full-stack servers that deploy anywhere
 description: Add server API routes to any Vite apps and deploy with zero configuration on your favorite hosting platform.
 github: nitrojs/nitro
 url: https://nitro.build
