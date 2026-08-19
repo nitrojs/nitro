@@ -1,17 +1,19 @@
 ---
 seo:
   title: Build Full-Stack Servers
-  description: Nitro builds production-ready servers that run anywhere. Add API routes to any app, then deploy the same codebase to Node.js, Bun, Deno, edge workers or serverless — with zero configuration.
+  description: Nitro builds production-ready servers that run anywhere. Write API routes, then deploy the same codebase to Node.js, Bun, Deno, or serverless, with zero configuration.
 ---
 
 ::page-hero
 :hero-command{command="create-nitro-app"}
 
 #title
-Build [/Servers]{.text-brand}
+Build [Servers]{.text-brand}
 
 #description
-Nitro builds production-ready servers that run anywhere. Add API routes to any app, then deploy the same codebase to Node.js, Bun, Deno, edge workers or serverless — with zero configuration.
+Nitro builds production-ready servers that run anywhere.
+
+Make API routes, then deploy the same codebase to Node.js, Bun, Deno, or serverless, with zero configuration.
 
 #links
 :app-hero-links
@@ -19,16 +21,21 @@ Nitro builds production-ready servers that run anywhere. Add API routes to any a
 
 ::stat-strip
 ---
+# `animateFrom` is only where each counter starts spinning. It is a visual
+# effect with no meaning, never a real measurement.
 stats:
   - value: "3.8 kB"
     label: Gzipped output
+    animateFrom: 100
   - value: "0"
     label: Runtime deps
+    animateFrom: 35
   - value: "25+"
     label: Deploy targets
+    animateFrom: 0
   - value: "~50 ms"
     label: Cold start
-caption: Minimal standard server fixture. Cold start on Node.js.
+    animateFrom: 350
 ---
 ::
 
@@ -38,12 +45,12 @@ eyebrow: Routing
 link: /docs/routing
 link-label: Routing docs
 points:
-  - Routes are compiled — no runtime router ships in the bundle
+  - Routes are compiled no runtime router ships in the bundle
   - Dynamic params, wildcards and per-method files
   - Route groups organize files without changing URLs
 ---
 #title
-Files in, routes out
+Files in, Routes out
 
 #description
 Drop a file in `routes/` and it becomes a route. Append the HTTP method to the filename to scope it, nest folders for path params, and wrap a folder in parentheses to group routes without touching the URL.
@@ -80,11 +87,11 @@ link-label: Server entry docs
 Bring your own framework
 
 #description
-Any framework that speaks the Web `fetch(request): Response` interface can be your server entry — export it from `server.ts` and it runs for every request before routes are matched. Node-style `(req, res)` frameworks work too: name the file `server.node.ts` and Nitro adapts it.
+Any framework that speaks the Web `fetch(request): Response` interface can be your server entry export it from `server.ts` and it runs for every request before routes are matched. Node-style `(req, res)` frameworks work too: name the file `server.node.ts` and Nitro adapts it.
 
 #visual
   :::tabs
-    ::::tab{label="H3"}
+    ::::tab{label="H3" icon="i-unjs-h3"}
     ```ts [server.ts]
     import { H3 } from "h3";
 
@@ -96,7 +103,7 @@ Any framework that speaks the Web `fetch(request): Response` interface can be yo
     ```
     ::::
 
-    ::::tab{label="Hono"}
+    ::::tab{label="Hono" icon="i-logos-hono"}
     ```ts [server.ts]
     import { Hono } from "hono";
 
@@ -108,7 +115,7 @@ Any framework that speaks the Web `fetch(request): Response` interface can be yo
     ```
     ::::
 
-    ::::tab{label="Elysia"}
+    ::::tab{label="Elysia" icon="i-skill-icons-elysia-dark"}
     ```ts [server.ts]
     import { Elysia } from "elysia";
 
@@ -120,7 +127,7 @@ Any framework that speaks the Web `fetch(request): Response` interface can be yo
     ```
     ::::
 
-    ::::tab{label="Express"}
+    ::::tab{label="Express" icon="i-simple-icons-express"}
     ```ts [server.node.ts]
     import Express from "express";
 
@@ -142,7 +149,7 @@ eyebrow: Deploy
 link: /deploy
 link-label: All deploy targets
 points:
-  - Providers are auto-detected in CI — no adapter to install
+  - Providers are auto-detected in CI no adapter to install
   - Switch targets with a single `preset` option
   - Compatibility dates keep provider behavior stable over time
 ---
@@ -150,7 +157,7 @@ points:
 One codebase, every platform
 
 #description
-The same server builds for Node.js, Deno, Bun, edge workers and serverless functions. Nitro emits the output format each host expects, so moving between them is a config change, not a rewrite.
+The same server builds for Node.js, Deno, Bun, edge workers and serverless functions. Nitro emits the output format each host expects, so moving between them requires no code changes!
 
 #visual
   :::deploy-grid
@@ -212,7 +219,6 @@ A production build of a minimal Nitro server is three files with nothing to inst
   :::bar-chart
   ---
   title: Production server output
-  caption: Minimal Nitro server built with Rolldown
   data:
     - label: Unminified
       value: 16.2
@@ -242,7 +248,7 @@ points:
 Caching that follows your storage
 
 #description
-Wrap a handler or any async function and Nitro caches its result on the same storage layer your app already uses — memory in development, Redis, Cloudflare KV or the filesystem in production. Same code, different backend.
+Wrap a handler or any async function and Nitro caches its result on the same storage layer your app already uses memory in development, then Redis, Cloudflare KV, a Vercel Blob store or the filesystem in production. Same code, different backend.
 
 #visual
   ```ts [routes/stars.ts]
@@ -297,7 +303,7 @@ features:
     icon: i-lucide-image
     to: /docs/assets
   - title: Renderer
-    description: A catch-all handler for unmatched routes — SSR, SPA shells or plain HTML.
+    description: A catch-all handler for unmatched routes SSR, SPA shells or plain HTML.
     icon: i-lucide-layout-template
     to: /docs/renderer
   - title: Lifecycle

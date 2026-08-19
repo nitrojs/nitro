@@ -5,7 +5,6 @@ import { useReducedMotion } from '../utils/useReducedMotion'
 
 const props = defineProps<{
   title?: string
-  caption?: string
   data: {
     label: string
     /** Drives the bar length; `display` is what the reader sees. */
@@ -62,9 +61,5 @@ function width(value: number): string {
         </div>
       </div>
     </div>
-
-    <p v-if="caption" class="mt-7 text-label-12 text-muted-foreground">
-      {{ caption }}
-    </p>
   </figure>
 </template>
