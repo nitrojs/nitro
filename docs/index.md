@@ -1,7 +1,7 @@
 ---
 seo:
   title: Build Full-Stack Servers
-  description: Nitro extends your Vite application with a production-ready server, compatible with any runtime. Add server routes to your application and deploy on many hosting platforms with a zero-config experience.
+  description: Nitro builds production-ready servers that run anywhere. Add API routes to any app, then deploy the same codebase to Node.js, Bun, Deno, edge workers or serverless — with zero configuration.
 ---
 
 ::page-hero
@@ -11,7 +11,7 @@ seo:
 Build [/Servers]{.text-brand}
 
 #description
-Nitro extends your Vite application with a production-ready server, compatible with any runtime. Add server routes to your application and deploy on many hosting platforms with a zero-config experience.
+Nitro builds production-ready servers that run anywhere. Add API routes to any app, then deploy the same codebase to Node.js, Bun, Deno, edge workers or serverless — with zero configuration.
 
 #links
 :app-hero-links
@@ -26,9 +26,9 @@ stats:
     label: Runtime deps
   - value: "25+"
     label: Deploy targets
-  - value: "< 1s"
-    label: Cold build
-caption: Measured on Nitro's minimal server fixture.
+  - value: "~50 ms"
+    label: Cold start
+caption: Minimal standard server fixture. Cold start on Node.js.
 ---
 ::
 
@@ -212,7 +212,7 @@ A production build of a minimal Nitro server is three files with nothing to inst
   :::bar-chart
   ---
   title: Production server output
-  caption: Minimal Nitro server built with Rolldown — server entry, bundled libs and manifest.
+  caption: Minimal Nitro server built with Rolldown
   data:
     - label: Unminified
       value: 16.2
