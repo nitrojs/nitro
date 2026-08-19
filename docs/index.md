@@ -1,50 +1,14 @@
 ---
 seo:
   title: Build Full-Stack Servers
-  description: Nitro extends your Vite application with a production-ready server, compatible with any runtime. Add server routes to your application and deploy many hosting platform with a zero-config experience.
+  description: Nitro extends your Vite application with a production-ready server, compatible with any runtime. Add server routes to your application and deploy on many hosting platforms with a zero-config experience.
 ---
 
 ::page-hero
----
-orientation: horizontal
----
-::code-group
-  :::prose-pre
-  ---
-  filename: vite.config.ts
-  ---
-  ```ts
-  import { defineConfig } from 'vite'
-  import { nitro } from 'nitro/vite'
-
-  export default defineConfig({
-    plugins: [nitro()],
-    nitro: {
-      serverDir: "./server"
-    }
-  })
-  ```
-  :::
-  :::prose-pre
-  ---
-  filename: nitro.config.ts
-  ---
-  ```ts
-  import { defineConfig } from 'nitro'
-
-  export default defineConfig({
-    preset: "node",
-    serverDir: "./server",
-    routeRules: {
-      "/api/**": { cache: true }
-    }
-  })
-  ```
-  :::
-::
+:hero-command{command="create-nitro-app"}
 
 #title
-Build [/Servers]{.text-primary}
+Build [/Servers]{.text-brand}
 
 #description
 Nitro extends your Vite application with a production-ready server, compatible with any runtime. Add server routes to your application and deploy on many hosting platforms with a zero-config experience.
@@ -53,177 +17,305 @@ Nitro extends your Vite application with a production-ready server, compatible w
 :app-hero-links
 ::
 
-::hero-features
+::stat-strip
 ---
+stats:
+  - value: "3.8 kB"
+    label: Gzipped output
+  - value: "0"
+    label: Runtime deps
+  - value: "25+"
+    label: Deploy targets
+  - value: "< 1s"
+    label: Cold build
+caption: Measured on Nitro's minimal server fixture.
+---
+::
+
+::feature-section
+---
+eyebrow: Routing
+link: /docs/routing
+link-label: Routing docs
+points:
+  - Routes are compiled — no runtime router ships in the bundle
+  - Dynamic params, wildcards and per-method files
+  - Route groups organize files without changing URLs
+---
+#title
+Files in, routes out
+
+#description
+Drop a file in `routes/` and it becomes a route. Append the HTTP method to the filename to scope it, nest folders for path params, and wrap a folder in parentheses to group routes without touching the URL.
+
+#visual
+  :::route-map
+  ---
+  dir: routes/
+  routes:
+    - file: hello.get.ts
+      method: GET
+      route: /hello
+    - file: hello.post.ts
+      method: POST
+      route: /hello
+    - file: api/test.ts
+      route: /api/test
+    - file: api/[org]/[repo].ts
+      route: /api/:org/:repo
+    - file: (admin)/users.ts
+      route: /users
+  ---
+  :::
+::
+
+::feature-section
+---
+eyebrow: Server entry
+reverse: true
+link: /docs/server-entry
+link-label: Server entry docs
+---
+#title
+Bring your own framework
+
+#description
+Any framework that speaks the Web `fetch(request): Response` interface can be your server entry — export it from `server.ts` and it runs for every request before routes are matched. Node-style `(req, res)` frameworks work too: name the file `server.node.ts` and Nitro adapts it.
+
+#visual
+  :::tabs
+    ::::tab{label="H3"}
+    ```ts [server.ts]
+    import { H3 } from "h3";
+
+    const app = new H3();
+
+    app.get("/", () => "⚡️ Hello from H3!");
+
+    export default app;
+    ```
+    ::::
+
+    ::::tab{label="Hono"}
+    ```ts [server.ts]
+    import { Hono } from "hono";
+
+    const app = new Hono();
+
+    app.get("/", (c) => c.text("🔥 Hello from Hono!"));
+
+    export default app;
+    ```
+    ::::
+
+    ::::tab{label="Elysia"}
+    ```ts [server.ts]
+    import { Elysia } from "elysia";
+
+    const app = new Elysia();
+
+    app.get("/", () => "🦊 Hello from Elysia!");
+
+    export default app.compile();
+    ```
+    ::::
+
+    ::::tab{label="Express"}
+    ```ts [server.node.ts]
+    import Express from "express";
+
+    const app = Express();
+
+    app.use("/", (_req, res) => {
+      res.send("Hello from Express with Nitro!");
+    });
+
+    export default app;
+    ```
+    ::::
+  :::
+::
+
+::feature-section
+---
+eyebrow: Deploy
+link: /deploy
+link-label: All deploy targets
+points:
+  - Providers are auto-detected in CI — no adapter to install
+  - Switch targets with a single `preset` option
+  - Compatibility dates keep provider behavior stable over time
+---
+#title
+One codebase, every platform
+
+#description
+The same server builds for Node.js, Deno, Bun, edge workers and serverless functions. Nitro emits the output format each host expects, so moving between them is a config change, not a rewrite.
+
+#visual
+  :::deploy-grid
+  ---
+  more: 25+ targets
+  moreTo: /deploy
+  targets:
+    - name: Node.js
+      icon: i-simple-icons-nodedotjs
+      to: /deploy/runtimes/node
+    - name: Deno
+      icon: i-simple-icons-deno
+      to: /deploy/runtimes/deno
+    - name: Bun
+      icon: i-simple-icons-bun
+      to: /deploy/runtimes/bun
+    - name: Cloudflare
+      icon: i-simple-icons-cloudflare
+      to: /deploy/providers/cloudflare
+    - name: Vercel
+      icon: i-simple-icons-vercel
+      to: /deploy/providers/vercel
+    - name: Netlify
+      icon: i-simple-icons-netlify
+      to: /deploy/providers/netlify
+    - name: AWS Lambda
+      icon: i-simple-icons-awslambda
+      to: /deploy/providers/aws
+    - name: Azure
+      icon: i-simple-icons-microsoftazure
+      to: /deploy/providers/azure
+    - name: Firebase
+      icon: i-simple-icons-firebase
+      to: /deploy/providers/firebase
+    - name: DigitalOcean
+      icon: i-simple-icons-digitalocean
+      to: /deploy/providers/digitalocean
+    - name: Render
+      icon: i-simple-icons-render
+      to: /deploy/providers/render
+  ---
+  :::
+::
+
+::feature-section
+---
+eyebrow: Output
+reverse: true
+link: /docs/quick-start
+link-label: Build your first server
+---
+#title
+Small enough to read
+
+#description
+A production build of a minimal Nitro server is three files with nothing to install alongside them. Dependencies are bundled and tree-shaken, so what you deploy is the code you wrote plus the little that runs it.
+
+#visual
+  :::bar-chart
+  ---
+  title: Production server output
+  caption: Minimal Nitro server built with Rolldown — server entry, bundled libs and manifest.
+  data:
+    - label: Unminified
+      value: 16.2
+      display: 16.2 kB
+    - label: Minified
+      value: 8.8
+      display: 8.8 kB
+    - label: Minified + gzipped
+      value: 3.8
+      display: 3.8 kB
+      highlight: true
+  ---
+  :::
+::
+
+::feature-section
+---
+eyebrow: Cache
+link: /docs/cache
+link-label: Caching docs
+points:
+  - Stale-while-revalidate responses by default
+  - ETag, last-modified and 304 handling out of the box
+  - Concurrent requests for one key share a single invocation
+---
+#title
+Caching that follows your storage
+
+#description
+Wrap a handler or any async function and Nitro caches its result on the same storage layer your app already uses — memory in development, Redis, Cloudflare KV or the filesystem in production. Same code, different backend.
+
+#visual
+  ```ts [routes/stars.ts]
+  import { defineCachedHandler } from "nitro/cache";
+
+  export default defineCachedHandler(
+    async () => {
+      const res = await fetch("https://api.github.com/repos/nitrojs/nitro");
+      const { stargazers_count } = await res.json();
+      return { stars: stargazers_count };
+    },
+    { maxAge: 60 * 60 }
+  );
+  ```
+::
+
+::feature-grid
+---
+eyebrow: Included
+title: Everything a server needs
+description: The pieces most apps reach for ship with Nitro, and every one of them behaves the same on every deployment target.
 features:
-  - title: Fast
-    description: Enjoy the fast Vite 8 (rolldown powered) development experience with HMR on the server and optimized for production.
-    icon: i-lucide-zap
-    color: amber
-  - title: Agnostic
-    description: Deploy the same codebase to any deployment provider with zero config and locked-in.
-    icon: i-lucide-globe
-    color: sky
-  - title: Minimal
-    description: Nitro adds no overhead to runtime. Build your servers with any modern tool you like.
-    icon: i-lucide-feather
-    color: emerald
+  - title: KV Storage
+    description: One key-value API over the filesystem, Redis, Cloudflare KV and more.
+    icon: i-lucide-hard-drive
+    to: /docs/storage
+  - title: Database
+    description: SQL layer powered by db0, preconfigured with SQLite.
+    icon: i-lucide-database
+    badge: Experimental
+    to: /docs/database
+  - title: Tasks
+    description: One-off runtime operations, run from the CLI or on a cron schedule.
+    icon: i-lucide-list-checks
+    badge: Experimental
+    to: /docs/tasks
+  - title: WebSockets
+    description: Cross-runtime WebSocket support built on crossws.
+    icon: i-lucide-radio
+    to: /docs/websocket
+  - title: Plugins
+    description: Hook into the server lifecycle from the plugins/ directory.
+    icon: i-lucide-plug
+    to: /docs/plugins
+  - title: OpenAPI
+    description: A spec generated from your handlers, served through Scalar or Swagger UI.
+    icon: i-lucide-file-json
+    badge: Experimental
+    to: /docs/openapi
+  - title: Assets
+    description: Public files served directly, server assets readable at runtime.
+    icon: i-lucide-image
+    to: /docs/assets
+  - title: Renderer
+    description: A catch-all handler for unmatched routes — SSR, SPA shells or plain HTML.
+    icon: i-lucide-layout-template
+    to: /docs/renderer
+  - title: Lifecycle
+    description: Every layer a request passes through, in order, and where to intercept it.
+    icon: i-lucide-activity
+    to: /docs/lifecycle
 ---
 ::
 
-::performance-showcase
----
-metrics:
-  - label: Bare metal perf
-    value: "~Native"
-    unit: RPS
-    description: Using compile router, and fast paths for request handling.
-    icon: i-lucide-gauge
-    color: emerald
-    barWidth: "95%"
-  - label: Minimum install Size
-    value: Tiny
-    unit: deps
-    description: Minimal dependencies. No bloated node_modules.
-    icon: i-lucide-package
-    color: sky
-    barWidth: "15%"
-  - label: Small and portable output
-    value: "‹ 10"
-    unit: kB
-    description: Standard server builds produce ultra-small output bundles.
-    icon: i-lucide-file-output
-    color: violet
-    barWidth: "10%"
-  - label: FAST builds
-    value: "‹ 1"
-    unit: sec
-    description: Cold production builds complete in seconds, not minutes.
-    icon: i-lucide-timer
-    color: amber
-    barWidth: "12%"
----
+::call-to-action{command="create-nitro-app"}
+#title
+Start with one command
+
+#description
+Scaffold a project, or add the Vite plugin to the app you already have.
+
+#actions
+:app-hero-links
 ::
-
-::landing-features
-#body
-  :::feature-card
-  ---
-  headline: Routing
-  link: /docs/routing
-  link-label: Routing docs
-  ---
-  #title
-  File-system routing
-
-  #description
-  Create server routes in the routes/ folder and they are automatically registered. Or bring your own framework — H3, Hono, Elysia, Express — via a server.ts entry.
-  :::
-
-  :::feature-card
-  ---
-  headline: Versatile
-  link: /deploy
-  link-label: Explore deploy targets
-  ---
-  #title
-  Deploy everywhere
-
-  #description
-  The same codebase deploys to Node.js, Cloudflare Workers, Deno, Bun, AWS Lambda, Vercel, Netlify, and more — zero config, no vendor lock-in.
-  :::
-
-  :::feature-card
-  ---
-  headline: Storage
-  link: /docs/storage
-  link-label: Storage docs
-  ---
-  #title
-  Universal storage
-
-  #description
-  Built-in key-value storage abstraction powered by unstorage. Works with filesystem, Redis, Cloudflare KV, and more — same API everywhere.
-  :::
-
-  :::feature-card
-  ---
-  headline: Caching
-  link: /docs/cache
-  link-label: Caching docs
-  ---
-  #title
-  Built-in caching
-
-  #description
-  Cache route handlers and arbitrary functions with a simple API. Supports multiple storage backends and stale-while-revalidate patterns.
-  :::
-
-  :::feature-card
-  ---
-  headline: Server Entry
-  link: /docs/server-entry
-  link-label: Server entry docs
-  ---
-  #title
-  Web standard server
-
-  #description
-  Go full Web standard and pick the library of your choice. Use H3, Hono, Elysia, Express, or the raw fetch API — Nitro handles the rest.
-  :::
-
-  :::feature-card
-  ---
-  headline: Renderer
-  link: /docs/renderer
-  link-label: Renderer docs
-  ---
-  #title
-  Universal renderer
-
-  #description
-  Use any frontend framework as your renderer. Nitro provides the server layer while your framework handles the UI.
-  :::
-
-  :::feature-card
-  ---
-  headline: Plugins
-  link: /docs/plugins
-  link-label: Plugins docs
-  ---
-  #title
-  Server plugins
-
-  #description
-  Extend Nitro's runtime behavior with plugins. Hook into lifecycle events, register custom logic, and auto-load from the plugins/ directory.
-  :::
-
-  :::feature-card
-  ---
-  headline: Database
-  link: /docs/database
-  link-label: Database docs
-  ---
-  #title
-  Built-in database
-
-  #description
-  Lightweight SQL database layer powered by db0. Pre-configured with SQLite out of the box, with support for PostgreSQL, MySQL, and Cloudflare D1.
-  :::
-
-  :::feature-card
-  ---
-  headline: Assets
-  link: /docs/assets
-  link-label: Assets docs
-  ---
-  #title
-  Static & server assets
-
-  #description
-  Serve public assets directly to clients or bundle server assets for programmatic access. Works seamlessly across all deployment targets.
-  :::
-::
-
 
 ::sponsors

@@ -17,11 +17,22 @@ usePageSEO({
   title: seo.title || page.value.title,
   description: seo.description || page.value.description,
 })
+
+// The landing reveals on scroll, which server-renders as inline `opacity: 0` /
+// `width: 0%` that only motion-v can clear — without JS everything below the
+// hero would stay invisible. This has to reach the template as a STRING: Vue's
+// compiler rejects a `<style>` tag written in a template, `<noscript>` included.
+const noscriptCss = `<style>
+  .landing .reveal { opacity: 1 !important; transform: none !important; }
+  .landing .reveal-bar { width: 100% !important; }
+</style>`
 </script>
 
 <template>
   <div v-if="page" class="landing">
     <MarkdownRenderer :value="page" />
+    <!-- eslint-disable-next-line vue/no-v-html -->
+    <noscript v-html="noscriptCss" />
   </div>
 </template>
 
