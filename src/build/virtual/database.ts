@@ -1,39 +1,32 @@
-import { connectors } from "db0";
 import type { Nitro } from "nitro/types";
 import { camelCase } from "scule";
+import { resolveConnectorDeps, resolveDatabaseConnections } from "../../utils/database.ts";
+import type { DatabaseConnection } from "../../utils/database.ts";
+import { isDepInstalled, isLibOption } from "../../utils/dep.ts";
 
 export default function database(nitro: Nitro) {
   return {
     id: "#nitro/virtual/database",
     template: () => {
-      if (!nitro.options.experimental.database) {
+      const connections = resolveDatabaseConnections(nitro.options);
+
+      if (connections.length === 0) {
         return /* js */ `export const connectionConfigs = {};`;
       }
 
-      const dbConfigs = (nitro.options.dev && nitro.options.devDatabase) || nitro.options.database;
-
-      const connectorsNames = [
-        ...new Set(Object.values(dbConfigs || {}).map((config) => config?.connector)),
-      ].filter(Boolean);
-
-      for (const name of connectorsNames) {
-        if (!connectors[name]) {
-          throw new Error(`Database connector "${name}" is invalid.`);
-        }
-      }
+      const connectorImports = new Map(connections.map((c) => [c.connector, c.module]));
 
       return /* js */ `
-${connectorsNames
-  .map((name) => /* js */ `import ${camelCase(name)}Connector from "${connectors[name]}";`)
+${[...connectorImports]
+  .map(([name, module]) => /* js */ `import ${camelCase(name)}Connector from "${module}";`)
   .join("\n")}
 
 export const connectionConfigs = {
-  ${Object.entries(dbConfigs || {})
-    .filter(([, config]) => !!config?.connector)
+  ${connections
     .map(
-      ([name, { connector, options }]) => /* js */ `${name}: {
-          connector: ${camelCase(connector)}Connector,
-          options: ${JSON.stringify(options)}
+      (c) => /* js */ `${c.name}: {
+          connector: ${camelCase(c.connector)}Connector,
+          options: ${genConnectorOptions(nitro, c)}
         }`
     )
     .join(",\n")}
@@ -41,4 +34,22 @@ export const connectionConfigs = {
         `;
     },
   };
+}
+
+/**
+ * Explicitly provide third-party libraries used by the connector via the `lib` option
+ * so that they are statically analyzable by the bundler.
+ */
+function genConnectorOptions(nitro: Nitro, connection: DatabaseConnection) {
+  const libs = resolveConnectorDeps(connection.connector)
+    .filter(
+      (dep) =>
+        isLibOption(dep.option) &&
+        connection.options[dep.option] === undefined &&
+        isDepInstalled(dep.name, nitro.options.rootDir)
+    )
+    .map((dep) => `${dep.option}: () => import(${JSON.stringify(dep.name)})`);
+
+  const options = JSON.stringify(connection.options);
+  return libs.length > 0 ? `{ ...${options}, ${libs.join(", ")} }` : options;
 }

@@ -24,8 +24,8 @@ importers:
         specifier: ^0.4.12
         version: 0.4.12(srvx@0.12.7)
       db0:
-        specifier: ^0.3.4
-        version: 0.3.4
+        specifier: ^0.4.0
+        version: 0.4.0
       env-runner:
         specifier: ^0.2.0
         version: 0.2.0
@@ -57,8 +57,8 @@ importers:
         specifier: ^2.0.0-rc.24
         version: 2.0.0-rc.24
       unstorage:
-        specifier: ^2.0.0-alpha.8
-        version: 2.0.0-alpha.8
+        specifier: ^2.0.0-alpha.9
+        version: 2.0.0-alpha.9
     devDependencies:
       '@apphosting/common':
         specifier: ^0.0.9
@@ -281,10 +281,10 @@ importers:
         version: 1.7.0
       unctx:
         specifier: ^3.0.1
-        version: 3.0.1(magic-string@1.2.1)(oxc-parser@shims+oxc-parser)(rolldown@1.2.5)(unplugin@3.3.0)
+        version: 3.0.1(magic-string@1.2.1)(rolldown@1.2.5)(unplugin@3.3.0)
       unimport:
         specifier: ^6.4.0
-        version: 6.4.0(esbuild@0.28.2)(oxc-parser@shims+oxc-parser)(rolldown@1.2.5)(rollup@4.62.4)(vite@8.2.1)
+        version: 6.4.0(esbuild@0.28.2)(rolldown@1.2.5)(rollup@4.62.4)(vite@8.2.1)
       untyped:
         specifier: ^2.0.0
         version: 2.0.0
@@ -4064,28 +4064,8 @@ packages:
     resolution: {integrity: sha512-fnULvOpxnC5/Vg3NCiWelDsLiUc9bRwAPs/+LfTLNvetFCtCTN+yQz15C/fs4AwX1R9K5GLtLfn8QW+dWisaAw==}
     engines: {node: '>=0.11'}
 
-  db0@0.3.4:
-    resolution: {integrity: sha512-RiXXi4WaNzPTHEOu8UPQKMooIbqOEyqA1t7Z6MsdxSCeb8iUC9ko3LcmsLmeUt2SM5bctfArZKkRQggKZz7JNw==}
-    peerDependencies:
-      '@electric-sql/pglite': '*'
-      '@libsql/client': '*'
-      better-sqlite3: '*'
-      drizzle-orm: '*'
-      mysql2: '*'
-      sqlite3: '*'
-    peerDependenciesMeta:
-      '@electric-sql/pglite':
-        optional: true
-      '@libsql/client':
-        optional: true
-      better-sqlite3:
-        optional: true
-      drizzle-orm:
-        optional: true
-      mysql2:
-        optional: true
-      sqlite3:
-        optional: true
+  db0@0.4.0:
+    resolution: {integrity: sha512-2aitWuWdOGUGQdO8oiSdQIRXpiQmYt6CnB1WoAQ1HtBkk26JyvUnSFnT477fG/8n6+QabQUKJDP3KH8njHoocw==}
 
   debug@2.6.9:
     resolution: {integrity: sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA==}
@@ -6736,8 +6716,8 @@ packages:
       webpack:
         optional: true
 
-  unstorage@2.0.0-alpha.8:
-    resolution: {integrity: sha512-z30KRqjOQAqWSU2vA6YOxKd3PD7imutvBJlyGJeYTQ8BwuPAg8CulKHiUH0BHcJHCtJ3hRRCCeJpBlGVs2BQAw==}
+  unstorage@2.0.0-alpha.9:
+    resolution: {integrity: sha512-zUVLVO5Vci1vu1aTYkopEUgKhnemAvH3qv7PuNIxFtA8jGaCTVp+AbRwrVyldo81WIK7EU/bXB/cJWVJtJ7//A==}
 
   untyped@2.0.0:
     resolution: {integrity: sha512-nwNCjxJTjNuLCgFr42fEak5OcLuB3ecca+9ksPFNvtfYSLpjf+iJqSIaSnIile6ZPbKYxI5k2AfXqeopGudK/g==}
@@ -10399,7 +10379,7 @@ snapshots:
     dependencies:
       '@babel/runtime': 7.29.7
 
-  db0@0.3.4: {}
+  db0@0.4.0: {}
 
   debug@2.6.9:
     dependencies:
@@ -13279,10 +13259,9 @@ snapshots:
 
   ultrahtml@1.7.0: {}
 
-  unctx@3.0.1(magic-string@1.2.1)(oxc-parser@shims+oxc-parser)(rolldown@1.2.5)(unplugin@3.3.0):
+  unctx@3.0.1(magic-string@1.2.1)(rolldown@1.2.5)(unplugin@3.3.0):
     optionalDependencies:
       magic-string: 1.2.1
-      oxc-parser: link:shims/oxc-parser
       rolldown: 1.2.5
       unplugin: 3.3.0(esbuild@0.28.2)(rolldown@1.2.5)(rollup@4.62.4)(vite@8.2.1)
 
@@ -13314,7 +13293,7 @@ snapshots:
       trough: 2.2.0
       vfile: 6.0.3
 
-  unimport@6.4.0(esbuild@0.28.2)(oxc-parser@shims+oxc-parser)(rolldown@1.2.5)(rollup@4.62.4)(vite@8.2.1):
+  unimport@6.4.0(esbuild@0.28.2)(rolldown@1.2.5)(rollup@4.62.4)(vite@8.2.1):
     dependencies:
       acorn: 8.18.0
       escape-string-regexp: 5.0.0
@@ -13331,7 +13310,6 @@ snapshots:
       unplugin: 3.3.0(esbuild@0.28.2)(rolldown@1.2.5)(rollup@4.62.4)(vite@8.2.1)
       unplugin-utils: 0.3.2
     optionalDependencies:
-      oxc-parser: link:shims/oxc-parser
       rolldown: 1.2.5
     transitivePeerDependencies:
       - '@farmfe/core'
@@ -13389,7 +13367,7 @@ snapshots:
       rollup: 4.62.4
       vite: 8.2.1(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0)
 
-  unstorage@2.0.0-alpha.8: {}
+  unstorage@2.0.0-alpha.9: {}
 
   untyped@2.0.0:
     dependencies:

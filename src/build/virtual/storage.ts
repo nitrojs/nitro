@@ -1,7 +1,7 @@
 import { genImport, genSafeVariableName } from "knitwork";
 import type { Nitro } from "nitro/types";
-import { isDepInstalled } from "../../utils/dep.ts";
-import { isLibOption, resolveDriverDeps, resolveStorageMounts } from "../../utils/storage.ts";
+import { isDepInstalled, isLibOption } from "../../utils/dep.ts";
+import { resolveDriverDeps, resolveStorageMounts } from "../../utils/storage.ts";
 
 export default function storage(nitro: Nitro) {
   return {

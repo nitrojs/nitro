@@ -73,3 +73,48 @@ export async function importDep<T>(opts: DepOptions): Promise<T> {
 export function isDepInstalled(id: string, dir: string): boolean {
   return !!resolveModulePath(id, { from: [dir, import.meta.url], try: true });
 }
+
+export interface LibDep {
+  /** Option the library can be provided with (e.g. `lib`). */
+  option: string;
+  /** Package name. */
+  name: string;
+  /** Supported version range. */
+  version?: string;
+  /** Only required for some of the features. */
+  optional?: boolean;
+}
+
+/** Options accepting a library import (`lib`, `identityLib`, ...). */
+export function isLibOption(option: string): boolean {
+  return option === "lib" || option.endsWith("Lib");
+}
+
+/**
+ * Ensure the third-party libraries lazily imported by the configured storage drivers or
+ * database connectors are installed, prompting to install the missing ones.
+ */
+export async function ensureLibDeps(
+  users: Array<{ name: string; options: Record<string, any>; deps: LibDep[] }>,
+  opts: { dir: string; label: string }
+): Promise<void> {
+  const required = new Map<string, { version?: string; users: Set<string> }>();
+  for (const user of users) {
+    for (const dep of user.deps) {
+      if (dep.optional || user.options[dep.option] !== undefined) {
+        continue; // Not required or explicitly provided by the user
+      }
+      const entry = required.get(dep.name) || { version: dep.version, users: new Set<string>() };
+      entry.users.add(user.name);
+      required.set(dep.name, entry);
+    }
+  }
+
+  for (const [name, { version, users: names }] of required) {
+    const reason = `the ${[...names].map((n) => `\`${n}\``).join(", ")} ${opts.label}${names.size > 1 ? "s" : ""}`;
+    const resolved = await ensureDep({ id: name, version, dir: opts.dir, reason, dev: false });
+    if (!resolved) {
+      consola.warn(`\`${name}\` is not installed. It is required for ${reason}.`);
+    }
+  }
+}

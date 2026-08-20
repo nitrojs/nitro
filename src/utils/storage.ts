@@ -1,6 +1,7 @@
 import type { NitroOptions } from "nitro/types";
 import { builtinDriverDependencies, builtinDrivers } from "unstorage";
 import type { BuiltinDriverName } from "unstorage";
+import type { LibDep } from "./dep.ts";
 
 export interface StorageMount {
   /** Mount point path. */
@@ -11,17 +12,6 @@ export interface StorageMount {
   driver: string;
   /** Driver options. */
   options: Record<string, any>;
-}
-
-export interface StorageDriverDep {
-  /** Driver option the library can be provided with (e.g. `lib`). */
-  option: string;
-  /** Package name. */
-  name: string;
-  /** Supported version range. */
-  version?: string;
-  /** Only required for some of the driver features. */
-  optional?: boolean;
 }
 
 /** Resolve storage mounts that will be used for the current build. */
@@ -41,12 +31,7 @@ export function resolveStorageMounts(options: NitroOptions): StorageMount[] {
  *
  * Since `unstorage` v2, they are not declared as optional peer dependencies anymore.
  */
-export function resolveDriverDeps(name: string): StorageDriverDep[] {
+export function resolveDriverDeps(name: string): LibDep[] {
   const deps = builtinDriverDependencies[name as BuiltinDriverName];
   return Object.entries(deps || {}).map(([option, dep]) => ({ option, ...dep }));
-}
-
-/** Driver options accepting a library import (`lib`, `identityLib`, ...). */
-export function isLibOption(option: string): boolean {
-  return option === "lib" || option.endsWith("Lib");
 }
