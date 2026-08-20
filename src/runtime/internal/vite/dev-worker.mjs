@@ -38,6 +38,7 @@ class ViteEnvRunner {
 
     this.entry = undefined;
     this.entryError = undefined;
+    this.reloadPromise = Promise.resolve();
 
     // Create Vite Module Runner
     // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
@@ -54,19 +55,28 @@ class ViteEnvRunner {
   }
 
   async reload() {
-    try {
-      this.entry = await this.runner.import(this.entryPath);
-      this.entryError = undefined;
-    } catch (error) {
-      console.error(error);
-      this.entryError = error;
-    }
+    const reloadPromise = this.reloadPromise.then(async () => {
+      try {
+        this.entry = await this.runner.import(this.entryPath);
+        this.entryError = undefined;
+      } catch (error) {
+        console.error(error);
+        this.entryError = error;
+      }
+    });
+    this.reloadPromise = reloadPromise;
+    await reloadPromise;
   }
 
   // Errors are intentionally not caught here: like production services,
   // they propagate to the caller (the nitro app's error handler or the
   // env-runner fetch boundary below).
   async fetch(req, init) {
+    let reloadPromise;
+    do {
+      reloadPromise = this.reloadPromise;
+      await reloadPromise;
+    } while (reloadPromise !== this.reloadPromise);
     for (let i = 0; i < 5 && !(this.entry || this.entryError); i++) {
       await new Promise((r) => setTimeout(r, 100 * Math.pow(2, i)));
     }
