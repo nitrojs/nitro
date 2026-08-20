@@ -300,12 +300,19 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
     // Invalidate server-only modules and optionally reload the browser
     // see: https://github.com/vitejs/vite/issues/19114
     async hotUpdate({ server, file, modules, timestamp }) {
-      if (ctx.pluginConfig.experimental?.vite?.serverReload === false) {
-        return;
-      }
       const env = this.environment;
       if (env.config.consumer === "client") {
         return;
+      }
+      if (ctx.pluginConfig.experimental?.vite?.serverReload === false) {
+        // Keep the server module graph in sync but opt out of the reload:
+        // returning an empty list also suppresses Vite's own `full-reload`,
+        // which would otherwise still reach (and reload) the dev worker.
+        const invalidated = new Set<EnvironmentModuleNode>();
+        for (const mod of modules) {
+          env.moduleGraph.invalidateModule(mod, invalidated, timestamp, false);
+        }
+        return [];
       }
       const clientEnvs = Object.values(server.environments).filter(
         (env) => env.config.consumer === "client"
