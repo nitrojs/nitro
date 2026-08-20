@@ -5,6 +5,7 @@ import { writeFile } from "../_utils/fs.ts";
 import type { Nitro, NitroRouteRules, ProxyRuleOptions } from "nitro/types";
 import { basename, dirname, relative, resolve } from "pathe";
 import { Router } from "../../routing.ts";
+import { routeToRegExp } from "rou3";
 import { joinURL, withLeadingSlash, withoutLeadingSlash } from "ufo";
 import type {
   PrerenderFunctionConfig,
@@ -159,7 +160,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
   const _getRouteRules = (path: string) =>
     defu({}, ...nitro.routing.routeRules.matchAll("", path).reverse()) as NitroRouteRules;
   for (const route of o11Routes) {
-    const routeRules = _getRouteRules(route.src);
+    const routeRules = _getRouteRules(route.route);
     if (routeRules.isr) {
       continue; // #3563
     }
@@ -171,7 +172,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
       continue;
     }
 
-    const matchData = routeFuncRouter?.match("", route.src);
+    const matchData = routeFuncRouter?.match("", route.route);
     if (matchData) {
       await createFunctionDirWithCustomConfig(
         funcDir,
@@ -216,6 +217,10 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     (a, b) => b[0].split(/\/(?!\*)/).length - a[0].split(/\/(?!\*)/).length
   );
 
+  // Route patterns are relative to the base URL, `src` matches the incoming pathname
+  const routeSrc = (route: string, captureAs?: string) =>
+    normalizeRouteSrc(joinURL(nitro.options.baseURL, route), captureAs);
+
   // Determine which proxy rules can be offloaded to Vercel CDN rewrites
   const cdnProxyPaths = new Set(
     rules
@@ -235,7 +240,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
         (nitro._prerenderedRoutes?.filter((r) => r.fileName !== r.route) || []).map(
           ({ route, fileName }) => [
             withoutLeadingSlash(fileName),
-            { path: route.replace(/^\//, "") },
+            { path: withoutLeadingSlash(route) },
           ]
         )
       ),
@@ -249,7 +254,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
         )
         .map(([path, routeRules]) => {
           let route = {
-            src: path.replace("/**", "/(.*)"),
+            src: routeSrc(path),
           };
           if (routeRules.redirect) {
             route = defu(route, {
@@ -273,7 +278,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
         .map(([path, routeRules]) => {
           const proxy = routeRules.proxy;
           const route: Record<string, any> = {
-            src: path.replace("/**", "/(.*)"),
+            src: routeSrc(path),
             dest: proxy.to.replace("/**", "/$1"),
           };
           if (routeRules.headers) {
@@ -303,9 +308,8 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
       // Public asset rules
       ...nitro.options.publicAssets
         .filter((asset) => !asset.fallthrough)
-        .map((asset) => joinURL(nitro.options.baseURL, asset.baseURL || "/"))
-        .map((baseURL) => ({
-          src: baseURL + "(.*)",
+        .map((asset) => ({
+          src: routeSrc(joinURL(asset.baseURL || "/", "/**")),
           headers: {
             "cache-control": "public,max-age=31536000,immutable",
           },
@@ -339,7 +343,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     ...(nitro.options.routeRules["/"]?.isr
       ? [
           {
-            src: `(?<${ISR_URL_PARAM}>/)`,
+            src: routeSrc("/", ISR_URL_PARAM),
             dest: `/index${ISR_SUFFIX}?${ISR_URL_PARAM}=$${ISR_URL_PARAM}`,
           },
         ]
@@ -348,7 +352,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     ...rules
       .filter(([key, value]) => value.isr !== undefined && key !== "/")
       .map(([key, value]) => {
-        const src = `(?<${ISR_URL_PARAM}>${normalizeRouteSrc(key)})`;
+        const src = routeSrc(key, ISR_URL_PARAM);
         if (value.isr === false) {
           // We need to write a rule to avoid route being shadowed by another cache rule elsewhere
           return {
@@ -366,13 +370,13 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     // Route function config routes
     ...(nitro.options.vercel?.functionRules
       ? Object.keys(nitro.options.vercel.functionRules).map((pattern) => ({
-          src: joinURL(nitro.options.baseURL, normalizeRouteSrc(pattern)),
+          src: routeSrc(pattern),
           dest: withLeadingSlash(normalizeRouteDest(pattern)),
         }))
       : []),
     // Observability routes
     ...(o11Routes || []).map((route) => ({
-      src: joinURL(nitro.options.baseURL, route.src),
+      src: routeSrc(route.route),
       dest: withLeadingSlash(route.dest),
     })),
     // If we are using an ISR function as a fallback
@@ -496,7 +500,7 @@ function canUseVercelRewrite(proxy: NitroRouteRules["proxy"]): proxy is { to: st
 // --- utils for observability ---
 
 type ObservabilityRoute = {
-  src: string; // route pattern
+  route: string; // rou3 route pattern
   dest: string; // function name
 };
 
@@ -545,41 +549,27 @@ function normalizeRoutes(routes: string[]) {
       b.localeCompare(a)
     )
     .map((route) => ({
-      src: normalizeRouteSrc(route),
+      route,
       dest: normalizeRouteDest(route),
     }));
 }
 
-// Input is a rou3/radix3 compatible route pattern
-// Output is a PCRE-compatible regular expression that matches each incoming pathname
-// Reference: https://github.com/h3js/rou3/blob/main/src/regexp.ts
-function normalizeRouteSrc(route: string): string {
-  let idCtr = 0;
-  return route
-    .split("/")
-    .map((segment) => {
-      if (segment.startsWith("**")) {
-        return segment === "**" ? "(?:.*)" : `?(?<${namedGroup(segment.slice(3))}>.+)`;
-      }
-      if (segment === "*") {
-        return `(?<_${idCtr++}>[^/]*)`;
-      }
-      if (segment.includes(":")) {
-        return segment
-          .replace(/:(\w+)/g, (_, id) => `(?<${namedGroup(id)}>[^/]+)`)
-          .replace(/\./g, String.raw`\.`);
-      }
-      return segment;
-    })
-    .join("/");
+// Input is a rou3 route pattern
+// Output is an anchored, PCRE-compatible regular expression that matches each incoming pathname
+// When `captureAs` is set, the whole pathname is additionally captured into a named group
+// https://vercel.com/docs/build-output-api/configuration#source-route
+function normalizeRouteSrc(route: string, captureAs?: string): string {
+  const { source } = routeToRegExp(safeParamNames(route));
+  return captureAs ? `^(?<${captureAs}>${source.slice(1, -1)})$` : source;
 }
 
-// Valid PCRE capture group name
-function namedGroup(input = "") {
-  if (/\d/.test(input[0])) {
-    input = `_${input}`;
-  }
-  return input.replace(/[^a-zA-Z0-9_]/g, "") || "_";
+// PCRE capture group names only allow `[A-Za-z0-9_]` and cannot start with a digit, while rou3
+// param names additionally allow `-` and leading digits (`[test-id].ts`, `[0].ts`).
+function safeParamNames(route: string): string {
+  return route.replace(/:([\w-]+)/g, (_, name: string) => {
+    const safeName = name.replace(/-/g, "_");
+    return /^\d/.test(safeName) ? `:_${safeName}` : `:${safeName}`;
+  });
 }
 
 // Output is a destination pathname to function name
