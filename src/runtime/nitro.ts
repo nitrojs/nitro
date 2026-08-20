@@ -24,7 +24,7 @@ export {
 export type { H3Event, EventHandlerRequest, EventHandlerWithFetch } from "h3";
 
 // srvx
-export type { FastResponse, FastURL } from "srvx";
+export type { FastResponse } from "srvx";
 
 // Runtime
 export function serverFetch(
