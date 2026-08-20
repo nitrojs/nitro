@@ -94,6 +94,15 @@ describe("vite:app", () => {
     expect(res.status).not.toBe(200);
   });
 
+  test("serves Vite-internal URLs under the default base", async () => {
+    const res = await fetch(`${serverURL}/@vite/client`, {
+      headers: { accept: "*/*" },
+      redirect: "manual",
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toMatch(/javascript/);
+  });
+
   // #4252: an asset-tagged request the SSR catch-all deliberately serves (non-page content-type)
   // must reach the renderer and pass through, even though the URL looks like an asset.
   test("SSR catch-all can serve asset-tagged requests", async () => {

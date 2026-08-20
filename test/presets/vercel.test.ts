@@ -2,6 +2,7 @@ import { promises as fsp } from "node:fs";
 import { Server, type IncomingMessage, type ServerResponse } from "node:http";
 import type { Socket } from "node:net";
 import { resolve, join, basename } from "pathe";
+import { joinURL } from "ufo";
 import { describe, expect, it, vi, beforeAll, afterAll } from "vitest";
 import { setupTest, testNitro, fixtureDir } from "../tests.ts";
 import { toFetchHandler } from "srvx/node";
@@ -11,7 +12,16 @@ const presetFixturesDir = resolve(import.meta.dirname, "fixtures");
 // NOTE: Always prefer extending the existing `nitro:preset:vercel:web` matrix
 // (its setup/build is shared across assertions) over adding new top-level
 // `describe` blocks, which trigger a separate build and slow down CI.
+
 describe("nitro:preset:vercel:web", async () => {
+  const TEST_HASH_SALT = "initial";
+
+  // Example salt used to exercise `VERCEL_HASH_SALT` namespacing of immutable
+  // static files. Set around the (build-time) `setupTest` below and restored
+  // immediately after so it does not leak into other builds.
+  const prevHashSalt = process.env.VERCEL_HASH_SALT;
+  process.env.VERCEL_HASH_SALT = TEST_HASH_SALT;
+
   const ctx = await setupTest("vercel", {
     outDirSuffix: "-web",
     config: {
@@ -21,7 +31,15 @@ describe("nitro:preset:vercel:web", async () => {
           route: "/_ws",
           handler: resolve(presetFixturesDir, "websocket.ts"),
         },
+        {
+          route: "/slash",
+          handler: resolve(presetFixturesDir, "slash.ts"),
+        },
       ],
+      prerender: {
+        // trailing slash on purpose (#4392)
+        routes: ["/slash/"],
+      },
       vercel: {
         queues: {
           triggers: [
@@ -32,6 +50,13 @@ describe("nitro:preset:vercel:web", async () => {
       },
     },
   });
+
+  if (prevHashSalt === undefined) {
+    delete process.env.VERCEL_HASH_SALT;
+  } else {
+    process.env.VERCEL_HASH_SALT = prevHashSalt;
+  }
+
   testNitro(
     ctx,
     async () => {
@@ -64,17 +89,23 @@ describe("nitro:preset:vercel:web", async () => {
               "version": "3.x",
             },
             "overrides": {
-              "_scalar/index.html": {
-                "path": "_scalar",
+              "api/hello": {
+                "contentType": "application/json;charset=UTF-8",
               },
-              "_swagger/index.html": {
-                "path": "_swagger",
+              "api/param/hidden": {
+                "contentType": "text/plain; custom",
               },
-              "api/hey/index.html": {
-                "path": "api/hey",
+              "api/param/prerender1": {
+                "contentType": "text/plain; custom",
               },
-              "prerender/index.html": {
-                "path": "prerender",
+              "api/param/prerender3": {
+                "contentType": "text/plain; custom",
+              },
+              "api/param/prerender4": {
+                "contentType": "text/plain; custom",
+              },
+              "json-string": {
+                "contentType": "text/plain; charset=UTF-8",
               },
             },
             "routes": [
@@ -254,14 +285,6 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/raw",
               },
               {
-                "dest": "/prerender-custom.html",
-                "src": "/prerender-custom.html",
-              },
-              {
-                "dest": "/prerender",
-                "src": "/prerender",
-              },
-              {
                 "dest": "/node-compat",
                 "src": "/node-compat",
               },
@@ -272,10 +295,6 @@ describe("nitro:preset:vercel:web", async () => {
               {
                 "dest": "/jsx",
                 "src": "/jsx",
-              },
-              {
-                "dest": "/json-string",
-                "src": "/json-string",
               },
               {
                 "dest": "/imports",
@@ -354,14 +373,6 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/api/kebab",
               },
               {
-                "dest": "/api/hey",
-                "src": "/api/hey",
-              },
-              {
-                "dest": "/api/hello",
-                "src": "/api/hello",
-              },
-              {
                 "dest": "/api/headers",
                 "src": "/api/headers",
               },
@@ -392,18 +403,6 @@ describe("nitro:preset:vercel:web", async () => {
               {
                 "dest": "/_vercel/cron",
                 "src": "/_vercel/cron",
-              },
-              {
-                "dest": "/_swagger",
-                "src": "/_swagger",
-              },
-              {
-                "dest": "/_scalar",
-                "src": "/_scalar",
-              },
-              {
-                "dest": "/_openapi.json",
-                "src": "/_openapi.json",
               },
               {
                 "dest": "/single-headers/[id]",
@@ -443,6 +442,26 @@ describe("nitro:preset:vercel:web", async () => {
         `);
       });
 
+      it("should apply immutable buildAssetsDir and write manifest", async () => {
+        // `vercel.immutableStaticFiles` relocates build assets under the
+        // reserved `_vercel/immutable` base (namespaced by the optional
+        // `VERCEL_HASH_SALT` and the framework name) and emits an
+        // `immutable.json` manifest mapping each file to its full content hash.
+        const expectedDir = joinURL(
+          "_vercel/immutable",
+          TEST_HASH_SALT,
+          ctx.nitro!.options.framework.name || ""
+        );
+        expect(ctx.nitro!.options.buildAssetsDir).toBe(expectedDir);
+        expect(expectedDir).toBe(`_vercel/immutable/${TEST_HASH_SALT}/nitro`);
+
+        const manifest = await fsp
+          .readFile(resolve(ctx.outDir, "immutable.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        expect(manifest.version).toBe(1);
+        expect(manifest.hashes).toBeTypeOf("object");
+      });
+
       it("should generate prerender config", async () => {
         const isrRouteConfig = await fsp.readFile(
           resolve(ctx.outDir, "functions/rules/isr/[...]-isr.prerender-config.json"),
@@ -480,9 +499,6 @@ describe("nitro:preset:vercel:web", async () => {
           [
             "functions/500.func (symlink)",
             "functions/__server.func",
-            "functions/_openapi.json.func (symlink)",
-            "functions/_scalar.func (symlink)",
-            "functions/_swagger.func (symlink)",
             "functions/_vercel",
             "functions/_ws.func (symlink)",
             "functions/api/cached.func (symlink)",
@@ -490,7 +506,6 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/api/echo.func",
             "functions/api/headers.func (symlink)",
             "functions/api/hello.func",
-            "functions/api/hey.func (symlink)",
             "functions/api/kebab.func (symlink)",
             "functions/api/meta/test.func (symlink)",
             "functions/api/methods/foo.get.func (symlink)",
@@ -514,12 +529,9 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/icon.png.func (symlink)",
             "functions/import-attributes.func (symlink)",
             "functions/imports.func (symlink)",
-            "functions/json-string.func (symlink)",
             "functions/jsx.func (symlink)",
             "functions/modules.func (symlink)",
             "functions/node-compat.func (symlink)",
-            "functions/prerender-custom.html.func (symlink)",
-            "functions/prerender.func (symlink)",
             "functions/raw.func (symlink)",
             "functions/replace.func (symlink)",
             "functions/route-group.func (symlink)",
@@ -579,6 +591,17 @@ describe("nitro:preset:vercel:web", async () => {
         const funcDir = resolve(ctx.outDir, "functions/api/hello.func");
         const indexStat = await fsp.lstat(resolve(funcDir, "index.mjs"));
         expect(indexStat.isFile()).toBe(true);
+      });
+
+      it("should preserve dependency symlink targets inside functionRules directories", async () => {
+        const dependencyPath = "node_modules/@fixture/nitro-lib";
+        const serverTarget = await fsp.readlink(
+          resolve(ctx.outDir, "functions/__server.func", dependencyPath)
+        );
+        const functionTarget = await fsp.readlink(
+          resolve(ctx.outDir, "functions/api/hello.func", dependencyPath)
+        );
+        expect(functionTarget).toBe(serverTarget);
       });
 
       it("should keep base __server.func without functionRules overrides", async () => {

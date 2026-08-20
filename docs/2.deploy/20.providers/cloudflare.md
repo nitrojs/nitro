@@ -311,6 +311,8 @@ defineHandler(async (event) => {
 
 In development mode, Nitro emulates the Cloudflare environment using [Miniflare](https://miniflare.dev/) (the same [`workerd`](https://github.com/cloudflare/workerd) runtime used by Wrangler and cloudflare workers in production). This means bindings are available natively from the request event — no separate proxy or `wrangler` installation is required.
 
+The [`miniflare`](https://www.npmjs.com/package/miniflare) package is owned by your project: Nitro resolves it from your `node_modules` and offers to install it on first use.
+
 To access bindings in dev mode, we first define them. You can do this in a `wrangler.jsonc`/`wrangler.json`/`wrangler.toml` file:
 
 ::code-group

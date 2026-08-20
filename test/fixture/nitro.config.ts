@@ -5,6 +5,7 @@ import { existsSync } from "node:fs";
 
 export default defineConfig({
   vercel: {
+    immutableStaticFiles: true,
     functionRules: {
       "/api/hello": {
         maxDuration: 100,

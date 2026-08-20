@@ -26,30 +26,21 @@ importers:
       db0:
         specifier: ^0.3.4
         version: 0.3.4
-      dotenv:
-        specifier: '*'
-        version: 17.4.2
       env-runner:
-        specifier: ^0.1.16
-        version: 0.1.16(@vercel/queue@0.4.0)(miniflare@4.20260730.0)(wrangler@4.124.0)
+        specifier: ^0.2.0
+        version: 0.2.0
       h3:
         specifier: ^2.0.1-rc.29
         version: 2.0.1-rc.29(crossws@0.4.12)(ocache@0.3.0)
       hookable:
         specifier: ^6.1.1
         version: 6.1.1
-      jiti:
-        specifier: ^2.7.0
-        version: 2.7.0
       nf3:
         specifier: ^0.3.23
         version: 0.3.23
       ocache:
         specifier: ^0.3.0
         version: 0.3.0
-      ofetch:
-        specifier: ^2.0.0-alpha.3
-        version: 2.0.0-alpha.3
       ohash:
         specifier: ^2.0.12
         version: 2.0.12
@@ -77,7 +68,7 @@ importers:
         version: 3.6.0
       '@azure/static-web-apps-cli':
         specifier: ^2.0.10
-        version: 2.0.10
+        version: 2.0.10(debug@4.4.3)
       '@cloudflare/workers-types':
         specifier: ^5.20260819.1
         version: 5.20260819.1
@@ -180,6 +171,9 @@ importers:
       dot-prop:
         specifier: ^10.2.0
         version: 10.2.0
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
       etag:
         specifier: ^1.8.1
         version: 1.8.1
@@ -204,6 +198,9 @@ importers:
       httpxy:
         specifier: ^0.5.5
         version: 0.5.5
+      jiti:
+        specifier: ^2.7.0
+        version: 2.7.0
       klona:
         specifier: ^2.0.6
         version: 2.0.6
@@ -228,6 +225,9 @@ importers:
       obuild:
         specifier: ^0.4.38
         version: 0.4.38(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.3.1)(jiti@2.7.0)(magicast@0.5.4)(typescript@7.0.2)
+      ofetch:
+        specifier: ^2.0.0-alpha.3
+        version: 2.0.0-alpha.3
       oxc-parser:
         specifier: link:shims/oxc-parser
         version: link:shims/oxc-parser
@@ -4301,23 +4301,9 @@ packages:
     resolution: {integrity: sha512-TWrgLOFUQTH994YUyl1yT4uyavY5nNB5muff+RtWaqNVCAK408b5ZnnbNAUEWLTCpum9w6arT70i1XdQ4UeOPA==}
     engines: {node: '>=0.12'}
 
-  env-runner@0.1.16:
-    resolution: {integrity: sha512-2LRJM4P2KLX6J83QZZrMqvgCDt/D5ea7wPcI3yYiy5cG/9rX5QwdwZFx0D7ktWnjdRyZxYjttGGorb5nFqb1CA==}
+  env-runner@0.2.0:
+    resolution: {integrity: sha512-Q3tjjDWxHyRFhkA4w9uZaIpdjxGosDqQ5YNSvGksumiX6q0pgk69g9koNdskTUE7tUrPFmOGMX5uPamiBQXKqg==}
     hasBin: true
-    peerDependencies:
-      '@netlify/runtime': ^4.1.23
-      '@vercel/queue': '>=0.2.0'
-      miniflare: ^4.20260515.0
-      wrangler: ^4.0.0
-    peerDependenciesMeta:
-      '@netlify/runtime':
-        optional: true
-      '@vercel/queue':
-        optional: true
-      miniflare:
-        optional: true
-      wrangler:
-        optional: true
 
   eol@0.9.1:
     resolution: {integrity: sha512-Ds/TEoZjwggRoz/Q2O7SE3i4Jm66mqTDfmdHdq/7DKVk3bro9Q8h6WdXKdPqFLMoqxrDK5SVRzHVPOS6uuGtrg==}
@@ -7356,7 +7342,7 @@ snapshots:
       '@azure/msal-common': 16.13.0
       jsonwebtoken: 9.0.3
 
-  '@azure/static-web-apps-cli@2.0.10':
+  '@azure/static-web-apps-cli@2.0.10(debug@4.4.3)':
     dependencies:
       '@azure/arm-appservice': 15.0.0
       '@azure/arm-resources': 5.2.0
@@ -7374,7 +7360,7 @@ snapshots:
       finalhandler: 1.3.2
       get-port: 5.1.1
       globrex: 0.1.2
-      http-proxy: 1.18.1
+      http-proxy: 1.18.1(debug@4.4.3)
       http-proxy-agent: 7.0.2
       https-proxy-agent: 7.0.6
       internal-ip: 6.2.0
@@ -10385,10 +10371,6 @@ snapshots:
       shebang-command: 2.0.0
       which: 2.0.2
 
-  crossws@0.4.12(srvx@0.11.22):
-    optionalDependencies:
-      srvx: 0.11.22
-
   crossws@0.4.12(srvx@0.12.7):
     optionalDependencies:
       srvx: 0.12.7
@@ -10605,16 +10587,12 @@ snapshots:
 
   entities@7.0.1: {}
 
-  env-runner@0.1.16(@vercel/queue@0.4.0)(miniflare@4.20260730.0)(wrangler@4.124.0):
+  env-runner@0.2.0:
     dependencies:
-      crossws: 0.4.12(srvx@0.11.22)
+      crossws: 0.4.12(srvx@0.12.7)
       exsolve: 1.1.1
       httpxy: 0.5.5
-      srvx: 0.11.22
-    optionalDependencies:
-      '@vercel/queue': 0.4.0(@opentelemetry/api@1.9.0)
-      miniflare: 4.20260730.0
-      wrangler: 4.124.0(@cloudflare/workers-types@5.20260819.1)
+      srvx: 0.12.7
 
   eol@0.9.1: {}
 
@@ -11222,7 +11200,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  http-proxy@1.18.1:
+  http-proxy@1.18.1(debug@4.4.3):
     dependencies:
       eventemitter3: 4.0.7
       follow-redirects: 1.16.0(debug@4.4.3)
