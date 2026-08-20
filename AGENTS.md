@@ -60,6 +60,22 @@ Review these changes carefully for backwards compatibility, bundle size, and cro
 - `consola` — Logging in build/dev code (use `nitro.logger` when available).
 - `unstorage` — Storage abstraction.
 
+### Optional Dependencies
+
+Packages that are only needed by some presets, builders, or opt-in features are imported on demand
+from the user project via `src/utils/dep.ts` (`ensureDep` / `importDep` / `isDepInstalled`), which
+resolves from `nitro.options.rootDir` and offers to install what is missing.
+
+- Don't add a `peerDependencies` entry. Add the package to `devDependencies` (for tests and types)
+  and import it with `importDep({ id, dir: nitro.options.rootDir, reason })`.
+- Keep the package listed in `optionalDeps` in `build.config.ts` so it stays external.
+- `import type` from such a package is fine; only value imports must go through `utils/dep.ts`.
+- Optional dependencies of the libraries Nitro *bundles* (e.g. `jiti` for `c12`) cannot resolve from
+  `dist/`. Those get a bundle-time alias to a shim in `src/shims/` (see `shimmedDeps` in
+  `build.config.ts`).
+- `vite` is the only remaining optional peer dependency: `src/build/vite/` extends its
+  `DevEnvironment` class and re-exports its types from Nitro's public `.d.ts`.
+
 ### Runtime Constraints
 
 Code in `src/runtime/` must be runtime-agnostic:
@@ -121,6 +137,7 @@ Each preset in `src/presets/` defines deployment target behavior:
 - **CLI commands** are in `src/cli/commands/` — Each file exports a command definition.
 - **Runtime size matters** — Check bundle impact with `pnpm build`.
 - **Use `pathe` not `node:path`** — Ensures cross-platform compatibility.
+- **Avoid peer dependencies** — Optional packages are imported on demand via `src/utils/dep.ts` (`vite` is the only exception).
 
 ## Error & Logging Guidelines
 
@@ -165,6 +182,6 @@ For deeper context, see `.agents/`:
 - [`.agents/presets.md`](.agents/presets.md) — All presets (multiple deployment targets + internal `_nitro`/`_static`), preset structure, how to create presets, resolution logic.
 - [`.agents/testing.md`](.agents/testing.md) — Test structure, how tests work, adding regression tests, running tests.
 - [`.agents/vite.md`](.agents/vite.md) — Vite build system: plugin architecture (6 sub-plugins), environments API, dev server integration, production build stages, bundler config, HMR, runtime worker.
-- [`.agents/docs.md`](.agents/docs.md) — Documentation conventions: structure, preset naming (underscore), H3 v2 API patterns, import paths, common mistakes.
+- [`.agents/docs.md`](.agents/docs.md) — Docs site: UnDocs structure, the `.docs/` theme layer (imports, styling tokens, content queries), MDC blocks, and content conventions (preset naming, import paths, H3 v2 patterns, common mistakes).
 
 H3 v2 updated docs is at `node_modules/h3/dist/docs/README.md`

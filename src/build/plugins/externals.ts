@@ -286,8 +286,11 @@ export function resolveTraceDeps(
   // resolve time and traced explicitly. Force-tracing by name also fixes pnpm,
   // where a nested dependency only resolves from the dependent package's real
   // `.pnpm` location.
+  // Bare scopes (`@scope`) are prefix selectors for the include pattern only:
+  // they are not resolvable package names, so nf3 would warn on them.
   const traceInclude = userTraceDeps.filter(
-    (d): d is string => typeof d === "string" && !negated.has(d)
+    (d): d is string =>
+      typeof d === "string" && !negated.has(d) && !(d.startsWith("@") && !d.includes("/"))
   );
   return {
     includePattern: tracePattern

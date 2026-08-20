@@ -31,7 +31,7 @@ describe("vite:types (dev)", () => {
   beforeAll(async () => {
     rmSync(typesDir, { recursive: true, force: true });
     process.chdir(rootDir);
-    server = await createServer({ root: rootDir });
+    server = await createServer({ root: rootDir, logLevel: "warn" });
   }, 30_000);
 
   afterAll(async () => {

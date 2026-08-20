@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sourcemapMinify } from "../../src/build/plugins/sourcemap-min.ts";
+import { sourcemap } from "../../src/build/plugins/sourcemap.ts";
 
 type BundleAsset = { type: "asset"; source: string };
 
@@ -20,8 +20,14 @@ function createSourcemapAsset(sourcemap: {
   };
 }
 
-function runPlugin(bundle: Record<string, BundleAsset>) {
-  const plugin = sourcemapMinify();
+function runPlugin(
+  bundle: Record<string, BundleAsset>,
+  opts: { virtualIds?: string[]; minify?: boolean } = {}
+) {
+  const plugin = sourcemap({
+    virtualIds: opts.virtualIds || [],
+    minify: opts.minify ?? true,
+  });
   (plugin.generateBundle as Function).call(null, {}, bundle);
   const results: Record<string, ReturnType<typeof JSON.parse>> = {};
   for (const [key, asset] of Object.entries(bundle)) {
@@ -32,7 +38,7 @@ function runPlugin(bundle: Record<string, BundleAsset>) {
   return results;
 }
 
-describe("sourcemapMinify", () => {
+describe("sourcemap", () => {
   it("removes sourcesContent from all sourcemaps", () => {
     const bundle = {
       "index.mjs.map": createSourcemapAsset({
@@ -108,5 +114,42 @@ describe("sourcemapMinify", () => {
     };
     const results = runPlugin(bundle);
     expect(results["chunk.mjs.map"].mappings).toBe("");
+  });
+
+  it("namespaces virtual module sources", () => {
+    const bundle = {
+      "_chunks/app.mjs.map": createSourcemapAsset({
+        sources: [
+          "../../../../workspace/app/#nitro/virtual/app",
+          "../../../../workspace/app/#virtual-route",
+          "../../../../workspace/app/virtual:nitro:raw:/workspace/app/server/files/test.txt.js",
+          "../../src/routes/index.ts",
+        ],
+      }),
+    };
+    const results = runPlugin(bundle, {
+      virtualIds: ["#nitro/virtual/app", "#virtual-route"],
+    });
+    expect(results["_chunks/app.mjs.map"].sources).toEqual([
+      "virtual:#nitro/virtual/app",
+      "virtual:#virtual-route",
+      "virtual:nitro:raw:/workspace/app/server/files/test.txt.js",
+      "../../src/routes/index.ts",
+    ]);
+  });
+
+  it("keeps sourcesContent when minify is disabled", () => {
+    const bundle = {
+      "index.mjs.map": createSourcemapAsset({
+        sources: ["../../workspace/app/#nitro/virtual/app"],
+        sourcesContent: ["export default 42;"],
+      }),
+    };
+    const results = runPlugin(bundle, {
+      virtualIds: ["#nitro/virtual/app"],
+      minify: false,
+    });
+    expect(results["index.mjs.map"].sourcesContent).toEqual(["export default 42;"]);
+    expect(results["index.mjs.map"].sources).toEqual(["virtual:#nitro/virtual/app"]);
   });
 });

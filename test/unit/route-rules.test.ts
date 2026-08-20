@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { normalizeRouteRules } from "../../src/config/resolvers/route-rules.ts";
 
-// Route-rule normalization is owned by `h3-rules`; Nitro's resolver delegates to
+// Route-rule normalization is owned by `h3/rules`; Nitro's resolver delegates to
 // it. These guard the shortcut semantics Nitro relies on (see also the `/rules/*` fixture e2e
-// in `test/tests.ts`, which covers the dual-path scope behavior now implemented in h3-rules).
+// in `test/tests.ts`, which covers the dual-path scope behavior now implemented in `h3/rules`).
 describe("normalizeRouteRules - swr", () => {
   it("swr: true enables SWR", () => {
     const rules = normalizeRouteRules({ routeRules: { "/api/**": { swr: true } } });
@@ -22,7 +22,7 @@ describe("normalizeRouteRules - swr", () => {
 
   it("swr: false resets cache (does not enable SWR)", () => {
     // `swr: false` normalizes to `cache: false`, a reset marker that disables a
-    // cache rule inherited from a less-specific pattern (h3-rules >= 0.1.0).
+    // cache rule inherited from a less-specific pattern.
     const rules = normalizeRouteRules({ routeRules: { "/api/**": { swr: false } } });
     expect(rules["/api/**"].cache).toBe(false);
   });
@@ -32,5 +32,18 @@ describe("normalizeRouteRules - swr", () => {
     const withFalse = normalizeRouteRules({ routeRules: { "/api/**": { swr: false } } });
     expect(withZero["/api/**"].cache).toMatchObject({ swr: true, maxAge: 0 });
     expect(withFalse["/api/**"].cache).toBe(false);
+  });
+});
+
+describe("normalizeRouteRules - basicAuth", () => {
+  it("throws with an actionable message", () => {
+    expect(() =>
+      normalizeRouteRules({
+        routeRules: {
+          // @ts-expect-error `basicAuth` is not a route rule
+          "/admin/**": { basicAuth: { username: "admin", password: "secret" } },
+        },
+      })
+    ).toThrow(/`basicAuth` is not a route rule \(`\/admin\/\*\*`\)/);
   });
 });
