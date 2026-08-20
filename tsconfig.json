@@ -9,7 +9,7 @@
     "noImplicitReturns": false,
     "jsx": "preserve",
     "lib": ["es2022", "webworker", "dom.iterable"],
-    "types": ["node", "@cloudflare/workers-types"]
+    "types": ["node", "@cloudflare/workers-types/experimental"]
   },
   "exclude": [
     "examples/import-alias/**",
