@@ -1,6 +1,7 @@
 import fsp from "node:fs/promises";
 import { constants } from "node:fs";
 import { defu } from "defu";
+import mime from "mime";
 import { writeFile } from "../_utils/fs.ts";
 import type { Nitro, NitroRouteRules, PrerenderRoute, ProxyRuleOptions } from "nitro/types";
 import { basename, dirname, relative, resolve } from "pathe";
@@ -387,32 +388,45 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
 }
 
 /**
- * Map prerendered files to the route they should be served from.
+ * Map prerendered files to the route and content type they should be served with.
  *
  * Paths are always slash-free: Vercel strips slashes when matching, so a path
  * that keeps a trailing slash matches nothing at all (#4392), and the root
  * route has to map to an empty path (ufo's slash helpers cannot produce one).
  *
  * Files that Vercel already serves at the route using its built-in directory
- * indexes are skipped.
+ * indexes keep their path, and only get an entry when their content type
+ * cannot be inferred from the file name.
  */
 export function getPrerenderOverrides(prerenderedRoutes: PrerenderRoute[] = []) {
-  const overrides: Record<string, { path: string }> = {};
+  const overrides: Record<string, { path?: string; contentType?: string }> = {};
 
-  for (const { route, fileName } of prerenderedRoutes) {
+  for (const { route, fileName, contentType } of prerenderedRoutes) {
     if (!fileName) {
       continue;
     }
     const file = withoutLeadingSlash(fileName);
     const path = route.replace(SURROUNDING_SLASH_RE, "");
-    // Skip when Vercel already serves the file at `path`: either via its
-    // built-in directory index (`<dir>/index.*` at `<dir>`), or because the
-    // file already lives there. Re-keying a file onto its own path would
-    // delete it, since Vercel drops the original entry.
-    if (file === path || file.replace(INDEX_FILE_RE, "") === path) {
-      continue;
+    const override: { path?: string; contentType?: string } = {};
+
+    // Only re-key when Vercel does not already serve the file at `path`: it
+    // serves `<dir>/index.*` at `<dir>` via its built-in directory index, and
+    // re-keying a file onto its own path would delete it, since Vercel drops
+    // the original entry.
+    if (file !== path && file.replace(INDEX_FILE_RE, "") !== path) {
+      override.path = path;
     }
-    overrides[file] = { path };
+
+    // Vercel infers the content type from the file name, which has no
+    // extension to go on for a non-HTML route ending in `/` (`/data/` is
+    // prerendered to `data/index`) and would be served as a download.
+    if (contentType && !mime.getType(file)) {
+      override.contentType = contentType;
+    }
+
+    if (override.path !== undefined || override.contentType) {
+      overrides[file] = override;
+    }
   }
 
   return overrides;

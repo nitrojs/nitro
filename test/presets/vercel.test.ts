@@ -71,7 +71,26 @@ describe("nitro:preset:vercel:web", async () => {
               "name": "nitro",
               "version": "3.x",
             },
-            "overrides": {},
+            "overrides": {
+              "api/hello": {
+                "contentType": "application/json;charset=UTF-8",
+              },
+              "api/param/hidden": {
+                "contentType": "text/plain; custom",
+              },
+              "api/param/prerender1": {
+                "contentType": "text/plain; custom",
+              },
+              "api/param/prerender3": {
+                "contentType": "text/plain; custom",
+              },
+              "api/param/prerender4": {
+                "contentType": "text/plain; custom",
+              },
+              "json-string": {
+                "contentType": "text/plain; charset=UTF-8",
+              },
+            },
             "routes": [
               {
                 "headers": {

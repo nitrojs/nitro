@@ -65,4 +65,42 @@ describe("getPrerenderOverrides", () => {
   it("ignores routes without a fileName", () => {
     expect(getPrerenderOverrides([{ route: "/skipped" }])).toEqual({});
   });
+
+  // Vercel infers the content type from the file name, so an extensionless
+  // file is served as a download unless the type is spelled out
+  it("overrides the content type when the file name cannot convey it", () => {
+    expect(
+      getPrerenderOverrides([
+        { route: "/data/", fileName: "/data/index", contentType: "application/json" },
+        { route: "/feed", fileName: "/feed", contentType: "application/xml" },
+      ])
+    ).toEqual({
+      "data/index": { contentType: "application/json" },
+      feed: { contentType: "application/xml" },
+    });
+  });
+
+  it("keeps serving directory indexes in place while fixing their content type", () => {
+    const overrides = getPrerenderOverrides([
+      { route: "/data/", fileName: "/data/index", contentType: "application/json" },
+    ]);
+    // A `path` here would move the file off the directory index Vercel serves
+    expect(overrides["data/index"]).not.toHaveProperty("path");
+  });
+
+  it("leaves the content type to the file name whenever it conveys one", () => {
+    expect(
+      getPrerenderOverrides([
+        { route: "/", fileName: "/index.html", contentType: "text/html; charset=utf-8" },
+        { route: "/about", fileName: "/about.html", contentType: "text/html; charset=utf-8" },
+        { route: "/data.json", fileName: "/data.json", contentType: "application/json" },
+        // Even when the route disagrees with the extension, which is a
+        // pre-existing mismatch and not this override's business
+        { route: "/custom.html", fileName: "/custom.html", contentType: "text/plain" },
+      ])
+    ).toEqual({
+      // Re-keyed, but no redundant contentType
+      "about.html": { path: "about" },
+    });
+  });
 });
