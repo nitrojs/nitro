@@ -1,6 +1,7 @@
 ---
-category: server side rendering
-icon: i-logos-html-5
+navigation:
+  category: server side rendering
+icon: i-material-symbols-html
 ---
 
 # Vite SSR HTML
