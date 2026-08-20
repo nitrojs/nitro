@@ -14,7 +14,7 @@ describe("vite:baseURL dotted params", { sequential: true }, () => {
 
   beforeAll(async () => {
     process.chdir(rootDir);
-    server = await createServer({ root: rootDir });
+    server = await createServer({ root: rootDir, logLevel: "warn" });
     await server.listen("0" as unknown as number);
     const addr = server.httpServer?.address() as {
       port: number;
