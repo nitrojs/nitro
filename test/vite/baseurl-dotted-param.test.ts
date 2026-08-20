@@ -98,6 +98,24 @@ describe("vite:baseURL dotted params", { sequential: true }, () => {
     expect(await response.text()).toBe("data");
   });
 
+  // Vite serves its internal URLs under its own `base`, so extensionless ids (`@id/__x00__...`,
+  // which every `<style scoped>` SFC imports as the export helper) must reach Vite even when no
+  // `Sec-Fetch-Dest` is available to tag them as a script load.
+  test("serves Vite-internal URLs under a non-root base", async () => {
+    for (const url of ["/subdir/@id/__x00__virtual:extensionless-probe", "/subdir/@vite/client"]) {
+      for (const fetchDest of [undefined, "script"]) {
+        const headers: Record<string, string> = {};
+        if (fetchDest) {
+          headers["sec-fetch-dest"] = fetchDest;
+        }
+        const response = await fetch(`${serverURL}${url}`, { headers, redirect: "manual" });
+        const label = `${url} (sec-fetch-dest: ${fetchDest})`;
+        expect(response.status, label).toBe(200);
+        expect(response.headers.get("content-type"), label).toMatch(/javascript/);
+      }
+    }
+  });
+
   test("navigation without sec-fetch-dest still routes to Nitro (Accept: text/html)", async () => {
     const response = await fetch(`${serverURL}/subdir/api/proxy/page.html`, {
       headers: { accept: "text/html,application/xhtml+xml" },

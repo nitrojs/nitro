@@ -200,7 +200,11 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
         resolve: {
           // TODO: environment specific aliases not working
           // https://github.com/vitejs/vite/pull/17583 (seems not effective)
-          alias: ctx.bundlerConfig.base.aliases,
+          // preserve alias order
+          alias: Object.entries(ctx.bundlerConfig.base.aliases).map(([find, replacement]) => ({
+            find,
+            replacement,
+          })),
         },
         builder: {
           sharedConfigBuild: true,
