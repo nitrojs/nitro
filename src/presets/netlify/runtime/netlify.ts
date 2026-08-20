@@ -12,7 +12,7 @@ const handler = async (req: ServerRequest): Promise<Response> => {
 
   const response = await nitroApp.fetch(req);
 
-  const isr = (req.context?.routeRules || {})?.isr?.options;
+  const isr = req.context?.routeRules?.isr;
   if (isr) {
     const maxAge = typeof isr === "number" ? isr : ONE_YEAR_IN_SECONDS;
     const revalidateDirective =

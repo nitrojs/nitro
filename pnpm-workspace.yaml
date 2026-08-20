@@ -21,6 +21,11 @@ packages:
 trustPolicy: no-downgrade
 trustPolicyExclude:
   - "semver@6.3.1"
+  - "@vercel/oidc@3.8.4"
+  - "@vercel/queue@0.4.0"
+  - "@vercel/cli-exec@1.0.1"
+  - "@vercel/cli-config@0.2.3"
+  - "exact-mirror@1.2.4"
 
 blockExoticSubdeps: true
 strictDepBuilds: true
@@ -66,6 +71,7 @@ minimumReleaseAgeExclude:
   - get-port-please*
   - giget*
   - h3*
+  - h3-rules*
   - hookable*
   - httpxy*
   - knitwork*
@@ -93,3 +99,15 @@ minimumReleaseAgeExclude:
   - unstorage*
   - untyped*
   - unwasm*
+  - '@takumi-rs/core-darwin-arm64@2.1.1'
+  - '@takumi-rs/core-darwin-x64@2.1.1'
+  - '@takumi-rs/core-linux-arm64-gnu@2.1.1'
+  - '@takumi-rs/core-linux-arm64-musl@2.1.1'
+  - '@takumi-rs/core-linux-x64-gnu@2.1.1'
+  - '@takumi-rs/core-linux-x64-musl@2.1.1'
+  - '@takumi-rs/core-win32-arm64-msvc@2.1.1'
+  - '@takumi-rs/core-win32-x64-msvc@2.1.1'
+  - '@takumi-rs/core@2.1.1'
+  - '@takumi-rs/helpers@2.1.1'
+  - '@takumi-rs/wasm@2.1.1'
+  - takumi-js@2.1.1

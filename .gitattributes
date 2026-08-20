@@ -1,1 +1,5 @@
+# Files imported verbatim (`raw:`, `bytes:`, `text:`) must not have their line endings rewritten
 *.txt	text eol=lf
+*.json	text eol=lf
+*.sql	text eol=lf
+*.bin	binary

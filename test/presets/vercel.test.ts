@@ -114,10 +114,7 @@ describe("nitro:preset:vercel:web", async () => {
               },
               {
                 "headers": {
-                  "access-control-allow-headers": "*",
                   "access-control-allow-methods": "GET",
-                  "access-control-allow-origin": "*",
-                  "access-control-max-age": "0",
                 },
                 "src": "/rules/cors",
               },
@@ -138,10 +135,9 @@ describe("nitro:preset:vercel:web", async () => {
               },
               {
                 "headers": {
-                  "Location": "/base",
+                  "x-single": "single",
                 },
-                "src": "/rules/ba-redirect/(.*)",
-                "status": 307,
+                "src": "/single-headers/*",
               },
               {
                 "headers": {
@@ -286,6 +282,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/imports",
               },
               {
+                "dest": "/import-attributes",
+                "src": "/import-attributes",
+              },
+              {
                 "dest": "/icon.png",
                 "src": "/icon.png",
               },
@@ -406,6 +406,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/_openapi.json",
               },
               {
+                "dest": "/single-headers/[id]",
+                "src": "/single-headers/(?<id>[^/]+)",
+              },
+              {
                 "dest": "/assets/[id]",
                 "src": "/assets/(?<id>[^/]+)",
               },
@@ -508,6 +512,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/fetch.func (symlink)",
             "functions/file.func (symlink)",
             "functions/icon.png.func (symlink)",
+            "functions/import-attributes.func (symlink)",
             "functions/imports.func (symlink)",
             "functions/json-string.func (symlink)",
             "functions/jsx.func (symlink)",
@@ -531,6 +536,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/rules/swr-ttl/[...]-isr.prerender-config.json",
             "functions/rules/swr/[...]-isr.func (symlink)",
             "functions/rules/swr/[...]-isr.prerender-config.json",
+            "functions/single-headers/[id].func (symlink)",
             "functions/static-flags.func (symlink)",
             "functions/stream.func (symlink)",
             "functions/tasks/[...name].func (symlink)",
@@ -573,6 +579,17 @@ describe("nitro:preset:vercel:web", async () => {
         const funcDir = resolve(ctx.outDir, "functions/api/hello.func");
         const indexStat = await fsp.lstat(resolve(funcDir, "index.mjs"));
         expect(indexStat.isFile()).toBe(true);
+      });
+
+      it("should preserve dependency symlink targets inside functionRules directories", async () => {
+        const dependencyPath = "node_modules/@fixture/nitro-lib";
+        const serverTarget = await fsp.readlink(
+          resolve(ctx.outDir, "functions/__server.func", dependencyPath)
+        );
+        const functionTarget = await fsp.readlink(
+          resolve(ctx.outDir, "functions/api/hello.func", dependencyPath)
+        );
+        expect(functionTarget).toBe(serverTarget);
       });
 
       it("should keep base __server.func without functionRules overrides", async () => {

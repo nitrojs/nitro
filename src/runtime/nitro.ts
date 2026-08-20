@@ -21,7 +21,7 @@ export {
   HTTPError,
   HTTPResponse,
 } from "h3";
-export type { H3Event } from "h3";
+export type { H3Event, EventHandlerRequest, EventHandlerWithFetch } from "h3";
 
 // Runtime
 export function serverFetch(
@@ -37,7 +37,7 @@ export function serverFetch(
     return Promise.reject(new Error("Nitro instance is not available."));
   }
   const req = toRequest(resource, init);
-  req.context = { ...req.context, ...context };
+  req.context = { ...req.context, ...context } as ServerRequestContext;
   try {
     return Promise.resolve(nitro.fetch(req));
   } catch (error) {

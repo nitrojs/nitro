@@ -265,7 +265,6 @@ export interface NitroOptions extends PresetOptions {
    * Include a static asset handler in the server bundle to serve public assets.
    *
    * - `true` or `"node"` — read assets from the filesystem using Node.js `fs`.
-   * - `"deno"` — read assets using Deno file APIs.
    * - `"inline"` — base64-encode assets directly into the server bundle.
    * - `false` — do not serve static assets from the server (rely on a CDN or reverse proxy).
    *
@@ -273,7 +272,7 @@ export interface NitroOptions extends PresetOptions {
    *
    * @see https://nitro.build/config#servestatic
    */
-  serveStatic: boolean | "node" | "deno" | "inline";
+  serveStatic: boolean | "node" | "inline";
 
   /**
    * Disable the public output directory entirely.
@@ -382,6 +381,15 @@ export interface NitroOptions extends PresetOptions {
      * @see https://nitro.build/docs/tasks
      */
     tasks?: boolean;
+
+    /**
+     * Log Nitro tracing-channel spans to the console.
+     *
+     * Enables a built-in, dependency-free telemetry sink that `console.log`s
+     * each completed span (h3, srvx, unstorage, …). Requires `tracingChannel`
+     * to be enabled.
+     */
+    tracingLogger?: boolean;
   };
 
   /**
@@ -844,7 +852,7 @@ export interface NitroOptions extends PresetOptions {
    * Advanced options for dependency tracing via nf3.
    *
    * @see https://nitro.build/config#traceopts
-   * @see https://github.com/nicolo-ribaudo/nf3
+   * @see https://github.com/unjs/nf3
    */
   traceOpts?: Pick<ExternalsTraceOptions, "nft" | "traceAlias" | "chmod" | "transform" | "hooks">;
 

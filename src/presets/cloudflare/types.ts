@@ -27,38 +27,34 @@ export interface CloudflarePagesRoutes {
 
 export interface CloudflareOptions {
   /**
-   * Configuration for the Cloudflare Deployments.
+   * Configuration for the Cloudflare deployments and local dev.
    *
-   * **NOTE:** This option is only effective if `deployConfig` is enabled.
    */
   wrangler?: WranglerConfig;
 
   /**
-   * Enable automatic generation of `.wrangler/deploy/config.json`.
+   * Wrangler environment to select when loading the config.
+   */
+  wranglerEnv?: string;
+
+  /**
+   * Automatically generate `.wrangler/deploy/config.json`.
    *
-   * **IMPORTANT:** Enabling this option will cause settings from cloudflare dashboard (including environment variables) to be disabled and discarded.
+   * Enabled by default.
    *
    * More info: https://developers.cloudflare.com/workers/wrangler/configuration#generated-wrangler-configuration
    */
   deployConfig?: boolean;
 
   /**
-   * Enable native Node.js compatibility support.
+   * Native Node.js compatibility support.
+   *
+   * Enabled by default.
    *
    * If this option disabled, pure unenv polyfills will be used instead.
    *
-   * If not set, will be auto enabled if `nodejs_compat` or `nodejs_compat_v2` is detected in `wrangler.toml` or `wrangler.json`.
    */
   nodeCompat?: boolean;
-
-  /**
-   * Options for dev emulation.
-   */
-  dev?: {
-    configPath?: string;
-    environment?: string;
-    persistDir?: string;
-  };
 
   pages?: {
     /**

@@ -80,7 +80,7 @@ export async function writeTypes(nitro: Nitro) {
             path = resolvedPath;
           } else {
             const subpath = await lookupNodeModuleSubpath(resolvedPath);
-            path = join(dir, name, subpath || "");
+            path = subpath && subpath !== "./" ? join(dir, name, subpath) : resolvedPath;
           }
         }
       }

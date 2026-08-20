@@ -1,9 +1,10 @@
 # Nitro Presets Reference
 
-## All Presets (31)
+## All Presets
 
 ### Core
 - `_nitro/` — Internal presets (dev, prerender, worker modes)
+- `_static/` — Internal static / prerender-only output
 - `standard/` — Framework-agnostic standard server
 - `node/` — Node.js (server, middleware, cluster)
 - `bun/` — Bun runtime
@@ -14,18 +15,20 @@
 - `azure/` — Azure Static Web Apps
 - `cloudflare/` — Cloudflare Pages/Workers
 - `deno/` — Deno Deploy
-- `firebase/` — Firebase Hosting
-- `netlify/` — Netlify Functions/Edge
-- `vercel/` — Vercel Functions/Edge
 - `digitalocean/` — DigitalOcean App Platform
+- `edgeone/` — Tencent EdgeOne
+- `firebase/` — Firebase Hosting
+- `genezio/` — Genezio
 - `heroku/` — Heroku
 - `koyeb/` — Koyeb
-- `zeabur/` — Zeabur
+- `netlify/` — Netlify Functions/Edge
 - `render.com/` — Render
 - `stormkit/` — Stormkit
-- `genezio/` — Genezio
+- `vercel/` — Vercel Functions/Edge
 - `winterjs/` — WinterJS
+- `zeabur/` — Zeabur
 - `zephyr/` — Zephyr
+- `zerops/` — Zerops
 - `alwaysdata/`
 - `cleavr/`
 - `flightcontrol/`
