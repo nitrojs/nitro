@@ -6,3 +6,4 @@ allowBuilds:
   vue-demi: false
 minimumReleaseAgeExclude:
   - undocs-nightly*
+  - md4x@0.0.29

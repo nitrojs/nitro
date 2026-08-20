@@ -7,6 +7,7 @@ import { join, resolve } from "node:path";
 import { runtimeDependencies, runtimeDir } from "nitro/meta";
 import { resolveModulePath } from "exsolve";
 import { isAbsolute } from "pathe";
+import { resolveMiniflareDeps, resolveRunnerDeps } from "../../dev/runner-deps.ts";
 
 export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOptions {
   const isWorkerdRunner = _isWorkerdRunner(ctx);
@@ -170,8 +171,11 @@ async function _loadRunner(ctx: NitroPluginContext, manager: RunnerManager) {
   let runner;
   if (runnerName === "miniflare") {
     const { MiniflareEnvRunner } = await import("env-runner/runners/miniflare");
+    const { miniflare, wranglerModule } = await resolveMiniflareDeps(ctx.nitro!);
     runner = new MiniflareEnvRunner({
       name: "nitro-vite",
+      miniflare,
+      wranglerModule,
       wrangler: {
         ...ctx.nitro!.options.cloudflare?.wrangler,
       },
@@ -180,6 +184,7 @@ async function _loadRunner(ctx: NitroPluginContext, manager: RunnerManager) {
     });
   } else {
     runner = await loadRunner(runnerName, {
+      ...(await resolveRunnerDeps(ctx.nitro!, runnerName)),
       name: "nitro-vite",
       data: { entry },
     });

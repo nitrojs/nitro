@@ -25,7 +25,7 @@ describe("vite:hmr", { sequential: true }, () => {
 
   beforeAll(async () => {
     process.chdir(rootDir);
-    server = await createServer({ root: rootDir });
+    server = await createServer({ root: rootDir, logLevel: "warn" });
 
     const originalSend = server.ws.send.bind(server.ws);
     server.ws.send = function (payload: any) {
