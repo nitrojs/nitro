@@ -1,5 +1,5 @@
 import type { Nitro, NitroEventHandler } from "nitro/types";
-import { compileRouteRules } from "h3-rules/compiler";
+import { compileRouteRules } from "h3/rules/compiler";
 
 export default function routing(nitro: Nitro) {
   return {

@@ -37,7 +37,7 @@ export function serverFetch(
     return Promise.reject(new Error("Nitro instance is not available."));
   }
   const req = toRequest(resource, init);
-  req.context = { ...req.context, ...context };
+  req.context = { ...req.context, ...context } as ServerRequestContext;
   try {
     return Promise.resolve(nitro.fetch(req));
   } catch (error) {
