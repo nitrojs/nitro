@@ -7,8 +7,8 @@ import { nitro } from "nitro/vite";
  * transforming the module itself. This repopulates the dependency's
  * `transformResult` on the Vite side before the reloading dev worker's
  * module runner re-fetches it, so `fetchModule` answers `{cache: true}` —
- * the runner then reuses its stale evaluation unless the dev worker cleared
- * its evaluated modules when reloading.
+ * the runner then reuses its stale evaluation unless the dev worker
+ * invalidated the changed file when reloading.
  */
 function depCrawler(): Plugin {
   return {

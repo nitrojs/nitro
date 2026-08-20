@@ -39,7 +39,7 @@ class ViteEnvRunner {
     this.entry = undefined;
     this.entryError = undefined;
     this.reloading = undefined;
-    this.reloadQueued = undefined;
+    this.pendingReload = undefined;
 
     // Create Vite Module Runner
     // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
@@ -55,36 +55,74 @@ class ViteEnvRunner {
     this.reload();
   }
 
-  // Reloads run one at a time: clearing the evaluated modules while an import
-  // is in flight detaches its module nodes, so the rest of the graph would be
-  // evaluated a second time. Requests arriving during a reload are coalesced
-  // into a single re-run, which still starts from a fresh clear.
-  reload() {
-    if (this.reloading) {
-      this.reloadQueued ??= this.reloading.then(() => {
-        this.reloadQueued = undefined;
-        return this.reload();
-      });
-      return this.reloadQueued;
+  // Reloads run one at a time and everything requested while one is in flight
+  // is coalesced into a single re-run, so overlapping re-imports cannot race on
+  // `this.entry`. `file` is the changed file whose evaluations have to be
+  // dropped; without one, the whole graph is re-evaluated.
+  reload(file) {
+    const pending = (this.pendingReload ??= { files: new Set(), all: false });
+    if (file) {
+      pending.files.add(file);
+    } else {
+      pending.all = true;
     }
-    this.reloading = this.loadEntry().finally(() => {
-      this.reloading = undefined;
-    });
+    this.reloading ??= (async () => {
+      try {
+        while (this.pendingReload) {
+          const { files, all } = this.pendingReload;
+          this.pendingReload = undefined;
+          await this.loadEntry(all ? undefined : files);
+        }
+      } finally {
+        this.reloading = undefined;
+      }
+    })();
     return this.reloading;
   }
 
-  async loadEntry() {
+  async loadEntry(files) {
+    if (this.runner.isClosed()) {
+      return;
+    }
     try {
-      // Drop stale evaluations so the re-import walks the whole graph.
-      // Without this, any module whose transform is already populated on the
-      // Vite side is answered with `{cache: true}` and its old evaluation is
-      // reused. Vite's own full-reload handler clears the cache the same way.
-      this.runner.evaluatedModules.clear();
+      if (files) {
+        for (const file of files) {
+          this.invalidateFile(file);
+        }
+      } else {
+        // Nothing to scope the reload to (added or removed handlers): drop
+        // every evaluation, the same way Vite's own full-reload handler does.
+        this.runner.evaluatedModules.clear();
+      }
       this.entry = await this.runner.import(this.entryPath);
       this.entryError = undefined;
     } catch (error) {
       console.error(error);
       this.entryError = error;
+    }
+  }
+
+  // Drops the evaluations of `file` and of everything importing it, so the next
+  // import re-evaluates them. Vite already invalidates them on the server, but
+  // a plugin that crawls (and re-transforms) a module's dependencies can
+  // repopulate their transform result before the runner re-fetches them, and
+  // `fetchModule` then answers `{cache: true}` and the stale evaluation is kept.
+  // Modules the change cannot affect keep their state (and their singletons).
+  invalidateFile(file) {
+    const { evaluatedModules } = this.runner;
+    const seen = new Set();
+    const invalidate = (mod) => {
+      if (!mod || seen.has(mod.id)) {
+        return;
+      }
+      seen.add(mod.id);
+      for (const importer of mod.importers) {
+        invalidate(evaluatedModules.getModuleById(importer));
+      }
+      evaluatedModules.invalidateModule(mod);
+    };
+    for (const mod of evaluatedModules.getModulesByFile(file) || []) {
+      invalidate(mod);
     }
   }
 
@@ -154,15 +192,18 @@ globalThis.__VITE_ENVIRONMENT_RUNNER_IMPORT__ = async function (environmentName,
 // Reloads the environment the `full-reload` was sent for. Other environments
 // are only reloaded when they evaluated the changed file themselves: Vite does
 // not always associate a file with the module graph of every environment that
-// uses it, so their own `full-reload` can be missing.
+// uses it, so their own `full-reload` can be missing. Payloads without a
+// `triggeredBy` are not scoped to a file and reload every environment.
 async function reload(payload) {
-  const viteEnv = payload?.viteEnv;
-  const triggeredBy = payload?.triggeredBy?.replace(/\\/g, "/");
-  const targets = Object.values(envs).filter(
-    (env) => env && (!viteEnv || env.name === viteEnv || env.hasEvaluated(triggeredBy))
-  );
   try {
-    await Promise.all(targets.map((env) => env.reload()));
+    const viteEnv = payload?.viteEnv;
+    // Vite sends platform paths, the evaluated modules are keyed by posix ones.
+    const triggeredBy = payload?.triggeredBy?.replace(/\\/g, "/");
+    const targets = Object.values(envs).filter(
+      (env) =>
+        env && (!viteEnv || !triggeredBy || env.name === viteEnv || env.hasEvaluated(triggeredBy))
+    );
+    await Promise.all(targets.map((env) => env.reload(triggeredBy)));
   } catch (error) {
     console.error(error);
   }

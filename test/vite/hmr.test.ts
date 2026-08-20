@@ -49,14 +49,25 @@ describe("vite:hmr", { sequential: true }, () => {
 
   afterEach(async () => {
     wsMessages.length = 0;
-    let restored = false;
-    for (const file of Object.values(files)) {
-      if (file.restore()) {
-        restored = true;
+    const restored = Object.values(files).filter((file) => file.restore());
+    if (restored.length > 0) {
+      // The client is notified before the dev worker reloads, so waiting for a
+      // websocket message is not enough: wait until the restored fixture is
+      // served again, otherwise the next test observes a reload caused by this
+      // one. Writes that follow each other closely can also be coalesced into a
+      // single watcher event, so re-touch the fixtures while waiting.
+      for (let attempt = 0; !(await fixtureRestored()); attempt++) {
+        if (attempt >= 20) {
+          throw new Error("dev server kept serving the modified fixture");
+        }
+        if (attempt % 5 === 4) {
+          for (const file of restored) {
+            file.touch();
+          }
+        }
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
-    }
-    if (restored) {
-      await waitFor(() => wsMessages.length > 0, 500);
+      await waitForStableEvals();
     }
     wsMessages.length = 0;
   });
@@ -95,11 +106,11 @@ describe("vite:hmr", { sequential: true }, () => {
   });
 
   // Regression test for reload scoping: a `full-reload` sent for the nitro
-  // environment must not clear the ssr runner's evaluated modules, which would
+  // environment must not re-evaluate the ssr runner's modules, which would
   // reset all module state (framework singletons, caches) of an environment
   // that has nothing stale to re-evaluate.
   test("editing a nitro-only file keeps ssr module state", async () => {
-    const evalsBefore = await settledSsrEvals();
+    const evalsBefore = await ssrEvals();
 
     files.api.update((content) =>
       content.replace("({ state })", '({ state: state + " (nitro only)" })')
@@ -110,18 +121,31 @@ describe("vite:hmr", { sequential: true }, () => {
     expect(wsMessages).toMatchObject([{ type: "full-reload" }]);
   });
 
+  // Regression test for reload scoping within one environment: only the
+  // changed file and its importers may be re-evaluated. `nitro-state.ts` is
+  // imported by `api/evals.ts` alone, so an edit to `api/state.ts` cannot
+  // affect it — dropping the whole module graph on reload would reset it,
+  // along with every runtime singleton (storage, caches, plugin state).
+  test("editing a nitro file keeps unrelated nitro module state", async () => {
+    const evalsBefore = await nitroEvals();
+
+    files.api.update((content) =>
+      content.replace("({ state })", '({ state: state + " (unrelated)" })')
+    );
+    await pollResponse(`${serverURL}/api/state`, /unrelated/);
+
+    expect(await nitroEvals()).toBe(evalsBefore);
+  });
+
   // Regression test for the dev worker reusing stale evaluations across
   // reloads: the fixture's `dep-crawler` plugin re-transforms `dep.ts` as a
   // side effect of transforming `api/crawled.ts`, so by the time the
   // reloading worker's module runner re-fetches `dep.ts`, its transform is
   // already populated and `fetchModule` answers `{cache: true}`. Unless
-  // `reload()` clears the runner's evaluated modules, the old `dep.ts`
-  // evaluation is reused and responses stay stale until a manual restart.
+  // `reload()` invalidates the changed file, the old `dep.ts` evaluation is
+  // reused and responses stay stale until a manual restart.
   test("editing a dependency crawled by another plugin", async () => {
-    const res = (await fetch(`${serverURL}/api/crawled`).then((r) => r.json())) as {
-      value: string;
-    };
-    expect(res.value).toBe("original");
+    await pollResponse(`${serverURL}/api/crawled`, /original/);
 
     files.dep.update((content) => content.replace(`"original"`, `"modified"`));
     await pollResponse(`${serverURL}/api/crawled`, /modified/);
@@ -129,26 +153,55 @@ describe("vite:hmr", { sequential: true }, () => {
   });
 
   async function ssrEvals(): Promise<number> {
-    const html = await fetch(serverURL).then((r) => r.text());
-    return Number(html.match(/\[SSR\] evals: (\d+)/)?.[1]);
+    return matchCounter(await fetch(serverURL).then((r) => r.text()), /\[SSR\] evals: (\d+)/);
   }
 
-  // Reloads queued by earlier edits (including the restores in `afterEach`)
-  // are handled by the dev worker after the client is notified, so wait for
-  // the ssr environment to stop re-evaluating before using it as a baseline.
-  async function settledSsrEvals(): Promise<number> {
-    let last = await ssrEvals();
-    for (let i = 0; i < 20; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 150));
-      const current = await ssrEvals();
-      if (current === last) {
-        return current;
-      }
+  async function nitroEvals(): Promise<number> {
+    return matchCounter(
+      await fetch(`${serverURL}/api/evals`).then((r) => r.text()),
+      /"nitroEvals":\s*(\d+)/
+    );
+  }
+
+  // Whether every fixture edit has been rolled back by the dev worker.
+  async function fixtureRestored(): Promise<boolean> {
+    const [page, crawled] = await Promise.all([
+      fetch(serverURL).then((r) => r.text()),
+      fetch(`${serverURL}/api/crawled`).then((r) => r.text()),
+    ]);
+    return (
+      page.includes("<h1>SSR Page</h1>") &&
+      page.includes("[SSR] state: 1</p>") &&
+      page.includes("[API] state: 1</p>") &&
+      crawled.includes(`"original"`)
+    );
+  }
+
+  // Waits until the dev worker stops re-evaluating modules in either
+  // environment, so a test never observes a reload queued by a previous one.
+  async function waitForStableEvals(): Promise<void> {
+    let last = "";
+    let stable = 0;
+    for (let i = 0; i < 30; i++) {
+      const current = `${await ssrEvals()}/${await nitroEvals()}`;
+      stable = current === last ? stable + 1 : 0;
       last = current;
+      if (stable === 2) {
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
-    return last;
+    throw new Error(`dev worker never settled (last evals: ${last})`);
   }
 });
+
+function matchCounter(body: string, re: RegExp): number {
+  const match = body.match(re);
+  if (!match) {
+    throw new Error(`No ${re} counter in response: ${body.slice(0, 500)}`);
+  }
+  return Number(match[1]);
+}
 
 function openFileForEditing(path: string) {
   const originalContent = readFileSync(path, "utf-8");
@@ -171,21 +224,12 @@ function openFileForEditing(path: string) {
       }
       return false;
     },
+    // Rewrites the file as is, to emit another watcher event for a write that
+    // was coalesced with the one before it.
+    touch() {
+      writeFileSync(path, readFileSync(path, "utf-8"));
+    },
   };
-}
-
-function waitFor(check: () => boolean, duration: number): Promise<void> {
-  const start = Date.now();
-  return new Promise((resolve) => {
-    const poll = () => {
-      if (check() || Date.now() - start > duration) {
-        resolve();
-      } else {
-        setTimeout(poll, 10);
-      }
-    };
-    poll();
-  });
 }
 
 function pollResponse(
