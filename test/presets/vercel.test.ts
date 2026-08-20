@@ -135,13 +135,6 @@ describe("nitro:preset:vercel:web", async () => {
               },
               {
                 "headers": {
-                  "Location": "/base",
-                },
-                "src": "/rules/ba-redirect/(.*)",
-                "status": 307,
-              },
-              {
-                "headers": {
                   "x-single": "single",
                 },
                 "src": "/single-headers/*",
@@ -417,10 +410,6 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/single-headers/(?<id>[^/]+)",
               },
               {
-                "dest": "/ba-single/[id]",
-                "src": "/ba-single/(?<id>[^/]+)",
-              },
-              {
                 "dest": "/assets/[id]",
                 "src": "/assets/(?<id>[^/]+)",
               },
@@ -514,7 +503,6 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/assets/[id].func (symlink)",
             "functions/assets/all.func (symlink)",
             "functions/assets/md.func (symlink)",
-            "functions/ba-single/[id].func (symlink)",
             "functions/config.func (symlink)",
             "functions/context.func (symlink)",
             "functions/env.func (symlink)",
