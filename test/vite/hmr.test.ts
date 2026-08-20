@@ -94,6 +94,22 @@ describe("vite:hmr", { sequential: true }, () => {
     expect(wsMessages).toMatchObject([{ type: "full-reload" }]);
   });
 
+  // Regression test for reload scoping: a `full-reload` sent for the nitro
+  // environment must not clear the ssr runner's evaluated modules, which would
+  // reset all module state (framework singletons, caches) of an environment
+  // that has nothing stale to re-evaluate.
+  test("editing a nitro-only file keeps ssr module state", async () => {
+    const evalsBefore = await settledSsrEvals();
+
+    files.api.update((content) =>
+      content.replace("({ state })", '({ state: state + " (nitro only)" })')
+    );
+    await pollResponse(`${serverURL}/api/state`, /nitro only/);
+
+    expect(await ssrEvals()).toBe(evalsBefore);
+    expect(wsMessages).toMatchObject([{ type: "full-reload" }]);
+  });
+
   // Regression test for the dev worker reusing stale evaluations across
   // reloads: the fixture's `dep-crawler` plugin re-transforms `dep.ts` as a
   // side effect of transforming `api/crawled.ts`, so by the time the
@@ -111,6 +127,27 @@ describe("vite:hmr", { sequential: true }, () => {
     await pollResponse(`${serverURL}/api/crawled`, /modified/);
     expect(wsMessages).toMatchObject([{ type: "full-reload" }]);
   });
+
+  async function ssrEvals(): Promise<number> {
+    const html = await fetch(serverURL).then((r) => r.text());
+    return Number(html.match(/\[SSR\] evals: (\d+)/)?.[1]);
+  }
+
+  // Reloads queued by earlier edits (including the restores in `afterEach`)
+  // are handled by the dev worker after the client is notified, so wait for
+  // the ssr environment to stop re-evaluating before using it as a baseline.
+  async function settledSsrEvals(): Promise<number> {
+    let last = await ssrEvals();
+    for (let i = 0; i < 20; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      const current = await ssrEvals();
+      if (current === last) {
+        return current;
+      }
+      last = current;
+    }
+    return last;
+  }
 });
 
 function openFileForEditing(path: string) {

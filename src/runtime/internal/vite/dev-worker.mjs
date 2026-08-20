@@ -68,6 +68,11 @@ class ViteEnvRunner {
     }
   }
 
+  // Whether `file` is part of this environment's evaluated module graph.
+  hasEvaluated(file) {
+    return !!file && !!this.runner.evaluatedModules.getModulesByFile(file)?.size;
+  }
+
   // Errors are intentionally not caught here: like production services,
   // they propagate to the caller (the nitro app's error handler or the
   // env-runner fetch boundary below).
@@ -126,9 +131,18 @@ globalThis.__VITE_ENVIRONMENT_RUNNER_IMPORT__ = async function (environmentName,
 
 // ----- Reload -----
 
-async function reload() {
+// Reloads the environment the `full-reload` was sent for. Other environments
+// are only reloaded when they evaluated the changed file themselves: Vite does
+// not always associate a file with the module graph of every environment that
+// uses it, so their own `full-reload` can be missing.
+async function reload(payload) {
+  const viteEnv = payload?.viteEnv;
+  const triggeredBy = payload?.triggeredBy?.replace(/\\/g, "/");
+  const targets = Object.values(envs).filter(
+    (env) => env && (!viteEnv || env.name === viteEnv || env.hasEvaluated(triggeredBy))
+  );
   try {
-    await Promise.all(Object.values(envs).map((env) => env?.reload()));
+    await Promise.all(targets.map((env) => env.reload()));
   } catch (error) {
     console.error(error);
   }
@@ -197,7 +211,7 @@ export const ipc = {
       }
     }
     if (message?.type === "full-reload") {
-      reload();
+      reload(message);
       return;
     }
     for (const listener of messageListeners) {
