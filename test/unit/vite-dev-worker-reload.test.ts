@@ -43,8 +43,9 @@ async function createWorker() {
 
 describe("Vite dev worker reloads", () => {
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     vi.resetModules();
     delete (globalThis as any).__nitro_vite_envs__;
   });
@@ -100,6 +101,65 @@ describe("Vite dev worker reloads", () => {
     queuedReload.resolve(entry("v3"));
 
     expect(await (await response).text()).toBe("v3");
+  });
+
+  test("coalesces reloads queued behind an in-flight reload", async () => {
+    const worker = await createWorker();
+    const inFlight = deferred<ReturnType<typeof entry>>();
+    const queued = deferred<ReturnType<typeof entry>>();
+    importEntry.mockReturnValueOnce(inFlight.promise).mockReturnValueOnce(queued.promise);
+
+    worker.ipc.onMessage({ type: "full-reload" });
+    await vi.waitFor(() => expect(importEntry).toHaveBeenCalledTimes(2));
+
+    worker.ipc.onMessage({ type: "full-reload" });
+    worker.ipc.onMessage({ type: "full-reload" });
+    worker.ipc.onMessage({ type: "full-reload" });
+
+    const response = worker.fetch(new Request("http://localhost"));
+    inFlight.resolve(entry("v2"));
+    await vi.waitFor(() => expect(importEntry).toHaveBeenCalledTimes(3));
+    queued.resolve(entry("v3"));
+
+    expect(await (await response).text()).toBe("v3");
+    expect(importEntry).toHaveBeenCalledTimes(3);
+  });
+
+  test("reloads only the environment a tagged full-reload came from", async () => {
+    const worker = await createWorker();
+    importEntry.mockResolvedValueOnce(entry("ssr-v1"));
+    worker.ipc.onMessage({
+      type: "custom",
+      event: "nitro:vite-env",
+      data: { name: "ssr", entry: "/ssr.mjs" },
+    });
+    await vi.waitFor(() => expect(importEntry).toHaveBeenCalledTimes(2));
+
+    importEntry.mockResolvedValueOnce(entry("ssr-v2"));
+    worker.ipc.onMessage({ type: "full-reload", viteEnv: "ssr" });
+    await vi.waitFor(() => expect(importEntry).toHaveBeenCalledTimes(3));
+    expect(importEntry).toHaveBeenLastCalledWith("/ssr.mjs");
+
+    const ssrRequest = new Request("http://localhost", { headers: { "x-vite-env": "ssr" } });
+    expect(await (await worker.fetch(ssrRequest)).text()).toBe("ssr-v2");
+    expect(await (await worker.fetch(new Request("http://localhost"))).text()).toBe("v1");
+    expect(importEntry).toHaveBeenCalledTimes(3);
+  });
+
+  test("falls back to the previous entry when a reload never settles", async () => {
+    const worker = await createWorker();
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    importEntry.mockReturnValueOnce(new Promise(() => {}));
+
+    worker.ipc.onMessage({ type: "full-reload" });
+    await vi.waitFor(() => expect(importEntry).toHaveBeenCalledTimes(2));
+
+    vi.useFakeTimers();
+    const response = worker.fetch(new Request("http://localhost"));
+    await vi.advanceTimersByTimeAsync(30_000);
+
+    expect(await (await response).text()).toBe("v1");
+    expect(warnSpy).toHaveBeenCalledOnce();
   });
 
   test("recovers after a failed reload", async () => {

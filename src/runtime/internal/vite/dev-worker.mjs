@@ -31,6 +31,11 @@ const envs = (globalThis.__nitro_vite_envs__ ??= {
   ssr: undefined,
 });
 
+// Backstop for a wedged reload: requests fall back to the previous entry (or a
+// 503) instead of hanging forever. Not a latency budget — normal reloads never
+// come close to it.
+const RELOAD_WAIT_TIMEOUT = 30_000;
+
 class ViteEnvRunner {
   constructor({ name, entry }) {
     this.name = name;
@@ -38,7 +43,16 @@ class ViteEnvRunner {
 
     this.entry = undefined;
     this.entryError = undefined;
+
+    // Reloads are serialized so the newest import is always the last one to
+    // apply its entry (and its side effects). `reloadPromise` is the tail of
+    // the chain and never rejects: failures are captured into `entryError`.
     this.reloadPromise = Promise.resolve();
+
+    // At most one reload waits behind the in-flight one. Further reload
+    // requests arriving in that window coalesce into it, so a burst of
+    // `full-reload` messages costs one extra import, not one per message.
+    this.queuedReload = undefined;
 
     // Create Vite Module Runner
     // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
@@ -54,8 +68,12 @@ class ViteEnvRunner {
     this.reload();
   }
 
-  async reload() {
-    const reloadPromise = this.reloadPromise.then(async () => {
+  reload() {
+    if (this.queuedReload) {
+      return this.queuedReload;
+    }
+    const queuedReload = this.reloadPromise.then(async () => {
+      this.queuedReload = undefined;
       try {
         this.entry = await this.runner.import(this.entryPath);
         this.entryError = undefined;
@@ -64,21 +82,27 @@ class ViteEnvRunner {
         this.entryError = error;
       }
     });
-    this.reloadPromise = reloadPromise;
-    await reloadPromise;
+    this.queuedReload = queuedReload;
+    this.reloadPromise = queuedReload;
+    return queuedReload;
   }
 
   // Errors are intentionally not caught here: like production services,
   // they propagate to the caller (the nitro app's error handler or the
   // env-runner fetch boundary below).
   async fetch(req, init) {
+    // Wait until nothing is queued or in flight so requests never hit an entry
+    // that is about to be replaced.
+    const deadline = Date.now() + RELOAD_WAIT_TIMEOUT;
     let reloadPromise;
-    do {
+    while (reloadPromise !== this.reloadPromise) {
       reloadPromise = this.reloadPromise;
-      await reloadPromise;
-    } while (reloadPromise !== this.reloadPromise);
-    for (let i = 0; i < 5 && !(this.entry || this.entryError); i++) {
-      await new Promise((r) => setTimeout(r, 100 * Math.pow(2, i)));
+      if (await withTimeout(reloadPromise, deadline - Date.now())) {
+        console.warn(
+          `Vite environment "${this.name}" did not finish reloading within ${RELOAD_WAIT_TIMEOUT}ms.`
+        );
+        break;
+      }
     }
     if (this.entryError) {
       throw this.entryError;
@@ -131,9 +155,13 @@ globalThis.__VITE_ENVIRONMENT_RUNNER_IMPORT__ = async function (environmentName,
 
 // ----- Reload -----
 
-async function reload() {
+// Vite tags hot messages with the environment they came from. Reload only that
+// environment when it is known, so a change picked up by several server
+// environments does not re-import every entry once per message.
+async function reload(envName) {
+  const targets = envName && envs[envName] ? [envs[envName]] : Object.values(envs);
   try {
-    await Promise.all(Object.values(envs).map((env) => env?.reload()));
+    await Promise.all(targets.map((env) => env?.reload()));
   } catch (error) {
     console.error(error);
   }
@@ -202,7 +230,7 @@ export const ipc = {
       }
     }
     if (message?.type === "full-reload") {
-      reload();
+      reload(message.viteEnv);
       return;
     }
     for (const listener of messageListeners) {
@@ -271,4 +299,17 @@ async function renderError(req, error) {
       },
     });
   }
+}
+
+// ----- Utils -----
+
+// Resolves `false` when `promise` settles first, `true` when it times out.
+function withTimeout(promise, ms) {
+  let timer;
+  return Promise.race([
+    promise.then(() => false),
+    new Promise((resolve) => {
+      timer = setTimeout(() => resolve(true), ms);
+    }),
+  ]).finally(() => clearTimeout(timer));
 }
