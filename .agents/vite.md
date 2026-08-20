@@ -16,6 +16,8 @@
 | `build.ts` | CLI build entry for `nitro build` (`viteBuild()`) |
 | `preview.ts` | Preview server plugin |
 | `types.ts` | Type definitions (`NitroPluginConfig`, `NitroPluginContext`) |
+| `_import.ts` | On demand `vite` import from the user project (`importVite()`) |
+| `_dev-worker.ts` | Generated dev worker entry, injecting the app's Vite module runner |
 
 ## Plugin Architecture (`plugin.ts`)
 
@@ -94,6 +96,8 @@ Nitro uses Vite 6+ environments API for multi-bundle builds:
 ## Dev Server (`dev.ts`)
 
 ### `FetchableDevEnvironment` (extends `DevEnvironment`)
+- Defined lazily by `createFetchableDevEnvironment()` (async) against the `vite` instance resolved
+  from the user project — `vite` is an optional dependency, so `DevEnvironment` cannot be imported statically
 - Overrides `fetchModule()` for CJS/ESM resolution
 - For workerd: prevents externalization of bare imports
 - `dispatchFetch()` — routes requests to the dev server worker
@@ -200,8 +204,10 @@ Common config: ESM output, tree-shaking, chunking, sourcemaps.
 | `dev-worker.mjs` | Worker process: `ViteEnvRunner` class, RPC layer, env management |
 | `ssr-renderer.mjs` | SSR service: calls `fetchViteEnv("ssr", req)` |
 
+`dev-worker.mjs` is not loaded directly: `writeDevWorkerEntry()` generates `<buildDir>/vite/dev-worker.mjs`, which re-exports it and injects the `vite/module-runner` resolved from the app (`vite` is not resolvable from Nitro's `dist/`).
+
 ### `ViteEnvRunner` (in `dev-worker.mjs`)
-- Manages Vite `ModuleRunner` per environment
+- Manages Vite `ModuleRunner` per environment (injected via `setModuleRunner()`)
 - Loads environment entry via `runner.import()`
 - Routes fetch requests to loaded entries
 - Exposes `__VITE_ENVIRONMENT_RUNNER_IMPORT__` for RSC

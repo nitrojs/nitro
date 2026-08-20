@@ -4,14 +4,16 @@ const { importEntry } = vi.hoisted(() => ({
   importEntry: vi.fn(),
 }));
 
-vi.mock("vite/module-runner", () => ({
+// `vite` is resolved from the app: the generated entry injects the module runner (see
+// `src/build/vite/_dev-worker.ts`).
+const moduleRunner = {
   ESModulesEvaluator: class {},
   ModuleRunner: class {
     import(...args: unknown[]) {
       return importEntry(...args);
     }
   },
-}));
+};
 
 vi.mock("env-runner/vite", () => ({
   createViteTransport: vi.fn(() => ({})),
@@ -32,6 +34,7 @@ function deferred<T>() {
 async function createWorker() {
   importEntry.mockResolvedValueOnce(entry("v1"));
   const worker = await import("../../src/runtime/internal/vite/dev-worker.mjs");
+  worker.setModuleRunner(moduleRunner);
   worker.ipc.onMessage({
     type: "custom",
     event: "nitro:vite-env",

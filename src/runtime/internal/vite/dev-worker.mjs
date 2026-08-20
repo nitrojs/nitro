@@ -1,5 +1,12 @@
-import { ModuleRunner, ESModulesEvaluator } from "vite/module-runner";
 import { createViteTransport } from "env-runner/vite";
+
+// `vite` is an optional dependency Nitro resolves from the app, so the module runner cannot be
+// imported from here. The generated entry injects it instead (see `build/vite/_dev-worker.ts`).
+let ModuleRunner, ESModulesEvaluator;
+
+export function setModuleRunner(moduleRunner) {
+  ({ ModuleRunner, ESModulesEvaluator } = moduleRunner);
+}
 
 // Custom evaluator for workerd where `new AsyncFunction()` is disallowed.
 // Uses the unsafeEvalBinding exposed by the env-runner miniflare wrapper.
