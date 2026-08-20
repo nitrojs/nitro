@@ -1,5 +1,5 @@
 import type { Nitro, RollupConfig } from "nitro/types";
-import type { RollupWatcher } from "rollup";
+import type { RollupOptions, RollupWatcher } from "rollup";
 import { watch as chokidarWatch } from "chokidar";
 import { defu } from "defu";
 import { basename, join } from "pathe";
@@ -68,7 +68,7 @@ export async function watchDev(nitro: Nitro, rollupConfig: RollupConfig) {
 
   function startRollupWatcher(nitro: Nitro, rollupConfig: RollupConfig) {
     const watcher = rollup.watch(
-      defu(rollupConfig, {
+      defu(rollupConfig as RollupOptions, {
         watch: {
           chokidar: nitro.options.watchOptions,
         },
