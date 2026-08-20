@@ -80,7 +80,7 @@ export default defineBuildConfig({
       );
 
       config.external ??= [];
-      (config.external as string[]).push(
+      (config.external as (string | RegExp)[]).push(
         "nitro",
         ...Object.keys(pkg.exports || {}).map((key) => key.replace(/^./, "nitro")),
         ...Object.keys(pkg.dependencies),
@@ -97,7 +97,10 @@ export default defineBuildConfig({
         "@rspack/core",
         "@farmfe/core",
         "webpack",
-        "unloader"
+        "unloader",
+        // CommonJS `.d.ts` modules that rolldown-plugin-dts cannot bundle
+        "webpack-virtual-modules",
+        /^zod(\/|$)/
       );
     },
     rolldownOutput(config) {
