@@ -38,6 +38,8 @@ class ViteEnvRunner {
 
     this.entry = undefined;
     this.entryError = undefined;
+    this.reloading = undefined;
+    this.reloadQueued = undefined;
 
     // Create Vite Module Runner
     // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
@@ -53,7 +55,25 @@ class ViteEnvRunner {
     this.reload();
   }
 
-  async reload() {
+  // Reloads run one at a time: clearing the evaluated modules while an import
+  // is in flight detaches its module nodes, so the rest of the graph would be
+  // evaluated a second time. Requests arriving during a reload are coalesced
+  // into a single re-run, which still starts from a fresh clear.
+  reload() {
+    if (this.reloading) {
+      this.reloadQueued ??= this.reloading.then(() => {
+        this.reloadQueued = undefined;
+        return this.reload();
+      });
+      return this.reloadQueued;
+    }
+    this.reloading = this.loadEntry().finally(() => {
+      this.reloading = undefined;
+    });
+    return this.reloading;
+  }
+
+  async loadEntry() {
     try {
       // Drop stale evaluations so the re-import walks the whole graph.
       // Without this, any module whose transform is already populated on the
