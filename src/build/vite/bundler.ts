@@ -62,9 +62,10 @@ export const getBundlerConfig = async (
 
     const outputConfig = rolldownConfig.output!;
     if (outputConfig.inlineDynamicImports || outputConfig.format === ("iife" as string)) {
-      delete outputConfig.inlineDynamicImports;
       outputConfig.codeSplitting = false;
     }
+    // `inlineDynamicImports` is deprecated in favor of `codeSplitting: false`
+    delete outputConfig.inlineDynamicImports;
 
     return { base, rolldownConfig };
   } else {
