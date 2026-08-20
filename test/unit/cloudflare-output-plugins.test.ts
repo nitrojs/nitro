@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Plugin } from "rollup";
+import type { NormalizedOutputOptions, Plugin } from "rollup";
 import {
   guardCreateRequire,
   stripBareNodeImports,
@@ -11,7 +11,7 @@ function applyPlugin(plugin: Plugin, code: string): string {
   const bundle = { "index.mjs": { type: "chunk", code } satisfies Chunk };
   const hook = plugin.generateBundle;
   const fn = typeof hook === "function" ? hook : hook?.handler;
-  fn?.call({} as any, {}, bundle, false);
+  fn?.call({} as any, {} as NormalizedOutputOptions, bundle, false);
   return bundle["index.mjs"].code;
 }
 
