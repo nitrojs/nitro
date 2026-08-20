@@ -26,9 +26,6 @@ importers:
       db0:
         specifier: ^0.3.4
         version: 0.3.4
-      dotenv:
-        specifier: '*'
-        version: 17.4.2
       env-runner:
         specifier: ^0.2.0
         version: 0.2.0
@@ -38,9 +35,6 @@ importers:
       hookable:
         specifier: ^6.1.1
         version: 6.1.1
-      jiti:
-        specifier: ^2.7.0
-        version: 2.7.0
       nf3:
         specifier: ^0.3.23
         version: 0.3.23
@@ -180,6 +174,9 @@ importers:
       dot-prop:
         specifier: ^10.2.0
         version: 10.2.0
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
       etag:
         specifier: ^1.8.1
         version: 1.8.1
@@ -204,6 +201,9 @@ importers:
       httpxy:
         specifier: ^0.5.5
         version: 0.5.5
+      jiti:
+        specifier: ^2.7.0
+        version: 2.7.0
       klona:
         specifier: ^2.0.6
         version: 2.0.6

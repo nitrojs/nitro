@@ -3,9 +3,24 @@ import { defineBuildConfig } from "obuild/config";
 import { resolveModulePath } from "exsolve";
 import { traceNodeModules } from "nf3";
 import { readFile, writeFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import type { CodeSplittingOptions } from "rolldown";
 
 const isStub = process.argv.includes("--stub");
+
+// Optional dependencies imported on demand from the user project (see `src/utils/dep.ts`)
+const optionalDeps = [
+  "@vercel/queue",
+  "dotenv",
+  "giget",
+  "jiti",
+  "rollup",
+  "xml2js",
+  "zephyr-agent",
+];
+
+// Optional dependencies of bundled libraries, replaced by an on demand import (see `src/shims/`)
+const shimmedDeps = ["dotenv", "giget", "jiti"];
 
 const pkg = await import("./package.json", { with: { type: "json" } }).then((r) => r.default || r);
 
@@ -50,10 +65,19 @@ export default defineBuildConfig({
 
       config.resolve ??= {};
       config.resolve.alias ??= {};
-      Object.assign(config.resolve.alias, {
-        "node-fetch-native/proxy": "node-fetch-native/native",
-        "node-fetch-native": "node-fetch-native/native",
-      });
+      Object.assign(
+        config.resolve.alias,
+        {
+          "node-fetch-native/proxy": "node-fetch-native/native",
+          "node-fetch-native": "node-fetch-native/native",
+        },
+        Object.fromEntries(
+          shimmedDeps.map((dep) => [
+            dep,
+            fileURLToPath(new URL(`src/shims/${dep}.ts`, import.meta.url)),
+          ])
+        )
+      );
 
       config.external ??= [];
       (config.external as string[]).push(
@@ -61,6 +85,7 @@ export default defineBuildConfig({
         ...Object.keys(pkg.exports || {}).map((key) => key.replace(/^./, "nitro")),
         ...Object.keys(pkg.dependencies),
         ...Object.keys(pkg.peerDependencies),
+        ...optionalDeps.filter((dep) => !shimmedDeps.includes(dep)),
         ...tracePkgs,
         "typescript",
         "firebase-functions",
@@ -162,6 +187,7 @@ export default defineBuildConfig({
               const deps = new Set([
                 ...Object.keys(pkg.dependencies),
                 ...Object.keys(pkg.peerDependencies),
+                ...optionalDeps,
               ]);
               for (const dep of deps) {
                 delete packages[dep];
