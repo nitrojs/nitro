@@ -130,13 +130,6 @@ describe("nitro:preset:vercel:web", async () => {
               },
               {
                 "headers": {
-                  "Location": "/base",
-                },
-                "src": "/rules/ba-redirect/(.*)",
-                "status": 307,
-              },
-              {
-                "headers": {
                   "x-single": "single",
                 },
                 "src": "/single-headers/*",
@@ -416,10 +409,6 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/single-headers/(?<id>[^/]+)",
               },
               {
-                "dest": "/ba-single/[id]",
-                "src": "/ba-single/(?<id>[^/]+)",
-              },
-              {
                 "dest": "/assets/[id]",
                 "src": "/assets/(?<id>[^/]+)",
               },
@@ -513,7 +502,6 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/assets/[id].func (symlink)",
             "functions/assets/all.func (symlink)",
             "functions/assets/md.func (symlink)",
-            "functions/ba-single/[id].func (symlink)",
             "functions/config.func (symlink)",
             "functions/context.func (symlink)",
             "functions/env.func (symlink)",
@@ -591,6 +579,17 @@ describe("nitro:preset:vercel:web", async () => {
         const funcDir = resolve(ctx.outDir, "functions/api/hello.func");
         const indexStat = await fsp.lstat(resolve(funcDir, "index.mjs"));
         expect(indexStat.isFile()).toBe(true);
+      });
+
+      it("should preserve dependency symlink targets inside functionRules directories", async () => {
+        const dependencyPath = "node_modules/@fixture/nitro-lib";
+        const serverTarget = await fsp.readlink(
+          resolve(ctx.outDir, "functions/__server.func", dependencyPath)
+        );
+        const functionTarget = await fsp.readlink(
+          resolve(ctx.outDir, "functions/api/hello.func", dependencyPath)
+        );
+        expect(functionTarget).toBe(serverTarget);
       });
 
       it("should keep base __server.func without functionRules overrides", async () => {

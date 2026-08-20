@@ -7,7 +7,7 @@
 :read-more{title="Vercel Framework Support" to="https://vercel.com/docs/frameworks"}
 
 ::note
-Integration with this provider is possible with [zero configuration](/deploy/#zero-config-providers).
+Integration with this provider is possible with [zero configuration](/deploy#zero-config-providers).
 ::
 
 ## Getting started
@@ -174,7 +174,7 @@ export default defineConfig({
 
 ### Handling messages
 
-Use the `vercel:queue` hook in a [Nitro plugin](/guide/plugins) to process incoming queue messages:
+Use the `vercel:queue` hook in a [Nitro plugin](/docs/plugins) to process incoming queue messages:
 
 ```ts [server/plugins/queues.ts]
 import { definePlugin } from "nitro";

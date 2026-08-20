@@ -232,17 +232,27 @@ export async function writeWranglerConfig(nitro: Nitro, cfTarget: "pages" | "mod
     overrides.pages_build_output_dir = relative(wranglerConfigDir, nitro.options.output.dir);
   } else {
     // Modules
-    overrides.main = relative(wranglerConfigDir, join(nitro.options.output.serverDir, "index.mjs"));
-    overrides.assets = {
-      binding: "ASSETS",
-      directory: relative(
+    const assetsDirectory = relative(
+      wranglerConfigDir,
+      resolve(
+        nitro.options.output.publicDir,
+        "..".repeat(nitro.options.baseURL.split("/").filter(Boolean).length)
+      )
+    );
+    if (nitro.options.static) {
+      // No worker script is emitted; `main` and `assets.binding` only apply
+      // when there is one. https://developers.cloudflare.com/workers/static-assets/
+      overrides.assets = { directory: assetsDirectory };
+    } else {
+      overrides.main = relative(
         wranglerConfigDir,
-        resolve(
-          nitro.options.output.publicDir,
-          "..".repeat(nitro.options.baseURL.split("/").filter(Boolean).length)
-        )
-      ),
-    };
+        join(nitro.options.output.serverDir, "index.mjs")
+      );
+      overrides.assets = {
+        binding: "ASSETS",
+        directory: assetsDirectory,
+      };
+    }
   }
 
   // Read user config
@@ -278,7 +288,7 @@ export async function writeWranglerConfig(nitro: Nitro, cfTarget: "pages" | "mod
     wranglerConfig.compatibility_flags.push("nodejs_compat");
   }
 
-  if (cfTarget === "module") {
+  if (cfTarget === "module" && !nitro.options.static) {
     // Avoid double bundling
     if (wranglerConfig.no_bundle === undefined) {
       wranglerConfig.no_bundle = true;
