@@ -165,6 +165,6 @@ For deeper context, see `.agents/`:
 - [`.agents/presets.md`](.agents/presets.md) — All presets (multiple deployment targets + internal `_nitro`/`_static`), preset structure, how to create presets, resolution logic.
 - [`.agents/testing.md`](.agents/testing.md) — Test structure, how tests work, adding regression tests, running tests.
 - [`.agents/vite.md`](.agents/vite.md) — Vite build system: plugin architecture (6 sub-plugins), environments API, dev server integration, production build stages, bundler config, HMR, runtime worker.
-- [`.agents/docs.md`](.agents/docs.md) — Documentation conventions: structure, preset naming (underscore), H3 v2 API patterns, import paths, common mistakes.
+- [`.agents/docs.md`](.agents/docs.md) — Docs site: UnDocs structure, the `.docs/` theme layer (imports, styling tokens, content queries), MDC blocks, and content conventions (preset naming, import paths, H3 v2 patterns, common mistakes).
 
 H3 v2 updated docs is at `node_modules/h3/dist/docs/README.md`
