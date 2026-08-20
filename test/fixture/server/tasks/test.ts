@@ -5,7 +5,6 @@ export default defineTask({
     description: "task to debug",
   },
   async run(taskEvent) {
-    console.log("test task", taskEvent);
     if (taskEvent.payload.wait) {
       await new Promise((resolve) => setTimeout(resolve, Number(taskEvent.payload.wait)));
     }
