@@ -182,9 +182,19 @@ Common config: ESM output, tree-shaking, chunking, sourcemaps.
 **Server-only module reload**:
 1. `hotUpdate` hook detects file change
 2. Determines if module is server-only or shared
-3. Server-only → sends `full-reload` to nitro environment
+3. Server-only → sends `full-reload` (with `triggeredBy`) to the environment
 4. Shared → returns for normal Vite client HMR
-5. Optionally reloads browser (`experimental.vite.serverReload`)
+5. Optionally reloads browser
+
+The dev worker scopes each `full-reload` to the environment it was sent for,
+plus any other environment that evaluated `triggeredBy` itself. Within an
+environment only the changed file and its importers are invalidated, so
+unrelated module state (runtime singletons, caches) survives the reload.
+A payload without `triggeredBy` (added/removed handlers) reloads everything.
+
+`experimental.vite.serverReload: false` opts out entirely: server modules are
+still invalidated, but no `full-reload` is sent and the dev worker keeps its
+current evaluations.
 
 **Directory watchers** (debounced):
 - Routes, API, middleware, plugins, modules dirs
@@ -225,7 +235,7 @@ Common config: ESM output, tree-shaking, chunking, sourcemaps.
 
 `experimental.vite` options:
 - `assetsImport` (default: true) — `?assets` imports via `@hiogawa/vite-plugin-fullstack`
-- `serverReload` (default: true) — reload on server-only module changes
+- `serverReload` (default: true) — reload the dev worker on server-only module changes
 - `services` — register custom service environments
 
 ## Key Connections
