@@ -1,6 +1,6 @@
 import { H3 } from "h3";
 
-const app = new H3();
+const app: H3 = new H3();
 
 app.get("/", (event) => {
   event.res.headers.set("content-type", "text/html");

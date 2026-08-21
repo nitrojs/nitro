@@ -190,7 +190,9 @@ The dev worker scopes each `full-reload` to the environment it was sent for,
 plus any other environment that evaluated `triggeredBy` itself. Within an
 environment only the changed file and its importers are invalidated, so
 unrelated module state (runtime singletons, caches) survives the reload.
-A payload without `triggeredBy` (added/removed handlers) reloads everything.
+A payload without `triggeredBy` (added/removed handlers) drops that
+environment's whole module graph instead. Reloads are serialized per
+environment and requests wait for the in-flight one.
 
 `experimental.vite.serverReload: false` opts out entirely: server modules are
 still invalidated, but no `full-reload` is sent and the dev worker keeps its
