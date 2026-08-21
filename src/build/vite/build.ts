@@ -1,16 +1,17 @@
 import type { Nitro } from "nitro/types";
 import { isTest } from "std-env";
 import { nitro as nitroPlugin } from "nitro/vite";
-import { resolveModulePath } from "exsolve";
+import { importVite } from "./_import.ts";
 
 export async function viteBuild(nitro: Nitro) {
   if (nitro.options.dev) {
     throw new Error("Nitro dev CLI does not supports vite. Please use `vite dev` instead.");
   }
 
-  const vitePkg = (nitro.options as any).__vitePkg__ || "vite";
-  const viteEntry = resolveModulePath(vitePkg, { from: nitro.options.rootDir });
-  const { createBuilder } = (await import(viteEntry)) as typeof import("vite");
+  const { createBuilder } = await importVite({
+    dir: nitro.options.rootDir,
+    id: (nitro.options as any).__vitePkg__,
+  });
 
   const pluginInstance = nitroPlugin({ _nitro: nitro });
 

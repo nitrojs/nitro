@@ -15,6 +15,7 @@ const optionalDeps = [
   "giget",
   "jiti",
   "rollup",
+  "vite",
   "xml2js",
   "zephyr-agent",
 ];
@@ -84,7 +85,6 @@ export default defineBuildConfig({
         "nitro",
         ...Object.keys(pkg.exports || {}).map((key) => key.replace(/^./, "nitro")),
         ...Object.keys(pkg.dependencies),
-        ...Object.keys(pkg.peerDependencies),
         ...optionalDeps.filter((dep) => !shimmedDeps.includes(dep)),
         ...tracePkgs,
         "typescript",
@@ -187,11 +187,7 @@ export default defineBuildConfig({
           hooks: {
             tracedPackages(packages) {
               // Avoid tracing direct dependencies
-              const deps = new Set([
-                ...Object.keys(pkg.dependencies),
-                ...Object.keys(pkg.peerDependencies),
-                ...optionalDeps,
-              ]);
+              const deps = new Set([...Object.keys(pkg.dependencies), ...optionalDeps]);
               for (const dep of deps) {
                 delete packages[dep];
               }

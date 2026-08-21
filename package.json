@@ -171,14 +171,6 @@
     "youch-core": "^0.3.3",
     "zephyr-agent": "^1.2.2"
   },
-  "peerDependencies": {
-    "vite": "^7 || ^8"
-  },
-  "peerDependenciesMeta": {
-    "vite": {
-      "optional": true
-    }
-  },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
   },

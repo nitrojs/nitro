@@ -73,8 +73,9 @@ resolves from `nitro.options.rootDir` and offers to install what is missing.
 - Optional dependencies of the libraries Nitro *bundles* (e.g. `jiti` for `c12`) cannot resolve from
   `dist/`. Those get a bundle-time alias to a shim in `src/shims/` (see `shimmedDeps` in
   `build.config.ts`).
-- `vite` is the only remaining optional peer dependency: `src/build/vite/` extends its
-  `DevEnvironment` class and re-exports its types from Nitro's public `.d.ts`.
+- Nitro has no peer dependencies at all: `vite` is imported from the user project too
+  (`src/build/vite/_import.ts`). Its `DevEnvironment` subclass is therefore defined lazily, against
+  the class of the resolved instance (see `src/build/vite/dev.ts`).
 
 ### Runtime Constraints
 
@@ -137,7 +138,7 @@ Each preset in `src/presets/` defines deployment target behavior:
 - **CLI commands** are in `src/cli/commands/` — Each file exports a command definition.
 - **Runtime size matters** — Check bundle impact with `pnpm build`.
 - **Use `pathe` not `node:path`** — Ensures cross-platform compatibility.
-- **Avoid peer dependencies** — Optional packages are imported on demand via `src/utils/dep.ts` (`vite` is the only exception).
+- **No peer dependencies** — Optional packages are imported on demand via `src/utils/dep.ts`.
 
 ## Error & Logging Guidelines
 

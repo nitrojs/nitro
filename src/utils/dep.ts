@@ -1,5 +1,8 @@
+import { existsSync, readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 import { consola } from "consola";
 import { resolveModulePath } from "exsolve";
+import { dirname, join } from "pathe";
 import { isCI, isTest } from "std-env";
 
 export interface DepOptions {
@@ -9,7 +12,10 @@ export interface DepOptions {
   dir: string;
   /** Human readable reason, used in prompts and errors. */
   reason: string;
-  /** Version range used when installing (ignored if it is not a simple range). */
+  /**
+   * Supported version range, used when installing (ignored if it is not a simple range)
+   * and checked against the version of an already installed package.
+   */
   version?: string;
   /** Install as a dev dependency. (default: `true`) */
   dev?: boolean;
@@ -28,6 +34,7 @@ export async function ensureDep(opts: DepOptions, _retry?: boolean): Promise<str
   });
 
   if (resolved) {
+    _checkVersion(opts, resolved);
     return resolved;
   }
 
@@ -67,7 +74,7 @@ export async function importDep<T>(opts: DepOptions): Promise<T> {
       `\`${opts.id}\` is not installed. Please add it to your dependencies for ${opts.reason}.`
     );
   }
-  return (await import(resolved)) as T;
+  return (await import(pathToFileURL(resolved).href)) as T;
 }
 
 export function isDepInstalled(id: string, dir: string): boolean {
@@ -117,4 +124,62 @@ export async function ensureLibDeps(
       consola.warn(`\`${name}\` is not installed. It is required for ${reason}.`);
     }
   }
+}
+
+const _versionWarnings = new Set<string>();
+
+/** Warn once if the installed version of a dependency is outside of its supported range. */
+function _checkVersion(opts: DepOptions, entry: string): void {
+  if (!opts.version || _versionWarnings.has(`${opts.id}@${opts.version}`)) {
+    return;
+  }
+  const version = _installedVersion(opts.id, entry);
+  if (!version || _isSupportedVersion(version, opts.version)) {
+    return;
+  }
+  _versionWarnings.add(`${opts.id}@${opts.version}`);
+  consola.warn(
+    `\`${opts.id}@${version}\` is installed in \`${opts.dir}\` but ${opts.reason} requires \`${opts.version}\`. Please update it if you run into issues.`
+  );
+}
+
+/** Read the version of the package `entry` belongs to (walking up to its `package.json`). */
+function _installedVersion(id: string, entry: string): string | undefined {
+  let dir = dirname(entry);
+  for (let depth = 0; depth < 10; depth++) {
+    const pkgPath = join(dir, "package.json");
+    if (existsSync(pkgPath)) {
+      try {
+        const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
+        if (pkg.name === id) {
+          return typeof pkg.version === "string" ? pkg.version : undefined;
+        }
+      } catch {
+        // Ignore unreadable or invalid `package.json` files
+      }
+    }
+    const parent = dirname(dir);
+    if (parent === dir) {
+      break;
+    }
+    dir = parent;
+  }
+}
+
+/**
+ * Check a version against a simple caret range (`^8`, `^7 || ^8`).
+ *
+ * Ranges in any other format (and `0.x` versions, for which caret is minor scoped) are not
+ * checked. Prerelease versions match their own major (`8.0.0-beta.1` satisfies `^8`).
+ */
+function _isSupportedVersion(version: string, range: string): boolean {
+  const major = Number.parseInt(version, 10);
+  if (!major) {
+    return true;
+  }
+  const ranges = range.split("||").map((r) => r.trim());
+  if (!ranges.every((r) => /^\^\d+(\.\d+)*$/.test(r))) {
+    return true;
+  }
+  return ranges.some((r) => Number.parseInt(r.slice(1), 10) === major);
 }

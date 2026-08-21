@@ -15,8 +15,8 @@ importers:
         specifier: ^2.3.0
         version: 2.4.0(@vueuse/core@14.4.0(vue@3.5.41))(vue@3.5.41)
       undocs:
-        specifier: npm:undocs-nightly@0.10.1-20260820-230005-d89f377
-        version: undocs-nightly@0.10.1-20260820-230005-d89f377(@oxc-project/types@0.146.0)(chokidar@5.0.0)(csstype@3.2.3)(dotenv@17.4.2)(giget@3.3.1)(h3@2.0.1-rc.29(crossws@0.4.12(srvx@0.12.7))(ocache@0.3.0))(jiti@2.7.0)(lightningcss@1.33.0)(ocache@0.3.0)(rolldown@1.2.5)
+        specifier: npm:undocs-nightly@0.10.1-20260821-003252-6282d91
+        version: undocs-nightly@0.10.1-20260821-003252-6282d91(@oxc-project/types@0.146.0)(chokidar@5.0.0)(csstype@3.2.3)(dotenv@17.4.2)(giget@3.3.1)(h3@2.0.1-rc.29(crossws@0.4.12(srvx@0.12.7))(ocache@0.3.0))(jiti@2.7.0)(lightningcss@1.33.0)(ocache@0.3.0)(rolldown@1.2.5)
 
 packages:
 
@@ -1066,8 +1066,8 @@ packages:
   ufo@1.6.4:
     resolution: {integrity: sha512-JFNbkD1Svwe0KvGi8GOeLcP4kAWQ609twvCdcHxq1oSL8svv39ZuSvajcD8B+5D0eL4+s1Is2D/O6KN3qcTeRA==}
 
-  undocs-nightly@0.10.1-20260820-230005-d89f377:
-    resolution: {integrity: sha512-uZmaQn9eRQa9biGSndSCA9ijs06UW96SRfeAQ+Gms0VA6u1N6B+OdmbXuotUm8A1emNCZ0A93ian+u7UY6oEzQ==}
+  undocs-nightly@0.10.1-20260821-003252-6282d91:
+    resolution: {integrity: sha512-arJoDJn14675FsUJVbFvPGE0uL2hiE/Ifisiz+8WqoQ/h52xggqJvhFpuwZ0HlAr6/fx0UPRUbVlp7etEGI/Gg==}
     hasBin: true
 
   unenv@2.0.0-rc.24:
@@ -2043,7 +2043,7 @@ snapshots:
 
   ufo@1.6.4: {}
 
-  undocs-nightly@0.10.1-20260820-230005-d89f377(@oxc-project/types@0.146.0)(chokidar@5.0.0)(csstype@3.2.3)(dotenv@17.4.2)(giget@3.3.1)(h3@2.0.1-rc.29(crossws@0.4.12(srvx@0.12.7))(ocache@0.3.0))(jiti@2.7.0)(lightningcss@1.33.0)(ocache@0.3.0)(rolldown@1.2.5):
+  undocs-nightly@0.10.1-20260821-003252-6282d91(@oxc-project/types@0.146.0)(chokidar@5.0.0)(csstype@3.2.3)(dotenv@17.4.2)(giget@3.3.1)(h3@2.0.1-rc.29(crossws@0.4.12(srvx@0.12.7))(ocache@0.3.0))(jiti@2.7.0)(lightningcss@1.33.0)(ocache@0.3.0)(rolldown@1.2.5):
     dependencies:
       '@floating-ui/dom': 1.8.0
       '@fontsource-variable/geist': 5.3.0

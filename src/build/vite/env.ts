@@ -8,6 +8,7 @@ import { runtimeDependencies, runtimeDir } from "nitro/meta";
 import { resolveModulePath } from "exsolve";
 import { isAbsolute } from "pathe";
 import { resolveMiniflareDeps, resolveRunnerDeps } from "../../dev/runner-deps.ts";
+import { writeDevWorkerEntry } from "./_dev-worker.ts";
 
 export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOptions {
   const isWorkerdRunner = _isWorkerdRunner(ctx);
@@ -47,9 +48,13 @@ export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOpti
       createEnvironment: async (envName, envConfig) => {
         const entry = resolve(runtimeDir, "internal/vite/dev-entry.mjs");
         const { createFetchableDevEnvironment } = await import("./dev.ts");
-        const env = createFetchableDevEnvironment(envName, envConfig, getEnvRunner(ctx), entry, {
-          preventExternalize: isWorkerdRunner,
-        });
+        const env = await createFetchableDevEnvironment(
+          envName,
+          envConfig,
+          getEnvRunner(ctx),
+          entry,
+          { preventExternalize: isWorkerdRunner }
+        );
         ctx._transformRequest = (id) => env.transformRequest(id);
         (ctx._viteEnvs ??= new Map()).set(envName, entry);
         return env;
@@ -167,7 +172,7 @@ export async function reloadEnvRunner(ctx: NitroPluginContext) {
 
 async function _loadRunner(ctx: NitroPluginContext, manager: RunnerManager) {
   const runnerName = _devRunner(ctx);
-  const entry = resolve(runtimeDir, "internal/vite/dev-worker.mjs");
+  const entry = await writeDevWorkerEntry(ctx.nitro!);
   let runner;
   if (runnerName === "miniflare") {
     const { MiniflareEnvRunner } = await import("env-runner/runners/miniflare");
