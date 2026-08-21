@@ -9,12 +9,13 @@
     "noImplicitReturns": false,
     "jsx": "preserve",
     "lib": ["es2022", "webworker", "dom.iterable"],
-    "types": ["node", "@cloudflare/workers-types"]
+    "types": ["node", "@cloudflare/workers-types/experimental"]
   },
   "exclude": [
     "examples/import-alias/**",
     "examples/vite-rsc/**",
     "test/fixture/server/routes/jsx.tsx",
+    "test/vite/alias-precedence-fixture/server.ts",
     "examples/vite-ssr-html/vite.config.ts",
     "examples/vite-ssr-solid/src/entry-server.tsx",
     "examples/vite-ssr-solid/src/entry-client.tsx",

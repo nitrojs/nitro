@@ -5,16 +5,16 @@ import type { RunnerRPCHooks } from "env-runner";
 
 import { IncomingMessage, ServerResponse } from "node:http";
 import { NodeRequest, sendNodeResponse } from "srvx/node";
-import { DevEnvironment } from "vite";
 import { createViteHotChannel } from "env-runner/vite";
 import { watch as chokidarWatch } from "chokidar";
 import { watch as fsWatch } from "node:fs";
 import { join } from "pathe";
 import { debounce } from "perfect-debounce";
-import { withBase } from "ufo";
+import { withBase, withoutBase } from "ufo";
 import { scanHandlers } from "../../scan.ts";
 import { writeTypes } from "../types.ts";
 import { getEnvRunner } from "./env.ts";
+import { importVite } from "./_import.ts";
 
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
 
@@ -47,85 +47,108 @@ export interface DevServer extends RunnerRPCHooks {
 
 // ---- Fetchable Dev Environment ----
 
-export function createFetchableDevEnvironment(
+export async function createFetchableDevEnvironment(
   name: string,
   config: ResolvedConfig,
   devServer: DevServer,
   entry: string,
   opts?: { preventExternalize?: boolean }
-): FetchableDevEnvironment {
+): Promise<FetchableDevEnvironment> {
   const transport = createViteHotChannel(devServer, name);
   const context: DevEnvironmentContext = { hot: true, transport };
+  const FetchableDevEnvironment = await getFetchableDevEnvironment(config.root);
   return new FetchableDevEnvironment(name, config, context, devServer, entry, opts);
 }
 
-export class FetchableDevEnvironment extends DevEnvironment {
-  devServer: DevServer;
+export type FetchableDevEnvironment = InstanceType<
+  Awaited<ReturnType<typeof getFetchableDevEnvironment>>
+>;
 
-  #entry: string;
-  #preventExternalize: boolean;
+const _envClasses = new Map<string, Promise<ReturnType<typeof _defineFetchableDevEnvironment>>>();
 
-  constructor(
-    name: string,
-    config: ResolvedConfig,
-    context: DevEnvironmentContext,
-    devServer: DevServer,
-    entry: string,
-    opts?: { preventExternalize?: boolean }
-  ) {
-    super(name, config, context);
-    this.devServer = devServer;
-    this.#entry = entry;
-    this.#preventExternalize = opts?.preventExternalize ?? false;
+/**
+ * `DevEnvironment` is a value import from the (optional) `vite` dependency, so the subclass is
+ * defined lazily against the `vite` instance resolved from the user project.
+ */
+function getFetchableDevEnvironment(dir: string) {
+  let envClass = _envClasses.get(dir);
+  if (!envClass) {
+    envClass = importVite({ dir }).then((vite) => _defineFetchableDevEnvironment(vite));
+    envClass.catch(() => _envClasses.delete(dir));
+    _envClasses.set(dir, envClass);
   }
+  return envClass;
+}
 
-  override async fetchModule(
-    id: string,
-    importer?: string,
-    options?: FetchFunctionOptions
-  ): Promise<FetchResult> {
-    // workerd cannot handle CJS/Node modules loaded via import().
-    // Bare imports (like "vue") are normally externalized by Vite's fetchModule,
-    // resolved using mainFields: ["main"] which often picks CJS entries.
-    // We intercept bare imports, resolve them through the environment's plugin
-    // pipeline (which respects resolve.conditions and picks ESM), then route
-    // the resolved path through transformRequest for proper SSR processing.
-    if (this.#preventExternalize && WORKERD_BUILTIN_RE.test(id)) {
-      return { externalize: id, type: "builtin" };
-    }
-    if (
-      this.#preventExternalize &&
-      !id.startsWith("file://") &&
-      importer &&
-      id[0] !== "." &&
-      id[0] !== "/"
+function _defineFetchableDevEnvironment({ DevEnvironment }: typeof import("vite")) {
+  return class FetchableDevEnvironment extends DevEnvironment {
+    devServer: DevServer;
+
+    #entry: string;
+    #preventExternalize: boolean;
+
+    constructor(
+      name: string,
+      config: ResolvedConfig,
+      context: DevEnvironmentContext,
+      devServer: DevServer,
+      entry: string,
+      opts?: { preventExternalize?: boolean }
     ) {
-      const resolved = await this.pluginContainer.resolveId(id, importer);
-      if (resolved && !resolved.external) {
-        return super.fetchModule(resolved.id, importer, options);
-      }
+      super(name, config, context);
+      this.devServer = devServer;
+      this.#entry = entry;
+      this.#preventExternalize = opts?.preventExternalize ?? false;
     }
-    return super.fetchModule(id, importer, options);
-  }
 
-  async dispatchFetch(request: Request): Promise<Response> {
-    return this.devServer.fetch(request);
-  }
+    override async fetchModule(
+      id: string,
+      importer?: string,
+      options?: FetchFunctionOptions
+    ): Promise<FetchResult> {
+      // workerd cannot handle CJS/Node modules loaded via import().
+      // Bare imports (like "vue") are normally externalized by Vite's fetchModule,
+      // resolved using mainFields: ["main"] which often picks CJS entries.
+      // We intercept bare imports, resolve them through the environment's plugin
+      // pipeline (which respects resolve.conditions and picks ESM), then route
+      // the resolved path through transformRequest for proper SSR processing.
+      if (this.#preventExternalize && WORKERD_BUILTIN_RE.test(id)) {
+        return { externalize: id, type: "builtin" };
+      }
+      if (
+        this.#preventExternalize &&
+        !id.startsWith("file://") &&
+        importer &&
+        id[0] !== "." &&
+        id[0] !== "/"
+      ) {
+        const resolved = await this.pluginContainer.resolveId(id, importer);
+        if (resolved && !resolved.external) {
+          return super.fetchModule(resolved.id, importer, options);
+        }
+      }
+      return super.fetchModule(id, importer, options);
+    }
 
-  override async init(...args: any[]): Promise<void> {
-    await this.devServer.init?.();
-    await super.init(...args);
-    this.devServer.sendMessage({
-      type: "custom",
-      event: "nitro:vite-env",
-      data: { name: this.name, entry: this.#entry },
-    });
-  }
+    async dispatchFetch(request: Request): Promise<Response> {
+      return this.devServer.fetch(request);
+    }
 
-  override async close(): Promise<void> {
-    await super.close();
-    await this.devServer.close?.();
-  }
+    override async init(...args: any[]): Promise<void> {
+      await this.devServer.init?.();
+      await super.init(...args);
+      this.devServer.sendMessage({
+        type: "custom",
+        event: "nitro:vite-env",
+        data: { name: this.name, entry: this.#entry },
+      });
+    }
+
+    override async close(): Promise<void> {
+      await super.close();
+      await this.devServer.close?.();
+    }
+  };
 }
 
 // ---- Vite Dev Server Integration ----
@@ -133,6 +156,8 @@ export class FetchableDevEnvironment extends DevEnvironment {
 export async function configureViteDevServer(ctx: NitroPluginContext, server: ViteDevServer) {
   const nitro = ctx.nitro!;
   const nitroEnv = server.environments.nitro as FetchableDevEnvironment;
+
+  const viteBase = server.config.base || "/";
 
   // Restart with nitro.config changes
   const nitroConfigFile = nitro.options._c12.configFile;
@@ -220,7 +245,7 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     // Skip for vite internal requests or if already handled
     if (
       !nodeReq.url ||
-      /^\/@(?:vite|fs|id)\//.test(nodeReq.url) ||
+      /^\/@(?:vite|fs|id)\//.test(withoutBase(nodeReq.url, viteBase)) ||
       nodeReq._nitroHandled ||
       server.middlewares.stack.some((mw) => mw.route && nodeReq.url!.startsWith(mw.route))
     ) {
@@ -289,7 +314,7 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     next: (error?: unknown) => void
   ) => {
     // Vite-internal prefixes (/@vite/client, /__vue-router/auto-routes, ...) are never Nitro's.
-    if (/^\/(?:__|@)/.test(req.url!)) {
+    if (/^\/(?:__|@)/.test(withoutBase(req.url!, viteBase))) {
       return next();
     }
 

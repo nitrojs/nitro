@@ -16,6 +16,8 @@
 | `build.ts` | CLI build entry for `nitro build` (`viteBuild()`) |
 | `preview.ts` | Preview server plugin |
 | `types.ts` | Type definitions (`NitroPluginConfig`, `NitroPluginContext`) |
+| `_import.ts` | On demand `vite` import from the user project (`importVite()`) |
+| `_dev-worker.ts` | Generated dev worker entry, injecting the app's Vite module runner |
 
 ## Plugin Architecture (`plugin.ts`)
 
@@ -94,6 +96,8 @@ Nitro uses Vite 6+ environments API for multi-bundle builds:
 ## Dev Server (`dev.ts`)
 
 ### `FetchableDevEnvironment` (extends `DevEnvironment`)
+- Defined lazily by `createFetchableDevEnvironment()` (async) against the `vite` instance resolved
+  from the user project — `vite` is an optional dependency, so `DevEnvironment` cannot be imported statically
 - Overrides `fetchModule()` for CJS/ESM resolution
 - For workerd: prevents externalization of bare imports
 - `dispatchFetch()` — routes requests to the dev server worker
@@ -182,9 +186,21 @@ Common config: ESM output, tree-shaking, chunking, sourcemaps.
 **Server-only module reload**:
 1. `hotUpdate` hook detects file change
 2. Determines if module is server-only or shared
-3. Server-only → sends `full-reload` to nitro environment
+3. Server-only → sends `full-reload` (with `triggeredBy`) to the environment
 4. Shared → returns for normal Vite client HMR
-5. Optionally reloads browser (`experimental.vite.serverReload`)
+5. Optionally reloads browser
+
+The dev worker scopes each `full-reload` to the environment it was sent for,
+plus any other environment that evaluated `triggeredBy` itself. Within an
+environment only the changed file and its importers are invalidated, so
+unrelated module state (runtime singletons, caches) survives the reload.
+A payload without `triggeredBy` (added/removed handlers) drops that
+environment's whole module graph instead. Reloads are serialized per
+environment and requests wait for the in-flight one.
+
+`experimental.vite.serverReload: false` opts out entirely: server modules are
+still invalidated, but no `full-reload` is sent and the dev worker keeps its
+current evaluations.
 
 **Directory watchers** (debounced):
 - Routes, API, middleware, plugins, modules dirs
@@ -200,8 +216,10 @@ Common config: ESM output, tree-shaking, chunking, sourcemaps.
 | `dev-worker.mjs` | Worker process: `ViteEnvRunner` class, RPC layer, env management |
 | `ssr-renderer.mjs` | SSR service: calls `fetchViteEnv("ssr", req)` |
 
+`dev-worker.mjs` is not loaded directly: `writeDevWorkerEntry()` generates `<buildDir>/vite/dev-worker.mjs`, which re-exports it and injects the `vite/module-runner` resolved from the app (`vite` is not resolvable from Nitro's `dist/`).
+
 ### `ViteEnvRunner` (in `dev-worker.mjs`)
-- Manages Vite `ModuleRunner` per environment
+- Manages Vite `ModuleRunner` per environment (injected via `setModuleRunner()`)
 - Loads environment entry via `runner.import()`
 - Routes fetch requests to loaded entries
 - Exposes `__VITE_ENVIRONMENT_RUNNER_IMPORT__` for RSC
@@ -225,7 +243,7 @@ Common config: ESM output, tree-shaking, chunking, sourcemaps.
 
 `experimental.vite` options:
 - `assetsImport` (default: true) — `?assets` imports via `@hiogawa/vite-plugin-fullstack`
-- `serverReload` (default: true) — reload on server-only module changes
+- `serverReload` (default: true) — reload the dev worker on server-only module changes
 - `services` — register custom service environments
 
 ## Key Connections

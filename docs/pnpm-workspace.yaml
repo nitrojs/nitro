@@ -6,3 +6,10 @@ allowBuilds:
   vue-demi: false
 minimumReleaseAgeExclude:
   - undocs-nightly*
+  - crossws@0.4.12
+  - db0@0.4.0
+  - env-runner@0.2.0
+  - h3@2.0.1-rc.29
+  - nitro-nightly@3.0.1-20260820-224726-7536de7e
+  - srvx@0.12.7
+  - unstorage@2.0.0-alpha.9

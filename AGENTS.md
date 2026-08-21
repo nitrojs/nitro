@@ -60,6 +60,23 @@ Review these changes carefully for backwards compatibility, bundle size, and cro
 - `consola` — Logging in build/dev code (use `nitro.logger` when available).
 - `unstorage` — Storage abstraction.
 
+### Optional Dependencies
+
+Packages that are only needed by some presets, builders, or opt-in features are imported on demand
+from the user project via `src/utils/dep.ts` (`ensureDep` / `importDep` / `isDepInstalled`), which
+resolves from `nitro.options.rootDir` and offers to install what is missing.
+
+- Don't add a `peerDependencies` entry. Add the package to `devDependencies` (for tests and types)
+  and import it with `importDep({ id, dir: nitro.options.rootDir, reason })`.
+- Keep the package listed in `optionalDeps` in `build.config.ts` so it stays external.
+- `import type` from such a package is fine; only value imports must go through `utils/dep.ts`.
+- Optional dependencies of the libraries Nitro *bundles* (e.g. `jiti` for `c12`) cannot resolve from
+  `dist/`. Those get a bundle-time alias to a shim in `src/shims/` (see `shimmedDeps` in
+  `build.config.ts`).
+- Nitro has no peer dependencies at all: `vite` is imported from the user project too
+  (`src/build/vite/_import.ts`). Its `DevEnvironment` subclass is therefore defined lazily, against
+  the class of the resolved instance (see `src/build/vite/dev.ts`).
+
 ### Runtime Constraints
 
 Code in `src/runtime/` must be runtime-agnostic:
@@ -121,6 +138,7 @@ Each preset in `src/presets/` defines deployment target behavior:
 - **CLI commands** are in `src/cli/commands/` — Each file exports a command definition.
 - **Runtime size matters** — Check bundle impact with `pnpm build`.
 - **Use `pathe` not `node:path`** — Ensures cross-platform compatibility.
+- **No peer dependencies** — Optional packages are imported on demand via `src/utils/dep.ts`.
 
 ## Error & Logging Guidelines
 

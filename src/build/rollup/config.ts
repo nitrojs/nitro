@@ -58,6 +58,8 @@ export const getRollupConfig = async (nitro: Nitro): Promise<RollupConfig> => {
     },
     output: {
       format: "esm",
+      // `assert` was removed in Node.js v22; Rollup 5 defaults to `with` (rollup/rollup#6248).
+      importAttributesKey: "with",
       entryFileNames: "index.mjs",
       chunkFileNames: (chunk) => getChunkName(chunk, nitro),
       dir: nitro.options.output.serverDir,
