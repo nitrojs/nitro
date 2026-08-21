@@ -3,7 +3,7 @@ import type { H3Event, HTTPHandler } from "h3";
 import { createProxyServer, type ProxyServerOptions } from "httpxy";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { H3, toEventHandler, serveStatic, fromNodeHandler, HTTPError } from "h3";
-import { joinURL } from "ufo";
+import { joinURL, withoutTrailingSlash } from "ufo";
 import mime from "mime";
 import { join, resolve, extname } from "pathe";
 import { stat } from "node:fs/promises";
@@ -96,7 +96,17 @@ export class NitroDevApp {
         opts = { target: opts };
       }
       const proxy = createHTTPProxy(opts);
-      app.all(route, proxy.handleEvent);
+      const prefix = withoutTrailingSlash(route.replace(/\/?\*+$/, ""));
+      const base = prefix === "/" ? "" : prefix;
+      app.all(joinURL(prefix, "**"), async (event) => {
+        const originalPathname = event.url.pathname;
+        event.url.pathname = originalPathname.slice(base.length) || "/";
+        try {
+          return await proxy.handleEvent(event);
+        } finally {
+          event.url.pathname = originalPathname;
+        }
+      });
     }
 
     // Main handler
