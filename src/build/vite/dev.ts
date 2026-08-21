@@ -74,6 +74,7 @@ function getFetchableDevEnvironment(dir: string) {
   let envClass = _envClasses.get(dir);
   if (!envClass) {
     envClass = importVite({ dir }).then((vite) => _defineFetchableDevEnvironment(vite));
+    envClass.catch(() => _envClasses.delete(dir));
     _envClasses.set(dir, envClass);
   }
   return envClass;

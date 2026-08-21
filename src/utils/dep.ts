@@ -1,3 +1,4 @@
+import { pathToFileURL } from "node:url";
 import { consola } from "consola";
 import { resolveModulePath } from "exsolve";
 import { isCI, isTest } from "std-env";
@@ -67,7 +68,7 @@ export async function importDep<T>(opts: DepOptions): Promise<T> {
       `\`${opts.id}\` is not installed. Please add it to your dependencies for ${opts.reason}.`
     );
   }
-  return (await import(resolved)) as T;
+  return (await import(pathToFileURL(resolved).href)) as T;
 }
 
 export function isDepInstalled(id: string, dir: string): boolean {
