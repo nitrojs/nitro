@@ -1,4 +1,4 @@
-import type { APIGatewayProxyEvent, APIGatewayProxyEventV2 } from "aws-lambda";
+import type { APIGatewayProxyEvent, APIGatewayProxyEventV2, Context } from "aws-lambda";
 import type { ServerRequest } from "srvx";
 import { stringifyQuery } from "ufo";
 
@@ -6,7 +6,7 @@ import { stringifyQuery } from "ufo";
 
 export function awsRequest(
   event: APIGatewayProxyEvent | APIGatewayProxyEventV2,
-  context: unknown
+  context: Context
 ): ServerRequest {
   const method = awsEventMethod(event);
   const url = awsEventURL(event);
@@ -17,10 +17,9 @@ export function awsRequest(
 
   // srvx compatibility
   req.runtime ??= { name: "aws-lambda" };
-  // @ts-expect-error (add to srvx types)
-  req.runtime.aws ??= { event, context } as any;
+  req.runtime.awsLambda ??= { event, context };
 
-  return new Request(url, { method, headers, body });
+  return req;
 }
 
 function awsEventMethod(event: APIGatewayProxyEvent | APIGatewayProxyEventV2): string {
