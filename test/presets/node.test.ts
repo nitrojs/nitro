@@ -1,6 +1,8 @@
 import { existsSync } from "node:fs";
 import { resolve } from "pathe";
-// import { isWindows } from "std-env";
+import { isWindows } from "std-env";
+import { execa } from "execa";
+import { getRandomPort, waitForPort } from "get-port-please";
 import { describe, expect, it } from "vitest";
 import { setupTest, startServer, testNitro } from "../tests.ts";
 
@@ -37,4 +39,59 @@ describe("nitro:preset:node-middleware", async () => {
     const serverNodeModules = resolve(ctx.outDir, "server/node_modules");
     expect(existsSync(resolve(serverNodeModules, "@fixture/nitro-utils/extra.mjs"))).toBe(true);
   });
+});
+
+describe("nitro:preset:node-server", async () => {
+  const ctx = await setupTest("node-server");
+
+  it.skipIf(isWindows)(
+    "calls the `close` hook on shutdown",
+    async () => {
+      const port = await getRandomPort();
+      const entryPath = resolve(ctx.outDir, "server/index.mjs");
+      // srvx graceful shutdown is disabled when the CI/TEST env vars are set
+      const env: Record<string, string | undefined> = {
+        ...process.env,
+        NITRO_PORT: String(port),
+        NITRO_HOST: "127.0.0.1",
+        NITRO_TEST_CLOSE_HOOK: "true",
+      };
+      delete env.CI;
+      delete env.TEST;
+      const child = execa(process.execPath, [entryPath], { env, extendEnv: false, reject: false });
+
+      let output = "";
+      child.stdout!.on("data", (data) => (output += data));
+      child.stderr!.on("data", (data) => (output += data));
+
+      try {
+        await waitForPort(port, { delay: 1000, retries: 20, host: "127.0.0.1" });
+
+        child.kill("SIGTERM");
+        await new Promise<void>((resolve) => {
+          const done = () => {
+            clearTimeout(timeout);
+            child.nodeChildProcess.off("close", done);
+            child.stdout!.off("data", onData);
+            resolve();
+          };
+          const onData = (data: unknown) => {
+            if (String(data).includes("[fixture] close hook called")) {
+              done();
+            }
+          };
+          const timeout = setTimeout(done, 10_000);
+          child.nodeChildProcess.once("close", done);
+          child.stdout!.on("data", onData);
+        });
+
+        expect(output).toContain("[fixture] close hook called");
+        expect(output).not.toContain("unhandledRejection");
+      } finally {
+        child.kill("SIGKILL");
+        await child;
+      }
+    },
+    40_000
+  );
 });
