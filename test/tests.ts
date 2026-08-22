@@ -131,7 +131,8 @@ export async function setupTest(
   if (ctx.isDev) {
     // Setup development server
     const devServer = createDevServer(ctx.nitro);
-    const server = await devServer.listen({});
+    // Use a random port so multiple dev contexts can coexist
+    const server = await devServer.listen({ port: 0 });
     ctx.server = {
       url: server.url!,
       close: () => server.close(),
@@ -479,6 +480,12 @@ export function testNitro(
       expect(status).toBe(200);
       expect(headers.etag).toBe('"7-vxGfAKTuGVGhpDZqQLqV60dnKPw"');
       expect(headers["content-type"]).toBe("text/plain; charset=utf-8");
+    });
+
+    it("serve static asset via internal fetch", async () => {
+      const { data } = await callHandler({ url: "/fetch-public-asset" });
+      expect(data.status).toBe(200);
+      expect(data.body).toBe("Works!\n");
     });
 
     it("stores content-type for prerendered routes", async () => {
