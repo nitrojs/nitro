@@ -96,6 +96,7 @@ export async function resolvePathOptions(options: NitroOptions) {
           options.serverDir && options.serverDir !== options.rootDir
             ? [options.serverDir, options.rootDir]
             : options.rootDir,
+        suffixes: ["", "/index"],
         extensions: RESOLVE_EXTENSIONS.flatMap((ext) => [ext, `.node${ext}`]),
       });
       if (detected) {
