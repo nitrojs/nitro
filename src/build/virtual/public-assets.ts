@@ -94,6 +94,75 @@ export default function publicAssets(nitro: Nitro) {
             ])
         );
 
+        if (nitro.options.dev) {
+          // Assets are resolved dynamically in dev: the build-time snapshot in
+          // `public-assets-data` is always empty (nothing is copied to
+          // `output.publicDir` in dev) and would not follow file changes anyway.
+          const publicAssetDirs = nitro.options.publicAssets.map((dir) => ({
+            baseURL: withTrailingSlash(joinURL(nitro.options.baseURL, dir.baseURL || "/")),
+            dir: dir.dir,
+          }));
+
+          return /* js */ `
+import { statSync, promises as fsp } from 'node:fs'
+import { resolve } from 'node:path'
+import mime from 'mime'
+
+const publicAssetDirs = ${JSON.stringify(publicAssetDirs)}
+export const publicAssetBases = ${JSON.stringify(publicAssetBases)}
+
+export function isPublicAssetURL(id = '') {
+  if (getAsset(id)) {
+    return true
+  }
+  for (const base in publicAssetBases) {
+    if (id.startsWith(base)) { return true }
+  }
+  return false
+}
+
+export function getPublicAssetMeta(id = '') {
+  for (const base in publicAssetBases) {
+    if (id.startsWith(base)) { return publicAssetBases[base] }
+  }
+  return {}
+}
+
+export function getAsset (id) {
+  for (const { baseURL, dir } of publicAssetDirs) {
+    if (!id.startsWith(baseURL)) { continue }
+    const fullPath = resolve(dir, id.slice(baseURL.length))
+    if (fullPath !== dir && !fullPath.startsWith(dir + '/')) { continue }
+    let stat
+    try {
+      stat = statSync(fullPath)
+    } catch {
+      continue
+    }
+    if (!stat.isFile()) { continue }
+    let type = mime.getType(id.replace(/\\.(gz|br|zst)$/, '')) || 'text/plain'
+    if (type.startsWith('text')) { type += '; charset=utf-8' }
+    let encoding
+    if (id.endsWith('.gz')) { encoding = 'gzip' }
+    else if (id.endsWith('.br')) { encoding = 'br' }
+    else if (id.endsWith('.zst')) { encoding = 'zstd' }
+    return {
+      type,
+      encoding,
+      mtime: stat.mtime.toJSON(),
+      size: stat.size,
+      path: fullPath,
+    }
+  }
+}
+
+export function readAsset (id) {
+  const asset = getAsset(id)
+  return asset ? fsp.readFile(asset.path) : Promise.resolve(null)
+}
+`;
+        }
+
         // prettier-ignore
         type _serveStaticAsKey = Exclude<typeof nitro.options.serveStatic, boolean> | "true" | "false";
         // prettier-ignore
