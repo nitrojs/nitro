@@ -95,9 +95,6 @@ export default function publicAssets(nitro: Nitro) {
         );
 
         if (nitro.options.dev) {
-          // Assets are resolved dynamically in dev: the build-time snapshot in
-          // `public-assets-data` is always empty (nothing is copied to
-          // `output.publicDir` in dev) and would not follow file changes anyway.
           const publicAssetDirs = nitro.options.publicAssets.map((dir) => ({
             baseURL: withTrailingSlash(joinURL(nitro.options.baseURL, dir.baseURL || "/")),
             dir: dir.dir,
@@ -105,7 +102,7 @@ export default function publicAssets(nitro: Nitro) {
 
           return /* js */ `
 import { statSync, promises as fsp } from 'node:fs'
-import { resolve } from 'node:path'
+import { resolve, relative, isAbsolute, sep } from 'node:path'
 import mime from 'mime'
 
 const publicAssetDirs = ${JSON.stringify(publicAssetDirs)}
@@ -132,7 +129,8 @@ export function getAsset (id) {
   for (const { baseURL, dir } of publicAssetDirs) {
     if (!id.startsWith(baseURL)) { continue }
     const fullPath = resolve(dir, id.slice(baseURL.length))
-    if (fullPath !== dir && !fullPath.startsWith(dir + '/')) { continue }
+    const relativePath = relative(dir, fullPath)
+    if (relativePath.split(sep)[0] === '..' || isAbsolute(relativePath)) { continue }
     let stat
     try {
       stat = statSync(fullPath)

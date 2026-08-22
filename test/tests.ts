@@ -131,7 +131,6 @@ export async function setupTest(
   if (ctx.isDev) {
     // Setup development server
     const devServer = createDevServer(ctx.nitro);
-    // Use a random port so multiple dev contexts can coexist
     const server = await devServer.listen({ port: 0 });
     ctx.server = {
       url: server.url!,
