@@ -12,7 +12,7 @@ importers:
         specifier: ^0.4.3
         version: 0.4.3
       motion-v:
-        specifier: ^2.3.0
+        specifier: ^2.4.0
         version: 2.4.0(@vueuse/core@14.4.0(vue@3.5.41))(vue@3.5.41)
       undocs:
         specifier: npm:undocs-nightly@0.10.1-20260821-003252-6282d91
@@ -1121,13 +1121,13 @@ packages:
     resolution: {integrity: sha512-nwNCjxJTjNuLCgFr42fEak5OcLuB3ecca+9ksPFNvtfYSLpjf+iJqSIaSnIile6ZPbKYxI5k2AfXqeopGudK/g==}
     hasBin: true
 
-  vite@8.2.1:
-    resolution: {integrity: sha512-EU/eS7BH3XROHh2YnBefjM6DBKA6ZeMZEYQbj7NLWg5wHYlhB8B/Mayd5XsgWq+NFYccDOTemRpdETWR6Ka/lw==}
+  vite@8.2.2:
+    resolution: {integrity: sha512-cFKLV/PRgAUlIRm5WjMjJ86jrftzpqcgH+Us+DS8mI3CDNiH30Whrz8uHL3+MOLPAgqbMBAqWdAHAphOAM+z/Q==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
     peerDependencies:
       '@types/node': ^20.19.0 || >=22.12.0
-      '@vitejs/devtools': ^0.4.0
+      '@vitejs/devtools': ^0.4.0 || ^0.5.0
       esbuild: ^0.27.0 || ^0.28.0
       jiti: '>=1.21.0'
       less: ^4.0.0
@@ -1418,12 +1418,12 @@ snapshots:
       '@tailwindcss/oxide-win32-arm64-msvc': 4.3.3
       '@tailwindcss/oxide-win32-x64-msvc': 4.3.3
 
-  '@tailwindcss/vite@4.3.3(vite@8.2.1(jiti@2.7.0))':
+  '@tailwindcss/vite@4.3.3(vite@8.2.2(jiti@2.7.0))':
     dependencies:
       '@tailwindcss/node': 4.3.3
       '@tailwindcss/oxide': 4.3.3
       tailwindcss: 4.3.3
-      vite: 8.2.1(jiti@2.7.0)
+      vite: 8.2.2(jiti@2.7.0)
 
   '@takumi-rs/core-darwin-arm64@2.10.0':
     optional: true
@@ -1479,16 +1479,16 @@ snapshots:
 
   '@types/web-bluetooth@0.0.21': {}
 
-  '@unhead/bundler@3.3.2(@oxc-project/types@0.146.0)(lightningcss@1.33.0)(rolldown@1.2.5)(unhead@3.3.2(rolldown@1.2.5)(vite@8.2.1(jiti@2.7.0)))(vite@8.2.1(jiti@2.7.0))':
+  '@unhead/bundler@3.3.2(@oxc-project/types@0.146.0)(lightningcss@1.33.0)(rolldown@1.2.5)(unhead@3.3.2(rolldown@1.2.5)(vite@8.2.2(jiti@2.7.0)))(vite@8.2.2(jiti@2.7.0))':
     dependencies:
       magic-string: 1.2.1
       oxc-walker: 1.1.1(@oxc-project/types@0.146.0)(rolldown@1.2.5)
-      unhead: 3.3.2(rolldown@1.2.5)(vite@8.2.1(jiti@2.7.0))
-      unplugin: 3.3.0(rolldown@1.2.5)(vite@8.2.1(jiti@2.7.0))
+      unhead: 3.3.2(rolldown@1.2.5)(vite@8.2.2(jiti@2.7.0))
+      unplugin: 3.3.0(rolldown@1.2.5)(vite@8.2.2(jiti@2.7.0))
     optionalDependencies:
       lightningcss: 1.33.0
       rolldown: 1.2.5
-      vite: 8.2.1(jiti@2.7.0)
+      vite: 8.2.2(jiti@2.7.0)
     transitivePeerDependencies:
       - '@farmfe/core'
       - '@oxc-project/types'
@@ -1497,15 +1497,15 @@ snapshots:
       - rollup
       - unloader
 
-  '@unhead/vue@3.3.2(@oxc-project/types@0.146.0)(lightningcss@1.33.0)(rolldown@1.2.5)(vite@8.2.1(jiti@2.7.0))(vue@3.5.41)':
+  '@unhead/vue@3.3.2(@oxc-project/types@0.146.0)(lightningcss@1.33.0)(rolldown@1.2.5)(vite@8.2.2(jiti@2.7.0))(vue@3.5.41)':
     dependencies:
-      '@unhead/bundler': 3.3.2(@oxc-project/types@0.146.0)(lightningcss@1.33.0)(rolldown@1.2.5)(unhead@3.3.2(rolldown@1.2.5)(vite@8.2.1(jiti@2.7.0)))(vite@8.2.1(jiti@2.7.0))
+      '@unhead/bundler': 3.3.2(@oxc-project/types@0.146.0)(lightningcss@1.33.0)(rolldown@1.2.5)(unhead@3.3.2(rolldown@1.2.5)(vite@8.2.2(jiti@2.7.0)))(vite@8.2.2(jiti@2.7.0))
       hookable: 6.1.1
-      unhead: 3.3.2(rolldown@1.2.5)(vite@8.2.1(jiti@2.7.0))
-      unplugin: 3.3.0(rolldown@1.2.5)(vite@8.2.1(jiti@2.7.0))
+      unhead: 3.3.2(rolldown@1.2.5)(vite@8.2.2(jiti@2.7.0))
+      unplugin: 3.3.0(rolldown@1.2.5)(vite@8.2.2(jiti@2.7.0))
       vue: 3.5.41
     optionalDependencies:
-      vite: 8.2.1(jiti@2.7.0)
+      vite: 8.2.2(jiti@2.7.0)
     transitivePeerDependencies:
       - '@farmfe/core'
       - '@oxc-project/types'
@@ -1520,10 +1520,10 @@ snapshots:
       - rollup
       - unloader
 
-  '@vitejs/plugin-vue@6.0.8(vite@8.2.1(jiti@2.7.0))(vue@3.5.41)':
+  '@vitejs/plugin-vue@6.0.8(vite@8.2.2(jiti@2.7.0))(vue@3.5.41)':
     dependencies:
       '@rolldown/pluginutils': 1.0.1
-      vite: 8.2.1(jiti@2.7.0)
+      vite: 8.2.2(jiti@2.7.0)
       vue: 3.5.41
 
   '@vue/compiler-core@3.5.41':
@@ -1910,7 +1910,7 @@ snapshots:
 
   nf3@0.3.23: {}
 
-  nitro-nightly@3.0.1-20260820-224726-7536de7e(vite@8.2.1(jiti@2.7.0)):
+  nitro-nightly@3.0.1-20260820-224726-7536de7e(vite@8.2.2(jiti@2.7.0)):
     dependencies:
       consola: 3.4.2
       crossws: 0.4.12(srvx@0.12.7)
@@ -1927,7 +1927,7 @@ snapshots:
       unenv: 2.0.0-rc.24
       unstorage: 2.0.0-alpha.9
     optionalDependencies:
-      vite: 8.2.1(jiti@2.7.0)
+      vite: 8.2.2(jiti@2.7.0)
 
   node-addon-api@7.1.1: {}
 
@@ -2052,9 +2052,9 @@ snapshots:
       '@iconify-json/vscode-icons': 1.2.74
       '@iconify/utils': 3.1.4
       '@iconify/vue': 5.0.1(vue@3.5.41)
-      '@tailwindcss/vite': 4.3.3(vite@8.2.1(jiti@2.7.0))
-      '@unhead/vue': 3.3.2(@oxc-project/types@0.146.0)(lightningcss@1.33.0)(rolldown@1.2.5)(vite@8.2.1(jiti@2.7.0))(vue@3.5.41)
-      '@vitejs/plugin-vue': 6.0.8(vite@8.2.1(jiti@2.7.0))(vue@3.5.41)
+      '@tailwindcss/vite': 4.3.3(vite@8.2.2(jiti@2.7.0))
+      '@unhead/vue': 3.3.2(@oxc-project/types@0.146.0)(lightningcss@1.33.0)(rolldown@1.2.5)(vite@8.2.2(jiti@2.7.0))(vue@3.5.41)
+      '@vitejs/plugin-vue': 6.0.8(vite@8.2.2(jiti@2.7.0))(vue@3.5.41)
       '@vueuse/core': 14.4.0(vue@3.5.41)
       automd: 0.4.3
       c12: 4.0.0-beta.5(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.3.1)(jiti@2.7.0)
@@ -2068,7 +2068,7 @@ snapshots:
       mermaid-compact: 0.0.1
       minisearch: 7.2.0
       motion-v: 2.4.0(@vueuse/core@14.4.0(vue@3.5.41))(vue@3.5.41)
-      nitro: nitro-nightly@3.0.1-20260820-224726-7536de7e(vite@8.2.1(jiti@2.7.0))
+      nitro: nitro-nightly@3.0.1-20260820-224726-7536de7e(vite@8.2.2(jiti@2.7.0))
       ofetch: 1.5.1
       rangi: 2.2.0
       scule: 1.3.0
@@ -2077,7 +2077,7 @@ snapshots:
       takumi-js: 2.10.0(csstype@3.2.3)
       tw-animate-css: 1.4.0
       ufo: 1.6.4
-      vite: 8.2.1(jiti@2.7.0)
+      vite: 8.2.2(jiti@2.7.0)
       vue: 3.5.41
     transitivePeerDependencies:
       - '@farmfe/core'
@@ -2120,12 +2120,12 @@ snapshots:
     dependencies:
       pathe: 2.0.3
 
-  unhead@3.3.2(rolldown@1.2.5)(vite@8.2.1(jiti@2.7.0)):
+  unhead@3.3.2(rolldown@1.2.5)(vite@8.2.2(jiti@2.7.0)):
     dependencies:
       hookable: 6.1.1
-      unplugin: 3.3.0(rolldown@1.2.5)(vite@8.2.1(jiti@2.7.0))
+      unplugin: 3.3.0(rolldown@1.2.5)(vite@8.2.2(jiti@2.7.0))
     optionalDependencies:
-      vite: 8.2.1(jiti@2.7.0)
+      vite: 8.2.2(jiti@2.7.0)
     transitivePeerDependencies:
       - '@farmfe/core'
       - '@rspack/core'
@@ -2136,14 +2136,14 @@ snapshots:
       - unloader
       - webpack
 
-  unplugin@3.3.0(rolldown@1.2.5)(vite@8.2.1(jiti@2.7.0)):
+  unplugin@3.3.0(rolldown@1.2.5)(vite@8.2.2(jiti@2.7.0)):
     dependencies:
       '@jridgewell/remapping': 2.3.5
       picomatch: 4.0.5
       webpack-virtual-modules: 0.6.2
     optionalDependencies:
       rolldown: 1.2.5
-      vite: 8.2.1(jiti@2.7.0)
+      vite: 8.2.2(jiti@2.7.0)
 
   unstorage@2.0.0-alpha.9: {}
 
@@ -2155,7 +2155,7 @@ snapshots:
       knitwork: 1.3.0
       scule: 1.3.0
 
-  vite@8.2.1(jiti@2.7.0):
+  vite@8.2.2(jiti@2.7.0):
     dependencies:
       lightningcss: 1.33.0
       picomatch: 4.0.5
