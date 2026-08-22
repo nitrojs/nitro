@@ -16,6 +16,24 @@ You can involve in discussions using:
 > [!IMPORTANT]
 > Please discuss your ideas with the maintainers before opening a pull request.
 
+### What to contribute
+
+| Type | Where to start | Notes |
+|------|----------------|-------|
+| **Documentation** | `docs/` | User-facing guides and deploy docs. Run `pnpm fmt` to refresh `automd` blocks when applicable. |
+| **Bug fixes** | `src/` + `test/` | Include a minimal reproduction or a test that fails before the fix. |
+| **Features** | Discuss first | Keep scope minimal; split large changes into smaller PRs. |
+| **Presets** | `src/presets/` | Every new preset needs an implementation under `src/presets/` **and** matching docs under `docs/2.deploy/`. |
+| **Examples** | `examples/` | Runnable recipes; link from `docs/4.examples/` when user-facing. |
+
+### Pull request checklist
+
+- Use [conventional commits](https://www.conventionalcommits.org/) in the PR title (for example `fix(preset): …`, `docs: …`, `feat: …`).
+- Link the related issue when one exists.
+- Run `pnpm test` before pushing.
+- For user-facing changes, update docs in the same PR.
+- For preset or deployment behavior changes, note which providers you tested.
+
 ### Local Development
 
 - Clone the [`nitrojs/nitro`](https://github.com/nitrojs/nitro) git repository.
