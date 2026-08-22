@@ -64,28 +64,33 @@ describe("nitro:preset:node-server", async () => {
       child.stdout!.on("data", (data) => (output += data));
       child.stderr!.on("data", (data) => (output += data));
 
-      await waitForPort(port, { delay: 1000, retries: 20, host: "127.0.0.1" });
+      try {
+        await waitForPort(port, { delay: 1000, retries: 20, host: "127.0.0.1" });
 
-      child.kill("SIGTERM");
-      // Wait for the close hook marker or process exit (the fixture task scheduler
-      // can keep the event loop alive after the server closed)
-      await new Promise<void>((resolve) => {
-        const timeout = setTimeout(resolve, 10_000);
-        child.on("close", () => {
-          clearTimeout(timeout);
-          resolve();
-        });
-        child.stdout!.on("data", (data) => {
-          if (String(data).includes("[fixture] close hook called")) {
+        child.kill("SIGTERM");
+        await new Promise<void>((resolve) => {
+          const done = () => {
             clearTimeout(timeout);
+            child.nodeChildProcess.off("close", done);
+            child.stdout!.off("data", onData);
             resolve();
-          }
+          };
+          const onData = (data: unknown) => {
+            if (String(data).includes("[fixture] close hook called")) {
+              done();
+            }
+          };
+          const timeout = setTimeout(done, 10_000);
+          child.nodeChildProcess.once("close", done);
+          child.stdout!.on("data", onData);
         });
-      });
-      child.kill("SIGKILL");
 
-      expect(output).toContain("[fixture] close hook called");
-      expect(output).not.toContain("unhandledRejection");
+        expect(output).toContain("[fixture] close hook called");
+        expect(output).not.toContain("unhandledRejection");
+      } finally {
+        child.kill("SIGKILL");
+        await child;
+      }
     },
     40_000
   );
