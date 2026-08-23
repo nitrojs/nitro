@@ -59,6 +59,11 @@ export default defineConfig({
       middleware: true,
     },
     {
+      route: "/api/middleware-order",
+      handler: "./server/routed-middleware/order.ts",
+      middleware: true,
+    },
+    {
       route: "/virtual",
       handler: "#virtual-route",
     },

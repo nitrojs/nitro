@@ -251,6 +251,12 @@ export function testNitro(
     expect(headers["x-test"]).toBe("test");
   });
 
+  it("middleware runs as route rules, global, routed", async () => {
+    const { data, headers } = await callHandler({ url: "/api/middleware-order" });
+    expect(data).toEqual(["rules", "global", "routed"]);
+    expect(headers["x-test"]).toBe("test");
+  });
+
   it("API Works", async () => {
     const { data: helloData } = await callHandler({ url: "/api/hello" });
     expect(helloData).to.toMatchObject({ message: "Hello API" });
