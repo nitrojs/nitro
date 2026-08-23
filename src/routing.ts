@@ -7,6 +7,7 @@ import { runtimeDir } from "nitro/meta";
 import { addRoute, createRouter, findRoute, findAllRoutes } from "rou3";
 import { compileRouterToString } from "rou3/compiler";
 import { hash } from "ohash";
+import { encodeNonAsciiRoute } from "./utils/route.ts";
 
 const isGlobalMiddleware = (h: NitroEventHandler) => !h.method && (!h.route || h.route === "/**");
 
@@ -157,7 +158,12 @@ export class Router<T> {
     this._router = createRouter<T>();
     this._compiled = undefined;
     for (const route of routes) {
-      addRoute(this._router, route.method, this._baseURL + route.route, route.data);
+      addRoute(
+        this._router,
+        route.method,
+        this._baseURL + encodeNonAsciiRoute(route.route),
+        route.data
+      );
     }
     if (opts?.merge) {
       mergeCatchAll(this._router);
