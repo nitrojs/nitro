@@ -1,8 +1,15 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "pathe";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "pathe";
 import { describe, expect, it } from "vitest";
 import { createNitro, writeTypes } from "nitro/builder";
+
+const tscPath = join(
+  dirname(fileURLToPath(import.meta.resolve("typescript/package.json"))),
+  "bin/tsc"
+);
 
 describe("writeTypes auto-import resolution", () => {
   const fixtureDir = mkdtempSync(join(tmpdir(), "nitro-types-"));
@@ -109,10 +116,20 @@ describe("writeTypes auto-import resolution", () => {
       `expected import() referencing export-subpath-pkg in:\n${generated}`
     ).toBeTruthy();
 
-    const resolvedTypePath = resolve(dirname(declarationPath), `${match![1]!}.d.mts`);
-    expect(existsSync(resolvedTypePath), `unresolvable type import: ${resolvedTypePath}`).toBe(
-      true
+    expect(match![1]).toBe("../../export-subpath-pkg/lib/h3.mjs");
+
+    execFileSync(
+      process.execPath,
+      [
+        tscPath,
+        "--noEmit",
+        "--module",
+        "preserve",
+        "--moduleResolution",
+        "bundler",
+        declarationPath,
+      ],
+      { cwd: fixtureDir }
     );
-    expect(resolvedTypePath).toBe(join(pkgDir, "lib", "h3.d.mts"));
   });
 });

@@ -66,6 +66,7 @@ export async function writeTypes(nitro: Nitro) {
         continue;
       }
       let path = resolveAlias(from, nitro.options.alias);
+      let keepResolvedExtension = false;
       if (!isAbsolute(path)) {
         const resolvedPath = resolveModulePath(from, {
           try: true,
@@ -81,14 +82,16 @@ export async function writeTypes(nitro: Nitro) {
           } else {
             const subpath = await lookupNodeModuleSubpath(resolvedPath);
             const subpathPath = subpath && subpath !== "./" && join(dir, name, subpath);
-            path =
-              subpathPath && existsSync(subpathPath) && !(await isDirectory(subpathPath))
-                ? subpathPath
-                : resolvedPath;
+            if (subpathPath && existsSync(subpathPath) && !(await isDirectory(subpathPath))) {
+              path = subpathPath;
+            } else {
+              path = resolvedPath;
+              keepResolvedExtension = Boolean(subpathPath);
+            }
           }
         }
       }
-      if (existsSync(path) && !(await isDirectory(path))) {
+      if (!keepResolvedExtension && existsSync(path) && !(await isDirectory(path))) {
         path = path.replace(/\.[a-z]+$/, "");
       }
       if (isAbsolute(path)) {
