@@ -85,7 +85,7 @@ describe("writeTypes auto-import resolution", () => {
       })
     );
     writeFileSync(join(pkgDir, "lib", "h3.mjs"), "export function useH3() {}\n");
-    writeFileSync(join(pkgDir, "lib", "h3.d.mts"), "export declare function useH3(): void\n");
+    writeFileSync(join(pkgDir, "lib", "h3.d.mts"), 'export declare function useH3(): "resolved"\n');
 
     const nitro = await createNitro({
       rootDir: fixtureDir,
@@ -118,6 +118,9 @@ describe("writeTypes auto-import resolution", () => {
 
     expect(match![1]).toBe("../../export-subpath-pkg/lib/h3.mjs");
 
+    const checkPath = join(fixtureDir, "check.ts");
+    writeFileSync(checkPath, 'const result: "resolved" = useH3()\n');
+
     execFileSync(
       process.execPath,
       [
@@ -127,7 +130,9 @@ describe("writeTypes auto-import resolution", () => {
         "preserve",
         "--moduleResolution",
         "bundler",
+        "--noImplicitAny",
         declarationPath,
+        checkPath,
       ],
       { cwd: fixtureDir }
     );
