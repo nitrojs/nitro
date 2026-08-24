@@ -1,6 +1,6 @@
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "pathe";
+import { dirname, join, resolve } from "pathe";
 import { describe, expect, it } from "vitest";
 import { createNitro, writeTypes } from "nitro/builder";
 
@@ -62,5 +62,57 @@ describe("writeTypes auto-import resolution", () => {
       specifier.endsWith("exports-only-pkg"),
       `specifier should not end at the package directory, got ${specifier}`
     ).toBe(false);
+  });
+
+  it("emits a resolvable path for package export subpaths", async () => {
+    const pkgDir = join(fixtureDir, "node_modules", "export-subpath-pkg");
+    mkdirSync(join(pkgDir, "lib"), { recursive: true });
+    writeFileSync(
+      join(pkgDir, "package.json"),
+      JSON.stringify({
+        name: "export-subpath-pkg",
+        type: "module",
+        exports: {
+          "./h3": "./lib/h3.mjs",
+        },
+      })
+    );
+    writeFileSync(join(pkgDir, "lib", "h3.mjs"), "export function useH3() {}\n");
+    writeFileSync(join(pkgDir, "lib", "h3.d.mts"), "export declare function useH3(): void\n");
+
+    const nitro = await createNitro({
+      rootDir: fixtureDir,
+      builder: "rolldown",
+      imports: {
+        presets: [
+          {
+            from: "export-subpath-pkg/h3",
+            imports: ["useH3"],
+          },
+        ],
+      },
+    });
+
+    await writeTypes(nitro);
+
+    const declarationPath = join(
+      fixtureDir,
+      "node_modules",
+      ".nitro",
+      "types",
+      "nitro-imports.d.ts"
+    );
+    const generated = readFileSync(declarationPath, "utf8");
+    const match = generated.match(/typeof import\('([^']*export-subpath-pkg[^']*)'\)/);
+    expect(
+      match,
+      `expected import() referencing export-subpath-pkg in:\n${generated}`
+    ).toBeTruthy();
+
+    const resolvedTypePath = resolve(dirname(declarationPath), `${match![1]!}.d.mts`);
+    expect(existsSync(resolvedTypePath), `unresolvable type import: ${resolvedTypePath}`).toBe(
+      true
+    );
+    expect(resolvedTypePath).toBe(join(pkgDir, "lib", "h3.d.mts"));
   });
 });
