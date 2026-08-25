@@ -71,6 +71,19 @@ describe("openapi", () => {
         }),
       ])
     );
+    for (const [location, name] of [
+      ["query", "tree"],
+      ["header", "x-tree"],
+    ]) {
+      const parameter = operation.parameters.find(
+        (item: Record<string, any>) => item.in === location && item.name === name
+      );
+      const references = getLocalReferences(parameter.schema);
+      expect(references.length).toBeGreaterThan(0);
+      for (const reference of references) {
+        expect(resolveLocalReference(parameter.schema, { reference })).toBeDefined();
+      }
+    }
     expect(operation.requestBody.content["application/json"].schema).toEqual(
       expect.objectContaining({
         type: "object",
@@ -124,3 +137,27 @@ describe("openapi", () => {
     expect(html).toContain('<meta name="description" content="OpenAPI Test Description"');
   });
 });
+
+function getLocalReferences(value: any): string[] {
+  if (!value || typeof value !== "object") {
+    return [];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => getLocalReferences(item));
+  }
+  return [
+    ...(typeof value.$ref === "string" && value.$ref.startsWith("#/") ? [value.$ref] : []),
+    ...Object.values(value).flatMap((item) => getLocalReferences(item)),
+  ];
+}
+
+function resolveLocalReference(root: any, options: { reference: string }): any {
+  let value = root;
+  for (const segment of options.reference
+    .slice(2)
+    .split("/")
+    .map((part) => part.replace(/~1/g, "/").replace(/~0/g, "~"))) {
+    value = value?.[segment];
+  }
+  return value;
+}

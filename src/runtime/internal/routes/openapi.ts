@@ -191,10 +191,46 @@ function schemaToParameters(
     name,
     in: options.location,
     required: required.has(name),
-    schema: propertySchema as ParameterObject["schema"],
+    schema: inheritLocalDefinitions(propertySchema, { root: schema }),
   }));
 }
 
 function responseContentType(schema: Record<string, any>): string {
   return schema.type === "string" ? "text/plain" : "application/json";
+}
+
+function inheritLocalDefinitions(
+  schema: any,
+  options: { root: Record<string, any> }
+): ParameterObject["schema"] {
+  if (!schema || typeof schema !== "object" || Array.isArray(schema)) {
+    return schema;
+  }
+  const rootDefinitions = options.root.$defs;
+  const legacyRootDefinitions = options.root.definitions;
+  if ((!rootDefinitions && !legacyRootDefinitions) || !hasLocalReference(schema)) {
+    return schema;
+  }
+  return {
+    ...schema,
+    ...(rootDefinitions && {
+      $defs: { ...rootDefinitions, ...schema.$defs },
+    }),
+    ...(legacyRootDefinitions && {
+      definitions: { ...legacyRootDefinitions, ...schema.definitions },
+    }),
+  };
+}
+
+function hasLocalReference(value: any): boolean {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  if (Array.isArray(value)) {
+    return value.some((item) => hasLocalReference(item));
+  }
+  return (
+    (typeof value.$ref === "string" && value.$ref.startsWith("#/")) ||
+    Object.values(value).some((item) => hasLocalReference(item))
+  );
 }

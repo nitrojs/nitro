@@ -9,6 +9,36 @@ interface UserResponse {
   role: "admin" | "user";
 }
 
+const TreeDefinition = {
+  type: "object",
+  properties: {
+    children: {
+      type: "array",
+      items: { $ref: "#/$defs/Tree" },
+    },
+  },
+  required: ["children"],
+};
+
+const QuerySchema = createStandardSchema({
+  type: "object",
+  properties: {
+    notify: { type: "string", enum: ["yes", "no"] },
+    tree: { $ref: "#/$defs/Tree" },
+  },
+  $defs: { Tree: TreeDefinition },
+});
+
+const HeadersSchema = createStandardSchema({
+  type: "object",
+  properties: {
+    "x-api-key": { type: "string", minLength: 1 },
+    "x-tree": { $ref: "#/$defs/Tree" },
+  },
+  required: ["x-api-key"],
+  $defs: { Tree: TreeDefinition },
+});
+
 defineRouteMeta({
   openAPI: {
     tags: ["users"],
@@ -22,12 +52,8 @@ export default defineValidatedHandler({
       name: z.string().min(1),
       age: z.number().int().optional(),
     }),
-    query: z.object({
-      notify: z.enum(["yes", "no"]).optional(),
-    }),
-    headers: z.object({
-      "x-api-key": z.string().min(1),
-    }),
+    query: QuerySchema,
+    headers: HeadersSchema,
   },
   async handler(event): Promise<UserResponse> {
     const body = await event.req.json();
@@ -38,3 +64,16 @@ export default defineValidatedHandler({
     };
   },
 });
+
+function createStandardSchema(jsonSchema: Record<string, any>) {
+  return {
+    "~standard": {
+      version: 1 as const,
+      vendor: "nitro-test",
+      validate: (value: unknown) => ({ value }),
+      jsonSchema: {
+        input: () => jsonSchema,
+      },
+    },
+  };
+}
