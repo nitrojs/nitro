@@ -9,7 +9,10 @@ export default function routingMeta(nitro: Nitro) {
 
       return /* js */ `
   ${routeHandlers
-    .map((h) => /* js */ `import ${h._importHash}Meta from "${h.handler}?meta";`)
+    .map(
+      (h) =>
+        /* js */ `import ${h._importHash}Meta, { routeSchema as ${h._importHash}Schema } from "${h.handler}?meta";`
+    )
     .join("\n")}
 export const handlersMeta = [
   ${handlers
@@ -17,7 +20,7 @@ export const handlersMeta = [
       (h) =>
         /* js */ `{ route: ${JSON.stringify(h.route)}, method: ${JSON.stringify(
           h.method?.toLowerCase()
-        )}, meta: ${h._importHash}Meta }`
+        )}, meta: ${h._importHash}Meta, schema: ${h._importHash}Schema }`
     )
     .join(",\n")}
   ];

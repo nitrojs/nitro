@@ -12,9 +12,10 @@ import { joinURL } from "ufo";
 import { defu } from "defu";
 import { handlersMeta } from "#nitro/virtual/routing-meta";
 import { useRuntimeConfig } from "../runtime-config.ts";
+import { standardSchemaToJSONSchema } from "../openapi.ts";
 
 // Served as /_openapi.json
-export default defineHandler((event) => {
+export default defineHandler(async (event) => {
   const runtimeConfig = useRuntimeConfig();
 
   const base = runtimeConfig.app?.baseURL;
@@ -28,7 +29,7 @@ export default defineHandler((event) => {
   const {
     paths,
     globals: { components, ...globalsRest },
-  } = getHandlersMeta();
+  } = await getHandlersMeta();
 
   const extensible: Extensable = Object.fromEntries(
     Object.entries(globalsRest).filter(([key]) => key.startsWith("x-"))
@@ -56,25 +57,68 @@ export default defineHandler((event) => {
 
 type OpenAPIGlobals = Pick<OpenAPI3, "components"> & Extensable;
 
-function getHandlersMeta(): {
+async function getHandlersMeta(): Promise<{
   paths: PathsObject;
   globals: OpenAPIGlobals;
-} {
+}> {
   const paths: PathsObject = {};
   let globals: OpenAPIGlobals = {};
+  const requestSchemas = await Promise.all(
+    handlersMeta.map(async (handler) => {
+      try {
+        return await handler.schema?.request?.();
+      } catch (error) {
+        console.warn(`[nitro] Cannot load request schemas for ${handler.route}.`, error);
+      }
+    })
+  );
 
-  for (const h of handlersMeta) {
+  for (const [index, h] of handlersMeta.entries()) {
     const { route, parameters } = normalizeRoute(h.route || "");
     const tags = defaultTags(h.route || "");
     const method = (h.method || "get").toLowerCase() as Lowercase<HTTPMethod>;
     const { $global, ...openAPI } = h.meta?.openAPI || {};
+    const requestSchema = requestSchemas[index];
+    const requestBodySchema = standardSchemaToJSONSchema(
+      requestSchema?.body,
+      `${method.toUpperCase()} ${route} request body`
+    );
+    const querySchema = standardSchemaToJSONSchema(
+      requestSchema?.query,
+      `${method.toUpperCase()} ${route} query`
+    );
+    const headersSchema = standardSchemaToJSONSchema(
+      requestSchema?.headers,
+      `${method.toUpperCase()} ${route} headers`
+    );
+    const requestParameters = [
+      ...parameters,
+      ...schemaToParameters(querySchema, "query"),
+      ...schemaToParameters(headersSchema, "header"),
+    ];
+    const responseSchema = h.schema?.response;
 
     const item: PathItemObject = {
       [method]: {
         tags,
-        parameters,
+        parameters: requestParameters,
+        ...(requestBodySchema && {
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": { schema: requestBodySchema },
+            },
+          },
+        }),
         responses: {
-          200: { description: "OK" },
+          200: {
+            description: "OK",
+            ...(responseSchema && {
+              content: {
+                [responseContentType(responseSchema)]: { schema: responseSchema },
+              },
+            }),
+          },
         },
         ...openAPI,
       } as OperationObject,
@@ -136,4 +180,24 @@ function defaultTags(route: string) {
   }
 
   return tags;
+}
+
+function schemaToParameters(
+  schema: Record<string, any> | undefined,
+  location: "query" | "header"
+): ParameterObject[] {
+  if (!schema?.properties || typeof schema.properties !== "object") {
+    return [];
+  }
+  const required = new Set(Array.isArray(schema.required) ? schema.required : []);
+  return Object.entries(schema.properties).map(([name, propertySchema]) => ({
+    name,
+    in: location,
+    required: required.has(name),
+    schema: propertySchema as ParameterObject["schema"],
+  }));
+}
+
+function responseContentType(schema: Record<string, any>): string {
+  return schema.type === "string" ? "text/plain" : "application/json";
 }
