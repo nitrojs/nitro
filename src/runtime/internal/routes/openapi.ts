@@ -79,22 +79,19 @@ async function getHandlersMeta(): Promise<{
     const method = (h.method || "get").toLowerCase() as Lowercase<HTTPMethod>;
     const { $global, ...openAPI } = h.meta?.openAPI || {};
     const requestSchema = requestSchemas[index];
-    const requestBodySchema = standardSchemaToJSONSchema(
-      requestSchema?.body,
-      `${method.toUpperCase()} ${route} request body`
-    );
-    const querySchema = standardSchemaToJSONSchema(
-      requestSchema?.query,
-      `${method.toUpperCase()} ${route} query`
-    );
-    const headersSchema = standardSchemaToJSONSchema(
-      requestSchema?.headers,
-      `${method.toUpperCase()} ${route} headers`
-    );
+    const requestBodySchema = standardSchemaToJSONSchema(requestSchema?.body, {
+      context: `${method.toUpperCase()} ${route} request body`,
+    });
+    const querySchema = standardSchemaToJSONSchema(requestSchema?.query, {
+      context: `${method.toUpperCase()} ${route} query`,
+    });
+    const headersSchema = standardSchemaToJSONSchema(requestSchema?.headers, {
+      context: `${method.toUpperCase()} ${route} headers`,
+    });
     const requestParameters = [
       ...parameters,
-      ...schemaToParameters(querySchema, "query"),
-      ...schemaToParameters(headersSchema, "header"),
+      ...schemaToParameters(querySchema, { location: "query" }),
+      ...schemaToParameters(headersSchema, { location: "header" }),
     ];
     const responseSchema = h.schema?.response;
 
@@ -184,7 +181,7 @@ function defaultTags(route: string) {
 
 function schemaToParameters(
   schema: Record<string, any> | undefined,
-  location: "query" | "header"
+  options: { location: "query" | "header" }
 ): ParameterObject[] {
   if (!schema?.properties || typeof schema.properties !== "object") {
     return [];
@@ -192,7 +189,7 @@ function schemaToParameters(
   const required = new Set(Array.isArray(schema.required) ? schema.required : []);
   return Object.entries(schema.properties).map(([name, propertySchema]) => ({
     name,
-    in: location,
+    in: options.location,
     required: required.has(name),
     schema: propertySchema as ParameterObject["schema"],
   }));

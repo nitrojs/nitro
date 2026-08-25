@@ -15,7 +15,7 @@ describe("route response schemas", () => {
     const warn = vi.fn();
     const generator = createRouteResponseSchemaGenerator({
       routing: { routes: { routes: {} } },
-      options: { rootDir: process.cwd() },
+      options: { rootDir: "/test/project" },
       logger: { debug: vi.fn(), warn },
     } as any);
 
