@@ -160,7 +160,7 @@ export class Router<T> {
       addRoute(this._router, route.method, this._baseURL + route.route, route.data);
     }
     if (opts?.merge) {
-      mergeCatchAll(this._router);
+      mergeCatchAll(this._router, this._baseURL);
     }
   }
 
@@ -182,12 +182,16 @@ export class Router<T> {
     if (onlyWildcard) {
       // Optimize for single wildcard route
       const data = (opts?.serialize || JSON.stringify)(this.routes[0].data);
-      let retCode = `{data,params:{"_":p.slice(1)}}`;
+      const base = this._baseURL;
+      let retCode = `{data,params:{"_":p.slice(${base.length + 1})}}`;
       if (opts?.matchAll) {
         retCode = `[${retCode}]`;
       }
+      const guardCode = base
+        ? `if(p!==${JSON.stringify(base)}&&!p.startsWith(${JSON.stringify(base + "/")})){return ${opts?.matchAll ? "[]" : "undefined"};}`
+        : "";
       this._compiled[key] =
-        /* js */ `/* @__PURE__ */ (() => {const data=${data};return ((_m, p)=>{return ${retCode};})})()`;
+        /* js */ `/* @__PURE__ */ (() => {const data=${data};return ((_m, p)=>{${guardCode}return ${retCode};})})()`;
     }
 
     return this._compiled[key];
@@ -203,8 +207,18 @@ export class Router<T> {
   }
 }
 
-function mergeCatchAll(router: RouterContext<unknown>) {
-  const handlers = router.root?.wildcard?.methods?.[""];
+function mergeCatchAll(router: RouterContext<unknown>, baseURL: string) {
+  let node = router.root;
+  for (const segment of baseURL.split("/")) {
+    if (!segment) {
+      continue;
+    }
+    node = node?.static?.[segment]!;
+    if (!node) {
+      return;
+    }
+  }
+  const handlers = node?.wildcard?.methods?.[""];
   if (!handlers || handlers.length < 2) {
     return;
   }
