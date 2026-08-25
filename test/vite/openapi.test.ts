@@ -35,10 +35,77 @@ describe("openapi", () => {
     expect(spec.paths?.["/api/meta/test"]).toBeDefined();
     expect(spec.paths["/api/meta/test"].get.description).toBe("Vite builder route description");
     expect(spec.paths["/api/meta/test"].get.tags).toEqual(["test"]);
+    expect(spec.paths["/api/meta/test"].get.parameters).toEqual([
+      { in: "query", name: "vite-test", required: true },
+    ]);
+    expect(spec.paths["/api/meta/test"].get.responses).toEqual({
+      200: { description: "result" },
+    });
 
     const routeRes = await fetch(`${serverURL}/api/meta/test`);
     expect(routeRes.status).toBe(200);
     expect(await routeRes.json()).toEqual({ status: "OK" });
+  });
+
+  test("generates schemas for validated handlers", async () => {
+    const spec: Record<string, any> = await fetch(`${serverURL}/_openapi.json`).then((res) =>
+      res.json()
+    );
+    const operation = spec.paths["/api/users"].post;
+
+    expect(operation.description).toBe("Creates a user");
+    expect(operation.tags).toEqual(["users"]);
+    expect(operation.parameters).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          in: "query",
+          name: "notify",
+          required: false,
+          schema: expect.objectContaining({ enum: ["yes", "no"] }),
+        }),
+        expect.objectContaining({
+          in: "header",
+          name: "x-api-key",
+          required: true,
+          schema: expect.objectContaining({ type: "string" }),
+        }),
+      ])
+    );
+    expect(operation.requestBody.content["application/json"].schema).toEqual(
+      expect.objectContaining({
+        type: "object",
+        required: ["name"],
+        properties: {
+          name: expect.objectContaining({ type: "string", minLength: 1 }),
+          age: expect.objectContaining({ type: "integer" }),
+        },
+      })
+    );
+    expect(operation.responses[200].content["application/json"].schema).toEqual({
+      type: "object",
+      properties: {
+        id: { type: "string" },
+        name: { type: "string" },
+        active: { type: "boolean" },
+        role: { type: "string", enum: ["admin", "user"] },
+      },
+      required: ["id", "name", "role"],
+    });
+
+    const invalidResponse = await fetch(`${serverURL}/api/users`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-api-key": "test" },
+      body: JSON.stringify({ name: "" }),
+    });
+    expect(invalidResponse.status).toBe(400);
+
+    const response = await fetch(`${serverURL}/api/users?notify=yes`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-api-key": "test" },
+      body: JSON.stringify({ name: "Ada" }),
+    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ id: "user-1", name: "Ada", role: "user" });
   });
 
   test("serves swagger UI with meta", async () => {
