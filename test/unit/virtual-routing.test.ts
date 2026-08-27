@@ -53,3 +53,28 @@ describe("virtual/routing template", () => {
     expect(template).toContain("wrapHandlerWithTracing(h3.toEventHandler(_abc123))");
   });
 });
+
+it("serializes routed middleware with serializeHandlerFn instead of route record", () => {
+  const handler: NitroEventHandler & { _importHash: string } = {
+    route: "/api/**",
+    handler: "/path/to/middleware.ts",
+    _importHash: "_mid123",
+    middleware: true,
+  };
+  const nitroStub = {
+    options: { baseURL: "/", routeRules: {} },
+    routing: {
+      routes: { routes: [], compileToString: () => "{}" },
+      routedMiddleware: {
+        routes: [{ route: "/api/**", data: handler }],
+        compileToString: ({ serialize }: { serialize: (h: unknown) => string }) =>
+          `{"/api/**":${serialize(handler)}}`,
+      },
+      globalMiddleware: [],
+    },
+  } as unknown as Nitro;
+  const template = routing(nitroStub).template();
+  expect(template).toContain(
+    'export const findRoutedMiddleware = {"/api/**":h3.toEventHandler(_mid123)};'
+  );
+});
