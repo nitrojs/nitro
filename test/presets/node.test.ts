@@ -68,21 +68,19 @@ describe("nitro:preset:node-server", async () => {
         await waitForPort(port, { delay: 1000, retries: 20, host: "127.0.0.1" });
 
         child.kill("SIGTERM");
+        // Wait for the process to actually close before cleanup, so SIGKILL
+        // cannot cut graceful shutdown short and the marker assertion below
+        // runs after closure. The fixture task scheduler can keep the event
+        // loop alive after the server closed, so a missing close event falls
+        // through after 10s.
         await new Promise<void>((resolve) => {
           const done = () => {
             clearTimeout(timeout);
             child.nodeChildProcess.off("close", done);
-            child.stdout!.off("data", onData);
             resolve();
-          };
-          const onData = (data: unknown) => {
-            if (String(data).includes("[fixture] close hook called")) {
-              done();
-            }
           };
           const timeout = setTimeout(done, 10_000);
           child.nodeChildProcess.once("close", done);
-          child.stdout!.on("data", onData);
         });
 
         expect(output).toContain("[fixture] close hook called");
