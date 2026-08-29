@@ -86,7 +86,7 @@ describe("virtual/routing template", () => {
     expect(template).not.toContain(`route:"/api/**"`);
   });
 
-  it("wraps routed middleware with wrapHandlerWithTracing when tracingChannel.h3 is true", () => {
+  it("wraps routed middleware with wrapMiddlewareWithTracing when tracingChannel.h3 is true", () => {
     const middlewareHandler: NitroEventHandler & { _importHash: string } = {
       route: "/api/**",
       handler: "/path/to/middleware.ts",
@@ -115,6 +115,6 @@ describe("virtual/routing template", () => {
 
     const template = routing(nitroStub).template();
     expect(template).toContain("export const findRoutedMiddleware =");
-    expect(template).toContain("wrapHandlerWithTracing(h3.toEventHandler(_mid123))");
+    expect(template).toContain("wrapMiddlewareWithTracing(h3.toEventHandler(_mid123))");
   });
 });

@@ -73,15 +73,25 @@ describe("route-scoped middleware", () => {
       output: { dir: outDir },
       routeRules: {
         "/api/**": {
-          headers: { "x-order-1-rule": "rule" },
+          headers: { "x-route-rule": "applied" },
         },
       },
       virtual: {
         "#global-middleware": () =>
-          `export default (event) => { event.res.headers.append("x-order", "global"); }`,
+          `export default (event) => {
+            const current = event.res.headers.get("x-execution-order") || "";
+            event.res.headers.set("x-execution-order", current ? current + ", global" : "global");
+          }`,
         "#routed-middleware": () =>
-          `export default (event) => { event.res.headers.append("x-order", "routed"); }`,
-        "#order-handler": () => `export default () => ({ status: "ok" })`,
+          `export default (event) => {
+            const current = event.res.headers.get("x-execution-order") || "";
+            event.res.headers.set("x-execution-order", current + ", routed");
+          }`,
+        "#order-handler": () => `export default (event) => ({
+          status: "ok",
+          order: event.res.headers.get("x-execution-order"),
+          hasContextRouteRules: !!event.context?.routeRules,
+        })`,
       },
       handlers: [
         {
@@ -108,8 +118,10 @@ describe("route-scoped middleware", () => {
 
     const res = await fetch(new Request("http://localhost/api/order"));
     expect(res.status).toBe(200);
-    expect(res.headers.get("x-order-1-rule")).toBe("rule");
-    expect(res.headers.get("x-order")).toBe("global, routed");
-    expect(await res.json()).toEqual({ status: "ok" });
+    expect(res.headers.get("x-execution-order")).toBe("global, routed");
+    const data = await res.json();
+    expect(data.status).toBe("ok");
+    expect(data.order).toBe("global, routed");
+    expect(data.hasContextRouteRules).toBe(true);
   });
 });

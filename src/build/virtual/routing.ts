@@ -27,6 +27,18 @@ import * as srvxNode from "srvx/node"
 import * as h3 from "h3";${traceH3 ? `\nimport { wrapHandlerWithTracing } from "h3/tracing";` : ""}
 
 ${routeRulesModule}
+${
+  traceH3
+    ? `const wrapMiddlewareWithTracing = (middleware) => {
+  const { tracingChannel } = globalThis.process?.getBuiltinModule?.("diagnostics_channel") ?? {};
+  if (!tracingChannel || middleware.__traced__) return middleware;
+  const channel = tracingChannel("h3.request");
+  const wrapped = (...args) => channel.tracePromise(async () => middleware(...args), { event: args[0], type: "middleware" });
+  wrapped.__traced__ = true;
+  return wrapped;
+};`
+    : ""
+}
 const multiHandler = (...handlers) => {
   const final = handlers.pop()
   const middleware = handlers.filter(Boolean).map(h => h3.toMiddleware(h));
@@ -48,7 +60,7 @@ ${allHandlers
 
 export const findRoute = ${nitro.routing.routes.compileToString({ serialize: (h) => serializeHandler(h, { tracing: traceH3 }) })}
 
-export const findRoutedMiddleware = ${nitro.routing.routedMiddleware.compileToString({ serialize: (h) => serializeHandlerFn(h, { tracing: traceH3 }), matchAll: true })};
+export const findRoutedMiddleware = ${nitro.routing.routedMiddleware.compileToString({ serialize: (h) => serializeHandlerFn(h, { tracing: traceH3, type: "middleware" }), matchAll: true })};
 
 export const globalMiddleware = [
   ${nitro.routing.globalMiddleware.map((h) => (h.lazy ? h._importHash : `h3.toEventHandler(${h._importHash})`)).join(",")}
@@ -72,8 +84,8 @@ function serializeHandler(
 ): string {
   const meta = Array.isArray(h) ? h[0] : h;
   const handler = Array.isArray(h)
-    ? `multiHandler(${h.map((handler) => serializeHandlerFn(handler, opts)).join(",")})`
-    : serializeHandlerFn(h, opts);
+    ? `multiHandler(${h.map((handler) => serializeHandlerFn(handler, { ...opts, type: "route" })).join(",")})`
+    : serializeHandlerFn(h, { ...opts, type: "route" });
 
   return `{${[
     `route:${JSON.stringify(meta.route)}`,
@@ -87,7 +99,7 @@ function serializeHandler(
 
 function serializeHandlerFn(
   h: NitroEventHandler & { _importHash: string },
-  opts: { tracing?: boolean } = {}
+  opts: { tracing?: boolean; type?: "route" | "middleware" } = {}
 ): string {
   let code = h._importHash;
   if (!h.lazy) {
@@ -97,7 +109,10 @@ function serializeHandlerFn(
     code = `h3.toEventHandler(${code})`;
   }
   if (opts.tracing) {
-    code = `wrapHandlerWithTracing(${code})`;
+    code =
+      opts.type === "middleware"
+        ? `wrapMiddlewareWithTracing(${code})`
+        : `wrapHandlerWithTracing(${code})`;
   }
   return code;
 }
