@@ -80,19 +80,15 @@ export async function writeTypes(nitro: Nitro) {
             path = resolvedPath;
           } else {
             const subpath = await lookupNodeModuleSubpath(resolvedPath);
-            if (subpath && subpath !== "./") {
-              // Emit a bare specifier so package `exports` (and its `types` condition)
-              // resolve it. A relativised `<dir>/<name>/<subpath>` is not a real file
-              // whenever the subpath is an `exports` key rather than an on-disk path.
-              let specifier = join(name, subpath);
-              const subpathFile = join(dir, name, subpath);
-              if (existsSync(subpathFile) && !(await isDirectory(subpathFile))) {
-                specifier = specifier.replace(/\.[a-z]+$/, "");
-              }
-              resolvedImportPathMap.set(from, specifier);
+            const subpathFile = subpath && subpath !== "./" ? join(dir, name, subpath) : undefined;
+            if (subpathFile && !existsSync(subpathFile)) {
+              // `subpath` is an `exports` key rather than an on-disk path, so emit a
+              // bare specifier and let the package `exports` `types` condition resolve
+              // it. A relativised path would not point at a real file.
+              resolvedImportPathMap.set(from, join(name, subpath!));
               continue;
             }
-            path = resolvedPath;
+            path = subpathFile ?? resolvedPath;
           }
         }
       }
