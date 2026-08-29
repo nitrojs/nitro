@@ -61,4 +61,55 @@ describe("route-scoped middleware", () => {
     expect(resOther.headers.get("x-auth-middleware")).toBeNull();
     expect(await resOther.json()).toEqual({ message: "other" });
   });
+
+  it("executes middleware in route-rules -> global -> routed middleware order", async () => {
+    const outDir = join(tmpDir, "output-ordering");
+    await rm(outDir, { recursive: true, force: true });
+    await mkdir(outDir, { recursive: true });
+
+    const nitro = await createNitro({
+      rootDir: tmpDir,
+      preset: "standard",
+      output: { dir: outDir },
+      routeRules: {
+        "/api/**": {
+          headers: { "x-order-1-rule": "rule" },
+        },
+      },
+      virtual: {
+        "#global-middleware": () =>
+          `export default (event) => { event.res.headers.append("x-order", "global"); }`,
+        "#routed-middleware": () =>
+          `export default (event) => { event.res.headers.append("x-order", "routed"); }`,
+        "#order-handler": () => `export default () => ({ status: "ok" })`,
+      },
+      handlers: [
+        {
+          handler: "#global-middleware",
+          middleware: true,
+        },
+        {
+          route: "/api/**",
+          handler: "#routed-middleware",
+          middleware: true,
+        },
+        {
+          route: "/api/order",
+          handler: "#order-handler",
+        },
+      ],
+    });
+
+    await prepare(nitro);
+    await build(nitro);
+
+    const entry = join(outDir, "server/index.mjs");
+    const { fetch } = await import(entry).then((m) => m.default);
+
+    const res = await fetch(new Request("http://localhost/api/order"));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("x-order-1-rule")).toBe("rule");
+    expect(res.headers.get("x-order")).toBe("global, routed");
+    expect(await res.json()).toEqual({ status: "ok" });
+  });
 });

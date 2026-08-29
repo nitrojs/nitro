@@ -48,7 +48,7 @@ ${allHandlers
 
 export const findRoute = ${nitro.routing.routes.compileToString({ serialize: (h) => serializeHandler(h, { tracing: traceH3 }) })}
 
-export const findRoutedMiddleware = ${nitro.routing.routedMiddleware.compileToString({ serialize: serializeHandlerFn, matchAll: true })};
+export const findRoutedMiddleware = ${nitro.routing.routedMiddleware.compileToString({ serialize: (h) => serializeHandlerFn(h, { tracing: traceH3 }), matchAll: true })};
 
 export const globalMiddleware = [
   ${nitro.routing.globalMiddleware.map((h) => (h.lazy ? h._importHash : `h3.toEventHandler(${h._importHash})`)).join(",")}
@@ -72,26 +72,32 @@ function serializeHandler(
 ): string {
   const meta = Array.isArray(h) ? h[0] : h;
   const handler = Array.isArray(h)
-    ? `multiHandler(${h.map((handler) => serializeHandlerFn(handler)).join(",")})`
-    : serializeHandlerFn(h);
+    ? `multiHandler(${h.map((handler) => serializeHandlerFn(handler, opts)).join(",")})`
+    : serializeHandlerFn(h, opts);
 
   return `{${[
     `route:${JSON.stringify(meta.route)}`,
     meta.method && `method:${JSON.stringify(meta.method)}`,
     meta.meta && `meta:${JSON.stringify(meta.meta)}`,
-    `handler:${opts.tracing ? `wrapHandlerWithTracing(${handler})` : handler}`,
+    `handler:${handler}`,
   ]
     .filter(Boolean)
     .join(",")}}`;
 }
 
-function serializeHandlerFn(h: NitroEventHandler & { _importHash: string }): string {
+function serializeHandlerFn(
+  h: NitroEventHandler & { _importHash: string },
+  opts: { tracing?: boolean } = {}
+): string {
   let code = h._importHash;
   if (!h.lazy) {
     if (h.format === "node") {
       code = `srvxNode.toFetchHandler(${code})`;
     }
     code = `h3.toEventHandler(${code})`;
+  }
+  if (opts.tracing) {
+    code = `wrapHandlerWithTracing(${code})`;
   }
   return code;
 }
