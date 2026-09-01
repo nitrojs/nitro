@@ -35,10 +35,90 @@ describe("openapi", () => {
     expect(spec.paths?.["/api/meta/test"]).toBeDefined();
     expect(spec.paths["/api/meta/test"].get.description).toBe("Vite builder route description");
     expect(spec.paths["/api/meta/test"].get.tags).toEqual(["test"]);
+    expect(spec.paths["/api/meta/test"].get.parameters).toEqual([
+      { in: "query", name: "vite-test", required: true },
+    ]);
+    expect(spec.paths["/api/meta/test"].get.responses).toEqual({
+      200: { description: "result" },
+    });
 
     const routeRes = await fetch(`${serverURL}/api/meta/test`);
     expect(routeRes.status).toBe(200);
     expect(await routeRes.json()).toEqual({ status: "OK" });
+  });
+
+  test("generates schemas for validated handlers", async () => {
+    const spec: Record<string, any> = await fetch(`${serverURL}/_openapi.json`).then((res) =>
+      res.json()
+    );
+    const operation = spec.paths["/api/users"].post;
+
+    expect(operation.description).toBe("Creates a user");
+    expect(operation.tags).toEqual(["users"]);
+    expect(operation.parameters).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          in: "query",
+          name: "notify",
+          required: false,
+          schema: expect.objectContaining({ enum: ["yes", "no"] }),
+        }),
+        expect.objectContaining({
+          in: "header",
+          name: "x-api-key",
+          required: true,
+          schema: expect.objectContaining({ type: "string" }),
+        }),
+      ])
+    );
+    for (const [location, name] of [
+      ["query", "tree"],
+      ["header", "x-tree"],
+    ]) {
+      const parameter = operation.parameters.find(
+        (item: Record<string, any>) => item.in === location && item.name === name
+      );
+      const references = getLocalReferences(parameter.schema);
+      expect(references.length).toBeGreaterThan(0);
+      for (const reference of references) {
+        expect(resolveLocalReference(parameter.schema, { reference })).toBeDefined();
+      }
+    }
+    expect(operation.requestBody.content["application/json"].schema).toEqual(
+      expect.objectContaining({
+        type: "object",
+        required: ["name"],
+        properties: {
+          name: expect.objectContaining({ type: "string", minLength: 1 }),
+          age: expect.objectContaining({ type: "integer" }),
+        },
+      })
+    );
+    expect(operation.responses[200].content["application/json"].schema).toEqual({
+      type: "object",
+      properties: {
+        id: { type: "string" },
+        name: { type: "string" },
+        active: { type: "boolean" },
+        role: { type: "string", enum: ["admin", "user"] },
+      },
+      required: ["id", "name", "role"],
+    });
+
+    const invalidResponse = await fetch(`${serverURL}/api/users`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-api-key": "test" },
+      body: JSON.stringify({ name: "" }),
+    });
+    expect(invalidResponse.status).toBe(400);
+
+    const response = await fetch(`${serverURL}/api/users?notify=yes`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-api-key": "test" },
+      body: JSON.stringify({ name: "Ada" }),
+    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ id: "user-1", name: "Ada", role: "user" });
   });
 
   test("serves swagger UI with meta", async () => {
@@ -57,3 +137,27 @@ describe("openapi", () => {
     expect(html).toContain('<meta name="description" content="OpenAPI Test Description"');
   });
 });
+
+function getLocalReferences(value: any): string[] {
+  if (!value || typeof value !== "object") {
+    return [];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => getLocalReferences(item));
+  }
+  return [
+    ...(typeof value.$ref === "string" && value.$ref.startsWith("#/") ? [value.$ref] : []),
+    ...Object.values(value).flatMap((item) => getLocalReferences(item)),
+  ];
+}
+
+function resolveLocalReference(root: any, options: { reference: string }): any {
+  let value = root;
+  for (const segment of options.reference
+    .slice(2)
+    .split("/")
+    .map((part) => part.replace(/~1/g, "/").replace(/~0/g, "~"))) {
+    value = value?.[segment];
+  }
+  return value;
+}

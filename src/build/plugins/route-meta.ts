@@ -4,13 +4,21 @@ import type { Expression, Literal } from "estree";
 import type { Nitro, NitroEventHandler } from "nitro/types";
 import type { Plugin } from "rollup";
 import { escapeRegExp } from "../../utils/regex.ts";
+import { createRouteResponseSchemaGenerator } from "./_route-response-schema.ts";
 
 const PREFIX = "\0nitro:route-meta:";
 
 export async function routeMeta(nitro: Nitro) {
   const { transformSync } = await import("rolldown/utils");
+  const responseSchemas = createRouteResponseSchemaGenerator(nitro);
   return {
     name: "nitro:route-meta",
+    watchChange(id) {
+      responseSchemas.invalidate(id);
+    },
+    closeBundle() {
+      responseSchemas.close();
+    },
     resolveId: {
       order: "pre",
       // eslint-disable-next-line no-control-regex
@@ -34,9 +42,10 @@ export async function routeMeta(nitro: Nitro) {
         if (id.startsWith(PREFIX)) {
           const fullPath = id.slice(PREFIX.length);
           if (isAbsolute(fullPath)) {
+            this.addWatchFile(fullPath);
             return readFile(fullPath, { encoding: "utf8" });
           } else {
-            return "export default undefined;";
+            return "export const routeSchema = {}; export default undefined;";
           }
         }
       },
@@ -48,6 +57,7 @@ export async function routeMeta(nitro: Nitro) {
       },
       async handler(code, id) {
         let meta: NitroEventHandler["meta"] | null = null;
+        let hasValidation = false;
 
         try {
           const transformRes = transformSync(id, code, { tsconfig: false });
@@ -56,7 +66,7 @@ export async function routeMeta(nitro: Nitro) {
               this.warn(error);
             }
             return {
-              code: `export default {};`,
+              code: `export const routeSchema = {}; export default {};`,
               map: null,
             };
           }
@@ -71,15 +81,32 @@ export async function routeMeta(nitro: Nitro) {
               node.expression.arguments.length === 1
             ) {
               meta = astToObject(node.expression.arguments[0] as any);
-              break;
+            }
+            if (
+              node.type === "ExportDefaultDeclaration" &&
+              node.declaration.type === "CallExpression" &&
+              node.declaration.callee.type === "Identifier" &&
+              node.declaration.callee.name === "defineValidatedHandler"
+            ) {
+              hasValidation = true;
             }
           }
         } catch (error) {
-          nitro.logger.warn(`[handlers-meta] Cannot extra route meta for: ${id}: ${error}`);
+          nitro.logger.warn(`[handlers-meta] Cannot extract route meta for: ${id}: ${error}`);
         }
 
+        const fullPath = id.slice(PREFIX.length);
+        const response = isAbsolute(fullPath) ? await responseSchemas.infer(fullPath) : undefined;
         return {
-          code: `export default ${JSON.stringify(meta)};`,
+          code: `export const routeSchema = {
+  request: ${
+    hasValidation
+      ? `() => import(${JSON.stringify(fullPath)}).then((module) => module.default.validate)`
+      : "undefined"
+  },
+  response: ${JSON.stringify(response)}
+};
+export default ${JSON.stringify(meta)};`,
           map: null,
         };
       },
