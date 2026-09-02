@@ -493,7 +493,7 @@ export function testNitro(
     expect(status).toBe(404);
   });
 
-  it("find auto imported utils", async () => {
+  it("resolves utils from server/utils", async () => {
     const res = await callHandler({ url: "/imports" });
     expect(res.data).toMatchObject({
       testUtil: 123,

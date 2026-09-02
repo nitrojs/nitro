@@ -1,7 +1,6 @@
 import type { ConsolaInstance } from "consola";
 import type { Hookable } from "hookable";
 import type { PresetName, PresetOptions } from "../presets/index.ts";
-import type { Unimport } from "unimport";
 import type { NitroConfig, NitroOptions } from "./config.ts";
 import type { NitroEventHandler } from "./handler.ts";
 import type { NitroHooks } from "./hooks.ts";
@@ -31,7 +30,6 @@ export interface Nitro {
   scannedHandlers: NitroEventHandler[];
   vfs: Map<string, { render: () => string | Promise<string> }>;
   hooks: Hookable<NitroHooks>;
-  unimport?: Unimport;
   logger: ConsolaInstance;
   fetch: (input: Request) => Response | Promise<Response>;
   close: () => Promise<void>;

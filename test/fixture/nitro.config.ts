@@ -25,15 +25,6 @@ export default defineConfig({
   // @ts-expect-error
   __vitePkg__: process.env.NITRO_VITE_PKG,
   framework: { name: "nitro", version: "3.x" },
-  imports: {
-    presets: [
-      {
-        // TODO: move this to built-in preset
-        from: "scule",
-        imports: ["camelCase", "pascalCase", "kebabCase"],
-      },
-    ],
-  },
   sourcemap: true,
   rollupConfig: {
     output: {

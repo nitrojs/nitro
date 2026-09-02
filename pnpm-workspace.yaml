@@ -92,7 +92,6 @@ minimumReleaseAgeExclude:
   - uncrypto*
   - unctx*
   - unenv*
-  - unimport*
   - unstorage*
   - untyped*
   - unwasm*
