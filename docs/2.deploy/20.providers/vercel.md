@@ -98,7 +98,7 @@ import { defineConfig } from "nitro";
 
 export default defineConfig({
   routeRules: {
-    // Proxied at CDN level — no function invocation
+    // Proxied at CDN level, no function invocation
     "/api/**": {
       proxy: "https://api.example.com/**",
     },
@@ -117,11 +117,11 @@ A proxy rule is offloaded to a Vercel CDN rewrite when **all** of the following 
 
 When the proxy rule uses any of the following `ProxyOptions`, Nitro keeps it as a runtime proxy handled by the serverless function:
 
-- `headers` — custom headers on the outgoing request to the upstream
-- `forwardHeaders` / `filterHeaders` — header filtering
-- `fetchOptions` — custom fetch options
-- `cookieDomainRewrite` / `cookiePathRewrite` — cookie manipulation
-- `onResponse` — response callback
+- `headers`: custom headers on the outgoing request to the upstream
+- `forwardHeaders` / `filterHeaders`: header filtering
+- `fetchOptions`: custom fetch options
+- `cookieDomainRewrite` / `cookiePathRewrite`: cookie manipulation
+- `onResponse`: response callback
 
 ::note
 Response headers defined on the route rule via the `headers` option are still applied to CDN-level rewrites. Only request-level `ProxyOptions.headers` (sent to the upstream) require a runtime proxy.
@@ -131,7 +131,7 @@ Response headers defined on the route rule via the `headers` option are still ap
 
 :read-more{title="Vercel Cron Jobs" to="https://vercel.com/docs/cron-jobs"}
 
-Nitro automatically converts your [`scheduledTasks`](/docs/tasks#scheduled-tasks) configuration into [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs) at build time. Define your schedules in your Nitro config and deploy — no manual `vercel.json` cron configuration required.
+Nitro automatically converts your [`scheduledTasks`](/docs/tasks#scheduled-tasks) configuration into [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs) at build time. Define your schedules in your Nitro config and deploy. No manual `vercel.json` cron configuration is required.
 
 ```ts [nitro.config.ts]
 import { defineConfig } from "nitro";
@@ -227,7 +227,7 @@ export default defineHandler(async (event) => {
 
 ### Local development
 
-Queues work in `nitro dev` — `send()` delivers messages straight to your `vercel:queue` hook, so you can iterate without deploying. Pull your Vercel environment first with `vercel link` and `vercel env pull` so the SDK can authenticate.
+Queues work in `nitro dev`: `send()` delivers messages straight to your `vercel:queue` hook, so you can iterate without deploying. Pull your Vercel environment first with `vercel link` and `vercel env pull` so the SDK can authenticate.
 
 If your hook throws, the message is retried locally. Retries honor `retryAfterSeconds` from each trigger when set.
 
@@ -270,14 +270,14 @@ Immutable static files must be served from the reserved `/_vercel/immutable/` pa
 ::note
 This works out of the box with the **Nitro + Vite** integration: Nitro's Vercel preset sets `buildAssetsDir` config and the Vite plugin automatically applies it as the `assetsDir` for the client and server-rendered builds, so all generated asset URLs point under `/_vercel/immutable/`.
 
-Client build setups and frameworks must apply `nitro.options.buildAssetsDir` themselves — use it as the client bundler's asset output directory (base) so generated asset URLs are emitted under that path. Without this, assets are still emitted at their default location and the immutable manifest will not match.
+Client build setups and frameworks must apply `nitro.options.buildAssetsDir` themselves. Use it as the client bundler's asset output directory (base) so generated asset URLs are emitted under that path. Without this, assets are still emitted at their default location and the immutable manifest will not match.
 ::
 
 ## Other preset options
 
 Additional options are available under the `vercel` key in your Nitro config:
 
-- `entryFormat`: Handler format for Vercel Functions. `"web"` (default) or `"node"` — the `node` format enables compatibility with Node.js specific APIs (e.g., `req.runtime.node`).
+- `entryFormat`: Handler format for Vercel Functions. `"web"` (default) or `"node"`. The `node` format enables compatibility with Node.js specific APIs (e.g., `req.runtime.node`).
 - `regions`: List of [regions](https://vercel.com/docs/concepts/functions/edge-functions#edge-function-regions) for edge functions.
 - `skewProtection`: Set to `false` to disable the Nitro [skew protection](https://vercel.com/docs/skew-protection) integration (enabled by default when skew protection is enabled in the Vercel dashboard).
 - `cronHandlerRoute`: Route path for the Vercel cron handler endpoint used with `scheduledTasks` (default: `"/_vercel/cron"`).

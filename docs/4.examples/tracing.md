@@ -50,7 +50,7 @@ export default defineConfig({
 ```ts [server/middleware/timing.ts]
 import { defineMiddleware } from "nitro";
 
-// A trivial middleware — each request produces its own `middleware` span.
+// A trivial middleware: each request produces its own `middleware` span.
 export default defineMiddleware((event) => {
   event.context.requestedAt = Date.now();
 });
@@ -73,7 +73,7 @@ export default defineHandler(async () => {
 ```ts [server/routes/users/[id].ts]
 import { defineHandler } from "nitro";
 
-// A dynamic route — spans are named by the matched route template
+// A dynamic route: spans are named by the matched route template
 // (`GET /users/:id`), not the concrete path, to keep cardinality low.
 export default defineHandler((event) => ({
   user: { id: event.context.params!.id },
@@ -86,7 +86,7 @@ export default defineHandler((event) => ({
 
 <!-- automd:file src="../../examples/tracing/README.md" -->
 
-Nitro can instrument its request lifecycle through Node [diagnostics channels](https://nodejs.org/api/diagnostics_channel.html) — no OpenTelemetry SDK required. This example turns instrumentation on and enables the built-in console logger, which groups every h3, srvx and unstorage span into a per-request timeline (waterfall).
+Nitro can instrument its request lifecycle through Node [diagnostics channels](https://nodejs.org/api/diagnostics_channel.html), with no OpenTelemetry SDK required. This example turns instrumentation on and enables the built-in console logger, which groups every h3, srvx and unstorage span into a per-request timeline (waterfall).
 
 ## Enabling tracing
 
@@ -104,7 +104,7 @@ export default defineConfig({
 });
 ```
 
-`tracingChannel: true` wires up the producers (it accepts `{ h3, srvx, unstorage }` to trace a subset). `experimental.tracingLogger` adds a built-in sink that `console.log`s each completed span — a dependency-free alternative to a vendor exporter, handy for local development.
+`tracingChannel: true` wires up the producers (it accepts `{ h3, srvx, unstorage }` to trace a subset). `experimental.tracingLogger` adds a built-in sink that `console.log`s each completed span, a dependency-free alternative to a vendor exporter, handy for local development.
 
 ## Try it
 
@@ -115,7 +115,7 @@ curl http://localhost:3000/
 curl http://localhost:3000/users/42
 ```
 
-Each request prints a timeline of its spans to the console — the middleware, the matched route, and every storage operation, positioned and sized by when they ran and how long they took:
+Each request prints a timeline of its spans to the console: the middleware, the matched route, and every storage operation, positioned and sized by when they ran and how long they took:
 
 ```
 ▶ GET /  4.10ms  (4 spans)
@@ -125,7 +125,7 @@ Each request prints a timeline of its spans to the console — the middleware, t
   setItem                      ·····██··················   0.16ms db.operation=setItem db.system=memory unstorage.keys_count=1
 ```
 
-The header line (`▶`) is the request itself — its method, path and total time; the rows below are the spans that ran within it. Note the dynamic route is named by its matched template — `GET /users/:id`, not `/users/42` — keeping span names low-cardinality per the OpenTelemetry HTTP conventions.
+The header line (`▶`) is the request itself: its method, path and total time; the rows below are the spans that ran within it. Note the dynamic route is named by its matched template (`GET /users/:id`, not `/users/42`), keeping span names low-cardinality per the OpenTelemetry HTTP conventions.
 
 The request boundary comes from Nitro's `request`/`response` runtime hooks, so grouping works identically in `vite dev` and in a production build. Spans are grouped per request via async context, so timelines for concurrent requests stay separate, and a failed span is marked `✖` with its error message.
 

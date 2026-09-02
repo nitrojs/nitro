@@ -499,7 +499,7 @@ Generate dynamic [Open Graph](https://ogp.me/) images from a Nitro route using [
 
 ## Server Route
 
-Build the node tree with Takumi [helpers](https://takumi.kane.tw/docs/helpers) — no JSX setup needed. Nitro handlers can return a `Response`, so return an `ImageResponse` directly. The handler awaits `response.ready` and adds a `Server-Timing` header so callers can see how long the render took:
+Build the node tree with Takumi [helpers](https://takumi.kane.tw/docs/helpers), no JSX setup needed. Nitro handlers can return a `Response`, so return an `ImageResponse` directly. The handler awaits `response.ready` and adds a `Server-Timing` header so callers can see how long the render took:
 
 ```ts [routes/og.png.ts]
 import { defineHandler } from "nitro";
