@@ -3,7 +3,13 @@ import { constants } from "node:fs";
 import { defu } from "defu";
 import mime from "mime";
 import { writeFile } from "../_utils/fs.ts";
-import type { Nitro, NitroRouteRules, PrerenderRoute, ProxyRuleOptions } from "nitro/types";
+import type {
+  Nitro,
+  NitroRouteRules,
+  PrerenderRoute,
+  ProxyRuleOptions,
+  PublicAssetDir,
+} from "nitro/types";
 import { basename, dirname, relative, resolve } from "pathe";
 import { Router } from "../../routing.ts";
 import { escapeRegExp } from "../../utils/regex.ts";
@@ -44,6 +50,11 @@ const SAFE_FS_CHAR_RE = /[^a-zA-Z0-9_.[\]/]/g;
 const INDEX_FILE_RE = /(^|\/)index(\.html)?$/;
 
 const SURROUNDING_SLASH_RE = /^\/+|\/+$/g;
+
+// `Cache-Control: max-age` for a non-fallthrough public asset directory that
+// does not set its own `maxAge`. Such assets are assumed to be immutable, since
+// a missing one 404s rather than reaching the server.
+const DEFAULT_PUBLIC_ASSET_MAX_AGE = 31_536_000; // 1 year
 
 function getSystemNodeVersion() {
   const systemNodeVersion = Number.parseInt(process.versions.node.split(".")[0]);
@@ -231,10 +242,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
       .map(([path]) => path)
   );
 
-  const publicAssetRouteSources = nitro.options.publicAssets
-    .filter((asset) => !asset.fallthrough)
-    .map((asset) => joinURL(nitro.options.baseURL, asset.baseURL || "/"))
-    .map((baseURL) => joinURL(escapeRegExp(baseURL), "(.*)"));
+  const publicAssetRoutes = getPublicAssetRoutes(nitro.options.publicAssets, nitro.options.baseURL);
 
   const config = defu(nitro.options.vercel?.config, {
     version: 3,
@@ -304,15 +312,18 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
           ]
         : []),
       // Public asset rules
-      ...publicAssetRouteSources.map((src) => ({
+      ...publicAssetRoutes.map(({ src, maxAge }) => ({
         src,
         headers: {
-          "cache-control": "public,max-age=31536000,immutable",
+          "cache-control": `public, max-age=${maxAge}, immutable`,
         },
         continue: true,
       })),
       { handle: "filesystem" },
-      ...publicAssetRouteSources.map((src) => ({
+      // Missing public assets must not fall through to the server function,
+      // which would serve dynamic content under the immutable header above.
+      // `no-store` keeps that header off this 404.
+      ...publicAssetRoutes.map(({ src }) => ({
         src,
         status: 404,
         headers: {
@@ -396,6 +407,30 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
   );
 
   return config;
+}
+
+/**
+ * Routes matching every public asset directory that Vercel serves from the
+ * filesystem instead of falling through to the server function.
+ *
+ * The root base is excluded to mirror the runtime, which never treats `/` as a
+ * public asset base (see `publicAssetBases`): a `/(.*)` source would otherwise
+ * cache-control every response and, worse, 404 every dynamic route.
+ *
+ * Sources are joined with a slash (`/build/(.*)`, not `/build(.*)`) so a
+ * sibling path such as `/buildings` is not matched, and escaped so that a base
+ * containing regular expression characters stays literal.
+ */
+export function getPublicAssetRoutes(
+  publicAssets: PublicAssetDir[],
+  baseURL: string
+): { src: string; maxAge: number }[] {
+  return publicAssets
+    .filter((asset) => !asset.fallthrough && (asset.baseURL || "/") !== "/")
+    .map((asset) => ({
+      src: joinURL(escapeRegExp(joinURL(baseURL, asset.baseURL || "/")), "(.*)"),
+      maxAge: asset.maxAge || DEFAULT_PUBLIC_ASSET_MAX_AGE,
+    }));
 }
 
 /**
