@@ -8,9 +8,10 @@ import { scanHandlers } from "../../scan.ts";
 import { formatRollupError } from "./error.ts";
 import { writeTypes } from "../types.ts";
 import { formatCompatibilityDate } from "compatx";
+import { importRollup } from "./_import.ts";
 
 export async function watchDev(nitro: Nitro, rollupConfig: RollupConfig) {
-  const rollup = await import("rollup");
+  const rollup = await importRollup(nitro);
 
   let rollupWatcher: RollupWatcher;
 

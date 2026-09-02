@@ -15,8 +15,6 @@ import {
   prerender,
 } from "nitro/builder";
 import type { Nitro, NitroConfig } from "nitro/types";
-import { fetch } from "ofetch";
-import type { FetchOptions } from "ofetch";
 import { join, resolve } from "pathe";
 import { isWindows } from "std-env";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -26,13 +24,12 @@ export interface Context {
   nitro?: Nitro;
   rootDir: string;
   outDir: string;
-  fetch: (url: string, opts?: FetchOptions) => Promise<any>;
+  fetch: (url: string, opts?: RequestInit) => Promise<any>;
   server?: { url: string; close: () => Promise<void> };
   isDev: boolean;
   isWorker: boolean;
   isLambda: boolean;
   isIsolated: boolean;
-  supportsEnv: boolean;
   env: Record<string, string>;
   lambdaV1?: boolean;
   // [key: string]: unknown;
@@ -87,7 +84,6 @@ export async function setupTest(
     ].includes(preset),
     isLambda: ["aws-lambda", "netlify-legacy"].includes(preset),
     isIsolated: ["winterjs"].includes(preset),
-    supportsEnv: !["winterjs"].includes(preset),
     rootDir: fixtureDir,
     outDir: resolve(fixtureDir, presetTmpDir, ".output"),
     env: {
@@ -389,8 +385,9 @@ export function testNitro(
     expect(headers["cache-control"]).toBe("s-maxage=60");
   });
 
-  it("handles route rules - cors", async () => {
-    // `cors: true` is handled by h3's `handleCors` (via h3-rules). On a
+  // WinterJS `Headers` silently drops `access-control-allow-methods`
+  it.skipIf(ctx.preset === "winterjs")("handles route rules - cors", async () => {
+    // `cors: true` is handled by h3's `handleCors` (via `h3/rules`). On a
     // simple (non-preflight) request it sets permissive origin/methods/expose
     // headers; `access-control-allow-headers` / `access-control-max-age` are
     // preflight-only and answered on the `OPTIONS` preflight instead.
@@ -403,159 +400,34 @@ export function testNitro(
     expect(headers).toMatchObject(expectedHeaders);
   });
 
-  describe("handles route rules - basic auth", () => {
-    it("rejects request with bad creds", async () => {
-      const { status, headers } = await callHandler({
-        url: "/rules/basic-auth",
-        headers: {
-          Authorization: "Basic " + btoa("user:wrongpass"),
-        },
-      });
-      expect(status).toBe(401);
-      expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
+  it("applies a single-wildcard rule to an encoded separator", async () => {
+    // h3 serves the `/single-headers/[id]` handler on the raw path, so a rule it
+    // matches there (`/single-headers/*`) must still apply for
+    // `/single-headers/a%2fb` even though it canonicalizes to two segments —
+    // canonicalization must not drop rules off the path that is actually served.
+    const { status, headers } = await callHandler({
+      url: "/single-headers/a%2fb",
     });
-
-    it("allows request with correct password", async () => {
-      const { status } = await callHandler({
-        url: "/rules/basic-auth/test",
-        headers: {
-          Authorization: "Basic " + btoa("admin:secret"),
-        },
-      });
-      expect(status).toBe(200);
-    });
-
-    it("disabled basic-auth for sub-rules", async () => {
-      const { status } = await callHandler({ url: "/rules/basic-auth/no-auth" });
-      expect(status).toBe(200);
-    });
-
-    it("runs before redirect rule from a less specific layer", async () => {
-      const { status, headers } = await callHandler({
-        url: "/rules/ba-redirect/secure/page",
-        headers: { Authorization: "Basic " + btoa("user:wrongpass") },
-      });
-      expect(status).toBe(401);
-      expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
-    });
-
-    it("runs before proxy rule from a less specific layer", async () => {
-      const { status, headers } = await callHandler({
-        url: "/rules/ba-proxy/secure/page",
-        headers: { Authorization: "Basic " + btoa("user:wrongpass") },
-      });
-      expect(status).toBe(401);
-      expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
-    });
-
-    it("is not bypassed by a percent-encoded path separator", async () => {
-      // `secure%2fpage` must still match the `/rules/ba-proxy/secure/**` auth
-      // rule, otherwise the request is forwarded by the broader proxy rule with
-      // no credentials and the downstream decodes `%2f` back to `/`.
-      const { status, headers } = await callHandler({
-        url: "/rules/ba-proxy/secure%2fpage",
-        headers: { Authorization: "Basic " + btoa("user:wrongpass") },
-      });
-      expect(status).toBe(401);
-      expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
-    });
-
-    it("a single-wildcard rule is not bypassed by an encoded separator", async () => {
-      // h3 routes the `/ba-single/[id]` handler on the raw path, so
-      // `/ba-single/a%2fb` reaches it as a single opaque segment and matches
-      // the `/ba-single/*` auth rule there — even though it canonicalizes to
-      // the two-segment `/ba-single/a/b`. Auth is matched on the raw path too,
-      // so it can't be served unauthenticated.
-      const { status, headers } = await callHandler({
-        url: "/ba-single/a%2fb",
-        headers: { Authorization: "Basic " + btoa("user:wrongpass") },
-      });
-      expect(status).toBe(401);
-      expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
-    });
-
-    it("a more specific auth rule revealed by decoding overrides a broader one", async () => {
-      // `/rules/ba-nested/admin%2fpanel` matches only the broad
-      // `/rules/ba-nested/**` rule on the raw path, but canonicalizes to
-      // `/rules/ba-nested/admin/panel`, which the narrower `.../admin/**` rule
-      // guards. The narrower (canonical) rule must win, so the challenge is for
-      // the "Admin Area" realm, not the broad "Broad Area" one.
-      const { status, headers } = await callHandler({
-        url: "/rules/ba-nested/admin%2fpanel",
-        headers: { Authorization: "Basic " + btoa("broad:secret") },
-      });
-      expect(status).toBe(401);
-      expect(headers["www-authenticate"]).toBe('Basic realm="Admin Area"');
-    });
-
-    it("a single-segment `false` cannot dodge auth once decoded to multiple segments", async () => {
-      // `/rules/ba-off/*` disables auth for genuine single-segment paths, but
-      // `/rules/ba-off/a%2fb` decodes to the two-segment `/rules/ba-off/a/b` that
-      // the broad `/rules/ba-off/**` rule guards. The `false` reset applies to the
-      // served path's own resolution, but the canonical path still enables auth,
-      // so the encoded separator must not turn a multi-segment request into a
-      // single-segment one to dodge the gate.
-      const { status, headers } = await callHandler({
-        url: "/rules/ba-off/a%2fb",
-        headers: { Authorization: "Basic " + btoa("user:wrongpass") },
-      });
-      expect(status).toBe(401);
-      expect(headers["www-authenticate"]).toBe('Basic realm="Off Area"');
-    });
-
-    it("a `false` reset on a deeper subtree does not strip auth from the served path", async () => {
-      // `/rules/ba-strip/off%2fx` is served as a single opaque segment that only
-      // matches the broad `/rules/ba-strip/**` auth rule; the `/rules/ba-strip/off/**`
-      // disable targets the two-segment subtree the canonical path resolves to.
-      // Resolving that disable against the canonical path must not strip the auth
-      // gate off the path that is actually served (a match/serve differential).
-      const { status, headers } = await callHandler({
-        url: "/rules/ba-strip/off%2fx",
-        headers: { Authorization: "Basic " + btoa("user:wrongpass") },
-      });
-      expect(status).toBe(401);
-      expect(headers["www-authenticate"]).toBe('Basic realm="Strip Area"');
-    });
-
-    it("a single-wildcard non-auth rule still applies to an encoded separator", async () => {
-      // h3 serves the `/single-headers/[id]` handler on the raw path, so a
-      // behavioral rule it matches there (`/single-headers/*`) must still apply
-      // for `/single-headers/a%2fb` even though it canonicalizes to two
-      // segments — canonicalization is for auth gating, not for dropping rules
-      // off the path that is actually served.
-      const { status, headers } = await callHandler({
-        url: "/single-headers/a%2fb",
-      });
-      expect(status).toBe(200);
-      expect(headers["x-single"]).toBe("single");
-    });
+    expect(status).toBe(200);
+    expect(headers["x-single"]).toBe("single");
   });
 
   describe("handles route rules - method scoped", () => {
-    // `"POST /rules/method-scoped/**"` guards the path with basic auth for POST
-    // requests only; other methods fall through unaffected.
+    // `"POST /rules/method-scoped/**"` enables CORS for POST requests only;
+    // other methods fall through unaffected.
     it("does not apply the POST-scoped rule to other methods", async () => {
-      const { status } = await callHandler({ url: "/rules/method-scoped/page" });
+      const { status, headers } = await callHandler({ url: "/rules/method-scoped/page" });
       expect(status).toBe(200);
+      expect(headers["access-control-allow-origin"]).toBeUndefined();
     });
 
     it("applies the POST-scoped rule to matching requests", async () => {
       const { status, headers } = await callHandler({
         url: "/rules/method-scoped/page",
         method: "POST",
-        headers: { Authorization: "Basic " + btoa("user:wrongpass") },
-      });
-      expect(status).toBe(401);
-      expect(headers["www-authenticate"]).toBe('Basic realm="Secure Area"');
-    });
-
-    it("passes the POST-scoped rule with valid credentials", async () => {
-      const { status } = await callHandler({
-        url: "/rules/method-scoped/page",
-        method: "POST",
-        headers: { Authorization: "Basic " + btoa("admin:secret") },
       });
       expect(status).toBe(200);
+      expect(headers["access-control-allow-origin"]).toBe("*");
     });
   });
 
@@ -677,7 +549,9 @@ export function testNitro(
     additionalTests(ctx, callHandler);
   }
 
-  it("runtime proxy", async () => {
+  // WinterJS drops the port when building the request URL, so an in-app proxy
+  // target resolves to port 80 instead of the server's own port.
+  it.skipIf(ctx.preset === "winterjs")("runtime proxy", async () => {
     const { data } = await callHandler({
       url: "/api/proxy?foo=bar",
       headers: {
@@ -691,26 +565,33 @@ export function testNitro(
     }
   });
 
-  it("runtime proxy collapses leading slashes after wildcard prefix", async () => {
-    // Regression test for GHSA-9phm-9p8f-hw5m: a leading `//` after the
-    // wildcard prefix must not be forwarded verbatim to the upstream.
-    const { data } = await callHandler({
-      url: "/rules/proxy/legacy//evil.com",
-    });
-    expect(data).toBe("evil.com");
-  });
+  it.skipIf(ctx.preset === "winterjs")(
+    "runtime proxy collapses leading slashes after wildcard prefix",
+    async () => {
+      // Regression test for GHSA-9phm-9p8f-hw5m: a leading `//` after the
+      // wildcard prefix must not be forwarded verbatim to the upstream.
+      const { data } = await callHandler({
+        url: "/rules/proxy/legacy//evil.com",
+      });
+      expect(data).toBe("evil.com");
+    }
+  );
 
-  it("runtime proxy keeps an encoded separator opaque for the upstream", async () => {
-    // Regression: an opaque `%2f` inside a segment is a single path segment for
-    // the in-scope request and must be forwarded encoded — not decoded into a
-    // real separator (which would change the resource the upstream resolves).
-    const { data } = await callHandler({
-      url: "/rules/proxy/legacy/a%2fb",
-    });
-    expect(data).toBe("a%2fb");
-  });
+  it.skipIf(ctx.preset === "winterjs")(
+    "runtime proxy keeps an encoded separator opaque for the upstream",
+    async () => {
+      // Regression: an opaque `%2f` inside a segment is a single path segment for
+      // the in-scope request and must be forwarded encoded — not decoded into a
+      // real separator (which would change the resource the upstream resolves).
+      const { data } = await callHandler({
+        url: "/rules/proxy/legacy/a%2fb",
+      });
+      expect(data).toBe("a%2fb");
+    }
+  );
 
-  it("external proxy", async () => {
+  // WinterJS strips quotes from header values, mangling the upstream weak etag
+  it.skipIf(ctx.preset === "winterjs")("external proxy", async () => {
     const { data, headers, status } = await callHandler({
       url: "/cdn/npm/bootstrap@5.3.8/dist/js/bootstrap.min.js",
     });
@@ -726,7 +607,7 @@ export function testNitro(
     expect(data).toBe("nitroisawesome");
   });
 
-  it.skipIf(!ctx.supportsEnv)("config", async () => {
+  it("config", async () => {
     const { data } = await callHandler({
       url: "/config",
     });
@@ -819,7 +700,7 @@ export function testNitro(
         const res = await callHandler({ url: `/errors/throw?handled&action=${errorAction}` });
         expect(res).toMatchObject({
           status: 503,
-          statusText: /deno|bun/.test(ctx.preset)
+          statusText: /deno|bun|winterjs/.test(ctx.preset)
             ? "Service Unavailable"
             : /aws/.test(ctx.preset)
               ? ""
@@ -900,7 +781,7 @@ export function testNitro(
     });
   });
 
-  describe.skipIf(!ctx.supportsEnv)("environment variables", () => {
+  describe("environment variables", () => {
     it("can load environment variables from runtimeConfig", async () => {
       const { data } = await callHandler({ url: "/config" });
       expect(data.runtimeConfig.hello).toBe("world");
@@ -942,7 +823,8 @@ export function testNitro(
     });
   });
 
-  describe.skipIf(ctx.preset === "cloudflare-worker")("wasm", () => {
+  // WinterJS itself runs as WebAssembly and exposes no `WebAssembly` global
+  describe.skipIf(["cloudflare-worker", "winterjs"].includes(ctx.preset))("wasm", () => {
     it("dynamic import wasm", async () => {
       expect((await callHandler({ url: "/wasm/dynamic-import" })).data).toBe("2+3=5");
     });
@@ -1022,7 +904,9 @@ export function testNitro(
 
   it.skipIf(
     process.env.OFFLINE /* connect */ ||
-      ["cloudflare-worker", "cloudflare-module-legacy"].includes(ctx.preset)
+      // WinterJS has no Node.js compatibility layer of its own; `node:*` imports
+      // only resolve to unenv's runtime-agnostic stubs.
+      ["cloudflare-worker", "cloudflare-module-legacy", "winterjs"].includes(ctx.preset)
   )("nodejs compatibility", async () => {
     const { data, status } = await callHandler({ url: "/node-compat" });
     expect(status).toBe(200);

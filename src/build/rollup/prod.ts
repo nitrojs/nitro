@@ -6,9 +6,10 @@ import { writeTypes } from "../types.ts";
 import { writeBuildInfo } from "../info.ts";
 import { formatRollupError } from "./error.ts";
 import type { RollupOptions, RollupOutput } from "rollup";
+import { importRollup } from "./_import.ts";
 
 export async function buildProduction(nitro: Nitro, rollupConfig: RollupConfig) {
-  const rollup = await import("rollup");
+  const rollup = await importRollup(nitro);
 
   const buildStartTime = Date.now();
 
