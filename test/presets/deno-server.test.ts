@@ -2,6 +2,7 @@ import { execa, execaSync } from "execa";
 import { getRandomPort, waitForPort } from "get-port-please";
 import { describe } from "vitest";
 import { setupTest, testNitro } from "../tests.ts";
+import { testCloseHook } from "./_close-hook.ts";
 
 const hasDeno = execaSync("deno", ["--version"], { stdio: "ignore", reject: false }).exitCode === 0;
 
@@ -30,4 +31,6 @@ describe.runIf(hasDeno)("nitro:preset:deno-server", async () => {
       return res;
     };
   });
+
+  testCloseHook(ctx, { command: "deno", args: (entry) => ["run", "-A", entry] });
 });
