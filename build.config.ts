@@ -58,6 +58,11 @@ export default defineBuildConfig({
     ...subpaths.map((subpath) => `nitropack/${subpath}`),
     "firebase-functions",
     "@scalar/api-reference",
+    // type-only (import type), used solely to widen RollupConfig.plugins
+    // for Vite 8 / Rolldown-typed plugins; never imported at runtime
+    "rolldown",
+    "@oxc-project/types",
+    "@rolldown/pluginutils",
   ],
   stubOptions: {
     jiti: {

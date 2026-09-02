@@ -199,6 +199,7 @@
     "miniflare": "^4.20260710.0",
     "ohash-v1": "npm:ohash@^1.1.6",
     "prettier": "^3.9.5",
+    "rolldown": "^1.2.0",
     "typescript": "^6.0.3",
     "unbuild": "^3.6.1",
     "undici": "^7.28.0",

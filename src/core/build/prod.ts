@@ -5,6 +5,7 @@ import { version as nitroVersion } from "nitropack/meta";
 import type { Nitro, NitroBuildInfo, RollupConfig } from "nitropack/types";
 import { dirname, join, relative, resolve } from "pathe";
 import * as rollup from "rollup";
+import type { RollupOptions } from "rollup";
 import { presetsWithConfig } from "../../presets/_types.gen";
 import { scanHandlers } from "../scan";
 import { generateFSTree } from "../utils/fs-tree";
@@ -26,10 +27,12 @@ export async function buildProduction(
     nitro.logger.info(
       `Building ${nitroServerName(nitro)} (preset: \`${nitro.options.preset}\`, compatibility date: \`${formatCompatibilityDate(nitro.options.compatibilityDate)}\`)`
     );
-    const build = await rollup.rollup(rollupConfig).catch((error) => {
-      nitro.logger.error(formatRollupError(error));
-      throw error;
-    });
+    const build = await rollup
+      .rollup(rollupConfig as RollupOptions)
+      .catch((error) => {
+        nitro.logger.error(formatRollupError(error));
+        throw error;
+      });
 
     await build.write(rollupConfig.output);
   }
