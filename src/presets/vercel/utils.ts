@@ -1,8 +1,9 @@
 import fsp from "node:fs/promises";
 import { constants } from "node:fs";
 import { defu } from "defu";
+import mime from "mime";
 import { writeFile } from "../_utils/fs.ts";
-import type { Nitro, NitroRouteRules, ProxyRuleOptions } from "nitro/types";
+import type { Nitro, NitroRouteRules, PrerenderRoute, ProxyRuleOptions } from "nitro/types";
 import { basename, dirname, relative, resolve } from "pathe";
 import { Router } from "../../routing.ts";
 import { joinURL, withLeadingSlash, withoutLeadingSlash } from "ufo";
@@ -36,6 +37,12 @@ const FALLBACK_ROUTE = "/__server";
 const ISR_SUFFIX = "-isr"; // Avoid using . as it can conflict with routing
 
 const SAFE_FS_CHAR_RE = /[^a-zA-Z0-9_.[\]/]/g;
+
+// Vercel serves `<dir>/index.html` (and extensionless `<dir>/index`) at `<dir>`
+// using built-in directory indexes.
+const INDEX_FILE_RE = /(^|\/)index(\.html)?$/;
+
+const SURROUNDING_SLASH_RE = /^\/+|\/+$/g;
 
 function getSystemNodeVersion() {
   const systemNodeVersion = Number.parseInt(process.versions.node.split(".")[0]);
@@ -229,17 +236,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
       name: nitro.options.framework.name,
       version: nitro.options.framework.version,
     },
-    overrides: {
-      // Nitro static prerendered route overrides
-      ...Object.fromEntries(
-        (nitro._prerenderedRoutes?.filter((r) => r.fileName !== r.route) || []).map(
-          ({ route, fileName }) => [
-            withoutLeadingSlash(fileName),
-            { path: route.replace(/^\//, "") },
-          ]
-        )
-      ),
-    },
+    overrides: getPrerenderOverrides(nitro._prerenderedRoutes),
     routes: [
       // Redirect and header rules (excluding paths handled as CDN proxy rewrites)
       ...rules
@@ -390,6 +387,51 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
   return config;
 }
 
+/**
+ * Map prerendered files to the route and content type they should be served with.
+ *
+ * Paths are always slash-free: Vercel strips slashes when matching, so a path
+ * that keeps a trailing slash matches nothing at all (#4392), and the root
+ * route has to map to an empty path (ufo's slash helpers cannot produce one).
+ *
+ * Files that Vercel already serves at the route using its built-in directory
+ * indexes keep their path, and only get an entry when their content type
+ * cannot be inferred from the file name.
+ */
+export function getPrerenderOverrides(prerenderedRoutes: PrerenderRoute[] = []) {
+  const overrides: Record<string, { path?: string; contentType?: string }> = {};
+
+  for (const { route, fileName, contentType } of prerenderedRoutes) {
+    if (!fileName) {
+      continue;
+    }
+    const file = withoutLeadingSlash(fileName);
+    const path = route.replace(SURROUNDING_SLASH_RE, "");
+    const override: { path?: string; contentType?: string } = {};
+
+    // Only re-key when Vercel does not already serve the file at `path`: it
+    // serves `<dir>/index.*` at `<dir>` via its built-in directory index, and
+    // re-keying a file onto its own path would delete it, since Vercel drops
+    // the original entry.
+    if (file !== path && file.replace(INDEX_FILE_RE, "") !== path) {
+      override.path = path;
+    }
+
+    // Vercel infers the content type from the file name, which has no
+    // extension to go on for a non-HTML route ending in `/` (`/data/` is
+    // prerendered to `data/index`) and would be served as a download.
+    if (contentType && !mime.getType(file)) {
+      override.contentType = contentType;
+    }
+
+    if (override.path !== undefined || override.contentType) {
+      overrides[file] = override;
+    }
+  }
+
+  return overrides;
+}
+
 export function deprecateSWR(nitro: Nitro) {
   if (nitro.options.future.nativeSWR) {
     return;
@@ -500,12 +542,22 @@ type ObservabilityRoute = {
   dest: string; // function name
 };
 
-function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
+export function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
   const compatDate =
     nitro.options.compatibilityDate.vercel || nitro.options.compatibilityDate.default;
   if (compatDate < "2025-07-15") {
     return [];
   }
+
+  // Vercel resolves functions and static files from a single path to output
+  // map that functions are added to last, so a function at the path of a
+  // prerendered file hides that file and serves the route with SSR on every
+  // request (#4242).
+  const prerenderedPaths = new Set(
+    (nitro._prerenderedRoutes || [])
+      .filter((route) => route.fileName)
+      .map((route) => route.route.replace(SURROUNDING_SLASH_RE, ""))
+  );
 
   // Sort routes by how much specific they are
   const routePatterns = [
@@ -515,7 +567,7 @@ function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
         .filter((h) => !h.middleware && h.route)
         .map((h) => h.route!),
     ]),
-  ];
+  ].filter((route) => !prerenderedPaths.has(route.replace(SURROUNDING_SLASH_RE, "")));
 
   const staticRoutes: string[] = [];
   const dynamicRoutes: string[] = [];
@@ -642,6 +694,7 @@ async function createFunctionDirWithCustomConfig(
   await fsp.cp(serverDir, funcDir, {
     recursive: true,
     mode: constants.COPYFILE_FICLONE,
+    verbatimSymlinks: true,
     filter: (src) => basename(src) !== ".vc-config.json",
   });
   const mergedConfig = defu(overrides, baseFunctionConfig);

@@ -1,5 +1,5 @@
 import type { Nitro, NitroEventHandler } from "nitro/types";
-import { compileRouteRules } from "h3-rules/compiler";
+import { compileRouteRules } from "h3/rules/compiler";
 
 export default function routing(nitro: Nitro) {
   return {
@@ -48,7 +48,7 @@ ${allHandlers
 
 export const findRoute = ${nitro.routing.routes.compileToString({ serialize: (h) => serializeHandler(h, { tracing: traceH3 }) })}
 
-export const findRoutedMiddleware = ${nitro.routing.routedMiddleware.compileToString({ serialize: serializeHandler, matchAll: true })};
+export const findRoutedMiddleware = ${nitro.routing.routedMiddleware.compileToString({ serialize: serializeHandlerFn, matchAll: true })};
 
 export const globalMiddleware = [
   ${nitro.routing.globalMiddleware.map((h) => (h.lazy ? h._importHash : `h3.toEventHandler(${h._importHash})`)).join(",")}

@@ -7,6 +7,8 @@ import { join, resolve } from "node:path";
 import { runtimeDependencies, runtimeDir } from "nitro/meta";
 import { resolveModulePath } from "exsolve";
 import { isAbsolute } from "pathe";
+import { resolveMiniflareDeps, resolveRunnerDeps } from "../../dev/runner-deps.ts";
+import { writeDevWorkerEntry } from "./_dev-worker.ts";
 
 export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOptions {
   const isWorkerdRunner = _isWorkerdRunner(ctx);
@@ -46,9 +48,13 @@ export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOpti
       createEnvironment: async (envName, envConfig) => {
         const entry = resolve(runtimeDir, "internal/vite/dev-entry.mjs");
         const { createFetchableDevEnvironment } = await import("./dev.ts");
-        const env = createFetchableDevEnvironment(envName, envConfig, getEnvRunner(ctx), entry, {
-          preventExternalize: isWorkerdRunner,
-        });
+        const env = await createFetchableDevEnvironment(
+          envName,
+          envConfig,
+          getEnvRunner(ctx),
+          entry,
+          { preventExternalize: isWorkerdRunner }
+        );
         ctx._transformRequest = (id) => env.transformRequest(id);
         (ctx._viteEnvs ??= new Map()).set(envName, entry);
         return env;
@@ -166,12 +172,15 @@ export async function reloadEnvRunner(ctx: NitroPluginContext) {
 
 async function _loadRunner(ctx: NitroPluginContext, manager: RunnerManager) {
   const runnerName = _devRunner(ctx);
-  const entry = resolve(runtimeDir, "internal/vite/dev-worker.mjs");
+  const entry = await writeDevWorkerEntry(ctx.nitro!);
   let runner;
   if (runnerName === "miniflare") {
     const { MiniflareEnvRunner } = await import("env-runner/runners/miniflare");
+    const { miniflare, wranglerModule } = await resolveMiniflareDeps(ctx.nitro!);
     runner = new MiniflareEnvRunner({
       name: "nitro-vite",
+      miniflare,
+      wranglerModule,
       wrangler: {
         ...ctx.nitro!.options.cloudflare?.wrangler,
       },
@@ -180,6 +189,7 @@ async function _loadRunner(ctx: NitroPluginContext, manager: RunnerManager) {
     });
   } else {
     runner = await loadRunner(runnerName, {
+      ...(await resolveRunnerDeps(ctx.nitro!, runnerName)),
       name: "nitro-vite",
       data: { entry },
     });

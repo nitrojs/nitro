@@ -1,38 +1,40 @@
 import type { IntRange } from "./_utils.ts";
 
-// Route rule types are owned by `h3-rules` (extracted from Nitro). Nitro
-// re-exports them and augments the open `RouteRuleConfig` / `RouteRules`
-// interfaces with its own rules (`isr`, `prerender`, `static`).
+// Route rule types are owned by h3 (`h3/rules`). Nitro re-exports them and
+// augments the open `RouteRuleConfig` / `RouteRules` interfaces with its own
+// rules (`isr`, `prerender`, `static`).
 export type {
   RouteRuleConfig,
   RouteRules,
+  ResolvedRouteRules,
+  NormalizedRouteRules,
   MatchedRouteRule,
   MatchedRouteRules,
   RedirectRuleOptions,
   ProxyRuleOptions,
-} from "h3-rules";
+} from "h3/rules";
 
-import type { RouteRuleConfig, RouteRules } from "h3-rules";
+import type { NormalizedRouteRules, RouteRuleConfig } from "h3/rules";
 
 /**
- * @deprecated Use `RouteRuleConfig` from `h3-rules` (re-exported by `nitro/types`).
+ * @deprecated Use `RouteRuleConfig` from `h3/rules` (re-exported by `nitro/types`).
  */
 export type NitroRouteConfig = RouteRuleConfig;
 
 /**
- * @deprecated Use `RouteRules` from `h3-rules` (re-exported by `nitro/types`).
+ * @deprecated Use `NormalizedRouteRules` from `h3/rules` (re-exported by `nitro/types`).
  */
-export type NitroRouteRules = RouteRules;
+export type NitroRouteRules = NormalizedRouteRules;
 
 /** Valid HTTP status code range (100–599). */
 export type HTTPstatus = IntRange<100, 599>;
 
 // --- Nitro-specific route rules (module augmentation) ---
 
-// Augment the `h3-rules` config/rules interfaces so Nitro's own rules stay
-// fully typed for users. `isr` / `prerender` / `static` are handled by Nitro
-// (presets, prerenderer) rather than h3-rules runtime handlers.
-declare module "h3-rules" {
+// Augment h3's config/rules interfaces so Nitro's own rules stay fully typed
+// for users. `isr` / `prerender` / `static` are data-only rules handled at
+// build time (presets, prerenderer) rather than by a runtime handler.
+declare module "h3/rules" {
   interface RouteRuleConfig {
     /**
      * Add this route to the prerender queue at build time.

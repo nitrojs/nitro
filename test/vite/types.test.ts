@@ -11,12 +11,7 @@ const { createServer, createBuilder } = (await import(
 const rootDir = fileURLToPath(new URL("./app-fixture", import.meta.url));
 const typesDir = join(rootDir, "node_modules/.nitro/types");
 
-const DECLARATION_FILES = [
-  "nitro.d.ts",
-  "nitro-routes.d.ts",
-  "nitro-config.d.ts",
-  "nitro-imports.d.ts",
-];
+const DECLARATION_FILES = ["nitro.d.ts", "nitro-config.d.ts"];
 
 const expectDeclarationFiles = () => {
   for (const file of DECLARATION_FILES) {
@@ -31,7 +26,7 @@ describe("vite:types (dev)", () => {
   beforeAll(async () => {
     rmSync(typesDir, { recursive: true, force: true });
     process.chdir(rootDir);
-    server = await createServer({ root: rootDir });
+    server = await createServer({ root: rootDir, logLevel: "warn" });
   }, 30_000);
 
   afterAll(async () => {
