@@ -6,12 +6,13 @@
 
 :read-more{title="Genezio" to="https://genezio.com"}
 
-> [!IMPORTANT]
-> 🚧 This preset is currently experimental.
+::warning
+This preset is currently experimental.
+::
 
-## 1. Project Setup
+## 1. Project setup
 
-Create `genezio.yaml` file:
+Create a `genezio.yaml` file:
 
 ```yaml
 # The name of the project.
@@ -47,22 +48,21 @@ To further customize the file to your needs, you can consult the
 
 ## 2. Deploy your project
 
-Build with the genezio nitro preset:
+Build with the `genezio` preset:
 
 ```bash
 NITRO_PRESET=genezio npm run build
 ```
 
-
-Deploy with [`genezio`](https://npmjs.com/package/genezio) cli:
+Deploy with the [`genezio`](https://npmjs.com/package/genezio) CLI:
 
 :pm-x{command="genezio deploy"}
 
 ::read-more{title="Backend Environment Variables" to="https://genezio.com/docs/project-structure/backend-environment-variables"}
-To set environment viarables, please check out [Genezio - Environment Variables](https://genezio.com/docs/project-structure/backend-environment-variables).
+To set environment variables, check out [Genezio - Environment Variables](https://genezio.com/docs/project-structure/backend-environment-variables).
 ::
 
-
 ## 3. Monitor your project
-You can monitor and manage your application through the [Genezio App Dashboard](https://app.genez.io/dashboard). The dashboard URL, also provided after deployment, allows you to access comprehensive views of your project's status and logs.
+
+You can monitor and manage your application through the [Genezio App Dashboard](https://app.genez.io/dashboard). The dashboard URL, also printed after deployment, gives you access to your project's status and logs.
 

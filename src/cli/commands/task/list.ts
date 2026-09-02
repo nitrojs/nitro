@@ -5,7 +5,7 @@ import { resolve } from "pathe";
 
 export default defineCommand({
   meta: {
-    name: "run",
+    name: "list",
     description: "List available tasks (experimental)",
   },
   args: {
