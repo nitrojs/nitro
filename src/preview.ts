@@ -88,8 +88,8 @@ export async function startPreview(opts: {
   }
 
   if (buildInfo.publicDir) {
-    const { serveStatic } = await import("srvx/static");
-    const staticHandler = serveStatic({ dir: join(outputDir, buildInfo.publicDir) });
+    const { staticMiddleware } = await import("srvx/static");
+    const staticHandler = staticMiddleware({ dir: join(outputDir, buildInfo.publicDir) });
     const originalFetchHandler = fetchHandler;
     fetchHandler = async (req) => {
       const staticRes: Response | undefined = await staticHandler(req, () => undefined as any);

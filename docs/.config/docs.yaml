@@ -1,9 +1,17 @@
 # yaml-language-server: $schema=https://unpkg.com/undocs/schema/config.json
 name: Nitro
-shortDescription: Ship Full-stack Vite Apps
+shortDescription: builds full-stack servers that deploy anywhere
 description: Add server API routes to any Vite apps and deploy with zero configuration on your favorite hosting platform.
 github: nitrojs/nitro
 url: https://nitro.build
+themeColor: "pink"
+automd: true
+branch: main
+versions:
+  - label: "v3"
+    active: true
+  - label: "v2"
+    to: "https://v2.nitro.build"
 socials:
   x: "https://x.com/nitrojsdev"
   bluesky: "https://bsky.app/profile/nitro.build"
@@ -27,17 +35,15 @@ redirects:
   "/guide/typescript": "/docs/configuration"
   "/guide/tasks": "/docs/tasks"
   "/guide/nightly": "/docs/nightly"
+  "/guide/nightly-channel": "/docs/nightly"
+  "/guide/migration": "/docs/migration"
+  "/guide/community/contributing": "/docs"
   # v2 deploy
   "/deploy/workers": "/deploy"
   "/deploy/runtimes/winterjs": "/deploy"
   "/deploy/custom-presets": "/deploy"
   "/deploy/providers/edgio": "/deploy"
+  "/deploy/providers/lagon": "/deploy"
+  "/deploy/providers/layer0": "/deploy"
+  "/deploy/providers/edgeone-pages": "/deploy/providers/edgeone"
   "/deploy/node": "/deploy/runtimes/node"
-themeColor: "rose"
-automd: true
-branch: main
-versions:
-  - label: "v3"
-    active: true
-  - label: "v2"
-    to: "https://v2.nitro.build"
