@@ -1,3 +1,0 @@
-{
-  "include": ["node_modules/.nitro/types/nitro.d.ts", "src"]
-}

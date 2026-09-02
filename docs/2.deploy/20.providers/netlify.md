@@ -7,7 +7,7 @@
 :read-more{title="Netlify Functions" to="https://www.netlify.com/platform/core/functions/"}
 
 ::note
-Integration with this provider is possible with [zero configuration](/deploy/#zero-config-providers).
+Integration with this provider is possible with [zero configuration](/deploy#zero-config-providers).
 ::
 
 Normally, deploying to Netlify does not require any configuration.

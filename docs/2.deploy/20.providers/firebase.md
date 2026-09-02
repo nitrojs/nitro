@@ -13,7 +13,7 @@ You will need to be on the [**Blaze plan**](https://firebase.google.com/pricing)
 :read-more{title="Firebase App Hosting" to="https://firebase.google.com/docs/app-hosting"}
 
 ::tip
-You can integrate with this provider using [zero configuration](/deploy/#zero-config-providers).
+You can integrate with this provider using [zero configuration](/deploy#zero-config-providers).
 ::
 
 ### Project setup

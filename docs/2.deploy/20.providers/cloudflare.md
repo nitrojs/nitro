@@ -150,6 +150,33 @@ The preset entry exports a `$DurableObject` class. You need to declare the Durab
 
 You can use the `cloudflare:durable:init` runtime hook to run code when the Durable Object is initialized, and the `cloudflare:durable:alarm` hook to handle [alarms](https://developers.cloudflare.com/durable-objects/api/alarms/).
 
+### Tracing
+
+**🧪 Experimental!**
+
+When the experimental [`tracingChannel`](/config#tracingchannel) option is enabled, the Cloudflare presets report Nitro's tracing-channel events (h3 routes and middleware, srvx, unstorage operations, …) as [custom spans](https://developers.cloudflare.com/workers/observability/traces/custom-spans/), alongside Cloudflare's automatic instrumentation (fetch calls, KV reads, D1 queries, …) — no OpenTelemetry SDK required.
+
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  preset: "cloudflare_module",
+  tracingChannel: true,
+});
+```
+
+Tracing must be enabled on the Worker for spans to be recorded:
+
+```jsonc [wrangler.jsonc]
+{
+  "observability": {
+    "traces": {
+      "enabled": true
+    }
+  }
+}
+```
+
 ## Cloudflare Pages
 
 **Preset:** `cloudflare_pages`
@@ -332,6 +359,8 @@ defineHandler(async (event) => {
 ### Access to the bindings in local dev
 
 In development mode, Nitro emulates the Cloudflare environment using [Miniflare](https://miniflare.dev/) (the same [`workerd`](https://github.com/cloudflare/workerd) runtime used by Wrangler and Cloudflare Workers in production). This means bindings are available natively from the request event — no separate proxy or `wrangler` installation is required.
+
+The [`miniflare`](https://www.npmjs.com/package/miniflare) package is owned by your project: Nitro resolves it from your `node_modules` and offers to install it on first use.
 
 To access bindings in dev mode, first define them. You can do this in a `wrangler.jsonc`/`wrangler.json`/`wrangler.toml` file:
 
