@@ -26,10 +26,35 @@ export interface TaskResult<RT = unknown> {
   result?: RT;
 }
 
+/**
+ * Controls how concurrent calls to the same task are handled.
+ *
+ * - `"parallel"`: Allow multiple instances of the same task to run concurrently.
+ * - `"dedupe"`: Coalesce concurrent calls with the same key into a single execution.
+ *   All callers await the same promise and receive the same result. (default)
+ * - `"serial"`: Queue concurrent calls with the same key so they run one after another.
+ *
+ * @experimental
+ * @default { mode: "dedupe" }
+ */
+export type TaskConcurrency =
+  | { mode: "parallel" }
+  | {
+      mode: "dedupe" | "serial";
+      /**
+       * Derives the dedupe or serial queue key from the task event.
+       * If omitted, the task payload hash is used.
+       *
+       * @default (event) => hash(event.payload)
+       */
+      key?: (event: TaskEvent) => string;
+    };
+
 /** @experimental */
 export interface Task<RT = unknown> {
   meta?: TaskMeta;
   run(event: TaskEvent): MaybePromise<{ result?: RT }>;
+  concurrency?: TaskConcurrency;
 }
 
 /** @experimental */
