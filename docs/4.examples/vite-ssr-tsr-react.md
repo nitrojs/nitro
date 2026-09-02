@@ -448,7 +448,7 @@ function Index() {
 }
 ```
 
-Fetch data before rendering with the `loader` function; data is available via `Route.useLoaderData()`. File paths determine URL paths: `routes/index.tsx` maps to `/`, `routes/about.tsx` to `/about`, and `routes/users/$id.tsx` to `/users/:id`.
+Fetch data before rendering with the `loader` function—data is available via `Route.useLoaderData()`. File paths determine URL paths: `routes/index.tsx` maps to `/`, `routes/about.tsx` to `/about`, and `routes/users/$id.tsx` to `/users/:id`.
 
 <!-- /automd -->
 

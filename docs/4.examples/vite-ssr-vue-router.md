@@ -541,7 +541,7 @@ export default {
 };
 ```
 
-The server uses `createMemoryHistory()` since there's no browser URL bar; the router navigates to the requested URL before rendering. Assets are loaded dynamically based on matched routes, ensuring only the CSS and JS needed for the current page are included. The `unhead` library manages `<head>` elements, injecting stylesheets and scripts via `transformHtmlTemplate`.
+The server uses `createMemoryHistory()` since there's no browser URL bar—the router navigates to the requested URL before rendering. Assets are loaded dynamically based on matched routes, ensuring only the CSS and JS needed for the current page are included. The `unhead` library manages `<head>` elements, injecting stylesheets and scripts via `transformHtmlTemplate`.
 
 ## 4. Create the Client Entry
 
