@@ -17,6 +17,8 @@ import { readPackageJSON, writePackageJSON } from "pkg-types";
 import type { Plugin } from "rollup";
 import semver from "semver";
 
+const URI_SCHEME_RE = /^[a-z0-9]{2,}:/;
+
 export function externals(opts: NodeExternalsOptions): Plugin {
   const trackedExternals = new Set<string>();
 
@@ -80,6 +82,16 @@ export function externals(opts: NodeExternalsOptions): Plugin {
 
       // Skip relative paths
       if (originalId.startsWith(".")) {
+        return null;
+      }
+
+      if (URI_SCHEME_RE.test(originalId)) {
+        if (
+          originalId.startsWith("node:") &&
+          !isExplicitInline(originalId, importer)
+        ) {
+          return { id: originalId, external: true };
+        }
         return null;
       }
 
