@@ -15,8 +15,6 @@ import {
   prerender,
 } from "nitro/builder";
 import type { Nitro, NitroConfig } from "nitro/types";
-import { fetch } from "ofetch";
-import type { FetchOptions } from "ofetch";
 import { join, resolve } from "pathe";
 import { isWindows } from "std-env";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -26,7 +24,7 @@ export interface Context {
   nitro?: Nitro;
   rootDir: string;
   outDir: string;
-  fetch: (url: string, opts?: FetchOptions) => Promise<any>;
+  fetch: (url: string, opts?: RequestInit) => Promise<any>;
   server?: { url: string; close: () => Promise<void> };
   isDev: boolean;
   isWorker: boolean;

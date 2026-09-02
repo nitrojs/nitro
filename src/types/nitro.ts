@@ -1,5 +1,4 @@
 import type { ConsolaInstance } from "consola";
-import type { HTTPMethod } from "h3";
 import type { Hookable } from "hookable";
 import type { PresetName, PresetOptions } from "../presets/index.ts";
 import type { Unimport } from "unimport";
@@ -57,7 +56,6 @@ export interface Nitro {
 export type NitroDynamicConfig = Pick<NitroConfig, "runtimeConfig" | "routeRules">;
 
 export type NitroTypes = {
-  routes: Record<string, Partial<Record<HTTPMethod | "default", string[]>>>;
   tsConfig?: TSConfig;
 };
 

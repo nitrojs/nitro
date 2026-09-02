@@ -21,7 +21,6 @@ export const runtimeDependencies: string[] = [
   "rou3", // sub-dep of h3
   "hookable", // traced
   "ocache", // dep
-  "ohash", // traced
   "rendu", // traced
   "scule", // traced
   "srvx", // dep

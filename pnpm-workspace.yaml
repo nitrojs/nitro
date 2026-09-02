@@ -20,11 +20,8 @@ packages:
 
 trustPolicy: no-downgrade
 trustPolicyExclude:
+  - "@vercel/*"
   - "semver@6.3.1"
-  - "@vercel/oidc@3.8.4"
-  - "@vercel/queue@0.4.0"
-  - "@vercel/cli-exec@1.0.1"
-  - "@vercel/cli-config@0.2.3"
   - "exact-mirror@1.2.4"
 
 blockExoticSubdeps: true
