@@ -66,7 +66,7 @@ export class MyWorkflow extends WorkflowEntrypoint {
 }
 ```
 
-Nitro will automatically detect this file and include its exports in the final build.
+Nitro will automatically detect this file and include its exports in the final build. In dev mode, classes referenced by wrangler bindings (Durable Objects, Workflows) are also exported from the local dev worker.
 
 ::warning
 The `exports.cloudflare.ts` file must not have a default export.
@@ -81,6 +81,53 @@ export default defineConfig({
   }
 })
 ```
+
+### Durable Objects
+
+Export your [Durable Object](https://developers.cloudflare.com/durable-objects/) classes from `exports.cloudflare.ts` and declare their bindings in your wrangler config:
+
+```ts [exports.cloudflare.ts]
+export { CounterDO } from "./server/durable/counter.ts";
+```
+
+```ts [server/durable/counter.ts]
+import { DurableObject } from "cloudflare:workers";
+
+export class CounterDO extends DurableObject {
+  async increment(amount: number = 1): Promise<number> {
+    const count = ((await this.ctx.storage.get<number>("count")) ?? 0) + amount;
+    await this.ctx.storage.put("count", count);
+    return count;
+  }
+}
+```
+
+```jsonc [wrangler.jsonc]
+{
+  "durable_objects": {
+    "bindings": [{ "name": "COUNTER", "class_name": "CounterDO" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["CounterDO"] }]
+}
+```
+
+The namespace binding is then available from the request event, in production and in local dev (which runs your app in workerd via Miniflare):
+
+```ts [routes/counter.ts]
+import { defineHandler } from "nitro";
+
+export default defineHandler(async (event) => {
+  const env = event.req.runtime?.cloudflare?.env;
+  const count = await env.COUNTER.getByName("global").increment();
+  return { count };
+});
+```
+
+::note
+In dev mode, Durable Object and Workflow classes are static exports of the worker while your handlers are hot-reloaded: after changing these classes, restart the dev server to apply them.
+::
+
+:read-more{title="Durable Objects example" to="https://github.com/nitrojs/nitro/tree/main/examples/cloudflare-durable"}
 
 ### Scheduled Tasks (Cron Triggers)
 
