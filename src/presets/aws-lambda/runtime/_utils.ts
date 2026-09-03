@@ -85,7 +85,7 @@ function awsEventBody(event: APIGatewayProxyEvent | APIGatewayProxyEventV2): Bod
 
 // Outgoing (Web => AWS)
 
-export function awsResponseHeaders(response: Response) {
+export function awsResponseHeaders(response: Response, v2: boolean) {
   const headers: Record<string, string> = Object.create(null);
   for (const [key, value] of response.headers) {
     if (value) {
@@ -96,9 +96,12 @@ export function awsResponseHeaders(response: Response) {
   const cookies = response.headers.getSetCookie();
 
   return cookies.length > 0
-    ? {
+    ? v2 ? {
         headers,
         cookies, // ApiGateway v2
+      }
+    : {
+        headers,
         multiValueHeaders: { "set-cookie": cookies }, // ApiGateway v1
       }
     : { headers };

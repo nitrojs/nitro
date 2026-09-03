@@ -16,7 +16,7 @@ export const handler = awslambda.streamifyResponse(
 
     const httpResponseMetadata: Omit<StreamingResponse, "body"> = {
       statusCode: response.status,
-      ...awsResponseHeaders(response),
+      ...awsResponseHeaders(response, "cookies" in event || "rawPath" in event),
     };
 
     if (!httpResponseMetadata.headers!["transfer-encoding"]) {

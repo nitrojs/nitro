@@ -22,7 +22,7 @@ export async function handler(
 
   return {
     statusCode: response.status,
-    ...awsResponseHeaders(response),
+    ...awsResponseHeaders(response, "cookies" in event || "rawPath" in event),
     ...(await awsResponseBody(response)),
   };
 }
