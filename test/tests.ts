@@ -249,11 +249,11 @@ export function testNitro(
     expect(headers["x-test"]).toBe("test");
   });
 
-  it("middleware runs in order: global, routed, then the route handler", async () => {
+  it("middleware runs in order: route rules, global, routed, then the route handler", async () => {
     const { data, headers } = await callHandler({ url: "/api/middleware-order" });
-    expect(data).toEqual(["global", "routed"]);
-    // Route rule middleware applied. Its position in the chain is not
-    // observable in-band: `headers` rules only set headers on the way out.
+    // `rules` is recorded by the global middleware when `event.context.routeRules`
+    // is already populated, i.e. route rules resolved before it ran.
+    expect(data).toEqual(["rules", "global", "routed"]);
     expect(headers["x-test"]).toBe("test");
   });
 

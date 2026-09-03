@@ -22,9 +22,7 @@ export default function app(nitro: Nitro) {
       const code: string[] = [];
 
       imports.push(
-        hasRouteRules || hasRoutedMiddleware
-          ? `import { composeMiddleware, H3Core } from "h3";`
-          : `import { H3Core } from "h3";`,
+        `import { H3Core } from "h3";`,
         `import errorHandler from "#nitro/virtual/error-handler";`
       );
 
@@ -127,7 +125,11 @@ export default function app(nitro: Nitro) {
           `      app.captureError?.(error, { tags: ["plugin"] });`,
           `      throw error;`,
           `    }`,
-          `  }`
+          `  }`,
+          // h3 composes `~middleware` into a dispatcher on first dispatch and
+          // never re-reads it. A plugin may have dispatched already (warm-up
+          // fetch) before a later plugin (e.g. tracing) touched the chain.
+          `  app.h3["~dispatch"] = app.h3["~composed"] = undefined;`
         );
       }
       code.push(`  return app;`, `}`);
@@ -139,43 +141,41 @@ export default function app(nitro: Nitro) {
       }
 
       code.push(``, `function createH3App(config) {`, `  const h3App = new H3Core(config);`);
-      if (hasRoutes) {
+      // `~findRoute` runs before dispatch on the original pathname, so route
+      // rules are resolved there and `event.context.routeRules` is populated for
+      // every middleware, including ones plugins unshift onto `~middleware`.
+      if (hasRoutes || hasRouteRules) {
+        code.push(`  h3App["~findRoute"] = (event) => {`);
+        if (hasRouteRules) {
+          code.push(
+            `    event.context.routeRules = getRouteRules(event.req.method, event.url.pathname).routeRules;`
+          );
+        }
         code.push(
-          `  h3App["~findRoute"] = (event) => findRoute(event.req.method, event.url.pathname);`
+          hasRoutes
+            ? `    return findRoute(event.req.method, event.url.pathname);`
+            : `    return undefined;`,
+          `  };`
         );
       }
       // Route rules, global and routed middleware are registered on `~middleware`
-      // in that order so h3 precomposes the chain once; the two path-dependent
-      // sources cache their composed chain on the memoized match result.
+      // in that order so h3 precomposes the chain once on first dispatch.
+      const runtimeAppImports = [
+        hasRouteRules && "createRouteRulesMiddleware",
+        hasRoutedMiddleware && "createRoutedMiddleware",
+        hasRouteRules && "getRouteRules",
+      ].filter(Boolean);
+      if (runtimeAppImports.length) {
+        imports.push(`import { ${runtimeAppImports.join(", ")} } from "#nitro/runtime/app";`);
+      }
       if (hasRouteRules) {
-        imports.push(`import { getRouteRules } from "#nitro/runtime/app";`);
-        code.push(
-          `  h3App["~middleware"].push((event, next) => {`,
-          `    const routeRules = getRouteRules(event.req.method, event.url.pathname);`,
-          `    event.context.routeRules = routeRules?.routeRules;`,
-          `    const middleware = routeRules?.routeRuleMiddleware;`,
-          `    if (!middleware?.length) {`,
-          `      return next();`,
-          `    }`,
-          `    return (routeRules["~composed"] ??= composeMiddleware(middleware))(event, next);`,
-          `  });`
-        );
+        code.push(`  h3App["~middleware"].push(createRouteRulesMiddleware());`);
       }
       if (hasGlobalMiddleware) {
         code.push(`  h3App["~middleware"].push(...globalMiddleware);`);
       }
       if (hasRoutedMiddleware) {
-        imports.push(`import { memoizeRouteRulesMatcher } from "h3/rules";`);
-        code.push(
-          `  const matchRoutedMiddleware = memoizeRouteRulesMatcher(findRoutedMiddleware);`,
-          `  h3App["~middleware"].push((event, next) => {`,
-          `    const matched = matchRoutedMiddleware(event.req.method, event.url.pathname);`,
-          `    if (matched.length === 0) {`,
-          `      return next();`,
-          `    }`,
-          `    return (matched["~composed"] ??= composeMiddleware(matched.map((r) => r.data)))(event, next);`,
-          `  });`
-        );
+        code.push(`  h3App["~middleware"].push(createRoutedMiddleware(findRoutedMiddleware));`);
       }
       code.push(`  return h3App;`, `}`);
 
