@@ -84,7 +84,9 @@ export async function generateFunctionFiles(nitro: Nitro) {
   const hasRouteFunctionConfig = functionRules && Object.keys(functionRules).length > 0;
   let routeFuncRouter: Router<VercelServerlessFunctionConfig> | undefined;
   if (hasRouteFunctionConfig) {
-    routeFuncRouter = new Router<VercelServerlessFunctionConfig>();
+    // Looked up with route *patterns* (a `routeRules` key, a Vercel `src` regex),
+    // not with a request path, so the patterns stay exactly as authored.
+    routeFuncRouter = new Router<VercelServerlessFunctionConfig>(undefined, { normalize: false });
     routeFuncRouter._update(
       Object.entries(functionRules).map(([route, data]) => ({
         route,
