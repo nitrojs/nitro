@@ -230,7 +230,7 @@ You can provide additional [build output configuration](https://vercel.com/docs/
 
 ## Public asset caching
 
-Public asset directories that do not fall through (the default for any non-root `baseURL`) are served by Vercel's CDN straight from the filesystem, with a `Cache-Control` header built from the directory's `maxAge`. Directories without an explicit `maxAge` are cached for one year.
+Public asset directories that do not fall through (the default for any non-root `baseURL`) are served by Vercel's CDN straight from the filesystem, with a `Cache-Control` header built from the directory's `maxAge`. Directories without an explicit `maxAge` are cached for one year, which is a Vercel-specific default kept for backwards compatibility.
 
 ```ts [nitro.config.ts]
 import { defineConfig } from "nitro";
@@ -247,6 +247,16 @@ export default defineConfig({
 ```
 
 A request under such a base that does not match a file returns `404` with `Cache-Control: no-store` instead of reaching the server function. This mirrors the Nitro runtime, which also responds `404` for a missing asset under a non-fallthrough base, and it keeps dynamic content from being served — and then cached for the lifetime of the `max-age` — under an asset URL.
+
+A `cache-control` route rule for the base takes precedence over both, so a directory can opt out of the one-year default (`maxAge: 0` cannot express this):
+
+```ts [nitro.config.ts]
+export default defineConfig({
+  routeRules: {
+    "/build/**": { headers: { "cache-control": "no-cache" } },
+  },
+})
+```
 
 ::note
 Falling-through directories are unaffected, including the top-level `public/` directory, which defaults to `fallthrough: true`. A missing file there still reaches your application handlers.

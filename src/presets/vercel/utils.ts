@@ -53,7 +53,8 @@ const SURROUNDING_SLASH_RE = /^\/+|\/+$/g;
 
 // `Cache-Control: max-age` for a non-fallthrough public asset directory that
 // does not set its own `maxAge`. Such assets are assumed to be immutable, since
-// a missing one 404s rather than reaching the server.
+// a missing one 404s rather than reaching the server. Opt out with a
+// `cache-control` route rule for the base.
 const DEFAULT_PUBLIC_ASSET_MAX_AGE = 31_536_000; // 1 year
 
 function getSystemNodeVersion() {
@@ -242,7 +243,10 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
       .map(([path]) => path)
   );
 
-  const publicAssetRoutes = getPublicAssetRoutes(nitro.options.publicAssets, nitro.options.baseURL);
+  const publicAssetRoutes = getPublicAssetRoutes(nitro.options.publicAssets, {
+    baseURL: nitro.options.baseURL,
+    routeRules: nitro.options.routeRules,
+  });
 
   const config = defu(nitro.options.vercel?.config, {
     version: 3,
@@ -312,13 +316,15 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
           ]
         : []),
       // Public asset rules
-      ...publicAssetRoutes.map(({ src, maxAge }) => ({
-        src,
-        headers: {
-          "cache-control": `public, max-age=${maxAge}, immutable`,
-        },
-        continue: true,
-      })),
+      ...publicAssetRoutes
+        .filter((route) => route.cacheControl)
+        .map(({ src, cacheControl }) => ({
+          src,
+          headers: {
+            "cache-control": cacheControl!,
+          },
+          continue: true,
+        })),
       { handle: "filesystem" },
       // Missing public assets must not fall through to the server function,
       // which would serve dynamic content under the immutable header above.
@@ -420,17 +426,32 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
  * Sources are joined with a slash (`/build/(.*)`, not `/build(.*)`) so a
  * sibling path such as `/buildings` is not matched, and escaped so that a base
  * containing regular expression characters stays literal.
+ *
+ * `cacheControl` is unset when a route rule already sets the header for the
+ * base, which is the case for any directory with a `maxAge` (see
+ * `resolveAssetsOptions`). Emitting it again would duplicate the rule that is
+ * generated from route rules earlier in the routes array, and setting it here
+ * would have no effect anyway: the first match wins.
  */
 export function getPublicAssetRoutes(
   publicAssets: PublicAssetDir[],
-  baseURL: string
-): { src: string; maxAge: number }[] {
-  return publicAssets
-    .filter((asset) => !asset.fallthrough && (asset.baseURL || "/") !== "/")
-    .map((asset) => ({
-      src: joinURL(escapeRegExp(joinURL(baseURL, asset.baseURL || "/")), "(.*)"),
-      maxAge: asset.maxAge || DEFAULT_PUBLIC_ASSET_MAX_AGE,
-    }));
+  opts: { baseURL: string; routeRules: Record<string, NitroRouteRules> }
+): { src: string; cacheControl?: string }[] {
+  const routes: { src: string; cacheControl?: string }[] = [];
+  for (const asset of publicAssets) {
+    const assetBase = asset.baseURL || "/";
+    if (asset.fallthrough || assetBase === "/") {
+      continue;
+    }
+    const maxAge = asset.maxAge || DEFAULT_PUBLIC_ASSET_MAX_AGE;
+    routes.push({
+      src: joinURL(escapeRegExp(joinURL(opts.baseURL, assetBase)), "(.*)"),
+      cacheControl: hasCacheControl(opts.routeRules[`${assetBase}/**`])
+        ? undefined
+        : `public, max-age=${maxAge}, immutable`,
+    });
+  }
+  return routes;
 }
 
 /**
@@ -789,4 +810,10 @@ async function writePrerenderConfig(
   }
 
   await writeFile(filename, JSON.stringify(prerenderConfig, null, 2));
+}
+
+function hasCacheControl(routeRules: NitroRouteRules | undefined): boolean {
+  return Object.keys(routeRules?.headers || {}).some(
+    (header) => header.toLowerCase() === "cache-control"
+  );
 }

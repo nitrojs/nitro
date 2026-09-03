@@ -187,13 +187,6 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/cdn/(.*)",
               },
               {
-                "continue": true,
-                "headers": {
-                  "cache-control": "public, max-age=3600, immutable",
-                },
-                "src": "/build/(.*)",
-              },
-              {
                 "handle": "filesystem",
               },
               {
@@ -486,6 +479,29 @@ describe("nitro:preset:vercel:web", async () => {
           },
           continue: false,
         });
+      });
+
+      it("should not duplicate the public asset cache-control rule", async () => {
+        const config = await fsp
+          .readFile(resolve(ctx.outDir, "config.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        const filesystemIndex = config.routes.findIndex(
+          (route: { handle?: string }) => route.handle === "filesystem"
+        );
+
+        // `/build` has a `maxAge`, so its header comes from the route rule
+        const cacheRules = config.routes
+          .slice(0, filesystemIndex)
+          .filter(
+            (route: { src?: string; headers?: Record<string, string> }) =>
+              route.src === "/build/(.*)" && route.headers?.["cache-control"]
+          );
+        expect(cacheRules).toEqual([
+          {
+            src: "/build/(.*)",
+            headers: { "cache-control": "public, max-age=3600, immutable" },
+          },
+        ]);
       });
 
       it("should generate prerender config", async () => {
