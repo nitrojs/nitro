@@ -53,8 +53,8 @@ const SURROUNDING_SLASH_RE = /^\/+|\/+$/g;
 
 // `Cache-Control: max-age` for a non-fallthrough public asset directory that
 // does not set its own `maxAge`. Such assets are assumed to be immutable, since
-// a missing one 404s rather than reaching the server. Opt out with a
-// `cache-control` route rule for the base.
+// a missing one 404s rather than reaching the server. Opt out with `maxAge: 0`,
+// or set a custom header with a `cache-control` route rule for the base.
 const DEFAULT_PUBLIC_ASSET_MAX_AGE = 31_536_000; // 1 year
 
 function getSystemNodeVersion() {
@@ -428,10 +428,13 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
  * containing regular expression characters stays literal.
  *
  * `cacheControl` is unset when a route rule already sets the header for the
- * base, which is the case for any directory with a `maxAge` (see
+ * base, which is the case for any directory with a positive `maxAge` (see
  * `resolveAssetsOptions`). Emitting it again would duplicate the rule that is
  * generated from route rules earlier in the routes array, and setting it here
  * would have no effect anyway: the first match wins.
+ *
+ * It is also unset for an explicit `maxAge: 0`, which opts the directory out of
+ * the one-year default. Only a directory that never set a `maxAge` gets it.
  */
 export function getPublicAssetRoutes(
   publicAssets: PublicAssetDir[],
@@ -443,12 +446,13 @@ export function getPublicAssetRoutes(
     if (asset.fallthrough || assetBase === "/") {
       continue;
     }
-    const maxAge = asset.maxAge || DEFAULT_PUBLIC_ASSET_MAX_AGE;
+    const maxAge = asset.maxAge ?? DEFAULT_PUBLIC_ASSET_MAX_AGE;
     routes.push({
       src: joinURL(escapeRegExp(joinURL(opts.baseURL, assetBase)), "(.*)"),
-      cacheControl: hasCacheControl(opts.routeRules[`${assetBase}/**`])
-        ? undefined
-        : `public, max-age=${maxAge}, immutable`,
+      cacheControl:
+        maxAge > 0 && !hasCacheControl(opts.routeRules[`${assetBase}/**`])
+          ? `public, max-age=${maxAge}, immutable`
+          : undefined,
     });
   }
   return routes;

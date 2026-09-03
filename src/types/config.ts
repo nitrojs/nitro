@@ -998,8 +998,13 @@ export interface PublicAssetDir {
   baseURL?: string;
   /** Fall through to the next handler when the asset is not found. */
   fallthrough?: boolean;
-  /** `Cache-Control` max-age value in seconds. */
-  maxAge: number;
+  /**
+   * `Cache-Control` max-age value in seconds.
+   *
+   * Left `undefined` when unset, which some presets (such as Vercel) treat
+   * differently from an explicit `0`.
+   */
+  maxAge?: number;
   /** Filesystem path to the asset directory. */
   dir: string;
   /**

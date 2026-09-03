@@ -255,7 +255,21 @@ export default defineConfig({
 
 A request under such a base that does not match a file returns `404` with `Cache-Control: no-store` instead of reaching the server function. This mirrors the Nitro runtime, which also responds `404` for a missing asset under a non-fallthrough base, and it keeps dynamic content from being served — and then cached for the lifetime of the `max-age` — under an asset URL.
 
-A `cache-control` route rule for the base takes precedence over both, so a directory can opt out of the one-year default (`maxAge: 0` cannot express this):
+Set `maxAge: 0` to opt out of the one-year default. No `Cache-Control` header is then generated for the base:
+
+```ts [nitro.config.ts]
+export default defineConfig({
+  publicAssets: [
+    {
+      baseURL: "build",
+      dir: "public/build",
+      maxAge: 0,
+    },
+  ],
+})
+```
+
+A `cache-control` route rule for the base takes precedence over both, so a directory can be served with a custom header instead:
 
 ```ts [nitro.config.ts]
 export default defineConfig({

@@ -40,7 +40,7 @@ export async function resolveAssetsOptions(options: NitroOptions) {
     const isTopLevel = asset.baseURL === "/";
     asset.fallthrough = asset.fallthrough ?? isTopLevel;
     const routeRule = options.routeRules[asset.baseURL + "/**"];
-    asset.maxAge = (routeRule?.cache as { maxAge: number })?.maxAge ?? asset.maxAge ?? 0;
+    asset.maxAge = (routeRule?.cache as { maxAge: number })?.maxAge ?? asset.maxAge;
     if (asset.maxAge && !asset.fallthrough) {
       options.routeRules[asset.baseURL + "/**"] = defu(routeRule, {
         headers: {

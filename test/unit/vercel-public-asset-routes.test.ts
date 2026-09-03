@@ -3,7 +3,7 @@ import type { PublicAssetDir } from "nitro/types";
 import { getPublicAssetRoutes } from "../../src/presets/vercel/utils.ts";
 
 const asset = (dir: Partial<PublicAssetDir>): PublicAssetDir =>
-  ({ dir: "public", maxAge: 0, ...dir }) as PublicAssetDir;
+  ({ dir: "public", ...dir }) as PublicAssetDir;
 
 const ONE_YEAR = "public, max-age=31536000, immutable";
 
@@ -99,5 +99,24 @@ describe("getPublicAssetRoutes", () => {
         routeRules: {},
       })
     ).toEqual([{ src: "/build/(.*)", cacheControl: "public, max-age=3600, immutable" }]);
+  });
+
+  // Only a directory that never set `maxAge` gets the one-year default
+  it("does not cache an explicit maxAge of 0", () => {
+    expect(
+      getPublicAssetRoutes([asset({ baseURL: "/build", fallthrough: false, maxAge: 0 })], {
+        baseURL: "/",
+        routeRules: {},
+      })
+    ).toEqual([{ src: "/build/(.*)", cacheControl: undefined }]);
+  });
+
+  it("caches an unset maxAge for a year", () => {
+    expect(
+      getPublicAssetRoutes([asset({ baseURL: "/build", fallthrough: false })], {
+        baseURL: "/",
+        routeRules: {},
+      })
+    ).toEqual([{ src: "/build/(.*)", cacheControl: ONE_YEAR }]);
   });
 });
