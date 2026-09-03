@@ -1,5 +1,5 @@
 import type { Nitro, NitroEventHandler } from "nitro/types";
-import { compileRouteRules } from "h3-rules/compiler";
+import { compileRouteRules } from "h3/rules/compiler";
 
 export default function routing(nitro: Nitro) {
   return {
@@ -42,13 +42,13 @@ ${allHandlers
   .filter((h) => h.lazy)
   .map(
     (h) =>
-      /* js */ `const ${h._importHash} = h3.defineLazyEventHandler(() => import("${h.handler}")${h.format === "node" ? ".then(m => srvxNode.toFetchHandler(m.default))" : ""});`
+      /* js */ `const ${h._importHash} = h3.defineLazyEventHandler(() => import("${h.handler}")${h.format === "node" ? ".then(m => ({ fetch: srvxNode.toFetchHandler(m.default) }))" : ""});`
   )
   .join("\n")}
 
 export const findRoute = ${nitro.routing.routes.compileToString({ serialize: (h) => serializeHandler(h, { tracing: traceH3 }) })}
 
-export const findRoutedMiddleware = ${nitro.routing.routedMiddleware.compileToString({ serialize: serializeHandler, matchAll: true })};
+export const findRoutedMiddleware = ${nitro.routing.routedMiddleware.compileToString({ serialize: serializeHandlerFn, matchAll: true })};
 
 export const globalMiddleware = [
   ${nitro.routing.globalMiddleware.map((h) => (h.lazy ? h._importHash : `h3.toEventHandler(${h._importHash})`)).join(",")}
@@ -89,7 +89,7 @@ function serializeHandlerFn(h: NitroEventHandler & { _importHash: string }): str
   let code = h._importHash;
   if (!h.lazy) {
     if (h.format === "node") {
-      code = `srvxNode.toFetchHandler(${code})`;
+      code = `{ fetch: srvxNode.toFetchHandler(${code}) }`;
     }
     code = `h3.toEventHandler(${code})`;
   }

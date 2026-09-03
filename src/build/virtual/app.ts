@@ -10,7 +10,6 @@ export default function app(nitro: Nitro) {
       const hasGlobalMiddleware = nitro.routing.globalMiddleware.length > 0;
       const hasPlugins = nitro.options.plugins.length > 0;
       const hasHooks = nitro.options.features?.runtimeHooks ?? hasPlugins;
-      const hasGetMiddleware = hasRouteRules || hasRoutedMiddleware;
       const hasAsyncContext = !!nitro.options.experimental.asyncContext;
 
       const routingImports = [
@@ -126,7 +125,11 @@ export default function app(nitro: Nitro) {
           `      app.captureError?.(error, { tags: ["plugin"] });`,
           `      throw error;`,
           `    }`,
-          `  }`
+          `  }`,
+          // h3 composes `~middleware` into a dispatcher on first dispatch and
+          // never re-reads it. A plugin may have dispatched already (warm-up
+          // fetch) before a later plugin (e.g. tracing) touched the chain.
+          `  app.h3["~dispatch"] = app.h3["~composed"] = undefined;`
         );
       }
       code.push(`  return app;`, `}`);
@@ -138,47 +141,41 @@ export default function app(nitro: Nitro) {
       }
 
       code.push(``, `function createH3App(config) {`, `  const h3App = new H3Core(config);`);
-      if (hasRoutes) {
+      // `~findRoute` runs before dispatch on the original pathname, so route
+      // rules are resolved there and `event.context.routeRules` is populated for
+      // every middleware, including ones plugins unshift onto `~middleware`.
+      if (hasRoutes || hasRouteRules) {
+        code.push(`  h3App["~findRoute"] = (event) => {`);
+        if (hasRouteRules) {
+          code.push(
+            `    event.context.routeRules = getRouteRules(event.req.method, event.url.pathname).routeRules;`
+          );
+        }
         code.push(
-          `  h3App["~findRoute"] = (event) => findRoute(event.req.method, event.url.pathname);`
+          hasRoutes
+            ? `    return findRoute(event.req.method, event.url.pathname);`
+            : `    return undefined;`,
+          `  };`
         );
+      }
+      // Route rules, global and routed middleware are registered on `~middleware`
+      // in that order so h3 precomposes the chain once on first dispatch.
+      const runtimeAppImports = [
+        hasRouteRules && "createRouteRulesMiddleware",
+        hasRoutedMiddleware && "createRoutedMiddleware",
+        hasRouteRules && "getRouteRules",
+      ].filter(Boolean);
+      if (runtimeAppImports.length) {
+        imports.push(`import { ${runtimeAppImports.join(", ")} } from "#nitro/runtime/app";`);
+      }
+      if (hasRouteRules) {
+        code.push(`  h3App["~middleware"].push(createRouteRulesMiddleware());`);
       }
       if (hasGlobalMiddleware) {
         code.push(`  h3App["~middleware"].push(...globalMiddleware);`);
       }
-      if (hasGetMiddleware) {
-        code.push(
-          `  h3App["~getMiddleware"] = (event, route) => {`,
-          `    const pathname = event.url.pathname;`,
-          `    const method = event.req.method;`,
-          `    const middleware = [];`
-        );
-        if (hasRouteRules) {
-          imports.push(`import { getRouteRules } from "#nitro/runtime/app";`);
-          code.push(
-            `    const routeRules = getRouteRules(method, pathname);`,
-            `    event.context.routeRules = routeRules?.routeRules;`,
-            `    if (routeRules?.routeRuleMiddleware.length) {`,
-            `      middleware.push(...routeRules.routeRuleMiddleware);`,
-            `    }`
-          );
-        }
-        if (hasGlobalMiddleware) {
-          code.push(`    middleware.push(...h3App["~middleware"]);`);
-        }
-        if (hasRoutedMiddleware) {
-          code.push(
-            `    middleware.push(...findRoutedMiddleware(method, pathname).map((r) => r.data));`
-          );
-        }
-        if (hasRoutes) {
-          code.push(
-            `    if (route?.data?.middleware?.length) {`,
-            `      middleware.push(...route.data.middleware);`,
-            `    }`
-          );
-        }
-        code.push(`    return middleware;`, `  };`);
+      if (hasRoutedMiddleware) {
+        code.push(`  h3App["~middleware"].push(createRoutedMiddleware(findRoutedMiddleware));`);
       }
       code.push(`  return h3App;`, `}`);
 

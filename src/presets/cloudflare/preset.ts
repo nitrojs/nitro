@@ -2,7 +2,8 @@ import { defineNitroPreset } from "../_utils/preset.ts";
 import { writeFile } from "../_utils/fs.ts";
 import type { Nitro } from "nitro/types";
 import type { Plugin } from "rollup";
-import { resolve } from "pathe";
+import { join, resolve } from "pathe";
+import { presetsDir } from "nitro/meta";
 import { unenvCfExternals } from "./unenv/preset.ts";
 import {
   enableNodeCompat,
@@ -141,6 +142,14 @@ export const cloudflareDev = defineNitroPreset(
     devServer: {
       runner: "miniflare",
     },
+    hooks: {
+      "build:before": (nitro) => {
+        // The bridge imports `cloudflare:workers`, only available in workerd
+        if (nitro.options.devServer.runner === "miniflare") {
+          setupTracingBridge(nitro);
+        }
+      },
+    },
   },
   {
     name: "cloudflare-dev" as const,
@@ -180,6 +189,7 @@ const cloudflareModule = defineNitroPreset(
         nitro.options.unenv.push(unenvCfExternals);
         await enableNodeCompat(nitro);
         await setupEntryExports(nitro);
+        setupTracingBridge(nitro);
       },
       async compiled(nitro: Nitro) {
         await writeWranglerConfig(nitro, "module");
@@ -219,3 +229,17 @@ export default [
   cloudflareDurable,
   cloudflareDev,
 ];
+
+/**
+ * Export tracing-channel spans as Cloudflare custom spans (`tracing.enterSpan`)
+ * Registered first (unshift) so the bridge subscribes to the traced channels at
+ * startup, before any request is handled.
+ */
+function setupTracingBridge(nitro: Nitro) {
+  if (!nitro.options.tracingChannel) {
+    return;
+  }
+  nitro.options.plugins ??= [];
+
+  nitro.options.plugins.unshift(join(presetsDir, "cloudflare/runtime/telemetry/plugin"));
+}

@@ -85,7 +85,8 @@ describe("vite: nitro modules from vite plugins", () => {
         }
       },
     };
-    consola.addReporter(reporter);
+    const originalReporters = [...consola.options.reporters];
+    consola.setReporters([reporter]);
 
     // Vite resolves its plugin list before running config hooks, so plugins added
     // from a `config` hook are ignored by Vite (but visible to Nitro's discovery).
@@ -96,7 +97,7 @@ describe("vite: nitro modules from vite plugins", () => {
       config: () => ({ plugins: [modulePlugin("injected")] }) as any,
     };
     await resolve([injector, modulePlugin("applied")]);
-    consola.removeReporter(reporter);
+    consola.setReporters(originalReporters);
 
     expect(installed).toEqual(["applied", "injected"]);
     expect(warnings).toHaveLength(1);

@@ -8,7 +8,6 @@ import "nitro/runtime-config";
 import "nitro/storage";
 import "nitro/task";
 
-export * from "./fetch/index.ts";
 export * from "./runtime/index.ts";
 export * from "./config.ts";
 export * from "./runner.ts";

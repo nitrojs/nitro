@@ -1,8 +1,6 @@
 import type { ConsolaInstance } from "consola";
-import type { HTTPMethod } from "h3";
 import type { Hookable } from "hookable";
 import type { PresetName, PresetOptions } from "../presets/index.ts";
-import type { Unimport } from "unimport";
 import type { NitroConfig, NitroOptions } from "./config.ts";
 import type { NitroEventHandler } from "./handler.ts";
 import type { NitroHooks } from "./hooks.ts";
@@ -32,7 +30,6 @@ export interface Nitro {
   scannedHandlers: NitroEventHandler[];
   vfs: Map<string, { render: () => string | Promise<string> }>;
   hooks: Hookable<NitroHooks>;
-  unimport?: Unimport;
   logger: ConsolaInstance;
   fetch: (input: Request) => Response | Promise<Response>;
   close: () => Promise<void>;
@@ -57,7 +54,6 @@ export interface Nitro {
 export type NitroDynamicConfig = Pick<NitroConfig, "runtimeConfig" | "routeRules">;
 
 export type NitroTypes = {
-  routes: Record<string, Partial<Record<HTTPMethod | "default", string[]>>>;
   tsConfig?: TSConfig;
 };
 
