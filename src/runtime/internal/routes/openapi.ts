@@ -11,6 +11,7 @@ import { joinURL } from "ufo";
 import { defu } from "defu";
 import { handlersMeta } from "#nitro-internal-virtual/server-handlers-meta";
 import { useRuntimeConfig } from "../config";
+import { getRouteRulesForPath } from "../route-rules";
 
 // Served as /_openapi.json
 export default eventHandler((event) => {
@@ -63,6 +64,12 @@ function getHandlersMeta(): {
   let globals: OpenAPIGlobals = {};
 
   for (const h of handlersMeta) {
+    const enabledInRouteMeta = h.meta && h.meta.openAPIEnabled;
+    const enabledInRouteRules =
+      h.route && getRouteRulesForPath(h.route).openAPIEnabled;
+    const openAPIEnabled = enabledInRouteMeta ?? enabledInRouteRules;
+    if (openAPIEnabled === false) continue;
+
     const { route, parameters } = normalizeRoute(h.route || "");
     const tags = defaultTags(h.route || "");
     const method = (h.method || "get").toLowerCase() as Lowercase<HTTPMethod>;

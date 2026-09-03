@@ -13,6 +13,7 @@ export interface NitroRouteMeta {
   openAPI?: OperationObject & {
     $global?: Pick<OpenAPI3, "components"> & Extensable;
   };
+  openAPIEnabled?: boolean;
 }
 
 export interface NitroEventHandler {
