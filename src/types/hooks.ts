@@ -1,13 +1,12 @@
 import type { EnvRunnerData } from "env-runner";
 import type { NitroConfig } from "./config.ts";
-import type { Nitro, NitroTypes } from "./nitro.ts";
+import type { Nitro } from "./nitro.ts";
 import type { PrerenderRoute } from "./prerender.ts";
 import type { RollupConfig } from "./build.ts";
 
 type HookResult = void | Promise<void>;
 
 export interface NitroHooks {
-  "types:extend": (types: NitroTypes) => HookResult;
   "build:before": (nitro: Nitro) => HookResult;
   "rollup:before": (nitro: Nitro, config: RollupConfig) => HookResult;
   compiled: (nitro: Nitro) => HookResult;

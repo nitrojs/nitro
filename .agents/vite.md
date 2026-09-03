@@ -251,7 +251,7 @@ current evaluations.
 - `src/vite.ts` — public export (`nitro` plugin)
 - `src/build/build.ts` — dispatcher calls `viteBuild()`
 - `src/build/config.ts` — base build config
-- `src/build/plugins.ts` — base build plugins (virtual modules, auto-imports, etc.)
+- `src/build/plugins.ts` — base build plugins (virtual modules, WASM, externals, etc.)
 - `src/build/virtual/` — 14 virtual module templates
 - `src/dev/app.ts` — `NitroDevApp` for dev-only handlers
 - `src/dev/server.ts` — `NitroDevServer` with `RunnerManager`

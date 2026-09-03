@@ -108,14 +108,16 @@ forms resolve at runtime, but docs use the underscore form.
 Nitro v3 uses subpath exports — not deep runtime imports:
 
 ```ts
-import { defineHandler, readBody, getQuery } from "nitro/h3";
+import { defineConfig } from "nitro"; // nitro config (nitro.config.ts)
+import { defineHandler } from "nitro"; // event handlers
+import { definePlugin } from "nitro"; // runtime plugin
+import { defineRouteMeta } from "nitro"; // route meta macro
+import { readBody, getQuery } from "nitro/h3"; // other h3 utilities
 import { defineCachedHandler, defineCachedFunction } from "nitro/cache";
 import { useStorage } from "nitro/storage";
 import { useDatabase } from "nitro/database";
 import { useRuntimeConfig } from "nitro/runtime-config";
-import { defineNitroConfig } from "nitro/config";
-import { definePlugin } from "nitro";        // runtime plugin
-import { defineRouteMeta } from "nitro";      // route meta macro
+import { defineTask, runTask } from "nitro/task";
 ```
 
 ### H3 v2 API
@@ -130,6 +132,8 @@ import { defineRouteMeta } from "nitro";      // route meta macro
 ### Code examples
 
 - Auto imports are not available — always show explicit imports
+- Always use `defineHandler` from `"nitro"` (not `eventHandler`)
+- Always use `defineConfig` from `"nitro"` for nitro config (not `defineNuxtConfig` or Vite's `defineConfig`)
 - Use `"nitro/*"` imports, never `"nitropack/*"`
 - Node.js >= 20 in all deployment examples
 - Preset env var is `NITRO_PRESET`; runtime config overrides use the `NITRO_` prefix
@@ -138,7 +142,7 @@ import { defineRouteMeta } from "nitro";      // route meta macro
 ### Common mistakes
 
 - `send(event, value)`, `createError()`, `eventHandler()` — all removed in h3 v2
-- `defineConfig()` for nitro config — use `defineNitroConfig()`
+- Importing `defineConfig`/`defineHandler` from subpaths — both come from the main `"nitro"` entry
 - Duplicate imports (e.g. `defineHandler` from both `nitro/h3` and `nitro/cache`)
 - Hyphenated preset names, outdated Node.js versions, wrong env var names
 - Nuxt-era idioms in `.docs/`: `U*` components, `NuxtLink`, `ContentRenderer`, `queryCollection`,

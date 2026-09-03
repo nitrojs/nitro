@@ -254,7 +254,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
             route = defu(route, {
               status: routeRules.redirect.status,
               headers: {
-                Location: routeRules.redirect.to.replace("/**", "/$1"),
+                Location: routeRules.redirect.to.replace("**", "$1"),
               },
             });
           }
@@ -273,7 +273,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
           const proxy = routeRules.proxy;
           const route: Record<string, any> = {
             src: path.replace("/**", "/(.*)"),
-            dest: proxy.to.replace("/**", "/$1"),
+            dest: proxy.to.replace("**", "$1"),
           };
           if (routeRules.headers) {
             route.headers = routeRules.headers;

@@ -1,5 +1,5 @@
 import type { NitroPluginContext } from "./types.ts";
-import type { DevEnvironmentContext, ResolvedConfig, ViteDevServer } from "vite";
+import type { DevEnvironment, DevEnvironmentContext, ResolvedConfig, ViteDevServer } from "vite";
 import type { FetchFunctionOptions, FetchResult } from "vite/module-runner";
 import type { RunnerRPCHooks } from "env-runner";
 
@@ -12,7 +12,6 @@ import { join } from "pathe";
 import { debounce } from "perfect-debounce";
 import { withBase, withoutBase } from "ufo";
 import { scanHandlers } from "../../scan.ts";
-import { writeTypes } from "../types.ts";
 import { getEnvRunner } from "./env.ts";
 import { importVite } from "./_import.ts";
 
@@ -60,17 +59,29 @@ export async function createFetchableDevEnvironment(
   return new FetchableDevEnvironment(name, config, context, devServer, entry, opts);
 }
 
-export type FetchableDevEnvironment = InstanceType<
-  Awaited<ReturnType<typeof getFetchableDevEnvironment>>
->;
+export interface FetchableDevEnvironment extends DevEnvironment {
+  devServer: DevServer;
+  dispatchFetch(request: Request): Promise<Response>;
+}
 
-const _envClasses = new Map<string, Promise<ReturnType<typeof _defineFetchableDevEnvironment>>>();
+interface FetchableDevEnvironmentConstructor {
+  new (
+    name: string,
+    config: ResolvedConfig,
+    context: DevEnvironmentContext,
+    devServer: DevServer,
+    entry: string,
+    opts?: { preventExternalize?: boolean }
+  ): FetchableDevEnvironment;
+}
+
+const _envClasses = new Map<string, Promise<FetchableDevEnvironmentConstructor>>();
 
 /**
  * `DevEnvironment` is a value import from the (optional) `vite` dependency, so the subclass is
  * defined lazily against the `vite` instance resolved from the user project.
  */
-function getFetchableDevEnvironment(dir: string) {
+function getFetchableDevEnvironment(dir: string): Promise<FetchableDevEnvironmentConstructor> {
   let envClass = _envClasses.get(dir);
   if (!envClass) {
     envClass = importVite({ dir }).then((vite) => _defineFetchableDevEnvironment(vite));
@@ -80,7 +91,9 @@ function getFetchableDevEnvironment(dir: string) {
   return envClass;
 }
 
-function _defineFetchableDevEnvironment({ DevEnvironment }: typeof import("vite")) {
+function _defineFetchableDevEnvironment({
+  DevEnvironment,
+}: typeof import("vite")): FetchableDevEnvironmentConstructor {
   return class FetchableDevEnvironment extends DevEnvironment {
     devServer: DevServer;
 
@@ -181,7 +194,6 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   const reload = debounce(async () => {
     await scanHandlers(nitro);
     nitro.routing.sync();
-    await writeTypes(nitro);
     nitroEnv.moduleGraph.invalidateAll();
     nitroEnv.hot.send({ type: "full-reload" });
   });

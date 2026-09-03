@@ -6,7 +6,7 @@ import { join } from "pathe";
 import { runtimeDir } from "nitro/meta";
 import { addRoute, createRouter, findRoute, findAllRoutes } from "rou3";
 import { compileRouterToString } from "rou3/compiler";
-import { hash } from "ohash";
+import { hash } from "./utils/hash.ts";
 import { normalizeRoute } from "./utils/route.ts";
 
 const isGlobalMiddleware = (h: NitroEventHandler) => !h.method && (!h.route || h.route === "/**");
@@ -128,7 +128,7 @@ export function initNitroRouting(nitro: Nitro) {
 }
 
 function handlerWithImportHash(h: NitroEventHandler) {
-  const id = (h.lazy ? "_lazy_" : "_") + hash(h.handler).replace(/-/g, "").slice(0, 6);
+  const id = (h.lazy ? "_lazy_" : "_") + hash(h.handler);
   return { ...h, _importHash: id };
 }
 
@@ -158,7 +158,15 @@ export interface RouterOptions {
 export class Router<T> {
   _routes?: Route<T>[];
   _router?: RouterContext<T>;
-  _compiled?: Record<string, string>;
+  /**
+   * Cached output of {@link compileToString}, invalidated by {@link _update}.
+   *
+   * Only one result is cached: each Router instance must always be compiled with
+   * the same `opts`. Compiling one instance with differing `opts` would silently
+   * return the first result, since `opts` holds a `serialize` closure and is
+   * therefore not hashable into a cache key.
+   */
+  _compiled?: string;
   _baseURL: string;
   _normalize: boolean;
 
@@ -184,7 +192,7 @@ export class Router<T> {
       addRoute(this._router, route.method, this._baseURL + pattern, route.data);
     }
     if (opts?.merge) {
-      mergeCatchAll(this._router);
+      mergeCatchAll(this._router, this._baseURL);
     }
   }
 
@@ -193,12 +201,10 @@ export class Router<T> {
   }
 
   compileToString(opts?: RouterCompilerOptions<T>) {
-    const key = opts ? hash(opts) : "";
-    this._compiled ||= {};
-    if (this._compiled[key]) {
-      return this._compiled[key];
+    if (this._compiled) {
+      return this._compiled;
     }
-    this._compiled[key] = compileRouterToString(this._router!, undefined, opts);
+    this._compiled = compileRouterToString(this._router!, undefined, opts);
 
     // TODO: Upstream to rou3 compiler
     const onlyWildcard =
@@ -206,15 +212,18 @@ export class Router<T> {
     if (onlyWildcard) {
       // Optimize for single wildcard route
       const data = (opts?.serialize || JSON.stringify)(this.routes[0].data);
-      let retCode = `{data,params:{"_":p.slice(1)}}`;
+      const base = this._baseURL;
+      let retCode = `{data,params:{"_":p.slice(${base.length + 1})}}`;
       if (opts?.matchAll) {
         retCode = `[${retCode}]`;
       }
-      this._compiled[key] =
-        /* js */ `/* @__PURE__ */ (() => {const data=${data};return ((_m, p)=>{return ${retCode};})})()`;
+      const guardCode = base
+        ? `if(p!==${JSON.stringify(base)}&&!p.startsWith(${JSON.stringify(base + "/")})){return ${opts?.matchAll ? "[]" : "undefined"};}`
+        : "";
+      this._compiled = /* js */ `/* @__PURE__ */ (() => {const data=${data};return ((_m, p)=>{${guardCode}return ${retCode};})})()`;
     }
 
-    return this._compiled[key];
+    return this._compiled;
   }
 
   match(method: string, path: string): undefined | T {
@@ -227,8 +236,18 @@ export class Router<T> {
   }
 }
 
-function mergeCatchAll(router: RouterContext<unknown>) {
-  const handlers = router.root?.wildcard?.methods?.[""];
+function mergeCatchAll(router: RouterContext<unknown>, baseURL: string) {
+  let node: RouterContext<unknown>["root"] | undefined = router.root;
+  for (const segment of baseURL.split("/")) {
+    if (!segment) {
+      continue;
+    }
+    node = node?.static?.[segment];
+    if (!node) {
+      return;
+    }
+  }
+  const handlers = node?.wildcard?.methods?.[""];
   if (!handlers || handlers.length < 2) {
     return;
   }

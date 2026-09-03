@@ -15,8 +15,6 @@ import {
   prerender,
 } from "nitro/builder";
 import type { Nitro, NitroConfig } from "nitro/types";
-import { fetch } from "ofetch";
-import type { FetchOptions } from "ofetch";
 import { join, resolve } from "pathe";
 import { isWindows } from "std-env";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -26,7 +24,7 @@ export interface Context {
   nitro?: Nitro;
   rootDir: string;
   outDir: string;
-  fetch: (url: string, opts?: FetchOptions) => Promise<any>;
+  fetch: (url: string, opts?: RequestInit) => Promise<any>;
   server?: { url: string; close: () => Promise<void> };
   isDev: boolean;
   isWorker: boolean;
@@ -248,6 +246,14 @@ export function testNitro(
   it("Server entry works", async () => {
     const { data, headers } = await callHandler({ url: "/" });
     expect(data).toBe("server entry works!");
+    expect(headers["x-test"]).toBe("test");
+  });
+
+  it("middleware runs in order: route rules, global, routed, then the route handler", async () => {
+    const { data, headers } = await callHandler({ url: "/api/middleware-order" });
+    // `rules` is recorded by the global middleware when `event.context.routeRules`
+    // is already populated, i.e. route rules resolved before it ran.
+    expect(data).toEqual(["rules", "global", "routed"]);
     expect(headers["x-test"]).toBe("test");
   });
 
@@ -495,7 +501,7 @@ export function testNitro(
     expect(status).toBe(404);
   });
 
-  it("find auto imported utils", async () => {
+  it("resolves utils from server/utils", async () => {
     const res = await callHandler({ url: "/imports" });
     expect(res.data).toMatchObject({
       testUtil: 123,

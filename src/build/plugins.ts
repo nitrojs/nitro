@@ -21,12 +21,6 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   nitro.vfs = virtualPlugin.api.modules;
   plugins.push(virtualPlugin, virtualDeps());
 
-  // Auto imports
-  if (nitro.options.imports) {
-    const unimportPlugin = await import("unimport/unplugin");
-    plugins.push(unimportPlugin.default.rollup(nitro.options.imports) as Plugin);
-  }
-
   // WASM loader
   if (nitro.options.wasm !== false) {
     plugins.push(unwasm(nitro.options.wasm || {}));

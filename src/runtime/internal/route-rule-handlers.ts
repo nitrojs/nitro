@@ -8,7 +8,7 @@ import { createCacheRuleHandler, type RuleHandler } from "h3/rules";
 import { defineCachedHandler } from "./cache.ts";
 
 // `/* @__PURE__ */` so an app that uses only non-cache rules (e.g. `headers`)
-// tree-shakes this out along with `ocache`/`ohash`.
+// tree-shakes this out along with `ocache`.
 export const cache: RuleHandler<"cache"> = /* @__PURE__ */ createCacheRuleHandler({
   defineCachedHandler,
   // Preserve Nitro's cache storage key convention (`nitro/route-rules`) so
