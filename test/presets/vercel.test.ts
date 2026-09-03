@@ -1,16 +1,45 @@
 import { promises as fsp } from "node:fs";
+import { Server, type IncomingMessage, type ServerResponse } from "node:http";
+import type { Socket } from "node:net";
 import { resolve, join, basename } from "pathe";
+import { joinURL } from "ufo";
 import { describe, expect, it, vi, beforeAll, afterAll } from "vitest";
 import { setupTest, testNitro, fixtureDir } from "../tests.ts";
 import { toFetchHandler } from "srvx/node";
 
+const presetFixturesDir = resolve(import.meta.dirname, "fixtures");
+
 // NOTE: Always prefer extending the existing `nitro:preset:vercel:web` matrix
 // (its setup/build is shared across assertions) over adding new top-level
 // `describe` blocks, which trigger a separate build and slow down CI.
+
 describe("nitro:preset:vercel:web", async () => {
+  const TEST_HASH_SALT = "initial";
+
+  // Example salt used to exercise `VERCEL_HASH_SALT` namespacing of immutable
+  // static files. Set around the (build-time) `setupTest` below and restored
+  // immediately after so it does not leak into other builds.
+  const prevHashSalt = process.env.VERCEL_HASH_SALT;
+  process.env.VERCEL_HASH_SALT = TEST_HASH_SALT;
+
   const ctx = await setupTest("vercel", {
     outDirSuffix: "-web",
     config: {
+      features: { websocket: true },
+      handlers: [
+        {
+          route: "/_ws",
+          handler: resolve(presetFixturesDir, "websocket.ts"),
+        },
+        {
+          route: "/slash",
+          handler: resolve(presetFixturesDir, "slash.ts"),
+        },
+      ],
+      prerender: {
+        // trailing slash on purpose (#4392)
+        routes: ["/slash/"],
+      },
       vercel: {
         queues: {
           triggers: [
@@ -21,6 +50,13 @@ describe("nitro:preset:vercel:web", async () => {
       },
     },
   });
+
+  if (prevHashSalt === undefined) {
+    delete process.env.VERCEL_HASH_SALT;
+  } else {
+    process.env.VERCEL_HASH_SALT = prevHashSalt;
+  }
+
   testNitro(
     ctx,
     async () => {
@@ -53,17 +89,23 @@ describe("nitro:preset:vercel:web", async () => {
               "version": "3.x",
             },
             "overrides": {
-              "_scalar/index.html": {
-                "path": "_scalar",
+              "api/hello": {
+                "contentType": "application/json;charset=UTF-8",
               },
-              "_swagger/index.html": {
-                "path": "_swagger",
+              "api/param/hidden": {
+                "contentType": "text/plain; custom",
               },
-              "api/hey/index.html": {
-                "path": "api/hey",
+              "api/param/prerender1": {
+                "contentType": "text/plain; custom",
               },
-              "prerender/index.html": {
-                "path": "prerender",
+              "api/param/prerender3": {
+                "contentType": "text/plain; custom",
+              },
+              "api/param/prerender4": {
+                "contentType": "text/plain; custom",
+              },
+              "json-string": {
+                "contentType": "text/plain; charset=UTF-8",
               },
             },
             "routes": [
@@ -103,10 +145,7 @@ describe("nitro:preset:vercel:web", async () => {
               },
               {
                 "headers": {
-                  "access-control-allow-headers": "*",
                   "access-control-allow-methods": "GET",
-                  "access-control-allow-origin": "*",
-                  "access-control-max-age": "0",
                 },
                 "src": "/rules/cors",
               },
@@ -127,10 +166,9 @@ describe("nitro:preset:vercel:web", async () => {
               },
               {
                 "headers": {
-                  "Location": "/base",
+                  "x-single": "single",
                 },
-                "src": "/rules/ba-redirect/(.*)",
-                "status": 307,
+                "src": "/single-headers/*",
               },
               {
                 "headers": {
@@ -247,14 +285,6 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/raw",
               },
               {
-                "dest": "/prerender-custom.html",
-                "src": "/prerender-custom.html",
-              },
-              {
-                "dest": "/prerender",
-                "src": "/prerender",
-              },
-              {
                 "dest": "/node-compat",
                 "src": "/node-compat",
               },
@@ -267,12 +297,12 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/jsx",
               },
               {
-                "dest": "/json-string",
-                "src": "/json-string",
-              },
-              {
                 "dest": "/imports",
                 "src": "/imports",
+              },
+              {
+                "dest": "/import-attributes",
+                "src": "/import-attributes",
               },
               {
                 "dest": "/icon.png",
@@ -327,6 +357,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/api/storage/item",
               },
               {
+                "dest": "/api/middleware-order",
+                "src": "/api/middleware-order",
+              },
+              {
                 "dest": "/api/methods/get",
                 "src": "/api/methods/get",
               },
@@ -341,14 +375,6 @@ describe("nitro:preset:vercel:web", async () => {
               {
                 "dest": "/api/kebab",
                 "src": "/api/kebab",
-              },
-              {
-                "dest": "/api/hey",
-                "src": "/api/hey",
-              },
-              {
-                "dest": "/api/hello",
-                "src": "/api/hello",
               },
               {
                 "dest": "/api/headers",
@@ -371,6 +397,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/500",
               },
               {
+                "dest": "/_ws",
+                "src": "/_ws",
+              },
+              {
                 "dest": "/_vercel/queues/consumer",
                 "src": "/_vercel/queues/consumer",
               },
@@ -379,16 +409,8 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/_vercel/cron",
               },
               {
-                "dest": "/_swagger",
-                "src": "/_swagger",
-              },
-              {
-                "dest": "/_scalar",
-                "src": "/_scalar",
-              },
-              {
-                "dest": "/_openapi.json",
-                "src": "/_openapi.json",
+                "dest": "/single-headers/[id]",
+                "src": "/single-headers/(?<id>[^/]+)",
               },
               {
                 "dest": "/assets/[id]",
@@ -422,6 +444,26 @@ describe("nitro:preset:vercel:web", async () => {
             "version": 3,
           }
         `);
+      });
+
+      it("should apply immutable buildAssetsDir and write manifest", async () => {
+        // `vercel.immutableStaticFiles` relocates build assets under the
+        // reserved `_vercel/immutable` base (namespaced by the optional
+        // `VERCEL_HASH_SALT` and the framework name) and emits an
+        // `immutable.json` manifest mapping each file to its full content hash.
+        const expectedDir = joinURL(
+          "_vercel/immutable",
+          TEST_HASH_SALT,
+          ctx.nitro!.options.framework.name || ""
+        );
+        expect(ctx.nitro!.options.buildAssetsDir).toBe(expectedDir);
+        expect(expectedDir).toBe(`_vercel/immutable/${TEST_HASH_SALT}/nitro`);
+
+        const manifest = await fsp
+          .readFile(resolve(ctx.outDir, "immutable.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        expect(manifest.version).toBe(1);
+        expect(manifest.hashes).toBeTypeOf("object");
       });
 
       it("should generate prerender config", async () => {
@@ -461,20 +503,18 @@ describe("nitro:preset:vercel:web", async () => {
           [
             "functions/500.func (symlink)",
             "functions/__server.func",
-            "functions/_openapi.json.func (symlink)",
-            "functions/_scalar.func (symlink)",
-            "functions/_swagger.func (symlink)",
             "functions/_vercel",
+            "functions/_ws.func (symlink)",
             "functions/api/cached.func (symlink)",
             "functions/api/db.func (symlink)",
             "functions/api/echo.func",
             "functions/api/headers.func (symlink)",
             "functions/api/hello.func",
-            "functions/api/hey.func (symlink)",
             "functions/api/kebab.func (symlink)",
             "functions/api/meta/test.func (symlink)",
             "functions/api/methods/foo.get.func (symlink)",
             "functions/api/methods/get.func (symlink)",
+            "functions/api/middleware-order.func (symlink)",
             "functions/api/param/[test-id].func (symlink)",
             "functions/api/storage/item.func (symlink)",
             "functions/api/test/[-]/foo.func (symlink)",
@@ -492,13 +532,11 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/fetch.func (symlink)",
             "functions/file.func (symlink)",
             "functions/icon.png.func (symlink)",
+            "functions/import-attributes.func (symlink)",
             "functions/imports.func (symlink)",
-            "functions/json-string.func (symlink)",
             "functions/jsx.func (symlink)",
             "functions/modules.func (symlink)",
             "functions/node-compat.func (symlink)",
-            "functions/prerender-custom.html.func (symlink)",
-            "functions/prerender.func (symlink)",
             "functions/raw.func (symlink)",
             "functions/replace.func (symlink)",
             "functions/route-group.func (symlink)",
@@ -515,6 +553,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/rules/swr-ttl/[...]-isr.prerender-config.json",
             "functions/rules/swr/[...]-isr.func (symlink)",
             "functions/rules/swr/[...]-isr.prerender-config.json",
+            "functions/single-headers/[id].func (symlink)",
             "functions/static-flags.func (symlink)",
             "functions/stream.func (symlink)",
             "functions/tasks/[...name].func (symlink)",
@@ -557,6 +596,17 @@ describe("nitro:preset:vercel:web", async () => {
         const funcDir = resolve(ctx.outDir, "functions/api/hello.func");
         const indexStat = await fsp.lstat(resolve(funcDir, "index.mjs"));
         expect(indexStat.isFile()).toBe(true);
+      });
+
+      it("should preserve dependency symlink targets inside functionRules directories", async () => {
+        const dependencyPath = "node_modules/@fixture/nitro-lib";
+        const serverTarget = await fsp.readlink(
+          resolve(ctx.outDir, "functions/__server.func", dependencyPath)
+        );
+        const functionTarget = await fsp.readlink(
+          resolve(ctx.outDir, "functions/api/hello.func", dependencyPath)
+        );
+        expect(functionTarget).toBe(serverTarget);
       });
 
       it("should keep base __server.func without functionRules overrides", async () => {
@@ -603,6 +653,24 @@ describe("nitro:preset:vercel:web", async () => {
         );
         expect(queueRoute).toBeDefined();
       });
+
+      it.skipIf(typeof WebSocket !== "function")(
+        "should handle Vercel request context websocket upgrades",
+        async () => {
+          const entry = await import(resolve(ctx.outDir, "functions/__server.func/index.mjs")).then(
+            (r) => r.default || r
+          );
+
+          await testVercelWebSocketUpgrade(async (req) => {
+            const host = req.headers.host || "127.0.0.1";
+            const webRequest = new Request(`http://${host}${req.url || "/"}`, {
+              method: req.method,
+              headers: req.headers as Record<string, string>,
+            });
+            await entry.fetch(webRequest, { waitUntil: () => {} });
+          });
+        }
+      );
     }
   );
 });
@@ -611,20 +679,46 @@ describe("nitro:preset:vercel:node", async () => {
   const ctx = await setupTest("vercel", {
     outDirSuffix: "-node",
     config: {
+      features: { websocket: true },
+      handlers: [
+        {
+          route: "/_ws",
+          handler: resolve(presetFixturesDir, "websocket.ts"),
+        },
+      ],
       vercel: { entryFormat: "node" },
     },
   });
-  testNitro(ctx, async () => {
-    const nodeHandler = await import(resolve(ctx.outDir, "functions/__server.func/index.mjs")).then(
-      (r) => r.default || r
-    );
-    const fetchHandler = toFetchHandler(nodeHandler);
-    return async ({ url, ...options }) => {
-      const req = new Request(new URL(url, "https://example.com"), options);
-      const res = await fetchHandler(req);
-      return res;
-    };
-  });
+  testNitro(
+    ctx,
+    async () => {
+      const nodeHandler = await import(
+        resolve(ctx.outDir, "functions/__server.func/index.mjs")
+      ).then((r) => r.default || r);
+      const fetchHandler = toFetchHandler(nodeHandler);
+      return async ({ url, ...options }) => {
+        const req = new Request(new URL(url, "https://example.com"), options);
+        const res = await fetchHandler(req);
+        return res;
+      };
+    },
+    () => {
+      it.skipIf(typeof WebSocket !== "function")(
+        "should handle Vercel request context websocket upgrades",
+        async () => {
+          const nodeHandler = await import(
+            resolve(ctx.outDir, "functions/__server.func/index.mjs")
+          ).then((r) => r.default || r);
+
+          await testVercelWebSocketUpgrade(async (req) => {
+            const { ServerResponse } = await import("node:http");
+            const res = new ServerResponse(req);
+            await nodeHandler(req, res);
+          });
+        }
+      );
+    }
+  );
 });
 
 describe("nitro:preset:vercel:bun", async () => {
@@ -691,3 +785,60 @@ describe.skip("nitro:preset:vercel:bun-verceljson", async () => {
     `);
   });
 });
+
+async function testVercelWebSocketUpgrade(
+  handleUpgrade: (req: IncomingMessage, socket: Socket, head: Buffer) => Promise<void>
+) {
+  const requestContextSymbol = Symbol.for("@vercel/request-context");
+  const previousRequestContext = (globalThis as Record<symbol, unknown>)[requestContextSymbol];
+  const server = new Server();
+
+  server.on("upgrade", async (req, socket, head) => {
+    (globalThis as Record<symbol, unknown>)[requestContextSymbol] = {
+      get: () => ({
+        upgradeWebSocket: () => ({ req, socket, head }),
+      }),
+    };
+
+    try {
+      await handleUpgrade(req, socket as any, head);
+    } catch (error) {
+      socket.destroy(error as Error);
+    } finally {
+      (globalThis as Record<symbol, unknown>)[requestContextSymbol] = previousRequestContext;
+    }
+  });
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(0, "127.0.0.1", () => resolve());
+    });
+    const port = (server.address() as { port: number }).port;
+
+    await expect(
+      new Promise((resolve, reject) => {
+        const ws = new WebSocket(`ws://127.0.0.1:${port}/_ws`);
+        const timeout = setTimeout(() => {
+          ws.close();
+          reject(new Error("Timed out waiting for websocket message"));
+        }, 5000);
+
+        ws.addEventListener("message", (event) => {
+          clearTimeout(timeout);
+          ws.close();
+          resolve(event.data);
+        });
+        ws.addEventListener("error", () => {
+          clearTimeout(timeout);
+          reject(new Error("WebSocket connection failed"));
+        });
+      })
+    ).resolves.toBe("ready");
+  } finally {
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => (error ? reject(error) : resolve()));
+    });
+    (globalThis as Record<symbol, unknown>)[requestContextSymbol] = previousRequestContext;
+  }
+}

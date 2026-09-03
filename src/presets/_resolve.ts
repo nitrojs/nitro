@@ -19,6 +19,7 @@ export async function resolvePreset(
     static?: boolean;
     compatibilityDate?: false | CompatibilityDateSpec;
     dev?: boolean;
+    defaultPreset?: string | NitroPreset;
   } = {}
 ): Promise<(NitroPreset & { _meta?: NitroPresetMeta }) | undefined> {
   if (name === ".") {
@@ -80,6 +81,18 @@ export async function resolvePreset(
   if (!name && !preset) {
     if (opts?.static) {
       return resolvePreset("static", opts);
+    }
+    // User-configured fallback preset (`defaultPreset`)
+    if (opts.defaultPreset) {
+      if (typeof opts.defaultPreset === "string") {
+        return resolvePreset(opts.defaultPreset, { ...opts, defaultPreset: undefined });
+      }
+      const config =
+        typeof opts.defaultPreset === "function" ? opts.defaultPreset() : opts.defaultPreset;
+      return {
+        ...config,
+        _meta: { name: "default", ...(config as { _meta?: NitroPresetMeta })._meta },
+      };
     }
     const runtimeMap = { deno: "deno", bun: "bun" } as Record<string, string>;
     return resolvePreset(runtimeMap[runtime] || "node", opts);

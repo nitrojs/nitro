@@ -12,7 +12,12 @@ export async function generateFSTree(dir: string, options: { compressedSizes?: b
     return;
   }
 
-  const files = await glob("**/*.*", { cwd: dir, ignore: ["*.map"] });
+  const files = await glob("**/*.*", {
+    cwd: dir,
+    ignore: ["**/*.map"],
+    followSymbolicLinks: false,
+    dot: true,
+  });
 
   const items: { file: string; path: string; size: number; gzip: number }[] = [];
 

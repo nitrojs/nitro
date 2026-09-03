@@ -13,7 +13,6 @@ import { resolveAssetsOptions } from "./resolvers/assets.ts";
 import { resolveCompatibilityOptions } from "./resolvers/compatibility.ts";
 import { resolveDatabaseOptions } from "./resolvers/database.ts";
 import { resolveExportConditionsOptions } from "./resolvers/export-conditions.ts";
-import { resolveImportsOptions } from "./resolvers/imports.ts";
 import { resolveOpenAPIOptions } from "./resolvers/open-api.ts";
 import { resolveTsconfig } from "./resolvers/tsconfig.ts";
 import { resolvePathOptions } from "./resolvers/paths.ts";
@@ -30,7 +29,6 @@ const configResolvers = [
   resolveCompatibilityOptions,
   resolveTsconfig,
   resolvePathOptions,
-  resolveImportsOptions,
   resolveRouteRulesOptions,
   resolveDatabaseOptions,
   resolveExportConditionsOptions,
@@ -78,7 +76,10 @@ async function _loadUserConfig(
   const { resolvePreset } = await import("../presets/index.ts");
 
   // prettier-ignore
-  let preset: string | undefined = (configOverrides.preset as string) || process.env.NITRO_PRESET || process.env.SERVER_PRESET
+  let preset: string | undefined = (configOverrides.preset as string) || process.env.NITRO_PRESET || process.env.SERVER_PRESET;
+
+  // Inline `defaultPreset` object resolved during auto-detection (injected via `resolve`)
+  let inlineDefaultPreset: (NitroConfig & { _meta?: NitroPresetMeta }) | undefined;
 
   const _dotenv = opts.dotenv ?? (configOverrides.dev && { fileName: [".env", ".env.local"] });
   const envName = opts.c12?.envName ?? (configOverrides.dev ? "development" : "production");
@@ -102,7 +103,7 @@ async function _loadUserConfig(
       }
 
       // prettier-ignore
-      const framework = getConf("framework")
+      const framework = getConf("framework");
       const isCustomFramework = framework?.name && framework.name !== "nitro";
 
       if (!preset) {
@@ -123,12 +124,19 @@ async function _loadUserConfig(
                 .catch(() => "nitro-dev")
             : "nitro-dev";
       } else if (!preset) {
-        // Auto detect production preset
-        preset = await resolvePreset("" /* auto detect */, {
+        // Auto detect production preset (with user-defined `defaultPreset` fallback)
+        const defaultPreset = getConf("defaultPreset");
+        const resolved = await resolvePreset("" /* auto detect */, {
           static: getConf("static"),
           dev: false,
           compatibilityDate: compatibilityDate || "latest",
-        }).then((p) => p?._meta?.name);
+          defaultPreset,
+        });
+        preset = resolved?._meta?.name;
+        // An inline `defaultPreset` object has no resolvable name, inject it directly
+        if (resolved && defaultPreset && typeof defaultPreset !== "string") {
+          inlineDefaultPreset = resolved;
+        }
       }
 
       return {
@@ -142,6 +150,9 @@ async function _loadUserConfig(
       };
     },
     async resolve(id: string) {
+      if (inlineDefaultPreset && id === inlineDefaultPreset._meta?.name) {
+        return { config: klona(inlineDefaultPreset) };
+      }
       const preset = await resolvePreset(id, {
         static: configOverrides.static,
         compatibilityDate: compatibilityDate || "latest",

@@ -5,6 +5,7 @@ import { existsSync } from "node:fs";
 
 export default defineConfig({
   vercel: {
+    immutableStaticFiles: true,
     functionRules: {
       "/api/hello": {
         maxDuration: 100,
@@ -24,15 +25,6 @@ export default defineConfig({
   // @ts-expect-error
   __vitePkg__: process.env.NITRO_VITE_PKG,
   framework: { name: "nitro", version: "3.x" },
-  imports: {
-    presets: [
-      {
-        // TODO: move this to built-in preset
-        from: "scule",
-        imports: ["camelCase", "pascalCase", "kebabCase"],
-      },
-    ],
-  },
   sourcemap: true,
   rollupConfig: {
     output: {
@@ -55,6 +47,11 @@ export default defineConfig({
     {
       route: "/api/hello2",
       handler: "./server/routes/api/hello.ts",
+      middleware: true,
+    },
+    {
+      route: "/api/middleware-order",
+      handler: "./server/routed-middleware/order.ts",
       middleware: true,
     },
     {
@@ -121,18 +118,11 @@ export default defineConfig({
     "/api/proxy/**": { proxy: "/api/echo" },
     "/rules/proxy/legacy/**": { proxy: "/api/wildcard/**" },
     "/cdn/**": { proxy: "https://cdn.jsdelivr.net/**" },
-    "/rules/basic-auth/**": {
-      basicAuth: { username: "admin", password: "secret", realm: "Secure Area" },
-    },
-    "/rules/basic-auth/no-auth/**": { basicAuth: false },
-    "/rules/ba-redirect/**": { redirect: "/base" },
-    "/rules/ba-redirect/secure/**": {
-      basicAuth: { username: "admin", password: "secret", realm: "Secure Area" },
-    },
-    "/rules/ba-proxy/**": { proxy: "/api/echo" },
-    "/rules/ba-proxy/secure/**": {
-      basicAuth: { username: "admin", password: "secret", realm: "Secure Area" },
-    },
+    // Method-scoped route rule: the `"METHOD /path"` key only applies to that method.
+    // (a runtime-only rule: `headers`/`redirect` keys are also emitted into
+    // platform-native static config, which cannot express a method)
+    "POST /rules/method-scoped/**": { cors: true },
+    "/single-headers/*": { headers: { "x-single": "single" } },
     "**": { headers: { "x-test": "test" } },
   },
   prerender: {

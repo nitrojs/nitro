@@ -9,6 +9,8 @@ import {
   generateStaticFiles,
   resolveVercelRuntime,
 } from "./utils.ts";
+import { setupImmutableStaticFiles, generateImmutableManifest } from "./immutable.ts";
+import { vercelDevModule } from "./dev.ts";
 
 import type { VercelFunctionTrigger } from "./types.ts";
 
@@ -24,6 +26,7 @@ const vercel = defineNitroPreset(
     },
     vercel: {
       skewProtection: !!process.env.VERCEL_SKEW_PROTECTION_ENABLED,
+      immutableStaticFiles: !!process.env.NITRO_VERCEL_IMMUTABLE_STATIC_FILES_ENABLED,
       cronHandlerRoute: "/_vercel/cron",
     },
     output: {
@@ -38,6 +41,9 @@ const vercel = defineNitroPreset(
     hooks: {
       "build:before": async (nitro: Nitro) => {
         const logger = nitro.logger.withTag("vercel");
+
+        // Immutable static files
+        setupImmutableStaticFiles(nitro);
 
         // Runtime
         const runtime = await resolveVercelRuntime(nitro);
@@ -56,6 +62,14 @@ const vercel = defineNitroPreset(
         }
         logger.info(`Using \`${serverFormat}\` entry format.`);
         nitro.options.entry = nitro.options.entry.replace("{format}", serverFormat);
+
+        // Export tracing-channel spans to the Vercel runtime. Registered first
+        // (unshift) so it subscribes to the traced channels at startup, before
+        // any request is handled.
+        if (nitro.options.tracingChannel) {
+          nitro.options.plugins ??= [];
+          nitro.options.plugins.unshift(join(presetsDir, "vercel/runtime/telemetry/plugin"));
+        }
 
         // Cron tasks handler
         if (
@@ -103,6 +117,7 @@ const vercel = defineNitroPreset(
       },
       async compiled(nitro: Nitro) {
         await generateFunctionFiles(nitro);
+        await generateImmutableManifest(nitro);
       },
     },
   },
@@ -120,6 +135,7 @@ const vercelStatic = defineNitroPreset(
     },
     vercel: {
       skewProtection: !!process.env.VERCEL_SKEW_PROTECTION_ENABLED,
+      immutableStaticFiles: !!process.env.NITRO_VERCEL_IMMUTABLE_STATIC_FILES_ENABLED,
     },
     output: {
       dir: "{{ rootDir }}/.vercel/output",
@@ -129,11 +145,16 @@ const vercelStatic = defineNitroPreset(
       preview: "npx serve ./static",
     },
     hooks: {
+      "build:before": (nitro: Nitro) => {
+        // Immutable static files (opt-in, guarded by Vercel platform support)
+        setupImmutableStaticFiles(nitro);
+      },
       "rollup:before": (nitro: Nitro) => {
         deprecateSWR(nitro);
       },
       async compiled(nitro: Nitro) {
         await generateStaticFiles(nitro);
+        await generateImmutableManifest(nitro);
       },
     },
   },
@@ -144,4 +165,17 @@ const vercelStatic = defineNitroPreset(
   }
 );
 
-export default [vercel, vercelStatic] as const;
+export const vercelDev = defineNitroPreset(
+  {
+    extends: "nitro-dev",
+    devServer: { runner: "vercel" },
+    modules: [vercelDevModule],
+  },
+  {
+    name: "vercel-dev" as const,
+    aliases: ["vercel"],
+    dev: true,
+  }
+);
+
+export default [vercel, vercelStatic, vercelDev] as const;

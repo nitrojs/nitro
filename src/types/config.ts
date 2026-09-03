@@ -4,14 +4,13 @@ import type { WatchConfigOptions } from "c12";
 import type { ChokidarOptions } from "chokidar";
 import type { CompatibilityDateSpec, CompatibilityDates } from "compatx";
 import type { LogLevel } from "consola";
-import type { ConnectorName } from "db0";
+import type { ConnectorName, ConnectorOptions } from "db0";
 import type { NestedHooks } from "hookable";
 import type { ProxyServerOptions } from "httpxy";
 import type { PresetName, PresetNameInput, PresetOptions } from "../presets/index.ts";
 import type { TSConfig } from "pkg-types";
 import type { Preset as UnenvPreset } from "unenv";
-import type { UnimportPluginOptions } from "unimport/unplugin";
-import type { BuiltinDriverName } from "unstorage";
+import type { BuiltinDriverName, BuiltinDriverOptions } from "unstorage";
 import type { ExternalsTraceOptions } from "nf3";
 import type { UnwasmPluginOptions } from "unwasm/plugin";
 import type { RunnerName } from "env-runner";
@@ -200,6 +199,16 @@ export interface NitroOptions extends PresetOptions {
     publicDir: string;
   };
 
+  /**
+   * Directory (relative to the served base) for generated build assets.
+   *
+   * Applied as the bundler `assetsDir` for client and SSR environments, so
+   * generated assets are emitted and referenced under this path. Presets can
+   * use it to relocate content-addressed assets (e.g. Vercel immutable static
+   * files under `_vercel/immutable`).
+   */
+  buildAssetsDir?: string;
+
   /** @deprecated Migrate to `serverDir`. */
   srcDir: string;
 
@@ -265,7 +274,6 @@ export interface NitroOptions extends PresetOptions {
    * Include a static asset handler in the server bundle to serve public assets.
    *
    * - `true` or `"node"` — read assets from the filesystem using Node.js `fs`.
-   * - `"deno"` — read assets using Deno file APIs.
    * - `"inline"` — base64-encode assets directly into the server bundle.
    * - `false` — do not serve static assets from the server (rely on a CDN or reverse proxy).
    *
@@ -273,7 +281,7 @@ export interface NitroOptions extends PresetOptions {
    *
    * @see https://nitro.build/config#servestatic
    */
-  serveStatic: boolean | "node" | "deno" | "inline";
+  serveStatic: boolean | "node" | "inline";
 
   /**
    * Disable the public output directory entirely.
@@ -382,6 +390,15 @@ export interface NitroOptions extends PresetOptions {
      * @see https://nitro.build/docs/tasks
      */
     tasks?: boolean;
+
+    /**
+     * Log Nitro tracing-channel spans to the console.
+     *
+     * Enables a built-in, dependency-free telemetry sink that `console.log`s
+     * each completed span (h3, srvx, unstorage, …). Requires `tracingChannel`
+     * to be enabled.
+     */
+    tracingLogger?: boolean;
   };
 
   /**
@@ -411,17 +428,6 @@ export interface NitroOptions extends PresetOptions {
    * @see https://nitro.build/docs/assets
    */
   publicAssets: PublicAssetDir[];
-
-  /**
-   * Auto-import configuration.
-   *
-   * Set to `false` to disable auto-imports. Pass an object to customize.
-   *
-   * @default false
-   * @see https://nitro.build/config#imports
-   * @see https://github.com/unjs/unimport
-   */
-  imports: Partial<UnimportPluginOptions> | false;
 
   /**
    * Nitro modules to extend behavior during initialization.
@@ -844,7 +850,7 @@ export interface NitroOptions extends PresetOptions {
    * Advanced options for dependency tracing via nf3.
    *
    * @see https://nitro.build/config#traceopts
-   * @see https://github.com/nicolo-ribaudo/nf3
+   * @see https://github.com/unjs/nf3
    */
   traceOpts?: Pick<ExternalsTraceOptions, "nft" | "traceAlias" | "chmod" | "transform" | "hooks">;
 
@@ -952,6 +958,22 @@ export interface NitroConfig
     >,
     C12InputConfig<NitroConfig> {
   preset?: PresetNameInput;
+
+  /**
+   * Customize the preset used as the **fallback** when no `preset` is set and
+   * none of the known hosting providers are auto-detected.
+   *
+   * By default, Nitro falls back to the runtime-based preset (`node`, and
+   * `deno` or `bun` when running on those runtimes). An explicit `preset`,
+   * the `NITRO_PRESET` environment variable, and auto-detected providers
+   * (Vercel, Netlify, Cloudflare Pages, …) all take precedence over this.
+   *
+   * Accepts a preset name or an inline preset definition.
+   *
+   * @see https://nitro.build/config#defaultpreset
+   */
+  defaultPreset?: PresetNameInput | NitroPreset;
+
   extends?: string | string[] | NitroPreset;
   routeRules?: { [path: string]: NitroRouteConfig };
   rollupConfig?: Partial<RollupConfig>;
@@ -1041,6 +1063,28 @@ export interface TracingOptions {
   unstorage?: boolean;
 }
 
+/** Driver name (module id or alias) of a driver that is not builtin. */
+type CustomDriverName = string & { _custom?: any };
+
+/**
+ * Mount configuration for a builtin `unstorage` driver.
+ *
+ * Driver options are inferred from the `driver` name.
+ */
+export type BuiltinStorageMount = {
+  [Name in BuiltinDriverName]: { driver: Name } & (Name extends keyof BuiltinDriverOptions
+    ? BuiltinDriverOptions[Name]
+    : unknown);
+}[BuiltinDriverName];
+
+/** Mount configuration for a custom driver (module id or alias). */
+export type CustomStorageMount = {
+  driver: CustomDriverName;
+  [option: string]: any;
+};
+
+export type StorageMount = BuiltinStorageMount | CustomStorageMount;
+
 /**
  * Storage mount configuration mapping mount points to driver options.
  *
@@ -1050,12 +1094,8 @@ export interface TracingOptions {
  * @see https://nitro.build/config#storage
  * @see https://nitro.build/docs/storage
  */
-type CustomDriverName = string & { _custom?: any };
 export interface StorageMounts {
-  [path: string]: {
-    driver: BuiltinDriverName | CustomDriverName;
-    [option: string]: any;
-  };
+  [path: string]: StorageMount;
 }
 
 // Database
@@ -1070,11 +1110,11 @@ export type DatabaseConnectionName = "default" | (string & {});
  * @see https://nitro.build/docs/database
  */
 export type DatabaseConnectionConfig = {
-  connector: ConnectorName;
-  options?: {
-    [key: string]: any;
+  [Name in ConnectorName]: {
+    connector: Name;
+    options?: Name extends keyof ConnectorOptions ? ConnectorOptions[Name] : Record<string, any>;
   };
-};
+}[ConnectorName];
 
 /** Map of {@link DatabaseConnectionName} to {@link DatabaseConnectionConfig}. */
 export type DatabaseConnectionConfigs = Record<DatabaseConnectionName, DatabaseConnectionConfig>;

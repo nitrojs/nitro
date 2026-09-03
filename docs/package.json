@@ -6,10 +6,7 @@
   },
   "devDependencies": {
     "automd": "^0.4.3",
-    "geist": "^1.7.0",
-    "motion-v": "^2.2.1",
-    "shaders": "^2.5.113",
-    "undocs": "npm:undocs-nightly@0.4.17-20260413-104322-a4a49c4",
-    "zod": "^4.4.3"
+    "motion-v": "^2.4.0",
+    "undocs": "npm:undocs-nightly@0.10.1-20260828-133553-e5fe415"
   }
 }

@@ -4,6 +4,7 @@ shellEmulator: true
 dedupePeers: true
 ignoreWorkspaceRootCheck: true
 linkWorkspacePackages: "deep"
+minimumReleaseAge: 1440
 
 overrides:
   "nitro": "workspace:*"
@@ -19,7 +20,9 @@ packages:
 
 trustPolicy: no-downgrade
 trustPolicyExclude:
+  - "@vercel/*"
   - "semver@6.3.1"
+  - "exact-mirror@1.2.4"
 
 blockExoticSubdeps: true
 strictDepBuilds: true
@@ -43,3 +46,65 @@ peerDependencyRules:
 updateConfig:
   ignoreDependencies:
     - vite7
+
+patchedDependencies:
+  '@hiogawa/vite-plugin-fullstack': patches/@hiogawa__vite-plugin-fullstack.patch
+
+minimumReleaseAgeExclude:
+  - automd*
+  - c12*
+  - changelogen*
+  - citty*
+  - compatx*
+  - confbox*
+  - consola*
+  - cookie-es*
+  - crossws*
+  - db0*
+  - defu*
+  - destr*
+  - env-runner*
+  - exsolve*
+  - get-port-please*
+  - giget*
+  - h3*
+  - h3-rules*
+  - hookable*
+  - httpxy*
+  - knitwork*
+  - mdzilla*
+  - mlly*
+  - nf3*
+  - nypm*
+  - obuild*
+  - ocache*
+  - ofetch*
+  - ohash*
+  - pathe*
+  - perfect-debounce*
+  - pkg-types*
+  - rou3*
+  - scule*
+  - serve-placeholder*
+  - srvx*
+  - std-env*
+  - ufo*
+  - uncrypto*
+  - unctx*
+  - unenv*
+  - unstorage*
+  - untyped*
+  - unwasm*
+  - '@takumi-rs/core-darwin-arm64@2.1.1'
+  - '@takumi-rs/core-darwin-x64@2.1.1'
+  - '@takumi-rs/core-linux-arm64-gnu@2.1.1'
+  - '@takumi-rs/core-linux-arm64-musl@2.1.1'
+  - '@takumi-rs/core-linux-x64-gnu@2.1.1'
+  - '@takumi-rs/core-linux-x64-musl@2.1.1'
+  - '@takumi-rs/core-win32-arm64-msvc@2.1.1'
+  - '@takumi-rs/core-win32-x64-msvc@2.1.1'
+  - '@takumi-rs/core@2.1.1'
+  - '@takumi-rs/helpers@2.1.1'
+  - '@takumi-rs/wasm@2.1.1'
+  - takumi-js@2.1.1
+  - rc9@3.1.0

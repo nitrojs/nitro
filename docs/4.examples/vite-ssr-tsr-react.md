@@ -1,5 +1,6 @@
 ---
-category: server side rendering
+navigation:
+  category: server side rendering
 icon: i-simple-icons-tanstack
 ---
 
@@ -57,7 +58,7 @@ icon: i-simple-icons-tanstack
     "baseUrl": ".",
     "jsx": "react-jsx",
     "paths": {
-      "@/*": ["sec/*"]
+      "@/*": ["./src/*"]
     }
   }
 }

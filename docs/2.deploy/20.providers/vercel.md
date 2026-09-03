@@ -7,28 +7,27 @@
 :read-more{title="Vercel Framework Support" to="https://vercel.com/docs/frameworks"}
 
 ::note
-Integration with this provider is possible with [zero configuration](/deploy/#zero-config-providers).
+Integration with this provider is possible with [zero configuration](/deploy#zero-config-providers).
 ::
 
 ## Getting started
 
-Deploying to Vercel comes with the following features:
+Deploying to Vercel comes with the following features, among others:
+
 - [Preview deployments](https://vercel.com/docs/deployments/environments)
 - [Fluid compute](https://vercel.com/docs/fluid-compute)
 - [Observability](https://vercel.com/docs/observability)
 - [Vercel Firewall](https://vercel.com/docs/vercel-firewall)
 
-And much more. Learn more in [the Vercel documentation](https://vercel.com/docs).
+Learn more in [the Vercel documentation](https://vercel.com/docs).
 
 ### Deploy with Git
 
-Vercel supports Nitro with zero-configuration. [Deploy Nitro to Vercel now](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fvercel%2Ftree%2Fmain%2Fexamples%2Fnitro).
+Vercel supports Nitro with zero configuration. [Deploy Nitro to Vercel now](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fvercel%2Ftree%2Fmain%2Fexamples%2Fnitro).
 
 ## API routes
 
-Nitro `/api` directory isn't compatible with Vercel. Instead, you should use:
-
-- `routes/api/` for standalone usage
+Nitro's top-level `/api` directory isn't compatible with Vercel. Use the `routes/api/` directory instead.
 
 ## Bun runtime
 
@@ -37,6 +36,8 @@ Nitro `/api` directory isn't compatible with Vercel. Instead, you should use:
 You can use [Bun](https://bun.com) instead of Node.js by specifying the runtime using the `vercel.functions` key inside `nitro.config`:
 
 ```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
 export default defineConfig({
   vercel: {
     functions: {
@@ -57,7 +58,11 @@ Alternatively, Nitro also detects Bun automatically if you specify a `bunVersion
 
 ## Per-route function configuration
 
-Use `vercel.functionRules` to override [serverless function settings](https://vercel.com/docs/build-output-api/primitives#serverless-function-configuration) for specific routes. Each key is a route pattern and its value is a partial function configuration object that gets merged with the base `vercel.functions` config. Note: array properties (e.g., `regions`) from route config will replace the base config arrays rather than merging them.
+Use `vercel.functionRules` to override [serverless function settings](https://vercel.com/docs/build-output-api/primitives#serverless-function-configuration) for specific routes. Each key is a route pattern and its value is a partial function configuration object that gets merged with the base `vercel.functions` config.
+
+::note
+Array properties (e.g., `regions`) from route config replace the base config arrays rather than merging with them.
+::
 
 This is useful when certain routes need different resource limits, regions, or features like [Vercel Queues triggers](https://vercel.com/docs/queues).
 
@@ -89,9 +94,11 @@ Route patterns support wildcards via [rou3](https://github.com/h3js/rou3) matchi
 Nitro automatically optimizes `proxy` route rules on Vercel by generating [CDN-level rewrites](https://vercel.com/docs/rewrites) at build time. This means matching requests are proxied at the edge without invoking a serverless function, reducing latency and cost.
 
 ```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
 export default defineConfig({
   routeRules: {
-    // Proxied at CDN level — no function invocation
+    // Proxied at CDN level, no function invocation
     "/api/**": {
       proxy: "https://api.example.com/**",
     },
@@ -110,11 +117,11 @@ A proxy rule is offloaded to a Vercel CDN rewrite when **all** of the following 
 
 When the proxy rule uses any of the following `ProxyOptions`, Nitro keeps it as a runtime proxy handled by the serverless function:
 
-- `headers` — custom headers on the outgoing request to the upstream
-- `forwardHeaders` / `filterHeaders` — header filtering
-- `fetchOptions` — custom fetch options
-- `cookieDomainRewrite` / `cookiePathRewrite` — cookie manipulation
-- `onResponse` — response callback
+- `headers`: custom headers on the outgoing request to the upstream
+- `forwardHeaders` / `filterHeaders`: header filtering
+- `fetchOptions`: custom fetch options
+- `cookieDomainRewrite` / `cookiePathRewrite`: cookie manipulation
+- `onResponse`: response callback
 
 ::note
 Response headers defined on the route rule via the `headers` option are still applied to CDN-level rewrites. Only request-level `ProxyOptions.headers` (sent to the upstream) require a runtime proxy.
@@ -124,7 +131,7 @@ Response headers defined on the route rule via the `headers` option are still ap
 
 :read-more{title="Vercel Cron Jobs" to="https://vercel.com/docs/cron-jobs"}
 
-Nitro automatically converts your [`scheduledTasks`](/docs/tasks#scheduled-tasks) configuration into [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs) at build time. Define your schedules in your Nitro config and deploy - no manual `vercel.json` cron configuration required.
+Nitro automatically converts your [`scheduledTasks`](/docs/tasks#scheduled-tasks) configuration into [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs) at build time. Define your schedules in your Nitro config and deploy. No manual `vercel.json` cron configuration is required.
 
 ```ts [nitro.config.ts]
 import { defineConfig } from "nitro";
@@ -155,7 +162,11 @@ To prevent unauthorized access to the cron handler, set a `CRON_SECRET` environm
 Nitro integrates with [Vercel Queues](https://vercel.com/docs/queues) to process messages asynchronously. Define your queue topics in the Nitro config and handle incoming messages with the `vercel:queue` runtime hook.
 
 ```ts [nitro.config.ts]
-export default defineNitroConfig({
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  // Standalone Nitro scans `serverDir` for routes and plugins
+  serverDir: "./server",
   vercel: {
     queues: {
       triggers: [
@@ -170,11 +181,13 @@ export default defineNitroConfig({
 
 ### Handling messages
 
-Use the `vercel:queue` hook in a [Nitro plugin](/guide/plugins) to process incoming queue messages:
+Use the `vercel:queue` hook in a [Nitro plugin](/docs/plugins) to process incoming queue messages:
 
 ```ts [server/plugins/queues.ts]
-export default defineNitroPlugin((nitro) => {
-  nitro.hooks.hook("vercel:queue", ({ message, metadata, send }) => {
+import { definePlugin } from "nitro";
+
+export default definePlugin((nitroApp) => {
+  nitroApp.hooks.hook("vercel:queue", ({ message, metadata, send }) => {
     console.log(`[${metadata.topicName}] Message ${metadata.messageId}:`, message);
   });
 });
@@ -185,10 +198,11 @@ export default defineNitroPlugin((nitro) => {
 You can use queue messages to trigger [Nitro tasks](/docs/tasks):
 
 ```ts [server/plugins/queues.ts]
+import { definePlugin } from "nitro";
 import { runTask } from "nitro/task";
 
-export default defineNitroPlugin((nitro) => {
-  nitro.hooks.hook("vercel:queue", async ({ message, metadata }) => {
+export default definePlugin((nitroApp) => {
+  nitroApp.hooks.hook("vercel:queue", async ({ message, metadata }) => {
     if (metadata.topicName === "orders") {
       await runTask("orders:fulfill", { payload: message });
     }
@@ -201,26 +215,80 @@ export default defineNitroPlugin((nitro) => {
 Use the `@vercel/queue` package directly to send messages to a topic:
 
 ```ts [server/routes/api/orders.post.ts]
+import { defineHandler } from "nitro";
 import { send } from "@vercel/queue";
 
-export default defineEventHandler(async (event) => {
+export default defineHandler(async (event) => {
   const order = await event.req.json();
   const { messageId } = await send("orders", order);
   return { messageId };
 });
 ```
 
+### Local development
+
+Queues work in `nitro dev`: `send()` delivers messages straight to your `vercel:queue` hook, so you can iterate without deploying. Pull your Vercel environment first with `vercel link` and `vercel env pull` so the SDK can authenticate.
+
+If your hook throws, the message is retried locally. Retries honor `retryAfterSeconds` from each trigger when set.
+
 ## Custom build output configuration
 
-You can provide additional [build output configuration](https://vercel.com/docs/build-output-api/v3) using `vercel.config` key inside `nitro.config`. It will be merged with built-in auto-generated config.
+You can provide additional [build output configuration](https://vercel.com/docs/build-output-api/v3) using the `vercel.config` key inside `nitro.config`. It will be merged with the built-in auto-generated config.
 
-## On-Demand incremental static regeneration (ISR)
+## Immutable static files
 
-On-demand revalidation allows you to purge the cache for an ISR route whenever you want, foregoing the time interval required with background revalidation.
+::important
+This feature is currently only available in the [nightly release channel](/docs/nightly) of Nitro v3.
+::
+
+<!-- :read-more{title="Immutable static files" to="https://vercel.com/docs/skew-protection"} -->
+
+Client build assets (such as JS and CSS chunks) can be emitted as **immutable static files**. These are served from the reserved `/_vercel/immutable/` path so they are shared across deployments and keep resolving even after a newer deployment no longer references them, improving cross-deployment caching.
+
+This feature is opt-in. Enable it with the `vercel.immutableStaticFiles` option or by setting the `NITRO_VERCEL_IMMUTABLE_STATIC_FILES_ENABLED` environment variable.
+
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  vercel: {
+    immutableStaticFiles: true
+  }
+})
+```
+
+When enabled, Nitro emits content-addressed build assets under `/_vercel/immutable/`.
+
+::note
+The [`VERCEL_HASH_SALT`](https://vercel.com/docs/environment-variables/system-environment-variables) system environment variable is factored into the generated asset paths, providing a way to rotate them.
+::
+
+::warning
+Immutable static files must be served from the reserved `/_vercel/immutable/` path, so they are not supported when using a non-root `baseURL`. In that case Nitro skips the immutable output and warns during the build.
+::
+
+::note
+This works out of the box with the **Nitro + Vite** integration: Nitro's Vercel preset sets `buildAssetsDir` config and the Vite plugin automatically applies it as the `assetsDir` for the client and server-rendered builds, so all generated asset URLs point under `/_vercel/immutable/`.
+
+Client build setups and frameworks must apply `nitro.options.buildAssetsDir` themselves. Use it as the client bundler's asset output directory (base) so generated asset URLs are emitted under that path. Without this, assets are still emitted at their default location and the immutable manifest will not match.
+::
+
+## Other preset options
+
+Additional options are available under the `vercel` key in your Nitro config:
+
+- `entryFormat`: Handler format for Vercel Functions. `"web"` (default) or `"node"`. The `node` format enables compatibility with Node.js specific APIs (e.g., `req.runtime.node`).
+- `regions`: List of [regions](https://vercel.com/docs/concepts/functions/edge-functions#edge-function-regions) for edge functions.
+- `skewProtection`: Set to `false` to disable the Nitro [skew protection](https://vercel.com/docs/skew-protection) integration (enabled by default when skew protection is enabled in the Vercel dashboard).
+- `cronHandlerRoute`: Route path for the Vercel cron handler endpoint used with `scheduledTasks` (default: `"/_vercel/cron"`).
+
+## On-demand incremental static regeneration (ISR)
+
+On-demand revalidation lets you purge the cache for an ISR route whenever you want, without waiting for the interval used by background revalidation.
 
 To revalidate a page on demand:
 
-1. Create an Environment Variable which will store a revalidation secret
+1. Create an environment variable to store a revalidation secret
     - You can use the command `openssl rand -base64 32` or [Generate a Secret](https://generate-secret.vercel.app/32) to generate a random value.
 
 2. Update your configuration:
@@ -237,24 +305,26 @@ To revalidate a page on demand:
     })
     ```
 
-3. To trigger "On-Demand Incremental Static Regeneration (ISR)" and revalidate a path to a Prerender Function, make a GET or HEAD request to that path with a header of x-prerender-revalidate: `bypassToken`. When that Prerender Function endpoint is accessed with this header set, the cache will be revalidated. The next request to that function should return a fresh response.
+3. To revalidate a path to a Prerender Function on demand, make a GET or HEAD request to that path with an `x-prerender-revalidate: <bypassToken>` header. When the Prerender Function endpoint is accessed with this header set, the cache is revalidated, and the next request to that function should return a fresh response.
 
 ### Fine-grained ISR config via route rules
 
 By default, query params affect cache keys but are not passed to the route handler unless specified.
 
-You can pass an options object to `isr` route rule to configure caching behavior.
+You can pass an options object to the `isr` route rule to configure caching behavior:
 
-- `expiration`: Expiration time (in seconds) before the cached asset will be re-generated by invoking the Serverless Function. Setting the value to `false` (or `isr: true` route rule) means it will never expire.
-- `group`: Group number of the asset. Prerender assets with the same group number will all be re-validated at the same time.
-- `allowQuery`: List of query string parameter names that will be cached independently.
+- `expiration`: Expiration time (in seconds) before the cached asset is re-generated by invoking the Serverless Function. Setting the value to `false` (or the `isr: true` route rule) means it never expires.
+- `group`: Group number of the asset. Prerendered assets with the same group number are all re-validated at the same time.
+- `allowQuery`: List of query string parameter names that are cached independently.
   - If an empty array, query values are not considered for caching.
-  - If `undefined` each unique query value is cached independently.
-  - For wildcard `/**` route rules, `url` is always added
-- `passQuery`: When `true`, the query string will be present on the `request` argument passed to the invoked function. The `allowQuery` filter still applies.
-- `exposeErrBody`: When `true`, expose the response body regardless of status code including error status codes. (default `false`
+  - If `undefined`, each unique query value is cached independently.
+  - For wildcard `/**` route rules, `url` is always added.
+- `passQuery`: When `true`, the query string is present on the `request` argument passed to the invoked function. The `allowQuery` filter still applies.
+- `exposeErrBody`: When `true`, expose the response body regardless of status code, including error status codes (default: `false`).
 
-```ts
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
 export default defineConfig({
   routeRules: {
     "/products/**": {

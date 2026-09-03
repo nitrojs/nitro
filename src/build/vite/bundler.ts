@@ -44,6 +44,7 @@ export const getBundlerConfig = async (
           inject: base.env.inject as Record<string, string>,
         },
         output: {
+          minifyInternalExports: false,
           codeSplitting: {
             groups: [
               {
@@ -61,9 +62,10 @@ export const getBundlerConfig = async (
 
     const outputConfig = rolldownConfig.output!;
     if (outputConfig.inlineDynamicImports || outputConfig.format === ("iife" as string)) {
-      delete outputConfig.inlineDynamicImports;
       outputConfig.codeSplitting = false;
     }
+    // `inlineDynamicImports` is deprecated in favor of `codeSplitting: false`
+    delete outputConfig.inlineDynamicImports;
 
     return { base, rolldownConfig };
   } else {
@@ -96,6 +98,8 @@ export const getBundlerConfig = async (
     );
 
     const outputConfig = rollupConfig.output!;
+    // Same default as the rollup builder.
+    outputConfig.importAttributesKey ??= "with";
     if (outputConfig.inlineDynamicImports || outputConfig.format === ("iife" as string)) {
       delete outputConfig.manualChunks;
     }
