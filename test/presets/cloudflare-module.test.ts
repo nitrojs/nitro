@@ -45,8 +45,19 @@ describe("nitro:preset:cloudflare-module", async () => {
         const { data, status } = await callHandler({ url: "/embedded-kit" });
         expect(status).toBe(200);
         expect(data.keys).toEqual(["h3.mjs"]);
+        // Embedded module text is data: it must come back byte for byte, in both
+        // string and template form (https://github.com/nitrojs/nitro/issues/4526)
+        expect(data.values[0]).toBe(
+          "const _require = createRequire(import.meta.url);\nexport default _require;"
+        );
         expect(data.source).toContain('import "node:fs";');
+        expect(data.source).toContain("const _require = createRequire(import.meta.url);");
         expect(data.source).toContain("nitro4526marker");
+        expect(data.escaped).toBe("<\\/script> quoted");
+        // The real call site in the same chunk is guarded, so `createRequire` did
+        // not throw on `import.meta.url` being undefined
+        // (https://github.com/nitrojs/nitro/issues/4132)
+        expect(data.require).toBe("function");
       });
     }
   );
@@ -75,8 +86,11 @@ describe("nitro:preset:cloudflare-module", async () => {
           .map((f) => fsp.readFile(resolve(serverDir, f), "utf8"))
       )
     ).join("\n");
+    // Embedded data is preserved...
     expect(code).toContain("const _require = createRequire(import.meta.url);");
     expect(code).toContain('import "node:fs";');
     expect(code).toContain("nitro4526marker");
+    // ...while real call sites in the same chunks are still rewritten
+    expect(code).toContain('createRequire(import.meta.url || "file:///")');
   });
 });

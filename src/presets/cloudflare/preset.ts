@@ -12,7 +12,7 @@ import {
   writeCFPagesRedirects,
 } from "./utils.ts";
 import { setupEntryExports } from "./entry-exports.ts";
-import { guardCreateRequire, stripBareNodeImports } from "./output-plugins.ts";
+import { cloudflareOutputRewrites } from "./output-plugins.ts";
 
 export type { CloudflareOptions as PresetOptions } from "./types.ts";
 
@@ -46,7 +46,7 @@ const cloudflarePages = defineNitroPreset(
         format: "esm",
         inlineDynamicImports: false,
       },
-      plugins: [guardCreateRequire(), stripBareNodeImports()],
+      plugins: [cloudflareOutputRewrites()],
     },
     hooks: {
       "build:before": async (nitro) => {
@@ -136,7 +136,7 @@ const cloudflareModule = defineNitroPreset(
         exports: "named",
         inlineDynamicImports: false,
       },
-      plugins: [guardCreateRequire(), stripBareNodeImports()],
+      plugins: [cloudflareOutputRewrites()],
     },
     wasm: {
       lazy: false,
