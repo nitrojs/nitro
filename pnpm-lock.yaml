@@ -276,9 +276,6 @@ importers:
       unctx:
         specifier: ^3.0.1
         version: 3.0.1(magic-string@1.2.3)(oxc-parser@shims+oxc-parser)(rolldown@1.2.7)(unplugin@3.3.0)
-      untyped:
-        specifier: ^2.0.0
-        version: 2.0.0
       unwasm:
         specifier: ^0.6.0
         version: 0.6.0

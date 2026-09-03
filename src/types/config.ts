@@ -862,28 +862,12 @@ export interface NitroOptions extends PresetOptions {
    * @see https://nitro.build/config#typescript
    */
   typescript: {
-    /** Enable strict TypeScript checks. */
-    strict?: boolean;
-    /** Generate types for runtime config. */
-    generateRuntimeConfigTypes?: boolean;
-    /** Generate a `tsconfig.json` in the build directory. */
-    generateTsConfig?: boolean;
-    /** Custom tsconfig overrides. */
+    /**
+     * TypeScript config used by the bundler (JSX options and path aliases).
+     *
+     * Defaults to the resolved `tsconfig.json` of the project root.
+     */
     tsConfig?: Partial<TSConfig>;
-
-    /**
-     * Path of the generated types directory.
-     *
-     * @default "node_modules/.nitro/types"
-     */
-    generatedTypesDir?: string;
-
-    /**
-     * Path of the generated `tsconfig.json` relative to `typescript.generatedTypesDir`.
-     *
-     * @default "tsconfig.json"
-     */
-    tsconfigPath?: string;
   };
 
   /**

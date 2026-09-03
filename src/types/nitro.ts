@@ -5,7 +5,6 @@ import type { NitroConfig, NitroOptions } from "./config.ts";
 import type { NitroEventHandler } from "./handler.ts";
 import type { NitroHooks } from "./hooks.ts";
 import type { PrerenderRoute } from "./prerender.ts";
-import type { TSConfig } from "pkg-types";
 import type { Router } from "../routing.ts";
 import type { NitroRouteRules } from "./route-rules.ts";
 import type { WorkerAddress } from "./runner.ts";
@@ -52,10 +51,6 @@ export interface Nitro {
  * `nitro.updateConfig()`.
  */
 export type NitroDynamicConfig = Pick<NitroConfig, "runtimeConfig" | "routeRules">;
-
-export type NitroTypes = {
-  tsConfig?: TSConfig;
-};
 
 /**
  * Metadata about the framework using Nitro.

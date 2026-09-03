@@ -2,7 +2,6 @@ import type { Nitro, RollupConfig } from "nitro/types";
 import { formatCompatibilityDate } from "compatx";
 import { scanHandlers } from "../../scan.ts";
 import { generateFSTree } from "../../utils/fs-tree.ts";
-import { writeTypes } from "../types.ts";
 import { writeBuildInfo } from "../info.ts";
 import { formatRollupError } from "./error.ts";
 import type { RollupOptions, RollupOutput } from "rollup";
@@ -14,7 +13,6 @@ export async function buildProduction(nitro: Nitro, rollupConfig: RollupConfig) 
   const buildStartTime = Date.now();
 
   await scanHandlers(nitro);
-  await writeTypes(nitro);
 
   let output: RollupOutput | undefined;
   if (!nitro.options.static) {

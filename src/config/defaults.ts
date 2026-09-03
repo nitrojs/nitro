@@ -75,10 +75,6 @@ export const NitroDefaults: NitroConfig = {
 
   // Advanced
   typescript: {
-    strict: true,
-    generateRuntimeConfigTypes: false,
-    generateTsConfig: false,
-    tsconfigPath: "tsconfig.json",
     tsConfig: undefined,
   },
   hooks: {},

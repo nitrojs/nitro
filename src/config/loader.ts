@@ -102,10 +102,6 @@ async function _loadUserConfig(
         compatibilityDate = getConf("compatibilityDate");
       }
 
-      // prettier-ignore
-      const framework = getConf("framework");
-      const isCustomFramework = framework?.name && framework.name !== "nitro";
-
       if (!preset) {
         preset = getConf("preset");
       }
@@ -142,11 +138,6 @@ async function _loadUserConfig(
       return {
         ...configOverrides,
         preset,
-        typescript: {
-          generateRuntimeConfigTypes: !isCustomFramework,
-          ...getConf("typescript"),
-          ...configOverrides.typescript,
-        },
       };
     },
     async resolve(id: string) {

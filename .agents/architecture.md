@@ -21,7 +21,7 @@
 
 ## Entry Points
 
-- `src/builder.ts` — Main public API: `createNitro()`, `build()`, `createDevServer()`, `prerender()`, `copyPublicAssets()`, `prepare()`, `writeTypes()`, `runTask()`, `listTasks()`
+- `src/builder.ts` — Main public API: `createNitro()`, `build()`, `createDevServer()`, `prerender()`, `copyPublicAssets()`, `prepare()`, `runTask()`, `listTasks()`
 - `src/vite.ts` — Vite plugin export from `src/build/vite/plugin.ts`
 
 ## Build System (`src/build/`)

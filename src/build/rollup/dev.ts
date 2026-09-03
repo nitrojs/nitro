@@ -6,7 +6,6 @@ import { basename, join } from "pathe";
 import { debounce } from "perfect-debounce";
 import { scanHandlers } from "../../scan.ts";
 import { formatRollupError } from "./error.ts";
-import { writeTypes } from "../types.ts";
 import { formatCompatibilityDate } from "compatx";
 import { importRollup } from "./_import.ts";
 
@@ -22,7 +21,6 @@ export async function watchDev(nitro: Nitro, rollupConfig: RollupConfig) {
     await scanHandlers(nitro);
     nitro.routing.sync();
     rollupWatcher = startRollupWatcher(nitro, rollupConfig);
-    await writeTypes(nitro);
   }
   const reload = debounce(load);
 

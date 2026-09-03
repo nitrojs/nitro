@@ -5,7 +5,6 @@ import { formatCompatibilityDate } from "compatx";
 import { relative } from "pathe";
 import { scanHandlers } from "../../scan.ts";
 import { generateFSTree } from "../../utils/fs-tree.ts";
-import { writeTypes } from "../types.ts";
 import { writeBuildInfo } from "../info.ts";
 import type { RolldownOutput } from "rolldown";
 
@@ -15,7 +14,6 @@ export async function buildProduction(nitro: Nitro, config: RolldownOptions) {
   const buildStartTime = Date.now();
 
   await scanHandlers(nitro);
-  await writeTypes(nitro);
 
   let output: RolldownOutput | undefined;
   if (!nitro.options.static) {
