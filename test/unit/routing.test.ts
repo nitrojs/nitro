@@ -11,7 +11,7 @@ function compile(baseURL: string, routes: { route: string; data: unknown }[]) {
     { merge: true }
   );
   const code = router.compileToString({ serialize: (data) => JSON.stringify(data) });
-  return eval(code) as (method: string, path: string) => Match;
+  return new Function(`return ${code}`)() as (method: string, path: string) => Match;
 }
 
 describe("Router.compileToString", () => {

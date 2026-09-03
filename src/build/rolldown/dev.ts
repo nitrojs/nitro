@@ -4,7 +4,6 @@ import { watch as chokidarWatch } from "chokidar";
 import { basename, join } from "pathe";
 import { debounce } from "perfect-debounce";
 import { scanHandlers } from "../../scan.ts";
-import { writeTypes } from "../types.ts";
 import { formatCompatibilityDate } from "compatx";
 
 export async function watchDev(nitro: Nitro, config: RolldownOptions) {
@@ -19,7 +18,6 @@ export async function watchDev(nitro: Nitro, config: RolldownOptions) {
     await scanHandlers(nitro);
     nitro.routing.sync();
     watcher = startWatcher(nitro, config);
-    await writeTypes(nitro);
   }
   const reload = debounce(load);
 

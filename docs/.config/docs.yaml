@@ -37,7 +37,6 @@ redirects:
   "/guide/nightly": "/docs/nightly"
   "/guide/nightly-channel": "/docs/nightly"
   "/guide/migration": "/docs/migration"
-  "/guide/auto-imports": "/examples/auto-imports"
   "/guide/community/contributing": "/docs"
   # v2 deploy
   "/deploy/workers": "/deploy"

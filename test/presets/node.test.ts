@@ -3,6 +3,7 @@ import { resolve } from "pathe";
 // import { isWindows } from "std-env";
 import { describe, expect, it } from "vitest";
 import { setupTest, startServer, testNitro } from "../tests.ts";
+import { testCloseHook } from "./_close-hook.ts";
 
 describe("nitro:preset:node-middleware", async () => {
   const ctx = await setupTest("node-middleware");
@@ -36,5 +37,22 @@ describe("nitro:preset:node-middleware", async () => {
   it("should trace externals", () => {
     const serverNodeModules = resolve(ctx.outDir, "server/node_modules");
     expect(existsSync(resolve(serverNodeModules, "@fixture/nitro-utils/extra.mjs"))).toBe(true);
+  });
+});
+
+describe("nitro:preset:node-server", async () => {
+  const ctx = await setupTest("node-server");
+
+  testCloseHook(ctx, { command: process.execPath, args: (entry) => [entry] });
+});
+
+describe("nitro:preset:node-cluster", async () => {
+  const ctx = await setupTest("node-cluster");
+
+  // `index.mjs` only forks workers (signals sent to it are not forwarded), so the
+  // worker entry -- the one holding the server -- is spawned directly.
+  testCloseHook(ctx, {
+    command: process.execPath,
+    args: (entry) => [resolve(entry, "../worker.mjs")],
   });
 });

@@ -10,7 +10,6 @@ import type { ProxyServerOptions } from "httpxy";
 import type { PresetName, PresetNameInput, PresetOptions } from "../presets/index.ts";
 import type { TSConfig } from "pkg-types";
 import type { Preset as UnenvPreset } from "unenv";
-import type { UnimportPluginOptions } from "unimport/unplugin";
 import type { BuiltinDriverName, BuiltinDriverOptions } from "unstorage";
 import type { ExternalsTraceOptions } from "nf3";
 import type { UnwasmPluginOptions } from "unwasm/plugin";
@@ -429,17 +428,6 @@ export interface NitroOptions extends PresetOptions {
    * @see https://nitro.build/docs/assets
    */
   publicAssets: PublicAssetDir[];
-
-  /**
-   * Auto-import configuration.
-   *
-   * Set to `false` to disable auto-imports. Pass an object to customize.
-   *
-   * @default false
-   * @see https://nitro.build/config#imports
-   * @see https://github.com/unjs/unimport
-   */
-  imports: Partial<UnimportPluginOptions> | false;
 
   /**
    * Nitro modules to extend behavior during initialization.
@@ -874,28 +862,12 @@ export interface NitroOptions extends PresetOptions {
    * @see https://nitro.build/config#typescript
    */
   typescript: {
-    /** Enable strict TypeScript checks. */
-    strict?: boolean;
-    /** Generate types for runtime config. */
-    generateRuntimeConfigTypes?: boolean;
-    /** Generate a `tsconfig.json` in the build directory. */
-    generateTsConfig?: boolean;
-    /** Custom tsconfig overrides. */
+    /**
+     * TypeScript config used by the bundler (JSX options and path aliases).
+     *
+     * Defaults to the resolved `tsconfig.json` of the project root.
+     */
     tsConfig?: Partial<TSConfig>;
-
-    /**
-     * Path of the generated types directory.
-     *
-     * @default "node_modules/.nitro/types"
-     */
-    generatedTypesDir?: string;
-
-    /**
-     * Path of the generated `tsconfig.json` relative to `typescript.generatedTypesDir`.
-     *
-     * @default "tsconfig.json"
-     */
-    tsconfigPath?: string;
   };
 
   /**

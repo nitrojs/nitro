@@ -92,7 +92,6 @@ minimumReleaseAgeExclude:
   - uncrypto*
   - unctx*
   - unenv*
-  - unimport*
   - unstorage*
   - untyped*
   - unwasm*
@@ -108,3 +107,4 @@ minimumReleaseAgeExclude:
   - '@takumi-rs/helpers@2.1.1'
   - '@takumi-rs/wasm@2.1.1'
   - takumi-js@2.1.1
+  - rc9@3.1.0

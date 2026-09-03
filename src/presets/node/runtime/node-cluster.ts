@@ -7,6 +7,7 @@ import { useNitroApp } from "nitro/app";
 import { startScheduleRunner } from "#nitro/runtime/task";
 import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
+import { setupCloseHooks } from "#nitro/runtime/shutdown";
 
 const _parsedPort = Number.parseInt(process.env.NITRO_PORT ?? process.env.PORT ?? "");
 const port = Number.isNaN(_parsedPort) ? 3000 : _parsedPort;
@@ -44,6 +45,8 @@ if (import.meta._websocket) {
     );
   });
 }
+
+setupCloseHooks(server);
 
 trapUnhandledErrors();
 

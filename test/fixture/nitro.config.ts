@@ -25,15 +25,6 @@ export default defineConfig({
   // @ts-expect-error
   __vitePkg__: process.env.NITRO_VITE_PKG,
   framework: { name: "nitro", version: "3.x" },
-  imports: {
-    presets: [
-      {
-        // TODO: move this to built-in preset
-        from: "scule",
-        imports: ["camelCase", "pascalCase", "kebabCase"],
-      },
-    ],
-  },
   sourcemap: true,
   rollupConfig: {
     output: {
@@ -56,6 +47,11 @@ export default defineConfig({
     {
       route: "/api/hello2",
       handler: "./server/routes/api/hello.ts",
+      middleware: true,
+    },
+    {
+      route: "/api/middleware-order",
+      handler: "./server/routed-middleware/order.ts",
       middleware: true,
     },
     {
@@ -112,6 +108,9 @@ export default defineConfig({
       redirect: { to: "https://nitro.build/", status: 308 },
     },
     "/rules/redirect/wildcard/**": { redirect: "https://nitro.build/**" },
+    "/rules/redirect/wildcard-query/**": {
+      redirect: { to: "/target?param=**", status: 301 },
+    },
     "/rules/redirect/legacy/**": { redirect: "/**" },
     "/rules/nested/**": { redirect: "/base", headers: { "x-test": "test" } },
     "/rules/nested/override": { redirect: { to: "/other" } },
@@ -156,10 +155,6 @@ export default defineConfig({
     wrangler: {
       compatibility_date: "2024-01-01",
     },
-  },
-  typescript: {
-    generateRuntimeConfigTypes: true,
-    generateTsConfig: true,
   },
   openAPI: {
     production: "prerender",

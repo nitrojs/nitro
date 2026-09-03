@@ -213,12 +213,12 @@ export class Router<T> {
 }
 
 function mergeCatchAll(router: RouterContext<unknown>, baseURL: string) {
-  let node = router.root;
+  let node: RouterContext<unknown>["root"] | undefined = router.root;
   for (const segment of baseURL.split("/")) {
     if (!segment) {
       continue;
     }
-    node = node?.static?.[segment]!;
+    node = node?.static?.[segment];
     if (!node) {
       return;
     }

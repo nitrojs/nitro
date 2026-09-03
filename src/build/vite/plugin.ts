@@ -9,7 +9,7 @@ import type {
 import type { InputOption } from "rollup";
 import type { NitroPluginConfig, NitroPluginContext } from "./types.ts";
 import { resolve, join } from "pathe";
-import { createNitro, prepare, writeTypes } from "../../builder.ts";
+import { createNitro, prepare } from "../../builder.ts";
 import { installModules } from "../../module.ts";
 import { getBundlerConfig } from "./bundler.ts";
 import { buildEnvironments } from "./prod.ts";
@@ -483,9 +483,6 @@ async function setupNitroContext(
     ctx.nitro,
     ctx.bundlerConfig.rollupConfig || (ctx.bundlerConfig.rolldownConfig as any)
   );
-
-  // Generate types (runtime config, imports, routes)
-  await writeTypes(ctx.nitro);
 
   // Warm up env runner for dev
   if (ctx.nitro.options.dev) {

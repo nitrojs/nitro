@@ -249,6 +249,14 @@ export function testNitro(
     expect(headers["x-test"]).toBe("test");
   });
 
+  it("middleware runs in order: route rules, global, routed, then the route handler", async () => {
+    const { data, headers } = await callHandler({ url: "/api/middleware-order" });
+    // `rules` is recorded by the global middleware when `event.context.routeRules`
+    // is already populated, i.e. route rules resolved before it ran.
+    expect(data).toEqual(["rules", "global", "routed"]);
+    expect(headers["x-test"]).toBe("test");
+  });
+
   it("API Works", async () => {
     const { data: helloData } = await callHandler({ url: "/api/hello" });
     expect(helloData).to.toMatchObject({ message: "Hello API" });
@@ -493,7 +501,7 @@ export function testNitro(
     expect(status).toBe(404);
   });
 
-  it("find auto imported utils", async () => {
+  it("resolves utils from server/utils", async () => {
     const res = await callHandler({ url: "/imports" });
     expect(res.data).toMatchObject({
       testUtil: 123,

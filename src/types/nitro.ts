@@ -1,12 +1,10 @@
 import type { ConsolaInstance } from "consola";
 import type { Hookable } from "hookable";
 import type { PresetName, PresetOptions } from "../presets/index.ts";
-import type { Unimport } from "unimport";
 import type { NitroConfig, NitroOptions } from "./config.ts";
 import type { NitroEventHandler } from "./handler.ts";
 import type { NitroHooks } from "./hooks.ts";
 import type { PrerenderRoute } from "./prerender.ts";
-import type { TSConfig } from "pkg-types";
 import type { Router } from "../routing.ts";
 import type { NitroRouteRules } from "./route-rules.ts";
 import type { WorkerAddress } from "./runner.ts";
@@ -31,7 +29,6 @@ export interface Nitro {
   scannedHandlers: NitroEventHandler[];
   vfs: Map<string, { render: () => string | Promise<string> }>;
   hooks: Hookable<NitroHooks>;
-  unimport?: Unimport;
   logger: ConsolaInstance;
   fetch: (input: Request) => Response | Promise<Response>;
   close: () => Promise<void>;
@@ -54,10 +51,6 @@ export interface Nitro {
  * `nitro.updateConfig()`.
  */
 export type NitroDynamicConfig = Pick<NitroConfig, "runtimeConfig" | "routeRules">;
-
-export type NitroTypes = {
-  tsConfig?: TSConfig;
-};
 
 /**
  * Metadata about the framework using Nitro.

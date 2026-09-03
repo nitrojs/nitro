@@ -125,6 +125,13 @@ describe("nitro:preset:vercel:web", async () => {
               },
               {
                 "headers": {
+                  "Location": "/target?param=$1",
+                },
+                "src": "/rules/redirect/wildcard-query/(.*)",
+                "status": 301,
+              },
+              {
+                "headers": {
                   "Location": "/$1",
                 },
                 "src": "/rules/redirect/legacy/(.*)",
@@ -358,6 +365,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/api/storage/item",
               },
               {
+                "dest": "/api/middleware-order",
+                "src": "/api/middleware-order",
+              },
+              {
                 "dest": "/api/methods/get",
                 "src": "/api/methods/get",
               },
@@ -552,6 +563,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/api/meta/test.func (symlink)",
             "functions/api/methods/foo.get.func (symlink)",
             "functions/api/methods/get.func (symlink)",
+            "functions/api/middleware-order.func (symlink)",
             "functions/api/param/[test-id].func (symlink)",
             "functions/api/storage/item.func (symlink)",
             "functions/api/test/[-]/foo.func (symlink)",
