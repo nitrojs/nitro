@@ -7,6 +7,7 @@ import { runtimeDir } from "nitro/meta";
 import { addRoute, createRouter, findRoute, findAllRoutes } from "rou3";
 import { compileRouterToString } from "rou3/compiler";
 import { hash } from "./utils/hash.ts";
+import { normalizeRoute } from "./utils/route.ts";
 
 const isGlobalMiddleware = (h: NitroEventHandler) => !h.method && (!h.route || h.route === "/**");
 
@@ -29,7 +30,12 @@ export function initNitroRouting(nitro: Nitro) {
     nitro.options.baseURL
   );
 
-  const routeRules = new Router<NitroRouteRules & { _route: string }>(nitro.options.baseURL);
+  // Matched with route *patterns* at build time (presets), never with a request
+  // path — the runtime rules matcher is compiled from `options.routeRules` by
+  // `h3/rules`, which normalizes in the opposite direction (patterns decoded).
+  const routeRules = new Router<NitroRouteRules & { _route: string }>(nitro.options.baseURL, {
+    normalize: false,
+  });
 
   const globalMiddleware: (NitroEventHandler & { _importHash: string })[] = [];
 
@@ -134,6 +140,21 @@ export interface Route<T = unknown> {
   data: T;
 }
 
+export interface RouterOptions {
+  /**
+   * Normalize each pattern into the shape of the `event.url.pathname` it will be
+   * matched against (percent-encoding, needless-escape decoding, dot segments),
+   * mirroring what h3 does in its own `on()`.
+   *
+   * Turn this off for a router that is matched with another *pattern* rather
+   * than with a request path — the two sides would otherwise normalize
+   * differently and stop matching.
+   *
+   * @default true
+   */
+  normalize?: boolean;
+}
+
 export class Router<T> {
   _routes?: Route<T>[];
   _router?: RouterContext<T>;
@@ -147,10 +168,12 @@ export class Router<T> {
    */
   _compiled?: string;
   _baseURL: string;
+  _normalize: boolean;
 
-  constructor(baseURL?: string) {
+  constructor(baseURL?: string, opts?: RouterOptions) {
+    this._normalize = opts?.normalize !== false;
     this._update([]);
-    this._baseURL = baseURL || "";
+    this._baseURL = baseURL ? (this._normalize ? normalizeRoute(baseURL) : baseURL) : "";
     if (this._baseURL.endsWith("/")) {
       this._baseURL = this._baseURL.slice(0, -1);
     }
@@ -165,7 +188,8 @@ export class Router<T> {
     this._router = createRouter<T>();
     this._compiled = undefined;
     for (const route of routes) {
-      addRoute(this._router, route.method, this._baseURL + route.route, route.data);
+      const pattern = this._normalize ? normalizeRoute(route.route) : route.route;
+      addRoute(this._router, route.method, this._baseURL + pattern, route.data);
     }
     if (opts?.merge) {
       mergeCatchAll(this._router, this._baseURL);
