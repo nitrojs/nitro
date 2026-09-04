@@ -1,5 +1,5 @@
 import type { Nitro } from "nitro/types";
-import { stat, mkdir, writeFile as fspWriteFile } from "node:fs/promises";
+import { stat, mkdir, rename, rm, writeFile as fspWriteFile } from "node:fs/promises";
 import { dirname } from "pathe";
 import consola from "consola";
 import { colors } from "consola/utils";
@@ -47,9 +47,21 @@ function _compilePathTemplate(contents: string) {
     });
 }
 
+let _tmpFileCounter = 0;
+
 export async function writeFile(file: string, contents: Buffer | string, log = false) {
   await mkdir(dirname(file), { recursive: true });
-  await fspWriteFile(file, contents, typeof contents === "string" ? "utf8" : undefined);
+  // Write to a sibling temp file and rename it into place. `rename` is atomic within a
+  // filesystem, so two writers racing for the same path produce last-one-wins instead
+  // of a file torn between both payloads.
+  const tmpFile = `${file}.${process.pid}-${_tmpFileCounter++}.tmp`;
+  try {
+    await fspWriteFile(tmpFile, contents, typeof contents === "string" ? "utf8" : undefined);
+    await rename(tmpFile, file);
+  } catch (error) {
+    await rm(tmpFile, { force: true });
+    throw error;
+  }
   if (log) {
     consola.info("Generated", prettyPath(file));
   }
