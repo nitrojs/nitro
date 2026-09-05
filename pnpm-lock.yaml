@@ -67,7 +67,7 @@ importers:
         specifier: ^2.0.10
         version: 2.0.10(debug@4.4.3)(supports-color@10.2.2)
       '@cloudflare/workers-types':
-        specifier: ^5.20260830.1
+        specifier: ^5.20260902.1
         version: 5.20260902.1
       '@cloudflare/workers-utils':
         specifier: ^0.35.0
@@ -109,7 +109,7 @@ importers:
         specifier: ^0.9.5
         version: 0.9.5
       '@types/aws-lambda':
-        specifier: ^8.10.162
+        specifier: ^8.10.163
         version: 8.10.163
       '@types/estree':
         specifier: ^1.0.9
@@ -118,7 +118,7 @@ importers:
         specifier: ^1.8.4
         version: 1.8.4
       '@types/node':
-        specifier: ^26.4.0
+        specifier: ^26.4.1
         version: 26.4.1
       '@types/semver':
         specifier: ^7.8.0
@@ -220,7 +220,7 @@ importers:
         specifier: ^0.6.9
         version: 0.6.9
       obuild:
-        specifier: ^0.4.38
+        specifier: ^0.4.39
         version: 0.4.39(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.3.1)(jiti@2.7.0)(magicast@0.5.4)(typescript@7.0.2)
       oxc-parser:
         specifier: link:shims/oxc-parser
@@ -229,7 +229,7 @@ importers:
         specifier: ^0.66.0
         version: 0.66.0
       oxlint:
-        specifier: ^1.80.0
+        specifier: ^1.81.0
         version: 1.81.0
       pathe:
         specifier: ^2.0.3
@@ -289,7 +289,7 @@ importers:
         specifier: ^4.1.11
         version: 4.1.11(@opentelemetry/api@1.9.0)(@types/node@26.4.1)(@vitest/coverage-v8@4.1.11)(vite@8.2.2)
       wrangler:
-        specifier: ^4.127.1
+        specifier: ^4.128.0
         version: 4.128.0(@cloudflare/workers-types@5.20260902.1)
       xml2js:
         specifier: ^0.6.2
@@ -10133,7 +10133,7 @@ snapshots:
       exsolve: 1.1.1
       pathe: 2.0.3
       pkg-types: 2.3.2
-      rc9: 3.0.1
+      rc9: 3.1.0
     optionalDependencies:
       chokidar: 5.0.0
       dotenv: 17.4.2
