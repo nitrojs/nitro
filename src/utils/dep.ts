@@ -19,6 +19,13 @@ export interface DepOptions {
   version?: string;
   /** Install as a dev dependency. (default: `true`) */
   dev?: boolean;
+  /**
+   * Only resolve from `dir`, ignoring Nitro's own dependencies.
+   *
+   * Required for packages that end up as an import in the generated app bundle: those have to be
+   * resolvable from the user project, not only from where Nitro itself is installed.
+   */
+  projectOnly?: boolean;
 }
 
 /**
@@ -28,7 +35,7 @@ export interface DepOptions {
  */
 export async function ensureDep(opts: DepOptions, _retry?: boolean): Promise<string | undefined> {
   const resolved = resolveModulePath(opts.id, {
-    from: [opts.dir, import.meta.url],
+    from: opts.projectOnly ? opts.dir : [opts.dir, import.meta.url],
     cache: _retry ? false : true,
     try: true,
   });
@@ -78,8 +85,15 @@ export async function importDep<T>(opts: DepOptions): Promise<T> {
   return (await import(pathToFileURL(resolved).href)) as T;
 }
 
-export function isDepInstalled(id: string, dir: string): boolean {
-  return !!resolveModulePath(id, { from: [dir, import.meta.url], try: true });
+export function isDepInstalled(
+  id: string,
+  dir: string,
+  opts: { projectOnly?: boolean } = {}
+): boolean {
+  return !!resolveModulePath(id, {
+    from: opts.projectOnly ? dir : [dir, import.meta.url],
+    try: true,
+  });
 }
 
 export interface LibDep {
@@ -122,7 +136,14 @@ export async function ensureLibDeps(
 
   for (const [name, { version, users: names }] of required) {
     const reason = `the ${[...names].map((n) => `\`${n}\``).join(", ")} ${opts.label}${names.size > 1 ? "s" : ""}`;
-    const resolved = await ensureDep({ id: name, version, dir: opts.dir, reason, dev: false });
+    const resolved = await ensureDep({
+      id: name,
+      version,
+      dir: opts.dir,
+      reason,
+      dev: false,
+      projectOnly: true,
+    });
     if (!resolved) {
       consola.warn(`\`${name}\` is not installed. It is required for ${reason}.`);
     }

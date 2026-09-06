@@ -1,3 +1,4 @@
+import { tmpdir } from "node:os";
 import { describe, expect, it, vi } from "vitest";
 import type { Nitro } from "nitro/types";
 
@@ -7,8 +8,8 @@ vi.mock("../../src/utils/dep.ts", async (importOriginal) => {
   const original = await importOriginal<typeof import("../../src/utils/dep.ts")>();
   return {
     ...original,
-    isDepInstalled: (id: string, dir: string) =>
-      mockedDeps.has(id) || original.isDepInstalled(id, dir),
+    isDepInstalled: (id: string, dir: string, opts?: { projectOnly?: boolean }) =>
+      mockedDeps.has(id) || original.isDepInstalled(id, dir, opts),
   };
 });
 
@@ -80,6 +81,16 @@ describe("virtual/storage template", () => {
       `storage.mount('/cache', unstorage_47drivers_47redis({"base":"cache"}))`
     );
     expect(template).not.toContain("ioredis");
+  });
+
+  it("does not provide `lib` for dependencies only resolvable from nitro itself", () => {
+    const nitro = createNitroStub(undefined, { "/data": { driver: "fs", base: "./data" } });
+    nitro.options.rootDir = tmpdir();
+    const template = storage(nitro).template();
+    expect(template).toContain(
+      `storage.mount('/data', unstorage_47drivers_47fs({"base":"./data"}))`
+    );
+    expect(template).not.toContain("chokidar");
   });
 
   it("does not override a user provided `lib` option", () => {
