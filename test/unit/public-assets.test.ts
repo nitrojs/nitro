@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { dirname, normalize, resolve } from "pathe";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Nitro } from "nitro/types";
 
 import publicAssets from "../../src/build/virtual/public-assets.ts";
@@ -41,12 +41,12 @@ function nodeReaderTemplate(): string {
 
 // Evaluate the generated `readAsset` template against the real node helpers it
 // imports, recording the filesystem target it asks `fs` to read.
-function loadReadAsset(template: string) {
+function loadReadAsset(template: string, readFile?: () => Promise<unknown>) {
   const reads: string[] = [];
   const fsp = {
     readFile: (p: string | URL) => {
       reads.push(typeof p === "string" ? p : fileURLToPath(p));
-      return Promise.resolve(new Uint8Array());
+      return readFile ? readFile() : Promise.resolve(new Uint8Array());
     },
   };
   // Strip the (single-line) imports and bridge their bindings in as args instead.
@@ -83,5 +83,26 @@ describe("virtual/public-assets node reader", () => {
     const resolved = normalize(reads.at(-1)!);
     expect(resolved.startsWith(`${PUBLIC_DIR}/`)).toBe(true);
     expect(resolved).not.toBe("/app/server/index.ts");
+  });
+
+  // A manifest entry whose file vanished after the build resolves with no data, so
+  // the static middleware can answer 404 rather than surfacing an unhandled 500.
+  it("resolves with no data when the file is gone", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { readAsset } = loadReadAsset(nodeReaderTemplate(), () =>
+      Promise.reject(Object.assign(new Error("ENOENT: no such file"), { code: "ENOENT" }))
+    );
+
+    await expect(readAsset("/index.html")).resolves.toBeUndefined();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("/index.html"));
+    warn.mockRestore();
+  });
+
+  it("rejects for read errors other than a missing file", async () => {
+    const { readAsset } = loadReadAsset(nodeReaderTemplate(), () =>
+      Promise.reject(Object.assign(new Error("EACCES: permission denied"), { code: "EACCES" }))
+    );
+
+    await expect(readAsset("/index.html")).rejects.toThrow("EACCES");
   });
 });

@@ -1,5 +1,5 @@
 import { HTTPError, defineHandler } from "h3";
-import type { EventHandler, HTTPMethod } from "h3";
+import type { EventHandler, H3Event, HTTPMethod } from "h3";
 import type { PublicAsset } from "nitro/types";
 import { decodePath, joinURL, withLeadingSlash, withoutTrailingSlash } from "ufo";
 import { getAsset, isPublicAssetURL, readAsset } from "#nitro/virtual/public-assets";
@@ -8,7 +8,7 @@ const METHODS = new Set(["HEAD", "GET"] as HTTPMethod[]);
 
 const EncodingMap = { gzip: ".gz", br: ".br", zstd: ".zst" } as const;
 
-export default defineHandler(async (event) => {
+export default defineHandler((event) => {
   if (event.req.method && !METHODS.has(event.req.method as HTTPMethod)) {
     return;
   }
@@ -65,17 +65,6 @@ export default defineHandler(async (event) => {
     return "";
   }
 
-  let data: Awaited<ReturnType<typeof readAsset>>;
-  try {
-    data = await readAsset(id);
-  } catch (error) {
-    if ((error as { code?: string })?.code === "ENOENT") {
-      event.res.headers.delete("Cache-Control");
-      throw new HTTPError({ status: 404 });
-    }
-    throw error;
-  }
-
   if (asset.type) {
     event.res.headers.set("Content-Type", asset.type);
   }
@@ -96,5 +85,18 @@ export default defineHandler(async (event) => {
     event.res.headers.set("Content-Length", asset.size.toString());
   }
 
-  return data;
+  const data = readAsset(id);
+  return typeof (data as { then?: unknown })?.then === "function"
+    ? (data as Promise<unknown>).then((resolved) => assertAssetData(event, resolved))
+    : assertAssetData(event, data);
 }) as EventHandler;
+
+// Readers resolve with `null`/`undefined` when the manifest entry has no data
+// backing it (file removed after build, missing inline payload).
+function assertAssetData<T>(event: H3Event, data: T): T {
+  if (data === null || data === undefined) {
+    event.res.headers.delete("Cache-Control");
+    throw new HTTPError({ status: 404 });
+  }
+  return data;
+}

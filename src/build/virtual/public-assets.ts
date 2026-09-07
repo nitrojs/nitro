@@ -142,7 +142,10 @@ import { resolve, dirname } from 'node:path'
 import assets from '#nitro/virtual/public-assets-data'
 export function readAsset (id) {
   const serverDir = dirname(fileURLToPath(globalThis.__nitro_main__))
-  return fsp.readFile(resolve(serverDir, assets[id].path))
+  return fsp.readFile(resolve(serverDir, assets[id].path)).catch((error) => {
+    if (error?.code !== 'ENOENT') { throw error }
+    console.warn(\`[nitro] Public asset "\${id}" is missing on disk (\${assets[id].path})\`)
+  })
 }`;
       },
     },
