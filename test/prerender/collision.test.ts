@@ -25,8 +25,8 @@ describe("prerender output collision", () => {
         crawlLinks: false,
         // one at a time, so the route that claims the file is the first one listed
         concurrency: 1,
-        // both resolve to `other/index.html`
-        routes: ["/other", "/other/index.html"],
+        // the first two resolve to `other/index.html`, `/another` does not
+        routes: ["/other", "/other/index.html", "/another"],
       },
     });
 
@@ -53,6 +53,9 @@ describe("prerender output collision", () => {
     const written = nitro._prerenderedRoutes!.filter((r) => r.fileName === "/other/index.html");
     expect(written).toHaveLength(1);
     expect(written[0].route).toBe("/other");
+
+    // a route resolving to its own file is untouched
+    expect(nitro._prerenderedRoutes!.map((r) => r.fileName)).toContain("/another/index.html");
 
     // and the file holds that route's render, whole
     const contents = await readFile(join(outDir, "public/other/index.html"), "utf8");
