@@ -87,9 +87,26 @@ export function externals(opts: ExternalsOptions): Plugin {
           };
         }
 
-        // Skip nested rollup-node resolutions
+        // Nested `@rollup/plugin-node-resolve` resolutions (a `require()` inside a
+        // CommonJS module). Re-entering `this.resolve()` here would recurse, but
+        // returning early would let a package that should be traced (a native dep
+        // `require()`d from CJS) be bundled instead. Resolve it directly and
+        // externalize it when it matches the trace filter.
         if (rOpts.custom?.["node-resolve"]) {
-          return null;
+          const cjsRequired = opts.trace ? tryResolve(id, importer) : undefined;
+          if (!cjsRequired || !filter(cjsRequired)) {
+            return null;
+          }
+          const cjsImportId = toImport(id) || toImport(cjsRequired);
+          if (!cjsImportId) {
+            return null;
+          }
+          tracedPaths.add(cjsRequired);
+          return {
+            resolvedBy: PLUGIN_NAME,
+            external: true,
+            id: cjsImportId,
+          };
         }
 
         // Resolve by other resolvers
