@@ -29,6 +29,7 @@ import type { NitroPreset } from "./preset.ts";
 import type { OXCOptions, RolldownConfig } from "./build.ts";
 import type { RollupConfig } from "./build.ts";
 import type { NitroRouteConfig, NitroRouteRules } from "./route-rules.ts";
+import type { JsonValue, SerializableOptions } from "./_utils.ts";
 
 type RollupCommonJSOptions = NonNullable<Parameters<typeof commonjs.default>[0]>;
 
@@ -1062,14 +1063,14 @@ type CustomDriverName = string & { _custom?: any };
  */
 export type BuiltinStorageMount = {
   [Name in BuiltinDriverName]: { driver: Name } & (Name extends keyof BuiltinDriverOptions
-    ? BuiltinDriverOptions[Name]
+    ? SerializableOptions<BuiltinDriverOptions[Name]>
     : unknown);
 }[BuiltinDriverName];
 
 /** Mount configuration for a custom driver (module id or alias). */
 export type CustomStorageMount = {
   driver: CustomDriverName;
-  [option: string]: any;
+  [option: string]: JsonValue;
 };
 
 export type StorageMount = BuiltinStorageMount | CustomStorageMount;
@@ -1101,7 +1102,9 @@ export type DatabaseConnectionName = "default" | (string & {});
 export type DatabaseConnectionConfig = {
   [Name in ConnectorName]: {
     connector: Name;
-    options?: Name extends keyof ConnectorOptions ? ConnectorOptions[Name] : Record<string, any>;
+    options?: Name extends keyof ConnectorOptions
+      ? SerializableOptions<ConnectorOptions[Name]>
+      : Record<string, JsonValue>;
   };
 }[ConnectorName];
 
