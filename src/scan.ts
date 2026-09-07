@@ -4,6 +4,13 @@ import { join, relative } from "pathe";
 import { withBase, withLeadingSlash, withoutTrailingSlash } from "ufo";
 
 export const GLOB_SCAN_PATTERN = "**/*.{js,mjs,cjs,ts,mts,cts,tsx,jsx}";
+
+// Modules are only auto-registered from `modules/*.ts` and `modules/*/index.ts`
+// so that a module's own nested files are not registered as modules themselves.
+const GLOB_MODULES_SCAN_PATTERN = [
+  "*.{js,mjs,cjs,ts,mts,cts,tsx,jsx}",
+  "*/index.{js,mjs,cjs,ts,mts,cts,tsx,jsx}",
+];
 type FileInfo = { path: string; fullPath: string };
 
 const suffixRegex =
@@ -132,19 +139,29 @@ export async function scanTasks(nitro: Nitro) {
 }
 
 export async function scanModules(nitro: Nitro) {
-  const files = await scanFiles(nitro, "modules");
+  const files = await scanFiles(nitro, "modules", GLOB_MODULES_SCAN_PATTERN);
   return files.map((f) => f.fullPath);
 }
 
-async function scanFiles(nitro: Nitro, name: string): Promise<FileInfo[]> {
+async function scanFiles(
+  nitro: Nitro,
+  name: string,
+  pattern: string | string[] = GLOB_SCAN_PATTERN
+): Promise<FileInfo[]> {
   const files = await Promise.all(
-    nitro.options.scanDirs.map((dir) => scanDir(nitro, dir, name))
+    nitro.options.scanDirs.map((dir) => scanDir(nitro, dir, name, pattern))
   ).then((r) => r.flat());
   return files;
 }
 
-async function scanDir(nitro: Nitro, dir: string, name: string): Promise<FileInfo[]> {
-  const fileNames = await glob(join(name, GLOB_SCAN_PATTERN), {
+async function scanDir(
+  nitro: Nitro,
+  dir: string,
+  name: string,
+  pattern: string | string[]
+): Promise<FileInfo[]> {
+  const patterns = (Array.isArray(pattern) ? pattern : [pattern]).map((p) => join(name, p));
+  const fileNames = await glob(patterns, {
     cwd: dir,
     dot: true,
     ignore: nitro.options.ignore,
