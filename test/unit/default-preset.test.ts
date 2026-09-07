@@ -48,4 +48,11 @@ describe("defaultPreset", () => {
     const preset = await resolve("bun", { defaultPreset: "node-cluster" });
     expect(preset?._meta?.name).toBe("bun");
   });
+
+  it("resolves the legacy platform_sh name to the upsun preset", async () => {
+    for (const name of ["platform-sh", "platform_sh", "platformSh"]) {
+      const preset = await resolve(name);
+      expect(preset?._meta?.name).toBe("upsun");
+    }
+  });
 });
