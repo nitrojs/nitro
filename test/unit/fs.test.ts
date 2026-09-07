@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, readdir, rm, writeFile as fspWriteFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile as fspWriteFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { join } from "pathe";
@@ -36,6 +36,15 @@ describe("writeFile", () => {
     await writeFile(file, "new");
 
     expect(await readFile(file, "utf8")).toBe("new");
+  });
+
+  it("removes the temporary file when the write cannot be completed", async () => {
+    const file = join(dir, "index.html");
+    await mkdir(join(file, "nested"), { recursive: true });
+
+    await expect(writeFile(file, "<h1>hello</h1>")).rejects.toThrow();
+
+    expect(await readdir(dir)).toEqual(["index.html"]);
   });
 
   it("never leaves a file torn between two concurrent writers", async () => {
