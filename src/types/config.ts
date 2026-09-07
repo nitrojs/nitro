@@ -831,8 +831,8 @@ export interface NitroOptions extends PresetOptions {
   /**
    * Prevent packages from being externalized.
    *
-   * Set to `true` to bundle all dependencies, or pass an array of
-   * package names or patterns.
+   * Set to `true` to bundle all dependencies, or pass an array of patterns
+   * matched against both the import specifier and the resolved module path.
    *
    * @see https://nitro.build/config#noexternals
    */
