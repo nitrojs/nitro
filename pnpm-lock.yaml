@@ -67,11 +67,11 @@ importers:
         specifier: ^2.0.10
         version: 2.0.10(debug@4.4.3)(supports-color@10.2.2)
       '@cloudflare/workers-types':
-        specifier: ^5.20260830.1
+        specifier: ^5.20260904.1
         version: 5.20260906.1
       '@cloudflare/workers-utils':
-        specifier: ^0.35.0
-        version: 0.35.0(vitest@4.1.11)
+        specifier: ^0.36.0
+        version: 0.36.0(vitest@4.1.11)
       '@deno/types':
         specifier: ^0.0.1
         version: 0.0.1
@@ -109,7 +109,7 @@ importers:
         specifier: ^0.9.5
         version: 0.9.5
       '@types/aws-lambda':
-        specifier: ^8.10.162
+        specifier: ^8.10.163
         version: 8.10.163
       '@types/estree':
         specifier: ^1.0.9
@@ -118,7 +118,7 @@ importers:
         specifier: ^1.8.4
         version: 1.8.4
       '@types/node':
-        specifier: ^26.4.0
+        specifier: ^26.4.1
         version: 26.4.1
       '@types/semver':
         specifier: ^7.8.0
@@ -220,7 +220,7 @@ importers:
         specifier: ^0.6.9
         version: 0.6.9
       obuild:
-        specifier: ^0.4.38
+        specifier: ^0.4.39
         version: 0.4.39(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.3.1)(jiti@2.7.0)(magicast@0.5.4)(typescript@7.0.2)
       oxc-parser:
         specifier: link:shims/oxc-parser
@@ -229,7 +229,7 @@ importers:
         specifier: ^0.66.0
         version: 0.66.0
       oxlint:
-        specifier: ^1.80.0
+        specifier: ^1.81.0
         version: 1.81.0
       pathe:
         specifier: ^2.0.3
@@ -241,10 +241,10 @@ importers:
         specifier: ^2.3.2
         version: 2.3.2
       pretty-bytes:
-        specifier: ^7.1.2
+        specifier: ^7.1.3
         version: 7.1.3
       rendu:
-        specifier: ^0.1.0
+        specifier: ^0.1.1
         version: 0.1.1
       rollup:
         specifier: ^4.63.1
@@ -289,7 +289,7 @@ importers:
         specifier: ^4.1.11
         version: 4.1.11(@opentelemetry/api@1.9.0)(@types/node@26.4.1)(@vitest/coverage-v8@4.1.11)(vite@8.2.2)
       wrangler:
-        specifier: ^4.127.1
+        specifier: ^4.129.0
         version: 4.129.0(@cloudflare/workers-types@5.20260906.1)
       xml2js:
         specifier: ^0.6.2
@@ -1045,8 +1045,8 @@ packages:
   '@cloudflare/workers-types@5.20260906.1':
     resolution: {integrity: sha512-mRKC5n+9OP7tZiOu7vMv2MZ+Arh3tX4b9gVAt43WFns83LNzWchhfRs9o2IkFCnYKovHo4m4Af1P4zPQWdLx0g==}
 
-  '@cloudflare/workers-utils@0.35.0':
-    resolution: {integrity: sha512-QuMDgXr1qeRrWA3a80sedWvvDme6ZnmkV1TnG2HOblnxHncHqEpjxEZml2If0uGKV9EH2+8XrtrrM0s5GTYAjg==}
+  '@cloudflare/workers-utils@0.36.0':
+    resolution: {integrity: sha512-6/2uvsL0KlP4xZdwSArJwVPBcoALseectKcsWzQJYWxjnZrsiWHo1KmQ5HKNui181YU4W+Et7Yyk3l6wnUQvqQ==}
     peerDependencies:
       vitest: ^4.1.0
     peerDependenciesMeta:
@@ -4185,6 +4185,10 @@ packages:
   dot-prop@9.0.0:
     resolution: {integrity: sha512-1gxPBJpI/pcjQhKgIU91II6Wkay+dLcN3M6rf2uwP8hRur3HtQXjVrdAK3sjC0piaEuxzMwjXChcETiJl47lAQ==}
     engines: {node: '>=18'}
+
+  dotenv@16.3.1:
+    resolution: {integrity: sha512-IPzF4w4/Rd94bA9imS68tZBaYyBWSCE47V1RGuMrB94iyTOIEwRmVL2x/4An+6mETpLrKJ5hQkB8W4kFAadeIQ==}
+    engines: {node: '>=12'}
 
   dotenv@16.6.1:
     resolution: {integrity: sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==}
@@ -7531,9 +7535,10 @@ snapshots:
 
   '@cloudflare/workers-types@5.20260906.1': {}
 
-  '@cloudflare/workers-utils@0.35.0(vitest@4.1.11)':
+  '@cloudflare/workers-utils@0.36.0(vitest@4.1.11)':
     dependencies:
       chalk: 5.3.0
+      dotenv: 16.3.1
       undici: 7.29.0
     optionalDependencies:
       vitest: 4.1.11(@opentelemetry/api@1.9.0)(@types/node@26.4.1)(@vitest/coverage-v8@4.1.11)(vite@8.2.2)
@@ -10488,6 +10493,8 @@ snapshots:
   dot-prop@9.0.0:
     dependencies:
       type-fest: 4.41.0
+
+  dotenv@16.3.1: {}
 
   dotenv@16.6.1: {}
 
