@@ -141,6 +141,50 @@ describe("runtime static middleware", () => {
     expect(event.res.headers.get("Content-Encoding")).toBe("gzip");
   });
 
+  it("prefers the encoding with the highest quality value", async () => {
+    getAsset.mockImplementation((id: string) =>
+      id === "/foo.css.gz" || id === "/foo.css.br"
+        ? {
+            etag: '"test"',
+            mtime: Date.now(),
+            type: "text/css",
+            encoding: id.endsWith(".gz") ? "gzip" : "br",
+            size: 1,
+          }
+        : undefined
+    );
+    isPublicAssetURL.mockReturnValue(true);
+    readAsset.mockResolvedValue("body");
+    const event = createEvent("/foo.css", "br;q=0.5, gzip;q=1.0");
+
+    await handler(event);
+
+    expect(readAsset).toHaveBeenCalledWith("/foo.css.gz");
+    expect(event.res.headers.get("Content-Encoding")).toBe("gzip");
+  });
+
+  it("keeps the default preference when no quality values are sent", async () => {
+    getAsset.mockImplementation((id: string) =>
+      id === "/foo.css.gz" || id === "/foo.css.br"
+        ? {
+            etag: '"test"',
+            mtime: Date.now(),
+            type: "text/css",
+            encoding: id.endsWith(".gz") ? "gzip" : "br",
+            size: 1,
+          }
+        : undefined
+    );
+    isPublicAssetURL.mockReturnValue(true);
+    readAsset.mockResolvedValue("body");
+    const event = createEvent("/foo.css", "gzip, deflate, br, zstd");
+
+    await handler(event);
+
+    expect(readAsset).toHaveBeenCalledWith("/foo.css.br");
+    expect(event.res.headers.get("Content-Encoding")).toBe("br");
+  });
+
   it("does not match compressed assets with zero quality", async () => {
     getAsset.mockImplementation((id: string) => {
       if (id === "/foo.css.gz") {
