@@ -176,13 +176,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
   if (o11Routes.length === 0) {
     return;
   }
-  const _getRouteRules = (path: string) =>
-    defu({}, ...nitro.routing.routeRules.matchAll("", path).reverse()) as NitroRouteRules;
   for (const route of o11Routes) {
-    const routeRules = _getRouteRules(route.src);
-    if (routeRules.isr) {
-      continue; // #3563
-    }
     const funcPrefix = resolve(nitro.options.output.serverDir, "..", route.dest);
     const funcDir = funcPrefix + ".func";
 
@@ -631,6 +625,17 @@ export function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
   );
 
   // Sort routes by how much specific they are
+  // ISR-ruled paths are served through the ISR rewrite machinery, so they get
+  // neither an observability function nor a `config.json` route entry (#3563).
+  // Rules have to be matched against the route pattern rather than the compiled
+  // `src`: a `:param` segment compiles to `(?<id>[^/]+)`, and the `/` inside
+  // that character class splits into extra path segments, so a dynamic route
+  // never matched its own rule (#4447).
+  const hasISRRule = (route: string) =>
+    Boolean(
+      (defu({}, ...nitro.routing.routeRules.matchAll("", route).reverse()) as NitroRouteRules).isr
+    );
+
   const routePatterns = [
     ...new Set([
       ...(nitro.options.ssrRoutes || []),
@@ -638,7 +643,9 @@ export function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
         .filter((h) => !h.middleware && h.route)
         .map((h) => h.route!),
     ]),
-  ].filter((route) => !prerenderedPaths.has(route.replace(SURROUNDING_SLASH_RE, "")));
+  ].filter(
+    (route) => !prerenderedPaths.has(route.replace(SURROUNDING_SLASH_RE, "")) && !hasISRRule(route)
+  );
 
   const staticRoutes: string[] = [];
   const dynamicRoutes: string[] = [];
