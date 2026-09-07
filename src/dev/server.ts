@@ -17,9 +17,8 @@ import { debounce } from "perfect-debounce";
 import { isTest, isCI } from "std-env";
 import { NitroDevApp } from "./app.ts";
 import { resolveRunnerDeps } from "./runner-deps.ts";
+import { shutdownRunner } from "./shutdown.ts";
 import { writeDevBuildInfo } from "../build/info.ts";
-
-const SHUTDOWN_TIMEOUT = 5000;
 
 export function createDevServer(nitro: Nitro): NitroDevServer {
   return new NitroDevServer(nitro);
@@ -223,31 +222,7 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
     }
     this.#shuttingDown = true;
     try {
-      await new Promise<void>((resolve) => {
-        const done = () => {
-          clearTimeout(timer);
-          this.#manager.offMessage(listener);
-          resolve();
-        };
-        const timer = setTimeout(() => {
-          this.nitro.logger.warn("Dev worker did not shut down in time, force closing it...");
-          done();
-        }, SHUTDOWN_TIMEOUT);
-        const listener = (message: any) => {
-          if (message?.event === "exit") {
-            done();
-          }
-        };
-        this.#manager.onMessage(listener);
-        try {
-          this.#manager.sendMessage({ event: "shutdown" });
-        } catch (error) {
-          this.nitro.logger.warn(
-            `Could not send shutdown message to the dev worker: ${error instanceof Error ? error.message : String(error)}`
-          );
-          done();
-        }
-      });
+      await shutdownRunner(this.#manager, { warn: (message) => this.nitro.logger.warn(message) });
     } finally {
       this.#shuttingDown = false;
     }
