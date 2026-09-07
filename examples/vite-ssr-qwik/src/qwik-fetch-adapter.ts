@@ -3,7 +3,7 @@ import {
   type ClientConn,
   type ServerRenderOptions,
   type ServerRequestEvent,
-  getNotFound,
+  getErrorHtml,
   isStaticPath,
   mergeHeadersCookies,
   requestHandler,
@@ -78,7 +78,7 @@ export function createQwikRouter(opts: QwikRouterFetchOptions) {
         !request.headers.get("accept")?.includes("text/html") ||
         isStaticPath(request.method || "GET", url)
           ? "Not Found"
-          : getNotFound(url.pathname);
+          : getErrorHtml(404, "Not Found");
       return new Response(notFoundHtml, {
         status: 404,
         headers: {
@@ -103,9 +103,6 @@ export function createQwikRouter(opts: QwikRouterFetchOptions) {
   };
 }
 
-export interface QwikRouterFetchOptions extends Omit<
-  ServerRenderOptions,
-  "qwikCityPlan"
-> {
+export interface QwikRouterFetchOptions extends Omit<ServerRenderOptions, "qwikCityPlan"> {
   getClientConn?: (request: Request) => ClientConn;
 }

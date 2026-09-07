@@ -28,9 +28,7 @@ export default component$(() => {
     <div>
       <h1>Hello, Qwik!</h1>
       <h2>{loaderData.value}</h2>
-      <button onClick$={() => (counterSig.value += 1)}>
-        Count: {counterSig.value}
-      </button>
+      <button onClick$={() => (counterSig.value += 1)}>Count: {counterSig.value}</button>
       <br></br>
       <br></br>
       <button
@@ -48,8 +46,7 @@ export default component$(() => {
       </Form>
       {action.value?.success && (
         <p class="pt-2">
-          User {action.value.firstName} {action.value.lastName} added
-          successfully
+          User {action.value.firstName} {action.value.lastName} added successfully
         </p>
       )}
     </div>
