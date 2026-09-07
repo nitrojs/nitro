@@ -42,3 +42,9 @@ export const connectorLib: SerializableOptions<ConnectorOptionsShape> = {
   // @ts-expect-error `lib` is provided by nitro
   lib: () => Promise.resolve({ connect() {} }),
 };
+
+export const connectorLibMessage: SerializableOptions<ConnectorOptionsShape> = {
+  url: "",
+  // @ts-expect-error the message of a rejected option is not a value it accepts
+  lib: "Library imports are not JSON-serializable; nitro injects them for installed driver dependencies (set `null` to opt out)",
+};

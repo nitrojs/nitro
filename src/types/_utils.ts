@@ -6,8 +6,8 @@ export type IntRange<F extends number, T extends number> = Exclude<Enumerate<T>,
 
 declare const invalidValue: unique symbol;
 
-/** Assignable only from `Message`, so a rejected value reports `Message` in its type error. */
-export type Invalid<Message extends string> = Message & { [invalidValue]?: never };
+/** Uninhabited, so a rejected value reports `Message` in its type error. */
+export type Invalid<Message extends string> = Message & { readonly [invalidValue]: never };
 
 type LibOptionName = "lib" | `${string}Lib`;
 
