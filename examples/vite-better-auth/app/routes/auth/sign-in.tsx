@@ -100,11 +100,7 @@ export default function () {
               );
             }}
           >
-            {loading ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <p> Login </p>
-            )}
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <p> Login </p>}
           </Button>
         </div>
       </CardContent>
