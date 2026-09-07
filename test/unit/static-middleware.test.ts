@@ -35,9 +35,40 @@ describe("runtime static middleware", () => {
     isPublicAssetURL.mockReturnValue(true);
     const event = createEvent("/foo-missing.css", "gzip");
 
-    expect(() => handler(event)).toThrow("404");
+    await expect(handler(event)).rejects.toThrow("404");
     expect(event.res.headers.get("Vary")).toBe("Origin");
     expect(event.res.headers.get("Cache-Control")).toBeNull();
+  });
+
+  it("responds with 404 when a matched asset is missing on disk", async () => {
+    getAsset.mockImplementation((id: string) =>
+      id === "/favicon.ico"
+        ? { etag: '"test"', mtime: Date.now(), type: "image/x-icon", size: 1 }
+        : undefined
+    );
+    isPublicAssetURL.mockReturnValue(true);
+    readAsset.mockRejectedValue(
+      Object.assign(new Error("ENOENT: no such file or directory"), { code: "ENOENT" })
+    );
+    const event = createEvent("/favicon.ico");
+
+    await expect(handler(event)).rejects.toThrow("404");
+    expect(event.res.headers.get("Cache-Control")).toBeNull();
+    expect(event.res.headers.get("Content-Type")).toBeNull();
+    expect(event.res.headers.get("ETag")).toBeNull();
+  });
+
+  it("rethrows non-ENOENT read errors", async () => {
+    getAsset.mockImplementation((id: string) =>
+      id === "/favicon.ico"
+        ? { etag: '"test"', mtime: Date.now(), type: "image/x-icon", size: 1 }
+        : undefined
+    );
+    isPublicAssetURL.mockReturnValue(true);
+    readAsset.mockRejectedValue(Object.assign(new Error("EACCES"), { code: "EACCES" }));
+    const event = createEvent("/favicon.ico");
+
+    await expect(handler(event)).rejects.toThrow("EACCES");
   });
 
   it("appends Accept-Encoding vary when a compressed asset is matched", async () => {

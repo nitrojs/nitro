@@ -8,7 +8,7 @@ const METHODS = new Set(["HEAD", "GET"] as HTTPMethod[]);
 
 const EncodingMap = { gzip: ".gz", br: ".br", zstd: ".zst" } as const;
 
-export default defineHandler((event) => {
+export default defineHandler(async (event) => {
   if (event.req.method && !METHODS.has(event.req.method as HTTPMethod)) {
     return;
   }
@@ -65,6 +65,17 @@ export default defineHandler((event) => {
     return "";
   }
 
+  let data: Awaited<ReturnType<typeof readAsset>>;
+  try {
+    data = await readAsset(id);
+  } catch (error) {
+    if ((error as { code?: string })?.code === "ENOENT") {
+      event.res.headers.delete("Cache-Control");
+      throw new HTTPError({ status: 404 });
+    }
+    throw error;
+  }
+
   if (asset.type) {
     event.res.headers.set("Content-Type", asset.type);
   }
@@ -85,5 +96,5 @@ export default defineHandler((event) => {
     event.res.headers.set("Content-Length", asset.size.toString());
   }
 
-  return readAsset(id);
+  return data;
 }) as EventHandler;
