@@ -7,6 +7,7 @@ const upsun = defineNitroPreset(
   },
   {
     name: "upsun" as const,
+    aliases: ["platform-sh"],
   }
 );
 
