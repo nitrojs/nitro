@@ -38,7 +38,7 @@ export async function resolveBuilder(options: NitroOptions) {
   }
 
   // Auto-detect: check for vite.config with nitro() plugin
-  if (isDepInstalled("vite", options.rootDir) && hasNitroViteConfig(options)) {
+  if (isDepInstalled("vite", { dir: options.rootDir }) && hasNitroViteConfig(options)) {
     options.builder = "vite";
     return;
   }

@@ -48,7 +48,7 @@ function genDriverOptions(nitro: Nitro, mount: ReturnType<typeof resolveStorageM
       (dep) =>
         isLibOption(dep.option) &&
         mount.options[dep.option] === undefined &&
-        isDepInstalled(dep.name, nitro.options.rootDir, { projectOnly: true })
+        isDepInstalled(dep.name, { dir: nitro.options.rootDir, projectOnly: true })
     )
     .map((dep) => `${dep.option}: () => import(${JSON.stringify(dep.import || dep.name)})`);
 

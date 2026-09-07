@@ -85,13 +85,9 @@ export async function importDep<T>(opts: DepOptions): Promise<T> {
   return (await import(pathToFileURL(resolved).href)) as T;
 }
 
-export function isDepInstalled(
-  id: string,
-  dir: string,
-  opts: { projectOnly?: boolean } = {}
-): boolean {
+export function isDepInstalled(id: string, opts: Pick<DepOptions, "dir" | "projectOnly">): boolean {
   return !!resolveModulePath(id, {
-    from: opts.projectOnly ? dir : [dir, import.meta.url],
+    from: opts.projectOnly ? opts.dir : [opts.dir, import.meta.url],
     try: true,
   });
 }
