@@ -1,4 +1,4 @@
-# Upsun (formerly Platform.sh)
+# Upsun
 
 > Deploy Nitro apps to Upsun
 
