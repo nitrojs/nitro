@@ -7,12 +7,15 @@ import { testCloseHook } from "./_close-hook.ts";
 
 const hasBun = execaSync("bun", ["--version"], { stdio: "ignore", reject: false }).exitCode === 0;
 
+// Not Bun's default (10s), so the assertion cannot pass by accident, and high
+// enough to not drop idle keep-alive connections between test requests.
+const idleTimeout = "42";
+
 describe.runIf(hasBun)("nitro:preset:bun", async () => {
   const ctx = await setupTest("bun");
   testNitro(ctx, async () => {
     const port = await getRandomPort();
     process.env.PORT = String(port);
-    process.env.NITRO_BUN_IDLE_TIMEOUT = "1";
     const p = execa(
       "bun",
       [
@@ -23,6 +26,7 @@ describe.runIf(hasBun)("nitro:preset:bun", async () => {
       {
         stdio: process.env.TEST_DEBUG ? "inherit" : "ignore",
         reject: false,
+        env: { NITRO_BUN_IDLE_TIMEOUT: idleTimeout },
       }
     );
     ctx.server = {
@@ -40,7 +44,7 @@ describe.runIf(hasBun)("nitro:preset:bun", async () => {
 
   it("forwards the idle timeout to Bun", async () => {
     const response = await fetch(`${ctx.server!.url}/_bun/idle-timeout`);
-    expect(await response.text()).toBe("1");
+    expect(await response.text()).toBe(idleTimeout);
   });
 
   testCloseHook(ctx, { command: "bun", args: (entry) => [entry] });

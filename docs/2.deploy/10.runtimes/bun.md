@@ -16,9 +16,11 @@ After building with the `bun` preset, start the production server with:
 bun run ./.output/server/index.mjs
 ```
 
-## Idle Timeout
+## Environment Variables
 
-Set `NITRO_BUN_IDLE_TIMEOUT` to change Bun's server idle timeout. The value is in seconds and must be between `0` and `255`. Setting it to `0` disables the idle timeout.
+You can customize server behavior with the following environment variables:
+
+- `NITRO_BUN_IDLE_TIMEOUT` - Bun's server [idleTimeout](https://bun.sh/docs/api/http#idletimeout) in seconds. Must be between `0` and `255`, where `0` disables the timeout. Invalid values are ignored and Bun's default is used.
 
 ```bash
 NITRO_BUN_IDLE_TIMEOUT=30 bun run ./.output/server/index.mjs
