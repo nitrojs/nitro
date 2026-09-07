@@ -1,7 +1,7 @@
-import { type IComment, Posts, Users } from "../../utils/data";
-import { builder } from "../builder";
-import { Post } from "./post";
-import { User } from "./user";
+import { type IComment, Posts, Users } from "../../utils/data.ts";
+import { builder } from "../builder.ts";
+import { Post } from "./post.ts";
+import { User } from "./user.ts";
 
 export const Comment = builder.objectRef<IComment>("Comment");
 

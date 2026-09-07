@@ -12,5 +12,5 @@ builder.queryType({});
 if (import.meta.dev) {
   // Tell vite to reload the builder when schema changes
   // https://github.com/hayes/pothos/issues/49#issuecomment-836056530
-  import("./schema");
+  import("./schema.ts");
 }

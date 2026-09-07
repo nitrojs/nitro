@@ -1,7 +1,7 @@
-import { Comments, type IPost, Posts, Users } from "../../utils/data";
-import { builder } from "../builder";
-import { Comment } from "./comment";
-import { User } from "./user";
+import { Comments, type IPost, Posts, Users } from "../../utils/data.ts";
+import { builder } from "../builder.ts";
+import { Comment } from "./comment.ts";
+import { User } from "./user.ts";
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -33,7 +33,6 @@ builder.queryFields((t) => ({
     },
     resolve: (_root, args) => Posts.get(String(args.id)),
   }),
-
 
   posts: t.field({
     type: [Post],

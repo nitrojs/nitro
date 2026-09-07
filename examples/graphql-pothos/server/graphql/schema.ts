@@ -1,4 +1,4 @@
-import { builder } from "./builder";
+import { builder } from "./builder.ts";
 
 // Run all side effects to add the fields
 import.meta.glob("./schema/**/*.ts", { eager: true });

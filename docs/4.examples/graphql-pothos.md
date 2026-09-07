@@ -1,5 +1,6 @@
 ---
-category: integrations
+navigation:
+  category: integrations
 icon: i-simple-icons-graphql
 ---
 
@@ -21,24 +22,21 @@ export default defineConfig({
 
 ```json [package.json]
 {
-  "name": "@pothos-examples/nitro",
-  "version": "3.1.22",
-  "private": true,
+  "type": "module",
   "scripts": {
     "build": "vite build",
     "dev": "vite dev",
-    "start": "node .output/server/index.mjs",
-    "type": "tsc --noEmit"
+    "start": "node .output/server/index.mjs"
   },
   "dependencies": {
     "@faker-js/faker": "^10.1.0",
     "@pothos/core": "^4.12.0",
     "graphql": "^16.10.0",
-    "graphql-yoga": "5.17.1"
+    "graphql-yoga": "^5.17.1"
   },
   "devDependencies": {
-    "nitro": "^3.0.1-alpha.2",
-    "vite": "^8.0.0-beta.16"
+    "nitro": "latest",
+    "vite": "latest"
   }
 }
 ```
@@ -73,12 +71,12 @@ builder.queryType({});
 if (import.meta.dev) {
   // Tell vite to reload the builder when schema changes
   // https://github.com/hayes/pothos/issues/49#issuecomment-836056530
-  import("./schema");
+  import("./schema.ts");
 }
 ```
 
 ```ts [server/graphql/schema.ts]
-import { builder } from "./builder";
+import { builder } from "./builder.ts";
 
 // Run all side effects to add the fields
 import.meta.glob("./schema/**/*.ts", { eager: true });
@@ -89,7 +87,7 @@ export const schema = builder.toSchema();
 ```ts [server/routes/graphql.ts]
 import { createYoga } from "graphql-yoga";
 import { defineEventHandler, defineLazyEventHandler, type H3Event } from "nitro/h3";
-import { schema } from "../graphql/schema";
+import { schema } from "../graphql/schema.ts";
 
 export default defineLazyEventHandler(() => {
   const yoga = createYoga<{ event: H3Event }>({
@@ -98,7 +96,7 @@ export default defineLazyEventHandler(() => {
   });
 
   return defineEventHandler((event) => {
-    return yoga.handleRequest(event.req, { event });
+    return yoga.handleRequest(event.req as Request, { event });
   });
 });
 ```
@@ -157,10 +155,10 @@ for (let i = 1; i <= 100; i += 1) {
 ```
 
 ```ts [server/graphql/schema/comment.ts]
-import { type IComment, Posts, Users } from "../../utils/data";
-import { builder } from "../builder";
-import { Post } from "./post";
-import { User } from "./user";
+import { type IComment, Posts, Users } from "../../utils/data.ts";
+import { builder } from "../builder.ts";
+import { Post } from "./post.ts";
+import { User } from "./user.ts";
 
 export const Comment = builder.objectRef<IComment>("Comment");
 
@@ -182,10 +180,10 @@ Comment.implement({
 ```
 
 ```ts [server/graphql/schema/post.ts]
-import { Comments, type IPost, Posts, Users } from "../../utils/data";
-import { builder } from "../builder";
-import { Comment } from "./comment";
-import { User } from "./user";
+import { Comments, type IPost, Posts, Users } from "../../utils/data.ts";
+import { builder } from "../builder.ts";
+import { Comment } from "./comment.ts";
+import { User } from "./user.ts";
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -218,7 +216,6 @@ builder.queryFields((t) => ({
     resolve: (_root, args) => Posts.get(String(args.id)),
   }),
 
-
   posts: t.field({
     type: [Post],
     nullable: true,
@@ -233,10 +230,10 @@ builder.queryFields((t) => ({
 ```
 
 ```ts [server/graphql/schema/user.ts]
-import { Comments, type IUser, Posts, Users } from "../../utils/data";
-import { builder } from "../builder";
-import { Comment } from "./comment";
-import { Post } from "./post";
+import { Comments, type IUser, Posts, Users } from "../../utils/data.ts";
+import { builder } from "../builder.ts";
+import { Comment } from "./comment.ts";
+import { Post } from "./post.ts";
 
 export const User = builder.objectRef<IUser>("User");
 
@@ -284,7 +281,7 @@ Build a GraphQL API using Pothos for schema definition and GraphQL Yoga for requ
 ```ts [server/routes/graphql.ts]
 import { createYoga } from "graphql-yoga";
 import { defineEventHandler, defineLazyEventHandler, type H3Event } from "nitro/h3";
-import { schema } from "../graphql/schema";
+import { schema } from "../graphql/schema.ts";
 
 export default defineLazyEventHandler(() => {
   const yoga = createYoga<{ event: H3Event }>({
@@ -293,7 +290,7 @@ export default defineLazyEventHandler(() => {
   });
 
   return defineEventHandler((event) => {
-    return yoga.handleRequest(event.req, { event });
+    return yoga.handleRequest(event.req as Request, { event });
   });
 });
 ```
@@ -315,7 +312,7 @@ builder.queryType({});
 Create a typed schema builder with the H3 event in context. Schema files are auto-loaded via `import.meta.glob`:
 
 ```ts [server/graphql/schema.ts]
-import { builder } from "./builder";
+import { builder } from "./builder.ts";
 
 import.meta.glob("./schema/**/*.ts", { eager: true });
 
@@ -327,10 +324,10 @@ export const schema = builder.toSchema();
 Each type is defined in its own file using Pothos object refs:
 
 ```ts [server/graphql/schema/post.ts]
-import { Comments, type IPost, Posts, Users } from "../../utils/data";
-import { builder } from "../builder";
-import { Comment } from "./comment";
-import { User } from "./user";
+import { Comments, type IPost, Posts, Users } from "../../utils/data.ts";
+import { builder } from "../builder.ts";
+import { Comment } from "./comment.ts";
+import { User } from "./user.ts";
 
 export const Post = builder.objectRef<IPost>("Post");
 
