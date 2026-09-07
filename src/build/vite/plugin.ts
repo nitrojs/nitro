@@ -16,6 +16,7 @@ import { buildEnvironments } from "./prod.ts";
 import {
   initEnvRunner,
   getEnvRunner,
+  closeEnvRunner,
   createNitroEnvironment,
   createServiceEnvironments,
   createServiceEnvironment,
@@ -297,6 +298,19 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
       return configureViteDevServer(ctx, server);
     },
 
+    // Closing the dev server closes every environment, and each of them runs `closeBundle`.
+    // Nitro is shared by all of them, so its `close` hooks run once (#4586). The production
+    // build closes Nitro itself (see `prod.ts`).
+    closeBundle: {
+      order: "post",
+      handler() {
+        if (!ctx.nitro?.options.dev) {
+          return;
+        }
+        return (ctx._closePromise ??= ctx.nitro.close());
+      },
+    },
+
     // Invalidate server-only modules and optionally reload the browser
     // see: https://github.com/vitejs/vite/issues/19114
     async hotUpdate({ server, file, modules, timestamp }) {
@@ -499,9 +513,7 @@ async function setupNitroContext(
 
   // Cleanup resources after close {
   ctx.nitro.hooks.hook("close", async () => {
-    if (ctx._envRunner) {
-      await ctx._envRunner.close();
-    }
+    await closeEnvRunner(ctx);
   });
 }
 

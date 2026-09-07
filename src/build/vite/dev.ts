@@ -231,6 +231,23 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     rootDirWatcher.close();
   });
 
+  // Vite only installs a `SIGTERM` handler, so Ctrl+C (`SIGINT`) tears the process down before
+  // any `close` hook runs and leaves the dev worker (and its resources) behind (#4586). In
+  // middleware mode the embedding server owns the process signals, so it is left alone.
+  if (!server.config.server.middlewareMode) {
+    const onSigint = async () => {
+      try {
+        await server.close();
+      } finally {
+        process.exit(130);
+      }
+    };
+    process.once("SIGINT", onSigint);
+    nitro.hooks.hook("close", () => {
+      process.off("SIGINT", onSigint);
+    });
+  }
+
   // Worker => Host RPC
   nitroEnv.devServer.onMessage(async (message: any) => {
     if (message?.__rpc === "transformHTML") {

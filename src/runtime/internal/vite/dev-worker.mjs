@@ -152,6 +152,16 @@ class ViteEnvRunner {
     return !!file && !!this.runner.evaluatedModules.getModulesByFile(file)?.size;
   }
 
+  // Runs the environment's `close` hooks before the runner goes away. Waits for any in-flight
+  // reload so the entry the hooks belong to is the one that is closed.
+  async close() {
+    await this.reloadPromise;
+    const entryClose = this.entry?.close || this.entry?.default?.close;
+    if (entryClose) {
+      await entryClose();
+    }
+  }
+
   // Errors are intentionally not caught here: like production services,
   // they propagate to the caller (the nitro app's error handler or the
   // env-runner fetch boundary below).
@@ -308,7 +318,15 @@ export const ipc = {
       listener(message);
     }
   },
-  onClose() {},
+  async onClose() {
+    await Promise.all(
+      Object.values(envs).map((env) =>
+        env?.close().catch((error) => {
+          console.error(error);
+        })
+      )
+    );
+  },
 };
 
 // ----- Error handling -----

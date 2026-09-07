@@ -8,6 +8,7 @@ import { runtimeDependencies, runtimeDir } from "nitro/meta";
 import { resolveModulePath } from "exsolve";
 import { isAbsolute } from "pathe";
 import { resolveMiniflareDeps, resolveRunnerDeps } from "../../dev/runner-deps.ts";
+import { shutdownRunner } from "../../dev/shutdown.ts";
 import { writeDevWorkerEntry } from "./_dev-worker.ts";
 
 export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOptions {
@@ -124,6 +125,9 @@ export async function initEnvRunner(ctx: NitroPluginContext) {
       const manager = new RunnerManager();
       let _retries = 0;
       manager.onClose((_runner, cause) => {
+        if (ctx._closingEnvRunner) {
+          return;
+        }
         if (_retries++ < 3) {
           ctx.nitro!.logger.info("Restarting env runner...", cause ? `Cause: ${cause}` : "");
           _loadRunner(ctx, manager);
@@ -159,6 +163,24 @@ export function getEnvRunner(ctx: NitroPluginContext) {
     throw new Error("Env runner not initialized. Call initEnvRunner() first.");
   }
   return ctx._envRunner;
+}
+
+/**
+ * Shut the dev runner down gracefully: the runtime `close` hooks run in the worker before the
+ * runtime is terminated (#4586).
+ */
+export async function closeEnvRunner(ctx: NitroPluginContext) {
+  const manager = ctx._envRunner;
+  if (!manager || ctx._closingEnvRunner) {
+    return;
+  }
+  ctx._closingEnvRunner = true;
+  // The miniflare runner runs the same handshake itself when it is disposed, so it is only
+  // needed for the runners that terminate their runtime outright.
+  if (manager.ready && !_isWorkerdRunner(ctx)) {
+    await shutdownRunner(manager, { warn: (message) => ctx.nitro!.logger.warn(message) });
+  }
+  await manager.close();
 }
 
 export async function reloadEnvRunner(ctx: NitroPluginContext) {
