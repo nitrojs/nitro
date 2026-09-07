@@ -14,12 +14,10 @@ export default {
     const head = [
       `<meta name="viewport" content="width=device-width, initial-scale=1.0" />`,
       ...assets.css.map(
-        (attr: Record<string, string>) =>
-          `<link rel="stylesheet" href="${attr.href}" />`
+        (attr: Record<string, string>) => `<link rel="stylesheet" href="${attr.href}" />`
       ),
       ...assets.js.map(
-        (attr: Record<string, string>) =>
-          `<link rel="modulepreload" href="${attr.href}" />`
+        (attr: Record<string, string>) => `<link rel="modulepreload" href="${attr.href}" />`
       ),
       `<script type="module" src="${assets.entry}"></script>`,
     ].join("\n    ");

@@ -14,19 +14,11 @@ const TodoItem = component(
   ) => {
     return html`
       <li class="${() => (props.todo.done ? "todo done" : "todo")}">
-        <button
-          class="toggle"
-          @click="${() => props.onToggle(props.todo.id)}"
-        >
+        <button class="toggle" @click="${() => props.onToggle(props.todo.id)}">
           ${() => (props.todo.done ? "\u2713" : "")}
         </button>
         <span>${() => props.todo.text}</span>
-        <button
-          class="remove"
-          @click="${() => props.onRemove(props.todo.id)}"
-        >
-          \u00d7
-        </button>
+        <button class="remove" @click="${() => props.onRemove(props.todo.id)}">×</button>
       </li>
     `;
   }
@@ -91,9 +83,7 @@ export function App() {
   };
 
   watch(() => {
-    console.log(
-      `[Arrow.js] ${remaining()} of ${state.todos.length} todos remaining`
-    );
+    console.log(`[Arrow.js] ${remaining()} of ${state.todos.length} todos remaining`);
   });
 
   return html`
@@ -119,10 +109,7 @@ export function App() {
       ${Filters(state)}
 
       <ul class="todo-list">
-        ${() =>
-          filtered().map((todo) =>
-            TodoItem({ todo, onToggle, onRemove }).key(todo.id)
-          )}
+        ${() => filtered().map((todo) => TodoItem({ todo, onToggle, onRemove }).key(todo.id))}
       </ul>
 
       <footer class="footer">
