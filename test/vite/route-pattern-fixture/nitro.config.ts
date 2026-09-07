@@ -13,6 +13,9 @@ export const routes = [
 
 export default defineConfig({
   prerender: { routes: ["/について"] },
+  // `routeRules` keys are *not* normalized: h3 compiles them itself and
+  // decodes patterns instead of encoding them.
+  routeRules: { "/について": { headers: { "x-route-rule": "hit" } } },
   handlers: routes.map((route) => ({
     route,
     handler: "./routes/handler.ts",

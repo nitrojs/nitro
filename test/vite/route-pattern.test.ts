@@ -44,6 +44,11 @@ describe("route patterns needing normalization", () => {
       expect(response.status).toBe(200);
       expect(await response.text()).toBe("ok");
     });
+
+    it("still applies a route rule keyed by a non-ASCII pattern", async () => {
+      const response = await fetchServer(new Request("http://localhost/について"));
+      expect(response.headers.get("x-route-rule")).toBe("hit");
+    });
   });
 
   it("prerenders a non-ASCII route under its own literal path", async () => {
