@@ -624,7 +624,6 @@ export function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
       .map((route) => route.route.replace(SURROUNDING_SLASH_RE, ""))
   );
 
-  // Sort routes by how much specific they are
   // ISR-ruled paths are served through the ISR rewrite machinery, so they get
   // neither an observability function nor a `config.json` route entry (#3563).
   // Rules have to be matched against the route pattern rather than the compiled
@@ -636,6 +635,7 @@ export function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
       (defu({}, ...nitro.routing.routeRules.matchAll("", route).reverse()) as NitroRouteRules).isr
     );
 
+  // Sort routes by how much specific they are
   const routePatterns = [
     ...new Set([
       ...(nitro.options.ssrRoutes || []),
