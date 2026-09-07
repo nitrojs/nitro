@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { dirname, normalize, resolve } from "pathe";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import type { Nitro } from "nitro/types";
 
 import publicAssets from "../../src/build/virtual/public-assets.ts";
@@ -85,17 +85,15 @@ describe("virtual/public-assets node reader", () => {
     expect(resolved).not.toBe("/app/server/index.ts");
   });
 
-  // A manifest entry whose file vanished after the build resolves with no data, so
-  // the static middleware can answer 404 rather than surfacing an unhandled 500.
+  // A public dir pruned after the build (uploaded to a CDN, sourcemaps stripped)
+  // leaves manifest entries with no file behind them; those read as absent so the
+  // static middleware can answer 404 rather than surfacing an unhandled 500.
   it("resolves with no data when the file is gone", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const { readAsset } = loadReadAsset(nodeReaderTemplate(), () =>
       Promise.reject(Object.assign(new Error("ENOENT: no such file"), { code: "ENOENT" }))
     );
 
     await expect(readAsset("/index.html")).resolves.toBeUndefined();
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("/index.html"));
-    warn.mockRestore();
   });
 
   it("rejects for read errors other than a missing file", async () => {
