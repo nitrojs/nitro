@@ -2,7 +2,14 @@ defineRouteMeta({
   openAPI: {
     tags: ["test"],
     description: "Test route description",
-    parameters: [{ in: "query", name: "test", required: true }],
+    parameters: [
+      { in: "query", name: "test", required: true },
+      {
+        in: "query",
+        name: "val",
+        schema: { type: "integer", enum: [0, 1] },
+      },
+    ],
     responses: {
       200: {
         description: "result",
