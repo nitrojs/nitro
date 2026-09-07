@@ -829,6 +829,13 @@ export function testNitro(
       expect((await callHandler({ url: "/api/methods/get" })).data).toBe("get");
       expect((await callHandler({ url: "/api/methods/foo.get" })).data).toBe("foo.get");
     });
+
+    it("Matches the QUERY method suffix", async () => {
+      expect((await callHandler({ url: "/api/methods/search", method: "QUERY" })).data).toBe(
+        "query"
+      );
+      expect((await callHandler({ url: "/api/methods/search" })).data).toBe("get");
+    });
   });
 
   // WinterJS itself runs as WebAssembly and exposes no `WebAssembly` global

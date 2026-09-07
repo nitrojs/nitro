@@ -7,10 +7,10 @@ export const GLOB_SCAN_PATTERN = "**/*.{js,mjs,cjs,ts,mts,cts,tsx,jsx}";
 type FileInfo = { path: string; fullPath: string };
 
 const suffixRegex =
-  /(\.(?<method>connect|delete|get|head|options|patch|post|put|trace))?(\.(?<env>dev|prod|prerender))?$/;
+  /(\.(?<method>connect|delete|get|head|options|patch|post|put|query|trace))?(\.(?<env>dev|prod|prerender))?$/;
 
 // prettier-ignore
-type MatchedMethodSuffix = "connect" | "delete" | "get" | "head" | "options" | "patch" | "post" | "put" | "trace";
+type MatchedMethodSuffix = "connect" | "delete" | "get" | "head" | "options" | "patch" | "post" | "put" | "query" | "trace";
 type MatchedEnvSuffix = "dev" | "prod" | "prerender";
 
 export async function scanAndSyncOptions(nitro: Nitro) {
