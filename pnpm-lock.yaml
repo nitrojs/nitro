@@ -599,7 +599,7 @@ importers:
         specifier: ^1.9.11
         version: 1.9.15
       vite:
-        specifier: ^8.0.0
+        specifier: latest
         version: 8.2.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0)
 
   examples/vite-ssr-tsr-react:

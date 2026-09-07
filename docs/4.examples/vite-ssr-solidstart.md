@@ -1,5 +1,6 @@
 ---
-category: server side rendering
+navigation:
+  category: server side rendering
 icon: i-logos-solidjs-icon
 ---
 
@@ -23,9 +24,9 @@ icon: i-logos-solidjs-icon
     "@solidjs/meta": "^0.29.4",
     "@solidjs/router": "^0.15.4",
     "@solidjs/start": "^2.0.0-alpha.2",
-    "nitro": "^3.0.260311-beta",
+    "nitro": "latest",
     "solid-js": "^1.9.11",
-    "vite": "^8.0.0"
+    "vite": "latest"
   },
   "engines": {
     "node": ">=22"

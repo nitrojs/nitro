@@ -14,6 +14,7 @@
   "exclude": [
     "examples/import-alias/**",
     "examples/vite-rsc/**",
+    "examples/vite-ssr-solidstart/**",
     "test/fixture/server/routes/jsx.tsx",
     "test/vite/alias-precedence-fixture/server.ts",
     "examples/vite-ssr-html/vite.config.ts",
