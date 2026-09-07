@@ -1,5 +1,6 @@
 ---
-category: server side rendering
+navigation:
+  category: server side rendering
 icon: i-logos-react
 ---
 
@@ -38,7 +39,7 @@ icon: i-logos-react
     "nitro": "latest",
     "tailwindcss": "^4.3.2",
     "typescript": "^6.0.3",
-    "vite": "^8.1.3"
+    "vite": "latest"
   }
 }
 ```
