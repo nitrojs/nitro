@@ -336,6 +336,10 @@ Additional options are available under the `vercel` key in your Nitro config:
 
 On-demand revalidation lets you purge the cache for an ISR route whenever you want, without waiting for the interval used by background revalidation.
 
+::warning
+Do not combine the `isr` and `prerender` route rules on the same route. Prerendered pages are written as static files at build time and Vercel serves them from the filesystem before the ISR function is reached, so `isr` never applies. Use `isr` alone when you need regeneration after deployment.
+::
+
 To revalidate a page on demand:
 
 1. Create an environment variable to store a revalidation secret
