@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Nitro + Cloudflare Durable Objects</title>
+  </head>
+  <body>
+    <h1>Nitro + Cloudflare Durable Objects</h1>
+    <p>Counter: <span id="count">…</span></p>
+    <button id="increment">Increment</button>
+    <script type="module">
+      const el = document.querySelector("#count");
+      async function increment() {
+        const { count } = await fetch("/counter").then((r) => r.json());
+        el.textContent = count;
+      }
+      document.querySelector("#increment").addEventListener("click", increment);
+      increment();
+    </script>
+  </body>
+</html>

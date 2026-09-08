@@ -1,0 +1,9 @@
+{
+  "$schema": "https://www.unpkg.com/wrangler/config-schema.json",
+  "name": "example-cloudflare-durable",
+  "compatibility_date": "2026-06-01",
+  "durable_objects": {
+    "bindings": [{ "name": "COUNTER", "class_name": "CounterDO" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["CounterDO"] }],
+}

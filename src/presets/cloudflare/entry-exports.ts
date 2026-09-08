@@ -18,7 +18,7 @@ export async function setupEntryExports(nitro: Nitro) {
   `;
 }
 
-function resolveExportsEntry(nitro: Nitro) {
+export function resolveExportsEntry(nitro: Nitro) {
   const entry = resolveModulePath(nitro.options.cloudflare?.exports || "./exports.cloudflare.ts", {
     from: nitro.options.rootDir,
     extensions: RESOLVE_EXTENSIONS,
