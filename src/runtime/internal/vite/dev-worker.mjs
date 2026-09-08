@@ -166,8 +166,17 @@ class ViteEnvRunner {
   // they propagate to the caller (the nitro app's error handler or the
   // env-runner fetch boundary below).
   async fetch(req, init) {
-    // Wait until nothing is queued or in flight so requests never hit an entry
-    // that is about to be replaced.
+    const entry = await this.waitForEntry();
+    const entryFetch = entry.fetch || entry.default?.fetch;
+    if (!entryFetch) {
+      throw httpError(500, `No fetch handler exported from ${this.entryPath}`);
+    }
+    return entryFetch(req, init);
+  }
+
+  // Waits until nothing is queued or in flight so callers never reach an entry
+  // that is about to be replaced.
+  async waitForEntry() {
     const deadline = Date.now() + RELOAD_WAIT_TIMEOUT;
     let reloadPromise;
     while (reloadPromise !== this.reloadPromise) {
@@ -185,11 +194,7 @@ class ViteEnvRunner {
     if (!this.entry) {
       throw httpError(503, `Vite environment "${this.name}" is unavailable`);
     }
-    const entryFetch = this.entry.fetch || this.entry.default?.fetch;
-    if (!entryFetch) {
-      throw httpError(500, `No fetch handler exported from ${this.entryPath}`);
-    }
-    return entryFetch(req, init);
+    return this.entry;
   }
 }
 
@@ -276,11 +281,21 @@ export async function fetch(req) {
   }
 }
 
-export function upgrade(context) {
-  const handleUpgrade = envs.nitro?.entry?.handleUpgrade;
-  if (handleUpgrade) {
-    handleUpgrade(context.node.req, context.node.socket, context.node.head);
-  }
+// crossws options for the dev runner, which hands them to the WebSocket adapter of the runtime it
+// runs in (Node, Bun or Deno). Kept out of the static exports so the runner only wires WebSocket
+// support up when the feature is enabled (see `build/vite/_dev-worker.ts`).
+export function websocketHooks() {
+  return {
+    resolve: async (request) => {
+      const env = envs.nitro;
+      if (!env) {
+        return {};
+      }
+      const entry = await env.waitForEntry();
+      const resolve = entry.websocket?.resolve || entry.default?.websocket?.resolve;
+      return (await resolve?.(request)) ?? {};
+    },
+  };
 }
 
 export const ipc = {
