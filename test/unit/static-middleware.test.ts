@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mockEvent } from "h3";
 import handler from "../../src/runtime/internal/static.ts";
 
+const MTIME = "2024-01-01T00:00:00.000Z";
+
 const { getAsset, isPublicAssetURL, readAsset } = vi.hoisted(() => ({
   getAsset: vi.fn(),
   isPublicAssetURL: vi.fn(),
@@ -100,7 +102,7 @@ describe("runtime static middleware", () => {
       if (id === "/foo.css.gz") {
         return {
           etag: '"test"',
-          mtime: Date.now(),
+          mtime: MTIME,
           type: "text/css",
           encoding: "gzip",
           size: 1,
@@ -118,22 +120,23 @@ describe("runtime static middleware", () => {
     expect(event.res.headers.get("Vary")).toContain("Accept-Encoding");
   });
 
-  it("matches compressed assets when accept-encoding has quality values", async () => {
-    getAsset.mockImplementation((id: string) => {
-      if (id === "/foo.css.gz") {
-        return {
-          etag: '"test"',
-          mtime: Date.now(),
-          type: "text/css",
-          encoding: "gzip",
-          size: 1,
-        };
-      }
-      return undefined;
-    });
+  // Both `gzip` and `q` are case-insensitive, and both have to be recognised
+  // for `.gz` to outrank the alphabetically-earlier `.br`.
+  it("matches compressed assets when the encoding name and q key differ in case", async () => {
+    getAsset.mockImplementation((id: string) =>
+      id === "/foo.css.gz" || id === "/foo.css.br"
+        ? {
+            etag: '"test"',
+            mtime: MTIME,
+            type: "text/css",
+            encoding: id.endsWith(".gz") ? "gzip" : "br",
+            size: 1,
+          }
+        : undefined
+    );
     isPublicAssetURL.mockReturnValue(true);
     readAsset.mockResolvedValue("body");
-    const event = createEvent("/foo.css", "GZIP; q=1.0, br; q=0.9");
+    const event = createEvent("/foo.css", "GZIP; q=1.0, br; Q=0.9");
 
     await handler(event);
 
@@ -146,7 +149,7 @@ describe("runtime static middleware", () => {
       id === "/foo.css.gz" || id === "/foo.css.br"
         ? {
             etag: '"test"',
-            mtime: Date.now(),
+            mtime: MTIME,
             type: "text/css",
             encoding: id.endsWith(".gz") ? "gzip" : "br",
             size: 1,
@@ -168,7 +171,7 @@ describe("runtime static middleware", () => {
       id === "/foo.css.gz" || id === "/foo.css.br"
         ? {
             etag: '"test"',
-            mtime: Date.now(),
+            mtime: MTIME,
             type: "text/css",
             encoding: id.endsWith(".gz") ? "gzip" : "br",
             size: 1,
@@ -190,7 +193,7 @@ describe("runtime static middleware", () => {
       if (id === "/foo.css.gz") {
         return {
           etag: '"compressed"',
-          mtime: "2024-01-01T00:00:00.000Z",
+          mtime: MTIME,
           size: 4,
           type: "text/css",
           encoding: "gzip",
@@ -199,7 +202,7 @@ describe("runtime static middleware", () => {
       if (id === "/foo.css") {
         return {
           etag: '"plain"',
-          mtime: "2024-01-01T00:00:00.000Z",
+          mtime: MTIME,
           size: 4,
           type: "text/css",
         };
