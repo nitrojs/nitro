@@ -121,9 +121,10 @@ export async function scanPlugins(nitro: Nitro) {
 export async function scanTasks(nitro: Nitro) {
   const files = await scanFiles(nitro, "tasks");
   return files.map((f) => {
-    const name = stripSourceExtension(f.path, nitro.options)
-      .replace(/\/index$/, "")
-      .replace(/\//g, ":");
+    const name = stripSourceExtension(f.path.replace(/\/index$/, ""), nitro.options).replace(
+      /\//g,
+      ":"
+    );
     return { name, handler: f.fullPath };
   });
 }

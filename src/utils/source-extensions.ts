@@ -3,14 +3,12 @@ import { escapeRegExp } from "./regex.ts";
 
 type SourceExtensionOptions = Pick<NitroOptions, "sourceExtensions">;
 
-const moduleExtensions = {
-  js: [".js", ".mjs", ".cjs", ".jsx"],
-  ts: [".ts", ".mts", ".cts", ".tsx"],
-};
+export const TS_SOURCE_EXTENSIONS = [".ts", ".mts", ".cts", ".tsx"];
 
-export const TS_SOURCE_EXTENSIONS = [...moduleExtensions.ts];
-
-export const BASE_SOURCE_EXTENSIONS = [...moduleExtensions.js, ...moduleExtensions.ts];
+// Order matters: these are used as resolution extensions, and TypeScript files
+// have always been preferred over their compiled JavaScript siblings.
+// prettier-ignore
+export const BASE_SOURCE_EXTENSIONS = [".ts", ".js", ".mts", ".mjs", ".cts", ".cjs", ".tsx", ".jsx"];
 
 export function normalizeSourceExtensions(extensions: string[] = []) {
   return extensions

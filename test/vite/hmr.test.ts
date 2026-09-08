@@ -243,7 +243,6 @@ describe("vite:hmr", { sequential: true }, () => {
     }
     throw new Error(`dev worker never settled (last evals: ${last})`);
   }
-
 });
 
 function matchCounter(body: string, re: RegExp): number {
