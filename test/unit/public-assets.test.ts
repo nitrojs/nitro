@@ -104,3 +104,53 @@ describe("virtual/public-assets node reader", () => {
     await expect(readAsset("/index.html")).rejects.toThrow("EACCES");
   });
 });
+
+// Return the `#nitro/virtual/public-assets` source for a dev build with the given runner.
+function devMainTemplate(runner?: string): string {
+  const nitro = {
+    options: {
+      dev: true,
+      serveStatic: true,
+      baseURL: "/",
+      publicAssets: [{ dir: PUBLIC_DIR, baseURL: "/" }],
+      devServer: runner ? { runner } : {},
+    },
+  } as unknown as Nitro;
+  const main = publicAssets(nitro).find((t) => t.id === "#nitro/virtual/public-assets")!
+    .template as () => string;
+  return main();
+}
+
+describe("virtual/public-assets dev template", () => {
+  const savedRunner = process.env.NITRO_DEV_RUNNER;
+  afterEach(() => {
+    if (savedRunner === undefined) {
+      delete process.env.NITRO_DEV_RUNNER;
+    } else {
+      process.env.NITRO_DEV_RUNNER = savedRunner;
+    }
+  });
+
+  it("resolves assets from the source dirs with node:fs on the default runner", () => {
+    delete process.env.NITRO_DEV_RUNNER;
+    const main = devMainTemplate();
+    expect(main).toContain("from 'node:fs'");
+    expect(main).not.toContain("#nitro/virtual/public-assets-data");
+  });
+
+  // The workerd-based `miniflare` runner cannot load `node:fs`, so the dev worker
+  // must keep the build-time manifest path there.
+  it("keeps the manifest path for the miniflare runner", () => {
+    delete process.env.NITRO_DEV_RUNNER;
+    const main = devMainTemplate("miniflare");
+    expect(main).not.toContain("node:fs");
+    expect(main).toContain(`from '#nitro/virtual/public-assets-data'`);
+  });
+
+  it("honours NITRO_DEV_RUNNER when devServer.runner is unset", () => {
+    process.env.NITRO_DEV_RUNNER = "miniflare";
+    const main = devMainTemplate();
+    expect(main).not.toContain("node:fs");
+    expect(main).toContain(`from '#nitro/virtual/public-assets-data'`);
+  });
+});

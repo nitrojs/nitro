@@ -94,7 +94,9 @@ export default function publicAssets(nitro: Nitro) {
             ])
         );
 
-        if (nitro.options.dev) {
+        // The dev template resolves assets with `node:fs`, which the workerd-based
+        // `miniflare` runner cannot load.
+        if (nitro.options.dev && _devRunner(nitro) !== "miniflare") {
           const publicAssetDirs = nitro.options.publicAssets.map((dir) => ({
             baseURL: withTrailingSlash(joinURL(nitro.options.baseURL, dir.baseURL || "/")),
             dir: dir.dir,
@@ -138,15 +140,10 @@ export function getAsset (id) {
       continue
     }
     if (!stat.isFile()) { continue }
-    let type = mime.getType(id.replace(/\\.(gz|br|zst)$/, '')) || 'text/plain'
+    let type = mime.getType(id) || 'text/plain'
     if (type.startsWith('text')) { type += '; charset=utf-8' }
-    let encoding
-    if (id.endsWith('.gz')) { encoding = 'gzip' }
-    else if (id.endsWith('.br')) { encoding = 'br' }
-    else if (id.endsWith('.zst')) { encoding = 'zstd' }
     return {
       type,
-      encoding,
       mtime: stat.mtime.toJSON(),
       size: stat.size,
       path: fullPath,
@@ -245,4 +242,8 @@ export function readAsset (id) {
       },
     },
   ];
+}
+
+function _devRunner(nitro: Nitro): string {
+  return nitro.options.devServer.runner || process.env.NITRO_DEV_RUNNER || "node-worker";
 }
