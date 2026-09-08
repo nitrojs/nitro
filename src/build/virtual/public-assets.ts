@@ -94,6 +94,73 @@ export default function publicAssets(nitro: Nitro) {
             ])
         );
 
+        // The dev template resolves assets with `node:fs`, which the workerd-based
+        // `miniflare` runner cannot load.
+        if (nitro.options.dev && _devRunner(nitro) !== "miniflare") {
+          const publicAssetDirs = nitro.options.publicAssets.map((dir) => ({
+            baseURL: withTrailingSlash(joinURL(nitro.options.baseURL, dir.baseURL || "/")),
+            dir: dir.dir,
+          }));
+
+          return /* js */ `
+import { statSync, promises as fsp } from 'node:fs'
+import { resolve, relative, isAbsolute, sep } from 'node:path'
+import mime from 'mime'
+
+const publicAssetDirs = ${JSON.stringify(publicAssetDirs)}
+export const publicAssetBases = ${JSON.stringify(publicAssetBases)}
+
+export function isPublicAssetURL(id = '') {
+  if (getAsset(id)) {
+    return true
+  }
+  for (const base in publicAssetBases) {
+    if (id.startsWith(base)) { return true }
+  }
+  return false
+}
+
+export function getPublicAssetMeta(id = '') {
+  for (const base in publicAssetBases) {
+    if (id.startsWith(base)) { return publicAssetBases[base] }
+  }
+  return {}
+}
+
+export function getAsset (id) {
+  for (const { baseURL, dir } of publicAssetDirs) {
+    if (!id.startsWith(baseURL)) { continue }
+    const fullPath = resolve(dir, id.slice(baseURL.length))
+    const relativePath = relative(dir, fullPath)
+    if (relativePath.split(sep)[0] === '..' || isAbsolute(relativePath)) { continue }
+    let stat
+    try {
+      stat = statSync(fullPath)
+    } catch {
+      continue
+    }
+    if (!stat.isFile()) { continue }
+    let type = mime.getType(id) || 'text/plain'
+    if (type.startsWith('text')) { type += '; charset=utf-8' }
+    return {
+      type,
+      mtime: stat.mtime.toJSON(),
+      size: stat.size,
+      path: fullPath,
+    }
+  }
+}
+
+export function readAsset (id) {
+  const asset = getAsset(id)
+  if (!asset) { return Promise.resolve(null) }
+  return fsp.readFile(asset.path).catch((error) => {
+    if (error?.code !== 'ENOENT') { throw error }
+  })
+}
+`;
+        }
+
         // prettier-ignore
         type _serveStaticAsKey = Exclude<typeof nitro.options.serveStatic, boolean> | "true" | "false";
         // prettier-ignore
@@ -178,4 +245,8 @@ export function readAsset (id) {
       },
     },
   ];
+}
+
+function _devRunner(nitro: Nitro): string {
+  return nitro.options.devServer.runner || process.env.NITRO_DEV_RUNNER || "node-worker";
 }
