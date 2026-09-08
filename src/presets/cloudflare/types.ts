@@ -11,6 +11,17 @@ import type { RawConfig } from "@cloudflare/workers-utils";
 
 export type WranglerConfig = Partial<RawConfig>;
 
+export interface CloudflareDurableResolverContext {
+  request?: Request;
+  env: unknown;
+  context?: ExecutionContext;
+  defaultInstanceName: string;
+}
+
+export type CloudflareDurableResolver = (
+  context: CloudflareDurableResolverContext
+) => string | undefined | Promise<string | undefined>;
+
 /**
  * https://developers.cloudflare.com/pages/platform/functions/routing/#functions-invocation-routes
  */
@@ -59,6 +70,10 @@ export interface CloudflareOptions {
   durable?: {
     /** @default "$DurableObject" */
     bindingName?: string;
+    /** @default "server" */
+    instanceName?: string;
+    /** Path to a module exporting the default instance-name resolver. */
+    resolver?: string;
   };
 
   pages?: {

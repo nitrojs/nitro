@@ -6,7 +6,10 @@ import { afterAll, describe, expect, it } from "vitest";
 import { setupTest } from "../tests.ts";
 
 describe("nitro:preset:cloudflare-durable", async () => {
-  for (const bindingName of ["$DurableObject", "MyCustomDO"]) {
+  for (const [bindingName, instanceName, resolver] of [
+    ["MyCustomDO", "app-server", undefined],
+    ["ResolverDO", "fallback-server", "./server/utils/cloudflare-durable-resolver.ts"],
+  ] as const) {
     const ctx = await setupTest("cloudflare-durable", {
       outDirSuffix: `-${bindingName}`,
       config: {
@@ -14,7 +17,7 @@ describe("nitro:preset:cloudflare-durable", async () => {
         handlers: [
           { route: "/durable-websocket", handler: "./server/handlers/durable-websocket.ts" },
         ],
-        cloudflare: bindingName === "$DurableObject" ? {} : { durable: { bindingName } },
+        cloudflare: { durable: { bindingName, instanceName, resolver } },
       },
     });
     const config = JSON.parse(
@@ -62,8 +65,9 @@ describe("nitro:preset:cloudflare-durable", async () => {
       try {
         expect(await connect("?room=alpha")).toBe("1");
         expect(await connect("?room=alpha")).toBe("2");
-        expect(await connect("?room=beta")).toBe("3");
-        expect(await connect("")).toBe("4");
+        expect(await connect("?room=beta")).toBe(resolver ? "1" : "3");
+        expect(await connect("")).toBe(resolver ? "1" : "4");
+        expect(await connect("?room=fallback-server")).toBe(resolver ? "2" : "5");
       } finally {
         for (const socket of sockets) socket.close();
       }

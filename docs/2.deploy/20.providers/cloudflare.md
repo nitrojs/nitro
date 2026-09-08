@@ -150,9 +150,7 @@ If you disable `cloudflare.deployConfig`, declare the binding and migration in y
 }
 ```
 
-### Binding name
-
-Set `cloudflare.durable.bindingName` to customize the binding name. It defaults to `$DurableObject`; the class name remains `$DurableObject`.
+### Binding and instance selection
 
 ```ts [nitro.config.ts]
 import { defineConfig } from "nitro";
@@ -160,12 +158,36 @@ import { defineConfig } from "nitro";
 export default defineConfig({
   preset: "cloudflare_durable",
   cloudflare: {
-    durable: { bindingName: "MyCustomDO" }
+    deployConfig: true,
+    durable: {
+      bindingName: "NitroDurable",
+      instanceName: "app-server",
+      resolver: "./server/utils/cloudflare-durable-resolver.ts"
+    }
   }
-});
+})
 ```
 
-Nitro generates the matching binding when `cloudflare.deployConfig` is enabled. For manually managed Wrangler configuration, use the same binding name in `durable_objects.bindings`.
+Nitro defaults to one internal binding named `$DurableObject` and one default instance named `server`.
+The optional resolver must export a default function that returns the instance name for a request; returning `undefined` falls back to `instanceName`, then `server`.
+
+```ts [server/utils/cloudflare-durable-resolver.ts]
+import type { CloudflareDurableResolver } from "nitro/presets/cloudflare";
+
+const resolveInstanceName: CloudflareDurableResolver = ({
+  request,
+  defaultInstanceName
+}) => {
+  const room = request
+    ? new URL(request.url).searchParams.get("room")
+    : undefined;
+  return room || defaultInstanceName;
+};
+
+export default resolveInstanceName;
+```
+
+The binding must reference the local `$DurableObject` class. The resolver changes the instance name within that binding. It may be asynchronous and must handle calls without a request. An empty string or `undefined` falls back to `instanceName`. Resolver errors propagate to the caller.
 
 You can use the `cloudflare:durable:init` runtime hook to run code when the Durable Object is initialized, and the `cloudflare:durable:alarm` hook to handle [alarms](https://developers.cloudflare.com/durable-objects/api/alarms/).
 

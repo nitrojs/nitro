@@ -1,9 +1,9 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "pathe";
-import { createNitro } from "nitro/builder";
+import { build, createNitro } from "nitro/builder";
 import { unstable_readConfig } from "wrangler";
-import type { CloudflareOptions } from "../../src/presets/cloudflare/types.ts";
+import type { CloudflareOptions } from "nitro/presets/cloudflare";
 import { describe, expect, it } from "vitest";
 import { writeWranglerConfig } from "../../src/presets/cloudflare/utils.ts";
 
@@ -38,6 +38,23 @@ async function generateConfig(
 }
 
 describe("cloudflare durable deployment config", () => {
+  it("rejects a build when the configured resolver does not exist", async () => {
+    const rootDir = await mkdtemp(join(tmpdir(), "nitro-durable-resolver-"));
+    const nitro = await createNitro({
+      rootDir,
+      preset: "cloudflare-durable",
+      compatibilityDate: "2026-09-01",
+      features: { websocket: true },
+      cloudflare: { durable: { resolver: "./missing-resolver.ts" } },
+    });
+    try {
+      await expect(build(nitro)).rejects.toThrow(/missing-resolver/);
+    } finally {
+      await nitro.close();
+      await rm(rootDir, { recursive: true, force: true });
+    }
+  });
+
   it("generates a default binding and initial SQLite migration", async () => {
     const config = await generateConfig();
     expect(config.durable_objects.bindings).toEqual([
