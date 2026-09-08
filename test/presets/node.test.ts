@@ -38,6 +38,14 @@ describe("nitro:preset:node-middleware", async () => {
     const serverNodeModules = resolve(ctx.outDir, "server/node_modules");
     expect(existsSync(resolve(serverNodeModules, "@fixture/nitro-utils/extra.mjs"))).toBe(true);
   });
+
+  // https://github.com/nitrojs/nitro/issues/4093
+  it("should trace externals required from a bundled CommonJS package", () => {
+    const serverNodeModules = resolve(ctx.outDir, "server/node_modules");
+    expect(existsSync(resolve(serverNodeModules, "@fixture/nitro-native-mock/index.js"))).toBe(
+      true
+    );
+  });
 });
 
 describe("nitro:preset:node-server", async () => {
