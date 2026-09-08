@@ -6,8 +6,7 @@ import { findWorkspaceDir } from "pkg-types";
 import { NitroDefaults } from "../defaults.ts";
 import { resolveModulePath } from "exsolve";
 import consola from "consola";
-
-const RESOLVE_EXTENSIONS = [".ts", ".js", ".mts", ".mjs", ".tsx", ".jsx"];
+import { getSourceExtensions, normalizeSourceExtensions } from "../../utils/source-extensions.ts";
 
 export async function resolvePathOptions(options: NitroOptions) {
   options.rootDir = resolve(options.rootDir || ".") + "/";
@@ -30,6 +29,7 @@ export async function resolvePathOptions(options: NitroOptions) {
   }
 
   options.alias ??= {};
+  options.sourceExtensions = normalizeSourceExtensions(options.sourceExtensions);
 
   // Resolve possibly template paths
   if (!options.static && !options.entry) {
@@ -96,7 +96,7 @@ export async function resolvePathOptions(options: NitroOptions) {
           options.serverDir && options.serverDir !== options.rootDir
             ? [options.serverDir, options.rootDir]
             : options.rootDir,
-        extensions: RESOLVE_EXTENSIONS.flatMap((ext) => [ext, `.node${ext}`]),
+        extensions: getSourceExtensions(options).flatMap((ext) => [ext, `.node${ext}`]),
       });
       if (detected) {
         options.serverEntry ??= { handler: "" };
@@ -121,7 +121,7 @@ export async function resolvePathOptions(options: NitroOptions) {
         resolveNitroPath(options.renderer?.handler, options),
         {
           from: [options.rootDir, ...options.scanDirs],
-          extensions: RESOLVE_EXTENSIONS,
+          extensions: getSourceExtensions(options),
         }
       );
     }
