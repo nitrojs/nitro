@@ -153,7 +153,10 @@ export function getAsset (id) {
 
 export function readAsset (id) {
   const asset = getAsset(id)
-  return asset ? fsp.readFile(asset.path) : Promise.resolve(null)
+  if (!asset) { return Promise.resolve(null) }
+  return fsp.readFile(asset.path).catch((error) => {
+    if (error?.code !== 'ENOENT') { throw error }
+  })
 }
 `;
         }
