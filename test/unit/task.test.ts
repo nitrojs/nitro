@@ -12,7 +12,7 @@ const { closeHookMock, cronMock, cronStopMock } = vi.hoisted(() => {
 });
 
 vi.mock("croner", () => ({ Cron: cronMock }));
-vi.mock("#nitro/runtime/app", () => ({
+vi.mock("../../src/runtime/internal/app.ts", () => ({
   useNitroHooks: () => ({ hook: closeHookMock }),
 }));
 vi.mock("#nitro/virtual/tasks", () => ({

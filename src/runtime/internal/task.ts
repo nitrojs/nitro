@@ -1,7 +1,7 @@
 import { Cron } from "croner";
 import { HTTPError } from "h3";
 import type { Task, TaskContext, TaskEvent, TaskPayload, TaskResult } from "nitro/types";
-import { useNitroHooks } from "#nitro/runtime/app";
+import { useNitroHooks } from "./app.ts";
 import { scheduledTasks, tasks } from "#nitro/virtual/tasks";
 
 /** @experimental */
