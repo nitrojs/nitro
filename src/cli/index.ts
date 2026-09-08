@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { defineCommand, runMain as _runMain } from "citty";
 import { version as nitroVersion } from "nitro/meta";
-import { initCompletions } from "./completions";
+import { initCompletions } from "./completions.ts";
 
 const main = defineCommand({
   meta: {
