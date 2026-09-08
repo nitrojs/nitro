@@ -13,6 +13,8 @@ export async function runTask(
   taskEvent: TaskEvent,
   opts?: TaskRunnerOptions
 ): Promise<{ result: unknown }> {
+  // No default timeout: the socket stays idle while the task runs, so any
+  // default would cap how long a task may take. Opt in via `opts.timeout`.
   const ctx = await _getTasksContext(opts);
   const result = await ctx.devFetch(`/_nitro/tasks/${taskEvent.name}`, {
     method: "POST",
@@ -23,7 +25,9 @@ export async function runTask(
 
 /** @experimental */
 export async function listTasks(opts?: TaskRunnerOptions) {
-  const ctx = await _getTasksContext(opts);
+  // Listing is metadata the dev server answers immediately, so a default is
+  // safe here and stops a stalled socket from hanging the caller forever.
+  const ctx = await _getTasksContext(opts, 30_000);
   const res = (await ctx.devFetch("/_nitro/tasks")) as {
     tasks: Record<string, { meta: { description: string } }>;
   };
@@ -34,10 +38,10 @@ export async function listTasks(opts?: TaskRunnerOptions) {
 
 const _devHint = `(is dev server running?)`;
 
-async function _getTasksContext(opts?: TaskRunnerOptions) {
+async function _getTasksContext(opts?: TaskRunnerOptions, defaultTimeout?: number) {
   const cwd = resolve(process.cwd(), opts?.cwd || ".");
   const buildDir = resolve(cwd, opts?.buildDir || "node_modules/.nitro");
-  const timeout = opts?.timeout ?? 30_000;
+  const timeout = opts?.timeout ?? defaultTimeout;
 
   const buildInfoPath = resolve(buildDir, "nitro.dev.json");
   if (!existsSync(buildInfoPath)) {
@@ -76,7 +80,10 @@ async function _getTasksContext(opts?: TaskRunnerOptions) {
         {
           socketPath,
           method: options?.method,
-          timeout,
+          // Only set it when asked. Passing `timeout: undefined` still leaves
+          // the socket reporting the peer's own idle close as a `timeout`
+          // event, which would reject a request that was never capped.
+          ...(timeout ? { timeout } : {}),
           headers: {
             Accept: "application/json",
             "Content-Type": "application/json",
@@ -97,11 +104,13 @@ async function _getTasksContext(opts?: TaskRunnerOptions) {
         }
       );
 
-      request.on("timeout", () => {
-        // destroy with an error so the `error` handler rejects instead of
-        // leaving the promise pending forever on a stalled socket
-        request.destroy(new Error(`Request timed out after ${timeout}ms ${_devHint}`));
-      });
+      if (timeout) {
+        request.on("timeout", () => {
+          // destroy with an error so the `error` handler rejects instead of
+          // leaving the promise pending forever on a stalled socket
+          request.destroy(new Error(`Request timed out after ${timeout}ms ${_devHint}`));
+        });
+      }
       request.on("error", (e) => reject(e));
 
       if (options?.body) {
