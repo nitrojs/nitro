@@ -1,21 +1,29 @@
 import { describe, expect, it } from "vitest";
-import type { Nitro, NitroEventHandler, PrerenderRoute } from "nitro/types";
+import type { Nitro, NitroEventHandler, NitroRouteRules, PrerenderRoute } from "nitro/types";
 
 import { getObservabilityRoutes } from "../../src/presets/vercel/utils.ts";
+import { Router } from "../../src/routing.ts";
 
 function createNitroStub(opts: {
   compatibilityDate?: string;
   handlers?: NitroEventHandler[];
   ssrRoutes?: string[];
   prerenderedRoutes?: PrerenderRoute[];
+  routeRules?: Record<string, NitroRouteRules>;
 }): Nitro {
+  const routeRules = new Router<NitroRouteRules>();
+  routeRules._update(
+    Object.entries(opts.routeRules || {}).map(([route, data]) => ({ route, method: "", data }))
+  );
   return {
     scannedHandlers: opts.handlers || [],
     _prerenderedRoutes: opts.prerenderedRoutes,
+    routing: { routeRules },
     options: {
       compatibilityDate: { default: opts.compatibilityDate || "2025-07-15" },
       handlers: [],
       ssrRoutes: opts.ssrRoutes || [],
+      routeRules: opts.routeRules || {},
     },
   } as unknown as Nitro;
 }
@@ -154,5 +162,76 @@ describe("getObservabilityRoutes", () => {
     expect(dests(createNitroStub({ handlers: [{ route: "/foo", handler: "foo.ts" }] }))).toEqual([
       "foo",
     ]);
+  });
+
+  // Regression: https://github.com/nitrojs/nitro/issues/4447
+  //
+  // ISR-ruled paths are served through the ISR rewrite machinery, so they must
+  // get neither an observability function nor a `config.json` route entry.
+  // The skip used to be decided against the *compiled* `src`: a `:param`
+  // segment compiles to `(?<id>[^/]+)`, whose literal `/` inside the character
+  // class splits into extra path segments, so `/users/:id` never matched its
+  // own rule and the build emitted a plain function competing with the ISR one.
+  describe("ISR route rules", () => {
+    it("skips a dynamic route whose rule enables ISR", () => {
+      expect(
+        getObservabilityRoutes(
+          createNitroStub({
+            handlers: [{ route: "/users/:id", handler: "user.ts" }],
+            routeRules: { "/users/:id": { isr: 60 } },
+          })
+        )
+      ).toEqual([]);
+    });
+
+    it("skips static and catch-all routes whose rule enables ISR", () => {
+      expect(
+        dests(
+          createNitroStub({
+            handlers: [
+              { route: "/schedule", handler: "schedule.ts" },
+              { route: "/catchall/**", handler: "catchall.ts" },
+            ],
+            routeRules: { "/schedule": { isr: 300 }, "/catchall/**": { isr: 60 } },
+          })
+        )
+      ).toEqual([]);
+    });
+
+    it("skips a route covered by a wildcard ISR rule", () => {
+      expect(
+        dests(
+          createNitroStub({
+            handlers: [{ route: "/users/:id", handler: "user.ts" }],
+            routeRules: { "/users/**": { isr: 60 } },
+          })
+        )
+      ).toEqual([]);
+    });
+
+    it("keeps routes whose rules do not enable ISR", () => {
+      expect(
+        dests(
+          createNitroStub({
+            handlers: [
+              { route: "/users/:id", handler: "user.ts" },
+              { route: "/plain", handler: "plain.ts" },
+            ],
+            routeRules: { "/users/:id": { isr: false }, "/plain": { swr: true } },
+          })
+        )
+      ).toEqual(["plain", "users/[id]"]);
+    });
+
+    it("keeps routes when no rule matches", () => {
+      expect(
+        dests(
+          createNitroStub({
+            handlers: [{ route: "/users/:id", handler: "user.ts" }],
+            routeRules: { "/other/**": { isr: 60 } },
+          })
+        )
+      ).toEqual(["users/[id]"]);
+    });
   });
 });
