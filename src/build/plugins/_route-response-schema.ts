@@ -44,7 +44,7 @@ async function createTypeScriptEngine(
   nitro: Nitro,
   files: string[]
 ): Promise<TypeScriptEngine | undefined> {
-  if (!isDepInstalled("typescript", nitro.options.rootDir)) {
+  if (!isDepInstalled("typescript", { dir: nitro.options.rootDir })) {
     warnMissingTypeScript(nitro);
     return;
   }
