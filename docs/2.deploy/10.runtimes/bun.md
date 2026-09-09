@@ -16,4 +16,14 @@ After building with the `bun` preset, start the production server with:
 bun run ./.output/server/index.mjs
 ```
 
+## Environment Variables
+
+You can customize server behavior with the following environment variables:
+
+- `NITRO_BUN_IDLE_TIMEOUT` - Bun's server [idleTimeout](https://bun.sh/docs/api/http#idletimeout) in seconds. Must be between `0` and `255`, where `0` disables the timeout. Invalid values are ignored and Bun's default is used.
+
+```bash
+NITRO_BUN_IDLE_TIMEOUT=30 bun run ./.output/server/index.mjs
+```
+
 :read-more{to="https://bun.sh"}
