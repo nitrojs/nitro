@@ -39,6 +39,14 @@ export interface SwaggerUIConfig {
  */
 export interface NitroOpenAPIConfig {
   /**
+   * Infer response schemas from handler return types using TypeScript at build time.
+   * Set to `false` to skip loading the compiler and provide response schemas manually.
+   *
+   * @default true
+   */
+  inferResponseSchemas?: boolean;
+
+  /**
    * OpenAPI document metadata.
    */
   meta?: {

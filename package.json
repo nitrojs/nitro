@@ -165,7 +165,8 @@
     "xml2js": "^0.6.2",
     "youch": "^4.1.1",
     "youch-core": "^0.3.3",
-    "zephyr-agent": "^1.2.4"
+    "zephyr-agent": "^1.2.4",
+    "zod": "^4.4.3"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
