@@ -40,6 +40,35 @@ export function standardSchemaToJSONSchema(
   }
 }
 
+export function withSchemaPath<T>(schema: T, options: { path: string; root?: JSONSchema }): T {
+  return relocate(schema, { root: options.root || (schema as JSONSchema), path: options.path });
+}
+
+function relocate<T>(value: T, options: { root: JSONSchema; path: string }): T {
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => relocate(item, options)) as T;
+  }
+  const object = value as JSONSchema;
+  if (object.$id) {
+    return value;
+  }
+  return Object.fromEntries(
+    Object.entries(object).map(([key, item]) => [
+      key,
+      key === "$ref" &&
+      typeof item === "string" &&
+      (item === "#" ||
+        (item.startsWith("#/") &&
+          resolveJSONPointer(options.root, { pointer: item }) !== undefined))
+        ? options.path + item.slice(1)
+        : relocate(item, options),
+    ])
+  ) as T;
+}
+
 function normalizeJSONSchema(schema: JSONSchema): JSONSchema {
   return dereference(schema, { root: schema, seen: new Set() }) as JSONSchema;
 }

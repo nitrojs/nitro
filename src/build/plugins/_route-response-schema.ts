@@ -1,6 +1,6 @@
 import { pathToFileURL } from "node:url";
 import { resolveModulePath } from "exsolve";
-import { dirname, isAbsolute } from "pathe";
+import { dirname, isAbsolute, normalize } from "pathe";
 import type { Nitro } from "nitro/types";
 import { ensureDep, isDepInstalled } from "../../utils/dep.ts";
 import { type JSONSchema, typeToJSONSchema } from "./_type-schema.ts";
@@ -16,7 +16,7 @@ export function createRouteResponseSchemaGenerator(nitro: Nitro) {
     ...new Set(
       Object.values(nitro.routing.routes.routes)
         .flatMap((route) => route.data)
-        .map((handler) => handler.handler)
+        .map((handler) => normalize(handler.handler))
         .filter((handler) => isAbsolute(handler) && /\.[cm]?[jt]sx?$/.test(handler))
     ),
   ];
@@ -24,15 +24,18 @@ export function createRouteResponseSchemaGenerator(nitro: Nitro) {
 
   return {
     async infer(file: string) {
-      enginePromise ||= createTypeScriptEngine(nitro, files);
+      if (nitro.options.openAPI?.inferResponseSchemas === false) {
+        return;
+      }
+      enginePromise ||= createTypeScriptEngine(nitro, { files });
       try {
-        return (await enginePromise)?.infer(file);
+        return (await enginePromise)?.infer(normalize(file));
       } catch (error) {
         nitro.logger.debug(`[openapi] Cannot infer response schema for ${file}: ${error}`);
       }
     },
     invalidate(file: string) {
-      void enginePromise?.then((engine) => engine?.invalidate(file));
+      void enginePromise?.then((engine) => engine?.invalidate(normalize(file)));
     },
     close() {
       void enginePromise?.then((engine) => engine?.close());
@@ -42,17 +45,16 @@ export function createRouteResponseSchemaGenerator(nitro: Nitro) {
 
 async function createTypeScriptEngine(
   nitro: Nitro,
-  files: string[]
+  options: { files: string[] }
 ): Promise<TypeScriptEngine | undefined> {
-  if (!isDepInstalled("typescript", { dir: nitro.options.rootDir })) {
-    warnMissingTypeScript(nitro);
-    return;
-  }
-  const typescriptEntry = await ensureDep({
-    id: "typescript",
-    dir: nitro.options.rootDir,
-    reason: "inferring OpenAPI response schemas",
-  });
+  const { files } = options;
+  const typescriptEntry = isDepInstalled("typescript", { dir: nitro.options.rootDir })
+    ? await ensureDep({
+        id: "typescript",
+        dir: nitro.options.rootDir,
+        reason: "inferring OpenAPI response schemas",
+      })
+    : undefined;
   if (!typescriptEntry) {
     warnMissingTypeScript(nitro);
     return;
@@ -63,13 +65,13 @@ async function createTypeScriptEngine(
   });
   if (nativeEntry) {
     const ts = await import(pathToFileURL(nativeEntry).href);
-    return createNativeEngine(ts, nitro.options.rootDir, files);
+    return createNativeEngine(ts, { rootDir: nitro.options.rootDir, files });
   }
 
   const mod = await import(pathToFileURL(typescriptEntry).href);
   const ts = mod.default?.createProgram ? mod.default : mod;
   if (ts.createProgram) {
-    return createClassicEngine(ts, nitro.options.rootDir, files);
+    return createClassicEngine(ts, { rootDir: nitro.options.rootDir, files });
   }
 }
 
@@ -79,27 +81,36 @@ function warnMissingTypeScript(nitro: Nitro) {
   );
 }
 
-function createNativeEngine(ts: any, rootDir: string, files: string[]): TypeScriptEngine {
+function createNativeEngine(
+  ts: any,
+  options: { rootDir: string; files: string[] }
+): TypeScriptEngine {
+  const { rootDir, files } = options;
   const api = new ts.API({ cwd: rootDir });
   let snapshot = api.updateSnapshot({ openFiles: files });
   const dirty = new Set<string>();
+  const opened = new Set(files);
 
   return {
     infer(file) {
       if (dirty.size > 0) {
-        const previous = snapshot;
-        snapshot = api.updateSnapshot({ fileChanges: { changed: [...dirty] } });
+        const reopen = [...dirty].filter((file) => opened.has(file));
+        if (reopen.length > 0) {
+          update({ closeFiles: reopen });
+        }
+        update({ openFiles: reopen, fileChanges: { changed: [...dirty] } });
         dirty.clear();
-        previous.dispose();
       }
       let project = snapshot.getProjects().find((item: any) => item.program.getSourceFile(file));
       if (!project) {
-        const previous = snapshot;
-        snapshot = api.updateSnapshot({ openFiles: [file] });
-        previous.dispose();
+        update({ openFiles: [file] });
+        opened.add(file);
         project = snapshot.getDefaultProjectForFile(file);
       }
-      return project && inferFromProgram(ts, project.program, project.checker, file);
+      return (
+        project &&
+        inferFromProgram(file, { ts, program: project.program, checker: project.checker })
+      );
     },
     invalidate(file) {
       dirty.add(file);
@@ -109,9 +120,19 @@ function createNativeEngine(ts: any, rootDir: string, files: string[]): TypeScri
       api.close();
     },
   };
+
+  function update(options: Record<string, unknown>) {
+    const previous = snapshot;
+    snapshot = api.updateSnapshot(options);
+    previous.dispose();
+  }
 }
 
-function createClassicEngine(ts: any, rootDir: string, files: string[]): TypeScriptEngine {
+function createClassicEngine(
+  ts: any,
+  config: { rootDir: string; files: string[] }
+): TypeScriptEngine {
+  const { rootDir, files } = config;
   const configPath = ts.findConfigFile(rootDir, ts.sys.fileExists, "tsconfig.json");
   let rootNames = files;
   let options: Record<string, unknown> = {
@@ -138,11 +159,15 @@ function createClassicEngine(ts: any, rootDir: string, files: string[]): TypeScr
   let dirty = false;
   return {
     infer(file) {
+      if (!rootNames.includes(file)) {
+        rootNames = [...rootNames, file];
+        dirty = true;
+      }
       if (dirty) {
         program = ts.createProgram({ rootNames, options, oldProgram: program });
         dirty = false;
       }
-      return inferFromProgram(ts, program, program.getTypeChecker(), file);
+      return inferFromProgram(file, { ts, program, checker: program.getTypeChecker() });
     },
     invalidate() {
       dirty = true;
@@ -151,7 +176,8 @@ function createClassicEngine(ts: any, rootDir: string, files: string[]): TypeScr
   };
 }
 
-function inferFromProgram(ts: any, program: any, checker: any, file: string) {
+function inferFromProgram(file: string, options: { ts: any; program: any; checker: any }) {
+  const { ts, program, checker } = options;
   const sourceFile = program.getSourceFile(file);
   const moduleSymbol = sourceFile && checker.getSymbolAtLocation(sourceFile);
   const defaultExport =

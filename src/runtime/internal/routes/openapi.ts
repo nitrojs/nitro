@@ -12,7 +12,7 @@ import { joinURL } from "ufo";
 import { defu } from "defu";
 import { handlersMeta } from "#nitro/virtual/routing-meta";
 import { useRuntimeConfig } from "../runtime-config.ts";
-import { standardSchemaToJSONSchema } from "../openapi.ts";
+import { standardSchemaToJSONSchema, withSchemaPath } from "../openapi.ts";
 
 // Served as /_openapi.json
 export default defineHandler(async (event) => {
@@ -77,6 +77,7 @@ async function getHandlersMeta(): Promise<{
     const { route, parameters } = normalizeRoute(h.route || "");
     const tags = defaultTags(h.route || "");
     const method = (h.method || "get").toLowerCase() as Lowercase<HTTPMethod>;
+    const schemaPath = `#/paths/${route.replace(/~/g, "~0").replace(/\//g, "~1")}/${method}`;
     const { $global, ...openAPI } = h.meta?.openAPI || {};
     const requestSchema = requestSchemas[index];
     const requestBodySchema = standardSchemaToJSONSchema(requestSchema?.body, {
@@ -98,12 +99,21 @@ async function getHandlersMeta(): Promise<{
     const item: PathItemObject = {
       [method]: {
         tags,
-        parameters: requestParameters,
+        parameters: requestParameters.map((parameter, index) => ({
+          ...parameter,
+          schema: withSchemaPath(parameter.schema, {
+            path: `${schemaPath}/parameters/${index}/schema`,
+          }),
+        })),
         ...(requestBodySchema && {
           requestBody: {
             required: true,
             content: {
-              "application/json": { schema: requestBodySchema },
+              "application/json": {
+                schema: withSchemaPath(requestBodySchema, {
+                  path: `${schemaPath}/requestBody/content/application~1json/schema`,
+                }),
+              },
             },
           },
         }),
@@ -206,6 +216,21 @@ function inheritLocalDefinitions(
   if (!schema || typeof schema !== "object" || Array.isArray(schema)) {
     return schema;
   }
+  if (hasLocalReference(schema, { root: true })) {
+    let name = "_nitroRoot";
+    while (schema.$defs?.[name]) {
+      name += "_";
+    }
+    const path = `#/$defs/${name}`;
+    const relocated = withSchemaPath(schema, { path, root: options.root });
+    return {
+      ...relocated,
+      $defs: {
+        ...relocated.$defs,
+        [name]: withSchemaPath(options.root, { path }),
+      },
+    };
+  }
   const rootDefinitions = options.root.$defs;
   const legacyRootDefinitions = options.root.definitions;
   if ((!rootDefinitions && !legacyRootDefinitions) || !hasLocalReference(schema)) {
@@ -222,15 +247,17 @@ function inheritLocalDefinitions(
   };
 }
 
-function hasLocalReference(value: any): boolean {
+function hasLocalReference(value: any, options: { root?: boolean } = {}): boolean {
   if (!value || typeof value !== "object") {
     return false;
   }
   if (Array.isArray(value)) {
-    return value.some((item) => hasLocalReference(item));
+    return value.some((item) => hasLocalReference(item, options));
   }
   return (
-    (typeof value.$ref === "string" && value.$ref.startsWith("#/")) ||
-    Object.values(value).some((item) => hasLocalReference(item))
+    (typeof value.$ref === "string" &&
+      (value.$ref === "#" || value.$ref.startsWith("#/")) &&
+      (!options.root || !/^#\/(?:\$defs|definitions)\//.test(value.$ref))) ||
+    Object.values(value).some((item) => hasLocalReference(item, options))
   );
 }

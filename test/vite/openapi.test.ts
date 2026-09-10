@@ -27,6 +27,29 @@ describe("openapi", () => {
     await server?.close();
   });
 
+  test("generates OpenAPI without initializing lazy handlers or their dependencies", async () => {
+    const state = () => fetch(`${serverURL}/api/lazy-state`).then((res) => res.json());
+    expect(await state()).toEqual({ route: 0, dependency: 0, handler: 0 });
+    const specs = await Promise.all(
+      Array.from({ length: 3 }, async () => {
+        const response = await fetch(`${serverURL}/_openapi.json`);
+        expect(response.status).toBe(200);
+        return (await response.json()) as Record<string, any>;
+      })
+    );
+    for (const spec of specs) {
+      expect(spec.paths["/api/lazy"].get.parameters).toContainEqual(
+        expect.objectContaining({ in: "query", name: "id" })
+      );
+    }
+    expect(await state()).toEqual({ route: 0, dependency: 0, handler: 0 });
+    for (const handler of [1, 2]) {
+      const response = await fetch(`${serverURL}/api/lazy`);
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ route: 1, dependency: 1, handler });
+    }
+  });
+
   test("extracts defineRouteMeta", async () => {
     const res = await fetch(`${serverURL}/_openapi.json`);
     const spec: Record<string, any> = await res.json();
@@ -81,7 +104,7 @@ describe("openapi", () => {
       const references = getLocalReferences(parameter.schema);
       expect(references.length).toBeGreaterThan(0);
       for (const reference of references) {
-        expect(resolveLocalReference(parameter.schema, { reference })).toBeDefined();
+        expect(resolveLocalReference(spec, { reference })).toBeDefined();
       }
     }
     expect(operation.requestBody.content["application/json"].schema).toEqual(
@@ -119,6 +142,30 @@ describe("openapi", () => {
     });
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ id: "user-1", name: "Ada", role: "user" });
+  });
+
+  test("recursive body and parameter references resolve to objects in the full document", async () => {
+    const spec: Record<string, any> = await fetch(`${serverURL}/_openapi.json`).then((res) =>
+      res.json()
+    );
+    const operation = spec.paths["/api/recursive"].post;
+    const body = operation.requestBody.content["application/json"].schema;
+    const schemas = [
+      body.properties.children,
+      ...["query", "header"].map(
+        (location) =>
+          operation.parameters.find((p: any) => p.in === location && p.name === "children").schema
+      ),
+    ];
+    for (const schema of schemas) {
+      expect(schema.type).toBe("array");
+      expect(schema.items.$ref).toMatch(/^#\/paths\//);
+      const target = resolveLocalReference(spec, { reference: schema.items.$ref });
+      expect(target).toMatchObject({ type: "object", properties: { name: { type: "string" } } });
+      for (const reference of getLocalReferences(schema)) {
+        expect(resolveLocalReference(spec, { reference })).toBeDefined();
+      }
+    }
   });
 
   test("serves swagger UI with meta", async () => {
