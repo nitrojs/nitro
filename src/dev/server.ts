@@ -195,6 +195,12 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
     const runner = await loadRunner(runnerName, {
       ...(await resolveRunnerDeps(this.nitro, runnerName)),
       name: `Nitro_${this.#workerIdCtr++}`,
+      ...(runnerName === "miniflare"
+        ? {
+            wrangler: { ...this.nitro.options.cloudflare?.wrangler },
+            wranglerEnv: this.nitro.options.cloudflare?.wranglerEnv,
+          }
+        : {}),
       data: { entry: this.#entry, ...this.#workerData },
     });
     await this.#manager.reload(runner);

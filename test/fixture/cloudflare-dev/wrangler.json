@@ -1,0 +1,19 @@
+{
+  "name": "nitro-dev-bindings-test",
+  "compatibility_date": "2026-07-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": { "TEST_VAR": "default" },
+  "env": {
+    "test": {
+      "vars": { "TEST_VAR": "configured" },
+      "kv_namespaces": [{ "binding": "TEST_KV", "id": "test-kv" }],
+      "d1_databases": [
+        {
+          "binding": "TEST_D1",
+          "database_name": "test",
+          "database_id": "00000000-0000-0000-0000-000000000001"
+        }
+      ]
+    }
+  }
+}

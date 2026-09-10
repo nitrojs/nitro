@@ -344,7 +344,7 @@ Nitro provides high-level APIs for primitives such as [KV Storage](/docs/storage
 
 :read-more{title="KV Storage" to="/docs/storage"}
 
-At runtime, you can access bindings from the request event via `event.req.runtime.cloudflare.env`. For example, this is how you can access a D1 binding:
+You can access bindings from the request event via `event.req.runtime.cloudflare.env`. For example, this is how you can access a D1 binding:
 
 ```ts
 import { defineHandler } from "nitro";

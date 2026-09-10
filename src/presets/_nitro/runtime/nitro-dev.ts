@@ -4,6 +4,7 @@ import { useNitroApp, useNitroHooks } from "nitro/app";
 import { startScheduleRunner } from "#nitro/runtime/task";
 import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
+import { augmentDevRequest } from "#nitro/runtime/dev-request";
 import { tracingSrvxPlugins } from "#nitro/virtual/tracing";
 
 import type { AppEntry } from "env-runner";
@@ -25,7 +26,10 @@ const ws = import.meta._websocket
   : undefined;
 
 export default {
-  fetch: nitroApp.fetch,
+  fetch(request, env?: Record<string, unknown>, context?: ExecutionContext) {
+    augmentDevRequest(request, { env, context });
+    return nitroApp.fetch(request);
+  },
   plugins: [...tracingSrvxPlugins],
   upgrade: ws
     ? (context: { node: { req: any; socket: any; head: any } }) => {
