@@ -46,5 +46,8 @@ describe("vite: missing SSR entry", () => {
 
     // The silent part of #4591: this situation must at least produce a warning.
     expect(warnings.join("\n")).toContain("ssr entry");
+
+    // The warning must also include the actionable remediation guidance.
+    expect(warnings.join("\n")).toContain("`environments.ssr.build.rollupOptions.input`");
   });
 });
