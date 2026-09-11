@@ -450,6 +450,13 @@ async function setupNitroContext(
       if (ssrEntry) {
         ctx.services.ssr = { entry: ssrEntry };
         ctx.nitro!.logger.info(`Using \`${prettyPath(ssrEntry)}\` as vite ssr entry.`);
+      } else {
+        ctx.nitro!.logger.warn(
+          "No vite ssr entry found: no renderer is wired up, so SSR and prerendering are " +
+            "disabled and prerendered routes resolve to 404 without emitting any HTML. " +
+            "Move `entry-server` to the root, `app/` or `src/` directory, or point " +
+            "`environments.ssr.build.rollupOptions.input` at it explicitly."
+        );
       }
     } else {
       let ssrEntry = getEntry(userConfig.environments.ssr.build?.rollupOptions?.input);
