@@ -104,7 +104,11 @@ export function externals(opts: NodeExternalsOptions): Plugin {
       }
 
       // Inline invalid node imports
-      if (!(await isValidNodeImport(resolved.id).catch(() => false))) {
+      if (
+        !(await isValidNodeImport(resolved.id, { stripComments: true }).catch(
+          () => false
+        ))
+      ) {
         return null;
       }
 
