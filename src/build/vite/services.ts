@@ -29,13 +29,28 @@ ${serviceNames
   });
 
   return /* js */ `
-function lazyService(loader) {
+function lazyService(name, { loader }) {
   let promise, mod
   return {
     fetch(req) {
       if (mod) { return mod.fetch(req) }
       if (!promise) {
-        promise = loader().then(_mod => (mod = _mod.default || _mod))
+        promise = loader().then(_mod => {
+          const resolved = _mod?.default || _mod
+          const namedHandler = _mod?.fetch
+          const defaultHandler = resolved?.fetch
+          const handler = typeof namedHandler === 'function' ? namedHandler : defaultHandler
+          if (typeof handler !== 'function') {
+            const keys = typeof resolved === 'object' && resolved !== null ? Object.keys(resolved) : []
+            const details = typeof resolved === 'object' && resolved !== null
+              ? (keys.length > 0 ? 'object with keys [' + keys.slice(0, 10).join(', ') + (keys.length > 10 ? '...' : '') + ']' : 'empty object')
+              : (resolved === null ? 'null' : typeof resolved)
+            throw new TypeError(
+              '[nitro] Service "' + name + '" does not export a \`fetch\` handler (expected \`export default { fetch }\` or \`export function fetch\`, got ' + details + ').'
+            )
+          }
+          return (mod = handler === namedHandler ? _mod : resolved)
+        })
       }
       return promise.then(mod => mod.fetch(req))
     }
@@ -46,7 +61,7 @@ export const viteServices = {
 ${serviceEntries
   .map(
     ([name, entry]) =>
-      `[${JSON.stringify(name)}]: lazyService(() => import(${JSON.stringify(entry)}))`
+      `[${JSON.stringify(name)}]: lazyService(${JSON.stringify(name)}, { loader: () => import(${JSON.stringify(entry)}) })`
   )
   .join(",\n")}
 };
