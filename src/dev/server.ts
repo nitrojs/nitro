@@ -131,6 +131,9 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
   // #region Public Methods
 
   async upgrade(req: IncomingMessage, socket: Socket, head: any) {
+    if (this.proxyUpgrade(req, socket, head)) {
+      return;
+    }
     if (!this.#manager.upgrade) {
       throw new HTTPError({
         status: 501,
