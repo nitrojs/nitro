@@ -1,6 +1,6 @@
 import type { NitroPluginContext } from "./types.ts";
 import type { Plugin as VitePlugin } from "vite";
-import { resolve } from "pathe";
+import { relative, resolve } from "pathe";
 
 export function viteServicesTemplate(ctx: NitroPluginContext): string {
   const serviceNames = Object.keys(ctx.services);
@@ -18,37 +18,20 @@ ${serviceNames
   `;
   }
 
+  const { rootDir, buildDir } = ctx.nitro!.options;
   const serviceEntries = serviceNames.map((name) => {
-    const entry = resolve(
-      ctx.nitro!.options.buildDir,
-      "vite/services",
-      name,
-      ctx._entryPoints[name]
-    );
-    return [name, entry];
+    const chunk = resolve(buildDir, "vite/services", name, ctx._entryPoints[name]);
+    // Label for runtime errors, relative to the project (the entry may itself be relative or a
+    // virtual id).
+    const entry = relative(rootDir, resolve(rootDir, ctx.services[name].entry));
+    return `  [${JSON.stringify(name)}]: lazyService(() => import(${JSON.stringify(chunk)}), ${JSON.stringify({ name, entry })})`;
   });
 
   return /* js */ `
-function lazyService(loader) {
-  let promise, mod
-  return {
-    fetch(req) {
-      if (mod) { return mod.fetch(req) }
-      if (!promise) {
-        promise = loader().then(_mod => (mod = _mod.default || _mod))
-      }
-      return promise.then(mod => mod.fetch(req))
-    }
-  }
-}
+import { lazyService } from "#nitro/runtime/vite/service";
 
 export const viteServices = {
-${serviceEntries
-  .map(
-    ([name, entry]) =>
-      `[${JSON.stringify(name)}]: lazyService(() => import(${JSON.stringify(entry)}))`
-  )
-  .join(",\n")}
+${serviceEntries.join(",\n")}
 };
   `;
 }

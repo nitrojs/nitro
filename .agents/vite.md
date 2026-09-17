@@ -157,14 +157,17 @@ Browser → Vite Dev Server
 **Stage 5: Preview**
 - Start preview server, log success
 
-### `prodSetup()` Virtual Module
-Generates `#nitro-vite-setup` content:
+### `viteServicesTemplate()` Virtual Module (`services.ts`)
+Generates `#nitro/virtual/vite-services` (consumed by `fetchViteEnv()` in `src/runtime/vite.ts`):
 ```js
-// For each service environment
-globalThis.__nitro_vite_envs__ = {
-  "ssr": { fetch: (...args) => import("entry").then(m => m.default.fetch(...args)) }
-}
+// Prod: one lazy wrapper per service environment
+import { lazyService } from "#nitro/runtime/vite/service";
+export const viteServices = {
+  "ssr": lazyService(() => import("<buildDir>/vite/services/ssr/index.mjs"), { name: "ssr", entry: "app/entry-server.ts" })
+};
+// Dev: getters onto the worker's `globalThis.__nitro_vite_envs__` (see `ViteEnvRunner`)
 ```
+`lazyService` and `resolveServiceFetch` (`src/runtime/internal/vite/service.mjs`) are shared with the dev worker: `export default { fetch }` wins over a named `fetch` export, and an entry without a handler throws a descriptive `TypeError`. Service environments build with `preserveEntrySignatures: "strict"` so helpers shared with other chunks are never hoisted onto the entry chunk (#4606).
 
 ## Bundler Config (`bundler.ts`)
 
@@ -216,6 +219,7 @@ current evaluations.
 | `dev-entry.mjs` | Dev entry: polyfills, WebSocket adapter, schedule runner |
 | `dev-worker.mjs` | Worker process: `ViteEnvRunner` class, RPC layer, env management |
 | `ssr-renderer.mjs` | SSR service: calls `fetchViteEnv("ssr", req)` |
+| `service.mjs` | `resolveServiceFetch`/`resolveServiceExport`/`lazyService`: service entry handler resolution shared by dev and prod |
 
 `dev-worker.mjs` is not loaded directly: `writeDevWorkerEntry()` generates `<buildDir>/vite/dev-worker.mjs`, which re-exports it and injects the `vite/module-runner` resolved from the app (`vite` is not resolvable from Nitro's `dist/`).
 

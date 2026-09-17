@@ -77,6 +77,10 @@ export function createServiceEnvironment(
     build: {
       rollupOptions: {
         input: { index: serviceConfig.entry },
+        // Keep the entry chunk's exports identical to the entry module's. With Vite's server-build
+        // default (`allow-extension`), a helper shared with another chunk is hoisted onto the entry
+        // chunk, so a helper named `fetch` would be mistaken for the service handler (#4606).
+        preserveEntrySignatures: "strict",
         ...(isDev ? {} : { external: [/^nitro(\/|$)/] }),
         output: { minifyInternalExports: false },
       },

@@ -266,9 +266,10 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
 
         // Find entry point of this service
         let entryFile: string | undefined;
+        let entryModuleId: string | undefined;
         const serviceEntry =
           isRegisteredService && ctx.services[environment.name]?.entry
-            ? resolve(ctx.services[environment.name].entry)
+            ? resolve(ctx.nitro!.options.rootDir, ctx.services[environment.name].entry)
             : undefined;
         for (const [_name, file] of Object.entries(bundle)) {
           if (file.type === "chunk" && isRegisteredService && file.isEntry) {
@@ -278,6 +279,7 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
               resolve(file.facadeModuleId) === serviceEntry
             ) {
               entryFile = file.fileName;
+              entryModuleId = file.facadeModuleId;
               break;
             }
             // Fallback: use first entry chunk if no facadeModuleId match
@@ -291,6 +293,19 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
             this.error(`No entry point found for service "${this.environment.name}".`);
           }
           ctx._entryPoints![this.environment.name] = entryFile!;
+          // `export default { render }` can only be caught at runtime, but an entry module
+          // exporting neither `default` nor `fetch` is visible here (#4606). The module's own
+          // exports are checked (not the chunk's, which bundlers may extend), and analysis-only
+          // builds (`write: false`, e.g. the RSC plugin's scan passes) strip exports.
+          const exports =
+            entryModuleId && environment.config.build.write !== false
+              ? this.getModuleInfo(entryModuleId)?.exports
+              : undefined;
+          if (exports && !exports.some((e) => e === "default" || e === "fetch" || e === "*")) {
+            this.warn(
+              `Service "${environment.name}" entry (${prettyPath(entryModuleId!, false)}) exports neither \`default\` nor \`fetch\` (got: ${exports.join(", ") || "none"}).`
+            );
+          }
         }
       },
     },
