@@ -103,8 +103,8 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
   // Prerender routes if configured
   await prerender(nitro);
 
-  // Call vite:before:compile hook
-  await nitro.hooks.callHook("vite:before:compile", nitro);
+  // Call vite:compile:before hook
+  await nitro.hooks.callHook("vite:compile:before", nitro);
 
   // Build the Nitro server bundle
   let output: RolldownOutput | undefined;

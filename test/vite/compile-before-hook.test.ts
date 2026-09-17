@@ -7,10 +7,10 @@ import { build, createNitro, prepare } from "nitro/builder";
 // #4428: modules need a point to emit files into the public output dir that is late
 // enough to be after `copyPublicAssets()` and prerendering, but still early enough for
 // the emitted files to end up in the server bundle's public asset list.
-const fixtureDir = fileURLToPath(new URL("./before-compile-hook-fixture", import.meta.url));
+const fixtureDir = fileURLToPath(new URL("./compile-before-hook-fixture", import.meta.url));
 const outDir = join(fixtureDir, ".tmp");
 
-describe("vite: vite:before:compile hook", () => {
+describe("vite: vite:compile:before hook", () => {
   const calls: string[] = [];
   let serverEntry: string;
 
@@ -21,8 +21,8 @@ describe("vite: vite:before:compile hook", () => {
       output: { dir: outDir },
       builder: "vite",
       hooks: {
-        "vite:before:compile": async (nitro) => {
-          calls.push("vite:before:compile");
+        "vite:compile:before": async (nitro) => {
+          calls.push("vite:compile:before");
           await writeFile(
             join(nitro.options.output.publicDir, "emitted-by-hook.txt"),
             "emitted",
@@ -44,7 +44,7 @@ describe("vite: vite:before:compile hook", () => {
   }, 60_000);
 
   it("runs before the server bundle is compiled", () => {
-    expect(calls).toEqual(["vite:before:compile", "compiled"]);
+    expect(calls).toEqual(["vite:compile:before", "compiled"]);
   });
 
   it("assets emitted from the hook are picked up as public assets", async () => {
