@@ -7,8 +7,8 @@ import { build, createNitro, prepare } from "nitro/builder";
 // #4428: modules need a point to emit files into the public output dir that is late
 // enough to be after `copyPublicAssets()` and prerendering, but still early enough for
 // the emitted files to end up in the server bundle's public asset list.
-const fixtureDir = fileURLToPath(new URL("./compile-before-hook-fixture", import.meta.url));
-const outDir = join(fixtureDir, ".tmp");
+const fixtureDir = fileURLToPath(new URL("./server-entry-fixture", import.meta.url));
+const outDir = join(fixtureDir, ".tmp/compile-before-hook");
 
 describe("vite: vite:compile:before hook", () => {
   const calls: string[] = [];
