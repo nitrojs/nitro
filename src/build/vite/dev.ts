@@ -12,7 +12,7 @@ import { withBase, withoutBase } from "ufo";
 import { scanHandlers } from "../../scan.ts";
 import { getEnvRunner } from "./env.ts";
 import { onWatchError } from "../../utils/watch.ts";
-import { importVite } from "./_import.ts";
+import { importVite, _resolveFromPath, type ViteImportOptions } from "./_import.ts";
 
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
 
@@ -50,11 +50,13 @@ export async function createFetchableDevEnvironment(
   config: ResolvedConfig,
   devServer: DevServer,
   entry: string,
-  opts?: { preventExternalize?: boolean }
+  opts?: { preventExternalize?: boolean; vite?: ViteImportOptions }
 ): Promise<FetchableDevEnvironment> {
   const transport = createViteHotChannel(devServer, name);
   const context: DevEnvironmentContext = { hot: true, transport };
-  const FetchableDevEnvironment = await getFetchableDevEnvironment(config.root);
+  const FetchableDevEnvironment = await getFetchableDevEnvironment(
+    opts?.vite || { dir: config.root }
+  );
   return new FetchableDevEnvironment(name, config, context, devServer, entry, opts);
 }
 
@@ -80,12 +82,15 @@ const _envClasses = new Map<string, Promise<FetchableDevEnvironmentConstructor>>
  * `DevEnvironment` is a value import from the (optional) `vite` dependency, so the subclass is
  * defined lazily against the `vite` instance resolved from the user project.
  */
-function getFetchableDevEnvironment(dir: string): Promise<FetchableDevEnvironmentConstructor> {
-  let envClass = _envClasses.get(dir);
+function getFetchableDevEnvironment(
+  opts: ViteImportOptions
+): Promise<FetchableDevEnvironmentConstructor> {
+  const key = opts.path ? _resolveFromPath("vite", opts) : opts.dir;
+  let envClass = _envClasses.get(key);
   if (!envClass) {
-    envClass = importVite({ dir }).then((vite) => _defineFetchableDevEnvironment(vite));
-    envClass.catch(() => _envClasses.delete(dir));
-    _envClasses.set(dir, envClass);
+    envClass = importVite(opts).then((vite) => _defineFetchableDevEnvironment(vite));
+    envClass.catch(() => _envClasses.delete(key));
+    _envClasses.set(key, envClass);
   }
   return envClass;
 }

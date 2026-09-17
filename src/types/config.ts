@@ -720,6 +720,21 @@ export interface NitroOptions extends PresetOptions {
   builder?: "rollup" | "rolldown" | "vite";
 
   /**
+   * Options for the `vite` builder and the `nitro/vite` plugin.
+   */
+  vite?: {
+    /**
+     * The `vite` package to use, as a path or `file://` URL to its directory or entry
+     * (e.g. `import.meta.resolve("vite")`).
+     *
+     * By default, `vite` is resolved from the project root. A framework running Vite
+     * programmatically should pass its own `vite` so the dev module runner matches the
+     * running instance (in a monorepo, another version could be hoisted next to the app).
+     */
+    path?: string;
+  };
+
+  /**
    * Additional Rollup configuration.
    *
    * @see https://nitro.build/config#rollupconfig

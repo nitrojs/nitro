@@ -10,6 +10,7 @@ import { isAbsolute } from "pathe";
 import { resolveRunnerDeps } from "../../dev/runner-deps.ts";
 import { shutdownRunner } from "../../dev/shutdown.ts";
 import { writeDevWorkerEntry } from "./_dev-worker.ts";
+import { viteImportOptions } from "./_import.ts";
 
 export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOptions {
   const isWorkerdRunner = _isWorkerdRunner(ctx);
@@ -54,7 +55,7 @@ export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOpti
           envConfig,
           getEnvRunner(ctx),
           entry,
-          { preventExternalize: isWorkerdRunner }
+          { preventExternalize: isWorkerdRunner, vite: viteImportOptions(ctx.nitro!) }
         );
         ctx._transformRequest = (id) => env.transformRequest(id);
         (ctx._viteEnvs ??= new Map()).set(envName, entry);
@@ -99,6 +100,7 @@ export function createServiceEnvironment(
         const { createFetchableDevEnvironment } = await import("./dev.ts");
         return createFetchableDevEnvironment(envName, envConfig, getEnvRunner(ctx), entry, {
           preventExternalize: isWorkerdRunner,
+          vite: viteImportOptions(ctx.nitro!),
         });
       },
     },
