@@ -53,7 +53,7 @@ export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOpti
         const env = await createFetchableDevEnvironment(
           envName,
           envConfig,
-          getEnvRunner(ctx),
+          await initEnvRunner(ctx),
           entry,
           { preventExternalize: isWorkerdRunner, vite: viteImportOptions(ctx.nitro!) }
         );
@@ -98,7 +98,7 @@ export function createServiceEnvironment(
         const entry = tryResolve(serviceConfig.entry);
         (ctx._viteEnvs ??= new Map()).set(envName, entry);
         const { createFetchableDevEnvironment } = await import("./dev.ts");
-        return createFetchableDevEnvironment(envName, envConfig, getEnvRunner(ctx), entry, {
+        return createFetchableDevEnvironment(envName, envConfig, await initEnvRunner(ctx), entry, {
           preventExternalize: isWorkerdRunner,
           vite: viteImportOptions(ctx.nitro!),
         });
@@ -121,6 +121,9 @@ export function createServiceEnvironments(
 export async function initEnvRunner(ctx: NitroPluginContext) {
   if (ctx._envRunner) {
     return ctx._envRunner;
+  }
+  if (ctx._closingEnvRunner) {
+    throw new Error("Nitro dev env runner is closed.");
   }
   if (!ctx._initPromise) {
     ctx._initPromise = (async () => {
@@ -160,23 +163,19 @@ export async function initEnvRunner(ctx: NitroPluginContext) {
   return await ctx._initPromise;
 }
 
-export function getEnvRunner(ctx: NitroPluginContext) {
-  if (!ctx._envRunner) {
-    throw new Error("Env runner not initialized. Call initEnvRunner() first.");
-  }
-  return ctx._envRunner;
-}
-
 /**
  * Shut the dev runner down gracefully: the runtime `close` hooks run in the worker before the
  * runtime is terminated (#4586).
  */
 export async function closeEnvRunner(ctx: NitroPluginContext) {
-  const manager = ctx._envRunner;
-  if (!manager || ctx._closingEnvRunner) {
+  if (ctx._closingEnvRunner) {
     return;
   }
   ctx._closingEnvRunner = true;
+  const manager = ctx._envRunner || (await ctx._initPromise?.catch(() => undefined));
+  if (!manager) {
+    return;
+  }
   // The miniflare runner runs the same handshake itself when it is disposed, so it is only
   // needed for the runners that terminate their runtime outright.
   if (manager.ready && !_isWorkerdRunner(ctx)) {

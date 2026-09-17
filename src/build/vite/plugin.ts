@@ -15,7 +15,6 @@ import { getBundlerConfig } from "./bundler.ts";
 import { buildEnvironments } from "./prod.ts";
 import {
   initEnvRunner,
-  getEnvRunner,
   closeEnvRunner,
   createNitroEnvironment,
   createServiceEnvironments,
@@ -518,13 +517,10 @@ async function setupNitroContext(
     ctx.bundlerConfig.rollupConfig || (ctx.bundlerConfig.rolldownConfig as any)
   );
 
-  // Warm up env runner for dev
+  // Attach nitro.fetch to the dev env runner (started lazily, not when resolving config)
   if (ctx.nitro.options.dev) {
-    await initEnvRunner(ctx);
+    ctx.nitro.fetch = async (req) => (await initEnvRunner(ctx)).fetch(req);
   }
-
-  // Attach nitro.fetch to env runner
-  ctx.nitro.fetch = (req) => getEnvRunner(ctx).fetch(req);
 
   // Create dev app
   if (ctx.nitro.options.dev && !ctx.devApp) {
