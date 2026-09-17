@@ -249,13 +249,24 @@ export function testNitro(
     expect(headers["x-test"]).toBe("test");
   });
 
+  it("Server entry middleware and plugins are applied", async () => {
+    const { data, headers } = await callHandler({ url: "/srvx-middleware" });
+    expect(data).toBe("server entry middleware works!");
+    expect(headers["x-srvx-plugin"]).toBe("works");
+  });
+
+  it("useNitroApp().fetch applies server entry middleware and plugins", async () => {
+    const { data } = await callHandler({ url: "/api/app-fetch" });
+    expect(data).toEqual({
+      body: "server entry middleware works!",
+      plugin: "works",
+      pluginRuns: 1,
+    });
+  });
+
   it.runIf(["bun", "deno-server", "nitro-dev"].includes(ctx.preset))(
     "Server entry options are passed to srvx",
     async () => {
-      const { data, headers } = await callHandler({ url: "/srvx-middleware" });
-      expect(data).toBe("server entry middleware works!");
-      expect(headers["x-srvx-plugin"]).toBe("works");
-
       const small = await callHandler({
         url: "/api/body-size",
         method: "POST",

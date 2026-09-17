@@ -8,7 +8,14 @@ import type { ServerRequest } from "srvx";
  * @see https://nitro.build/docs/plugins
  */
 export interface NitroApp {
+  /**
+   * Handle a request, including server entry `middleware`, `plugins` and `error` options.
+   */
   fetch: (req: Request) => Response | Promise<Response>;
+  /**
+   * Handle a request without server entry options (used by srvx server presets, which apply them natively).
+   */
+  "~fetch": (req: Request) => Response | Promise<Response>;
   h3?: H3Core;
   hooks?: HookableCore<NitroRuntimeHooks>;
   captureError?: CaptureError;

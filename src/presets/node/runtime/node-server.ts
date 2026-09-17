@@ -11,7 +11,7 @@ import { setupCloseHooks } from "#nitro/runtime/shutdown";
 
 const nitroApp = useNitroApp();
 
-const server = serve(resolveServeOptions({ fetch: nitroApp.fetch }));
+const server = serve(resolveServeOptions({ fetch: nitroApp["~fetch"] }));
 
 if (import.meta._websocket) {
   const { handleUpgrade } = wsAdapter({ resolve: resolveWebsocketHooks });

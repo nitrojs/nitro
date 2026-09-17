@@ -12,7 +12,7 @@ import { setupCloseHooks } from "#nitro/runtime/shutdown";
 
 const nitroApp = useNitroApp();
 
-let _fetch = nitroApp.fetch;
+let _fetch = nitroApp["~fetch"];
 
 const ws = import.meta._websocket ? wsAdapter({ resolve: resolveWebsocketHooks }) : undefined;
 
@@ -21,7 +21,7 @@ if (import.meta._websocket) {
     if (req.headers.get("upgrade") === "websocket") {
       return ws!.handleUpgrade(req, req.runtime!.bun!.server) as Promise<Response>;
     }
-    return nitroApp.fetch(req);
+    return nitroApp["~fetch"](req);
   };
 }
 

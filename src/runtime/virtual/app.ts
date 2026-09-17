@@ -18,12 +18,14 @@ export function createNitroApp(): NitroApp {
       }
     }
   };
+  const appHandler = (req: ServerRequest) => {
+    req.context ||= {};
+    req.context.nitro = req.context.nitro || { errors: [] };
+    return h3App.fetch(req);
+  };
   return {
-    fetch: (req: ServerRequest) => {
-      req.context ||= {};
-      req.context.nitro = req.context.nitro || { errors: [] };
-      return h3App.fetch(req);
-    },
+    fetch: appHandler,
+    "~fetch": appHandler,
     h3: h3App,
     hooks: undefined,
     captureError,

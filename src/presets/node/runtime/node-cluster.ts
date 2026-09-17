@@ -19,7 +19,7 @@ const nitroApp = useNitroApp();
 
 const server = serve(
   resolveServeOptions({
-    fetch: nitroApp.fetch,
+    fetch: nitroApp["~fetch"],
     node: { exclusive: false },
     ...(clusterId && clusterId !== "1" ? { silent: true } : {}),
   })

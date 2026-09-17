@@ -11,7 +11,7 @@ const tmpDir = fileURLToPath(new URL(".tmp", import.meta.url));
 // Rounded up
 const bundleSizes: Record<string, [kb: number, minKB: number]> = {
   rollup: [19, 10],
-  rolldown: [19, 10],
+  rolldown: [20, 10],
   vite: [19, 10],
   vite7: [19, 10],
 };

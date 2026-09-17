@@ -45,7 +45,7 @@ export function serverFetch(
 ): Promise<Response> {
   const req = toRequest(resource, init);
   req.context = { ...req.context, ...context } as ServerRequestContext;
-  const appHandler = useNitroApp().fetch;
+  const appHandler = useNitroApp()["~fetch"];
   try {
     return Promise.resolve(appHandler(req));
   } catch (error) {

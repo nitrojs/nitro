@@ -11,6 +11,10 @@ export default function app(nitro: Nitro) {
       const hasPlugins = nitro.options.plugins.length > 0;
       const hasHooks = nitro.options.features?.runtimeHooks ?? hasPlugins;
       const hasAsyncContext = !!nitro.options.experimental.asyncContext;
+      const hasServerEntry =
+        !!nitro.options.serverEntry &&
+        !!nitro.options.serverEntry.handler &&
+        nitro.options.serverEntry.format !== "node";
 
       const routingImports = [
         hasRoutes && "findRoute",
@@ -101,10 +105,15 @@ export default function app(nitro: Nitro) {
         );
       }
 
+      if (hasServerEntry) {
+        imports.push(`import { withServerEntryOptions } from "#nitro/runtime/app-fetch";`);
+      }
+
       code.push(
         ``,
         `  return {`,
-        `    fetch: appHandler,`,
+        `    fetch: ${hasServerEntry ? "withServerEntryOptions(appHandler)" : "appHandler"},`,
+        `    "~fetch": appHandler,`,
         `    h3: h3App,`,
         `    hooks: ${hasHooks ? "hooks" : "undefined"},`,
         `    captureError,`,

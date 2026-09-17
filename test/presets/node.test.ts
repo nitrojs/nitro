@@ -61,6 +61,12 @@ describe("nitro:preset:node-server", async () => {
       const res = await fetch(`http://127.0.0.1:${port}/srvx-middleware`);
       expect(await res.text()).toBe("server entry middleware works!");
       expect(res.headers.get("x-srvx-plugin")).toBe("works");
+      const appFetch = await fetch(`http://127.0.0.1:${port}/api/app-fetch`);
+      expect(await appFetch.json()).toEqual({
+        body: "server entry middleware works!",
+        plugin: "works",
+        pluginRuns: 1,
+      });
       const large = await fetch(`http://127.0.0.1:${port}/api/body-size`, {
         method: "POST",
         body: "x".repeat(128 * 1024),

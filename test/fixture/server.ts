@@ -1,4 +1,5 @@
 import { defineServerEntry } from "nitro";
+import { srvxPluginRuns } from "./server/utils/srvx-plugin.ts";
 
 export default defineServerEntry({
   async fetch(req) {
@@ -10,6 +11,7 @@ export default defineServerEntry({
   },
   // Passed to srvx (node, bun and deno servers)
   maxRequestBodySize: 64 * 1024,
+  // Applied by all presets
   middleware: [
     (req, next) => {
       if (new URL(req.url).pathname === "/srvx-middleware") {
@@ -20,10 +22,11 @@ export default defineServerEntry({
   ],
   plugins: [
     (server) => {
+      srvxPluginRuns.count++;
       server.options.middleware.unshift(async (req, next) => {
         const res = await next();
         if (new URL(req.url).pathname === "/srvx-middleware") {
-          res.headers.set("x-srvx-plugin", "works");
+          res.headers.append("x-srvx-plugin", "works");
         }
         return res;
       });
