@@ -711,6 +711,8 @@ export function testNitro(
       expect(res.headers["access-control-allow-origin"]).toBe("*");
       expect(res.headers["x-test"]).toBe("test");
       expect(res.headers["x-success-only"]).toBeUndefined();
+      expect(res.headers["x-error-precedence"]).toBe("staged");
+      expect(res.headers["set-cookie"]).toEqual(["error=1; Path=/", "staged=1; Path=/"]);
       expect(res.data).toMatchObject({ message: "unauthorized" });
     });
 
