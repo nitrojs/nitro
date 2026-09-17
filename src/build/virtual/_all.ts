@@ -12,6 +12,7 @@ import routingMeta from "./routing-meta.ts";
 import routing from "./routing.ts";
 import runtimeConfig from "./runtime-config.ts";
 import serverAssets from "./server-assets.ts";
+import serverEntry from "./server-entry.ts";
 import storage from "./storage.ts";
 import tasks from "./tasks.ts";
 import tracing from "./tracing.ts";
@@ -35,6 +36,7 @@ export function virtualTemplates(nitro: Nitro, _polyfills: string[]): VirtualTem
     routing,
     runtimeConfig,
     serverAssets,
+    serverEntry,
     storage,
     tasks,
     tracing,

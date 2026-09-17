@@ -1,15 +1,23 @@
 import type { RunnerName } from "env-runner";
+import type { MiniflareEnvRunnerOptions } from "env-runner/runners/miniflare";
 import type { Nitro } from "nitro/types";
 
 import { pathToFileURL } from "node:url";
 import { resolveModulePath } from "exsolve";
+import { resolve } from "pathe";
+import { findNearestFile } from "pkg-types";
 import { ensureDep } from "../utils/dep.ts";
 
-export interface MiniflareRunnerDeps {
-  miniflare?: URL;
-  wranglerModule?: URL;
-  [key: string]: unknown;
-}
+type MiniflareRunnerDeps = Pick<
+  MiniflareEnvRunnerOptions,
+  | "miniflare"
+  | "wranglerModule"
+  | "wrangler"
+  | "wranglerConfigPath"
+  | "wranglerEnv"
+  | "compatibilityDate"
+  | "miniflareOptions"
+>;
 
 /**
  * Resolve the platform packages a dev runner needs from the user project.
@@ -38,18 +46,31 @@ export async function resolveRunnerDeps(
   }
 }
 
-export async function resolveMiniflareDeps(nitro: Nitro): Promise<MiniflareRunnerDeps> {
+async function resolveMiniflareDeps(nitro: Nitro): Promise<MiniflareRunnerDeps> {
+  const { rootDir } = nitro.options;
   const miniflare = await ensureDep({
     id: "miniflare",
-    dir: nitro.options.rootDir,
+    dir: rootDir,
     reason: "the `miniflare` dev runner",
     version: "^4",
   });
+  const inline = nitro.options.cloudflare?.wrangler;
+  const configPath = await findNearestFile(["wrangler.json", "wrangler.jsonc", "wrangler.toml"], {
+    startingFrom: rootDir,
+  }).catch(() => undefined);
   return {
     miniflare: miniflare ? pathToFileURL(miniflare) : undefined,
     // Optional: without it, a built-in minimal reader handles plain JSON
     // wrangler configs and inline objects.
-    wranglerModule: _resolve("wrangler", nitro.options.rootDir),
+    wranglerModule: _resolve("wrangler", rootDir),
+    wrangler: inline && Object.keys(inline).length > 0 ? inline : Boolean(configPath),
+    wranglerConfigPath: configPath,
+    wranglerEnv: nitro.options.cloudflare?.wranglerEnv,
+    // The dev bundle imports Node.js built-ins that workerd only provides at recent dates
+    compatibilityDate: "latest",
+    miniflareOptions: {
+      defaultPersistRoot: resolve(rootDir, ".wrangler/state/v3"),
+    },
   };
 }
 

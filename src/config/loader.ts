@@ -81,7 +81,7 @@ async function _loadUserConfig(
   // Inline `defaultPreset` object resolved during auto-detection (injected via `resolve`)
   let inlineDefaultPreset: (NitroConfig & { _meta?: NitroPresetMeta }) | undefined;
 
-  const _dotenv = opts.dotenv ?? (configOverrides.dev && { fileName: [".env", ".env.local"] });
+  const _dotenv = opts.dotenv ?? { fileName: [".env", ".env.local"] };
   const envName = opts.c12?.envName ?? (configOverrides.dev ? "development" : "production");
   const loadedConfig = await (
     opts.watch

@@ -15,7 +15,6 @@ import { getBundlerConfig } from "./bundler.ts";
 import { buildEnvironments } from "./prod.ts";
 import {
   initEnvRunner,
-  getEnvRunner,
   closeEnvRunner,
   createNitroEnvironment,
   createServiceEnvironments,
@@ -30,6 +29,7 @@ import { nitroPreviewPlugin } from "./preview.ts";
 import assetsPlugin from "@hiogawa/vite-plugin-fullstack/assets";
 import type { NitroConfig, NitroModule } from "nitro/types";
 import { nitroDevServiceProxy, viteServicesTemplate } from "./services.ts";
+import { importVite, viteImportOptions } from "./_import.ts";
 
 // https://vite.dev/guide/api-environment-plugins
 // https://vite.dev/guide/api-environment-frameworks.html
@@ -75,6 +75,9 @@ function nitroInit(ctx: NitroPluginContext): VitePlugin {
         debug("[init] Initializing nitro");
         ctx._initialized = true;
         await setupNitroContext(ctx, configEnv, config);
+        if (configEnv.command === "serve") {
+          await checkViteVersion(ctx, (this.meta as Record<string, string>).viteVersion);
+        }
       }
     },
 
@@ -381,6 +384,22 @@ function createContext(pluginConfig: NitroPluginConfig): NitroPluginContext {
   };
 }
 
+/**
+ * The dev environments and module runner are created from the `vite` Nitro imports, which has
+ * to be the one running the dev server (in a monorepo, another version can be hoisted next to
+ * the app).
+ */
+async function checkViteVersion(ctx: NitroPluginContext, runningVersion?: string) {
+  const nitro = useNitro(ctx);
+  const { version } = await importVite(viteImportOptions(nitro));
+  if (runningVersion && version !== runningVersion) {
+    nitro.logger.warn(
+      `Nitro resolved \`vite@${version}\` but \`vite@${runningVersion}\` is running. ` +
+        `Set the \`vite.path\` option to the running \`vite\` package (e.g. \`import.meta.resolve("vite")\`).`
+    );
+  }
+}
+
 function useNitro(ctx: NitroPluginContext) {
   if (!ctx.nitro) {
     throw new Error("Nitro instance is not initialized yet.");
@@ -498,13 +517,10 @@ async function setupNitroContext(
     ctx.bundlerConfig.rollupConfig || (ctx.bundlerConfig.rolldownConfig as any)
   );
 
-  // Warm up env runner for dev
+  // Attach nitro.fetch to the dev env runner (started lazily, not when resolving config)
   if (ctx.nitro.options.dev) {
-    await initEnvRunner(ctx);
+    ctx.nitro.fetch = async (req) => (await initEnvRunner(ctx)).fetch(req);
   }
-
-  // Attach nitro.fetch to env runner
-  ctx.nitro.fetch = (req) => getEnvRunner(ctx).fetch(req);
 
   // Create dev app
   if (ctx.nitro.options.dev && !ctx.devApp) {

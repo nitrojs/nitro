@@ -23,6 +23,7 @@ trustPolicyExclude:
   - "@vercel/*"
   - "semver@6.3.1"
   - "exact-mirror@1.2.4"
+  - "undici-types@6.21.0"
 
 blockExoticSubdeps: true
 strictDepBuilds: true

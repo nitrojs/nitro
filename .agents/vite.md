@@ -62,7 +62,7 @@
 3. Detect SSR entry (looks for `entry-server.{ts,js,tsx,jsx,mjs}`)
 4. Create Nitro instance (`createNitro()`)
 5. Resolve bundler config (`getBundlerConfig()`)
-6. Initialize env-runner for dev (`initEnvRunner()`)
+6. Attach `nitro.fetch` (the env-runner is started lazily by the dev environments, not while resolving config)
 
 ## Environments (`env.ts`)
 
@@ -83,7 +83,8 @@ Nitro uses Vite 6+ environments API for multi-bundle builds:
 - Resolve: `noExternal` differs for dev vs prod
 - Special conditions: `"workerd"` for miniflare, excludes `"node"`
 
-### `initEnvRunner()` / `getEnvRunner()`
+### `initEnvRunner()`
+- Called from the dev environments' `createEnvironment()` (and `nitro.fetch`), so resolving the Vite config alone does not start a worker
 - Uses `env-runner` package for worker management
 - Supports Node Worker or Miniflare runtime
 - Auto-restarts on failure (max 3 retries)

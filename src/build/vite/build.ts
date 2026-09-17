@@ -1,7 +1,7 @@
 import type { Nitro } from "nitro/types";
 import { isTest } from "std-env";
 import { nitro as nitroPlugin } from "nitro/vite";
-import { importVite } from "./_import.ts";
+import { importVite, viteImportOptions } from "./_import.ts";
 
 export async function viteBuild(nitro: Nitro) {
   if (nitro.options.dev) {
@@ -9,7 +9,7 @@ export async function viteBuild(nitro: Nitro) {
   }
 
   const { createBuilder } = await importVite({
-    dir: nitro.options.rootDir,
+    ...viteImportOptions(nitro),
     id: (nitro.options as any).__vitePkg__,
   });
 

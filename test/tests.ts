@@ -249,6 +249,28 @@ export function testNitro(
     expect(headers["x-test"]).toBe("test");
   });
 
+  it.runIf(["bun", "deno-server", "nitro-dev"].includes(ctx.preset))(
+    "Server entry options are passed to srvx",
+    async () => {
+      const { data, headers } = await callHandler({ url: "/srvx-middleware" });
+      expect(data).toBe("server entry middleware works!");
+      expect(headers["x-srvx-plugin"]).toBe("works");
+
+      const small = await callHandler({
+        url: "/api/body-size",
+        method: "POST",
+        body: "x".repeat(1024),
+      });
+      expect(small.data).toEqual({ length: 1024 });
+      const large = await callHandler({
+        url: "/api/body-size",
+        method: "POST",
+        body: "x".repeat(128 * 1024),
+      });
+      expect(large.status).toBe(413);
+    }
+  );
+
   it("middleware runs in order: route rules, global, routed, then the route handler", async () => {
     const { data, headers } = await callHandler({ url: "/api/middleware-order" });
     // `rules` is recorded by the global middleware when `event.context.routeRules`
@@ -517,6 +539,7 @@ export function testNitro(
       depLib: "@fixture/nitro-lib@2.0.0+@fixture/nested-lib@2.0.0",
       subpathLib: "@fixture/nitro-lib@2.0.0",
       extraUtils: "@fixture/nitro-utils/extra",
+      cjsRequirer: "@fixture/nitro-native-mock",
     });
   });
 

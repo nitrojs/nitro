@@ -48,7 +48,7 @@ export async function buildProduction(nitro: Nitro, config: RolldownOptions) {
   };
   const previewCommand = nitro.options.framework.previewCommand || "npx nitro preview";
   nitro.logger.success(`You can preview this build using \`${previewCommand}\``);
-  if (buildInfo.commands!.deploy) {
+  if (nitro.options.commands.deploy) {
     const deployCommand = nitro.options.framework.deployCommand || "npx nitro deploy --prebuilt";
     nitro.logger.success(
       rewriteRelativePaths(`You can deploy this build using \`${deployCommand}\``)

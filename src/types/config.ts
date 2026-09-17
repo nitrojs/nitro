@@ -22,7 +22,7 @@ import type {
 } from "./handler.ts";
 import type { NitroHooks } from "./hooks.ts";
 import type { NitroModuleInput } from "./module.ts";
-import type { NitroFrameworkInfo } from "./nitro.ts";
+import type { Nitro, NitroFrameworkInfo } from "./nitro.ts";
 import type { NitroOpenAPIConfig } from "./openapi.ts";
 export type { NitroOpenAPIConfig } from "./openapi.ts";
 import type { NitroPreset } from "./preset.ts";
@@ -720,6 +720,21 @@ export interface NitroOptions extends PresetOptions {
   builder?: "rollup" | "rolldown" | "vite";
 
   /**
+   * Options for the `vite` builder and the `nitro/vite` plugin.
+   */
+  vite?: {
+    /**
+     * The `vite` package to use, as a path or `file://` URL to its directory or entry
+     * (e.g. `import.meta.resolve("vite")`).
+     *
+     * By default, `vite` is resolved from the project root. A framework running Vite
+     * programmatically should pass its own `vite` so the dev module runner matches the
+     * running instance (in a monorepo, another version could be hoisted next to the app).
+     */
+    path?: string;
+  };
+
+  /**
    * Additional Rollup configuration.
    *
    * @see https://nitro.build/config#rollupconfig
@@ -888,8 +903,13 @@ export interface NitroOptions extends PresetOptions {
   commands: {
     /** Command to preview the production build locally. */
     preview?: string;
-    /** Command to deploy the production build. */
-    deploy?: string;
+    /**
+     * Command to deploy the production build.
+     *
+     * Can be a shell command (`./` paths are resolved relative to the output directory)
+     * or a function (used by presets that deploy programmatically).
+     */
+    deploy?: string | ((nitro: Nitro, opts: { args?: string[] }) => void | Promise<void>);
   };
 
   /**

@@ -411,6 +411,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/api/cached",
               },
               {
+                "dest": "/api/body-size",
+                "src": "/api/body-size",
+              },
+              {
                 "dest": "/500",
                 "src": "/500",
               },
@@ -564,6 +568,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/__server.func",
             "functions/_vercel",
             "functions/_ws.func (symlink)",
+            "functions/api/body-size.func (symlink)",
             "functions/api/cached.func (symlink)",
             "functions/api/db.func (symlink)",
             "functions/api/echo.func",
