@@ -726,6 +726,18 @@ export function testNitro(
       expect(data.stack).toMatch("test/fixture/server/routes/errors/stack.ts");
     });
 
+    it("error responses keep error headers staged on the event", async () => {
+      const res = await callHandler({ url: "/errors/staged-headers" });
+      expect(res.status).toBe(401);
+      expect(res.headers["content-type"]).toBe("application/json; charset=utf-8");
+      expect(res.headers["access-control-allow-origin"]).toBe("*");
+      expect(res.headers["x-test"]).toBe("test");
+      expect(res.headers["x-success-only"]).toBeUndefined();
+      expect(res.headers["x-error-precedence"]).toBe("staged");
+      expect(res.headers["set-cookie"]).toEqual(["error=1; Path=/", "staged=1; Path=/"]);
+      expect(res.data).toMatchObject({ message: "unauthorized" });
+    });
+
     for (const errorAction of ["throw", "return"]) {
       it(`handled errors (${errorAction})`, async () => {
         const res = await callHandler({ url: `/errors/throw?handled&action=${errorAction}` });

@@ -5,7 +5,7 @@ import { resolve, dirname } from "pathe";
 import consola from "consola";
 import type { ErrorParser } from "youch-core";
 import type { SourceMapConsumer } from "source-map";
-import { defineNitroErrorHandler } from "./utils.ts";
+import { createErrorHeaders, defineNitroErrorHandler } from "./utils.ts";
 import type { InternalHandlerResponse } from "./utils.ts";
 import { FastResponse } from "srvx";
 import type { NitroErrorHandler } from "nitro/types";
@@ -61,7 +61,7 @@ export async function defaultHandler(
   // Use HTML response only when user-agent expects it (browsers)
   const useJSON = opts?.json ?? !event.req.headers.get("accept")?.includes("text/html");
 
-  const headers = new Headers(unhandled ? {} : error.headers);
+  const headers = createErrorHeaders(event, unhandled ? undefined : error.headers);
 
   if (useJSON) {
     headers.set("Content-Type", "application/json; charset=utf-8");
