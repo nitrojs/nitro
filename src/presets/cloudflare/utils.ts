@@ -281,8 +281,12 @@ export async function writeWranglerConfig(nitro: Nitro, cfTarget: "pages" | "mod
 
   // Compatibility flags
   wranglerConfig.compatibility_flags ??= [];
+  // From compatibility date 2026-08-04 workerd enables nodejs_compat by
+  // default and rejects an explicit flag, so only add it when the resolved
+  // date still needs it (nitrojs/nitro#4527).
   if (
     nitro.options.cloudflare?.nodeCompat &&
+    (wranglerConfig.compatibility_date ?? "") < "2026-08-04" &&
     !wranglerConfig.compatibility_flags.includes("nodejs_compat")
   ) {
     wranglerConfig.compatibility_flags.push("nodejs_compat");

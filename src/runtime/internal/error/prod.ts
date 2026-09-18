@@ -1,5 +1,5 @@
 import { HTTPError, type H3Event, type HTTPEvent } from "h3";
-import type { InternalHandlerResponse } from "./utils.ts";
+import { createErrorHeaders, type InternalHandlerResponse } from "./utils.ts";
 import { FastResponse } from "srvx";
 import type { NitroErrorHandler } from "nitro/types";
 
@@ -28,7 +28,7 @@ export function defaultHandler(error: HTTPError, event: HTTPEvent): InternalHand
     }
   }
 
-  const headers = new Headers(unhandled ? {} : error.headers);
+  const headers = createErrorHeaders(event, unhandled ? undefined : error.headers);
   headers.set("content-type", "application/json; charset=utf-8");
 
   const jsonBody = unhandled
