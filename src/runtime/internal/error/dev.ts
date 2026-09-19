@@ -4,7 +4,6 @@ import {
   send,
   getRequestHeader,
   getRequestHeaders,
-  getRequestURL,
   getResponseHeader,
   setResponseHeaders,
   setResponseStatus,
@@ -15,7 +14,11 @@ import consola from "consola";
 import { ErrorParser } from "youch-core";
 import { Youch } from "youch";
 import { SourceMapConsumer } from "source-map";
-import { defineNitroErrorHandler, type InternalHandlerResponse } from "./utils";
+import {
+  defineNitroErrorHandler,
+  getRequestURLOrFallback,
+  type InternalHandlerResponse,
+} from "./utils";
 
 export default defineNitroErrorHandler(
   async function defaultNitroErrorHandler(error, event) {
@@ -42,8 +45,7 @@ export async function defaultHandler(
   const isSensitive = error.unhandled || error.fatal;
   const statusCode = error.statusCode || 500;
   const statusMessage = error.statusMessage || "Server Error";
-  // prettier-ignore
-  const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true });
+  const url = getRequestURLOrFallback(event);
 
   // Redirects with base URL
   if (statusCode === 404) {
