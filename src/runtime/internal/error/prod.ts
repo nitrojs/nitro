@@ -1,13 +1,16 @@
 import {
   type H3Error,
   type H3Event,
-  getRequestURL,
   getResponseHeader,
   send,
   setResponseHeaders,
   setResponseStatus,
 } from "h3";
-import { defineNitroErrorHandler, type InternalHandlerResponse } from "./utils";
+import {
+  defineNitroErrorHandler,
+  getRequestURLOrFallback,
+  type InternalHandlerResponse,
+} from "./utils";
 
 export default defineNitroErrorHandler(
   function defaultNitroErrorHandler(error, event) {
@@ -26,8 +29,7 @@ export function defaultHandler(
   const isSensitive = error.unhandled || error.fatal;
   const statusCode = error.statusCode || 500;
   const statusMessage = error.statusMessage || "Server Error";
-  // prettier-ignore
-  const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true });
+  const url = getRequestURLOrFallback(event);
 
   if (statusCode === 404) {
     const baseURL = import.meta.baseURL || "/";
