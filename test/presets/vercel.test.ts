@@ -559,6 +559,47 @@ describe("nitro:preset:vercel", async () => {
           ]
         `);
       });
+
+      it("restores the original URL from a header carrier", async () => {
+        const res = await ctx.fetch("/rules/isr/foo-isr", {
+          headers: {
+            "x-now-route-matches": "__isr_route=%2Frules%2Fisr%2Ffoo",
+          },
+        });
+        expect(res.status).toBe(200);
+        expect(await res.text()).toBe("/rules/isr/foo");
+      });
+
+      it("restores the original URL from the destination query when no header is sent", async () => {
+        const res = await ctx.fetch(
+          "/rules/isr/foo-isr?__isr_route=%2Frules%2Fisr%2Ffoo"
+        );
+        expect(res.status).toBe(200);
+        expect(await res.text()).toBe("/rules/isr/foo");
+      });
+
+      it("falls back to the destination query when the header carrier lacks __isr_route", async () => {
+        // A serialization variant emitting only positional groups (e.g.
+        // `1=schedule`) previously shadowed the query fallback and rendered a
+        // cacheable 404 for the internal -isr route (nitrojs/nitro#4446).
+        const res = await ctx.fetch(
+          "/rules/isr/foo-isr?__isr_route=%2Frules%2Fisr%2Ffoo",
+          {
+            headers: { "x-now-route-matches": "1=%2Frules%2Fisr%2Ffoo" },
+          }
+        );
+        expect(res.status).toBe(200);
+        expect(await res.text()).toBe("/rules/isr/foo");
+      });
+
+      it("responds 503 instead of rendering the internal -isr route when no carrier resolves", async () => {
+        // A 404 rendered for the internal path is stored by Vercel as a valid
+        // ISR outcome; a 503 stays transient and cached copies keep serving.
+        const bare = await ctx.fetch("/rules/isr/foo-isr");
+        expect(bare.status).toBe(503);
+        const payload = await ctx.fetch("/rules/isr/foo/_payload.json-isr");
+        expect(payload.status).toBe(503);
+      });
     }
   );
 });
