@@ -96,12 +96,24 @@ export function createServiceEnvironment(
     dev: {
       createEnvironment: async (envName, envConfig) => {
         const entry = tryResolve(serviceConfig.entry);
-        (ctx._viteEnvs ??= new Map()).set(envName, entry);
         const { createFetchableDevEnvironment } = await import("./dev.ts");
-        return createFetchableDevEnvironment(envName, envConfig, await initEnvRunner(ctx), entry, {
-          preventExternalize: isWorkerdRunner,
-          vite: viteImportOptions(ctx.nitro!),
-        });
+        const env = await createFetchableDevEnvironment(
+          envName,
+          envConfig,
+          await initEnvRunner(ctx),
+          entry,
+          {
+            preventExternalize: isWorkerdRunner,
+            vite: viteImportOptions(ctx.nitro!),
+          }
+        );
+        // Register in `_viteEnvs` only after the environment is constructed, so
+        // the `initEnvRunner` onReady replay never names an env whose hot
+        // channel listener is not attached yet — otherwise the worker's first
+        // `getBuiltins` invoke is dropped and the SSR env wedges permanently.
+        // Matches the ordering in `createNitroEnvironment` above.
+        (ctx._viteEnvs ??= new Map()).set(envName, entry);
+        return env;
       },
     },
   };
