@@ -74,6 +74,7 @@ export async function setupTest(
     preset,
     isDev: preset === "nitro-dev",
     isWorker: [
+      "bunny-edge-scripting",
       "cloudflare-worker",
       "cloudflare-module",
       "cloudflare-module-legacy",
@@ -720,6 +721,7 @@ export function testNitro(
         // TODO: Investigate
         ctx.preset === "bun" ||
         ctx.preset === "deno-server" ||
+        ctx.preset === "bunny-edge-scripting" ||
         ctx.preset === "nitro-dev"
     )("sourcemap works", async () => {
       const { data } = await callHandler({ url: "/errors/stack" });
@@ -731,7 +733,7 @@ export function testNitro(
         const res = await callHandler({ url: `/errors/throw?handled&action=${errorAction}` });
         expect(res).toMatchObject({
           status: 503,
-          statusText: /deno|bun|winterjs/.test(ctx.preset)
+          statusText: /^(deno|bun|winterjs)($|-)/.test(ctx.preset)
             ? "Service Unavailable"
             : /aws/.test(ctx.preset)
               ? ""
