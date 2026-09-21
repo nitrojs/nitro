@@ -117,7 +117,7 @@ No manual Wrangler configuration is needed. Nitro handles it for you.
 
 :read-more{title="Durable Objects" to="https://developers.cloudflare.com/durable-objects/"}
 
-This preset extends `cloudflare_module` and routes requests through a [Durable Object](https://developers.cloudflare.com/durable-objects/) instance, enabling stateful features such as WebSocket support (via [CrossWS](https://crossws.h3.dev/adapters/cloudflare#durable-objects)) and in-memory state that persists across requests.
+This preset extends `cloudflare_module` and routes WebSocket upgrades through a [Durable Object](https://developers.cloudflare.com/durable-objects/) instance using [CrossWS](https://crossws.h3.dev/adapters/cloudflare#durable-objects).
 
 ```ts [nitro.config.ts]
 import { defineConfig } from "nitro";
@@ -127,7 +127,9 @@ export default defineConfig({
 })
 ```
 
-The preset entry exports a `$DurableObject` class. You need to declare the Durable Object binding and migration in your wrangler config:
+The preset entry exports a `$DurableObject` class. With `cloudflare.deployConfig` enabled, Nitro generates its binding in the default and named Wrangler environments. When no migration history or Durable Object `exports` declaration exists, Nitro generates an initial SQLite migration. Existing lifecycle declarations are preserved and validated by Wrangler. If you manage the lifecycle yourself, include `$DurableObject` in your declarations before deploying.
+
+If you disable `cloudflare.deployConfig`, declare the binding and migration in your Wrangler config:
 
 ```json [wrangler.json]
 {
@@ -142,11 +144,28 @@ The preset entry exports a `$DurableObject` class. You need to declare the Durab
   "migrations": [
     {
       "tag": "v1",
-      "new_classes": ["$DurableObject"]
+      "new_sqlite_classes": ["$DurableObject"]
     }
   ]
 }
 ```
+
+### Binding name
+
+Set `cloudflare.durable.bindingName` to customize the binding name. It defaults to `$DurableObject`; the class name remains `$DurableObject`.
+
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  preset: "cloudflare_durable",
+  cloudflare: {
+    durable: { bindingName: "MyCustomDO" }
+  }
+});
+```
+
+Nitro generates the matching binding when `cloudflare.deployConfig` is enabled. For manually managed Wrangler configuration, use the same binding name in `durable_objects.bindings`.
 
 You can use the `cloudflare:durable:init` runtime hook to run code when the Durable Object is initialized, and the `cloudflare:durable:alarm` hook to handle [alarms](https://developers.cloudflare.com/durable-objects/api/alarms/).
 
@@ -222,7 +241,6 @@ First make sure to be logged into your Cloudflare account:
 Then you can deploy the application with:
 
 :pm-x{command="wrangler pages deploy"}
-
 
 ## Deploy within CI/CD using GitHub Actions
 
