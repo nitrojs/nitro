@@ -182,9 +182,9 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     server.config.configFileDependencies.push(nitroConfigFile);
   }
 
-  // Websocket
+  // Websocket (`httpServer` is null in middleware mode, the parent server handles upgrades)
   if (nitro.options.features.websocket ?? nitro.options.experimental.websocket) {
-    server.httpServer!.on("upgrade", (req, socket, head) => {
+    server.httpServer?.on("upgrade", (req, socket, head) => {
       const protocol = req.headers["sec-websocket-protocol"];
       if (protocol?.startsWith("vite-")) {
         // Vite HMR WebSocket connection
