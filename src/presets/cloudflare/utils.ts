@@ -18,6 +18,8 @@ import {
 } from "ufo";
 import { unenvCfNodeCompat } from "./unenv/preset.ts";
 
+import { configureDurable } from "./durable.ts";
+
 export async function writeCFRoutes(nitro: Nitro) {
   const _cfPagesConfig = nitro.options.cloudflare?.pages || {};
   const routes: CloudflarePagesRoutes = {
@@ -301,6 +303,10 @@ export async function writeWranglerConfig(nitro: Nitro, cfTarget: "pages" | "mod
         type: "ESModule",
         globs: ["**/*.mjs", "**/*.js"],
       });
+    }
+
+    if (nitro.options.virtual?.["#nitro/virtual/cloudflare-durable"]) {
+      configureDurable(nitro, wranglerConfig);
     }
   }
 

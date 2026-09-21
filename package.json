@@ -41,6 +41,7 @@
     "./h3": "./lib/h3.mjs",
     "./meta": "./dist/runtime/meta.mjs",
     "./package.json": "./package.json",
+    "./presets/cloudflare": "./dist/presets/cloudflare/types.mjs",
     "./runtime-config": "./dist/runtime/runtime-config.mjs",
     "./storage": "./dist/runtime/storage.mjs",
     "./task": "./dist/runtime/task.mjs",
