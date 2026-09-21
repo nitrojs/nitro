@@ -12,12 +12,13 @@ export type InternalHandlerResponse = {
   body?: string | Record<string, any>;
 };
 
-// h3 does not merge `event.res.errHeaders` into responses returned by `onError`
+// h3 does not merge `event.res.errHeaders` into responses returned by `onError`.
+// Explicit `error.headers` take precedence over staged duplicate names; set-cookie appends from both.
 export function createErrorHeaders(event: HTTPEvent, errorHeaders?: HeadersInit): Headers {
-  const headers = new Headers(errorHeaders);
   const errHeaders = (event as H3Event).res?.errHeaders;
-  if (errHeaders) {
-    for (const [name, value] of errHeaders) {
+  const headers = errHeaders ? new Headers(errHeaders) : new Headers();
+  if (errorHeaders) {
+    for (const [name, value] of new Headers(errorHeaders)) {
       if (name === "set-cookie") {
         headers.append(name, value);
       } else {

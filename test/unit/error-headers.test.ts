@@ -3,7 +3,7 @@ import { mockEvent } from "h3";
 import { createErrorHeaders } from "../../src/runtime/internal/error/utils.ts";
 
 describe("createErrorHeaders", () => {
-  it("preserves staged error precedence without merging success headers", () => {
+  it("applies explicit error-header precedence without merging success headers", () => {
     const event = mockEvent("/");
     event.res.headers.set("x-success-only", "success");
     event.res.errHeaders.set("x-shared", "staged");
@@ -12,7 +12,7 @@ describe("createErrorHeaders", () => {
 
     const headers = createErrorHeaders(event, errorHeaders);
 
-    expect(headers.get("x-shared")).toBe("staged");
+    expect(headers.get("x-shared")).toBe("error");
     expect(headers.get("x-staged-only")).toBe("staged");
     expect(headers.get("x-error-only")).toBe("error");
     expect(headers.has("x-success-only")).toBe(false);
@@ -27,9 +27,9 @@ describe("createErrorHeaders", () => {
     errorHeaders.append("set-cookie", "second=2; Path=/");
 
     expect(createErrorHeaders(event, errorHeaders).getSetCookie()).toEqual([
+      "staged=1; Path=/",
       "first=1; Path=/",
       "second=2; Path=/",
-      "staged=1; Path=/",
     ]);
     expect(errorHeaders.getSetCookie()).toHaveLength(2);
     expect(event.res.errHeaders.getSetCookie()).toEqual(["staged=1; Path=/"]);
