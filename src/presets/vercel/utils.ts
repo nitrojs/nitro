@@ -190,6 +190,9 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
           if (routeRules.headers) {
             route = defu(route, { headers: routeRules.headers });
           }
+          if (!routeRules.redirect) {
+            route = defu(route, { continue: true });
+          }
           return route;
         }),
       // Skew protection

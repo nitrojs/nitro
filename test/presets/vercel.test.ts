@@ -72,12 +72,14 @@ describe("nitro:preset:vercel", async () => {
                 "status": 307,
               },
               {
+                "continue": true,
                 "headers": {
                   "cache-control": "s-maxage=60",
                 },
                 "src": "/rules/headers",
               },
               {
+                "continue": true,
                 "headers": {
                   "access-control-allow-headers": "*",
                   "access-control-allow-methods": "GET",
@@ -102,6 +104,7 @@ describe("nitro:preset:vercel", async () => {
                 "status": 307,
               },
               {
+                "continue": true,
                 "headers": {
                   "cache-control": "public, max-age=3600, immutable",
                   "x-build-header": "works",
@@ -109,6 +112,7 @@ describe("nitro:preset:vercel", async () => {
                 "src": "/build/(.*)",
               },
               {
+                "continue": true,
                 "headers": {
                   "x-test": "test",
                 },
