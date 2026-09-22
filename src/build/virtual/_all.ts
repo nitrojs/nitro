@@ -4,6 +4,7 @@ import app from "./app.ts";
 import database from "./database.ts";
 import errorHandler from "./error-handler.ts";
 import featureFlags from "./feature-flags.ts";
+import kv from "./kv.ts";
 import plugins from "./plugins.ts";
 import polyfills from "./polyfills.ts";
 import publicAssets from "./public-assets.ts";
@@ -13,7 +14,6 @@ import routing from "./routing.ts";
 import runtimeConfig from "./runtime-config.ts";
 import serverAssets from "./server-assets.ts";
 import serverEntry from "./server-entry.ts";
-import storage from "./storage.ts";
 import tasks from "./tasks.ts";
 import tracing from "./tracing.ts";
 
@@ -28,6 +28,7 @@ export function virtualTemplates(nitro: Nitro, _polyfills: string[]): VirtualTem
     database,
     errorHandler,
     featureFlags,
+    kv,
     plugins,
     polyfills,
     publicAssets,
@@ -37,7 +38,6 @@ export function virtualTemplates(nitro: Nitro, _polyfills: string[]): VirtualTem
     runtimeConfig,
     serverAssets,
     serverEntry,
-    storage,
     tasks,
     tracing,
   ].flatMap((t) => t(nitro, _polyfills));

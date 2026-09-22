@@ -1,6 +1,6 @@
 import "./_runtime_warn.ts";
 import { type Storage, createStorage } from "unstorage";
 
-export function initStorage(): Storage {
+export function initKV(): Storage {
   return createStorage();
 }

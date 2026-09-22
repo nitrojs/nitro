@@ -3,9 +3,9 @@ import type { Nitro } from "nitro/types";
 import { isDepInstalled, isLibOption } from "../../utils/dep.ts";
 import { resolveDriverDeps, resolveStorageMounts } from "../../utils/storage.ts";
 
-export default function storage(nitro: Nitro) {
+export default function kv(nitro: Nitro) {
   return {
-    id: "#nitro/virtual/storage",
+    id: "#nitro/virtual/kv",
     template: () => {
       const mounts = resolveStorageMounts(nitro.options);
 
@@ -22,7 +22,7 @@ import { assets } from '#nitro/virtual/server-assets'
 
 ${driverImports.map((i) => genImport(i, genSafeVariableName(i))).join("\n")}
 
-export function initStorage() {
+export function initKV() {
   const storage = createStorage({})
   storage.mount('/assets', assets)
   ${mounts
