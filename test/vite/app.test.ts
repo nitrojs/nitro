@@ -31,7 +31,7 @@ describe("vite:app", () => {
     process.chdir(originalCwd);
   });
 
-  test("SSR entry can use nitro/storage (shared with nitro env)", async () => {
+  test("SSR entry can use nitro/kv (shared with nitro env)", async () => {
     const res = await fetch(serverURL);
     const data = (await res.json()) as { storage: string; config: string };
     expect(data.storage).toBe("value-from-ssr");
