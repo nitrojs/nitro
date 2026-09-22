@@ -38,7 +38,7 @@ function lazyService(name, loader) {
         promise = loader().then(_mod => {
           const m = typeof _mod.default?.fetch === "function" ? _mod.default : _mod
           if (typeof m.fetch !== "function") {
-            throw new TypeError(\`[nitro] Vite service "\${name}" entry does not export a \\\`fetch\\\` handler (expected \\\`export default { fetch }\\\` or \\\`export function fetch\\\`).\`)
+            throw new TypeError(\`[nitro] Vite service "\${name}" entry does not export a \\\`fetch\\\` handler.\`)
           }
           return (mod = m)
         })
