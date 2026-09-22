@@ -381,6 +381,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/api/upload",
               },
               {
+                "dest": "/api/storage/legacy",
+                "src": "/api/storage/legacy",
+              },
+              {
                 "dest": "/api/storage/item",
                 "src": "/api/storage/item",
               },
@@ -624,6 +628,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/api/middleware-order.func (symlink)",
             "functions/api/param/[test-id].func (symlink)",
             "functions/api/storage/item.func (symlink)",
+            "functions/api/storage/legacy.func (symlink)",
             "functions/api/test/[-]/foo.func (symlink)",
             "functions/api/upload.func (symlink)",
             "functions/api/wildcard/[...param].func (symlink)",
