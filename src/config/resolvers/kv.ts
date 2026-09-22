@@ -17,7 +17,7 @@ export async function resolveKVOptions(options: NitroOptions) {
 
   if (options.devStorage && Object.keys(options.devStorage).length > 0) {
     consola.warn(
-      `"devStorage" option is deprecated. Please use "kv" inside "$development" config instead.`
+      `"devStorage" option is deprecated. Please use "kv" inside "$development" (and "$prerender") config instead.`
     );
   }
 

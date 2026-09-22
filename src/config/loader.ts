@@ -1,5 +1,6 @@
 import { loadConfig, watchConfig } from "c12";
 import consola from "consola";
+import { createDefu } from "defu";
 import { resolveCompatibilityDates } from "compatx";
 import type { CompatibilityDateSpec } from "compatx";
 import { klona } from "klona/full";
@@ -82,7 +83,13 @@ async function _loadUserConfig(
   let inlineDefaultPreset: (NitroConfig & { _meta?: NitroPresetMeta }) | undefined;
 
   const _dotenv = opts.dotenv ?? { fileName: [".env", ".env.local"] };
-  const envName = opts.c12?.envName ?? (configOverrides.dev ? "development" : "production");
+  const envName =
+    opts.c12?.envName ??
+    (configOverrides.dev
+      ? "development"
+      : configOverrides.preset === "nitro-prerender"
+        ? ["production", "prerender"]
+        : "production");
   const loadedConfig = await (
     opts.watch
       ? watchConfig<NitroConfig & { _meta?: NitroPresetMeta }>
@@ -94,6 +101,7 @@ async function _loadUserConfig(
     envName,
     extend: { extendKey: ["extends", "preset"] },
     defaults: NitroDefaults,
+    envMerger: mergeEnvConfig,
     async overrides({ rawConfigs }) {
       // prettier-ignore
       const getConf = <K extends keyof NitroConfig>(key: K) => (configOverrides[key] ?? (rawConfigs.main as NitroConfig)?.[key] ?? (rawConfigs.rc as NitroConfig)?.[key] ?? (rawConfigs.packageJson as NitroConfig)?.[key]) as NitroConfig[K];
@@ -178,3 +186,19 @@ async function _loadUserConfig(
 
   return options;
 }
+
+const kvConfigKeys = new Set(["kv", "storage", "devStorage"]);
+
+// Env mounts (e.g. from `$development`) with a different driver replace the whole mount instead of deep merging options
+const mergeEnvConfig = createDefu((obj, key, value, namespace) => {
+  const current = obj[key] as { driver?: unknown } | undefined;
+  if (
+    kvConfigKeys.has(namespace) &&
+    value?.driver &&
+    current?.driver &&
+    value.driver !== current.driver
+  ) {
+    obj[key] = value;
+    return true;
+  }
+}) as (...sources: any[]) => any;

@@ -229,7 +229,7 @@ export interface NitroOptions extends PresetOptions {
   /** @deprecated Migrate to `kv`. */
   storage: StorageMounts;
 
-  /** @deprecated Migrate to `kv` inside `$development` config. */
+  /** @deprecated Migrate to `kv` inside `$development` (and `$prerender`) config. */
   devStorage: StorageMounts;
 
   /**
@@ -957,6 +957,9 @@ export interface NitroConfig
       >
     >,
     C12InputConfig<NitroConfig> {
+  /** Config overrides applied when prerendering (on top of `$production`). */
+  $prerender?: NitroConfig;
+
   preset?: PresetNameInput;
 
   /**
