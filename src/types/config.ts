@@ -229,13 +229,7 @@ export interface NitroOptions extends PresetOptions {
   /** @deprecated Migrate to `kv`. */
   storage: StorageMounts;
 
-  /**
-   * KV storage mount overrides for development and prerendering.
-   *
-   * Each mount replaces the matching `kv` mount entirely.
-   *
-   * @see https://nitro.build/config#devstorage
-   */
+  /** @deprecated Migrate to `kv` inside `$development` (and `$prerender`) config. */
   devStorage: StorageMounts;
 
   /**
@@ -963,6 +957,9 @@ export interface NitroConfig
       >
     >,
     C12InputConfig<NitroConfig> {
+  /** Config overrides applied when prerendering (on top of `$production`). */
+  $prerender?: NitroConfig;
+
   preset?: PresetNameInput;
 
   /**

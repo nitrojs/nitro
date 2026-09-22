@@ -39,10 +39,23 @@ describe("kv config loader", () => {
     expect(options.kv.db).toEqual({ driver: "fs", base: "./.data/dev", readOnly: true });
   });
 
-  it("applies `$development` kv only in development, not when prerendering", async () => {
+  it("applies `$production` and `$prerender` kv when prerendering", async () => {
+    const rootDir = await createFixture(`{
+      kv: { db: { driver: "redis", host: "prod.example.com" } },
+      $development: { kv: { dev: { driver: "memory" } } },
+      $production: { kv: { prod: { driver: "memory" } } },
+      $prerender: { kv: { db: { driver: "fs", base: "./.data/db" } } },
+    }`);
+    const options = await loadOptions({ rootDir, preset: "nitro-prerender" });
+    expect(options.kv).toEqual({
+      db: { driver: "fs", base: "./.data/db" },
+      prod: { driver: "memory" },
+    });
+  });
+
+  it("keeps applying deprecated `devStorage` when prerendering", async () => {
     const rootDir = await createFixture(`{
       kv: { db: { driver: "memory" } },
-      $development: { kv: { db: { driver: "fs", base: "./.data/db" } } },
       devStorage: { cache: { driver: "fs", base: "./.data/cache" } },
     }`);
     const options = await loadOptions({ rootDir, preset: "nitro-prerender" });

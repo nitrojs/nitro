@@ -24,7 +24,7 @@ describe("resolveKVOptions", () => {
   });
 
   it.each<Partial<NitroOptions>>([{ dev: true }, { preset: "nitro-prerender" }])(
-    "applies `devStorage` without warning (%o)",
+    "still applies deprecated `devStorage` (%o)",
     async (env) => {
       warn.mockClear();
       const options = createOptions({
@@ -33,7 +33,7 @@ describe("resolveKVOptions", () => {
         devStorage: { data: { driver: "memory" } },
       });
       await resolveKVOptions(options);
-      expect(warn).not.toHaveBeenCalled();
+      expect(warn).toHaveBeenCalledOnce();
       expect(resolveStorageMounts(options)).toMatchObject([{ name: "memory", options: {} }]);
     }
   );
