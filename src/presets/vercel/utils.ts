@@ -260,6 +260,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     overrides: getPrerenderOverrides(nitro._prerenderedRoutes),
     routes: [
       // Header-only rules (least specific first, so more specific headers override on `continue`)
+      // `redirect: false` stops routing so that less specific redirects below cannot match
       ...rules
         .filter(
           ([path, routeRules]) =>
@@ -269,7 +270,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
         .map(([path, routeRules]) => ({
           src: path.replace("/**", "/(.*)"),
           headers: routeRules.headers,
-          continue: true,
+          ...(routeRules.redirect === false ? {} : { continue: true }),
         })),
       // Redirect rules (excluding paths handled as CDN proxy rewrites)
       ...rules

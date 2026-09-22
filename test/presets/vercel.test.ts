@@ -42,6 +42,9 @@ describe("nitro:preset:vercel:web", async () => {
         // trailing slash on purpose (#4392)
         routes: ["/slash/"],
       },
+      routeRules: {
+        "/rules/nested/keep": { redirect: false, headers: { "x-keep": "keep" } },
+      },
       vercel: {
         queues: {
           triggers: [
@@ -145,6 +148,12 @@ describe("nitro:preset:vercel:web", async () => {
                   "cache-control": "s-maxage=60",
                 },
                 "src": "/rules/headers",
+              },
+              {
+                "headers": {
+                  "x-keep": "keep",
+                },
+                "src": "/rules/nested/keep",
               },
               {
                 "headers": {
@@ -545,6 +554,21 @@ describe("nitro:preset:vercel:web", async () => {
           )
           .map((route: { src: string }) => route.src);
         expect(headerRoutes.indexOf("/(.*)")).toBeLessThan(headerRoutes.indexOf("/rules/headers"));
+      });
+
+      it("should not continue into less specific redirects when `redirect: false`", async () => {
+        const config = await fsp
+          .readFile(resolve(ctx.outDir, "config.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        const keepIndex = config.routes.findIndex(
+          (route: { src?: string }) => route.src === "/rules/nested/keep"
+        );
+        const redirectIndex = config.routes.findIndex(
+          (route: { src?: string }) => route.src === "/rules/nested/(.*)"
+        );
+        expect(config.routes[keepIndex]).toMatchObject({ headers: { "x-keep": "keep" } });
+        expect(keepIndex).toBeLessThan(redirectIndex);
+        expect(config.routes[keepIndex].continue).toBeUndefined();
       });
 
       it("should generate prerender config", async () => {
