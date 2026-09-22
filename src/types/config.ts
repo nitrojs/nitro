@@ -216,25 +216,20 @@ export interface NitroOptions extends PresetOptions {
   // Features
 
   /**
-   * Storage mount configuration.
+   * KV storage mount configuration.
    *
    * Keys are mount-point paths; values specify the unstorage driver and
    * its options.
    *
-   * @see https://nitro.build/config#storage
+   * @see https://nitro.build/config#kv
    * @see https://nitro.build/docs/storage
    */
+  kv: StorageMounts;
+
+  /** @deprecated Migrate to `kv`. */
   storage: StorageMounts;
 
-  /**
-   * Storage mount overrides for development mode.
-   *
-   * Useful for swapping production drivers (e.g. Redis) with local
-   * alternatives (e.g. filesystem) during development.
-   *
-   * @see https://nitro.build/config#devstorage
-   * @see https://nitro.build/docs/storage
-   */
+  /** @deprecated Migrate to `kv` inside `$development` config. */
   devStorage: StorageMounts;
 
   /**
@@ -1101,7 +1096,7 @@ export type StorageMount = BuiltinStorageMount | CustomStorageMount;
  * Keys are storage mount-point paths; values specify the unstorage driver
  * and its options.
  *
- * @see https://nitro.build/config#storage
+ * @see https://nitro.build/config#kv
  * @see https://nitro.build/docs/storage
  */
 export interface StorageMounts {

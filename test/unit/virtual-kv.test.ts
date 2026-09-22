@@ -22,14 +22,14 @@ const { default: kv } = await import("../../src/build/virtual/kv.ts");
 
 function createNitroStub(
   tracingChannel: Nitro["options"]["tracingChannel"],
-  storage: Nitro["options"]["storage"] = {}
+  kv: Nitro["options"]["kv"] = {}
 ): Nitro {
   return {
     options: {
       dev: true,
       preset: "nitro-dev",
       rootDir: process.cwd(),
-      storage,
+      kv,
       devStorage: {},
       tracingChannel,
     },

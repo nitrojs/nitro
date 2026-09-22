@@ -17,7 +17,7 @@ export interface StorageMount {
 /** Resolve storage mounts that will be used for the current build. */
 export function resolveStorageMounts(options: NitroOptions): StorageMount[] {
   const isDevOrPrerender = options.dev || options.preset === "nitro-prerender";
-  const mounts = isDevOrPrerender ? { ...options.storage, ...options.devStorage } : options.storage;
+  const mounts = isDevOrPrerender ? { ...options.kv, ...options.devStorage } : options.kv;
   return Object.entries(mounts).map(([path, { driver: name, ...driverOpts }]) => ({
     path,
     name,

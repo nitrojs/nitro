@@ -18,7 +18,7 @@ import { resolveTsconfig } from "./resolvers/tsconfig.ts";
 import { resolvePathOptions } from "./resolvers/paths.ts";
 import { resolveRouteRulesOptions } from "./resolvers/route-rules.ts";
 import { resolveRuntimeConfigOptions } from "./resolvers/runtime-config.ts";
-import { resolveStorageOptions } from "./resolvers/storage.ts";
+import { resolveKVOptions } from "./resolvers/kv.ts";
 import { resolveURLOptions } from "./resolvers/url.ts";
 import { resolveErrorOptions } from "./resolvers/error.ts";
 import { resolveUnenv } from "./resolvers/unenv.ts";
@@ -36,7 +36,7 @@ const configResolvers = [
   resolveOpenAPIOptions,
   resolveURLOptions,
   resolveAssetsOptions,
-  resolveStorageOptions,
+  resolveKVOptions,
   resolveErrorOptions,
   resolveUnenv,
   resolveBuilder,
