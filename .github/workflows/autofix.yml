@@ -11,9 +11,9 @@ jobs:
   autofix:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - run: npm i -g --force corepack && corepack enable
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: "lts/*"
           cache: "pnpm"
@@ -22,6 +22,6 @@ jobs:
       - run: pnpm gen-presets
       - name: Fix lint issues
         run: npm run lint:fix
-      - uses: autofix-ci/action@ff86a557419858bb967097bfc916833f5647fa8c
+      - uses: autofix-ci/action@ff86a557419858bb967097bfc916833f5647fa8c # ff86a557419858bb967097bfc916833f5647fa8c
         with:
           commit-message: "chore: apply automated updates"
