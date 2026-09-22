@@ -1,5 +1,6 @@
 import { loadConfig, watchConfig } from "c12";
 import consola from "consola";
+import { createDefu } from "defu";
 import { resolveCompatibilityDates } from "compatx";
 import type { CompatibilityDateSpec } from "compatx";
 import { klona } from "klona/full";
@@ -94,6 +95,7 @@ async function _loadUserConfig(
     envName,
     extend: { extendKey: ["extends", "preset"] },
     defaults: NitroDefaults,
+    merger: mergeConfig,
     async overrides({ rawConfigs }) {
       // prettier-ignore
       const getConf = <K extends keyof NitroConfig>(key: K) => (configOverrides[key] ?? (rawConfigs.main as NitroConfig)?.[key] ?? (rawConfigs.rc as NitroConfig)?.[key] ?? (rawConfigs.packageJson as NitroConfig)?.[key]) as NitroConfig[K];
@@ -178,3 +180,19 @@ async function _loadUserConfig(
 
   return options;
 }
+
+const kvConfigKeys = new Set(["kv", "storage", "devStorage"]);
+
+// Mounts with a different driver (e.g. from `$development`) replace the whole mount instead of deep merging options
+const mergeConfig = createDefu((obj, key, value, namespace) => {
+  const current = obj[key] as { driver?: unknown } | undefined;
+  if (
+    kvConfigKeys.has(namespace) &&
+    value?.driver &&
+    current?.driver &&
+    value.driver !== current.driver
+  ) {
+    obj[key] = value;
+    return true;
+  }
+}) as (...sources: any[]) => any;

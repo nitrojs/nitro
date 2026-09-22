@@ -23,17 +23,20 @@ describe("resolveKVOptions", () => {
     expect(warn).toHaveBeenCalledOnce();
   });
 
-  it("still applies deprecated `devStorage` in development", async () => {
-    warn.mockClear();
-    const options = createOptions({
-      dev: true,
-      kv: { data: { driver: "redis" } },
-      devStorage: { data: { driver: "memory" } },
-    });
-    await resolveKVOptions(options);
-    expect(warn).toHaveBeenCalledOnce();
-    expect(resolveStorageMounts(options).map((m) => m.name)).toEqual(["memory"]);
-  });
+  it.each<Partial<NitroOptions>>([{ dev: true }, { preset: "nitro-prerender" }])(
+    "applies `devStorage` without warning (%o)",
+    async (env) => {
+      warn.mockClear();
+      const options = createOptions({
+        ...env,
+        kv: { data: { driver: "redis", host: "prod.example.com" } },
+        devStorage: { data: { driver: "memory" } },
+      });
+      await resolveKVOptions(options);
+      expect(warn).not.toHaveBeenCalled();
+      expect(resolveStorageMounts(options)).toMatchObject([{ name: "memory", options: {} }]);
+    }
+  );
 
   it("does not warn when only `kv` is used", async () => {
     warn.mockClear();

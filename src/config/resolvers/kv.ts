@@ -15,12 +15,6 @@ export async function resolveKVOptions(options: NitroOptions) {
   }
   options.storage = options.kv;
 
-  if (options.devStorage && Object.keys(options.devStorage).length > 0) {
-    consola.warn(
-      `"devStorage" option is deprecated. Please use "kv" inside "$development" config instead.`
-    );
-  }
-
   // Storage drivers lazily import their third-party dependencies.
   // Make sure the ones required by the configured mounts are installed.
   await ensureLibDeps(

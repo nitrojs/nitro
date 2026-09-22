@@ -229,7 +229,13 @@ export interface NitroOptions extends PresetOptions {
   /** @deprecated Migrate to `kv`. */
   storage: StorageMounts;
 
-  /** @deprecated Migrate to `kv` inside `$development` config. */
+  /**
+   * KV storage mount overrides for development and prerendering.
+   *
+   * Each mount replaces the matching `kv` mount entirely.
+   *
+   * @see https://nitro.build/config#devstorage
+   */
   devStorage: StorageMounts;
 
   /**
