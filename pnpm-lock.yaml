@@ -67,11 +67,11 @@ importers:
         specifier: ^2.0.10
         version: 2.0.10(debug@4.4.3)(supports-color@10.2.2)
       '@cloudflare/workers-types':
-        specifier: ^5.20260916.1
+        specifier: ^5.20260919.1
         version: 5.20260920.1
       '@cloudflare/workers-utils':
-        specifier: ^0.39
-        version: 0.39.1(vitest@4.1.11)
+        specifier: ^0.40.1
+        version: 0.40.1(vitest@4.1.11)
       '@deno/types':
         specifier: ^0.0.1
         version: 0.0.1
@@ -103,7 +103,7 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3(rollup@4.63.4)
       '@scalar/api-reference':
-        specifier: ^1.69.0
+        specifier: ^1.69.2
         version: 1.69.2(axios@1.20.0)(jwt-decode@4.0.0)(supports-color@10.2.2)(tailwindcss@4.3.3)(typescript@7.0.2)(zod@4.6.5)
       '@scalar/openapi-types':
         specifier: ^0.9.6
@@ -118,7 +118,7 @@ importers:
         specifier: ^1.8.4
         version: 1.8.4
       '@types/node':
-        specifier: ^26.6.1
+        specifier: ^26.6.2
         version: 26.6.2
       '@types/semver':
         specifier: ^7.8.0
@@ -127,8 +127,8 @@ importers:
         specifier: ^0.4.14
         version: 0.4.14
       '@vercel/queue':
-        specifier: ^0.5.1
-        version: 0.5.1(@opentelemetry/api@1.9.0)
+        specifier: ^0.6.0
+        version: 0.6.0(@opentelemetry/api@1.9.0)
       '@vitest/coverage-v8':
         specifier: ^4.1.11
         version: 4.1.11(vitest@4.1.11)
@@ -247,7 +247,7 @@ importers:
         specifier: ^0.1.1
         version: 0.1.1
       rollup:
-        specifier: ^4.63.3
+        specifier: ^4.63.4
         version: 4.63.4
       scule:
         specifier: ^1.3.0
@@ -289,7 +289,7 @@ importers:
         specifier: ^4.1.11
         version: 4.1.11(@opentelemetry/api@1.9.0)(@types/node@26.6.2)(@vitest/coverage-v8@4.1.11)(vite@8.3.0)
       wrangler:
-        specifier: ^4.132.0
+        specifier: ^4.135.0
         version: 4.135.0(@cloudflare/workers-types@5.20260920.1)(@types/node@26.6.2)
       xml2js:
         specifier: ^0.6.2
@@ -1108,8 +1108,8 @@ packages:
   '@cloudflare/workers-types@5.20260920.1':
     resolution: {integrity: sha512-wP7wbKqfQjFRGhE/tvu7bwvmBBTqJjvrETTvNzF4u5oolVEXt0gy6JxbqcUC2Khz0Cy+M/q7rhOOODng8VpnPw==}
 
-  '@cloudflare/workers-utils@0.39.1':
-    resolution: {integrity: sha512-M3FXX8bMhbPV498gJ3R7YPmDIaDPfFgVQJQD1tQkAK9pD9+PiqDb6C0khlE1Q+KBSaWu8P0QMtyUr6L047ZDWA==}
+  '@cloudflare/workers-utils@0.40.1':
+    resolution: {integrity: sha512-GnFrYLK/Q5Bdj01XMWHS5N4Wq4fyHQ/htRoM/HA8eXEcL2WlOAIzCdTjvmo2qbGbVKTMfs2yhdMRTPyirU+f0w==}
     peerDependencies:
       vitest: ^4.1.0
     peerDependenciesMeta:
@@ -3543,8 +3543,8 @@ packages:
     resolution: {integrity: sha512-aeq4/sgVh80zO6j2H+7FRfsG6NOXBrvzV1EEO8IdXPEJgwHIPakP+BFq3QmprsEQ18bIimds07kvaYhm2lehtg==}
     engines: {node: '>= 20'}
 
-  '@vercel/queue@0.5.1':
-    resolution: {integrity: sha512-7gO8hOtIh15UDzbjCg7oJDOwY1Hs3XC4xSK6HjMVo93Ge3oEhPZJ18ogamwZTXwcFRYwvgN1vp2w3+zgqfIpoA==}
+  '@vercel/queue@0.6.0':
+    resolution: {integrity: sha512-Le0A3ldZhnItV5f6zO101aBCL/Zty0RURD7b+RDA8+p6fuBhsiA2vSimbA2OysEIXYTEhANokGaSJrV6m7qpxw==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
       '@opentelemetry/api': ^1.0.0
@@ -7873,7 +7873,7 @@ snapshots:
 
   '@cloudflare/workers-types@5.20260920.1': {}
 
-  '@cloudflare/workers-utils@0.39.1(vitest@4.1.11)':
+  '@cloudflare/workers-utils@0.40.1(vitest@4.1.11)':
     dependencies:
       chalk: 5.3.0
       dotenv: 16.3.1
@@ -8190,7 +8190,7 @@ snapshots:
   '@floating-ui/vue@1.1.9(vue@3.5.43)':
     dependencies:
       '@floating-ui/dom': 1.8.0
-      '@floating-ui/utils': 0.2.10
+      '@floating-ui/utils': 0.2.12
       vue-demi: 0.14.10(vue@3.5.43)
     transitivePeerDependencies:
       - '@vue/composition-api'
@@ -10144,7 +10144,7 @@ snapshots:
       '@vercel/cli-exec': 1.0.1
       jose: 5.10.0
 
-  '@vercel/queue@0.5.1(@opentelemetry/api@1.9.0)':
+  '@vercel/queue@0.6.0(@opentelemetry/api@1.9.0)':
     dependencies:
       '@vercel/oidc': 3.8.8
       minimatch: 10.2.6
