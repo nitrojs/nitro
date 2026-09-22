@@ -576,6 +576,10 @@ export function testNitro(
         })
       ).data
     ).toBe("world");
+
+    expect((await callHandler({ url: "/api/storage/legacy?base=test&key=hello" })).data).toBe(
+      "world"
+    );
   });
 
   if (additionalTests) {
