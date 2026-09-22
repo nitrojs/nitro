@@ -9,7 +9,7 @@
 ## Deploy to AWS Amplify Hosting
 
 ::tip
-Integration with this provider is possible with [zero configuration](/deploy/#zero-config-providers).
+Integration with this provider is possible with [zero configuration](/deploy#zero-config-providers).
 ::
 
 1. Login to the [AWS Amplify Hosting Console](https://console.aws.amazon.com/amplify/)

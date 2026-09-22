@@ -7,7 +7,7 @@
 :read-more{title="Vercel Framework Support" to="https://vercel.com/docs/frameworks"}
 
 ::note
-Integration with this provider is possible with [zero configuration](/deploy/#zero-config-providers).
+Integration with this provider is possible with [zero configuration](/deploy#zero-config-providers).
 ::
 
 ## Getting started
