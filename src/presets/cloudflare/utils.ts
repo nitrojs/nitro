@@ -18,6 +18,9 @@ import {
 } from "ufo";
 import { unenvCfNodeCompat } from "./unenv/preset.ts";
 
+// https://github.com/nitrojs/nitro/issues/4527
+const NODEJS_COMPAT_DEFAULT_ON_DATE = "2026-08-04";
+
 export async function writeCFRoutes(nitro: Nitro) {
   const _cfPagesConfig = nitro.options.cloudflare?.pages || {};
   const routes: CloudflarePagesRoutes = {
@@ -283,6 +286,8 @@ export async function writeWranglerConfig(nitro: Nitro, cfTarget: "pages" | "mod
   wranglerConfig.compatibility_flags ??= [];
   if (
     nitro.options.cloudflare?.nodeCompat &&
+    (!wranglerConfig.compatibility_date ||
+      wranglerConfig.compatibility_date < NODEJS_COMPAT_DEFAULT_ON_DATE) &&
     !wranglerConfig.compatibility_flags.includes("nodejs_compat")
   ) {
     wranglerConfig.compatibility_flags.push("nodejs_compat");

@@ -4,7 +4,7 @@ import { join } from "pathe";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { writeWranglerConfig } from "../../src/presets/cloudflare/utils.ts";
 
-function createNitroStub(overrides: { static?: boolean } = {}) {
+function createNitroStub(overrides: { static?: boolean; compatibilityDate?: string } = {}) {
   const root = mkdtempSync(join(tmpdir(), "nitro-cf-wrangler-"));
   return {
     root,
@@ -19,7 +19,10 @@ function createNitroStub(overrides: { static?: boolean } = {}) {
           serverDir: join(root, ".output/server"),
           publicDir: join(root, ".output/public"),
         },
-        compatibilityDate: { cloudflare: "2025-10-24", default: "2025-10-24" },
+        compatibilityDate: {
+          cloudflare: overrides.compatibilityDate ?? "2025-10-24",
+          default: overrides.compatibilityDate ?? "2025-10-24",
+        },
         cloudflare: { deployConfig: true, nodeCompat: true },
         experimental: {},
         scheduledTasks: {},
@@ -69,4 +72,22 @@ describe("writeWranglerConfig (cloudflare-module)", () => {
     expect(config.no_bundle).toBeUndefined();
     expect(config.rules).toBeUndefined();
   });
+
+  it.each([
+    ["2024-09-22", []],
+    ["2024-09-23", ["nodejs_compat"]],
+    ["2024-09-24", ["nodejs_compat"]],
+    ["2026-08-03", ["nodejs_compat"]],
+    ["2026-08-04", []],
+    ["2026-08-05", []],
+  ])(
+    "uses the required Node.js compatibility flags for compatibility date %s",
+    async (compatibilityDate, expected) => {
+      const { root, nitro } = createNitroStub({ compatibilityDate });
+      cleanup.push(root);
+      await writeWranglerConfig(nitro, "module");
+      const config = JSON.parse(readFileSync(join(root, ".output/server/wrangler.json"), "utf8"));
+      expect(config.compatibility_flags).toEqual(expected);
+    }
+  );
 });
