@@ -11,8 +11,15 @@ export default function serverEntry(nitro: Nitro) {
       return /* js */ `
 import serverEntry from "${entry.handler}";
 const proto = serverEntry && Object.getPrototypeOf(serverEntry);
-const { fetch: _fetch, manual: _manual, ...serverEntryOptions } = proto === Object.prototype || proto === null ? serverEntry : {};
-export { serverEntryOptions };
+const allowedKeys = new Set(["port", "hostname", "reusePort", "protocol", "tls", "silent", "gracefulShutdown", "maxRequestBodySize", "trustProxy", "node", "bun", "deno"]);
+export const serverEntryOptions = {};
+if (proto === Object.prototype || proto === null) {
+  for (const key in serverEntry) {
+    if (allowedKeys.has(key)) {
+      serverEntryOptions[key] = serverEntry[key];
+    }
+  }
+}
 `;
     },
   };

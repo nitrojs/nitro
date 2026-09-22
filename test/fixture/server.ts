@@ -10,8 +10,10 @@ export default defineServerEntry({
   },
   // Passed to srvx (node, bun and deno servers)
   maxRequestBodySize: 64 * 1024,
+  // Ignored: request handling options would only apply to srvx presets
+  // @ts-expect-error
   middleware: [
-    (req, next) => {
+    (req: Request, next: () => Response | Promise<Response>) => {
       if (new URL(req.url).pathname === "/srvx-middleware") {
         return new Response("server entry middleware works!");
       }
@@ -19,8 +21,8 @@ export default defineServerEntry({
     },
   ],
   plugins: [
-    (server) => {
-      server.options.middleware.unshift(async (req, next) => {
+    (server: any) => {
+      server.options.middleware.unshift(async (req: Request, next: () => Promise<Response>) => {
         const res = await next();
         if (new URL(req.url).pathname === "/srvx-middleware") {
           res.headers.set("x-srvx-plugin", "works");

@@ -1,4 +1,4 @@
 import "./_runtime_warn.ts";
-import type { ServerOptions } from "srvx";
+import type { NitroServerEntry } from "nitro/types";
 
-export const serverEntryOptions: Omit<ServerOptions, "fetch"> = {};
+export const serverEntryOptions: Omit<NitroServerEntry, "fetch"> = {};

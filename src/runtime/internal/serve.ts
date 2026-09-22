@@ -10,7 +10,7 @@ import { tracingSrvxPlugins } from "#nitro/virtual/tracing";
  * over them, and the preset's own options (`fetch` and runtime specific settings) win last.
  */
 export function resolveServeOptions(opts: ServerOptions): ServerOptions {
-  const { port, hostname, tls, plugins, ...entryOptions } = serverEntryOptions;
+  const { port, hostname, tls, ...entryOptions } = serverEntryOptions;
 
   const env: Record<string, string | undefined> = globalThis.process?.env || {};
   const _parsedPort = Number.parseInt(env.NITRO_PORT ?? env.PORT ?? "");
@@ -24,7 +24,7 @@ export function resolveServeOptions(opts: ServerOptions): ServerOptions {
     hostname: env.NITRO_HOST || env.HOST || hostname,
     tls: cert && key ? { cert, key } : tls,
     ...opts,
-    plugins: [...tracingSrvxPlugins, ...(plugins || []), ...(opts.plugins || [])],
+    plugins: [...tracingSrvxPlugins, ...(opts.plugins || [])],
   };
 
   for (const runtime of ["node", "bun", "deno"] as const) {
