@@ -172,26 +172,37 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
       ),
     },
     routes: [
-      // Redirect and header rules
+      // Header-only rules (least specific first, so more specific headers override on `continue`)
       ...rules
-        .filter(([_, routeRules]) => routeRules.redirect || routeRules.headers)
+        .filter(([_, routeRules]) => routeRules.headers && !routeRules.redirect)
+        .reverse()
+        .map(([path, routeRules]) => ({
+          src: path.replace("/**", "/(.*)"),
+          headers: routeRules.headers,
+          continue: true,
+        })),
+      // Redirect rules
+      ...rules
+        .filter(
+          (
+            entry
+          ): entry is [
+            string,
+            NitroRouteRules & {
+              redirect: NonNullable<NitroRouteRules["redirect"]>;
+            },
+          ] => !!entry[1].redirect
+        )
         .map(([path, routeRules]) => {
           let route = {
             src: path.replace("/**", "/(.*)"),
+            status: routeRules.redirect.statusCode,
+            headers: {
+              Location: routeRules.redirect.to.replace("/**", "/$1"),
+            },
           };
-          if (routeRules.redirect) {
-            route = defu(route, {
-              status: routeRules.redirect.statusCode,
-              headers: {
-                Location: routeRules.redirect.to.replace("/**", "/$1"),
-              },
-            });
-          }
           if (routeRules.headers) {
             route = defu(route, { headers: routeRules.headers });
-          }
-          if (!routeRules.redirect) {
-            route = defu(route, { continue: true });
           }
           return route;
         }),

@@ -44,6 +44,38 @@ describe("nitro:preset:vercel", async () => {
             },
             "routes": [
               {
+                "continue": true,
+                "headers": {
+                  "x-test": "test",
+                },
+                "src": "/(.*)",
+              },
+              {
+                "continue": true,
+                "headers": {
+                  "cache-control": "public, max-age=3600, immutable",
+                  "x-build-header": "works",
+                },
+                "src": "/build/(.*)",
+              },
+              {
+                "continue": true,
+                "headers": {
+                  "access-control-allow-headers": "*",
+                  "access-control-allow-methods": "GET",
+                  "access-control-allow-origin": "*",
+                  "access-control-max-age": "0",
+                },
+                "src": "/rules/cors",
+              },
+              {
+                "continue": true,
+                "headers": {
+                  "cache-control": "s-maxage=60",
+                },
+                "src": "/rules/headers",
+              },
+              {
                 "headers": {
                   "Location": "https://nitro.build/",
                 },
@@ -72,23 +104,6 @@ describe("nitro:preset:vercel", async () => {
                 "status": 307,
               },
               {
-                "continue": true,
-                "headers": {
-                  "cache-control": "s-maxage=60",
-                },
-                "src": "/rules/headers",
-              },
-              {
-                "continue": true,
-                "headers": {
-                  "access-control-allow-headers": "*",
-                  "access-control-allow-methods": "GET",
-                  "access-control-allow-origin": "*",
-                  "access-control-max-age": "0",
-                },
-                "src": "/rules/cors",
-              },
-              {
                 "headers": {
                   "Location": "/base",
                 },
@@ -102,21 +117,6 @@ describe("nitro:preset:vercel", async () => {
                 },
                 "src": "/rules/nested/(.*)",
                 "status": 307,
-              },
-              {
-                "continue": true,
-                "headers": {
-                  "cache-control": "public, max-age=3600, immutable",
-                  "x-build-header": "works",
-                },
-                "src": "/build/(.*)",
-              },
-              {
-                "continue": true,
-                "headers": {
-                  "x-test": "test",
-                },
-                "src": "/(.*)",
               },
               {
                 "continue": true,
@@ -432,6 +432,21 @@ describe("nitro:preset:vercel", async () => {
             "version": 3,
           }
         `);
+      });
+
+      it("should order header-only rules from least to most specific", async () => {
+        const config = await fsp
+          .readFile(resolve(ctx.outDir, "config.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        const headerRoutes = config.routes
+          .filter(
+            (route: { continue?: boolean; status?: number }) =>
+              route.continue && !route.status
+          )
+          .map((route: { src: string }) => route.src);
+        expect(headerRoutes.indexOf("/(.*)")).toBeLessThan(
+          headerRoutes.indexOf("/rules/headers")
+        );
       });
 
       it("should generate prerender config", async () => {
