@@ -213,7 +213,7 @@ declare module "nitropack/types" {
     const tsConfig: TSConfig = defu(nitro.options.typescript.tsConfig, {
       compilerOptions: {
         forceConsistentCasingInFileNames: true,
-        strict: nitro.options.typescript.strict,
+        strict: nitro.options.typescript.strict ?? false,
         noEmit: true,
         skipLibCheck: true,
         target: "ESNext",
