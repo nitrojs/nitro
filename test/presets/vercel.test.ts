@@ -147,12 +147,14 @@ describe("nitro:preset:vercel:web", async () => {
                 "status": 307,
               },
               {
+                "continue": true,
                 "headers": {
                   "cache-control": "s-maxage=60",
                 },
                 "src": "/rules/headers",
               },
               {
+                "continue": true,
                 "headers": {
                   "access-control-allow-methods": "GET",
                 },
@@ -174,18 +176,21 @@ describe("nitro:preset:vercel:web", async () => {
                 "status": 307,
               },
               {
+                "continue": true,
                 "headers": {
                   "x-single": "single",
                 },
                 "src": "/single-headers/*",
               },
               {
+                "continue": true,
                 "headers": {
                   "cache-control": "public, max-age=3600, immutable",
                 },
                 "src": "/build/(.*)",
               },
               {
+                "continue": true,
                 "headers": {
                   "x-test": "test",
                 },
