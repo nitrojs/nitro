@@ -126,6 +126,16 @@ export async function setupTest(
     compatibilityDate: opts.compatibilityDate || formatDate(new Date()),
   }));
 
+  // Isolate the default sqlite database per preset build (defaults to `<cwd>/.data/db.sqlite`),
+  // otherwise parallel test files race on the same file ("database is locked").
+  const defaultDatabase = nitro.options.database?.default;
+  if (defaultDatabase?.connector === "sqlite" && !defaultDatabase.options?.path) {
+    defaultDatabase.options = {
+      ...defaultDatabase.options,
+      path: resolve(presetTmpDir, ".data/db.sqlite"),
+    };
+  }
+
   if (ctx.isDev) {
     // Setup development server
     const devServer = createDevServer(ctx.nitro);
@@ -248,6 +258,30 @@ export function testNitro(
     expect(data).toBe("server entry works!");
     expect(headers["x-test"]).toBe("test");
   });
+
+  it("server entry middleware and plugins are not passed to srvx", async () => {
+    const { data, headers } = await callHandler({ url: "/srvx-middleware" });
+    expect(data).not.toBe("server entry middleware works!");
+    expect(headers["x-srvx-plugin"]).toBeUndefined();
+  });
+
+  it.runIf(["bun", "deno-server", "nitro-dev"].includes(ctx.preset))(
+    "Server entry options are passed to srvx",
+    async () => {
+      const small = await callHandler({
+        url: "/api/body-size",
+        method: "POST",
+        body: "x".repeat(1024),
+      });
+      expect(small.data).toEqual({ length: 1024 });
+      const large = await callHandler({
+        url: "/api/body-size",
+        method: "POST",
+        body: "x".repeat(128 * 1024),
+      });
+      expect(large.status).toBe(413);
+    }
+  );
 
   it("middleware runs in order: route rules, global, routed, then the route handler", async () => {
     const { data, headers } = await callHandler({ url: "/api/middleware-order" });
@@ -517,10 +551,11 @@ export function testNitro(
       depLib: "@fixture/nitro-lib@2.0.0+@fixture/nested-lib@2.0.0",
       subpathLib: "@fixture/nitro-lib@2.0.0",
       extraUtils: "@fixture/nitro-utils/extra",
+      cjsRequirer: "@fixture/nitro-native-mock",
     });
   });
 
-  it.skipIf(ctx.isIsolated)("useStorage (with base)", { retry: 5 }, async () => {
+  it.skipIf(ctx.isIsolated)("useKV (with base)", { retry: 5 }, async () => {
     const putRes = await callHandler({
       url: "/api/storage/item?key=test:hello",
       method: "PUT",
@@ -551,6 +586,10 @@ export function testNitro(
         })
       ).data
     ).toBe("world");
+
+    expect((await callHandler({ url: "/api/storage/legacy?base=test&key=hello" })).data).toBe(
+      "world"
+    );
   });
 
   if (additionalTests) {

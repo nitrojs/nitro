@@ -185,7 +185,7 @@ class ViteEnvRunner {
     if (!this.entry) {
       throw httpError(503, `Vite environment "${this.name}" is unavailable`);
     }
-    const entryFetch = this.entry.fetch || this.entry.default?.fetch;
+    const entryFetch = this.entry.default?.fetch || this.entry.fetch;
     if (!entryFetch) {
       throw httpError(500, `No fetch handler exported from ${this.entryPath}`);
     }

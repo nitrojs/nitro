@@ -6,7 +6,7 @@ import {
 } from "ocache";
 import type { CachedFunction, StorageInterface } from "ocache";
 import { useNitroApp } from "./app.ts";
-import { useStorage } from "./storage.ts";
+import { useKV } from "./kv.ts";
 
 import type { EventHandler, H3Event } from "h3";
 import type { CacheOptions, CachedEventHandlerOptions } from "nitro/types";
@@ -15,7 +15,7 @@ let _cacheStorage: StorageInterface | undefined;
 
 function cacheStorage(): StorageInterface {
   if (!_cacheStorage) {
-    const storage = useStorage();
+    const storage = useKV();
     _cacheStorage = {
       get: (key) => storage.getItem(key) as any,
       set: (key, value, opts) =>

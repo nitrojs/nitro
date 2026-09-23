@@ -20,11 +20,19 @@ export interface PreviewInstance {
   close: () => Promise<void>;
 }
 
-export async function startPreview(opts: {
+export interface PreviewOptions {
+  /** Project root directory (used to locate the build output and load `.env` files). */
   rootDir: string;
+  /** Explicit build output directory, resolved relative to `rootDir` (defaults to the last build output). */
+  outputDir?: string;
   loader?: LoadOptions;
-}): Promise<PreviewInstance> {
-  const { outputDir, buildInfo } = await getBuildInfo(opts.rootDir);
+}
+
+export async function startPreview(opts: PreviewOptions): Promise<PreviewInstance> {
+  const { outputDir, buildInfo } = await getBuildInfo({
+    rootDir: opts.rootDir,
+    outputDir: opts.outputDir,
+  });
   if (!buildInfo) {
     throw new Error("Cannot load nitro build info. Make sure to build first.");
   }

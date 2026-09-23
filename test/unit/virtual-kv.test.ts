@@ -18,47 +18,45 @@ vi.mock("../../src/utils/dep.ts", async (importOriginal) => {
   };
 });
 
-const { default: storage } = await import("../../src/build/virtual/storage.ts");
+const { default: kv } = await import("../../src/build/virtual/kv.ts");
 
 function createNitroStub(
   tracingChannel: Nitro["options"]["tracingChannel"],
-  storage: Nitro["options"]["storage"] = {}
+  kv: Nitro["options"]["kv"] = {}
 ): Nitro {
   return {
     options: {
       dev: true,
       preset: "nitro-dev",
       rootDir: process.cwd(),
-      storage,
+      kv,
       devStorage: {},
       tracingChannel,
     },
   } as unknown as Nitro;
 }
 
-describe("virtual/storage template", () => {
+describe("virtual/kv template", () => {
   it("does not wrap storage when tracingChannel is disabled", () => {
-    const template = storage(createNitroStub(undefined)).template();
+    const template = kv(createNitroStub(undefined)).template();
     expect(template).not.toContain("withTracing");
     expect(template).not.toContain("unstorage/tracing");
     expect(template).toContain("return storage");
   });
 
   it("does not wrap storage when tracingChannel.unstorage is false", () => {
-    const template = storage(
-      createNitroStub({ srvx: true, h3: true, unstorage: false })
-    ).template();
+    const template = kv(createNitroStub({ srvx: true, h3: true, unstorage: false })).template();
     expect(template).not.toContain("withTracing");
   });
 
   it("wraps storage with withTracing when tracingChannel.unstorage is true", () => {
-    const template = storage(createNitroStub({ srvx: true, h3: true, unstorage: true })).template();
+    const template = kv(createNitroStub({ srvx: true, h3: true, unstorage: true })).template();
     expect(template).toContain(`import { withTracing } from 'unstorage/tracing'`);
     expect(template).toContain("return withTracing(storage)");
   });
 
   it("provides installed driver dependencies via the `lib` option", () => {
-    const template = storage(
+    const template = kv(
       createNitroStub(undefined, { "/data": { driver: "fs", base: "./data" } })
     ).template();
     expect(template).toContain(
@@ -69,7 +67,7 @@ describe("virtual/storage template", () => {
   it("uses the driver import specifier when it differs from the package name", () => {
     mockedDeps.add("uploadthing");
     try {
-      const template = storage(
+      const template = kv(
         createNitroStub(undefined, { "/files": { driver: "uploadthing", token: "x" } })
       ).template();
       expect(template).toContain(`lib: () => import("uploadthing/server")`);
@@ -79,7 +77,7 @@ describe("virtual/storage template", () => {
   });
 
   it("does not provide `lib` for dependencies that are not installed", () => {
-    const template = storage(
+    const template = kv(
       createNitroStub(undefined, { "/cache": { driver: "redis", base: "cache" } })
     ).template();
     expect(template).toContain(
@@ -95,7 +93,7 @@ describe("virtual/storage template", () => {
 
     const nitro = createNitroStub(undefined, { "/data": { driver: "fs", base: "./data" } });
     nitro.options.rootDir = rootDir;
-    const template = storage(nitro).template();
+    const template = kv(nitro).template();
     expect(template).toContain(
       `storage.mount('/data', unstorage_47drivers_47fs({"base":"./data"}))`
     );
@@ -103,7 +101,7 @@ describe("virtual/storage template", () => {
   });
 
   it("does not override a user provided `lib` option", () => {
-    const template = storage(
+    const template = kv(
       createNitroStub(undefined, { "/data": { driver: "fs", lib: null } })
     ).template();
     expect(template).not.toContain("chokidar");

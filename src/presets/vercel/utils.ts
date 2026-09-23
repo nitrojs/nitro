@@ -9,6 +9,7 @@ import type {
   PrerenderRoute,
   ProxyRuleOptions,
   PublicAssetDir,
+  RedirectRuleOptions,
 } from "nitro/types";
 import { basename, dirname, relative, resolve } from "pathe";
 import { Router } from "../../routing.ts";
@@ -97,7 +98,9 @@ export async function generateFunctionFiles(nitro: Nitro) {
   const hasRouteFunctionConfig = functionRules && Object.keys(functionRules).length > 0;
   let routeFuncRouter: Router<VercelServerlessFunctionConfig> | undefined;
   if (hasRouteFunctionConfig) {
-    routeFuncRouter = new Router<VercelServerlessFunctionConfig>();
+    // Looked up with route *patterns* (a `routeRules` key, a Vercel `src` regex),
+    // not with a request path, so the patterns stay exactly as authored.
+    routeFuncRouter = new Router<VercelServerlessFunctionConfig>(undefined, { normalize: false });
     routeFuncRouter._update(
       Object.entries(functionRules).map(([route, data]) => ({
         route,
@@ -250,24 +253,33 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     },
     overrides: getPrerenderOverrides(nitro._prerenderedRoutes),
     routes: [
-      // Redirect and header rules (excluding paths handled as CDN proxy rewrites)
+      // Header-only rules (least specific first, so more specific headers override on `continue`)
+      // `redirect: false` stops routing so that less specific redirects below cannot match
       ...rules
         .filter(
           ([path, routeRules]) =>
-            (routeRules.redirect || routeRules.headers) && !cdnProxyPaths.has(path)
+            routeRules.headers && !routeRules.redirect && !cdnProxyPaths.has(path)
+        )
+        .reverse()
+        .map(([path, routeRules]) => ({
+          src: path.replace("/**", "/(.*)"),
+          headers: routeRules.headers,
+          ...(routeRules.redirect === false ? {} : { continue: true }),
+        })),
+      // Redirect rules (excluding paths handled as CDN proxy rewrites)
+      ...rules
+        .filter(
+          (entry): entry is [string, NitroRouteRules & { redirect: RedirectRuleOptions }] =>
+            !!entry[1].redirect && !cdnProxyPaths.has(entry[0])
         )
         .map(([path, routeRules]) => {
           let route = {
             src: path.replace("/**", "/(.*)"),
+            status: routeRules.redirect.status,
+            headers: {
+              Location: routeRules.redirect.to.replace("**", "$1"),
+            },
           };
-          if (routeRules.redirect) {
-            route = defu(route, {
-              status: routeRules.redirect.status,
-              headers: {
-                Location: routeRules.redirect.to.replace("**", "$1"),
-              },
-            });
-          }
           if (routeRules.headers) {
             route = defu(route, { headers: routeRules.headers });
           }

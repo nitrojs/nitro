@@ -28,42 +28,21 @@ const zephyr = defineNitroPreset(
       lazy: false,
       esmImport: true,
     },
+    commands: {
+      deploy: deployToZephyr,
+    },
     hooks: {
       "build:before": (nitro: Nitro) => {
         nitro.options.unenv.push(unenvCfExternals, unenvCfNodeCompat);
       },
       compiled: async (nitro: Nitro) => {
-        try {
-          if (!(globalThis as any).__nitroDeploying__ && !nitro.options.zephyr?.deployOnBuild) {
-            nitro.logger.info(`[${LOGGER_TAG}] Zephyr deploy skipped on build.`);
-            return;
-          }
-
-          const zephyrAgent = await importDep<ZephyrAgentModule>({
-            id: "zephyr-agent",
-            reason: "deploying to Zephyr",
-            dir: nitro.options.rootDir,
-          });
-
-          const { deploymentUrl } = await zephyrAgent.uploadOutputToZephyr({
-            rootDir: nitro.options.rootDir,
-            outputDir: nitro.options.output.dir,
-            baseURL: nitro.options.baseURL,
-            publicDir: resolve(nitro.options.output.dir, nitro.options.output.publicDir),
-          });
-          if (deploymentUrl) {
-            nitro.logger.success(`[${LOGGER_TAG}] Zephyr deployment succeeded: ${deploymentUrl}`);
-          } else {
-            nitro.logger.success(`[${LOGGER_TAG}] Zephyr deployment succeeded.`);
-          }
-
-          (globalThis as any).__nitroDeployed__ = true;
-        } catch (error) {
-          if (error instanceof Error) {
-            throw error;
-          }
-          throw new TypeError(`[${LOGGER_TAG}] ${String(error)}`);
+        if (!nitro.options.zephyr?.deployOnBuild) {
+          nitro.logger.info(
+            `[${LOGGER_TAG}] Skipping Zephyr deploy on build (use \`nitro deploy\` or set \`zephyr.deployOnBuild\`).`
+          );
+          return;
         }
+        await deployToZephyr(nitro);
       },
     },
   },
@@ -73,3 +52,39 @@ const zephyr = defineNitroPreset(
 );
 
 export default [zephyr] as const;
+
+// --- internal ---
+
+const deployed = new WeakSet<Nitro>();
+
+async function deployToZephyr(nitro: Nitro): Promise<void> {
+  if (deployed.has(nitro)) {
+    nitro.logger.info(`[${LOGGER_TAG}] Zephyr deployment already done during build.`);
+    return;
+  }
+  try {
+    const zephyrAgent = await importDep<ZephyrAgentModule>({
+      id: "zephyr-agent",
+      reason: "deploying to Zephyr",
+      dir: nitro.options.rootDir,
+    });
+
+    const { deploymentUrl } = await zephyrAgent.uploadOutputToZephyr({
+      rootDir: nitro.options.rootDir,
+      outputDir: nitro.options.output.dir,
+      baseURL: nitro.options.baseURL,
+      publicDir: resolve(nitro.options.output.dir, nitro.options.output.publicDir),
+    });
+    if (deploymentUrl) {
+      nitro.logger.success(`[${LOGGER_TAG}] Zephyr deployment succeeded: ${deploymentUrl}`);
+    } else {
+      nitro.logger.success(`[${LOGGER_TAG}] Zephyr deployment succeeded.`);
+    }
+    deployed.add(nitro);
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new TypeError(`[${LOGGER_TAG}] ${String(error)}`);
+  }
+}

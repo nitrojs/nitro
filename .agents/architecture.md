@@ -58,7 +58,7 @@ All prefixed `#nitro/virtual/<name>`:
 - `server-assets.ts` — Server asset metadata
 - `runtime-config.ts` — Runtime config object
 - `database.ts` — Database setup
-- `storage.ts` — Storage backends
+- `kv.ts` — KV storage backends
 - `tasks.ts` — Task registry
 - `polyfills.ts` — Env polyfills
 - `feature-flags.ts` — Feature detection
@@ -91,7 +91,7 @@ All prefixed `#nitro/virtual/<name>`:
 - `plugin.ts` — Plugin helpers
 - `runtime-config.ts` — Config getter
 
-**Public exports**: `runtime/app.ts` (`defineConfig()`), `runtime/nitro.ts` (`serverFetch()`), `runtime/cache.ts`, `runtime/task.ts`, `runtime/storage.ts`, etc.
+**Public exports**: `runtime/app.ts` (`defineConfig()`), `runtime/nitro.ts` (`serverFetch()`), `runtime/cache.ts`, `runtime/task.ts`, `runtime/kv.ts`, etc.
 
 ## Dev Server (`src/dev/`)
 

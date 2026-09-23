@@ -22,7 +22,7 @@ import type {
 } from "./handler.ts";
 import type { NitroHooks } from "./hooks.ts";
 import type { NitroModuleInput } from "./module.ts";
-import type { NitroFrameworkInfo } from "./nitro.ts";
+import type { Nitro, NitroFrameworkInfo } from "./nitro.ts";
 import type { NitroOpenAPIConfig } from "./openapi.ts";
 export type { NitroOpenAPIConfig } from "./openapi.ts";
 import type { NitroPreset } from "./preset.ts";
@@ -216,25 +216,20 @@ export interface NitroOptions extends PresetOptions {
   // Features
 
   /**
-   * Storage mount configuration.
+   * KV storage mount configuration.
    *
    * Keys are mount-point paths; values specify the unstorage driver and
    * its options.
    *
-   * @see https://nitro.build/config#storage
+   * @see https://nitro.build/config#kv
    * @see https://nitro.build/docs/storage
    */
+  kv: StorageMounts;
+
+  /** @deprecated Migrate to `kv`. */
   storage: StorageMounts;
 
-  /**
-   * Storage mount overrides for development mode.
-   *
-   * Useful for swapping production drivers (e.g. Redis) with local
-   * alternatives (e.g. filesystem) during development.
-   *
-   * @see https://nitro.build/config#devstorage
-   * @see https://nitro.build/docs/storage
-   */
+  /** @deprecated Migrate to `kv` inside `$development` (and `$prerender`) config. */
   devStorage: StorageMounts;
 
   /**
@@ -720,6 +715,21 @@ export interface NitroOptions extends PresetOptions {
   builder?: "rollup" | "rolldown" | "vite";
 
   /**
+   * Options for the `vite` builder and the `nitro/vite` plugin.
+   */
+  vite?: {
+    /**
+     * The `vite` package to use, as a path or `file://` URL to its directory or entry
+     * (e.g. `import.meta.resolve("vite")`).
+     *
+     * By default, `vite` is resolved from the project root. A framework running Vite
+     * programmatically should pass its own `vite` so the dev module runner matches the
+     * running instance (in a monorepo, another version could be hoisted next to the app).
+     */
+    path?: string;
+  };
+
+  /**
    * Additional Rollup configuration.
    *
    * @see https://nitro.build/config#rollupconfig
@@ -831,8 +841,8 @@ export interface NitroOptions extends PresetOptions {
   /**
    * Prevent packages from being externalized.
    *
-   * Set to `true` to bundle all dependencies, or pass an array of
-   * package names or patterns.
+   * Set to `true` to bundle all dependencies, or pass an array of patterns
+   * matched against both the import specifier and the resolved module path.
    *
    * @see https://nitro.build/config#noexternals
    */
@@ -888,8 +898,13 @@ export interface NitroOptions extends PresetOptions {
   commands: {
     /** Command to preview the production build locally. */
     preview?: string;
-    /** Command to deploy the production build. */
-    deploy?: string;
+    /**
+     * Command to deploy the production build.
+     *
+     * Can be a shell command (`./` paths are resolved relative to the output directory)
+     * or a function (used by presets that deploy programmatically).
+     */
+    deploy?: string | ((nitro: Nitro, opts: { args?: string[] }) => void | Promise<void>);
   };
 
   /**
@@ -942,6 +957,9 @@ export interface NitroConfig
       >
     >,
     C12InputConfig<NitroConfig> {
+  /** Config overrides applied when prerendering (on top of `$production`). */
+  $prerender?: NitroConfig;
+
   preset?: PresetNameInput;
 
   /**
@@ -1081,7 +1099,7 @@ export type StorageMount = BuiltinStorageMount | CustomStorageMount;
  * Keys are storage mount-point paths; values specify the unstorage driver
  * and its options.
  *
- * @see https://nitro.build/config#storage
+ * @see https://nitro.build/config#kv
  * @see https://nitro.build/docs/storage
  */
 export interface StorageMounts {

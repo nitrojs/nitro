@@ -1,5 +1,5 @@
 import { join } from "pathe";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { ViteDevServer } from "vite";
 import { describe, test, expect, beforeAll, afterEach, afterAll } from "vitest";
@@ -15,6 +15,8 @@ describe("vite:hmr", { sequential: true }, () => {
 
   const rootDir = fileURLToPath(new URL("./hmr-fixture", import.meta.url));
 
+  const addedRouteFile = join(rootDir, "api/added.ts");
+
   const files = {
     client: openFileForEditing(join(rootDir, "app/entry-client.ts")),
     api: openFileForEditing(join(rootDir, "api/state.ts")),
@@ -24,6 +26,7 @@ describe("vite:hmr", { sequential: true }, () => {
   };
 
   beforeAll(async () => {
+    rmSync(addedRouteFile, { force: true });
     process.chdir(rootDir);
     server = await createServer({ root: rootDir, logLevel: "warn" });
 
@@ -150,6 +153,20 @@ describe("vite:hmr", { sequential: true }, () => {
     files.dep.update((content) => content.replace(`"original"`, `"modified"`));
     await pollResponse(`${serverURL}/api/crawled`, /modified/);
     expect(wsMessages).toMatchObject([{ type: "full-reload" }]);
+  });
+
+  // Route files that are added or removed have to be picked up by a rescan of
+  // the scan dirs (vite's own watcher only knows about loaded modules).
+  test("adding and removing an API route", async () => {
+    expect(await fetch(`${serverURL}/api/added`).then((r) => r.text())).not.toContain(
+      "added route"
+    );
+
+    writeFileSync(addedRouteFile, `export default () => "added route";`);
+    await pollResponse(`${serverURL}/api/added`, /added route/);
+
+    rmSync(addedRouteFile);
+    await pollResponse(`${serverURL}/api/added`, (txt) => !txt.includes("added route"));
   });
 
   async function ssrEvals(): Promise<number> {

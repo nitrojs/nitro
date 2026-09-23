@@ -153,7 +153,11 @@ export default defineConfig({
 
 :read-more{title="Securing cron jobs" to="https://vercel.com/docs/cron-jobs/manage-cron-jobs#securing-cron-jobs"}
 
-To prevent unauthorized access to the cron handler, set a `CRON_SECRET` environment variable in your Vercel project settings. When `CRON_SECRET` is set, Nitro validates the `Authorization` header on every cron invocation.
+To prevent unauthorized access to the cron handler, set a `CRON_SECRET` environment variable in your Vercel project settings. When `CRON_SECRET` is set, Nitro validates the `Authorization` header on every cron invocation and rejects mismatches with `401`.
+
+::warning
+`CRON_SECRET` is **not** set by default. Matching [Vercel's own behaviour](https://vercel.com/docs/cron-jobs/manage-cron-jobs#securing-cron-jobs), the cron endpoint (`/_vercel/cron`, configurable via [`vercel.cronHandlerRoute`](#other-preset-options)) performs no authentication when the variable is missing. Anyone who knows the route can then pick a schedule with the `x-vercel-cron-schedule` header and run the tasks registered for it on demand. Always set `CRON_SECRET` when using `scheduledTasks` on Vercel.
+::
 
 ## Queues
 
@@ -335,6 +339,10 @@ Additional options are available under the `vercel` key in your Nitro config:
 ## On-demand incremental static regeneration (ISR)
 
 On-demand revalidation lets you purge the cache for an ISR route whenever you want, without waiting for the interval used by background revalidation.
+
+::warning
+Do not combine the `isr` and `prerender` route rules on the same route. Prerendered pages are written as static files at build time and Vercel serves them from the filesystem before the ISR function is reached, so `isr` never applies. Use `isr` alone when you need regeneration after deployment.
+::
 
 To revalidate a page on demand:
 
