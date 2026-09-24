@@ -87,7 +87,7 @@ export default defineConfig({
 });
 ```
 
-Route patterns support wildcards via [rou3](https://github.com/h3js/rou3) matching (e.g., `/api/slow/**` matches all routes under `/api/slow/`).
+Route patterns use [rou3](https://github.com/h3js/rou3) syntax, such as `/users/:id`, `/pages/:slug?`, and `/api/slow/**`.
 
 ## Proxy route rules
 

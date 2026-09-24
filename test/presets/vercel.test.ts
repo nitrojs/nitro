@@ -119,82 +119,82 @@ describe("nitro:preset:vercel:web", async () => {
                 "headers": {
                   "x-test": "test",
                 },
-                "src": "/(.*)",
+                "src": "^/?(?<_>.*)/?$",
               },
               {
                 "continue": true,
                 "headers": {
                   "cache-control": "public, max-age=3600, immutable",
                 },
-                "src": "/build/(.*)",
+                "src": "^/build(?:/(?<_>.*))?/?$",
               },
               {
                 "continue": true,
                 "headers": {
                   "x-single": "single",
                 },
-                "src": "/single-headers/*",
+                "src": "^/single-headers/(?<_0>[^/]*)/?$",
               },
               {
                 "continue": true,
                 "headers": {
                   "access-control-allow-methods": "GET",
                 },
-                "src": "/rules/cors",
+                "src": "^/rules/cors/?$",
               },
               {
                 "continue": true,
                 "headers": {
                   "cache-control": "s-maxage=60",
                 },
-                "src": "/rules/headers",
+                "src": "^/rules/headers/?$",
               },
               {
                 "headers": {
                   "x-keep": "keep",
                 },
-                "src": "/rules/nested/keep",
+                "src": "^/rules/nested/keep/?$",
               },
               {
                 "headers": {
                   "Location": "https://nitro.build/",
                 },
-                "src": "/rules/redirect/obj",
+                "src": "^/rules/redirect/obj/?$",
                 "status": 308,
               },
               {
                 "headers": {
-                  "Location": "https://nitro.build/$1",
+                  "Location": "https://nitro.build/$_",
                 },
-                "src": "/rules/redirect/wildcard/(.*)",
+                "src": "^/rules/redirect/wildcard(?:/(?<_>.*))?/?$",
                 "status": 307,
               },
               {
                 "headers": {
-                  "Location": "/target?param=$1",
+                  "Location": "/target?param=$_",
                 },
-                "src": "/rules/redirect/wildcard-query/(.*)",
+                "src": "^/rules/redirect/wildcard-query(?:/(?<_>.*))?/?$",
                 "status": 301,
               },
               {
                 "headers": {
-                  "Location": "/$1",
+                  "Location": "/$_",
                 },
-                "src": "/rules/redirect/legacy/(.*)",
+                "src": "^/rules/redirect/legacy(?:/(?<_>.*))?/?$",
                 "status": 307,
               },
               {
                 "headers": {
                   "Location": "/other",
                 },
-                "src": "/rules/nested/override",
+                "src": "^/rules/nested/override/?$",
                 "status": 307,
               },
               {
                 "headers": {
                   "Location": "/base",
                 },
-                "src": "/rules/redirect",
+                "src": "^/rules/redirect/?$",
                 "status": 307,
               },
               {
@@ -202,12 +202,12 @@ describe("nitro:preset:vercel:web", async () => {
                   "Location": "/base",
                   "x-test": "test",
                 },
-                "src": "/rules/nested/(.*)",
+                "src": "^/rules/nested(?:/(?<_>.*))?/?$",
                 "status": 307,
               },
               {
-                "dest": "https://cdn.jsdelivr.net/$1",
-                "src": "/cdn/(.*)",
+                "dest": "https://cdn.jsdelivr.net/$_",
+                "src": "^/cdn(?:/(?<_>.*))?/?$",
               },
               {
                 "handle": "filesystem",
@@ -222,259 +222,259 @@ describe("nitro:preset:vercel:web", async () => {
               },
               {
                 "dest": "/rules/_/noncached/cached-isr?__isr_route=$__isr_route",
-                "src": "(?<__isr_route>/rules/_/noncached/cached)",
+                "src": "^(?<__isr_route>/rules/_/noncached/cached/?)$",
               },
               {
                 "dest": "/__server",
-                "src": "(?<__isr_route>/rules/_/cached/noncached)",
+                "src": "^(?<__isr_route>/rules/_/cached/noncached/?)$",
               },
               {
                 "dest": "/__server",
-                "src": "(?<__isr_route>/rules/_/noncached/(?:.*))",
+                "src": "^(?<__isr_route>/rules/_/noncached(?:/(?<_>.*))?/?)$",
               },
               {
                 "dest": "/rules/_/cached/[...]-isr?__isr_route=$__isr_route",
-                "src": "(?<__isr_route>/rules/_/cached/(?:.*))",
+                "src": "^(?<__isr_route>/rules/_/cached(?:/(?<_>.*))?/?)$",
               },
               {
                 "dest": "/__server",
-                "src": "(?<__isr_route>/rules/dynamic)",
+                "src": "^(?<__isr_route>/rules/dynamic/?)$",
               },
               {
                 "dest": "/rules/isr/[...]-isr?__isr_route=$__isr_route",
-                "src": "(?<__isr_route>/rules/isr/(?:.*))",
+                "src": "^(?<__isr_route>/rules/isr(?:/(?<_>.*))?/?)$",
               },
               {
                 "dest": "/rules/isr-ttl/[...]-isr?__isr_route=$__isr_route",
-                "src": "(?<__isr_route>/rules/isr-ttl/(?:.*))",
+                "src": "^(?<__isr_route>/rules/isr-ttl(?:/(?<_>.*))?/?)$",
               },
               {
                 "dest": "/rules/swr/[...]-isr?__isr_route=$__isr_route",
-                "src": "(?<__isr_route>/rules/swr/(?:.*))",
+                "src": "^(?<__isr_route>/rules/swr(?:/(?<_>.*))?/?)$",
               },
               {
                 "dest": "/rules/swr-ttl/[...]-isr?__isr_route=$__isr_route",
-                "src": "(?<__isr_route>/rules/swr-ttl/(?:.*))",
+                "src": "^(?<__isr_route>/rules/swr-ttl(?:/(?<_>.*))?/?)$",
               },
               {
                 "dest": "/api/hello",
-                "src": "/api/hello",
+                "src": "^/api/hello/?$",
               },
               {
                 "dest": "/api/echo",
-                "src": "/api/echo",
+                "src": "^/api/echo/?$",
               },
               {
                 "dest": "/rules/isr/[...]",
-                "src": "/rules/isr/(?:.*)",
+                "src": "^/rules/isr(?:/(?<_>.*))?/?$",
               },
               {
                 "dest": "/_vercel/queues/consumer",
-                "src": "/_vercel/queues/consumer",
+                "src": "^/_vercel/queues/consumer/?$",
               },
               {
                 "dest": "/wasm/static-import",
-                "src": "/wasm/static-import",
+                "src": "^/wasm/static-import/?$",
               },
               {
                 "dest": "/wasm/dynamic-import",
-                "src": "/wasm/dynamic-import",
+                "src": "^/wasm/dynamic-import/?$",
               },
               {
                 "dest": "/wait-until",
-                "src": "/wait-until",
+                "src": "^/wait-until/?$",
               },
               {
                 "dest": "/virtual",
-                "src": "/virtual",
+                "src": "^/virtual/?$",
               },
               {
                 "dest": "/stream",
-                "src": "/stream",
+                "src": "^/stream/?$",
               },
               {
                 "dest": "/static-flags",
-                "src": "/static-flags",
+                "src": "^/static-flags/?$",
               },
               {
                 "dest": "/route-group",
-                "src": "/route-group",
+                "src": "^/route-group/?$",
               },
               {
                 "dest": "/replace",
-                "src": "/replace",
+                "src": "^/replace/?$",
               },
               {
                 "dest": "/raw",
-                "src": "/raw",
+                "src": "^/raw/?$",
               },
               {
                 "dest": "/node-compat",
-                "src": "/node-compat",
+                "src": "^/node-compat/?$",
               },
               {
                 "dest": "/modules",
-                "src": "/modules",
+                "src": "^/modules/?$",
               },
               {
                 "dest": "/jsx",
-                "src": "/jsx",
+                "src": "^/jsx/?$",
               },
               {
                 "dest": "/imports",
-                "src": "/imports",
+                "src": "^/imports/?$",
               },
               {
                 "dest": "/import-attributes",
-                "src": "/import-attributes",
+                "src": "^/import-attributes/?$",
               },
               {
                 "dest": "/icon.png",
-                "src": "/icon.png",
+                "src": "^/icon\\.png/?$",
               },
               {
                 "dest": "/file",
-                "src": "/file",
+                "src": "^/file/?$",
               },
               {
                 "dest": "/fetch",
-                "src": "/fetch",
+                "src": "^/fetch/?$",
               },
               {
                 "dest": "/errors/throw",
-                "src": "/errors/throw",
+                "src": "^/errors/throw/?$",
               },
               {
                 "dest": "/errors/stack",
-                "src": "/errors/stack",
+                "src": "^/errors/stack/?$",
               },
               {
                 "dest": "/errors/captured",
-                "src": "/errors/captured",
+                "src": "^/errors/captured/?$",
               },
               {
                 "dest": "/env",
-                "src": "/env",
+                "src": "^/env/?$",
               },
               {
                 "dest": "/embedded-kit",
-                "src": "/embedded-kit",
+                "src": "^/embedded-kit/?$",
               },
               {
                 "dest": "/context",
-                "src": "/context",
+                "src": "^/context/?$",
               },
               {
                 "dest": "/config",
-                "src": "/config",
+                "src": "^/config/?$",
               },
               {
                 "dest": "/assets/md",
-                "src": "/assets/md",
+                "src": "^/assets/md/?$",
               },
               {
                 "dest": "/assets/all",
-                "src": "/assets/all",
+                "src": "^/assets/all/?$",
               },
               {
                 "dest": "/api/upload",
-                "src": "/api/upload",
+                "src": "^/api/upload/?$",
               },
               {
                 "dest": "/api/storage/legacy",
-                "src": "/api/storage/legacy",
+                "src": "^/api/storage/legacy/?$",
               },
               {
                 "dest": "/api/storage/item",
-                "src": "/api/storage/item",
+                "src": "^/api/storage/item/?$",
               },
               {
                 "dest": "/api/middleware-order",
-                "src": "/api/middleware-order",
+                "src": "^/api/middleware-order/?$",
               },
               {
                 "dest": "/api/methods/search",
-                "src": "/api/methods/search",
+                "src": "^/api/methods/search/?$",
               },
               {
                 "dest": "/api/methods/get",
-                "src": "/api/methods/get",
+                "src": "^/api/methods/get/?$",
               },
               {
                 "dest": "/api/methods/foo.get",
-                "src": "/api/methods/foo.get",
+                "src": "^/api/methods/foo\\.get/?$",
               },
               {
                 "dest": "/api/meta/test",
-                "src": "/api/meta/test",
+                "src": "^/api/meta/test/?$",
               },
               {
                 "dest": "/api/kebab",
-                "src": "/api/kebab",
+                "src": "^/api/kebab/?$",
               },
               {
                 "dest": "/api/headers",
-                "src": "/api/headers",
+                "src": "^/api/headers/?$",
               },
               {
                 "dest": "/api/echo",
-                "src": "/api/echo",
+                "src": "^/api/echo/?$",
               },
               {
                 "dest": "/api/db",
-                "src": "/api/db",
+                "src": "^/api/db/?$",
               },
               {
                 "dest": "/api/cached",
-                "src": "/api/cached",
+                "src": "^/api/cached/?$",
               },
               {
                 "dest": "/api/body-size",
-                "src": "/api/body-size",
+                "src": "^/api/body-size/?$",
               },
               {
                 "dest": "/500",
-                "src": "/500",
+                "src": "^/500/?$",
               },
               {
                 "dest": "/_ws",
-                "src": "/_ws",
+                "src": "^/_ws/?$",
               },
               {
                 "dest": "/_vercel/queues/consumer",
-                "src": "/_vercel/queues/consumer",
+                "src": "^/_vercel/queues/consumer/?$",
               },
               {
                 "dest": "/_vercel/cron",
-                "src": "/_vercel/cron",
+                "src": "^/_vercel/cron/?$",
               },
               {
                 "dest": "/single-headers/[id]",
-                "src": "/single-headers/(?<id>[^/]+)",
+                "src": "^/single-headers/(?<id>[^/]+)/?$",
               },
               {
                 "dest": "/assets/[id]",
-                "src": "/assets/(?<id>[^/]+)",
+                "src": "^/assets/(?<id>[^/]+)/?$",
               },
               {
                 "dest": "/api/test/[-]/foo",
-                "src": "/api/test/(?<_0>[^/]*)/foo",
+                "src": "^/api/test/(?<_0>[^/]*)/foo/?$",
               },
               {
                 "dest": "/api/param/[test-id]",
-                "src": "/api/param/(?<test>[^/]+)-id",
+                "src": "^/api/param/(?<__rou3_esc_test_hid>[^/]+)/?$",
               },
               {
                 "dest": "/tasks/[...name]",
-                "src": "/tasks/?(?<name>.+)",
+                "src": "^/tasks/(?<name>.+)/?$",
               },
               {
                 "dest": "/rules/[...slug]",
-                "src": "/rules/?(?<slug>.+)",
+                "src": "^/rules/(?<slug>.+)/?$",
               },
               {
                 "dest": "/api/wildcard/[...param]",
-                "src": "/api/wildcard/?(?<param>.+)",
+                "src": "^/api/wildcard/(?<param>.+)/?$",
               },
               {
                 "dest": "/__server",
@@ -537,15 +537,18 @@ describe("nitro:preset:vercel:web", async () => {
           .slice(0, filesystemIndex)
           .filter(
             (route: { src?: string; headers?: Record<string, string> }) =>
-              route.src === "/build/(.*)" && route.headers?.["cache-control"]
+              route.src &&
+              new RegExp(route.src).test("/build/test.txt") &&
+              route.headers?.["cache-control"]
           );
         expect(cacheRules).toEqual([
           {
-            src: "/build/(.*)",
+            src: expect.any(String),
             headers: { "cache-control": "public, max-age=3600, immutable" },
             continue: true,
           },
         ]);
+        expect(new RegExp(cacheRules[0].src).test("/buildings/test.txt")).toBe(false);
       });
 
       it("should order header-only rules from least to most specific", async () => {
@@ -557,7 +560,9 @@ describe("nitro:preset:vercel:web", async () => {
             (route: { continue?: boolean; status?: number }) => route.continue && !route.status
           )
           .map((route: { src: string }) => route.src);
-        expect(headerRoutes.indexOf("/(.*)")).toBeLessThan(headerRoutes.indexOf("/rules/headers"));
+        expect(headerRoutes.indexOf("^/?(?<_>.*)/?$")).toBeLessThan(
+          headerRoutes.indexOf("^/rules/headers/?$")
+        );
       });
 
       it("should not continue into less specific redirects when `redirect: false`", async () => {
@@ -565,10 +570,10 @@ describe("nitro:preset:vercel:web", async () => {
           .readFile(resolve(ctx.outDir, "config.json"), "utf8")
           .then((r) => JSON.parse(r));
         const keepIndex = config.routes.findIndex(
-          (route: { src?: string }) => route.src === "/rules/nested/keep"
+          (route: { src?: string }) => route.src === "^/rules/nested/keep/?$"
         );
         const redirectIndex = config.routes.findIndex(
-          (route: { src?: string }) => route.src === "/rules/nested/(.*)"
+          (route: { src?: string }) => route.src === "^/rules/nested(?:/(?<_>.*))?/?$"
         );
         expect(config.routes[keepIndex]).toMatchObject({ headers: { "x-keep": "keep" } });
         expect(keepIndex).toBeLessThan(redirectIndex);
@@ -762,7 +767,9 @@ describe("nitro:preset:vercel:web", async () => {
           .then((r) => JSON.parse(r));
         const routes = config.routes as { src: string; dest: string }[];
         const queueRoute = routes.find(
-          (r) => r.dest === "/_vercel/queues/consumer" && r.src === "/_vercel/queues/consumer"
+          (r) =>
+            r.dest === "/_vercel/queues/consumer" &&
+            new RegExp(r.src).test("/_vercel/queues/consumer")
         );
         expect(queueRoute).toBeDefined();
       });

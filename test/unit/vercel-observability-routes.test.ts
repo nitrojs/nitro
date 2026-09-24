@@ -48,10 +48,10 @@ describe("getObservabilityRoutes", () => {
         })
       )
     ).toEqual([
-      { src: "/foo", dest: "foo" },
-      { src: "/", dest: "index" },
-      { src: "/blog/(?<slug>[^/]+)", dest: "blog/[slug]" },
-      { src: "/(?:.*)", dest: "[...]" },
+      { route: "/foo", dest: "foo" },
+      { route: "/", dest: "index" },
+      { route: "/blog/:slug", dest: "blog/[slug]" },
+      { route: "/**", dest: "[...]" },
     ]);
   });
 
