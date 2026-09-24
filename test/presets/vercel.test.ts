@@ -133,7 +133,7 @@ describe("nitro:preset:vercel:web", async () => {
                 "headers": {
                   "x-single": "single",
                 },
-                "src": "^/single-headers/(?<_0>[^/]*)/?$",
+                "src": "^/single-headers/([^/]*)/?$",
               },
               {
                 "continue": true,
@@ -450,31 +450,31 @@ describe("nitro:preset:vercel:web", async () => {
               },
               {
                 "dest": "/single-headers/[id]",
-                "src": "^/single-headers/(?<id>[^/]+)/?$",
+                "src": "^/single-headers/([^/]+)/?$",
               },
               {
                 "dest": "/assets/[id]",
-                "src": "^/assets/(?<id>[^/]+)/?$",
+                "src": "^/assets/([^/]+)/?$",
               },
               {
                 "dest": "/api/test/[-]/foo",
-                "src": "^/api/test/(?<_0>[^/]*)/foo/?$",
+                "src": "^/api/test/([^/]*)/foo/?$",
               },
               {
                 "dest": "/api/param/[test-id]",
-                "src": "^/api/param/(?<__rou3_esc_test_hid>[^/]+)/?$",
+                "src": "^/api/param/([^/]+)/?$",
               },
               {
                 "dest": "/tasks/[...name]",
-                "src": "^/tasks/(?<name>.+)/?$",
+                "src": "^/tasks/(?<_>.+)/?$",
               },
               {
                 "dest": "/rules/[...slug]",
-                "src": "^/rules/(?<slug>.+)/?$",
+                "src": "^/rules/(?<_>.+)/?$",
               },
               {
                 "dest": "/api/wildcard/[...param]",
-                "src": "^/api/wildcard/(?<param>.+)/?$",
+                "src": "^/api/wildcard/(?<_>.+)/?$",
               },
               {
                 "dest": "/__server",
@@ -555,25 +555,32 @@ describe("nitro:preset:vercel:web", async () => {
         const config = await fsp
           .readFile(resolve(ctx.outDir, "config.json"), "utf8")
           .then((r) => JSON.parse(r));
-        const headerRoutes = config.routes
-          .filter(
-            (route: { continue?: boolean; status?: number }) => route.continue && !route.status
-          )
-          .map((route: { src: string }) => route.src);
-        expect(headerRoutes.indexOf("^/?(?<_>.*)/?$")).toBeLessThan(
-          headerRoutes.indexOf("^/rules/headers/?$")
+        const headerRoutes = config.routes.filter(
+          (route: { continue?: boolean; status?: number }) => route.continue && !route.status
         );
+        const byHeader = (name: string, value: string) =>
+          headerRoutes.findIndex(
+            (route: { headers: Record<string, string> }) => route.headers[name] === value
+          );
+        const globalIndex = byHeader("x-test", "test");
+        const specificIndex = byHeader("cache-control", "s-maxage=60");
+        expect(new RegExp(headerRoutes[globalIndex].src).test("/unrelated")).toBe(true);
+        expect(new RegExp(headerRoutes[specificIndex].src).test("/rules/headers")).toBe(true);
+        expect(globalIndex).toBeLessThan(specificIndex);
       });
 
       it("should not continue into less specific redirects when `redirect: false`", async () => {
         const config = await fsp
           .readFile(resolve(ctx.outDir, "config.json"), "utf8")
           .then((r) => JSON.parse(r));
+        const matches = (route: { src?: string }) =>
+          !!route.src && new RegExp(route.src).test("/rules/nested/keep");
         const keepIndex = config.routes.findIndex(
-          (route: { src?: string }) => route.src === "^/rules/nested/keep/?$"
+          (route: { src?: string; headers?: Record<string, string> }) =>
+            matches(route) && route.headers?.["x-keep"]
         );
         const redirectIndex = config.routes.findIndex(
-          (route: { src?: string }) => route.src === "^/rules/nested(?:/(?<_>.*))?/?$"
+          (route: { src?: string; status?: number }) => matches(route) && route.status
         );
         expect(config.routes[keepIndex]).toMatchObject({ headers: { "x-keep": "keep" } });
         expect(keepIndex).toBeLessThan(redirectIndex);

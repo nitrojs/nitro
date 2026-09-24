@@ -53,6 +53,16 @@ const vercelRoutePatterns = [
     matches: ["/named/guide", "/named/guide/start"],
     misses: ["/named", "/named/", "/named-other"],
   },
+  {
+    pattern: "/prefix{/**:rest}?",
+    matches: ["/prefix", "/prefix/docs", "/prefix/docs/start"],
+    misses: ["/prefix-other"],
+  },
+  {
+    pattern: "/users{/:id}?/posts/:post",
+    matches: ["/users/posts/1", "/users/alice/posts/1"],
+    misses: ["/users/alice/posts"],
+  },
 ];
 
 describe("Vercel route patterns", () => {
@@ -98,6 +108,35 @@ describe("Vercel route patterns", () => {
     expect(expandTarget(redirect.headers!.Location, redirectMatch)).toBe("/new/guide/start");
     const proxyMatch = new RegExp(proxy.src).exec("/cdn/nested/file.json");
     expect(expandTarget(proxy.dest!, proxyMatch)).toBe("https://cdn.example.com/nested/file.json");
+  });
+
+  it("only keeps named groups that targets reference", async () => {
+    const config = await generateConfig({
+      ssrRoutes: ["/users{/:id}?/posts/:post", "/a/:org-identifier-long-name"],
+      routeRules: {
+        "/:file_path/**:file-path": { redirect: { to: "/files/**", status: 307 } },
+        "/posts/:slug?": { isr: true },
+      },
+    });
+    for (const route of config.routes) {
+      const groups = [...route.src.matchAll(/\(\?<(\w+)>/g)].map((m) => m[1]);
+      expect(
+        groups.every((name) => name === "_" || name === "__isr_route"),
+        route.src
+      ).toBe(true);
+    }
+    const redirect = config.routes.find((route) => route.status === 307)!;
+    const match = new RegExp(redirect.src).exec("/docs/guide/start");
+    expect(expandTarget(redirect.headers!.Location, match)).toBe("/files/guide/start");
+  });
+
+  it("substitutes catch-alls named like rou3 unnamed params", async () => {
+    const config = await generateConfig({
+      routeRules: { "/old/**:_0": { redirect: { to: "/new/**", status: 307 } } },
+    });
+    const redirect = config.routes.find((route) => route.status === 307)!;
+    const match = new RegExp(redirect.src).exec("/old/guide/start");
+    expect(expandTarget(redirect.headers!.Location, match)).toBe("/new/guide/start");
   });
 
   it("preserves the catch-all capture in CDN proxy rewrites", async () => {

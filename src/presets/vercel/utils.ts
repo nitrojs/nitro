@@ -286,7 +286,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
             src: routeSrc(path),
             status: routeRules.redirect.status,
             headers: {
-              Location: routeRules.redirect.to.replace("**", catchAllRef(path)),
+              Location: routeRules.redirect.to.replace("**", CATCH_ALL_REF),
             },
           };
           if (routeRules.headers) {
@@ -304,7 +304,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
           const proxy = routeRules.proxy;
           const route: Record<string, any> = {
             src: routeSrc(path),
-            dest: proxy.to.replace("**", catchAllRef(path)),
+            dest: proxy.to.replace("**", CATCH_ALL_REF),
           };
           if (routeRules.headers) {
             route.headers = routeRules.headers;
@@ -688,24 +688,25 @@ function normalizeRoutes(routes: string[]) {
     }));
 }
 
+// Only the catch-all is referenced (as `$_`) by redirect and proxy targets
+const CATCH_ALL_GROUP = "_";
+
 function normalizeRouteSrc(route: string, opts?: { capture?: string }): string {
   // TODO: remove once rou3 compiles `/x/**` without also matching `/x-other`.
   const pattern = route.replace(
-    /(^|\/)\*\*(?::([^/]+))?/g,
-    (_, slash, name) => `${slash}:${toParamName(name)}${name ? "+" : "*"}`
+    /(^|\/)\*\*(:[\w-]+)?/g,
+    (_, slash, name) => `${slash}:${CATCH_ALL_GROUP}${name ? "+" : "*"}`
   );
-  const src = routeToRegExp(pattern).source.slice(1, -1).replaceAll("\\/", "/");
+  // Unreferenced named groups become plain groups, avoiding PCRE limits on
+  // group name length and duplicate names across alternatives.
+  const src = routeToRegExp(pattern)
+    .source.slice(1, -1)
+    .replaceAll("\\/", "/")
+    .replace(/\(\?<([A-Za-z_]\w*)>/g, (group, name) => (name === CATCH_ALL_GROUP ? group : "("));
   return opts?.capture ? `^(?<${opts.capture}>${src})$` : `^${src}$`;
 }
 
-// Vercel substitution for the catch-all group emitted by normalizeRouteSrc
-function catchAllRef(route: string): string {
-  return `$${toParamName(route.match(/(?:^|\/)\*\*:([^/]+)/)?.[1])}`;
-}
-
-function toParamName(name?: string): string {
-  return name?.replace(/\W/g, "_") || "_";
-}
+const CATCH_ALL_REF = `$${CATCH_ALL_GROUP}`;
 
 // Output is a destination pathname to function name
 function normalizeRouteDest(route: string) {
