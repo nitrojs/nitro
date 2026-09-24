@@ -3,6 +3,7 @@ import { useNitroApp } from "nitro/app";
 import { isPublicAssetURL } from "#nitro/virtual/public-assets";
 import type { Context } from "@netlify/edge-functions";
 import type { ServerRequest } from "srvx";
+import { addNetlifyVaryHeader } from "./_utils.ts";
 
 const nitroApp = useNitroApp();
 
@@ -24,5 +25,7 @@ export default async function netlifyEdge(netlifyReq: Request, context: Context)
     req.headers.set("x-forwarded-proto", "https");
   }
 
-  return nitroApp.fetch(req);
+  const response = await nitroApp.fetch(req);
+  addNetlifyVaryHeader(response.headers);
+  return response;
 }

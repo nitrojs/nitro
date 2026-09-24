@@ -153,6 +153,13 @@ describe("nitro:preset:netlify", async () => {
           "public, max-age=60, stale-while-revalidate=31536000, durable"
         );
       });
+
+      // Regression test for https://github.com/nitrojs/nitro/issues/4165
+      it("adds a Netlify-Vary: query header for a swr-cached handler response", async () => {
+        const { headers } = await callHandler({ url: "/api/cached" });
+        expect((headers as Record<string, string>)["cache-control"]).toContain("s-maxage=");
+        expect((headers as Record<string, string>)["netlify-vary"]).toBe("query");
+      });
     }
   );
 

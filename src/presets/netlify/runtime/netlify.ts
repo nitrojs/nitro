@@ -1,6 +1,7 @@
 import "#nitro/virtual/polyfills";
 import { useNitroApp } from "nitro/app";
 import type { ServerRequest } from "srvx";
+import { addNetlifyVaryHeader } from "./_utils.ts";
 
 const nitroApp = useNitroApp();
 
@@ -25,6 +26,8 @@ const handler = async (req: ServerRequest): Promise<Response> => {
       `public, max-age=${maxAge}, ${revalidateDirective}, durable`
     );
   }
+
+  addNetlifyVaryHeader(response.headers);
 
   return response;
 };
