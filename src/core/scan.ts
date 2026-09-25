@@ -6,8 +6,9 @@ import { withBase, withLeadingSlash, withoutTrailingSlash } from "ufo";
 export const GLOB_SCAN_PATTERN = "**/*.{js,mjs,cjs,ts,mts,cts,tsx,jsx}";
 type FileInfo = { path: string; fullPath: string };
 
-const suffixRegex =
-  /(\.(?<method>connect|delete|get|head|options|patch|post|put|trace))?(\.(?<env>dev|prod|prerender))?$/;
+const methodSuffixRegex =
+  /(\.(?<method>connect|delete|get|head|options|patch|post|put|trace))?/;
+const envSuffixRegex = /(\.(?<env>dev|prod|prerender))?$/;
 
 // prettier-ignore
 type MatchedMethodSuffix = "connect" | "delete" | "get" | "head" | "options" | "patch" | "post" | "put" | "trace";
@@ -79,9 +80,11 @@ export async function scanHandlers(nitro: Nitro) {
 export async function scanMiddleware(nitro: Nitro) {
   const files = await scanFiles(nitro, "middleware");
   return files.map((file) => {
+    const { env } = extractSuffix(file.path);
     return {
       middleware: true,
       handler: file.fullPath,
+      env,
     };
   });
 }
@@ -101,16 +104,8 @@ export async function scanServerRoutes(
       .replace(/\[([^/\]]+)]/g, ":$1");
     route = withLeadingSlash(withoutTrailingSlash(withBase(route, prefix)));
 
-    const suffixMatch = route.match(suffixRegex);
-    let method: MatchedMethodSuffix | undefined;
-    let env: MatchedEnvSuffix | undefined;
-    if (suffixMatch?.index && suffixMatch?.index >= 0) {
-      route = route.slice(0, suffixMatch.index);
-      method = suffixMatch.groups?.method as MatchedMethodSuffix | undefined;
-      env = suffixMatch.groups?.env as MatchedEnvSuffix | undefined;
-    }
-
-    route = route.replace(/\/index$/, "") || "/";
+    const { path, method, env } = extractSuffix(route, true);
+    route = path.replace(/\/index$/, "") || "/";
 
     return {
       handler: file.fullPath,
@@ -131,11 +126,12 @@ export async function scanPlugins(nitro: Nitro) {
 export async function scanTasks(nitro: Nitro) {
   const files = await scanFiles(nitro, "tasks");
   return files.map((f) => {
-    const name = f.path
+    const { path, env } = extractSuffix(f.path);
+    const name = path
       .replace(/\/index$/, "")
       .replace(/\.[A-Za-z]+$/, "")
       .replace(/\//g, ":");
-    return { name, handler: f.fullPath };
+    return { name, handler: f.fullPath, env };
   });
 }
 
@@ -178,4 +174,27 @@ async function scanDir(
       };
     })
     .sort((a, b) => a.path.localeCompare(b.path));
+}
+
+function extractSuffix(path: string): { path: string; env?: MatchedEnvSuffix };
+function extractSuffix(
+  path: string,
+  includeMethod: true
+): { path: string; method?: MatchedMethodSuffix; env?: MatchedEnvSuffix };
+function extractSuffix(path: string, includeMethod: boolean = false) {
+  const regex = includeMethod
+    ? new RegExp(methodSuffixRegex.source + envSuffixRegex.source)
+    : envSuffixRegex;
+
+  const suffixMatch = path.match(regex);
+  let method: MatchedMethodSuffix | undefined;
+  let env: MatchedEnvSuffix | undefined;
+
+  if (suffixMatch?.index && suffixMatch?.index >= 0) {
+    path = path.slice(0, suffixMatch.index);
+    method = suffixMatch.groups?.method as MatchedMethodSuffix | undefined;
+    env = suffixMatch.groups?.env as MatchedEnvSuffix | undefined;
+  }
+
+  return { path, method, env };
 }
