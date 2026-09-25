@@ -7,9 +7,11 @@ export type BaseBuildConfig = ReturnType<typeof baseBuildConfig>;
 
 const ROOT_ALIAS = "@";
 
+// prettier-ignore
+export const BUILD_EXTENSIONS = [".ts", ".mjs", ".js", ".json", ".node", ".tsx", ".jsx"];
+
 export function baseBuildConfig(nitro: Nitro) {
-  // prettier-ignore
-  const extensions: string[] = [".ts", ".mjs", ".js", ".json", ".node", ".tsx", ".jsx" ];
+  const extensions: string[] = [...BUILD_EXTENSIONS];
 
   const isNodeless = nitro.options.node === false;
 

@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { join } from "pathe";
+import { join, resolve } from "pathe";
 import { rolldown } from "rolldown";
 import type { RollupOutput } from "rollup";
 import type { Nitro } from "nitro/types";
@@ -86,5 +86,27 @@ describe("writeBuildInfo", () => {
 
     const info = await writeBuildInfo(createNitro(join(fixtureDir, "server")), output);
     expect(info.serverEntry).toBe("server/server.mjs");
+  });
+
+  it("distinguishes entry files with the same path stem", async () => {
+    const serverJs = join(fixtureDir, "server.js");
+    const serverTs = join(fixtureDir, "server.ts");
+    const build = await rolldown({
+      input: [serverJs, join(fixtureDir, "server")],
+      resolve: { extensions: [".ts", ".js"] },
+    });
+    const output = await build.write({
+      dir: join(rootDir, ".output/server"),
+      entryFileNames: "[name]-[hash].mjs",
+    });
+    await build.close();
+
+    const entries = output.output.flatMap((item) =>
+      item.type === "chunk" && item.isEntry ? [item] : []
+    );
+    expect(entries.map((item) => resolve(item.facadeModuleId!))).toEqual([serverJs, serverTs]);
+
+    const info = await writeBuildInfo(createNitro(join(fixtureDir, "server")), output);
+    expect(info.serverEntry).toBe(`server/${entries[1].fileName}`);
   });
 });
