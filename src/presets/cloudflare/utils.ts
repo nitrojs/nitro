@@ -191,6 +191,9 @@ export async function writeCFPagesRedirects(nitro: Nitro) {
   await writeFile(redirectsPath, contents.join("\n"), true);
 }
 
+// Cloudflare enables Node.js compatibility by default from this compatibility date
+const NODEJS_COMPAT_DEFAULT_ON_DATE = "2026-08-04";
+
 export async function enableNodeCompat(nitro: Nitro) {
   nitro.options.cloudflare ??= {};
 
@@ -210,6 +213,9 @@ export async function enableNodeCompat(nitro: Nitro) {
     if (
       userCompatibilityFlags.has("nodejs_compat") ||
       userCompatibilityFlags.has("nodejs_compat_v2") ||
+      (config?.compatibility_date &&
+        config.compatibility_date >= NODEJS_COMPAT_DEFAULT_ON_DATE &&
+        !userCompatibilityFlags.has("no_nodejs_compat")) ||
       nitro.options.cloudflare.deployConfig
     ) {
       nitro.options.cloudflare.nodeCompat = true;
