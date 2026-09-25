@@ -24,6 +24,7 @@ import {
 } from "../_unenv/preset-workerd";
 
 // https://github.com/nitrojs/nitro/issues/4527
+// https://github.com/nitrojs/nitro/issues/4649
 const NODEJS_COMPAT_DEFAULT_ON_DATE = "2026-08-04";
 
 export async function writeCFRoutes(nitro: Nitro) {
@@ -210,9 +211,18 @@ export async function enableNodeCompat(nitro: Nitro) {
   if (nitro.options.cloudflare.nodeCompat === undefined) {
     const { config } = await readWranglerConfig(nitro);
     const userCompatibilityFlags = new Set(config?.compatibility_flags || []);
+    const compatDate =
+      config?.compatibility_date ||
+      nitro.options.compatibilityDate?.cloudflare ||
+      nitro.options.compatibilityDate?.default;
+    const isDefaultNodeCompat =
+      Boolean(compatDate && compatDate >= NODEJS_COMPAT_DEFAULT_ON_DATE) &&
+      !userCompatibilityFlags.has("no_nodejs_compat");
+
     if (
       userCompatibilityFlags.has("nodejs_compat") ||
       userCompatibilityFlags.has("nodejs_compat_v2") ||
+      isDefaultNodeCompat ||
       nitro.options.cloudflare.deployConfig
     ) {
       nitro.options.cloudflare.nodeCompat = true;
