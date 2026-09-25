@@ -237,6 +237,8 @@ export const getRollupConfig = (nitro: Nitro): RollupConfig => {
     _asyncContext: nitro.options.experimental.asyncContext,
     _websocket: nitro.options.experimental.websocket,
     _tasks: nitro.options.experimental.tasks,
+    _durableBindingName:
+      nitro.options.cloudflare?.durable?.bindingName || "$DurableObject",
   };
 
   // Universal import.meta
