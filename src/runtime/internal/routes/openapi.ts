@@ -7,11 +7,11 @@ import type {
   PathItemObject,
   PathsObject,
 } from "#internal/types/openapi-ts";
+import type { NitroOpenAPIConfig } from "#internal/types/openapi";
 import { joinURL } from "ufo";
 import { defu } from "defu";
 import { handlersMeta } from "#nitro-internal-virtual/server-handlers-meta";
 import { useRuntimeConfig } from "../config";
-
 // Served as /_openapi.json
 export default eventHandler((event) => {
   const runtimeConfig = useRuntimeConfig(event);
@@ -24,10 +24,12 @@ export default eventHandler((event) => {
     ...runtimeConfig.nitro?.openAPI?.meta,
   };
 
+  const excludedTags = runtimeConfig.nitro?.openAPI?.excludedTags;
+
   const {
     paths,
     globals: { components, ...globalsRest },
-  } = getHandlersMeta();
+  } = getHandlersMeta({ excludedTags });
 
   const extensible: Extensable = Object.fromEntries(
     Object.entries(globalsRest).filter(([key]) => key.startsWith("x-"))
@@ -55,7 +57,11 @@ export default eventHandler((event) => {
 
 type OpenAPIGlobals = Pick<OpenAPI3, "components"> & Extensable;
 
-function getHandlersMeta(): {
+function getHandlersMeta({
+  excludedTags,
+}: {
+  excludedTags: NitroOpenAPIConfig["excludedTags"];
+}): {
   paths: PathsObject;
   globals: OpenAPIGlobals;
 } {
@@ -65,8 +71,13 @@ function getHandlersMeta(): {
   for (const h of handlersMeta) {
     const { route, parameters } = normalizeRoute(h.route || "");
     const tags = defaultTags(h.route || "");
+
     const method = (h.method || "get").toLowerCase() as Lowercase<HTTPMethod>;
     const { $global, ...openAPI } = h.meta?.openAPI || {};
+
+    if (excludedTags?.some((tag) => tags.includes(tag))) {
+      continue;
+    }
 
     const item: PathItemObject = {
       [method]: <OperationObject>{
