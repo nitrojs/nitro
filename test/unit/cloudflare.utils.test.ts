@@ -46,7 +46,9 @@ describe("writeWranglerConfig", () => {
   });
 
   it.each([
-    ["2024-09-22", []],
+    ["", ["nodejs_compat", "no_nodejs_compat_v2"]],
+    ["2024-04-03", ["nodejs_compat", "no_nodejs_compat_v2"]],
+    ["2024-09-22", ["nodejs_compat", "no_nodejs_compat_v2"]],
     ["2024-09-23", ["nodejs_compat", "no_nodejs_compat_v2"]],
     ["2024-09-24", ["nodejs_compat", "no_nodejs_compat_v2"]],
     ["2026-08-03", ["nodejs_compat", "no_nodejs_compat_v2"]],

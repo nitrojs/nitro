@@ -24,7 +24,6 @@ import {
 } from "../_unenv/preset-workerd";
 
 // https://github.com/nitrojs/nitro/issues/4527
-const NODEJS_COMPAT_SUPPORTED_FROM_DATE = "2024-09-23";
 const NODEJS_COMPAT_DEFAULT_ON_DATE = "2026-08-04";
 
 export async function writeCFRoutes(nitro: Nitro) {
@@ -362,15 +361,12 @@ export async function writeWranglerConfig(
       );
     } else {
       // Add default compatibility flags
-      if (
-        wranglerConfig.compatibility_date &&
-        wranglerConfig.compatibility_date >= NODEJS_COMPAT_SUPPORTED_FROM_DATE
-      ) {
-        if (wranglerConfig.compatibility_date < NODEJS_COMPAT_DEFAULT_ON_DATE) {
-          compatFlags.add("nodejs_compat");
-        }
-        compatFlags.add("no_nodejs_compat_v2");
+      // (`nodejs_compat` is enabled by default from 2026-08-04 and some workerd versions reject it explicitly)
+      const compatDate = wranglerConfig.compatibility_date;
+      if (!compatDate || compatDate < NODEJS_COMPAT_DEFAULT_ON_DATE) {
+        compatFlags.add("nodejs_compat");
       }
+      compatFlags.add("no_nodejs_compat_v2");
     }
   }
   wranglerConfig.compatibility_flags = [...compatFlags];
