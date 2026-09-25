@@ -1,4 +1,5 @@
 import { promises as fsp } from "node:fs";
+import type { Context as EdgeContext } from "@netlify/edge-functions";
 import type { Context as FunctionContext } from "@netlify/functions";
 import { resolve } from "pathe";
 import { describe, expect, it } from "vitest";
@@ -210,5 +211,36 @@ describe("nitro:preset:netlify", async () => {
         "/base/nested/no-fallthrough/*",
       ]);
     });
+  });
+});
+
+// `netlify-edge` emits its own `server.js` (not `netlify`'s `server/main.mjs`) and
+// doesn't go through the same handler, so it needs its own regression coverage rather
+// than reusing the `nitro:preset:netlify` matrix above.
+describe("nitro:preset:netlify-edge", async () => {
+  const edgeCtx = await setupTest("netlify-edge", {
+    config: {
+      output: {
+        publicDir: resolve(getPresetTmpDir("netlify-edge"), "dist"),
+      },
+    },
+  });
+
+  // Regression test for https://github.com/nitrojs/nitro/issues/4165
+  it("adds a Netlify-Vary: query header for a swr-cached handler response", async () => {
+    const { default: handler } = (await import(
+      resolve(edgeCtx.rootDir, ".netlify/edge-functions/server/server.js")
+    )) as {
+      default: (req: Request, context: EdgeContext) => Promise<Response | undefined>;
+    };
+
+    const response = await handler(
+      new Request("https://example.com/api/cached"),
+      {} as EdgeContext
+    );
+
+    expect(response).toBeInstanceOf(Response);
+    expect(response!.headers.get("cache-control")).toContain("s-maxage=");
+    expect(response!.headers.get("netlify-vary")).toBe("query");
   });
 });

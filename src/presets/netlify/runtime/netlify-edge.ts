@@ -26,6 +26,5 @@ export default async function netlifyEdge(netlifyReq: Request, context: Context)
   }
 
   const response = await nitroApp.fetch(req);
-  addNetlifyVaryHeader(response.headers);
-  return response;
+  return addNetlifyVaryHeader(response);
 }

@@ -27,9 +27,7 @@ const handler = async (req: ServerRequest): Promise<Response> => {
     );
   }
 
-  addNetlifyVaryHeader(response.headers);
-
-  return response;
+  return addNetlifyVaryHeader(response);
 };
 
 export default handler;
