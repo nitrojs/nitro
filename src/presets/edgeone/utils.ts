@@ -82,7 +82,7 @@ export async function writeEdgeOneConfig(nitro: Nitro) {
         if (routeRules.redirect) {
           route.status = routeRules.redirect.status || 302;
           route.headers = {
-            Location: joinURL(baseURL, routeRules.redirect.to.replace("/**", "/$1")),
+            Location: joinURL(baseURL, routeRules.redirect.to.replace("**", "$1")),
           };
         }
         if (routeRules.headers) {

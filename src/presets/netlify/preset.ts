@@ -88,6 +88,7 @@ const netlifyEdge = defineNitroPreset(
       output: {
         entryFileNames: "server.js",
         format: "esm",
+        inlineDynamicImports: false,
       },
     },
     unenv: unenvDeno,

@@ -29,13 +29,19 @@ ${serviceNames
   });
 
   return /* js */ `
-function lazyService(loader) {
+function lazyService(name, loader) {
   let promise, mod
   return {
     fetch(req) {
       if (mod) { return mod.fetch(req) }
       if (!promise) {
-        promise = loader().then(_mod => (mod = _mod.default || _mod))
+        promise = loader().then(_mod => {
+          const m = typeof _mod.default?.fetch === "function" ? _mod.default : _mod
+          if (typeof m.fetch !== "function") {
+            throw new TypeError(\`[nitro] Vite service "\${name}" entry does not export a \\\`fetch\\\` handler.\`)
+          }
+          return (mod = m)
+        })
       }
       return promise.then(mod => mod.fetch(req))
     }
@@ -46,7 +52,7 @@ export const viteServices = {
 ${serviceEntries
   .map(
     ([name, entry]) =>
-      `[${JSON.stringify(name)}]: lazyService(() => import(${JSON.stringify(entry)}))`
+      `[${JSON.stringify(name)}]: lazyService(${JSON.stringify(name)}, () => import(${JSON.stringify(entry)}))`
   )
   .join(",\n")}
 };

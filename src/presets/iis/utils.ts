@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { defu } from "defu";
 import { writeFile } from "../_utils/fs.ts";
+import { importDep } from "../../utils/dep.ts";
 import type { Nitro } from "nitro/types";
 import { resolve } from "pathe";
 
@@ -93,14 +94,15 @@ async function iisnodeXmlTemplate(nitro: Nitro) {
 `;
   if (existsSync(path)) {
     const fileString = await readFile(path, "utf8");
-    const originalWebConfig: Record<string, unknown> = await parseXmlDoc(originalString);
-    const fileWebConfig: Record<string, unknown> = await parseXmlDoc(fileString);
+    const rootDir = nitro.options.rootDir;
+    const originalWebConfig: Record<string, unknown> = await parseXmlDoc(originalString, rootDir);
+    const fileWebConfig: Record<string, unknown> = await parseXmlDoc(fileString, rootDir);
 
     if (nitro.options.iis?.mergeConfig && !nitro.options.iis.overrideConfig) {
-      return buildNewXmlDoc(defu(fileWebConfig, originalWebConfig));
+      return buildNewXmlDoc(defu(fileWebConfig, originalWebConfig), rootDir);
     }
     if (nitro.options.iis?.overrideConfig) {
-      return buildNewXmlDoc({ ...fileWebConfig });
+      return buildNewXmlDoc({ ...fileWebConfig }, rootDir);
     }
   }
   return originalString;
@@ -125,26 +127,35 @@ async function iisXmlTemplate(nitro: Nitro) {
 `;
   if (existsSync(path)) {
     const fileString = await readFile(path, "utf8");
-    const originalWebConfig: Record<string, unknown> = await parseXmlDoc(originalString);
-    const fileWebConfig: Record<string, unknown> = await parseXmlDoc(fileString);
+    const rootDir = nitro.options.rootDir;
+    const originalWebConfig: Record<string, unknown> = await parseXmlDoc(originalString, rootDir);
+    const fileWebConfig: Record<string, unknown> = await parseXmlDoc(fileString, rootDir);
 
     if (nitro.options.iis?.mergeConfig && !nitro.options.iis.overrideConfig) {
-      return buildNewXmlDoc(defu(fileWebConfig, originalWebConfig));
+      return buildNewXmlDoc(defu(fileWebConfig, originalWebConfig), rootDir);
     }
     if (nitro.options.iis?.overrideConfig) {
-      return buildNewXmlDoc({ ...fileWebConfig });
+      return buildNewXmlDoc({ ...fileWebConfig }, rootDir);
     }
   }
   return originalString;
 }
 
 //  XML Helpers
-async function parseXmlDoc(xml: string): Promise<Record<string, unknown>> {
-  const { Parser } = await import("xml2js");
+function importXml2js(rootDir: string) {
+  return importDep<typeof import("xml2js")>({
+    id: "xml2js",
+    dir: rootDir,
+    reason: "merging a custom `web.config` for the IIS preset",
+    version: "^0.6.2",
+  });
+}
 
+async function parseXmlDoc(xml: string, rootDir: string): Promise<Record<string, unknown>> {
   if (xml === undefined || !xml) {
     return {};
   }
+  const { Parser } = await importXml2js(rootDir);
   const parser = new Parser({ explicitArray: false });
   let parsedRecord: Record<string, unknown> = {};
   parser.parseString(xml, (_, r) => {
@@ -153,8 +164,8 @@ async function parseXmlDoc(xml: string): Promise<Record<string, unknown>> {
   return parsedRecord;
 }
 
-async function buildNewXmlDoc(xmlObj: Record<string, unknown>): Promise<string> {
-  const { Builder } = await import("xml2js");
+async function buildNewXmlDoc(xmlObj: Record<string, unknown>, rootDir: string): Promise<string> {
+  const { Builder } = await importXml2js(rootDir);
   const builder = new Builder();
   return builder.buildObject({ ...xmlObj });
 }

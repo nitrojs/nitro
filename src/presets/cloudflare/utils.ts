@@ -18,6 +18,10 @@ import {
 } from "ufo";
 import { unenvCfNodeCompat } from "./unenv/preset.ts";
 
+// https://github.com/nitrojs/nitro/issues/4527
+const NODEJS_COMPAT_SUPPORTED_FROM_DATE = "2024-09-23";
+const NODEJS_COMPAT_DEFAULT_ON_DATE = "2026-08-04";
+
 export async function writeCFRoutes(nitro: Nitro) {
   const _cfPagesConfig = nitro.options.cloudflare?.pages || {};
   const routes: CloudflarePagesRoutes = {
@@ -141,12 +145,16 @@ export async function writeCFPagesRedirects(nitro: Nitro) {
     (a, b) => a[0].split(/\/(?!\*)/).length - b[0].split(/\/(?!\*)/).length
   );
 
-  for (const [key, routeRules] of rules.filter(([_, routeRules]) => routeRules.redirect)) {
-    const code = routeRules.redirect!.status;
+  for (const [key, routeRules] of rules) {
+    const redirect = routeRules.redirect;
+    if (!redirect) {
+      continue;
+    }
+    const code = redirect.status;
     const from = joinURL(nitro.options.baseURL, key.replace("/**", "/*"));
-    const to = hasProtocol(routeRules.redirect!.to, { acceptRelative: true })
-      ? routeRules.redirect!.to
-      : joinURL(nitro.options.baseURL, routeRules.redirect!.to);
+    const to = hasProtocol(redirect.to, { acceptRelative: true })
+      ? redirect.to
+      : joinURL(nitro.options.baseURL, redirect.to);
     contents.unshift(`${from}\t${to}\t${code}`);
   }
 
@@ -228,17 +236,27 @@ export async function writeWranglerConfig(nitro: Nitro, cfTarget: "pages" | "mod
     overrides.pages_build_output_dir = relative(wranglerConfigDir, nitro.options.output.dir);
   } else {
     // Modules
-    overrides.main = relative(wranglerConfigDir, join(nitro.options.output.serverDir, "index.mjs"));
-    overrides.assets = {
-      binding: "ASSETS",
-      directory: relative(
+    const assetsDirectory = relative(
+      wranglerConfigDir,
+      resolve(
+        nitro.options.output.publicDir,
+        "../".repeat(nitro.options.baseURL.split("/").filter(Boolean).length)
+      )
+    );
+    if (nitro.options.static) {
+      // No worker script is emitted; `main` and `assets.binding` only apply
+      // when there is one. https://developers.cloudflare.com/workers/static-assets/
+      overrides.assets = { directory: assetsDirectory };
+    } else {
+      overrides.main = relative(
         wranglerConfigDir,
-        resolve(
-          nitro.options.output.publicDir,
-          "..".repeat(nitro.options.baseURL.split("/").filter(Boolean).length)
-        )
-      ),
-    };
+        join(nitro.options.output.serverDir, "index.mjs")
+      );
+      overrides.assets = {
+        binding: "ASSETS",
+        directory: assetsDirectory,
+      };
+    }
   }
 
   // Read user config
@@ -269,12 +287,15 @@ export async function writeWranglerConfig(nitro: Nitro, cfTarget: "pages" | "mod
   wranglerConfig.compatibility_flags ??= [];
   if (
     nitro.options.cloudflare?.nodeCompat &&
+    wranglerConfig.compatibility_date &&
+    wranglerConfig.compatibility_date >= NODEJS_COMPAT_SUPPORTED_FROM_DATE &&
+    wranglerConfig.compatibility_date < NODEJS_COMPAT_DEFAULT_ON_DATE &&
     !wranglerConfig.compatibility_flags.includes("nodejs_compat")
   ) {
     wranglerConfig.compatibility_flags.push("nodejs_compat");
   }
 
-  if (cfTarget === "module") {
+  if (cfTarget === "module" && !nitro.options.static) {
     // Avoid double bundling
     if (wranglerConfig.no_bundle === undefined) {
       wranglerConfig.no_bundle = true;

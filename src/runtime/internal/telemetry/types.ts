@@ -1,0 +1,104 @@
+/**
+ *  - OTLP trace types — `@opentelemetry/otlp-transformer`:
+ *    https://github.com/open-telemetry/opentelemetry-js/blob/main/experimental/packages/otlp-transformer/src/trace/internal-types.ts
+ *  - OTLP common types (`IKeyValue`/`IAnyValue`) — `@opentelemetry/otlp-transformer`:
+ *    https://github.com/open-telemetry/opentelemetry-js/blob/main/experimental/packages/otlp-transformer/src/common/internal-types.ts
+ *  - `SpanContext` — `@opentelemetry/api`:
+ *    https://github.com/open-telemetry/opentelemetry-js/blob/5954fdeb908ca2123c8dd6e9d51958147b434618/api/src/trace/span_context.ts#L25
+ */
+
+export interface IExportTraceServiceRequest {
+  resourceSpans?: IResourceSpans[];
+}
+
+export interface IResourceSpans {
+  resource?: IResource;
+  scopeSpans: IScopeSpans[];
+  schemaUrl?: string;
+}
+
+export interface IResource {
+  attributes: IKeyValue[];
+  droppedAttributesCount?: number;
+}
+
+export interface IScopeSpans {
+  scope?: IInstrumentationScope;
+  spans?: ISpan[];
+  schemaUrl?: string | null;
+}
+
+export interface IInstrumentationScope {
+  name: string;
+  version?: string;
+  attributes?: IKeyValue[];
+  droppedAttributesCount?: number;
+}
+
+export interface ISpan {
+  traceId: string;
+  spanId: string;
+  parentSpanId?: string;
+  name: string;
+  // OTLP defines a numeric SpanKind enum (INTERNAL = 1, CLIENT = 3, …); we emit
+  // the wire value directly, so this is `number` rather than a vendored enum.
+  kind: number;
+  // OTLP `*UnixNano` fields are 64-bit; over this IPC they are sent as
+  // unix-nanosecond strings (BigInt-safe), so we narrow to `string`.
+  startTimeUnixNano: string;
+  endTimeUnixNano: string;
+  attributes?: IKeyValue[];
+  droppedAttributesCount?: number;
+  events?: ISpanEvent[];
+  droppedEventsCount?: number;
+  // Always emitted empty by this plugin, so the element type is irrelevant.
+  links?: unknown[];
+  droppedLinksCount?: number;
+  traceState?: string | null;
+  // OTLP status code enum: UNSET = 0, OK = 1, ERROR = 2.
+  status?: { message?: string; code: number };
+}
+
+/** OTLP span `Event` — e.g. a recorded `exception` (type/message/stacktrace). */
+export interface ISpanEvent {
+  timeUnixNano: string;
+  name: string;
+  attributes: IKeyValue[];
+  droppedAttributesCount?: number;
+}
+
+export interface IKeyValue {
+  key: string;
+  value: IAnyValue;
+}
+
+export interface IAnyValue {
+  stringValue?: string | null;
+  boolValue?: boolean | null;
+  intValue?: number | null;
+  doubleValue?: number | null;
+}
+
+/**
+ * Subset of `@opentelemetry/api`'s `SpanContext`
+ */
+export interface SpanContext {
+  traceId: string;
+  spanId: string;
+  /** Trace flags bitmap; bit 0 is the sampled flag. */
+  traceFlags?: number;
+}
+
+/** Name, kind and attributes derived from a completed channel operation. */
+export interface SpanInfo {
+  name: string;
+  kind: number;
+  attributes: IKeyValue[];
+}
+
+/**
+ * Maps a completed channel operation to a span name, kind and attributes. Each
+ * describer casts `data` to the payload its producer documents and reads fields
+ * directly; a malformed payload throws and is caught by `describeSpan`.
+ */
+export type ChannelDescriber = (channel: string, data: unknown) => SpanInfo;

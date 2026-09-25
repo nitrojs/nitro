@@ -1,6 +1,7 @@
 import type { MinifyOptions } from "rolldown/experimental";
 import type { OXCOptions } from "nitro/types";
 import type { Plugin } from "rollup";
+import { RESOLVED_RE as rawModulesRE } from "./raw.ts";
 
 export async function oxc(
   options: OXCOptions & { sourcemap: boolean; minify: boolean | MinifyOptions }
@@ -10,7 +11,8 @@ export async function oxc(
     name: "nitro:oxc",
     transform: {
       filter: {
-        id: /^(?!.*\/node_modules\/).*\.m?[jt]sx?$/,
+        // Raw modules are already plain JS holding file contents; no need to transpile
+        id: { include: /^(?!.*\/node_modules\/).*\.m?[jt]sx?$/, exclude: rawModulesRE },
       },
       handler(code, id) {
         const res = transformSync(id, code, {

@@ -1,5 +1,6 @@
 ---
-category: server side rendering
+navigation:
+  category: server side rendering
 icon: i-logos-react
 ---
 
@@ -99,7 +100,7 @@ export default {
               <link key={attr.href} rel="stylesheet" {...attr} />
             ))}
             {assets.js.map((attr: any) => (
-              <link key={attr.href} type="modulepreload" {...attr} />
+              <link key={attr.href} rel="modulepreload" {...attr} />
             ))}
             <script type="module" src={assets.entry} />
           </head>
@@ -158,7 +159,7 @@ export default defineConfig({
 });
 ```
 
-The `environments.client` configuration tells Vite which file to use as the browser entry point. Nitro automatically detects the server entry from files named `entry-server` or `server` in common directories.
+The `environments.client` configuration tells Vite which file to use as the browser entry point. Nitro automatically detects the SSR entry from a file named `entry-server` in `app/`, `src/`, or the project root.
 
 ## 2. Create the App Component
 
@@ -202,7 +203,7 @@ export default {
               <link key={attr.href} rel="stylesheet" {...attr} />
             ))}
             {assets.js.map((attr: any) => (
-              <link key={attr.href} type="modulepreload" {...attr} />
+              <link key={attr.href} rel="modulepreload" {...attr} />
             ))}
             <script type="module" src={assets.entry} />
           </head>

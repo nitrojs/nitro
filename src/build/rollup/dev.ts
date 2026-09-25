@@ -1,16 +1,16 @@
 import type { Nitro, RollupConfig } from "nitro/types";
-import type { RollupWatcher } from "rollup";
-import { watch as chokidarWatch } from "chokidar";
+import type { RollupOptions, RollupWatcher } from "rollup";
 import { defu } from "defu";
 import { basename, join } from "pathe";
 import { debounce } from "perfect-debounce";
 import { scanHandlers } from "../../scan.ts";
+import { createWatcher } from "../../utils/watch.ts";
 import { formatRollupError } from "./error.ts";
-import { writeTypes } from "../types.ts";
 import { formatCompatibilityDate } from "compatx";
+import { importRollup } from "./_import.ts";
 
 export async function watchDev(nitro: Nitro, rollupConfig: RollupConfig) {
-  const rollup = await import("rollup");
+  const rollup = await importRollup(nitro);
 
   let rollupWatcher: RollupWatcher;
 
@@ -21,7 +21,6 @@ export async function watchDev(nitro: Nitro, rollupConfig: RollupConfig) {
     await scanHandlers(nitro);
     nitro.routing.sync();
     rollupWatcher = startRollupWatcher(nitro, rollupConfig);
-    await writeTypes(nitro);
   }
   const reload = debounce(load);
 
@@ -34,7 +33,7 @@ export async function watchDev(nitro: Nitro, rollupConfig: RollupConfig) {
   ]);
 
   const watchReloadEvents = new Set(["add", "addDir", "unlink", "unlinkDir"]);
-  const scanDirsWatcher = chokidarWatch(scanDirs, {
+  const scanDirsWatcher = createWatcher(nitro, scanDirs, {
     ignoreInitial: true,
   }).on("all", (event, path, stat) => {
     if (watchReloadEvents.has(event)) {
@@ -43,7 +42,7 @@ export async function watchDev(nitro: Nitro, rollupConfig: RollupConfig) {
   });
 
   const serverEntryRe = /^server\.[mc]?[jt]sx?$/;
-  const rootDirWatcher = chokidarWatch(nitro.options.rootDir, {
+  const rootDirWatcher = createWatcher(nitro, nitro.options.rootDir, {
     ignoreInitial: true,
     depth: 0,
   }).on("all", (event, path) => {
@@ -68,7 +67,7 @@ export async function watchDev(nitro: Nitro, rollupConfig: RollupConfig) {
 
   function startRollupWatcher(nitro: Nitro, rollupConfig: RollupConfig) {
     const watcher = rollup.watch(
-      defu(rollupConfig, {
+      defu(rollupConfig as RollupOptions, {
         watch: {
           chokidar: nitro.options.watchOptions,
         },

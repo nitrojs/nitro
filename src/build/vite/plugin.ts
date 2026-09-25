@@ -9,12 +9,13 @@ import type {
 import type { InputOption } from "rollup";
 import type { NitroPluginConfig, NitroPluginContext } from "./types.ts";
 import { resolve, join } from "pathe";
-import { createNitro, prepare, writeTypes } from "../../builder.ts";
+import { createNitro, prepare } from "../../builder.ts";
+import { installModules } from "../../module.ts";
 import { getBundlerConfig } from "./bundler.ts";
 import { buildEnvironments } from "./prod.ts";
 import {
   initEnvRunner,
-  getEnvRunner,
+  closeEnvRunner,
   createNitroEnvironment,
   createServiceEnvironments,
   createServiceEnvironment,
@@ -26,8 +27,9 @@ import { prettyPath } from "../../utils/fs.ts";
 import { NitroDevApp } from "../../dev/app.ts";
 import { nitroPreviewPlugin } from "./preview.ts";
 import assetsPlugin from "@hiogawa/vite-plugin-fullstack/assets";
-import type { NitroConfig } from "nitro/types";
+import type { NitroConfig, NitroModule } from "nitro/types";
 import { nitroDevServiceProxy, viteServicesTemplate } from "./services.ts";
+import { importVite, viteImportOptions } from "./_import.ts";
 
 // https://vite.dev/guide/api-environment-plugins
 // https://vite.dev/guide/api-environment-frameworks.html
@@ -73,6 +75,22 @@ function nitroInit(ctx: NitroPluginContext): VitePlugin {
         debug("[init] Initializing nitro");
         ctx._initialized = true;
         await setupNitroContext(ctx, configEnv, config);
+        if (configEnv.command === "serve") {
+          await checkViteVersion(ctx, (this.meta as Record<string, string>).viteVersion);
+        }
+      }
+    },
+
+    configResolved(config) {
+      // Vite resolves its plugin list *before* running config hooks, so a plugin added by
+      // another plugin's `config` hook is discovered by Nitro but silently ignored by Vite.
+      for (const plugin of ctx._pluginModules || []) {
+        if (!config.plugins.some((p) => p === plugin || p.nitro === plugin.nitro)) {
+          useNitro(ctx).logger.warn(
+            `Vite plugin \`${plugin.name}\` registers a Nitro module but is not applied by Vite. ` +
+              `Plugins added from a \`config\` hook are ignored by Vite; add it to \`plugins\` instead.`
+          );
+        }
       }
     },
 
@@ -120,10 +138,34 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
     configEnvironment(name, config) {
       if (config.consumer === "client") {
         debug("[env]  Configuring client environment", name === "client" ? "" : ` (${name})`);
+        const nitro = useNitro(ctx);
         config.build!.emptyOutDir = false;
-        config.build!.outDir = useNitro(ctx).options.output.publicDir;
+        config.build!.outDir = nitro.options.output.publicDir;
         config.build!.copyPublicDir ??= false;
+        // Relocate generated client assets (e.g. under `_vercel/immutable`) so
+        // both client and SSR references point at the immutable base.
+        if (nitro.options.buildAssetsDir) {
+          config.build!.assetsDir = nitro.options.buildAssetsDir;
+          // Content-addressed (immutable) assets benefit from longer content
+          // hashes to reduce collision risk across deployments. Only upgrade the
+          // default `[hash]` token to a longer one; never override filename
+          // patterns explicitly set by the user or other plugins.
+          useLongerAssetHashes(config.build!, ctx._isRolldown, nitro.options.buildAssetsDir);
+        }
         return;
+      }
+
+      // Server environments render public asset URLs (`?url` imports, font CSS)
+      // derived from their `assetsDir`, so it must point at the immutable base
+      // where the client build actually emits the files. Only asset naming is
+      // aligned (`assetsOnly`): entry/chunk filenames are left at their defaults
+      // so each service keeps a flat entry that frameworks import by path.
+      const nitro = useNitro(ctx);
+      if (name !== "nitro" && nitro.options.buildAssetsDir) {
+        config.build!.assetsDir = nitro.options.buildAssetsDir;
+        useLongerAssetHashes(config.build!, ctx._isRolldown, nitro.options.buildAssetsDir, {
+          assetsOnly: true,
+        });
       }
 
       // Skip if already registered as a service
@@ -186,7 +228,11 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
         resolve: {
           // TODO: environment specific aliases not working
           // https://github.com/vitejs/vite/pull/17583 (seems not effective)
-          alias: ctx.bundlerConfig.base.aliases,
+          // preserve alias order
+          alias: Object.entries(ctx.bundlerConfig.base.aliases).map(([find, replacement]) => ({
+            find,
+            replacement,
+          })),
         },
         builder: {
           sharedConfigBuild: true,
@@ -255,15 +301,35 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
       return configureViteDevServer(ctx, server);
     },
 
+    // Closing the dev server closes every environment, and each of them runs `closeBundle`.
+    // Nitro is shared by all of them, so its `close` hooks run once (#4586). The production
+    // build closes Nitro itself (see `prod.ts`).
+    closeBundle: {
+      order: "post",
+      handler() {
+        if (!ctx.nitro?.options.dev) {
+          return;
+        }
+        return (ctx._closePromise ??= ctx.nitro.close());
+      },
+    },
+
     // Invalidate server-only modules and optionally reload the browser
     // see: https://github.com/vitejs/vite/issues/19114
-    async hotUpdate({ server, modules, timestamp }) {
-      if (ctx.pluginConfig.experimental?.vite?.serverReload === false) {
-        return;
-      }
+    async hotUpdate({ server, file, modules, timestamp }) {
       const env = this.environment;
       if (env.config.consumer === "client") {
         return;
+      }
+      if (ctx.pluginConfig.experimental?.vite?.serverReload === false) {
+        // Keep the server module graph in sync but opt out of the reload:
+        // returning an empty list also suppresses Vite's own `full-reload`,
+        // which would otherwise still reach (and reload) the dev worker.
+        const invalidated = new Set<EnvironmentModuleNode>();
+        for (const mod of modules) {
+          env.moduleGraph.invalidateModule(mod, invalidated, timestamp, false);
+        }
+        return [];
       }
       const clientEnvs = Object.values(server.environments).filter(
         (env) => env.config.consumer === "client"
@@ -280,7 +346,7 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
         }
       }
       if (serverOnlyModules.length > 0) {
-        env.hot.send({ type: "full-reload" });
+        env.hot.send({ type: "full-reload", triggeredBy: file });
         if (sharedModules.length === 0 && serverOnlyModules.some((m) => m.environment !== "ssr")) {
           server.ws.send({ type: "full-reload" });
         }
@@ -318,6 +384,22 @@ function createContext(pluginConfig: NitroPluginConfig): NitroPluginContext {
   };
 }
 
+/**
+ * The dev environments and module runner are created from the `vite` Nitro imports, which has
+ * to be the one running the dev server (in a monorepo, another version can be hoisted next to
+ * the app).
+ */
+async function checkViteVersion(ctx: NitroPluginContext, runningVersion?: string) {
+  const nitro = useNitro(ctx);
+  const { version } = await importVite(viteImportOptions(nitro));
+  if (runningVersion && version !== runningVersion) {
+    nitro.logger.warn(
+      `Nitro resolved \`vite@${version}\` but \`vite@${runningVersion}\` is running. ` +
+        `Set the \`vite.path\` option to the running \`vite\` package (e.g. \`import.meta.resolve("vite")\`).`
+    );
+  }
+}
+
 function useNitro(ctx: NitroPluginContext) {
   if (!ctx.nitro) {
     throw new Error("Nitro instance is not initialized yet.");
@@ -346,13 +428,9 @@ async function setupNitroContext(
   };
 
   // Register Nitro modules from Vite plugins
-  nitroConfig.modules ??= [];
-  for (const plugin of flattenPlugins(userConfig.plugins || [])) {
-    if (plugin.nitro) {
-      nitroConfig.modules.push(plugin.nitro);
-      // TODO: install modules on existing providedNitro
-    }
-  }
+  ctx._pluginModules = (await flattenPlugins(userConfig, configEnv)).filter((p) => p.nitro);
+  const pluginModules = ctx._pluginModules.map((p) => p.nitro!);
+  nitroConfig.modules = [...(nitroConfig.modules || []), ...pluginModules];
 
   // Register service entries VFS
   const vServicesId = "#nitro/virtual/vite-services";
@@ -371,6 +449,12 @@ async function setupNitroContext(
   // Initialize a new Nitro instance
   ctx.nitro =
     providedNitro || (await createNitro(nitroConfig, { dotenv: { fileName: dotenvFileNames } }));
+
+  // Install Vite plugin modules on the provided instance (`nitro build`)
+  if (providedNitro && pluginModules.length > 0) {
+    providedNitro.options.modules = nitroConfig.modules;
+    await installModules(providedNitro, pluginModules);
+  }
 
   // Config ssr env as a fetchable ssr service
   if (!ctx.services?.ssr) {
@@ -433,16 +517,10 @@ async function setupNitroContext(
     ctx.bundlerConfig.rollupConfig || (ctx.bundlerConfig.rolldownConfig as any)
   );
 
-  // Generate types (runtime config, imports, routes)
-  await writeTypes(ctx.nitro);
-
-  // Warm up env runner for dev
+  // Attach nitro.fetch to the dev env runner (started lazily, not when resolving config)
   if (ctx.nitro.options.dev) {
-    await initEnvRunner(ctx);
+    ctx.nitro.fetch = async (req) => (await initEnvRunner(ctx)).fetch(req);
   }
-
-  // Attach nitro.fetch to env runner
-  ctx.nitro.fetch = (req) => getEnvRunner(ctx).fetch(req);
 
   // Create dev app
   if (ctx.nitro.options.dev && !ctx.devApp) {
@@ -451,10 +529,50 @@ async function setupNitroContext(
 
   // Cleanup resources after close {
   ctx.nitro.hooks.hook("close", async () => {
-    if (ctx._envRunner) {
-      await ctx._envRunner.close();
-    }
+    await closeEnvRunner(ctx);
   });
+}
+
+// Upgrade the default `[hash]` filename token to a longer content hash for a
+// build environment's output. Filename patterns already configured (by the user
+// or other plugins) are only touched to lengthen a bare `[hash]`; explicit
+// `[hash:n]` tokens and non-string patterns are left untouched.
+//
+// Applied to the client environment (all output) and the SSR service
+// environment (`assetsOnly` — just `assetFileNames`) so a shared asset
+// resolves to the same filename on both sides. The SSR bundle's own
+// entry/chunks keep Vite's flat server layout. A user/framework that
+// overrides `assetFileNames` is responsible for keeping the two in sync
+// (and such assets opt out of the `buildAssetsDir` immutable base).
+export function useLongerAssetHashes(
+  build: NonNullable<EnvironmentOptions["build"]>,
+  isRolldown: boolean | undefined,
+  assetsDir: string,
+  opts?: { assetsOnly?: boolean }
+): void {
+  const options = ((build as any)[isRolldown ? "rolldownOptions" : "rollupOptions"] ??= {});
+  const outputs = Array.isArray(options.output) ? options.output : [(options.output ??= {})];
+  const defaults: Record<string, string> = {
+    ...(opts?.assetsOnly
+      ? {}
+      : {
+          entryFileNames: `${assetsDir}/[name]-[hash:16].js`,
+          chunkFileNames: `${assetsDir}/[name]-[hash:16].js`,
+        }),
+    assetFileNames: `${assetsDir}/[name]-[hash:16][extname]`,
+  };
+  for (const output of outputs) {
+    for (const key of Object.keys(defaults)) {
+      const current = output[key];
+      if (current === undefined) {
+        // Not set: opt into a longer-hash default matching Vite's own pattern.
+        output[key] = defaults[key];
+      } else if (typeof current === "string" && current.includes("[hash]")) {
+        // Already set: only lengthen a bare `[hash]` token, keep the rest as-is.
+        output[key] = current.replaceAll("[hash]", `[hash:16]`);
+      }
+    }
+  }
 }
 
 function getEntry(input: InputOption | undefined): string | undefined {
@@ -467,8 +585,34 @@ function getEntry(input: InputOption | undefined): string | undefined {
   }
 }
 
-function flattenPlugins(plugins: PluginOption[]): VitePlugin[] {
-  return plugins
-    .flatMap((plugin) => (Array.isArray(plugin) ? flattenPlugins(plugin) : [plugin]))
-    .filter((p) => p && !(p instanceof Promise)) as VitePlugin[];
+// Flatten and filter user plugins with the same semantics Vite uses to resolve them.
+// (Vite filters by `apply` before calling config hooks but keeps `config.plugins` unfiltered)
+// https://github.com/vitejs/vite/blob/main/packages/vite/src/node/config.ts
+async function flattenPlugins(userConfig: UserConfig, configEnv: ConfigEnv): Promise<VitePlugin[]> {
+  const flat = async (plugins: PluginOption[]): Promise<VitePlugin[]> => {
+    const resolved = await Promise.all(plugins);
+    const result: VitePlugin[] = [];
+    for (const plugin of resolved) {
+      if (!plugin) {
+        continue;
+      }
+      if (Array.isArray(plugin)) {
+        result.push(...(await flat(plugin)));
+      } else {
+        result.push(plugin as VitePlugin);
+      }
+    }
+    return result;
+  };
+
+  const plugins = await flat(userConfig.plugins || []);
+
+  return plugins.filter((plugin) => {
+    if (!plugin.apply) {
+      return true;
+    }
+    return typeof plugin.apply === "function"
+      ? plugin.apply({ ...userConfig, mode: configEnv.mode }, configEnv)
+      : plugin.apply === configEnv.command;
+  });
 }

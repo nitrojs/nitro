@@ -4,7 +4,7 @@
 
 **Preset:** `gitlab_pages`
 
-:read-more{title="GitLab Pages" to="https://pages.github.com/"}
+:read-more{title="GitLab Pages" to="https://docs.gitlab.com/ee/user/project/pages/"}
 
 ## Setup
 
@@ -12,7 +12,7 @@ Follow the steps to [create a GitLab Pages site](https://docs.gitlab.com/ee/user
 
 ## Deployment
 
-1. Here is an example GitLab Pages workflow to deploy your site to GitLab Pages:
+Here is an example GitLab CI/CD configuration to deploy your site to GitLab Pages:
 
 ```yaml [.gitlab-ci.yml]
 image: node:lts

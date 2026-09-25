@@ -8,9 +8,9 @@ icon: simple-icons:bun
 
 **Preset:** `bun`
 
-Nitro output is compatible with Bun runtime. While using default [Node.js](/deploy/runtimes/node) you can also run the output in bun, using `bun` preset has advantage of better optimizations.
+Nitro output is compatible with the Bun runtime. While the default [Node.js](/deploy/runtimes/node) output also runs in Bun, building with the `bun` preset enables Bun-specific optimizations.
 
-After building with bun preset using `bun` as preset, you can run server in production using:
+After building with the `bun` preset, start the production server with:
 
 ```bash
 bun run ./.output/server/index.mjs

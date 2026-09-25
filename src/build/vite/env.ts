@@ -7,6 +7,10 @@ import { join, resolve } from "node:path";
 import { runtimeDependencies, runtimeDir } from "nitro/meta";
 import { resolveModulePath } from "exsolve";
 import { isAbsolute } from "pathe";
+import { resolveRunnerDeps } from "../../dev/runner-deps.ts";
+import { shutdownRunner } from "../../dev/shutdown.ts";
+import { writeDevWorkerEntry } from "./_dev-worker.ts";
+import { viteImportOptions } from "./_import.ts";
 
 export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOptions {
   const isWorkerdRunner = _isWorkerdRunner(ctx);
@@ -46,9 +50,13 @@ export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOpti
       createEnvironment: async (envName, envConfig) => {
         const entry = resolve(runtimeDir, "internal/vite/dev-entry.mjs");
         const { createFetchableDevEnvironment } = await import("./dev.ts");
-        const env = createFetchableDevEnvironment(envName, envConfig, getEnvRunner(ctx), entry, {
-          preventExternalize: isWorkerdRunner,
-        });
+        const env = await createFetchableDevEnvironment(
+          envName,
+          envConfig,
+          await initEnvRunner(ctx),
+          entry,
+          { preventExternalize: isWorkerdRunner, vite: viteImportOptions(ctx.nitro!) }
+        );
         ctx._transformRequest = (id) => env.transformRequest(id);
         (ctx._viteEnvs ??= new Map()).set(envName, entry);
         return env;
@@ -90,8 +98,9 @@ export function createServiceEnvironment(
         const entry = tryResolve(serviceConfig.entry);
         (ctx._viteEnvs ??= new Map()).set(envName, entry);
         const { createFetchableDevEnvironment } = await import("./dev.ts");
-        return createFetchableDevEnvironment(envName, envConfig, getEnvRunner(ctx), entry, {
+        return createFetchableDevEnvironment(envName, envConfig, await initEnvRunner(ctx), entry, {
           preventExternalize: isWorkerdRunner,
+          vite: viteImportOptions(ctx.nitro!),
         });
       },
     },
@@ -113,11 +122,17 @@ export async function initEnvRunner(ctx: NitroPluginContext) {
   if (ctx._envRunner) {
     return ctx._envRunner;
   }
+  if (ctx._closingEnvRunner) {
+    throw new Error("Nitro dev env runner is closed.");
+  }
   if (!ctx._initPromise) {
     ctx._initPromise = (async () => {
       const manager = new RunnerManager();
       let _retries = 0;
       manager.onClose((_runner, cause) => {
+        if (ctx._closingEnvRunner) {
+          return;
+        }
         if (_retries++ < 3) {
           ctx.nitro!.logger.info("Restarting env runner...", cause ? `Cause: ${cause}` : "");
           _loadRunner(ctx, manager);
@@ -148,11 +163,25 @@ export async function initEnvRunner(ctx: NitroPluginContext) {
   return await ctx._initPromise;
 }
 
-export function getEnvRunner(ctx: NitroPluginContext) {
-  if (!ctx._envRunner) {
-    throw new Error("Env runner not initialized. Call initEnvRunner() first.");
+/**
+ * Shut the dev runner down gracefully: the runtime `close` hooks run in the worker before the
+ * runtime is terminated (#4586).
+ */
+export async function closeEnvRunner(ctx: NitroPluginContext) {
+  if (ctx._closingEnvRunner) {
+    return;
   }
-  return ctx._envRunner;
+  ctx._closingEnvRunner = true;
+  const manager = ctx._envRunner || (await ctx._initPromise?.catch(() => undefined));
+  if (!manager) {
+    return;
+  }
+  // The miniflare runner runs the same handshake itself when it is disposed, so it is only
+  // needed for the runners that terminate their runtime outright.
+  if (manager.ready && !_isWorkerdRunner(ctx)) {
+    await shutdownRunner(manager, { warn: (message) => ctx.nitro!.logger.warn(message) });
+  }
+  await manager.close();
 }
 
 export async function reloadEnvRunner(ctx: NitroPluginContext) {
@@ -166,24 +195,12 @@ export async function reloadEnvRunner(ctx: NitroPluginContext) {
 
 async function _loadRunner(ctx: NitroPluginContext, manager: RunnerManager) {
   const runnerName = _devRunner(ctx);
-  const entry = resolve(runtimeDir, "internal/vite/dev-worker.mjs");
-  let runner;
-  if (runnerName === "miniflare") {
-    const { MiniflareEnvRunner } = await import("env-runner/runners/miniflare");
-    runner = new MiniflareEnvRunner({
-      name: "nitro-vite",
-      wrangler: {
-        ...ctx.nitro!.options.cloudflare?.wrangler,
-      },
-      wranglerEnv: ctx.nitro!.options.cloudflare?.wranglerEnv,
-      data: { entry },
-    });
-  } else {
-    runner = await loadRunner(runnerName, {
-      name: "nitro-vite",
-      data: { entry },
-    });
-  }
+  const entry = await writeDevWorkerEntry(ctx.nitro!);
+  const runner = await loadRunner(runnerName, {
+    ...(await resolveRunnerDeps(ctx.nitro!, runnerName)),
+    name: "nitro-vite",
+    data: { entry },
+  });
   await manager.reload(runner);
 }
 

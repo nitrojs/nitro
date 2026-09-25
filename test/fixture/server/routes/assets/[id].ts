@@ -1,8 +1,8 @@
 import { defineHandler, HTTPError } from "nitro/h3";
-import { useStorage } from "nitro/storage";
+import { useKV } from "nitro/kv";
 
 export default defineHandler(async (event) => {
-  const serverAssets = useStorage("assets/server");
+  const serverAssets = useKV("assets/server");
 
   const id = event.context.params!.id;
 

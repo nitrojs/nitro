@@ -103,8 +103,18 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
   // Prerender routes if configured
   await prerender(nitro);
 
+  // Call vite:compile:before hook
+  await nitro.hooks.callHook("vite:compile:before", nitro);
+
   // Build the Nitro server bundle
-  const output = (await builder.build(builder.environments.nitro)) as RolldownOutput;
+  let output: RolldownOutput | undefined;
+  if (nitro.options.static) {
+    // Mark as built to opt out of Vite's fallback that builds every environment
+    // when a `buildApp` hook left all of them unbuilt.
+    builder.environments.nitro.isBuilt = true;
+  } else {
+    output = (await builder.build(builder.environments.nitro)) as RolldownOutput;
+  }
 
   // Close the Nitro instance
   await nitro.close();

@@ -70,7 +70,7 @@ export class $DurableObject extends DurableObject {
 
   override fetch(request: Request) {
     augmentReq(request, {
-      env: this.env,
+      env: this.env as any,
       context: this.ctx as any,
     });
 

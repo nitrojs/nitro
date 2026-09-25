@@ -17,15 +17,13 @@ describe("zephyr preset", () => {
     vi.restoreAllMocks();
     vi.clearAllMocks();
     vi.resetModules();
-    delete (globalThis as any).__nitroDeploying__;
-    delete process.env.NITRO_INTERNAL_ZEPHYR_SKIP_DEPLOY_ON_BUILD;
   });
 
   it("extends base-worker", async () => {
     const preset = await getZephyrPreset();
     expect(preset.extends).toBe("base-worker");
     expect(preset.output?.publicDir).toBe("{{ output.dir }}/client/{{ baseURL }}");
-    expect(preset.commands?.deploy).toBeUndefined();
+    expect(preset.commands?.deploy).toBeTypeOf("function");
   });
 
   it("adds cloudflare unenv presets", async () => {
@@ -55,18 +53,15 @@ describe("zephyr preset", () => {
     expect(nitro.logger.success).not.toHaveBeenCalled();
   });
 
-  it("deploys on compiled hook by default", async () => {
+  it("deploys with the deploy command", async () => {
     const uploadOutputToZephyr = vi.fn().mockResolvedValue({
       deploymentUrl: "https://example.zephyr-cloud.io",
       entrypoint: "server/index.mjs",
     });
     importDepMock.mockResolvedValue({ uploadOutputToZephyr });
 
-    (globalThis as any).__nitroDeploying__ = true;
-
     const preset = await getZephyrPreset();
 
-    const hooks = preset.hooks!;
     const nitro = {
       options: {
         rootDir: "/tmp/project",
@@ -82,7 +77,7 @@ describe("zephyr preset", () => {
       },
     } as any;
 
-    await hooks.compiled?.(nitro);
+    await (preset.commands!.deploy as (nitro: any) => Promise<void>)(nitro);
 
     expect(importDepMock).toHaveBeenCalledWith({
       id: "zephyr-agent",
@@ -101,7 +96,7 @@ describe("zephyr preset", () => {
     expect(nitro.logger.info).not.toHaveBeenCalled();
   });
 
-  it("can skip deploy on build", async () => {
+  it("skips deploy on build by default", async () => {
     const uploadOutputToZephyr = vi.fn().mockResolvedValue({
       deploymentUrl: "https://example.zephyr-cloud.io",
       entrypoint: "server/index.mjs",
@@ -112,9 +107,6 @@ describe("zephyr preset", () => {
     const hooks = preset.hooks!;
     const nitro = {
       options: {
-        zephyr: {
-          deployOnBuild: false,
-        },
         output: {
           dir: "/tmp/zephyr-output",
         },
@@ -130,8 +122,43 @@ describe("zephyr preset", () => {
     expect(importDepMock).not.toHaveBeenCalled();
     expect(uploadOutputToZephyr).not.toHaveBeenCalled();
     expect(nitro.logger.info).toHaveBeenCalledWith(
-      "[zephyr-nitro-preset] Zephyr deploy skipped on build."
+      "[zephyr-nitro-preset] Skipping Zephyr deploy on build (use `nitro deploy` or set `zephyr.deployOnBuild`)."
     );
     expect(nitro.logger.success).not.toHaveBeenCalled();
+  });
+
+  it("deploys on build once with deployOnBuild", async () => {
+    const uploadOutputToZephyr = vi.fn().mockResolvedValue({ deploymentUrl: undefined });
+    importDepMock.mockResolvedValue({ uploadOutputToZephyr });
+
+    const preset = await getZephyrPreset();
+    const hooks = preset.hooks!;
+    const nitro = {
+      options: {
+        rootDir: "/tmp/project",
+        baseURL: "/",
+        zephyr: { deployOnBuild: true },
+        output: {
+          dir: "/tmp/zephyr-output",
+          publicDir: "client",
+        },
+      },
+      logger: {
+        info: vi.fn(),
+        success: vi.fn(),
+      },
+    } as any;
+
+    await hooks.compiled?.(nitro);
+    expect(uploadOutputToZephyr).toHaveBeenCalledTimes(1);
+    expect(nitro.logger.success).toHaveBeenCalledWith(
+      "[zephyr-nitro-preset] Zephyr deployment succeeded."
+    );
+
+    await (preset.commands!.deploy as (nitro: any) => Promise<void>)(nitro);
+    expect(uploadOutputToZephyr).toHaveBeenCalledTimes(1);
+    expect(nitro.logger.info).toHaveBeenCalledWith(
+      "[zephyr-nitro-preset] Zephyr deployment already done during build."
+    );
   });
 });

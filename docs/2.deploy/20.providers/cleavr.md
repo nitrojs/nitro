@@ -7,20 +7,29 @@
 :read-more{title="cleavr.io" to="https://cleavr.io"}
 
 ::note
-Integration with this provider is possible with [zero configuration](/deploy/#zero-config-providers).
+Integration with this provider is possible with [zero configuration](/deploy#zero-config-providers).
 ::
 
 ## Set up your web app
 
-In your project, set Nitro preset to `cleavr`.
+In your project, set the Nitro preset to `cleavr`.
 
-```js
-export default {
-  nitro: {
-    preset: 'cleavr'
-  }
-}
+::code-group
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  preset: "cleavr",
+});
 ```
+```ts [nuxt.config.ts]
+export default defineNuxtConfig({
+  nitro: {
+    preset: "cleavr",
+  },
+});
+```
+::
 
 Push changes to your code repository.
 

@@ -5,6 +5,7 @@ import { startScheduleRunner } from "#nitro/runtime/task";
 import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
 import { tracingSrvxPlugins } from "#nitro/virtual/tracing";
+import { serverEntryOptions } from "#nitro/virtual/server-entry";
 
 import type { AppEntry } from "env-runner";
 
@@ -19,6 +20,7 @@ if (import.meta._tasks) {
 }
 
 export default {
+  ...serverEntryOptions,
   fetch: nitroApp.fetch,
   plugins: [...tracingSrvxPlugins],
   // Let the dev runner attach the runtime-appropriate crossws adapter

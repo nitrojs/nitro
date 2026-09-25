@@ -72,9 +72,10 @@ export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> 
 
   const outputConfig = config.output as OutputOptions;
   if (outputConfig.inlineDynamicImports || outputConfig.format === "iife") {
-    delete outputConfig.inlineDynamicImports;
     outputConfig.codeSplitting = false;
   }
+  // `inlineDynamicImports` is deprecated in favor of `codeSplitting: false`
+  delete outputConfig.inlineDynamicImports;
 
   return config as RolldownOptions;
 };

@@ -23,14 +23,13 @@ export const NitroDefaults: NitroConfig = {
   features: {},
   experimental: {},
   future: {},
-  storage: {},
+  kv: {},
   devStorage: {},
   publicAssets: [],
   serverAssets: [],
   plugins: [],
   tasks: {},
   scheduledTasks: {},
-  imports: false,
   virtual: {},
   compressPublicAssets: false,
   ignore: [],
@@ -76,10 +75,6 @@ export const NitroDefaults: NitroConfig = {
 
   // Advanced
   typescript: {
-    strict: true,
-    generateRuntimeConfigTypes: false,
-    generateTsConfig: false,
-    tsconfigPath: "tsconfig.json",
     tsConfig: undefined,
   },
   hooks: {},

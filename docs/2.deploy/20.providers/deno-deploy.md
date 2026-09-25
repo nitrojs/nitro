@@ -13,7 +13,7 @@ You can use [deployctl](https://deno.com/deploy/docs/deployctl) to deploy your a
 Login to [Deno Deploy](https://dash.deno.com/account#access-tokens) to obtain a `DENO_DEPLOY_TOKEN` access token, and set it as an environment variable.
 
 ```bash
-# Build with the deno_deploy NITRO preset
+# Build with the deno_deploy preset
 NITRO_PRESET=deno_deploy npm run build
 
 # Make sure to run the deployctl command from the output directory
@@ -21,11 +21,11 @@ cd .output
 deployctl deploy --project=my-project server/index.ts
 ```
 
-## Deploy within CI/CD using GitHub actions
+## Deploy within CI/CD using GitHub Actions
 
-You just need to include the deployctl GitHub Action as a step in your workflow.
+Include the deployctl GitHub Action as a step in your workflow.
 
-You do not need to set up any secrets for this to work. You do need to link your GitHub repository to your Deno Deploy project and choose the "GitHub Actions" deployment mode. You can do this in your project settings on [Deno Deploy](https://dash.deno.com).
+No secrets are required, but you do need to link your GitHub repository to your Deno Deploy project and choose the "GitHub Actions" deployment mode in your project settings on [Deno Deploy](https://dash.deno.com).
 
 Create the following workflow file in your `.github/workflows` directory:
 
@@ -42,12 +42,13 @@ on:
 
 jobs:
   deploy:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - run: corepack enable
       - uses: actions/setup-node@v6
         with:
-          node-version: 18
+          node-version: 20
           cache: pnpm
       - run: pnpm install
       - run: pnpm build

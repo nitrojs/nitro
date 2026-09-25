@@ -1,17 +1,25 @@
 import type { Nitro, NitroModule, NitroModuleInput } from "nitro/types";
 import { resolveModuleURL } from "exsolve";
 
-export async function installModules(nitro: Nitro) {
-  const _modules = [...(nitro.options.modules || [])];
+// Modules already installed for a Nitro instance, keyed by resolved URL (string inputs)
+// or by `setup` identity (inline modules) to keep `installModules` idempotent.
+// (config loading clones module objects, but keeps the `setup` reference)
+const installedModules = new WeakMap<Nitro, Set<unknown>>();
+
+export async function installModules(nitro: Nitro, moduleInputs?: NitroModuleInput[]) {
+  const _modules = [...(moduleInputs ?? nitro.options.modules ?? [])];
   const modules = await Promise.all(_modules.map((mod) => _resolveNitroModule(mod, nitro.options)));
-  const _installedURLs = new Set<string>();
+  let _installed = installedModules.get(nitro);
+  if (!_installed) {
+    _installed = new Set();
+    installedModules.set(nitro, _installed);
+  }
   for (const mod of modules) {
-    if (mod._url) {
-      if (_installedURLs.has(mod._url)) {
-        continue;
-      }
-      _installedURLs.add(mod._url);
+    const key = mod._url ?? mod.setup;
+    if (_installed.has(key)) {
+      continue;
     }
+    _installed.add(key);
     await mod.setup(nitro);
   }
 }

@@ -33,7 +33,7 @@ const skip = new Set<string>([
       ]),
 ]);
 
-const skipDev = new Set<string>(["auto-imports", "cached-handler"]);
+const skipDev = new Set<string>(["cached-handler"]);
 
 const skipProd = new Set<string>(isRolldown ? [] : []);
 

@@ -8,7 +8,6 @@
 - `vfs: Map<string, { render }>` — Virtual file system
 - `routing: { routes, routeRules, globalMiddleware, routedMiddleware }`
 - `scannedHandlers: NitroEventHandler[]`
-- `unimport?: Unimport` — Auto-imports (optional)
 - `logger: ConsolaInstance`
 - `updateConfig(config)` — Hot-reload config
 - `close()` — Cleanup
@@ -18,12 +17,11 @@
 2. Install modules via `installModules()`
 3. Init routing via `initNitroRouting()`
 4. Scan handlers/plugins/tasks via `scanAndSyncOptions()`
-5. Prepare unimport for auto-imports
-6. Setup hooks
+5. Setup hooks
 
 ## Entry Points
 
-- `src/builder.ts` — Main public API: `createNitro()`, `build()`, `createDevServer()`, `prerender()`, `copyPublicAssets()`, `prepare()`, `writeTypes()`, `runTask()`, `listTasks()`
+- `src/builder.ts` — Main public API: `createNitro()`, `build()`, `createDevServer()`, `prerender()`, `copyPublicAssets()`, `prepare()`, `runTask()`, `listTasks()`
 - `src/vite.ts` — Vite plugin export from `src/build/vite/plugin.ts`
 
 ## Build System (`src/build/`)
@@ -43,14 +41,13 @@
 
 **Plugins** (`build/plugins.ts`):
 1. Virtual modules — renders from `build/virtual/`
-2. Auto imports — Unimport plugin
-3. WASM loader — unwasm
-4. Server main injection — `globalThis.__server_main__`
-5. Raw imports — `?raw` suffix
-6. Route meta — OpenAPI metadata
-7. Replace plugin — variable substitution
-8. Externals plugin — Node.js native resolution
-9. Sourcemap minify (optional)
+2. WASM loader — unwasm
+3. Server main injection — `globalThis.__server_main__`
+4. Raw imports — `?raw` suffix
+5. Route meta — OpenAPI metadata
+6. Replace plugin — variable substitution
+7. Externals plugin — Node.js native resolution
+8. Sourcemap minify (optional)
 
 **Virtual modules** (`build/virtual/`, 14 templates):
 All prefixed `#nitro/virtual/<name>`:
@@ -61,7 +58,7 @@ All prefixed `#nitro/virtual/<name>`:
 - `server-assets.ts` — Server asset metadata
 - `runtime-config.ts` — Runtime config object
 - `database.ts` — Database setup
-- `storage.ts` — Storage backends
+- `kv.ts` — KV storage backends
 - `tasks.ts` — Task registry
 - `polyfills.ts` — Env polyfills
 - `feature-flags.ts` — Feature detection
@@ -88,13 +85,13 @@ All prefixed `#nitro/virtual/<name>`:
 - `app.ts` — NitroApp creation, H3 app setup
 - `cache.ts` — Response caching
 - `context.ts` — Async context
-- `route-rules.ts` — Route rule middleware (headers, redirect, proxy, cache, cors)
+- `route-rule-handlers.ts` — Nitro's rule handlers for the compiled matcher: a `cache` handler bound to Nitro's cache runtime. The built-ins (headers, redirect, proxy, cors) and rule matching/normalization live in [`h3/rules`](https://h3.dev/guide/rules).
 - `static.ts` — Static file serving
 - `task.ts` — Task execution
 - `plugin.ts` — Plugin helpers
 - `runtime-config.ts` — Config getter
 
-**Public exports**: `runtime/app.ts` (`defineConfig()`), `runtime/nitro.ts` (`serverFetch()`), `runtime/cache.ts`, `runtime/task.ts`, `runtime/storage.ts`, etc.
+**Public exports**: `runtime/app.ts` (`defineConfig()`), `runtime/nitro.ts` (`serverFetch()`), `runtime/cache.ts`, `runtime/task.ts`, `runtime/kv.ts`, etc.
 
 ## Dev Server (`src/dev/`)
 
@@ -149,7 +146,6 @@ Uses `citty` with lazy-loaded commands: `dev`, `build`, `deploy`, `preview`, `pr
 | `c12` | Config loading |
 | `citty` | CLI framework |
 | `hookable` | Hook system |
-| `unimport` | Auto-imports |
 | `unstorage` | Storage abstraction |
 | `unenv` | Runtime polyfills |
 | `defu` | Config merging |
