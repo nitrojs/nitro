@@ -372,7 +372,11 @@ export async function writeWranglerConfig(
       );
     } else {
       // Add default compatibility flags
-      compatFlags.add("nodejs_compat");
+      // (`nodejs_compat` is enabled by default from 2026-08-04 and some workerd versions reject it explicitly)
+      const compatDate = wranglerConfig.compatibility_date;
+      if (!compatDate || compatDate < NODEJS_COMPAT_DEFAULT_ON_DATE) {
+        compatFlags.add("nodejs_compat");
+      }
       compatFlags.add("no_nodejs_compat_v2");
     }
   }
