@@ -1,4 +1,5 @@
 import { defineNitroPreset } from "../_utils/preset.ts";
+import { isDenoSpecifier } from "../_utils/externals.ts";
 import { writeFile } from "../_utils/fs.ts";
 import { resolve } from "pathe";
 import { unenvDeno } from "./unenv/preset.ts";
@@ -23,7 +24,7 @@ const denoDeploy = defineNitroPreset(
     unenv: unenvDeno,
     rollupConfig: {
       preserveEntrySignatures: false,
-      external: (id) => id.startsWith("https://") || id.startsWith("node:"),
+      external: (id) => isDenoSpecifier(id) || id.startsWith("node:"),
       output: {
         entryFileNames: "index.ts",
         manualChunks: (id) => "index",
@@ -46,7 +47,7 @@ const denoServer = defineNitroPreset(
     },
     rollupConfig: {
       external: (id) =>
-        id.startsWith("https://") || id.startsWith("node:") || builtinModules.includes(id),
+        isDenoSpecifier(id) || id.startsWith("node:") || builtinModules.includes(id),
       output: {
         hoistTransitiveImports: false,
       },

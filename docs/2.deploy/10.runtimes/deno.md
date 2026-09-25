@@ -18,6 +18,17 @@ NITRO_PRESET=deno_server npm run build
 deno run --allow-net --allow-read --allow-env .output/server/index.mjs
 ```
 
+## Importing from npm and JSR
+
+Deno resolves `npm:` and `jsr:` specifiers itself, so Nitro leaves them out of the bundle. Pin a version, since the specifier is all Deno has to go on:
+
+```ts
+import { escape } from "npm:lodash-es@4.17.21";
+import { encodeHex } from "jsr:@std/encoding@1/hex";
+```
+
+Bare specifiers (`lodash-es`) are bundled as usual.
+
 ## Deno Deploy
 
 :read-more{to="/deploy/providers/deno-deploy"}
