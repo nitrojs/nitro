@@ -154,7 +154,7 @@ describe("enableNodeCompat", () => {
     expect(nitro.options.cloudflare?.nodeCompat).toBe(true);
   });
 
-  it("respects explicit no_nodejs_compat_v2 flag", async () => {
+  it("keeps implicit nodejs_compat with no_nodejs_compat_v2 flag", async () => {
     const rootDir = mkdtempSync(join(tmpdir(), "nitro-cf-test-"));
     tempDirs.push(rootDir);
 
@@ -173,7 +173,7 @@ describe("enableNodeCompat", () => {
 
     await enableNodeCompat(nitro);
 
-    expect(nitro.options.cloudflare?.nodeCompat).toBeFalsy();
+    expect(nitro.options.cloudflare?.nodeCompat).toBe(true);
   });
 
   it("detects implicit nodejs_compat when using wrangler.toml", async () => {

@@ -217,8 +217,7 @@ export async function enableNodeCompat(nitro: Nitro) {
       nitro.options.compatibilityDate?.default;
     const isDefaultNodeCompat =
       Boolean(compatDate && compatDate >= NODEJS_COMPAT_DEFAULT_ON_DATE) &&
-      !userCompatibilityFlags.has("no_nodejs_compat") &&
-      !userCompatibilityFlags.has("no_nodejs_compat_v2");
+      !userCompatibilityFlags.has("no_nodejs_compat");
 
     if (
       userCompatibilityFlags.has("nodejs_compat") ||
