@@ -25,6 +25,7 @@ export default defineConfig({
   // @ts-expect-error
   __vitePkg__: process.env.NITRO_VITE_PKG,
   framework: { name: "nitro", version: "3.x" },
+  features: { websocket: true },
   sourcemap: true,
   rollupConfig: {
     output: {

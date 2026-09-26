@@ -58,7 +58,21 @@ export function serverFetch(
 // via `getWebSocketHooks()` so core runtime keeps no import of `crossws`.
 const kWebSocketHooks: unique symbol = /* @__PURE__ */ Symbol.for("crossws.hooks");
 
-export async function resolveWebsocketHooks(req: ServerRequest): Promise<Partial<WebSocketHooks>> {
+// crossws resolves hooks on every lifecycle event (upgrade, open, message,
+// close) by re-running the app handler. Cache the result per request so the
+// whole pipeline is not re-run for every message.
+const websocketHooksCache = new WeakMap<object, Promise<Partial<WebSocketHooks>>>();
+
+export function resolveWebsocketHooks(req: ServerRequest): Promise<Partial<WebSocketHooks>> {
+  let hooks = websocketHooksCache.get(req);
+  if (!hooks) {
+    hooks = resolveWebsocketHooksUncached(req);
+    websocketHooksCache.set(req, hooks);
+  }
+  return hooks;
+}
+
+async function resolveWebsocketHooksUncached(req: ServerRequest): Promise<Partial<WebSocketHooks>> {
   // The `crossws` property on the response is best-effort only: any staged
   // response header (a `headers` route rule, CORS, ...) makes h3 rebuild the
   // response, and a rebuild carries none of the original's own properties.
