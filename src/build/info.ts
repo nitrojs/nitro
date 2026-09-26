@@ -1,5 +1,6 @@
 import type { Nitro, NitroBuildInfo, WorkerAddress } from "nitro/types";
-import { join, relative, resolve } from "pathe";
+import { resolveModulePath } from "exsolve";
+import { extname, join, relative, resolve } from "pathe";
 import { version as nitroVersion } from "nitro/meta";
 import { presetsWithConfig } from "../presets/_types.gen.ts";
 import { writeFile } from "../utils/fs.ts";
@@ -7,6 +8,7 @@ import { mkdir, readFile, stat } from "node:fs/promises";
 import { dirname } from "node:path";
 import type { RolldownOutput } from "rolldown";
 import type { RollupOutput } from "rollup";
+import { BUILD_EXTENSIONS } from "./config.ts";
 
 const NITRO_WELLKNOWN_DIR = "node_modules/.nitro";
 
@@ -59,7 +61,7 @@ export async function writeBuildInfo(
   nitro: Nitro,
   output: RolldownOutput | RollupOutput | undefined
 ): Promise<NitroBuildInfo> {
-  const serverEntryName = output?.output?.find((o) => o.type === "chunk" && o.isEntry)?.fileName;
+  const serverEntryName = resolveNitroServerEntry(output, { nitroEntry: nitro.options.entry });
 
   const buildInfoPath = resolve(nitro.options.output.dir, "nitro.json");
   const buildInfo: NitroBuildInfo = {
@@ -116,4 +118,31 @@ export async function writeDevBuildInfo(nitro: Nitro, addr?: WorkerAddress): Pro
     },
   };
   await writeFile(buildInfoPath, JSON.stringify(buildInfo, null, 2));
+}
+
+function resolveNitroServerEntry(
+  output: RolldownOutput | RollupOutput | undefined,
+  options: { nitroEntry: string }
+): string | undefined {
+  const resolvedEntry = options.nitroEntry.startsWith("#")
+    ? undefined
+    : resolveModulePath(options.nitroEntry, { try: true, extensions: BUILD_EXTENSIONS });
+  return (
+    output?.output.find(
+      (item) =>
+        item.type === "chunk" &&
+        item.isEntry &&
+        isNitroEntry(item.facadeModuleId, resolvedEntry || options.nitroEntry)
+    ) ?? output?.output.find((item) => item.type === "chunk" && item.isEntry)
+  )?.fileName;
+}
+
+function isNitroEntry(facadeModuleId: string | null, nitroEntry: string): boolean {
+  if (!facadeModuleId) {
+    return false;
+  }
+  const facade = resolve(facadeModuleId);
+  const entry = resolve(nitroEntry);
+  const extension = extname(facade);
+  return facade === entry || (!!extension && facade.slice(0, -extension.length) === entry);
 }
