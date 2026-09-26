@@ -24,7 +24,7 @@ describe("nitro:dev:shutdown", () => {
     });
     closeNitro = () => nitro.close();
     const devServer = createDevServer(nitro);
-    const server = await devServer.listen({ hostname: "127.0.0.1", port: 0 });
+    const server = await devServer.listen(0, { hostname: "127.0.0.1" });
     await prepare(nitro);
     const ready = new Promise<void>((resolve) => {
       nitro.hooks.hook("dev:reload", () => resolve());
