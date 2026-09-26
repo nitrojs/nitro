@@ -1085,9 +1085,7 @@ type CustomDriverName = string & { _custom?: any };
  * Driver options are inferred from the `driver` name.
  */
 export type BuiltinStorageMount = {
-  [Name in BuiltinDriverName]: {
-    driver: Name;
-  } & (Name extends keyof BuiltinDriverOptions
+  [Name in BuiltinDriverName]: { driver: Name } & (Name extends keyof BuiltinDriverOptions
     ? SerializableOptions<BuiltinDriverOptions[Name]>
     : unknown);
 }[BuiltinDriverName];
