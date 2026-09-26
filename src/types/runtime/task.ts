@@ -36,4 +36,12 @@ export interface Task<RT = unknown> {
 export interface TaskRunnerOptions {
   cwd?: string;
   buildDir?: string;
+  /**
+   * Socket inactivity timeout in milliseconds for requests to the dev server.
+   *
+   * `listTasks()` defaults to 30 seconds, since the dev server answers it
+   * immediately. `runTask()` has no default: the socket stays idle for as long
+   * as the task runs, so a default would cap the task's own duration.
+   */
+  timeout?: number;
 }
