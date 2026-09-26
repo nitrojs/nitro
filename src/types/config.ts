@@ -1,5 +1,10 @@
 import type commonjs from "@rollup/plugin-commonjs";
-import type { C12InputConfig, ConfigWatcher, DotenvOptions, ResolvedConfig } from "c12";
+import type {
+  C12InputConfig,
+  ConfigWatcher,
+  DotenvOptions,
+  ResolvedConfig,
+} from "c12";
 import type { WatchConfigOptions } from "c12";
 import type { ChokidarOptions } from "chokidar";
 import type { CompatibilityDateSpec, CompatibilityDates } from "compatx";
@@ -7,7 +12,11 @@ import type { LogLevel } from "consola";
 import type { ConnectorName, ConnectorOptions } from "db0";
 import type { NestedHooks } from "hookable";
 import type { ProxyServerOptions } from "httpxy";
-import type { PresetName, PresetNameInput, PresetOptions } from "../presets/index.ts";
+import type {
+  PresetName,
+  PresetNameInput,
+  PresetOptions,
+} from "../presets/index.ts";
 import type { TSConfig } from "pkg-types";
 import type { Preset as UnenvPreset } from "unenv";
 import type { BuiltinDriverName, BuiltinDriverOptions } from "unstorage";
@@ -31,7 +40,9 @@ import type { RollupConfig } from "./build.ts";
 import type { NitroRouteConfig, NitroRouteRules } from "./route-rules.ts";
 import type { JsonValue, SerializableOptions } from "./_utils.ts";
 
-type RollupCommonJSOptions = NonNullable<Parameters<typeof commonjs.default>[0]>;
+type RollupCommonJSOptions = NonNullable<
+  Parameters<typeof commonjs.default>[0]
+>;
 
 /**
  * Fully resolved Nitro options available on `nitro.options`.
@@ -314,6 +325,11 @@ export interface NitroOptions extends PresetOptions {
      * Enable WebSocket support.
      */
     websocket?: boolean;
+
+    /**
+     * Enable NITRO_APP_BASE_URL env var to take effect at runtime
+     */
+    runtimeBaseURL?: boolean;
   };
 
   /**
@@ -643,7 +659,10 @@ export interface NitroOptions extends PresetOptions {
    *
    * @see https://nitro.build/config#routes
    */
-  routes: Record<string, string | Omit<NitroEventHandler, "route" | "middleware">>;
+  routes: Record<
+    string,
+    string | Omit<NitroEventHandler, "route" | "middleware">
+  >;
 
   /**
    * Path(s) to custom runtime error handler(s).
@@ -684,7 +703,9 @@ export interface NitroOptions extends PresetOptions {
     /** Fail the build when a route cannot be prerendered. */
     failOnError?: boolean;
     /** Patterns (string, RegExp, or function) of routes to skip. */
-    ignore?: Array<string | RegExp | ((path: string) => undefined | null | boolean)>;
+    ignore?: Array<
+      string | RegExp | ((path: string) => undefined | null | boolean)
+    >;
     /** Skip prerendering assets without a base URL prefix. */
     ignoreUnprefixedPublicAssets?: boolean;
     /** Explicit list of routes to prerender. */
@@ -863,7 +884,10 @@ export interface NitroOptions extends PresetOptions {
    * @see https://nitro.build/config#traceopts
    * @see https://github.com/unjs/nf3
    */
-  traceOpts?: Pick<ExternalsTraceOptions, "nft" | "traceAlias" | "chmod" | "transform" | "hooks">;
+  traceOpts?: Pick<
+    ExternalsTraceOptions,
+    "nft" | "traceAlias" | "chmod" | "transform" | "hooks"
+  >;
 
   // Advanced
 
@@ -904,7 +928,9 @@ export interface NitroOptions extends PresetOptions {
      * Can be a shell command (`./` paths are resolved relative to the output directory)
      * or a function (used by presets that deploy programmatically).
      */
-    deploy?: string | ((nitro: Nitro, opts: { args?: string[] }) => void | Promise<void>);
+    deploy?:
+      | string
+      | ((nitro: Nitro, opts: { args?: string[] }) => void | Promise<void>);
   };
 
   /**
@@ -1080,7 +1106,9 @@ type CustomDriverName = string & { _custom?: any };
  * Driver options are inferred from the `driver` name.
  */
 export type BuiltinStorageMount = {
-  [Name in BuiltinDriverName]: { driver: Name } & (Name extends keyof BuiltinDriverOptions
+  [Name in BuiltinDriverName]: {
+    driver: Name;
+  } & (Name extends keyof BuiltinDriverOptions
     ? SerializableOptions<BuiltinDriverOptions[Name]>
     : unknown);
 }[BuiltinDriverName];
@@ -1127,7 +1155,10 @@ export type DatabaseConnectionConfig = {
 }[ConnectorName];
 
 /** Map of {@link DatabaseConnectionName} to {@link DatabaseConnectionConfig}. */
-export type DatabaseConnectionConfigs = Record<DatabaseConnectionName, DatabaseConnectionConfig>;
+export type DatabaseConnectionConfigs = Record<
+  DatabaseConnectionName,
+  DatabaseConnectionConfig
+>;
 
 // Runtime config
 

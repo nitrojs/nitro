@@ -1,7 +1,7 @@
 import "./_runtime_warn.ts";
 import type { NitroApp } from "nitro/types";
 import type { ServerRequest } from "srvx";
-import { H3Core } from "h3";
+import { H3Core, requestWithBaseURL } from "h3";
 import errorHandler from "#nitro/virtual/error-handler";
 
 export function createNitroApp(): NitroApp {
@@ -10,7 +10,10 @@ export function createNitroApp(): NitroApp {
       return errorHandler(error, event);
     },
   });
-  const captureError: NonNullable<NitroApp["captureError"]> = (error, errorCtx) => {
+  const captureError: NonNullable<NitroApp["captureError"]> = (
+    error,
+    errorCtx,
+  ) => {
     if (errorCtx?.event) {
       const errors = errorCtx.event.req.context?.nitro?.errors;
       if (errors) {
@@ -22,6 +25,10 @@ export function createNitroApp(): NitroApp {
     fetch: (req: ServerRequest) => {
       req.context ||= {};
       req.context.nitro = req.context.nitro || { errors: [] };
+      if (import.meta._runtimeBaseURL) {
+        const baseURL = process.env.NITRO_APP_BASE_URL ?? "";
+        req = requestWithBaseURL(req, baseURL);
+      }
       return h3App.fetch(req);
     },
     h3: h3App,
