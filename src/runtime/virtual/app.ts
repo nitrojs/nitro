@@ -10,10 +10,7 @@ export function createNitroApp(): NitroApp {
       return errorHandler(error, event);
     },
   });
-  const captureError: NonNullable<NitroApp["captureError"]> = (
-    error,
-    errorCtx,
-  ) => {
+  const captureError: NonNullable<NitroApp["captureError"]> = (error, errorCtx) => {
     if (errorCtx?.event) {
       const errors = errorCtx.event.req.context?.nitro?.errors;
       if (errors) {
