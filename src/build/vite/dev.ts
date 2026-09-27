@@ -6,7 +6,7 @@ import type { RunnerRPCHooks, UpgradeContext } from "env-runner";
 import { IncomingMessage, ServerResponse } from "node:http";
 import { NodeRequest, sendNodeResponse } from "srvx/node";
 import { createViteHotChannel } from "env-runner/vite";
-import { basename, dirname, join, normalize } from "pathe";
+import { basename, dirname, isAbsolute, join, normalize, relative } from "pathe";
 import { debounce } from "perfect-debounce";
 import { withBase, withoutBase } from "ufo";
 import { scanHandlers } from "../../scan.ts";
@@ -250,7 +250,8 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   nitroEnv.devServer.onMessage(async (message: any) => {
     if (message?.__rpc === "transformHTML") {
       try {
-        const html = (await server.transformIndexHtml("/", message.data)).replace(
+        const htmlURL = _htmlTemplateURL(nitro.options.renderer?.template, server.config.root);
+        const html = (await server.transformIndexHtml(htmlURL, message.data)).replace(
           "<!--ssr-outlet-->",
           `{{{ globalThis.__nitro_vite_envs__?.["ssr"]?.fetch($REQUEST) || "" }}}`
         );
@@ -443,4 +444,13 @@ export function matchesMiddlewareRoute(route: string | undefined, url: string): 
   }
   const boundary = path[route.length];
   return !boundary || boundary === "/" || boundary === ".";
+}
+
+// Vite derives the HTML file path from the URL, which relative imports (e.g. in inline `<style>`) resolve against.
+function _htmlTemplateURL(template: string | undefined, root: string): string {
+  if (!template) {
+    return "/index.html";
+  }
+  const path = relative(root, template);
+  return path.startsWith("../") || isAbsolute(path) ? join("/@fs", template) : `/${path}`;
 }
