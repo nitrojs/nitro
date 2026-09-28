@@ -251,18 +251,22 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   nitroEnv.devServer.onMessage(async (message: any) => {
     if (message?.__rpc === "transformHTML") {
       try {
-        const template = nitro.options.renderer?.template;
-        const htmlURL = _htmlTemplateURL(template, server.config.root);
-        const rawHTML = await readFile(template!, "utf8");
-        const transformedHTML = await server.transformIndexHtml(htmlURL, rawHTML).catch((error) => {
-          nitro.logger.warn("Failed to transform HTML via Vite:", error);
-          return rawHTML;
-        });
-        const html = transformedHTML.replace(
+        const htmlURL = _htmlTemplateURL(nitro.options.renderer?.template, server.config.root);
+        const html = (await server.transformIndexHtml(htmlURL, message.data)).replace(
           "<!--ssr-outlet-->",
           `{{{ globalThis.__nitro_vite_envs__?.["ssr"]?.fetch($REQUEST) || "" }}}`
         );
         nitroEnv.devServer.sendMessage({ __rpc_id: message.__rpc_id, data: html });
+      } catch (error) {
+        nitroEnv.devServer.sendMessage({
+          __rpc_id: message.__rpc_id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    } else if (message?.__rpc === "rendererTemplate") {
+      try {
+        const data = await readFile(nitro.options.renderer!.template!, "utf8");
+        nitroEnv.devServer.sendMessage({ __rpc_id: message.__rpc_id, data });
       } catch (error) {
         nitroEnv.devServer.sendMessage({
           __rpc_id: message.__rpc_id,
