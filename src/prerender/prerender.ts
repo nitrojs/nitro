@@ -1,7 +1,7 @@
 import { pathToFileURL } from "node:url";
 import { defu } from "defu";
 import mime from "mime";
-import { writeFile } from "../utils/fs.ts";
+import { writeFile, prettyPath } from "../utils/fs.ts";
 import type { Nitro, NitroRouteRules, PrerenderRoute, PublicAssetDir } from "nitro/types";
 import { join, relative, resolve } from "pathe";
 import { createRouter, addRoute, findAllRoutes } from "rou3";
@@ -342,18 +342,21 @@ export async function prerender(nitro: Nitro) {
     failedRoutes: [...failedRoutes],
   });
 
+  // A prerender that wrote nothing while every attempted route failed is a misconfiguration,
+  // not a success: the build would otherwise exit 0 with an empty output. The usual cause is a
+  // Vite SSR entry Nitro could not auto-detect, which leaves no renderer so routes 404. (#4591)
+  if (failedRoutes.size > 0 && nitro._prerenderedRoutes.length === 0) {
+    logPrerenderErrors(nitro, failedRoutes);
+    throw new Error(
+      `Prerendered 0 routes. All ${failedRoutes.size} route(s) failed, so nothing was written to \`${prettyPath(nitro.options.output.publicDir)}\`.` +
+        (nitro.options.renderer
+          ? ""
+          : " No `renderer` is configured — check that the app has a route or renderer able to serve the prerendered routes.")
+    );
+  }
+
   if (nitro.options.prerender.failOnError && failedRoutes.size > 0) {
-    nitro.logger.log("\nErrors prerendering:");
-    for (const route of failedRoutes) {
-      // const parents = linkParents.get(route.route);
-      // const parentsText = parents?.size
-      //   ? `\n${[...parents.values()]
-      //       .map((link) => colors.gray(`  │ └── Linked from ${link}`))
-      //       .join("\n")}`
-      //   : "";
-      nitro.logger.log(formatPrerenderRoute(route));
-    }
-    nitro.logger.log("");
+    logPrerenderErrors(nitro, failedRoutes);
     throw new Error("Exiting due to prerender errors.");
   }
 
@@ -365,4 +368,18 @@ export async function prerender(nitro: Nitro) {
   if (nitro.options.compressPublicAssets) {
     await compressPublicAssets(nitro);
   }
+}
+
+function logPrerenderErrors(nitro: Nitro, failedRoutes: Set<PrerenderRoute>) {
+  nitro.logger.log("\nErrors prerendering:");
+  for (const route of failedRoutes) {
+    // const parents = linkParents.get(route.route);
+    // const parentsText = parents?.size
+    //   ? `\n${[...parents.values()]
+    //       .map((link) => colors.gray(`  │ └── Linked from ${link}`))
+    //       .join("\n")}`
+    //   : "";
+    nitro.logger.log(formatPrerenderRoute(route));
+  }
+  nitro.logger.log("");
 }
