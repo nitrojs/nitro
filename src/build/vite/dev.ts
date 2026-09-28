@@ -12,6 +12,7 @@ import { debounce } from "perfect-debounce";
 import { withBase, withoutBase } from "ufo";
 import { scanHandlers } from "../../scan.ts";
 import { onWatchError } from "../../utils/watch.ts";
+import { handleDevRPC } from "../../dev/_rpc.ts";
 import { importVite, _resolveFromPath, type ViteImportOptions } from "./_import.ts";
 
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
@@ -248,33 +249,21 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   }
 
   // Worker => Host RPC
-  nitroEnv.devServer.onMessage(async (message: any) => {
-    if (message?.__rpc === "transformHTML") {
-      try {
-        const htmlURL = _htmlTemplateURL(nitro.options.renderer?.template, server.config.root);
-        const html = (await server.transformIndexHtml(htmlURL, message.data)).replace(
-          "<!--ssr-outlet-->",
-          `{{{ globalThis.__nitro_vite_envs__?.["ssr"]?.fetch($REQUEST) || "" }}}`
-        );
-        nitroEnv.devServer.sendMessage({ __rpc_id: message.__rpc_id, data: html });
-      } catch (error) {
-        nitroEnv.devServer.sendMessage({
-          __rpc_id: message.__rpc_id,
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
-    } else if (message?.__rpc === "rendererTemplate") {
-      try {
-        const data = await readFile(nitro.options.renderer!.template!, "utf8");
-        nitroEnv.devServer.sendMessage({ __rpc_id: message.__rpc_id, data });
-      } catch (error) {
-        nitroEnv.devServer.sendMessage({
-          __rpc_id: message.__rpc_id,
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
-    }
-  });
+  nitroEnv.devServer.onMessage((message) =>
+    handleDevRPC(message, {
+      sendMessage: (message) => nitroEnv.devServer.sendMessage(message),
+      handlers: {
+        transformHTML: async (html: string) => {
+          const htmlURL = _htmlTemplateURL(nitro.options.renderer?.template, server.config.root);
+          return (await server.transformIndexHtml(htmlURL, html)).replace(
+            "<!--ssr-outlet-->",
+            `{{{ globalThis.__nitro_vite_envs__?.["ssr"]?.fetch($REQUEST) || "" }}}`
+          );
+        },
+        rendererTemplate: () => readFile(nitro.options.renderer!.template!, "utf8"),
+      },
+    })
+  );
 
   const nitroDevMiddleware = async (
     nodeReq: NitroDevRequest,

@@ -19,6 +19,7 @@ import { NitroDevApp } from "./app.ts";
 import { createWatcher } from "../utils/watch.ts";
 import { resolveRunnerDeps } from "./runner-deps.ts";
 import { shutdownRunner } from "./shutdown.ts";
+import { handleDevRPC } from "./_rpc.ts";
 import { writeDevBuildInfo } from "../build/info.ts";
 
 export function createDevServer(nitro: Nitro): NitroDevServer {
@@ -98,20 +99,14 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
     });
 
     // Worker => Host RPC
-    this.#manager.onMessage(async (message: any) => {
-      if (message?.__rpc !== "rendererTemplate") {
-        return;
-      }
-      try {
-        const data = await readFile(nitro.options.renderer!.template!, "utf8");
-        this.#manager.sendMessage({ __rpc_id: message.__rpc_id, data });
-      } catch (error) {
-        this.#manager.sendMessage({
-          __rpc_id: message.__rpc_id,
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
-    });
+    this.#manager.onMessage((message) =>
+      handleDevRPC(message, {
+        sendMessage: (message) => this.#manager.sendMessage(message),
+        handlers: {
+          rendererTemplate: () => readFile(nitro.options.renderer!.template!, "utf8"),
+        },
+      })
+    );
 
     nitro.hooks.hook("close", () => this.close());
 

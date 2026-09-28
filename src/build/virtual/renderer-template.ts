@@ -24,7 +24,9 @@ export default function rendererTemplate(nitro: Nitro) {
               } catch (error) {
                 // The runner may lack fs access (e.g. workerd): ask the host (set by the dev entry)
                 if (!globalThis.__nitro_renderer_template__) throw error;
-                return globalThis.__nitro_renderer_template__();
+                return globalThis.__nitro_renderer_template__().catch((hostError) => {
+                  throw Object.assign(error, { cause: hostError });
+                });
               }
             }
             export const rendererTemplateFile = ${JSON.stringify(template)};

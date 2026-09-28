@@ -1,4 +1,5 @@
 import { createViteTransport } from "env-runner/vite";
+import { createDevRPC } from "../dev-rpc.mjs";
 
 // `vite` is an optional dependency Nitro resolves from the app, so the module runner cannot be
 // imported from here. The generated entry injects it instead (see `build/vite/_dev-worker.ts`).
@@ -195,19 +196,7 @@ class ViteEnvRunner {
 
 // ----- RPC -----
 
-const rpcRequests = new Map();
-
-function rpc(name, data, timeout = 3000) {
-  const id = Math.random().toString(36).slice(2);
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      rpcRequests.delete(id);
-      reject(new Error(`RPC "${name}" timed out`));
-    }, timeout);
-    rpcRequests.set(id, { resolve, reject, timer });
-    sendMessage?.({ __rpc: name, __rpc_id: id, data });
-  });
-}
+const rpc = createDevRPC((message) => sendMessage?.(message));
 
 // Trap unhandled errors to avoid worker crash
 if (typeof process !== "undefined" && typeof process.on === "function") {
@@ -254,7 +243,7 @@ reload();
 // ----- HTML Transform -----
 
 globalThis.__transform_html__ = async function (html) {
-  html = await rpc("transformHTML", html).catch((error) => {
+  html = await rpc.call("transformHTML", html).catch((error) => {
     console.warn("Failed to transform HTML via Vite:", error);
     return html;
   });
@@ -262,7 +251,7 @@ globalThis.__transform_html__ = async function (html) {
 };
 
 // Fallback when the runner cannot read the template itself (e.g. workerd)
-globalThis.__nitro_renderer_template__ = () => rpc("rendererTemplate");
+globalThis.__nitro_renderer_template__ = () => rpc.call("rendererTemplate");
 
 // ----- Exports (env-runner AppEntry) -----
 
@@ -291,17 +280,7 @@ export const ipc = {
     sendMessage = ctx.sendMessage;
   },
   onMessage(message) {
-    if (message?.__rpc_id) {
-      const req = rpcRequests.get(message.__rpc_id);
-      if (req) {
-        clearTimeout(req.timer);
-        rpcRequests.delete(message.__rpc_id);
-        if (message.error) {
-          req.reject(typeof message.error === "string" ? new Error(message.error) : message.error);
-        } else {
-          req.resolve(message.data);
-        }
-      }
+    if (rpc.handleMessage(message)) {
       return;
     }
     if (message?.type === "custom") {
