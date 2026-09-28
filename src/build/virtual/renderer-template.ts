@@ -18,7 +18,8 @@ export default function rendererTemplate(nitro: Nitro) {
         // Development
         return /* js */ `
             import { readFile } from 'node:fs/promises';
-            export const rendererTemplate = () => readFile(${JSON.stringify(template)}, "utf8");
+            // Set by the dev entry: the host reads the template (the runner may lack fs access, e.g. workerd)
+            export const rendererTemplate = () => globalThis.__nitro_renderer_template__?.() ?? readFile(${JSON.stringify(template)}, "utf8");
             export const rendererTemplateFile = ${JSON.stringify(template)};
             export const isStaticTemplate = ${JSON.stringify(nitro.options.renderer?.static)};
             `;

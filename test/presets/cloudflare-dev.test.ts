@@ -63,6 +63,16 @@ for (const mode of ["nitro", "vite"] as const) {
       });
     });
 
+    it("renders the index.html template", async () => {
+      const response = await fetchPath("/");
+      const body = await response.text();
+      expect(response.status, body).toBe(200);
+      expect(body).toContain("<h1>cloudflare-dev</h1>");
+      if (mode === "vite") {
+        expect(body).toContain("/@vite/client");
+      }
+    });
+
     it.runIf(mode === "nitro")("keeps binding state across reloads", async () => {
       await reload!();
       const response = await fetchPath("/kv");

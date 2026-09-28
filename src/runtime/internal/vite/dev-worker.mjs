@@ -253,13 +253,8 @@ reload();
 
 // ----- HTML Transform -----
 
-globalThis.__transform_html__ = async function (html) {
-  html = await rpc("transformHTML", html).catch((error) => {
-    console.warn("Failed to transform HTML via Vite:", error);
-    return html;
-  });
-  return html;
-};
+// The host reads and transforms the template (the runner may lack fs access, e.g. workerd)
+globalThis.__nitro_renderer_template__ = () => rpc("transformHTML");
 
 // ----- Exports (env-runner AppEntry) -----
 

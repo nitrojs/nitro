@@ -4,6 +4,7 @@ import type { FetchFunctionOptions, FetchResult } from "vite/module-runner";
 import type { RunnerRPCHooks, UpgradeContext } from "env-runner";
 
 import { IncomingMessage, ServerResponse } from "node:http";
+import { readFile } from "node:fs/promises";
 import { NodeRequest, sendNodeResponse } from "srvx/node";
 import { createViteHotChannel } from "env-runner/vite";
 import { basename, dirname, isAbsolute, join, normalize, relative } from "pathe";
@@ -250,8 +251,14 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   nitroEnv.devServer.onMessage(async (message: any) => {
     if (message?.__rpc === "transformHTML") {
       try {
-        const htmlURL = _htmlTemplateURL(nitro.options.renderer?.template, server.config.root);
-        const html = (await server.transformIndexHtml(htmlURL, message.data)).replace(
+        const template = nitro.options.renderer?.template;
+        const htmlURL = _htmlTemplateURL(template, server.config.root);
+        const rawHTML = await readFile(template!, "utf8");
+        const transformedHTML = await server.transformIndexHtml(htmlURL, rawHTML).catch((error) => {
+          nitro.logger.warn("Failed to transform HTML via Vite:", error);
+          return rawHTML;
+        });
+        const html = transformedHTML.replace(
           "<!--ssr-outlet-->",
           `{{{ globalThis.__nitro_vite_envs__?.["ssr"]?.fetch($REQUEST) || "" }}}`
         );

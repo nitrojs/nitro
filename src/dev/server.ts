@@ -10,6 +10,7 @@ import type { Nitro } from "nitro/types";
 import { HTTPError } from "h3";
 
 import consola from "consola";
+import { readFile } from "node:fs/promises";
 import { resolve } from "pathe";
 import { serve } from "srvx/node";
 import { debounce } from "perfect-debounce";
@@ -93,6 +94,22 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
           "Dev worker failed after 3 retries.",
           cause ? `Last cause: ${cause}` : ""
         );
+      }
+    });
+
+    // Worker => Host RPC
+    this.#manager.onMessage(async (message: any) => {
+      if (message?.__rpc !== "rendererTemplate") {
+        return;
+      }
+      try {
+        const data = await readFile(nitro.options.renderer!.template!, "utf8");
+        this.#manager.sendMessage({ __rpc_id: message.__rpc_id, data });
+      } catch (error) {
+        this.#manager.sendMessage({
+          __rpc_id: message.__rpc_id,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     });
 
