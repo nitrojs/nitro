@@ -66,6 +66,8 @@ export interface NitroPluginContext {
   _initPromise?: Promise<RunnerManager>;
   _viteEnvs?: Map<string, string>;
   _transformRequest?: (id: string) => Promise<TransformResult | null | undefined>;
+  _serverEntryExports?: string;
+  _serverEntryExportFiles?: Set<string>;
   _publicDistDir?: string;
   _entryPoints: Record<string, string>;
   _pluginModules?: VitePlugin[];

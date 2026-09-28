@@ -87,7 +87,9 @@ export interface CloudflareOptions {
   };
 
   /**
-   * Custom Cloudflare exports additional classes such as WorkflowEntrypoint.
+   * File exporting additional Cloudflare classes, such as DurableObject or WorkflowEntrypoint.
+   * Durable Objects are available in Miniflare development and in the production build.
+   * @default "exports.cloudflare.ts"
    */
   exports?: string;
 }

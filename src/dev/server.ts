@@ -220,6 +220,10 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
     this.#runnerName = runnerName;
     const runner = await loadRunner(runnerName, {
       ...(await resolveRunnerDeps(this.nitro, runnerName)),
+      ...(runnerName === "miniflare" &&
+      this.nitro.options.virtual["#nitro/virtual/server-entry-exports"]
+        ? { exports: this.#entry }
+        : {}),
       name: `Nitro_${this.#workerIdCtr++}`,
       data: { entry: this.#entry, ...this.#workerData },
       plugins: this.#plugins,

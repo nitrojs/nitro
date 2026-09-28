@@ -10,6 +10,7 @@ import { isAbsolute } from "pathe";
 import { resolveRunnerDeps } from "../../dev/runner-deps.ts";
 import { shutdownRunner } from "../../dev/shutdown.ts";
 import { writeDevWorkerEntry } from "./_dev-worker.ts";
+import { SERVER_ENTRY_EXPORTS_ID } from "./_dev-exports.ts";
 import { viteImportOptions } from "./_import.ts";
 
 export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOptions {
@@ -135,7 +136,7 @@ export async function initEnvRunner(ctx: NitroPluginContext) {
         }
         if (_retries++ < 3) {
           ctx.nitro!.logger.info("Restarting env runner...", cause ? `Cause: ${cause}` : "");
-          _loadRunner(ctx, manager);
+          _loadRunner(ctx, manager).catch((error) => ctx.nitro!.logger.error(error));
         } else {
           ctx.nitro!.logger.error(
             "Env runner failed after 3 retries.",
@@ -155,7 +156,13 @@ export async function initEnvRunner(ctx: NitroPluginContext) {
           }
         }
       });
-      await _loadRunner(ctx, manager);
+      // Server entry exports are bundled through the Vite environment, the dev server loads the
+      // runner once it exists (see `configureViteDevServer`).
+      if (hasDevServerExports(ctx)) {
+        ctx._serverEntryExports = undefined;
+      } else {
+        await _loadRunner(ctx, manager);
+      }
       ctx._envRunner = manager;
       return manager;
     })();
@@ -196,10 +203,16 @@ export async function reloadEnvRunner(ctx: NitroPluginContext) {
 async function _loadRunner(ctx: NitroPluginContext, manager: RunnerManager) {
   const runnerName = _devRunner(ctx);
   const entry = await writeDevWorkerEntry(ctx.nitro!);
+  const exportsCode = runnerName === "miniflare" ? ctx._serverEntryExports : undefined;
   const runner = await loadRunner(runnerName, {
     ...(await resolveRunnerDeps(ctx.nitro!, runnerName)),
     name: "nitro-vite",
-    data: { entry },
+    ...(exportsCode === undefined
+      ? { data: { entry } }
+      : {
+          exports: SERVER_ENTRY_EXPORTS_ID,
+          data: { entry, virtual: { [SERVER_ENTRY_EXPORTS_ID]: exportsCode } },
+        }),
   });
   await manager.reload(runner);
 }
@@ -225,6 +238,11 @@ function _resolveConditions(ctx: NitroPluginContext): string[] {
   return runtimeCondition && !exportConditions.includes(runtimeCondition)
     ? [runtimeCondition, ...exportConditions]
     : exportConditions;
+}
+
+/** Whether the miniflare runner registers server entry exports (bundled by the dev server). */
+export function hasDevServerExports(ctx: NitroPluginContext): boolean {
+  return _isWorkerdRunner(ctx) && !!ctx.nitro!.options.virtual[SERVER_ENTRY_EXPORTS_ID];
 }
 
 function _devRunner(ctx: NitroPluginContext): RunnerName {

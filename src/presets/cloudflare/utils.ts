@@ -19,6 +19,7 @@ import {
 import { unenvCfNodeCompat } from "./unenv/preset.ts";
 import { routeToSplat, sortRoutes } from "../_utils/routes.ts";
 import { extendEnv } from "../../build/env.ts";
+import { resolveExportsEntry } from "./entry-exports.ts";
 
 // https://github.com/nitrojs/nitro/issues/4527
 const NODEJS_COMPAT_SUPPORTED_FROM_DATE = "2024-09-23";
@@ -261,13 +262,21 @@ export async function writeWranglerConfig(nitro: Nitro, cfTarget: "pages" | "mod
   }
 
   // Read user config
-  const { config: userConfig = {} } = await readWranglerConfig(nitro);
+  const { configPath: userConfigPath, config: userConfig = {} } = await readWranglerConfig(nitro);
 
   // Nitro context config (from frameworks and modules)
   const ctxConfig = nitro.options.cloudflare?.wrangler || {};
 
   // Validate and warn about overrides
   for (const key in overrides) {
+    // `main` can point to the exports entry, so `wrangler types` can type Durable Object bindings
+    if (
+      key === "main" &&
+      userConfig.main &&
+      resolve(dirname(userConfigPath!), userConfig.main) === resolveExportsEntry(nitro)
+    ) {
+      continue;
+    }
     if (key in userConfig || key in ctxConfig) {
       nitro.logger.warn(
         `[cloudflare] Wrangler config \`${key}\`${key in ctxConfig ? "set by config or modules" : ""} is overridden and will be ignored.`

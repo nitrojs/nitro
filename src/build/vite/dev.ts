@@ -15,6 +15,8 @@ import { scanHandlers } from "../../scan.ts";
 import { onWatchError } from "../../utils/watch.ts";
 import { handleDevRPC } from "../../dev/_rpc.ts";
 import { importVite, _resolveFromPath, type ViteImportOptions } from "./_import.ts";
+import { hasDevServerExports, reloadEnvRunner } from "./env.ts";
+import { buildDevServerExports } from "./_dev-exports.ts";
 
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
 
@@ -178,6 +180,32 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   const nitro = ctx.nitro!;
   const nitroEnv = server.environments.nitro as FetchableDevEnvironment;
 
+  const reloadExports = async () => {
+    try {
+      const code = await buildDevServerExports(ctx, nitroEnv);
+      if (code !== ctx._serverEntryExports) {
+        ctx._serverEntryExports = code;
+        await reloadEnvRunner(ctx);
+      }
+    } catch (error) {
+      nitro.logger.error(error);
+    } finally {
+      server.watcher.add([...(ctx._serverEntryExportFiles || [])]);
+    }
+  };
+  if (hasDevServerExports(ctx)) {
+    const debouncedReloadExports = debounce(reloadExports);
+    server.watcher.on("all", (event, file) => {
+      if (
+        (event === "change" || event === "add" || event === "unlink") &&
+        ctx._serverEntryExportFiles?.has(normalize(file))
+      ) {
+        debouncedReloadExports();
+      }
+    });
+    await reloadExports();
+  }
+
   const viteBase = server.config.base || "/";
 
   // Restart with nitro.config changes
@@ -187,7 +215,10 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   }
 
   // Websocket (`httpServer` is null in middleware mode, the parent server handles upgrades)
-  const websocket = nitro.options.features.websocket ?? nitro.options.experimental.websocket;
+  // Server entry exports (e.g. Durable Objects) can accept upgrades from routes without crossws
+  const websocket =
+    (nitro.options.features.websocket ?? nitro.options.experimental.websocket) ||
+    hasDevServerExports(ctx);
   const wsProxy = Object.values(nitro.options.devProxy).some(
     (opts) => typeof opts === "object" && opts.ws
   );
