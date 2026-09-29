@@ -21,9 +21,23 @@ export default defineHandler((event) => {
   const encodings = [
     ...encodingHeader
       .split(",")
-      .map((e) => EncodingMap[e.trim() as keyof typeof EncodingMap])
-      .filter(Boolean)
-      .sort(),
+      .map((entry) => {
+        const [name, ...parameters] = entry.split(";");
+        const quality = parameters
+          .map((parameter) => parameter.trim().split("="))
+          .find(([key]) => key.toLowerCase() === "q")?.[1];
+        const weight = quality === undefined ? 1 : Number.parseFloat(quality);
+        return {
+          ext: EncodingMap[name.trim().toLowerCase() as keyof typeof EncodingMap],
+          // An unparsable weight is an invalid parameter, not a rejection
+          weight: Number.isNaN(weight) ? 1 : weight,
+        };
+      })
+      // `q=0` means "not acceptable" (RFC 9110 12.4.2)
+      .filter((entry) => entry.ext && entry.weight > 0)
+      // Highest client weight wins, then our own (alphabetical) preference
+      .sort((a, b) => b.weight - a.weight || (a.ext < b.ext ? -1 : a.ext > b.ext ? 1 : 0))
+      .map((entry) => entry.ext),
     "",
   ];
 
