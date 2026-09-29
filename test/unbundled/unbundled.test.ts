@@ -1,6 +1,13 @@
 import type { Nitro } from "nitro/types";
 import type { Server } from "srvx";
-import { build, createDevServer, createNitro, prepare, startPreview } from "nitro/builder";
+import {
+  build,
+  createDevServer,
+  createNitro,
+  loadOptions,
+  prepare,
+  startPreview,
+} from "nitro/builder";
 import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -73,6 +80,21 @@ describe("builder: false", () => {
       await writeFile(join(rootDir, "lib/_tmp.ts"), "export {};");
       await expect.poll(() => reloads, { timeout: 5000 }).toBeGreaterThan(0);
     });
+  });
+
+  it("maps `NITRO_BUILDER=false` to `builder: false`", async () => {
+    const original = process.env.NITRO_BUILDER;
+    process.env.NITRO_BUILDER = "false";
+    try {
+      const options = await loadOptions({ rootDir: join(rootDir, "../..", "fixture") });
+      expect(options.builder).toBe(false);
+    } finally {
+      if (original === undefined) {
+        delete process.env.NITRO_BUILDER;
+      } else {
+        process.env.NITRO_BUILDER = original;
+      }
+    }
   });
 
   it("does not support production builds (before cleaning the output)", async () => {

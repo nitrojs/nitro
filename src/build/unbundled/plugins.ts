@@ -11,6 +11,7 @@ import { baseBuildConfig } from "../config.ts";
 import { NITRO_VIRTUAL_PREFIX, nitroVirtualPath } from "./entry.ts";
 import { importAttributes } from "../plugins/import-attributes.ts";
 import { raw, RESOLVED_RE as RAW_RE } from "../plugins/raw.ts";
+import { routeMeta } from "../plugins/route-meta.ts";
 
 const SCRIPT_TYPES = ["js", "jsx", "ts", "tsx"] as const;
 
@@ -33,11 +34,16 @@ export async function unbundledPlugins(nitro: Nitro): Promise<EnvRunnerPlugin[]>
     await transformPlugin(nitro, sourceDirs),
     replacePlugin(base.replacements, sourceDirs),
     withoutSourceMap(fromRollup(await importAttributes())),
+    rawVirtualPlugin(nitro),
     fromRollup(raw()),
   ];
 
   if (Object.keys(base.aliases).length > 0) {
     plugins.push(aliasPlugin(base.aliases, nitro.options.rootDir));
+  }
+
+  if (nitro.options.experimental.openAPI) {
+    plugins.push(fromRollup(await routeMeta(nitro)));
   }
 
   if (nitro.options.wasm !== false) {
@@ -77,16 +83,17 @@ function resolvePlugin(nitro: Nitro, extensions: string[]): EnvRunnerPlugin {
       filter: { id: /^(?!#nitro\/)/ },
       handler(this: PluginContext, source, importer) {
         if (/^(?:\.{1,2}\/|\/|[a-zA-Z]:[\\/]|file:)/.test(source)) {
-          const path = source.startsWith("file:") ? fileURLToPath(source) : source;
+          const [specifier, query] = splitQuery(source);
+          const path = specifier.startsWith("file:") ? fileURLToPath(specifier) : specifier;
           const base = isAbsolute(path)
             ? path
-            : resolve(importer ? dirname(importer.split("?")[0]!) : nitro.options.rootDir, path);
+            : resolve(importer ? dirname(splitQuery(importer)[0]) : nitro.options.rootDir, path);
           for (const candidate of [
             ...extensions.map((ext) => base + ext),
             ...extensions.map((ext) => join(base, `index${ext}`)),
           ]) {
             if (existsSync(candidate) && statSync(candidate).isFile()) {
-              return candidate;
+              return candidate + query;
             }
           }
           return;
@@ -123,6 +130,44 @@ async function transformPlugin(nitro: Nitro, sourceDirs: string[]): Promise<EnvR
           this.error(result.errors.map((error) => error.message).join("\n"));
         }
         return { code: result.code, map: result.map as any, moduleType: "js" };
+      },
+    },
+  };
+}
+
+/**
+ * Raw imports of virtual modules (`text:#nitro/virtual/...`) inline their rendered source.
+ *
+ * Runs before the raw plugin, which would read the stub file behind the path key instead
+ * (bundlers keep virtual ids, for which it uses `this.load()`, unsupported by env-runner).
+ */
+function rawVirtualPlugin(nitro: Nitro): EnvRunnerPlugin {
+  const prefixRe = /^(raw|bytes|text):/;
+  return {
+    name: "nitro:raw-virtual",
+    resolveId: {
+      order: "pre",
+      filter: { id: [/^raw:/, /^bytes:/, /^text:/] },
+      handler(source) {
+        const [, type] = prefixRe.exec(source) || [];
+        const id = source.slice(`${type}:`.length);
+        if (type && nitro.vfs.has(id)) {
+          return `virtual:nitro:${type}:${id}.js`;
+        }
+      },
+    },
+    load: {
+      order: "pre",
+      filter: { id: RAW_RE },
+      async handler(id) {
+        const [, type] = RAW_RE.exec(id) || [];
+        const vfsId = id.replace(RAW_RE, "").slice(0, -".js".length);
+        const mod = nitro.vfs.get(vfsId);
+        if (!mod) {
+          return;
+        }
+        const code = await mod.render();
+        return type === "bytes" ? Buffer.from(code, "utf8").toString("binary") : code;
       },
     },
   };
@@ -203,6 +248,11 @@ function withoutSourceMap(plugin: EnvRunnerPlugin): EnvRunnerPlugin {
 /** Rollup plugins only using the hooks and context env-runner supports. */
 function fromRollup(plugin: unknown): EnvRunnerPlugin {
   return plugin as EnvRunnerPlugin;
+}
+
+function splitQuery(id: string): [path: string, query: string] {
+  const index = id.indexOf("?");
+  return index === -1 ? [id, ""] : [id.slice(0, index), id.slice(index)];
 }
 
 function escapeGlob(path: string) {
