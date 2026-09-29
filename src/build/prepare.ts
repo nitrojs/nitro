@@ -22,8 +22,17 @@ export async function prepare(nitro: Nitro) {
       }
       throw error;
     }
+    const actualSourceDir = await fsp.realpath(sourceDir);
     for (const outputDir of dirsToClean) {
-      const pathFromOutput = relative(resolve(outputDir), sourceDir);
+      const actualOutputDir = await fsp
+        .realpath(outputDir)
+        .catch((error: NodeJS.ErrnoException) => {
+          if (error.code === "ENOENT") {
+            return resolve(outputDir);
+          }
+          throw error;
+        });
+      const pathFromOutput = relative(actualOutputDir, actualSourceDir);
       if (
         !pathFromOutput ||
         (!pathFromOutput.startsWith("../") &&
