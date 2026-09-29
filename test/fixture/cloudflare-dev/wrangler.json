@@ -6,10 +6,14 @@
     "test": {
       "vars": { "TEST_VAR": "configured" },
       "durable_objects": {
-        "bindings": [{ "name": "TEST_COUNTER", "class_name": "Counter" }]
+        "bindings": [
+          { "name": "TEST_COUNTER", "class_name": "Counter" },
+          { "name": "TEST_EXPORTS_COUNTER", "class_name": "ExportsCounter" }
+        ]
       },
       "exports": {
-        "Counter": { "type": "durable-object", "storage": "sqlite" }
+        "Counter": { "type": "durable-object", "storage": "sqlite" },
+        "ExportsCounter": { "type": "durable-object", "storage": "sqlite" }
       },
       "kv_namespaces": [{ "binding": "TEST_KV", "id": "test-kv" }],
       "d1_databases": [

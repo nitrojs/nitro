@@ -17,7 +17,7 @@ import {
   withoutLeadingSlash,
 } from "ufo";
 import { unenvCfNodeCompat } from "./unenv/preset.ts";
-import { resolveExportsEntry } from "./entry-exports.ts";
+import { resolveExportsEntry, serverEntryHandler } from "./entry-exports.ts";
 
 // https://github.com/nitrojs/nitro/issues/4527
 const NODEJS_COMPAT_SUPPORTED_FROM_DATE = "2024-09-23";
@@ -268,11 +268,13 @@ export async function writeWranglerConfig(nitro: Nitro, cfTarget: "pages" | "mod
 
   // Validate and warn about overrides
   for (const key in overrides) {
-    // `main` can point to the exports entry, so `wrangler types` can type Durable Object bindings
+    // `main` can point to the server entry, so `wrangler types` can type Durable Object bindings
     if (
       key === "main" &&
       userConfig.main &&
-      resolve(dirname(userConfigPath!), userConfig.main) === resolveExportsEntry(nitro)
+      [serverEntryHandler(nitro), resolveExportsEntry(nitro)].includes(
+        resolve(dirname(userConfigPath!), userConfig.main)
+      )
     ) {
       continue;
     }

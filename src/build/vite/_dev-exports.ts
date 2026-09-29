@@ -1,7 +1,6 @@
 import type { DevEnvironment } from "vite";
 import type { NitroPluginContext } from "./types.ts";
 import { isAbsolute } from "pathe";
-import { rolldown } from "rolldown";
 
 export const SERVER_ENTRY_EXPORTS_ID = "#nitro/virtual/server-entry-exports";
 
@@ -11,12 +10,18 @@ const WORKERD_BUILTIN_RE = /^(?:cloudflare|workerd):/;
  * Bundle the server entry exports for the miniflare runner, which registers them as named worker
  * exports at startup. Modules are resolved and loaded by the Vite environment (aliases, conditions
  * and plugins), and files are tracked as they resolve so that a failed build still watches them.
+ * The server entry is always watched, since it only contributes once it has named exports.
  */
 export async function buildDevServerExports(
   ctx: NitroPluginContext,
   env: DevEnvironment
-): Promise<string> {
+): Promise<string | undefined> {
+  const serverEntry = ctx.nitro!.options.serverEntry && ctx.nitro!.options.serverEntry.handler;
   const files = (ctx._serverEntryExportFiles ??= new Set());
+  if (serverEntry) {
+    files.add(serverEntry);
+  }
+  const { rolldown } = await import("rolldown");
   const bundle = await rolldown({
     input: SERVER_ENTRY_EXPORTS_ID,
     cwd: ctx.nitro!.options.rootDir,
@@ -60,7 +65,10 @@ export async function buildDevServerExports(
       sourcemap: "inline",
     });
     ctx._serverEntryExportFiles = new Set((await bundle.watchFiles).filter((f) => isAbsolute(f)));
-    return output[0].code;
+    if (serverEntry) {
+      ctx._serverEntryExportFiles.add(serverEntry);
+    }
+    return output[0].exports.length > 0 ? output[0].code : undefined;
   } finally {
     await bundle.close();
   }
