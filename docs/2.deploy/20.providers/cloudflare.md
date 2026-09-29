@@ -60,43 +60,11 @@ You can use the [runtime hooks](/docs/plugins#nitro-runtime-hooks) below to exte
 The `cloudflare:queue` hook receives the message batch as `batch` and the `cloudflare:email` hook receives the incoming message as `message`. The older `event` field is deprecated for both hooks.
 ::
 
-### Additional Exports
+### Durable Objects
 
-You can add an `exports.cloudflare.ts` file to your project root to export additional handlers or properties from the Cloudflare Worker entrypoint.
+Export your Durable Object classes from your [`server.ts`](/docs/server-entry) file. They work in your deployed Worker and during local development, including with Vite. You can also define them in other files and re-export them.
 
-```ts [exports.cloudflare.ts]
-import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
-
-export class MyWorkflow extends WorkflowEntrypoint {
-  async run(event: WorkflowEvent, step: WorkflowStep) {
-    // ...
-  }
-}
-```
-
-Nitro will automatically detect this file and include its exports in the final build.
-
-::warning
-The `exports.cloudflare.ts` file must not have a default export.
-::
-
-You can also customize the entrypoint file location using the `cloudflare.exports` option in your `nitro.config.ts`:
-
-```ts [nitro.config.ts]
-import { defineConfig } from "nitro";
-
-export default defineConfig({
-  cloudflare: {
-    exports: "custom-exports-entry.ts"
-  }
-})
-```
-
-#### Custom Durable Objects
-
-Export your Durable Object classes from `exports.cloudflare.ts`. You can also re-export classes defined in other files. Nitro includes them in the deployed Worker and makes them available during local development with Miniflare, including when using Vite.
-
-```ts [exports.cloudflare.ts]
+```ts [server.ts]
 import { DurableObject } from "cloudflare:workers";
 
 export class Counter extends DurableObject {
@@ -106,7 +74,15 @@ export class Counter extends DurableObject {
     return Response.json({ count: count + 1 });
   }
 }
+
+export default {
+  fetch() {},
+};
 ```
+
+::note
+`server.ts` needs a default export. If you only use it for your Durable Objects, keep the empty `fetch` handler above so requests continue to your routes.
+::
 
 Declare the binding and Durable Object export in your Wrangler configuration:
 
@@ -135,6 +111,24 @@ export default defineHandler((event) => {
 With Wrangler environments, declare the binding and export in the selected environment. Local Durable Object state persists in `.wrangler/state/v3`, including across development server reloads.
 
 To type the `COUNTER` binding with the `Counter` class, see [Typing bindings](#typing-bindings).
+
+### Additional Exports
+
+Other classes, such as Workflows or `WorkerEntrypoint`s, are exported from `server.ts` the same way:
+
+```ts [server.ts]
+import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
+
+export class MyWorkflow extends WorkflowEntrypoint {
+  async run(event: WorkflowEvent, step: WorkflowStep) {
+    // ...
+  }
+}
+```
+
+::note
+You can also export these classes from an `exports.cloudflare.ts` file in your project root, or from the file set by the `cloudflare.exports` option. This file must not have a default export.
+::
 
 ### Scheduled Tasks (Cron Triggers)
 
@@ -412,12 +406,12 @@ Use [`wrangler types`](https://developers.cloudflare.com/workers/languages/types
 }
 ```
 
-Include the generated file in your `tsconfig.json`. It also provides the runtime types, so you don't need `@cloudflare/workers-types`:
+Include the generated file in your `tsconfig.json`. It also provides the runtime types, so you don't need `@cloudflare/workers-types`. Nitro enables the [`nodejs_compat`](https://developers.cloudflare.com/workers/runtime-apis/nodejs/) flag for you, so also add `@types/node` (with `wrangler`) to your dev dependencies and include `node` for the Node.js APIs:
 
 ```json [tsconfig.json]
 {
   "compilerOptions": {
-    "types": ["./worker-configuration.d.ts"]
+    "types": ["./worker-configuration.d.ts", "node"]
   }
 }
 ```
@@ -443,14 +437,26 @@ declare module "nitro/types" {
 export {};
 ```
 
-::tip
-To type Durable Object bindings with their classes (such as `DurableObjectNamespace<Counter>`), point `main` in your Wrangler configuration to your [`exports.cloudflare.ts`](#additional-exports) file. `wrangler types` reads the classes from it, and Nitro still sets `main` to the built entry in the generated config.
+To type bindings to your own [Durable Objects](#durable-objects), [Workflows and `WorkerEntrypoint`s](#additional-exports) with their classes, point `main` in your Wrangler configuration to the file that exports them. Nitro still sets `main` to the built entry in the generated config.
 
 ```json [wrangler.json]
 {
-  "main": "./exports.cloudflare.ts"
+  "main": "./server.ts"
 }
 ```
+
+`wrangler types` then reads the classes from it:
+
+```ts [worker-configuration.d.ts]
+interface Env {
+  COUNTER: DurableObjectNamespace<import("./server").Counter>;
+  MY_WORKFLOW: Workflow<Parameters<import("./server").MyWorkflow["run"]>[0]["payload"]>;
+  API: Service<typeof import("./server").Api>;
+}
+```
+
+::tip
+Run `wrangler types` again after changing your Wrangler configuration, or use `wrangler types --check` in CI to catch outdated types.
 ::
 
 ### Access to the bindings in local dev
@@ -516,7 +522,7 @@ A few things differ from `wrangler dev`:
 
 - Local data of the bindings (KV, D1, R2, ...) is persisted in `.wrangler/state/v3`, shared with `wrangler dev`.
 - The newest compatibility date supported by the installed `miniflare` is used, regardless of `compatibility_date`.
-- Static assets are served by Nitro. Local Durable Objects exported from `exports.cloudflare.ts` are available; bindings to other workers (`services`, `tail_consumers`, external Durable Objects), workflows, and queue consumers are not available.
+- Static assets are served by Nitro. Local Durable Objects exported from [`server.ts`](#durable-objects) are available; bindings to other workers (`services`, `tail_consumers`, external Durable Objects), workflows, and queue consumers are not available.
 - When `cloudflare.wrangler` is set, it is merged with the nearest Wrangler config file.
 
 #### Wrangler environments

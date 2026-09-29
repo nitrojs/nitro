@@ -180,17 +180,21 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   const nitro = ctx.nitro!;
   const nitroEnv = server.environments.nitro as FetchableDevEnvironment;
 
+  // The runner is first loaded here, even when there is nothing to export or the build failed
+  let exportsLoaded = false;
   const reloadExports = async () => {
+    let code = ctx._serverEntryExports;
     try {
-      const code = await buildDevServerExports(ctx, nitroEnv);
-      if (code !== ctx._serverEntryExports) {
-        ctx._serverEntryExports = code;
-        await reloadEnvRunner(ctx);
-      }
+      code = await buildDevServerExports(ctx, nitroEnv);
     } catch (error) {
       nitro.logger.error(error);
     } finally {
       server.watcher.add([...(ctx._serverEntryExportFiles || [])]);
+    }
+    if (!exportsLoaded || code !== ctx._serverEntryExports) {
+      exportsLoaded = true;
+      ctx._serverEntryExports = code;
+      await reloadEnvRunner(ctx).catch((error) => nitro.logger.error(error));
     }
   };
   if (hasDevServerExports(ctx)) {
