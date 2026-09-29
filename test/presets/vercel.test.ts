@@ -337,6 +337,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/file",
               },
               {
+                "dest": "/fetch-public-asset",
+                "src": "/fetch-public-asset",
+              },
+              {
                 "dest": "/fetch",
                 "src": "/fetch",
               },
@@ -642,6 +646,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/errors/captured.func (symlink)",
             "functions/errors/stack.func (symlink)",
             "functions/errors/throw.func (symlink)",
+            "functions/fetch-public-asset.func (symlink)",
             "functions/fetch.func (symlink)",
             "functions/file.func (symlink)",
             "functions/icon.png.func (symlink)",
