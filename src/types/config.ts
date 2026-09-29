@@ -710,9 +710,12 @@ export interface NitroOptions extends PresetOptions {
    * `nitro()` plugin is found, otherwise `"rolldown"` (bundled with Nitro).
    * Use the `NITRO_BUILDER` environment variable as an alternative.
    *
+   * Set to `false` to run the server sources without bundling (experimental, `dev` and
+   * `preview` only).
+   *
    * @see https://nitro.build/config#builder
    */
-  builder?: "rollup" | "rolldown" | "vite";
+  builder?: "rollup" | "rolldown" | "vite" | false;
 
   /**
    * Options for the `vite` builder and the `nitro/vite` plugin.

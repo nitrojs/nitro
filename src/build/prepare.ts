@@ -2,6 +2,10 @@ import fsp from "node:fs/promises";
 import type { Nitro } from "nitro/types";
 
 export async function prepare(nitro: Nitro) {
+  if (nitro.options.builder === false) {
+    const { assertUnbundledSupport } = await import("./unbundled/build.ts");
+    assertUnbundledSupport(nitro);
+  }
   await prepareDir(nitro.options.output.dir);
   if (!nitro.options.noPublicDir) {
     await prepareDir(nitro.options.output.publicDir);

@@ -27,8 +27,8 @@ importers:
         specifier: ^0.4.1
         version: 0.4.1
       env-runner:
-        specifier: ^0.2.3
-        version: 0.2.3
+        specifier: ^0.3.2
+        version: 0.3.2
       h3:
         specifier: ^2.0.1-rc.32
         version: 2.0.1-rc.32(crossws@0.4.12)(ocache@0.3.0)
@@ -275,7 +275,7 @@ importers:
         version: 1.7.0
       unctx:
         specifier: ^3.0.1
-        version: 3.0.1(magic-string@1.4.1)(oxc-parser@shims+oxc-parser)(rolldown@1.2.9)(unplugin@3.4.0)
+        version: 3.0.1(magic-string@1.4.1)(rolldown@1.2.9)(unplugin@3.4.0)
       unwasm:
         specifier: ^0.6.0
         version: 0.6.0
@@ -446,7 +446,7 @@ importers:
         version: 2.14.0(csstype@3.2.3)(preact@10.29.8)(react@19.3.0)
       vite:
         specifier: latest
-        version: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
 
   examples/tracing:
     devDependencies:
@@ -467,7 +467,7 @@ importers:
         version: link:../..
       vite:
         specifier: latest
-        version: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
 
   examples/vite-rsc:
     dependencies:
@@ -486,10 +486,10 @@ importers:
         version: 19.3.0(@types/react@19.3.0)
       '@vitejs/plugin-react':
         specifier: ^6.0.1
-        version: 6.1.1(vite@8.3.0)
+        version: 6.1.1(vite@8.3.1)
       '@vitejs/plugin-rsc':
         specifier: ^0.5.21
-        version: 0.5.35(react-dom@19.3.0)(react@19.3.0)(vite@8.3.0)
+        version: 0.5.35(react-dom@19.3.0)(react@19.3.0)(vite@8.3.1)
       nitro:
         specifier: workspace:*
         version: link:../..
@@ -498,13 +498,13 @@ importers:
         version: 0.0.7
       vite:
         specifier: latest
-        version: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
 
   examples/vite-ssr-html:
     devDependencies:
       '@tailwindcss/vite':
         specifier: ^4.2.2
-        version: 4.3.3(vite@8.3.0)
+        version: 4.3.3(vite@8.3.1)
       nitro:
         specifier: workspace:*
         version: link:../..
@@ -513,16 +513,16 @@ importers:
         version: 4.3.3
       vite:
         specifier: latest
-        version: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
 
   examples/vite-ssr-preact:
     devDependencies:
       '@preact/preset-vite':
         specifier: ^2.10.5
-        version: 2.10.6(@babel/core@7.29.7)(preact@10.29.8)(rollup@4.63.4)(supports-color@10.2.2)(vite@8.3.0)
+        version: 2.10.6(@babel/core@7.29.7)(preact@10.29.8)(rollup@4.63.4)(supports-color@10.2.2)(vite@8.3.1)
       '@tailwindcss/vite':
         specifier: ^4.2.2
-        version: 4.3.3(vite@8.3.0)
+        version: 4.3.3(vite@8.3.1)
       nitro:
         specifier: workspace:*
         version: link:../..
@@ -537,7 +537,7 @@ importers:
         version: 4.3.3
       vite:
         specifier: latest
-        version: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
 
   examples/vite-ssr-react:
     devDependencies:
@@ -549,7 +549,7 @@ importers:
         version: 19.3.0(@types/react@19.3.0)
       '@vitejs/plugin-react':
         specifier: ^6.0.1
-        version: 6.1.1(vite@8.3.0)
+        version: 6.1.1(vite@8.3.1)
       nitro:
         specifier: workspace:*
         version: link:../..
@@ -564,7 +564,7 @@ importers:
         version: 0.18.0
       vite:
         specifier: latest
-        version: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
 
   examples/vite-ssr-react-router:
     dependencies:
@@ -586,10 +586,10 @@ importers:
     devDependencies:
       '@react-router/dev':
         specifier: ^8.1.0
-        version: 8.4.0(@vitejs/plugin-rsc@0.5.35)(react-router@8.4.0)(supports-color@10.2.2)(typescript@6.0.3)(vite@8.3.0)(wrangler@4.137.0)
+        version: 8.4.0(@vitejs/plugin-rsc@0.5.35)(react-router@8.4.0)(supports-color@10.2.2)(typescript@6.0.3)(vite@8.3.1)(wrangler@4.137.0)
       '@tailwindcss/vite':
         specifier: ^4.3.2
-        version: 4.3.3(vite@8.3.0)
+        version: 4.3.3(vite@8.3.1)
       '@types/node':
         specifier: ^26.0.0
         version: 26.6.2
@@ -610,7 +610,7 @@ importers:
         version: 6.0.3
       vite:
         specifier: latest
-        version: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
 
   examples/vite-ssr-solid:
     devDependencies:
@@ -622,10 +622,10 @@ importers:
         version: 1.9.15
       vite:
         specifier: latest
-        version: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
       vite-plugin-solid:
         specifier: ^2.11.11
-        version: 2.11.14(solid-js@1.9.15)(supports-color@10.2.2)(vite@8.3.0)
+        version: 2.11.14(solid-js@1.9.15)(supports-color@10.2.2)(vite@8.3.1)
 
   examples/vite-ssr-solidstart:
     dependencies:
@@ -637,7 +637,7 @@ importers:
         version: 0.15.4(solid-js@1.9.15)
       '@solidjs/start':
         specifier: ^2.0.0-alpha.2
-        version: 2.0.5(@solidjs/router@0.15.4)(crossws@0.4.12)(ocache@0.3.0)(supports-color@10.2.2)(vite@8.3.0)
+        version: 2.0.5(@solidjs/router@0.15.4)(crossws@0.4.12)(ocache@0.3.0)(supports-color@10.2.2)(vite@8.3.1)
       nitro:
         specifier: workspace:*
         version: link:../..
@@ -646,7 +646,7 @@ importers:
         version: 1.9.15
       vite:
         specifier: latest
-        version: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
 
   examples/vite-ssr-tsr-react:
     devDependencies:
@@ -658,7 +658,7 @@ importers:
         version: 1.167.2(@tanstack/react-router@1.170.38)(@tanstack/router-core@1.171.32)(csstype@3.2.3)(react-dom@19.3.0)(react@19.3.0)
       '@tanstack/router-plugin':
         specifier: ^1.167.9
-        version: 1.168.40(@tanstack/react-router@1.170.38)(esbuild@0.28.2)(rolldown@1.2.9)(rollup@4.63.4)(supports-color@10.2.2)(vite-plugin-solid@2.11.14)(vite@8.3.0)
+        version: 1.168.40(@tanstack/react-router@1.170.38)(esbuild@0.28.2)(rolldown@1.2.9)(rollup@4.63.4)(supports-color@10.2.2)(vite-plugin-solid@2.11.14)(vite@8.3.1)
       '@types/react':
         specifier: ^19.2.14
         version: 19.3.0
@@ -667,7 +667,7 @@ importers:
         version: 19.3.0(@types/react@19.3.0)
       '@vitejs/plugin-react':
         specifier: ^6.0.1
-        version: 6.1.1(vite@8.3.0)
+        version: 6.1.1(vite@8.3.1)
       nitro:
         specifier: workspace:*
         version: link:../..
@@ -679,7 +679,7 @@ importers:
         version: 19.3.0(react@19.3.0)
       vite:
         specifier: latest
-        version: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
 
   examples/vite-ssr-tss-react:
     dependencies:
@@ -691,7 +691,7 @@ importers:
         version: 1.167.2(@tanstack/react-router@1.170.38)(@tanstack/router-core@1.171.32)(csstype@3.2.3)(react-dom@19.3.0)(react@19.3.0)
       '@tanstack/react-start':
         specifier: ^1.167.13
-        version: 1.168.56(@vitejs/plugin-rsc@0.5.35)(crossws@0.4.12)(esbuild@0.28.2)(react-dom@19.3.0)(react@19.3.0)(rolldown@1.2.9)(rollup@4.63.4)(supports-color@10.2.2)(vite-plugin-solid@2.11.14)(vite@8.3.0)
+        version: 1.168.56(@vitejs/plugin-rsc@0.5.35)(crossws@0.4.12)(esbuild@0.28.2)(react-dom@19.3.0)(react@19.3.0)(rolldown@1.2.9)(rollup@4.63.4)(supports-color@10.2.2)(vite-plugin-solid@2.11.14)(vite@8.3.1)
       nitro:
         specifier: workspace:*
         version: link:../..
@@ -710,10 +710,10 @@ importers:
     devDependencies:
       '@tailwindcss/vite':
         specifier: ^4.2.2
-        version: 4.3.3(vite@8.3.0)
+        version: 4.3.3(vite@8.3.1)
       '@types/node':
         specifier: latest
-        version: 26.6.2
+        version: 26.6.3
       '@types/react':
         specifier: ^19.2.14
         version: 19.3.0
@@ -722,7 +722,7 @@ importers:
         version: 19.3.0(@types/react@19.3.0)
       '@vitejs/plugin-react':
         specifier: ^6.0.1
-        version: 6.1.1(vite@8.3.0)
+        version: 6.1.1(vite@8.3.1)
       tailwindcss:
         specifier: ^4.2.2
         version: 4.3.3
@@ -731,13 +731,13 @@ importers:
         version: 6.0.3
       vite:
         specifier: latest
-        version: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
 
   examples/vite-ssr-vue-router:
     devDependencies:
       '@vitejs/plugin-vue':
         specifier: ^6.0.5
-        version: 6.0.9(vite@8.3.0)(vue@3.5.43)
+        version: 6.0.9(vite@8.3.1)(vue@3.5.43)
       nitro:
         specifier: workspace:*
         version: link:../..
@@ -746,16 +746,16 @@ importers:
         version: 2.1.17
       vite:
         specifier: latest
-        version: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
       vite-plugin-devtools-json:
         specifier: ^1.0.0
-        version: 1.1.0(vite@8.3.0)
+        version: 1.1.0(vite@8.3.1)
       vue:
         specifier: ^3.5.31
         version: 3.5.43(typescript@7.0.2)
       vue-router:
         specifier: ^5.0.4
-        version: 5.3.1(@vue/compiler-sfc@3.5.43)(esbuild@0.28.2)(rolldown@1.2.9)(rollup@4.63.4)(vite@8.3.0)(vue@3.5.43)
+        version: 5.3.1(@vue/compiler-sfc@3.5.43)(esbuild@0.28.2)(rolldown@1.2.9)(rollup@4.63.4)(vite@8.3.1)(vue@3.5.43)
 
   examples/vite-trpc:
     devDependencies:
@@ -770,7 +770,7 @@ importers:
         version: link:../..
       vite:
         specifier: latest
-        version: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
       zod:
         specifier: ^4.3.6
         version: 4.6.5
@@ -788,7 +788,7 @@ importers:
         version: link:..
       vite:
         specifier: latest
-        version: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
 
   test/fixture:
     devDependencies:
@@ -806,7 +806,7 @@ importers:
         version: link:../..
       vite:
         specifier: latest
-        version: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
 
 packages:
 
@@ -3357,6 +3357,9 @@ packages:
   '@types/node@26.6.2':
     resolution: {integrity: sha512-X1P21scMv4zGKLYqjdGjaKa7COa0RKVYYZZN/NfvLQ1JegxFhdhpZG/Lyn8AXx6CDUavKAd11v6BvfpkDByK8g==}
 
+  '@types/node@26.6.3':
+    resolution: {integrity: sha512-dsqMQQoeTLqu9wynDD00q573mNzso3IdQOAfHRJqLCcmCFPoGo9A1bDpUcv/9tnKpErQWv9uKeGfl37EIS02Yg==}
+
   '@types/node@8.10.66':
     resolution: {integrity: sha512-tktOkFUA4kXx2hhhrB8bIFb5TbwzS4uOhKEmwiD+NoiL0qtP2OQ9mFldbgD4dV1djrlBYP6eBuQZiWjuHUpqFw==}
 
@@ -4595,8 +4598,8 @@ packages:
     resolution: {integrity: sha512-TWrgLOFUQTH994YUyl1yT4uyavY5nNB5muff+RtWaqNVCAK408b5ZnnbNAUEWLTCpum9w6arT70i1XdQ4UeOPA==}
     engines: {node: '>=0.12'}
 
-  env-runner@0.2.3:
-    resolution: {integrity: sha512-S8EFBKyznRwPVwayK187cYjvnpgC92xy+q0BIF++V965pfjMVVRbQ/HoTYGA/1EHmZ7E68k6Heq+4WnvVhOL5w==}
+  env-runner@0.3.2:
+    resolution: {integrity: sha512-rbkutrFr0NWfka7ot4/KyN5YKKDfvxqX1JaaEEC/8SMvxX+LcDfvXBvGDAfkhBbCpYGTWjveegnJiOUYoLFV8g==}
     hasBin: true
 
   eol@0.9.1:
@@ -7234,6 +7237,49 @@ packages:
       yaml:
         optional: true
 
+  vite@8.3.1:
+    resolution: {integrity: sha512-/bvH9E9tmCXRGp2uXY3WbOldqpTwFkbha/8ANaEQ6VkxhH60KyqLwgZq6lG2y+4uT55x9+9eUHMpQ7uGnOCKjA==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    hasBin: true
+    peerDependencies:
+      '@types/node': ^20.19.0 || >=22.12.0
+      '@vitejs/devtools': ^0.7.1
+      esbuild: ^0.27.0 || ^0.28.0
+      jiti: '>=1.21.0'
+      less: ^4.0.0
+      sass: ^1.70.0
+      sass-embedded: ^1.70.0
+      stylus: '>=0.54.8'
+      sugarss: ^5.0.0
+      terser: ^5.16.0
+      tsx: ^4.8.1
+      yaml: ^2.4.2
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+      '@vitejs/devtools':
+        optional: true
+      esbuild:
+        optional: true
+      jiti:
+        optional: true
+      less:
+        optional: true
+      sass:
+        optional: true
+      sass-embedded:
+        optional: true
+      stylus:
+        optional: true
+      sugarss:
+        optional: true
+      terser:
+        optional: true
+      tsx:
+        optional: true
+      yaml:
+        optional: true
+
   vitefu@1.1.3:
     resolution: {integrity: sha512-ub4okH7Z5KLjb6hDyjqrGXqWtWvoYdU3IGm/NorpgHncKoLTCfRIbvlhBm7r0YstIaQRYlp4yEbFqDcKSzXSSg==}
     peerDependencies:
@@ -8813,19 +8859,19 @@ snapshots:
 
   '@poppinss/exception@1.2.3': {}
 
-  '@preact/preset-vite@2.10.6(@babel/core@7.29.7)(preact@10.29.8)(rollup@4.63.4)(supports-color@10.2.2)(vite@8.3.0)':
+  '@preact/preset-vite@2.10.6(@babel/core@7.29.7)(preact@10.29.8)(rollup@4.63.4)(supports-color@10.2.2)(vite@8.3.1)':
     dependencies:
       '@babel/core': 7.29.7(supports-color@10.2.2)
       '@babel/plugin-transform-react-jsx': 7.29.7(@babel/core@7.29.7)(supports-color@10.2.2)
       '@babel/plugin-transform-react-jsx-development': 7.29.7(@babel/core@7.29.7)(supports-color@10.2.2)
-      '@prefresh/vite': 2.4.12(preact@10.29.8)(supports-color@10.2.2)(vite@8.3.0)
+      '@prefresh/vite': 2.4.12(preact@10.29.8)(supports-color@10.2.2)(vite@8.3.1)
       '@rollup/pluginutils': 5.4.0(rollup@4.63.4)
       babel-plugin-transform-hook-names: 1.0.2(@babel/core@7.29.7)
       debug: 4.4.3(supports-color@10.2.2)
       magic-string: 0.30.21
       picocolors: 1.1.1
-      vite: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
-      vite-prerender-plugin: 0.5.13(vite@8.3.0)
+      vite: 8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+      vite-prerender-plugin: 0.5.13(vite@8.3.1)
       zimmerframe: 1.1.5
     transitivePeerDependencies:
       - preact
@@ -8842,7 +8888,7 @@ snapshots:
 
   '@prefresh/utils@1.2.1': {}
 
-  '@prefresh/vite@2.4.12(preact@10.29.8)(supports-color@10.2.2)(vite@8.3.0)':
+  '@prefresh/vite@2.4.12(preact@10.29.8)(supports-color@10.2.2)(vite@8.3.1)':
     dependencies:
       '@babel/core': 7.29.7(supports-color@10.2.2)
       '@prefresh/babel-plugin': 0.5.4(@babel/core@7.29.7)
@@ -8850,11 +8896,11 @@ snapshots:
       '@prefresh/utils': 1.2.1
       '@rollup/pluginutils': 4.2.1
       preact: 10.29.8(preact-render-to-string@6.7.0)
-      vite: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+      vite: 8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
     transitivePeerDependencies:
       - supports-color
 
-  '@react-router/dev@8.4.0(@vitejs/plugin-rsc@0.5.35)(react-router@8.4.0)(supports-color@10.2.2)(typescript@6.0.3)(vite@8.3.0)(wrangler@4.137.0)':
+  '@react-router/dev@8.4.0(@vitejs/plugin-rsc@0.5.35)(react-router@8.4.0)(supports-color@10.2.2)(typescript@6.0.3)(vite@8.3.1)(wrangler@4.137.0)':
     dependencies:
       '@babel/core': 7.29.7(supports-color@10.2.2)
       '@babel/generator': 7.29.8
@@ -8880,9 +8926,9 @@ snapshots:
       semver: 7.8.5
       tinyglobby: 0.2.17
       valibot: 1.5.0(typescript@6.0.3)
-      vite: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+      vite: 8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
     optionalDependencies:
-      '@vitejs/plugin-rsc': 0.5.35(react-dom@19.3.0)(react@19.3.0)(vite@8.3.0)
+      '@vitejs/plugin-rsc': 0.5.35(react-dom@19.3.0)(react@19.3.0)(vite@8.3.1)
       typescript: 6.0.3
       wrangler: 4.137.0(@cloudflare/workers-types@5.20260923.1)(@types/node@26.6.2)
     transitivePeerDependencies:
@@ -9523,7 +9569,7 @@ snapshots:
     dependencies:
       solid-js: 1.9.15
 
-  '@solidjs/start@2.0.5(@solidjs/router@0.15.4)(crossws@0.4.12)(ocache@0.3.0)(supports-color@10.2.2)(vite@8.3.0)':
+  '@solidjs/start@2.0.5(@solidjs/router@0.15.4)(crossws@0.4.12)(ocache@0.3.0)(supports-color@10.2.2)(vite@8.3.1)':
     dependencies:
       '@babel/core': 7.29.7(supports-color@10.2.2)
       '@babel/traverse': 7.29.8(supports-color@10.2.2)
@@ -9549,8 +9595,8 @@ snapshots:
       solid-js: 1.9.15
       srvx: 0.12.8
       terracotta: 1.3.0(solid-js@1.9.15)
-      vite: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
-      vite-plugin-solid: 2.11.14(solid-js@1.9.15)(supports-color@10.2.2)(vite@8.3.0)
+      vite: 8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+      vite-plugin-solid: 2.11.14(solid-js@1.9.15)(supports-color@10.2.2)(vite@8.3.1)
     optionalDependencies:
       '@solidjs/router': 0.15.4(solid-js@1.9.15)
     transitivePeerDependencies:
@@ -9628,12 +9674,12 @@ snapshots:
       '@tailwindcss/oxide-win32-arm64-msvc': 4.3.3
       '@tailwindcss/oxide-win32-x64-msvc': 4.3.3
 
-  '@tailwindcss/vite@4.3.3(vite@8.3.0)':
+  '@tailwindcss/vite@4.3.3(vite@8.3.1)':
     dependencies:
       '@tailwindcss/node': 4.3.3
       '@tailwindcss/oxide': 4.3.3
       tailwindcss: 4.3.3
-      vite: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+      vite: 8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
 
   '@takumi-rs/core-darwin-arm64@2.14.0':
     optional: true
@@ -9720,20 +9766,20 @@ snapshots:
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
 
-  '@tanstack/react-start-rsc@0.1.55(@vitejs/plugin-rsc@0.5.35)(crossws@0.4.12)(esbuild@0.28.2)(react-dom@19.3.0)(react@19.3.0)(rolldown@1.2.9)(rollup@4.63.4)(supports-color@10.2.2)(vite-plugin-solid@2.11.14)(vite@8.3.0)':
+  '@tanstack/react-start-rsc@0.1.55(@vitejs/plugin-rsc@0.5.35)(crossws@0.4.12)(esbuild@0.28.2)(react-dom@19.3.0)(react@19.3.0)(rolldown@1.2.9)(rollup@4.63.4)(supports-color@10.2.2)(vite-plugin-solid@2.11.14)(vite@8.3.1)':
     dependencies:
       '@tanstack/react-router': 1.170.38(react-dom@19.3.0)(react@19.3.0)
       '@tanstack/router-core': 1.171.32
       '@tanstack/router-utils': 1.162.3(supports-color@10.2.2)
       '@tanstack/start-client-core': 1.170.32
       '@tanstack/start-fn-stubs': 1.162.0
-      '@tanstack/start-plugin-core': 1.171.46(@tanstack/react-router@1.170.38)(crossws@0.4.12)(esbuild@0.28.2)(rolldown@1.2.9)(rollup@4.63.4)(supports-color@10.2.2)(vite-plugin-solid@2.11.14)(vite@8.3.0)
+      '@tanstack/start-plugin-core': 1.171.46(@tanstack/react-router@1.170.38)(crossws@0.4.12)(esbuild@0.28.2)(rolldown@1.2.9)(rollup@4.63.4)(supports-color@10.2.2)(vite-plugin-solid@2.11.14)(vite@8.3.1)
       '@tanstack/start-storage-context': 1.167.34
       pathe: 2.0.3
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
     optionalDependencies:
-      '@vitejs/plugin-rsc': 0.5.35(react-dom@19.3.0)(react@19.3.0)(vite@8.3.0)
+      '@vitejs/plugin-rsc': 0.5.35(react-dom@19.3.0)(react@19.3.0)(vite@8.3.1)
     transitivePeerDependencies:
       - '@farmfe/core'
       - '@rsbuild/core'
@@ -9758,22 +9804,22 @@ snapshots:
     transitivePeerDependencies:
       - crossws
 
-  '@tanstack/react-start@1.168.56(@vitejs/plugin-rsc@0.5.35)(crossws@0.4.12)(esbuild@0.28.2)(react-dom@19.3.0)(react@19.3.0)(rolldown@1.2.9)(rollup@4.63.4)(supports-color@10.2.2)(vite-plugin-solid@2.11.14)(vite@8.3.0)':
+  '@tanstack/react-start@1.168.56(@vitejs/plugin-rsc@0.5.35)(crossws@0.4.12)(esbuild@0.28.2)(react-dom@19.3.0)(react@19.3.0)(rolldown@1.2.9)(rollup@4.63.4)(supports-color@10.2.2)(vite-plugin-solid@2.11.14)(vite@8.3.1)':
     dependencies:
       '@tanstack/react-router': 1.170.38(react-dom@19.3.0)(react@19.3.0)
       '@tanstack/react-start-client': 1.168.36(react-dom@19.3.0)(react@19.3.0)
-      '@tanstack/react-start-rsc': 0.1.55(@vitejs/plugin-rsc@0.5.35)(crossws@0.4.12)(esbuild@0.28.2)(react-dom@19.3.0)(react@19.3.0)(rolldown@1.2.9)(rollup@4.63.4)(supports-color@10.2.2)(vite-plugin-solid@2.11.14)(vite@8.3.0)
+      '@tanstack/react-start-rsc': 0.1.55(@vitejs/plugin-rsc@0.5.35)(crossws@0.4.12)(esbuild@0.28.2)(react-dom@19.3.0)(react@19.3.0)(rolldown@1.2.9)(rollup@4.63.4)(supports-color@10.2.2)(vite-plugin-solid@2.11.14)(vite@8.3.1)
       '@tanstack/react-start-server': 1.167.43(crossws@0.4.12)(react-dom@19.3.0)(react@19.3.0)
       '@tanstack/router-utils': 1.162.3(supports-color@10.2.2)
       '@tanstack/start-client-core': 1.170.32
-      '@tanstack/start-plugin-core': 1.171.46(@tanstack/react-router@1.170.38)(crossws@0.4.12)(esbuild@0.28.2)(rolldown@1.2.9)(rollup@4.63.4)(supports-color@10.2.2)(vite-plugin-solid@2.11.14)(vite@8.3.0)
+      '@tanstack/start-plugin-core': 1.171.46(@tanstack/react-router@1.170.38)(crossws@0.4.12)(esbuild@0.28.2)(rolldown@1.2.9)(rollup@4.63.4)(supports-color@10.2.2)(vite-plugin-solid@2.11.14)(vite@8.3.1)
       '@tanstack/start-server-core': 1.169.37(crossws@0.4.12)
       pathe: 2.0.3
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
     optionalDependencies:
-      '@vitejs/plugin-rsc': 0.5.35(react-dom@19.3.0)(react@19.3.0)(vite@8.3.0)
-      vite: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+      '@vitejs/plugin-rsc': 0.5.35(react-dom@19.3.0)(react@19.3.0)(vite@8.3.1)
+      vite: 8.3.1(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
     transitivePeerDependencies:
       - '@farmfe/core'
       - '@rspack/core'
@@ -9823,7 +9869,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@tanstack/router-plugin@1.168.40(@tanstack/react-router@1.170.38)(esbuild@0.28.2)(rolldown@1.2.9)(rollup@4.63.4)(supports-color@10.2.2)(vite-plugin-solid@2.11.14)(vite@8.3.0)':
+  '@tanstack/router-plugin@1.168.40(@tanstack/react-router@1.170.38)(esbuild@0.28.2)(rolldown@1.2.9)(rollup@4.63.4)(supports-color@10.2.2)(vite-plugin-solid@2.11.14)(vite@8.3.1)':
     dependencies:
       '@babel/core': 7.29.7(supports-color@10.2.2)
       '@babel/template': 7.29.7
@@ -9832,12 +9878,12 @@ snapshots:
       '@tanstack/router-generator': 1.167.38(supports-color@10.2.2)
       '@tanstack/router-utils': 1.162.3(supports-color@10.2.2)
       chokidar: 5.0.0
-      unplugin: 3.4.0(esbuild@0.28.2)(rolldown@1.2.9)(rollup@4.63.4)(vite@8.3.0)
+      unplugin: 3.4.0(esbuild@0.28.2)(rolldown@1.2.9)(rollup@4.63.4)(vite@8.3.1)
       zod: 4.6.5
     optionalDependencies:
       '@tanstack/react-router': 1.170.38(react-dom@19.3.0)(react@19.3.0)
-      vite: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
-      vite-plugin-solid: 2.11.14(solid-js@1.9.15)(supports-color@10.2.2)(vite@8.3.0)
+      vite: 8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+      vite-plugin-solid: 2.11.14(solid-js@1.9.15)(supports-color@10.2.2)(vite@8.3.1)
     transitivePeerDependencies:
       - '@farmfe/core'
       - '@rspack/core'
@@ -9870,7 +9916,7 @@ snapshots:
 
   '@tanstack/start-fn-stubs@1.162.0': {}
 
-  '@tanstack/start-plugin-core@1.171.46(@tanstack/react-router@1.170.38)(crossws@0.4.12)(esbuild@0.28.2)(rolldown@1.2.9)(rollup@4.63.4)(supports-color@10.2.2)(vite-plugin-solid@2.11.14)(vite@8.3.0)':
+  '@tanstack/start-plugin-core@1.171.46(@tanstack/react-router@1.170.38)(crossws@0.4.12)(esbuild@0.28.2)(rolldown@1.2.9)(rollup@4.63.4)(supports-color@10.2.2)(vite-plugin-solid@2.11.14)(vite@8.3.1)':
     dependencies:
       '@babel/code-frame': 7.29.7
       '@babel/core': 7.29.7(supports-color@10.2.2)
@@ -9878,7 +9924,7 @@ snapshots:
       '@jridgewell/remapping': 2.3.5
       '@tanstack/router-core': 1.171.32
       '@tanstack/router-generator': 1.167.38(supports-color@10.2.2)
-      '@tanstack/router-plugin': 1.168.40(@tanstack/react-router@1.170.38)(esbuild@0.28.2)(rolldown@1.2.9)(rollup@4.63.4)(supports-color@10.2.2)(vite-plugin-solid@2.11.14)(vite@8.3.0)
+      '@tanstack/router-plugin': 1.168.40(@tanstack/react-router@1.170.38)(esbuild@0.28.2)(rolldown@1.2.9)(rollup@4.63.4)(supports-color@10.2.2)(vite-plugin-solid@2.11.14)(vite@8.3.1)
       '@tanstack/router-utils': 1.162.3(supports-color@10.2.2)
       '@tanstack/start-server-core': 1.169.37(crossws@0.4.12)
       exsolve: 1.1.1
@@ -9890,11 +9936,11 @@ snapshots:
       srvx: 0.11.22
       tinyglobby: 0.2.17
       ufo: 1.6.4
-      vitefu: 1.1.3(vite@8.3.0)
+      vitefu: 1.1.3(vite@8.3.1)
       xmlbuilder2: 4.0.3
       zod: 4.6.5
     optionalDependencies:
-      vite: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+      vite: 8.3.1(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
     transitivePeerDependencies:
       - '@farmfe/core'
       - '@rspack/core'
@@ -10071,6 +10117,10 @@ snapshots:
     dependencies:
       undici-types: 8.9.0
 
+  '@types/node@26.6.3':
+    dependencies:
+      undici-types: 8.9.0
+
   '@types/node@8.10.66': {}
 
   '@types/qs@6.15.1': {}
@@ -10217,12 +10267,12 @@ snapshots:
     optionalDependencies:
       '@opentelemetry/api': 1.9.0
 
-  '@vitejs/plugin-react@6.1.1(vite@8.3.0)':
+  '@vitejs/plugin-react@6.1.1(vite@8.3.1)':
     dependencies:
       '@rolldown/pluginutils': 1.0.1
-      vite: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+      vite: 8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
 
-  '@vitejs/plugin-rsc@0.5.35(react-dom@19.3.0)(react@19.3.0)(vite@8.3.0)':
+  '@vitejs/plugin-rsc@0.5.35(react-dom@19.3.0)(react@19.3.0)(vite@8.3.1)':
     dependencies:
       '@rolldown/pluginutils': 1.0.1
       es-module-lexer: 2.3.2
@@ -10234,13 +10284,13 @@ snapshots:
       srvx: 0.12.8
       strip-literal: 4.0.0
       turbo-stream: 3.2.1
-      vite: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
-      vitefu: 1.1.3(vite@8.3.0)
+      vite: 8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+      vitefu: 1.1.3(vite@8.3.1)
 
-  '@vitejs/plugin-vue@6.0.9(vite@8.3.0)(vue@3.5.43)':
+  '@vitejs/plugin-vue@6.0.9(vite@8.3.1)(vue@3.5.43)':
     dependencies:
       '@rolldown/pluginutils': 1.0.1
-      vite: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+      vite: 8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
       vue: 3.5.43(typescript@7.0.2)
 
   '@vitest/coverage-v8@4.1.11(vitest@4.1.11)':
@@ -11186,7 +11236,7 @@ snapshots:
 
   entities@7.0.1: {}
 
-  env-runner@0.2.3:
+  env-runner@0.3.2:
     dependencies:
       crossws: 0.4.12(srvx@1.0.5)
       exsolve: 1.1.1
@@ -13948,10 +13998,9 @@ snapshots:
 
   ultrahtml@1.7.0: {}
 
-  unctx@3.0.1(magic-string@1.4.1)(oxc-parser@shims+oxc-parser)(rolldown@1.2.9)(unplugin@3.4.0):
+  unctx@3.0.1(magic-string@1.4.1)(rolldown@1.2.9)(unplugin@3.4.0):
     optionalDependencies:
       magic-string: 1.4.1
-      oxc-parser: link:shims/oxc-parser
       rolldown: 1.2.9
       unplugin: 3.4.0(esbuild@0.28.2)(rolldown@1.2.9)(rollup@4.63.4)(vite@8.3.0)
 
@@ -14030,6 +14079,18 @@ snapshots:
       rolldown: 1.2.9
       rollup: 4.63.4
       vite: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+    optional: true
+
+  unplugin@3.4.0(esbuild@0.28.2)(rolldown@1.2.9)(rollup@4.63.4)(vite@8.3.1):
+    dependencies:
+      '@jridgewell/remapping': 2.3.5
+      picomatch: 4.0.7
+      webpack-virtual-modules: 0.6.2
+    optionalDependencies:
+      esbuild: 0.28.2
+      rolldown: 1.2.9
+      rollup: 4.63.4
+      vite: 8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
 
   unstorage@2.0.0-alpha.10: {}
 
@@ -14096,12 +14157,12 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
 
-  vite-plugin-devtools-json@1.1.0(vite@8.3.0):
+  vite-plugin-devtools-json@1.1.0(vite@8.3.1):
     dependencies:
       uuid: 14.0.2
-      vite: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+      vite: 8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
 
-  vite-plugin-solid@2.11.14(solid-js@1.9.15)(supports-color@10.2.2)(vite@8.3.0):
+  vite-plugin-solid@2.11.14(solid-js@1.9.15)(supports-color@10.2.2)(vite@8.3.1):
     dependencies:
       '@babel/core': 7.29.7(supports-color@10.2.2)
       '@types/babel__core': 7.20.5
@@ -14109,12 +14170,12 @@ snapshots:
       merge-anything: 5.1.7
       solid-js: 1.9.15
       solid-refresh: 0.6.3(solid-js@1.9.15)(supports-color@10.2.2)
-      vite: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
-      vitefu: 1.1.3(vite@8.3.0)
+      vite: 8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+      vitefu: 1.1.3(vite@8.3.1)
     transitivePeerDependencies:
       - supports-color
 
-  vite-prerender-plugin@0.5.13(vite@8.3.0):
+  vite-prerender-plugin@0.5.13(vite@8.3.1):
     dependencies:
       kolorist: 1.8.0
       magic-string: 0.30.21
@@ -14122,7 +14183,7 @@ snapshots:
       simple-code-frame: 1.3.0
       source-map: 0.7.6
       stack-trace: 1.0.0
-      vite: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+      vite: 8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
 
   vite@7.3.6(@types/node@26.6.2)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1):
     dependencies:
@@ -14153,9 +14214,37 @@ snapshots:
       jiti: 2.7.0
       yaml: 2.9.1
 
-  vitefu@1.1.3(vite@8.3.0):
+  vite@8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1):
+    dependencies:
+      lightningcss: 1.33.0
+      picomatch: 4.0.7
+      postcss: 8.5.28
+      rolldown: 1.2.9
+      tinyglobby: 0.2.17
     optionalDependencies:
-      vite: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+      '@types/node': 26.6.2
+      esbuild: 0.28.2
+      fsevents: 2.3.3
+      jiti: 2.7.0
+      yaml: 2.9.1
+
+  vite@8.3.1(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1):
+    dependencies:
+      lightningcss: 1.33.0
+      picomatch: 4.0.7
+      postcss: 8.5.28
+      rolldown: 1.2.9
+      tinyglobby: 0.2.17
+    optionalDependencies:
+      '@types/node': 26.6.3
+      esbuild: 0.28.2
+      fsevents: 2.3.3
+      jiti: 2.7.0
+      yaml: 2.9.1
+
+  vitefu@1.1.3(vite@8.3.1):
+    optionalDependencies:
+      vite: 8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
 
   vitest@4.1.11(@opentelemetry/api@1.9.0)(@types/node@26.6.2)(@vitest/coverage-v8@4.1.11)(vite@8.3.0):
     dependencies:
@@ -14192,7 +14281,7 @@ snapshots:
     dependencies:
       vue: 3.5.43(typescript@7.0.2)
 
-  vue-router@5.3.1(@vue/compiler-sfc@3.5.43)(esbuild@0.28.2)(rolldown@1.2.9)(rollup@4.63.4)(vite@8.3.0)(vue@3.5.43):
+  vue-router@5.3.1(@vue/compiler-sfc@3.5.43)(esbuild@0.28.2)(rolldown@1.2.9)(rollup@4.63.4)(vite@8.3.1)(vue@3.5.43):
     dependencies:
       '@vue-macros/common': 3.1.4(vue@3.5.43)
       '@vue/devtools-api': 8.2.1
@@ -14208,12 +14297,12 @@ snapshots:
       picomatch: 4.0.7
       scule: 1.3.0
       tinyglobby: 0.2.17
-      unplugin: 3.4.0(esbuild@0.28.2)(rolldown@1.2.9)(rollup@4.63.4)(vite@8.3.0)
+      unplugin: 3.4.0(esbuild@0.28.2)(rolldown@1.2.9)(rollup@4.63.4)(vite@8.3.1)
       unplugin-utils: 0.3.2
       vue: 3.5.43(typescript@7.0.2)
     optionalDependencies:
       '@vue/compiler-sfc': 3.5.43
-      vite: 8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+      vite: 8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
     transitivePeerDependencies:
       - '@farmfe/core'
       - '@rsbuild/core'

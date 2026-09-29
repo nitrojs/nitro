@@ -34,6 +34,11 @@ export async function startPreview(opts: PreviewOptions): Promise<PreviewInstanc
     outputDir: opts.outputDir,
   });
   if (!buildInfo) {
+    const { startUnbundledPreview } = await import("./build/unbundled/preview.ts");
+    const preview = await startUnbundledPreview(opts);
+    if (preview) {
+      return preview;
+    }
     throw new Error("Cannot load nitro build info. Make sure to build first.");
   }
 
