@@ -311,8 +311,10 @@ export async function prerender(nitro: Nitro) {
         nitro.options.prerender.crawlLinks ?? false
       );
       for (const _link of extractedLinks) {
-        if (canPrerender(_link)) {
-          routes.add(_link);
+        // Crawled links include `baseURL`, while routes are relative to it
+        const link = withoutBase(_link, nitro.options.baseURL);
+        if (canPrerender(link)) {
+          routes.add(link);
         }
       }
     }
