@@ -158,12 +158,14 @@ describe("nitro:preset:netlify", async () => {
   );
 
   describe("custom baseURL", () => {
-    it("writes `_headers` and `_redirects` to the publish root with base-prefixed paths", async () => {
+    it("writes `_headers` and `_redirects` to the publish root with base-prefixed paths, keeping user files", async () => {
       // Netlify publishes `dist/`, while public assets go to `dist/<baseURL>`
       const distDir = resolve(getPresetTmpDir("netlify-base-url"), "dist");
       const publicDir = resolve(distDir, "base");
       await fsp.rm(distDir, { recursive: true, force: true });
       await fsp.mkdir(publicDir, { recursive: true });
+      // A user `public/_redirects` is copied into `publicDir`
+      await fsp.writeFile(resolve(publicDir, "_redirects"), "/base/legacy\t/base/new\t301");
       const nitro = {
         options: {
           baseURL: "/base/",
@@ -183,7 +185,7 @@ describe("nitro:preset:netlify", async () => {
         "/base/build/*\n  cache-control: public, max-age=3600, immutable\n"
       );
       expect(await fsp.readFile(resolve(distDir, "_redirects"), "utf8")).toBe(
-        "/base/old\t/new\t301\n"
+        "/base/legacy\t/base/new\t301\n/base/old\t/new\t301\n"
       );
     });
   });
