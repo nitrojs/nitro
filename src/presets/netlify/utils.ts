@@ -1,15 +1,23 @@
 import { existsSync, promises as fsp } from "node:fs";
 import type { Nitro, PublicAssetDir } from "nitro/types";
 import { join } from "pathe";
-import { joinURL } from "ufo";
+import { joinURL, withoutLeadingSlash, withoutTrailingSlash } from "ufo";
+
+// Netlify only reads `_headers` and `_redirects` from the publish directory root,
+// while public assets are written to `<publish dir>/<baseURL>`.
+function getPublishDir(nitro: Nitro) {
+  const publicDir = withoutTrailingSlash(nitro.options.output.publicDir);
+  const base = withoutLeadingSlash(withoutTrailingSlash(nitro.options.baseURL));
+  return base && publicDir.endsWith(`/${base}`) ? publicDir.slice(0, -base.length - 1) : publicDir;
+}
 
 export async function writeRedirects(nitro: Nitro) {
-  const redirectsPath = join(nitro.options.output.publicDir, "_redirects");
+  const redirectsPath = join(getPublishDir(nitro), "_redirects");
 
   let contents = "";
   if (nitro.options.static) {
     const staticFallback = existsSync(join(nitro.options.output.publicDir, "404.html"))
-      ? "/* /404.html 404"
+      ? `${joinURL(nitro.options.baseURL, "/*")} ${joinURL(nitro.options.baseURL, "/404.html")} 404`
       : "";
     contents += staticFallback;
   }
@@ -32,7 +40,8 @@ export async function writeRedirects(nitro: Nitro) {
       code = 301;
     }
     contents =
-      `${key.replace("/**", "/*")}\t${redirect.to.replace("**", ":splat")}\t${code}\n` + contents;
+      `${joinURL(nitro.options.baseURL, key.replace("/**", "/*"))}\t${redirect.to.replace("**", ":splat")}\t${code}\n` +
+      contents;
   }
 
   if (existsSync(redirectsPath)) {
@@ -51,7 +60,7 @@ export async function writeRedirects(nitro: Nitro) {
 }
 
 export async function writeHeaders(nitro: Nitro) {
-  const headersPath = join(nitro.options.output.publicDir, "_headers");
+  const headersPath = join(getPublishDir(nitro), "_headers");
   let contents = "";
 
   const rules = Object.entries(nitro.options.routeRules).sort(
@@ -60,7 +69,7 @@ export async function writeHeaders(nitro: Nitro) {
 
   for (const [path, routeRules] of rules.filter(([_, routeRules]) => routeRules.headers)) {
     const headers = [
-      path.replace("/**", "/*"),
+      joinURL(nitro.options.baseURL, path.replace("/**", "/*")),
       ...Object.entries({ ...routeRules.headers }).map(
         ([header, value]) => `  ${header}: ${value}`
       ),

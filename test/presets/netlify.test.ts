@@ -1,8 +1,9 @@
 import { promises as fsp } from "node:fs";
 import type { Context as FunctionContext } from "@netlify/functions";
+import type { Nitro } from "nitro/types";
 import { resolve } from "pathe";
 import { describe, expect, it } from "vitest";
-import { getStaticPaths } from "../../src/presets/netlify/utils.ts";
+import { getStaticPaths, writeHeaders, writeRedirects } from "../../src/presets/netlify/utils.ts";
 import { getPresetTmpDir, setupTest, testNitro } from "../tests.ts";
 
 describe("nitro:preset:netlify", async () => {
@@ -155,6 +156,37 @@ describe("nitro:preset:netlify", async () => {
       });
     }
   );
+
+  describe("custom baseURL", () => {
+    it("writes `_headers` and `_redirects` to the publish root with base-prefixed paths", async () => {
+      // Netlify publishes `dist/`, while public assets go to `dist/<baseURL>`
+      const distDir = resolve(getPresetTmpDir("netlify-base-url"), "dist");
+      const publicDir = resolve(distDir, "base");
+      await fsp.rm(distDir, { recursive: true, force: true });
+      await fsp.mkdir(publicDir, { recursive: true });
+      const nitro = {
+        options: {
+          baseURL: "/base/",
+          output: { publicDir },
+          routeRules: {
+            "/build/**": { headers: { "cache-control": "public, max-age=3600, immutable" } },
+            "/old": { redirect: { to: "/new", status: 301 } },
+          },
+        },
+        logger: { info: () => {} },
+      } as unknown as Nitro;
+
+      await writeHeaders(nitro);
+      await writeRedirects(nitro);
+
+      expect(await fsp.readFile(resolve(distDir, "_headers"), "utf8")).toBe(
+        "/base/build/*\n  cache-control: public, max-age=3600, immutable\n"
+      );
+      expect(await fsp.readFile(resolve(distDir, "_redirects"), "utf8")).toBe(
+        "/base/old\t/new\t301\n"
+      );
+    });
+  });
 
   describe("getStaticPaths", () => {
     it("always returns `/.netlify/*`", () => {
