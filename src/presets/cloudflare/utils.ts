@@ -329,7 +329,15 @@ export async function writeWranglerConfig(
 
   // Validate and warn about overrides
   for (const key in overrides) {
-    if (key in userConfig || key in ctxConfig) {
+    const hasConflict =
+      key === "assets"
+        ? (["binding", "directory"] as const).some((field) => {
+            const value =
+              ctxConfig.assets?.[field] ?? userConfig.assets?.[field];
+            return value !== undefined && value !== overrides.assets?.[field];
+          })
+        : key in userConfig || key in ctxConfig;
+    if (hasConflict) {
       nitro.logger.warn(
         `[cloudflare] Wrangler config \`${key}\`${key in ctxConfig ? "set by config or modules" : ""} is overridden and will be ignored.`
       );
