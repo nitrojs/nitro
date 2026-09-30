@@ -25,8 +25,8 @@ describe("Cloudflare asset configuration diagnostics", () => {
       warns: false,
     },
     {
-      title: "unset directory from JSON",
-      fileAssets: { directory: null },
+      title: "unset asset fields from JSON",
+      fileAssets: { directory: null, binding: null },
       contextAssets: {},
       warns: false,
     },
