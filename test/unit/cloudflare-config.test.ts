@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { createNitro } from "nitropack/core";
-import { join } from "pathe";
+import { join, resolve } from "pathe";
 import { describe, expect, it, vi } from "vitest";
 
 describe("Cloudflare asset configuration diagnostics", () => {
@@ -15,6 +15,12 @@ describe("Cloudflare asset configuration diagnostics", () => {
     {
       title: "matching generated values",
       fileAssets: { binding: "ASSETS", directory: "../public" },
+      contextAssets: {},
+      warns: false,
+    },
+    {
+      title: "matching directory with Windows separators",
+      fileAssets: { directory: "..\\public" },
       contextAssets: {},
       warns: false,
     },
@@ -68,7 +74,9 @@ describe("Cloudflare asset configuration diagnostics", () => {
           )
         );
         expect(generated.assets.binding).toBe("ASSETS");
-        expect(generated.assets.directory).toBe("../public");
+        expect(
+          resolve(nitro.options.output.serverDir, generated.assets.directory)
+        ).toBe(resolve(nitro.options.output.publicDir));
         expect(
           warn.mock.calls.some(([message]) =>
             String(message).includes("Wrangler config `assets`")

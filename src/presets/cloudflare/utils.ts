@@ -10,7 +10,7 @@ import { readGitConfig, readPackageJSON, findNearestFile } from "pkg-types";
 import { defu } from "defu";
 import { globby } from "globby";
 import { provider } from "std-env";
-import { join, resolve } from "pathe";
+import { join, normalize, resolve } from "pathe";
 import {
   joinURL,
   hasProtocol,
@@ -334,7 +334,13 @@ export async function writeWranglerConfig(
         ? (["binding", "directory"] as const).some((field) => {
             const value =
               ctxConfig.assets?.[field] ?? userConfig.assets?.[field];
-            return value !== undefined && value !== overrides.assets?.[field];
+            const expected = overrides.assets?.[field];
+            return (
+              value !== undefined &&
+              (field === "directory" && expected !== undefined
+                ? normalize(value) !== normalize(expected)
+                : value !== expected)
+            );
           })
         : key in userConfig || key in ctxConfig;
     if (hasConflict) {
