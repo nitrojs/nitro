@@ -108,6 +108,8 @@ export async function prerender(nitro: Nitro) {
 
   // Start prerendering
   const generatedRoutes = new Set();
+  // Crawled links, keyed by route (relative to `baseURL`), with their original path
+  const crawledLinkPaths = new Map<string, string>();
   const failedRoutes = new Set<PrerenderRoute>();
   const skippedRoutes = new Set();
   const displayedLengthWarns = new Set();
@@ -192,8 +194,12 @@ export async function prerender(nitro: Nitro) {
   const generateRoute = async (route: string) => {
     const start = Date.now();
 
+    // Crawled links are fetched, resolved and written by their original path
+    const crawledPath = crawledLinkPaths.get(route);
+
     // Ensure route is decoded to start with
     route = decodeURI(route);
+    const routePath = crawledPath ? decodeURI(crawledPath) : route;
 
     // Check if we should render route
     if (!canPrerender(route)) {
@@ -206,7 +212,7 @@ export async function prerender(nitro: Nitro) {
     const _route: PrerenderRoute = { route };
 
     // Fetch the route
-    const encodedRoute = encodeURI(route);
+    const encodedRoute = encodeURI(routePath);
 
     const req = toRequest(withBase(encodedRoute, nitro.options.baseURL), {
       headers: [["x-nitro-prerender", encodedRoute]],
@@ -257,14 +263,14 @@ export async function prerender(nitro: Nitro) {
     // Guess route type and populate fileName
     const contentType = res.headers.get("content-type") || "";
     const isImplicitHTML =
-      !route.endsWith(".html") &&
+      !routePath.endsWith(".html") &&
       contentType.includes("html") &&
       !JsonSigRx.test(dataBuff!.subarray(0, 32).toString("utf8"));
-    const routeWithIndex = route.endsWith("/") ? route + "index" : route;
+    const routeWithIndex = routePath.endsWith("/") ? routePath + "index" : routePath;
     const htmlPath =
-      route.endsWith("/") || nitro.options.prerender.autoSubfolderIndex
-        ? joinURL(route, "index.html")
-        : route + ".html";
+      routePath.endsWith("/") || nitro.options.prerender.autoSubfolderIndex
+        ? joinURL(routePath, "index.html")
+        : routePath + ".html";
     _route.fileName = withoutBase(
       isImplicitHTML ? htmlPath : routeWithIndex,
       nitro.options.baseURL
@@ -303,16 +309,19 @@ export async function prerender(nitro: Nitro) {
     }
 
     // Crawl route links
-    if (!_route.error && (isImplicitHTML || route.endsWith(".html"))) {
+    if (!_route.error && (isImplicitHTML || routePath.endsWith(".html"))) {
       const extractedLinks = await extractLinks(
         dataBuff!.toString("utf8"),
-        route,
+        routePath,
         res,
         nitro.options.prerender.crawlLinks ?? false
       );
       for (const _link of extractedLinks) {
-        if (canPrerender(_link)) {
-          routes.add(_link);
+        // Crawled links include `baseURL`, while routes (and `ignore` patterns) are relative to it
+        const link = withoutBase(_link, nitro.options.baseURL);
+        if (canPrerender(link) && !routes.has(link)) {
+          crawledLinkPaths.set(link, _link);
+          routes.add(link);
         }
       }
     }
