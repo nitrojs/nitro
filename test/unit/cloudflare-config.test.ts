@@ -25,6 +25,12 @@ describe("Cloudflare asset configuration diagnostics", () => {
       warns: false,
     },
     {
+      title: "unset directory from JSON",
+      fileAssets: { directory: null },
+      contextAssets: {},
+      warns: false,
+    },
+    {
       title: "conflicting file binding with context routing policy",
       fileAssets: { binding: "CUSTOM" },
       contextAssets: { html_handling: "drop-trailing-slash" as const },

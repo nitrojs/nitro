@@ -333,11 +333,15 @@ export async function writeWranglerConfig(
       key === "assets"
         ? (["binding", "directory"] as const).some((field) => {
             const value =
-              ctxConfig.assets?.[field] ?? userConfig.assets?.[field];
+              ctxConfig.assets?.[field] ??
+              userConfig.assets?.[field] ??
+              undefined;
             const expected = overrides.assets?.[field];
             return (
               value !== undefined &&
-              (field === "directory" && expected !== undefined
+              (field === "directory" &&
+              typeof value === "string" &&
+              expected !== undefined
                 ? normalize(value) !== normalize(expected)
                 : value !== expected)
             );
