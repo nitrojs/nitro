@@ -1,6 +1,6 @@
 import { loadConfig, watchConfig } from "c12";
 import consola from "consola";
-import { createDefu } from "defu";
+import { createDefu, defu } from "defu";
 import { resolveCompatibilityDates } from "compatx";
 import type { CompatibilityDateSpec } from "compatx";
 import { klona } from "klona/full";
@@ -82,6 +82,10 @@ async function _loadUserConfig(
   // Inline `defaultPreset` object resolved during auto-detection (injected via `resolve`)
   let inlineDefaultPreset: (NitroConfig & { _meta?: NitroPresetMeta }) | undefined;
 
+  // Inline `extends` objects keyed by a placeholder id (injected via `resolve`)
+  // c12 only extends from string sources, so objects are swapped for an id here
+  const inlineExtends = new Map<string, NitroConfig>();
+
   const _dotenv = opts.dotenv ?? { fileName: [".env", ".env.local"] };
   const envName =
     opts.c12?.envName ??
@@ -143,14 +147,44 @@ async function _loadUserConfig(
         }
       }
 
+      // Merge `extends` in the same order c12 merges the configs, then swap inline objects for ids
+      // Without inline objects, c12 resolves `extends` as usual
+      inlineExtends.clear();
+      const extendsLayers = [
+        configOverrides,
+        rawConfigs.main,
+        rawConfigs.rc,
+        rawConfigs.packageJson,
+      ] as (NitroConfig | null | undefined)[];
+      const merger = opts.c12?.merger || defu;
+      const { extends: mergedExtends } = merger(
+        {},
+        ...extendsLayers.map((layer) => ({ extends: layer?.extends }))
+      );
+      const extendsSources = normalizeExtends(mergedExtends, inlineExtends);
+      if (inlineExtends.size === 0) {
+        return { ...configOverrides, preset };
+      }
+      // The original `extends` are removed so c12 does not merge the objects back in
+      for (const layer of extendsLayers.slice(1)) {
+        if (layer) {
+          delete layer.extends;
+        }
+      }
+
       return {
         ...configOverrides,
         preset,
+        extends: extendsSources as NitroConfig["extends"],
       };
     },
     async resolve(id: string) {
       if (inlineDefaultPreset && id === inlineDefaultPreset._meta?.name) {
         return { config: klona(inlineDefaultPreset) };
+      }
+      const inlineConfig = inlineExtends.get(id);
+      if (inlineConfig) {
+        return { config: klona(inlineConfig), cwd: configOverrides.rootDir };
       }
       const preset = await resolvePreset(id, {
         static: configOverrides.static,
@@ -202,3 +236,40 @@ const mergeEnvConfig = createDefu((obj, key, value, namespace) => {
     return true;
   }
 }) as (...sources: any[]) => any;
+
+/**
+ * Flatten an `extends` source into an array of sources c12 can resolve.
+ * Inline objects are stored in `inline` under a placeholder id and replaced with that id.
+ * Sources c12 already handles (strings, `[source, options]` and `{ source, options }`) are kept as is.
+ */
+function normalizeExtends(
+  source: NitroConfig["extends"] | undefined,
+  inline: Map<string, NitroConfig>
+): unknown[] {
+  const result: unknown[] = [];
+  for (const entry of (Array.isArray(source) ? source : [source]) as unknown[]) {
+    if (!entry) {
+      continue;
+    }
+    if (
+      typeof entry === "string" ||
+      Array.isArray(entry) ||
+      (entry as { source?: unknown }).source
+    ) {
+      result.push(entry);
+      continue;
+    }
+    const id = `#inline-extends-${inline.size}`;
+    const config = {
+      ...(typeof entry === "function" ? (entry as () => NitroConfig)() : (entry as NitroConfig)),
+    };
+    // Register before recursing so nested objects get their own ids
+    inline.set(id, config);
+    // Nested inline objects are normalized too, so c12 can extend them recursively
+    if (config.extends) {
+      config.extends = normalizeExtends(config.extends, inline) as NitroConfig["extends"];
+    }
+    result.push(id);
+  }
+  return result;
+}
