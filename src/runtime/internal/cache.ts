@@ -123,30 +123,36 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
         // Update mtime, integrity + validate and set the value in cache only the first time the request is made.
         entry.mtime = Date.now();
         entry.integrity = integrity;
-        delete pending[key];
-        if (validate(entry) !== false) {
+        if (validate(entry) === false) {
+          delete pending[key];
+          if (
+            (opts as InternalCacheOptions<T>)._removeStaleOnInvalid?.(entry)
+          ) {
+            // Fresh result must not be cached: drop any previously stored entry
+            // so that it is not served (stale) anymore.
+            const promise = useStorage()
+              .removeItem(cacheKey)
+              .catch((error) => {
+                console.error(`[cache] Cache remove error.`, error);
+                useNitroApp().captureError(error, { event, tags: ["cache"] });
+              });
+            if (event?.waitUntil) {
+              event.waitUntil(promise);
+            }
+          }
+        } else {
           let setOpts: TransactionOptions | undefined;
           if (opts.maxAge && !opts.swr /* TODO: respect staleMaxAge */) {
             setOpts = { ttl: opts.maxAge };
           }
           const promise = useStorage()
             .setItem(cacheKey, entry, setOpts)
+            .then(() => {
+              delete pending[key];
+            })
             .catch((error) => {
+              delete pending[key];
               console.error(`[cache] Cache write error.`, error);
-              useNitroApp().captureError(error, { event, tags: ["cache"] });
-            });
-          if (event?.waitUntil) {
-            event.waitUntil(promise);
-          }
-        } else if (
-          (opts as InternalCacheOptions<T>)._removeStaleOnInvalid?.(entry)
-        ) {
-          // Fresh result must not be cached: drop any previously stored entry
-          // so that it is not served (stale) anymore.
-          const promise = useStorage()
-            .removeItem(cacheKey)
-            .catch((error) => {
-              console.error(`[cache] Cache remove error.`, error);
               useNitroApp().captureError(error, { event, tags: ["cache"] });
             });
           if (event?.waitUntil) {
