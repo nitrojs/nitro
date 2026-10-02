@@ -54,6 +54,9 @@ export function baseBuildConfig(nitro: Nitro) {
     "CIRCULAR_DEPENDENCY",
     "THIS_IS_UNDEFINED",
     "EMPTY_BUNDLE",
+    // Directives such as `"use client"` in dependencies only mean something to
+    // React Server Components bundlers, so the server build has nothing to preserve.
+    "MODULE_LEVEL_DIRECTIVE",
   ]);
 
   return {

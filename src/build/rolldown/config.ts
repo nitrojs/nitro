@@ -38,7 +38,6 @@ export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> 
     },
     onwarn(warning, warn) {
       if (!base.ignoreWarningCodes.has(warning.code || "")) {
-        console.log(warning.code);
         warn(warning);
       }
     },
