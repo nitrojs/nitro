@@ -16,7 +16,6 @@ export const runtimeDependencies: string[] = [
   "db0", // dep
   "h3", // dep
   "rou3", // sub-dep of h3
-  "hookable", // dep
   "ocache", // dep
   "srvx", // dep
   "unenv", // dep

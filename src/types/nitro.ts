@@ -1,5 +1,5 @@
 import type { ConsolaInstance } from "consola";
-import type { Hookable } from "hookable";
+import type { Hookable } from "./_hookable.ts";
 import type { PresetName, PresetOptions } from "../presets/index.ts";
 import type { NitroConfig, NitroOptions } from "./config.ts";
 import type { NitroEventHandler } from "./handler.ts";
