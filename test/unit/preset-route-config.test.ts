@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "pathe";
 import { afterAll, describe, expect, it, vi } from "vitest";
@@ -69,6 +69,27 @@ describe("netlify _redirects and _headers", () => {
       "/old/*\t/new/:splat\t302\n"
     );
     expect(await readFile(join(dir, "public/_headers"), "utf8")).toBe("/hdr/*\n  x-hdr: 1\n");
+  });
+
+  it("prefixes sources with the baseURL and writes to the publish root", async () => {
+    const { dir, nitro } = await createNitro({
+      baseURL: "/base/",
+      static: true,
+      routeRules: {
+        "/old/**": { redirect: { to: "/new/**", status: 301 } },
+        "/hdr/**": { headers: { "x-hdr": "1" } },
+      },
+    });
+    // Netlify presets output public assets to `dist/{{ baseURL }}`
+    nitro.options.output.publicDir = join(dir, "public/base");
+    await mkdir(nitro.options.output.publicDir);
+    await writeFile(join(nitro.options.output.publicDir, "404.html"), "");
+    await writeRedirects(nitro);
+    await writeHeaders(nitro);
+    expect(await readFile(join(dir, "public/_redirects"), "utf8")).toBe(
+      "/base/old/*\t/new/:splat\t301\n/base/* /base/404.html 404"
+    );
+    expect(await readFile(join(dir, "public/_headers"), "utf8")).toBe("/base/hdr/*\n  x-hdr: 1\n");
   });
 });
 

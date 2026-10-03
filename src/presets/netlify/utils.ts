@@ -1,11 +1,11 @@
 import { existsSync, promises as fsp } from "node:fs";
 import type { Nitro, PublicAssetDir } from "nitro/types";
-import { join } from "pathe";
+import { join, resolve } from "pathe";
 import { joinURL } from "ufo";
 import { routeToSplat, sortRoutes } from "../_utils/routes.ts";
 
 export async function writeRedirects(nitro: Nitro) {
-  const redirectsPath = join(nitro.options.output.publicDir, "_redirects");
+  const redirectsPath = join(getPublishDir(nitro), "_redirects");
 
   let contents = "";
 
@@ -23,11 +23,12 @@ export async function writeRedirects(nitro: Nitro) {
     if (code === 308) {
       code = 301;
     }
-    contents += `${routeToSplat(key)}\t${redirect.to.replaceAll("**", ":splat")}\t${code}\n`;
+    const from = joinURL(nitro.options.baseURL, routeToSplat(key));
+    contents += `${from}\t${redirect.to.replaceAll("**", ":splat")}\t${code}\n`;
   }
 
   if (nitro.options.static && existsSync(join(nitro.options.output.publicDir, "404.html"))) {
-    contents += "/* /404.html 404";
+    contents += `${joinURL(nitro.options.baseURL, "/*")} ${joinURL(nitro.options.baseURL, "/404.html")} 404`;
   }
 
   if (existsSync(redirectsPath)) {
@@ -46,7 +47,7 @@ export async function writeRedirects(nitro: Nitro) {
 }
 
 export async function writeHeaders(nitro: Nitro) {
-  const headersPath = join(nitro.options.output.publicDir, "_headers");
+  const headersPath = join(getPublishDir(nitro), "_headers");
   let contents = "";
 
   for (const path of sortRoutes(Object.keys(nitro.options.routeRules))) {
@@ -55,7 +56,7 @@ export async function writeHeaders(nitro: Nitro) {
       continue;
     }
     const headers = [
-      routeToSplat(path),
+      joinURL(nitro.options.baseURL, routeToSplat(path)),
       ...Object.entries({ ...routeRules.headers }).map(
         ([header, value]) => `  ${header}: ${value}`
       ),
@@ -109,4 +110,13 @@ export const config = {
 
 export function getGeneratorString(nitro: Nitro) {
   return `${nitro.options.framework.name}@${nitro.options.framework.version}`;
+}
+
+// Netlify reads `_redirects` and `_headers` from the root of the publish
+// directory, while public assets are output to `dist/{{ baseURL }}`.
+function getPublishDir(nitro: Nitro) {
+  return resolve(
+    nitro.options.output.publicDir,
+    "../".repeat(nitro.options.baseURL.split("/").filter(Boolean).length)
+  );
 }
