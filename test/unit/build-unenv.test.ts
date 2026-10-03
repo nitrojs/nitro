@@ -8,7 +8,8 @@ import * as dep from "../../src/utils/dep.ts";
 
 vi.mock("../../src/utils/dep.ts", { spy: true });
 
-const builders = ["rolldown", "rollup", "vite"] as const;
+// The vite builder loads `nitro/vite` from `dist/`, so it would not use (or mock) the sources here
+const builders = ["rolldown", "rollup"] as const;
 
 const unenvCalls = () =>
   vi.mocked(dep.ensureDep).mock.calls.filter(([opts]) => opts.id === "unenv");
