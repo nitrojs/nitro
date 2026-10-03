@@ -5,6 +5,7 @@ import { baseBuildPlugins } from "../plugins.ts";
 import { builtinModules } from "node:module";
 import { defu } from "defu";
 import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
+import { isUnenvId } from "../plugins/unenv.ts";
 
 export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> => {
   const base = await baseBuildConfig(nitro);
@@ -19,7 +20,13 @@ export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> 
     // Disable Rolldown's own tsconfig discovery to avoid `CONFIGURATION_FIELD_CONFLICT` warnings
     // and keep behavior consistent with the Rollup builder.
     tsconfig: false,
-    external: [...base.env.external, ...builtinModules, ...builtinModules.map((m) => `node:${m}`)],
+    external: [
+      ...base.env.external,
+      // Builtins aliased to `unenv` polyfills are bundled (rolldown checks `external` before plugins)
+      ...[...builtinModules, ...builtinModules.map((m) => `node:${m}`)].filter(
+        (id) => !isUnenvId(base.env.alias[id] || "")
+      ),
+    ],
     plugins: [...((await baseBuildPlugins(nitro, base)) as RolldownPlugin[])],
     resolve: {
       alias: base.aliases,

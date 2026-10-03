@@ -66,10 +66,15 @@ describe("resolveBuildEnv", () => {
 
   it("adds node compatibility for `node: false` builds", async () => {
     const env = await resolveBuildEnv(createNitro({ node: false }));
-    expect(env.alias["node:fs"]).toMatch(/unenv\/dist\/runtime\/node\/fs\.mjs$/);
+    // `unenv` ids are resolved on demand by the bundler
+    expect(env.alias["node:fs"]).toBe("unenv/node/fs");
     expect(env.alias.fs).toBe(env.alias["node:fs"]);
-    expect(env.inject.Buffer).toEqual([env.alias["node:buffer"], "Buffer"]);
+    expect(env.inject.Buffer).toEqual(["unenv/node/buffer", "Buffer"]);
+    expect(env.inject.performance).toBe("unenv/polyfill/performance");
     expect(env.polyfills).toHaveLength(4);
+    expect(env.polyfills).toEqual(
+      env.polyfills.map(() => expect.stringMatching(/runtime\/internal\/polyfills\/\w+\.(ts|mjs)$/))
+    );
   });
 
   it("lets options override, remove and negate defaults", async () => {
@@ -78,7 +83,7 @@ describe("resolveBuildEnv", () => {
         node: false,
         alias: { "node:fs": "node:fs", "my-pathe": "pathe" },
         inject: { performance: false },
-        polyfills: ["!unenv/polyfill/timers"],
+        polyfills: ["!#nitro/runtime/polyfills/timers"],
         builtinModules: ["node:fs", "node:fs"],
       })
     );

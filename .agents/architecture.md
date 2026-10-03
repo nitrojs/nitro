@@ -36,18 +36,19 @@
 **Base config** (`build/config.ts`):
 - Extensions: `.ts`, `.mjs`, `.js`, `.json`, `.node`, `.tsx`, `.jsx`
 - Import.meta replacements (`import.meta.dev`, `import.meta.preset`, etc.)
-- Unenv aliases for polyfills
+- Node.js compatibility aliases (`unenv` targets go to the unenv plugin)
 - External dependency patterns
 
 **Plugins** (`build/plugins.ts`):
 1. Virtual modules — renders from `build/virtual/`
-2. WASM loader — unwasm
-3. Server main injection — `globalThis.__server_main__`
-4. Raw imports — `?raw` suffix
-5. Route meta — OpenAPI metadata
-6. Replace plugin — variable substitution
-7. Externals plugin — Node.js native resolution
-8. Sourcemap minify (optional)
+2. Unenv — resolves `unenv/*` polyfills, installing `unenv` on demand
+3. WASM loader — unwasm
+4. Server main injection — `globalThis.__server_main__`
+5. Raw imports — `?raw` suffix
+6. Route meta — OpenAPI metadata
+7. Replace plugin — variable substitution
+8. Externals plugin — Node.js native resolution
+9. Sourcemap minify (optional)
 
 **Virtual modules** (`build/virtual/`, 14 templates):
 All prefixed `#nitro/virtual/<name>`:
@@ -147,7 +148,7 @@ Uses `citty` with lazy-loaded commands: `dev`, `build`, `deploy`, `preview`, `pr
 | `citty` | CLI framework |
 | `hookable` | Hook system |
 | `unstorage` | Storage abstraction |
-| `unenv` | Node.js polyfills for `node: false` builds (`build/env.ts`) and presets |
+| `unenv` | Node.js polyfills for `node: false` builds (`build/_node-compat.ts`), installed on demand by `build/plugins/unenv.ts` |
 | `defu` | Config merging |
 | `pathe` | Path operations |
 | `consola` | Logging |
