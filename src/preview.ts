@@ -33,12 +33,24 @@ export async function startPreview(opts: PreviewOptions): Promise<PreviewInstanc
     rootDir: opts.rootDir,
     outputDir: opts.outputDir,
   });
-  if (!buildInfo) {
-    const { startUnbundledPreview } = await import("./build/unbundled/preview.ts");
-    const preview = await startUnbundledPreview(opts);
-    if (preview) {
-      return preview;
+
+  // `builder: false` previews the sources, also over a build output left by another builder
+  if (!opts.outputDir) {
+    const { isUnbundledProject } = await import("./build/unbundled/detect.ts");
+    const unbundled = await isUnbundledProject(opts.rootDir).catch((error) => {
+      // The config may not load where only the build output is deployed
+      if (buildInfo) {
+        return false;
+      }
+      throw error;
+    });
+    if (unbundled) {
+      const { startUnbundledPreview } = await import("./build/unbundled/preview.ts");
+      return startUnbundledPreview(opts);
     }
+  }
+
+  if (!buildInfo) {
     throw new Error("Cannot load nitro build info. Make sure to build first.");
   }
 

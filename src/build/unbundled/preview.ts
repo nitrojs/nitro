@@ -1,11 +1,9 @@
 import type { Socket } from "node:net";
-import type { NitroConfig } from "nitro/types";
 import type { PreviewInstance, PreviewOptions } from "../../preview.ts";
 
 import consola from "consola";
 import { RunnerManager, loadRunner } from "env-runner";
 import { joinURL, withTrailingSlash } from "ufo";
-import { loadConfig } from "c12";
 import { createNitro } from "../../nitro.ts";
 import { prepareUnbundledApp } from "./entry.ts";
 import { unbundledPlugins } from "./plugins.ts";
@@ -15,22 +13,9 @@ const previewDotenv = { fileName: [".env.preview", ".env.production", ".env"] };
 /**
  * Preview the server sources without a build (`builder: false`).
  *
- * Returns `undefined` when the project uses a builder.
+ * Runs in a Node.js worker with the `standard` preset, like `nitro dev` with `nitro-dev`.
  */
-export async function startUnbundledPreview(
-  opts: PreviewOptions
-): Promise<PreviewInstance | undefined> {
-  // User config only: resolving the options can install dependencies (e.g. the builder)
-  const { config: userConfig } = await loadConfig<NitroConfig>({
-    name: "nitro",
-    cwd: opts.rootDir,
-    dotenv: false,
-    extend: false,
-  }).catch(() => ({ config: undefined }));
-  if (userConfig?.builder !== false) {
-    return;
-  }
-
+export async function startUnbundledPreview(opts: PreviewOptions): Promise<PreviewInstance> {
   const nitro = await createNitro(
     { rootDir: opts.rootDir, dev: false, preset: "standard" },
     { dotenv: previewDotenv }

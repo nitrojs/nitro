@@ -14,6 +14,7 @@ import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { join } from "pathe";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { isUnbundledProject } from "../../src/build/unbundled/detect.ts";
 
 const rootDir = fileURLToPath(new URL("fixture", import.meta.url));
 
@@ -114,15 +115,57 @@ describe("builder: false", () => {
     await rm(dir, { recursive: true, force: true });
   });
 
+  it("reports config errors when previewing without a build output", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nitro-unbundled-"));
+    await writeFile(join(dir, "nitro.config.mjs"), `throw new Error("broken config");`);
+    await expect(startPreview({ rootDir: dir })).rejects.toThrow("broken config");
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it("detects `builder: false` from `$production`, layers and `NITRO_BUILDER`", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nitro-unbundled-"));
+    const config = (code: string) => writeFile(join(dir, "nitro.config.mjs"), code);
+    const original = process.env.NITRO_BUILDER;
+    delete process.env.NITRO_BUILDER;
+    try {
+      await config(`export default { $production: { builder: false } };`);
+      expect(await isUnbundledProject(dir)).toBe(true);
+
+      await config(`export default { $development: { builder: false } };`);
+      expect(await isUnbundledProject(dir)).toBe(false);
+
+      await mkdir(join(dir, "layer"));
+      await writeFile(join(dir, "layer/nitro.config.mjs"), `export default { builder: false };`);
+      await config(`export default { extends: ["./layer"] };`);
+      expect(await isUnbundledProject(dir)).toBe(true);
+
+      await config(`export default {};`);
+      process.env.NITRO_BUILDER = "false";
+      expect(await isUnbundledProject(dir)).toBe(true);
+    } finally {
+      if (original === undefined) {
+        delete process.env.NITRO_BUILDER;
+      } else {
+        process.env.NITRO_BUILDER = original;
+      }
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   describe("preview", () => {
     let preview: Awaited<ReturnType<typeof startPreview>>;
+    const outputDir = join(rootDir, ".output");
 
     beforeAll(async () => {
+      // Output left by another builder
+      await mkdir(outputDir, { recursive: true });
+      await writeFile(join(outputDir, "nitro.json"), JSON.stringify({ preset: "node-server" }));
       preview = await startPreview({ rootDir });
     });
 
     afterAll(async () => {
       await preview?.close();
+      await rm(outputDir, { recursive: true, force: true });
     });
 
     it("runs the sources without a build", async () => {
