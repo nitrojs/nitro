@@ -2,7 +2,7 @@ import type { Nitro } from "nitro/types";
 import { builtinModules } from "node:module";
 import { resolveModulePath } from "exsolve";
 import { resolveAlias } from "pathe/utils";
-import { applyLegacyUnenv } from "../config/resolvers/unenv.ts";
+import { legacyUnenvLayers } from "../config/resolvers/unenv.ts";
 
 export interface BuildEnv {
   alias: Record<string, string>;
@@ -11,14 +11,17 @@ export interface BuildEnv {
   external: string[];
 }
 
-type BuildEnvInput = Partial<{
+/** Build environment entries added by presets with {@link extendEnv}. */
+export type PresetEnv = Partial<{
   alias: Readonly<Record<string, string>>;
   inject: Readonly<Record<string, string | readonly string[] | false>>;
   polyfills: readonly string[];
-  external: readonly string[];
+  builtinModules: readonly string[];
 }>;
 
-const commonEnv: BuildEnvInput = {
+const presetEnvs = new WeakMap<Nitro, PresetEnv[]>();
+
+const commonEnv: PresetEnv = {
   alias: {
     "buffer/": "node:buffer",
     "buffer/index": "node:buffer",
@@ -29,32 +32,50 @@ const commonEnv: BuildEnvInput = {
 };
 
 /**
- * Resolves `alias`, `inject`, `polyfills` and `external` for the bundler.
+ * Adds a preset build environment layer (e.g. from a `build:before` hook).
+ *
+ * Preset layers are applied in order, before user options (`alias`, `inject`,
+ * `polyfills`, `builtinModules`), so they never leak into config resolution.
+ */
+export function extendEnv(nitro: Nitro, env: PresetEnv) {
+  const envs = presetEnvs.get(nitro) || [];
+  if (!envs.includes(env)) {
+    envs.push(env);
+  }
+  presetEnvs.set(nitro, envs);
+}
+
+/**
+ * Resolves `alias`, `inject`, `polyfills` and `builtinModules` for the bundler.
  *
  * Layers (later wins): Node.js compatibility (`node: false` only), common
- * aliases, then user and preset options. Module ids are resolved to absolute
- * paths so that they don't depend on the importer location.
+ * aliases, preset layers, deprecated `unenv` presets, then user options.
+ * Module ids are resolved to absolute paths so that they don't depend on the
+ * importer location.
  */
 export async function resolveBuildEnv(nitro: Nitro): Promise<BuildEnv> {
-  applyLegacyUnenv(nitro.options);
-
-  const layers: BuildEnvInput[] = [];
+  const layers: PresetEnv[] = [];
   if (nitro.options.node === false) {
     layers.push(await nodeCompatEnv());
   }
-  layers.push(commonEnv, {
-    alias: nitro.options.alias,
-    inject: nitro.options.inject,
-    polyfills: nitro.options.polyfills,
-    external: nitro.options.external,
-  });
+  layers.push(
+    commonEnv,
+    ...(presetEnvs.get(nitro) || []),
+    ...legacyUnenvLayers(nitro.options, nitro.logger),
+    {
+      alias: nitro.options.alias,
+      inject: nitro.options.inject,
+      polyfills: nitro.options.polyfills,
+      builtinModules: nitro.options.builtinModules,
+    }
+  );
 
   const env = mergeEnv(layers);
   resolveEnvPaths(env, nitro.options.rootDir);
   return env;
 }
 
-async function nodeCompatEnv(): Promise<BuildEnvInput> {
+async function nodeCompatEnv(): Promise<PresetEnv> {
   const { defineEnv } = await import("unenv");
   const { env } = defineEnv({ nodeCompat: true });
   return {
@@ -79,7 +100,7 @@ async function nodeCompatEnv(): Promise<BuildEnvInput> {
   };
 }
 
-function mergeEnv(layers: BuildEnvInput[]): BuildEnv {
+function mergeEnv(layers: PresetEnv[]): BuildEnv {
   const env: BuildEnv = { alias: {}, inject: {}, polyfills: [], external: [] };
   for (const layer of layers) {
     Object.assign(env.alias, layer.alias);
@@ -91,7 +112,7 @@ function mergeEnv(layers: BuildEnvInput[]): BuildEnv {
       }
     }
     env.polyfills.push(...(layer.polyfills || []).filter(Boolean));
-    env.external.push(...(layer.external || []));
+    env.external.push(...(layer.builtinModules || []));
   }
   env.polyfills = resolveNegations(env.polyfills);
   env.external = resolveNegations(env.external);

@@ -4,7 +4,7 @@ import type { Nitro } from "nitro/types";
 import { join, resolve } from "pathe";
 import { presetsDir } from "nitro/meta";
 import { unenvCfExternals } from "./unenv/preset.ts";
-import { extendEnv } from "../_utils/env.ts";
+import { extendEnv } from "../../build/env.ts";
 import {
   enableNodeCompat,
   writeWranglerConfig,
@@ -51,7 +51,7 @@ const cloudflarePages = defineNitroPreset(
     },
     hooks: {
       "build:before": async (nitro) => {
-        extendEnv(nitro.options, unenvCfExternals);
+        extendEnv(nitro, unenvCfExternals);
         await enableNodeCompat(nitro);
         await setupEntryExports(nitro);
       },
@@ -145,7 +145,7 @@ const cloudflareModule = defineNitroPreset(
     },
     hooks: {
       "build:before": async (nitro) => {
-        extendEnv(nitro.options, unenvCfExternals);
+        extendEnv(nitro, unenvCfExternals);
         await enableNodeCompat(nitro);
         await setupEntryExports(nitro);
         setupTracingBridge(nitro);

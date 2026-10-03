@@ -749,7 +749,7 @@ export interface NitroOptions extends PresetOptions {
    */
   entry: string;
 
-  /** @deprecated Migrate to `alias`, `inject`, `polyfills` and `external`. */
+  /** @deprecated Migrate to `alias`, `inject`, `polyfills` and `builtinModules`. */
   unenv: LegacyUnenvPreset[];
 
   /**
@@ -795,14 +795,18 @@ export interface NitroOptions extends PresetOptions {
   polyfills: string[];
 
   /**
-   * Module ids to keep as imports in the output instead of bundling them
-   * (e.g. platform builtins such as `cloudflare:workers`).
+   * Modules provided by the target runtime (e.g. `node:fs` on Deno or
+   * `cloudflare:workers`).
    *
-   * Prefix an entry with `!` to remove a default external.
+   * Imports of these ids are kept as-is in the output: they are never bundled,
+   * traced or copied, so only list modules the runtime itself provides. To
+   * keep an npm package out of the bundle, use `traceDeps` instead.
    *
-   * @see https://nitro.build/config#external
+   * Prefix an entry with `!` to remove a default (e.g. one added by a preset).
+   *
+   * @see https://nitro.build/config#builtinmodules
    */
-  external: string[];
+  builtinModules: string[];
 
   /**
    * Minify the production bundle.
@@ -1013,7 +1017,7 @@ export interface NitroConfig
   routeRules?: { [path: string]: NitroRouteConfig };
   rollupConfig?: Partial<RollupConfig>;
   compatibilityDate?: CompatibilityDateSpec;
-  /** @deprecated Migrate to `alias`, `inject`, `polyfills` and `external`. */
+  /** @deprecated Migrate to `alias`, `inject`, `polyfills` and `builtinModules`. */
   unenv?: LegacyUnenvPreset | LegacyUnenvPreset[];
   serverDir?: boolean | "./" | "./server" | (string & {});
   serverEntry?: string | NitroOptions["serverEntry"];
@@ -1108,7 +1112,7 @@ export interface TracingOptions {
  * Preset shape accepted by the deprecated `unenv` option (compatible with
  * unenv's `Preset`).
  *
- * @deprecated Migrate to `alias`, `inject`, `polyfills` and `external`.
+ * @deprecated Migrate to `alias`, `inject`, `polyfills` and `builtinModules`.
  */
 export interface LegacyUnenvPreset {
   meta?: {

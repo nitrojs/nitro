@@ -71,7 +71,7 @@ export const NitroDefaults: NitroConfig = {
   replace: {},
   inject: {},
   polyfills: [],
-  external: [],
+  builtinModules: [],
   node: true,
   sourcemap: false,
   traceDeps: [],

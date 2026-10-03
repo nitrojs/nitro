@@ -1,10 +1,10 @@
-import type { PresetEnv } from "../../_utils/env.ts";
+import type { PresetEnv } from "../../../build/env.ts";
 import * as workerdNodeCompat from "./node-compat.ts";
 
 // https://platform-node-compat.pi0.workers.dev/
 
 export const unenvCfNodeCompat: PresetEnv = {
-  external: workerdNodeCompat.builtnNodeModules,
+  builtinModules: workerdNodeCompat.builtnNodeModules,
   alias: {
     ...Object.fromEntries(
       workerdNodeCompat.builtnNodeModules.flatMap((m) => [
@@ -23,7 +23,7 @@ export const unenvCfNodeCompat: PresetEnv = {
 };
 
 export const unenvCfExternals: PresetEnv = {
-  external: [
+  builtinModules: [
     "cloudflare:email",
     "cloudflare:sockets",
     "cloudflare:workers",

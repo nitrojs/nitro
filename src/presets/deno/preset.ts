@@ -2,6 +2,7 @@ import { defineNitroPreset } from "../_utils/preset.ts";
 import { writeFile } from "../_utils/fs.ts";
 import { resolve } from "pathe";
 import { unenvDeno } from "./unenv/preset.ts";
+import { extendEnv } from "../../build/env.ts";
 import { builtinModules } from "node:module";
 
 const denoDeploy = defineNitroPreset(
@@ -20,7 +21,11 @@ const denoDeploy = defineNitroPreset(
       preview: "",
       deploy: "cd ./ && deno run -A jsr:@deno/deployctl deploy server/index.ts",
     },
-    ...unenvDeno,
+    hooks: {
+      "build:before": (nitro) => {
+        extendEnv(nitro, unenvDeno);
+      },
+    },
     rollupConfig: {
       preserveEntrySignatures: false,
       external: (id) => id.startsWith("https://") || id.startsWith("node:"),

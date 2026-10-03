@@ -1,7 +1,7 @@
 import { defineNitroPreset } from "../_utils/preset.ts";
 import type { Nitro } from "nitro/types";
 import { unenvCfExternals, unenvCfNodeCompat } from "../cloudflare/unenv/preset.ts";
-import { extendEnv } from "../_utils/env.ts";
+import { extendEnv } from "../../build/env.ts";
 import { resolve } from "pathe";
 import { importDep } from "../../utils/dep.ts";
 
@@ -34,8 +34,8 @@ const zephyr = defineNitroPreset(
     },
     hooks: {
       "build:before": (nitro: Nitro) => {
-        extendEnv(nitro.options, unenvCfExternals);
-        extendEnv(nitro.options, unenvCfNodeCompat);
+        extendEnv(nitro, unenvCfExternals);
+        extendEnv(nitro, unenvCfNodeCompat);
       },
       compiled: async (nitro: Nitro) => {
         if (!nitro.options.zephyr?.deployOnBuild) {
