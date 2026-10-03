@@ -1,4 +1,4 @@
-import type { Cookie, HttpRequest } from "@azure/functions";
+import type { Cookie } from "@azure/functions";
 import { parse } from "cookie-es";
 
 export function getAzureParsedCookiesFromHeaders(headers: Headers): Cookie[] {
@@ -32,10 +32,10 @@ export function getAzureParsedCookiesFromHeaders(headers: Headers): Cookie[] {
   return azureCookies;
 }
 
-export function resolveBaseUrl(req: HttpRequest) {
-  const forwardedProto = req.headers["x-forwarded-proto"];
-  const forwardedHost = req.headers["x-forwarded-host"];
-  const host = forwardedHost || req.headers["host"];
+export function resolveBaseUrl(headers: Headers) {
+  const forwardedProto = headers.get("x-forwarded-proto");
+  const forwardedHost = headers.get("x-forwarded-host");
+  const host = forwardedHost || headers.get("host");
   if (host) {
     const candidate = `${forwardedProto || "http"}://${host}`;
     try {
@@ -47,7 +47,7 @@ export function resolveBaseUrl(req: HttpRequest) {
       });
     }
   }
-  const originalUrl = req.headers["x-ms-original-url"];
+  const originalUrl = headers.get("x-ms-original-url");
   if (originalUrl) {
     try {
       return new URL(originalUrl).origin;

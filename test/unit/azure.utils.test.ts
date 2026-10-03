@@ -77,7 +77,7 @@ describe("getAzureParsedCookiesFromHeaders", () => {
 });
 
 describe("resolveBaseUrl", () => {
-  const req = (headers: Record<string, string>) => ({ headers }) as any;
+  const req = (headers: Record<string, string>) => new Headers(headers);
 
   it("uses the forwarded proto and host", () => {
     expect(

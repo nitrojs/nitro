@@ -7,6 +7,7 @@ export type { AzureOptions as PresetOptions } from "./types.ts";
 const azureSWA = defineNitroPreset(
   {
     entry: "./azure/runtime/azure-swa",
+    traceDeps: ["@azure/functions"],
     output: {
       serverDir: "{{ output.dir }}/server/functions",
       publicDir: "{{ output.dir }}/public/{{ baseURL }}",

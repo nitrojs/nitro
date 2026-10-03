@@ -82,7 +82,7 @@
   },
   "devDependencies": {
     "@apphosting/common": "^0.0.9",
-    "@azure/functions": "^3.6.0",
+    "@azure/functions": "^4.16.5",
     "@azure/static-web-apps-cli": "^2.0.10",
     "@cloudflare/workers-types": "^5.20260930.2",
     "@cloudflare/workers-utils": "^0.45.1",

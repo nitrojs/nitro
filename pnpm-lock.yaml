@@ -49,8 +49,8 @@ importers:
         specifier: ^0.0.9
         version: 0.0.9
       '@azure/functions':
-        specifier: ^3.6.0
-        version: 3.6.0
+        specifier: ^4.16.5
+        version: 4.16.5
       '@azure/static-web-apps-cli':
         specifier: ^2.0.10
         version: 2.0.10(debug@4.4.3)(supports-color@10.2.2)
@@ -887,9 +887,13 @@ packages:
     resolution: {integrity: sha512-9n2pWK61veAuN0V20t9lOuoV4CFMdyAZ1ygZzvBGk/pBBJRib/PjL9PLXa/aI2CcPpyHfqVsxxqLCYl6uZlfDw==}
     engines: {node: '>=22.0.0'}
 
-  '@azure/functions@3.6.0':
-    resolution: {integrity: sha512-mHTygrJgOC0tveNUeDJIwgLVo+3m8+LUlEuGeIAilP0oXBIu4E4IZWmIaxS1as6ytJRYy1WJHDRUtwuV/NeoAQ==}
-    engines: {node: '>=22.0'}
+  '@azure/functions-extensions-base@0.3.0':
+    resolution: {integrity: sha512-Cux0hLu5ZXlC/Kb+yvJVhRLIdkfFwui2HeT5oGZL00r/GCUUkhGTzRfZUjRN4Bq729mPv3okPucz2z7SMQLStA==}
+    engines: {node: '>=18.0'}
+
+  '@azure/functions@4.16.5':
+    resolution: {integrity: sha512-h0lVUeI/Q36SyE2xGQOXZqBbmSgQHNLk8pvMxhq3Dw1TaT3eGWs2X25dceGJ153aXXkjcTEdkxg3D2Gcz1uJ0w==}
+    engines: {node: '>=20.0'}
 
   '@azure/identity@4.13.3':
     resolution: {integrity: sha512-zGQPtqvXPgSA8yfV2CkIQ1qirqk0p9AIVpC5uEkdXQYcKl07QHvyaGYRnZOk0AsQUmxNb4wfkcwY5di8Z5xa9A==}
@@ -5061,10 +5065,6 @@ packages:
     resolution: {integrity: sha512-eKCa6bwnJhvxj14kZk5NCPc6Hb6BdsU9DZcOnmQKSnO1VKrfV0zCvtttPZUsBvjmNDn8rpcJfpwSYnHBjc95MQ==}
     engines: {node: '>=18.18.0'}
 
-  iconv-lite@0.6.3:
-    resolution: {integrity: sha512-4fCk79wshMdzMp2rH06qWrJE4iolqLhCUH+OiuIgU++RB0+94NlDL81atO7GX55uUKueo0txHNtvEyI6D7WdMw==}
-    engines: {node: '>=0.10.0'}
-
   iconv-lite@0.7.3:
     resolution: {integrity: sha512-IKXpvIzjnC9XTAUbVBcMfGS0EPaIXtW6v+zr+RRp+hqULEpo0owZax6wyRwPOJbWbzjYspQwusTsfVr0ifh4uQ==}
     engines: {node: '>=0.10.0'}
@@ -5512,9 +5512,6 @@ packages:
   log-symbols@4.1.0:
     resolution: {integrity: sha512-8XPvpAA8uyhfteu8pIvQxpJZ7SYYdpUivZpGy6sFsBuKRY/7rQGavedeB8aK+Zkyq6upMFVL/9AW6vOYzfRyLg==}
     engines: {node: '>=10'}
-
-  long@4.0.0:
-    resolution: {integrity: sha512-XsP+KhQif4bjX1kbuSiySJFNAehNxgLb6hPRGJ9QsUr8ajHkuXGdrHmFUTUUXhDwVX2R5bY4JNZEwbUiMhV+MA==}
 
   longest-streak@3.1.0:
     resolution: {integrity: sha512-9Ri+o0JYgehTaVBBDoMqIl8GXtbWg711O3srftcHhZ0dqnETqLaoIK0x17fUw9rFSlK/0NlsKe0Ahhyl5pXE2g==}
@@ -7580,10 +7577,12 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@azure/functions@3.6.0':
+  '@azure/functions-extensions-base@0.3.0': {}
+
+  '@azure/functions@4.16.5':
     dependencies:
-      iconv-lite: 0.6.3
-      long: 4.0.0
+      '@azure/functions-extensions-base': 0.3.0
+      cookie: 0.7.2
 
   '@azure/identity@4.13.3(supports-color@10.2.2)':
     dependencies:
@@ -11746,10 +11745,6 @@ snapshots:
 
   human-signals@8.0.1: {}
 
-  iconv-lite@0.6.3:
-    dependencies:
-      safer-buffer: 2.1.2
-
   iconv-lite@0.7.3:
     dependencies:
       safer-buffer: 2.1.2
@@ -12098,8 +12093,6 @@ snapshots:
     dependencies:
       chalk: 4.1.2
       is-unicode-supported: 0.1.0
-
-  long@4.0.0: {}
 
   longest-streak@3.1.0: {}
 

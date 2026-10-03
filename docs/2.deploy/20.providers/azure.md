@@ -14,6 +14,8 @@ Integration with this provider is possible with [zero configuration](/deploy#zer
 
 [Azure Static Web Apps](https://azure.microsoft.com/en-us/products/app-service/static) are designed to be deployed continuously in a [GitHub Actions workflow](https://docs.microsoft.com/en-us/azure/static-web-apps/github-actions-workflow). Nitro detects this deployment environment and enables the `azure_swa` preset automatically.
 
+The server is deployed as a managed Azure Function using the [Node.js v4 programming model](https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-node?pivots=nodejs-model-v4). The `@azure/functions` package is traced into the output, so it doesn't need to be installed during deployment.
+
 ### Local preview
 
 To test locally, install [Azure Functions Core Tools](https://docs.microsoft.com/en-us/azure/azure-functions/functions-run-local), then build and start a local preview environment:
