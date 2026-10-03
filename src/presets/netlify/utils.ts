@@ -1,15 +1,34 @@
 import { existsSync, promises as fsp } from "node:fs";
 import type { Nitro, PublicAssetDir } from "nitro/types";
-import { join } from "pathe";
-import { joinURL } from "ufo";
+import { basename, join } from "pathe";
+import { joinURL, withoutLeadingSlash, withoutTrailingSlash } from "ufo";
+
+// Netlify only reads `_headers` and `_redirects` from the publish directory root,
+// while public assets are written to `<publish dir>/<baseURL>`.
+function getPublishDir(nitro: Nitro) {
+  const publicDir = withoutTrailingSlash(nitro.options.output.publicDir);
+  const base = withoutLeadingSlash(withoutTrailingSlash(nitro.options.baseURL));
+  return base && publicDir.endsWith(`/${base}`) ? publicDir.slice(0, -base.length - 1) : publicDir;
+}
+
+// User `_headers`/`_redirects` files are copied with the public assets into
+// `publicDir`, below the publish root when `baseURL` is set, so read them from both.
+async function readExistingFile(nitro: Nitro, publishPath: string) {
+  const publicPath = join(nitro.options.output.publicDir, basename(publishPath));
+  const paths = publicPath === publishPath ? [publishPath] : [publishPath, publicPath];
+  const files = await Promise.all(
+    paths.filter((path) => existsSync(path)).map((path) => fsp.readFile(path, "utf8"))
+  );
+  return files.length > 0 ? { contents: files.join("\n"), merged: paths.length > 1 } : undefined;
+}
 
 export async function writeRedirects(nitro: Nitro) {
-  const redirectsPath = join(nitro.options.output.publicDir, "_redirects");
+  const redirectsPath = join(getPublishDir(nitro), "_redirects");
 
   let contents = "";
   if (nitro.options.static) {
     const staticFallback = existsSync(join(nitro.options.output.publicDir, "404.html"))
-      ? "/* /404.html 404"
+      ? `${joinURL(nitro.options.baseURL, "/*")} ${joinURL(nitro.options.baseURL, "/404.html")} 404`
       : "";
     contents += staticFallback;
   }
@@ -32,15 +51,20 @@ export async function writeRedirects(nitro: Nitro) {
       code = 301;
     }
     contents =
-      `${key.replace("/**", "/*")}\t${redirect.to.replace("**", ":splat")}\t${code}\n` + contents;
+      `${joinURL(nitro.options.baseURL, key.replace("/**", "/*"))}\t${redirect.to.replace("**", ":splat")}\t${code}\n` +
+      contents;
   }
 
-  if (existsSync(redirectsPath)) {
-    const currentRedirects = await fsp.readFile(redirectsPath, "utf8");
+  const existing = await readExistingFile(nitro, redirectsPath);
+  if (existing) {
+    const currentRedirects = existing.contents;
     if (/^\/\* /m.test(currentRedirects)) {
       nitro.logger.info(
         "Not adding Nitro fallback to `_redirects` (as an existing fallback was found)."
       );
+      if (existing.merged) {
+        await fsp.writeFile(redirectsPath, currentRedirects);
+      }
       return;
     }
     nitro.logger.info("Adding Nitro fallback to `_redirects` to handle all unmatched routes.");
@@ -51,7 +75,7 @@ export async function writeRedirects(nitro: Nitro) {
 }
 
 export async function writeHeaders(nitro: Nitro) {
-  const headersPath = join(nitro.options.output.publicDir, "_headers");
+  const headersPath = join(getPublishDir(nitro), "_headers");
   let contents = "";
 
   const rules = Object.entries(nitro.options.routeRules).sort(
@@ -60,7 +84,7 @@ export async function writeHeaders(nitro: Nitro) {
 
   for (const [path, routeRules] of rules.filter(([_, routeRules]) => routeRules.headers)) {
     const headers = [
-      path.replace("/**", "/*"),
+      joinURL(nitro.options.baseURL, path.replace("/**", "/*")),
       ...Object.entries({ ...routeRules.headers }).map(
         ([header, value]) => `  ${header}: ${value}`
       ),
@@ -69,12 +93,16 @@ export async function writeHeaders(nitro: Nitro) {
     contents += headers + "\n";
   }
 
-  if (existsSync(headersPath)) {
-    const currentHeaders = await fsp.readFile(headersPath, "utf8");
+  const existing = await readExistingFile(nitro, headersPath);
+  if (existing) {
+    const currentHeaders = existing.contents;
     if (/^\/\* /m.test(currentHeaders)) {
       nitro.logger.info(
         "Not adding Nitro fallback to `_headers` (as an existing fallback was found)."
       );
+      if (existing.merged) {
+        await fsp.writeFile(headersPath, currentHeaders);
+      }
       return;
     }
     nitro.logger.info("Adding Nitro fallback to `_headers` to handle all unmatched routes.");
