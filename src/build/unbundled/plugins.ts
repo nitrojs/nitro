@@ -25,21 +25,10 @@ export async function unbundledPlugins(nitro: Nitro): Promise<EnvRunnerPlugin[]>
 
   // Sources Nitro would bundle: its own runtime and the app (`node_modules` needs a named include)
   const sourceDirs = [pkgDir, nitro.options.rootDir, ...nitro.options.scanDirs].map(
-    (dir) => `${escapeGlob(dir.replace(/\/$/, ""))}/**`
+    (dir) => `${escapeGlob(normalize(dir).replace(/\/$/, ""))}/**`
   );
 
-  process.stderr.write(`[dbg] pkgDir ${JSON.stringify(pkgDir)} sourceDirs ${JSON.stringify(sourceDirs)}\n`);
   const plugins: EnvRunnerPlugin[] = [
-    {
-      name: "dbg:transform",
-      transform: {
-        order: "pre",
-        filter: { id: /context|_chunks/ },
-        handler(code, id) {
-          process.stderr.write(`[dbg] transform-seen ${JSON.stringify(id)} hasAsyncCtx=${code.includes("import.meta._asyncContext")}\n`);
-        },
-      },
-    } as EnvRunnerPlugin,
     virtualPlugin(),
     resolvePlugin(nitro, base.extensions),
     windowsPathPlugin(base.extensions),
@@ -214,12 +203,7 @@ function replacePlugin(
         moduleType: [...SCRIPT_TYPES],
         code: new RegExp(keys.join("|")),
       },
-      handler(this: any, code: string, id: string) {
-        if (/context/.test(id)) {
-          process.stderr.write(`[dbg] replace-run ${JSON.stringify(id)}\n`);
-        }
-        return (plugin.transform as any).call(this, code, id);
-      },
+      handler: plugin.transform as any,
     },
   };
 }
