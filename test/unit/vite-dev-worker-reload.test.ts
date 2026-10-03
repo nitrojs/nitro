@@ -250,4 +250,41 @@ describe("Vite dev worker reloads", () => {
     expect(await (await worker.fetch(new Request("http://localhost"))).text()).toBe("v2");
     expect(errorSpy).toHaveBeenCalledOnce();
   });
+
+  // The registration arrives over IPC, which is not ordered with requests (workerd
+  // dispatches them over HTTP and IPC over a WebSocket).
+  test("waits for the environment to register before fetching", async () => {
+    importEntry.mockResolvedValueOnce(entry("v1"));
+    const worker = await import("../../src/runtime/internal/vite/dev-worker.mjs");
+    worker.setModuleRunner(moduleRunner);
+
+    const response = worker.fetch(new Request("http://localhost"));
+    worker.ipc.onMessage({
+      type: "custom",
+      event: "nitro:vite-env",
+      data: { name: "nitro", entry: "/entry.mjs" },
+    });
+
+    const res = await response;
+    expect(await res.text()).toBe("v1");
+    expect(res.status).toBe(200);
+  });
+
+  test("fails a request for an environment that never registers", async () => {
+    const worker = await createWorker();
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    vi.useFakeTimers();
+    const response = worker.fetch(
+      new Request("http://localhost", {
+        headers: { accept: "application/json", "x-vite-env": "unknown" },
+      })
+    );
+    await vi.advanceTimersByTimeAsync(30_000);
+
+    const res = await response;
+    expect(res.status).toBe(500);
+    expect(await res.json()).toMatchObject({ message: 'Unknown vite environment "unknown"' });
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
 });

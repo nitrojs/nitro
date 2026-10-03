@@ -1,6 +1,6 @@
 import type { Nitro, NitroEventHandler, NitroRouteRules } from "nitro/types";
 import type { RouterContext } from "rou3";
-import type { RouterCompilerOptions } from "rou3/compiler";
+import type { CompileRouterToStringOptions } from "rou3/compiler";
 
 import { join } from "pathe";
 import { runtimeDir } from "nitro/meta";
@@ -32,7 +32,7 @@ export function initNitroRouting(nitro: Nitro) {
 
   // Matched with route *patterns* at build time (presets), never with a request
   // path — the runtime rules matcher is compiled from `options.routeRules` by
-  // `h3/rules`, which normalizes in the opposite direction (patterns decoded).
+  // `h3/rules` itself.
   const routeRules = new Router<NitroRouteRules & { _route: string }>(nitro.options.baseURL, {
     normalize: false,
   });
@@ -200,11 +200,11 @@ export class Router<T> {
     return this._routes!.length > 0;
   }
 
-  compileToString(opts?: RouterCompilerOptions<T>) {
+  compileToString(opts?: CompileRouterToStringOptions<T>) {
     if (this._compiled) {
       return this._compiled;
     }
-    this._compiled = compileRouterToString(this._router!, undefined, opts);
+    this._compiled = compileRouterToString(this._router!, opts);
 
     // TODO: Upstream to rou3 compiler
     const onlyWildcard =
@@ -213,26 +213,32 @@ export class Router<T> {
       // Optimize for single wildcard route
       const data = (opts?.serialize || JSON.stringify)(this.routes[0].data);
       const base = this._baseURL;
-      let retCode = `{data,params:{"_":p.slice(${base.length + 1})}}`;
+      let retCode = `{data,params:w?{"0":w,_:w}:{}}`;
       if (opts?.matchAll) {
         retCode = `[${retCode}]`;
       }
       const guardCode = base
         ? `if(p!==${JSON.stringify(base)}&&!p.startsWith(${JSON.stringify(base + "/")})){return ${opts?.matchAll ? "[]" : "undefined"};}`
         : "";
-      this._compiled = /* js */ `/* @__PURE__ */ (() => {const data=${data};return ((_m, p)=>{${guardCode}return ${retCode};})})()`;
+      this._compiled = /* js */ `/* @__PURE__ */ (() => {const data=${data};return ((_m, p)=>{${guardCode}if(p.charCodeAt(p.length-1)===47)p=p.slice(0,-1);const w=p.slice(${base.length + 1});return ${retCode};})})()`;
     }
 
     return this._compiled;
   }
 
   match(method: string, path: string): undefined | T {
-    return findRoute(this._router!, method, path)?.data;
+    return findRoute(this._router!, method, this._lookupPath(path))?.data;
   }
 
   matchAll(method: string, path: string): T[] {
     // Returns from less specific to more specific matches
-    return findAllRoutes(this._router!, method, path).map((route) => route.data);
+    return findAllRoutes(this._router!, method, this._lookupPath(path)).map((route) => route.data);
+  }
+
+  _lookupPath(path: string) {
+    // rou3 percent-encodes the literal text of registered patterns, so a pattern
+    // used as a lookup path needs the same encoding as a request pathname.
+    return this._normalize ? path : encodePattern(path);
   }
 }
 
@@ -255,4 +261,12 @@ function mergeCatchAll(router: RouterContext<unknown>, baseURL: string) {
     ...handlers[0],
     data: handlers.map((h) => h.data),
   });
+}
+
+function encodePattern(pattern: string) {
+  // Mirrors rou3's literal encoding, leaving its `?`, `{` and `}` syntax as is.
+  // eslint-disable-next-line no-control-regex
+  return pattern.replace(/[\0- "#<>^`\x7F-\uFFFC]+/g, (run) =>
+    encodeURIComponent(run.replace(/[\uD800-\uDFFF]/gu, "\uFFFD"))
+  );
 }

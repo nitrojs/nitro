@@ -3,12 +3,13 @@ import { isAbsolute } from "pathe";
 import type { Expression, Literal } from "estree";
 import type { Nitro, NitroEventHandler } from "nitro/types";
 import type { Plugin } from "rollup";
+import { importOXC } from "../../utils/oxc.ts";
 import { escapeRegExp } from "../../utils/regex.ts";
 
 const PREFIX = "\0nitro:route-meta:";
 
 export async function routeMeta(nitro: Nitro) {
-  const { transformSync } = await import("rolldown/utils");
+  const { parseSync, transformSync } = await importOXC({ dir: nitro.options.rootDir });
   return {
     name: "nitro:route-meta",
     resolveId: {
@@ -58,11 +59,13 @@ export async function routeMeta(nitro: Nitro) {
             return {
               code: `export default {};`,
               map: null,
+              moduleType: "js",
             };
           }
 
-          const ast = this.parse(transformRes.code);
-          for (const node of ast.body) {
+          // Not `this.parse()`, so the plugin also runs without a bundler (`builder: false`)
+          const { program } = parseSync(id, transformRes.code, { lang: "js" });
+          for (const node of program.body as any[]) {
             if (
               node.type === "ExpressionStatement" &&
               node.expression.type === "CallExpression" &&
@@ -81,6 +84,7 @@ export async function routeMeta(nitro: Nitro) {
         return {
           code: `export default ${JSON.stringify(meta)};`,
           map: null,
+          moduleType: "js",
         };
       },
     },

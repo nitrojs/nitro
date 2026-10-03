@@ -39,9 +39,14 @@ const envs = (globalThis.__nitro_vite_envs__ ??= {
   ssr: undefined,
 });
 
-// Backstop for a wedged reload: requests fall back to the previous entry (or a
-// 503) instead of hanging forever. Not a latency budget — normal reloads never
-// come close to it.
+// Environments are registered over IPC (`nitro:vite-env`), which is not ordered with requests
+// (workerd dispatches them over HTTP and IPC over a WebSocket): requests arriving first wait
+// for the registration of the environment they target.
+const envWaiters = new Map();
+
+// Backstop for a wedged reload (or a missing registration): requests fall back
+// to the previous entry (or an error) instead of hanging forever. Not a latency
+// budget — normal reloads never come close to it.
 const RELOAD_WAIT_TIMEOUT = 30_000;
 
 class ViteEnvRunner {
@@ -167,8 +172,17 @@ class ViteEnvRunner {
   // they propagate to the caller (the nitro app's error handler or the
   // env-runner fetch boundary below).
   async fetch(req, init) {
-    // Wait until nothing is queued or in flight so requests never hit an entry
-    // that is about to be replaced.
+    const entry = await this.waitForEntry();
+    const entryFetch = entry.default?.fetch || entry.fetch;
+    if (!entryFetch) {
+      throw httpError(500, `No fetch handler exported from ${this.entryPath}`);
+    }
+    return entryFetch(req, init);
+  }
+
+  // Waits until nothing is queued or in flight so callers never reach an entry
+  // that is about to be replaced.
+  async waitForEntry() {
     const deadline = Date.now() + RELOAD_WAIT_TIMEOUT;
     let reloadPromise;
     while (reloadPromise !== this.reloadPromise) {
@@ -186,11 +200,7 @@ class ViteEnvRunner {
     if (!this.entry) {
       throw httpError(503, `Vite environment "${this.name}" is unavailable`);
     }
-    const entryFetch = this.entry.default?.fetch || this.entry.fetch;
-    if (!entryFetch) {
-      throw httpError(500, `No fetch handler exported from ${this.entryPath}`);
-    }
-    return entryFetch(req, init);
+    return this.entry;
   }
 }
 
@@ -257,7 +267,7 @@ globalThis.__nitro_renderer_template__ = () => rpc.call("rendererTemplate");
 
 export async function fetch(req) {
   const viteEnv = req?.headers.get("x-vite-env") || "nitro";
-  const env = envs[viteEnv];
+  const env = envs[viteEnv] || (await waitForEnv(viteEnv));
   if (!env) {
     return renderError(req, httpError(500, `Unknown vite environment "${viteEnv}"`));
   }
@@ -268,12 +278,16 @@ export async function fetch(req) {
   }
 }
 
-export function upgrade(context) {
-  const handleUpgrade = envs.nitro?.entry?.handleUpgrade;
-  if (handleUpgrade) {
-    handleUpgrade(context.node.req, context.node.socket, context.node.head);
-  }
-}
+// Re-exported as `websocket` by the generated entry only when the feature is enabled (see
+// `build/vite/_dev-worker.ts`), so the runner installs its runtime's crossws adapter on demand.
+export const websocketOptions = {
+  async resolve(request) {
+    const env = envs.nitro || (await waitForEnv("nitro"));
+    const entry = await env?.waitForEntry();
+    const websocket = entry?.default?.websocket || entry?.websocket;
+    return (await websocket?.resolve(request)) || {};
+  },
+};
 
 export const ipc = {
   onOpen(ctx) {
@@ -288,6 +302,8 @@ export const ipc = {
         const { name, entry } = message.data;
         if (!envs[name]) {
           envs[name] = new ViteEnvRunner({ name, entry });
+          envWaiters.get(name)?.resolve();
+          envWaiters.delete(name);
         }
         return;
       }
@@ -347,32 +363,45 @@ async function renderError(req, error) {
       }
     );
   }
+  const headers = {
+    "Content-Type": "text/html; charset=utf-8",
+    "Cache-Control": "no-store, max-age=0, must-revalidate",
+    Pragma: "no-cache",
+    Expires: "0",
+  };
+  const status = error.status || 500;
   try {
-    const { Youch } = await import("youch");
-    const youch = new Youch();
-    return new Response(await youch.toHTML(error), {
-      status: error.status || 500,
-      headers: {
-        "Content-Type": "text/html",
-        "Cache-Control": "no-store, max-age=0, must-revalidate",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
+    // `.ts` fallback: in stub mode this file is a symlink to `src/` where only the `.ts` source exists
+    const { renderErrorHTML } = await import("../error/_utils.mjs").catch(
+      () => import("../error/_utils.ts")
+    );
+    const html = await renderErrorHTML(error, {
+      status,
+      request: { method: req.method, url: req.url, headers: req.headers },
     });
+    return new Response(html, { status, headers });
   } catch {
-    return new Response(`<pre>${error.stack || error.message || error}</pre>`, {
-      status: error.status || 500,
-      headers: {
-        "Content-Type": "text/html",
-        "Cache-Control": "no-store, max-age=0, must-revalidate",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
-    });
+    const text = String(error?.stack || error?.message || error);
+    const escaped = text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+    return new Response(`<pre>${escaped}</pre>`, { status, headers });
   }
 }
 
 // ----- Utils -----
+
+// Resolves the environment once it is registered, or `undefined` when it never is.
+async function waitForEnv(name) {
+  let waiter = envWaiters.get(name);
+  if (!waiter) {
+    waiter = {};
+    waiter.promise = new Promise((resolve) => {
+      waiter.resolve = resolve;
+    });
+    envWaiters.set(name, waiter);
+  }
+  await withTimeout(waiter.promise, RELOAD_WAIT_TIMEOUT);
+  return envs[name];
+}
 
 // Resolves `false` when `promise` settles first, `true` when it times out.
 function withTimeout(promise, ms) {

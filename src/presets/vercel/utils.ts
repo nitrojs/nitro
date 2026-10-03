@@ -12,8 +12,16 @@ import type {
   RedirectRuleOptions,
 } from "nitro/types";
 import { basename, dirname, relative, resolve } from "pathe";
-import { Router } from "../../routing.ts";
+import {
+  addRoute,
+  compareRoutes,
+  createRouter,
+  findOverlappingRoutes,
+  routeToRegExp,
+  type RouterContext,
+} from "rou3";
 import { escapeRegExp } from "../../utils/regex.ts";
+import { catchAllRef, sortRoutes } from "../_utils/routes.ts";
 import { joinURL, withLeadingSlash, withoutLeadingSlash } from "ufo";
 import type {
   PrerenderFunctionConfig,
@@ -96,19 +104,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
 
   const functionRules = nitro.options.vercel?.functionRules;
   const hasRouteFunctionConfig = functionRules && Object.keys(functionRules).length > 0;
-  let routeFuncRouter: Router<VercelServerlessFunctionConfig> | undefined;
-  if (hasRouteFunctionConfig) {
-    // Looked up with route *patterns* (a `routeRules` key, a Vercel `src` regex),
-    // not with a request path, so the patterns stay exactly as authored.
-    routeFuncRouter = new Router<VercelServerlessFunctionConfig>(undefined, { normalize: false });
-    routeFuncRouter._update(
-      Object.entries(functionRules).map(([route, data]) => ({
-        route,
-        method: "",
-        data,
-      }))
-    );
-  }
+  const routeFuncRouter = hasRouteFunctionConfig ? createPatternRouter(functionRules) : undefined;
 
   // Write ISR functions
   const isrFuncDirs = new Set<string>();
@@ -124,7 +120,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
     );
     await fsp.mkdir(dirname(funcPrefix), { recursive: true });
 
-    const matchData = routeFuncRouter?.match("", key);
+    const matchData = routeFuncRouter && matchPattern(routeFuncRouter, key).at(-1);
     if (matchData) {
       isrFuncDirs.add(
         resolve(nitro.options.output.serverDir, "..", normalizeRouteDest(key) + ".func")
@@ -179,13 +175,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
   if (o11Routes.length === 0) {
     return;
   }
-  const _getRouteRules = (path: string) =>
-    defu({}, ...nitro.routing.routeRules.matchAll("", path).reverse()) as NitroRouteRules;
   for (const route of o11Routes) {
-    const routeRules = _getRouteRules(route.src);
-    if (routeRules.isr) {
-      continue; // #3563
-    }
     const funcPrefix = resolve(nitro.options.output.serverDir, "..", route.dest);
     const funcDir = funcPrefix + ".func";
 
@@ -194,7 +184,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
       continue;
     }
 
-    const matchData = routeFuncRouter?.match("", route.src);
+    const matchData = routeFuncRouter && matchPattern(routeFuncRouter, route.route).at(-1);
     if (matchData) {
       await createFunctionDirWithCustomConfig(
         funcDir,
@@ -235,14 +225,29 @@ export async function generateStaticFiles(nitro: Nitro) {
 }
 
 function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
-  const rules = Object.entries(nitro.options.routeRules).sort(
-    (a, b) => b[0].split(/\/(?!\*)/).length - a[0].split(/\/(?!\*)/).length
+  const rules = sortRoutes(Object.keys(nitro.options.routeRules)).map(
+    (path) => [path, nitro.options.routeRules[path]] as [string, NitroRouteRules]
   );
+
+  // Route rule keys and handler routes are relative to the baseURL, as at runtime
+  const routeSrc = (route: string) => routeToRegExp(joinURL(nitro.options.baseURL, route));
 
   // Determine which proxy rules can be offloaded to Vercel CDN rewrites
   const cdnProxyPaths = new Set(
     rules
       .filter(([_, routeRules]) => routeRules.proxy && canUseVercelRewrite(routeRules.proxy))
+      .map(([path]) => path)
+  );
+
+  // Determine which redirect rules can be offloaded to Vercel CDN redirects
+  const cdnRedirectPaths = new Set(
+    rules
+      .filter(
+        ([path, routeRules]) =>
+          routeRules.redirect &&
+          !cdnProxyPaths.has(path) &&
+          !hasQueryWildcard(routeRules.redirect.to)
+      )
       .map(([path]) => path)
   );
 
@@ -264,50 +269,46 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
       ...rules
         .filter(
           ([path, routeRules]) =>
-            routeRules.headers && !routeRules.redirect && !cdnProxyPaths.has(path)
+            routeRules.headers && !cdnRedirectPaths.has(path) && !cdnProxyPaths.has(path)
         )
         .reverse()
         .map(([path, routeRules]) => ({
-          src: path.replace("/**", "/(.*)"),
+          src: routeSrc(path).source,
           headers: routeRules.headers,
           ...(routeRules.redirect === false ? {} : { continue: true }),
         })),
-      // Redirect rules (excluding paths handled as CDN proxy rewrites)
-      ...rules
-        .filter(
-          (entry): entry is [string, NitroRouteRules & { redirect: RedirectRuleOptions }] =>
-            !!entry[1].redirect && !cdnProxyPaths.has(entry[0])
-        )
-        .map(([path, routeRules]) => {
+      // Redirect and proxy rules (most specific first)
+      // Rules left to the server function stop routing so that less specific
+      // rules below cannot match.
+      // https://vercel.com/docs/rewrites
+      ...rules.flatMap(([path, routeRules]) => {
+        const src = routeSrc(path);
+        if (cdnProxyPaths.has(path)) {
+          const route: Record<string, any> = {
+            src: src.source,
+            dest: (routeRules.proxy as ProxyRuleOptions).to.replaceAll("**", catchAllRef(src)),
+          };
+          if (routeRules.headers) {
+            route.headers = routeRules.headers;
+          }
+          return [route];
+        }
+        if (cdnRedirectPaths.has(path)) {
+          const redirect = routeRules.redirect as RedirectRuleOptions;
           let route = {
-            src: path.replace("/**", "/(.*)"),
-            status: routeRules.redirect.status,
+            src: src.source,
+            status: redirect.status,
             headers: {
-              Location: routeRules.redirect.to.replace("**", "$1"),
+              Location: redirect.to.replaceAll("**", catchAllRef(src)),
             },
           };
           if (routeRules.headers) {
             route = defu(route, { headers: routeRules.headers });
           }
-          return route;
-        }),
-      // Proxy rewrite rules (CDN-level reverse proxy)
-      // https://vercel.com/docs/rewrites
-      ...rules
-        .filter((entry): entry is [string, NitroRouteRules & { proxy: ProxyRuleOptions }] =>
-          cdnProxyPaths.has(entry[0])
-        )
-        .map(([path, routeRules]) => {
-          const proxy = routeRules.proxy;
-          const route: Record<string, any> = {
-            src: path.replace("/**", "/(.*)"),
-            dest: proxy.to.replace("**", "$1"),
-          };
-          if (routeRules.headers) {
-            route.headers = routeRules.headers;
-          }
-          return route;
-        }),
+          return [route];
+        }
+        return routeRules.redirect || routeRules.proxy ? [{ src: src.source }] : [];
+      }),
       // Skew protection
       ...(nitro.options.vercel?.skewProtection && nitro.options.manifest?.deploymentId
         ? [
@@ -372,20 +373,10 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
 
   config.routes!.push(
     // ISR rules
-    // ...If we are using an ISR function for /, then we need to write this explicitly
-    ...(nitro.options.routeRules["/"]?.isr
-      ? [
-          {
-            src: `(?<${ISR_URL_PARAM}>/)`,
-            dest: `/index${ISR_SUFFIX}?${ISR_URL_PARAM}=$${ISR_URL_PARAM}`,
-          },
-        ]
-      : []),
-    // ...Add rest of the ISR routes
     ...rules
-      .filter(([key, value]) => value.isr !== undefined && key !== "/")
+      .filter(([_, value]) => value.isr !== undefined)
       .map(([key, value]) => {
-        const src = `(?<${ISR_URL_PARAM}>${normalizeRouteSrc(key)})`;
+        const src = `^(?<${ISR_URL_PARAM}>${routeSrc(key).source.slice(1, -1)})$`;
         if (value.isr === false) {
           // We need to write a rule to avoid route being shadowed by another cache rule elsewhere
           return {
@@ -402,14 +393,14 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
       }),
     // Route function config routes
     ...(nitro.options.vercel?.functionRules
-      ? Object.keys(nitro.options.vercel.functionRules).map((pattern) => ({
-          src: joinURL(nitro.options.baseURL, normalizeRouteSrc(pattern)),
+      ? sortRoutes(Object.keys(nitro.options.vercel.functionRules)).map((pattern) => ({
+          src: routeSrc(pattern).source,
           dest: withLeadingSlash(normalizeRouteDest(pattern)),
         }))
       : []),
     // Observability routes
     ...(o11Routes || []).map((route) => ({
-      src: joinURL(nitro.options.baseURL, route.src),
+      src: routeSrc(route.route).source,
       dest: withLeadingSlash(route.dest),
     })),
     // If we are using an ISR function as a fallback
@@ -609,6 +600,9 @@ function canUseVercelRewrite(proxy: NitroRouteRules["proxy"]): proxy is { to: st
   if (!/^https?:\/\//.test(proxy.to.replace(/\/\*\*$/, ""))) {
     return false;
   }
+  if (hasQueryWildcard(proxy.to)) {
+    return false;
+  }
   // Must not use any ProxyOptions unsupported by Vercel rewrites
   for (const key of UNSUPPORTED_PROXY_OPTIONS) {
     if ((proxy as any)[key] !== undefined) {
@@ -621,7 +615,7 @@ function canUseVercelRewrite(proxy: NitroRouteRules["proxy"]): proxy is { to: st
 // --- utils for observability ---
 
 type ObservabilityRoute = {
-  src: string; // route pattern
+  route: string; // route pattern
   dest: string; // function name
 };
 
@@ -642,7 +636,12 @@ export function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
       .map((route) => route.route.replace(SURROUNDING_SLASH_RE, ""))
   );
 
-  // Sort routes by how much specific they are
+  // ISR routes are served by their ISR function, so they need neither an
+  // observability function nor a `config.json` route (#3563, #4447).
+  const routeRulesRouter = createPatternRouter(nitro.options.routeRules);
+  const hasISR = (route: string) =>
+    (defu({}, ...matchPattern(routeRulesRouter, route).reverse()) as NitroRouteRules).isr;
+
   const routePatterns = [
     ...new Set([
       ...(nitro.options.ssrRoutes || []),
@@ -650,71 +649,14 @@ export function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
         .filter((h) => !h.middleware && h.route)
         .map((h) => h.route!),
     ]),
-  ].filter((route) => !prerenderedPaths.has(route.replace(SURROUNDING_SLASH_RE, "")));
+  ].filter(
+    (route) => !prerenderedPaths.has(route.replace(SURROUNDING_SLASH_RE, "")) && !hasISR(route)
+  );
 
-  const staticRoutes: string[] = [];
-  const dynamicRoutes: string[] = [];
-  const catchAllRoutes: string[] = [];
-
-  for (const route of routePatterns) {
-    if (route.includes("**")) {
-      catchAllRoutes.push(route);
-    } else if (route.includes(":") || route.includes("*")) {
-      dynamicRoutes.push(route);
-    } else {
-      staticRoutes.push(route);
-    }
-  }
-
-  return [
-    ...normalizeRoutes(staticRoutes),
-    ...normalizeRoutes(dynamicRoutes),
-    ...normalizeRoutes(catchAllRoutes),
-  ];
-}
-
-function normalizeRoutes(routes: string[]) {
-  return routes
-    .sort((a, b) =>
-      // a.split("/").length - b.split("/").length ||
-      b.localeCompare(a)
-    )
-    .map((route) => ({
-      src: normalizeRouteSrc(route),
-      dest: normalizeRouteDest(route),
-    }));
-}
-
-// Input is a rou3/radix3 compatible route pattern
-// Output is a PCRE-compatible regular expression that matches each incoming pathname
-// Reference: https://github.com/h3js/rou3/blob/main/src/regexp.ts
-function normalizeRouteSrc(route: string): string {
-  let idCtr = 0;
-  return route
-    .split("/")
-    .map((segment) => {
-      if (segment.startsWith("**")) {
-        return segment === "**" ? "(?:.*)" : `?(?<${namedGroup(segment.slice(3))}>.+)`;
-      }
-      if (segment === "*") {
-        return `(?<_${idCtr++}>[^/]*)`;
-      }
-      if (segment.includes(":")) {
-        return segment
-          .replace(/:(\w+)/g, (_, id) => `(?<${namedGroup(id)}>[^/]+)`)
-          .replace(/\./g, String.raw`\.`);
-      }
-      return segment;
-    })
-    .join("/");
-}
-
-// Valid PCRE capture group name
-function namedGroup(input = "") {
-  if (/\d/.test(input[0])) {
-    input = `_${input}`;
-  }
-  return input.replace(/[^a-zA-Z0-9_]/g, "") || "_";
+  return sortRoutes(routePatterns).map((route) => ({
+    route,
+    dest: normalizeRouteDest(route),
+  }));
 }
 
 // Output is a destination pathname to function name
@@ -832,4 +774,41 @@ function hasCacheControl(routeRules: NitroRouteRules | undefined): boolean {
   return Object.keys(routeRules?.headers || {}).some(
     (header) => header.toLowerCase() === "cache-control"
   );
+}
+
+// --- rou3 pattern utils ---
+
+/**
+ * A router looked up with route *patterns* (a `routeRules` key, a handler
+ * route), not with request paths. See {@link matchPattern}.
+ */
+function createPatternRouter<T>(entries: Record<string, T>) {
+  const router = createRouter<{ route: string; data: T }>();
+  for (const [route, data] of Object.entries(entries)) {
+    addRoute(router, "", route, { route, data });
+  }
+  return router;
+}
+
+/**
+ * Data of each registered pattern that matches every path `pattern` matches,
+ * from the least to the most specific.
+ */
+function matchPattern<T>(router: RouterContext<{ route: string; data: T }>, pattern: string) {
+  return findOverlappingRoutes(router, "", pattern)
+    .filter(({ data }) => {
+      const comparison = compareRoutes(data.route, pattern);
+      return comparison === "equal" || comparison === "superset";
+    })
+    .map(({ data }) => data.data);
+}
+
+/**
+ * Whether `**` is interpolated into the query or fragment of a `redirect` or
+ * `proxy` target. Vercel encodes such a capture unlike h3 (`+` becomes a space
+ * and `&` starts a new param), so these rules are left to the server function.
+ */
+function hasQueryWildcard(to: string): boolean {
+  const index = to.search(/[?#]/);
+  return index !== -1 && to.includes("**", index);
 }

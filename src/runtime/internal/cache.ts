@@ -5,8 +5,12 @@ import {
   defineCachedHandler as _defineCachedHandler,
 } from "ocache";
 import type { CachedFunction, StorageInterface } from "ocache";
+import {
+  cacheFunctionDefaults,
+  cacheHandlerDefaults,
+  createCacheStorage,
+} from "#nitro/virtual/cache";
 import { useNitroApp } from "./app.ts";
-import { useKV } from "./kv.ts";
 
 import type { EventHandler, H3Event } from "h3";
 import type { CacheOptions, CachedEventHandlerOptions } from "nitro/types";
@@ -14,15 +18,7 @@ import type { CacheOptions, CachedEventHandlerOptions } from "nitro/types";
 let _cacheStorage: StorageInterface | undefined;
 
 function cacheStorage(): StorageInterface {
-  if (!_cacheStorage) {
-    const storage = useKV();
-    _cacheStorage = {
-      get: (key) => storage.getItem(key) as any,
-      set: (key, value, opts) =>
-        storage.setItem(key, value as any, opts?.ttl ? { ttl: opts.ttl } : undefined),
-    };
-  }
-  return _cacheStorage;
+  return (_cacheStorage ??= createCacheStorage());
 }
 
 function defaultOnError(error: unknown) {
@@ -38,7 +34,8 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
     storage: cacheStorage,
     group: "nitro/functions",
     onError: defaultOnError,
-    ...opts,
+    ...cacheFunctionDefaults,
+    ...definedOptions(opts),
   });
 }
 
@@ -53,7 +50,18 @@ export function defineCachedHandler(
     toResponse: (value, event) => toResponse(value, event as H3Event),
     createResponse: (body, init) => new FastResponse(body as BodyInit, init),
     handleCacheHeaders: (event, conditions) => handleCacheHeaders(event as H3Event, conditions),
-    ...opts,
+    ...cacheHandlerDefaults,
+    ...definedOptions(opts),
   });
   return defineHandler((event) => ocacheHandler(event as any));
+}
+
+function definedOptions<T extends object>(opts: T): T {
+  const defined = {} as T;
+  for (const key in opts) {
+    if (opts[key] !== undefined) {
+      defined[key] = opts[key];
+    }
+  }
+  return defined;
 }

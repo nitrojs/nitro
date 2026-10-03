@@ -2,7 +2,12 @@ import type { IncomingMessage } from "node:http";
 import type { Socket } from "node:net";
 import type { FSWatcher } from "chokidar";
 import type { ServerOptions, Server } from "srvx";
-import type { EnvRunnerData, RunnerMessageListener, RunnerRPCHooks } from "env-runner";
+import type {
+  EnvRunnerData,
+  EnvRunnerPluginOption,
+  RunnerMessageListener,
+  RunnerRPCHooks,
+} from "env-runner";
 import type { RunnerName } from "env-runner";
 import { RunnerManager, loadRunner } from "env-runner";
 import type { Nitro } from "nitro/types";
@@ -29,6 +34,7 @@ export function createDevServer(nitro: Nitro): NitroDevServer {
 export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
   #entry: string;
   #workerData: EnvRunnerData = {};
+  #plugins?: EnvRunnerPluginOption[];
   #listeners: Server[] = [];
   #watcher?: FSWatcher;
   #manager: RunnerManager;
@@ -124,6 +130,9 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
       if (payload?.workerData) {
         this.#workerData = payload.workerData;
       }
+      if (payload?.plugins) {
+        this.#plugins = payload.plugins;
+      }
       this.reload();
     });
 
@@ -210,6 +219,7 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
       ...(await resolveRunnerDeps(this.nitro, runnerName)),
       name: `Nitro_${this.#workerIdCtr++}`,
       data: { entry: this.#entry, ...this.#workerData },
+      plugins: this.#plugins,
     });
     await this.#manager.reload(runner);
   }

@@ -20,19 +20,19 @@ describe("Router.compileToString", () => {
 
     expect(findRoute("GET", "/")).toBeUndefined();
     expect(findRoute("GET", "/foobar")).toBeUndefined();
-    expect(findRoute("GET", "/foo")).toMatchObject({ params: { _: "" } });
-    expect(findRoute("GET", "/foo/")).toMatchObject({ params: { _: "" } });
-    expect(findRoute("GET", "/foo/bar/baz")).toMatchObject({ params: { _: "bar/baz" } });
+    expect(findRoute("GET", "/foo")).toMatchObject({ params: {} });
+    expect(findRoute("GET", "/foo/")).toMatchObject({ params: {} });
+    expect(findRoute("GET", "/foo/bar/baz")).toMatchObject({ params: { 0: "bar/baz" } });
   });
 
-  it("matches rou3 for a catch-all route with a baseURL", () => {
-    const fastPath = compile("/foo/", [{ route: "/**", data: "catchall" }]);
-    const rou3 = compile("/foo/", [
+  it.each(["", "/foo/"])("matches rou3 for a catch-all route (baseURL: %j)", (baseURL) => {
+    const fastPath = compile(baseURL, [{ route: "/**", data: "catchall" }]);
+    const rou3 = compile(baseURL, [
       { route: "/**", data: "catchall" },
       { route: "/other", data: "other" },
     ]);
 
-    for (const path of ["/", "/foo", "/foo/", "/foo/bar", "/foobar"]) {
+    for (const path of ["/", "/foo", "/foo/", "/foo/bar", "/foo/bar/", "/foo/bar/baz", "/foobar"]) {
       expect(fastPath("GET", path), path).toEqual(rou3("GET", path));
     }
   });
