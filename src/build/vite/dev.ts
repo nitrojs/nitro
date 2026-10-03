@@ -4,13 +4,15 @@ import type { FetchFunctionOptions, FetchResult } from "vite/module-runner";
 import type { RunnerRPCHooks, UpgradeContext } from "env-runner";
 
 import { IncomingMessage, ServerResponse } from "node:http";
+import { readFile } from "node:fs/promises";
 import { NodeRequest, sendNodeResponse } from "srvx/node";
 import { createViteHotChannel } from "env-runner/vite";
-import { basename, dirname, join, normalize } from "pathe";
+import { basename, dirname, isAbsolute, join, normalize, relative } from "pathe";
 import { debounce } from "perfect-debounce";
 import { withBase, withoutBase } from "ufo";
 import { scanHandlers } from "../../scan.ts";
 import { onWatchError } from "../../utils/watch.ts";
+import { handleDevRPC } from "../../dev/_rpc.ts";
 import { importVite, _resolveFromPath, type ViteImportOptions } from "./_import.ts";
 
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
@@ -247,22 +249,21 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   }
 
   // Worker => Host RPC
-  nitroEnv.devServer.onMessage(async (message: any) => {
-    if (message?.__rpc === "transformHTML") {
-      try {
-        const html = (await server.transformIndexHtml("/", message.data)).replace(
-          "<!--ssr-outlet-->",
-          `{{{ globalThis.__nitro_vite_envs__?.["ssr"]?.fetch($REQUEST) || "" }}}`
-        );
-        nitroEnv.devServer.sendMessage({ __rpc_id: message.__rpc_id, data: html });
-      } catch (error) {
-        nitroEnv.devServer.sendMessage({
-          __rpc_id: message.__rpc_id,
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
-    }
-  });
+  nitroEnv.devServer.onMessage((message) =>
+    handleDevRPC(message, {
+      sendMessage: (message) => nitroEnv.devServer.sendMessage(message),
+      handlers: {
+        transformHTML: async (html: string) => {
+          const htmlURL = _htmlTemplateURL(nitro.options.renderer?.template, server.config.root);
+          return (await server.transformIndexHtml(htmlURL, html)).replace(
+            "<!--ssr-outlet-->",
+            `{{{ globalThis.__nitro_vite_envs__?.["ssr"]?.fetch($REQUEST) || "" }}}`
+          );
+        },
+        rendererTemplate: () => readFile(nitro.options.renderer!.template!, "utf8"),
+      },
+    })
+  );
 
   const nitroDevMiddleware = async (
     nodeReq: NitroDevRequest,
@@ -443,4 +444,13 @@ export function matchesMiddlewareRoute(route: string | undefined, url: string): 
   }
   const boundary = path[route.length];
   return !boundary || boundary === "/" || boundary === ".";
+}
+
+// Vite derives the HTML file path from the URL, which relative imports (e.g. in inline `<style>`) resolve against.
+function _htmlTemplateURL(template: string | undefined, root: string): string {
+  if (!template) {
+    return "/index.html";
+  }
+  const path = relative(root, template);
+  return path.startsWith("../") || isAbsolute(path) ? join("/@fs", template) : `/${path}`;
 }

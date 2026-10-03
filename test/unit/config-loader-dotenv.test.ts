@@ -43,6 +43,8 @@ describe("config loader dotenv", () => {
     const { loadOptions } = await import("../../src/config/loader.ts");
     const options = await loadOptions({ rootDir, dev: false });
 
-    expect(options.routeRules["/api/**"]?.headers?.["x-app-url"]).toBe("https://example.com");
+    expect(options.routeRules["/api/**"]?.headers).toMatchObject({
+      "x-app-url": "https://example.com",
+    });
   });
 });

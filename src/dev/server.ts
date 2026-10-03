@@ -15,6 +15,7 @@ import type { Nitro } from "nitro/types";
 import { HTTPError } from "h3";
 
 import consola from "consola";
+import { readFile } from "node:fs/promises";
 import { resolve } from "pathe";
 import { serve } from "srvx/node";
 import { debounce } from "perfect-debounce";
@@ -23,6 +24,7 @@ import { NitroDevApp } from "./app.ts";
 import { createWatcher } from "../utils/watch.ts";
 import { resolveRunnerDeps } from "./runner-deps.ts";
 import { shutdownRunner } from "./shutdown.ts";
+import { handleDevRPC } from "./_rpc.ts";
 import { writeDevBuildInfo } from "../build/info.ts";
 
 export function createDevServer(nitro: Nitro): NitroDevServer {
@@ -101,6 +103,16 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
         );
       }
     });
+
+    // Worker => Host RPC
+    this.#manager.onMessage((message) =>
+      handleDevRPC(message, {
+        sendMessage: (message) => this.#manager.sendMessage(message),
+        handlers: {
+          rendererTemplate: () => readFile(nitro.options.renderer!.template!, "utf8"),
+        },
+      })
+    );
 
     nitro.hooks.hook("close", () => this.close());
 

@@ -1,4 +1,5 @@
 import { createViteTransport } from "env-runner/vite";
+import { createDevRPC } from "../dev-rpc.mjs";
 
 // `vite` is an optional dependency Nitro resolves from the app, so the module runner cannot be
 // imported from here. The generated entry injects it instead (see `build/vite/_dev-worker.ts`).
@@ -195,19 +196,7 @@ class ViteEnvRunner {
 
 // ----- RPC -----
 
-const rpcRequests = new Map();
-
-function rpc(name, data, timeout = 3000) {
-  const id = Math.random().toString(36).slice(2);
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      rpcRequests.delete(id);
-      reject(new Error(`RPC "${name}" timed out`));
-    }, timeout);
-    rpcRequests.set(id, { resolve, reject, timer });
-    sendMessage?.({ __rpc: name, __rpc_id: id, data });
-  });
-}
+const rpc = createDevRPC((message) => sendMessage?.(message));
 
 // Trap unhandled errors to avoid worker crash
 if (typeof process !== "undefined" && typeof process.on === "function") {
@@ -254,12 +243,15 @@ reload();
 // ----- HTML Transform -----
 
 globalThis.__transform_html__ = async function (html) {
-  html = await rpc("transformHTML", html).catch((error) => {
+  html = await rpc.call("transformHTML", html).catch((error) => {
     console.warn("Failed to transform HTML via Vite:", error);
     return html;
   });
   return html;
 };
+
+// Fallback when the runner cannot read the template itself (e.g. workerd)
+globalThis.__nitro_renderer_template__ = () => rpc.call("rendererTemplate");
 
 // ----- Exports (env-runner AppEntry) -----
 
@@ -288,17 +280,7 @@ export const ipc = {
     sendMessage = ctx.sendMessage;
   },
   onMessage(message) {
-    if (message?.__rpc_id) {
-      const req = rpcRequests.get(message.__rpc_id);
-      if (req) {
-        clearTimeout(req.timer);
-        rpcRequests.delete(message.__rpc_id);
-        if (message.error) {
-          req.reject(typeof message.error === "string" ? new Error(message.error) : message.error);
-        } else {
-          req.resolve(message.data);
-        }
-      }
+    if (rpc.handleMessage(message)) {
       return;
     }
     if (message?.type === "custom") {
@@ -365,28 +347,27 @@ async function renderError(req, error) {
       }
     );
   }
+  const headers = {
+    "Content-Type": "text/html; charset=utf-8",
+    "Cache-Control": "no-store, max-age=0, must-revalidate",
+    Pragma: "no-cache",
+    Expires: "0",
+  };
+  const status = error.status || 500;
   try {
-    const { Youch } = await import("youch");
-    const youch = new Youch();
-    return new Response(await youch.toHTML(error), {
-      status: error.status || 500,
-      headers: {
-        "Content-Type": "text/html",
-        "Cache-Control": "no-store, max-age=0, must-revalidate",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
+    // `.ts` fallback: in stub mode this file is a symlink to `src/` where only the `.ts` source exists
+    const { renderErrorHTML } = await import("../error/_utils.mjs").catch(
+      () => import("../error/_utils.ts")
+    );
+    const html = await renderErrorHTML(error, {
+      status,
+      request: { method: req.method, url: req.url, headers: req.headers },
     });
+    return new Response(html, { status, headers });
   } catch {
-    return new Response(`<pre>${error.stack || error.message || error}</pre>`, {
-      status: error.status || 500,
-      headers: {
-        "Content-Type": "text/html",
-        "Cache-Control": "no-store, max-age=0, must-revalidate",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
-    });
+    const text = String(error?.stack || error?.message || error);
+    const escaped = text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+    return new Response(`<pre>${escaped}</pre>`, { status, headers });
   }
 }
 

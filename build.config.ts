@@ -1,10 +1,9 @@
 import { defineBuildConfig } from "obuild/config";
 
-import { resolveModulePath } from "exsolve";
-import { traceNodeModules } from "nf3";
 import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import type { CodeSplittingOptions } from "rolldown";
+import { glob } from "tinyglobby";
 
 const isStub = process.argv.includes("--stub");
 
@@ -25,21 +24,6 @@ const shimmedDeps = ["dotenv", "giget", "jiti"];
 
 const pkg = await import("./package.json", { with: { type: "json" } }).then((r) => r.default || r);
 
-const tracePkgs = [
-  "cookie-es", // used by azure runtime
-  "croner", // used by internal/task
-  "defu", // used by open-api runtime
-  "destr", // used by node-server and deno-server
-  "get-port-please", // used by dev server
-  "rendu", // used by HTML renderer template
-  "scule", // used by runtime config
-  "source-map", // used by dev error runtime
-  "ufo", // used by presets and runtime
-  "unctx", // used by internal/context
-  "youch", // used by error handler
-  "youch-core", // used by error handler
-];
-
 export default defineBuildConfig({
   entries: [
     {
@@ -48,15 +32,50 @@ export default defineBuildConfig({
       license: { gzip: true },
     },
     {
+      // Every runtime file stays an entry (build code references them by path). Bundling them
+      // together inlines dependencies into chunks shared across all runtime entries.
+      // Kept separate from the main bundle so runtime chunks never pull in build-time code.
+      type: "bundle",
+      input: await glob(["src/runtime/**/*.ts", "src/presets/*/runtime/**/*.ts"]),
+      license: { gzip: true },
+      dts: { entry: "src/runtime/**/*.ts", generator: "oxc" },
+      rolldown: {
+        // Keep side-effect imports of virtual modules (e.g. `import "#nitro/virtual/polyfills"`)
+        treeshake: {
+          moduleSideEffects: (id, external) => (external ? id.startsWith("#") : undefined),
+        },
+        plugins: [
+          {
+            name: "nitro:runtime-chunks",
+            outputOptions: (o) => ({
+              ...o,
+              chunkFileNames: (chunk) =>
+                libChunkFileName(chunk, "runtime/_libs") || "runtime/_chunks/[name].mjs",
+            }),
+            // Polyfills are always imported first in source, but rolldown hoists chunk and other
+            // external imports above them. Move them back so they still evaluate first.
+            renderChunk(code) {
+              const polyfillsImport = `import "#nitro/virtual/polyfills";\n`;
+              if (code.includes(polyfillsImport)) {
+                return polyfillsImport + code.replace(polyfillsImport, "");
+              }
+            },
+          },
+        ],
+      },
+    },
+    {
+      // Plain JS runtime files loaded as-is (dev worker and entries)
       type: "transform",
       input: "src/runtime/",
       outDir: "dist/runtime",
+      filter: (id) => id.endsWith(".mjs"),
     },
     {
       type: "transform",
       input: "src/presets/",
       outDir: "dist/presets",
-      filter: (id) => id.includes("runtime/"),
+      filter: (id) => id.includes("runtime/") && id.endsWith(".mjs"),
       dts: false,
     },
   ],
@@ -86,11 +105,9 @@ export default defineBuildConfig({
         ...Object.keys(pkg.exports || {}).map((key) => key.replace(/^./, "nitro")),
         ...Object.keys(pkg.dependencies),
         ...optionalDeps.filter((dep) => !shimmedDeps.includes(dep)),
-        ...tracePkgs,
         "typescript",
         "firebase-functions",
         "@scalar/api-reference",
-        "get-port-please",
         "cloudflare:workers",
         "@cloudflare/workers-types",
         // unplugin deps
@@ -118,26 +135,9 @@ export default defineBuildConfig({
         if (chunk.name === "rolldown-runtime") {
           return `_common.mjs`;
         }
-        const pkgRe = /.*[/\\](?:node_modules|shims)[/\\](?<package>@[^/\\]+[/\\][^/\\]+|[^/\\]+)/;
-        if (chunk.moduleIds.every((id) => pkgRe.test(id))) {
-          const pkgNames = [
-            ...new Set(
-              chunk.moduleIds
-                .map((id) => id.match(pkgRe)?.groups?.package)
-                .filter(Boolean)
-                .map((name) => name!.split(/[/\\]/).pop()!)
-                .filter(Boolean)
-            ),
-          ].sort((a, b) => a.length - b.length);
-          let chunkName = "";
-          for (const name of pkgNames) {
-            const separator = chunkName ? "+" : "";
-            if ((chunkName + separator + name).length > 30) {
-              break;
-            }
-            chunkName += separator + name;
-          }
-          return `_libs/${chunkName || "_"}.mjs`;
+        const libChunk = libChunkFileName(chunk, "_libs");
+        if (libChunk) {
+          return libChunk;
         }
         if (chunk.moduleIds.every((id) => /src[/\\]cli[/\\]/.test(id))) {
           return `cli/_chunks/[name].mjs`;
@@ -180,22 +180,6 @@ export default defineBuildConfig({
         filter: (e: { entry: { path: string } }) => !e.entry.path.startsWith("/blog"),
       });
 
-      // Trace included dependencies
-      await traceNodeModules(
-        tracePkgs.map((pkg) => resolveModulePath(pkg)),
-        {
-          hooks: {
-            tracedPackages(packages) {
-              // Avoid tracing direct dependencies
-              const deps = new Set([...Object.keys(pkg.dependencies), ...optionalDeps]);
-              for (const dep of deps) {
-                delete packages[dep];
-              }
-            },
-          },
-        }
-      );
-
       // Vite types
       await writeFile(
         "dist/vite.d.mts",
@@ -204,3 +188,28 @@ export default defineBuildConfig({
     },
   },
 });
+
+function libChunkFileName(chunk: { moduleIds: string[] }, dir: string): string | undefined {
+  const pkgRe = /.*[/\\](?:node_modules|shims)[/\\](?<package>@[^/\\]+[/\\][^/\\]+|[^/\\]+)/;
+  if (!chunk.moduleIds.every((id) => pkgRe.test(id))) {
+    return;
+  }
+  const pkgNames = [
+    ...new Set(
+      chunk.moduleIds
+        .map((id) => id.match(pkgRe)?.groups?.package)
+        .filter(Boolean)
+        .map((name) => name!.split(/[/\\]/).pop()!)
+        .filter(Boolean)
+    ),
+  ].sort((a, b) => a.length - b.length);
+  let chunkName = "";
+  for (const name of pkgNames) {
+    const separator = chunkName ? "+" : "";
+    if ((chunkName + separator + name).length > 30) {
+      break;
+    }
+    chunkName += separator + name;
+  }
+  return `${dir}/${chunkName || "_"}.mjs`;
+}
