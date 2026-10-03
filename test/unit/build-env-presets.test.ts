@@ -29,6 +29,8 @@ describe("build env precedence with presets", () => {
       expect(nitro.options.plugins).toContain(`${rootDir}/events.ts`);
       expect(nitro.options.alias.events).toBeUndefined();
       expect(env.alias.events).toBe("node:events");
+      expect(env.external).toContain("node:fs");
+      expect(env.external.filter((id) => id.startsWith("node:node:"))).toEqual([]);
     }
   );
 

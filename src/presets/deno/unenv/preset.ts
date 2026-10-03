@@ -5,7 +5,7 @@ import * as denoCompat from "./node-compat.ts";
 // https://platform-node-compat.netlify.app/
 
 export const unenvDeno: PresetEnv = {
-  builtinModules: denoCompat.builtnNodeModules.map((m) => `node:${m}`),
+  builtinModules: denoCompat.builtnNodeModules,
   alias: {
     ...Object.fromEntries(
       denoCompat.builtnNodeModules.flatMap((m) => [
