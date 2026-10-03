@@ -14,11 +14,12 @@ export const unenvCfNodeCompat: PresetEnv = {
     ),
   },
   inject: {
-    global: "unenv/polyfill/globalthis",
+    global: "#nitro/runtime/polyfills/globalthis",
     process: "node:process",
     clearImmediate: ["node:timers", "clearImmediate"],
     setImmediate: ["node:timers", "setImmediate"],
     Buffer: ["node:buffer", "Buffer"],
+    performance: false, // Native
   },
 };
 

@@ -18,6 +18,5 @@ export const runtimeDependencies: string[] = [
   "rou3", // sub-dep of h3
   "ocache", // dep
   "srvx", // dep
-  "unenv", // dep
   "unstorage", // dep
 ];

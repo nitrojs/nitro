@@ -19,7 +19,13 @@ export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> 
     // Disable Rolldown's own tsconfig discovery to avoid `CONFIGURATION_FIELD_CONFLICT` warnings
     // and keep behavior consistent with the Rollup builder.
     tsconfig: false,
-    external: [...base.env.external, ...builtinModules, ...builtinModules.map((m) => `node:${m}`)],
+    external: [
+      ...base.env.external,
+      // Builtins aliased to polyfills are bundled (rolldown checks `external` before aliases and plugins)
+      ...[...builtinModules, ...builtinModules.map((m) => `node:${m}`)].filter(
+        (id) => !base.env.alias[id] || base.env.alias[id].startsWith("node:")
+      ),
+    ],
     plugins: [...((await baseBuildPlugins(nitro, base)) as RolldownPlugin[])],
     resolve: {
       alias: base.aliases,

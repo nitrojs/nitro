@@ -2,6 +2,7 @@ import type { Nitro, NitroImportMeta } from "nitro/types";
 import { pkgDir } from "nitro/meta";
 import { pathRegExp, toPathRegExp } from "../utils/regex.ts";
 import { resolveBuildEnv } from "./env.ts";
+import { isUnenvId } from "./plugins/unenv.ts";
 
 export type BaseBuildConfig = Awaited<ReturnType<typeof baseBuildConfig>>;
 
@@ -38,7 +39,10 @@ export async function baseBuildConfig(nitro: Nitro) {
 
   const env = await resolveBuildEnv(nitro);
 
-  const aliases = resolveAliases({ ...env.alias });
+  // Aliases to `unenv` polyfills are resolved on demand by the `nitro:unenv` plugin
+  const aliases = resolveAliases(
+    Object.fromEntries(Object.entries(env.alias).filter(([, to]) => !isUnenvId(to)))
+  );
 
   const noExternal: RegExp[] = getNoExternals(nitro);
 

@@ -3,6 +3,8 @@ import { builtinModules } from "node:module";
 import { resolveModulePath } from "exsolve";
 import { resolveAlias } from "pathe/utils";
 import { legacyUnenvLayers } from "../config/resolvers/unenv.ts";
+import { nodeCompatEnv } from "./_node-compat.ts";
+import { isUnenvId } from "./plugins/unenv.ts";
 
 export interface BuildEnv {
   alias: Record<string, string>;
@@ -56,7 +58,7 @@ export function extendEnv(nitro: Nitro, env: PresetEnv) {
 export async function resolveBuildEnv(nitro: Nitro): Promise<BuildEnv> {
   const layers: PresetEnv[] = [];
   if (nitro.options.node === false) {
-    layers.push(await nodeCompatEnv());
+    layers.push(nodeCompatEnv);
   }
   layers.push(
     commonEnv,
@@ -73,31 +75,6 @@ export async function resolveBuildEnv(nitro: Nitro): Promise<BuildEnv> {
   const env = mergeEnv(layers);
   resolveEnvPaths(env, nitro.options.rootDir);
   return env;
-}
-
-async function nodeCompatEnv(): Promise<PresetEnv> {
-  const { defineEnv } = await import("unenv");
-  const { env } = defineEnv({ nodeCompat: true });
-  return {
-    alias: env.alias,
-    inject: {
-      ...env.inject,
-      global: "unenv/polyfill/globalthis",
-      process: "node:process",
-      Buffer: ["node:buffer", "Buffer"],
-      clearImmediate: ["node:timers", "clearImmediate"],
-      setImmediate: ["node:timers", "setImmediate"],
-      performance: "unenv/polyfill/performance",
-      PerformanceObserver: ["node:perf_hooks", "PerformanceObserver"],
-      BroadcastChannel: ["node:worker_threads", "BroadcastChannel"],
-    },
-    polyfills: [
-      "unenv/polyfill/globalthis-global",
-      "unenv/polyfill/process",
-      "unenv/polyfill/buffer",
-      "unenv/polyfill/timers",
-    ],
-  };
 }
 
 function mergeEnv(layers: PresetEnv[]): BuildEnv {
@@ -119,11 +96,11 @@ function mergeEnv(layers: PresetEnv[]): BuildEnv {
   return env;
 }
 
-// Packages resolve from Nitro first (keeps `unenv/*` on Nitro's own version), relative ids from `rootDir`
+// Packages resolve from Nitro first, relative ids from `rootDir`. `unenv/*` ids are resolved on demand (see `plugins/unenv.ts`)
 function resolveEnvPaths(env: BuildEnv, rootDir: string) {
   const resolve = (id: string) => {
     id = resolveAlias(id, env.alias);
-    if (id.startsWith("node:")) {
+    if (id.startsWith("node:") || isUnenvId(id)) {
       return id;
     }
     if (builtinModules.includes(id)) {

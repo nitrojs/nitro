@@ -44,9 +44,6 @@ importers:
       srvx:
         specifier: ^1.0.5
         version: 1.0.5
-      unenv:
-        specifier: ^2.0.0-rc.24
-        version: 2.0.0-rc.24
       unstorage:
         specifier: ^2.0.0-alpha.10
         version: 2.0.0-alpha.10
@@ -281,7 +278,10 @@ importers:
         version: 1.7.0
       unctx:
         specifier: ^3.0.1
-        version: 3.0.1(magic-string@0.30.21)(rolldown@1.2.12)(unplugin@3.4.0)
+        version: 3.0.1(magic-string@0.30.21)(oxc-parser@shims+oxc-parser)(rolldown@1.2.12)(unplugin@3.4.0)
+      unenv:
+        specifier: ^2.0.0-rc.24
+        version: 2.0.0-rc.24
       unwasm:
         specifier: ^0.6.0
         version: 0.6.0
@@ -13826,9 +13826,10 @@ snapshots:
 
   ultrahtml@1.7.0: {}
 
-  unctx@3.0.1(magic-string@0.30.21)(rolldown@1.2.12)(unplugin@3.4.0):
+  unctx@3.0.1(magic-string@0.30.21)(oxc-parser@shims+oxc-parser)(rolldown@1.2.12)(unplugin@3.4.0):
     optionalDependencies:
       magic-string: 0.30.21
+      oxc-parser: link:shims/oxc-parser
       rolldown: 1.2.12
       unplugin: 3.4.0(esbuild@0.28.2)(rolldown@1.2.12)(rollup@4.63.6)(vite@8.3.2)
 

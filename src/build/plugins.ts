@@ -12,6 +12,7 @@ import { sourcemap } from "./plugins/sourcemap.ts";
 import { raw, RESOLVED_RE as rawModulesRE } from "./plugins/raw.ts";
 import { importAttributes } from "./plugins/import-attributes.ts";
 import { externals } from "./plugins/externals.ts";
+import { unenv } from "./plugins/unenv.ts";
 
 export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const plugins: Plugin[] = [];
@@ -20,6 +21,9 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const virtualPlugin = virtual(virtualTemplates(nitro, [...base.env.polyfills]));
   nitro.vfs = virtualPlugin.api.modules;
   plugins.push(virtualPlugin, virtualDeps());
+
+  // Node.js compatibility polyfills (resolved on demand)
+  plugins.push(unenv(nitro, base.env));
 
   // WASM loader
   if (nitro.options.wasm !== false) {
