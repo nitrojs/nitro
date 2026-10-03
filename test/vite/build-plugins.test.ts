@@ -3,6 +3,8 @@ import { join } from "node:path";
 import { rm, mkdir } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { createNitro, build, prepare } from "nitro/builder";
+import { getBundlerConfig } from "../../src/build/vite/bundler.ts";
+import type { NitroPluginContext } from "../../src/build/vite/types.ts";
 
 const fixtureDir = fileURLToPath(new URL("./build-plugins-fixture", import.meta.url));
 const tmpDir = fileURLToPath(new URL("./build-plugins-fixture/.tmp", import.meta.url));
@@ -20,6 +22,8 @@ describe("buildPlugins", () => {
           rootDir: fixtureDir,
           output: { dir: outDir },
           builder,
+          // @ts-expect-error for testing
+          __vitePkg__: process.env.NITRO_VITE_PKG,
         });
         await prepare(nitro);
         await build(nitro);
@@ -41,4 +45,17 @@ describe("buildPlugins", () => {
       });
     });
   }
+
+  // Vite on Rollup (Vite 7) adds the Rollup-only plugins in its own merge
+  it("places `pre` plugins before the Rollup-only plugins with Vite on Rollup", async () => {
+    const nitro = await createNitro({ rootDir: fixtureDir, builder: "vite" });
+    const { rollupConfig } = await getBundlerConfig({
+      nitro,
+      _isRolldown: false,
+    } as NitroPluginContext);
+    const names = (rollupConfig!.plugins as { name: string }[]).map((p) => p.name);
+    expect(names.slice(0, 3)).toEqual(["fixture:pre", "inject", "alias"]);
+    expect(names.at(-1)).toBe("fixture:post");
+    await nitro.close();
+  });
 });
