@@ -21,7 +21,7 @@ const SCRIPT_TYPES = ["js", "jsx", "ts", "tsx"] as const;
  * WASM imports.
  */
 export async function unbundledPlugins(nitro: Nitro): Promise<EnvRunnerPlugin[]> {
-  const base = baseBuildConfig(nitro);
+  const base = await baseBuildConfig(nitro);
 
   // Sources Nitro would bundle: its own runtime and the app (`node_modules` needs a named include)
   const sourceDirs = [pkgDir, nitro.options.rootDir, ...nitro.options.scanDirs].map(
@@ -185,7 +185,7 @@ function rawVirtualPlugin(nitro: Nitro): EnvRunnerPlugin {
 
 /** `import.meta.*` and `replace` values (line-preserving, so without a source map). */
 function replacePlugin(
-  values: ReturnType<typeof baseBuildConfig>["replacements"],
+  values: Awaited<ReturnType<typeof baseBuildConfig>>["replacements"],
   sourceDirs: string[]
 ): EnvRunnerPlugin {
   const plugin = (replace as unknown as typeof replace.default)({

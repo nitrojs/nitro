@@ -27,9 +27,9 @@ export interface UnbundledApp {
  * Also exposes the virtual templates as `nitro.vfs` for the `/_vfs` debug endpoint.
  */
 export async function prepareUnbundledApp(nitro: Nitro): Promise<UnbundledApp> {
-  const { env, extensions } = baseBuildConfig(nitro);
+  const { env, extensions } = await baseBuildConfig(nitro);
 
-  const templates = virtualTemplates(nitro, [...env.polyfill]);
+  const templates = virtualTemplates(nitro, [...env.polyfills]);
   nitro.vfs = new Map(
     templates.map((t) => [
       t.id,
