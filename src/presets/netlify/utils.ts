@@ -2,24 +2,16 @@ import { existsSync, promises as fsp } from "node:fs";
 import type { Nitro, PublicAssetDir } from "nitro/types";
 import { join } from "pathe";
 import { joinURL } from "ufo";
+import { routeToSplat, sortRoutes } from "../_utils/routes.ts";
 
 export async function writeRedirects(nitro: Nitro) {
   const redirectsPath = join(nitro.options.output.publicDir, "_redirects");
 
   let contents = "";
-  if (nitro.options.static) {
-    const staticFallback = existsSync(join(nitro.options.output.publicDir, "404.html"))
-      ? "/* /404.html 404"
-      : "";
-    contents += staticFallback;
-  }
 
-  const rules = Object.entries(nitro.options.routeRules).sort(
-    (a, b) => a[0].split(/\/(?!\*)/).length - b[0].split(/\/(?!\*)/).length
-  );
-
-  for (const [key, routeRules] of rules) {
-    const redirect = routeRules.redirect;
+  // Most specific first, as the first matching rule wins
+  for (const key of sortRoutes(Object.keys(nitro.options.routeRules))) {
+    const redirect = nitro.options.routeRules[key].redirect;
     if (!redirect) {
       continue;
     }
@@ -31,8 +23,11 @@ export async function writeRedirects(nitro: Nitro) {
     if (code === 308) {
       code = 301;
     }
-    contents =
-      `${key.replace("/**", "/*")}\t${redirect.to.replace("**", ":splat")}\t${code}\n` + contents;
+    contents += `${routeToSplat(key)}\t${redirect.to.replaceAll("**", ":splat")}\t${code}\n`;
+  }
+
+  if (nitro.options.static && existsSync(join(nitro.options.output.publicDir, "404.html"))) {
+    contents += "/* /404.html 404";
   }
 
   if (existsSync(redirectsPath)) {
@@ -54,13 +49,13 @@ export async function writeHeaders(nitro: Nitro) {
   const headersPath = join(nitro.options.output.publicDir, "_headers");
   let contents = "";
 
-  const rules = Object.entries(nitro.options.routeRules).sort(
-    (a, b) => b[0].split(/\/(?!\*)/).length - a[0].split(/\/(?!\*)/).length
-  );
-
-  for (const [path, routeRules] of rules.filter(([_, routeRules]) => routeRules.headers)) {
+  for (const path of sortRoutes(Object.keys(nitro.options.routeRules))) {
+    const routeRules = nitro.options.routeRules[path];
+    if (!routeRules.headers) {
+      continue;
+    }
     const headers = [
-      path.replace("/**", "/*"),
+      routeToSplat(path),
       ...Object.entries({ ...routeRules.headers }).map(
         ([header, value]) => `  ${header}: ${value}`
       ),
