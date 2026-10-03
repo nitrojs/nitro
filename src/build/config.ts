@@ -2,13 +2,11 @@ import type { Nitro, NitroImportMeta } from "nitro/types";
 import { defineEnv } from "unenv";
 import { pkgDir } from "nitro/meta";
 import { pathRegExp, toPathRegExp } from "../utils/regex.ts";
+import { BUILD_EXTENSIONS } from "./_extensions.ts";
 
 export type BaseBuildConfig = ReturnType<typeof baseBuildConfig>;
 
 const ROOT_ALIAS = "@";
-
-// prettier-ignore
-export const BUILD_EXTENSIONS = [".ts", ".mjs", ".js", ".json", ".node", ".tsx", ".jsx"];
 
 export function baseBuildConfig(nitro: Nitro) {
   const extensions: string[] = [...BUILD_EXTENSIONS];

@@ -1,30 +1,34 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { fileURLToPath } from "node:url";
 import { join, resolve } from "pathe";
 import { rolldown } from "rolldown";
 import type { RollupOutput } from "rollup";
 import type { Nitro } from "nitro/types";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { writeBuildInfo } from "../../src/build/info.ts";
 
 describe("writeBuildInfo", () => {
   let rootDir: string;
-  const fixtureDir = fileURLToPath(new URL("../fixture/build-info/", import.meta.url));
+  let warn: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
-    rootDir = await mkdtemp(join(tmpdir(), "nitro-build-info-"));
+    rootDir = await realpath(await mkdtemp(join(tmpdir(), "nitro-build-info-")));
+    warn = vi.fn();
+    await writeFile(join(rootDir, "server.ts"), `export const server = "nitro server";\n`);
+    await writeFile(join(rootDir, "server.js"), `export const server = "unrelated entry";\n`);
+    await writeFile(join(rootDir, "exposed.ts"), `export const exposed = "exposed";\n`);
   });
 
   afterEach(async () => {
     await rm(rootDir, { recursive: true, force: true });
   });
 
-  function createNitro(entry = join(rootDir, "server")) {
+  function createNitro() {
     return {
+      logger: { warn },
       options: {
         rootDir,
-        entry,
+        entry: join(rootDir, "server"),
         output: {
           dir: join(rootDir, ".output"),
           serverDir: join(rootDir, ".output/server"),
@@ -32,16 +36,15 @@ describe("writeBuildInfo", () => {
         },
         commands: {},
       },
-    } as Nitro;
+    } as unknown as Nitro;
   }
 
   async function buildInfoFor(entries: { fileName: string; facadeModuleId: string | null }[]) {
-    const nitro = createNitro();
     const output = {
       output: entries.map((entry) => ({ type: "chunk", isEntry: true, ...entry })),
     } as unknown as RollupOutput;
 
-    const info = await writeBuildInfo(nitro, output);
+    const info = await writeBuildInfo(createNitro(), output);
     const saved = JSON.parse(await readFile(join(rootDir, ".output/nitro.json"), "utf8"));
     expect(saved.serverEntry).toBe(info.serverEntry);
     return info;
@@ -53,6 +56,7 @@ describe("writeBuildInfo", () => {
       { fileName: "index.mjs", facadeModuleId: join(rootDir, "server.ts") },
     ]);
     expect(info.serverEntry).toBe("server/index.mjs");
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("uses Nitro's entry even when the output name is customized", async () => {
@@ -63,18 +67,19 @@ describe("writeBuildInfo", () => {
     expect(info.serverEntry).toBe("server/worker.mjs");
   });
 
-  it("keeps the original fallback when facade IDs are unavailable", async () => {
+  it("falls back to the first entry with a warning when facade IDs are unavailable", async () => {
     const info = await buildInfoFor([
       { fileName: "worker.mjs", facadeModuleId: null },
       { fileName: "index.mjs", facadeModuleId: null },
     ]);
     expect(info.serverEntry).toBe("server/worker.mjs");
+    expect(warn).toHaveBeenCalledOnce();
   });
 
   it("selects Nitro's entry from real Rolldown output with another entry first", async () => {
-    const exposedEntry = join(fixtureDir, "exposed.ts");
-    const nitroEntry = join(fixtureDir, "server.ts");
-    const build = await rolldown({ input: [exposedEntry, nitroEntry] });
+    const build = await rolldown({
+      input: [join(rootDir, "exposed.ts"), join(rootDir, "server.ts")],
+    });
     const output = await build.write({
       dir: join(rootDir, ".output/server"),
       entryFileNames: "[name].mjs",
@@ -84,29 +89,30 @@ describe("writeBuildInfo", () => {
     const entries = output.output.filter((item) => item.type === "chunk" && item.isEntry);
     expect(entries.map((item) => item.fileName)).toEqual(["exposed.mjs", "server.mjs"]);
 
-    const info = await writeBuildInfo(createNitro(join(fixtureDir, "server")), output);
+    const info = await writeBuildInfo(createNitro(), output);
     expect(info.serverEntry).toBe("server/server.mjs");
   });
 
   it("distinguishes entry files with the same path stem", async () => {
-    const serverJs = join(fixtureDir, "server.js");
-    const serverTs = join(fixtureDir, "server.ts");
     const build = await rolldown({
-      input: [serverJs, join(fixtureDir, "server")],
+      input: { a: join(rootDir, "server.js"), b: join(rootDir, "server") },
       resolve: { extensions: [".ts", ".js"] },
     });
     const output = await build.write({
       dir: join(rootDir, ".output/server"),
-      entryFileNames: "[name]-[hash].mjs",
+      entryFileNames: "[name].mjs",
     });
     await build.close();
 
     const entries = output.output.flatMap((item) =>
       item.type === "chunk" && item.isEntry ? [item] : []
     );
-    expect(entries.map((item) => resolve(item.facadeModuleId!))).toEqual([serverJs, serverTs]);
+    expect(entries.map((item) => resolve(item.facadeModuleId!))).toEqual([
+      join(rootDir, "server.js"),
+      join(rootDir, "server.ts"),
+    ]);
 
-    const info = await writeBuildInfo(createNitro(join(fixtureDir, "server")), output);
-    expect(info.serverEntry).toBe(`server/${entries[1].fileName}`);
+    const info = await writeBuildInfo(createNitro(), output);
+    expect(info.serverEntry).toBe("server/b.mjs");
   });
 });
