@@ -26,23 +26,22 @@ vi.mock("#nitro/virtual/tasks", () => ({
 import { startScheduleRunner } from "../../src/runtime/internal/task.ts";
 
 describe("startScheduleRunner", () => {
-  let testEnvironment: string | undefined;
-
   beforeEach(() => {
-    testEnvironment = process.env.TEST;
-    delete process.env.TEST;
+    vi.stubEnv("TEST", "");
     vi.clearAllMocks();
   });
 
   afterEach(() => {
-    process.env.TEST = testEnvironment;
+    vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
 
-  it("keeps the process alive between scheduled runs", () => {
+  it("creates a Cron job for each schedule", () => {
     startScheduleRunner();
 
+    expect(cronMock).toHaveBeenCalledTimes(2);
     expect(cronMock).toHaveBeenCalledWith("*/5 * * * *", expect.any(Function));
+    expect(cronMock).toHaveBeenCalledWith("*/10 * * * *", expect.any(Function));
   });
 
   it("stops the schedule runner when the Nitro app closes", () => {
