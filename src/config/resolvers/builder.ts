@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
+import { consola } from "consola";
 import type { NitroOptions } from "nitro/types";
 import { resolve } from "pathe";
+import { resolveRolldown } from "../../build/rolldown/_import.ts";
 import { ensureDep, isDepInstalled } from "../../utils/dep.ts";
 
 const VALID_BUILDERS = ["rolldown", "rollup", "vite"] as const;
@@ -29,20 +31,21 @@ export async function resolveBuilder(options: NitroOptions) {
         `Invalid nitro builder "${options.builder}". Valid builders are: ${VALID_BUILDERS.join(", ")}.`
       );
     }
-    // Check if the builder package is installed (rolldown is a direct dep, `vite` can be provided)
+    // Check if the builder package is installed (`vite` can be provided, `rolldown` is installed on build)
     const pkg = options.builder;
-    if (pkg !== "rolldown" && !(pkg === "vite" && options.vite?.path)) {
-      const resolved = await ensureDep({
-        id: pkg,
-        dir: options.rootDir,
-        reason: `the \`${pkg}\` builder`,
-        version: BUILDER_VERSIONS[pkg],
-      });
-      if (!resolved) {
-        throw new Error(
-          `Nitro builder package "${pkg}" is not installed. Please install it in your project dependencies.`
-        );
-      }
+    if (pkg === "rolldown" || (pkg === "vite" && options.vite?.path)) {
+      return;
+    }
+    const resolved = await ensureDep({
+      id: pkg,
+      dir: options.rootDir,
+      reason: `the \`${pkg}\` builder`,
+      version: BUILDER_VERSIONS[pkg],
+    });
+    if (!resolved) {
+      throw new Error(
+        `Nitro builder package "${pkg}" is not installed. Please install it in your project dependencies.`
+      );
     }
     return;
   }
@@ -53,8 +56,32 @@ export async function resolveBuilder(options: NitroOptions) {
     return;
   }
 
-  // Default to rolldown (direct dependency of nitro)
-  options.builder = "rolldown";
+  // Default to rolldown when installed in the project, and otherwise install it on build, unless
+  // the dev server can run without a builder (no bundler config that `builder: false` would ignore)
+  if (
+    !options.dev ||
+    resolveRolldown(options.rootDir) ||
+    hasConfig(options.rollupConfig) ||
+    hasConfig(options.rolldownConfig)
+  ) {
+    options.builder = "rolldown";
+    return;
+  }
+
+  // Development without rolldown: run the server sources without a builder
+  if (!_hintShown) {
+    _hintShown = true;
+    consola.info(
+      "`rolldown` is not installed in your project. Running the dev server without a builder (experimental `builder: false`), so bundler plugins added by modules (`rollup:before` hook) do not apply. Install `rolldown` to bundle the server in development."
+    );
+  }
+  options.builder = false;
+}
+
+let _hintShown = false;
+
+function hasConfig(config: object | undefined): boolean {
+  return !!config && Object.keys(config).length > 0;
 }
 
 function hasNitroViteConfig(options: NitroOptions): boolean {

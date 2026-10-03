@@ -715,7 +715,8 @@ export interface NitroOptions extends PresetOptions {
    * Bundler to use for production builds.
    *
    * Auto-detected when not set: `"vite"` if a `vite.config` with the
-   * `nitro()` plugin is found, otherwise `"rolldown"` (bundled with Nitro).
+   * `nitro()` plugin is found, otherwise `"rolldown"` (installed on demand). In development,
+   * `false` is used when `rolldown` is not installed.
    * Use the `NITRO_BUILDER` environment variable as an alternative.
    *
    * Set to `false` to run the server sources without bundling (experimental, `dev` and

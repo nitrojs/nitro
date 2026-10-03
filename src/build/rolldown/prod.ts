@@ -8,9 +8,11 @@ import { generateFSTree } from "../../utils/fs-tree.ts";
 import { writeBuildInfo } from "../info.ts";
 import type { RolldownOutput } from "rolldown";
 
-export async function buildProduction(nitro: Nitro, config: RolldownOptions) {
-  const rolldown = await import("rolldown");
-
+export async function buildProduction(
+  nitro: Nitro,
+  config: RolldownOptions,
+  rolldown: typeof import("rolldown")
+) {
   const buildStartTime = Date.now();
 
   await scanHandlers(nitro);

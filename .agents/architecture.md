@@ -29,9 +29,10 @@
 **Builder dispatch** (`build/build.ts`): delegates to `rollup`, `rolldown`, or `vite` based on `nitro.options.builder`.
 
 **Builder selection** (resolved in `config/resolvers/builder.ts`):
-- Check `NITRO_BUILDER` / `NITRO_VITE_BUILDER` env vars
-- Auto-detect available packages
-- Fallback: rolldown → vite → rollup
+- Check `NITRO_BUILDER` env var
+- Auto-detect: `vite` when a `vite.config` uses `nitro()`, otherwise `rolldown`
+- No builder package is a dependency of Nitro: they are imported from the user project and installed on demand (`rolldown` via `build/rolldown/_import.ts`)
+- Dev without `rolldown` (and no `rollupConfig`/`rolldownConfig`) falls back to `builder: false`
 
 **Base config** (`build/config.ts`):
 - Extensions: `.ts`, `.mjs`, `.js`, `.json`, `.node`, `.tsx`, `.jsx`
