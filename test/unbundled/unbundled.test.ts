@@ -6,10 +6,11 @@ import {
   createNitro,
   loadOptions,
   prepare,
+  prerender,
   startPreview,
 } from "nitro/builder";
 import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { join } from "pathe";
@@ -149,6 +150,33 @@ describe("builder: false", () => {
         process.env.NITRO_BUILDER = original;
       }
       await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("prerenders the sources without a build", async () => {
+    const outputDir = await mkdtemp(join(tmpdir(), "nitro-unbundled-prerender-"));
+    const nitro = await createNitro({
+      rootDir,
+      output: { dir: outputDir },
+      prerender: { routes: ["/", "/api/7", "/features"] },
+    });
+    try {
+      await prerender(nitro);
+      const publicDir = nitro.options.output.publicDir;
+      expect(await readFile(join(publicDir, "index"), "utf8")).toBe("Hello, nitro!");
+      expect(JSON.parse(await readFile(join(publicDir, "api/7"), "utf8"))).toEqual({
+        id: "7",
+        hasRuntimeConfig: true,
+      });
+      expect(JSON.parse(await readFile(join(publicDir, "features"), "utf8"))).toMatchObject({
+        dev: false,
+        enum: "green",
+        text: "text asset",
+        wasm: 5,
+      });
+    } finally {
+      await nitro.close();
+      await rm(outputDir, { recursive: true, force: true });
     }
   });
 

@@ -38,9 +38,6 @@ importers:
       ocache:
         specifier: ^0.3.0
         version: 0.3.0
-      rolldown:
-        specifier: ^1.2.9
-        version: 1.2.12
       srvx:
         specifier: ^1.0.5
         version: 1.0.5
@@ -249,6 +246,9 @@ importers:
       rendu:
         specifier: ^0.1.1
         version: 0.1.1
+      rolldown:
+        specifier: ^1.2.9
+        version: 1.2.12
       rollup:
         specifier: ^4.63.4
         version: 4.63.6

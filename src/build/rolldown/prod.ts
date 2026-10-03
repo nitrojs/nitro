@@ -1,6 +1,7 @@
 import type { Nitro } from "nitro/types";
 import type { OutputOptions, RolldownOptions } from "rolldown";
 import { formatCompatibilityDate } from "compatx";
+import { importRolldown } from "./_import.ts";
 
 import { relative } from "pathe";
 import { scanHandlers } from "../../scan.ts";
@@ -9,7 +10,7 @@ import { writeBuildInfo } from "../info.ts";
 import type { RolldownOutput } from "rolldown";
 
 export async function buildProduction(nitro: Nitro, config: RolldownOptions) {
-  const rolldown = await import("rolldown");
+  const rolldown = await importRolldown(nitro.options.rootDir);
 
   const buildStartTime = Date.now();
 

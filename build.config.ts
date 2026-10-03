@@ -13,6 +13,7 @@ const optionalDeps = [
   "dotenv",
   "giget",
   "jiti",
+  "rolldown",
   "rollup",
   "vite",
   "xml2js",

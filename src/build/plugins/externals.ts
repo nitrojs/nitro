@@ -281,8 +281,8 @@ export function resolveTraceDeps(
   );
   // User-declared named deps to always force-trace by name. Builtin native
   // packages are intentionally NOT force-traced wholesale: many of them are
-  // build-time-only tooling (e.g. `rolldown`/`rollup`/`vite`, declared as deps
-  // by `nitro` itself) that must never be copied into the runtime output. A
+  // build-time-only tooling (e.g. `rolldown`/`rollup`/`vite`) that must never
+  // be copied into the runtime output. A
   // builtin is force-traced only when it is actually observed as an
   // (unresolvable) import during the build — nft cannot statically detect
   // dynamically-loaded native bindings, so those observed names are collected at

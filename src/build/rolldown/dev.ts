@@ -5,9 +5,10 @@ import { debounce } from "perfect-debounce";
 import { scanHandlers } from "../../scan.ts";
 import { createWatcher } from "../../utils/watch.ts";
 import { formatCompatibilityDate } from "compatx";
+import { importRolldown } from "./_import.ts";
 
 export async function watchDev(nitro: Nitro, config: RolldownOptions) {
-  const rolldown = await import("rolldown");
+  const rolldown = await importRolldown(nitro.options.rootDir);
 
   let watcher: RolldownWatcher;
 
