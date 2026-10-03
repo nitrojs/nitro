@@ -147,7 +147,7 @@ Uses `citty` with lazy-loaded commands: `dev`, `build`, `deploy`, `preview`, `pr
 | `citty` | CLI framework |
 | `hookable` | Hook system |
 | `unstorage` | Storage abstraction |
-| `unenv` | Runtime polyfills |
+| `unenv` | Node.js polyfills for `node: false` builds (`build/env.ts`) and presets |
 | `defu` | Config merging |
 | `pathe` | Path operations |
 | `consola` | Logging |

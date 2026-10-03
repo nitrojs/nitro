@@ -9,7 +9,6 @@ import type { NestedHooks } from "hookable";
 import type { ProxyServerOptions } from "httpxy";
 import type { PresetName, PresetNameInput, PresetOptions } from "../presets/index.ts";
 import type { TSConfig } from "pkg-types";
-import type { Preset as UnenvPreset } from "unenv";
 import type { BuiltinDriverName, BuiltinDriverOptions } from "unstorage";
 import type { ExternalsTraceOptions } from "nf3";
 import type { UnwasmPluginOptions } from "unwasm/plugin";
@@ -753,13 +752,8 @@ export interface NitroOptions extends PresetOptions {
    */
   entry: string;
 
-  /**
-   * unenv preset(s) for environment compatibility polyfills.
-   *
-   * @see https://nitro.build/config#unenv
-   * @see https://github.com/unjs/unenv
-   */
-  unenv: UnenvPreset[];
+  /** @deprecated Migrate to `alias`, `inject`, `polyfills` and `builtinModules`. */
+  unenv: LegacyUnenvPreset[];
 
   /**
    * Path aliases for module resolution.
@@ -775,6 +769,47 @@ export interface NitroOptions extends PresetOptions {
    * @see https://nitro.build/config#alias
    */
   alias: Record<string, string>;
+
+  /**
+   * Globals to replace with imports when referenced in the bundle.
+   *
+   * Values are a module id (default export) or a `[id, exportName]` tuple.
+   * Set a global to `false` to remove a default injection (e.g. one added
+   * for `node: false` builds).
+   *
+   * @example
+   * ```ts
+   * inject: {
+   *   Buffer: ["node:buffer", "Buffer"],
+   * }
+   * ```
+   *
+   * @see https://nitro.build/config#inject
+   */
+  inject: Record<string, string | [id: string, exportName: string] | false>;
+
+  /**
+   * Modules imported for their side effects before the server entry.
+   *
+   * Prefix an entry with `!` to remove a default polyfill.
+   *
+   * @see https://nitro.build/config#polyfills
+   */
+  polyfills: string[];
+
+  /**
+   * Modules provided by the target runtime (e.g. `node:fs` on Deno or
+   * `cloudflare:workers`).
+   *
+   * Imports of these ids are kept as-is in the output: they are never bundled,
+   * traced or copied, so only list modules the runtime itself provides. To
+   * keep an npm package out of the bundle, use `traceDeps` instead.
+   *
+   * Prefix an entry with `!` to remove a default (e.g. one added by a preset).
+   *
+   * @see https://nitro.build/config#builtinmodules
+   */
+  builtinModules: string[];
 
   /**
    * Minify the production bundle.
@@ -806,8 +841,9 @@ export interface NitroOptions extends PresetOptions {
    * When `true` (default), the bundler targets the `node` platform, prefers
    * Node.js built-in modules, and enables dependency externalization.
    *
-   * When `false`, Nitro prepends the `nodeless` unenv preset to polyfill
-   * Node.js globals and built-ins for non-Node runtimes (workers, edge, Deno).
+   * When `false`, Nitro adds default `alias`, `inject` and `polyfills`
+   * entries that polyfill Node.js globals and built-ins for non-Node
+   * runtimes (workers, edge, Deno).
    *
    * @see https://nitro.build/config#node
    */
@@ -984,7 +1020,8 @@ export interface NitroConfig
   routeRules?: { [path: string]: NitroRouteConfig };
   rollupConfig?: Partial<RollupConfig>;
   compatibilityDate?: CompatibilityDateSpec;
-  unenv?: UnenvPreset | UnenvPreset[];
+  /** @deprecated Migrate to `alias`, `inject`, `polyfills` and `builtinModules`. */
+  unenv?: LegacyUnenvPreset | LegacyUnenvPreset[];
   serverDir?: boolean | "./" | "./server" | (string & {});
   serverEntry?: string | NitroOptions["serverEntry"];
   renderer?: false | NitroOptions["renderer"];
@@ -1072,6 +1109,25 @@ export interface TracingOptions {
   srvx?: boolean;
   h3?: boolean;
   unstorage?: boolean;
+}
+
+/**
+ * Preset shape accepted by the deprecated `unenv` option (compatible with
+ * unenv's `Preset`).
+ *
+ * @deprecated Migrate to `alias`, `inject`, `polyfills` and `builtinModules`.
+ */
+export interface LegacyUnenvPreset {
+  meta?: {
+    readonly name?: string;
+    readonly version?: string;
+    /** Path or URL used to resolve the preset's module ids. */
+    readonly url?: string | URL;
+  };
+  alias?: Readonly<Record<string, string>>;
+  inject?: Readonly<Record<string, string | readonly string[] | false>>;
+  polyfill?: readonly string[];
+  external?: readonly string[];
 }
 
 /** Driver name (module id or alias) of a driver that is not builtin. */

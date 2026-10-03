@@ -1,13 +1,13 @@
 import type { Nitro, NitroImportMeta } from "nitro/types";
-import { defineEnv } from "unenv";
 import { pkgDir } from "nitro/meta";
 import { pathRegExp, toPathRegExp } from "../utils/regex.ts";
+import { resolveBuildEnv } from "./env.ts";
 
-export type BaseBuildConfig = ReturnType<typeof baseBuildConfig>;
+export type BaseBuildConfig = Awaited<ReturnType<typeof baseBuildConfig>>;
 
 const ROOT_ALIAS = "@";
 
-export function baseBuildConfig(nitro: Nitro) {
+export async function baseBuildConfig(nitro: Nitro) {
   // prettier-ignore
   const extensions: string[] = [".ts", ".mjs", ".js", ".json", ".node", ".tsx", ".jsx" ];
 
@@ -36,14 +36,7 @@ export function baseBuildConfig(nitro: Nitro) {
     ...nitro.options.replace,
   };
 
-  const { env } = defineEnv({
-    nodeCompat: isNodeless,
-    resolve: true,
-    presets: nitro.options.unenv,
-    overrides: {
-      alias: nitro.options.alias,
-    },
-  });
+  const env = await resolveBuildEnv(nitro);
 
   const aliases = resolveAliases({ ...env.alias });
 

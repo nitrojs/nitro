@@ -7,7 +7,7 @@ import { defu } from "defu";
 import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
 
 export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> => {
-  const base = baseBuildConfig(nitro);
+  const base = await baseBuildConfig(nitro);
 
   const tsc = nitro.options.typescript.tsConfig?.compilerOptions;
 

@@ -17,6 +17,7 @@ import {
   withoutLeadingSlash,
 } from "ufo";
 import { unenvCfNodeCompat } from "./unenv/preset.ts";
+import { extendEnv } from "../../build/env.ts";
 
 // https://github.com/nitrojs/nitro/issues/4527
 const NODEJS_COMPAT_SUPPORTED_FROM_DATE = "2024-09-23";
@@ -181,7 +182,7 @@ export async function enableNodeCompat(nitro: Nitro) {
   if (nitro.options.cloudflare.nodeCompat) {
     nitro.options.rolldownConfig ??= {};
     nitro.options.rolldownConfig.platform ??= "node";
-    nitro.options.unenv.push(unenvCfNodeCompat);
+    extendEnv(nitro, unenvCfNodeCompat);
   }
 }
 
