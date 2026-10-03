@@ -125,10 +125,10 @@ export function relativePath(file: string): string {
     return file;
   }
   let path = file;
-  // Windows: `cwd` uses `\` while Vite reports module paths with `/`
-  if (/^[a-z]:\\/i.test(cwd)) {
-    cwd = cwd.replace(/\\/g, "/");
-    path = path.replace(/\\/g, "/");
+  // Windows: `cwd` uses `\` while Vite reports module paths with `/` (drive letter case may differ)
+  if (/^(?:[a-z]:|\\\\)/i.test(cwd)) {
+    cwd = normalizeWindowsPath(cwd);
+    path = normalizeWindowsPath(path);
   }
   if (path.startsWith(cwd) && path[cwd.length] === "/") {
     return "." + path.slice(cwd.length);
@@ -148,4 +148,8 @@ function toPath(file: string): string {
   } catch {
     return file;
   }
+}
+
+function normalizeWindowsPath(path: string): string {
+  return path.replace(/\\/g, "/").replace(/^[a-z]:/i, (drive) => drive.toUpperCase());
 }

@@ -88,6 +88,24 @@ describe("dev error: relativePath", () => {
     expect(relativePath("C:/application/index.ts")).toBe("C:/application/index.ts");
     expect(relativePath(String.raw`D:\app\index.ts`)).toBe(String.raw`D:\app\index.ts`);
   });
+
+  it("ignores drive letter case on Windows", () => {
+    vi.spyOn(process, "cwd").mockReturnValue(String.raw`c:\app`);
+    expect(relativePath("C:/app/server/routes/index.ts")).toBe("./server/routes/index.ts");
+    vi.spyOn(process, "cwd").mockReturnValue(String.raw`C:\app`);
+    expect(relativePath("c:/app/server/routes/index.ts")).toBe("./server/routes/index.ts");
+  });
+
+  it("shortens Windows UNC paths", () => {
+    vi.spyOn(process, "cwd").mockReturnValue(String.raw`\\server\share\app`);
+    expect(relativePath("//server/share/app/server/routes/index.ts")).toBe(
+      "./server/routes/index.ts"
+    );
+    expect(relativePath(String.raw`\\server\share\app\index.ts`)).toBe("./index.ts");
+    expect(relativePath("//server/share/application/index.ts")).toBe(
+      "//server/share/application/index.ts"
+    );
+  });
 });
 
 describe("dev error: loadStackTrace", () => {
