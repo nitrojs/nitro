@@ -8,7 +8,7 @@ const { createServer } = (await import(
   process.env.NITRO_VITE_PKG || "vite"
 )) as typeof import("vite");
 
-describe("vite:hmr", { sequential: true }, () => {
+describe("vite:hmr", { concurrent: false }, () => {
   let server: ViteDevServer;
   let serverURL: string;
   const wsMessages: any[] = [];

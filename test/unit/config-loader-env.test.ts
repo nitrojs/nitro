@@ -62,9 +62,9 @@ describe.skip("config loader env layers", () => {
     const { loadOptions } = await import("../../src/config/loader.ts");
     const options = await loadOptions({ rootDir, dev: false });
 
-    expect(options.routeRules["/prod"]?.headers?.["x-env"]).toBe("production");
+    expect(options.routeRules["/prod"]?.headers).toMatchObject({ "x-env": "production" });
     expect(options.routeRules["/dev"]).toBeUndefined();
-    expect(options.routeRules["/base"]?.headers?.["x-env"]).toBe("base");
+    expect(options.routeRules["/base"]?.headers).toMatchObject({ "x-env": "base" });
   });
 
   it("applies $development when NODE_ENV is unset and dev=true", async () => {
@@ -74,8 +74,8 @@ describe.skip("config loader env layers", () => {
     const { loadOptions } = await import("../../src/config/loader.ts");
     const options = await loadOptions({ rootDir, dev: true });
 
-    expect(options.routeRules["/dev"]?.headers?.["x-env"]).toBe("development");
+    expect(options.routeRules["/dev"]?.headers).toMatchObject({ "x-env": "development" });
     expect(options.routeRules["/prod"]).toBeUndefined();
-    expect(options.routeRules["/base"]?.headers?.["x-env"]).toBe("base");
+    expect(options.routeRules["/base"]?.headers).toMatchObject({ "x-env": "base" });
   });
 });

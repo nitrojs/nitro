@@ -3,6 +3,10 @@ import { isAbsolute, relative, resolve } from "pathe";
 import type { Nitro } from "nitro/types";
 
 export async function prepare(nitro: Nitro) {
+  if (nitro.options.builder === false) {
+    const { assertUnbundledSupport } = await import("./unbundled/build.ts");
+    assertUnbundledSupport(nitro);
+  }
   const dirsToClean = [
     nitro.options.output.dir,
     ...(!nitro.options.noPublicDir ? [nitro.options.output.publicDir] : []),

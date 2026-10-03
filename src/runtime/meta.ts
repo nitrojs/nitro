@@ -13,19 +13,11 @@ export const docsDir: string | undefined = /* @__PURE__ */ resolve("../docs");
 
 export const runtimeDependencies: string[] = [
   "crossws", // dep
-  "croner", // traced
   "db0", // dep
-  "defu", // traced
-  "destr", // traced
   "h3", // dep
   "rou3", // sub-dep of h3
-  "hookable", // traced
   "ocache", // dep
-  "rendu", // traced
-  "scule", // traced
   "srvx", // dep
-  "ufo", // traced
-  "unctx", // traced
   "unenv", // dep
   "unstorage", // dep
 ];
