@@ -11,6 +11,7 @@ export {
 
 export {
   normalizeLambdaIncomingHeaders,
+  normalizeLambdaIncomingQuery,
   normalizeLambdaOutgoingHeaders,
   normalizeLambdaOutgoingBody,
 } from "./utils.lambda";
