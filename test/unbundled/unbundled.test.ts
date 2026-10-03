@@ -68,11 +68,13 @@ describe("builder: false", () => {
       });
     });
 
-    it("applies `buildPlugins`", async () => {
+    it("applies `buildPlugins` (nested arrays and promises)", async () => {
       const res = await fetch(new URL("/build-plugins", server.url));
       expect(await res.json()).toEqual({
         message: "Hello from build plugin!",
         transform: "transformed",
+        promise: "promise",
+        nestedPromise: "nested-promise",
       });
     });
 

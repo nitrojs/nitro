@@ -1,4 +1,5 @@
 import { defineConfig } from "nitro";
+import type { NitroBuildPlugin } from "nitro/types";
 
 export default defineConfig({
   builder: false,
@@ -25,6 +26,8 @@ export default defineConfig({
         },
       },
     ],
+    Promise.resolve(virtualModule("virtual:promise", "promise")),
+    [[Promise.resolve(virtualModule("virtual:nested-promise", "nested-promise"))]],
   ],
   alias: {
     "~lib": "./lib",
@@ -33,3 +36,14 @@ export default defineConfig({
     asyncContext: true,
   },
 });
+
+function virtualModule(id: string, value: string): NitroBuildPlugin {
+  return {
+    name: `fixture:${value}`,
+    resolveId: { filter: { id: new RegExp(`^${id}$`) }, handler: () => `\0${id}` },
+    load: {
+      filter: { id: new RegExp(`^\0${id}$`) },
+      handler: () => `export default ${JSON.stringify(value)}`,
+    },
+  };
+}
