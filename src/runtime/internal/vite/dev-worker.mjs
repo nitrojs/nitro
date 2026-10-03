@@ -347,28 +347,27 @@ async function renderError(req, error) {
       }
     );
   }
+  const headers = {
+    "Content-Type": "text/html; charset=utf-8",
+    "Cache-Control": "no-store, max-age=0, must-revalidate",
+    Pragma: "no-cache",
+    Expires: "0",
+  };
+  const status = error.status || 500;
   try {
-    const { Youch } = await import("youch");
-    const youch = new Youch();
-    return new Response(await youch.toHTML(error), {
-      status: error.status || 500,
-      headers: {
-        "Content-Type": "text/html",
-        "Cache-Control": "no-store, max-age=0, must-revalidate",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
+    // `.ts` fallback: in stub mode this file is a symlink to `src/` where only the `.ts` source exists
+    const { renderErrorHTML } = await import("../error/_utils.mjs").catch(
+      () => import("../error/_utils.ts")
+    );
+    const html = await renderErrorHTML(error, {
+      status,
+      request: { method: req.method, url: req.url, headers: req.headers },
     });
+    return new Response(html, { status, headers });
   } catch {
-    return new Response(`<pre>${error.stack || error.message || error}</pre>`, {
-      status: error.status || 500,
-      headers: {
-        "Content-Type": "text/html",
-        "Cache-Control": "no-store, max-age=0, must-revalidate",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
-    });
+    const text = String(error?.stack || error?.message || error);
+    const escaped = text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+    return new Response(`<pre>${escaped}</pre>`, { status, headers });
   }
 }
 

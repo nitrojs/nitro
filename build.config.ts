@@ -23,21 +23,21 @@ const optionalDeps = [
 // Optional dependencies of bundled libraries, replaced by an on demand import (see `src/shims/`)
 const shimmedDeps = ["dotenv", "giget", "jiti"];
 
+// Runtime file bundled separately (see entries)
+const highlightEntry = "internal/error/_highlight.ts";
+
 const pkg = await import("./package.json", { with: { type: "json" } }).then((r) => r.default || r);
 
 const tracePkgs = [
-  "cookie-es", // used by azure runtime
+  "cookie-es", // used by azure runtime and dev error handler
   "croner", // used by internal/task
   "defu", // used by open-api runtime
   "destr", // used by node-server and deno-server
   "get-port-please", // used by dev server
   "rendu", // used by HTML renderer template
   "scule", // used by runtime config
-  "source-map", // used by dev error runtime
   "ufo", // used by presets and runtime
   "unctx", // used by internal/context
-  "youch", // used by error handler
-  "youch-core", // used by error handler
 ];
 
 export default defineBuildConfig({
@@ -51,6 +51,17 @@ export default defineBuildConfig({
       type: "transform",
       input: "src/runtime/",
       outDir: "dist/runtime",
+      filter: (id) => id !== highlightEntry,
+    },
+    {
+      // Inlines `rangi` (dev error syntax highlighter) so it is not a runtime dependency
+      type: "bundle",
+      input: `src/runtime/${highlightEntry}`,
+      license: false,
+      dts: false,
+      rolldown: {
+        plugins: [{ name: "single-chunk", outputOptions: (o) => ({ ...o, codeSplitting: false }) }],
+      },
     },
     {
       type: "transform",

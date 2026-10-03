@@ -147,11 +147,11 @@
     "perfect-debounce": "^2.1.0",
     "pkg-types": "^2.3.3",
     "pretty-bytes": "^7.1.3",
+    "rangi": "^2.2.0",
     "rendu": "^0.1.1",
     "rollup": "^4.63.4",
     "scule": "^1.3.0",
     "semver": "^7.8.5",
-    "source-map": "^0.8.0",
     "std-env": "^4.2.0",
     "tinyglobby": "^0.2.17",
     "typescript": "^7.0.2",
@@ -164,8 +164,6 @@
     "vitest": "^5.0.3",
     "wrangler": "^4.136.1",
     "xml2js": "^0.6.2",
-    "youch": "^4.1.1",
-    "youch-core": "^0.3.3",
     "zephyr-agent": "^1.4.0"
   },
   "engines": {
