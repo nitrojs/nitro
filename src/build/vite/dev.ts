@@ -320,6 +320,7 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       }
       return await sendNodeResponse(nodeRes, envRes);
     } catch (error) {
+      if (nodeRes.destroyed) return;
       return next(error);
     } finally {
       if (baseURL !== "/") {

@@ -120,9 +120,18 @@ export function displayPath(file: string): string {
 
 /** Format a path relative to the current working directory (when inside it). */
 export function relativePath(file: string): string {
-  const cwd = globalThis.process?.cwd?.();
-  if (cwd && file.startsWith(cwd) && /^[/\\]/.test(file.slice(cwd.length))) {
-    return "." + file.slice(cwd.length);
+  let cwd = globalThis.process?.cwd?.();
+  if (!cwd) {
+    return file;
+  }
+  let path = file;
+  // Windows: `cwd` uses `\` while Vite reports module paths with `/` (drive letter case may differ)
+  if (/^(?:[a-z]:|\\\\)/i.test(cwd)) {
+    cwd = normalizeWindowsPath(cwd);
+    path = normalizeWindowsPath(path);
+  }
+  if (path.startsWith(cwd) && path[cwd.length] === "/") {
+    return "." + path.slice(cwd.length);
   }
   return file;
 }
@@ -139,4 +148,8 @@ function toPath(file: string): string {
   } catch {
     return file;
   }
+}
+
+function normalizeWindowsPath(path: string): string {
+  return path.replace(/\\/g, "/").replace(/^[a-z]:/i, (drive) => drive.toUpperCase());
 }

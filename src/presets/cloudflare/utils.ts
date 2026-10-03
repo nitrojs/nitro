@@ -17,6 +17,7 @@ import {
   withoutLeadingSlash,
 } from "ufo";
 import { unenvCfNodeCompat } from "./unenv/preset.ts";
+import { routeToSplat, sortRoutes } from "../_utils/routes.ts";
 import { extendEnv } from "../../build/env.ts";
 
 // https://github.com/nitrojs/nitro/issues/4527
@@ -106,13 +107,13 @@ export async function writeCFHeaders(nitro: Nitro, outdir: "public" | "output") 
   );
   const contents = [];
 
-  const rules = Object.entries(nitro.options.routeRules).sort(
-    (a, b) => b[0].split(/\/(?!\*)/).length - a[0].split(/\/(?!\*)/).length
-  );
-
-  for (const [path, routeRules] of rules.filter(([_, routeRules]) => routeRules.headers)) {
+  for (const path of sortRoutes(Object.keys(nitro.options.routeRules))) {
+    const routeRules = nitro.options.routeRules[path];
+    if (!routeRules.headers) {
+      continue;
+    }
     const headers = [
-      joinURL(nitro.options.baseURL, path.replace("/**", "/*")),
+      joinURL(nitro.options.baseURL, routeToSplat(path)),
       ...Object.entries({ ...routeRules.headers }).map(
         ([header, value]) => `  ${header}: ${value}`
       ),
@@ -141,23 +142,22 @@ export async function writeCFPagesRedirects(nitro: Nitro) {
   const staticFallback = existsSync(join(nitro.options.output.publicDir, "404.html"))
     ? `${joinURL(nitro.options.baseURL, "/*")} ${joinURL(nitro.options.baseURL, "/404.html")} 404`
     : "";
-  const contents = [staticFallback];
-  const rules = Object.entries(nitro.options.routeRules).sort(
-    (a, b) => a[0].split(/\/(?!\*)/).length - b[0].split(/\/(?!\*)/).length
-  );
+  const contents: string[] = [];
 
-  for (const [key, routeRules] of rules) {
-    const redirect = routeRules.redirect;
+  // Most specific first, as the first matching rule wins
+  for (const key of sortRoutes(Object.keys(nitro.options.routeRules))) {
+    const redirect = nitro.options.routeRules[key].redirect;
     if (!redirect) {
       continue;
     }
     const code = redirect.status;
-    const from = joinURL(nitro.options.baseURL, key.replace("/**", "/*"));
-    const to = hasProtocol(redirect.to, { acceptRelative: true })
-      ? redirect.to
-      : joinURL(nitro.options.baseURL, redirect.to);
-    contents.unshift(`${from}\t${to}\t${code}`);
+    const from = joinURL(nitro.options.baseURL, routeToSplat(key));
+    const to = redirect.to.replaceAll("**", ":splat");
+    contents.push(
+      `${from}\t${hasProtocol(to, { acceptRelative: true }) ? to : joinURL(nitro.options.baseURL, to)}\t${code}`
+    );
   }
+  contents.push(staticFallback);
 
   if (existsSync(redirectsPath)) {
     const currentRedirects = await readFile(redirectsPath, "utf8");

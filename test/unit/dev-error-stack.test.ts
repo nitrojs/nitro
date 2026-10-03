@@ -3,12 +3,13 @@ import { tmpdir } from "node:os";
 import { join } from "pathe";
 import { pathToFileURL } from "node:url";
 import { build } from "rolldown";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   getFrames,
   loadStackTrace,
   parseFrame,
   parseStack,
+  relativePath,
 } from "../../src/runtime/internal/error/_stack.ts";
 import { getCodeFrame } from "../../src/runtime/internal/error/_utils.ts";
 
@@ -62,6 +63,48 @@ describe("dev error: parseFrame", () => {
   it("parseStack ignores message lines starting with `at`", () => {
     const frames = parseStack("Error: failed\nat validation step 3 of 7\n    at a (/x/a.ts:1:1)");
     expect(frames.map((f) => f.raw)).toEqual(["    at a (/x/a.ts:1:1)"]);
+  });
+});
+
+describe("dev error: relativePath", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("shortens paths inside the working directory", () => {
+    vi.spyOn(process, "cwd").mockReturnValue("/app");
+    expect(relativePath("/app/server/routes/index.ts")).toBe("./server/routes/index.ts");
+    expect(relativePath("/application/index.ts")).toBe("/application/index.ts");
+    expect(relativePath("/other/index.ts")).toBe("/other/index.ts");
+  });
+
+  it("shortens Windows paths with either separator", () => {
+    vi.spyOn(process, "cwd").mockReturnValue(String.raw`C:\app`);
+    // Vite reports module paths with `/`, Node with `\`
+    expect(relativePath("C:/app/server/routes/index.ts")).toBe("./server/routes/index.ts");
+    expect(relativePath(String.raw`C:\app\server\routes\index.ts`)).toBe(
+      "./server/routes/index.ts"
+    );
+    expect(relativePath("C:/application/index.ts")).toBe("C:/application/index.ts");
+    expect(relativePath(String.raw`D:\app\index.ts`)).toBe(String.raw`D:\app\index.ts`);
+  });
+
+  it("ignores drive letter case on Windows", () => {
+    vi.spyOn(process, "cwd").mockReturnValue(String.raw`c:\app`);
+    expect(relativePath("C:/app/server/routes/index.ts")).toBe("./server/routes/index.ts");
+    vi.spyOn(process, "cwd").mockReturnValue(String.raw`C:\app`);
+    expect(relativePath("c:/app/server/routes/index.ts")).toBe("./server/routes/index.ts");
+  });
+
+  it("shortens Windows UNC paths", () => {
+    vi.spyOn(process, "cwd").mockReturnValue(String.raw`\\server\share\app`);
+    expect(relativePath("//server/share/app/server/routes/index.ts")).toBe(
+      "./server/routes/index.ts"
+    );
+    expect(relativePath(String.raw`\\server\share\app\index.ts`)).toBe("./index.ts");
+    expect(relativePath("//server/share/application/index.ts")).toBe(
+      "//server/share/application/index.ts"
+    );
   });
 });
 

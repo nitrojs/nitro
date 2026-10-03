@@ -25,6 +25,7 @@ export const NitroDefaults: NitroConfig = {
   future: {},
   kv: {},
   devStorage: {},
+  cache: {},
   publicAssets: [],
   serverAssets: [],
   plugins: [],

@@ -21,6 +21,7 @@ import {
   type RouterContext,
 } from "rou3";
 import { escapeRegExp } from "../../utils/regex.ts";
+import { catchAllRef, sortRoutes } from "../_utils/routes.ts";
 import { joinURL, withLeadingSlash, withoutLeadingSlash } from "ufo";
 import type {
   PrerenderFunctionConfig,
@@ -778,21 +779,6 @@ function hasCacheControl(routeRules: NitroRouteRules | undefined): boolean {
 // --- rou3 pattern utils ---
 
 /**
- * Sort route patterns from the most to the least specific, ranked like the
- * rou3 router ranks its matches: a pattern always comes before any pattern
- * that contains it, so that the first matching Vercel route wins.
- */
-function sortRoutes(routes: string[]): string[] {
-  const router = createRouter<string>();
-  for (const route of routes) {
-    addRoute(router, "", route, route);
-  }
-  return findOverlappingRoutes(router, "", "/**")
-    .map((match) => match.data)
-    .reverse();
-}
-
-/**
  * A router looked up with route *patterns* (a `routeRules` key, a handler
  * route), not with request paths. See {@link matchPattern}.
  */
@@ -825,13 +811,4 @@ function matchPattern<T>(router: RouterContext<{ route: string; data: T }>, patt
 function hasQueryWildcard(to: string): boolean {
   const index = to.search(/[?#]/);
   return index !== -1 && to.includes("**", index);
-}
-
-/**
- * Vercel `$n` reference to the trailing `/**` capture of a route regex, which
- * h3 interpolates for `**` in a `redirect` or `proxy` target.
- */
-function catchAllRef(src: RegExp): string {
-  const groups = new RegExp(`${src.source}|`).exec("")!.length - 1;
-  return `$${groups || 1}`;
 }

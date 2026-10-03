@@ -172,8 +172,17 @@ class ViteEnvRunner {
   // they propagate to the caller (the nitro app's error handler or the
   // env-runner fetch boundary below).
   async fetch(req, init) {
-    // Wait until nothing is queued or in flight so requests never hit an entry
-    // that is about to be replaced.
+    const entry = await this.waitForEntry();
+    const entryFetch = entry.default?.fetch || entry.fetch;
+    if (!entryFetch) {
+      throw httpError(500, `No fetch handler exported from ${this.entryPath}`);
+    }
+    return entryFetch(req, init);
+  }
+
+  // Waits until nothing is queued or in flight so callers never reach an entry
+  // that is about to be replaced.
+  async waitForEntry() {
     const deadline = Date.now() + RELOAD_WAIT_TIMEOUT;
     let reloadPromise;
     while (reloadPromise !== this.reloadPromise) {
@@ -191,11 +200,7 @@ class ViteEnvRunner {
     if (!this.entry) {
       throw httpError(503, `Vite environment "${this.name}" is unavailable`);
     }
-    const entryFetch = this.entry.default?.fetch || this.entry.fetch;
-    if (!entryFetch) {
-      throw httpError(500, `No fetch handler exported from ${this.entryPath}`);
-    }
-    return entryFetch(req, init);
+    return this.entry;
   }
 }
 
@@ -273,12 +278,16 @@ export async function fetch(req) {
   }
 }
 
-export function upgrade(context) {
-  const handleUpgrade = envs.nitro?.entry?.handleUpgrade;
-  if (handleUpgrade) {
-    handleUpgrade(context.node.req, context.node.socket, context.node.head);
-  }
-}
+// Re-exported as `websocket` by the generated entry only when the feature is enabled (see
+// `build/vite/_dev-worker.ts`), so the runner installs its runtime's crossws adapter on demand.
+export const websocketOptions = {
+  async resolve(request) {
+    const env = envs.nitro || (await waitForEnv("nitro"));
+    const entry = await env?.waitForEntry();
+    const websocket = entry?.default?.websocket || entry?.websocket;
+    return (await websocket?.resolve(request)) || {};
+  },
+};
 
 export const ipc = {
   onOpen(ctx) {

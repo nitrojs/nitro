@@ -232,6 +232,15 @@ export interface NitroOptions extends PresetOptions {
   devStorage: StorageMounts;
 
   /**
+   * Cache storage and global default options for cached functions, cached handlers
+   * and `cache` route rules.
+   *
+   * @see https://nitro.build/config#cache
+   * @see https://nitro.build/docs/cache
+   */
+  cache: NitroCacheConfig;
+
+  /**
    * Database connection configurations.
    *
    * Requires `experimental.database: true`.
@@ -709,9 +718,12 @@ export interface NitroOptions extends PresetOptions {
    * `nitro()` plugin is found, otherwise `"rolldown"` (bundled with Nitro).
    * Use the `NITRO_BUILDER` environment variable as an alternative.
    *
+   * Set to `false` to run the server sources without bundling (experimental, `dev` and
+   * `preview` only).
+   *
    * @see https://nitro.build/config#builder
    */
-  builder?: "rollup" | "rolldown" | "vite";
+  builder?: "rollup" | "rolldown" | "vite" | false;
 
   /**
    * Options for the `vite` builder and the `nitro/vite` plugin.
@@ -1160,6 +1172,76 @@ export type StorageMount = BuiltinStorageMount | CustomStorageMount;
  */
 export interface StorageMounts {
   [path: string]: StorageMount;
+}
+
+// Cache
+
+/** Cache storage driver. */
+export type NitroCacheDriver = "memory" | "fs" | "kv";
+
+/** Options shared by cached functions and cached handlers. */
+export type NitroCacheFunctionDefaults = Pick<
+  import("ocache").CacheOptions,
+  "maxAge" | "swr" | "staleMaxAge" | "maxResolveTime" | "base"
+>;
+
+/** Options that only apply to cached handlers and `cache` route rules. */
+export type NitroCacheHandlerDefaults = Pick<
+  import("ocache").CachedEventHandlerOptions,
+  | "varies"
+  | "allowQuery"
+  | "allowCookies"
+  | "allowAuthorization"
+  | "sendCacheControl"
+  | "cacheStatusHeader"
+  | "maxBodySize"
+>;
+
+/** Global default options for cached functions, cached handlers and `cache` route rules. */
+export interface NitroCacheDefaults extends NitroCacheFunctionDefaults, NitroCacheHandlerDefaults {}
+
+/**
+ * Cache configuration.
+ *
+ * @see https://nitro.build/config#cache
+ */
+export interface NitroCacheConfig {
+  /**
+   * Cache storage driver.
+   *
+   * - `"memory"`: in-process LRU memory storage (not persisted across restarts).
+   * - `"fs"`: filesystem storage (Node.js compatible runtimes only).
+   * - `"kv"`: the Nitro [KV storage layer](https://nitro.build/docs/storage) (`useKV()`).
+   *
+   * Defaults to `"kv"` when a `cache` (or `cache:*` / `cache/*`) KV mount point is
+   * configured, and to `"memory"` otherwise.
+   */
+  driver?: NitroCacheDriver;
+
+  /** Options for the `memory` driver. */
+  memory?: Omit<import("ocache").MemoryStorageOptions, "sizeOf">;
+
+  /** Options for the `fs` driver. */
+  fs?: {
+    /**
+     * Directory to store cache entries in.
+     *
+     * Relative paths resolve against `rootDir` in development and prerendering, and against
+     * the working directory of the server process in production.
+     *
+     * Defaults to `.data/cache`.
+     */
+    dir?: string;
+  };
+
+  /**
+   * Global default options for every cached function, cached handler and `cache` route rule.
+   *
+   * Shared options (`maxAge`, `swr`, `staleMaxAge`, `maxResolveTime`, `base`) apply to all of
+   * them, handler-only options only apply to cached handlers and route rules.
+   * Per-cache options take precedence.
+   */
+  defaults?: NitroCacheDefaults;
 }
 
 // Database
