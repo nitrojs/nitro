@@ -20,6 +20,7 @@ import { resolvePathOptions } from "./resolvers/paths.ts";
 import { resolveRouteRulesOptions } from "./resolvers/route-rules.ts";
 import { resolveRuntimeConfigOptions } from "./resolvers/runtime-config.ts";
 import { resolveKVOptions } from "./resolvers/kv.ts";
+import { resolveCacheOptions } from "./resolvers/cache.ts";
 import { resolveURLOptions } from "./resolvers/url.ts";
 import { resolveErrorOptions } from "./resolvers/error.ts";
 import { resolveUnenv } from "./resolvers/unenv.ts";
@@ -38,6 +39,7 @@ const configResolvers = [
   resolveURLOptions,
   resolveAssetsOptions,
   resolveKVOptions,
+  resolveCacheOptions,
   resolveErrorOptions,
   resolveUnenv,
   resolveBuilder,

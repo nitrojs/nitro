@@ -233,6 +233,15 @@ export interface NitroOptions extends PresetOptions {
   devStorage: StorageMounts;
 
   /**
+   * Cache storage and global default options for cached functions, cached handlers
+   * and `cache` route rules.
+   *
+   * @see https://nitro.build/config#cache
+   * @see https://nitro.build/docs/cache
+   */
+  cache: NitroCacheConfig;
+
+  /**
    * Database connection configurations.
    *
    * Requires `experimental.database: true`.
@@ -1104,6 +1113,67 @@ export type StorageMount = BuiltinStorageMount | CustomStorageMount;
  */
 export interface StorageMounts {
   [path: string]: StorageMount;
+}
+
+// Cache
+
+/** Cache storage driver. */
+export type NitroCacheDriver = "memory" | "fs" | "kv";
+
+/** Options shared by cached functions and cached handlers. */
+export type NitroCacheFunctionDefaults = Pick<
+  import("ocache").CacheOptions,
+  "maxAge" | "swr" | "staleMaxAge" | "maxResolveTime" | "base"
+>;
+
+/** Options that only apply to cached handlers and `cache` route rules. */
+export type NitroCacheHandlerDefaults = Pick<
+  import("ocache").CachedEventHandlerOptions,
+  | "varies"
+  | "allowQuery"
+  | "allowCookies"
+  | "allowAuthorization"
+  | "sendCacheControl"
+  | "cacheStatusHeader"
+  | "maxBodySize"
+>;
+
+/**
+ * Cache configuration.
+ *
+ * Options other than `driver`, `memory` and `fs` are used as global defaults for every
+ * cached function, cached handler and `cache` route rule. Per-cache options take precedence.
+ *
+ * @see https://nitro.build/config#cache
+ */
+export interface NitroCacheConfig extends NitroCacheFunctionDefaults, NitroCacheHandlerDefaults {
+  /**
+   * Cache storage driver.
+   *
+   * - `"memory"`: in-process LRU memory storage (not persisted across restarts).
+   * - `"fs"`: filesystem storage (Node.js compatible runtimes only).
+   * - `"kv"`: the Nitro [KV storage layer](https://nitro.build/docs/storage) (`useKV()`).
+   *
+   * Defaults to `"kv"` when a `cache` (or `cache:*` / `cache/*`) KV mount point is
+   * configured, and to `"memory"` otherwise.
+   */
+  driver?: NitroCacheDriver;
+
+  /** Options for the `memory` driver. */
+  memory?: import("ocache").MemoryStorageOptions;
+
+  /** Options for the `fs` driver. */
+  fs?: {
+    /**
+     * Directory to store cache entries in.
+     *
+     * Relative paths resolve against `rootDir` in development and prerendering, and against
+     * the working directory of the server process in production.
+     *
+     * Defaults to `.data/cache`.
+     */
+    dir?: string;
+  };
 }
 
 // Database
