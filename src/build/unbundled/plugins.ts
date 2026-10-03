@@ -31,6 +31,7 @@ export async function unbundledPlugins(nitro: Nitro): Promise<EnvRunnerPlugin[]>
   const plugins: EnvRunnerPlugin[] = [
     virtualPlugin(),
     resolvePlugin(nitro, base.extensions),
+    windowsPathPlugin(base.extensions),
     await transformPlugin(nitro, sourceDirs),
     replacePlugin(base.replacements, sourceDirs),
     withoutSourceMap(fromRollup(await importAttributes())),
@@ -88,19 +89,28 @@ function resolvePlugin(nitro: Nitro, extensions: string[]): EnvRunnerPlugin {
           const base = isAbsolute(path)
             ? path
             : resolve(importer ? dirname(splitQuery(importer)[0]) : nitro.options.rootDir, path);
-          for (const candidate of [
-            ...extensions.map((ext) => base + ext),
-            ...extensions.map((ext) => join(base, `index${ext}`)),
-          ]) {
-            if (existsSync(candidate) && statSync(candidate).isFile()) {
-              return candidate + query;
-            }
-          }
-          return;
+          return resolveFile(base, query, extensions);
         }
         if (importer && normalize(importer).startsWith(virtualDir)) {
           return this.resolve(source, join(nitro.options.rootDir, "_"));
         }
+      },
+    },
+  };
+}
+
+/**
+ * Windows absolute paths (Nitro virtual modules import sources by path): Node.js rejects them
+ * as a `d:` URL scheme instead of failing to resolve, so they skip `fallback` resolvers.
+ */
+function windowsPathPlugin(extensions: string[]): EnvRunnerPlugin {
+  return {
+    name: "nitro:windows-path",
+    resolveId: {
+      filter: { id: /^[a-zA-Z]:[\\/]/ },
+      handler(source) {
+        const [path, query] = splitQuery(source);
+        return resolveFile(normalize(path), query, extensions);
       },
     },
   };
@@ -248,6 +258,19 @@ function withoutSourceMap(plugin: EnvRunnerPlugin): EnvRunnerPlugin {
 /** Rollup plugins only using the hooks and context env-runner supports. */
 function fromRollup(plugin: unknown): EnvRunnerPlugin {
   return plugin as EnvRunnerPlugin;
+}
+
+/** The path itself, with an extension or as a directory index, like bundlers resolve it. */
+function resolveFile(base: string, query: string, extensions: string[]): string | undefined {
+  for (const candidate of [
+    base,
+    ...extensions.map((ext) => base + ext),
+    ...extensions.map((ext) => join(base, `index${ext}`)),
+  ]) {
+    if (existsSync(candidate) && statSync(candidate).isFile()) {
+      return candidate + query;
+    }
+  }
 }
 
 function splitQuery(id: string): [path: string, query: string] {
