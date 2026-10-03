@@ -73,6 +73,7 @@ describe("dev server devProxy websocket upgrades", () => {
         publicAssets: [],
         devProxy: {
           "/proxy/ws": { target: `http://127.0.0.1:${targetPort}`, ws: true },
+          "/proxy/wild/**": { target: `http://127.0.0.1:${targetPort}`, ws: true },
           "/proxy/http": { target: `http://127.0.0.1:${targetPort}` },
         },
       },
@@ -107,16 +108,18 @@ describe("dev server devProxy websocket upgrades", () => {
     expect(upgrades).toContain("/proxy/ws");
   });
 
-  it("proxies upgrades for subpaths of a matching rule", async () => {
-    const res = await upgradeRequest(devPort, "/proxy/ws/nested?foo=1");
+  it("proxies upgrades for a matching wildcard rule", async () => {
+    const res = await upgradeRequest(devPort, "/proxy/wild/nested?foo=1");
     expect(res.status).toBe(101);
-    expect(upgrades).toContain("/proxy/ws/nested?foo=1");
+    expect(upgrades).toContain("/proxy/wild/nested?foo=1");
   });
 
-  it("forwards upgrades to the worker when no rule enables `ws`", async () => {
+  it("forwards upgrades to the worker when no `ws` rule matches", async () => {
     await expect(upgradeRequest(devPort, "/proxy/http")).rejects.toThrow();
+    await expect(upgradeRequest(devPort, "/proxy/ws/nested")).rejects.toThrow();
     await expect(upgradeRequest(devPort, "/other")).rejects.toThrow();
-    expect(workerUpgrades).toBe(2);
+    expect(workerUpgrades).toBe(3);
     expect(upgrades).not.toContain("/proxy/http");
+    expect(upgrades).not.toContain("/proxy/ws/nested");
   });
 });

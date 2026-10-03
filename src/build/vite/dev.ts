@@ -2,6 +2,7 @@ import type { NitroPluginContext } from "./types.ts";
 import type { DevEnvironment, DevEnvironmentContext, ResolvedConfig, ViteDevServer } from "vite";
 import type { FetchFunctionOptions, FetchResult } from "vite/module-runner";
 import type { RunnerRPCHooks, UpgradeContext } from "env-runner";
+import type { Socket } from "node:net";
 
 import { IncomingMessage, ServerResponse } from "node:http";
 import { readFile } from "node:fs/promises";
@@ -185,14 +186,23 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   }
 
   // Websocket (`httpServer` is null in middleware mode, the parent server handles upgrades)
-  if (nitro.options.features.websocket ?? nitro.options.experimental.websocket) {
+  const websocket = nitro.options.features.websocket ?? nitro.options.experimental.websocket;
+  const wsProxy = Object.values(nitro.options.devProxy).some(
+    (opts) => typeof opts === "object" && opts.ws
+  );
+  if (websocket || wsProxy) {
     server.httpServer?.on("upgrade", (req, socket, head) => {
       const protocol = req.headers["sec-websocket-protocol"];
       if (protocol?.startsWith("vite-")) {
         // Vite HMR WebSocket connection
         return;
       }
-      nitroEnv.devServer.upgrade?.({ node: { req, socket, head } });
+      if (ctx.devApp?.proxyUpgrade(req, socket as Socket, head)) {
+        return;
+      }
+      if (websocket) {
+        nitroEnv.devServer.upgrade?.({ node: { req, socket, head } });
+      }
     });
   }
 

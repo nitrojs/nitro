@@ -5,6 +5,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Socket } from "node:net";
 import { H3, toEventHandler, serveStatic, fromNodeHandler, HTTPError } from "h3";
 import { joinURL } from "ufo";
+import { addRoute, createRouter, findRoute } from "rou3";
 import mime from "mime";
 import { join, resolve, extname } from "pathe";
 import { stat } from "node:fs/promises";
@@ -22,7 +23,7 @@ export class NitroDevApp {
   nitro: Nitro;
   fetch: (req: Request) => Response | Promise<Response>;
 
-  #wsProxies: { route: string; proxy: ReturnType<typeof createHTTPProxy> }[] = [];
+  #wsProxies?: ReturnType<typeof createRouter<ReturnType<typeof createHTTPProxy>>>;
 
   constructor(nitro: Nitro, catchAllHandler?: HTTPHandler) {
     this.nitro = nitro;
@@ -101,7 +102,8 @@ export class NitroDevApp {
       const proxy = createHTTPProxy(opts);
       app.all(route, proxy.handleEvent);
       if (opts.ws) {
-        this.#wsProxies.push({ route, proxy });
+        this.#wsProxies ??= createRouter();
+        addRoute(this.#wsProxies, "", route, proxy);
       }
     }
 
@@ -119,17 +121,15 @@ export class NitroDevApp {
    * @returns `true` if the socket was handed to a proxy, `false` if the caller should handle it.
    */
   proxyUpgrade(req: IncomingMessage, socket: Socket, head: any): boolean {
-    if (this.#wsProxies.length === 0) {
+    if (!this.#wsProxies) {
       return false;
     }
     const path = (req.url || "/").split("?")[0]!;
-    const match = this.#wsProxies.find(
-      ({ route }) => path === route || path.startsWith(route.endsWith("/") ? route : `${route}/`)
-    );
+    const match = findRoute(this.#wsProxies, "", path);
     if (!match) {
       return false;
     }
-    match.proxy.proxy.ws(req, socket, {}, head).catch((error) => {
+    match.data.proxy.ws(req, socket, {}, head).catch((error) => {
       this.nitro.logger.error(`Failed to proxy WebSocket upgrade for \`${path}\`:`, error);
       socket.destroy();
     });
