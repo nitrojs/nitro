@@ -35,7 +35,7 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
     group: "nitro/functions",
     onError: defaultOnError,
     ...cacheFunctionDefaults,
-    ...opts,
+    ...definedOptions(opts),
   });
 }
 
@@ -51,7 +51,17 @@ export function defineCachedHandler(
     createResponse: (body, init) => new FastResponse(body as BodyInit, init),
     handleCacheHeaders: (event, conditions) => handleCacheHeaders(event as H3Event, conditions),
     ...cacheHandlerDefaults,
-    ...opts,
+    ...definedOptions(opts),
   });
   return defineHandler((event) => ocacheHandler(event as any));
+}
+
+function definedOptions<T extends object>(opts: T): T {
+  const defined = {} as T;
+  for (const key in opts) {
+    if (opts[key] !== undefined) {
+      defined[key] = opts[key];
+    }
+  }
+  return defined;
 }

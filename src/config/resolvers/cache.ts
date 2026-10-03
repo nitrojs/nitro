@@ -7,6 +7,11 @@ const cacheDrivers = new Set(["memory", "fs", "kv"]);
 
 export async function resolveCacheOptions(options: NitroOptions) {
   options.cache ??= {};
+  if (typeof options.cache !== "object") {
+    throw new TypeError(
+      `Invalid \`cache\` config: expected an object (e.g. \`{ driver: "memory" }\`), got ${JSON.stringify(options.cache)}.`
+    );
+  }
 
   // Backward compatibility: a `cache` KV mount point keeps cache entries in KV storage
   options.cache.driver ??= hasCacheKVMount(options) ? "kv" : "memory";

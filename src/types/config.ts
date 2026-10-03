@@ -1219,7 +1219,7 @@ export interface NitroCacheConfig extends NitroCacheFunctionDefaults, NitroCache
   driver?: NitroCacheDriver;
 
   /** Options for the `memory` driver. */
-  memory?: import("ocache").MemoryStorageOptions;
+  memory?: Omit<import("ocache").MemoryStorageOptions, "sizeOf">;
 
   /** Options for the `fs` driver. */
   fs?: {

@@ -11,6 +11,7 @@ import type { StorageInterface } from "ocache";
  */
 export function createFSCacheStorage(opts: { dir: string }): StorageInterface {
   const dir = resolve(opts.dir);
+  const tmpPrefix = `${globalThis.process?.pid ?? 0}.${Math.random().toString(36).slice(2, 8)}.`;
   let tmpCounter = 0;
   return createBlobStorage({
     async get(key) {
@@ -30,9 +31,14 @@ export function createFSCacheStorage(opts: { dir: string }): StorageInterface {
         return;
       }
       await mkdir(dirname(path), { recursive: true });
-      const tmpPath = `${path}.${Date.now().toString(36)}${(tmpCounter++).toString(36)}.tmp`;
-      await writeFile(tmpPath, value);
-      await rename(tmpPath, path);
+      const tmpPath = `${path}.${tmpPrefix}${(tmpCounter++).toString(36)}.tmp`;
+      try {
+        await writeFile(tmpPath, value);
+        await rename(tmpPath, path);
+      } catch (error) {
+        await rm(tmpPath, { force: true }).catch(() => {});
+        throw error;
+      }
     },
   });
 }

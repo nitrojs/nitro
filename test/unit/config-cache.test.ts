@@ -64,6 +64,11 @@ describe("resolveCacheOptions", () => {
     await expect(resolveCacheOptions(options)).rejects.toThrow("Invalid `cache.driver`");
   });
 
+  it("throws on a non-object config", async () => {
+    const options = createOptions({ cache: false as any });
+    await expect(resolveCacheOptions(options)).rejects.toThrow("Invalid `cache` config");
+  });
+
   it("resolves the fs dir against rootDir in development only", async () => {
     const dev = createOptions({ dev: true, cache: { driver: "fs" } });
     await resolveCacheOptions(dev);
