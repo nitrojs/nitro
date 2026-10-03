@@ -25,7 +25,7 @@ export async function unbundledPlugins(nitro: Nitro): Promise<EnvRunnerPlugin[]>
 
   // Sources Nitro would bundle: its own runtime and the app (`node_modules` needs a named include)
   const sourceDirs = [pkgDir, nitro.options.rootDir, ...nitro.options.scanDirs].map(
-    (dir) => `${escapeGlob(dir.replace(/\/$/, ""))}/**`
+    (dir) => `${escapeGlob(normalize(dir).replace(/\/$/, ""))}/**`
   );
 
   const plugins: EnvRunnerPlugin[] = [
