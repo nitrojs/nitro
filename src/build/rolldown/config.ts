@@ -5,7 +5,6 @@ import { baseBuildPlugins } from "../plugins.ts";
 import { builtinModules } from "node:module";
 import { defu } from "defu";
 import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
-import { isUnenvId } from "../plugins/unenv.ts";
 
 export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> => {
   const base = await baseBuildConfig(nitro);
@@ -22,9 +21,9 @@ export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> 
     tsconfig: false,
     external: [
       ...base.env.external,
-      // Builtins aliased to `unenv` polyfills are bundled (rolldown checks `external` before plugins)
+      // Builtins aliased to polyfills are bundled (rolldown checks `external` before aliases and plugins)
       ...[...builtinModules, ...builtinModules.map((m) => `node:${m}`)].filter(
-        (id) => !isUnenvId(base.env.alias[id] || "")
+        (id) => !base.env.alias[id] || base.env.alias[id].startsWith("node:")
       ),
     ],
     plugins: [...((await baseBuildPlugins(nitro, base)) as RolldownPlugin[])],

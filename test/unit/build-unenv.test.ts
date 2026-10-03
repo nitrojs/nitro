@@ -1,8 +1,8 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "pathe";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { dirname, join } from "pathe";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { build, copyPublicAssets, createNitro, prepare } from "../../src/builder.ts";
 import * as dep from "../../src/utils/dep.ts";
 
@@ -14,14 +14,33 @@ const builders = ["rolldown", "rollup"] as const;
 const unenvCalls = () =>
   vi.mocked(dep.ensureDep).mock.calls.filter(([opts]) => opts.id === "unenv");
 
-async function buildApp(builder: (typeof builders)[number], server: string) {
+const tmpDirs: string[] = [];
+afterAll(() => {
+  for (const dir of tmpDirs) {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+async function buildApp(
+  builder: (typeof builders)[number],
+  server: string,
+  opts: { preset?: string; files?: Record<string, string> } = {}
+) {
   const rootDir = mkdtempSync(join(tmpdir(), "nitro-build-unenv-"));
-  writeFileSync(join(rootDir, "package.json"), JSON.stringify({ type: "module" }));
-  writeFileSync(join(rootDir, "server.ts"), server);
+  tmpDirs.push(rootDir);
+  const appFiles = {
+    "package.json": JSON.stringify({ type: "module" }),
+    "server.ts": server,
+    ...opts.files,
+  };
+  for (const [path, contents] of Object.entries(appFiles)) {
+    mkdirSync(dirname(join(rootDir, path)), { recursive: true });
+    writeFileSync(join(rootDir, path), contents);
+  }
   const nitro = await createNitro({
     rootDir,
     builder,
-    preset: "cloudflare-module",
+    preset: opts.preset || "cloudflare-module",
     compatibilityDate: "2025-01-01",
     logLevel: 0,
   });
@@ -77,5 +96,44 @@ describe.each(builders)("unenv on demand (%s)", (builder) => {
         `import vm from "node:vm";\nexport default { fetch: () => new Response(typeof vm) };`
       )
     ).rejects.toThrow(/`unenv` is not installed[\s\S]*node:vm/);
+  });
+
+  it("bundles default imports of mocked Node.js internals", async () => {
+    const code = await buildApp(
+      builder,
+      `import wrap from "node:_stream_wrap";\nexport default { fetch: () => new Response(typeof wrap) };`
+    );
+    expect(code).not.toMatch(/["']node:_stream_wrap["']/);
+  });
+
+  it("keeps the own unenv copy of dependencies", async () => {
+    const pkg = (name: string, exports: unknown) =>
+      JSON.stringify({ name, type: "module", exports });
+    const code = await buildApp(
+      builder,
+      `import marker from "dep";\nexport default { fetch: () => new Response(marker) };`,
+      {
+        files: {
+          "node_modules/dep/package.json": pkg("dep", "./index.mjs"),
+          "node_modules/dep/index.mjs": `export { default } from "unenv/custom-marker";`,
+          "node_modules/dep/node_modules/unenv/package.json": pkg("unenv", { "./*": "./*.mjs" }),
+          "node_modules/dep/node_modules/unenv/custom-marker.mjs": `export default "nested-unenv-marker";`,
+        },
+      }
+    );
+    expect(code).toContain("nested-unenv-marker");
+    expect(unenvCalls()).toEqual([]);
+  });
+
+  it("installs unenv before bundling for runtimes without Node.js compatibility", async () => {
+    const code = await buildApp(
+      builder,
+      `import { Readable } from "node:stream";\nexport default { fetch: () => new Response(typeof Readable) };`,
+      { preset: "winterjs" }
+    );
+    expect(unenvCalls()).toEqual([
+      [expect.objectContaining({ reason: expect.stringContaining("node:process") })],
+    ]);
+    expect(code).not.toMatch(/from\s*["'](node:)?(process|stream|buffer|timers)["']/);
   });
 });

@@ -23,7 +23,7 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   plugins.push(virtualPlugin, virtualDeps());
 
   // Node.js compatibility polyfills (resolved on demand)
-  plugins.push(unenv(nitro, base.env.alias));
+  plugins.push(unenv(nitro, base.env));
 
   // WASM loader
   if (nitro.options.wasm !== false) {
