@@ -368,7 +368,9 @@ function nitroPrepare(ctx: NitroPluginContext): VitePlugin {
       async handler() {
         debug("[prepare] Preparing output directory");
         const nitro = ctx.nitro!;
-        await prepare(nitro);
+        await prepare(nitro, {
+          generatedAssetDirs: ctx._publicDistDir ? [ctx._publicDistDir] : [],
+        });
       },
     },
   };

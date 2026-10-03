@@ -138,4 +138,27 @@ describe("prepare", () => {
 
     await expect(prepare(nitro)).resolves.toBeUndefined();
   });
+
+  it("cleans a generated asset directory left by a previous build", async () => {
+    const root = await mkdtemp(join(tmpdir(), "nitro-prepare-"));
+    temporaryDirs.push(root);
+    const outputDir = join(root, "dist");
+    await mkdir(outputDir, { recursive: true });
+    await writeFile(join(outputDir, "stale.js"), "stale output");
+    const nitro = {
+      options: {
+        output: {
+          dir: outputDir,
+          publicDir: outputDir,
+          serverDir: join(outputDir, "server"),
+        },
+        publicAssets: [{ dir: outputDir }],
+        noPublicDir: false,
+        static: false,
+      },
+    } as Nitro;
+
+    await prepare(nitro, { generatedAssetDirs: [outputDir] });
+    await expect(readFile(join(outputDir, "stale.js"), "utf8")).rejects.toThrow();
+  });
 });
