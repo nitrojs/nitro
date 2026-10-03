@@ -4,6 +4,7 @@ import type { Nitro } from "nitro/types";
 import type { Config, Manifest } from "@netlify/edge-functions";
 import { dirname, join } from "pathe";
 import { unenvDeno } from "../deno/unenv/preset.ts";
+import { extendEnv } from "../../build/env.ts";
 import {
   generateNetlifyFunction,
   getGeneratorString,
@@ -88,10 +89,13 @@ const netlifyEdge = defineNitroPreset(
       output: {
         entryFileNames: "server.js",
         format: "esm",
+        inlineDynamicImports: false,
       },
     },
-    unenv: unenvDeno,
     hooks: {
+      "build:before": (nitro: Nitro) => {
+        extendEnv(nitro, unenvDeno);
+      },
       async compiled(nitro: Nitro) {
         await writeHeaders(nitro);
         await writeRedirects(nitro);

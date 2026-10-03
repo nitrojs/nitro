@@ -16,7 +16,7 @@ describe("vite:app", () => {
 
   beforeAll(async () => {
     process.chdir(rootDir);
-    server = await createServer({ root: rootDir });
+    server = await createServer({ root: rootDir, logLevel: "warn" });
     await server.listen("0" as unknown as number);
     const addr = server.httpServer?.address() as {
       port: number;
@@ -31,7 +31,7 @@ describe("vite:app", () => {
     process.chdir(originalCwd);
   });
 
-  test("SSR entry can use nitro/storage (shared with nitro env)", async () => {
+  test("SSR entry can use nitro/kv (shared with nitro env)", async () => {
     const res = await fetch(serverURL);
     const data = (await res.json()) as { storage: string; config: string };
     expect(data.storage).toBe("value-from-ssr");
@@ -49,6 +49,11 @@ describe("vite:app", () => {
     const res = await fetch(`${serverURL}/api/storage`);
     const value = await res.text();
     expect(value).toBe("value-from-ssr");
+  });
+
+  test("applies `buildPlugins` to the nitro environment", async () => {
+    const res = await fetch(`${serverURL}/api/build-plugin`);
+    expect(await res.text()).toBe("Hello from build plugin!");
   });
 
   // #4234: a request matching only the SSR `/**` catch-all (no explicit route) that looks like
@@ -92,6 +97,15 @@ describe("vite:app", () => {
       redirect: "manual",
     });
     expect(res.status).not.toBe(200);
+  });
+
+  test("serves Vite-internal URLs under the default base", async () => {
+    const res = await fetch(`${serverURL}/@vite/client`, {
+      headers: { accept: "*/*" },
+      redirect: "manual",
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toMatch(/javascript/);
   });
 
   // #4252: an asset-tagged request the SSR catch-all deliberately serves (non-page content-type)

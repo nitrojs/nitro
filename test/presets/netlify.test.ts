@@ -42,12 +42,12 @@ describe("nitro:preset:netlify", async () => {
 
         expect(redirects).toMatchInlineSnapshot(`
           "/rules/nested/override	/other	302
-          /rules/redirect/legacy/*	/:splat	302
-          /rules/redirect/wildcard/*	https://nitro.build/:splat	302
-          /rules/redirect/obj	https://nitro.build/	301
-          /rules/ba-redirect/*	/base	302
           /rules/nested/*	/base	302
           /rules/redirect	/base	302
+          /rules/redirect/legacy/*	/:splat	302
+          /rules/redirect/wildcard-query/*	/target?param=:splat	301
+          /rules/redirect/wildcard/*	https://nitro.build/:splat	302
+          /rules/redirect/obj	https://nitro.build/	301
           "
         `);
       });
@@ -56,16 +56,16 @@ describe("nitro:preset:netlify", async () => {
         const headers = await fsp.readFile(resolve(ctx.outDir, "../dist/_headers"), "utf8");
 
         expect(headers).toMatchInlineSnapshot(`
-          "/rules/headers
-            cache-control: s-maxage=60
-          /rules/cors
-            access-control-allow-methods: GET
-          /rules/nested/*
-            x-test: test
+          "/build/*
+            cache-control: public, max-age=3600, immutable
           /single-headers/*
             x-single: single
-          /build/*
-            cache-control: public, max-age=3600, immutable
+          /rules/nested/*
+            x-test: test
+          /rules/cors
+            access-control-allow-methods: GET
+          /rules/headers
+            cache-control: s-maxage=60
           /*
             x-test: test
           "

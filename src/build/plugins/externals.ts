@@ -87,8 +87,11 @@ export function externals(opts: ExternalsOptions): Plugin {
           };
         }
 
-        // Skip nested rollup-node resolutions
-        if (rOpts.custom?.["node-resolve"]) {
+        // Skip nested `@rollup/plugin-node-resolve` re-entries (already resolved to
+        // a file). A `require()` from a bundled CommonJS module also arrives here
+        // (`isRequire`), and must go through the main path so a package matching
+        // the trace filter is externalized and traced instead of bundled.
+        if (rOpts.custom?.["node-resolve"]?.resolved) {
           return null;
         }
 
@@ -278,16 +281,19 @@ export function resolveTraceDeps(
   );
   // User-declared named deps to always force-trace by name. Builtin native
   // packages are intentionally NOT force-traced wholesale: many of them are
-  // build-time-only tooling (e.g. `rolldown`/`rollup`/`vite`, declared as deps
-  // by `nitro` itself) that must never be copied into the runtime output. A
+  // build-time-only tooling (e.g. `rolldown`/`rollup`/`vite`) that must never
+  // be copied into the runtime output. A
   // builtin is force-traced only when it is actually observed as an
   // (unresolvable) import during the build — nft cannot statically detect
   // dynamically-loaded native bindings, so those observed names are collected at
   // resolve time and traced explicitly. Force-tracing by name also fixes pnpm,
   // where a nested dependency only resolves from the dependent package's real
   // `.pnpm` location.
+  // Bare scopes (`@scope`) are prefix selectors for the include pattern only:
+  // they are not resolvable package names, so nf3 would warn on them.
   const traceInclude = userTraceDeps.filter(
-    (d): d is string => typeof d === "string" && !negated.has(d)
+    (d): d is string =>
+      typeof d === "string" && !negated.has(d) && !(d.startsWith("@") && !d.includes("/"))
   );
   return {
     includePattern: tracePattern

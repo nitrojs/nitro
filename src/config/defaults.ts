@@ -23,14 +23,14 @@ export const NitroDefaults: NitroConfig = {
   features: {},
   experimental: {},
   future: {},
-  storage: {},
+  kv: {},
   devStorage: {},
+  cache: {},
   publicAssets: [],
   serverAssets: [],
   plugins: [],
   tasks: {},
   scheduledTasks: {},
-  imports: false,
   virtual: {},
   compressPublicAssets: false,
   ignore: [],
@@ -69,17 +69,17 @@ export const NitroDefaults: NitroConfig = {
 
   // Builder
   builder: undefined,
+  buildPlugins: [],
   replace: {},
+  inject: {},
+  polyfills: [],
+  builtinModules: [],
   node: true,
   sourcemap: false,
   traceDeps: [],
 
   // Advanced
   typescript: {
-    strict: true,
-    generateRuntimeConfigTypes: false,
-    generateTsConfig: false,
-    tsconfigPath: "tsconfig.json",
     tsConfig: undefined,
   },
   hooks: {},

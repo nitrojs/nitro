@@ -1,10 +1,27 @@
 import fsp from "node:fs/promises";
 import { constants } from "node:fs";
 import { defu } from "defu";
+import mime from "mime";
 import { writeFile } from "../_utils/fs.ts";
-import type { Nitro, NitroRouteRules, ProxyRuleOptions } from "nitro/types";
+import type {
+  Nitro,
+  NitroRouteRules,
+  PrerenderRoute,
+  ProxyRuleOptions,
+  PublicAssetDir,
+  RedirectRuleOptions,
+} from "nitro/types";
 import { basename, dirname, relative, resolve } from "pathe";
-import { Router } from "../../routing.ts";
+import {
+  addRoute,
+  compareRoutes,
+  createRouter,
+  findOverlappingRoutes,
+  routeToRegExp,
+  type RouterContext,
+} from "rou3";
+import { escapeRegExp } from "../../utils/regex.ts";
+import { catchAllRef, sortRoutes } from "../_utils/routes.ts";
 import { joinURL, withLeadingSlash, withoutLeadingSlash } from "ufo";
 import type {
   PrerenderFunctionConfig,
@@ -36,6 +53,18 @@ const FALLBACK_ROUTE = "/__server";
 const ISR_SUFFIX = "-isr"; // Avoid using . as it can conflict with routing
 
 const SAFE_FS_CHAR_RE = /[^a-zA-Z0-9_.[\]/]/g;
+
+// Vercel serves `<dir>/index.html` (and extensionless `<dir>/index`) at `<dir>`
+// using built-in directory indexes.
+const INDEX_FILE_RE = /(^|\/)index(\.html)?$/;
+
+const SURROUNDING_SLASH_RE = /^\/+|\/+$/g;
+
+// `Cache-Control: max-age` for a non-fallthrough public asset directory that
+// does not set its own `maxAge`. Such assets are assumed to be immutable, since
+// a missing one 404s rather than reaching the server. Opt out with `maxAge: 0`,
+// or set a custom header with a `cache-control` route rule for the base.
+const DEFAULT_PUBLIC_ASSET_MAX_AGE = 31_536_000; // 1 year
 
 function getSystemNodeVersion() {
   const systemNodeVersion = Number.parseInt(process.versions.node.split(".")[0]);
@@ -75,17 +104,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
 
   const functionRules = nitro.options.vercel?.functionRules;
   const hasRouteFunctionConfig = functionRules && Object.keys(functionRules).length > 0;
-  let routeFuncRouter: Router<VercelServerlessFunctionConfig> | undefined;
-  if (hasRouteFunctionConfig) {
-    routeFuncRouter = new Router<VercelServerlessFunctionConfig>();
-    routeFuncRouter._update(
-      Object.entries(functionRules).map(([route, data]) => ({
-        route,
-        method: "",
-        data,
-      }))
-    );
-  }
+  const routeFuncRouter = hasRouteFunctionConfig ? createPatternRouter(functionRules) : undefined;
 
   // Write ISR functions
   const isrFuncDirs = new Set<string>();
@@ -101,7 +120,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
     );
     await fsp.mkdir(dirname(funcPrefix), { recursive: true });
 
-    const matchData = routeFuncRouter?.match("", key);
+    const matchData = routeFuncRouter && matchPattern(routeFuncRouter, key).at(-1);
     if (matchData) {
       isrFuncDirs.add(
         resolve(nitro.options.output.serverDir, "..", normalizeRouteDest(key) + ".func")
@@ -156,10 +175,12 @@ export async function generateFunctionFiles(nitro: Nitro) {
   if (o11Routes.length === 0) {
     return;
   }
-  const _getRouteRules = (path: string) =>
-    defu({}, ...nitro.routing.routeRules.matchAll("", path).reverse()) as NitroRouteRules;
+  const routeRulesRouter = createPatternRouter(nitro.options.routeRules);
   for (const route of o11Routes) {
-    const routeRules = _getRouteRules(route.src);
+    const routeRules = defu(
+      {},
+      ...matchPattern(routeRulesRouter, route.route).reverse()
+    ) as NitroRouteRules;
     if (routeRules.isr) {
       continue; // #3563
     }
@@ -171,7 +192,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
       continue;
     }
 
-    const matchData = routeFuncRouter?.match("", route.src);
+    const matchData = routeFuncRouter && matchPattern(routeFuncRouter, route.route).at(-1);
     if (matchData) {
       await createFunctionDirWithCustomConfig(
         funcDir,
@@ -212,9 +233,12 @@ export async function generateStaticFiles(nitro: Nitro) {
 }
 
 function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
-  const rules = Object.entries(nitro.options.routeRules).sort(
-    (a, b) => b[0].split(/\/(?!\*)/).length - a[0].split(/\/(?!\*)/).length
+  const rules = sortRoutes(Object.keys(nitro.options.routeRules)).map(
+    (path) => [path, nitro.options.routeRules[path]] as [string, NitroRouteRules]
   );
+
+  // Route rule keys and handler routes are relative to the baseURL, as at runtime
+  const routeSrc = (route: string) => routeToRegExp(joinURL(nitro.options.baseURL, route));
 
   // Determine which proxy rules can be offloaded to Vercel CDN rewrites
   const cdnProxyPaths = new Set(
@@ -223,64 +247,76 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
       .map(([path]) => path)
   );
 
+  // Determine which redirect rules can be offloaded to Vercel CDN redirects
+  const cdnRedirectPaths = new Set(
+    rules
+      .filter(
+        ([path, routeRules]) =>
+          routeRules.redirect &&
+          !cdnProxyPaths.has(path) &&
+          !hasQueryWildcard(routeRules.redirect.to)
+      )
+      .map(([path]) => path)
+  );
+
+  const publicAssetRoutes = getPublicAssetRoutes(nitro.options.publicAssets, {
+    baseURL: nitro.options.baseURL,
+    routeRules: nitro.options.routeRules,
+  });
+
   const config = defu(nitro.options.vercel?.config, {
     version: 3,
     framework: {
       name: nitro.options.framework.name,
       version: nitro.options.framework.version,
     },
-    overrides: {
-      // Nitro static prerendered route overrides
-      ...Object.fromEntries(
-        (nitro._prerenderedRoutes?.filter((r) => r.fileName !== r.route) || []).map(
-          ({ route, fileName }) => [
-            withoutLeadingSlash(fileName),
-            { path: route.replace(/^\//, "") },
-          ]
-        )
-      ),
-    },
+    overrides: getPrerenderOverrides(nitro._prerenderedRoutes),
     routes: [
-      // Redirect and header rules (excluding paths handled as CDN proxy rewrites)
+      // Header-only rules (least specific first, so more specific headers override on `continue`)
+      // `redirect: false` stops routing so that less specific redirects below cannot match
       ...rules
         .filter(
           ([path, routeRules]) =>
-            (routeRules.redirect || routeRules.headers) && !cdnProxyPaths.has(path)
+            routeRules.headers && !cdnRedirectPaths.has(path) && !cdnProxyPaths.has(path)
         )
-        .map(([path, routeRules]) => {
-          let route = {
-            src: path.replace("/**", "/(.*)"),
-          };
-          if (routeRules.redirect) {
-            route = defu(route, {
-              status: routeRules.redirect.status,
-              headers: {
-                Location: routeRules.redirect.to.replace("/**", "/$1"),
-              },
-            });
-          }
-          if (routeRules.headers) {
-            route = defu(route, { headers: routeRules.headers });
-          }
-          return route;
-        }),
-      // Proxy rewrite rules (CDN-level reverse proxy)
+        .reverse()
+        .map(([path, routeRules]) => ({
+          src: routeSrc(path).source,
+          headers: routeRules.headers,
+          ...(routeRules.redirect === false ? {} : { continue: true }),
+        })),
+      // Redirect and proxy rules (most specific first)
+      // Rules left to the server function stop routing so that less specific
+      // rules below cannot match.
       // https://vercel.com/docs/rewrites
-      ...rules
-        .filter((entry): entry is [string, NitroRouteRules & { proxy: ProxyRuleOptions }] =>
-          cdnProxyPaths.has(entry[0])
-        )
-        .map(([path, routeRules]) => {
-          const proxy = routeRules.proxy;
+      ...rules.flatMap(([path, routeRules]) => {
+        const src = routeSrc(path);
+        if (cdnProxyPaths.has(path)) {
           const route: Record<string, any> = {
-            src: path.replace("/**", "/(.*)"),
-            dest: proxy.to.replace("/**", "/$1"),
+            src: src.source,
+            dest: (routeRules.proxy as ProxyRuleOptions).to.replaceAll("**", catchAllRef(src)),
           };
           if (routeRules.headers) {
             route.headers = routeRules.headers;
           }
-          return route;
-        }),
+          return [route];
+        }
+        if (cdnRedirectPaths.has(path)) {
+          const redirect = routeRules.redirect as RedirectRuleOptions;
+          let route = {
+            src: src.source,
+            status: redirect.status,
+            headers: {
+              Location: redirect.to.replaceAll("**", catchAllRef(src)),
+            },
+          };
+          if (routeRules.headers) {
+            route = defu(route, { headers: routeRules.headers });
+          }
+          return [route];
+        }
+        return routeRules.redirect || routeRules.proxy ? [{ src: src.source }] : [];
+      }),
       // Skew protection
       ...(nitro.options.vercel?.skewProtection && nitro.options.manifest?.deploymentId
         ? [
@@ -301,17 +337,27 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
           ]
         : []),
       // Public asset rules
-      ...nitro.options.publicAssets
-        .filter((asset) => !asset.fallthrough)
-        .map((asset) => joinURL(nitro.options.baseURL, asset.baseURL || "/"))
-        .map((baseURL) => ({
-          src: baseURL + "(.*)",
+      ...publicAssetRoutes
+        .filter((route) => route.cacheControl)
+        .map(({ src, cacheControl }) => ({
+          src,
           headers: {
-            "cache-control": "public,max-age=31536000,immutable",
+            "cache-control": cacheControl!,
           },
           continue: true,
         })),
       { handle: "filesystem" },
+      // Missing public assets must not fall through to the server function,
+      // which would serve dynamic content under the immutable header above.
+      // `no-store` keeps that header off this 404.
+      ...publicAssetRoutes.map(({ src }) => ({
+        src,
+        status: 404,
+        headers: {
+          "cache-control": "no-store",
+        },
+        continue: false,
+      })),
     ],
   } as VercelBuildConfigV3);
 
@@ -335,20 +381,10 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
 
   config.routes!.push(
     // ISR rules
-    // ...If we are using an ISR function for /, then we need to write this explicitly
-    ...(nitro.options.routeRules["/"]?.isr
-      ? [
-          {
-            src: `(?<${ISR_URL_PARAM}>/)`,
-            dest: `/index${ISR_SUFFIX}?${ISR_URL_PARAM}=$${ISR_URL_PARAM}`,
-          },
-        ]
-      : []),
-    // ...Add rest of the ISR routes
     ...rules
-      .filter(([key, value]) => value.isr !== undefined && key !== "/")
+      .filter(([_, value]) => value.isr !== undefined)
       .map(([key, value]) => {
-        const src = `(?<${ISR_URL_PARAM}>${normalizeRouteSrc(key)})`;
+        const src = `^(?<${ISR_URL_PARAM}>${routeSrc(key).source.slice(1, -1)})$`;
         if (value.isr === false) {
           // We need to write a rule to avoid route being shadowed by another cache rule elsewhere
           return {
@@ -365,14 +401,14 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
       }),
     // Route function config routes
     ...(nitro.options.vercel?.functionRules
-      ? Object.keys(nitro.options.vercel.functionRules).map((pattern) => ({
-          src: joinURL(nitro.options.baseURL, normalizeRouteSrc(pattern)),
+      ? sortRoutes(Object.keys(nitro.options.vercel.functionRules)).map((pattern) => ({
+          src: routeSrc(pattern).source,
           dest: withLeadingSlash(normalizeRouteDest(pattern)),
         }))
       : []),
     // Observability routes
     ...(o11Routes || []).map((route) => ({
-      src: joinURL(nitro.options.baseURL, route.src),
+      src: routeSrc(route.route).source,
       dest: withLeadingSlash(route.dest),
     })),
     // If we are using an ISR function as a fallback
@@ -388,6 +424,94 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
   );
 
   return config;
+}
+
+/**
+ * Routes matching every public asset directory that Vercel serves from the
+ * filesystem instead of falling through to the server function.
+ *
+ * The root base is excluded to mirror the runtime, which never treats `/` as a
+ * public asset base (see `publicAssetBases`): a `/(.*)` source would otherwise
+ * cache-control every response and, worse, 404 every dynamic route.
+ *
+ * Sources are joined with a slash (`/build/(.*)`, not `/build(.*)`) so a
+ * sibling path such as `/buildings` is not matched, and escaped so that a base
+ * containing regular expression characters stays literal.
+ *
+ * `cacheControl` is unset when a route rule already sets the header for the
+ * base, which is the case for any directory with a positive `maxAge` (see
+ * `resolveAssetsOptions`). Emitting it again would duplicate the rule that is
+ * generated from route rules earlier in the routes array, and setting it here
+ * would have no effect anyway: the first match wins.
+ *
+ * It is also unset for an explicit `maxAge: 0`, which opts the directory out of
+ * the one-year default. Only a directory that never set a `maxAge` gets it.
+ */
+export function getPublicAssetRoutes(
+  publicAssets: PublicAssetDir[],
+  opts: { baseURL: string; routeRules: Record<string, NitroRouteRules> }
+): { src: string; cacheControl?: string }[] {
+  const routes: { src: string; cacheControl?: string }[] = [];
+  for (const asset of publicAssets) {
+    const assetBase = asset.baseURL || "/";
+    if (asset.fallthrough || assetBase === "/") {
+      continue;
+    }
+    const maxAge = asset.maxAge ?? DEFAULT_PUBLIC_ASSET_MAX_AGE;
+    routes.push({
+      src: joinURL(escapeRegExp(joinURL(opts.baseURL, assetBase)), "(.*)"),
+      cacheControl:
+        maxAge > 0 && !hasCacheControl(opts.routeRules[`${assetBase}/**`])
+          ? `public, max-age=${maxAge}, immutable`
+          : undefined,
+    });
+  }
+  return routes;
+}
+
+/**
+ * Map prerendered files to the route and content type they should be served with.
+ *
+ * Paths are always slash-free: Vercel strips slashes when matching, so a path
+ * that keeps a trailing slash matches nothing at all (#4392), and the root
+ * route has to map to an empty path (ufo's slash helpers cannot produce one).
+ *
+ * Files that Vercel already serves at the route using its built-in directory
+ * indexes keep their path, and only get an entry when their content type
+ * cannot be inferred from the file name.
+ */
+export function getPrerenderOverrides(prerenderedRoutes: PrerenderRoute[] = []) {
+  const overrides: Record<string, { path?: string; contentType?: string }> = {};
+
+  for (const { route, fileName, contentType } of prerenderedRoutes) {
+    if (!fileName) {
+      continue;
+    }
+    const file = withoutLeadingSlash(fileName);
+    const path = route.replace(SURROUNDING_SLASH_RE, "");
+    const override: { path?: string; contentType?: string } = {};
+
+    // Only re-key when Vercel does not already serve the file at `path`: it
+    // serves `<dir>/index.*` at `<dir>` via its built-in directory index, and
+    // re-keying a file onto its own path would delete it, since Vercel drops
+    // the original entry.
+    if (file !== path && file.replace(INDEX_FILE_RE, "") !== path) {
+      override.path = path;
+    }
+
+    // Vercel infers the content type from the file name, which has no
+    // extension to go on for a non-HTML route ending in `/` (`/data/` is
+    // prerendered to `data/index`) and would be served as a download.
+    if (contentType && !mime.getType(file)) {
+      override.contentType = contentType;
+    }
+
+    if (override.path !== undefined || override.contentType) {
+      overrides[file] = override;
+    }
+  }
+
+  return overrides;
 }
 
 export function deprecateSWR(nitro: Nitro) {
@@ -484,6 +608,9 @@ function canUseVercelRewrite(proxy: NitroRouteRules["proxy"]): proxy is { to: st
   if (!/^https?:\/\//.test(proxy.to.replace(/\/\*\*$/, ""))) {
     return false;
   }
+  if (hasQueryWildcard(proxy.to)) {
+    return false;
+  }
   // Must not use any ProxyOptions unsupported by Vercel rewrites
   for (const key of UNSUPPORTED_PROXY_OPTIONS) {
     if ((proxy as any)[key] !== undefined) {
@@ -496,18 +623,27 @@ function canUseVercelRewrite(proxy: NitroRouteRules["proxy"]): proxy is { to: st
 // --- utils for observability ---
 
 type ObservabilityRoute = {
-  src: string; // route pattern
+  route: string; // route pattern
   dest: string; // function name
 };
 
-function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
+export function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
   const compatDate =
     nitro.options.compatibilityDate.vercel || nitro.options.compatibilityDate.default;
   if (compatDate < "2025-07-15") {
     return [];
   }
 
-  // Sort routes by how much specific they are
+  // Vercel resolves functions and static files from a single path to output
+  // map that functions are added to last, so a function at the path of a
+  // prerendered file hides that file and serves the route with SSR on every
+  // request (#4242).
+  const prerenderedPaths = new Set(
+    (nitro._prerenderedRoutes || [])
+      .filter((route) => route.fileName)
+      .map((route) => route.route.replace(SURROUNDING_SLASH_RE, ""))
+  );
+
   const routePatterns = [
     ...new Set([
       ...(nitro.options.ssrRoutes || []),
@@ -515,71 +651,12 @@ function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
         .filter((h) => !h.middleware && h.route)
         .map((h) => h.route!),
     ]),
-  ];
+  ].filter((route) => !prerenderedPaths.has(route.replace(SURROUNDING_SLASH_RE, "")));
 
-  const staticRoutes: string[] = [];
-  const dynamicRoutes: string[] = [];
-  const catchAllRoutes: string[] = [];
-
-  for (const route of routePatterns) {
-    if (route.includes("**")) {
-      catchAllRoutes.push(route);
-    } else if (route.includes(":") || route.includes("*")) {
-      dynamicRoutes.push(route);
-    } else {
-      staticRoutes.push(route);
-    }
-  }
-
-  return [
-    ...normalizeRoutes(staticRoutes),
-    ...normalizeRoutes(dynamicRoutes),
-    ...normalizeRoutes(catchAllRoutes),
-  ];
-}
-
-function normalizeRoutes(routes: string[]) {
-  return routes
-    .sort((a, b) =>
-      // a.split("/").length - b.split("/").length ||
-      b.localeCompare(a)
-    )
-    .map((route) => ({
-      src: normalizeRouteSrc(route),
-      dest: normalizeRouteDest(route),
-    }));
-}
-
-// Input is a rou3/radix3 compatible route pattern
-// Output is a PCRE-compatible regular expression that matches each incoming pathname
-// Reference: https://github.com/h3js/rou3/blob/main/src/regexp.ts
-function normalizeRouteSrc(route: string): string {
-  let idCtr = 0;
-  return route
-    .split("/")
-    .map((segment) => {
-      if (segment.startsWith("**")) {
-        return segment === "**" ? "(?:.*)" : `?(?<${namedGroup(segment.slice(3))}>.+)`;
-      }
-      if (segment === "*") {
-        return `(?<_${idCtr++}>[^/]*)`;
-      }
-      if (segment.includes(":")) {
-        return segment
-          .replace(/:(\w+)/g, (_, id) => `(?<${namedGroup(id)}>[^/]+)`)
-          .replace(/\./g, String.raw`\.`);
-      }
-      return segment;
-    })
-    .join("/");
-}
-
-// Valid PCRE capture group name
-function namedGroup(input = "") {
-  if (/\d/.test(input[0])) {
-    input = `_${input}`;
-  }
-  return input.replace(/[^a-zA-Z0-9_]/g, "") || "_";
+  return sortRoutes(routePatterns).map((route) => ({
+    route,
+    dest: normalizeRouteDest(route),
+  }));
 }
 
 // Output is a destination pathname to function name
@@ -642,6 +719,7 @@ async function createFunctionDirWithCustomConfig(
   await fsp.cp(serverDir, funcDir, {
     recursive: true,
     mode: constants.COPYFILE_FICLONE,
+    verbatimSymlinks: true,
     filter: (src) => basename(src) !== ".vc-config.json",
   });
   const mergedConfig = defu(overrides, baseFunctionConfig);
@@ -690,4 +768,47 @@ async function writePrerenderConfig(
   }
 
   await writeFile(filename, JSON.stringify(prerenderConfig, null, 2));
+}
+
+function hasCacheControl(routeRules: NitroRouteRules | undefined): boolean {
+  return Object.keys(routeRules?.headers || {}).some(
+    (header) => header.toLowerCase() === "cache-control"
+  );
+}
+
+// --- rou3 pattern utils ---
+
+/**
+ * A router looked up with route *patterns* (a `routeRules` key, a handler
+ * route), not with request paths. See {@link matchPattern}.
+ */
+function createPatternRouter<T>(entries: Record<string, T>) {
+  const router = createRouter<{ route: string; data: T }>();
+  for (const [route, data] of Object.entries(entries)) {
+    addRoute(router, "", route, { route, data });
+  }
+  return router;
+}
+
+/**
+ * Data of each registered pattern that matches every path `pattern` matches,
+ * from the least to the most specific.
+ */
+function matchPattern<T>(router: RouterContext<{ route: string; data: T }>, pattern: string) {
+  return findOverlappingRoutes(router, "", pattern)
+    .filter(({ data }) => {
+      const comparison = compareRoutes(data.route, pattern);
+      return comparison === "equal" || comparison === "superset";
+    })
+    .map(({ data }) => data.data);
+}
+
+/**
+ * Whether `**` is interpolated into the query or fragment of a `redirect` or
+ * `proxy` target. Vercel encodes such a capture unlike h3 (`+` becomes a space
+ * and `&` starts a new param), so these rules are left to the server function.
+ */
+function hasQueryWildcard(to: string): boolean {
+  const index = to.search(/[?#]/);
+  return index !== -1 && to.includes("**", index);
 }

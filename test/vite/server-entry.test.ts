@@ -6,7 +6,7 @@ const { createServer } = (await import(
   process.env.NITRO_VITE_PKG || "vite"
 )) as typeof import("vite");
 
-describe("vite:server entry", { sequential: true }, () => {
+describe("vite:server entry", { concurrent: false }, () => {
   let server: ViteDevServer;
   let serverURL: string;
 
@@ -15,7 +15,7 @@ describe("vite:server entry", { sequential: true }, () => {
 
   beforeAll(async () => {
     process.chdir(rootDir);
-    server = await createServer({ root: rootDir });
+    server = await createServer({ root: rootDir, logLevel: "warn" });
     await server.listen("0" as unknown as number);
     const addr = server.httpServer?.address() as {
       port: number;

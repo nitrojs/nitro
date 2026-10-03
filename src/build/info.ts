@@ -10,13 +10,24 @@ import type { RollupOutput } from "rollup";
 
 const NITRO_WELLKNOWN_DIR = "node_modules/.nitro";
 
+export interface GetBuildInfoOptions {
+  /** Project root directory used to locate the last build output. */
+  rootDir?: string;
+  /** Explicit build output directory, resolved relative to `rootDir` (skips the last build lookup). */
+  outputDir?: string;
+}
+
 export async function getBuildInfo(
-  root: string
+  input: string | GetBuildInfoOptions
 ): Promise<
   | { outputDir?: undefined; buildInfo?: undefined }
   | { outputDir: string; buildInfo?: NitroBuildInfo }
 > {
-  const outputDir = await findLastBuildDir(root);
+  const opts = typeof input === "string" ? { rootDir: input } : input;
+  const rootDir = resolve(opts.rootDir || ".");
+  const outputDir = opts.outputDir
+    ? resolve(rootDir, opts.outputDir)
+    : await findLastBuildDir(rootDir);
 
   const isDir = await stat(outputDir)
     .then((s) => s.isDirectory())
@@ -67,7 +78,10 @@ export async function writeBuildInfo(
     ),
     commands: {
       preview: nitro.options.commands.preview,
-      deploy: nitro.options.commands.deploy,
+      deploy:
+        typeof nitro.options.commands.deploy === "string"
+          ? nitro.options.commands.deploy
+          : undefined,
     },
     config: {
       ...Object.fromEntries(presetsWithConfig.map((key) => [key, nitro.options[key]])),

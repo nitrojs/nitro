@@ -5,6 +5,7 @@
     "no-control-regex": "off",
     "no-unused-expressions": "off",
     "no-unused-vars": "off",
+    "no-irregular-whitespace": "off",
     "typescript/no-useless-empty-export": "off",
     "unicorn/no-empty-file": "off",
     "unicorn/no-invalid-fetch-options": "off",

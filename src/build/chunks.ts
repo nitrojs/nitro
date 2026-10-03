@@ -78,7 +78,12 @@ export function getChunkName(chunk: { name: string; moduleIds: string[] }, nitro
       .flatMap((h) => h.data)
       .find((h) => h.handler === mainId);
     if (routeHandler?.route) {
-      return `_routes/${routeToFsPath(routeHandler.route)}.mjs`;
+      let routePath = routeToFsPath(routeHandler.route);
+      if (nitro.options.builder === "rollup") {
+        // rollup treats [name] in chunkFileNames as an invalid placeholder
+        routePath = routePath.replace(/\[/g, "%5B").replace(/\]/g, "%5D");
+      }
+      return `_routes/${routePath}.mjs`;
     }
 
     const taskHandler = Object.entries(nitro.options.tasks).find(

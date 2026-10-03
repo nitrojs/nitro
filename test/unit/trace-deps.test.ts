@@ -61,6 +61,13 @@ describe("resolveTraceDeps", () => {
     expect(result.traceInclude!.every((d) => typeof d === "string")).toBe(true);
   });
 
+  it("excludes bare scopes from traceInclude but keeps them in the pattern", () => {
+    const result = resolveTraceDeps(["@scope", "@scope/pkg"], defaults);
+    // `@scope` is a prefix selector, not a resolvable package name
+    expect(result.traceInclude).toEqual(["@scope/pkg"]);
+    expect(result.includePattern!.test("/x/node_modules/@scope/other/index.js")).toBe(true);
+  });
+
   it("returns undefined traceInclude when no user deps are declared", () => {
     const result = resolveTraceDeps([], defaults);
     expect(result.traceInclude).toBeUndefined();

@@ -1,7 +1,7 @@
 import { defu } from "defu";
 import { baseBuildConfig, type BaseBuildConfig } from "../config.ts";
 import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
-import { baseBuildPlugins } from "../plugins.ts";
+import { baseBuildPlugins, withBuildPlugins } from "../plugins.ts";
 
 import type { RolldownConfig, RollupConfig } from "nitro/types";
 import type { Plugin as RollupPlugin } from "rollup";
@@ -15,12 +15,12 @@ export const getBundlerConfig = async (
   rolldownConfig?: RolldownConfig;
 }> => {
   const nitro = ctx.nitro!;
-  const base = baseBuildConfig(nitro);
+  const base = await baseBuildConfig(nitro);
+  const nitroPlugins = (await baseBuildPlugins(nitro, base)).filter(Boolean) as RollupPlugin[];
 
   const commonConfig = {
     input: nitro.options.entry,
     external: [...base.env.external],
-    plugins: [...(await baseBuildPlugins(nitro, base))].filter(Boolean) as RollupPlugin[],
     onwarn(warning, warn) {
       if (!base.ignoreWarningCodes.has(warning.code || "")) {
         warn(warning);
@@ -57,14 +57,18 @@ export const getBundlerConfig = async (
       } satisfies RolldownConfig,
       nitro.options.rolldownConfig,
       nitro.options.rollupConfig as RolldownConfig, // Added for backward compatibility
-      commonConfig satisfies RolldownConfig
+      {
+        ...commonConfig,
+        plugins: await withBuildPlugins(nitro, nitroPlugins),
+      } satisfies RolldownConfig
     );
 
     const outputConfig = rolldownConfig.output!;
     if (outputConfig.inlineDynamicImports || outputConfig.format === ("iife" as string)) {
-      delete outputConfig.inlineDynamicImports;
       outputConfig.codeSplitting = false;
     }
+    // `inlineDynamicImports` is deprecated in favor of `codeSplitting: false`
+    delete outputConfig.inlineDynamicImports;
 
     return { base, rolldownConfig };
   } else {
@@ -78,7 +82,6 @@ export const getBundlerConfig = async (
 
     const rollupConfig: RollupConfig = defu(
       {
-        plugins: [inject(base.env.inject), alias({ entries: base.aliases })],
         output: {
           sourcemapExcludeSources: true,
           generatedCode: {
@@ -93,10 +96,19 @@ export const getBundlerConfig = async (
       } satisfies RollupConfig,
       nitro.options.rolldownConfig as RollupConfig, // Added for backward compatibility
       nitro.options.rollupConfig,
-      commonConfig
+      {
+        ...commonConfig,
+        plugins: await withBuildPlugins(nitro, [
+          inject(base.env.inject),
+          alias({ entries: base.aliases }),
+          ...nitroPlugins,
+        ]),
+      }
     );
 
     const outputConfig = rollupConfig.output!;
+    // Same default as the rollup builder.
+    outputConfig.importAttributesKey ??= "with";
     if (outputConfig.inlineDynamicImports || outputConfig.format === ("iife" as string)) {
       delete outputConfig.manualChunks;
     }

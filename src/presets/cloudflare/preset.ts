@@ -1,10 +1,10 @@
 import { defineNitroPreset } from "../_utils/preset.ts";
 import { writeFile } from "../_utils/fs.ts";
 import type { Nitro } from "nitro/types";
-import type { Plugin } from "rollup";
 import { join, resolve } from "pathe";
 import { presetsDir } from "nitro/meta";
 import { unenvCfExternals } from "./unenv/preset.ts";
+import { extendEnv } from "../../build/env.ts";
 import {
   enableNodeCompat,
   writeWranglerConfig,
@@ -13,48 +13,7 @@ import {
   writeCFPagesRedirects,
 } from "./utils.ts";
 import { setupEntryExports } from "./entry-exports.ts";
-
-// Some bundlers (e.g. rolldown-vite) emit `createRequire(import.meta.url)` in
-// shared chunks. On Cloudflare Workers `import.meta.url` is `undefined`, which
-// causes `createRequire` to throw at runtime. This output plugin rewrites those
-// call sites to fall back to a synthetic `file:///` URL so that `createRequire`
-// succeeds and any subsequent `require()` calls go through the normal Node.js
-// compat layer provided by the Workers runtime.
-// Ref: https://github.com/nitrojs/nitro/issues/4132
-function guardCreateRequire(): Plugin {
-  return {
-    name: "nitro:cloudflare-guard-createRequire",
-    generateBundle(_options, bundle) {
-      for (const chunk of Object.values(bundle)) {
-        if (chunk.type === "chunk" && chunk.code?.includes("createRequire(import.meta.url)")) {
-          chunk.code = chunk.code.replace(
-            /createRequire\(import\.meta\.url\)/g,
-            'createRequire(import.meta.url || "file:///")'
-          );
-        }
-      }
-    },
-  };
-}
-
-// When code-splitting is enabled, bundlers hoist externalized `node:*` built-in
-// imports as bare side-effect imports (`import "node:buffer"`) into entry and
-// chunk files. These are no-ops (Node.js built-ins have no meaningful
-// module-level side effects) but they can cause issues on worker runtimes where
-// `node:*` modules may not be available or trigger unnecessary warnings.
-const BARE_NODE_IMPORT_RE = /^import\s*['"]node:[^'"]+['"];?\s*$/gm;
-function stripBareNodeImports(): Plugin {
-  return {
-    name: "nitro:cloudflare-strip-bare-node-imports",
-    generateBundle(_options, bundle) {
-      for (const chunk of Object.values(bundle)) {
-        if (chunk.type === "chunk" && chunk.code.includes("node:")) {
-          chunk.code = chunk.code.replace(BARE_NODE_IMPORT_RE, "");
-        }
-      }
-    },
-  };
-}
+import { cloudflareOutputRewrites } from "./output-plugins.ts";
 
 export type { CloudflareOptions as PresetOptions } from "./types.ts";
 
@@ -88,11 +47,11 @@ const cloudflarePages = defineNitroPreset(
         format: "esm",
         inlineDynamicImports: false,
       },
-      plugins: [guardCreateRequire(), stripBareNodeImports()],
+      plugins: [cloudflareOutputRewrites()],
     },
     hooks: {
       "build:before": async (nitro) => {
-        nitro.options.unenv.push(unenvCfExternals);
+        extendEnv(nitro, unenvCfExternals);
         await enableNodeCompat(nitro);
         await setupEntryExports(nitro);
       },
@@ -178,7 +137,7 @@ const cloudflareModule = defineNitroPreset(
         exports: "named",
         inlineDynamicImports: false,
       },
-      plugins: [guardCreateRequire(), stripBareNodeImports()],
+      plugins: [cloudflareOutputRewrites()],
     },
     wasm: {
       lazy: false,
@@ -186,7 +145,7 @@ const cloudflareModule = defineNitroPreset(
     },
     hooks: {
       "build:before": async (nitro) => {
-        nitro.options.unenv.push(unenvCfExternals);
+        extendEnv(nitro, unenvCfExternals);
         await enableNodeCompat(nitro);
         await setupEntryExports(nitro);
         setupTracingBridge(nitro);

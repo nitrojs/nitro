@@ -1,15 +1,16 @@
 import type { Nitro } from "nitro/types";
 import type { RolldownWatcher, RolldownOptions } from "rolldown";
-import { watch as chokidarWatch } from "chokidar";
 import { basename, join } from "pathe";
 import { debounce } from "perfect-debounce";
 import { scanHandlers } from "../../scan.ts";
-import { writeTypes } from "../types.ts";
+import { createWatcher } from "../../utils/watch.ts";
 import { formatCompatibilityDate } from "compatx";
 
-export async function watchDev(nitro: Nitro, config: RolldownOptions) {
-  const rolldown = await import("rolldown");
-
+export async function watchDev(
+  nitro: Nitro,
+  config: RolldownOptions,
+  rolldown: typeof import("rolldown")
+) {
   let watcher: RolldownWatcher;
 
   async function load() {
@@ -19,7 +20,6 @@ export async function watchDev(nitro: Nitro, config: RolldownOptions) {
     await scanHandlers(nitro);
     nitro.routing.sync();
     watcher = startWatcher(nitro, config);
-    await writeTypes(nitro);
   }
   const reload = debounce(load);
 
@@ -32,7 +32,7 @@ export async function watchDev(nitro: Nitro, config: RolldownOptions) {
   ]);
 
   const watchReloadEvents = new Set(["add", "addDir", "unlink", "unlinkDir"]);
-  const scanDirsWatcher = chokidarWatch(scanDirs, {
+  const scanDirsWatcher = createWatcher(nitro, scanDirs, {
     ignoreInitial: true,
   }).on("all", (event) => {
     if (watchReloadEvents.has(event)) {
@@ -41,7 +41,7 @@ export async function watchDev(nitro: Nitro, config: RolldownOptions) {
   });
 
   const serverEntryRe = /^server\.[mc]?[jt]sx?$/;
-  const rootDirWatcher = chokidarWatch(nitro.options.rootDir, {
+  const rootDirWatcher = createWatcher(nitro, nitro.options.rootDir, {
     ignoreInitial: true,
     depth: 0,
   }).on("all", (event, path) => {

@@ -1,5 +1,5 @@
 import { HTTPError, defineHandler } from "h3";
-import type { EventHandler, HTTPMethod } from "h3";
+import type { EventHandler, H3Event, HTTPMethod } from "h3";
 import type { PublicAsset } from "nitro/types";
 import { decodePath, joinURL, withLeadingSlash, withoutTrailingSlash } from "ufo";
 import { getAsset, isPublicAssetURL, readAsset } from "#nitro/virtual/public-assets";
@@ -85,5 +85,18 @@ export default defineHandler((event) => {
     event.res.headers.set("Content-Length", asset.size.toString());
   }
 
-  return readAsset(id);
+  const data = readAsset(id);
+  return typeof (data as { then?: unknown })?.then === "function"
+    ? (data as Promise<unknown>).then((resolved) => assertAssetData(event, resolved))
+    : assertAssetData(event, data);
 }) as EventHandler;
+
+// Readers resolve with `null`/`undefined` when the manifest entry has no data
+// backing it (file removed after build, missing inline payload).
+function assertAssetData<T>(event: H3Event, data: T): T {
+  if (data === null || data === undefined) {
+    event.res.headers.delete("Cache-Control");
+    throw new HTTPError({ status: 404 });
+  }
+  return data;
+}

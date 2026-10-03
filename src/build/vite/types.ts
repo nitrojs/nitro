@@ -61,6 +61,8 @@ export interface NitroPluginContext {
   _isRolldown?: boolean;
   _initialized?: boolean;
   _envRunner?: RunnerManager;
+  _closingEnvRunner?: boolean;
+  _closePromise?: Promise<void>;
   _initPromise?: Promise<RunnerManager>;
   _viteEnvs?: Map<string, string>;
   _transformRequest?: (id: string) => Promise<TransformResult | null | undefined>;

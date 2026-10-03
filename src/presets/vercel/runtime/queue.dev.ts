@@ -1,3 +1,4 @@
+import * as queueSdk from "@vercel/queue";
 import { send } from "@vercel/queue";
 import { useRuntimeConfig } from "nitro/runtime-config";
 import { registerVercelQueueConsumer } from "env-runner/runners/vercel/queue-dev";
@@ -25,6 +26,8 @@ const queueDevPlugin: NitroAppPlugin = (nitroApp) => {
   const ready = Promise.all(
     triggers.map((trigger) =>
       registerVercelQueueConsumer({
+        // The SDK is owned by the app, so hand env-runner the instance we bundled.
+        sdk: queueSdk,
         topic: trigger.topic,
         retryAfterSeconds: trigger.retryAfterSeconds,
         handler: async (message: unknown, metadata: unknown) => {

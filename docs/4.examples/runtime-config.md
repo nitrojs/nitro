@@ -1,5 +1,6 @@
 ---
-category: config
+navigation:
+  category: config
 icon: i-lucide-settings
 ---
 

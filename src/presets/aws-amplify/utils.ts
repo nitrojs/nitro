@@ -39,7 +39,9 @@ export async function writeAmplifyFiles(nitro: Nitro) {
       target: {
         kind: "Static",
         cacheControl:
-          publicAsset.maxAge > 0 ? `public, max-age=${publicAsset.maxAge}, immutable` : undefined,
+          publicAsset.maxAge && publicAsset.maxAge > 0
+            ? `public, max-age=${publicAsset.maxAge}, immutable`
+            : undefined,
       },
       fallback: publicAsset.fallthrough ? computeTarget : undefined,
     });

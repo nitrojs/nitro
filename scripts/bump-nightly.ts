@@ -1,5 +1,5 @@
 import { promises as fsp } from "node:fs";
-import { execaCommand } from "execa";
+import { execa } from "execa";
 import { glob } from "tinyglobby";
 import { resolve } from "pathe";
 
@@ -116,7 +116,7 @@ function joinNumbers(items: number[]): string {
 async function main() {
   const workspace = await loadWorkspace(process.cwd());
 
-  const commit = await execaCommand("git rev-parse --short HEAD").then((r) => r.stdout.trim());
+  const commit = await execa("git", ["rev-parse", "--short", "HEAD"]).then((r) => r.stdout.trim());
 
   for (const pkg of workspace.packages.filter((p) => !p.data.private)) {
     workspace.setVersion(pkg.data.name, `${pkg.data.version}-${fmtDate(new Date())}.${commit}`);

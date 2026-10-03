@@ -2,7 +2,12 @@ import type { IncomingMessage } from "node:http";
 import type { Socket } from "node:net";
 import type { FSWatcher } from "chokidar";
 import type { ServerOptions, Server } from "srvx";
-import type { EnvRunnerData, RunnerMessageListener, RunnerRPCHooks } from "env-runner";
+import type {
+  EnvRunnerData,
+  EnvRunnerPluginOption,
+  RunnerMessageListener,
+  RunnerRPCHooks,
+} from "env-runner";
 import type { RunnerName } from "env-runner";
 import { RunnerManager, loadRunner } from "env-runner";
 import type { Nitro } from "nitro/types";
@@ -10,12 +15,16 @@ import type { Nitro } from "nitro/types";
 import { HTTPError } from "h3";
 
 import consola from "consola";
+import { readFile } from "node:fs/promises";
 import { resolve } from "pathe";
-import { watch } from "chokidar";
 import { serve } from "srvx/node";
 import { debounce } from "perfect-debounce";
 import { isTest, isCI } from "std-env";
 import { NitroDevApp } from "./app.ts";
+import { createWatcher } from "../utils/watch.ts";
+import { resolveRunnerDeps } from "./runner-deps.ts";
+import { shutdownRunner } from "./shutdown.ts";
+import { handleDevRPC } from "./_rpc.ts";
 import { writeDevBuildInfo } from "../build/info.ts";
 
 export function createDevServer(nitro: Nitro): NitroDevServer {
@@ -25,15 +34,19 @@ export function createDevServer(nitro: Nitro): NitroDevServer {
 export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
   #entry: string;
   #workerData: EnvRunnerData = {};
+  #plugins?: EnvRunnerPluginOption[];
   #listeners: Server[] = [];
   #watcher?: FSWatcher;
   #manager: RunnerManager;
   #workerIdCtr: number = 0;
+  #runnerName?: RunnerName;
   #workerError?: unknown;
   #workerRetries: number = 0;
   #building?: boolean = true; // Assume initial build will start soon
   #buildError?: unknown;
   #reloadPromise?: Promise<void>;
+  #shuttingDown: boolean = false;
+  #closing: boolean = false;
 
   constructor(nitro: Nitro) {
     super(nitro, async (event) => {
@@ -76,6 +89,9 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
       });
     });
     this.#manager.onClose((_runner, cause) => {
+      if (this.#shuttingDown) {
+        return;
+      }
       this.#workerError = cause;
       if (this.#workerRetries++ < 3) {
         this.nitro.logger.info("Restarting dev worker...", cause ? `Cause: ${cause}` : "");
@@ -87,6 +103,16 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
         );
       }
     });
+
+    // Worker => Host RPC
+    this.#manager.onMessage((message) =>
+      handleDevRPC(message, {
+        sendMessage: (message) => this.#manager.sendMessage(message),
+        handlers: {
+          rendererTemplate: () => readFile(nitro.options.renderer!.template!, "utf8"),
+        },
+      })
+    );
 
     nitro.hooks.hook("close", () => this.close());
 
@@ -104,6 +130,9 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
       if (payload?.workerData) {
         this.#workerData = payload.workerData;
       }
+      if (payload?.plugins) {
+        this.#plugins = payload.plugins;
+      }
       this.reload();
     });
 
@@ -115,7 +144,7 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
     const devWatch = nitro.options.devServer.watch;
     if (devWatch && devWatch.length > 0) {
       const debouncedReload = debounce(() => this.reload());
-      this.#watcher = watch(devWatch, nitro.options.watchOptions);
+      this.#watcher = createWatcher(nitro, devWatch, nitro.options.watchOptions);
       this.#watcher.on("add", debouncedReload).on("change", debouncedReload);
     }
   }
@@ -149,6 +178,9 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
   }
 
   async close() {
+    this.#closing = true;
+    await this.#reloadPromise?.catch(() => {});
+    await this.#shutdownWorker();
     await Promise.all(
       [
         Promise.all(this.#listeners.map((l) => l.close())).then(() => {
@@ -167,6 +199,9 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
   }
 
   reload() {
+    if (this.#closing) {
+      return;
+    }
     const nextReload = (this.#reloadPromise ?? Promise.resolve())
       .catch(() => {})
       .then(() => this.#reload());
@@ -178,11 +213,16 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
   }
 
   async #reload() {
-    const runnerName =
-      this.nitro.options.devServer.runner || process.env.NITRO_DEV_RUNNER || "node-worker";
-    const runner = await loadRunner(runnerName as RunnerName, {
+    await this.#shutdownWorker();
+    const runnerName = (this.nitro.options.devServer.runner ||
+      process.env.NITRO_DEV_RUNNER ||
+      "node-worker") as RunnerName;
+    this.#runnerName = runnerName;
+    const runner = await loadRunner(runnerName, {
+      ...(await resolveRunnerDeps(this.nitro, runnerName)),
       name: `Nitro_${this.#workerIdCtr++}`,
       data: { entry: this.#entry, ...this.#workerData },
+      plugins: this.#plugins,
     });
     await this.#manager.reload(runner);
   }
@@ -202,6 +242,19 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
   // #endregion
 
   // #region Private Methods
+
+  async #shutdownWorker() {
+    // The miniflare runner runs the same handshake itself when it is disposed
+    if (!this.#manager.ready || this.#runnerName === "miniflare") {
+      return;
+    }
+    this.#shuttingDown = true;
+    try {
+      await shutdownRunner(this.#manager, { warn: (message) => this.nitro.logger.warn(message) });
+    } finally {
+      this.#shuttingDown = false;
+    }
+  }
 
   async #waitForBuild() {
     const timeout = isTest || isCI ? 60_000 : 6000;

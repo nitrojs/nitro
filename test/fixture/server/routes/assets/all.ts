@@ -1,7 +1,7 @@
-import { useStorage } from "nitro/storage";
+import { useKV } from "nitro/kv";
 
 export default async () => {
-  const serverAssets = useStorage("assets/server");
+  const serverAssets = useKV("assets/server");
 
   const keys = await serverAssets.getKeys();
   const items = await Promise.all(

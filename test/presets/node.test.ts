@@ -1,8 +1,11 @@
 import { existsSync } from "node:fs";
+import { execa } from "execa";
+import { getRandomPort, waitForPort } from "get-port-please";
 import { resolve } from "pathe";
 // import { isWindows } from "std-env";
 import { describe, expect, it } from "vitest";
 import { setupTest, startServer, testNitro } from "../tests.ts";
+import { testCloseHook } from "./_close-hook.ts";
 
 describe("nitro:preset:node-middleware", async () => {
   const ctx = await setupTest("node-middleware");
@@ -36,5 +39,48 @@ describe("nitro:preset:node-middleware", async () => {
   it("should trace externals", () => {
     const serverNodeModules = resolve(ctx.outDir, "server/node_modules");
     expect(existsSync(resolve(serverNodeModules, "@fixture/nitro-utils/extra.mjs"))).toBe(true);
+    // required from a bundled CommonJS package (https://github.com/nitrojs/nitro/issues/4093)
+    expect(existsSync(resolve(serverNodeModules, "@fixture/nitro-native-mock/index.js"))).toBe(
+      true
+    );
+  });
+});
+
+describe("nitro:preset:node-server", async () => {
+  const ctx = await setupTest("node-server");
+
+  it("passes server entry options to srvx", async () => {
+    const port = await getRandomPort();
+    const child = execa(process.execPath, [resolve(ctx.outDir, "server/index.mjs")], {
+      env: { NITRO_PORT: String(port), NITRO_HOST: "127.0.0.1" },
+      stdio: process.env.TEST_DEBUG ? "inherit" : "ignore",
+      reject: false,
+    });
+    try {
+      await waitForPort(port, { delay: 1000, retries: 20, host: "127.0.0.1" });
+      const res = await fetch(`http://127.0.0.1:${port}/srvx-middleware`);
+      expect(await res.text()).not.toBe("server entry middleware works!");
+      expect(res.headers.get("x-srvx-plugin")).toBeNull();
+      const large = await fetch(`http://127.0.0.1:${port}/api/body-size`, {
+        method: "POST",
+        body: "x".repeat(128 * 1024),
+      });
+      expect(large.status).toBe(413);
+    } finally {
+      child.kill("SIGKILL");
+    }
+  }, 40_000);
+
+  testCloseHook(ctx, { command: process.execPath, args: (entry) => [entry] });
+});
+
+describe("nitro:preset:node-cluster", async () => {
+  const ctx = await setupTest("node-cluster");
+
+  // `index.mjs` only forks workers (signals sent to it are not forwarded), so the
+  // worker entry -- the one holding the server -- is spawned directly.
+  testCloseHook(ctx, {
+    command: process.execPath,
+    args: (entry) => [resolve(entry, "../worker.mjs")],
   });
 });

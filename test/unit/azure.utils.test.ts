@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { getAzureParsedCookiesFromHeaders } from "../../src/presets/azure/runtime/_utils.ts";
+import {
+  getAzureParsedCookiesFromHeaders,
+  resolveBaseUrl,
+} from "../../src/presets/azure/runtime/_utils.ts";
 
 describe("getAzureParsedCookiesFromHeaders", () => {
   it("returns empty array if no cookies", () => {
@@ -70,5 +73,35 @@ describe("getAzureParsedCookiesFromHeaders", () => {
         value: "qux",
       },
     ]);
+  });
+});
+
+describe("resolveBaseUrl", () => {
+  const req = (headers: Record<string, string>) => ({ headers }) as any;
+
+  it("uses the forwarded proto and host", () => {
+    expect(
+      resolveBaseUrl(req({ "x-forwarded-proto": "https", "x-forwarded-host": "example.com" }))
+    ).toBe("https://example.com");
+  });
+
+  it("falls back to the host header and http", () => {
+    expect(resolveBaseUrl(req({ host: "example.com:8080" }))).toBe("http://example.com:8080");
+  });
+
+  it("falls back to the origin of x-ms-original-url", () => {
+    expect(resolveBaseUrl(req({ "x-ms-original-url": "https://example.com/foo?bar=1" }))).toBe(
+      "https://example.com"
+    );
+  });
+
+  it("ignores an unusable host", () => {
+    expect(
+      resolveBaseUrl(req({ host: "not a host", "x-ms-original-url": "https://example.com/foo" }))
+    ).toBe("https://example.com");
+  });
+
+  it("falls back to localhost", () => {
+    expect(resolveBaseUrl(req({}))).toBe("http://localhost");
   });
 });

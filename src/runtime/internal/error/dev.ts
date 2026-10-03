@@ -1,13 +1,13 @@
 import { HTTPError, type HTTPEvent } from "h3";
 import { getRequestURL } from "h3";
-import { readFile } from "node:fs/promises";
-import { resolve, dirname } from "node:path";
-import consola from "consola";
-import type { ErrorParser } from "youch-core";
 import { defineNitroErrorHandler } from "./utils.ts";
 import type { InternalHandlerResponse } from "./utils.ts";
 import { FastResponse } from "srvx";
 import type { NitroErrorHandler } from "nitro/types";
+import { loadStackTrace } from "./_stack.ts";
+import { renderErrorANSI, renderErrorHTML } from "./_utils.ts";
+
+export { loadStackTrace } from "./_stack.ts";
 
 const errorHandler: NitroErrorHandler = defineNitroErrorHandler(
   async function defaultNitroErrorHandler(error, event) {
@@ -44,17 +44,16 @@ export async function defaultHandler(
   }
 
   // Load stack trace with source maps
-  await loadStackTrace(error).catch(consola.error);
+  await loadStackTrace(error).catch(console.error);
 
-  const { Youch } = await import("youch");
-
-  // https://github.com/poppinss/youch
-  const youch = new Youch();
+  // Unhandled errors are wrapped in an HTTPError that shares the stack of the original error
+  const displayError = unhandled && error.cause instanceof Error ? error.cause : error;
 
   // Console output
   if (unhandled && !opts?.silent) {
-    const ansiError = (await youch.toANSI(error)).replaceAll(process.cwd(), ".");
-    consola.error(`[request error] [${event.req.method}] ${url}\n\n`, ansiError);
+    const ansiError = await renderErrorANSI(displayError);
+    console.error(`[request error] [${event.req.method}] ${url}`);
+    console.error(ansiError + "\n");
   }
 
   // Use HTML response only when user-agent expects it (browsers)
@@ -86,68 +85,10 @@ export async function defaultHandler(
     status,
     statusText: unhandled ? "" : error.statusText,
     headers,
-    body: await youch.toHTML(error, {
-      request: {
-        url: url.href,
-        method: event.req.method,
-        headers: Object.fromEntries(event.req.headers.entries()),
-      },
+    body: await renderErrorHTML(displayError, {
+      status,
+      statusText: unhandled ? "" : error.statusText,
+      request: { url: url.href, method: event.req.method, headers: event.req.headers },
     }),
   };
-}
-
-// ---- Source Map support ----
-
-export async function loadStackTrace(error: any): Promise<void> {
-  if (!(error instanceof Error)) {
-    return;
-  }
-
-  const { ErrorParser } = await import("youch-core");
-
-  const parsed = await new ErrorParser().defineSourceLoader(sourceLoader).parse(error);
-
-  const stack = error.message + "\n" + parsed.frames.map((frame) => fmtFrame(frame)).join("\n");
-
-  Object.defineProperty(error, "stack", { value: stack });
-
-  if (error.cause) {
-    await loadStackTrace(error.cause).catch(consola.error);
-  }
-}
-
-type SourceLoader = Parameters<ErrorParser["defineSourceLoader"]>[0];
-type StackFrame = Parameters<SourceLoader>[0];
-async function sourceLoader(frame: StackFrame) {
-  if (!frame.fileName || frame.fileType !== "fs" || frame.type === "native") {
-    return;
-  }
-
-  if (frame.type === "app") {
-    // prettier-ignore
-    const rawSourceMap = await readFile(`${frame.fileName}.map`, "utf8").catch(() => {});
-    if (rawSourceMap) {
-      const { SourceMapConsumer } = await import("source-map");
-      const consumer = await new SourceMapConsumer(rawSourceMap);
-      // prettier-ignore
-      const originalPosition = consumer.originalPositionFor({ line: frame.lineNumber!, column: frame.columnNumber! });
-      if (originalPosition.source && originalPosition.line) {
-        // prettier-ignore
-        frame.fileName = resolve(dirname(frame.fileName), originalPosition.source);
-        frame.lineNumber = originalPosition.line;
-        frame.columnNumber = originalPosition.column || 0;
-      }
-    }
-  }
-
-  const contents = await readFile(frame.fileName, "utf8").catch(() => {});
-  return contents ? { contents } : undefined;
-}
-
-function fmtFrame(frame: StackFrame) {
-  if (frame.type === "native") {
-    return frame.raw;
-  }
-  const src = `${frame.fileName || ""}:${frame.lineNumber}:${frame.columnNumber})`;
-  return frame.functionName ? `at ${frame.functionName} (${src}` : `at ${src}`;
 }

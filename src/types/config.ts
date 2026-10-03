@@ -4,14 +4,12 @@ import type { WatchConfigOptions } from "c12";
 import type { ChokidarOptions } from "chokidar";
 import type { CompatibilityDateSpec, CompatibilityDates } from "compatx";
 import type { LogLevel } from "consola";
-import type { ConnectorName } from "db0";
+import type { ConnectorName, ConnectorOptions } from "db0";
 import type { NestedHooks } from "hookable";
 import type { ProxyServerOptions } from "httpxy";
 import type { PresetName, PresetNameInput, PresetOptions } from "../presets/index.ts";
 import type { TSConfig } from "pkg-types";
-import type { Preset as UnenvPreset } from "unenv";
-import type { UnimportPluginOptions } from "unimport/unplugin";
-import type { BuiltinDriverName } from "unstorage";
+import type { BuiltinDriverName, BuiltinDriverOptions } from "unstorage";
 import type { ExternalsTraceOptions } from "nf3";
 import type { UnwasmPluginOptions } from "unwasm/plugin";
 import type { RunnerName } from "env-runner";
@@ -23,13 +21,14 @@ import type {
 } from "./handler.ts";
 import type { NitroHooks } from "./hooks.ts";
 import type { NitroModuleInput } from "./module.ts";
-import type { NitroFrameworkInfo } from "./nitro.ts";
+import type { Nitro, NitroFrameworkInfo } from "./nitro.ts";
 import type { NitroOpenAPIConfig } from "./openapi.ts";
 export type { NitroOpenAPIConfig } from "./openapi.ts";
 import type { NitroPreset } from "./preset.ts";
-import type { OXCOptions, RolldownConfig } from "./build.ts";
+import type { NitroBuildPluginOption, OXCOptions, RolldownConfig } from "./build.ts";
 import type { RollupConfig } from "./build.ts";
 import type { NitroRouteConfig, NitroRouteRules } from "./route-rules.ts";
+import type { JsonValue, SerializableOptions } from "./_utils.ts";
 
 type RollupCommonJSOptions = NonNullable<Parameters<typeof commonjs.default>[0]>;
 
@@ -200,32 +199,46 @@ export interface NitroOptions extends PresetOptions {
     publicDir: string;
   };
 
+  /**
+   * Directory (relative to the served base) for generated build assets.
+   *
+   * Applied as the bundler `assetsDir` for client and SSR environments, so
+   * generated assets are emitted and referenced under this path. Presets can
+   * use it to relocate content-addressed assets (e.g. Vercel immutable static
+   * files under `_vercel/immutable`).
+   */
+  buildAssetsDir?: string;
+
   /** @deprecated Migrate to `serverDir`. */
   srcDir: string;
 
   // Features
 
   /**
-   * Storage mount configuration.
+   * KV storage mount configuration.
    *
    * Keys are mount-point paths; values specify the unstorage driver and
    * its options.
    *
-   * @see https://nitro.build/config#storage
+   * @see https://nitro.build/config#kv
    * @see https://nitro.build/docs/storage
    */
+  kv: StorageMounts;
+
+  /** @deprecated Migrate to `kv`. */
   storage: StorageMounts;
 
-  /**
-   * Storage mount overrides for development mode.
-   *
-   * Useful for swapping production drivers (e.g. Redis) with local
-   * alternatives (e.g. filesystem) during development.
-   *
-   * @see https://nitro.build/config#devstorage
-   * @see https://nitro.build/docs/storage
-   */
+  /** @deprecated Migrate to `kv` inside `$development` (and `$prerender`) config. */
   devStorage: StorageMounts;
+
+  /**
+   * Cache storage and global default options for cached functions, cached handlers
+   * and `cache` route rules.
+   *
+   * @see https://nitro.build/config#cache
+   * @see https://nitro.build/docs/cache
+   */
+  cache: NitroCacheConfig;
 
   /**
    * Database connection configurations.
@@ -419,17 +432,6 @@ export interface NitroOptions extends PresetOptions {
    * @see https://nitro.build/docs/assets
    */
   publicAssets: PublicAssetDir[];
-
-  /**
-   * Auto-import configuration.
-   *
-   * Set to `false` to disable auto-imports. Pass an object to customize.
-   *
-   * @default false
-   * @see https://nitro.build/config#imports
-   * @see https://github.com/unjs/unimport
-   */
-  imports: Partial<UnimportPluginOptions> | false;
 
   /**
    * Nitro modules to extend behavior during initialization.
@@ -713,12 +715,45 @@ export interface NitroOptions extends PresetOptions {
    * Bundler to use for production builds.
    *
    * Auto-detected when not set: `"vite"` if a `vite.config` with the
-   * `nitro()` plugin is found, otherwise `"rolldown"` (bundled with Nitro).
+   * `nitro()` plugin is found, otherwise `"rolldown"` (installed on demand). In development,
+   * `false` is used when `rolldown` is not installed.
    * Use the `NITRO_BUILDER` environment variable as an alternative.
+   *
+   * Set to `false` to run the server sources without bundling (experimental, `dev` and
+   * `preview` only).
    *
    * @see https://nitro.build/config#builder
    */
-  builder?: "rollup" | "rolldown" | "vite";
+  builder?: "rollup" | "rolldown" | "vite" | false;
+
+  /**
+   * Options for the `vite` builder and the `nitro/vite` plugin.
+   */
+  vite?: {
+    /**
+     * The `vite` package to use, as a path or `file://` URL to its directory or entry
+     * (e.g. `import.meta.resolve("vite")`).
+     *
+     * By default, `vite` is resolved from the project root. A framework running Vite
+     * programmatically should pass its own `vite` so the dev module runner matches the
+     * running instance (in a monorepo, another version could be hoisted next to the app).
+     */
+    path?: string;
+  };
+
+  /**
+   * Build plugins, applied with every builder (`rollup`, `rolldown`, `vite` and `false`).
+   *
+   * Plugins use the Rollup plugin interface. Only the `resolveId`, `load` and `transform` hooks
+   * are supported by all builders; with `builder: false`, plugins run in
+   * [env-runner](https://github.com/unjs/env-runner), which supports only these.
+   *
+   * Plugins with `enforce: "pre"` are placed before Nitro's own plugins, the others after them
+   * (a hook's own `order` takes precedence).
+   *
+   * @see https://nitro.build/config#buildplugins
+   */
+  buildPlugins: NitroBuildPluginOption[];
 
   /**
    * Additional Rollup configuration.
@@ -741,13 +776,8 @@ export interface NitroOptions extends PresetOptions {
    */
   entry: string;
 
-  /**
-   * unenv preset(s) for environment compatibility polyfills.
-   *
-   * @see https://nitro.build/config#unenv
-   * @see https://github.com/unjs/unenv
-   */
-  unenv: UnenvPreset[];
+  /** @deprecated Migrate to `alias`, `inject`, `polyfills` and `builtinModules`. */
+  unenv: LegacyUnenvPreset[];
 
   /**
    * Path aliases for module resolution.
@@ -763,6 +793,47 @@ export interface NitroOptions extends PresetOptions {
    * @see https://nitro.build/config#alias
    */
   alias: Record<string, string>;
+
+  /**
+   * Globals to replace with imports when referenced in the bundle.
+   *
+   * Values are a module id (default export) or a `[id, exportName]` tuple.
+   * Set a global to `false` to remove a default injection (e.g. one added
+   * for `node: false` builds).
+   *
+   * @example
+   * ```ts
+   * inject: {
+   *   Buffer: ["node:buffer", "Buffer"],
+   * }
+   * ```
+   *
+   * @see https://nitro.build/config#inject
+   */
+  inject: Record<string, string | [id: string, exportName: string] | false>;
+
+  /**
+   * Modules imported for their side effects before the server entry.
+   *
+   * Prefix an entry with `!` to remove a default polyfill.
+   *
+   * @see https://nitro.build/config#polyfills
+   */
+  polyfills: string[];
+
+  /**
+   * Modules provided by the target runtime (e.g. `node:fs` on Deno or
+   * `cloudflare:workers`).
+   *
+   * Imports of these ids are kept as-is in the output: they are never bundled,
+   * traced or copied, so only list modules the runtime itself provides. To
+   * keep an npm package out of the bundle, use `traceDeps` instead.
+   *
+   * Prefix an entry with `!` to remove a default (e.g. one added by a preset).
+   *
+   * @see https://nitro.build/config#builtinmodules
+   */
+  builtinModules: string[];
 
   /**
    * Minify the production bundle.
@@ -794,8 +865,9 @@ export interface NitroOptions extends PresetOptions {
    * When `true` (default), the bundler targets the `node` platform, prefers
    * Node.js built-in modules, and enables dependency externalization.
    *
-   * When `false`, Nitro prepends the `nodeless` unenv preset to polyfill
-   * Node.js globals and built-ins for non-Node runtimes (workers, edge, Deno).
+   * When `false`, Nitro adds default `alias`, `inject` and `polyfills`
+   * entries that polyfill Node.js globals and built-ins for non-Node
+   * runtimes (workers, edge, Deno).
    *
    * @see https://nitro.build/config#node
    */
@@ -832,8 +904,8 @@ export interface NitroOptions extends PresetOptions {
   /**
    * Prevent packages from being externalized.
    *
-   * Set to `true` to bundle all dependencies, or pass an array of
-   * package names or patterns.
+   * Set to `true` to bundle all dependencies, or pass an array of patterns
+   * matched against both the import specifier and the resolved module path.
    *
    * @see https://nitro.build/config#noexternals
    */
@@ -864,28 +936,12 @@ export interface NitroOptions extends PresetOptions {
    * @see https://nitro.build/config#typescript
    */
   typescript: {
-    /** Enable strict TypeScript checks. */
-    strict?: boolean;
-    /** Generate types for runtime config. */
-    generateRuntimeConfigTypes?: boolean;
-    /** Generate a `tsconfig.json` in the build directory. */
-    generateTsConfig?: boolean;
-    /** Custom tsconfig overrides. */
+    /**
+     * TypeScript config used by the bundler (JSX options and path aliases).
+     *
+     * Defaults to the resolved `tsconfig.json` of the project root.
+     */
     tsConfig?: Partial<TSConfig>;
-
-    /**
-     * Path of the generated types directory.
-     *
-     * @default "node_modules/.nitro/types"
-     */
-    generatedTypesDir?: string;
-
-    /**
-     * Path of the generated `tsconfig.json` relative to `typescript.generatedTypesDir`.
-     *
-     * @default "tsconfig.json"
-     */
-    tsconfigPath?: string;
   };
 
   /**
@@ -905,8 +961,13 @@ export interface NitroOptions extends PresetOptions {
   commands: {
     /** Command to preview the production build locally. */
     preview?: string;
-    /** Command to deploy the production build. */
-    deploy?: string;
+    /**
+     * Command to deploy the production build.
+     *
+     * Can be a shell command (`./` paths are resolved relative to the output directory)
+     * or a function (used by presets that deploy programmatically).
+     */
+    deploy?: string | ((nitro: Nitro, opts: { args?: string[] }) => void | Promise<void>);
   };
 
   /**
@@ -959,6 +1020,9 @@ export interface NitroConfig
       >
     >,
     C12InputConfig<NitroConfig> {
+  /** Config overrides applied when prerendering (on top of `$production`). */
+  $prerender?: NitroConfig;
+
   preset?: PresetNameInput;
 
   /**
@@ -980,7 +1044,8 @@ export interface NitroConfig
   routeRules?: { [path: string]: NitroRouteConfig };
   rollupConfig?: Partial<RollupConfig>;
   compatibilityDate?: CompatibilityDateSpec;
-  unenv?: UnenvPreset | UnenvPreset[];
+  /** @deprecated Migrate to `alias`, `inject`, `polyfills` and `builtinModules`. */
+  unenv?: LegacyUnenvPreset | LegacyUnenvPreset[];
   serverDir?: boolean | "./" | "./server" | (string & {});
   serverEntry?: string | NitroOptions["serverEntry"];
   renderer?: false | NitroOptions["renderer"];
@@ -1016,8 +1081,13 @@ export interface PublicAssetDir {
   baseURL?: string;
   /** Fall through to the next handler when the asset is not found. */
   fallthrough?: boolean;
-  /** `Cache-Control` max-age value in seconds. */
-  maxAge: number;
+  /**
+   * `Cache-Control` max-age value in seconds.
+   *
+   * Left `undefined` when unset, which some presets (such as Vercel) treat
+   * differently from an explicit `0`.
+   */
+  maxAge?: number;
   /** Filesystem path to the asset directory. */
   dir: string;
   /**
@@ -1066,20 +1136,127 @@ export interface TracingOptions {
 }
 
 /**
+ * Preset shape accepted by the deprecated `unenv` option (compatible with
+ * unenv's `Preset`).
+ *
+ * @deprecated Migrate to `alias`, `inject`, `polyfills` and `builtinModules`.
+ */
+export interface LegacyUnenvPreset {
+  meta?: {
+    readonly name?: string;
+    readonly version?: string;
+    /** Path or URL used to resolve the preset's module ids. */
+    readonly url?: string | URL;
+  };
+  alias?: Readonly<Record<string, string>>;
+  inject?: Readonly<Record<string, string | readonly string[] | false>>;
+  polyfill?: readonly string[];
+  external?: readonly string[];
+}
+
+/** Driver name (module id or alias) of a driver that is not builtin. */
+type CustomDriverName = string & { _custom?: any };
+
+/**
+ * Mount configuration for a builtin `unstorage` driver.
+ *
+ * Driver options are inferred from the `driver` name.
+ */
+export type BuiltinStorageMount = {
+  [Name in BuiltinDriverName]: { driver: Name } & (Name extends keyof BuiltinDriverOptions
+    ? SerializableOptions<BuiltinDriverOptions[Name]>
+    : unknown);
+}[BuiltinDriverName];
+
+/** Mount configuration for a custom driver (module id or alias). */
+export type CustomStorageMount = {
+  driver: CustomDriverName;
+  [option: string]: JsonValue;
+};
+
+export type StorageMount = BuiltinStorageMount | CustomStorageMount;
+
+/**
  * Storage mount configuration mapping mount points to driver options.
  *
  * Keys are storage mount-point paths; values specify the unstorage driver
  * and its options.
  *
- * @see https://nitro.build/config#storage
+ * @see https://nitro.build/config#kv
  * @see https://nitro.build/docs/storage
  */
-type CustomDriverName = string & { _custom?: any };
 export interface StorageMounts {
-  [path: string]: {
-    driver: BuiltinDriverName | CustomDriverName;
-    [option: string]: any;
+  [path: string]: StorageMount;
+}
+
+// Cache
+
+/** Cache storage driver. */
+export type NitroCacheDriver = "memory" | "fs" | "kv";
+
+/** Options shared by cached functions and cached handlers. */
+export type NitroCacheFunctionDefaults = Pick<
+  import("ocache").CacheOptions,
+  "maxAge" | "swr" | "staleMaxAge" | "maxResolveTime" | "base"
+>;
+
+/** Options that only apply to cached handlers and `cache` route rules. */
+export type NitroCacheHandlerDefaults = Pick<
+  import("ocache").CachedEventHandlerOptions,
+  | "varies"
+  | "allowQuery"
+  | "allowCookies"
+  | "allowAuthorization"
+  | "sendCacheControl"
+  | "cacheStatusHeader"
+  | "maxBodySize"
+>;
+
+/** Global default options for cached functions, cached handlers and `cache` route rules. */
+export interface NitroCacheDefaults extends NitroCacheFunctionDefaults, NitroCacheHandlerDefaults {}
+
+/**
+ * Cache configuration.
+ *
+ * @see https://nitro.build/config#cache
+ */
+export interface NitroCacheConfig {
+  /**
+   * Cache storage driver.
+   *
+   * - `"memory"`: in-process LRU memory storage (not persisted across restarts).
+   * - `"fs"`: filesystem storage (Node.js compatible runtimes only).
+   * - `"kv"`: the Nitro [KV storage layer](https://nitro.build/docs/storage) (`useKV()`).
+   *
+   * Defaults to `"kv"` when a `cache` (or `cache:*` / `cache/*`) KV mount point is
+   * configured, and to `"memory"` otherwise.
+   */
+  driver?: NitroCacheDriver;
+
+  /** Options for the `memory` driver. */
+  memory?: Omit<import("ocache").MemoryStorageOptions, "sizeOf">;
+
+  /** Options for the `fs` driver. */
+  fs?: {
+    /**
+     * Directory to store cache entries in.
+     *
+     * Relative paths resolve against `rootDir` in development and prerendering, and against
+     * the working directory of the server process in production.
+     *
+     * Defaults to `.data/cache`.
+     */
+    dir?: string;
   };
+
+  /**
+   * Global default options for every cached function, cached handler and `cache` route rule.
+   *
+   * Shared options (`maxAge`, `swr`, `staleMaxAge`, `maxResolveTime`, `base`) apply to all of
+   * them, handler-only options only apply to cached handlers and route rules.
+   * Per-cache options take precedence.
+   */
+  defaults?: NitroCacheDefaults;
 }
 
 // Database
@@ -1094,11 +1271,13 @@ export type DatabaseConnectionName = "default" | (string & {});
  * @see https://nitro.build/docs/database
  */
 export type DatabaseConnectionConfig = {
-  connector: ConnectorName;
-  options?: {
-    [key: string]: any;
+  [Name in ConnectorName]: {
+    connector: Name;
+    options?: Name extends keyof ConnectorOptions
+      ? SerializableOptions<ConnectorOptions[Name]>
+      : Record<string, JsonValue>;
   };
-};
+}[ConnectorName];
 
 /** Map of {@link DatabaseConnectionName} to {@link DatabaseConnectionConfig}. */
 export type DatabaseConnectionConfigs = Record<DatabaseConnectionName, DatabaseConnectionConfig>;

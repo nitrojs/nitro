@@ -2,7 +2,7 @@ import "./_runtime_warn.ts";
 
 import type { Middleware, H3Route } from "h3";
 import type { MatchedRoute } from "rou3";
-import type { RouteRuleLayer } from "h3-rules";
+import type { RouteRuleLayer } from "h3/rules";
 
 export function findRoute(_method: string, _path: string): MatchedRoute<H3Route> | undefined {
   return undefined;

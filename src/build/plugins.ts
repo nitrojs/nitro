@@ -1,4 +1,4 @@
-import type { Nitro } from "nitro/types";
+import type { Nitro, NitroBuildPlugin, NitroBuildPluginOption } from "nitro/types";
 import type { Plugin } from "rollup";
 import type { BaseBuildConfig } from "./config.ts";
 
@@ -8,24 +8,22 @@ import { unwasm } from "unwasm/plugin";
 import { routeMeta } from "./plugins/route-meta.ts";
 import { serverMain } from "./plugins/server-main.ts";
 import { virtual, virtualDeps } from "./plugins/virtual.ts";
-import { sourcemapMinify } from "./plugins/sourcemap-min.ts";
+import { sourcemap } from "./plugins/sourcemap.ts";
 import { raw, RESOLVED_RE as rawModulesRE } from "./plugins/raw.ts";
 import { importAttributes } from "./plugins/import-attributes.ts";
 import { externals } from "./plugins/externals.ts";
+import { unenv } from "./plugins/unenv.ts";
 
 export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const plugins: Plugin[] = [];
 
   // Virtual
-  const virtualPlugin = virtual(virtualTemplates(nitro, [...base.env.polyfill]));
+  const virtualPlugin = virtual(virtualTemplates(nitro, [...base.env.polyfills]));
   nitro.vfs = virtualPlugin.api.modules;
   plugins.push(virtualPlugin, virtualDeps());
 
-  // Auto imports
-  if (nitro.options.imports) {
-    const unimportPlugin = await import("unimport/unplugin");
-    plugins.push(unimportPlugin.default.rollup(nitro.options.imports) as Plugin);
-  }
+  // Node.js compatibility polyfills (resolved on demand)
+  plugins.push(unenv(nitro, base.env));
 
   // WASM loader
   if (nitro.options.wasm !== false) {
@@ -36,7 +34,7 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   plugins.push(serverMain(nitro));
 
   // Raw Imports
-  plugins.push(await importAttributes(), raw());
+  plugins.push(await importAttributes({ rootDir: nitro.options.rootDir }), raw());
 
   // Route meta
   if (nitro.options.experimental.openAPI) {
@@ -75,14 +73,41 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
     );
   }
 
-  // Sourcemap minify
-  if (
-    nitro.options.sourcemap &&
-    !nitro.options.dev &&
-    nitro.options.experimental.sourcemapMinify !== false
-  ) {
-    plugins.push(sourcemapMinify());
+  // Sourcemap
+  if (nitro.options.sourcemap && !nitro.options.dev) {
+    plugins.push(
+      sourcemap({
+        virtualIds: virtualPlugin.api.modules.keys(),
+        minify: nitro.options.experimental.sourcemapMinify !== false,
+      })
+    );
   }
 
+  return plugins;
+}
+
+/** Nitro's `plugins` wrapped with the `buildPlugins` (ordered by `enforce`). */
+export async function withBuildPlugins<T>(nitro: Nitro, plugins: T[]): Promise<T[]> {
+  const buildPlugins = await resolveBuildPlugins(nitro);
+  const byEnforce = (enforce?: "pre" | "post") =>
+    buildPlugins.filter((p) => p.enforce === enforce) as T[];
+  return [...byEnforce("pre"), ...plugins, ...byEnforce(), ...byEnforce("post")];
+}
+
+/** Flattened `buildPlugins` (nested arrays and promises resolved, falsy entries skipped). */
+export async function resolveBuildPlugins(nitro: Nitro): Promise<NitroBuildPlugin[]> {
+  return flatPlugins(nitro.options.buildPlugins || []);
+}
+
+async function flatPlugins(options: NitroBuildPluginOption[]): Promise<NitroBuildPlugin[]> {
+  const plugins: NitroBuildPlugin[] = [];
+  for (const entry of options) {
+    const option = await entry;
+    if (Array.isArray(option)) {
+      plugins.push(...(await flatPlugins(option)));
+    } else if (option) {
+      plugins.push(option);
+    }
+  }
   return plugins;
 }

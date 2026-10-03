@@ -21,6 +21,7 @@ function mockRegistry(versions: string[]) {
 beforeEach(() => {
   vi.restoreAllMocks();
   fetchMock.mockReset();
+  vi.spyOn(console, "log").mockImplementation(() => {});
 });
 
 describe("fmtDate", async () => {

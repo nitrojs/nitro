@@ -40,6 +40,61 @@ describe("runtime static middleware", () => {
     expect(event.res.headers.get("Cache-Control")).toBeNull();
   });
 
+  it("responds with 404 when a matched asset has no data behind it", async () => {
+    getAsset.mockImplementation((id: string) =>
+      id === "/favicon.ico"
+        ? { etag: '"test"', mtime: Date.now(), type: "image/x-icon", size: 1 }
+        : undefined
+    );
+    isPublicAssetURL.mockReturnValue(true);
+    readAsset.mockResolvedValue(undefined);
+    const event = createEvent("/favicon.ico");
+
+    await expect(handler(event)).rejects.toThrow("404");
+    expect(event.res.headers.get("Cache-Control")).toBeNull();
+  });
+
+  // The `inline` reader hands back its payload without a promise.
+  it("responds with 404 when a synchronous reader has no data", () => {
+    getAsset.mockImplementation((id: string) =>
+      id === "/favicon.ico"
+        ? { etag: '"test"', mtime: Date.now(), type: "image/x-icon", size: 1 }
+        : undefined
+    );
+    isPublicAssetURL.mockReturnValue(true);
+    readAsset.mockReturnValue(undefined);
+    const event = createEvent("/favicon.ico");
+
+    expect(() => handler(event)).toThrow("404");
+    expect(event.res.headers.get("Cache-Control")).toBeNull();
+  });
+
+  it("propagates reader errors", async () => {
+    getAsset.mockImplementation((id: string) =>
+      id === "/favicon.ico"
+        ? { etag: '"test"', mtime: Date.now(), type: "image/x-icon", size: 1 }
+        : undefined
+    );
+    isPublicAssetURL.mockReturnValue(true);
+    readAsset.mockRejectedValue(Object.assign(new Error("EACCES"), { code: "EACCES" }));
+    const event = createEvent("/favicon.ico");
+
+    await expect(handler(event)).rejects.toThrow("EACCES");
+  });
+
+  it("serves an empty asset instead of treating it as missing", async () => {
+    getAsset.mockImplementation((id: string) =>
+      id === "/empty.txt"
+        ? { etag: '"test"', mtime: Date.now(), type: "text/plain", size: 0 }
+        : undefined
+    );
+    isPublicAssetURL.mockReturnValue(true);
+    readAsset.mockResolvedValue(new Uint8Array());
+    const event = createEvent("/empty.txt");
+
+    await expect(handler(event)).resolves.toEqual(new Uint8Array());
+  });
+
   it("appends Accept-Encoding vary when a compressed asset is matched", async () => {
     getAsset.mockImplementation((id: string) => {
       if (id === "/foo.css.gz") {

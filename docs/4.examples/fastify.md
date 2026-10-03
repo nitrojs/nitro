@@ -1,5 +1,6 @@
 ---
-category: backend frameworks
+navigation:
+  category: backend frameworks
 icon: i-simple-icons-fastify
 ---
 

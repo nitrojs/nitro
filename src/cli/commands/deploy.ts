@@ -1,9 +1,17 @@
 import { defineCommand } from "citty";
-import { relative, resolve } from "pathe";
+import type { DateString } from "compatx";
+import { resolve } from "pathe";
 import consola from "consola";
-import { execSync } from "node:child_process";
-import { getBuildInfo } from "../../build/info.ts";
-import buildCmd, { buildArgs } from "./build.ts";
+import {
+  build,
+  copyPublicAssets,
+  createNitro,
+  deploy,
+  getBuildInfo,
+  prepare,
+  prerender,
+} from "nitro/builder";
+import { buildArgs } from "./build.ts";
 
 export default defineCommand({
   meta: {
@@ -17,40 +25,55 @@ export default defineCommand({
       description: "Skip the build step and deploy the existing build",
     },
   },
-  async run(ctx) {
-    (globalThis as any).__nitroDeploying__ = true;
-    if (!ctx.args.prebuilt) {
-      await buildCmd.run!(ctx as any);
-    }
-    if ((globalThis as any).__nitroDeployed__) {
-      return;
-    }
-    const rootDir = resolve((ctx.args.dir || ctx.args._dir || ".") as string);
-    const { buildInfo, outputDir } = await getBuildInfo(rootDir);
-    if (!buildInfo) {
-      // throw new Error("No build info found, cannot deploy.");
-      consola.error("No build info found, cannot deploy.");
-      process.exit(1);
-    }
-    if (!buildInfo.commands?.deploy) {
-      consola.error(
-        `The \`${buildInfo.preset}\` preset does not have a default deploy command.\n\nTry using a different preset with the \`--preset\` option, or configure a deploy command in the Nitro config, or deploy manually.`
-      );
-      process.exit(1);
+  async run({ args, rawArgs }) {
+    const rootDir = resolve((args.dir || args._dir || ".") as string);
+
+    let preset = args.preset;
+    let outputDir: string | undefined;
+    if (args.prebuilt) {
+      const lastBuild = await getBuildInfo(rootDir);
+      if (!lastBuild.buildInfo) {
+        consola.error("No build info found, cannot deploy.");
+        process.exit(1);
+      }
+      if (preset && preset !== lastBuild.buildInfo.preset) {
+        consola.warn(
+          `Ignoring \`--preset ${preset}\` and using \`${lastBuild.buildInfo.preset}\` from the existing build.`
+        );
+      }
+      preset = lastBuild.buildInfo.preset;
+      outputDir = lastBuild.outputDir;
     }
 
-    const extraArgs =
-      ctx.rawArgs.indexOf("--") !== -1
-        ? ctx.rawArgs.slice(ctx.rawArgs.indexOf("--") + 1).join(" ")
-        : "";
+    const nitro = await createNitro(
+      {
+        rootDir,
+        dev: false,
+        minify: args.minify,
+        preset,
+        builder: args.builder as "rollup" | "rolldown" | "vite",
+        output: outputDir ? { dir: outputDir } : undefined,
+      },
+      {
+        compatibilityDate: args.compatibilityDate as DateString,
+      }
+    );
 
-    const deployCommand =
-      buildInfo.commands.deploy.replace(
-        /([\s:])\.\/(\S*)/g,
-        `$1${relative(process.cwd(), outputDir)}/$2`
-      ) + (extraArgs ? ` ${extraArgs}` : "");
+    const extraArgs = rawArgs.includes("--") ? rawArgs.slice(rawArgs.indexOf("--") + 1) : [];
 
-    consola.info(`$ ${deployCommand}`);
-    execSync(deployCommand, { stdio: "inherit" });
+    try {
+      if (!args.prebuilt) {
+        await prepare(nitro);
+        await copyPublicAssets(nitro);
+        await prerender(nitro);
+        await build(nitro);
+      }
+      await deploy(nitro, { args: extraArgs });
+    } catch (error) {
+      consola.error(error);
+      process.exitCode = 1;
+    } finally {
+      await nitro.close();
+    }
   },
 });

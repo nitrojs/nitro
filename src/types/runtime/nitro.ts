@@ -1,5 +1,5 @@
 import type { H3Core, HTTPEvent } from "h3";
-import type { HookableCore } from "hookable";
+import type { HookableCore } from "../_hookable.ts";
 import type { ServerRequest } from "srvx";
 
 /**

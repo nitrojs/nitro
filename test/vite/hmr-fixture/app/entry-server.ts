@@ -1,6 +1,7 @@
 import { html } from "nitro/h3";
 import { serverFetch } from "nitro";
 import { state } from "../shared.ts";
+import { ssrEvals } from "./ssr-state.ts";
 
 export default {
   fetch: async () => {
@@ -18,6 +19,7 @@ export default {
         <body>
           <h1>SSR Page</h1>
           <p>[SSR] state: ${state}</p>
+          <p>[SSR] evals: ${ssrEvals}</p>
           <p>[API] state: ${apiData.state}</p>
           <p id="client-state">[Client] state: <span id="client-state-value">?</span></p>
           ${clientScript}
