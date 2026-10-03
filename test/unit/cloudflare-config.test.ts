@@ -14,13 +14,19 @@ describe("Cloudflare asset configuration diagnostics", () => {
     },
     {
       title: "matching generated values",
-      fileAssets: { binding: "ASSETS", directory: "../public" },
+      fileAssets: { binding: "ASSETS", directory: "./.output/public" },
+      contextAssets: {},
+      warns: false,
+    },
+    {
+      title: "matching directory with trailing slash",
+      fileAssets: { directory: ".output/public/" },
       contextAssets: {},
       warns: false,
     },
     {
       title: "matching directory with Windows separators",
-      fileAssets: { directory: "..\\public" },
+      fileAssets: { directory: ".\\.output\\public" },
       contextAssets: {},
       warns: false,
     },
@@ -34,7 +40,7 @@ describe("Cloudflare asset configuration diagnostics", () => {
       title: "conflicting file binding with context routing policy",
       fileAssets: { binding: "CUSTOM" },
       contextAssets: { html_handling: "drop-trailing-slash" as const },
-      warns: true,
+      warns: "file",
     },
     {
       title: "context binding precedence",
@@ -46,13 +52,31 @@ describe("Cloudflare asset configuration diagnostics", () => {
       title: "conflicting context binding",
       fileAssets: {},
       contextAssets: { binding: "CUSTOM" },
-      warns: true,
+      warns: "context",
     },
     {
       title: "conflicting asset directory",
-      fileAssets: { directory: "../custom" },
+      fileAssets: { directory: "./custom" },
       contextAssets: {},
-      warns: true,
+      warns: "file",
+    },
+    {
+      title: "file directory relative to generated config",
+      fileAssets: { directory: "../public" },
+      contextAssets: {},
+      warns: "file",
+    },
+    {
+      title: "matching context directory",
+      fileAssets: {},
+      contextAssets: { directory: "../public" },
+      warns: false,
+    },
+    {
+      title: "conflicting context directory",
+      fileAssets: {},
+      contextAssets: { directory: "./.output/public" },
+      warns: "context",
     },
   ])(
     "reports $title correctly",
@@ -83,11 +107,15 @@ describe("Cloudflare asset configuration diagnostics", () => {
         expect(
           resolve(nitro.options.output.serverDir, generated.assets.directory)
         ).toBe(resolve(nitro.options.output.publicDir));
-        expect(
-          warn.mock.calls.some(([message]) =>
-            String(message).includes("Wrangler config `assets`")
-          )
-        ).toBe(warns);
+        const message = warn.mock.calls
+          .map(([message]) => String(message))
+          .find((message) => message.includes("Wrangler config `assets`"));
+        expect(Boolean(message)).toBe(Boolean(warns));
+        if (message) {
+          expect(message.includes(" set by config or modules")).toBe(
+            warns === "context"
+          );
+        }
         if ("html_handling" in contextAssets || "html_handling" in fileAssets) {
           expect(generated.assets.html_handling).toBe("drop-trailing-slash");
         }
