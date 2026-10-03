@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "pathe";
@@ -90,6 +91,67 @@ describe("netlify _redirects and _headers", () => {
       "/base/old/*\t/new/:splat\t301\n/base/* /base/404.html 404"
     );
     expect(await readFile(join(dir, "public/_headers"), "utf8")).toBe("/base/hdr/*\n  x-hdr: 1\n");
+
+    // Rebuilding does not merge the previous output again
+    await writeRedirects(nitro);
+    await writeHeaders(nitro);
+    expect(await readFile(join(dir, "public/_redirects"), "utf8")).toBe(
+      "/base/old/*\t/new/:splat\t301\n/base/* /base/404.html 404"
+    );
+    expect(await readFile(join(dir, "public/_headers"), "utf8")).toBe("/base/hdr/*\n  x-hdr: 1\n");
+  });
+
+  it("moves user files from the baseURL dir to the publish root", async () => {
+    const { dir, nitro } = await createNitro({
+      baseURL: "/base/",
+      routeRules: {
+        "/old/**": { redirect: { to: "/new/**", status: 301 } },
+        "/hdr/**": { headers: { "x-hdr": "1" } },
+      },
+    });
+    nitro.options.output.publicDir = join(dir, "public/base");
+    await mkdir(nitro.options.output.publicDir);
+    await writeFile(join(nitro.options.output.publicDir, "_redirects"), "/user /other 302");
+    await writeFile(join(nitro.options.output.publicDir, "_headers"), "/user\n  x-user: 1");
+    await writeRedirects(nitro);
+    await writeHeaders(nitro);
+    expect(await readFile(join(dir, "public/_redirects"), "utf8")).toBe(
+      "/user /other 302\n/base/old/*\t/new/:splat\t301\n"
+    );
+    expect(await readFile(join(dir, "public/_headers"), "utf8")).toBe(
+      "/user\n  x-user: 1\n/base/hdr/*\n  x-hdr: 1\n"
+    );
+    expect(existsSync(join(dir, "public/base/_redirects"))).toBe(false);
+    expect(existsSync(join(dir, "public/base/_headers"))).toBe(false);
+  });
+
+  it("keeps a user fallback under the baseURL", async () => {
+    const { dir, nitro } = await createNitro({
+      baseURL: "/base/",
+      routeRules: { "/old/**": { redirect: { to: "/new/**", status: 301 } } },
+    });
+    nitro.options.output.publicDir = join(dir, "public/base");
+    await mkdir(nitro.options.output.publicDir);
+    await writeFile(
+      join(nitro.options.output.publicDir, "_redirects"),
+      "/base/* /base/index.html 200"
+    );
+    await writeRedirects(nitro);
+    expect(await readFile(join(dir, "public/_redirects"), "utf8")).toBe(
+      "/base/* /base/index.html 200"
+    );
+  });
+
+  it("writes to a custom publicDir that does not end with the baseURL", async () => {
+    const { dir, nitro } = await createNitro({
+      baseURL: "/app/",
+      routeRules: { "/old/**": { redirect: { to: "/new/**", status: 301 } } },
+    });
+    await writeRedirects(nitro);
+    expect(await readFile(join(dir, "public/_redirects"), "utf8")).toBe(
+      "/app/old/*\t/new/:splat\t301\n"
+    );
+    expect(existsSync(join(dir, "_redirects"))).toBe(false);
   });
 });
 
