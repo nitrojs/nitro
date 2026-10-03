@@ -1197,15 +1197,15 @@ export type NitroCacheHandlerDefaults = Pick<
   | "maxBodySize"
 >;
 
+/** Global default options for cached functions, cached handlers and `cache` route rules. */
+export interface NitroCacheDefaults extends NitroCacheFunctionDefaults, NitroCacheHandlerDefaults {}
+
 /**
  * Cache configuration.
  *
- * Options other than `driver`, `memory` and `fs` are used as global defaults for every
- * cached function, cached handler and `cache` route rule. Per-cache options take precedence.
- *
  * @see https://nitro.build/config#cache
  */
-export interface NitroCacheConfig extends NitroCacheFunctionDefaults, NitroCacheHandlerDefaults {
+export interface NitroCacheConfig {
   /**
    * Cache storage driver.
    *
@@ -1233,6 +1233,15 @@ export interface NitroCacheConfig extends NitroCacheFunctionDefaults, NitroCache
      */
     dir?: string;
   };
+
+  /**
+   * Global default options for every cached function, cached handler and `cache` route rule.
+   *
+   * Shared options (`maxAge`, `swr`, `staleMaxAge`, `maxResolveTime`, `base`) apply to all of
+   * them, handler-only options only apply to cached handlers and route rules.
+   * Per-cache options take precedence.
+   */
+  defaults?: NitroCacheDefaults;
 }
 
 // Database

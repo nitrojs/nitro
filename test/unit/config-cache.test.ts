@@ -112,9 +112,7 @@ describe("virtual/cache template", () => {
   it("splits global defaults for functions and handlers", () => {
     const template = render({
       driver: "memory",
-      maxAge: 60,
-      swr: true,
-      varies: ["accept-language"],
+      defaults: { maxAge: 60, swr: true, varies: ["accept-language"] },
     });
     expect(template).toContain(`cacheFunctionDefaults = {"maxAge":60,"swr":true}`);
     expect(template).toContain(

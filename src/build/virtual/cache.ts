@@ -1,4 +1,4 @@
-import type { Nitro, NitroCacheConfig } from "nitro/types";
+import type { Nitro, NitroCacheConfig, NitroCacheDefaults } from "nitro/types";
 
 const functionDefaultKeys = ["maxAge", "swr", "staleMaxAge", "maxResolveTime", "base"] as const;
 
@@ -18,12 +18,13 @@ export default function cache(nitro: Nitro) {
     id: "#nitro/virtual/cache",
     template: () => {
       const config = nitro.options.cache || {};
+      const defaults = config.defaults || {};
       return /* js */ `
 ${genStorage(config)}
 
-export const cacheFunctionDefaults = ${genValue(pickDefined(config, functionDefaultKeys))};
+export const cacheFunctionDefaults = ${genValue(pickDefined(defaults, functionDefaultKeys))};
 
-export const cacheHandlerDefaults = ${genValue(pickDefined(config, handlerDefaultKeys))};
+export const cacheHandlerDefaults = ${genValue(pickDefined(defaults, handlerDefaultKeys))};
 `;
     },
   };
@@ -45,7 +46,7 @@ export const createCacheStorage = () => createMemoryStorage(${genValue(config.me
   }
 }
 
-function pickDefined(config: NitroCacheConfig, keys: readonly (keyof NitroCacheConfig)[]) {
+function pickDefined(config: NitroCacheDefaults, keys: readonly (keyof NitroCacheDefaults)[]) {
   return Object.fromEntries(
     keys.filter((key) => config[key] !== undefined).map((key) => [key, config[key]])
   );
