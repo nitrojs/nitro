@@ -175,15 +175,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
   if (o11Routes.length === 0) {
     return;
   }
-  const routeRulesRouter = createPatternRouter(nitro.options.routeRules);
   for (const route of o11Routes) {
-    const routeRules = defu(
-      {},
-      ...matchPattern(routeRulesRouter, route.route).reverse()
-    ) as NitroRouteRules;
-    if (routeRules.isr) {
-      continue; // #3563
-    }
     const funcPrefix = resolve(nitro.options.output.serverDir, "..", route.dest);
     const funcDir = funcPrefix + ".func";
 
@@ -644,6 +636,12 @@ export function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
       .map((route) => route.route.replace(SURROUNDING_SLASH_RE, ""))
   );
 
+  // ISR routes are served by their ISR function, so they need neither an
+  // observability function nor a `config.json` route (#3563, #4447).
+  const routeRulesRouter = createPatternRouter(nitro.options.routeRules);
+  const hasISR = (route: string) =>
+    (defu({}, ...matchPattern(routeRulesRouter, route).reverse()) as NitroRouteRules).isr;
+
   const routePatterns = [
     ...new Set([
       ...(nitro.options.ssrRoutes || []),
@@ -651,7 +649,9 @@ export function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
         .filter((h) => !h.middleware && h.route)
         .map((h) => h.route!),
     ]),
-  ].filter((route) => !prerenderedPaths.has(route.replace(SURROUNDING_SLASH_RE, "")));
+  ].filter(
+    (route) => !prerenderedPaths.has(route.replace(SURROUNDING_SLASH_RE, "")) && !hasISR(route)
+  );
 
   return sortRoutes(routePatterns).map((route) => ({
     route,
