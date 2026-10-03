@@ -2,15 +2,30 @@ import type {
   InputOptions as RollupInputOptions,
   InputPluginOption as RollupInputPluginOption,
   OutputOptions as RollupOutputOptions,
+  Plugin as RollupPlugin,
 } from "rollup";
 
 import type {
   InputOptions as RolldownInputOptions,
   OutputOptions as RolldownOutputOptions,
   MinifyOptions as RolldownMinifyOptions,
+  RolldownPlugin,
   RolldownPluginOption,
 } from "rolldown";
 import type { TransformOptions as OXCTransformOptions } from "oxbox";
+import type { EnvRunnerPlugin } from "env-runner";
+
+/**
+ * A plugin of the `buildPlugins` option: a Rollup, Rolldown, Vite or env-runner plugin.
+ */
+export type NitroBuildPlugin = (RollupPlugin | RolldownPlugin | EnvRunnerPlugin) & {
+  enforce?: "pre" | "post";
+};
+
+/** `buildPlugins` entries: nested arrays and promises are resolved, falsy ones skipped. */
+export type NitroBuildPluginOption = MaybePromise<
+  NitroBuildPlugin | false | null | undefined | NitroBuildPluginOption[]
+>;
 
 export type RollupConfig = Omit<RollupInputOptions, "plugins"> & {
   output?: RollupOutputOptions;
@@ -32,3 +47,5 @@ export interface OXCOptions {
     jsx?: Exclude<OXCTransformOptions["jsx"], false | string>;
   };
 }
+
+type MaybePromise<T> = T | Promise<T>;

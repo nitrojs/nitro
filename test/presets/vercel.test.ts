@@ -392,6 +392,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/config\\/?$",
               },
               {
+                "dest": "/build-plugins",
+                "src": "^\\/build-plugins\\/?$",
+              },
+              {
                 "dest": "/assets/md",
                 "src": "^\\/assets\\/md\\/?$",
               },
@@ -644,6 +648,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/assets/[id].func (symlink)",
             "functions/assets/all.func (symlink)",
             "functions/assets/md.func (symlink)",
+            "functions/build-plugins.func (symlink)",
             "functions/config.func (symlink)",
             "functions/context.func (symlink)",
             "functions/embedded-kit.func (symlink)",

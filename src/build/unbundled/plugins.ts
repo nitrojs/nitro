@@ -13,6 +13,7 @@ import { importAttributes } from "../plugins/import-attributes.ts";
 import { importOXC } from "../../utils/oxc.ts";
 import { raw, RESOLVED_RE as RAW_RE } from "../plugins/raw.ts";
 import { routeMeta } from "../plugins/route-meta.ts";
+import { resolveBuildPlugins } from "../plugins.ts";
 
 const SCRIPT_TYPES = ["js", "jsx", "ts", "tsx"] as const;
 
@@ -51,6 +52,9 @@ export async function unbundledPlugins(nitro: Nitro): Promise<EnvRunnerPlugin[]>
   if (nitro.options.wasm !== false) {
     plugins.push(fromRollup(unwasm(nitro.options.wasm || {})));
   }
+
+  // User build plugins (ordered by `enforce` in env-runner)
+  plugins.push(...(await resolveBuildPlugins(nitro)).map((plugin) => fromRollup(plugin)));
 
   return plugins;
 }

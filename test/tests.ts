@@ -335,6 +335,11 @@ export function testNitro(
     expect(res.data).toBe("Hello from virtual entry!");
   });
 
+  it("applies `buildPlugins`", async () => {
+    const res = await callHandler({ url: "/build-plugins" });
+    expect(res.data).toEqual({ message: "Hello from build plugin!", transform: "transformed" });
+  });
+
   // TODO
   it.todo("Handle 405 method not allowed", async () => {
     const res = await callHandler({ url: "/api/upload" });

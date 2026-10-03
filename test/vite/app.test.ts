@@ -51,6 +51,11 @@ describe("vite:app", () => {
     expect(value).toBe("value-from-ssr");
   });
 
+  test("applies `buildPlugins` to the nitro environment", async () => {
+    const res = await fetch(`${serverURL}/api/build-plugin`);
+    expect(await res.text()).toBe("Hello from build plugin!");
+  });
+
   // #4234: a request matching only the SSR `/**` catch-all (no explicit route) that looks like
   // an asset must be handled by Vite, not swallowed by the catch-all renderer.
   test("does not let the SSR catch-all swallow asset-tagged requests", async () => {

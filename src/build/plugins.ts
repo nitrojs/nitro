@@ -1,4 +1,4 @@
-import type { Nitro } from "nitro/types";
+import type { Nitro, NitroBuildPlugin, NitroBuildPluginOption } from "nitro/types";
 import type { Plugin } from "rollup";
 import type { BaseBuildConfig } from "./config.ts";
 
@@ -15,7 +15,8 @@ import { externals } from "./plugins/externals.ts";
 import { unenv } from "./plugins/unenv.ts";
 
 export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
-  const plugins: Plugin[] = [];
+  const userPlugins = await resolveBuildPlugins(nitro);
+  const plugins = userPlugins.filter((p) => p.enforce === "pre") as Plugin[];
 
   // Virtual
   const virtualPlugin = virtual(virtualTemplates(nitro, [...base.env.polyfills]));
@@ -83,5 +84,29 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
     );
   }
 
+  // User build plugins
+  plugins.push(
+    ...(userPlugins.filter((p) => !p.enforce) as Plugin[]),
+    ...(userPlugins.filter((p) => p.enforce === "post") as Plugin[])
+  );
+
+  return plugins;
+}
+
+/** Flattened `buildPlugins` (nested arrays and promises resolved, falsy entries skipped). */
+export async function resolveBuildPlugins(nitro: Nitro): Promise<NitroBuildPlugin[]> {
+  return flatPlugins(nitro.options.buildPlugins || []);
+}
+
+async function flatPlugins(options: NitroBuildPluginOption[]): Promise<NitroBuildPlugin[]> {
+  const plugins: NitroBuildPlugin[] = [];
+  for (const entry of options) {
+    const option = await entry;
+    if (Array.isArray(option)) {
+      plugins.push(...(await flatPlugins(option)));
+    } else if (option) {
+      plugins.push(option);
+    }
+  }
   return plugins;
 }

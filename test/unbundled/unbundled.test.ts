@@ -66,6 +66,14 @@ describe("builder: false", () => {
       });
     });
 
+    it("applies `buildPlugins`", async () => {
+      const res = await fetch(new URL("/build-plugins", server.url));
+      expect(await res.json()).toEqual({
+        message: "Hello from build plugin!",
+        transform: "transformed",
+      });
+    });
+
     it("serves public assets", async () => {
       const res = await fetch(new URL("/hello.txt", server.url));
       expect(await res.text()).toContain("static asset");
