@@ -359,7 +359,8 @@ export async function prerender(nitro: Nitro) {
 /** Builder of the prerenderer: `vite` builds use `rolldown` when installed, or run the sources. */
 function prerenderBuilder(nitro: Nitro): Nitro["options"]["builder"] {
   if (nitro.options.builder === "vite") {
-    return resolveRolldown(nitro.options.rootDir) ? "rolldown" : false;
+    const { rootDir, vite } = nitro.options;
+    return resolveRolldown(rootDir, { vitePath: vite?.path }) ? "rolldown" : false;
   }
   return nitro.options.builder;
 }

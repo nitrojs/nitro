@@ -51,8 +51,35 @@ describe("resolveBuilder", () => {
     expect(await resolve({ dev: true })).toBe(false);
   });
 
+  it("logs the dev server hint once", async () => {
+    vi.resetModules();
+    const { consola } = await import("consola");
+    const { resolveBuilder: freshResolveBuilder } =
+      await import("../../src/config/resolvers/builder.ts");
+    const info = vi.spyOn(consola, "info").mockImplementation(() => {});
+    try {
+      for (let i = 0; i < 2; i++) {
+        const options = { rootDir, dev: true } as NitroOptions;
+        await freshResolveBuilder(options);
+        expect(options.builder).toBe(false);
+      }
+      expect(info).toHaveBeenCalledOnce();
+    } finally {
+      info.mockRestore();
+    }
+  });
+
+  it("keeps rolldown in development when bundler config is set", async () => {
+    expect(await resolve({ dev: true, rollupConfig: { plugins: [] } })).toBe("rolldown");
+    expect(await resolve({ dev: true, rolldownConfig: { platform: "node" } })).toBe("rolldown");
+  });
+
   it("builds with rolldown (installed on demand) when it is not installed", async () => {
     expect(await resolve({ dev: false })).toBe("rolldown");
+  });
+
+  it("installs an explicit rolldown builder on build, not on config load", async () => {
+    expect(await resolve({ dev: false, builder: "rolldown" })).toBe("rolldown");
   });
 
   it("keeps an explicit `builder: false`", async () => {

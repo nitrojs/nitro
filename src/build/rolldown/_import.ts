@@ -1,6 +1,7 @@
 import { pathToFileURL } from "node:url";
 import { resolveModulePath } from "exsolve";
 import { ensureDep } from "../../utils/dep.ts";
+import { _resolveFromPath } from "../vite/_import.ts";
 
 /** Supported `rolldown` version range. */
 export const ROLLDOWN_VERSION = "^1";
@@ -8,11 +9,14 @@ export const ROLLDOWN_VERSION = "^1";
 /**
  * Resolve `rolldown` from the user project (or `undefined` if it is not installed).
  *
- * With strict package managers (pnpm), `rolldown` is often only reachable as a dependency of `vite`.
+ * With strict package managers (pnpm), `rolldown` is often only reachable as a dependency of `vite`
+ * (the one of the project, or the explicit `vite.path`).
  * Not cached, so a `rolldown` installed meanwhile (e.g. on demand by a previous build) is found.
  */
-export function resolveRolldown(dir: string): string | undefined {
-  const vite = resolveModulePath("vite", { from: dir, try: true, cache: false });
+export function resolveRolldown(dir: string, opts: { vitePath?: string } = {}): string | undefined {
+  const vite = opts.vitePath
+    ? _resolveFromPath("vite", { dir, path: opts.vitePath })
+    : resolveModulePath("vite", { from: dir, try: true, cache: false });
   return resolveModulePath("rolldown", {
     from: vite ? [dir, vite, import.meta.url] : [dir, import.meta.url],
     try: true,
