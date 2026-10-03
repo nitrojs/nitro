@@ -7,7 +7,7 @@ import json from "@rollup/plugin-json";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
 import { oxc } from "../plugins/oxc.ts";
 import { baseBuildConfig } from "../config.ts";
-import { baseBuildPlugins } from "../plugins.ts";
+import { baseBuildPlugins, withBuildPlugins } from "../plugins.ts";
 import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
 
 export const getRollupConfig = async (nitro: Nitro): Promise<RollupConfig> => {
@@ -18,7 +18,7 @@ export const getRollupConfig = async (nitro: Nitro): Promise<RollupConfig> => {
   let config: RollupConfig = {
     input: nitro.options.entry,
     external: [...base.env.external],
-    plugins: [
+    plugins: await withBuildPlugins(nitro, [
       ...(await baseBuildPlugins(nitro, base)),
       await oxc(nitro, {
         sourcemap: !!nitro.options.sourcemap,
@@ -49,7 +49,7 @@ export const getRollupConfig = async (nitro: Nitro): Promise<RollupConfig> => {
       }),
       (json as unknown as typeof json.default)(),
       (inject as unknown as typeof inject.default)(base.env.inject),
-    ],
+    ]),
     onwarn(warning, rollupWarn) {
       if (!base.ignoreWarningCodes.has(warning.code || "")) {
         rollupWarn(warning);

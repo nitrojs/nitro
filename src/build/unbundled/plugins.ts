@@ -1,5 +1,5 @@
 import type { EnvRunnerPlugin, PluginContext } from "env-runner";
-import type { Nitro } from "nitro/types";
+import type { Nitro, NitroBuildPlugin } from "nitro/types";
 
 import { existsSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -16,6 +16,8 @@ import { routeMeta } from "../plugins/route-meta.ts";
 import { resolveBuildPlugins } from "../plugins.ts";
 
 const SCRIPT_TYPES = ["js", "jsx", "ts", "tsx"] as const;
+
+const SUPPORTED_HOOKS = new Set(["resolveId", "load", "transform"]);
 
 /**
  * env-runner plugins (run on the host) to load the server sources like a bundled build:
@@ -54,7 +56,10 @@ export async function unbundledPlugins(nitro: Nitro): Promise<EnvRunnerPlugin[]>
   }
 
   // User build plugins (ordered by `enforce` in env-runner)
-  plugins.push(...(await resolveBuildPlugins(nitro)).map((plugin) => fromRollup(plugin)));
+  for (const plugin of await resolveBuildPlugins(nitro)) {
+    warnUnsupportedHooks(nitro, plugin);
+    plugins.push(fromRollup(plugin));
+  }
 
   return plugins;
 }
@@ -285,4 +290,22 @@ function splitQuery(id: string): [path: string, query: string] {
 
 function escapeGlob(path: string) {
   return path.replace(/[*?[\]{}!\\]/g, "\\$&");
+}
+
+/** Warn about `buildPlugins` hooks env-runner ignores. */
+function warnUnsupportedHooks(nitro: Nitro, plugin: NitroBuildPlugin) {
+  const hooks = Object.keys(plugin).filter((key) => {
+    const value = plugin[key];
+    // `apply` is a Vite option, not a hook
+    return (
+      key !== "apply" &&
+      !SUPPORTED_HOOKS.has(key) &&
+      (typeof value === "function" || typeof value?.handler === "function")
+    );
+  });
+  if (hooks.length > 0) {
+    nitro.logger.warn(
+      `Build plugin \`${plugin.name}\` uses hooks not supported with \`builder: false\`, they are ignored: ${hooks.map((hook) => `\`${hook}\``).join(", ")}.`
+    );
+  }
 }

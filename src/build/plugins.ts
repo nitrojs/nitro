@@ -15,8 +15,7 @@ import { externals } from "./plugins/externals.ts";
 import { unenv } from "./plugins/unenv.ts";
 
 export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
-  const userPlugins = await resolveBuildPlugins(nitro);
-  const plugins = userPlugins.filter((p) => p.enforce === "pre") as Plugin[];
+  const plugins: Plugin[] = [];
 
   // Virtual
   const virtualPlugin = virtual(virtualTemplates(nitro, [...base.env.polyfills]));
@@ -84,13 +83,15 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
     );
   }
 
-  // User build plugins
-  plugins.push(
-    ...(userPlugins.filter((p) => !p.enforce) as Plugin[]),
-    ...(userPlugins.filter((p) => p.enforce === "post") as Plugin[])
-  );
-
   return plugins;
+}
+
+/** Nitro's `plugins` wrapped with the `buildPlugins` (ordered by `enforce`). */
+export async function withBuildPlugins<T>(nitro: Nitro, plugins: T[]): Promise<T[]> {
+  const buildPlugins = await resolveBuildPlugins(nitro);
+  const byEnforce = (enforce?: "pre" | "post") =>
+    buildPlugins.filter((p) => p.enforce === enforce) as T[];
+  return [...byEnforce("pre"), ...plugins, ...byEnforce(), ...byEnforce("post")];
 }
 
 /** Flattened `buildPlugins` (nested arrays and promises resolved, falsy entries skipped). */

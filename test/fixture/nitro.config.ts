@@ -40,7 +40,7 @@ export default defineConfig({
       name: "fixture:virtual",
       resolveId: {
         filter: { id: /^virtual:build-plugin$/ },
-        handler: (id: string) => `\0${id}`,
+        handler: (id) => `\0${id}`,
       },
       load: {
         filter: { id: /^\0virtual:build-plugin$/ },
@@ -53,7 +53,7 @@ export default defineConfig({
         enforce: "pre",
         transform: {
           filter: { id: /build-plugins\.ts$/ },
-          handler: (code: string) => code.replace("__BUILD_PLUGIN_TRANSFORM__", "transformed"),
+          handler: (code) => code.replace("__BUILD_PLUGIN_TRANSFORM__", "transformed"),
         },
       },
     ],

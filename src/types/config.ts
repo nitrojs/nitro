@@ -744,10 +744,11 @@ export interface NitroOptions extends PresetOptions {
    * Build plugins, applied with every builder (`rollup`, `rolldown`, `vite` and `false`).
    *
    * Plugins use the Rollup plugin interface. Only the `resolveId`, `load` and `transform` hooks
-   * (and `enforce`) are shared by all builders; with `builder: false`, plugins run in
+   * are supported by all builders; with `builder: false`, plugins run in
    * [env-runner](https://github.com/unjs/env-runner), which supports only these.
    *
-   * Plugins with `enforce: "pre"` run before Nitro's own plugins, the others after them.
+   * Plugins with `enforce: "pre"` are placed before Nitro's own plugins, the others after them
+   * (a hook's own `order` takes precedence).
    *
    * @see https://nitro.build/config#buildplugins
    */

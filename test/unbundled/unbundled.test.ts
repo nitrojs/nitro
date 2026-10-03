@@ -13,8 +13,9 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { join } from "pathe";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { isUnbundledProject } from "../../src/build/unbundled/detect.ts";
+import { unbundledPlugins } from "../../src/build/unbundled/plugins.ts";
 
 const rootDir = fileURLToPath(new URL("fixture", import.meta.url));
 
@@ -89,6 +90,26 @@ describe("builder: false", () => {
       await writeFile(join(rootDir, "lib/_tmp.ts"), "export {};");
       await expect.poll(() => reloads, { timeout: 5000 }).toBeGreaterThan(0);
     });
+  });
+
+  it("warns about `buildPlugins` hooks env-runner does not support", async () => {
+    const nitro = await createNitro({
+      rootDir,
+      buildPlugins: [
+        {
+          name: "fixture:unsupported",
+          apply: () => true,
+          buildStart() {},
+          transform: (code) => code,
+        },
+      ],
+    });
+    const warn = vi.spyOn(nitro.logger, "warn").mockImplementation(() => {});
+    await unbundledPlugins(nitro);
+    expect(warn).toHaveBeenCalledWith(
+      "Build plugin `fixture:unsupported` uses hooks not supported with `builder: false`, they are ignored: `buildStart`."
+    );
+    await nitro.close();
   });
 
   it("maps `NITRO_BUILDER=false` to `builder: false`", async () => {

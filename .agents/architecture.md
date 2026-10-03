@@ -50,6 +50,8 @@
 8. Externals plugin — Node.js native resolution
 9. Sourcemap minify (optional)
 
+User `buildPlugins` are added around this list by `withBuildPlugins()` (`enforce: "pre"` before, the others after the builder's own plugins). With `builder: false`, they are appended to the env-runner plugins (`build/unbundled/plugins.ts`).
+
 **Virtual modules** (`build/virtual/`, 14 templates):
 All prefixed `#nitro/virtual/<name>`:
 - `routing.ts` — Compiled router matcher
