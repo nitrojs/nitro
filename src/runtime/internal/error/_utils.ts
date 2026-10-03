@@ -30,6 +30,17 @@ const MAX_LINE_LENGTH = 1000;
 const MAX_CODE_FRAMES = 10;
 const MAX_JSON_HIGHLIGHT = 50_000;
 
+const reasonPhrases: Record<number, string> = {
+  400: "Bad Request",
+  401: "Unauthorized",
+  403: "Forbidden",
+  404: "Not Found",
+  500: "Internal Server Error",
+  502: "Bad Gateway",
+  503: "Service Unavailable",
+  504: "Gateway Timeout",
+};
+
 const ansiTokenColors: Record<string, Format> = {
   kwd: "magenta",
   section: "magenta",
@@ -56,11 +67,16 @@ const styles: string = /* css */ `
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
-main{max-width:1100px;margin:auto;padding:32px 16px}
+main{max-width:1100px;margin:auto;padding:24px 16px 32px}
 .block{position:relative}
 .copy{position:absolute;z-index:1;top:8px;right:8px;padding:4px 8px;font:12px/16px system-ui,sans-serif;color:var(--dim);background:var(--bg);border:1px solid var(--line);border-radius:6px;cursor:pointer}
 .copy:hover{color:var(--fg);border-color:var(--dim)}
-.actions{position:absolute;top:32px;right:16px;display:flex;gap:8px}
+.head{display:flex;align-items:flex-start;gap:8px}
+.meta{flex:1;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;min-height:26px;margin:0;font-size:13px;color:var(--dim)}
+.pill{padding:0 8px;border-radius:99px;background:var(--hl);color:var(--red);font:600 12px/20px ui-monospace,monospace}
+.reason::after{content:"·";margin-left:8px}
+.name{color:var(--red);font-weight:600}
+.actions{display:flex;gap:4px}
 .actions>.copy{position:static}
 .actions>.theme{border-color:transparent;background:none}
 .theme .sun{display:var(--sun)}
@@ -72,14 +88,13 @@ main{max-width:1100px;margin:auto;padding:32px 16px}
 .ok,.done .cp{display:none}
 .done{color:var(--fg)}
 .json{border:1px solid var(--line);border-radius:8px}
-pre,.code,.frame,td{font:13px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-h1{margin:0;font-size:20px;color:var(--red)}
-h2{margin:24px 0 8px;font-size:15px}
+pre,.code,.frame,td,.request p{font:13px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+h1{margin:12px 0 0;font-size:22px;line-height:1.35;font-weight:600;overflow-wrap:anywhere}
+h2{margin:32px 0 8px;font-size:15px}
 h3{margin:16px 0 4px;font-size:13px;color:var(--dim)}
-.status{margin:0 0 8px;color:var(--dim)}
-.msg{margin:8px 0;font-size:15px;white-space:pre-wrap;overflow-wrap:anywhere}
-.hint{margin:8px 0;color:var(--dim)}
-.stack{margin:16px 0;padding:0;list-style:none;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.msg{margin:8px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.hint{margin:8px 0 0;color:var(--dim)}
+.stack{margin:20px 0 0;padding:0;list-style:none;border:1px solid var(--line);border-radius:8px;overflow:hidden}
 .frame+.frame{border-top:1px solid var(--line)}
 .frame summary,.frame>div{padding:6px 12px;overflow-wrap:anywhere}
 .frame summary{cursor:pointer}
@@ -90,13 +105,15 @@ h3{margin:16px 0 4px;font-size:13px;color:var(--dim)}
 .code .hl{background:var(--hl)}
 .caret{color:var(--red);font-weight:bold}
 .ln{display:inline-block;width:5ch;margin-right:16px;text-align:right;color:var(--dim);user-select:none}
-.nested{margin:16px 0 0 4px;padding-left:16px;border-left:2px solid var(--line)}
-.nested h1{font-size:16px}
+.nested{margin-top:32px;padding-left:16px;border-left:2px solid var(--line)}
+.nested h2{margin-top:0}
+.nested>.error+.error{margin-top:24px}
+.nested h1{margin-top:4px;font-size:17px}
 table{width:100%;border-collapse:collapse}
 td{padding:4px 8px;border-top:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}
 td:first-child{width:1%;white-space:nowrap;color:var(--dim)}
-.request p{overflow-wrap:anywhere}
-@media(max-width:640px){td{display:block}td:first-child{width:auto;padding-bottom:0}td+td{padding-top:0;border-top:0}}
+.request p{margin:0;overflow-wrap:anywhere}
+@media(max-width:640px){h1{font-size:18px}td{display:block}td:first-child{width:auto;padding-bottom:0}td+td{padding-top:0;border-top:0}}
 .kwd,.section{color:var(--kwd)}
 .str,.esc{color:var(--str)}
 .num,.bool{color:var(--num)}
@@ -160,14 +177,17 @@ export async function renderErrorHTML(
 ): Promise<string> {
   await loadStackTrace(error).catch(() => {});
   const { name, message } = errorInfo(error);
-  const status = opts.status ? `${opts.status}${opts.statusText ? ` ${opts.statusText}` : ""}` : "";
-  const title = [status, `${name}: ${message.split("\n")[0]!.slice(0, 100)}`].filter(Boolean);
+  const title = `${name}: ${message.trim().split("\n")[0]!.slice(0, 100)}${opts.status ? ` (${opts.status})` : ""}`;
+  const reason = opts.statusText || (opts.status && reasonPhrases[opts.status]);
+  const status = opts.status
+    ? `<span class="pill">${esc(String(opts.status))}</span>${reason ? `<span class="reason">${esc(reason)}</span>` : ""}`
+    : "";
   const copyText =
     (opts.request ? `${opts.request.method} ${opts.request.url}\n\n` : "") +
     stripColors(await ansiError(error, new Set()));
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title.join(" - "))}</title><style>${styles}</style><script>${pageScript}</script></head><body>${icons}<main class="block"><div class="actions">${copyButton(copyText, { title: "Copy error", label: true })}${themeButton}</div>${
-    status ? `<p class="status">${esc(status)}</p>` : ""
-  }${await htmlError(error, new Set())}${opts.request ? htmlRequest(opts.request) : ""}</main></body></html>`;
+  const actions = `<div class="actions">${copyButton(copyText, { title: "Copy error", label: true })}${themeButton}</div>`;
+  const body = await htmlError(error, new Set(), { status, actions });
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>${styles}</style><script>${pageScript}</script></head><body>${icons}<main>${body}${opts.request ? htmlRequest(opts.request) : ""}</main></body></html>`;
 }
 
 /** Render an error (with code frame, stack and causes) for terminal output. */
@@ -208,10 +228,18 @@ export async function getCodeFrame(
 
 // ---- HTML ----
 
-async function htmlError(error: unknown, seen: Set<unknown>): Promise<string> {
+async function htmlError(
+  error: unknown,
+  seen: Set<unknown>,
+  head: { status?: string; actions?: string } = {}
+): Promise<string> {
   seen.add(error);
   const { name, message, hint } = errorInfo(error);
-  let html = `<section class="error"><h1>${esc(name)}</h1><pre class="msg">${esc(message)}</pre>`;
+  const [summary, ...details] = message.trim().split("\n");
+  let html = `<section class="error"><header class="head"><p class="meta">${head.status || ""}<span class="name">${esc(name)}</span></p>${head.actions || ""}</header><h1>${esc(summary || name)}</h1>`;
+  if (details.length > 0) {
+    html += `<pre class="msg">${esc(details.join("\n"))}</pre>`;
+  }
   if (hint) {
     html += `<p class="hint">${esc(hint)}</p>`;
   }
@@ -220,7 +248,7 @@ async function htmlError(error: unknown, seen: Set<unknown>): Promise<string> {
   }
   html += await htmlFrames(getFrames(error));
   if (error.cause !== undefined) {
-    html += `<div class="nested"><h2>Caused by</h2>${htmlJSON(error.cause)}</div>`;
+    html += `<h2>Caused by</h2>${htmlJSON(error.cause)}`;
   }
   const errors = error instanceof AggregateError ? error.errors.filter((e) => !seen.has(e)) : [];
   if (errors.length > 0) {

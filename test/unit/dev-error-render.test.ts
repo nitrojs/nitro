@@ -50,7 +50,11 @@ describe("dev error: HTML", () => {
   it("renders frames with a code frame for the first app frame", async () => {
     const html = await renderErrorHTML(createError("boom", { file: thisFile }), { status: 500 });
     expect(html).toMatch(/^<!DOCTYPE html>/);
-    expect(html).toContain("<title>500 - Error: boom</title>");
+    expect(html).toContain("<title>Error: boom (500)</title>");
+    expect(html).toContain(
+      '<p class="meta"><span class="pill">500</span><span class="reason">Internal Server Error</span><span class="name">Error</span></p>'
+    );
+    expect(html).toContain("<h1>boom</h1>");
     expect(html).toContain('<li class="frame app"><details open><summary>');
     expect(html).not.toContain("<a ");
     expect(html).toContain(
@@ -61,12 +65,22 @@ describe("dev error: HTML", () => {
     expect(html).toContain('<li class="frame native"><div>');
   });
 
+  it("renders the first message line as headline", async () => {
+    const error = Object.assign(createError("first line\n  detail"), { name: "HTTPError" });
+    const html = await renderErrorHTML(error, { status: 503, statusText: "Custom" });
+    expect(html).toContain("<title>HTTPError: first line (503)</title>");
+    expect(html).toContain(
+      '<span class="pill">503</span><span class="reason">Custom</span><span class="name">HTTPError</span>'
+    );
+    expect(html).toContain('<h1>first line</h1><pre class="msg">  detail</pre>');
+  });
+
   it("renders a copy button with the plain text error", async () => {
     const html = await renderErrorHTML(createError("boom", { file: thisFile }), {
       request: { method: "POST", url: "http://localhost/api", headers: {} },
     });
     expect(html).toContain(
-      `<main class="block"><div class="actions"><button type="button" class="copy" data-text=`
+      `<main><section class="error"><header class="head"><p class="meta"><span class="name">Error</span></p><div class="actions"><button type="button" class="copy" data-text=`
     );
     const text = html.match(
       /<button type="button" class="copy" data-text="([^"]*)" title="Copy error"/
