@@ -48,10 +48,10 @@ describe("getObservabilityRoutes", () => {
         })
       )
     ).toEqual([
-      { src: "/foo", dest: "foo" },
-      { src: "/", dest: "index" },
-      { src: "/blog/(?<slug>[^/]+)", dest: "blog/[slug]" },
-      { src: "/(?:.*)", dest: "[...]" },
+      { route: "/", dest: "index" },
+      { route: "/foo", dest: "foo" },
+      { route: "/blog/:slug", dest: "blog/[slug]" },
+      { route: "/**", dest: "[...]" },
     ]);
   });
 
@@ -136,7 +136,7 @@ describe("getObservabilityRoutes", () => {
           ],
         })
       )
-    ).toEqual(["blog/[slug]", "docs/[...]"]);
+    ).toEqual(["docs/[...]", "blog/[slug]"]);
   });
 
   it("keeps routes whose prerendered file was not written", () => {
