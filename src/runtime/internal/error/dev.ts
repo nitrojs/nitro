@@ -1,6 +1,5 @@
 import { HTTPError, type HTTPEvent } from "h3";
 import { getRequestURL } from "h3";
-import consola from "consola";
 import { defineNitroErrorHandler } from "./utils.ts";
 import type { InternalHandlerResponse } from "./utils.ts";
 import { FastResponse } from "srvx";
@@ -45,7 +44,7 @@ export async function defaultHandler(
   }
 
   // Load stack trace with source maps
-  await loadStackTrace(error).catch(consola.error);
+  await loadStackTrace(error).catch(console.error);
 
   // Unhandled errors are wrapped in an HTTPError that shares the stack of the original error
   const displayError = unhandled && error.cause instanceof Error ? error.cause : error;
@@ -53,8 +52,7 @@ export async function defaultHandler(
   // Console output
   if (unhandled && !opts?.silent) {
     const ansiError = await renderErrorANSI(displayError);
-    consola.error(`[request error] [${event.req.method}] ${url}`);
-    // Not passed to consola, which would apply markdown-like formatting (backticks, underscores) to source code
+    console.error(`[request error] [${event.req.method}] ${url}`);
     console.error(ansiError + "\n");
   }
 
