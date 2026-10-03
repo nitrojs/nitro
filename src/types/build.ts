@@ -9,8 +9,8 @@ import type {
   OutputOptions as RolldownOutputOptions,
   MinifyOptions as RolldownMinifyOptions,
   RolldownPluginOption,
-  TransformOptions as RolldownTransformOptions,
 } from "rolldown";
+import type { TransformOptions as OXCTransformOptions } from "oxbox";
 
 export type RollupConfig = Omit<RollupInputOptions, "plugins"> & {
   output?: RollupOutputOptions;
@@ -28,7 +28,7 @@ export type RolldownConfig = RolldownInputOptions & {
 
 export interface OXCOptions {
   minify?: RolldownMinifyOptions;
-  transform?: Omit<RolldownTransformOptions, "jsx"> & {
-    jsx?: Exclude<RolldownTransformOptions["jsx"], false | string>;
+  transform?: Omit<OXCTransformOptions, "jsx"> & {
+    jsx?: Exclude<OXCTransformOptions["jsx"], false | string>;
   };
 }

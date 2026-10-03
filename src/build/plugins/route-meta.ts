@@ -3,12 +3,13 @@ import { isAbsolute } from "pathe";
 import type { Expression, Literal } from "estree";
 import type { Nitro, NitroEventHandler } from "nitro/types";
 import type { Plugin } from "rollup";
+import { importOXC } from "../../utils/oxc.ts";
 import { escapeRegExp } from "../../utils/regex.ts";
 
 const PREFIX = "\0nitro:route-meta:";
 
 export async function routeMeta(nitro: Nitro) {
-  const { transformSync } = await import("rolldown/utils");
+  const { transformSync } = await importOXC({ dir: nitro.options.rootDir });
   return {
     name: "nitro:route-meta",
     resolveId: {
