@@ -17,19 +17,10 @@ app.http("server", {
 });
 
 async function handle(req: HttpRequest): Promise<HttpResponseInit> {
-  let url: string;
-  const originalURL = req.headers.get("x-ms-original-url");
-  if (originalURL) {
-    // This URL has been proxied as there was no static file matching it.
-    const parsedURL = parseURL(originalURL);
-    url = parsedURL.pathname + parsedURL.search;
-  } else {
-    // Because Azure SWA handles /api/* calls differently they
-    // never hit the proxy and we have to reconstitute the URL.
-    url = "/api/" + (req.params.url || "") + parseURL(req.url).search;
-  }
+  // Proxied requests (no matching static file) carry the original URL in `x-ms-original-url`
+  const { pathname, search } = parseURL(req.headers.get("x-ms-original-url") || req.url);
 
-  const request = new Request(new URL(url, resolveBaseUrl(req.headers)), {
+  const request = new Request(new URL(pathname + search, resolveBaseUrl(req.headers)), {
     method: req.method,
     headers: req.headers,
     body: req.body ? await req.arrayBuffer() : undefined,

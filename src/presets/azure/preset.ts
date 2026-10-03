@@ -1,6 +1,6 @@
 import { defineNitroPreset } from "../_utils/preset.ts";
 import type { Nitro } from "nitro/types";
-import { writeSWARoutes } from "./utils.ts";
+import { ensureAzureFunctions, writeSWARoutes } from "./utils.ts";
 
 export type { AzureOptions as PresetOptions } from "./types.ts";
 
@@ -16,6 +16,9 @@ const azureSWA = defineNitroPreset(
       preview: "npx @azure/static-web-apps-cli start ./public --api-location ./server",
     },
     hooks: {
+      async "build:before"(nitro: Nitro) {
+        await ensureAzureFunctions(nitro);
+      },
       async compiled(ctx: Nitro) {
         await writeSWARoutes(ctx);
       },

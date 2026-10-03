@@ -14,7 +14,13 @@ Integration with this provider is possible with [zero configuration](/deploy#zer
 
 [Azure Static Web Apps](https://azure.microsoft.com/en-us/products/app-service/static) are designed to be deployed continuously in a [GitHub Actions workflow](https://docs.microsoft.com/en-us/azure/static-web-apps/github-actions-workflow). Nitro detects this deployment environment and enables the `azure_swa` preset automatically.
 
-The server is deployed as a managed Azure Function using the [Node.js v4 programming model](https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-node?pivots=nodejs-model-v4). The `@azure/functions` package is traced into the output, so it doesn't need to be installed during deployment.
+The server is deployed as a managed Azure Function using the [Node.js v4 programming model](https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-node?pivots=nodejs-model-v4). This requires `@azure/functions` v4 in your project dependencies (Nitro offers to install it if it is missing). It is traced into the build output, so it does not need to be installed again during deployment.
+
+:pm-install{name="@azure/functions@^4"}
+
+::note
+If you have `@azure/functions` v3 installed, upgrade it to v4. Version 3 uses the legacy programming model (`function.json`) and is no longer supported by this preset.
+::
 
 ### Local preview
 
@@ -35,7 +41,7 @@ Nitro sets the following properties automatically:
 
 | Property | Criteria | Default |
 | --- | --- | --- |
-| **[platform.apiRuntime](https://learn.microsoft.com/en-us/azure/static-web-apps/configuration#platform)** | Set to `node:20` or `node:22` based on the `engines.node` field in your `package.json`. | `node:20` |
+| **[platform.apiRuntime](https://learn.microsoft.com/en-us/azure/static-web-apps/configuration#platform)** | Set to `node:20` or `node:22` based on the `engines.node` field in your `package.json`. | `node:22` |
 | **[navigationFallback.rewrite](https://learn.microsoft.com/en-us/azure/static-web-apps/configuration#fallback-routes)** | Always `/api/server` | `/api/server` |
 | **[routes](https://learn.microsoft.com/en-us/azure/static-web-apps/configuration#routes)** | All prerendered routes are added. Additionally, if you do not have an `index.html` file, an empty one is created for compatibility purposes, and requests to `/index.html` are redirected to the root directory (handled by `/api/server`). | `[]` |
 

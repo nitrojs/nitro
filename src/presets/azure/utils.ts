@@ -1,7 +1,37 @@
 import fsp from "node:fs/promises";
+import { resolveModulePath } from "exsolve";
 import { writeFile } from "../_utils/fs.ts";
+import { ensureDep } from "../../utils/dep.ts";
 import type { Nitro } from "nitro/types";
 import { join, resolve } from "pathe";
+
+export async function ensureAzureFunctions(nitro: Nitro) {
+  const reason = "the `azure-swa` preset";
+  const resolved = await ensureDep({
+    id: "@azure/functions",
+    dir: nitro.options.rootDir,
+    reason,
+    dev: false,
+    projectOnly: true,
+  });
+  if (!resolved) {
+    throw new Error(
+      `\`@azure/functions@^4\` is not installed. Please add it to your dependencies for ${reason}.`
+    );
+  }
+  const pkgPath = resolveModulePath("@azure/functions/package.json", {
+    from: nitro.options.rootDir,
+    try: true,
+  });
+  const version: string | undefined = pkgPath
+    ? JSON.parse(await fsp.readFile(pkgPath, "utf8")).version
+    : undefined;
+  if (version && Number.parseInt(version, 10) < 4) {
+    throw new Error(
+      `\`@azure/functions@${version}\` is installed, but ${reason} requires \`@azure/functions@^4\` (Node.js v4 programming model). Please update it in your dependencies.`
+    );
+  }
+}
 
 export async function writeSWARoutes(nitro: Nitro) {
   const host = {
@@ -10,7 +40,7 @@ export async function writeSWARoutes(nitro: Nitro) {
 
   // https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-node?tabs=typescript%2Cwindows%2Cazure-cli&pivots=nodejs-model-v4#supported-versions
   const supportedNodeVersions = new Set(["20", "22"]);
-  let nodeVersion = "20";
+  let nodeVersion = "22";
   try {
     const currentNodeVersion = JSON.parse(
       await fsp.readFile(join(nitro.options.rootDir, "package.json"), "utf8")
