@@ -22,7 +22,11 @@ export interface DevWorker {
   readonly closed: boolean;
   close(): Promise<void>;
   handleEvent: (event: H3Event) => Promise<void>;
-  handleUpgrade: (req: IncomingMessage, socket: Socket, head: any) => void;
+  handleUpgrade: (
+    req: IncomingMessage,
+    socket: Socket,
+    head: any
+  ) => Promise<void> | void;
 }
 
 export class NodeDevWorker implements DevWorker {
