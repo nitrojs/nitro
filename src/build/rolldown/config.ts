@@ -1,13 +1,13 @@
 import type { Nitro } from "nitro/types";
 import type { OutputOptions, RolldownOptions, RolldownPlugin } from "rolldown";
 import { baseBuildConfig } from "../config.ts";
-import { baseBuildPlugins } from "../plugins.ts";
+import { baseBuildPlugins, withBuildPlugins } from "../plugins.ts";
 import { builtinModules } from "node:module";
 import { defu } from "defu";
 import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
 
 export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> => {
-  const base = baseBuildConfig(nitro);
+  const base = await baseBuildConfig(nitro);
 
   const tsc = nitro.options.typescript.tsConfig?.compilerOptions;
 
@@ -19,8 +19,17 @@ export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> 
     // Disable Rolldown's own tsconfig discovery to avoid `CONFIGURATION_FIELD_CONFLICT` warnings
     // and keep behavior consistent with the Rollup builder.
     tsconfig: false,
-    external: [...base.env.external, ...builtinModules, ...builtinModules.map((m) => `node:${m}`)],
-    plugins: [...((await baseBuildPlugins(nitro, base)) as RolldownPlugin[])],
+    external: [
+      ...base.env.external,
+      // Builtins aliased to polyfills are bundled (rolldown checks `external` before aliases and plugins)
+      ...[...builtinModules, ...builtinModules.map((m) => `node:${m}`)].filter(
+        (id) => !base.env.alias[id] || base.env.alias[id].startsWith("node:")
+      ),
+    ],
+    plugins: await withBuildPlugins(
+      nitro,
+      (await baseBuildPlugins(nitro, base)) as RolldownPlugin[]
+    ),
     resolve: {
       alias: base.aliases,
       extensions: base.extensions,
@@ -38,7 +47,6 @@ export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> 
     },
     onwarn(warning, warn) {
       if (!base.ignoreWarningCodes.has(warning.code || "")) {
-        console.log(warning.code);
         warn(warning);
       }
     },

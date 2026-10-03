@@ -1,13 +1,10 @@
-import type { Preset } from "unenv";
+import type { PresetEnv } from "../../../build/env.ts";
 import * as workerdNodeCompat from "./node-compat.ts";
 
 // https://platform-node-compat.pi0.workers.dev/
 
-export const unenvCfNodeCompat: Preset = {
-  meta: {
-    name: "nitro:cloudflare-node-compat",
-  },
-  external: workerdNodeCompat.builtnNodeModules,
+export const unenvCfNodeCompat: PresetEnv = {
+  builtinModules: workerdNodeCompat.builtnNodeModules,
   alias: {
     ...Object.fromEntries(
       workerdNodeCompat.builtnNodeModules.flatMap((m) => [
@@ -17,19 +14,17 @@ export const unenvCfNodeCompat: Preset = {
     ),
   },
   inject: {
-    global: "unenv/polyfill/globalthis",
+    global: "#nitro/runtime/polyfills/globalthis",
     process: "node:process",
     clearImmediate: ["node:timers", "clearImmediate"],
     setImmediate: ["node:timers", "setImmediate"],
     Buffer: ["node:buffer", "Buffer"],
+    performance: false, // Native
   },
 };
 
-export const unenvCfExternals: Preset = {
-  meta: {
-    name: "nitro:cloudflare-externals",
-  },
-  external: [
+export const unenvCfExternals: PresetEnv = {
+  builtinModules: [
     "cloudflare:email",
     "cloudflare:sockets",
     "cloudflare:workers",

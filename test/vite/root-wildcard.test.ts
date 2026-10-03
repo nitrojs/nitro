@@ -6,7 +6,7 @@ const { createServer } = (await import(
   process.env.NITRO_VITE_PKG || "vite"
 )) as typeof import("vite");
 
-describe("vite:root wildcard routes", { sequential: true }, () => {
+describe("vite:root wildcard routes", { concurrent: false }, () => {
   let server: ViteDevServer;
   let serverURL: string;
 

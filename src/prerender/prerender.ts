@@ -7,6 +7,7 @@ import { join, relative, resolve } from "pathe";
 import { createRouter, addRoute, findAllRoutes } from "rou3";
 import { joinURL, withBase, withoutBase, withTrailingSlash } from "ufo";
 import { build } from "../build/build.ts";
+import { resolveRolldown } from "../build/rolldown/_import.ts";
 import { createNitro } from "../nitro.ts";
 import { compressPublicAssets } from "../utils/compress.ts";
 import { runParallel } from "../utils/parallel.ts";
@@ -61,7 +62,7 @@ export async function prerender(nitro: Nitro) {
     virtual: { ...nitro.options.virtual },
     logLevel: 0,
     preset: "nitro-prerender",
-    builder: nitro.options.builder === "vite" ? "rolldown" : nitro.options.builder,
+    builder: prerenderBuilder(nitro),
   };
   await nitro.hooks.callHook("prerender:config", prerendererConfig);
   const nitroRenderer = await createNitro(prerendererConfig);
@@ -77,20 +78,8 @@ export async function prerender(nitro: Nitro) {
   nitroRenderer.options.commands.preview = `npx serve ${path}`;
   nitroRenderer.options.output.dir = nitro.options.output.dir;
 
-  await build(nitroRenderer);
-
-  // Import renderer entry
-  const serverFilename =
-    typeof nitroRenderer.options.rollupConfig?.output?.entryFileNames === "string"
-      ? nitroRenderer.options.rollupConfig.output.entryFileNames
-      : "index.mjs";
-  const serverEntrypoint = resolve(nitroRenderer.options.output.serverDir, serverFilename);
-
   // Run prerender server in an isolate worker
-  const prerenderer = await new EnvServer({
-    runner: "node-worker",
-    entry: serverEntrypoint,
-  }).start();
+  const prerenderer = await startPrerenderer(nitroRenderer);
 
   // Create route rule matcher
   const routeRules = createRouter<NitroRouteRules>();
@@ -365,4 +354,34 @@ export async function prerender(nitro: Nitro) {
   if (nitro.options.compressPublicAssets) {
     await compressPublicAssets(nitro);
   }
+}
+
+/** Builder of the prerenderer: `vite` builds use `rolldown` when installed, or run the sources. */
+function prerenderBuilder(nitro: Nitro): Nitro["options"]["builder"] {
+  if (nitro.options.builder === "vite") {
+    const { rootDir, vite } = nitro.options;
+    return resolveRolldown(rootDir, { vitePath: vite?.path }) ? "rolldown" : false;
+  }
+  return nitro.options.builder;
+}
+
+async function startPrerenderer(nitroRenderer: Nitro): Promise<EnvServer> {
+  if (nitroRenderer.options.builder === false) {
+    const { startUnbundledPrerenderer } = await import("../build/unbundled/prerender.ts");
+    return startUnbundledPrerenderer(nitroRenderer);
+  }
+
+  await build(nitroRenderer);
+
+  // Import renderer entry
+  const serverFilename =
+    typeof nitroRenderer.options.rollupConfig?.output?.entryFileNames === "string"
+      ? nitroRenderer.options.rollupConfig.output.entryFileNames
+      : "index.mjs";
+  const serverEntrypoint = resolve(nitroRenderer.options.output.serverDir, serverFilename);
+
+  return new EnvServer({
+    runner: "node-worker",
+    entry: serverEntrypoint,
+  }).start();
 }
