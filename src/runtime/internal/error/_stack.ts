@@ -59,7 +59,8 @@ export function getFrames(error: unknown): StackFrame[] {
 /** Parse the frames of a V8 formatted `error.stack` (header lines are skipped). */
 export function parseStack(stack: string): StackFrame[] {
   const lines = stack.split("\n");
-  const start = lines.findIndex((line) => FRAME_RE.test(line));
+  // V8 indents frames, so unindented `at ...` lines belong to the message
+  const start = lines.findIndex((line) => /^\s/.test(line) && FRAME_RE.test(line));
   if (start === -1) {
     return [];
   }

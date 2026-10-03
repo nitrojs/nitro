@@ -58,6 +58,11 @@ describe("dev error: parseFrame", () => {
     const frames = parseStack("Error: line1\nline2\n    at a (/x/a.ts:1:1)\n    at /x/b.ts:2:2\n");
     expect(frames.map((f) => f.file)).toEqual(["/x/a.ts", "/x/b.ts"]);
   });
+
+  it("parseStack ignores message lines starting with `at`", () => {
+    const frames = parseStack("Error: failed\nat validation step 3 of 7\n    at a (/x/a.ts:1:1)");
+    expect(frames.map((f) => f.raw)).toEqual(["    at a (/x/a.ts:1:1)"]);
+  });
 });
 
 describe("dev error: loadStackTrace", () => {
