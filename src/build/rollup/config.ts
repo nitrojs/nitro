@@ -11,7 +11,7 @@ import { baseBuildPlugins } from "../plugins.ts";
 import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
 
 export const getRollupConfig = async (nitro: Nitro): Promise<RollupConfig> => {
-  const base = baseBuildConfig(nitro);
+  const base = await baseBuildConfig(nitro);
 
   const tsc = nitro.options.typescript.tsConfig?.compilerOptions;
 

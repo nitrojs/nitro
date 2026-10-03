@@ -1,51 +1,61 @@
-import type { NitroOptions } from "nitro/types";
-import type { Preset } from "unenv";
-
-export const common: Preset = {
-  meta: {
-    name: "nitro-common",
-    url: import.meta.url,
-  },
-  alias: {
-    "buffer/": "node:buffer",
-    "buffer/index": "node:buffer",
-    "buffer/index.js": "node:buffer",
-    "string_decoder/": "node:string_decoder",
-    "process/": "node:process",
-  },
-};
-
-export const nodeless: Preset = {
-  meta: {
-    name: "nitro-nodeless",
-    url: import.meta.url,
-  },
-  inject: {
-    global: "unenv/polyfill/globalthis",
-    process: "node:process",
-    Buffer: ["node:buffer", "Buffer"],
-    clearImmediate: ["node:timers", "clearImmediate"],
-    setImmediate: ["node:timers", "setImmediate"],
-    performance: "unenv/polyfill/performance",
-    PerformanceObserver: ["node:perf_hooks", "PerformanceObserver"],
-    BroadcastChannel: ["node:worker_threads", "BroadcastChannel"],
-  },
-  polyfill: [
-    "unenv/polyfill/globalthis-global",
-    "unenv/polyfill/process",
-    "unenv/polyfill/buffer",
-    "unenv/polyfill/timers",
-  ],
-};
+import consola from "consola";
+import { resolveModulePath } from "exsolve";
+import type { LegacyUnenvPreset, NitroOptions } from "nitro/types";
 
 export async function resolveUnenv(options: NitroOptions) {
-  options.unenv ??= [];
-  if (!Array.isArray(options.unenv)) {
-    options.unenv = [options.unenv];
+  options.inject ??= {};
+  options.polyfills ??= [];
+  options.external ??= [];
+  applyLegacyUnenv(options);
+}
+
+/**
+ * Merges presets of the deprecated `unenv` option into `alias`, `inject`,
+ * `polyfills` and `external`, then empties it.
+ *
+ * Also called before each build, since modules and presets may still push
+ * to `nitro.options.unenv` from hooks.
+ */
+export function applyLegacyUnenv(options: NitroOptions) {
+  const presets = [options.unenv || []].flat().filter(Boolean) as LegacyUnenvPreset[];
+  options.unenv = [];
+  if (presets.length === 0) {
+    return;
   }
-  options.unenv = options.unenv.filter(Boolean);
-  if (!options.node) {
-    options.unenv.unshift(nodeless);
+  consola.warn(
+    `"unenv" option is deprecated. Please use "alias", "inject", "polyfills" and "external" instead.`
+  );
+
+  const alias: Record<string, string> = {};
+  const inject: NitroOptions["inject"] = {};
+  const polyfills: string[] = [];
+  const external: string[] = [];
+  for (const preset of presets) {
+    const resolve = (id: string) => resolvePresetId(id, preset.meta?.url);
+    for (const [from, to] of Object.entries(preset.alias || {})) {
+      alias[from] = resolve(to);
+    }
+    for (const [name, value] of Object.entries(preset.inject || {})) {
+      inject[name] =
+        value === false
+          ? false
+          : typeof value === "string"
+            ? resolve(value)
+            : [resolve(value[0]!), value[1]!];
+    }
+    polyfills.push(...(preset.polyfill || []).filter(Boolean).map((id) => resolve(id)));
+    external.push(...(preset.external || []));
   }
-  options.unenv.unshift(common);
+
+  options.alias = { ...alias, ...options.alias };
+  options.inject = { ...inject, ...options.inject };
+  options.polyfills = [...polyfills, ...(options.polyfills || [])];
+  options.external = [...external, ...(options.external || [])];
+}
+
+function resolvePresetId(id: string, url: string | URL | undefined): string {
+  if (!url || id.startsWith("!")) {
+    return id;
+  }
+  return resolveModulePath(id, { from: url, try: true }) || id;
 }

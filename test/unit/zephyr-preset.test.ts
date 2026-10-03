@@ -26,7 +26,7 @@ describe("zephyr preset", () => {
     expect(preset.commands?.deploy).toBeTypeOf("function");
   });
 
-  it("adds cloudflare unenv presets", async () => {
+  it("adds cloudflare externals and node compat", async () => {
     const preset = await getZephyrPreset();
     const hooks = preset.hooks!;
 
@@ -37,7 +37,10 @@ describe("zephyr preset", () => {
           dir: "/tmp/zephyr-output",
           serverDir: "/tmp/zephyr-output/server",
         },
-        unenv: [],
+        alias: { "node:fs": "/custom/fs" },
+        inject: {},
+        polyfills: [],
+        external: [],
       },
       logger: {
         info: vi.fn(),
@@ -46,9 +49,11 @@ describe("zephyr preset", () => {
     } as any;
 
     await hooks["build:before"]?.(nitro);
-    expect(nitro.options.unenv).toHaveLength(2);
-    expect(nitro.options.unenv[0].meta?.name).toBe("nitro:cloudflare-externals");
-    expect(nitro.options.unenv[1].meta?.name).toBe("nitro:cloudflare-node-compat");
+    expect(nitro.options.external).toContain("cloudflare:workers");
+    expect(nitro.options.external).toContain("node:fs");
+    expect(nitro.options.alias["node:path"]).toBe("node:path");
+    expect(nitro.options.alias["node:fs"]).toBe("/custom/fs");
+    expect(nitro.options.inject.Buffer).toEqual(["node:buffer", "Buffer"]);
     expect(nitro.logger.info).not.toHaveBeenCalled();
     expect(nitro.logger.success).not.toHaveBeenCalled();
   });

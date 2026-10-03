@@ -1,12 +1,9 @@
-import type { Preset } from "unenv";
+import type { PresetEnv } from "../../_utils/env.ts";
 import * as workerdNodeCompat from "./node-compat.ts";
 
 // https://platform-node-compat.pi0.workers.dev/
 
-export const unenvCfNodeCompat: Preset = {
-  meta: {
-    name: "nitro:cloudflare-node-compat",
-  },
+export const unenvCfNodeCompat: PresetEnv = {
   external: workerdNodeCompat.builtnNodeModules,
   alias: {
     ...Object.fromEntries(
@@ -25,10 +22,7 @@ export const unenvCfNodeCompat: Preset = {
   },
 };
 
-export const unenvCfExternals: Preset = {
-  meta: {
-    name: "nitro:cloudflare-externals",
-  },
+export const unenvCfExternals: PresetEnv = {
   external: [
     "cloudflare:email",
     "cloudflare:sockets",

@@ -91,7 +91,7 @@ const netlifyEdge = defineNitroPreset(
         inlineDynamicImports: false,
       },
     },
-    unenv: unenvDeno,
+    ...unenvDeno,
     hooks: {
       async compiled(nitro: Nitro) {
         await writeHeaders(nitro);

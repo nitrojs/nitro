@@ -69,6 +69,9 @@ export const NitroDefaults: NitroConfig = {
   // Builder
   builder: undefined,
   replace: {},
+  inject: {},
+  polyfills: [],
+  external: [],
   node: true,
   sourcemap: false,
   traceDeps: [],

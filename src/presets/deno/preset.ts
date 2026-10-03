@@ -20,7 +20,7 @@ const denoDeploy = defineNitroPreset(
       preview: "",
       deploy: "cd ./ && deno run -A jsr:@deno/deployctl deploy server/index.ts",
     },
-    unenv: unenvDeno,
+    ...unenvDeno,
     rollupConfig: {
       preserveEntrySignatures: false,
       external: (id) => id.startsWith("https://") || id.startsWith("node:"),

@@ -1,13 +1,10 @@
-import type { Preset } from "unenv";
+import type { PresetEnv } from "../../_utils/env.ts";
 import * as denoCompat from "./node-compat.ts";
 
 // https://platform-node-compat.deno.dev/
 // https://platform-node-compat.netlify.app/
 
-export const unenvDeno: Preset = {
-  meta: {
-    name: "nitro:deno",
-  },
+export const unenvDeno: PresetEnv = {
   external: denoCompat.builtnNodeModules.map((m) => `node:${m}`),
   alias: {
     ...Object.fromEntries(
