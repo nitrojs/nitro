@@ -55,7 +55,7 @@ importers:
         specifier: ^2.0.10
         version: 2.0.10(debug@4.4.3)(supports-color@10.2.2)
       '@cloudflare/workers-types':
-        specifier: ^5.20260921.1
+        specifier: ^5.20260930.2
         version: 5.20261002.1
       '@cloudflare/workers-utils':
         specifier: ^0.45.1
@@ -67,10 +67,10 @@ importers:
         specifier: ^0.0.11
         version: 0.0.11(patch_hash=07fae0b67c822caf17077800582de7d566ace9f74ee59baba4de19a6288b720a)(vite@8.3.2)
       '@netlify/edge-functions':
-        specifier: ^4.0.0
+        specifier: ^4.0.1
         version: 4.0.2
       '@netlify/functions':
-        specifier: ^6.0.0
+        specifier: ^6.0.1
         version: 6.0.2
       '@rollup/plugin-alias':
         specifier: ^6.0.0
@@ -91,13 +91,13 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3(rollup@4.63.6)
       '@scalar/api-reference':
-        specifier: ^1.70.0
+        specifier: ^1.72.3
         version: 1.72.4(axios@1.20.0)(jwt-decode@4.0.0)(supports-color@10.2.2)(tailwindcss@4.3.3)(typescript@7.0.2)(zod@4.6.5)
       '@scalar/openapi-types':
-        specifier: ^0.9.6
+        specifier: ^0.9.7
         version: 0.9.7
       '@types/aws-lambda':
-        specifier: ^8.10.163
+        specifier: ^8.10.164
         version: 8.10.164
       '@types/estree':
         specifier: ^1.0.9
@@ -106,7 +106,7 @@ importers:
         specifier: ^1.8.4
         version: 1.8.4
       '@types/node':
-        specifier: ^26.6.2
+        specifier: ^26.6.3
         version: 26.6.4
       '@types/semver':
         specifier: ^7.8.0
@@ -157,7 +157,7 @@ importers:
         specifier: ^10.2.0
         version: 10.2.0
       dotenv:
-        specifier: ^18.0.2
+        specifier: ^18.0.4
         version: 18.0.5
       etag:
         specifier: ^1.8.1
@@ -214,7 +214,7 @@ importers:
         specifier: ^0.6.10
         version: 0.6.10
       obuild:
-        specifier: ^0.4.40
+        specifier: ^0.4.43
         version: 0.4.43(dotenv@18.0.5)(giget@3.3.1)(jiti@2.7.0)(magicast@0.5.5)(typescript@7.0.2)
       oxbox:
         specifier: ^0.1.0
@@ -223,10 +223,10 @@ importers:
         specifier: link:shims/oxc-parser
         version: link:shims/oxc-parser
       oxfmt:
-        specifier: '>=0.70.0'
+        specifier: '>=0.71.0'
         version: 0.71.0
       oxlint:
-        specifier: ^1.85.0
+        specifier: ^1.86.0
         version: 1.86.0
       pathe:
         specifier: ^2.0.3
@@ -238,7 +238,7 @@ importers:
         specifier: ^2.3.3
         version: 2.3.3
       pretty-bytes:
-        specifier: ^7.1.3
+        specifier: ^7.2.0
         version: 7.2.0
       rangi:
         specifier: ^2.2.0
@@ -247,10 +247,10 @@ importers:
         specifier: ^0.1.1
         version: 0.1.1
       rolldown:
-        specifier: ^1.2.9
+        specifier: ^1.2.12
         version: 1.2.12
       rollup:
-        specifier: ^4.63.4
+        specifier: ^4.63.5
         version: 4.63.6
       rou3:
         specifier: ^1.0.0
@@ -262,7 +262,7 @@ importers:
         specifier: ^7.8.5
         version: 7.8.5
       std-env:
-        specifier: ^4.2.0
+        specifier: ^4.3.0
         version: 4.3.0
       tinyglobby:
         specifier: ^0.2.17
@@ -286,7 +286,7 @@ importers:
         specifier: ^0.6.0
         version: 0.6.0
       vite:
-        specifier: ^8.3.0
+        specifier: ^8.3.1
         version: 8.3.2(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
       vite7:
         specifier: npm:vite@^7.3.6
@@ -295,13 +295,13 @@ importers:
         specifier: ^5.0.3
         version: 5.0.3(@opentelemetry/api@1.9.0)(@types/node@26.6.4)(@vitest/coverage-v8@5.0.3)(vite@8.3.2)
       wrangler:
-        specifier: ^4.136.1
+        specifier: ^4.145.0
         version: 4.146.0(@cloudflare/workers-types@5.20261002.1)(@types/node@26.6.4)
       xml2js:
         specifier: ^0.6.2
         version: 0.6.2
       zephyr-agent:
-        specifier: ^1.4.0
+        specifier: ^1.4.2
         version: 1.4.2(supports-color@10.2.2)
 
   examples/api-routes:
@@ -3922,11 +3922,6 @@ packages:
 
   ajv-formats@3.0.1:
     resolution: {integrity: sha512-8iUql50EUR+uUcdRQ3HDqa6EVyo3docL8g5WJ3FNcWmu62IbkGUue/pEyLBW8VGKKucTPgqeks4fIU1DA4yowQ==}
-    peerDependencies:
-      ajv: ^8.0.0
-    peerDependenciesMeta:
-      ajv:
-        optional: true
 
   ajv@8.20.0:
     resolution: {integrity: sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA==}
@@ -8152,7 +8147,7 @@ snapshots:
   '@fastify/ajv-compiler@4.0.6':
     dependencies:
       ajv: 8.20.0
-      ajv-formats: 3.0.1(ajv@8.20.0)
+      ajv-formats: 3.0.1
       fast-uri: 4.2.1
 
   '@fastify/error@4.2.0': {}
@@ -10452,8 +10447,8 @@ snapshots:
       '@opentelemetry/api': 1.9.0
       zod: 4.6.5
 
-  ajv-formats@3.0.1(ajv@8.20.0):
-    optionalDependencies:
+  ajv-formats@3.0.1:
+    dependencies:
       ajv: 8.20.0
 
   ajv@8.20.0:
@@ -11308,7 +11303,7 @@ snapshots:
     dependencies:
       '@fastify/merge-json-schemas': 0.2.1
       ajv: 8.20.0
-      ajv-formats: 3.0.1(ajv@8.20.0)
+      ajv-formats: 3.0.1
       fast-uri: 4.2.1
       json-schema-ref-resolver: 3.0.0
       rfdc: 1.4.1
