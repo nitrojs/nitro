@@ -1,5 +1,5 @@
 import fsp from "node:fs/promises";
-import { isAbsolute, relative, resolve } from "pathe";
+import { basename, dirname, isAbsolute, join, relative, resolve } from "pathe";
 import type { Nitro } from "nitro/types";
 
 export async function prepare(
@@ -29,9 +29,10 @@ export async function prepare(
     if (!actualSourceDir) {
       continue;
     }
+    const sourceLinkDir = join(await fsp.realpath(dirname(sourceDir)), basename(sourceDir));
     for (const outputDir of dirsToClean) {
       const actualOutputDir = (await realpathOrUndefined(outputDir)) || resolve(outputDir);
-      if (isInside(actualOutputDir, actualSourceDir)) {
+      if (isInside(actualOutputDir, sourceLinkDir) || isInside(actualOutputDir, actualSourceDir)) {
         throw new Error(
           `Cannot prepare output directory ${outputDir}: publicAssets source ${asset.dir} is inside it and would be deleted.`
         );

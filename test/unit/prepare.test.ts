@@ -63,6 +63,33 @@ describe("prepare", () => {
     expect(await readFile(join(aliasDir, "app.js"), "utf8")).toBe("important client asset");
   });
 
+  it("rejects a symlink inside output pointing to assets outside it", async () => {
+    const root = await mkdtemp(join(tmpdir(), "nitro-prepare-"));
+    temporaryDirs.push(root);
+    const outputDir = join(root, "dist");
+    const assetsDir = join(root, "assets");
+    const linkDir = join(outputDir, "client");
+    await mkdir(outputDir, { recursive: true });
+    await mkdir(assetsDir, { recursive: true });
+    await writeFile(join(assetsDir, "app.js"), "important client asset");
+    await symlink(assetsDir, linkDir, "dir");
+    const nitro = {
+      options: {
+        output: {
+          dir: outputDir,
+          publicDir: join(outputDir, "public"),
+          serverDir: join(outputDir, "server"),
+        },
+        publicAssets: [{ dir: linkDir }],
+        noPublicDir: false,
+        static: false,
+      },
+    } as Nitro;
+
+    await expect(prepare(nitro)).rejects.toThrow(/dist.*publicAssets/);
+    expect(await readFile(join(linkDir, "app.js"), "utf8")).toBe("important client asset");
+  });
+
   it("cleans output when the public asset source is outside it", async () => {
     const root = await mkdtemp(join(tmpdir(), "nitro-prepare-"));
     temporaryDirs.push(root);
