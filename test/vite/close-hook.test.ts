@@ -13,7 +13,7 @@ const { createServer } = (await import(
 
 // #4586: stopping the Vite dev server must run the Nitro `close` hooks, both the build-time
 // ones (`nitro({ hooks })`) and the runtime ones registered by server plugins in the dev worker.
-describe("vite: close hooks", { sequential: true }, () => {
+describe("vite: close hooks", { concurrent: false }, () => {
   let server: ViteDevServer;
   let serverURL: string;
   let logFile: string;

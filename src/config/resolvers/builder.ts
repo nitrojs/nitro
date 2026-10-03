@@ -11,6 +11,16 @@ export async function resolveBuilder(options: NitroOptions) {
   // NITRO_BUILDER environment variable
   options.builder ??= process.env.NITRO_BUILDER as any;
 
+  // `NITRO_BUILDER=false` (also when forwarded from a config)
+  if ((options.builder as unknown) === "false") {
+    options.builder = false;
+  }
+
+  // Run without a builder
+  if (options.builder === false) {
+    return;
+  }
+
   // Builder is explicitly set
   if (options.builder) {
     // Validate builder name

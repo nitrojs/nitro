@@ -14,6 +14,10 @@ export async function build(nitro: Nitro) {
       const { viteBuild } = await import("./vite/build.ts");
       return viteBuild(nitro);
     }
+    case false: {
+      const { unbundledBuild } = await import("./unbundled/build.ts");
+      return unbundledBuild(nitro);
+    }
     default: {
       throw new Error(`Unknown builder: ${nitro.options.builder}`);
     }

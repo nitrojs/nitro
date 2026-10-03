@@ -235,7 +235,7 @@ current evaluations.
 |--------|-----|-----------|
 | Runner | env-runner (node-worker / miniflare) | Bundled ESM |
 | HMR | Full reload on file change | N/A |
-| Errors | Interactive error page (Youch) | JSON or minimal HTML |
+| Errors | HTML error page (`src/runtime/internal/error/_utils.ts`) | JSON or minimal HTML |
 | Services | Lazy-loaded via env-runner | Pre-bundled via `prodSetup()` |
 | Template | Dynamic (vite-env route) | Static (inlined SSR outlet) |
 | Sourcemaps | Enabled | Optional |

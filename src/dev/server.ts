@@ -2,7 +2,12 @@ import type { IncomingMessage } from "node:http";
 import type { Socket } from "node:net";
 import type { FSWatcher } from "chokidar";
 import type { ServerOptions, Server } from "srvx";
-import type { EnvRunnerData, RunnerMessageListener, RunnerRPCHooks } from "env-runner";
+import type {
+  EnvRunnerData,
+  EnvRunnerPluginOption,
+  RunnerMessageListener,
+  RunnerRPCHooks,
+} from "env-runner";
 import type { RunnerName } from "env-runner";
 import { RunnerManager, loadRunner } from "env-runner";
 import type { Nitro } from "nitro/types";
@@ -10,6 +15,7 @@ import type { Nitro } from "nitro/types";
 import { HTTPError } from "h3";
 
 import consola from "consola";
+import { readFile } from "node:fs/promises";
 import { resolve } from "pathe";
 import { serve } from "srvx/node";
 import { debounce } from "perfect-debounce";
@@ -18,6 +24,7 @@ import { NitroDevApp } from "./app.ts";
 import { createWatcher } from "../utils/watch.ts";
 import { resolveRunnerDeps } from "./runner-deps.ts";
 import { shutdownRunner } from "./shutdown.ts";
+import { handleDevRPC } from "./_rpc.ts";
 import { writeDevBuildInfo } from "../build/info.ts";
 
 export function createDevServer(nitro: Nitro): NitroDevServer {
@@ -27,6 +34,7 @@ export function createDevServer(nitro: Nitro): NitroDevServer {
 export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
   #entry: string;
   #workerData: EnvRunnerData = {};
+  #plugins?: EnvRunnerPluginOption[];
   #listeners: Server[] = [];
   #watcher?: FSWatcher;
   #manager: RunnerManager;
@@ -96,6 +104,16 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
       }
     });
 
+    // Worker => Host RPC
+    this.#manager.onMessage((message) =>
+      handleDevRPC(message, {
+        sendMessage: (message) => this.#manager.sendMessage(message),
+        handlers: {
+          rendererTemplate: () => readFile(nitro.options.renderer!.template!, "utf8"),
+        },
+      })
+    );
+
     nitro.hooks.hook("close", () => this.close());
 
     nitro.hooks.hook("dev:start", () => {
@@ -111,6 +129,9 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
       }
       if (payload?.workerData) {
         this.#workerData = payload.workerData;
+      }
+      if (payload?.plugins) {
+        this.#plugins = payload.plugins;
       }
       this.reload();
     });
@@ -198,6 +219,7 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
       ...(await resolveRunnerDeps(this.nitro, runnerName)),
       name: `Nitro_${this.#workerIdCtr++}`,
       data: { entry: this.#entry, ...this.#workerData },
+      plugins: this.#plugins,
     });
     await this.#manager.reload(runner);
   }

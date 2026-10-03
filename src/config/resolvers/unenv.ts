@@ -1,51 +1,69 @@
-import type { NitroOptions } from "nitro/types";
-import type { Preset } from "unenv";
+import consola from "consola";
+import type { ConsolaInstance } from "consola";
+import { resolveModulePath } from "exsolve";
+import type { LegacyUnenvPreset, NitroOptions } from "nitro/types";
+import type { PresetEnv } from "../../build/env.ts";
 
-export const common: Preset = {
-  meta: {
-    name: "nitro-common",
-    url: import.meta.url,
-  },
-  alias: {
-    "buffer/": "node:buffer",
-    "buffer/index": "node:buffer",
-    "buffer/index.js": "node:buffer",
-    "string_decoder/": "node:string_decoder",
-    "process/": "node:process",
-  },
-};
-
-export const nodeless: Preset = {
-  meta: {
-    name: "nitro-nodeless",
-    url: import.meta.url,
-  },
-  inject: {
-    global: "unenv/polyfill/globalthis",
-    process: "node:process",
-    Buffer: ["node:buffer", "Buffer"],
-    clearImmediate: ["node:timers", "clearImmediate"],
-    setImmediate: ["node:timers", "setImmediate"],
-    performance: "unenv/polyfill/performance",
-    PerformanceObserver: ["node:perf_hooks", "PerformanceObserver"],
-    BroadcastChannel: ["node:worker_threads", "BroadcastChannel"],
-  },
-  polyfill: [
-    "unenv/polyfill/globalthis-global",
-    "unenv/polyfill/process",
-    "unenv/polyfill/buffer",
-    "unenv/polyfill/timers",
-  ],
-};
+let warned = false;
 
 export async function resolveUnenv(options: NitroOptions) {
-  options.unenv ??= [];
-  if (!Array.isArray(options.unenv)) {
-    options.unenv = [options.unenv];
+  options.inject ??= {};
+  options.polyfills ??= [];
+  options.builtinModules ??= [];
+  options.unenv = [options.unenv || []].flat().filter(Boolean);
+  warnLegacyUnenv(options);
+}
+
+/**
+ * Converts presets of the deprecated `unenv` option (including ones pushed to
+ * `nitro.options.unenv` from hooks) to build env layers.
+ *
+ * They apply after preset layers and before user `alias`, `inject`,
+ * `polyfills` and `builtinModules`.
+ */
+export function legacyUnenvLayers(
+  options: NitroOptions,
+  logger: ConsolaInstance = consola
+): PresetEnv[] {
+  warnLegacyUnenv(options, logger);
+  return [options.unenv || []]
+    .flat()
+    .filter(Boolean)
+    .map((preset) => {
+      const resolve = (id: string) => resolvePresetId(id, preset.meta?.url);
+      return {
+        alias: Object.fromEntries(
+          Object.entries(preset.alias || {}).map(([from, to]) => [from, resolve(to)])
+        ),
+        inject: Object.fromEntries(
+          Object.entries(preset.inject || {}).map(([name, value]) => [
+            name,
+            value === false
+              ? false
+              : typeof value === "string"
+                ? resolve(value)
+                : [resolve(value[0]!), value[1]!],
+          ])
+        ),
+        polyfills: (preset.polyfill || []).filter(Boolean).map((id) => resolve(id)),
+        builtinModules: preset.external || [],
+      };
+    });
+}
+
+function warnLegacyUnenv(options: NitroOptions, logger: ConsolaInstance = consola) {
+  if (warned || !(options.unenv as LegacyUnenvPreset[] | undefined)?.length) {
+    return;
   }
-  options.unenv = options.unenv.filter(Boolean);
-  if (!options.node) {
-    options.unenv.unshift(nodeless);
+  warned = true;
+  logger.warn(
+    `"unenv" option is deprecated. Please use "alias", "inject", "polyfills" and "builtinModules" instead.`
+  );
+}
+
+function resolvePresetId(id: string, url: string | URL | undefined): string {
+  if (!url || id.startsWith("!")) {
+    return id;
   }
-  options.unenv.unshift(common);
+  return resolveModulePath(id, { from: url, try: true }) || id;
 }

@@ -6,11 +6,15 @@ import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
 import { tracingSrvxPlugins } from "#nitro/virtual/tracing";
 import { serverEntryOptions } from "#nitro/virtual/server-entry";
+import { createDevRPC } from "#nitro/runtime/dev-rpc";
 
 import type { AppEntry } from "env-runner";
 
 const nitroApp = useNitroApp();
 const nitroHooks = useNitroHooks();
+
+let sendMessage: ((message: unknown) => void) | undefined;
+const rpc = createDevRPC((message) => sendMessage?.(message));
 
 trapUnhandledErrors();
 
@@ -35,6 +39,13 @@ export default {
       }
     : undefined,
   ipc: {
+    onOpen: (ctx) => {
+      sendMessage = ctx.sendMessage;
+      (globalThis as any).__nitro_renderer_template__ = () => rpc.call("rendererTemplate");
+    },
+    onMessage: (message) => {
+      rpc.handleMessage(message);
+    },
     onClose: () => nitroHooks.callHook("close"),
   },
 } satisfies AppEntry;

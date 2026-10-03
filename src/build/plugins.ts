@@ -17,7 +17,7 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const plugins: Plugin[] = [];
 
   // Virtual
-  const virtualPlugin = virtual(virtualTemplates(nitro, [...base.env.polyfill]));
+  const virtualPlugin = virtual(virtualTemplates(nitro, [...base.env.polyfills]));
   nitro.vfs = virtualPlugin.api.modules;
   plugins.push(virtualPlugin, virtualDeps());
 

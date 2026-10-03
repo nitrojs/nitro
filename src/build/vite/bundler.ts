@@ -15,7 +15,7 @@ export const getBundlerConfig = async (
   rolldownConfig?: RolldownConfig;
 }> => {
   const nitro = ctx.nitro!;
-  const base = baseBuildConfig(nitro);
+  const base = await baseBuildConfig(nitro);
 
   const commonConfig = {
     input: nitro.options.entry,
