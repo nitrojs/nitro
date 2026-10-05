@@ -14,13 +14,13 @@ const nitroApp = useNitroApp();
 
 const ws = import.meta._websocket ? wsAdapter({ resolve: resolveWebsocketHooks }) : undefined;
 
+// TODO: Migrate to srvx to provide request IP
 Deno.serve((denoReq: Request, info: _Deno.ServeHandlerInfo) => {
+  // srvx compatibility
   const req = denoReq as unknown as ServerRequest;
   req.runtime ??= { name: "deno" };
   req.runtime.deno ??= { info } as any;
-  req.ip =
-    denoReq.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    info?.remoteAddr?.hostname;
+  req.ip = info.remoteAddr.hostname;
 
   // https://crossws.unjs.io/adapters/deno
   if (import.meta._websocket && req.headers.get("upgrade") === "websocket") {
