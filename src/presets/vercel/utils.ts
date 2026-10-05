@@ -307,7 +307,10 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
           }
           return [route];
         }
-        return routeRules.redirect || routeRules.proxy ? [{ src: src.source }] : [];
+        // `redirect: false` opts the path out of broader redirects. With `headers` it is
+        // already handled by the header-only route above.
+        const optsOut = routeRules.redirect === false && !routeRules.headers;
+        return routeRules.redirect || routeRules.proxy || optsOut ? [{ src: src.source }] : [];
       }),
       // Skew protection
       ...(nitro.options.vercel?.skewProtection && nitro.options.manifest?.deploymentId

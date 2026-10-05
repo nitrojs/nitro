@@ -143,3 +143,28 @@ describe("vercel config with `**` in the query of a target", () => {
     });
   });
 });
+
+describe("vercel config with `redirect: false`", () => {
+  let routes: Route[];
+
+  beforeAll(async () => {
+    routes = await buildRoutes({
+      routeRules: {
+        "/foo/**": { redirect: { to: "/x", status: 307 } },
+        "/foo/keep": { redirect: false },
+      },
+    });
+  });
+
+  it("keeps the opted out path from the broader redirect", () => {
+    // `/foo/keep` has to stop routing (be handled by the server) before the
+    // `/foo/**` redirect can match it (#4655)
+    const keep = firstMatch(routes, "/foo/keep");
+    expect(keep).toBeDefined();
+    expect(keep!.headers?.Location).toBeUndefined();
+  });
+
+  it("still redirects the rest of the broader rule", () => {
+    expect(firstMatch(routes, "/foo/other")!.headers?.Location).toBe("/x");
+  });
+});
