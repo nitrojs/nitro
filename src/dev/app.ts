@@ -4,7 +4,7 @@ import { createProxyServer, type ProxyServerOptions } from "httpxy";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Socket } from "node:net";
 import { H3, toEventHandler, serveStatic, fromNodeHandler, HTTPError } from "h3";
-import { joinURL } from "ufo";
+import { joinURL, withoutBase } from "ufo";
 import { addRoute, createRouter, findRoute } from "rou3";
 import mime from "mime";
 import { join, resolve, extname } from "pathe";
@@ -24,6 +24,7 @@ export class NitroDevApp {
   fetch: (req: Request) => Response | Promise<Response>;
 
   #wsProxies?: ReturnType<typeof createRouter<ReturnType<typeof createHTTPProxy>>>;
+  #routes = createRouter();
 
   constructor(nitro: Nitro, catchAllHandler?: HTTPHandler) {
     this.nitro = nitro;
@@ -61,6 +62,7 @@ export class NitroDevApp {
       } else {
         // Route
         app.on(h.method || "", h.route, handler, { meta: h.meta as any });
+        this.#addRoute(h.method || "", h.route);
       }
     }
 
@@ -90,6 +92,9 @@ export class NitroDevApp {
           fallthrough: asset.fallthrough,
         })
       );
+      if (!asset.fallthrough) {
+        this.#addRoute("", joinURL(assetBase, "**"));
+      }
     }
 
     // User defined dev proxy
@@ -101,6 +106,7 @@ export class NitroDevApp {
       }
       const proxy = createHTTPProxy(opts);
       app.all(route, proxy.handleEvent);
+      this.#addRoute("", route);
       if (opts.ws) {
         this.#wsProxies ??= createRouter();
         addRoute(this.#wsProxies, "", route, proxy);
@@ -113,6 +119,21 @@ export class NitroDevApp {
     }
 
     return app;
+  }
+
+  /**
+   * Whether `path` (including the Nitro `baseURL`) matches an explicit dev app route: a dev handler
+   * route, a dev proxy, or a public asset dir without fallthrough. Root catch-alls are excluded.
+   */
+  hasRoute(method: string, path: string): boolean {
+    return !!findRoute(this.#routes, method.toUpperCase(), path);
+  }
+
+  #addRoute(method: string, route: string) {
+    const path = withoutBase(route, this.nitro.options.baseURL);
+    if (path !== "/**" && !path.startsWith("/**:")) {
+      addRoute(this.#routes, method.toUpperCase(), route);
+    }
   }
 
   /**

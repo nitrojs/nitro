@@ -78,6 +78,24 @@ describe.each(["/", "/app/"])("vite:dev handlers under base (baseURL: %s)", (bas
     expect(await response.text()).toBe("missing");
   });
 
+  test("routes asset-like requests to a public asset dir without fallthrough", async () => {
+    const response = await fetch(`${serverURL}${url("/pub/x.txt")}`, {
+      headers: { "sec-fetch-dest": "image" },
+      redirect: "manual",
+    });
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("pub-asset");
+  });
+
+  test("keeps a public asset dir 404 for missing assets", async () => {
+    const response = await fetch(`${serverURL}${url("/pub/missing.txt")}`, {
+      headers: { "sec-fetch-dest": "image" },
+      redirect: "manual",
+    });
+    expect(response.status).toBe(404);
+    expect(await response.text()).not.toMatch(/public base URL/);
+  });
+
   test("does not route Vite assets to a catch-all dev handler", async () => {
     const response = await fetch(`${serverURL}${url("/_assets/client.ts")}`, {
       headers: { "sec-fetch-dest": "script" },

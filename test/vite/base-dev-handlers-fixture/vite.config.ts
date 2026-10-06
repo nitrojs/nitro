@@ -13,6 +13,7 @@ export default defineConfig({
       serverDir: "./",
       serveStatic: false,
       baseURL,
+      publicAssets: [{ dir: "pub-assets", baseURL: "/pub", fallthrough: false }],
       devHandlers: [
         { route: joinURL(baseURL, "_assets/probe/**"), handler: probe },
         { route: joinURL(baseURL, "_probe/**"), handler: probe },
