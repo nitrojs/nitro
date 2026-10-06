@@ -43,8 +43,11 @@ cannot serve — the post catch-all is the last handler before `finalhandler`.
 - **Explicit route** — `route` set, `!== "/**"`, not `startsWith("/**:")` (a
   prefixed splat like `/api/photos/**` is explicit). Deterministic → **always
   Nitro**, no heuristic may override (#4108, #4241, #4252, #4270).
-- **Explicit public asset** — a public-asset dir under a non-root `baseURL`
-  with `fallthrough: false` owns its subtree → Nitro, like an explicit route.
+- **Explicit dev app route** — `NitroDevApp.hasRoute()`: a `devHandlers` route,
+  a `devProxy` route, or a public-asset dir under a non-root `baseURL` with
+  `fallthrough: false` (paths below the dir, not the dir itself, same as
+  production). Root catch-alls are skipped. Marked `_nitroDevRoute` → Nitro,
+  and the dev app's response (even a 404) is final.
 - **Transparent catch-all** — a *user route file* at root level
   (`routes/[...].ts` → `/**`, `routes/[...slug].ts` → `/**:slug`). Nitro sees
   everything it can handle, so Vite stays the definitive asset handler: an
@@ -145,7 +148,8 @@ no production behavior change). Known leftovers:
   extension. Fixed by **#4272** (`5b7e152b`): explicit vs catch-all vs none
   classification — **an explicit route is a deterministic win no heuristic can
   touch**.
-- `7765bcb7` added `isExplicitPublicAsset`.
+- `7765bcb7` added `isExplicitPublicAsset`; **#4734/#4736** replaced it and the
+  pre-pass dev handler/proxy router with `NitroDevApp.hasRoute()` (#4735).
 - **#4252 follow-ups** (katywings, jantimon/TanStack/router#7403): routes the
   classifier cannot see — a custom `server.ts` H3 app serving `/image.png`, or
   an SSR framework serving assets — were pre-empted by `_nitroHandled` and
@@ -159,8 +163,9 @@ The catch-all `nitroDevMiddleware` dispatches in two stages:
 
 1. **`ctx.devApp.fetch(req)`** — `NitroDevApp` (`src/dev/app.ts`), host-side:
    `devHandlers`, `/_vfs/**`, `/_nitro/tasks`, public asset dirs, `devProxy`.
-   No catch-all → a 404 means "not mine, hand off"; any non-404 is returned
-   directly (never inspected — deterministic host serves are authoritative).
+   No catch-all → a 404 means "not mine, hand off" (unless `_nitroDevRoute`,
+   where it is final); any non-404 is returned directly (never inspected —
+   deterministic host serves are authoritative).
 2. **`nitroEnv.dispatchFetch(req)`** → env-runner → worker → `nitroApp.fetch` →
    full route table, middleware, catch-alls.
 

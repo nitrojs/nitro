@@ -92,8 +92,8 @@ export class NitroDevApp {
           fallthrough: asset.fallthrough,
         })
       );
-      if (!asset.fallthrough) {
-        this.#addRoute("", joinURL(assetBase, "**"));
+      if (!asset.fallthrough && asset.baseURL && asset.baseURL !== "/") {
+        this.#addRoute("", joinURL(assetBase, ":path+"));
       }
     }
 
@@ -126,7 +126,11 @@ export class NitroDevApp {
    * route, a dev proxy, or a public asset dir without fallthrough. Root catch-alls are excluded.
    */
   hasRoute(method: string, path: string): boolean {
-    return !!findRoute(this.#routes, method.toUpperCase(), path);
+    method = method.toUpperCase();
+    return !!(
+      findRoute(this.#routes, method, path) ||
+      (method === "HEAD" && findRoute(this.#routes, "GET", path))
+    );
   }
 
   #addRoute(method: string, route: string) {
