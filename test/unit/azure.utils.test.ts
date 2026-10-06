@@ -128,5 +128,6 @@ describe("getRequestURL", () => {
       "https://example.com//evil.com/foo?x=1"
     );
     expect(getRequestURL("https://example.com/\\evil.com/foo", headers).host).toBe("example.com");
+    expect(getRequestURL("//evil.com/foo", headers).href).toBe("https://example.com/foo");
   });
 });
