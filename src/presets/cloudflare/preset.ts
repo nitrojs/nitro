@@ -3,6 +3,7 @@ import { writeFile } from "../_utils/fs.ts";
 import type { Nitro } from "nitro/types";
 import { join, resolve } from "pathe";
 import { presetsDir } from "nitro/meta";
+import { setupDurable } from "./durable.ts";
 import { unenvCfExternals } from "./unenv/preset.ts";
 import { extendEnv } from "../../build/env.ts";
 import {
@@ -175,6 +176,12 @@ const cloudflareDurable = defineNitroPreset(
   {
     extends: "cloudflare-module",
     entry: "./cloudflare/runtime/cloudflare-durable",
+    hooks: {
+      "build:before": async (nitro) => {
+        await cloudflareModule.hooks["build:before"](nitro);
+        setupDurable(nitro);
+      },
+    },
   },
   {
     name: "cloudflare-durable" as const,
