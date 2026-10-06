@@ -211,6 +211,29 @@ describe("builder: false", () => {
     }
   });
 
+  it("prerenders filenames containing `..` but not `..` segments", async () => {
+    const outputDir = await mkdtemp(join(tmpdir(), "nitro-unbundled-prerender-"));
+    const nitro = await createNitro({
+      rootDir,
+      output: { dir: outputDir },
+      prerender: {
+        routes: ["/api/hello..png", "/api/7/../8", "/api/7\\..\\9"],
+      },
+    });
+    try {
+      await prerender(nitro);
+      const publicDir = nitro.options.output.publicDir;
+      expect(JSON.parse(await readFile(join(publicDir, "api/hello..png"), "utf8"))).toMatchObject({
+        id: "hello..png",
+      });
+      expect(existsSync(join(publicDir, "api/8"))).toBe(false);
+      expect(existsSync(join(publicDir, "api/9"))).toBe(false);
+    } finally {
+      await nitro.close();
+      await rm(outputDir, { recursive: true, force: true });
+    }
+  });
+
   describe("preview", () => {
     let preview: Awaited<ReturnType<typeof startPreview>>;
     const outputDir = join(rootDir, ".output");
