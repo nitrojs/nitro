@@ -14,18 +14,18 @@ Integration with this provider is possible with [zero configuration](/deploy#zer
 
 [Azure Static Web Apps](https://azure.microsoft.com/en-us/products/app-service/static) are designed to be deployed continuously in a [GitHub Actions workflow](https://docs.microsoft.com/en-us/azure/static-web-apps/github-actions-workflow). Nitro detects this deployment environment and enables the `azure_swa` preset automatically.
 
-The server is deployed as a managed Azure Function. When `@azure/functions` v4 is installed in your project, Nitro uses the [Node.js v4 programming model](https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-node?pivots=nodejs-model-v4) and traces the package into the build output, so it does not need to be installed again during deployment.
+The server is deployed as a managed Azure Function using the [Node.js v4 programming model](https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-node?pivots=nodejs-model-v4). It requires `@azure/functions` v4 in your project dependencies (Nitro offers to install it when missing). The package is traced into the build output, so it does not need to be installed again during deployment.
 
 :pm-install{name="@azure/functions@^4"}
 
-Otherwise, Nitro falls back to the legacy [v3 programming model](https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-node?pivots=nodejs-model-v3) (`function.json`). You can also choose the model explicitly with the `azure.functionsVersion` option:
+To keep using the legacy [v3 programming model](https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-node?pivots=nodejs-model-v3) (`function.json`), which does not require `@azure/functions`, set the `azure.functionsVersion` option:
 
 ```ts [nitro.config.ts]
 import { defineConfig } from "nitro";
 
 export default defineConfig({
   azure: {
-    functionsVersion: 4,
+    functionsVersion: 3,
   },
 });
 ```

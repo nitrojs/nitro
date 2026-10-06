@@ -7,35 +7,33 @@ import type { Nitro } from "nitro/types";
 
 export async function setupAzureFunctions(nitro: Nitro) {
   const azure = (nitro.options.azure ??= {});
-  const installedVersion = await getInstalledFunctionsVersion(nitro.options.rootDir);
-
-  if (!azure.functionsVersion) {
-    azure.functionsVersion = installedVersion && installedVersion >= 4 ? 4 : 3;
-    if (azure.functionsVersion === 3) {
-      nitro.logger.info(
-        "Using the legacy Azure Functions v3 programming model. Install `@azure/functions@^4` to use the v4 programming model."
-      );
-    }
+  azure.functionsVersion ??= 4;
+  if (azure.functionsVersion !== 3 && azure.functionsVersion !== 4) {
+    throw new Error(
+      `Invalid \`azure.functionsVersion\`: \`${azure.functionsVersion}\`. Supported values are \`3\` and \`4\`.`
+    );
   }
 
   if (azure.functionsVersion === 4) {
     const reason = "the Azure Functions v4 programming model";
+    const installedVersion = await getInstalledFunctionsVersion(nitro.options.rootDir);
     if (!installedVersion) {
       const resolved = await ensureDep({
         id: "@azure/functions",
         dir: nitro.options.rootDir,
         reason,
+        version: "^4",
         dev: false,
         projectOnly: true,
       });
       if (!resolved) {
         throw new Error(
-          `\`@azure/functions@^4\` is not installed. Please add it to your dependencies for ${reason}.`
+          `\`@azure/functions@^4\` is not installed. Please add it to your dependencies for ${reason}, or set \`azure.functionsVersion\` to \`3\` to use the legacy programming model.`
         );
       }
     } else if (installedVersion < 4) {
       throw new Error(
-        `\`@azure/functions@${installedVersion}\` is installed, but ${reason} requires \`@azure/functions@^4\`. Please update it in your dependencies or set \`azure.functionsVersion\` to \`3\`.`
+        `\`@azure/functions@${installedVersion}\` is installed, but ${reason} requires \`@azure/functions@^4\`. Please update it in your dependencies, or set \`azure.functionsVersion\` to \`3\` to use the legacy programming model.`
       );
     }
     (nitro.options.traceDeps ??= []).push("@azure/functions");
