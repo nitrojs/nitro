@@ -1,37 +1,7 @@
 import fsp from "node:fs/promises";
-import { resolveModulePath } from "exsolve";
 import { writeFile } from "../_utils/fs.ts";
-import { ensureDep } from "../../utils/dep.ts";
 import type { Nitro } from "nitro/types";
 import { join, resolve } from "pathe";
-
-export async function ensureAzureFunctions(nitro: Nitro) {
-  const reason = "the `azure-swa` preset";
-  const resolved = await ensureDep({
-    id: "@azure/functions",
-    dir: nitro.options.rootDir,
-    reason,
-    dev: false,
-    projectOnly: true,
-  });
-  if (!resolved) {
-    throw new Error(
-      `\`@azure/functions@^4\` is not installed. Please add it to your dependencies for ${reason}.`
-    );
-  }
-  const pkgPath = resolveModulePath("@azure/functions/package.json", {
-    from: nitro.options.rootDir,
-    try: true,
-  });
-  const version: string | undefined = pkgPath
-    ? JSON.parse(await fsp.readFile(pkgPath, "utf8")).version
-    : undefined;
-  if (version && Number.parseInt(version, 10) < 4) {
-    throw new Error(
-      `\`@azure/functions@${version}\` is installed, but ${reason} requires \`@azure/functions@^4\` (Node.js v4 programming model). Please update it in your dependencies.`
-    );
-  }
-}
 
 export async function writeSWARoutes(nitro: Nitro) {
   const host = {
@@ -139,16 +109,6 @@ export async function writeSWARoutes(nitro: Nitro) {
   await writeFile(
     resolve(nitro.options.output.serverDir, "../host.json"),
     JSON.stringify(host, null, 2)
-  );
-  const serverPackageJson = resolve(nitro.options.output.serverDir, "../package.json");
-  await writeFile(
-    serverPackageJson,
-    JSON.stringify({ private: true, type: "module", main: "functions/index.mjs" }, null, 2)
-  );
-  // Used by Azure Functions Core Tools (`func` / `swa start`) for local preview
-  await writeFile(
-    resolve(nitro.options.output.serverDir, "../local.settings.json"),
-    JSON.stringify({ IsEncrypted: false, Values: { FUNCTIONS_WORKER_RUNTIME: "node" } }, null, 2)
   );
   await writeFile(
     resolve(nitro.options.rootDir, "staticwebapp.config.json"),

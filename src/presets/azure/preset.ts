@@ -1,13 +1,13 @@
 import { defineNitroPreset } from "../_utils/preset.ts";
 import type { Nitro } from "nitro/types";
-import { ensureAzureFunctions, writeSWARoutes } from "./utils.ts";
+import { setupAzureFunctions, writeFunctionFiles } from "./_functions.ts";
+import { writeSWARoutes } from "./utils.ts";
 
 export type { AzureOptions as PresetOptions } from "./types.ts";
 
 const azureSWA = defineNitroPreset(
   {
-    entry: "./azure/runtime/azure-swa",
-    traceDeps: ["@azure/functions"],
+    entry: "./azure/runtime/azure-swa.{version}",
     output: {
       serverDir: "{{ output.dir }}/server/functions",
       publicDir: "{{ output.dir }}/public/{{ baseURL }}",
@@ -17,10 +17,11 @@ const azureSWA = defineNitroPreset(
     },
     hooks: {
       async "build:before"(nitro: Nitro) {
-        await ensureAzureFunctions(nitro);
+        await setupAzureFunctions(nitro);
       },
       async compiled(ctx: Nitro) {
         await writeSWARoutes(ctx);
+        await writeFunctionFiles(ctx);
       },
     },
   },
