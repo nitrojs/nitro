@@ -1,5 +1,6 @@
 import type { Cookie } from "@azure/functions";
 import { parse } from "cookie-es";
+import { parseURL } from "ufo";
 
 export function getAzureParsedCookiesFromHeaders(headers: Headers): Cookie[] {
   const setCookieHeader = headers.getSetCookie();
@@ -30,6 +31,15 @@ export function getAzureParsedCookiesFromHeaders(headers: Headers): Cookie[] {
     azureCookies.push(cookieObject);
   }
   return azureCookies;
+}
+
+export function getRequestURL(path: string, headers: Headers): URL {
+  const { pathname, search } = parseURL(path);
+  // Assigned separately so a path starting with `//` cannot replace the host
+  const url = new URL(resolveBaseUrl(headers));
+  url.pathname = pathname;
+  url.search = search;
+  return url;
 }
 
 export function resolveBaseUrl(headers: Headers) {

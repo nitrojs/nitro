@@ -1,7 +1,6 @@
 import "#nitro/virtual/polyfills";
-import { parseURL } from "ufo";
 import { useNitroApp } from "nitro/app";
-import { getAzureParsedCookiesFromHeaders, resolveBaseUrl } from "./_utils.ts";
+import { getAzureParsedCookiesFromHeaders, getRequestURL } from "./_utils.ts";
 
 import type { Cookie } from "@azure/functions";
 
@@ -26,20 +25,15 @@ interface HttpResponseV3 {
 const nitroApp = useNitroApp();
 
 export async function handle(context: { res: HttpResponseV3 }, req: HttpRequestV3) {
-  let url: string;
-  const originalURL = req.headers["x-ms-original-url"];
-  if (originalURL) {
-    // This URL has been proxied as there was no static file matching it.
-    const parsedURL = parseURL(originalURL);
-    url = parsedURL.pathname + parsedURL.search;
-  } else {
-    // Because Azure SWA handles /api/* calls differently they
-    // never hit the proxy and we have to reconstitute the URL.
-    url = "/api/" + (req.params.url || "");
-  }
-
+  // Proxied requests (no matching static file) carry the original URL in `x-ms-original-url`.
+  // Azure SWA handles /api/* calls differently, they never hit the proxy and we have to reconstitute the URL.
   const headers = new Headers(req.headers);
-  const request = new Request(new URL(url, resolveBaseUrl(headers)), {
+  const url = getRequestURL(
+    req.headers["x-ms-original-url"] || "/api/" + (req.params.url || ""),
+    headers
+  );
+
+  const request = new Request(url, {
     method: req.method || undefined,
     headers,
     // https://github.com/Azure/azure-functions-nodejs-worker/issues/294

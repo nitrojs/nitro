@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   getAzureParsedCookiesFromHeaders,
+  getRequestURL,
   resolveBaseUrl,
 } from "../../src/presets/azure/runtime/_utils.ts";
 
@@ -103,5 +104,29 @@ describe("resolveBaseUrl", () => {
 
   it("falls back to localhost", () => {
     expect(resolveBaseUrl(req({}))).toBe("http://localhost");
+  });
+});
+
+describe("getRequestURL", () => {
+  const headers = new Headers({ "x-forwarded-proto": "https", "x-forwarded-host": "example.com" });
+
+  it("resolves the path and query against the base url", () => {
+    expect(getRequestURL("https://internal/api/echo?x=1", headers).href).toBe(
+      "https://example.com/api/echo?x=1"
+    );
+    expect(getRequestURL("/api/echo?x=1", headers).href).toBe("https://example.com/api/echo?x=1");
+  });
+
+  it("keeps encoded characters in the path", () => {
+    expect(getRequestURL("https://internal/api/a%2Fb%3Fc?q=1", headers).href).toBe(
+      "https://example.com/api/a%2Fb%3Fc?q=1"
+    );
+  });
+
+  it("does not change the host for paths starting with slashes", () => {
+    expect(getRequestURL("https://example.com//evil.com/foo?x=1", headers).href).toBe(
+      "https://example.com//evil.com/foo?x=1"
+    );
+    expect(getRequestURL("https://example.com/\\evil.com/foo", headers).host).toBe("example.com");
   });
 });

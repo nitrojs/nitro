@@ -1,8 +1,7 @@
 import "#nitro/virtual/polyfills";
 import { app } from "@azure/functions";
-import { parseURL } from "ufo";
 import { useNitroApp } from "nitro/app";
-import { getAzureParsedCookiesFromHeaders, resolveBaseUrl } from "./_utils.ts";
+import { getAzureParsedCookiesFromHeaders, getRequestURL } from "./_utils.ts";
 
 import type { HttpRequest, HttpResponseInit } from "@azure/functions";
 
@@ -18,9 +17,9 @@ app.http("server", {
 
 async function handle(req: HttpRequest): Promise<HttpResponseInit> {
   // Proxied requests (no matching static file) carry the original URL in `x-ms-original-url`
-  const { pathname, search } = parseURL(req.headers.get("x-ms-original-url") || req.url);
+  const url = getRequestURL(req.headers.get("x-ms-original-url") || req.url, req.headers);
 
-  const request = new Request(new URL(pathname + search, resolveBaseUrl(req.headers)), {
+  const request = new Request(url, {
     method: req.method,
     headers: req.headers,
     body: req.body ? await req.arrayBuffer() : undefined,
