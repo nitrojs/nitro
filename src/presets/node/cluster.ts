@@ -37,14 +37,16 @@ if (cluster.isPrimary) {
     workers.push(cluster.fork({ WORKER_ID: i + 1 }));
   }
   const forwards = new Set(workers);
+  let isShuttingDown = false;
   cluster.on("exit", (worker) => {
     forwards.delete(worker);
     if (forwards.size === 0) {
-      process.exit(0);
+      process.exit(isShuttingDown ? 0 : 1);
     }
   });
   for (const signal of ["SIGINT", "SIGTERM"]) {
     process.on(signal, () => {
+      isShuttingDown = true;
       for (const worker of forwards) {
         worker.process.kill(signal);
       }
