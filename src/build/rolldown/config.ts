@@ -4,7 +4,7 @@ import { baseBuildConfig } from "../config.ts";
 import { baseBuildPlugins, withBuildPlugins } from "../plugins.ts";
 import { builtinModules } from "node:module";
 import { defu } from "defu";
-import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
+import { getChunkName, libChunksGroup } from "../chunks.ts";
 
 export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> => {
   const base = await baseBuildConfig(nitro);
@@ -59,7 +59,7 @@ export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> 
       minifyInternalExports: false,
       chunkFileNames: (chunk) => getChunkName(chunk, nitro),
       codeSplitting: {
-        groups: [{ test: NODE_MODULES_RE, name: (id) => libChunkName(id) }],
+        groups: [libChunksGroup()],
       },
       dir: nitro.options.output.serverDir,
       inlineDynamicImports: nitro.options.inlineDynamicImports,
