@@ -55,11 +55,11 @@ importers:
         specifier: ^2.0.10
         version: 2.0.10(debug@4.4.3)(supports-color@10.2.2)
       '@cloudflare/workers-types':
-        specifier: ^5.20260930.2
+        specifier: ^5.20261003.1
         version: 5.20261004.1
       '@cloudflare/workers-utils':
-        specifier: ^0.45.1
-        version: 0.45.1(vitest@5.0.3)
+        specifier: ^0.46.0
+        version: 0.46.0(vitest@5.0.3)
       '@deno/types':
         specifier: ^0.0.1
         version: 0.0.1
@@ -67,10 +67,10 @@ importers:
         specifier: ^0.0.11
         version: 0.0.11(patch_hash=07fae0b67c822caf17077800582de7d566ace9f74ee59baba4de19a6288b720a)(vite@8.3.2)
       '@netlify/edge-functions':
-        specifier: ^4.0.1
+        specifier: ^4.0.2
         version: 4.0.2
       '@netlify/functions':
-        specifier: ^6.0.1
+        specifier: ^6.0.2
         version: 6.0.2
       '@rollup/plugin-alias':
         specifier: ^6.0.0
@@ -91,7 +91,7 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3(rollup@4.64.0)
       '@scalar/api-reference':
-        specifier: ^1.72.3
+        specifier: ^1.72.4
         version: 1.72.4(axios@1.20.0)(jwt-decode@4.0.0)(supports-color@10.2.2)(tailwindcss@4.3.3)(typescript@7.0.2)(zod@4.6.5)
       '@scalar/openapi-types':
         specifier: ^0.9.7
@@ -106,7 +106,7 @@ importers:
         specifier: ^1.8.4
         version: 1.8.4
       '@types/node':
-        specifier: ^26.6.3
+        specifier: ^26.6.4
         version: 26.6.4
       '@types/semver':
         specifier: ^7.8.0
@@ -157,7 +157,7 @@ importers:
         specifier: ^10.2.0
         version: 10.2.0
       dotenv:
-        specifier: ^18.0.4
+        specifier: ^18.0.5
         version: 18.0.5
       etag:
         specifier: ^1.8.1
@@ -250,7 +250,7 @@ importers:
         specifier: ^1.2.12
         version: 1.2.12
       rollup:
-        specifier: ^4.63.5
+        specifier: ^4.64.0
         version: 4.64.0
       rou3:
         specifier: ^1.0.0
@@ -286,7 +286,7 @@ importers:
         specifier: ^0.6.0
         version: 0.6.0
       vite:
-        specifier: ^8.3.1
+        specifier: ^8.3.2
         version: 8.3.2(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
       vite7:
         specifier: npm:vite@^7.3.6
@@ -295,13 +295,13 @@ importers:
         specifier: ^5.0.3
         version: 5.0.3(@opentelemetry/api@1.9.0)(@types/node@26.6.4)(@vitest/coverage-v8@5.0.3)(vite@8.3.2)
       wrangler:
-        specifier: ^4.145.0
+        specifier: ^4.147.0
         version: 4.147.0(@cloudflare/workers-types@5.20261004.1)(@types/node@26.6.4)
       xml2js:
         specifier: ^0.6.2
         version: 0.6.2
       zephyr-agent:
-        specifier: ^1.4.2
+        specifier: ^1.5.0
         version: 1.5.0(supports-color@10.2.2)
 
   examples/api-routes:
@@ -1112,8 +1112,8 @@ packages:
   '@cloudflare/workers-types@5.20261004.1':
     resolution: {integrity: sha512-K9D4/Y6bSIDNYFzjqzFMNoWK99pLgfgFxqSa76kfW++3VCkTSzJbzsQRffir366G3kmNyjoigC6ekp7DxIkxkw==}
 
-  '@cloudflare/workers-utils@0.45.1':
-    resolution: {integrity: sha512-eyRkhn/9z0CV0tS8KA6xL3ROaqsib+fSEqNWOXj8o7ob8TNyTaWT4xe0JTHGSYzgfk2ULxe2F3Wslogs7KaG0w==}
+  '@cloudflare/workers-utils@0.46.0':
+    resolution: {integrity: sha512-E/k0q1p5EXgkNl1xI20xwJ4uXpL4K3eTguKtrPn57vBacq6NtPzOXa0xG/TWfZN5STUb25yf1Cbo4D/hEGSgXA==}
     peerDependencies:
       vitest: ^4.1.0
     peerDependenciesMeta:
@@ -7876,7 +7876,7 @@ snapshots:
 
   '@cloudflare/workers-types@5.20261004.1': {}
 
-  '@cloudflare/workers-utils@0.45.1(vitest@5.0.3)':
+  '@cloudflare/workers-utils@0.46.0(vitest@5.0.3)':
     dependencies:
       chalk: 5.3.0
       dotenv: 16.3.1
