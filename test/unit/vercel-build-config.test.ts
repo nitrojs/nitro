@@ -152,8 +152,10 @@ describe("vercel config with `redirect: false`", () => {
       routeRules: {
         "/foo/**": { redirect: { to: "/x", status: 307 } },
         "/foo/keep": { redirect: false },
+        "/foo/keep-all/**": { redirect: false },
+        "/account": { redirect: false },
       },
-    });
+    } as Partial<NitroOptions>);
   });
 
   it("keeps the opted out path from the broader redirect", () => {
@@ -164,7 +166,18 @@ describe("vercel config with `redirect: false`", () => {
     expect(keep!.headers?.Location).toBeUndefined();
   });
 
+  it("keeps opted out wildcard paths from the broader redirect", () => {
+    const keep = firstMatch(routes, "/foo/keep-all/a/b");
+    expect(keep).toBeDefined();
+    expect(keep!.headers?.Location).toBeUndefined();
+  });
+
   it("still redirects the rest of the broader rule", () => {
     expect(firstMatch(routes, "/foo/other")!.headers?.Location).toBe("/x");
+  });
+
+  // A stop route would also skip skew protection and public asset headers
+  it("emits no route when no redirect can match", () => {
+    expect(firstMatch(routes, "/account")).toEqual({ src: "/(.*)", dest: "/__server" });
   });
 });

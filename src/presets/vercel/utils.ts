@@ -307,9 +307,13 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
           }
           return [route];
         }
-        // `redirect: false` opts the path out of broader redirects. With `headers` it is
-        // already handled by the header-only route above.
-        const optsOut = routeRules.redirect === false && !routeRules.headers;
+        // `redirect: false` opts the path out of broader CDN redirects. With `headers` it is
+        // already handled by the header-only route above. Only emitted when a CDN redirect
+        // can match, since stopping here also skips the skew protection and asset routes below.
+        const optsOut =
+          routeRules.redirect === false &&
+          !routeRules.headers &&
+          [...cdnRedirectPaths].some((p) => routeSrc(p).test(joinURL(nitro.options.baseURL, path)));
         return routeRules.redirect || routeRules.proxy || optsOut ? [{ src: src.source }] : [];
       }),
       // Skew protection
