@@ -8,7 +8,7 @@ import { useNitroApp, useNitroHooks } from "nitro/app";
 import { isPublicAssetURL } from "#nitro/virtual/public-assets";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
 
-const DURABLE_BINDING = "$DurableObject";
+import { bindingName as DURABLE_BINDING } from "#nitro/virtual/cloudflare-durable";
 const DURABLE_INSTANCE = "server";
 
 interface Env {
