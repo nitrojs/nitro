@@ -13,6 +13,7 @@ import { createReadStream } from "node:fs";
 import { createGzip, createBrotliCompress } from "node:zlib";
 import { createVFSHandler } from "./vfs.ts";
 import { isLocalDevRequest } from "./_request.ts";
+import { createDevToolsJSONHandler, DEVTOOLS_JSON_ROUTE } from "./_devtools-json.ts";
 
 import devErrorHandler, {
   defaultHandler as devErrorHandlerInternal,
@@ -63,6 +64,19 @@ export class NitroDevApp {
         // Route
         app.on(h.method || "", h.route, handler, { meta: h.meta as any });
         this.#addRoute(h.method || "", h.route);
+      }
+    }
+
+    // Chrome DevTools automatic workspace folders
+    if (this.nitro.options.devServer?.devtoolsJson !== false) {
+      const handler = createDevToolsJSONHandler(this.nitro);
+      const routes = new Set([
+        DEVTOOLS_JSON_ROUTE,
+        joinURL(this.nitro.options.baseURL, DEVTOOLS_JSON_ROUTE),
+      ]);
+      for (const route of routes) {
+        app.get(route, handler);
+        this.#addRoute("GET", route);
       }
     }
 

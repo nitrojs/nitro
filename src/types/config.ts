@@ -540,6 +540,14 @@ export interface NitroOptions extends PresetOptions {
     watch?: string[];
     /** Runtime runner to use for the dev server. */
     runner?: RunnerName;
+    /**
+     * Serve `/.well-known/appspecific/com.chrome.devtools.json` so Chrome DevTools can connect
+     * the project folder as an automatic workspace.
+     *
+     * @default true
+     * @see https://chromium.googlesource.com/devtools/devtools-frontend/+/main/docs/ecosystem/automatic_workspace_folders.md
+     */
+    devtoolsJson?: boolean;
   };
 
   /**
