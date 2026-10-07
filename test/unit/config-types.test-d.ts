@@ -1,10 +1,10 @@
 import type { SerializableOptions } from "../../src/types/_utils.ts";
-import type { DatabaseConnectionConfigs, StorageMounts } from "nitro/types";
+import type { DatabaseConnectionConfigs, KVMounts } from "nitro/types";
 import type { ChokidarOptions } from "chokidar";
 
 // Storage: options are mapped from the builtin driver name.
 // Unknown driver names fall back to a custom driver with free-form options.
-export const storage: StorageMounts = {
+export const storage: KVMounts = {
   data: { driver: "fs", base: "./data", ignore: ["**/node_modules/**"] },
   cache: { driver: "lru-cache", max: 1000 },
   memory: { driver: "memory" },

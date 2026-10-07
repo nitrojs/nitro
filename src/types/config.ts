@@ -27,7 +27,7 @@ import type { NitroPreset } from "./preset.ts";
 import type { NitroBuildPluginOption, OXCOptions, RolldownConfig } from "./build.ts";
 import type { CommonJSOptions } from "./_bundler.ts";
 import type { RollupConfig } from "./build.ts";
-import type { NitroRouteConfig, NitroRouteRules } from "./route-rules.ts";
+import type { NormalizedRouteRules, RouteRuleConfig } from "./route-rules.ts";
 import type { JsonValue, SerializableOptions } from "./_utils.ts";
 
 /**
@@ -221,13 +221,13 @@ export interface NitroOptions extends PresetOptions {
    * @see https://nitro.build/config#kv
    * @see https://nitro.build/docs/storage
    */
-  kv: StorageMounts;
+  kv: KVMounts;
 
   /** @deprecated Migrate to `kv`. */
-  storage: StorageMounts;
+  storage: KVMounts;
 
   /** @deprecated Migrate to `kv` inside `$development` (and `$prerender`) config. */
-  devStorage: StorageMounts;
+  devStorage: KVMounts;
 
   /**
    * Cache storage and global default options for cached functions, cached handlers
@@ -294,7 +294,7 @@ export interface NitroOptions extends PresetOptions {
    * @see https://nitro.build/config#nopublicdir
    */
   noPublicDir: boolean;
-  tracingChannel?: undefined | TracingOptions;
+  tracingChannel?: undefined | TracingChannelOptions;
 
   /**
    * Build manifest options.
@@ -640,7 +640,7 @@ export interface NitroOptions extends PresetOptions {
    * @see https://nitro.build/config#routerules
    * @see https://nitro.build/docs/routing#route-rules
    */
-  routeRules: { [path: string]: NitroRouteRules };
+  routeRules: { [path: string]: NormalizedRouteRules };
 
   /**
    * Inline route definitions.
@@ -1039,7 +1039,7 @@ export interface NitroConfig
   defaultPreset?: PresetNameInput | NitroPreset;
 
   extends?: string | string[] | NitroPreset;
-  routeRules?: { [path: string]: NitroRouteConfig };
+  routeRules?: { [path: string]: RouteRuleConfig };
   rollupConfig?: Partial<RollupConfig>;
   compatibilityDate?: CompatibilityDateSpec;
   /** @deprecated Migrate to `alias`, `inject`, `polyfills` and `builtinModules`. */
@@ -1048,7 +1048,7 @@ export interface NitroConfig
   serverEntry?: string | NitroOptions["serverEntry"];
   renderer?: false | NitroOptions["renderer"];
   output?: Partial<NitroOptions["output"]>;
-  tracingChannel?: boolean | TracingOptions;
+  tracingChannel?: boolean | TracingChannelOptions;
 }
 
 // ------------------------------------------------------------
@@ -1127,11 +1127,19 @@ export interface ServerAssetDir {
   ignore?: string[];
 }
 
-export interface TracingOptions {
+/**
+ * Tracing channel options.
+ *
+ * @see https://nitro.build/config#tracingchannel
+ */
+export interface TracingChannelOptions {
   srvx?: boolean;
   h3?: boolean;
   unstorage?: boolean;
 }
+
+/** @deprecated Use {@link TracingChannelOptions}. */
+export type TracingOptions = TracingChannelOptions;
 
 /**
  * Preset shape accepted by the deprecated `unenv` option (compatible with
@@ -1160,32 +1168,44 @@ type CustomDriverName = string & { _custom?: any };
  *
  * Driver options are inferred from the `driver` name.
  */
-export type BuiltinStorageMount = {
+export type BuiltinKVMount = {
   [Name in BuiltinDriverName]: { driver: Name } & (Name extends keyof BuiltinDriverOptions
     ? SerializableOptions<BuiltinDriverOptions[Name]>
     : unknown);
 }[BuiltinDriverName];
 
 /** Mount configuration for a custom driver (module id or alias). */
-export type CustomStorageMount = {
+export type CustomKVMount = {
   driver: CustomDriverName;
   [option: string]: JsonValue;
 };
 
-export type StorageMount = BuiltinStorageMount | CustomStorageMount;
+export type KVMount = BuiltinKVMount | CustomKVMount;
 
 /**
- * Storage mount configuration mapping mount points to driver options.
+ * KV mount configuration mapping mount points to driver options.
  *
- * Keys are storage mount-point paths; values specify the unstorage driver
+ * Keys are mount-point paths; values specify the unstorage driver
  * and its options.
  *
  * @see https://nitro.build/config#kv
  * @see https://nitro.build/docs/storage
  */
-export interface StorageMounts {
-  [path: string]: StorageMount;
+export interface KVMounts {
+  [path: string]: KVMount;
 }
+
+/** @deprecated Use {@link BuiltinKVMount}. */
+export type BuiltinStorageMount = BuiltinKVMount;
+
+/** @deprecated Use {@link CustomKVMount}. */
+export type CustomStorageMount = CustomKVMount;
+
+/** @deprecated Use {@link KVMount}. */
+export type StorageMount = KVMount;
+
+/** @deprecated Use {@link KVMounts}. */
+export type StorageMounts = KVMounts;
 
 // Cache
 
@@ -1296,7 +1316,7 @@ export interface NitroRuntimeConfig {
     envPrefix?: string;
     envExpansion?: boolean;
     routeRules?: {
-      [path: string]: NitroRouteConfig;
+      [path: string]: RouteRuleConfig;
     };
     openAPI?: NitroOpenAPIConfig;
   };

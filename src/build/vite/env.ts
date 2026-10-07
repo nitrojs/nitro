@@ -1,5 +1,5 @@
 import type { EnvironmentOptions, RollupCommonJSOptions, Plugin as VitePlugin } from "vite";
-import type { NitroPluginContext, ServiceConfig } from "./types.ts";
+import type { NitroPluginContext, ViteServiceConfig } from "./types.ts";
 
 import type { RunnerName } from "env-runner";
 import { RunnerManager, loadRunner } from "env-runner";
@@ -68,7 +68,7 @@ export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOpti
 export function createServiceEnvironment(
   ctx: NitroPluginContext,
   name: string,
-  serviceConfig: ServiceConfig
+  serviceConfig: ViteServiceConfig
 ): EnvironmentOptions {
   const isDev = ctx.nitro!.options.dev;
   const isWorkerdRunner = _isWorkerdRunner(ctx);

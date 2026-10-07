@@ -6,7 +6,7 @@ import type { NitroEventHandler } from "./handler.ts";
 import type { NitroHooks } from "./hooks.ts";
 import type { PrerenderRoute } from "./prerender.ts";
 import type { Router } from "../routing.ts";
-import type { NitroRouteRules } from "./route-rules.ts";
+import type { NormalizedRouteRules } from "./route-rules.ts";
 import type { WorkerAddress } from "./runner.ts";
 
 type MaybeArray<T> = T | T[];
@@ -35,7 +35,7 @@ export interface Nitro {
   updateConfig: (config: NitroDynamicConfig) => void | Promise<void>;
   routing: Readonly<{
     sync: () => void;
-    routeRules: Router<NitroRouteRules & { _route: string }>;
+    routeRules: Router<NormalizedRouteRules & { _route: string }>;
     routes: Router<MaybeArray<NitroEventHandler & { _importHash: string }>>;
     globalMiddleware: (NitroEventHandler & { _importHash: string })[];
     routedMiddleware: Router<NitroEventHandler & { _importHash: string }>;
