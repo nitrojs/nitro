@@ -1,13 +1,13 @@
 import { genImport, genSafeVariableName } from "knitwork";
 import type { Nitro } from "nitro/types";
 import { isDepInstalled, isLibOption } from "../../utils/dep.ts";
-import { resolveDriverDeps, resolveStorageMounts } from "../../utils/storage.ts";
+import { resolveDriverDeps, resolveKVMounts } from "../../utils/storage.ts";
 
 export default function kv(nitro: Nitro) {
   return {
     id: "#nitro/virtual/kv",
     template: () => {
-      const mounts = resolveStorageMounts(nitro.options);
+      const mounts = resolveKVMounts(nitro.options);
 
       const driverImports = [...new Set(mounts.map((m) => m.driver))];
 
@@ -42,7 +42,7 @@ export function initKV() {
  * Explicitly provide third-party libraries used by the driver via the `lib` option
  * so that they are statically analyzable by the bundler.
  */
-function genDriverOptions(nitro: Nitro, mount: ReturnType<typeof resolveStorageMounts>[number]) {
+function genDriverOptions(nitro: Nitro, mount: ReturnType<typeof resolveKVMounts>[number]) {
   const libs = resolveDriverDeps(mount.name)
     .filter(
       (dep) =>

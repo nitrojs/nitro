@@ -189,7 +189,9 @@ export interface VercelOptions {
    * @example
    * ```ts
    * // nitro.config.ts
-   * export default defineNitroConfig({
+   * import { defineConfig } from "nitro";
+   *
+   * export default defineConfig({
    *   vercel: {
    *     queues: {
    *       triggers: [{ topic: "orders" }],
@@ -200,7 +202,9 @@ export interface VercelOptions {
    *
    * ```ts
    * // server/plugins/queues.ts
-   * export default defineNitroPlugin((nitro) => {
+   * import { definePlugin } from "nitro";
+   *
+   * export default definePlugin((nitro) => {
    *   nitro.hooks.hook("vercel:queue", ({ message, metadata }) => {
    *     console.log(`Received message on ${metadata.topicName}:`, message);
    *   });

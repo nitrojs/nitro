@@ -1,7 +1,7 @@
 import consola from "consola";
 import { isAbsolute, resolve } from "pathe";
 import type { NitroOptions } from "nitro/types";
-import { resolveStorageMounts } from "../../utils/storage.ts";
+import { resolveKVMounts } from "../../utils/storage.ts";
 
 const cacheDrivers = new Set(["memory", "fs", "kv"]);
 
@@ -38,7 +38,7 @@ export async function resolveCacheOptions(options: NitroOptions) {
 }
 
 function hasCacheKVMount(options: NitroOptions): boolean {
-  return resolveStorageMounts(options).some(({ path }) => {
+  return resolveKVMounts(options).some(({ path }) => {
     const base = path.replace(/[/\\]/g, ":").replace(/^:+/, "");
     return base === "cache" || base.startsWith("cache:");
   });

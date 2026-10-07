@@ -1,17 +1,12 @@
 import type { H3Event as _H3Event } from "h3";
-import type { CacheOptions, CapturedErrorContext } from "./runtime/index.ts";
-import type { NitroRuntimeConfig } from "./config.ts";
+import type { CapturedErrorContext } from "./runtime/index.ts";
 import type { ResolvedRouteRules } from "./route-rules.ts";
 
 declare module "srvx" {
   interface ServerRequestContext {
     routeRules?: Readonly<ResolvedRouteRules>;
     nitro?: {
-      runtimeConfig?: NitroRuntimeConfig;
       errors?: { error?: Error; context: CapturedErrorContext }[];
-    };
-    cache?: {
-      options?: CacheOptions;
     };
   }
 }

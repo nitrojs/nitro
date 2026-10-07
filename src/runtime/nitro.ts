@@ -8,9 +8,9 @@ export function defineConfig(config: Omit<NitroConfig, "rootDir">): Omit<NitroCo
 }
 
 // Type (only) helpers
-export { defineNitroPlugin as definePlugin } from "./internal/plugin.ts";
+export { definePlugin } from "./internal/plugin.ts";
 export { defineRouteMeta } from "./internal/meta.ts";
-export { defineNitroErrorHandler as defineErrorHandler } from "./internal/error/utils.ts";
+export { defineErrorHandler } from "./internal/error/utils.ts";
 export { defineServerEntry } from "./internal/server-entry.ts";
 
 // H3

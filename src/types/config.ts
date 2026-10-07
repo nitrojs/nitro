@@ -7,6 +7,7 @@ import type { ConnectorName, ConnectorOptions } from "db0";
 import type { NestedHooks } from "hookable";
 import type { ProxyServerOptions } from "httpxy";
 import type { PresetName, PresetNameInput, PresetOptions } from "../presets/index.ts";
+import type { DeployOptions } from "../deploy.ts";
 import type { TSConfig } from "pkg-types";
 import type { BuiltinDriverName, BuiltinDriverOptions } from "unstorage";
 import type { ExternalsTraceOptions } from "nf3";
@@ -965,7 +966,7 @@ export interface NitroOptions extends PresetOptions {
      * Can be a shell command (`./` paths are resolved relative to the output directory)
      * or a function (used by presets that deploy programmatically).
      */
-    deploy?: string | ((nitro: Nitro, opts: { args?: string[] }) => void | Promise<void>);
+    deploy?: string | ((nitro: Nitro, opts: DeployOptions) => void | Promise<void>);
   };
 
   /**
@@ -976,21 +977,11 @@ export interface NitroOptions extends PresetOptions {
    * @see https://nitro.build/config#framework
    */
   framework: NitroFrameworkInfo;
-
-  /**
-   * IIS-specific deployment options.
-   */
-  iis?: {
-    /** Merge with existing IIS `web.config` instead of replacing. */
-    mergeConfig?: boolean;
-    /** Override existing IIS `web.config` entirely. */
-    overrideConfig?: boolean;
-  };
 }
 
 /**
  * User-facing Nitro configuration used in `nitro.config.ts` or
- * `defineNitroConfig()`.
+ * `defineConfig()`.
  *
  * All properties are optional and will be merged with defaults and preset
  * values to produce the fully resolved {@link NitroOptions}.

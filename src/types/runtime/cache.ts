@@ -1,6 +1,6 @@
 import type { HTTPEvent } from "h3";
 
-export type { CacheEntry, CacheOptions, ResponseCacheEntry } from "ocache";
+export type { CacheEntry, CacheOptions, CachedFunction, ResponseCacheEntry } from "ocache";
 
 /**
  * Options for `defineCachedFunction`.
