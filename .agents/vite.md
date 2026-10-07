@@ -18,6 +18,7 @@
 | `types.ts` | Type definitions (`NitroPluginConfig`, `NitroPluginContext`) |
 | `_import.ts` | On demand `vite` import from the user project (`importVite()`) |
 | `_dev-worker.ts` | Generated dev worker entry, injecting the app's Vite module runner |
+| `vitest.ts` | Vitest support: `nitro` test environment (`src/runtime/internal/vite/vitest-env.mjs`) |
 
 ## Plugin Architecture (`plugin.ts`)
 
@@ -246,6 +247,14 @@ current evaluations.
 - `assetsImport` (default: true) — `?assets` imports via `@hiogawa/vite-plugin-fullstack`
 - `serverReload` (default: true) — reload the dev worker on server-only module changes
 - `services` — register custom service environments
+
+## Vitest
+
+Vitest adds its `__vitest__` environment before plugin `config` hooks run, which sets
+`ctx._isVitest`. Test files then run in the `nitro` environment (default `test.environment`,
+set by path since Vitest resolves named environments as packages). In this mode no dev worker
+starts: `nitro` and service environments use Vite's default dev environment, and
+`configureServer`, `hotUpdate` and the service `nitro/*` proxy are skipped.
 
 ## Key Connections
 

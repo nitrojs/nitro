@@ -62,6 +62,7 @@ export interface NitroPluginContext {
   services: Record<string, ViteServiceConfig>;
 
   _isRolldown?: boolean;
+  _isVitest?: boolean;
   _initialized?: boolean;
   _envRunner?: RunnerManager;
   _closingEnvRunner?: boolean;

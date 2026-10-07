@@ -63,11 +63,13 @@ ${serviceEntries
 // runtime modules. In dev, imports are proxied to the Nitro environment via
 // __VITE_ENVIRONMENT_RUNNER_IMPORT__. In prod, they are externalized (see createServiceEnvironment).
 const NITRO_PROXY_PREFIX = "\0nitro-env-proxy:";
-export function nitroDevServiceProxy(): VitePlugin {
+// Vitest runs no dev worker to proxy to: test files import `nitro/*` from the nitro environment.
+export function nitroDevServiceProxy(ctx: NitroPluginContext): VitePlugin {
   return {
     name: "nitro:dev-service-proxy",
     enforce: "pre",
-    applyToEnvironment: (env) => env.name !== "nitro" && env.config.consumer === "server",
+    applyToEnvironment: (env) =>
+      !ctx._isVitest && env.name !== "nitro" && env.config.consumer === "server",
     apply: (_config, configEnv) => configEnv.command === "serve",
 
     resolveId: {

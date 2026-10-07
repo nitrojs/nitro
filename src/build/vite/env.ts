@@ -46,25 +46,28 @@ export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOpti
       // Workaround for tanstack-start (devtools)
       "process.env.NODE_ENV": JSON.stringify(ctx.nitro!.options.dev ? "development" : "production"),
     },
-    dev: {
-      createEnvironment: async (envName, envConfig) => {
-        const entry = resolve(runtimeDir, "internal/vite/dev-entry.mjs");
-        const { createFetchableDevEnvironment } = await import("./dev.ts");
-        const env = await createFetchableDevEnvironment(
-          envName,
-          envConfig,
-          await initEnvRunner(ctx),
-          entry,
-          {
-            preventExternalize: isWorkerdRunner,
-            vite: viteImportOptions(ctx.nitro!),
-            onInit: () => (ctx._viteEnvs ??= new Map()).set(envName, entry),
-          }
-        );
-        ctx._transformRequest = (id) => env.transformRequest(id);
-        return env;
-      },
-    },
+    // Vitest evaluates modules in its own workers, the default dev environment is enough
+    dev: ctx._isVitest
+      ? undefined
+      : {
+          createEnvironment: async (envName, envConfig) => {
+            const entry = resolve(runtimeDir, "internal/vite/dev-entry.mjs");
+            const { createFetchableDevEnvironment } = await import("./dev.ts");
+            const env = await createFetchableDevEnvironment(
+              envName,
+              envConfig,
+              await initEnvRunner(ctx),
+              entry,
+              {
+                preventExternalize: isWorkerdRunner,
+                vite: viteImportOptions(ctx.nitro!),
+                onInit: () => (ctx._viteEnvs ??= new Map()).set(envName, entry),
+              }
+            );
+            ctx._transformRequest = (id) => env.transformRequest(id);
+            return env;
+          },
+        },
   };
 }
 
@@ -96,17 +99,25 @@ export function createServiceEnvironment(
         : _resolveConditions(ctx),
       externalConditions: _resolveConditions(ctx).filter((c) => !/browser|wasm|module/.test(c)),
     },
-    dev: {
-      createEnvironment: async (envName, envConfig) => {
-        const entry = tryResolve(serviceConfig.entry);
-        const { createFetchableDevEnvironment } = await import("./dev.ts");
-        return createFetchableDevEnvironment(envName, envConfig, await initEnvRunner(ctx), entry, {
-          preventExternalize: isWorkerdRunner,
-          vite: viteImportOptions(ctx.nitro!),
-          onInit: () => (ctx._viteEnvs ??= new Map()).set(envName, entry),
-        });
-      },
-    },
+    dev: ctx._isVitest
+      ? undefined
+      : {
+          createEnvironment: async (envName, envConfig) => {
+            const entry = tryResolve(serviceConfig.entry);
+            const { createFetchableDevEnvironment } = await import("./dev.ts");
+            return createFetchableDevEnvironment(
+              envName,
+              envConfig,
+              await initEnvRunner(ctx),
+              entry,
+              {
+                preventExternalize: isWorkerdRunner,
+                vite: viteImportOptions(ctx.nitro!),
+                onInit: () => (ctx._viteEnvs ??= new Map()).set(envName, entry),
+              }
+            );
+          },
+        },
   };
 }
 

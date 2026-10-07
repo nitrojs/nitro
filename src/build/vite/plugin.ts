@@ -30,6 +30,7 @@ import assetsPlugin from "@hiogawa/vite-plugin-fullstack/assets";
 import type { NitroConfig, NitroModule } from "nitro/types";
 import { nitroDevServiceProxy, viteServicesTemplate } from "./services.ts";
 import { importVite, viteImportOptions } from "./_import.ts";
+import { isVitest, nitroVitest } from "./vitest.ts";
 
 // https://vite.dev/guide/api-environment-plugins
 // https://vite.dev/guide/api-environment-frameworks.html
@@ -51,8 +52,9 @@ export function nitro(pluginConfig: NitroPluginConfig = {}): VitePlugin[] {
     nitroEnv(ctx),
     nitroMain(ctx),
     nitroPrepare(ctx),
-    nitroDevServiceProxy(),
+    nitroDevServiceProxy(ctx),
     nitroPreviewPlugin(ctx),
+    nitroVitest(),
     pluginConfig.experimental?.vite?.assetsImport !== false &&
       assetsPlugin({
         experimental: {
@@ -74,6 +76,7 @@ function nitroInit(ctx: NitroPluginContext): VitePlugin {
       if (!ctx._initialized) {
         debug("[init] Initializing nitro");
         ctx._initialized = true;
+        ctx._isVitest = isVitest(config);
         await setupNitroContext(ctx, configEnv, config);
         if (configEnv.command === "serve") {
           await checkViteVersion(ctx, (this.meta as Record<string, string>).viteVersion);
@@ -296,6 +299,9 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
     },
 
     configureServer: async (server) => {
+      if (ctx._isVitest) {
+        return;
+      }
       debug("[main] Configuring dev server");
       const { configureViteDevServer } = await import("./dev.ts");
       return configureViteDevServer(ctx, server);
@@ -318,7 +324,7 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
     // see: https://github.com/vitejs/vite/issues/19114
     async hotUpdate({ server, file, modules, timestamp }) {
       const env = this.environment;
-      if (env.config.consumer === "client") {
+      if (env.config.consumer === "client" || ctx._isVitest) {
         return;
       }
       if (ctx.pluginConfig.experimental?.vite?.serverReload === false) {
@@ -520,12 +526,12 @@ async function setupNitroContext(
   );
 
   // Attach nitro.fetch to the dev env runner (started lazily, not when resolving config)
-  if (ctx.nitro.options.dev) {
+  if (ctx.nitro.options.dev && !ctx._isVitest) {
     ctx.nitro.fetch = async (req) => (await initEnvRunner(ctx)).fetch(req);
   }
 
   // Create dev app
-  if (ctx.nitro.options.dev && !ctx.devApp) {
+  if (ctx.nitro.options.dev && !ctx._isVitest && !ctx.devApp) {
     ctx.devApp = new NitroDevApp(ctx.nitro);
   }
 
