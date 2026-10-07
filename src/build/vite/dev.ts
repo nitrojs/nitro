@@ -15,7 +15,7 @@ import { scanHandlers } from "../../scan.ts";
 import { onWatchError } from "../../utils/watch.ts";
 import { handleDevRPC } from "../../dev/_rpc.ts";
 import { importVite, _resolveFromPath, type ViteImportOptions } from "./_import.ts";
-import { hasDevServerExports } from "./env.ts";
+import { _isWorkerdRunner } from "./env.ts";
 
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
 
@@ -188,10 +188,10 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   }
 
   // Websocket (`httpServer` is null in middleware mode, the parent server handles upgrades)
-  // Server entry exports (e.g. Durable Objects) can accept upgrades from routes without crossws
+  // In workerd, routes can accept upgrades without crossws (e.g. with a Durable Object)
   const websocket =
     (nitro.options.features.websocket ?? nitro.options.experimental.websocket) ||
-    hasDevServerExports(ctx);
+    _isWorkerdRunner(ctx);
   const wsProxy = Object.values(nitro.options.devProxy).some(
     (opts) => typeof opts === "object" && opts.ws
   );

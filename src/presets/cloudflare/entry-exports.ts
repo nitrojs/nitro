@@ -1,4 +1,5 @@
 import type { Nitro } from "nitro/types";
+import { serverEntryHandler } from "../../utils/server-entry.ts";
 
 // Named exports of the server entry (e.g. Durable Objects) are Worker exports
 export function setupEntryExports(nitro: Nitro) {
@@ -12,8 +13,4 @@ export function setupEntryExports(nitro: Nitro) {
     export * from ${JSON.stringify(originalEntry)};
     export { default } from ${JSON.stringify(originalEntry)};
   `;
-}
-
-export function serverEntryHandler(nitro: Nitro): string | undefined {
-  return (nitro.options.serverEntry && nitro.options.serverEntry.handler) || undefined;
 }

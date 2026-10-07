@@ -5,6 +5,7 @@ import { join, resolve } from "pathe";
 import { presetsDir } from "nitro/meta";
 import { unenvCfExternals } from "./unenv/preset.ts";
 import { extendEnv } from "../../build/env.ts";
+import { workerdConditions } from "../../build/_workerd.ts";
 import {
   enableNodeCompat,
   writeWranglerConfig,
@@ -104,21 +105,7 @@ export const cloudflareDev = defineNitroPreset(
     hooks: {
       "build:before": (nitro) => {
         if (nitro.options.devServer.runner === "miniflare") {
-          // Resolve packages for workerd, like the production build (workerd rejects CJS `node` entries)
-          nitro.options.exportConditions = [
-            ...new Set([
-              "workerd",
-              "worker",
-              ...nitro.options.exportConditions!.filter((c) => c !== "node"),
-            ]),
-          ];
-          extendEnv(nitro, unenvCfExternals);
-          // In Vite dev, the dev worker resolves the exports from the nitro environment instead
-          if (nitro.options.builder !== "vite") {
-            setupEntryExports(nitro);
-          }
-          // The bridge imports `cloudflare:workers`, only available in workerd
-          setupTracingBridge(nitro);
+          setupMiniflareDev(nitro);
         }
       },
     },
@@ -207,6 +194,18 @@ export default [
  * Registered first (unshift) so the bridge subscribes to the traced channels at
  * startup, before any request is handled.
  */
+// Builds for workerd like the production presets
+function setupMiniflareDev(nitro: Nitro) {
+  nitro.options.exportConditions = workerdConditions(nitro.options.exportConditions);
+  extendEnv(nitro, unenvCfExternals);
+  // In Vite dev, the dev worker resolves the exports from the nitro environment instead
+  if (nitro.options.builder !== "vite") {
+    setupEntryExports(nitro);
+  }
+  // The bridge imports `cloudflare:workers`, only available in workerd
+  setupTracingBridge(nitro);
+}
+
 function setupTracingBridge(nitro: Nitro) {
   if (!nitro.options.tracingChannel) {
     return;
