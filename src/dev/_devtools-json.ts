@@ -1,8 +1,10 @@
 import type { Nitro } from "nitro/types";
+import type { H3Event } from "h3";
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join } from "pathe";
+import { basename, dirname, join } from "pathe";
 import { withoutTrailingSlash } from "ufo";
+import { isLocalDevRequest } from "./_request.ts";
 
 /**
  * Chrome DevTools project settings endpoint, used for automatic workspace folders.
@@ -13,12 +15,16 @@ export const DEVTOOLS_JSON_ROUTE = "/.well-known/appspecific/com.chrome.devtools
 
 export function createDevToolsJSONHandler(nitro: Nitro) {
   let uuid: Promise<string> | undefined;
-  return async () => ({
-    workspace: {
-      root: toDevToolsPath(withoutTrailingSlash(nitro.options.rootDir)),
-      uuid: await (uuid ??= getWorkspaceUUID(nitro)),
-    },
-  });
+  return async (event: H3Event) => {
+    const rootDir = withoutTrailingSlash(nitro.options.rootDir);
+    return {
+      workspace: {
+        // Avoid exposing the absolute project path to other hosts
+        root: isLocalDevRequest(event) ? toDevToolsPath(rootDir) : basename(rootDir),
+        uuid: await (uuid ??= getWorkspaceUUID(nitro)),
+      },
+    };
+  };
 }
 
 async function getWorkspaceUUID(nitro: Nitro): Promise<string> {

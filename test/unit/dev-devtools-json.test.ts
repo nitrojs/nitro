@@ -1,7 +1,10 @@
 import type { Nitro } from "nitro/types";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
-import { join } from "pathe";
+import { basename, join } from "pathe";
+import { NodeRequest, sendNodeResponse } from "srvx/node";
 import { afterAll, describe, expect, it } from "vitest";
 import { NitroDevApp } from "../../src/dev/app.ts";
 
@@ -27,9 +30,18 @@ describe("NitroDevApp devtools json", async () => {
     } as unknown as Nitro);
 
   const fetchJSON = async (app: NitroDevApp, path = ROUTE) => {
-    const res = await app.fetch(new Request(`http://localhost${path}`));
-    expect(res.status).toBe(200);
-    return (await res.json()) as { workspace: { root: string; uuid: string } };
+    const server = createServer(async (req, res) => {
+      await sendNodeResponse(res, await app.fetch(new NodeRequest({ req, res })));
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    try {
+      const { port } = server.address() as AddressInfo;
+      const res = await fetch(`http://127.0.0.1:${port}${path}`);
+      expect(res.status).toBe(200);
+      return (await res.json()) as { workspace: { root: string; uuid: string } };
+    } finally {
+      server.close();
+    }
   };
 
   it("serves workspace root and a persisted uuid", async () => {
@@ -40,6 +52,12 @@ describe("NitroDevApp devtools json", async () => {
     expect(workspace.uuid).toMatch(/^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/);
     expect(await readFile(join(buildDir, "devtools-uuid"), "utf8")).toBe(workspace.uuid);
     expect((await fetchJSON(createApp())).workspace.uuid).toBe(workspace.uuid);
+  });
+
+  it("trims the absolute root for non-local requests", async () => {
+    const res = await createApp().fetch(new Request(`http://localhost${ROUTE}`));
+    const { workspace } = (await res.json()) as { workspace: { root: string } };
+    expect(workspace.root).toBe(basename(rootDir));
   });
 
   it("serves the endpoint with and without baseURL prefix", async () => {
