@@ -46,8 +46,14 @@ const envWaiters = new Map();
 
 // Backstop for a wedged reload (or a missing registration): requests fall back
 // to the previous entry (or an error) instead of hanging forever. Not a latency
-// budget — normal reloads never come close to it.
-const RELOAD_WAIT_TIMEOUT = 30_000;
+// budget: a cold import of a large SSR graph can take well over 30s (#4687), and
+// waiting on an import already in flight costs nothing. Overridden by the
+// generated entry with `NITRO_DEV_RELOAD_TIMEOUT` (see `build/vite/_dev-worker.ts`).
+let reloadWaitTimeout = 120_000;
+
+export function setReloadWaitTimeout(ms) {
+  reloadWaitTimeout = ms;
+}
 
 class ViteEnvRunner {
   constructor({ name, entry }) {
@@ -183,13 +189,13 @@ class ViteEnvRunner {
   // Waits until nothing is queued or in flight so callers never reach an entry
   // that is about to be replaced.
   async waitForEntry() {
-    const deadline = Date.now() + RELOAD_WAIT_TIMEOUT;
+    const deadline = Date.now() + reloadWaitTimeout;
     let reloadPromise;
     while (reloadPromise !== this.reloadPromise) {
       reloadPromise = this.reloadPromise;
       if (await withTimeout(reloadPromise, deadline - Date.now())) {
         console.warn(
-          `Vite environment "${this.name}" did not finish reloading within ${RELOAD_WAIT_TIMEOUT}ms.`
+          `Vite environment "${this.name}" did not finish reloading within ${reloadWaitTimeout}ms. Set \`NITRO_DEV_RELOAD_TIMEOUT\` (in ms) to wait longer.`
         );
         break;
       }
@@ -399,7 +405,7 @@ async function waitForEnv(name) {
     });
     envWaiters.set(name, waiter);
   }
-  await withTimeout(waiter.promise, RELOAD_WAIT_TIMEOUT);
+  await withTimeout(waiter.promise, reloadWaitTimeout);
   return envs[name];
 }
 
