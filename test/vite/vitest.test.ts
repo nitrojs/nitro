@@ -27,8 +27,9 @@ describe("vite: vitest", () => {
       }
     );
     const output = stdout + stderr;
-    expect(output).toContain("Tests  5 passed (5)");
+    expect(output).toContain("Tests  6 passed (6)");
     expect(exitCode, output).toBe(0);
-    expect(readFileSync(logFile, "utf8")).toBe("runtime:close\n");
+    // One app per test file that uses it (`node.spec.ts` does not)
+    expect(readFileSync(logFile, "utf8")).toBe("runtime:close\n".repeat(2));
   }, 60_000);
 });

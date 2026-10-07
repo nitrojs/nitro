@@ -7,12 +7,13 @@ export default {
   setup() {
     return {
       async teardown() {
-        const nitroApp = globalThis.__nitro__?.default;
-        if (!nitroApp) {
-          return;
-        }
-        delete globalThis.__nitro__.default;
-        await nitroApp.hooks?.callHook("close");
+        // Read the descriptor: the lazy getter (see `vitest-setup.mjs`) would create the app
+        const nitroApp = Object.getOwnPropertyDescriptor(
+          globalThis.__nitro__ || {},
+          "default"
+        )?.value;
+        delete globalThis.__nitro__?.default;
+        await nitroApp?.hooks?.callHook("close");
       },
     };
   },

@@ -20,6 +20,7 @@ export function isVitest(config: UserConfig): boolean {
  */
 export function nitroVitest(): VitePlugin {
   const envPath = resolve(runtimeDir, "internal/vite/vitest-env.mjs");
+  const setupPath = resolve(runtimeDir, "internal/vite/vitest-setup.mjs");
   return {
     name: "nitro:vitest",
     apply: (_config, configEnv) => configEnv.command === "serve",
@@ -29,9 +30,22 @@ export function nitroVitest(): VitePlugin {
         return;
       }
       const environment = (userConfig as { test?: { environment?: string } }).test?.environment;
-      if (!environment || environment === "nitro") {
-        return { test: { environment: envPath } } as UserConfig;
-      }
+      return {
+        test: {
+          environment: !environment || environment === "nitro" ? envPath : environment,
+          setupFiles: [setupPath],
+        },
+      } as UserConfig;
+    },
+
+    // Setup files run in every test environment, but only the nitro one has an app
+    load: {
+      filter: { id: /vitest-setup\.mjs$/ },
+      handler(id) {
+        if (id === setupPath && this.environment.name !== "nitro") {
+          return "export {};";
+        }
+      },
     },
 
     resolveId: {
