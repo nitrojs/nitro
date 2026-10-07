@@ -33,8 +33,8 @@ importers:
         specifier: ^2.0.1
         version: 2.0.1(crossws@0.4.12)(ocache@0.3.0)
       nf3:
-        specifier: ^0.4.0
-        version: 0.4.0
+        specifier: ^0.4.1
+        version: 0.4.1
       ocache:
         specifier: ^0.3.0
         version: 0.3.0
@@ -5868,8 +5868,8 @@ packages:
   nf3@0.3.24:
     resolution: {integrity: sha512-HxLK4bo+5jNsEETZp4w3tJblHOA9MCBY14IN9nZJJV8JDxt9yNIYxuBuLMjTAR5GFa3HL61+8VQDUrXv3/C8fw==}
 
-  nf3@0.4.0:
-    resolution: {integrity: sha512-L0FZsuKjdfIo6bwPWxSkLH/147YLHnnFFW58JfITvZsgkmS2eX7e3RuiUpoeH+9TQyDOz5LO1DkDeBiajbI2/w==}
+  nf3@0.4.1:
+    resolution: {integrity: sha512-vhle97Y+I69Vn64Sa/ZQx6pYur5oGD8FuGaNdIOgjSFSg22F7x0axFybiI7Pg7Z9LQ340oQ8+A2hua5axcZFLg==}
 
   node-abi@3.96.0:
     resolution: {integrity: sha512-rebQ/lz7i0EkoLzUVSrKRzA69zMkwLp95kKMWoMDkkM00Suxz0D7zEQPwRml5fQum24mj7bPvmlgLAmu2JCiYg==}
@@ -12666,7 +12666,7 @@ snapshots:
 
   nf3@0.3.24: {}
 
-  nf3@0.4.0: {}
+  nf3@0.4.1: {}
 
   node-abi@3.96.0:
     dependencies:

@@ -557,6 +557,7 @@ export function testNitro(
       subpathLib: "@fixture/nitro-lib@2.0.0",
       extraUtils: "@fixture/nitro-utils/extra",
       cjsRequirer: "@fixture/nitro-native-mock",
+      bundledDep: "@fixture/nitro-lib@3.0.0",
     });
   });
 
