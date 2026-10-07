@@ -360,7 +360,7 @@ function toImport(id: string): string | undefined {
   }
 }
 
-export function guessSubpath(path: string, conditions: string[]): string | undefined {
+function guessSubpath(path: string, conditions: string[]): string | undefined {
   const { dir, name, subpath } = NODE_MODULES_RE.exec(path)?.groups || {};
   if (!dir || !name || !subpath) {
     return;

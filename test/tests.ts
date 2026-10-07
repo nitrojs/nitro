@@ -555,6 +555,11 @@ export function testNitro(
     });
   });
 
+  it("externalizes a traced package's root export by its bare name", async () => {
+    const { data } = await callHandler({ url: "/traced-root-export" });
+    expect(data).toBe("@fixture/nitro-root-export");
+  });
+
   it.skipIf(ctx.isIsolated)("useKV (with base)", { retry: 5 }, async () => {
     const putRes = await callHandler({
       url: "/api/storage/item?key=test:hello",

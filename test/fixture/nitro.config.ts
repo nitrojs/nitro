@@ -58,6 +58,10 @@ export default defineConfig({
       route: "/virtual",
       handler: "#virtual-route",
     },
+    {
+      route: "/traced-root-export",
+      handler: "./node_modules/@fixture/nitro-root-export/index.mjs",
+    },
   ],
   devProxy: {
     "/proxy/example": {

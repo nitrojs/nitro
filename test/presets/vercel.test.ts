@@ -289,6 +289,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "/virtual",
               },
               {
+                "dest": "/traced-root-export",
+                "src": "/traced-root-export",
+              },
+              {
                 "dest": "/stream",
                 "src": "/stream",
               },
@@ -670,6 +674,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/static-flags.func (symlink)",
             "functions/stream.func (symlink)",
             "functions/tasks/[...name].func (symlink)",
+            "functions/traced-root-export.func (symlink)",
             "functions/virtual.func (symlink)",
             "functions/wait-until.func (symlink)",
             "functions/wasm/dynamic-import.func (symlink)",
