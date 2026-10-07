@@ -5,6 +5,7 @@ import { join, resolve } from "pathe";
 import { presetsDir } from "nitro/meta";
 import { unenvCfExternals } from "./unenv/preset.ts";
 import { extendEnv } from "../../build/env.ts";
+import { workerdConditions } from "../../build/_workerd.ts";
 import {
   enableNodeCompat,
   writeWranglerConfig,
@@ -53,7 +54,7 @@ const cloudflarePages = defineNitroPreset(
       "build:before": async (nitro) => {
         extendEnv(nitro, unenvCfExternals);
         await enableNodeCompat(nitro);
-        await setupEntryExports(nitro);
+        setupEntryExports(nitro);
       },
       async compiled(nitro: Nitro) {
         await writeWranglerConfig(nitro, "pages");
@@ -103,9 +104,8 @@ export const cloudflareDev = defineNitroPreset(
     },
     hooks: {
       "build:before": (nitro) => {
-        // The bridge imports `cloudflare:workers`, only available in workerd
         if (nitro.options.devServer.runner === "miniflare") {
-          setupTracingBridge(nitro);
+          setupMiniflareDev(nitro);
         }
       },
     },
@@ -147,7 +147,7 @@ const cloudflareModule = defineNitroPreset(
       "build:before": async (nitro) => {
         extendEnv(nitro, unenvCfExternals);
         await enableNodeCompat(nitro);
-        await setupEntryExports(nitro);
+        setupEntryExports(nitro);
         setupTracingBridge(nitro);
       },
       async compiled(nitro: Nitro) {
@@ -188,6 +188,18 @@ export default [
   cloudflareDurable,
   cloudflareDev,
 ];
+
+// Builds for workerd like the production presets
+function setupMiniflareDev(nitro: Nitro) {
+  nitro.options.exportConditions = workerdConditions(nitro.options.exportConditions);
+  extendEnv(nitro, unenvCfExternals);
+  // In Vite dev, the dev worker resolves the exports from the nitro environment instead
+  if (nitro.options.builder !== "vite") {
+    setupEntryExports(nitro);
+  }
+  // The bridge imports `cloudflare:workers`, only available in workerd
+  setupTracingBridge(nitro);
+}
 
 /**
  * Export tracing-channel spans as Cloudflare custom spans (`tracing.enterSpan`)
