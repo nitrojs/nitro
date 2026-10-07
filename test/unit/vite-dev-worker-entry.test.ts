@@ -33,7 +33,7 @@ describe("vite dev worker entry", () => {
   }
 
   test("keeps the default reload timeout when NITRO_DEV_RELOAD_TIMEOUT is unset", async () => {
-    vi.stubEnv("NITRO_DEV_RELOAD_TIMEOUT", "");
+    vi.stubEnv("NITRO_DEV_RELOAD_TIMEOUT", undefined);
     expect(await generate()).not.toContain("setReloadWaitTimeout(");
   });
 
@@ -47,7 +47,7 @@ describe("vite dev worker entry", () => {
     expect(await generate()).toContain(`setReloadWaitTimeout(${2 ** 31 - 1});`);
   });
 
-  test.each(["abc", "0", "-1"])(
+  test.each(["abc", "0", "-1", "0.4"])(
     "ignores an invalid NITRO_DEV_RELOAD_TIMEOUT (%s)",
     async (value) => {
       vi.stubEnv("NITRO_DEV_RELOAD_TIMEOUT", value);

@@ -225,7 +225,9 @@ describe("Vite dev worker reloads", () => {
 
     vi.useFakeTimers();
     const response = worker.fetch(new Request("http://localhost"));
-    await vi.advanceTimersByTimeAsync(120_000);
+    await vi.advanceTimersByTimeAsync(119_999);
+    expect(warnSpy).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
 
     expect(await (await response).text()).toBe("v1");
     expect(warnSpy).toHaveBeenCalledOnce();
@@ -249,7 +251,7 @@ describe("Vite dev worker reloads", () => {
     expect(warnSpy).not.toHaveBeenCalled();
   });
 
-  test("uses the reload timeout set by the generated entry", async () => {
+  test("uses the reload timeout passed to setReloadWaitTimeout", async () => {
     const worker = await createWorker();
     worker.setReloadWaitTimeout(5000);
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -315,7 +317,7 @@ describe("Vite dev worker reloads", () => {
         headers: { accept: "application/json", "x-vite-env": "unknown" },
       })
     );
-    await vi.advanceTimersByTimeAsync(120_000);
+    await vi.advanceTimersByTimeAsync(30_000);
 
     const res = await response;
     expect(res.status).toBe(500);

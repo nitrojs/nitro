@@ -50,12 +50,12 @@ function _resolveReloadTimeout(nitro: Nitro): number | undefined {
   if (!value) {
     return;
   }
-  const ms = Number(value);
-  if (!Number.isFinite(ms) || ms <= 0) {
+  const ms = Math.round(Number(value));
+  if (!Number.isFinite(ms) || ms < 1) {
     nitro.logger.warn(
       `Ignoring invalid \`NITRO_DEV_RELOAD_TIMEOUT\` value \`${value}\` (expected a positive number of milliseconds).`
     );
     return;
   }
-  return Math.min(Math.round(ms), MAX_TIMEOUT);
+  return Math.min(ms, MAX_TIMEOUT);
 }
