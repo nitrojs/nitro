@@ -16,3 +16,8 @@ test("routes", async () => {
   const res = await serverFetch("/hello");
   expect(await res.json()).toEqual({ greeting: "hello" });
 });
+
+test("ssr entry", async () => {
+  const res = await serverFetch("/about");
+  expect(await res.text()).toBe("<h1>hello from /about</h1>");
+});

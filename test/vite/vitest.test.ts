@@ -27,7 +27,7 @@ describe("vite: vitest", () => {
       }
     );
     const output = stdout + stderr;
-    expect(output).toContain("Tests  4 passed (4)");
+    expect(output).toContain("Tests  5 passed (5)");
     expect(exitCode, output).toBe(0);
     expect(readFileSync(logFile, "utf8")).toBe("runtime:close\n");
   }, 60_000);

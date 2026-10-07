@@ -466,7 +466,9 @@ async function setupNitroContext(
 
   // Config ssr env as a fetchable ssr service
   if (!ctx.services?.ssr) {
-    if (userConfig.environments?.ssr === undefined) {
+    const userSsrEnv = userConfig.environments?.ssr;
+    // Vitest always defines an `ssr` environment (without an entry) for its own use
+    if (userSsrEnv === undefined || (ctx._isVitest && !userSsrEnv.build?.rollupOptions?.input)) {
       const ssrEntry = resolveModulePath("./entry-server", {
         from: ["app", "src", ""].flatMap((d) =>
           [ctx.nitro!.options.rootDir, ...ctx.nitro!.options.scanDirs].map((s) => join(s, d) + "/")
@@ -479,7 +481,7 @@ async function setupNitroContext(
         ctx.nitro!.logger.info(`Using \`${prettyPath(ssrEntry)}\` as vite ssr entry.`);
       }
     } else {
-      let ssrEntry = getEntry(userConfig.environments.ssr.build?.rollupOptions?.input);
+      let ssrEntry = getEntry(userSsrEnv.build?.rollupOptions?.input);
       if (typeof ssrEntry === "string") {
         ssrEntry =
           resolveModulePath(ssrEntry, {

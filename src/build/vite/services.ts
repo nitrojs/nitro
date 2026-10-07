@@ -5,7 +5,9 @@ import { resolve } from "pathe";
 export function viteServicesTemplate(ctx: NitroPluginContext): string {
   const serviceNames = Object.keys(ctx.services);
 
-  if (ctx.nitro!.options.dev) {
+  // Dev worker registers the services. Vitest runs without it: entries are imported from the
+  // nitro environment instead.
+  if (ctx.nitro!.options.dev && !ctx._isVitest) {
     return /* js */ `
 export const viteServices = {
 ${serviceNames
@@ -19,12 +21,9 @@ ${serviceNames
   }
 
   const serviceEntries = serviceNames.map((name) => {
-    const entry = resolve(
-      ctx.nitro!.options.buildDir,
-      "vite/services",
-      name,
-      ctx._entryPoints[name]
-    );
+    const entry = ctx._isVitest
+      ? _resolveServiceEntry(ctx, ctx.services[name].entry)
+      : resolve(ctx.nitro!.options.buildDir, "vite/services", name, ctx._entryPoints[name]);
     return [name, entry];
   });
 
@@ -101,4 +100,8 @@ export function nitroDevServiceProxy(ctx: NitroPluginContext): VitePlugin {
       },
     },
   };
+}
+
+function _resolveServiceEntry(ctx: NitroPluginContext, entry: string): string {
+  return entry.startsWith(".") ? resolve(ctx.nitro!.options.rootDir, entry) : entry;
 }
