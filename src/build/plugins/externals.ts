@@ -425,7 +425,7 @@ function toImport(id: string): string | undefined {
   }
 }
 
-function guessSubpath(path: string, conditions: string[]): string | undefined {
+export function guessSubpath(path: string, conditions: string[]): string | undefined {
   const { dir, name, subpath } = NODE_MODULES_RE.exec(path)?.groups || {};
   if (!dir || !name || !subpath) {
     return;
@@ -440,7 +440,9 @@ function guessSubpath(path: string, conditions: string[]): string | undefined {
       continue;
     }
     if (e.fsPath === subpath) {
-      return join(name, e.subpath);
+      // The "." export is the package itself: `join(name, "./")` would give
+      // `name/`, which is not a valid package subpath.
+      return e.subpath === "./" ? name : join(name, e.subpath);
     }
     if (e.fsPath.includes("*")) {
       const fsPathRe = new RegExp(
