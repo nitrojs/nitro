@@ -54,7 +54,7 @@ export async function createFetchableDevEnvironment(
   config: ResolvedConfig,
   devServer: DevServer,
   entry: string,
-  opts?: { preventExternalize?: boolean; vite?: ViteImportOptions }
+  opts?: { preventExternalize?: boolean; vite?: ViteImportOptions; onInit?: () => void }
 ): Promise<FetchableDevEnvironment> {
   const transport = createViteHotChannel(devServer, name);
   const context: DevEnvironmentContext = { hot: true, transport };
@@ -76,7 +76,7 @@ interface FetchableDevEnvironmentConstructor {
     context: DevEnvironmentContext,
     devServer: DevServer,
     entry: string,
-    opts?: { preventExternalize?: boolean }
+    opts?: { preventExternalize?: boolean; onInit?: () => void }
   ): FetchableDevEnvironment;
 }
 
@@ -107,6 +107,7 @@ function _defineFetchableDevEnvironment({
 
     #entry: string;
     #preventExternalize: boolean;
+    #onInit?: () => void;
 
     constructor(
       name: string,
@@ -114,12 +115,13 @@ function _defineFetchableDevEnvironment({
       context: DevEnvironmentContext,
       devServer: DevServer,
       entry: string,
-      opts?: { preventExternalize?: boolean }
+      opts?: { preventExternalize?: boolean; onInit?: () => void }
     ) {
       super(name, config, context);
       this.devServer = devServer;
       this.#entry = entry;
       this.#preventExternalize = opts?.preventExternalize ?? false;
+      this.#onInit = opts?.onInit;
     }
 
     override async fetchModule(
@@ -158,6 +160,9 @@ function _defineFetchableDevEnvironment({
     override async init(...args: any[]): Promise<void> {
       await this.devServer.init?.();
       await super.init(...args);
+      // Announced (and registered for the runner's replay) only once initialized: the dev worker
+      // invokes the environment as soon as it hears about it (#4638).
+      this.#onInit?.();
       this.devServer.sendMessage({
         type: "custom",
         event: "nitro:vite-env",

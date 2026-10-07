@@ -55,10 +55,13 @@ export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOpti
           envConfig,
           await initEnvRunner(ctx),
           entry,
-          { preventExternalize: isWorkerdRunner, vite: viteImportOptions(ctx.nitro!) }
+          {
+            preventExternalize: isWorkerdRunner,
+            vite: viteImportOptions(ctx.nitro!),
+            onInit: () => (ctx._viteEnvs ??= new Map()).set(envName, entry),
+          }
         );
         ctx._transformRequest = (id) => env.transformRequest(id);
-        (ctx._viteEnvs ??= new Map()).set(envName, entry);
         return env;
       },
     },
@@ -97,18 +100,11 @@ export function createServiceEnvironment(
       createEnvironment: async (envName, envConfig) => {
         const entry = tryResolve(serviceConfig.entry);
         const { createFetchableDevEnvironment } = await import("./dev.ts");
-        const env = await createFetchableDevEnvironment(
-          envName,
-          envConfig,
-          await initEnvRunner(ctx),
-          entry,
-          { preventExternalize: isWorkerdRunner, vite: viteImportOptions(ctx.nitro!) }
-        );
-        // Register only once constructed, like the nitro environment: the runner announces registered environments
-        // when it becomes ready, and an announcement that beats the environment's transport loses the dev worker's
-        // first invoke for good. The environment announces itself from `init()` once its transport exists.
-        (ctx._viteEnvs ??= new Map()).set(envName, entry);
-        return env;
+        return createFetchableDevEnvironment(envName, envConfig, await initEnvRunner(ctx), entry, {
+          preventExternalize: isWorkerdRunner,
+          vite: viteImportOptions(ctx.nitro!),
+          onInit: () => (ctx._viteEnvs ??= new Map()).set(envName, entry),
+        });
       },
     },
   };
