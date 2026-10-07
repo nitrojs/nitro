@@ -15,8 +15,7 @@ import { scanHandlers } from "../../scan.ts";
 import { onWatchError } from "../../utils/watch.ts";
 import { handleDevRPC } from "../../dev/_rpc.ts";
 import { importVite, _resolveFromPath, type ViteImportOptions } from "./_import.ts";
-import { hasDevServerExports, reloadEnvRunner } from "./env.ts";
-import { buildDevServerExports } from "./_dev-exports.ts";
+import { hasDevServerExports } from "./env.ts";
 
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
 
@@ -179,36 +178,6 @@ function _defineFetchableDevEnvironment({
 export async function configureViteDevServer(ctx: NitroPluginContext, server: ViteDevServer) {
   const nitro = ctx.nitro!;
   const nitroEnv = server.environments.nitro as FetchableDevEnvironment;
-
-  // The runner is first loaded here, even when there is nothing to export or the build failed
-  let exportsLoaded = false;
-  const reloadExports = async () => {
-    let code = ctx._serverEntryExports;
-    try {
-      code = await buildDevServerExports(ctx, nitroEnv);
-    } catch (error) {
-      nitro.logger.error(error);
-    } finally {
-      server.watcher.add([...(ctx._serverEntryExportFiles || [])]);
-    }
-    if (!exportsLoaded || code !== ctx._serverEntryExports) {
-      exportsLoaded = true;
-      ctx._serverEntryExports = code;
-      await reloadEnvRunner(ctx).catch((error) => nitro.logger.error(error));
-    }
-  };
-  if (hasDevServerExports(ctx)) {
-    const debouncedReloadExports = debounce(reloadExports);
-    server.watcher.on("all", (event, file) => {
-      if (
-        (event === "change" || event === "add" || event === "unlink") &&
-        ctx._serverEntryExportFiles?.has(normalize(file))
-      ) {
-        debouncedReloadExports();
-      }
-    });
-    await reloadExports();
-  }
 
   const viteBase = server.config.base || "/";
 

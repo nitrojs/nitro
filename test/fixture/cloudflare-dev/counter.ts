@@ -1,5 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import { condition } from "#runtime-condition";
+import { shared } from "./shared.ts";
 
 export class Counter extends DurableObject {
   override async fetch(request: Request) {
@@ -11,6 +12,9 @@ export class Counter extends DurableObject {
     const { searchParams } = new URL(request.url);
     if (searchParams.has("condition")) {
       return Response.json({ condition });
+    }
+    if (searchParams.has("shared")) {
+      return Response.json({ hits: shared.hits });
     }
     let count = (await this.ctx.storage.get<number>("count")) || 0;
     if (searchParams.has("increment")) {

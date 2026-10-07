@@ -68,12 +68,10 @@ for (const mode of ["nitro", "vite", "build", "vite-build"] as const) {
           name: "TEST_COUNTER",
           class_name: "Counter",
         });
-        for (const name of ["Counter", "ExportsCounter"]) {
-          expect(wrangler.env.test.exports[name]).toEqual({
-            type: "durable-object",
-            storage: "sqlite",
-          });
-        }
+        expect(wrangler.env.test.exports.Counter).toEqual({
+          type: "durable-object",
+          storage: "sqlite",
+        });
         const mf = new Miniflare({
           modules: true,
           scriptPath: resolve(serverDir, "index.mjs"),
@@ -84,7 +82,6 @@ for (const mode of ["nitro", "vite", "build", "vite-build"] as const) {
           d1Databases: ["TEST_D1"],
           durableObjects: {
             TEST_COUNTER: { className: "Counter", useSQLite: true },
-            TEST_EXPORTS_COUNTER: { className: "ExportsCounter", useSQLite: true },
           },
         });
         const closeNitro = close;
@@ -142,13 +139,6 @@ for (const mode of ["nitro", "vite", "build", "vite-build"] as const) {
       expect(await response.json()).toEqual({ count: 2 });
     });
 
-    it("serves a Durable Object exported from exports.cloudflare.ts", async () => {
-      const response = await fetchPath("/exports-counter");
-      const body = await response.text();
-      expect(response.status, body).toBe(200);
-      expect(JSON.parse(body)).toEqual({ source: "exports.cloudflare.ts" });
-    });
-
     it.runIf(mode === "vite")(
       "upgrades WebSockets to a Durable Object without the websocket feature",
       async () => {
@@ -162,6 +152,15 @@ for (const mode of ["nitro", "vite", "build", "vite-build"] as const) {
         expect(message).toBe("echo:hello");
       }
     );
+
+    it("shares module state between routes and Durable Objects", async () => {
+      for (const hits of [1, 2]) {
+        const response = await fetchPath("/shared");
+        const body = await response.text();
+        expect(response.status, body).toBe(200);
+        expect(JSON.parse(body)).toEqual({ route: hits, durableObject: hits });
+      }
+    });
 
     it("resolves Durable Object dependencies with the workerd condition", async () => {
       const response = await fetchPath("/counter?condition");

@@ -10,7 +10,6 @@ import { isAbsolute } from "pathe";
 import { resolveRunnerDeps } from "../../dev/runner-deps.ts";
 import { shutdownRunner } from "../../dev/shutdown.ts";
 import { writeDevWorkerEntry } from "./_dev-worker.ts";
-import { SERVER_ENTRY_EXPORTS_ID } from "./_dev-exports.ts";
 import { viteImportOptions } from "./_import.ts";
 
 export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOptions {
@@ -156,13 +155,7 @@ export async function initEnvRunner(ctx: NitroPluginContext) {
           }
         }
       });
-      // Server entry exports are bundled through the Vite environment, the dev server loads the
-      // runner once it exists (see `configureViteDevServer`).
-      if (hasDevServerExports(ctx)) {
-        ctx._serverEntryExports = undefined;
-      } else {
-        await _loadRunner(ctx, manager);
-      }
+      await _loadRunner(ctx, manager);
       ctx._envRunner = manager;
       return manager;
     })();
@@ -203,16 +196,10 @@ export async function reloadEnvRunner(ctx: NitroPluginContext) {
 async function _loadRunner(ctx: NitroPluginContext, manager: RunnerManager) {
   const runnerName = _devRunner(ctx);
   const entry = await writeDevWorkerEntry(ctx.nitro!);
-  const exportsCode = runnerName === "miniflare" ? ctx._serverEntryExports : undefined;
   const runner = await loadRunner(runnerName, {
     ...(await resolveRunnerDeps(ctx.nitro!, runnerName)),
     name: "nitro-vite",
-    ...(exportsCode === undefined
-      ? { data: { entry } }
-      : {
-          exports: SERVER_ENTRY_EXPORTS_ID,
-          data: { entry, virtual: { [SERVER_ENTRY_EXPORTS_ID]: exportsCode } },
-        }),
+    data: { entry },
   });
   await manager.reload(runner);
 }
@@ -240,9 +227,12 @@ function _resolveConditions(ctx: NitroPluginContext): string[] {
     : exportConditions;
 }
 
-/** Whether the miniflare runner registers server entry exports (bundled by the dev server). */
+/** Whether the miniflare runner exports classes of the server entry (e.g. Durable Objects). */
 export function hasDevServerExports(ctx: NitroPluginContext): boolean {
-  return _isWorkerdRunner(ctx) && !!ctx.nitro!.options.virtual[SERVER_ENTRY_EXPORTS_ID];
+  return (
+    _isWorkerdRunner(ctx) &&
+    !!(ctx.nitro!.options.serverEntry && ctx.nitro!.options.serverEntry.handler)
+  );
 }
 
 function _devRunner(ctx: NitroPluginContext): RunnerName {

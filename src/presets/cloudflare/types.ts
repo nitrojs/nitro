@@ -85,15 +85,6 @@ export interface CloudflareOptions {
      */
     defaultRoutes?: boolean;
   };
-
-  /**
-   * File exporting additional Cloudflare classes, such as DurableObject or WorkflowEntrypoint.
-   * Durable Objects are available in Miniflare development and in the production build.
-   *
-   * Prefer named exports from the server entry (`server.ts`), which are Worker exports too.
-   * @default "exports.cloudflare.ts"
-   */
-  exports?: string;
 }
 
 type DurableObjectState = ConstructorParameters<typeof DurableObject>[0];

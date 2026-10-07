@@ -53,7 +53,7 @@ const cloudflarePages = defineNitroPreset(
       "build:before": async (nitro) => {
         extendEnv(nitro, unenvCfExternals);
         await enableNodeCompat(nitro);
-        await setupEntryExports(nitro);
+        setupEntryExports(nitro);
       },
       async compiled(nitro: Nitro) {
         await writeWranglerConfig(nitro, "pages");
@@ -102,7 +102,7 @@ export const cloudflareDev = defineNitroPreset(
       runner: "miniflare",
     },
     hooks: {
-      "build:before": async (nitro) => {
+      "build:before": (nitro) => {
         if (nitro.options.devServer.runner === "miniflare") {
           // Resolve packages for workerd, like the production build (workerd rejects CJS `node` entries)
           nitro.options.exportConditions = [
@@ -112,8 +112,10 @@ export const cloudflareDev = defineNitroPreset(
               ...nitro.options.exportConditions!.filter((c) => c !== "node"),
             ]),
           ];
-          // Vite dev bundles the exports separately, the app entry does not need to import them
-          await setupEntryExports(nitro, { entry: nitro.options.builder !== "vite" });
+          // In Vite dev, the dev worker resolves the exports from the nitro environment instead
+          if (nitro.options.builder !== "vite") {
+            setupEntryExports(nitro);
+          }
           // The bridge imports `cloudflare:workers`, only available in workerd
           setupTracingBridge(nitro);
         }
@@ -157,7 +159,7 @@ const cloudflareModule = defineNitroPreset(
       "build:before": async (nitro) => {
         extendEnv(nitro, unenvCfExternals);
         await enableNodeCompat(nitro);
-        await setupEntryExports(nitro);
+        setupEntryExports(nitro);
         setupTracingBridge(nitro);
       },
       async compiled(nitro: Nitro) {

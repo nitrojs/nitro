@@ -1,5 +1,10 @@
 import { defineServerEntry } from "nitro";
 
+// Exported from the Cloudflare Worker entry
+export function myScheduled() {
+  console.log("scheduled!");
+}
+
 export default defineServerEntry({
   async fetch(req) {
     const url = new URL(req.url);

@@ -110,6 +110,8 @@ export default defineHandler((event) => {
 
 With Wrangler environments, declare the binding and export in the selected environment. Local Durable Object state persists in `.wrangler/state/v3`, including across development server reloads.
 
+In development, Durable Objects share module state with your routes and pick up code changes without restarting the development server. A new class, or a class not declared in the Wrangler configuration, logs a warning.
+
 To type the `COUNTER` binding with the `Counter` class, see [Typing bindings](#typing-bindings).
 
 ### Additional Exports
@@ -126,9 +128,16 @@ export class MyWorkflow extends WorkflowEntrypoint {
 }
 ```
 
-::note
-You can also export these classes from an `exports.cloudflare.ts` file in your project root, or from the file set by the `cloudflare.exports` option. This file must not have a default export.
-::
+Declare them in your Wrangler configuration, with a `workflows` binding or an `exports` entry:
+
+```json [wrangler.json]
+{
+  "workflows": [{ "name": "my-workflow", "binding": "MY_WORKFLOW", "class_name": "MyWorkflow" }],
+  "exports": {
+    "MyEntrypoint": { "type": "worker" }
+  }
+}
+```
 
 ### Scheduled Tasks (Cron Triggers)
 
@@ -522,7 +531,7 @@ A few things differ from `wrangler dev`:
 
 - Local data of the bindings (KV, D1, R2, ...) is persisted in `.wrangler/state/v3`, shared with `wrangler dev`.
 - The newest compatibility date supported by the installed `miniflare` is used, regardless of `compatibility_date`.
-- Static assets are served by Nitro. Local Durable Objects exported from [`server.ts`](#durable-objects) are available; bindings to other workers (`services`, `tail_consumers`, external Durable Objects), workflows, and queue consumers are not available.
+- Static assets are served by Nitro. Local Durable Objects, Workflows and `WorkerEntrypoint`s exported from [`server.ts`](#durable-objects) are available; bindings to other workers (`services`, `tail_consumers`, external Durable Objects and Workflows) and queue consumers are not available.
 - When `cloudflare.wrangler` is set, it is merged with the nearest Wrangler config file.
 
 #### Wrangler environments
