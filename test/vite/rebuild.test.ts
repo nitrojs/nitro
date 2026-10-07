@@ -2,7 +2,7 @@ import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { join } from "pathe";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, afterAll } from "vitest";
 
 const { createBuilder } = (await import(
   process.env.NITRO_VITE_PKG || "vite"
@@ -26,4 +26,8 @@ describe("vite:rebuild", () => {
     }
     expect(existsSync(join(rootDir, "dist/server/index.mjs"))).toBe(true);
   }, 60_000);
+
+  afterAll(async () => {
+    await rm(join(rootDir, "dist"), { recursive: true, force: true });
+  });
 });
