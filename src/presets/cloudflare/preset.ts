@@ -189,11 +189,6 @@ export default [
   cloudflareDev,
 ];
 
-/**
- * Export tracing-channel spans as Cloudflare custom spans (`tracing.enterSpan`)
- * Registered first (unshift) so the bridge subscribes to the traced channels at
- * startup, before any request is handled.
- */
 // Builds for workerd like the production presets
 function setupMiniflareDev(nitro: Nitro) {
   nitro.options.exportConditions = workerdConditions(nitro.options.exportConditions);
@@ -206,6 +201,11 @@ function setupMiniflareDev(nitro: Nitro) {
   setupTracingBridge(nitro);
 }
 
+/**
+ * Export tracing-channel spans as Cloudflare custom spans (`tracing.enterSpan`)
+ * Registered first (unshift) so the bridge subscribes to the traced channels at
+ * startup, before any request is handled.
+ */
 function setupTracingBridge(nitro: Nitro) {
   if (!nitro.options.tracingChannel) {
     return;
