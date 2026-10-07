@@ -1,5 +1,34 @@
 import { describe, expect, it } from "vitest";
-import { applyProductionCondition } from "../../src/rollup/plugins/externals";
+import {
+  applyProductionCondition,
+  normalizeMatcher,
+} from "../../src/rollup/plugins/externals";
+
+describe("externals:normalizeMatcher", () => {
+  it("matches string patterns against posix ids", () => {
+    const matcher = normalizeMatcher("nuxt/dist");
+    expect(
+      matcher("/project/node_modules/nuxt/dist/runtime/server/index.js")
+    ).toBe(true);
+    expect(matcher("/project/node_modules/nuxt/index.js")).toBe(false);
+  });
+
+  it("matches string patterns against windows ids", () => {
+    const matcher = normalizeMatcher("nuxt/dist");
+    expect(
+      matcher(
+        "D:\\project\\node_modules\\nuxt\\dist\\runtime\\server\\index.js"
+      )
+    ).toBe(true);
+    expect(matcher("D:\\project\\node_modules\\nuxt\\index.js")).toBe(false);
+  });
+
+  it("matches absolute string patterns against windows ids", () => {
+    const matcher = normalizeMatcher("D:\\project\\node_modules");
+    expect(matcher("D:\\project\\node_modules\\vue\\index.js")).toBe(true);
+    expect(matcher("D:\\other\\node_modules\\vue\\index.js")).toBe(false);
+  });
+});
 
 describe("externals:applyProductionCondition", () => {
   const applyProductionConditionCases = [
