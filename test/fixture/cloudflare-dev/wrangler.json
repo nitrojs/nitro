@@ -9,7 +9,8 @@
         "bindings": [{ "name": "TEST_COUNTER", "class_name": "Counter" }]
       },
       "exports": {
-        "Counter": { "type": "durable-object", "storage": "sqlite" }
+        "Counter": { "type": "durable-object", "storage": "sqlite" },
+        "Greeter": { "type": "worker" }
       },
       "kv_namespaces": [{ "binding": "TEST_KV", "id": "test-kv" }],
       "d1_databases": [
@@ -18,7 +19,8 @@
           "database_name": "test",
           "database_id": "00000000-0000-0000-0000-000000000001"
         }
-      ]
+      ],
+      "workflows": [{ "binding": "TEST_WORKFLOW", "name": "doubler", "class_name": "Doubler" }]
     }
   }
 }

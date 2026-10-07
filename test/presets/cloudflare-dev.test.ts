@@ -72,6 +72,12 @@ for (const mode of ["nitro", "vite", "build", "vite-build"] as const) {
           type: "durable-object",
           storage: "sqlite",
         });
+        expect(wrangler.env.test.exports.Greeter).toEqual({ type: "worker" });
+        expect(wrangler.env.test.workflows).toContainEqual({
+          binding: "TEST_WORKFLOW",
+          name: "doubler",
+          class_name: "Doubler",
+        });
         const mf = new Miniflare({
           modules: true,
           scriptPath: resolve(serverDir, "index.mjs"),
@@ -82,6 +88,9 @@ for (const mode of ["nitro", "vite", "build", "vite-build"] as const) {
           d1Databases: ["TEST_D1"],
           durableObjects: {
             TEST_COUNTER: { className: "Counter", useSQLite: true },
+          },
+          workflows: {
+            TEST_WORKFLOW: { name: "doubler", className: "Doubler" },
           },
         });
         const closeNitro = close;
@@ -162,6 +171,22 @@ for (const mode of ["nitro", "vite", "build", "vite-build"] as const) {
       }
     });
 
+    it("shares module state between routes and WorkerEntrypoints via ctx.exports", async () => {
+      const response = await fetchPath("/greeter");
+      const body = await response.text();
+      expect(response.status, body).toBe(200);
+      const { greeting, route, entrypoint } = JSON.parse(body);
+      expect(greeting).toBe("hello nitro");
+      expect(entrypoint).toBe(route);
+    });
+
+    it("runs a Workflow exported from the server entry", async () => {
+      const response = await fetchPath("/workflow");
+      const body = await response.text();
+      expect(response.status, body).toBe(200);
+      expect(JSON.parse(body)).toEqual({ status: "complete", output: 42 });
+    });
+
     it("resolves Durable Object dependencies with the workerd condition", async () => {
       const response = await fetchPath("/counter?condition");
       expect(await response.json()).toEqual({ condition: "workerd" });
@@ -199,5 +224,18 @@ for (const mode of ["nitro", "vite", "build", "vite-build"] as const) {
         }
       }
     );
+
+    it.runIf(mode === "nitro" || mode === "vite")("reloads WorkerEntrypoints", async () => {
+      const path = resolve(rootDir, "greeter.ts");
+      const source = await readFile(path, "utf8");
+      const greeting = async () => ((await (await fetchPath("/greeter")).json()) as any).greeting;
+      try {
+        await writeFile(path, source.replace("hello", "hi"));
+        await expect.poll(greeting).toBe("hi nitro");
+      } finally {
+        await writeFile(path, source);
+        await expect.poll(greeting).toBe("hello nitro");
+      }
+    });
   });
 }
