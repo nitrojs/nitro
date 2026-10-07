@@ -18,6 +18,7 @@ for (const mode of ["nitro", "vite", "build", "vite-build"] as const) {
     let reload: (() => Promise<void>) | undefined;
     let close: () => Promise<void>;
     let warn: MockInstance | undefined;
+    let bundlerWarnings: string[] = [];
 
     beforeAll(async () => {
       await rm(`${rootDir}/.wrangler`, { recursive: true, force: true });
@@ -29,6 +30,7 @@ for (const mode of ["nitro", "vite", "build", "vite-build"] as const) {
         });
         close = () => nitro.close();
         warn = vi.spyOn(nitro.logger, "warn");
+        const consoleWarn = vi.spyOn(console, "warn");
         const server = createDevServer(nitro);
         await prepare(nitro);
         const ready = new Promise<void>((resolve) =>
@@ -36,6 +38,8 @@ for (const mode of ["nitro", "vite", "build", "vite-build"] as const) {
         );
         await build(nitro);
         await ready;
+        bundlerWarnings = consoleWarn.mock.calls.map((args) => String(args[0]));
+        consoleWarn.mockRestore();
         fetchPath = async (path) => server.fetch(new Request(new URL(path, "http://localhost")));
         reload = async () => {
           await nitro.hooks.callHook("dev:reload");
@@ -134,6 +138,10 @@ for (const mode of ["nitro", "vite", "build", "vite-build"] as const) {
       const response = await fetchPath("/kv");
       expect(await response.json()).toEqual({ value: "works" });
       expect(warn).not.toHaveBeenCalledWith(expect.stringContaining("did not shut down"));
+    });
+
+    it.runIf(mode === "nitro")("keeps workerd built-in modules external", () => {
+      expect(bundlerWarnings.filter((w) => w.includes("cloudflare:workers"))).toEqual([]);
     });
 
     it("serves a Durable Object re-exported from the server entry", async () => {

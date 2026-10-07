@@ -112,6 +112,7 @@ export const cloudflareDev = defineNitroPreset(
               ...nitro.options.exportConditions!.filter((c) => c !== "node"),
             ]),
           ];
+          extendEnv(nitro, unenvCfExternals);
           // In Vite dev, the dev worker resolves the exports from the nitro environment instead
           if (nitro.options.builder !== "vite") {
             setupEntryExports(nitro);
