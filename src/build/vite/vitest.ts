@@ -45,6 +45,11 @@ export function nitroVitest(ctx: NitroPluginContext): VitePlugin {
     },
 
     configureVitest(context) {
+      // Inline projects resolve from the `test` config captured before the `config` hook
+      const { setupFiles } = context.project.config;
+      if (!setupFiles.includes(setupPath)) {
+        setupFiles.push(setupPath);
+      }
       setupVitestWatch(ctx, context);
     },
 

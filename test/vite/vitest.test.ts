@@ -9,9 +9,6 @@ import { afterAll, describe, expect, test } from "vitest";
 describe("vite: vitest", () => {
   const rootDir = fileURLToPath(new URL("./vitest-fixture", import.meta.url));
   const tmpDir = mkdtempSync(join(tmpdir(), "nitro-vitest-"));
-  const logFile = join(tmpDir, "close.log");
-  const resultsFile = join(tmpDir, "results.json");
-  writeFileSync(logFile, "");
 
   afterAll(() => {
     rmSync(tmpDir, { recursive: true, force: true });
@@ -19,6 +16,18 @@ describe("vite: vitest", () => {
   });
 
   test("runs tests against the nitro runtime", async () => {
+    await runFixture([]);
+  }, 60_000);
+
+  test("supports inline projects", async () => {
+    await runFixture(["--config", "vite.projects.config.ts"]);
+  }, 60_000);
+
+  async function runFixture(args: string[]) {
+    const runDir = mkdtempSync(join(tmpDir, "run-"));
+    const logFile = join(runDir, "close.log");
+    const resultsFile = join(runDir, "results.json");
+    writeFileSync(logFile, "");
     // A clean environment, as when users run Vitest (no `NODE_ENV` or `VITEST_*` from this run)
     const env = Object.fromEntries(
       Object.entries(process.env).filter(([key]) => key !== "NODE_ENV" && !key.startsWith("VITEST"))
@@ -30,6 +39,7 @@ describe("vite: vitest", () => {
         "run",
         "--reporter=json",
         `--outputFile=${resultsFile}`,
+        ...args,
       ],
       {
         cwd: rootDir,
@@ -49,5 +59,5 @@ describe("vite: vitest", () => {
     expect(results.success).toBe(true);
     // One app per test file that uses it (`node.spec.ts` does not)
     expect(readFileSync(logFile, "utf8")).toBe("runtime:close\n".repeat(3));
-  }, 60_000);
+  }
 });

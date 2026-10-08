@@ -259,7 +259,9 @@ use Vite's default dev environment, and
 the SSR entry, still auto-detected despite Vitest's own `ssr` environment) are imported from the
 `nitro` environment by `viteServicesTemplate()`, as in production. The `vitest-setup.mjs` setup file
 creates the app lazily in `beforeAll` (after the test file's `vi.mock` calls) so `serverFetch` from
-`nitro` works; it is an empty module in other environments. vm pools keep Vitest's default environment.
+`nitro` works; it is an empty module in other environments. vm pools keep Vitest's default environment. Inline `test.projects` resolve from the raw `test`
+config (captured before plugin `config` hooks), so `configureVitest` adds the setup file to each
+project; their environment must be set to `nitro` explicitly.
 
 Watch mode (`configureVitest` hook, `_vitest-watch.ts`): Vitest's own importer walk stops at
 virtual modules (their `file` is empty), so a `watchTriggerPatterns` entry walks the `nitro`
