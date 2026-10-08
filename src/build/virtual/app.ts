@@ -11,6 +11,7 @@ export default function app(nitro: Nitro) {
       const hasPlugins = nitro.options.plugins.length > 0;
       const hasHooks = nitro.options.features?.runtimeHooks ?? hasPlugins;
       const hasAsyncContext = !!nitro.options.experimental.asyncContext;
+      const runtimeBaseUrl = nitro.options.features.runtimeBaseURL;
 
       const routingImports = [
         hasRoutes && "findRoute",
@@ -89,6 +90,18 @@ export default function app(nitro: Nitro) {
         `    return h3App.fetch(req);`,
         `  };`
       );
+
+      if (runtimeBaseUrl) {
+        imports.push(`import { requestWithBaseURL } from "h3";`);
+        code.push(
+          ``,
+          `  const baseUrl = process.env.NITRO_APP_BASE_URL ?? "";`,
+          `  const baseHandler = appHandler;`,
+          `  appHandler = (req) => {`,
+          `    return baseHandler(requestWithBaseURL(req, baseUrl));`,
+          `  };`
+        );
+      }
 
       if (hasAsyncContext) {
         imports.push(`import { nitroAsyncContext } from "#nitro/runtime/context";`);

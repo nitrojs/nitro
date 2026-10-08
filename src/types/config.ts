@@ -321,6 +321,11 @@ export interface NitroOptions extends PresetOptions {
      * Enable WebSocket support.
      */
     websocket?: boolean;
+
+    /**
+     * Enable NITRO_APP_BASE_URL env var to take effect at runtime
+     */
+    runtimeBaseURL?: boolean;
   };
 
   /**
