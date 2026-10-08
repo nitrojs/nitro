@@ -28,11 +28,23 @@ describe("vite: vitest watch", () => {
     rmSync(join(rootDir, "node_modules"), { recursive: true, force: true });
   });
 
+  // A clean environment, as when users run Vitest (no `NODE_ENV` or `VITEST_*` from this run)
+  const env = Object.fromEntries(
+    Object.entries(process.env).filter(([key]) => key !== "NODE_ENV" && !key.startsWith("VITEST"))
+  );
+  const runs = () =>
+    readFileSync(logFile, "utf8")
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => JSON.parse(line));
+  const waitFor = async (condition: () => boolean) => {
+    const deadline = Date.now() + 30_000;
+    while (!condition() && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+  };
+
   test("reruns tests on route, scan dir and nitro config changes", async () => {
-    // A clean environment, as when users run Vitest (no `NODE_ENV` or `VITEST_*` from this run)
-    const env = Object.fromEntries(
-      Object.entries(process.env).filter(([key]) => key !== "NODE_ENV" && !key.startsWith("VITEST"))
-    );
     const child = execa(
       process.execPath,
       [fileURLToPath(new URL("vitest.mjs", import.meta.resolve("vitest/package.json"))), "watch"],
@@ -47,19 +59,11 @@ describe("vite: vitest watch", () => {
     let output = "";
     child.all?.on("data", (chunk) => (output += chunk));
 
-    const runs = () =>
-      readFileSync(logFile, "utf8")
-        .split("\n")
-        .filter(Boolean)
-        .map((line) => JSON.parse(line));
     const expected: Record<string, unknown>[] = [];
     const step = async (change: () => void, state: Record<string, unknown>) => {
       change();
       expected.push({ ...expected.at(-1), ...state });
-      const deadline = Date.now() + 30_000;
-      while (runs().length < expected.length && Date.now() < deadline) {
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      }
+      await waitFor(() => runs().length >= expected.length);
       expect(runs(), output).toEqual(expected);
     };
     const edit = (file: string, from: string, to: string) => () =>
@@ -90,6 +94,56 @@ describe("vite: vitest watch", () => {
     } finally {
       child.kill();
       await child;
+    }
+  }, 120_000);
+
+  test("keeps the watch filename filter on rescan reruns", async () => {
+    writeFileSync(logFile, "");
+    const filteredLogFile = join(tmpDir, "filtered.log");
+    writeFileSync(filteredLogFile, "");
+    // Programmatic run: the filename filter is otherwise only set from the interactive `p` prompt
+    const script = join(tmpDir, "watch-filter.mjs");
+    writeFileSync(
+      script,
+      [
+        `import { createVitest } from ${JSON.stringify(import.meta.resolve("vitest/node"))};`,
+        `const vitest = await createVitest("test", { watch: true });`,
+        `await vitest.start();`,
+        `await vitest.changeFilenamePattern("app.spec");`,
+        `await vitest.waitForTestRunEnd();`,
+        `console.log("ready");`,
+      ].join("\n")
+    );
+    const child = execa(process.execPath, [script], {
+      cwd: rootDir,
+      env: {
+        ...env,
+        NITRO_TEST_WATCH_LOG: logFile,
+        NITRO_TEST_WATCH_FILTERED_LOG: filteredLogFile,
+      },
+      extendEnv: false,
+      reject: false,
+      all: true,
+    });
+    let output = "";
+    child.all?.on("data", (chunk) => (output += chunk));
+
+    try {
+      await waitFor(() => output.includes("ready"));
+      expect(readFileSync(filteredLogFile, "utf8"), output).toBe("run\n");
+      const appRuns = runs().length;
+      writeFileSync(
+        addedRouteFile,
+        `import { defineHandler } from "nitro";\nexport default defineHandler(() => "added");\n`
+      );
+      await waitFor(() => runs().length > appRuns);
+      expect(runs().at(-1), output).toMatchObject({ added: 200 });
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      expect(readFileSync(filteredLogFile, "utf8"), output).toBe("run\n");
+    } finally {
+      child.kill();
+      await child;
+      rmSync(addedRouteFile, { force: true });
     }
   }, 120_000);
 });

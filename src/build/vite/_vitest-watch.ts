@@ -57,9 +57,15 @@ export function setupVitestWatch(
     const virtualModules = [...nitroEnv.moduleGraph.idToModuleMap.values()].filter((mod) =>
       mod.id?.startsWith("#nitro/virtual/")
     );
-    const specs = [...affectedTests(virtualModules).tests].flatMap((file) =>
+    let specs = [...affectedTests(virtualModules).tests].flatMap((file) =>
       vitest.getModuleSpecifications(file)
     );
+    // Same filter as Vitest's own watch reruns (`filenamePattern` is internal, set from the `p` prompt)
+    const filenamePattern = (vitest as { filenamePattern?: string[] }).filenamePattern;
+    if (Array.isArray(filenamePattern) && filenamePattern.length > 0) {
+      const selected = await vitest.globTestSpecifications(filenamePattern);
+      specs = specs.filter((spec) => selected.some((s) => s.moduleId === spec.moduleId));
+    }
     if (specs.length > 0) {
       await vitest.waitForTestRunEnd();
       await vitest.rerunTestSpecifications(specs);
