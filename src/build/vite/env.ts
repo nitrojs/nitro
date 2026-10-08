@@ -242,6 +242,10 @@ function _resolveConditions(ctx: NitroPluginContext): string[] {
 }
 
 function _devRunner(ctx: NitroPluginContext): RunnerName {
+  // Vitest runs test files in its own Node.js workers
+  if (ctx._isVitest) {
+    return "node-worker";
+  }
   return (ctx.nitro!.options.devServer.runner ||
     process.env.NITRO_DEV_RUNNER ||
     "node-worker") as RunnerName;

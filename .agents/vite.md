@@ -253,10 +253,13 @@ current evaluations.
 Vitest adds its `__vitest__` environment before plugin `config` hooks run, which sets
 `ctx._isVitest`. Test files then run in the `nitro` environment (default `test.environment`,
 set by path since Vitest resolves named environments as packages). In this mode no dev worker
-starts: `nitro` and service environments use Vite's default dev environment, and
+starts (the `miniflare` runner is ignored, tests run in Node.js): `nitro` and service environments
+use Vite's default dev environment, and
 `configureServer`, `hotUpdate` and the service `nitro/*` proxy are skipped. Service entries (e.g.
 the SSR entry, still auto-detected despite Vitest's own `ssr` environment) are imported from the
-`nitro` environment by `viteServicesTemplate()`, as in production.
+`nitro` environment by `viteServicesTemplate()`, as in production. The `vitest-setup.mjs` setup file
+creates the app lazily in `beforeAll` (after the test file's `vi.mock` calls) so `serverFetch` from
+`nitro` works; it is an empty module in other environments. vm pools keep Vitest's default environment.
 
 ## Key Connections
 

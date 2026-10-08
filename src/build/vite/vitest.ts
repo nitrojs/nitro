@@ -29,10 +29,14 @@ export function nitroVitest(): VitePlugin {
       if (!isVitest(userConfig)) {
         return;
       }
-      const environment = (userConfig as { test?: { environment?: string } }).test?.environment;
+      const { environment, pool } =
+        (userConfig as { test?: { environment?: string; pool?: string } }).test || {};
+      // vm pools only run environments that provide `setupVM`
+      const isVmPool = pool === "vmThreads" || pool === "vmForks";
       return {
         test: {
-          environment: !environment || environment === "nitro" ? envPath : environment,
+          environment:
+            environment === "nitro" || (!environment && !isVmPool) ? envPath : environment,
           setupFiles: [setupPath],
         },
       } as UserConfig;
