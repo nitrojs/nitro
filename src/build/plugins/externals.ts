@@ -115,8 +115,8 @@ export function externals(opts: ExternalsOptions): Plugin {
             // impossible path like "dist/native.mjs/proxy".
             throw new Error(
               `Cannot resolve "${id}" — the package may be missing an export condition for this subpath.\n` +
-              `Tip: Add an alias in your nitro config:\n` +
-              `  alias: { '${id}': '/path/to/node_modules/...correct-file...' }`,
+                `Tip: Add an alias in your nitro config:\n` +
+                `  alias: { '${id}': '/path/to/node_modules/...correct-file...' }`,
               { cause: error }
             );
           }

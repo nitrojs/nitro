@@ -67,8 +67,8 @@ export function unenv(nitro: Nitro, env: BuildEnv): Plugin {
             if (error?.code === "ENOTDIR") {
               throw new Error(
                 `Cannot resolve "${id}" — the package may be missing an export condition for this subpath.\n` +
-                `Tip: Add an alias in your nitro config:\n` +
-                `  alias: { '${id}': '/path/to/correct-file' }`,
+                  `Tip: Add an alias in your nitro config:\n` +
+                  `  alias: { '${id}': '/path/to/correct-file' }`,
                 { cause: error }
               );
             }
@@ -95,8 +95,8 @@ export function unenv(nitro: Nitro, env: BuildEnv): Plugin {
           if (error?.code === "ENOTDIR") {
             throw new Error(
               `Cannot resolve "${path}" — the package may be missing an export condition for this subpath.\n` +
-              `Tip: Add an alias in your nitro config:\n` +
-              `  alias: { '${path}': '/path/to/correct-file' }`,
+                `Tip: Add an alias in your nitro config:\n` +
+                `  alias: { '${path}': '/path/to/correct-file' }`,
               { cause: error }
             );
           }
