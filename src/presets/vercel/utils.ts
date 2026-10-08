@@ -16,7 +16,7 @@ import { ISR_URL_PARAM } from "./runtime/consts";
 // https://vercel.com/docs/build-output-api/configuration
 
 // https://vercel.com/docs/functions/runtimes/node-js/node-js-versions
-const SUPPORTED_NODE_VERSIONS = [18, 20, 22];
+const SUPPORTED_NODE_VERSIONS = [18, 20, 22, 24];
 
 const FALLBACK_ROUTE = "/__fallback";
 
