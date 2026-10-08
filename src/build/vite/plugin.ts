@@ -483,7 +483,7 @@ async function setupNitroContext(
         ctx.nitro!.logger.info(`Using \`${prettyPath(ssrEntry)}\` as vite ssr entry.`);
       }
     } else {
-      let ssrEntry = getEntry(userSsrEnv.build?.rollupOptions?.input);
+      let ssrEntry = getEntry(userSsrInput);
       if (typeof ssrEntry === "string") {
         ssrEntry =
           resolveModulePath(ssrEntry, {

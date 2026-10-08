@@ -12,8 +12,11 @@ export default {
           globalThis.__nitro__ || {},
           "default"
         )?.value;
-        delete globalThis.__nitro__?.default;
-        await nitroApp?.hooks?.callHook("close");
+        try {
+          await nitroApp?.hooks?.callHook("close");
+        } finally {
+          delete globalThis.__nitro__?.default;
+        }
       },
     };
   },

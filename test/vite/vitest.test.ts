@@ -27,6 +27,10 @@ describe("vite: vitest", () => {
     await runFixture(["--config", "vite.cloudflare.config.ts"]);
   }, 60_000);
 
+  test("registers an ssr entry from rolldown options", async () => {
+    await runFixture(["--config", "vite.ssr-rolldown.config.ts"]);
+  }, 60_000);
+
   async function runFixture(args: string[]) {
     const runDir = mkdtempSync(join(tmpDir, "run-"));
     const logFile = join(runDir, "close.log");
@@ -62,6 +66,6 @@ describe("vite: vitest", () => {
     expect(results.numPassedTests).toBe(7);
     expect(results.success).toBe(true);
     // One app per test file that uses it (`node.spec.ts` does not)
-    expect(readFileSync(logFile, "utf8")).toBe("runtime:close\n".repeat(3));
+    expect(readFileSync(logFile, "utf8")).toBe("runtime:close:200\n".repeat(3));
   }
 });
