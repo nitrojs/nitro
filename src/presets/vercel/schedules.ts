@@ -9,8 +9,17 @@ import type { VercelSchedule } from "./types.ts";
 export const SCHEDULE_HANDLER_ROUTE = "/_vercel/tasks";
 export const SCHEDULE_FUNCTION_PATH = "_vercel/tasks";
 
+const DEFAULT_CRON_HANDLER_ROUTE = "/_vercel/cron";
 const SCHEDULE_HANDLER_ID = "#nitro/virtual/vercel-schedule-handler";
 const SCHEDULE_TRIGGER = { type: "schedule/v1beta" } as const;
+
+/**
+ * How Vercel Schedules invokes scheduled tasks:
+ *
+ * - `function`: a private function that only Vercel Schedules can invoke.
+ * - `path`: the public cron handler route, like Vercel Cron Jobs.
+ */
+export type VercelSchedulesMode = "function" | "path";
 
 export interface VercelTaskSchedule {
   /** Vercel schedule name, derived from the task name. */
@@ -22,18 +31,34 @@ export interface VercelTaskSchedule {
 }
 
 /**
- * Whether scheduled tasks are emitted as Vercel Schedules instead of Cron Jobs.
+ * Whether and how scheduled tasks are emitted as Vercel Schedules instead of Cron Jobs.
  *
- * Enabled with `vercel.schedules: true` or the `NITRO_VERCEL_SCHEDULES` environment variable.
+ * Set with the `vercel.schedules` option, or else the `NITRO_VERCEL_SCHEDULES` environment
+ * variable: `true`/`1`/`function` for private function targets, `path` for the public
+ * cron handler route.
  */
+export function getVercelSchedulesMode(
+  options: NitroOptions,
+  env: Record<string, string | undefined> = process.env
+): VercelSchedulesMode | false {
+  if (!options.experimental.tasks) {
+    return false;
+  }
+  const value = options.vercel?.schedules ?? env.NITRO_VERCEL_SCHEDULES;
+  if (value === "path") {
+    return "path";
+  }
+  if (typeof value === "string") {
+    return ["", "0", "false"].includes(value.toLowerCase()) ? false : "function";
+  }
+  return value ? "function" : false;
+}
+
 export function isVercelSchedulesEnabled(
   options: NitroOptions,
   env: Record<string, string | undefined> = process.env
 ): boolean {
-  if (!options.experimental.tasks) {
-    return false;
-  }
-  return options.vercel?.schedules ?? isTruthyEnv(env.NITRO_VERCEL_SCHEDULES);
+  return getVercelSchedulesMode(options, env) !== false;
 }
 
 /**
@@ -76,24 +101,35 @@ export function getVercelTaskSchedules(
   });
 }
 
-/** Build Output API `schedules` entries targeting the task dispatch function. */
+/** Build Output API `schedules` entries for the scheduled tasks. */
 export function getVercelBuildOutputSchedules(nitro: Nitro): VercelSchedule[] {
+  const mode = getVercelSchedulesMode(nitro.options);
+  if (!mode) {
+    return [];
+  }
+  const target =
+    mode === "path" ? { path: getCronHandlerRoute(nitro) } : { function: SCHEDULE_FUNCTION_PATH };
   return getVercelTaskSchedules(nitro.options).map(({ name, schedule }) => ({
     name,
     schedule,
-    function: SCHEDULE_FUNCTION_PATH,
+    ...target,
   }));
 }
 
 /**
- * Registers the private function that Vercel Schedules invokes to run scheduled tasks.
+ * Registers the handler that Vercel Schedules invokes to run scheduled tasks: a private
+ * function in `function` mode, or the public cron handler in `path` mode.
  */
 export function setupVercelSchedules(nitro: Nitro) {
-  if (getVercelTaskSchedules(nitro.options).length === 0) {
+  const mode = getVercelSchedulesMode(nitro.options);
+  if (!mode || getVercelTaskSchedules(nitro.options).length === 0) {
     return;
   }
 
-  registerScheduleHandler(nitro, () => getVercelTaskSchedules(nitro.options));
+  registerScheduleHandler(nitro, mode, () => getVercelTaskSchedules(nitro.options));
+  if (mode === "path") {
+    return;
+  }
 
   nitro.options.vercel ??= {};
   nitro.options.vercel.functionRules ??= {};
@@ -110,11 +146,12 @@ export function setupVercelSchedules(nitro: Nitro) {
 }
 
 /**
- * Serves the task dispatch handler in development, for the local Vercel Schedules broker
+ * Serves the scheduled tasks handler in development, for the local Vercel Schedules broker
  * of `vercel dev`, which then owns task scheduling instead of the in-process scheduler.
  */
 export function setupVercelSchedulesDev(nitro: Nitro) {
-  if (!process.env.VERCEL_SCHEDULE_DEV_API_VERSION || !isVercelSchedulesEnabled(nitro.options)) {
+  const mode = getVercelSchedulesMode(nitro.options);
+  if (!process.env.VERCEL_SCHEDULE_DEV_API_VERSION || !mode) {
     return;
   }
 
@@ -123,7 +160,7 @@ export function setupVercelSchedulesDev(nitro: Nitro) {
     return;
   }
 
-  registerScheduleHandler(nitro, () => getVercelTaskSchedules(nitro.options, scheduledTasks));
+  registerScheduleHandler(nitro, mode, () => getVercelTaskSchedules(nitro.options, scheduledTasks));
 
   // The broker invokes the handler on schedule, so the in-process scheduler must not.
   nitro.options.scheduledTasks = {};
@@ -132,19 +169,32 @@ export function setupVercelSchedulesDev(nitro: Nitro) {
     .info("Scheduled tasks are run by the `vercel dev` Schedules broker.");
 }
 
+export function getCronHandlerRoute(nitro: Nitro): string {
+  return nitro.options.vercel?.cronHandlerRoute || DEFAULT_CRON_HANDLER_ROUTE;
+}
+
 // --- internal ---
 
-function registerScheduleHandler(nitro: Nitro, getSchedules: () => VercelTaskSchedule[]) {
-  const handlerPath = join(presetsDir, "vercel/runtime/schedule-handler");
+function registerScheduleHandler(
+  nitro: Nitro,
+  mode: VercelSchedulesMode,
+  getSchedules: () => VercelTaskSchedule[]
+) {
+  const [handlerPath, factory] =
+    mode === "path"
+      ? [join(presetsDir, "vercel/runtime/cron-handler"), "createCronHandler"]
+      : [join(presetsDir, "vercel/runtime/schedule-handler"), "createScheduleHandler"];
   nitro.options.virtual[SCHEDULE_HANDLER_ID] = () => {
-    const scheduleTasks = Object.fromEntries(getSchedules().map((s) => [s.name, s.task]));
+    const schedules = getSchedules();
+    const arg =
+      mode === "path" ? schedules : Object.fromEntries(schedules.map((s) => [s.name, s.task]));
     return /* js */ `
-import { createScheduleHandler } from "${handlerPath}";
-export default createScheduleHandler(${JSON.stringify(scheduleTasks)});
+import { ${factory} } from "${handlerPath}";
+export default ${factory}(${JSON.stringify(arg)});
 `;
   };
   nitro.options.handlers.push({
-    route: SCHEDULE_HANDLER_ROUTE,
+    route: mode === "path" ? getCronHandlerRoute(nitro) : SCHEDULE_HANDLER_ROUTE,
     lazy: true,
     handler: SCHEDULE_HANDLER_ID,
   });
@@ -153,8 +203,4 @@ export default createScheduleHandler(${JSON.stringify(scheduleTasks)});
 function toScheduleName(task: string): string {
   const name = task.replace(/[^\w.-]/g, ".");
   return /^[\dA-Za-z]/.test(name) ? name : `task-${name}`;
-}
-
-function isTruthyEnv(value: string | undefined): boolean {
-  return !!value && value !== "0" && value.toLowerCase() !== "false";
 }

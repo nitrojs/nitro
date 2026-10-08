@@ -1,8 +1,8 @@
 import { defineHandler, HTTPError } from "nitro/h3";
 import { runTask } from "#nitro/runtime/task";
 
-// https://github.com/vercel/schedules/blob/main/docs/schedule-dispatch-protocol.md
-const SCHEDULE_EVENT_TYPE = "com.vercel.schedule.v1beta";
+// https://vercel.com/docs/schedules
+export const SCHEDULE_EVENT_TYPE = "com.vercel.schedule.v1beta";
 const REQUIRED_HEADERS = [
   "ce-source",
   "ce-id",

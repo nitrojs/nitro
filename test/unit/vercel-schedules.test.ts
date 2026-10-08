@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Nitro, NitroOptions } from "nitro/types";
 
 import {
+  getVercelSchedulesMode,
   getVercelTaskSchedules,
   isVercelSchedulesEnabled,
   setupVercelSchedulesDev,
@@ -93,17 +94,37 @@ describe("isVercelSchedulesEnabled", () => {
   });
 });
 
+describe("getVercelSchedulesMode", () => {
+  it("uses private function targets by default", () => {
+    expect(getVercelSchedulesMode(options({ vercel: { schedules: true } }), {})).toBe("function");
+    expect(getVercelSchedulesMode(options(), { NITRO_VERCEL_SCHEDULES: "1" })).toBe("function");
+    expect(getVercelSchedulesMode(options(), { NITRO_VERCEL_SCHEDULES: "function" })).toBe(
+      "function"
+    );
+  });
+
+  it("opts in to path targets", () => {
+    expect(getVercelSchedulesMode(options({ vercel: { schedules: "path" } }), {})).toBe("path");
+    expect(getVercelSchedulesMode(options(), { NITRO_VERCEL_SCHEDULES: "path" })).toBe("path");
+  });
+
+  it("is disabled without the opt-in", () => {
+    expect(getVercelSchedulesMode(options(), {})).toBe(false);
+    expect(getVercelSchedulesMode(options(), { NITRO_VERCEL_SCHEDULES: "0" })).toBe(false);
+  });
+});
+
 describe("setupVercelSchedulesDev", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
   });
 
-  function createNitro() {
+  function createNitro(schedules: true | "path" = true) {
     return {
       options: options({
         tasks: { cleanup: task },
         scheduledTasks: { "0 3 * * *": "cleanup" },
-        vercel: { schedules: true },
+        vercel: { schedules },
         virtual: {},
         handlers: [],
       }),
@@ -134,5 +155,19 @@ describe("setupVercelSchedulesDev", () => {
       "#nitro/virtual/vercel-schedule-handler"
     ] as () => string;
     expect(template()).toContain(`createScheduleHandler({"cleanup":"cleanup"})`);
+  });
+
+  it("serves the cron handler for path targets", () => {
+    vi.stubEnv("VERCEL_SCHEDULE_DEV_API_VERSION", "1");
+    const nitro = createNitro("path");
+    setupVercelSchedulesDev(nitro);
+    expect(nitro.options.scheduledTasks).toEqual({});
+    expect(nitro.options.handlers).toEqual([expect.objectContaining({ route: "/_vercel/cron" })]);
+    const template = nitro.options.virtual[
+      "#nitro/virtual/vercel-schedule-handler"
+    ] as () => string;
+    expect(template()).toContain(
+      `createCronHandler([{"name":"cleanup","schedule":"0 3 * * *","task":"cleanup"}])`
+    );
   });
 });

@@ -58,7 +58,7 @@ export interface VercelBuildConfigV3 {
 
 /**
  * Vercel Schedules definition in the Build Output API
- * @see https://github.com/vercel/schedules/blob/main/docs/schedule-dispatch-protocol.md
+ * @see https://vercel.com/docs/schedules
  */
 export type VercelSchedule = {
   /** Schedule name, unique within the deployment. Defaults to a hash of the target and cron expression. */
@@ -203,19 +203,24 @@ export interface VercelOptions {
 
   /**
    * Run [`scheduledTasks`](https://nitro.build/docs/tasks#scheduled-tasks) with Vercel Schedules
-   * instead of Vercel Cron Jobs.
+   * instead of Vercel Cron Jobs. Nitro emits one schedule per task in the Build Output API.
    *
-   * Nitro emits one schedule per task in the Build Output API, targeting a private function
-   * that runs the task. The function is only invoked by Vercel Schedules, so no public cron
-   * endpoint or `CRON_SECRET` is needed. Under `vercel dev`, the local Schedules broker runs
-   * scheduled tasks instead of the in-process scheduler.
+   * - `true` or `"function"`: every schedule targets a private function that runs the task.
+   *   Only Vercel Schedules can invoke it, so there is no public cron endpoint and no
+   *   `CRON_SECRET` is needed.
+   * - `"path"`: every schedule targets the public cron handler route
+   *   ({@link VercelOptions.cronHandlerRoute}), which keeps working for direct requests
+   *   exactly like with Cron Jobs.
    *
-   * Defaults to the `NITRO_VERCEL_SCHEDULES` environment variable.
+   * Under `vercel dev`, the local Schedules broker runs scheduled tasks instead of the
+   * in-process scheduler.
+   *
+   * Defaults to the `NITRO_VERCEL_SCHEDULES` environment variable (`1`, `function`, or `path`).
    *
    * @experimental Vercel Schedules is in beta.
    * @default false
    */
-  schedules?: boolean;
+  schedules?: boolean | "function" | "path";
 
   /**
    * Vercel Queues configuration.

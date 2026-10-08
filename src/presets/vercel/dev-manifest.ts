@@ -6,13 +6,14 @@ import {
   SCHEDULE_FUNCTION_PATH,
   SCHEDULE_HANDLER_ROUTE,
   getVercelBuildOutputSchedules,
+  getVercelSchedulesMode,
   isVercelSchedulesEnabled,
 } from "./schedules.ts";
 
 import type { VercelFunctionTrigger, VercelSchedule } from "./types.ts";
 
 export interface VercelDevManifest {
-  /** Functions with a deployment identity, and where the dev server serves them. */
+  /** Functions with a deployment identity, and where the dev server serves them. Empty in `path` mode. */
   functions: {
     /** Build Output API function path, without a leading slash or `.func` suffix. */
     outputPath: string;
@@ -58,6 +59,9 @@ export async function getVercelDevManifest(
     const schedules = getVercelBuildOutputSchedules(nitro);
     if (schedules.length === 0) {
       return { functions: [], schedules: [] };
+    }
+    if (getVercelSchedulesMode(nitro.options) === "path") {
+      return { functions: [], schedules };
     }
     return {
       functions: [

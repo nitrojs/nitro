@@ -161,17 +161,21 @@ To prevent unauthorized access to the cron handler, set a `CRON_SECRET` environm
 
 ### Vercel Schedules
 
-:read-more{title="Schedule dispatch protocol" to="https://github.com/vercel/schedules/blob/main/docs/schedule-dispatch-protocol.md"}
+:read-more{title="Vercel Schedules" to="https://vercel.com/docs/schedules"}
 
 ::warning
 Vercel Schedules is in beta and must be enabled for your Vercel team.
 ::
 
-Set the `NITRO_VERCEL_SCHEDULES=1` environment variable (or `vercel.schedules: true`) to run `scheduledTasks` with [Vercel Schedules](https://github.com/vercel/schedules) instead of Cron Jobs. Your tasks and `scheduledTasks` configuration stay the same.
+Set the `NITRO_VERCEL_SCHEDULES=1` environment variable (or `vercel.schedules: true`) to run `scheduledTasks` with [Vercel Schedules](https://vercel.com/docs/schedules) instead of Cron Jobs. Your tasks and `scheduledTasks` configuration stay the same.
 
 Nitro then emits one schedule per task in the build output and no cron jobs. Each schedule is named after its task, with characters Vercel does not allow replaced by `.` (for example `db:cleanup` becomes `db.cleanup`). A task scheduled with several cron expressions gets a suffix per expression.
 
-All schedules invoke a private `_vercel/tasks` function that runs the scheduled task. The function is not publicly routable and only Vercel Schedules can invoke it, so there is no public cron endpoint and `CRON_SECRET` is not needed. Each task runs in its own invocation, with `payload.scheduledTime` set to the time the invocation started, as with Cron Jobs. Failed invocations are not retried.
+By default, all schedules invoke a private `_vercel/tasks` function that runs the scheduled task. The function is not publicly routable and only Vercel Schedules can invoke it, so there is no public cron endpoint and `CRON_SECRET` is not needed.
+
+If you call the cron endpoint yourself, set `NITRO_VERCEL_SCHEDULES=path` (or `vercel.schedules: "path"`) instead. The schedules then invoke the public cron handler route (`/_vercel/cron`, configurable via [`vercel.cronHandlerRoute`](#other-preset-options)), which keeps validating `CRON_SECRET` and running the tasks of the `x-vercel-cron-schedule` expression for direct requests, as with Cron Jobs.
+
+Either way, each task runs in its own invocation, with `payload.scheduledTime` set to the time the invocation started, as with Cron Jobs. Failed invocations are not retried.
 
 Under `vercel dev`, the local Schedules broker runs your scheduled tasks instead of the in-process scheduler, and `vercel schedules invoke <name> --local` runs one on demand. This requires `nitro dev` to use the Vercel preset, so set `preset: "vercel"` in your Nitro config (or `NITRO_PRESET=vercel`). Otherwise, and with `nitro dev` alone, scheduled tasks keep running in-process.
 
@@ -351,7 +355,7 @@ Additional options are available under the `vercel` key in your Nitro config:
 - `regions`: List of [regions](https://vercel.com/docs/concepts/functions/edge-functions#edge-function-regions) for edge functions.
 - `skewProtection`: Set to `false` to disable the Nitro [skew protection](https://vercel.com/docs/skew-protection) integration (enabled by default when skew protection is enabled in the Vercel dashboard).
 - `cronHandlerRoute`: Route path for the Vercel cron handler endpoint used with `scheduledTasks` (default: `"/_vercel/cron"`).
-- `schedules`: Run `scheduledTasks` with [Vercel Schedules](#vercel-schedules) instead of Cron Jobs (default: the `NITRO_VERCEL_SCHEDULES` environment variable).
+- `schedules`: Run `scheduledTasks` with [Vercel Schedules](#vercel-schedules) instead of Cron Jobs: `true` (or `"function"`) for a private function, `"path"` for the public cron handler route (default: the `NITRO_VERCEL_SCHEDULES` environment variable).
 
 ## On-demand incremental static regeneration (ISR)
 
