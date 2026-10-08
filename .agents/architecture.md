@@ -29,25 +29,29 @@
 **Builder dispatch** (`build/build.ts`): delegates to `rollup`, `rolldown`, or `vite` based on `nitro.options.builder`.
 
 **Builder selection** (resolved in `config/resolvers/builder.ts`):
-- Check `NITRO_BUILDER` / `NITRO_VITE_BUILDER` env vars
-- Auto-detect available packages
-- Fallback: rolldown → vite → rollup
+- Check `NITRO_BUILDER` env var
+- Auto-detect: `vite` when a `vite.config` uses `nitro()`, otherwise `rolldown`
+- No builder package is a dependency of Nitro: they are imported from the user project and installed on demand (`rolldown` via `build/rolldown/_import.ts`)
+- Dev without `rolldown` (and no `rollupConfig`/`rolldownConfig`) falls back to `builder: false`
 
 **Base config** (`build/config.ts`):
 - Extensions: `.ts`, `.mjs`, `.js`, `.json`, `.node`, `.tsx`, `.jsx`
 - Import.meta replacements (`import.meta.dev`, `import.meta.preset`, etc.)
-- Unenv aliases for polyfills
+- Node.js compatibility aliases (`unenv` targets go to the unenv plugin)
 - External dependency patterns
 
 **Plugins** (`build/plugins.ts`):
 1. Virtual modules — renders from `build/virtual/`
-2. WASM loader — unwasm
-3. Server main injection — `globalThis.__server_main__`
-4. Raw imports — `?raw` suffix
-5. Route meta — OpenAPI metadata
-6. Replace plugin — variable substitution
-7. Externals plugin — Node.js native resolution
-8. Sourcemap minify (optional)
+2. Unenv — resolves `unenv/*` polyfills, installing `unenv` on demand
+3. WASM loader — unwasm
+4. Server main injection — `globalThis.__server_main__`
+5. Raw imports — `?raw` suffix
+6. Route meta — OpenAPI metadata
+7. Replace plugin — variable substitution
+8. Externals plugin — Node.js native resolution
+9. Sourcemap minify (optional)
+
+User `buildPlugins` are added around this list by `withBuildPlugins()` (`enforce: "pre"` before, the others after the builder's own plugins). With `builder: false`, they are appended to the env-runner plugins (`build/unbundled/plugins.ts`).
 
 **Virtual modules** (`build/virtual/`, 14 templates):
 All prefixed `#nitro/virtual/<name>`:
@@ -58,7 +62,7 @@ All prefixed `#nitro/virtual/<name>`:
 - `server-assets.ts` — Server asset metadata
 - `runtime-config.ts` — Runtime config object
 - `database.ts` — Database setup
-- `storage.ts` — Storage backends
+- `kv.ts` — KV storage backends
 - `tasks.ts` — Task registry
 - `polyfills.ts` — Env polyfills
 - `feature-flags.ts` — Feature detection
@@ -91,7 +95,7 @@ All prefixed `#nitro/virtual/<name>`:
 - `plugin.ts` — Plugin helpers
 - `runtime-config.ts` — Config getter
 
-**Public exports**: `runtime/app.ts` (`defineConfig()`), `runtime/nitro.ts` (`serverFetch()`), `runtime/cache.ts`, `runtime/task.ts`, `runtime/storage.ts`, etc.
+**Public exports**: `runtime/app.ts` (`defineConfig()`), `runtime/nitro.ts` (`serverFetch()`), `runtime/cache.ts`, `runtime/task.ts`, `runtime/kv.ts`, etc.
 
 ## Dev Server (`src/dev/`)
 
@@ -147,7 +151,7 @@ Uses `citty` with lazy-loaded commands: `dev`, `build`, `deploy`, `preview`, `pr
 | `citty` | CLI framework |
 | `hookable` | Hook system |
 | `unstorage` | Storage abstraction |
-| `unenv` | Runtime polyfills |
+| `unenv` | Node.js polyfills for `node: false` builds (`build/_node-compat.ts`), installed on demand by `build/plugins/unenv.ts` |
 | `defu` | Config merging |
 | `pathe` | Path operations |
 | `consola` | Logging |

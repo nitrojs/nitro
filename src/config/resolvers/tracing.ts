@@ -2,7 +2,7 @@ import { join } from "pathe";
 import { runtimeDir } from "nitro/meta";
 import type { NitroOptions } from "nitro/types";
 
-export async function resolveTracingOptions(options: NitroOptions) {
+export async function resolveTracingChannelOptions(options: NitroOptions) {
   if (!options.tracingChannel) return;
   options.tracingChannel = {
     srvx: true,

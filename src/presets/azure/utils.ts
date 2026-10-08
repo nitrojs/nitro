@@ -10,7 +10,7 @@ export async function writeSWARoutes(nitro: Nitro) {
 
   // https://learn.microsoft.com/en-us/azure/azure-functions/functions-reference-node?tabs=typescript%2Cwindows%2Cazure-cli&pivots=nodejs-model-v4#supported-versions
   const supportedNodeVersions = new Set(["20", "22"]);
-  let nodeVersion = "18";
+  let nodeVersion = "22";
   try {
     const currentNodeVersion = JSON.parse(
       await fsp.readFile(join(nitro.options.rootDir, "package.json"), "utf8")
@@ -106,35 +106,10 @@ export async function writeSWARoutes(nitro: Nitro) {
     }
   }
 
-  const functionDefinition = {
-    entryPoint: "handle",
-    bindings: [
-      {
-        authLevel: "anonymous",
-        type: "httpTrigger",
-        direction: "in",
-        name: "req",
-        route: "{*url}",
-        methods: ["delete", "get", "head", "options", "patch", "post", "put"],
-      },
-      {
-        type: "http",
-        direction: "out",
-        name: "res",
-      },
-    ],
-  };
-
-  await writeFile(
-    resolve(nitro.options.output.serverDir, "function.json"),
-    JSON.stringify(functionDefinition, null, 2)
-  );
   await writeFile(
     resolve(nitro.options.output.serverDir, "../host.json"),
     JSON.stringify(host, null, 2)
   );
-  const stubPackageJson = resolve(nitro.options.output.serverDir, "../package.json");
-  await writeFile(stubPackageJson, JSON.stringify({ private: true }));
   await writeFile(
     resolve(nitro.options.rootDir, "staticwebapp.config.json"),
     JSON.stringify(config, null, 2)

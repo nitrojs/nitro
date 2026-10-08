@@ -225,10 +225,47 @@ describe("Vite dev worker reloads", () => {
 
     vi.useFakeTimers();
     const response = worker.fetch(new Request("http://localhost"));
-    await vi.advanceTimersByTimeAsync(30_000);
+    await vi.advanceTimersByTimeAsync(119_999);
+    expect(warnSpy).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
 
     expect(await (await response).text()).toBe("v1");
     expect(warnSpy).toHaveBeenCalledOnce();
+  });
+
+  test("keeps waiting for a slow reload past 30s (#4687)", async () => {
+    const worker = await createWorker();
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const reload = deferred<ReturnType<typeof entry>>();
+    importEntry.mockReturnValueOnce(reload.promise);
+
+    worker.ipc.onMessage({ type: "full-reload" });
+    await vi.waitFor(() => expect(importEntry).toHaveBeenCalledTimes(2));
+
+    vi.useFakeTimers();
+    const response = worker.fetch(new Request("http://localhost"));
+    await vi.advanceTimersByTimeAsync(60_000);
+    reload.resolve(entry("v2"));
+
+    expect(await (await response).text()).toBe("v2");
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  test("uses the reload timeout passed to setReloadWaitTimeout", async () => {
+    const worker = await createWorker();
+    worker.setReloadWaitTimeout(5000);
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    importEntry.mockReturnValueOnce(new Promise(() => {}));
+
+    worker.ipc.onMessage({ type: "full-reload" });
+    await vi.waitFor(() => expect(importEntry).toHaveBeenCalledTimes(2));
+
+    vi.useFakeTimers();
+    const response = worker.fetch(new Request("http://localhost"));
+    await vi.advanceTimersByTimeAsync(5000);
+
+    expect(await (await response).text()).toBe("v1");
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("within 5000ms"));
   });
 
   test("recovers after a failed reload", async () => {
@@ -249,5 +286,42 @@ describe("Vite dev worker reloads", () => {
 
     expect(await (await worker.fetch(new Request("http://localhost"))).text()).toBe("v2");
     expect(errorSpy).toHaveBeenCalledOnce();
+  });
+
+  // The registration arrives over IPC, which is not ordered with requests (workerd
+  // dispatches them over HTTP and IPC over a WebSocket).
+  test("waits for the environment to register before fetching", async () => {
+    importEntry.mockResolvedValueOnce(entry("v1"));
+    const worker = await import("../../src/runtime/internal/vite/dev-worker.mjs");
+    worker.setModuleRunner(moduleRunner);
+
+    const response = worker.fetch(new Request("http://localhost"));
+    worker.ipc.onMessage({
+      type: "custom",
+      event: "nitro:vite-env",
+      data: { name: "nitro", entry: "/entry.mjs" },
+    });
+
+    const res = await response;
+    expect(await res.text()).toBe("v1");
+    expect(res.status).toBe(200);
+  });
+
+  test("fails a request for an environment that never registers", async () => {
+    const worker = await createWorker();
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    vi.useFakeTimers();
+    const response = worker.fetch(
+      new Request("http://localhost", {
+        headers: { accept: "application/json", "x-vite-env": "unknown" },
+      })
+    );
+    await vi.advanceTimersByTimeAsync(30_000);
+
+    const res = await response;
+    expect(res.status).toBe(500);
+    expect(await res.json()).toMatchObject({ message: 'Unknown vite environment "unknown"' });
+    expect(warnSpy).not.toHaveBeenCalled();
   });
 });

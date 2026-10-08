@@ -71,15 +71,8 @@ body {
   justify-content: center;
   background: #f6f8fa;
   font-family:
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    Roboto,
-    "Helvetica Neue",
-    Arial,
-    "Noto Sans",
-    "Liberation Sans",
-    sans-serif;
+    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans",
+    "Liberation Sans", sans-serif;
 }
 .card {
   text-align: left;

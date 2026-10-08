@@ -1,4 +1,5 @@
-import type { send } from "@vercel/queue";
+import type { MessageMetadata, send } from "@vercel/queue";
+import type { OptionalDepType } from "../../types/_utils.ts";
 
 /**
  * Vercel Build Output Configuration
@@ -188,7 +189,9 @@ export interface VercelOptions {
    * @example
    * ```ts
    * // nitro.config.ts
-   * export default defineNitroConfig({
+   * import { defineConfig } from "nitro";
+   *
+   * export default defineConfig({
    *   vercel: {
    *     queues: {
    *       triggers: [{ topic: "orders" }],
@@ -199,7 +202,9 @@ export interface VercelOptions {
    *
    * ```ts
    * // server/plugins/queues.ts
-   * export default defineNitroPlugin((nitro) => {
+   * import { definePlugin } from "nitro";
+   *
+   * export default definePlugin((nitro) => {
    *   nitro.hooks.hook("vercel:queue", ({ message, metadata }) => {
    *     console.log(`Received message on ${metadata.topicName}:`, message);
    *   });
@@ -285,8 +290,33 @@ declare module "nitro/types" {
   export interface NitroRuntimeHooks {
     "vercel:queue": (_: {
       message: unknown;
-      metadata: import("@vercel/queue").MessageMetadata;
-      send: typeof send;
+      metadata: OptionalDepType<MessageMetadata, VercelQueueMessageMetadata>;
+      send: OptionalDepType<typeof send, VercelQueueSend>;
     }) => void;
   }
 }
+
+// Fallback `@vercel/queue` types, used when it is not installed
+
+interface VercelQueueMessageMetadata {
+  messageId: string;
+  deliveryCount: number;
+  createdAt: Date;
+  expiresAt: Date;
+  topicName: string;
+  consumerGroup: string;
+  region: string;
+}
+
+type VercelQueueSend = <T = unknown>(
+  topicName: string,
+  payload: T,
+  options?: {
+    idempotencyKey?: string;
+    retentionSeconds?: number;
+    delaySeconds?: number;
+    headers?: Record<string, string>;
+    region?: string;
+    [key: string]: unknown;
+  }
+) => Promise<{ messageId: string | null }>;

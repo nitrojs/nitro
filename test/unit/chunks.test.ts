@@ -3,6 +3,7 @@ import type { Nitro } from "nitro/types";
 import {
   NODE_MODULES_RE,
   libChunkName,
+  libChunksGroup,
   pathToPkgName,
   getChunkName,
   routeToFsPath,
@@ -60,6 +61,16 @@ describe("libChunkName", () => {
     ["/node_modules/nitro-nightly/dist/index.js", "_libs/nitro"],
   ])("%s → %s", (id, expected) => {
     expect(libChunkName(id)).toBe(expected);
+  });
+});
+
+describe("libChunksGroup", () => {
+  it("has a non-enumerable debugName", () => {
+    const group = libChunksGroup();
+    expect(group.test).toBe(NODE_MODULES_RE);
+    expect(group.name("/node_modules/express/index.js")).toBe("_libs/express");
+    expect((group as { debugName?: string }).debugName).toBe("libs");
+    expect(Object.keys(group)).toEqual(["test", "name"]);
   });
 });
 

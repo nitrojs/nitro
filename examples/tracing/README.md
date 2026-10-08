@@ -46,5 +46,5 @@ The request boundary comes from Nitro's `request`/`response` runtime hooks, so g
 | Channel | Span | Emitted by |
 | --- | --- | --- |
 | `h3.request` | each matched route and middleware | `server/routes/*`, `server/middleware/*` |
-| `unstorage.*` | each storage operation (`getItem`, `setItem`, …) | `useStorage()` in `server/routes/index.ts` |
+| `unstorage.*` | each storage operation (`getItem`, `setItem`, …) | `useKV()` in `server/routes/index.ts` |
 | `srvx.request` | the whole request, with response status (production server) | the srvx server layer |

@@ -114,7 +114,7 @@ import { definePlugin } from "nitro"; // runtime plugin
 import { defineRouteMeta } from "nitro"; // route meta macro
 import { readBody, getQuery } from "nitro/h3"; // other h3 utilities
 import { defineCachedHandler, defineCachedFunction } from "nitro/cache";
-import { useStorage } from "nitro/storage";
+import { useKV } from "nitro/kv";
 import { useDatabase } from "nitro/database";
 import { useRuntimeConfig } from "nitro/runtime-config";
 import { defineTask, runTask } from "nitro/task";
