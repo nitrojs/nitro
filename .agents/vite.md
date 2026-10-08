@@ -261,6 +261,15 @@ the SSR entry, still auto-detected despite Vitest's own `ssr` environment) are i
 creates the app lazily in `beforeAll` (after the test file's `vi.mock` calls) so `serverFetch` from
 `nitro` works; it is an empty module in other environments. vm pools keep Vitest's default environment.
 
+Watch mode (`configureVitest` hook, `_vitest-watch.ts`): Vitest's own importer walk stops at
+virtual modules (their `file` is empty), so a `watchTriggerPatterns` entry walks the `nitro`
+module graph through them (a setup file importer means every test file of the environment) and
+hands the tests to Vitest's own debounced rerun. It only answers when the walk crossed a virtual
+module, so other changes keep Vitest's default handling. Added/removed scan dir files run the
+same rescan as dev (`_scan-watch.ts`), then `rerunTestSpecifications` with the tests depending on
+`#nitro/virtual/*`. Nitro config changes call `vitest.vite.restart()`, which Vitest hijacks to
+restart itself (it ignores `configFileDependencies`).
+
 ## Key Connections
 
 - `src/vite.ts` — public export (`nitro` plugin)

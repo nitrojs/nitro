@@ -54,7 +54,7 @@ export function nitro(pluginConfig: NitroPluginConfig = {}): VitePlugin[] {
     nitroPrepare(ctx),
     nitroDevServiceProxy(ctx),
     nitroPreviewPlugin(ctx),
-    nitroVitest(),
+    nitroVitest(ctx),
     pluginConfig.experimental?.vite?.assetsImport !== false &&
       assetsPlugin({
         experimental: {

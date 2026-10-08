@@ -8,12 +8,11 @@ import { IncomingMessage, ServerResponse } from "node:http";
 import { readFile } from "node:fs/promises";
 import { NodeRequest, sendNodeResponse } from "srvx/node";
 import { createViteHotChannel } from "env-runner/vite";
-import { basename, dirname, isAbsolute, join, normalize, relative } from "pathe";
+import { isAbsolute, join, relative } from "pathe";
 import { debounce } from "perfect-debounce";
 import { withBase, withoutBase } from "ufo";
-import { scanHandlers } from "../../scan.ts";
-import { onWatchError } from "../../utils/watch.ts";
 import { handleDevRPC } from "../../dev/_rpc.ts";
+import { rescanHandlers, watchScanDirs } from "./_scan-watch.ts";
 import { importVite, _resolveFromPath, type ViteImportOptions } from "./_import.ts";
 
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
@@ -214,38 +213,10 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
 
   // Rebuild on scan dir changes
   const reload = debounce(async () => {
-    await scanHandlers(nitro);
-    nitro.routing.sync();
-    nitroEnv.moduleGraph.invalidateAll();
+    await rescanHandlers(nitro, nitroEnv);
     nitroEnv.hot.send({ type: "full-reload" });
   });
-
-  const scanDirs = nitro.options.scanDirs.flatMap((dir) => [
-    join(dir, nitro.options.apiDir || "api"),
-    join(dir, nitro.options.routesDir || "routes"),
-    join(dir, "middleware"),
-    join(dir, "plugins"),
-    join(dir, "modules"),
-  ]);
-
-  // Reuse vite's watcher (root is already watched) to avoid extra system watchers
-  const serverEntryRe = /^server\.[mc]?[jt]sx?$/;
-  const watchReloadEvents = new Set(["add", "addDir", "unlink", "unlinkDir"]);
-  const shouldReload = (path: string) => {
-    path = normalize(path);
-    return (
-      scanDirs.some((dir) => path === dir || path.startsWith(dir + "/")) ||
-      (serverEntryRe.test(basename(path)) && dirname(path) + "/" === nitro.options.rootDir)
-    );
-  };
-  server.watcher.on("error", (error) => onWatchError(nitro, error));
-  server.watcher.add(scanDirs.filter((dir) => !dir.startsWith(server.config.root + "/")));
-  server.watcher.on("all", (event, path) => {
-    if (watchReloadEvents.has(event) && shouldReload(path)) {
-      reload();
-    }
-  });
-  nitro.hooks.hook("rollup:reload", () => reload());
+  watchScanDirs(nitro, server, () => reload());
 
   // Vite only installs a `SIGTERM` handler, so Ctrl+C (`SIGINT`) tears the process down before
   // any `close` hook runs and leaves the dev worker (and its resources) behind (#4586). In

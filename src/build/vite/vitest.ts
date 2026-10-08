@@ -1,6 +1,8 @@
 import type { UserConfig, Plugin as VitePlugin } from "vite";
+import type { NitroPluginContext } from "./types.ts";
 import { resolve } from "pathe";
 import { runtimeDir } from "nitro/meta";
+import { setupVitestWatch } from "./_vitest-watch.ts";
 
 // https://vitest.dev/guide/environment#custom-environment
 
@@ -18,7 +20,7 @@ export function isVitest(config: UserConfig): boolean {
  * The environment is set by path, since Vitest resolves named environments as packages before
  * loading the config plugins. `// @vitest-environment nitro` resolves through `resolveId`.
  */
-export function nitroVitest(): VitePlugin {
+export function nitroVitest(ctx: NitroPluginContext): VitePlugin {
   const envPath = resolve(runtimeDir, "internal/vite/vitest-env.mjs");
   const setupPath = resolve(runtimeDir, "internal/vite/vitest-setup.mjs");
   return {
@@ -40,6 +42,10 @@ export function nitroVitest(): VitePlugin {
           setupFiles: [setupPath],
         },
       } as UserConfig;
+    },
+
+    configureVitest(context) {
+      setupVitestWatch(ctx, context);
     },
 
     // Setup files run in every test environment, but only the nitro one has an app
