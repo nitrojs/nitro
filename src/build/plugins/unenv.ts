@@ -60,7 +60,20 @@ export function unenv(nitro: Nitro, env: BuildEnv): Plugin {
             return;
           }
           // Direct imports of `unenv` keep their regular resolution (e.g. a dependency's own copy)
-          const resolved = await this.resolve(id, importer, { ...options, skipSelf: true });
+          let resolved: Awaited<ReturnType<typeof this.resolve>>;
+          try {
+            resolved = await this.resolve(id, importer, { ...options, skipSelf: true });
+          } catch (error: any) {
+            if (error?.code === "ENOTDIR") {
+              throw new Error(
+                `Cannot resolve "${id}" — the package may be missing an export condition for this subpath.\n` +
+                `Tip: Add an alias in your nitro config:\n` +
+                `  alias: { '${id}': '/path/to/correct-file' }`,
+                { cause: error }
+              );
+            }
+            throw error;
+          }
           if (resolved) {
             return resolved;
           }
@@ -76,7 +89,19 @@ export function unenv(nitro: Nitro, env: BuildEnv): Plugin {
           );
         }
         // Resolve the polyfill through other plugins as well (CommonJS interop, side effects)
-        return (await this.resolve(path, importer, { ...options, skipSelf: true })) || path;
+        try {
+          return (await this.resolve(path, importer, { ...options, skipSelf: true })) || path;
+        } catch (error: any) {
+          if (error?.code === "ENOTDIR") {
+            throw new Error(
+              `Cannot resolve "${path}" — the package may be missing an export condition for this subpath.\n` +
+              `Tip: Add an alias in your nitro config:\n` +
+              `  alias: { '${path}': '/path/to/correct-file' }`,
+              { cause: error }
+            );
+          }
+          throw error;
+        }
       },
     },
   };

@@ -104,7 +104,24 @@ export function externals(opts: ExternalsOptions): Plugin {
         }
 
         // Resolve by other resolvers
-        let resolved = await this.resolve(id, importer, rOpts);
+        let resolved: Awaited<ReturnType<typeof this.resolve>>;
+        try {
+          resolved = await this.resolve(id, importer, rOpts);
+        } catch (error: any) {
+          if (error?.code === "ENOTDIR") {
+            // This happens when a package's exports map has a subpath (e.g. "node-fetch-native/proxy")
+            // that is missing a specific condition (e.g. "workerd"), and the resolver falls back to
+            // the root entry's resolved file path and appends the subpath to it — producing an
+            // impossible path like "dist/native.mjs/proxy".
+            throw new Error(
+              `Cannot resolve "${id}" — the package may be missing an export condition for this subpath.\n` +
+              `Tip: Add an alias in your nitro config:\n` +
+              `  alias: { '${id}': '/path/to/node_modules/...correct-file...' }`,
+              { cause: error }
+            );
+          }
+          throw error;
+        }
 
         // Skip rolldown-plugin-commonjs resolver for externals
         const cjsResolved = resolved?.meta?.commonjs?.resolved;
