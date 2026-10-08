@@ -23,6 +23,10 @@ describe("vite: vitest", () => {
     await runFixture(["--config", "vite.projects.config.ts"]);
   }, 60_000);
 
+  test("ignores the dev runner of the preset", async () => {
+    await runFixture(["--config", "vite.cloudflare.config.ts"]);
+  }, 60_000);
+
   async function runFixture(args: string[]) {
     const runDir = mkdtempSync(join(tmpDir, "run-"));
     const logFile = join(runDir, "close.log");

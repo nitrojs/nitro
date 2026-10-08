@@ -516,6 +516,11 @@ async function setupNitroContext(
     fallthrough: true,
   });
 
+  // Vitest runs test files in its own Node.js workers, so hooks must not set up another runner
+  if (ctx._isVitest) {
+    ctx.nitro.options.devServer.runner = "node-worker";
+  }
+
   // Call build:before hook **before resolving rollup config** for compatibility
   await ctx.nitro.hooks.callHook("build:before", ctx.nitro);
 
