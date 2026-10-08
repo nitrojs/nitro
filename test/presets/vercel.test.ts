@@ -961,7 +961,6 @@ describe("nitro:preset:vercel:schedules", async () => {
   });
 
   it("should reject requests that are not schedule dispatches", async () => {
-    expect((await dispatch("db.migrate", { method: "GET" })).status).toBe(400);
     expect((await dispatch("db.migrate", { type: "com.vercel.queue.v2beta" })).status).toBe(400);
   });
 

@@ -22,11 +22,7 @@ const REQUIRED_HEADERS = [
 export function createScheduleHandler(scheduleTasks: Record<string, string>) {
   return defineHandler(async (event) => {
     const headers = event.req.headers;
-    if (
-      event.req.method !== "POST" ||
-      headers.get("ce-specversion") !== "1.0" ||
-      headers.get("ce-type") !== SCHEDULE_EVENT_TYPE
-    ) {
+    if (headers.get("ce-specversion") !== "1.0" || headers.get("ce-type") !== SCHEDULE_EVENT_TYPE) {
       throw new HTTPError("Not a Vercel Schedules dispatch", { status: 400 });
     }
     const missing = REQUIRED_HEADERS.filter((name) => !headers.get(name));
