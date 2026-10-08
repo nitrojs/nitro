@@ -543,7 +543,8 @@ export function normalizeMatcher(input: string | RegExp | Matcher): Matcher {
 
   if (typeof input === "string") {
     const pattern = normalize(input);
-    const matcher = ((id: string) => {
+    const matcher = ((_id: string) => {
+      const id = _id.replace(/\\/g, "/");
       const idWithoutNodeModules = id.split("node_modules/").pop();
       return (
         id.startsWith(pattern) || idWithoutNodeModules?.startsWith(pattern)

@@ -23,6 +23,10 @@ import {
   unenvWorkerdWithNodeCompat,
 } from "../_unenv/preset-workerd";
 
+// https://github.com/nitrojs/nitro/issues/4527
+// https://github.com/nitrojs/nitro/issues/4649
+const NODEJS_COMPAT_DEFAULT_ON_DATE = "2026-08-04";
+
 export async function writeCFRoutes(nitro: Nitro) {
   const _cfPagesConfig = nitro.options.cloudflare?.pages || {};
   const routes: CloudflarePagesRoutes = {
@@ -207,9 +211,18 @@ export async function enableNodeCompat(nitro: Nitro) {
   if (nitro.options.cloudflare.nodeCompat === undefined) {
     const { config } = await readWranglerConfig(nitro);
     const userCompatibilityFlags = new Set(config?.compatibility_flags || []);
+    const compatDate =
+      config?.compatibility_date ||
+      nitro.options.compatibilityDate?.cloudflare ||
+      nitro.options.compatibilityDate?.default;
+    const isDefaultNodeCompat =
+      Boolean(compatDate && compatDate >= NODEJS_COMPAT_DEFAULT_ON_DATE) &&
+      !userCompatibilityFlags.has("no_nodejs_compat");
+
     if (
       userCompatibilityFlags.has("nodejs_compat") ||
       userCompatibilityFlags.has("nodejs_compat_v2") ||
+      isDefaultNodeCompat ||
       nitro.options.cloudflare.deployConfig
     ) {
       nitro.options.cloudflare.nodeCompat = true;
@@ -309,16 +322,31 @@ export async function writeWranglerConfig(
   }
 
   // Read user config
-  const { config: userConfig = {} } = await readWranglerConfig(nitro);
+  const { configPath: userConfigPath, config: userConfig = {} } =
+    await readWranglerConfig(nitro);
 
   // Nitro context config (from frameworks and modules)
   const ctxConfig = nitro.options.cloudflare?.wrangler || {};
 
   // Validate and warn about overrides
   for (const key in overrides) {
-    if (key in userConfig || key in ctxConfig) {
+    let conflict: "ctx" | "user" | undefined;
+    if (key === "assets") {
+      conflict = findAssetsConflict(
+        overrides.assets!,
+        ctxConfig.assets,
+        userConfig.assets,
+        wranglerConfigDir,
+        userConfigPath ? dirname(userConfigPath) : nitro.options.rootDir
+      );
+    } else if (key in ctxConfig) {
+      conflict = "ctx";
+    } else if (key in userConfig) {
+      conflict = "user";
+    }
+    if (conflict) {
       nitro.logger.warn(
-        `[cloudflare] Wrangler config \`${key}\`${key in ctxConfig ? "set by config or modules" : ""} is overridden and will be ignored.`
+        `[cloudflare] Wrangler config \`${key}\`${conflict === "ctx" ? " set by config or modules" : ""} is overridden and will be ignored.`
       );
     }
   }
@@ -358,7 +386,11 @@ export async function writeWranglerConfig(
       );
     } else {
       // Add default compatibility flags
-      compatFlags.add("nodejs_compat");
+      // (`nodejs_compat` is enabled by default from 2026-08-04 and some workerd versions reject it explicitly)
+      const compatDate = wranglerConfig.compatibility_date;
+      if (!compatDate || compatDate < NODEJS_COMPAT_DEFAULT_ON_DATE) {
+        compatFlags.add("nodejs_compat");
+      }
       compatFlags.add("no_nodejs_compat_v2");
     }
   }
@@ -383,6 +415,36 @@ export async function writeWranglerConfig(
     }),
     true
   );
+}
+
+type WranglerAssets = NonNullable<WranglerConfig["assets"]>;
+
+// Returns the source of an asset `binding` or `directory` that differs from the generated one
+// Context config is copied into the generated config (relative to `generatedDir`),
+// while user config paths are relative to the user wrangler config (`userDir`)
+function findAssetsConflict(
+  expected: WranglerAssets,
+  ctxAssets: Partial<WranglerAssets> | undefined,
+  userAssets: Partial<WranglerAssets> | undefined,
+  generatedDir: string,
+  userDir: string
+): "ctx" | "user" | undefined {
+  for (const field of ["binding", "directory"] as const) {
+    // Context config takes precedence over user config (null means unset in JSON)
+    const source = ctxAssets?.[field] == null ? "user" : "ctx";
+    const value = (source === "ctx" ? ctxAssets : userAssets)?.[field];
+    if (value == null) {
+      continue;
+    }
+    const isConflict =
+      field === "directory"
+        ? resolve(source === "ctx" ? generatedDir : userDir, value) !==
+          resolve(generatedDir, expected.directory!)
+        : value !== expected.binding;
+    if (isConflict) {
+      return source;
+    }
+  }
 }
 
 async function generateWorkerName(nitro: Nitro) {
