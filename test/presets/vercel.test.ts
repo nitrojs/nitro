@@ -875,6 +875,126 @@ describe("nitro:preset:vercel:node", async () => {
   );
 });
 
+describe("nitro:preset:vercel:schedules", async () => {
+  const ctx = await setupTest("vercel", {
+    outDirSuffix: "-schedules",
+    config: {
+      preset: "vercel",
+      vercel: { schedules: true },
+      scheduledTasks: {
+        "0 3 * * *": ["db:migrate", "test"],
+      },
+    },
+  });
+
+  const readJSON = (path: string) =>
+    fsp.readFile(resolve(ctx.outDir, path), "utf8").then((r) => JSON.parse(r));
+
+  const dispatch = async (name: string, init: { method?: string; type?: string } = {}) => {
+    const { fetch: fetchHandler } = await import(
+      resolve(ctx.outDir, "functions/_vercel/tasks.func/index.mjs")
+    ).then((r) => r.default || r);
+    const headers = {
+      "ce-specversion": "1.0",
+      "ce-type": init.type ?? "com.vercel.schedule.v1beta",
+      "ce-source": `/schedule/default/${name}`,
+      "ce-id": "execution-1",
+      "ce-vssscheduleid": "schedule-1",
+      "ce-vssschedulename": name,
+      "ce-vssnamespace": "default",
+      "ce-vssscheduledat": "2026-09-02T03:00:00.000Z",
+      "ce-vssschedulesource": "static",
+    };
+    return fetchHandler(
+      new Request("https://example.com/_vercel/tasks", { method: init.method ?? "POST", headers }),
+      { waitUntil: vi.fn() }
+    ) as Promise<Response>;
+  };
+
+  it("should emit one schedule per task instead of cron jobs", async () => {
+    const config = await readJSON("config.json");
+    expect(config.crons).toBeUndefined();
+    expect(config.schedules).toMatchInlineSnapshot(`
+      [
+        {
+          "function": "_vercel/tasks",
+          "name": "test.1cec0f",
+          "schedule": "* * * * *",
+        },
+        {
+          "function": "_vercel/tasks",
+          "name": "db.migrate",
+          "schedule": "0 3 * * *",
+        },
+        {
+          "function": "_vercel/tasks",
+          "name": "test.51c662",
+          "schedule": "0 3 * * *",
+        },
+      ]
+    `);
+  });
+
+  it("should create a private function with the schedule trigger", async () => {
+    const funcDir = resolve(ctx.outDir, "functions/_vercel/tasks.func");
+    const stat = await fsp.lstat(funcDir);
+    expect(stat.isSymbolicLink()).toBe(false);
+    const config = await readJSON("functions/_vercel/tasks.func/.vc-config.json");
+    expect(config.experimentalTriggers).toEqual([{ type: "schedule/v1beta" }]);
+  });
+
+  it("should not register the cron handler", async () => {
+    const config = await readJSON("config.json");
+    const routes = config.routes as { dest?: string }[];
+    expect(routes.some((r) => r.dest === "/_vercel/cron")).toBe(false);
+  });
+
+  it("should run the task of a schedule dispatch", async () => {
+    const res = await dispatch("db.migrate");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ success: true });
+  });
+
+  it("should reject unknown schedules", async () => {
+    const res = await dispatch("unknown");
+    expect(res.status).toBe(404);
+  });
+
+  it("should reject requests that are not schedule dispatches", async () => {
+    expect((await dispatch("db.migrate", { method: "GET" })).status).toBe(400);
+    expect((await dispatch("db.migrate", { type: "com.vercel.queue.v2beta" })).status).toBe(400);
+  });
+
+  it("should describe the same schedules for vercel dev", async () => {
+    const { getVercelDevManifest } = await import("../../src/presets/vercel/dev-manifest.ts");
+    const manifest = await getVercelDevManifest({
+      rootDir: fixtureDir,
+      config: {
+        preset: "vercel",
+        vercel: { schedules: true },
+        scheduledTasks: { "0 3 * * *": ["db:migrate", "test"] },
+      },
+    });
+    expect(manifest.functions).toEqual([
+      {
+        outputPath: "_vercel/tasks",
+        invocation: { type: "http", pathname: "/_vercel/tasks" },
+        experimentalTriggers: [{ type: "schedule/v1beta" }],
+      },
+    ]);
+    expect(manifest.schedules).toEqual((await readJSON("config.json")).schedules);
+  });
+
+  it("should describe nothing for vercel dev when nitro dev does not use the Vercel preset", async () => {
+    const { getVercelDevManifest } = await import("../../src/presets/vercel/dev-manifest.ts");
+    const manifest = await getVercelDevManifest({
+      rootDir: fixtureDir,
+      config: { preset: "node-server", vercel: { schedules: true } },
+    });
+    expect(manifest).toEqual({ functions: [], schedules: [] });
+  });
+});
+
 describe("nitro:preset:vercel:bun", async () => {
   const ctx = await setupTest("vercel", {
     outDirSuffix: "-bun",

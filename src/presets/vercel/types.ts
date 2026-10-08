@@ -53,7 +53,23 @@ export interface VercelBuildConfigV3 {
     path: string;
     schedule: string;
   }[];
+  schedules?: VercelSchedule[];
 }
+
+/**
+ * Vercel Schedules definition in the Build Output API
+ * @see https://github.com/vercel/schedules/blob/main/docs/schedule-dispatch-protocol.md
+ */
+export type VercelSchedule = {
+  /** Schedule name, unique within the deployment. Defaults to a hash of the target and cron expression. */
+  name?: string;
+  /** Cron expression. */
+  schedule: string;
+  /** IANA timezone the cron expression is evaluated in. Defaults to UTC. */
+  timezone?: string;
+  /** Maximum random delay in minutes, from 1 to 15. */
+  jitter?: number;
+} & ({ function: string } | { path: string; requestMethod?: "GET" | "POST" } | { topic: string });
 
 /**
  * https://vercel.com/docs/build-output-api/primitives#serverless-function-configuration
@@ -116,13 +132,17 @@ export interface VercelServerlessFunctionConfig {
   [key: string]: unknown;
 }
 
-export type VercelFunctionTrigger = {
-  type: "queue/v2beta";
-  topic: string;
-  retryAfterSeconds?: number;
-  initialDelaySeconds?: number;
-  consumer?: string;
-};
+export type VercelFunctionTrigger =
+  | {
+      type: "queue/v2beta";
+      topic: string;
+      retryAfterSeconds?: number;
+      initialDelaySeconds?: number;
+      consumer?: string;
+    }
+  | {
+      type: "schedule/v1beta";
+    };
 
 export interface VercelOptions {
   config?: VercelBuildConfigV3;
@@ -180,6 +200,22 @@ export interface VercelOptions {
    * @see https://vercel.com/docs/cron-jobs
    */
   cronHandlerRoute?: string;
+
+  /**
+   * Run [`scheduledTasks`](https://nitro.build/docs/tasks#scheduled-tasks) with Vercel Schedules
+   * instead of Vercel Cron Jobs.
+   *
+   * Nitro emits one schedule per task in the Build Output API, targeting a private function
+   * that runs the task. The function is only invoked by Vercel Schedules, so no public cron
+   * endpoint or `CRON_SECRET` is needed. Under `vercel dev`, the local Schedules broker runs
+   * scheduled tasks instead of the in-process scheduler.
+   *
+   * Defaults to the `NITRO_VERCEL_SCHEDULES` environment variable.
+   *
+   * @experimental Vercel Schedules is in beta.
+   * @default false
+   */
+  schedules?: boolean;
 
   /**
    * Vercel Queues configuration.

@@ -30,6 +30,7 @@ import type {
 } from "./types.ts";
 import { isTest } from "std-env";
 import { ISR_URL_PARAM } from "./runtime/isr.ts";
+import { getVercelBuildOutputSchedules, isVercelSchedulesEnabled } from "./schedules.ts";
 
 // https://vercel.com/docs/build-output-api/configuration
 
@@ -360,8 +361,20 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     ],
   } as VercelBuildConfigV3);
 
+  // Schedules from scheduledTasks
+  if (isVercelSchedulesEnabled(nitro.options)) {
+    const schedules = nitro.options.static ? [] : getVercelBuildOutputSchedules(nitro);
+    if (nitro.options.static && Object.keys(nitro.options.scheduledTasks || {}).length > 0) {
+      nitro.logger.warn(
+        "Scheduled tasks are not supported by the `vercel-static` preset. Use the `vercel` preset to run them with Vercel Schedules."
+      );
+    }
+    if (schedules.length > 0) {
+      config.schedules = [...schedules, ...(config.schedules || [])];
+    }
+  }
   // Cron jobs from scheduledTasks
-  if (
+  else if (
     nitro.options.experimental.tasks &&
     Object.keys(nitro.options.scheduledTasks || {}).length > 0
   ) {

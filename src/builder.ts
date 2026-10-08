@@ -29,3 +29,7 @@ export { prerender } from "./prerender/prerender.ts";
 
 // Tasks API
 export { runTask, listTasks } from "./task.ts";
+
+// Vercel
+export { getVercelDevManifest } from "./presets/vercel/dev-manifest.ts";
+export type { VercelDevManifest } from "./presets/vercel/dev-manifest.ts";
