@@ -36,11 +36,6 @@ export function createScheduleHandler(scheduleTasks: Record<string, string>) {
       });
     }
 
-    const scheduledTime = Date.parse(headers.get("ce-vssscheduledat")!);
-    if (Number.isNaN(scheduledTime)) {
-      throw new HTTPError("Invalid `ce-vssscheduledat` header", { status: 400 });
-    }
-
     const name = headers.get("ce-vssschedulename")!;
     const task = Object.hasOwn(scheduleTasks, name) ? scheduleTasks[name] : undefined;
     if (!task) {
@@ -48,7 +43,7 @@ export function createScheduleHandler(scheduleTasks: Record<string, string>) {
     }
 
     await runTask(task, {
-      payload: { scheduledTime },
+      payload: { scheduledTime: Date.now() },
       context: { waitUntil: event.req.waitUntil },
     });
 

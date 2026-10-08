@@ -171,7 +171,7 @@ Set the `NITRO_VERCEL_SCHEDULES=1` environment variable (or `vercel.schedules: t
 
 Nitro then emits one schedule per task in the build output and no cron jobs. Each schedule is named after its task, with characters Vercel does not allow replaced by `.` (for example `db:cleanup` becomes `db.cleanup`). A task scheduled with several cron expressions gets a suffix per expression.
 
-All schedules invoke a private `_vercel/tasks` function that runs the scheduled task. The function is not publicly routable and only Vercel Schedules can invoke it, so there is no public cron endpoint and `CRON_SECRET` is not needed. Each task runs in its own invocation, receiving the occurrence's scheduled time as `payload.scheduledTime`. Failed invocations are not retried.
+All schedules invoke a private `_vercel/tasks` function that runs the scheduled task. The function is not publicly routable and only Vercel Schedules can invoke it, so there is no public cron endpoint and `CRON_SECRET` is not needed. Each task runs in its own invocation, with `payload.scheduledTime` set to the time the invocation started, as with Cron Jobs. Failed invocations are not retried.
 
 Under `vercel dev`, the local Schedules broker runs your scheduled tasks instead of the in-process scheduler, and `vercel schedules invoke <name> --local` runs one on demand. This requires `nitro dev` to use the Vercel preset, so set `preset: "vercel"` in your Nitro config (or `NITRO_PRESET=vercel`). Otherwise, and with `nitro dev` alone, scheduled tasks keep running in-process.
 
