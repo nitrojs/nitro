@@ -904,6 +904,7 @@ describe("nitro:preset:vercel:schedules", async () => {
       "ce-vssnamespace": "default",
       "ce-vssscheduledat": "2026-09-02T03:00:00.000Z",
       "ce-vssschedulesource": "static",
+      "ce-vssexpression": "0 3 * * *",
     };
     return fetchHandler(
       new Request("https://example.com/_vercel/tasks", { method: init.method ?? "POST", headers }),

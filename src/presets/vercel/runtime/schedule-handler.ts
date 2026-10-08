@@ -11,6 +11,7 @@ const REQUIRED_HEADERS = [
   "ce-vssnamespace",
   "ce-vssscheduledat",
   "ce-vssschedulesource",
+  "ce-vssexpression",
 ];
 
 /**
