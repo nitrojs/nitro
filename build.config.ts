@@ -29,13 +29,23 @@ export default defineBuildConfig({
     // Core
     { input: "src/core/index.ts" },
     // Runtime
-    { input: "src/runtime/", outDir: "dist/runtime", format: "esm" },
+    {
+      input: "src/runtime/",
+      outDir: "dist/runtime",
+      format: "esm",
+      addRelativeDeclarationExtensions: true,
+    },
     // Kit
     { input: "src/kit/index.ts" },
     // Meta
     { input: "src/meta/index.ts" },
     // Presets
-    { input: "src/presets/", outDir: "dist/presets", format: "esm" },
+    {
+      input: "src/presets/",
+      outDir: "dist/presets",
+      format: "esm",
+      addRelativeDeclarationExtensions: true,
+    },
     // Rollup
     { input: "src/rollup/index.ts" },
     // Types
