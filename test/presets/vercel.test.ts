@@ -7,6 +7,7 @@ import { routeToRegExp } from "rou3";
 import { describe, expect, it, vi, beforeAll, afterAll } from "vitest";
 import { setupTest, testNitro, fixtureDir } from "../tests.ts";
 import { toFetchHandler } from "srvx/node";
+import type { NitroConfig } from "nitro/types";
 
 const presetFixturesDir = resolve(import.meta.dirname, "fixtures");
 
@@ -875,6 +876,173 @@ describe("nitro:preset:vercel:node", async () => {
   );
 });
 
+describe("nitro:preset:vercel:schedules", async () => {
+  const ctx = await setupTest("vercel", {
+    outDirSuffix: "-schedules",
+    config: {
+      preset: "vercel",
+      vercel: { schedules: true },
+      scheduledTasks: {
+        "0 3 * * *": ["db:migrate", "test"],
+      },
+    },
+  });
+
+  const readJSON = (path: string) =>
+    fsp.readFile(resolve(ctx.outDir, path), "utf8").then((r) => JSON.parse(r));
+
+  const dispatch = async (name: string, init: { method?: string; type?: string } = {}) => {
+    const { fetch: fetchHandler } = await import(
+      resolve(ctx.outDir, "functions/_vercel/tasks.func/index.mjs")
+    ).then((r) => r.default || r);
+    const headers = {
+      "ce-specversion": "1.0",
+      "ce-type": init.type ?? "com.vercel.schedule.v1beta",
+      "ce-source": `/schedule/default/${name}`,
+      "ce-id": "execution-1",
+      "ce-vssscheduleid": "schedule-1",
+      "ce-vssschedulename": name,
+      "ce-vssnamespace": "default",
+      "ce-vssscheduledat": "2026-09-02T03:00:00.000Z",
+      "ce-vssschedulesource": "static",
+      "ce-vssexpression": "0 3 * * *",
+    };
+    return fetchHandler(
+      new Request("https://example.com/_vercel/tasks", { method: init.method ?? "POST", headers }),
+      { waitUntil: vi.fn() }
+    ) as Promise<Response>;
+  };
+
+  it("should emit one schedule per task instead of cron jobs", async () => {
+    const config = await readJSON("config.json");
+    expect(config.crons).toBeUndefined();
+    expect(config.schedules).toMatchInlineSnapshot(`
+      [
+        {
+          "function": "_vercel/tasks",
+          "name": "test.1cec0f",
+          "schedule": "* * * * *",
+        },
+        {
+          "function": "_vercel/tasks",
+          "name": "db.migrate",
+          "schedule": "0 3 * * *",
+        },
+        {
+          "function": "_vercel/tasks",
+          "name": "test.51c662",
+          "schedule": "0 3 * * *",
+        },
+      ]
+    `);
+  });
+
+  it("should create a private function with the schedule trigger", async () => {
+    const funcDir = resolve(ctx.outDir, "functions/_vercel/tasks.func");
+    const stat = await fsp.lstat(funcDir);
+    expect(stat.isSymbolicLink()).toBe(false);
+    const config = await readJSON("functions/_vercel/tasks.func/.vc-config.json");
+    expect(config.experimentalTriggers).toEqual([{ type: "schedule/v1beta" }]);
+  });
+
+  it("should not register the cron handler", async () => {
+    const config = await readJSON("config.json");
+    const routes = config.routes as { dest?: string }[];
+    expect(routes.some((r) => r.dest === "/_vercel/cron")).toBe(false);
+  });
+
+  it("should run the task of a schedule dispatch", async () => {
+    const res = await dispatch("db.migrate");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ success: true });
+  });
+
+  it("should reject unknown schedules", async () => {
+    const res = await dispatch("unknown");
+    expect(res.status).toBe(404);
+  });
+
+  it("should reject requests that are not schedule dispatches", async () => {
+    expect((await dispatch("db.migrate", { type: "com.vercel.queue.v2beta" })).status).toBe(400);
+  });
+
+  it("should describe the same schedules for vercel dev", async () => {
+    const manifest = await getDevManifest({
+      vercel: { schedules: true },
+      scheduledTasks: { "0 3 * * *": ["db:migrate", "test"] },
+    });
+    expect(manifest.functions).toEqual([
+      {
+        outputPath: "_vercel/tasks",
+        invocation: { type: "http", pathname: "/_vercel/tasks" },
+        experimentalTriggers: [{ type: "schedule/v1beta" }],
+      },
+    ]);
+    expect(manifest.schedules).toEqual((await readJSON("config.json")).schedules);
+  });
+});
+
+describe("nitro:preset:vercel:schedules-path", async () => {
+  const ctx = await setupTest("vercel", {
+    outDirSuffix: "-schedules-path",
+    config: {
+      preset: "vercel",
+      vercel: { schedules: "path" },
+      scheduledTasks: {
+        "0 3 * * *": ["db:migrate", "test"],
+      },
+    },
+  });
+
+  const fetchCron = async (headers: Record<string, string>) => {
+    const { fetch: fetchHandler } = await import(
+      resolve(ctx.outDir, "functions/__server.func/index.mjs")
+    ).then((r) => r.default || r);
+    return fetchHandler(
+      new Request("https://example.com/_vercel/cron", { method: "POST", headers }),
+      { waitUntil: vi.fn() }
+    ) as Promise<Response>;
+  };
+
+  it("should emit one schedule per task targeting the cron handler path", async () => {
+    const config = await fsp
+      .readFile(resolve(ctx.outDir, "config.json"), "utf8")
+      .then((r) => JSON.parse(r));
+    expect(config.crons).toBeUndefined();
+    expect(config.schedules).toEqual([
+      { name: expect.stringMatching(/^test\./), schedule: "* * * * *", path: "/_vercel/cron" },
+      { name: "db.migrate", schedule: "0 3 * * *", path: "/_vercel/cron" },
+      { name: expect.stringMatching(/^test\./), schedule: "0 3 * * *", path: "/_vercel/cron" },
+    ]);
+    await expect(fsp.lstat(resolve(ctx.outDir, "functions/_vercel/tasks.func"))).rejects.toThrow();
+  });
+
+  it("should run the task of a schedule dispatch", async () => {
+    const res = await fetchCron({
+      "ce-type": "com.vercel.schedule.v1beta",
+      "ce-vssschedulename": "db.migrate",
+      "x-vercel-cron-schedule": "0 3 * * *",
+    });
+    expect(res.status).toBe(200);
+  });
+
+  it("should keep running cron tasks for direct requests", async () => {
+    expect((await fetchCron({ "x-vercel-cron-schedule": "0 3 * * *" })).status).toBe(200);
+    expect((await fetchCron({})).status).toBe(400);
+  });
+
+  it("should describe path schedules for vercel dev", async () => {
+    const manifest = await getDevManifest({
+      vercel: { schedules: "path" },
+      scheduledTasks: { "0 3 * * *": ["db:migrate", "test"] },
+    });
+    expect(manifest.functions).toEqual([]);
+    expect(manifest.schedules).toEqual(
+      JSON.parse(await fsp.readFile(resolve(ctx.outDir, "config.json"), "utf8")).schedules
+    );
+  });
+});
+
 describe("nitro:preset:vercel:bun", async () => {
   const ctx = await setupTest("vercel", {
     outDirSuffix: "-bun",
@@ -994,5 +1162,16 @@ async function testVercelWebSocketUpgrade(
       server.close((error) => (error ? reject(error) : resolve()));
     });
     (globalThis as Record<symbol, unknown>)[requestContextSymbol] = previousRequestContext;
+  }
+}
+
+async function getDevManifest(config: NitroConfig) {
+  const { createNitro } = await import("../../src/nitro.ts");
+  const { getVercelDevManifest } = await import("../../src/presets/vercel/schedules.ts");
+  const nitro = await createNitro({ rootDir: fixtureDir, preset: "vercel", ...config });
+  try {
+    return getVercelDevManifest(nitro);
+  } finally {
+    await nitro.close();
   }
 }
