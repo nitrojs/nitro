@@ -7,6 +7,7 @@ import { routeToRegExp } from "rou3";
 import { describe, expect, it, vi, beforeAll, afterAll } from "vitest";
 import { setupTest, testNitro, fixtureDir } from "../tests.ts";
 import { toFetchHandler } from "srvx/node";
+import type { NitroConfig } from "nitro/types";
 
 const presetFixturesDir = resolve(import.meta.dirname, "fixtures");
 
@@ -966,14 +967,9 @@ describe("nitro:preset:vercel:schedules", async () => {
   });
 
   it("should describe the same schedules for vercel dev", async () => {
-    const { getVercelDevManifest } = await import("../../src/presets/vercel/dev-manifest.ts");
-    const manifest = await getVercelDevManifest({
-      rootDir: fixtureDir,
-      config: {
-        preset: "vercel",
-        vercel: { schedules: true },
-        scheduledTasks: { "0 3 * * *": ["db:migrate", "test"] },
-      },
+    const manifest = await getDevManifest({
+      vercel: { schedules: true },
+      scheduledTasks: { "0 3 * * *": ["db:migrate", "test"] },
     });
     expect(manifest.functions).toEqual([
       {
@@ -983,15 +979,6 @@ describe("nitro:preset:vercel:schedules", async () => {
       },
     ]);
     expect(manifest.schedules).toEqual((await readJSON("config.json")).schedules);
-  });
-
-  it("should describe nothing for vercel dev when nitro dev does not use the Vercel preset", async () => {
-    const { getVercelDevManifest } = await import("../../src/presets/vercel/dev-manifest.ts");
-    const manifest = await getVercelDevManifest({
-      rootDir: fixtureDir,
-      config: { preset: "node-server", vercel: { schedules: true } },
-    });
-    expect(manifest).toEqual({ functions: [], schedules: [] });
   });
 });
 
@@ -1045,14 +1032,9 @@ describe("nitro:preset:vercel:schedules-path", async () => {
   });
 
   it("should describe path schedules for vercel dev", async () => {
-    const { getVercelDevManifest } = await import("../../src/presets/vercel/dev-manifest.ts");
-    const manifest = await getVercelDevManifest({
-      rootDir: fixtureDir,
-      config: {
-        preset: "vercel",
-        vercel: { schedules: "path" },
-        scheduledTasks: { "0 3 * * *": ["db:migrate", "test"] },
-      },
+    const manifest = await getDevManifest({
+      vercel: { schedules: "path" },
+      scheduledTasks: { "0 3 * * *": ["db:migrate", "test"] },
     });
     expect(manifest.functions).toEqual([]);
     expect(manifest.schedules).toEqual(
@@ -1180,5 +1162,16 @@ async function testVercelWebSocketUpgrade(
       server.close((error) => (error ? reject(error) : resolve()));
     });
     (globalThis as Record<symbol, unknown>)[requestContextSymbol] = previousRequestContext;
+  }
+}
+
+async function getDevManifest(config: NitroConfig) {
+  const { createNitro } = await import("../../src/nitro.ts");
+  const { getVercelDevManifest } = await import("../../src/presets/vercel/schedules.ts");
+  const nitro = await createNitro({ rootDir: fixtureDir, preset: "vercel", ...config });
+  try {
+    return getVercelDevManifest(nitro);
+  } finally {
+    await nitro.close();
   }
 }

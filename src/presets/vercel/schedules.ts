@@ -1,9 +1,10 @@
 import type { Nitro, NitroOptions } from "nitro/types";
 import { presetsDir } from "nitro/meta";
 import { join } from "pathe";
+import { joinURL } from "ufo";
 import { hash } from "../../utils/hash.ts";
 
-import type { VercelSchedule } from "./types.ts";
+import type { VercelFunctionTrigger, VercelSchedule } from "./types.ts";
 
 /** Route of the task dispatch handler and path of its private Vercel function. */
 export const SCHEDULE_HANDLER_ROUTE = "/_vercel/tasks";
@@ -11,6 +12,10 @@ export const SCHEDULE_FUNCTION_PATH = "_vercel/tasks";
 
 const DEFAULT_CRON_HANDLER_ROUTE = "/_vercel/cron";
 const SCHEDULE_HANDLER_ID = "#nitro/virtual/vercel-schedule-handler";
+
+/** Dev-only route that `vercel dev` fetches to register the schedules with its broker. */
+export const DEV_MANIFEST_ROUTE = "/_vercel/dev-manifest";
+const DEV_MANIFEST_ID = "#nitro/virtual/vercel-dev-manifest";
 const SCHEDULE_TRIGGER = { type: "schedule/v1beta" } as const;
 
 /**
@@ -102,14 +107,17 @@ export function getVercelTaskSchedules(
 }
 
 /** Build Output API `schedules` entries for the scheduled tasks. */
-export function getVercelBuildOutputSchedules(nitro: Nitro): VercelSchedule[] {
+export function getVercelBuildOutputSchedules(
+  nitro: Nitro,
+  scheduledTasks = nitro.options.scheduledTasks
+): VercelSchedule[] {
   const mode = getVercelSchedulesMode(nitro.options);
   if (!mode) {
     return [];
   }
   const target =
     mode === "path" ? { path: getCronHandlerRoute(nitro) } : { function: SCHEDULE_FUNCTION_PATH };
-  return getVercelTaskSchedules(nitro.options).map(({ name, schedule }) => ({
+  return getVercelTaskSchedules(nitro.options, scheduledTasks).map(({ name, schedule }) => ({
     name,
     schedule,
     ...target,
@@ -145,18 +153,32 @@ export function setupVercelSchedules(nitro: Nitro) {
   };
 }
 
+export interface VercelDevManifest {
+  /** Functions with a deployment identity, and where the dev server serves them. Empty in `path` mode. */
+  functions: {
+    /** Build Output API function path, without a leading slash or `.func` suffix. */
+    outputPath: string;
+    invocation: { type: "http"; pathname: string };
+    experimentalTriggers: VercelFunctionTrigger[];
+  }[];
+  /** Build Output API `schedules`, as emitted by `nitro build`. */
+  schedules: VercelSchedule[];
+}
+
 /**
- * Serves the scheduled tasks handler in development, for the local Vercel Schedules broker
- * of `vercel dev`, which then owns task scheduling instead of the in-process scheduler.
+ * Under `vercel dev`, serves the dev manifest that `vercel dev` fetches to register the
+ * scheduled tasks with its local Schedules broker, and the handler the broker invokes. The
+ * broker then owns task scheduling instead of the in-process scheduler.
  */
 export function setupVercelSchedulesDev(nitro: Nitro) {
-  const mode = getVercelSchedulesMode(nitro.options);
-  if (!process.env.VERCEL_SCHEDULE_DEV_API_VERSION || !mode) {
+  if (!process.env.VERCEL_SCHEDULE_DEV_API_VERSION) {
     return;
   }
 
+  const mode = getVercelSchedulesMode(nitro.options);
   const scheduledTasks = nitro.options.scheduledTasks;
-  if (getVercelTaskSchedules(nitro.options, scheduledTasks).length === 0) {
+  registerDevManifest(nitro, () => getVercelDevManifest(nitro, scheduledTasks));
+  if (!mode) {
     return;
   }
 
@@ -167,6 +189,30 @@ export function setupVercelSchedulesDev(nitro: Nitro) {
   nitro.logger
     .withTag("vercel")
     .info("Scheduled tasks are run by the `vercel dev` Schedules broker.");
+}
+
+/** The functions and schedules that `vercel dev` registers with its local Schedules broker. */
+export function getVercelDevManifest(
+  nitro: Nitro,
+  scheduledTasks = nitro.options.scheduledTasks
+): VercelDevManifest {
+  const schedules = getVercelBuildOutputSchedules(nitro, scheduledTasks);
+  if (schedules.length === 0 || getVercelSchedulesMode(nitro.options) === "path") {
+    return { functions: [], schedules };
+  }
+  return {
+    functions: [
+      {
+        outputPath: SCHEDULE_FUNCTION_PATH,
+        invocation: {
+          type: "http",
+          pathname: joinURL(nitro.options.baseURL, SCHEDULE_HANDLER_ROUTE),
+        },
+        experimentalTriggers: [SCHEDULE_TRIGGER],
+      },
+    ],
+    schedules,
+  };
 }
 
 export function getCronHandlerRoute(nitro: Nitro): string {
@@ -197,6 +243,20 @@ export default ${factory}(${JSON.stringify(arg)});
     route: mode === "path" ? getCronHandlerRoute(nitro) : SCHEDULE_HANDLER_ROUTE,
     lazy: true,
     handler: SCHEDULE_HANDLER_ID,
+  });
+}
+
+function registerDevManifest(nitro: Nitro, getManifest: () => VercelDevManifest) {
+  const handlerPath = join(presetsDir, "vercel/runtime/dev-manifest-handler");
+  nitro.options.virtual[DEV_MANIFEST_ID] = () => /* js */ `
+import { createDevManifestHandler } from "${handlerPath}";
+export default createDevManifestHandler(${JSON.stringify(getManifest())});
+`;
+  nitro.options.handlers.push({
+    route: DEV_MANIFEST_ROUTE,
+    method: "GET",
+    lazy: true,
+    handler: DEV_MANIFEST_ID,
   });
 }
 

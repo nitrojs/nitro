@@ -119,7 +119,7 @@ describe("setupVercelSchedulesDev", () => {
     vi.unstubAllEnvs();
   });
 
-  function createNitro(schedules: true | "path" = true) {
+  function createNitro(schedules: boolean | "path" = true) {
     return {
       options: options({
         tasks: { cleanup: task },
@@ -127,6 +127,7 @@ describe("setupVercelSchedulesDev", () => {
         vercel: { schedules },
         virtual: {},
         handlers: [],
+        baseURL: "/",
       }),
       logger: { withTag: () => ({ info: vi.fn() }) },
     } as unknown as Nitro;
@@ -147,6 +148,11 @@ describe("setupVercelSchedulesDev", () => {
     expect(nitro.options.scheduledTasks).toEqual({});
     expect(nitro.options.handlers).toEqual([
       expect.objectContaining({
+        route: "/_vercel/dev-manifest",
+        method: "GET",
+        handler: "#nitro/virtual/vercel-dev-manifest",
+      }),
+      expect.objectContaining({
         route: "/_vercel/tasks",
         handler: "#nitro/virtual/vercel-schedule-handler",
       }),
@@ -157,12 +163,46 @@ describe("setupVercelSchedulesDev", () => {
     expect(template()).toContain(`createScheduleHandler({"cleanup":"cleanup"})`);
   });
 
+  it("serves the dev manifest for vercel dev", () => {
+    vi.stubEnv("VERCEL_SCHEDULE_DEV_API_VERSION", "1");
+    const nitro = createNitro();
+    setupVercelSchedulesDev(nitro);
+    const template = nitro.options.virtual["#nitro/virtual/vercel-dev-manifest"] as () => string;
+    expect(template()).toContain(
+      `createDevManifestHandler(${JSON.stringify({
+        functions: [
+          {
+            outputPath: "_vercel/tasks",
+            invocation: { type: "http", pathname: "/_vercel/tasks" },
+            experimentalTriggers: [{ type: "schedule/v1beta" }],
+          },
+        ],
+        schedules: [{ name: "cleanup", schedule: "0 3 * * *", function: "_vercel/tasks" }],
+      })})`
+    );
+  });
+
+  it("serves an empty dev manifest without the opt-in", () => {
+    vi.stubEnv("VERCEL_SCHEDULE_DEV_API_VERSION", "1");
+    const nitro = createNitro(false);
+    setupVercelSchedulesDev(nitro);
+    expect(nitro.options.scheduledTasks).toEqual({ "0 3 * * *": "cleanup" });
+    expect(nitro.options.handlers).toEqual([
+      expect.objectContaining({ route: "/_vercel/dev-manifest" }),
+    ]);
+    const template = nitro.options.virtual["#nitro/virtual/vercel-dev-manifest"] as () => string;
+    expect(template()).toContain(`createDevManifestHandler({"functions":[],"schedules":[]})`);
+  });
+
   it("serves the cron handler for path targets", () => {
     vi.stubEnv("VERCEL_SCHEDULE_DEV_API_VERSION", "1");
     const nitro = createNitro("path");
     setupVercelSchedulesDev(nitro);
     expect(nitro.options.scheduledTasks).toEqual({});
-    expect(nitro.options.handlers).toEqual([expect.objectContaining({ route: "/_vercel/cron" })]);
+    expect(nitro.options.handlers).toEqual([
+      expect.objectContaining({ route: "/_vercel/dev-manifest" }),
+      expect.objectContaining({ route: "/_vercel/cron" }),
+    ]);
     const template = nitro.options.virtual[
       "#nitro/virtual/vercel-schedule-handler"
     ] as () => string;
