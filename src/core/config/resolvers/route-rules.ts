@@ -5,7 +5,7 @@ import type {
   NitroRouteConfig,
   NitroRouteRules,
 } from "nitropack/types";
-import { withLeadingSlash } from "ufo";
+import { joinURL, withLeadingSlash } from "ufo";
 
 export async function resolveRouteRulesOptions(options: NitroOptions) {
   // Backward compatibility for options.routes
@@ -38,7 +38,9 @@ export function normalizeRouteRules(
       };
       if (path.endsWith("/**")) {
         // Internal flag
-        (routeRules.redirect as any)._redirectStripBase = path.slice(0, -3);
+        (routeRules.redirect as any)._redirectStripBase = config.baseURL
+          ? joinURL(config.baseURL, path.slice(0, -3))
+          : path.slice(0, -3);
       }
     }
     // Proxy
@@ -49,7 +51,9 @@ export function normalizeRouteRules(
           : routeConfig.proxy;
       if (path.endsWith("/**")) {
         // Internal flag
-        (routeRules.proxy as any)._proxyStripBase = path.slice(0, -3);
+        (routeRules.proxy as any)._proxyStripBase = config.baseURL
+          ? joinURL(config.baseURL, path.slice(0, -3))
+          : path.slice(0, -3);
       }
     }
     // CORS
