@@ -242,7 +242,25 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       handlers: {
         transformHTML: async (html: string) => {
           const htmlURL = _htmlTemplateURL(nitro.options.renderer?.template, server.config.root);
-          return (await server.transformIndexHtml(htmlURL, html)).replace(
+          const bundledDev = server.environments.client.bundledDev;
+          if (bundledDev) {
+            await bundledDev["devEngine"].ensureLatestBuildOutput();
+            const templatePath = relative(
+              server.config.root,
+              nitro.options.renderer?.template || join(server.config.root, "index.html")
+            );
+            const template = bundledDev.memoryFiles.get(templatePath);
+            if (!template) {
+              throw new Error(`Bundled HTML template not found: ${templatePath}`);
+            }
+            html =
+              typeof template.source === "string"
+                ? template.source
+                : Buffer.from(template.source).toString("utf8");
+          } else {
+            html = await server.transformIndexHtml(htmlURL, html);
+          }
+          return html.replace(
             "<!--ssr-outlet-->",
             `{{{ globalThis.__nitro_vite_envs__?.["ssr"]?.fetch($REQUEST) || "" }}}`
           );
