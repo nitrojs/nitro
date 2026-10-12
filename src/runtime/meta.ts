@@ -15,6 +15,5 @@ export const runtimeDependencies: string[] = [
   "crossws", // dep
   "h3", // dep
   "rou3", // sub-dep of h3
-  "ocache", // dep
   "srvx", // dep
 ];

@@ -6,10 +6,14 @@ import { ensureDep, missingDepError, resolveDep } from "../../utils/dep.ts";
 import { pathRegExp } from "../../utils/regex.ts";
 import { UNSTORAGE_VERSION } from "../../utils/storage.ts";
 
+/** Supported `ocache` version range (installed on demand). */
+const OCACHE_VERSION = "^0.3.0";
+
 /** Runtime dependencies of opt-in features, installed in the project on demand. */
 const optionalRuntimeDeps: Record<string, { version: string; reason: string }> = {
   unstorage: { version: UNSTORAGE_VERSION, reason: "KV storage (`nitro/kv`)" },
   db0: { version: DB0_VERSION, reason: "the database layer (`nitro/database`)" },
+  ocache: { version: OCACHE_VERSION, reason: "caching (`nitro/cache` or `cache` route rules)" },
 };
 
 /** Matches imports of optional runtime dependencies (and their subpaths). */
@@ -43,10 +47,10 @@ export async function ensureRuntimeDep(nitro: Nitro, id: string): Promise<void> 
 }
 
 /**
- * Resolves optional runtime dependencies (`unstorage`, `db0`) imported by the Nitro runtime.
+ * Resolves optional runtime dependencies (`unstorage`, `db0`, `ocache`) imported by the Nitro runtime.
  *
  * They are not dependencies of Nitro: they are resolved from the project and only installed
- * once a build actually imports them (e.g. `nitro/kv` or `nitro/database` is used).
+ * once a build actually imports them (e.g. `nitro/kv`, `nitro/database` or `nitro/cache` is used).
  */
 export function runtimeDeps(nitro: Nitro): Plugin {
   return {

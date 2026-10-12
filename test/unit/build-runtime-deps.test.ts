@@ -78,10 +78,13 @@ describe.each(builders)("optional runtime dependencies (%s)", (builder) => {
     return () => vi.mocked(dep.ensureDep).mockRestore();
   });
 
-  it("does not require unstorage or db0 when they are not used", async () => {
-    await buildApp(builder, `export default { fetch: () => new Response("ok") };`);
+  it("does not require unstorage, db0 or ocache when they are not used", async () => {
+    await buildApp(builder, `export default { fetch: () => new Response("ok") };`, {
+      routeRules: { "/**": { headers: { "x-test": "1" } } },
+    });
     expect(depCalls("unstorage")).toEqual([]);
     expect(depCalls("db0")).toEqual([]);
+    expect(depCalls("ocache")).toEqual([]);
   });
 
   it("requires unstorage when `nitro/kv` is imported", async () => {
@@ -121,6 +124,28 @@ describe.each(builders)("optional runtime dependencies (%s)", (builder) => {
       ],
     ]);
     expect(depCalls("unstorage")).toEqual([]);
+  });
+
+  it("requires ocache when `nitro/cache` is imported", async () => {
+    const code = await buildApp(
+      builder,
+      `import { defineCachedFunction } from "nitro/cache";\nconst cached = defineCachedFunction(() => "ok", { maxAge: 60 });\nexport default { fetch: async () => new Response(await cached()) };`
+    );
+    expect(depCalls("ocache")).not.toEqual([]);
+    expect(depCalls("ocache")).toEqual(
+      depCalls("ocache").map(() => [
+        expect.objectContaining({ autoInstall: true, reason: expect.stringContaining("caching") }),
+      ])
+    );
+    expect(depCalls("unstorage")).toEqual([]);
+    expect(code).toContain("createMemoryStorage");
+  });
+
+  it("requires ocache for `cache` route rules", async () => {
+    await buildApp(builder, `export default { fetch: () => new Response("ok") };`, {
+      routeRules: { "/**": { swr: 60 } },
+    });
+    expect(depCalls("ocache")).not.toEqual([]);
   });
 
   it("requires unstorage when kv is configured", async () => {
@@ -194,7 +219,7 @@ describe("optional runtime dependencies (sources)", () => {
         if (
           node.type === "ImportDeclaration" &&
           node.importKind !== "type" &&
-          /^(unstorage|db0)(\/|$)/.test(node.source.value)
+          /^(unstorage|db0|ocache)(\/|$)/.test(node.source.value)
         ) {
           offenders.push(file);
         }

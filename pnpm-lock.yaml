@@ -29,9 +29,6 @@ importers:
       nf3:
         specifier: ^0.4.2
         version: 0.4.2
-      ocache:
-        specifier: ^0.3.0
-        version: 0.3.0
       srvx:
         specifier: ^1.0.5
         version: 1.0.5
@@ -213,6 +210,9 @@ importers:
       obuild:
         specifier: ^0.4.44
         version: 0.4.44(dotenv@18.0.5)(giget@3.3.1)(jiti@2.7.0)(magicast@0.5.5)(typescript@7.0.2)
+      ocache:
+        specifier: ^0.3.0
+        version: 0.3.0
       oxbox:
         specifier: ^0.1.0
         version: 0.1.0
@@ -311,6 +311,10 @@ importers:
         version: link:../..
 
   examples/cached-handler:
+    dependencies:
+      ocache:
+        specifier: ^0.3.0
+        version: 0.3.0
     devDependencies:
       nitro:
         specifier: workspace:*

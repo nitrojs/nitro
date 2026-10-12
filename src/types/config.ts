@@ -6,6 +6,11 @@ import type { LogLevel } from "./_consola.ts";
 import type { ConnectorName, ConnectorOptions } from "db0";
 import type { NestedHooks } from "hookable";
 import type { ProxyServerOptions } from "httpxy";
+import type {
+  CacheOptions as OCacheOptions,
+  CachedEventHandlerOptions as OCacheEventHandlerOptions,
+  MemoryStorageOptions as OCacheMemoryStorageOptions,
+} from "ocache";
 import type { PresetName, PresetNameInput, PresetOptions } from "../presets/index.ts";
 import type { DeployOptions } from "../deploy.ts";
 import type { TSConfig } from "pkg-types";
@@ -1214,22 +1219,25 @@ export type StorageMounts = KVMounts;
 /** Cache storage driver. */
 export type NitroCacheDriver = "memory" | "fs" | "kv";
 
+// `Partial` keeps the keys optional when `ocache` (installed on demand) is not installed yet
+
 /** Options shared by cached functions and cached handlers. */
-export type NitroCacheFunctionDefaults = Pick<
-  import("ocache").CacheOptions,
-  "maxAge" | "swr" | "staleMaxAge" | "maxResolveTime" | "base"
+export type NitroCacheFunctionDefaults = Partial<
+  Pick<OCacheOptions, "maxAge" | "swr" | "staleMaxAge" | "maxResolveTime" | "base">
 >;
 
 /** Options that only apply to cached handlers and `cache` route rules. */
-export type NitroCacheHandlerDefaults = Pick<
-  import("ocache").CachedEventHandlerOptions,
-  | "varies"
-  | "allowQuery"
-  | "allowCookies"
-  | "allowAuthorization"
-  | "sendCacheControl"
-  | "cacheStatusHeader"
-  | "maxBodySize"
+export type NitroCacheHandlerDefaults = Partial<
+  Pick<
+    OCacheEventHandlerOptions,
+    | "varies"
+    | "allowQuery"
+    | "allowCookies"
+    | "allowAuthorization"
+    | "sendCacheControl"
+    | "cacheStatusHeader"
+    | "maxBodySize"
+  >
 >;
 
 /** Global default options for cached functions, cached handlers and `cache` route rules. */
@@ -1254,7 +1262,7 @@ export interface NitroCacheConfig {
   driver?: NitroCacheDriver;
 
   /** Options for the `memory` driver. */
-  memory?: Omit<import("ocache").MemoryStorageOptions, "sizeOf">;
+  memory?: Omit<OCacheMemoryStorageOptions, "sizeOf">;
 
   /** Options for the `fs` driver. */
   fs?: {
