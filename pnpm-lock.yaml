@@ -784,6 +784,10 @@ importers:
         version: 4.6.5
 
   examples/vitest:
+    dependencies:
+      unstorage:
+        specifier: ^2.0.0-alpha.10
+        version: 2.0.0-alpha.10
     devDependencies:
       nitro:
         specifier: workspace:*
