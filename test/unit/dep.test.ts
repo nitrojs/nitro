@@ -47,7 +47,7 @@ vi.mock("consola", () => ({
 
 const missingDep = { id: "nitro-missing-dep", dir: process.cwd(), reason: "testing" };
 
-async function ensureDep(opts: typeof missingDep & { version?: string }) {
+async function ensureDep(opts: typeof missingDep & { version?: string; autoInstall?: boolean }) {
   const mod = await import("../../src/utils/dep.ts");
   return mod.ensureDep(opts);
 }
@@ -123,6 +123,19 @@ describe("ensureDep", () => {
     prompt.mockResolvedValue(false);
     expect(await ensureDep(missingDep)).toBeUndefined();
     expect(prompt).toHaveBeenCalledOnce();
+    expect(addDevDependency).not.toHaveBeenCalled();
+  });
+
+  it("installs without prompting with `autoInstall`", async () => {
+    await ensureDep({ ...missingDep, autoInstall: true });
+    expect(prompt).not.toHaveBeenCalled();
+    expect(addDevDependency).toHaveBeenCalledWith(missingDep.id, { cwd: missingDep.dir });
+  });
+
+  it("does not install with `autoInstall` in test mode", async () => {
+    env.isTest = true;
+    expect(await ensureDep({ ...missingDep, autoInstall: true })).toBeUndefined();
+    expect(prompt).not.toHaveBeenCalled();
     expect(addDevDependency).not.toHaveBeenCalled();
   });
 });

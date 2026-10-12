@@ -93,7 +93,7 @@ describe.each(builders)("optional runtime dependencies (%s)", (builder) => {
     expect(depCalls("unstorage")).not.toEqual([]);
     expect(depCalls("unstorage")).toEqual(
       depCalls("unstorage").map(() => [
-        expect.objectContaining({ reason: expect.stringContaining("nitro/kv") }),
+        expect.objectContaining({ autoInstall: true, reason: expect.stringContaining("nitro/kv") }),
       ])
     );
     expect(depCalls("db0")).toEqual([]);
@@ -113,7 +113,12 @@ describe.each(builders)("optional runtime dependencies (%s)", (builder) => {
       `import { useDatabase } from "nitro/database";\nexport default { fetch: () => new Response(typeof useDatabase) };`
     );
     expect(depCalls("db0")).toEqual([
-      [expect.objectContaining({ reason: expect.stringContaining("nitro/database") })],
+      [
+        expect.objectContaining({
+          autoInstall: true,
+          reason: expect.stringContaining("nitro/database"),
+        }),
+      ],
     ]);
     expect(depCalls("unstorage")).toEqual([]);
   });
@@ -123,7 +128,12 @@ describe.each(builders)("optional runtime dependencies (%s)", (builder) => {
       kv: { data: { driver: "memory" } },
     });
     expect(depCalls("unstorage")).toEqual([
-      [expect.objectContaining({ reason: expect.stringContaining("`kv` config") })],
+      [
+        expect.objectContaining({
+          autoInstall: true,
+          reason: expect.stringContaining("`kv` config"),
+        }),
+      ],
     ]);
   });
 
@@ -132,7 +142,12 @@ describe.each(builders)("optional runtime dependencies (%s)", (builder) => {
       cache: { driver: "kv" },
     });
     expect(depCalls("unstorage")).toEqual([
-      [expect.objectContaining({ reason: expect.stringContaining("cache.driver") })],
+      [
+        expect.objectContaining({
+          autoInstall: true,
+          reason: expect.stringContaining("cache.driver"),
+        }),
+      ],
     ]);
   });
 
@@ -142,7 +157,12 @@ describe.each(builders)("optional runtime dependencies (%s)", (builder) => {
       database: { default: { connector: "cloudflare-d1", options: { bindingName: "DB" } } },
     });
     expect(depCalls("db0")).toEqual([
-      [expect.objectContaining({ reason: expect.stringContaining("`database` config") })],
+      [
+        expect.objectContaining({
+          autoInstall: true,
+          reason: expect.stringContaining("`database` config"),
+        }),
+      ],
     ]);
   });
 

@@ -26,11 +26,17 @@ export function isRuntimeImporter(importer: string | undefined): boolean {
 
 /**
  * Ensure an optional runtime dependency imported as `id` is installed in the project,
- * prompting to install it if missing.
+ * installing it (without prompting) if missing.
  */
 export async function ensureRuntimeDep(nitro: Nitro, id: string): Promise<void> {
   const name = id.split("/")[0]!;
-  const opts = { id: name, ...optionalRuntimeDeps[name]!, dir: nitro.options.rootDir, dev: false };
+  const opts = {
+    id: name,
+    ...optionalRuntimeDeps[name]!,
+    dir: nitro.options.rootDir,
+    dev: false,
+    autoInstall: true,
+  };
   if (!(await ensureDep(opts))) {
     throw missingDepError(opts);
   }

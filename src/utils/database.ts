@@ -53,5 +53,5 @@ export async function resolveDatabaseConnections(
 
 /** Import `db0` from the project, installing it on demand. */
 export function importDb0(opts: { dir: string; reason: string }): Promise<typeof import("db0")> {
-  return importDep({ id: "db0", version: DB0_VERSION, dev: false, ...opts });
+  return importDep({ id: "db0", version: DB0_VERSION, dev: false, autoInstall: true, ...opts });
 }

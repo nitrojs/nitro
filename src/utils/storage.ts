@@ -61,5 +61,11 @@ export function importUnstorage(opts: {
   dir: string;
   reason: string;
 }): Promise<typeof import("unstorage")> {
-  return importDep({ id: "unstorage", version: UNSTORAGE_VERSION, dev: false, ...opts });
+  return importDep({
+    id: "unstorage",
+    version: UNSTORAGE_VERSION,
+    dev: false,
+    autoInstall: true,
+    ...opts,
+  });
 }

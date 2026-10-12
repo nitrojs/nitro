@@ -19,6 +19,8 @@ export interface DepOptions {
   version?: string;
   /** Install as a dev dependency. (default: `true`) */
   dev?: boolean;
+  /** Install without prompting, also in interactive environments (never in test mode). */
+  autoInstall?: boolean;
   /**
    * Only resolve from `dir`, ignoring Nitro's own dependencies.
    *
@@ -152,6 +154,9 @@ async function _ensureDep(opts: DepOptions): Promise<string | undefined> {
   let shouldInstall: boolean | undefined;
   if (isTest) {
     shouldInstall = false; // Do not install dependencies in test mode
+  } else if (opts.autoInstall) {
+    consola.info(`\`${opts.id}\` is required for ${opts.reason}. Installing automatically...`);
+    shouldInstall = true;
   } else if (isCI || isAgent || !hasTTY) {
     const env = isCI ? "CI" : isAgent ? "agent" : "non-interactive";
     consola.info(
