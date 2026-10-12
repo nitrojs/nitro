@@ -93,7 +93,18 @@ describe.each(["/", "/app/"])("vite:dev handlers under base (baseURL: %s)", (bas
       redirect: "manual",
     });
     expect(response.status).toBe(404);
+    expect(response.headers.get("content-type")).not.toMatch(/text\/html/);
     expect(await response.text()).not.toMatch(/public base URL/);
+  });
+
+  test("keeps the public asset dir base reachable as a page", async () => {
+    for (const path of [url("/pub"), url("/pub/")]) {
+      const response = await fetch(`${serverURL}${path}`, {
+        headers: { accept: "text/html", "sec-fetch-dest": "document" },
+        redirect: "manual",
+      });
+      expect(response.status, path).toBe(200);
+    }
   });
 
   test("does not route Vite assets to a catch-all dev handler", async () => {

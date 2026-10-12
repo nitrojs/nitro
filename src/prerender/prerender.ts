@@ -2,7 +2,7 @@ import { pathToFileURL } from "node:url";
 import { defu } from "defu";
 import mime from "mime";
 import { writeFile } from "../utils/fs.ts";
-import type { Nitro, NitroRouteRules, PrerenderRoute, PublicAssetDir } from "nitro/types";
+import type { Nitro, NormalizedRouteRules, PrerenderRoute, PublicAssetDir } from "nitro/types";
 import { join, relative, resolve } from "pathe";
 import { createRouter, addRoute, findAllRoutes } from "rou3";
 import { joinURL, withBase, withoutBase, withTrailingSlash } from "ufo";
@@ -82,7 +82,7 @@ export async function prerender(nitro: Nitro) {
   const prerenderer = await startPrerenderer(nitroRenderer);
 
   // Create route rule matcher
-  const routeRules = createRouter<NitroRouteRules>();
+  const routeRules = createRouter<NormalizedRouteRules>();
   for (const [route, rules] of Object.entries(nitro.options.routeRules)) {
     addRoute(routeRules, undefined, route, rules);
   }
@@ -93,7 +93,7 @@ export async function prerender(nitro: Nitro) {
       ...findAllRoutes(routeRules, undefined, path)
         .map((r) => r.data)
         .reverse()
-    ) as NitroRouteRules;
+    ) as NormalizedRouteRules;
 
   // Start prerendering
   const generatedRoutes = new Set();
@@ -144,8 +144,8 @@ export async function prerender(nitro: Nitro) {
   };
 
   const canWriteToDisk = (route: PrerenderRoute) => {
-    // Cannot write routes with query or containing ..
-    if (route.route.includes("?") || route.route.includes("..")) {
+    // Cannot write routes with query or `..` segments
+    if (route.route.includes("?") || route.route.split(/[/\\]/).includes("..")) {
       return false;
     }
 

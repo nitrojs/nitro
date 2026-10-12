@@ -13,6 +13,7 @@ import { createReadStream } from "node:fs";
 import { createGzip, createBrotliCompress } from "node:zlib";
 import { createVFSHandler } from "./vfs.ts";
 import { isLocalDevRequest } from "./_request.ts";
+import { createDevToolsJSONHandler, DEVTOOLS_JSON_ROUTE } from "./_devtools-json.ts";
 
 import devErrorHandler, {
   defaultHandler as devErrorHandlerInternal,
@@ -66,6 +67,19 @@ export class NitroDevApp {
       }
     }
 
+    // Chrome DevTools automatic workspace folders
+    if (this.nitro.options.devServer?.devtoolsJson !== false) {
+      const handler = createDevToolsJSONHandler(this.nitro);
+      const routes = new Set([
+        DEVTOOLS_JSON_ROUTE,
+        joinURL(this.nitro.options.baseURL, DEVTOOLS_JSON_ROUTE),
+      ]);
+      for (const route of routes) {
+        app.get(route, handler);
+        this.#addRoute("GET", route);
+      }
+    }
+
     // Debugging endpoint to view vfs
     app.get("/_vfs/**", createVFSHandler(this.nitro));
 
@@ -92,8 +106,8 @@ export class NitroDevApp {
           fallthrough: asset.fallthrough,
         })
       );
-      if (!asset.fallthrough) {
-        this.#addRoute("", joinURL(assetBase, "**"));
+      if (!asset.fallthrough && asset.baseURL && asset.baseURL !== "/") {
+        this.#addRoute("", joinURL(assetBase, ":path+"));
       }
     }
 
@@ -126,7 +140,11 @@ export class NitroDevApp {
    * route, a dev proxy, or a public asset dir without fallthrough. Root catch-alls are excluded.
    */
   hasRoute(method: string, path: string): boolean {
-    return !!findRoute(this.#routes, method.toUpperCase(), path);
+    method = method.toUpperCase();
+    return !!(
+      findRoute(this.#routes, method, path) ||
+      (method === "HEAD" && findRoute(this.#routes, "GET", path))
+    );
   }
 
   #addRoute(method: string, route: string) {

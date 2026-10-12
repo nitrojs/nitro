@@ -5,7 +5,7 @@ import mime from "mime";
 import { writeFile } from "../_utils/fs.ts";
 import type {
   Nitro,
-  NitroRouteRules,
+  NormalizedRouteRules,
   PrerenderRoute,
   ProxyRuleOptions,
   PublicAssetDir,
@@ -226,7 +226,7 @@ export async function generateStaticFiles(nitro: Nitro) {
 
 function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
   const rules = sortRoutes(Object.keys(nitro.options.routeRules)).map(
-    (path) => [path, nitro.options.routeRules[path]] as [string, NitroRouteRules]
+    (path) => [path, nitro.options.routeRules[path]] as [string, NormalizedRouteRules]
   );
 
   // Route rule keys and handler routes are relative to the baseURL, as at runtime
@@ -448,7 +448,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
  */
 export function getPublicAssetRoutes(
   publicAssets: PublicAssetDir[],
-  opts: { baseURL: string; routeRules: Record<string, NitroRouteRules> }
+  opts: { baseURL: string; routeRules: Record<string, NormalizedRouteRules> }
 ): { src: string; cacheControl?: string }[] {
   const routes: { src: string; cacheControl?: string }[] = [];
   for (const asset of publicAssets) {
@@ -599,7 +599,7 @@ function _hasProp(obj: any, prop: string) {
  * A proxy is eligible when it targets an external URL and uses no
  * ProxyOptions that Vercel's routing layer cannot handle at the edge.
  */
-function canUseVercelRewrite(proxy: NitroRouteRules["proxy"]): proxy is { to: string } {
+function canUseVercelRewrite(proxy: NormalizedRouteRules["proxy"]): proxy is { to: string } {
   if (!proxy || !proxy.to) {
     return false;
   }
@@ -647,7 +647,7 @@ export function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
   // observability function nor a `config.json` route (#3563, #4447).
   const routeRulesRouter = createPatternRouter(nitro.options.routeRules);
   const hasISR = (route: string) =>
-    (defu({}, ...matchPattern(routeRulesRouter, route).reverse()) as NitroRouteRules).isr;
+    (defu({}, ...matchPattern(routeRulesRouter, route).reverse()) as NormalizedRouteRules).isr;
 
   const routePatterns = [
     ...new Set([
@@ -751,7 +751,7 @@ async function createFunctionDirWithCustomConfig(
 
 async function writePrerenderConfig(
   filename: string,
-  isrConfig: NitroRouteRules["isr"],
+  isrConfig: NormalizedRouteRules["isr"],
   bypassToken?: string
 ) {
   // Normalize route rule
@@ -777,7 +777,7 @@ async function writePrerenderConfig(
   await writeFile(filename, JSON.stringify(prerenderConfig, null, 2));
 }
 
-function hasCacheControl(routeRules: NitroRouteRules | undefined): boolean {
+function hasCacheControl(routeRules: NormalizedRouteRules | undefined): boolean {
   return Object.keys(routeRules?.headers || {}).some(
     (header) => header.toLowerCase() === "cache-control"
   );

@@ -1,5 +1,5 @@
 import consola from "consola";
-import type { ConsolaInstance } from "consola";
+import type { ConsolaInstance } from "../../types/_consola.ts";
 import { resolveModulePath } from "exsolve";
 import type { LegacyUnenvPreset, NitroOptions } from "nitro/types";
 import type { PresetEnv } from "../../build/env.ts";

@@ -73,7 +73,7 @@ export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> 
   } satisfies RolldownOptions;
 
   config = defu(
-    nitro.options.rolldownConfig,
+    nitro.options.rolldownConfig as RolldownOptions,
     nitro.options.rollupConfig as RolldownOptions,
     config
   );
