@@ -80,7 +80,12 @@ describe.each(builders)("unenv on demand (%s)", (builder) => {
       `import inspector from "node:inspector";\nexport default { fetch: () => new Response(typeof inspector.open) };`
     );
     expect(unenvCalls()).toEqual([
-      [expect.objectContaining({ reason: expect.stringContaining("node:inspector") })],
+      [
+        expect.objectContaining({
+          autoInstall: true,
+          reason: expect.stringContaining("node:inspector"),
+        }),
+      ],
     ]);
     expect(code).not.toMatch(/["']node:inspector["']/);
     expect(code).toContain("__unenv__");
@@ -134,7 +139,10 @@ describe.each(builders)("unenv on demand (%s)", (builder) => {
     );
     // First from `buildStart`, then once per import (`ensureDep` installs only once)
     expect(unenvCalls()[0]).toEqual([
-      expect.objectContaining({ reason: expect.stringContaining("node:process") }),
+      expect.objectContaining({
+        autoInstall: true,
+        reason: expect.stringContaining("node:process"),
+      }),
     ]);
     expect(code).not.toMatch(/from\s*["'](node:)?(process|stream|buffer|timers)["']/);
   });

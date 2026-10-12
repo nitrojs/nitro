@@ -27,6 +27,7 @@ export function unenv(nitro: Nitro, env: BuildEnv): Plugin {
       version: UNENV_VERSION,
       dir: nitro.options.rootDir,
       reason: `Node.js compatibility (\`${id}\` import with the \`${nitro.options.preset}\` preset)`,
+      autoInstall: true,
     };
     if (!(await ensureDep(opts))) {
       throw missingDepError(opts);
