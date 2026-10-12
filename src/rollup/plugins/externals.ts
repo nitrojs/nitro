@@ -152,14 +152,14 @@ export function externals(opts: NodeExternalsOptions): Plugin {
         // Absolute path, we are not sure about subpath to generate import statement
         // Guess as main subpath export
         const packageEntry = tryResolve(pkgName, importer);
-        if (packageEntry !== id) {
+        if (!sameFilePath(packageEntry, id)) {
           // Reverse engineer subpath export
           const guessedSubpath: string | null | undefined =
             await lookupNodeModuleSubpath(id).catch(() => null);
           const resolvedGuess =
             guessedSubpath &&
             tryResolve(join(pkgName, guessedSubpath), importer);
-          if (resolvedGuess === id) {
+          if (sameFilePath(resolvedGuess, id)) {
             trackedExternals.add(resolvedGuess);
             return {
               id: join(pkgName, guessedSubpath!),
@@ -563,4 +563,14 @@ export function normalizeMatcher(input: string | RegExp | Matcher): Matcher {
   }
 
   throw new Error(`Invalid matcher or pattern: ${input}`);
+}
+
+export function sameFilePath(
+  candidate: string | null | undefined,
+  expected: string
+): candidate is string {
+  return (
+    typeof candidate === "string" &&
+    normalize(candidate) === normalize(expected)
+  );
 }
