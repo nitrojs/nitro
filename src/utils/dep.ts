@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { consola } from "consola";
-import { resolveModulePath } from "exsolve";
+import { clearResolveCache, resolveModulePath } from "exsolve";
 import { dirname, join } from "pathe";
 import { hasTTY, isAgent, isCI, isTest } from "std-env";
 
@@ -32,47 +32,16 @@ export interface DepOptions {
  * Ensure a dependency is installed, prompting to install it if missing.
  *
  * Resolves to the module path or `undefined` if it is (still) not available.
+ * Concurrent calls for the same dependency share one prompt (and install).
  */
-export async function ensureDep(opts: DepOptions, _retry?: boolean): Promise<string | undefined> {
-  const resolved = resolveModulePath(opts.id, {
-    from: opts.projectOnly ? opts.dir : [opts.dir, import.meta.url],
-    cache: _retry ? false : true,
-    try: true,
-  });
-
-  if (resolved) {
-    _checkVersion(opts, resolved);
-    return resolved;
+export function ensureDep(opts: DepOptions): Promise<string | undefined> {
+  const key = `${opts.projectOnly ? "project" : "any"}:${opts.dir}:${opts.id}`;
+  let pending = _pendingDeps.get(key);
+  if (!pending) {
+    pending = _ensureDep(opts).finally(() => _pendingDeps.delete(key));
+    _pendingDeps.set(key, pending);
   }
-
-  let shouldInstall: boolean | undefined;
-  if (_retry || isTest) {
-    shouldInstall = false; // Do not install dependencies in test mode
-  } else if (isCI || isAgent || !hasTTY) {
-    const env = isCI ? "CI" : isAgent ? "agent" : "non-interactive";
-    consola.info(
-      `\`${opts.id}\` is required for ${opts.reason}. Installing automatically in ${env} environment...`
-    );
-    shouldInstall = true; // Auto install in non-interactive environments (CI, AI agents, no TTY)
-  } else {
-    shouldInstall = await consola.prompt(
-      `\`${opts.id}\` is required for ${opts.reason}, but it is not installed. Would you like to install it?`,
-      { type: "confirm", default: true, cancel: "undefined" }
-    );
-  }
-
-  if (!shouldInstall) {
-    return undefined;
-  }
-
-  const start = Date.now();
-  consola.start(`Installing \`${opts.id}\` in \`${opts.dir}\`...`);
-  const { addDependency, addDevDependency } = await import("nypm");
-  const spec = opts.version && !opts.version.includes(" ") ? `${opts.id}@${opts.version}` : opts.id;
-  await (opts.dev === false ? addDependency : addDevDependency)(spec, { cwd: opts.dir });
-  consola.success(`Installed \`${opts.id}\` in ${opts.dir} (${Date.now() - start}ms).`);
-
-  return ensureDep(opts, true);
+  return pending;
 }
 
 export async function importDep<T>(opts: DepOptions): Promise<T> {
@@ -86,10 +55,29 @@ export async function importDep<T>(opts: DepOptions): Promise<T> {
 }
 
 export function isDepInstalled(id: string, opts: Pick<DepOptions, "dir" | "projectOnly">): boolean {
-  return !!resolveModulePath(id, {
-    from: opts.projectOnly ? opts.dir : [opts.dir, import.meta.url],
-    try: true,
-  });
+  return !!resolveDep(id, opts);
+}
+
+/**
+ * Resolve a dependency (or one of its subpaths), bypassing cached failures.
+ *
+ * Failed lookups are cached (process wide) by `exsolve`: once a dependency is found after one,
+ * the cache is cleared so that every later lookup sees it (installed on demand or manually).
+ */
+export function resolveDep(
+  id: string,
+  opts: Pick<DepOptions, "dir" | "projectOnly">
+): string | undefined {
+  const from = opts.projectOnly ? opts.dir : [opts.dir, import.meta.url];
+  const resolved = resolveModulePath(id, { from, try: true });
+  if (resolved) {
+    return resolved;
+  }
+  const uncached = resolveModulePath(id, { from, try: true, cache: false });
+  if (uncached) {
+    clearResolveCache();
+  }
+  return uncached;
 }
 
 export interface LibDep {
@@ -146,18 +134,58 @@ export async function ensureLibDeps(
   }
 }
 
-const _versionWarnings = new Set<string>();
+const _pendingDeps = new Map<string, Promise<string | undefined>>();
 
-/** Warn once if the installed version of a dependency is outside of its supported range. */
+async function _ensureDep(opts: DepOptions): Promise<string | undefined> {
+  const resolved = resolveDep(opts.id, opts);
+  if (resolved) {
+    _checkVersion(opts, resolved);
+    return resolved;
+  }
+
+  let shouldInstall: boolean | undefined;
+  if (isTest) {
+    shouldInstall = false; // Do not install dependencies in test mode
+  } else if (isCI || isAgent || !hasTTY) {
+    const env = isCI ? "CI" : isAgent ? "agent" : "non-interactive";
+    consola.info(
+      `\`${opts.id}\` is required for ${opts.reason}. Installing automatically in ${env} environment...`
+    );
+    shouldInstall = true; // Auto install in non-interactive environments (CI, AI agents, no TTY)
+  } else {
+    shouldInstall = await consola.prompt(
+      `\`${opts.id}\` is required for ${opts.reason}, but it is not installed. Would you like to install it?`,
+      { type: "confirm", default: true, cancel: "undefined" }
+    );
+  }
+
+  if (!shouldInstall) {
+    return undefined;
+  }
+
+  const start = Date.now();
+  consola.start(`Installing \`${opts.id}\` in \`${opts.dir}\`...`);
+  const { addDependency, addDevDependency } = await import("nypm");
+  const spec = opts.version && !opts.version.includes(" ") ? `${opts.id}@${opts.version}` : opts.id;
+  await (opts.dev === false ? addDependency : addDevDependency)(spec, { cwd: opts.dir });
+  consola.success(`Installed \`${opts.id}\` in ${opts.dir} (${Date.now() - start}ms).`);
+
+  return resolveDep(opts.id, opts);
+}
+
+const _checkedVersions = new Set<string>();
+
+/** Warn if the installed version of a dependency is outside of its supported range (checked once per entry). */
 function _checkVersion(opts: DepOptions, entry: string): void {
-  if (!opts.version || _versionWarnings.has(`${opts.id}@${opts.version}`)) {
+  const key = `${entry}@${opts.version}`;
+  if (!opts.version || _checkedVersions.has(key)) {
     return;
   }
+  _checkedVersions.add(key);
   const version = _installedVersion(opts.id, entry);
   if (!version || _isSupportedVersion(version, opts.version)) {
     return;
   }
-  _versionWarnings.add(`${opts.id}@${opts.version}`);
   consola.warn(
     `\`${opts.id}@${version}\` is installed in \`${opts.dir}\` but ${opts.reason} requires \`${opts.version}\`. Please update it if you run into issues.`
   );

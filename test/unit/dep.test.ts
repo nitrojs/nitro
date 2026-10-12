@@ -1,4 +1,13 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import * as fs from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import * as exsolve from "exsolve";
+import { consola } from "consola";
+import { join } from "pathe";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("node:fs", { spy: true });
+vi.mock("exsolve", { spy: true });
 
 // Mutable environment flags, applied per test case
 const env = { isAgent: false, isCI: false, isTest: false, hasTTY: true };
@@ -38,9 +47,49 @@ vi.mock("consola", () => ({
 
 const missingDep = { id: "nitro-missing-dep", dir: process.cwd(), reason: "testing" };
 
-async function ensureDep(opts: typeof missingDep) {
+async function ensureDep(opts: typeof missingDep & { version?: string }) {
   const mod = await import("../../src/utils/dep.ts");
   return mod.ensureDep(opts);
+}
+
+async function isDepInstalled(id: string, dir: string) {
+  const mod = await import("../../src/utils/dep.ts");
+  return mod.isDepInstalled(id, { dir });
+}
+
+async function resolveDep(id: string, dir: string) {
+  const mod = await import("../../src/utils/dep.ts");
+  return mod.resolveDep(id, { dir, projectOnly: true });
+}
+
+const tmpDirs: string[] = [];
+afterAll(() => {
+  for (const dir of tmpDirs) {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+/** A project directory without `node_modules`. */
+function createProject() {
+  const dir = mkdtempSync(join(tmpdir(), "nitro-dep-"));
+  tmpDirs.push(dir);
+  return dir;
+}
+
+/** Install a stub package into `dir` (what the package manager would do). */
+function installStub(id: string, dir: string) {
+  const pkgDir = join(dir, "node_modules", id);
+  mkdirSync(pkgDir, { recursive: true });
+  writeFileSync(
+    join(pkgDir, "package.json"),
+    JSON.stringify({
+      name: id,
+      version: "1.0.0",
+      type: "module",
+      exports: { ".": "./index.mjs", "./sub": "./index.mjs" },
+    })
+  );
+  writeFileSync(join(pkgDir, "index.mjs"), "export default 1;");
 }
 
 describe("ensureDep", () => {
@@ -75,5 +124,89 @@ describe("ensureDep", () => {
     expect(await ensureDep(missingDep)).toBeUndefined();
     expect(prompt).toHaveBeenCalledOnce();
     expect(addDevDependency).not.toHaveBeenCalled();
+  });
+});
+
+describe("ensureDep (resolve cache)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    Object.assign(env, { isAgent: false, isCI: true, isTest: false, hasTTY: false });
+    addDevDependency.mockImplementation((spec: string, opts: { cwd: string }) => {
+      installStub(spec.split("@")[0]!, opts.cwd);
+    });
+  });
+
+  it("resolves a dependency installed on demand from then on", async () => {
+    const dir = createProject();
+    const opts = { ...missingDep, dir };
+    expect(await isDepInstalled(opts.id, dir)).toBe(false);
+
+    expect(await ensureDep(opts)).toBeTruthy();
+    expect(addDevDependency).toHaveBeenCalledOnce();
+
+    // Previous failed lookups are not cached anymore
+    expect(await isDepInstalled(opts.id, dir)).toBe(true);
+    expect(await ensureDep(opts)).toBeTruthy();
+    expect(addDevDependency).toHaveBeenCalledOnce();
+  });
+
+  it("resolves a dependency installed after a failed lookup", async () => {
+    env.isTest = true; // Do not install
+    const dir = createProject();
+    const opts = { ...missingDep, dir };
+    expect(await ensureDep(opts)).toBeUndefined();
+
+    installStub(opts.id, dir); // e.g. installed manually while `nitro dev` is running
+    expect(await ensureDep(opts)).toBeTruthy();
+    expect(await isDepInstalled(opts.id, dir)).toBe(true);
+  });
+
+  it("installs once for concurrent calls", async () => {
+    const dir = createProject();
+    const opts = { ...missingDep, dir };
+    const results = await Promise.all([ensureDep(opts), ensureDep(opts), ensureDep(opts)]);
+    expect(results.every(Boolean)).toBe(true);
+    expect(addDevDependency).toHaveBeenCalledOnce();
+  });
+
+  it("resolves a dependency installed manually after a failed lookup", async () => {
+    const dir = createProject();
+    expect(await isDepInstalled(missingDep.id, dir)).toBe(false);
+    expect(await resolveDep(`${missingDep.id}/sub`, dir)).toBeUndefined();
+
+    installStub(missingDep.id, dir); // e.g. installed manually while `nitro dev` is running
+    expect(await isDepInstalled(missingDep.id, dir)).toBe(true);
+    expect(await resolveDep(`${missingDep.id}/sub`, dir)).toBeTruthy();
+  });
+
+  it("uses cached lookups for installed dependencies", async () => {
+    const dir = createProject();
+    installStub(missingDep.id, dir);
+    await resolveDep(missingDep.id, dir);
+
+    vi.mocked(exsolve.resolveModulePath).mockClear();
+    for (let i = 0; i < 3; i++) {
+      expect(await ensureDep({ ...missingDep, dir })).toBeTruthy();
+      expect(await resolveDep(`${missingDep.id}/sub`, dir)).toBeTruthy();
+    }
+    const uncached = vi
+      .mocked(exsolve.resolveModulePath)
+      .mock.calls.filter(([, opts]) => opts?.cache === false);
+    expect(uncached).toEqual([]);
+  });
+
+  it("checks the installed version once", async () => {
+    const dir = createProject();
+    installStub(missingDep.id, dir);
+    const opts = { ...missingDep, dir, version: "^1.0.0" };
+    expect(await ensureDep(opts)).toBeTruthy();
+
+    vi.mocked(fs.readFileSync).mockClear();
+    expect(await ensureDep(opts)).toBeTruthy();
+    expect(await ensureDep(opts)).toBeTruthy();
+    expect(
+      vi.mocked(fs.readFileSync).mock.calls.filter(([path]) => String(path).includes(dir))
+    ).toEqual([]);
+    expect(consola.warn).not.toHaveBeenCalled();
   });
 });

@@ -10,11 +10,13 @@ const isStub = process.argv.includes("--stub");
 // Optional dependencies imported on demand from the user project (see `src/utils/dep.ts`)
 const optionalDeps = [
   "@vercel/queue",
+  "db0",
   "dotenv",
   "giget",
   "jiti",
   "rolldown",
   "rollup",
+  "unstorage",
   "vite",
   "xml2js",
   "zephyr-agent",
@@ -29,8 +31,10 @@ const optionalTypeDeps = [
   "@cloudflare/workers-types",
   "@vercel/queue",
   "cloudflare:workers",
+  "db0",
   "rolldown",
   "rollup",
+  "unstorage",
 ];
 
 const pkg = await import("./package.json", { with: { type: "json" } }).then((r) => r.default || r);

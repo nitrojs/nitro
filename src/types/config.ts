@@ -29,7 +29,7 @@ import type { NitroBuildPluginOption, OXCOptions, RolldownConfig } from "./build
 import type { CommonJSOptions } from "./_bundler.ts";
 import type { RollupConfig } from "./build.ts";
 import type { NormalizedRouteRules, RouteRuleConfig } from "./route-rules.ts";
-import type { JsonValue, SerializableOptions } from "./_utils.ts";
+import type { JsonValue, OptionalDepType, SerializableOptions } from "./_utils.ts";
 
 /**
  * Fully resolved Nitro options available on `nitro.options`.
@@ -1168,10 +1168,13 @@ type CustomDriverName = string & { _custom?: any };
  * Driver options are inferred from the `driver` name.
  */
 export type BuiltinKVMount = {
-  [Name in BuiltinDriverName]: { driver: Name } & (Name extends keyof BuiltinDriverOptions
+  [Name in KVDriverName]: { driver: Name } & (Name extends keyof BuiltinDriverOptions
     ? SerializableOptions<BuiltinDriverOptions[Name]>
     : unknown);
-}[BuiltinDriverName];
+}[KVDriverName];
+
+/** Builtin driver names (none when `unstorage` is not installed). */
+type KVDriverName = OptionalDepType<BuiltinDriverName, never>;
 
 /** Mount configuration for a custom driver (module id or alias). */
 export type CustomKVMount = {
@@ -1287,14 +1290,19 @@ export type DatabaseConnectionName = "default" | (string & {});
  * @see https://nitro.build/config#database
  * @see https://nitro.build/docs/database
  */
-export type DatabaseConnectionConfig = {
-  [Name in ConnectorName]: {
-    connector: Name;
-    options?: Name extends keyof ConnectorOptions
-      ? SerializableOptions<ConnectorOptions[Name]>
-      : Record<string, JsonValue>;
-  };
-}[ConnectorName];
+export type DatabaseConnectionConfig = [DatabaseConnectorName] extends [never]
+  ? { connector: string; options?: Record<string, JsonValue> }
+  : {
+      [Name in DatabaseConnectorName]: {
+        connector: Name;
+        options?: Name extends keyof ConnectorOptions
+          ? SerializableOptions<ConnectorOptions[Name]>
+          : Record<string, JsonValue>;
+      };
+    }[DatabaseConnectorName];
+
+/** Connector names (none when `db0` is not installed). */
+type DatabaseConnectorName = OptionalDepType<ConnectorName, never>;
 
 /** Map of {@link DatabaseConnectionName} to {@link DatabaseConnectionConfig}. */
 export type DatabaseConnectionConfigs = Record<DatabaseConnectionName, DatabaseConnectionConfig>;

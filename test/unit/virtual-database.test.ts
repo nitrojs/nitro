@@ -27,36 +27,38 @@ describe("virtual/database template", () => {
     installedDeps.clear();
   });
 
-  it("returns empty connection configs when database is disabled", () => {
-    const template = database(
+  it("returns empty connection configs when database is disabled", async () => {
+    const template = await database(
       createNitroStub({ default: { connector: "sqlite" } }, false)
     ).template();
     expect(template).toBe("export const connectionConfigs = {};");
   });
 
-  it("imports the connector module", () => {
-    const template = database(createNitroStub({ default: { connector: "sqlite" } })).template();
+  it("imports the connector module", async () => {
+    const template = await database(
+      createNitroStub({ default: { connector: "sqlite" } })
+    ).template();
     expect(template).toContain(`import sqliteConnector from "db0/connectors/node-sqlite";`);
     expect(template).toContain("connector: sqliteConnector");
   });
 
-  it("throws for an unknown connector", () => {
-    expect(() =>
+  it("throws for an unknown connector", async () => {
+    await expect(
       database(createNitroStub({ default: { connector: "unknown" as any } })).template()
-    ).toThrow(`Database connector "unknown" is invalid.`);
+    ).rejects.toThrow(`Database connector "unknown" is invalid.`);
   });
 
-  it("provides installed connector dependencies via the `lib` option", () => {
+  it("provides installed connector dependencies via the `lib` option", async () => {
     installedDeps.add("pg");
-    const template = database(
+    const template = await database(
       createNitroStub({ default: { connector: "postgresql", options: { url: "postgres://" } } })
     ).template();
     expect(template).toContain(`options: { ...{"url":"postgres://"}, lib: () => import("pg") }`);
   });
 
-  it("uses the connector import specifier when it differs from the package name", () => {
+  it("uses the connector import specifier when it differs from the package name", async () => {
     installedDeps.add("mysql2");
-    const template = database(
+    const template = await database(
       createNitroStub({ default: { connector: "mysql2", options: { host: "localhost" } } })
     ).template();
     expect(template).toContain(
@@ -64,17 +66,17 @@ describe("virtual/database template", () => {
     );
   });
 
-  it("does not provide `lib` for dependencies that are not installed", () => {
-    const template = database(
+  it("does not provide `lib` for dependencies that are not installed", async () => {
+    const template = await database(
       createNitroStub({ default: { connector: "postgresql", options: { url: "postgres://" } } })
     ).template();
     expect(template).toContain(`options: {"url":"postgres://"}`);
     expect(template).not.toContain("import(");
   });
 
-  it("does not override a user provided `lib` option", () => {
+  it("does not override a user provided `lib` option", async () => {
     installedDeps.add("pg");
-    const template = database(
+    const template = await database(
       createNitroStub({ default: { connector: "postgresql", options: { lib: null } } })
     ).template();
     expect(template).not.toContain(`import("pg")`);
