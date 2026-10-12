@@ -247,11 +247,8 @@ export default ${factory}(${JSON.stringify(arg)});
 }
 
 function registerDevManifest(nitro: Nitro, getManifest: () => VercelDevManifest) {
-  const handlerPath = join(presetsDir, "vercel/runtime/dev-manifest-handler");
-  nitro.options.virtual[DEV_MANIFEST_ID] = () => /* js */ `
-import { createDevManifestHandler } from "${handlerPath}";
-export default createDevManifestHandler(${JSON.stringify(getManifest())});
-`;
+  nitro.options.virtual[DEV_MANIFEST_ID] = () =>
+    /* js */ `export default () => (${JSON.stringify(getManifest())});`;
   nitro.options.handlers.push({
     route: DEV_MANIFEST_ROUTE,
     method: "GET",

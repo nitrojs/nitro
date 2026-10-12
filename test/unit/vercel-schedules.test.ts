@@ -169,7 +169,7 @@ describe("setupVercelSchedulesDev", () => {
     setupVercelSchedulesDev(nitro);
     const template = nitro.options.virtual["#nitro/virtual/vercel-dev-manifest"] as () => string;
     expect(template()).toContain(
-      `createDevManifestHandler(${JSON.stringify({
+      `export default () => (${JSON.stringify({
         functions: [
           {
             outputPath: "_vercel/tasks",
@@ -178,7 +178,7 @@ describe("setupVercelSchedulesDev", () => {
           },
         ],
         schedules: [{ name: "cleanup", schedule: "0 3 * * *", function: "_vercel/tasks" }],
-      })})`
+      })});`
     );
   });
 
@@ -191,7 +191,7 @@ describe("setupVercelSchedulesDev", () => {
       expect.objectContaining({ route: "/_vercel/dev-manifest" }),
     ]);
     const template = nitro.options.virtual["#nitro/virtual/vercel-dev-manifest"] as () => string;
-    expect(template()).toContain(`createDevManifestHandler({"functions":[],"schedules":[]})`);
+    expect(template()).toContain(`export default () => ({"functions":[],"schedules":[]});`);
   });
 
   it("serves the cron handler for path targets", () => {
