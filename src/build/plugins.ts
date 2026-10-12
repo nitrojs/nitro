@@ -13,6 +13,7 @@ import { raw, RESOLVED_RE as rawModulesRE } from "./plugins/raw.ts";
 import { importAttributes } from "./plugins/import-attributes.ts";
 import { externals } from "./plugins/externals.ts";
 import { unenv } from "./plugins/unenv.ts";
+import { runtimeDeps } from "./plugins/runtime-deps.ts";
 
 export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const plugins: Plugin[] = [];
@@ -24,6 +25,9 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
 
   // Node.js compatibility polyfills (resolved on demand)
   plugins.push(unenv(nitro, base.env));
+
+  // Optional runtime dependencies (`unstorage`, `db0`) imported by Nitro (resolved on demand)
+  plugins.push(runtimeDeps(nitro));
 
   // WASM loader
   if (nitro.options.wasm !== false) {

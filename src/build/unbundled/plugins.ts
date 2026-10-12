@@ -14,6 +14,11 @@ import { importOXC } from "../../utils/oxc.ts";
 import { raw, RESOLVED_RE as RAW_RE } from "../plugins/raw.ts";
 import { routeMeta } from "../plugins/route-meta.ts";
 import { resolveBuildPlugins } from "../plugins.ts";
+import {
+  ensureRuntimeDep,
+  isRuntimeImporter,
+  OPTIONAL_RUNTIME_DEPS_RE,
+} from "../plugins/runtime-deps.ts";
 
 const SCRIPT_TYPES = ["js", "jsx", "ts", "tsx"] as const;
 
@@ -34,6 +39,7 @@ export async function unbundledPlugins(nitro: Nitro): Promise<EnvRunnerPlugin[]>
 
   const plugins: EnvRunnerPlugin[] = [
     virtualPlugin(),
+    runtimeDepsPlugin(nitro),
     resolvePlugin(nitro, base.extensions),
     windowsPathPlugin(base.extensions),
     await transformPlugin(nitro, sourceDirs),
@@ -104,6 +110,27 @@ function resolvePlugin(nitro: Nitro, extensions: string[]): EnvRunnerPlugin {
         if (importer && normalize(importer).startsWith(virtualDir)) {
           return this.resolve(source, join(nitro.options.rootDir, "_"));
         }
+      },
+    },
+  };
+}
+
+/**
+ * Optional runtime dependencies (`unstorage`, `db0`) imported by the Nitro runtime: installed
+ * on demand and resolved from the project when the runtime fails to resolve them.
+ */
+function runtimeDepsPlugin(nitro: Nitro): EnvRunnerPlugin {
+  return {
+    name: "nitro:runtime-deps",
+    resolveId: {
+      fallback: true,
+      filter: { id: OPTIONAL_RUNTIME_DEPS_RE },
+      async handler(this: PluginContext, source, importer) {
+        if (!isRuntimeImporter(importer && normalize(importer))) {
+          return;
+        }
+        await ensureRuntimeDep(nitro, source);
+        return this.resolve(source, join(nitro.options.rootDir, "_"));
       },
     },
   };

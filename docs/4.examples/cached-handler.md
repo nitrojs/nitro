@@ -25,6 +25,9 @@ export default defineConfig({});
     "dev": "nitro dev",
     "build": "nitro build"
   },
+  "dependencies": {
+    "ocache": "^0.3.0"
+  },
   "devDependencies": {
     "nitro": "latest"
   }

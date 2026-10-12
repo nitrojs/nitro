@@ -1,4 +1,9 @@
 import type { HTTPEvent } from "h3";
+import type {
+  CacheOptions,
+  CachedEventHandlerOptions as OCacheEventHandlerOptions,
+  HTTPEvent as OCacheHTTPEvent,
+} from "ocache";
 
 export type { CacheEntry, CacheOptions, CachedFunction, ResponseCacheEntry } from "ocache";
 
@@ -7,10 +12,10 @@ export type { CacheEntry, CacheOptions, CachedFunction, ResponseCacheEntry } fro
  *
  * @see https://nitro.build/docs/cache
  */
-export type CachedFunctionOptions<
-  T = any,
-  ArgsT extends unknown[] = any[],
-> = import("ocache").CacheOptions<T, ArgsT>;
+export type CachedFunctionOptions<T = any, ArgsT extends unknown[] = any[]> = CacheOptions<
+  T,
+  ArgsT
+>;
 
 /**
  * Options for `defineCachedHandler`.
@@ -18,7 +23,7 @@ export type CachedFunctionOptions<
  * @see https://nitro.build/docs/cache
  */
 export interface CachedHandlerOptions extends Omit<
-  import("ocache").CachedEventHandlerOptions<HTTPEvent & import("ocache").HTTPEvent>,
+  OCacheEventHandlerOptions<HTTPEvent & OCacheHTTPEvent>,
   "toResponse" | "createResponse" | "handleCacheHeaders"
 > {}
 

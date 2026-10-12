@@ -20,9 +20,6 @@ importers:
       crossws:
         specifier: ^0.4.15
         version: 0.4.15(srvx@1.0.5)
-      db0:
-        specifier: ^0.4.1
-        version: 0.4.1
       env-runner:
         specifier: ^0.3.3
         version: 0.3.3
@@ -32,15 +29,9 @@ importers:
       nf3:
         specifier: ^0.4.2
         version: 0.4.2
-      ocache:
-        specifier: ^0.3.0
-        version: 0.3.0
       srvx:
         specifier: ^1.0.5
         version: 1.0.5
-      unstorage:
-        specifier: ^2.0.0-alpha.10
-        version: 2.0.0-alpha.10
     devDependencies:
       '@apphosting/common':
         specifier: ^0.0.9
@@ -147,6 +138,9 @@ importers:
       croner:
         specifier: ^10.0.1
         version: 10.0.1
+      db0:
+        specifier: ^0.4.1
+        version: 0.4.1
       defu:
         specifier: ^6.1.7
         version: 6.1.7
@@ -216,6 +210,9 @@ importers:
       obuild:
         specifier: ^0.4.44
         version: 0.4.44(dotenv@18.0.5)(giget@3.3.1)(jiti@2.7.0)(magicast@0.5.5)(typescript@7.0.2)
+      ocache:
+        specifier: ^0.3.0
+        version: 0.3.0
       oxbox:
         specifier: ^0.1.0
         version: 0.1.0
@@ -282,6 +279,9 @@ importers:
       unenv:
         specifier: ^2.0.0-rc.24
         version: 2.0.0-rc.24
+      unstorage:
+        specifier: ^2.0.0-alpha.10
+        version: 2.0.0-alpha.10
       unwasm:
         specifier: ^0.6.0
         version: 0.6.0
@@ -311,6 +311,10 @@ importers:
         version: link:../..
 
   examples/cached-handler:
+    dependencies:
+      ocache:
+        specifier: ^0.3.0
+        version: 0.3.0
     devDependencies:
       nitro:
         specifier: workspace:*
@@ -323,6 +327,10 @@ importers:
         version: link:../..
 
   examples/database:
+    dependencies:
+      db0:
+        specifier: ^0.4.1
+        version: 0.4.1
     devDependencies:
       nitro:
         specifier: workspace:*
@@ -449,6 +457,10 @@ importers:
         version: 8.3.3(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
 
   examples/tracing:
+    dependencies:
+      unstorage:
+        specifier: ^2.0.0-alpha.10
+        version: 2.0.0-alpha.10
     devDependencies:
       nitro:
         specifier: workspace:*
@@ -776,6 +788,10 @@ importers:
         version: 4.6.5
 
   examples/vitest:
+    dependencies:
+      unstorage:
+        specifier: ^2.0.0-alpha.10
+        version: 2.0.0-alpha.10
     devDependencies:
       nitro:
         specifier: workspace:*

@@ -1,7 +1,7 @@
 import consola from "consola";
 import { isAbsolute, resolve } from "pathe";
 import type { NitroOptions } from "nitro/types";
-import { resolveKVMounts } from "../../utils/storage.ts";
+import { importUnstorage, resolveKVMounts } from "../../utils/storage.ts";
 
 const cacheDrivers = new Set(["memory", "fs", "kv"]);
 
@@ -20,6 +20,10 @@ export async function resolveCacheOptions(options: NitroOptions) {
     throw new Error(
       `Invalid \`cache.driver\`: ${JSON.stringify(options.cache.driver)}. Expected one of: ${[...cacheDrivers].map((d) => `"${d}"`).join(", ")}.`
     );
+  }
+
+  if (options.cache.driver === "kv") {
+    await importUnstorage({ dir: options.rootDir, reason: '`cache.driver: "kv"`' });
   }
 
   if (options.cache.driver === "fs") {

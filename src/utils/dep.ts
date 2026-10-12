@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { consola } from "consola";
-import { resolveModulePath } from "exsolve";
+import { clearResolveCache, resolveModulePath } from "exsolve";
 import { dirname, join } from "pathe";
 import { hasTTY, isAgent, isCI, isTest } from "std-env";
 
@@ -19,6 +19,8 @@ export interface DepOptions {
   version?: string;
   /** Install as a dev dependency. (default: `true`) */
   dev?: boolean;
+  /** Install without prompting, also in interactive environments (never in test mode). */
+  autoInstall?: boolean;
   /**
    * Only resolve from `dir`, ignoring Nitro's own dependencies.
    *
@@ -32,64 +34,58 @@ export interface DepOptions {
  * Ensure a dependency is installed, prompting to install it if missing.
  *
  * Resolves to the module path or `undefined` if it is (still) not available.
+ * Concurrent calls for the same dependency share one prompt (and install).
  */
-export async function ensureDep(opts: DepOptions, _retry?: boolean): Promise<string | undefined> {
-  const resolved = resolveModulePath(opts.id, {
-    from: opts.projectOnly ? opts.dir : [opts.dir, import.meta.url],
-    cache: _retry ? false : true,
-    try: true,
-  });
-
-  if (resolved) {
-    _checkVersion(opts, resolved);
-    return resolved;
+export function ensureDep(opts: DepOptions): Promise<string | undefined> {
+  const key = `${opts.projectOnly ? "project" : "any"}:${opts.dir}:${opts.id}`;
+  let pending = _pendingDeps.get(key);
+  if (!pending) {
+    pending = _ensureDep(opts).finally(() => _pendingDeps.delete(key));
+    _pendingDeps.set(key, pending);
   }
-
-  let shouldInstall: boolean | undefined;
-  if (_retry || isTest) {
-    shouldInstall = false; // Do not install dependencies in test mode
-  } else if (isCI || isAgent || !hasTTY) {
-    const env = isCI ? "CI" : isAgent ? "agent" : "non-interactive";
-    consola.info(
-      `\`${opts.id}\` is required for ${opts.reason}. Installing automatically in ${env} environment...`
-    );
-    shouldInstall = true; // Auto install in non-interactive environments (CI, AI agents, no TTY)
-  } else {
-    shouldInstall = await consola.prompt(
-      `\`${opts.id}\` is required for ${opts.reason}, but it is not installed. Would you like to install it?`,
-      { type: "confirm", default: true, cancel: "undefined" }
-    );
-  }
-
-  if (!shouldInstall) {
-    return undefined;
-  }
-
-  const start = Date.now();
-  consola.start(`Installing \`${opts.id}\` in \`${opts.dir}\`...`);
-  const { addDependency, addDevDependency } = await import("nypm");
-  const spec = opts.version && !opts.version.includes(" ") ? `${opts.id}@${opts.version}` : opts.id;
-  await (opts.dev === false ? addDependency : addDevDependency)(spec, { cwd: opts.dir });
-  consola.success(`Installed \`${opts.id}\` in ${opts.dir} (${Date.now() - start}ms).`);
-
-  return ensureDep(opts, true);
+  return pending;
 }
 
 export async function importDep<T>(opts: DepOptions): Promise<T> {
   const resolved = await ensureDep(opts);
   if (!resolved) {
-    throw new Error(
-      `\`${opts.id}\` is not installed. Please add it to your dependencies for ${opts.reason}.`
-    );
+    throw missingDepError(opts);
   }
   return (await import(pathToFileURL(resolved).href)) as T;
 }
 
+/** Error for a dependency that is (still) not installed, with the command to install it. */
+export function missingDepError(opts: DepOptions): Error {
+  const dev = opts.dev === false ? "" : "dev ";
+  return new Error(
+    `\`${opts.id}\` is not installed. It is required for ${opts.reason}. Please add it to your ${dev}dependencies (e.g. \`npx nypm add ${dev ? "-D " : ""}${_depSpec(opts)}\`).`
+  );
+}
+
 export function isDepInstalled(id: string, opts: Pick<DepOptions, "dir" | "projectOnly">): boolean {
-  return !!resolveModulePath(id, {
-    from: opts.projectOnly ? opts.dir : [opts.dir, import.meta.url],
-    try: true,
-  });
+  return !!resolveDep(id, opts);
+}
+
+/**
+ * Resolve a dependency (or one of its subpaths), bypassing cached failures.
+ *
+ * Failed lookups are cached (process wide) by `exsolve`: once a dependency is found after one,
+ * the cache is cleared so that every later lookup sees it (installed on demand or manually).
+ */
+export function resolveDep(
+  id: string,
+  opts: Pick<DepOptions, "dir" | "projectOnly">
+): string | undefined {
+  const from = opts.projectOnly ? opts.dir : [opts.dir, import.meta.url];
+  const resolved = resolveModulePath(id, { from, try: true });
+  if (resolved) {
+    return resolved;
+  }
+  const uncached = resolveModulePath(id, { from, try: true, cache: false });
+  if (uncached) {
+    clearResolveCache();
+  }
+  return uncached;
 }
 
 export interface LibDep {
@@ -146,18 +142,70 @@ export async function ensureLibDeps(
   }
 }
 
-const _versionWarnings = new Set<string>();
+const _pendingDeps = new Map<string, Promise<string | undefined>>();
 
-/** Warn once if the installed version of a dependency is outside of its supported range. */
+async function _ensureDep(opts: DepOptions): Promise<string | undefined> {
+  const resolved = resolveDep(opts.id, opts);
+  if (resolved) {
+    _checkVersion(opts, resolved);
+    return resolved;
+  }
+
+  let shouldInstall: boolean | undefined;
+  if (isTest) {
+    shouldInstall = false; // Do not install dependencies in test mode
+  } else if (opts.autoInstall) {
+    consola.info(`\`${opts.id}\` is required for ${opts.reason}. Installing automatically...`);
+    shouldInstall = true;
+  } else if (isCI || isAgent || !hasTTY) {
+    const env = isCI ? "CI" : isAgent ? "agent" : "non-interactive";
+    consola.info(
+      `\`${opts.id}\` is required for ${opts.reason}. Installing automatically in ${env} environment...`
+    );
+    shouldInstall = true; // Auto install in non-interactive environments (CI, AI agents, no TTY)
+  } else {
+    shouldInstall = await consola.prompt(
+      `\`${opts.id}\` is required for ${opts.reason}, but it is not installed. Would you like to install it?`,
+      { type: "confirm", default: true, cancel: "undefined" }
+    );
+  }
+
+  if (!shouldInstall) {
+    return undefined;
+  }
+
+  const start = Date.now();
+  consola.start(`Installing \`${opts.id}\` in \`${opts.dir}\`...`);
+  const { addDependency, addDevDependency } = await import("nypm");
+  await (opts.dev === false ? addDependency : addDevDependency)(_depSpec(opts), { cwd: opts.dir });
+
+  const installed = resolveDep(opts.id, opts);
+  if (installed) {
+    consola.success(`Installed \`${opts.id}\` in ${opts.dir} (${Date.now() - start}ms).`);
+  } else {
+    consola.warn(`Installed \`${opts.id}\` in ${opts.dir}, but it cannot be resolved from there.`);
+  }
+  return installed;
+}
+
+/** Package spec to install (with the version range if it is a simple one). */
+function _depSpec(opts: DepOptions): string {
+  return opts.version && !opts.version.includes(" ") ? `${opts.id}@${opts.version}` : opts.id;
+}
+
+const _checkedVersions = new Set<string>();
+
+/** Warn if the installed version of a dependency is outside of its supported range (checked once per entry). */
 function _checkVersion(opts: DepOptions, entry: string): void {
-  if (!opts.version || _versionWarnings.has(`${opts.id}@${opts.version}`)) {
+  const key = `${entry}@${opts.version}`;
+  if (!opts.version || _checkedVersions.has(key)) {
     return;
   }
+  _checkedVersions.add(key);
   const version = _installedVersion(opts.id, entry);
   if (!version || _isSupportedVersion(version, opts.version)) {
     return;
   }
-  _versionWarnings.add(`${opts.id}@${opts.version}`);
   consola.warn(
     `\`${opts.id}@${version}\` is installed in \`${opts.dir}\` but ${opts.reason} requires \`${opts.version}\`. Please update it if you run into issues.`
   );
@@ -187,19 +235,30 @@ function _installedVersion(id: string, entry: string): string | undefined {
 }
 
 /**
- * Check a version against a simple caret range (`^8`, `^7 || ^8`).
+ * Check a version against caret ranges (`^8`, `^7 || ^8`, `^2.0.0-rc.1`, `^0.4.1`).
  *
- * Ranges in any other format (and `0.x` versions, for which caret is minor scoped) are not
- * checked. Prerelease versions match their own major (`8.0.0-beta.1` satisfies `^8`).
+ * Only the compatibility scope of the caret is checked: the major, or the minor for `0.x`
+ * ranges. Prerelease versions and ranges match their own scope (`2.0.0-alpha.1` satisfies
+ * `^2.0.0-rc.1`). Ranges in any other format are not checked.
  */
 function _isSupportedVersion(version: string, range: string): boolean {
-  const major = Number.parseInt(version, 10);
-  if (!major) {
-    return true;
-  }
+  const installed = _parseVersion(version);
   const ranges = range.split("||").map((r) => r.trim());
-  if (!ranges.every((r) => /^\^\d+(\.\d+)*$/.test(r))) {
+  if (!installed || !ranges.every((r) => r.startsWith("^") && _parseVersion(r.slice(1)))) {
     return true;
   }
-  return ranges.some((r) => Number.parseInt(r.slice(1), 10) === major);
+  return ranges.some((r) => {
+    const { major, minor } = _parseVersion(r.slice(1))!;
+    return (
+      major === installed.major && (major > 0 || minor === undefined || minor === installed.minor)
+    );
+  });
+}
+
+function _parseVersion(version: string): { major: number; minor?: number } | undefined {
+  const match = /^(\d+)(?:\.(\d+))?(?:\.\d+)?(?:-[\w.]+)?$/.exec(version);
+  if (!match) {
+    return;
+  }
+  return { major: Number(match[1]), minor: match[2] === undefined ? undefined : Number(match[2]) };
 }

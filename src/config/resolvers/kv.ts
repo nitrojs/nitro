@@ -1,7 +1,7 @@
 import consola from "consola";
 import type { NitroOptions } from "nitro/types";
 import { ensureLibDeps } from "../../utils/dep.ts";
-import { resolveDriverDeps, resolveKVMounts } from "../../utils/storage.ts";
+import { resolveKVDrivers } from "../../utils/storage.ts";
 
 export async function resolveKVOptions(options: NitroOptions) {
   options.kv ??= {};
@@ -22,13 +22,9 @@ export async function resolveKVOptions(options: NitroOptions) {
   }
 
   // Storage drivers lazily import their third-party dependencies.
-  // Make sure the ones required by the configured mounts are installed.
-  await ensureLibDeps(
-    resolveKVMounts(options).map((mount) => ({
-      name: mount.name,
-      options: mount.options,
-      deps: resolveDriverDeps(mount.name),
-    })),
-    { dir: options.rootDir, label: "storage driver" }
-  );
+  // Make sure `unstorage` and the ones required by the configured mounts are installed.
+  await ensureLibDeps(await resolveKVDrivers(options), {
+    dir: options.rootDir,
+    label: "storage driver",
+  });
 }

@@ -1,37 +1,71 @@
 import type { NitroOptions } from "nitro/types";
-import { builtinDriverDependencies, builtinDrivers } from "unstorage";
 import type { BuiltinDriverName } from "unstorage";
+import { importDep } from "./dep.ts";
 import type { LibDep } from "./dep.ts";
 
-export interface ResolvedKVMount {
+/** Supported `unstorage` version range (installed on demand). */
+export const UNSTORAGE_VERSION = "^2.0.0-alpha.10";
+
+export interface KVMountConfig {
   /** Mount point path. */
   path: string;
   /** Driver name as configured by the user. */
   name: string;
-  /** Module id to import the driver from. */
-  driver: string;
   /** Driver options. */
   options: Record<string, any>;
 }
 
-/** Resolve KV mounts that will be used for the current build. */
-export function resolveKVMounts(options: NitroOptions): ResolvedKVMount[] {
+export interface ResolvedKVMount extends KVMountConfig {
+  /** Module id to import the driver from. */
+  driver: string;
+  /**
+   * Third-party dependencies of a builtin driver.
+   *
+   * Since `unstorage` v2, they are not declared as optional peer dependencies anymore.
+   */
+  deps: LibDep[];
+}
+
+/** KV mounts configured for the current build. */
+export function resolveKVMounts(options: NitroOptions): KVMountConfig[] {
   const isDevOrPrerender = options.dev || options.preset === "nitro-prerender";
   const mounts = isDevOrPrerender ? { ...options.kv, ...options.devStorage } : options.kv;
   return Object.entries(mounts).map(([path, { driver: name, ...driverOpts }]) => ({
     path,
     name,
-    driver: builtinDrivers[name as BuiltinDriverName] || name,
     options: driverOpts,
   }));
 }
 
-/**
- * Third-party dependencies of a builtin driver.
- *
- * Since `unstorage` v2, they are not declared as optional peer dependencies anymore.
- */
-export function resolveDriverDeps(name: string): LibDep[] {
-  const deps = builtinDriverDependencies[name as BuiltinDriverName];
-  return Object.entries(deps || {}).map(([option, dep]) => ({ option, ...dep }));
+/** Resolve the driver modules of the configured KV mounts (`unstorage` is imported on demand). */
+export async function resolveKVDrivers(options: NitroOptions): Promise<ResolvedKVMount[]> {
+  const mounts = resolveKVMounts(options);
+  if (mounts.length === 0) {
+    return [];
+  }
+  const { builtinDrivers, builtinDriverDependencies } = await importUnstorage({
+    dir: options.rootDir,
+    reason: "the `kv` config",
+  });
+  return mounts.map((mount) => ({
+    ...mount,
+    driver: builtinDrivers[mount.name as BuiltinDriverName] || mount.name,
+    deps: Object.entries(builtinDriverDependencies[mount.name as BuiltinDriverName] || {}).map(
+      ([option, dep]) => ({ option, ...dep })
+    ),
+  }));
+}
+
+/** Import `unstorage` from the project, installing it on demand. */
+export function importUnstorage(opts: {
+  dir: string;
+  reason: string;
+}): Promise<typeof import("unstorage")> {
+  return importDep({
+    id: "unstorage",
+    version: UNSTORAGE_VERSION,
+    dev: false,
+    autoInstall: true,
+    ...opts,
+  });
 }

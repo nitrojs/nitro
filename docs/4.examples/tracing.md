@@ -35,6 +35,9 @@ export default defineConfig({
     "dev": "nitro dev",
     "preview": "node .output/server/index.mjs"
   },
+  "dependencies": {
+    "unstorage": "^2.0.0-alpha.10"
+  },
   "devDependencies": {
     "nitro": "latest"
   }
