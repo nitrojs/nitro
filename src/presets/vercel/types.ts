@@ -104,9 +104,9 @@ export interface VercelServerlessFunctionConfig {
   shouldAddSourcemapSupport?: boolean;
 
   /**
-   * The runtime to use. Defaults to the auto-detected Node.js version.
+   * The runtime to use. Defaults to `engines` in `package.json`, then `bunVersion` in `vercel.json`, then the runtime used to build.
    */
-  runtime?: "nodejs20.x" | "nodejs22.x" | "bun1.x" | (string & {});
+  runtime?: "nodejs22.x" | "nodejs24.x" | "bun1.x" | (string & {});
 
   /**
    * Experimental trigger configuration (e.g., Vercel Queues).
