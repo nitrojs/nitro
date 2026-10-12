@@ -47,11 +47,17 @@ export function ensureDep(opts: DepOptions): Promise<string | undefined> {
 export async function importDep<T>(opts: DepOptions): Promise<T> {
   const resolved = await ensureDep(opts);
   if (!resolved) {
-    throw new Error(
-      `\`${opts.id}\` is not installed. Please add it to your dependencies for ${opts.reason}.`
-    );
+    throw missingDepError(opts);
   }
   return (await import(pathToFileURL(resolved).href)) as T;
+}
+
+/** Error for a dependency that is (still) not installed, with the command to install it. */
+export function missingDepError(opts: DepOptions): Error {
+  const dev = opts.dev === false ? "" : "dev ";
+  return new Error(
+    `\`${opts.id}\` is not installed. It is required for ${opts.reason}. Please add it to your ${dev}dependencies (e.g. \`npx nypm add ${dev ? "-D " : ""}${_depSpec(opts)}\`).`
+  );
 }
 
 export function isDepInstalled(id: string, opts: Pick<DepOptions, "dir" | "projectOnly">): boolean {
@@ -166,11 +172,20 @@ async function _ensureDep(opts: DepOptions): Promise<string | undefined> {
   const start = Date.now();
   consola.start(`Installing \`${opts.id}\` in \`${opts.dir}\`...`);
   const { addDependency, addDevDependency } = await import("nypm");
-  const spec = opts.version && !opts.version.includes(" ") ? `${opts.id}@${opts.version}` : opts.id;
-  await (opts.dev === false ? addDependency : addDevDependency)(spec, { cwd: opts.dir });
-  consola.success(`Installed \`${opts.id}\` in ${opts.dir} (${Date.now() - start}ms).`);
+  await (opts.dev === false ? addDependency : addDevDependency)(_depSpec(opts), { cwd: opts.dir });
 
-  return resolveDep(opts.id, opts);
+  const installed = resolveDep(opts.id, opts);
+  if (installed) {
+    consola.success(`Installed \`${opts.id}\` in ${opts.dir} (${Date.now() - start}ms).`);
+  } else {
+    consola.warn(`Installed \`${opts.id}\` in ${opts.dir}, but it cannot be resolved from there.`);
+  }
+  return installed;
+}
+
+/** Package spec to install (with the version range if it is a simple one). */
+function _depSpec(opts: DepOptions): string {
+  return opts.version && !opts.version.includes(" ") ? `${opts.id}@${opts.version}` : opts.id;
 }
 
 const _checkedVersions = new Set<string>();
@@ -215,19 +230,30 @@ function _installedVersion(id: string, entry: string): string | undefined {
 }
 
 /**
- * Check a version against a simple caret range (`^8`, `^7 || ^8`).
+ * Check a version against caret ranges (`^8`, `^7 || ^8`, `^2.0.0-rc.1`, `^0.4.1`).
  *
- * Ranges in any other format (and `0.x` versions, for which caret is minor scoped) are not
- * checked. Prerelease versions match their own major (`8.0.0-beta.1` satisfies `^8`).
+ * Only the compatibility scope of the caret is checked: the major, or the minor for `0.x`
+ * ranges. Prerelease versions and ranges match their own scope (`2.0.0-alpha.1` satisfies
+ * `^2.0.0-rc.1`). Ranges in any other format are not checked.
  */
 function _isSupportedVersion(version: string, range: string): boolean {
-  const major = Number.parseInt(version, 10);
-  if (!major) {
-    return true;
-  }
+  const installed = _parseVersion(version);
   const ranges = range.split("||").map((r) => r.trim());
-  if (!ranges.every((r) => /^\^\d+(\.\d+)*$/.test(r))) {
+  if (!installed || !ranges.every((r) => r.startsWith("^") && _parseVersion(r.slice(1)))) {
     return true;
   }
-  return ranges.some((r) => Number.parseInt(r.slice(1), 10) === major);
+  return ranges.some((r) => {
+    const { major, minor } = _parseVersion(r.slice(1))!;
+    return (
+      major === installed.major && (major > 0 || minor === undefined || minor === installed.minor)
+    );
+  });
+}
+
+function _parseVersion(version: string): { major: number; minor?: number } | undefined {
+  const match = /^(\d+)(?:\.(\d+))?(?:\.\d+)?(?:-[\w.]+)?$/.exec(version);
+  if (!match) {
+    return;
+  }
+  return { major: Number(match[1]), minor: match[2] === undefined ? undefined : Number(match[2]) };
 }

@@ -2,7 +2,7 @@ import type { Nitro } from "nitro/types";
 import type { Plugin } from "rollup";
 import { pkgDir } from "nitro/meta";
 import { DB0_VERSION } from "../../utils/database.ts";
-import { ensureDep, resolveDep } from "../../utils/dep.ts";
+import { ensureDep, missingDepError, resolveDep } from "../../utils/dep.ts";
 import { pathRegExp } from "../../utils/regex.ts";
 import { UNSTORAGE_VERSION } from "../../utils/storage.ts";
 
@@ -30,18 +30,9 @@ export function isRuntimeImporter(importer: string | undefined): boolean {
  */
 export async function ensureRuntimeDep(nitro: Nitro, id: string): Promise<void> {
   const name = id.split("/")[0]!;
-  const { version, reason } = optionalRuntimeDeps[name]!;
-  const resolved = await ensureDep({
-    id: name,
-    version,
-    dir: nitro.options.rootDir,
-    reason,
-    dev: false,
-  });
-  if (!resolved) {
-    throw new Error(
-      `\`${name}\` is not installed. It is required for ${reason}. Please add it to your dependencies (e.g. \`npx nypm add ${name}@${version}\`).`
-    );
+  const opts = { id: name, ...optionalRuntimeDeps[name]!, dir: nitro.options.rootDir, dev: false };
+  if (!(await ensureDep(opts))) {
+    throw missingDepError(opts);
   }
 }
 
@@ -65,8 +56,9 @@ export function runtimeDeps(nitro: Nitro): Plugin {
         await ensureRuntimeDep(nitro, id);
         const path = resolveDep(id, { dir: nitro.options.rootDir });
         if (!path) {
+          const name = id.split("/")[0]!;
           throw new Error(
-            `Cannot resolve \`${id}\` from \`${nitro.options.rootDir}\`. Please make sure \`${id.split("/")[0]}\` is installed in your project.`
+            `Cannot resolve \`${id}\` from \`${nitro.options.rootDir}\`. Please make sure \`${name}@${optionalRuntimeDeps[name]!.version}\` is installed in your project.`
           );
         }
         return (await this.resolve(path, importer, { ...options, skipSelf: true })) || path;

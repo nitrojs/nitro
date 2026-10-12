@@ -77,14 +77,14 @@ function createProject() {
 }
 
 /** Install a stub package into `dir` (what the package manager would do). */
-function installStub(id: string, dir: string) {
+function installStub(id: string, dir: string, version = "1.0.0") {
   const pkgDir = join(dir, "node_modules", id);
   mkdirSync(pkgDir, { recursive: true });
   writeFileSync(
     join(pkgDir, "package.json"),
     JSON.stringify({
       name: id,
-      version: "1.0.0",
+      version,
       type: "module",
       exports: { ".": "./index.mjs", "./sub": "./index.mjs" },
     })
@@ -208,5 +208,68 @@ describe("ensureDep (resolve cache)", () => {
       vi.mocked(fs.readFileSync).mock.calls.filter(([path]) => String(path).includes(dir))
     ).toEqual([]);
     expect(consola.warn).not.toHaveBeenCalled();
+  });
+});
+
+describe("ensureDep (version check)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    Object.assign(env, { isAgent: false, isCI: false, isTest: true, hasTTY: false });
+  });
+
+  it.each([
+    // Prerelease ranges (`unstorage`, `unenv`) compare majors
+    ["1.17.5", "^2.0.0-alpha.10", true],
+    ["1.10.0", "^2.0.0-rc.24", true],
+    ["2.0.0-alpha.10", "^2.0.0-alpha.10", false],
+    ["2.1.0", "^2.0.0-alpha.10", false],
+    // `0.x` ranges (`db0`) compare minors
+    ["0.3.0", "^0.4.1", true],
+    ["0.4.5", "^0.4.1", false],
+    ["1.0.0", "^0.4.1", true],
+    // Simple ranges
+    ["8.0.0-beta.1", "^8", false],
+    ["7.2.0", "^7 || ^8", false],
+    ["9.0.0", "^7 || ^8", true],
+    // Other formats are not checked
+    ["1.0.0", ">=2", false],
+  ])("`%s` for `%s` (warns: %s)", async (installed, range, warns) => {
+    const dir = createProject();
+    installStub(missingDep.id, dir, installed);
+    expect(await ensureDep({ ...missingDep, dir, version: range })).toBeTruthy();
+    expect(vi.mocked(consola.warn).mock.calls.length > 0).toBe(warns);
+  });
+});
+
+describe("missing dependencies", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    Object.assign(env, { isAgent: false, isCI: true, isTest: false, hasTTY: false });
+  });
+
+  it("includes the supported version in the install command", async () => {
+    const { missingDepError } = await import("../../src/utils/dep.ts");
+    const opts = { ...missingDep, version: "^2.0.0-rc.24" };
+    expect(missingDepError(opts).message).toBe(
+      "`nitro-missing-dep` is not installed. It is required for testing. Please add it to your dev dependencies (e.g. `npx nypm add -D nitro-missing-dep@^2.0.0-rc.24`)."
+    );
+    expect(missingDepError({ ...opts, dev: false }).message).toContain(
+      "Please add it to your dependencies (e.g. `npx nypm add nitro-missing-dep@^2.0.0-rc.24`)."
+    );
+  });
+
+  it("throws the same error from `importDep`", async () => {
+    env.isTest = true; // Do not install
+    const { importDep, missingDepError } = await import("../../src/utils/dep.ts");
+    const opts = { ...missingDep, dir: createProject(), version: "^1.0.0", dev: false };
+    await expect(importDep(opts)).rejects.toThrow(missingDepError(opts).message);
+  });
+
+  it("does not report a successful install when it is still not resolvable", async () => {
+    addDevDependency.mockImplementation(() => {}); // Package manager did not install it
+    expect(await ensureDep({ ...missingDep, dir: createProject() })).toBeUndefined();
+    expect(addDevDependency).toHaveBeenCalledOnce();
+    expect(consola.success).not.toHaveBeenCalled();
+    expect(consola.warn).toHaveBeenCalledWith(expect.stringContaining("cannot be resolved"));
   });
 });
