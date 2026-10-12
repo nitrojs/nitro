@@ -2,9 +2,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Nitro, NitroOptions } from "nitro/types";
 
 import {
+  getVercelBuildOutputSchedules,
   getVercelSchedulesMode,
   getVercelTaskSchedules,
   isVercelSchedulesEnabled,
+  setupVercelSchedules,
   setupVercelSchedulesDev,
 } from "../../src/presets/vercel/schedules.ts";
 
@@ -114,24 +116,100 @@ describe("getVercelSchedulesMode", () => {
   });
 });
 
+function createNitro(
+  schedules: boolean | "path" = true,
+  overrides: Partial<NitroOptions> = {}
+): Nitro {
+  return {
+    options: options({
+      tasks: { cleanup: task },
+      scheduledTasks: { "0 3 * * *": "cleanup" },
+      vercel: { schedules },
+      virtual: {},
+      handlers: [],
+      baseURL: "/",
+      ...overrides,
+    }),
+    logger: { withTag: () => ({ info: vi.fn() }) },
+  } as unknown as Nitro;
+}
+
+describe("getVercelBuildOutputSchedules", () => {
+  it("targets the private function", () => {
+    expect(getVercelBuildOutputSchedules(createNitro())).toEqual([
+      { name: "cleanup", schedule: "0 3 * * *", function: "_vercel/tasks" },
+    ]);
+  });
+
+  it("targets the cron handler route in path mode", () => {
+    expect(getVercelBuildOutputSchedules(createNitro("path"))).toEqual([
+      { name: "cleanup", schedule: "0 3 * * *", path: "/_vercel/cron" },
+    ]);
+    const nitro = createNitro("path", {
+      vercel: { schedules: "path", cronHandlerRoute: "/api/cron" },
+    });
+    expect(getVercelBuildOutputSchedules(nitro)).toEqual([
+      { name: "cleanup", schedule: "0 3 * * *", path: "/api/cron" },
+    ]);
+  });
+
+  it("is empty without the opt-in", () => {
+    expect(getVercelBuildOutputSchedules(createNitro(false))).toEqual([]);
+  });
+});
+
+describe("setupVercelSchedules", () => {
+  it("registers a private function with the schedule trigger", () => {
+    const nitro = createNitro(true, {
+      vercel: { schedules: true, functionRules: { "/_vercel/tasks": { maxDuration: 60 } } },
+    });
+    setupVercelSchedules(nitro);
+    expect(nitro.options.handlers).toEqual([
+      expect.objectContaining({
+        route: "/_vercel/tasks",
+        handler: "#nitro/virtual/vercel-schedule-handler",
+      }),
+    ]);
+    expect(nitro.options.vercel!.functionRules!["/_vercel/tasks"]).toEqual({
+      maxDuration: 60,
+      experimentalTriggers: [{ type: "schedule/v1beta" }],
+    });
+    const template = nitro.options.virtual[
+      "#nitro/virtual/vercel-schedule-handler"
+    ] as () => string;
+    expect(template()).toContain(`createScheduleHandler({"cleanup":"cleanup"})`);
+  });
+
+  it("rejects function rules with their own triggers", () => {
+    const nitro = createNitro(true, {
+      vercel: {
+        schedules: true,
+        functionRules: {
+          "/_vercel/tasks": { experimentalTriggers: [{ type: "queue/v2beta", topic: "x" }] },
+        },
+      },
+    });
+    expect(() => setupVercelSchedules(nitro)).toThrow("cannot set `experimentalTriggers`");
+  });
+
+  it("serves the cron handler in path mode", () => {
+    const nitro = createNitro("path");
+    setupVercelSchedules(nitro);
+    expect(nitro.options.handlers).toEqual([expect.objectContaining({ route: "/_vercel/cron" })]);
+    expect(nitro.options.vercel!.functionRules).toBeUndefined();
+  });
+
+  it("does nothing without scheduled tasks", () => {
+    const nitro = createNitro(true, { scheduledTasks: {} });
+    setupVercelSchedules(nitro);
+    expect(nitro.options.handlers).toEqual([]);
+  });
+});
+
 describe("setupVercelSchedulesDev", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
   });
-
-  function createNitro(schedules: boolean | "path" = true) {
-    return {
-      options: options({
-        tasks: { cleanup: task },
-        scheduledTasks: { "0 3 * * *": "cleanup" },
-        vercel: { schedules },
-        virtual: {},
-        handlers: [],
-        baseURL: "/",
-      }),
-      logger: { withTag: () => ({ info: vi.fn() }) },
-    } as unknown as Nitro;
-  }
 
   it("keeps the in-process scheduler without the vercel dev broker", () => {
     vi.stubEnv("VERCEL_SCHEDULE_DEV_API_VERSION", undefined);
