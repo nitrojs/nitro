@@ -15,10 +15,18 @@ const CLOSE_HOOK_MARKER = "[fixture] close hook called";
  */
 export function testCloseHook(
   ctx: Context,
-  opts: { command: string; args: (entry: string) => string[]; cwd?: string }
+  opts: {
+    command: string;
+    args: (entry: string) => string[];
+    cwd?: string;
+    signal?: "SIGTERM" | "SIGINT";
+  }
 ): void {
+  const signal = opts.signal || "SIGTERM";
   it.skipIf(isWindows)(
-    "calls `close` hooks on shutdown",
+    opts.signal
+      ? `calls \`close\` hooks on shutdown (${opts.signal})`
+      : "calls `close` hooks on shutdown",
     async () => {
       const port = await getRandomPort();
 
@@ -50,7 +58,7 @@ export function testCloseHook(
       try {
         await waitForPort(port, { delay: 1000, retries: 20, host: "127.0.0.1" });
 
-        child.kill("SIGTERM");
+        child.kill(signal);
 
         // The fixture schedule runner can keep the event loop alive after the server
         // closed, so wait for the marker (or the process to exit) instead of exit alone.

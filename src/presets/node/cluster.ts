@@ -37,6 +37,45 @@ if (cluster.isPrimary) {
       WORKER_ID: i + 1,
     });
   }
+
+  let isShuttingDown = false;
+  const forwardSignal = (signal) => {
+    if (isShuttingDown) {
+      process.exit(0);
+      return;
+    }
+    isShuttingDown = true;
+    for (const id in cluster.workers) {
+      try {
+        cluster.workers[id]?.process.kill(signal);
+      } catch {}
+    }
+    const timeout =
+      Number.parseInt(process.env.NITRO_SHUTDOWN_TIMEOUT || "") || 30_000;
+    const timer = setTimeout(() => {
+      for (const id in cluster.workers) {
+        try {
+          cluster.workers[id]?.process.kill("SIGKILL");
+        } catch {}
+      }
+      process.exit(0);
+    }, timeout);
+    timer.unref?.();
+  };
+
+  process.on("SIGINT", () => forwardSignal("SIGINT"));
+  process.on("SIGTERM", () => forwardSignal("SIGTERM"));
+
+  cluster.on("exit", () => {
+    if (isShuttingDown) {
+      const aliveWorkers = Object.values(cluster.workers || {}).filter(
+        (w) => w && !w.isDead()
+      );
+      if (aliveWorkers.length === 0) {
+        process.exit(0);
+      }
+    }
+  });
 } else {
  import("./worker.mjs").catch((error) => {
     console.error(error);

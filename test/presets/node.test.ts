@@ -77,10 +77,14 @@ describe("nitro:preset:node-server", async () => {
 describe("nitro:preset:node-cluster", async () => {
   const ctx = await setupTest("node-cluster");
 
-  // `index.mjs` only forks workers (signals sent to it are not forwarded), so the
-  // worker entry -- the one holding the server -- is spawned directly.
   testCloseHook(ctx, {
     command: process.execPath,
-    args: (entry) => [resolve(entry, "../worker.mjs")],
+    args: (entry) => [entry],
+  });
+
+  testCloseHook(ctx, {
+    command: process.execPath,
+    args: (entry) => [entry],
+    signal: "SIGINT",
   });
 });
