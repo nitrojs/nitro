@@ -105,7 +105,7 @@ export default function publicAssets(nitro: Nitro) {
           return /* js */ `
 import { statSync, promises as fsp } from 'node:fs'
 import { resolve, relative, isAbsolute, sep } from 'node:path'
-import mime from 'mime'
+import mime from '#nitro/runtime/mime'
 
 const publicAssetDirs = ${JSON.stringify(publicAssetDirs)}
 export const publicAssetBases = ${JSON.stringify(publicAssetBases)}
