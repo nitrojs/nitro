@@ -8,11 +8,13 @@ export { loadOptions } from "./config/loader.ts";
 export { build } from "./build/build.ts";
 export { copyPublicAssets } from "./build/assets.ts";
 export { prepare } from "./build/prepare.ts";
+export type { PrepareOptions } from "./build/prepare.ts";
 export { getBuildInfo } from "./build/info.ts";
 export type { GetBuildInfoOptions } from "./build/info.ts";
 
 // Dev server
 export { createDevServer } from "./dev/server.ts";
+export type { NitroDevServer } from "./dev/server.ts";
 
 // Preview
 export { startPreview } from "./preview.ts";
