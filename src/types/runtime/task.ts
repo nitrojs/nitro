@@ -29,7 +29,7 @@ export interface TaskResult<RT = unknown> {
 /** @experimental */
 export interface Task<RT = unknown> {
   meta?: TaskMeta;
-  run(event: TaskEvent): MaybePromise<{ result?: RT }>;
+  run(event: TaskEvent): MaybePromise<TaskResult<RT>>;
 }
 
 /** @experimental */

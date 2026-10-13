@@ -1,5 +1,5 @@
 import { HTTPError } from "h3";
-import { useStorage } from "nitro/storage";
+import { useKV } from "nitro/kv";
 import { useRuntimeConfig } from "nitro/runtime-config";
 
 export default {
@@ -21,7 +21,7 @@ export default {
         headers: { "content-type": "text/html" },
       });
     }
-    const storage = useStorage();
+    const storage = useKV();
     const config = useRuntimeConfig();
     await storage.set("test:key", "value-from-ssr");
     const value = await storage.get("test:key");

@@ -1,9 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { isAbsolute } from "pathe";
-import type { Expression, Literal } from "estree";
+import type { Expression, Literal, Program } from "estree";
 import type { Nitro, NitroEventHandler } from "nitro/types";
 import type { Plugin } from "rollup";
 import type { Plugin as VitePlugin } from "vite";
+import { importOXC } from "../../utils/oxc.ts";
 import { escapeRegExp } from "../../utils/regex.ts";
 import { createRouteResponseSchemaGenerator } from "./_route-response-schema.ts";
 import { extractRouteValidation } from "./_route-request-schema.ts";
@@ -11,7 +12,7 @@ import { extractRouteValidation } from "./_route-request-schema.ts";
 const PREFIX = "\0nitro:route-meta:";
 
 export async function routeMeta(nitro: Nitro) {
-  const { transformSync } = await import("rolldown/utils");
+  const { parseSync, transformSync } = await importOXC({ dir: nitro.options.rootDir });
   const responseSchemas = createRouteResponseSchemaGenerator(nitro);
   const virtualIds = new Set<string>();
   return {
@@ -102,14 +103,23 @@ export async function routeMeta(nitro: Nitro) {
                 ? "export default undefined;"
                 : `export const routeSchema = {}; export default {};`,
               map: null,
+              moduleType: "js",
             };
           }
 
-          const ast = this.parse(transformRes.code);
+          // Not `this.parse()`, so the plugin also runs without a bundler (`builder: false`)
+          const { program } = parseSync(id, transformRes.code, { lang: "js" });
           if (validation) {
-            return { code: await extractRouteValidation(transformRes.code, { ast }), map: null };
+            return {
+              code: await extractRouteValidation(transformRes.code, {
+                ast: program as Program,
+                rootDir: nitro.options.rootDir,
+              }),
+              map: null,
+              moduleType: "js",
+            };
           }
-          for (const node of ast.body) {
+          for (const node of program.body as any[]) {
             if (
               node.type === "ExpressionStatement" &&
               node.expression.type === "CallExpression" &&
@@ -131,7 +141,7 @@ export async function routeMeta(nitro: Nitro) {
         } catch (error) {
           nitro.logger.warn(`[handlers-meta] Cannot extract route meta for: ${id}: ${error}`);
           if (validation) {
-            return { code: "export default undefined;", map: null };
+            return { code: "export default undefined;", map: null, moduleType: "js" };
           }
         }
 
@@ -148,6 +158,7 @@ export async function routeMeta(nitro: Nitro) {
 };
 export default ${JSON.stringify(meta)};`,
           map: null,
+          moduleType: "js",
         };
       },
     },

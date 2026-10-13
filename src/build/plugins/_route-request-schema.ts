@@ -1,7 +1,10 @@
 import type { Node, Pattern, Program } from "estree";
-import { rolldown } from "rolldown";
+import { importRolldown } from "../rolldown/_import.ts";
 
-export async function extractRouteValidation(code: string, options: { ast: Program }) {
+export async function extractRouteValidation(
+  code: string,
+  options: { ast: Program; rootDir: string }
+) {
   const { ast } = options;
   const exported = ast.body.find((node) => node.type === "ExportDefaultDeclaration");
   const call = exported?.declaration;
@@ -86,6 +89,7 @@ export async function extractRouteValidation(code: string, options: { ast: Progr
 
   // Resolve lexical dependencies without loading or evaluating the imported modules.
   const entry = "\0nitro:validation";
+  const { rolldown } = await importRolldown(options.rootDir);
   const bundle = await rolldown({
     input: entry,
     external: (id) => id !== entry,

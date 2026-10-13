@@ -15,7 +15,6 @@ import { getBundlerConfig } from "./bundler.ts";
 import { buildEnvironments } from "./prod.ts";
 import {
   initEnvRunner,
-  getEnvRunner,
   closeEnvRunner,
   createNitroEnvironment,
   createServiceEnvironments,
@@ -30,6 +29,8 @@ import { nitroPreviewPlugin } from "./preview.ts";
 import assetsPlugin from "@hiogawa/vite-plugin-fullstack/assets";
 import type { NitroConfig, NitroModule } from "nitro/types";
 import { nitroDevServiceProxy, viteServicesTemplate } from "./services.ts";
+import { importVite, viteImportOptions } from "./_import.ts";
+import { isVitest, nitroVitest } from "./vitest.ts";
 
 // https://vite.dev/guide/api-environment-plugins
 // https://vite.dev/guide/api-environment-frameworks.html
@@ -51,8 +52,9 @@ export function nitro(pluginConfig: NitroPluginConfig = {}): VitePlugin[] {
     nitroEnv(ctx),
     nitroMain(ctx),
     nitroPrepare(ctx),
-    nitroDevServiceProxy(),
+    nitroDevServiceProxy(ctx),
     nitroPreviewPlugin(ctx),
+    nitroVitest(ctx),
     pluginConfig.experimental?.vite?.assetsImport !== false &&
       assetsPlugin({
         experimental: {
@@ -74,7 +76,11 @@ function nitroInit(ctx: NitroPluginContext): VitePlugin {
       if (!ctx._initialized) {
         debug("[init] Initializing nitro");
         ctx._initialized = true;
+        ctx._isVitest = isVitest(config);
         await setupNitroContext(ctx, configEnv, config);
+        if (configEnv.command === "serve") {
+          await checkViteVersion(ctx, (this.meta as Record<string, string>).viteVersion);
+        }
       }
     },
 
@@ -293,6 +299,9 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
     },
 
     configureServer: async (server) => {
+      if (ctx._isVitest) {
+        return;
+      }
       debug("[main] Configuring dev server");
       const { configureViteDevServer } = await import("./dev.ts");
       return configureViteDevServer(ctx, server);
@@ -315,7 +324,7 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
     // see: https://github.com/vitejs/vite/issues/19114
     async hotUpdate({ server, file, modules, timestamp }) {
       const env = this.environment;
-      if (env.config.consumer === "client") {
+      if (env.config.consumer === "client" || ctx._isVitest) {
         return;
       }
       if (ctx.pluginConfig.experimental?.vite?.serverReload === false) {
@@ -365,7 +374,9 @@ function nitroPrepare(ctx: NitroPluginContext): VitePlugin {
       async handler() {
         debug("[prepare] Preparing output directory");
         const nitro = ctx.nitro!;
-        await prepare(nitro);
+        await prepare(nitro, {
+          generatedAssetDirs: ctx._publicDistDir ? [ctx._publicDistDir] : [],
+        });
       },
     },
   };
@@ -379,6 +390,22 @@ function createContext(pluginConfig: NitroPluginConfig): NitroPluginContext {
     services: { ...pluginConfig.experimental?.vite?.services },
     _entryPoints: {},
   };
+}
+
+/**
+ * The dev environments and module runner are created from the `vite` Nitro imports, which has
+ * to be the one running the dev server (in a monorepo, another version can be hoisted next to
+ * the app).
+ */
+async function checkViteVersion(ctx: NitroPluginContext, runningVersion?: string) {
+  const nitro = useNitro(ctx);
+  const { version } = await importVite(viteImportOptions(nitro));
+  if (runningVersion && version !== runningVersion) {
+    nitro.logger.warn(
+      `Nitro resolved \`vite@${version}\` but \`vite@${runningVersion}\` is running. ` +
+        `Set the \`vite.path\` option to the running \`vite\` package (e.g. \`import.meta.resolve("vite")\`).`
+    );
+  }
 }
 
 function useNitro(ctx: NitroPluginContext) {
@@ -439,7 +466,11 @@ async function setupNitroContext(
 
   // Config ssr env as a fetchable ssr service
   if (!ctx.services?.ssr) {
-    if (userConfig.environments?.ssr === undefined) {
+    const userSsrEnv = userConfig.environments?.ssr;
+    // Vitest always defines an `ssr` environment (without an entry) for its own use
+    const userSsrInput =
+      userSsrEnv?.build?.rolldownOptions?.input ?? userSsrEnv?.build?.rollupOptions?.input;
+    if (userSsrEnv === undefined || (ctx._isVitest && !userSsrInput)) {
       const ssrEntry = resolveModulePath("./entry-server", {
         from: ["app", "src", ""].flatMap((d) =>
           [ctx.nitro!.options.rootDir, ...ctx.nitro!.options.scanDirs].map((s) => join(s, d) + "/")
@@ -452,7 +483,7 @@ async function setupNitroContext(
         ctx.nitro!.logger.info(`Using \`${prettyPath(ssrEntry)}\` as vite ssr entry.`);
       }
     } else {
-      let ssrEntry = getEntry(userConfig.environments.ssr.build?.rollupOptions?.input);
+      let ssrEntry = getEntry(userSsrInput);
       if (typeof ssrEntry === "string") {
         ssrEntry =
           resolveModulePath(ssrEntry, {
@@ -485,6 +516,11 @@ async function setupNitroContext(
     fallthrough: true,
   });
 
+  // Vitest runs test files in its own Node.js workers, so hooks must not set up another runner
+  if (ctx._isVitest) {
+    ctx.nitro.options.devServer.runner = "node-worker";
+  }
+
   // Call build:before hook **before resolving rollup config** for compatibility
   await ctx.nitro.hooks.callHook("build:before", ctx.nitro);
 
@@ -498,16 +534,13 @@ async function setupNitroContext(
     ctx.bundlerConfig.rollupConfig || (ctx.bundlerConfig.rolldownConfig as any)
   );
 
-  // Warm up env runner for dev
-  if (ctx.nitro.options.dev) {
-    await initEnvRunner(ctx);
+  // Attach nitro.fetch to the dev env runner (started lazily, not when resolving config)
+  if (ctx.nitro.options.dev && !ctx._isVitest) {
+    ctx.nitro.fetch = async (req) => (await initEnvRunner(ctx)).fetch(req);
   }
 
-  // Attach nitro.fetch to env runner
-  ctx.nitro.fetch = (req) => getEnvRunner(ctx).fetch(req);
-
   // Create dev app
-  if (ctx.nitro.options.dev && !ctx.devApp) {
+  if (ctx.nitro.options.dev && !ctx._isVitest && !ctx.devApp) {
     ctx.devApp = new NitroDevApp(ctx.nitro);
   }
 

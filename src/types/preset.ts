@@ -2,6 +2,8 @@ import type { DateString } from "compatx";
 import type { ProviderName } from "std-env";
 import type { NitroConfig } from "./config.ts";
 
+export type { PresetName, PresetNameInput, PresetOptions } from "../presets/index.ts";
+
 export type NitroPreset = NitroConfig | (() => NitroConfig);
 
 export interface NitroPresetMeta {

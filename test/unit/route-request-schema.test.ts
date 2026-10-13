@@ -40,7 +40,10 @@ describe("route request schema extraction", () => {
 });
 
 async function extract(code: string) {
-  const output = await extractRouteValidation(code, { ast: parseAst(code) });
+  const output = await extractRouteValidation(code, {
+    ast: parseAst(code),
+    rootDir: process.cwd(),
+  });
   return (await import(/* @vite-ignore */ moduleURL(output))).default;
 }
 
