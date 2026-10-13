@@ -46,4 +46,5 @@ redirects:
   "/deploy/providers/lagon": "/deploy"
   "/deploy/providers/layer0": "/deploy"
   "/deploy/providers/edgeone-pages": "/deploy/providers/edgeone"
+  "/deploy/providers/platform-sh": "/deploy/providers/upsun"
   "/deploy/node": "/deploy/runtimes/node"

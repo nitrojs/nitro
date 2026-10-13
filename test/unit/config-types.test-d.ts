@@ -1,22 +1,37 @@
 import type { SerializableOptions } from "../../src/types/_utils.ts";
-import type { DatabaseConnectionConfigs, StorageMounts } from "nitro/types";
+import type { DatabaseConnectionConfigs, KVMounts } from "nitro/types";
+import type { ChokidarOptions } from "chokidar";
 
 // Storage: options are mapped from the builtin driver name.
 // Unknown driver names fall back to a custom driver with free-form options.
-export const storage: StorageMounts = {
+export const storage: KVMounts = {
   data: { driver: "fs", base: "./data", ignore: ["**/node_modules/**"] },
   cache: { driver: "lru-cache", max: 1000 },
   memory: { driver: "memory" },
   custom: { driver: "./drivers/custom", anyOption: true },
   noLib: { driver: "fs", lib: null },
-  // @ts-expect-error `watchOptions.ignored` matcher functions are not serializable
-  matcher: { driver: "fs", watchOptions: { ignored: [(path: string) => path.length > 0] } },
-  // @ts-expect-error a `RegExp` is not serializable
-  regexp: { driver: "fs", watchOptions: { ignored: /node_modules/ } },
+  // @ts-expect-error `fs-lite` ignore functions are not serializable
+  fsLiteMatcher: { driver: "fs-lite", ignore: (path: string) => path.length > 0 },
   // @ts-expect-error `lib` is provided by nitro
   lib: { driver: "fs", lib: () => import("chokidar") },
   // @ts-expect-error custom driver options are serialized too
   customFn: { driver: "./drivers/custom", transform: () => "x" },
+};
+
+// `unstorage`'s fs declaration loses its watch options type if its `chokidar` import cannot resolve.
+// Test that option shape through Nitro's direct `chokidar` dev dependency.
+const fsMatcherOptions: SerializableOptions<{ watchOptions?: ChokidarOptions }> = {
+  watchOptions: {
+    // @ts-expect-error `watchOptions.ignored` matcher functions are not serializable
+    ignored: [(path: string) => path.length > 0],
+  },
+};
+
+const fsRegexpOptions: SerializableOptions<{ watchOptions?: ChokidarOptions }> = {
+  watchOptions: {
+    // @ts-expect-error a `RegExp` is not serializable
+    ignored: /node_modules/,
+  },
 };
 
 // Database: options are mapped from the db0 connector name.

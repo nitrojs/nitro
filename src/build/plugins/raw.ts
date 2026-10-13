@@ -24,7 +24,8 @@ export function raw(): Plugin {
     resolveId: {
       order: "pre",
       filter: {
-        id: [new RegExp(`^${HELPER_ID}$`), PREFIX_RE],
+        // One pattern per prefix, so runtimes routing `scheme:` specifiers by scheme see them
+        id: [new RegExp(`^${HELPER_ID}$`), ...TYPES.map((type) => new RegExp(`^${type}:`))],
       },
       async handler(id, importer, resolveOpts) {
         if (id === HELPER_ID) {

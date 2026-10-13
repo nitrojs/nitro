@@ -8,9 +8,11 @@ import { generateFSTree } from "../../utils/fs-tree.ts";
 import { writeBuildInfo } from "../info.ts";
 import type { RolldownOutput } from "rolldown";
 
-export async function buildProduction(nitro: Nitro, config: RolldownOptions) {
-  const rolldown = await import("rolldown");
-
+export async function buildProduction(
+  nitro: Nitro,
+  config: RolldownOptions,
+  rolldown: typeof import("rolldown")
+) {
   const buildStartTime = Date.now();
 
   await scanHandlers(nitro);
@@ -48,7 +50,7 @@ export async function buildProduction(nitro: Nitro, config: RolldownOptions) {
   };
   const previewCommand = nitro.options.framework.previewCommand || "npx nitro preview";
   nitro.logger.success(`You can preview this build using \`${previewCommand}\``);
-  if (buildInfo.commands!.deploy) {
+  if (nitro.options.commands.deploy) {
     const deployCommand = nitro.options.framework.deployCommand || "npx nitro deploy --prebuilt";
     nitro.logger.success(
       rewriteRelativePaths(`You can deploy this build using \`${deployCommand}\``)
