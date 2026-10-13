@@ -16,6 +16,8 @@ export async function writeRedirects(nitro: Nitro) {
     }
     let code = redirect.status;
     // TODO: Remove map when netlify support 307/308
+    // Netlify _redirects currently only supports 301, 302, 404, 200.
+    // Tracking: https://docs.netlify.com/manage/routing/redirects/redirect-options/
     if (code === 307) {
       code = 302;
     }

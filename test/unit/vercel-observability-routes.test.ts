@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Nitro, NitroEventHandler, NitroRouteRules, PrerenderRoute } from "nitro/types";
+import type { Nitro, NitroEventHandler, NormalizedRouteRules, PrerenderRoute } from "nitro/types";
 
 import { getObservabilityRoutes } from "../../src/presets/vercel/utils.ts";
 
@@ -8,7 +8,7 @@ function createNitroStub(opts: {
   handlers?: NitroEventHandler[];
   ssrRoutes?: string[];
   prerenderedRoutes?: PrerenderRoute[];
-  routeRules?: Record<string, NitroRouteRules>;
+  routeRules?: Record<string, NormalizedRouteRules>;
 }): Nitro {
   return {
     scannedHandlers: opts.handlers || [],

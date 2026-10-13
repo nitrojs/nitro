@@ -1,13 +1,13 @@
-import type commonjs from "@rollup/plugin-commonjs";
 import type { C12InputConfig, ConfigWatcher, DotenvOptions, ResolvedConfig } from "c12";
 import type { WatchConfigOptions } from "c12";
 import type { ChokidarOptions } from "chokidar";
 import type { CompatibilityDateSpec, CompatibilityDates } from "compatx";
-import type { LogLevel } from "consola";
+import type { LogLevel } from "./_consola.ts";
 import type { ConnectorName, ConnectorOptions } from "db0";
 import type { NestedHooks } from "hookable";
 import type { ProxyServerOptions } from "httpxy";
 import type { PresetName, PresetNameInput, PresetOptions } from "../presets/index.ts";
+import type { DeployOptions } from "../deploy.ts";
 import type { TSConfig } from "pkg-types";
 import type { BuiltinDriverName, BuiltinDriverOptions } from "unstorage";
 import type { ExternalsTraceOptions } from "nf3";
@@ -26,11 +26,10 @@ import type { NitroOpenAPIConfig } from "./openapi.ts";
 export type { NitroOpenAPIConfig } from "./openapi.ts";
 import type { NitroPreset } from "./preset.ts";
 import type { NitroBuildPluginOption, OXCOptions, RolldownConfig } from "./build.ts";
+import type { CommonJSOptions } from "./_bundler.ts";
 import type { RollupConfig } from "./build.ts";
-import type { NitroRouteConfig, NitroRouteRules } from "./route-rules.ts";
+import type { NormalizedRouteRules, RouteRuleConfig } from "./route-rules.ts";
 import type { JsonValue, SerializableOptions } from "./_utils.ts";
-
-type RollupCommonJSOptions = NonNullable<Parameters<typeof commonjs.default>[0]>;
 
 /**
  * Fully resolved Nitro options available on `nitro.options`.
@@ -223,13 +222,13 @@ export interface NitroOptions extends PresetOptions {
    * @see https://nitro.build/config#kv
    * @see https://nitro.build/docs/storage
    */
-  kv: StorageMounts;
+  kv: KVMounts;
 
   /** @deprecated Migrate to `kv`. */
-  storage: StorageMounts;
+  storage: KVMounts;
 
   /** @deprecated Migrate to `kv` inside `$development` (and `$prerender`) config. */
-  devStorage: StorageMounts;
+  devStorage: KVMounts;
 
   /**
    * Cache storage and global default options for cached functions, cached handlers
@@ -296,7 +295,7 @@ export interface NitroOptions extends PresetOptions {
    * @see https://nitro.build/config#nopublicdir
    */
   noPublicDir: boolean;
-  tracingChannel?: undefined | TracingOptions;
+  tracingChannel?: undefined | TracingChannelOptions;
 
   /**
    * Build manifest options.
@@ -541,6 +540,14 @@ export interface NitroOptions extends PresetOptions {
     watch?: string[];
     /** Runtime runner to use for the dev server. */
     runner?: RunnerName;
+    /**
+     * Serve `/.well-known/appspecific/com.chrome.devtools.json` so Chrome DevTools can connect
+     * the project folder as an automatic workspace.
+     *
+     * @default true
+     * @see https://chromium.googlesource.com/devtools/devtools-frontend/+/main/docs/ecosystem/automatic_workspace_folders.md
+     */
+    devtoolsJson?: boolean;
   };
 
   /**
@@ -642,7 +649,7 @@ export interface NitroOptions extends PresetOptions {
    * @see https://nitro.build/config#routerules
    * @see https://nitro.build/docs/routing#route-rules
    */
-  routeRules: { [path: string]: NitroRouteRules };
+  routeRules: { [path: string]: NormalizedRouteRules };
 
   /**
    * Inline route definitions.
@@ -892,7 +899,7 @@ export interface NitroOptions extends PresetOptions {
    *
    * @see https://nitro.build/config#commonjs
    */
-  commonJS?: RollupCommonJSOptions;
+  commonJS?: CommonJSOptions;
 
   /**
    * Custom export conditions for module resolution.
@@ -967,7 +974,7 @@ export interface NitroOptions extends PresetOptions {
      * Can be a shell command (`./` paths are resolved relative to the output directory)
      * or a function (used by presets that deploy programmatically).
      */
-    deploy?: string | ((nitro: Nitro, opts: { args?: string[] }) => void | Promise<void>);
+    deploy?: string | ((nitro: Nitro, opts: DeployOptions) => void | Promise<void>);
   };
 
   /**
@@ -978,21 +985,11 @@ export interface NitroOptions extends PresetOptions {
    * @see https://nitro.build/config#framework
    */
   framework: NitroFrameworkInfo;
-
-  /**
-   * IIS-specific deployment options.
-   */
-  iis?: {
-    /** Merge with existing IIS `web.config` instead of replacing. */
-    mergeConfig?: boolean;
-    /** Override existing IIS `web.config` entirely. */
-    overrideConfig?: boolean;
-  };
 }
 
 /**
  * User-facing Nitro configuration used in `nitro.config.ts` or
- * `defineNitroConfig()`.
+ * `defineConfig()`.
  *
  * All properties are optional and will be merged with defaults and preset
  * values to produce the fully resolved {@link NitroOptions}.
@@ -1041,7 +1038,7 @@ export interface NitroConfig
   defaultPreset?: PresetNameInput | NitroPreset;
 
   extends?: string | string[] | NitroPreset;
-  routeRules?: { [path: string]: NitroRouteConfig };
+  routeRules?: { [path: string]: RouteRuleConfig };
   rollupConfig?: Partial<RollupConfig>;
   compatibilityDate?: CompatibilityDateSpec;
   /** @deprecated Migrate to `alias`, `inject`, `polyfills` and `builtinModules`. */
@@ -1050,7 +1047,7 @@ export interface NitroConfig
   serverEntry?: string | NitroOptions["serverEntry"];
   renderer?: false | NitroOptions["renderer"];
   output?: Partial<NitroOptions["output"]>;
-  tracingChannel?: boolean | TracingOptions;
+  tracingChannel?: boolean | TracingChannelOptions;
 }
 
 // ------------------------------------------------------------
@@ -1129,11 +1126,19 @@ export interface ServerAssetDir {
   ignore?: string[];
 }
 
-export interface TracingOptions {
+/**
+ * Tracing channel options.
+ *
+ * @see https://nitro.build/config#tracingchannel
+ */
+export interface TracingChannelOptions {
   srvx?: boolean;
   h3?: boolean;
   unstorage?: boolean;
 }
+
+/** @deprecated Use {@link TracingChannelOptions}. */
+export type TracingOptions = TracingChannelOptions;
 
 /**
  * Preset shape accepted by the deprecated `unenv` option (compatible with
@@ -1162,32 +1167,44 @@ type CustomDriverName = string & { _custom?: any };
  *
  * Driver options are inferred from the `driver` name.
  */
-export type BuiltinStorageMount = {
+export type BuiltinKVMount = {
   [Name in BuiltinDriverName]: { driver: Name } & (Name extends keyof BuiltinDriverOptions
     ? SerializableOptions<BuiltinDriverOptions[Name]>
     : unknown);
 }[BuiltinDriverName];
 
 /** Mount configuration for a custom driver (module id or alias). */
-export type CustomStorageMount = {
+export type CustomKVMount = {
   driver: CustomDriverName;
   [option: string]: JsonValue;
 };
 
-export type StorageMount = BuiltinStorageMount | CustomStorageMount;
+export type KVMount = BuiltinKVMount | CustomKVMount;
 
 /**
- * Storage mount configuration mapping mount points to driver options.
+ * KV mount configuration mapping mount points to driver options.
  *
- * Keys are storage mount-point paths; values specify the unstorage driver
+ * Keys are mount-point paths; values specify the unstorage driver
  * and its options.
  *
  * @see https://nitro.build/config#kv
  * @see https://nitro.build/docs/storage
  */
-export interface StorageMounts {
-  [path: string]: StorageMount;
+export interface KVMounts {
+  [path: string]: KVMount;
 }
+
+/** @deprecated Use {@link BuiltinKVMount}. */
+export type BuiltinStorageMount = BuiltinKVMount;
+
+/** @deprecated Use {@link CustomKVMount}. */
+export type CustomStorageMount = CustomKVMount;
+
+/** @deprecated Use {@link KVMount}. */
+export type StorageMount = KVMount;
+
+/** @deprecated Use {@link KVMounts}. */
+export type StorageMounts = KVMounts;
 
 // Cache
 
@@ -1284,11 +1301,6 @@ export type DatabaseConnectionConfigs = Record<DatabaseConnectionName, DatabaseC
 
 // Runtime config
 
-/** Application-specific runtime configuration. */
-export interface NitroRuntimeConfigApp {
-  [key: string]: any;
-}
-
 /**
  * Server runtime configuration accessible via `useRuntimeConfig()`.
  *
@@ -1303,7 +1315,7 @@ export interface NitroRuntimeConfig {
     envPrefix?: string;
     envExpansion?: boolean;
     routeRules?: {
-      [path: string]: NitroRouteConfig;
+      [path: string]: RouteRuleConfig;
     };
     openAPI?: NitroOpenAPIConfig;
   };

@@ -37,7 +37,7 @@ export async function oxc(
         return minifySync(chunk.fileName, code, {
           sourcemap: options.sourcemap,
           ...(typeof options.minify === "object" ? options.minify : {}),
-        });
+        } as Parameters<typeof minifySync>[2]);
       }
     },
   };
