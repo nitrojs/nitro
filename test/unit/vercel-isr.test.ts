@@ -65,6 +65,24 @@ describe("isrRouteRewrite", () => {
         "tag=a&tag=b",
       ]);
     });
+
+    // Regression: https://github.com/nitrojs/nitro/issues/4446
+    // `x-now-route-matches` is an undocumented contract that has changed
+    // before. When it arrives without the ISR routing param, the identical
+    // value is still on the rewritten request URL, so use it instead of
+    // giving up and rendering the app for the internal `-isr` path.
+    it("falls back to the request query when the header has no ISR param", () => {
+      expect(isrRouteRewrite("/schedule-isr?__isr_route=%2Fschedule", "0=schedule")).toEqual([
+        "/schedule",
+        "",
+      ]);
+    });
+
+    it("falls back to the request query and keeps other params", () => {
+      expect(
+        isrRouteRewrite("/schedule-isr?__isr_route=%2Fschedule&lang=es", "0=schedule")
+      ).toEqual(["/schedule", "lang=es"]);
+    });
   });
 
   // Regression: the routing param is already percent-decoded once by

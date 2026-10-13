@@ -1,6 +1,6 @@
-import { useStorage } from "nitro/storage";
+import { useKV } from "nitro/kv";
 
 export default () => {
-  const storage = useStorage();
+  const storage = useKV();
   return storage.get("test:key");
 };

@@ -1,5 +1,7 @@
 import type { Plugin } from "rollup";
-import type { ESTree } from "rolldown/utils";
+import type * as ESTree from "oxbox";
+import MagicString from "magic-string";
+import { importOXC, walkAST } from "../../utils/oxc.ts";
 
 // Some bundlers (e.g. rolldown-vite) emit `createRequire(import.meta.url)` in
 // shared chunks. On Cloudflare Workers `import.meta.url` is `undefined`, which
@@ -29,7 +31,7 @@ export function cloudflareOutputRewrites(): Plugin {
         if (!mayNeedRewrites(code)) {
           return;
         }
-        const { parseSync } = await import("rolldown/utils");
+        const { parseSync } = await importOXC();
         const { program, errors } = parseSync(chunk.fileName, code);
         if (errors.length > 0) {
           this.warn(
@@ -38,13 +40,12 @@ export function cloudflareOutputRewrites(): Plugin {
           return;
         }
 
-        const edits = await collectEdits(program);
+        const edits = collectEdits(program);
         if (edits.length === 0) {
           return;
         }
 
-        const { RolldownMagicString } = await import("rolldown");
-        const s = new RolldownMagicString(code);
+        const s = new MagicString(code);
         for (const { start, end, content } of edits) {
           if (content === undefined) {
             s.remove(start, end);
@@ -55,8 +56,6 @@ export function cloudflareOutputRewrites(): Plugin {
 
         return {
           code: s.toString(),
-          // `generateMap` returns a napi class whose fields are prototype getters, so spreading
-          // or serializing it yields `{}`. Both builders accept a JSON source map string.
           map: options.sourcemap
             ? s.generateMap({ hires: true, source: chunk.fileName }).toString()
             : undefined,
@@ -81,8 +80,7 @@ const CREATE_REQUIRE_GUARD = 'import.meta.url || "file:///"';
 // `content` is the replacement text, or `undefined` to remove the range
 type Edit = { start: number; end: number; content?: string };
 
-async function collectEdits(program: ESTree.Program): Promise<Edit[]> {
-  const { Visitor } = await import("rolldown/utils");
+function collectEdits(program: ESTree.Program): Edit[] {
   const edits: Edit[] = [];
 
   // Minifiers rename the imported binding, so call sites are matched against it
@@ -103,20 +101,21 @@ async function collectEdits(program: ESTree.Program): Promise<Edit[]> {
     }
   }
 
-  new Visitor({
-    CallExpression(node) {
-      const arg = node.arguments[0];
-      if (
-        node.callee.type === "Identifier" &&
-        createRequireNames.has(node.callee.name) &&
-        node.arguments.length === 1 &&
-        arg &&
-        isImportMetaURL(arg)
-      ) {
-        edits.push({ start: arg.start, end: arg.end, content: CREATE_REQUIRE_GUARD });
-      }
-    },
-  }).visit(program);
+  walkAST<ESTree.Node>(program, (node) => {
+    if (node.type !== "CallExpression") {
+      return;
+    }
+    const arg = node.arguments[0];
+    if (
+      node.callee.type === "Identifier" &&
+      createRequireNames.has(node.callee.name) &&
+      node.arguments.length === 1 &&
+      arg &&
+      isImportMetaURL(arg)
+    ) {
+      edits.push({ start: arg.start, end: arg.end, content: CREATE_REQUIRE_GUARD });
+    }
+  });
 
   return edits;
 }
