@@ -27,7 +27,7 @@ importers:
         specifier: ^0.3.3
         version: 0.3.3
       h3:
-        specifier: ^2.0.1
+        specifier: ^2.0.2
         version: 2.0.2(crossws@0.4.15)(ocache@0.3.0)
       nf3:
         specifier: ^0.4.2
@@ -52,11 +52,11 @@ importers:
         specifier: ^2.0.10
         version: 2.0.10(debug@4.4.3)(supports-color@10.2.2)
       '@cloudflare/workers-types':
-        specifier: ^5
+        specifier: ^5.20261010.1
         version: 5.20261010.1
       '@cloudflare/workers-utils':
-        specifier: ^0.46.0
-        version: 0.46.0(vitest@5.0.3)
+        specifier: ^0.47.1
+        version: 0.47.1(vitest@5.0.3)
       '@deno/types':
         specifier: ^0.0.1
         version: 0.0.1
@@ -88,7 +88,7 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3(rollup@4.64.5)
       '@scalar/api-reference':
-        specifier: ^1.73.0
+        specifier: ^1.73.1
         version: 1.73.1(axios@1.20.0)(jwt-decode@4.0.0)(supports-color@10.2.2)(tailwindcss@4.3.3)(typescript@7.0.2)(zod@4.6.5)
       '@scalar/openapi-types':
         specifier: ^0.9.7
@@ -103,7 +103,7 @@ importers:
         specifier: ^1.8.4
         version: 1.8.4
       '@types/node':
-        specifier: ^26.6.4
+        specifier: ^26.6.5
         version: 26.6.5
       '@types/semver':
         specifier: ^7.8.0
@@ -157,13 +157,13 @@ importers:
         specifier: ^10.2.0
         version: 10.2.0
       dotenv:
-        specifier: ^18.0.5
+        specifier: ^18.0.7
         version: 18.0.7
       etag:
         specifier: ^1.8.1
         version: 1.8.1
       execa:
-        specifier: ^10.0.1
+        specifier: ^10.1.0
         version: 10.1.0
       exsolve:
         specifier: ^1.1.3
@@ -247,10 +247,10 @@ importers:
         specifier: ^0.1.1
         version: 0.1.1
       rolldown:
-        specifier: ^1.2.12
+        specifier: ^1.2.13
         version: 1.2.13
       rollup:
-        specifier: ^4.64.0
+        specifier: ^4.64.4
         version: 4.64.5
       rou3:
         specifier: ^1.0.0
@@ -283,25 +283,25 @@ importers:
         specifier: ^2.0.0-rc.24
         version: 2.0.0-rc.24
       unwasm:
-        specifier: ^0.6.0
+        specifier: ^0.6.1
         version: 0.6.1
       vite:
-        specifier: ^8.3.3
+        specifier: ^8.3.4
         version: 8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
       vite7:
-        specifier: npm:vite@^7.3.6
+        specifier: npm:vite@^7.3.7
         version: vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.3
         version: 5.0.3(@opentelemetry/api@1.9.0)(@types/node@26.6.5)(@vitest/coverage-v8@5.0.3)(vite@8.3.4)
       wrangler:
-        specifier: ^4.147.0
+        specifier: ^4.149.0
         version: 4.149.0(@cloudflare/workers-types@5.20261010.1)(@types/node@26.6.5)
       xml2js:
         specifier: ^0.6.2
         version: 0.6.2
       zephyr-agent:
-        specifier: ^1.5.0
+        specifier: ^1.6.0
         version: 1.6.0(supports-color@10.2.2)
 
   examples/api-routes:
@@ -785,7 +785,7 @@ importers:
         version: 8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
       vitest:
         specifier: latest
-        version: 5.0.3(@opentelemetry/api@1.9.0)(@types/node@26.6.5)(@vitest/coverage-v8@5.0.3)(vite@8.3.4)
+        version: 5.0.4(@opentelemetry/api@1.9.0)(@types/node@26.6.5)(@vitest/coverage-v8@5.0.3)(vite@8.3.4)
 
   examples/websocket:
     devDependencies:
@@ -1145,8 +1145,8 @@ packages:
   '@cloudflare/workers-types@5.20261010.1':
     resolution: {integrity: sha512-Csvu2Wsd8JWnP8HNg/uAAEYzoGw+eKEvoftoHrbMWuFDoC0g6e5XSP8XO9vJsdjjVpPaURdFoL3g/xpZSdQr3Q==}
 
-  '@cloudflare/workers-utils@0.46.0':
-    resolution: {integrity: sha512-E/k0q1p5EXgkNl1xI20xwJ4uXpL4K3eTguKtrPn57vBacq6NtPzOXa0xG/TWfZN5STUb25yf1Cbo4D/hEGSgXA==}
+  '@cloudflare/workers-utils@0.47.1':
+    resolution: {integrity: sha512-zEQPCOMKD5dhE8cSkd1IeO7jkGptWRTy09GSfAfw4k0OnPBYRDYPUlb7TTYObLBH7kdYsSpyB3KgrgN25Ihy8w==}
     peerDependencies:
       vitest: ^4.1.0
     peerDependenciesMeta:
@@ -3501,8 +3501,22 @@ packages:
       vite:
         optional: true
 
+  '@vitest/mocker@5.0.4':
+    resolution: {integrity: sha512-tqAlrYWce4iUxhr3ncNohejtCTOcHeE8XWrSNZY3OhPoDn01yeGv+gnaBy64ATp7o6pb03eIbBAjzmibpc9vIQ==}
+    peerDependencies:
+      msw: ^2.4.9 || ^3.0.0
+      vite: ^6.0.0 || ^7.0.0 || ^8.0.0
+    peerDependenciesMeta:
+      msw:
+        optional: true
+      vite:
+        optional: true
+
   '@vitest/spy@5.0.3':
     resolution: {integrity: sha512-XhFysQTB8AZ+P4gMi+Lpo99vg2AZi0qKpaB9yXQl37+CaMEAPO3iH/wGVnSyL5MPERiLezpqTVtrR6UZH5GCXg==}
+
+  '@vitest/spy@5.0.4':
+    resolution: {integrity: sha512-MZKk/gSkm2q+ICobMxCpH1mA+cCAWm8WV7UhxlqGjq/sJ3AGc1BqFOs5CRVXxH78wQtme9q/NAAgBquj4AcyMw==}
 
   '@vue-macros/common@3.1.4':
     resolution: {integrity: sha512-/5Fv+6DgIcM9ajY05ZmKBv+LMX1M9A0X+IUwDRVdt67ciw8OV9bvG2r34p3RiEadlsQybjhKPRKNXDC8Bp23cw==}
@@ -7017,6 +7031,47 @@ packages:
       jsdom:
         optional: true
 
+  vitest@5.0.4:
+    resolution: {integrity: sha512-z0WxZRV2Sg48wF0FSgMq3TFG8JS38/Qr96vZVZdX6+Em9raQTvnXQvdTFJe2m3rfyJnEHeHQ/snceIdi8D1pVg==}
+    engines: {node: ^22.12.0 || ^24.0.0 || >=26.0.0}
+    hasBin: true
+    peerDependencies:
+      '@edge-runtime/vm': '*'
+      '@opentelemetry/api': ^1.9.0
+      '@types/node': ^22.0.0 || >=24.0.0
+      '@vitest/browser-playwright': 5.0.4
+      '@vitest/browser-preview': 5.0.4
+      '@vitest/browser-webdriverio': ^5.0.0-beta.5 || >=5.0.0
+      '@vitest/coverage-istanbul': 5.0.4
+      '@vitest/coverage-v8': 5.0.4
+      '@vitest/ui': 5.0.4
+      happy-dom: '*'
+      jsdom: '*'
+      vite: ^6.4.0 || ^7.0.0 || ^8.0.0
+    peerDependenciesMeta:
+      '@edge-runtime/vm':
+        optional: true
+      '@opentelemetry/api':
+        optional: true
+      '@types/node':
+        optional: true
+      '@vitest/browser-playwright':
+        optional: true
+      '@vitest/browser-preview':
+        optional: true
+      '@vitest/browser-webdriverio':
+        optional: true
+      '@vitest/coverage-istanbul':
+        optional: true
+      '@vitest/coverage-v8':
+        optional: true
+      '@vitest/ui':
+        optional: true
+      happy-dom:
+        optional: true
+      jsdom:
+        optional: true
+
   vue-component-type-helpers@3.3.13:
     resolution: {integrity: sha512-02KCxSmKDhIITjKyJ4QT5csP6L0WoRborLqY/34a40+S9uvMvdNgMV0yVjO3p2Gkz3ZoPmFz/0JsGHacwJYTxw==}
 
@@ -7670,7 +7725,7 @@ snapshots:
 
   '@cloudflare/workers-types@5.20261010.1': {}
 
-  '@cloudflare/workers-utils@0.46.0(vitest@5.0.3)':
+  '@cloudflare/workers-utils@0.47.1(vitest@5.0.3)':
     dependencies:
       chalk: 5.3.0
       dotenv: 16.3.1
@@ -9945,7 +10000,18 @@ snapshots:
     optionalDependencies:
       vite: 8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
 
+  '@vitest/mocker@5.0.4(vite@8.3.4)':
+    dependencies:
+      '@jridgewell/trace-mapping': 0.3.31
+      '@vitest/spy': 5.0.4
+      estree-walker: 3.0.3
+      magic-string: 1.4.3
+    optionalDependencies:
+      vite: 8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+
   '@vitest/spy@5.0.3': {}
+
+  '@vitest/spy@5.0.4': {}
 
   '@vue-macros/common@3.1.4(vue@3.5.43)':
     dependencies:
@@ -13710,6 +13776,29 @@ snapshots:
       expect-type: 1.4.0
       magic-string: 1.4.3
       obug: 2.2.1
+      picomatch: 4.0.7
+      std-env: 4.3.0
+      tinybench: 6.2.2
+      tinyexec: 1.3.1
+      tinyglobby: 0.2.17
+      vite: 8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+      why-is-node-running: 3.2.1
+    optionalDependencies:
+      '@opentelemetry/api': 1.9.0
+      '@types/node': 26.6.5
+      '@vitest/coverage-v8': 5.0.3(vitest@5.0.3)
+    transitivePeerDependencies:
+      - msw
+
+  vitest@5.0.4(@opentelemetry/api@1.9.0)(@types/node@26.6.5)(@vitest/coverage-v8@5.0.3)(vite@8.3.4):
+    dependencies:
+      '@types/chai': 5.2.3
+      '@vitest/mocker': 5.0.4(vite@8.3.4)
+      chai: 6.3.0
+      es-module-lexer: 2.3.2
+      expect-type: 1.4.0
+      magic-string: 1.4.3
+      obug: 3.0.0
       picomatch: 4.0.7
       std-env: 4.3.0
       tinybench: 6.2.2
