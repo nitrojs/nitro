@@ -16,6 +16,9 @@
 | `build.ts` | CLI build entry for `nitro build` (`viteBuild()`) |
 | `preview.ts` | Preview server plugin |
 | `types.ts` | Type definitions (`NitroPluginConfig`, `NitroPluginContext`) |
+| `_import.ts` | On demand `vite` import from the user project (`importVite()`) |
+| `_dev-worker.ts` | Generated dev worker entry, injecting the app's Vite module runner |
+| `vitest.ts` | Vitest support: `nitro` test environment (`src/runtime/internal/vite/vitest-env.mjs`) |
 
 ## Plugin Architecture (`plugin.ts`)
 
@@ -60,7 +63,7 @@
 3. Detect SSR entry (looks for `entry-server.{ts,js,tsx,jsx,mjs}`)
 4. Create Nitro instance (`createNitro()`)
 5. Resolve bundler config (`getBundlerConfig()`)
-6. Initialize env-runner for dev (`initEnvRunner()`)
+6. Attach `nitro.fetch` (the env-runner is started lazily by the dev environments, not while resolving config)
 
 ## Environments (`env.ts`)
 
@@ -81,7 +84,8 @@ Nitro uses Vite 6+ environments API for multi-bundle builds:
 - Resolve: `noExternal` differs for dev vs prod
 - Special conditions: `"workerd"` for miniflare, excludes `"node"`
 
-### `initEnvRunner()` / `getEnvRunner()`
+### `initEnvRunner()`
+- Called from the dev environments' `createEnvironment()` (and `nitro.fetch`), so resolving the Vite config alone does not start a worker
 - Uses `env-runner` package for worker management
 - Supports Node Worker or Miniflare runtime
 - Auto-restarts on failure (max 3 retries)
@@ -94,6 +98,8 @@ Nitro uses Vite 6+ environments API for multi-bundle builds:
 ## Dev Server (`dev.ts`)
 
 ### `FetchableDevEnvironment` (extends `DevEnvironment`)
+- Defined lazily by `createFetchableDevEnvironment()` (async) against the `vite` instance resolved
+  from the user project — `vite` is an optional dependency, so `DevEnvironment` cannot be imported statically
 - Overrides `fetchModule()` for CJS/ESM resolution
 - For workerd: prevents externalization of bare imports
 - `dispatchFetch()` — routes requests to the dev server worker
@@ -182,9 +188,21 @@ Common config: ESM output, tree-shaking, chunking, sourcemaps.
 **Server-only module reload**:
 1. `hotUpdate` hook detects file change
 2. Determines if module is server-only or shared
-3. Server-only → sends `full-reload` to nitro environment
+3. Server-only → sends `full-reload` (with `triggeredBy`) to the environment
 4. Shared → returns for normal Vite client HMR
-5. Optionally reloads browser (`experimental.vite.serverReload`)
+5. Optionally reloads browser
+
+The dev worker scopes each `full-reload` to the environment it was sent for,
+plus any other environment that evaluated `triggeredBy` itself. Within an
+environment only the changed file and its importers are invalidated, so
+unrelated module state (runtime singletons, caches) survives the reload.
+A payload without `triggeredBy` (added/removed handlers) drops that
+environment's whole module graph instead. Reloads are serialized per
+environment and requests wait for the in-flight one.
+
+`experimental.vite.serverReload: false` opts out entirely: server modules are
+still invalidated, but no `full-reload` is sent and the dev worker keeps its
+current evaluations.
 
 **Directory watchers** (debounced):
 - Routes, API, middleware, plugins, modules dirs
@@ -200,8 +218,10 @@ Common config: ESM output, tree-shaking, chunking, sourcemaps.
 | `dev-worker.mjs` | Worker process: `ViteEnvRunner` class, RPC layer, env management |
 | `ssr-renderer.mjs` | SSR service: calls `fetchViteEnv("ssr", req)` |
 
+`dev-worker.mjs` is not loaded directly: `writeDevWorkerEntry()` generates `<buildDir>/vite/dev-worker.mjs`, which re-exports it and injects the `vite/module-runner` resolved from the app (`vite` is not resolvable from Nitro's `dist/`).
+
 ### `ViteEnvRunner` (in `dev-worker.mjs`)
-- Manages Vite `ModuleRunner` per environment
+- Manages Vite `ModuleRunner` per environment (injected via `setModuleRunner()`)
 - Loads environment entry via `runner.import()`
 - Routes fetch requests to loaded entries
 - Exposes `__VITE_ENVIRONMENT_RUNNER_IMPORT__` for RSC
@@ -216,7 +236,7 @@ Common config: ESM output, tree-shaking, chunking, sourcemaps.
 |--------|-----|-----------|
 | Runner | env-runner (node-worker / miniflare) | Bundled ESM |
 | HMR | Full reload on file change | N/A |
-| Errors | Interactive error page (Youch) | JSON or minimal HTML |
+| Errors | HTML error page (`src/runtime/internal/error/_utils.ts`) | JSON or minimal HTML |
 | Services | Lazy-loaded via env-runner | Pre-bundled via `prodSetup()` |
 | Template | Dynamic (vite-env route) | Static (inlined SSR outlet) |
 | Sourcemaps | Enabled | Optional |
@@ -225,15 +245,40 @@ Common config: ESM output, tree-shaking, chunking, sourcemaps.
 
 `experimental.vite` options:
 - `assetsImport` (default: true) — `?assets` imports via `@hiogawa/vite-plugin-fullstack`
-- `serverReload` (default: true) — reload on server-only module changes
+- `serverReload` (default: true) — reload the dev worker on server-only module changes
 - `services` — register custom service environments
+
+## Vitest
+
+Vitest adds its `__vitest__` environment before plugin `config` hooks run, which sets
+`ctx._isVitest`. Test files then run in the `nitro` environment (default `test.environment`,
+set by path since Vitest resolves named environments as packages). In this mode no dev worker
+starts (`devServer.runner` is set to `node-worker` before `build:before`, so runner-specific
+preset hooks such as the Cloudflare tracing bridge are skipped; tests run in Node.js): `nitro`
+and service environments use Vite's default dev environment, and
+`configureServer`, `hotUpdate` and the service `nitro/*` proxy are skipped. Service entries (e.g.
+the SSR entry, still auto-detected despite Vitest's own `ssr` environment) are imported from the
+`nitro` environment by `viteServicesTemplate()`, as in production. The `vitest-setup.mjs` setup file
+creates the app lazily in `beforeAll` (after the test file's `vi.mock` calls) so `serverFetch` from
+`nitro` works; it is an empty module in other environments. vm pools keep Vitest's default environment. Inline `test.projects` resolve from the raw `test`
+config (captured before plugin `config` hooks), so `configureVitest` adds the setup file to each
+project; their environment must be set to `nitro` explicitly.
+
+Watch mode (`configureVitest` hook, `_vitest-watch.ts`): Vitest's own importer walk stops at
+virtual modules (their `file` is empty), so a `watchTriggerPatterns` entry walks the `nitro`
+module graph through them (a setup file importer means every test file of the environment) and
+hands the tests to Vitest's own debounced rerun. It only answers when the walk crossed a virtual
+module, so other changes keep Vitest's default handling. Added/removed scan dir files run the
+same rescan as dev (`_scan-watch.ts`), then `rerunTestSpecifications` with the tests depending on
+`#nitro/virtual/*`. Nitro config changes call `vitest.vite.restart()`, which Vitest hijacks to
+restart itself (it ignores `configFileDependencies`).
 
 ## Key Connections
 
 - `src/vite.ts` — public export (`nitro` plugin)
 - `src/build/build.ts` — dispatcher calls `viteBuild()`
 - `src/build/config.ts` — base build config
-- `src/build/plugins.ts` — base build plugins (virtual modules, auto-imports, etc.)
+- `src/build/plugins.ts` — base build plugins (virtual modules, WASM, externals, etc.)
 - `src/build/virtual/` — 14 virtual module templates
 - `src/dev/app.ts` — `NitroDevApp` for dev-only handlers
 - `src/dev/server.ts` — `NitroDevServer` with `RunnerManager`

@@ -19,7 +19,9 @@ packages:
   - test/minimal
 
 trustPolicy: no-downgrade
+trustPolicyExcludePrune: true
 trustPolicyExclude:
+  - "@vercel/*"
   - "semver@6.3.1"
 
 blockExoticSubdeps: true
@@ -44,10 +46,12 @@ peerDependencyRules:
 updateConfig:
   ignoreDependencies:
     - vite7
+    - miniflare
 
 patchedDependencies:
   '@hiogawa/vite-plugin-fullstack': patches/@hiogawa__vite-plugin-fullstack.patch
 
+minimumReleaseAgeExcludePrune: true
 minimumReleaseAgeExclude:
   - automd*
   - c12*
@@ -66,6 +70,7 @@ minimumReleaseAgeExclude:
   - get-port-please*
   - giget*
   - h3*
+  - h3-rules*
   - hookable*
   - httpxy*
   - knitwork*
@@ -89,7 +94,7 @@ minimumReleaseAgeExclude:
   - uncrypto*
   - unctx*
   - unenv*
-  - unimport*
   - unstorage*
   - untyped*
   - unwasm*
+  - rc9@3.1.0

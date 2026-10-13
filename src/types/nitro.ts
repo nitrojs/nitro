@@ -1,15 +1,12 @@
-import type { ConsolaInstance } from "consola";
-import type { HTTPMethod } from "h3";
-import type { Hookable } from "hookable";
+import type { ConsolaInstance } from "./_consola.ts";
+import type { Hookable } from "./_hookable.ts";
 import type { PresetName, PresetOptions } from "../presets/index.ts";
-import type { Unimport } from "unimport";
 import type { NitroConfig, NitroOptions } from "./config.ts";
 import type { NitroEventHandler } from "./handler.ts";
 import type { NitroHooks } from "./hooks.ts";
 import type { PrerenderRoute } from "./prerender.ts";
-import type { TSConfig } from "pkg-types";
 import type { Router } from "../routing.ts";
-import type { NitroRouteRules } from "./route-rules.ts";
+import type { NormalizedRouteRules } from "./route-rules.ts";
 import type { WorkerAddress } from "./runner.ts";
 
 type MaybeArray<T> = T | T[];
@@ -32,14 +29,13 @@ export interface Nitro {
   scannedHandlers: NitroEventHandler[];
   vfs: Map<string, { render: () => string | Promise<string> }>;
   hooks: Hookable<NitroHooks>;
-  unimport?: Unimport;
   logger: ConsolaInstance;
   fetch: (input: Request) => Response | Promise<Response>;
   close: () => Promise<void>;
   updateConfig: (config: NitroDynamicConfig) => void | Promise<void>;
   routing: Readonly<{
     sync: () => void;
-    routeRules: Router<NitroRouteRules & { _route: string }>;
+    routeRules: Router<NormalizedRouteRules & { _route: string }>;
     routes: Router<MaybeArray<NitroEventHandler & { _importHash: string }>>;
     globalMiddleware: (NitroEventHandler & { _importHash: string })[];
     routedMiddleware: Router<NitroEventHandler & { _importHash: string }>;
@@ -56,11 +52,6 @@ export interface Nitro {
  */
 export type NitroDynamicConfig = Pick<NitroConfig, "runtimeConfig" | "routeRules">;
 
-export type NitroTypes = {
-  routes: Record<string, Partial<Record<HTTPMethod | "default", string[]>>>;
-  tsConfig?: TSConfig;
-};
-
 /**
  * Metadata about the framework using Nitro.
  *
@@ -69,6 +60,22 @@ export type NitroTypes = {
 export interface NitroFrameworkInfo {
   name?: "nitro" | (string & {});
   version?: string;
+  /**
+   * Command shown in build output as the suggested preview command.
+   *
+   * Display-only: Nitro never executes this. Use this when the framework
+   * wraps `nitro preview` with its own CLI (e.g. `npx nuxt preview`).
+   * Defaults to `npx nitro preview`.
+   */
+  previewCommand?: string;
+  /**
+   * Command shown in build output as the suggested deploy command.
+   *
+   * Display-only: Nitro never executes this. Use this when the framework
+   * wraps `nitro deploy` with its own CLI (e.g. `npx nuxt deploy`).
+   * Defaults to `npx nitro deploy --prebuilt`.
+   */
+  deployCommand?: string;
 }
 
 /**

@@ -2,6 +2,7 @@ import { defineNitroPreset } from "../_utils/preset.ts";
 import { writeFile } from "../_utils/fs.ts";
 import { resolve } from "pathe";
 import { unenvDeno } from "./unenv/preset.ts";
+import { extendEnv } from "../../build/env.ts";
 import { builtinModules } from "node:module";
 
 const denoDeploy = defineNitroPreset(
@@ -14,12 +15,17 @@ const denoDeploy = defineNitroPreset(
     },
     exportConditions: ["deno"],
     node: false,
-    serveStatic: "deno",
+    // Deno has native `node:` compatibility, so the Node asset reader works as-is.
+    serveStatic: true,
     commands: {
       preview: "",
       deploy: "cd ./ && deno run -A jsr:@deno/deployctl deploy server/index.ts",
     },
-    unenv: unenvDeno,
+    hooks: {
+      "build:before": (nitro) => {
+        extendEnv(nitro, unenvDeno);
+      },
+    },
     rollupConfig: {
       preserveEntrySignatures: false,
       external: (id) => id.startsWith("https://") || id.startsWith("node:"),

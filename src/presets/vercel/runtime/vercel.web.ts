@@ -1,13 +1,26 @@
 import "#nitro/virtual/polyfills";
+import wsAdapter from "crossws/adapters/vercel";
 import { useNitroApp, getRouteRules } from "nitro/app";
+import { resolveWebsocketHooks } from "#nitro/runtime/app";
 
 import type { ServerRequest } from "srvx";
 import { isrRouteRewrite } from "./isr.ts";
 
 const nitroApp = useNitroApp();
 
+const ws = import.meta._websocket ? wsAdapter({ resolve: resolveWebsocketHooks }) : undefined;
+
 export default {
-  fetch(req: ServerRequest, context: { waitUntil: (promise: Promise<any>) => void }) {
+  async fetch(req: ServerRequest, context: { waitUntil: (promise: Promise<any>) => void }) {
+    // Websocket upgrade
+    // https://crossws.unjs.io/adapters/vercel
+    if (ws && req.headers.get("upgrade")?.toLowerCase() === "websocket") {
+      const response = await ws.handleWebUpgrade(req);
+      if (response) {
+        return response;
+      }
+    }
+
     // ISR route rewrite
     const isrURL = isrRouteRewrite(req.url, req.headers.get("x-now-route-matches"));
     if (isrURL) {

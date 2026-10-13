@@ -1,6 +1,5 @@
 import "#nitro/virtual/polyfills";
 import { useNitroApp } from "nitro/app";
-import { awsResponseBody } from "../../aws-lambda/runtime/_utils.ts";
 
 import type { Handler } from "aws-lambda";
 import type { ServerRequest } from "srvx";
@@ -39,7 +38,7 @@ export const handler: Handler<StormkitEvent, StormkitResponse> = async function 
 
   const response = await nitroApp.fetch(req);
 
-  const { body, isBase64Encoded } = await awsResponseBody(response);
+  const { body, isBase64Encoded } = await encodeResponseBody(response);
 
   return {
     statusCode: response.status,
@@ -52,4 +51,42 @@ function normalizeOutgoingHeaders(headers: Headers): Record<string, string> {
   return Object.fromEntries(
     Object.entries(headers).map(([k, v]) => [k, Array.isArray(v) ? v.join(",") : String(v)])
   );
+}
+
+async function encodeResponseBody(
+  response: Response
+): Promise<{ body: string; isBase64Encoded?: boolean }> {
+  if (!response.body) {
+    return { body: "" };
+  }
+  const buffer = await toBuffer(response.body as any);
+  const contentType = response.headers.get("content-type") || "";
+  return isTextType(contentType)
+    ? { body: buffer.toString("utf8") }
+    : { body: buffer.toString("base64"), isBase64Encoded: true };
+}
+
+function isTextType(contentType = "") {
+  return /^text\/|\/(javascript|json|xml)|utf-?8/i.test(contentType);
+}
+
+function toBuffer(data: ReadableStream): Promise<Buffer> {
+  return new Promise<Buffer>((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    data
+      .pipeTo(
+        new WritableStream({
+          write(chunk) {
+            chunks.push(chunk);
+          },
+          close() {
+            resolve(Buffer.concat(chunks));
+          },
+          abort(reason) {
+            reject(reason);
+          },
+        })
+      )
+      .catch(reject);
+  });
 }

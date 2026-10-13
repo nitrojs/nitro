@@ -1,13 +1,16 @@
 import type { Nitro, NitroImportMeta } from "nitro/types";
-import { defineEnv } from "unenv";
 import { pkgDir } from "nitro/meta";
 import { pathRegExp, toPathRegExp } from "../utils/regex.ts";
+import { BUILD_EXTENSIONS } from "./_extensions.ts";
+import { resolveBuildEnv } from "./env.ts";
+import { isUnenvId } from "./plugins/unenv.ts";
 
-export type BaseBuildConfig = ReturnType<typeof baseBuildConfig>;
+export type BaseBuildConfig = Awaited<ReturnType<typeof baseBuildConfig>>;
 
-export function baseBuildConfig(nitro: Nitro) {
-  // prettier-ignore
-  const extensions: string[] = [".ts", ".mjs", ".js", ".json", ".node", ".tsx", ".jsx" ];
+const ROOT_ALIAS = "@";
+
+export async function baseBuildConfig(nitro: Nitro) {
+  const extensions: string[] = [...BUILD_EXTENSIONS];
 
   const isNodeless = nitro.options.node === false;
 
@@ -34,16 +37,12 @@ export function baseBuildConfig(nitro: Nitro) {
     ...nitro.options.replace,
   };
 
-  const { env } = defineEnv({
-    nodeCompat: isNodeless,
-    resolve: true,
-    presets: nitro.options.unenv,
-    overrides: {
-      alias: nitro.options.alias,
-    },
-  });
+  const env = await resolveBuildEnv(nitro);
 
-  const aliases = resolveAliases({ ...env.alias });
+  // Aliases to `unenv` polyfills are resolved on demand by the `nitro:unenv` plugin
+  const aliases = resolveAliases(
+    Object.fromEntries(Object.entries(env.alias).filter(([, to]) => !isUnenvId(to)))
+  );
 
   const noExternal: RegExp[] = getNoExternals(nitro);
 
@@ -52,6 +51,9 @@ export function baseBuildConfig(nitro: Nitro) {
     "CIRCULAR_DEPENDENCY",
     "THIS_IS_UNDEFINED",
     "EMPTY_BUNDLE",
+    // Directives such as `"use client"` in dependencies only mean something to
+    // React Server Components bundlers, so the server build has nothing to preserve.
+    "MODULE_LEVEL_DIRECTIVE",
   ]);
 
   return {
@@ -72,7 +74,7 @@ function getNoExternals(nitro: Nitro): RegExp[] {
     new RegExp("^" + pathRegExp(pkgDir) + "(?!.*node_modules)"),
     ...[
       nitro.options.rootDir,
-      ...nitro.options.scanDirs.filter(
+      ...[nitro.options.buildDir, ...nitro.options.scanDirs].filter(
         (dir) => dir.includes("node_modules") || !dir.startsWith(nitro.options.rootDir)
       ),
     ].map((dir) => new RegExp("^" + pathRegExp(dir) + "(?!.*node_modules)")),
@@ -100,13 +102,14 @@ export function resolveAliases(_aliases: Record<string, string>) {
       ([a], [b]) => b.split("/").length - a.split("/").length || b.length - a.length
     )
   );
+  const resolvableAliases = Object.keys(aliases).filter(isResolvableAliasKey);
   // Resolve alias values in relation to each other
   for (const key in aliases) {
-    for (const alias in aliases) {
-      if (!["~", "@", "#"].includes(alias[0])) {
-        continue;
-      }
-      if (alias === "@" && !aliases[key].startsWith("@/")) {
+    if (!isResolvableAliasValue(aliases[key])) {
+      continue;
+    }
+    for (const alias of resolvableAliases) {
+      if (alias === ROOT_ALIAS && !aliases[key].startsWith(`${ROOT_ALIAS}/`)) {
         continue;
       } // Don't resolve @foo/bar
 
@@ -116,4 +119,13 @@ export function resolveAliases(_aliases: Record<string, string>) {
     }
   }
   return aliases;
+}
+
+function isResolvableAliasKey(id: string) {
+  // Internal aliases: `~`, `~~`, `@`, `@@`, `#*` (but not scoped packages like `@scope/pkg`)
+  return id[0] === "~" || id[0] === "#" || /^@+$/.test(id);
+}
+
+function isResolvableAliasValue(id: string) {
+  return id[0] === "~" || id[0] === "#" || /^@+\//.test(id);
 }

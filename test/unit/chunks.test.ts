@@ -3,6 +3,7 @@ import type { Nitro } from "nitro/types";
 import {
   NODE_MODULES_RE,
   libChunkName,
+  libChunksGroup,
   pathToPkgName,
   getChunkName,
   routeToFsPath,
@@ -60,6 +61,16 @@ describe("libChunkName", () => {
     ["/node_modules/nitro-nightly/dist/index.js", "_libs/nitro"],
   ])("%s → %s", (id, expected) => {
     expect(libChunkName(id)).toBe(expected);
+  });
+});
+
+describe("libChunksGroup", () => {
+  it("has a non-enumerable debugName", () => {
+    const group = libChunksGroup();
+    expect(group.test).toBe(NODE_MODULES_RE);
+    expect(group.name("/node_modules/express/index.js")).toBe("_libs/express");
+    expect((group as { debugName?: string }).debugName).toBe("libs");
+    expect(Object.keys(group)).toEqual(["test", "name"]);
   });
 });
 
@@ -149,8 +160,12 @@ describe("getChunkName", () => {
     );
   });
 
-  it("returns _routes/<path>.mjs for dynamic route", () => {
+  it.each([
+    ["rolldown", "_routes/api/users/[id].mjs"],
+    ["rollup", "_routes/api/users/%5Bid%5D.mjs"],
+  ])("returns _routes/<path>.mjs for dynamic route (%s)", (builder, expected) => {
     const n = createNitro({
+      options: { builder },
       routing: {
         routes: {
           routes: [
@@ -161,9 +176,33 @@ describe("getChunkName", () => {
         },
       },
     } as any);
-    expect(getChunkName(createChunk("route", ["/src/routes/api/users/[id].ts"]), n)).toBe(
-      "_routes/api/users/[id].mjs"
-    );
+    expect(getChunkName(createChunk("route", ["/src/routes/api/users/[id].ts"]), n)).toBe(expected);
+  });
+
+  it.each([
+    ["rolldown", "_routes/api/applications/[id]/context.mjs"],
+    ["rollup", "_routes/api/applications/%5Bid%5D/context.mjs"],
+  ])("returns _routes/<path>.mjs for nested dynamic route (%s)", (builder, expected) => {
+    const n = createNitro({
+      options: { builder },
+      routing: {
+        routes: {
+          routes: [
+            {
+              data: [
+                {
+                  route: "/api/applications/:id/context",
+                  handler: "/src/routes/api/applications/[id]/context.ts",
+                },
+              ],
+            },
+          ],
+        },
+      },
+    } as any);
+    expect(
+      getChunkName(createChunk("route", ["/src/routes/api/applications/[id]/context.ts"]), n)
+    ).toBe(expected);
   });
 
   it("returns _routes/index.mjs for root route", () => {
