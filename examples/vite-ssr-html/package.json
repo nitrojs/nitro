@@ -1,0 +1,14 @@
+{
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite dev",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.2.2",
+    "nitro": "latest",
+    "tailwindcss": "^4.2.2",
+    "vite": "latest"
+  }
+}

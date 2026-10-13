@@ -1,14 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { getAzureParsedCookiesFromHeaders } from "../../src/presets/azure/runtime/_utils";
+import {
+  getAzureParsedCookiesFromHeaders,
+  getRequestURL,
+  resolveBaseUrl,
+} from "../../src/presets/azure/runtime/_utils.ts";
 
 describe("getAzureParsedCookiesFromHeaders", () => {
   it("returns empty array if no cookies", () => {
     expect(getAzureParsedCookiesFromHeaders(new Headers({}))).toMatchObject([]);
   });
   it("returns empty array if empty set-cookie header", () => {
-    expect(
-      getAzureParsedCookiesFromHeaders(new Headers({ "set-cookie": " " }))
-    ).toMatchObject([]);
+    expect(getAzureParsedCookiesFromHeaders(new Headers({ "set-cookie": " " }))).toMatchObject([]);
   });
   it("returns single cookie", () => {
     expect(
@@ -72,5 +74,60 @@ describe("getAzureParsedCookiesFromHeaders", () => {
         value: "qux",
       },
     ]);
+  });
+});
+
+describe("resolveBaseUrl", () => {
+  const req = (headers: Record<string, string>) => new Headers(headers);
+
+  it("uses the forwarded proto and host", () => {
+    expect(
+      resolveBaseUrl(req({ "x-forwarded-proto": "https", "x-forwarded-host": "example.com" }))
+    ).toBe("https://example.com");
+  });
+
+  it("falls back to the host header and http", () => {
+    expect(resolveBaseUrl(req({ host: "example.com:8080" }))).toBe("http://example.com:8080");
+  });
+
+  it("falls back to the origin of x-ms-original-url", () => {
+    expect(resolveBaseUrl(req({ "x-ms-original-url": "https://example.com/foo?bar=1" }))).toBe(
+      "https://example.com"
+    );
+  });
+
+  it("ignores an unusable host", () => {
+    expect(
+      resolveBaseUrl(req({ host: "not a host", "x-ms-original-url": "https://example.com/foo" }))
+    ).toBe("https://example.com");
+  });
+
+  it("falls back to localhost", () => {
+    expect(resolveBaseUrl(req({}))).toBe("http://localhost");
+  });
+});
+
+describe("getRequestURL", () => {
+  const headers = new Headers({ "x-forwarded-proto": "https", "x-forwarded-host": "example.com" });
+
+  it("resolves the path and query against the base url", () => {
+    expect(getRequestURL("https://internal/api/echo?x=1", headers).href).toBe(
+      "https://example.com/api/echo?x=1"
+    );
+    expect(getRequestURL("/api/echo?x=1", headers).href).toBe("https://example.com/api/echo?x=1");
+  });
+
+  it("keeps encoded characters in the path", () => {
+    expect(getRequestURL("https://internal/api/a%2Fb%3Fc?q=1", headers).href).toBe(
+      "https://example.com/api/a%2Fb%3Fc?q=1"
+    );
+  });
+
+  it("does not change the host for paths starting with slashes", () => {
+    expect(getRequestURL("https://example.com//evil.com/foo?x=1", headers).href).toBe(
+      "https://example.com//evil.com/foo?x=1"
+    );
+    expect(getRequestURL("https://example.com/\\evil.com/foo", headers).host).toBe("example.com");
+    expect(getRequestURL("//evil.com/foo", headers).href).toBe("https://example.com/foo");
   });
 });

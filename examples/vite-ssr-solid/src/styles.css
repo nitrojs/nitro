@@ -1,0 +1,19 @@
+div {
+  font-family: system-ui, Arial, sans-serif;
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+
+button {
+  background-color: rgb(147 197 253);
+  color: rgb(15 23 42);
+  border: none;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+button:hover {
+  background-color: rgb(191 219 254);
+}

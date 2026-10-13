@@ -1,3 +1,6 @@
+import { defineTask } from "nitro/task";
+import { useDatabase } from "nitro/database";
+
 export default defineTask({
   meta: {
     description: "Run database migrations",

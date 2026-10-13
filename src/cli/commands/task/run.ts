@@ -1,14 +1,13 @@
 import { defineCommand } from "citty";
 import { consola } from "consola";
 import destr from "destr";
-import { createNitro, loadOptions, runTask } from "nitro";
+import { loadOptions, runTask } from "nitro/builder";
 import { resolve } from "pathe";
 
 export default defineCommand({
   meta: {
     name: "run",
-    description:
-      "Run a runtime task in the currently running dev server (experimental)",
+    description: "Run a runtime task in the currently running dev server (experimental)",
   },
   args: {
     name: {
@@ -32,9 +31,7 @@ export default defineCommand({
     consola.info(`Running task \`${args.name}\`...`);
     let payload: any = destr(args.payload || "{}");
     if (typeof payload !== "object") {
-      consola.error(
-        `Invalid payload: \`${args.payload}\` (it should be a valid JSON object)`
-      );
+      consola.error(`Invalid payload: \`${args.payload}\` (it should be a valid JSON object)`);
       payload = undefined;
     }
     try {

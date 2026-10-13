@@ -4,8 +4,7 @@ on:
   pull_request:
   push:
     branches:
-      - v2
-      - v3
+      - main
 
 permissions:
   contents: read
@@ -13,18 +12,21 @@ permissions:
 jobs:
   autofix:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - run: npm i -g --force corepack && corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: 22
+          persist-credentials: false
+      - run: npm i -g --force corepack && corepack enable
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: lts/*
           cache: "pnpm"
       - run: pnpm install
       - run: pnpm stub
       - run: pnpm gen-presets
       - name: Fix lint issues
-        run: npm run lint:fix
-      - uses: autofix-ci/action@ff86a557419858bb967097bfc916833f5647fa8c
+        run: pnpm fmt
+      - uses: autofix-ci/action@c5b2d67aa2274e7b5a18224e8171550871fc7e4a # v1.3.4
         with:
           commit-message: "chore: apply automated updates"

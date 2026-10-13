@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Hello World Snippet</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="card" role="region" aria-label="Code snippet">
+      <div class="label">JavaScript</div>
+      <script server>
+        const hl = (code) =>
+          serverFetch("/api/highlight", {
+            method: "POST",
+            body: code,
+          });
+      </script>
+      <pre><code>{{{ hl(`console.log("💚 Simple is beautiful!");`) }}}</code></pre>
+    </div>
+  </body>
+</html>

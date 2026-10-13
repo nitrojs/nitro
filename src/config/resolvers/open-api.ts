@@ -1,4 +1,4 @@
-import { runtimeDir } from "nitro/runtime/meta";
+import { runtimeDir } from "nitro/meta";
 import type { NitroOptions } from "nitro/types";
 import { join } from "pathe";
 
@@ -13,8 +13,7 @@ export async function resolveOpenAPIOptions(options: NitroOptions) {
     return;
   }
 
-  const shouldPrerender =
-    !options.dev && options.openAPI?.production === "prerender";
+  const shouldPrerender = !options.dev && options.openAPI?.production === "prerender";
 
   const handlersEnv = shouldPrerender ? "prerender" : "";
 

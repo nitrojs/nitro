@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { normalizeRuntimeConfig } from "../../src/config/resolvers/runtime-config";
+import { normalizeRuntimeConfig } from "../../src/config/resolvers/runtime-config.ts";
 import type { NitroConfig } from "nitro/types";
 
 const defaultRuntimeConfig = {
@@ -49,7 +49,7 @@ describe("normalizeRuntimeConfig", () => {
   });
 
   it("should throw a warning when runtimeConfig is not serializable", () => {
-    const originalWarn = console.warn;
+    // const originalWarn = console.warn;
     const spyWarn = (console.warn = vi.fn());
     normalizeRuntimeConfig({
       ...nitroConfig,

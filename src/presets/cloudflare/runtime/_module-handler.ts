@@ -1,8 +1,9 @@
-import "#nitro-internal-pollyfills";
+import "#nitro/virtual/polyfills";
 import type * as CF from "@cloudflare/workers-types";
-import type { ExportedHandler } from "@cloudflare/workers-types";
-import { useNitroApp } from "nitro/runtime";
-import { runCronTasks } from "nitro/runtime/internal";
+import type { ServerRequest, ServerRuntimeContext } from "srvx";
+
+import { runCronTasks } from "#nitro/runtime/task";
+import { useNitroApp, useNitroHooks } from "nitro/app";
 
 type MaybePromise<T> = T | Promise<T>;
 
@@ -16,9 +17,13 @@ export function createHandler<Env>(hooks: {
   ) => MaybePromise<Response | CF.Response | undefined>;
 }) {
   const nitroApp = useNitroApp();
+  const nitroHooks = useNitroHooks();
 
-  return <ExportedHandler<Env>>{
+  return {
     async fetch(request, env, context) {
+      (globalThis as any).__env__ = env;
+      augmentReq(request as any, { env: env as any, context });
+
       const ctxExt = {};
       const url = new URL(request.url);
 
@@ -30,17 +35,17 @@ export function createHandler<Env>(hooks: {
         }
       }
 
-      return fetchHandler(request, env, context, url, nitroApp, ctxExt);
+      return (await nitroApp.fetch(request)) as any;
     },
 
     scheduled(controller, env, context) {
       (globalThis as any).__env__ = env;
       context.waitUntil(
-        nitroApp.hooks.callHook("cloudflare:scheduled", {
+        nitroHooks.callHook("cloudflare:scheduled", {
           controller,
           env,
           context,
-        })
+        }) || Promise.resolve()
       );
       if (import.meta._tasks) {
         context.waitUntil(
@@ -60,73 +65,60 @@ export function createHandler<Env>(hooks: {
     email(message, env, context) {
       (globalThis as any).__env__ = env;
       context.waitUntil(
-        nitroApp.hooks.callHook("cloudflare:email", {
-          message,
-          event: message, // backward compat
+        nitroHooks.callHook("cloudflare:email", {
+          message: message as any,
+          event: message as any, // backward compat
           env,
           context,
-        })
+        }) || Promise.resolve()
       );
     },
 
     queue(batch, env, context) {
       (globalThis as any).__env__ = env;
       context.waitUntil(
-        nitroApp.hooks.callHook("cloudflare:queue", {
+        nitroHooks.callHook("cloudflare:queue", {
           batch,
           event: batch,
           env,
           context,
-        })
+        }) || Promise.resolve()
       );
     },
 
     tail(traces, env, context) {
       (globalThis as any).__env__ = env;
       context.waitUntil(
-        nitroApp.hooks.callHook("cloudflare:tail", {
+        nitroHooks.callHook("cloudflare:tail", {
           traces,
           env,
           context,
-        })
+        }) || Promise.resolve()
       );
     },
 
     trace(traces, env, context) {
       (globalThis as any).__env__ = env;
       context.waitUntil(
-        nitroApp.hooks.callHook("cloudflare:trace", {
+        nitroHooks.callHook("cloudflare:trace", {
           traces,
           env,
           context,
-        })
+        }) || Promise.resolve()
       );
     },
-  };
+  } satisfies ExportedHandler<Env>;
 }
 
-export async function fetchHandler(
-  request: Request | CF.Request,
-  env: unknown,
-  context: CF.ExecutionContext | DurableObjectState,
-  url: URL = new URL(request.url),
-  nitroApp = useNitroApp(),
-  ctxExt: any
+export function augmentReq(
+  cfReq: Request | CF.Request,
+  ctx: NonNullable<ServerRuntimeContext["cloudflare"]>
 ) {
-  // Expose latest env to the global context
-  (globalThis as any).__env__ = env;
+  const req = cfReq as ServerRequest;
 
-  return nitroApp.fetch(request as unknown as Request, undefined, {
-    waitUntil: (promise: Promise<any>) => context.waitUntil(promise),
-    _platform: {
-      cf: (request as any).cf,
-      cloudflare: {
-        request,
-        env,
-        context,
-        url,
-        ...ctxExt,
-      },
-    },
-  }) as unknown as Promise<Response>;
+  req.ip = cfReq.headers.get("cf-connecting-ip") || undefined;
+
+  req.runtime ??= { name: "cloudflare" };
+  req.runtime.cloudflare = { ...req.runtime.cloudflare, ...ctx };
+  req.waitUntil = ctx.context?.waitUntil.bind(ctx.context);
 }

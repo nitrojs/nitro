@@ -1,9 +1,8 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyEventV2 } from "aws-lambda";
-import destr from "destr";
 import { resolve } from "pathe";
 import { describe } from "vitest";
 import { parseURL, parseQuery } from "ufo";
-import { setupTest, testNitro } from "../tests";
+import { setupTest, testNitro } from "../tests.ts";
 
 describe("nitro:preset:aws-lambda-v2", async () => {
   const ctx = await setupTest("aws-lambda");
@@ -74,9 +73,7 @@ describe("nitro:preset:aws-lambda-v1", async () => {
 function webResponse(awsResponse: any) {
   const headers = new Headers(awsResponse.headers);
   const setCookie =
-    awsResponse?.cookies /* v2 */ ??
-    awsResponse?.multiValueHeaders /* v1 */?.["set-cookie"] ??
-    [];
+    awsResponse?.cookies /* v2 */ ?? awsResponse?.multiValueHeaders /* v1 */?.["set-cookie"] ?? [];
   headers.delete("set-cookie");
   for (const cookie of setCookie) {
     if (Array.isArray(cookie)) {

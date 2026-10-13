@@ -1,4 +1,4 @@
-import { defineNitroPreset } from "../_utils/preset";
+import { defineNitroPreset } from "../_utils/preset.ts";
 
 const flightControl = defineNitroPreset(
   {
@@ -7,7 +7,6 @@ const flightControl = defineNitroPreset(
   },
   {
     name: "flight-control" as const,
-    url: import.meta.url,
   }
 );
 

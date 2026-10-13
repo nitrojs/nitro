@@ -1,0 +1,14 @@
+{
+  "type": "module",
+  "imports": {
+    "#server/*": "./server/*"
+  },
+  "scripts": {
+    "build": "nitro build",
+    "dev": "nitro dev",
+    "preview": "node .output/server/index.mjs"
+  },
+  "devDependencies": {
+    "nitro": "latest"
+  }
+}

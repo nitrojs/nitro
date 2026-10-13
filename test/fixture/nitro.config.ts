@@ -1,69 +1,102 @@
-import { fileURLToPath } from "node:url";
-import { defineNitroConfig } from "nitro/config";
-import { dirname, resolve } from "node:path";
+import { defineConfig } from "nitro";
 
-export default defineNitroConfig({
+import { dirname, resolve } from "node:path";
+import { existsSync } from "node:fs";
+
+export default defineConfig({
+  vercel: {
+    immutableStaticFiles: true,
+    functionRules: {
+      "/api/hello": {
+        maxDuration: 100,
+      },
+      "/api/echo": {
+        experimentalTriggers: [{ type: "queue/v2beta", topic: "orders" }],
+      },
+      "/rules/isr/**": {
+        regions: ["lhr1", "cdg1"],
+      },
+    },
+  },
   compressPublicAssets: true,
   compatibilityDate: "latest",
-  framework: {
-    name: "nitro",
-    version: "2.x",
-  },
-  imports: {
-    presets: [
-      {
-        // TODO: move this to built-in preset
-        from: "scule",
-        imports: ["camelCase", "pascalCase", "kebabCase"],
-      },
-    ],
-  },
+  serverDir: "server",
+  builder: (process.env.NITRO_BUILDER as any) || "rolldown",
+  // @ts-expect-error
+  __vitePkg__: process.env.NITRO_VITE_PKG,
+  framework: { name: "nitro", version: "3.x" },
+  sourcemap: true,
   rollupConfig: {
     output: {
-      // TODO: when output.dir is outside of src, rollup emits wrong relative sourcemap paths
       sourcemapPathTransform: (relativeSourcePath, sourcemapPath) => {
         const sourcemapDir = dirname(sourcemapPath);
         const sourcePath = resolve(sourcemapDir, relativeSourcePath);
-        return sourcePath;
+        return existsSync(sourcePath) ? sourcePath : relativeSourcePath;
       },
     },
+  },
+  buildPlugins: [
+    {
+      name: "fixture:virtual",
+      resolveId: {
+        filter: { id: /^virtual:build-plugin$/ },
+        handler: (id) => `\0${id}`,
+      },
+      load: {
+        filter: { id: /^\0virtual:build-plugin$/ },
+        handler: () => `export default "Hello from build plugin!"`,
+      },
+    },
+    [
+      {
+        name: "fixture:transform",
+        enforce: "pre",
+        transform: {
+          filter: { id: /build-plugins\.ts$/ },
+          handler: (code) => code.replace("__BUILD_PLUGIN_TRANSFORM__", "transformed"),
+        },
+      },
+    ],
+  ],
+  virtual: {
+    "#virtual-route": () => `export default () => new Response("Hello from virtual entry!")`,
   },
   handlers: [
     {
       route: "/api/test/*/foo",
-      handler: "api/hello.ts",
+      handler: "./server/routes/api/hello.ts",
       method: "GET",
     },
     {
       route: "/api/hello2",
-      handler: "api/hello.ts",
+      handler: "./server/routes/api/hello.ts",
+      middleware: true,
+    },
+    {
+      route: "/api/middleware-order",
+      handler: "./server/routed-middleware/order.ts",
+      middleware: true,
+    },
+    {
+      route: "/virtual",
+      handler: "#virtual-route",
     },
   ],
   devProxy: {
     "/proxy/example": {
-      target: "https://example.com",
+      target: "https://icanhazip.com",
       changeOrigin: true,
       ignorePath: true,
     },
   },
-  alias: {
-    "#fixture-nitro-utils-extra-absolute": fileURLToPath(
-      new URL("node_modules/@fixture/nitro-utils/extra2.mjs", import.meta.url)
-    ),
-  },
+  traceDeps: ["@fixture"],
   serverAssets: [
     {
       baseName: "files",
-      dir: "files",
+      dir: "server/files",
     },
   ],
-  ignore: [
-    "api/**/_*",
-    "middleware/_ignored.ts",
-    "routes/_*.ts",
-    "**/_*.txt",
-    "!**/_unignored.txt",
-  ],
+  ignore: ["routes/api/**/_*", "middleware/_ignored.ts", "routes/_*.ts", "**/_*.txt"],
   runtimeConfig: {
     dynamic: "initial",
     url: "https://{{APP_DOMAIN}}",
@@ -98,6 +131,10 @@ export default defineNitroConfig({
       redirect: { to: "https://nitro.build/", status: 308 },
     },
     "/rules/redirect/wildcard/**": { redirect: "https://nitro.build/**" },
+    "/rules/redirect/wildcard-query/**": {
+      redirect: { to: "/target?param=**", status: 301 },
+    },
+    "/rules/redirect/legacy/**": { redirect: "/**" },
     "/rules/nested/**": { redirect: "/base", headers: { "x-test": "test" } },
     "/rules/nested/override": { redirect: { to: "/other" } },
     "/rules/_/noncached/cached": { swr: true },
@@ -105,6 +142,13 @@ export default defineNitroConfig({
     "/rules/_/cached/noncached": { cache: false, swr: false, isr: false },
     "/rules/_/cached/**": { swr: true },
     "/api/proxy/**": { proxy: "/api/echo" },
+    "/rules/proxy/legacy/**": { proxy: "/api/wildcard/**" },
+    "/cdn/**": { proxy: "https://cdn.jsdelivr.net/**" },
+    // Method-scoped route rule: the `"METHOD /path"` key only applies to that method.
+    // (a runtime-only rule: `headers`/`redirect` keys are also emitted into
+    // platform-native static config, which cannot express a method)
+    "POST /rules/method-scoped/**": { cors: true },
+    "/single-headers/*": { headers: { "x-single": "single" } },
     "**": { headers: { "x-test": "test" } },
   },
   prerender: {
@@ -117,7 +161,6 @@ export default defineNitroConfig({
   experimental: {
     openAPI: true,
     asyncContext: true,
-    wasm: true,
     envExpansion: true,
     database: true,
     tasks: true,
@@ -126,8 +169,6 @@ export default defineNitroConfig({
     "* * * * *": "test",
   },
   cloudflare: {
-    nodeCompat: true,
-    deployConfig: true,
     pages: {
       routes: {
         include: ["/*"],
@@ -144,11 +185,6 @@ export default defineNitroConfig({
       title: "Nitro Test Fixture",
       description: "Nitro Test Fixture API",
       version: "2.0",
-    },
-    ui: {
-      scalar: {
-        theme: "purple",
-      },
     },
   },
 });

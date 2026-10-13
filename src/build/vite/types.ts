@@ -1,53 +1,76 @@
-import type { OutputBundle } from "rollup";
-import type { getViteRollupConfig } from "./rollup";
-import type { Nitro, NitroConfig } from "nitro/types";
+import type { TransformResult, Plugin as VitePlugin } from "vite";
+import type { getBundlerConfig } from "./bundler.ts";
+import type { Nitro, NitroConfig, NitroModule } from "nitro/types";
+import type { RunnerManager } from "env-runner";
+import type { NitroDevApp } from "../../dev/app.ts";
 
-export interface NitroPluginConfig {
-  /** Custom Nitro config */
-  config?: NitroConfig;
+declare module "vite" {
+  interface UserConfig {
+    /**
+     * Nitro Vite Plugin options.
+     */
+    nitro?: NitroConfig;
+  }
 
-  /**
-   * Fetchable service environments automatically created by the plugin.
-   *
-   * **Note:** You can use top level `environments` with same keys to extend environment configurations.
-   */
-  services?: Record<string, ServiceConfig>;
+  interface Plugin {
+    nitro?: NitroModule;
+  }
 }
 
-export interface ServiceConfig {
+export interface NitroPluginConfig extends NitroConfig {
   /**
-   * Path to the service entrypoint file.
-   *
-   * Services should export a web standard fetch handler function.
-   *
-   * Example:
-   * ```ts
-   * export default async (req: Request) => {
-   *   return Response.json({ message: "Hello from service!" });
-   * };
-   * ```
+   * @internal Use preinitialized Nitro instance for the plugin.
    */
+  _nitro?: Nitro;
+
+  experimental?: NitroConfig["experimental"] & {
+    vite?: {
+      /**
+       * @experimental Enable `?assets` import proposed by https://github.com/vitejs/vite/discussions/20913
+       * @default true
+       */
+      assetsImport?: boolean;
+
+      /**
+       *
+       * Invalidate server-only modules and optionally reload the browser when a server-only module is updated.
+       *
+       * @default true
+       */
+      serverReload?: boolean;
+
+      /**
+       * Additional Vite environment services to register.
+       */
+      services?: Record<string, ViteServiceConfig>;
+    };
+  };
+}
+
+export interface ViteServiceConfig {
   entry: string;
-
-  /**
-   * Service route.
-   *
-   * - If `route` is not set, services are only accessible via `fetch("<url>", { viteEnv: "<name>" })`.
-   * - `ssr` service is special and defaults to `"/**"` route, meaning it will handle all requests.
-   */
-  route?: string;
 }
 
-/**
- * @internal
- */
+/** @deprecated Use {@link ViteServiceConfig}. */
+export type ServiceConfig = ViteServiceConfig;
+
 export interface NitroPluginContext {
   nitro?: Nitro;
   pluginConfig: NitroPluginConfig;
-  rollupConfig?: ReturnType<typeof getViteRollupConfig>;
+  bundlerConfig?: Awaited<ReturnType<typeof getBundlerConfig>>;
+  devApp?: NitroDevApp;
+  services: Record<string, ViteServiceConfig>;
 
-  _manifest: Record<string, { file: string }>;
+  _isRolldown?: boolean;
+  _isVitest?: boolean;
+  _initialized?: boolean;
+  _envRunner?: RunnerManager;
+  _closingEnvRunner?: boolean;
+  _closePromise?: Promise<void>;
+  _initPromise?: Promise<RunnerManager>;
+  _viteEnvs?: Map<string, string>;
+  _transformRequest?: (id: string) => Promise<TransformResult | null | undefined>;
   _publicDistDir?: string;
   _entryPoints: Record<string, string>;
-  _serviceBundles: Record<string, OutputBundle>;
+  _pluginModules?: VitePlugin[];
 }

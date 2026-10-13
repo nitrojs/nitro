@@ -1,4 +1,3 @@
-// https://nitro.build/guide/typescript
 {
-  "extends": "./.nitro/types/tsconfig.json"
+  "extends": "nitro/tsconfig"
 }

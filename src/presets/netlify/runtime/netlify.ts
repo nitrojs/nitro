@@ -1,26 +1,24 @@
-import "#nitro-internal-pollyfills";
-import { useNitroApp } from "nitro/runtime";
-import { getRouteRulesForPath } from "nitro/runtime/internal";
+import "#nitro/virtual/polyfills";
+import { useNitroApp } from "nitro/app";
+import type { ServerRequest } from "srvx";
 
 const nitroApp = useNitroApp();
 
 const ONE_YEAR_IN_SECONDS = 365 * 24 * 60 * 60;
 
-const handler = async (request: Request): Promise<Response> => {
-  const response = await nitroApp.fetch(request);
+const handler = async (req: ServerRequest): Promise<Response> => {
+  req.runtime ??= { name: "netlify" };
+  req.ip ??= req.headers.get("x-nf-client-connection-ip") || undefined;
 
-  const { isr } = getRouteRulesForPath(new URL(request.url).pathname);
+  const response = await nitroApp.fetch(req);
+
+  const isr = req.context?.routeRules?.isr;
   if (isr) {
     const maxAge = typeof isr === "number" ? isr : ONE_YEAR_IN_SECONDS;
     const revalidateDirective =
-      typeof isr === "number"
-        ? `stale-while-revalidate=${ONE_YEAR_IN_SECONDS}`
-        : "must-revalidate";
+      typeof isr === "number" ? `stale-while-revalidate=${ONE_YEAR_IN_SECONDS}` : "must-revalidate";
     if (!response.headers.has("Cache-Control")) {
-      response.headers.set(
-        "Cache-Control",
-        "public, max-age=0, must-revalidate"
-      );
+      response.headers.set("Cache-Control", "public, max-age=0, must-revalidate");
     }
     response.headers.set(
       "Netlify-CDN-Cache-Control",

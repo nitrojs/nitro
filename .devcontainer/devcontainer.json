@@ -3,16 +3,15 @@
 {
   "name": "nitro-devcontainer",
   "forwardPorts": [3000],
-  "image": "node:22",
+  "image": "node:lts",
   "features": {},
   "customizations": {
     "vscode": {
       "settings": {},
       "extensions": [
         "ms-azuretools.vscode-docker",
-        "dbaeumer.vscode-eslint",
         "github.vscode-github-actions",
-        "esbenp.prettier-vscode"
+        "oxc.oxc-vscode"
       ]
     }
   },

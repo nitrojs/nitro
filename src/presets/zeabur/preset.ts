@@ -1,6 +1,6 @@
 import fsp from "node:fs/promises";
-import { writeFile } from "../_utils/fs";
-import { defineNitroPreset } from "../_utils/preset";
+import { writeFile } from "../_utils/fs.ts";
+import { defineNitroPreset } from "../_utils/preset.ts";
 import type { Nitro } from "nitro/types";
 import { dirname, relative, resolve } from "pathe";
 
@@ -8,7 +8,7 @@ import { dirname, relative, resolve } from "pathe";
 
 const zeabur = defineNitroPreset(
   {
-    entry: "./runtime/zeabur",
+    entry: "./zeabur/runtime/zeabur",
     output: {
       dir: "{{ rootDir }}/.zeabur/output",
       serverDir: "{{ output.dir }}/functions/__nitro.func",
@@ -16,10 +16,7 @@ const zeabur = defineNitroPreset(
     },
     hooks: {
       async compiled(nitro: Nitro) {
-        const buildConfigPath = resolve(
-          nitro.options.output.dir,
-          "config.json"
-        );
+        const buildConfigPath = resolve(nitro.options.output.dir, "config.json");
         const cfg = {
           containerized: false,
           routes: [{ src: ".*", dest: "/__nitro" }],
@@ -31,14 +28,10 @@ const zeabur = defineNitroPreset(
           if (!value.isr) {
             continue;
           }
-          const funcPrefix = resolve(
-            nitro.options.output.serverDir,
-            ".." + key
-          );
+          const funcPrefix = resolve(nitro.options.output.serverDir, ".." + key);
           await fsp.mkdir(dirname(funcPrefix), { recursive: true });
           await fsp.symlink(
-            "./" +
-              relative(dirname(funcPrefix), nitro.options.output.serverDir),
+            "./" + relative(dirname(funcPrefix), nitro.options.output.serverDir),
             funcPrefix + ".func",
             "junction"
           );
@@ -53,7 +46,6 @@ const zeabur = defineNitroPreset(
   {
     name: "zeabur" as const,
     stdName: "zeabur",
-    url: import.meta.url,
   }
 );
 
@@ -70,7 +62,7 @@ const zeaburStatic = defineNitroPreset(
   },
   {
     name: "zeabur-static" as const,
-    url: import.meta.url,
+
     static: true,
   }
 );

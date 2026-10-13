@@ -1,4 +1,4 @@
-import { defineNitroPreset } from "../_utils/preset";
+import { defineNitroPreset } from "../_utils/preset.ts";
 
 const heroku = defineNitroPreset(
   {
@@ -7,7 +7,6 @@ const heroku = defineNitroPreset(
   },
   {
     name: "heroku" as const,
-    url: import.meta.url,
   }
 );
 

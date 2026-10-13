@@ -8,7 +8,7 @@
 
 You can involve in discussions using:
 
-- [Github Discussions](discussions)
+- [GitHub Discussions](discussions)
 - [Nitro Discord](https://discord.nitro.build)
 
 ## Contribute to the Code
@@ -47,8 +47,8 @@ Sometimes, bugs originate from another layer — not Nitro itself. A minimal rep
 
 Use one of the following templates to reproduce the issue:
 
-- [Stackblitz Template](https://stackblitz.com/fork/github/nitrojs/nitro-starter)
-- [Nitro Starter Repo](https://github.com/nitrojs/nitro-starter)
+- [Stackblitz Template](https://stackblitz.com/fork/github/nitrojs/starter)
+- [Nitro Starter Repo](https://github.com/nitrojs/starter)
 
 If your bug involves a higher-level framework like [Nuxt](https://nuxt.com), please report it there. Maintainers will help narrow it down to a Nitro-level issue if needed.
 

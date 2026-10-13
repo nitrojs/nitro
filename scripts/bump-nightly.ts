@@ -1,6 +1,6 @@
 import { promises as fsp } from "node:fs";
-import { execaCommand } from "execa";
-import { globby } from "globby";
+import { execa } from "execa";
+import { glob } from "tinyglobby";
 import { resolve } from "pathe";
 
 const nightlyPackages = {
@@ -9,11 +9,8 @@ const nightlyPackages = {
 
 async function loadPackage(dir: string) {
   const pkgPath = resolve(dir, "package.json");
-  const data = JSON.parse(
-    await fsp.readFile(pkgPath, "utf8").catch(() => "{}")
-  );
-  const save = () =>
-    fsp.writeFile(pkgPath, JSON.stringify(data, null, 2) + "\n");
+  const data = JSON.parse(await fsp.readFile(pkgPath, "utf8").catch(() => "{}"));
+  const save = () => fsp.writeFile(pkgPath, JSON.stringify(data, null, 2) + "\n");
 
   const updateDeps = (reviver: (dep: any) => any) => {
     for (const type of [
@@ -48,7 +45,7 @@ type Package = ThenArg<ReturnType<typeof loadPackage>>;
 
 async function loadWorkspace(dir: string) {
   const workspacePkg = await loadPackage(dir);
-  const pkgDirs = await globby(workspacePkg.data.workspaces || [], {
+  const pkgDirs = await glob(workspacePkg.data.workspaces || [], {
     onlyDirectories: true,
   });
 
@@ -119,15 +116,10 @@ function joinNumbers(items: number[]): string {
 async function main() {
   const workspace = await loadWorkspace(process.cwd());
 
-  const commit = await execaCommand("git rev-parse --short HEAD").then((r) =>
-    r.stdout.trim()
-  );
+  const commit = await execa("git", ["rev-parse", "--short", "HEAD"]).then((r) => r.stdout.trim());
 
   for (const pkg of workspace.packages.filter((p) => !p.data.private)) {
-    workspace.setVersion(
-      pkg.data.name,
-      `${pkg.data.version}-${fmtDate(new Date())}.${commit}`
-    );
+    workspace.setVersion(pkg.data.name, `${pkg.data.version}-${fmtDate(new Date())}.${commit}`);
     workspace.rename(pkg.data.name, pkg.data.name + "-nightly");
     pkg.updateDeps((dep) => {
       if (nightlyPackages[dep.name]) {

@@ -1,1 +1,3 @@
-export default defineEventHandler(() => "Test get handler");
+import { defineHandler } from "nitro";
+
+export default defineHandler(() => "Test get handler");
