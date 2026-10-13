@@ -31,7 +31,7 @@ export default function app(nitro: Nitro) {
       code.push(``, `export function createNitroApp() {`);
 
       if (hasHooks) {
-        imports.push(`import { HookableCore } from "hookable";`);
+        imports.push(`import { HookableCore } from "#nitro/runtime/hookable";`);
         code.push(`  const hooks = new HookableCore();`);
       }
 

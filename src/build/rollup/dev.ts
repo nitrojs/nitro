@@ -1,10 +1,10 @@
 import type { Nitro, RollupConfig } from "nitro/types";
 import type { RollupOptions, RollupWatcher } from "rollup";
-import { watch as chokidarWatch } from "chokidar";
 import { defu } from "defu";
 import { basename, join } from "pathe";
 import { debounce } from "perfect-debounce";
 import { scanHandlers } from "../../scan.ts";
+import { createWatcher } from "../../utils/watch.ts";
 import { getSourceExtensionPattern } from "../../utils/source-extensions.ts";
 import { formatRollupError } from "./error.ts";
 import { formatCompatibilityDate } from "compatx";
@@ -34,7 +34,7 @@ export async function watchDev(nitro: Nitro, rollupConfig: RollupConfig) {
   ]);
 
   const watchReloadEvents = new Set(["add", "addDir", "unlink", "unlinkDir"]);
-  const scanDirsWatcher = chokidarWatch(scanDirs, {
+  const scanDirsWatcher = createWatcher(nitro, scanDirs, {
     ignoreInitial: true,
   }).on("all", (event, path, stat) => {
     if (watchReloadEvents.has(event)) {
@@ -44,7 +44,7 @@ export async function watchDev(nitro: Nitro, rollupConfig: RollupConfig) {
 
   const sourceExtensionPattern = getSourceExtensionPattern(nitro.options);
   const serverEntryRe = new RegExp(String.raw`^server(?:\.node)?\.(?:${sourceExtensionPattern})$`);
-  const rootDirWatcher = chokidarWatch(nitro.options.rootDir, {
+  const rootDirWatcher = createWatcher(nitro, nitro.options.rootDir, {
     ignoreInitial: true,
     depth: 0,
   }).on("all", (event, path) => {

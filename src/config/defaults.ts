@@ -24,8 +24,9 @@ export const NitroDefaults: NitroConfig = {
   features: {},
   experimental: {},
   future: {},
-  storage: {},
+  kv: {},
   devStorage: {},
+  cache: {},
   publicAssets: [],
   serverAssets: [],
   plugins: [],
@@ -69,7 +70,11 @@ export const NitroDefaults: NitroConfig = {
 
   // Builder
   builder: undefined,
+  buildPlugins: [],
   replace: {},
+  inject: {},
+  polyfills: [],
+  builtinModules: [],
   node: true,
   sourcemap: false,
   traceDeps: [],

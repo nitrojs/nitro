@@ -10,6 +10,3 @@ export interface PrerenderRoute {
   skip?: boolean;
   contentType?: string;
 }
-
-/** @deprecated Internal type will be removed in future versions */
-export type PrerenderGenerateRoute = PrerenderRoute;
