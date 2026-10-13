@@ -1,3 +1,0 @@
-{
-  "include": [".nitro/types/nitro-imports.d.ts", "src"]
-}

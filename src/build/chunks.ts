@@ -11,6 +11,14 @@ export function libChunkName(id: string) {
   return pkgName ? `_libs/${pkgName}` : undefined;
 }
 
+/** Rolldown `codeSplitting` group for library (`node_modules`) chunks. */
+export function libChunksGroup() {
+  const group = { test: NODE_MODULES_RE, name: (id: string) => libChunkName(id) };
+  // Rolldown >= 1.2.10 warns without `debugName`, older versions reject unknown (enumerable) keys
+  Object.defineProperty(group, "debugName", { value: "libs" });
+  return group;
+}
+
 export function pathToPkgName(path: string): string | undefined {
   let pkgName = path.match(
     /.*(?:[/\\])node_modules(?:[/\\])(?<name>@[^/\\]+[/\\][^/\\]+|[^/\\.][^/\\]*)/
@@ -78,7 +86,12 @@ export function getChunkName(chunk: { name: string; moduleIds: string[] }, nitro
       .flatMap((h) => h.data)
       .find((h) => h.handler === mainId);
     if (routeHandler?.route) {
-      return `_routes/${routeToFsPath(routeHandler.route)}.mjs`;
+      let routePath = routeToFsPath(routeHandler.route);
+      if (nitro.options.builder === "rollup") {
+        // rollup treats [name] in chunkFileNames as an invalid placeholder
+        routePath = routePath.replace(/\[/g, "%5B").replace(/\]/g, "%5D");
+      }
+      return `_routes/${routePath}.mjs`;
     }
 
     const taskHandler = Object.entries(nitro.options.tasks).find(

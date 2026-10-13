@@ -53,7 +53,7 @@ export type TaskConcurrency =
 /** @experimental */
 export interface Task<RT = unknown> {
   meta?: TaskMeta;
-  run(event: TaskEvent): MaybePromise<{ result?: RT }>;
+  run(event: TaskEvent): MaybePromise<TaskResult<RT>>;
   concurrency?: TaskConcurrency;
 }
 

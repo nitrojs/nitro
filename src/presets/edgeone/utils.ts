@@ -7,10 +7,14 @@
  *
  * Spec: https://pages.edgeone.ai/document/building-output-configuration
  */
-import type { Nitro } from "nitro/types";
+import type { Nitro, RedirectRuleOptions } from "nitro/types";
 import { join } from "pathe";
-import { joinURL } from "ufo";
+import { compareRoutes, routeToRegExp } from "rou3";
+import { hasProtocol, joinURL } from "ufo";
 import { writeFile } from "../../utils/fs.ts";
+import { catchAllRef, sortRoutes } from "../_utils/routes.ts";
+
+const NAMED_GROUP_RE = /\(\?<(?![=!])[^>]+>/g;
 
 type SourceRoute = {
   src: string;
@@ -32,30 +36,6 @@ interface EdgeOneConfig {
   routes: Route[];
 }
 
-/**
- * Convert a Nitro/h3 route pattern to a RE2-compatible regex string.
- *
- * EdgeOne's `routes[].src` uses Go's RE2 engine (no lookaround, no backrefs).
- * We do this in a single pass so a later replacement can't match a token
- * (e.g. the `*` inside `(.*)`) that a previous replacement just inserted.
- *
- *   "/about"          -> "^/about$"
- *   "/api/posts/:id"  -> "^/api/posts/([^/]+)$"
- *   "/blog/*"         -> "^/blog/([^/]+)$"
- *   "/blog/**"        -> "^/blog/(.*)$"
- */
-function routeToRegex(route: string, baseURL = "/"): string {
-  const withBase = joinURL(baseURL, route);
-  return (
-    "^" +
-    withBase.replace(/\*\*|\*|:[^/]+/g, (m) => {
-      if (m === "**") return "(.*)";
-      return "([^/]+)";
-    }) +
-    "$"
-  );
-}
-
 export async function writeEdgeOneConfig(nitro: Nitro) {
   nitro.routing.sync();
 
@@ -66,32 +46,36 @@ export async function writeEdgeOneConfig(nitro: Nitro) {
     routes: [],
   };
 
-  // Phase 1 — rules evaluated before the filesystem handler (redirects, headers).
-  // Sorted shallow-to-deep so more specific rules override more general ones.
-  const rules = Object.entries(nitro.options.routeRules || {}).sort(
-    (a, b) => a[0].split(/\/(?!\*)/).length - b[0].split(/\/(?!\*)/).length
+  // Phase 1 — rules evaluated before the filesystem handler (headers, redirects).
+  const rules = sortRoutes(Object.keys(nitro.options.routeRules || {})).map(
+    (path) => [path, nitro.options.routeRules[path]] as const
   );
 
   config.routes.push(
+    // Header-only rules (least specific first, so more specific headers override on `continue`)
     ...rules
-      .filter(([_, routeRules]) => routeRules.redirect || routeRules.headers)
+      .filter(([_, routeRules]) => routeRules.headers && !routeRules.redirect)
+      .reverse()
+      .map(([path, routeRules]) => ({
+        src: routeToRE2(joinURL(baseURL, path)).source,
+        headers: routeRules.headers as Record<string, string>,
+        continue: true,
+      })),
+    // Redirect rules (most specific first, as the first match stops routing)
+    ...rules
+      .filter(([_, routeRules]) => routeRules.redirect)
       .map(([path, routeRules]) => {
-        const route: SourceRoute = {
-          src: routeToRegex(path, baseURL),
+        const redirect = routeRules.redirect as RedirectRuleOptions;
+        const src = routeToRE2(joinURL(baseURL, path));
+        const to = redirect.to.replaceAll("**", catchAllRef(src));
+        return {
+          src: src.source,
+          status: redirect.status || 302,
+          headers: {
+            Location: hasProtocol(to, { acceptRelative: true }) ? to : joinURL(baseURL, to),
+            ...(routeRules.headers as Record<string, string>),
+          },
         };
-        if (routeRules.redirect) {
-          route.status = routeRules.redirect.status || 302;
-          route.headers = {
-            Location: joinURL(baseURL, routeRules.redirect.to.replace("/**", "/$1")),
-          };
-        }
-        if (routeRules.headers) {
-          route.headers = { ...route.headers, ...(routeRules.headers as Record<string, string>) };
-          if (!routeRules.redirect) {
-            route.continue = true;
-          }
-        }
-        return route;
       })
   );
 
@@ -113,7 +97,7 @@ export async function writeEdgeOneConfig(nitro: Nitro) {
 
   for (const route of apiRoutes) {
     const sourceRoute: SourceRoute = {
-      src: routeToRegex(route.path, baseURL),
+      src: routeToRE2(joinURL(baseURL, route.path)).source,
     };
     if (route.method !== "*") {
       sourceRoute.methods = [route.method.toUpperCase()];
@@ -132,11 +116,11 @@ export async function writeEdgeOneConfig(nitro: Nitro) {
   ];
 
   for (const route of ssrRoutes) {
-    if (apiRoutes.some((r) => r.path === route)) {
+    if (apiRoutes.some((r) => compareRoutes(r.path, route) === "equal")) {
       continue;
     }
     config.routes.push({
-      src: routeToRegex(route, baseURL),
+      src: routeToRE2(joinURL(baseURL, route)).source,
     });
   }
 
@@ -144,7 +128,7 @@ export async function writeEdgeOneConfig(nitro: Nitro) {
   // Includes requests without the baseURL prefix so the runtime can redirect
   // or normalize them instead of returning a platform-level 404.
   config.routes.push({
-    src: "^" + joinURL(baseURL, "/(.*)") + "$",
+    src: routeToRE2(joinURL(baseURL, "/**")).source,
   });
   if (baseURL !== "/") {
     config.routes.push({
@@ -158,4 +142,13 @@ export async function writeEdgeOneConfig(nitro: Nitro) {
   return {
     apiRoutes,
   };
+}
+
+/**
+ * rou3 `routeToRegExp` with named groups made plain. EdgeOne matches
+ * `routes[].src` with Go's RE2 engine, which only reads `(?<name>…)` since Go
+ * 1.22. Group numbers, and so `$n` references, are unchanged.
+ */
+function routeToRE2(route: string): RegExp {
+  return new RegExp(routeToRegExp(route).source.replace(NAMED_GROUP_RE, "("));
 }
