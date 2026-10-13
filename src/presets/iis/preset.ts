@@ -2,6 +2,8 @@ import { defineNitroPreset } from "../_utils/preset.ts";
 import type { Nitro } from "nitro/types";
 import { writeIISFiles, writeIISNodeFiles } from "./utils.ts";
 
+export type { IisOptions as PresetOptions } from "./types.ts";
+
 const iisHandler = defineNitroPreset(
   {
     extends: "node-server",

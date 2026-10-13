@@ -3,7 +3,7 @@ import { execa } from "execa";
 import { getRandomPort, waitForPort } from "get-port-please";
 import { resolve } from "pathe";
 import { describe, expect, it } from "vitest";
-import { setupTest, testNitro } from "../tests.ts";
+import { setupTest, testNitro, type Context } from "../tests.ts";
 
 describe("nitro:preset:azure-swa", { timeout: 10_000 }, async () => {
   const customConfig = {
@@ -47,39 +47,19 @@ describe("nitro:preset:azure-swa", { timeout: 10_000 }, async () => {
     },
   });
 
-  if (process.env.TEST_AZURE) {
-    testNitro(ctx, async () => {
-      const port = await getRandomPort();
-      const apiPort = await getRandomPort(); // Avoids conflicts with other tests
-      await new Promise((resolve) => setTimeout(resolve, 500)); // Make sure output is written to disk
-      expect(existsSync(ctx.outDir));
-      const p = execa(
-        "swa",
-        `start .output/public --api-location .output/server --host 127.0.0.1 --port ${port} --api-port ${apiPort}`.split(
-          " "
-        ),
-        {
-          cwd: resolve(ctx.outDir, ".."),
-          stdio: "inherit",
-          // stderr: "inherit",
-          // stdout: "ignore",
-        }
-      );
-      ctx.server = {
-        url: `http://127.0.0.1:${port}`,
-        close: () => p.kill(),
-      } as any;
-      await waitForPort(port, { host: "127.0.0.1", retries: 20 });
-      return async ({ url, ...opts }) => {
-        const res = await ctx.fetch(url, opts);
-        return res;
-      };
-    });
-  }
+  testSWA(ctx);
 
   const config = await fsp
     .readFile(resolve(ctx.rootDir, "staticwebapp.config.json"), "utf8")
     .then((r) => JSON.parse(r));
+
+  it("uses the v4 programming model", async () => {
+    const serverDir = resolve(ctx.outDir, "server");
+    expect(existsSync(resolve(serverDir, "functions/function.json"))).toBe(false);
+    expect(existsSync(resolve(serverDir, "functions/node_modules/@azure/functions"))).toBe(true);
+    const pkg = JSON.parse(await fsp.readFile(resolve(serverDir, "package.json"), "utf8"));
+    expect(pkg).toMatchObject({ type: "module", main: "functions/index.mjs" });
+  });
 
   it("generated the correct config", () => {
     expect(config).toMatchInlineSnapshot(`
@@ -147,3 +127,56 @@ describe("nitro:preset:azure-swa", { timeout: 10_000 }, async () => {
       `);
   });
 });
+
+describe("nitro:preset:azure-swa (functions v3)", { timeout: 10_000 }, async () => {
+  const ctx = await setupTest("azure-swa", {
+    outDirSuffix: "-v3",
+    config: { azure: { functionsVersion: 3 } },
+  });
+
+  testSWA(ctx);
+
+  it("uses the v3 programming model", async () => {
+    const serverDir = resolve(ctx.outDir, "server");
+    const functionJson = JSON.parse(
+      await fsp.readFile(resolve(serverDir, "functions/function.json"), "utf8")
+    );
+    expect(functionJson).toMatchObject({ entryPoint: "handle" });
+    expect(existsSync(resolve(serverDir, "functions/node_modules/@azure/functions"))).toBe(false);
+    const pkg = JSON.parse(await fsp.readFile(resolve(serverDir, "package.json"), "utf8"));
+    expect(pkg.main).toBeUndefined();
+  });
+});
+
+function testSWA(ctx: Context) {
+  if (!process.env.TEST_AZURE) {
+    return;
+  }
+  testNitro(ctx, async () => {
+    const port = await getRandomPort();
+    const apiPort = await getRandomPort(); // Avoids conflicts with other tests
+    await new Promise((resolve) => setTimeout(resolve, 500)); // Make sure output is written to disk
+    expect(existsSync(ctx.outDir));
+    const p = execa(
+      "swa",
+      `start .output/public --api-location .output/server --host 127.0.0.1 --port ${port} --api-port ${apiPort}`.split(
+        " "
+      ),
+      {
+        cwd: resolve(ctx.outDir, ".."),
+        stdio: "inherit",
+        // stderr: "inherit",
+        // stdout: "ignore",
+      }
+    );
+    ctx.server = {
+      url: `http://127.0.0.1:${port}`,
+      close: () => p.kill(),
+    } as any;
+    await waitForPort(port, { host: "127.0.0.1", retries: 20 });
+    return async ({ url, ...opts }) => {
+      const res = await ctx.fetch(url, opts);
+      return res;
+    };
+  });
+}
