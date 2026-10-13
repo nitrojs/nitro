@@ -3,13 +3,18 @@ import type {
   InputPluginOption as RollupInputPluginOption,
   OutputOptions as RollupOutputOptions,
 } from "rollup";
-
 import type {
   InputOptions as RolldownInputOptions,
   OutputOptions as RolldownOutputOptions,
   MinifyOptions as RolldownMinifyOptions,
   RolldownPluginOption,
 } from "rolldown";
+import type {
+  BundlerInputOptions,
+  BundlerMinifyOptions,
+  BundlerOutputOptions,
+} from "./_bundler.ts";
+import type { OptionalDepType } from "./_utils.ts";
 import type { TransformOptions as OXCTransformOptions } from "oxbox";
 
 /**
@@ -55,22 +60,28 @@ export type NitroBuildPluginOption = MaybePromise<
   NitroBuildPlugin | false | null | undefined | NitroBuildPluginOption[]
 >;
 
-export type RollupConfig = Omit<RollupInputOptions, "plugins"> & {
-  output?: RollupOutputOptions;
-  // Vite 8 / `@vitejs/plugin-vue` etc. return Rolldown-typed plugins now that
-  // Vite's `Plugin` extends `Rolldown.Plugin` instead of Rollup's own type.
-  // `rollupConfig` is also reused for the `rolldown` builder (see
-  // `build/vite/bundler.ts`), so accept a mix of Rollup and Rolldown plugins
-  // in the same array.
-  plugins?: (RollupInputPluginOption | RolldownPluginOption)[];
+export type RollupConfig = OptionalDepType<
+  Omit<RollupInputOptions, "plugins">,
+  BundlerInputOptions
+> & {
+  output?: OptionalDepType<RollupOutputOptions, BundlerOutputOptions>;
+  // `rollupConfig` is also reused for the `rolldown` builder (see `build/vite/bundler.ts`),
+  // so it accepts a mix of Rollup, Rolldown and Vite plugins.
+  plugins?: (
+    | OptionalDepType<RollupInputPluginOption, NitroBuildPluginOption>
+    | OptionalDepType<RolldownPluginOption, NitroBuildPluginOption>
+  )[];
 };
 
-export type RolldownConfig = RolldownInputOptions & {
-  output?: RolldownOutputOptions;
+export type RolldownConfig = OptionalDepType<
+  RolldownInputOptions,
+  BundlerInputOptions & { plugins?: NitroBuildPluginOption[] }
+> & {
+  output?: OptionalDepType<RolldownOutputOptions, BundlerOutputOptions>;
 };
 
 export interface OXCOptions {
-  minify?: RolldownMinifyOptions;
+  minify?: OptionalDepType<RolldownMinifyOptions, BundlerMinifyOptions>;
   transform?: Omit<OXCTransformOptions, "jsx"> & {
     jsx?: Exclude<OXCTransformOptions["jsx"], false | string>;
   };

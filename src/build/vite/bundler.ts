@@ -1,6 +1,6 @@
 import { defu } from "defu";
 import { baseBuildConfig, type BaseBuildConfig } from "../config.ts";
-import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
+import { getChunkName, libChunkName, libChunksGroup, NODE_MODULES_RE } from "../chunks.ts";
 import { baseBuildPlugins, withBuildPlugins } from "../plugins.ts";
 
 import type { RolldownConfig, RollupConfig } from "nitro/types";
@@ -46,12 +46,7 @@ export const getBundlerConfig = async (
         output: {
           minifyInternalExports: false,
           codeSplitting: {
-            groups: [
-              {
-                test: NODE_MODULES_RE,
-                name: (id: string) => libChunkName(id),
-              },
-            ],
+            groups: [libChunksGroup()],
           },
         },
       } satisfies RolldownConfig,
