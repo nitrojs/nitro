@@ -8,14 +8,14 @@ icon: simple-icons:deno
 
 **Preset:** `deno_server`
 
-You can build your Nitro server using Node.js to run within [Deno Runtime](https://deno.com/runtime) in a custom server.
+You can build your Nitro app to run within the [Deno runtime](https://deno.com/runtime) as a custom server.
 
 ```bash
-# Build with the deno NITRO preset
+# Build with the Deno preset
 NITRO_PRESET=deno_server npm run build
 
 # Start production server
-deno run --unstable --allow-net --allow-read --allow-env .output/server/index.ts
+deno run --allow-net --allow-read --allow-env .output/server/index.mjs
 ```
 
 ## Deno Deploy

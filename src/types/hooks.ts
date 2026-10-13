@@ -1,17 +1,22 @@
-import type { EnvRunnerData } from "env-runner";
+import type { EnvRunnerData, EnvRunnerPluginOption } from "env-runner";
 import type { NitroConfig } from "./config.ts";
-import type { Nitro, NitroTypes } from "./nitro.ts";
+import type { Nitro } from "./nitro.ts";
 import type { PrerenderRoute } from "./prerender.ts";
 import type { RollupConfig } from "./build.ts";
 
 type HookResult = void | Promise<void>;
 
 export interface NitroHooks {
-  "types:extend": (types: NitroTypes) => HookResult;
   "build:before": (nitro: Nitro) => HookResult;
   "rollup:before": (nitro: Nitro, config: RollupConfig) => HookResult;
+  "vite:compile:before": (nitro: Nitro) => HookResult;
   compiled: (nitro: Nitro) => HookResult;
-  "dev:reload": (payload?: { entry?: string; workerData?: EnvRunnerData }) => HookResult;
+  "dev:reload": (payload?: {
+    entry?: string;
+    workerData?: EnvRunnerData;
+    /** Host-side env-runner plugins for the dev runner. */
+    plugins?: EnvRunnerPluginOption[];
+  }) => HookResult;
   "dev:start": () => HookResult;
   "dev:error": (cause?: unknown) => HookResult;
   "rollup:reload": () => HookResult;

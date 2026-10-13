@@ -17,6 +17,7 @@ const standard = defineNitroPreset(
       "srvx/node": "srvx/node",
       "srvx/generic": "srvx/generic",
       "srvx/tracing": "srvx/tracing",
+      "srvx/body-limit": "srvx/body-limit",
     },
   },
   {

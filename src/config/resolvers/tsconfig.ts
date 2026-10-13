@@ -1,28 +1,28 @@
 import type { NitroOptions } from "nitro/types";
 import type { TSConfig } from "pkg-types";
 import { join, resolve } from "pathe";
-import * as tsco from "tsconfck";
+import { parseTsconfig } from "get-tsconfig";
+
+const tsconfigCache = new Map<string, any>();
 
 export async function resolveTsconfig(options: NitroOptions) {
   const root = resolve(options.rootDir || ".") + "/";
   if (!options.typescript.tsConfig) {
-    options.typescript.tsConfig = await loadTsconfig(root);
+    options.typescript.tsConfig = loadTsconfig(root);
   }
 }
 
-async function loadTsconfig(root: string): Promise<TSConfig> {
-  const opts: tsco.TSConfckParseOptions = {
-    root,
-    cache: ((loadTsconfig as any)["__cache"] ??= new tsco.TSConfckCache()),
-    ignoreNodeModules: true,
-  };
+function loadTsconfig(root: string): TSConfig {
   const tsConfigPath = join(root, "tsconfig.json");
-  const parsed = await tsco.parse(tsConfigPath, opts).catch(() => undefined);
-  if (!parsed) return {} as TSConfig;
-  const { tsconfig, tsconfigFile } = parsed;
+  let tsconfig: TSConfig;
+  try {
+    tsconfig = parseTsconfig(tsConfigPath, tsconfigCache) as TSConfig;
+  } catch {
+    return {} as TSConfig;
+  }
   tsconfig.compilerOptions ??= {};
   if (!tsconfig.compilerOptions.baseUrl) {
-    tsconfig.compilerOptions.baseUrl = resolve(tsconfigFile, "..");
+    tsconfig.compilerOptions.baseUrl = resolve(tsConfigPath, "..");
   }
   return tsconfig;
 }

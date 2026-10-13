@@ -13,7 +13,7 @@ Add server routes, deploy across multiple platforms, and enjoy a **zero-config**
 
 ## Contributing
 
-See Check out the [Contribution Guide](./CONTRIBUTING.md) to get started.
+Check out the [Contribution Guide](./CONTRIBUTING.md) to get started.
 
 ## License
 

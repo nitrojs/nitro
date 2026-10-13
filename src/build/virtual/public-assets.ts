@@ -10,12 +10,11 @@ import { runParallel } from "../../utils/parallel.ts";
 
 const readAssetHandler: Record<
   Exclude<Nitro["options"]["serveStatic"] | "true" | "false", boolean>,
-  "node" | "deno" | "null" | "inline"
+  "node" | "null" | "inline"
 > = {
   true: "node",
   node: "node",
   false: "null",
-  deno: "deno",
   inline: "inline",
 };
 
@@ -143,21 +142,11 @@ import { resolve, dirname } from 'node:path'
 import assets from '#nitro/virtual/public-assets-data'
 export function readAsset (id) {
   const serverDir = dirname(fileURLToPath(globalThis.__nitro_main__))
-  return fsp.readFile(resolve(serverDir, assets[id].path))
-}`;
-      },
-    },
-
-    // public-assets-deno
-    {
-      id: "#nitro/virtual/public-assets-deno",
-      template: () => {
-        return /* js */ `
-import assets from '#nitro/virtual/public-assets-data'
-export function readAsset (id) {
-  // https://deno.com/deploy/docs/serve-static-assets
-  const path = '.' + decodeURIComponent(new URL(\`../public\${id}\`, 'file://').pathname)
-  return Deno.readFile(path);
+  // Public dirs might be pruned after the build (uploaded to a CDN, sourcemaps
+  // stripped), so a manifest entry with no file behind it reads as absent, not broken.
+  return fsp.readFile(resolve(serverDir, assets[id].path)).catch((error) => {
+    if (error?.code !== 'ENOENT') { throw error }
+  })
 }`;
       },
     },
