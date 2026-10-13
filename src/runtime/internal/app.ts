@@ -29,7 +29,7 @@ export function useNitroApp(): NitroApp {
   return instance;
 }
 
-export function useNitroHooks(): HookableCore<NitroRuntimeHooks> {
+export function useNitroHooks(): NonNullable<NitroApp["hooks"]> {
   const nitroApp = useNitroApp();
   const hooks = nitroApp.hooks;
   if (hooks) {

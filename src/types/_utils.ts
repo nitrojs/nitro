@@ -1,9 +1,3 @@
-export type Enumerate<N extends number, Acc extends number[] = []> = Acc["length"] extends N
-  ? Acc[number]
-  : Enumerate<N, [...Acc, Acc["length"]]>;
-
-export type IntRange<F extends number, T extends number> = Exclude<Enumerate<T>, Enumerate<F>>;
-
 declare const invalidValue: unique symbol;
 
 /** Uninhabited, so a rejected value reports `Message` in its type error. */
@@ -57,6 +51,14 @@ export type Serializable<T, Depth extends number = 6> = [Depth] extends [never]
 export type SerializableOptions<T> = {
   [K in keyof T]: K extends LibOptionName ? LibOption : Serializable<T[K]>;
 };
+
+/**
+ * `T` from an optional dependency, or `Fallback` when it is not installed.
+ *
+ * Built types import optional dependencies with `@ts-ignore` (see `build.config.ts`), so a missing
+ * one resolves to an error type (`any`), which the tuple check detects without collapsing to `any`.
+ */
+export type OptionalDepType<T, Fallback> = [0] extends [1 & T] ? Fallback : T;
 
 export type KebabCase<T extends string, A extends string = ""> = T extends `${infer F}${infer R}`
   ? KebabCase<R, `${A}${F extends Lowercase<F> ? "" : "-"}${Lowercase<F>}`>

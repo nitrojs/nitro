@@ -1,5 +1,5 @@
 import type { EnvironmentOptions, RollupCommonJSOptions, Plugin as VitePlugin } from "vite";
-import type { NitroPluginContext, ServiceConfig } from "./types.ts";
+import type { NitroPluginContext, ViteServiceConfig } from "./types.ts";
 
 import type { RunnerName } from "env-runner";
 import { RunnerManager, loadRunner } from "env-runner";
@@ -46,29 +46,35 @@ export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOpti
       // Workaround for tanstack-start (devtools)
       "process.env.NODE_ENV": JSON.stringify(ctx.nitro!.options.dev ? "development" : "production"),
     },
-    dev: {
-      createEnvironment: async (envName, envConfig) => {
-        const entry = resolve(runtimeDir, "internal/vite/dev-entry.mjs");
-        const { createFetchableDevEnvironment } = await import("./dev.ts");
-        const env = await createFetchableDevEnvironment(
-          envName,
-          envConfig,
-          await initEnvRunner(ctx),
-          entry,
-          { preventExternalize: isWorkerdRunner, vite: viteImportOptions(ctx.nitro!) }
-        );
-        ctx._transformRequest = (id) => env.transformRequest(id);
-        (ctx._viteEnvs ??= new Map()).set(envName, entry);
-        return env;
-      },
-    },
+    // Vitest evaluates modules in its own workers, the default dev environment is enough
+    dev: ctx._isVitest
+      ? undefined
+      : {
+          createEnvironment: async (envName, envConfig) => {
+            const entry = resolve(runtimeDir, "internal/vite/dev-entry.mjs");
+            const { createFetchableDevEnvironment } = await import("./dev.ts");
+            const env = await createFetchableDevEnvironment(
+              envName,
+              envConfig,
+              await initEnvRunner(ctx),
+              entry,
+              {
+                preventExternalize: isWorkerdRunner,
+                vite: viteImportOptions(ctx.nitro!),
+                onInit: () => (ctx._viteEnvs ??= new Map()).set(envName, entry),
+              }
+            );
+            ctx._transformRequest = (id) => env.transformRequest(id);
+            return env;
+          },
+        },
   };
 }
 
 export function createServiceEnvironment(
   ctx: NitroPluginContext,
   name: string,
-  serviceConfig: ServiceConfig
+  serviceConfig: ViteServiceConfig
 ): EnvironmentOptions {
   const isDev = ctx.nitro!.options.dev;
   const isWorkerdRunner = _isWorkerdRunner(ctx);
@@ -93,17 +99,25 @@ export function createServiceEnvironment(
         : _resolveConditions(ctx),
       externalConditions: _resolveConditions(ctx).filter((c) => !/browser|wasm|module/.test(c)),
     },
-    dev: {
-      createEnvironment: async (envName, envConfig) => {
-        const entry = tryResolve(serviceConfig.entry);
-        (ctx._viteEnvs ??= new Map()).set(envName, entry);
-        const { createFetchableDevEnvironment } = await import("./dev.ts");
-        return createFetchableDevEnvironment(envName, envConfig, await initEnvRunner(ctx), entry, {
-          preventExternalize: isWorkerdRunner,
-          vite: viteImportOptions(ctx.nitro!),
-        });
-      },
-    },
+    dev: ctx._isVitest
+      ? undefined
+      : {
+          createEnvironment: async (envName, envConfig) => {
+            const entry = tryResolve(serviceConfig.entry);
+            const { createFetchableDevEnvironment } = await import("./dev.ts");
+            return createFetchableDevEnvironment(
+              envName,
+              envConfig,
+              await initEnvRunner(ctx),
+              entry,
+              {
+                preventExternalize: isWorkerdRunner,
+                vite: viteImportOptions(ctx.nitro!),
+                onInit: () => (ctx._viteEnvs ??= new Map()).set(envName, entry),
+              }
+            );
+          },
+        },
   };
 }
 

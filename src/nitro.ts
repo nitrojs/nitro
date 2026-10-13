@@ -1,6 +1,12 @@
 import { consola } from "consola";
 import { Hookable, createDebugger } from "hookable";
-import type { LoadConfigOptions, Nitro, NitroConfig, NitroDynamicConfig } from "nitro/types";
+import type {
+  LoadConfigOptions,
+  Nitro,
+  NitroConfig,
+  NitroDynamicConfig,
+  NitroHooks,
+} from "nitro/types";
 import { version as nitroVersion } from "nitro/meta";
 import { loadOptions } from "./config/loader.ts";
 import { updateNitroConfig } from "./config/update.ts";
@@ -17,13 +23,14 @@ export async function createNitro(
   const options = await loadOptions(config, opts);
 
   // Create nitro context
+  const hooks = new Hookable<NitroHooks>();
   const nitro: Nitro = {
     meta: {
       version: nitroVersion,
       majorVersion: 3,
     },
     options,
-    hooks: new Hookable(),
+    hooks,
     vfs: new Map(),
     routing: {} as any,
     logger: consola.withTag("nitro"),
@@ -49,7 +56,7 @@ export async function createNitro(
 
   // Debug
   if (nitro.options.debug) {
-    createDebugger(nitro.hooks, { tag: "nitro" });
+    createDebugger(hooks, { tag: "nitro" });
   }
 
   // Logger
