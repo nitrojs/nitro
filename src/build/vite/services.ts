@@ -5,7 +5,9 @@ import { resolve } from "pathe";
 export function viteServicesTemplate(ctx: NitroPluginContext): string {
   const serviceNames = Object.keys(ctx.services);
 
-  if (ctx.nitro!.options.dev) {
+  // Dev worker registers the services. Vitest runs without it: entries are imported from the
+  // nitro environment instead.
+  if (ctx.nitro!.options.dev && !ctx._isVitest) {
     return /* js */ `
 export const viteServices = {
 ${serviceNames
@@ -19,23 +21,26 @@ ${serviceNames
   }
 
   const serviceEntries = serviceNames.map((name) => {
-    const entry = resolve(
-      ctx.nitro!.options.buildDir,
-      "vite/services",
-      name,
-      ctx._entryPoints[name]
-    );
+    const entry = ctx._isVitest
+      ? _resolveServiceEntry(ctx, ctx.services[name].entry)
+      : resolve(ctx.nitro!.options.buildDir, "vite/services", name, ctx._entryPoints[name]);
     return [name, entry];
   });
 
   return /* js */ `
-function lazyService(loader) {
+function lazyService(name, loader) {
   let promise, mod
   return {
     fetch(req) {
       if (mod) { return mod.fetch(req) }
       if (!promise) {
-        promise = loader().then(_mod => (mod = _mod.default || _mod))
+        promise = loader().then(_mod => {
+          const m = typeof _mod.default?.fetch === "function" ? _mod.default : _mod
+          if (typeof m.fetch !== "function") {
+            throw new TypeError(\`[nitro] Vite service "\${name}" entry does not export a \\\`fetch\\\` handler.\`)
+          }
+          return (mod = m)
+        })
       }
       return promise.then(mod => mod.fetch(req))
     }
@@ -46,7 +51,7 @@ export const viteServices = {
 ${serviceEntries
   .map(
     ([name, entry]) =>
-      `[${JSON.stringify(name)}]: lazyService(() => import(${JSON.stringify(entry)}))`
+      `[${JSON.stringify(name)}]: lazyService(${JSON.stringify(name)}, () => import(${JSON.stringify(entry)}))`
   )
   .join(",\n")}
 };
@@ -57,11 +62,13 @@ ${serviceEntries
 // runtime modules. In dev, imports are proxied to the Nitro environment via
 // __VITE_ENVIRONMENT_RUNNER_IMPORT__. In prod, they are externalized (see createServiceEnvironment).
 const NITRO_PROXY_PREFIX = "\0nitro-env-proxy:";
-export function nitroDevServiceProxy(): VitePlugin {
+// Vitest runs no dev worker to proxy to: test files import `nitro/*` from the nitro environment.
+export function nitroDevServiceProxy(ctx: NitroPluginContext): VitePlugin {
   return {
     name: "nitro:dev-service-proxy",
     enforce: "pre",
-    applyToEnvironment: (env) => env.name !== "nitro" && env.config.consumer === "server",
+    applyToEnvironment: (env) =>
+      !ctx._isVitest && env.name !== "nitro" && env.config.consumer === "server",
     apply: (_config, configEnv) => configEnv.command === "serve",
 
     resolveId: {
@@ -93,4 +100,8 @@ export function nitroDevServiceProxy(): VitePlugin {
       },
     },
   };
+}
+
+function _resolveServiceEntry(ctx: NitroPluginContext, entry: string): string {
+  return entry.startsWith(".") ? resolve(ctx.nitro!.options.rootDir, entry) : entry;
 }

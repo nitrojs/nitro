@@ -1,14 +1,11 @@
-import type { Preset } from "unenv";
+import type { PresetEnv } from "../../../build/env.ts";
 import * as denoCompat from "./node-compat.ts";
 
 // https://platform-node-compat.deno.dev/
 // https://platform-node-compat.netlify.app/
 
-export const unenvDeno: Preset = {
-  meta: {
-    name: "nitro:deno",
-  },
-  external: denoCompat.builtnNodeModules.map((m) => `node:${m}`),
+export const unenvDeno: PresetEnv = {
+  builtinModules: denoCompat.builtnNodeModules,
   alias: {
     ...Object.fromEntries(
       denoCompat.builtnNodeModules.flatMap((m) => [
@@ -18,10 +15,11 @@ export const unenvDeno: Preset = {
     ),
   },
   inject: {
-    global: "unenv/polyfill/globalthis",
+    global: "#nitro/runtime/polyfills/globalthis",
     process: "node:process",
     clearImmediate: ["node:timers", "clearImmediate"],
     setImmediate: ["node:timers", "setImmediate"],
     Buffer: ["node:buffer", "Buffer"],
+    performance: false, // Native
   },
 };
