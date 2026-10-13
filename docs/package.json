@@ -5,6 +5,8 @@
     "build": "undocs build"
   },
   "devDependencies": {
-    "undocs": "^0.3.10"
+    "automd": "^0.4.3",
+    "motion-v": "^2.6.0",
+    "undocs": "npm:undocs-nightly@0.10.1-20260922-215730-10f5034"
   }
 }

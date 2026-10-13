@@ -1,11 +1,11 @@
-import { defineNitroPreset } from "../_utils/preset";
-import { writeFile } from "../_utils/fs";
+import { defineNitroPreset } from "../_utils/preset.ts";
+import { writeFile } from "../_utils/fs.ts";
 import { version as nitroVersion } from "nitro/meta";
 import { join, relative } from "pathe";
 import { stringifyYAML } from "confbox";
-import type { AppHostingOutputBundleConfig } from "./types";
+import type { AppHostingOutputBundleConfig } from "./types.ts";
 
-export type { FirebaseOptions as PresetOptions } from "./types";
+export type { FirebaseOptions as PresetOptions } from "./types.ts";
 
 const firebaseAppHosting = defineNitroPreset(
   {
@@ -30,9 +30,7 @@ const firebaseAppHosting = defineNitroPreset(
             },
             outputFiles: {
               serverApp: {
-                include: [
-                  relative(nitro.options.rootDir, nitro.options.output.dir),
-                ],
+                include: [relative(nitro.options.rootDir, nitro.options.output.dir)],
               },
             },
           } satisfies AppHostingOutputBundleConfig),
@@ -44,7 +42,6 @@ const firebaseAppHosting = defineNitroPreset(
   {
     name: "firebase-app-hosting" as const,
     stdName: "firebase_app_hosting",
-    url: import.meta.url,
   }
 );
 

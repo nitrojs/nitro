@@ -8,13 +8,11 @@ export async function resolveAssetsOptions(options: NitroOptions) {
   // Public Assets
   // 1. Normalize user paths
   for (const publicAsset of options.publicAssets) {
-    publicAsset.dir = resolve(options.srcDir, publicAsset.dir);
-    publicAsset.baseURL = withLeadingSlash(
-      withoutTrailingSlash(publicAsset.baseURL || "/")
-    );
+    publicAsset.dir = resolve(options.rootDir, publicAsset.dir);
+    publicAsset.baseURL = withLeadingSlash(withoutTrailingSlash(publicAsset.baseURL || "/"));
   }
   // 2. Add public/ directories from each layer
-  for (const dir of options.scanDirs) {
+  for (const dir of [options.rootDir, ...options.scanDirs]) {
     const publicDir = resolve(dir, "public");
     if (!existsSync(publicDir)) {
       continue;
@@ -28,12 +26,12 @@ export async function resolveAssetsOptions(options: NitroOptions) {
   // Server Assets
   // 1. Normalize user paths
   for (const serverAsset of options.serverAssets) {
-    serverAsset.dir = resolve(options.srcDir, serverAsset.dir);
+    serverAsset.dir = resolve(options.rootDir, serverAsset.dir);
   }
-  // 2. Add server/ directory
+  // 2. Add <serverDir>/assets directory
   options.serverAssets.push({
     baseName: "server",
-    dir: resolve(options.srcDir, "assets"),
+    dir: resolve(options.serverDir || options.rootDir, "assets"),
   });
 
   // Infer `fallthrough` and `maxAge` from publicAssets
@@ -42,8 +40,7 @@ export async function resolveAssetsOptions(options: NitroOptions) {
     const isTopLevel = asset.baseURL === "/";
     asset.fallthrough = asset.fallthrough ?? isTopLevel;
     const routeRule = options.routeRules[asset.baseURL + "/**"];
-    asset.maxAge =
-      (routeRule?.cache as { maxAge: number })?.maxAge ?? asset.maxAge ?? 0;
+    asset.maxAge = (routeRule?.cache as { maxAge: number })?.maxAge ?? asset.maxAge;
     if (asset.maxAge && !asset.fallthrough) {
       options.routeRules[asset.baseURL + "/**"] = defu(routeRule, {
         headers: {

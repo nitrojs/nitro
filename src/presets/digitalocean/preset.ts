@@ -1,4 +1,4 @@
-import { defineNitroPreset } from "../_utils/preset";
+import { defineNitroPreset } from "../_utils/preset.ts";
 
 const digitalOcean = defineNitroPreset(
   {
@@ -7,7 +7,6 @@ const digitalOcean = defineNitroPreset(
   },
   {
     name: "digital-ocean" as const,
-    url: import.meta.url,
   }
 );
 

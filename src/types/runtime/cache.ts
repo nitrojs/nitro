@@ -1,42 +1,26 @@
 import type { HTTPEvent } from "h3";
 
-export interface CacheEntry<T = any> {
-  value?: T;
-  expires?: number;
-  mtime?: number;
-  integrity?: string;
-}
+export type { CacheEntry, CacheOptions, CachedFunction, ResponseCacheEntry } from "ocache";
 
-export interface CacheOptions<T = any, ArgsT extends unknown[] = any[]> {
-  name?: string;
-  getKey?: (...args: ArgsT) => string | Promise<string>;
-  transform?: (entry: CacheEntry<T>, ...args: ArgsT) => any;
-  validate?: (entry: CacheEntry<T>, ...args: ArgsT) => boolean;
-  shouldInvalidateCache?: (...args: ArgsT) => boolean | Promise<boolean>;
-  shouldBypassCache?: (...args: ArgsT) => boolean | Promise<boolean>;
-  group?: string;
-  integrity?: any;
-  /**
-   * Number of seconds to cache the response. Defaults to 1.
-   */
-  maxAge?: number;
-  swr?: boolean;
-  staleMaxAge?: number;
-  base?: string;
-}
+/**
+ * Options for `defineCachedFunction`.
+ *
+ * @see https://nitro.build/docs/cache
+ */
+export type CachedFunctionOptions<
+  T = any,
+  ArgsT extends unknown[] = any[],
+> = import("ocache").CacheOptions<T, ArgsT>;
 
-export interface ResponseCacheEntry {
-  status: number;
-  statusText: string | undefined;
-  headers: Record<string, string>;
-  body: string | undefined;
-}
+/**
+ * Options for `defineCachedHandler`.
+ *
+ * @see https://nitro.build/docs/cache
+ */
+export interface CachedHandlerOptions extends Omit<
+  import("ocache").CachedEventHandlerOptions<HTTPEvent & import("ocache").HTTPEvent>,
+  "toResponse" | "createResponse" | "handleCacheHeaders"
+> {}
 
-export interface CachedEventHandlerOptions
-  extends Omit<
-    CacheOptions<ResponseCacheEntry, [HTTPEvent]>,
-    "transform" | "validate"
-  > {
-  headersOnly?: boolean;
-  varies?: string[] | readonly string[];
-}
+/** @deprecated Use {@link CachedHandlerOptions}. */
+export type CachedEventHandlerOptions = CachedHandlerOptions;

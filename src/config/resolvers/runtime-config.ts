@@ -1,9 +1,6 @@
-import defu from "defu";
-import type {
-  NitroConfig,
-  NitroOptions,
-  NitroRuntimeConfig,
-} from "nitro/types";
+import { defu } from "defu";
+
+import type { NitroConfig, NitroOptions, NitroRuntimeConfig } from "nitro/types";
 
 export async function resolveRuntimeConfigOptions(options: NitroOptions) {
   options.runtimeConfig = normalizeRuntimeConfig(options);
@@ -13,7 +10,7 @@ export function normalizeRuntimeConfig(config: NitroConfig) {
   provideFallbackValues(config.runtimeConfig || {});
   const runtimeConfig: NitroRuntimeConfig = defu(
     config.runtimeConfig as NitroRuntimeConfig,
-    <NitroRuntimeConfig>{
+    {
       app: {
         baseURL: config.baseURL,
       },
@@ -21,8 +18,9 @@ export function normalizeRuntimeConfig(config: NitroConfig) {
         envExpansion: config.experimental?.envExpansion,
         openAPI: config.openAPI,
       },
-    }
+    } as NitroRuntimeConfig
   );
+  runtimeConfig.nitro ??= {};
   runtimeConfig.nitro.routeRules = config.routeRules;
   checkSerializableRuntimeConfig(runtimeConfig);
   return runtimeConfig as NitroRuntimeConfig;
@@ -67,9 +65,5 @@ function checkSerializableRuntimeConfig(obj: any, path: string[] = []) {
 }
 
 function isPrimitiveValue(value: any) {
-  return (
-    typeof value === "string" ||
-    typeof value === "number" ||
-    typeof value === "boolean"
-  );
+  return typeof value === "string" || typeof value === "number" || typeof value === "boolean";
 }

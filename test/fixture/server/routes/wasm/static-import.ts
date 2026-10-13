@@ -1,0 +1,12 @@
+import { defineHandler, defineLazyEventHandler } from "nitro/h3";
+
+// @ts-ignore
+import init, { sum } from "./sum.wasm";
+
+export default defineLazyEventHandler(async () => {
+  // @ts-ignore
+  await init();
+  return defineHandler(() => {
+    return `2+3=${sum(2, 3)}`;
+  });
+});

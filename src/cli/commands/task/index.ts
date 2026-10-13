@@ -6,7 +6,7 @@ export default defineCommand({
     description: "Operate in nitro tasks (experimental)",
   },
   subCommands: {
-    list: () => import("./list").then((r) => r.default),
-    run: () => import("./run").then((r) => r.default),
+    list: () => import("./list.ts").then((r) => r.default),
+    run: () => import("./run.ts").then((r) => r.default),
   },
 });

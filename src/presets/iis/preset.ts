@@ -1,6 +1,8 @@
-import { defineNitroPreset } from "../_utils/preset";
+import { defineNitroPreset } from "../_utils/preset.ts";
 import type { Nitro } from "nitro/types";
-import { writeIISFiles, writeIISNodeFiles } from "./utils";
+import { writeIISFiles, writeIISNodeFiles } from "./utils.ts";
+
+export type { IisOptions as PresetOptions } from "./types.ts";
 
 const iisHandler = defineNitroPreset(
   {
@@ -14,7 +16,6 @@ const iisHandler = defineNitroPreset(
   },
   {
     name: "iis-handler" as const,
-    url: import.meta.url,
   }
 );
 
@@ -30,7 +31,6 @@ const iisNode = defineNitroPreset(
   },
   {
     name: "iis-node" as const,
-    url: import.meta.url,
   }
 );
 

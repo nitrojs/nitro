@@ -1,80 +1,92 @@
 import { readFile } from "node:fs/promises";
-import { transform } from "esbuild";
+import { isAbsolute } from "pathe";
 import type { Expression, Literal } from "estree";
 import type { Nitro, NitroEventHandler } from "nitro/types";
-import { extname } from "pathe";
 import type { Plugin } from "rollup";
+import { importOXC } from "../../utils/oxc.ts";
+import { escapeRegExp } from "../../utils/regex.ts";
 
-const virtualPrefix = "\0nitro-handler-meta:";
+const PREFIX = "\0nitro:route-meta:";
 
-// From esbuild.ts
-const esbuildLoaders = {
-  ".ts": "ts",
-  ".js": "js",
-  ".tsx": "tsx",
-  ".jsx": "jsx",
-} as const;
-
-export function routeMeta(nitro: Nitro) {
+export async function routeMeta(nitro: Nitro) {
+  const { parseSync, transformSync } = await importOXC({ dir: nitro.options.rootDir });
   return {
     name: "nitro:route-meta",
-    async resolveId(id, importer, resolveOpts) {
-      if (id.startsWith("\0")) {
-        return;
-      }
-      if (id.endsWith(`?meta`)) {
-        const resolved = await this.resolve(
-          id.replace(`?meta`, ``),
-          importer,
-          resolveOpts
-        );
-        if (!resolved) {
-          return;
+    resolveId: {
+      order: "pre",
+      // eslint-disable-next-line no-control-regex
+      filter: { id: /^(?!\u0000)(.+)\?meta$/ },
+      async handler(id, importer, resolveOpts) {
+        if (id.endsWith("?meta")) {
+          const resolved = await this.resolve(id.replace("?meta", ""), importer, resolveOpts);
+          if (!resolved) {
+            return;
+          }
+          return PREFIX + resolved.id;
         }
-        return virtualPrefix + resolved.id;
-      }
+      },
     },
-    load(id) {
-      if (id.startsWith(virtualPrefix)) {
-        const fullPath = id.slice(virtualPrefix.length);
-        return readFile(fullPath, { encoding: "utf8" });
-      }
-    },
-    async transform(code, id) {
-      if (!id.startsWith(virtualPrefix)) {
-        return;
-      }
-
-      let meta: NitroEventHandler["meta"] | null = null;
-
-      try {
-        const ext = extname(id) as keyof typeof esbuildLoaders;
-        const jsCode = await transform(code, {
-          loader: esbuildLoaders[ext],
-        }).then((r) => r.code);
-        const ast = this.parse(jsCode);
-        for (const node of ast.body) {
-          if (
-            node.type === "ExpressionStatement" &&
-            node.expression.type === "CallExpression" &&
-            node.expression.callee.type === "Identifier" &&
-            node.expression.callee.name === "defineRouteMeta" &&
-            node.expression.arguments.length === 1
-          ) {
-            meta = astToObject(node.expression.arguments[0] as any);
-            break;
+    load: {
+      order: "pre",
+      filter: {
+        id: new RegExp(`^${escapeRegExp(PREFIX)}`),
+      },
+      handler(id) {
+        if (id.startsWith(PREFIX)) {
+          const fullPath = id.slice(PREFIX.length);
+          if (isAbsolute(fullPath)) {
+            return readFile(fullPath, { encoding: "utf8" });
+          } else {
+            return "export default undefined;";
           }
         }
-      } catch (error) {
-        nitro.logger.warn(
-          `[handlers-meta] Cannot extra route meta for: ${id}: ${error}`
-        );
-      }
+      },
+    },
+    transform: {
+      order: "pre",
+      filter: {
+        id: new RegExp(`^${escapeRegExp(PREFIX)}`),
+      },
+      async handler(code, id) {
+        let meta: NitroEventHandler["meta"] | null = null;
 
-      return {
-        code: `export default ${JSON.stringify(meta)};`,
-        map: null,
-      };
+        try {
+          const transformRes = transformSync(id, code, { tsconfig: false });
+          if (transformRes.errors?.length > 0) {
+            for (const error of transformRes.errors) {
+              this.warn(error);
+            }
+            return {
+              code: `export default {};`,
+              map: null,
+              moduleType: "js",
+            };
+          }
+
+          // Not `this.parse()`, so the plugin also runs without a bundler (`builder: false`)
+          const { program } = parseSync(id, transformRes.code, { lang: "js" });
+          for (const node of program.body as any[]) {
+            if (
+              node.type === "ExpressionStatement" &&
+              node.expression.type === "CallExpression" &&
+              node.expression.callee.type === "Identifier" &&
+              node.expression.callee.name === "defineRouteMeta" &&
+              node.expression.arguments.length === 1
+            ) {
+              meta = astToObject(node.expression.arguments[0] as any);
+              break;
+            }
+          }
+        } catch (error) {
+          nitro.logger.warn(`[handlers-meta] Cannot extra route meta for: ${id}: ${error}`);
+        }
+
+        return {
+          code: `export default ${JSON.stringify(meta)};`,
+          map: null,
+          moduleType: "js",
+        };
+      },
     },
   } satisfies Plugin;
 }
@@ -92,7 +104,7 @@ function astToObject(node: Expression | Literal): any {
       return obj;
     }
     case "ArrayExpression": {
-      return node.elements.map((el) => astToObject(el as any)).filter(Boolean);
+      return node.elements.map((el) => astToObject(el as any)).filter((obj) => obj !== undefined);
     }
     case "Literal": {
       return node.value;

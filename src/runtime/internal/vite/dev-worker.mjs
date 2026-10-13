@@ -1,0 +1,424 @@
+import { createViteTransport } from "env-runner/vite";
+import { createDevRPC } from "../dev-rpc.mjs";
+
+// `vite` is an optional dependency Nitro resolves from the app, so the module runner cannot be
+// imported from here. The generated entry injects it instead (see `build/vite/_dev-worker.ts`).
+let ModuleRunner, ESModulesEvaluator;
+
+export function setModuleRunner(moduleRunner) {
+  ({ ModuleRunner, ESModulesEvaluator } = moduleRunner);
+}
+
+// Custom evaluator for workerd where `new AsyncFunction()` is disallowed.
+// Uses the unsafeEvalBinding exposed by the env-runner miniflare wrapper.
+class WorkerdModuleEvaluator {
+  startOffset = 0;
+
+  async runInlinedModule(context, code) {
+    const unsafeEval = globalThis.__ENV_RUNNER_UNSAFE_EVAL__;
+    const keys = Object.keys(context);
+    const fn = unsafeEval.newAsyncFunction('"use strict";' + code, "runInlinedModule", ...keys);
+    await fn(...keys.map((k) => context[k]));
+    Object.seal(context[Object.keys(context)[0]]);
+  }
+
+  runExternalModule(filepath) {
+    return import(filepath);
+  }
+}
+
+// ----- IPC -----
+
+let sendMessage;
+const messageListeners = new Set();
+
+// ----- Environment runners -----
+
+const envs = (globalThis.__nitro_vite_envs__ ??= {
+  nitro: undefined,
+  ssr: undefined,
+});
+
+// Environments are registered over IPC (`nitro:vite-env`), which is not ordered with requests
+// (workerd dispatches them over HTTP and IPC over a WebSocket): requests arriving first wait
+// for the registration of the environment they target.
+const envWaiters = new Map();
+
+// Registration is a single IPC message, independent of how long the entry takes to import.
+const ENV_REGISTER_TIMEOUT = 30_000;
+
+// Backstop for a wedged reload: requests fall back to the previous entry (or an
+// error) instead of hanging forever. Not a latency budget: a cold import of a
+// large SSR graph can take well over 30s (#4687), and waiting on an import
+// already in flight costs nothing. Overridden by the generated entry with
+// `NITRO_DEV_RELOAD_TIMEOUT` (see `build/vite/_dev-worker.ts`).
+let reloadWaitTimeout = 120_000;
+
+export function setReloadWaitTimeout(ms) {
+  reloadWaitTimeout = ms;
+}
+
+class ViteEnvRunner {
+  constructor({ name, entry }) {
+    this.name = name;
+    this.entryPath = entry;
+
+    this.entry = undefined;
+    this.entryError = undefined;
+
+    // Files whose evaluations the next reload has to drop, collected while a
+    // reload is in flight. `all` re-evaluates the whole graph.
+    this.pendingReload = undefined;
+
+    // Reloads are serialized so the newest import is always the last one to
+    // apply its entry (and its side effects). `reloadPromise` is the tail of
+    // the chain and never rejects: failures are captured into `entryError`.
+    this.reloadPromise = Promise.resolve();
+
+    // At most one reload waits behind the in-flight one. Further reload
+    // requests arriving in that window coalesce into it, so a burst of
+    // `full-reload` messages costs one extra import, not one per message.
+    this.queuedReload = undefined;
+
+    // Create Vite Module Runner
+    // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
+    const onMessage = (listener) => messageListeners.add(listener);
+    const transport = createViteTransport((data) => sendMessage?.(data), onMessage, name);
+    const evaluator = globalThis.__ENV_RUNNER_UNSAFE_EVAL__
+      ? new WorkerdModuleEvaluator()
+      : new ESModulesEvaluator();
+    const debug =
+      typeof process !== "undefined" && process.env?.NITRO_DEBUG ? console.debug : undefined;
+    this.runner = new ModuleRunner({ transport }, evaluator, debug);
+
+    this.reload();
+  }
+
+  // Reloads are scoped to the changed file when one is known: `file` and its
+  // importers are dropped so the re-import re-evaluates them, and everything
+  // else keeps its evaluation (and its module state). Requests arriving while
+  // a reload is in flight coalesce into the queued one, which then handles
+  // every file collected meanwhile.
+  reload(file) {
+    const pending = (this.pendingReload ??= { files: new Set(), all: false });
+    if (file) {
+      pending.files.add(file);
+    } else {
+      pending.all = true;
+    }
+    if (this.queuedReload) {
+      return this.queuedReload;
+    }
+    const queuedReload = this.reloadPromise.then(async () => {
+      this.queuedReload = undefined;
+      const { files, all } = this.pendingReload;
+      this.pendingReload = undefined;
+      if (this.runner.isClosed()) {
+        return;
+      }
+      try {
+        if (all) {
+          // Nothing to scope the reload to (added or removed handlers): drop
+          // every evaluation, the same way Vite's own full-reload handler does.
+          this.runner.evaluatedModules.clear();
+        } else {
+          for (const file of files) {
+            this.invalidateFile(file);
+          }
+        }
+        this.entry = await this.runner.import(this.entryPath);
+        this.entryError = undefined;
+      } catch (error) {
+        console.error(error);
+        this.entryError = error;
+      }
+    });
+    this.queuedReload = queuedReload;
+    this.reloadPromise = queuedReload;
+    return queuedReload;
+  }
+
+  // Drops the evaluations of `file` and of everything importing it, so the next
+  // import re-evaluates them. Vite already invalidates them on the server, but
+  // a plugin that crawls (and re-transforms) a module's dependencies can
+  // repopulate their transform result before the runner re-fetches them, and
+  // `fetchModule` then answers `{cache: true}` and the stale evaluation is kept.
+  // Modules the change cannot affect keep their state (and their singletons).
+  invalidateFile(file) {
+    const { evaluatedModules } = this.runner;
+    const seen = new Set();
+    const invalidate = (mod) => {
+      if (!mod || seen.has(mod.id)) {
+        return;
+      }
+      seen.add(mod.id);
+      for (const importer of mod.importers) {
+        invalidate(evaluatedModules.getModuleById(importer));
+      }
+      evaluatedModules.invalidateModule(mod);
+    };
+    for (const mod of evaluatedModules.getModulesByFile(file) || []) {
+      invalidate(mod);
+    }
+  }
+
+  // Whether `file` is part of this environment's evaluated module graph.
+  hasEvaluated(file) {
+    return !!file && !!this.runner.evaluatedModules.getModulesByFile(file)?.size;
+  }
+
+  // Runs the environment's `close` hooks before the runner goes away. Waits for any in-flight
+  // reload so the entry the hooks belong to is the one that is closed.
+  async close() {
+    await this.reloadPromise;
+    const entryClose = this.entry?.close || this.entry?.default?.close;
+    if (entryClose) {
+      await entryClose();
+    }
+  }
+
+  // Errors are intentionally not caught here: like production services,
+  // they propagate to the caller (the nitro app's error handler or the
+  // env-runner fetch boundary below).
+  async fetch(req, init) {
+    const entry = await this.waitForEntry();
+    const entryFetch = entry.default?.fetch || entry.fetch;
+    if (!entryFetch) {
+      throw httpError(500, `No fetch handler exported from ${this.entryPath}`);
+    }
+    return entryFetch(req, init);
+  }
+
+  // Waits until nothing is queued or in flight so callers never reach an entry
+  // that is about to be replaced.
+  async waitForEntry() {
+    const deadline = Date.now() + reloadWaitTimeout;
+    let reloadPromise;
+    while (reloadPromise !== this.reloadPromise) {
+      reloadPromise = this.reloadPromise;
+      if (await withTimeout(reloadPromise, deadline - Date.now())) {
+        console.warn(
+          `Vite environment "${this.name}" did not finish reloading within ${reloadWaitTimeout}ms. Set \`NITRO_DEV_RELOAD_TIMEOUT\` (in ms) to wait longer.`
+        );
+        break;
+      }
+    }
+    if (this.entryError) {
+      throw this.entryError;
+    }
+    if (!this.entry) {
+      throw httpError(503, `Vite environment "${this.name}" is unavailable`);
+    }
+    return this.entry;
+  }
+}
+
+// ----- RPC -----
+
+const rpc = createDevRPC((message) => sendMessage?.(message));
+
+// Trap unhandled errors to avoid worker crash
+if (typeof process !== "undefined" && typeof process.on === "function") {
+  process.on("unhandledRejection", (error) => console.error(error));
+  process.on("uncaughtException", (error) => console.error(error));
+}
+
+// ----- RSC Support -----
+
+// define __VITE_ENVIRONMENT_RUNNER_IMPORT__ for RSC support
+// https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-rsc/README.md#__vite_environment_runner_import__
+
+globalThis.__VITE_ENVIRONMENT_RUNNER_IMPORT__ = async function (environmentName, id) {
+  const env = envs[environmentName];
+  if (!env) {
+    throw new Error(`Vite environment "${environmentName}" is not registered`);
+  }
+  return env.runner.import(id);
+};
+
+// ----- Reload -----
+
+// Reloads the environment the `full-reload` was sent for. Other environments
+// are only reloaded when they evaluated the changed file themselves: Vite does
+// not always associate a file with the module graph of every environment that
+// uses it, so their own `full-reload` can be missing.
+async function reload(payload) {
+  try {
+    const viteEnv = payload?.viteEnv;
+    // Vite sends platform paths, the evaluated modules are keyed by posix ones.
+    const triggeredBy = payload?.triggeredBy?.replace(/\\/g, "/");
+    const targets = Object.values(envs).filter(
+      (env) => env && (!viteEnv || env.name === viteEnv || env.hasEvaluated(triggeredBy))
+    );
+    await Promise.all(targets.map((env) => env.reload(triggeredBy)));
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// eslint-disable-next-line unicorn/prefer-top-level-await
+reload();
+
+// ----- HTML Transform -----
+
+globalThis.__transform_html__ = async function (html) {
+  html = await rpc.call("transformHTML", html).catch((error) => {
+    console.warn("Failed to transform HTML via Vite:", error);
+    return html;
+  });
+  return html;
+};
+
+// Fallback when the runner cannot read the template itself (e.g. workerd)
+globalThis.__nitro_renderer_template__ = () => rpc.call("rendererTemplate");
+
+// ----- Exports (env-runner AppEntry) -----
+
+export async function fetch(req) {
+  const viteEnv = req?.headers.get("x-vite-env") || "nitro";
+  const env = envs[viteEnv] || (await waitForEnv(viteEnv));
+  if (!env) {
+    return renderError(req, httpError(500, `Unknown vite environment "${viteEnv}"`));
+  }
+  try {
+    return await env.fetch(req);
+  } catch (error) {
+    return renderError(req, error);
+  }
+}
+
+// Re-exported as `websocket` by the generated entry only when the feature is enabled (see
+// `build/vite/_dev-worker.ts`), so the runner installs its runtime's crossws adapter on demand.
+export const websocketOptions = {
+  async resolve(request) {
+    const env = envs.nitro || (await waitForEnv("nitro"));
+    const entry = await env?.waitForEntry();
+    const websocket = entry?.default?.websocket || entry?.websocket;
+    return (await websocket?.resolve(request)) || {};
+  },
+};
+
+export const ipc = {
+  onOpen(ctx) {
+    sendMessage = ctx.sendMessage;
+  },
+  onMessage(message) {
+    if (rpc.handleMessage(message)) {
+      return;
+    }
+    if (message?.type === "custom") {
+      if (message.event === "nitro:vite-env") {
+        const { name, entry } = message.data;
+        if (!envs[name]) {
+          envs[name] = new ViteEnvRunner({ name, entry });
+          envWaiters.get(name)?.resolve();
+          envWaiters.delete(name);
+        }
+        return;
+      }
+    }
+    if (message?.type === "full-reload") {
+      reload(message);
+      return;
+    }
+    for (const listener of messageListeners) {
+      listener(message);
+    }
+  },
+  async onClose() {
+    await Promise.all(
+      Object.values(envs).map((env) =>
+        env?.close().catch((error) => {
+          console.error(error);
+        })
+      )
+    );
+  },
+};
+
+// ----- Error handling -----
+
+function httpError(status, message) {
+  const error = new Error(message || `HTTP Error ${status}`);
+  error.status = status;
+  error.name = "NitroViteError";
+  return error;
+}
+
+async function renderError(req, error) {
+  if (req.headers.get("accept")?.includes("application/json")) {
+    return new Response(
+      JSON.stringify(
+        {
+          status: error.status || 500,
+          name: error.name || "Error",
+          message: error.message,
+          stack: (error.stack || "")
+            .split("\n")
+            .splice(1)
+            .map((l) => l.trim()),
+        },
+        null,
+        2
+      ),
+      {
+        status: error.status || 500,
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-store, max-age=0, must-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      }
+    );
+  }
+  const headers = {
+    "Content-Type": "text/html; charset=utf-8",
+    "Cache-Control": "no-store, max-age=0, must-revalidate",
+    Pragma: "no-cache",
+    Expires: "0",
+  };
+  const status = error.status || 500;
+  try {
+    // `.ts` fallback: in stub mode this file is a symlink to `src/` where only the `.ts` source exists
+    const { renderErrorHTML } = await import("../error/_utils.mjs").catch(
+      () => import("../error/_utils.ts")
+    );
+    const html = await renderErrorHTML(error, {
+      status,
+      request: { method: req.method, url: req.url, headers: req.headers },
+    });
+    return new Response(html, { status, headers });
+  } catch {
+    const text = String(error?.stack || error?.message || error);
+    const escaped = text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+    return new Response(`<pre>${escaped}</pre>`, { status, headers });
+  }
+}
+
+// ----- Utils -----
+
+// Resolves the environment once it is registered, or `undefined` when it never is.
+async function waitForEnv(name) {
+  let waiter = envWaiters.get(name);
+  if (!waiter) {
+    waiter = {};
+    waiter.promise = new Promise((resolve) => {
+      waiter.resolve = resolve;
+    });
+    envWaiters.set(name, waiter);
+  }
+  await withTimeout(waiter.promise, ENV_REGISTER_TIMEOUT);
+  return envs[name];
+}
+
+// Resolves `false` when `promise` settles first, `true` when it times out.
+function withTimeout(promise, ms) {
+  let timer;
+  return Promise.race([
+    promise.then(() => false),
+    new Promise((resolve) => {
+      timer = setTimeout(() => resolve(true), ms);
+    }),
+  ]).finally(() => clearTimeout(timer));
+}

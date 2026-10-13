@@ -1,40 +1,44 @@
-import "#nitro-internal-pollyfills";
-import { useNitroApp } from "nitro/runtime";
-import { startScheduleRunner } from "nitro/runtime/internal";
-
-import wsAdapter from "crossws/adapters/bun";
+import "#nitro/virtual/polyfills";
 import type { ServerRequest } from "srvx";
+import { serve } from "srvx/bun";
+import wsAdapter from "crossws/adapters/bun";
+
+import { useNitroApp } from "nitro/app";
+import { startScheduleRunner } from "#nitro/runtime/task";
+import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
+import { resolveWebsocketHooks } from "#nitro/runtime/app";
+import { resolveServeOptions } from "#nitro/runtime/serve";
+import { setupCloseHooks } from "#nitro/runtime/shutdown";
 
 const nitroApp = useNitroApp();
 
-const ws = import.meta._websocket
-  ? // @ts-expect-error
-    wsAdapter(nitroApp.h3App.websocket)
-  : undefined;
+let _fetch = nitroApp.fetch;
 
-// @ts-expect-error
-const server = Bun.serve({
-  port: process.env.NITRO_PORT || process.env.PORT || 3000,
-  host: process.env.NITRO_HOST || process.env.HOST,
-  websocket: import.meta._websocket ? ws!.websocket : (undefined as any),
-  async fetch(bunReq: Request, server: any) {
-    // srvx compatibility
-    const req = bunReq as ServerRequest;
-    req.runtime ??= { name: "bun" };
-    req.runtime.bun ??= { server } as any;
+const ws = import.meta._websocket ? wsAdapter({ resolve: resolveWebsocketHooks }) : undefined;
 
-    // https://crossws.unjs.io/adapters/bun
-    if (import.meta._websocket && req.headers.get("upgrade") === "websocket") {
-      return ws!.handleUpgrade(req, server);
+if (import.meta._websocket) {
+  _fetch = (req: ServerRequest) => {
+    if (req.headers.get("upgrade") === "websocket") {
+      return ws!.handleUpgrade(req, req.runtime!.bun!.server) as Promise<Response>;
     }
-
     return nitroApp.fetch(req);
-  },
-});
+  };
+}
 
-console.log(`Listening on ${server.url}...`);
+const server = serve(
+  resolveServeOptions({
+    fetch: _fetch,
+    ...(import.meta._websocket ? { bun: { websocket: ws!.websocket } } : {}),
+  })
+);
+
+setupCloseHooks(server);
+
+trapUnhandledErrors();
 
 // Scheduled tasks
 if (import.meta._tasks) {
-  startScheduleRunner();
+  startScheduleRunner({ waitUntil: server.waitUntil });
 }
+
+export default {};

@@ -1,48 +1,27 @@
-import type { Server as HttpServer } from "node:http";
-import type { NitroApp } from "nitro/types";
-import gracefulShutdown from "./lib/http-graceful-shutdown";
+import type { Server } from "srvx";
+import { useNitroHooks } from "./app.ts";
 
-export function getGracefulShutdownConfig() {
-  return {
-    disabled: !!process.env.NITRO_SHUTDOWN_DISABLED,
-    signals: (process.env.NITRO_SHUTDOWN_SIGNALS || "SIGTERM SIGINT")
-      .split(" ")
-      .map((s) => s.trim()),
-    timeout:
-      Number.parseInt(process.env.NITRO_SHUTDOWN_TIMEOUT || "", 10) || 30_000,
-    forceExit: !process.env.NITRO_SHUTDOWN_NO_FORCE_EXIT,
-  };
+/**
+ * Call the Nitro `close` hooks when the server shuts down.
+ *
+ * srvx handles graceful shutdown on `SIGINT` and `SIGTERM` by calling `server.close()`,
+ * with no knowledge of Nitro hooks. Wrapping `close` covers both the signal path and
+ * explicit `server.close()` calls, and keeps hooks awaited as part of the shutdown.
+ *
+ * Hooks run once (a forced close after the graceful timeout awaits the same call) and
+ * also run if the underlying close fails.
+ */
+export function setupCloseHooks(server: Server): void {
+  const closeServer = server.close.bind(server);
+  let closeHooks: Promise<void> | undefined;
+  server.close = (closeActiveConnections?: boolean) =>
+    closeServer(closeActiveConnections).finally(() => (closeHooks ??= callCloseHooks()));
 }
 
-export function setupGracefulShutdown(
-  listener: HttpServer,
-  nitroApp: NitroApp
-) {
-  const shutdownConfig = getGracefulShutdownConfig();
-  if (shutdownConfig.disabled) {
-    return;
+async function callCloseHooks(): Promise<void> {
+  try {
+    await useNitroHooks().callHook("close");
+  } catch (error) {
+    console.error("[nitro] Error while calling `close` hooks:", error);
   }
-  // https://github.com/sebhildebrandt/http-graceful-shutdown
-  gracefulShutdown(listener, {
-    signals: shutdownConfig.signals.join(" "),
-    timeout: shutdownConfig.timeout,
-    forceExit: shutdownConfig.forceExit,
-    onShutdown: async () => {
-      await new Promise<void>((resolve) => {
-        const timeout = setTimeout(() => {
-          console.warn("Graceful shutdown timeout, force exiting...");
-          resolve();
-        }, shutdownConfig.timeout);
-        nitroApp.hooks
-          .callHook("close")
-          .catch((error) => {
-            console.error(error);
-          })
-          .finally(() => {
-            clearTimeout(timeout);
-            resolve();
-          });
-      });
-    },
-  });
 }

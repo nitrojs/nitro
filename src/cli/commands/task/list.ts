@@ -1,11 +1,11 @@
 import { defineCommand } from "citty";
 import { consola } from "consola";
-import { listTasks, loadOptions } from "nitro";
+import { listTasks, loadOptions } from "nitro/builder";
 import { resolve } from "pathe";
 
 export default defineCommand({
   meta: {
-    name: "run",
+    name: "list",
     description: "List available tasks (experimental)",
   },
   args: {
@@ -23,11 +23,7 @@ export default defineCommand({
       buildDir: options?.buildDir || ".nitro",
     });
     for (const [name, task] of Object.entries(tasks)) {
-      consola.log(
-        ` - \`${name}\`${
-          task.meta?.description ? ` - ${task.meta.description}` : ""
-        }`
-      );
+      consola.log(` - \`${name}\`${task.meta?.description ? ` - ${task.meta.description}` : ""}`);
     }
   },
 });

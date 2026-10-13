@@ -1,35 +1,28 @@
-import "#nitro-internal-pollyfills";
+import "#nitro/virtual/polyfills";
 import type { fetch } from "@cloudflare/workers-types";
 import wsAdapter from "crossws/adapters/cloudflare";
-import { useNitroApp } from "nitro/runtime";
-import { isPublicAssetURL } from "#nitro-internal-virtual/public-assets";
-import { createHandler } from "./_module-handler";
 
-const nitroApp = useNitroApp();
+import { isPublicAssetURL } from "#nitro/virtual/public-assets";
+import { createHandler } from "./_module-handler.ts";
+import { resolveWebsocketHooks } from "#nitro/runtime/app";
 
-const ws = import.meta._websocket
-  ? // @ts-expect-error
-    wsAdapter(nitroApp.h3App.websocket)
-  : undefined;
+const ws = import.meta._websocket ? wsAdapter({ resolve: resolveWebsocketHooks }) : undefined;
 
 interface Env {
   ASSETS?: { fetch: typeof fetch };
 }
 
 export default createHandler<Env>({
-  fetch(request, env, context, url) {
+  fetch(cfRequest, env, context, url) {
     // Static assets fallback (optional binding)
     if (env.ASSETS && isPublicAssetURL(url.pathname)) {
-      return env.ASSETS.fetch(request);
+      return env.ASSETS.fetch(cfRequest as any);
     }
 
     // Websocket upgrade
     // https://crossws.unjs.io/adapters/cloudflare
-    if (
-      import.meta._websocket &&
-      request.headers.get("upgrade") === "websocket"
-    ) {
-      return ws!.handleUpgrade(request as any, env, context);
+    if (import.meta._websocket && cfRequest.headers.get("upgrade") === "websocket") {
+      return ws!.handleUpgrade(cfRequest, env, context);
     }
   },
 });

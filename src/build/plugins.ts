@@ -1,200 +1,113 @@
-import type { Nitro, NodeExternalsOptions } from "nitro/types";
+import type { Nitro, NitroBuildPlugin, NitroBuildPluginOption } from "nitro/types";
 import type { Plugin } from "rollup";
-import type { BaseBuildConfig } from "./config";
-import { pathToFileURL } from "node:url";
-import { builtinModules } from "node:module";
-import { isAbsolute, dirname } from "pathe";
-import { hash } from "ohash";
-import { defu } from "defu";
-import { resolveModulePath } from "exsolve";
-import { runtimeDir, runtimeDependencies } from "nitro/runtime/meta";
-import unimportPlugin from "unimport/unplugin";
-import { rollup as unwasm } from "unwasm/plugin";
-import { database } from "./plugins/database";
-import { routing } from "./plugins/routing";
-import { routeMeta } from "./plugins/route-meta";
-import { serverMain } from "./plugins/server-main";
-import { publicAssets } from "./plugins/public-assets";
-import { raw } from "./plugins/raw";
-import { serverAssets } from "./plugins/server-assets";
-import { storage } from "./plugins/storage";
-import { virtual } from "./plugins/virtual";
-import { errorHandler } from "./plugins/error-handler";
-import { externals } from "./plugins/externals";
+import type { BaseBuildConfig } from "./config.ts";
 
-export function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
+import { virtualTemplates } from "./virtual/_all.ts";
+import replace from "@rollup/plugin-replace";
+import { unwasm } from "unwasm/plugin";
+import { routeMeta } from "./plugins/route-meta.ts";
+import { serverMain } from "./plugins/server-main.ts";
+import { virtual, virtualDeps } from "./plugins/virtual.ts";
+import { sourcemap } from "./plugins/sourcemap.ts";
+import { raw, RESOLVED_RE as rawModulesRE } from "./plugins/raw.ts";
+import { importAttributes } from "./plugins/import-attributes.ts";
+import { externals } from "./plugins/externals.ts";
+import { unenv } from "./plugins/unenv.ts";
+
+export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const plugins: Plugin[] = [];
 
-  // Auto imports
-  if (nitro.options.imports) {
-    plugins.push(unimportPlugin.rollup(nitro.options.imports) as Plugin);
-  }
+  // Virtual
+  const virtualPlugin = virtual(virtualTemplates(nitro, [...base.env.polyfills]));
+  nitro.vfs = virtualPlugin.api.modules;
+  plugins.push(virtualPlugin, virtualDeps());
 
-  // Raw asset loader
-  plugins.push(raw());
+  // Node.js compatibility polyfills (resolved on demand)
+  plugins.push(unenv(nitro, base.env));
 
   // WASM loader
-  if (nitro.options.experimental.wasm) {
+  if (nitro.options.wasm !== false) {
     plugins.push(unwasm(nitro.options.wasm || {}));
   }
 
-  // Inject gloalThis.__server_main__
+  // Inject globalThis.__server_main__
   plugins.push(serverMain(nitro));
 
-  // Nitro Plugins
-  const nitroPlugins = [...new Set(nitro.options.plugins)];
-  plugins.push(
-    virtual(
-      {
-        "#nitro-internal-virtual/plugins": /* js */ `
-  ${nitroPlugins
-    .map(
-      (plugin) => `import _${hash(plugin).replace(/-/g, "")} from '${plugin}';`
-    )
-    .join("\n")}
-
-  export const plugins = [
-    ${nitroPlugins.map((plugin) => `_${hash(plugin).replace(/-/g, "")}`).join(",\n")}
-  ]
-      `,
-      },
-      nitro.vfs
-    )
-  );
-
-  // Server assets
-  plugins.push(serverAssets(nitro));
-
-  // Public assets
-  plugins.push(publicAssets(nitro));
-
-  // Storage
-  plugins.push(storage(nitro));
-
-  // Database
-  plugins.push(database(nitro));
-
-  // Routing
-  plugins.push(routing(nitro));
+  // Raw Imports
+  plugins.push(await importAttributes({ rootDir: nitro.options.rootDir }), raw());
 
   // Route meta
   if (nitro.options.experimental.openAPI) {
-    plugins.push(routeMeta(nitro));
+    plugins.push(await routeMeta(nitro));
   }
 
-  // Error handler
-  plugins.push(errorHandler(nitro));
+  // Replace
+  const replacePlugin = (replace as unknown as typeof replace.default)({
+    preventAssignment: true,
+    values: base.replacements,
+    // Raw modules hold file contents as string literals; replacing inside them
+    // corrupts the content (and can break the syntax with quoted values)
+    exclude: rawModulesRE,
+  });
+  // The plugin re-applies replacements on whole chunks, where raw module contents
+  // can no longer be excluded by id. All replaceable code goes through `transform`.
+  delete replacePlugin.renderChunk;
+  plugins.push(replacePlugin);
 
-  // Polyfill
-  plugins.push(
-    virtual(
-      {
-        "#nitro-internal-pollyfills":
-          base.env.polyfill.map((p) => /* js */ `import '${p}';`).join("\n") ||
-          /* js */ `/* No polyfills */`,
-      },
-      nitro.vfs
-    )
-  );
-
-  // User virtuals
-  plugins.push(virtual(nitro.options.virtual, nitro.vfs));
-
-  // Externals Plugin
-  if (nitro.options.noExternals) {
-    plugins.push({
-      name: "no-externals",
-      async resolveId(id, importer, resolveOpts) {
-        if (resolveOpts.custom?.skipNoExternals) {
-          return;
-        }
-        id = base.aliases[id] || id;
-        if (
-          base.env.external.includes(id) ||
-          (nitro.options.node &&
-            (id.startsWith("node:") || builtinModules.includes(id)))
-        ) {
-          return { id, external: true };
-        }
-        const resolved = await this.resolve(id, importer, resolveOpts);
-        if (!resolved) {
-          const _resolved = resolveModulePath(id, {
-            try: true,
-            from:
-              importer && isAbsolute(importer)
-                ? [pathToFileURL(importer), ...nitro.options.nodeModulesDirs]
-                : nitro.options.nodeModulesDirs,
-            suffixes: ["", "/index"],
-            extensions: [".mjs", ".cjs", ".js", ".mts", ".cts", ".ts", ".json"],
-            conditions: [
-              "default",
-              nitro.options.dev ? "development" : "production",
-              "node",
-              "import",
-              "require",
-            ],
-          });
-          if (_resolved) {
-            return { id: _resolved, external: false };
-          }
-        }
-        if (!resolved || (resolved.external && !id.endsWith(".wasm"))) {
-          throw new Error(
-            `Cannot resolve ${JSON.stringify(id)} from ${JSON.stringify(
-              importer
-            )} and externals are not allowed!`
-          );
-        }
-      },
-    });
-  } else {
+  // Externals (require Node.js compatible resolution)
+  if (nitro.options.node && nitro.options.noExternals !== true) {
+    const isDevOrPrerender = nitro.options.dev || nitro.options.preset === "nitro-prerender";
     plugins.push(
-      externals(
-        defu(nitro.options.externals, <NodeExternalsOptions>{
-          outDir: nitro.options.output.serverDir,
-          moduleDirectories: nitro.options.nodeModulesDirs,
-          external: [
-            ...(nitro.options.dev ? [nitro.options.buildDir] : []),
-            ...nitro.options.nodeModulesDirs,
-          ],
-          inline: [
-            "#",
-            "~",
-            "@/",
-            "~~",
-            "@@/",
-            "virtual:",
-            "nitro/runtime",
-            "nitro/runtime",
-            dirname(nitro.options.entry),
-            ...(nitro.options.experimental.wasm
-              ? [(id: string) => id?.endsWith(".wasm")]
-              : []),
-            runtimeDir,
-            nitro.options.srcDir,
-            ...nitro.options.handlers
-              .map((m) => m.handler)
-              .filter((i) => typeof i === "string"),
-            ...(nitro.options.dev ||
-            nitro.options.preset === "nitro-prerender" ||
-            nitro.options.experimental.bundleRuntimeDependencies === false
-              ? []
-              : runtimeDependencies),
-          ],
-          traceOptions: {
-            base: "/",
-            processCwd: nitro.options.rootDir,
-            exportsOnly: true,
-          },
-          traceAlias: {
-            "h3-nightly": "h3",
-            ...nitro.options.externals?.traceAlias,
-          },
-          exportConditions: nitro.options.exportConditions,
-        })
-      )
+      externals({
+        rootDir: nitro.options.rootDir,
+        conditions: nitro.options.exportConditions!,
+        include: nitro.options.traceDeps || [],
+        exclude: [...base.noExternal],
+        trace: isDevOrPrerender
+          ? false
+          : {
+              ...nitro.options.traceOpts,
+              outDir: nitro.options.output.serverDir,
+            },
+      })
     );
   }
 
+  // Sourcemap
+  if (nitro.options.sourcemap && !nitro.options.dev) {
+    plugins.push(
+      sourcemap({
+        virtualIds: virtualPlugin.api.modules.keys(),
+        minify: nitro.options.experimental.sourcemapMinify !== false,
+      })
+    );
+  }
+
+  return plugins;
+}
+
+/** Nitro's `plugins` wrapped with the `buildPlugins` (ordered by `enforce`). */
+export async function withBuildPlugins<T>(nitro: Nitro, plugins: T[]): Promise<T[]> {
+  const buildPlugins = await resolveBuildPlugins(nitro);
+  const byEnforce = (enforce?: "pre" | "post") =>
+    buildPlugins.filter((p) => p.enforce === enforce) as T[];
+  return [...byEnforce("pre"), ...plugins, ...byEnforce(), ...byEnforce("post")];
+}
+
+/** Flattened `buildPlugins` (nested arrays and promises resolved, falsy entries skipped). */
+export async function resolveBuildPlugins(nitro: Nitro): Promise<NitroBuildPlugin[]> {
+  return flatPlugins(nitro.options.buildPlugins || []);
+}
+
+async function flatPlugins(options: NitroBuildPluginOption[]): Promise<NitroBuildPlugin[]> {
+  const plugins: NitroBuildPlugin[] = [];
+  for (const entry of options) {
+    const option = await entry;
+    if (Array.isArray(option)) {
+      plugins.push(...(await flatPlugins(option)));
+    } else if (option) {
+      plugins.push(option);
+    }
+  }
   return plugins;
 }

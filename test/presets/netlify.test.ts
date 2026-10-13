@@ -2,8 +2,8 @@ import { promises as fsp } from "node:fs";
 import type { Context as FunctionContext } from "@netlify/functions";
 import { resolve } from "pathe";
 import { describe, expect, it } from "vitest";
-import { getStaticPaths } from "../../src/presets/netlify/utils";
-import { getPresetTmpDir, setupTest, testNitro } from "../tests";
+import { getStaticPaths } from "../../src/presets/netlify/utils.ts";
+import { getPresetTmpDir, setupTest, testNitro } from "../tests.ts";
 
 describe("nitro:preset:netlify", async () => {
   const ctx = await setupTest("netlify", {
@@ -21,9 +21,7 @@ describe("nitro:preset:netlify", async () => {
   testNitro(
     ctx,
     async () => {
-      const { default: handler } = (await import(
-        resolve(ctx.outDir, "server/main.mjs")
-      )) as {
+      const { default: handler } = (await import(resolve(ctx.outDir, "server/main.mjs"))) as {
         default: (req: Request, _ctx: FunctionContext) => Promise<Response>;
       };
       return async ({ url: rawRelativeUrl, headers, method, body }) => {
@@ -40,39 +38,34 @@ describe("nitro:preset:netlify", async () => {
     },
     (_ctx, callHandler) => {
       it("adds route rules - redirects", async () => {
-        const redirects = await fsp.readFile(
-          resolve(ctx.outDir, "../dist/_redirects"),
-          "utf8"
-        );
+        const redirects = await fsp.readFile(resolve(ctx.outDir, "../dist/_redirects"), "utf8");
 
         expect(redirects).toMatchInlineSnapshot(`
-        "/rules/nested/override	/other	302
-        /rules/redirect/wildcard/*	https://nitro.build/:splat	302
-        /rules/redirect/obj	https://nitro.build/	301
-        /rules/nested/*	/base	302
-        /rules/redirect	/base	302
-        "
+          "/rules/nested/override	/other	302
+          /rules/nested/*	/base	302
+          /rules/redirect	/base	302
+          /rules/redirect/legacy/*	/:splat	302
+          /rules/redirect/wildcard-query/*	/target?param=:splat	301
+          /rules/redirect/wildcard/*	https://nitro.build/:splat	302
+          /rules/redirect/obj	https://nitro.build/	301
+          "
         `);
       });
 
       it("adds route rules - headers", async () => {
-        const headers = await fsp.readFile(
-          resolve(ctx.outDir, "../dist/_headers"),
-          "utf8"
-        );
+        const headers = await fsp.readFile(resolve(ctx.outDir, "../dist/_headers"), "utf8");
 
         expect(headers).toMatchInlineSnapshot(`
-          "/rules/headers
-            cache-control: s-maxage=60
-          /rules/cors
-            access-control-allow-origin: *
-            access-control-allow-methods: GET
-            access-control-allow-headers: *
-            access-control-max-age: 0
+          "/build/*
+            cache-control: public, max-age=3600, immutable
+          /single-headers/*
+            x-single: single
           /rules/nested/*
             x-test: test
-          /build/*
-            cache-control: public, max-age=3600, immutable
+          /rules/cors
+            access-control-allow-methods: GET
+          /rules/headers
+            cache-control: s-maxage=60
           /*
             x-test: test
           "
@@ -103,7 +96,7 @@ describe("nitro:preset:netlify", async () => {
           "export { default } from "./main.mjs";
           export const config = {
             name: "server handler",
-            generator: "nitro@2.x",
+            generator: "nitro@3.x",
             path: "/*",
             nodeBundler: "none",
             includedFiles: ["**"],
@@ -116,9 +109,9 @@ describe("nitro:preset:netlify", async () => {
       describe("matching ISR route rule with no max-age", () => {
         it("sets Netlify-CDN-Cache-Control header with revalidation after 1 year and durable directive", async () => {
           const { headers } = await callHandler({ url: "/rules/isr" });
-          expect(
-            (headers as Record<string, string>)["netlify-cdn-cache-control"]
-          ).toBe("public, max-age=31536000, must-revalidate, durable");
+          expect((headers as Record<string, string>)["netlify-cdn-cache-control"]).toBe(
+            "public, max-age=31536000, must-revalidate, durable"
+          );
         });
 
         it("sets Cache-Control header with immediate revalidation", async () => {
@@ -132,9 +125,7 @@ describe("nitro:preset:netlify", async () => {
       describe("matching ISR route rule with a max-age", () => {
         it("sets Netlify-CDN-Cache-Control header with SWC=1yr, given max-age, and durable directive", async () => {
           const { headers } = await callHandler({ url: "/rules/isr-ttl" });
-          expect(
-            (headers as Record<string, string>)["netlify-cdn-cache-control"]
-          ).toBe(
+          expect((headers as Record<string, string>)["netlify-cdn-cache-control"]).toBe(
             "public, max-age=60, stale-while-revalidate=31536000, durable"
           );
         });
@@ -149,12 +140,8 @@ describe("nitro:preset:netlify", async () => {
 
       it("does not overwrite Cache-Control headers given a matching non-ISR route rule", async () => {
         const { headers } = await callHandler({ url: "/rules/dynamic" });
-        expect(
-          (headers as Record<string, string>)["cache-control"]
-        ).not.toBeDefined();
-        expect(
-          (headers as Record<string, string>)["netlify-cdn-cache-control"]
-        ).not.toBeDefined();
+        expect((headers as Record<string, string>)["cache-control"]).not.toBeDefined();
+        expect((headers as Record<string, string>)["netlify-cdn-cache-control"]).not.toBeDefined();
       });
 
       // Regression test for https://github.com/nitrojs/nitro/issues/2431
@@ -162,9 +149,9 @@ describe("nitro:preset:netlify", async () => {
         const { headers } = await callHandler({
           url: "/rules/isr-ttl?foo=bar",
         });
-        expect(
-          (headers as Record<string, string>)["netlify-cdn-cache-control"]
-        ).toBe("public, max-age=60, stale-while-revalidate=31536000, durable");
+        expect((headers as Record<string, string>)["netlify-cdn-cache-control"]).toBe(
+          "public, max-age=60, stale-while-revalidate=31536000, durable"
+        );
       });
     }
   );

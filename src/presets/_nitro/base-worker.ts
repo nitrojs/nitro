@@ -1,4 +1,4 @@
-import { defineNitroPreset } from "../_utils/preset";
+import { defineNitroPreset } from "../_utils/preset.ts";
 
 const baseWorker = defineNitroPreset(
   {
@@ -18,7 +18,6 @@ const baseWorker = defineNitroPreset(
   },
   {
     name: "base-worker" as const,
-    url: import.meta.url,
   }
 );
 

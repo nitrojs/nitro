@@ -1,11 +1,10 @@
 {
-  "name": "example-custom-error-handler",
-  "private": true,
+  "type": "module",
   "scripts": {
     "dev": "nitro dev",
     "build": "nitro build"
   },
   "devDependencies": {
-    "nitropack": "latest"
+    "nitro": "latest"
   }
 }

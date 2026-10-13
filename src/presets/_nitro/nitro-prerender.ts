@@ -1,17 +1,16 @@
-import { defineNitroPreset } from "../_utils/preset";
+import { defineNitroPreset } from "../_utils/preset.ts";
 
 const nitroPrerender = defineNitroPreset(
   {
-    entry: "./runtime/nitro-prerenderer",
+    entry: "./_nitro/runtime/nitro-prerenderer",
     serveStatic: true,
     output: {
       serverDir: "{{ buildDir }}/prerender",
     },
-    externals: { trace: false },
+    externals: { noTrace: true },
   },
   {
     name: "nitro-prerender" as const,
-    url: import.meta.url,
   }
 );
 

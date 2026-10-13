@@ -1,19 +1,25 @@
-import { createJiti } from "jiti";
 import type { Nitro, NitroModule, NitroModuleInput } from "nitro/types";
+import { resolveModuleURL } from "exsolve";
 
-export async function installModules(nitro: Nitro) {
-  const _modules = [...(nitro.options.modules || [])];
-  const modules = await Promise.all(
-    _modules.map((mod) => _resolveNitroModule(mod, nitro.options))
-  );
-  const _installedURLs = new Set<string>();
+// Modules already installed for a Nitro instance, keyed by resolved URL (string inputs)
+// or by `setup` identity (inline modules) to keep `installModules` idempotent.
+// (config loading clones module objects, but keeps the `setup` reference)
+const installedModules = new WeakMap<Nitro, Set<unknown>>();
+
+export async function installModules(nitro: Nitro, moduleInputs?: NitroModuleInput[]) {
+  const _modules = [...(moduleInputs ?? nitro.options.modules ?? [])];
+  const modules = await Promise.all(_modules.map((mod) => _resolveNitroModule(mod, nitro.options)));
+  let _installed = installedModules.get(nitro);
+  if (!_installed) {
+    _installed = new Set();
+    installedModules.set(nitro, _installed);
+  }
   for (const mod of modules) {
-    if (mod._url) {
-      if (_installedURLs.has(mod._url)) {
-        continue;
-      }
-      _installedURLs.add(mod._url);
+    const key = mod._url ?? mod.setup;
+    if (_installed.has(key)) {
+      continue;
     }
+    _installed.add(key);
     await mod.setup(nitro);
   }
 }
@@ -25,26 +31,23 @@ async function _resolveNitroModule(
   let _url: string | undefined;
 
   if (typeof mod === "string") {
-    // @ts-ignore
-    globalThis.defineNitroModule =
-      // @ts-ignore
-      globalThis.defineNitroModule || ((mod) => mod);
-
-    const jiti = createJiti(nitroOptions.rootDir, {
-      alias: nitroOptions.alias,
+    _url = resolveModuleURL(mod, {
+      from: [nitroOptions.rootDir],
+      extensions: [".mjs", ".cjs", ".js", ".mts", ".cts", ".ts"],
     });
-    const _modPath = jiti.esmResolve(mod);
-    _url = _modPath;
-    mod = (await jiti.import(_modPath, { default: true })) as NitroModule;
+    mod = (await import(_url).then((m: any) => m.default || m)) as NitroModule;
   }
 
   if (typeof mod === "function") {
     mod = { setup: mod };
   }
 
+  if ("nitro" in mod) {
+    mod = mod.nitro;
+  }
+
   if (!mod.setup) {
-    // TODO: Warn?
-    mod.setup = () => {};
+    throw new Error("Invalid Nitro module: missing setup() function.");
   }
 
   return {

@@ -1,59 +1,120 @@
 import type { ViteBuilder } from "vite";
-import type { NitroPluginContext } from "./types";
+import type { NitroPluginContext } from "./types.ts";
 
-import { relative } from "pathe";
+import { basename, dirname, resolve } from "pathe";
 import { formatCompatibilityDate } from "compatx";
-import { copyPublicAssets, prerender } from "../..";
-import { nitroServerName } from "../../utils/nitro";
+import { colors as C } from "consola/utils";
+import { copyPublicAssets, prerender } from "../../builder.ts";
+import { existsSync } from "node:fs";
+import { writeBuildInfo } from "../info.ts";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { isTest, isCI } from "std-env";
+import type { RolldownOutput } from "rolldown";
 
-export async function buildEnvironments(
-  ctx: NitroPluginContext,
-  builder: ViteBuilder
-) {
+const BuilderNames = {
+  nitro: C.magenta("Nitro"),
+  client: C.green("Client"),
+  ssr: C.blue("SSR"),
+} as Record<string, string>;
+
+export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBuilder) {
   const nitro = ctx.nitro!;
 
-  // Build all environments before the final Nitro server bundle
-  for (const [name, env] of Object.entries(builder.environments)) {
+  // ----------------------------------------------
+  // Stage 1: Build all environments before Nitro
+  // ----------------------------------------------
+
+  for (const [envName, env] of Object.entries(builder.environments)) {
     // prettier-ignore
-    const fmtName = name.length <= 3 ? name.toUpperCase() : name[0].toUpperCase() + name.slice(1);
-    if (
-      name === "nitro" ||
-      !env.config.build.rollupOptions.input ||
-      env.isBuilt
-    ) {
-      if (!["nitro", "ssr", "client"].includes(name)) {
+    const fmtName = BuilderNames[envName] || (envName.length <= 3 ? envName.toUpperCase() : envName[0].toUpperCase() + envName.slice(1));
+    if (envName === "nitro" || !env.config.build.rollupOptions.input || env.isBuilt) {
+      if (!["nitro", "ssr", "client"].includes(envName)) {
         nitro.logger.info(
           env.isBuilt
-            ? `Skipping \`${fmtName}\` (already built)`
-            : `Skipping \`${fmtName}\` (no input defined)`
+            ? `Skipping ${fmtName} (already built)`
+            : `Skipping ${fmtName} (no input defined)`
         );
       }
       continue;
     }
-    nitro.logger.start(`Building \`${fmtName}\`...`);
+    if (!isTest && !isCI) console.log();
+    nitro.logger.start(`Building [${fmtName}]`);
     await builder.build(env);
   }
 
-  nitro.logger.start(
-    `Building \`${nitroServerName(nitro)}\` (preset: \`${nitro.options.preset}\`, compatibility date: \`${formatCompatibilityDate(nitro.options.compatibilityDate)}\`)`
-  );
+  // Use transformed client input for renderer template generation
+  const nitroOptions = ctx.nitro!.options;
+  const clientInput = builder.environments.client?.config?.build?.rollupOptions?.input;
+  if (nitroOptions.renderer?.template && nitroOptions.renderer?.template === clientInput) {
+    const outputPath = resolve(nitroOptions.output.publicDir, basename(clientInput as string));
+    if (existsSync(outputPath)) {
+      const html = await readFile(outputPath, "utf8").then((r) =>
+        r.replace("<!--ssr-outlet-->", `{{{ fetchViteEnv("ssr", $REQUEST) || "" }}}`)
+      );
+      await rm(outputPath);
+      const tmp = resolve(nitroOptions.buildDir, "vite/index.html");
+      await mkdir(dirname(tmp), { recursive: true });
+      await writeFile(tmp, html, "utf8");
+      nitroOptions.renderer.template = tmp;
+    }
+  }
 
-  // Call the rollup:before hook for compatibility
-  await nitro.hooks.callHook(
-    "rollup:before",
-    nitro,
-    builder.environments.nitro.config.build.rollupOptions as any
+  // Extended builder API by assets plugin
+  // https://github.com/hi-ogawa/vite-plugins/pull/1288
+  await builder.writeAssetsManifest?.();
+
+  // ----------------------------------------------
+  // Stage 2: Build Nitro
+  // ----------------------------------------------
+
+  if (!isTest && !isCI) console.log();
+  const buildInfo = [
+    ["preset", nitro.options.preset],
+    ["compatibility", formatCompatibilityDate(nitro.options.compatibilityDate)],
+  ].filter((e) => e[1]);
+  nitro.logger.start(
+    `Building [${BuilderNames.nitro}] ${C.dim(`(${buildInfo.map(([k, v]) => `${k}: \`${v}\``).join(", ")})`)}`
   );
 
   // Copy public assets to the final output directory
   await copyPublicAssets(nitro);
 
+  // Add route rule for asset dirs
+  const assetDirs = new Set(
+    Object.values(builder.environments)
+      .filter((env) => env.config.consumer === "client")
+      .map((env) => env.config.build.assetsDir)
+      .filter(Boolean) as string[]
+  );
+  for (const assetsDir of assetDirs) {
+    if (!existsSync(resolve(nitro.options.output.publicDir, assetsDir))) {
+      continue;
+    }
+    const rule = (ctx.nitro!.options.routeRules[`/${assetsDir}/**`] ??= {});
+    if (rule.headers !== false && !rule.headers?.["cache-control"]) {
+      rule.headers = {
+        ...rule.headers,
+        "cache-control": `public, max-age=31536000, immutable`,
+      };
+    }
+  }
+  ctx.nitro!.routing.sync();
+
   // Prerender routes if configured
-  // TODO
-  // await prerender(nitro);
+  await prerender(nitro);
+
+  // Call vite:compile:before hook
+  await nitro.hooks.callHook("vite:compile:before", nitro);
 
   // Build the Nitro server bundle
-  await builder.build(builder.environments.nitro);
+  let output: RolldownOutput | undefined;
+  if (nitro.options.static) {
+    // Mark as built to opt out of Vite's fallback that builds every environment
+    // when a `buildApp` hook left all of them unbuilt.
+    builder.environments.nitro.isBuilt = true;
+  } else {
+    output = (await builder.build(builder.environments.nitro)) as RolldownOutput;
+  }
 
   // Close the Nitro instance
   await nitro.close();
@@ -61,63 +122,15 @@ export async function buildEnvironments(
   // Call compiled hook
   await nitro.hooks.callHook("compiled", nitro);
 
-  // Show deploy and preview commands
-  const rOutput = relative(process.cwd(), nitro.options.output.dir);
-  const rewriteRelativePaths = (input: string) => {
-    return input.replace(/([\s:])\.\/(\S*)/g, `$1${rOutput}/$2`);
-  };
-  if (nitro.options.commands.preview) {
-    nitro.logger.success(
-      `You can preview this build using \`${rewriteRelativePaths(
-        nitro.options.commands.preview
-      )}\``
-    );
-  }
-  if (nitro.options.commands.deploy) {
-    nitro.logger.success(
-      `You can deploy this build using \`${rewriteRelativePaths(
-        nitro.options.commands.deploy
-      )}\``
-    );
-  }
-}
+  // Write build info
+  await writeBuildInfo(nitro, output);
 
-export function prodEntry(ctx: NitroPluginContext): string {
-  const services = ctx.pluginConfig.services || {};
-  const serviceNames = Object.keys(services);
-  const result = [
-    // Fetchable services
-    `const services = { ${serviceNames.map((name) => `[${JSON.stringify(name)}]: () => import("${ctx._entryPoints[name]}")`)}};`,
-    /* js */ `
-              const serviceHandlers = {};
-              const originalFetch = globalThis.fetch;
-              globalThis.fetch = (input, init) => {
-                const { viteEnv } = init || {};
-                if (!viteEnv) {
-                  return originalFetch(input, init);
-                }
-                if (typeof input === "string" && input[0] === "/") {
-                  input = new URL(input, "http://localhost");
-                }
-                const req = new Request(input, init);
-                if (serviceHandlers[viteEnv]) {
-                  return Promise.resolve(serviceHandlers[viteEnv](req));
-                }
-                if (!services[viteEnv]) {
-                  return new Response("Service not found: " + viteEnv, { status: 404 });
-                }
-                return services[viteEnv]().then((mod) => {
-                  const fetchHandler = mod.fetch || mod.default?.fetch;
-                  serviceHandlers[viteEnv] = fetchHandler;
-                  return fetchHandler(req);
-                });
-              };
-            `,
-    // TODO: expose resolveEntry utility to resolve entry points
-    // SSR Manifest
-    ctx._manifest
-      ? `globalThis.__VITE_MANIFEST__ = ${JSON.stringify(ctx._manifest)};`
-      : "",
-  ].join("\n");
-  return result;
+  // Show deploy and preview commands
+  if (!isTest && !isCI) console.log();
+  const previewCommand = nitro.options.framework.previewCommand || "npx vite preview";
+  nitro.logger.success(`You can preview this build using \`${previewCommand}\``);
+  if (nitro.options.commands.deploy) {
+    const deployCommand = nitro.options.framework.deployCommand || "npx nitro deploy --prebuilt";
+    nitro.logger.success(`You can deploy this build using \`${deployCommand}\``);
+  }
 }

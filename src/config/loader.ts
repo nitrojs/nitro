@@ -1,41 +1,36 @@
 import { loadConfig, watchConfig } from "c12";
 import consola from "consola";
+import { createDefu } from "defu";
 import { resolveCompatibilityDates } from "compatx";
 import type { CompatibilityDateSpec } from "compatx";
 import { klona } from "klona/full";
-import type { PresetName } from "nitro/presets";
-import type {
-  LoadConfigOptions,
-  NitroConfig,
-  NitroOptions,
-  NitroPresetMeta,
-} from "nitro/types";
+import type { PresetName } from "../presets/index.ts";
+import type { LoadConfigOptions, NitroConfig, NitroOptions, NitroPresetMeta } from "nitro/types";
 
-import { NitroDefaults } from "./defaults";
+import { NitroDefaults } from "./defaults.ts";
 
 // Resolvers
-import { resolveAssetsOptions } from "./resolvers/assets";
-import {
-  fallbackCompatibilityDate,
-  resolveCompatibilityOptions,
-} from "./resolvers/compatibility";
-import { resolveDatabaseOptions } from "./resolvers/database";
-import { resolveExportConditionsOptions } from "./resolvers/export-conditions";
-import { resolveImportsOptions } from "./resolvers/imports";
-import { resolveOpenAPIOptions } from "./resolvers/open-api";
-import { resolvePathOptions } from "./resolvers/paths";
-import { resolveRouteRulesOptions } from "./resolvers/route-rules";
-import { resolveRuntimeConfigOptions } from "./resolvers/runtime-config";
-import { resolveStorageOptions } from "./resolvers/storage";
-import { resolveURLOptions } from "./resolvers/url";
-import { resolveErrorOptions } from "./resolvers/error";
-import { resolveUnenv } from "./resolvers/unenv";
-import { resolveBuilder } from "./resolvers/builder";
+import { resolveAssetsOptions } from "./resolvers/assets.ts";
+import { resolveCompatibilityOptions } from "./resolvers/compatibility.ts";
+import { resolveDatabaseOptions } from "./resolvers/database.ts";
+import { resolveExportConditionsOptions } from "./resolvers/export-conditions.ts";
+import { resolveOpenAPIOptions } from "./resolvers/open-api.ts";
+import { resolveTsconfig } from "./resolvers/tsconfig.ts";
+import { resolvePathOptions } from "./resolvers/paths.ts";
+import { resolveRouteRulesOptions } from "./resolvers/route-rules.ts";
+import { resolveRuntimeConfigOptions } from "./resolvers/runtime-config.ts";
+import { resolveKVOptions } from "./resolvers/kv.ts";
+import { resolveCacheOptions } from "./resolvers/cache.ts";
+import { resolveURLOptions } from "./resolvers/url.ts";
+import { resolveErrorOptions } from "./resolvers/error.ts";
+import { resolveUnenv } from "./resolvers/unenv.ts";
+import { resolveBuilder } from "./resolvers/builder.ts";
+import { resolveTracingChannelOptions } from "./resolvers/tracing.ts";
 
 const configResolvers = [
   resolveCompatibilityOptions,
+  resolveTsconfig,
   resolvePathOptions,
-  resolveImportsOptions,
   resolveRouteRulesOptions,
   resolveDatabaseOptions,
   resolveExportConditionsOptions,
@@ -43,10 +38,12 @@ const configResolvers = [
   resolveOpenAPIOptions,
   resolveURLOptions,
   resolveAssetsOptions,
-  resolveStorageOptions,
+  resolveKVOptions,
+  resolveCacheOptions,
   resolveErrorOptions,
   resolveUnenv,
   resolveBuilder,
+  resolveTracingChannelOptions,
 ] as const;
 
 export async function loadOptions(
@@ -79,16 +76,22 @@ async function _loadUserConfig(
       process.env.COMPATIBILITY_DATE) as CompatibilityDateSpec);
 
   // Preset resolver
-  const { resolvePreset } = (await import(
-    "nitro/" + "presets"
-  )) as typeof import("nitro/presets");
+  const { resolvePreset } = await import("../presets/index.ts");
 
   // prettier-ignore
-  let preset: string | undefined = (configOverrides.preset as string) || process.env.NITRO_PRESET || process.env.SERVER_PRESET
+  let preset: string | undefined = (configOverrides.preset as string) || process.env.NITRO_PRESET || process.env.SERVER_PRESET;
 
-  const _dotenv =
-    opts.dotenv ??
-    (configOverrides.dev && { fileName: [".env", ".env.local"] });
+  // Inline `defaultPreset` object resolved during auto-detection (injected via `resolve`)
+  let inlineDefaultPreset: (NitroConfig & { _meta?: NitroPresetMeta }) | undefined;
+
+  const _dotenv = opts.dotenv ?? { fileName: [".env", ".env.local"] };
+  const envName =
+    opts.c12?.envName ??
+    (configOverrides.dev
+      ? "development"
+      : configOverrides.preset === "nitro-prerender"
+        ? ["production", "prerender"]
+        : "production");
   const loadedConfig = await (
     opts.watch
       ? watchConfig<NitroConfig & { _meta?: NitroPresetMeta }>
@@ -97,14 +100,10 @@ async function _loadUserConfig(
     name: "nitro",
     cwd: configOverrides.rootDir,
     dotenv: _dotenv,
+    envName,
     extend: { extendKey: ["extends", "preset"] },
     defaults: NitroDefaults,
-    jitiOptions: {
-      alias: {
-        nitropack: "nitro/config",
-        "nitro/config": "nitro/config",
-      },
-    },
+    envMerger: mergeEnvConfig,
     async overrides({ rawConfigs }) {
       // prettier-ignore
       const getConf = <K extends keyof NitroConfig>(key: K) => (configOverrides[key] ?? (rawConfigs.main as NitroConfig)?.[key] ?? (rawConfigs.rc as NitroConfig)?.[key] ?? (rawConfigs.packageJson as NitroConfig)?.[key]) as NitroConfig[K];
@@ -112,10 +111,6 @@ async function _loadUserConfig(
       if (!compatibilityDate) {
         compatibilityDate = getConf("compatibilityDate");
       }
-
-      // prettier-ignore
-      const framework = getConf("framework")
-      const isCustomFramework = framework?.name && framework.name !== "nitro";
 
       if (!preset) {
         preset = getConf("preset");
@@ -129,35 +124,39 @@ async function _loadUserConfig(
             ? await resolvePreset(preset, {
                 static: getConf("static"),
                 dev: true,
-                compatibilityDate:
-                  compatibilityDate || fallbackCompatibilityDate,
+                compatibilityDate: compatibilityDate || "latest",
               })
                 .then((p) => p?._meta?.name || "nitro-dev")
                 .catch(() => "nitro-dev")
             : "nitro-dev";
       } else if (!preset) {
-        // Auto detect production preset
-        preset = await resolvePreset("" /* auto detect */, {
+        // Auto detect production preset (with user-defined `defaultPreset` fallback)
+        const defaultPreset = getConf("defaultPreset");
+        const resolved = await resolvePreset("" /* auto detect */, {
           static: getConf("static"),
           dev: false,
-          compatibilityDate: compatibilityDate || fallbackCompatibilityDate,
-        }).then((p) => p?._meta?.name);
+          compatibilityDate: compatibilityDate || "latest",
+          defaultPreset,
+        });
+        preset = resolved?._meta?.name;
+        // An inline `defaultPreset` object has no resolvable name, inject it directly
+        if (resolved && defaultPreset && typeof defaultPreset !== "string") {
+          inlineDefaultPreset = resolved;
+        }
       }
 
       return {
         ...configOverrides,
         preset,
-        typescript: {
-          generateRuntimeConfigTypes: !isCustomFramework,
-          ...getConf("typescript"),
-          ...configOverrides.typescript,
-        },
       };
     },
     async resolve(id: string) {
+      if (inlineDefaultPreset && id === inlineDefaultPreset._meta?.name) {
+        return { config: klona(inlineDefaultPreset) };
+      }
       const preset = await resolvePreset(id, {
         static: configOverrides.static,
-        compatibilityDate: compatibilityDate || fallbackCompatibilityDate,
+        compatibilityDate: compatibilityDate || "latest",
         dev: configOverrides.dev,
       });
       if (preset) {
@@ -175,8 +174,7 @@ async function _loadUserConfig(
   options._c12 = loadedConfig;
 
   const _presetName =
-    (loadedConfig.layers || []).find((l) => l.config?._meta?.name)?.config
-      ?._meta?.name || preset;
+    (loadedConfig.layers || []).find((l) => l.config?._meta?.name)?.config?._meta?.name || preset;
   options.preset = _presetName as PresetName;
 
   options.compatibilityDate = resolveCompatibilityDates(
@@ -190,3 +188,19 @@ async function _loadUserConfig(
 
   return options;
 }
+
+const kvConfigKeys = new Set(["kv", "storage", "devStorage"]);
+
+// Env mounts (e.g. from `$development`) with a different driver replace the whole mount instead of deep merging options
+const mergeEnvConfig = createDefu((obj, key, value, namespace) => {
+  const current = obj[key] as { driver?: unknown } | undefined;
+  if (
+    kvConfigKeys.has(namespace) &&
+    value?.driver &&
+    current?.driver &&
+    value.driver !== current.driver
+  ) {
+    obj[key] = value;
+    return true;
+  }
+}) as (...sources: any[]) => any;

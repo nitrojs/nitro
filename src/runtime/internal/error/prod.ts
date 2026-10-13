@@ -1,79 +1,49 @@
-import type { H3Event, HTTPError, HTTPEvent } from "h3";
-import { getRequestURL } from "h3";
-import { defineNitroErrorHandler } from "./utils";
-import type { InternalHandlerResponse } from "./utils";
+import { HTTPError, type H3Event, type HTTPEvent } from "h3";
+import type { InternalHandlerResponse } from "./utils.ts";
 import { FastResponse } from "srvx";
+import type { NitroErrorHandler } from "nitro/types";
 
-export default defineNitroErrorHandler(
-  function defaultNitroErrorHandler(error, event) {
-    const res = defaultHandler(error, event);
-    return new FastResponse(JSON.stringify(res.body, null, 2), res);
-  }
-);
+const errorHandler: NitroErrorHandler = (error, event) => {
+  const res = defaultHandler(error, event);
+  return new FastResponse(
+    typeof res.body === "string" ? res.body : JSON.stringify(res.body, null, 2),
+    res
+  );
+};
 
-export function defaultHandler(
-  error: HTTPError,
-  event: HTTPEvent,
-  opts?: { silent?: boolean; json?: boolean }
-): InternalHandlerResponse {
-  const isSensitive = error.unhandled;
-  const status = error.status || 500;
-  // prettier-ignore
-  const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true })
+export default errorHandler;
+
+export function defaultHandler(error: HTTPError, event: HTTPEvent): InternalHandlerResponse {
+  const unhandled = error.unhandled ?? !HTTPError.isError(error);
+  const { status = 500, statusText = "" } = unhandled ? {} : error;
 
   if (status === 404) {
+    const url = (event as H3Event).url || new URL(event.req.url);
     const baseURL = import.meta.baseURL || "/";
     if (/^\/[^/]/.test(baseURL) && !url.pathname.startsWith(baseURL)) {
-      const redirectTo = `${baseURL}${url.pathname.slice(1)}${url.search}`;
       return {
         status: 302,
-        statusText: "Found",
-        headers: { location: redirectTo },
-        body: `Redirecting...`,
+        headers: new Headers({ location: `${baseURL}${url.pathname.slice(1)}${url.search}` }),
       };
     }
   }
 
-  // Console output
-  if (isSensitive && !opts?.silent) {
-    // prettier-ignore
-    const tags = [error.unhandled && "[unhandled]"].filter(Boolean).join(" ")
-    console.error(
-      `[request error] ${tags} [${event.req.method}] ${url}\n`,
-      error
-    );
-  }
+  const headers = new Headers(unhandled ? {} : error.headers);
+  headers.set("content-type", "application/json; charset=utf-8");
 
-  // Send response
-  const headers: HeadersInit = {
-    "content-type": "application/json",
-    // Prevent browser from guessing the MIME types of resources.
-    "x-content-type-options": "nosniff",
-    // Prevent error page from being embedded in an iframe
-    "x-frame-options": "DENY",
-    // Prevent browsers from sending the Referer header
-    "referrer-policy": "no-referrer",
-    // Disable the execution of any js
-    "content-security-policy": "script-src 'none'; frame-ancestors 'none';",
-  };
-
-  if (status === 404 || !(event as H3Event).res.headers.has("cache-control")) {
-    headers["cache-control"] = "no-cache";
-  }
-
-  const body = {
-    error: true,
-    url: url.href,
-    status,
-    statusText: error.statusText,
-    message: isSensitive ? "Server Error" : error.message,
-    data: isSensitive ? undefined : error.data,
-  };
+  const jsonBody = unhandled
+    ? { status, unhandled: true }
+    : typeof error.toJSON === "function"
+      ? error.toJSON()
+      : { status, statusText, message: error.message };
 
   return {
     status,
-    statusText: error.statusText,
+    statusText,
     headers,
-    body,
+    body: {
+      error: true,
+      ...jsonBody,
+    },
   };
 }

@@ -68,10 +68,10 @@ Temporary Items
 .vercel
 .amplify-hosting
 staticwebapp.config.json
-.eslintcache
 playground/firebase.json
 .zeabur
 .apphosting
+.edgeone
 
 test/fixture/functions
 .data
@@ -79,10 +79,5 @@ test/fixture/functions
 .pnpm-store
 .wrangler
 
-# mirror pkg
-.mirror
-
-# Generated types
-*.d.ts
-!runtime-meta.d.ts
-!src/types/**/*.d.ts
+CHANGELOG.md
+RELEASE_NOTES.md

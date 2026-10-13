@@ -1,19 +1,13 @@
 import type { Nitro } from "nitro/types";
-import nodeCrypto from "node:crypto";
 import { defineCommand } from "citty";
 import { consola } from "consola";
-import { getArgs, parseArgs } from "listhen/cli";
-import { build, createNitro, prepare } from "nitro";
+import { build, createNitro, prepare } from "nitro/builder";
 import { resolve } from "pathe";
-import { commonArgs } from "../common";
-import { NitroDevServer } from "../../dev/server";
+import { commonArgs } from "../common.ts";
+import { NitroDevServer } from "../../dev/server.ts";
+import { onWatchError } from "../../utils/watch.ts";
 
 const hmrKeyRe = /^runtimeConfig\.|routeRules\./;
-
-// globalThis.crypto support for Node.js 18
-if (!globalThis.crypto) {
-  globalThis.crypto = nodeCrypto as unknown as Crypto;
-}
 
 export default defineCommand({
   meta: {
@@ -22,11 +16,19 @@ export default defineCommand({
   },
   args: {
     ...commonArgs,
-    ...getArgs(),
+    port: { type: "string", description: "specify port" },
+    host: { type: "string", description: "specify hostname " },
   },
   async run({ args }) {
     const rootDir = resolve((args.dir || args._dir || ".") as string);
     let nitro: Nitro;
+    // Watcher errors (e.g. ENOSPC) from bundler internals cannot be handled at the source
+    process.on("uncaughtException", (error) => {
+      if ((error as NodeJS.ErrnoException)?.syscall !== "watch") {
+        throw error;
+      }
+      onWatchError(nitro || { logger: consola }, error);
+    });
     const reload = async () => {
       if (nitro) {
         consola.info("Restarting dev server...");
@@ -52,8 +54,7 @@ export default defineCommand({
               }
 
               consola.info(
-                "Nitro config updated:\n" +
-                  diff.map((entry) => `  ${entry.toString()}`).join("\n")
+                "Nitro config updated:\n" + diff.map((entry) => `  ${entry.toString()}`).join("\n")
               );
 
               await (diff.every((e) => hmrKeyRe.test(e.key))
@@ -65,23 +66,10 @@ export default defineCommand({
       );
       nitro.hooks.hookOnce("restart", reload);
       const server = new NitroDevServer(nitro);
-      const listhenOptions = parseArgs(args);
 
-      const port =
-        listhenOptions.port ||
-        nitro.options.devServer.port ||
-        process.env.PORT ||
-        3000;
-
-      const hostname =
-        listhenOptions.hostname ||
-        nitro.options.devServer.hostname ||
-        process.env.HOST;
-
-      await server.listen(port, {
-        ...listhenOptions,
-        port,
-        hostname,
+      await server.listen({
+        port: args.port || nitro.options.devServer.port,
+        hostname: args.host || nitro.options.devServer.hostname,
       });
       await prepare(nitro);
       await build(nitro);

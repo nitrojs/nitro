@@ -1,6 +1,0 @@
-*.md
-**/*.gen.ts
-node_modules
-pnpm-lock.yaml
-**/.docs
-**/dist/**

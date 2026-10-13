@@ -1,565 +1,486 @@
-import { existsSync, promises as fsp } from "node:fs";
-import { platform } from "node:os";
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { nodeFileTrace } from "@vercel/nft";
-import {
-  isValidNodeImport,
-  lookupNodeModuleSubpath,
-  normalizeid,
-  parseNodeModulePath,
-} from "mlly";
-import { resolveModuleURL } from "exsolve";
-import { isDirectory } from "../../utils/fs";
-import type { NodeExternalsOptions } from "nitro/types";
-import { dirname, isAbsolute, join, normalize, relative, resolve } from "pathe";
-import type { PackageJson } from "pkg-types";
-import { readPackageJSON, writePackageJSON } from "pkg-types";
 import type { Plugin } from "rollup";
-import semver from "semver";
+import type { PackageJson } from "pkg-types";
+import type { ExternalsTraceOptions, TracedLayout } from "nf3";
 
-export function externals(opts: NodeExternalsOptions): Plugin {
-  const trackedExternals = new Set<string>();
+import { pathToFileURL } from "node:url";
+import { builtinModules, createRequire } from "node:module";
+import { dirname, isAbsolute, join, relative } from "pathe";
+import MagicString from "magic-string";
+import { resolveModulePath } from "exsolve";
+import consola from "consola";
 
-  const tryResolve = (
-    id: string,
-    importer: undefined | string
-  ): string | undefined => {
-    if (id.startsWith("\0")) {
-      return id;
-    }
-    const res = resolveModuleURL(id, {
-      try: true,
-      conditions: opts.exportConditions,
-      from:
-        importer && isAbsolute(importer)
-          ? [pathToFileURL(importer), ...opts.moduleDirectories!]
-          : opts.moduleDirectories,
-      suffixes: ["", "/index"],
-      extensions: [".mjs", ".cjs", ".js", ".mts", ".cts", ".ts", ".json"],
-    });
-    return res?.startsWith("file://") ? fileURLToPath(res) : res;
-  };
+import { escapeRegExp, toPathRegExp } from "../../utils/regex.ts";
+import { NodeNativePackages, NonBundleablePackages, FullTracePackages } from "nf3/db";
 
-  // Normalize options
-  const inlineMatchers = (opts.inline || [])
-    .map((p) => normalizeMatcher(p))
-    .sort((a, b) => (b.score || 0) - (a.score || 0));
-  const externalMatchers = (opts.external || [])
-    .map((p) => normalizeMatcher(p))
-    .sort((a, b) => (b.score || 0) - (a.score || 0));
+export type ExternalsOptions = {
+  rootDir: string;
+  conditions: string[];
+  exclude: (string | RegExp)[];
+  include: (string | RegExp)[];
+  trace: false | Omit<ExternalsTraceOptions, "rootDir" | "exportConditions" | "traceOptions">;
+};
 
-  // Utility to check explicit inlines
-  const isExplicitInline = (id: string, importer?: string) => {
-    if (id.startsWith("\0")) {
-      return true;
-    }
-    const inlineMatch = inlineMatchers.find((m) => m(id, importer));
-    const externalMatch = externalMatchers.find((m) => m(id, importer));
-    if (
-      inlineMatch &&
-      (!externalMatch ||
-        (externalMatch &&
-          (inlineMatch.score || 0) > (externalMatch.score || 0)))
-    ) {
-      return true;
-    }
-  };
+const PLUGIN_NAME = "nitro:externals";
 
-  return {
-    name: "node-externals",
-    async resolveId(originalId, importer, options) {
-      // Skip internals
-      if (
-        !originalId ||
-        originalId.startsWith("\u0000") ||
-        originalId.includes("?") ||
-        originalId.startsWith("#")
-      ) {
-        return null;
-      }
+export function externals(opts: ExternalsOptions): Plugin {
+  const resolved = opts.trace ? resolveTraceDeps(opts.include) : undefined;
 
-      // Skip relative paths
-      if (originalId.startsWith(".")) {
-        return null;
-      }
+  const include: RegExp[] | undefined = resolved?.includePattern
+    ? [resolved.includePattern]
+    : undefined;
 
-      // Normalize path (windows)
-      const id = normalize(originalId);
+  const exclude: RegExp[] = [
+    /^(?:[\0#~.]|[a-z0-9]{2,}:)|\?/,
+    ...(opts?.exclude || []).map((p) => toPathRegExp(p)),
+  ];
 
-      // Check for explicit inlines and externals
-      if (isExplicitInline(id, importer)) {
-        return null;
-      }
-
-      // Resolve id using rollup resolver
-      const resolved = (await this.resolve(originalId, importer, options)) || {
-        id,
-      };
-
-      // Check for explicit inlines and externals
-      if (isExplicitInline(resolved.id, importer)) {
-        return null;
-      }
-
-      // Try resolving with Node.js algorithm as fallback
-      if (
-        !isAbsolute(resolved.id) ||
-        !existsSync(resolved.id) ||
-        (await isDirectory(resolved.id))
-      ) {
-        resolved.id = tryResolve(resolved.id, importer) || resolved.id;
-      }
-
-      // Inline invalid node imports
-      if (!(await isValidNodeImport(resolved.id).catch(() => false))) {
-        return null;
-      }
-
-      // Externalize with full path if trace is disabled
-      if (opts.trace === false) {
-        return {
-          ...resolved,
-          id: isAbsolute(resolved.id) ? normalizeid(resolved.id) : resolved.id,
-          external: true,
-        };
-      }
-
-      // -- Trace externals --
-
-      // Try to extract package name from path
-      const { name: pkgName } = parseNodeModulePath(resolved.id);
-
-      // Inline if cannot detect package name
-      if (!pkgName) {
-        return null;
-      }
-
-      // Normally package name should be same as originalId
-      // Edge cases: Subpath export and full paths
-      if (pkgName !== originalId) {
-        // Subpath export
-        if (!isAbsolute(originalId)) {
-          const fullPath = tryResolve(originalId, importer);
-          if (fullPath) {
-            trackedExternals.add(fullPath);
-            return {
-              id: originalId,
-              external: true,
-            };
-          }
-        }
-
-        // Absolute path, we are not sure about subpath to generate import statement
-        // Guess as main subpath export
-        const packageEntry = tryResolve(pkgName, importer);
-        if (packageEntry !== id) {
-          // Reverse engineer subpath export
-          const guessedSubpath: string | null | undefined =
-            await lookupNodeModuleSubpath(id).catch(() => null);
-          const resolvedGuess =
-            guessedSubpath &&
-            tryResolve(join(pkgName, guessedSubpath), importer);
-          if (resolvedGuess === id) {
-            trackedExternals.add(resolvedGuess);
-            return {
-              id: join(pkgName, guessedSubpath!),
-              external: true,
-            };
-          }
-          // Inline since we cannot guess subpath
-          return null;
-        }
-      }
-
-      trackedExternals.add(resolved.id);
-      return {
-        id: pkgName,
-        external: true,
-      };
-    },
-    async buildEnd() {
-      if (opts.trace === false) {
-        return;
-      }
-
-      // Manually traced paths
-      for (const pkgName of opts.traceInclude || []) {
-        const path = await this.resolve(pkgName);
-        if (path?.id) {
-          trackedExternals.add(path.id.replace(/\?.+/, ""));
-        }
-      }
-
-      // Trace used files using nft
-      const _fileTrace = await nodeFileTrace([...trackedExternals], {
-        // https://github.com/nitrojs/nitro/pull/1562
-        conditions: (opts.exportConditions || []).filter(
-          (c) => !["require", "import", "default"].includes(c)
-        ),
-        ...opts.traceOptions,
-      });
-
-      // Resolve traced files
-      type TracedFile = {
-        path: string;
-        subpath: string;
-        parents: string[];
-
-        pkgPath: string;
-        pkgName: string;
-        pkgVersion: string;
-      };
-      const _resolveTracedPath = (p: string) =>
-        fsp.realpath(resolve(opts.traceOptions?.base || ".", p));
-      const tracedFiles: Record<string, TracedFile> = Object.fromEntries(
-        (await Promise.all(
-          [..._fileTrace.reasons.entries()].map(async ([_path, reasons]) => {
-            if (reasons.ignored) {
-              return;
-            }
-            const path = await _resolveTracedPath(_path);
-            if (!path.includes("node_modules")) {
-              return;
-            }
-            if (!(await isFile(path))) {
-              return;
-            }
-            const {
-              dir: baseDir,
-              name: pkgName,
-              subpath,
-            } = parseNodeModulePath(path);
-            if (!baseDir || !pkgName) {
-              return;
-            }
-            const pkgPath = join(baseDir, pkgName);
-            const parents = await Promise.all(
-              [...reasons.parents].map((p) => _resolveTracedPath(p))
-            );
-            const tracedFile = <TracedFile>{
-              path,
-              parents,
-
-              subpath,
-              pkgName,
-              pkgPath,
-            };
-            return [path, tracedFile];
-          })
-        ).then((r) => r.filter(Boolean))) as [string, TracedFile][]
-      );
-
-      // Resolve traced packages
-      type TracedPackage = {
-        name: string;
-        versions: Record<
-          string,
-          {
-            pkgJSON: PackageJson;
-            path: string;
-            files: string[];
-          }
-        >;
-      };
-      const tracedPackages: Record<string, TracedPackage> = {};
-      for (const tracedFile of Object.values(tracedFiles)) {
-        // Use `node_modules/{name}` in path as name to support aliases
-        const pkgName = tracedFile.pkgName;
-        let tracedPackage = tracedPackages[pkgName];
-
-        // Read package.json for file
-        let pkgJSON = await readPackageJSON(tracedFile.pkgPath, {
-          cache: true,
-        }).catch(
-          () => {} // TODO: Only catch ENOENT
-        );
-        if (!pkgJSON) {
-          pkgJSON = <PackageJson>{ name: pkgName, version: "0.0.0" };
-        }
-        if (!tracedPackage) {
-          tracedPackage = {
-            name: pkgName,
-            versions: {},
-          };
-          tracedPackages[pkgName] = tracedPackage;
-        }
-        let tracedPackageVersion =
-          tracedPackage.versions[pkgJSON.version || "0.0.0"];
-        if (!tracedPackageVersion) {
-          tracedPackageVersion = {
-            path: tracedFile.pkgPath,
-            files: [],
-            pkgJSON,
-          };
-          tracedPackage.versions[pkgJSON.version || "0.0.0"] =
-            tracedPackageVersion;
-        }
-        tracedPackageVersion.files.push(tracedFile.path);
-        tracedFile.pkgName = pkgName;
-        if (pkgJSON.version) {
-          tracedFile.pkgVersion = pkgJSON.version;
-        }
-      }
-
-      const usedAliases: Record<string, string> = {};
-
-      const writePackage = async (
-        name: string,
-        version: string,
-        _pkgPath?: string
-      ) => {
-        // Find pkg
-        const pkg = tracedPackages[name];
-        const pkgPath = _pkgPath || pkg.name;
-
-        // Copy files
-        for (const src of pkg.versions[version].files) {
-          const { subpath } = parseNodeModulePath(src);
-          if (!subpath) {
-            continue;
-          }
-          const dst = join(opts.outDir, "node_modules", pkgPath, subpath);
-          await fsp.mkdir(dirname(dst), { recursive: true });
-          await fsp.copyFile(src, dst);
-          if (opts.chmod) {
-            await fsp.chmod(dst, opts.chmod === true ? 0o644 : opts.chmod);
-          }
-        }
-
-        // Copy package.json
-        const pkgJSON = pkg.versions[version].pkgJSON;
-        applyProductionCondition(pkgJSON.exports);
-        const pkgJSONPath = join(
-          opts.outDir,
-          "node_modules",
-          pkgPath,
-          "package.json"
-        );
-        await fsp.mkdir(dirname(pkgJSONPath), { recursive: true });
-        await fsp.writeFile(
-          pkgJSONPath,
-          JSON.stringify(pkgJSON, null, 2),
-          "utf8"
-        );
-
-        // Link aliases
-        if (opts.traceAlias && pkgPath in opts.traceAlias) {
-          usedAliases[opts.traceAlias[pkgPath]] = version;
-          await linkPackage(pkgPath, opts.traceAlias[pkgPath]);
-        }
-      };
-
-      const isWindows = platform() === "win32";
-      const linkPackage = async (from: string, to: string) => {
-        const src = join(opts.outDir, "node_modules", from);
-        const dst = join(opts.outDir, "node_modules", to);
-        const dstStat = await fsp.lstat(dst).catch(() => null);
-        const exists = dstStat?.isSymbolicLink();
-        // console.log("Linking", from, "to", to, exists ? "!!!!" : "");
-        if (exists) {
-          return;
-        }
-        await fsp.mkdir(dirname(dst), { recursive: true });
-        await fsp
-          .symlink(
-            relative(dirname(dst), src),
-            dst,
-            isWindows ? "junction" : "dir"
-          )
-          .catch((error) => {
-            console.error("Cannot link", from, "to", to, error);
-          });
-      };
-
-      // Utility to find package parents
-      const findPackageParents = (pkg: TracedPackage, version: string) => {
-        // Try to find parent packages
-        const versionFiles: TracedFile[] = pkg.versions[version].files.map(
-          (path) => tracedFiles[path]
-        );
-        const parentPkgs = [
-          ...new Set(
-            versionFiles.flatMap((file) =>
-              file.parents
-                .map((parentPath) => {
-                  const parentFile = tracedFiles[parentPath];
-                  if (parentFile.pkgName === pkg.name) {
-                    return null;
-                  }
-                  return `${parentFile.pkgName}@${parentFile.pkgVersion}`;
-                })
-                .filter(Boolean)
-            ) as string[]
-          ),
-        ];
-        return parentPkgs;
-      };
-
-      // Analyze dependency tree
-      const multiVersionPkgs: Record<string, { [version: string]: string[] }> =
-        {};
-      const singleVersionPackages: string[] = [];
-      for (const tracedPackage of Object.values(tracedPackages)) {
-        const versions = Object.keys(tracedPackage.versions);
-        if (versions.length === 1) {
-          singleVersionPackages.push(tracedPackage.name);
-          continue;
-        }
-        multiVersionPkgs[tracedPackage.name] = {};
-        for (const version of versions) {
-          multiVersionPkgs[tracedPackage.name][version] = findPackageParents(
-            tracedPackage,
-            version
-          );
-        }
-      }
-
-      // Directly write single version packages
-      await Promise.all(
-        singleVersionPackages.map((pkgName) => {
-          const pkg = tracedPackages[pkgName];
-          const version = Object.keys(pkg.versions)[0];
-          return writePackage(pkgName, version);
-        })
-      );
-
-      // Write packages with multiple versions
-      for (const [pkgName, pkgVersions] of Object.entries(multiVersionPkgs)) {
-        const versionEntries = Object.entries(pkgVersions).sort(
-          ([v1, p1], [v2, p2]) => {
-            // 1. Package with no parent packages to be hoisted
-            if (p1.length === 0) {
-              return -1;
-            }
-            if (p2.length === 0) {
-              return 1;
-            }
-            // 2. Newest version to be hoisted
-            return compareVersions(v1, v2);
-          }
-        );
-        for (const [version, parentPkgs] of versionEntries) {
-          // Write each version into node_modules/.nitro/{name}@{version}
-          await writePackage(pkgName, version, `.nitro/${pkgName}@${version}`);
-          // Link one version to the top level (for indirect bundle deps)
-          await linkPackage(`.nitro/${pkgName}@${version}`, `${pkgName}`);
-          // Link to parent packages
-          for (const parentPkg of parentPkgs) {
-            const parentPkgName = parentPkg.replace(/@[^@]+$/, "");
-            await (multiVersionPkgs[parentPkgName]
-              ? linkPackage(
-                  `.nitro/${pkgName}@${version}`,
-                  `.nitro/${parentPkg}/node_modules/${pkgName}`
-                )
-              : linkPackage(
-                  `.nitro/${pkgName}@${version}`,
-                  `${parentPkgName}/node_modules/${pkgName}`
-                ));
-          }
-        }
-      }
-
-      // Write an informative package.json
-      const userPkg = await readPackageJSON(
-        opts.rootDir || process.cwd()
-      ).catch(() => ({}) as PackageJson);
-
-      await writePackageJSON(resolve(opts.outDir, "package.json"), {
-        name: (userPkg.name || "server") + "-prod",
-        version: userPkg.version || "0.0.0",
-        type: "module",
-        private: true,
-        dependencies: Object.fromEntries(
-          [
-            ...Object.values(tracedPackages).map((pkg) => [
-              pkg.name,
-              Object.keys(pkg.versions)[0],
-            ]),
-            ...Object.entries(usedAliases),
-          ].sort(([a], [b]) => a.localeCompare(b))
-        ),
-      });
-    },
-  };
-}
-
-function compareVersions(v1 = "0.0.0", v2 = "0.0.0") {
-  try {
-    return semver.lt(v1, v2, { loose: true }) ? 1 : -1;
-  } catch {
-    return v1.localeCompare(v2);
-  }
-}
-
-export function applyProductionCondition(exports: PackageJson["exports"]) {
-  if (
-    !exports ||
-    typeof exports === "string" ||
-    Array.isArray(exports) /* TODO: unhandled */
-  ) {
-    return;
-  }
-  if ("production" in exports) {
-    if (typeof exports.production === "string") {
-      exports.default = exports.production;
-    } else {
-      Object.assign(exports, exports.production);
-    }
-  }
-  for (const key in exports) {
-    applyProductionCondition(exports[key as keyof typeof exports]);
-  }
-}
-
-async function isFile(file: string) {
-  try {
-    const stat = await fsp.stat(file);
-    return stat.isFile();
-  } catch (error) {
-    if ((error as any)?.code === "ENOENT") {
+  const filter = (id: string) => {
+    // Must match at least one include (if specified)
+    if (include && !include.some((r) => r.test(id))) {
       return false;
     }
-    throw error;
+    // Must not match any exclude
+    if (exclude.some((r) => r.test(id))) {
+      return false;
+    }
+    return true;
+  };
+
+  // exsolve uses only the supplied conditions (no implicit `import`/`default`).
+  // Add `import` so packages whose `exports` only declares the `import` condition
+  // (e.g. lightningcss) resolve correctly when externalizing for ESM output.
+  const resolveConditions = opts.conditions.includes("import")
+    ? opts.conditions
+    : [...opts.conditions, "import"];
+
+  const tryResolve = (id: string, from: string | undefined) =>
+    resolveModulePath(id, {
+      try: true,
+      from: from && isAbsolute(from) ? from : opts.rootDir,
+      conditions: resolveConditions,
+    });
+
+  const tracedPaths = new Set<string>();
+
+  // Traced externals are emitted with a unique placeholder id per resolved file,
+  // so the bundler does not merge imports that resolve to different versions of
+  // the same package. Placeholders are rendered once the trace layout is known.
+  const tracedIds = new Map<string, { importId: string; path: string }>();
+  const placeholders = new Map<string, string>();
+  let tracedLayout: TracedLayout | undefined;
+
+  // Names to force-trace by name. Seeded with user-declared `traceDeps`; builtin
+  // native packages are added here only when observed as (unresolvable) imports
+  // during resolution, never wholesale (see `resolveTraceDeps`).
+  const forcedTraceIncludes = new Set<string>(resolved?.traceInclude);
+
+  if (opts.trace && !resolved?.includePattern) {
+    return {
+      name: PLUGIN_NAME,
+    };
+  }
+
+  return {
+    name: PLUGIN_NAME,
+    resolveId: {
+      order: "pre",
+      filter: { id: { exclude, include } },
+      async handler(id, importer, rOpts) {
+        // Externalize built-in modules with normalized prefix
+        if (builtinModules.includes(id)) {
+          return {
+            resolvedBy: PLUGIN_NAME,
+            external: true,
+            id: id.includes(":") ? id : `node:${id}`,
+          };
+        }
+
+        // Skip nested `@rollup/plugin-node-resolve` re-entries (already resolved to
+        // a file). A `require()` from a bundled CommonJS module also arrives here
+        // (`isRequire`), and must go through the main path so a package matching
+        // the trace filter is externalized and traced instead of bundled.
+        if (rOpts.custom?.["node-resolve"]?.resolved) {
+          return null;
+        }
+
+        // Resolve by other resolvers
+        let resolved = await this.resolve(id, importer, rOpts);
+
+        // Skip rolldown-plugin-commonjs resolver for externals
+        const cjsResolved = resolved?.meta?.commonjs?.resolved;
+        if (cjsResolved) {
+          if (!filter(cjsResolved.id)) {
+            return resolved; // Bundled and wrapped by CJS plugin
+          }
+          resolved = cjsResolved; /* non-wrapped */
+        }
+
+        // Unresolved bare import of a package matching the trace include-pattern.
+        // Native/non-bundleable deps (e.g. `sharp`) are often imported from a
+        // generated entry outside the declaring package's resolution scope, and
+        // under pnpm the nested dep is not resolvable from there. It is force-
+        // copied into the output by the trace (`traceInclude`/`traceIncludeRoots`),
+        // so externalize it by name instead of letting the bundler fail to resolve.
+        if (!resolved?.id) {
+          const importId = opts.trace ? toImport(id) : undefined;
+          if (importId && include?.some((r) => r.test(importId))) {
+            // Observed but unresolvable native import: force-trace it by name.
+            // nf3 matches `traceInclude` entries against bare dependency names,
+            // so strip any subpath (`pkg/sub` → `pkg`).
+            forcedTraceIncludes.add(IMPORT_RE.exec(importId)?.groups?.name ?? importId);
+            return {
+              resolvedBy: PLUGIN_NAME,
+              external: true,
+              id: importId,
+            };
+          }
+          return resolved;
+        }
+
+        // Check if explicitly marked as excluded
+        if (!filter(resolved.id)) {
+          return resolved;
+        }
+
+        // Normalize to absolute path
+        let resolvedPath = resolved.id;
+        if (!isAbsolute(resolvedPath)) {
+          resolvedPath = tryResolve(resolvedPath, importer) || resolvedPath;
+        }
+
+        // Tracing mode
+        if (opts.trace) {
+          let importId = toImport(id) || toImport(resolvedPath);
+          if (!importId) {
+            return resolved;
+          }
+          if (!tryResolve(importId, importer)) {
+            const guessed = await guessSubpath(resolvedPath, resolveConditions);
+            if (!guessed) {
+              return resolved;
+            }
+            importId = guessed;
+          }
+          tracedPaths.add(resolvedPath);
+          const placeholderKey = `${resolvedPath}\0${importId}`;
+          let placeholder = placeholders.get(placeholderKey);
+          if (!placeholder) {
+            placeholder = `${TRACED_ID_PREFIX}${placeholders.size}/${importId}`;
+            placeholders.set(placeholderKey, placeholder);
+            tracedIds.set(placeholder, { importId, path: resolvedPath });
+          }
+          return {
+            ...resolved,
+            resolvedBy: PLUGIN_NAME,
+            external: true,
+            id: placeholder,
+          };
+        }
+
+        // Resolve as absolute path external
+        return {
+          ...resolved,
+          resolvedBy: PLUGIN_NAME,
+          external: true,
+          id: isAbsolute(resolvedPath)
+            ? pathToFileURL(resolvedPath).href // windows compat
+            : resolvedPath,
+        };
+      },
+    },
+    buildEnd: {
+      order: "post",
+      async handler() {
+        if (!opts.trace || (tracedPaths.size === 0 && forcedTraceIncludes.size === 0)) {
+          return;
+        }
+        const { hooks: userHooks, ...traceOpts } = opts.trace;
+        const { traceNodeModules } = await import("nf3");
+        const traceTime = Date.now();
+        let traceFilesCount = 0;
+        let tracedPkgsCount = 0;
+        // Only the names actually observed as imports (plus user `traceDeps`) are
+        // force-traced — never the full builtin DB, which would drag build-time
+        // tooling into the output.
+        const traceInclude = forcedTraceIncludes.size ? [...forcedTraceIncludes] : undefined;
+        // Roots from which `traceInclude` names may be resolved when they are not
+        // reachable from `rootDir` (pnpm's non-hoisted nested layout): packages
+        // bundled into this environment's graph, plus the app's direct deps. A
+        // framework dep can be bundled in an upstream build environment (absent
+        // from this graph) yet still declare native deps (e.g. `sharp`) that must
+        // be traced from its real location.
+        const traceIncludeRoots = traceInclude
+          ? [
+              ...new Set([
+                ...(typeof this.getModuleIds === "function"
+                  ? (collectPackageRoots(this.getModuleIds()) ?? [])
+                  : []),
+                ...collectDirectDepRoots(opts.rootDir, opts.conditions),
+              ]),
+            ]
+          : undefined;
+        tracedLayout = await traceNodeModules([...tracedPaths], {
+          ...traceOpts,
+          fullTraceInclude: resolved?.fullTraceInclude,
+          traceInclude,
+          traceIncludeRoots: traceIncludeRoots?.length ? traceIncludeRoots : undefined,
+          conditions: opts.conditions,
+          rootDir: opts.rootDir,
+          writePackageJson: true, // deno compat
+          hooks: {
+            ...userHooks,
+            tracedFiles: async (result) => {
+              traceFilesCount = Object.keys(result).length;
+              await userHooks?.tracedFiles?.(result);
+            },
+            tracedPackages: async (pkgs) => {
+              tracedPkgsCount = Object.keys(pkgs).length;
+              consola.info(
+                `Tracing dependencies:\n${Object.entries(pkgs)
+                  .map(
+                    ([name, versions]) =>
+                      `- \`${name}\` (${Object.keys(versions.versions).join(", ")})`
+                  )
+                  .join("\n")}`
+              );
+              await userHooks?.tracedPackages?.(pkgs);
+            },
+          },
+        });
+        consola.success(
+          `Traced ${tracedPkgsCount} dependencies (${traceFilesCount} files) in ${Date.now() - traceTime}ms.`
+        );
+        consola.info(
+          `Ensure your production environment matches the builder OS and architecture (\`${process.platform}-${process.arch}\`) to avoid native module issues.`
+        );
+      },
+    },
+    renderChunk(code, chunk, outputOpts) {
+      if (tracedIds.size === 0 || !code.includes(TRACED_ID_PREFIX)) {
+        return;
+      }
+      const outDir = outputOpts.dir || (opts.trace && opts.trace.outDir) || opts.rootDir;
+      const s = new MagicString(code);
+      for (const match of code.matchAll(TRACED_ID_RE)) {
+        const traced = tracedIds.get(match[0]);
+        if (!traced) {
+          continue;
+        }
+        s.update(
+          match.index,
+          match.index + match[0].length,
+          renderTracedId(traced, { layout: tracedLayout, outDir, fileName: chunk.fileName })
+        );
+      }
+      if (!s.hasChanged()) {
+        return;
+      }
+      return {
+        code: s.toString(),
+        map: outputOpts.sourcemap
+          ? s.generateMap({ hires: true, source: chunk.fileName }).toString()
+          : undefined,
+      };
+    },
+  };
+}
+
+export function resolveTraceDeps(
+  traceDeps: (string | RegExp)[],
+  opts: {
+    builtinPackages?: readonly string[];
+    builtinFullTrace?: readonly string[];
+  } = {}
+) {
+  const builtinPackages = opts.builtinPackages ?? [...NodeNativePackages, ...NonBundleablePackages];
+  const builtinFullTrace = opts.builtinFullTrace ?? FullTracePackages;
+  const negated = new Set<string>();
+  const userTraceDeps: (string | RegExp)[] = [];
+  const userFullTrace: string[] = [];
+  for (const d of traceDeps) {
+    if (typeof d !== "string") {
+      userTraceDeps.push(d);
+    } else if (d === "!" || d === "*" || d === "") {
+      throw new Error(`Invalid traceDeps selector: "${d}"`);
+    } else if (d.startsWith("!")) {
+      negated.add(d.slice(1));
+    } else if (d.endsWith("*")) {
+      const name = d.slice(0, -1);
+      userFullTrace.push(name);
+      userTraceDeps.push(name);
+    } else {
+      userTraceDeps.push(d);
+    }
+  }
+  const resolved = [...new Set([...builtinPackages, ...userTraceDeps])].filter(
+    (d) => typeof d !== "string" || !negated.has(d)
+  );
+  const tracePattern = resolved
+    .map((d) => (d instanceof RegExp ? d.source : escapeRegExp(d)))
+    .join("|");
+  const fullTraceInclude = [...new Set([...builtinFullTrace, ...userFullTrace])].filter(
+    (d) => !negated.has(d)
+  );
+  // User-declared named deps to always force-trace by name. Builtin native
+  // packages are intentionally NOT force-traced wholesale: many of them are
+  // build-time-only tooling (e.g. `rolldown`/`rollup`/`vite`) that must never
+  // be copied into the runtime output. A
+  // builtin is force-traced only when it is actually observed as an
+  // (unresolvable) import during the build — nft cannot statically detect
+  // dynamically-loaded native bindings, so those observed names are collected at
+  // resolve time and traced explicitly. Force-tracing by name also fixes pnpm,
+  // where a nested dependency only resolves from the dependent package's real
+  // `.pnpm` location.
+  // Bare scopes (`@scope`) are prefix selectors for the include pattern only:
+  // they are not resolvable package names, so nf3 would warn on them.
+  const traceInclude = userTraceDeps.filter(
+    (d): d is string =>
+      typeof d === "string" && !negated.has(d) && !(d.startsWith("@") && !d.includes("/"))
+  );
+  return {
+    includePattern: tracePattern
+      ? new RegExp(`(?:^|[/\\\\]node_modules[/\\\\])(?:${tracePattern})(?:[/\\\\]|$)`)
+      : undefined,
+    fullTraceInclude: fullTraceInclude.length > 0 ? fullTraceInclude : undefined,
+    traceInclude: traceInclude.length > 0 ? traceInclude : undefined,
+  };
+}
+
+// ---- Internal utils ----
+
+const TRACED_ID_PREFIX = "nitro:traced/";
+
+const TRACED_ID_RE = /(?<=["'`])nitro:traced\/\d+\/[^"'`]+(?=["'`])/g;
+
+// Bare specifier when the resolved version is the one reachable as
+// `node_modules/<name>`, otherwise a relative path to its traced copy.
+function renderTracedId(
+  traced: { importId: string; path: string },
+  opts: { layout: TracedLayout | undefined; outDir: string; fileName: string }
+): string {
+  const outFile = opts.layout?.files[traced.path];
+  const version =
+    outFile &&
+    Object.values(opts.layout!.packages)
+      .flatMap((pkg) => Object.values(pkg.versions))
+      .find((v) => outFile.startsWith(`${v.outPath}/`));
+  if (!outFile || !version || version.hoisted) {
+    return traced.importId;
+  }
+  const path = relative(dirname(join(opts.outDir, opts.fileName)), join(opts.outDir, outFile));
+  return path.startsWith(".") ? path : `./${path}`;
+}
+
+const NODE_MODULES_RE =
+  /^(?<dir>.+[\\/]node_modules[\\/])(?<name>[^@\\/]+|@[^\\/]+[\\/][^\\/]+)(?:[\\/](?<subpath>.+))?$/;
+
+const IMPORT_RE = /^(?!\.)(?<name>[^@/\\]+|@[^/\\]+[/\\][^/\\]+)(?:[/\\](?<subpath>.+))?$/;
+
+export function collectPackageRoots(moduleIds: Iterable<string>): string[] | undefined {
+  const roots = new Set<string>();
+  for (const id of moduleIds) {
+    const { dir, name } = NODE_MODULES_RE.exec(id)?.groups || {};
+    if (dir && name) {
+      roots.add(join(dir, name));
+    }
+  }
+  return roots.size > 0 ? [...roots] : undefined;
+}
+
+// Resolved package roots of the app's direct dependencies. Used as declarer
+// candidates for `traceInclude`: a direct dep may be bundled (so it never
+// appears as a traced package) yet declare native deps that only resolve from
+// its own real, non-hoisted pnpm location.
+export function collectDirectDepRoots(rootDir: string, conditions: string[]): string[] {
+  const pkg = getPkgJSON(join(rootDir, "/"));
+  if (!pkg) {
+    return [];
+  }
+  const roots = new Set<string>();
+  for (const name of Object.keys({
+    ...pkg.dependencies,
+    ...pkg.devDependencies,
+    ...pkg.optionalDependencies,
+  })) {
+    const resolved = resolveModulePath(`${name}/package.json`, {
+      try: true,
+      from: rootDir,
+      conditions,
+    });
+    if (resolved) {
+      roots.add(dirname(resolved));
+    }
+  }
+  return [...roots];
+}
+
+function toImport(id: string): string | undefined {
+  if (isAbsolute(id)) {
+    const { name, subpath } = NODE_MODULES_RE.exec(id)?.groups || ({} as Record<string, string>);
+    if (name && subpath) {
+      return join(name, subpath);
+    }
+  } else if (IMPORT_RE.test(id)) {
+    return id;
   }
 }
 
-type Matcher = ((
-  id: string,
-  importer?: string
-) => Promise<boolean> | boolean) & { score?: number };
-
-export function normalizeMatcher(input: string | RegExp | Matcher): Matcher {
-  if (typeof input === "function") {
-    input.score = input.score ?? 10_000;
-    return input;
+function guessSubpath(path: string, conditions: string[]): string | undefined {
+  const { dir, name, subpath } = NODE_MODULES_RE.exec(path)?.groups || {};
+  if (!dir || !name || !subpath) {
+    return;
   }
-
-  if (input instanceof RegExp) {
-    const matcher = ((id: string) => input.test(id)) as Matcher;
-    matcher.score = input.toString().length;
-    Object.defineProperty(matcher, "name", { value: `match(${input})` });
-    return matcher;
+  const pkgDir = join(dir, name) + "/";
+  const exports = getPkgJSON(pkgDir)?.exports;
+  if (!exports || typeof exports !== "object") {
+    return;
   }
-
-  if (typeof input === "string") {
-    const pattern = normalize(input);
-    const matcher = ((id: string) => {
-      const idWithoutNodeModules = id.split("node_modules/").pop();
-      return (
-        id.startsWith(pattern) || idWithoutNodeModules?.startsWith(pattern)
-      );
-    }) as Matcher;
-    matcher.score = input.length;
-
-    // Increase score for npm package names to avoid breaking changes
-    // TODO: Remove in next major version
-    if (!isAbsolute(input) && input[0] !== ".") {
-      matcher.score += 1000;
+  for (const e of flattenExports(exports)) {
+    if (!conditions.includes(e.condition || "default")) {
+      continue;
     }
-
-    Object.defineProperty(matcher, "name", { value: `match(${pattern})` });
-    return matcher;
+    if (e.fsPath === subpath) {
+      return join(name, e.subpath);
+    }
+    if (e.fsPath.includes("*")) {
+      const fsPathRe = new RegExp(
+        "^" + escapeRegExp(e.fsPath).replace(String.raw`\*`, "(.+?)") + "$"
+      );
+      if (fsPathRe.test(subpath)) {
+        const matched = fsPathRe.exec(subpath)?.[1];
+        if (matched) {
+          return join(name, e.subpath.replace("*", matched));
+        }
+      }
+    }
   }
+}
 
-  throw new Error(`Invalid matcher or pattern: ${input}`);
+function getPkgJSON(dir: string): PackageJson | undefined {
+  const cache = ((getPkgJSON as any)._cache ||= new Map<string, PackageJson>());
+  if (cache.has(dir)) {
+    return cache.get(dir);
+  }
+  try {
+    const pkg = createRequire(dir)("./package.json");
+    cache.set(dir, pkg);
+    return pkg;
+  } catch {
+    /* ignore */
+  }
+}
+
+// Based on mlly
+function flattenExports(
+  exports: Exclude<PackageJson["exports"], string> = {},
+  parentSubpath = "./"
+): { subpath: string; fsPath: string; condition?: string }[] {
+  return Object.entries(exports).flatMap(([key, value]) => {
+    const [subpath, condition] = key.startsWith(".") ? [key.slice(1)] : [undefined, key];
+    const _subPath = join(parentSubpath, subpath || "");
+    if (typeof value === "string") {
+      return [{ subpath: _subPath, fsPath: value.replace(/^\.\//, ""), condition }];
+    }
+    return typeof value === "object" ? flattenExports(value, _subPath) : [];
+  });
 }

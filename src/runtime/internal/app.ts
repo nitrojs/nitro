@@ -1,231 +1,164 @@
-import type { ServerRequest } from "srvx";
-import type {
-  CaptureError,
-  MatchedRouteRules,
-  NitroApp,
-  NitroAsyncContext,
-  NitroRuntimeHooks,
-} from "nitro/types";
-import { H3Core, toRequest } from "h3";
-import type { HTTPEvent, Middleware } from "h3";
-import { createFetch } from "ofetch";
+import type { NitroApp, NitroRuntimeHooks, ResolvedRouteRules } from "nitro/types";
+import type { ServerRequest, ServerRequestContext } from "srvx";
+import type { ComposedMiddleware, H3EventContext, Middleware, WebSocketHooks } from "h3";
+import { composeMiddleware, toRequest } from "h3";
+import { HookableCore } from "hookable";
+import { createMatcherFromFind, memoizeRouteRulesMatcher } from "h3/rules";
 
-// IMPORTANT: virtuals and user code should be imported last to avoid initialization order issues
-import errorHandler from "#nitro-internal-virtual/error-handler";
-import { plugins } from "#nitro-internal-virtual/plugins";
-import { createHooks } from "hookable";
-import { nitroAsyncContext } from "./context";
-import {
-  findRoute,
-  findRouteRules,
-  middleware,
-} from "#nitro-internal-virtual/routing";
+// IMPORTANT: virtual imports and user code should be imported last to avoid initialization order issues
+import { findRouteRules } from "#nitro/virtual/routing";
+import { createNitroApp, initNitroPlugins } from "#nitro/virtual/app";
+
+declare global {
+  var __nitro__:
+    | Partial<Record<"default" | "prerender" | (string & {}), NitroApp | undefined>>
+    | undefined;
+}
+
+const APP_ID = import.meta.prerender ? "prerender" : "default";
 
 export function useNitroApp(): NitroApp {
-  return ((useNitroApp as any).__instance__ ??= initNitroApp());
-}
-
-function initNitroApp(): NitroApp {
-  const nitroApp = createNitroApp();
-  for (const plugin of plugins) {
-    try {
-      plugin(nitroApp);
-    } catch (error: any) {
-      nitroApp.captureError(error, { tags: ["plugin"] });
-      throw error;
-    }
+  let instance: NitroApp | undefined = (useNitroApp as any)._instance;
+  if (instance) {
+    return instance;
   }
-  return nitroApp;
+  instance = (useNitroApp as any)._instance = createNitroApp();
+  globalThis.__nitro__ = globalThis.__nitro__ || {};
+  globalThis.__nitro__[APP_ID] = instance;
+  initNitroPlugins(instance);
+  return instance;
 }
 
-function createNitroApp(): NitroApp {
-  const hooks = createHooks<NitroRuntimeHooks>();
-
-  const captureError: CaptureError = (error, errorCtx) => {
-    const promise = hooks
-      .callHookParallel("error", error, errorCtx)
-      .catch((hookError) => {
-        console.error("Error while capturing another error", hookError);
-      });
-    if (errorCtx?.event) {
-      const errors = errorCtx.event.req.context?.nitro?.errors;
-      if (errors) {
-        errors.push({ error, context: errorCtx });
-      }
-      if (typeof errorCtx.event.req.waitUntil === "function") {
-        errorCtx.event.req.waitUntil(promise);
-      }
-    }
-  };
-
-  const h3App = createH3App(captureError);
-
-  let fetchHandler = async (req: ServerRequest): Promise<Response> => {
-    req.context ??= {};
-    req.context.nitro = req.context.nitro || { errors: [] };
-    const event = { req } satisfies HTTPEvent;
-
-    const nitroApp = useNitroApp();
-
-    await nitroApp.hooks.callHook("request", event).catch((error) => {
-      captureError(error, { event, tags: ["request"] });
-    });
-
-    const response = await h3App.request(req, undefined, req.context);
-
-    await nitroApp.hooks
-      .callHook("response", response, event)
-      .catch((error) => {
-        captureError(error, { event, tags: ["request", "response"] });
-      });
-
-    return response;
-  };
-
-  // Experimental async context support
-  if (import.meta._asyncContext) {
-    const originalFetchHandler = fetchHandler;
-    fetchHandler = (req: ServerRequest): Promise<Response> => {
-      const asyncCtx: NitroAsyncContext = { request: req as Request };
-      return nitroAsyncContext.callAsync(asyncCtx, () =>
-        originalFetchHandler(req)
-      );
-    };
+export function useNitroHooks(): NonNullable<NitroApp["hooks"]> {
+  const nitroApp = useNitroApp();
+  const hooks = nitroApp.hooks;
+  if (hooks) {
+    return hooks;
   }
-
-  const requestHandler: (
-    input: ServerRequest | URL | string,
-    init?: RequestInit,
-    context?: any
-  ) => Promise<Response> = (input, init, context) => {
-    const req = toRequest(input, init);
-    req.context = { ...req.context, ...context };
-    return Promise.resolve(fetchHandler(req));
-  };
-
-  const $fetch = createFetch({
-    fetch: (input, init) => {
-      if (!input.toString().startsWith("/")) {
-        return globalThis.fetch(input, init);
-      }
-      return requestHandler(input, init);
-    },
-  });
-
-  // @ts-ignore
-  globalThis.$fetch = $fetch;
-
-  const app: NitroApp = {
-    _h3: h3App,
-    hooks,
-    fetch: requestHandler,
-    captureError,
-  };
-
-  return app;
+  return (nitroApp.hooks = new HookableCore<NitroRuntimeHooks>());
 }
 
-function createH3App(captureError: CaptureError) {
-  const DEBUG_MODE = ["1", "true", "TRUE"].includes(process.env.DEBUG + "");
-
-  const h3App = new H3Core({
-    debug: DEBUG_MODE,
-    onError: (error, event) => {
-      captureError(error, { event, tags: ["request"] });
-      return errorHandler(error, event);
-    },
-  });
-
-  // Middleware
-  const globalMiddleware: Middleware[] = [];
-  for (const mw of middleware) {
-    if (!mw.method && (!mw.route || mw.route === "/**")) {
-      globalMiddleware.push(mw.handler);
-    } else {
-      // TODO: Should migrate to compiled pattern matching for right ordering
-      h3App.use(mw.route || "/**", mw.handler, { method: mw.method });
-    }
+export function serverFetch(
+  resource: string | URL | Request,
+  init?: RequestInit,
+  context?: ServerRequestContext | H3EventContext
+): Promise<Response> {
+  const req = toRequest(resource, init);
+  req.context = { ...req.context, ...context } as ServerRequestContext;
+  const appHandler = useNitroApp().fetch;
+  try {
+    return Promise.resolve(appHandler(req));
+  } catch (error) {
+    return Promise.reject(error);
   }
-
-  // Compiled route matching
-  h3App._findRoute = (event) => {
-    const pathname = event.url.pathname;
-    const method = event.req.method.toLowerCase();
-    let route = findRoute(method, pathname);
-    const { routeRules, routeRuleMiddleware } = getRouteRules(method, pathname);
-    event.context.routeRules = routeRules;
-    const hasMiddleware = routeRuleMiddleware || globalMiddleware.length > 0;
-    if (!route) {
-      if (hasMiddleware) {
-        route = { data: { handler: () => Symbol.for("h3.notFound") } };
-      } else {
-        return;
-      }
-    }
-    if (hasMiddleware) {
-      route.data = {
-        ...route.data,
-        middleware: [
-          ...(routeRuleMiddleware || []),
-          ...globalMiddleware,
-          ...(route.data.middleware || []),
-        ],
-      };
-    }
-    return route;
-  };
-
-  return h3App;
 }
 
-function getRouteRules(
+// crossws' wire format for handing WebSocket hooks off on the *request*, written
+// by h3's `defineWebSocketHandler()`. Read as a bare registry symbol rather than
+// via `getWebSocketHooks()` so core runtime keeps no import of `crossws`.
+const kWebSocketHooks: unique symbol = /* @__PURE__ */ Symbol.for("crossws.hooks");
+
+export async function resolveWebsocketHooks(req: ServerRequest): Promise<Partial<WebSocketHooks>> {
+  // The `crossws` property on the response is best-effort only: any staged
+  // response header (a `headers` route rule, CORS, ...) makes h3 rebuild the
+  // response, and a rebuild carries none of the original's own properties.
+  const res = (await serverFetch(req)) as { crossws?: Partial<WebSocketHooks> };
+  const carrier = req as unknown as Record<symbol, Partial<WebSocketHooks> | undefined> & {
+    context?: Record<symbol, Partial<WebSocketHooks> | undefined>;
+  };
+  return res.crossws ?? carrier[kWebSocketHooks] ?? carrier.context?.[kWebSocketHooks] ?? {};
+}
+
+export function fetch(
+  resource: string | URL | Request,
+  init?: RequestInit,
+  context?: ServerRequestContext | H3EventContext
+): Promise<Response> {
+  if (typeof resource === "string" && resource.charCodeAt(0) === 47) {
+    return serverFetch(resource, init, context);
+  }
+  resource = (resource as any)._request || resource; // unwrap srvx request
+  return globalThis.fetch(resource, init);
+}
+
+let _matchRouteRules: ReturnType<typeof createMatcherFromFind> | undefined;
+
+export function getRouteRules(
   method: string,
   pathname: string
 ): {
-  routeRules?: MatchedRouteRules;
-  routeRuleMiddleware?: Middleware[];
+  routeRules: ResolvedRouteRules;
+  routeRuleMiddleware: Middleware[];
 } {
-  const m = findRouteRules(method, pathname);
-  if (!m?.length) {
-    return {};
-  }
-  const routeRules: MatchedRouteRules = {};
-  for (const layer of m) {
-    for (const rule of layer.data) {
-      const currentRule = routeRules[rule.name];
-      if (currentRule) {
-        if (rule.options === false) {
-          // Remove/Reset existing rule with `false` value
-          delete routeRules[rule.name];
-          continue;
-        }
-        if (
-          typeof currentRule.options === "object" &&
-          typeof rule.options === "object"
-        ) {
-          // Merge nested rule objects
-          currentRule.options = { ...currentRule.options, ...rule.options };
-        } else {
-          // Override rule if non object
-          currentRule.options = rule.options;
-        }
-        // Routing (route and params)
-        currentRule.route = rule.route;
-        currentRule.params = { ...currentRule.params, ...layer.params };
-      } else if (rule.options !== false) {
-        routeRules[rule.name] = { ...rule, params: layer.params };
-      }
+  return (_matchRouteRules ??= memoizeRouteRulesMatcher(createMatcherFromFind(findRouteRules)))(
+    method,
+    pathname
+  );
+}
+
+/**
+ * Middleware that runs the route-rule middleware (`redirect`, `headers`,
+ * `cors`, ...) matched for the current request. The composed chain is cached
+ * per memoized match, so each distinct match is composed once.
+ *
+ * `event.context.routeRules` is assigned earlier, from `~findRoute`, so it is
+ * populated for every middleware regardless of its position in the chain.
+ */
+export function createRouteRulesMiddleware(): Middleware {
+  const composed = new WeakMap<Middleware[], ComposedMiddleware>();
+  const middleware: Middleware = (event, next) => {
+    const ruleMiddleware = getRouteRules(event.req.method, event.url.pathname).routeRuleMiddleware;
+    if (ruleMiddleware.length === 0) {
+      return next();
     }
-  }
-  const middleware = [];
-  for (const rule of Object.values(routeRules)) {
-    if (rule.options === false || !rule.handler) {
-      continue;
+    let chain = composed.get(ruleMiddleware);
+    if (!chain) {
+      chain = composeMiddleware(ruleMiddleware);
+      composed.set(ruleMiddleware, chain);
     }
-    middleware.push(rule.handler(rule));
-  }
-  return {
-    routeRules,
-    routeRuleMiddleware: middleware.length > 0 ? middleware : undefined,
+    return chain(event, next as any);
   };
+  return markUntraced(middleware);
+}
+
+/**
+ * Middleware that runs the routed (`server/middleware/**` with a route)
+ * middleware matched for the current request. Chains are cached by the identity
+ * of the matched handlers (a trie keyed on the router's stable data slots), so
+ * the cache is bounded by the number of distinct match combinations rather than
+ * by request pathnames.
+ */
+export function createRoutedMiddleware(
+  findRoutedMiddleware: (method: string, pathname: string) => { data: Middleware }[]
+): Middleware {
+  const root: RoutedChainNode = { children: new Map() };
+  const middleware: Middleware = (event, next) => {
+    const matched = findRoutedMiddleware(event.req.method, event.url.pathname);
+    if (matched.length === 0) {
+      return next();
+    }
+    let node = root;
+    for (const entry of matched) {
+      let child = node.children.get(entry);
+      if (!child) {
+        child = { children: new Map() };
+        node.children.set(entry, child);
+      }
+      node = child;
+    }
+    return (node.chain ??= composeMiddleware(matched.map((r) => r.data)))(event, next as any);
+  };
+  return markUntraced(middleware);
+}
+
+type RoutedChainNode = {
+  children: Map<object, RoutedChainNode>;
+  chain?: ComposedMiddleware;
+};
+
+// Nitro's own wrappers are not user middleware: opt them out of `h3/tracing`
+// so they do not add anonymous spans around the whole downstream chain.
+function markUntraced(middleware: Middleware): Middleware {
+  (middleware as Middleware & { __traced__?: boolean }).__traced__ = true;
+  return middleware;
 }
