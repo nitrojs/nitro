@@ -1,7 +1,9 @@
 import type { ArgsDef, CommandDef } from "citty";
 import tab from "@bomb.sh/tab/citty";
 
-export async function initCompletions<T extends ArgsDef = ArgsDef>(command: CommandDef<T>) {
+export async function initCompletions<T extends ArgsDef = ArgsDef>(
+  command: CommandDef<T>
+): Promise<void> {
   const completion = await tab(command);
 
   const devCommand = completion.commands.get("dev");
@@ -140,6 +142,4 @@ export async function initCompletions<T extends ArgsDef = ArgsDef>(command: Comm
       };
     }
   }
-
-  return completion;
 }
