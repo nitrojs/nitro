@@ -18,7 +18,17 @@ export default function rendererTemplate(nitro: Nitro) {
         // Development
         return /* js */ `
             import { readFile } from 'node:fs/promises';
-            export const rendererTemplate = () => readFile(${JSON.stringify(template)}, "utf8");
+            export async function rendererTemplate() {
+              try {
+                return await readFile(${JSON.stringify(template)}, "utf8");
+              } catch (error) {
+                // The runner may lack fs access (e.g. workerd): ask the host (set by the dev entry)
+                if (!globalThis.__nitro_renderer_template__) throw error;
+                return globalThis.__nitro_renderer_template__().catch((hostError) => {
+                  throw Object.assign(error, { cause: hostError });
+                });
+              }
+            }
             export const rendererTemplateFile = ${JSON.stringify(template)};
             export const isStaticTemplate = ${JSON.stringify(nitro.options.renderer?.static)};
             `;
@@ -36,7 +46,7 @@ export default function rendererTemplate(nitro: Nitro) {
             contextKeys: [...RENDER_CONTEXT_KEYS],
           });
           return /* js */ `
-            import { renderToResponse } from 'rendu'
+            import { renderToResponse } from '#nitro/runtime/rendu'
             import { fetch, serverFetch } from 'nitro/app'
             ${nitro.options.builder === "vite" ? `import { fetchViteEnv } from "nitro/vite/runtime"` : ""}
             const context = { fetch, serverFetch${nitro.options.builder === "vite" ? ", fetchViteEnv" : ""} }
