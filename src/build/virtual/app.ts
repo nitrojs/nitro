@@ -11,7 +11,7 @@ export default function app(nitro: Nitro) {
       const hasPlugins = nitro.options.plugins.length > 0;
       const hasHooks = nitro.options.features?.runtimeHooks ?? hasPlugins;
       const hasAsyncContext = !!nitro.options.experimental.asyncContext;
-      const runtimeBaseUrl = nitro.options.features.runtimeBaseURL;
+      const runtimeBaseUrl = nitro.options.features?.runtimeBaseURL;
 
       const routingImports = [
         hasRoutes && "findRoute",
