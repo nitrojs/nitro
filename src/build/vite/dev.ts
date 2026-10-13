@@ -307,7 +307,7 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       }
       return await sendNodeResponse(nodeRes, envRes);
     } catch (error) {
-      if (nodeRes.destroyed) return;
+      if (isResponseDestroyed(nodeRes)) return;
       return next(error);
     } finally {
       if (baseURL !== "/") {
@@ -429,6 +429,12 @@ export function matchesMiddlewareRoute(route: string | undefined, url: string): 
   }
   const boundary = path[route.length];
   return !boundary || boundary === "/" || boundary === ".";
+}
+
+export function isResponseDestroyed(
+  res: ServerResponse | { destroyed?: boolean; stream?: { destroyed?: boolean } }
+): boolean {
+  return Boolean(res.destroyed || ("stream" in res && res.stream?.destroyed));
 }
 
 // Vite derives the HTML file path from the URL, which relative imports (e.g. in inline `<style>`) resolve against.
