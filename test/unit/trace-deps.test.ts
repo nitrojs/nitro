@@ -6,6 +6,7 @@ import {
   collectDirectDepRoots,
   collectPackageRoots,
   externals,
+  guessSubpath,
   resolveTraceDeps,
 } from "../../src/build/plugins/externals.ts";
 
@@ -288,5 +289,45 @@ describe("externals buildEnd (forced trace includes)", () => {
     const traceOpts = vi.mocked(traceNodeModules).mock.calls[0][1];
     expect(traceOpts.traceInclude).toContain("sharp");
     expect(traceOpts.traceInclude).not.toContain("sharp/wasm");
+  });
+});
+
+describe("guessSubpath", () => {
+  let tmpDir: string;
+  beforeAll(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), "nitro-guess-subpath-"));
+    const pkgDir = join(tmpDir, "node_modules", "dep");
+    mkdirSync(join(pkgDir, "dist"), { recursive: true });
+    writeFileSync(
+      join(pkgDir, "package.json"),
+      JSON.stringify({
+        name: "dep",
+        version: "1.0.0",
+        type: "module",
+        exports: {
+          ".": {
+            import: "./dist/index.mjs",
+          },
+          "./sub": "./dist/sub.mjs",
+          "./features/*": "./dist/features/*.mjs",
+        },
+      })
+    );
+  });
+  afterAll(() => rmSync(tmpDir, { recursive: true, force: true }));
+
+  it("rewrites absolute import of package root '.' export to bare package name without trailing slash", () => {
+    const absPath = join(tmpDir, "node_modules", "dep", "dist", "index.mjs");
+    expect(guessSubpath(absPath, ["import", "default"])).toBe("dep");
+  });
+
+  it("rewrites absolute import of a named subpath export to package subpath", () => {
+    const absPath = join(tmpDir, "node_modules", "dep", "dist", "sub.mjs");
+    expect(guessSubpath(absPath, ["import", "default"])).toBe("dep/sub");
+  });
+
+  it("rewrites absolute import of a wildcard subpath export to package subpath", () => {
+    const absPath = join(tmpDir, "node_modules", "dep", "dist", "features", "auth.mjs");
+    expect(guessSubpath(absPath, ["import", "default"])).toBe("dep/features/auth");
   });
 });

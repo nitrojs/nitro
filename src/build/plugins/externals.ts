@@ -425,7 +425,7 @@ function toImport(id: string): string | undefined {
   }
 }
 
-function guessSubpath(path: string, conditions: string[]): string | undefined {
+export function guessSubpath(path: string, conditions: string[]): string | undefined {
   const { dir, name, subpath } = NODE_MODULES_RE.exec(path)?.groups || {};
   if (!dir || !name || !subpath) {
     return;
@@ -440,7 +440,7 @@ function guessSubpath(path: string, conditions: string[]): string | undefined {
       continue;
     }
     if (e.fsPath === subpath) {
-      return join(name, e.subpath);
+      return e.subpath === "./" ? name : join(name, e.subpath);
     }
     if (e.fsPath.includes("*")) {
       const fsPathRe = new RegExp(
@@ -449,7 +449,8 @@ function guessSubpath(path: string, conditions: string[]): string | undefined {
       if (fsPathRe.test(subpath)) {
         const matched = fsPathRe.exec(subpath)?.[1];
         if (matched) {
-          return join(name, e.subpath.replace("*", matched));
+          const resSubpath = e.subpath.replace("*", matched);
+          return resSubpath === "./" ? name : join(name, resSubpath);
         }
       }
     }
