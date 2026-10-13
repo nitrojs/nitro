@@ -1,0 +1,18 @@
+{
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite dev",
+    "start": "node .output/server/index.mjs"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^10.1.0",
+    "@pothos/core": "^4.12.0",
+    "graphql": "^16.10.0",
+    "graphql-yoga": "^5.17.1"
+  },
+  "devDependencies": {
+    "nitro": "latest",
+    "vite": "latest"
+  }
+}
