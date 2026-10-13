@@ -28,7 +28,11 @@ const ws = import.meta._websocket
   ? wsAdapter({
       resolve: resolveWebsocketHooks,
       resolveDurableStub(request, env, context) {
-        return getDurableStub(request as Request | undefined, env as Env, context);
+        return getDurableStub(
+          request as Request | undefined,
+          env as Env,
+          context as CF.ExecutionContext | undefined
+        );
       },
     })
   : undefined;
