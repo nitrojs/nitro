@@ -13,9 +13,9 @@ The `platformatic` preset extends `node-server`, keeping the standard `.output/s
 Select the preset in your Nitro config:
 
 ```ts [nitro.config.ts]
-import { defineNitroConfig } from "nitro/config";
+import { defineConfig } from "nitro";
 
-export default defineNitroConfig({
+export default defineConfig({
   preset: "platformatic",
 });
 ```
@@ -33,9 +33,9 @@ When `scheduledTasks` are configured, the preset loads `@platformatic/nitro/sche
 For direct Nitro builds with scheduled tasks, install `@platformatic/nitro`:
 
 ```ts [nitro.config.ts]
-import { defineNitroConfig } from "nitro/config";
+import { defineConfig } from "nitro";
 
-export default defineNitroConfig({
+export default defineConfig({
   preset: "platformatic",
   experimental: {
     tasks: true,
