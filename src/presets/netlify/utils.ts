@@ -3,7 +3,7 @@ import type { Nitro, PublicAssetDir } from "nitro/types";
 import { join } from "pathe";
 import { joinURL, withoutTrailingSlash } from "ufo";
 import { escapeRegExp } from "../../utils/regex.ts";
-import { routeToSplat, sortRoutes } from "../_utils/routes.ts";
+import { routeToSplat, skipUnexpressibleRoute, sortRoutes } from "../_utils/routes.ts";
 
 export async function writeRedirects(nitro: Nitro) {
   let contents = "";
@@ -11,7 +11,7 @@ export async function writeRedirects(nitro: Nitro) {
   // Most specific first, as the first matching rule wins
   for (const key of sortRoutes(Object.keys(nitro.options.routeRules))) {
     const redirect = nitro.options.routeRules[key].redirect;
-    if (!redirect) {
+    if (!redirect || skipUnexpressibleRoute(nitro, key, "_redirects")) {
       continue;
     }
     let code = redirect.status;
@@ -40,7 +40,7 @@ export async function writeHeaders(nitro: Nitro) {
 
   for (const path of sortRoutes(Object.keys(nitro.options.routeRules))) {
     const routeRules = nitro.options.routeRules[path];
-    if (!routeRules.headers) {
+    if (!routeRules.headers || skipUnexpressibleRoute(nitro, path, "_headers")) {
       continue;
     }
     const headers = [
