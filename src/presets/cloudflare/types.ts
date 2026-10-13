@@ -56,6 +56,11 @@ export interface CloudflareOptions {
    */
   nodeCompat?: boolean;
 
+  durable?: {
+    /** @default "$DurableObject" */
+    bindingName?: string;
+  };
+
   pages?: {
     /**
      * Nitro will automatically generate a `_routes.json` that controls which files get served statically and

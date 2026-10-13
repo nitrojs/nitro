@@ -24,6 +24,8 @@ import { extendEnv } from "../../build/env.ts";
 const NODEJS_COMPAT_SUPPORTED_FROM_DATE = "2024-09-23";
 const NODEJS_COMPAT_DEFAULT_ON_DATE = "2026-08-04";
 
+import { configureDurable } from "./durable.ts";
+
 export async function writeCFRoutes(nitro: Nitro) {
   const _cfPagesConfig = nitro.options.cloudflare?.pages || {};
   const routes: CloudflarePagesRoutes = {
@@ -309,6 +311,10 @@ export async function writeWranglerConfig(nitro: Nitro, cfTarget: "pages" | "mod
         type: "ESModule",
         globs: ["**/*.mjs", "**/*.js"],
       });
+    }
+
+    if (nitro.options.virtual?.["#nitro/virtual/cloudflare-durable"]) {
+      configureDurable(nitro, wranglerConfig);
     }
   }
 
