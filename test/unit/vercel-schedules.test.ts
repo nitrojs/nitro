@@ -3,6 +3,7 @@ import type { Nitro, NitroOptions } from "nitro/types";
 
 import {
   getVercelBuildOutputSchedules,
+  getVercelScheduleFunction,
   getVercelSchedulesMode,
   getVercelTaskSchedules,
   isVercelSchedulesEnabled,
@@ -143,6 +144,7 @@ function createNitro(
       vercel: { experimentalSchedules: schedules },
       virtual: {},
       handlers: [],
+      devHandlers: [],
       baseURL: "/",
       ...overrides,
     }),
@@ -172,6 +174,42 @@ describe("getVercelBuildOutputSchedules", () => {
   it("is empty without the opt-in", () => {
     expect(getVercelBuildOutputSchedules(createNitro(false))).toEqual([]);
   });
+
+  it("includes the baseURL in function and path targets", () => {
+    expect(getVercelBuildOutputSchedules(createNitro("private", { baseURL: "/app/" }))).toEqual([
+      { name: "cleanup", schedule: "0 3 * * *", function: "app/_vercel/tasks" },
+    ]);
+    expect(getVercelBuildOutputSchedules(createNitro("public", { baseURL: "/app/" }))).toEqual([
+      { name: "cleanup", schedule: "0 3 * * *", path: "/app/_vercel/cron" },
+    ]);
+  });
+});
+
+describe("getVercelScheduleFunction", () => {
+  it("describes the private function, with only it allowed to run tasks", () => {
+    const nitro = createNitro("private", {
+      vercel: {
+        experimentalSchedules: "private",
+        functionRules: { "/_vercel/tasks": { maxDuration: 60, environment: { FOO: "bar" } } },
+      },
+    });
+    expect(getVercelScheduleFunction(nitro)).toEqual({
+      functionPath: "_vercel/tasks",
+      overrides: {
+        maxDuration: 60,
+        experimentalTriggers: [{ type: "schedule/v1beta" }],
+        environment: { FOO: "bar", NITRO_VERCEL_SCHEDULES_FUNCTION: "1" },
+      },
+    });
+  });
+
+  it("is undefined in path mode, without the opt-in, or without scheduled tasks", () => {
+    expect(getVercelScheduleFunction(createNitro("public"))).toBeUndefined();
+    expect(getVercelScheduleFunction(createNitro(false))).toBeUndefined();
+    expect(
+      getVercelScheduleFunction(createNitro("private", { scheduledTasks: {} }))
+    ).toBeUndefined();
+  });
 });
 
 describe("setupVercelSchedules", () => {
@@ -189,14 +227,14 @@ describe("setupVercelSchedules", () => {
         handler: "#nitro/virtual/vercel-schedule-handler",
       }),
     ]);
-    expect(nitro.options.vercel!.functionRules!["/_vercel/tasks"]).toEqual({
-      maxDuration: 60,
-      experimentalTriggers: [{ type: "schedule/v1beta" }],
-    });
+    // The private function is written without a public route, not through `functionRules`
+    expect(nitro.options.vercel!.functionRules!["/_vercel/tasks"]).toEqual({ maxDuration: 60 });
     const template = nitro.options.virtual[
       "#nitro/virtual/vercel-schedule-handler"
     ] as () => string;
-    expect(template()).toContain(`createScheduleHandler({"cleanup":"cleanup"})`);
+    expect(template()).toContain(
+      `createScheduleHandler({"cleanup":"cleanup"}, {"functionEnv":"NITRO_VERCEL_SCHEDULES_FUNCTION"})`
+    );
   });
 
   it("rejects function rules with their own triggers", () => {
@@ -257,7 +295,26 @@ describe("setupVercelSchedulesDev", () => {
     const template = nitro.options.virtual[
       "#nitro/virtual/vercel-schedule-handler"
     ] as () => string;
-    expect(template()).toContain(`createScheduleHandler({"cleanup":"cleanup"})`);
+    expect(template()).toContain(`createScheduleHandler({"cleanup":"cleanup"}, {})`);
+  });
+
+  it("restricts the dev routes to local requests", () => {
+    vi.stubEnv("VERCEL_SCHEDULE_DEV_API_VERSION", "1");
+    const nitro = createNitro("private", { baseURL: "/app/" });
+    setupVercelSchedulesDev(nitro);
+    expect(nitro.options.devHandlers.map((h) => [h.route, h.middleware])).toEqual([
+      ["/app/_vercel/dev-manifest", true],
+      ["/app/_vercel/dev-manifest/**", true],
+      ["/app/_vercel/tasks", true],
+      ["/app/_vercel/tasks/**", true],
+    ]);
+    const assertLocal = nitro.options.devHandlers[0].handler as (event: unknown) => void;
+    const event = (ip: string) => ({
+      req: Object.assign(new Request("http://localhost/app/_vercel/tasks"), { ip }),
+      runtime: { node: { req: { socket: { remoteAddress: ip } } } },
+    });
+    expect(() => assertLocal(event("127.0.0.1"))).not.toThrow();
+    expect(() => assertLocal(event("192.168.1.20"))).toThrow("Forbidden IP");
   });
 
   it("serves the dev manifest for vercel dev", () => {
@@ -306,5 +363,6 @@ describe("setupVercelSchedulesDev", () => {
     expect(template()).toContain(
       `createCronHandler([{"name":"cleanup","schedule":"0 3 * * *","task":"cleanup"}])`
     );
+    expect(nitro.options.devHandlers.map((h) => h.route)).toContain("/_vercel/cron");
   });
 });

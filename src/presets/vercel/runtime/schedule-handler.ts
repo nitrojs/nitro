@@ -17,11 +17,20 @@ const REQUIRED_HEADERS = [
 /**
  * Runs the task of a Vercel Schedules dispatch.
  *
- * The function is private: only Vercel Schedules can invoke it, so no request authentication
- * is needed. Each schedule maps to exactly one task, identified by the schedule name.
+ * Deployed, it only runs in the private function that Vercel Schedules invokes, which is the
+ * only function with the `functionEnv` variable set. The handler is also bundled into the
+ * public server function, where it responds `404`, since dispatch headers can be forged. The
+ * private function itself needs no request authentication. Each schedule maps to exactly one
+ * task, identified by the schedule name.
  */
-export function createScheduleHandler(scheduleTasks: Record<string, string>) {
+export function createScheduleHandler(
+  scheduleTasks: Record<string, string>,
+  { functionEnv }: { functionEnv?: string } = {}
+) {
   return defineHandler(async (event) => {
+    if (functionEnv && process.env[functionEnv] !== "1") {
+      throw new HTTPError({ status: 404 });
+    }
     const headers = event.req.headers;
     if (headers.get("ce-specversion") !== "1.0" || headers.get("ce-type") !== SCHEDULE_EVENT_TYPE) {
       throw new HTTPError("Not a Vercel Schedules dispatch", { status: 400 });

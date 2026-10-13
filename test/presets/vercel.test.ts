@@ -872,14 +872,23 @@ describe("nitro:preset:vercel:node", async () => {
           .readFile(resolve(ctx.outDir, "functions/_vercel/tasks.func/.vc-config.json"), "utf8")
           .then((r) => JSON.parse(r));
         expect(funcConfig.experimentalTriggers).toEqual([{ type: "schedule/v1beta" }]);
+        expect(funcConfig.environment).toMatchObject({ NITRO_VERCEL_SCHEDULES_FUNCTION: "1" });
       });
 
-      it("should run the task of a schedule dispatch", async () => {
+      it("should not route public requests to the private schedules function", async () => {
+        const config = await fsp
+          .readFile(resolve(ctx.outDir, "config.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        const routes = config.routes as { src?: string; dest?: string }[];
+        expect(routes.some((r) => r.dest === "/_vercel/tasks")).toBe(false);
+      });
+
+      const dispatch = async () => {
         // `_vercel/tasks.func` is a copy of the same bundle, importing it too would share globals
         const nodeHandler = await import(
           resolve(ctx.outDir, "functions/__server.func/index.mjs")
         ).then((r) => r.default || r);
-        const res = await toFetchHandler(nodeHandler)(
+        return toFetchHandler(nodeHandler)(
           new Request("https://example.com/_vercel/tasks", {
             method: "POST",
             headers: {
@@ -896,8 +905,22 @@ describe("nitro:preset:vercel:node", async () => {
             },
           })
         );
-        expect(res.status).toBe(200);
-        expect(await res.json()).toEqual({ success: true });
+      };
+
+      it("should not run tasks from forged dispatches to the public server function", async () => {
+        const res = await dispatch();
+        expect(res.status).toBe(404);
+      });
+
+      it("should run the task of a schedule dispatch in the private function", async () => {
+        vi.stubEnv("NITRO_VERCEL_SCHEDULES_FUNCTION", "1");
+        try {
+          const res = await dispatch();
+          expect(res.status).toBe(200);
+          expect(await res.json()).toEqual({ success: true });
+        } finally {
+          vi.unstubAllEnvs();
+        }
       });
 
       it.skipIf(typeof WebSocket !== "function")(
