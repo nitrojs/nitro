@@ -98,7 +98,9 @@ function getHandlersMeta(): {
 
 function normalizeRoute(_route: string, openAPI: OperationObject) {
   const parameters: ParameterObject[] = [];
-  const userDefinedParameters = (Array.isArray(openAPI.parameters) ? openAPI.parameters : []) as ParameterObject[];
+  const userDefinedParameters = (
+    Array.isArray(openAPI.parameters) ? openAPI.parameters : []
+  ) as ParameterObject[];
 
   let anonymousCtr = 0;
   const route = _route
