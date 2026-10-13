@@ -1,12 +1,18 @@
-import type { MinifyOptions } from "rolldown/experimental";
-import type { OXCOptions } from "nitro/types";
+import type { Nitro, OXCOptions } from "nitro/types";
 import type { Plugin } from "rollup";
+import { importOXC } from "../../utils/oxc.ts";
 import { RESOLVED_RE as rawModulesRE } from "./raw.ts";
 
 export async function oxc(
-  options: OXCOptions & { sourcemap: boolean; minify: boolean | MinifyOptions }
+  nitro: Nitro,
+  options: OXCOptions & { sourcemap: boolean; minify: boolean | OXCOptions["minify"] }
 ): Promise<Plugin> {
-  const { minifySync, transformSync } = await import("rolldown/utils");
+  const { transformSync, minifySync } = await importOXC({ dir: nitro.options.rootDir });
+  if (options.minify && !minifySync) {
+    nitro.logger.warn(
+      "Skipping minification: the `rollup` builder minifies with `rolldown`. Install `rolldown` to enable it."
+    );
+  }
   return {
     name: "nitro:oxc",
     transform: {
@@ -27,11 +33,11 @@ export async function oxc(
       },
     },
     renderChunk(code, chunk) {
-      if (options.minify) {
+      if (options.minify && minifySync) {
         return minifySync(chunk.fileName, code, {
           sourcemap: options.sourcemap,
           ...(typeof options.minify === "object" ? options.minify : {}),
-        });
+        } as Parameters<typeof minifySync>[2]);
       }
     },
   };

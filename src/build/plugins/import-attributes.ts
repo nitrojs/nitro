@@ -1,5 +1,7 @@
 import type { Plugin } from "rollup";
-import type { ESTree } from "rolldown/utils";
+import type * as ESTree from "oxbox";
+import MagicString from "magic-string";
+import { importOXC, walkAST } from "../../utils/oxc.ts";
 import { RESOLVED_RE as RAW_RE } from "./raw.ts";
 
 // Bundlers parse the syntax but do not implement the semantics, so imports with a
@@ -23,9 +25,8 @@ type TypedImport = {
 
 type Comment = { start: number; end: number };
 
-export async function importAttributes(): Promise<Plugin> {
-  const { RolldownMagicString } = await import("rolldown");
-  const { parseSync } = await import("rolldown/utils");
+export async function importAttributes(opts: { rootDir: string }): Promise<Plugin> {
+  const { parseSync } = await importOXC({ dir: opts.rootDir });
 
   return {
     name: "nitro:import-attributes",
@@ -55,7 +56,7 @@ export async function importAttributes(): Promise<Plugin> {
           return;
         }
 
-        const s = new RolldownMagicString(code);
+        const s = new MagicString(code);
         for (const { source, type, end } of imports) {
           s.update(source.start, source.end, JSON.stringify(`${type}:${source.value}`));
           s.remove(source.end, end);
@@ -63,8 +64,6 @@ export async function importAttributes(): Promise<Plugin> {
 
         return {
           code: s.toString(),
-          // `generateMap` returns a napi class whose fields are prototype getters, so spreading
-          // or serializing it yields `{}`. Both builders accept a JSON source map string.
           map: s.generateMap({ hires: true, source: filename }).toString(),
         };
       },
@@ -78,7 +77,7 @@ function findTypedImports(
   comments: Comment[]
 ): TypedImport[] {
   const imports: TypedImport[] = [];
-  walk(program, (node) => {
+  walkAST<ESTree.Node>(program, (node) => {
     switch (node.type) {
       // import("./file", { with: { type: "bytes" } })
       case "ImportExpression": {
@@ -164,25 +163,4 @@ function isStringLiteral(node: ESTree.Node): node is ESTree.StringLiteral {
 
 function isImportType(value: string): value is ImportType {
   return TYPES.includes(value as ImportType);
-}
-
-function walk(node: unknown, visit: (node: ESTree.Node) => void): void {
-  if (Array.isArray(node)) {
-    for (const child of node) {
-      walk(child, visit);
-    }
-    return;
-  }
-  if (!node || typeof node !== "object") {
-    return;
-  }
-  const record = node as Record<string, unknown>;
-  if (typeof record.type === "string") {
-    visit(node as ESTree.Node);
-  }
-  for (const key in record) {
-    if (key !== "parent") {
-      walk(record[key], visit);
-    }
-  }
 }

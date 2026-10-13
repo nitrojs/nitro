@@ -46,7 +46,7 @@ export default function rendererTemplate(nitro: Nitro) {
             contextKeys: [...RENDER_CONTEXT_KEYS],
           });
           return /* js */ `
-            import { renderToResponse } from 'rendu'
+            import { renderToResponse } from '#nitro/runtime/rendu'
             import { fetch, serverFetch } from 'nitro/app'
             ${nitro.options.builder === "vite" ? `import { fetchViteEnv } from "nitro/vite/runtime"` : ""}
             const context = { fetch, serverFetch${nitro.options.builder === "vite" ? ", fetchViteEnv" : ""} }
