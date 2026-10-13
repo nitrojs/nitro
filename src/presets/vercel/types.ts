@@ -1,4 +1,5 @@
-import type { send } from "@vercel/queue";
+import type { MessageMetadata, send } from "@vercel/queue";
+import type { OptionalDepType } from "../../types/_utils.ts";
 
 /**
  * Vercel Build Output Configuration
@@ -135,6 +136,23 @@ export interface VercelOptions {
   skewProtection?: boolean;
 
   /**
+   * Emit content-addressed build assets as [immutable static files](https://vercel.com/docs/skew-protection).
+   *
+   * Immutable assets are served from the reserved `/_vercel/immutable/` base
+   * (without the deployment-scoped `?dpl` query), so they can be shared across
+   * deployments to improve cross-deployment caching. Nitro also writes an
+   * `immutable.json` manifest listing each emitted immutable file.
+   *
+   * Opt in by setting this to `true` or the `NITRO_VERCEL_IMMUTABLE_STATIC_FILES_ENABLED`
+   * environment variable. When building on Vercel, immutable output is only
+   * produced if the deployment supports it (`VERCEL_IMMUTABLE_STATIC_FILES_ENABLED`);
+   * otherwise it is skipped with a warning.
+   *
+   * @default false
+   */
+  immutableStaticFiles?: boolean;
+
+  /**
    * If you are using `vercel-edge`, you can specify the region(s) for your edge function.
    * @see https://vercel.com/docs/concepts/functions/edge-functions#edge-function-regions
    */
@@ -171,7 +189,9 @@ export interface VercelOptions {
    * @example
    * ```ts
    * // nitro.config.ts
-   * export default defineNitroConfig({
+   * import { defineConfig } from "nitro";
+   *
+   * export default defineConfig({
    *   vercel: {
    *     queues: {
    *       triggers: [{ topic: "orders" }],
@@ -182,7 +202,9 @@ export interface VercelOptions {
    *
    * ```ts
    * // server/plugins/queues.ts
-   * export default defineNitroPlugin((nitro) => {
+   * import { definePlugin } from "nitro";
+   *
+   * export default definePlugin((nitro) => {
    *   nitro.hooks.hook("vercel:queue", ({ message, metadata }) => {
    *     console.log(`Received message on ${metadata.topicName}:`, message);
    *   });
@@ -268,8 +290,33 @@ declare module "nitro/types" {
   export interface NitroRuntimeHooks {
     "vercel:queue": (_: {
       message: unknown;
-      metadata: import("@vercel/queue").MessageMetadata;
-      send: typeof send;
+      metadata: OptionalDepType<MessageMetadata, VercelQueueMessageMetadata>;
+      send: OptionalDepType<typeof send, VercelQueueSend>;
     }) => void;
   }
 }
+
+// Fallback `@vercel/queue` types, used when it is not installed
+
+interface VercelQueueMessageMetadata {
+  messageId: string;
+  deliveryCount: number;
+  createdAt: Date;
+  expiresAt: Date;
+  topicName: string;
+  consumerGroup: string;
+  region: string;
+}
+
+type VercelQueueSend = <T = unknown>(
+  topicName: string,
+  payload: T,
+  options?: {
+    idempotencyKey?: string;
+    retentionSeconds?: number;
+    delaySeconds?: number;
+    headers?: Record<string, string>;
+    region?: string;
+    [key: string]: unknown;
+  }
+) => Promise<{ messageId: string | null }>;

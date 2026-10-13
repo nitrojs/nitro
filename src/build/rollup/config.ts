@@ -7,25 +7,24 @@ import json from "@rollup/plugin-json";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
 import { oxc } from "../plugins/oxc.ts";
 import { baseBuildConfig } from "../config.ts";
-import { baseBuildPlugins } from "../plugins.ts";
+import { baseBuildPlugins, withBuildPlugins } from "../plugins.ts";
 import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
 
 export const getRollupConfig = async (nitro: Nitro): Promise<RollupConfig> => {
-  const base = baseBuildConfig(nitro);
+  const base = await baseBuildConfig(nitro);
 
   const tsc = nitro.options.typescript.tsConfig?.compilerOptions;
 
   let config: RollupConfig = {
     input: nitro.options.entry,
     external: [...base.env.external],
-    plugins: [
+    plugins: await withBuildPlugins(nitro, [
       ...(await baseBuildPlugins(nitro, base)),
-      await oxc({
+      await oxc(nitro, {
         sourcemap: !!nitro.options.sourcemap,
         minify: nitro.options.minify ? { ...nitro.options.oxc?.minify } : false,
         transform: {
           target: "esnext",
-          // @ts-expect-error TODO: does option exists?
           cwd: nitro.options.rootDir,
           ...nitro.options.oxc?.transform,
           jsx: {
@@ -50,7 +49,7 @@ export const getRollupConfig = async (nitro: Nitro): Promise<RollupConfig> => {
       }),
       (json as unknown as typeof json.default)(),
       (inject as unknown as typeof inject.default)(base.env.inject),
-    ],
+    ]),
     onwarn(warning, rollupWarn) {
       if (!base.ignoreWarningCodes.has(warning.code || "")) {
         rollupWarn(warning);
@@ -58,6 +57,8 @@ export const getRollupConfig = async (nitro: Nitro): Promise<RollupConfig> => {
     },
     output: {
       format: "esm",
+      // `assert` was removed in Node.js v22; Rollup 5 defaults to `with` (rollup/rollup#6248).
+      importAttributesKey: "with",
       entryFileNames: "index.mjs",
       chunkFileNames: (chunk) => getChunkName(chunk, nitro),
       dir: nitro.options.output.serverDir,

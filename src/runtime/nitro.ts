@@ -8,9 +8,10 @@ export function defineConfig(config: Omit<NitroConfig, "rootDir">): Omit<NitroCo
 }
 
 // Type (only) helpers
-export { defineNitroPlugin as definePlugin } from "./internal/plugin.ts";
+export { definePlugin } from "./internal/plugin.ts";
 export { defineRouteMeta } from "./internal/meta.ts";
-export { defineNitroErrorHandler as defineErrorHandler } from "./internal/error/utils.ts";
+export { defineErrorHandler } from "./internal/error/utils.ts";
+export { defineServerEntry } from "./internal/server-entry.ts";
 
 // H3
 export {
@@ -21,7 +22,10 @@ export {
   HTTPError,
   HTTPResponse,
 } from "h3";
-export type { H3Event } from "h3";
+export type { H3Event, EventHandlerRequest, EventHandlerWithFetch } from "h3";
+
+// srvx
+export type { FastResponse } from "srvx";
 
 // Runtime
 export function serverFetch(
@@ -37,7 +41,7 @@ export function serverFetch(
     return Promise.reject(new Error("Nitro instance is not available."));
   }
   const req = toRequest(resource, init);
-  req.context = { ...req.context, ...context };
+  req.context = { ...req.context, ...context } as ServerRequestContext;
   try {
     return Promise.resolve(nitro.fetch(req));
   } catch (error) {

@@ -6,7 +6,7 @@ import { withBase, withQuery } from "ufo";
 
 import type { QueryObject } from "ufo";
 import type { RequestOptions } from "node:http";
-import type { NitroBuildInfo, TaskEvent, TaskRunnerOptions } from "nitro/types";
+import type { NitroBuildInfo, TaskEvent, TaskMeta, TaskRunnerOptions } from "nitro/types";
 
 /** @experimental */
 export async function runTask(
@@ -29,7 +29,7 @@ export async function listTasks(opts?: TaskRunnerOptions) {
   // safe here and stops a stalled socket from hanging the caller forever.
   const ctx = await _getTasksContext(opts, 30_000);
   const res = (await ctx.devFetch("/_nitro/tasks")) as {
-    tasks: Record<string, { meta: { description: string } }>;
+    tasks: Record<string, { meta: TaskMeta }>;
   };
   return res.tasks;
 }
