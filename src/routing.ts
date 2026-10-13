@@ -1,4 +1,4 @@
-import type { Nitro, NitroEventHandler, NitroRouteRules } from "nitro/types";
+import type { Nitro, NitroEventHandler, NormalizedRouteRules } from "nitro/types";
 import type { RouterContext } from "rou3";
 import type { CompileRouterToStringOptions } from "rou3/compiler";
 
@@ -33,7 +33,7 @@ export function initNitroRouting(nitro: Nitro) {
   // Matched with route *patterns* at build time (presets), never with a request
   // path — the runtime rules matcher is compiled from `options.routeRules` by
   // `h3/rules` itself.
-  const routeRules = new Router<NitroRouteRules & { _route: string }>(nitro.options.baseURL, {
+  const routeRules = new Router<NormalizedRouteRules & { _route: string }>(nitro.options.baseURL, {
     normalize: false,
   });
 

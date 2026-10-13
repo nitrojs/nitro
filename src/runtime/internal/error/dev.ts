@@ -1,6 +1,6 @@
 import { HTTPError, type HTTPEvent } from "h3";
 import { getRequestURL } from "h3";
-import { defineNitroErrorHandler } from "./utils.ts";
+import { defineErrorHandler } from "./utils.ts";
 import type { InternalHandlerResponse } from "./utils.ts";
 import { FastResponse } from "srvx";
 import type { NitroErrorHandler } from "nitro/types";
@@ -9,7 +9,7 @@ import { renderErrorANSI, renderErrorHTML } from "./_utils.ts";
 
 export { loadStackTrace } from "./_stack.ts";
 
-const errorHandler: NitroErrorHandler = defineNitroErrorHandler(
+const errorHandler: NitroErrorHandler = defineErrorHandler(
   async function defaultNitroErrorHandler(error, event) {
     const res = await defaultHandler(error, event);
     return new FastResponse(
