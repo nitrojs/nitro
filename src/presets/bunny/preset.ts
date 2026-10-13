@@ -2,6 +2,7 @@ import { defineNitroPreset } from "../_utils/preset.ts";
 import { isDenoSpecifier } from "../_utils/externals.ts";
 import { unenvBunny } from "./unenv/preset.ts";
 import { builtinNodeModules } from "./unenv/node-compat.ts";
+import { extendEnv } from "../../build/env.ts";
 import { rm } from "node:fs/promises";
 
 const edgeScripting = defineNitroPreset(
@@ -10,7 +11,6 @@ const edgeScripting = defineNitroPreset(
 
     exportConditions: ["deno"],
     node: false,
-    unenv: unenvBunny,
     commands: {
       preview: "deno -A ./bunny-edge-scripting.mjs",
     },
@@ -36,6 +36,7 @@ const edgeScripting = defineNitroPreset(
 
     hooks: {
       "build:before": (nitro) => {
+        extendEnv(nitro, unenvBunny);
         if (nitro.options.serveStatic !== "inline" && nitro.options.serveStatic !== false) {
           nitro.options.serveStatic = "inline";
           nitro.logger.warn(

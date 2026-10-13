@@ -1,11 +1,8 @@
-import type { Preset } from "unenv";
+import type { PresetEnv } from "../../../build/env.ts";
 import * as bunnyCompat from "./node-compat.ts";
 
-export const unenvBunny: Preset = {
-  meta: {
-    name: "nitro:bunny",
-  },
-  external: bunnyCompat.builtinNodeModules,
+export const unenvBunny: PresetEnv = {
+  builtinModules: bunnyCompat.builtinNodeModules,
   alias: {
     ...Object.fromEntries(
       bunnyCompat.builtinNodeModules.flatMap((m) => [
@@ -15,7 +12,7 @@ export const unenvBunny: Preset = {
     ),
   },
   inject: {
-    global: "unenv/polyfill/globalthis",
+    global: "#nitro/runtime/polyfills/globalthis",
     process: "node:process",
     clearImmediate: ["node:timers", "clearImmediate"],
     setImmediate: ["node:timers", "setImmediate"],
