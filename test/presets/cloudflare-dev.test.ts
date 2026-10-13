@@ -10,7 +10,7 @@ const { createServer } = (await import(
 const rootDir = fileURLToPath(new URL("../fixture/cloudflare-dev", import.meta.url));
 
 for (const mode of ["nitro", "vite"] as const) {
-  describe(`cloudflare dev bindings: ${mode}`, { sequential: true }, () => {
+  describe(`cloudflare dev bindings: ${mode}`, { concurrent: false }, () => {
     let fetchPath: (path: string) => Promise<Response>;
     let reload: (() => Promise<void>) | undefined;
     let close: () => Promise<void>;

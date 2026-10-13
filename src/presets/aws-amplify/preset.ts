@@ -1,7 +1,7 @@
 import { defineNitroPreset } from "../_utils/preset.ts";
 import { writeAmplifyFiles } from "./utils.ts";
 
-export type { AWSAmplifyOptions as PresetOptions } from "./types.ts";
+export type { AwsAmplifyOptions as PresetOptions } from "./types.ts";
 
 const awsAmplify = defineNitroPreset(
   {

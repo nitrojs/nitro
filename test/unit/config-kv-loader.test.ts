@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "pathe";
 import { afterEach, describe, expect, it } from "vitest";
 import { loadOptions } from "../../src/config/loader.ts";
-import { resolveStorageMounts } from "../../src/utils/storage.ts";
+import { resolveKVMounts } from "../../src/utils/storage.ts";
 
 const tempDirs: string[] = [];
 
@@ -59,7 +59,7 @@ describe("kv config loader", () => {
       devStorage: { cache: { driver: "fs", base: "./.data/cache" } },
     }`);
     const options = await loadOptions({ rootDir, preset: "nitro-prerender" });
-    const mounts = Object.fromEntries(resolveStorageMounts(options).map((m) => [m.path, m.name]));
+    const mounts = Object.fromEntries(resolveKVMounts(options).map((m) => [m.path, m.name]));
     expect(mounts).toEqual({ db: "memory", cache: "fs" });
   });
 });

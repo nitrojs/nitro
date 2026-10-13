@@ -6,9 +6,11 @@ import { scanHandlers } from "../../scan.ts";
 import { createWatcher } from "../../utils/watch.ts";
 import { formatCompatibilityDate } from "compatx";
 
-export async function watchDev(nitro: Nitro, config: RolldownOptions) {
-  const rolldown = await import("rolldown");
-
+export async function watchDev(
+  nitro: Nitro,
+  config: RolldownOptions,
+  rolldown: typeof import("rolldown")
+) {
   let watcher: RolldownWatcher;
 
   async function load() {

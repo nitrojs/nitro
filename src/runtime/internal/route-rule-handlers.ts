@@ -2,8 +2,8 @@
 // `src/build/virtual/routing.ts`). The built-in handlers (`headers`,
 // `redirect`, `proxy`, `cors`) are imported straight from `h3/rules` by the
 // compiler's default preset; only `cache` is overridden here so it stays bound
-// to Nitro's own cached-handler runtime, keeping Nitro's unstorage /
-// `useKV()` wiring and stable cache keys.
+// to Nitro's own cached-handler runtime, keeping Nitro's cache storage
+// (`cache` config) and stable cache keys.
 import { createCacheRuleHandler, type RuleHandler } from "h3/rules";
 import { defineCachedHandler } from "./cache.ts";
 

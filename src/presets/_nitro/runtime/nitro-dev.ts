@@ -23,20 +23,12 @@ if (import.meta._tasks) {
   startScheduleRunner({});
 }
 
-const ws = import.meta._websocket
-  ? await import("crossws/adapters/node").then((m) =>
-      (m.default || m)({ resolve: resolveWebsocketHooks })
-    )
-  : undefined;
-
 export default {
   ...serverEntryOptions,
   fetch: nitroApp.fetch,
   plugins: [...tracingSrvxPlugins],
-  upgrade: ws
-    ? (context: { node: { req: any; socket: any; head: any } }) => {
-        ws.handleUpgrade(context.node.req, context.node.socket, context.node.head);
-      }
+  websocket: import.meta._websocket
+    ? ({ resolve: resolveWebsocketHooks } as AppEntry["websocket"])
     : undefined,
   ipc: {
     onOpen: (ctx) => {

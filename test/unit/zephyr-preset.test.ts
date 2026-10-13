@@ -26,17 +26,22 @@ describe("zephyr preset", () => {
     expect(preset.commands?.deploy).toBeTypeOf("function");
   });
 
-  it("adds cloudflare unenv presets", async () => {
+  it("adds cloudflare externals and node compat", async () => {
     const preset = await getZephyrPreset();
     const hooks = preset.hooks!;
 
     const nitro = {
       options: {
         preset: "zephyr",
+        rootDir: process.cwd() + "/",
         output: {
           dir: "/tmp/zephyr-output",
           serverDir: "/tmp/zephyr-output/server",
         },
+        alias: { "node:fs": "/custom/fs" },
+        inject: {},
+        polyfills: [],
+        builtinModules: [],
         unenv: [],
       },
       logger: {
@@ -46,9 +51,14 @@ describe("zephyr preset", () => {
     } as any;
 
     await hooks["build:before"]?.(nitro);
-    expect(nitro.options.unenv).toHaveLength(2);
-    expect(nitro.options.unenv[0].meta?.name).toBe("nitro:cloudflare-externals");
-    expect(nitro.options.unenv[1].meta?.name).toBe("nitro:cloudflare-node-compat");
+    expect(nitro.options.alias).toEqual({ "node:fs": "/custom/fs" });
+    const { resolveBuildEnv } = await import("../../src/build/env.ts");
+    const env = await resolveBuildEnv(nitro);
+    expect(env.external).toContain("cloudflare:workers");
+    expect(env.external).toContain("node:fs");
+    expect(env.alias["node:path"]).toBe("node:path");
+    expect(env.alias["node:fs"]).toBe("/custom/fs");
+    expect(env.inject.Buffer).toEqual(["node:buffer", "Buffer"]);
     expect(nitro.logger.info).not.toHaveBeenCalled();
     expect(nitro.logger.success).not.toHaveBeenCalled();
   });

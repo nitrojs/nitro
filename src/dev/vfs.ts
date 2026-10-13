@@ -8,7 +8,7 @@ export function createVFSHandler(nitro: Nitro) {
       throw new HTTPError({ statusText: "Forbidden IP", status: 403 });
     }
 
-    const url = event.context.params?._ || "";
+    const url = event.context.params?.[0] || "";
     const isJson =
       url.endsWith(".json") || event.req.headers.get("accept")?.includes("application/json");
     const id = decodeURIComponent(url.replace(/^(\.json)?\/?/, "") || "");

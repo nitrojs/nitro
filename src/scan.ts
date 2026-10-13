@@ -92,12 +92,21 @@ export async function scanMiddleware(nitro: Nitro) {
 export async function scanServerRoutes(nitro: Nitro, dir: string, prefix = "/") {
   const files = await scanFiles(nitro, dir);
   return files.map((file) => {
+    const paramName = (name: string) => {
+      const sanitized = name.replace(/\W/g, "_");
+      if (name.includes("-")) {
+        nitro.logger.warn(
+          `Route param \`[${name}]\` in \`${file.path}\` is available as \`params.${sanitized}\`, since param names cannot contain \`-\`. Rename it to silence this warning.`
+        );
+      }
+      return sanitized;
+    };
     let route = file.path
       .replace(/\.[A-Za-z]+$/, "")
       .replace(/\(([^(/\\]+)\)[/\\]/g, "")
       .replace(/\[\.{3}]/g, "**")
-      .replace(/\[\.{3}([^\]]+)]/g, (_, p) => "**:" + p.replace(/[^\w-]/g, "_"))
-      .replace(/\[([^/\]]+)]/g, (_, p) => ":" + p.replace(/[^\w-]/g, "_"));
+      .replace(/\[\.{3}([^\]]+)]/g, (_, p) => "**:" + paramName(p))
+      .replace(/\[([^/\]]+)]/g, (_, p) => ":" + paramName(p));
     route = withLeadingSlash(withoutTrailingSlash(withBase(route, prefix)));
 
     const suffixMatch = route.match(suffixRegex);
