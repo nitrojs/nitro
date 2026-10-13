@@ -5,7 +5,6 @@ import { pathToFileURL } from "node:url";
 import { runtimeDir } from "nitro/meta";
 import { resolve } from "pathe";
 import { writeFile } from "../../utils/fs.ts";
-import { serverEntryHandler } from "../../utils/server-entry.ts";
 import { resolveViteModuleRunner, viteImportOptions } from "./_import.ts";
 
 /**
@@ -23,7 +22,7 @@ export async function writeDevWorkerEntry(nitro: Nitro): Promise<string> {
   const devWorker = pathToFileURL(resolve(runtimeDir, "internal/vite/dev-worker.mjs")).href;
   const moduleRunner = pathToFileURL(await resolveViteModuleRunner(viteImportOptions(nitro))).href;
   const websocket = nitro.options.features.websocket ?? nitro.options.experimental.websocket;
-  const serverEntry = serverEntryHandler(nitro);
+  const serverEntry = nitro.options.serverEntry && nitro.options.serverEntry.handler;
   // Read on the host: the workerd runner does not see the host's environment variables.
   const reloadTimeout = _resolveReloadTimeout(nitro);
 

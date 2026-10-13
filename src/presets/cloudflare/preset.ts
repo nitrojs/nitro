@@ -5,7 +5,6 @@ import { join, resolve } from "pathe";
 import { presetsDir } from "nitro/meta";
 import { unenvCfExternals } from "./unenv/preset.ts";
 import { extendEnv } from "../../build/env.ts";
-import { workerdConditions } from "../../build/_workerd.ts";
 import {
   enableNodeCompat,
   writeWranglerConfig,
@@ -191,7 +190,14 @@ export default [
 
 // Builds for workerd like the production presets
 function setupMiniflareDev(nitro: Nitro) {
-  nitro.options.exportConditions = workerdConditions(nitro.options.exportConditions);
+  // Resolve packages for workerd (it rejects the CJS entries of the `node` condition)
+  nitro.options.exportConditions = [
+    ...new Set([
+      "workerd",
+      "worker",
+      ...nitro.options.exportConditions!.filter((c) => c !== "node"),
+    ]),
+  ];
   extendEnv(nitro, unenvCfExternals);
   // In Vite dev, the dev worker resolves the exports from the nitro environment instead
   if (nitro.options.builder !== "vite") {

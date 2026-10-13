@@ -11,7 +11,6 @@ import { resolveRunnerDeps } from "../../dev/runner-deps.ts";
 import { shutdownRunner } from "../../dev/shutdown.ts";
 import { writeDevWorkerEntry } from "./_dev-worker.ts";
 import { viteImportOptions } from "./_import.ts";
-import { workerdConditions } from "../_workerd.ts";
 
 export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOptions {
   const isWorkerdRunner = _isWorkerdRunner(ctx);
@@ -38,9 +37,7 @@ export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOpti
         : true, // production build is standalone
       // workerd cannot handle CJS modules, so we must avoid the "node" export
       // condition which often resolves to CJS entries.
-      conditions: isWorkerdRunner
-        ? workerdConditions(ctx.nitro!.options.exportConditions)
-        : _resolveConditions(ctx),
+      conditions: isWorkerdRunner ? _workerdConditions(ctx) : _resolveConditions(ctx),
       externalConditions: _resolveConditions(ctx).filter((c) => !/browser|wasm|module/.test(c)),
     },
     define: {
@@ -95,9 +92,7 @@ export function createServiceEnvironment(
     },
     resolve: {
       ...(isDev ? { noExternal: isWorkerdRunner ? true : [/^nitro(\/|$)/] } : {}),
-      conditions: isWorkerdRunner
-        ? workerdConditions(ctx.nitro!.options.exportConditions)
-        : _resolveConditions(ctx),
+      conditions: isWorkerdRunner ? _workerdConditions(ctx) : _resolveConditions(ctx),
       externalConditions: _resolveConditions(ctx).filter((c) => !/browser|wasm|module/.test(c)),
     },
     dev: ctx._isVitest
@@ -240,6 +235,11 @@ function _resolveConditions(ctx: NitroPluginContext): string[] {
   return runtimeCondition && !exportConditions.includes(runtimeCondition)
     ? [runtimeCondition, ...exportConditions]
     : exportConditions;
+}
+
+function _workerdConditions(ctx: NitroPluginContext): string[] {
+  const exportConditions = ctx.nitro!.options.exportConditions!;
+  return [...new Set(["workerd", "worker", ...exportConditions.filter((c) => c !== "node")])];
 }
 
 function _devRunner(ctx: NitroPluginContext): RunnerName {

@@ -19,7 +19,6 @@ import {
 import { unenvCfNodeCompat } from "./unenv/preset.ts";
 import { routeToSplat, sortRoutes } from "../_utils/routes.ts";
 import { extendEnv } from "../../build/env.ts";
-import { serverEntryHandler } from "../../utils/server-entry.ts";
 
 // https://github.com/nitrojs/nitro/issues/4527
 const NODEJS_COMPAT_SUPPORTED_FROM_DATE = "2024-09-23";
@@ -270,7 +269,8 @@ export async function writeWranglerConfig(nitro: Nitro, cfTarget: "pages" | "mod
   // `main` can point to the server entry, so `wrangler types` can type Durable Object bindings
   const mainIsServerEntry =
     !!userConfig.main &&
-    resolve(dirname(userConfigPath!), userConfig.main) === serverEntryHandler(nitro);
+    !!nitro.options.serverEntry &&
+    resolve(dirname(userConfigPath!), userConfig.main) === nitro.options.serverEntry.handler;
 
   // Validate and warn about overrides
   for (const key in overrides) {
