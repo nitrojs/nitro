@@ -1,4 +1,4 @@
-import { defineNitroPreset } from "../_utils/preset";
+import { defineNitroPreset } from "../_utils/preset.ts";
 
 const sevalla = defineNitroPreset(
   {
@@ -6,7 +6,6 @@ const sevalla = defineNitroPreset(
   },
   {
     name: "sevalla" as const,
-    url: import.meta.url,
   }
 );
 
