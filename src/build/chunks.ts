@@ -11,6 +11,14 @@ export function libChunkName(id: string) {
   return pkgName ? `_libs/${pkgName}` : undefined;
 }
 
+/** Rolldown `codeSplitting` group for library (`node_modules`) chunks. */
+export function libChunksGroup() {
+  const group = { test: NODE_MODULES_RE, name: (id: string) => libChunkName(id) };
+  // Rolldown >= 1.2.10 warns without `debugName`, older versions reject unknown (enumerable) keys
+  Object.defineProperty(group, "debugName", { value: "libs" });
+  return group;
+}
+
 export function pathToPkgName(path: string): string | undefined {
   let pkgName = path.match(
     /.*(?:[/\\])node_modules(?:[/\\])(?<name>@[^/\\]+[/\\][^/\\]+|[^/\\.][^/\\]*)/
