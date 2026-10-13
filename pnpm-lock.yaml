@@ -216,6 +216,9 @@ importers:
       obuild:
         specifier: ^0.4.44
         version: 0.4.44(dotenv@18.0.7)(giget@3.3.1)(jiti@2.7.0)(magicast@0.5.5)(typescript@7.0.2)
+      ohash:
+        specifier: ^2.0.12
+        version: 2.0.12
       oxbox:
         specifier: ^0.1.0
         version: 0.1.0
