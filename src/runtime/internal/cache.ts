@@ -13,7 +13,7 @@ import {
 import { useNitroApp } from "./app.ts";
 
 import type { EventHandler, H3Event } from "h3";
-import type { CacheOptions, CachedEventHandlerOptions } from "nitro/types";
+import type { CachedFunctionOptions, CachedHandlerOptions } from "nitro/types";
 
 let _cacheStorage: StorageInterface | undefined;
 
@@ -28,7 +28,7 @@ function defaultOnError(error: unknown) {
 
 export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
   fn: (...args: ArgsT) => T | Promise<T>,
-  opts: CacheOptions<T, ArgsT> = {}
+  opts: CachedFunctionOptions<T, ArgsT> = {}
 ): CachedFunction<T, ArgsT> {
   return _defineCachedFunction(fn, {
     storage: cacheStorage,
@@ -41,7 +41,7 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
 
 export function defineCachedHandler(
   handler: EventHandler,
-  opts: CachedEventHandlerOptions = {}
+  opts: CachedHandlerOptions = {}
 ): EventHandler {
   const ocacheHandler = _defineCachedHandler(handler as any, {
     storage: cacheStorage,

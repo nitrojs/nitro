@@ -34,23 +34,6 @@ export interface NitroAsyncContext {
   request: ServerRequest;
 }
 
-export interface RenderResponse {
-  body: any;
-  status: number;
-  statusText: string;
-  headers: Record<string, string>;
-}
-
-export type RenderHandler = (
-  event: HTTPEvent
-) => Partial<RenderResponse> | Promise<Partial<RenderResponse>>;
-
-export interface RenderContext {
-  event: HTTPEvent;
-  render: RenderHandler;
-  response?: Partial<RenderResponse>;
-}
-
 /** Context provided when an error is captured at runtime. */
 export interface CapturedErrorContext {
   event?: HTTPEvent;
