@@ -13,7 +13,7 @@ const rootDir = fileURLToPath(new URL("./vite-path-fixture", import.meta.url));
 
 // #4636: a framework running Vite programmatically (a monorepo where another `vite` is hoisted
 // next to the app) needs the plugin to use *its* `vite`, not the one resolvable from the app root.
-describe("vite:path", { sequential: true }, () => {
+describe("vite:path", { concurrent: false }, () => {
   const originalCwd = process.cwd();
   let server: ViteDevServer | undefined;
 

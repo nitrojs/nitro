@@ -10,6 +10,8 @@ import subpathLib from "@fixture/nitro-lib/subpath";
 import extraUtils from "@fixture/nitro-utils/extra";
 // @ts-ignore
 import cjsRequirer from "nitro-cjs-requirer";
+// @ts-ignore
+import bundledDep from "nitro-bundled-dep";
 
 export default () => {
   return {
@@ -19,5 +21,6 @@ export default () => {
     subpathLib, // expected to 2.0.0
     extraUtils,
     cjsRequirer,
+    bundledDep, // expected to be 3.0.0
   };
 };
