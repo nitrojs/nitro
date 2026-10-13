@@ -6,6 +6,7 @@ import { afterAll, describe, expect, it, vi } from "vitest";
 import { listTasks, runTask } from "../../src/task.ts";
 
 describe("task runner devFetch", () => {
+  const migrateEvent = { name: "db:migrate", payload: {}, context: {} };
   const cleanups: Array<() => Promise<void> | void> = [];
 
   afterAll(async () => {
@@ -45,9 +46,7 @@ describe("task runner devFetch", () => {
 
   it("honours an opt-in timeout for runTask", async () => {
     const cwd = await stalledDevServer();
-    await expect(runTask({ name: "db:migrate" }, { cwd, timeout: 200 })).rejects.toThrow(
-      /timed out/i
-    );
+    await expect(runTask(migrateEvent, { cwd, timeout: 200 })).rejects.toThrow(/timed out/i);
   }, 5000);
 
   // The socket stays idle for as long as the task runs, so only listTasks may
@@ -66,8 +65,8 @@ describe("task runner devFetch", () => {
     };
 
     expect(await requested(listTasks({ cwd }))).toHaveProperty("timeout", 30_000);
-    expect(await requested(runTask({ name: "db:migrate" }, { cwd }))).not.toHaveProperty("timeout");
-    expect(await requested(runTask({ name: "db:migrate" }, { cwd, timeout: 200 }))).toHaveProperty(
+    expect(await requested(runTask(migrateEvent, { cwd }))).not.toHaveProperty("timeout");
+    expect(await requested(runTask(migrateEvent, { cwd, timeout: 200 }))).toHaveProperty(
       "timeout",
       200
     );
