@@ -77,54 +77,70 @@ describe("getVercelTaskSchedules", () => {
 describe("isVercelSchedulesEnabled", () => {
   it("requires experimental tasks", () => {
     expect(
-      isVercelSchedulesEnabled(options({ experimental: {}, vercel: { schedules: true } }), {})
+      isVercelSchedulesEnabled(
+        options({ experimental: {}, vercel: { experimentalSchedules: "private" } }),
+        {}
+      )
     ).toBe(false);
   });
 
   it("defaults to NITRO_VERCEL_SCHEDULES", () => {
     expect(isVercelSchedulesEnabled(options(), {})).toBe(false);
-    expect(isVercelSchedulesEnabled(options(), { NITRO_VERCEL_SCHEDULES: "1" })).toBe(true);
+    expect(isVercelSchedulesEnabled(options(), { NITRO_VERCEL_SCHEDULES: "private" })).toBe(true);
     expect(isVercelSchedulesEnabled(options(), { NITRO_VERCEL_SCHEDULES: "false" })).toBe(false);
   });
 
-  it("prefers the vercel.schedules option", () => {
+  it("prefers the vercel.experimentalSchedules option", () => {
     expect(
-      isVercelSchedulesEnabled(options({ vercel: { schedules: false } }), {
-        NITRO_VERCEL_SCHEDULES: "1",
+      isVercelSchedulesEnabled(options({ vercel: { experimentalSchedules: false } }), {
+        NITRO_VERCEL_SCHEDULES: "private",
       })
     ).toBe(false);
   });
 });
 
 describe("getVercelSchedulesMode", () => {
-  it("uses private function targets by default", () => {
-    expect(getVercelSchedulesMode(options({ vercel: { schedules: true } }), {})).toBe("function");
-    expect(getVercelSchedulesMode(options(), { NITRO_VERCEL_SCHEDULES: "1" })).toBe("function");
-    expect(getVercelSchedulesMode(options(), { NITRO_VERCEL_SCHEDULES: "function" })).toBe(
-      "function"
+  it("uses private function targets", () => {
+    expect(
+      getVercelSchedulesMode(options({ vercel: { experimentalSchedules: "private" } }), {})
+    ).toBe("private");
+    expect(getVercelSchedulesMode(options(), { NITRO_VERCEL_SCHEDULES: "private" })).toBe(
+      "private"
     );
   });
 
-  it("opts in to path targets", () => {
-    expect(getVercelSchedulesMode(options({ vercel: { schedules: "path" } }), {})).toBe("path");
-    expect(getVercelSchedulesMode(options(), { NITRO_VERCEL_SCHEDULES: "path" })).toBe("path");
+  it("uses public path targets", () => {
+    expect(
+      getVercelSchedulesMode(options({ vercel: { experimentalSchedules: "public" } }), {})
+    ).toBe("public");
+    expect(getVercelSchedulesMode(options(), { NITRO_VERCEL_SCHEDULES: "PUBLIC" })).toBe("public");
   });
 
   it("is disabled without the opt-in", () => {
     expect(getVercelSchedulesMode(options(), {})).toBe(false);
     expect(getVercelSchedulesMode(options(), { NITRO_VERCEL_SCHEDULES: "0" })).toBe(false);
   });
+
+  it("rejects invalid values", () => {
+    const invalid = options({ vercel: { experimentalSchedules: true as unknown as "private" } });
+    expect(() => getVercelSchedulesMode(invalid, {})).toThrow(
+      "Invalid `vercel.experimentalSchedules` value: true"
+    );
+    expect(() => getVercelSchedulesMode(options(), { NITRO_VERCEL_SCHEDULES: "1" })).toThrow(
+      'Invalid `NITRO_VERCEL_SCHEDULES` value: "1"'
+    );
+  });
 });
 
 function createNitro(
-  schedules: boolean | "path" = true,
+  schedules: "private" | "public" | false = "private",
   overrides: Partial<NitroOptions> = {}
 ): Nitro {
   return {
     options: options({
       tasks: { cleanup: task },
       scheduledTasks: { "0 3 * * *": "cleanup" },
-      vercel: { schedules },
+      vercel: { experimentalSchedules: schedules },
       virtual: {},
       handlers: [],
       baseURL: "/",
@@ -142,11 +158,11 @@ describe("getVercelBuildOutputSchedules", () => {
   });
 
   it("targets the cron handler route in path mode", () => {
-    expect(getVercelBuildOutputSchedules(createNitro("path"))).toEqual([
+    expect(getVercelBuildOutputSchedules(createNitro("public"))).toEqual([
       { name: "cleanup", schedule: "0 3 * * *", path: "/_vercel/cron" },
     ]);
-    const nitro = createNitro("path", {
-      vercel: { schedules: "path", cronHandlerRoute: "/api/cron" },
+    const nitro = createNitro("public", {
+      vercel: { experimentalSchedules: "public", cronHandlerRoute: "/api/cron" },
     });
     expect(getVercelBuildOutputSchedules(nitro)).toEqual([
       { name: "cleanup", schedule: "0 3 * * *", path: "/api/cron" },
@@ -160,8 +176,11 @@ describe("getVercelBuildOutputSchedules", () => {
 
 describe("setupVercelSchedules", () => {
   it("registers a private function with the schedule trigger", () => {
-    const nitro = createNitro(true, {
-      vercel: { schedules: true, functionRules: { "/_vercel/tasks": { maxDuration: 60 } } },
+    const nitro = createNitro("private", {
+      vercel: {
+        experimentalSchedules: "private",
+        functionRules: { "/_vercel/tasks": { maxDuration: 60 } },
+      },
     });
     setupVercelSchedules(nitro);
     expect(nitro.options.handlers).toEqual([
@@ -181,9 +200,9 @@ describe("setupVercelSchedules", () => {
   });
 
   it("rejects function rules with their own triggers", () => {
-    const nitro = createNitro(true, {
+    const nitro = createNitro("private", {
       vercel: {
-        schedules: true,
+        experimentalSchedules: "private",
         functionRules: {
           "/_vercel/tasks": { experimentalTriggers: [{ type: "queue/v2beta", topic: "x" }] },
         },
@@ -193,14 +212,14 @@ describe("setupVercelSchedules", () => {
   });
 
   it("serves the cron handler in path mode", () => {
-    const nitro = createNitro("path");
+    const nitro = createNitro("public");
     setupVercelSchedules(nitro);
     expect(nitro.options.handlers).toEqual([expect.objectContaining({ route: "/_vercel/cron" })]);
     expect(nitro.options.vercel!.functionRules).toBeUndefined();
   });
 
   it("does nothing without scheduled tasks", () => {
-    const nitro = createNitro(true, { scheduledTasks: {} });
+    const nitro = createNitro("private", { scheduledTasks: {} });
     setupVercelSchedules(nitro);
     expect(nitro.options.handlers).toEqual([]);
   });
@@ -274,7 +293,7 @@ describe("setupVercelSchedulesDev", () => {
 
   it("serves the cron handler for path targets", () => {
     vi.stubEnv("VERCEL_SCHEDULE_DEV_API_VERSION", "1");
-    const nitro = createNitro("path");
+    const nitro = createNitro("public");
     setupVercelSchedulesDev(nitro);
     expect(nitro.options.scheduledTasks).toEqual({});
     expect(nitro.options.handlers).toEqual([

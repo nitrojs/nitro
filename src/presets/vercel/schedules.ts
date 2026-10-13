@@ -21,10 +21,10 @@ const SCHEDULE_TRIGGER = { type: "schedule/v1beta" } as const;
 /**
  * How Vercel Schedules invokes scheduled tasks:
  *
- * - `function`: a private function that only Vercel Schedules can invoke.
- * - `path`: the public cron handler route, like Vercel Cron Jobs.
+ * - `private`: a private function that only Vercel Schedules can invoke.
+ * - `public`: the public cron handler route, like Vercel Cron Jobs.
  */
-export type VercelSchedulesMode = "function" | "path";
+export type VercelSchedulesMode = "private" | "public";
 
 export interface VercelTaskSchedule {
   /** Vercel schedule name, derived from the task name. */
@@ -38,9 +38,8 @@ export interface VercelTaskSchedule {
 /**
  * Whether and how scheduled tasks are emitted as Vercel Schedules instead of Cron Jobs.
  *
- * Set with the `vercel.schedules` option, or else the `NITRO_VERCEL_SCHEDULES` environment
- * variable: `true`/`1`/`function` for private function targets, `path` for the public
- * cron handler route.
+ * Set with the `vercel.experimentalSchedules` option, or else the `NITRO_VERCEL_SCHEDULES`
+ * environment variable (`private` or `public`).
  */
 export function getVercelSchedulesMode(
   options: NitroOptions,
@@ -49,14 +48,25 @@ export function getVercelSchedulesMode(
   if (!options.experimental.tasks) {
     return false;
   }
-  const value = options.vercel?.schedules ?? env.NITRO_VERCEL_SCHEDULES;
-  if (value === "path") {
-    return "path";
+  const option = options.vercel?.experimentalSchedules;
+  if (option !== undefined) {
+    if (option === false || option === "private" || option === "public") {
+      return option;
+    }
+    throw new Error(
+      `[vercel] Invalid \`vercel.experimentalSchedules\` value: ${JSON.stringify(option)}. Use "private", "public" or \`false\`.`
+    );
   }
-  if (typeof value === "string") {
-    return ["", "0", "false"].includes(value.toLowerCase()) ? false : "function";
+  const value = env.NITRO_VERCEL_SCHEDULES?.toLowerCase();
+  if (value === "private" || value === "public") {
+    return value;
   }
-  return value ? "function" : false;
+  if (!value || value === "0" || value === "false") {
+    return false;
+  }
+  throw new Error(
+    `[vercel] Invalid \`NITRO_VERCEL_SCHEDULES\` value: ${JSON.stringify(env.NITRO_VERCEL_SCHEDULES)}. Use "private" or "public".`
+  );
 }
 
 export function isVercelSchedulesEnabled(
@@ -116,7 +126,7 @@ export function getVercelBuildOutputSchedules(
     return [];
   }
   const target =
-    mode === "path" ? { path: getCronHandlerRoute(nitro) } : { function: SCHEDULE_FUNCTION_PATH };
+    mode === "public" ? { path: getCronHandlerRoute(nitro) } : { function: SCHEDULE_FUNCTION_PATH };
   return getVercelTaskSchedules(nitro.options, scheduledTasks).map(({ name, schedule }) => ({
     name,
     schedule,
@@ -126,7 +136,7 @@ export function getVercelBuildOutputSchedules(
 
 /**
  * Registers the handler that Vercel Schedules invokes to run scheduled tasks: a private
- * function in `function` mode, or the public cron handler in `path` mode.
+ * function in `private` mode, or the public cron handler in `public` mode.
  */
 export function setupVercelSchedules(nitro: Nitro) {
   const mode = getVercelSchedulesMode(nitro.options);
@@ -135,7 +145,7 @@ export function setupVercelSchedules(nitro: Nitro) {
   }
 
   registerScheduleHandler(nitro, mode, () => getVercelTaskSchedules(nitro.options));
-  if (mode === "path") {
+  if (mode === "public") {
     return;
   }
 
@@ -154,7 +164,7 @@ export function setupVercelSchedules(nitro: Nitro) {
 }
 
 export interface VercelDevManifest {
-  /** Functions with a deployment identity, and where the dev server serves them. Empty in `path` mode. */
+  /** Functions with a deployment identity, and where the dev server serves them. Empty in `public` mode. */
   functions: {
     /** Build Output API function path, without a leading slash or `.func` suffix. */
     outputPath: string;
@@ -197,7 +207,7 @@ export function getVercelDevManifest(
   scheduledTasks = nitro.options.scheduledTasks
 ): VercelDevManifest {
   const schedules = getVercelBuildOutputSchedules(nitro, scheduledTasks);
-  if (schedules.length === 0 || getVercelSchedulesMode(nitro.options) === "path") {
+  if (schedules.length === 0 || getVercelSchedulesMode(nitro.options) === "public") {
     return { functions: [], schedules };
   }
   return {
@@ -227,20 +237,20 @@ function registerScheduleHandler(
   getSchedules: () => VercelTaskSchedule[]
 ) {
   const [handlerPath, factory] =
-    mode === "path"
+    mode === "public"
       ? [join(presetsDir, "vercel/runtime/cron-handler"), "createCronHandler"]
       : [join(presetsDir, "vercel/runtime/schedule-handler"), "createScheduleHandler"];
   nitro.options.virtual[SCHEDULE_HANDLER_ID] = () => {
     const schedules = getSchedules();
     const arg =
-      mode === "path" ? schedules : Object.fromEntries(schedules.map((s) => [s.name, s.task]));
+      mode === "public" ? schedules : Object.fromEntries(schedules.map((s) => [s.name, s.task]));
     return /* js */ `
 import { ${factory} } from "${handlerPath}";
 export default ${factory}(${JSON.stringify(arg)});
 `;
   };
   nitro.options.handlers.push({
-    route: mode === "path" ? getCronHandlerRoute(nitro) : SCHEDULE_HANDLER_ROUTE,
+    route: mode === "public" ? getCronHandlerRoute(nitro) : SCHEDULE_HANDLER_ROUTE,
     lazy: true,
     handler: SCHEDULE_HANDLER_ID,
   });
