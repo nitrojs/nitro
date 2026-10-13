@@ -1,3 +1,6 @@
+import type { MessageMetadata, send } from "@vercel/queue";
+import type { OptionalDepType } from "../../types/_utils.ts";
+
 /**
  * Vercel Build Output Configuration
  * @see https://vercel.com/docs/build-output-api/v3
@@ -70,9 +73,9 @@ export interface VercelServerlessFunctionConfig {
   architecture?: "x86_64" | "arm64";
 
   /**
-   * Maximum execution duration (in seconds) that will be allowed for the Serverless Function.
+   * Maximum execution duration (in seconds) that will be allowed for the Serverless Function. `max` automatically sets the duration to the maximum allowed value.
    */
-  maxDuration?: number;
+  maxDuration?: number | "max";
 
   /**
    * Map of additional environment variables that will be available to the Vercel Function,
@@ -105,8 +108,21 @@ export interface VercelServerlessFunctionConfig {
    */
   runtime?: "nodejs20.x" | "nodejs22.x" | "bun1.x" | (string & {});
 
+  /**
+   * Experimental trigger configuration (e.g., Vercel Queues).
+   */
+  experimentalTriggers?: VercelFunctionTrigger[];
+
   [key: string]: unknown;
 }
+
+export type VercelFunctionTrigger = {
+  type: "queue/v2beta";
+  topic: string;
+  retryAfterSeconds?: number;
+  initialDelaySeconds?: number;
+  consumer?: string;
+};
 
 export interface VercelOptions {
   config?: VercelBuildConfigV3;
@@ -118,6 +134,23 @@ export interface VercelOptions {
    * You can disable the Nitro integration by setting this option to `false`.
    */
   skewProtection?: boolean;
+
+  /**
+   * Emit content-addressed build assets as [immutable static files](https://vercel.com/docs/skew-protection).
+   *
+   * Immutable assets are served from the reserved `/_vercel/immutable/` base
+   * (without the deployment-scoped `?dpl` query), so they can be shared across
+   * deployments to improve cross-deployment caching. Nitro also writes an
+   * `immutable.json` manifest listing each emitted immutable file.
+   *
+   * Opt in by setting this to `true` or the `NITRO_VERCEL_IMMUTABLE_STATIC_FILES_ENABLED`
+   * environment variable. When building on Vercel, immutable output is only
+   * produced if the deployment supports it (`VERCEL_IMMUTABLE_STATIC_FILES_ENABLED`);
+   * otherwise it is skipped with a warning.
+   *
+   * @default false
+   */
+  immutableStaticFiles?: boolean;
 
   /**
    * If you are using `vercel-edge`, you can specify the region(s) for your edge function.
@@ -147,6 +180,52 @@ export interface VercelOptions {
    * @see https://vercel.com/docs/cron-jobs
    */
   cronHandlerRoute?: string;
+
+  /**
+   * Vercel Queues configuration.
+   *
+   * Messages are delivered via the `vercel:queue` runtime hook.
+   *
+   * @example
+   * ```ts
+   * // nitro.config.ts
+   * import { defineConfig } from "nitro";
+   *
+   * export default defineConfig({
+   *   vercel: {
+   *     queues: {
+   *       triggers: [{ topic: "orders" }],
+   *     },
+   *   },
+   * });
+   * ```
+   *
+   * ```ts
+   * // server/plugins/queues.ts
+   * import { definePlugin } from "nitro";
+   *
+   * export default definePlugin((nitro) => {
+   *   nitro.hooks.hook("vercel:queue", ({ message, metadata }) => {
+   *     console.log(`Received message on ${metadata.topicName}:`, message);
+   *   });
+   * });
+   * ```
+   *
+   * @see https://vercel.com/docs/queues
+   */
+  queues?: {
+    /**
+     * Route path for the queue consumer handler.
+     * @default "/_vercel/queues/consumer"
+     */
+    handlerRoute?: string;
+    /** Queue topic triggers to subscribe to. */
+    triggers: Array<{
+      topic: string;
+      retryAfterSeconds?: number;
+      initialDelaySeconds?: number;
+    }>;
+  };
 
   /**
    * Per-route function configuration overrides.
@@ -206,3 +285,38 @@ export type PrerenderFunctionConfig = {
    */
   exposeErrBody?: boolean;
 };
+
+declare module "nitro/types" {
+  export interface NitroRuntimeHooks {
+    "vercel:queue": (_: {
+      message: unknown;
+      metadata: OptionalDepType<MessageMetadata, VercelQueueMessageMetadata>;
+      send: OptionalDepType<typeof send, VercelQueueSend>;
+    }) => void;
+  }
+}
+
+// Fallback `@vercel/queue` types, used when it is not installed
+
+interface VercelQueueMessageMetadata {
+  messageId: string;
+  deliveryCount: number;
+  createdAt: Date;
+  expiresAt: Date;
+  topicName: string;
+  consumerGroup: string;
+  region: string;
+}
+
+type VercelQueueSend = <T = unknown>(
+  topicName: string,
+  payload: T,
+  options?: {
+    idempotencyKey?: string;
+    retentionSeconds?: number;
+    delaySeconds?: number;
+    headers?: Record<string, string>;
+    region?: string;
+    [key: string]: unknown;
+  }
+) => Promise<{ messageId: string | null }>;

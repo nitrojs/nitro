@@ -1,5 +1,6 @@
 ---
-category: backend frameworks
+navigation:
+  category: backend frameworks
 icon: i-simple-icons-fastify
 ---
 
@@ -25,7 +26,7 @@ export default defineConfig({});
     "dev": "nitro dev"
   },
   "devDependencies": {
-    "fastify": "^5.8.2",
+    "fastify": "^5.8.4",
     "nitro": "latest"
   }
 }

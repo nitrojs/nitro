@@ -6,23 +6,12 @@ import { useNitroApp } from "nitro/app";
 import { startScheduleRunner } from "#nitro/runtime/task";
 import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
-
-const _parsedPort = Number.parseInt(process.env.NITRO_PORT ?? process.env.PORT ?? "");
-const port = Number.isNaN(_parsedPort) ? 3000 : _parsedPort;
-
-const host = process.env.NITRO_HOST || process.env.HOST;
-const cert = process.env.NITRO_SSL_CERT;
-const key = process.env.NITRO_SSL_KEY;
-// const socketPath = process.env.NITRO_UNIX_SOCKET; // TODO
+import { resolveServeOptions } from "#nitro/runtime/serve";
+import { setupCloseHooks } from "#nitro/runtime/shutdown";
 
 const nitroApp = useNitroApp();
 
-const server = serve({
-  port,
-  hostname: host,
-  tls: cert && key ? { cert, key } : undefined,
-  fetch: nitroApp.fetch,
-});
+const server = serve(resolveServeOptions({ fetch: nitroApp.fetch }));
 
 if (import.meta._websocket) {
   const { handleUpgrade } = wsAdapter({ resolve: resolveWebsocketHooks });
@@ -36,6 +25,8 @@ if (import.meta._websocket) {
     );
   });
 }
+
+setupCloseHooks(server);
 
 trapUnhandledErrors();
 

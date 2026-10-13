@@ -1,5 +1,6 @@
 ---
-category: server side rendering
+navigation:
+  category: server side rendering
 icon: i-logos-preact
 ---
 
@@ -20,11 +21,11 @@ icon: i-logos-preact
     "dev": "vite dev"
   },
   "devDependencies": {
-    "@preact/preset-vite": "^2.10.4",
+    "@preact/preset-vite": "^2.10.5",
     "@tailwindcss/vite": "^4.2.2",
     "nitro": "latest",
     "preact": "^10.29.0",
-    "preact-render-to-string": "^6.6.6",
+    "preact-render-to-string": "^6.6.7",
     "tailwindcss": "^4.2.2",
     "vite": "latest"
   }
@@ -108,7 +109,7 @@ function Root(props: { url: URL }) {
           <link key={attr.href} rel="stylesheet" {...attr} />
         ))}
         {assets.js.map((attr: any) => (
-          <link key={attr.href} type="modulepreload" {...attr} />
+          <link key={attr.href} rel="modulepreload" {...attr} />
         ))}
         <script type="module" src={assets.entry} />
       </head>
@@ -172,7 +173,7 @@ export default defineConfig({
 });
 ```
 
-The `environments.client` configuration tells Vite which file to use as the browser entry point. Nitro automatically detects the server entry from files named `entry-server` or `server` in common directories.
+The `environments.client` configuration tells Vite which file to use as the browser entry point. Nitro automatically detects the SSR entry from a file named `entry-server` in `app/`, `src/`, or the project root.
 
 ## 2. Create the App Component
 
@@ -219,7 +220,7 @@ function Root(props: { url: URL }) {
           <link key={attr.href} rel="stylesheet" {...attr} />
         ))}
         {assets.js.map((attr: any) => (
-          <link key={attr.href} type="modulepreload" {...attr} />
+          <link key={attr.href} rel="modulepreload" {...attr} />
         ))}
         <script type="module" src={assets.entry} />
       </head>

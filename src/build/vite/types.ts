@@ -1,4 +1,4 @@
-import type { TransformResult } from "vite";
+import type { TransformResult, Plugin as VitePlugin } from "vite";
 import type { getBundlerConfig } from "./bundler.ts";
 import type { Nitro, NitroConfig, NitroModule } from "nitro/types";
 import type { RunnerManager } from "env-runner";
@@ -24,7 +24,7 @@ export interface NitroPluginConfig extends NitroConfig {
   _nitro?: Nitro;
 
   experimental?: NitroConfig["experimental"] & {
-    vite: {
+    vite?: {
       /**
        * @experimental Enable `?assets` import proposed by https://github.com/vitejs/vite/discussions/20913
        * @default true
@@ -42,28 +42,35 @@ export interface NitroPluginConfig extends NitroConfig {
       /**
        * Additional Vite environment services to register.
        */
-      services?: Record<string, ServiceConfig>;
+      services?: Record<string, ViteServiceConfig>;
     };
   };
 }
 
-export interface ServiceConfig {
+export interface ViteServiceConfig {
   entry: string;
 }
+
+/** @deprecated Use {@link ViteServiceConfig}. */
+export type ServiceConfig = ViteServiceConfig;
 
 export interface NitroPluginContext {
   nitro?: Nitro;
   pluginConfig: NitroPluginConfig;
   bundlerConfig?: Awaited<ReturnType<typeof getBundlerConfig>>;
   devApp?: NitroDevApp;
-  services: Record<string, ServiceConfig>;
+  services: Record<string, ViteServiceConfig>;
 
   _isRolldown?: boolean;
+  _isVitest?: boolean;
   _initialized?: boolean;
   _envRunner?: RunnerManager;
+  _closingEnvRunner?: boolean;
+  _closePromise?: Promise<void>;
   _initPromise?: Promise<RunnerManager>;
   _viteEnvs?: Map<string, string>;
   _transformRequest?: (id: string) => Promise<TransformResult | null | undefined>;
   _publicDistDir?: string;
   _entryPoints: Record<string, string>;
+  _pluginModules?: VitePlugin[];
 }

@@ -1,44 +1,73 @@
-import type { Middleware, ProxyOptions, BasicAuthOptions } from "h3";
-import type { ExcludeFunctions, IntRange } from "./_utils.ts";
-import type { CachedEventHandlerOptions } from "./runtime/index.ts";
+// Route rule types are owned by h3 (`h3/rules`). Nitro re-exports them and
+// augments the open `RouteRuleConfig` / `RouteRules` interfaces with its own
+// rules (`isr`, `prerender`, `static`).
+export type {
+  RouteRuleConfig,
+  RouteRules,
+  ResolvedRouteRules,
+  NormalizedRouteRules,
+  MatchedRouteRule,
+  MatchedRouteRules,
+  RedirectRuleOptions,
+  ProxyRuleOptions,
+} from "h3/rules";
 
-export type HTTPstatus = IntRange<100, 600>;
+import type { NormalizedRouteRules, RouteRuleConfig } from "h3/rules";
 
-export interface NitroRouteConfig {
-  cache?: ExcludeFunctions<CachedEventHandlerOptions> | false;
-  headers?: Record<string, string>;
-  redirect?: string | { to: string; status?: HTTPstatus };
-  prerender?: boolean;
-  proxy?: string | ({ to: string } & ProxyOptions);
-  isr?: number /* expiration */ | boolean | VercelISRConfig;
-  basicAuth?: Pick<BasicAuthOptions, "password" | "username" | "realm"> | false;
+/**
+ * @deprecated Use `RouteRuleConfig` from `h3/rules` (re-exported by `nitro/types`).
+ */
+export type NitroRouteConfig = RouteRuleConfig;
 
-  // Shortcuts
-  cors?: boolean;
-  swr?: boolean | number;
-  static?: boolean | number;
+/**
+ * @deprecated Use `NormalizedRouteRules` from `h3/rules` (re-exported by `nitro/types`).
+ */
+export type NitroRouteRules = NormalizedRouteRules;
+
+// --- Nitro-specific route rules (module augmentation) ---
+
+// Augment h3's config/rules interfaces so Nitro's own rules stay fully typed
+// for users. `isr` / `prerender` / `static` are data-only rules handled at
+// build time (presets, prerenderer) rather than by a runtime handler.
+declare module "h3/rules" {
+  interface RouteRuleConfig {
+    /**
+     * Add this route to the prerender queue at build time.
+     *
+     * Only exact paths are collected; wildcard rules apply at runtime but are
+     * not auto-added to the queue. Set to `false` to explicitly exclude a
+     * route from prerendering.
+     *
+     * @see https://nitro.build/docs/routing#prerender
+     */
+    prerender?: boolean;
+
+    /**
+     * Incremental Static Regeneration on supported platforms.
+     *
+     * - `number` — revalidation time in seconds.
+     * - `true` — never expires until the next deployment.
+     * - `false` — disable ISR for this route.
+     *
+     * Only handled by presets with native support (e.g. Vercel, Netlify).
+     * Ignored on platforms without ISR support.
+     *
+     * Do not combine with `prerender` on the same route — prerendered pages are
+     * generated at build time and ISR will not apply.
+     *
+     * @see https://nitro.build/docs/routing#isr-vercel
+     */
+    isr?: number /* expiration */ | boolean | VercelISRConfig;
+
+    static?: boolean | number;
+  }
+
+  interface RouteRules {
+    prerender?: boolean;
+    isr?: number | boolean | VercelISRConfig;
+    static?: boolean | number;
+  }
 }
-
-export interface NitroRouteRules extends Omit<
-  NitroRouteConfig,
-  "redirect" | "cors" | "swr" | "static"
-> {
-  redirect?: { to: string; status: HTTPstatus };
-  proxy?: { to: string } & ProxyOptions;
-  [key: string]: any;
-}
-
-export type MatchedRouteRule<K extends keyof NitroRouteRules = "custom"> = {
-  name: K;
-  options: Exclude<NitroRouteRules[K], false>;
-  route: string;
-  params?: Record<string, string>;
-  handler?: (opts: unknown) => Middleware;
-};
-
-export type MatchedRouteRules = {
-  [K in keyof NitroRouteRules]: MatchedRouteRule<K>;
-};
 
 // https://vercel.com/docs/build-output-api/primitives#prerender-configuration-file
 export interface VercelISRConfig {

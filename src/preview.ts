@@ -20,11 +20,36 @@ export interface PreviewInstance {
   close: () => Promise<void>;
 }
 
-export async function startPreview(opts: {
+export interface PreviewOptions {
+  /** Project root directory (used to locate the build output and load `.env` files). */
   rootDir: string;
+  /** Explicit build output directory, resolved relative to `rootDir` (defaults to the last build output). */
+  outputDir?: string;
   loader?: LoadOptions;
-}): Promise<PreviewInstance> {
-  const { outputDir, buildInfo } = await getBuildInfo(opts.rootDir);
+}
+
+export async function startPreview(opts: PreviewOptions): Promise<PreviewInstance> {
+  const { outputDir, buildInfo } = await getBuildInfo({
+    rootDir: opts.rootDir,
+    outputDir: opts.outputDir,
+  });
+
+  // `builder: false` previews the sources, also over a build output left by another builder
+  if (!opts.outputDir) {
+    const { isUnbundledProject } = await import("./build/unbundled/detect.ts");
+    const unbundled = await isUnbundledProject(opts.rootDir).catch((error) => {
+      // The config may not load where only the build output is deployed
+      if (buildInfo) {
+        return false;
+      }
+      throw error;
+    });
+    if (unbundled) {
+      const { startUnbundledPreview } = await import("./build/unbundled/preview.ts");
+      return startUnbundledPreview(opts);
+    }
+  }
+
   if (!buildInfo) {
     throw new Error("Cannot load nitro build info. Make sure to build first.");
   }
@@ -88,8 +113,8 @@ export async function startPreview(opts: {
   }
 
   if (buildInfo.publicDir) {
-    const { serveStatic } = await import("srvx/static");
-    const staticHandler = serveStatic({ dir: join(outputDir, buildInfo.publicDir) });
+    const { staticMiddleware } = await import("srvx/static");
+    const staticHandler = staticMiddleware({ dir: join(outputDir, buildInfo.publicDir) });
     const originalFetchHandler = fetchHandler;
     fetchHandler = async (req) => {
       const staticRes: Response | undefined = await staticHandler(req, () => undefined as any);

@@ -3,7 +3,7 @@ import { resolve } from "pathe";
 import { commonArgs } from "../common.ts";
 import { startPreview } from "../../preview.ts";
 import { serve } from "srvx";
-import { log } from "srvx/log";
+import { loggerMiddleware } from "srvx/log";
 
 export default defineCommand({
   meta: {
@@ -22,7 +22,7 @@ export default defineCommand({
       fetch(req) {
         return preview.fetch(req);
       },
-      middleware: [log()],
+      middleware: [loggerMiddleware()],
       gracefulShutdown: false,
       port: args.port,
       hostname: args.host,

@@ -92,7 +92,10 @@ export async function resolvePathOptions(options: NitroOptions) {
     } else {
       const detected = resolveModulePath("./server", {
         try: true,
-        from: options.rootDir,
+        from:
+          options.serverDir && options.serverDir !== options.rootDir
+            ? [options.serverDir, options.rootDir]
+            : options.rootDir,
         extensions: RESOLVE_EXTENSIONS.flatMap((ext) => [ext, `.node${ext}`]),
       });
       if (detected) {

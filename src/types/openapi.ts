@@ -1,11 +1,45 @@
 // import type { ApiReferenceConfiguration as ScalarConfig } from "@scalar/api-reference";
 
 /**
- * Nitro OpenAPI configuration
+ * Swagger UI configuration options.
+ *
+ * @see https://swagger.io/docs/open-source-tools/swagger-ui/usage/configuration/
+ */
+export interface SwaggerUIConfig {
+  deepLinking?: boolean;
+  displayOperationId?: boolean;
+  defaultModelsExpandDepth?: number;
+  defaultModelExpandDepth?: number;
+  defaultModelRendering?: "example" | "model";
+  displayRequestDuration?: boolean;
+  docExpansion?: "list" | "full" | "none";
+  filter?: boolean | string;
+  persistAuthorization?: boolean;
+  requestSnippetsEnabled?: boolean;
+  showExtensions?: boolean;
+  showCommonExtensions?: boolean;
+  /** Only "alpha" is supported (function values are not JSON-serializable). */
+  tagsSorter?: "alpha";
+  /**
+   * Note: function callbacks cannot be passed via Nitro configuration (not JSON-serializable).
+   */
+  onComplete?: never;
+  layout?: string;
+  configUrl?: string;
+  oauth2RedirectUrl?: string;
+  withCredentials?: boolean;
+  [key: string]: unknown;
+}
+
+/**
+ * Nitro OpenAPI configuration.
+ *
+ * @see https://nitro.build/config#openapi
+ * @see https://nitro.build/docs/openapi
  */
 export interface NitroOpenAPIConfig {
   /**
-   * OpenAPI meta information
+   * OpenAPI document metadata.
    */
   meta?: {
     title?: string;
@@ -14,46 +48,58 @@ export interface NitroOpenAPIConfig {
   };
 
   /**
-   * OpenAPI json route
+   * Route for the OpenAPI JSON endpoint.
    *
-   * Default is `/_openapi.json`
+   * @default "/_openapi.json"
    */
   route?: string;
 
   /**
-   * Enable OpenAPI generation for production builds
+   * Enable OpenAPI generation for production builds.
+   *
+   * - `"runtime"` — generate at runtime (allows middleware usage).
+   * - `"prerender"` — prerender the JSON response at build time (most efficient).
+   * - `false` — disable in production.
+   *
+   * @see https://nitro.build/config#openapi
    */
   production?: false | "runtime" | "prerender";
 
   /**
-   * UI configurations
+   * UI configurations for interactive API documentation.
    */
   ui?: {
     /**
-     * Scalar UI configuration
+     * Scalar UI configuration.
+     *
+     * Set to `false` to disable.
      */
     scalar?:
       | false
       | (Partial<unknown> & {
           /**
-           * Scalar UI route
+           * Route for Scalar UI.
            *
-           * Default is `/_scalar`
+           * @default "/_scalar"
            */
           route?: string;
         });
     /**
-     * Swagger UI configuration
+     * Swagger UI configuration.
+     *
+     * Set to `false` to disable.
+     *
+     * @see https://swagger.io/docs/open-source-tools/swagger-ui/usage/configuration/
      */
     swagger?:
       | false
-      | {
+      | (SwaggerUIConfig & {
           /**
-           * Swagger UI route
+           * Route for Swagger UI.
            *
-           * Default is `/_swagger`
+           * @default "/_swagger"
            */
           route?: string;
-        };
+        });
   };
 }

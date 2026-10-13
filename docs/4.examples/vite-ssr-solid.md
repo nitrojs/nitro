@@ -1,5 +1,6 @@
 ---
-category: server side rendering
+navigation:
+  category: server side rendering
 icon: i-logos-solidjs-icon
 ---
 
@@ -20,7 +21,7 @@ icon: i-logos-solidjs-icon
   },
   "devDependencies": {
     "nitro": "latest",
-    "solid-js": "^1.9.11",
+    "solid-js": "^1.9.12",
     "vite": "latest",
     "vite-plugin-solid": "^2.11.11"
   }
@@ -106,7 +107,7 @@ function Root(props: { appHTML?: string }) {
           <link key={attr.href} rel="stylesheet" {...attr} />
         ))}
         {assets.js.map((attr: any) => (
-          <link key={attr.href} type="modulepreload" {...attr} />
+          <link key={attr.href} rel="modulepreload" {...attr} />
         ))}
       </head>
       <body>
@@ -233,7 +234,7 @@ function Root(props: { appHTML?: string }) {
           <link key={attr.href} rel="stylesheet" {...attr} />
         ))}
         {assets.js.map((attr: any) => (
-          <link key={attr.href} type="modulepreload" {...attr} />
+          <link key={attr.href} rel="modulepreload" {...attr} />
         ))}
       </head>
       <body>

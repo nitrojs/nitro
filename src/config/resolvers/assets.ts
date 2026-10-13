@@ -28,10 +28,10 @@ export async function resolveAssetsOptions(options: NitroOptions) {
   for (const serverAsset of options.serverAssets) {
     serverAsset.dir = resolve(options.rootDir, serverAsset.dir);
   }
-  // 2. Add server/ directory
+  // 2. Add <serverDir>/assets directory
   options.serverAssets.push({
     baseName: "server",
-    dir: resolve(options.rootDir, "assets"),
+    dir: resolve(options.serverDir || options.rootDir, "assets"),
   });
 
   // Infer `fallthrough` and `maxAge` from publicAssets
@@ -40,7 +40,7 @@ export async function resolveAssetsOptions(options: NitroOptions) {
     const isTopLevel = asset.baseURL === "/";
     asset.fallthrough = asset.fallthrough ?? isTopLevel;
     const routeRule = options.routeRules[asset.baseURL + "/**"];
-    asset.maxAge = (routeRule?.cache as { maxAge: number })?.maxAge ?? asset.maxAge ?? 0;
+    asset.maxAge = (routeRule?.cache as { maxAge: number })?.maxAge ?? asset.maxAge;
     if (asset.maxAge && !asset.fallthrough) {
       options.routeRules[asset.baseURL + "/**"] = defu(routeRule, {
         headers: {

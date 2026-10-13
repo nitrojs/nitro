@@ -1,5 +1,6 @@
 ---
-category: features
+navigation:
+  category: features
 icon: i-lucide-plug
 ---
 
@@ -33,9 +34,9 @@ export default defineConfig({
 ```
 
 ```ts [server.ts]
-import { eventHandler } from "h3";
+import { defineHandler } from "nitro";
 
-export default eventHandler(() => "<h1>Hello Nitro!</h1>");
+export default defineHandler(() => "<h1>Hello Nitro!</h1>");
 ```
 
 ```json [tsconfig.json]
@@ -55,10 +56,10 @@ export default defineConfig({ plugins: [nitro()] });
 import { definePlugin } from "nitro";
 import { useNitroHooks } from "nitro/app";
 
-export default definePlugin((nitroApp) => {
+export default definePlugin(() => {
   const hooks = useNitroHooks();
-  hooks.hook("response", (event) => {
-    event.headers.set("content-type", "html; charset=utf-8");
+  hooks.hook("response", (res) => {
+    res.headers.set("content-type", "html; charset=utf-8");
   });
 });
 ```
@@ -77,22 +78,22 @@ Plugins let you hook into Nitro's runtime lifecycle. This example shows a plugin
 import { definePlugin } from "nitro";
 import { useNitroHooks } from "nitro/app";
 
-export default definePlugin((nitroApp) => {
+export default definePlugin(() => {
   const hooks = useNitroHooks();
-  hooks.hook("response", (event) => {
-    event.headers.set("content-type", "html; charset=utf-8");
+  hooks.hook("response", (res) => {
+    res.headers.set("content-type", "html; charset=utf-8");
   });
 });
 ```
 
-The plugin uses `useNitroHooks()` to access the hooks system, then registers a `response` hook that runs after every request. Here it sets the content type to HTML, but you could log requests, add security headers, or modify responses in any way.
+The plugin uses `useNitroHooks()` to access the hooks system, then registers a `response` hook that runs after every request and receives the outgoing `Response`. Here it sets the content type to HTML, but you could log requests, add security headers, or modify responses in any way.
 
 ## Main Handler
 
 ```ts [server.ts]
-import { eventHandler } from "h3";
+import { defineHandler } from "nitro";
 
-export default eventHandler(() => "<h1>Hello Nitro!</h1>");
+export default defineHandler(() => "<h1>Hello Nitro!</h1>");
 ```
 
 The handler returns HTML without setting a content type. The plugin automatically adds the correct `Content-Type: html; charset=utf-8` header to the response.
