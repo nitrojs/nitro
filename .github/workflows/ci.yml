@@ -92,6 +92,7 @@ jobs:
             env: { NITRO_BUILDER: rolldown, NITRO_VITE_PKG: vite }
           - run: pnpm vitest run test/presets
             env: { NITRO_BUILDER: rolldown, NITRO_VITE_PKG: vite }
+          - run: pnpm vitest run test/unbundled
   publish-pkg-pr-new:
     runs-on: ubuntu-latest
     timeout-minutes: 10
