@@ -468,6 +468,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/api\\/db\\/?$",
               },
               {
+                "dest": "/api/civet",
+                "src": "^\\/api\\/civet\\/?$",
+              },
+              {
                 "dest": "/api/cached",
                 "src": "^\\/api\\/cached\\/?$",
               },
@@ -629,6 +633,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/_ws.func (symlink)",
             "functions/api/body-size.func (symlink)",
             "functions/api/cached.func (symlink)",
+            "functions/api/civet.func (symlink)",
             "functions/api/db.func (symlink)",
             "functions/api/echo.func",
             "functions/api/headers.func (symlink)",
