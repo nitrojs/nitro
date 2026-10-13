@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Nitro, NitroEventHandler, PrerenderRoute } from "nitro/types";
+import type { Nitro, NitroEventHandler, NormalizedRouteRules, PrerenderRoute } from "nitro/types";
 
 import { getObservabilityRoutes } from "../../src/presets/vercel/utils.ts";
 
@@ -8,6 +8,7 @@ function createNitroStub(opts: {
   handlers?: NitroEventHandler[];
   ssrRoutes?: string[];
   prerenderedRoutes?: PrerenderRoute[];
+  routeRules?: Record<string, NormalizedRouteRules>;
 }): Nitro {
   return {
     scannedHandlers: opts.handlers || [],
@@ -16,6 +17,7 @@ function createNitroStub(opts: {
       compatibilityDate: { default: opts.compatibilityDate || "2025-07-15" },
       handlers: [],
       ssrRoutes: opts.ssrRoutes || [],
+      routeRules: opts.routeRules || {},
     },
   } as unknown as Nitro;
 }
@@ -48,10 +50,10 @@ describe("getObservabilityRoutes", () => {
         })
       )
     ).toEqual([
-      { src: "/foo", dest: "foo" },
-      { src: "/", dest: "index" },
-      { src: "/blog/(?<slug>[^/]+)", dest: "blog/[slug]" },
-      { src: "/(?:.*)", dest: "[...]" },
+      { route: "/", dest: "index" },
+      { route: "/foo", dest: "foo" },
+      { route: "/blog/:slug", dest: "blog/[slug]" },
+      { route: "/**", dest: "[...]" },
     ]);
   });
 
@@ -136,7 +138,7 @@ describe("getObservabilityRoutes", () => {
           ],
         })
       )
-    ).toEqual(["blog/[slug]", "docs/[...]"]);
+    ).toEqual(["docs/[...]", "blog/[slug]"]);
   });
 
   it("keeps routes whose prerendered file was not written", () => {
@@ -154,5 +156,67 @@ describe("getObservabilityRoutes", () => {
     expect(dests(createNitroStub({ handlers: [{ route: "/foo", handler: "foo.ts" }] }))).toEqual([
       "foo",
     ]);
+  });
+
+  // https://github.com/nitrojs/nitro/issues/4447
+  describe("ISR route rules", () => {
+    it("skips static, dynamic and catch-all routes with an ISR rule", () => {
+      expect(
+        dests(
+          createNitroStub({
+            handlers: [
+              { route: "/schedule", handler: "schedule.ts" },
+              { route: "/users/:id", handler: "user.ts" },
+              { route: "/catchall/**", handler: "catchall.ts" },
+            ],
+            routeRules: {
+              "/schedule": { isr: 300 },
+              "/users/:id": { isr: 60 },
+              "/catchall/**": { isr: 60 },
+            },
+          })
+        )
+      ).toEqual([]);
+    });
+
+    it("skips routes covered by a wildcard ISR rule", () => {
+      expect(
+        dests(
+          createNitroStub({
+            handlers: [{ route: "/users/:id", handler: "user.ts" }],
+            routeRules: { "/users/**": { isr: 60 } },
+          })
+        )
+      ).toEqual([]);
+    });
+
+    it("keeps routes only partly covered by an ISR rule", () => {
+      expect(
+        dests(
+          createNitroStub({
+            handlers: [{ route: "/users/**", handler: "users.ts" }],
+            routeRules: { "/users/:id": { isr: 60 } },
+          })
+        )
+      ).toEqual(["users/[...]"]);
+    });
+
+    it("keeps routes whose rules do not enable ISR", () => {
+      expect(
+        dests(
+          createNitroStub({
+            handlers: [
+              { route: "/users/:id", handler: "user.ts" },
+              { route: "/plain", handler: "plain.ts" },
+            ],
+            routeRules: {
+              "/users/**": { isr: 60 },
+              "/users/:id": { isr: false },
+              "/plain": { swr: true },
+            },
+          })
+        )
+      ).toEqual(["plain", "users/[id]"]);
+    });
   });
 });

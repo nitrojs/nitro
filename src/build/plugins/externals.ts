@@ -1,10 +1,11 @@
 import type { Plugin } from "rollup";
 import type { PackageJson } from "pkg-types";
-import type { ExternalsTraceOptions } from "nf3";
+import type { ExternalsTraceOptions, TracedLayout } from "nf3";
 
 import { pathToFileURL } from "node:url";
 import { builtinModules, createRequire } from "node:module";
-import { dirname, isAbsolute, join } from "pathe";
+import { dirname, isAbsolute, join, relative } from "pathe";
+import MagicString from "magic-string";
 import { resolveModulePath } from "exsolve";
 import consola from "consola";
 
@@ -61,6 +62,13 @@ export function externals(opts: ExternalsOptions): Plugin {
 
   const tracedPaths = new Set<string>();
 
+  // Traced externals are emitted with a unique placeholder id per resolved file,
+  // so the bundler does not merge imports that resolve to different versions of
+  // the same package. Placeholders are rendered once the trace layout is known.
+  const tracedIds = new Map<string, { importId: string; path: string }>();
+  const placeholders = new Map<string, string>();
+  let tracedLayout: TracedLayout | undefined;
+
   // Names to force-trace by name. Seeded with user-declared `traceDeps`; builtin
   // native packages are added here only when observed as (unresolvable) imports
   // during resolution, never wholesale (see `resolveTraceDeps`).
@@ -87,8 +95,11 @@ export function externals(opts: ExternalsOptions): Plugin {
           };
         }
 
-        // Skip nested rollup-node resolutions
-        if (rOpts.custom?.["node-resolve"]) {
+        // Skip nested `@rollup/plugin-node-resolve` re-entries (already resolved to
+        // a file). A `require()` from a bundled CommonJS module also arrives here
+        // (`isRequire`), and must go through the main path so a package matching
+        // the trace filter is externalized and traced instead of bundled.
+        if (rOpts.custom?.["node-resolve"]?.resolved) {
           return null;
         }
 
@@ -151,11 +162,18 @@ export function externals(opts: ExternalsOptions): Plugin {
             importId = guessed;
           }
           tracedPaths.add(resolvedPath);
+          const placeholderKey = `${resolvedPath}\0${importId}`;
+          let placeholder = placeholders.get(placeholderKey);
+          if (!placeholder) {
+            placeholder = `${TRACED_ID_PREFIX}${placeholders.size}/${importId}`;
+            placeholders.set(placeholderKey, placeholder);
+            tracedIds.set(placeholder, { importId, path: resolvedPath });
+          }
           return {
             ...resolved,
             resolvedBy: PLUGIN_NAME,
             external: true,
-            id: importId,
+            id: placeholder,
           };
         }
 
@@ -201,7 +219,7 @@ export function externals(opts: ExternalsOptions): Plugin {
               ]),
             ]
           : undefined;
-        await traceNodeModules([...tracedPaths], {
+        tracedLayout = await traceNodeModules([...tracedPaths], {
           ...traceOpts,
           fullTraceInclude: resolved?.fullTraceInclude,
           traceInclude,
@@ -236,6 +254,33 @@ export function externals(opts: ExternalsOptions): Plugin {
           `Ensure your production environment matches the builder OS and architecture (\`${process.platform}-${process.arch}\`) to avoid native module issues.`
         );
       },
+    },
+    renderChunk(code, chunk, outputOpts) {
+      if (tracedIds.size === 0 || !code.includes(TRACED_ID_PREFIX)) {
+        return;
+      }
+      const outDir = outputOpts.dir || (opts.trace && opts.trace.outDir) || opts.rootDir;
+      const s = new MagicString(code);
+      for (const match of code.matchAll(TRACED_ID_RE)) {
+        const traced = tracedIds.get(match[0]);
+        if (!traced) {
+          continue;
+        }
+        s.update(
+          match.index,
+          match.index + match[0].length,
+          renderTracedId(traced, { layout: tracedLayout, outDir, fileName: chunk.fileName })
+        );
+      }
+      if (!s.hasChanged()) {
+        return;
+      }
+      return {
+        code: s.toString(),
+        map: outputOpts.sourcemap
+          ? s.generateMap({ hires: true, source: chunk.fileName }).toString()
+          : undefined,
+      };
     },
   };
 }
@@ -278,8 +323,8 @@ export function resolveTraceDeps(
   );
   // User-declared named deps to always force-trace by name. Builtin native
   // packages are intentionally NOT force-traced wholesale: many of them are
-  // build-time-only tooling (e.g. `rolldown`/`rollup`/`vite`, declared as deps
-  // by `nitro` itself) that must never be copied into the runtime output. A
+  // build-time-only tooling (e.g. `rolldown`/`rollup`/`vite`) that must never
+  // be copied into the runtime output. A
   // builtin is force-traced only when it is actually observed as an
   // (unresolvable) import during the build — nft cannot statically detect
   // dynamically-loaded native bindings, so those observed names are collected at
@@ -302,6 +347,29 @@ export function resolveTraceDeps(
 }
 
 // ---- Internal utils ----
+
+const TRACED_ID_PREFIX = "nitro:traced/";
+
+const TRACED_ID_RE = /(?<=["'`])nitro:traced\/\d+\/[^"'`]+(?=["'`])/g;
+
+// Bare specifier when the resolved version is the one reachable as
+// `node_modules/<name>`, otherwise a relative path to its traced copy.
+function renderTracedId(
+  traced: { importId: string; path: string },
+  opts: { layout: TracedLayout | undefined; outDir: string; fileName: string }
+): string {
+  const outFile = opts.layout?.files[traced.path];
+  const version =
+    outFile &&
+    Object.values(opts.layout!.packages)
+      .flatMap((pkg) => Object.values(pkg.versions))
+      .find((v) => outFile.startsWith(`${v.outPath}/`));
+  if (!outFile || !version || version.hoisted) {
+    return traced.importId;
+  }
+  const path = relative(dirname(join(opts.outDir, opts.fileName)), join(opts.outDir, outFile));
+  return path.startsWith(".") ? path : `./${path}`;
+}
 
 const NODE_MODULES_RE =
   /^(?<dir>.+[\\/]node_modules[\\/])(?<name>[^@\\/]+|@[^\\/]+[\\/][^\\/]+)(?:[\\/](?<subpath>.+))?$/;
