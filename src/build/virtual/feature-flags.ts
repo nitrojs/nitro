@@ -12,19 +12,10 @@ export default function featureFlags(nitro: Nitro) {
         hasGlobalMiddleware: nitro.routing.globalMiddleware.length > 0,
         // Plugins
         hasPlugins: nitro.options.plugins.length > 0,
-        hasHooks:
-          nitro.options.features?.runtimeHooks ??
-          nitro.options.plugins.length > 0,
-        // Features
-        hasWebSocket:
-          nitro.options.features?.websocket ??
-          nitro.options.experimental.websocket ??
-          false,
+        hasHooks: nitro.options.features?.runtimeHooks ?? nitro.options.plugins.length > 0,
       };
       return /* js */ Object.entries(featureFlags)
-        .map(
-          ([key, value]) => /* js */ `export const ${key} = ${Boolean(value)};`
-        )
+        .map(([key, value]) => /* js */ `export const ${key} = ${Boolean(value)};`)
         .join("\n");
     },
   };

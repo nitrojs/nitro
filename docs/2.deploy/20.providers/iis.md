@@ -16,7 +16,7 @@
 
 **Preset:** `iis_handler`
 
-You can use IIS http handler directly.
+You can use the IIS HttpPlatformHandler directly.
 
 1. Install the latest LTS version of [Node.js](https://nodejs.org/en/) on your Windows Server.
 2. Install [IIS `HttpPlatformHandler` Module](https://www.iis.net/downloads/microsoft/httpplatformhandler)
@@ -25,14 +25,13 @@ You can use IIS http handler directly.
 ## IIS config options
 
 ```ts [nitro.config.ts]
-import { defineNitroConfig } from "nitro/config";
+import { defineConfig } from "nitro";
 
-export default defineNitroConfig({
-  // IIS options default
+export default defineConfig({
   iis: {
-    // merges in a pre-existing web.config file to the nitro default file
+    // merge a pre-existing web.config file into the Nitro default file
     mergeConfig: true,
-    // overrides the default nitro web.config file all together
+    // override the default Nitro web.config file altogether
     overrideConfig: false,
   },
 });

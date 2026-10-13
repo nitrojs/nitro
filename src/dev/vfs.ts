@@ -1,33 +1,16 @@
-import { HTTPError, defineHandler, getRequestIP } from "h3";
+import { HTTPError, defineHandler } from "h3";
 import type { Nitro } from "nitro/types";
+import { isLocalDevRequest } from "./_request.ts";
 
 export function createVFSHandler(nitro: Nitro) {
   return defineHandler(async (event) => {
-    const { socket } = event.runtime?.node?.req || {};
-
-    // prettier-ignore
-    const isUnixSocket =
-      // No network addresses
-      (!socket?.remoteAddress && !socket?.localAddress) &&
-      // Empty address object
-      Object.keys(socket?.address?.() || {}).length === 0 &&
-      // Socket is readable/writable but has no port info
-      socket?.readable && socket?.writable && !socket?.remotePort;
-
-    const ip = getRequestIP(event, { xForwardedFor: isUnixSocket });
-
-    const isLocalRequest = ip && /^::1$|^127\.\d+\.\d+\.\d+$/.test(ip);
-    if (!isLocalRequest) {
-      throw new HTTPError({
-        statusText: `Forbidden IP: "${ip || "?"}"`,
-        status: 403,
-      });
+    if (!isLocalDevRequest(event)) {
+      throw new HTTPError({ statusText: "Forbidden IP", status: 403 });
     }
 
-    const url = event.context.params?._ || "";
+    const url = event.context.params?.[0] || "";
     const isJson =
-      url.endsWith(".json") ||
-      event.req.headers.get("accept")?.includes("application/json");
+      url.endsWith(".json") || event.req.headers.get("accept")?.includes("application/json");
     const id = decodeURIComponent(url.replace(/^(\.json)?\/?/, "") || "");
 
     if (id && !nitro.vfs.has(id)) {
@@ -56,10 +39,7 @@ export function createVFSHandler(nitro: Nitro) {
     const fpaths = [...nitro.vfs.keys()];
 
     for (const item of fpaths) {
-      const segments = item
-        .replace(nitro.options.rootDir, "")
-        .split("/")
-        .filter(Boolean);
+      const segments = item.replace(nitro.options.rootDir, "").split("/").filter(Boolean);
       let currentDir = item.startsWith(nitro.options.rootDir)
         ? directories[nitro.options.rootDir]
         : directories;
@@ -73,10 +53,7 @@ export function createVFSHandler(nitro: Nitro) {
       }
     }
 
-    const generateHTML = (
-      directory: Record<string, any>,
-      path: string[] = []
-    ): string =>
+    const generateHTML = (directory: Record<string, any>, path: string[] = []): string =>
       Object.entries(directory)
         .map(([fname, value = {}]) => {
           const subpath = [...path, fname];
@@ -84,9 +61,7 @@ export function createVFSHandler(nitro: Nitro) {
           const encodedUrl = encodeURIComponent(key);
 
           const linkClass =
-            url === `/${encodedUrl}`
-              ? "bg-gray-700 text-white"
-              : "hover:bg-gray-800 text-gray-200";
+            url === `/${encodedUrl}` ? "bg-gray-700 text-white" : "hover:bg-gray-800 text-gray-200";
 
           return Object.keys(value).length === 0
             ? `
@@ -113,9 +88,7 @@ export function createVFSHandler(nitro: Nitro) {
 
     const rootDirectory = directories[nitro.options.rootDir];
     delete directories[nitro.options.rootDir];
-    const items =
-      generateHTML(rootDirectory, [nitro.options.rootDir]) +
-      generateHTML(directories);
+    const items = generateHTML(rootDirectory, [nitro.options.rootDir]) + generateHTML(directories);
 
     const files = `
       <div class="h-full overflow-auto border-r border-gray:10">
@@ -185,9 +158,7 @@ const editorTemplate = (options: Record<string, any>) => `
 
   setTimeout(() => {
     require(['vs/editor/editor.main'], function () {
-      monaco.editor.create(document.getElementById('editor'), ${JSON.stringify(
-        options
-      )})
+      monaco.editor.create(document.getElementById('editor'), ${JSON.stringify(options)})
     })
   }, 0);
 </script>

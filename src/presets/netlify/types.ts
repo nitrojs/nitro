@@ -32,10 +32,7 @@ interface NetlifyFunctionsConfig extends NetlifyFunctionInlineConfig {
   directory?: string;
 }
 
-export type NetlifyFunctionsConfigByPattern = Record<
-  string,
-  NetlifyFunctionInlineConfig
->;
+export type NetlifyFunctionsConfigByPattern = Record<string, NetlifyFunctionInlineConfig>;
 
 interface NetlifyFunctionInlineConfig {
   included_files?: string[];

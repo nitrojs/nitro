@@ -1,14 +1,15 @@
 import type { ViteBuilder } from "vite";
 import type { NitroPluginContext } from "./types.ts";
 
-import { basename, dirname, relative, resolve } from "pathe";
+import { basename, dirname, resolve } from "pathe";
 import { formatCompatibilityDate } from "compatx";
 import { colors as C } from "consola/utils";
-import { copyPublicAssets } from "../../builder.ts";
+import { copyPublicAssets, prerender } from "../../builder.ts";
 import { existsSync } from "node:fs";
 import { writeBuildInfo } from "../info.ts";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { isTest, isCI } from "std-env";
+import type { RolldownOutput } from "rolldown";
 
 const BuilderNames = {
   nitro: C.magenta("Nitro"),
@@ -16,10 +17,7 @@ const BuilderNames = {
   ssr: C.blue("SSR"),
 } as Record<string, string>;
 
-export async function buildEnvironments(
-  ctx: NitroPluginContext,
-  builder: ViteBuilder
-) {
+export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBuilder) {
   const nitro = ctx.nitro!;
 
   // ----------------------------------------------
@@ -29,11 +27,7 @@ export async function buildEnvironments(
   for (const [envName, env] of Object.entries(builder.environments)) {
     // prettier-ignore
     const fmtName = BuilderNames[envName] || (envName.length <= 3 ? envName.toUpperCase() : envName[0].toUpperCase() + envName.slice(1));
-    if (
-      envName === "nitro" ||
-      !env.config.build.rollupOptions.input ||
-      env.isBuilt
-    ) {
+    if (envName === "nitro" || !env.config.build.rollupOptions.input || env.isBuilt) {
       if (!["nitro", "ssr", "client"].includes(envName)) {
         nitro.logger.info(
           env.isBuilt
@@ -50,22 +44,12 @@ export async function buildEnvironments(
 
   // Use transformed client input for renderer template generation
   const nitroOptions = ctx.nitro!.options;
-  const clientInput =
-    builder.environments.client?.config?.build?.rollupOptions?.input;
-  if (
-    nitroOptions.renderer?.template &&
-    nitroOptions.renderer?.template === clientInput
-  ) {
-    const outputPath = resolve(
-      nitroOptions.output.publicDir,
-      basename(clientInput as string)
-    );
+  const clientInput = builder.environments.client?.config?.build?.rollupOptions?.input;
+  if (nitroOptions.renderer?.template && nitroOptions.renderer?.template === clientInput) {
+    const outputPath = resolve(nitroOptions.output.publicDir, basename(clientInput as string));
     if (existsSync(outputPath)) {
       const html = await readFile(outputPath, "utf8").then((r) =>
-        r.replace(
-          "<!--ssr-outlet-->",
-          `{{{ globalThis.__nitro_vite_envs__?.["ssr"]?.fetch($REQUEST) || "" }}}`
-        )
+        r.replace("<!--ssr-outlet-->", `{{{ fetchViteEnv("ssr", $REQUEST) || "" }}}`)
       );
       await rm(outputPath);
       const tmp = resolve(nitroOptions.buildDir, "vite/index.html");
@@ -107,7 +91,7 @@ export async function buildEnvironments(
       continue;
     }
     const rule = (ctx.nitro!.options.routeRules[`/${assetsDir}/**`] ??= {});
-    if (!rule.headers?.["cache-control"]) {
+    if (rule.headers !== false && !rule.headers?.["cache-control"]) {
       rule.headers = {
         ...rule.headers,
         "cache-control": `public, max-age=31536000, immutable`,
@@ -117,11 +101,20 @@ export async function buildEnvironments(
   ctx.nitro!.routing.sync();
 
   // Prerender routes if configured
-  // TODO
-  // await prerender(nitro);
+  await prerender(nitro);
+
+  // Call vite:compile:before hook
+  await nitro.hooks.callHook("vite:compile:before", nitro);
 
   // Build the Nitro server bundle
-  await builder.build(builder.environments.nitro);
+  let output: RolldownOutput | undefined;
+  if (nitro.options.static) {
+    // Mark as built to opt out of Vite's fallback that builds every environment
+    // when a `buildApp` hook left all of them unbuilt.
+    builder.environments.nitro.isBuilt = true;
+  } else {
+    output = (await builder.build(builder.environments.nitro)) as RolldownOutput;
+  }
 
   // Close the Nitro instance
   await nitro.close();
@@ -130,72 +123,14 @@ export async function buildEnvironments(
   await nitro.hooks.callHook("compiled", nitro);
 
   // Write build info
-  await writeBuildInfo(nitro);
+  await writeBuildInfo(nitro, output);
 
   // Show deploy and preview commands
-  const rOutput = relative(process.cwd(), nitro.options.output.dir);
-  const rewriteRelativePaths = (input: string) => {
-    return input.replace(/([\s:])\.\/(\S*)/g, `$1${rOutput}/$2`);
-  };
-
   if (!isTest && !isCI) console.log();
-  if (nitro.options.commands.preview) {
-    nitro.logger.success(
-      `You can preview this build using \`${rewriteRelativePaths(
-        nitro.options.commands.preview
-      )}\``
-    );
-  }
+  const previewCommand = nitro.options.framework.previewCommand || "npx vite preview";
+  nitro.logger.success(`You can preview this build using \`${previewCommand}\``);
   if (nitro.options.commands.deploy) {
-    nitro.logger.success(
-      `You can deploy this build using \`${rewriteRelativePaths(
-        nitro.options.commands.deploy
-      )}\``
-    );
+    const deployCommand = nitro.options.framework.deployCommand || "npx nitro deploy --prebuilt";
+    nitro.logger.success(`You can deploy this build using \`${deployCommand}\``);
   }
-}
-
-export function prodSetup(ctx: NitroPluginContext): string {
-  const serviceNames = Object.keys(ctx.services);
-
-  const serviceEntries = serviceNames.map((name) => {
-    let entry: string;
-    if (ctx.pluginConfig.experimental?.vite?.virtualBundle) {
-      entry = ctx._entryPoints[name];
-    } else {
-      entry = resolve(
-        ctx.nitro!.options.buildDir,
-        "vite/services",
-        name,
-        ctx._entryPoints[name]
-      );
-    }
-    return [name, entry];
-  });
-
-  return /* js */ `
-function lazyService(loader) {
-  let promise, mod
-  return {
-    fetch(req) {
-      if (mod) { return mod.fetch(req) }
-      if (!promise) {
-        promise = loader().then(_mod => (mod = _mod.default || _mod))
-      }
-      return promise.then(mod => mod.fetch(req))
-    }
-  }
-}
-
-const services = {
-${serviceEntries
-  .map(
-    ([name, entry]) =>
-      /* js */ `[${JSON.stringify(name)}]: lazyService(() => import(${JSON.stringify(entry)}))`
-  )
-  .join(",\n")}
-};
-
-globalThis.__nitro_vite_envs__ = services;
-  `;
 }

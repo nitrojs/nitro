@@ -1,26 +1,24 @@
 import { readFile } from "node:fs/promises";
 import { isAbsolute } from "pathe";
-import { transformSync } from "oxc-transform";
 import type { Expression, Literal } from "estree";
 import type { Nitro, NitroEventHandler } from "nitro/types";
 import type { Plugin } from "rollup";
+import { importOXC } from "../../utils/oxc.ts";
 import { escapeRegExp } from "../../utils/regex.ts";
 
 const PREFIX = "\0nitro:route-meta:";
 
-export function routeMeta(nitro: Nitro) {
+export async function routeMeta(nitro: Nitro) {
+  const { parseSync, transformSync } = await importOXC({ dir: nitro.options.rootDir });
   return {
     name: "nitro:route-meta",
     resolveId: {
+      order: "pre",
       // eslint-disable-next-line no-control-regex
       filter: { id: /^(?!\u0000)(.+)\?meta$/ },
       async handler(id, importer, resolveOpts) {
         if (id.endsWith("?meta")) {
-          const resolved = await this.resolve(
-            id.replace("?meta", ""),
-            importer,
-            resolveOpts
-          );
+          const resolved = await this.resolve(id.replace("?meta", ""), importer, resolveOpts);
           if (!resolved) {
             return;
           }
@@ -29,6 +27,7 @@ export function routeMeta(nitro: Nitro) {
       },
     },
     load: {
+      order: "pre",
       filter: {
         id: new RegExp(`^${escapeRegExp(PREFIX)}`),
       },
@@ -44,6 +43,7 @@ export function routeMeta(nitro: Nitro) {
       },
     },
     transform: {
+      order: "pre",
       filter: {
         id: new RegExp(`^${escapeRegExp(PREFIX)}`),
       },
@@ -51,7 +51,7 @@ export function routeMeta(nitro: Nitro) {
         let meta: NitroEventHandler["meta"] | null = null;
 
         try {
-          const transformRes = transformSync(id, code);
+          const transformRes = transformSync(id, code, { tsconfig: false });
           if (transformRes.errors?.length > 0) {
             for (const error of transformRes.errors) {
               this.warn(error);
@@ -59,11 +59,13 @@ export function routeMeta(nitro: Nitro) {
             return {
               code: `export default {};`,
               map: null,
+              moduleType: "js",
             };
           }
 
-          const ast = this.parse(transformRes.code);
-          for (const node of ast.body) {
+          // Not `this.parse()`, so the plugin also runs without a bundler (`builder: false`)
+          const { program } = parseSync(id, transformRes.code, { lang: "js" });
+          for (const node of program.body as any[]) {
             if (
               node.type === "ExpressionStatement" &&
               node.expression.type === "CallExpression" &&
@@ -76,14 +78,13 @@ export function routeMeta(nitro: Nitro) {
             }
           }
         } catch (error) {
-          nitro.logger.warn(
-            `[handlers-meta] Cannot extra route meta for: ${id}: ${error}`
-          );
+          nitro.logger.warn(`[handlers-meta] Cannot extra route meta for: ${id}: ${error}`);
         }
 
         return {
           code: `export default ${JSON.stringify(meta)};`,
           map: null,
+          moduleType: "js",
         };
       },
     },
@@ -103,7 +104,7 @@ function astToObject(node: Expression | Literal): any {
       return obj;
     }
     case "ArrayExpression": {
-      return node.elements.map((el) => astToObject(el as any)).filter(Boolean);
+      return node.elements.map((el) => astToObject(el as any)).filter((obj) => obj !== undefined);
     }
     case "Literal": {
       return node.value;

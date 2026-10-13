@@ -1,84 +1,43 @@
 import "#nitro/virtual/polyfills";
-import { Server } from "node:http";
-import { parentPort, threadId } from "node:worker_threads";
-import wsAdapter from "crossws/adapters/node";
-import { toNodeHandler } from "srvx/node";
-import { getSocketAddress, isSocketSupported } from "get-port-please";
 
 import { useNitroApp, useNitroHooks } from "nitro/app";
 import { startScheduleRunner } from "#nitro/runtime/task";
 import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
-import { hasWebSocket } from "#nitro/virtual/feature-flags";
+import { tracingSrvxPlugins } from "#nitro/virtual/tracing";
+import { serverEntryOptions } from "#nitro/virtual/server-entry";
+import { createDevRPC } from "#nitro/runtime/dev-rpc";
 
-// Listen for shutdown signal from runner
-parentPort?.on("message", (msg) => {
-  if (msg && msg.event === "shutdown") {
-    shutdown();
-  }
-});
+import type { AppEntry } from "env-runner";
 
 const nitroApp = useNitroApp();
 const nitroHooks = useNitroHooks();
 
+let sendMessage: ((message: unknown) => void) | undefined;
+const rpc = createDevRPC((message) => sendMessage?.(message));
+
 trapUnhandledErrors();
-
-const server = new Server(toNodeHandler(nitroApp.fetch));
-let listener: Server | undefined;
-
-listen()
-  // eslint-disable-next-line unicorn/prefer-top-level-await
-  .catch((error) => {
-    console.error("Dev worker failed to listen:", error);
-    return shutdown();
-  });
-
-// https://crossws.unjs.io/adapters/node
-if (hasWebSocket) {
-  const { handleUpgrade } = wsAdapter({ resolve: resolveWebsocketHooks });
-  server.on("upgrade", handleUpgrade);
-}
 
 // Scheduled tasks
 if (import.meta._tasks) {
-  startScheduleRunner();
+  startScheduleRunner({});
 }
 
-// --- utils ---
-
-async function listen() {
-  const listenAddr = (await isSocketSupported())
-    ? getSocketAddress({
-        name: `nitro-dev-${threadId}`,
-        pid: true,
-        random: true,
-      })
-    : { port: 0, host: "localhost" };
-
-  return new Promise<void>((resolve, reject) => {
-    try {
-      listener = server.listen(listenAddr, () => {
-        const address = server.address();
-        parentPort?.postMessage({
-          event: "listen",
-          address:
-            typeof address === "string"
-              ? { socketPath: address }
-              : { host: "localhost", port: address?.port },
-        });
-        resolve();
-      });
-    } catch (error) {
-      reject(error);
-    }
-  });
-}
-
-async function shutdown() {
-  server.closeAllConnections?.();
-  await Promise.all([
-    new Promise((resolve) => listener?.close(resolve)),
-    nitroHooks.callHook("close"),
-  ]).catch(console.error);
-  parentPort?.postMessage({ event: "exit" });
-}
+export default {
+  ...serverEntryOptions,
+  fetch: nitroApp.fetch,
+  plugins: [...tracingSrvxPlugins],
+  websocket: import.meta._websocket
+    ? ({ resolve: resolveWebsocketHooks } as AppEntry["websocket"])
+    : undefined,
+  ipc: {
+    onOpen: (ctx) => {
+      sendMessage = ctx.sendMessage;
+      (globalThis as any).__nitro_renderer_template__ = () => rpc.call("rendererTemplate");
+    },
+    onMessage: (message) => {
+      rpc.handleMessage(message);
+    },
+    onClose: () => nitroHooks.callHook("close"),
+  },
+} satisfies AppEntry;

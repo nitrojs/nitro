@@ -1,14 +1,15 @@
 import type { HTTPError, HTTPMethod, HTTPEvent, HTTPHandler } from "h3";
 import type { PresetName } from "../presets/index.ts";
-import type {
-  OperationObject,
-  OpenAPI3,
-  Extensable,
-} from "../types/openapi-ts.ts";
+import type { OperationObject, OpenAPI3, Extensable } from "../types/openapi-ts.ts";
 
 type MaybeArray<T> = T | T[];
 
-/** @experimental */
+/**
+ * Route-level metadata attached to event handlers.
+ *
+ * @experimental
+ * @see https://nitro.build/docs/routing
+ */
 export interface NitroRouteMeta {
   openAPI?: OperationObject & {
     $global?: Pick<OpenAPI3, "components"> & Extensable;
@@ -17,38 +18,53 @@ export interface NitroRouteMeta {
 
 interface NitroHandlerCommon {
   /**
-   * HTTP pathname pattern to match
+   * HTTP pathname pattern to match.
    *
-   * Examples: `/test`, `/api/:id`, `/blog/**`
+   * @example "/test", "/api/:id", "/blog/**"
    */
   route: string;
 
   /**
-   * HTTP method to match
+   * HTTP method to match.
    */
   method?: HTTPMethod;
 
   /**
-   * Run handler as a middleware before other route handlings
+   * Run handler as a middleware before other route handlers.
    */
   middleware?: boolean;
 
   /**
-   * Extra Meta
+   * Route metadata (e.g. OpenAPI operation info).
    */
   meta?: NitroRouteMeta;
 }
 
+/**
+ * Handler module format.
+ *
+ * - `"web"` — standard Web API handler (default).
+ * - `"node"` — Node.js-style handler, automatically converted to web-compatible.
+ */
 export type EventHandlerFormat = "web" | "node";
 
+/**
+ * Event handler registration for build-time bundling.
+ *
+ * Handlers are file references that the bundler imports and transforms.
+ * For runtime-only handlers in development, use {@link NitroDevEventHandler}.
+ *
+ * @see https://nitro.build/config#handlers
+ * @see https://nitro.build/docs/routing
+ */
 export interface NitroEventHandler extends NitroHandlerCommon {
   /**
-   * Use lazy loading to import handler
+   * Use lazy loading to import handler.
    */
   lazy?: boolean;
 
   /**
-   * Path to event handler
+   * Path to event handler.
    */
   handler: string;
 
@@ -59,21 +75,43 @@ export interface NitroEventHandler extends NitroHandlerCommon {
    */
   format?: EventHandlerFormat;
 
-  /*
-   * Environments to include and bundle this handler
+  /**
+   * Environments to include and bundle this handler.
+   *
+   * @example
+   * ```ts
+   * env: ["dev", "prod"]
+   * env: "prerender"
+   * ```
    */
   env?: MaybeArray<"dev" | "prod" | "prerender" | PresetName | (string & {})>;
 }
 
+/**
+ * Development-only event handler with an inline handler function.
+ *
+ * These handlers are available only during `nitro dev` and are not
+ * included in production builds.
+ *
+ * @see https://nitro.build/config#devhandlers
+ */
 export interface NitroDevEventHandler extends NitroHandlerCommon {
   /**
-   * Event handler function
+   * Event handler function.
    */
   handler: HTTPHandler;
 }
 
 type MaybePromise<T> = T | Promise<T>;
 
+/**
+ * Custom error handler function signature.
+ *
+ * Receives the error, the H3 event, and a helper object containing the
+ * `defaultHandler` for fallback rendering.
+ *
+ * @see https://nitro.build/config#errorhandler
+ */
 export type NitroErrorHandler = (
   error: HTTPError,
   event: HTTPEvent,
@@ -83,10 +121,10 @@ export type NitroErrorHandler = (
       event: HTTPEvent,
       opts?: { silent?: boolean; json?: boolean }
     ) => MaybePromise<{
-      status: number;
-      statusText: string | undefined;
-      headers: Record<string, string>;
-      body: string | Record<string, any>;
+      status?: number;
+      statusText?: string;
+      headers?: HeadersInit;
+      body?: string | Record<string, any>;
     }>;
   }
 ) => MaybePromise<Response | void>;

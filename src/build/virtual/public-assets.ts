@@ -6,15 +6,15 @@ import type { Nitro } from "nitro/types";
 import type { PublicAsset } from "nitro/types";
 import { relative, resolve } from "pathe";
 import { joinURL, withTrailingSlash } from "ufo";
+import { runParallel } from "../../utils/parallel.ts";
 
 const readAssetHandler: Record<
   Exclude<Nitro["options"]["serveStatic"] | "true" | "false", boolean>,
-  "node" | "deno" | "null" | "inline"
+  "node" | "null" | "inline"
 > = {
   true: "node",
   node: "node",
   false: "null",
-  deno: "deno",
   inline: "inline",
 };
 
@@ -30,41 +30,51 @@ export default function publicAssets(nitro: Nitro) {
           absolute: false,
           dot: true,
         });
-        for (const id of files) {
-          let mimeType =
-            mime.getType(id.replace(/\.(gz|br)$/, "")) || "text/plain";
-          if (mimeType.startsWith("text")) {
-            mimeType += "; charset=utf-8";
-          }
-          const fullPath = resolve(nitro.options.output.publicDir, id);
-          const assetData = await fsp.readFile(fullPath);
-          const etag = createEtag(assetData);
-          const stat = await fsp.stat(fullPath);
 
-          const assetId = joinURL(
-            nitro.options.baseURL,
-            decodeURIComponent(id)
-          );
+        const { errors } = await runParallel(
+          new Set(files),
+          async (id) => {
+            let mimeType = mime.getType(id.replace(/\.(gz|br|zst)$/, "")) || "text/plain";
+            if (mimeType.startsWith("text")) {
+              mimeType += "; charset=utf-8";
+            }
+            const fullPath = resolve(nitro.options.output.publicDir, id);
+            const [assetData, stat] = await Promise.all([
+              fsp.readFile(fullPath),
+              fsp.stat(fullPath),
+            ]);
 
-          let encoding;
-          if (id.endsWith(".gz")) {
-            encoding = "gzip";
-          } else if (id.endsWith(".br")) {
-            encoding = "br";
-          }
+            const etag = createEtag(assetData);
 
-          assets[assetId] = {
-            type: nitro._prerenderMeta?.[assetId]?.contentType || mimeType,
-            encoding,
-            etag,
-            mtime: stat.mtime.toJSON(),
-            size: stat.size,
-            path: relative(nitro.options.output.serverDir, fullPath),
-            data:
-              nitro.options.serveStatic === "inline"
-                ? assetData.toString("base64")
-                : undefined,
-          };
+            const assetId = joinURL(nitro.options.baseURL, decodeURIComponent(id));
+
+            let encoding;
+            if (id.endsWith(".gz")) {
+              encoding = "gzip";
+            } else if (id.endsWith(".br")) {
+              encoding = "br";
+            } else if (id.endsWith(".zst")) {
+              encoding = "zstd";
+            }
+
+            assets[assetId] = {
+              type: nitro._prerenderMeta?.[assetId]?.contentType || mimeType,
+              encoding,
+              etag,
+              mtime: stat.mtime.toJSON(),
+              size: stat.size,
+              path: relative(nitro.options.output.serverDir, fullPath),
+              data:
+                nitro.options.serveStatic === "inline" ? assetData.toString("base64") : undefined,
+            };
+          },
+          { concurrency: 25 }
+        );
+
+        if (errors.length > 0) {
+          throw new Error(`Failed to process public assets:\n${errors.join("\n")}`, {
+            cause: errors,
+          });
         }
 
         return `export default ${JSON.stringify(assets, null, 2)};`;
@@ -79,9 +89,7 @@ export default function publicAssets(nitro: Nitro) {
           nitro.options.publicAssets
             .filter((dir) => !dir.fallthrough && dir.baseURL !== "/")
             .map((dir) => [
-              withTrailingSlash(
-                joinURL(nitro.options.baseURL, dir.baseURL || "/")
-              ),
+              withTrailingSlash(joinURL(nitro.options.baseURL, dir.baseURL || "/")),
               { maxAge: dir.maxAge },
             ])
         );
@@ -134,21 +142,11 @@ import { resolve, dirname } from 'node:path'
 import assets from '#nitro/virtual/public-assets-data'
 export function readAsset (id) {
   const serverDir = dirname(fileURLToPath(globalThis.__nitro_main__))
-  return fsp.readFile(resolve(serverDir, assets[id].path))
-}`;
-      },
-    },
-
-    // public-assets-deno
-    {
-      id: "#nitro/virtual/public-assets-deno",
-      template: () => {
-        return /* js */ `
-import assets from '#nitro/virtual/public-assets-data'
-export function readAsset (id) {
-  // https://deno.com/deploy/docs/serve-static-assets
-  const path = '.' + decodeURIComponent(new URL(\`../public\${id}\`, 'file://').pathname)
-  return Deno.readFile(path);
+  // Public dirs might be pruned after the build (uploaded to a CDN, sourcemaps
+  // stripped), so a manifest entry with no file behind it reads as absent, not broken.
+  return fsp.readFile(resolve(serverDir, assets[id].path)).catch((error) => {
+    if (error?.code !== 'ENOENT') { throw error }
+  })
 }`;
       },
     },

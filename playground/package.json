@@ -8,7 +8,7 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "nitro": "latest",
-    "vite": "beta"
+    "nitro": "link:..",
+    "vite": "latest"
   }
 }

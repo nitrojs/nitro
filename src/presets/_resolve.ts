@@ -1,7 +1,4 @@
-import {
-  resolveCompatibilityDatesFromEnv,
-  formatCompatibilityDate,
-} from "compatx";
+import { resolveCompatibilityDatesFromEnv, formatCompatibilityDate } from "compatx";
 import type { CompatibilityDateSpec, PlatformName } from "compatx";
 import type { NitroPreset, NitroPresetMeta } from "nitro/types";
 import { kebabCase } from "scule";
@@ -22,6 +19,7 @@ export async function resolvePreset(
     static?: boolean;
     compatibilityDate?: false | CompatibilityDateSpec;
     dev?: boolean;
+    defaultPreset?: string | NitroPreset;
   } = {}
 ): Promise<(NitroPreset & { _meta?: NitroPresetMeta }) | undefined> {
   if (name === ".") {
@@ -49,9 +47,7 @@ export async function resolvePreset(
 
       if (_compatDates) {
         const _date =
-          _compatDates[
-            _stdProviderMap[preset._meta.stdName!] as PlatformName
-          ] ||
+          _compatDates[_stdProviderMap[preset._meta.stdName!] as PlatformName] ||
           _compatDates[preset._meta.stdName as PlatformName] ||
           _compatDates[preset._meta.name as PlatformName] ||
           _compatDates.default;
@@ -74,9 +70,7 @@ export async function resolvePreset(
     });
 
   const preset =
-    matches.find(
-      (p) => (p._meta.static || false) === (opts?.static || false)
-    ) || matches[0];
+    matches.find((p) => (p._meta.static || false) === (opts?.static || false)) || matches[0];
 
   if (typeof preset === "function") {
     // @ts-expect-error unreachable
@@ -87,6 +81,18 @@ export async function resolvePreset(
   if (!name && !preset) {
     if (opts?.static) {
       return resolvePreset("static", opts);
+    }
+    // User-configured fallback preset (`defaultPreset`)
+    if (opts.defaultPreset) {
+      if (typeof opts.defaultPreset === "string") {
+        return resolvePreset(opts.defaultPreset, { ...opts, defaultPreset: undefined });
+      }
+      const config =
+        typeof opts.defaultPreset === "function" ? opts.defaultPreset() : opts.defaultPreset;
+      return {
+        ...config,
+        _meta: { name: "default", ...(config as { _meta?: NitroPresetMeta })._meta },
+      };
     }
     const runtimeMap = { deno: "deno", bun: "bun" } as Record<string, string>;
     return resolvePreset(runtimeMap[runtime] || "node", opts);

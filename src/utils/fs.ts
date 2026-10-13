@@ -41,25 +41,15 @@ function _compilePathTemplate(contents: string) {
     contents.replace(/{{ ?([\w.]+) ?}}/g, (_, match) => {
       const val = getProperty<Record<string, string>, string>(params, match);
       if (!val) {
-        consola.warn(
-          `cannot resolve template param '${match}' in ${contents.slice(0, 20)}`
-        );
+        consola.warn(`cannot resolve template param '${match}' in ${contents.slice(0, 20)}`);
       }
       return val || `${match}`;
     });
 }
 
-export async function writeFile(
-  file: string,
-  contents: Buffer | string,
-  log = false
-) {
+export async function writeFile(file: string, contents: Buffer | string, log = false) {
   await mkdir(dirname(file), { recursive: true });
-  await fspWriteFile(
-    file,
-    contents,
-    typeof contents === "string" ? "utf8" : undefined
-  );
+  await fspWriteFile(file, contents, typeof contents === "string" ? "utf8" : undefined);
   if (log) {
     consola.info("Generated", prettyPath(file));
   }

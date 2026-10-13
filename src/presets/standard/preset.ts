@@ -4,7 +4,6 @@ const standard = defineNitroPreset(
   {
     entry: "./standard/runtime/server",
     serveStatic: false,
-    exportConditions: ["import", "default"],
     output: {
       publicDir: "{{ output.dir }}/public/{{ baseURL }}",
     },
@@ -17,6 +16,8 @@ const standard = defineNitroPreset(
       "srvx/deno": "srvx/deno",
       "srvx/node": "srvx/node",
       "srvx/generic": "srvx/generic",
+      "srvx/tracing": "srvx/tracing",
+      "srvx/body-limit": "srvx/body-limit",
     },
   },
   {

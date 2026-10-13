@@ -6,7 +6,7 @@ import { withBase, withQuery } from "ufo";
 
 import type { QueryObject } from "ufo";
 import type { RequestOptions } from "node:http";
-import type { NitroBuildInfo, TaskEvent, TaskRunnerOptions } from "nitro/types";
+import type { NitroBuildInfo, TaskEvent, TaskMeta, TaskRunnerOptions } from "nitro/types";
 
 /** @experimental */
 export async function runTask(
@@ -25,7 +25,7 @@ export async function runTask(
 export async function listTasks(opts?: TaskRunnerOptions) {
   const ctx = await _getTasksContext(opts);
   const res = (await ctx.devFetch("/_nitro/tasks")) as {
-    tasks: Record<string, { meta: { description: string } }>;
+    tasks: Record<string, { meta: TaskMeta }>;
   };
   return res.tasks;
 }
@@ -43,14 +43,10 @@ async function _getTasksContext(opts?: TaskRunnerOptions) {
     throw new Error(`Missing info file: \`${buildInfoPath}\` ${_devHint}`);
   }
 
-  const buildInfo = JSON.parse(
-    await readFile(buildInfoPath, "utf8")
-  ) as NitroBuildInfo;
+  const buildInfo = JSON.parse(await readFile(buildInfoPath, "utf8")) as NitroBuildInfo;
 
   if (!buildInfo.dev?.pid || !buildInfo.dev?.workerAddress) {
-    throw new Error(
-      `Missing dev server info in: \`${buildInfoPath}\` ${_devHint}`
-    );
+    throw new Error(`Missing dev server info in: \`${buildInfoPath}\` ${_devHint}`);
   }
 
   if (!_pidIsRunning(buildInfo.dev.pid)) {
@@ -85,10 +81,7 @@ async function _getTasksContext(opts?: TaskRunnerOptions) {
           },
         },
         (response) => {
-          if (
-            !response.statusCode ||
-            (response.statusCode >= 400 && response.statusCode < 600)
-          ) {
+          if (!response.statusCode || (response.statusCode >= 400 && response.statusCode < 600)) {
             reject(new Error(response.statusMessage));
             return;
           }

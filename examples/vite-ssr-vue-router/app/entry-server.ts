@@ -1,13 +1,11 @@
 import { createSSRApp } from "vue";
 import { renderToString } from "vue/server-renderer";
 import { RouterView, createMemoryHistory, createRouter } from "vue-router";
-
 import { createHead, transformHtmlTemplate } from "unhead/server";
 
 import { routes } from "./routes.ts";
 
-// @ts-ignore
-import clientEntry from "./entry-client.ts?assets=client";
+import clientAssets from "./entry-client.ts?assets=client";
 
 async function handler(request: Request): Promise<Response> {
   const app = createSSRApp(RouterView);
@@ -20,7 +18,7 @@ async function handler(request: Request): Promise<Response> {
   await router.push(href);
   await router.isReady();
 
-  const assets = clientEntry.merge(
+  const assets = clientAssets.merge(
     ...(await Promise.all(
       router.currentRoute.value.matched
         .map((to) => to.meta.assets)
@@ -36,7 +34,7 @@ async function handler(request: Request): Promise<Response> {
       ...assets.css.map((attrs: any) => ({ rel: "stylesheet", ...attrs })),
       ...assets.js.map((attrs: any) => ({ rel: "modulepreload", ...attrs })),
     ],
-    script: [{ type: "module", src: clientEntry.entry }],
+    script: [{ type: "module", src: clientAssets.entry }],
   });
 
   const renderedApp = await renderToString(app);

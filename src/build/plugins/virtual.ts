@@ -1,6 +1,6 @@
 import type { Plugin, ResolvedId } from "rollup";
 import { pathRegExp } from "../../utils/regex.ts";
-import { runtimeDependencies, runtimeDir } from "../../runtime/meta.ts";
+import { runtimeDependencies, runtimeDir } from "nitro/meta";
 
 export type VirtualModule = {
   id: string;
@@ -14,20 +14,15 @@ export function virtual(input: VirtualModule[]): Plugin {
     { module: VirtualModule; render: () => string | Promise<string> }
   >();
   for (const mod of input) {
-    const render = () =>
-      typeof mod.template === "function" ? mod.template() : mod.template;
+    const render = () => (typeof mod.template === "function" ? mod.template() : mod.template);
     modules.set(mod.id, { module: mod, render });
   }
 
   const include: RegExp[] = [/^#nitro\/virtual/];
 
-  const extraIds = [...modules.keys()].filter(
-    (key) => !key.startsWith("#nitro/virtual")
-  );
+  const extraIds = [...modules.keys()].filter((key) => !key.startsWith("#nitro/virtual"));
   if (extraIds.length > 0) {
-    include.push(
-      new RegExp(`^(${extraIds.map((id) => pathRegExp(id)).join("|")})$`)
-    );
+    include.push(new RegExp(`^(${extraIds.map((id) => pathRegExp(id)).join("|")})$`));
   }
 
   return {
@@ -54,7 +49,7 @@ export function virtual(input: VirtualModule[]): Plugin {
       handler: async (id) => {
         const mod = modules.get(id);
         if (!mod) {
-          throw new Error(`Virtual module ${id} not found.`);
+          return null;
         }
         return {
           code: await mod.render(),
@@ -66,19 +61,14 @@ export function virtual(input: VirtualModule[]): Plugin {
 }
 
 export function virtualDeps(): Plugin {
-  const cache = new Map<
-    string,
-    ResolvedId | null | Promise<ResolvedId | null>
-  >();
+  const cache = new Map<string, ResolvedId | null | Promise<ResolvedId | null>>();
 
   return {
     name: "nitro:virtual-deps",
     resolveId: {
       order: "pre",
       filter: {
-        id: new RegExp(
-          `^(#nitro|${runtimeDependencies.map((dep) => pathRegExp(dep)).join("|")})`
-        ),
+        id: new RegExp(`^(#nitro|${runtimeDependencies.map((dep) => pathRegExp(dep)).join("|")})`),
       },
       handler(id, importer) {
         // https://github.com/rolldown/rolldown/issues/7529

@@ -1,5 +1,6 @@
 import type { NitroConfig } from "nitro/types";
 import { isDebug, isTest } from "std-env";
+import { version as nitroVersion } from "nitro/meta";
 
 export const NitroDefaults: NitroConfig = {
   // General
@@ -22,14 +23,14 @@ export const NitroDefaults: NitroConfig = {
   features: {},
   experimental: {},
   future: {},
-  storage: {},
+  kv: {},
   devStorage: {},
+  cache: {},
   publicAssets: [],
   serverAssets: [],
   plugins: [],
   tasks: {},
   scheduledTasks: {},
-  imports: false,
   virtual: {},
   compressPublicAssets: false,
   ignore: [],
@@ -66,20 +67,19 @@ export const NitroDefaults: NitroConfig = {
     routes: [],
   },
 
-  // Rollup
+  // Builder
   builder: undefined,
-  moduleSideEffects: ["unenv/polyfill/"],
+  buildPlugins: [],
   replace: {},
+  inject: {},
+  polyfills: [],
+  builtinModules: [],
   node: true,
   sourcemap: false,
   traceDeps: [],
 
   // Advanced
   typescript: {
-    strict: true,
-    generateRuntimeConfigTypes: false,
-    generateTsConfig: false,
-    tsconfigPath: "tsconfig.json",
     tsConfig: undefined,
   },
   hooks: {},
@@ -88,6 +88,6 @@ export const NitroDefaults: NitroConfig = {
   // Framework
   framework: {
     name: "nitro",
-    version: "",
+    version: nitroVersion,
   },
 };

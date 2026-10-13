@@ -5,8 +5,9 @@ import type {
   Nitro,
   NitroConfig,
   NitroDynamicConfig,
+  NitroHooks,
 } from "nitro/types";
-import { createUnimport } from "unimport";
+import { version as nitroVersion } from "nitro/meta";
 import { loadOptions } from "./config/loader.ts";
 import { updateNitroConfig } from "./config/update.ts";
 import { installModules } from "./module.ts";
@@ -22,9 +23,14 @@ export async function createNitro(
   const options = await loadOptions(config, opts);
 
   // Create nitro context
+  const hooks = new Hookable<NitroHooks>();
   const nitro: Nitro = {
+    meta: {
+      version: nitroVersion,
+      majorVersion: 3,
+    },
     options,
-    hooks: new Hookable(),
+    hooks,
     vfs: new Map(),
     routing: {} as any,
     logger: consola.withTag("nitro"),
@@ -50,7 +56,7 @@ export async function createNitro(
 
   // Debug
   if (nitro.options.debug) {
-    createDebugger(nitro.hooks, { tag: "nitro" });
+    createDebugger(hooks, { tag: "nitro" });
   }
 
   // Logger
@@ -63,17 +69,6 @@ export async function createNitro(
 
   // Scan and install modules
   await installModules(nitro);
-
-  // Auto imports
-  if (nitro.options.imports) {
-    // Create unimport instance
-    nitro.unimport = createUnimport(nitro.options.imports);
-    await nitro.unimport.init();
-    // Support for importing from '#imports'
-    nitro.options.virtual["#imports"] = () => nitro.unimport?.toExports() || "";
-    // Backward compatibility
-    nitro.options.virtual["#nitro"] = 'export * from "#imports"';
-  }
 
   // Ensure initial handlers are populated
   await scanHandlers(nitro);

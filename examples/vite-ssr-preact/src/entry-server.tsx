@@ -2,10 +2,7 @@ import "./styles.css";
 import { renderToReadableStream } from "preact-render-to-string/stream";
 import { App } from "./app.jsx";
 
-// @ts-ignore
 import clientAssets from "./entry-client?assets=client";
-
-// @ts-ignore
 import serverAssets from "./entry-server?assets=ssr";
 
 export default {
@@ -28,7 +25,7 @@ function Root(props: { url: URL }) {
           <link key={attr.href} rel="stylesheet" {...attr} />
         ))}
         {assets.js.map((attr: any) => (
-          <link key={attr.href} type="modulepreload" {...attr} />
+          <link key={attr.href} rel="modulepreload" {...attr} />
         ))}
         <script type="module" src={assets.entry} />
       </head>

@@ -14,11 +14,7 @@ const nodeCompatTests = {
   },
   crypto: {
     createHash: () => {
-      return nodeCrypto
-        .createHash("sha256")
-        .update("hello")
-        .digest("hex")
-        .startsWith("2cf24");
+      return nodeCrypto.createHash("sha256").update("hello").digest("hex").startsWith("2cf24");
     },
   },
   async_hooks: {

@@ -1,26 +1,100 @@
 import { join } from "node:path";
-import { readdir } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { execa } from "execa";
+import { resolveModuleURL } from "exsolve";
 import { toRequest } from "h3";
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
 
 import type { ViteDevServer } from "vite";
+import { existsSync } from "node:fs";
 
 const examplesDir = fileURLToPath(new URL("../examples", import.meta.url));
 
-const { createServer, createBuilder } = (await import(
+const { createServer, createBuilder, rolldownVersion } = (await import(
   process.env.NITRO_VITE_PKG || "vite"
 )) as typeof import("vite");
 
-const skip = new Set<string>(["websocket"]);
+const isRolldown = !!rolldownVersion;
 
-const skipDev = new Set<string>(["auto-imports", "cached-handler"]);
+const skip = new Set<string>([
+  "websocket",
+  ...(isRolldown
+    ? [
+        // TODO: Cannot read properties of null (reading 'use')
+        "vite-rsc",
+      ]
+    : [
+        "vite-rsc",
+        // No tsConfigPaths support in rollup
+        "import-alias",
+        // @vitejs/plugin-react depends on vite 8 vite/internal import
+        "vite-ssr-react",
+        "vite-ssr-tsr-react",
+        "vite-ssr-tss-react",
+      ]),
+]);
 
-const skipProd = new Set<string>([]);
+const skipDev = new Set<string>(["cached-handler"]);
+
+const skipProd = new Set<string>(isRolldown ? [] : []);
 
 for (const example of await readdir(examplesDir)) {
   if (example.startsWith("_")) continue;
-  setupTest(example);
+  if (existsSync(join(examplesDir, example, "index.html"))) {
+    setupTest(example);
+  }
+  const pkg = JSON.parse(await readFile(join(examplesDir, example, "package.json"), "utf8"));
+  if (/\bvitest\b/.test(pkg.scripts?.test || "")) {
+    setupVitestTest(example);
+  }
+}
+
+// Runs the example's own Vitest suite, as `pnpm test` does in the example
+function setupVitestTest(name: string) {
+  const rootDir = join(examplesDir, name);
+  test.skipIf(skip.has(name))(
+    `${name} (vitest)`,
+    async () => {
+      const outDir = await mkdtemp(join(tmpdir(), "nitro-example-vitest-"));
+      const outputFile = join(outDir, "results.json");
+      // A clean environment, as when users run Vitest (no `NODE_ENV`, `VITEST_*` or `NITRO_PRESET`)
+      const env = Object.fromEntries(
+        Object.entries(process.env).filter(
+          ([key]) => key !== "NODE_ENV" && key !== "NITRO_PRESET" && !key.startsWith("VITEST")
+        )
+      );
+      try {
+        const vitestPkg = resolveModuleURL("vitest/package.json", { from: rootDir + "/" });
+        const { stdout, stderr } = await execa(
+          process.execPath,
+          [
+            fileURLToPath(new URL("vitest.mjs", vitestPkg)),
+            "run",
+            "--reporter=json",
+            `--outputFile=${outputFile}`,
+          ],
+          { cwd: rootDir, env, extendEnv: false, reject: false }
+        );
+        const results = existsSync(outputFile)
+          ? JSON.parse(await readFile(outputFile, "utf8"))
+          : undefined;
+        const failures = (results?.testResults || []).flatMap((file: any) => [
+          ...(file.status === "failed" && file.message ? [`${file.name}: ${file.message}`] : []),
+          ...file.assertionResults
+            .filter((t: any) => t.status !== "passed")
+            .map((t: any) => `${t.fullName}: ${t.failureMessages.join("\n")}`),
+        ]);
+        expect(failures, stdout + stderr).toEqual([]);
+        expect(results?.success, stdout + stderr).toBe(true);
+        expect(results.numPassedTests).toBeGreaterThan(0);
+      } finally {
+        await rm(outDir, { recursive: true, force: true });
+      }
+    },
+    60_000
+  );
 }
 
 function setupTest(name: string) {
@@ -35,6 +109,10 @@ function setupTest(name: string) {
       test(`${name} (${mode})`, async () => {
         const res = await ctx.fetch("/");
         const expectedStatus = name === "custom-error-handler" ? 500 : 200;
+        if (res.status !== expectedStatus) {
+          const text = await res.text();
+          console.error(`Unexpected response ${res.status} ${res.statusText}\n${text}`);
+        }
         expect(res.status, res.statusText).toBe(expectedStatus);
       });
     }

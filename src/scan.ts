@@ -4,13 +4,20 @@ import { join, relative } from "pathe";
 import { withBase, withLeadingSlash, withoutTrailingSlash } from "ufo";
 
 export const GLOB_SCAN_PATTERN = "**/*.{js,mjs,cjs,ts,mts,cts,tsx,jsx}";
+
+// Modules are only auto-registered from `modules/*` and `modules/*/index` (any supported
+// extension) so that a module's own nested files are not registered as modules themselves.
+const GLOB_MODULES_SCAN_PATTERN = [
+  "*.{js,mjs,cjs,ts,mts,cts,tsx,jsx}",
+  "*/index.{js,mjs,cjs,ts,mts,cts,tsx,jsx}",
+];
 type FileInfo = { path: string; fullPath: string };
 
 const suffixRegex =
-  /(\.(?<method>connect|delete|get|head|options|patch|post|put|trace))?(\.(?<env>dev|prod|prerender))?$/;
+  /(\.(?<method>connect|delete|get|head|options|patch|post|put|query|trace))?(\.(?<env>dev|prod|prerender))?$/;
 
 // prettier-ignore
-type MatchedMethodSuffix = "connect" | "delete" | "get" | "head" | "options" | "patch" | "post" | "put" | "trace";
+type MatchedMethodSuffix = "connect" | "delete" | "get" | "head" | "options" | "patch" | "post" | "put" | "query" | "trace";
 type MatchedEnvSuffix = "dev" | "prod" | "prerender";
 
 export async function scanAndSyncOptions(nitro: Nitro) {
@@ -53,25 +60,20 @@ export async function scanHandlers(nitro: Nitro) {
   const middleware = await scanMiddleware(nitro);
 
   const handlers = await Promise.all([
-    scanServerRoutes(
-      nitro,
-      nitro.options.apiDir || "api",
-      nitro.options.apiBaseURL || "/api"
-    ),
+    scanServerRoutes(nitro, nitro.options.apiDir || "api", nitro.options.apiBaseURL || "/api"),
     scanServerRoutes(nitro, nitro.options.routesDir || "routes"),
   ]).then((r) => r.flat());
 
+  const seenHandlers = new Set<string>();
   nitro.scannedHandlers = [
     ...middleware,
-    ...handlers.filter((h, index, array) => {
-      return (
-        array.findIndex(
-          (h2) =>
-            h.route === h2.route && h.method === h2.method && h.env === h2.env
-        ) === index
-      );
+    ...handlers.filter((h) => {
+      const key = `${h.route}\0${h.method}\0${h.env}`;
+      return seenHandlers.has(key) ? false : (seenHandlers.add(key), true);
     }),
   ];
+
+  nitro.routing.sync();
 
   return handlers;
 }
@@ -87,19 +89,24 @@ export async function scanMiddleware(nitro: Nitro) {
   });
 }
 
-export async function scanServerRoutes(
-  nitro: Nitro,
-  dir: string,
-  prefix = "/"
-) {
+export async function scanServerRoutes(nitro: Nitro, dir: string, prefix = "/") {
   const files = await scanFiles(nitro, dir);
   return files.map((file) => {
+    const paramName = (name: string) => {
+      const sanitized = name.replace(/\W/g, "_");
+      if (name.includes("-")) {
+        nitro.logger.warn(
+          `Route param \`[${name}]\` in \`${file.path}\` is available as \`params.${sanitized}\`, since param names cannot contain \`-\`. Rename it to silence this warning.`
+        );
+      }
+      return sanitized;
+    };
     let route = file.path
       .replace(/\.[A-Za-z]+$/, "")
       .replace(/\(([^(/\\]+)\)[/\\]/g, "")
       .replace(/\[\.{3}]/g, "**")
-      .replace(/\[\.{3}(\w+)]/g, "**:$1")
-      .replace(/\[([^/\]]+)]/g, ":$1");
+      .replace(/\[\.{3}([^\]]+)]/g, (_, p) => "**:" + paramName(p))
+      .replace(/\[([^/\]]+)]/g, (_, p) => ":" + paramName(p));
     route = withLeadingSlash(withoutTrailingSlash(withBase(route, prefix)));
 
     const suffixMatch = route.match(suffixRegex);
@@ -141,13 +148,17 @@ export async function scanTasks(nitro: Nitro) {
 }
 
 export async function scanModules(nitro: Nitro) {
-  const files = await scanFiles(nitro, "modules");
+  const files = await scanFiles(nitro, "modules", GLOB_MODULES_SCAN_PATTERN);
   return files.map((f) => f.fullPath);
 }
 
-async function scanFiles(nitro: Nitro, name: string): Promise<FileInfo[]> {
+async function scanFiles(
+  nitro: Nitro,
+  name: string,
+  pattern: string | string[] = GLOB_SCAN_PATTERN
+): Promise<FileInfo[]> {
   const files = await Promise.all(
-    nitro.options.scanDirs.map((dir) => scanDir(nitro, dir, name))
+    nitro.options.scanDirs.map((dir) => scanDir(nitro, dir, name, pattern))
   ).then((r) => r.flat());
   return files;
 }
@@ -155,18 +166,18 @@ async function scanFiles(nitro: Nitro, name: string): Promise<FileInfo[]> {
 async function scanDir(
   nitro: Nitro,
   dir: string,
-  name: string
+  name: string,
+  pattern: string | string[]
 ): Promise<FileInfo[]> {
-  const fileNames = await glob(join(name, GLOB_SCAN_PATTERN), {
+  const patterns = (Array.isArray(pattern) ? pattern : [pattern]).map((p) => join(name, p));
+  const fileNames = await glob(patterns, {
     cwd: dir,
     dot: true,
     ignore: nitro.options.ignore,
     absolute: true,
   }).catch((error) => {
     if (error?.code === "ENOTDIR") {
-      nitro.logger.warn(
-        `Ignoring \`${join(dir, name)}\`. It must be a directory.`
-      );
+      nitro.logger.warn(`Ignoring \`${join(dir, name)}\`. It must be a directory.`);
       return [];
     }
     throw error;

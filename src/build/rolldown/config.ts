@@ -1,13 +1,13 @@
 import type { Nitro } from "nitro/types";
 import type { OutputOptions, RolldownOptions, RolldownPlugin } from "rolldown";
 import { baseBuildConfig } from "../config.ts";
-import { baseBuildPlugins } from "../plugins.ts";
+import { baseBuildPlugins, withBuildPlugins } from "../plugins.ts";
 import { builtinModules } from "node:module";
 import { defu } from "defu";
-import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
+import { getChunkName, libChunksGroup } from "../chunks.ts";
 
-export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
-  const base = baseBuildConfig(nitro);
+export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> => {
+  const base = await baseBuildConfig(nitro);
 
   const tsc = nitro.options.typescript.tsConfig?.compilerOptions;
 
@@ -15,16 +15,24 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
     platform: nitro.options.node ? "node" : "neutral",
     cwd: nitro.options.rootDir,
     input: nitro.options.entry,
+    // Nitro resolves `tsconfig` and passes relevant options (e.g. `transform.jsx`) explicitly.
+    // Disable Rolldown's own tsconfig discovery to avoid `CONFIGURATION_FIELD_CONFLICT` warnings
+    // and keep behavior consistent with the Rollup builder.
+    tsconfig: false,
     external: [
       ...base.env.external,
-      ...builtinModules,
-      ...builtinModules.map((m) => `node:${m}`),
+      // Builtins aliased to polyfills are bundled (rolldown checks `external` before aliases and plugins)
+      ...[...builtinModules, ...builtinModules.map((m) => `node:${m}`)].filter(
+        (id) => !base.env.alias[id] || base.env.alias[id].startsWith("node:")
+      ),
     ],
-    plugins: [...(baseBuildPlugins(nitro, base) as RolldownPlugin[])],
+    plugins: await withBuildPlugins(
+      nitro,
+      (await baseBuildPlugins(nitro, base)) as RolldownPlugin[]
+    ),
     resolve: {
       alias: base.aliases,
       extensions: base.extensions,
-      mainFields: ["main"], // "module" is intentionally not supported because of externals
       conditionNames: nitro.options.exportConditions,
     },
     transform: {
@@ -39,25 +47,24 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
     },
     onwarn(warning, warn) {
       if (!base.ignoreWarningCodes.has(warning.code || "")) {
-        console.log(warning.code);
         warn(warning);
       }
     },
-    treeshake: {
-      moduleSideEffects(id) {
-        return nitro.options.moduleSideEffects.some((p) => id.startsWith(p));
-      },
+    optimization: {
+      inlineConst: true,
     },
     output: {
       format: "esm",
       entryFileNames: "index.mjs",
+      minifyInternalExports: false,
       chunkFileNames: (chunk) => getChunkName(chunk, nitro),
-      advancedChunks: {
-        groups: [{ test: NODE_MODULES_RE, name: (id) => libChunkName(id) }],
+      codeSplitting: {
+        groups: [libChunksGroup()],
       },
       dir: nitro.options.output.serverDir,
       inlineDynamicImports: nitro.options.inlineDynamicImports,
-      minify: nitro.options.minify,
+      // https://github.com/rolldown/rolldown/issues/7235
+      minify: nitro.options.minify ? true : "dce-only",
       sourcemap: nitro.options.sourcemap,
       sourcemapIgnoreList(relativePath) {
         return relativePath.includes("node_modules");
@@ -65,12 +72,18 @@ export const getRolldownConfig = (nitro: Nitro): RolldownOptions => {
     },
   } satisfies RolldownOptions;
 
-  config = defu(nitro.options.rollupConfig as any, config);
+  config = defu(
+    nitro.options.rolldownConfig as RolldownOptions,
+    nitro.options.rollupConfig as RolldownOptions,
+    config
+  );
 
   const outputConfig = config.output as OutputOptions;
   if (outputConfig.inlineDynamicImports || outputConfig.format === "iife") {
-    delete outputConfig.advancedChunks;
+    outputConfig.codeSplitting = false;
   }
+  // `inlineDynamicImports` is deprecated in favor of `codeSplitting: false`
+  delete outputConfig.inlineDynamicImports;
 
   return config as RolldownOptions;
 };

@@ -9,15 +9,8 @@ body {
   justify-content: center;
   background: #f6f8fa;
   font-family:
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    Roboto,
-    "Helvetica Neue",
-    Arial,
-    "Noto Sans",
-    "Liberation Sans",
-    sans-serif;
+    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans",
+    "Liberation Sans", sans-serif;
 }
 .card {
   text-align: left;
@@ -36,8 +29,7 @@ body {
 }
 pre {
   margin: 0;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace;
   font-size: 14px;
   background: transparent;
   white-space: pre;

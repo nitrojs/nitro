@@ -1,18 +1,15 @@
 import type {
-  ExecutionContext,
-  ForwardableEmailMessage,
-  MessageBatch,
-  ScheduledController,
-  TraceItem,
+  ExecutionContext as CFExecutionContext,
+  ForwardableEmailMessage as CFForwardableEmailMessage,
+  MessageBatch as CFMessageBatch,
+  ScheduledController as CFScheduledController,
+  TraceItem as CFTraceItem,
 } from "@cloudflare/workers-types";
-import type { DurableObject } from "cloudflare:workers";
+import type { DurableObject as CFDurableObject } from "cloudflare:workers";
+import type { RawConfig } from "@cloudflare/workers-utils";
+import type { OptionalDepType } from "../../types/_utils.ts";
 
-import type {
-  Config as _Config,
-  ComputedFields as _ComputedFields,
-} from "./wrangler/config.ts";
-
-export type WranglerConfig = Partial<Omit<_Config, keyof _ComputedFields>>;
+export type WranglerConfig = Partial<RawConfig>;
 
 /**
  * https://developers.cloudflare.com/pages/platform/functions/routing/#functions-invocation-routes
@@ -30,38 +27,34 @@ export interface CloudflarePagesRoutes {
 
 export interface CloudflareOptions {
   /**
-   * Configuration for the Cloudflare Deployments.
+   * Configuration for the Cloudflare deployments and local dev.
    *
-   * **NOTE:** This option is only effective if `deployConfig` is enabled.
    */
   wrangler?: WranglerConfig;
 
   /**
-   * Enable automatic generation of `.wrangler/deploy/config.json`.
+   * Wrangler environment to select when loading the config.
+   */
+  wranglerEnv?: string;
+
+  /**
+   * Automatically generate `.wrangler/deploy/config.json`.
    *
-   * **IMPORTANT:** Enabling this option will cause settings from cloudflare dashboard (including environment variables) to be disabled and discarded.
+   * Enabled by default.
    *
    * More info: https://developers.cloudflare.com/workers/wrangler/configuration#generated-wrangler-configuration
    */
   deployConfig?: boolean;
 
   /**
-   * Enable native Node.js compatibility support.
+   * Native Node.js compatibility support.
+   *
+   * Enabled by default.
    *
    * If this option disabled, pure unenv polyfills will be used instead.
    *
-   * If not set, will be auto enabled if `nodejs_compat` or `nodejs_compat_v2` is detected in `wrangler.toml` or `wrangler.json`.
    */
   nodeCompat?: boolean;
-
-  /**
-   * Options for dev emulation.
-   */
-  dev?: {
-    configPath?: string;
-    environment?: string;
-    persistDir?: string;
-  };
 
   pages?: {
     /**
@@ -98,8 +91,6 @@ export interface CloudflareOptions {
    */
   exports?: string;
 }
-
-type DurableObjectState = ConstructorParameters<typeof DurableObject>[0];
 
 declare module "nitro/types" {
   export interface NitroRuntimeHooks {
@@ -147,4 +138,89 @@ declare module "nitro/types" {
 
     "cloudflare:durable:alarm": (durable: DurableObject) => void;
   }
+}
+
+// `@cloudflare/workers-types` when installed, otherwise a fallback subset
+
+type ExecutionContext = OptionalDepType<CFExecutionContext, ExecutionContextFallback>;
+type ScheduledController = OptionalDepType<CFScheduledController, ScheduledControllerFallback>;
+type ForwardableEmailMessage = OptionalDepType<
+  CFForwardableEmailMessage,
+  ForwardableEmailMessageFallback
+>;
+type MessageBatch = OptionalDepType<CFMessageBatch, MessageBatchFallback>;
+type TraceItem = OptionalDepType<CFTraceItem, TraceItemFallback>;
+type DurableObject = OptionalDepType<CFDurableObject, DurableObjectFallback>;
+type DurableObjectState = OptionalDepType<
+  ConstructorParameters<typeof CFDurableObject>[0],
+  DurableObjectStateFallback
+>;
+
+interface ExecutionContextFallback {
+  waitUntil(promise: Promise<any>): void;
+  passThroughOnException(): void;
+  readonly props: unknown;
+}
+
+interface ScheduledControllerFallback {
+  readonly scheduledTime: number;
+  readonly cron: string;
+  noRetry(): void;
+}
+
+interface ForwardableEmailMessageFallback {
+  readonly from: string;
+  readonly to: string;
+  readonly raw: ReadableStream<Uint8Array>;
+  readonly headers: Headers;
+  readonly rawSize: number;
+  setReject(reason: string): void;
+  forward(rcptTo: string, headers?: Headers): Promise<unknown>;
+  reply(message: unknown): Promise<unknown>;
+}
+
+interface MessageBatchFallback<Body = unknown> {
+  readonly queue: string;
+  readonly messages: readonly {
+    readonly id: string;
+    readonly timestamp: Date;
+    readonly body: Body;
+    readonly attempts: number;
+    retry(options?: { delaySeconds?: number }): void;
+    ack(): void;
+  }[];
+  retryAll(options?: { delaySeconds?: number }): void;
+  ackAll(): void;
+}
+
+interface TraceItemFallback {
+  readonly event: unknown;
+  readonly eventTimestamp: number | null;
+  readonly logs: { readonly timestamp: number; readonly level: string; readonly message: any }[];
+  readonly exceptions: {
+    readonly timestamp: number;
+    readonly message: string;
+    readonly name: string;
+    readonly stack?: string;
+  }[];
+  readonly scriptName: string | null;
+  readonly entrypoint?: string;
+  readonly outcome: string;
+  readonly truncated: boolean;
+  readonly cpuTime: number;
+  readonly wallTime: number;
+}
+
+// Instance of a `DurableObject` class from `cloudflare:workers` (its `ctx` and `env` are protected)
+type DurableObjectFallback = object & {
+  alarm?(alarmInfo?: { retryCount: number; isRetry: boolean }): void | Promise<void>;
+};
+
+interface DurableObjectStateFallback {
+  readonly id: { toString(): string; equals(other: any): boolean; readonly name?: string };
+  readonly storage: any;
+  waitUntil(promise: Promise<any>): void;
+  blockConcurrencyWhile<T>(callback: () => Promise<T>): Promise<T>;
+  acceptWebSocket(ws: WebSocket, tags?: string[]): void;
+  getWebSockets(tag?: string): WebSocket[];
 }

@@ -1,0 +1,188 @@
+## Project Identity
+
+Nitro is a framework-agnostic and deployment-agnostic server framework powered by [H3](https://github.com/h3js/h3) (v2), [UnJS] (https://github.com/unjs), and Vite | Rolldown | Rollup.
+
+## First-time Setup for Development
+
+- Run `corepack enable` to ensure `pnpm` is available.
+- Run `pnpm install` to install dependencies.
+- Run `pnpm build --stub` to prepare development mode.
+
+## Key Scripts
+
+- `pnpm build --stub` — Fast stub build (`obuild --stub`) for development.
+- `pnpm build` — Full build (`pnpm gen-presets && obuild`).
+- `pnpm lint` — Check lint and formatting (`oxlint` + `oxfmt --check`).
+- `pnpm fmt` — Auto-fix lint and formatting (`automd` + `oxlint --fix` + `oxfmt`).
+- `pnpm test` — Full pipeline: `lint && build && typecheck && test:rollup && test:rolldown` (runs vitest against both the rollup and rolldown builders).
+- `pnpm test:rollup` / `pnpm test:rolldown` — Run vitest against a single builder (`NITRO_BUILDER`).
+- `pnpm typecheck` — Type-check with the TypeScript native-preview compiler (`tsgo --noEmit --skipLibCheck`).
+
+**Always run** `pnpm fmt` and `pnpm typecheck` after making changes.
+
+## Repository Structure
+
+- `.github/` — GitHub Actions workflows.
+- `docs/` — Documentation site built with [UnDocs](https://github.com/unjs/undocs).
+- `examples/` — Example projects and integrations.
+- `src/` — Project source code.
+- `test/` — Unit, minimal, and end-to-end tests.
+
+### Code Structure
+
+Project source is centralized under `src/`:
+
+- `src/build` — Build logic (Vite | Rolldown | Rollup config, virtual templates in `src/build/virtual/`, plugins in `src/build/plugins/`).
+- `src/cli` — `nitro` CLI subcommands (each file in `src/cli/commands` is a command).
+- `src/config/` — Config defaults (`src/config/defaults.ts`) and resolvers/normalizers (`src/config/resolvers`).
+- `src/dev` — Development server logic (`app.ts`, `server.ts`, `vfs.ts`).
+- `src/prerender` — Prerender logic.
+- `src/presets` — Deployment presets and runtime entry.
+- `src/types` — Shared types.
+- `src/utils` — Internal utilities.
+- `src/runtime` — Runtime code that goes into the bundle (runtime and platform agnostic).
+
+### Why Changes in `src/` Are High-Impact
+
+Code in `src/` affects all Nitro users:
+
+- Changes in `src/runtime` are bundled and run across all deployment targets.
+- Changes in `src/build` affect build output and performance.
+- Changes in `src/presets` affect specific deployment platforms.
+- Changes in `src/config` affect default behavior.
+
+Review these changes carefully for backwards compatibility, bundle size, and cross-runtime support.
+
+## Code Patterns & Conventions
+
+- `pathe` — Cross-platform path operations (always prefer over `node:path`).
+- `defu` — Deep object merging and config defaults.
+- `consola` — Logging in build/dev code (use `nitro.logger` when available).
+- `unstorage` — Storage abstraction.
+
+### Optional Dependencies
+
+Packages that are only needed by some presets, builders, or opt-in features are imported on demand
+from the user project via `src/utils/dep.ts` (`ensureDep` / `importDep` / `isDepInstalled`), which
+resolves from `nitro.options.rootDir` and offers to install what is missing.
+
+- Don't add a `peerDependencies` entry. Add the package to `devDependencies` (for tests and types)
+  and import it with `importDep({ id, dir: nitro.options.rootDir, reason })`.
+- Keep the package listed in `optionalDeps` in `build.config.ts` so it stays external.
+- `import type` from such a package is fine; only value imports must go through `utils/dep.ts`.
+- Optional dependencies of the libraries Nitro *bundles* (e.g. `jiti` for `c12`) cannot resolve from
+  `dist/`. Those get a bundle-time alias to a shim in `src/shims/` (see `shimmedDeps` in
+  `build.config.ts`).
+- Nitro has no peer dependencies at all: `vite` is imported from the user project too
+  (`src/build/vite/_import.ts`). Its `DevEnvironment` subclass is therefore defined lazily, against
+  the class of the resolved instance (see `src/build/vite/dev.ts`).
+
+### Runtime Constraints
+
+Code in `src/runtime/` must be runtime-agnostic:
+
+- **Don't use Node.js-specific APIs** (unless behind runtime checks).
+- Prefer **Web APIs** (fetch, Request, Response, URL, etc.).
+- Only use `console` for logging (no `consola` in runtime).
+- Keep bundle size minimal and side-effect free.
+
+## Testing Strategy
+
+### Test Structure
+
+Main tests are defined in `test/tests.ts` and setup per each deployment provider in `test/presets` and run against `test/fixture` nitro app. Add new regression tests to `test/fixture`.
+
+Other tests:
+
+- **Unit** (`test/unit/`) — Isolated unit tests.
+- **Minimal** (`test/minimal/`) — Smallest bundle output.
+
+### Testing Requirements
+
+- Run `pnpm run test` before submitting.
+- **Bug fixes MUST include a failing test first** — add regression tests to `test/fixture/` and make sure test script fails before attempting the fix and resolves after.
+- Keep tests deterministic and environment-independent.
+
+## Working with Presets
+
+Each preset in `src/presets/` defines deployment target behavior:
+
+- Runtime logic and entry is in `src/presets/<name>/runtime`
+- Preset config and utils (build time) are in `src/presets/<name>/*.ts`.
+
+## Development Workflow
+
+### Making Changes
+
+1. Make changes in `src/`.
+2. Run `pnpm stub` if you changed build logic.
+3. Test with `pnpm test`.
+4. Run `pnpm fmt`.
+5. Run `pnpm typecheck`.
+6. Run `pnpm test:rollup` and/or `pnpm test:rolldown` to run vitest against a specific builder.
+
+## Contribution Principles
+
+- Prefer **minimal, targeted changes** over large refactors.
+- Avoid introducing new dependencies unless strictly necessary.
+  Add them to `devDependencies` unless they are required in runtime logic.
+- Be mindful of **bundle size**, startup cost, and runtime overhead.
+- Maintain **backwards compatibility** unless explicitly instructed otherwise.
+- Batch multiple related edits together. Avoid sequential micro-changes.
+- Never modify files outside the scope of the requested change.
+
+## Common Gotchas
+
+- **Don't use Node.js-specific APIs in `src/runtime/`** — Code runs in multiple runtimes (Node, workers, edge).
+- **Virtual modules must be registered** in `src/build/virtual/_all.ts` (one template per file under `src/build/virtual/`).
+- **CLI commands** are in `src/cli/commands/` — Each file exports a command definition.
+- **Runtime size matters** — Check bundle impact with `pnpm build`.
+- **Use `pathe` not `node:path`** — Ensures cross-platform compatibility.
+- **No peer dependencies** — Optional packages are imported on demand via `src/utils/dep.ts`.
+
+## Error & Logging Guidelines
+
+- Prefer explicit errors over silent failures.
+- Use `nitro.logger` in build/dev code, `consola` as fallback.
+- Use `console` only in `src/runtime/` code.
+- Use warnings for recoverable situations; throw for invalid states.
+- Include actionable context in error messages.
+
+## Documentation Requirements
+
+- Update `docs/` for user-facing changes.
+- Update types and JSDoc for API changes.
+- Examples in `examples/` should reflect best practices and be added for new integrations.
+- Add migration notes for breaking changes.
+
+## Code Conventions
+
+- Use **ESM** and modern JavaScript; use explicit extensions (`.ts`, `.mjs`) in imports.
+- For `.json` imports, use `with { "type": "json" }`.
+- Avoid barrel files (`index.ts` re-exports); import directly from specific modules.
+- Place non-exported/internal helpers at the end of the file.
+- For multi-arg functions, use an options object as the second parameter.
+- Split logic across files; avoid long single-file modules (>200 LoC). Use `_*` prefix for internal files.
+- Prefer **Web APIs** over Node.js APIs where possible.
+- Do not add comments explaining what the line does unless prompted.
+- Before adding new code, study surrounding patterns, naming conventions, and architectural decisions.
+- Use existing UnJS utilities and dependencies before adding new packages.
+- Keep runtime code minimal and fast.
+
+## Commit Conventions
+
+- Use **semantic commit messages**, lower-case (e.g., `fix(cli): resolve path issue`).
+- Prefer to include scope (e.g., `feat(runtime):`, `fix(build):`).
+- Add a short description on the second line when helpful.
+
+## Detailed References
+
+For deeper context, see `.agents/`:
+
+- [`.agents/architecture.md`](.agents/architecture.md) — Full architecture: core instance, build system, config resolution, virtual modules, runtime internals, dev server, routing, key libraries.
+- [`.agents/presets.md`](.agents/presets.md) — All presets (multiple deployment targets + internal `_nitro`/`_static`), preset structure, how to create presets, resolution logic.
+- [`.agents/testing.md`](.agents/testing.md) — Test structure, how tests work, adding regression tests, running tests.
+- [`.agents/vite.md`](.agents/vite.md) — Vite build system: plugin architecture (6 sub-plugins), environments API, dev server integration, production build stages, bundler config, HMR, runtime worker.
+- [`.agents/docs.md`](.agents/docs.md) — Docs site: UnDocs structure, the `.docs/` theme layer (imports, styling tokens, content queries), MDC blocks, and content conventions (preset naming, import paths, H3 v2 patterns, common mistakes).
+
+H3 v2 updated docs is at `node_modules/h3/dist/docs/README.md`

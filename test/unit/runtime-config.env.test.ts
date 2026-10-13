@@ -17,17 +17,13 @@ describe("env utils", () => {
       },
     ];
     for (const test of tests) {
-      it(`Config: ${JSON.stringify(test.config)} Env: { ${Object.entries(
-        test.env
-      )
+      it(`Config: ${JSON.stringify(test.config)} Env: { ${Object.entries(test.env)
         .map(([key, value]) => `${key}=${JSON.stringify(value)}`)
         .join(" ")} }`, () => {
         for (const key in test.env) {
           process.env[key] = test.env[key as keyof typeof test.env] as string;
         }
-        expect(applyEnv(test.config, { prefix: "NITRO_" })).toEqual(
-          test.expected
-        );
+        expect(applyEnv(test.config, { prefix: "NITRO_" })).toEqual(test.expected);
         for (const key in test.env) {
           delete process.env[key];
         }

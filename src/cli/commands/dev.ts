@@ -5,6 +5,7 @@ import { build, createNitro, prepare } from "nitro/builder";
 import { resolve } from "pathe";
 import { commonArgs } from "../common.ts";
 import { NitroDevServer } from "../../dev/server.ts";
+import { onWatchError } from "../../utils/watch.ts";
 
 const hmrKeyRe = /^runtimeConfig\.|routeRules\./;
 
@@ -21,6 +22,13 @@ export default defineCommand({
   async run({ args }) {
     const rootDir = resolve((args.dir || args._dir || ".") as string);
     let nitro: Nitro;
+    // Watcher errors (e.g. ENOSPC) from bundler internals cannot be handled at the source
+    process.on("uncaughtException", (error) => {
+      if ((error as NodeJS.ErrnoException)?.syscall !== "watch") {
+        throw error;
+      }
+      onWatchError(nitro || { logger: consola }, error);
+    });
     const reload = async () => {
       if (nitro) {
         consola.info("Restarting dev server...");
@@ -46,8 +54,7 @@ export default defineCommand({
               }
 
               consola.info(
-                "Nitro config updated:\n" +
-                  diff.map((entry) => `  ${entry.toString()}`).join("\n")
+                "Nitro config updated:\n" + diff.map((entry) => `  ${entry.toString()}`).join("\n")
               );
 
               await (diff.every((e) => hmrKeyRe.test(e.key))
@@ -61,8 +68,8 @@ export default defineCommand({
       const server = new NitroDevServer(nitro);
 
       await server.listen({
-        port: args.port,
-        hostname: args.host,
+        port: args.port || nitro.options.devServer.port,
+        hostname: args.host || nitro.options.devServer.hostname,
       });
       await prepare(nitro);
       await build(nitro);

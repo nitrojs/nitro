@@ -7,21 +7,14 @@ import { useNitroApp } from "nitro/app";
 import { startScheduleRunner } from "#nitro/runtime/task";
 import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
-import { hasWebSocket } from "#nitro/virtual/feature-flags";
-
-const port =
-  Number.parseInt(process.env.NITRO_PORT || process.env.PORT || "") || 3000;
-
-const host = process.env.NITRO_HOST || process.env.HOST;
-const cert = process.env.NITRO_SSL_CERT;
-const key = process.env.NITRO_SSL_KEY;
-// const socketPath = process.env.NITRO_UNIX_SOCKET; // TODO
+import { resolveServeOptions } from "#nitro/runtime/serve";
+import { setupCloseHooks } from "#nitro/runtime/shutdown";
 
 const nitroApp = useNitroApp();
 
 let _fetch = nitroApp.fetch;
 
-if (hasWebSocket) {
+if (import.meta._websocket) {
   const { handleUpgrade } = wsAdapter({ resolve: resolveWebsocketHooks });
   _fetch = (req: ServerRequest) => {
     if (req.headers.get("upgrade") === "websocket") {
@@ -31,18 +24,15 @@ if (hasWebSocket) {
   };
 }
 
-serve({
-  port,
-  hostname: host,
-  tls: cert && key ? { cert, key } : undefined,
-  fetch: _fetch,
-});
+const server = serve(resolveServeOptions({ fetch: _fetch }));
+
+setupCloseHooks(server);
 
 trapUnhandledErrors();
 
 // Scheduled tasks
 if (import.meta._tasks) {
-  startScheduleRunner();
+  startScheduleRunner({ waitUntil: server.waitUntil });
 }
 
 export default {};

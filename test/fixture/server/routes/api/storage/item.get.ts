@@ -1,10 +1,10 @@
 import { defineHandler } from "nitro/h3";
-import { useStorage } from "nitro/storage";
+import { useKV } from "nitro/kv";
 
 export default defineHandler(async (event) => {
   const base = event.url.searchParams.get("base") || "";
   const key = event.url.searchParams.get("key") || "";
-  const storage = useStorage(`test:${base}`);
+  const storage = useKV(`test:${base}`);
 
   if (!key || key.endsWith(":")) {
     return await storage.getKeys();

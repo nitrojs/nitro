@@ -1,4 +1,5 @@
-import { createRoot } from "react-dom/client";
+import "@vitejs/plugin-react/preamble";
+import { hydrateRoot } from "react-dom/client";
 import { App } from "./app.tsx";
 
-createRoot(document.querySelector("#app")!).render(<App />);
+hydrateRoot(document.querySelector("#app")!, <App />);

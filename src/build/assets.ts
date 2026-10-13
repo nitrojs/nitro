@@ -18,15 +18,13 @@ export async function scanUnprefixedPublicAssets(nitro: Nitro) {
     if (!(await isDirectory(asset.dir))) {
       continue;
     }
-    const includePatterns = getIncludePatterns(nitro, asset.dir);
+    const includePatterns = getIncludePatterns(nitro, asset.dir, asset.ignore);
     const publicAssets = await glob(includePatterns, {
       cwd: asset.dir,
       absolute: false,
       dot: true,
     });
-    scannedPaths.push(
-      ...publicAssets.map((file) => join(asset.baseURL || "/", file))
-    );
+    scannedPaths.push(...publicAssets.map((file) => join(asset.baseURL || "/", file)));
   }
   return scannedPaths;
 }
@@ -39,7 +37,7 @@ export async function copyPublicAssets(nitro: Nitro) {
     const assetDir = asset.dir;
     const dstDir = join(nitro.options.output.publicDir, asset.baseURL!);
     if (await isDirectory(assetDir)) {
-      const includePatterns = getIncludePatterns(nitro, assetDir);
+      const includePatterns = getIncludePatterns(nitro, assetDir, asset.ignore);
       const publicAssets = await glob(includePatterns, {
         cwd: assetDir,
         absolute: false,
@@ -59,15 +57,17 @@ export async function copyPublicAssets(nitro: Nitro) {
   if (nitro.options.compressPublicAssets) {
     await compressPublicAssets(nitro);
   }
-  nitro.logger.success(
-    "Generated public " + prettyPath(nitro.options.output.publicDir)
-  );
+  nitro.logger.success("Generated public " + prettyPath(nitro.options.output.publicDir));
 }
 
-function getIncludePatterns(nitro: Nitro, assetDir: string) {
+function getIncludePatterns(
+  nitro: Nitro,
+  assetDir: string,
+  ignorePatterns: string[] | false = nitro.options.ignore
+) {
   return [
     "**",
-    ...nitro.options.ignore.map((p) => {
+    ...(ignorePatterns || []).map((p) => {
       const [_, negation, pattern] = p.match(NEGATION_RE) || [];
       return (
         // Convert ignore to include patterns

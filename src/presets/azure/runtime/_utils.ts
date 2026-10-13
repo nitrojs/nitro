@@ -18,18 +18,53 @@ export function getAzureParsedCookiesFromHeaders(headers: Headers): Cookie[] {
     );
     const cookieObject: Cookie = {
       name: key,
-      value,
+      value: value || "",
       domain: setCookieOptions.domain,
       path: setCookieOptions.path,
-      expires: parseNumberOrDate(setCookieOptions.expires),
+      expires: parseNumberOrDate(setCookieOptions.expires || ""),
       sameSite: setCookieOptions.samesite as "Lax" | "Strict" | "None",
-      maxAge: parseNumber(setCookieOptions["max-age"]),
+      maxAge: parseNumber(setCookieOptions["max-age"] || ""),
       secure: setCookieStr.includes("Secure") ? true : undefined,
       httpOnly: setCookieStr.includes("HttpOnly") ? true : undefined,
     };
     azureCookies.push(cookieObject);
   }
   return azureCookies;
+}
+
+export function getRequestURL(path: string, headers: Headers): URL {
+  const { pathname, search } = new URL(path, "http://localhost");
+  // Assigned separately so a path starting with `//` cannot replace the host
+  const url = new URL(resolveBaseUrl(headers));
+  url.pathname = pathname;
+  url.search = search;
+  return url;
+}
+
+export function resolveBaseUrl(headers: Headers) {
+  const forwardedProto = headers.get("x-forwarded-proto");
+  const forwardedHost = headers.get("x-forwarded-host");
+  const host = forwardedHost || headers.get("host");
+  if (host) {
+    const candidate = `${forwardedProto || "http"}://${host}`;
+    try {
+      return new URL(candidate).origin;
+    } catch (error) {
+      console.warn("[nitro] Invalid Azure SWA forwarded origin", {
+        candidate,
+        error,
+      });
+    }
+  }
+  const originalUrl = headers.get("x-ms-original-url");
+  if (originalUrl) {
+    try {
+      return new URL(originalUrl).origin;
+    } catch {
+      // ignore invalid original URL
+    }
+  }
+  return "http://localhost";
 }
 
 function parseNumberOrDate(expires: string) {

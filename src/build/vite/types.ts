@@ -1,5 +1,7 @@
-import type { getViteRollupConfig } from "./rollup.ts";
-import type { EnvRunner, Nitro, NitroConfig, NitroModule } from "nitro/types";
+import type { TransformResult, Plugin as VitePlugin } from "vite";
+import type { getBundlerConfig } from "./bundler.ts";
+import type { Nitro, NitroConfig, NitroModule } from "nitro/types";
+import type { RunnerManager } from "env-runner";
 import type { NitroDevApp } from "../../dev/app.ts";
 
 declare module "vite" {
@@ -22,13 +24,7 @@ export interface NitroPluginConfig extends NitroConfig {
   _nitro?: Nitro;
 
   experimental?: NitroConfig["experimental"] & {
-    vite: {
-      /**
-       * @experimental Use the virtual filesystem for intermediate environment build output files.
-       * @note This is unsafe if plugins rely on temporary files on the filesystem.
-       */
-      virtualBundle?: boolean;
-
+    vite?: {
       /**
        * @experimental Enable `?assets` import proposed by https://github.com/vitejs/vite/discussions/20913
        * @default true
@@ -36,30 +32,45 @@ export interface NitroPluginConfig extends NitroConfig {
       assetsImport?: boolean;
 
       /**
-       * Reload the page when a server module is updated.
+       *
+       * Invalidate server-only modules and optionally reload the browser when a server-only module is updated.
        *
        * @default true
        */
-      serverReload: boolean;
+      serverReload?: boolean;
+
+      /**
+       * Additional Vite environment services to register.
+       */
+      services?: Record<string, ViteServiceConfig>;
     };
   };
 }
 
-export interface ServiceConfig {
+export interface ViteServiceConfig {
   entry: string;
 }
+
+/** @deprecated Use {@link ViteServiceConfig}. */
+export type ServiceConfig = ViteServiceConfig;
 
 export interface NitroPluginContext {
   nitro?: Nitro;
   pluginConfig: NitroPluginConfig;
-  rollupConfig?: ReturnType<typeof getViteRollupConfig>;
+  bundlerConfig?: Awaited<ReturnType<typeof getBundlerConfig>>;
   devApp?: NitroDevApp;
-  services: Record<string, ServiceConfig>;
+  services: Record<string, ViteServiceConfig>;
 
   _isRolldown?: boolean;
+  _isVitest?: boolean;
   _initialized?: boolean;
-  _envRunner?: EnvRunner;
+  _envRunner?: RunnerManager;
+  _closingEnvRunner?: boolean;
+  _closePromise?: Promise<void>;
+  _initPromise?: Promise<RunnerManager>;
+  _viteEnvs?: Map<string, string>;
+  _transformRequest?: (id: string) => Promise<TransformResult | null | undefined>;
   _publicDistDir?: string;
   _entryPoints: Record<string, string>;
-  _serviceBundles: Record<string, any>;
+  _pluginModules?: VitePlugin[];
 }

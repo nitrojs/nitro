@@ -1,12 +1,7 @@
 import { Cron } from "croner";
 import { HTTPError } from "h3";
-import type {
-  Task,
-  TaskContext,
-  TaskEvent,
-  TaskPayload,
-  TaskResult,
-} from "nitro/types";
+import type { Task, TaskContext, TaskEvent, TaskPayload, TaskResult } from "nitro/types";
+import { useNitroHooks } from "./app.ts";
 import { scheduledTasks, tasks } from "#nitro/virtual/tasks";
 
 /** @experimental */
@@ -24,10 +19,7 @@ const __runningTasks__: { [name: string]: ReturnType<Task<any>["run"]> } = {};
 /** @experimental */
 export async function runTask<RT = unknown>(
   name: string,
-  {
-    payload = {},
-    context = {},
-  }: { payload?: TaskPayload; context?: TaskContext } = {}
+  { payload = {}, context = {} }: { payload?: TaskPayload; context?: TaskContext } = {}
 ): Promise<TaskResult<RT>> {
   if (__runningTasks__[name]) {
     return __runningTasks__[name];
@@ -60,7 +52,11 @@ export async function runTask<RT = unknown>(
 }
 
 /** @experimental */
-export function startScheduleRunner() {
+export function startScheduleRunner({
+  waitUntil,
+}: {
+  waitUntil?: ((promise: Promise<unknown>) => void) | undefined;
+} = {}): void {
   if (!scheduledTasks || scheduledTasks.length === 0 || process.env.TEST) {
     return;
   }
@@ -69,22 +65,32 @@ export function startScheduleRunner() {
     scheduledTime: Date.now(),
   };
 
+  const cronJobs: Cron[] = [];
+  useNitroHooks().hook("close", () => {
+    for (const job of cronJobs) {
+      try {
+        job.stop();
+      } catch (error) {
+        console.error("Error while stopping scheduled task", error);
+      }
+    }
+  });
+
   for (const schedule of scheduledTasks) {
-    new Cron(schedule.cron, async () => {
-      await Promise.all(
-        schedule.tasks.map((name) =>
-          runTask(name, {
-            payload,
-            context: {},
-          }).catch((error) => {
-            console.error(
-              `Error while running scheduled task "${name}"`,
-              error
-            );
-          })
-        )
-      );
-    });
+    cronJobs.push(
+      new Cron(schedule.cron, async () => {
+        await Promise.all(
+          schedule.tasks.map((name) =>
+            runTask(name, {
+              payload,
+              context: { waitUntil },
+            }).catch((error) => {
+              console.error(`Error while running scheduled task "${name}"`, error);
+            })
+          )
+        );
+      })
+    );
   }
 }
 

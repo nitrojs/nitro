@@ -1,5 +1,3 @@
-import { defineHandler } from "nitro/h3";
+import { defineHandler } from "nitro";
 
-export default defineHandler(
-  (event) => `Hello (param: ${event.context.params!.name})!`
-);
+export default defineHandler((event) => `Hello (param: ${event.context.params!.name})!`);

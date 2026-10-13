@@ -1,8 +1,11 @@
 import type { Nitro } from "nitro/types";
 
+import app from "./app.ts";
+import cache from "./cache.ts";
 import database from "./database.ts";
 import errorHandler from "./error-handler.ts";
 import featureFlags from "./feature-flags.ts";
+import kv from "./kv.ts";
 import plugins from "./plugins.ts";
 import polyfills from "./polyfills.ts";
 import publicAssets from "./public-assets.ts";
@@ -11,22 +14,23 @@ import routingMeta from "./routing-meta.ts";
 import routing from "./routing.ts";
 import runtimeConfig from "./runtime-config.ts";
 import serverAssets from "./server-assets.ts";
-import storage from "./storage.ts";
+import serverEntry from "./server-entry.ts";
 import tasks from "./tasks.ts";
+import tracing from "./tracing.ts";
 
 type VirtualTemplate = {
   id: string;
   template: string | (() => string | Promise<string>);
 };
 
-export function virtualTemplates(
-  nitro: Nitro,
-  _polyfills: string[]
-): VirtualTemplate[] {
+export function virtualTemplates(nitro: Nitro, _polyfills: string[]): VirtualTemplate[] {
   const nitroTemplates = [
+    app,
+    cache,
     database,
     errorHandler,
     featureFlags,
+    kv,
     plugins,
     polyfills,
     publicAssets,
@@ -35,13 +39,15 @@ export function virtualTemplates(
     routing,
     runtimeConfig,
     serverAssets,
-    storage,
+    serverEntry,
     tasks,
+    tracing,
   ].flatMap((t) => t(nitro, _polyfills));
 
-  const customTemplates = Object.entries(nitro.options.virtual).map(
-    ([id, template]) => ({ id, template })
-  );
+  const customTemplates = Object.entries(nitro.options.virtual).map(([id, template]) => ({
+    id,
+    template,
+  }));
 
   return [...nitroTemplates, ...customTemplates];
 }
