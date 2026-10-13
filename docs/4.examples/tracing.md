@@ -58,12 +58,12 @@ export default defineMiddleware((event) => {
 
 ```ts [server/routes/index.ts]
 import { defineHandler } from "nitro";
-import { useStorage } from "nitro/storage";
+import { useKV } from "nitro/kv";
 
 // Reads and writes storage so the request emits `unstorage.*` spans (CLIENT)
 // alongside the `srvx.request`, `middleware` and route (`h3.request`) spans.
 export default defineHandler(async () => {
-  const storage = useStorage();
+  const storage = useKV();
   const hits = ((await storage.getItem<number>("hits")) ?? 0) + 1;
   await storage.setItem("hits", hits);
   return { message: "Hello from the Nitro tracing demo", hits };
@@ -134,7 +134,7 @@ The request boundary comes from Nitro's `request`/`response` runtime hooks, so g
 | Channel | Span | Emitted by |
 | --- | --- | --- |
 | `h3.request` | each matched route and middleware | `server/routes/*`, `server/middleware/*` |
-| `unstorage.*` | each storage operation (`getItem`, `setItem`, …) | `useStorage()` in `server/routes/index.ts` |
+| `unstorage.*` | each storage operation (`getItem`, `setItem`, …) | `useKV()` in `server/routes/index.ts` |
 | `srvx.request` | the whole request, with response status (production server) | the srvx server layer |
 
 <!-- /automd -->

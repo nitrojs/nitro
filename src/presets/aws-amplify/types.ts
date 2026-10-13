@@ -145,7 +145,7 @@ export interface AmplifyDeployManifest {
   };
 }
 
-export interface AWSAmplifyOptions {
+export interface AwsAmplifyOptions {
   catchAllStaticFallback?: boolean;
   imageOptimization?: {
     path?: string;
