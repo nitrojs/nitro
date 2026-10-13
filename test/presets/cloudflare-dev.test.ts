@@ -11,6 +11,9 @@ const { createServer, createBuilder } = (await import(
 
 const rootDir = fileURLToPath(new URL("../fixture/cloudflare-dev", import.meta.url));
 
+// Dev reloads (a full rebuild with Rollup) can take longer than the default 1s poll timeout on CI
+const reloadPoll = { timeout: 10_000 };
+
 for (const mode of ["nitro", "vite", "build", "vite-build"] as const) {
   describe(`cloudflare bindings: ${mode}`, { concurrent: false }, () => {
     let fetchPath: (path: string) => Promise<Response>;
@@ -209,8 +212,11 @@ for (const mode of ["nitro", "vite", "build", "vite-build"] as const) {
         try {
           await writeFile(path, source.replace("{ count }", "{ count, reloaded: true }"));
           await expect
-            .poll(async () => (await fetchPath("/counter")).json())
+            .poll(async () => (await fetchPath("/counter")).json(), reloadPoll)
             .toEqual({ count: 2, reloaded: true });
+
+          // The file watcher drops a change that follows the previous one within 50ms
+          await waitForWatcher();
 
           // A new dependency (resolved with a Vite alias in Vite) recovers from a syntax error
           const extraId = mode === "vite" ? "~vite-alias/counter-extra.ts" : "./counter-extra.ts";
@@ -223,12 +229,14 @@ for (const mode of ["nitro", "vite", "build", "vite-build"] as const) {
           await new Promise((resolve) => setTimeout(resolve, 500));
           await writeFile(extraPath, `export const extra = "fixed";`);
           await expect
-            .poll(async () => (await fetchPath("/counter")).json())
+            .poll(async () => (await fetchPath("/counter")).json(), reloadPoll)
             .toEqual({ count: 2, extra: "fixed" });
         } finally {
           await writeFile(path, source);
           await rm(extraPath, { force: true });
-          await expect.poll(async () => (await fetchPath("/counter")).json()).toEqual({ count: 2 });
+          await expect
+            .poll(async () => (await fetchPath("/counter")).json(), reloadPoll)
+            .toEqual({ count: 2 });
         }
       }
     );
@@ -239,11 +247,16 @@ for (const mode of ["nitro", "vite", "build", "vite-build"] as const) {
       const greeting = async () => ((await (await fetchPath("/greeter")).json()) as any).greeting;
       try {
         await writeFile(path, source.replace("hello", "hi"));
-        await expect.poll(greeting).toBe("hi nitro");
+        await expect.poll(greeting, reloadPoll).toBe("hi nitro");
       } finally {
+        await waitForWatcher();
         await writeFile(path, source);
-        await expect.poll(greeting).toBe("hello nitro");
+        await expect.poll(greeting, reloadPoll).toBe("hello nitro");
       }
     });
   });
+}
+
+function waitForWatcher() {
+  return new Promise((resolve) => setTimeout(resolve, 100));
 }
