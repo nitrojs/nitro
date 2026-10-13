@@ -22,6 +22,7 @@
     "examples/vite-ssr-solid/src/entry-server.tsx",
     "examples/vite-ssr-solid/src/entry-client.tsx",
     "examples/express/server.node.ts",
-    "examples/vite-ssr-react-router/**"
+    "examples/vite-ssr-react-router/**",
+    "test/**/dist"
   ]
 }

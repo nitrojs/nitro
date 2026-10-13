@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { NitroOptions } from "nitro/types";
 import { resolveKVOptions } from "../../src/config/resolvers/kv.ts";
-import { resolveStorageMounts } from "../../src/utils/storage.ts";
+import { resolveKVMounts } from "../../src/utils/storage.ts";
 
 const warn = vi.hoisted(() => vi.fn());
 vi.mock("consola", () => ({ default: { warn } }));
@@ -34,7 +34,7 @@ describe("resolveKVOptions", () => {
       });
       await resolveKVOptions(options);
       expect(warn).toHaveBeenCalledOnce();
-      expect(resolveStorageMounts(options)).toMatchObject([{ name: "memory", options: {} }]);
+      expect(resolveKVMounts(options)).toMatchObject([{ name: "memory", options: {} }]);
     }
   );
 

@@ -225,10 +225,47 @@ describe("Vite dev worker reloads", () => {
 
     vi.useFakeTimers();
     const response = worker.fetch(new Request("http://localhost"));
-    await vi.advanceTimersByTimeAsync(30_000);
+    await vi.advanceTimersByTimeAsync(119_999);
+    expect(warnSpy).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
 
     expect(await (await response).text()).toBe("v1");
     expect(warnSpy).toHaveBeenCalledOnce();
+  });
+
+  test("keeps waiting for a slow reload past 30s (#4687)", async () => {
+    const worker = await createWorker();
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const reload = deferred<ReturnType<typeof entry>>();
+    importEntry.mockReturnValueOnce(reload.promise);
+
+    worker.ipc.onMessage({ type: "full-reload" });
+    await vi.waitFor(() => expect(importEntry).toHaveBeenCalledTimes(2));
+
+    vi.useFakeTimers();
+    const response = worker.fetch(new Request("http://localhost"));
+    await vi.advanceTimersByTimeAsync(60_000);
+    reload.resolve(entry("v2"));
+
+    expect(await (await response).text()).toBe("v2");
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  test("uses the reload timeout passed to setReloadWaitTimeout", async () => {
+    const worker = await createWorker();
+    worker.setReloadWaitTimeout(5000);
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    importEntry.mockReturnValueOnce(new Promise(() => {}));
+
+    worker.ipc.onMessage({ type: "full-reload" });
+    await vi.waitFor(() => expect(importEntry).toHaveBeenCalledTimes(2));
+
+    vi.useFakeTimers();
+    const response = worker.fetch(new Request("http://localhost"));
+    await vi.advanceTimersByTimeAsync(5000);
+
+    expect(await (await response).text()).toBe("v1");
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("within 5000ms"));
   });
 
   test("recovers after a failed reload", async () => {
