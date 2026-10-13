@@ -15,8 +15,6 @@ import {
   prerender,
 } from "nitro/builder";
 import type { Nitro, NitroConfig } from "nitro/types";
-import { fetch } from "ofetch";
-import type { FetchOptions } from "ofetch";
 import { join, resolve } from "pathe";
 import { isWindows } from "std-env";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -26,7 +24,7 @@ export interface Context {
   nitro?: Nitro;
   rootDir: string;
   outDir: string;
-  fetch: (url: string, opts?: FetchOptions) => Promise<any>;
+  fetch: (url: string, opts?: RequestInit) => Promise<any>;
   server?: { url: string; close: () => Promise<void> };
   isDev: boolean;
   isWorker: boolean;
@@ -127,6 +125,16 @@ export async function setupTest(
   const nitro = (ctx.nitro = await createNitro(config, {
     compatibilityDate: opts.compatibilityDate || formatDate(new Date()),
   }));
+
+  // Isolate the default sqlite database per preset build (defaults to `<cwd>/.data/db.sqlite`),
+  // otherwise parallel test files race on the same file ("database is locked").
+  const defaultDatabase = nitro.options.database?.default;
+  if (defaultDatabase?.connector === "sqlite" && !defaultDatabase.options?.path) {
+    defaultDatabase.options = {
+      ...defaultDatabase.options,
+      path: resolve(presetTmpDir, ".data/db.sqlite"),
+    };
+  }
 
   if (ctx.isDev) {
     // Setup development server
@@ -251,6 +259,38 @@ export function testNitro(
     expect(headers["x-test"]).toBe("test");
   });
 
+  it("server entry middleware and plugins are not passed to srvx", async () => {
+    const { data, headers } = await callHandler({ url: "/srvx-middleware" });
+    expect(data).not.toBe("server entry middleware works!");
+    expect(headers["x-srvx-plugin"]).toBeUndefined();
+  });
+
+  it.runIf(["bun", "deno-server", "nitro-dev"].includes(ctx.preset))(
+    "Server entry options are passed to srvx",
+    async () => {
+      const small = await callHandler({
+        url: "/api/body-size",
+        method: "POST",
+        body: "x".repeat(1024),
+      });
+      expect(small.data).toEqual({ length: 1024 });
+      const large = await callHandler({
+        url: "/api/body-size",
+        method: "POST",
+        body: "x".repeat(128 * 1024),
+      });
+      expect(large.status).toBe(413);
+    }
+  );
+
+  it("middleware runs in order: route rules, global, routed, then the route handler", async () => {
+    const { data, headers } = await callHandler({ url: "/api/middleware-order" });
+    // `rules` is recorded by the global middleware when `event.context.routeRules`
+    // is already populated, i.e. route rules resolved before it ran.
+    expect(data).toEqual(["rules", "global", "routed"]);
+    expect(headers["x-test"]).toBe("test");
+  });
+
   it("API Works", async () => {
     const { data: helloData } = await callHandler({ url: "/api/hello" });
     expect(helloData).to.toMatchObject({ message: "Hello API" });
@@ -293,6 +333,11 @@ export function testNitro(
     const res = await callHandler({ url: "/virtual" });
     expect(res.status).toBe(200);
     expect(res.data).toBe("Hello from virtual entry!");
+  });
+
+  it("applies `buildPlugins`", async () => {
+    const res = await callHandler({ url: "/build-plugins" });
+    expect(res.data).toEqual({ message: "Hello from build plugin!", transform: "transformed" });
   });
 
   // TODO
@@ -495,7 +540,7 @@ export function testNitro(
     expect(status).toBe(404);
   });
 
-  it("find auto imported utils", async () => {
+  it("resolves utils from server/utils", async () => {
     const res = await callHandler({ url: "/imports" });
     expect(res.data).toMatchObject({
       testUtil: 123,
@@ -511,10 +556,12 @@ export function testNitro(
       depLib: "@fixture/nitro-lib@2.0.0+@fixture/nested-lib@2.0.0",
       subpathLib: "@fixture/nitro-lib@2.0.0",
       extraUtils: "@fixture/nitro-utils/extra",
+      cjsRequirer: "@fixture/nitro-native-mock",
+      bundledDep: "@fixture/nitro-lib@3.0.0",
     });
   });
 
-  it.skipIf(ctx.isIsolated)("useStorage (with base)", { retry: 5 }, async () => {
+  it.skipIf(ctx.isIsolated)("useKV (with base)", { retry: 5 }, async () => {
     const putRes = await callHandler({
       url: "/api/storage/item?key=test:hello",
       method: "PUT",
@@ -545,6 +592,10 @@ export function testNitro(
         })
       ).data
     ).toBe("world");
+
+    expect((await callHandler({ url: "/api/storage/legacy?base=test&key=hello" })).data).toBe(
+      "world"
+    );
   });
 
   if (additionalTests) {
@@ -822,6 +873,13 @@ export function testNitro(
     it("Allow having extra method in file name", async () => {
       expect((await callHandler({ url: "/api/methods/get" })).data).toBe("get");
       expect((await callHandler({ url: "/api/methods/foo.get" })).data).toBe("foo.get");
+    });
+
+    it("Matches the QUERY method suffix", async () => {
+      expect((await callHandler({ url: "/api/methods/search", method: "QUERY" })).data).toBe(
+        "query"
+      );
+      expect((await callHandler({ url: "/api/methods/search" })).data).toBe("get");
     });
   });
 

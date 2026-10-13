@@ -32,7 +32,7 @@ jobs:
       - run: corepack enable
       - uses: actions/setup-node@v6
         with:
-          node-version: "18"
+          node-version: "20"
 
       - run: npx nypm install
       - run: npm run build
@@ -40,7 +40,7 @@ jobs:
           NITRO_PRESET: github_pages
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v1
+        uses: actions/upload-pages-artifact@v3
         with:
           path: ./.output/public
 
@@ -64,5 +64,5 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v1
+        uses: actions/deploy-pages@v4
 ```

@@ -54,6 +54,16 @@ describe("virtual/database template", () => {
     expect(template).toContain(`options: { ...{"url":"postgres://"}, lib: () => import("pg") }`);
   });
 
+  it("uses the connector import specifier when it differs from the package name", () => {
+    installedDeps.add("mysql2");
+    const template = database(
+      createNitroStub({ default: { connector: "mysql2", options: { host: "localhost" } } })
+    ).template();
+    expect(template).toContain(
+      `options: { ...{"host":"localhost"}, lib: () => import("mysql2/promise") }`
+    );
+  });
+
   it("does not provide `lib` for dependencies that are not installed", () => {
     const template = database(
       createNitroStub({ default: { connector: "postgresql", options: { url: "postgres://" } } })

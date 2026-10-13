@@ -91,7 +91,7 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
       continue;
     }
     const rule = (ctx.nitro!.options.routeRules[`/${assetsDir}/**`] ??= {});
-    if (!rule.headers?.["cache-control"]) {
+    if (rule.headers !== false && !rule.headers?.["cache-control"]) {
       rule.headers = {
         ...rule.headers,
         "cache-control": `public, max-age=31536000, immutable`,
@@ -102,6 +102,9 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
 
   // Prerender routes if configured
   await prerender(nitro);
+
+  // Call vite:compile:before hook
+  await nitro.hooks.callHook("vite:compile:before", nitro);
 
   // Build the Nitro server bundle
   let output: RolldownOutput | undefined;

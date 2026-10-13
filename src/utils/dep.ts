@@ -3,7 +3,7 @@ import { pathToFileURL } from "node:url";
 import { consola } from "consola";
 import { resolveModulePath } from "exsolve";
 import { dirname, join } from "pathe";
-import { isCI, isTest } from "std-env";
+import { hasTTY, isAgent, isCI, isTest } from "std-env";
 
 export interface DepOptions {
   /** Package name to resolve and install. */
@@ -19,6 +19,13 @@ export interface DepOptions {
   version?: string;
   /** Install as a dev dependency. (default: `true`) */
   dev?: boolean;
+  /**
+   * Only resolve from `dir`, ignoring Nitro's own dependencies.
+   *
+   * Required for packages that end up as an import in the generated app bundle: those have to be
+   * resolvable from the user project, not only from where Nitro itself is installed.
+   */
+  projectOnly?: boolean;
 }
 
 /**
@@ -28,7 +35,7 @@ export interface DepOptions {
  */
 export async function ensureDep(opts: DepOptions, _retry?: boolean): Promise<string | undefined> {
   const resolved = resolveModulePath(opts.id, {
-    from: [opts.dir, import.meta.url],
+    from: opts.projectOnly ? opts.dir : [opts.dir, import.meta.url],
     cache: _retry ? false : true,
     try: true,
   });
@@ -41,11 +48,12 @@ export async function ensureDep(opts: DepOptions, _retry?: boolean): Promise<str
   let shouldInstall: boolean | undefined;
   if (_retry || isTest) {
     shouldInstall = false; // Do not install dependencies in test mode
-  } else if (isCI) {
+  } else if (isCI || isAgent || !hasTTY) {
+    const env = isCI ? "CI" : isAgent ? "agent" : "non-interactive";
     consola.info(
-      `\`${opts.id}\` is required for ${opts.reason}. Installing automatically in CI environment...`
+      `\`${opts.id}\` is required for ${opts.reason}. Installing automatically in ${env} environment...`
     );
-    shouldInstall = true; // Auto install in CI environments
+    shouldInstall = true; // Auto install in non-interactive environments (CI, AI agents, no TTY)
   } else {
     shouldInstall = await consola.prompt(
       `\`${opts.id}\` is required for ${opts.reason}, but it is not installed. Would you like to install it?`,
@@ -77,8 +85,11 @@ export async function importDep<T>(opts: DepOptions): Promise<T> {
   return (await import(pathToFileURL(resolved).href)) as T;
 }
 
-export function isDepInstalled(id: string, dir: string): boolean {
-  return !!resolveModulePath(id, { from: [dir, import.meta.url], try: true });
+export function isDepInstalled(id: string, opts: Pick<DepOptions, "dir" | "projectOnly">): boolean {
+  return !!resolveModulePath(id, {
+    from: opts.projectOnly ? opts.dir : [opts.dir, import.meta.url],
+    try: true,
+  });
 }
 
 export interface LibDep {
@@ -86,6 +97,8 @@ export interface LibDep {
   option: string;
   /** Package name. */
   name: string;
+  /** Import specifier, if it differs from the package name (e.g. `mysql2/promise`). */
+  import?: string;
   /** Supported version range. */
   version?: string;
   /** Only required for some of the features. */
@@ -119,7 +132,14 @@ export async function ensureLibDeps(
 
   for (const [name, { version, users: names }] of required) {
     const reason = `the ${[...names].map((n) => `\`${n}\``).join(", ")} ${opts.label}${names.size > 1 ? "s" : ""}`;
-    const resolved = await ensureDep({ id: name, version, dir: opts.dir, reason, dev: false });
+    const resolved = await ensureDep({
+      id: name,
+      version,
+      dir: opts.dir,
+      reason,
+      dev: false,
+      projectOnly: true,
+    });
     if (!resolved) {
       consola.warn(`\`${name}\` is not installed. It is required for ${reason}.`);
     }

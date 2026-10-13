@@ -42,25 +42,31 @@ export interface NitroPluginConfig extends NitroConfig {
       /**
        * Additional Vite environment services to register.
        */
-      services?: Record<string, ServiceConfig>;
+      services?: Record<string, ViteServiceConfig>;
     };
   };
 }
 
-export interface ServiceConfig {
+export interface ViteServiceConfig {
   entry: string;
 }
+
+/** @deprecated Use {@link ViteServiceConfig}. */
+export type ServiceConfig = ViteServiceConfig;
 
 export interface NitroPluginContext {
   nitro?: Nitro;
   pluginConfig: NitroPluginConfig;
   bundlerConfig?: Awaited<ReturnType<typeof getBundlerConfig>>;
   devApp?: NitroDevApp;
-  services: Record<string, ServiceConfig>;
+  services: Record<string, ViteServiceConfig>;
 
   _isRolldown?: boolean;
+  _isVitest?: boolean;
   _initialized?: boolean;
   _envRunner?: RunnerManager;
+  _closingEnvRunner?: boolean;
+  _closePromise?: Promise<void>;
   _initPromise?: Promise<RunnerManager>;
   _viteEnvs?: Map<string, string>;
   _transformRequest?: (id: string) => Promise<TransformResult | null | undefined>;

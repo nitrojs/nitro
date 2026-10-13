@@ -33,7 +33,7 @@
 - `cleavr/`
 - `flightcontrol/`
 - `iis/`
-- `platform.sh/`
+- `upsun/`
 
 ## Preset Structure
 

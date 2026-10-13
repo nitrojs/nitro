@@ -3,15 +3,9 @@ import { resolveConnectorDeps, resolveDatabaseConnections } from "../../utils/da
 import { ensureLibDeps } from "../../utils/dep.ts";
 
 export async function resolveDatabaseOptions(options: NitroOptions) {
-  if (!options.experimental.database || !options.imports) {
+  if (!options.experimental.database) {
     return;
   }
-
-  options.imports.presets ??= [];
-  options.imports.presets.push({
-    from: "nitro/database",
-    imports: ["useDatabase"],
-  });
 
   if (options.dev && !options.database && !options.devDatabase) {
     options.devDatabase = {

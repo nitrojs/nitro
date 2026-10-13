@@ -6,7 +6,7 @@ const { createServer } = (await import(
   process.env.NITRO_VITE_PKG || "vite"
 )) as typeof import("vite");
 
-describe("vite:baseURL dotted params", { sequential: true }, () => {
+describe("vite:baseURL dotted params", { concurrent: false }, () => {
   let server: ViteDevServer;
   let serverURL: string;
 

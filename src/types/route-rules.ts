@@ -1,5 +1,3 @@
-import type { IntRange } from "./_utils.ts";
-
 // Route rule types are owned by h3 (`h3/rules`). Nitro re-exports them and
 // augments the open `RouteRuleConfig` / `RouteRules` interfaces with its own
 // rules (`isr`, `prerender`, `static`).
@@ -25,9 +23,6 @@ export type NitroRouteConfig = RouteRuleConfig;
  * @deprecated Use `NormalizedRouteRules` from `h3/rules` (re-exported by `nitro/types`).
  */
 export type NitroRouteRules = NormalizedRouteRules;
-
-/** Valid HTTP status code range (100–599). */
-export type HTTPstatus = IntRange<100, 599>;
 
 // --- Nitro-specific route rules (module augmentation) ---
 
@@ -56,6 +51,9 @@ declare module "h3/rules" {
      *
      * Only handled by presets with native support (e.g. Vercel, Netlify).
      * Ignored on platforms without ISR support.
+     *
+     * Do not combine with `prerender` on the same route — prerendered pages are
+     * generated at build time and ISR will not apply.
      *
      * @see https://nitro.build/docs/routing#isr-vercel
      */

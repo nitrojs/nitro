@@ -8,18 +8,19 @@
 
 ## Set up application
 
-### Pre-requisites
+### Prerequisites
 
-1. [Register a new profile](https://www.alwaysdata.com/en/register/) on alwaysdata platform if you don't have one.
+1. [Register a new profile](https://www.alwaysdata.com/en/register/) on the alwaysdata platform if you don't have one.
 
 2. Get a free 100Mb plan to host your app.
 
-> [!NOTE]
-> Keep in mind your *account name* will be used to provide you a default URL in the form of `account_name.alwaysdata.net`, so choose it wisely. You can also link your existing domains to your account later or register as many accounts under your profile as you need.
+::note
+Your *account name* is used for your default URL in the form of `account_name.alwaysdata.net`, so choose it wisely. You can also link your existing domains to your account later or register as many accounts under your profile as you need.
+::
 
 ### Local deployment
 
-1. Build your project locally with `npm run build -- preset alwaysdata`
+1. Build your project locally with `npm run build -- --preset alwaysdata`
 
 2. [Upload your app](https://help.alwaysdata.com/en/remote-access/) to your account in its own directory (e.g. `$HOME/www/my-app`). You can use any protocol you prefer (SSH/FTP/WebDAV…) to do so.
 
