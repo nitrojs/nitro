@@ -1,10 +1,6 @@
 import type { ServerOptions, ServerRequest } from "srvx";
 
-export type {
-  ServerRequest,
-  ServerRequestContext,
-  ServerRuntimeContext,
-} from "srvx";
+export type { ServerRequest, ServerRequestContext, ServerRuntimeContext } from "srvx";
 
 /**
  * Default export of a server entry (`server.ts`).
