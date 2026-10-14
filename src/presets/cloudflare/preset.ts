@@ -199,7 +199,7 @@ function setupMiniflareDev(nitro: Nitro) {
     ]),
   ];
   extendEnv(nitro, unenvCfExternals);
-  // In Vite dev, the dev worker resolves the exports from the nitro environment instead
+  // In Vite dev, the nitro environment's entry re-exports them instead (`vite/dev-entry.mjs`)
   if (nitro.options.builder !== "vite") {
     setupEntryExports(nitro);
   }

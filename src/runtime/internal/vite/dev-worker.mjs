@@ -9,13 +9,6 @@ export function setModuleRunner(moduleRunner) {
   ({ ModuleRunner, ESModulesEvaluator } = moduleRunner);
 }
 
-// Its named exports are the Worker exports (e.g. Durable Objects) of the miniflare runner.
-let serverEntry;
-
-export function setServerEntry(file) {
-  serverEntry = file;
-}
-
 // Custom evaluator for workerd where `new AsyncFunction()` is disallowed.
 // Uses the unsafeEvalBinding exposed by the env-runner miniflare wrapper.
 class WorkerdModuleEvaluator {
@@ -196,17 +189,6 @@ class ViteEnvRunner {
     return entryFetch(req, init);
   }
 
-  // Exports of `file` as evaluated for the entry, so they share its module state.
-  async importEvaluated(file) {
-    await this.waitForEntry();
-    for (const mod of this.runner.evaluatedModules.getModulesByFile(file) || []) {
-      if (mod.evaluated) {
-        return mod.exports;
-      }
-    }
-    return this.runner.import(file);
-  }
-
   // Waits until nothing is queued or in flight so callers never reach an entry
   // that is about to be replaced.
   async waitForEntry() {
@@ -316,16 +298,16 @@ export const websocketOptions = {
   },
 };
 
-// Worker classes for the miniflare runner, resolved on each use so they follow reloads.
+// Worker classes for the miniflare runner: the server entry exports re-exported by the nitro
+// environment's entry (`dev-entry.mjs`). Resolved on each use so they follow reloads, and
+// share the module state of the routes.
 export async function resolveExports() {
-  if (!serverEntry) {
-    return {};
-  }
   const env = envs.nitro || (await waitForEnv("nitro"));
   if (!env) {
     throw httpError(503, `Vite environment "nitro" is unavailable`);
   }
-  return env.importEvaluated(serverEntry);
+  const entry = await env.waitForEntry();
+  return entry.serverEntryExports || {};
 }
 
 export const ipc = {
