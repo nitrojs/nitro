@@ -442,7 +442,7 @@ function guessSubpath(path: string, conditions: string[]): string | undefined {
     if (e.fsPath === subpath) {
       // The "." export is the package itself: `join(name, "./")` would give
       // `name/`, which is not a valid package subpath.
-      return e.subpath === "./" ? name : join(name, e.subpath);
+      return e.subpath === "./" ? join(name) : join(name, e.subpath);
     }
     if (e.fsPath.includes("*")) {
       const fsPathRe = new RegExp(
