@@ -91,10 +91,16 @@ export function externals(opts: NodeExternalsOptions): Plugin {
         return null;
       }
 
+      // Resolve explicit externals with the Node.js algorithm first so other
+      // plugins (such as commonjs) do not load them into the module graph
+      const explicitExternal = externalMatchers.some((m) => m(id, importer))
+        ? tryResolve(originalId, importer)
+        : undefined;
+
       // Resolve id using rollup resolver
-      const resolved = (await this.resolve(originalId, importer, options)) || {
-        id,
-      };
+      const resolved: { id: string } = explicitExternal
+        ? { id: explicitExternal }
+        : (await this.resolve(originalId, importer, options)) || { id };
 
       // Check for explicit inlines and externals
       if (isExplicitInline(resolved.id, importer)) {
@@ -183,10 +189,13 @@ export function externals(opts: NodeExternalsOptions): Plugin {
       }
 
       // Manually traced paths
+      // Resolve with the Node.js algorithm first so other plugins
+      // do not load the package into the module graph
       for (const pkgName of opts.traceInclude || []) {
-        const path = await this.resolve(pkgName);
-        if (path?.id) {
-          trackedExternals.add(path.id.replace(/\?.+/, ""));
+        const path =
+          tryResolve(pkgName, undefined) || (await this.resolve(pkgName))?.id;
+        if (path) {
+          trackedExternals.add(path.replace(/\?.+/, ""));
         }
       }
 
