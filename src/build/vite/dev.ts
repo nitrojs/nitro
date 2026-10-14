@@ -5,6 +5,7 @@ import type { RunnerRPCHooks, UpgradeContext } from "env-runner";
 import type { Socket } from "node:net";
 
 import { IncomingMessage, ServerResponse } from "node:http";
+import type { Http2ServerResponse } from "node:http2";
 import { readFile } from "node:fs/promises";
 import { NodeRequest, sendNodeResponse } from "srvx/node";
 import { createViteHotChannel } from "env-runner/vite";
@@ -307,7 +308,7 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       }
       return await sendNodeResponse(nodeRes, envRes);
     } catch (error) {
-      if (isResponseDestroyed(nodeRes)) return;
+      if (_isResponseDestroyed(nodeRes)) return;
       return next(error);
     } finally {
       if (baseURL !== "/") {
@@ -431,12 +432,6 @@ export function matchesMiddlewareRoute(route: string | undefined, url: string): 
   return !boundary || boundary === "/" || boundary === ".";
 }
 
-export function isResponseDestroyed(
-  res: ServerResponse | { destroyed?: boolean; stream?: { destroyed?: boolean } }
-): boolean {
-  return Boolean(res.destroyed || ("stream" in res && res.stream?.destroyed));
-}
-
 // Vite derives the HTML file path from the URL, which relative imports (e.g. in inline `<style>`) resolve against.
 function _htmlTemplateURL(template: string | undefined, root: string): string {
   if (!template) {
@@ -444,4 +439,9 @@ function _htmlTemplateURL(template: string | undefined, root: string): string {
   }
   const path = relative(root, template);
   return path.startsWith("../") || isAbsolute(path) ? join("/@fs", template) : `/${path}`;
+}
+
+// `Http2ServerResponse` (Vite with `server.https`) has no `destroyed`; its stream does.
+function _isResponseDestroyed(res: ServerResponse | Http2ServerResponse): boolean {
+  return "stream" in res ? res.stream.destroyed : res.destroyed;
 }
