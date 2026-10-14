@@ -47,7 +47,11 @@ export function createRouteRulesHandler(ctx: {
         const query = getQuery(event.path);
         target = withQuery(target, query);
       }
-      return sendRedirect(event, target, routeRules.redirect.statusCode);
+      // `joinURL` (via ufo) decodes percent-encoded characters, which can
+      // leave raw Unicode in the Location header and trigger Node's
+      // ERR_INVALID_CHAR. Re-encode the target before redirecting.
+      // See https://github.com/unjs/nitro/issues/4323
+      return sendRedirect(event, encodeURI(target), routeRules.redirect.statusCode);
     }
     // Apply proxy options
     if (routeRules.proxy) {
