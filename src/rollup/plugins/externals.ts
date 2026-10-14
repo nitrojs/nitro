@@ -196,6 +196,11 @@ export function externals(opts: NodeExternalsOptions): Plugin {
         conditions: (opts.exportConditions || []).filter(
           (c) => !["require", "import", "default"].includes(c)
         ),
+        // Ensure the `module-sync` conditional export is included in the
+        // traced output on Node 20+. Without this, @vercel/nft omits the
+        // module-sync entry point and the traced bundle crashes at runtime.
+        // See https://github.com/nitrojs/nitro/issues/4468
+        moduleSyncCatchall: true,
         ...opts.traceOptions,
       });
 
