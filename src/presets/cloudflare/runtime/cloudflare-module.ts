@@ -13,10 +13,21 @@ interface Env {
 }
 
 export default createHandler<Env>({
-  fetch(cfRequest, env, context, url) {
+  async fetch(cfRequest, env, context, url) {
     // Static assets fallback (optional binding)
     if (env.ASSETS && isPublicAssetURL(url.pathname)) {
-      return env.ASSETS.fetch(cfRequest as any);
+      const res = await env.ASSETS.fetch(cfRequest as any);
+      // The `_headers` rule of a public assets base also applies to a missing
+      // file. Do not let browsers cache that 404 for the lifetime of the assets.
+      if (
+        res.status === 404 &&
+        /max-age=[1-9]|immutable/i.test(res.headers.get("cache-control") || "")
+      ) {
+        const notFound = new Response(res.body as any, res as any);
+        notFound.headers.set("cache-control", "no-store");
+        return notFound as any;
+      }
+      return res;
     }
 
     // Websocket upgrade
