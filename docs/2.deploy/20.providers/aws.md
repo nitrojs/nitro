@@ -78,8 +78,12 @@ aws lambda-web deploy \
   --create
 ```
 
-Web Functions currently use the `nodejs24.x` runtime on Arm64. For local preview, `node .output/server/index.mjs` uses Nitro's usual `NITRO_PORT` and `NITRO_HOST` settings when `AWS_LAMBDA_HTTP_ENDPOINT` is unset.
+Web Functions currently use the `nodejs24.x` runtime on Arm64. Build native dependencies for Linux Arm64. For local preview, `node .output/server/index.mjs` uses Nitro's usual `NITRO_PORT` and `NITRO_HOST` settings when `AWS_LAMBDA_HTTP_ENDPOINT` is unset.
 
 The `awsLambda.streaming` option only applies to Event Functions. Web Functions stream HTTP responses directly.
 
+Nitro's in-process scheduled task runner is disabled for this preset because a Web Function can have multiple execution environments. Use an external scheduler for recurring work.
+
 :read-more{title="AWS Lambda Web Functions" to="https://docs.aws.amazon.com/lambda/latest/dg/web-functions.html"}
+
+For custom domains or AWS WAF, put CloudFront in front of the Web Function. See [AWS's guide to CloudFront origin access control](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-lambda-web.html) if you want to restrict direct access to the Web Function endpoint.

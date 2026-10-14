@@ -3,7 +3,6 @@ import type { ServerOptions } from "srvx";
 import wsAdapter from "crossws/adapters/node";
 
 import { useNitroApp } from "nitro/app";
-import { startScheduleRunner } from "#nitro/runtime/task";
 import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
 import { resolveServeOptions } from "#nitro/runtime/serve";
@@ -28,10 +27,6 @@ export function startNodeServer(options: Partial<ServerOptions> = {}) {
 
   setupCloseHooks(server);
   trapUnhandledErrors();
-
-  if (import.meta._tasks) {
-    startScheduleRunner({ waitUntil: server.waitUntil });
-  }
 
   return server;
 }

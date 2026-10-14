@@ -14,6 +14,8 @@ describe("nitro:preset:aws-lambda-web", async () => {
         AWS_LAMBDA_HTTP_ENDPOINT: `127.0.0.1:${port}`,
         NITRO_HOST: "127.0.0.2",
         NITRO_PORT: "1",
+        NITRO_SSL_CERT: "missing-cert.pem",
+        NITRO_SSL_KEY: "missing-key.pem",
       },
       stdio: process.env.TEST_DEBUG ? "inherit" : "ignore",
       reject: false,
@@ -27,7 +29,7 @@ describe("nitro:preset:aws-lambda-web", async () => {
     await waitForPort(port, { host: "127.0.0.1", delay: 100, retries: 50 });
   }, 25_000);
 
-  it("listens on the AWS endpoint instead of Nitro's host and port", async () => {
+  it("listens on the AWS HTTP endpoint instead of Nitro's host, port, and TLS settings", async () => {
     const response = await ctx.fetch("/");
     expect(response.status).toBe(200);
     expect(await response.text()).toBe("server entry works!");

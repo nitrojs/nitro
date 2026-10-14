@@ -8,6 +8,8 @@ if (endpoint !== undefined && (!match || +match[2] < 1 || +match[2] > 65_535)) {
   throw new Error(`Invalid AWS_LAMBDA_HTTP_ENDPOINT: ${endpoint}`);
 }
 
-startNodeServer(match ? { hostname: match[1], port: +match[2] } : {});
+startNodeServer(
+  match ? { hostname: match[1], port: +match[2], protocol: "http", tls: undefined } : {}
+);
 
 export default {};
