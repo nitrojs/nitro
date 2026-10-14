@@ -46,3 +46,25 @@ export default defineConfig({
   }
 });
 ```
+
+## Lambda Web Functions
+
+AWS Lambda Web Functions run a Node.js HTTP server directly. Use the `aws-lambda-web` preset to build a Nitro app for this runtime:
+
+```sh
+NITRO_PRESET=aws-lambda-web pnpm nitro build
+```
+
+The preset listens on the host and port supplied by `AWS_LAMBDA_HTTP_ENDPOINT`. It also serves files from `.output/public`, so deploy the complete `.output` directory. With an AWS CLI version that supports `lambda-web`, you can deploy it with:
+
+```sh
+aws lambda-web deploy \
+  --name my-nitro-app \
+  --code .output \
+  --entry-point server/index.mjs \
+  --create
+```
+
+Web Functions currently use the `nodejs24.x` runtime on Arm64. For local preview, `node .output/server/index.mjs` uses Nitro's usual `NITRO_PORT` and `NITRO_HOST` settings when `AWS_LAMBDA_HTTP_ENDPOINT` is unset.
+
+:read-more{title="AWS Lambda Web Functions" to="https://docs.aws.amazon.com/lambda/latest/dg/web-functions.html"}

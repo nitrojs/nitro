@@ -5,6 +5,7 @@ import _static from "./_static/preset.ts";
 import _alwaysdata from "./alwaysdata/preset.ts";
 import _awsAmplify from "./aws-amplify/preset.ts";
 import _awsLambda from "./aws-lambda/preset.ts";
+import _awsLambdaWeb from "./aws-lambda-web/preset.ts";
 import _azure from "./azure/preset.ts";
 import _bun from "./bun/preset.ts";
 import _cleavr from "./cleavr/preset.ts";
@@ -36,6 +37,7 @@ export default [
   ..._alwaysdata,
   ..._awsAmplify,
   ..._awsLambda,
+  ..._awsLambdaWeb,
   ..._azure,
   ..._bun,
   ..._cleavr,
