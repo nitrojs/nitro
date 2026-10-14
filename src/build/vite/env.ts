@@ -11,6 +11,7 @@ import { resolveRunnerDeps } from "../../dev/runner-deps.ts";
 import { shutdownRunner } from "../../dev/shutdown.ts";
 import { writeDevWorkerEntry } from "./_dev-worker.ts";
 import { viteImportOptions } from "./_import.ts";
+import { getSourceExtensions } from "../../utils/source-extensions.ts";
 
 export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOptions {
   const isWorkerdRunner = _isWorkerdRunner(ctx);
@@ -103,7 +104,7 @@ export function createServiceEnvironment(
       ? undefined
       : {
           createEnvironment: async (envName, envConfig) => {
-            const entry = tryResolve(serviceConfig.entry);
+            const entry = tryResolve(serviceConfig.entry, ctx.nitro!.options.sourceExtensions);
             const { createFetchableDevEnvironment } = await import("./dev.ts");
             return createFetchableDevEnvironment(
               envName,
@@ -253,13 +254,14 @@ function _isWorkerdRunner(ctx: NitroPluginContext): boolean {
   return _devRunner(ctx) === "miniflare";
 }
 
-function tryResolve(id: string) {
+function tryResolve(id: string, sourceExtensions: string[] = []) {
   if (/^[~#/\0]/.test(id) || isAbsolute(id)) {
     return id;
   }
+  const resolvableSourceExtensions = getSourceExtensions({ sourceExtensions });
   const resolved = resolveModulePath(id, {
     suffixes: ["", "/index"],
-    extensions: ["", ".ts", ".mjs", ".cjs", ".js", ".mts", ".cts"],
+    extensions: ["", ...resolvableSourceExtensions],
     try: true,
   });
   return resolved || id;

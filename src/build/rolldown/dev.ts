@@ -4,6 +4,7 @@ import { basename, join } from "pathe";
 import { debounce } from "perfect-debounce";
 import { scanHandlers } from "../../scan.ts";
 import { createWatcher } from "../../utils/watch.ts";
+import { getSourceExtensionPattern } from "../../utils/source-extensions.ts";
 import { formatCompatibilityDate } from "compatx";
 
 export async function watchDev(
@@ -40,7 +41,8 @@ export async function watchDev(
     }
   });
 
-  const serverEntryRe = /^server\.[mc]?[jt]sx?$/;
+  const sourceExtensionPattern = getSourceExtensionPattern(nitro.options);
+  const serverEntryRe = new RegExp(String.raw`^server(?:\.node)?\.(?:${sourceExtensionPattern})$`);
   const rootDirWatcher = createWatcher(nitro, nitro.options.rootDir, {
     ignoreInitial: true,
     depth: 0,

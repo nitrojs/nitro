@@ -2,15 +2,8 @@ import { glob } from "tinyglobby";
 import type { Nitro } from "nitro/types";
 import { join, relative } from "pathe";
 import { withBase, withLeadingSlash, withoutTrailingSlash } from "ufo";
+import { getScanPattern, stripSourceExtension } from "./utils/source-extensions.ts";
 
-export const GLOB_SCAN_PATTERN = "**/*.{js,mjs,cjs,ts,mts,cts,tsx,jsx}";
-
-// Modules are only auto-registered from `modules/*` and `modules/*/index` (any supported
-// extension) so that a module's own nested files are not registered as modules themselves.
-const GLOB_MODULES_SCAN_PATTERN = [
-  "*.{js,mjs,cjs,ts,mts,cts,tsx,jsx}",
-  "*/index.{js,mjs,cjs,ts,mts,cts,tsx,jsx}",
-];
 type FileInfo = { path: string; fullPath: string };
 
 const suffixRegex =
@@ -101,8 +94,7 @@ export async function scanServerRoutes(nitro: Nitro, dir: string, prefix = "/") 
       }
       return sanitized;
     };
-    let route = file.path
-      .replace(/\.[A-Za-z]+$/, "")
+    let route = stripSourceExtension(file.path, nitro.options)
       .replace(/\(([^(/\\]+)\)[/\\]/g, "")
       .replace(/\[\.{3}]/g, "**")
       .replace(/\[\.{3}([^\]]+)]/g, (_, p) => "**:" + paramName(p))
@@ -139,23 +131,23 @@ export async function scanPlugins(nitro: Nitro) {
 export async function scanTasks(nitro: Nitro) {
   const files = await scanFiles(nitro, "tasks");
   return files.map((f) => {
-    const name = f.path
-      .replace(/\/index$/, "")
-      .replace(/\.[A-Za-z]+$/, "")
-      .replace(/\//g, ":");
+    const name = stripSourceExtension(f.path.replace(/\/index$/, ""), nitro.options).replace(
+      /\//g,
+      ":"
+    );
     return { name, handler: f.fullPath };
   });
 }
 
 export async function scanModules(nitro: Nitro) {
-  const files = await scanFiles(nitro, "modules", GLOB_MODULES_SCAN_PATTERN);
+  const files = await scanFiles(nitro, "modules", getModulesScanPattern(nitro));
   return files.map((f) => f.fullPath);
 }
 
 async function scanFiles(
   nitro: Nitro,
   name: string,
-  pattern: string | string[] = GLOB_SCAN_PATTERN
+  pattern: string | string[] = getScanPattern(nitro.options)
 ): Promise<FileInfo[]> {
   const files = await Promise.all(
     nitro.options.scanDirs.map((dir) => scanDir(nitro, dir, name, pattern))
@@ -190,4 +182,11 @@ async function scanDir(
       };
     })
     .sort((a, b) => a.path.localeCompare(b.path));
+}
+
+// Modules are only auto-registered from `modules/*` and `modules/*/index` (any supported
+// extension) so that a module's own nested files are not registered as modules themselves.
+function getModulesScanPattern(nitro: Nitro): string[] {
+  const exts = getScanPattern(nitro.options).replace("**/*.", "");
+  return [`*.${exts}`, `*/index.${exts}`];
 }

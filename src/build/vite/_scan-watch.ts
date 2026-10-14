@@ -3,8 +3,8 @@ import type { DevEnvironment, ViteDevServer } from "vite";
 import { basename, dirname, join, normalize } from "pathe";
 import { scanHandlers } from "../../scan.ts";
 import { onWatchError } from "../../utils/watch.ts";
+import { getSourceExtensionPattern } from "../../utils/source-extensions.ts";
 
-const serverEntryRe = /^server\.[mc]?[jt]sx?$/;
 const watchReloadEvents = new Set(["add", "addDir", "unlink", "unlinkDir"]);
 
 /**
@@ -12,6 +12,8 @@ const watchReloadEvents = new Set(["add", "addDir", "unlink", "unlinkDir"]);
  * entry), and on the `rollup:reload` hook.
  */
 export function watchScanDirs(nitro: Nitro, server: ViteDevServer, onChange: () => void): void {
+  const sourceExtensionPattern = getSourceExtensionPattern(nitro.options);
+  const serverEntryRe = new RegExp(String.raw`^server(?:\.node)?\.(?:${sourceExtensionPattern})$`);
   const scanDirs = nitro.options.scanDirs.flatMap((dir) => [
     join(dir, nitro.options.apiDir || "api"),
     join(dir, nitro.options.routesDir || "routes"),
