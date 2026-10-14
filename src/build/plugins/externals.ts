@@ -4,7 +4,7 @@ import type { ExternalsTraceOptions, TracedLayout } from "nf3";
 
 import { pathToFileURL } from "node:url";
 import { builtinModules, createRequire } from "node:module";
-import { dirname, isAbsolute, join, relative } from "pathe";
+import { dirname, isAbsolute, join, normalize, relative } from "pathe";
 import MagicString from "magic-string";
 import { resolveModulePath } from "exsolve";
 import consola from "consola";
@@ -442,7 +442,7 @@ function guessSubpath(path: string, conditions: string[]): string | undefined {
     if (e.fsPath === subpath) {
       // The "." export is the package itself: `join(name, "./")` would give
       // `name/`, which is not a valid package subpath.
-      return e.subpath === "./" ? name : join(name, e.subpath);
+      return e.subpath === "./" ? normalize(name) : join(name, e.subpath);
     }
     if (e.fsPath.includes("*")) {
       const fsPathRe = new RegExp(
