@@ -436,15 +436,19 @@ export default defineHandler(async () => {
 });
 ```
 
-To type `event.req.runtime.cloudflare.env` too, augment the `CloudflareEnv` interface:
+To type `event.req.runtime.cloudflare.env` too, augment the `CloudflareEnv` interface of [srvx](https://srvx.h3.dev):
 
 ```ts [env.d.ts]
-declare module "nitro/types" {
+declare module "srvx" {
   interface CloudflareEnv extends Env {}
 }
 
 export {};
 ```
+
+::note
+`srvx` must be resolvable from your project for the augmentation to apply. With pnpm, add it to your dev dependencies.
+::
 
 To type bindings to your own [Durable Objects](#durable-objects), [Workflows and `WorkerEntrypoint`s](#additional-exports) with their classes, point `main` in your Wrangler configuration to the file that exports them. Nitro still sets `main` to the built entry in the generated config.
 

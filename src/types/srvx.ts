@@ -1,7 +1,6 @@
 import type { ServerOptions, ServerRequest } from "srvx";
 
 export type {
-  CloudflareEnv,
   ServerRequest,
   ServerRequestContext,
   ServerRuntimeContext,
