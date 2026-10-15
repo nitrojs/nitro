@@ -125,6 +125,7 @@ You can pass an options object to `isr` route rule to configure caching behavior
   - If `undefined` each unique query value is cached independently.
   - For wildcard `/**` route rules, `url` is always added
 - `passQuery`: When `true`, the query string will be present on the `request` argument passed to the invoked function. The `allowQuery` filter still applies.
+  - Defaults to `true` when `allowQuery` lists any params, so they reach your handler. Set it to `false` to opt out.
 - `exposeErrBody`: When `true`, expose the response body regardless of status code including error status codes. (default `false`
 
 ```ts

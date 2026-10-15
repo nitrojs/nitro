@@ -537,11 +537,21 @@ async function writePrerenderConfig(
     ...isrConfig,
   };
 
-  if (
-    prerenderConfig.allowQuery &&
-    !prerenderConfig.allowQuery.includes(ISR_URL_PARAM)
-  ) {
-    prerenderConfig.allowQuery.push(ISR_URL_PARAM);
+  if (prerenderConfig.allowQuery) {
+    // Vercel only forwards the query to the function with `passQuery`. Without
+    // it, `allowQuery` params split the cache but never reach the render.
+    if (
+      prerenderConfig.passQuery === undefined &&
+      prerenderConfig.allowQuery.some((key) => key !== ISR_URL_PARAM)
+    ) {
+      prerenderConfig.passQuery = true;
+    }
+    if (!prerenderConfig.allowQuery.includes(ISR_URL_PARAM)) {
+      prerenderConfig.allowQuery = [
+        ...prerenderConfig.allowQuery,
+        ISR_URL_PARAM,
+      ];
+    }
   }
 
   await writeFile(filename, JSON.stringify(prerenderConfig, null, 2));
