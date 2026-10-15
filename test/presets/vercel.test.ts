@@ -359,6 +359,26 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/single-headers\\/(?<id>[^/]+)\\/?$",
               },
               {
+                "dest": "/server-timing/total",
+                "src": "^\\/server-timing\\/total\\/?$",
+              },
+              {
+                "dest": "/server-timing/throw",
+                "src": "^\\/server-timing\\/throw\\/?$",
+              },
+              {
+                "dest": "/server-timing/kv",
+                "src": "^\\/server-timing\\/kv\\/?$",
+              },
+              {
+                "dest": "/server-timing/custom",
+                "src": "^\\/server-timing\\/custom\\/?$",
+              },
+              {
+                "dest": "/server-timing/cached/[id]",
+                "src": "^\\/server-timing\\/cached\\/(?<id>[^/]+)\\/?$",
+              },
+              {
                 "dest": "/rules/swr/middleware-order",
                 "src": "^\\/rules\\/swr\\/middleware-order\\/?$",
               },
@@ -824,6 +844,11 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/rules/isr/[...]-isr.func",
             "functions/rules/isr/[...]-isr.prerender-config.json",
             "functions/rules/swr/middleware-order.func (symlink)",
+            "functions/server-timing/cached/[id].func (symlink)",
+            "functions/server-timing/custom.func (symlink)",
+            "functions/server-timing/kv.func (symlink)",
+            "functions/server-timing/throw.func (symlink)",
+            "functions/server-timing/total.func (symlink)",
             "functions/single-headers/[id].func (symlink)",
             "functions/static-flags.func (symlink)",
             "functions/stream.func (symlink)",

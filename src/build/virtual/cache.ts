@@ -25,6 +25,8 @@ ${genStorage(config)}
 export const cacheFunctionDefaults = ${genValue(pickDefined(defaults, functionDefaultKeys))};
 
 export const cacheHandlerDefaults = ${genValue(pickDefined(defaults, handlerDefaultKeys))};
+
+export const cacheServerTiming = ${!!(nitro.options.serverTiming && nitro.options.serverTiming.cache)};
 `;
     },
   };
