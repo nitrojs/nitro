@@ -18,7 +18,7 @@ function parseInt(value: string) {
 // @ts-expect-error
 const server = Bun.serve({
   port: process.env.NITRO_PORT || process.env.PORT || 3000,
-  host: process.env.NITRO_HOST || process.env.HOST,
+  hostname: process.env.NITRO_HOST || process.env.HOST,
   idleTimeout: parseInt(process.env.NITRO_BUN_IDLE_TIMEOUT as string),
   websocket: import.meta._websocket ? ws!.websocket : (undefined as any),
   async fetch(req: Request, server: any) {
