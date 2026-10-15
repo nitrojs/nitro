@@ -13,6 +13,7 @@ import { raw, RESOLVED_RE as rawModulesRE } from "./plugins/raw.ts";
 import { importAttributes } from "./plugins/import-attributes.ts";
 import { externals } from "./plugins/externals.ts";
 import { unenv } from "./plugins/unenv.ts";
+import { cjsRequire } from "./plugins/cjs-require.ts";
 
 export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const plugins: Plugin[] = [];
@@ -71,6 +72,12 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
             },
       })
     );
+  }
+
+  // Rewrite runtime `require()` of bundled deps to their bundled copy (#4171)
+  const cjsRewrite = nitro.options.experimental.cjsRequireRewrite;
+  if (cjsRewrite) {
+    plugins.push(cjsRequire(nitro, cjsRewrite === true ? "all" : "react"));
   }
 
   // Sourcemap
