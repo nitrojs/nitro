@@ -1,4 +1,4 @@
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, resolve } from "pathe";
 import { describe, expect, it } from "vitest";
 import type { Nitro } from "nitropack/types";
@@ -44,7 +44,8 @@ function loadReadAsset(readFile: () => Promise<unknown>) {
     resolve,
     dirname,
     ASSETS,
-    "file:///app/server/index.mjs"
+    // Absolute on every platform (resolves to the current drive on Windows)
+    pathToFileURL("/app/server/index.mjs").href
   ) as (id: string) => Promise<unknown>;
 }
 

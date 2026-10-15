@@ -77,6 +77,7 @@ describe("dev error handler: source maps", () => {
     const error = new Error("boom");
     error.stack = `Error: boom\n    at fn (${brokenBundle}:1:1)`;
     await expect(loadStackTrace(error)).resolves.toBeUndefined();
-    expect(error.stack).toContain(`${brokenBundle}:1:1`);
+    // The stack parser normalizes frame paths to forward slashes (Windows)
+    expect(error.stack).toContain(`${brokenBundle.replaceAll("\\", "/")}:1:1`);
   });
 });
