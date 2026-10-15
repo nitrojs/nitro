@@ -501,6 +501,92 @@ describe("nitro:preset:vercel", async () => {
         });
       });
 
+      describe("ISR URL restoration", () => {
+        const fetchISR = (url: string, xNowRouteMatches?: string) =>
+          ctx
+            .fetch(url, {
+              headers: xNowRouteMatches
+                ? { "x-now-route-matches": xNowRouteMatches }
+                : {},
+            })
+            .then((res) => res.text());
+
+        it("restores the original URL from x-now-route-matches", async () => {
+          expect(
+            await fetchISR(
+              "/rules/isr/foo-isr?__isr_route=%2Frules%2Fisr%2Ffoo",
+              "__isr_route=%2Frules%2Fisr%2Ffoo"
+            )
+          ).toBe("/rules/isr/foo");
+        });
+
+        it("restores the original URL from the query when there is no header", async () => {
+          expect(
+            await fetchISR(
+              "/rules/isr/foo-isr?__isr_route=%2Frules%2Fisr%2Ffoo&q=1"
+            )
+          ).toBe("/rules/isr/foo?q=1");
+        });
+
+        // https://github.com/nitrojs/nitro/issues/4408
+        it("keeps allowQuery params when x-now-route-matches is present", async () => {
+          expect(
+            await fetchISR(
+              "/rules/isr/foo-isr?__isr_route=%2Frules%2Fisr%2Ffoo&q=1",
+              "__isr_route=%2Frules%2Fisr%2Ffoo"
+            )
+          ).toBe("/rules/isr/foo?q=1");
+        });
+
+        it("does not leak route capture groups from x-now-route-matches", async () => {
+          expect(
+            await fetchISR(
+              "/rules/isr/foo-isr?__isr_route=%2Frules%2Fisr%2Ffoo&q=1",
+              "0=%2Frules%2Fisr%2Ffoo&slug=foo&__isr_route=%2Frules%2Fisr%2Ffoo&q=1"
+            )
+          ).toBe("/rules/isr/foo?q=1");
+        });
+
+        it("keeps repeated query params", async () => {
+          expect(
+            await fetchISR(
+              "/rules/isr/foo-isr?__isr_route=%2Frules%2Fisr%2Ffoo&q=a&q=b",
+              "__isr_route=%2Frules%2Fisr%2Ffoo"
+            )
+          ).toBe("/rules/isr/foo?q=a&q=b");
+        });
+
+        // https://github.com/nitrojs/nitro/issues/4446
+        it("falls back to the query when x-now-route-matches lacks the route param", async () => {
+          expect(
+            await fetchISR(
+              "/rules/isr/foo-isr?__isr_route=%2Frules%2Fisr%2Ffoo",
+              "0=%2Frules%2Fisr%2Ffoo"
+            )
+          ).toBe("/rules/isr/foo");
+          expect(
+            await fetchISR(
+              "/rules/isr/foo-isr?__isr_route=%2Frules%2Fisr%2Ffoo&q=1",
+              "0=%2Frules%2Fisr%2Ffoo"
+            )
+          ).toBe("/rules/isr/foo?q=1");
+        });
+
+        it("decodes the route param exactly once", async () => {
+          expect(
+            await fetchISR(
+              "/rules/isr/foo-isr?__isr_route=%2Frules%2Fisr%2F100%25off",
+              "__isr_route=%2Frules%2Fisr%2F100%25off"
+            )
+          ).toBe("/rules/isr/100%off");
+          expect(
+            await fetchISR(
+              "/rules/isr/foo-isr?__isr_route=%2Frules%2Fisr%2Fa%252520b"
+            )
+          ).toBe("/rules/isr/a%2520b");
+        });
+      });
+
       const walkDir = async (path: string): Promise<string[]> => {
         const items: string[] = [];
         const dirname = basename(path);
@@ -685,6 +771,62 @@ describe("nitro:preset:vercel:skew-protection", async () => {
     expect(skewRoute.headers["Set-Cookie"]).toBe(
       "__vdpl=dpl_test; Path=/; SameSite=Lax; Secure; HttpOnly"
     );
+  });
+});
+
+describe("nitro:preset:vercel:isr-pass-query", async () => {
+  const ctx = await setupTest("vercel", {
+    config: {
+      preset: "vercel",
+      routeRules: {
+        "/isr-pass/allow/**": { isr: { allowQuery: ["lang"] } },
+        "/isr-pass/explicit-false/**": {
+          isr: { allowQuery: ["lang"], passQuery: false },
+        },
+        "/isr-pass/empty/**": { isr: { allowQuery: [] } },
+        "/isr-pass/no-allow/**": { isr: { expiration: 60 } },
+        "/isr-pass/true": { isr: true },
+      },
+    },
+  });
+  // Read output now, later describe blocks rebuild into the same directory
+  const readPrerenderConfig = (name: string) =>
+    fsp
+      .readFile(
+        resolve(ctx.outDir, `functions/isr-pass/${name}.prerender-config.json`),
+        "utf8"
+      )
+      .then((r) => JSON.parse(r));
+  const configs = {
+    allow: await readPrerenderConfig("allow/[...]-isr"),
+    explicitFalse: await readPrerenderConfig("explicit-false/[...]-isr"),
+    empty: await readPrerenderConfig("empty/[...]-isr"),
+    noAllow: await readPrerenderConfig("no-allow/[...]-isr"),
+    true: await readPrerenderConfig("true-isr"),
+  };
+
+  it("enables passQuery when allowQuery is set", () => {
+    expect(configs.allow).toEqual({
+      expiration: false,
+      allowQuery: ["lang", "__isr_route"],
+      passQuery: true,
+    });
+  });
+
+  it("respects an explicit passQuery: false", () => {
+    expect(configs.explicitFalse).toMatchObject({
+      allowQuery: ["lang", "__isr_route"],
+      passQuery: false,
+    });
+  });
+
+  it("does not enable passQuery without allowQuery params", () => {
+    expect(configs.empty).toEqual({
+      expiration: false,
+      allowQuery: ["__isr_route"],
+    });
+    expect(configs.noAllow).toEqual({ expiration: 60 });
+    expect(configs.true).toEqual({ expiration: false });
   });
 });
 
