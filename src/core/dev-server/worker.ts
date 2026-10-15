@@ -151,6 +151,7 @@ export class NodeDevWorker implements DevWorker {
           if (process.env.DEBUG) {
             consola.warn(`force closing dev worker...`);
           }
+          resolve();
         }, gracefulShutdownTimeoutSec * 1000);
 
         this.#worker?.on("message", (message) => {
