@@ -315,7 +315,7 @@ export async function writeWranglerConfig(
         wranglerConfigDir,
         resolve(
           nitro.options.output.publicDir,
-          "..".repeat(nitro.options.baseURL.split("/").filter(Boolean).length)
+          "../".repeat(nitro.options.baseURL.split("/").filter(Boolean).length)
         )
       ),
     };

@@ -127,3 +127,32 @@ describe("Cloudflare asset configuration diagnostics", () => {
     }
   );
 });
+
+describe("Cloudflare module assets directory", () => {
+  it.each(["/", "/foo/", "/foo/bar/", "/foo/bar/baz/"])(
+    "points to public root with baseURL %s",
+    async (baseURL) => {
+      const rootDir = await mkdtemp(join(tmpdir(), "nitro-assets-baseurl-"));
+      const nitro = await createNitro({
+        rootDir,
+        baseURL,
+        preset: "cloudflare-module",
+        compatibilityDate: "2026-09-30",
+        cloudflare: { deployConfig: true },
+      });
+      try {
+        await nitro.hooks.callHook("compiled", nitro);
+        const generated = JSON.parse(
+          await readFile(
+            join(nitro.options.output.serverDir, "wrangler.json"),
+            "utf8"
+          )
+        );
+        expect(generated.assets.directory).toBe("../public");
+      } finally {
+        await nitro.close();
+        await rm(rootDir, { recursive: true, force: true });
+      }
+    }
+  );
+});
