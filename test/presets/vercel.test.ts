@@ -651,6 +651,43 @@ describe("nitro:preset:vercel:bun", async () => {
   });
 });
 
+describe("nitro:preset:vercel:skew-protection", async () => {
+  const prevDeploymentId = process.env.VERCEL_DEPLOYMENT_ID;
+  process.env.VERCEL_DEPLOYMENT_ID = "dpl_test";
+  const ctx = await setupTest("vercel", {
+    config: {
+      preset: "vercel",
+      vercel: {
+        skewProtection: true,
+      },
+    },
+  }).finally(() => {
+    if (prevDeploymentId === undefined) {
+      delete process.env.VERCEL_DEPLOYMENT_ID;
+    } else {
+      process.env.VERCEL_DEPLOYMENT_ID = prevDeploymentId;
+    }
+  });
+  // Read output now, later describe blocks rebuild into the same directory
+  const config = await fsp
+    .readFile(resolve(ctx.outDir, "config.json"), "utf8")
+    .then((r) => JSON.parse(r));
+
+  it("should set skew protection cookie with SameSite=Lax", () => {
+    const skewRoute = config.routes.find((route: any) =>
+      route.headers?.["Set-Cookie"]?.startsWith("__vdpl=")
+    );
+    expect(skewRoute).toMatchObject({
+      src: "/.*",
+      has: [{ type: "header", key: "Sec-Fetch-Dest", value: "document" }],
+      continue: true,
+    });
+    expect(skewRoute.headers["Set-Cookie"]).toBe(
+      "__vdpl=dpl_test; Path=/; SameSite=Lax; Secure; HttpOnly"
+    );
+  });
+});
+
 describe("nitro:preset:vercel:bun-verceljson", async () => {
   const vercelJsonPath = join(fixtureDir, "vercel.json");
   // Need to make sure vercel.json is created before setupTest is called

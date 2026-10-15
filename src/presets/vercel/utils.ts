@@ -217,7 +217,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
                 },
               ],
               headers: {
-                "Set-Cookie": `__vdpl=${process.env.VERCEL_DEPLOYMENT_ID}; Path=${nitro.options.baseURL}; SameSite=Strict; Secure; HttpOnly`,
+                "Set-Cookie": `__vdpl=${process.env.VERCEL_DEPLOYMENT_ID}; Path=${nitro.options.baseURL}; SameSite=Lax; Secure; HttpOnly`,
               },
               continue: true,
             },
