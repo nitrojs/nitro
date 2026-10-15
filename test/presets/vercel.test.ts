@@ -1,10 +1,28 @@
 import { promises as fsp } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { resolve, join, basename } from "pathe";
 import { describe, expect, it, afterAll } from "vitest";
 import { setupTest, startServer, testNitro, fixtureDir } from "../tests";
 
 describe("nitro:preset:vercel", async () => {
-  const ctx = await setupTest("vercel");
+  const ctx = await setupTest("vercel", {
+    config: {
+      handlers: [
+        {
+          route: "/slash",
+          handler: fileURLToPath(new URL("fixtures/slash.ts", import.meta.url)),
+        },
+      ],
+      prerender: {
+        // trailing slash on purpose (#4392)
+        routes: ["/slash/"],
+      },
+    },
+  });
+  // Read now: the other vercel groups below build into the same output dir
+  const ownBuildConfig = JSON.parse(
+    await fsp.readFile(resolve(ctx.outDir, "config.json"), "utf8")
+  );
   testNitro(
     ctx,
     async () => {
@@ -18,6 +36,20 @@ describe("nitro:preset:vercel", async () => {
       };
     },
     () => {
+      it("should not emit trailing-slash override paths (#4392)", () => {
+        expect(
+          ctx.nitro!._prerenderedRoutes!.find((r) => r.route === "/slash/")
+            ?.fileName
+        ).toBe("/slash/index.html");
+        // Vercel serves `slash/index.html` at `/slash` via its directory index
+        expect(ownBuildConfig.overrides).not.toHaveProperty("slash/index.html");
+        for (const { path } of Object.values<{ path?: string }>(
+          ownBuildConfig.overrides
+        )) {
+          expect(path ?? "").not.toMatch(/^\/|\/$/);
+        }
+      });
+
       it("should add route rules to config", async () => {
         const config = await fsp
           .readFile(resolve(ctx.outDir, "config.json"), "utf8")
@@ -29,17 +61,23 @@ describe("nitro:preset:vercel", async () => {
               "version": "2.x",
             },
             "overrides": {
-              "_scalar/index.html": {
-                "path": "_scalar",
+              "api/hello": {
+                "contentType": "application/json",
               },
-              "_swagger/index.html": {
-                "path": "_swagger",
+              "api/param/hidden": {
+                "contentType": "text/plain; charset=utf-16",
               },
-              "api/hey/index.html": {
-                "path": "api/hey",
+              "api/param/prerender1": {
+                "contentType": "text/plain; charset=utf-16",
               },
-              "prerender/index.html": {
-                "path": "prerender",
+              "api/param/prerender3": {
+                "contentType": "text/plain; charset=utf-16",
+              },
+              "api/param/prerender4": {
+                "contentType": "text/plain; charset=utf-16",
+              },
+              "json-string": {
+                "contentType": "text/html",
               },
             },
             "routes": [
