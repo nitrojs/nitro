@@ -12,6 +12,7 @@ export interface NitroImportMeta {
   _asyncContext?: boolean;
   _tasks?: boolean;
   _websocket?: boolean;
+  _runtimeBaseURL?: boolean;
 }
 
 declare global {
