@@ -1,12 +1,13 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
+import http from "node:http";
 import type {
   Nitro,
   NitroBuildInfo,
   TaskEvent,
   TaskRunnerOptions,
 } from "nitropack/types";
-import { ofetch } from "ofetch";
+import { createFetch, ofetch } from "ofetch";
 import { normalize, resolve } from "pathe";
 
 /** @experimental */
@@ -103,18 +104,71 @@ async function _getTasksContext(opts?: TaskRunnerOptions) {
     throw new Error(`Dev server is not running (pid: ${buildInfo.dev.pid})`);
   }
 
-  const devFetch = ofetch.create({
-    baseURL: `http://${buildInfo.dev.workerAddress.host || "localhost"}:${
-      buildInfo.dev.workerAddress.port || "3000"
-    }`,
-    // @ts-expect-error
-    socketPath: buildInfo.dev.workerAddress.socketPath,
-  });
+  const baseURL = `http://${buildInfo.dev.workerAddress.host || "localhost"}:${
+    buildInfo.dev.workerAddress.port || "3000"
+  }`;
+  const socketPath = buildInfo.dev.workerAddress.socketPath;
+
+  // `fetch` does not support `socketPath`, so when the dev worker listens on
+  // a unix socket (or windows named pipe) send requests with `node:http`.
+  const devFetch = socketPath
+    ? createFetch({
+        fetch: _createSocketFetch(socketPath),
+        defaults: { baseURL },
+      })
+    : ofetch.create({ baseURL });
 
   return {
     buildInfo,
     devFetch,
   };
+}
+
+const _nullBodyStatus = new Set([204, 205, 304]);
+
+function _createSocketFetch(socketPath: string): typeof globalThis.fetch {
+  return (input, init) =>
+    new Promise<Response>((resolve, reject) => {
+      const url = input instanceof Request ? input.url : String(input);
+      const req = http.request(
+        url,
+        {
+          socketPath,
+          method: init?.method || "GET",
+          headers: Object.fromEntries(new Headers(init?.headers)),
+          signal: init?.signal || undefined,
+        },
+        (res) => {
+          const chunks: Buffer[] = [];
+          res.on("data", (chunk: Buffer) => chunks.push(chunk));
+          res.on("error", reject);
+          res.on("end", () => {
+            try {
+              const status = res.statusCode || 500;
+              const headers = new Headers();
+              for (let i = 0; i < res.rawHeaders.length; i += 2) {
+                headers.append(res.rawHeaders[i], res.rawHeaders[i + 1]);
+              }
+              resolve(
+                new Response(
+                  _nullBodyStatus.has(status) ? null : Buffer.concat(chunks),
+                  { status, statusText: res.statusMessage, headers }
+                )
+              );
+            } catch (error) {
+              reject(error);
+            }
+          });
+        }
+      );
+      req.on("error", reject);
+      const body = init?.body;
+      if (body == null) {
+        req.end();
+      } else {
+        req.end(body instanceof Uint8Array ? body : String(body));
+      }
+    });
 }
 
 function _pidIsRunning(pid: number) {
