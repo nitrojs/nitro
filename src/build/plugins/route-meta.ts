@@ -1,28 +1,64 @@
 import { readFile } from "node:fs/promises";
 import { isAbsolute } from "pathe";
-import type { Expression, Literal } from "estree";
+import type { Expression, Literal, Program } from "estree";
 import type { Nitro, NitroEventHandler } from "nitro/types";
 import type { Plugin } from "rollup";
+import type { Plugin as VitePlugin } from "vite";
 import { importOXC } from "../../utils/oxc.ts";
 import { escapeRegExp } from "../../utils/regex.ts";
+import { createRouteResponseSchemaGenerator } from "./_route-response-schema.ts";
+import { extractRouteValidation } from "./_route-request-schema.ts";
 
 const PREFIX = "\0nitro:route-meta:";
 
 export async function routeMeta(nitro: Nitro) {
   const { parseSync, transformSync } = await importOXC({ dir: nitro.options.rootDir });
+  const responseSchemas = createRouteResponseSchemaGenerator(nitro);
+  const virtualIds = new Set<string>();
   return {
     name: "nitro:route-meta",
+    watchChange(id) {
+      responseSchemas.invalidate(id);
+    },
+    hotUpdate: {
+      order: "pre",
+      handler({ file, modules, timestamp }) {
+        responseSchemas.invalidate(file);
+        const updated = new Set(modules);
+        for (const id of virtualIds) {
+          const module = this.environment.moduleGraph.getModuleById(id);
+          if (module) {
+            this.environment.moduleGraph.invalidateModule(module, undefined, timestamp, true);
+            updated.add(module);
+          }
+        }
+        return [...updated];
+      },
+    },
+    closeBundle() {
+      responseSchemas.close();
+    },
     resolveId: {
       order: "pre",
-      // eslint-disable-next-line no-control-regex
-      filter: { id: /^(?!\u0000)(.+)\?meta$/ },
       async handler(id, importer, resolveOpts) {
-        if (id.endsWith("?meta")) {
-          const resolved = await this.resolve(id.replace("?meta", ""), importer, resolveOpts);
+        if (!id.startsWith("\0") && (id.endsWith("?meta") || id.endsWith("?nitro-validation"))) {
+          const validation = id.endsWith("?nitro-validation");
+          const resolved = await this.resolve(
+            id.replace(/\?(meta|nitro-validation)$/, ""),
+            importer,
+            resolveOpts
+          );
           if (!resolved) {
             return;
           }
-          return PREFIX + resolved.id;
+          return PREFIX + resolved.id + (validation ? "?nitro-validation" : "");
+        }
+        if (importer?.startsWith(PREFIX) && importer.endsWith("?nitro-validation")) {
+          return this.resolve(
+            id,
+            importer.slice(PREFIX.length).replace(/\?nitro-validation$/, ""),
+            resolveOpts
+          );
         }
       },
     },
@@ -33,11 +69,13 @@ export async function routeMeta(nitro: Nitro) {
       },
       handler(id) {
         if (id.startsWith(PREFIX)) {
-          const fullPath = id.slice(PREFIX.length);
+          virtualIds.add(id);
+          const fullPath = id.slice(PREFIX.length).replace(/\?nitro-validation$/, "");
           if (isAbsolute(fullPath)) {
+            this.addWatchFile(fullPath);
             return readFile(fullPath, { encoding: "utf8" });
           } else {
-            return "export default undefined;";
+            return "export const routeSchema = {}; export default undefined;";
           }
         }
       },
@@ -48,16 +86,22 @@ export async function routeMeta(nitro: Nitro) {
         id: new RegExp(`^${escapeRegExp(PREFIX)}`),
       },
       async handler(code, id) {
+        const validation = id.endsWith("?nitro-validation");
         let meta: NitroEventHandler["meta"] | null = null;
+        let hasValidation = false;
 
         try {
-          const transformRes = transformSync(id, code, { tsconfig: false });
+          const transformRes = transformSync(id.replace(/\?nitro-validation$/, ""), code, {
+            tsconfig: false,
+          });
           if (transformRes.errors?.length > 0) {
             for (const error of transformRes.errors) {
               this.warn(error);
             }
             return {
-              code: `export default {};`,
+              code: validation
+                ? "export default undefined;"
+                : `export const routeSchema = {}; export default {};`,
               map: null,
               moduleType: "js",
             };
@@ -65,6 +109,16 @@ export async function routeMeta(nitro: Nitro) {
 
           // Not `this.parse()`, so the plugin also runs without a bundler (`builder: false`)
           const { program } = parseSync(id, transformRes.code, { lang: "js" });
+          if (validation) {
+            return {
+              code: await extractRouteValidation(transformRes.code, {
+                ast: program as Program,
+                rootDir: nitro.options.rootDir,
+              }),
+              map: null,
+              moduleType: "js",
+            };
+          }
           for (const node of program.body as any[]) {
             if (
               node.type === "ExpressionStatement" &&
@@ -74,21 +128,41 @@ export async function routeMeta(nitro: Nitro) {
               node.expression.arguments.length === 1
             ) {
               meta = astToObject(node.expression.arguments[0] as any);
-              break;
+            }
+            if (
+              node.type === "ExportDefaultDeclaration" &&
+              node.declaration.type === "CallExpression" &&
+              node.declaration.callee.type === "Identifier" &&
+              node.declaration.callee.name === "defineValidatedHandler"
+            ) {
+              hasValidation = true;
             }
           }
         } catch (error) {
-          nitro.logger.warn(`[handlers-meta] Cannot extra route meta for: ${id}: ${error}`);
+          nitro.logger.warn(`[handlers-meta] Cannot extract route meta for: ${id}: ${error}`);
+          if (validation) {
+            return { code: "export default undefined;", map: null, moduleType: "js" };
+          }
         }
 
+        const fullPath = id.slice(PREFIX.length);
+        const response = isAbsolute(fullPath) ? await responseSchemas.infer(fullPath) : undefined;
         return {
-          code: `export default ${JSON.stringify(meta)};`,
+          code: `export const routeSchema = {
+  request: ${
+    hasValidation
+      ? `() => import(${JSON.stringify(fullPath + "?nitro-validation")}).then((module) => module.default)`
+      : "undefined"
+  },
+  response: ${JSON.stringify(response)}
+};
+export default ${JSON.stringify(meta)};`,
           map: null,
           moduleType: "js",
         };
       },
     },
-  } satisfies Plugin;
+  } satisfies Plugin & Pick<VitePlugin, "hotUpdate">;
 }
 
 function astToObject(node: Expression | Literal): any {
