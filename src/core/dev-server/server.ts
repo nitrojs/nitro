@@ -290,15 +290,35 @@ class DevServer {
     return app;
   }
 
+  /**
+   * Proxy a websocket upgrade to the current worker.
+   *
+   * Never rejects. Both callers -- `server.on("upgrade")` below and the
+   * `upgrade` method exposed by `createDevServer` -- hand this to a callback
+   * that drops the returned promise, so a rejection here surfaces as an
+   * unhandled rejection instead of an error anyone can act on. There is also
+   * nothing left to reply with once a handshake is in flight, so a failed
+   * upgrade just closes the socket.
+   */
   async handleUpgrade(req: IncomingMessage, socket: Socket, head: any) {
-    const worker = await this.getWorker();
-    if (!worker) {
-      throw createError({
-        statusCode: 503,
-        message: "No worker available.",
-      });
+    try {
+      const worker = await this.getWorker();
+      if (!worker) {
+        throw createError({
+          statusCode: 503,
+          message: "No worker available.",
+        });
+      }
+      await worker.handleUpgrade(req, socket, head);
+    } catch (error) {
+      // A websocket dying together with its connection is ordinary traffic: the
+      // peer went away, or the worker it was proxied to has been replaced by a
+      // reload. Only report what is not that.
+      if (!isDisconnect(error)) {
+        consola.warn("[nitro] [dev] Failed to proxy websocket upgrade.", error);
+      }
+      socket.destroy();
     }
-    return worker.handleUpgrade(req, socket, head);
   }
 
   #generateError() {
@@ -345,4 +365,18 @@ class DevServer {
       }
     );
   }
+}
+
+/**
+ * Whether an error is only the other end of a connection going away, rather
+ * than a fault worth reporting.
+ */
+function isDisconnect(error: unknown): boolean {
+  const code = (error as NodeJS.ErrnoException | undefined)?.code;
+  return (
+    code === "ECONNRESET" ||
+    code === "ECONNABORTED" ||
+    code === "EPIPE" ||
+    code === "ERR_STREAM_PREMATURE_CLOSE"
+  );
 }
