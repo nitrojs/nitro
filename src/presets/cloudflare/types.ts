@@ -96,6 +96,13 @@ export interface CloudflareOptions {
 
 type DurableObjectState = ConstructorParameters<typeof DurableObject>[0];
 
+export type CloudflareHeaderTreeNode = {
+  path: string;
+  wildcardHeaders: Record<string, string> | undefined;
+  headers: Record<string, string> | undefined;
+  children: Record<string, CloudflareHeaderTreeNode>;
+};
+
 declare module "nitropack/types" {
   export interface NitroRuntimeHooks {
     // https://developers.cloudflare.com/workers/runtime-apis/handlers/scheduled/
