@@ -10,12 +10,16 @@ const ws = import.meta._websocket
   ? wsAdapter(nitroApp.h3App.websocket)
   : undefined;
 
+function parseInt(value: string) {
+  const parsedValue = Number.parseInt(value);
+  return Number.isNaN(parsedValue) ? undefined : parsedValue;
+}
+
 // @ts-expect-error
 const server = Bun.serve({
   port: process.env.NITRO_PORT || process.env.PORT || 3000,
   host: process.env.NITRO_HOST || process.env.HOST,
-  idleTimeout:
-    Number.parseInt(process.env.NITRO_BUN_IDLE_TIMEOUT as string) || undefined,
+  idleTimeout: parseInt(process.env.NITRO_BUN_IDLE_TIMEOUT as string),
   websocket: import.meta._websocket ? ws!.websocket : (undefined as any),
   async fetch(req: Request, server: any) {
     // https://crossws.unjs.io/adapters/bun
