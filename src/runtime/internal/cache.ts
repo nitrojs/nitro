@@ -8,9 +8,12 @@ import type { CachedFunction, StorageInterface } from "ocache";
 import {
   cacheFunctionDefaults,
   cacheHandlerDefaults,
+  cacheServerTiming,
   createCacheStorage,
 } from "#nitro/virtual/cache";
 import { useNitroApp } from "./app.ts";
+import { beginOp, endOp, getServerTimingContext } from "./server-timing.ts";
+import { cacheStatusLabel } from "./_server-timing-labels.ts";
 
 import type { EventHandler, H3Event } from "h3";
 import type { CachedFunctionOptions, CachedHandlerOptions } from "nitro/types";
@@ -53,7 +56,31 @@ export function defineCachedHandler(
     ...cacheHandlerDefaults,
     ...definedOptions(opts),
   });
-  return defineHandler((event) => ocacheHandler(event as any));
+  if (!cacheServerTiming) {
+    return defineHandler((event) => ocacheHandler(event as any));
+  }
+  const statusHeader = resolveStatusHeader(
+    opts.cacheStatusHeader ?? cacheHandlerDefaults.cacheStatusHeader ?? true
+  );
+  return defineHandler(async (event) => {
+    const metric = beginOp(getServerTimingContext(event), "cache", cacheStatusLabel);
+    if (!metric) {
+      return ocacheHandler(event as any);
+    }
+    let status: string | undefined;
+    try {
+      const res = (await ocacheHandler(event as any)) as Response;
+      status = statusHeader ? res.headers.get(statusHeader)?.toLowerCase() : undefined;
+      return res;
+    } finally {
+      endOp(metric, status);
+    }
+  });
+}
+
+/** Response header ocache writes the cache status to (`cacheStatusHeader`). */
+function resolveStatusHeader(option: boolean | string): string | undefined {
+  return option === true ? "x-cache" : option ? option.toLowerCase() : undefined;
 }
 
 function definedOptions<T extends object>(opts: T): T {

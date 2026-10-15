@@ -9,11 +9,13 @@ function createNitroStub(opts: {
   routedMiddleware?: boolean;
   globalMiddleware?: boolean;
   plugins?: boolean;
+  serverTiming?: Nitro["options"]["serverTiming"];
 }): Nitro {
   return {
     options: {
       plugins: opts.plugins ? ["plugin.ts"] : [],
       experimental: {},
+      serverTiming: opts.serverTiming,
     },
     routing: {
       routes: { hasRoutes: () => opts.routes ?? true },
@@ -99,5 +101,33 @@ describe("virtual/app template", () => {
     expect(plugins).toBeGreaterThan(-1);
     expect(withPlugins.indexOf(reset)).toBeGreaterThan(plugins);
     expect(app(createNitroStub({})).template()).not.toContain(reset);
+  });
+
+  describe("server timing", () => {
+    const serverTiming = { total: true, kv: true, db: false, cache: true };
+
+    it("is not wired when disabled", () => {
+      const template = app(createNitroStub({ routeRules: true, serverTiming: false })).template();
+      expect(template).not.toContain("server-timing");
+      expect(template).toContain("return errorHandler(error, event);");
+    });
+
+    it("registers the middleware before route rules and global middleware", () => {
+      const template = app(
+        createNitroStub({ routeRules: true, globalMiddleware: true, serverTiming })
+      ).template();
+      const timing = template.indexOf('h3App["~middleware"].push(serverTimingMiddleware);');
+      const routeRules = template.indexOf("push(createRouteRulesMiddleware())");
+      expect(timing).toBeGreaterThan(-1);
+      expect(routeRules).toBeGreaterThan(timing);
+    });
+
+    it("wraps the error handler and the app handler with the resolved options", () => {
+      const template = app(createNitroStub({ serverTiming })).template();
+      expect(template).toContain("return serverTimingOnError(event, errorHandler(error, event));");
+      expect(template).toContain(
+        `appHandler = withServerTimingContext(appHandler, ${JSON.stringify(serverTiming)});`
+      );
+    });
   });
 });

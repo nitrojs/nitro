@@ -1,5 +1,5 @@
 import "./_runtime_warn.ts";
-import type { Connector } from "db0";
+import type { Connector, Database } from "db0";
 
 export const connectionConfigs: {
   [name: string]: {
@@ -7,3 +7,5 @@ export const connectionConfigs: {
     options: any;
   };
 } = {};
+
+export const traceDatabase: (db: Database) => Database = (db) => db;

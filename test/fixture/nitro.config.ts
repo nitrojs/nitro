@@ -158,6 +158,7 @@ export default defineConfig({
     ],
     routes: ["/prerender", "/prerender-custom.html", "/404"],
   },
+  serverTiming: true,
   experimental: {
     openAPI: true,
     asyncContext: true,

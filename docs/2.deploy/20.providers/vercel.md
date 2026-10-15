@@ -327,6 +327,20 @@ This works out of the box with the **Nitro + Vite** integration: Nitro's Vercel 
 Client build setups and frameworks must apply `nitro.options.buildAssetsDir` themselves. Use it as the client bundler's asset output directory (base) so generated asset URLs are emitted under that path. Without this, assets are still emitted at their default location and the immutable manifest will not match.
 ::
 
+## Server-Timing
+
+Vercel's CDN [forwards the `Server-Timing` header](https://vercel.com/changelog/server-timing-header) to clients. To see Nitro's metrics in the browser devtools for your deployments, enable the header in production builds:
+
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  serverTiming: true,
+});
+```
+
+:read-more{to="/docs/server-timing" title="Server Timing"}
+
 ## Other preset options
 
 Additional options are available under the `vercel` key in your Nitro config:

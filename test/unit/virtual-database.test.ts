@@ -10,9 +10,14 @@ vi.mock("../../src/utils/dep.ts", async (importOriginal) => ({
 
 const { default: database } = await import("../../src/build/virtual/database.ts");
 
-function createNitroStub(db: Nitro["options"]["database"] | undefined, enabled = true): Nitro {
+function createNitroStub(
+  db: Nitro["options"]["database"] | undefined,
+  enabled = true,
+  serverTiming: Nitro["options"]["serverTiming"] = false
+): Nitro {
   return {
     options: {
+      serverTiming,
       dev: false,
       rootDir: process.cwd(),
       database: db,
@@ -31,7 +36,8 @@ describe("virtual/database template", () => {
     const template = database(
       createNitroStub({ default: { connector: "sqlite" } }, false)
     ).template();
-    expect(template).toBe("export const connectionConfigs = {};");
+    expect(template).toContain("export const connectionConfigs = {};");
+    expect(template).toContain("export const traceDatabase = (db) => db;");
   });
 
   it("imports the connector module", () => {
@@ -78,5 +84,24 @@ describe("virtual/database template", () => {
       createNitroStub({ default: { connector: "postgresql", options: { lib: null } } })
     ).template();
     expect(template).not.toContain(`import("pg")`);
+  });
+
+  it("does not trace queries when serverTiming.db is disabled", () => {
+    const template = database(createNitroStub({ default: { connector: "sqlite" } })).template();
+    expect(template).toContain("export const traceDatabase = (db) => db;");
+    expect(template).not.toContain("db0/tracing");
+  });
+
+  it("traces queries for server timing when serverTiming.db is enabled", () => {
+    const template = database(
+      createNitroStub({ default: { connector: "sqlite" } }, true, {
+        total: true,
+        kv: true,
+        db: true,
+        cache: true,
+      })
+    ).template();
+    expect(template).toContain(`import { withTracing } from "db0/tracing";`);
+    expect(template).toContain(`traceServerTiming("db", ["db0.query"]);`);
   });
 });

@@ -197,6 +197,9 @@ type TestHandlerResult = {
 };
 type TestHandler = (options: any) => Promise<TestHandlerResult | Response>;
 
+// Unique cache keys: some preset tests run several suites against the same in-memory cache
+let serverTimingCacheKey = 0;
+
 export function testNitro(
   ctx: Context,
   getHandler: () => TestHandler | Promise<TestHandler>,
@@ -257,6 +260,7 @@ export function testNitro(
     const { data, headers } = await callHandler({ url: "/" });
     expect(data).toBe("server entry works!");
     expect(headers["x-test"]).toBe("test");
+    expect(headers["server-timing"]).toMatch(/^total;dur=[\d.]+$/);
   });
 
   it("server entry middleware and plugins are not passed to srvx", async () => {
@@ -902,7 +906,10 @@ export function testNitro(
       ["bun", "deno-server", "deno-deploy", "netlify", "netlify-legacy"].includes(ctx.preset)
   )("Database", () => {
     it("works", async () => {
-      const { data } = await callHandler({ url: "/api/db" });
+      const { data, headers } = await callHandler({ url: "/api/db" });
+      expect(headers["server-timing"]).toMatch(
+        /^db;desc="4 queries";dur=[\d.]+, total;dur=[\d.]+$/
+      );
       expect(data).toMatchObject({
         rows: [
           {
@@ -913,6 +920,53 @@ export function testNitro(
           },
         ],
       });
+    });
+  });
+
+  describe("server timing", () => {
+    // `kv` and `db` need `node:async_hooks` and `node:diagnostics_channel`
+    const hasAsyncContext = !ctx.isWorker && !ctx.isIsolated;
+
+    it("adds total to route responses", async () => {
+      const { headers } = await callHandler({ url: "/server-timing/total" });
+      expect(headers["server-timing"]).toMatch(/^total;dur=[\d.]+$/);
+    });
+
+    it("adds total to thrown errors and 404s", async () => {
+      const thrown = await callHandler({ url: "/server-timing/throw" });
+      expect(thrown.status).toBe(503);
+      expect(thrown.headers["server-timing"]).toMatch(/^total;dur=[\d.]+$/);
+
+      const notFound = await callHandler({ url: "/api/server-timing-not-found" });
+      expect(notFound.status).toBe(404);
+      expect(notFound.headers["server-timing"]).toMatch(/^total;dur=[\d.]+$/);
+    });
+
+    it("merges h3 setServerTiming entries", async () => {
+      const { headers } = await callHandler({ url: "/server-timing/custom" });
+      expect(headers["server-timing"]).toMatch(/^custom;desc="Custom";dur=1, total;dur=[\d.]+$/);
+    });
+
+    it("keeps entries set by the server entry", async () => {
+      const { headers } = await callHandler({ url: "/server-entry-timing" });
+      expect(headers["server-timing"]).toMatch(/^app;desc="App";dur=5, total;dur=[\d.]+$/);
+    });
+
+    it("reports cached handler status", async () => {
+      const url = `/server-timing/cached/${++serverTimingCacheKey}`;
+      const first = await callHandler({ url });
+      expect(first.headers["server-timing"]).toMatch(
+        /^cache;desc="miss";dur=[\d.]+, total;dur=[\d.]+$/
+      );
+      const second = await callHandler({ url });
+      expect(second.headers["server-timing"]).toMatch(
+        /^cache;desc="hit";dur=[\d.]+, total;dur=[\d.]+$/
+      );
+    });
+
+    it.runIf(hasAsyncContext)("reports kv operations", async () => {
+      const { headers } = await callHandler({ url: "/server-timing/kv" });
+      expect(headers["server-timing"]).toMatch(/^kv;desc="2 ops";dur=[\d.]+, total;dur=[\d.]+$/);
     });
   });
 

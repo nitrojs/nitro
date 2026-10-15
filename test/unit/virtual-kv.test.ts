@@ -22,7 +22,8 @@ const { default: kv } = await import("../../src/build/virtual/kv.ts");
 
 function createNitroStub(
   tracingChannel: Nitro["options"]["tracingChannel"],
-  kv: Nitro["options"]["kv"] = {}
+  kv: Nitro["options"]["kv"] = {},
+  serverTiming: Nitro["options"]["serverTiming"] = false
 ): Nitro {
   return {
     options: {
@@ -32,6 +33,7 @@ function createNitroStub(
       kv,
       devStorage: {},
       tracingChannel,
+      serverTiming,
     },
   } as unknown as Nitro;
 }
@@ -105,5 +107,22 @@ describe("virtual/kv template", () => {
       createNitroStub(undefined, { "/data": { driver: "fs", lib: null } })
     ).template();
     expect(template).not.toContain("chokidar");
+  });
+
+  it("wraps storage and records server timing when serverTiming.kv is enabled", () => {
+    const template = kv(
+      createNitroStub(undefined, {}, { total: true, kv: true, db: false, cache: true })
+    ).template();
+    expect(template).toContain("import { withTracing } from 'unstorage/tracing'");
+    expect(template).toContain("return withTracing(storage)");
+    expect(template).toContain("traceServerTiming('kv'");
+  });
+
+  it("does not record server timing when serverTiming.kv is disabled", () => {
+    const template = kv(
+      createNitroStub(undefined, {}, { total: true, kv: false, db: false, cache: true })
+    ).template();
+    expect(template).not.toContain("traceServerTiming");
+    expect(template).not.toContain("withTracing");
   });
 });
