@@ -1,6 +1,6 @@
 import { promises as fsp } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { resolve, join, basename } from "pathe";
+import { resolve, join, basename, normalize } from "pathe";
 import { describe, expect, it, afterAll } from "vitest";
 import { setupTest, startServer, testNitro, fixtureDir } from "../tests";
 
@@ -10,7 +10,11 @@ describe("nitro:preset:vercel", async () => {
       handlers: [
         {
           route: "/slash",
-          handler: fileURLToPath(new URL("fixtures/slash.ts", import.meta.url)),
+          // Handler paths are embedded as-is in the generated imports, so
+          // Windows backslashes must be normalized
+          handler: normalize(
+            fileURLToPath(new URL("fixtures/slash.ts", import.meta.url))
+          ),
         },
       ],
       prerender: {
