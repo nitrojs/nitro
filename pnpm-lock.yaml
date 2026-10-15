@@ -52,7 +52,7 @@ importers:
         specifier: ^2.0.10
         version: 2.0.10(debug@4.4.3)(supports-color@10.2.2)
       '@cloudflare/workers-types':
-        specifier: ^5.20261011.1
+        specifier: ^5.20261012.1
         version: 5.20261013.1
       '@cloudflare/workers-utils':
         specifier: ^0.47.1
