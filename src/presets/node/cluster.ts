@@ -23,7 +23,7 @@ export const nodeCluster = defineNitroPreset(
   }
 );
 
-function nodeClusterEntry() {
+export function nodeClusterEntry() {
   return /* js */ `
 import cluster from "node:cluster";
 import os from "node:os";
@@ -31,7 +31,11 @@ import os from "node:os";
 if (cluster.isPrimary) {
   const numberOfWorkers =
     Number.parseInt(process.env.NITRO_CLUSTER_WORKERS || "") ||
-    (os.cpus().length > 0 ? os.cpus().length : 1);
+    (typeof os.availableParallelism === "function"
+      ? os.availableParallelism()
+      : os.cpus().length > 0
+        ? os.cpus().length
+        : 1);
   for (let i = 0; i < numberOfWorkers; i++) {
     cluster.fork({
       WORKER_ID: i + 1,
