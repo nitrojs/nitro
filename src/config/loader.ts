@@ -36,6 +36,7 @@ import { resolveUnenv } from "./resolvers/unenv.ts";
 import { resolveBuilder } from "./resolvers/builder.ts";
 import { resolveServicesOptions } from "./resolvers/services.ts";
 import { resolveTracingChannelOptions } from "./resolvers/tracing.ts";
+import { resolveServerTimingOptions } from "./resolvers/server-timing.ts";
 
 const configResolvers = [
   resolveCompatibilityOptions,
@@ -56,6 +57,7 @@ const configResolvers = [
   resolveUnenv,
   resolveBuilder,
   resolveTracingChannelOptions,
+  resolveServerTimingOptions,
 ] as const;
 
 export async function loadOptions(

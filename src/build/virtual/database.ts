@@ -16,6 +16,7 @@ export default function database(nitro: Nitro) {
 
       const tracingEnabled =
         typeof nitro.options.tracingChannel === "object" && !!nitro.options.tracingChannel.db0;
+      const serverTimingEnabled = !!(nitro.options.serverTiming && nitro.options.serverTiming.db);
 
       const connectorImports = new Map(connections.map((c) => [c.connector, c.module]));
 
@@ -24,8 +25,16 @@ ${[...connectorImports]
   .map(([name, module]) => /* js */ `import ${camelCase(name)}Connector from "${module}";`)
   .join("\n")}
 ${
-  tracingEnabled
-    ? /* js */ `export { withTracing as traceDatabase } from "db0/tracing";`
+  serverTimingEnabled
+    ? /* js */ `import { withTracing } from "db0/tracing";
+import { traceServerTiming } from "#nitro/runtime/server-timing-trace";
+
+export const traceDatabase = (db) => {
+  traceServerTiming("db", ["db0.query"]);
+  return withTracing(db);
+};`
+    : tracingEnabled
+      ? /* js */ `export { withTracing as traceDatabase } from "db0/tracing";`
     : /* js */ `export const traceDatabase = (db) => db;`
 }
 

@@ -21,6 +21,7 @@ export default function app(nitro: Nitro) {
       const allowMethods = [...routeMethods].sort();
       const hasMethodRoutes = allowMethods.length > 0;
       const hasWebSocketRoutes = nitro.routing.webSocketRoutes.hasRoutes();
+      const serverTiming = nitro.options.serverTiming;
 
       const routingImports = [
         hasRoutes && "findRoute",
@@ -36,6 +37,12 @@ export default function app(nitro: Nitro) {
         `import { H3Core } from "h3";`,
         `import errorHandler from "#nitro/virtual/error-handler";`
       );
+
+      if (serverTiming) {
+        imports.push(
+          `import { withServerTimingContext, serverTimingMiddleware, serverTimingOnError } from "#nitro/runtime/server-timing";`
+        );
+      }
 
       // --- createNitroApp() ---
 
@@ -74,7 +81,13 @@ export default function app(nitro: Nitro) {
       if (hasHooks) {
         code.push(`      captureError(error, { event });`);
       }
-      code.push(`      return errorHandler(error, event);`, `    },`, `  });`);
+      code.push(
+        serverTiming
+          ? `      return serverTimingOnError(event, errorHandler(error, event));`
+          : `      return errorHandler(error, event);`,
+        `    },`,
+        `  });`
+      );
 
       if (hasHooks) {
         code.push(
@@ -100,6 +113,13 @@ export default function app(nitro: Nitro) {
         `    return h3App.fetch(req);`,
         `  };`
       );
+
+      if (serverTiming) {
+        code.push(
+          ``,
+          `  appHandler = withServerTimingContext(appHandler, ${JSON.stringify(serverTiming)});`
+        );
+      }
 
       if (hasAsyncContext) {
         imports.push(`import { nitroAsyncContext } from "#nitro/runtime/context";`);
@@ -159,6 +179,9 @@ export default function app(nitro: Nitro) {
       }
 
       code.push(``, `function createH3App(config) {`, `  const h3App = new H3Core(config);`);
+      if (serverTiming) {
+        code.push(`  h3App["~middleware"].push(serverTimingMiddleware);`);
+      }
       // `~findRoute` runs before dispatch on the original pathname, so route
       // rules are resolved there and `event.context.routeRules` is populated for
       // every middleware, including ones plugins unshift onto `~middleware`.
