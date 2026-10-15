@@ -37,7 +37,7 @@ export function externals(opts: NodeExternalsOptions): Plugin {
       suffixes: ["", "/index"],
       extensions: [".mjs", ".cjs", ".js", ".mts", ".cts", ".ts", ".json"],
     });
-    return res?.startsWith("file://") ? fileURLToPath(res) : res;
+    return res?.startsWith("file://") ? normalize(fileURLToPath(res)) : res;
   };
 
   // Normalize options
