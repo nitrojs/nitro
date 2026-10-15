@@ -84,6 +84,13 @@ describe("nitro:preset:nitro-dev", async () => {
             }
           `);
         });
+
+        it("should exclude tags", async () => {
+          spec = ((await callHandler({ url: "/_openapi.json" })) as any).data;
+          expect(spec.paths?.["/_openapi.json"]).toBeUndefined();
+          expect(spec.paths?.["/_scalar"]).toBeUndefined();
+          expect(spec.paths?.["/_swagger"]).toBeUndefined();
+        });
       });
     }
   );

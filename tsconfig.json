@@ -68,7 +68,8 @@
       // Compatibility (#internal/nitro)
       "#internal/nitro": ["./src/runtime"],
       "#internal/nitro/*": ["./src/runtime/*"],
-      "#internal/types/openapi-ts": ["./src/types/openapi-ts"]
+      "#internal/types/openapi-ts": ["./src/types/openapi-ts"],
+      "#internal/types/openapi": ["./src/types/openapi"]
     }
   },
   "include": ["src", "test", "scripts/gen-mirror.ts"],
