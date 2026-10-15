@@ -5,6 +5,11 @@ import { dirname, resolve } from "node:path";
 export default defineNitroConfig({
   compressPublicAssets: true,
   compatibilityDate: "latest",
+  // Cache writes are not awaited before responding; the default fs-backed dev
+  // cache can lose that race on slow runners and flake the cache tests
+  devStorage: {
+    cache: { driver: "memory" },
+  },
   framework: {
     name: "nitro",
     version: "2.x",
