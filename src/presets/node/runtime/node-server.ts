@@ -22,8 +22,9 @@ const server =
     ? new HttpsServer({ key, cert }, toNodeListener(nitroApp.h3App))
     : new HttpServer(toNodeListener(nitroApp.h3App));
 
-const port = (destr(process.env.NITRO_PORT || process.env.PORT) ||
-  3000) as number;
+// `PORT=0` lets the OS pick a random free port
+const _port = destr(process.env.NITRO_PORT || process.env.PORT);
+const port = (_port === 0 ? 0 : _port || 3000) as number;
 const host = process.env.NITRO_HOST || process.env.HOST;
 
 const path = process.env.NITRO_UNIX_SOCKET;
