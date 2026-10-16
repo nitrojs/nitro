@@ -225,8 +225,11 @@ describe("isSplatExpressible", () => {
   it.each([
     ["/a/b", true],
     ["/a/:id", true],
+    ["/a/:id_2", true],
     ["/a/**", true],
     ["/a/**:path", true],
+    ["/a/:_id", false],
+    ["/a/:2nd", false],
     ["/a/:id(\\d+)", false],
     ["/a/:id?", false],
     ["/a/:x+", false],

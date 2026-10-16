@@ -27,7 +27,8 @@ export function routeToSplat(route: string): string {
   return route.replace(CATCH_ALL_RE, "*");
 }
 
-const NAMED_PARAM_RE = /^:\w+$/;
+// placeholder names must start with a letter in `_redirects` and `_headers`
+const NAMED_PARAM_RE = /^:[A-Za-z]\w*$/;
 const SPECIAL_CHARS_RE = /[*:?+(){}]/;
 
 /**
