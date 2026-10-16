@@ -24,21 +24,21 @@ icon: i-logos-react
     "typegen": "react-router typegen"
   },
   "dependencies": {
-    "@react-router/node": "^8.1.0",
-    "isbot": "^5.1.44",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7",
-    "react-router": "^8.1.0"
+    "@react-router/node": "^8.4.0",
+    "isbot": "^5.2.2",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router": "^8.4.0"
   },
   "devDependencies": {
-    "@react-router/dev": "^8.1.0",
-    "@tailwindcss/vite": "^4.3.2",
-    "@types/node": "^26.0.0",
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
+    "@react-router/dev": "^8.4.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "nitro": "latest",
-    "tailwindcss": "^4.3.2",
-    "typescript": "^6.0.3",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
     "vite": "latest"
   }
 }
