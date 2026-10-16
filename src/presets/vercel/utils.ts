@@ -30,6 +30,12 @@ import type {
 } from "./types.ts";
 import { isTest } from "std-env";
 import { ISR_URL_PARAM } from "./runtime/isr.ts";
+import {
+  SCHEDULE_HANDLER_ROUTE,
+  getVercelBuildOutputSchedules,
+  getVercelScheduleFunction,
+  isVercelSchedulesEnabled,
+} from "./schedules.ts";
 
 // https://vercel.com/docs/build-output-api/configuration
 
@@ -102,7 +108,8 @@ export async function generateFunctionFiles(nitro: Nitro) {
   const functionConfigPath = resolve(nitro.options.output.serverDir, ".vc-config.json");
   await writeFile(functionConfigPath, JSON.stringify(baseFunctionConfig, null, 2));
 
-  const functionRules = nitro.options.vercel?.functionRules;
+  const scheduleFunction = getVercelScheduleFunction(nitro);
+  const functionRules = getFunctionRules(nitro);
   const hasRouteFunctionConfig = functionRules && Object.keys(functionRules).length > 0;
   const routeFuncRouter = hasRouteFunctionConfig ? createPatternRouter(functionRules) : undefined;
 
@@ -169,6 +176,23 @@ export async function generateFunctionFiles(nitro: Nitro) {
       );
       createdFuncDirs.add(funcDir);
     }
+  }
+
+  // Write the private scheduled tasks function, without a route
+  if (scheduleFunction) {
+    const funcDir = resolve(
+      nitro.options.output.serverDir,
+      "..",
+      scheduleFunction.functionPath + ".func"
+    );
+    await fsp.mkdir(dirname(funcDir), { recursive: true });
+    await createFunctionDirWithCustomConfig(
+      funcDir,
+      nitro.options.output.serverDir,
+      baseFunctionConfig,
+      scheduleFunction.overrides,
+      scheduleFunction.functionPath
+    );
   }
 
   // Write observability routes
@@ -360,8 +384,20 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     ],
   } as VercelBuildConfigV3);
 
+  // Schedules from scheduledTasks
+  if (isVercelSchedulesEnabled(nitro.options)) {
+    const schedules = nitro.options.static ? [] : getVercelBuildOutputSchedules(nitro);
+    if (nitro.options.static && Object.keys(nitro.options.scheduledTasks || {}).length > 0) {
+      nitro.logger.warn(
+        "Scheduled tasks are not supported by the `vercel-static` preset. Use the `vercel` preset to run them with Vercel Schedules."
+      );
+    }
+    if (schedules.length > 0) {
+      config.schedules = [...schedules, ...(config.schedules || [])];
+    }
+  }
   // Cron jobs from scheduledTasks
-  if (
+  else if (
     nitro.options.experimental.tasks &&
     Object.keys(nitro.options.scheduledTasks || {}).length > 0
   ) {
@@ -399,8 +435,8 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
         };
       }),
     // Route function config routes
-    ...(nitro.options.vercel?.functionRules
-      ? sortRoutes(Object.keys(nitro.options.vercel.functionRules)).map((pattern) => ({
+    ...(getFunctionRules(nitro)
+      ? sortRoutes(Object.keys(getFunctionRules(nitro)!)).map((pattern) => ({
           src: routeSrc(pattern).source,
           dest: withLeadingSlash(normalizeRouteDest(pattern)),
         }))
@@ -657,13 +693,33 @@ export function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
         .map((h) => h.route!),
     ]),
   ].filter(
-    (route) => !prerenderedPaths.has(route.replace(SURROUNDING_SLASH_RE, "")) && !hasISR(route)
+    (route) =>
+      !prerenderedPaths.has(route.replace(SURROUNDING_SLASH_RE, "")) &&
+      !hasISR(route) &&
+      !isPrivateScheduleRoute(nitro, route)
   );
 
   return sortRoutes(routePatterns).map((route) => ({
     route,
     dest: normalizeRouteDest(route),
   }));
+}
+
+/**
+ * `vercel.functionRules`, without the rule for the private scheduled tasks function, which is
+ * written separately and must not get a public route.
+ */
+function getFunctionRules(nitro: Nitro) {
+  const functionRules = nitro.options.vercel?.functionRules;
+  if (!functionRules || !getVercelScheduleFunction(nitro)) {
+    return functionRules;
+  }
+  const { [SCHEDULE_HANDLER_ROUTE]: _scheduleRule, ...rest } = functionRules;
+  return rest;
+}
+
+function isPrivateScheduleRoute(nitro: Nitro, route: string) {
+  return route === SCHEDULE_HANDLER_ROUTE && !!getVercelScheduleFunction(nitro);
 }
 
 // Output is a destination pathname to function name

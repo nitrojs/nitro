@@ -1,6 +1,7 @@
 import type { Nitro } from "nitro/types";
 import { presetsDir } from "nitro/meta";
 import { resolveModulePath } from "exsolve";
+import { setupVercelSchedulesDev } from "./schedules.ts";
 
 /**
  * Configure local development emulation for the Vercel preset.
@@ -9,12 +10,20 @@ import { resolveModulePath } from "exsolve";
  * to runtime config and injects a runtime plugin that binds each topic to
  * the `vercel:queue` hook through env-runner's queue dev bridge.
  *
+ * When Vercel Schedules is enabled and `vercel dev` provides its local Schedules
+ * broker, serves the scheduled task handler and hands scheduling over to the broker.
+ *
  */
 export async function vercelDevModule(nitro: Nitro) {
   if (!nitro.options.dev) {
     return;
   }
 
+  setupVercelSchedulesDev(nitro);
+  setupVercelQueuesDev(nitro);
+}
+
+function setupVercelQueuesDev(nitro: Nitro) {
   const triggers = nitro.options.vercel?.queues?.triggers;
   if (!triggers?.length) {
     return;
