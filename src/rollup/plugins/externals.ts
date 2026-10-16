@@ -17,6 +17,28 @@ import { readPackageJSON, writePackageJSON } from "pkg-types";
 import type { Plugin } from "rollup";
 import semver from "semver";
 
+export type TracedFile = {
+  path: string;
+  subpath: string;
+  parents: string[];
+
+  pkgPath: string;
+  pkgName: string;
+  pkgVersion: string;
+};
+
+export type TracedPackage = {
+  name: string;
+  versions: Record<
+    string,
+    {
+      pkgJSON: PackageJson;
+      path: string;
+      files: string[];
+    }
+  >;
+};
+
 export function externals(opts: NodeExternalsOptions): Plugin {
   const trackedExternals = new Set<string>();
 
@@ -200,15 +222,6 @@ export function externals(opts: NodeExternalsOptions): Plugin {
       });
 
       // Resolve traced files
-      type TracedFile = {
-        path: string;
-        subpath: string;
-        parents: string[];
-
-        pkgPath: string;
-        pkgName: string;
-        pkgVersion: string;
-      };
       const _resolveTracedPath = (p: string) =>
         fsp.realpath(resolve(opts.traceOptions?.base || ".", p));
       const tracedFiles: Record<string, TracedFile> = Object.fromEntries(
@@ -250,17 +263,6 @@ export function externals(opts: NodeExternalsOptions): Plugin {
       );
 
       // Resolve traced packages
-      type TracedPackage = {
-        name: string;
-        versions: Record<
-          string,
-          {
-            pkgJSON: PackageJson;
-            path: string;
-            files: string[];
-          }
-        >;
-      };
       const tracedPackages: Record<string, TracedPackage> = {};
       for (const tracedFile of Object.values(tracedFiles)) {
         // Use `node_modules/{name}` in path as name to support aliases
@@ -371,30 +373,6 @@ export function externals(opts: NodeExternalsOptions): Plugin {
           });
       };
 
-      // Utility to find package parents
-      const findPackageParents = (pkg: TracedPackage, version: string) => {
-        // Try to find parent packages
-        const versionFiles: TracedFile[] = pkg.versions[version].files.map(
-          (path) => tracedFiles[path]
-        );
-        const parentPkgs = [
-          ...new Set(
-            versionFiles.flatMap((file) =>
-              file.parents
-                .map((parentPath) => {
-                  const parentFile = tracedFiles[parentPath];
-                  if (parentFile.pkgName === pkg.name) {
-                    return null;
-                  }
-                  return `${parentFile.pkgName}@${parentFile.pkgVersion}`;
-                })
-                .filter(Boolean)
-            ) as string[]
-          ),
-        ];
-        return parentPkgs;
-      };
-
       // Analyze dependency tree
       const multiVersionPkgs: Record<string, { [version: string]: string[] }> =
         {};
@@ -409,7 +387,8 @@ export function externals(opts: NodeExternalsOptions): Plugin {
         for (const version of versions) {
           multiVersionPkgs[tracedPackage.name][version] = findPackageParents(
             tracedPackage,
-            version
+            version,
+            tracedFiles
           );
         }
       }
@@ -489,6 +468,41 @@ function compareVersions(v1 = "0.0.0", v2 = "0.0.0") {
   } catch {
     return v1.localeCompare(v2);
   }
+}
+
+export function findPackageParents(
+  pkg: TracedPackage,
+  version: string,
+  tracedFiles: Record<string, TracedFile>
+): string[] {
+  const versionObj = pkg.versions[version];
+  if (!versionObj || !versionObj.files) {
+    return [];
+  }
+  // Try to find parent packages
+  const versionFiles: TracedFile[] = versionObj.files
+    .map((path) => tracedFiles[path])
+    .filter(Boolean);
+  const parentPkgs = [
+    ...new Set(
+      versionFiles.flatMap((file) =>
+        (file.parents || [])
+          .map((parentPath) => {
+            const parentFile = tracedFiles[parentPath];
+            if (
+              !parentFile ||
+              !parentFile.pkgName ||
+              parentFile.pkgName === pkg.name
+            ) {
+              return null;
+            }
+            return `${parentFile.pkgName}@${parentFile.pkgVersion}`;
+          })
+          .filter(Boolean)
+      ) as string[]
+    ),
+  ];
+  return parentPkgs;
 }
 
 export function applyProductionCondition(exports: PackageJson["exports"]) {
