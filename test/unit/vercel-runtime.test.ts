@@ -71,6 +71,32 @@ describe("vercel: resolveVercelRuntime", () => {
     expect(await resolveRuntime({ engines: { bun: "1.x" } })).toBe("bun1.x");
   });
 
+  it.each([
+    ["1.4.x", "bun1.4.x"],
+    ["^1.4.0", "bun1.4.x"],
+    [">=1.4", "bun1.4.x"],
+    ["1.x", "bun1.x"],
+    [">=1", "bun1.x"],
+    ["^1.3.0", "bun1.x"],
+  ])("selects the Bun runtime for range %s", async (bun, expected) => {
+    expect(await resolveRuntime({ engines: { bun } })).toBe(expected);
+    expect(await resolveRuntime({ bunVersion: bun })).toBe(expected);
+  });
+
+  it("prefers engines.bun over bunVersion when selecting the Bun version", async () => {
+    expect(
+      await resolveRuntime({ engines: { node: "22.x", bun: "1.4.x" }, bunVersion: "1.x" })
+    ).toBe("bun1.4.x");
+    expect(await resolveRuntime({ engines: { bun: "1.x" }, bunVersion: "1.4.x" })).toBe("bun1.x");
+  });
+
+  it.each(["2.x", "latest", "not-a-version"])("rejects unsupported Bun range %s", async (bun) => {
+    await expect(resolveRuntime({ engines: { bun } })).rejects.toThrow(
+      "Invalid Vercel Bun version"
+    );
+    await expect(resolveRuntime({ bunVersion: bun })).rejects.toThrow("Invalid Vercel Bun version");
+  });
+
   it("uses engines.node when both engines are set and vercel.json has no bunVersion", async () => {
     vi.stubGlobal("Bun", {});
     expect(await resolveRuntime({ engines: { node: "22.x", bun: "1.x" } })).toBe("nodejs22.x");
@@ -152,6 +178,12 @@ describe("vercel preset: function runtime from engines", () => {
   it("writes a Bun function with the bun condition for engines.bun", async () => {
     const { runtime, exportConditions } = await generateFunctionConfig({ bun: "1.x" });
     expect(runtime).toBe("bun1.x");
+    expect(exportConditions).toContain("bun");
+  });
+
+  it("writes a Bun 1.4 function when engines.bun requires it", async () => {
+    const { runtime, exportConditions } = await generateFunctionConfig({ bun: "1.4.x" });
+    expect(runtime).toBe("bun1.4.x");
     expect(exportConditions).toContain("bun");
   });
 });

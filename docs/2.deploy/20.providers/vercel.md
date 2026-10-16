@@ -79,6 +79,8 @@ Alternatively, Nitro also detects Bun automatically if you specify `engines.bun`
 
 If your `package.json` also sets `engines.node`, Node.js is used unless both `engines.bun` and `bunVersion` are set (see [Runtime](#runtime)).
 
+Nitro uses `engines.bun` before `bunVersion` to select the Bun version. Ranges that require Bun 1.4, such as `1.4.x`, `^1.4.0`, and `>=1.4`, select `bun1.4.x`. Ranges that also allow older minor versions, such as `1.x` or `>=1`, keep `bun1.x`, following Vercel's explicit opt-in for minor versions. Invalid or unsupported ranges fail the build.
+
 ## Per-route function configuration
 
 Use `vercel.functionRules` to override [serverless function settings](https://vercel.com/docs/build-output-api/primitives#serverless-function-configuration) for specific routes. Each key is a route pattern and its value is a partial function configuration object that gets merged with the base `vercel.functions` config.
