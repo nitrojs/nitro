@@ -10,7 +10,11 @@ import type { HttpRequest, HttpResponse } from "@azure/functions";
 const nitroApp = useNitroApp();
 
 export async function handle(context: { res: HttpResponse }, req: HttpRequest) {
-  const url = "/" + (req.params.url || "");
+  let url = "/" + (req.params.url || "");
+
+  if (req.url && req.url.includes("?")) {
+    url += req.url.slice(req.url.indexOf("?"));
+  }
 
   const { body, status, statusText, headers } = await nitroApp.localCall({
     url,
