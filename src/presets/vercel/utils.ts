@@ -4,7 +4,12 @@ import mime from "mime";
 import { writeFile } from "nitropack/kit";
 import type { Nitro, NitroRouteRules, PrerenderRoute } from "nitropack/types";
 import { dirname, relative, resolve } from "pathe";
-import { joinURL, withLeadingSlash, withoutLeadingSlash } from "ufo";
+import {
+  joinURL,
+  withLeadingSlash,
+  withTrailingSlash,
+  withoutLeadingSlash,
+} from "ufo";
 import type {
   PrerenderFunctionConfig,
   VercelBuildConfigV3,
@@ -161,6 +166,10 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     (a, b) => b[0].split(/\/(?!\*)/).length - a[0].split(/\/(?!\*)/).length
   );
 
+  // Route rule keys are relative to the baseURL, as at runtime
+  const routeSrc = (route: string) =>
+    `^${routeToVercelSrc(route, nitro.options.baseURL)}$`;
+
   const config = defu(nitro.options.vercel?.config, <VercelBuildConfigV3>{
     version: 3,
     framework: {
@@ -174,35 +183,30 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
         .filter(([_, routeRules]) => routeRules.headers && !routeRules.redirect)
         .reverse()
         .map(([path, routeRules]) => ({
-          src: path.replace("/**", "/(.*)"),
+          src: routeSrc(path),
           headers: routeRules.headers,
           continue: true,
         })),
-      // Redirect rules
-      ...rules
-        .filter(
-          (
-            entry
-          ): entry is [
-            string,
-            NitroRouteRules & {
-              redirect: NonNullable<NitroRouteRules["redirect"]>;
-            },
-          ] => !!entry[1].redirect
-        )
-        .map(([path, routeRules]) => {
-          let route = {
-            src: path.replace("/**", "/(.*)"),
-            status: routeRules.redirect.statusCode,
-            headers: {
-              Location: routeRules.redirect.to.replace("/**", "/$1"),
-            },
-          };
-          if (routeRules.headers) {
-            route = defu(route, { headers: routeRules.headers });
-          }
-          return route;
-        }),
+      // Redirect rules (left to the server function when the target cannot be expanded here)
+      ...rules.flatMap(([path, routeRules]) => {
+        const location = routeRules.redirect
+          ? getRedirectLocation(path, routeRules.redirect.to)
+          : undefined;
+        if (!routeRules.redirect || location === undefined) {
+          return [];
+        }
+        let route = {
+          src: routeSrc(path),
+          status: routeRules.redirect.statusCode,
+          headers: {
+            Location: location,
+          },
+        };
+        if (routeRules.headers) {
+          route = defu(route, { headers: routeRules.headers });
+        }
+        return [route];
+      }),
       // Skew protection
       ...(nitro.options.vercel?.skewProtection &&
       process.env.VERCEL_DEPLOYMENT_ID
@@ -228,7 +232,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
         .filter((asset) => !asset.fallthrough)
         .map((asset) => joinURL(nitro.options.baseURL, asset.baseURL || "/"))
         .map((baseURL) => ({
-          src: baseURL + "(.*)",
+          src: `^${escapeRegExp(withTrailingSlash(baseURL))}(.*)$`,
           headers: {
             "cache-control": "public,max-age=31536000,immutable",
           },
@@ -249,7 +253,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     ...(nitro.options.routeRules["/"]?.isr
       ? [
           {
-            src: `(?<${ISR_URL_PARAM}>/)`,
+            src: `^(?<${ISR_URL_PARAM}>${routeToVercelSrc("/", nitro.options.baseURL)})$`,
             dest: `/index${ISR_SUFFIX}?${ISR_URL_PARAM}=$${ISR_URL_PARAM}`,
           },
         ]
@@ -258,7 +262,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     ...rules
       .filter(([key, value]) => value.isr !== undefined && key !== "/")
       .map(([key, value]) => {
-        const src = `(?<${ISR_URL_PARAM}>${normalizeRouteSrc(key)})`;
+        const src = `^(?<${ISR_URL_PARAM}>${routeToVercelSrc(key, nitro.options.baseURL)})$`;
         if (value.isr === false) {
           // We need to write a rule to avoid route being shadowed by another cache rule elsewhere
           return {
@@ -481,6 +485,57 @@ function normalizeRouteSrc(route: string): string {
     .join("/");
 }
 
+/**
+ * Convert a route rule pattern (relative to `baseURL`) to a `src` regex body
+ * that matches the same paths as the radix3 route rules matcher at runtime:
+ * a trailing `/**` also matches its base, `*` and `:name` match one segment,
+ * a trailing slash is optional and literal characters are escaped.
+ *
+ * The trailing catch-all is the only capturing group, so `$1` refers to it.
+ */
+export function routeToVercelSrc(route: string, baseURL = "/"): string {
+  const segments = joinURL(baseURL, route).split("/").filter(Boolean);
+  let src = "";
+  for (const [index, segment] of segments.entries()) {
+    if (segment.startsWith("**")) {
+      src += index === segments.length - 1 ? "(?:/(.*))?" : "(?:/.*)?";
+    } else if (segment === "*" || segment.startsWith(":")) {
+      src += "/[^/]+";
+    } else {
+      src += "/" + escapeRegExp(segment);
+    }
+  }
+  if (!src) {
+    return "/";
+  }
+  return segments.at(-1)!.startsWith("**") ? src : src + "/?";
+}
+
+/**
+ * Redirect `Location` for a route rule, with a trailing `/**` in the target
+ * expanded to the path matched by the trailing `/**` of the rule, as the
+ * runtime does. Returns `undefined` when it cannot be expanded the same way
+ * (e.g. into the query), in which case the server function handles it.
+ */
+export function getRedirectLocation(
+  path: string,
+  to: string
+): string | undefined {
+  if (!to.includes("**")) {
+    return to;
+  }
+  const base = to.slice(0, -3);
+  if (
+    !path.endsWith("/**") ||
+    !to.endsWith("/**") ||
+    base.includes("**") ||
+    /[?#]/.test(base)
+  ) {
+    return undefined;
+  }
+  return base + "/$1";
+}
+
 // Valid PCRE capture group name
 function namedGroup(input = "") {
   if (/\d/.test(input[0])) {
@@ -555,4 +610,8 @@ async function writePrerenderConfig(
   }
 
   await writeFile(filename, JSON.stringify(prerenderConfig, null, 2));
+}
+
+function escapeRegExp(string: string): string {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 }
