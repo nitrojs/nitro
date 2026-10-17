@@ -569,7 +569,9 @@ export async function resolveVercelRuntime(nitro: Nitro) {
     : !!(engines?.bun || vercelConfig.bunVersion || "Bun" in globalThis);
 
   if (useBun) {
-    runtime = await getEnginesBunRuntime(engines?.bun || vercelConfig.bunVersion || "1.x");
+    runtime = await getEnginesBunRuntime(engines?.bun || vercelConfig.bunVersion || "1.x", {
+      source: engines?.bun ? "`engines.bun` in `package.json`" : "`bunVersion` in `vercel.json`",
+    });
   } else {
     if (engines?.node && (engines.bun || vercelConfig.bunVersion)) {
       nitro.logger.warn(
@@ -858,7 +860,7 @@ async function getEnginesNodeVersion(range: string) {
   return SUPPORTED_NODE_VERSIONS.filter((version) => intersects(`${version}.x`, range)).at(-1);
 }
 
-async function getEnginesBunRuntime(range: string) {
+async function getEnginesBunRuntime(range: string, opts: { source: string }) {
   const { default: validRange } = await import("semver/ranges/valid.js");
   const { default: intersects } = await import("semver/ranges/intersects.js");
   if (validRange(range)) {
@@ -870,5 +872,7 @@ async function getEnginesBunRuntime(range: string) {
       return "bun1.x";
     }
   }
-  throw new Error(`Invalid Vercel Bun version: "${range}".`);
+  throw new Error(
+    `Invalid Vercel Bun version \`${range}\` in ${opts.source}. Use a range that matches \`1.x\` or \`1.4.x\`.`
+  );
 }

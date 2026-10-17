@@ -92,9 +92,11 @@ describe("vercel: resolveVercelRuntime", () => {
 
   it.each(["2.x", "latest", "not-a-version"])("rejects unsupported Bun range %s", async (bun) => {
     await expect(resolveRuntime({ engines: { bun } })).rejects.toThrow(
-      "Invalid Vercel Bun version"
+      `Invalid Vercel Bun version \`${bun}\` in \`engines.bun\` in \`package.json\``
     );
-    await expect(resolveRuntime({ bunVersion: bun })).rejects.toThrow("Invalid Vercel Bun version");
+    await expect(resolveRuntime({ bunVersion: bun })).rejects.toThrow(
+      `Invalid Vercel Bun version \`${bun}\` in \`bunVersion\` in \`vercel.json\``
+    );
   });
 
   it("uses engines.node when both engines are set and vercel.json has no bunVersion", async () => {
