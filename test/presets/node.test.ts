@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { execa } from "execa";
 import { getRandomPort, waitForPort } from "get-port-please";
 import { resolve } from "pathe";
-// import { isWindows } from "std-env";
+import { isWindows } from "std-env";
 import { describe, expect, it } from "vitest";
 import { setupTest, startServer, testNitro } from "../tests.ts";
 import { testCloseHook } from "./_close-hook.ts";
@@ -77,10 +77,39 @@ describe("nitro:preset:node-server", async () => {
 describe("nitro:preset:node-cluster", async () => {
   const ctx = await setupTest("node-cluster");
 
-  // `index.mjs` only forks workers (signals sent to it are not forwarded), so the
-  // worker entry -- the one holding the server -- is spawned directly.
-  testCloseHook(ctx, {
-    command: process.execPath,
-    args: (entry) => [resolve(entry, "../worker.mjs")],
-  });
+  // Signals sent to the primary (`index.mjs`) must be forwarded to workers.
+  testCloseHook(ctx, { command: process.execPath, args: (entry) => [entry] });
+
+  it.skipIf(isWindows)(
+    "exits non-zero when all workers exit unexpectedly",
+    async () => {
+      const port = await getRandomPort();
+      const child = execa(process.execPath, [resolve(ctx.outDir, "server/index.mjs")], {
+        env: {
+          NITRO_CLUSTER_WORKERS: "1",
+          NITRO_PORT: String(port),
+          NITRO_HOST: "127.0.0.1",
+        },
+        extendEnv: false,
+        reject: false,
+      });
+
+      try {
+        await waitForPort(port, { delay: 1000, retries: 20, host: "127.0.0.1" });
+
+        // SIGKILL the sole worker (child of the primary) like a crash would.
+        const { stdout: workerPids } = await execa("pgrep", [
+          "-P",
+          String(child.nodeChildProcess.pid),
+        ]);
+        process.kill(Number.parseInt(workerPids.trim()), "SIGKILL");
+
+        const { exitCode } = await child;
+        expect(exitCode).toBe(1);
+      } finally {
+        child.kill("SIGKILL");
+      }
+    },
+    40_000
+  );
 });
