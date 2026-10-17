@@ -324,7 +324,7 @@ describe("nitro:preset:vercel:web", async () => {
               },
               {
                 "dest": "/tasks/[...name]",
-                "src": "^\\/tasks\\/(?<name>[^/]+(?:\\/[^/]+)*)\\/?$",
+                "src": "^\\/tasks(?:\\/(?<name>(?:[\\s\\S]*[^/])?\\/*?))?\\/?$",
               },
               {
                 "dest": "/stream",
@@ -340,7 +340,7 @@ describe("nitro:preset:vercel:web", async () => {
               },
               {
                 "dest": "/rules/[...slug]",
-                "src": "^\\/rules\\/(?<slug>[^/]+(?:\\/[^/]+)*)\\/?$",
+                "src": "^\\/rules(?:\\/(?<slug>(?:[\\s\\S]*[^/])?\\/*?))?\\/?$",
               },
               {
                 "dest": "/replace",
@@ -432,7 +432,7 @@ describe("nitro:preset:vercel:web", async () => {
               },
               {
                 "dest": "/api/wildcard/[...param]",
-                "src": "^\\/api\\/wildcard\\/(?<param>[^/]+(?:\\/[^/]+)*)\\/?$",
+                "src": "^\\/api\\/wildcard(?:\\/(?<param>(?:[\\s\\S]*[^/])?\\/*?))?\\/?$",
               },
               {
                 "dest": "/api/upload",
@@ -457,6 +457,14 @@ describe("nitro:preset:vercel:web", async () => {
               {
                 "dest": "/api/methods/search",
                 "src": "^\\/api\\/methods\\/search\\/?$",
+              },
+              {
+                "dest": "/api/methods/head",
+                "src": "^\\/api\\/methods\\/head\\/?$",
+              },
+              {
+                "dest": "/api/methods/guarded",
+                "src": "^\\/api\\/methods\\/guarded\\/?$",
               },
               {
                 "dest": "/api/methods/get",
@@ -485,6 +493,18 @@ describe("nitro:preset:vercel:web", async () => {
               {
                 "dest": "/api/db",
                 "src": "^\\/api\\/db\\/?$",
+              },
+              {
+                "dest": "/api/catch-all/[...slug]",
+                "src": "^\\/api\\/catch-all(?:\\/(?<slug>(?:[\\s\\S]*[^/])?\\/*?))?\\/?$",
+              },
+              {
+                "dest": "/api/catch-all-index",
+                "src": "^\\/api\\/catch-all-index\\/?$",
+              },
+              {
+                "dest": "/api/catch-all-index/[...slug]",
+                "src": "^\\/api\\/catch-all-index(?:\\/(?<slug>(?:[\\s\\S]*[^/])?\\/*?))?\\/?$",
               },
               {
                 "dest": "/api/cached",
@@ -685,6 +705,9 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/_ws.func (symlink)",
             "functions/api/body-size.func (symlink)",
             "functions/api/cached.func (symlink)",
+            "functions/api/catch-all-index.func (symlink)",
+            "functions/api/catch-all-index/[...slug].func (symlink)",
+            "functions/api/catch-all/[...slug].func (symlink)",
             "functions/api/db.func (symlink)",
             "functions/api/echo.func",
             "functions/api/headers.func (symlink)",
@@ -693,6 +716,8 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/api/meta/test.func (symlink)",
             "functions/api/methods/foo.get.func (symlink)",
             "functions/api/methods/get.func (symlink)",
+            "functions/api/methods/guarded.func (symlink)",
+            "functions/api/methods/head.func (symlink)",
             "functions/api/methods/search.func (symlink)",
             "functions/api/middleware-order.func (symlink)",
             "functions/api/param/[test_id].func (symlink)",

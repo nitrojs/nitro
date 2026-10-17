@@ -47,6 +47,15 @@ export interface NitroOptions extends PresetOptions {
     command?: string;
   };
 
+  /**
+   * Resolved config layers, ordered from highest to lowest priority.
+   *
+   * The first layer is always the project root. It is followed by layers
+   * added with `extends` (local directories, config files, npm packages, or
+   * remote sources). Presets and inline config overrides are not included.
+   */
+  layers: NitroConfigLayer[];
+
   // General
 
   /**
@@ -1010,6 +1019,7 @@ export interface NitroConfig
         | "serverDir"
         | "_config"
         | "_c12"
+        | "layers"
         | "serverEntry"
         | "renderer"
         | "output"
@@ -1065,6 +1075,27 @@ export interface LoadConfigOptions {
 // ------------------------------------------------------------
 // Partial types
 // ------------------------------------------------------------
+
+/**
+ * A resolved config layer available on `nitro.options.layers`.
+ */
+export interface NitroConfigLayer {
+  /** Absolute path to the layer directory. */
+  cwd: string;
+
+  /** Absolute path to the layer config file, if one exists. */
+  configFile?: string;
+
+  /**
+   * Config defined by this layer (before merging with other layers and
+   * defaults). Environment-specific overrides such as `$production` are
+   * already applied.
+   */
+  config: NitroConfig;
+
+  /** Layer metadata from `$meta` in the layer config or `extends` options. */
+  meta?: { name?: string; [key: string]: unknown };
+}
 
 /**
  * Configuration for a public asset directory served in development and
