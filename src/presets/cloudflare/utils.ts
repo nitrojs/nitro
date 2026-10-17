@@ -3,14 +3,13 @@ import type { Plugin } from "rollup";
 import type { WranglerConfig, CloudflarePagesRoutes } from "./types";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { relative, dirname, extname } from "node:path";
 import { writeFile } from "nitropack/kit";
 import { parseTOML, parseJSONC } from "confbox";
 import { readGitConfig, readPackageJSON, findNearestFile } from "pkg-types";
 import { defu } from "defu";
 import { globby } from "globby";
 import { provider } from "std-env";
-import { join, resolve } from "pathe";
+import { dirname, extname, join, relative, resolve } from "pathe";
 import {
   joinURL,
   hasProtocol,
