@@ -37,9 +37,7 @@ export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOpti
         : true, // production build is standalone
       // workerd cannot handle CJS modules, so we must avoid the "node" export
       // condition which often resolves to CJS entries.
-      conditions: isWorkerdRunner
-        ? ["workerd", "worker", ...ctx.nitro!.options.exportConditions!.filter((c) => c !== "node")]
-        : _resolveConditions(ctx),
+      conditions: isWorkerdRunner ? _workerdConditions(ctx) : _resolveConditions(ctx),
       externalConditions: _resolveConditions(ctx).filter((c) => !/browser|wasm|module/.test(c)),
     },
     define: {
@@ -94,9 +92,7 @@ export function createServiceEnvironment(
     },
     resolve: {
       ...(isDev ? { noExternal: isWorkerdRunner ? true : [/^nitro(\/|$)/] } : {}),
-      conditions: isWorkerdRunner
-        ? ["workerd", "worker", ...ctx.nitro!.options.exportConditions!.filter((c) => c !== "node")]
-        : _resolveConditions(ctx),
+      conditions: isWorkerdRunner ? _workerdConditions(ctx) : _resolveConditions(ctx),
       externalConditions: _resolveConditions(ctx).filter((c) => !/browser|wasm|module/.test(c)),
     },
     dev: ctx._isVitest
@@ -149,7 +145,7 @@ export async function initEnvRunner(ctx: NitroPluginContext) {
         }
         if (_retries++ < 3) {
           ctx.nitro!.logger.info("Restarting env runner...", cause ? `Cause: ${cause}` : "");
-          _loadRunner(ctx, manager);
+          _loadRunner(ctx, manager).catch((error) => ctx.nitro!.logger.error(error));
         } else {
           ctx.nitro!.logger.error(
             "Env runner failed after 3 retries.",
@@ -241,6 +237,11 @@ function _resolveConditions(ctx: NitroPluginContext): string[] {
     : exportConditions;
 }
 
+function _workerdConditions(ctx: NitroPluginContext): string[] {
+  const exportConditions = ctx.nitro!.options.exportConditions!;
+  return [...new Set(["workerd", "worker", ...exportConditions.filter((c) => c !== "node")])];
+}
+
 function _devRunner(ctx: NitroPluginContext): RunnerName {
   return (ctx.nitro!.options.devServer.runner ||
     process.env.NITRO_DEV_RUNNER ||
@@ -249,7 +250,7 @@ function _devRunner(ctx: NitroPluginContext): RunnerName {
 
 // workerd-based runners (miniflare) cannot handle CJS externals via import(),
 // so all dependencies must be processed through Vite's transform pipeline.
-function _isWorkerdRunner(ctx: NitroPluginContext): boolean {
+export function _isWorkerdRunner(ctx: NitroPluginContext): boolean {
   return _devRunner(ctx) === "miniflare";
 }
 

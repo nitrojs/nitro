@@ -85,11 +85,6 @@ export interface CloudflareOptions {
      */
     defaultRoutes?: boolean;
   };
-
-  /**
-   * Custom Cloudflare exports additional classes such as WorkflowEntrypoint.
-   */
-  exports?: string;
 }
 
 declare module "nitro/types" {
