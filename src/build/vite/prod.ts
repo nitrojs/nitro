@@ -5,6 +5,7 @@ import { basename, dirname, resolve } from "pathe";
 import { formatCompatibilityDate } from "compatx";
 import { colors as C } from "consola/utils";
 import { copyPublicAssets, prerender } from "../../builder.ts";
+import { compressPublicAssets } from "../../utils/compress.ts";
 import { existsSync } from "node:fs";
 import { writeBuildInfo } from "../info.ts";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
@@ -106,6 +107,10 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
   // Call vite:compile:before hook
   await nitro.hooks.callHook("vite:compile:before", nitro);
 
+  if (nitro.options.compressPublicAssets) {
+    await compressPublicAssets(nitro);
+  }
+
   // Build the Nitro server bundle
   let output: RolldownOutput | undefined;
   if (nitro.options.static) {
@@ -121,6 +126,10 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
 
   // Call compiled hook
   await nitro.hooks.callHook("compiled", nitro);
+
+  if (nitro.options.compressPublicAssets) {
+    await compressPublicAssets(nitro);
+  }
 
   // Write build info
   await writeBuildInfo(nitro, output);
