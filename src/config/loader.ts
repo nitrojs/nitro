@@ -1,7 +1,6 @@
 import { loadConfig, watchConfig } from "c12";
 import consola from "consola";
 import { createDefu } from "defu";
-import { mergeHooks } from "hookable";
 import { resolveCompatibilityDates } from "compatx";
 import type { CompatibilityDateSpec } from "compatx";
 import { klona } from "klona/full";
@@ -9,6 +8,7 @@ import type { PresetName } from "../presets/index.ts";
 import type { LoadConfigOptions, NitroConfig, NitroOptions, NitroPresetMeta } from "nitro/types";
 
 import { NitroDefaults } from "./defaults.ts";
+import { mergeConfig, mergeConfigHooks } from "./_merge.ts";
 
 // Resolvers
 import { resolveAssetsOptions } from "./resolvers/assets.ts";
@@ -191,8 +191,6 @@ async function _loadUserConfig(
   return options;
 }
 
-const mergeConfig = createDefu(mergeConfigHooks) as (...sources: any[]) => any;
-
 const kvConfigKeys = new Set(["kv", "storage", "devStorage"]);
 
 // Env mounts (e.g. from `$development`) with a different driver replace the whole mount instead of deep merging options
@@ -211,16 +209,3 @@ const mergeEnvConfig = createDefu((obj, key, value, namespace) => {
     return true;
   }
 }) as (...sources: any[]) => any;
-
-// Hooks with the same name from all layers (base preset, preset, config, overrides) run in order instead of overriding each other
-function mergeConfigHooks(obj: any, key: PropertyKey, value: any, namespace: string): boolean {
-  if (key === "hooks" && !namespace && isObject(obj.hooks) && isObject(value)) {
-    obj.hooks = mergeHooks(obj.hooks, value);
-    return true;
-  }
-  return false;
-}
-
-function isObject(value: unknown): value is Record<string, any> {
-  return !!value && typeof value === "object" && !Array.isArray(value);
-}

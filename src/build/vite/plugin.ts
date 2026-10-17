@@ -22,7 +22,7 @@ import {
 } from "./env.ts";
 import { runtimeDir } from "nitro/meta";
 import { resolveModulePath } from "exsolve";
-import { defu } from "defu";
+import { mergeConfig } from "../../config/_merge.ts";
 import { prettyPath } from "../../utils/fs.ts";
 import { NitroDevApp } from "../../dev/app.ts";
 import { nitroPreviewPlugin } from "./preview.ts";
@@ -428,7 +428,7 @@ async function setupNitroContext(
     dev: configEnv.command === "serve",
     builder: "vite",
     rootDir: userConfig.root,
-    ...defu(
+    ...mergeConfig(
       ctx.pluginConfig,
       (ctx.pluginConfig as any).config, // TODO: Remove shortly
       userConfig.nitro
