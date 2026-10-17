@@ -42,6 +42,15 @@ describe("deno preset runtime: getClientIP", () => {
     expect(getClientIP(headers, info)).toBe("127.0.0.1");
   });
 
+  it("supports generic headers-like objects implementing get()", () => {
+    const headers = {
+      get(name: string) {
+        return name === "x-forwarded-for" ? "198.51.100.24" : null;
+      },
+    };
+    expect(getClientIP(headers)).toBe("198.51.100.24");
+  });
+
   it("returns undefined when neither x-forwarded-for nor valid remoteAddr hostname is available", () => {
     const headers = new Headers({});
     const unixInfo = {
