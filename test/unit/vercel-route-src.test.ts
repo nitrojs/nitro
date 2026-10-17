@@ -54,7 +54,7 @@ describe("routeToVercelSrc", () => {
         const matcher = toRouteMatcher(
           createRouter({ routes: { [pattern]: { pattern } } })
         );
-        const src = new RegExp(`^${routeToVercelSrc(pattern, baseURL)}$`);
+        const src = new RegExp(`^${routeToVercelSrc(pattern, { baseURL })}$`);
         for (const path of paths) {
           const fullPath = joinURL(baseURL, path);
           expect
@@ -65,20 +65,52 @@ describe("routeToVercelSrc", () => {
     });
   }
 
+  it("does not widen patterns that the runtime matcher does not support", () => {
+    for (const pattern of ["/api/:id.json", "/a/**/b", "/api/**:name"]) {
+      const matcher = toRouteMatcher(
+        createRouter({ routes: { [pattern]: { pattern } } })
+      );
+      const src = new RegExp(`^${routeToVercelSrc(pattern)}$`);
+      for (const path of [
+        "/api",
+        "/api/x",
+        "/api/x.json",
+        "/api/x/y",
+        "/api.json/x",
+        "/a/b",
+        "/a/z/b",
+      ]) {
+        if (src.test(path)) {
+          expect
+            .soft(matcher.matchAll(path).length, `${pattern} ~ ${path}`)
+            .toBeGreaterThan(0);
+        }
+      }
+    }
+  });
+
   it("does not match paths outside of the baseURL", () => {
-    const src = new RegExp(`^${routeToVercelSrc("/api/**", "/base/")}$`);
+    const src = new RegExp(
+      `^${routeToVercelSrc("/api/**", { baseURL: "/base/" })}$`
+    );
     expect(src.test("/api/a")).toBe(false);
     expect(src.test("/base/api/a")).toBe(true);
   });
 
   it("generates readable sources", () => {
     expect(routeToVercelSrc("/")).toBe("/");
-    expect(routeToVercelSrc("/", "/base/")).toBe("/base/?");
+    expect(routeToVercelSrc("/", { baseURL: "/base/" })).toBe("/base/?");
     expect(routeToVercelSrc("/**")).toBe("(?:/(.*))?");
     expect(routeToVercelSrc("/api/**")).toBe("/api(?:/(.*))?");
     expect(routeToVercelSrc("/x/:id")).toBe("/x/[^/]+/?");
-    expect(routeToVercelSrc("/dot.v1/**", "/base/")).toBe(
+    expect(routeToVercelSrc("/dot.v1/**", { baseURL: "/base/" })).toBe(
       String.raw`/base/dot\.v1(?:/(.*))?`
+    );
+    expect(routeToVercelSrc("/old/**", { requireCatchAll: true })).toBe(
+      "/old/(.+)"
+    );
+    expect(routeToVercelSrc("/api/:id.json")).toBe(
+      String.raw`/api/:id\.json/?`
     );
   });
 });
@@ -93,13 +125,19 @@ describe("getRedirectLocation", () => {
 
   it("expands a trailing wildcard like the runtime", () => {
     const route = "/old/**";
-    const location = getRedirectLocation(route, "/new/**")!;
-    const src = new RegExp(`^${routeToVercelSrc(route)}$`);
-    for (const path of ["/old/a", "/old/a/b", "/old/a/"]) {
-      const runtime = joinURL("/new", withoutBase(path, "/old"));
-      expect(path.replace(src, location)).toBe(runtime);
+    const src = new RegExp(
+      `^${routeToVercelSrc(route, { requireCatchAll: true })}$`
+    );
+    for (const target of ["/new", ""]) {
+      const location = getRedirectLocation(route, `${target}/**`)!;
+      for (const path of ["/old/a", "/old/a/b", "/old/a/"]) {
+        const runtime = joinURL(target, withoutBase(path, "/old"));
+        expect(path.replace(src, location)).toBe(runtime);
+      }
     }
-    expect(getRedirectLocation("/old/**", "/**")).toBe("/$1");
+    // The bare base is left to the server function
+    expect(src.test("/old")).toBe(false);
+    expect(src.test("/old/")).toBe(false);
   });
 
   it("leaves targets the edge cannot expand to the server function", () => {

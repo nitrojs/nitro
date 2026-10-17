@@ -134,15 +134,23 @@ describe("nitro:preset:vercel", async () => {
                 "headers": {
                   "Location": "https://nitro.build/$1",
                 },
-                "src": "^/rules/redirect/wildcard(?:/(.*))?$",
+                "src": "^/rules/redirect/wildcard/(.+)$",
                 "status": 307,
+              },
+              {
+                "dest": "/__fallback",
+                "src": "^/rules/redirect/wildcard/?$",
               },
               {
                 "headers": {
                   "Location": "/$1",
                 },
-                "src": "^/rules/redirect/legacy(?:/(.*))?$",
+                "src": "^/rules/redirect/legacy/(.+)$",
                 "status": 307,
+              },
+              {
+                "dest": "/__fallback",
+                "src": "^/rules/redirect/legacy/?$",
               },
               {
                 "headers": {
@@ -788,7 +796,16 @@ describe("nitro:preset:vercel:base-url", async () => {
   // Own output dir, as later describe blocks rebuild into the shared one
   const outDir = resolve(getPresetTmpDir("vercel-base-url"), ".output");
   const ctx = await setupTest("vercel", {
-    config: { preset: "vercel", baseURL: "/base/", output: { dir: outDir } },
+    config: {
+      preset: "vercel",
+      baseURL: "/base/",
+      output: { dir: outDir },
+      routeRules: {
+        "/old/**": { redirect: "/x" },
+        "/old/special/**": { redirect: "/q?p=/**" },
+        "/old/wild/**": { redirect: "/dest/**" },
+      },
+    },
   });
   const config = JSON.parse(
     await fsp.readFile(resolve(outDir, "config.json"), "utf8")
@@ -803,11 +820,30 @@ describe("nitro:preset:vercel:base-url", async () => {
     expect(sources).toEqual(
       expect.arrayContaining([
         "^/base/rules/headers/?$",
-        "^/base/rules/redirect/wildcard(?:/(.*))?$",
+        "^/base/rules/redirect/wildcard/(.+)$",
         "^(?<__isr_route>/base/rules/isr(?:/(.*))?)$",
         "^/base/build/(.*)$",
       ])
     );
+  });
+
+  it("keeps redirects left to the function from being shadowed", () => {
+    const routes: Array<Record<string, any>> = config.routes.slice(
+      0,
+      config.routes.findIndex((route: any) => route.handle === "filesystem")
+    );
+    // First matching route that stops routing, as on Vercel
+    const firstMatch = (path: string) => {
+      const route = routes.find(
+        (route) => !route.continue && new RegExp(route.src).test(path)
+      );
+      return route?.dest || route?.headers?.Location;
+    };
+    expect(firstMatch("/base/old/a")).toBe("/x");
+    expect(firstMatch("/base/old/special/a")).toBe("/__fallback");
+    expect(firstMatch("/base/old/wild")).toBe("/__fallback");
+    expect(firstMatch("/base/old/wild/")).toBe("/__fallback");
+    expect(firstMatch("/base/old/wild/a/b")).toBe("/dest/$1");
   });
 
   it("restores the ISR URL under the baseURL", async () => {

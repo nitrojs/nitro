@@ -36,6 +36,8 @@ const INDEX_FILE_RE = /(^|\/)index(\.html)?$/;
 
 const SURROUNDING_SLASH_RE = /^\/+|\/+$/g;
 
+const PARAM_SEGMENT_RE = /^:\w+$/;
+
 function getSystemNodeVersion() {
   const systemNodeVersion = Number.parseInt(
     process.versions.node.split(".")[0]
@@ -167,8 +169,8 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
   );
 
   // Route rule keys are relative to the baseURL, as at runtime
-  const routeSrc = (route: string) =>
-    `^${routeToVercelSrc(route, nitro.options.baseURL)}$`;
+  const routeSrc = (route: string, requireCatchAll?: boolean) =>
+    `^${routeToVercelSrc(route, { baseURL: nitro.options.baseURL, requireCatchAll })}$`;
 
   const config = defu(nitro.options.vercel?.config, <VercelBuildConfigV3>{
     version: 3,
@@ -187,16 +189,19 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
           headers: routeRules.headers,
           continue: true,
         })),
-      // Redirect rules (left to the server function when the target cannot be expanded here)
+      // Redirect rules (most specific first)
       ...rules.flatMap(([path, routeRules]) => {
-        const location = routeRules.redirect
-          ? getRedirectLocation(path, routeRules.redirect.to)
-          : undefined;
-        if (!routeRules.redirect || location === undefined) {
+        if (!routeRules.redirect) {
           return [];
         }
+        const location = getRedirectLocation(path, routeRules.redirect.to);
+        if (location === undefined) {
+          // Left to the server function, routed here so that less specific redirects cannot match
+          return [{ src: routeSrc(path), dest: FALLBACK_ROUTE }];
+        }
+        const expanded = location !== routeRules.redirect.to;
         let route = {
-          src: routeSrc(path),
+          src: routeSrc(path, expanded),
           status: routeRules.redirect.statusCode,
           headers: {
             Location: location,
@@ -205,7 +210,10 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
         if (routeRules.headers) {
           route = defu(route, { headers: routeRules.headers });
         }
-        return [route];
+        // The bare base of an expanded wildcard is left to the server function
+        return expanded
+          ? [route, { src: routeSrc(path.slice(0, -3)), dest: FALLBACK_ROUTE }]
+          : [route];
       }),
       // Skew protection
       ...(nitro.options.vercel?.skewProtection &&
@@ -253,7 +261,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     ...(nitro.options.routeRules["/"]?.isr
       ? [
           {
-            src: `^(?<${ISR_URL_PARAM}>${routeToVercelSrc("/", nitro.options.baseURL)})$`,
+            src: `^(?<${ISR_URL_PARAM}>${routeToVercelSrc("/", { baseURL: nitro.options.baseURL })})$`,
             dest: `/index${ISR_SUFFIX}?${ISR_URL_PARAM}=$${ISR_URL_PARAM}`,
           },
         ]
@@ -262,7 +270,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     ...rules
       .filter(([key, value]) => value.isr !== undefined && key !== "/")
       .map(([key, value]) => {
-        const src = `^(?<${ISR_URL_PARAM}>${routeToVercelSrc(key, nitro.options.baseURL)})$`;
+        const src = `^(?<${ISR_URL_PARAM}>${routeToVercelSrc(key, { baseURL: nitro.options.baseURL })})$`;
         if (value.isr === false) {
           // We need to write a rule to avoid route being shadowed by another cache rule elsewhere
           return {
@@ -491,31 +499,46 @@ function normalizeRouteSrc(route: string): string {
  * a trailing `/**` also matches its base, `*` and `:name` match one segment,
  * a trailing slash is optional and literal characters are escaped.
  *
+ * Other segments that radix3 does not match as patterns (`**:name`, a `**`
+ * before the end, `:name.ext`) are matched literally, so that they never
+ * widen what the rule applies to.
+ *
  * The trailing catch-all is the only capturing group, so `$1` refers to it.
+ * With `requireCatchAll`, it must be a non-empty path below the base, which
+ * `$1` then holds without its leading slash.
  */
-export function routeToVercelSrc(route: string, baseURL = "/"): string {
-  const segments = joinURL(baseURL, route).split("/").filter(Boolean);
+export function routeToVercelSrc(
+  route: string,
+  opts: { baseURL?: string; requireCatchAll?: boolean } = {}
+): string {
+  const segments = joinURL(opts.baseURL || "/", route)
+    .split("/")
+    .filter(Boolean);
+  const catchAll = segments.at(-1) === "**";
+  if (catchAll) {
+    segments.pop();
+  }
   let src = "";
-  for (const [index, segment] of segments.entries()) {
-    if (segment.startsWith("**")) {
-      src += index === segments.length - 1 ? "(?:/(.*))?" : "(?:/.*)?";
-    } else if (segment === "*" || segment.startsWith(":")) {
-      src += "/[^/]+";
-    } else {
-      src += "/" + escapeRegExp(segment);
-    }
+  for (const segment of segments) {
+    src +=
+      segment === "*" || PARAM_SEGMENT_RE.test(segment)
+        ? "/[^/]+"
+        : "/" + escapeRegExp(segment);
   }
-  if (!src) {
-    return "/";
+  if (catchAll) {
+    return src + (opts.requireCatchAll ? "/(.+)" : "(?:/(.*))?");
   }
-  return segments.at(-1)!.startsWith("**") ? src : src + "/?";
+  return src ? src + "/?" : "/";
 }
 
 /**
  * Redirect `Location` for a route rule, with a trailing `/**` in the target
  * expanded to the path matched by the trailing `/**` of the rule, as the
- * runtime does. Returns `undefined` when it cannot be expanded the same way
- * (e.g. into the query), in which case the server function handles it.
+ * runtime does. `$1` refers to the catch-all of
+ * `routeToVercelSrc(path, { requireCatchAll: true })`.
+ *
+ * Returns `undefined` when it cannot be expanded the same way (e.g. into the
+ * query), in which case the server function handles it.
  */
 export function getRedirectLocation(
   path: string,
