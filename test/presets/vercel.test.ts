@@ -45,6 +45,9 @@ describe("nitro:preset:vercel:web", async () => {
       },
       routeRules: {
         "/rules/nested/keep": { redirect: false, headers: { "x-keep": "keep" } },
+        "/rules/isr-true/**": { isr: true },
+        "/rules/isr-query-empty/**": { isr: { allowQuery: [] } },
+        "/rules/isr-query-nopass/**": { isr: { allowQuery: ["q"], passQuery: false } },
       },
       vercel: {
         queues: {
@@ -224,6 +227,18 @@ describe("nitro:preset:vercel:web", async () => {
                 "status": 404,
               },
               {
+                "dest": "/rules/isr-query-nopass/[...]-isr?__isr_route=$__isr_route",
+                "src": "^(?<__isr_route>\\/rules\\/isr-query-nopass(?:\\/(?<_0>(?:[\\s\\S]*[^/])?\\/*?))??\\/?)$",
+              },
+              {
+                "dest": "/rules/isr-query-empty/[...]-isr?__isr_route=$__isr_route",
+                "src": "^(?<__isr_route>\\/rules\\/isr-query-empty(?:\\/(?<_0>(?:[\\s\\S]*[^/])?\\/*?))??\\/?)$",
+              },
+              {
+                "dest": "/rules/isr-true/[...]-isr?__isr_route=$__isr_route",
+                "src": "^(?<__isr_route>\\/rules\\/isr-true(?:\\/(?<_0>(?:[\\s\\S]*[^/])?\\/*?))??\\/?)$",
+              },
+              {
                 "dest": "/__server",
                 "src": "^(?<__isr_route>\\/rules\\/_\\/cached\\/noncached\\/?)$",
               },
@@ -309,7 +324,7 @@ describe("nitro:preset:vercel:web", async () => {
               },
               {
                 "dest": "/tasks/[...name]",
-                "src": "^\\/tasks\\/(?<name>[^/]+(?:\\/[^/]+)*)\\/?$",
+                "src": "^\\/tasks(?:\\/(?<name>(?:[\\s\\S]*[^/])?\\/*?))?\\/?$",
               },
               {
                 "dest": "/stream",
@@ -325,7 +340,7 @@ describe("nitro:preset:vercel:web", async () => {
               },
               {
                 "dest": "/rules/[...slug]",
-                "src": "^\\/rules\\/(?<slug>[^/]+(?:\\/[^/]+)*)\\/?$",
+                "src": "^\\/rules(?:\\/(?<slug>(?:[\\s\\S]*[^/])?\\/*?))?\\/?$",
               },
               {
                 "dest": "/replace",
@@ -417,7 +432,7 @@ describe("nitro:preset:vercel:web", async () => {
               },
               {
                 "dest": "/api/wildcard/[...param]",
-                "src": "^\\/api\\/wildcard\\/(?<param>[^/]+(?:\\/[^/]+)*)\\/?$",
+                "src": "^\\/api\\/wildcard(?:\\/(?<param>(?:[\\s\\S]*[^/])?\\/*?))?\\/?$",
               },
               {
                 "dest": "/api/upload",
@@ -442,6 +457,14 @@ describe("nitro:preset:vercel:web", async () => {
               {
                 "dest": "/api/methods/search",
                 "src": "^\\/api\\/methods\\/search\\/?$",
+              },
+              {
+                "dest": "/api/methods/head",
+                "src": "^\\/api\\/methods\\/head\\/?$",
+              },
+              {
+                "dest": "/api/methods/guarded",
+                "src": "^\\/api\\/methods\\/guarded\\/?$",
               },
               {
                 "dest": "/api/methods/get",
@@ -470,6 +493,18 @@ describe("nitro:preset:vercel:web", async () => {
               {
                 "dest": "/api/db",
                 "src": "^\\/api\\/db\\/?$",
+              },
+              {
+                "dest": "/api/catch-all/[...slug]",
+                "src": "^\\/api\\/catch-all(?:\\/(?<slug>(?:[\\s\\S]*[^/])?\\/*?))?\\/?$",
+              },
+              {
+                "dest": "/api/catch-all-index",
+                "src": "^\\/api\\/catch-all-index\\/?$",
+              },
+              {
+                "dest": "/api/catch-all-index/[...slug]",
+                "src": "^\\/api\\/catch-all-index(?:\\/(?<slug>(?:[\\s\\S]*[^/])?\\/*?))?\\/?$",
               },
               {
                 "dest": "/api/cached",
@@ -593,14 +628,51 @@ describe("nitro:preset:vercel:web", async () => {
       });
 
       it("should generate prerender config", async () => {
-        const isrRouteConfig = await fsp.readFile(
-          resolve(ctx.outDir, "functions/rules/isr/[...]-isr.prerender-config.json"),
-          "utf8"
-        );
-        expect(JSON.parse(isrRouteConfig)).toMatchObject({
-          expiration: false,
-          allowQuery: ["q", "__isr_route"],
-        });
+        const readPrerenderConfig = (route: string) =>
+          fsp
+            .readFile(resolve(ctx.outDir, `functions${route}-isr.prerender-config.json`), "utf8")
+            .then((r) => JSON.parse(r));
+        // `allowQuery` set: `passQuery` is enabled so the handler sees the params (#4408)
+        expect(await readPrerenderConfig("/rules/isr/[...]")).toMatchInlineSnapshot(`
+          {
+            "allowQuery": [
+              "q",
+              "__isr_route",
+            ],
+            "expiration": false,
+            "passQuery": true,
+          }
+        `);
+        // Explicit `passQuery: false` is respected
+        expect(await readPrerenderConfig("/rules/isr-query-nopass/[...]")).toMatchInlineSnapshot(`
+          {
+            "allowQuery": [
+              "q",
+              "__isr_route",
+            ],
+            "expiration": false,
+            "passQuery": false,
+          }
+        `);
+        // Empty `allowQuery`, `isr: true` and `isr: <number>` are unchanged
+        expect(await readPrerenderConfig("/rules/isr-query-empty/[...]")).toMatchInlineSnapshot(`
+          {
+            "allowQuery": [
+              "__isr_route",
+            ],
+            "expiration": false,
+          }
+        `);
+        expect(await readPrerenderConfig("/rules/isr-true/[...]")).toMatchInlineSnapshot(`
+          {
+            "expiration": false,
+          }
+        `);
+        expect(await readPrerenderConfig("/rules/isr-ttl/[...]")).toMatchInlineSnapshot(`
+          {
+            "expiration": 60,
+          }
+        `);
       });
 
       const walkDir = async (path: string): Promise<string[]> => {
@@ -633,6 +705,9 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/_ws.func (symlink)",
             "functions/api/body-size.func (symlink)",
             "functions/api/cached.func (symlink)",
+            "functions/api/catch-all-index.func (symlink)",
+            "functions/api/catch-all-index/[...slug].func (symlink)",
+            "functions/api/catch-all/[...slug].func (symlink)",
             "functions/api/db.func (symlink)",
             "functions/api/echo.func",
             "functions/api/headers.func (symlink)",
@@ -641,6 +716,8 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/api/meta/test.func (symlink)",
             "functions/api/methods/foo.get.func (symlink)",
             "functions/api/methods/get.func (symlink)",
+            "functions/api/methods/guarded.func (symlink)",
+            "functions/api/methods/head.func (symlink)",
             "functions/api/methods/search.func (symlink)",
             "functions/api/middleware-order.func (symlink)",
             "functions/api/param/[test_id].func (symlink)",
@@ -676,6 +753,12 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/rules/_/cached/[...]-isr.prerender-config.json",
             "functions/rules/_/noncached/cached-isr.func (symlink)",
             "functions/rules/_/noncached/cached-isr.prerender-config.json",
+            "functions/rules/isr-query-empty/[...]-isr.func (symlink)",
+            "functions/rules/isr-query-empty/[...]-isr.prerender-config.json",
+            "functions/rules/isr-query-nopass/[...]-isr.func (symlink)",
+            "functions/rules/isr-query-nopass/[...]-isr.prerender-config.json",
+            "functions/rules/isr-true/[...]-isr.func (symlink)",
+            "functions/rules/isr-true/[...]-isr.prerender-config.json",
             "functions/rules/isr-ttl/[...]-isr.func (symlink)",
             "functions/rules/isr-ttl/[...]-isr.prerender-config.json",
             "functions/rules/isr/[...]-isr.func",

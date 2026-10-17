@@ -315,6 +315,26 @@ export function testNitro(
     expect(paramsData2).toBe("foo/bar/baz");
   });
 
+  it("named catch-all route matches its base path", async () => {
+    const base = await callHandler({ url: "/api/catch-all" });
+    expect(base.status).toBe(200);
+    expect(base.data).toEqual({ route: "catch-all", params: {} });
+
+    const slash = await callHandler({ url: "/api/catch-all/" });
+    expect(slash.status).toBe(200);
+    expect(slash.data).toEqual({ route: "catch-all", params: { slug: "" } });
+
+    const { data: deep } = await callHandler({ url: "/api/catch-all/foo/bar" });
+    expect(deep).toEqual({ route: "catch-all", params: { slug: "foo/bar" } });
+
+    for (const url of ["/api/catch-all-index", "/api/catch-all-index/"]) {
+      const { data } = await callHandler({ url });
+      expect(data, url).toMatchObject({ route: "index" });
+    }
+    const { data: deepIndex } = await callHandler({ url: "/api/catch-all-index/foo" });
+    expect(deepIndex).toEqual({ route: "catch-all", params: { slug: "foo" } });
+  });
+
   it("group routes", async () => {
     const { status } = await callHandler({ url: "/route-group" });
     expect(status).toBe(200);
@@ -885,6 +905,31 @@ export function testNitro(
         "query"
       );
       expect((await callHandler({ url: "/api/methods/search" })).data).toBe("get");
+    });
+
+    it("Falls back to the GET route for HEAD requests", async () => {
+      const fallback = await callHandler({ url: "/api/methods/search", method: "HEAD" });
+      expect(fallback.status).toBe(200);
+      expect(fallback.data || "").toBe("");
+      const get = await callHandler({ url: "/api/methods/head" });
+      expect(get.headers["x-handler"]).toBe("get");
+      const head = await callHandler({ url: "/api/methods/head", method: "HEAD" });
+      expect(head.headers["x-handler"]).toBe("head");
+    });
+
+    it("Runs GET-scoped middleware for HEAD requests", async () => {
+      for (const method of ["GET", "HEAD"]) {
+        const denied = await callHandler({ url: "/api/methods/guarded", method });
+        expect(denied.status, method).toBe(401);
+        expect(denied.headers["x-handler"], method).toBeUndefined();
+        const allowed = await callHandler({
+          url: "/api/methods/guarded",
+          method,
+          headers: { authorization: "token" },
+        });
+        expect(allowed.status, method).toBe(200);
+        expect(allowed.headers["x-handler"], method).toBe("get");
+      }
     });
   });
 

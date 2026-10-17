@@ -277,9 +277,20 @@ export async function writeWranglerConfig(nitro: Nitro, cfTarget: "pages" | "mod
     if (key === "main" && mainIsServerEntry) {
       continue;
     }
-    if (key in userConfig || key in ctxConfig) {
+    let conflict: "ctx" | "user" | undefined;
+    if (key === "assets") {
+      conflict = findAssetsConflict(overrides.assets!, ctxConfig.assets, userConfig.assets, {
+        generatedDir: wranglerConfigDir,
+        userDir: userConfigPath ? dirname(userConfigPath) : nitro.options.rootDir,
+      });
+    } else if (key in ctxConfig) {
+      conflict = "ctx";
+    } else if (key in userConfig) {
+      conflict = "user";
+    }
+    if (conflict) {
       nitro.logger.warn(
-        `[cloudflare] Wrangler config \`${key}\`${key in ctxConfig ? "set by config or modules" : ""} is overridden and will be ignored.`
+        `[cloudflare] Wrangler config \`${key}\`${conflict === "ctx" ? " set by config or modules" : ""} is overridden and will be ignored.`
       );
     }
   }
@@ -363,4 +374,37 @@ async function generateWorkerName(nitro: Nitro) {
     .toLowerCase()
     .replace(/[^a-zA-Z0-9-]/g, "-")
     .replace(/-$/, "");
+}
+
+type WranglerAssets = NonNullable<WranglerConfig["assets"]>;
+
+// Returns the source of an asset `binding` or `directory` that differs from the generated one.
+// Context config is copied into the generated config (relative to `generatedDir`),
+// while user config paths are relative to the user wrangler config (`userDir`).
+function findAssetsConflict(
+  expected: Partial<WranglerAssets>,
+  ctxAssets: Partial<WranglerAssets> | undefined,
+  userAssets: Partial<WranglerAssets> | undefined,
+  opts: { generatedDir: string; userDir: string }
+): "ctx" | "user" | undefined {
+  for (const field of ["binding", "directory"] as const) {
+    // Static builds only generate `directory`
+    if (expected[field] === undefined) {
+      continue;
+    }
+    // Context config takes precedence over user config (null means unset in JSON)
+    const source = ctxAssets?.[field] == null ? "user" : "ctx";
+    const value = (source === "ctx" ? ctxAssets : userAssets)?.[field];
+    if (value == null) {
+      continue;
+    }
+    const isConflict =
+      field === "directory"
+        ? resolve(source === "ctx" ? opts.generatedDir : opts.userDir, value) !==
+          resolve(opts.generatedDir, expected.directory!)
+        : value !== expected.binding;
+    if (isConflict) {
+      return source;
+    }
+  }
 }

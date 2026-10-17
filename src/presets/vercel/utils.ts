@@ -12,6 +12,7 @@ import type {
   RedirectRuleOptions,
 } from "nitro/types";
 import { basename, dirname, relative, resolve } from "pathe";
+import { readPackageJSON } from "pkg-types";
 import {
   addRoute,
   compareRoutes,
@@ -34,7 +35,7 @@ import { ISR_URL_PARAM } from "./runtime/isr.ts";
 // https://vercel.com/docs/build-output-api/configuration
 
 // https://vercel.com/docs/functions/runtimes/node-js/node-js-versions
-const SUPPORTED_NODE_VERSIONS = [20, 22, 24];
+const SUPPORTED_NODE_VERSIONS = [22, 24];
 
 // h3 ProxyOptions that Vercel CDN rewrites cannot handle at the edge.
 // https://vercel.com/docs/rewrites
@@ -558,18 +559,41 @@ export async function resolveVercelRuntime(nitro: Nitro) {
     return runtime;
   }
 
-  // 2. Read runtime from vercel.json if specified
+  const engines = (await readPackageJSON(nitro.options.rootDir).catch(() => undefined))?.engines;
   const vercelConfig = await readVercelConfig(nitro.options.rootDir);
 
-  // 3. Use bun runtime if bunVersion is specified or bun used to build
-  if (vercelConfig.bunVersion || "Bun" in globalThis) {
-    runtime = "bun1.x";
+  // 2. engines in package.json, 3. bunVersion in vercel.json, 4. runtime used to build.
+  // Same precedence as Vercel: with both engines set, bun also needs bunVersion.
+  const useBun = engines?.node
+    ? !!(engines.bun && vercelConfig.bunVersion)
+    : !!(engines?.bun || vercelConfig.bunVersion || "Bun" in globalThis);
+
+  if (useBun) {
+    runtime = await getEnginesBunRuntime(engines?.bun || vercelConfig.bunVersion || "1.x", {
+      source: engines?.bun ? "`engines.bun` in `package.json`" : "`bunVersion` in `vercel.json`",
+    });
   } else {
-    // 3. Auto-detect runtime based on system Node.js version
-    const systemNodeVersion = getSystemNodeVersion();
-    const usedNodeVersion =
-      SUPPORTED_NODE_VERSIONS.find((version) => version >= systemNodeVersion) ??
-      SUPPORTED_NODE_VERSIONS.at(-1);
+    if (engines?.node && (engines.bun || vercelConfig.bunVersion)) {
+      nitro.logger.warn(
+        "Using Node.js because `engines.node` is set in `package.json`. To use Bun, set both `engines.bun` in `package.json` and `bunVersion` in `vercel.json`."
+      );
+    }
+
+    // Newest supported Node.js version allowed by engines.node
+    let usedNodeVersion = engines?.node ? await getEnginesNodeVersion(engines.node) : undefined;
+    if (engines?.node && !usedNodeVersion) {
+      nitro.logger.warn(
+        `\`engines.node\` (\`${engines.node}\`) in \`package.json\` does not match a supported Vercel Node.js version (${SUPPORTED_NODE_VERSIONS.join(", ")}). Using the Node.js version of the build instead.`
+      );
+    }
+
+    // Auto-detect runtime based on system Node.js version
+    if (!usedNodeVersion) {
+      const systemNodeVersion = getSystemNodeVersion();
+      usedNodeVersion =
+        SUPPORTED_NODE_VERSIONS.find((version) => version >= systemNodeVersion) ??
+        SUPPORTED_NODE_VERSIONS.at(-1);
+    }
     runtime = `nodejs${usedNodeVersion}.x`;
   }
 
@@ -676,6 +700,10 @@ function normalizeRouteDest(route: string) {
         if (segment.startsWith("**")) {
           return `[...${segment.replace(/[*:]/g, "")}]`;
         }
+        const catchAll = segment.match(/^:(\w+)\(\.\*\)$/);
+        if (catchAll) {
+          return `[...${catchAll[1]}]`;
+        }
         if (segment === "*") {
           return "[-]";
         }
@@ -770,8 +798,15 @@ async function writePrerenderConfig(
     ...isrConfig,
   };
 
+  // Vercel only forwards the query string to the function with `passQuery`.
+  // Without it, every `allowQuery` cache entry is rendered without its query
+  // params (#4408). Decide on the user's list, before `__isr_route` is added.
+  if (prerenderConfig.allowQuery?.length && prerenderConfig.passQuery === undefined) {
+    prerenderConfig.passQuery = true;
+  }
+
   if (prerenderConfig.allowQuery && !prerenderConfig.allowQuery.includes(ISR_URL_PARAM)) {
-    prerenderConfig.allowQuery.push(ISR_URL_PARAM);
+    prerenderConfig.allowQuery = [...prerenderConfig.allowQuery, ISR_URL_PARAM];
   }
 
   await writeFile(filename, JSON.stringify(prerenderConfig, null, 2));
@@ -818,4 +853,30 @@ function matchPattern<T>(router: RouterContext<{ route: string; data: T }>, patt
 function hasQueryWildcard(to: string): boolean {
   const index = to.search(/[?#]/);
   return index !== -1 && to.includes("**", index);
+}
+
+async function getEnginesNodeVersion(range: string) {
+  const { default: validRange } = await import("semver/ranges/valid.js");
+  if (!validRange(range)) {
+    return;
+  }
+  const { default: intersects } = await import("semver/ranges/intersects.js");
+  return SUPPORTED_NODE_VERSIONS.filter((version) => intersects(`${version}.x`, range)).at(-1);
+}
+
+async function getEnginesBunRuntime(range: string, opts: { source: string }) {
+  const { default: validRange } = await import("semver/ranges/valid.js");
+  const { default: intersects } = await import("semver/ranges/intersects.js");
+  if (validRange(range)) {
+    // Vercel requires an explicit opt-in to Bun minor versions.
+    if (intersects("1.4.x", range) && !intersects("<1.4.0", range)) {
+      return "bun1.4.x";
+    }
+    if (intersects("1.x", range)) {
+      return "bun1.x";
+    }
+  }
+  throw new Error(
+    `Invalid Vercel Bun version \`${range}\` in ${opts.source}. Use a range that matches \`1.x\` or \`1.4.x\`.`
+  );
 }

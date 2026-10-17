@@ -110,11 +110,13 @@ export function initNitroRouting(nitro: Nitro) {
     routedMiddleware._update(
       _middleware
         .filter((h) => !isGlobalMiddleware(h))
-        .map((h) => ({
-          ...h,
-          method: h.method || "",
-          data: handlerWithImportHash(h),
-        }))
+        .flatMap((h) => {
+          const route = { ...h, method: h.method || "", data: handlerWithImportHash(h) };
+          // `HEAD` requests are served by `GET` routes, so they run `GET` middleware too
+          return route.method.toUpperCase() === "GET"
+            ? [route, { ...route, method: "HEAD" }]
+            : [route];
+        })
     );
   };
 
