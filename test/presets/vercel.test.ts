@@ -45,6 +45,8 @@ describe("nitro:preset:vercel:web", async () => {
       },
       routeRules: {
         "/rules/nested/keep": { redirect: false, headers: { "x-keep": "keep" } },
+        "/rules/scoped/**": { redirect: false, headers: { "x-scoped": "scoped" } },
+        "/rules/scoped/old": { redirect: "/base" },
         "/rules/isr-true/**": { isr: true },
         "/rules/isr-query-empty/**": { isr: { allowQuery: [] } },
         "/rules/isr-query-nopass/**": { isr: { allowQuery: ["q"], passQuery: false } },
@@ -140,10 +142,18 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/rules\\/cors\\/?$",
               },
               {
+                "continue": true,
                 "headers": {
                   "x-keep": "keep",
                 },
                 "src": "^\\/rules\\/nested\\/keep\\/?$",
+              },
+              {
+                "continue": true,
+                "headers": {
+                  "x-scoped": "scoped",
+                },
+                "src": "^\\/rules\\/scoped(?:\\/(?<_0>(?:[\\s\\S]*[^/])?\\/*?))??\\/?$",
               },
               {
                 "continue": true,
@@ -164,6 +174,13 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/cdn(?:\\/(?<_0>(?:[\\s\\S]*[^/])?\\/*?))??\\/?$",
               },
               {
+                "headers": {
+                  "Location": "/base",
+                },
+                "src": "^\\/rules\\/scoped\\/old\\/?$",
+                "status": 307,
+              },
+              {
                 "src": "^\\/rules\\/proxy\\/legacy(?:\\/(?<_0>(?:[\\s\\S]*[^/])?\\/*?))??\\/?$",
               },
               {
@@ -178,7 +195,7 @@ describe("nitro:preset:vercel:web", async () => {
                   "Location": "/base",
                   "x-test": "test",
                 },
-                "src": "^\\/rules\\/nested(?:\\/(?<_0>(?:[\\s\\S]*[^/])?\\/*?))??\\/?$",
+                "src": "^(?!(?:\\/rules\\/nested\\/keep\\/?)$)\\/rules\\/nested(?:\\/(?<_0>(?:[\\s\\S]*[^/])?\\/*?))??\\/?$",
                 "status": 307,
               },
               {
@@ -612,19 +629,35 @@ describe("nitro:preset:vercel:web", async () => {
         );
       });
 
-      it("should not continue into less specific redirects when `redirect: false`", async () => {
+      it("should keep `redirect: false` paths out of broader redirects only", async () => {
         const config = await fsp
           .readFile(resolve(ctx.outDir, "config.json"), "utf8")
           .then((r) => JSON.parse(r));
-        const keepIndex = config.routes.findIndex(
-          (route: { src?: string }) => route.src === routeToRegExp("/rules/nested/keep").source
-        );
-        const redirectIndex = config.routes.findIndex(
-          (route: { src?: string }) => route.src === routeToRegExp("/rules/nested/**").source
-        );
-        expect(config.routes[keepIndex]).toMatchObject({ headers: { "x-keep": "keep" } });
-        expect(keepIndex).toBeLessThan(redirectIndex);
-        expect(config.routes[keepIndex].continue).toBeUndefined();
+        // Vercel stops at the first matching route that does not `continue`
+        const firstMatch = (path: string) =>
+          config.routes.find(
+            (route: { src?: string; continue?: boolean }) =>
+              route.src && !route.continue && new RegExp(route.src).test(path)
+          );
+        const headerRoute = (route: string) =>
+          config.routes.find((r: { src?: string }) => r.src === routeToRegExp(route).source);
+
+        expect(headerRoute("/rules/nested/keep")).toMatchObject({
+          headers: { "x-keep": "keep" },
+          continue: true,
+        });
+        expect(firstMatch("/rules/nested/keep")).toMatchObject({ dest: "/rules/[...slug]" });
+        expect(firstMatch("/rules/nested/other")?.headers?.Location).toBe("/base");
+
+        // More specific rules under a `redirect: false` path still run at the edge (#4655)
+        expect(headerRoute("/rules/scoped/**")).toMatchObject({
+          headers: { "x-scoped": "scoped" },
+          continue: true,
+        });
+        expect(firstMatch("/rules/scoped/old")).toMatchObject({
+          status: 307,
+          headers: { Location: "/base" },
+        });
       });
 
       it("should generate prerender config", async () => {

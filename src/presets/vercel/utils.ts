@@ -252,6 +252,11 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
       .map(([path]) => path)
   );
 
+  // `redirect: false` paths opt out of broader CDN redirects
+  const optOutPaths = rules
+    .filter(([_, routeRules]) => routeRules.redirect === false)
+    .map(([path]) => joinURL(nitro.options.baseURL, path));
+
   const publicAssetRoutes = getPublicAssetRoutes(nitro.options.publicAssets, {
     baseURL: nitro.options.baseURL,
     routeRules: nitro.options.routeRules,
@@ -266,7 +271,6 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     overrides: getPrerenderOverrides(nitro._prerenderedRoutes),
     routes: [
       // Header-only rules (least specific first, so more specific headers override on `continue`)
-      // `redirect: false` stops routing so that less specific redirects below cannot match
       ...rules
         .filter(
           ([path, routeRules]) =>
@@ -276,7 +280,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
         .map(([path, routeRules]) => ({
           src: routeSrc(path).source,
           headers: routeRules.headers,
-          ...(routeRules.redirect === false ? {} : { continue: true }),
+          continue: true,
         })),
       // Redirect and proxy rules (most specific first)
       // Rules left to the server function stop routing so that less specific
@@ -297,7 +301,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
         if (cdnRedirectPaths.has(path)) {
           const redirect = routeRules.redirect as RedirectRuleOptions;
           let route = {
-            src: src.source,
+            src: excludePaths(src, optOutPaths),
             status: redirect.status,
             headers: {
               Location: redirect.to.replaceAll("**", catchAllRef(src)),
@@ -308,14 +312,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
           }
           return [route];
         }
-        // `redirect: false` opts the path out of broader CDN redirects. With `headers` it is
-        // already handled by the header-only route above. Only emitted when a CDN redirect
-        // can match, since stopping here also skips the skew protection and asset routes below.
-        const optsOut =
-          routeRules.redirect === false &&
-          !routeRules.headers &&
-          [...cdnRedirectPaths].some((p) => routeSrc(p).test(joinURL(nitro.options.baseURL, path)));
-        return routeRules.redirect || routeRules.proxy || optsOut ? [{ src: src.source }] : [];
+        return routeRules.redirect || routeRules.proxy ? [{ src: src.source }] : [];
       }),
       // Skew protection
       ...(nitro.options.vercel?.skewProtection && nitro.options.manifest?.deploymentId
@@ -843,6 +840,22 @@ function matchPattern<T>(router: RouterContext<{ route: string; data: T }>, patt
       return comparison === "equal" || comparison === "superset";
     })
     .map(({ data }) => data.data);
+}
+
+/**
+ * Keep the more specific `paths` out of a route regex with a negative lookahead,
+ * instead of a route that stops routing before the asset and skew protection routes.
+ * Their named groups are made non-capturing, so the `$n` references stay valid.
+ */
+function excludePaths(src: RegExp, paths: string[]): string {
+  const excluded = paths
+    .filter((path) => src.test(path))
+    .map((path) =>
+      routeToRegExp(path)
+        .source.slice(1, -1)
+        .replace(/\(\?<(?![=!])[^>]*>/g, "(?:")
+    );
+  return excluded.length > 0 ? `^(?!(?:${excluded.join("|")})$)${src.source.slice(1)}` : src.source;
 }
 
 /**
