@@ -1,11 +1,18 @@
 import { loadConfig, watchConfig } from "c12";
+import type { ResolvedConfig } from "c12";
 import consola from "consola";
 import { createDefu } from "defu";
 import { resolveCompatibilityDates } from "compatx";
 import type { CompatibilityDateSpec } from "compatx";
 import { klona } from "klona/full";
 import type { PresetName } from "../presets/index.ts";
-import type { LoadConfigOptions, NitroConfig, NitroOptions, NitroPresetMeta } from "nitro/types";
+import type {
+  LoadConfigOptions,
+  NitroConfig,
+  NitroConfigLayer,
+  NitroOptions,
+  NitroPresetMeta,
+} from "nitro/types";
 
 import { NitroDefaults } from "./defaults.ts";
 
@@ -172,6 +179,7 @@ async function _loadUserConfig(
 
   options._config = configOverrides;
   options._c12 = loadedConfig;
+  options.layers = resolveLayers(loadedConfig);
 
   const _presetName =
     (loadedConfig.layers || []).find((l) => l.config?._meta?.name)?.config?._meta?.name || preset;
@@ -204,3 +212,25 @@ const mergeEnvConfig = createDefu((obj, key, value, namespace) => {
     return true;
   }
 }) as (...sources: any[]) => any;
+
+// c12 layers also include overrides, rc, package.json and preset layers, which have no `cwd`
+function resolveLayers(c12: ResolvedConfig<NitroConfig>): NitroConfigLayer[] {
+  const c12Layers = c12.layers || [];
+  const rootLayer = c12Layers.find((layer) => layer.cwd && !layer.source);
+  return [
+    {
+      cwd: c12.cwd!,
+      configFile: c12._configFile,
+      config: rootLayer?.config || {},
+      meta: c12.meta,
+    },
+    ...c12Layers
+      .filter((layer) => layer.cwd && layer.source)
+      .map((layer) => ({
+        cwd: layer.cwd!,
+        configFile: layer.configFile,
+        config: layer.config || {},
+        meta: layer.meta,
+      })),
+  ];
+}
