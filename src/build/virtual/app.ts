@@ -11,9 +11,11 @@ export default function app(nitro: Nitro) {
       const hasPlugins = nitro.options.plugins.length > 0;
       const hasHooks = nitro.options.features?.runtimeHooks ?? hasPlugins;
       const hasAsyncContext = !!nitro.options.experimental.asyncContext;
+      const hasMethodRoutes = nitro.routing.routes.routes.some((r) => r.method);
 
       const routingImports = [
         hasRoutes && "findRoute",
+        hasMethodRoutes && "findRouteMethods",
         hasRoutedMiddleware && "findRoutedMiddleware",
         hasGlobalMiddleware && "globalMiddleware",
       ].filter(Boolean);
@@ -152,9 +154,11 @@ export default function app(nitro: Nitro) {
           );
         }
         code.push(
-          hasRoutes
-            ? `    return findRoute(event.req.method, event.url.pathname);`
-            : `    return undefined;`,
+          hasMethodRoutes
+            ? `    return findRoute(event.req.method, event.url.pathname) ?? findMethodNotAllowed(event.req.method, event.url.pathname);`
+            : hasRoutes
+              ? `    return findRoute(event.req.method, event.url.pathname);`
+              : `    return undefined;`,
           `  };`
         );
       }
@@ -164,9 +168,15 @@ export default function app(nitro: Nitro) {
         hasRouteRules && "createRouteRulesMiddleware",
         hasRoutedMiddleware && "createRoutedMiddleware",
         hasRouteRules && "getRouteRules",
+        hasMethodRoutes && "createMethodNotAllowedMatcher",
       ].filter(Boolean);
       if (runtimeAppImports.length) {
         imports.push(`import { ${runtimeAppImports.join(", ")} } from "#nitro/runtime/app";`);
+      }
+      if (hasMethodRoutes) {
+        code.push(
+          `  const findMethodNotAllowed = createMethodNotAllowedMatcher(findRouteMethods);`
+        );
       }
       if (hasRouteRules) {
         code.push(`  h3App["~middleware"].push(createRouteRulesMiddleware());`);

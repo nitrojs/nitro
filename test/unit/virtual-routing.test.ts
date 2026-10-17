@@ -10,6 +10,7 @@ function createNitroStub(
   opts: {
     tracingChannel?: Nitro["options"]["tracingChannel"];
     handler?: Partial<NitroEventHandler>;
+    routes?: { route: string; method: string }[];
   } = {}
 ): Nitro {
   const handler: NitroEventHandler & { _importHash: string } = {
@@ -28,7 +29,10 @@ function createNitroStub(
     },
     routing: {
       routes: {
-        routes: [{ route: "/foo", method: "GET", data: handler }],
+        routes: (opts.routes || [{ route: "/foo", method: "GET" }]).map((r) => ({
+          ...r,
+          data: handler,
+        })),
         compileToString: ({ serialize }: { serialize: (h: unknown) => string }) =>
           `{"/foo":${serialize(handler)}}`,
       },
@@ -80,6 +84,31 @@ describe("virtual/routing template", () => {
     expect(template).toContain(
       `h3.defineLazyEventHandler(() => import("/path/to/handler.ts").then(m => ({ fetch: srvxNode.toFetchHandler(m.default) })));`
     );
+  });
+
+  it("compiles the allowed methods of each method-specific route pattern", () => {
+    const template = routing(
+      createNitroStub({
+        routes: [
+          { route: "/foo", method: "get" },
+          { route: "/foo", method: "put" },
+          { route: "/bar/:id", method: "delete" },
+          { route: "/any", method: "" },
+        ],
+      })
+    ).template();
+    const code = template.match(/export const findRouteMethods = (.+);\n/)![1];
+    const findRouteMethods = new Function(`return ${code}`)();
+    expect(findRouteMethods("POST", "/foo")).toEqual([{ data: ["GET", "PUT"] }]);
+    expect(findRouteMethods("GET", "/bar/1")).toMatchObject([{ data: ["DELETE"] }]);
+    expect(findRouteMethods("GET", "/any")).toEqual([]);
+  });
+
+  it("exports an empty allowed methods matcher without method-specific routes", () => {
+    const template = routing(
+      createNitroStub({ routes: [{ route: "/foo", method: "" }] })
+    ).template();
+    expect(template).toContain("export const findRouteMethods = () => [];");
   });
 });
 

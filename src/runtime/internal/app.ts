@@ -1,7 +1,8 @@
 import type { NitroApp, NitroRuntimeHooks, ResolvedRouteRules } from "nitro/types";
 import type { ServerRequest, ServerRequestContext } from "srvx";
-import type { ComposedMiddleware, H3EventContext, Middleware, WebSocketHooks } from "h3";
-import { composeMiddleware, toRequest } from "h3";
+import type { ComposedMiddleware, H3EventContext, H3Route, Middleware, WebSocketHooks } from "h3";
+import type { MatchedRoute } from "rou3";
+import { composeMiddleware, HTTPError, toRequest } from "h3";
 import { HookableCore } from "hookable";
 import { createMatcherFromFind, memoizeRouteRulesMatcher } from "h3/rules";
 
@@ -149,6 +150,31 @@ export function createRoutedMiddleware(
     return (node.chain ??= composeMiddleware(matched.map((r) => r.data)))(event, next as any);
   };
   return markUntraced(middleware);
+}
+
+/**
+ * Fallback for `~findRoute` when no route matches the request method. If the
+ * path is routed for other methods, the matched route responds with
+ * `405 Method Not Allowed` and an `Allow` header instead of falling through to
+ * `404`. Middleware still runs first, so it can answer (e.g. CORS preflight).
+ */
+export function createMethodNotAllowedMatcher(
+  findRouteMethods: (method: string, pathname: string) => { data: string[] }[]
+): (method: string, pathname: string) => MatchedRoute<H3Route> | undefined {
+  return (method, pathname) => {
+    const matched = findRouteMethods(method, pathname);
+    if (matched.length === 0) {
+      return;
+    }
+    const allow = [...new Set(matched.flatMap((r) => r.data))].sort().join(", ");
+    return {
+      data: {
+        handler: () => {
+          throw new HTTPError({ status: 405, headers: { allow } });
+        },
+      },
+    };
+  };
 }
 
 type RoutedChainNode = {

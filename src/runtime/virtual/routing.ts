@@ -17,3 +17,7 @@ export const globalMiddleware: Middleware[] = [];
 export function findRoutedMiddleware(_method: string, _path: string): MatchedRoute<Middleware>[] {
   return [];
 }
+
+export function findRouteMethods(_method: string, _path: string): MatchedRoute<string[]>[] {
+  return [];
+}
