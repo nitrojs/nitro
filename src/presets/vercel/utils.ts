@@ -676,6 +676,10 @@ function normalizeRouteDest(route: string) {
         if (segment.startsWith("**")) {
           return `[...${segment.replace(/[*:]/g, "")}]`;
         }
+        const catchAll = segment.match(/^:(\w+)\(\.\*\)$/);
+        if (catchAll) {
+          return `[...${catchAll[1]}]`;
+        }
         if (segment === "*") {
           return "[-]";
         }

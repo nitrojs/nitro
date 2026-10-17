@@ -317,7 +317,8 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     }
   };
 
-  const isCatchAllRoute = (route: string) => route === "/**" || route.startsWith("/**:");
+  const isCatchAllRoute = (route: string) =>
+    route === "/**" || route.startsWith("/**:") || /^\/:\w+\(\.\*\)$/.test(route);
 
   // Opaque catch-alls: the SSR renderer and a custom server entry (see .agents/vite-dev.md §2).
   const isOpaqueHandler = (h?: { handler?: string }) =>
@@ -339,7 +340,7 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
 
     // `nitro.routing.routes` always includes the SSR catch-all `/**` in SSR apps, so an explicit
     // user route must be told apart from the catch-all. A root-level user catch-all
-    // (`routes/[...].ts` -> `/**`, `routes/[...slug].ts` -> `/**:slug`) is as authoritative as the
+    // (`routes/[...].ts` -> `/**`, `routes/[...slug].ts` -> `/:slug(.*)`) is as authoritative as the
     // SSR `/**` and must not swallow Vite asset serves either, so both forms count as catch-all;
     // prefixed splat routes (`/api/photos/**`) are deterministic user routes and stay explicit.
     const pathname = new URL(withBase(req.url!, nitro.options.baseURL), "http://localhost")

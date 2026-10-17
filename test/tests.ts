@@ -315,6 +315,25 @@ export function testNitro(
     expect(paramsData2).toBe("foo/bar/baz");
   });
 
+  it("named catch-all route matches its base path", async () => {
+    for (const url of ["/api/catch-all", "/api/catch-all/"]) {
+      const { status, data } = await callHandler({ url });
+      expect(status, url).toBe(200);
+      expect(data.route, url).toBe("catch-all");
+      expect(data.slug || null, url).toBe(null);
+    }
+
+    const { data: deep } = await callHandler({ url: "/api/catch-all/foo/bar" });
+    expect(deep).toMatchObject({ route: "catch-all", slug: "foo/bar" });
+
+    for (const url of ["/api/catch-all-index", "/api/catch-all-index/"]) {
+      const { data } = await callHandler({ url });
+      expect(data, url).toMatchObject({ route: "index" });
+    }
+    const { data: deepIndex } = await callHandler({ url: "/api/catch-all-index/foo" });
+    expect(deepIndex).toMatchObject({ route: "catch-all", slug: "foo" });
+  });
+
   it("group routes", async () => {
     const { status } = await callHandler({ url: "/route-group" });
     expect(status).toBe(200);
