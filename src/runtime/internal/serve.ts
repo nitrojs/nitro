@@ -37,15 +37,9 @@ export function resolveServeOptions(opts: ServerOptions): ServerOptions {
   }
 
   if (socketPath) {
+    resolved.node = { ...resolved.node, path: socketPath } as ServerOptions["node"];
     resolved.bun = { ...resolved.bun, unix: socketPath } as ServerOptions["bun"];
     resolved.deno = { ...resolved.deno, path: socketPath } as ServerOptions["deno"];
-  }
-
-  // srvx always passes `port` to `server.listen()`, which takes precedence over `path` in Node.js
-  // (`undefined` and `null` bind a random port), so set it to a value that `listen()` skips.
-  const nodePath = socketPath || resolved.node?.path;
-  if (nodePath) {
-    resolved.node = { ...resolved.node, path: nodePath, port: false as unknown as number };
   }
 
   return resolved;

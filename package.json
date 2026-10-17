@@ -76,7 +76,7 @@
     "h3": "^2.0.2",
     "nf3": "^0.4.2",
     "ocache": "^0.3.0",
-    "srvx": "^1.0.5",
+    "srvx": "^1.0.6",
     "unstorage": "^2.0.0-alpha.11"
   },
   "devDependencies": {

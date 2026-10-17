@@ -19,7 +19,7 @@ importers:
     dependencies:
       crossws:
         specifier: ^0.4.15
-        version: 0.4.15(srvx@1.0.5)
+        version: 0.4.15(srvx@1.0.6)
       db0:
         specifier: ^0.4.1
         version: 0.4.1
@@ -36,8 +36,8 @@ importers:
         specifier: ^0.3.0
         version: 0.3.0
       srvx:
-        specifier: ^1.0.5
-        version: 1.0.5
+        specifier: ^1.0.6
+        version: 1.0.6
       unstorage:
         specifier: ^2.0.0-alpha.11
         version: 2.0.0-alpha.11
@@ -6435,8 +6435,8 @@ packages:
     engines: {node: '>=20.16.0'}
     hasBin: true
 
-  srvx@1.0.5:
-    resolution: {integrity: sha512-KvSKRpgPG/oaq3cyT614OQ2bAa7DynuGamivCZeoZzIUULOdbQz6wUtnnVuC4+DCx2Zglzo8v5gBYmWIWYhDxA==}
+  srvx@1.0.6:
+    resolution: {integrity: sha512-QeTKgAhk8OSsfeq60bl3wuVs9PmBftzmk7owBInA/F1YQne+TRw0UcPymNpURldAmx8hfmM2PNNGH/zgo3GpLA==}
     engines: {node: '>=20.16.0'}
     hasBin: true
 
@@ -9896,7 +9896,7 @@ snapshots:
       obug: 3.0.0
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
-      srvx: 1.0.5
+      srvx: 1.0.6
       strip-literal: 4.0.0
       turbo-stream: 3.2.1
       vite: 8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
@@ -10552,9 +10552,9 @@ snapshots:
       shebang-command: 2.0.0
       which: 2.0.2
 
-  crossws@0.4.15(srvx@1.0.5):
+  crossws@0.4.15(srvx@1.0.6):
     optionalDependencies:
-      srvx: 1.0.5
+      srvx: 1.0.6
 
   crypt@0.0.2: {}
 
@@ -10782,8 +10782,8 @@ snapshots:
 
   env-runner@0.3.4:
     dependencies:
-      crossws: 0.4.15(srvx@1.0.5)
-      srvx: 1.0.5
+      crossws: 0.4.15(srvx@1.0.6)
+      srvx: 1.0.6
 
   eol@0.9.1: {}
 
@@ -11182,9 +11182,9 @@ snapshots:
   h3@2.0.2(crossws@0.4.15)(ocache@0.3.0):
     dependencies:
       rou3: 1.0.0
-      srvx: 1.0.5
+      srvx: 1.0.6
     optionalDependencies:
-      crossws: 0.4.15(srvx@1.0.5)
+      crossws: 0.4.15(srvx@1.0.6)
       ocache: 0.3.0
 
   has-flag@4.0.0: {}
@@ -12843,7 +12843,7 @@ snapshots:
 
   rendu@0.1.1:
     dependencies:
-      srvx: 1.0.5
+      srvx: 1.0.6
 
   require-directory@2.1.1: {}
 
@@ -13238,7 +13238,7 @@ snapshots:
 
   srvx@0.9.8: {}
 
-  srvx@1.0.5: {}
+  srvx@1.0.6: {}
 
   stack-trace@1.0.0: {}
 
