@@ -119,11 +119,22 @@ To type the `COUNTER` binding with the `Counter` class, see [Typing bindings](#t
 Other classes, such as Workflows or `WorkerEntrypoint`s, are exported from `server.ts` the same way:
 
 ```ts [server.ts]
-import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
+import {
+  WorkerEntrypoint,
+  WorkflowEntrypoint,
+  type WorkflowEvent,
+  type WorkflowStep,
+} from "cloudflare:workers";
 
 export class MyWorkflow extends WorkflowEntrypoint {
   async run(event: WorkflowEvent, step: WorkflowStep) {
     // ...
+  }
+}
+
+export class MyEntrypoint extends WorkerEntrypoint {
+  greet(name: string) {
+    return `Hello ${name}`;
   }
 }
 ```
