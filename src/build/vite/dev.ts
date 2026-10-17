@@ -345,7 +345,11 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     // prefixed splat routes (`/api/photos/**`) are deterministic user routes and stay explicit.
     const pathname = new URL(withBase(req.url!, nitro.options.baseURL), "http://localhost")
       .pathname;
-    const match = nitro.routing.routes.match(req.method || "", pathname);
+    let match = nitro.routing.routes.match(req.method || "", pathname);
+    // Mirrors the runtime: `HEAD` is served by the `GET` route unless a `HEAD` route matches
+    if (req.method === "HEAD" && !(match && !Array.isArray(match) && match.method)) {
+      match = nitro.routing.routes.match("GET", pathname);
+    }
     const matchedHandlers = match ? (Array.isArray(match) ? match : [match]) : [];
     const isExplicitRoute = matchedHandlers.some((h) => h?.route && !isCatchAllRoute(h.route));
 

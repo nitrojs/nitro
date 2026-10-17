@@ -78,6 +78,12 @@ export default defineConfig({
       middleware: true,
     },
     {
+      route: "/api/methods/guarded",
+      handler: "./server/routed-middleware/guard.ts",
+      method: "GET",
+      middleware: true,
+    },
+    {
       route: "/virtual",
       handler: "#virtual-route",
     },

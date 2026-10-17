@@ -910,10 +910,26 @@ export function testNitro(
     it("Falls back to the GET route for HEAD requests", async () => {
       const fallback = await callHandler({ url: "/api/methods/search", method: "HEAD" });
       expect(fallback.status).toBe(200);
+      expect(fallback.data || "").toBe("");
       const get = await callHandler({ url: "/api/methods/head" });
       expect(get.headers["x-handler"]).toBe("get");
       const head = await callHandler({ url: "/api/methods/head", method: "HEAD" });
       expect(head.headers["x-handler"]).toBe("head");
+    });
+
+    it("Runs GET-scoped middleware for HEAD requests", async () => {
+      for (const method of ["GET", "HEAD"]) {
+        const denied = await callHandler({ url: "/api/methods/guarded", method });
+        expect(denied.status, method).toBe(401);
+        expect(denied.headers["x-handler"], method).toBeUndefined();
+        const allowed = await callHandler({
+          url: "/api/methods/guarded",
+          method,
+          headers: { authorization: "token" },
+        });
+        expect(allowed.status, method).toBe(200);
+        expect(allowed.headers["x-handler"], method).toBe("get");
+      }
     });
   });
 
