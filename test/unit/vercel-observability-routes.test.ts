@@ -43,6 +43,7 @@ describe("getObservabilityRoutes", () => {
           handlers: [
             { route: "/**", handler: "catch-all.ts" },
             { route: "/blog/:slug", handler: "blog.ts" },
+            { route: "/docs/:path(.*)", handler: "docs.ts" },
             { route: "/foo", handler: "foo.ts" },
             { route: "/skipped", handler: "middleware.ts", middleware: true },
           ],
@@ -52,6 +53,7 @@ describe("getObservabilityRoutes", () => {
     ).toEqual([
       { route: "/", dest: "index" },
       { route: "/foo", dest: "foo" },
+      { route: "/docs/:path(.*)", dest: "docs/[...path]" },
       { route: "/blog/:slug", dest: "blog/[slug]" },
       { route: "/**", dest: "[...]" },
     ]);

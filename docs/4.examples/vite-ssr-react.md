@@ -21,13 +21,13 @@ icon: i-logos-react
     "dev": "vite dev"
   },
   "devDependencies": {
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
     "nitro": "latest",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "react-refresh": "^0.18.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-refresh": "^0.19.0",
     "vite": "latest"
   }
 }

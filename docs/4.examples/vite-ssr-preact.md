@@ -21,12 +21,12 @@ icon: i-logos-preact
     "dev": "vite dev"
   },
   "devDependencies": {
-    "@preact/preset-vite": "^2.10.5",
-    "@tailwindcss/vite": "^4.2.2",
+    "@preact/preset-vite": "^2.10.6",
+    "@tailwindcss/vite": "^4.3.3",
     "nitro": "latest",
-    "preact": "^10.29.0",
-    "preact-render-to-string": "^6.6.7",
-    "tailwindcss": "^4.2.2",
+    "preact": "^11.0.1",
+    "preact-render-to-string": "^6.8.0",
+    "tailwindcss": "^4.3.3",
     "vite": "latest"
   }
 }

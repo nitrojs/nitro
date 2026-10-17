@@ -114,7 +114,7 @@ All prefixed `#nitro/virtual/<name>`:
 Route file conventions:
 - `routes/index.ts` → `GET /`
 - `routes/users/[id].ts` → `GET /users/:id`
-- `routes/users/[...slug].ts` → `GET /users/**:slug`
+- `routes/users/[...slug].ts` → `GET /users/:slug(.*)` (also matches `/users`)
 - `api/users.post.ts` → `POST /api/users`
 - `.dev`/`.prod`/`.prerender` suffixes for environment filtering
 

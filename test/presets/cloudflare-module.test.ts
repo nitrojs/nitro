@@ -62,6 +62,34 @@ describe("nitro:preset:cloudflare-module", async () => {
     }
   );
 
+  it("does not let the browser cache a missing public asset", async () => {
+    const mf = new Miniflare({
+      modules: true,
+      compatibilityDate: "2025-04-01",
+      scriptPath: resolve(ctx.outDir, "server/index.mjs"),
+      modulesRules: [{ type: "CompiledWasm", include: ["**/*.wasm"] }],
+      assets: {
+        directory: resolve(ctx.outDir, "public"),
+        binding: "ASSETS",
+        routerConfig: { has_user_worker: true },
+        assetConfig: { html_handling: "auto-trailing-slash", not_found_handling: "none" },
+      },
+      compatibilityFlags: ["nodejs_compat", "no_nodejs_compat_v2"],
+      bindings: { ...ctx.env },
+    });
+    try {
+      const found = await mf.dispatchFetch("http://localhost/build/test.txt");
+      expect(found.status).toBe(200);
+      expect(found.headers.get("cache-control")).toMatch(/max-age=3600/);
+
+      const missing = await mf.dispatchFetch("http://localhost/build/missing.js");
+      expect(missing.status).toBe(404);
+      expect(missing.headers.get("cache-control")).toBe("no-store");
+    } finally {
+      await mf.dispose();
+    }
+  });
+
   it("should export the correct functions", async () => {
     const entry = await fsp.readFile(resolve(ctx.outDir, "server", "index.mjs"), "utf8");
     expect(entry).toMatch(/export \{.*myScheduled.*\}/);

@@ -78,8 +78,18 @@ export default defineConfig({
       middleware: true,
     },
     {
+      route: "/api/methods/guarded",
+      handler: "./server/routed-middleware/guard.ts",
+      method: "GET",
+      middleware: true,
+    },
+    {
       route: "/virtual",
       handler: "#virtual-route",
+    },
+    {
+      route: "/traced-root-export",
+      handler: "./node_modules/@fixture/nitro-root-export/index.mjs",
     },
   ],
   devProxy: {

@@ -367,7 +367,7 @@ To revalidate a page on demand:
 
 ### Fine-grained ISR config via route rules
 
-By default, query params affect cache keys but are not passed to the route handler unless specified.
+By default, query params affect cache keys but are not passed to the route handler. When `allowQuery` lists params, Nitro also enables `passQuery` so the handler sees them.
 
 You can pass an options object to the `isr` route rule to configure caching behavior:
 
@@ -377,7 +377,7 @@ You can pass an options object to the `isr` route rule to configure caching beha
   - If an empty array, query values are not considered for caching.
   - If `undefined`, each unique query value is cached independently.
   - For wildcard `/**` route rules, `url` is always added.
-- `passQuery`: When `true`, the query string is present on the `request` argument passed to the invoked function. The `allowQuery` filter still applies.
+- `passQuery`: When `true`, the query string is present on the `request` argument passed to the invoked function. The `allowQuery` filter still applies. Defaults to `true` when `allowQuery` is a non-empty list, so the listed params reach the handler. Set it to `false` to opt out.
 - `exposeErrBody`: When `true`, expose the response body regardless of status code, including error status codes (default: `false`).
 
 ```ts [nitro.config.ts]
@@ -388,7 +388,6 @@ export default defineConfig({
     "/products/**": {
       isr: {
         allowQuery: ["q"],
-        passQuery: true,
         exposeErrBody: true
       },
     },
