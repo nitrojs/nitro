@@ -316,22 +316,23 @@ export function testNitro(
   });
 
   it("named catch-all route matches its base path", async () => {
-    for (const url of ["/api/catch-all", "/api/catch-all/"]) {
-      const { status, data } = await callHandler({ url });
-      expect(status, url).toBe(200);
-      expect(data.route, url).toBe("catch-all");
-      expect(data.slug || null, url).toBe(null);
-    }
+    const base = await callHandler({ url: "/api/catch-all" });
+    expect(base.status).toBe(200);
+    expect(base.data).toEqual({ route: "catch-all", params: {} });
+
+    const slash = await callHandler({ url: "/api/catch-all/" });
+    expect(slash.status).toBe(200);
+    expect(slash.data).toEqual({ route: "catch-all", params: { slug: "" } });
 
     const { data: deep } = await callHandler({ url: "/api/catch-all/foo/bar" });
-    expect(deep).toMatchObject({ route: "catch-all", slug: "foo/bar" });
+    expect(deep).toEqual({ route: "catch-all", params: { slug: "foo/bar" } });
 
     for (const url of ["/api/catch-all-index", "/api/catch-all-index/"]) {
       const { data } = await callHandler({ url });
       expect(data, url).toMatchObject({ route: "index" });
     }
     const { data: deepIndex } = await callHandler({ url: "/api/catch-all-index/foo" });
-    expect(deepIndex).toMatchObject({ route: "catch-all", slug: "foo" });
+    expect(deepIndex).toEqual({ route: "catch-all", params: { slug: "foo" } });
   });
 
   it("group routes", async () => {
