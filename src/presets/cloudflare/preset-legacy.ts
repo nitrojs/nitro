@@ -2,6 +2,7 @@ import { defineNitroPreset } from "nitropack/kit";
 import { writeFile } from "nitropack/kit";
 import type { Nitro } from "nitropack/types";
 import { resolve } from "pathe";
+import { stripBareNodeImports } from "./preset";
 
 export type { CloudflareOptions as PresetOptions } from "./types";
 
@@ -55,6 +56,7 @@ const cloudflareModuleLegacy = defineNitroPreset(
         exports: "named",
         inlineDynamicImports: false,
       },
+      plugins: [stripBareNodeImports()],
     },
     wasm: {
       lazy: false,
