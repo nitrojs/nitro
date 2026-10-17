@@ -1,6 +1,7 @@
 import defu from "defu";
 import {
   type H3Event,
+  createError,
   eventHandler,
   proxyRequest,
   sendRedirect,
@@ -10,6 +11,7 @@ import type { NitroRouteRules } from "nitropack/types";
 import { createRouter as createRadixRouter, toRouteMatcher } from "radix3";
 import { getQuery, joinURL, withQuery, withoutBase } from "ufo";
 import { useRuntimeConfig } from "./config";
+import { isPathInScope } from "./route-rules-utils";
 
 const config = useRuntimeConfig();
 const _routeRulesMatcher = toRouteMatcher(
@@ -33,7 +35,12 @@ export function createRouteRulesHandler(ctx: {
         let targetPath = event.path;
         const strpBase = (routeRules.redirect as any)._redirectStripBase;
         if (strpBase) {
+          if (!isPathInScope(event.path.split("?")[0], strpBase)) {
+            throw createError({ statusCode: 400 });
+          }
           targetPath = withoutBase(targetPath, strpBase);
+        } else if (targetPath.startsWith("//")) {
+          targetPath = targetPath.replace(/^\/+/, "/");
         }
         target = joinURL(target.slice(0, -3), targetPath);
       } else if (event.path.includes("?")) {
@@ -49,7 +56,12 @@ export function createRouteRulesHandler(ctx: {
         let targetPath = event.path;
         const strpBase = (routeRules.proxy as any)._proxyStripBase;
         if (strpBase) {
+          if (!isPathInScope(event.path.split("?")[0], strpBase)) {
+            throw createError({ statusCode: 400 });
+          }
           targetPath = withoutBase(targetPath, strpBase);
+        } else if (targetPath.startsWith("//")) {
+          targetPath = targetPath.replace(/^\/+/, "/");
         }
         target = joinURL(target.slice(0, -3), targetPath);
       } else if (event.path.includes("?")) {

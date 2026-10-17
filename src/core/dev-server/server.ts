@@ -1,5 +1,5 @@
 import type { IncomingMessage, OutgoingMessage } from "node:http";
-import type { Duplex } from "node:stream";
+import type { Socket } from "node:net";
 import type { GetPortInput } from "get-port-please";
 import type { FSWatcher } from "chokidar";
 import type { App } from "h3";
@@ -32,11 +32,11 @@ import { resolve } from "pathe";
 import { watch } from "chokidar";
 import { listen as listhen } from "listhen";
 import { servePlaceholder } from "serve-placeholder";
-import { joinURL } from "ufo";
+import { joinURL, withLeadingSlash, withoutTrailingSlash } from "ufo";
 import { createVFSHandler } from "./vfs";
 import { debounce } from "perfect-debounce";
 import { isTest, isCI } from "std-env";
-import { createHTTPProxy } from "./proxy";
+import { createHTTPProxy, type HTTPProxy } from "./proxy";
 
 export function createDevServer(nitro: Nitro): NitroDevServer {
   const devServer = new DevServer(nitro);
@@ -64,10 +64,11 @@ class DevServer {
   reloadPromise?: Promise<void>;
   watcher?: FSWatcher;
   workers: DevWorker[] = [];
+  wsProxies: { route: string; proxy: HTTPProxy }[] = [];
 
   workerError?: unknown;
 
-  building?: boolean = true /* assume initial build will start soon */;
+  building?: boolean = true; /* assume initial build will start soon */
   buildError?: unknown;
 
   constructor(nitro: Nitro) {
@@ -263,6 +264,7 @@ class DevServer {
     }
 
     // User defined dev proxy
+    this.wsProxies = [];
     const routes = Object.keys(this.nitro.options.devProxy).sort().reverse();
     for (const route of routes) {
       let opts = this.nitro.options.devProxy[route];
@@ -274,6 +276,9 @@ class DevServer {
         route,
         eventHandler((event) => proxy.handleEvent(event))
       );
+      if (opts.ws) {
+        this.wsProxies.push({ route: withoutTrailingSlash(route), proxy });
+      }
     }
 
     // Main handler
@@ -290,11 +295,39 @@ class DevServer {
     return app;
   }
 
-  async handleUpgrade(
-    req: IncomingMessage,
-    socket: OutgoingMessage<IncomingMessage> | Duplex,
-    head: any
-  ) {
+  /**
+   * Proxy a websocket upgrade request if it matches a `devProxy` rule with `ws` enabled.
+   *
+   * Routes match by prefix and the prefix is stripped from the forwarded URL,
+   * the same way `devProxy` handles plain HTTP requests.
+   *
+   * @returns `true` if the socket was handed to a proxy, `false` if the caller should handle it.
+   */
+  proxyUpgrade(req: IncomingMessage, socket: Socket, head: any): boolean {
+    const url = req.url || "/";
+    const match = this.wsProxies.find(
+      ({ route }) => route.length <= 1 || url.startsWith(route)
+    );
+    if (!match) {
+      return false;
+    }
+    if (match.route.length > 1) {
+      req.url = withLeadingSlash(url.slice(match.route.length));
+    }
+    match.proxy.proxy.ws(req, socket, {}, head).catch((error) => {
+      consola.warn(
+        `[nitro] [dev] Failed to proxy websocket upgrade for \`${url}\`.`,
+        error
+      );
+      socket.destroy();
+    });
+    return true;
+  }
+
+  async handleUpgrade(req: IncomingMessage, socket: Socket, head: any) {
+    if (this.proxyUpgrade(req, socket, head)) {
+      return;
+    }
     const worker = await this.getWorker();
     if (!worker) {
       throw createError({

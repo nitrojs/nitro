@@ -22,7 +22,7 @@ export function createHTTPProxy(defaults: ProxyServerOptions = {}): HTTPProxy {
     if (!proxyReq.hasHeader("x-forwarded-port")) {
       const localPort = req?.socket?.localPort;
       if (localPort) {
-        proxyReq.setHeader("x-forwarded-port", req.socket.localPort);
+        proxyReq.setHeader("x-forwarded-port", localPort);
       }
     }
     if (!proxyReq.hasHeader("x-forwarded-Proto")) {

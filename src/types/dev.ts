@@ -1,5 +1,5 @@
-import type { IncomingMessage, OutgoingMessage } from "node:http";
-import type { Duplex } from "node:stream";
+import type { IncomingMessage } from "node:http";
+import type { Socket } from "node:net";
 import type { Worker } from "node:worker_threads";
 import type { FSWatcher } from "chokidar";
 import type { App } from "h3";
@@ -23,9 +23,5 @@ export interface NitroDevServer {
   app: App;
   close: () => Promise<void>;
   watcher?: FSWatcher;
-  upgrade: (
-    req: IncomingMessage,
-    socket: OutgoingMessage<IncomingMessage> | Duplex,
-    head: Buffer
-  ) => void;
+  upgrade: (req: IncomingMessage, socket: Socket, head: Buffer) => void;
 }

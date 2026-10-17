@@ -5,6 +5,11 @@ import { dirname, resolve } from "node:path";
 export default defineNitroConfig({
   compressPublicAssets: true,
   compatibilityDate: "latest",
+  // Cache writes are not awaited before responding; the default fs-backed dev
+  // cache can lose that race on slow runners and flake the cache tests
+  devStorage: {
+    cache: { driver: "memory" },
+  },
   framework: {
     name: "nitro",
     version: "2.x",
@@ -41,7 +46,7 @@ export default defineNitroConfig({
     },
   ],
   devProxy: {
-    "/proxy/example": { target: "https://example.com", changeOrigin: true },
+    "/proxy/example": { target: "https://icanhazip.com", changeOrigin: true },
   },
   alias: {
     "#fixture-nitro-utils-extra-absolute": fileURLToPath(
@@ -100,6 +105,7 @@ export default defineNitroConfig({
       redirect: { to: "https://nitro.build/", statusCode: 308 },
     },
     "/rules/redirect/wildcard/**": { redirect: "https://nitro.build/**" },
+    "/rules/redirect/legacy/**": { redirect: "/**" },
     "/rules/nested/**": { redirect: "/base", headers: { "x-test": "test" } },
     "/rules/nested/override": { redirect: { to: "/other" } },
     "/rules/_/noncached/cached": { swr: true },
@@ -107,6 +113,7 @@ export default defineNitroConfig({
     "/rules/_/cached/noncached": { cache: false, swr: false, isr: false },
     "/rules/_/cached/**": { swr: true },
     "/api/proxy/**": { proxy: "/api/echo" },
+    "/rules/proxy/legacy/**": { proxy: "/api/wildcard/**" },
     "/build/**": { headers: { "x-build-header": "works" } },
     "**": { headers: { "x-test": "test" } },
   },

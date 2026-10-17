@@ -529,10 +529,7 @@ export interface ObjectSubtype {
   type: "object" | ["object", "null"];
   properties?: { [name: string]: SchemaObject | ReferenceObject };
   additionalProperties?:
-    | boolean
-    | Record<string, never>
-    | SchemaObject
-    | ReferenceObject;
+    boolean | Record<string, never> | SchemaObject | ReferenceObject;
   required?: string[];
   allOf?: (SchemaObject | ReferenceObject)[];
   anyOf?: (SchemaObject | ReferenceObject)[];

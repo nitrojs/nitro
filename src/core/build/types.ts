@@ -76,7 +76,10 @@ export async function writeTypes(nitro: Nitro) {
             path = resolvedPath;
           } else {
             const subpath = await lookupNodeModuleSubpath(resolvedPath);
-            path = join(dir, name, subpath || "");
+            path =
+              subpath && subpath !== "./"
+                ? join(dir, name, subpath)
+                : resolvedPath;
           }
         }
       }
@@ -209,7 +212,7 @@ declare module "nitropack/types" {
     const tsConfig: TSConfig = defu(nitro.options.typescript.tsConfig, {
       compilerOptions: {
         forceConsistentCasingInFileNames: true,
-        strict: nitro.options.typescript.strict,
+        strict: nitro.options.typescript.strict ?? false,
         noEmit: true,
         skipLibCheck: true,
         target: "ESNext",
@@ -293,9 +296,7 @@ declare module "nitropack/types" {
             .catch(() => null /* file does not exist */);
           return relativeWithDot(
             tsconfigDir,
-            stats?.isFile()
-              ? path.replace(/(?<=\w)\.\w+$/g, "") /* remove extension */
-              : path
+            stats?.isFile() ? stripPathsExt(path) : path
           );
         })
       );
@@ -344,4 +345,12 @@ const RELATIVE_RE = /^\.{1,2}\//;
 export function relativeWithDot(from: string, to: string) {
   const rel = relative(from, to);
   return RELATIVE_RE.test(rel) ? rel : "./" + rel;
+}
+
+// Strip only the extensions TS retries from a bare `paths` candidate.
+// https://github.com/microsoft/TypeScript/blob/main/src/compiler/moduleNameResolver.ts
+const PATHS_STRIPPABLE_EXT_RE = /\.(?:tsx?|jsx?|[cm]js)$/;
+
+export function stripPathsExt(path: string) {
+  return path.replace(PATHS_STRIPPABLE_EXT_RE, "");
 }

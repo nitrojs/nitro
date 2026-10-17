@@ -15,7 +15,12 @@ export async function generateFSTree(
     return;
   }
 
-  const files = await globby("**/*.*", { cwd: dir, ignore: ["*.map"] });
+  const files = await globby("**/*.*", {
+    cwd: dir,
+    ignore: ["**/*.map"],
+    followSymbolicLinks: false,
+    dot: true,
+  });
 
   const items: { file: string; path: string; size: number; gzip: number }[] =
     [];

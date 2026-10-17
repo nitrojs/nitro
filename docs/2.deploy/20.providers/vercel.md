@@ -7,7 +7,7 @@
 :read-more{title="Vercel Framework Support" to="https://vercel.com/docs/frameworks"}
 
 ::note
-Integration with this provider is possible with [zero configuration](/deploy/#zero-config-providers).
+Integration with this provider is possible with [zero configuration](/deploy#zero-config-providers).
 ::
 
 ## Getting started
@@ -124,8 +124,9 @@ You can pass an options object to `isr` route rule to configure caching behavior
   - If an empty array, query values are not considered for caching.
   - If `undefined` each unique query value is cached independently.
   - For wildcard `/**` route rules, `url` is always added
-
 - `passQuery`: When `true`, the query string will be present on the `request` argument passed to the invoked function. The `allowQuery` filter still applies.
+  - Defaults to `true` when `allowQuery` lists any params, so they reach your handler. Set it to `false` to opt out.
+- `exposeErrBody`: When `true`, expose the response body regardless of status code including error status codes. (default `false`
 
 ```ts
 export default defineNitroConfig({
@@ -134,6 +135,7 @@ export default defineNitroConfig({
       isr: {
         allowQuery: ["q"],
         passQuery: true,
+        exposeErrBody: true
       },
     },
   },

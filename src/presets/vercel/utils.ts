@@ -1,7 +1,8 @@
 import fsp from "node:fs/promises";
 import { defu } from "defu";
+import mime from "mime";
 import { writeFile } from "nitropack/kit";
-import type { Nitro, NitroRouteRules } from "nitropack/types";
+import type { Nitro, NitroRouteRules, PrerenderRoute } from "nitropack/types";
 import { dirname, relative, resolve } from "pathe";
 import { joinURL, withLeadingSlash, withoutLeadingSlash } from "ufo";
 import type {
@@ -16,13 +17,19 @@ import { ISR_URL_PARAM } from "./runtime/consts";
 // https://vercel.com/docs/build-output-api/configuration
 
 // https://vercel.com/docs/functions/runtimes/node-js/node-js-versions
-const SUPPORTED_NODE_VERSIONS = [18, 20, 22];
+const SUPPORTED_NODE_VERSIONS = [18, 20, 22, 24];
 
 const FALLBACK_ROUTE = "/__fallback";
 
 const ISR_SUFFIX = "-isr"; // Avoid using . as it can conflict with routing
 
 const SAFE_FS_CHAR_RE = /[^a-zA-Z0-9_.[\]/]/g;
+
+// Vercel serves `<dir>/index.html` (and extensionless `<dir>/index`) at `<dir>`
+// using built-in directory indexes.
+const INDEX_FILE_RE = /(^|\/)index(\.html)?$/;
+
+const SURROUNDING_SLASH_RE = /^\/+|\/+$/g;
 
 function getSystemNodeVersion() {
   const systemNodeVersion = Number.parseInt(
@@ -156,33 +163,41 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
 
   const config = defu(nitro.options.vercel?.config, <VercelBuildConfigV3>{
     version: 3,
-    overrides: {
-      // Nitro static prerendered route overrides
-      ...Object.fromEntries(
-        (
-          nitro._prerenderedRoutes?.filter((r) => r.fileName !== r.route) || []
-        ).map(({ route, fileName }) => [
-          withoutLeadingSlash(fileName),
-          { path: route.replace(/^\//, "") },
-        ])
-      ),
+    framework: {
+      name: nitro.options.framework.name,
+      version: nitro.options.framework.version,
     },
+    overrides: getPrerenderOverrides(nitro._prerenderedRoutes),
     routes: [
-      // Redirect and header rules
+      // Header-only rules (least specific first, so more specific headers override on `continue`)
       ...rules
-        .filter(([_, routeRules]) => routeRules.redirect || routeRules.headers)
+        .filter(([_, routeRules]) => routeRules.headers && !routeRules.redirect)
+        .reverse()
+        .map(([path, routeRules]) => ({
+          src: path.replace("/**", "/(.*)"),
+          headers: routeRules.headers,
+          continue: true,
+        })),
+      // Redirect rules
+      ...rules
+        .filter(
+          (
+            entry
+          ): entry is [
+            string,
+            NitroRouteRules & {
+              redirect: NonNullable<NitroRouteRules["redirect"]>;
+            },
+          ] => !!entry[1].redirect
+        )
         .map(([path, routeRules]) => {
           let route = {
             src: path.replace("/**", "/(.*)"),
+            status: routeRules.redirect.statusCode,
+            headers: {
+              Location: routeRules.redirect.to.replace("/**", "/$1"),
+            },
           };
-          if (routeRules.redirect) {
-            route = defu(route, {
-              status: routeRules.redirect.statusCode,
-              headers: {
-                Location: routeRules.redirect.to.replace("/**", "/$1"),
-              },
-            });
-          }
           if (routeRules.headers) {
             route = defu(route, { headers: routeRules.headers });
           }
@@ -202,7 +217,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
                 },
               ],
               headers: {
-                "Set-Cookie": `__vdpl=${process.env.VERCEL_DEPLOYMENT_ID}; Path=${nitro.options.baseURL}; SameSite=Strict; Secure; HttpOnly`,
+                "Set-Cookie": `__vdpl=${process.env.VERCEL_DEPLOYMENT_ID}; Path=${nitro.options.baseURL}; SameSite=Lax; Secure; HttpOnly`,
               },
               continue: true,
             },
@@ -281,6 +296,53 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
   );
 
   return config;
+}
+
+/**
+ * Map prerendered files to the route and content type they should be served with.
+ *
+ * Paths are always slash-free: Vercel strips slashes when matching, so a path
+ * that keeps a trailing slash matches nothing at all (#4392), and the root
+ * route has to map to an empty path (ufo's slash helpers cannot produce one).
+ *
+ * Files that Vercel already serves at the route using its built-in directory
+ * indexes keep their path, and only get an entry when their content type
+ * cannot be inferred from the file name.
+ */
+export function getPrerenderOverrides(
+  prerenderedRoutes: PrerenderRoute[] = []
+) {
+  const overrides: Record<string, { path?: string; contentType?: string }> = {};
+
+  for (const { route, fileName, contentType } of prerenderedRoutes) {
+    if (!fileName) {
+      continue;
+    }
+    const file = withoutLeadingSlash(fileName);
+    const path = route.replace(SURROUNDING_SLASH_RE, "");
+    const override: { path?: string; contentType?: string } = {};
+
+    // Only re-key when Vercel does not already serve the file at `path`: it
+    // serves `<dir>/index.*` at `<dir>` via its built-in directory index, and
+    // re-keying a file onto its own path would delete it, since Vercel drops
+    // the original entry.
+    if (file !== path && file.replace(INDEX_FILE_RE, "") !== path) {
+      override.path = path;
+    }
+
+    // Vercel infers the content type from the file name, which has no
+    // extension to go on for a non-HTML route ending in `/` (`/data/` is
+    // prerendered to `data/index`) and would be served as a download.
+    if (contentType && !mime.getType(file)) {
+      override.contentType = contentType;
+    }
+
+    if (override.path !== undefined || override.contentType) {
+      overrides[file] = override;
+    }
+  }
+
+  return overrides;
 }
 
 export function deprecateSWR(nitro: Nitro) {
@@ -475,11 +537,21 @@ async function writePrerenderConfig(
     ...isrConfig,
   };
 
-  if (
-    prerenderConfig.allowQuery &&
-    !prerenderConfig.allowQuery.includes(ISR_URL_PARAM)
-  ) {
-    prerenderConfig.allowQuery.push(ISR_URL_PARAM);
+  if (prerenderConfig.allowQuery) {
+    // Vercel only forwards the query to the function with `passQuery`. Without
+    // it, `allowQuery` params split the cache but never reach the render.
+    if (
+      prerenderConfig.passQuery === undefined &&
+      prerenderConfig.allowQuery.some((key) => key !== ISR_URL_PARAM)
+    ) {
+      prerenderConfig.passQuery = true;
+    }
+    if (!prerenderConfig.allowQuery.includes(ISR_URL_PARAM)) {
+      prerenderConfig.allowQuery = [
+        ...prerenderConfig.allowQuery,
+        ISR_URL_PARAM,
+      ];
+    }
   }
 
   await writeFile(filename, JSON.stringify(prerenderConfig, null, 2));

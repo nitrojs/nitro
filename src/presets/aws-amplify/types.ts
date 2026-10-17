@@ -8,7 +8,7 @@ export interface AmplifyComputeConfig {
    * The runtime property dictates the runtime of the provisioned compute resource.
    * Values are subset of https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html
    */
-  runtime: "nodejs16.x" | "nodejs18.x" | "nodejs20.x";
+  runtime: "nodejs20.x" | "nodejs22.x" | "nodejs24.x";
 
   /**
    * Specifies the starting file from which code will run for the given compute resource.
@@ -86,11 +86,7 @@ export type AmplifyImageSettings = {
 
   /** Array of allowed output image formats. */
   formats: (
-    | "image/avif"
-    | "image/webp"
-    | "image/gif"
-    | "image/png"
-    | "image/jpeg"
+    "image/avif" | "image/webp" | "image/gif" | "image/png" | "image/jpeg"
   )[];
 
   /** Cache duration (in seconds) for the optimized images. */
@@ -136,7 +132,7 @@ export interface AmplifyDeployManifest {
    * [
    *   {
    *     name: 'default',
-   *     runtime: 'nodejs16.x',
+   *     runtime: 'nodejs20.x',
    *     entrypoint: 'index.js',
    *   }
    * ]
@@ -158,5 +154,5 @@ export interface AWSAmplifyOptions {
     cacheControl?: string;
   };
   imageSettings?: AmplifyImageSettings;
-  runtime?: "nodejs16.x" | "nodejs18.x" | "nodejs20.x";
+  runtime?: "nodejs20.x" | "nodejs22.x" | "nodejs24.x";
 }
