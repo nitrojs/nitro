@@ -343,6 +343,10 @@ describe("nitro:preset:vercel", async () => {
                 "src": "/api/serialized/date",
               },
               {
+                "dest": "/api/node-req-body",
+                "src": "/api/node-req-body",
+              },
+              {
                 "dest": "/api/methods/get",
                 "src": "/api/methods/get",
               },
@@ -641,6 +645,7 @@ describe("nitro:preset:vercel", async () => {
             "functions/api/methods/default.func (symlink)",
             "functions/api/methods/foo.get.func (symlink)",
             "functions/api/methods/get.func (symlink)",
+            "functions/api/node-req-body.func (symlink)",
             "functions/api/param/[test-id].func (symlink)",
             "functions/api/serialized/date.func (symlink)",
             "functions/api/serialized/error.func (symlink)",
