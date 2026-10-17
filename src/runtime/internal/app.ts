@@ -152,26 +152,32 @@ export function createRoutedMiddleware(
   return markUntraced(middleware);
 }
 
-/**
- * Fallback for `~findRoute` when no route matches the request method. If the
- * path is routed for other methods, the matched route responds with
- * `405 Method Not Allowed` and an `Allow` header instead of falling through to
- * `404`. Middleware still runs first, so it can answer (e.g. CORS preflight).
- */
+// `~findRoute` fallback: `405` with an `Allow` header when the path is routed
+// only for other `methods` (a method-agnostic route would have matched already).
 export function createMethodNotAllowedMatcher(
-  findRouteMethods: (method: string, pathname: string) => { data: string[] }[]
+  findRoute: (method: string, pathname: string) => unknown,
+  methods: string[]
 ): (method: string, pathname: string) => MatchedRoute<H3Route> | undefined {
   return (method, pathname) => {
-    const matched = findRouteMethods(method, pathname);
-    if (matched.length === 0) {
+    let allow: string | undefined;
+    for (const m of methods) {
+      if (m !== method && findRoute(m, pathname)) {
+        allow = allow ? `${allow}, ${m}` : m;
+      }
+    }
+    if (!allow) {
       return;
     }
-    const allow = [...new Set(matched.flatMap((r) => r.data))].sort().join(", ");
+    // Returned rather than thrown: h3 handles it the same, without the unwinding cost
     return {
       data: {
-        handler: () => {
-          throw new HTTPError({ status: 405, headers: { allow } });
-        },
+        handler: () =>
+          new HTTPError({
+            status: 405,
+            statusText: "Method Not Allowed",
+            message: `Method ${method} is not allowed for ${pathname} (allowed: ${allow})`,
+            headers: { allow },
+          }),
       },
     };
   };

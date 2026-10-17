@@ -68,24 +68,22 @@ describe("runtime middleware wrappers", () => {
   });
 
   it("method not allowed: matches nothing when the path is not routed", () => {
-    const find = createMethodNotAllowedMatcher(() => []);
+    const find = createMethodNotAllowedMatcher(() => undefined, ["GET", "POST"]);
     expect(find("GET", "/x")).toBeUndefined();
   });
 
   it("method not allowed: responds with `405` and the allowed methods", () => {
-    const find = createMethodNotAllowedMatcher(() => [
-      { data: ["PUT", "GET"] },
-      { data: ["DELETE", "GET"] },
-    ]);
+    const routes: Record<string, string[]> = { "/x": ["DELETE", "GET", "PUT"], "/y": ["POST"] };
+    const findRoute = vi.fn((method: string, pathname: string) =>
+      routes[pathname]?.includes(method) ? {} : undefined
+    );
+    const find = createMethodNotAllowedMatcher(findRoute, ["DELETE", "GET", "POST", "PUT"]);
     const route = find("POST", "/x")!;
-    let error: HTTPError | undefined;
-    try {
-      route.data.handler(mockEvent("/x", { method: "POST" }));
-    } catch (error_) {
-      error = error_ as HTTPError;
-    }
+    expect(findRoute).not.toHaveBeenCalledWith("POST", "/x");
+    const error = route.data.handler(mockEvent("/x", { method: "POST" })) as HTTPError;
     expect(error).toBeInstanceOf(HTTPError);
-    expect(error?.status).toBe(405);
-    expect(error?.headers?.get("allow")).toBe("DELETE, GET, PUT");
+    expect(error.status).toBe(405);
+    expect(error.headers?.get("allow")).toBe("DELETE, GET, PUT");
+    expect(error.message).toBe("Method POST is not allowed for /x (allowed: DELETE, GET, PUT)");
   });
 });

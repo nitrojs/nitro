@@ -11,11 +11,15 @@ export default function app(nitro: Nitro) {
       const hasPlugins = nitro.options.plugins.length > 0;
       const hasHooks = nitro.options.features?.runtimeHooks ?? hasPlugins;
       const hasAsyncContext = !!nitro.options.experimental.asyncContext;
-      const hasMethodRoutes = nitro.routing.routes.routes.some((r) => r.method);
+      const routeMethods = [
+        ...new Set(
+          nitro.routing.routes.routes.filter((r) => r.method).map((r) => r.method.toUpperCase())
+        ),
+      ].sort();
+      const hasMethodRoutes = routeMethods.length > 0;
 
       const routingImports = [
         hasRoutes && "findRoute",
-        hasMethodRoutes && "findRouteMethods",
         hasRoutedMiddleware && "findRoutedMiddleware",
         hasGlobalMiddleware && "globalMiddleware",
       ].filter(Boolean);
@@ -175,7 +179,7 @@ export default function app(nitro: Nitro) {
       }
       if (hasMethodRoutes) {
         code.push(
-          `  const findMethodNotAllowed = createMethodNotAllowedMatcher(findRouteMethods);`
+          `  const findMethodNotAllowed = createMethodNotAllowedMatcher(findRoute, ${JSON.stringify(routeMethods)});`
         );
       }
       if (hasRouteRules) {

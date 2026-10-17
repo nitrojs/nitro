@@ -1,6 +1,5 @@
 import type { Nitro, NitroEventHandler } from "nitro/types";
 import { compileRouteRules } from "h3/rules/compiler";
-import { Router } from "../../routing.ts";
 
 export default function routing(nitro: Nitro) {
   return {
@@ -16,7 +15,6 @@ export default function routing(nitro: Nitro) {
       );
 
       const traceH3 = !!nitro.options.tracingChannel?.h3;
-      const routeMethods = routeMethodsRouter(nitro);
 
       const routeRulesModule = compileRouteRules(nitro.options.routeRules, {
         runtimeRules: { cache: "#nitro/runtime/route-rule-handlers" },
@@ -52,35 +50,12 @@ export const findRoute = ${nitro.routing.routes.compileToString({ serialize: (h)
 
 export const findRoutedMiddleware = ${nitro.routing.routedMiddleware.compileToString({ serialize: serializeHandlerFn, matchAll: true })};
 
-export const findRouteMethods = ${routeMethods ? routeMethods.compileToString({ matchAll: true }) : "() => []"};
-
 export const globalMiddleware = [
   ${nitro.routing.globalMiddleware.map((h) => (h.lazy ? h._importHash : `h3.toEventHandler(${h._importHash})`)).join(",")}
 ].filter(Boolean);
   `;
     },
   };
-}
-
-// Allowed methods of each route pattern with method-specific handlers, matched
-// on a method miss to tell `405 Method Not Allowed` apart from `404`.
-function routeMethodsRouter(nitro: Nitro): Router<string[]> | undefined {
-  const methods = new Map<string, Set<string>>();
-  for (const { route, method } of nitro.routing.routes.routes) {
-    if (method) {
-      let set = methods.get(route);
-      if (!set) {
-        methods.set(route, (set = new Set()));
-      }
-      set.add(method.toUpperCase());
-    }
-  }
-  if (methods.size === 0) {
-    return;
-  }
-  const router = new Router<string[]>(nitro.options.baseURL);
-  router._update([...methods].map(([route, set]) => ({ route, method: "", data: [...set] })));
-  return router;
 }
 
 function uniqueBy<T>(arr: T[], key: keyof T): T[] {
