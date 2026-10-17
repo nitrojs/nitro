@@ -20,6 +20,7 @@ import _iis from "./iis/preset.ts";
 import _koyeb from "./koyeb/preset.ts";
 import _netlify from "./netlify/preset.ts";
 import _node from "./node/preset.ts";
+import _platformatic from "./platformatic/preset.ts";
 import _renderCom from "./render.com/preset.ts";
 import _standard from "./standard/preset.ts";
 import _stormkit from "./stormkit/preset.ts";
@@ -51,6 +52,7 @@ export default [
   ..._koyeb,
   ..._netlify,
   ..._node,
+  ..._platformatic,
   ..._renderCom,
   ..._standard,
   ..._stormkit,
