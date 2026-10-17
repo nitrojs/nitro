@@ -17,7 +17,7 @@ import {
   withoutLeadingSlash,
 } from "ufo";
 import { unenvCfNodeCompat } from "./unenv/preset.ts";
-import { routeToSplat, sortRoutes } from "../_utils/routes.ts";
+import { routeToSplat, skipUnexpressibleRoute, sortRoutes } from "../_utils/routes.ts";
 import { extendEnv } from "../../build/env.ts";
 
 // https://github.com/nitrojs/nitro/issues/4527
@@ -109,7 +109,7 @@ export async function writeCFHeaders(nitro: Nitro, outdir: "public" | "output") 
 
   for (const path of sortRoutes(Object.keys(nitro.options.routeRules))) {
     const routeRules = nitro.options.routeRules[path];
-    if (!routeRules.headers) {
+    if (!routeRules.headers || skipUnexpressibleRoute(nitro, path, "_headers")) {
       continue;
     }
     const headers = [
@@ -147,7 +147,7 @@ export async function writeCFPagesRedirects(nitro: Nitro) {
   // Most specific first, as the first matching rule wins
   for (const key of sortRoutes(Object.keys(nitro.options.routeRules))) {
     const redirect = nitro.options.routeRules[key].redirect;
-    if (!redirect) {
+    if (!redirect || skipUnexpressibleRoute(nitro, key, "_redirects")) {
       continue;
     }
     const code = redirect.status;

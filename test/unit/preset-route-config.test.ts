@@ -8,6 +8,7 @@ import type { Nitro, NitroOptions } from "nitro/types";
 import { writeHeaders, writeRedirects } from "../../src/presets/netlify/utils.ts";
 import { writeCFHeaders, writeCFPagesRedirects } from "../../src/presets/cloudflare/utils.ts";
 import { writeEdgeOneConfig } from "../../src/presets/edgeone/utils.ts";
+import { isSplatExpressible } from "../../src/presets/_utils/routes.ts";
 
 const dirs: string[] = [];
 
@@ -153,6 +154,23 @@ describe("netlify _redirects and _headers", () => {
     );
     expect(existsSync(join(dir, "_redirects"))).toBe(false);
   });
+
+  it("skips route rules the splat syntax cannot express", async () => {
+    const { dir, nitro } = await createNitro({
+      routeRules: {
+        "/ok/:id": { redirect: { to: "/id", status: 302 } },
+        "/num/:id(\\d+)": { redirect: { to: "/num", status: 302 } },
+        "/opt/:id?": { redirect: { to: "/opt", status: 302 } },
+        "/ok/**": { headers: { "x-ok": "1" } },
+        "/files/*.png": { headers: { "x-png": "1" } },
+      },
+    });
+    await writeRedirects(nitro);
+    await writeHeaders(nitro);
+    expect(await readFile(join(dir, "public/_redirects"), "utf8")).toBe("/ok/:id\t/id\t302\n");
+    expect(await readFile(join(dir, "public/_headers"), "utf8")).toBe("/ok/*\n  x-ok: 1\n");
+    expect(nitro.logger.warn).toHaveBeenCalledTimes(3);
+  });
 });
 
 describe("cloudflare pages _redirects and _headers", () => {
@@ -184,6 +202,42 @@ describe("cloudflare pages _redirects and _headers", () => {
       "/base/ext/*\thttps://nitro.build/:splat\t302\n/base/old/*\t/base/new/:splat\t301\n"
     );
     expect(await readFile(join(dir, "_headers"), "utf8")).toBe("/base/hdr/*\n  x-hdr: 1");
+  });
+
+  it("skips route rules the splat syntax cannot express", async () => {
+    const { dir, nitro } = await createNitro({
+      routeRules: {
+        "/ok/:id": { redirect: { to: "/id", status: 302 } },
+        "/num/:id(\\d+)": { redirect: { to: "/num", status: 302 } },
+        "/ok/**": { headers: { "x-ok": "1" } },
+        "/a/**/b": { headers: { "x-ab": "1" } },
+      },
+    });
+    await writeCFPagesRedirects(nitro);
+    await writeCFHeaders(nitro, "output");
+    expect(await readFile(join(dir, "_redirects"), "utf8")).toBe("/ok/:id\t/id\t302\n");
+    expect(await readFile(join(dir, "_headers"), "utf8")).toBe("/ok/*\n  x-ok: 1");
+    expect(nitro.logger.warn).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("isSplatExpressible", () => {
+  it.each([
+    ["/a/b", true],
+    ["/a/:id", true],
+    ["/a/:id_2", true],
+    ["/a/**", true],
+    ["/a/**:path", true],
+    ["/a/:_id", false],
+    ["/a/:2nd", false],
+    ["/a/:id(\\d+)", false],
+    ["/a/:id?", false],
+    ["/a/:x+", false],
+    ["/a/{b}?", false],
+    ["/files/*.png", false],
+    ["/a/**/b", false],
+  ])("%s -> %s", (route, expected) => {
+    expect(isSplatExpressible(route)).toBe(expected);
   });
 });
 

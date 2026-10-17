@@ -1,3 +1,4 @@
+import type { Nitro } from "nitro/types";
 import { addRoute, createRouter, findOverlappingRoutes } from "rou3";
 
 const CATCH_ALL_RE = /\*\*(?::\w+)?/g;
@@ -24,6 +25,39 @@ export function sortRoutes(routes: string[]): string[] {
  */
 export function routeToSplat(route: string): string {
   return route.replace(CATCH_ALL_RE, "*");
+}
+
+// placeholder names must start with a letter in `_redirects` and `_headers`
+const NAMED_PARAM_RE = /^:[A-Za-z]\w*$/;
+const SPECIAL_CHARS_RE = /[*:?+(){}]/;
+
+/**
+ * Whether a route pattern can be written in the `_redirects` and `_headers`
+ * path syntax, which only has static segments, `:name` params and a trailing
+ * splat. Patterns such as `:id(\d+)`, `:id?`, `{b}?`, `*.png` or a `**` with
+ * segments after it would produce invalid lines.
+ */
+export function isSplatExpressible(route: string): boolean {
+  const segments = routeToSplat(route).split("/");
+  return segments.every((segment, index) =>
+    segment === "*"
+      ? index === segments.length - 1
+      : NAMED_PARAM_RE.test(segment) || !SPECIAL_CHARS_RE.test(segment)
+  );
+}
+
+/**
+ * Warn and return `true` when a route rule has to be left out of a
+ * `_redirects` or `_headers` file because of {@link isSplatExpressible}.
+ */
+export function skipUnexpressibleRoute(nitro: Nitro, route: string, file: string): boolean {
+  if (isSplatExpressible(route)) {
+    return false;
+  }
+  nitro.logger.warn(
+    `Skipping route rule \`${route}\` in \`${file}\`: the pattern cannot be expressed in its path syntax.`
+  );
+  return true;
 }
 
 /**
