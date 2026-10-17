@@ -906,6 +906,15 @@ export function testNitro(
       );
       expect((await callHandler({ url: "/api/methods/search" })).data).toBe("get");
     });
+
+    it("Falls back to the GET route for HEAD requests", async () => {
+      const fallback = await callHandler({ url: "/api/methods/search", method: "HEAD" });
+      expect(fallback.status).toBe(200);
+      const get = await callHandler({ url: "/api/methods/head" });
+      expect(get.headers["x-handler"]).toBe("get");
+      const head = await callHandler({ url: "/api/methods/head", method: "HEAD" });
+      expect(head.headers["x-handler"]).toBe("head");
+    });
   });
 
   // WinterJS itself runs as WebAssembly and exposes no `WebAssembly` global

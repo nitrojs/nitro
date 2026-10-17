@@ -151,6 +151,16 @@ export default function app(nitro: Nitro) {
             `    event.context.routeRules = getRouteRules(event.req.method, event.url.pathname).routeRules;`
           );
         }
+        if (hasRoutes) {
+          // `HEAD` is served by the `GET` route unless a `HEAD` route matches
+          // (a method-agnostic match, such as a catch-all, would hide the `GET` one).
+          code.push(
+            `    if (event.req.method === "HEAD") {`,
+            `      const route = findRoute("HEAD", event.url.pathname);`,
+            `      return route?.data.method ? route : findRoute("GET", event.url.pathname);`,
+            `    }`
+          );
+        }
         code.push(
           hasRoutes
             ? `    return findRoute(event.req.method, event.url.pathname);`
