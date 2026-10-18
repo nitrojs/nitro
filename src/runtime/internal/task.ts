@@ -1,7 +1,7 @@
 import { Cron } from "croner";
 import { HTTPError } from "h3";
 import type { Task, TaskContext, TaskEvent, TaskPayload, TaskResult } from "nitro/types";
-import { useNitroHooks } from "./app.ts";
+import { useNitroApp, useNitroHooks } from "./app.ts";
 import { scheduledTasks, tasks } from "#nitro/virtual/tasks";
 
 /** @experimental */
@@ -79,6 +79,7 @@ export function startScheduleRunner({
   for (const schedule of scheduledTasks) {
     cronJobs.push(
       new Cron(schedule.cron, async () => {
+        await useNitroApp().ready;
         await Promise.all(
           schedule.tasks.map((name) =>
             runTask(name, {
@@ -100,9 +101,10 @@ export function getCronTasks(cron: string): string[] {
 }
 
 /** @experimental */
-export function runCronTasks(
+export async function runCronTasks(
   cron: string,
   ctx: { payload?: TaskPayload; context?: TaskContext }
 ): Promise<TaskResult[]> {
+  await useNitroApp().ready;
   return Promise.all(getCronTasks(cron).map((name) => runTask(name, ctx)));
 }
