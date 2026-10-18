@@ -1,5 +1,4 @@
 import type { Nitro } from "nitro/types";
-import { pathToFileURL } from "node:url";
 import { resolveModulePath } from "exsolve";
 import { resolveFromDepPath } from "../../utils/_dep-path.ts";
 import { deps } from "../../utils/_deps.ts";
@@ -24,9 +23,6 @@ export interface ViteImportOptions {
  * plugin are opt-in and the version installed next to the app is the version that runs.
  */
 export async function importVite(opts: ViteImportOptions): Promise<typeof import("vite")> {
-  if (opts.path) {
-    return import(pathToFileURL(_resolveFromPath("vite", opts)).href);
-  }
   return importDep<typeof import("vite")>(_viteDep(opts));
 }
 
@@ -38,10 +34,10 @@ export async function importVite(opts: ViteImportOptions): Promise<typeof import
  * entry instead (see `_dev-worker.ts`).
  */
 export async function resolveViteModuleRunner(opts: ViteImportOptions): Promise<string> {
-  if (opts.path) {
+  const viteEntry = await ensureDep(_viteDep(opts));
+  if (viteEntry && opts.path) {
     return _resolveFromPath("vite/module-runner", opts);
   }
-  const viteEntry = await ensureDep(_viteDep(opts));
   const moduleRunner =
     viteEntry &&
     resolveModulePath("vite/module-runner", {
@@ -59,12 +55,15 @@ export function viteImportOptions(nitro: Nitro): ViteImportOptions {
   return { dir: nitro.options.rootDir, path: nitro.options.vite?.path };
 }
 
+/** Explicit paths are resolved through `ensureDep` too, which checks their version. */
 function _viteDep(opts: ViteImportOptions) {
+  const id = opts.id || "vite";
   return {
-    id: opts.id || "vite",
+    id,
     dir: opts.dir,
     reason: deps.vite.reason,
     version: deps.vite.version,
+    paths: opts.path ? { [id]: opts.path } : undefined,
   };
 }
 

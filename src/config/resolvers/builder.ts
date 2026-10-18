@@ -29,9 +29,9 @@ export async function resolveBuilder(options: NitroOptions) {
         `Invalid nitro builder "${options.builder}". Valid builders are: ${VALID_BUILDERS.join(", ")}.`
       );
     }
-    // Check if the builder package is installed (`vite` can be provided, `rolldown` is installed on build)
+    // Check if the builder package is installed (`rolldown` is installed on build)
     const pkg = options.builder;
-    if (pkg === "rolldown" || (pkg === "vite" && options.vite?.path)) {
+    if (pkg === "rolldown") {
       return;
     }
     const resolved = await ensureDep({ id: pkg, dir: options.rootDir, paths: options.deps?.paths });

@@ -14,7 +14,7 @@ const optionalDeps = Object.keys(deps);
 
 // Optional dependencies of bundled libraries, replaced by an on demand import (see `src/shims/`)
 const shimmedDeps = (await readdir(new URL("src/shims/", import.meta.url)))
-  .filter((file) => file.endsWith(".ts"))
+  .filter((file) => file.endsWith(".ts") && !file.startsWith("_"))
   .map((file) => file.slice(0, -".ts".length));
 
 // Optional dependencies imported by the public types, with a fallback type when not installed

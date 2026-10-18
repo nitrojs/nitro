@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
 import * as exsolve from "exsolve";
 import { consola } from "consola";
-import { join } from "pathe";
+import { dirname, join } from "pathe";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("node:fs", { spy: true });
@@ -319,6 +319,45 @@ describe("explicit dependency paths (`deps.paths`)", () => {
       );
     }
     expect(addDevDependency).not.toHaveBeenCalled();
+  });
+
+  it("prefers an explicit path over the copy installed in the project", async () => {
+    const pkgDir = createFrameworkDep("2.0.0");
+    const dir = createProject();
+    installStub(missingDep.id, dir, "1.0.0");
+    const paths = { [missingDep.id]: pkgDir };
+    expect(await ensureDep({ ...missingDep, dir, paths })).toBe(join(pkgDir, "index.mjs"));
+  });
+
+  it("resolves packages without `exports` from their explicit path only", async () => {
+    const { resolveDep } = await import("../../src/utils/dep.ts");
+    // Not in a `node_modules/<name>` directory, so it cannot reference itself
+    const pkgDir = join(createProject(), "vendor", missingDep.id);
+    mkdirSync(join(pkgDir, "lib"), { recursive: true });
+    writeFileSync(
+      join(pkgDir, "package.json"),
+      JSON.stringify({ name: missingDep.id, version: "1.0.0", main: "./lib/main" })
+    );
+    writeFileSync(join(pkgDir, "lib/main.js"), "module.exports = 1;");
+    writeFileSync(join(pkgDir, "lib/sub.js"), "module.exports = 2;");
+    // Another copy that would be found walking up from the explicit path
+    installStub(missingDep.id, dirname(dirname(pkgDir)));
+    const opts = { dir: createProject(), paths: { [missingDep.id]: pkgDir } };
+    expect(resolveDep(missingDep.id, opts)).toBe(join(pkgDir, "lib/main.js"));
+    expect(resolveDep(`${missingDep.id}/lib/sub`, opts)).toBe(join(pkgDir, "lib/sub.js"));
+    expect(() => resolveDep(`${missingDep.id}/missing`, opts)).toThrow(
+      `in the \`${missingDep.id}\` package at`
+    );
+  });
+
+  it("checks the version of an explicit `rolldown` path", async () => {
+    const { importRolldown } = await import("../../src/build/rolldown/_import.ts");
+    const frameworkDir = createProject();
+    installStub("rolldown", frameworkDir, "0.1.0");
+    await importRolldown(createProject(), {
+      paths: { rolldown: join(frameworkDir, "node_modules/rolldown") },
+    });
+    expect(consola.warn).toHaveBeenCalledWith(expect.stringContaining("`rolldown@0.1.0`"));
   });
 
   it("checks the version of an explicit path", async () => {

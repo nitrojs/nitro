@@ -1,4 +1,5 @@
 import { readdir } from "node:fs/promises";
+import { consola } from "consola";
 import { fileURLToPath } from "node:url";
 import { readPackageJSON } from "pkg-types";
 import { minVersion, satisfies, subset } from "semver";
@@ -49,7 +50,7 @@ describe("dependency manifest", () => {
 describe("shimmed dependencies", async () => {
   const c12 = await readPackageJSON("c12", { url: rootDir.href });
   const shims = (await readdir(new URL("src/shims/", rootDir)))
-    .filter((file) => file.endsWith(".ts"))
+    .filter((file) => file.endsWith(".ts") && !file.startsWith("_"))
     .map((file) => file.slice(0, -".ts".length));
 
   it.each(shims)("`%s` range is within the one of the bundled library", async (id) => {
@@ -73,5 +74,18 @@ describe("`deps` option", () => {
     const fromDeps = { deps: { paths: { vite: "/vite" } } } as unknown as NitroOptions;
     resolveDepsOptions(fromDeps);
     expect(fromDeps.vite?.path).toBe("/vite");
+  });
+
+  it("prefers `deps.paths.vite` over a different `vite.path` (with a warning)", () => {
+    const warn = vi.spyOn(consola, "warn").mockImplementation(() => {});
+    const options = {
+      vite: { path: "/vite-a" },
+      deps: { paths: { vite: "/vite-b" } },
+    } as unknown as NitroOptions;
+    resolveDepsOptions(options);
+    expect(options.vite?.path).toBe("/vite-b");
+    expect(options.deps?.paths?.vite).toBe("/vite-b");
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("Using `deps.paths.vite`"));
+    warn.mockRestore();
   });
 });

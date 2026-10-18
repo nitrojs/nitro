@@ -180,12 +180,15 @@ type ResolvedDepOptions = DepBaseOptions & { id: string; reason: string };
 /** Apply the manifest defaults (`utils/_deps.ts`) of a dependency. */
 function _resolveDepOptions(opts: DepOptions): ResolvedDepOptions {
   const meta = getDepMeta(opts.id);
+  const defined = Object.fromEntries(
+    Object.entries(opts).filter(([, value]) => value !== undefined)
+  );
   return {
     version: meta?.version,
     dev: meta?.dev,
     autoInstall: meta?.autoInstall,
     projectOnly: meta?.projectOnly,
-    ...opts,
+    ...(defined as DepOptions),
     reason: opts.reason || meta?.reason || `\`${opts.id}\``,
   };
 }

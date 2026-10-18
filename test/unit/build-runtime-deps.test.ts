@@ -10,7 +10,8 @@ import {
 import { readdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
-import { dirname, join } from "pathe";
+import { dirname, join, relative } from "pathe";
+import { resolvePackageJSON } from "pkg-types";
 import { pkgDir } from "#nitro/meta";
 import { glob } from "tinyglobby";
 import { parseAst } from "rolldown/parseAst";
@@ -162,10 +163,10 @@ describe.each(builders)("optional runtime dependencies (%s)", (builder) => {
     // A copy of `ocache` outside the project, as a framework would provide it
     const ocacheDir = join(mkdtempSync(join(tmpdir(), "nitro-build-runtime-deps-fw-")), "ocache");
     tmpDirs.push(dirname(ocacheDir));
-    cpSync(dirname(dirname(fileURLToPath(import.meta.resolve("ocache")))), ocacheDir, {
-      recursive: true,
-    });
-    appendFileSync(join(ocacheDir, "dist/index.mjs"), `\nconsole.log("framework-ocache");\n`);
+    const pkgDir = dirname(await resolvePackageJSON("ocache", { url: import.meta.url }));
+    cpSync(pkgDir, ocacheDir, { recursive: true });
+    const entry = relative(pkgDir, fileURLToPath(import.meta.resolve("ocache")));
+    appendFileSync(join(ocacheDir, entry), `\nconsole.log("framework-ocache");\n`);
     const code = await buildApp(
       builder,
       `import { defineCachedFunction } from "nitro/cache";\nconst cached = defineCachedFunction(() => "ok", { maxAge: 60 });\nexport default { fetch: async () => new Response(await cached()) };`,

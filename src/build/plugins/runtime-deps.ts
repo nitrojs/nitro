@@ -1,6 +1,7 @@
 import type { Nitro } from "nitro/types";
 import type { Plugin } from "rollup";
 import { pkgDir } from "#nitro/meta";
+import { depPackageName } from "../../utils/_dep-path.ts";
 import { deps } from "../../utils/_deps.ts";
 import type { DepId } from "../../utils/_deps.ts";
 import { ensureDep, missingDepError, resolveDep } from "../../utils/dep.ts";
@@ -28,7 +29,7 @@ export function isRuntimeImporter(importer: string | undefined): boolean {
  * installing it (without prompting) if missing.
  */
 export async function ensureRuntimeDep(nitro: Nitro, id: string): Promise<void> {
-  const name = id.split("/")[0]!;
+  const name = depPackageName(id);
   const opts = { id: name as DepId, dir: nitro.options.rootDir, paths: nitro.options.deps?.paths };
   if (!(await ensureDep(opts))) {
     throw missingDepError(opts);
@@ -58,7 +59,7 @@ export function runtimeDeps(nitro: Nitro): Plugin {
           paths: nitro.options.deps?.paths,
         });
         if (!path) {
-          const name = id.split("/")[0]!;
+          const name = depPackageName(id);
           throw new Error(
             `Cannot resolve \`${id}\` from \`${nitro.options.rootDir}\`. Please make sure \`${name}@${deps[name as DepId].version}\` is installed in your project.`
           );

@@ -38,8 +38,10 @@ export async function importRolldown(
   dir: string,
   opts: { paths?: Record<string, string> } = {}
 ): Promise<typeof import("rolldown")> {
+  // An explicit path is resolved through `ensureDep` too, which checks its version
   const resolved =
-    resolveRolldown(dir, opts) || (await ensureDep({ id: "rolldown", dir, paths: opts.paths }));
+    (!opts.paths?.rolldown && resolveRolldown(dir, opts)) ||
+    (await ensureDep({ id: "rolldown", dir, paths: opts.paths }));
   if (!resolved) {
     throw new Error(
       "`rolldown` is not installed. Please add it to your project dependencies to build with the `rolldown` builder."

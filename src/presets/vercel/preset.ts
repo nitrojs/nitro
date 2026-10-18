@@ -81,11 +81,7 @@ const vercel = defineNitroPreset(
         // Queue consumer handler
         const queues = nitro.options.vercel?.queues;
         if (queues?.triggers?.length) {
-          await importDep({
-            id: "@vercel/queue",
-            dir: nitro.options.rootDir,
-            paths: nitro.options.deps?.paths,
-          });
+          await importDep({ id: "@vercel/queue", dir: nitro.options.rootDir });
 
           const handlerRoute = queues.handlerRoute || "/_vercel/queues/consumer";
 
