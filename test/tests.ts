@@ -500,6 +500,16 @@ export function testNitro(
       expect(status).toBe(200);
       expect(headers["access-control-allow-origin"]).toBe("*");
     });
+
+    it("applies a GET-scoped redirect to GET requests only", async () => {
+      const get = await callHandler({ url: "/rules/method-scoped/redirect" });
+      expect(get.status).toBe(307);
+      expect(get.headers.location).toBe("/base");
+
+      const post = await callHandler({ url: "/rules/method-scoped/redirect", method: "POST" });
+      expect(post.status).not.toBe(307);
+      expect(post.headers.location).toBeUndefined();
+    });
   });
 
   it("handles route rules - allowing overriding", async () => {

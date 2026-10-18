@@ -8,6 +8,7 @@ import type { Nitro, NitroOptions } from "nitro/types";
 import { writeHeaders, writeRedirects } from "../../src/presets/netlify/utils.ts";
 import { writeCFHeaders, writeCFPagesRedirects } from "../../src/presets/cloudflare/utils.ts";
 import { writeEdgeOneConfig } from "../../src/presets/edgeone/utils.ts";
+import { sortRoutes } from "../../src/presets/_utils/routes.ts";
 
 const dirs: string[] = [];
 
@@ -153,6 +154,30 @@ describe("netlify _redirects and _headers", () => {
     );
     expect(existsSync(join(dir, "_redirects"))).toBe(false);
   });
+
+  it("skips method-scoped rules with a warning", async () => {
+    const { dir, nitro } = await createNitro({
+      routeRules: {
+        "GET /old/**": { redirect: { to: "/new/**", status: 302 } },
+        "/plain/**": { redirect: { to: "/other/**", status: 302 } },
+        "GET /hdr/**": { headers: { "x-get": "1" } },
+        "/hdr/**": { headers: { "x-hdr": "1" } },
+      },
+    });
+    await writeRedirects(nitro);
+    await writeHeaders(nitro);
+    expect(await readFile(join(dir, "public/_redirects"), "utf8")).toBe(
+      "/plain/*\t/other/:splat\t302\n"
+    );
+    expect(await readFile(join(dir, "public/_headers"), "utf8")).toBe("/hdr/*\n  x-hdr: 1\n");
+    expect(nitro.logger.warn).toHaveBeenCalledTimes(2);
+    expect(nitro.logger.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/`GET \/old\/\*\*`.*`_redirects`/)
+    );
+    expect(nitro.logger.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/`GET \/hdr\/\*\*`.*`_headers`/)
+    );
+  });
 });
 
 describe("cloudflare pages _redirects and _headers", () => {
@@ -186,6 +211,28 @@ describe("cloudflare pages _redirects and _headers", () => {
     );
     expect(await readFile(join(dir, "_headers"), "utf8")).toBe("/base/hdr/*\n  x-hdr: 1");
   });
+
+  it("skips method-scoped rules with a warning", async () => {
+    const { dir, nitro } = await createNitro({
+      routeRules: {
+        "GET /old/**": { redirect: { to: "/new/**", status: 302 } },
+        "/plain/**": { redirect: { to: "/other/**", status: 302 } },
+        "GET /hdr/**": { headers: { "x-get": "1" } },
+        "/hdr/**": { headers: { "x-hdr": "1" } },
+      },
+    });
+    await writeCFPagesRedirects(nitro);
+    await writeCFHeaders(nitro, "output");
+    expect(await readFile(join(dir, "_redirects"), "utf8")).toBe("/plain/*\t/other/:splat\t302\n");
+    expect(await readFile(join(dir, "_headers"), "utf8")).toBe("/hdr/*\n  x-hdr: 1");
+    expect(nitro.logger.warn).toHaveBeenCalledTimes(2);
+    expect(nitro.logger.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/`GET \/old\/\*\*`.*`_redirects`/)
+    );
+    expect(nitro.logger.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/`GET \/hdr\/\*\*`.*`_headers`/)
+    );
+  });
 });
 
 describe("edgeone config.json", () => {
@@ -193,6 +240,7 @@ describe("edgeone config.json", () => {
     src?: string;
     status?: number;
     headers?: Record<string, string>;
+    methods?: string[];
     continue?: boolean;
   };
 
@@ -263,5 +311,42 @@ describe("edgeone config.json", () => {
     expect(resolve("/base/r/a/b")).toBe("/all/a/b");
     expect(resolve("/base/ext/a")).toBe("https://nitro.build/a");
     expect(resolve("/base/cdn/a")).toBe("//cdn.nitro.build/a");
+  });
+
+  it("scopes method-scoped rules to their methods", async () => {
+    const routes = await buildRoutes({
+      routeRules: {
+        "GET /old/**": { redirect: { to: "/new/**", status: 302 } },
+        "POST /form": { redirect: { to: "/thanks", status: 303 } },
+        "/old/**": { redirect: { to: "/all", status: 302 } },
+        "GET /hdr/**": { headers: { "x-get": "1" } },
+        "/hdr/**": { headers: { "x-hdr": "1" } },
+      },
+    });
+    const matches = (path: string) =>
+      routes.filter((r) => r.src && !r.continue && new RegExp(r.src).test(path));
+    expect(matches("/old/a").map((r) => [r.methods, r.headers?.Location])).toEqual([
+      [["GET", "HEAD"], "/new/$1"],
+      [undefined, "/all"],
+      [undefined, undefined],
+    ]);
+    expect(matches("/form")[0]).toMatchObject({ methods: ["POST"], status: 303 });
+    expect(
+      routes.filter((r) => r.headers && r.continue && new RegExp(r.src!).test("/hdr/a"))
+    ).toEqual([
+      expect.objectContaining({ headers: { "x-hdr": "1" } }),
+      expect.objectContaining({ headers: { "x-get": "1" }, methods: ["GET", "HEAD"] }),
+    ]);
+  });
+});
+
+describe("sortRoutes", () => {
+  it("ranks method-scoped keys by their path", () => {
+    expect(sortRoutes(["/a/**", "GET /a/**", "POST /a/b", "/**"])).toEqual([
+      "POST /a/b",
+      "GET /a/**",
+      "/a/**",
+      "/**",
+    ]);
   });
 });
