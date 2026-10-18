@@ -236,6 +236,8 @@ describe("vercel config with method-scoped rules", () => {
         "/g/keep": { redirect: false },
         "POST /p/**": { redirect: { to: "/x", status: 307 } },
         "GET /p/keep": { redirect: false },
+        "HEAD /hg": { redirect: { to: "/h", status: 307 } },
+        "GET /hg": { redirect: { to: "/g", status: 307 } },
       },
     } as Partial<NitroOptions>);
   });
@@ -299,5 +301,10 @@ describe("vercel config with method-scoped rules", () => {
   it("ignores opt-outs for other methods", () => {
     expect(matches("/p/keep", "POST")[0]?.headers?.Location).toBe("/x");
     expect(matches("/p/keep", "GET")[0]?.headers?.Location).toBeUndefined();
+  });
+
+  it("matches a HEAD redirect before a GET one", () => {
+    expect(matches("/hg", "HEAD")[0]?.headers?.Location).toBe("/h");
+    expect(matches("/hg", "GET")[0]?.headers?.Location).toBe("/g");
   });
 });

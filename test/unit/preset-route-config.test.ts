@@ -178,6 +178,29 @@ describe("netlify _redirects and _headers", () => {
       expect.stringMatching(/`GET \/hdr\/\*\*`.*`_headers`/)
     );
   });
+
+  it("skips redirects that would shadow a skipped method-scoped redirect", async () => {
+    const { dir, nitro } = await createNitro({
+      routeRules: {
+        "/old/**": { redirect: { to: "/a/**", status: 302 } },
+        "GET /old/**": { redirect: { to: "/b/**", status: 302 } },
+        "/old/specific": { redirect: { to: "/sp", status: 302 } },
+        "/s/**": { redirect: { to: "/t/**", status: 302 } },
+        "GET /s/a": { redirect: { to: "/u", status: 302 } },
+        "/keep/**": { redirect: { to: "/k/**", status: 302 } },
+      },
+    });
+    await writeRedirects(nitro);
+    const redirects = await readFile(join(dir, "public/_redirects"), "utf8");
+    expect(redirectSources(redirects).sort()).toEqual(["/keep/*", "/old/specific"]);
+    expect(nitro.logger.warn).toHaveBeenCalledTimes(4);
+    expect(nitro.logger.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/`\/old\/\*\*`.*`GET \/old\/\*\*`/)
+    );
+    expect(nitro.logger.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/`\/s\/\*\*`.*`GET \/s\/a`/)
+    );
+  });
 });
 
 describe("cloudflare pages _redirects and _headers", () => {
@@ -231,6 +254,29 @@ describe("cloudflare pages _redirects and _headers", () => {
     );
     expect(nitro.logger.warn).toHaveBeenCalledWith(
       expect.stringMatching(/`GET \/hdr\/\*\*`.*`_headers`/)
+    );
+  });
+
+  it("skips redirects that would shadow a skipped method-scoped redirect", async () => {
+    const { dir, nitro } = await createNitro({
+      routeRules: {
+        "/old/**": { redirect: { to: "/a/**", status: 302 } },
+        "GET /old/**": { redirect: { to: "/b/**", status: 302 } },
+        "/old/specific": { redirect: { to: "/sp", status: 302 } },
+        "/s/**": { redirect: { to: "/t/**", status: 302 } },
+        "GET /s/a": { redirect: { to: "/u", status: 302 } },
+        "/keep/**": { redirect: { to: "/k/**", status: 302 } },
+      },
+    });
+    await writeCFPagesRedirects(nitro);
+    const redirects = await readFile(join(dir, "_redirects"), "utf8");
+    expect(redirectSources(redirects).sort()).toEqual(["/keep/*", "/old/specific"]);
+    expect(nitro.logger.warn).toHaveBeenCalledTimes(4);
+    expect(nitro.logger.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/`\/old\/\*\*`.*`GET \/old\/\*\*`/)
+    );
+    expect(nitro.logger.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/`\/s\/\*\*`.*`GET \/s\/a`/)
     );
   });
 });
@@ -348,5 +394,9 @@ describe("sortRoutes", () => {
       "/a/**",
       "/**",
     ]);
+  });
+
+  it("ranks HEAD before GET for the same path", () => {
+    expect(sortRoutes(["HEAD /a", "/a", "GET /a"])).toEqual(["HEAD /a", "GET /a", "/a"]);
   });
 });

@@ -507,7 +507,8 @@ export function testNitro(
       expect(get.headers.location).toBe("/base");
 
       const post = await callHandler({ url: "/rules/method-scoped/redirect", method: "POST" });
-      expect(post.status).not.toBe(307);
+      expect(post.status).toBe(200);
+      expect(post.data).toBe("/rules/method-scoped/redirect");
       expect(post.headers.location).toBeUndefined();
     });
   });

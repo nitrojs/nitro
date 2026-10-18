@@ -103,7 +103,7 @@ export async function writeCFHeaders(nitro: Nitro, outdir: "public" | "output") 
 
   for (const path of sortRoutes(Object.keys(nitro.options.routeRules))) {
     const routeRules = nitro.options.routeRules[path];
-    if (!routeRules.headers || skipMethodScopedRoute(nitro, path, "_headers")) {
+    if (!routeRules.headers || skipMethodScopedRoute(nitro, { route: path, file: "_headers" })) {
       continue;
     }
     const headers = [
@@ -139,9 +139,14 @@ export async function writeCFPagesRedirects(nitro: Nitro) {
   const contents: string[] = [];
 
   // Most specific first, as the first matching rule wins
-  for (const key of sortRoutes(Object.keys(nitro.options.routeRules))) {
+  const routes = sortRoutes(Object.keys(nitro.options.routeRules));
+  const redirects = routes.filter((key) => nitro.options.routeRules[key].redirect);
+  for (const key of routes) {
     const redirect = nitro.options.routeRules[key].redirect;
-    if (!redirect || skipMethodScopedRoute(nitro, key, "_redirects")) {
+    if (
+      !redirect ||
+      skipMethodScopedRoute(nitro, { route: key, file: "_redirects", routes: redirects })
+    ) {
       continue;
     }
     const code = redirect.status;
