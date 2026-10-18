@@ -1,3 +1,4 @@
+import type { DateString } from "compatx";
 import type { ProviderName } from "std-env";
 import type { NitroConfig } from "./config.ts";
 
@@ -11,4 +12,5 @@ export interface NitroPresetMeta {
   aliases?: string[];
   static?: boolean;
   dev?: boolean;
+  compatibilityDate?: DateString;
 }

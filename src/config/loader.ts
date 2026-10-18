@@ -133,6 +133,7 @@ async function _loadUserConfig(
             ? await resolvePreset(preset, {
                 static: getConf("static"),
                 dev: true,
+                compatibilityDate: compatibilityDate || "latest",
               })
                 .then((p) => p?._meta?.name || "nitro-dev")
                 .catch(() => "nitro-dev")
@@ -143,6 +144,7 @@ async function _loadUserConfig(
         const resolved = await resolvePreset("" /* auto detect */, {
           static: getConf("static"),
           dev: false,
+          compatibilityDate: compatibilityDate || "latest",
           defaultPreset,
         });
         preset = resolved?._meta?.name;
@@ -163,6 +165,7 @@ async function _loadUserConfig(
       }
       const preset = await resolvePreset(id, {
         static: configOverrides.static,
+        compatibilityDate: compatibilityDate || "latest",
         dev: configOverrides.dev,
       });
       if (preset) {

@@ -42,7 +42,7 @@ for (const preset of allPresets) {
   const names = [preset._meta.name, ...(preset._meta.aliases || [])];
   for (const name of names) {
     if (_names.has(name)) {
-      if (!preset._meta.dev) {
+      if (!preset._meta.compatibilityDate && !preset._meta.dev) {
         consola.warn(`Preset ${name} is duplicated`);
       }
       continue;

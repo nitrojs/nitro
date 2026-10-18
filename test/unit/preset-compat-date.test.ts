@@ -20,7 +20,7 @@ afterEach(async () => {
   }
 });
 
-describe("preset resolution ignores compatibilityDate", () => {
+describe("cloudflare-dev preset ignores compatibilityDate", () => {
   it("uses cloudflare-dev in development with an old compatibilityDate", async () => {
     const rootDir = await realpath(await mkdtemp(join(tmpdir(), "nitro-compat-date-")));
     tempDirs.push(rootDir);
