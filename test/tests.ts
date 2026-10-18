@@ -79,7 +79,6 @@ export async function setupTest(
       "cloudflare-module-legacy",
       "cloudflare-pages",
       "netlify-edge",
-      "vercel-edge",
       "winterjs",
     ].includes(preset),
     isLambda: ["aws-lambda", "netlify-legacy"].includes(preset),
@@ -1021,9 +1020,6 @@ export function testNitro(
     const { data, status } = await callHandler({ url: "/node-compat" });
     expect(status).toBe(200);
     for (const key in data) {
-      if (ctx.preset === "vercel-edge" && key === "crypto:createHash") {
-        continue;
-      }
       if (ctx.preset === "deno-server" && key === "globals:BroadcastChannel") {
         continue; // unstable API
       }

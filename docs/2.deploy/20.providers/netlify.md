@@ -75,7 +75,3 @@ Supported keys:
 - `headers`: Custom [header rules](https://docs.netlify.com/routing/headers/).
 - `images`: [Netlify Image CDN](https://docs.netlify.com/image-cdn/create-integration/) configuration (e.g., `remote_images`).
 - `redirects`: Custom [redirect rules](https://docs.netlify.com/routing/redirects/).
-
-::note
-The top-level `netlify.images` option is deprecated. Use `netlify.config.images` instead.
-::

@@ -20,12 +20,11 @@ export interface GetBuildInfoOptions {
 }
 
 export async function getBuildInfo(
-  input: string | GetBuildInfoOptions
+  opts: GetBuildInfoOptions
 ): Promise<
   | { outputDir?: undefined; buildInfo?: undefined }
   | { outputDir: string; buildInfo?: NitroBuildInfo }
 > {
-  const opts = typeof input === "string" ? { rootDir: input } : input;
   const rootDir = resolve(opts.rootDir || ".");
   const outputDir = opts.outputDir
     ? resolve(rootDir, opts.outputDir)

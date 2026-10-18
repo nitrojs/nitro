@@ -58,10 +58,6 @@ export async function writeHeaders(nitro: Nitro) {
 
 export async function writeConfig(nitro: Nitro, configPath: string) {
   const netlify = nitro.options.netlify;
-  if (netlify?.images) {
-    netlify.config ||= {};
-    netlify.config.images ||= netlify.images;
-  }
   if (Object.keys(netlify?.config || {}).length === 0) {
     await fsp.rm(configPath, { force: true });
     return;

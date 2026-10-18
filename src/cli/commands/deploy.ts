@@ -31,7 +31,7 @@ export default defineCommand({
     let preset = args.preset;
     let outputDir: string | undefined;
     if (args.prebuilt) {
-      const lastBuild = await getBuildInfo(rootDir);
+      const lastBuild = await getBuildInfo({ rootDir });
       if (!lastBuild.buildInfo) {
         consola.error("No build info found, cannot deploy.");
         process.exit(1);

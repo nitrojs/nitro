@@ -200,9 +200,6 @@ export async function prerender(nitro: Nitro) {
 
     const req = toRequest(withBase(encodedRoute, nitro.options.baseURL), {
       headers: [["x-nitro-prerender", encodedRoute]],
-      // TODO
-      // retry: nitro.options.prerender.retry,
-      // retryDelay: nitro.options.prerender.retryDelay,
     });
     const res = await prerenderer.fetch(req);
     // Data will be removed as soon as written to the disk

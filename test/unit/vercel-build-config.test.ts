@@ -4,7 +4,7 @@ import { join } from "pathe";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Nitro, NitroOptions } from "nitro/types";
 
-import { generateEdgeFunctionFiles } from "../../src/presets/vercel/utils.ts";
+import { generateStaticFiles } from "../../src/presets/vercel/utils.ts";
 
 type Route = {
   src?: string;
@@ -38,7 +38,7 @@ async function buildRoutes(options: Partial<NitroOptions>): Promise<Route[]> {
       ...options,
     },
   } as unknown as Nitro;
-  await generateEdgeFunctionFiles(nitro);
+  await generateStaticFiles(nitro);
   return JSON.parse(await readFile(join(dir, "config.json"), "utf8")).routes;
 }
 

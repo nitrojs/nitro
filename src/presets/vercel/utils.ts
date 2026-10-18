@@ -204,20 +204,6 @@ export async function generateFunctionFiles(nitro: Nitro) {
   }
 }
 
-export async function generateEdgeFunctionFiles(nitro: Nitro) {
-  const buildConfigPath = resolve(nitro.options.output.dir, "config.json");
-  const buildConfig = generateBuildConfig(nitro);
-  await writeFile(buildConfigPath, JSON.stringify(buildConfig, null, 2));
-
-  const functionConfigPath = resolve(nitro.options.output.serverDir, ".vc-config.json");
-  const functionConfig = {
-    runtime: "edge",
-    entrypoint: "index.mjs",
-    regions: nitro.options.vercel?.regions,
-  };
-  await writeFile(functionConfigPath, JSON.stringify(functionConfig, null, 2));
-}
-
 export async function generateStaticFiles(nitro: Nitro) {
   const buildConfigPath = resolve(nitro.options.output.dir, "config.json");
   const buildConfig = generateBuildConfig(nitro);

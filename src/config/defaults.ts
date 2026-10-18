@@ -58,8 +58,6 @@ export const NitroDefaults: NitroConfig = {
     autoSubfolderIndex: true,
     concurrency: 1,
     interval: 0,
-    retry: 3,
-    retryDelay: 500,
     failOnError: false,
     crawlLinks: false,
     ignore: [],

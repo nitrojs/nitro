@@ -713,16 +713,6 @@ export interface NitroOptions extends PresetOptions {
     ignoreUnprefixedPublicAssets?: boolean;
     /** Explicit list of routes to prerender. */
     routes?: string[];
-    /**
-     * Amount of retries. Pass Infinity to retry indefinitely.
-     * @default 3
-     */
-    retry?: number;
-    /**
-     * Delay between each retry in ms.
-     * @default 500
-     */
-    retryDelay?: number;
   };
 
   // Build

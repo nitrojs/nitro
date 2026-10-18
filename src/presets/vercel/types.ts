@@ -152,12 +152,6 @@ export interface VercelOptions {
    */
   immutableStaticFiles?: boolean;
 
-  /**
-   * If you are using `vercel-edge`, you can specify the region(s) for your edge function.
-   * @see https://vercel.com/docs/concepts/functions/edge-functions#edge-function-regions
-   */
-  regions?: string[];
-
   functions?: VercelServerlessFunctionConfig;
 
   /**
