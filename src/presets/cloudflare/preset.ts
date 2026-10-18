@@ -12,7 +12,7 @@ import {
   writeCFHeaders,
   writeCFPagesRedirects,
 } from "./utils.ts";
-import { setupEntryExports } from "./entry-exports.ts";
+import { setupDevDurableExport, setupEntryExports } from "./entry-exports.ts";
 import { cloudflareOutputRewrites } from "./output-plugins.ts";
 
 export type { CloudflareOptions as PresetOptions } from "./types.ts";
@@ -102,9 +102,9 @@ export const cloudflareDev = defineNitroPreset(
       runner: "miniflare",
     },
     hooks: {
-      "build:before": (nitro) => {
+      "build:before": async (nitro) => {
         if (nitro.options.devServer.runner === "miniflare") {
-          setupMiniflareDev(nitro);
+          await setupMiniflareDev(nitro);
         }
       },
     },
@@ -195,7 +195,7 @@ export default [
 ];
 
 // Builds for workerd like the production presets
-function setupMiniflareDev(nitro: Nitro) {
+async function setupMiniflareDev(nitro: Nitro) {
   // Resolve packages for workerd (it rejects the CJS entries of the `node` condition)
   nitro.options.exportConditions = [
     ...new Set([
@@ -209,6 +209,7 @@ function setupMiniflareDev(nitro: Nitro) {
   if (nitro.options.builder !== "vite") {
     setupEntryExports(nitro);
   }
+  await setupDevDurableExport(nitro);
   // The bridge imports `cloudflare:workers`, only available in workerd
   setupTracingBridge(nitro);
 }

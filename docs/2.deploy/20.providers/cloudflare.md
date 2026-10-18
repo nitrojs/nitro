@@ -195,6 +195,8 @@ The Worker entry also exports a `$DurableObject` class. When its binding is decl
 }
 ```
 
+This also works during local development, including with Vite. Restart the development server after adding or removing the binding.
+
 You can use the `cloudflare:durable:init` runtime hook to run code when the Durable Object is initialized, and the `cloudflare:durable:alarm` hook to handle [alarms](https://developers.cloudflare.com/durable-objects/api/alarms/).
 
 ::note

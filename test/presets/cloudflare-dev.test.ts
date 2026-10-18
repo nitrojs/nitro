@@ -2,6 +2,8 @@ import { fileURLToPath } from "node:url";
 import { readFile, rm, writeFile } from "node:fs/promises";
 import { afterAll, beforeAll, describe, expect, it, vi, type MockInstance } from "vitest";
 import { build, createDevServer, createNitro, prepare } from "nitro/builder";
+import { nitro as nitroVite } from "nitro/vite";
+import type { NitroConfig } from "nitro/types";
 import { Miniflare } from "miniflare";
 import { resolve } from "pathe";
 
@@ -312,6 +314,120 @@ describe("cloudflare-dev websocket", () => {
     expect(messages).toEqual(["ready", "echo:hello"]);
   });
 });
+
+for (const mode of ["nitro", "vite"] as const) {
+  describe(`cloudflare-dev websocket with \`$DurableObject\`: ${mode}`, () => {
+    let wsURL: URL;
+    let close: () => Promise<void>;
+
+    beforeAll(async () => {
+      const config = {
+        features: { websocket: true },
+        handlers: [
+          {
+            route: "/_ws",
+            handler: fileURLToPath(new URL("fixtures/websocket-pubsub.ts", import.meta.url)),
+          },
+        ],
+        cloudflare: {
+          wranglerEnv: "test",
+          wrangler: {
+            env: {
+              test: {
+                durable_objects: {
+                  bindings: [{ name: "$DurableObject", class_name: "$DurableObject" }],
+                },
+                exports: { $DurableObject: { type: "durable-object", storage: "sqlite" } },
+              },
+            },
+          },
+        },
+      } satisfies NitroConfig;
+      let serverURL: string;
+      if (mode === "nitro") {
+        const nitro = await createNitro({
+          ...config,
+          rootDir,
+          dev: true,
+          builder: (process.env.NITRO_BUILDER as "rollup" | "rolldown") || "rolldown",
+        });
+        const listener = createDevServer(nitro).listen({ port: 0, hostname: "127.0.0.1" });
+        // Closes the listener and the runner together (the sockets stay open until the runner stops)
+        close = () => nitro.close();
+        await prepare(nitro);
+        const ready = new Promise<void>((resolve) =>
+          nitro.hooks.hook("dev:reload", () => resolve())
+        );
+        await build(nitro);
+        await ready;
+        await listener.ready();
+        serverURL = listener.url!;
+      } else {
+        const server = await createServer({
+          root: rootDir,
+          configFile: false,
+          logLevel: "warn",
+          resolve: { alias: { "~vite-alias": rootDir } },
+          plugins: [nitroVite(config)],
+        });
+        close = () => server.close();
+        await server.listen(0);
+        serverURL = server.resolvedUrls!.local[0];
+      }
+      wsURL = new URL("/_ws", serverURL.replace(/^http/, "ws"));
+      // An upgrade sent while Miniflare starts can break its init
+      await fetch(new URL("/bindings", serverURL));
+    }, 60_000);
+
+    afterAll(async () => {
+      await close?.();
+    });
+
+    it("forwards upgrades to the Durable Object (pub/sub between peers)", async () => {
+      const [a, b] = await Promise.all([connect(wsURL), connect(wsURL)]);
+      try {
+        expect(await a.next()).toBe("ready");
+        expect(await b.next()).toBe("ready");
+        a.ws.send("hello");
+        expect(await a.next()).toBe("sent");
+        expect(await b.next()).toBe("pub:hello");
+      } finally {
+        a.ws.close();
+        b.ws.close();
+      }
+    });
+  });
+}
+
+async function connect(url: URL) {
+  const ws = new WebSocket(url);
+  const queue: string[] = [];
+  const waiters: ((message: string) => void)[] = [];
+  ws.addEventListener("message", (event) => {
+    const message = String(event.data);
+    const waiter = waiters.shift();
+    if (waiter) {
+      waiter(message);
+    } else {
+      queue.push(message);
+    }
+  });
+  await new Promise<void>((resolve, reject) => {
+    ws.addEventListener("open", () => resolve());
+    ws.addEventListener("error", () => reject(new Error("WebSocket error")));
+  });
+  const next = () =>
+    queue.length > 0
+      ? Promise.resolve(queue.shift()!)
+      : new Promise<string>((resolve, reject) => {
+          const timeout = setTimeout(() => reject(new Error("Timed out")), 5000);
+          waiters.push((message) => {
+            clearTimeout(timeout);
+            resolve(message);
+          });
+        });
+  return { ws, next };
+}
 
 function waitForWatcher() {
   return new Promise((resolve) => setTimeout(resolve, 100));
