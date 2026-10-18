@@ -414,16 +414,6 @@ export interface NitroOptions extends PresetOptions {
   };
 
   /**
-   * Future features pending a major version to avoid breaking changes.
-   *
-   * @see https://nitro.build/config#future
-   */
-  future: {
-    /** Opt in to Nitro's native `isr` route rule handling on Vercel and suppress backwards-compatibility warnings for legacy `swr`/`static` route options. */
-    nativeSWR?: boolean;
-  };
-
-  /**
    * Server-side asset directories bundled at build time.
    *
    * @see https://nitro.build/config#serverassets

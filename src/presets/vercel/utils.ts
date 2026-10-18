@@ -29,7 +29,6 @@ import type {
   VercelBuildConfigV3,
   VercelServerlessFunctionConfig,
 } from "./types.ts";
-import { isTest } from "std-env";
 import { ISR_URL_PARAM } from "./runtime/isr.ts";
 
 // https://vercel.com/docs/build-output-api/configuration
@@ -514,34 +513,6 @@ export function getPrerenderOverrides(prerenderedRoutes: PrerenderRoute[] = []) 
   return overrides;
 }
 
-export function deprecateSWR(nitro: Nitro) {
-  if (nitro.options.future.nativeSWR) {
-    return;
-  }
-  let hasLegacyOptions = false;
-  for (const [_key, value] of Object.entries(nitro.options.routeRules)) {
-    if (_hasProp(value, "isr")) {
-      continue;
-    }
-    if (value.cache === false) {
-      value.isr = false;
-    }
-    if (_hasProp(value, "static")) {
-      value.isr = !(value as { static: boolean }).static;
-      hasLegacyOptions = true;
-    }
-    if (value.cache && _hasProp(value.cache, "swr")) {
-      value.isr = value.cache.swr;
-      hasLegacyOptions = true;
-    }
-  }
-  if (hasLegacyOptions && !isTest) {
-    nitro.logger.warn(
-      "Nitro now uses `isr` option to configure ISR behavior on Vercel. Backwards-compatible support for `static` and `swr` options within the Vercel Build Options API will be removed in the future versions. Set `future.nativeSWR: true` nitro config disable this warning."
-    );
-  }
-}
-
 // --- vercel.json ---
 
 // https://vercel.com/docs/project-configuration
@@ -612,10 +583,6 @@ export async function readVercelConfig(rootDir: string): Promise<VercelConfig> {
     .then((config) => JSON.parse(config.toString()))
     .catch(() => ({}));
   return vercelConfig as VercelConfig;
-}
-
-function _hasProp(obj: any, prop: string) {
-  return obj && typeof obj === "object" && prop in obj;
 }
 
 /**
