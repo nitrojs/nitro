@@ -3,9 +3,6 @@ import { resolveModulePath } from "exsolve";
 import { ensureDep } from "../../utils/dep.ts";
 import { _resolveFromPath } from "../vite/_import.ts";
 
-/** Supported `rolldown` version range. */
-export const ROLLDOWN_VERSION = "^1";
-
 /**
  * Resolve `rolldown` from the user project (or `undefined` if it is not installed).
  *
@@ -31,14 +28,7 @@ export function resolveRolldown(dir: string, opts: { vitePath?: string } = {}): 
  * version that runs.
  */
 export async function importRolldown(dir: string): Promise<typeof import("rolldown")> {
-  const resolved =
-    resolveRolldown(dir) ||
-    (await ensureDep({
-      id: "rolldown",
-      dir,
-      reason: "the `rolldown` builder",
-      version: ROLLDOWN_VERSION,
-    }));
+  const resolved = resolveRolldown(dir) || (await ensureDep({ id: "rolldown", dir }));
   if (!resolved) {
     throw new Error(
       "`rolldown` is not installed. Please add it to your project dependencies to build with the `rolldown` builder."

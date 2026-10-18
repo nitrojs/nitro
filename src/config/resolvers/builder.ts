@@ -7,8 +7,6 @@ import { ensureDep, isDepInstalled } from "../../utils/dep.ts";
 
 const VALID_BUILDERS = ["rolldown", "rollup", "vite"] as const;
 
-const BUILDER_VERSIONS: Record<string, string | undefined> = { rollup: "^4", vite: "^8" };
-
 export async function resolveBuilder(options: NitroOptions) {
   // NITRO_BUILDER environment variable
   options.builder ??= process.env.NITRO_BUILDER as any;
@@ -36,12 +34,7 @@ export async function resolveBuilder(options: NitroOptions) {
     if (pkg === "rolldown" || (pkg === "vite" && options.vite?.path)) {
       return;
     }
-    const resolved = await ensureDep({
-      id: pkg,
-      dir: options.rootDir,
-      reason: `the \`${pkg}\` builder`,
-      version: BUILDER_VERSIONS[pkg],
-    });
+    const resolved = await ensureDep({ id: pkg, dir: options.rootDir });
     if (!resolved) {
       throw new Error(
         `Nitro builder package "${pkg}" is not installed. Please install it in your project dependencies.`

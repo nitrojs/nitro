@@ -67,7 +67,6 @@ async function deployToZephyr(nitro: Nitro): Promise<void> {
   try {
     const zephyrAgent = await importDep<ZephyrAgentModule>({
       id: "zephyr-agent",
-      reason: "deploying to Zephyr",
       dir: nitro.options.rootDir,
     });
 

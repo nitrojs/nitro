@@ -3,6 +3,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { resolveModulePath } from "exsolve";
 import { dirname, join, resolve } from "pathe";
+import { deps } from "../../utils/_deps.ts";
 import { ensureDep, importDep } from "../../utils/dep.ts";
 
 export interface ViteImportOptions {
@@ -63,8 +64,8 @@ function _viteDep(opts: ViteImportOptions) {
   return {
     id: opts.id || "vite",
     dir: opts.dir,
-    reason: "the `vite` builder",
-    version: "^8",
+    reason: deps.vite.reason,
+    version: deps.vite.version,
   };
 }
 

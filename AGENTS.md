@@ -67,12 +67,14 @@ from the user project via `src/utils/dep.ts` (`ensureDep` / `importDep` / `isDep
 resolves from `nitro.options.rootDir` and offers to install what is missing.
 
 - Don't add a `peerDependencies` entry. Add the package to `devDependencies` (for tests and types)
-  and import it with `importDep({ id, dir: nitro.options.rootDir, reason })`.
-- Keep the package listed in `optionalDeps` in `build.config.ts` so it stays external.
+  and to the manifest in `src/utils/_deps.ts` (supported `version` range, `reason` and install
+  defaults), then import it with `importDep({ id, dir: nitro.options.rootDir })`.
+- Manifest entries are kept external in `build.config.ts`. A unit test checks that each range covers
+  the `devDependencies` version.
 - `import type` from such a package is fine; only value imports must go through `utils/dep.ts`.
 - Optional dependencies of the libraries Nitro *bundles* (e.g. `jiti` for `c12`) cannot resolve from
-  `dist/`. Those get a bundle-time alias to a shim in `src/shims/` (see `shimmedDeps` in
-  `build.config.ts`).
+  `dist/`. Those are not in the manifest: they get a bundle-time alias to a shim in `src/shims/`
+  (one file per package) that declares its own range within the one of the bundled library.
 - Nitro has no peer dependencies at all: `vite` is imported from the user project too
   (`src/build/vite/_import.ts`). Its `DevEnvironment` subclass is therefore defined lazily, against
   the class of the resolved instance (see `src/build/vite/dev.ts`).

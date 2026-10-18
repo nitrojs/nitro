@@ -10,6 +10,7 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import * as exsolve from "exsolve";
 import type { NitroConfig } from "nitro/types";
 import { build, createNitro, prepare } from "../../src/builder.ts";
+import { getDepMeta } from "../../src/utils/_deps.ts";
 import * as dep from "../../src/utils/dep.ts";
 
 vi.mock("../../src/utils/dep.ts", { spy: true });
@@ -19,10 +20,11 @@ vi.mock("exsolve", { spy: true });
 const builders = ["rolldown", "rollup"] as const;
 
 // Config resolvers import (`importDep`), the bundler only resolves (`ensureDep`)
+// With the defaults of the dependency manifest applied
 const depCalls = (id: string) =>
-  [...vi.mocked(dep.importDep).mock.calls, ...vi.mocked(dep.ensureDep).mock.calls].filter(
-    ([opts]) => opts.id === id
-  );
+  [...vi.mocked(dep.importDep).mock.calls, ...vi.mocked(dep.ensureDep).mock.calls]
+    .filter(([opts]) => opts.id === id)
+    .map(([opts]) => [{ ...getDepMeta(opts.id), ...opts }]);
 
 const tmpDirs: string[] = [];
 afterAll(() => {

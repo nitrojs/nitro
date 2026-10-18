@@ -3,9 +3,6 @@ import type { BuiltinDriverName } from "unstorage";
 import { importDep } from "./dep.ts";
 import type { LibDep } from "./dep.ts";
 
-/** Supported `unstorage` version range (installed on demand). */
-export const UNSTORAGE_VERSION = "^2.0.0-alpha.10";
-
 export interface KVMountConfig {
   /** Mount point path. */
   path: string;
@@ -61,11 +58,5 @@ export function importUnstorage(opts: {
   dir: string;
   reason: string;
 }): Promise<typeof import("unstorage")> {
-  return importDep({
-    id: "unstorage",
-    version: UNSTORAGE_VERSION,
-    dev: false,
-    autoInstall: true,
-    ...opts,
-  });
+  return importDep({ id: "unstorage", ...opts });
 }

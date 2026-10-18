@@ -4,14 +4,24 @@ import { consola } from "consola";
 import { clearResolveCache, resolveModulePath } from "exsolve";
 import { dirname, join } from "pathe";
 import { hasTTY, isAgent, isCI, isTest } from "std-env";
+import { getDepMeta } from "./_deps.ts";
+import type { DepId } from "./_deps.ts";
 
-export interface DepOptions {
+/**
+ * Options of a dependency to resolve and install.
+ *
+ * Dependencies listed in the manifest (`utils/_deps.ts`) take their defaults from it.
+ */
+export type DepOptions = DepBaseOptions &
+  ({ id: DepId; reason?: string } | { id: string; reason: string });
+
+interface DepBaseOptions {
   /** Package name to resolve and install. */
   id: string;
   /** Directory to resolve from and install into. */
   dir: string;
-  /** Human readable reason, used in prompts and errors. */
-  reason: string;
+  /** Human readable reason, used in prompts and errors (required if not in the manifest). */
+  reason?: string;
   /**
    * Supported version range, used when installing (ignored if it is not a simple range)
    * and checked against the version of an already installed package.
@@ -36,7 +46,8 @@ export interface DepOptions {
  * Resolves to the module path or `undefined` if it is (still) not available.
  * Concurrent calls for the same dependency share one prompt (and install).
  */
-export function ensureDep(opts: DepOptions): Promise<string | undefined> {
+export function ensureDep(depOpts: DepOptions): Promise<string | undefined> {
+  const opts = _resolveDepOptions(depOpts);
   const key = `${opts.projectOnly ? "project" : "any"}:${opts.dir}:${opts.id}`;
   let pending = _pendingDeps.get(key);
   if (!pending) {
@@ -55,7 +66,8 @@ export async function importDep<T>(opts: DepOptions): Promise<T> {
 }
 
 /** Error for a dependency that is (still) not installed, with the command to install it. */
-export function missingDepError(opts: DepOptions): Error {
+export function missingDepError(depOpts: DepOptions): Error {
+  const opts = _resolveDepOptions(depOpts);
   const dev = opts.dev === false ? "" : "dev ";
   return new Error(
     `\`${opts.id}\` is not installed. It is required for ${opts.reason}. Please add it to your ${dev}dependencies (e.g. \`npx nypm add ${dev ? "-D " : ""}${_depSpec(opts)}\`).`
@@ -142,9 +154,24 @@ export async function ensureLibDeps(
   }
 }
 
+type ResolvedDepOptions = DepBaseOptions & { id: string; reason: string };
+
+/** Apply the manifest defaults (`utils/_deps.ts`) of a dependency. */
+function _resolveDepOptions(opts: DepOptions): ResolvedDepOptions {
+  const meta = getDepMeta(opts.id);
+  return {
+    version: meta?.version,
+    dev: meta?.dev,
+    autoInstall: meta?.autoInstall,
+    projectOnly: meta?.projectOnly,
+    ...opts,
+    reason: opts.reason || meta?.reason || `\`${opts.id}\``,
+  };
+}
+
 const _pendingDeps = new Map<string, Promise<string | undefined>>();
 
-async function _ensureDep(opts: DepOptions): Promise<string | undefined> {
+async function _ensureDep(opts: ResolvedDepOptions): Promise<string | undefined> {
   const resolved = resolveDep(opts.id, opts);
   if (resolved) {
     _checkVersion(opts, resolved);
@@ -189,14 +216,14 @@ async function _ensureDep(opts: DepOptions): Promise<string | undefined> {
 }
 
 /** Package spec to install (with the version range if it is a simple one). */
-function _depSpec(opts: DepOptions): string {
+function _depSpec(opts: ResolvedDepOptions): string {
   return opts.version && !opts.version.includes(" ") ? `${opts.id}@${opts.version}` : opts.id;
 }
 
 const _checkedVersions = new Set<string>();
 
 /** Warn if the installed version of a dependency is outside of its supported range (checked once per entry). */
-function _checkVersion(opts: DepOptions, entry: string): void {
+function _checkVersion(opts: ResolvedDepOptions, entry: string): void {
   const key = `${entry}@${opts.version}`;
   if (!opts.version || _checkedVersions.has(key)) {
     return;
