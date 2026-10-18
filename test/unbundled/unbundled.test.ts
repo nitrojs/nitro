@@ -18,7 +18,7 @@ import { join } from "pathe";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { isUnbundledProject } from "../../src/build/unbundled/detect.ts";
 import { unbundledPlugins } from "../../src/build/unbundled/plugins.ts";
-import { startUnbundledPreview } from "../../src/build/unbundled/preview.ts";
+import { startUnbundledServer } from "../../src/build/unbundled/serve.ts";
 
 const rootDir = fileURLToPath(new URL("fixture", import.meta.url));
 
@@ -182,20 +182,27 @@ describe("builder: false", () => {
     await rm(dir, { recursive: true, force: true });
   });
 
-  it("serves the sources whatever the configured builder is (`nitro serve`)", async () => {
+  it("serves the sources from a public worker listener (`nitro serve`)", async () => {
     const dir = await mkdtemp(join(tmpdir(), "nitro-unbundled-"));
     await writeFile(
       join(dir, "nitro.config.mjs"),
-      `export default { builder: "rollup", serverDir: "./" };`
+      `export default { builder: "rollup", serverDir: "./", baseURL: "/app/" };`
     );
     await mkdir(join(dir, "routes"));
     await writeFile(join(dir, "routes/index.ts"), `export default () => "Served!";`);
-    const app = await startUnbundledPreview({ rootDir: dir, serve: true });
+    await mkdir(join(dir, "public"));
+    await writeFile(join(dir, "public/hello.txt"), "static asset");
+    const server = await startUnbundledServer({
+      rootDir: dir,
+      listen: { port: 0, hostname: "127.0.0.1" },
+    });
     try {
-      const res = await app.fetch(new Request("http://localhost/") as any);
-      expect(await res.text()).toBe("Served!");
+      const { host, port } = server.runner.address!;
+      const url = `http://${host}:${port}`;
+      expect(await fetch(`${url}/app/`).then((r) => r.text())).toBe("Served!");
+      expect(await fetch(`${url}/app/hello.txt`).then((r) => r.text())).toBe("static asset");
     } finally {
-      await app.close();
+      await server.close();
       await rm(dir, { recursive: true, force: true });
     }
   });

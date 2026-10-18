@@ -1,8 +1,9 @@
 import { defineCommand } from "citty";
+import { consola } from "consola";
+import { colors } from "consola/utils";
 import { resolve } from "pathe";
-import { serve } from "srvx";
 import { commonArgs } from "../common.ts";
-import { startUnbundledPreview } from "../../build/unbundled/preview.ts";
+import { startUnbundledServer } from "../../build/unbundled/serve.ts";
 import { runDev } from "./dev.ts";
 
 export default defineCommand({
@@ -24,25 +25,32 @@ export default defineCommand({
       return;
     }
 
-    const app = await startUnbundledPreview({ rootDir, serve: true });
-
-    const server = serve({
-      fetch: (req) => app.fetch(req),
-      gracefulShutdown: false,
-      port: args.port || process.env.NITRO_PORT,
-      hostname: args.host || process.env.NITRO_HOST,
+    let started = false;
+    let closing = false;
+    const server = await startUnbundledServer({
+      rootDir,
+      listen: {
+        port: args.port || process.env.NITRO_PORT,
+        hostname: args.host || process.env.NITRO_HOST,
+        silent: false,
+      },
+      onClose(cause) {
+        if (started && !closing) {
+          consola.error("Server worker exited unexpectedly.", cause ?? "");
+          process.exit(1);
+        }
+      },
     });
 
-    if (app.upgrade) {
-      server.node?.server?.on("upgrade", (req, socket, head) => {
-        app.upgrade!(req, socket, head);
-      });
-    }
+    started = true;
+    consola.info(
+      `Serving server sources in production mode ${colors.gray("(use --dev to watch for changes)")}`
+    );
 
     for (const signal of ["SIGINT", "SIGTERM"] as const) {
       process.once(signal, async () => {
+        closing = true;
         await server.close();
-        await app.close();
         process.exit(0);
       });
     }

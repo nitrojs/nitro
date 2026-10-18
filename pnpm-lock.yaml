@@ -21,8 +21,8 @@ importers:
         specifier: ^0.4.15
         version: 0.4.15(srvx@1.0.6)
       env-runner:
-        specifier: ^0.3.4
-        version: 0.3.4
+        specifier: ^0.3.5
+        version: 0.3.5
       h3:
         specifier: ^2.0.3
         version: 2.0.3(crossws@0.4.15)(ocache@0.3.0)
@@ -272,7 +272,7 @@ importers:
         version: 1.7.0
       unctx:
         specifier: ^3.0.1
-        version: 3.0.1(magic-string@1.4.3)(oxc-parser@shims+oxc-parser)(rolldown@1.2.14)(unplugin@3.4.0)
+        version: 3.0.1(magic-string@1.4.3)(rolldown@1.2.14)(unplugin@3.4.0)
       unenv:
         specifier: ^2.0.0-rc.24
         version: 2.0.0-rc.24
@@ -4393,8 +4393,8 @@ packages:
     resolution: {integrity: sha512-TWrgLOFUQTH994YUyl1yT4uyavY5nNB5muff+RtWaqNVCAK408b5ZnnbNAUEWLTCpum9w6arT70i1XdQ4UeOPA==}
     engines: {node: '>=0.12'}
 
-  env-runner@0.3.4:
-    resolution: {integrity: sha512-zP3dtlJZUn++g7N/rL2aiWkzqxsqCNCRTt8d3Gf3+iSCCIoSgBdWMSY1fz+dQ4+kH37kJ5etnEeJ4BouqIS1yQ==}
+  env-runner@0.3.5:
+    resolution: {integrity: sha512-CGlZFtUPSJr0E2hUcaC24EbpJMSt83oZYY54UB5Uf66h2g0FzGsDq5zDlr2z6iS7Tqi2Xq+zpWu0IIQgAgBP8w==}
     hasBin: true
 
   eol@0.9.1:
@@ -6692,13 +6692,10 @@ packages:
     resolution: {integrity: sha512-5RAt2etv7g362RXyd33R82gm9u/kbtQlpoaOs9Bgm4E32GRMJ0xjbZyvdxUTmiuHk3V1IQb1aUNrp5IWY+JaWw==}
     peerDependencies:
       magic-string: '>=0.30.21'
-      oxc-parser: '>=0.140.0'
       rolldown: ^1.1.5
       unplugin: ^3.3.0
     peerDependenciesMeta:
       magic-string:
-        optional: true
-      oxc-parser:
         optional: true
       rolldown:
         optional: true
@@ -10776,7 +10773,7 @@ snapshots:
 
   entities@7.0.1: {}
 
-  env-runner@0.3.4:
+  env-runner@0.3.5:
     dependencies:
       crossws: 0.4.15(srvx@1.0.6)
       srvx: 1.0.6
@@ -13455,10 +13452,11 @@ snapshots:
 
   ultrahtml@1.7.0: {}
 
-  unctx@3.0.1(magic-string@1.4.3)(oxc-parser@shims+oxc-parser)(rolldown@1.2.14)(unplugin@3.4.0):
+  unctx@3.0.1(magic-string@1.4.3)(rolldown@1.2.14)(unplugin@3.4.0):
+    dependencies:
+      oxc-parser: link:shims/oxc-parser
     optionalDependencies:
       magic-string: 1.4.3
-      oxc-parser: link:shims/oxc-parser
       rolldown: 1.2.14
       unplugin: 3.4.0(esbuild@0.28.2)(rolldown@1.2.14)(rollup@4.64.7)(vite@8.3.4)
 

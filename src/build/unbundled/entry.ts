@@ -14,6 +14,8 @@ export interface UnbundledApp {
   entry: string;
   /** Virtual modules for the runner (`data.virtual`). */
   virtual: Record<string, string>;
+  /** File URL of the app entry the entry re-exports. */
+  appEntry: string;
 }
 
 /**
@@ -56,7 +58,7 @@ export * from ${JSON.stringify(appEntry)};
 export { default } from ${JSON.stringify(appEntry)};
 `.trimStart();
 
-  return { entry, virtual };
+  return { entry, virtual, appEntry };
 }
 
 /**

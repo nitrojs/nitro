@@ -72,7 +72,7 @@
   },
   "dependencies": {
     "crossws": "^0.4.15",
-    "env-runner": "^0.3.4",
+    "env-runner": "^0.3.5",
     "h3": "^2.0.3",
     "nf3": "^0.4.2",
     "srvx": "^1.0.6"
