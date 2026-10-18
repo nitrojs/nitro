@@ -178,8 +178,8 @@ export class NitroDevApp {
    * Runtime-agnostic alternative to {@link proxyUpgrade}: resolve `crossws` hooks proxying a
    * WebSocket upgrade request to a matching `devProxy` rule with `ws` enabled.
    */
-  resolveWebSocketProxy(req: Request): Partial<Hooks> | undefined {
-    return this.#findWSProxy(new URL(req.url).pathname)?.websocket;
+  resolveWebSocketProxy(req: Request): Promise<Partial<Hooks>> | undefined {
+    return this.#findWSProxy(new URL(req.url).pathname)?.websocket();
   }
 
   #findWSProxy(path: string): DevProxy | undefined {

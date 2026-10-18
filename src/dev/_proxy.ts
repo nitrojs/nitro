@@ -1,10 +1,9 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Socket } from "node:net";
 import type { H3Event } from "h3";
-import type { Hooks, Peer } from "crossws";
+import type { Hooks, WebSocketProxyOptions } from "crossws";
 import type { ProxyAddr, ProxyServerOptions, ProxyTarget } from "httpxy";
 import { createProxyServer, proxyFetch } from "httpxy";
-import { createWebSocketProxy } from "crossws";
 import { fromNodeHandler, HTTPError } from "h3";
 import { joinURL } from "ufo";
 
@@ -22,7 +21,7 @@ export function createDevProxy(defaults: ProxyServerOptions = {}) {
   const nodeHandler = fromNodeHandler((req, res) =>
     proxy.web(req as IncomingMessage, res as ServerResponse)
   );
-  let wsHooks: Partial<Hooks> | undefined;
+  let wsHooks: Promise<Partial<Hooks>> | undefined;
   return {
     proxy,
     async handleEvent(event: H3Event) {
@@ -30,7 +29,7 @@ export function createDevProxy(defaults: ProxyServerOptions = {}) {
         if (event.runtime?.node?.res) {
           return await nodeHandler(event);
         }
-        return await proxyWebRequest(event.req as Request, opts);
+        return await proxyWebRequest(event.req as Request & { ip?: string }, opts);
       } catch (error: any) {
         event.res.headers.set("refresh", "3");
         throw new HTTPError({
@@ -43,91 +42,177 @@ export function createDevProxy(defaults: ProxyServerOptions = {}) {
     proxyUpgrade(req: IncomingMessage, socket: Socket, head: any) {
       return proxy.ws(req, socket, {}, head);
     },
-    get websocket(): Partial<Hooks> {
+    /** Resolve `crossws` hooks proxying WebSocket connections to the rule target. */
+    websocket(): Promise<Partial<Hooks>> {
       return (wsHooks ??= createWebSocketProxy({
-        target: (peer) => resolveUpstreamURL(opts, peer.request.url, "ws"),
-        headers: (peer) => forwardHeaders(peer, opts),
+        target: (peer) => {
+          const target = parseTarget(opts.target);
+          const path = resolveUpstreamPath(opts, target, new URL(peer.request.url));
+          return target.socketPath
+            ? `ws+unix://${target.socketPath}:${path}`
+            : `${target.url.protocol.replace(/^http/, "ws")}//${target.url.host}${path}`;
+        },
+        headers: (peer) => {
+          const headers = forwardHeaders(peer.request.headers);
+          if (opts.xfwd) {
+            setForwardedHeaders(headers, {
+              url: peer.request.url,
+              ip: peer.remoteAddress,
+              ws: true,
+            });
+          }
+          for (const [key, value] of Object.entries(opts.headers || {})) {
+            headers.set(key, value);
+          }
+          setBasicAuth(headers, opts.auth);
+          return Object.fromEntries(headers);
+        },
       }));
     },
   };
 }
 
 /**
- * Create `crossws` hooks proxying WebSocket connections to the worker address resolved by `getAddress`.
+ * Create a resolver of `crossws` hooks proxying WebSocket connections to the dev worker.
+ *
+ * The handshake is rejected (`503`) when the worker has no address to dial, e.g. while it failed
+ * to start or for runners that only support upgrades from a Node.js host (`miniflare`, `self`).
  */
 export function createWorkerWebSocketProxy(
   getAddress: () => ProxyAddr | undefined | Promise<ProxyAddr | undefined>
-): Partial<Hooks> {
-  return createWebSocketProxy({
-    target: async (peer) => {
-      const addr = await getAddress();
-      if (!addr) {
-        throw new Error("Dev worker address is unavailable.");
-      }
-      const { pathname, search } = new URL(peer.request.url);
-      return addr.socketPath
-        ? `ws+unix://${addr.socketPath}:${pathname}${search}`
-        : `ws://${formatHost(addr.host || "localhost")}:${addr.port}${pathname}${search}`;
-    },
-    headers: (peer) => forwardHeaders(peer, { xfwd: true }),
-  });
+): () => Promise<Partial<Hooks>> {
+  let hooks: Promise<Partial<Hooks>> | undefined;
+  return () =>
+    (hooks ??= createWebSocketProxy({
+      target: async (peer) => {
+        const addr = await resolveWorkerAddress(getAddress);
+        const { pathname, search } = new URL(peer.request.url);
+        return addr.socketPath
+          ? `ws+unix://${addr.socketPath}:${pathname}${search}`
+          : `ws://${formatHost(addr.host || "localhost")}:${addr.port}${pathname}${search}`;
+      },
+      headers: (peer) => {
+        const headers = forwardHeaders(peer.request.headers);
+        setForwardedHeaders(headers, {
+          url: peer.request.url,
+          ip: peer.remoteAddress,
+          ws: true,
+          append: true,
+        });
+        return Object.fromEntries(headers);
+      },
+    }).then((proxy) => ({
+      ...proxy,
+      async upgrade(request) {
+        try {
+          await resolveWorkerAddress(getAddress);
+        } catch (error) {
+          return new Response(error instanceof Error ? error.message : String(error), {
+            status: 503,
+          });
+        }
+        return proxy.upgrade?.(request);
+      },
+    })));
 }
 
-function proxyWebRequest(req: Request, opts: ProxyServerOptions) {
+async function createWebSocketProxy(opts: WebSocketProxyOptions) {
+  // Lazy loaded: only non-Node.js listeners proxy WebSockets through crossws
+  const { createWebSocketProxy } = await import("crossws");
+  return createWebSocketProxy(opts);
+}
+
+async function resolveWorkerAddress(
+  getAddress: () => ProxyAddr | undefined | Promise<ProxyAddr | undefined>
+): Promise<ProxyAddr> {
+  const addr = await getAddress();
+  if (!addr?.socketPath && !addr?.port) {
+    throw new Error(
+      "Dev worker has no address to proxy WebSocket upgrades to. Some runners only support upgrades when the dev server runs on Node.js."
+    );
+  }
+  return addr;
+}
+
+function proxyWebRequest(req: Request & { ip?: string }, opts: ProxyServerOptions) {
   const target = parseTarget(opts.target);
-  const upstreamURL = new URL(resolveUpstreamURL(opts, req.url, "http"));
-  const input = new URL(upstreamURL.pathname + upstreamURL.search, req.url);
+  const url = new URL(req.url);
   const headers = new Headers(req.headers);
+  if (opts.xfwd) {
+    setForwardedHeaders(headers, { url, ip: req.ip });
+  }
   for (const [key, value] of Object.entries(opts.headers || {})) {
     headers.set(key, value);
   }
-  if (opts.auth) {
-    headers.set("authorization", `Basic ${btoa(opts.auth)}`);
-  }
+  setBasicAuth(headers, opts.auth);
+  const ssl =
+    target.tls || opts.ssl || opts.secure === false
+      ? { ...target.tls, ...opts.ssl, ...(opts.secure === false && { rejectUnauthorized: false }) }
+      : undefined;
   return proxyFetch(
-    target.socketPath ? { socketPath: target.socketPath } : upstreamURL.origin,
-    input,
+    target.addr,
+    url.origin + resolveUpstreamPath(opts, target, url),
     { method: req.method, headers, body: req.body, signal: req.signal },
     {
-      xfwd: opts.xfwd,
       changeOrigin: opts.changeOrigin,
       followRedirects: opts.followRedirects,
       timeout: opts.proxyTimeout,
       agent: opts.agent,
-      ssl: opts.secure === false ? { ...opts.ssl, rejectUnauthorized: false } : opts.ssl,
+      ssl,
     }
   );
 }
 
-function resolveUpstreamURL(opts: ProxyServerOptions, reqURL: string, scheme: "http" | "ws") {
-  const target = parseTarget(opts.target);
-  const { pathname, search } = new URL(reqURL);
-  const path = opts.ignorePath ? "" : pathname + search;
-  const fullPath = opts.prependPath === false ? path || "/" : joinURL(target.url.pathname, path);
-  if (target.socketPath) {
-    return scheme === "ws"
-      ? `ws+unix://${target.socketPath}:${fullPath}`
-      : `http://localhost${fullPath}`;
-  }
-  const protocol =
-    scheme === "ws" ? target.url.protocol.replace(/^http/, "ws") : target.url.protocol;
-  return `${protocol}//${target.url.host}${fullPath}`;
+interface ParsedTarget {
+  url: URL;
+  addr: string | ProxyAddr;
+  socketPath?: string;
+  tls?: Record<string, unknown>;
 }
 
-function parseTarget(target: ProxyTarget | undefined): { url: URL; socketPath?: string } {
+const tlsKeys = ["key", "passphrase", "pfx", "cert", "ca", "ciphers", "secureProtocol"] as const;
+
+function parseTarget(target: ProxyTarget | undefined): ParsedTarget {
   if (!target) {
     throw new Error("[nitro] `devProxy` rule is missing a `target`.");
   }
+  let url: URL;
+  let socketPath: string | undefined;
+  let tls: Record<string, unknown> | undefined;
   if (typeof target === "string" || target instanceof URL) {
-    return { url: new URL(target) };
+    url = new URL(target);
+  } else {
+    const protocol = target.protocol ? target.protocol.replace(/:?$/, ":") : "http:";
+    const hostname = formatHost(target.hostname || target.host || "localhost");
+    const port = target.port ? `:${target.port}` : "";
+    url = new URL(`${protocol}//${hostname}${port}${target.pathname || ""}`);
+    socketPath = target.socketPath;
+    for (const key of tlsKeys) {
+      if (target[key] !== undefined) {
+        (tls ??= {})[key] = target[key];
+      }
+    }
   }
-  const protocol = target.protocol || "http:";
-  const hostname = formatHost(target.hostname || target.host || "localhost");
-  const port = target.port ? `:${target.port}` : "";
-  return {
-    url: new URL(`${protocol}//${hostname}${port}${target.pathname || ""}`),
-    socketPath: target.socketPath,
-  };
+  const secure = /^(?:https|wss):$/.test(url.protocol);
+  // `proxyFetch` only detects HTTPS from string addresses, and only parses non-IPv6 ones
+  const addr: string | ProxyAddr = socketPath
+    ? { socketPath }
+    : secure
+      ? url.origin
+      : { host: url.hostname.replace(/^\[(.*)\]$/, "$1"), port: Number(url.port) || 80 };
+  return { url, addr, socketPath, tls };
+}
+
+/** Upstream path (with query), following `httpxy` semantics for `prependPath` and `ignorePath`. */
+function resolveUpstreamPath(opts: ProxyServerOptions, target: ParsedTarget, reqURL: URL) {
+  const prepend = opts.prependPath !== false;
+  const reqPath = opts.ignorePath ? "" : reqURL.pathname + reqURL.search;
+  let path = joinURL(prepend ? target.url.pathname : "", reqPath) || "/";
+  const targetSearch = prepend ? target.url.search : "";
+  if (targetSearch) {
+    path = path.includes("?") ? path.replace("?", `${targetSearch}&`) : path + targetSearch;
+  }
+  return path;
 }
 
 const skipHeaders = new Set([
@@ -143,24 +228,45 @@ const skipHeaders = new Set([
   "sec-websocket-accept",
 ]);
 
-function forwardHeaders(peer: Peer, opts: Pick<ProxyServerOptions, "headers" | "xfwd" | "auth">) {
-  const headers: Record<string, string> = {};
-  for (const [key, value] of peer.request.headers) {
+function forwardHeaders(input: Headers) {
+  const headers = new Headers();
+  for (const [key, value] of input) {
     if (!skipHeaders.has(key)) {
-      headers[key] = value;
+      headers.append(key, value);
     }
   }
-  if (opts.xfwd) {
-    const url = new URL(peer.request.url);
-    headers["x-forwarded-for"] ??= peer.remoteAddress || "";
-    headers["x-forwarded-port"] ??= url.port || (url.protocol === "https:" ? "443" : "80");
-    headers["x-forwarded-proto"] ??= url.protocol === "https:" ? "wss" : "ws";
-    headers["x-forwarded-host"] ??= url.host;
+  return headers;
+}
+
+function setForwardedHeaders(
+  headers: Headers,
+  opts: { url: string | URL; ip?: string; ws?: boolean; append?: boolean }
+) {
+  const url = typeof opts.url === "string" ? new URL(opts.url) : opts.url;
+  const secure = /^(?:https|wss):$/.test(url.protocol);
+  const values = {
+    for: opts.ip,
+    port: url.port || (secure ? "443" : "80"),
+    proto: opts.ws ? (secure ? "wss" : "ws") : secure ? "https" : "http",
+  };
+  for (const [key, value] of Object.entries(values)) {
+    const name = `x-forwarded-${key}`;
+    const existing = headers.get(name);
+    if (value === undefined || (existing && !opts.append)) {
+      continue;
+    }
+    headers.set(name, existing ? `${existing},${value}` : value);
   }
-  if (opts.auth) {
-    headers.authorization = `Basic ${btoa(opts.auth)}`;
+  if (!opts.ws && !headers.has("x-forwarded-host")) {
+    headers.set("x-forwarded-host", url.host);
   }
-  return { ...headers, ...opts.headers };
+}
+
+function setBasicAuth(headers: Headers, auth: string | undefined) {
+  if (auth && !headers.has("authorization")) {
+    const bytes = new TextEncoder().encode(auth);
+    headers.set("authorization", `Basic ${btoa(String.fromCharCode(...bytes))}`);
+  }
 }
 
 function formatHost(host: string) {

@@ -1,7 +1,7 @@
 import type { IncomingMessage } from "node:http";
 import type { Socket } from "node:net";
 import type { FSWatcher } from "chokidar";
-import type { ServerOptions, Server, ServerPlugin } from "srvx";
+import type { ServerOptions, Server } from "srvx";
 import type { Hooks } from "crossws";
 import type {
   EnvRunnerData,
@@ -19,7 +19,6 @@ import consola from "consola";
 import { readFile } from "node:fs/promises";
 import { resolve } from "pathe";
 import { serve } from "srvx";
-import { plugin as crosswsPlugin } from "crossws/server";
 import { debounce } from "perfect-debounce";
 import { isTest, isCI } from "std-env";
 import { NitroDevApp } from "./app.ts";
@@ -28,6 +27,7 @@ import { resolveRunnerDeps } from "./runner-deps.ts";
 import { shutdownRunner } from "./shutdown.ts";
 import { handleDevRPC } from "./_rpc.ts";
 import { createWorkerWebSocketProxy } from "./_proxy.ts";
+import { webSocketPlugin } from "./_ws.ts";
 import { writeDevBuildInfo } from "../build/info.ts";
 
 export function createDevServer(nitro: Nitro): NitroDevServer {
@@ -41,7 +41,7 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
   #listeners: Server[] = [];
   #watcher?: FSWatcher;
   #manager: RunnerManager;
-  #workerWebSocket: Partial<Hooks>;
+  #workerWebSocket: () => Promise<Partial<Hooks>>;
   #workerIdCtr: number = 0;
   #runnerName?: RunnerName;
   #workerError?: unknown;
@@ -184,8 +184,8 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
    * Runtime-agnostic alternative to {@link upgrade}: resolve `crossws` hooks proxying a WebSocket
    * upgrade request to a matching `devProxy` rule or to the dev worker.
    */
-  resolveWebSocketHooks(req: Request): Partial<Hooks> {
-    return this.resolveWebSocketProxy(req) || this.#workerWebSocket;
+  resolveWebSocketHooks(req: Request): Promise<Partial<Hooks>> {
+    return this.resolveWebSocketProxy(req) || this.#workerWebSocket();
   }
 
   listen(opts?: Partial<Omit<ServerOptions, "fetch">>): Server {
@@ -193,7 +193,7 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
       ...opts,
       fetch: this.fetch,
       gracefulShutdown: false,
-      plugins: [...(opts?.plugins || []), this.#webSocketPlugin],
+      plugins: [...(opts?.plugins || []), webSocketPlugin(this.resolveWebSocketHooks)],
     });
     this.#listeners.push(server);
     if (server.node?.server) {
@@ -267,13 +267,6 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
   // #endregion
 
   // #region Private Methods
-
-  // Node.js listeners proxy raw upgrade sockets (see `upgrade()`), other runtimes go through crossws
-  #webSocketPlugin: ServerPlugin = (server) => {
-    if (server.runtime !== "node") {
-      crosswsPlugin({ resolve: (req) => this.resolveWebSocketHooks(req) })(server);
-    }
-  };
 
   async #shutdownWorker() {
     // The miniflare runner runs the same handshake itself when it is disposed
