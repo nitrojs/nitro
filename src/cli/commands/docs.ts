@@ -1,5 +1,7 @@
-import { execSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { defineCommand } from "citty";
+
+const docsOrigin = "https://nitro.build";
 
 export default defineCommand({
   meta: {
@@ -10,14 +12,17 @@ export default defineCommand({
     page: { type: "positional", required: false, description: "Page path to open" },
   },
   run({ args }) {
-    const url = new URL(args.page || "/", "https://nitro.build").href;
-    console.log(`Opening ${url}`);
-    const cmd =
+    const url = new URL(args.page || "/", docsOrigin);
+    if (url.origin !== docsOrigin) {
+      throw new Error(`Invalid docs page \`${args.page}\`. Use a path such as \`/docs/routing\`.`);
+    }
+    console.log(`Opening ${url.href}`);
+    const [cmd, cmdArgs] =
       process.platform === "win32"
-        ? `start "" "${url}"`
-        : `${process.platform === "darwin" ? "open" : "xdg-open"} "${url}"`;
-    try {
-      execSync(cmd, { stdio: "ignore" });
-    } catch {}
+        ? ["rundll32", ["url.dll,FileProtocolHandler", url.href]]
+        : [process.platform === "darwin" ? "open" : "xdg-open", [url.href]];
+    const child = spawn(cmd, cmdArgs, { stdio: "ignore", detached: true });
+    child.on("error", () => {});
+    child.unref();
   },
 });
