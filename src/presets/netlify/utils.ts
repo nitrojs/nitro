@@ -1,6 +1,6 @@
 import { existsSync, promises as fsp } from "node:fs";
 import type { Nitro, PublicAssetDir } from "nitro/types";
-import { join } from "pathe";
+import { dirname, join } from "pathe";
 import { joinURL, withoutTrailingSlash } from "ufo";
 import { escapeRegExp } from "../../utils/regex.ts";
 import { routeToSplat, sortRoutes } from "../_utils/routes.ts";
@@ -56,6 +56,20 @@ export async function writeHeaders(nitro: Nitro) {
   await writePublishFile(nitro, "_headers", contents);
 }
 
+export async function writeConfig(nitro: Nitro, configPath: string) {
+  const netlify = nitro.options.netlify;
+  if (netlify?.images) {
+    netlify.config ||= {};
+    netlify.config.images ||= netlify.images;
+  }
+  if (Object.keys(netlify?.config || {}).length === 0) {
+    await fsp.rm(configPath, { force: true });
+    return;
+  }
+  await fsp.mkdir(dirname(configPath), { recursive: true });
+  await fsp.writeFile(configPath, JSON.stringify(netlify!.config), "utf8");
+}
+
 export function getStaticPaths(publicAssets: PublicAssetDir[], baseURL: string): string[] {
   return [
     "/.netlify/*", // TODO: should this be also be prefixed with baseURL?
@@ -65,7 +79,7 @@ export function getStaticPaths(publicAssets: PublicAssetDir[], baseURL: string):
   ];
 }
 
-// This is written to the functions directory. It just re-exports the compiled handler,
+// This is written to the (edge) functions directory. It just re-exports the compiled handler,
 // along with its config. We do this instead of compiling the entrypoint directly because
 // the Netlify platform actually statically analyzes the function file to read the config;
 // if we compiled the entrypoint directly, it would be chunked and wouldn't be analyzable.
@@ -80,6 +94,18 @@ export const config = {
   includedFiles: ["**"],
   excludedPath: ${JSON.stringify(getStaticPaths(nitro.options.publicAssets, nitro.options.baseURL))},
   preferStatic: true,
+};
+    `.trim();
+}
+
+export function generateNetlifyEdgeFunction(nitro: Nitro) {
+  return /* js */ `
+export { default } from "./main.mjs";
+export const config = {
+  name: "edge server handler",
+  generator: "${getGeneratorString(nitro)}",
+  path: "/*",
+  excludedPath: ${JSON.stringify(getStaticPaths(nitro.options.publicAssets, nitro.options.baseURL))},
 };
     `.trim();
 }

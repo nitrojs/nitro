@@ -4,7 +4,7 @@ import type { NitroPluginContext, ViteServiceConfig } from "./types.ts";
 import type { RunnerName } from "env-runner";
 import { RunnerManager, loadRunner } from "env-runner";
 import { join, resolve } from "node:path";
-import { runtimeDependencies, runtimeDir } from "nitro/meta";
+import { runtimeDependencies, runtimeDir } from "#nitro/meta";
 import { resolveModulePath } from "exsolve";
 import { isAbsolute } from "pathe";
 import { resolveRunnerDeps } from "../../dev/runner-deps.ts";

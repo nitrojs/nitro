@@ -3,7 +3,7 @@ import type { RouterContext } from "rou3";
 import type { CompileRouterToStringOptions } from "rou3/compiler";
 
 import { join } from "pathe";
-import { runtimeDir } from "nitro/meta";
+import { runtimeDir } from "#nitro/meta";
 import { normalizeRoute } from "h3";
 import { addRoute, createRouter, findRoute, findAllRoutes } from "rou3";
 import { compileRouterToString } from "rou3/compiler";

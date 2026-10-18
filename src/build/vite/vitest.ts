@@ -1,7 +1,7 @@
 import type { UserConfig, Plugin as VitePlugin } from "vite";
 import type { NitroPluginContext } from "./types.ts";
 import { resolve } from "pathe";
-import { runtimeDir } from "nitro/meta";
+import { runtimeDir } from "#nitro/meta";
 import { setupVitestWatch } from "./_vitest-watch.ts";
 
 // https://vitest.dev/guide/environment#custom-environment

@@ -1,8 +1,9 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "pathe";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { loadOptions } from "../../src/config/loader.ts";
+import { createNitro } from "../../src/nitro.ts";
 
 const tempDirs: string[] = [];
 
@@ -31,7 +32,7 @@ const presetFile = `export default {
   extends: "node-server",
   hooks: {
     compiled() { globalThis.__nitroHookCalls.push("preset:compiled") },
-    "rollup:before"() { globalThis.__nitroHookCalls.push("preset:rollup:before") },
+    "build:config"() { globalThis.__nitroHookCalls.push("preset:build:config") },
   },
 }
 `;
@@ -79,14 +80,14 @@ describe("config hooks", () => {
       "nitro.config.mjs": `export default {
         preset: "./preset.mjs",
         hooks: {
-          rollup: { before() { globalThis.__nitroHookCalls.push("config:rollup:before") } },
+          build: { config() { globalThis.__nitroHookCalls.push("config:build:config") } },
         },
       }`,
     });
     const options = await loadOptions({ rootDir });
 
-    await callHook(options.hooks, "rollup:before");
-    expect(globalThis.__nitroHookCalls).toEqual(["preset:rollup:before", "config:rollup:before"]);
+    await callHook(options.hooks, "build:config");
+    expect(globalThis.__nitroHookCalls).toEqual(["preset:build:config", "config:build:config"]);
   });
 
   it("merges hooks from `$production` with base config hooks", async () => {
@@ -108,5 +109,46 @@ describe("config hooks", () => {
 
     await callHook(options.hooks, "compiled");
     expect(globalThis.__nitroHookCalls).toEqual(["config:compiled", "production:compiled"]);
+  });
+});
+
+describe("deprecated hooks", () => {
+  it("calls `rollup:before` and `rollup:reload` hooks from `build:config` and `build:reload`", async () => {
+    const rootDir = await createFixture({});
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const calls: unknown[] = [];
+    const nitro = await createNitro({
+      rootDir,
+      hooks: {
+        rollup: {
+          before: (_nitro, config) => {
+            calls.push(["config:rollup:before", config]);
+          },
+        },
+      },
+    });
+    const loggerWarn = vi.spyOn(nitro.logger, "warn").mockImplementation(() => {});
+    nitro.hooks.hook("rollup:before", (_nitro, config) => {
+      calls.push(["rollup:before", config]);
+    });
+    nitro.hooks.hook("rollup:reload", () => {
+      calls.push("rollup:reload");
+    });
+
+    const rolldown = { input: "entry" };
+    await nitro.hooks.callHook("build:config", nitro, { builder: "rolldown", rolldown });
+    await nitro.updateConfig({});
+    expect(calls).toEqual([
+      ["config:rollup:before", rolldown],
+      ["rollup:before", rolldown],
+      "rollup:reload",
+    ]);
+    expect(calls[0]).toContain(rolldown);
+    expect(loggerWarn).toHaveBeenCalledOnce();
+    expect(loggerWarn).toHaveBeenCalledWith(expect.stringContaining("Use `build:config` instead"));
+    expect(consoleWarn).toHaveBeenCalledWith(expect.stringContaining("please use build:reload"));
+
+    consoleWarn.mockRestore();
+    await nitro.close();
   });
 });

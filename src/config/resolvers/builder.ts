@@ -72,7 +72,7 @@ export async function resolveBuilder(options: NitroOptions) {
   if (!_hintShown) {
     _hintShown = true;
     consola.info(
-      "`rolldown` is not installed in your project. Running the dev server without a builder (experimental `builder: false`), so bundler plugins added by modules (`rollup:before` hook) do not apply. Install `rolldown` to bundle the server in development."
+      "`rolldown` is not installed in your project. Running the dev server without a builder (experimental `builder: false`), so bundler plugins added by modules (`build:config` hook) do not apply. Install `rolldown` to bundle the server in development."
     );
   }
   options.builder = false;

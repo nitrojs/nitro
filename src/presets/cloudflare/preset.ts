@@ -2,7 +2,7 @@ import { defineNitroPreset } from "../_utils/preset.ts";
 import { writeFile } from "../_utils/fs.ts";
 import type { Nitro } from "nitro/types";
 import { join, resolve } from "pathe";
-import { presetsDir } from "nitro/meta";
+import { presetsDir } from "#nitro/meta";
 import { unenvCfExternals } from "./unenv/preset.ts";
 import { extendEnv } from "../../build/env.ts";
 import {
@@ -112,7 +112,6 @@ export const cloudflareDev = defineNitroPreset(
   {
     name: "cloudflare-dev" as const,
     aliases: ["cloudflare-module", "cloudflare-durable", "cloudflare-pages"],
-    compatibilityDate: "2025-07-13",
     dev: true,
   }
 );

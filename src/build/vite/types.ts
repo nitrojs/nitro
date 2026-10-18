@@ -1,8 +1,10 @@
 import type { TransformResult, Plugin as VitePlugin } from "vite";
 import type { getBundlerConfig } from "./bundler.ts";
-import type { Nitro, NitroConfig, NitroModule } from "nitro/types";
+import type { Nitro, NitroConfig, NitroModule, ViteServiceConfig } from "nitro/types";
 import type { RunnerManager } from "env-runner";
 import type { NitroDevApp } from "../../dev/app.ts";
+
+export type { ViteServiceConfig } from "nitro/types";
 
 declare module "vite" {
   interface UserConfig {
@@ -19,40 +21,10 @@ declare module "vite" {
 
 export interface NitroPluginConfig extends NitroConfig {
   /**
-   * @internal Use preinitialized Nitro instance for the plugin.
+   * Existing Nitro instance to use instead of creating one (for frameworks that create Nitro themselves).
    */
   _nitro?: Nitro;
-
-  experimental?: NitroConfig["experimental"] & {
-    vite?: {
-      /**
-       * @experimental Enable `?assets` import proposed by https://github.com/vitejs/vite/discussions/20913
-       * @default true
-       */
-      assetsImport?: boolean;
-
-      /**
-       *
-       * Invalidate server-only modules and optionally reload the browser when a server-only module is updated.
-       *
-       * @default true
-       */
-      serverReload?: boolean;
-
-      /**
-       * Additional Vite environment services to register.
-       */
-      services?: Record<string, ViteServiceConfig>;
-    };
-  };
 }
-
-export interface ViteServiceConfig {
-  entry: string;
-}
-
-/** @deprecated Use {@link ViteServiceConfig}. */
-export type ServiceConfig = ViteServiceConfig;
 
 export interface NitroPluginContext {
   nitro?: Nitro;

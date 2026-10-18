@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
-import type { Nitro } from "nitro/types";
-import { afterEach, describe, expect, test } from "vitest";
+import type { Nitro, NitroBuildConfig } from "nitro/types";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { nitro } from "../../src/vite.ts";
 
 const { resolveConfig } = (await import(
@@ -30,9 +30,9 @@ describe("vite: plugin and user config hooks", () => {
             compiled: () => {
               calls.push("config:compiled");
             },
-            rollup: {
-              before: () => {
-                calls.push("config:rollup:before");
+            build: {
+              config: () => {
+                calls.push("config:build:config");
               },
             },
           },
@@ -44,8 +44,8 @@ describe("vite: plugin and user config hooks", () => {
               compiled: () => {
                 calls.push("plugin:compiled");
               },
-              "rollup:before": () => {
-                calls.push("plugin:rollup:before");
+              "build:config": () => {
+                calls.push("plugin:build:config");
               },
             },
           }),
@@ -62,15 +62,53 @@ describe("vite: plugin and user config hooks", () => {
       "build"
     );
 
-    // `rollup:before` already runs while resolving the bundler config
+    // `build:config` already runs while resolving the bundler config
     calls.splice(0);
     await instance!.hooks.callHook("compiled", instance!);
-    await instance!.hooks.callHook("rollup:before", instance!, {} as any);
+    await instance!.hooks.callHook("build:config", instance!, { builder: "vite", rolldown: {} });
     expect(calls).toEqual([
       "config:compiled",
       "plugin:compiled",
-      "config:rollup:before",
-      "plugin:rollup:before",
+      "config:build:config",
+      "plugin:build:config",
     ]);
+  });
+
+  test("calls deprecated `rollup:before` hooks with the bundler config", async () => {
+    let buildConfig: NitroBuildConfig | undefined;
+    let legacyConfig: unknown;
+    await resolveConfig(
+      {
+        root: rootDir,
+        configFile: false,
+        plugins: [
+          nitro({
+            serverDir: "./",
+            hooks: {
+              "build:config": (_nitro, config) => {
+                buildConfig = config;
+              },
+              "rollup:before": (_nitro, config) => {
+                legacyConfig = config;
+              },
+            },
+          }),
+          {
+            name: "capture-nitro",
+            nitro: {
+              setup(nitro) {
+                instance = nitro;
+                vi.spyOn(nitro.logger, "warn").mockImplementation(() => {});
+              },
+            },
+          },
+        ],
+      },
+      "build"
+    );
+
+    expect(buildConfig?.builder).toBe("vite");
+    expect(legacyConfig).toBeDefined();
+    expect(legacyConfig).toBe(buildConfig?.rollup ?? buildConfig?.rolldown);
   });
 });
