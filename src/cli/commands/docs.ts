@@ -22,7 +22,9 @@ export default defineCommand({
         ? ["rundll32", ["url.dll,FileProtocolHandler", url.href]]
         : [process.platform === "darwin" ? "open" : "xdg-open", [url.href]];
     const child = spawn(cmd, cmdArgs, { stdio: "ignore", detached: true });
-    child.on("error", () => {});
+    child.on("error", (error) => {
+      console.warn(`Could not open browser (${error.message}). Visit ${url.href} manually.`);
+    });
     child.unref();
   },
 });
