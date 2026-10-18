@@ -48,8 +48,16 @@ export async function resolveBuilder(options: NitroOptions) {
     isDepInstalled("vite", { dir: options.rootDir, paths: options.deps?.paths }) &&
     hasNitroViteConfig(options)
   ) {
-    options.builder = "vite";
-    return;
+    if (!options.dev) {
+      options.builder = "vite";
+      return;
+    }
+    if (!_viteHintShown) {
+      _viteHintShown = true;
+      consola.warn(
+        "Detected a `vite.config` with the `nitro()` plugin, but the Nitro dev server does not run Vite, so Vite plugins and features are not available. Use `vite dev` for the full Vite experience."
+      );
+    }
   }
 
   // Default to rolldown when installed in the project, and otherwise install it on build, unless
@@ -75,6 +83,7 @@ export async function resolveBuilder(options: NitroOptions) {
 }
 
 let _hintShown = false;
+let _viteHintShown = false;
 
 function hasConfig(config: object | undefined): boolean {
   return !!config && Object.keys(config).length > 0;

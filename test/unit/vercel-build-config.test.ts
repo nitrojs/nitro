@@ -11,6 +11,7 @@ type Route = {
   dest?: string;
   headers?: Record<string, string>;
   status?: number;
+  methods?: string[];
   continue?: boolean;
   handle?: string;
 };
@@ -214,5 +215,96 @@ describe("vercel config with `redirect: false`", () => {
   // A stop route would also skip skew protection and public asset headers
   it("emits no route when no redirect can match", () => {
     expect(firstMatch(routes, "/account")).toEqual({ src: "/(.*)", dest: "/__server" });
+  });
+});
+
+describe("vercel config with method-scoped rules", () => {
+  let routes: Route[];
+
+  beforeAll(async () => {
+    routes = await buildRoutes({
+      routeRules: {
+        "GET /old/**": { redirect: { to: "/new/**", status: 302 } },
+        "/old/**": { redirect: { to: "/all", status: 307 } },
+        "POST /form": { redirect: { to: "/thanks", status: 303 } },
+        "GET /hdr/**": { headers: { "x-get": "1" } },
+        "/hdr/**": { headers: { "x-hdr": "1" } },
+        "PUT /cdn/**": { proxy: { to: "https://example.com/**" } },
+        "/m/**": { redirect: { to: "/x", status: 307 } },
+        "GET /m/keep": { redirect: false },
+        "GET /g/**": { redirect: { to: "/x", status: 307 } },
+        "/g/keep": { redirect: false },
+        "POST /p/**": { redirect: { to: "/x", status: 307 } },
+        "GET /p/keep": { redirect: false },
+        "HEAD /hg": { redirect: { to: "/h", status: 307 } },
+        "GET /hg": { redirect: { to: "/g", status: 307 } },
+      },
+    } as Partial<NitroOptions>);
+  });
+
+  const matches = (path: string, method: string) =>
+    routes.filter(
+      (r) =>
+        r.src &&
+        !r.continue &&
+        (!r.methods || r.methods.includes(method)) &&
+        new RegExp(r.src).test(path)
+    );
+
+  it("scopes redirects to their methods", () => {
+    expect(matches("/old/a", "GET")[0]).toMatchObject({
+      methods: ["GET", "HEAD"],
+      status: 302,
+      headers: { Location: "/new/$1" },
+    });
+    expect(matches("/old/a", "HEAD")[0]?.headers?.Location).toBe("/new/$1");
+    expect(matches("/old/a", "POST")[0]).toMatchObject({
+      status: 307,
+      headers: { Location: "/all" },
+    });
+    expect(matches("/form", "POST")[0]).toMatchObject({ methods: ["POST"], status: 303 });
+    expect(matches("/form", "GET")[0]?.status).toBeUndefined();
+  });
+
+  it("scopes headers to their methods", () => {
+    const headerRoutes = routes.filter(
+      (r) => r.headers && r.continue && new RegExp(r.src!).test("/hdr/a")
+    );
+    expect(headerRoutes).toEqual([
+      expect.objectContaining({ headers: { "x-hdr": "1" } }),
+      expect.objectContaining({ headers: { "x-get": "1" }, methods: ["GET", "HEAD"] }),
+    ]);
+    expect(headerRoutes[0]!.methods).toBeUndefined();
+  });
+
+  it("scopes proxies to their methods", () => {
+    expect(matches("/cdn/a", "PUT")[0]).toMatchObject({
+      methods: ["PUT"],
+      dest: "https://example.com/$1",
+    });
+    expect(matches("/cdn/a", "GET")[0]?.dest).toBe("/__server");
+  });
+
+  it("leaves redirects with a method-scoped opt-out to the server function", () => {
+    for (const method of ["GET", "POST"]) {
+      for (const path of ["/m/keep", "/m/other"]) {
+        expect(matches(path, method)[0]?.headers?.Location).toBeUndefined();
+      }
+    }
+  });
+
+  it("keeps opted out paths from a method-scoped redirect", () => {
+    expect(matches("/g/keep", "GET")[0]?.headers?.Location).toBeUndefined();
+    expect(matches("/g/other", "GET")[0]?.headers?.Location).toBe("/x");
+  });
+
+  it("ignores opt-outs for other methods", () => {
+    expect(matches("/p/keep", "POST")[0]?.headers?.Location).toBe("/x");
+    expect(matches("/p/keep", "GET")[0]?.headers?.Location).toBeUndefined();
+  });
+
+  it("matches a HEAD redirect before a GET one", () => {
+    expect(matches("/hg", "HEAD")[0]?.headers?.Location).toBe("/h");
+    expect(matches("/hg", "GET")[0]?.headers?.Location).toBe("/g");
   });
 });
