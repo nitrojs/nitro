@@ -8,6 +8,8 @@ import { setupTest, startServer, testNitro } from "../tests.ts";
 import { testCloseHook } from "./_close-hook.ts";
 import { testUnixSocket } from "./_unix-socket.ts";
 
+const presetFixturesDir = resolve(import.meta.dirname, "fixtures");
+
 describe("nitro:preset:node-middleware", async () => {
   const ctx = await setupTest("node-middleware");
 
@@ -48,7 +50,15 @@ describe("nitro:preset:node-middleware", async () => {
 });
 
 describe("nitro:preset:node-server", async () => {
-  const ctx = await setupTest("node-server");
+  const ctx = await setupTest("node-server", {
+    config: {
+      features: { websocket: true },
+      handlers: [
+        { route: "/_ws", handler: resolve(presetFixturesDir, "websocket.ts") },
+        { route: "/_ws-protocol", handler: resolve(presetFixturesDir, "websocket-protocol.ts") },
+      ],
+    },
+  });
 
   it("passes server entry options to srvx", async () => {
     const port = await getRandomPort();
@@ -72,6 +82,32 @@ describe("nitro:preset:node-server", async () => {
     }
   }, 40_000);
 
+  // #3925: browsers fail the handshake unless the server accepts one of the offered subprotocols
+  it.skipIf(typeof WebSocket !== "function")(
+    "negotiates WebSocket subprotocols",
+    async () => {
+      const port = await getRandomPort();
+      const child = execa(process.execPath, [resolve(ctx.outDir, "server/index.mjs")], {
+        env: { NITRO_PORT: String(port), NITRO_HOST: "127.0.0.1" },
+        stdio: process.env.TEST_DEBUG ? "inherit" : "ignore",
+        reject: false,
+      });
+      try {
+        await waitForPort(port, { delay: 1000, retries: 20, host: "127.0.0.1" });
+        await expect(
+          negotiateProtocol(`ws://127.0.0.1:${port}/_ws-protocol`, ["graphql-transport-ws"])
+        ).resolves.toBe("graphql-transport-ws");
+        // No subprotocol is accepted unless a handler opts in
+        await expect(
+          negotiateProtocol(`ws://127.0.0.1:${port}/_ws`, ["graphql-transport-ws"])
+        ).rejects.toThrow("WebSocket handshake failed");
+      } finally {
+        child.kill("SIGKILL");
+      }
+    },
+    40_000
+  );
+
   testCloseHook(ctx, { command: process.execPath, args: (entry) => [entry] });
 
   testUnixSocket(ctx, { command: process.execPath, args: (entry) => [entry] });
@@ -93,3 +129,23 @@ describe("nitro:preset:node-cluster", async () => {
     env: { NITRO_CLUSTER_WORKERS: "2" },
   });
 });
+
+// Opens a connection offering `protocols` and resolves with the subprotocol the server accepted.
+function negotiateProtocol(url: string, protocols: string[]): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(url, protocols);
+    const timer = setTimeout(() => {
+      ws.close();
+      reject(new Error("Timed out waiting for the WebSocket handshake"));
+    }, 5000);
+    ws.addEventListener("open", () => {
+      clearTimeout(timer);
+      resolve(ws.protocol);
+      ws.close();
+    });
+    ws.addEventListener("error", () => {
+      clearTimeout(timer);
+      reject(new Error("WebSocket handshake failed"));
+    });
+  });
+}
