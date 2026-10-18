@@ -9,7 +9,7 @@ import type { DepMeta } from "./src/utils/_deps.ts";
 
 const isStub = process.argv.includes("--stub");
 
-// Optional dependencies imported on demand from the user project (see `src/utils/_deps.ts`)
+// Optional dependencies imported on demand from the user project (see `deps.json`)
 const optionalDeps = Object.keys(deps);
 
 // Optional dependencies of bundled libraries, replaced by an on demand import (see `src/shims/`)

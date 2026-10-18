@@ -6,7 +6,7 @@ import { minVersion, satisfies, subset } from "semver";
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import type { NitroOptions } from "nitro/types";
 import { resolveDepsOptions } from "../../src/config/resolvers/deps.ts";
-import { deps } from "../../src/utils/_deps.ts";
+import { deps, shims } from "../../src/utils/_deps.ts";
 import type { DepId, DepMeta } from "../../src/utils/_deps.ts";
 import * as dep from "../../src/utils/dep.ts";
 
@@ -24,7 +24,7 @@ function isTestedVersion(id: string, range: string): boolean {
 
 describe("dependency manifest", () => {
   it.each(Object.keys(deps) as DepId[])("`%s` range covers the tested version", (id) => {
-    expect(isTestedVersion(id, deps[id].version)).toBe(true);
+    expect(isTestedVersion(id, deps[id].version), "run `pnpm sync-deps`").toBe(true);
   });
 
   it("infers the module type of `importDep` from the id", () => {
@@ -48,17 +48,23 @@ describe("dependency manifest", () => {
 });
 
 describe("shimmed dependencies", async () => {
-  const c12 = await readPackageJSON("c12", { url: rootDir.href });
-  const shims = (await readdir(new URL("src/shims/", rootDir)))
+  const shimFiles = (await readdir(new URL("src/shims/", rootDir)))
     .filter((file) => file.endsWith(".ts") && !file.startsWith("_"))
     .map((file) => file.slice(0, -".ts".length));
 
-  it.each(shims)("`%s` range is within the one of the bundled library", async (id) => {
+  it("are listed in the manifest", () => {
+    expect([...shimFiles].sort()).toEqual(Object.keys(shims).sort());
+  });
+
+  it.each(shimFiles)("`%s` range is within the one of the bundled library", async (id) => {
     await import(`../../src/shims/${id}.ts`);
     const opts = vi.mocked(dep.importDep).mock.calls.find(([opts]) => opts.id === id)?.[0];
-    expect(opts?.version).toBeTypeOf("string");
+    expect(opts?.version).toBe(shims[id as keyof typeof shims].version);
     expect(id in deps).toBe(false);
-    const peerRange = c12.peerDependencies?.[id];
+    const library = await readPackageJSON(shims[id as keyof typeof shims].library, {
+      url: rootDir.href,
+    });
+    const peerRange = library.peerDependencies?.[id];
     expect(peerRange).toBeTypeOf("string");
     expect(subset(opts!.version!, peerRange!, { includePrerelease: true })).toBe(true);
     expect(isTestedVersion(id, opts!.version!)).toBe(true);

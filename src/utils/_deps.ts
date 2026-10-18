@@ -1,3 +1,5 @@
+import manifest from "../../deps.json" with { type: "json" };
+
 export interface DepMeta {
   /**
    * Supported version range, used when installing (ignored if it is not a simple range)
@@ -19,60 +21,18 @@ export interface DepMeta {
 }
 
 /**
- * Optional dependencies installed on demand in the user project (see `utils/dep.ts`).
+ * Optional dependencies installed on demand in the user project (see `utils/dep.ts`), from the
+ * `deps.json` manifest (ranges synced with `scripts/sync-deps.ts`).
  *
  * Nitro does not depend on any of them: the version installed next to the app is the version
  * that runs. They are kept external in Nitro's own build (see `build.config.ts`).
  *
  * Optional dependencies of the libraries Nitro bundles are not listed here (see `src/shims/`).
  */
-export const deps = {
-  // Builders
-  rolldown: { version: "^1", reason: "the `rolldown` builder", types: true },
-  rollup: { version: "^4", reason: "the `rollup` builder", types: true },
-  vite: { version: "^8", reason: "the `vite` builder" },
+export const deps = manifest.deps satisfies Record<string, DepMeta>;
 
-  // Runtime
-  unstorage: {
-    version: "^2.0.0-alpha.10",
-    reason: "KV storage (`nitro/kv`)",
-    dev: false,
-    autoInstall: true,
-    runtime: true,
-    types: true,
-  },
-  db0: {
-    version: "^0.4.1",
-    reason: "the database layer (`nitro/database`)",
-    dev: false,
-    autoInstall: true,
-    runtime: true,
-    types: true,
-  },
-  ocache: {
-    version: "^0.3.0",
-    reason: "caching (`nitro/cache` or `cache` route rules)",
-    dev: false,
-    autoInstall: true,
-    runtime: true,
-    types: true,
-  },
-  unenv: { version: "^2.0.0-rc.24", reason: "Node.js compatibility", autoInstall: true },
-
-  // Dev
-  miniflare: { version: "^4", reason: "the `miniflare` dev runner" },
-
-  // Presets
-  "@azure/functions": {
-    version: "^4",
-    reason: "the Azure Functions v4 programming model",
-    dev: false,
-    projectOnly: true,
-  },
-  "@vercel/queue": { version: "^0.8.0", reason: "Vercel Queues", types: true },
-  xml2js: { version: "^0.6.2", reason: "merging a custom `web.config` for the IIS preset" },
-  "zephyr-agent": { version: "^1.6.0", reason: "deploying to Zephyr" },
-} satisfies Record<string, DepMeta>;
+/** Supported ranges of the optional dependencies of bundled libraries (see `src/shims/`). */
+export const shims = manifest.shims satisfies Record<string, { version: string; library: string }>;
 
 export type DepId = keyof typeof deps;
 
