@@ -2,66 +2,24 @@
 
 > Deploy Nitro apps to [Deno Deploy](https://deno.com/deploy).
 
-**Preset:** `deno_deploy`
+**Preset:** `deno_server`
 
-:read-more{title="Deno Deploy" to="https://deno.com/deploy"}
+:read-more{title="Deno Deploy" to="https://docs.deno.com/deploy/"}
 
-## Deploy with the CLI
+::warning
+Deno Deploy will shut down in 2027 as the Deno team joins Cloudflare ([announcement](https://deno.com/blog/cloudflare)). Consider deploying to [Cloudflare](/deploy/providers/cloudflare) instead.
+::
 
-You can use [deployctl](https://deno.com/deploy/docs/deployctl) to deploy your app.
+## Deploy with a linked GitHub repository
 
-Login to [Deno Deploy](https://dash.deno.com/account#access-tokens) to obtain a `DENO_DEPLOY_TOKEN` access token, and set it as an environment variable.
+Deno Deploy runs the output of the [Deno](/deploy/runtimes/deno) runtime preset.
 
-```bash
-# Build with the deno_deploy preset
-NITRO_PRESET=deno_deploy npm run build
+1. Create a new app on [Deno Deploy](https://console.deno.com) and link your GitHub repository.
+2. Set the **Build command** to build with the `deno_server` preset (for example, `NITRO_PRESET=deno_server npm run build`).
+3. Choose the **Dynamic** runtime configuration and set the **Entrypoint** to `.output/server/index.mjs`.
 
-# Make sure to run the deployctl command from the output directory
-cd .output
-deployctl deploy --project=my-project server/index.ts
-```
+Every push to your repository will then trigger a new build and deployment.
 
-## Deploy within CI/CD using GitHub Actions
-
-Include the deployctl GitHub Action as a step in your workflow.
-
-No secrets are required, but you do need to link your GitHub repository to your Deno Deploy project and choose the "GitHub Actions" deployment mode in your project settings on [Deno Deploy](https://dash.deno.com).
-
-Create the following workflow file in your `.github/workflows` directory:
-
-```yaml [.github/workflows/deno_deploy.yml]
-name: deno-deploy
-
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - run: corepack enable
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 20
-          cache: pnpm
-      - run: pnpm install
-      - run: pnpm build
-        env:
-          NITRO_PRESET: deno_deploy
-      - name: Deploy to Deno Deploy
-        uses: denoland/deployctl@v1
-        with:
-          project: my-project
-          entrypoint: server/index.ts
-          root: .output
-```
-
-## Deno runtime
-
-:read-more{to="/deploy/runtimes/deno"}
+::note
+The `deno_deploy` preset targeted Deno Deploy Classic, which shut down on July 20, 2026. In Nitro v3, `deno_deploy` is an alias of `deno_server`.
+::
