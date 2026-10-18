@@ -4,6 +4,7 @@ import type { Nitro } from "nitro/types";
 import { loadRunner } from "env-runner";
 import { joinURL, withTrailingSlash } from "ufo";
 import { createNitro } from "../../nitro.ts";
+import { globPublicAssets } from "../assets.ts";
 import { prepareUnbundledApp } from "./entry.ts";
 import { unbundledPlugins } from "./plugins.ts";
 
@@ -39,7 +40,10 @@ export async function startUnbundledServer(opts: UnbundledServerOptions): Promis
   let closeCause: unknown;
   try {
     const { entry, virtual, appEntry } = await prepareUnbundledApp(nitro);
-    virtual[entry] = serveEntry(nitro, appEntry);
+    const publicAssets = await scanPublicAssets(nitro);
+    if (publicAssets.length > 0) {
+      virtual[entry] = serveEntry(appEntry, publicAssets);
+    }
     runner = await loadRunner("node-worker", {
       name: "nitro-serve",
       data: { entry, virtual },
@@ -69,12 +73,49 @@ export async function startUnbundledServer(opts: UnbundledServerOptions): Promis
   };
 }
 
+interface ServedPublicAssets {
+  /** Base URL (with `baseURL` and a trailing slash). */
+  base: string;
+  dir: string;
+  /** Request paths (relative to `base`) the files are served at. */
+  paths: string[];
+}
+
+/** Public assets indexed once, so requests for other paths skip the file system. */
+async function scanPublicAssets(nitro: Nitro): Promise<ServedPublicAssets[]> {
+  if (nitro.options.noPublicDir) {
+    return [];
+  }
+  const assets: ServedPublicAssets[] = [];
+  for (const asset of nitro.options.publicAssets) {
+    const files = await globPublicAssets(nitro, asset);
+    if (files.length === 0) {
+      continue;
+    }
+    assets.push({
+      base: withTrailingSlash(joinURL(nitro.options.baseURL, asset.baseURL || "/")),
+      dir: asset.dir,
+      paths: files.flatMap((file) => servedPaths(file)),
+    });
+  }
+  return assets;
+}
+
+/** Request paths srvx `staticMiddleware` serves a file at (`.html` and `index.html` lookups). */
+function servedPaths(file: string): string[] {
+  const path = `/${file}`;
+  if (path.endsWith("/index.html")) {
+    const dir = path.slice(0, -"index.html".length);
+    return dir === "/" ? [path, dir] : [path, dir, dir.slice(0, -1)];
+  }
+  if (path.endsWith(".html")) {
+    return [path, path.slice(0, -".html".length)];
+  }
+  return [path];
+}
+
 /** Entry serving the public assets from their source directories before the app. */
-function serveEntry(nitro: Nitro, appEntry: string): string {
-  const publicAssets = nitro.options.publicAssets.map((asset) => ({
-    base: withTrailingSlash(joinURL(nitro.options.baseURL, asset.baseURL || "/")),
-    dir: asset.dir,
-  }));
+function serveEntry(appEntry: string, publicAssets: ServedPublicAssets[]): string {
   return /* js */ `
 import app from ${JSON.stringify(appEntry)};
 import { staticMiddleware } from ${JSON.stringify(import.meta.resolve("srvx/static"))};
@@ -83,23 +124,37 @@ globalThis.__nitro_main__ = import.meta.url;
 
 const publicAssets = ${JSON.stringify(publicAssets)}.map((asset) => ({
   base: asset.base,
+  paths: new Set(asset.paths),
   handler: staticMiddleware({ dir: asset.dir }),
 }));
 
-async function servePublicAssets(req, next) {
-  if (req.method === "GET" || req.method === "HEAD") {
-    const url = new URL(req.url);
-    for (const asset of publicAssets) {
-      if (!url.pathname.startsWith(asset.base)) {
+function servePublicAssets(req, next) {
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    return next();
+  }
+  const pathname = (req._url ??= new URL(req.url)).pathname;
+  for (const asset of publicAssets) {
+    if (!pathname.startsWith(asset.base)) {
+      continue;
+    }
+    let path = pathname.slice(asset.base.length - 1);
+    if (path.includes("%")) {
+      try {
+        path = decodeURI(path);
+      } catch {
         continue;
       }
-      const assetURL = new URL(url);
-      assetURL.pathname = url.pathname.slice(asset.base.length - 1);
-      const res = await asset.handler(new Request(assetURL, req), () => undefined);
-      if (res) {
-        return res;
-      }
     }
+    if (!asset.paths.has(path)) {
+      continue;
+    }
+    let assetReq = req;
+    if (asset.base !== "/") {
+      const url = new URL(req.url);
+      url.pathname = pathname.slice(asset.base.length - 1);
+      assetReq = new Request(url, req);
+    }
+    return Promise.resolve(asset.handler(assetReq, () => undefined)).then((res) => res || next());
   }
   return next();
 }

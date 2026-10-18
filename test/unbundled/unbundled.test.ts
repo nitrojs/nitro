@@ -190,8 +190,12 @@ describe("builder: false", () => {
     );
     await mkdir(join(dir, "routes"));
     await writeFile(join(dir, "routes/index.ts"), `export default () => "Served!";`);
-    await mkdir(join(dir, "public"));
+    await writeFile(join(dir, "routes/[...path].ts"), `export default () => "Route!";`);
+    await mkdir(join(dir, "public/docs"), { recursive: true });
     await writeFile(join(dir, "public/hello.txt"), "static asset");
+    await writeFile(join(dir, "public/a b.txt"), "encoded asset");
+    await writeFile(join(dir, "public/about.html"), "about page");
+    await writeFile(join(dir, "public/docs/index.html"), "docs page");
     const server = await startUnbundledServer({
       rootDir: dir,
       listen: { port: 0, hostname: "127.0.0.1" },
@@ -199,8 +203,16 @@ describe("builder: false", () => {
     try {
       const { host, port } = server.runner.address!;
       const url = `http://${host}:${port}`;
-      expect(await fetch(`${url}/app/`).then((r) => r.text())).toBe("Served!");
-      expect(await fetch(`${url}/app/hello.txt`).then((r) => r.text())).toBe("static asset");
+      const text = (path: string) => fetch(`${url}${path}`).then((r) => r.text());
+      expect(await text("/app/")).toBe("Served!");
+      expect(await text("/app/hello.txt")).toBe("static asset");
+      expect(await text("/app/a%20b.txt")).toBe("encoded asset");
+      expect(await text("/app/about")).toBe("about page");
+      expect(await text("/app/docs/")).toBe("docs page");
+      expect(await text("/app/docs")).toBe("docs page");
+      expect(await text("/app/missing.txt")).toBe("Route!");
+      const post = await fetch(`${url}/app/hello.txt`, { method: "POST" });
+      expect(await post.text()).toBe("Route!");
     } finally {
       await server.close();
       await rm(dir, { recursive: true, force: true });
