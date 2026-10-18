@@ -185,13 +185,6 @@ export default defineBuildConfig({
         return;
       }
 
-      // Bundle docs
-      const { exportSource } = await import("mdzilla");
-      await exportSource("./docs", "./dist/docs", {
-        title: "Nitro Documentation",
-        filter: (e: { entry: { path: string } }) => !e.entry.path.startsWith("/blog"),
-      });
-
       // Optional dependency types
       for (const file of await glob("dist/**/*.d.mts")) {
         const code = await readFile(file, "utf8");

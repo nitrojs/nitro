@@ -198,9 +198,6 @@ importers:
       magic-string:
         specifier: ^1.4.3
         version: 1.4.3
-      mdzilla:
-        specifier: ^0.2.1
-        version: 0.2.1
       mime:
         specifier: ^4.1.1
         version: 4.1.1
@@ -5357,10 +5354,6 @@ packages:
   md4w@0.2.7:
     resolution: {integrity: sha512-lFM7vwk3d4MzkV2mija7aPkK6OjKXZDQsH2beX+e2cvccBoqc6RraheMtAO0Wcr/gjj5L+WS5zhb+06AmuGZrg==}
 
-  md4x@0.0.25:
-    resolution: {integrity: sha512-GrexawUhrKcwl7o2hkgs7Ut0PqI/meOCevmaRB1ueKo2y1Fh2nIl8e6KKawYGm9eXJP3u6BzVs4rzZOc2+w3hA==}
-    hasBin: true
-
   md5@2.3.0:
     resolution: {integrity: sha512-T1GITYmFaKuO91vxyoQMFETst+O71VUPEU3ze5GNzDm0OWdP8v1ziTaAEPUr/3kLsY3Sftgz242A1SetQiDL7g==}
 
@@ -5402,10 +5395,6 @@ packages:
 
   mdbox@0.1.1:
     resolution: {integrity: sha512-jvLISenzbLRPWWamTG3THlhTcMbKWzJQNyTi61AVXhCBOC+gsldNTUfUNH8d3Vay83zGehFw3wZpF3xChzkTIQ==}
-
-  mdzilla@0.2.1:
-    resolution: {integrity: sha512-QqtjJ47HbiaG04Ps48OpomvmY7gIrwwfoHyU63Tcrko3N9ZdbHgQubPnhrDgpbhFRB7mMKNiCfuwKqND0UjHQg==}
-    hasBin: true
 
   media-typer@1.1.1:
     resolution: {integrity: sha512-yz3xRaG20c6/BOzvYoDaGtPmGscs7YivItZEEqe6GbwNfHuxu9YNmvnEkMzKldAGY4/80pRcQRZSEnhquk9XuQ==}
@@ -6415,11 +6404,6 @@ packages:
   split2@4.2.0:
     resolution: {integrity: sha512-UcjcJOWknrNkF6PLX83qcHM6KHgVKNkV62Y8a5uYDVv9ydGQVwAHMKqHdJje1VTWpljG0WYpCDhrCdAOYH4TWg==}
     engines: {node: '>= 10.x'}
-
-  srvx@0.11.22:
-    resolution: {integrity: sha512-LqZxxBDMKuMAZzFzJnDCkFOrs9MZQZr0LvHiO/SuSZVdQaXD7xQ5UWTUxheJrQPve1qk9MG2B/yttUvJxw8egQ==}
-    engines: {node: '>=20.16.0'}
-    hasBin: true
 
   srvx@0.12.8:
     resolution: {integrity: sha512-7k9HoDhluTlD7UJ+F+OopZoPZXB2J8f/5nW2VMLaB8KsSlZlRQxyyoX0hWEQCxB+F+3ZvB5QX3LqB6xSBRfxQQ==}
@@ -11804,8 +11788,6 @@ snapshots:
 
   md4w@0.2.7: {}
 
-  md4x@0.0.25: {}
-
   md5@2.3.0:
     dependencies:
       charenc: 0.0.2
@@ -11931,14 +11913,6 @@ snapshots:
   mdbox@0.1.1:
     dependencies:
       md4w: 0.2.7
-
-  mdzilla@0.2.1:
-    dependencies:
-      '@speed-highlight/core': 1.2.24
-      giget: 3.3.1
-      md4x: 0.0.25
-      srvx: 0.11.22
-      std-env: 4.3.0
 
   media-typer@1.1.1: {}
 
@@ -13221,8 +13195,6 @@ snapshots:
   spawn-command@0.0.2: {}
 
   split2@4.2.0: {}
-
-  srvx@0.11.22: {}
 
   srvx@0.12.8: {}
 
