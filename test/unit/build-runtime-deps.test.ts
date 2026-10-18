@@ -1,4 +1,12 @@
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  appendFileSync,
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
@@ -148,6 +156,22 @@ describe.each(builders)("optional runtime dependencies (%s)", (builder) => {
       routeRules: { "/**": { swr: 60 } },
     });
     expect(depCalls("ocache")).not.toEqual([]);
+  });
+
+  it("bundles ocache from its explicit path (`deps`)", async () => {
+    // A copy of `ocache` outside the project, as a framework would provide it
+    const ocacheDir = join(mkdtempSync(join(tmpdir(), "nitro-build-runtime-deps-fw-")), "ocache");
+    tmpDirs.push(dirname(ocacheDir));
+    cpSync(dirname(dirname(fileURLToPath(import.meta.resolve("ocache")))), ocacheDir, {
+      recursive: true,
+    });
+    appendFileSync(join(ocacheDir, "dist/index.mjs"), `\nconsole.log("framework-ocache");\n`);
+    const code = await buildApp(
+      builder,
+      `import { defineCachedFunction } from "nitro/cache";\nconst cached = defineCachedFunction(() => "ok", { maxAge: 60 });\nexport default { fetch: async () => new Response(await cached()) };`,
+      { deps: { ocache: ocacheDir } }
+    );
+    expect(code).toContain("framework-ocache");
   });
 
   it("requires unstorage when kv is configured", async () => {

@@ -3,6 +3,8 @@ import { fileURLToPath } from "node:url";
 import { readPackageJSON } from "pkg-types";
 import { minVersion, satisfies, subset } from "semver";
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
+import type { NitroOptions } from "nitro/types";
+import { resolveDepsOptions } from "../../src/config/resolvers/deps.ts";
 import { deps } from "../../src/utils/_deps.ts";
 import type { DepId, DepMeta } from "../../src/utils/_deps.ts";
 import * as dep from "../../src/utils/dep.ts";
@@ -59,5 +61,17 @@ describe("shimmed dependencies", async () => {
     expect(peerRange).toBeTypeOf("string");
     expect(subset(opts!.version!, peerRange!, { includePrerelease: true })).toBe(true);
     expect(isTestedVersion(id, opts!.version!)).toBe(true);
+  });
+});
+
+describe("`deps` option", () => {
+  it("aliases `vite.path` and `deps.vite`", () => {
+    const fromVitePath = { deps: {}, vite: { path: "/vite" } } as unknown as NitroOptions;
+    resolveDepsOptions(fromVitePath);
+    expect(fromVitePath.deps.vite).toBe("/vite");
+
+    const fromDeps = { deps: { vite: "/vite" } } as unknown as NitroOptions;
+    resolveDepsOptions(fromDeps);
+    expect(fromDeps.vite?.path).toBe("/vite");
   });
 });

@@ -4,6 +4,7 @@ import { consola } from "consola";
 import { clearResolveCache, resolveModulePath } from "exsolve";
 import { dirname, join } from "pathe";
 import { hasTTY, isAgent, isCI, isTest } from "std-env";
+import { depPackageName, resolveFromDepPath } from "./_dep-path.ts";
 import { getDepMeta } from "./_deps.ts";
 import type { DepId, DepModules } from "./_deps.ts";
 
@@ -38,6 +39,11 @@ interface DepBaseOptions {
    * resolvable from the user project, not only from where Nitro itself is installed.
    */
   projectOnly?: boolean;
+  /**
+   * Explicit package paths by package name (the `deps` option), used instead of resolving
+   * (and installing) them from `dir`.
+   */
+  paths?: Record<string, string>;
 }
 
 /**
@@ -48,7 +54,8 @@ interface DepBaseOptions {
  */
 export function ensureDep(depOpts: DepOptions): Promise<string | undefined> {
   const opts = _resolveDepOptions(depOpts);
-  const key = `${opts.projectOnly ? "project" : "any"}:${opts.dir}:${opts.id}`;
+  const path = opts.paths?.[opts.id];
+  const key = `${path ? `path:${path}` : opts.projectOnly ? "project" : "any"}:${opts.dir}:${opts.id}`;
   let pending = _pendingDeps.get(key);
   if (!pending) {
     pending = _ensureDep(opts).finally(() => _pendingDeps.delete(key));
@@ -79,20 +86,29 @@ export function missingDepError(depOpts: DepOptions): Error {
   );
 }
 
-export function isDepInstalled(id: string, opts: Pick<DepOptions, "dir" | "projectOnly">): boolean {
+export function isDepInstalled(
+  id: string,
+  opts: Pick<DepOptions, "dir" | "projectOnly" | "paths">
+): boolean {
   return !!resolveDep(id, opts);
 }
 
 /**
  * Resolve a dependency (or one of its subpaths), bypassing cached failures.
  *
+ * Packages with an explicit path (`paths`) are resolved from it (throwing if they cannot be).
+ *
  * Failed lookups are cached (process wide) by `exsolve`: once a dependency is found after one,
  * the cache is cleared so that every later lookup sees it (installed on demand or manually).
  */
 export function resolveDep(
   id: string,
-  opts: Pick<DepOptions, "dir" | "projectOnly">
+  opts: Pick<DepOptions, "dir" | "projectOnly" | "paths">
 ): string | undefined {
+  const path = opts.paths?.[depPackageName(id)];
+  if (path) {
+    return resolveFromDepPath(id, { dir: opts.dir, path });
+  }
   const from = opts.projectOnly ? opts.dir : [opts.dir, import.meta.url];
   const resolved = resolveModulePath(id, { from, try: true });
   if (resolved) {

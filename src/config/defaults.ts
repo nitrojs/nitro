@@ -76,6 +76,7 @@ export const NitroDefaults: NitroConfig = {
   node: true,
   sourcemap: false,
   traceDeps: [],
+  deps: {},
 
   // Advanced
   typescript: {

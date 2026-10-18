@@ -48,7 +48,7 @@ export async function resolveRunnerDeps(
 
 async function resolveMiniflareDeps(nitro: Nitro): Promise<MiniflareRunnerDeps> {
   const { rootDir } = nitro.options;
-  const miniflare = await ensureDep({ id: "miniflare", dir: rootDir });
+  const miniflare = await ensureDep({ id: "miniflare", dir: rootDir, paths: nitro.options.deps });
   const inline = nitro.options.cloudflare?.wrangler;
   const configPath = await findNearestFile(["wrangler.json", "wrangler.jsonc", "wrangler.toml"], {
     startingFrom: rootDir,

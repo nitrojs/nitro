@@ -29,7 +29,7 @@ export function isRuntimeImporter(importer: string | undefined): boolean {
  */
 export async function ensureRuntimeDep(nitro: Nitro, id: string): Promise<void> {
   const name = id.split("/")[0]!;
-  const opts = { id: name as DepId, dir: nitro.options.rootDir };
+  const opts = { id: name as DepId, dir: nitro.options.rootDir, paths: nitro.options.deps };
   if (!(await ensureDep(opts))) {
     throw missingDepError(opts);
   }
@@ -53,7 +53,7 @@ export function runtimeDeps(nitro: Nitro): Plugin {
           return;
         }
         await ensureRuntimeDep(nitro, id);
-        const path = resolveDep(id, { dir: nitro.options.rootDir });
+        const path = resolveDep(id, { dir: nitro.options.rootDir, paths: nitro.options.deps });
         if (!path) {
           const name = id.split("/")[0]!;
           throw new Error(

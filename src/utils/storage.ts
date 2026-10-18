@@ -42,6 +42,7 @@ export async function resolveKVDrivers(options: NitroOptions): Promise<ResolvedK
   }
   const { builtinDrivers, builtinDriverDependencies } = await importUnstorage({
     dir: options.rootDir,
+    paths: options.deps,
     reason: "the `kv` config",
   });
   return mounts.map((mount) => ({
@@ -56,6 +57,7 @@ export async function resolveKVDrivers(options: NitroOptions): Promise<ResolvedK
 /** Import `unstorage` from the project, installing it on demand. */
 export function importUnstorage(opts: {
   dir: string;
+  paths?: Record<string, string>;
   reason: string;
 }): Promise<typeof import("unstorage")> {
   return importDep({ id: "unstorage", ...opts });

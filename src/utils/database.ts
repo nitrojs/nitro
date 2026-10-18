@@ -34,6 +34,7 @@ export async function resolveDatabaseConnections(
   }
   const { connectors, connectorDependencies } = await importDb0({
     dir: options.rootDir,
+    paths: options.deps,
     reason: "the `database` config",
   });
   return entries.map(([name, { connector, options: connectorOpts }]) => {
@@ -49,6 +50,10 @@ export async function resolveDatabaseConnections(
 }
 
 /** Import `db0` from the project, installing it on demand. */
-export function importDb0(opts: { dir: string; reason: string }): Promise<typeof import("db0")> {
+export function importDb0(opts: {
+  dir: string;
+  paths?: Record<string, string>;
+  reason: string;
+}): Promise<typeof import("db0")> {
   return importDep({ id: "db0", ...opts });
 }

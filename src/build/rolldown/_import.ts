@@ -1,18 +1,25 @@
 import { pathToFileURL } from "node:url";
 import { resolveModulePath } from "exsolve";
+import { resolveFromDepPath } from "../../utils/_dep-path.ts";
 import { ensureDep } from "../../utils/dep.ts";
-import { _resolveFromPath } from "../vite/_import.ts";
 
 /**
  * Resolve `rolldown` from the user project (or `undefined` if it is not installed).
  *
- * With strict package managers (pnpm), `rolldown` is often only reachable as a dependency of `vite`
- * (the one of the project, or the explicit `vite.path`).
+ * An explicit `deps.rolldown` path takes precedence. With strict package managers (pnpm),
+ * `rolldown` is often only reachable as a dependency of `vite` (the one of the project, or the
+ * explicit `deps.vite` path).
  * Not cached, so a `rolldown` installed meanwhile (e.g. on demand by a previous build) is found.
  */
-export function resolveRolldown(dir: string, opts: { vitePath?: string } = {}): string | undefined {
-  const vite = opts.vitePath
-    ? _resolveFromPath("vite", { dir, path: opts.vitePath })
+export function resolveRolldown(
+  dir: string,
+  opts: { paths?: Record<string, string> } = {}
+): string | undefined {
+  if (opts.paths?.rolldown) {
+    return resolveFromDepPath("rolldown", { dir, path: opts.paths.rolldown });
+  }
+  const vite = opts.paths?.vite
+    ? resolveFromDepPath("vite", { dir, path: opts.paths.vite })
     : resolveModulePath("vite", { from: dir, try: true, cache: false });
   return resolveModulePath("rolldown", {
     from: vite ? [dir, vite, import.meta.url] : [dir, import.meta.url],
@@ -27,8 +34,12 @@ export function resolveRolldown(dir: string, opts: { vitePath?: string } = {}): 
  * Nitro does not depend on `rolldown` itself: the version installed next to the app is the
  * version that runs.
  */
-export async function importRolldown(dir: string): Promise<typeof import("rolldown")> {
-  const resolved = resolveRolldown(dir) || (await ensureDep({ id: "rolldown", dir }));
+export async function importRolldown(
+  dir: string,
+  opts: { paths?: Record<string, string> } = {}
+): Promise<typeof import("rolldown")> {
+  const resolved =
+    resolveRolldown(dir, opts) || (await ensureDep({ id: "rolldown", dir, paths: opts.paths }));
   if (!resolved) {
     throw new Error(
       "`rolldown` is not installed. Please add it to your project dependencies to build with the `rolldown` builder."

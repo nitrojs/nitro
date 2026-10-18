@@ -1,8 +1,7 @@
 import type { Nitro } from "nitro/types";
-import { existsSync, readFileSync, statSync } from "node:fs";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { pathToFileURL } from "node:url";
 import { resolveModulePath } from "exsolve";
-import { dirname, join, resolve } from "pathe";
+import { resolveFromDepPath } from "../../utils/_dep-path.ts";
 import { deps } from "../../utils/_deps.ts";
 import { ensureDep, importDep } from "../../utils/dep.ts";
 
@@ -13,7 +12,7 @@ export interface ViteImportOptions {
   id?: string;
   /**
    * Explicit `vite` package to use instead of resolving it: its directory or entry,
-   * as a path or `file://` URL (the `vite.path` option).
+   * as a path or `file://` URL (the `vite.path` or `deps.vite` option).
    */
   path?: string;
 }
@@ -69,37 +68,7 @@ function _viteDep(opts: ViteImportOptions) {
   };
 }
 
-/** Resolve a `vite` export from an explicit package path (self-referencing its `exports`). */
+/** Resolve a `vite` export from the explicit `vite` package path. */
 export function _resolveFromPath(id: string, { dir, path }: ViteImportOptions): string {
-  const from = path!.startsWith("file:") ? fileURLToPath(path!) : resolve(dir, path!);
-  const isDir = statSync(from, { throwIfNoEntry: false })?.isDirectory();
-  const pkgDir = _findPackageDir(isDir ? from : dirname(from), "vite");
-  const resolved = pkgDir && resolveModulePath(id, { from: join(pkgDir, "/"), try: true });
-  if (!resolved) {
-    throw new Error(
-      `Cannot resolve \`${id}\` from \`${path}\`. The \`vite.path\` option must point to the \`vite\` package directory or entry.`
-    );
-  }
-  return resolved;
-}
-
-/** Find the directory of the package named `name` containing `dir`. */
-function _findPackageDir(dir: string, name: string): string | undefined {
-  for (let depth = 0; depth < 10; depth++) {
-    const pkgPath = join(dir, "package.json");
-    if (existsSync(pkgPath)) {
-      try {
-        if (JSON.parse(readFileSync(pkgPath, "utf8")).name === name) {
-          return dir;
-        }
-      } catch {
-        // Ignore unreadable or invalid `package.json` files
-      }
-    }
-    const parent = dirname(dir);
-    if (parent === dir) {
-      return;
-    }
-    dir = parent;
-  }
+  return resolveFromDepPath(id, { dir, path: path! });
 }

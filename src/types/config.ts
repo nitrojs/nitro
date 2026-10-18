@@ -782,6 +782,21 @@ export interface NitroOptions extends PresetOptions {
   };
 
   /**
+   * Explicit packages to use for the optional dependencies Nitro installs on demand (such as
+   * `vite`, `rolldown`, `unstorage`, `db0` or `ocache`), by package name.
+   *
+   * Each value is a path or `file://` URL to the package directory or entry
+   * (e.g. `import.meta.resolve("unstorage")`). Relative paths resolve against `rootDir`.
+   *
+   * By default, these packages are resolved from the project root and installed on demand. A
+   * framework built on top of Nitro can pass its own copies, so the versions it depends on are
+   * the ones that run. `deps.vite` and `vite.path` are aliases.
+   *
+   * @see https://nitro.build/config#deps
+   */
+  deps: Record<string, string>;
+
+  /**
    * Build plugins, applied with every builder (`rollup`, `rolldown`, `vite` and `false`).
    *
    * Plugins use the Rollup plugin interface. Only the `resolveId`, `load` and `transform` hooks

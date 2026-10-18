@@ -34,7 +34,7 @@ export async function resolveBuilder(options: NitroOptions) {
     if (pkg === "rolldown" || (pkg === "vite" && options.vite?.path)) {
       return;
     }
-    const resolved = await ensureDep({ id: pkg, dir: options.rootDir });
+    const resolved = await ensureDep({ id: pkg, dir: options.rootDir, paths: options.deps });
     if (!resolved) {
       throw new Error(
         `Nitro builder package "${pkg}" is not installed. Please install it in your project dependencies.`
@@ -44,7 +44,10 @@ export async function resolveBuilder(options: NitroOptions) {
   }
 
   // Auto-detect: check for vite.config with nitro() plugin
-  if (isDepInstalled("vite", { dir: options.rootDir }) && hasNitroViteConfig(options)) {
+  if (
+    isDepInstalled("vite", { dir: options.rootDir, paths: options.deps }) &&
+    hasNitroViteConfig(options)
+  ) {
     options.builder = "vite";
     return;
   }
@@ -53,7 +56,7 @@ export async function resolveBuilder(options: NitroOptions) {
   // the dev server can run without a builder (no bundler config that `builder: false` would ignore)
   if (
     !options.dev ||
-    resolveRolldown(options.rootDir) ||
+    resolveRolldown(options.rootDir, { paths: options.deps }) ||
     hasConfig(options.rollupConfig) ||
     hasConfig(options.rolldownConfig)
   ) {

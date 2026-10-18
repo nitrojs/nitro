@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { pathToFileURL } from "node:url";
 import * as exsolve from "exsolve";
 import { consola } from "consola";
 import { join } from "pathe";
@@ -47,7 +48,13 @@ vi.mock("consola", () => ({
 
 const missingDep = { id: "nitro-missing-dep", dir: process.cwd(), reason: "testing" };
 
-async function ensureDep(opts: typeof missingDep & { version?: string; autoInstall?: boolean }) {
+async function ensureDep(
+  opts: typeof missingDep & {
+    version?: string;
+    autoInstall?: boolean;
+    paths?: Record<string, string>;
+  }
+) {
   const mod = await import("../../src/utils/dep.ts");
   return mod.ensureDep(opts);
 }
@@ -284,5 +291,48 @@ describe("missing dependencies", () => {
     expect(addDevDependency).toHaveBeenCalledOnce();
     expect(consola.success).not.toHaveBeenCalled();
     expect(consola.warn).toHaveBeenCalledWith(expect.stringContaining("cannot be resolved"));
+  });
+});
+
+describe("explicit dependency paths (`deps`)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    Object.assign(env, { isAgent: false, isCI: true, isTest: false, hasTTY: false });
+  });
+
+  /** A stub package outside of the project, as a framework would provide it. */
+  function createFrameworkDep(version = "1.0.0") {
+    const frameworkDir = createProject();
+    installStub(missingDep.id, frameworkDir, version);
+    return join(frameworkDir, "node_modules", missingDep.id);
+  }
+
+  it("resolves a dependency (and its subpaths) from its explicit path without installing", async () => {
+    const { resolveDep } = await import("../../src/utils/dep.ts");
+    const pkgDir = createFrameworkDep();
+    const dir = createProject();
+    for (const path of [pkgDir, join(pkgDir, "index.mjs"), pathToFileURL(pkgDir).href]) {
+      const paths = { [missingDep.id]: path };
+      expect(await ensureDep({ ...missingDep, dir, paths })).toBe(join(pkgDir, "index.mjs"));
+      expect(resolveDep(`${missingDep.id}/sub`, { dir, paths, projectOnly: true })).toBe(
+        join(pkgDir, "index.mjs")
+      );
+    }
+    expect(addDevDependency).not.toHaveBeenCalled();
+  });
+
+  it("checks the version of an explicit path", async () => {
+    const pkgDir = createFrameworkDep("1.0.0");
+    const paths = { [missingDep.id]: pkgDir };
+    await ensureDep({ ...missingDep, dir: createProject(), paths, version: "^2.0.0" });
+    expect(consola.warn).toHaveBeenCalledWith(expect.stringContaining("requires `^2.0.0`"));
+  });
+
+  it("throws for an explicit path that is not the package", async () => {
+    const paths = { [missingDep.id]: createProject() };
+    await expect(ensureDep({ ...missingDep, dir: createProject(), paths })).rejects.toThrow(
+      `The \`deps["${missingDep.id}"]\` option must point to the \`${missingDep.id}\` package`
+    );
+    expect(addDevDependency).not.toHaveBeenCalled();
   });
 });
