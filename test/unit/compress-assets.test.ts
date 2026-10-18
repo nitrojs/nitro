@@ -5,7 +5,7 @@ import zlib from "node:zlib";
 import { join } from "pathe";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { build, createNitro, prepare } from "../../src/builder.ts";
+import { build, createNitro, prepare, prerender } from "../../src/builder.ts";
 import type { Nitro, NitroConfig } from "nitro/types";
 
 // The vite builder loads `nitro/vite` from `dist/`, so it would not use the sources here
@@ -77,5 +77,31 @@ describe("compressPublicAssets", () => {
     await nitro.close();
     expect(existsSync(join(nitro.options.output.publicDir, "late.txt"))).toBe(true);
     expect(existsSync(join(nitro.options.output.publicDir, "late.txt.gz"))).toBe(false);
+  });
+
+  it("does not compress from the prerenderer", async () => {
+    let compressedDuringPrerender: boolean | undefined;
+    const nitro = await createProject({
+      builder: "rolldown",
+      prerender: { routes: ["/"] },
+      hooks: {
+        "prerender:init": (prerenderer) =>
+          writeFile(join(prerenderer.options.output.publicDir, "early.txt"), "x".repeat(2048)),
+        "prerender:done": () => {
+          compressedDuringPrerender = existsSync(
+            join(nitro.options.output.publicDir, "early.txt.gz")
+          );
+        },
+      },
+    });
+    try {
+      await prepare(nitro);
+      await mkdir(nitro.options.output.publicDir, { recursive: true });
+      await prerender(nitro);
+    } finally {
+      await nitro.close();
+    }
+    expect(compressedDuringPrerender).toBe(false);
+    expect(existsSync(join(nitro.options.output.publicDir, "early.txt.gz"))).toBe(true);
   });
 });

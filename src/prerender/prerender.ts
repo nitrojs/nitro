@@ -57,6 +57,7 @@ export async function prerender(nitro: Nitro) {
   const prerendererConfig = {
     ...nitro.options._config,
     static: false,
+    compressPublicAssets: false,
     rootDir: nitro.options.rootDir,
     renderer: nitro.options.renderer,
     virtual: { ...nitro.options.virtual },
