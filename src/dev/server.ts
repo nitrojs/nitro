@@ -1,7 +1,8 @@
 import type { IncomingMessage } from "node:http";
 import type { Socket } from "node:net";
 import type { FSWatcher } from "chokidar";
-import type { ServerOptions, Server } from "srvx";
+import type { ServerOptions, Server, ServerPlugin } from "srvx";
+import type { Hooks } from "crossws";
 import type {
   EnvRunnerData,
   EnvRunnerPluginOption,
@@ -17,7 +18,8 @@ import { HTTPError } from "h3";
 import consola from "consola";
 import { readFile } from "node:fs/promises";
 import { resolve } from "pathe";
-import { serve } from "srvx/node";
+import { serve } from "srvx";
+import { plugin as crosswsPlugin } from "crossws/server";
 import { debounce } from "perfect-debounce";
 import { isTest, isCI } from "std-env";
 import { NitroDevApp } from "./app.ts";
@@ -25,6 +27,7 @@ import { createWatcher } from "../utils/watch.ts";
 import { resolveRunnerDeps } from "./runner-deps.ts";
 import { shutdownRunner } from "./shutdown.ts";
 import { handleDevRPC } from "./_rpc.ts";
+import { createWorkerWebSocketProxy } from "./_proxy.ts";
 import { writeDevBuildInfo } from "../build/info.ts";
 
 export function createDevServer(nitro: Nitro): NitroDevServer {
@@ -38,6 +41,7 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
   #listeners: Server[] = [];
   #watcher?: FSWatcher;
   #manager: RunnerManager;
+  #workerWebSocket: Partial<Hooks>;
   #workerIdCtr: number = 0;
   #runnerName?: RunnerName;
   #workerError?: unknown;
@@ -80,6 +84,18 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
     this.#entry = resolve(nitro.options.output.dir, nitro.options.output.serverDir, "index.mjs");
 
     this.#manager = new RunnerManager();
+    this.#workerWebSocket = createWorkerWebSocketProxy(async () => {
+      if (this.#building) {
+        await this.#waitForBuild();
+      }
+      if (this.#reloadPromise) {
+        await this.#reloadPromise;
+      }
+      if (!this.#manager.ready) {
+        await this.#waitForBuild();
+      }
+      return this.#manager.address;
+    });
     this.#manager.onReady(async (_runner, addr) => {
       this.#workerRetries = 0;
       writeDevBuildInfo(this.nitro, addr).catch((error) => {
@@ -164,11 +180,20 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
     return this.#manager.upgrade({ node: { req, socket, head } });
   }
 
+  /**
+   * Runtime-agnostic alternative to {@link upgrade}: resolve `crossws` hooks proxying a WebSocket
+   * upgrade request to a matching `devProxy` rule or to the dev worker.
+   */
+  resolveWebSocketHooks(req: Request): Partial<Hooks> {
+    return this.resolveWebSocketProxy(req) || this.#workerWebSocket;
+  }
+
   listen(opts?: Partial<Omit<ServerOptions, "fetch">>): Server {
     const server = serve({
       ...opts,
       fetch: this.fetch,
       gracefulShutdown: false,
+      plugins: [...(opts?.plugins || []), this.#webSocketPlugin],
     });
     this.#listeners.push(server);
     if (server.node?.server) {
@@ -242,6 +267,13 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
   // #endregion
 
   // #region Private Methods
+
+  // Node.js listeners proxy raw upgrade sockets (see `upgrade()`), other runtimes go through crossws
+  #webSocketPlugin: ServerPlugin = (server) => {
+    if (server.runtime !== "node") {
+      crosswsPlugin({ resolve: (req) => this.resolveWebSocketHooks(req) })(server);
+    }
+  };
 
   async #shutdownWorker() {
     // The miniflare runner runs the same handshake itself when it is disposed
