@@ -126,6 +126,12 @@ export function getPublicAssetMeta(id = '') {
 export function getAsset (id) {
   return assets[id]
 }
+
+let _assetIds
+export function hasAsset (id = '') {
+  _assetIds ??= new Set(Object.keys(assets).flatMap((id) => [id, id.replace(/\\.(?:gz|br|zst)$/, '')]))
+  return _assetIds.has(id)
+}
 `;
       },
     },
