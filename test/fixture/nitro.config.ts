@@ -154,10 +154,9 @@ export default defineConfig({
     "/api/proxy/**": { proxy: "/api/echo" },
     "/rules/proxy/legacy/**": { proxy: "/api/wildcard/**" },
     "/cdn/**": { proxy: "https://cdn.jsdelivr.net/**" },
-    // Method-scoped route rule: the `"METHOD /path"` key only applies to that method.
-    // (a runtime-only rule: `headers`/`redirect` keys are also emitted into
-    // platform-native static config, which cannot express a method)
+    // Method-scoped route rules: the `"METHOD /path"` key only applies to that method.
     "POST /rules/method-scoped/**": { cors: true },
+    "GET /rules/method-scoped/redirect": { redirect: "/base" },
     "/single-headers/*": { headers: { "x-single": "single" } },
     "**": { headers: { "x-test": "test" } },
   },

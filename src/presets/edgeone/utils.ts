@@ -12,7 +12,7 @@ import { join } from "pathe";
 import { compareRoutes, routeToRegExp } from "rou3";
 import { joinURL } from "ufo";
 import { writeFile } from "../../utils/fs.ts";
-import { catchAllRef, sortRoutes } from "../_utils/routes.ts";
+import { catchAllRef, parseRouteKey, sortRoutes } from "../_utils/routes.ts";
 
 const NAMED_GROUP_RE = /\(\?<(?![=!])[^>]+>/g;
 
@@ -48,7 +48,7 @@ export async function writeEdgeOneConfig(nitro: Nitro) {
 
   // Phase 1 — rules evaluated before the filesystem handler (headers, redirects).
   const rules = sortRoutes(Object.keys(nitro.options.routeRules || {})).map(
-    (path) => [path, nitro.options.routeRules[path]] as const
+    (key) => [parseRouteKey(key), nitro.options.routeRules[key]] as const
   );
 
   config.routes.push(
@@ -56,19 +56,21 @@ export async function writeEdgeOneConfig(nitro: Nitro) {
     ...rules
       .filter(([_, routeRules]) => routeRules.headers && !routeRules.redirect)
       .reverse()
-      .map(([path, routeRules]) => ({
+      .map(([{ path, methods }, routeRules]) => ({
         src: routeToRE2(joinURL(baseURL, path)).source,
+        ...(methods && { methods }),
         headers: routeRules.headers as Record<string, string>,
         continue: true,
       })),
     // Redirect rules (most specific first, as the first match stops routing)
     ...rules
       .filter(([_, routeRules]) => routeRules.redirect)
-      .map(([path, routeRules]) => {
+      .map(([{ path, methods }, routeRules]) => {
         const redirect = routeRules.redirect as RedirectRuleOptions;
         const src = routeToRE2(joinURL(baseURL, path));
         return {
           src: src.source,
+          ...(methods && { methods }),
           status: redirect.status || 302,
           headers: {
             Location: redirect.to.replaceAll("**", catchAllRef(src)),
