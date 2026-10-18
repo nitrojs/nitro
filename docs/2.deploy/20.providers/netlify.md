@@ -19,6 +19,8 @@ To add custom redirects, use [`routeRules`](/config#routerules) or add a [`_redi
 
 To deploy, just push to your git repository [as you would normally do for Netlify](https://docs.netlify.com/configure-builds/get-started/).
 
+Nitro writes its output using the [Netlify Frameworks API](https://docs.netlify.com/build/frameworks/frameworks-api/): the server function to `.netlify/v1/functions`, edge functions to `.netlify/v1/edge-functions`, and deploy configuration to `.netlify/v1/config.json`. Static assets are written to `dist`.
+
 ::note
 Make sure the publish directory is set to `dist` when creating a new project.
 ::
@@ -45,7 +47,7 @@ Use the `netlify_static` preset to pre-render your app and deploy it to Netlify 
 
 ## Custom deploy configuration
 
-You can provide additional deploy configuration using the `netlify.config` key inside `nitro.config`. It follows the [Netlify Frameworks API](https://docs.netlify.com/build/frameworks/frameworks-api/) `config.json` format and will be merged with the built-in auto-generated configuration.
+You can provide additional deploy configuration using the `netlify.config` key inside `nitro.config`. It follows the [Netlify Frameworks API](https://docs.netlify.com/build/frameworks/frameworks-api/) `config.json` format and is written to `.netlify/v1/config.json`, which Netlify merges with your site configuration during the build.
 
 ```ts [nitro.config.ts]
 import { defineConfig } from "nitro";
