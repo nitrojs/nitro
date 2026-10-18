@@ -27,9 +27,9 @@ describe("vite: nitro build CLI", () => {
     rmSync(join(rootDir, ".output"), { recursive: true, force: true });
   });
 
-  it("prerenders once", () => {
+  it("prerenders and runs `close` hooks once", () => {
     const log = readFileSync(logFile, "utf8").split("\n").filter(Boolean);
-    expect(log).toEqual(["prerender:init"]);
+    expect(log).toEqual(["prerender:init", "close"]);
   });
 
   it("writes prerendered routes", () => {

@@ -28,6 +28,7 @@ export async function createNitro(
   const hooks = new Hookable<NitroHooks>();
   hooks.deprecateHooks({ "rollup:reload": { to: "build:reload" } });
   hooks.hook("build:config", callRollupBeforeHooks);
+  let closePromise: Promise<void> | undefined;
   const nitro: Nitro = {
     meta: {
       version: nitroVersion,
@@ -42,7 +43,7 @@ export async function createNitro(
     fetch: () => {
       throw new Error("no dev server attached!");
     },
-    close: () => Promise.resolve(nitro.hooks.callHook("close")),
+    close: () => (closePromise ??= Promise.resolve(nitro.hooks.callHook("close"))),
     async updateConfig(config: NitroDynamicConfig) {
       updateNitroConfig(nitro, config);
     },
