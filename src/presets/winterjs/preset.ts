@@ -12,7 +12,8 @@ const winterjs = defineNitroPreset(
       lazy: true,
     },
     hooks: {
-      "build:config": (_nitro, config) => {
+      "build:config": (_nitro, buildConfig) => {
+        const config = buildConfig.rollup ?? buildConfig.rolldown;
         // WinterJS cannot parse `import.meta`. The entry banner injected by
         // `nitro:server-main` is only read back by the Node.js public asset
         // reader, which this preset never uses (`serveStatic: "inline"`).

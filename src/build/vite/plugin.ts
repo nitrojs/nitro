@@ -524,7 +524,9 @@ async function setupNitroContext(
   await ctx.nitro.hooks.callHook(
     "build:config",
     ctx.nitro,
-    (ctx.bundlerConfig.rollupConfig || ctx.bundlerConfig.rolldownConfig)!
+    ctx.bundlerConfig.rollupConfig
+      ? { builder: "vite", rollup: ctx.bundlerConfig.rollupConfig }
+      : { builder: "vite", rolldown: ctx.bundlerConfig.rolldownConfig! }
   );
 
   // Attach nitro.fetch to the dev env runner (started lazily, not when resolving config)

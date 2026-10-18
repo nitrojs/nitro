@@ -2,7 +2,7 @@ import type { EnvRunnerData, EnvRunnerPluginOption } from "env-runner";
 import type { NitroConfig } from "./config.ts";
 import type { Nitro } from "./nitro.ts";
 import type { PrerenderRoute } from "./prerender.ts";
-import type { RolldownConfig, RollupConfig } from "./build.ts";
+import type { NitroBuildConfig, RollupConfig } from "./build.ts";
 
 type HookResult = void | Promise<void>;
 
@@ -11,9 +11,10 @@ export interface NitroHooks {
   /**
    * Called after the bundler config is resolved, right before bundling. Last chance to modify it.
    *
-   * The config is a Rollup or Rolldown config, depending on the builder in use.
+   * The config is passed as `{ builder, rollup }` or `{ builder, rolldown }`, depending on the
+   * builder and bundler in use.
    */
-  "build:config": (nitro: Nitro, config: RollupConfig | RolldownConfig) => HookResult;
+  "build:config": (nitro: Nitro, config: NitroBuildConfig) => HookResult;
   "vite:compile:before": (nitro: Nitro) => HookResult;
   compiled: (nitro: Nitro) => HookResult;
   "dev:reload": (payload?: {
@@ -39,7 +40,7 @@ export interface NitroHooks {
     failedRoutes: PrerenderRoute[];
   }) => HookResult;
 
-  /** @deprecated Use `build:config`. */
+  /** @deprecated Use `build:config` (the config is passed as `{ rollup }` or `{ rolldown }`). */
   "rollup:before": (nitro: Nitro, config: RollupConfig) => HookResult;
   /** @deprecated Use `build:reload`. */
   "rollup:reload": () => HookResult;

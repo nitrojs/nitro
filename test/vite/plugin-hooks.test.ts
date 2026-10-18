@@ -65,7 +65,7 @@ describe("vite: plugin and user config hooks", () => {
     // `build:config` already runs while resolving the bundler config
     calls.splice(0);
     await instance!.hooks.callHook("compiled", instance!);
-    await instance!.hooks.callHook("build:config", instance!, {});
+    await instance!.hooks.callHook("build:config", instance!, { builder: "vite", rolldown: {} });
     expect(calls).toEqual([
       "config:compiled",
       "plugin:compiled",

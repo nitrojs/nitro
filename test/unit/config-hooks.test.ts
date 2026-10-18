@@ -113,34 +113,42 @@ describe("config hooks", () => {
 });
 
 describe("deprecated hooks", () => {
-  it("calls `rollup:before` and `rollup:reload` hooks as `build:config` and `build:reload`", async () => {
+  it("calls `rollup:before` and `rollup:reload` hooks from `build:config` and `build:reload`", async () => {
     const rootDir = await createFixture({});
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const calls: string[] = [];
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const calls: unknown[] = [];
     const nitro = await createNitro({
       rootDir,
       hooks: {
         rollup: {
-          before: () => {
-            calls.push("config:rollup:before");
+          before: (_nitro, config) => {
+            calls.push(["config:rollup:before", config]);
           },
         },
       },
     });
-    nitro.hooks.hook("rollup:before", () => {
-      calls.push("rollup:before");
+    const loggerWarn = vi.spyOn(nitro.logger, "warn").mockImplementation(() => {});
+    nitro.hooks.hook("rollup:before", (_nitro, config) => {
+      calls.push(["rollup:before", config]);
     });
     nitro.hooks.hook("rollup:reload", () => {
       calls.push("rollup:reload");
     });
 
-    await nitro.hooks.callHook("build:config", nitro, {});
+    const rolldown = { input: "entry" };
+    await nitro.hooks.callHook("build:config", nitro, { builder: "rolldown", rolldown });
     await nitro.updateConfig({});
-    expect(calls).toEqual(["config:rollup:before", "rollup:before", "rollup:reload"]);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("please use build:config"));
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("please use build:reload"));
+    expect(calls).toEqual([
+      ["config:rollup:before", rolldown],
+      ["rollup:before", rolldown],
+      "rollup:reload",
+    ]);
+    expect(calls[0]).toContain(rolldown);
+    expect(loggerWarn).toHaveBeenCalledOnce();
+    expect(loggerWarn).toHaveBeenCalledWith(expect.stringContaining("Use `build:config` instead"));
+    expect(consoleWarn).toHaveBeenCalledWith(expect.stringContaining("please use build:reload"));
 
-    warn.mockRestore();
+    consoleWarn.mockRestore();
     await nitro.close();
   });
 });
