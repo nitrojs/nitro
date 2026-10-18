@@ -127,10 +127,8 @@ export function getAsset (id) {
   return assets[id]
 }
 
-let _assetIds
 export function hasAsset (id = '') {
-  _assetIds ??= new Set(Object.keys(assets).flatMap((id) => [id, id.replace(/\\.(?:gz|br|zst)$/, '')]))
-  return _assetIds.has(id)
+  return !!(assets[id] || assets[id + '.gz'] || assets[id + '.br'] || assets[id + '.zst'])
 }
 `;
       },
