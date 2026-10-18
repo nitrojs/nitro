@@ -1,4 +1,3 @@
-import { existsSync } from "node:fs";
 import { consola } from "consola";
 import { Hookable, createDebugger } from "hookable";
 import type {
@@ -15,7 +14,6 @@ import { installModules } from "./module.ts";
 import { scanAndSyncOptions, scanHandlers } from "./scan.ts";
 import { initNitroRouting } from "./routing.ts";
 import { registerNitroInstance } from "./global.ts";
-import { compressPublicAssets } from "./utils/compress.ts";
 
 export async function createNitro(
   config: NitroConfig = {},
@@ -40,16 +38,7 @@ export async function createNitro(
     fetch: () => {
       throw new Error("no dev server attached!");
     },
-    close: async () => {
-      await nitro.hooks.callHook("close");
-      if (
-        !nitro.options.dev &&
-        nitro.options.compressPublicAssets &&
-        existsSync(nitro.options.output.publicDir)
-      ) {
-        await compressPublicAssets(nitro);
-      }
-    },
+    close: () => Promise.resolve(nitro.hooks.callHook("close")),
     async updateConfig(config: NitroDynamicConfig) {
       updateNitroConfig(nitro, config);
     },
