@@ -5,7 +5,6 @@
     "moduleResolution": "NodeNext",
     "allowSyntheticDefaultImports": true,
     "erasableSyntaxOnly": true,
-    "stripInternal": true,
     "noUncheckedIndexedAccess": false,
     "noImplicitReturns": false,
     "jsx": "preserve",
