@@ -411,6 +411,11 @@ export interface NitroOptions extends PresetOptions {
      * to be enabled.
      */
     tracingLogger?: boolean;
+
+    /**
+     * @deprecated Use the top-level `vite` option (`vite.services`, `vite.assetsImport` and `vite.serverReload`) instead.
+     */
+    vite?: Pick<NonNullable<NitroOptions["vite"]>, "services" | "assetsImport" | "serverReload">;
   };
 
   /**
@@ -755,6 +760,30 @@ export interface NitroOptions extends PresetOptions {
      * running instance (in a monorepo, another version could be hoisted next to the app).
      */
     path?: string;
+
+    /**
+     * Additional Vite environments to register as fetchable services.
+     *
+     * Server environments with an entry (e.g. `ssr`) are registered automatically.
+     */
+    services?: Record<string, ViteServiceConfig>;
+
+    /**
+     * Enable `?assets` imports proposed by https://github.com/vitejs/vite/discussions/20913.
+     *
+     * @default true
+     */
+    assetsImport?: boolean;
+
+    /**
+     * Reload the dev server (and the browser) when a server-only module is updated.
+     *
+     * When disabled, server-only modules are still invalidated but the dev worker
+     * keeps its current evaluations.
+     *
+     * @default true
+     */
+    serverReload?: boolean;
   };
 
   /**
@@ -1095,6 +1124,16 @@ export interface NitroConfigLayer {
 
   /** Layer metadata from `$meta` in the layer config or `extends` options. */
   meta?: { name?: string; [key: string]: unknown };
+}
+
+/**
+ * Vite environment registered as a fetchable service.
+ *
+ * @see https://nitro.build/config#vite
+ */
+export interface ViteServiceConfig {
+  /** Path to the service entry. */
+  entry: string;
 }
 
 /**
