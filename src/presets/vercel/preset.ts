@@ -1,6 +1,6 @@
 import { defineNitroPreset } from "../_utils/preset.ts";
 import type { Nitro } from "nitro/types";
-import { presetsDir } from "nitro/meta";
+import { presetsDir } from "#nitro/meta";
 import { join } from "pathe";
 import { importDep } from "../../utils/dep.ts";
 import {

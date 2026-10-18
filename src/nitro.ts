@@ -7,7 +7,7 @@ import type {
   NitroDynamicConfig,
   NitroHooks,
 } from "nitro/types";
-import { version as nitroVersion } from "nitro/meta";
+import { version as nitroVersion } from "#nitro/meta";
 import { loadOptions } from "./config/loader.ts";
 import { updateNitroConfig } from "./config/update.ts";
 import { installModules } from "./module.ts";

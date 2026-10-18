@@ -27,11 +27,19 @@ import { shutdownRunner } from "./shutdown.ts";
 import { handleDevRPC } from "./_rpc.ts";
 import { writeDevBuildInfo } from "../build/info.ts";
 
-export function createDevServer(nitro: Nitro): NitroDevServer {
-  return new NitroDevServer(nitro);
+export interface NitroDevServer {
+  fetch: (req: Request) => Response | Promise<Response>;
+  upgrade: (req: IncomingMessage, socket: Socket, head: any) => Promise<void>;
+  listen: (opts?: Partial<Omit<ServerOptions, "fetch">>) => Server;
+  reload: () => void;
+  close: () => Promise<void>;
 }
 
-export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
+export function createDevServer(nitro: Nitro): NitroDevServer {
+  return new DevServer(nitro);
+}
+
+class DevServer extends NitroDevApp implements NitroDevServer, RunnerRPCHooks {
   #entry: string;
   #workerData: EnvRunnerData = {};
   #plugins?: EnvRunnerPluginOption[];
@@ -67,7 +75,7 @@ export class NitroDevServer extends NitroDevApp implements RunnerRPCHooks {
     });
 
     // Bind all methods to `this`
-    for (const key of Object.getOwnPropertyNames(NitroDevServer.prototype)) {
+    for (const key of Object.getOwnPropertyNames(DevServer.prototype)) {
       const value = (this as any)[key];
       if (typeof value === "function" && key !== "constructor") {
         (this as any)[key] = value.bind(this);

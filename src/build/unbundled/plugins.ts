@@ -4,7 +4,7 @@ import type { Nitro, NitroBuildPlugin } from "nitro/types";
 import { existsSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import replace from "@rollup/plugin-replace";
-import { pkgDir } from "nitro/meta";
+import { pkgDir } from "#nitro/meta";
 import { dirname, isAbsolute, join, normalize, resolve } from "pathe";
 import { unwasm } from "unwasm/plugin";
 import { baseBuildConfig } from "../config.ts";

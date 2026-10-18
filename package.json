@@ -27,6 +27,7 @@
   "type": "module",
   "types": "./dist/runtime/nitro.d.mts",
   "imports": {
+    "#nitro/meta": "./dist/runtime/_meta.mjs",
     "#nitro/runtime/*": "./dist/runtime/internal/*.mjs",
     "#nitro/virtual/*": "./dist/runtime/virtual/*.mjs"
   },

@@ -41,8 +41,9 @@ export interface Nitro {
     routedMiddleware: Router<NitroEventHandler & { _importHash: string }>;
   }>;
 
-  /* @internal */
+  /** @internal */
   _prerenderedRoutes?: PrerenderRoute[];
+  /** @internal */
   _prerenderMeta?: Record<string, { contentType?: string }>;
 }
 

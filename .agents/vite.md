@@ -281,5 +281,5 @@ restart itself (it ignores `configFileDependencies`).
 - `src/build/plugins.ts` — base build plugins (virtual modules, WASM, externals, etc.)
 - `src/build/virtual/` — 14 virtual module templates
 - `src/dev/app.ts` — `NitroDevApp` for dev-only handlers
-- `src/dev/server.ts` — `NitroDevServer` with `RunnerManager`
+- `src/dev/server.ts` — `createDevServer()` (internal `DevServer` class) with `RunnerManager`
 - `src/runtime/internal/vite/` — runtime worker and entry points

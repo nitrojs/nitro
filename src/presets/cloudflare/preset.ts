@@ -2,7 +2,7 @@ import { defineNitroPreset } from "../_utils/preset.ts";
 import { writeFile } from "../_utils/fs.ts";
 import type { Nitro } from "nitro/types";
 import { join, resolve } from "pathe";
-import { presetsDir } from "nitro/meta";
+import { presetsDir } from "#nitro/meta";
 import { unenvCfExternals } from "./unenv/preset.ts";
 import { extendEnv } from "../../build/env.ts";
 import {

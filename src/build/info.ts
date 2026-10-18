@@ -1,7 +1,7 @@
 import type { Nitro, NitroBuildInfo, WorkerAddress } from "nitro/types";
 import { resolveModulePath } from "exsolve";
 import { join, relative, resolve } from "pathe";
-import { version as nitroVersion } from "nitro/meta";
+import { version as nitroVersion } from "#nitro/meta";
 import { presetsWithConfig } from "../presets/_types.gen.ts";
 import { writeFile } from "../utils/fs.ts";
 import { mkdir, readFile, stat } from "node:fs/promises";
