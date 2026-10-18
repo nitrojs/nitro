@@ -5,6 +5,7 @@ import wsAdapter from "crossws/adapters/cloudflare";
 import { createHandler, augmentReq } from "./_module-handler.ts";
 
 import { useNitroApp, useNitroHooks } from "nitro/app";
+import { afterNitroReady } from "#nitro/runtime/async-plugins";
 import { isPublicAssetURL } from "#nitro/virtual/public-assets";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
 
@@ -58,10 +59,12 @@ export class $DurableObject extends DurableObject {
   constructor(state: DurableObjectState, env: Record<string, any>) {
     super(state, env);
     state.waitUntil(
-      nitroHooks.callHook("cloudflare:durable:init", this, {
-        state,
-        env,
-      }) || Promise.resolve()
+      afterNitroReady(nitroApp, () =>
+        nitroHooks.callHook("cloudflare:durable:init", this, {
+          state,
+          env,
+        })
+      ) || Promise.resolve()
     );
     if (import.meta._websocket) {
       ws!.handleDurableInit(this, state, env);
@@ -82,7 +85,10 @@ export class $DurableObject extends DurableObject {
   }
 
   override alarm(): void | Promise<void> {
-    this.ctx.waitUntil(nitroHooks.callHook("cloudflare:durable:alarm", this) || Promise.resolve());
+    this.ctx.waitUntil(
+      afterNitroReady(nitroApp, () => nitroHooks.callHook("cloudflare:durable:alarm", this)) ||
+        Promise.resolve()
+    );
   }
 
   override async webSocketMessage(client: WebSocket, message: ArrayBuffer | string) {

@@ -175,13 +175,14 @@ describe("cloudflare pages _redirects and _headers", () => {
       routeRules: {
         "/old/**:path": { redirect: { to: "/new/**", status: 301 } },
         "/ext/**": { redirect: { to: "https://nitro.build/**", status: 302 } },
+        "/cdn/**": { redirect: { to: "//cdn.nitro.build/**", status: 302 } },
         "/hdr/**:path": { headers: { "x-hdr": "1" } },
       },
     });
     await writeCFPagesRedirects(nitro);
     await writeCFHeaders(nitro, "output");
     expect(await readFile(join(dir, "_redirects"), "utf8")).toBe(
-      "/base/ext/*\thttps://nitro.build/:splat\t302\n/base/old/*\t/base/new/:splat\t301\n"
+      "/base/cdn/*\t//cdn.nitro.build/:splat\t302\n/base/ext/*\thttps://nitro.build/:splat\t302\n/base/old/*\t/new/:splat\t301\n"
     );
     expect(await readFile(join(dir, "_headers"), "utf8")).toBe("/base/hdr/*\n  x-hdr: 1");
   });
@@ -242,5 +243,25 @@ describe("edgeone config.json", () => {
     expect("/ext/a".replace(new RegExp(external.src!), external.headers!.Location)).toBe(
       "https://nitro.build/a"
     );
+  });
+
+  it("uses redirect targets as written with a baseURL", async () => {
+    const routes = await buildRoutes({
+      baseURL: "/base/",
+      routeRules: {
+        "/r/**": { redirect: { to: "/all/**", status: 302 } },
+        "/r/special": { redirect: { to: "/special", status: 301 } },
+        "/ext/**": { redirect: { to: "https://nitro.build/**", status: 302 } },
+        "/cdn/**": { redirect: { to: "//cdn.nitro.build/**", status: 302 } },
+      },
+    });
+    const resolve = (path: string) => {
+      const route = firstMatch(routes, path)!;
+      return path.replace(new RegExp(route.src!), route.headers!.Location);
+    };
+    expect(firstMatch(routes, "/base/r/special")?.headers?.Location).toBe("/special");
+    expect(resolve("/base/r/a/b")).toBe("/all/a/b");
+    expect(resolve("/base/ext/a")).toBe("https://nitro.build/a");
+    expect(resolve("/base/cdn/a")).toBe("//cdn.nitro.build/a");
   });
 });

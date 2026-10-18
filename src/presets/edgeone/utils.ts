@@ -10,7 +10,7 @@
 import type { Nitro, RedirectRuleOptions } from "nitro/types";
 import { join } from "pathe";
 import { compareRoutes, routeToRegExp } from "rou3";
-import { hasProtocol, joinURL } from "ufo";
+import { joinURL } from "ufo";
 import { writeFile } from "../../utils/fs.ts";
 import { catchAllRef, sortRoutes } from "../_utils/routes.ts";
 
@@ -67,12 +67,11 @@ export async function writeEdgeOneConfig(nitro: Nitro) {
       .map(([path, routeRules]) => {
         const redirect = routeRules.redirect as RedirectRuleOptions;
         const src = routeToRE2(joinURL(baseURL, path));
-        const to = redirect.to.replaceAll("**", catchAllRef(src));
         return {
           src: src.source,
           status: redirect.status || 302,
           headers: {
-            Location: hasProtocol(to, { acceptRelative: true }) ? to : joinURL(baseURL, to),
+            Location: redirect.to.replaceAll("**", catchAllRef(src)),
             ...(routeRules.headers as Record<string, string>),
           },
         };

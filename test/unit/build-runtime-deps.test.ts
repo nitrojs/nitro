@@ -1,8 +1,17 @@
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  appendFileSync,
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
-import { dirname, join } from "pathe";
+import { dirname, join, relative } from "pathe";
+import { resolvePackageJSON } from "pkg-types";
 import { pkgDir } from "#nitro/meta";
 import { glob } from "tinyglobby";
 import { parseAst } from "rolldown/parseAst";
@@ -10,6 +19,7 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import * as exsolve from "exsolve";
 import type { NitroConfig } from "nitro/types";
 import { build, createNitro, prepare } from "../../src/builder.ts";
+import { getDepMeta } from "../../src/utils/_deps.ts";
 import * as dep from "../../src/utils/dep.ts";
 
 vi.mock("../../src/utils/dep.ts", { spy: true });
@@ -19,10 +29,11 @@ vi.mock("exsolve", { spy: true });
 const builders = ["rolldown", "rollup"] as const;
 
 // Config resolvers import (`importDep`), the bundler only resolves (`ensureDep`)
+// With the defaults of the dependency manifest applied
 const depCalls = (id: string) =>
-  [...vi.mocked(dep.importDep).mock.calls, ...vi.mocked(dep.ensureDep).mock.calls].filter(
-    ([opts]) => opts.id === id
-  );
+  [...vi.mocked(dep.importDep).mock.calls, ...vi.mocked(dep.ensureDep).mock.calls]
+    .filter(([opts]) => opts.id === id)
+    .map(([opts]) => [{ ...getDepMeta(opts.id), ...opts }]);
 
 const tmpDirs: string[] = [];
 afterAll(() => {
@@ -146,6 +157,22 @@ describe.each(builders)("optional runtime dependencies (%s)", (builder) => {
       routeRules: { "/**": { swr: 60 } },
     });
     expect(depCalls("ocache")).not.toEqual([]);
+  });
+
+  it("bundles ocache from its explicit path (`deps.paths`)", async () => {
+    // A copy of `ocache` outside the project, as a framework would provide it
+    const ocacheDir = join(mkdtempSync(join(tmpdir(), "nitro-build-runtime-deps-fw-")), "ocache");
+    tmpDirs.push(dirname(ocacheDir));
+    const pkgDir = dirname(await resolvePackageJSON("ocache", { url: import.meta.url }));
+    cpSync(pkgDir, ocacheDir, { recursive: true });
+    const entry = relative(pkgDir, fileURLToPath(import.meta.resolve("ocache")));
+    appendFileSync(join(ocacheDir, entry), `\nconsole.log("framework-ocache");\n`);
+    const code = await buildApp(
+      builder,
+      `import { defineCachedFunction } from "nitro/cache";\nconst cached = defineCachedFunction(() => "ok", { maxAge: 60 });\nexport default { fetch: async () => new Response(await cached()) };`,
+      { deps: { paths: { ocache: ocacheDir } } }
+    );
+    expect(code).toContain("framework-ocache");
   });
 
   it("requires unstorage when kv is configured", async () => {

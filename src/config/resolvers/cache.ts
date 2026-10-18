@@ -23,7 +23,11 @@ export async function resolveCacheOptions(options: NitroOptions) {
   }
 
   if (options.cache.driver === "kv") {
-    await importUnstorage({ dir: options.rootDir, reason: '`cache.driver: "kv"`' });
+    await importUnstorage({
+      dir: options.rootDir,
+      paths: options.deps?.paths,
+      reason: '`cache.driver: "kv"`',
+    });
   }
 
   if (options.cache.driver === "fs") {

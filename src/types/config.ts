@@ -524,6 +524,17 @@ export interface NitroOptions extends PresetOptions {
    */
   ignore: string[];
 
+  /**
+   * Additional dotted suffixes to keep as part of scanned file names (e.g. `"prompt"` for
+   * `routes/system.prompt.ts` → `/system.prompt`).
+   *
+   * Nitro reserves trailing lowercase suffixes in scanned file names. Known file extensions
+   * (e.g. `.json`, `.md`, `.xml`) are always kept.
+   *
+   * @see https://nitro.build/config#scansuffixes
+   */
+  scanSuffixes: string[];
+
   // Dev
 
   /**
@@ -769,6 +780,25 @@ export interface NitroOptions extends PresetOptions {
      * @default true
      */
     serverReload?: boolean;
+  };
+
+  /**
+   * Options for the optional dependencies Nitro installs on demand (such as `vite`, `rolldown`,
+   * `unstorage`, `db0` or `ocache`).
+   *
+   * @see https://nitro.build/config#deps
+   */
+  deps?: {
+    /**
+     * Explicit packages to use, by package name, as a path or `file://` URL to the package
+     * directory or entry (e.g. `import.meta.resolve("unstorage")`). Relative paths resolve
+     * against `rootDir`.
+     *
+     * By default, these packages are resolved from the project root and installed on demand. A
+     * framework built on top of Nitro can pass its own copies, so the versions it depends on are
+     * the ones that run. `deps.paths.vite` and `vite.path` are aliases.
+     */
+    paths?: Record<string, string>;
   };
 
   /**

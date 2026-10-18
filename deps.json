@@ -1,0 +1,50 @@
+{
+  "deps": {
+    "rolldown": { "version": "^1", "reason": "the `rolldown` builder", "types": true },
+    "rollup": { "version": "^4", "reason": "the `rollup` builder", "types": true },
+    "vite": { "version": "^8", "reason": "the `vite` builder" },
+    "unstorage": {
+      "version": "^2.0.0-alpha.10",
+      "reason": "KV storage (`nitro/kv`)",
+      "dev": false,
+      "autoInstall": true,
+      "runtime": true,
+      "types": true
+    },
+    "db0": {
+      "version": "^0.4.1",
+      "reason": "the database layer (`nitro/database`)",
+      "dev": false,
+      "autoInstall": true,
+      "runtime": true,
+      "types": true
+    },
+    "ocache": {
+      "version": "^0.3.0",
+      "reason": "caching (`nitro/cache` or `cache` route rules)",
+      "dev": false,
+      "autoInstall": true,
+      "runtime": true,
+      "types": true
+    },
+    "unenv": { "version": "^2.0.0-rc.24", "reason": "Node.js compatibility", "autoInstall": true },
+    "miniflare": { "version": "^4", "reason": "the `miniflare` dev runner" },
+    "@azure/functions": {
+      "version": "^4",
+      "reason": "the Azure Functions v4 programming model",
+      "dev": false,
+      "projectOnly": true
+    },
+    "@vercel/queue": { "version": "^0.8.0", "reason": "Vercel Queues", "types": true },
+    "xml2js": {
+      "version": "^0.6.2",
+      "reason": "merging a custom `web.config` for the IIS preset"
+    },
+    "zephyr-agent": { "version": "^1.6.0", "reason": "deploying to Zephyr" }
+  },
+  "shims": {
+    "dotenv": { "version": "^16 || ^17 || ^18", "library": "c12" },
+    "giget": { "version": "^3.1.0", "library": "c12" },
+    "jiti": { "version": "^2.7.0", "library": "c12" }
+  }
+}

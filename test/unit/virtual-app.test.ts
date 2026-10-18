@@ -119,9 +119,15 @@ describe("virtual/app template", () => {
   it("resets h3's cached dispatcher after plugins ran", () => {
     const reset = 'app.h3["~dispatch"] = app.h3["~composed"] = undefined;';
     const withPlugins = app(createNitroStub({ plugins: true })).template();
-    const plugins = withPlugins.indexOf("for (const plugin of plugins)");
+    const plugins = withPlugins.indexOf("for (let i = 0; i < plugins.length; i++)");
     expect(plugins).toBeGreaterThan(-1);
     expect(withPlugins.indexOf(reset)).toBeGreaterThan(plugins);
     expect(app(createNitroStub({})).template()).not.toContain(reset);
+  });
+
+  it("only imports the async plugins runtime when there are plugins", () => {
+    const withPlugins = app(createNitroStub({ plugins: true })).template();
+    expect(withPlugins).toContain(`from "#nitro/runtime/async-plugins"`);
+    expect(app(createNitroStub({})).template()).not.toContain("async-plugins");
   });
 });
