@@ -258,6 +258,11 @@ export function testNitro(
     expect(headers["x-test"]).toBe("test");
   });
 
+  it("async plugins are awaited before handling requests", async () => {
+    const { headers } = await callHandler({ url: "/" });
+    expect(headers["x-async-plugin"]).toBe("async plugin works!");
+  });
+
   it("server entry middleware and plugins are not passed to srvx", async () => {
     const { data, headers } = await callHandler({ url: "/srvx-middleware" });
     expect(data).not.toBe("server entry middleware works!");

@@ -122,14 +122,21 @@ export default function app(nitro: Nitro) {
 
       code.push(``, `export function initNitroPlugins(app) {`);
       if (hasPlugins) {
-        imports.push(`import { plugins } from "#nitro/virtual/plugins";`);
+        imports.push(
+          `import { plugins } from "#nitro/virtual/plugins";`,
+          `import { initAsyncPlugins } from "#nitro/runtime/async-plugins";`
+        );
         code.push(
-          `  for (const plugin of plugins) {`,
+          `  for (let i = 0; i < plugins.length; i++) {`,
+          `    let result;`,
           `    try {`,
-          `      plugin(app);`,
+          `      result = plugins[i](app);`,
           `    } catch (error) {`,
           `      app.captureError?.(error, { tags: ["plugin"] });`,
           `      throw error;`,
+          `    }`,
+          `    if (typeof result?.then === "function") {`,
+          `      return initAsyncPlugins(app, result, plugins.slice(i + 1));`,
           `    }`,
           `  }`,
           // h3 composes `~middleware` into a dispatcher on first dispatch and

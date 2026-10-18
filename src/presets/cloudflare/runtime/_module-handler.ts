@@ -3,6 +3,7 @@ import type * as CF from "@cloudflare/workers-types";
 import type { ServerRequest, ServerRuntimeContext } from "srvx";
 
 import { runCronTasks } from "#nitro/runtime/task";
+import { afterNitroReady } from "#nitro/runtime/async-plugins";
 import { useNitroApp, useNitroHooks } from "nitro/app";
 
 type MaybePromise<T> = T | Promise<T>;
@@ -41,11 +42,13 @@ export function createHandler<Env>(hooks: {
     scheduled(controller, env, context) {
       (globalThis as any).__env__ = env;
       context.waitUntil(
-        nitroHooks.callHook("cloudflare:scheduled", {
-          controller,
-          env,
-          context,
-        }) || Promise.resolve()
+        afterNitroReady(nitroApp, () =>
+          nitroHooks.callHook("cloudflare:scheduled", {
+            controller,
+            env,
+            context,
+          })
+        ) || Promise.resolve()
       );
       if (import.meta._tasks) {
         context.waitUntil(
@@ -65,44 +68,52 @@ export function createHandler<Env>(hooks: {
     email(message, env, context) {
       (globalThis as any).__env__ = env;
       context.waitUntil(
-        nitroHooks.callHook("cloudflare:email", {
-          message: message as any,
-          env,
-          context,
-        }) || Promise.resolve()
+        afterNitroReady(nitroApp, () =>
+          nitroHooks.callHook("cloudflare:email", {
+            message: message as any,
+            env,
+            context,
+          })
+        ) || Promise.resolve()
       );
     },
 
     queue(batch, env, context) {
       (globalThis as any).__env__ = env;
       context.waitUntil(
-        nitroHooks.callHook("cloudflare:queue", {
-          batch,
-          env,
-          context,
-        }) || Promise.resolve()
+        afterNitroReady(nitroApp, () =>
+          nitroHooks.callHook("cloudflare:queue", {
+            batch,
+            env,
+            context,
+          })
+        ) || Promise.resolve()
       );
     },
 
     tail(traces, env, context) {
       (globalThis as any).__env__ = env;
       context.waitUntil(
-        nitroHooks.callHook("cloudflare:tail", {
-          traces,
-          env,
-          context,
-        }) || Promise.resolve()
+        afterNitroReady(nitroApp, () =>
+          nitroHooks.callHook("cloudflare:tail", {
+            traces,
+            env,
+            context,
+          })
+        ) || Promise.resolve()
       );
     },
 
     trace(traces, env, context) {
       (globalThis as any).__env__ = env;
       context.waitUntil(
-        nitroHooks.callHook("cloudflare:trace", {
-          traces,
-          env,
-          context,
-        }) || Promise.resolve()
+        afterNitroReady(nitroApp, () =>
+          nitroHooks.callHook("cloudflare:trace", {
+            traces,
+            env,
+            context,
+          })
+        ) || Promise.resolve()
       );
     },
   } satisfies ExportedHandler<Env>;
