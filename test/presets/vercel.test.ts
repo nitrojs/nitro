@@ -272,14 +272,6 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^(?<__isr_route>\\/rules\\/_\\/noncached(?:\\/(?<_0>(?:[\\s\\S]*[^/])?\\/*?))??\\/?)$",
               },
               {
-                "dest": "/rules/swr-ttl/[...]-isr?__isr_route=$__isr_route",
-                "src": "^(?<__isr_route>\\/rules\\/swr-ttl(?:\\/(?<_0>(?:[\\s\\S]*[^/])?\\/*?))??\\/?)$",
-              },
-              {
-                "dest": "/rules/swr/[...]-isr?__isr_route=$__isr_route",
-                "src": "^(?<__isr_route>\\/rules\\/swr(?:\\/(?<_0>(?:[\\s\\S]*[^/])?\\/*?))??\\/?)$",
-              },
-              {
                 "dest": "/rules/isr-ttl/[...]-isr?__isr_route=$__isr_route",
                 "src": "^(?<__isr_route>\\/rules\\/isr-ttl(?:\\/(?<_0>(?:[\\s\\S]*[^/])?\\/*?))??\\/?)$",
               },
@@ -796,10 +788,6 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/rules/isr-ttl/[...]-isr.prerender-config.json",
             "functions/rules/isr/[...]-isr.func",
             "functions/rules/isr/[...]-isr.prerender-config.json",
-            "functions/rules/swr-ttl/[...]-isr.func (symlink)",
-            "functions/rules/swr-ttl/[...]-isr.prerender-config.json",
-            "functions/rules/swr/[...]-isr.func (symlink)",
-            "functions/rules/swr/[...]-isr.prerender-config.json",
             "functions/single-headers/[id].func (symlink)",
             "functions/static-flags.func (symlink)",
             "functions/stream.func (symlink)",
