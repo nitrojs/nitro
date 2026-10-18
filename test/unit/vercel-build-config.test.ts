@@ -159,6 +159,8 @@ describe("vercel config with `redirect: false`", () => {
         "/scoped/**": { redirect: false, headers: { "x-scoped": "1" } },
         "/scoped/old": { redirect: { to: "/new", status: 307 } },
         "/scoped/cdn/**": { proxy: { to: "https://example.com/**" } },
+        "/café/**": { redirect: { to: "/x", status: 307 } },
+        "/café/keep": { redirect: false },
       },
       publicAssets: [{ dir: "/public/scoped/assets", baseURL: "/scoped/assets", maxAge: 3600 }],
     } as Partial<NitroOptions>);
@@ -173,6 +175,12 @@ describe("vercel config with `redirect: false`", () => {
 
   it("keeps opted out paths with headers from the broader redirect", () => {
     expect(firstMatch(routes, "/foo/keep-hdr")?.headers?.Location).toBeUndefined();
+  });
+
+  // `routeToRegExp` percent-encodes literals, so patterns are compared as routes
+  it("keeps opted out paths with encoded characters from the broader redirect", () => {
+    expect(firstMatch(routes, "/caf%C3%A9/keep")?.headers?.Location).toBeUndefined();
+    expect(firstMatch(routes, "/caf%C3%A9/other")?.headers?.Location).toBe("/x");
   });
 
   // A `redirect: false` path must not stop routing before more specific rules (#4655)

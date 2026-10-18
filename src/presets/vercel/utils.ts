@@ -255,7 +255,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
   // `redirect: false` paths opt out of broader CDN redirects
   const optOutPaths = rules
     .filter(([_, routeRules]) => routeRules.redirect === false)
-    .map(([path]) => joinURL(nitro.options.baseURL, path));
+    .map(([path]) => path);
 
   const publicAssetRoutes = getPublicAssetRoutes(nitro.options.publicAssets, {
     baseURL: nitro.options.baseURL,
@@ -301,7 +301,10 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
         if (cdnRedirectPaths.has(path)) {
           const redirect = routeRules.redirect as RedirectRuleOptions;
           let route = {
-            src: excludePaths(src, optOutPaths),
+            src: excludePaths(
+              src,
+              optOutPaths.filter((p) => compareRoutes(path, p) === "superset").map(routeSrc)
+            ),
             status: redirect.status,
             headers: {
               Location: redirect.to.replaceAll("**", catchAllRef(src)),
@@ -847,14 +850,10 @@ function matchPattern<T>(router: RouterContext<{ route: string; data: T }>, patt
  * instead of a route that stops routing before the asset and skew protection routes.
  * Their named groups are made non-capturing, so the `$n` references stay valid.
  */
-function excludePaths(src: RegExp, paths: string[]): string {
-  const excluded = paths
-    .filter((path) => src.test(path))
-    .map((path) =>
-      routeToRegExp(path)
-        .source.slice(1, -1)
-        .replace(/\(\?<(?![=!])[^>]*>/g, "(?:")
-    );
+function excludePaths(src: RegExp, paths: RegExp[]): string {
+  const excluded = paths.map((path) =>
+    path.source.slice(1, -1).replace(/\(\?<(?![=!])[^>]*>/g, "(?:")
+  );
   return excluded.length > 0 ? `^(?!(?:${excluded.join("|")})$)${src.source.slice(1)}` : src.source;
 }
 
