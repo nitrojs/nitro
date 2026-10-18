@@ -19,7 +19,7 @@ declare module "vite" {
 
 export interface NitroPluginConfig extends NitroConfig {
   /**
-   * @internal Use preinitialized Nitro instance for the plugin.
+   * Existing Nitro instance to use instead of creating one (for frameworks that create Nitro themselves).
    */
   _nitro?: Nitro;
 
