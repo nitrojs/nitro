@@ -8,7 +8,7 @@ import type { Nitro, NitroOptions } from "nitro/types";
 import { writeHeaders, writeRedirects } from "../../src/presets/netlify/utils.ts";
 import { writeCFHeaders, writeCFPagesRedirects } from "../../src/presets/cloudflare/utils.ts";
 import { writeEdgeOneConfig } from "../../src/presets/edgeone/utils.ts";
-import { sortRoutes } from "../../src/presets/_utils/routes.ts";
+import { isSplatExpressible, sortRoutes } from "../../src/presets/_utils/routes.ts";
 
 const dirs: string[] = [];
 
@@ -201,6 +201,44 @@ describe("netlify _redirects and _headers", () => {
       expect.stringMatching(/`\/s\/\*\*`.*`GET \/s\/a`/)
     );
   });
+  it("skips route rules the splat syntax cannot express", async () => {
+    const { dir, nitro } = await createNitro({
+      routeRules: {
+        "/ok/:id": { redirect: { to: "/id", status: 302 } },
+        "/num/:id(\\d+)": { redirect: { to: "/num", status: 302 } },
+        "/opt/:id?": { redirect: { to: "/opt", status: 302 } },
+        "/ok/**": { headers: { "x-ok": "1" } },
+        "/files/*.png": { headers: { "x-png": "1" } },
+        "/a/**/b": { headers: { "x-ab": "1" } },
+      },
+    });
+    await writeRedirects(nitro);
+    await writeHeaders(nitro);
+    expect(await readFile(join(dir, "public/_redirects"), "utf8")).toBe("/ok/:id\t/id\t302\n");
+    expect(await readFile(join(dir, "public/_headers"), "utf8")).toBe(
+      "/files/*.png\n  x-png: 1\n/ok/*\n  x-ok: 1\n"
+    );
+    expect(nitro.logger.warn).toHaveBeenCalledTimes(3);
+    expect(nitro.logger.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/`\/a\/\*\*\/b`.*`_headers`/)
+    );
+  });
+
+  it("skips redirects that would shadow an unexpressible redirect", async () => {
+    const { dir, nitro } = await createNitro({
+      routeRules: {
+        "/num/:id(\\d+)": { redirect: { to: "/n", status: 302 } },
+        "/num/**": { redirect: { to: "/all", status: 302 } },
+        "/keep/**": { redirect: { to: "/k", status: 302 } },
+      },
+    });
+    await writeRedirects(nitro);
+    expect(await readFile(join(dir, "public/_redirects"), "utf8")).toBe("/keep/*\t/k\t302\n");
+    expect(nitro.logger.warn).toHaveBeenCalledTimes(2);
+    expect(nitro.logger.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/`\/num\/\*\*`.*`\/num\/:id\(\\d\+\)`/)
+    );
+  });
 });
 
 describe("cloudflare pages _redirects and _headers", () => {
@@ -278,6 +316,50 @@ describe("cloudflare pages _redirects and _headers", () => {
     expect(nitro.logger.warn).toHaveBeenCalledWith(
       expect.stringMatching(/`\/s\/\*\*`.*`GET \/s\/a`/)
     );
+  });
+  it("skips route rules the splat syntax cannot express", async () => {
+    const { dir, nitro } = await createNitro({
+      routeRules: {
+        "/ok/:id": { redirect: { to: "/id", status: 302 } },
+        "/num/:id(\\d+)": { redirect: { to: "/num", status: 302 } },
+        "/files/*.png": { redirect: { to: "/png", status: 302 } },
+        "/ok/**": { headers: { "x-ok": "1" } },
+        "/a/:id/*.png": { headers: { "x-png": "1" } },
+        "/a/**/b": { headers: { "x-ab": "1" } },
+      },
+    });
+    await writeCFPagesRedirects(nitro);
+    await writeCFHeaders(nitro, "output");
+    expect(await readFile(join(dir, "_redirects"), "utf8")).toBe("/ok/:id\t/id\t302\n");
+    expect(await readFile(join(dir, "_headers"), "utf8")).toBe(
+      "/a/:id/*.png\n  x-png: 1\n/ok/*\n  x-ok: 1"
+    );
+    expect(nitro.logger.warn).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe("isSplatExpressible", () => {
+  it.each([
+    ["/a/b", true, true],
+    ["/a/:id", true, true],
+    ["/a/:id_2", true, true],
+    ["/a/**", true, true],
+    ["/a/**:path", true, true],
+    ["/a/*", true, true],
+    ["/files/*.png", false, true],
+    ["/a/*/b", false, true],
+    ["/a/:id/*.png", false, true],
+    ["/a/:_id", false, false],
+    ["/a/:2nd", false, false],
+    ["/a/:id(\\d+)", false, false],
+    ["/a/:id?", false, false],
+    ["/a/:x+", false, false],
+    ["/a/:x*", false, false],
+    ["/a/{b}?", false, false],
+    ["/a/**/b", false, false],
+  ])("%s -> _redirects: %s, _headers: %s", (route, redirects, headers) => {
+    expect(isSplatExpressible(route, { file: "_redirects" })).toBe(redirects);
+    expect(isSplatExpressible(route, { file: "_headers" })).toBe(headers);
   });
 });
 

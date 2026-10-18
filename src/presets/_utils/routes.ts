@@ -15,6 +15,12 @@ const HTTP_METHODS = new Set([
   "TRACE",
   "QUERY",
 ]);
+// placeholder names must start with a letter in `_redirects` and `_headers`
+const NAMED_PARAM_RE = /^:[A-Za-z]\w*$/;
+const SPECIAL_CHARS_RE = /[*:?+(){}]/;
+const SPLAT_SEGMENT_RE = /^[^*:?+(){}]*\*[^*:?+(){}]*$/;
+
+type PlatformRouteFile = "_redirects" | "_headers";
 
 /**
  * Split a route rule key into its path and, for a method-scoped key such as
@@ -31,21 +37,24 @@ export function parseRouteKey(key: string): { path: string; methods?: string[] }
 }
 
 /**
- * Warn and return `true` when a method-scoped route rule has to be left out of
- * a `_redirects` or `_headers` file, which cannot match by method.
+ * Warn and return `true` when a route rule has to be left out of a
+ * `_redirects` or `_headers` file: a method-scoped rule, as the file cannot
+ * match by method, or a pattern that its path syntax cannot express (see
+ * {@link isSplatExpressible}).
  *
  * With `routes`, the other rules of a file where the first match wins, a rule
  * that would shadow a skipped one (see {@link findShadowedRoute}) is left out
  * too, so that the runtime handles all of their requests.
  */
-export function skipMethodScopedRoute(
+export function skipUnsupportedRoute(
   nitro: Nitro,
-  opts: { route: string; file: string; routes?: string[] }
+  opts: { route: string; file: PlatformRouteFile; routes?: string[] }
 ): boolean {
   const { route, file } = opts;
-  if (parseRouteKey(route).methods) {
+  const reason = unsupportedReason(route, file);
+  if (reason) {
     nitro.logger.warn(
-      `Skipping method-scoped route rule \`${route}\` in \`${file}\`, which cannot match by HTTP method. The Nitro runtime still applies it` +
+      `Skipping route rule \`${route}\` in \`${file}\`, ${reason}. The Nitro runtime still applies it` +
         (file === "_headers" ? ", but not to static assets." : ".")
     );
     return true;
@@ -54,15 +63,34 @@ export function skipMethodScopedRoute(
     opts.routes &&
     findShadowedRoute(
       route,
-      opts.routes.filter((key) => parseRouteKey(key).methods)
+      opts.routes.filter((key) => unsupportedReason(key, file))
     );
   if (!shadowed) {
     return false;
   }
   nitro.logger.warn(
-    `Skipping route rule \`${route}\` in \`${file}\`, as it would take precedence over the skipped method-scoped rule \`${shadowed}\`. The Nitro runtime still applies both.`
+    `Skipping route rule \`${route}\` in \`${file}\`, as it would take precedence over the skipped route rule \`${shadowed}\`. The Nitro runtime still applies both.`
   );
   return true;
+}
+
+/**
+ * Whether a route pattern can be written in the path syntax of a `_redirects`
+ * or `_headers` file, which only has static segments, `:name` params and one
+ * `*` splat. The splat has to be the last segment in `_redirects`, while in
+ * `_headers` it can be anywhere, as in `/files/*.png`, matching across `/`
+ * like a rou3 `*`. Patterns such as `:id(\d+)`, `:id?`, `{b}?` or a `**`
+ * with segments after it cannot be expressed.
+ */
+export function isSplatExpressible(route: string, opts: { file: PlatformRouteFile }): boolean {
+  const segments = routeToSplat(route).split("/");
+  return segments.every(
+    (segment, index) =>
+      NAMED_PARAM_RE.test(segment) ||
+      !SPECIAL_CHARS_RE.test(segment) ||
+      (segment === "*" && index === segments.length - 1) ||
+      (opts.file === "_headers" && !route.includes("**") && SPLAT_SEGMENT_RE.test(segment))
+  );
 }
 
 /**
@@ -112,6 +140,16 @@ export function routeToSplat(route: string): string {
 export function catchAllRef(src: RegExp): string {
   const groups = new RegExp(`${src.source}|`).exec("")!.length - 1;
   return `$${groups || 1}`;
+}
+
+function unsupportedReason(route: string, file: PlatformRouteFile): string | undefined {
+  const { path, methods } = parseRouteKey(route);
+  if (methods) {
+    return "as it cannot match by HTTP method";
+  }
+  if (!isSplatExpressible(path, { file })) {
+    return "as its path syntax cannot express the pattern";
+  }
 }
 
 function methodRank(route: string): number {
