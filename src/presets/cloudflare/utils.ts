@@ -266,8 +266,17 @@ export async function writeWranglerConfig(nitro: Nitro, cfTarget: "pages" | "mod
   // Nitro context config (from frameworks and modules)
   const ctxConfig = nitro.options.cloudflare?.wrangler || {};
 
+  // `main` can point to the server entry, so `wrangler types` can type Durable Object bindings
+  const mainIsServerEntry =
+    !!userConfig.main &&
+    !!nitro.options.serverEntry &&
+    resolve(dirname(userConfigPath!), userConfig.main) === nitro.options.serverEntry.handler;
+
   // Validate and warn about overrides
   for (const key in overrides) {
+    if (key === "main" && mainIsServerEntry) {
+      continue;
+    }
     let conflict: "ctx" | "user" | undefined;
     if (key === "assets") {
       conflict = findAssetsConflict(overrides.assets!, ctxConfig.assets, userConfig.assets, {

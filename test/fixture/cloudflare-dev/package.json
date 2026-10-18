@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#runtime-condition": {
+      "workerd": "./runtime-condition/workerd.ts",
+      "default": "./runtime-condition/default.ts"
+    }
+  }
+}

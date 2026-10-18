@@ -29,7 +29,6 @@ import type {
   VercelBuildConfigV3,
   VercelServerlessFunctionConfig,
 } from "./types.ts";
-import { isTest } from "std-env";
 import { ISR_URL_PARAM } from "./runtime/isr.ts";
 
 // https://vercel.com/docs/build-output-api/configuration
@@ -252,6 +251,11 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
       .map(([path]) => path)
   );
 
+  // `redirect: false` paths opt out of broader CDN redirects
+  const optOutPaths = rules
+    .filter(([_, routeRules]) => routeRules.redirect === false)
+    .map(([path]) => path);
+
   const publicAssetRoutes = getPublicAssetRoutes(nitro.options.publicAssets, {
     baseURL: nitro.options.baseURL,
     routeRules: nitro.options.routeRules,
@@ -266,7 +270,6 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     overrides: getPrerenderOverrides(nitro._prerenderedRoutes),
     routes: [
       // Header-only rules (least specific first, so more specific headers override on `continue`)
-      // `redirect: false` stops routing so that less specific redirects below cannot match
       ...rules
         .filter(
           ([path, routeRules]) =>
@@ -276,7 +279,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
         .map(([path, routeRules]) => ({
           src: routeSrc(path).source,
           headers: routeRules.headers,
-          ...(routeRules.redirect === false ? {} : { continue: true }),
+          continue: true,
         })),
       // Redirect and proxy rules (most specific first)
       // Rules left to the server function stop routing so that less specific
@@ -297,7 +300,10 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
         if (cdnRedirectPaths.has(path)) {
           const redirect = routeRules.redirect as RedirectRuleOptions;
           let route = {
-            src: src.source,
+            src: excludePaths(
+              src,
+              optOutPaths.filter((p) => compareRoutes(path, p) === "superset").map(routeSrc)
+            ),
             status: redirect.status,
             headers: {
               Location: redirect.to.replaceAll("**", catchAllRef(src)),
@@ -308,14 +314,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
           }
           return [route];
         }
-        // `redirect: false` opts the path out of broader CDN redirects. With `headers` it is
-        // already handled by the header-only route above. Only emitted when a CDN redirect
-        // can match, since stopping here also skips the skew protection and asset routes below.
-        const optsOut =
-          routeRules.redirect === false &&
-          !routeRules.headers &&
-          [...cdnRedirectPaths].some((p) => routeSrc(p).test(joinURL(nitro.options.baseURL, path)));
-        return routeRules.redirect || routeRules.proxy || optsOut ? [{ src: src.source }] : [];
+        return routeRules.redirect || routeRules.proxy ? [{ src: src.source }] : [];
       }),
       // Skew protection
       ...(nitro.options.vercel?.skewProtection && nitro.options.manifest?.deploymentId
@@ -514,34 +513,6 @@ export function getPrerenderOverrides(prerenderedRoutes: PrerenderRoute[] = []) 
   return overrides;
 }
 
-export function deprecateSWR(nitro: Nitro) {
-  if (nitro.options.future.nativeSWR) {
-    return;
-  }
-  let hasLegacyOptions = false;
-  for (const [_key, value] of Object.entries(nitro.options.routeRules)) {
-    if (_hasProp(value, "isr")) {
-      continue;
-    }
-    if (value.cache === false) {
-      value.isr = false;
-    }
-    if (_hasProp(value, "static")) {
-      value.isr = !(value as { static: boolean }).static;
-      hasLegacyOptions = true;
-    }
-    if (value.cache && _hasProp(value.cache, "swr")) {
-      value.isr = value.cache.swr;
-      hasLegacyOptions = true;
-    }
-  }
-  if (hasLegacyOptions && !isTest) {
-    nitro.logger.warn(
-      "Nitro now uses `isr` option to configure ISR behavior on Vercel. Backwards-compatible support for `static` and `swr` options within the Vercel Build Options API will be removed in the future versions. Set `future.nativeSWR: true` nitro config disable this warning."
-    );
-  }
-}
-
 // --- vercel.json ---
 
 // https://vercel.com/docs/project-configuration
@@ -614,10 +585,6 @@ export async function readVercelConfig(rootDir: string): Promise<VercelConfig> {
   return vercelConfig as VercelConfig;
 }
 
-function _hasProp(obj: any, prop: string) {
-  return obj && typeof obj === "object" && prop in obj;
-}
-
 /**
  * Check if a proxy rule can be offloaded to a Vercel CDN rewrite.
  * A proxy is eligible when it targets an external URL and uses no
@@ -651,12 +618,6 @@ type ObservabilityRoute = {
 };
 
 export function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
-  const compatDate =
-    nitro.options.compatibilityDate.vercel || nitro.options.compatibilityDate.default;
-  if (compatDate < "2025-07-15") {
-    return [];
-  }
-
   // Vercel resolves functions and static files from a single path to output
   // map that functions are added to last, so a function at the path of a
   // prerendered file hides that file and serves the route with SSR on every
@@ -843,6 +804,18 @@ function matchPattern<T>(router: RouterContext<{ route: string; data: T }>, patt
       return comparison === "equal" || comparison === "superset";
     })
     .map(({ data }) => data.data);
+}
+
+/**
+ * Keep the more specific `paths` out of a route regex with a negative lookahead,
+ * instead of a route that stops routing before the asset and skew protection routes.
+ * Their named groups are made non-capturing, so the `$n` references stay valid.
+ */
+function excludePaths(src: RegExp, paths: RegExp[]): string {
+  const excluded = paths.map((path) =>
+    path.source.slice(1, -1).replace(/\(\?<(?![=!])[^>]*>/g, "(?:")
+  );
+  return excluded.length > 0 ? `^(?!(?:${excluded.join("|")})$)${src.source.slice(1)}` : src.source;
 }
 
 /**
