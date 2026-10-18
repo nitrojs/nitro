@@ -63,6 +63,7 @@ export async function writeConfig(nitro: Nitro, configPath: string) {
     netlify.config.images ||= netlify.images;
   }
   if (Object.keys(netlify?.config || {}).length === 0) {
+    await fsp.rm(configPath, { force: true });
     return;
   }
   await fsp.mkdir(dirname(configPath), { recursive: true });

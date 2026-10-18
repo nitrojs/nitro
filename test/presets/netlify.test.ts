@@ -1,9 +1,14 @@
-import { promises as fsp } from "node:fs";
+import { existsSync, promises as fsp } from "node:fs";
+import { tmpdir } from "node:os";
 import type { Context as FunctionContext } from "@netlify/functions";
-import { resolve } from "pathe";
+import { join, resolve } from "pathe";
 import { describe, expect, it } from "vitest";
 import type { Nitro } from "nitro/types";
-import { generateNetlifyEdgeFunction, getStaticPaths } from "../../src/presets/netlify/utils.ts";
+import {
+  generateNetlifyEdgeFunction,
+  getStaticPaths,
+  writeConfig,
+} from "../../src/presets/netlify/utils.ts";
 import { getPresetTmpDir, setupTest, testNitro } from "../tests.ts";
 
 describe("nitro:preset:netlify", async () => {
@@ -224,6 +229,17 @@ describe("nitro:preset:netlify", async () => {
           excludedPath: ["/.netlify/*","/build/*"],
         };"
       `);
+    });
+  });
+
+  describe("writeConfig", () => {
+    it("removes stale config.json when config is empty", async () => {
+      const dir = await fsp.mkdtemp(join(tmpdir(), "nitro-netlify-config-"));
+      const configPath = join(dir, "config.json");
+      await fsp.writeFile(configPath, JSON.stringify({ redirects: [] }));
+      await writeConfig({ options: { netlify: {} } } as unknown as Nitro, configPath);
+      expect(existsSync(configPath)).toBe(false);
+      await fsp.rm(dir, { recursive: true, force: true });
     });
   });
 });
