@@ -1,6 +1,15 @@
 import type { Nitro } from "nitro/types";
+import { existsSync } from "node:fs";
+import { compressPublicAssets } from "../utils/compress.ts";
 
 export async function build(nitro: Nitro) {
+  if (!nitro.options.dev && nitro.options.compressPublicAssets) {
+    nitro.hooks.hookOnce("close", async () => {
+      if (existsSync(nitro.options.output.publicDir)) {
+        await compressPublicAssets(nitro);
+      }
+    });
+  }
   switch (nitro.options.builder) {
     case "rollup": {
       const { rollupBuild } = await import("./rollup/build.ts");

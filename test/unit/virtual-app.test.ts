@@ -9,6 +9,7 @@ function createNitroStub(opts: {
   routedMiddleware?: boolean;
   globalMiddleware?: boolean;
   plugins?: boolean;
+  methodRoutes?: boolean;
 }): Nitro {
   return {
     options: {
@@ -16,7 +17,17 @@ function createNitroStub(opts: {
       experimental: {},
     },
     routing: {
-      routes: { hasRoutes: () => opts.routes ?? true },
+      routes: {
+        hasRoutes: () => opts.routes ?? true,
+        routes: opts.methodRoutes
+          ? [
+              { route: "/foo", method: "post" },
+              { route: "/foo", method: "get" },
+              { route: "/bar", method: "post" },
+              { route: "/**", method: "" },
+            ]
+          : [{ route: "/**", method: "" }],
+      },
       routeRules: { hasRoutes: () => !!opts.routeRules },
       routedMiddleware: { hasRoutes: () => !!opts.routedMiddleware },
       globalMiddleware: opts.globalMiddleware ? [{}] : [],
@@ -90,6 +101,19 @@ describe("virtual/app template", () => {
     expect(template).not.toContain("#nitro/runtime/app");
     expect(template).not.toContain('~findRoute"] = (event) => {\n    event.context.routeRules');
     expect(template).toContain("push(...globalMiddleware)");
+  });
+
+  it("falls back to `405` matching only when there are method-specific routes", () => {
+    const withMethods = app(createNitroStub({ methodRoutes: true })).template();
+    expect(withMethods).toContain(
+      "return findRoute(event.req.method, event.url.pathname) ?? findMethodNotAllowed(event.req.method, event.url.pathname);"
+    );
+    expect(withMethods).toContain(
+      'const findMethodNotAllowed = createMethodNotAllowedMatcher(findRoute, ["GET","POST"]);'
+    );
+    const withoutMethods = app(createNitroStub({})).template();
+    expect(withoutMethods).not.toContain("findMethodNotAllowed");
+    expect(withoutMethods).not.toContain("createMethodNotAllowedMatcher");
   });
 
   it("resets h3's cached dispatcher after plugins ran", () => {

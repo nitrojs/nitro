@@ -99,7 +99,7 @@ All prefixed `#nitro/virtual/<name>`:
 
 ## Dev Server (`src/dev/`)
 
-- `dev/server.ts` — `NitroDevServer`: Worker management via `env-runner`, restart on failure (max 3 retries), WebSocket support, VFS debug endpoint (`/_vfs/**`)
+- `dev/server.ts` — `createDevServer()` (public `NitroDevServer` interface, internal `DevServer` class): Worker management via `env-runner`, restart on failure (max 3 retries), WebSocket support, VFS debug endpoint (`/_vfs/**`)
 - `dev/app.ts` — `NitroDevApp`: H3 app with error handling, static serving with compression, dev proxy
 
 ## Prerender (`src/prerender/`)
@@ -114,7 +114,7 @@ All prefixed `#nitro/virtual/<name>`:
 Route file conventions:
 - `routes/index.ts` → `GET /`
 - `routes/users/[id].ts` → `GET /users/:id`
-- `routes/users/[...slug].ts` → `GET /users/**:slug`
+- `routes/users/[...slug].ts` → `GET /users/:slug(.*)` (also matches `/users`)
 - `api/users.post.ts` → `POST /api/users`
 - `.dev`/`.prod`/`.prerender` suffixes for environment filtering
 

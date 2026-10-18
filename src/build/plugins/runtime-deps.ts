@@ -1,6 +1,6 @@
 import type { Nitro } from "nitro/types";
 import type { Plugin } from "rollup";
-import { pkgDir } from "nitro/meta";
+import { pkgDir } from "#nitro/meta";
 import { DB0_VERSION } from "../../utils/database.ts";
 import { ensureDep, missingDepError, resolveDep } from "../../utils/dep.ts";
 import { pathRegExp } from "../../utils/regex.ts";

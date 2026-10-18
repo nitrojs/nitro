@@ -1,5 +1,5 @@
 import type { Nitro } from "nitro/types";
-import { presetsDir } from "nitro/meta";
+import { presetsDir } from "#nitro/meta";
 import { resolveModulePath } from "exsolve";
 
 /**

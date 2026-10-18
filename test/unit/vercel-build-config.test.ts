@@ -12,6 +12,7 @@ type Route = {
   headers?: Record<string, string>;
   status?: number;
   continue?: boolean;
+  handle?: string;
 };
 
 const dirs: string[] = [];
@@ -153,17 +154,51 @@ describe("vercel config with `redirect: false`", () => {
         "/foo/**": { redirect: { to: "/x", status: 307 } },
         "/foo/keep": { redirect: false },
         "/foo/keep-all/**": { redirect: false },
+        "/foo/keep-hdr": { redirect: false, headers: { "x-keep": "1" } },
         "/account": { redirect: false },
+        "/scoped/**": { redirect: false, headers: { "x-scoped": "1" } },
+        "/scoped/old": { redirect: { to: "/new", status: 307 } },
+        "/scoped/cdn/**": { proxy: { to: "https://example.com/**" } },
+        "/café/**": { redirect: { to: "/x", status: 307 } },
+        "/café/keep": { redirect: false },
       },
+      publicAssets: [{ dir: "/public/scoped/assets", baseURL: "/scoped/assets", maxAge: 3600 }],
     } as Partial<NitroOptions>);
   });
 
   it("keeps the opted out path from the broader redirect", () => {
-    // `/foo/keep` has to stop routing (be handled by the server) before the
-    // `/foo/**` redirect can match it (#4655)
+    // `/foo/keep` has to be handled by the server, not the `/foo/**` redirect (#4655)
     const keep = firstMatch(routes, "/foo/keep");
     expect(keep).toBeDefined();
     expect(keep!.headers?.Location).toBeUndefined();
+  });
+
+  it("keeps opted out paths with headers from the broader redirect", () => {
+    expect(firstMatch(routes, "/foo/keep-hdr")?.headers?.Location).toBeUndefined();
+  });
+
+  // `routeToRegExp` percent-encodes literals, so patterns are compared as routes
+  it("keeps opted out paths with encoded characters from the broader redirect", () => {
+    expect(firstMatch(routes, "/caf%C3%A9/keep")?.headers?.Location).toBeUndefined();
+    expect(firstMatch(routes, "/caf%C3%A9/other")?.headers?.Location).toBe("/x");
+  });
+
+  // A `redirect: false` path must not stop routing before more specific rules (#4655)
+  it("keeps more specific rules under an opted out path at the CDN", () => {
+    expect(firstMatch(routes, "/scoped/old")).toMatchObject({
+      status: 307,
+      headers: { Location: "/new" },
+    });
+    expect(firstMatch(routes, "/scoped/cdn/a")?.dest).toBe("https://example.com/$1");
+    const assetStop = routes.findIndex(
+      (r) =>
+        r.handle === "filesystem" ||
+        (r.src && !r.continue && new RegExp(r.src).test("/scoped/assets/app.js"))
+    );
+    expect(routes[assetStop]).toEqual({ handle: "filesystem" });
+    expect(routes.slice(0, assetStop)).toContainEqual(
+      expect.objectContaining({ headers: { "cache-control": "public, max-age=3600, immutable" } })
+    );
   });
 
   it("keeps opted out wildcard paths from the broader redirect", () => {

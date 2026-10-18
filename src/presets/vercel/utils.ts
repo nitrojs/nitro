@@ -12,6 +12,7 @@ import type {
   RedirectRuleOptions,
 } from "nitro/types";
 import { basename, dirname, relative, resolve } from "pathe";
+import { readPackageJSON } from "pkg-types";
 import {
   addRoute,
   compareRoutes,
@@ -28,13 +29,12 @@ import type {
   VercelBuildConfigV3,
   VercelServerlessFunctionConfig,
 } from "./types.ts";
-import { isTest } from "std-env";
 import { ISR_URL_PARAM } from "./runtime/isr.ts";
 
 // https://vercel.com/docs/build-output-api/configuration
 
 // https://vercel.com/docs/functions/runtimes/node-js/node-js-versions
-const SUPPORTED_NODE_VERSIONS = [20, 22, 24];
+const SUPPORTED_NODE_VERSIONS = [22, 24];
 
 // h3 ProxyOptions that Vercel CDN rewrites cannot handle at the edge.
 // https://vercel.com/docs/rewrites
@@ -251,6 +251,11 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
       .map(([path]) => path)
   );
 
+  // `redirect: false` paths opt out of broader CDN redirects
+  const optOutPaths = rules
+    .filter(([_, routeRules]) => routeRules.redirect === false)
+    .map(([path]) => path);
+
   const publicAssetRoutes = getPublicAssetRoutes(nitro.options.publicAssets, {
     baseURL: nitro.options.baseURL,
     routeRules: nitro.options.routeRules,
@@ -265,7 +270,6 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
     overrides: getPrerenderOverrides(nitro._prerenderedRoutes),
     routes: [
       // Header-only rules (least specific first, so more specific headers override on `continue`)
-      // `redirect: false` stops routing so that less specific redirects below cannot match
       ...rules
         .filter(
           ([path, routeRules]) =>
@@ -275,7 +279,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
         .map(([path, routeRules]) => ({
           src: routeSrc(path).source,
           headers: routeRules.headers,
-          ...(routeRules.redirect === false ? {} : { continue: true }),
+          continue: true,
         })),
       // Redirect and proxy rules (most specific first)
       // Rules left to the server function stop routing so that less specific
@@ -296,7 +300,10 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
         if (cdnRedirectPaths.has(path)) {
           const redirect = routeRules.redirect as RedirectRuleOptions;
           let route = {
-            src: src.source,
+            src: excludePaths(
+              src,
+              optOutPaths.filter((p) => compareRoutes(path, p) === "superset").map(routeSrc)
+            ),
             status: redirect.status,
             headers: {
               Location: redirect.to.replaceAll("**", catchAllRef(src)),
@@ -307,14 +314,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
           }
           return [route];
         }
-        // `redirect: false` opts the path out of broader CDN redirects. With `headers` it is
-        // already handled by the header-only route above. Only emitted when a CDN redirect
-        // can match, since stopping here also skips the skew protection and asset routes below.
-        const optsOut =
-          routeRules.redirect === false &&
-          !routeRules.headers &&
-          [...cdnRedirectPaths].some((p) => routeSrc(p).test(joinURL(nitro.options.baseURL, path)));
-        return routeRules.redirect || routeRules.proxy || optsOut ? [{ src: src.source }] : [];
+        return routeRules.redirect || routeRules.proxy ? [{ src: src.source }] : [];
       }),
       // Skew protection
       ...(nitro.options.vercel?.skewProtection && nitro.options.manifest?.deploymentId
@@ -513,34 +513,6 @@ export function getPrerenderOverrides(prerenderedRoutes: PrerenderRoute[] = []) 
   return overrides;
 }
 
-export function deprecateSWR(nitro: Nitro) {
-  if (nitro.options.future.nativeSWR) {
-    return;
-  }
-  let hasLegacyOptions = false;
-  for (const [_key, value] of Object.entries(nitro.options.routeRules)) {
-    if (_hasProp(value, "isr")) {
-      continue;
-    }
-    if (value.cache === false) {
-      value.isr = false;
-    }
-    if (_hasProp(value, "static")) {
-      value.isr = !(value as { static: boolean }).static;
-      hasLegacyOptions = true;
-    }
-    if (value.cache && _hasProp(value.cache, "swr")) {
-      value.isr = value.cache.swr;
-      hasLegacyOptions = true;
-    }
-  }
-  if (hasLegacyOptions && !isTest) {
-    nitro.logger.warn(
-      "Nitro now uses `isr` option to configure ISR behavior on Vercel. Backwards-compatible support for `static` and `swr` options within the Vercel Build Options API will be removed in the future versions. Set `future.nativeSWR: true` nitro config disable this warning."
-    );
-  }
-}
-
 // --- vercel.json ---
 
 // https://vercel.com/docs/project-configuration
@@ -558,18 +530,41 @@ export async function resolveVercelRuntime(nitro: Nitro) {
     return runtime;
   }
 
-  // 2. Read runtime from vercel.json if specified
+  const engines = (await readPackageJSON(nitro.options.rootDir).catch(() => undefined))?.engines;
   const vercelConfig = await readVercelConfig(nitro.options.rootDir);
 
-  // 3. Use bun runtime if bunVersion is specified or bun used to build
-  if (vercelConfig.bunVersion || "Bun" in globalThis) {
-    runtime = "bun1.x";
+  // 2. engines in package.json, 3. bunVersion in vercel.json, 4. runtime used to build.
+  // Same precedence as Vercel: with both engines set, bun also needs bunVersion.
+  const useBun = engines?.node
+    ? !!(engines.bun && vercelConfig.bunVersion)
+    : !!(engines?.bun || vercelConfig.bunVersion || "Bun" in globalThis);
+
+  if (useBun) {
+    runtime = await getEnginesBunRuntime(engines?.bun || vercelConfig.bunVersion || "1.x", {
+      source: engines?.bun ? "`engines.bun` in `package.json`" : "`bunVersion` in `vercel.json`",
+    });
   } else {
-    // 3. Auto-detect runtime based on system Node.js version
-    const systemNodeVersion = getSystemNodeVersion();
-    const usedNodeVersion =
-      SUPPORTED_NODE_VERSIONS.find((version) => version >= systemNodeVersion) ??
-      SUPPORTED_NODE_VERSIONS.at(-1);
+    if (engines?.node && (engines.bun || vercelConfig.bunVersion)) {
+      nitro.logger.warn(
+        "Using Node.js because `engines.node` is set in `package.json`. To use Bun, set both `engines.bun` in `package.json` and `bunVersion` in `vercel.json`."
+      );
+    }
+
+    // Newest supported Node.js version allowed by engines.node
+    let usedNodeVersion = engines?.node ? await getEnginesNodeVersion(engines.node) : undefined;
+    if (engines?.node && !usedNodeVersion) {
+      nitro.logger.warn(
+        `\`engines.node\` (\`${engines.node}\`) in \`package.json\` does not match a supported Vercel Node.js version (${SUPPORTED_NODE_VERSIONS.join(", ")}). Using the Node.js version of the build instead.`
+      );
+    }
+
+    // Auto-detect runtime based on system Node.js version
+    if (!usedNodeVersion) {
+      const systemNodeVersion = getSystemNodeVersion();
+      usedNodeVersion =
+        SUPPORTED_NODE_VERSIONS.find((version) => version >= systemNodeVersion) ??
+        SUPPORTED_NODE_VERSIONS.at(-1);
+    }
     runtime = `nodejs${usedNodeVersion}.x`;
   }
 
@@ -588,10 +583,6 @@ export async function readVercelConfig(rootDir: string): Promise<VercelConfig> {
     .then((config) => JSON.parse(config.toString()))
     .catch(() => ({}));
   return vercelConfig as VercelConfig;
-}
-
-function _hasProp(obj: any, prop: string) {
-  return obj && typeof obj === "object" && prop in obj;
 }
 
 /**
@@ -627,12 +618,6 @@ type ObservabilityRoute = {
 };
 
 export function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
-  const compatDate =
-    nitro.options.compatibilityDate.vercel || nitro.options.compatibilityDate.default;
-  if (compatDate < "2025-07-15") {
-    return [];
-  }
-
   // Vercel resolves functions and static files from a single path to output
   // map that functions are added to last, so a function at the path of a
   // prerendered file hides that file and serves the route with SSR on every
@@ -675,6 +660,10 @@ function normalizeRouteDest(route: string) {
       .map((segment) => {
         if (segment.startsWith("**")) {
           return `[...${segment.replace(/[*:]/g, "")}]`;
+        }
+        const catchAll = segment.match(/^:(\w+)\(\.\*\)$/);
+        if (catchAll) {
+          return `[...${catchAll[1]}]`;
         }
         if (segment === "*") {
           return "[-]";
@@ -770,8 +759,15 @@ async function writePrerenderConfig(
     ...isrConfig,
   };
 
+  // Vercel only forwards the query string to the function with `passQuery`.
+  // Without it, every `allowQuery` cache entry is rendered without its query
+  // params (#4408). Decide on the user's list, before `__isr_route` is added.
+  if (prerenderConfig.allowQuery?.length && prerenderConfig.passQuery === undefined) {
+    prerenderConfig.passQuery = true;
+  }
+
   if (prerenderConfig.allowQuery && !prerenderConfig.allowQuery.includes(ISR_URL_PARAM)) {
-    prerenderConfig.allowQuery.push(ISR_URL_PARAM);
+    prerenderConfig.allowQuery = [...prerenderConfig.allowQuery, ISR_URL_PARAM];
   }
 
   await writeFile(filename, JSON.stringify(prerenderConfig, null, 2));
@@ -811,6 +807,18 @@ function matchPattern<T>(router: RouterContext<{ route: string; data: T }>, patt
 }
 
 /**
+ * Keep the more specific `paths` out of a route regex with a negative lookahead,
+ * instead of a route that stops routing before the asset and skew protection routes.
+ * Their named groups are made non-capturing, so the `$n` references stay valid.
+ */
+function excludePaths(src: RegExp, paths: RegExp[]): string {
+  const excluded = paths.map((path) =>
+    path.source.slice(1, -1).replace(/\(\?<(?![=!])[^>]*>/g, "(?:")
+  );
+  return excluded.length > 0 ? `^(?!(?:${excluded.join("|")})$)${src.source.slice(1)}` : src.source;
+}
+
+/**
  * Whether `**` is interpolated into the query or fragment of a `redirect` or
  * `proxy` target. Vercel encodes such a capture unlike h3 (`+` becomes a space
  * and `&` starts a new param), so these rules are left to the server function.
@@ -818,4 +826,30 @@ function matchPattern<T>(router: RouterContext<{ route: string; data: T }>, patt
 function hasQueryWildcard(to: string): boolean {
   const index = to.search(/[?#]/);
   return index !== -1 && to.includes("**", index);
+}
+
+async function getEnginesNodeVersion(range: string) {
+  const { default: validRange } = await import("semver/ranges/valid.js");
+  if (!validRange(range)) {
+    return;
+  }
+  const { default: intersects } = await import("semver/ranges/intersects.js");
+  return SUPPORTED_NODE_VERSIONS.filter((version) => intersects(`${version}.x`, range)).at(-1);
+}
+
+async function getEnginesBunRuntime(range: string, opts: { source: string }) {
+  const { default: validRange } = await import("semver/ranges/valid.js");
+  const { default: intersects } = await import("semver/ranges/intersects.js");
+  if (validRange(range)) {
+    // Vercel requires an explicit opt-in to Bun minor versions.
+    if (intersects("1.4.x", range) && !intersects("<1.4.0", range)) {
+      return "bun1.4.x";
+    }
+    if (intersects("1.x", range)) {
+      return "bun1.x";
+    }
+  }
+  throw new Error(
+    `Invalid Vercel Bun version \`${range}\` in ${opts.source}. Use a range that matches \`1.x\` or \`1.4.x\`.`
+  );
 }

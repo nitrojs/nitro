@@ -4,7 +4,7 @@ import { consola } from "consola";
 import { build, createNitro, prepare } from "nitro/builder";
 import { resolve } from "pathe";
 import { commonArgs } from "../common.ts";
-import { NitroDevServer } from "../../dev/server.ts";
+import { createDevServer } from "../../dev/server.ts";
 import { onWatchError } from "../../utils/watch.ts";
 
 const hmrKeyRe = /^runtimeConfig\.|routeRules\./;
@@ -65,7 +65,7 @@ export default defineCommand({
         }
       );
       nitro.hooks.hookOnce("restart", reload);
-      const server = new NitroDevServer(nitro);
+      const server = createDevServer(nitro);
 
       await server.listen({
         port: args.port || nitro.options.devServer.port,

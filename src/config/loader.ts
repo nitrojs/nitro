@@ -1,13 +1,21 @@
 import { loadConfig, watchConfig } from "c12";
+import type { ResolvedConfig } from "c12";
 import consola from "consola";
 import { createDefu } from "defu";
 import { resolveCompatibilityDates } from "compatx";
 import type { CompatibilityDateSpec } from "compatx";
 import { klona } from "klona/full";
 import type { PresetName } from "../presets/index.ts";
-import type { LoadConfigOptions, NitroConfig, NitroOptions, NitroPresetMeta } from "nitro/types";
+import type {
+  LoadConfigOptions,
+  NitroConfig,
+  NitroConfigLayer,
+  NitroOptions,
+  NitroPresetMeta,
+} from "nitro/types";
 
 import { NitroDefaults } from "./defaults.ts";
+import { mergeConfig, mergeConfigHooks } from "./_merge.ts";
 
 // Resolvers
 import { resolveAssetsOptions } from "./resolvers/assets.ts";
@@ -26,6 +34,7 @@ import { resolveErrorOptions } from "./resolvers/error.ts";
 import { resolveUnenv } from "./resolvers/unenv.ts";
 import { resolveBuilder } from "./resolvers/builder.ts";
 import { resolveTracingChannelOptions } from "./resolvers/tracing.ts";
+import { resolveViteOptions } from "./resolvers/vite.ts";
 
 const configResolvers = [
   resolveCompatibilityOptions,
@@ -44,6 +53,7 @@ const configResolvers = [
   resolveUnenv,
   resolveBuilder,
   resolveTracingChannelOptions,
+  resolveViteOptions,
 ] as const;
 
 export async function loadOptions(
@@ -103,6 +113,7 @@ async function _loadUserConfig(
     envName,
     extend: { extendKey: ["extends", "preset"] },
     defaults: NitroDefaults,
+    merger: mergeConfig,
     envMerger: mergeEnvConfig,
     async overrides({ rawConfigs }) {
       // prettier-ignore
@@ -172,6 +183,7 @@ async function _loadUserConfig(
 
   options._config = configOverrides;
   options._c12 = loadedConfig;
+  options.layers = resolveLayers(loadedConfig);
 
   const _presetName =
     (loadedConfig.layers || []).find((l) => l.config?._meta?.name)?.config?._meta?.name || preset;
@@ -193,6 +205,9 @@ const kvConfigKeys = new Set(["kv", "storage", "devStorage"]);
 
 // Env mounts (e.g. from `$development`) with a different driver replace the whole mount instead of deep merging options
 const mergeEnvConfig = createDefu((obj, key, value, namespace) => {
+  if (mergeConfigHooks(obj, key, value, namespace)) {
+    return true;
+  }
   const current = obj[key] as { driver?: unknown } | undefined;
   if (
     kvConfigKeys.has(namespace) &&
@@ -204,3 +219,25 @@ const mergeEnvConfig = createDefu((obj, key, value, namespace) => {
     return true;
   }
 }) as (...sources: any[]) => any;
+
+// c12 layers also include overrides, rc, package.json and preset layers, which have no `cwd`
+function resolveLayers(c12: ResolvedConfig<NitroConfig>): NitroConfigLayer[] {
+  const c12Layers = c12.layers || [];
+  const rootLayer = c12Layers.find((layer) => layer.cwd && !layer.source);
+  return [
+    {
+      cwd: c12.cwd!,
+      configFile: c12._configFile,
+      config: rootLayer?.config || {},
+      meta: c12.meta,
+    },
+    ...c12Layers
+      .filter((layer) => layer.cwd && layer.source)
+      .map((layer) => ({
+        cwd: layer.cwd!,
+        configFile: layer.configFile,
+        config: layer.config || {},
+        meta: layer.meta,
+      })),
+  ];
+}

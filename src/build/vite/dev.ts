@@ -5,6 +5,7 @@ import type { RunnerRPCHooks, UpgradeContext } from "env-runner";
 import type { Socket } from "node:net";
 
 import { IncomingMessage, ServerResponse } from "node:http";
+import type { Http2ServerResponse } from "node:http2";
 import { readFile } from "node:fs/promises";
 import { NodeRequest, sendNodeResponse } from "srvx/node";
 import { createViteHotChannel } from "env-runner/vite";
@@ -14,6 +15,7 @@ import { withBase, withoutBase } from "ufo";
 import { handleDevRPC } from "../../dev/_rpc.ts";
 import { rescanHandlers, watchScanDirs } from "./_scan-watch.ts";
 import { importVite, _resolveFromPath, type ViteImportOptions } from "./_import.ts";
+import { _isWorkerdRunner } from "./env.ts";
 
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
 
@@ -191,7 +193,10 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   }
 
   // Websocket (`httpServer` is null in middleware mode, the parent server handles upgrades)
-  const websocket = nitro.options.features.websocket ?? nitro.options.experimental.websocket;
+  // In workerd, routes can accept upgrades without crossws (e.g. with a Durable Object)
+  const websocket =
+    (nitro.options.features.websocket ?? nitro.options.experimental.websocket) ||
+    _isWorkerdRunner(ctx);
   const wsProxy = Object.values(nitro.options.devProxy).some(
     (opts) => typeof opts === "object" && opts.ws
   );
@@ -307,7 +312,7 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       }
       return await sendNodeResponse(nodeRes, envRes);
     } catch (error) {
-      if (nodeRes.destroyed) return;
+      if (_isResponseDestroyed(nodeRes)) return;
       return next(error);
     } finally {
       if (baseURL !== "/") {
@@ -316,7 +321,8 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     }
   };
 
-  const isCatchAllRoute = (route: string) => route === "/**" || route.startsWith("/**:");
+  const isCatchAllRoute = (route: string) =>
+    route === "/**" || route.startsWith("/**:") || /^\/:\w+\(\.\*\)$/.test(route);
 
   // Opaque catch-alls: the SSR renderer and a custom server entry (see .agents/vite-dev.md §2).
   const isOpaqueHandler = (h?: { handler?: string }) =>
@@ -338,12 +344,16 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
 
     // `nitro.routing.routes` always includes the SSR catch-all `/**` in SSR apps, so an explicit
     // user route must be told apart from the catch-all. A root-level user catch-all
-    // (`routes/[...].ts` -> `/**`, `routes/[...slug].ts` -> `/**:slug`) is as authoritative as the
+    // (`routes/[...].ts` -> `/**`, `routes/[...slug].ts` -> `/:slug(.*)`) is as authoritative as the
     // SSR `/**` and must not swallow Vite asset serves either, so both forms count as catch-all;
     // prefixed splat routes (`/api/photos/**`) are deterministic user routes and stay explicit.
     const pathname = new URL(withBase(req.url!, nitro.options.baseURL), "http://localhost")
       .pathname;
-    const match = nitro.routing.routes.match(req.method || "", pathname);
+    let match = nitro.routing.routes.match(req.method || "", pathname);
+    // Mirrors the runtime: `HEAD` is served by the `GET` route unless a `HEAD` route matches
+    if (req.method === "HEAD" && !(match && !Array.isArray(match) && match.method)) {
+      match = nitro.routing.routes.match("GET", pathname);
+    }
     const matchedHandlers = match ? (Array.isArray(match) ? match : [match]) : [];
     const isExplicitRoute = matchedHandlers.some((h) => h?.route && !isCatchAllRoute(h.route));
 
@@ -438,4 +448,9 @@ function _htmlTemplateURL(template: string | undefined, root: string): string {
   }
   const path = relative(root, template);
   return path.startsWith("../") || isAbsolute(path) ? join("/@fs", template) : `/${path}`;
+}
+
+// `Http2ServerResponse` (Vite with `server.https`) has no `destroyed`; its stream does.
+function _isResponseDestroyed(res: ServerResponse | Http2ServerResponse): boolean {
+  return "stream" in res ? res.stream.destroyed : res.destroyed;
 }

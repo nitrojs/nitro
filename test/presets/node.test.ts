@@ -6,6 +6,7 @@ import { resolve } from "pathe";
 import { describe, expect, it } from "vitest";
 import { setupTest, startServer, testNitro } from "../tests.ts";
 import { testCloseHook } from "./_close-hook.ts";
+import { testUnixSocket } from "./_unix-socket.ts";
 
 describe("nitro:preset:node-middleware", async () => {
   const ctx = await setupTest("node-middleware");
@@ -72,6 +73,8 @@ describe("nitro:preset:node-server", async () => {
   }, 40_000);
 
   testCloseHook(ctx, { command: process.execPath, args: (entry) => [entry] });
+
+  testUnixSocket(ctx, { command: process.execPath, args: (entry) => [entry] });
 });
 
 describe("nitro:preset:node-cluster", async () => {
@@ -82,5 +85,11 @@ describe("nitro:preset:node-cluster", async () => {
   testCloseHook(ctx, {
     command: process.execPath,
     args: (entry) => [resolve(entry, "../worker.mjs")],
+  });
+
+  testUnixSocket(ctx, {
+    command: process.execPath,
+    args: (entry) => [entry],
+    env: { NITRO_CLUSTER_WORKERS: "2" },
   });
 });

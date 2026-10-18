@@ -1,6 +1,6 @@
 import { execSync } from "node:child_process";
 import { defineCommand } from "citty";
-import { docsDir } from "nitro/meta";
+import { docsDir } from "#nitro/meta";
 
 export default defineCommand({
   meta: {

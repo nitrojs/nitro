@@ -3,7 +3,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { dirname, join } from "pathe";
-import { pkgDir } from "nitro/meta";
+import { pkgDir } from "#nitro/meta";
 import { glob } from "tinyglobby";
 import { parseAst } from "rolldown/parseAst";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";

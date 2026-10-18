@@ -20,13 +20,13 @@ import {
   createServiceEnvironments,
   createServiceEnvironment,
 } from "./env.ts";
-import { runtimeDir } from "nitro/meta";
+import { runtimeDir } from "#nitro/meta";
 import { resolveModulePath } from "exsolve";
-import { defu } from "defu";
+import { mergeConfig } from "../../config/_merge.ts";
 import { prettyPath } from "../../utils/fs.ts";
 import { NitroDevApp } from "../../dev/app.ts";
 import { nitroPreviewPlugin } from "./preview.ts";
-import assetsPlugin from "@hiogawa/vite-plugin-fullstack/assets";
+import { nitroAssetsImport } from "./_assets.ts";
 import type { NitroConfig, NitroModule } from "nitro/types";
 import { nitroDevServiceProxy, viteServicesTemplate } from "./services.ts";
 import { importVite, viteImportOptions } from "./_import.ts";
@@ -55,14 +55,8 @@ export function nitro(pluginConfig: NitroPluginConfig = {}): VitePlugin[] {
     nitroDevServiceProxy(ctx),
     nitroPreviewPlugin(ctx),
     nitroVitest(ctx),
-    pluginConfig.experimental?.vite?.assetsImport !== false &&
-      assetsPlugin({
-        experimental: {
-          // See https://github.com/hi-ogawa/vite-plugins/pull/1289
-          clientBuildFallback: false,
-        },
-      }),
-  ].filter(Boolean) as VitePlugin[];
+    ...nitroAssetsImport(ctx),
+  ];
 }
 
 function nitroInit(ctx: NitroPluginContext): VitePlugin {
@@ -327,7 +321,7 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
       if (env.config.consumer === "client" || ctx._isVitest) {
         return;
       }
-      if (ctx.pluginConfig.experimental?.vite?.serverReload === false) {
+      if (ctx.nitro?.options.vite?.serverReload === false) {
         // Keep the server module graph in sync but opt out of the reload:
         // returning an empty list also suppresses Vite's own `full-reload`,
         // which would otherwise still reach (and reload) the dev worker.
@@ -387,7 +381,7 @@ function nitroPrepare(ctx: NitroPluginContext): VitePlugin {
 function createContext(pluginConfig: NitroPluginConfig): NitroPluginContext {
   return {
     pluginConfig,
-    services: { ...pluginConfig.experimental?.vite?.services },
+    services: {},
     _entryPoints: {},
   };
 }
@@ -428,11 +422,7 @@ async function setupNitroContext(
     dev: configEnv.command === "serve",
     builder: "vite",
     rootDir: userConfig.root,
-    ...defu(
-      ctx.pluginConfig,
-      (ctx.pluginConfig as any).config, // TODO: Remove shortly
-      userConfig.nitro
-    ),
+    ...mergeConfig(ctx.pluginConfig, userConfig.nitro),
   };
 
   // Register Nitro modules from Vite plugins
@@ -464,8 +454,11 @@ async function setupNitroContext(
     await installModules(providedNitro, pluginModules);
   }
 
+  // Register services from config
+  ctx.services = { ...ctx.nitro.options.vite?.services };
+
   // Config ssr env as a fetchable ssr service
-  if (!ctx.services?.ssr) {
+  if (!ctx.services.ssr) {
     const userSsrEnv = userConfig.environments?.ssr;
     // Vitest always defines an `ssr` environment (without an entry) for its own use
     const userSsrInput =
@@ -527,11 +520,13 @@ async function setupNitroContext(
   // Resolve common rollup options
   ctx.bundlerConfig = await getBundlerConfig(ctx);
 
-  // Call rollup:before hook to allow modifying rollup config
+  // Call build:config hook to allow modifying the bundler config
   await ctx.nitro.hooks.callHook(
-    "rollup:before",
+    "build:config",
     ctx.nitro,
-    ctx.bundlerConfig.rollupConfig || (ctx.bundlerConfig.rolldownConfig as any)
+    ctx.bundlerConfig.rollupConfig
+      ? { builder: "vite", rollup: ctx.bundlerConfig.rollupConfig }
+      : { builder: "vite", rolldown: ctx.bundlerConfig.rolldownConfig! }
   );
 
   // Attach nitro.fetch to the dev env runner (started lazily, not when resolving config)

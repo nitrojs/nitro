@@ -13,7 +13,7 @@ import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { pkgDir } from "nitro/meta";
+import { pkgDir } from "#nitro/meta";
 import { join } from "pathe";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { isUnbundledProject } from "../../src/build/unbundled/detect.ts";

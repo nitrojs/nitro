@@ -105,7 +105,7 @@ export async function scanServerRoutes(nitro: Nitro, dir: string, prefix = "/") 
       .replace(/\.[A-Za-z]+$/, "")
       .replace(/\(([^(/\\]+)\)[/\\]/g, "")
       .replace(/\[\.{3}]/g, "**")
-      .replace(/\[\.{3}([^\]]+)]/g, (_, p) => "**:" + paramName(p))
+      .replace(/\[\.{3}([^\]]+)]/g, (_, p) => ":" + paramName(p) + "(.*)")
       .replace(/\[([^/\]]+)]/g, (_, p) => ":" + paramName(p));
     route = withLeadingSlash(withoutTrailingSlash(withBase(route, prefix)));
 

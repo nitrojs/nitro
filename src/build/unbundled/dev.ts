@@ -63,7 +63,7 @@ export async function watchDev(nitro: Nitro) {
   });
 
   nitro.hooks.hook("close", () => watcher.close());
-  nitro.hooks.hook("rollup:reload", () => reload());
+  nitro.hooks.hook("build:reload", () => reload());
 
   await load();
 }

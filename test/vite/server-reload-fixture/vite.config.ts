@@ -2,5 +2,5 @@ import { defineConfig } from "vite";
 import { nitro } from "nitro/vite";
 
 export default defineConfig({
-  plugins: [nitro({ serverDir: "./", experimental: { vite: { serverReload: false } } })],
+  plugins: [nitro()],
 });
