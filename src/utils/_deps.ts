@@ -76,6 +76,17 @@ export const deps = {
 
 export type DepId = keyof typeof deps;
 
+/** Module types of the manifest entries imported with `importDep` (inferred from the `id`). */
+export interface DepModules {
+  "@vercel/queue": typeof import("@vercel/queue");
+  db0: typeof import("db0");
+  rollup: typeof import("rollup");
+  unstorage: typeof import("unstorage");
+  vite: typeof import("vite");
+  xml2js: typeof import("xml2js");
+  "zephyr-agent": typeof import("zephyr-agent");
+}
+
 export function getDepMeta(id: string): DepMeta | undefined {
   return Object.hasOwn(deps, id) ? deps[id as DepId] : undefined;
 }

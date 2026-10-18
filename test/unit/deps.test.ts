@@ -2,7 +2,7 @@ import { readdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { readPackageJSON } from "pkg-types";
 import { minVersion, satisfies, subset } from "semver";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import { deps } from "../../src/utils/_deps.ts";
 import type { DepId, DepMeta } from "../../src/utils/_deps.ts";
 import * as dep from "../../src/utils/dep.ts";
@@ -22,6 +22,17 @@ function isTestedVersion(id: string, range: string): boolean {
 describe("dependency manifest", () => {
   it.each(Object.keys(deps) as DepId[])("`%s` range covers the tested version", (id) => {
     expect(isTestedVersion(id, deps[id].version)).toBe(true);
+  });
+
+  it("infers the module type of `importDep` from the id", () => {
+    expectTypeOf(dep.importDep({ id: "rollup", dir: "" })).resolves.toEqualTypeOf<
+      typeof import("rollup")
+    >();
+    expectTypeOf(dep.importDep({ id: "db0", dir: "" })).resolves.toEqualTypeOf<
+      typeof import("db0")
+    >();
+    // @ts-expect-error a dependency missing from the manifest requires a `reason`
+    void dep.importDep({ id: "not-in-manifest", dir: "" });
   });
 
   it("runtime dependencies are installed as dependencies without prompting", () => {

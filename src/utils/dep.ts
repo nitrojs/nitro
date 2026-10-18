@@ -5,7 +5,7 @@ import { clearResolveCache, resolveModulePath } from "exsolve";
 import { dirname, join } from "pathe";
 import { hasTTY, isAgent, isCI, isTest } from "std-env";
 import { getDepMeta } from "./_deps.ts";
-import type { DepId } from "./_deps.ts";
+import type { DepId, DepModules } from "./_deps.ts";
 
 /**
  * Options of a dependency to resolve and install.
@@ -57,12 +57,17 @@ export function ensureDep(depOpts: DepOptions): Promise<string | undefined> {
   return pending;
 }
 
-export async function importDep<T>(opts: DepOptions): Promise<T> {
+/** Import a dependency, installing it on demand (typed from its `id` for manifest entries). */
+export function importDep<Id extends keyof DepModules>(
+  opts: DepOptions & { id: Id }
+): Promise<DepModules[Id]>;
+export function importDep<T>(opts: DepOptions): Promise<T>;
+export async function importDep(opts: DepOptions): Promise<unknown> {
   const resolved = await ensureDep(opts);
   if (!resolved) {
     throw missingDepError(opts);
   }
-  return (await import(pathToFileURL(resolved).href)) as T;
+  return import(pathToFileURL(resolved).href);
 }
 
 /** Error for a dependency that is (still) not installed, with the command to install it. */

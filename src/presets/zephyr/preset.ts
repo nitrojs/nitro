@@ -7,8 +7,6 @@ import { importDep } from "../../utils/dep.ts";
 
 export type { ZephyrOptions as PresetOptions } from "./types.ts";
 const LOGGER_TAG = "zephyr-nitro-preset";
-type ZephyrAgentModule = Pick<typeof import("zephyr-agent"), "uploadOutputToZephyr">;
-
 const zephyr = defineNitroPreset(
   {
     extends: "base-worker",
@@ -65,7 +63,7 @@ async function deployToZephyr(nitro: Nitro): Promise<void> {
     return;
   }
   try {
-    const zephyrAgent = await importDep<ZephyrAgentModule>({
+    const zephyrAgent = await importDep({
       id: "zephyr-agent",
       dir: nitro.options.rootDir,
     });
