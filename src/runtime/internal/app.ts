@@ -87,8 +87,11 @@ export function fetch(
  *
  * The result is memoized and shared, so treat it as read-only.
  */
-export function getRouteRules(method: string, pathname: string): ResolvedRouteRules {
-  return matchRouteRules(method, pathname).routeRules;
+export function getRouteRules(
+  method: string,
+  pathname: string
+): { routeRules: ResolvedRouteRules } {
+  return matchRouteRules(method, pathname);
 }
 
 /**

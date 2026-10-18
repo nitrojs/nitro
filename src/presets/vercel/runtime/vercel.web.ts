@@ -24,7 +24,7 @@ export default {
     // ISR route rewrite
     const isrURL = isrRouteRewrite(req.url, req.headers.get("x-now-route-matches"));
     if (isrURL) {
-      const routeRules = getRouteRules("", isrURL[0]);
+      const { routeRules } = getRouteRules("", isrURL[0]);
       if (routeRules?.isr) {
         req = new Request(
           new URL(isrURL[0] + (isrURL[1] ? `?${isrURL[1]}` : ""), req.url).href,

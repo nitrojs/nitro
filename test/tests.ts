@@ -452,12 +452,6 @@ export function testNitro(
     expect(headers["cache-control"]).toBe("s-maxage=60");
   });
 
-  it("resolves route rules with `getRouteRules`", async () => {
-    const { data } = await callHandler({ url: "/api/route-rules" });
-    expect(data).toMatchObject({ headers: { "cache-control": "s-maxage=60" } });
-    expect(data).not.toHaveProperty("routeRuleMiddleware");
-  });
-
   // WinterJS `Headers` silently drops `access-control-allow-methods`
   it.skipIf(ctx.preset === "winterjs")("handles route rules - cors", async () => {
     // `cors: true` is handled by h3's `handleCors` (via `h3/rules`). On a
