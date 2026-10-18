@@ -79,7 +79,6 @@ export async function setupTest(
       "cloudflare-module-legacy",
       "cloudflare-pages",
       "netlify-edge",
-      "vercel-edge",
       "winterjs",
     ].includes(preset),
     isLambda: ["aws-lambda", "netlify-legacy"].includes(preset),
@@ -259,6 +258,11 @@ export function testNitro(
     expect(headers["x-test"]).toBe("test");
   });
 
+  it("async plugins are awaited before handling requests", async () => {
+    const { headers } = await callHandler({ url: "/" });
+    expect(headers["x-async-plugin"]).toBe("async plugin works!");
+  });
+
   it("server entry middleware and plugins are not passed to srvx", async () => {
     const { data, headers } = await callHandler({ url: "/srvx-middleware" });
     expect(data).not.toBe("server entry middleware works!");
@@ -313,6 +317,26 @@ export function testNitro(
       url: "/api/wildcard/foo/bar/baz",
     });
     expect(paramsData2).toBe("foo/bar/baz");
+  });
+
+  it("named catch-all route matches its base path", async () => {
+    const base = await callHandler({ url: "/api/catch-all" });
+    expect(base.status).toBe(200);
+    expect(base.data).toEqual({ route: "catch-all", params: {} });
+
+    const slash = await callHandler({ url: "/api/catch-all/" });
+    expect(slash.status).toBe(200);
+    expect(slash.data).toEqual({ route: "catch-all", params: { slug: "" } });
+
+    const { data: deep } = await callHandler({ url: "/api/catch-all/foo/bar" });
+    expect(deep).toEqual({ route: "catch-all", params: { slug: "foo/bar" } });
+
+    for (const url of ["/api/catch-all-index", "/api/catch-all-index/"]) {
+      const { data } = await callHandler({ url });
+      expect(data, url).toMatchObject({ route: "index" });
+    }
+    const { data: deepIndex } = await callHandler({ url: "/api/catch-all-index/foo" });
+    expect(deepIndex).toEqual({ route: "catch-all", params: { slug: "foo" } });
   });
 
   it("group routes", async () => {
@@ -886,6 +910,31 @@ export function testNitro(
       );
       expect((await callHandler({ url: "/api/methods/search" })).data).toBe("get");
     });
+
+    it("Falls back to the GET route for HEAD requests", async () => {
+      const fallback = await callHandler({ url: "/api/methods/search", method: "HEAD" });
+      expect(fallback.status).toBe(200);
+      expect(fallback.data || "").toBe("");
+      const get = await callHandler({ url: "/api/methods/head" });
+      expect(get.headers["x-handler"]).toBe("get");
+      const head = await callHandler({ url: "/api/methods/head", method: "HEAD" });
+      expect(head.headers["x-handler"]).toBe("head");
+    });
+
+    it("Runs GET-scoped middleware for HEAD requests", async () => {
+      for (const method of ["GET", "HEAD"]) {
+        const denied = await callHandler({ url: "/api/methods/guarded", method });
+        expect(denied.status, method).toBe(401);
+        expect(denied.headers["x-handler"], method).toBeUndefined();
+        const allowed = await callHandler({
+          url: "/api/methods/guarded",
+          method,
+          headers: { authorization: "token" },
+        });
+        expect(allowed.status, method).toBe(200);
+        expect(allowed.headers["x-handler"], method).toBe("get");
+      }
+    });
   });
 
   // WinterJS itself runs as WebAssembly and exposes no `WebAssembly` global
@@ -904,7 +953,7 @@ export function testNitro(
       !ctx.nitro!.options.node ||
       ctx.isLambda ||
       ctx.isWorker ||
-      ["bun", "deno-server", "deno-deploy", "netlify", "netlify-legacy"].includes(ctx.preset)
+      ["bun", "deno-server", "netlify", "netlify-legacy"].includes(ctx.preset)
   )("Database", () => {
     it("works", async () => {
       const { data } = await callHandler({ url: "/api/db" });
@@ -976,9 +1025,6 @@ export function testNitro(
     const { data, status } = await callHandler({ url: "/node-compat" });
     expect(status).toBe(200);
     for (const key in data) {
-      if (ctx.preset === "vercel-edge" && key === "crypto:createHash") {
-        continue;
-      }
       if (ctx.preset === "deno-server" && key === "globals:BroadcastChannel") {
         continue; // unstable API
       }

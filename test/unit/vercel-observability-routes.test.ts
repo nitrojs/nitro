@@ -14,7 +14,7 @@ function createNitroStub(opts: {
     scannedHandlers: opts.handlers || [],
     _prerenderedRoutes: opts.prerenderedRoutes,
     options: {
-      compatibilityDate: { default: opts.compatibilityDate || "2025-07-15" },
+      compatibilityDate: { default: opts.compatibilityDate || "latest" },
       handlers: [],
       ssrRoutes: opts.ssrRoutes || [],
       routeRules: opts.routeRules || {},
@@ -25,15 +25,15 @@ function createNitroStub(opts: {
 const dests = (nitro: Nitro) => getObservabilityRoutes(nitro).map((route) => route.dest);
 
 describe("getObservabilityRoutes", () => {
-  it("returns no routes before the observability compatibility date", () => {
+  it("creates routes regardless of the compatibility date", () => {
     expect(
-      getObservabilityRoutes(
+      dests(
         createNitroStub({
-          compatibilityDate: "2025-07-14",
+          compatibilityDate: "2024-04-03",
           handlers: [{ route: "/foo", handler: "foo.ts" }],
         })
       )
-    ).toEqual([]);
+    ).toEqual(["foo"]);
   });
 
   it("creates a route per handler, most specific first", () => {
@@ -43,6 +43,7 @@ describe("getObservabilityRoutes", () => {
           handlers: [
             { route: "/**", handler: "catch-all.ts" },
             { route: "/blog/:slug", handler: "blog.ts" },
+            { route: "/docs/:path(.*)", handler: "docs.ts" },
             { route: "/foo", handler: "foo.ts" },
             { route: "/skipped", handler: "middleware.ts", middleware: true },
           ],
@@ -52,6 +53,7 @@ describe("getObservabilityRoutes", () => {
     ).toEqual([
       { route: "/", dest: "index" },
       { route: "/foo", dest: "foo" },
+      { route: "/docs/:path(.*)", dest: "docs/[...path]" },
       { route: "/blog/:slug", dest: "blog/[slug]" },
       { route: "/**", dest: "[...]" },
     ]);

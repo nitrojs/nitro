@@ -39,13 +39,13 @@ icon: i-simple-icons-tanstack
   "devDependencies": {
     "@tanstack/react-router": "^1.170.44",
     "@tanstack/react-router-devtools": "^1.167.2",
-    "@tanstack/router-plugin": "^1.168.45",
+    "@tanstack/router-plugin": "^1.168.46",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "nitro": "latest",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "vite": "latest"
   }
 }

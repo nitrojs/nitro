@@ -14,5 +14,9 @@ if (import.meta._tasks) {
   startScheduleRunner({});
 }
 
+// Named exports of the server entry: the Worker exports of the miniflare runner (see
+// `resolveExports` in `dev-worker.mjs`). Namespaced so they are not read as server options.
+export { serverEntryExports } from "#nitro/virtual/server-entry";
+
 // Called by the dev worker when the runner shuts down (see `ipc.onClose` in `dev-worker.mjs`).
 export const close = () => useNitroHooks().callHook("close");

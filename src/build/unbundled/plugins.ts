@@ -4,7 +4,7 @@ import type { Nitro, NitroBuildPlugin } from "nitro/types";
 import { existsSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import replace from "@rollup/plugin-replace";
-import { pkgDir } from "nitro/meta";
+import { pkgDir } from "#nitro/meta";
 import { dirname, isAbsolute, join, normalize, resolve } from "pathe";
 import { unwasm } from "unwasm/plugin";
 import { baseBuildConfig } from "../config.ts";
@@ -14,6 +14,11 @@ import { importOXC } from "../../utils/oxc.ts";
 import { raw, RESOLVED_RE as RAW_RE } from "../plugins/raw.ts";
 import { routeMeta } from "../plugins/route-meta.ts";
 import { resolveBuildPlugins } from "../plugins.ts";
+import {
+  ensureRuntimeDep,
+  isRuntimeImporter,
+  OPTIONAL_RUNTIME_DEPS_RE,
+} from "../plugins/runtime-deps.ts";
 
 const SCRIPT_TYPES = ["js", "jsx", "ts", "tsx"] as const;
 
@@ -34,11 +39,16 @@ export async function unbundledPlugins(nitro: Nitro): Promise<EnvRunnerPlugin[]>
 
   const plugins: EnvRunnerPlugin[] = [
     virtualPlugin(),
+    runtimeDepsPlugin(nitro),
     resolvePlugin(nitro, base.extensions),
     windowsPathPlugin(base.extensions),
     await transformPlugin(nitro, sourceDirs),
     replacePlugin(base.replacements, sourceDirs),
-    withoutSourceMap(fromRollup(await importAttributes({ rootDir: nitro.options.rootDir }))),
+    withoutSourceMap(
+      fromRollup(
+        await importAttributes({ rootDir: nitro.options.rootDir, paths: nitro.options.deps?.paths })
+      )
+    ),
     rawVirtualPlugin(nitro),
     fromRollup(raw()),
   ];
@@ -110,6 +120,27 @@ function resolvePlugin(nitro: Nitro, extensions: string[]): EnvRunnerPlugin {
 }
 
 /**
+ * Optional runtime dependencies (`unstorage`, `db0`) imported by the Nitro runtime: installed
+ * on demand and resolved from the project when the runtime fails to resolve them.
+ */
+function runtimeDepsPlugin(nitro: Nitro): EnvRunnerPlugin {
+  return {
+    name: "nitro:runtime-deps",
+    resolveId: {
+      fallback: true,
+      filter: { id: OPTIONAL_RUNTIME_DEPS_RE },
+      async handler(this: PluginContext, source, importer) {
+        if (!isRuntimeImporter(importer && normalize(importer))) {
+          return;
+        }
+        await ensureRuntimeDep(nitro, source);
+        return this.resolve(source, join(nitro.options.rootDir, "_"));
+      },
+    },
+  };
+}
+
+/**
  * Windows absolute paths (Nitro virtual modules import sources by path): Node.js rejects them
  * as a `d:` URL scheme instead of failing to resolve, so they skip `fallback` resolvers.
  */
@@ -128,7 +159,10 @@ function windowsPathPlugin(extensions: string[]): EnvRunnerPlugin {
 
 /** TypeScript and JSX, with the same options as the bundled build. */
 async function transformPlugin(nitro: Nitro, sourceDirs: string[]): Promise<EnvRunnerPlugin> {
-  const { transformSync } = await importOXC({ dir: nitro.options.rootDir });
+  const { transformSync } = await importOXC({
+    dir: nitro.options.rootDir,
+    paths: nitro.options.deps?.paths,
+  });
   const tsc = nitro.options.typescript.tsConfig?.compilerOptions;
   return {
     name: "nitro:transform",

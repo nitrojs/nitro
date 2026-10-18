@@ -26,8 +26,8 @@ icon: i-logos-react
   "dependencies": {
     "@react-router/node": "^8.4.0",
     "isbot": "^5.2.2",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "react-router": "^8.4.0"
   },
   "devDependencies": {

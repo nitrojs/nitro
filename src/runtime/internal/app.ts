@@ -1,7 +1,8 @@
 import type { NitroApp, NitroRuntimeHooks, ResolvedRouteRules } from "nitro/types";
 import type { ServerRequest, ServerRequestContext } from "srvx";
-import type { ComposedMiddleware, H3EventContext, Middleware, WebSocketHooks } from "h3";
-import { composeMiddleware, toRequest } from "h3";
+import type { ComposedMiddleware, H3EventContext, H3Route, Middleware, WebSocketHooks } from "h3";
+import type { MatchedRoute } from "rou3";
+import { composeMiddleware, HTTPError, toRequest } from "h3";
 import { HookableCore } from "hookable";
 import { createMatcherFromFind, memoizeRouteRulesMatcher } from "h3/rules";
 
@@ -81,19 +82,16 @@ export function fetch(
   return globalThis.fetch(resource, init);
 }
 
-let _matchRouteRules: ReturnType<typeof createMatcherFromFind> | undefined;
-
+/**
+ * Get the resolved route rules for a method and pathname.
+ *
+ * The result is memoized and shared, so treat it as read-only.
+ */
 export function getRouteRules(
   method: string,
   pathname: string
-): {
-  routeRules: ResolvedRouteRules;
-  routeRuleMiddleware: Middleware[];
-} {
-  return (_matchRouteRules ??= memoizeRouteRulesMatcher(createMatcherFromFind(findRouteRules)))(
-    method,
-    pathname
-  );
+): { routeRules: ResolvedRouteRules } {
+  return matchRouteRules(method, pathname);
 }
 
 /**
@@ -107,7 +105,10 @@ export function getRouteRules(
 export function createRouteRulesMiddleware(): Middleware {
   const composed = new WeakMap<Middleware[], ComposedMiddleware>();
   const middleware: Middleware = (event, next) => {
-    const ruleMiddleware = getRouteRules(event.req.method, event.url.pathname).routeRuleMiddleware;
+    const ruleMiddleware = matchRouteRules(
+      event.req.method,
+      event.url.pathname
+    ).routeRuleMiddleware;
     if (ruleMiddleware.length === 0) {
       return next();
     }
@@ -149,6 +150,52 @@ export function createRoutedMiddleware(
     return (node.chain ??= composeMiddleware(matched.map((r) => r.data)))(event, next as any);
   };
   return markUntraced(middleware);
+}
+
+// `~findRoute` fallback: `405` with an `Allow` header when the path is routed
+// only for other `methods` (a method-agnostic route would have matched already).
+export function createMethodNotAllowedMatcher(
+  findRoute: (method: string, pathname: string) => unknown,
+  methods: string[]
+): (method: string, pathname: string) => MatchedRoute<H3Route> | undefined {
+  return (method, pathname) => {
+    let allow: string | undefined;
+    for (const m of methods) {
+      if (m !== method && findRoute(m, pathname)) {
+        allow = allow ? `${allow}, ${m}` : m;
+      }
+    }
+    if (!allow) {
+      return;
+    }
+    // Returned rather than thrown: h3 handles it the same, without the unwinding cost
+    return {
+      data: {
+        handler: () =>
+          new HTTPError({
+            status: 405,
+            statusText: "Method Not Allowed",
+            message: `Method ${method} is not allowed for ${pathname} (allowed: ${allow})`,
+            headers: { allow },
+          }),
+      },
+    };
+  };
+}
+
+let _matchRouteRules: ReturnType<typeof createMatcherFromFind> | undefined;
+
+function matchRouteRules(
+  method: string,
+  pathname: string
+): {
+  routeRules: ResolvedRouteRules;
+  routeRuleMiddleware: Middleware[];
+} {
+  return (_matchRouteRules ??= memoizeRouteRulesMatcher(createMatcherFromFind(findRouteRules)))(
+    method,
+    pathname
+  );
 }
 
 type RoutedChainNode = {

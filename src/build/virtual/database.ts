@@ -1,14 +1,14 @@
 import type { Nitro } from "nitro/types";
 import { camelCase } from "scule";
-import { resolveConnectorDeps, resolveDatabaseConnections } from "../../utils/database.ts";
+import { resolveDatabaseConnections } from "../../utils/database.ts";
 import type { DatabaseConnection } from "../../utils/database.ts";
 import { isDepInstalled, isLibOption } from "../../utils/dep.ts";
 
 export default function database(nitro: Nitro) {
   return {
     id: "#nitro/virtual/database",
-    template: () => {
-      const connections = resolveDatabaseConnections(nitro.options);
+    template: async () => {
+      const connections = await resolveDatabaseConnections(nitro.options);
 
       if (connections.length === 0) {
         return /* js */ `export const connectionConfigs = {};`;
@@ -41,7 +41,7 @@ export const connectionConfigs = {
  * so that they are statically analyzable by the bundler.
  */
 function genConnectorOptions(nitro: Nitro, connection: DatabaseConnection) {
-  const libs = resolveConnectorDeps(connection.connector)
+  const libs = connection.deps
     .filter(
       (dep) =>
         isLibOption(dep.option) &&

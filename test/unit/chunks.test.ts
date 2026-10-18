@@ -80,6 +80,7 @@ describe("routeToFsPath", () => {
     ["/api/users/:id", "api/users/[id]"],
     ["/", "index"],
     ["/api/users/:id/posts/*", "api/users/[id]/posts/[...]"],
+    ["/api/files/:path(.*)", "api/files/[...path]"],
   ])("%s → %s", (route, expected) => {
     expect(routeToFsPath(route)).toBe(expected);
   });

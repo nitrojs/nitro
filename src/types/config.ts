@@ -6,6 +6,11 @@ import type { LogLevel } from "./_consola.ts";
 import type { ConnectorName, ConnectorOptions } from "db0";
 import type { NestedHooks } from "hookable";
 import type { ProxyServerOptions } from "httpxy";
+import type {
+  CacheOptions as OCacheOptions,
+  CachedEventHandlerOptions as OCacheEventHandlerOptions,
+  MemoryStorageOptions as OCacheMemoryStorageOptions,
+} from "ocache";
 import type { PresetName, PresetNameInput, PresetOptions } from "../presets/index.ts";
 import type { DeployOptions } from "../deploy.ts";
 import type { TSConfig } from "pkg-types";
@@ -29,7 +34,7 @@ import type { NitroBuildPluginOption, OXCOptions, RolldownConfig } from "./build
 import type { CommonJSOptions } from "./_bundler.ts";
 import type { RollupConfig } from "./build.ts";
 import type { NormalizedRouteRules, RouteRuleConfig } from "./route-rules.ts";
-import type { JsonValue, SerializableOptions } from "./_utils.ts";
+import type { JsonValue, OptionalDepType, SerializableOptions } from "./_utils.ts";
 
 /**
  * Fully resolved Nitro options available on `nitro.options`.
@@ -46,6 +51,15 @@ export interface NitroOptions extends PresetOptions {
   _cli?: {
     command?: string;
   };
+
+  /**
+   * Resolved config layers, ordered from highest to lowest priority.
+   *
+   * The first layer is always the project root. It is followed by layers
+   * added with `extends` (local directories, config files, npm packages, or
+   * remote sources). Presets and inline config overrides are not included.
+   */
+  layers: NitroConfigLayer[];
 
   // General
 
@@ -402,16 +416,11 @@ export interface NitroOptions extends PresetOptions {
      * to be enabled.
      */
     tracingLogger?: boolean;
-  };
 
-  /**
-   * Future features pending a major version to avoid breaking changes.
-   *
-   * @see https://nitro.build/config#future
-   */
-  future: {
-    /** Opt in to Nitro's native `isr` route rule handling on Vercel and suppress backwards-compatibility warnings for legacy `swr`/`static` route options. */
-    nativeSWR?: boolean;
+    /**
+     * @deprecated Use the top-level `vite` option (`vite.services`, `vite.assetsImport` and `vite.serverReload`) instead.
+     */
+    vite?: Pick<NonNullable<NitroOptions["vite"]>, "services" | "assetsImport" | "serverReload">;
   };
 
   /**
@@ -514,6 +523,17 @@ export interface NitroOptions extends PresetOptions {
    * @see https://nitro.build/config#ignore
    */
   ignore: string[];
+
+  /**
+   * Additional dotted suffixes to keep as part of scanned file names (e.g. `"prompt"` for
+   * `routes/system.prompt.ts` → `/system.prompt`).
+   *
+   * Nitro reserves trailing lowercase suffixes in scanned file names. Known file extensions
+   * (e.g. `.json`, `.md`, `.xml`) are always kept.
+   *
+   * @see https://nitro.build/config#scansuffixes
+   */
+  scanSuffixes: string[];
 
   // Dev
 
@@ -704,16 +724,6 @@ export interface NitroOptions extends PresetOptions {
     ignoreUnprefixedPublicAssets?: boolean;
     /** Explicit list of routes to prerender. */
     routes?: string[];
-    /**
-     * Amount of retries. Pass Infinity to retry indefinitely.
-     * @default 3
-     */
-    retry?: number;
-    /**
-     * Delay between each retry in ms.
-     * @default 500
-     */
-    retryDelay?: number;
   };
 
   // Build
@@ -746,6 +756,49 @@ export interface NitroOptions extends PresetOptions {
      * running instance (in a monorepo, another version could be hoisted next to the app).
      */
     path?: string;
+
+    /**
+     * Additional Vite environments to register as fetchable services.
+     *
+     * Server environments with an entry (e.g. `ssr`) are registered automatically.
+     */
+    services?: Record<string, ViteServiceConfig>;
+
+    /**
+     * Enable `?assets` imports proposed by https://github.com/vitejs/vite/discussions/20913.
+     *
+     * @default true
+     */
+    assetsImport?: boolean;
+
+    /**
+     * Reload the dev server (and the browser) when a server-only module is updated.
+     *
+     * When disabled, server-only modules are still invalidated but the dev worker
+     * keeps its current evaluations.
+     *
+     * @default true
+     */
+    serverReload?: boolean;
+  };
+
+  /**
+   * Options for the optional dependencies Nitro installs on demand (such as `vite`, `rolldown`,
+   * `unstorage`, `db0` or `ocache`).
+   *
+   * @see https://nitro.build/config#deps
+   */
+  deps?: {
+    /**
+     * Explicit packages to use, by package name, as a path or `file://` URL to the package
+     * directory or entry (e.g. `import.meta.resolve("unstorage")`). Relative paths resolve
+     * against `rootDir`.
+     *
+     * By default, these packages are resolved from the project root and installed on demand. A
+     * framework built on top of Nitro can pass its own copies, so the versions it depends on are
+     * the ones that run. `deps.paths.vite` and `vite.path` are aliases.
+     */
+    paths?: Record<string, string>;
   };
 
   /**
@@ -1010,6 +1063,7 @@ export interface NitroConfig
         | "serverDir"
         | "_config"
         | "_c12"
+        | "layers"
         | "serverEntry"
         | "renderer"
         | "output"
@@ -1065,6 +1119,37 @@ export interface LoadConfigOptions {
 // ------------------------------------------------------------
 // Partial types
 // ------------------------------------------------------------
+
+/**
+ * A resolved config layer available on `nitro.options.layers`.
+ */
+export interface NitroConfigLayer {
+  /** Absolute path to the layer directory. */
+  cwd: string;
+
+  /** Absolute path to the layer config file, if one exists. */
+  configFile?: string;
+
+  /**
+   * Config defined by this layer (before merging with other layers and
+   * defaults). Environment-specific overrides such as `$production` are
+   * already applied.
+   */
+  config: NitroConfig;
+
+  /** Layer metadata from `$meta` in the layer config or `extends` options. */
+  meta?: { name?: string; [key: string]: unknown };
+}
+
+/**
+ * Vite environment registered as a fetchable service.
+ *
+ * @see https://nitro.build/config#vite
+ */
+export interface ViteServiceConfig {
+  /** Path to the service entry. */
+  entry: string;
+}
 
 /**
  * Configuration for a public asset directory served in development and
@@ -1168,10 +1253,13 @@ type CustomDriverName = string & { _custom?: any };
  * Driver options are inferred from the `driver` name.
  */
 export type BuiltinKVMount = {
-  [Name in BuiltinDriverName]: { driver: Name } & (Name extends keyof BuiltinDriverOptions
+  [Name in KVDriverName]: { driver: Name } & (Name extends keyof BuiltinDriverOptions
     ? SerializableOptions<BuiltinDriverOptions[Name]>
     : unknown);
-}[BuiltinDriverName];
+}[KVDriverName];
+
+/** Builtin driver names (none when `unstorage` is not installed). */
+type KVDriverName = OptionalDepType<BuiltinDriverName, never>;
 
 /** Mount configuration for a custom driver (module id or alias). */
 export type CustomKVMount = {
@@ -1211,22 +1299,25 @@ export type StorageMounts = KVMounts;
 /** Cache storage driver. */
 export type NitroCacheDriver = "memory" | "fs" | "kv";
 
+// `Partial` keeps the keys optional when `ocache` (installed on demand) is not installed yet
+
 /** Options shared by cached functions and cached handlers. */
-export type NitroCacheFunctionDefaults = Pick<
-  import("ocache").CacheOptions,
-  "maxAge" | "swr" | "staleMaxAge" | "maxResolveTime" | "base"
+export type NitroCacheFunctionDefaults = Partial<
+  Pick<OCacheOptions, "maxAge" | "swr" | "staleMaxAge" | "maxResolveTime" | "base">
 >;
 
 /** Options that only apply to cached handlers and `cache` route rules. */
-export type NitroCacheHandlerDefaults = Pick<
-  import("ocache").CachedEventHandlerOptions,
-  | "varies"
-  | "allowQuery"
-  | "allowCookies"
-  | "allowAuthorization"
-  | "sendCacheControl"
-  | "cacheStatusHeader"
-  | "maxBodySize"
+export type NitroCacheHandlerDefaults = Partial<
+  Pick<
+    OCacheEventHandlerOptions,
+    | "varies"
+    | "allowQuery"
+    | "allowCookies"
+    | "allowAuthorization"
+    | "sendCacheControl"
+    | "cacheStatusHeader"
+    | "maxBodySize"
+  >
 >;
 
 /** Global default options for cached functions, cached handlers and `cache` route rules. */
@@ -1251,7 +1342,7 @@ export interface NitroCacheConfig {
   driver?: NitroCacheDriver;
 
   /** Options for the `memory` driver. */
-  memory?: Omit<import("ocache").MemoryStorageOptions, "sizeOf">;
+  memory?: Omit<OCacheMemoryStorageOptions, "sizeOf">;
 
   /** Options for the `fs` driver. */
   fs?: {
@@ -1287,14 +1378,19 @@ export type DatabaseConnectionName = "default" | (string & {});
  * @see https://nitro.build/config#database
  * @see https://nitro.build/docs/database
  */
-export type DatabaseConnectionConfig = {
-  [Name in ConnectorName]: {
-    connector: Name;
-    options?: Name extends keyof ConnectorOptions
-      ? SerializableOptions<ConnectorOptions[Name]>
-      : Record<string, JsonValue>;
-  };
-}[ConnectorName];
+export type DatabaseConnectionConfig = [DatabaseConnectorName] extends [never]
+  ? { connector: string; options?: Record<string, JsonValue> }
+  : {
+      [Name in DatabaseConnectorName]: {
+        connector: Name;
+        options?: Name extends keyof ConnectorOptions
+          ? SerializableOptions<ConnectorOptions[Name]>
+          : Record<string, JsonValue>;
+      };
+    }[DatabaseConnectorName];
+
+/** Connector names (none when `db0` is not installed). */
+type DatabaseConnectorName = OptionalDepType<ConnectorName, never>;
 
 /** Map of {@link DatabaseConnectionName} to {@link DatabaseConnectionConfig}. */
 export type DatabaseConnectionConfigs = Record<DatabaseConnectionName, DatabaseConnectionConfig>;

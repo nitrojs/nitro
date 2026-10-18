@@ -1,10 +1,12 @@
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "pathe";
+import { join, resolve } from "pathe";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { writeWranglerConfig } from "../../src/presets/cloudflare/utils.ts";
 
-function createNitroStub(overrides: { static?: boolean; compatibilityDate?: string } = {}) {
+function createNitroStub(
+  overrides: { static?: boolean; compatibilityDate?: string; wrangler?: Record<string, any> } = {}
+) {
   const root = mkdtempSync(join(tmpdir(), "nitro-cf-wrangler-"));
   return {
     root,
@@ -23,7 +25,7 @@ function createNitroStub(overrides: { static?: boolean; compatibilityDate?: stri
           cloudflare: overrides.compatibilityDate ?? "2025-10-24",
           default: overrides.compatibilityDate ?? "2025-10-24",
         },
-        cloudflare: { deployConfig: true, nodeCompat: true },
+        cloudflare: { deployConfig: true, nodeCompat: true, wrangler: overrides.wrangler },
         experimental: {},
         scheduledTasks: {},
       },
@@ -90,4 +92,116 @@ describe("writeWranglerConfig (cloudflare-module)", () => {
       expect(config.compatibility_flags).toEqual(expected);
     }
   );
+});
+
+describe("writeWranglerConfig override warnings", () => {
+  let cleanup: string[] = [];
+  beforeEach(() => {
+    cleanup = [];
+  });
+  afterEach(() => {
+    for (const dir of cleanup) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it.each([
+    { title: "routing policy", file: { html_handling: "drop-trailing-slash" }, warns: false },
+    {
+      title: "matching generated values",
+      file: { binding: "ASSETS", directory: "./.output/public" },
+      warns: false,
+    },
+    {
+      title: "matching directory with trailing slash",
+      file: { directory: ".output/public/" },
+      warns: false,
+    },
+    {
+      title: "matching directory with Windows separators",
+      file: { directory: ".\\.output\\public" },
+      warns: false,
+    },
+    {
+      title: "unset asset fields from JSON",
+      file: { directory: null, binding: null },
+      warns: false,
+    },
+    {
+      title: "conflicting file binding with context routing policy",
+      file: { binding: "CUSTOM" },
+      ctx: { html_handling: "drop-trailing-slash" },
+      warns: "file",
+    },
+    {
+      title: "context binding precedence",
+      file: { binding: "CUSTOM" },
+      ctx: { binding: "ASSETS" },
+      warns: false,
+    },
+    { title: "conflicting context binding", ctx: { binding: "CUSTOM" }, warns: "context" },
+    { title: "conflicting file directory", file: { directory: "./custom" }, warns: "file" },
+    {
+      title: "file directory relative to generated config",
+      file: { directory: "../public" },
+      warns: "file",
+    },
+    { title: "matching context directory", ctx: { directory: "../public" }, warns: false },
+    {
+      title: "conflicting context directory",
+      ctx: { directory: "./.output/public" },
+      warns: "context",
+    },
+    {
+      title: "binding for a static build",
+      static: true,
+      file: { binding: "CUSTOM" },
+      warns: false,
+    },
+    {
+      title: "conflicting directory for a static build",
+      static: true,
+      file: { directory: "./custom" },
+      warns: "file",
+    },
+  ] as {
+    title: string;
+    static?: boolean;
+    file?: Record<string, any>;
+    ctx?: Record<string, any>;
+    warns: false | "file" | "context";
+  }[])("reports assets $title correctly", async (input) => {
+    const { root, nitro } = createNitroStub({
+      static: input.static,
+      wrangler: input.ctx && { assets: input.ctx },
+    });
+    cleanup.push(root);
+    if (input.file) {
+      writeFileSync(join(root, "wrangler.json"), JSON.stringify({ assets: input.file }));
+    }
+    await writeWranglerConfig(nitro, "module");
+    const config = JSON.parse(readFileSync(join(root, ".output/server/wrangler.json"), "utf8"));
+    expect(resolve(root, ".output/server", config.assets.directory)).toBe(
+      resolve(root, ".output/public")
+    );
+    const message = nitro.logger.warn.mock.calls
+      .map(([message]: [string]) => message)
+      .find((message: string) => message.includes("Wrangler config `assets`"));
+    expect(Boolean(message)).toBe(Boolean(input.warns));
+    if (message) {
+      expect(message.includes(" set by config or modules")).toBe(input.warns === "context");
+    }
+    if (input.file?.html_handling || input.ctx?.html_handling) {
+      expect(config.assets.html_handling).toBe("drop-trailing-slash");
+    }
+  });
+
+  it("separates the context source from the key in other override warnings", async () => {
+    const { root, nitro } = createNitroStub({ wrangler: { main: "./custom.mjs" } });
+    cleanup.push(root);
+    await writeWranglerConfig(nitro, "module");
+    expect(nitro.logger.warn).toHaveBeenCalledWith(
+      "[cloudflare] Wrangler config `main` set by config or modules is overridden and will be ignored."
+    );
+  });
 });

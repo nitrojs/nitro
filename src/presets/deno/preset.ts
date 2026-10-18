@@ -1,45 +1,7 @@
 import { defineNitroPreset } from "../_utils/preset.ts";
 import { writeFile } from "../_utils/fs.ts";
 import { resolve } from "pathe";
-import { unenvDeno } from "./unenv/preset.ts";
-import { extendEnv } from "../../build/env.ts";
 import { builtinModules } from "node:module";
-
-const denoDeploy = defineNitroPreset(
-  {
-    entry: "./deno/runtime/deno-deploy",
-    manifest: {
-      // https://docs.deno.com/deploy/reference/env_vars_and_contexts/#predefined-environment-variables
-      // https://docs.deno.com/deploy/classic/environment-variables/#default-environment-variables
-      deploymentId: process.env.DENO_DEPLOYMENT_ID,
-    },
-    exportConditions: ["deno"],
-    node: false,
-    // Deno has native `node:` compatibility, so the Node asset reader works as-is.
-    serveStatic: true,
-    commands: {
-      preview: "",
-      deploy: "cd ./ && deno run -A jsr:@deno/deployctl deploy server/index.ts",
-    },
-    hooks: {
-      "build:before": (nitro) => {
-        extendEnv(nitro, unenvDeno);
-      },
-    },
-    rollupConfig: {
-      preserveEntrySignatures: false,
-      external: (id) => id.startsWith("https://") || id.startsWith("node:"),
-      output: {
-        entryFileNames: "index.ts",
-        manualChunks: (id) => "index",
-        format: "esm",
-      },
-    },
-  },
-  {
-    name: "deno-deploy" as const,
-  }
-);
 
 const denoServer = defineNitroPreset(
   {
@@ -72,9 +34,10 @@ const denoServer = defineNitroPreset(
     },
   },
   {
-    aliases: ["deno"],
+    // `deno-deploy` also matches std-env provider detection on Deno Deploy
+    aliases: ["deno", "deno-deploy"],
     name: "deno-server" as const,
   }
 );
 
-export default [denoDeploy, denoServer] as const;
+export default [denoServer] as const;

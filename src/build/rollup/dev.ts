@@ -57,7 +57,7 @@ export async function watchDev(nitro: Nitro, rollupConfig: RollupConfig) {
     rootDirWatcher.close();
   });
 
-  nitro.hooks.hook("rollup:reload", () => reload());
+  nitro.hooks.hook("build:reload", () => reload());
 
   nitro.logger.info(
     `Starting dev watcher (builder: \`rollup\`, preset: \`${nitro.options.preset}\`, compatibility date: \`${formatCompatibilityDate(nitro.options.compatibilityDate)}\`)`

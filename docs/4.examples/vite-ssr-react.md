@@ -25,8 +25,8 @@ icon: i-logos-react
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "nitro": "latest",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "react-refresh": "^0.19.0",
     "vite": "latest"
   }

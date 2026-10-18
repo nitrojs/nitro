@@ -12,6 +12,7 @@ import { createNitro } from "../nitro.ts";
 import { compressPublicAssets } from "../utils/compress.ts";
 import { runParallel } from "../utils/parallel.ts";
 import { extractLinks, formatPrerenderRoute, matchesIgnorePattern } from "./utils.ts";
+import { getPrerenderMeta } from "./_meta.ts";
 import { scanUnprefixedPublicAssets } from "../build/assets.ts";
 import { toRequest } from "h3";
 import { EnvServer } from "env-runner";
@@ -53,10 +54,10 @@ export async function prerender(nitro: Nitro) {
   // Build with prerender preset
   nitro.logger.info("Initializing prerenderer");
   nitro._prerenderedRoutes = [];
-  nitro._prerenderMeta = nitro._prerenderMeta || {};
   const prerendererConfig = {
     ...nitro.options._config,
     static: false,
+    compressPublicAssets: false,
     rootDir: nitro.options.rootDir,
     renderer: nitro.options.renderer,
     virtual: { ...nitro.options.virtual },
@@ -199,9 +200,6 @@ export async function prerender(nitro: Nitro) {
 
     const req = toRequest(withBase(encodedRoute, nitro.options.baseURL), {
       headers: [["x-nitro-prerender", encodedRoute]],
-      // TODO
-      // retry: nitro.options.prerender.retry,
-      // retryDelay: nitro.options.prerender.retryDelay,
     });
     const res = await prerenderer.fetch(req);
     // Data will be removed as soon as written to the disk
@@ -265,8 +263,9 @@ export async function prerender(nitro: Nitro) {
     // Allow hooking before generate
     await nitro.hooks.callHook("prerender:generate", _route, nitro);
     if (_route.contentType !== inferredContentType) {
-      nitro._prerenderMeta![_route.fileName] ||= {};
-      nitro._prerenderMeta![_route.fileName].contentType = _route.contentType;
+      const prerenderMeta = getPrerenderMeta(nitro);
+      prerenderMeta[_route.fileName] ||= {};
+      prerenderMeta[_route.fileName].contentType = _route.contentType;
     }
 
     // After hook to allow ignoring in `prerender:generate` hook
@@ -359,8 +358,8 @@ export async function prerender(nitro: Nitro) {
 /** Builder of the prerenderer: `vite` builds use `rolldown` when installed, or run the sources. */
 function prerenderBuilder(nitro: Nitro): Nitro["options"]["builder"] {
   if (nitro.options.builder === "vite") {
-    const { rootDir, vite } = nitro.options;
-    return resolveRolldown(rootDir, { vitePath: vite?.path }) ? "rolldown" : false;
+    const { rootDir, deps } = nitro.options;
+    return resolveRolldown(rootDir, { paths: deps?.paths }) ? "rolldown" : false;
   }
   return nitro.options.builder;
 }

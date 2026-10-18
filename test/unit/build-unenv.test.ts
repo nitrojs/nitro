@@ -3,7 +3,9 @@ import { readdir, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "pathe";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Nitro } from "nitro/types";
 import { build, copyPublicAssets, createNitro, prepare } from "../../src/builder.ts";
+import { getDepMeta } from "../../src/utils/_deps.ts";
 import * as dep from "../../src/utils/dep.ts";
 
 vi.mock("../../src/utils/dep.ts", { spy: true });
@@ -11,8 +13,12 @@ vi.mock("../../src/utils/dep.ts", { spy: true });
 // The vite builder loads `nitro/vite` from `dist/`, so it would not use (or mock) the sources here
 const builders = ["rolldown", "rollup"] as const;
 
+// With the defaults of the dependency manifest applied
 const unenvCalls = () =>
-  vi.mocked(dep.ensureDep).mock.calls.filter(([opts]) => opts.id === "unenv");
+  vi
+    .mocked(dep.ensureDep)
+    .mock.calls.filter(([opts]) => opts.id === "unenv")
+    .map(([opts]) => [{ ...getDepMeta(opts.id), ...opts }]);
 
 const tmpDirs: string[] = [];
 afterAll(() => {
@@ -79,7 +85,12 @@ describe.each(builders)("unenv on demand (%s)", (builder) => {
       `import inspector from "node:inspector";\nexport default { fetch: () => new Response(typeof inspector.open) };`
     );
     expect(unenvCalls()).toEqual([
-      [expect.objectContaining({ reason: expect.stringContaining("node:inspector") })],
+      [
+        expect.objectContaining({
+          autoInstall: true,
+          reason: expect.stringContaining("node:inspector"),
+        }),
+      ],
     ]);
     expect(code).not.toMatch(/["']node:inspector["']/);
     expect(code).toContain("__unenv__");
@@ -131,9 +142,38 @@ describe.each(builders)("unenv on demand (%s)", (builder) => {
       `import { Readable } from "node:stream";\nexport default { fetch: () => new Response(typeof Readable) };`,
       { preset: "winterjs" }
     );
-    expect(unenvCalls()).toEqual([
-      [expect.objectContaining({ reason: expect.stringContaining("node:process") })],
+    // First from `buildStart`, then once per import (`ensureDep` installs only once)
+    expect(unenvCalls()[0]).toEqual([
+      expect.objectContaining({
+        autoInstall: true,
+        reason: expect.stringContaining("node:process"),
+      }),
     ]);
     expect(code).not.toMatch(/from\s*["'](node:)?(process|stream|buffer|timers)["']/);
+  });
+});
+
+describe("unenv plugin", () => {
+  it("resolves unenv once it is installed after a failure (no memoized result)", async () => {
+    const { unenv } = await import("../../src/build/plugins/unenv.ts");
+    const nitro = { options: { rootDir: process.cwd(), preset: "cloudflare-module" } } as Nitro;
+    const plugin = unenv(nitro, {
+      alias: { "node:inspector": "unenv/node/inspector" },
+      inject: {},
+      polyfills: [],
+      external: [],
+    });
+    const { handler } = plugin.resolveId as { handler: (...args: any[]) => Promise<unknown> };
+    const ctx = { resolve: async () => null };
+
+    vi.mocked(dep.ensureDep).mockResolvedValueOnce(undefined);
+    await expect(handler.call(ctx, "node:inspector", "/app/server.ts", {})).rejects.toThrow(
+      "`npx nypm add -D unenv@^2.0.0-rc.24`"
+    );
+
+    // e.g. installed manually while `nitro dev` is running
+    expect(await handler.call(ctx, "node:inspector", "/app/server.ts", {})).toMatch(
+      /unenv[/\\].*inspector/
+    );
   });
 });

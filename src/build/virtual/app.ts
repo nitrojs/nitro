@@ -11,6 +11,12 @@ export default function app(nitro: Nitro) {
       const hasPlugins = nitro.options.plugins.length > 0;
       const hasHooks = nitro.options.features?.runtimeHooks ?? hasPlugins;
       const hasAsyncContext = !!nitro.options.experimental.asyncContext;
+      const routeMethods = [
+        ...new Set(
+          nitro.routing.routes.routes.filter((r) => r.method).map((r) => r.method.toUpperCase())
+        ),
+      ].sort();
+      const hasMethodRoutes = routeMethods.length > 0;
 
       const routingImports = [
         hasRoutes && "findRoute",
@@ -116,14 +122,21 @@ export default function app(nitro: Nitro) {
 
       code.push(``, `export function initNitroPlugins(app) {`);
       if (hasPlugins) {
-        imports.push(`import { plugins } from "#nitro/virtual/plugins";`);
+        imports.push(
+          `import { plugins } from "#nitro/virtual/plugins";`,
+          `import { initAsyncPlugins } from "#nitro/runtime/async-plugins";`
+        );
         code.push(
-          `  for (const plugin of plugins) {`,
+          `  for (let i = 0; i < plugins.length; i++) {`,
+          `    let result;`,
           `    try {`,
-          `      plugin(app);`,
+          `      result = plugins[i](app);`,
           `    } catch (error) {`,
           `      app.captureError?.(error, { tags: ["plugin"] });`,
           `      throw error;`,
+          `    }`,
+          `    if (typeof result?.then === "function") {`,
+          `      return initAsyncPlugins(app, result, plugins.slice(i + 1));`,
           `    }`,
           `  }`,
           // h3 composes `~middleware` into a dispatcher on first dispatch and
@@ -151,10 +164,22 @@ export default function app(nitro: Nitro) {
             `    event.context.routeRules = getRouteRules(event.req.method, event.url.pathname).routeRules;`
           );
         }
+        if (hasRoutes) {
+          // `HEAD` is served by the `GET` route unless a `HEAD` route matches
+          // (a method-agnostic match, such as a catch-all, would hide the `GET` one).
+          code.push(
+            `    if (event.req.method === "HEAD") {`,
+            `      const route = findRoute("HEAD", event.url.pathname);`,
+            `      return route?.data.method ? route : findRoute("GET", event.url.pathname);`,
+            `    }`
+          );
+        }
         code.push(
-          hasRoutes
-            ? `    return findRoute(event.req.method, event.url.pathname);`
-            : `    return undefined;`,
+          hasMethodRoutes
+            ? `    return findRoute(event.req.method, event.url.pathname) ?? findMethodNotAllowed(event.req.method, event.url.pathname);`
+            : hasRoutes
+              ? `    return findRoute(event.req.method, event.url.pathname);`
+              : `    return undefined;`,
           `  };`
         );
       }
@@ -164,9 +189,15 @@ export default function app(nitro: Nitro) {
         hasRouteRules && "createRouteRulesMiddleware",
         hasRoutedMiddleware && "createRoutedMiddleware",
         hasRouteRules && "getRouteRules",
+        hasMethodRoutes && "createMethodNotAllowedMatcher",
       ].filter(Boolean);
       if (runtimeAppImports.length) {
         imports.push(`import { ${runtimeAppImports.join(", ")} } from "#nitro/runtime/app";`);
+      }
+      if (hasMethodRoutes) {
+        code.push(
+          `  const findMethodNotAllowed = createMethodNotAllowedMatcher(findRoute, ${JSON.stringify(routeMethods)});`
+        );
       }
       if (hasRouteRules) {
         code.push(`  h3App["~middleware"].push(createRouteRulesMiddleware());`);

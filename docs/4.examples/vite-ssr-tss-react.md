@@ -23,10 +23,10 @@ icon: i-simple-icons-tanstack
   "dependencies": {
     "@tanstack/react-router": "^1.170.44",
     "@tanstack/react-router-devtools": "^1.167.2",
-    "@tanstack/react-start": "^1.169.1",
+    "@tanstack/react-start": "^1.169.2",
     "nitro": "latest",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "tailwind-merge": "^3.7.0",
     "zod": "^4.6.7"
   },

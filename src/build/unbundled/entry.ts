@@ -2,7 +2,7 @@ import type { Nitro } from "nitro/types";
 
 import { pathToFileURL } from "node:url";
 import { resolveModulePath } from "exsolve";
-import { pkgDir } from "nitro/meta";
+import { pkgDir } from "#nitro/meta";
 import { join, resolve } from "pathe";
 import { baseBuildConfig } from "../config.ts";
 import { virtualTemplates } from "../virtual/_all.ts";

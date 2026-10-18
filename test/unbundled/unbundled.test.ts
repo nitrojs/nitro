@@ -13,6 +13,7 @@ import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
+import { pkgDir } from "#nitro/meta";
 import { join } from "pathe";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { isUnbundledProject } from "../../src/build/unbundled/detect.ts";
@@ -78,6 +79,11 @@ describe("builder: false", () => {
       });
     });
 
+    it("runs the KV storage layer (optional runtime dependency)", async () => {
+      const res = await fetch(new URL("/kv", server.url));
+      expect(await res.json()).toEqual({ value: "bar" });
+    });
+
     it("serves public assets", async () => {
       const res = await fetch(new URL("/hello.txt", server.url));
       expect(await res.text()).toContain("static asset");
@@ -112,6 +118,27 @@ describe("builder: false", () => {
     expect(warn).toHaveBeenCalledWith(
       "Build plugin `fixture:unsupported` uses hooks not supported with `builder: false`, they are ignored: `buildStart`."
     );
+    await nitro.close();
+  });
+
+  it("resolves optional runtime dependencies of the runtime from the project", async () => {
+    const nitro = await createNitro({ rootDir });
+    const plugin = (await unbundledPlugins(nitro)).find((p) => p.name === "nitro:runtime-deps");
+    const { handler } = plugin!.resolveId as { handler: (...args: any[]) => Promise<unknown> };
+    const resolve = vi.fn(async () => ({ id: "/resolved", external: false }));
+
+    // Imported by user code (or dependencies): the runtime error is kept
+    const userImporter = join(tmpdir(), "app/server.ts");
+    expect(await handler.call({ resolve }, "unstorage", userImporter)).toBeUndefined();
+    expect(resolve).not.toHaveBeenCalled();
+
+    // Imported by the Nitro runtime: resolved from the project
+    const runtimeImporter = join(pkgDir, "dist/runtime/internal/kv.mjs");
+    expect(await handler.call({ resolve }, "unstorage/tracing", runtimeImporter)).toEqual({
+      id: "/resolved",
+      external: false,
+    });
+    expect(resolve).toHaveBeenCalledWith("unstorage/tracing", join(nitro.options.rootDir, "_"));
     await nitro.close();
   });
 

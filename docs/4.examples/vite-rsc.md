@@ -25,14 +25,14 @@ icon: i-logos-react
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
-    "@vitejs/plugin-rsc": "^0.5.37",
+    "@vitejs/plugin-rsc": "^0.5.38",
     "nitro": "latest",
     "rsc-html-stream": "^0.0.8",
     "vite": "latest"
