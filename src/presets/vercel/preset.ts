@@ -3,12 +3,7 @@ import type { Nitro } from "nitro/types";
 import { presetsDir } from "nitro/meta";
 import { join } from "pathe";
 import { importDep } from "../../utils/dep.ts";
-import {
-  deprecateSWR,
-  generateFunctionFiles,
-  generateStaticFiles,
-  resolveVercelRuntime,
-} from "./utils.ts";
+import { generateFunctionFiles, generateStaticFiles, resolveVercelRuntime } from "./utils.ts";
 import { setupImmutableStaticFiles, generateImmutableManifest } from "./immutable.ts";
 import { vercelDevModule } from "./dev.ts";
 
@@ -112,9 +107,6 @@ const vercel = defineNitroPreset(
           };
         }
       },
-      "rollup:before": (nitro: Nitro) => {
-        deprecateSWR(nitro);
-      },
       async compiled(nitro: Nitro) {
         await generateFunctionFiles(nitro);
         await generateImmutableManifest(nitro);
@@ -148,9 +140,6 @@ const vercelStatic = defineNitroPreset(
       "build:before": (nitro: Nitro) => {
         // Immutable static files (opt-in, guarded by Vercel platform support)
         setupImmutableStaticFiles(nitro);
-      },
-      "rollup:before": (nitro: Nitro) => {
-        deprecateSWR(nitro);
       },
       async compiled(nitro: Nitro) {
         await generateStaticFiles(nitro);
