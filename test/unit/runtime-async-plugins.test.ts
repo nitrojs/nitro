@@ -38,19 +38,54 @@ describe("runtime: async plugins", () => {
     expect(app.h3!.config.onRequest).toBe(onRequest);
   });
 
+  it("keeps a plugin that wraps onRequest during init working once ready", async () => {
+    const order: string[] = [];
+    const app = createApp({ onRequest: () => void order.push("onRequest") });
+    const pending = createDeferred();
+
+    initAsyncPlugins(app, pending.promise, [
+      (app) => {
+        const original = app.h3!.config.onRequest!;
+        app.h3!.config.onRequest = (event) => {
+          order.push("wrapper");
+          return original(event);
+        };
+      },
+    ]);
+    pending.resolve();
+    await app.ready;
+
+    const res = await app.fetch(new Request("http://localhost/"));
+    expect(res.status).toBe(200);
+    expect(order).toEqual(["wrapper", "onRequest"]);
+  });
+
   it("fails held requests and captures the error when a plugin rejects", async () => {
     const captured: unknown[] = [];
     const app = createApp({});
     app.captureError = (error) => captured.push(error);
     const error = new Error("init failed");
 
-    initAsyncPlugins(app, Promise.reject(error), []);
-    const ready = app.ready!;
-    const res = await app.fetch(new Request("http://localhost/"));
+    const unhandled = await trackUnhandledRejections(async () => {
+      initAsyncPlugins(app, Promise.reject(error), []);
+      const ready = app.ready!;
+      const res = await app.fetch(new Request("http://localhost/"));
 
-    expect(res.status).toBe(500);
-    await expect(ready).rejects.toBe(error);
-    expect(captured).toContain(error);
+      expect(res.status).toBe(500);
+      await expect(ready).rejects.toBe(error);
+      expect(captured).toContain(error);
+    });
+    expect(unhandled).toEqual([error]);
+  });
+
+  it("reports a rejected plugin once as an unhandled rejection", async () => {
+    const app = createApp({});
+    const error = new Error("init failed");
+
+    const unhandled = await trackUnhandledRejections(async () => {
+      initAsyncPlugins(app, Promise.reject(error), []);
+    });
+    expect(unhandled).toEqual([error]);
   });
 
   it("afterNitroReady() defers until ready", async () => {
@@ -70,6 +105,24 @@ function createApp(config: H3Core["config"]): NitroApp {
   const h3 = new H3Core(config);
   h3["~findRoute"] = () => ({ data: { handler: () => "ok" } }) as any;
   return { h3, fetch: (req) => h3.fetch(req) };
+}
+
+async function trackUnhandledRejections(fn: () => Promise<void>): Promise<unknown[]> {
+  const reasons: unknown[] = [];
+  const listeners = process.listeners("unhandledRejection");
+  const listener = (reason: unknown) => reasons.push(reason);
+  process.removeAllListeners("unhandledRejection");
+  process.on("unhandledRejection", listener);
+  try {
+    await fn();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  } finally {
+    process.off("unhandledRejection", listener);
+    for (const l of listeners) {
+      process.on("unhandledRejection", l);
+    }
+  }
+  return reasons;
 }
 
 function createDeferred() {

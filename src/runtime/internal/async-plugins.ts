@@ -8,6 +8,9 @@ import type { H3Core } from "h3";
  * Until then, `nitroApp.ready` is set and every request is held in `onRequest`.
  * The original `onRequest` is restored afterwards, so a ready app has no
  * per-request cost.
+ *
+ * A failure is reported once as an unhandled rejection (like a sync plugin that
+ * throws), whether or not held requests or events are waiting on `ready`.
  */
 export function initAsyncPlugins(
   app: NitroApp,
@@ -16,9 +19,11 @@ export function initAsyncPlugins(
 ): NitroApp {
   const h3 = app.h3 as H3Core;
   const onRequest = h3.config.onRequest;
-  const gate: typeof onRequest = (event) => app.ready!.then(() => onRequest?.(event));
+  // A plugin may wrap `onRequest` while the gate is installed, keeping it in the chain.
+  const gate: typeof onRequest = (event) =>
+    app.ready ? app.ready.then(() => onRequest?.(event)) : onRequest?.(event);
   h3.config.onRequest = gate;
-  app.ready = (async () => {
+  const ready = (async () => {
     await pending;
     for (const plugin of plugins) {
       await plugin(app as Parameters<NitroAppPlugin>[0]);
@@ -36,6 +41,8 @@ export function initAsyncPlugins(
       throw error;
     }
   );
+  app.ready = ready;
+  ready.then();
   return app;
 }
 
