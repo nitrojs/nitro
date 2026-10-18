@@ -79,7 +79,12 @@ export function startScheduleRunner({
   for (const schedule of scheduledTasks) {
     cronJobs.push(
       new Cron(schedule.cron, async () => {
-        await useNitroApp().ready;
+        try {
+          await useNitroApp().ready;
+        } catch {
+          // Plugin initialization failed and was already reported
+          return;
+        }
         await Promise.all(
           schedule.tasks.map((name) =>
             runTask(name, {
