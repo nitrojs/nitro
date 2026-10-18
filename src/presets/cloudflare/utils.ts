@@ -9,13 +9,7 @@ import { readGitConfig, readPackageJSON, findNearestFile } from "pkg-types";
 import { defu } from "defu";
 import { glob } from "tinyglobby";
 import { join, resolve } from "pathe";
-import {
-  joinURL,
-  hasProtocol,
-  withLeadingSlash,
-  withTrailingSlash,
-  withoutLeadingSlash,
-} from "ufo";
+import { joinURL, withLeadingSlash, withTrailingSlash, withoutLeadingSlash } from "ufo";
 import { unenvCfNodeCompat } from "./unenv/preset.ts";
 import { routeToSplat, sortRoutes } from "../_utils/routes.ts";
 import { extendEnv } from "../../build/env.ts";
@@ -153,9 +147,7 @@ export async function writeCFPagesRedirects(nitro: Nitro) {
     const code = redirect.status;
     const from = joinURL(nitro.options.baseURL, routeToSplat(key));
     const to = redirect.to.replaceAll("**", ":splat");
-    contents.push(
-      `${from}\t${hasProtocol(to, { acceptRelative: true }) ? to : joinURL(nitro.options.baseURL, to)}\t${code}`
-    );
+    contents.push(`${from}\t${to}\t${code}`);
   }
   contents.push(staticFallback);
 
