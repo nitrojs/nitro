@@ -12,7 +12,7 @@ export interface ViteImportOptions {
   id?: string;
   /**
    * Explicit `vite` package to use instead of resolving it: its directory or entry,
-   * as a path or `file://` URL (the `vite.path` or `deps.vite` option).
+   * as a path or `file://` URL (the `vite.path` or `deps.paths.vite` option).
    */
   path?: string;
 }

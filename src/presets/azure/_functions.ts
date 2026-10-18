@@ -22,7 +22,7 @@ export async function setupAzureFunctions(nitro: Nitro) {
       const resolved = await ensureDep({
         id: "@azure/functions",
         dir: nitro.options.rootDir,
-        paths: nitro.options.deps,
+        paths: nitro.options.deps?.paths,
       });
       if (!resolved) {
         throw new Error(

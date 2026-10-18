@@ -40,7 +40,7 @@ interface DepBaseOptions {
    */
   projectOnly?: boolean;
   /**
-   * Explicit package paths by package name (the `deps` option), used instead of resolving
+   * Explicit package paths by package name (the `deps.paths` option), used instead of resolving
    * (and installing) them from `dir`.
    */
   paths?: Record<string, string>;

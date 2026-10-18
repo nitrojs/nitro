@@ -23,7 +23,7 @@ export function resolveFromDepPath(id: string, opts: { dir: string; path: string
   const resolved = pkgDir && resolveModulePath(id, { from: join(pkgDir, "/"), try: true });
   if (!resolved) {
     throw new Error(
-      `Cannot resolve \`${id}\` from \`${opts.path}\`. The \`deps["${name}"]\` option must point to the \`${name}\` package directory or entry.`
+      `Cannot resolve \`${id}\` from \`${opts.path}\`. The \`deps.paths["${name}"]\` option must point to the \`${name}\` package directory or entry.`
     );
   }
   return resolved;

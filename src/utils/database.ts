@@ -34,7 +34,7 @@ export async function resolveDatabaseConnections(
   }
   const { connectors, connectorDependencies } = await importDb0({
     dir: options.rootDir,
-    paths: options.deps,
+    paths: options.deps?.paths,
     reason: "the `database` config",
   });
   return entries.map(([name, { connector, options: connectorOpts }]) => {

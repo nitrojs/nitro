@@ -68,8 +68,8 @@ resolves from `nitro.options.rootDir` and offers to install what is missing.
 
 - Don't add a `peerDependencies` entry. Add the package to `devDependencies` (for tests and types)
   and to the manifest in `src/utils/_deps.ts` (supported `version` range, `reason` and install
-  defaults), then import it with `importDep({ id, dir: nitro.options.rootDir, paths: nitro.options.deps })`
-  (`paths` honours the explicit packages of the `deps` option, e.g. passed by frameworks).
+  defaults), then import it with `importDep({ id, dir: nitro.options.rootDir, paths: nitro.options.deps?.paths })`
+  (`paths` honours the explicit packages of the `deps.paths` option, e.g. passed by frameworks).
 - Manifest entries are kept external in `build.config.ts`. A unit test checks that each range covers
   the `devDependencies` version.
 - `import type` from such a package is fine; only value imports must go through `utils/dep.ts`.

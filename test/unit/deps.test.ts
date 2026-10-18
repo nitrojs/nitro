@@ -65,12 +65,12 @@ describe("shimmed dependencies", async () => {
 });
 
 describe("`deps` option", () => {
-  it("aliases `vite.path` and `deps.vite`", () => {
-    const fromVitePath = { deps: {}, vite: { path: "/vite" } } as unknown as NitroOptions;
+  it("aliases `vite.path` and `deps.paths.vite`", () => {
+    const fromVitePath = { vite: { path: "/vite" } } as unknown as NitroOptions;
     resolveDepsOptions(fromVitePath);
-    expect(fromVitePath.deps.vite).toBe("/vite");
+    expect(fromVitePath.deps?.paths?.vite).toBe("/vite");
 
-    const fromDeps = { deps: { vite: "/vite" } } as unknown as NitroOptions;
+    const fromDeps = { deps: { paths: { vite: "/vite" } } } as unknown as NitroOptions;
     resolveDepsOptions(fromDeps);
     expect(fromDeps.vite?.path).toBe("/vite");
   });

@@ -1,12 +1,12 @@
 import type { NitroOptions } from "nitro/types";
 
 export function resolveDepsOptions(options: NitroOptions) {
-  options.deps ??= {};
-  // `vite.path` is an alias of `deps.vite`
+  const paths = ((options.deps ??= {}).paths ??= {});
+  // `vite.path` is an alias of `deps.paths.vite`
   if (options.vite?.path) {
-    options.deps.vite ??= options.vite.path;
+    paths.vite ??= options.vite.path;
   }
-  if (options.deps.vite) {
-    (options.vite ??= {}).path = options.deps.vite;
+  if (paths.vite) {
+    (options.vite ??= {}).path = paths.vite;
   }
 }

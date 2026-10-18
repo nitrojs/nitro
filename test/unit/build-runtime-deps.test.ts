@@ -158,7 +158,7 @@ describe.each(builders)("optional runtime dependencies (%s)", (builder) => {
     expect(depCalls("ocache")).not.toEqual([]);
   });
 
-  it("bundles ocache from its explicit path (`deps`)", async () => {
+  it("bundles ocache from its explicit path (`deps.paths`)", async () => {
     // A copy of `ocache` outside the project, as a framework would provide it
     const ocacheDir = join(mkdtempSync(join(tmpdir(), "nitro-build-runtime-deps-fw-")), "ocache");
     tmpDirs.push(dirname(ocacheDir));
@@ -169,7 +169,7 @@ describe.each(builders)("optional runtime dependencies (%s)", (builder) => {
     const code = await buildApp(
       builder,
       `import { defineCachedFunction } from "nitro/cache";\nconst cached = defineCachedFunction(() => "ok", { maxAge: 60 });\nexport default { fetch: async () => new Response(await cached()) };`,
-      { deps: { ocache: ocacheDir } }
+      { deps: { paths: { ocache: ocacheDir } } }
     );
     expect(code).toContain("framework-ocache");
   });

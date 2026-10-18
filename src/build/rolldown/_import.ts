@@ -6,9 +6,9 @@ import { ensureDep } from "../../utils/dep.ts";
 /**
  * Resolve `rolldown` from the user project (or `undefined` if it is not installed).
  *
- * An explicit `deps.rolldown` path takes precedence. With strict package managers (pnpm),
+ * An explicit `deps.paths.rolldown` takes precedence. With strict package managers (pnpm),
  * `rolldown` is often only reachable as a dependency of `vite` (the one of the project, or the
- * explicit `deps.vite` path).
+ * explicit `deps.paths.vite`).
  * Not cached, so a `rolldown` installed meanwhile (e.g. on demand by a previous build) is found.
  */
 export function resolveRolldown(

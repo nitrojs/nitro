@@ -42,7 +42,7 @@ export async function resolveKVDrivers(options: NitroOptions): Promise<ResolvedK
   }
   const { builtinDrivers, builtinDriverDependencies } = await importUnstorage({
     dir: options.rootDir,
-    paths: options.deps,
+    paths: options.deps?.paths,
     reason: "the `kv` config",
   });
   return mounts.map((mount) => ({

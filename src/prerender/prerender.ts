@@ -362,7 +362,7 @@ export async function prerender(nitro: Nitro) {
 function prerenderBuilder(nitro: Nitro): Nitro["options"]["builder"] {
   if (nitro.options.builder === "vite") {
     const { rootDir, deps } = nitro.options;
-    return resolveRolldown(rootDir, { paths: deps }) ? "rolldown" : false;
+    return resolveRolldown(rootDir, { paths: deps?.paths }) ? "rolldown" : false;
   }
   return nitro.options.builder;
 }

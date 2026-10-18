@@ -294,7 +294,7 @@ describe("missing dependencies", () => {
   });
 });
 
-describe("explicit dependency paths (`deps`)", () => {
+describe("explicit dependency paths (`deps.paths`)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     Object.assign(env, { isAgent: false, isCI: true, isTest: false, hasTTY: false });
@@ -331,7 +331,7 @@ describe("explicit dependency paths (`deps`)", () => {
   it("throws for an explicit path that is not the package", async () => {
     const paths = { [missingDep.id]: createProject() };
     await expect(ensureDep({ ...missingDep, dir: createProject(), paths })).rejects.toThrow(
-      `The \`deps["${missingDep.id}"]\` option must point to the \`${missingDep.id}\` package`
+      `The \`deps.paths["${missingDep.id}"]\` option must point to the \`${missingDep.id}\` package`
     );
     expect(addDevDependency).not.toHaveBeenCalled();
   });
