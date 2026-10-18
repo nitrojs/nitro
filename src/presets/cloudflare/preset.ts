@@ -112,7 +112,6 @@ export const cloudflareDev = defineNitroPreset(
   {
     name: "cloudflare-dev" as const,
     aliases: ["cloudflare-module", "cloudflare-durable", "cloudflare-pages"],
-    compatibilityDate: "2025-07-13",
     dev: true,
   }
 );

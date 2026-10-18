@@ -82,19 +82,16 @@ export function fetch(
   return globalThis.fetch(resource, init);
 }
 
-let _matchRouteRules: ReturnType<typeof createMatcherFromFind> | undefined;
-
+/**
+ * Get the resolved route rules for a method and pathname.
+ *
+ * The result is memoized and shared, so treat it as read-only.
+ */
 export function getRouteRules(
   method: string,
   pathname: string
-): {
-  routeRules: ResolvedRouteRules;
-  routeRuleMiddleware: Middleware[];
-} {
-  return (_matchRouteRules ??= memoizeRouteRulesMatcher(createMatcherFromFind(findRouteRules)))(
-    method,
-    pathname
-  );
+): { routeRules: ResolvedRouteRules } {
+  return matchRouteRules(method, pathname);
 }
 
 /**
@@ -108,7 +105,10 @@ export function getRouteRules(
 export function createRouteRulesMiddleware(): Middleware {
   const composed = new WeakMap<Middleware[], ComposedMiddleware>();
   const middleware: Middleware = (event, next) => {
-    const ruleMiddleware = getRouteRules(event.req.method, event.url.pathname).routeRuleMiddleware;
+    const ruleMiddleware = matchRouteRules(
+      event.req.method,
+      event.url.pathname
+    ).routeRuleMiddleware;
     if (ruleMiddleware.length === 0) {
       return next();
     }
@@ -181,6 +181,21 @@ export function createMethodNotAllowedMatcher(
       },
     };
   };
+}
+
+let _matchRouteRules: ReturnType<typeof createMatcherFromFind> | undefined;
+
+function matchRouteRules(
+  method: string,
+  pathname: string
+): {
+  routeRules: ResolvedRouteRules;
+  routeRuleMiddleware: Middleware[];
+} {
+  return (_matchRouteRules ??= memoizeRouteRulesMatcher(createMatcherFromFind(findRouteRules)))(
+    method,
+    pathname
+  );
 }
 
 type RoutedChainNode = {

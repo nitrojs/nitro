@@ -57,7 +57,7 @@ You can use the [runtime hooks](/docs/plugins#nitro-runtime-hooks) below to exte
 - [`cloudflare:durable:alarm`](https://developers.cloudflare.com/durable-objects/api/alarms/) (only with the [`cloudflare_durable`](#cloudflare-workers-with-durable-objects) preset)
 
 ::note
-The `cloudflare:queue` hook receives the message batch as `batch` and the `cloudflare:email` hook receives the incoming message as `message`. The older `event` field is deprecated for both hooks.
+The `cloudflare:queue` hook receives the message batch as `batch` and the `cloudflare:email` hook receives the incoming message as `message`.
 ::
 
 ### Durable Objects
