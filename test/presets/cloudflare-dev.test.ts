@@ -257,6 +257,62 @@ for (const mode of ["nitro", "vite", "build", "vite-build"] as const) {
   });
 }
 
+describe("cloudflare-dev websocket", () => {
+  let serverURL: string;
+  let close: () => Promise<void>;
+
+  beforeAll(async () => {
+    const nitro = await createNitro({
+      rootDir,
+      dev: true,
+      builder: (process.env.NITRO_BUILDER as "rollup" | "rolldown") || "rolldown",
+      features: { websocket: true },
+      handlers: [
+        {
+          route: "/_ws",
+          handler: fileURLToPath(new URL("fixtures/websocket.ts", import.meta.url)),
+        },
+      ],
+    });
+    const devServer = createDevServer(nitro);
+    const listener = devServer.listen({ port: 0, hostname: "127.0.0.1" });
+    close = async () => {
+      await listener.close();
+      await nitro.close();
+    };
+    await prepare(nitro);
+    const ready = new Promise<void>((resolve) => nitro.hooks.hook("dev:reload", () => resolve()));
+    await build(nitro);
+    await ready;
+    await listener.ready();
+    serverURL = listener.url!;
+    // An upgrade sent while Miniflare starts can break its init
+    await fetch(new URL("/bindings", serverURL));
+  }, 60_000);
+
+  afterAll(async () => {
+    await close?.();
+  });
+
+  it("calls the route's websocket hooks", async () => {
+    const ws = new WebSocket(new URL("/_ws", serverURL.replace(/^http/, "ws")));
+    const messages: string[] = [];
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error("Timed out")), 10_000);
+      ws.addEventListener("open", () => ws.send("hello"));
+      ws.addEventListener("message", (event) => {
+        messages.push(String(event.data));
+        if (messages.length === 2) {
+          clearTimeout(timeout);
+          resolve();
+        }
+      });
+      ws.addEventListener("error", () => reject(new Error("WebSocket error")));
+    }).finally(() => ws.close());
+    expect(messages).toEqual(["ready", "echo:hello"]);
+  });
+});
+
 function waitForWatcher() {
   return new Promise((resolve) => setTimeout(resolve, 100));
 }
