@@ -93,6 +93,28 @@ describe("nitro:preset:cloudflare-module", async () => {
   it("should export the correct functions", async () => {
     const entry = await fsp.readFile(resolve(ctx.outDir, "server", "index.mjs"), "utf8");
     expect(entry).toMatch(/export \{.*myScheduled.*\}/);
+    expect(entry).toMatch(/export \{.*\$DurableObject.*\}/);
+  });
+
+  it("serves the app from the `$DurableObject` class when its binding is declared", async () => {
+    const mf = new Miniflare({
+      modules: true,
+      compatibilityDate: "2025-04-01",
+      scriptPath: resolve(ctx.outDir, "server/index.mjs"),
+      modulesRules: [{ type: "CompiledWasm", include: ["**/*.wasm"] }],
+      compatibilityFlags: ["nodejs_compat", "no_nodejs_compat_v2"],
+      durableObjects: { $DurableObject: "$DurableObject" },
+      bindings: { ...ctx.env },
+    });
+    try {
+      const namespace = await mf.getDurableObjectNamespace("$DurableObject");
+      const stub = namespace.get(namespace.idFromName("server"));
+      const res = await stub.fetch("http://localhost/api/hello");
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ message: "Hello API" });
+    } finally {
+      await mf.dispose();
+    }
   });
 
   it("should auto-generate cron triggers in wrangler.json", async () => {
