@@ -181,7 +181,6 @@ describe("cloudflare pages _redirects and _headers", () => {
     });
     await writeCFPagesRedirects(nitro);
     await writeCFHeaders(nitro, "output");
-    // Targets are used as written (like the runtime), only sources are prefixed with the baseURL
     expect(await readFile(join(dir, "_redirects"), "utf8")).toBe(
       "/base/cdn/*\t//cdn.nitro.build/:splat\t302\n/base/ext/*\thttps://nitro.build/:splat\t302\n/base/old/*\t/new/:splat\t301\n"
     );
