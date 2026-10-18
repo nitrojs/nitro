@@ -53,8 +53,8 @@ You can use the [runtime hooks](/docs/plugins#nitro-runtime-hooks) below to exte
 - [`cloudflare:queue`](https://developers.cloudflare.com/queues/configuration/javascript-apis/#consumer)
 - [`cloudflare:tail`](https://developers.cloudflare.com/workers/runtime-apis/handlers/tail/)
 - `cloudflare:trace`
-- `cloudflare:durable:init` (only with the [`cloudflare_durable`](#cloudflare-workers-with-durable-objects) preset)
-- [`cloudflare:durable:alarm`](https://developers.cloudflare.com/durable-objects/api/alarms/) (only with the [`cloudflare_durable`](#cloudflare-workers-with-durable-objects) preset)
+- `cloudflare:durable:init` (see [WebSockets with Durable Objects](#websockets-with-durable-objects))
+- [`cloudflare:durable:alarm`](https://developers.cloudflare.com/durable-objects/api/alarms/) (see [WebSockets with Durable Objects](#websockets-with-durable-objects))
 
 ::note
 The `cloudflare:queue` hook receives the message batch as `batch` and the `cloudflare:email` hook receives the incoming message as `message`.
@@ -171,23 +171,13 @@ export default defineConfig({
 
 No manual Wrangler configuration is needed. Nitro handles it for you.
 
-## Cloudflare Workers with Durable Objects
-
-**Preset:** `cloudflare_durable`
+### WebSockets with Durable Objects
 
 :read-more{title="Durable Objects" to="https://developers.cloudflare.com/durable-objects/"}
 
-This preset extends `cloudflare_module` and routes requests through a [Durable Object](https://developers.cloudflare.com/durable-objects/) instance, enabling stateful features such as WebSocket support (via [CrossWS](https://crossws.h3.dev/adapters/cloudflare#durable-objects)) and in-memory state that persists across requests.
+[WebSocket](/docs/websocket) connections are handled by the Worker by default. Each connection is isolated, so [pub/sub](/docs/websocket#pubsub) is not supported.
 
-```ts [nitro.config.ts]
-import { defineConfig } from "nitro";
-
-export default defineConfig({
-  preset: "cloudflare_durable"
-})
-```
-
-The preset entry exports a `$DurableObject` class. Declare its binding and export in your Wrangler configuration:
+The Worker entry also exports a `$DurableObject` class. When its binding is declared, WebSocket upgrades are forwarded to a single instance of it, so peers share pub/sub topics and connections can [hibernate](https://developers.cloudflare.com/durable-objects/best-practices/websockets/#websocket-hibernation-api) (via [CrossWS](https://crossws.h3.dev/adapters/cloudflare#durable-objects)). Declare its binding and export in your Wrangler configuration:
 
 ```json [wrangler.json]
 {
@@ -206,6 +196,10 @@ The preset entry exports a `$DurableObject` class. Declare its binding and expor
 ```
 
 You can use the `cloudflare:durable:init` runtime hook to run code when the Durable Object is initialized, and the `cloudflare:durable:alarm` hook to handle [alarms](https://developers.cloudflare.com/durable-objects/api/alarms/).
+
+::note
+The `cloudflare_durable` preset is deprecated and builds the same output as `cloudflare_module`.
+::
 
 ### Tracing
 

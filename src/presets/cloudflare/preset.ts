@@ -169,10 +169,17 @@ const cloudflareModule = defineNitroPreset(
   }
 );
 
+/** @deprecated `cloudflare-module` exports the `$DurableObject` class. */
 const cloudflareDurable = defineNitroPreset(
   {
     extends: "cloudflare-module",
-    entry: "./cloudflare/runtime/cloudflare-durable",
+    hooks: {
+      "build:before": (nitro) => {
+        nitro.logger.warn(
+          "[cloudflare] The `cloudflare_durable` preset is deprecated. Use `cloudflare_module` instead: it exports the same `$DurableObject` class and forwards WebSocket upgrades to it when its binding is declared in your Wrangler configuration."
+        );
+      },
+    },
   },
   {
     name: "cloudflare-durable" as const,
