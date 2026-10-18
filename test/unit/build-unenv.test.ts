@@ -5,6 +5,7 @@ import { dirname, join } from "pathe";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Nitro } from "nitro/types";
 import { build, copyPublicAssets, createNitro, prepare } from "../../src/builder.ts";
+import { getDepMeta } from "../../src/utils/_deps.ts";
 import * as dep from "../../src/utils/dep.ts";
 
 vi.mock("../../src/utils/dep.ts", { spy: true });
@@ -12,8 +13,12 @@ vi.mock("../../src/utils/dep.ts", { spy: true });
 // The vite builder loads `nitro/vite` from `dist/`, so it would not use (or mock) the sources here
 const builders = ["rolldown", "rollup"] as const;
 
+// With the defaults of the dependency manifest applied
 const unenvCalls = () =>
-  vi.mocked(dep.ensureDep).mock.calls.filter(([opts]) => opts.id === "unenv");
+  vi
+    .mocked(dep.ensureDep)
+    .mock.calls.filter(([opts]) => opts.id === "unenv")
+    .map(([opts]) => [{ ...getDepMeta(opts.id), ...opts }]);
 
 const tmpDirs: string[] = [];
 afterAll(() => {

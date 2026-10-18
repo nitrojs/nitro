@@ -3,9 +3,6 @@ import type { NitroOptions } from "nitro/types";
 import { importDep } from "./dep.ts";
 import type { LibDep } from "./dep.ts";
 
-/** Supported `db0` version range (installed on demand). */
-export const DB0_VERSION = "^0.4.1";
-
 export interface DatabaseConnection {
   /** Logical connection name. */
   name: string;
@@ -37,6 +34,7 @@ export async function resolveDatabaseConnections(
   }
   const { connectors, connectorDependencies } = await importDb0({
     dir: options.rootDir,
+    paths: options.deps?.paths,
     reason: "the `database` config",
   });
   return entries.map(([name, { connector, options: connectorOpts }]) => {
@@ -52,6 +50,10 @@ export async function resolveDatabaseConnections(
 }
 
 /** Import `db0` from the project, installing it on demand. */
-export function importDb0(opts: { dir: string; reason: string }): Promise<typeof import("db0")> {
-  return importDep({ id: "db0", version: DB0_VERSION, dev: false, autoInstall: true, ...opts });
+export function importDb0(opts: {
+  dir: string;
+  paths?: Record<string, string>;
+  reason: string;
+}): Promise<typeof import("db0")> {
+  return importDep({ id: "db0", ...opts });
 }

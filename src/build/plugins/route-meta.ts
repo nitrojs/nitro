@@ -9,7 +9,10 @@ import { escapeRegExp } from "../../utils/regex.ts";
 const PREFIX = "\0nitro:route-meta:";
 
 export async function routeMeta(nitro: Nitro) {
-  const { parseSync, transformSync } = await importOXC({ dir: nitro.options.rootDir });
+  const { parseSync, transformSync } = await importOXC({
+    dir: nitro.options.rootDir,
+    paths: nitro.options.deps?.paths,
+  });
   return {
     name: "nitro:route-meta",
     resolveId: {

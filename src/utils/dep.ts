@@ -4,14 +4,25 @@ import { consola } from "consola";
 import { clearResolveCache, resolveModulePath } from "exsolve";
 import { dirname, join } from "pathe";
 import { hasTTY, isAgent, isCI, isTest } from "std-env";
+import { depPackageName, resolveFromDepPath } from "./_dep-path.ts";
+import { getDepMeta } from "./_deps.ts";
+import type { DepId, DepModules } from "./_deps.ts";
 
-export interface DepOptions {
+/**
+ * Options of a dependency to resolve and install.
+ *
+ * Dependencies listed in the manifest (`utils/_deps.ts`) take their defaults from it.
+ */
+export type DepOptions = DepBaseOptions &
+  ({ id: DepId; reason?: string } | { id: string; reason: string });
+
+interface DepBaseOptions {
   /** Package name to resolve and install. */
   id: string;
   /** Directory to resolve from and install into. */
   dir: string;
-  /** Human readable reason, used in prompts and errors. */
-  reason: string;
+  /** Human readable reason, used in prompts and errors (required if not in the manifest). */
+  reason?: string;
   /**
    * Supported version range, used when installing (ignored if it is not a simple range)
    * and checked against the version of an already installed package.
@@ -28,6 +39,11 @@ export interface DepOptions {
    * resolvable from the user project, not only from where Nitro itself is installed.
    */
   projectOnly?: boolean;
+  /**
+   * Explicit package paths by package name (the `deps.paths` option), used instead of resolving
+   * (and installing) them from `dir`.
+   */
+  paths?: Record<string, string>;
 }
 
 /**
@@ -36,8 +52,10 @@ export interface DepOptions {
  * Resolves to the module path or `undefined` if it is (still) not available.
  * Concurrent calls for the same dependency share one prompt (and install).
  */
-export function ensureDep(opts: DepOptions): Promise<string | undefined> {
-  const key = `${opts.projectOnly ? "project" : "any"}:${opts.dir}:${opts.id}`;
+export function ensureDep(depOpts: DepOptions): Promise<string | undefined> {
+  const opts = _resolveDepOptions(depOpts);
+  const path = opts.paths?.[opts.id];
+  const key = `${path ? `path:${path}` : opts.projectOnly ? "project" : "any"}:${opts.dir}:${opts.id}`;
   let pending = _pendingDeps.get(key);
   if (!pending) {
     pending = _ensureDep(opts).finally(() => _pendingDeps.delete(key));
@@ -46,36 +64,51 @@ export function ensureDep(opts: DepOptions): Promise<string | undefined> {
   return pending;
 }
 
-export async function importDep<T>(opts: DepOptions): Promise<T> {
+/** Import a dependency, installing it on demand (typed from its `id` for manifest entries). */
+export function importDep<Id extends keyof DepModules>(
+  opts: DepOptions & { id: Id }
+): Promise<DepModules[Id]>;
+export function importDep<T>(opts: DepOptions): Promise<T>;
+export async function importDep(opts: DepOptions): Promise<unknown> {
   const resolved = await ensureDep(opts);
   if (!resolved) {
     throw missingDepError(opts);
   }
-  return (await import(pathToFileURL(resolved).href)) as T;
+  return import(pathToFileURL(resolved).href);
 }
 
 /** Error for a dependency that is (still) not installed, with the command to install it. */
-export function missingDepError(opts: DepOptions): Error {
+export function missingDepError(depOpts: DepOptions): Error {
+  const opts = _resolveDepOptions(depOpts);
   const dev = opts.dev === false ? "" : "dev ";
   return new Error(
     `\`${opts.id}\` is not installed. It is required for ${opts.reason}. Please add it to your ${dev}dependencies (e.g. \`npx nypm add ${dev ? "-D " : ""}${_depSpec(opts)}\`).`
   );
 }
 
-export function isDepInstalled(id: string, opts: Pick<DepOptions, "dir" | "projectOnly">): boolean {
+export function isDepInstalled(
+  id: string,
+  opts: Pick<DepOptions, "dir" | "projectOnly" | "paths">
+): boolean {
   return !!resolveDep(id, opts);
 }
 
 /**
  * Resolve a dependency (or one of its subpaths), bypassing cached failures.
  *
+ * Packages with an explicit path (`paths`) are resolved from it (throwing if they cannot be).
+ *
  * Failed lookups are cached (process wide) by `exsolve`: once a dependency is found after one,
  * the cache is cleared so that every later lookup sees it (installed on demand or manually).
  */
 export function resolveDep(
   id: string,
-  opts: Pick<DepOptions, "dir" | "projectOnly">
+  opts: Pick<DepOptions, "dir" | "projectOnly" | "paths">
 ): string | undefined {
+  const path = opts.paths?.[depPackageName(id)];
+  if (path) {
+    return resolveFromDepPath(id, { dir: opts.dir, path });
+  }
   const from = opts.projectOnly ? opts.dir : [opts.dir, import.meta.url];
   const resolved = resolveModulePath(id, { from, try: true });
   if (resolved) {
@@ -142,9 +175,27 @@ export async function ensureLibDeps(
   }
 }
 
+type ResolvedDepOptions = DepBaseOptions & { id: string; reason: string };
+
+/** Apply the manifest defaults (`utils/_deps.ts`) of a dependency. */
+function _resolveDepOptions(opts: DepOptions): ResolvedDepOptions {
+  const meta = getDepMeta(opts.id);
+  const defined = Object.fromEntries(
+    Object.entries(opts).filter(([, value]) => value !== undefined)
+  );
+  return {
+    version: meta?.version,
+    dev: meta?.dev,
+    autoInstall: meta?.autoInstall,
+    projectOnly: meta?.projectOnly,
+    ...(defined as DepOptions),
+    reason: opts.reason || meta?.reason || `\`${opts.id}\``,
+  };
+}
+
 const _pendingDeps = new Map<string, Promise<string | undefined>>();
 
-async function _ensureDep(opts: DepOptions): Promise<string | undefined> {
+async function _ensureDep(opts: ResolvedDepOptions): Promise<string | undefined> {
   const resolved = resolveDep(opts.id, opts);
   if (resolved) {
     _checkVersion(opts, resolved);
@@ -189,14 +240,14 @@ async function _ensureDep(opts: DepOptions): Promise<string | undefined> {
 }
 
 /** Package spec to install (with the version range if it is a simple one). */
-function _depSpec(opts: DepOptions): string {
+function _depSpec(opts: ResolvedDepOptions): string {
   return opts.version && !opts.version.includes(" ") ? `${opts.id}@${opts.version}` : opts.id;
 }
 
 const _checkedVersions = new Set<string>();
 
 /** Warn if the installed version of a dependency is outside of its supported range (checked once per entry). */
-function _checkVersion(opts: DepOptions, entry: string): void {
+function _checkVersion(opts: ResolvedDepOptions, entry: string): void {
   const key = `${entry}@${opts.version}`;
   if (!opts.version || _checkedVersions.has(key)) {
     return;

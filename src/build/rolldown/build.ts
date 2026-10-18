@@ -6,7 +6,9 @@ import { buildProduction } from "./prod.ts";
 
 export async function rolldownBuild(nitro: Nitro) {
   // Installed on demand before the config, so its build plugins use the `rolldown` oxc bindings
-  const rolldown = await importRolldown(nitro.options.rootDir);
+  const rolldown = await importRolldown(nitro.options.rootDir, {
+    paths: nitro.options.deps?.paths,
+  });
   await nitro.hooks.callHook("build:before", nitro);
   const config = await getRolldownConfig(nitro);
   await nitro.hooks.callHook("build:config", nitro, { builder: "rolldown", rolldown: config });
