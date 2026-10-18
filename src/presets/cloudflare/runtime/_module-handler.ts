@@ -67,7 +67,6 @@ export function createHandler<Env>(hooks: {
       context.waitUntil(
         nitroHooks.callHook("cloudflare:email", {
           message: message as any,
-          event: message as any, // backward compat
           env,
           context,
         }) || Promise.resolve()
@@ -79,7 +78,6 @@ export function createHandler<Env>(hooks: {
       context.waitUntil(
         nitroHooks.callHook("cloudflare:queue", {
           batch,
-          event: batch,
           env,
           context,
         }) || Promise.resolve()
