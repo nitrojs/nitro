@@ -73,6 +73,5 @@ export default defineNitroPreset({
 `resolvePreset(name, opts)` considers:
 - Preset name aliases
 - Dev vs production mode
-- Compatibility dates
 - Static hosting detection
 - Generated mappings in `_all.gen.ts` and `_types.gen.ts`

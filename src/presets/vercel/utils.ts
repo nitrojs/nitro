@@ -651,12 +651,6 @@ type ObservabilityRoute = {
 };
 
 export function getObservabilityRoutes(nitro: Nitro): ObservabilityRoute[] {
-  const compatDate =
-    nitro.options.compatibilityDate.vercel || nitro.options.compatibilityDate.default;
-  if (compatDate < "2025-07-15") {
-    return [];
-  }
-
   // Vercel resolves functions and static files from a single path to output
   // map that functions are added to last, so a function at the path of a
   // prerendered file hides that file and serves the route with SSR on every

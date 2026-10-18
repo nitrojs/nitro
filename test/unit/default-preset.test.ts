@@ -17,7 +17,7 @@ vi.mock("std-env", async (importOriginal) => ({
 
 async function resolve(name: string, opts: Record<string, unknown> = {}) {
   const { resolvePreset } = await import("../../src/presets/_resolve.ts");
-  return resolvePreset(name, { compatibilityDate: "latest", ...opts });
+  return resolvePreset(name, opts);
 }
 
 describe("defaultPreset", () => {
