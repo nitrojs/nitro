@@ -2,6 +2,7 @@ import type { Socket } from "node:net";
 import type { PreviewInstance, PreviewOptions } from "../../preview.ts";
 
 import consola from "consola";
+import { colors } from "consola/utils";
 import { RunnerManager, loadRunner } from "env-runner";
 import { joinURL, withTrailingSlash } from "ufo";
 import { createNitro } from "../../nitro.ts";
@@ -9,16 +10,29 @@ import { prepareUnbundledApp } from "./entry.ts";
 import { unbundledPlugins } from "./plugins.ts";
 
 const previewDotenv = { fileName: [".env.preview", ".env.production", ".env"] };
+const serveDotenv = { fileName: [".env.production", ".env"] };
+
+export interface UnbundledPreviewOptions extends PreviewOptions {
+  /** Serve the sources in production whatever the configured builder is (`nitro serve`). */
+  serve?: boolean;
+}
 
 /**
  * Preview the server sources without a build (`builder: false`).
  *
  * Runs in a Node.js worker with the `standard` preset, like `nitro dev` with `nitro-dev`.
  */
-export async function startUnbundledPreview(opts: PreviewOptions): Promise<PreviewInstance> {
+export async function startUnbundledPreview(
+  opts: UnbundledPreviewOptions
+): Promise<PreviewInstance> {
   const nitro = await createNitro(
-    { rootDir: opts.rootDir, dev: false, preset: "standard" },
-    { dotenv: previewDotenv }
+    {
+      rootDir: opts.rootDir,
+      dev: false,
+      preset: "standard",
+      ...(opts.serve && { builder: false }),
+    },
+    { dotenv: opts.serve ? serveDotenv : previewDotenv }
   );
   const manager = new RunnerManager();
   try {
@@ -36,7 +50,11 @@ export async function startUnbundledPreview(opts: PreviewOptions): Promise<Previ
     throw error;
   }
 
-  consola.info("Previewing server sources without a build (`builder: false`).");
+  consola.info(
+    opts.serve
+      ? `Serving server sources in production mode ${colors.gray("(use --dev to watch for changes)")}`
+      : "Previewing server sources without a build (`builder: false`)."
+  );
 
   const { staticMiddleware } = await import("srvx/static");
   const publicAssets = nitro.options.publicAssets.map((asset) => ({

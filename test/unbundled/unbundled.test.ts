@@ -18,6 +18,7 @@ import { join } from "pathe";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { isUnbundledProject } from "../../src/build/unbundled/detect.ts";
 import { unbundledPlugins } from "../../src/build/unbundled/plugins.ts";
+import { startUnbundledPreview } from "../../src/build/unbundled/preview.ts";
 
 const rootDir = fileURLToPath(new URL("fixture", import.meta.url));
 
@@ -179,6 +180,24 @@ describe("builder: false", () => {
     await writeFile(join(dir, "nitro.config.mjs"), `throw new Error("broken config");`);
     await expect(startPreview({ rootDir: dir })).rejects.toThrow("broken config");
     await rm(dir, { recursive: true, force: true });
+  });
+
+  it("serves the sources whatever the configured builder is (`nitro serve`)", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nitro-unbundled-"));
+    await writeFile(
+      join(dir, "nitro.config.mjs"),
+      `export default { builder: "rollup", serverDir: "./" };`
+    );
+    await mkdir(join(dir, "routes"));
+    await writeFile(join(dir, "routes/index.ts"), `export default () => "Served!";`);
+    const app = await startUnbundledPreview({ rootDir: dir, serve: true });
+    try {
+      const res = await app.fetch(new Request("http://localhost/") as any);
+      expect(await res.text()).toBe("Served!");
+    } finally {
+      await app.close();
+      await rm(dir, { recursive: true, force: true });
+    }
   });
 
   it("detects `builder: false` from `$production`, layers and `NITRO_BUILDER`", async () => {
