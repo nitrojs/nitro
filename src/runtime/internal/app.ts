@@ -82,6 +82,11 @@ export function fetch(
   return globalThis.fetch(resource, init);
 }
 
+/**
+ * Get the resolved route rules for a method and pathname.
+ *
+ * The result is memoized and shared, so treat it as read-only.
+ */
 export function getRouteRules(method: string, pathname: string): ResolvedRouteRules {
   return matchRouteRules(method, pathname).routeRules;
 }
