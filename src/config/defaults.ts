@@ -33,6 +33,7 @@ export const NitroDefaults: NitroConfig = {
   virtual: {},
   compressPublicAssets: false,
   ignore: [],
+  scanSuffixes: [],
   wasm: {},
 
   // Dev

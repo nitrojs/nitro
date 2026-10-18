@@ -524,6 +524,17 @@ export interface NitroOptions extends PresetOptions {
    */
   ignore: string[];
 
+  /**
+   * Additional dotted suffixes to keep as part of scanned file names (e.g. `"prompt"` for
+   * `routes/system.prompt.ts` → `/system.prompt`).
+   *
+   * Nitro reserves trailing lowercase suffixes in scanned file names. Known file extensions
+   * (e.g. `.json`, `.md`, `.xml`) are always kept.
+   *
+   * @see https://nitro.build/config#scansuffixes
+   */
+  scanSuffixes: string[];
+
   // Dev
 
   /**
