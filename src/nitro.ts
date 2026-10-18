@@ -24,6 +24,10 @@ export async function createNitro(
 
   // Create nitro context
   const hooks = new Hookable<NitroHooks>();
+  hooks.deprecateHooks({
+    "rollup:before": { to: "build:config" },
+    "rollup:reload": { to: "build:reload" },
+  });
   const nitro: Nitro = {
     meta: {
       version: nitroVersion,

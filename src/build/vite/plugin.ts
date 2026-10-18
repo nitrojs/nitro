@@ -520,11 +520,11 @@ async function setupNitroContext(
   // Resolve common rollup options
   ctx.bundlerConfig = await getBundlerConfig(ctx);
 
-  // Call rollup:before hook to allow modifying rollup config
+  // Call build:config hook to allow modifying the bundler config
   await ctx.nitro.hooks.callHook(
-    "rollup:before",
+    "build:config",
     ctx.nitro,
-    ctx.bundlerConfig.rollupConfig || (ctx.bundlerConfig.rolldownConfig as any)
+    (ctx.bundlerConfig.rollupConfig || ctx.bundlerConfig.rolldownConfig)!
   );
 
   // Attach nitro.fetch to the dev env runner (started lazily, not when resolving config)

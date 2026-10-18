@@ -30,9 +30,9 @@ describe("vite: plugin and user config hooks", () => {
             compiled: () => {
               calls.push("config:compiled");
             },
-            rollup: {
-              before: () => {
-                calls.push("config:rollup:before");
+            build: {
+              config: () => {
+                calls.push("config:build:config");
               },
             },
           },
@@ -44,8 +44,8 @@ describe("vite: plugin and user config hooks", () => {
               compiled: () => {
                 calls.push("plugin:compiled");
               },
-              "rollup:before": () => {
-                calls.push("plugin:rollup:before");
+              "build:config": () => {
+                calls.push("plugin:build:config");
               },
             },
           }),
@@ -62,15 +62,15 @@ describe("vite: plugin and user config hooks", () => {
       "build"
     );
 
-    // `rollup:before` already runs while resolving the bundler config
+    // `build:config` already runs while resolving the bundler config
     calls.splice(0);
     await instance!.hooks.callHook("compiled", instance!);
-    await instance!.hooks.callHook("rollup:before", instance!, {} as any);
+    await instance!.hooks.callHook("build:config", instance!, {});
     expect(calls).toEqual([
       "config:compiled",
       "plugin:compiled",
-      "config:rollup:before",
-      "plugin:rollup:before",
+      "config:build:config",
+      "plugin:build:config",
     ]);
   });
 });

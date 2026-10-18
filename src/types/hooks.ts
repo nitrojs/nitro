@@ -2,13 +2,18 @@ import type { EnvRunnerData, EnvRunnerPluginOption } from "env-runner";
 import type { NitroConfig } from "./config.ts";
 import type { Nitro } from "./nitro.ts";
 import type { PrerenderRoute } from "./prerender.ts";
-import type { RollupConfig } from "./build.ts";
+import type { RolldownConfig, RollupConfig } from "./build.ts";
 
 type HookResult = void | Promise<void>;
 
 export interface NitroHooks {
   "build:before": (nitro: Nitro) => HookResult;
-  "rollup:before": (nitro: Nitro, config: RollupConfig) => HookResult;
+  /**
+   * Called after the bundler config is resolved, right before bundling. Last chance to modify it.
+   *
+   * The config is a Rollup or Rolldown config, depending on the builder in use.
+   */
+  "build:config": (nitro: Nitro, config: RollupConfig | RolldownConfig) => HookResult;
   "vite:compile:before": (nitro: Nitro) => HookResult;
   compiled: (nitro: Nitro) => HookResult;
   "dev:reload": (payload?: {
@@ -19,7 +24,8 @@ export interface NitroHooks {
   }) => HookResult;
   "dev:start": () => HookResult;
   "dev:error": (cause?: unknown) => HookResult;
-  "rollup:reload": () => HookResult;
+  /** Called when the Nitro config is hot-reloaded to rebuild the server. */
+  "build:reload": () => HookResult;
   restart: () => HookResult;
   close: () => HookResult;
   // Prerender
@@ -32,4 +38,9 @@ export interface NitroHooks {
     prerenderedRoutes: PrerenderRoute[];
     failedRoutes: PrerenderRoute[];
   }) => HookResult;
+
+  /** @deprecated Use `build:config`. */
+  "rollup:before": (nitro: Nitro, config: RollupConfig) => HookResult;
+  /** @deprecated Use `build:reload`. */
+  "rollup:reload": () => HookResult;
 }

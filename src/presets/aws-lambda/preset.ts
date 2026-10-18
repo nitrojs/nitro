@@ -9,7 +9,7 @@ const awsLambda = defineNitroPreset(
       streaming: false,
     },
     hooks: {
-      "rollup:before": (nitro, rollupConfig) => {
+      "build:config": (nitro, rollupConfig) => {
         if (nitro.options.awsLambda?.streaming) {
           (rollupConfig.input as string) += "-streaming";
         }
