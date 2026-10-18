@@ -82,19 +82,8 @@ export function fetch(
   return globalThis.fetch(resource, init);
 }
 
-let _matchRouteRules: ReturnType<typeof createMatcherFromFind> | undefined;
-
-export function getRouteRules(
-  method: string,
-  pathname: string
-): {
-  routeRules: ResolvedRouteRules;
-  routeRuleMiddleware: Middleware[];
-} {
-  return (_matchRouteRules ??= memoizeRouteRulesMatcher(createMatcherFromFind(findRouteRules)))(
-    method,
-    pathname
-  );
+export function getRouteRules(method: string, pathname: string): ResolvedRouteRules {
+  return matchRouteRules(method, pathname).routeRules;
 }
 
 /**
@@ -108,7 +97,10 @@ export function getRouteRules(
 export function createRouteRulesMiddleware(): Middleware {
   const composed = new WeakMap<Middleware[], ComposedMiddleware>();
   const middleware: Middleware = (event, next) => {
-    const ruleMiddleware = getRouteRules(event.req.method, event.url.pathname).routeRuleMiddleware;
+    const ruleMiddleware = matchRouteRules(
+      event.req.method,
+      event.url.pathname
+    ).routeRuleMiddleware;
     if (ruleMiddleware.length === 0) {
       return next();
     }
@@ -181,6 +173,21 @@ export function createMethodNotAllowedMatcher(
       },
     };
   };
+}
+
+let _matchRouteRules: ReturnType<typeof createMatcherFromFind> | undefined;
+
+function matchRouteRules(
+  method: string,
+  pathname: string
+): {
+  routeRules: ResolvedRouteRules;
+  routeRuleMiddleware: Middleware[];
+} {
+  return (_matchRouteRules ??= memoizeRouteRulesMatcher(createMatcherFromFind(findRouteRules)))(
+    method,
+    pathname
+  );
 }
 
 type RoutedChainNode = {

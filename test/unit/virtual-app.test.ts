@@ -59,7 +59,7 @@ describe("virtual/app template", () => {
     const template = app(createNitroStub({ routeRules: true })).template();
     const findRoute = template.indexOf('h3App["~findRoute"] = (event) => {');
     const routeRules = template.indexOf(
-      "event.context.routeRules = getRouteRules(event.req.method, event.url.pathname).routeRules;"
+      "event.context.routeRules = getRouteRules(event.req.method, event.url.pathname);"
     );
     const returnRoute = template.indexOf("return findRoute(event.req.method, event.url.pathname);");
     expect(findRoute).toBeGreaterThan(-1);

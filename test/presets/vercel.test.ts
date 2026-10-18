@@ -464,6 +464,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/api\\/storage\\/item\\/?$",
               },
               {
+                "dest": "/api/route-rules",
+                "src": "^\\/api\\/route-rules\\/?$",
+              },
+              {
                 "dest": "/api/param/[test_id]",
                 "src": "^\\/api\\/param\\/(?<test_id>[^/]+)\\/?$",
               },
@@ -754,6 +758,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/api/methods/search.func (symlink)",
             "functions/api/middleware-order.func (symlink)",
             "functions/api/param/[test_id].func (symlink)",
+            "functions/api/route-rules.func (symlink)",
             "functions/api/storage/item.func (symlink)",
             "functions/api/storage/legacy.func (symlink)",
             "functions/api/test/[-]/foo.func (symlink)",

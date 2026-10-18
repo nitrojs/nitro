@@ -154,7 +154,7 @@ export default function app(nitro: Nitro) {
         code.push(`  h3App["~findRoute"] = (event) => {`);
         if (hasRouteRules) {
           code.push(
-            `    event.context.routeRules = getRouteRules(event.req.method, event.url.pathname).routeRules;`
+            `    event.context.routeRules = getRouteRules(event.req.method, event.url.pathname);`
           );
         }
         if (hasRoutes) {
