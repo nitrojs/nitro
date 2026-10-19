@@ -2,7 +2,13 @@ import { promises as fsp } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { resolve, join, basename, normalize } from "pathe";
 import { describe, expect, it, afterAll } from "vitest";
-import { setupTest, startServer, testNitro, fixtureDir } from "../tests";
+import {
+  setupTest,
+  startServer,
+  testNitro,
+  fixtureDir,
+  getPresetTmpDir,
+} from "../tests";
 
 describe("nitro:preset:vercel", async () => {
   const ctx = await setupTest("vercel", {
@@ -90,7 +96,7 @@ describe("nitro:preset:vercel", async () => {
                 "headers": {
                   "x-test": "test",
                 },
-                "src": "/(.*)",
+                "src": "^(?:/(.*))?$",
               },
               {
                 "continue": true,
@@ -98,7 +104,7 @@ describe("nitro:preset:vercel", async () => {
                   "cache-control": "public, max-age=3600, immutable",
                   "x-build-header": "works",
                 },
-                "src": "/build/(.*)",
+                "src": "^/build(?:/(.*))?$",
               },
               {
                 "continue": true,
@@ -108,48 +114,56 @@ describe("nitro:preset:vercel", async () => {
                   "access-control-allow-origin": "*",
                   "access-control-max-age": "0",
                 },
-                "src": "/rules/cors",
+                "src": "^/rules/cors/?$",
               },
               {
                 "continue": true,
                 "headers": {
                   "cache-control": "s-maxage=60",
                 },
-                "src": "/rules/headers",
+                "src": "^/rules/headers/?$",
               },
               {
                 "headers": {
                   "Location": "https://nitro.build/",
                 },
-                "src": "/rules/redirect/obj",
+                "src": "^/rules/redirect/obj/?$",
                 "status": 308,
               },
               {
                 "headers": {
                   "Location": "https://nitro.build/$1",
                 },
-                "src": "/rules/redirect/wildcard/(.*)",
+                "src": "^/rules/redirect/wildcard/(.+)$",
                 "status": 307,
+              },
+              {
+                "dest": "/__fallback",
+                "src": "^/rules/redirect/wildcard/?$",
               },
               {
                 "headers": {
                   "Location": "/$1",
                 },
-                "src": "/rules/redirect/legacy/(.*)",
+                "src": "^/rules/redirect/legacy/(.+)$",
                 "status": 307,
+              },
+              {
+                "dest": "/__fallback",
+                "src": "^/rules/redirect/legacy/?$",
               },
               {
                 "headers": {
                   "Location": "/other",
                 },
-                "src": "/rules/nested/override",
+                "src": "^/rules/nested/override/?$",
                 "status": 307,
               },
               {
                 "headers": {
                   "Location": "/base",
                 },
-                "src": "/rules/redirect",
+                "src": "^/rules/redirect/?$",
                 "status": 307,
               },
               {
@@ -157,7 +171,7 @@ describe("nitro:preset:vercel", async () => {
                   "Location": "/base",
                   "x-test": "test",
                 },
-                "src": "/rules/nested/(.*)",
+                "src": "^/rules/nested(?:/(.*))?$",
                 "status": 307,
               },
               {
@@ -165,46 +179,46 @@ describe("nitro:preset:vercel", async () => {
                 "headers": {
                   "cache-control": "public,max-age=31536000,immutable",
                 },
-                "src": "/build(.*)",
+                "src": "^/build/(.*)$",
               },
               {
                 "handle": "filesystem",
               },
               {
                 "dest": "/rules/_/noncached/cached-isr?__isr_route=$__isr_route",
-                "src": "(?<__isr_route>/rules/_/noncached/cached)",
+                "src": "^(?<__isr_route>/rules/_/noncached/cached/?)$",
               },
               {
                 "dest": "/__fallback",
-                "src": "(?<__isr_route>/rules/_/cached/noncached)",
+                "src": "^(?<__isr_route>/rules/_/cached/noncached/?)$",
               },
               {
                 "dest": "/__fallback",
-                "src": "(?<__isr_route>/rules/_/noncached/(?:.*))",
+                "src": "^(?<__isr_route>/rules/_/noncached(?:/(.*))?)$",
               },
               {
                 "dest": "/rules/_/cached/[...]-isr?__isr_route=$__isr_route",
-                "src": "(?<__isr_route>/rules/_/cached/(?:.*))",
+                "src": "^(?<__isr_route>/rules/_/cached(?:/(.*))?)$",
               },
               {
                 "dest": "/__fallback",
-                "src": "(?<__isr_route>/rules/dynamic)",
+                "src": "^(?<__isr_route>/rules/dynamic/?)$",
               },
               {
                 "dest": "/rules/isr/[...]-isr?__isr_route=$__isr_route",
-                "src": "(?<__isr_route>/rules/isr/(?:.*))",
+                "src": "^(?<__isr_route>/rules/isr(?:/(.*))?)$",
               },
               {
                 "dest": "/rules/isr-ttl/[...]-isr?__isr_route=$__isr_route",
-                "src": "(?<__isr_route>/rules/isr-ttl/(?:.*))",
+                "src": "^(?<__isr_route>/rules/isr-ttl(?:/(.*))?)$",
               },
               {
                 "dest": "/rules/swr/[...]-isr?__isr_route=$__isr_route",
-                "src": "(?<__isr_route>/rules/swr/(?:.*))",
+                "src": "^(?<__isr_route>/rules/swr(?:/(.*))?)$",
               },
               {
                 "dest": "/rules/swr-ttl/[...]-isr?__isr_route=$__isr_route",
-                "src": "(?<__isr_route>/rules/swr-ttl/(?:.*))",
+                "src": "^(?<__isr_route>/rules/swr-ttl(?:/(.*))?)$",
               },
               {
                 "dest": "/wasm/static-import",
@@ -486,8 +500,8 @@ describe("nitro:preset:vercel", async () => {
               route.continue && !route.status
           )
           .map((route: { src: string }) => route.src);
-        expect(headerRoutes.indexOf("/(.*)")).toBeLessThan(
-          headerRoutes.indexOf("/rules/headers")
+        expect(headerRoutes.indexOf("^(?:/(.*))?$")).toBeLessThan(
+          headerRoutes.indexOf("^/rules/headers/?$")
         );
       });
 
@@ -775,6 +789,74 @@ describe("nitro:preset:vercel:skew-protection", async () => {
     expect(skewRoute.headers["Set-Cookie"]).toBe(
       "__vdpl=dpl_test; Path=/; SameSite=Lax; Secure; HttpOnly"
     );
+  });
+});
+
+describe("nitro:preset:vercel:base-url", async () => {
+  // Own output dir, as later describe blocks rebuild into the shared one
+  const outDir = resolve(getPresetTmpDir("vercel-base-url"), ".output");
+  const ctx = await setupTest("vercel", {
+    config: {
+      preset: "vercel",
+      baseURL: "/base/",
+      output: { dir: outDir },
+      routeRules: {
+        "/old/**": { redirect: "/x" },
+        "/old/special/**": { redirect: "/q?p=/**" },
+        "/old/wild/**": { redirect: "/dest/**" },
+      },
+    },
+  });
+  const config = JSON.parse(
+    await fsp.readFile(resolve(outDir, "config.json"), "utf8")
+  );
+  const handle = await import(
+    resolve(outDir, "functions/__fallback.func/index.mjs")
+  ).then((r) => r.default || r);
+  await startServer(ctx, handle);
+
+  it("prefixes route rule sources with the baseURL", () => {
+    const sources = config.routes.map((route: { src?: string }) => route.src);
+    expect(sources).toEqual(
+      expect.arrayContaining([
+        "^/base/rules/headers/?$",
+        "^/base/rules/redirect/wildcard/(.+)$",
+        "^(?<__isr_route>/base/rules/isr(?:/(.*))?)$",
+        "^/base/build/(.*)$",
+      ])
+    );
+  });
+
+  it("keeps redirects left to the function from being shadowed", () => {
+    const routes: Array<Record<string, any>> = config.routes.slice(
+      0,
+      config.routes.findIndex((route: any) => route.handle === "filesystem")
+    );
+    // First matching route that stops routing, as on Vercel
+    const firstMatch = (path: string) => {
+      const route = routes.find(
+        (route) => !route.continue && new RegExp(route.src).test(path)
+      );
+      return route?.dest || route?.headers?.Location;
+    };
+    expect(firstMatch("/base/old/a")).toBe("/x");
+    expect(firstMatch("/base/old/special/a")).toBe("/__fallback");
+    expect(firstMatch("/base/old/wild")).toBe("/__fallback");
+    expect(firstMatch("/base/old/wild/")).toBe("/__fallback");
+    expect(firstMatch("/base/old/wild/a/b")).toBe("/dest/$1");
+  });
+
+  it("restores the ISR URL under the baseURL", async () => {
+    const res = await ctx.fetch(
+      "/rules/isr/foo-isr?__isr_route=%2Fbase%2Frules%2Fisr%2Ffoo",
+      {
+        headers: {
+          "x-now-route-matches": "__isr_route=%2Fbase%2Frules%2Fisr%2Ffoo",
+        },
+      }
+    );
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("/rules/isr/foo");
   });
 });
 
