@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   applyProductionCondition,
   externals,
+  findPackageParents,
   normalizeMatcher,
 } from "../../src/rollup/plugins/externals";
 
@@ -141,4 +142,97 @@ describe("externals:applyProductionCondition", () => {
       expect(t.in).toEqual(t.out);
     });
   }
+});
+
+describe("externals:findPackageParents", () => {
+  it("retains known parents when a traced parent is missing from tracedFiles (#4803)", () => {
+    const pkg = {
+      name: "dependency",
+      versions: {
+        "1.0.0": {
+          files: ["child"],
+        },
+      },
+    };
+    const tracedFiles = {
+      child: {
+        path: "child",
+        parents: ["missing", "known"],
+      },
+      known: {
+        path: "known",
+        pkgName: "parent",
+        pkgVersion: "2.0.0",
+      },
+    };
+
+    const result = findPackageParents(pkg as any, "1.0.0", tracedFiles as any);
+    expect(result).toEqual(["parent@2.0.0"]);
+  });
+
+  it("filters out parents belonging to the same package", () => {
+    const pkg = {
+      name: "dependency",
+      versions: {
+        "1.0.0": {
+          files: ["child"],
+        },
+      },
+    };
+    const tracedFiles = {
+      child: {
+        path: "child",
+        parents: ["sibling"],
+      },
+      sibling: {
+        path: "sibling",
+        pkgName: "dependency",
+        pkgVersion: "1.0.0",
+      },
+    };
+
+    const result = findPackageParents(pkg as any, "1.0.0", tracedFiles as any);
+    expect(result).toEqual([]);
+  });
+
+  it("ignores parent files without a pkgName", () => {
+    const pkg = {
+      name: "dependency",
+      versions: {
+        "1.0.0": {
+          files: ["child"],
+        },
+      },
+    };
+    const tracedFiles = {
+      child: {
+        path: "child",
+        parents: ["app-entry", "known"],
+      },
+      "app-entry": {
+        path: "app-entry",
+        // No pkgName, e.g. root app file
+      },
+      known: {
+        path: "known",
+        pkgName: "parent",
+        pkgVersion: "2.0.0",
+      },
+    };
+
+    const result = findPackageParents(pkg as any, "1.0.0", tracedFiles as any);
+    expect(result).toEqual(["parent@2.0.0"]);
+  });
+
+  it("handles missing version or files safely", () => {
+    const pkg = {
+      name: "dependency",
+      versions: {},
+    };
+    const tracedFiles = {};
+
+    expect(findPackageParents(pkg as any, "1.0.0", tracedFiles as any)).toEqual(
+      []
+    );
+  });
 });
