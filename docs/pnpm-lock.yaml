@@ -697,8 +697,8 @@ packages:
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
 
-  h3@2.0.3:
-    resolution: {integrity: sha512-4vCJUR90OSGLITLit4WWpB4cj0rzd5eM8w3CHmi4ulh3LdaUICYy3FIaGpBibgtt+AB3cDiyql3ApgcLRGrClA==}
+  h3@2.0.5:
+    resolution: {integrity: sha512-AkTYaK8XhWlAAOhzEz8I6FAkhFPMrDYVq/PIV3GvJxtKiFmVyVDAAdGuNGMTHRrI3A6up3s1bND/dDPlQHlx6w==}
     engines: {node: '>=20.19.0'}
     hasBin: true
     peerDependencies:
@@ -1732,7 +1732,7 @@ snapshots:
 
   graceful-fs@4.2.11: {}
 
-  h3@2.0.3(crossws@0.4.15(srvx@1.0.6))(ocache@0.3.0):
+  h3@2.0.5(crossws@0.4.15(srvx@1.0.6))(ocache@0.3.0):
     dependencies:
       rou3: 1.0.0
       srvx: 1.0.6
@@ -1913,7 +1913,7 @@ snapshots:
       crossws: 0.4.15(srvx@1.0.6)
       db0: 0.4.1
       env-runner: 0.2.3
-      h3: 2.0.3(crossws@0.4.15(srvx@1.0.6))(ocache@0.3.0)
+      h3: 2.0.5(crossws@0.4.15(srvx@1.0.6))(ocache@0.3.0)
       hookable: 6.1.2
       nf3: 0.3.24
       ocache: 0.3.0
