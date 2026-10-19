@@ -1,7 +1,8 @@
-import { promises as fsp } from "node:fs";
+import { readFileSync } from "node:fs";
 import { isAbsolute } from "pathe";
 import mime from "mime";
 import type { Plugin } from "rollup";
+import { chain } from "../../utils/sync.ts";
 
 const HELPER_ID = "virtual:nitro-raw-helpers";
 
@@ -27,7 +28,7 @@ export function raw(): Plugin {
         // One pattern per prefix, so runtimes routing `scheme:` specifiers by scheme see them
         id: [new RegExp(`^${HELPER_ID}$`), ...TYPES.map((type) => new RegExp(`^${type}:`))],
       },
-      async handler(id, importer, resolveOpts) {
+      handler(id, importer, resolveOpts) {
         if (id === HELPER_ID) {
           return id;
         }
@@ -36,15 +37,16 @@ export function raw(): Plugin {
           return;
         }
         const specifier = id.slice(type.length + 1);
-        const resolved = await this.resolve(specifier, importer, resolveOpts);
-        // Externals are not loadable and a query is not part of a file path, so
-        // neither has contents to inline (virtual modules are handled in `load`)
-        if (!resolved?.id || resolved.external || resolved.id.includes("?")) {
-          return this.error(
-            `Could not resolve \`${specifier}\`${importer ? ` (imported by \`${importer}\`)` : ""} to contents to inline as \`${type}\`.`
-          );
-        }
-        return { id: `virtual:nitro:${type}:${resolved.id}${RESOLVED_SUFFIX}` };
+        return chain(this.resolve(specifier, importer, resolveOpts), (resolved) => {
+          // Externals are not loadable and a query is not part of a file path, so
+          // neither has contents to inline (virtual modules are handled in `load`)
+          if (!resolved?.id || resolved.external || resolved.id.includes("?")) {
+            return this.error(
+              `Could not resolve \`${specifier}\`${importer ? ` (imported by \`${importer}\`)` : ""} to contents to inline as \`${type}\`.`
+            );
+          }
+          return { id: `virtual:nitro:${type}:${resolved.id}${RESOLVED_SUFFIX}` };
+        });
       },
     },
     load: {
@@ -52,7 +54,7 @@ export function raw(): Plugin {
       filter: {
         id: [new RegExp(`^${HELPER_ID}$`), RESOLVED_RE],
       },
-      async handler(id) {
+      handler(id) {
         if (id === HELPER_ID) {
           return getHelpers();
         }
@@ -64,14 +66,15 @@ export function raw(): Plugin {
         // Virtual modules (`nitro.vfs`, other plugins) have no file to read: inline
         // their rendered source instead. `transform` decodes as latin1, so re-encode.
         if (!isAbsolute(path)) {
-          const { code } = await this.load({ id: path });
-          if (code == null) {
-            return this.error(`Could not load \`${path}\` to inline its contents.`);
-          }
-          return binary ? Buffer.from(code, "utf8").toString("binary") : code;
+          return this.load({ id: path }).then(({ code }) => {
+            if (code == null) {
+              return this.error(`Could not load \`${path}\` to inline its contents.`);
+            }
+            return binary ? Buffer.from(code, "utf8").toString("binary") : code;
+          });
         }
         this.addWatchFile(path);
-        return fsp.readFile(path, binary ? "binary" : "utf8");
+        return readFileSync(path, binary ? "binary" : "utf8");
       },
     },
     transform: {

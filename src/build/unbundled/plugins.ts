@@ -10,13 +10,16 @@ import { unwasm } from "unwasm/plugin";
 import { baseBuildConfig } from "../config.ts";
 import { NITRO_VIRTUAL_PREFIX, nitroVirtualPath } from "./entry.ts";
 import { importAttributes } from "../plugins/import-attributes.ts";
+import { resolveDep } from "../../utils/dep.ts";
 import { importOXC } from "../../utils/oxc.ts";
+import { chain } from "../../utils/sync.ts";
 import { raw, RESOLVED_RE as RAW_RE } from "../plugins/raw.ts";
 import { routeMeta } from "../plugins/route-meta.ts";
 import { resolveBuildPlugins } from "../plugins.ts";
 import {
   ensureRuntimeDep,
   isRuntimeImporter,
+  missingRuntimeDepError,
   OPTIONAL_RUNTIME_DEPS_RE,
 } from "../plugins/runtime-deps.ts";
 
@@ -24,12 +27,23 @@ const SCRIPT_TYPES = ["js", "jsx", "ts", "tsx"] as const;
 
 const SUPPORTED_HOOKS = new Set(["resolveId", "load", "transform"]);
 
+export interface UnbundledPluginsOptions {
+  /**
+   * Plugins for env-runner's self runner, whose hooks must be synchronous: optional runtime
+   * dependencies that are not installed fail to resolve instead of being installed.
+   */
+  sync?: boolean;
+}
+
 /**
  * env-runner plugins (run on the host) to load the server sources like a bundled build:
  * extensionless imports, aliases, TypeScript and JSX, `import.meta.*` replacements, raw and
  * WASM imports.
  */
-export async function unbundledPlugins(nitro: Nitro): Promise<EnvRunnerPlugin[]> {
+export async function unbundledPlugins(
+  nitro: Nitro,
+  opts: UnbundledPluginsOptions = {}
+): Promise<EnvRunnerPlugin[]> {
   const base = await baseBuildConfig(nitro);
 
   // Sources Nitro would bundle: its own runtime and the app (`node_modules` needs a named include)
@@ -39,7 +53,7 @@ export async function unbundledPlugins(nitro: Nitro): Promise<EnvRunnerPlugin[]>
 
   const plugins: EnvRunnerPlugin[] = [
     virtualPlugin(),
-    runtimeDepsPlugin(nitro),
+    runtimeDepsPlugin(nitro, opts.sync),
     resolvePlugin(nitro, base.extensions),
     windowsPathPlugin(base.extensions),
     await transformPlugin(nitro, sourceDirs),
@@ -121,20 +135,26 @@ function resolvePlugin(nitro: Nitro, extensions: string[]): EnvRunnerPlugin {
 
 /**
  * Optional runtime dependencies (`unstorage`, `db0`) imported by the Nitro runtime: installed
- * on demand and resolved from the project when the runtime fails to resolve them.
+ * on demand (not in `sync` mode) and resolved from the project when the runtime fails to resolve them.
  */
-function runtimeDepsPlugin(nitro: Nitro): EnvRunnerPlugin {
+function runtimeDepsPlugin(nitro: Nitro, sync?: boolean): EnvRunnerPlugin {
   return {
     name: "nitro:runtime-deps",
     resolveId: {
       fallback: true,
       filter: { id: OPTIONAL_RUNTIME_DEPS_RE },
-      async handler(this: PluginContext, source, importer) {
+      handler(this: PluginContext, source, importer) {
         if (!isRuntimeImporter(importer && normalize(importer))) {
           return;
         }
-        await ensureRuntimeDep(nitro, source);
-        return this.resolve(source, join(nitro.options.rootDir, "_"));
+        const resolve = () => this.resolve(source, join(nitro.options.rootDir, "_"));
+        if (resolveDep(source, { dir: nitro.options.rootDir, paths: nitro.options.deps?.paths })) {
+          return resolve();
+        }
+        if (sync) {
+          throw missingRuntimeDepError(nitro, source);
+        }
+        return ensureRuntimeDep(nitro, source).then(resolve);
       },
     },
   };
@@ -213,15 +233,16 @@ function rawVirtualPlugin(nitro: Nitro): EnvRunnerPlugin {
     load: {
       order: "pre",
       filter: { id: RAW_RE },
-      async handler(id) {
+      handler(id) {
         const [, type] = RAW_RE.exec(id) || [];
         const vfsId = id.replace(RAW_RE, "").slice(0, -".js".length);
         const mod = nitro.vfs.get(vfsId);
         if (!mod) {
           return;
         }
-        const code = await mod.render();
-        return type === "bytes" ? Buffer.from(code, "utf8").toString("binary") : code;
+        return chain(mod.render(), (code) =>
+          type === "bytes" ? Buffer.from(code, "utf8").toString("binary") : code
+        );
       },
     },
   };
@@ -265,13 +286,16 @@ function aliasPlugin(_aliases: Record<string, string>, rootDir: string): EnvRunn
     name: "nitro:alias",
     resolveId: {
       filter: { id: new RegExp(`^(?:${keys.join("|")})`) },
-      async handler(this: PluginContext, source, importer) {
+      handler(this: PluginContext, source, importer) {
         for (const [key, target] of Object.entries(aliases)) {
           if (source !== key && !source.startsWith(key.endsWith("/") ? key : `${key}/`)) {
             continue;
           }
           const aliased = target + source.slice(key.length);
-          return (await this.resolve(aliased, importer)) ?? { id: aliased, external: true };
+          return chain(
+            this.resolve(aliased, importer),
+            (resolved) => resolved ?? { id: aliased, external: true }
+          );
         }
       },
     },
@@ -291,9 +315,10 @@ function withoutSourceMap(plugin: EnvRunnerPlugin): EnvRunnerPlugin {
     ...plugin,
     transform: {
       ...transform,
-      async handler(...args) {
-        const result = await transform.handler.apply(this, args);
-        return result && typeof result === "object" ? { ...result, map: undefined } : result;
+      handler(...args) {
+        return chain(transform.handler.apply(this, args), (result) =>
+          result && typeof result === "object" ? { ...result, map: undefined } : result
+        );
       },
     },
   };
