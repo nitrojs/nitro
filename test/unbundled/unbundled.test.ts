@@ -219,6 +219,39 @@ describe("builder: false", () => {
     }
   });
 
+  it("runs the build hooks of modules (`nitro serve`)", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nitro-unbundled-"));
+    await writeFile(
+      join(dir, "nitro.config.mjs"),
+      /* js */ `
+import { writeFileSync } from "node:fs";
+export default {
+  modules: [{
+    setup(nitro) {
+      nitro.hooks.hook("build:before", () => {
+        nitro.options.handlers.push({ route: "/from-module", handler: nitro.options.rootDir + "/module-handler.ts" });
+      });
+      nitro.hooks.hook("compiled", () => writeFileSync(nitro.options.rootDir + "/compiled.txt", "yes"));
+    },
+  }],
+};`
+    );
+    await writeFile(join(dir, "module-handler.ts"), `export default () => "From module!";`);
+    const server = await startUnbundledServer({
+      rootDir: dir,
+      listen: { port: 0, hostname: "127.0.0.1" },
+    });
+    try {
+      const { host, port } = server.runner.address!;
+      const res = await fetch(`http://${host}:${port}/from-module`);
+      expect(await res.text()).toBe("From module!");
+      expect(existsSync(join(dir, "compiled.txt"))).toBe(true);
+    } finally {
+      await server.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it("detects `builder: false` from `$production`, layers and `NITRO_BUILDER`", async () => {
     const dir = await mkdtemp(join(tmpdir(), "nitro-unbundled-"));
     const config = (code: string) => writeFile(join(dir, "nitro.config.mjs"), code);

@@ -4,6 +4,7 @@ import type { Nitro } from "nitro/types";
 import { loadRunner } from "env-runner";
 import { joinURL, withTrailingSlash } from "ufo";
 import { createNitro } from "../../nitro.ts";
+import { scanHandlers } from "../../scan.ts";
 import { globPublicAssets } from "../assets.ts";
 import { prepareUnbundledApp } from "./entry.ts";
 import { unbundledPlugins } from "./plugins.ts";
@@ -39,7 +40,11 @@ export async function startUnbundledServer(opts: UnbundledServerOptions): Promis
   let runner: EnvRunner | undefined;
   let closeCause: unknown;
   try {
+    await nitro.hooks.callHook("build:before", nitro);
+    await scanHandlers(nitro);
+    nitro.routing.sync();
     const { entry, virtual, appEntry } = await prepareUnbundledApp(nitro);
+    await nitro.hooks.callHook("compiled", nitro);
     const publicAssets = await scanPublicAssets(nitro);
     if (publicAssets.length > 0) {
       virtual[entry] = serveEntry(appEntry, publicAssets);
