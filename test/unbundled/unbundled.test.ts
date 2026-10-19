@@ -216,6 +216,40 @@ describe("builder: false", () => {
     }
   });
 
+  it("does not serve ignored public files at the root base (`nitro serve`)", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nitro-unbundled-"));
+    await writeFile(
+      join(dir, "nitro.config.mjs"),
+      `export default { serverDir: "./", ignore: ["**/docs.html", "**/secret", "**/note.txt"] };`
+    );
+    await mkdir(join(dir, "routes"));
+    await writeFile(join(dir, "routes/[...path].ts"), `export default () => "Route!";`);
+    await mkdir(join(dir, "public/docs"), { recursive: true });
+    await writeFile(join(dir, "public/docs.html"), "ignored");
+    await writeFile(join(dir, "public/docs/index.html"), "docs page");
+    await writeFile(join(dir, "public/secret"), "ignored");
+    await writeFile(join(dir, "public/secret.html"), "secret page");
+    await writeFile(join(dir, "public/note.txt"), "ignored");
+    await writeFile(join(dir, "public/note.txt.html"), "note page");
+    const server = await startUnbundledServer({
+      rootDir: dir,
+      listen: { port: 0, hostname: "127.0.0.1" },
+    });
+    try {
+      const { host, port } = server.runner.address!;
+      const text = (path: string) => fetch(`http://${host}:${port}${path}`).then((r) => r.text());
+      expect(await text("/docs")).toBe("docs page");
+      expect(await text("/docs/")).toBe("docs page");
+      expect(await text("/docs.html")).toBe("Route!");
+      expect(await text("/secret")).toBe("secret page");
+      expect(await text("/%73ecret")).toBe("secret page");
+      expect(await text("/note.txt")).toBe("note page");
+    } finally {
+      await server.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it("listens on `NITRO_PORT` from `.env` (`nitro serve`)", async () => {
     const dir = await mkdtemp(join(tmpdir(), "nitro-unbundled-"));
     const envPort = await getRandomPort("127.0.0.1");
