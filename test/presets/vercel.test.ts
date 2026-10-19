@@ -177,6 +177,17 @@ describe("nitro:preset:vercel:web", async () => {
                 "headers": {
                   "Location": "/base",
                 },
+                "methods": [
+                  "GET",
+                  "HEAD",
+                ],
+                "src": "^\\/rules\\/method-scoped\\/redirect\\/?$",
+                "status": 307,
+              },
+              {
+                "headers": {
+                  "Location": "/base",
+                },
                 "src": "^\\/rules\\/scoped\\/old\\/?$",
                 "status": 307,
               },

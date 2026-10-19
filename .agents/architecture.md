@@ -133,7 +133,7 @@ presets/<name>/
 └── unenv/           # Env overrides (optional)
 ```
 
-Key presets: `standard`, `node` (server/middleware/cluster), `cloudflare` (pages/workers), `vercel`, `netlify`, `aws-lambda`, `deno`, `firebase`, `azure`, `bun`, `winterjs`
+Key presets: `standard`, `node` (server/middleware/cluster), `cloudflare` (pages/workers), `vercel`, `netlify`, `aws-lambda`, `deno`, `firebase`, `azure`, `bun`
 
 Resolution: `presets/_resolve.ts` handles aliases, dev/prod, compat dates, static hosting.
 

@@ -21,6 +21,7 @@ import { mergeConfig, mergeConfigHooks } from "./_merge.ts";
 import { resolveAssetsOptions } from "./resolvers/assets.ts";
 import { resolveCompatibilityOptions } from "./resolvers/compatibility.ts";
 import { resolveDatabaseOptions } from "./resolvers/database.ts";
+import { resolveDepsOptions } from "./resolvers/deps.ts";
 import { resolveExportConditionsOptions } from "./resolvers/export-conditions.ts";
 import { resolveOpenAPIOptions } from "./resolvers/open-api.ts";
 import { resolveTsconfig } from "./resolvers/tsconfig.ts";
@@ -40,6 +41,7 @@ const configResolvers = [
   resolveCompatibilityOptions,
   resolveTsconfig,
   resolvePathOptions,
+  resolveDepsOptions,
   resolveRouteRulesOptions,
   resolveDatabaseOptions,
   resolveExportConditionsOptions,

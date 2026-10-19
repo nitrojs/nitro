@@ -64,6 +64,7 @@
     "nitro": "node ./src/cli/index.ts",
     "release": "node ./scripts/release.ts",
     "stub": "obuild --stub",
+    "sync-deps": "node ./scripts/sync-deps.ts",
     "test": "pnpm lint && pnpm build && pnpm typecheck && pnpm test:rollup && pnpm test:rolldown",
     "test:rolldown": "NITRO_BUILDER=rolldown pnpm vitest",
     "test:rollup": "NITRO_BUILDER=rollup pnpm vitest",
@@ -75,6 +76,7 @@
     "env-runner": "^0.3.5",
     "h3": "^2.0.3",
     "nf3": "^0.4.2",
+    "rou3": "^1.0.0",
     "srvx": "^1.0.6"
   },
   "devDependencies": {
@@ -149,7 +151,6 @@
     "rendu": "^0.1.1",
     "rolldown": "^1.2.14",
     "rollup": "^4.64.7",
-    "rou3": "^1.0.0",
     "scule": "^1.3.0",
     "semver": "^7.8.5",
     "std-env": "^4.3.0",

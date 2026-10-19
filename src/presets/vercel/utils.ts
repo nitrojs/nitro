@@ -22,7 +22,7 @@ import {
   type RouterContext,
 } from "rou3";
 import { escapeRegExp } from "../../utils/regex.ts";
-import { catchAllRef, sortRoutes } from "../_utils/routes.ts";
+import { catchAllRef, parseRouteKey, sortRoutes } from "../_utils/routes.ts";
 import { joinURL, withLeadingSlash, withoutLeadingSlash } from "ufo";
 import type {
   PrerenderFunctionConfig,
@@ -225,22 +225,27 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
       .map(([path]) => path)
   );
 
-  // Determine which redirect rules can be offloaded to Vercel CDN redirects
-  const cdnRedirectPaths = new Set(
-    rules
-      .filter(
-        ([path, routeRules]) =>
-          routeRules.redirect &&
-          !cdnProxyPaths.has(path) &&
-          !hasQueryWildcard(routeRules.redirect.to)
-      )
-      .map(([path]) => path)
-  );
-
   // `redirect: false` paths opt out of broader CDN redirects
-  const optOutPaths = rules
+  const optOuts = rules
     .filter(([_, routeRules]) => routeRules.redirect === false)
-    .map(([path]) => path);
+    .map(([path]) => parseRouteKey(path));
+
+  // Determine which redirect rules can be offloaded to Vercel CDN redirects,
+  // and the opted out paths to keep out of each
+  const cdnRedirectPaths = new Map<string, string[]>();
+  for (const [path, routeRules] of rules) {
+    if (
+      !routeRules.redirect ||
+      cdnProxyPaths.has(path) ||
+      hasQueryWildcard(routeRules.redirect.to)
+    ) {
+      continue;
+    }
+    const optOutPaths = getOptOutPaths(parseRouteKey(path), optOuts);
+    if (optOutPaths) {
+      cdnRedirectPaths.set(path, optOutPaths);
+    }
+  }
 
   const publicAssetRoutes = getPublicAssetRoutes(nitro.options.publicAssets, {
     baseURL: nitro.options.baseURL,
@@ -262,20 +267,26 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
             routeRules.headers && !cdnRedirectPaths.has(path) && !cdnProxyPaths.has(path)
         )
         .reverse()
-        .map(([path, routeRules]) => ({
-          src: routeSrc(path).source,
-          headers: routeRules.headers,
-          continue: true,
-        })),
+        .map(([path, routeRules]) => {
+          const { path: route, methods } = parseRouteKey(path);
+          return {
+            src: routeSrc(route).source,
+            ...(methods && { methods }),
+            headers: routeRules.headers,
+            continue: true,
+          };
+        }),
       // Redirect and proxy rules (most specific first)
       // Rules left to the server function stop routing so that less specific
       // rules below cannot match.
       // https://vercel.com/docs/rewrites
       ...rules.flatMap(([path, routeRules]) => {
-        const src = routeSrc(path);
+        const { path: pattern, methods } = parseRouteKey(path);
+        const src = routeSrc(pattern);
         if (cdnProxyPaths.has(path)) {
           const route: Record<string, any> = {
             src: src.source,
+            ...(methods && { methods }),
             dest: (routeRules.proxy as ProxyRuleOptions).to.replaceAll("**", catchAllRef(src)),
           };
           if (routeRules.headers) {
@@ -283,13 +294,12 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
           }
           return [route];
         }
-        if (cdnRedirectPaths.has(path)) {
+        const optOutPaths = cdnRedirectPaths.get(path);
+        if (optOutPaths) {
           const redirect = routeRules.redirect as RedirectRuleOptions;
           let route = {
-            src: excludePaths(
-              src,
-              optOutPaths.filter((p) => compareRoutes(path, p) === "superset").map(routeSrc)
-            ),
+            src: excludePaths(src, optOutPaths.map(routeSrc)),
+            ...(methods && { methods }),
             status: redirect.status,
             headers: {
               Location: redirect.to.replaceAll("**", catchAllRef(src)),
@@ -300,7 +310,9 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
           }
           return [route];
         }
-        return routeRules.redirect || routeRules.proxy ? [{ src: src.source }] : [];
+        return routeRules.redirect || routeRules.proxy
+          ? [{ src: src.source, ...(methods && { methods }) }]
+          : [];
       }),
       // Skew protection
       ...(nitro.options.vercel?.skewProtection && nitro.options.manifest?.deploymentId
@@ -790,6 +802,42 @@ function matchPattern<T>(router: RouterContext<{ route: string; data: T }>, patt
       return comparison === "equal" || comparison === "superset";
     })
     .map(({ data }) => data.data);
+}
+
+/**
+ * Paths of the `redirect: false` rules that keep a CDN redirect from matching,
+ * or `undefined` when one opts out only some of the methods of the redirect,
+ * which a route cannot express, so the redirect is left to the server function.
+ */
+function getOptOutPaths(
+  redirect: ReturnType<typeof parseRouteKey>,
+  optOuts: ReturnType<typeof parseRouteKey>[]
+): string[] | undefined {
+  const paths: string[] = [];
+  for (const optOut of optOuts) {
+    const comparison = compareRoutes(redirect.path, optOut.path);
+    if (comparison !== "superset" && comparison !== "equal") {
+      continue;
+    }
+    if (!optOut.methods) {
+      if (comparison === "superset") {
+        paths.push(optOut.path);
+      }
+      continue;
+    }
+    if (redirect.methods?.every((method) => !optOut.methods!.includes(method))) {
+      continue;
+    }
+    if (
+      comparison === "superset" &&
+      redirect.methods?.every((method) => optOut.methods!.includes(method))
+    ) {
+      paths.push(optOut.path);
+      continue;
+    }
+    return undefined;
+  }
+  return paths;
 }
 
 /**
