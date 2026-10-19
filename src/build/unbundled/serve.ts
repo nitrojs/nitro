@@ -77,8 +77,8 @@ interface ServedPublicAssets {
   /** Base URL (with `baseURL` and a trailing slash). */
   base: string;
   dir: string;
-  /** Request paths (relative to `base`) the files are served at. */
-  paths: string[];
+  /** File paths (relative to `base`, with a leading slash). */
+  files: string[];
 }
 
 /** Public assets indexed once, so requests for other paths skip the file system. */
@@ -95,23 +95,10 @@ async function scanPublicAssets(nitro: Nitro): Promise<ServedPublicAssets[]> {
     assets.push({
       base: withTrailingSlash(joinURL(nitro.options.baseURL, asset.baseURL || "/")),
       dir: asset.dir,
-      paths: files.flatMap((file) => servedPaths(file)),
+      files: files.map((file) => `/${file}`),
     });
   }
   return assets;
-}
-
-/** Request paths srvx `staticMiddleware` serves a file at (`.html` and `index.html` lookups). */
-function servedPaths(file: string): string[] {
-  const path = `/${file}`;
-  if (path.endsWith("/index.html")) {
-    const dir = path.slice(0, -"index.html".length);
-    return dir === "/" ? [path, dir] : [path, dir, dir.slice(0, -1)];
-  }
-  if (path.endsWith(".html")) {
-    return [path, path.slice(0, -".html".length)];
-  }
-  return [path];
 }
 
 /** Entry serving the public assets from their source directories before the app. */
@@ -124,9 +111,17 @@ globalThis.__nitro_main__ = import.meta.url;
 
 const publicAssets = ${JSON.stringify(publicAssets)}.map((asset) => ({
   base: asset.base,
-  paths: new Set(asset.paths),
+  files: new Set(asset.files),
   handler: staticMiddleware({ dir: asset.dir }),
 }));
+
+// The files srvx staticMiddleware looks up for a path (also .html and index.html)
+function hasFile(files, path) {
+  if (path.endsWith("/")) {
+    return files.has(path + "index.html");
+  }
+  return files.has(path) || files.has(path + ".html") || files.has(path + "/index.html");
+}
 
 function servePublicAssets(req, next) {
   if (req.method !== "GET" && req.method !== "HEAD") {
@@ -145,7 +140,7 @@ function servePublicAssets(req, next) {
         continue;
       }
     }
-    if (!asset.paths.has(path)) {
+    if (!hasFile(asset.files, path)) {
       continue;
     }
     let assetReq = req;
