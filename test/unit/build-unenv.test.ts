@@ -30,7 +30,7 @@ afterAll(() => {
 async function buildApp(
   builder: (typeof builders)[number],
   server: string,
-  opts: { preset?: string; files?: Record<string, string> } = {}
+  opts: { preset?: string; node?: boolean; files?: Record<string, string> } = {}
 ) {
   const rootDir = mkdtempSync(join(tmpdir(), "nitro-build-unenv-"));
   tmpDirs.push(rootDir);
@@ -47,6 +47,7 @@ async function buildApp(
     rootDir,
     builder,
     preset: opts.preset || "cloudflare-module",
+    node: opts.node,
     compatibilityDate: "2025-01-01",
     logLevel: 0,
   });
@@ -140,7 +141,7 @@ describe.each(builders)("unenv on demand (%s)", (builder) => {
     const code = await buildApp(
       builder,
       `import { Readable } from "node:stream";\nexport default { fetch: () => new Response(typeof Readable) };`,
-      { preset: "winterjs" }
+      { preset: "standard", node: false }
     );
     // First from `buildStart`, then once per import (`ensureDep` installs only once)
     expect(unenvCalls()[0]).toEqual([
