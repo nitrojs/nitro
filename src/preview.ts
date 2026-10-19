@@ -1,8 +1,9 @@
 import type { ServerHandler, ServerRequest } from "srvx";
 import type { LoadOptions } from "srvx/loader";
 import { spawn } from "node:child_process";
+import { stat } from "node:fs/promises";
 import consola from "consola";
-import { join, resolve } from "pathe";
+import { basename, join, resolve } from "pathe";
 import { proxyFetch, proxyUpgrade, type ProxyUpgradeOptions } from "httpxy";
 import { prettyPath } from "./utils/fs.ts";
 import { getBuildInfo } from "./build/info.ts";
@@ -55,6 +56,10 @@ export async function startPreview(opts: PreviewOptions): Promise<PreviewInstanc
     title: " [Build Info] ",
     message: info.map((i) => `- ${i[0]} ${i[1]}`).join("\n"),
   });
+
+  if (buildInfo.date) {
+    await warnOutdatedBuild(opts.rootDir, buildInfo.date);
+  }
 
   // Load .env files for preview mode
   const dotEnvEntries = await loadPreviewDotEnv(opts.rootDir);
@@ -182,4 +187,22 @@ async function runPreviewCommand(opts: {
       killChild("SIGTERM");
     },
   };
+}
+
+/** Warn when the Nitro config changed after the build (e.g. switched to `builder: false`). */
+async function warnOutdatedBuild(rootDir: string, buildDate: string) {
+  const buildTime = new Date(buildDate).getTime();
+  for (const ext of [".ts", ".mts", ".cts", ".js", ".mjs", ".cjs"]) {
+    const configPath = join(rootDir, `nitro.config${ext}`);
+    const mtime = await stat(configPath).then(
+      (s) => s.mtimeMs,
+      () => undefined
+    );
+    if (mtime !== undefined && mtime > buildTime) {
+      consola.warn(
+        `\`${basename(configPath)}\` changed after this build. Run \`nitro build\` again, or \`nitro start\` to run the sources without a build.`
+      );
+      return;
+    }
+  }
 }
