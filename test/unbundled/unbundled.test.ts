@@ -16,7 +16,6 @@ import { fileURLToPath } from "node:url";
 import { pkgDir } from "#nitro/meta";
 import { join } from "pathe";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { isUnbundledProject } from "../../src/build/unbundled/detect.ts";
 import { unbundledPlugins } from "../../src/build/unbundled/plugins.ts";
 import { startUnbundledServer } from "../../src/build/unbundled/serve.ts";
 
@@ -168,17 +167,10 @@ describe("builder: false", () => {
     await nitro.close();
   });
 
-  it("previews other projects only from their build output", async () => {
+  it("previews only the build output", async () => {
     const dir = await mkdtemp(join(tmpdir(), "nitro-unbundled-"));
-    await writeFile(join(dir, "nitro.config.mjs"), `export default { builder: "vite" };`);
+    await writeFile(join(dir, "nitro.config.mjs"), `export default { builder: false };`);
     await expect(startPreview({ rootDir: dir })).rejects.toThrow("Make sure to build first");
-    await rm(dir, { recursive: true, force: true });
-  });
-
-  it("reports config errors when previewing without a build output", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "nitro-unbundled-"));
-    await writeFile(join(dir, "nitro.config.mjs"), `throw new Error("broken config");`);
-    await expect(startPreview({ rootDir: dir })).rejects.toThrow("broken config");
     await rm(dir, { recursive: true, force: true });
   });
 
@@ -252,36 +244,6 @@ export default {
     }
   });
 
-  it("detects `builder: false` from `$production`, layers and `NITRO_BUILDER`", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "nitro-unbundled-"));
-    const config = (code: string) => writeFile(join(dir, "nitro.config.mjs"), code);
-    const original = process.env.NITRO_BUILDER;
-    delete process.env.NITRO_BUILDER;
-    try {
-      await config(`export default { $production: { builder: false } };`);
-      expect(await isUnbundledProject(dir)).toBe(true);
-
-      await config(`export default { $development: { builder: false } };`);
-      expect(await isUnbundledProject(dir)).toBe(false);
-
-      await mkdir(join(dir, "layer"));
-      await writeFile(join(dir, "layer/nitro.config.mjs"), `export default { builder: false };`);
-      await config(`export default { extends: ["./layer"] };`);
-      expect(await isUnbundledProject(dir)).toBe(true);
-
-      await config(`export default {};`);
-      process.env.NITRO_BUILDER = "false";
-      expect(await isUnbundledProject(dir)).toBe(true);
-    } finally {
-      if (original === undefined) {
-        delete process.env.NITRO_BUILDER;
-      } else {
-        process.env.NITRO_BUILDER = original;
-      }
-      await rm(dir, { recursive: true, force: true });
-    }
-  });
-
   it("prerenders the sources without a build", async () => {
     const outputDir = await mkdtemp(join(tmpdir(), "nitro-unbundled-prerender-"));
     const nitro = await createNitro({
@@ -330,37 +292,5 @@ export default {
       await nitro.close();
       await rm(outputDir, { recursive: true, force: true });
     }
-  });
-
-  describe("preview", () => {
-    let preview: Awaited<ReturnType<typeof startPreview>>;
-    const outputDir = join(rootDir, ".output");
-
-    beforeAll(async () => {
-      // Output left by another builder
-      await mkdir(outputDir, { recursive: true });
-      await writeFile(join(outputDir, "nitro.json"), JSON.stringify({ preset: "node-server" }));
-      preview = await startPreview({ rootDir });
-    });
-
-    afterAll(async () => {
-      await preview?.close();
-      await rm(outputDir, { recursive: true, force: true });
-    });
-
-    it("runs the sources without a build", async () => {
-      const res = await preview.fetch(new Request("http://localhost/api/1") as any);
-      expect(await res.json()).toEqual({ id: "1", hasRuntimeConfig: true });
-    });
-
-    it("applies build transforms in production mode", async () => {
-      const res = await preview.fetch(new Request("http://localhost/features") as any);
-      expect(await res.json()).toMatchObject({ dev: false, enum: "green", wasm: 5 });
-    });
-
-    it("serves public assets", async () => {
-      const res = await preview.fetch(new Request("http://localhost/hello.txt") as any);
-      expect(await res.text()).toContain("static asset");
-    });
   });
 });
