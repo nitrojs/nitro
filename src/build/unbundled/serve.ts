@@ -53,7 +53,12 @@ export async function startUnbundledServer(opts: UnbundledServerOptions): Promis
       name: "nitro-serve",
       data: { entry, virtual },
       plugins: await unbundledPlugins(nitro),
-      listen: opts.listen,
+      // After `createNitro`, so `.env` files can set them
+      listen: opts.listen && {
+        ...opts.listen,
+        port: opts.listen.port || process.env.NITRO_PORT,
+        hostname: opts.listen.hostname || process.env.NITRO_HOST,
+      },
       hooks: {
         onClose: (_runner, cause) => {
           closeCause = cause;
@@ -120,12 +125,15 @@ const publicAssets = ${JSON.stringify(publicAssets)}.map((asset) => ({
   handler: staticMiddleware({ dir: asset.dir }),
 }));
 
-// The files srvx staticMiddleware looks up for a path (also .html and index.html)
-function hasFile(files, path) {
+// The indexed file for a path, in srvx staticMiddleware order (also .html and index.html)
+function resolveFile(files, path) {
   if (path.endsWith("/")) {
-    return files.has(path + "index.html");
+    path += "index.html";
+    return files.has(path) ? path : undefined;
   }
-  return files.has(path) || files.has(path + ".html") || files.has(path + "/index.html");
+  if (files.has(path)) return path;
+  if (files.has(path + ".html")) return path + ".html";
+  if (files.has(path + "/index.html")) return path + "/index.html";
 }
 
 function servePublicAssets(req, next) {
@@ -145,13 +153,16 @@ function servePublicAssets(req, next) {
         continue;
       }
     }
-    if (!hasFile(asset.files, path)) {
+    const file = resolveFile(asset.files, path);
+    if (!file) {
       continue;
     }
+    // Request the indexed file itself, so srvx can not pick an ignored one before it
+    const target = path.endsWith("/") ? path : file;
     let assetReq = req;
-    if (asset.base !== "/") {
+    if (asset.base !== "/" || target !== path) {
       const url = new URL(req.url);
-      url.pathname = pathname.slice(asset.base.length - 1);
+      url.pathname = encodeURI(target);
       assetReq = new Request(url, req);
     }
     return Promise.resolve(asset.handler(assetReq, () => undefined)).then((res) => res || next());

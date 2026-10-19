@@ -14,6 +14,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { pkgDir } from "#nitro/meta";
+import { getRandomPort } from "get-port-please";
 import { join } from "pathe";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { unbundledPlugins } from "../../src/build/unbundled/plugins.ts";
@@ -178,7 +179,7 @@ describe("builder: false", () => {
     const dir = await mkdtemp(join(tmpdir(), "nitro-unbundled-"));
     await writeFile(
       join(dir, "nitro.config.mjs"),
-      `export default { builder: "rollup", serverDir: "./", baseURL: "/app/" };`
+      `export default { builder: "rollup", serverDir: "./", baseURL: "/app/", ignore: ["**/docs.html", "**/secret"] };`
     );
     await mkdir(join(dir, "routes"));
     await writeFile(join(dir, "routes/index.ts"), `export default () => "Served!";`);
@@ -188,6 +189,9 @@ describe("builder: false", () => {
     await writeFile(join(dir, "public/a b.txt"), "encoded asset");
     await writeFile(join(dir, "public/about.html"), "about page");
     await writeFile(join(dir, "public/docs/index.html"), "docs page");
+    await writeFile(join(dir, "public/docs.html"), "ignored");
+    await writeFile(join(dir, "public/secret"), "ignored");
+    await writeFile(join(dir, "public/secret.html"), "secret page");
     const server = await startUnbundledServer({
       rootDir: dir,
       listen: { port: 0, hostname: "127.0.0.1" },
@@ -202,10 +206,28 @@ describe("builder: false", () => {
       expect(await text("/app/about")).toBe("about page");
       expect(await text("/app/docs/")).toBe("docs page");
       expect(await text("/app/docs")).toBe("docs page");
+      expect(await text("/app/secret")).toBe("secret page");
       expect(await text("/app/missing.txt")).toBe("Route!");
       const post = await fetch(`${url}/app/hello.txt`, { method: "POST" });
       expect(await post.text()).toBe("Route!");
     } finally {
+      await server.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("listens on `NITRO_PORT` from `.env` (`nitro serve`)", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nitro-unbundled-"));
+    const envPort = await getRandomPort("127.0.0.1");
+    await writeFile(join(dir, "nitro.config.mjs"), `export default { serverDir: "./" };`);
+    await writeFile(join(dir, ".env"), `NITRO_PORT=${envPort}`);
+    await mkdir(join(dir, "routes"));
+    await writeFile(join(dir, "routes/index.ts"), `export default () => "Served!";`);
+    const server = await startUnbundledServer({ rootDir: dir, listen: { hostname: "127.0.0.1" } });
+    try {
+      expect(server.runner.address?.port).toBe(envPort);
+    } finally {
+      delete process.env.NITRO_PORT;
       await server.close();
       await rm(dir, { recursive: true, force: true });
     }

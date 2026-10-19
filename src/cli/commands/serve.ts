@@ -30,8 +30,8 @@ export default defineCommand({
     const server = await startUnbundledServer({
       rootDir,
       listen: {
-        port: args.port || process.env.NITRO_PORT,
-        hostname: args.host || process.env.NITRO_HOST,
+        port: args.port,
+        hostname: args.host,
         silent: false,
       },
       onClose(cause) {
