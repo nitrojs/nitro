@@ -1,6 +1,7 @@
 import { defineNitroPreset } from "nitropack/kit";
 import { writeFile } from "nitropack/kit";
 import type { Nitro } from "nitropack/types";
+import type { Plugin } from "rollup";
 import { resolve } from "pathe";
 import { unenvCfExternals } from "../_unenv/preset-workerd";
 import {
@@ -14,6 +15,25 @@ import {
 import cfLegacyPresets from "./preset-legacy";
 
 export type { CloudflareOptions as PresetOptions } from "./types";
+
+// When code-splitting is enabled, bundlers hoist externalized `node:*` built-in
+// imports as bare side-effect imports (`import "node:buffer"`) into entry and
+// chunk files. These are no-ops (Node.js built-ins have no meaningful
+// module-level side effects) but they can cause issues on worker runtimes where
+// `node:*` modules may not be available or trigger unnecessary warnings.
+const BARE_NODE_IMPORT_RE = /(?:^|\b)import\s*['"]node:[^'"]+['"];?\s*/gm;
+export function stripBareNodeImports(): Plugin {
+  return {
+    name: "nitro:cloudflare-strip-bare-node-imports",
+    generateBundle(_options, bundle) {
+      for (const chunk of Object.values(bundle)) {
+        if (chunk.type === "chunk" && chunk.code.includes("node:")) {
+          chunk.code = chunk.code.replace(BARE_NODE_IMPORT_RE, "");
+        }
+      }
+    },
+  };
+}
 
 const cloudflarePages = defineNitroPreset(
   {
@@ -45,6 +65,7 @@ const cloudflarePages = defineNitroPreset(
         format: "esm",
         inlineDynamicImports: false,
       },
+      plugins: [stripBareNodeImports()],
     },
     hooks: {
       "build:before": async (nitro) => {
@@ -156,6 +177,7 @@ const cloudflareModule = defineNitroPreset(
         exports: "named",
         inlineDynamicImports: false,
       },
+      plugins: [stripBareNodeImports()],
     },
     wasm: {
       lazy: false,
