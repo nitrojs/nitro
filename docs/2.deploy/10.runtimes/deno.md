@@ -25,7 +25,7 @@ deno run --allow-net --allow-read --allow-env .output/server/index.mjs
 :read-more{title="Deno Deploy" to="https://docs.deno.com/deploy/"}
 
 ::warning
-Deno Deploy will shut down in 2027 as the Deno team joins Cloudflare ([announcement](https://deno.com/blog/cloudflare)). Consider deploying to [Cloudflare](/deploy/providers/cloudflare) instead.
+Deno Deploy will shut down in 2027 as the Deno team joins Cloudflare ([announcement](https://deno.com/blog/cloudflare)).
 ::
 
 1. Create a new app on [Deno Deploy](https://console.deno.com) and link your GitHub repository.
