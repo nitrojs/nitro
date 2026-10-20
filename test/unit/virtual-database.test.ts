@@ -128,6 +128,8 @@ describe("virtual/database template", () => {
       })
     ).template();
     expect(template).toContain(`import { withTracing } from "db0/tracing";`);
-    expect(template).toContain(`traceServerTiming("db", ["db0.query"]);`);
+    expect(template).toContain(
+      `export const traceDatabase = (db) => traceServerTiming("db") ? withTracing(db) : db;`
+    );
   });
 });

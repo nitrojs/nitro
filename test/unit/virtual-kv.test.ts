@@ -118,8 +118,21 @@ describe("virtual/kv template", () => {
       createNitroStub(undefined, {}, { total: true, kv: true, db: false, cache: true })
     ).template();
     expect(template).toContain("import { withTracing } from 'unstorage/tracing'");
+    expect(template).toContain("const timed = traceServerTiming('kv')");
+    // `withTracing` needs `node:diagnostics_channel`, which `traceServerTiming` checks for
+    expect(template).toContain("return timed ? withTracing(storage) : storage");
+  });
+
+  it("always wraps storage when both serverTiming.kv and tracingChannel.unstorage are enabled", () => {
+    const template = kv(
+      createNitroStub(
+        { srvx: true, h3: true, unstorage: true },
+        {},
+        { total: true, kv: true, db: false, cache: true }
+      )
+    ).template();
+    expect(template).toContain("const timed = traceServerTiming('kv')");
     expect(template).toContain("return withTracing(storage)");
-    expect(template).toContain("traceServerTiming('kv'");
   });
 
   it("does not record server timing when serverTiming.kv is disabled", () => {

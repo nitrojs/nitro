@@ -1,22 +1,30 @@
+import { QUERY_CHANNEL } from "db0/tracing";
 import type { ServerTimingMetric } from "./server-timing.ts";
-import { beginOp, endOp, useALS } from "./server-timing.ts";
-import { countLabel } from "./_server-timing-labels.ts";
+import { beginOp, endOp, useALS, useServerTimingState } from "./server-timing.ts";
+import { UNSTORAGE_OPERATIONS } from "./telemetry/unstorage.ts";
 
 /**
  * Records `kv` / `db` busy time from the tracing channels published by
- * `unstorage/tracing` and `db0/tracing`. A no-op on runtimes without
- * `node:diagnostics_channel` or `node:async_hooks`.
+ * `unstorage/tracing` and `db0/tracing`.
+ *
+ * Returns `false` on runtimes without `node:diagnostics_channel` or `node:async_hooks`, where
+ * operations can't be attributed to a request and wrapping with `withTracing` is wasted work.
  */
-export function traceServerTiming(name: "kv" | "db", channels: readonly string[]): void {
-  const subscribed = ((traceServerTiming as { _subscribed?: Set<string> })._subscribed ??=
-    new Set());
+export function traceServerTiming(
+  name: "kv" | "db",
+  channels: readonly string[] = name === "kv"
+    ? UNSTORAGE_OPERATIONS.map((operation) => `unstorage.${operation}`)
+    : [QUERY_CHANNEL]
+): boolean {
   const diagnostics = globalThis.process?.getBuiltinModule?.("node:diagnostics_channel");
-  const als = useALS();
-  if (!als || !diagnostics?.subscribe || subscribed.has(name)) {
-    return;
+  if (!useALS() || !diagnostics?.subscribe) {
+    return false;
   }
-  subscribed.add(name);
-  const label = name === "kv" ? countLabel("op", "ops") : countLabel("query", "queries");
+  const state = useServerTimingState();
+  if (state.traced.has(name)) {
+    return true;
+  }
+  state.traced.add(name);
 
   const pending = new WeakMap<object, ServerTimingMetric>();
   const complete = (message: unknown) => {
@@ -29,7 +37,7 @@ export function traceServerTiming(name: "kv" | "db", channels: readonly string[]
 
   for (const channel of channels) {
     diagnostics.subscribe(`tracing:${channel}:start`, (message) => {
-      const metric = beginOp(als.getStore(), name, label);
+      const metric = beginOp(state.getStore?.(), name);
       if (metric) {
         pending.set(message as object, metric);
       }
@@ -42,4 +50,5 @@ export function traceServerTiming(name: "kv" | "db", channels: readonly string[]
       }
     });
   }
+  return true;
 }
