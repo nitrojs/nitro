@@ -73,7 +73,7 @@
   },
   "dependencies": {
     "crossws": "^0.4.15",
-    "env-runner": "^0.3.5",
+    "env-runner": "^0.3.6",
     "h3": "^2.0.3",
     "rou3": "^1.0.0",
     "srvx": "^1.0.6"
@@ -161,7 +161,7 @@
     "unctx": "^3.0.1",
     "unenv": "^2.0.0-rc.24",
     "unstorage": "^2.0.0-alpha.11",
-    "unwasm": "^0.6.1",
+    "unwasm": "^0.6.2",
     "vite": "^8.3.4",
     "vite7": "npm:vite@^7.3.7",
     "vitest": "^5.0.5",

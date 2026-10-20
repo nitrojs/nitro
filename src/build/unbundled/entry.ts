@@ -26,26 +26,26 @@ export interface UnbundledApp {
  * (`#nitro/runtime/*`, runtime dependencies) resolve from the Nitro package, like real files.
  * Each of them has a stub file there, so runtimes resolve `#nitro/virtual/*` natively.
  *
- * Also exposes the virtual templates as `nitro.vfs` for the `/_vfs` debug endpoint.
+ * Also exposes the rendered virtual templates as `nitro.vfs` for the `/_vfs` debug endpoint
+ * (and synchronous raw imports of them).
  */
 export async function prepareUnbundledApp(nitro: Nitro): Promise<UnbundledApp> {
   const { env, extensions } = await baseBuildConfig(nitro);
 
-  const templates = virtualTemplates(nitro, [...env.polyfills]);
-  nitro.vfs = new Map(
-    templates.map((t) => [
-      t.id,
-      { render: () => (typeof t.template === "function" ? t.template() : t.template) },
-    ])
+  // Rendered once (some templates read files), so the runner and `nitro.vfs` see the same sources
+  const rendered = await Promise.all(
+    virtualTemplates(nitro, [...env.polyfills]).map(
+      async (t) =>
+        [t.id, typeof t.template === "function" ? await t.template() : t.template] as const
+    )
   );
+  nitro.vfs = new Map(rendered.map(([id, code]) => [id, { render: () => code }]));
 
   const virtual: Record<string, string> = Object.fromEntries(
-    await Promise.all(
-      [...nitro.vfs].map(async ([id, mod]) => {
-        const key = id.startsWith(NITRO_VIRTUAL_PREFIX) ? nitroVirtualPath(id) : id;
-        return [key, await mod.render()] as const;
-      })
-    )
+    rendered.map(([id, code]) => [
+      id.startsWith(NITRO_VIRTUAL_PREFIX) ? nitroVirtualPath(id) : id,
+      code,
+    ])
   );
 
   const entry = resolve(nitro.options.output.serverDir, "index.mjs");

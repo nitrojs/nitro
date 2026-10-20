@@ -175,7 +175,7 @@ describe("builder: false", () => {
     await rm(dir, { recursive: true, force: true });
   });
 
-  it("serves the sources from a public worker listener (`nitro serve`)", async () => {
+  it("serves the sources from a public listener (`nitro serve`)", async () => {
     const dir = await mkdtemp(join(tmpdir(), "nitro-unbundled-"));
     await writeFile(
       join(dir, "nitro.config.mjs"),
