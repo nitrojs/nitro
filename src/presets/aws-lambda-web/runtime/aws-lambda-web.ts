@@ -1,17 +1,33 @@
 import "#nitro/virtual/polyfills";
-import { NodeRequest, serve } from "srvx/node";
-import wsAdapter from "crossws/adapters/node";
+import { FastURL, serve } from "srvx/node";
 
 import { useNitroApp } from "nitro/app";
 import { trapUnhandledErrors } from "#nitro/runtime/error/hooks";
-import { resolveWebsocketHooks } from "#nitro/runtime/app";
 import { resolveServeOptions } from "#nitro/runtime/serve";
 import { setupCloseHooks } from "#nitro/runtime/shutdown";
 
 const endpoint = process.env.AWS_LAMBDA_HTTP_ENDPOINT;
-const match = endpoint?.match(/^([^:]+):(\d+)$/);
+let endpointURL: URL | undefined;
 
-if (endpoint !== undefined && (!match || +match[2] < 1 || +match[2] > 65_535)) {
+if (endpoint !== undefined) {
+  try {
+    endpointURL = new FastURL(`tcp://${endpoint}`);
+  } catch {
+    throw new Error(`Invalid AWS_LAMBDA_HTTP_ENDPOINT: ${endpoint}`);
+  }
+}
+
+if (
+  endpointURL &&
+  (!endpointURL.hostname ||
+    !endpointURL.port ||
+    Number(endpointURL.port) < 1 ||
+    endpointURL.pathname ||
+    endpointURL.search ||
+    endpointURL.hash ||
+    endpointURL.username ||
+    endpointURL.password)
+) {
   throw new Error(`Invalid AWS_LAMBDA_HTTP_ENDPOINT: ${endpoint}`);
 }
 
@@ -20,22 +36,16 @@ const nitroApp = useNitroApp();
 const server = serve(
   resolveServeOptions({
     fetch: nitroApp.fetch,
-    ...(match ? { hostname: match[1], port: +match[2], protocol: "http", tls: undefined } : {}),
+    ...(endpointURL
+      ? {
+          hostname: endpointURL.hostname,
+          port: Number(endpointURL.port),
+          protocol: "http",
+          tls: undefined,
+        }
+      : {}),
   })
 );
-
-if (import.meta._websocket) {
-  const { handleUpgrade } = wsAdapter({ resolve: resolveWebsocketHooks });
-  server.node!.server!.on("upgrade", (req, socket, head) => {
-    handleUpgrade(
-      req,
-      socket,
-      head,
-      // @ts-expect-error (upgrade is not typed)
-      new NodeRequest({ req, upgrade: { socket, head } })
-    );
-  });
-}
 
 setupCloseHooks(server);
 

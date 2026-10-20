@@ -82,6 +82,8 @@ Web Functions currently use the `nodejs24.x` runtime on Arm64. Build native depe
 
 The `awsLambda.streaming` option only applies to Event Functions. Web Functions stream HTTP responses directly.
 
+AWS Lambda Web Functions do not support WebSocket upgrades. Use server-sent events when one-way server-to-client streaming is sufficient.
+
 Nitro's in-process scheduled task runner is disabled for this preset because a Web Function can have multiple execution environments. Use an external scheduler for recurring work.
 
 :read-more{title="AWS Lambda Web Functions" to="https://docs.aws.amazon.com/lambda/latest/dg/web-functions.html"}
