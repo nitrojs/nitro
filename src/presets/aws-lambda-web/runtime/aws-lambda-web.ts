@@ -7,7 +7,8 @@ import { resolveServeOptions } from "#nitro/runtime/serve";
 import { setupCloseHooks } from "#nitro/runtime/shutdown";
 
 const endpoint = process.env.AWS_LAMBDA_HTTP_ENDPOINT;
-// Expected format: `<host>:<port>` (for example, `127.0.0.1:8080`).
+// Lambda provides a bare `host:port`; add a synthetic scheme for FastURL parsing.
+// https://docs.aws.amazon.com/lambda/latest/dg/web-functions-revisions-env-vars.html
 let endpointURL: URL | undefined;
 
 if (endpoint !== undefined) {
