@@ -292,6 +292,13 @@ export function testNitro(
     expect(headers["x-test"]).toBe("test");
   });
 
+  it("global middleware runs before cached (`swr`) route handlers", async () => {
+    for (let i = 0; i < 2; i++) {
+      const { data } = await callHandler({ url: "/rules/swr/middleware-order" });
+      expect(data).toEqual(["rules", "global"]);
+    }
+  });
+
   it("API Works", async () => {
     const { data: helloData } = await callHandler({ url: "/api/hello" });
     expect(helloData).to.toMatchObject({ message: "Hello API" });

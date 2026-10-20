@@ -6,6 +6,7 @@ import app from "../../src/build/virtual/app.ts";
 function createNitroStub(opts: {
   routes?: boolean;
   routeRules?: boolean;
+  cacheRules?: boolean;
   routedMiddleware?: boolean;
   globalMiddleware?: boolean;
   plugins?: boolean;
@@ -15,6 +16,7 @@ function createNitroStub(opts: {
     options: {
       plugins: opts.plugins ? ["plugin.ts"] : [],
       experimental: {},
+      routeRules: opts.cacheRules ? { "/cached/**": { cache: { swr: true } } } : {},
     },
     routing: {
       routes: {
@@ -28,7 +30,7 @@ function createNitroStub(opts: {
             ]
           : [{ route: "/**", method: "" }],
       },
-      routeRules: { hasRoutes: () => !!opts.routeRules },
+      routeRules: { hasRoutes: () => !!(opts.routeRules || opts.cacheRules) },
       routedMiddleware: { hasRoutes: () => !!opts.routedMiddleware },
       globalMiddleware: opts.globalMiddleware ? [{}] : [],
     },
@@ -53,6 +55,17 @@ describe("virtual/app template", () => {
     expect(routeRules).toBeGreaterThan(-1);
     expect(global).toBeGreaterThan(routeRules);
     expect(routed).toBeGreaterThan(global);
+    expect(template).not.toContain("createCacheRuleMiddleware");
+  });
+
+  it("registers the `cache` rule after global and routed middleware", () => {
+    const template = app(
+      createNitroStub({ cacheRules: true, routedMiddleware: true, globalMiddleware: true })
+    ).template();
+    const routed = template.indexOf("push(createRoutedMiddleware(findRoutedMiddleware))");
+    const cache = template.indexOf("push(createCacheRuleMiddleware())");
+    expect(routed).toBeGreaterThan(template.indexOf("push(...globalMiddleware)"));
+    expect(cache).toBeGreaterThan(routed);
   });
 
   it("resolves `event.context.routeRules` in `~findRoute`, before any middleware", () => {

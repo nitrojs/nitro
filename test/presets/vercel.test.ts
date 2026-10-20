@@ -359,6 +359,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/single-headers\\/(?<id>[^/]+)\\/?$",
               },
               {
+                "dest": "/rules/swr/middleware-order",
+                "src": "^\\/rules\\/swr\\/middleware-order\\/?$",
+              },
+              {
                 "dest": "/rules/[...slug]",
                 "src": "^\\/rules(?:\\/(?<slug>(?:[\\s\\S]*[^/])?\\/*?))?\\/?$",
               },
@@ -799,6 +803,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/rules/isr-ttl/[...]-isr.prerender-config.json",
             "functions/rules/isr/[...]-isr.func",
             "functions/rules/isr/[...]-isr.prerender-config.json",
+            "functions/rules/swr/middleware-order.func (symlink)",
             "functions/single-headers/[id].func (symlink)",
             "functions/static-flags.func (symlink)",
             "functions/stream.func (symlink)",
