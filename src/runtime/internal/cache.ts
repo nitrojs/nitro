@@ -21,7 +21,7 @@ export function cacheStorage(): StorageInterface {
   return (_cacheStorage ??= createCacheStorage());
 }
 
-export function defaultOnError(error: unknown) {
+export function defaultOnError(error: unknown): void {
   console.error("[cache]", error);
   useNitroApp().captureError?.(error as Error, { tags: ["cache"] });
 }
