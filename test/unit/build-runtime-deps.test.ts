@@ -1,17 +1,8 @@
-import {
-  appendFileSync,
-  cpSync,
-  mkdirSync,
-  mkdtempSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
-import { dirname, join, relative } from "pathe";
-import { resolvePackageJSON } from "pkg-types";
+import { dirname, join } from "pathe";
 import { pkgDir } from "#nitro/meta";
 import { glob } from "tinyglobby";
 import { parseAst } from "rolldown/parseAst";
@@ -89,13 +80,12 @@ describe.each(builders)("optional runtime dependencies (%s)", (builder) => {
     return () => vi.mocked(dep.ensureDep).mockRestore();
   });
 
-  it("does not require unstorage, db0 or ocache when they are not used", async () => {
+  it("does not require unstorage or db0 when they are not used", async () => {
     await buildApp(builder, `export default { fetch: () => new Response("ok") };`, {
       routeRules: { "/**": { headers: { "x-test": "1" } } },
     });
     expect(depCalls("unstorage")).toEqual([]);
     expect(depCalls("db0")).toEqual([]);
-    expect(depCalls("ocache")).toEqual([]);
   });
 
   it("requires unstorage when `nitro/kv` is imported", async () => {
@@ -137,42 +127,14 @@ describe.each(builders)("optional runtime dependencies (%s)", (builder) => {
     expect(depCalls("unstorage")).toEqual([]);
   });
 
-  it("requires ocache when `nitro/cache` is imported", async () => {
-    const code = await buildApp(
-      builder,
-      `import { defineCachedFunction } from "nitro/cache";\nconst cached = defineCachedFunction(() => "ok", { maxAge: 60 });\nexport default { fetch: async () => new Response(await cached()) };`
-    );
-    expect(depCalls("ocache")).not.toEqual([]);
-    expect(depCalls("ocache")).toEqual(
-      depCalls("ocache").map(() => [
-        expect.objectContaining({ autoInstall: true, reason: expect.stringContaining("caching") }),
-      ])
-    );
-    expect(depCalls("unstorage")).toEqual([]);
-    expect(code).toContain("createMemoryStorage");
-  });
-
-  it("requires ocache for `cache` route rules", async () => {
-    await buildApp(builder, `export default { fetch: () => new Response("ok") };`, {
-      routeRules: { "/**": { swr: 60 } },
-    });
-    expect(depCalls("ocache")).not.toEqual([]);
-  });
-
-  it("bundles ocache from its explicit path (`deps.paths`)", async () => {
-    // A copy of `ocache` outside the project, as a framework would provide it
-    const ocacheDir = join(mkdtempSync(join(tmpdir(), "nitro-build-runtime-deps-fw-")), "ocache");
-    tmpDirs.push(dirname(ocacheDir));
-    const pkgDir = dirname(await resolvePackageJSON("ocache", { url: import.meta.url }));
-    cpSync(pkgDir, ocacheDir, { recursive: true });
-    const entry = relative(pkgDir, fileURLToPath(import.meta.resolve("ocache")));
-    appendFileSync(join(ocacheDir, entry), `\nconsole.log("framework-ocache");\n`);
+  it("bundles ocache (a dependency) without installing it", async () => {
     const code = await buildApp(
       builder,
       `import { defineCachedFunction } from "nitro/cache";\nconst cached = defineCachedFunction(() => "ok", { maxAge: 60 });\nexport default { fetch: async () => new Response(await cached()) };`,
-      { deps: { paths: { ocache: ocacheDir } } }
+      { routeRules: { "/**": { swr: 60 } } }
     );
-    expect(code).toContain("framework-ocache");
+    expect(depCalls("ocache")).toEqual([]);
+    expect(code).toContain("createMemoryStorage");
   });
 
   it("requires unstorage when kv is configured", async () => {
@@ -246,7 +208,7 @@ describe("optional runtime dependencies (sources)", () => {
         if (
           node.type === "ImportDeclaration" &&
           node.importKind !== "type" &&
-          /^(unstorage|db0|ocache)(\/|$)/.test(node.source.value)
+          /^(unstorage|db0)(\/|$)/.test(node.source.value)
         ) {
           offenders.push(file);
         }

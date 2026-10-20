@@ -152,7 +152,7 @@ Uses `citty` with lazy-loaded commands: `dev`, `build`, `deploy`, `preview`, `pr
 | `hookable` | Hook system |
 | `unstorage` | Storage abstraction (`nitro/kv`), installed on demand by `build/plugins/runtime-deps.ts` |
 | `db0` | SQL database layer (`nitro/database`), installed on demand by `build/plugins/runtime-deps.ts` |
-| `ocache` | Caching (`nitro/cache`, `cache` route rules), installed on demand by `build/plugins/runtime-deps.ts` |
+| `ocache` | Caching (`nitro/cache`, `cache` route rules) |
 | `unenv` | Node.js polyfills for `node: false` builds (`build/_node-compat.ts`), installed on demand by `build/plugins/unenv.ts` |
 | `defu` | Config merging |
 | `pathe` | Path operations |

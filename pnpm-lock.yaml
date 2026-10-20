@@ -25,7 +25,10 @@ importers:
         version: 0.3.6
       h3:
         specifier: ^2.0.3
-        version: 2.0.5(crossws@0.4.15)(ocache@0.3.0)
+        version: 2.0.5(crossws@0.4.15)(ocache@0.3.1)
+      ocache:
+        specifier: ^0.3.1
+        version: 0.3.1
       rou3:
         specifier: ^1.0.0
         version: 1.0.0
@@ -210,9 +213,6 @@ importers:
       obuild:
         specifier: ^0.4.45
         version: 0.4.45(dotenv@18.0.8)(giget@3.3.1)(jiti@2.7.0)(magicast@0.5.5)(typescript@7.0.2)
-      ocache:
-        specifier: ^0.3.0
-        version: 0.3.0
       oxbox:
         specifier: ^0.1.0
         version: 0.1.0
@@ -308,10 +308,6 @@ importers:
         version: link:../..
 
   examples/cached-handler:
-    dependencies:
-      ocache:
-        specifier: ^0.3.0
-        version: 0.3.0
     devDependencies:
       nitro:
         specifier: workspace:*
@@ -646,7 +642,7 @@ importers:
         version: 1.0.0(solid-js@1.9.17)
       '@solidjs/start':
         specifier: ^2.0.6
-        version: 2.0.6(@solidjs/router@1.0.0)(crossws@0.4.15)(ocache@0.3.0)(supports-color@10.2.2)(vite@8.3.4)
+        version: 2.0.6(@solidjs/router@1.0.0)(crossws@0.4.15)(ocache@0.3.1)(supports-color@10.2.2)(vite@8.3.4)
       nitro:
         specifier: workspace:*
         version: link:../..
@@ -5721,8 +5717,8 @@ packages:
     resolution: {integrity: sha512-3+MjpKvxct9kZbRG5IU2nvYIlEkE+sYhREwz2og8Sq9zbNx1NfuEFH9qxbvRRpL1rEZafVTe6tpAZjB3G4KH0A==}
     hasBin: true
 
-  ocache@0.3.0:
-    resolution: {integrity: sha512-RS/9P0zeBb0gDJmadGERLH8lZNXK7xbufTDhclkXGvFGTsj0G4M5/cLk+mizcERH29mLXNnocfB5wjcK70wGJg==}
+  ocache@0.3.1:
+    resolution: {integrity: sha512-qeBrhQ0ly6tgXsakgNwLx6diRUppJZIcV5OjVGa5yp9HzztutkaGDDXJqVMo1fKWz5fNDtTp3iPU2fuhHf0+Lg==}
 
   ofetch@1.5.1:
     resolution: {integrity: sha512-2W4oUZlVaqAPAil6FUg/difl6YhqhUR7x2eZY4bQCko22UXg3hptq9KLQdqFClV+Wu85UX7hNtdGTngi/1BxcA==}
@@ -9193,7 +9189,7 @@ snapshots:
     dependencies:
       solid-js: 1.9.17
 
-  '@solidjs/start@2.0.6(@solidjs/router@1.0.0)(crossws@0.4.15)(ocache@0.3.0)(supports-color@10.2.2)(vite@8.3.4)':
+  '@solidjs/start@2.0.6(@solidjs/router@1.0.0)(crossws@0.4.15)(ocache@0.3.1)(supports-color@10.2.2)(vite@8.3.4)':
     dependencies:
       '@babel/core': 7.29.7(supports-color@10.2.2)
       '@babel/traverse': 7.29.10(supports-color@10.2.2)
@@ -9206,7 +9202,7 @@ snapshots:
       defu: 6.1.7
       error-stack-parser-es: 2.0.1
       fast-glob: 3.3.3
-      h3: 2.0.5(crossws@0.4.15)(ocache@0.3.0)
+      h3: 2.0.5(crossws@0.4.15)(ocache@0.3.1)
       html-to-image: 1.11.13
       micromatch: 4.0.8
       oxc-parser: link:shims/oxc-parser
@@ -11175,13 +11171,13 @@ snapshots:
     dependencies:
       duplexer: 0.1.2
 
-  h3@2.0.5(crossws@0.4.15)(ocache@0.3.0):
+  h3@2.0.5(crossws@0.4.15)(ocache@0.3.1):
     dependencies:
       rou3: 1.0.0
       srvx: 1.0.6
     optionalDependencies:
       crossws: 0.4.15(srvx@1.0.6)
-      ocache: 0.3.0
+      ocache: 0.3.1
 
   has-flag@4.0.0: {}
 
@@ -12333,7 +12329,7 @@ snapshots:
       - typescript
       - vue-tsc
 
-  ocache@0.3.0: {}
+  ocache@0.3.1: {}
 
   ofetch@1.5.1:
     dependencies:

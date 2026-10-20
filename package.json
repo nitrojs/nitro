@@ -75,6 +75,7 @@
     "crossws": "^0.4.15",
     "env-runner": "^0.3.6",
     "h3": "^2.0.3",
+    "ocache": "^0.3.1",
     "rou3": "^1.0.0",
     "srvx": "^1.0.6"
   },
@@ -138,7 +139,6 @@
     "nf3": "^0.4.2",
     "nypm": "^0.6.10",
     "obuild": "^0.4.45",
-    "ocache": "^0.3.0",
     "oxbox": "^0.1.0",
     "oxc-parser": "link:shims/oxc-parser",
     "oxfmt": ">=0.73.0",
@@ -170,7 +170,7 @@
     "zephyr-agent": "^1.6.0"
   },
   "engines": {
-    "node": "^20.19.0 || >=22.12.0"
+    "node": ">=22.12.0"
   },
   "packageManager": "pnpm@11.28.6",
   "compatiblePackages": {

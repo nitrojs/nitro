@@ -41,10 +41,10 @@ export function missingRuntimeDepError(nitro: Nitro, id: string): Error {
 }
 
 /**
- * Resolves optional runtime dependencies (`unstorage`, `db0`, `ocache`) imported by the Nitro runtime.
+ * Resolves optional runtime dependencies (`unstorage`, `db0`) imported by the Nitro runtime.
  *
  * They are not dependencies of Nitro: they are resolved from the project and only installed
- * once a build actually imports them (e.g. `nitro/kv`, `nitro/database` or `nitro/cache` is used).
+ * once a build actually imports them (e.g. `nitro/kv` or `nitro/database` is used).
  */
 export function runtimeDeps(nitro: Nitro): Plugin {
   return {
