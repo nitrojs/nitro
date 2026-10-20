@@ -110,9 +110,13 @@ export default function app(nitro: Nitro) {
       );
 
       if (serverTiming) {
+        // Reuse the Nitro async context (wrapped around it below) to find the current request.
+        const getRequest = hasAsyncContext
+          ? `, getRequest: () => nitroAsyncContext.tryUse()?.request`
+          : "";
         code.push(
           ``,
-          `  appHandler = withServerTimingContext(appHandler, ${JSON.stringify(serverTiming)});`
+          `  appHandler = withServerTimingContext(appHandler, { metrics: ${JSON.stringify(serverTiming)}${getRequest} });`
         );
       }
 

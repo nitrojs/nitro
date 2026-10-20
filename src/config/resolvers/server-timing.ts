@@ -1,4 +1,4 @@
-import type { NitroConfig, NitroOptions } from "nitro/types";
+import type { NitroConfig, NitroOptions, ServerTimingOptions } from "nitro/types";
 
 export async function resolveServerTimingOptions(options: NitroOptions) {
   // Enabled by default in development only; production builds opt in.
@@ -7,16 +7,15 @@ export async function resolveServerTimingOptions(options: NitroOptions) {
     options.serverTiming = false;
     return;
   }
+  // `true` enables every metric, an object only the ones it sets to `true`.
+  const enabled = (metric: keyof ServerTimingOptions) =>
+    typeof input === "object" ? input[metric] === true : true;
   const resolved = {
-    total: true,
-    kv: true,
-    db: true,
-    cache: true,
-    ...(typeof input === "object" ? input : {}),
+    total: enabled("total"),
+    kv: enabled("kv"),
+    db: enabled("db") && !!options.experimental.database,
+    cache: enabled("cache"),
   };
-  if (!options.experimental.database) {
-    resolved.db = false;
-  }
   options.serverTiming =
     resolved.total || resolved.kv || resolved.db || resolved.cache ? resolved : false;
 }

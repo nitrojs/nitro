@@ -29,10 +29,7 @@ ${
     ? /* js */ `import { withTracing } from "db0/tracing";
 import { traceServerTiming } from "#nitro/runtime/server-timing-trace";
 
-export const traceDatabase = (db) => {
-  traceServerTiming("db", ["db0.query"]);
-  return withTracing(db);
-};`
+export const traceDatabase = (db) => traceServerTiming("db") ? withTracing(db) : db;`
     : tracingEnabled
       ? /* js */ `export { withTracing as traceDatabase } from "db0/tracing";`
     : /* js */ `export const traceDatabase = (db) => db;`
