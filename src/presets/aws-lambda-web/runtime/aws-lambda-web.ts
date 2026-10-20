@@ -7,6 +7,7 @@ import { resolveServeOptions } from "#nitro/runtime/serve";
 import { setupCloseHooks } from "#nitro/runtime/shutdown";
 
 const endpoint = process.env.AWS_LAMBDA_HTTP_ENDPOINT;
+// Expected format: `<host>:<port>` (for example, `127.0.0.1:8080`).
 let endpointURL: URL | undefined;
 
 if (endpoint !== undefined) {
