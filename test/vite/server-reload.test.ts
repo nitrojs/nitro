@@ -8,7 +8,7 @@ const { createServer } = (await import(
   process.env.NITRO_VITE_PKG || "vite"
 )) as typeof import("vite");
 
-describe("vite:experimental.vite.serverReload", () => {
+describe("vite: `vite.serverReload` (nitro.config)", () => {
   let server: ViteDevServer;
   let serverURL: string;
 

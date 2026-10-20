@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { defineCommand, runMain } from "citty";
-import { version as nitroVersion } from "nitro/meta";
+import { version as nitroVersion } from "#nitro/meta";
 
 const main = defineCommand({
   meta: {
@@ -14,6 +14,8 @@ const main = defineCommand({
     deploy: () => import("./commands/deploy.ts").then((r) => r.default),
     task: () => import("./commands/task/index.ts").then((r) => r.default),
     preview: () => import("./commands/preview.ts").then((r) => r.default),
+    serve: () => import("./commands/serve.ts").then((r) => r.default),
+    start: () => import("./commands/serve.ts").then((r) => r.default),
     docs: () => import("./commands/docs.ts").then((r) => r.default),
   },
 });

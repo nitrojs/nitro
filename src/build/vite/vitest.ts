@@ -1,7 +1,7 @@
 import type { UserConfig, Plugin as VitePlugin } from "vite";
 import type { NitroPluginContext } from "./types.ts";
 import { resolve } from "pathe";
-import { runtimeDir } from "nitro/meta";
+import { runtimeDir } from "#nitro/meta";
 import { setupVitestWatch } from "./_vitest-watch.ts";
 
 // https://vitest.dev/guide/environment#custom-environment
@@ -50,6 +50,11 @@ export function nitroVitest(ctx: NitroPluginContext): VitePlugin {
       if (!setupFiles.includes(setupPath)) {
         setupFiles.push(setupPath);
       }
+      // Virtual modules change on handler rescans without a file change, so the fs module cache
+      // (keyed in memory by id until a file is invalidated) would keep serving stale code
+      context.defineCacheKeyGenerator?.(({ id }) =>
+        id.startsWith("#nitro/virtual/") ? false : undefined
+      );
       setupVitestWatch(ctx, context);
     },
 

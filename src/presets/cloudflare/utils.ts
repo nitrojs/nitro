@@ -9,15 +9,9 @@ import { readGitConfig, readPackageJSON, findNearestFile } from "pkg-types";
 import { defu } from "defu";
 import { glob } from "tinyglobby";
 import { join, resolve } from "pathe";
-import {
-  joinURL,
-  hasProtocol,
-  withLeadingSlash,
-  withTrailingSlash,
-  withoutLeadingSlash,
-} from "ufo";
+import { joinURL, withLeadingSlash, withTrailingSlash, withoutLeadingSlash } from "ufo";
 import { unenvCfNodeCompat } from "./unenv/preset.ts";
-import { routeToSplat, sortRoutes } from "../_utils/routes.ts";
+import { routeToSplat, skipUnsupportedRoute, sortRoutes } from "../_utils/routes.ts";
 import { extendEnv } from "../../build/env.ts";
 
 // https://github.com/nitrojs/nitro/issues/4527
@@ -109,7 +103,7 @@ export async function writeCFHeaders(nitro: Nitro, outdir: "public" | "output") 
 
   for (const path of sortRoutes(Object.keys(nitro.options.routeRules))) {
     const routeRules = nitro.options.routeRules[path];
-    if (!routeRules.headers) {
+    if (!routeRules.headers || skipUnsupportedRoute(nitro, { route: path, file: "_headers" })) {
       continue;
     }
     const headers = [
@@ -145,17 +139,20 @@ export async function writeCFPagesRedirects(nitro: Nitro) {
   const contents: string[] = [];
 
   // Most specific first, as the first matching rule wins
-  for (const key of sortRoutes(Object.keys(nitro.options.routeRules))) {
+  const routes = sortRoutes(Object.keys(nitro.options.routeRules));
+  const redirects = routes.filter((key) => nitro.options.routeRules[key].redirect);
+  for (const key of routes) {
     const redirect = nitro.options.routeRules[key].redirect;
-    if (!redirect) {
+    if (
+      !redirect ||
+      skipUnsupportedRoute(nitro, { route: key, file: "_redirects", routes: redirects })
+    ) {
       continue;
     }
     const code = redirect.status;
     const from = joinURL(nitro.options.baseURL, routeToSplat(key));
     const to = redirect.to.replaceAll("**", ":splat");
-    contents.push(
-      `${from}\t${hasProtocol(to, { acceptRelative: true }) ? to : joinURL(nitro.options.baseURL, to)}\t${code}`
-    );
+    contents.push(`${from}\t${to}\t${code}`);
   }
   contents.push(staticFallback);
 
@@ -261,16 +258,36 @@ export async function writeWranglerConfig(nitro: Nitro, cfTarget: "pages" | "mod
   }
 
   // Read user config
-  const { config: userConfig = {} } = await readWranglerConfig(nitro);
+  const { configPath: userConfigPath, config: userConfig = {} } = await readWranglerConfig(nitro);
 
   // Nitro context config (from frameworks and modules)
   const ctxConfig = nitro.options.cloudflare?.wrangler || {};
 
+  // `main` can point to the server entry, so `wrangler types` can type Durable Object bindings
+  const mainIsServerEntry =
+    !!userConfig.main &&
+    !!nitro.options.serverEntry &&
+    resolve(dirname(userConfigPath!), userConfig.main) === nitro.options.serverEntry.handler;
+
   // Validate and warn about overrides
   for (const key in overrides) {
-    if (key in userConfig || key in ctxConfig) {
+    if (key === "main" && mainIsServerEntry) {
+      continue;
+    }
+    let conflict: "ctx" | "user" | undefined;
+    if (key === "assets") {
+      conflict = findAssetsConflict(overrides.assets!, ctxConfig.assets, userConfig.assets, {
+        generatedDir: wranglerConfigDir,
+        userDir: userConfigPath ? dirname(userConfigPath) : nitro.options.rootDir,
+      });
+    } else if (key in ctxConfig) {
+      conflict = "ctx";
+    } else if (key in userConfig) {
+      conflict = "user";
+    }
+    if (conflict) {
       nitro.logger.warn(
-        `[cloudflare] Wrangler config \`${key}\`${key in ctxConfig ? "set by config or modules" : ""} is overridden and will be ignored.`
+        `[cloudflare] Wrangler config \`${key}\`${conflict === "ctx" ? " set by config or modules" : ""} is overridden and will be ignored.`
       );
     }
   }
@@ -354,4 +371,37 @@ async function generateWorkerName(nitro: Nitro) {
     .toLowerCase()
     .replace(/[^a-zA-Z0-9-]/g, "-")
     .replace(/-$/, "");
+}
+
+type WranglerAssets = NonNullable<WranglerConfig["assets"]>;
+
+// Returns the source of an asset `binding` or `directory` that differs from the generated one.
+// Context config is copied into the generated config (relative to `generatedDir`),
+// while user config paths are relative to the user wrangler config (`userDir`).
+function findAssetsConflict(
+  expected: Partial<WranglerAssets>,
+  ctxAssets: Partial<WranglerAssets> | undefined,
+  userAssets: Partial<WranglerAssets> | undefined,
+  opts: { generatedDir: string; userDir: string }
+): "ctx" | "user" | undefined {
+  for (const field of ["binding", "directory"] as const) {
+    // Static builds only generate `directory`
+    if (expected[field] === undefined) {
+      continue;
+    }
+    // Context config takes precedence over user config (null means unset in JSON)
+    const source = ctxAssets?.[field] == null ? "user" : "ctx";
+    const value = (source === "ctx" ? ctxAssets : userAssets)?.[field];
+    if (value == null) {
+      continue;
+    }
+    const isConflict =
+      field === "directory"
+        ? resolve(source === "ctx" ? opts.generatedDir : opts.userDir, value) !==
+          resolve(opts.generatedDir, expected.directory!)
+        : value !== expected.binding;
+    if (isConflict) {
+      return source;
+    }
+  }
 }

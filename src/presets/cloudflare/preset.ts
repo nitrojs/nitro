@@ -2,7 +2,7 @@ import { defineNitroPreset } from "../_utils/preset.ts";
 import { writeFile } from "../_utils/fs.ts";
 import type { Nitro } from "nitro/types";
 import { join, resolve } from "pathe";
-import { presetsDir } from "nitro/meta";
+import { presetsDir } from "#nitro/meta";
 import { unenvCfExternals } from "./unenv/preset.ts";
 import { extendEnv } from "../../build/env.ts";
 import {
@@ -53,7 +53,7 @@ const cloudflarePages = defineNitroPreset(
       "build:before": async (nitro) => {
         extendEnv(nitro, unenvCfExternals);
         await enableNodeCompat(nitro);
-        await setupEntryExports(nitro);
+        setupEntryExports(nitro);
       },
       async compiled(nitro: Nitro) {
         await writeWranglerConfig(nitro, "pages");
@@ -103,9 +103,8 @@ export const cloudflareDev = defineNitroPreset(
     },
     hooks: {
       "build:before": (nitro) => {
-        // The bridge imports `cloudflare:workers`, only available in workerd
         if (nitro.options.devServer.runner === "miniflare") {
-          setupTracingBridge(nitro);
+          setupMiniflareDev(nitro);
         }
       },
     },
@@ -113,7 +112,6 @@ export const cloudflareDev = defineNitroPreset(
   {
     name: "cloudflare-dev" as const,
     aliases: ["cloudflare-module", "cloudflare-durable", "cloudflare-pages"],
-    compatibilityDate: "2025-07-13",
     dev: true,
   }
 );
@@ -147,7 +145,7 @@ const cloudflareModule = defineNitroPreset(
       "build:before": async (nitro) => {
         extendEnv(nitro, unenvCfExternals);
         await enableNodeCompat(nitro);
-        await setupEntryExports(nitro);
+        setupEntryExports(nitro);
         setupTracingBridge(nitro);
       },
       async compiled(nitro: Nitro) {
@@ -188,6 +186,25 @@ export default [
   cloudflareDurable,
   cloudflareDev,
 ];
+
+// Builds for workerd like the production presets
+function setupMiniflareDev(nitro: Nitro) {
+  // Resolve packages for workerd (it rejects the CJS entries of the `node` condition)
+  nitro.options.exportConditions = [
+    ...new Set([
+      "workerd",
+      "worker",
+      ...nitro.options.exportConditions!.filter((c) => c !== "node"),
+    ]),
+  ];
+  extendEnv(nitro, unenvCfExternals);
+  // In Vite dev, the nitro environment's entry re-exports them instead (`vite/dev-entry.mjs`)
+  if (nitro.options.builder !== "vite") {
+    setupEntryExports(nitro);
+  }
+  // The bridge imports `cloudflare:workers`, only available in workerd
+  setupTracingBridge(nitro);
+}
 
 /**
  * Export tracing-channel spans as Cloudflare custom spans (`tracing.enterSpan`)
