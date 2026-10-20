@@ -36,7 +36,7 @@ export default defineCommand({
       },
       onClose(cause) {
         if (started && !closing) {
-          consola.error("Server worker exited unexpectedly.", cause ?? "");
+          consola.error("Server exited unexpectedly.", cause ?? "");
           process.exit(1);
         }
       },

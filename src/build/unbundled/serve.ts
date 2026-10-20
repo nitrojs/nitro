@@ -6,10 +6,15 @@ import { joinURL, withTrailingSlash } from "ufo";
 import { createNitro } from "../../nitro.ts";
 import { scanHandlers } from "../../scan.ts";
 import { globPublicAssets } from "../assets.ts";
+import { resolveBuildPlugins } from "../plugins.ts";
 import { prepareUnbundledApp } from "./entry.ts";
 import { unbundledPlugins } from "./plugins.ts";
 
 const serveDotenv = { fileName: [".env.production", ".env"] };
+
+// The Nitro runtime modules a self runner imports stay cached in the process (with the
+// virtual modules they import): only its first server can run in it.
+let selfRunnerUsed = false;
 
 export interface UnbundledServerOptions {
   rootDir: string;
@@ -29,8 +34,11 @@ export interface UnbundledServer {
 /**
  * Serve the server sources in production without a build (`builder: false`).
  *
- * The Node.js worker listens on the public address itself, while the host loads and
- * transforms the modules it imports.
+ * The sources run in this process (env-runner self runner), whose loader hooks need
+ * synchronous plugins. With `buildPlugins`, which may be async, or for later servers of the
+ * process, they run in a Node.js worker instead, while the host loads and transforms the
+ * modules it imports.
+ * Either way, the server listens on the public address itself.
  */
 export async function startUnbundledServer(opts: UnbundledServerOptions): Promise<UnbundledServer> {
   const nitro = await createNitro(
@@ -49,10 +57,12 @@ export async function startUnbundledServer(opts: UnbundledServerOptions): Promis
     if (publicAssets.length > 0) {
       virtual[entry] = serveEntry(appEntry, publicAssets);
     }
-    runner = await loadRunner("node-worker", {
+    const self = !selfRunnerUsed && (await resolveBuildPlugins(nitro)).length === 0;
+    selfRunnerUsed ||= self;
+    runner = await loadRunner(self ? "self" : "node-worker", {
       name: "nitro-serve",
       data: { entry, virtual },
-      plugins: await unbundledPlugins(nitro),
+      plugins: await unbundledPlugins(nitro, { sync: self }),
       // After `createNitro`, so `.env` files can set them
       listen: opts.listen && {
         ...opts.listen,
