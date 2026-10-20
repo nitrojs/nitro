@@ -17,11 +17,11 @@ import type { CachedFunctionOptions, CachedHandlerOptions } from "nitro/types";
 
 let _cacheStorage: StorageInterface | undefined;
 
-function cacheStorage(): StorageInterface {
+export function cacheStorage(): StorageInterface {
   return (_cacheStorage ??= createCacheStorage());
 }
 
-function defaultOnError(error: unknown) {
+export function defaultOnError(error: unknown) {
   console.error("[cache]", error);
   useNitroApp().captureError?.(error as Error, { tags: ["cache"] });
 }

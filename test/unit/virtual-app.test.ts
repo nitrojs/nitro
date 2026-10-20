@@ -6,7 +6,6 @@ import app from "../../src/build/virtual/app.ts";
 function createNitroStub(opts: {
   routes?: boolean;
   routeRules?: boolean;
-  cacheRules?: boolean;
   routedMiddleware?: boolean;
   globalMiddleware?: boolean;
   plugins?: boolean;
@@ -16,7 +15,6 @@ function createNitroStub(opts: {
     options: {
       plugins: opts.plugins ? ["plugin.ts"] : [],
       experimental: {},
-      routeRules: opts.cacheRules ? { "/cached/**": { cache: { swr: true } } } : {},
     },
     routing: {
       routes: {
@@ -30,7 +28,7 @@ function createNitroStub(opts: {
             ]
           : [{ route: "/**", method: "" }],
       },
-      routeRules: { hasRoutes: () => !!(opts.routeRules || opts.cacheRules) },
+      routeRules: { hasRoutes: () => !!opts.routeRules },
       routedMiddleware: { hasRoutes: () => !!opts.routedMiddleware },
       globalMiddleware: opts.globalMiddleware ? [{}] : [],
     },
@@ -55,12 +53,11 @@ describe("virtual/app template", () => {
     expect(routeRules).toBeGreaterThan(-1);
     expect(global).toBeGreaterThan(routeRules);
     expect(routed).toBeGreaterThan(global);
-    expect(template).not.toContain("createCacheRuleMiddleware");
   });
 
   it("registers the `cache` rule after global and routed middleware", () => {
     const template = app(
-      createNitroStub({ cacheRules: true, routedMiddleware: true, globalMiddleware: true })
+      createNitroStub({ routeRules: true, routedMiddleware: true, globalMiddleware: true })
     ).template();
     const routed = template.indexOf("push(createRoutedMiddleware(findRoutedMiddleware))");
     const cache = template.indexOf("push(createCacheRuleMiddleware())");
@@ -90,13 +87,13 @@ describe("virtual/app template", () => {
 
   it("only imports the runtime helpers it needs", () => {
     expect(app(createNitroStub({ routeRules: true })).template()).toContain(
-      'import { createRouteRulesMiddleware, getRouteRules } from "#nitro/runtime/app";'
+      'import { createRouteRulesMiddleware, createCacheRuleMiddleware, getRouteRules } from "#nitro/runtime/app";'
     );
     expect(app(createNitroStub({ routedMiddleware: true })).template()).toContain(
       'import { createRoutedMiddleware } from "#nitro/runtime/app";'
     );
     expect(app(createNitroStub({ routeRules: true, routedMiddleware: true })).template()).toContain(
-      'import { createRouteRulesMiddleware, createRoutedMiddleware, getRouteRules } from "#nitro/runtime/app";'
+      'import { createRouteRulesMiddleware, createRoutedMiddleware, createCacheRuleMiddleware, getRouteRules } from "#nitro/runtime/app";'
     );
   });
 

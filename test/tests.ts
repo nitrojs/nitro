@@ -293,10 +293,17 @@ export function testNitro(
   });
 
   it("global middleware runs before cached (`swr`) route handlers", async () => {
-    for (let i = 0; i < 2; i++) {
-      const { data } = await callHandler({ url: "/rules/swr/middleware-order" });
-      expect(data).toEqual(["rules", "global"]);
-    }
+    const url = "/rules/swr/middleware-order";
+    // miss, then hits: the middleware must run each time, and the header it
+    // sets must not be stored in the shared cache entry
+    const miss = await callHandler({ url, headers: { "x-echo": "a" } });
+    expect(miss.data).toEqual(["rules", "global"]);
+    expect(miss.headers["x-echo"]).toBe("a");
+    const hit = await callHandler({ url, headers: { "x-echo": "b" } });
+    expect(hit.data).toEqual(["rules", "global"]);
+    expect(hit.headers["x-echo"]).toBe("b");
+    const anonymous = await callHandler({ url });
+    expect(anonymous.headers["x-echo"]).toBeUndefined();
   });
 
   it("API Works", async () => {

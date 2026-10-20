@@ -106,8 +106,11 @@ export function getRouteRules(
  */
 export function createRouteRulesMiddleware(): Middleware {
   const middleware: Middleware = (event, next) => {
-    const chain = resolveRouteRuleChains(event.req.method, event.url.pathname).rules;
-    return chain ? chain(event, next as any) : next();
+    const { rules, cache } = resolveRouteRuleChains(event.req.method, event.url.pathname);
+    if (cache) {
+      (event as CacheRuleCarrier)[kCacheRule] = cache;
+    }
+    return rules ? rules(event, next as any) : next();
   };
   return markUntraced(middleware);
 }
@@ -116,10 +119,13 @@ export function createRouteRulesMiddleware(): Middleware {
  * Middleware that runs the `cache` route rule matched for the current request.
  * The rule dispatches the matched route handler itself, so it is registered
  * after global and routed middleware for them to run on cached routes too.
+ *
+ * The rule is matched by `createRouteRulesMiddleware`, on the same pathname as
+ * the other rules, even if a middleware rewrites `event.url` in between.
  */
 export function createCacheRuleMiddleware(): Middleware {
   const middleware: Middleware = (event, next) => {
-    const cache = resolveRouteRuleChains(event.req.method, event.url.pathname).cache;
+    const cache = (event as CacheRuleCarrier)[kCacheRule];
     return cache ? cache(event, next) : next();
   };
   return markUntraced(middleware);
@@ -201,6 +207,10 @@ function matchRouteRules(
     pathname
   );
 }
+
+const kCacheRule: unique symbol = /* @__PURE__ */ Symbol("nitro.cacheRule");
+
+type CacheRuleCarrier = { [kCacheRule]?: Middleware };
 
 const _routeRuleChains = /* @__PURE__ */ new WeakMap<Middleware[], RouteRuleChains>();
 

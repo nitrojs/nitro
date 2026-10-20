@@ -8,8 +8,6 @@ export default function app(nitro: Nitro) {
       const hasRouteRules = nitro.routing.routeRules.hasRoutes();
       const hasRoutedMiddleware = nitro.routing.routedMiddleware.hasRoutes();
       const hasGlobalMiddleware = nitro.routing.globalMiddleware.length > 0;
-      const hasCacheRules =
-        hasRouteRules && Object.values(nitro.options.routeRules).some((rule) => rule?.cache);
       const hasPlugins = nitro.options.plugins.length > 0;
       const hasHooks = nitro.options.features?.runtimeHooks ?? hasPlugins;
       const hasAsyncContext = !!nitro.options.experimental.asyncContext;
@@ -191,7 +189,7 @@ export default function app(nitro: Nitro) {
       const runtimeAppImports = [
         hasRouteRules && "createRouteRulesMiddleware",
         hasRoutedMiddleware && "createRoutedMiddleware",
-        hasCacheRules && "createCacheRuleMiddleware",
+        hasRouteRules && "createCacheRuleMiddleware",
         hasRouteRules && "getRouteRules",
         hasMethodRoutes && "createMethodNotAllowedMatcher",
       ].filter(Boolean);
@@ -212,7 +210,7 @@ export default function app(nitro: Nitro) {
       if (hasRoutedMiddleware) {
         code.push(`  h3App["~middleware"].push(createRoutedMiddleware(findRoutedMiddleware));`);
       }
-      if (hasCacheRules) {
+      if (hasRouteRules) {
         code.push(`  h3App["~middleware"].push(createCacheRuleMiddleware());`);
       }
       code.push(`  return h3App;`, `}`);
