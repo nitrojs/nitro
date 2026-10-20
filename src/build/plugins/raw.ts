@@ -11,8 +11,10 @@ const TYPES = ["raw", "bytes", "text"] as const;
 
 const PREFIX_RE = new RegExp(`^(${TYPES.join("|")}):`);
 
-// Modules under this prefix hold file contents, not source code, so other transforms must skip them
-export const RESOLVED_RE = new RegExp(`^virtual:nitro:(${TYPES.join("|")}):`);
+// Modules under this prefix hold file contents, not source code, so other transforms must skip them.
+// The `\0` keeps vite dev from checking file access on them (denied for ids with `:`, e.g. `.svg`).
+export const RESOLVED_PREFIX = "\0virtual:nitro:";
+export const RESOLVED_RE = new RegExp(`^${RESOLVED_PREFIX}(${TYPES.join("|")}):`);
 
 // Resolved ids are JavaScript modules. Without this, plugins matching the original
 // extension (`@rollup/plugin-json`, vite's json plugin, ...) try to transform them again.
@@ -44,7 +46,7 @@ export function raw(): Plugin {
             `Could not resolve \`${specifier}\`${importer ? ` (imported by \`${importer}\`)` : ""} to contents to inline as \`${type}\`.`
           );
         }
-        return { id: `virtual:nitro:${type}:${resolved.id}${RESOLVED_SUFFIX}` };
+        return { id: `${RESOLVED_PREFIX}${type}:${resolved.id}${RESOLVED_SUFFIX}` };
       },
     },
     load: {

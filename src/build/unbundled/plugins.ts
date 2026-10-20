@@ -11,7 +11,7 @@ import { baseBuildConfig } from "../config.ts";
 import { NITRO_VIRTUAL_PREFIX, nitroVirtualPath } from "./entry.ts";
 import { importAttributes } from "../plugins/import-attributes.ts";
 import { importOXC } from "../../utils/oxc.ts";
-import { raw, RESOLVED_RE as RAW_RE } from "../plugins/raw.ts";
+import { raw, RESOLVED_PREFIX as RAW_PREFIX, RESOLVED_RE as RAW_RE } from "../plugins/raw.ts";
 import { routeMeta } from "../plugins/route-meta.ts";
 import { resolveBuildPlugins } from "../plugins.ts";
 import {
@@ -206,7 +206,7 @@ function rawVirtualPlugin(nitro: Nitro): EnvRunnerPlugin {
         const [, type] = prefixRe.exec(source) || [];
         const id = source.slice(`${type}:`.length);
         if (type && nitro.vfs.has(id)) {
-          return `virtual:nitro:${type}:${id}.js`;
+          return `${RAW_PREFIX}${type}:${id}.js`;
         }
       },
     },
