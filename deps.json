@@ -19,14 +19,6 @@
       "runtime": true,
       "types": true
     },
-    "ocache": {
-      "version": "^0.3.0",
-      "reason": "caching (`nitro/cache` or `cache` route rules)",
-      "dev": false,
-      "autoInstall": true,
-      "runtime": true,
-      "types": true
-    },
     "unenv": { "version": "^2.0.0-rc.24", "reason": "Node.js compatibility", "autoInstall": true },
     "miniflare": { "version": "^4", "reason": "the `miniflare` dev runner" },
     "@azure/functions": {

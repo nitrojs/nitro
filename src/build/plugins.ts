@@ -1,6 +1,7 @@
 import type { Nitro, NitroBuildPlugin, NitroBuildPluginOption } from "nitro/types";
 import type { Plugin } from "rollup";
 import type { BaseBuildConfig } from "./config.ts";
+import type { ExternalsTraceOptions } from "nf3";
 
 import { virtualTemplates } from "./virtual/_all.ts";
 import replace from "@rollup/plugin-replace";
@@ -76,7 +77,8 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
         trace: isDevOrPrerender
           ? false
           : {
-              ...nitro.options.traceOpts,
+              // `nitro/types` has its own bundled copy of the `nf3` types
+              ...(nitro.options.traceOpts as Partial<ExternalsTraceOptions>),
               outDir: nitro.options.output.serverDir,
             },
       })

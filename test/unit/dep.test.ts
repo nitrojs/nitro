@@ -145,6 +145,31 @@ describe("ensureDep", () => {
     expect(prompt).not.toHaveBeenCalled();
     expect(addDevDependency).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ["in CI", { isCI: true }, false],
+    ["interactively", {}, false],
+    ["with `autoInstall`", {}, true],
+  ])(
+    "does not install into a directory inside `node_modules` %s",
+    async (_, flags, autoInstall) => {
+      Object.assign(env, flags);
+      prompt.mockResolvedValue(true);
+      const dir = join(
+        createProject(),
+        "node_modules/.pnpm/framework@1.0.0/node_modules/framework"
+      );
+      mkdirSync(dir, { recursive: true });
+      for (const opts of [
+        { ...missingDep, dir, autoInstall },
+        { ...missingDep, dir: `${dir}/`, autoInstall },
+      ]) {
+        expect(await ensureDep(opts)).toBeUndefined();
+      }
+      expect(prompt).not.toHaveBeenCalled();
+      expect(addDevDependency).not.toHaveBeenCalled();
+    }
+  );
 });
 
 describe("ensureDep (resolve cache)", () => {
@@ -276,6 +301,18 @@ describe("missing dependencies", () => {
     expect(missingDepError({ ...opts, dev: false }).message).toContain(
       "Please add it to your dependencies (e.g. `npx nypm add nitro-missing-dep@^2.0.0-rc.24`)."
     );
+  });
+
+  it("asks the framework to add it when resolving from inside `node_modules`", async () => {
+    const { importDep, missingDepError } = await import("../../src/utils/dep.ts");
+    const dir = join(createProject(), "node_modules/framework");
+    mkdirSync(dir, { recursive: true });
+    const opts = { ...missingDep, dir, version: "^1.0.0" };
+    expect(missingDepError(opts).message).toBe(
+      `\`nitro-missing-dep\` cannot be resolved from \`${dir}\`, which is inside \`node_modules\`. It is required for testing. The package that configures Nitro with this \`rootDir\` must add \`nitro-missing-dep@^1.0.0\` to its own dependencies (or provide it with the \`deps.paths\` option).`
+    );
+    await expect(importDep(opts)).rejects.toThrow(missingDepError(opts).message);
+    expect(addDevDependency).not.toHaveBeenCalled();
   });
 
   it("throws the same error from `importDep`", async () => {

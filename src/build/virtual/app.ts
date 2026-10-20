@@ -183,11 +183,13 @@ export default function app(nitro: Nitro) {
           `  };`
         );
       }
-      // Route rules, global and routed middleware are registered on `~middleware`
+      // Route rules, global, routed middleware and the `cache` rule (which
+      // dispatches the route handler itself) are registered on `~middleware`
       // in that order so h3 precomposes the chain once on first dispatch.
       const runtimeAppImports = [
         hasRouteRules && "createRouteRulesMiddleware",
         hasRoutedMiddleware && "createRoutedMiddleware",
+        hasRouteRules && "createCacheRuleMiddleware",
         hasRouteRules && "getRouteRules",
         hasMethodRoutes && "createMethodNotAllowedMatcher",
       ].filter(Boolean);
@@ -207,6 +209,9 @@ export default function app(nitro: Nitro) {
       }
       if (hasRoutedMiddleware) {
         code.push(`  h3App["~middleware"].push(createRoutedMiddleware(findRoutedMiddleware));`);
+      }
+      if (hasRouteRules) {
+        code.push(`  h3App["~middleware"].push(createCacheRuleMiddleware());`);
       }
       code.push(`  return h3App;`, `}`);
 

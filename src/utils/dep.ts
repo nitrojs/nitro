@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { consola } from "consola";
 import { clearResolveCache, resolveModulePath } from "exsolve";
-import { dirname, join } from "pathe";
+import { dirname, join, normalize } from "pathe";
 import { hasTTY, isAgent, isCI, isTest } from "std-env";
 import { depPackageName, resolveFromDepPath } from "./_dep-path.ts";
 import { getDepMeta } from "./_deps.ts";
@@ -80,6 +80,11 @@ export async function importDep(opts: DepOptions): Promise<unknown> {
 /** Error for a dependency that is (still) not installed, with the command to install it. */
 export function missingDepError(depOpts: DepOptions): Error {
   const opts = _resolveDepOptions(depOpts);
+  if (_isInNodeModules(opts.dir)) {
+    return new Error(
+      `\`${opts.id}\` cannot be resolved from \`${opts.dir}\`, which is inside \`node_modules\`. It is required for ${opts.reason}. The package that configures Nitro with this \`rootDir\` must add \`${_depSpec(opts)}\` to its own dependencies (or provide it with the \`deps.paths\` option).`
+    );
+  }
   const dev = opts.dev === false ? "" : "dev ";
   return new Error(
     `\`${opts.id}\` is not installed. It is required for ${opts.reason}. Please add it to your ${dev}dependencies (e.g. \`npx nypm add ${dev ? "-D " : ""}${_depSpec(opts)}\`).`
@@ -202,6 +207,10 @@ async function _ensureDep(opts: ResolvedDepOptions): Promise<string | undefined>
     return resolved;
   }
 
+  if (_isInNodeModules(opts.dir)) {
+    return undefined; // Never install into a package managed by the package manager
+  }
+
   let shouldInstall: boolean | undefined;
   if (isTest) {
     shouldInstall = false; // Do not install dependencies in test mode
@@ -237,6 +246,11 @@ async function _ensureDep(opts: ResolvedDepOptions): Promise<string | undefined>
     consola.warn(`Installed \`${opts.id}\` in ${opts.dir}, but it cannot be resolved from there.`);
   }
   return installed;
+}
+
+/** Whether a directory is inside `node_modules` (e.g. the `rootDir` of a framework built on Nitro). */
+function _isInNodeModules(dir: string): boolean {
+  return `${normalize(dir)}/`.includes("/node_modules/");
 }
 
 /** Package spec to install (with the version range if it is a simple one). */

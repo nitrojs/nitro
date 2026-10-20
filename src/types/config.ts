@@ -784,7 +784,7 @@ export interface NitroOptions extends PresetOptions {
 
   /**
    * Options for the optional dependencies Nitro installs on demand (such as `vite`, `rolldown`,
-   * `unstorage`, `db0` or `ocache`).
+   * `unstorage` or `db0`).
    *
    * @see https://nitro.build/config#deps
    */
@@ -1299,25 +1299,22 @@ export type StorageMounts = KVMounts;
 /** Cache storage driver. */
 export type NitroCacheDriver = "memory" | "fs" | "kv";
 
-// `Partial` keeps the keys optional when `ocache` (installed on demand) is not installed yet
-
 /** Options shared by cached functions and cached handlers. */
-export type NitroCacheFunctionDefaults = Partial<
-  Pick<OCacheOptions, "maxAge" | "swr" | "staleMaxAge" | "maxResolveTime" | "base">
+export type NitroCacheFunctionDefaults = Pick<
+  OCacheOptions,
+  "maxAge" | "swr" | "staleMaxAge" | "maxResolveTime" | "base"
 >;
 
 /** Options that only apply to cached handlers and `cache` route rules. */
-export type NitroCacheHandlerDefaults = Partial<
-  Pick<
-    OCacheEventHandlerOptions,
-    | "varies"
-    | "allowQuery"
-    | "allowCookies"
-    | "allowAuthorization"
-    | "sendCacheControl"
-    | "cacheStatusHeader"
-    | "maxBodySize"
-  >
+export type NitroCacheHandlerDefaults = Pick<
+  OCacheEventHandlerOptions,
+  | "varies"
+  | "allowQuery"
+  | "allowCookies"
+  | "allowAuthorization"
+  | "sendCacheControl"
+  | "cacheStatusHeader"
+  | "maxBodySize"
 >;
 
 /** Global default options for cached functions, cached handlers and `cache` route rules. */

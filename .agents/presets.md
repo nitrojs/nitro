@@ -25,7 +25,6 @@
 - `render.com/` — Render
 - `stormkit/` — Stormkit
 - `vercel/` — Vercel Functions/Edge
-- `winterjs/` — WinterJS
 - `zeabur/` — Zeabur
 - `zephyr/` — Zephyr
 - `zerops/` — Zerops

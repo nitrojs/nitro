@@ -13,6 +13,7 @@ export const pkgDir: string = /* @__PURE__ */ resolve("../../");
 export const runtimeDependencies: string[] = [
   "crossws", // dep
   "h3", // dep
+  "ocache", // dep
   "rou3", // sub-dep of h3
   "srvx", // dep
 ];

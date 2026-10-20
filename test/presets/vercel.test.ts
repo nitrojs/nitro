@@ -359,6 +359,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/single-headers\\/(?<id>[^/]+)\\/?$",
               },
               {
+                "dest": "/rules/swr/middleware-order",
+                "src": "^\\/rules\\/swr\\/middleware-order\\/?$",
+              },
+              {
                 "dest": "/rules/[...slug]",
                 "src": "^\\/rules(?:\\/(?<slug>(?:[\\s\\S]*[^/])?\\/*?))?\\/?$",
               },
@@ -529,6 +533,10 @@ describe("nitro:preset:vercel:web", async () => {
               {
                 "dest": "/api/cached",
                 "src": "^\\/api\\/cached\\/?$",
+              },
+              {
+                "dest": "/api/cached-middleware",
+                "src": "^\\/api\\/cached-middleware\\/?$",
               },
               {
                 "dest": "/api/body-size",
@@ -740,6 +748,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/_vercel",
             "functions/_ws.func (symlink)",
             "functions/api/body-size.func (symlink)",
+            "functions/api/cached-middleware.func (symlink)",
             "functions/api/cached.func (symlink)",
             "functions/api/catch-all-index.func (symlink)",
             "functions/api/catch-all-index/[...slug].func (symlink)",
@@ -799,6 +808,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/rules/isr-ttl/[...]-isr.prerender-config.json",
             "functions/rules/isr/[...]-isr.func",
             "functions/rules/isr/[...]-isr.prerender-config.json",
+            "functions/rules/swr/middleware-order.func (symlink)",
             "functions/single-headers/[id].func (symlink)",
             "functions/static-flags.func (symlink)",
             "functions/stream.func (symlink)",

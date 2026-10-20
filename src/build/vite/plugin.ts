@@ -9,6 +9,7 @@ import type {
 import type { InputOption } from "rollup";
 import type { NitroPluginConfig, NitroPluginContext } from "./types.ts";
 import { resolve, join } from "pathe";
+import { resolveAlias } from "pathe/utils";
 import { createNitro, prepare } from "../../builder.ts";
 import { installModules } from "../../module.ts";
 import { getBundlerConfig } from "./bundler.ts";
@@ -50,6 +51,7 @@ export function nitro(pluginConfig: NitroPluginConfig = {}): VitePlugin[] {
   return [
     nitroInit(ctx),
     nitroEnv(ctx),
+    nitroServerAliases(ctx),
     nitroMain(ctx),
     nitroPrepare(ctx),
     nitroDevServiceProxy(ctx),
@@ -209,6 +211,29 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
   };
 }
 
+function nitroServerAliases(ctx: NitroPluginContext): VitePlugin {
+  return {
+    name: "nitro:server-aliases",
+    enforce: "pre",
+    applyToEnvironment: (env) => env.name !== "client" && env.config?.consumer !== "client",
+
+    async resolveId(id, importer, options) {
+      if (!ctx.bundlerConfig) {
+        return;
+      }
+      const resolved = resolveAlias(id, ctx.bundlerConfig.base.aliases);
+      if (resolved !== id && resolved.startsWith("node:")) {
+        return (
+          (await this.resolve(resolved, importer, { ...options, skipSelf: true })) || {
+            id: resolved,
+            external: true,
+          }
+        );
+      }
+    },
+  };
+}
+
 function nitroMain(ctx: NitroPluginContext): VitePlugin {
   return {
     name: "nitro:main",
@@ -225,11 +250,13 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
         resolve: {
           // TODO: environment specific aliases not working
           // https://github.com/vitejs/vite/pull/17583 (seems not effective)
-          // preserve alias order
-          alias: Object.entries(ctx.bundlerConfig.base.aliases).map(([find, replacement]) => ({
-            find,
-            replacement,
-          })),
+          // preserve alias order (exclude node: builtins to prevent leaking to client builds)
+          alias: Object.entries(ctx.bundlerConfig.base.aliases)
+            .filter(([, replacement]) => !replacement.startsWith("node:"))
+            .map(([find, replacement]) => ({
+              find,
+              replacement,
+            })),
         },
         builder: {
           sharedConfigBuild: true,

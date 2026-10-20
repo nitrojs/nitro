@@ -12,3 +12,5 @@ export const readAsset: (id: string) => Promise<Buffer> = async () => {
 };
 
 export const getAsset: (id: string) => PublicAsset | null = () => null;
+
+export const hasAsset: (id: string) => boolean = () => false;

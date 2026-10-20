@@ -1,4 +1,4 @@
-import type { Nitro } from "nitro/types";
+import type { Nitro, NitroConfig } from "nitro/types";
 import { defineCommand } from "citty";
 import { consola } from "consola";
 import { build, createNitro, prepare } from "nitro/builder";
@@ -20,60 +20,73 @@ export default defineCommand({
     host: { type: "string", description: "specify hostname " },
   },
   async run({ args }) {
-    const rootDir = resolve((args.dir || args._dir || ".") as string);
-    let nitro: Nitro;
-    // Watcher errors (e.g. ENOSPC) from bundler internals cannot be handled at the source
-    process.on("uncaughtException", (error) => {
-      if ((error as NodeJS.ErrnoException)?.syscall !== "watch") {
-        throw error;
-      }
-      onWatchError(nitro || { logger: consola }, error);
+    await runDev({
+      rootDir: resolve((args.dir || args._dir || ".") as string),
+      port: args.port,
+      host: args.host,
     });
-    const reload = async () => {
-      if (nitro) {
-        consola.info("Restarting dev server...");
-        if ("unwatch" in nitro.options._c12) {
-          await nitro.options._c12.unwatch();
-        }
-        await nitro.close();
-      }
-      nitro = await createNitro(
-        {
-          rootDir,
-          dev: true,
-          _cli: { command: "dev" },
-        },
-        {
-          watch: true,
-          c12: {
-            async onUpdate({ getDiff, newConfig }) {
-              const diff = getDiff();
-
-              if (diff.length === 0) {
-                return; // No changes
-              }
-
-              consola.info(
-                "Nitro config updated:\n" + diff.map((entry) => `  ${entry.toString()}`).join("\n")
-              );
-
-              await (diff.every((e) => hmrKeyRe.test(e.key))
-                ? nitro.updateConfig(newConfig.config || {}) // Hot reload
-                : reload()); // Full reload
-            },
-          },
-        }
-      );
-      nitro.hooks.hookOnce("restart", reload);
-      const server = createDevServer(nitro);
-
-      await server.listen({
-        port: args.port || nitro.options.devServer.port,
-        hostname: args.host || nitro.options.devServer.hostname,
-      });
-      await prepare(nitro);
-      await build(nitro);
-    };
-    await reload();
   },
 });
+
+export async function runDev(opts: {
+  rootDir: string;
+  port?: string;
+  host?: string;
+  config?: NitroConfig;
+}) {
+  let nitro: Nitro;
+  // Watcher errors (e.g. ENOSPC) from bundler internals cannot be handled at the source
+  process.on("uncaughtException", (error) => {
+    if ((error as NodeJS.ErrnoException)?.syscall !== "watch") {
+      throw error;
+    }
+    onWatchError(nitro || { logger: consola }, error);
+  });
+  const reload = async () => {
+    if (nitro) {
+      consola.info("Restarting dev server...");
+      if ("unwatch" in nitro.options._c12) {
+        await nitro.options._c12.unwatch();
+      }
+      await nitro.close();
+    }
+    nitro = await createNitro(
+      {
+        ...opts.config,
+        rootDir: opts.rootDir,
+        dev: true,
+        _cli: { command: "dev" },
+      },
+      {
+        watch: true,
+        c12: {
+          async onUpdate({ getDiff, newConfig }) {
+            const diff = getDiff();
+
+            if (diff.length === 0) {
+              return; // No changes
+            }
+
+            consola.info(
+              "Nitro config updated:\n" + diff.map((entry) => `  ${entry.toString()}`).join("\n")
+            );
+
+            await (diff.every((e) => hmrKeyRe.test(e.key))
+              ? nitro.updateConfig(newConfig.config || {}) // Hot reload
+              : reload()); // Full reload
+          },
+        },
+      }
+    );
+    nitro.hooks.hookOnce("restart", reload);
+    const server = createDevServer(nitro);
+
+    await server.listen({
+      port: opts.port || nitro.options.devServer.port,
+      hostname: opts.host || nitro.options.devServer.hostname,
+    });
+    await prepare(nitro);
+    await build(nitro);
+  };
+  await reload();
+}

@@ -14,10 +14,11 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { pkgDir } from "#nitro/meta";
+import { getRandomPort } from "get-port-please";
 import { join } from "pathe";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { isUnbundledProject } from "../../src/build/unbundled/detect.ts";
 import { unbundledPlugins } from "../../src/build/unbundled/plugins.ts";
+import { startUnbundledServer } from "../../src/build/unbundled/serve.ts";
 
 const rootDir = fileURLToPath(new URL("fixture", import.meta.url));
 
@@ -167,46 +168,134 @@ describe("builder: false", () => {
     await nitro.close();
   });
 
-  it("previews other projects only from their build output", async () => {
+  it("previews only the build output", async () => {
     const dir = await mkdtemp(join(tmpdir(), "nitro-unbundled-"));
-    await writeFile(join(dir, "nitro.config.mjs"), `export default { builder: "vite" };`);
+    await writeFile(join(dir, "nitro.config.mjs"), `export default { builder: false };`);
     await expect(startPreview({ rootDir: dir })).rejects.toThrow("Make sure to build first");
     await rm(dir, { recursive: true, force: true });
   });
 
-  it("reports config errors when previewing without a build output", async () => {
+  it("serves the sources from a public listener (`nitro serve`)", async () => {
     const dir = await mkdtemp(join(tmpdir(), "nitro-unbundled-"));
-    await writeFile(join(dir, "nitro.config.mjs"), `throw new Error("broken config");`);
-    await expect(startPreview({ rootDir: dir })).rejects.toThrow("broken config");
-    await rm(dir, { recursive: true, force: true });
+    await writeFile(
+      join(dir, "nitro.config.mjs"),
+      `export default { builder: "rollup", serverDir: "./", baseURL: "/app/", ignore: ["**/docs.html", "**/secret"] };`
+    );
+    await mkdir(join(dir, "routes"));
+    await writeFile(join(dir, "routes/index.ts"), `export default () => "Served!";`);
+    await writeFile(join(dir, "routes/[...path].ts"), `export default () => "Route!";`);
+    await mkdir(join(dir, "public/docs"), { recursive: true });
+    await writeFile(join(dir, "public/hello.txt"), "static asset");
+    await writeFile(join(dir, "public/a b.txt"), "encoded asset");
+    await writeFile(join(dir, "public/about.html"), "about page");
+    await writeFile(join(dir, "public/docs/index.html"), "docs page");
+    await writeFile(join(dir, "public/docs.html"), "ignored");
+    await writeFile(join(dir, "public/secret"), "ignored");
+    await writeFile(join(dir, "public/secret.html"), "secret page");
+    const server = await startUnbundledServer({
+      rootDir: dir,
+      listen: { port: 0, hostname: "127.0.0.1" },
+    });
+    try {
+      const { host, port } = server.runner.address!;
+      const url = `http://${host}:${port}`;
+      const text = (path: string) => fetch(`${url}${path}`).then((r) => r.text());
+      expect(await text("/app/")).toBe("Served!");
+      expect(await text("/app/hello.txt")).toBe("static asset");
+      expect(await text("/app/a%20b.txt")).toBe("encoded asset");
+      expect(await text("/app/about")).toBe("about page");
+      expect(await text("/app/docs/")).toBe("docs page");
+      expect(await text("/app/docs")).toBe("docs page");
+      expect(await text("/app/secret")).toBe("secret page");
+      expect(await text("/app/missing.txt")).toBe("Route!");
+      const post = await fetch(`${url}/app/hello.txt`, { method: "POST" });
+      expect(await post.text()).toBe("Route!");
+    } finally {
+      await server.close();
+      await rm(dir, { recursive: true, force: true });
+    }
   });
 
-  it("detects `builder: false` from `$production`, layers and `NITRO_BUILDER`", async () => {
+  it("does not serve ignored public files at the root base (`nitro serve`)", async () => {
     const dir = await mkdtemp(join(tmpdir(), "nitro-unbundled-"));
-    const config = (code: string) => writeFile(join(dir, "nitro.config.mjs"), code);
-    const original = process.env.NITRO_BUILDER;
-    delete process.env.NITRO_BUILDER;
+    await writeFile(
+      join(dir, "nitro.config.mjs"),
+      `export default { serverDir: "./", ignore: ["**/docs.html", "**/secret", "**/note.txt"] };`
+    );
+    await mkdir(join(dir, "routes"));
+    await writeFile(join(dir, "routes/[...path].ts"), `export default () => "Route!";`);
+    await mkdir(join(dir, "public/docs"), { recursive: true });
+    await writeFile(join(dir, "public/docs.html"), "ignored");
+    await writeFile(join(dir, "public/docs/index.html"), "docs page");
+    await writeFile(join(dir, "public/secret"), "ignored");
+    await writeFile(join(dir, "public/secret.html"), "secret page");
+    await writeFile(join(dir, "public/note.txt"), "ignored");
+    await writeFile(join(dir, "public/note.txt.html"), "note page");
+    const server = await startUnbundledServer({
+      rootDir: dir,
+      listen: { port: 0, hostname: "127.0.0.1" },
+    });
     try {
-      await config(`export default { $production: { builder: false } };`);
-      expect(await isUnbundledProject(dir)).toBe(true);
-
-      await config(`export default { $development: { builder: false } };`);
-      expect(await isUnbundledProject(dir)).toBe(false);
-
-      await mkdir(join(dir, "layer"));
-      await writeFile(join(dir, "layer/nitro.config.mjs"), `export default { builder: false };`);
-      await config(`export default { extends: ["./layer"] };`);
-      expect(await isUnbundledProject(dir)).toBe(true);
-
-      await config(`export default {};`);
-      process.env.NITRO_BUILDER = "false";
-      expect(await isUnbundledProject(dir)).toBe(true);
+      const { host, port } = server.runner.address!;
+      const text = (path: string) => fetch(`http://${host}:${port}${path}`).then((r) => r.text());
+      expect(await text("/docs")).toBe("docs page");
+      expect(await text("/docs/")).toBe("docs page");
+      expect(await text("/docs.html")).toBe("Route!");
+      expect(await text("/secret")).toBe("secret page");
+      expect(await text("/%73ecret")).toBe("secret page");
+      expect(await text("/note.txt")).toBe("note page");
     } finally {
-      if (original === undefined) {
-        delete process.env.NITRO_BUILDER;
-      } else {
-        process.env.NITRO_BUILDER = original;
-      }
+      await server.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("listens on `NITRO_PORT` from `.env` (`nitro serve`)", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nitro-unbundled-"));
+    const envPort = await getRandomPort("127.0.0.1");
+    await writeFile(join(dir, "nitro.config.mjs"), `export default { serverDir: "./" };`);
+    await writeFile(join(dir, ".env"), `NITRO_PORT=${envPort}`);
+    await mkdir(join(dir, "routes"));
+    await writeFile(join(dir, "routes/index.ts"), `export default () => "Served!";`);
+    const server = await startUnbundledServer({ rootDir: dir, listen: { hostname: "127.0.0.1" } });
+    try {
+      expect(server.runner.address?.port).toBe(envPort);
+    } finally {
+      delete process.env.NITRO_PORT;
+      await server.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("runs the build hooks of modules (`nitro serve`)", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nitro-unbundled-"));
+    await writeFile(
+      join(dir, "nitro.config.mjs"),
+      /* js */ `
+import { writeFileSync } from "node:fs";
+export default {
+  modules: [{
+    setup(nitro) {
+      nitro.hooks.hook("build:before", () => {
+        nitro.options.handlers.push({ route: "/from-module", handler: nitro.options.rootDir + "/module-handler.ts" });
+      });
+      nitro.hooks.hook("compiled", () => writeFileSync(nitro.options.rootDir + "/compiled.txt", "yes"));
+    },
+  }],
+};`
+    );
+    await writeFile(join(dir, "module-handler.ts"), `export default () => "From module!";`);
+    const server = await startUnbundledServer({
+      rootDir: dir,
+      listen: { port: 0, hostname: "127.0.0.1" },
+    });
+    try {
+      const { host, port } = server.runner.address!;
+      const res = await fetch(`http://${host}:${port}/from-module`);
+      expect(await res.text()).toBe("From module!");
+      expect(existsSync(join(dir, "compiled.txt"))).toBe(true);
+    } finally {
+      await server.close();
       await rm(dir, { recursive: true, force: true });
     }
   });
@@ -259,37 +348,5 @@ describe("builder: false", () => {
       await nitro.close();
       await rm(outputDir, { recursive: true, force: true });
     }
-  });
-
-  describe("preview", () => {
-    let preview: Awaited<ReturnType<typeof startPreview>>;
-    const outputDir = join(rootDir, ".output");
-
-    beforeAll(async () => {
-      // Output left by another builder
-      await mkdir(outputDir, { recursive: true });
-      await writeFile(join(outputDir, "nitro.json"), JSON.stringify({ preset: "node-server" }));
-      preview = await startPreview({ rootDir });
-    });
-
-    afterAll(async () => {
-      await preview?.close();
-      await rm(outputDir, { recursive: true, force: true });
-    });
-
-    it("runs the sources without a build", async () => {
-      const res = await preview.fetch(new Request("http://localhost/api/1") as any);
-      expect(await res.json()).toEqual({ id: "1", hasRuntimeConfig: true });
-    });
-
-    it("applies build transforms in production mode", async () => {
-      const res = await preview.fetch(new Request("http://localhost/features") as any);
-      expect(await res.json()).toMatchObject({ dev: false, enum: "green", wasm: 5 });
-    });
-
-    it("serves public assets", async () => {
-      const res = await preview.fetch(new Request("http://localhost/hello.txt") as any);
-      expect(await res.text()).toContain("static asset");
-    });
   });
 });

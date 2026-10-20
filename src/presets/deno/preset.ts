@@ -34,9 +34,9 @@ const denoServer = defineNitroPreset(
     },
   },
   {
-    // `deno-deploy` also matches std-env provider detection on Deno Deploy
-    aliases: ["deno", "deno-deploy"],
     name: "deno-server" as const,
+    stdName: "deno-deploy",
+    aliases: ["deno"],
   }
 );
 

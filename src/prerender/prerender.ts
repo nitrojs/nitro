@@ -291,12 +291,15 @@ export async function prerender(nitro: Nitro) {
     }
 
     // Crawl route links
-    if (!_route.error && (isImplicitHTML || route.endsWith(".html"))) {
+    if (!_route.error) {
+      const crawlLinks =
+        (nitro.options.prerender.crawlLinks ?? false) &&
+        (isImplicitHTML || route.endsWith(".html"));
       const extractedLinks = await extractLinks(
-        dataBuff!.toString("utf8"),
+        crawlLinks ? dataBuff!.toString("utf8") : "",
         route,
         res,
-        nitro.options.prerender.crawlLinks ?? false
+        crawlLinks
       );
       for (const _link of extractedLinks) {
         if (canPrerender(_link)) {

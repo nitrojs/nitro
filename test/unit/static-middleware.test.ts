@@ -12,6 +12,7 @@ const { getAsset, isPublicAssetURL, readAsset } = vi.hoisted(() => ({
 
 vi.mock("#nitro/virtual/public-assets", () => ({
   getAsset,
+  hasAsset: (id: string) => [id, `${id}.gz`, `${id}.br`, `${id}.zst`].some((i) => getAsset(i)),
   isPublicAssetURL,
   readAsset,
 }));
@@ -95,6 +96,36 @@ describe("runtime static middleware", () => {
     const event = createEvent("/empty.txt");
 
     await expect(handler(event)).resolves.toEqual(new Uint8Array());
+  });
+
+  it("skips requests for paths that are not public assets", () => {
+    getAsset.mockReturnValue(undefined);
+    isPublicAssetURL.mockReturnValue(false);
+    const event = createEvent("/api/hello", "gzip, br");
+    const getHeader = vi.spyOn(event.req.headers, "get");
+
+    expect(handler(event)).toBeUndefined();
+    expect(getHeader).not.toHaveBeenCalledWith("accept-encoding");
+    expect(getAsset).toHaveBeenCalledWith("/api/hello");
+    expect(getAsset).toHaveBeenCalledWith("/api/hello/index.html");
+    expect(readAsset).not.toHaveBeenCalled();
+    expect(event.res.headers.get("Vary")).toBe("Origin");
+  });
+
+  it("serves assets that only exist compressed outside of public asset bases", async () => {
+    getAsset.mockImplementation((id: string) =>
+      id === "/docs/index.html.br"
+        ? { etag: '"test"', mtime: MTIME, type: "text/html", encoding: "br", size: 1 }
+        : undefined
+    );
+    isPublicAssetURL.mockReturnValue(false);
+    readAsset.mockResolvedValue("body");
+    const event = createEvent("/docs/", "br");
+
+    await handler(event);
+
+    expect(readAsset).toHaveBeenCalledWith("/docs/index.html.br");
+    expect(event.res.headers.get("Content-Encoding")).toBe("br");
   });
 
   it("appends Accept-Encoding vary when a compressed asset is matched", async () => {

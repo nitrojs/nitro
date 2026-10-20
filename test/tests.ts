@@ -29,7 +29,6 @@ export interface Context {
   isDev: boolean;
   isWorker: boolean;
   isLambda: boolean;
-  isIsolated: boolean;
   env: Record<string, string>;
   lambdaV1?: boolean;
   // [key: string]: unknown;
@@ -79,10 +78,8 @@ export async function setupTest(
       "cloudflare-module-legacy",
       "cloudflare-pages",
       "netlify-edge",
-      "winterjs",
     ].includes(preset),
     isLambda: ["aws-lambda", "netlify-legacy"].includes(preset),
-    isIsolated: ["winterjs"].includes(preset),
     rootDir: fixtureDir,
     outDir: resolve(fixtureDir, presetTmpDir, ".output"),
     env: {
@@ -295,6 +292,31 @@ export function testNitro(
     expect(headers["x-test"]).toBe("test");
   });
 
+  it("global middleware runs before cached (`swr`) route handlers", async () => {
+    const url = "/rules/swr/middleware-order";
+    // miss, then hits: the middleware must run each time, and the header it
+    // sets must not be stored in the shared cache entry
+    const miss = await callHandler({ url, headers: { "x-echo": "a" } });
+    expect(miss.data).toEqual(["rules", "global"]);
+    expect(miss.headers["x-echo"]).toBe("a");
+    const hit = await callHandler({ url, headers: { "x-echo": "b" } });
+    expect(hit.data).toEqual(["rules", "global"]);
+    expect(hit.headers["x-echo"]).toBe("b");
+    const anonymous = await callHandler({ url });
+    expect(anonymous.headers["x-echo"]).toBeUndefined();
+  });
+
+  it("keeps middleware headers out of `defineCachedHandler` cache entries", async () => {
+    const url = "/api/cached-middleware";
+    const miss = await callHandler({ url, headers: { "x-echo": "a" } });
+    expect(miss.data).toBe("cached");
+    expect(miss.headers["x-echo"]).toBe("a");
+    const hit = await callHandler({ url, headers: { "x-echo": "b" } });
+    expect(hit.headers["x-echo"]).toBe("b");
+    const anonymous = await callHandler({ url });
+    expect(anonymous.headers["x-echo"]).toBeUndefined();
+  });
+
   it("API Works", async () => {
     const { data: helloData } = await callHandler({ url: "/api/hello" });
     expect(helloData).to.toMatchObject({ message: "Hello API" });
@@ -456,8 +478,7 @@ export function testNitro(
     expect(headers["cache-control"]).toBe("s-maxage=60");
   });
 
-  // WinterJS `Headers` silently drops `access-control-allow-methods`
-  it.skipIf(ctx.preset === "winterjs")("handles route rules - cors", async () => {
+  it("handles route rules - cors", async () => {
     // `cors: true` is handled by h3's `handleCors` (via `h3/rules`). On a
     // simple (non-preflight) request it sets permissive origin/methods/expose
     // headers; `access-control-allow-headers` / `access-control-max-age` are
@@ -601,7 +622,7 @@ export function testNitro(
     expect(data).toBe("@fixture/nitro-root-export");
   });
 
-  it.skipIf(ctx.isIsolated)("useKV (with base)", { retry: 5 }, async () => {
+  it("useKV (with base)", { retry: 5 }, async () => {
     const putRes = await callHandler({
       url: "/api/storage/item?key=test:hello",
       method: "PUT",
@@ -642,9 +663,7 @@ export function testNitro(
     additionalTests(ctx, callHandler);
   }
 
-  // WinterJS drops the port when building the request URL, so an in-app proxy
-  // target resolves to port 80 instead of the server's own port.
-  it.skipIf(ctx.preset === "winterjs")("runtime proxy", async () => {
+  it("runtime proxy", async () => {
     const { data } = await callHandler({
       url: "/api/proxy?foo=bar",
       headers: {
@@ -658,33 +677,26 @@ export function testNitro(
     }
   });
 
-  it.skipIf(ctx.preset === "winterjs")(
-    "runtime proxy collapses leading slashes after wildcard prefix",
-    async () => {
-      // Regression test for GHSA-9phm-9p8f-hw5m: a leading `//` after the
-      // wildcard prefix must not be forwarded verbatim to the upstream.
-      const { data } = await callHandler({
-        url: "/rules/proxy/legacy//evil.com",
-      });
-      expect(data).toBe("evil.com");
-    }
-  );
+  it("runtime proxy collapses leading slashes after wildcard prefix", async () => {
+    // Regression test for GHSA-9phm-9p8f-hw5m: a leading `//` after the
+    // wildcard prefix must not be forwarded verbatim to the upstream.
+    const { data } = await callHandler({
+      url: "/rules/proxy/legacy//evil.com",
+    });
+    expect(data).toBe("evil.com");
+  });
 
-  it.skipIf(ctx.preset === "winterjs")(
-    "runtime proxy keeps an encoded separator opaque for the upstream",
-    async () => {
-      // Regression: an opaque `%2f` inside a segment is a single path segment for
-      // the in-scope request and must be forwarded encoded — not decoded into a
-      // real separator (which would change the resource the upstream resolves).
-      const { data } = await callHandler({
-        url: "/rules/proxy/legacy/a%2fb",
-      });
-      expect(data).toBe("a%2fb");
-    }
-  );
+  it("runtime proxy keeps an encoded separator opaque for the upstream", async () => {
+    // Regression: an opaque `%2f` inside a segment is a single path segment for
+    // the in-scope request and must be forwarded encoded — not decoded into a
+    // real separator (which would change the resource the upstream resolves).
+    const { data } = await callHandler({
+      url: "/rules/proxy/legacy/a%2fb",
+    });
+    expect(data).toBe("a%2fb");
+  });
 
-  // WinterJS strips quotes from header values, mangling the upstream weak etag
-  it.skipIf(ctx.preset === "winterjs")("external proxy", async () => {
+  it("external proxy", async () => {
     const { data, headers, status } = await callHandler({
       url: "/cdn/npm/bootstrap@5.3.8/dist/js/bootstrap.min.js",
     });
@@ -770,7 +782,7 @@ export function testNitro(
   });
 
   describe("errors", () => {
-    it.skipIf(ctx.isIsolated)("captures errors", async () => {
+    it("captures errors", async () => {
       await callHandler({ url: "/errors/throw" });
       const { data } = await callHandler({ url: "/errors/captured" });
       const allErrorMessages = (data.allErrors || []).map((entry: any) => entry.message);
@@ -793,7 +805,7 @@ export function testNitro(
         const res = await callHandler({ url: `/errors/throw?handled&action=${errorAction}` });
         expect(res).toMatchObject({
           status: 503,
-          statusText: /deno|bun|winterjs/.test(ctx.preset)
+          statusText: /deno|bun/.test(ctx.preset)
             ? "Service Unavailable"
             : /aws/.test(ctx.preset)
               ? ""
@@ -884,7 +896,7 @@ export function testNitro(
   });
 
   describe("cache", () => {
-    it.skipIf(ctx.isIsolated || (isWindows && ctx.preset === "nitro-dev"))(
+    it.skipIf(isWindows && ctx.preset === "nitro-dev")(
       "should setItem before returning response the first time",
       async () => {
         const {
@@ -948,8 +960,7 @@ export function testNitro(
     });
   });
 
-  // WinterJS itself runs as WebAssembly and exposes no `WebAssembly` global
-  describe.skipIf(["cloudflare-worker", "winterjs"].includes(ctx.preset))("wasm", () => {
+  describe.skipIf(ctx.preset === "cloudflare-worker")("wasm", () => {
     it("dynamic import wasm", async () => {
       expect((await callHandler({ url: "/wasm/dynamic-import" })).data).toBe("2+3=5");
     });
@@ -1029,9 +1040,7 @@ export function testNitro(
 
   it.skipIf(
     process.env.OFFLINE /* connect */ ||
-      // WinterJS has no Node.js compatibility layer of its own; `node:*` imports
-      // only resolve to unenv's runtime-agnostic stubs.
-      ["cloudflare-worker", "cloudflare-module-legacy", "winterjs"].includes(ctx.preset)
+      ["cloudflare-worker", "cloudflare-module-legacy"].includes(ctx.preset)
   )("nodejs compatibility", async () => {
     const { data, status } = await callHandler({ url: "/node-compat" });
     expect(status).toBe(200);

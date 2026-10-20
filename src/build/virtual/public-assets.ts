@@ -126,6 +126,10 @@ export function getPublicAssetMeta(id = '') {
 export function getAsset (id) {
   return assets[id]
 }
+
+export function hasAsset (id = '') {
+  return !!(assets[id] || assets[id + '.gz'] || assets[id + '.br'] || assets[id + '.zst'])
+}
 `;
       },
     },
