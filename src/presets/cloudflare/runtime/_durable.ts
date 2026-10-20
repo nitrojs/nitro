@@ -1,59 +1,26 @@
-import "#nitro/virtual/polyfills";
-import type * as CF from "@cloudflare/workers-types";
 import { DurableObject } from "cloudflare:workers";
 import wsAdapter from "crossws/adapters/cloudflare";
-import { createHandler, augmentReq } from "./_module-handler.ts";
+import { augmentReq } from "./_module-handler.ts";
 
 import { useNitroApp, useNitroHooks } from "nitro/app";
 import { afterNitroReady } from "#nitro/runtime/async-plugins";
-import { isPublicAssetURL } from "#nitro/virtual/public-assets";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
 
 const DURABLE_BINDING = "$DurableObject";
 const DURABLE_INSTANCE = "server";
 
-interface Env {
-  ASSETS?: { fetch: typeof CF.fetch };
-  [DURABLE_BINDING]?: CF.DurableObjectNamespace;
-}
-
 const nitroApp = useNitroApp();
 const nitroHooks = useNitroHooks();
 
-const getDurableStub = (env: Env) => {
-  const binding = env[DURABLE_BINDING];
-  if (!binding) {
-    throw new Error(`Durable Object binding "${DURABLE_BINDING}" not available.`);
-  }
-  const id = binding.idFromName(DURABLE_INSTANCE);
-  return binding.get(id);
-};
-
-const ws = import.meta._websocket
+// Upgrades are forwarded to the Durable Object when its binding is declared
+// https://crossws.h3.dev/adapters/cloudflare#durable-objects
+export const ws = import.meta._websocket
   ? wsAdapter({
       resolve: resolveWebsocketHooks,
       instanceName: DURABLE_INSTANCE,
       bindingName: DURABLE_BINDING,
     })
   : undefined;
-
-export default createHandler<Env>({
-  fetch(request, env, context, url, ctxExt) {
-    // Static assets fallback (optional binding)
-    if (env.ASSETS && isPublicAssetURL(url.pathname)) {
-      return env.ASSETS.fetch(request as any);
-    }
-
-    // Expose stub fetch to the context
-    ctxExt.durableFetch = (req = request) => getDurableStub(env).fetch(req as any);
-
-    // Websocket upgrade
-    // https://crossws.unjs.io/adapters/cloudflare#durable-objects
-    if (import.meta._websocket && request.headers.get("upgrade") === "websocket") {
-      return ws!.handleUpgrade(request, env, context);
-    }
-  },
-});
 
 export class $DurableObject extends DurableObject {
   constructor(state: DurableObjectState, env: Record<string, any>) {
