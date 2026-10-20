@@ -1,5 +1,6 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { tracingChannel } from "node:diagnostics_channel";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { H3, HTTPError } from "h3";
 import { FastResponse } from "srvx";
 import type { ServerRequest } from "srvx";
@@ -12,7 +13,6 @@ import {
   serverTimingOnError,
   withServerTimingContext,
 } from "../../src/runtime/internal/server-timing.ts";
-import { cacheStatusLabel, countLabel } from "../../src/runtime/internal/_server-timing-labels.ts";
 import { traceServerTiming } from "../../src/runtime/internal/server-timing-trace.ts";
 import type { ServerTimingContext } from "../../src/runtime/internal/server-timing.ts";
 
@@ -32,7 +32,7 @@ function createApp(opts: { errorHandler?: (error: HTTPError) => unknown } = {}) 
     onError: (error, event) => serverTimingOnError(event, errorHandler(error)) as any,
   });
   app.use(serverTimingMiddleware);
-  const fetch = withServerTimingContext((req) => app.fetch(req), options);
+  const fetch = withServerTimingContext((req) => app.fetch(req), { metrics: options });
   return {
     app,
     request: async (path: string) =>
@@ -42,9 +42,18 @@ function createApp(opts: { errorHandler?: (error: HTTPError) => unknown } = {}) 
   };
 }
 
+beforeEach(() => {
+  resetState();
+});
+
 afterEach(() => {
   vi.restoreAllMocks();
 });
+
+/** Drops the process-wide state that runtime reloads share. */
+function resetState() {
+  delete (globalThis as Record<symbol, unknown>)[Symbol.for("nitro.serverTiming.state")];
+}
 
 describe("runtime: server timing", () => {
   it("adds total to plain values and responses", async () => {
@@ -92,7 +101,7 @@ describe("runtime: server timing", () => {
     app.get("/ops/:count", async (event) => {
       const count = Number(event.context.params!.count);
       for (let i = 0; i < count; i++) {
-        const metric = beginOp(getServerTimingContext(), "kv", countLabel("op", "ops"));
+        const metric = beginOp(getServerTimingContext(), "kv");
         await new Promise((resolve) => setTimeout(resolve, 5));
         endOp(metric);
       }
@@ -118,9 +127,44 @@ describe("runtime: server timing", () => {
   });
 });
 
-describe("runtime: server timing busy time", () => {
-  const queries = countLabel("query", "queries");
+describe("runtime: server timing async context", () => {
+  it("reuses an existing async context", async () => {
+    const channel = tracingChannel("nitro.test.server-timing-async-context");
+    traceServerTiming("kv", ["nitro.test.server-timing-async-context"]);
+    const requests = new AsyncLocalStorage<ServerRequest>();
+    const app = new H3();
+    app.use(serverTimingMiddleware);
+    app.get("/", async () => {
+      await channel.tracePromise(async () => {}, {});
+      return "ok";
+    });
+    const fetch = withServerTimingContext((req) => app.fetch(req), {
+      metrics: options,
+      getRequest: () => requests.getStore(),
+    });
+    const run = vi.spyOn(AsyncLocalStorage.prototype, "run");
+    const req = new Request("http://localhost/") as ServerRequest;
+    const res = await requests.run(req, () => fetch(req));
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(res.headers.get("server-timing")).toMatch(
+      new RegExp(`^kv;desc="1 op";dur=[\\d.]+, ${TOTAL}$`)
+    );
+  });
 
+  it("does not record operations once the header is built", async () => {
+    const { app, request } = createApp();
+    let ctx: ServerTimingContext | undefined;
+    app.get("/", (event) => {
+      ctx = getServerTimingContext(event);
+      return "ok";
+    });
+    await request("/");
+    expect(ctx).toBeDefined();
+    expect(beginOp(ctx, "kv")).toBeUndefined();
+  });
+});
+
+describe("runtime: server timing busy time", () => {
   function mockClock() {
     let now = 0;
     vi.spyOn(performance, "now").mockImplementation(() => now);
@@ -132,8 +176,8 @@ describe("runtime: server timing busy time", () => {
   it("counts parallel operations once", () => {
     const setNow = mockClock();
     const ctx: ServerTimingContext = { options, start: 0 };
-    const a = beginOp(ctx, "db", queries);
-    const b = beginOp(ctx, "db", queries);
+    const a = beginOp(ctx, "db");
+    const b = beginOp(ctx, "db");
     setNow(50);
     endOp(a);
     endOp(b);
@@ -144,10 +188,10 @@ describe("runtime: server timing busy time", () => {
   it("adds sequential operations", () => {
     const setNow = mockClock();
     const ctx: ServerTimingContext = { options, start: 0 };
-    const a = beginOp(ctx, "db", queries);
+    const a = beginOp(ctx, "db");
     setNow(50);
     endOp(a);
-    const b = beginOp(ctx, "db", queries);
+    const b = beginOp(ctx, "db");
     setNow(100);
     endOp(b);
     expect(formatServerTiming(ctx)).toBe(`db;desc="2 queries";dur=100, total;dur=100`);
@@ -156,7 +200,7 @@ describe("runtime: server timing busy time", () => {
   it("includes operations still in flight", () => {
     const setNow = mockClock();
     const ctx: ServerTimingContext = { options, start: 0 };
-    beginOp(ctx, "kv", countLabel("op", "ops"));
+    beginOp(ctx, "kv");
     setNow(20);
     expect(formatServerTiming(ctx)).toBe(`kv;desc="1 op";dur=20, total;dur=20`);
   });
@@ -164,18 +208,32 @@ describe("runtime: server timing busy time", () => {
   it("summarizes cache statuses", () => {
     mockClock();
     const ctx: ServerTimingContext = { options, start: 0 };
-    endOp(beginOp(ctx, "cache", cacheStatusLabel), "hit");
+    endOp(beginOp(ctx, "cache"), "hit");
     expect(formatServerTiming(ctx)).toBe(`cache;desc="hit";dur=0, total;dur=0`);
-    endOp(beginOp(ctx, "cache", cacheStatusLabel), "hit");
-    endOp(beginOp(ctx, "cache", cacheStatusLabel), "miss");
+    endOp(beginOp(ctx, "cache"), "hit");
+    endOp(beginOp(ctx, "cache"), "miss");
     expect(formatServerTiming(ctx)).toBe(`cache;desc="2 hit, 1 miss";dur=0, total;dur=0`);
   });
 
   it("skips disabled metrics", () => {
     mockClock();
     const ctx: ServerTimingContext = { options: { ...options, kv: false, total: false }, start: 0 };
-    expect(beginOp(ctx, "kv", countLabel("op", "ops"))).toBeUndefined();
+    expect(beginOp(ctx, "kv")).toBeUndefined();
     expect(formatServerTiming(ctx)).toBe("");
+  });
+});
+
+describe("runtime: server timing across runtime reloads", () => {
+  it("subscribes to tracing channels once", async () => {
+    const diagnostics = process.getBuiltinModule("node:diagnostics_channel");
+    const subscribe = vi.spyOn(diagnostics, "subscribe");
+    for (let i = 0; i < 2; i++) {
+      vi.resetModules();
+      const trace = await import("../../src/runtime/internal/server-timing-trace.ts");
+      expect(trace.traceServerTiming("kv", ["nitro.test.server-timing-reload"])).toBe(true);
+    }
+    // start, end and asyncEnd of a single channel
+    expect(subscribe).toHaveBeenCalledTimes(3);
   });
 });
 
@@ -184,17 +242,16 @@ describe("runtime: server timing without async context", () => {
     vi.resetModules();
     vi.spyOn(process, "getBuiltinModule").mockReturnValue(undefined as any);
     const timing = await import("../../src/runtime/internal/server-timing.ts");
+    const trace = await import("../../src/runtime/internal/server-timing-trace.ts");
+    expect(trace.traceServerTiming("kv", ["nitro.test.server-timing-no-als"])).toBe(false);
     const app = new H3();
     app.use(timing.serverTimingMiddleware);
     app.get("/", (event) => {
       expect(timing.getServerTimingContext()).toBeUndefined();
-      timing.endOp(
-        timing.beginOp(timing.getServerTimingContext(event), "cache", cacheStatusLabel),
-        "hit"
-      );
+      timing.endOp(timing.beginOp(timing.getServerTimingContext(event), "cache"), "hit");
       return "ok";
     });
-    const fetch = timing.withServerTimingContext((req) => app.fetch(req), options);
+    const fetch = timing.withServerTimingContext((req) => app.fetch(req), { metrics: options });
     const res = await fetch(new Request("http://localhost/") as ServerRequest);
     expect(res.headers.get("server-timing")).toMatch(
       new RegExp(`^cache;desc="hit";dur=[\\d.]+, ${TOTAL}$`)

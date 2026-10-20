@@ -1158,8 +1158,9 @@ export interface NitroConfig
   /**
    * Emit built-in metrics as a `Server-Timing` response header.
    *
-   * Enabled by default in development. Set to `true` (or an object) to enable it in production,
-   * `false` to disable it, or pass an object to disable individual metrics.
+   * Enabled by default in development, with every metric. Set to `true` to also enable it in
+   * production, `false` to disable it, or pass an object to enable only the metrics set to `true`
+   * (in development and production).
    *
    * @see https://nitro.build/config#servertiming
    * @see https://nitro.build/docs/server-timing
@@ -1288,7 +1289,7 @@ export interface TracingChannelOptions {
 }
 
 /**
- * Built-in `Server-Timing` metrics. All metrics are enabled by default.
+ * Built-in `Server-Timing` metrics. Only the metrics set to `true` are enabled.
  *
  * @see https://nitro.build/config#servertiming
  */
@@ -1299,7 +1300,7 @@ export interface ServerTimingOptions {
   kv?: boolean;
   /** Time spent waiting on database queries (`useDatabase()`). Requires `experimental.database`. */
   db?: boolean;
-  /** Status (`hit`, `miss`, `stale`, `revalidated`) and duration of cached handlers. */
+  /** Status (`hit`, `miss`, `stale`, `revalidated`, `bypass`) and duration of cached handlers. */
   cache?: boolean;
 }
 

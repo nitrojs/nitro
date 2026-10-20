@@ -26,7 +26,6 @@ describe("config: serverTiming", () => {
 
   it("can be enabled in production", async () => {
     expect(await resolve(true)).toEqual(all);
-    expect(await resolve({ kv: false })).toEqual({ ...all, kv: false });
   });
 
   it("can be disabled in development", async () => {
@@ -37,12 +36,23 @@ describe("config: serverTiming", () => {
     expect(await resolve(false)).toBe(false);
   });
 
-  it("merges per-metric options over the defaults", async () => {
-    expect(await resolve({ kv: false })).toEqual({ ...all, kv: false });
+  it("only enables the metrics an object explicitly enables", async () => {
+    const none = { total: false, kv: false, db: false, cache: false };
+    expect(await resolve({ total: true, cache: true })).toEqual({
+      ...none,
+      total: true,
+      cache: true,
+    });
+    expect(await resolve({ db: true }, { dev: true })).toEqual({ ...none, db: true });
   });
 
-  it("is disabled when every metric is disabled", async () => {
-    expect(await resolve({ total: false, kv: false, db: false, cache: false })).toBe(false);
+  it("is disabled when no metric is enabled", async () => {
+    expect(await resolve({})).toBe(false);
+    expect(await resolve({ kv: false }, { dev: true })).toBe(false);
+  });
+
+  it("disables an explicitly enabled db without experimental.database", async () => {
+    expect(await resolve({ db: true }, { database: false })).toBe(false);
   });
 
   it("disables db without experimental.database", async () => {

@@ -166,7 +166,21 @@ describe("virtual/app template", () => {
       const template = app(createNitroStub({ serverTiming })).template();
       expect(template).toContain("return serverTimingOnError(event, errorHandler(error, event));");
       expect(template).toContain(
-        `appHandler = withServerTimingContext(appHandler, ${JSON.stringify(serverTiming)});`
+        `appHandler = withServerTimingContext(appHandler, { metrics: ${JSON.stringify(serverTiming)} });`
+      );
+    });
+
+    it("reuses the Nitro async context when enabled", () => {
+      const nitro = createNitroStub({ serverTiming });
+      nitro.options.experimental.asyncContext = true;
+      const template = app(nitro).template();
+      expect(template).toContain(
+        `appHandler = withServerTimingContext(appHandler, { metrics: ${JSON.stringify(serverTiming)}, getRequest: () => nitroAsyncContext.tryUse()?.request });`
+      );
+      expect(template).toContain(`import { nitroAsyncContext } from "#nitro/runtime/context";`);
+      // The Nitro async context must wrap the server timing one
+      expect(template.indexOf("nitroAsyncContext.callAsync")).toBeGreaterThan(
+        template.indexOf("withServerTimingContext(appHandler")
       );
     });
   });

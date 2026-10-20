@@ -1098,11 +1098,21 @@ export function testNitro(
       const url = `/server-timing/cached/${++serverTimingCacheKey}`;
       const first = await callHandler({ url });
       expect(first.headers["server-timing"]).toMatch(
-        /^cache;desc="miss";dur=[\d.]+, total;dur=[\d.]+$/
+        /^handler;dur=1, cache;desc="miss";dur=[\d.]+, total;dur=[\d.]+$/
       );
+      // Entries set by the handler describe the request that filled the cache: not replayed
       const second = await callHandler({ url });
       expect(second.headers["server-timing"]).toMatch(
         /^cache;desc="hit";dur=[\d.]+, total;dur=[\d.]+$/
+      );
+    });
+
+    it("reports bypassed cached handlers", async () => {
+      const { headers } = await callHandler({
+        url: `/server-timing/cached/${++serverTimingCacheKey}?bypass`,
+      });
+      expect(headers["server-timing"]).toMatch(
+        /^handler;dur=1, cache;desc="bypass";dur=[\d.]+, total;dur=[\d.]+$/
       );
     });
 
