@@ -1,4 +1,4 @@
-import type { EnvRunner, EnvRunnerPlugin } from "env-runner";
+import type { EnvRunner } from "env-runner";
 import type { Nitro } from "nitro/types";
 import { loadRunner } from "env-runner";
 import { pkgDir } from "#nitro/meta";
@@ -22,18 +22,6 @@ vi.mock(import("../../src/utils/dep.ts"), async (importOriginal) => {
 
 const rootDir = fileURLToPath(new URL("fixture", import.meta.url));
 
-// `unwasm` hooks are async (https://github.com/unjs/unwasm/issues/123)
-const wasmStub: EnvRunnerPlugin = {
-  name: "test:wasm-stub",
-  load: {
-    filter: { id: /\.wasm$/ },
-    handler: () => ({
-      code: "export default () => {}; export const sum = (a, b) => a + b;",
-      moduleType: "js",
-    }),
-  },
-};
-
 // The self runner runs the plugins in synchronous loader hooks of this process
 describe("builder: false (self runner)", () => {
   let nitro: Nitro;
@@ -47,9 +35,7 @@ describe("builder: false (self runner)", () => {
     runner = await loadRunner("self", {
       name: "nitro-self-test",
       data: { entry, virtual },
-      plugins: (await unbundledPlugins(nitro, { sync: true })).map((plugin) =>
-        plugin.name === "unwasm" ? wasmStub : plugin
-      ),
+      plugins: await unbundledPlugins(nitro, { sync: true }),
     });
     await runner.waitForReady();
   });
