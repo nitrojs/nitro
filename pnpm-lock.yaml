@@ -24,8 +24,8 @@ importers:
         specifier: ^0.3.6
         version: 0.3.6
       h3:
-        specifier: ^2.0.6
-        version: 2.0.6(crossws@0.4.15)(ocache@0.3.1)
+        specifier: ^2.0.7
+        version: 2.0.7(crossws@0.4.15)(ocache@0.3.1)
       ocache:
         specifier: ^0.3.1
         version: 0.3.1
@@ -4731,8 +4731,8 @@ packages:
     resolution: {integrity: sha512-O1Ld7Dr+nqPnmGpdhzLmMTQ4vAsD+rHwMm1NLUmoUFFymBOMKxCCrtDxqdBRYXdeEPEi3SyoR4TizJLQrnKBNA==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
 
-  h3@2.0.5:
-    resolution: {integrity: sha512-AkTYaK8XhWlAAOhzEz8I6FAkhFPMrDYVq/PIV3GvJxtKiFmVyVDAAdGuNGMTHRrI3A6up3s1bND/dDPlQHlx6w==}
+  h3@2.0.6:
+    resolution: {integrity: sha512-ELzE+z+JU0jRLcTYZNb/rVj81jaY0dQKhLNyFEC/McaFgSASfRtyB+m5mZJpfxvWjyek23dYwNFJjxgNY49i4Q==}
     engines: {node: '>=20.19.0'}
     hasBin: true
     peerDependencies:
@@ -4744,8 +4744,8 @@ packages:
       ocache:
         optional: true
 
-  h3@2.0.6:
-    resolution: {integrity: sha512-ELzE+z+JU0jRLcTYZNb/rVj81jaY0dQKhLNyFEC/McaFgSASfRtyB+m5mZJpfxvWjyek23dYwNFJjxgNY49i4Q==}
+  h3@2.0.7:
+    resolution: {integrity: sha512-00SVloxtViij9/JBsc/Ayd9H7GLXWB0KRfkReWG0dDwuUFKUKRrNGM3Csu+KZgppi5DD8Y1KpnfjtudWaRCoiQ==}
     engines: {node: '>=20.19.0'}
     hasBin: true
     peerDependencies:
@@ -9215,7 +9215,7 @@ snapshots:
       defu: 6.1.7
       error-stack-parser-es: 2.0.1
       fast-glob: 3.3.3
-      h3: 2.0.5(crossws@0.4.15)(ocache@0.3.1)
+      h3: 2.0.6(crossws@0.4.15)(ocache@0.3.1)
       html-to-image: 1.11.13
       micromatch: 4.0.8
       oxc-parser: link:shims/oxc-parser
@@ -11184,7 +11184,7 @@ snapshots:
     dependencies:
       duplexer: 0.1.2
 
-  h3@2.0.5(crossws@0.4.15)(ocache@0.3.1):
+  h3@2.0.6(crossws@0.4.15)(ocache@0.3.1):
     dependencies:
       rou3: 1.0.0
       srvx: 1.0.6
@@ -11192,7 +11192,7 @@ snapshots:
       crossws: 0.4.15(srvx@1.0.6)
       ocache: 0.3.1
 
-  h3@2.0.6(crossws@0.4.15)(ocache@0.3.1):
+  h3@2.0.7(crossws@0.4.15)(ocache@0.3.1):
     dependencies:
       rou3: 1.0.0
       srvx: 1.0.6

@@ -306,6 +306,17 @@ export function testNitro(
     expect(anonymous.headers["x-echo"]).toBeUndefined();
   });
 
+  it("keeps middleware headers out of `defineCachedHandler` cache entries", async () => {
+    const url = "/api/cached-middleware";
+    const miss = await callHandler({ url, headers: { "x-echo": "a" } });
+    expect(miss.data).toBe("cached");
+    expect(miss.headers["x-echo"]).toBe("a");
+    const hit = await callHandler({ url, headers: { "x-echo": "b" } });
+    expect(hit.headers["x-echo"]).toBe("b");
+    const anonymous = await callHandler({ url });
+    expect(anonymous.headers["x-echo"]).toBeUndefined();
+  });
+
   it("API Works", async () => {
     const { data: helloData } = await callHandler({ url: "/api/hello" });
     expect(helloData).to.toMatchObject({ message: "Hello API" });

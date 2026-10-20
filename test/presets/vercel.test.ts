@@ -535,6 +535,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/api\\/cached\\/?$",
               },
               {
+                "dest": "/api/cached-middleware",
+                "src": "^\\/api\\/cached-middleware\\/?$",
+              },
+              {
                 "dest": "/api/body-size",
                 "src": "^\\/api\\/body-size\\/?$",
               },
@@ -744,6 +748,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/_vercel",
             "functions/_ws.func (symlink)",
             "functions/api/body-size.func (symlink)",
+            "functions/api/cached-middleware.func (symlink)",
             "functions/api/cached.func (symlink)",
             "functions/api/catch-all-index.func (symlink)",
             "functions/api/catch-all-index/[...slug].func (symlink)",

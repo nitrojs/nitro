@@ -4,7 +4,10 @@ export default defineHandler((event) => {
   const order = (event.context.middlewareOrder ??= []) as string[];
   order.push(event.context.routeRules ? "rules" : "no-rules", "global");
   const echo = event.req.headers.get("x-echo");
-  if (echo && event.url.pathname === "/rules/swr/middleware-order") {
+  if (
+    echo &&
+    ["/rules/swr/middleware-order", "/api/cached-middleware"].includes(event.url.pathname)
+  ) {
     event.res.headers.set("x-echo", echo);
   }
 });
