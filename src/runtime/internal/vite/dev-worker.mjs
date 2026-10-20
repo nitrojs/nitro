@@ -296,6 +296,9 @@ export const websocketOptions = {
     const websocket = entry?.default?.websocket || entry?.websocket;
     return (await websocket?.resolve(request)) || {};
   },
+  // In workerd, upgrades are forwarded to the same Durable Object as with the `cloudflare-module`
+  // preset when its binding is declared (`presets/cloudflare/runtime/_durable.ts`)
+  options: { cloudflare: { bindingName: "$DurableObject", instanceName: "server" } },
 };
 
 // Worker classes for the miniflare runner: the server entry exports re-exported by the nitro
