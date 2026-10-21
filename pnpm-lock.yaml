@@ -46,7 +46,7 @@ importers:
         specifier: ^2.0.10
         version: 2.0.10(debug@4.4.3)(supports-color@10.2.2)
       '@cloudflare/workers-types':
-        specifier: ^5.20261016.1
+        specifier: ^5.20261018.1
         version: 5.20261018.1
       '@cloudflare/workers-utils':
         specifier: ^0.47.2
@@ -160,8 +160,8 @@ importers:
         specifier: ^1.8.1
         version: 1.8.1
       execa:
-        specifier: ^10.1.1
-        version: 10.1.1
+        specifier: ^10.2.0
+        version: 10.2.0
       exsolve:
         specifier: ^1.1.3
         version: 1.1.3
@@ -247,7 +247,7 @@ importers:
         specifier: ^1.2.14
         version: 1.2.14
       rollup:
-        specifier: ^4.64.7
+        specifier: ^4.64.9
         version: 4.64.9
       scule:
         specifier: ^1.3.0
@@ -4481,8 +4481,8 @@ packages:
       typebox:
         optional: true
 
-  execa@10.1.1:
-    resolution: {integrity: sha512-yJAC9ulsE6fU0K6wzJBIH+wI+KAtMeu6Ck8rs23OVzvEhqXjGADdI6K+YNIDAjcQQ6AwXTD96cKExJo6xFJXyg==}
+  execa@10.2.0:
+    resolution: {integrity: sha512-j1pFOVxaybMVCTNHSBuISL2KQcDS3KIE1wBmUp4n2X+1FgaQI2ZDJVy9TYxDyMCzYojRIMh9O8X/UoWZtxTJdw==}
     engines: {node: '>=22'}
 
   execa@5.1.1:
@@ -10874,7 +10874,7 @@ snapshots:
 
   exact-mirror@1.2.6: {}
 
-  execa@10.1.1:
+  execa@10.2.0:
     dependencies:
       '@sindresorhus/merge-streams': 4.0.0
       figures: 6.1.0
