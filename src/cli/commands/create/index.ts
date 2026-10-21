@@ -1,10 +1,12 @@
 import { execFileSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { defineCommand, showUsage } from "citty";
 import { consola } from "consola";
 import { colors } from "consola/utils";
 import { installDependencies, packageManagers, runScriptCommand } from "nypm";
 import type { PackageManagerName } from "nypm";
-import { relative, resolve } from "pathe";
+import { dirname, relative, resolve } from "pathe";
+import { findNearestFile, findWorkspaceDir } from "pkg-types";
 import { hasTTY, isAgent } from "std-env";
 import { createProject, isEmptyDir, projectTemplates } from "./_project.ts";
 
@@ -165,6 +167,7 @@ export default defineCommand({
       (interactive &&
         (await consola.prompt("Initialize a git repository?", {
           type: "confirm",
+          initial: !(await isInsideRepo(dir)),
           cancel: "undefined",
         })));
     if (gitInit) {
@@ -192,6 +195,24 @@ function fail(message: string): never {
 
 function displayPath(dir: string): string {
   return relative(process.cwd(), dir) || ".";
+}
+
+/** Whether `dir` is inside a git repository or a monorepo (detected from its parent). */
+async function isInsideRepo(dir: string): Promise<boolean> {
+  const startingFrom = dirname(dir);
+  const found = await Promise.all(
+    [
+      // `.git` is a file in worktrees and submodules
+      findNearestFile(".git", { startingFrom, test: existsSync }),
+      findWorkspaceDir(startingFrom, { tests: ["workspaceFile"] }),
+    ].map((p) =>
+      p.then(
+        () => true,
+        () => false
+      )
+    )
+  );
+  return found.some(Boolean);
 }
 
 function detectPackageManager(): PackageManagerName | undefined {
