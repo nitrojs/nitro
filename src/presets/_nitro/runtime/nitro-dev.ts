@@ -28,12 +28,7 @@ export default {
   fetch: nitroApp.fetch,
   plugins: [...tracingSrvxPlugins],
   websocket: import.meta._websocket
-    ? ({
-        resolve: resolveWebsocketHooks,
-        // In workerd, upgrades are forwarded to the same Durable Object as with the
-        // `cloudflare-module` preset when its binding is declared
-        options: { cloudflare: { bindingName: "$DurableObject", instanceName: "server" } },
-      } as AppEntry["websocket"])
+    ? ({ resolve: resolveWebsocketHooks } as AppEntry["websocket"])
     : undefined,
   ipc: {
     onOpen: (ctx) => {

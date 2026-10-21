@@ -151,6 +151,8 @@ describe("nitro:preset:cloudflare-module", async () => {
         } else {
           await expect(b.next("pub:hi", 500)).rejects.toThrow('Timed out waiting for "pub:hi"');
         }
+        a.ws.send("instance");
+        await a.next(binding ? "instance:server" : "instance:undefined");
         expect(b.messages).toEqual(received);
         a.ws.close();
         b.ws.close();

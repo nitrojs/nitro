@@ -349,6 +349,9 @@ for (const mode of ["nitro", "vite"] as const) {
           } else {
             await expect(b.next(500)).rejects.toThrow("Timed out");
           }
+          // Same Durable Object instance as the `cloudflare-module` entry
+          a.ws.send("instance");
+          expect(await a.next()).toBe(binding ? "instance:server" : "instance:undefined");
         } finally {
           a.ws.close();
           b.ws.close();
