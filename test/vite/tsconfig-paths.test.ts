@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import { rm, mkdir, readFile } from "node:fs/promises";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createNitro, createDevServer, build, prepare } from "nitro/builder";
 import type { Nitro } from "nitro/types";
 import type { Server } from "srvx";
@@ -14,7 +14,14 @@ const { createServer } = (await import(
 const fixtureDir = fileURLToPath(new URL("./tsconfig-paths-fixture", import.meta.url));
 const tmpDir = fileURLToPath(new URL("./tsconfig-paths-fixture/.tmp", import.meta.url));
 
-const expected = { greeting: "Hello from tsconfig paths!", sum: 3, h3: "function" };
+const expected = {
+  greeting: "Hello from tsconfig paths!",
+  sum: 3,
+  h3: "function",
+  fallback: "fallback",
+  aliased: "alias",
+  defu: "paths",
+};
 
 describe("tsconfig-paths", () => {
   for (const builder of ["rolldown", "rollup", "vite"] as const) {
@@ -29,11 +36,15 @@ describe("tsconfig-paths", () => {
           rootDir: fixtureDir,
           output: { dir: outDir },
           // @ts-expect-error for testing
-          __vitePkg__: builder,
+          __vitePkg__: builder === "vite" ? process.env.NITRO_VITE_PKG : undefined,
           builder,
         });
-        await prepare(nitro);
-        await build(nitro);
+        try {
+          await prepare(nitro);
+          await build(nitro);
+        } finally {
+          await nitro.close();
+        }
       });
 
       it("resolves tsconfig `paths`", async () => {
@@ -52,11 +63,36 @@ describe("tsconfig-paths", () => {
       builder: "rolldown",
       typescript: { tsconfigPaths: false },
     });
-    await prepare(nitro);
-    await build(nitro);
-    await nitro.close();
+    try {
+      await prepare(nitro);
+      await build(nitro);
+    } finally {
+      await nitro.close();
+    }
     const entry = await readFile(join(tmpDir, "disabled/server/index.mjs"), "utf8");
     expect(entry).toMatch(/from ["']@greeting["']/);
+  });
+
+  it("warns about invalid `paths` instead of failing", async () => {
+    const nitro = await createNitro({
+      rootDir: fixtureDir,
+      output: { dir: join(tmpDir, "invalid") },
+      builder: "rolldown",
+      // Non-relative targets require `baseUrl`
+      typescript: {
+        tsConfig: { compilerOptions: { paths: { "@greeting": ["app/greeting.ts"] } } },
+      },
+    });
+    const warn = vi.spyOn(nitro.logger, "warn");
+    try {
+      await prepare(nitro);
+      await build(nitro);
+    } finally {
+      await nitro.close();
+    }
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("Ignoring `compilerOptions.paths` of the project tsconfig")
+    );
   });
 
   describe("vite dev", { concurrent: false }, () => {
