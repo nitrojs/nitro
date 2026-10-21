@@ -1002,6 +1002,13 @@ export interface NitroOptions extends PresetOptions {
      * Defaults to the resolved `tsconfig.json` of the project root.
      */
     tsConfig?: Partial<TSConfig>;
+
+    /**
+     * Resolve path aliases (`compilerOptions.paths`) of `tsConfig` for the server sources.
+     *
+     * @default true
+     */
+    tsconfigPaths?: boolean;
   };
 
   /**

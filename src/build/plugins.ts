@@ -15,6 +15,7 @@ import { importAttributes } from "./plugins/import-attributes.ts";
 import { externals } from "./plugins/externals.ts";
 import { unenv } from "./plugins/unenv.ts";
 import { runtimeDeps } from "./plugins/runtime-deps.ts";
+import { tsconfigPaths } from "./plugins/tsconfig-paths.ts";
 
 export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const plugins: Plugin[] = [];
@@ -23,6 +24,12 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const virtualPlugin = virtual(virtualTemplates(nitro, [...base.env.polyfills]));
   nitro.vfs = virtualPlugin.api.modules;
   plugins.push(virtualPlugin, virtualDeps());
+
+  // TypeScript `paths`
+  const tsconfigPathsPlugin = tsconfigPaths(nitro, base.aliases);
+  if (tsconfigPathsPlugin) {
+    plugins.push(tsconfigPathsPlugin);
+  }
 
   // Node.js compatibility polyfills (resolved on demand)
   plugins.push(unenv(nitro, base.env));

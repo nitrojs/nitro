@@ -1,0 +1,4 @@
+{
+  // `paths` without `baseUrl` resolve from the config declaring them
+  "extends": "./config/tsconfig.base.json"
+}
