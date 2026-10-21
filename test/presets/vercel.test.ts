@@ -451,7 +451,7 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/assets\\/(?<id>[^/]+)\\/?$",
               },
               {
-                "dest": "/api/test/[-]/foo",
+                "dest": "/api/test/[...]/foo",
                 "src": "^\\/api\\/test\\/(?<_0>[\\s\\S]*)\\/foo\\/?$",
               },
               {
@@ -768,7 +768,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/api/param/[test_id].func (symlink)",
             "functions/api/storage/item.func (symlink)",
             "functions/api/storage/legacy.func (symlink)",
-            "functions/api/test/[-]/foo.func (symlink)",
+            "functions/api/test/[...]/foo.func (symlink)",
             "functions/api/upload.func (symlink)",
             "functions/api/wildcard/[...param].func (symlink)",
             "functions/assets/[id].func (symlink)",
