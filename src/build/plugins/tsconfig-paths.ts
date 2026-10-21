@@ -3,7 +3,6 @@ import type { Plugin } from "rollup";
 import { existsSync, statSync } from "node:fs";
 import { createPathsMatcher } from "get-tsconfig";
 import { join } from "pathe";
-import { normalizeAliases, resolveAlias } from "pathe/utils";
 import { chain } from "../../utils/sync.ts";
 
 /**
@@ -18,8 +17,13 @@ export function tsconfigPaths(nitro: Nitro, aliases: Record<string, string>): Pl
   if (!paths) {
     return;
   }
-  const { idRE, candidates } = paths;
-  const normalizedAliases = normalizeAliases(aliases);
+  const { keys, candidates } = paths;
+  // Skipped ids and `alias` keys are excluded by the filter (native with rolldown)
+  const excludes = [
+    SKIP_ID,
+    ...Object.keys(aliases).map((key) => `${escapeRE(key.replace(/\/$/, ""))}(?:/|$)`),
+  ];
+  const idRE = new RegExp(`^(?!${excludes.join("|")})(?:${keys.map(patternRegExp).join("|")})$`);
   return {
     name: "nitro:tsconfig-paths",
     resolveId: {
@@ -27,12 +31,11 @@ export function tsconfigPaths(nitro: Nitro, aliases: Record<string, string>): Pl
       order: "pre",
       filter: { id: idRE },
       handler(id, importer, options) {
+        // `idRE` again for rollup versions without hook filters
         if (
           !importer ||
           !idRE.test(id) ||
-          SKIP_ID_RE.test(id) ||
           NODE_MODULES_RE.test(importer) ||
-          resolveAlias(id, normalizedAliases) !== id ||
           isViteAlias(this, id)
         ) {
           return;
@@ -66,7 +69,6 @@ export function tsconfigPathsNoExternal(nitro: Nitro): RegExp[] {
 
 interface TsconfigPaths {
   keys: string[];
-  idRE: RegExp;
   /** Targets of an import, without type-only ones (e.g. framework generated). */
   candidates: (id: string) => string[];
 }
@@ -103,8 +105,6 @@ function _loadPaths(nitro: Nitro): TsconfigPaths | undefined {
   }
   return {
     keys,
-    // Only `paths` patterns (`baseUrl` alone would match any bare import)
-    idRE: pathsRegExp(keys),
     candidates: (id) => matcher(id).filter((path) => !TYPES_RE.test(path)),
   };
 }
@@ -113,13 +113,21 @@ function _loadPaths(nitro: Nitro): TsconfigPaths | undefined {
 function isViteAlias(ctx: unknown, id: string): boolean {
   const alias = (ctx as { environment?: { config?: { resolve?: { alias?: unknown } } } })
     .environment?.config?.resolve?.alias;
-  if (!Array.isArray(alias)) {
+  if (!Array.isArray(alias) || alias.length === 0) {
     return false;
   }
-  return alias.some(({ find }: { find: string | RegExp }) =>
-    typeof find === "string" ? id === find || id.startsWith(`${find}/`) : find.test(id)
-  );
+  let matcher = viteAliasCache.get(alias);
+  if (!matcher) {
+    const res = alias.map(({ find }: { find: string | RegExp }) =>
+      typeof find === "string" ? new RegExp(`^${escapeRE(find)}(?:\\/|$)`) : find
+    );
+    matcher = (id) => res.some((re) => re.test(id));
+    viteAliasCache.set(alias, matcher);
+  }
+  return matcher(id);
 }
+
+const viteAliasCache = new WeakMap<object, (id: string) => boolean>();
 
 function isFile(path: string): boolean {
   return [
@@ -138,15 +146,16 @@ const TYPES_RE = /\.d\.(?:[^/\\]+\.)?[cm]?ts$|[\\/]node_modules[\\/]@types[\\/]/
 
 // Absolute paths, virtual modules and URL schemes (`node:`, `virtual:`), e.g. for a `*` key.
 // Keys containing `:` (like `app:*`) are not supported.
-const SKIP_ID_RE = /^(?:[/\\\0]|#nitro\/|[a-zA-Z][\w+.-]*:)/;
+const SKIP_ID = String.raw`[/\\\0]|#nitro\/|[a-zA-Z][\w+.-]*:`;
 
 function pathsRegExp(keys: string[]): RegExp {
   return new RegExp(`^(?:${keys.map(patternRegExp).join("|")})$`);
 }
 
 function patternRegExp(pattern: string): string {
-  return pattern
-    .split("*")
-    .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
-    .join(".*");
+  return pattern.split("*").map(escapeRE).join(".*");
+}
+
+function escapeRE(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
