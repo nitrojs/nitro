@@ -32,7 +32,7 @@ export default defineConfig({
     "test": "vitest"
   },
   "dependencies": {
-    "unstorage": "^2.0.0-alpha.10"
+    "unstorage": "^2.0.0-beta.0"
   },
   "devDependencies": {
     "nitro": "latest",

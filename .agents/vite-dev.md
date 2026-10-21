@@ -74,7 +74,12 @@ Set `Vary: sec-fetch-dest, accept`, then:
   of `ASSET_EXT_RE` like imported `.json` (#4433). Otherwise fall back to
   extension — `ASSET_EXT_RE.test(ext)` **and** no `text/html` in `Accept` ⇒
   asset. (`empty` = fetch/XHR is ambiguous: it tags both API calls and
-  `fetch()`ed assets.)
+  `fetch()`ed assets.) Last resort: the path resolves to a real file under
+  the Vite project root ⇒ asset — `?url` imports compile to a bare
+  root-relative fetch with no marker and any extension (#4230), and a real
+  root file is exactly what `serveStaticMiddleware` serves, so it mirrors its
+  skip rules (`.html` excluded, same `Accept: text/html` guard). The probe is
+  confined to the root so `%2e%2e` paths can't reveal outside files.
 - **Only `GET`/`HEAD` can be assets at all** — a `POST /upload.png` is never a
   browser asset load, so other methods bypass the heuristic entirely.
 - Non-asset + (matched or extensionless) → Nitro immediately (pre-Vite).

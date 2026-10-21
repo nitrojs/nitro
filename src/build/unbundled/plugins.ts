@@ -15,6 +15,7 @@ import { importOXC } from "../../utils/oxc.ts";
 import { chain } from "../../utils/sync.ts";
 import { raw, RESOLVED_PREFIX as RAW_PREFIX, RESOLVED_RE as RAW_RE } from "../plugins/raw.ts";
 import { routeMeta } from "../plugins/route-meta.ts";
+import { tsconfigPaths } from "../plugins/tsconfig-paths.ts";
 import { resolveBuildPlugins } from "../plugins.ts";
 import {
   ensureRuntimeDep,
@@ -69,6 +70,11 @@ export async function unbundledPlugins(
 
   if (Object.keys(base.aliases).length > 0) {
     plugins.push(aliasPlugin(base.aliases, nitro.options.rootDir));
+  }
+
+  const tsconfigPathsPlugin = tsconfigPaths(nitro, base.aliases);
+  if (tsconfigPathsPlugin) {
+    plugins.push(fromRollup(tsconfigPathsPlugin));
   }
 
   if (nitro.options.experimental.openAPI) {

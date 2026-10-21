@@ -54,6 +54,8 @@ async function serveApp(
   });
   try {
     const { host, port } = server.runner.address!;
+    // `port: 0` listens on a random port, not on the 3000 default
+    expect(port).not.toBe(3000);
     await fn({
       runner: server.runner,
       text: (path) => fetch(`http://${host}:${port}${path}`).then((res) => res.text()),

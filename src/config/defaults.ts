@@ -79,6 +79,7 @@ export const NitroDefaults: NitroConfig = {
   // Advanced
   typescript: {
     tsConfig: undefined,
+    tsconfigPaths: true,
   },
   hooks: {},
   commands: {},
