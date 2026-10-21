@@ -2,6 +2,7 @@ import { deps } from "../../../utils/_deps.ts";
 
 export interface ProjectTemplate {
   name: string;
+  title: string;
   description: string;
   scripts: Record<string, string>;
   devDependencies: Record<string, string>;
@@ -12,7 +13,8 @@ export interface ProjectTemplate {
 export const projectTemplates: ProjectTemplate[] = [
   {
     name: "vite",
-    description: "Full-stack with Vite",
+    title: "Vite",
+    description: "full-stack app with a frontend",
     scripts: { dev: "vite dev", build: "vite build", preview: "vite preview" },
     devDependencies: { vite: deps.vite.version },
     files: {
@@ -47,25 +49,28 @@ button.addEventListener("click", async () => {
     },
   },
   {
-    name: "cli",
-    description: "Backend with Nitro CLI",
+    name: "rolldown",
+    title: "Rolldown",
+    description: "API server, bundled for production",
     scripts: { dev: "nitro dev", build: "nitro build", preview: "nitro preview" },
     devDependencies: { rolldown: deps.rolldown.version },
+    files: { "index.html": serverIndexHTML() },
+  },
+  {
+    name: "runtime",
+    title: "Runtime",
+    description: "API server without a build step, experimental",
+    scripts: { dev: "nitro dev", start: "nitro start" },
+    devDependencies: {},
     files: {
-      "index.html": `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Nitro</title>
-  </head>
-  <body>
-    <h1>Nitro</h1>
-    <p>Edit <code>index.html</code> or <code>server/api/hello.ts</code> to get started.</p>
-    <pre>{{{ serverFetch("/api/hello") }}}</pre>
-  </body>
-</html>
+      "nitro.config.ts": `import { defineConfig } from "nitro";
+
+export default defineConfig({
+  serverDir: "./server",
+  builder: false,
+});
 `,
+      "index.html": serverIndexHTML(),
     },
   },
 ];
@@ -103,3 +108,20 @@ dist
   "CLAUDE.md": `@AGENTS.md
 `,
 };
+
+function serverIndexHTML(): string {
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Nitro</title>
+  </head>
+  <body>
+    <h1>Nitro</h1>
+    <p>Edit <code>index.html</code> or <code>server/api/hello.ts</code> to get started.</p>
+    <pre>{{{ serverFetch("/api/hello") }}}</pre>
+  </body>
+</html>
+`;
+}

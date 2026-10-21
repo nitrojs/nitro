@@ -117,9 +117,12 @@ export default defineCommand({
       args.template ||
       (interactive
         ? await consola
-            .prompt("Which template would you like to use?", {
+            .prompt("Which builder would you like to use?", {
               type: "select",
-              options: projectTemplates.map((t) => ({ label: t.description, value: t.name })),
+              options: projectTemplates.map((t) => ({
+                label: `${t.title} ${colors.dim(`(${t.description})`)}`,
+                value: t.name,
+              })),
               cancel: "reject",
             })
             .catch(() => process.exit(1))

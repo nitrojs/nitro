@@ -40,8 +40,10 @@ describe("createProject", () => {
     const dir = await tmpDir();
     await writeFile(join(dir, "package.json"), "{}");
 
-    await expect(createProject(dir, { template: "cli" })).rejects.toThrow(/not empty.*--force/);
-    await createProject(dir, { template: "cli", force: true });
+    await expect(createProject(dir, { template: "rolldown" })).rejects.toThrow(
+      /not empty.*--force/
+    );
+    await createProject(dir, { template: "rolldown", force: true });
     expect(JSON.parse(await readFile(join(dir, "package.json"), "utf8")).scripts.dev).toBe(
       "nitro dev"
     );
@@ -50,7 +52,7 @@ describe("createProject", () => {
   it("rejects an unknown template", async () => {
     const dir = await tmpDir();
     await expect(createProject(dir, { template: "nope" })).rejects.toThrow(
-      /Unknown template `nope`.*`vite`, `cli`/
+      /Unknown template `nope`.*`vite`, `rolldown`, `runtime`/
     );
   });
 });
