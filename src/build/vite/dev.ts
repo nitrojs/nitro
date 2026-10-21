@@ -383,10 +383,17 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     // serve it as a real file under the project root. Mirrors its skip rules (`.html` files
     // are left for Nitro) — #4230.
     const isAssetByFile = () => {
-      if (!ext || ext === "html" || /\btext\/html\b/.test(req.headers["accept"] || "")) {
+      const urlPath = req.url!.split(/[?#]/, 1)[0];
+      // Vite only serves root files under its base; outside it, the probe would only leak existence.
+      if (
+        !ext ||
+        ext === "html" ||
+        /\btext\/html\b/.test(req.headers["accept"] || "") ||
+        !urlPath.startsWith(viteBase)
+      ) {
         return false;
       }
-      let filePath = withoutBase(req.url!.split(/[?#]/, 1)[0], viteBase);
+      let filePath = withoutBase(urlPath, viteBase);
       try {
         filePath = decodeURI(filePath);
       } catch {}

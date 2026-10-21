@@ -73,3 +73,41 @@ describe("vite:html template", () => {
     expect(res.headers["content-type"]).toContain("text/html");
   });
 });
+
+describe("vite:html template (base: /app/)", () => {
+  let server: ViteDevServer;
+  let serverURL: string;
+
+  const rootDir = fileURLToPath(new URL("./html-template-fixture", import.meta.url));
+
+  beforeAll(async () => {
+    server = await createServer({ root: rootDir, base: "/app/", logLevel: "warn" });
+    await server.listen("0" as unknown as number);
+    const addr = server.httpServer?.address() as {
+      port: number;
+      address: string;
+      family: string;
+    };
+    serverURL = `http://${addr.family === "IPv6" ? `[${addr.address}]` : addr.address}:${addr.port}`;
+  }, 30_000);
+
+  afterAll(async () => {
+    await server?.close();
+  });
+
+  test("serves a ?url-imported file under the base", async () => {
+    const res = await fetch(`${serverURL}/app/src/1.txt`, { headers: { accept: "*/*" } });
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("hello\n");
+  });
+
+  // Vite does not serve root files outside its base, so the file probe must not run there
+  // (a Vite 404 for existing files only would reveal which files exist).
+  test("does not probe files outside the base", async () => {
+    for (const path of ["/src/1.txt", "/src/nope.txt"]) {
+      const res = await fetch(`${serverURL}${path}`, { headers: { accept: "*/*" } });
+      expect(res.status, path).toBe(200);
+      expect(res.headers.get("content-type"), path).toContain("text/html");
+    }
+  });
+});
