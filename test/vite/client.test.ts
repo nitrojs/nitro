@@ -12,7 +12,7 @@ describe.each([false, true])("vite:client (bundledDev=%s)", (bundledDev) => {
     "serves valid client modules for a CSS import",
     async () => {
       const server = await createServer({
-        root: fileURLToPath(new URL("../fixture/vite-client", import.meta.url)),
+        root: fileURLToPath(new URL("./client-fixture", import.meta.url)),
         configFile: false,
         logLevel: "warn",
         experimental: { bundledDev },
@@ -21,7 +21,7 @@ describe.each([false, true])("vite:client (bundledDev=%s)", (bundledDev) => {
           client: {
             build: {
               rollupOptions: {
-                input: fileURLToPath(new URL("../fixture/vite-client/main.js", import.meta.url)),
+                input: fileURLToPath(new URL("./client-fixture/main.js", import.meta.url)),
               },
               rolldownOptions: {
                 experimental: { devMode: { lazy: false } },
