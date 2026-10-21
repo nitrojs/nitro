@@ -208,8 +208,8 @@ importers:
         specifier: ^0.4.2
         version: 0.4.2
       nypm:
-        specifier: ^0.6.10
-        version: 0.6.10
+        specifier: ^0.6.11
+        version: 0.6.11
       obuild:
         specifier: ^0.4.45
         version: 0.4.45(dotenv@18.0.8)(giget@3.3.1)(jiti@2.7.0)(magicast@0.5.5)(typescript@7.0.2)
@@ -5710,8 +5710,8 @@ packages:
   nth-check@2.1.1:
     resolution: {integrity: sha512-lqjrjmaOoAnWfMmBPL+XNnynZh2+swxiX3WUE0s4yEHI6m+AwrK2UZOimIRl3X/4QctVqS8AiZjFqyOGrMXb/w==}
 
-  nypm@0.6.10:
-    resolution: {integrity: sha512-W72Hrj1petq+b3Hk2aAC+9zswetlIFTnDW4s5djseZh2nYqBbyQLOtj472HwcbcWykPBUW1WpWpjOd4nK6gMRw==}
+  nypm@0.6.11:
+    resolution: {integrity: sha512-wrVBTLWDu7nTUKGWplQebWOXWnhaIwyKQhBxobH/CGxJHoVw27r9vG5ba7kdZnxG+f4rC6dZd6m2oHmpkOcO7g==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -12314,7 +12314,7 @@ snapshots:
     dependencies:
       boolbase: 1.0.0
 
-  nypm@0.6.10:
+  nypm@0.6.11:
     dependencies:
       citty: 0.2.2
       pathe: 2.0.3
