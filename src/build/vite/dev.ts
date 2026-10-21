@@ -390,12 +390,16 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       try {
         filePath = decodeURI(filePath);
       } catch {}
+      // Never probe outside the root (`/%2e%2e/...`), or the response would leak file existence.
+      const file = join(server.config.root, filePath);
+      const rel = relative(server.config.root, file);
+      if (rel.startsWith("../") || isAbsolute(rel)) {
+        return false;
+      }
       // `throwIfNoEntry` only covers a missing entry; a stat error (permissions, symlink
       // loop) on a crafted path must not take the request down — it is simply not an asset.
       try {
-        return (
-          statSync(join(server.config.root, filePath), { throwIfNoEntry: false })?.isFile() === true
-        );
+        return statSync(file, { throwIfNoEntry: false })?.isFile() === true;
       } catch {
         return false;
       }
