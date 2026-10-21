@@ -278,12 +278,19 @@ for (const mode of ["nitro", "vite"] as const) {
             ? {
                 wranglerEnv: "test",
                 wrangler: {
+                  name: "nitro-dev",
                   env: {
                     test: {
                       durable_objects: {
-                        bindings: [{ name: "$DurableObject", class_name: "$DurableObject" }],
+                        // `script_name` of the Worker itself (`<name>-<env>`) is a local binding
+                        bindings: [
+                          {
+                            name: "$DurableObject",
+                            class_name: "$DurableObject",
+                            script_name: "nitro-dev-test",
+                          },
+                        ],
                       },
-                      exports: { $DurableObject: { type: "durable-object", storage: "sqlite" } },
                     },
                   },
                 },

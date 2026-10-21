@@ -149,7 +149,7 @@ describe("nitro:preset:cloudflare-module", async () => {
         if (binding) {
           await b.next("pub:hi");
         } else {
-          await new Promise((r) => setTimeout(r, 100));
+          await expect(b.next("pub:hi", 500)).rejects.toThrow('Timed out waiting for "pub:hi"');
         }
         expect(b.messages).toEqual(received);
         a.ws.close();
@@ -197,13 +197,13 @@ async function connectWebSocket(url: URL) {
     messages.push(data);
     waiters.get(data)?.();
   });
-  const next = (message: string) =>
+  const next = (message: string, timeoutMs = 5000) =>
     messages.includes(message)
       ? Promise.resolve()
       : new Promise<void>((resolve, reject) => {
           const timeout = setTimeout(
             () => reject(new Error(`Timed out waiting for "${message}"`)),
-            5000
+            timeoutMs
           );
           waiters.set(message, () => {
             clearTimeout(timeout);

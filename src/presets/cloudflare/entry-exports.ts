@@ -42,14 +42,30 @@ const _durableRuntime = JSON.stringify(join(presetsDir, "cloudflare/runtime/_dur
 // Bound or exported in the selected environment of the Wrangler config file or inline config
 async function _declaresDurableObject(nitro: Nitro): Promise<boolean> {
   const { config = {} } = await readWranglerConfig(nitro).catch(() => ({ config: undefined }));
+  const inlineConfig = nitro.options.cloudflare?.wrangler || {};
   const envName = nitro.options.cloudflare?.wranglerEnv ?? process.env.CLOUDFLARE_ENV;
-  return [config, nitro.options.cloudflare?.wrangler || {}].some((source: WranglerConfig) => {
+  // A `script_name` of the Worker itself is a local binding, as in `wrangler dev`
+  const workerName = _workerName(inlineConfig, envName) ?? _workerName(config, envName);
+  return [config, inlineConfig].some((source: WranglerConfig) => {
     const target = (envName && source.env?.[envName]) || source;
     return (
       !!target.exports?.$DurableObject ||
       !!target.durable_objects?.bindings?.some(
-        (binding) => binding.class_name === "$DurableObject" && !binding.script_name
+        (binding) =>
+          binding.class_name === "$DurableObject" &&
+          (!binding.script_name || binding.script_name === workerName)
       )
     );
   });
+}
+
+// Worker name in the selected environment: its own `name`, else `<name>-<env>`
+function _workerName(config: WranglerConfig, envName?: string): string | undefined {
+  const envWorkerName = envName ? config.env?.[envName]?.name : undefined;
+  if (envWorkerName) {
+    return envWorkerName;
+  }
+  if (config.name) {
+    return envName ? `${config.name}-${envName}` : config.name;
+  }
 }
