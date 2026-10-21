@@ -5,8 +5,15 @@ import { describe, expect, it } from "vitest";
 
 import { setupTest, testNitro } from "../tests.ts";
 
+const presetFixturesDir = resolve(import.meta.dirname, "fixtures");
+
 describe("nitro:preset:cloudflare-module", async () => {
-  const ctx = await setupTest("cloudflare-module");
+  const ctx = await setupTest("cloudflare-module", {
+    config: {
+      features: { websocket: true },
+      handlers: [{ route: "/_ws", handler: resolve(presetFixturesDir, "websocket-pubsub.ts") }],
+    },
+  });
 
   testNitro(
     ctx,
@@ -93,7 +100,67 @@ describe("nitro:preset:cloudflare-module", async () => {
   it("should export the correct functions", async () => {
     const entry = await fsp.readFile(resolve(ctx.outDir, "server", "index.mjs"), "utf8");
     expect(entry).toMatch(/export \{.*myScheduled.*\}/);
+    expect(entry).toMatch(/export \{.*\$DurableObject.*\}/);
   });
+
+  it("serves the app from the `$DurableObject` class when its binding is declared", async () => {
+    const mf = new Miniflare({
+      modules: true,
+      compatibilityDate: "2025-04-01",
+      scriptPath: resolve(ctx.outDir, "server/index.mjs"),
+      modulesRules: [{ type: "CompiledWasm", include: ["**/*.wasm"] }],
+      compatibilityFlags: ["nodejs_compat", "no_nodejs_compat_v2"],
+      durableObjects: { $DurableObject: "$DurableObject" },
+      bindings: { ...ctx.env },
+    });
+    try {
+      const namespace = await mf.getDurableObjectNamespace("$DurableObject");
+      const stub = namespace.get(namespace.idFromName("server"));
+      const res = await stub.fetch("http://localhost/api/hello");
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ message: "Hello API" });
+    } finally {
+      await mf.dispose();
+    }
+  });
+
+  it.each([
+    { binding: true, received: ["ready", "pub:hi"] },
+    { binding: false, received: ["ready"] },
+  ])(
+    "publishes WebSocket messages to peers only through the Durable Object (binding: $binding)",
+    async ({ binding, received }) => {
+      const mf = new Miniflare({
+        modules: true,
+        compatibilityDate: "2025-04-01",
+        scriptPath: resolve(ctx.outDir, "server/index.mjs"),
+        modulesRules: [{ type: "CompiledWasm", include: ["**/*.wasm"] }],
+        compatibilityFlags: ["nodejs_compat", "no_nodejs_compat_v2"],
+        durableObjects: binding ? { $DurableObject: "$DurableObject" } : undefined,
+        bindings: { ...ctx.env },
+      });
+      try {
+        const url = new URL("/_ws", await mf.ready);
+        url.protocol = "ws:";
+        const a = await connectWebSocket(url);
+        const b = await connectWebSocket(url);
+        a.ws.send("hi");
+        await a.next("sent");
+        if (binding) {
+          await b.next("pub:hi");
+        } else {
+          await expect(b.next("pub:hi", 500)).rejects.toThrow('Timed out waiting for "pub:hi"');
+        }
+        a.ws.send("instance");
+        await a.next(binding ? "instance:server" : "instance:undefined");
+        expect(b.messages).toEqual(received);
+        a.ws.close();
+        b.ws.close();
+      } finally {
+        await mf.dispose();
+      }
+    }
+  );
 
   it("should auto-generate cron triggers in wrangler.json", async () => {
     const wranglerConfig = await fsp
@@ -122,3 +189,33 @@ describe("nitro:preset:cloudflare-module", async () => {
     expect(code).toContain('createRequire(import.meta.url || "file:///")');
   });
 });
+
+async function connectWebSocket(url: URL) {
+  const ws = new WebSocket(url);
+  const messages: string[] = [];
+  const waiters = new Map<string, () => void>();
+  ws.addEventListener("message", (event) => {
+    const data = String(event.data);
+    messages.push(data);
+    waiters.get(data)?.();
+  });
+  const next = (message: string, timeoutMs = 5000) =>
+    messages.includes(message)
+      ? Promise.resolve()
+      : new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(
+            () => reject(new Error(`Timed out waiting for "${message}"`)),
+            timeoutMs
+          );
+          waiters.set(message, () => {
+            clearTimeout(timeout);
+            resolve();
+          });
+        });
+  await new Promise<void>((resolve, reject) => {
+    ws.addEventListener("open", () => resolve());
+    ws.addEventListener("error", () => reject(new Error("WebSocket connection failed")));
+  });
+  await next("ready");
+  return { ws, messages, next };
+}

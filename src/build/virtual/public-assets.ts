@@ -7,6 +7,7 @@ import type { PublicAsset } from "nitro/types";
 import { relative, resolve } from "pathe";
 import { joinURL, withTrailingSlash } from "ufo";
 import { runParallel } from "../../utils/parallel.ts";
+import { getPrerenderMeta } from "../../prerender/_meta.ts";
 
 const readAssetHandler: Record<
   Exclude<Nitro["options"]["serveStatic"] | "true" | "false", boolean>,
@@ -58,7 +59,7 @@ export default function publicAssets(nitro: Nitro) {
             }
 
             assets[assetId] = {
-              type: nitro._prerenderMeta?.[assetId]?.contentType || mimeType,
+              type: getPrerenderMeta(nitro)[assetId]?.contentType || mimeType,
               encoding,
               etag,
               mtime: stat.mtime.toJSON(),
@@ -124,6 +125,10 @@ export function getPublicAssetMeta(id = '') {
 
 export function getAsset (id) {
   return assets[id]
+}
+
+export function hasAsset (id = '') {
+  return !!(assets[id] || assets[id + '.gz'] || assets[id + '.br'] || assets[id + '.zst'])
 }
 `;
       },

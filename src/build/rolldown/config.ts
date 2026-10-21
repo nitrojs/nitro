@@ -1,4 +1,4 @@
-import type { Nitro } from "nitro/types";
+import type { Nitro, RolldownConfig } from "nitro/types";
 import type { OutputOptions, RolldownOptions, RolldownPlugin } from "rolldown";
 import { baseBuildConfig } from "../config.ts";
 import { baseBuildPlugins, withBuildPlugins } from "../plugins.ts";
@@ -6,7 +6,7 @@ import { builtinModules } from "node:module";
 import { defu } from "defu";
 import { getChunkName, libChunksGroup } from "../chunks.ts";
 
-export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> => {
+export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownConfig> => {
   const base = await baseBuildConfig(nitro);
 
   const tsc = nitro.options.typescript.tsConfig?.compilerOptions;
@@ -85,5 +85,5 @@ export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownOptions> 
   // `inlineDynamicImports` is deprecated in favor of `codeSplitting: false`
   delete outputConfig.inlineDynamicImports;
 
-  return config as RolldownOptions;
+  return config as RolldownConfig;
 };

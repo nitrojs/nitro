@@ -16,6 +16,7 @@ import { withBase, withoutBase } from "ufo";
 import { handleDevRPC } from "../../dev/_rpc.ts";
 import { rescanHandlers, watchScanDirs } from "./_scan-watch.ts";
 import { importVite, _resolveFromPath, type ViteImportOptions } from "./_import.ts";
+import { _isWorkerdRunner } from "./env.ts";
 
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
 
@@ -193,7 +194,10 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   }
 
   // Websocket (`httpServer` is null in middleware mode, the parent server handles upgrades)
-  const websocket = nitro.options.features.websocket ?? nitro.options.experimental.websocket;
+  // In workerd, routes can accept upgrades without crossws (e.g. with a Durable Object)
+  const websocket =
+    (nitro.options.features.websocket ?? nitro.options.experimental.websocket) ||
+    _isWorkerdRunner(ctx);
   const wsProxy = Object.values(nitro.options.devProxy).some(
     (opts) => typeof opts === "object" && opts.ws
   );
@@ -243,8 +247,11 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       sendMessage: (message) => nitroEnv.devServer.sendMessage(message),
       handlers: {
         transformHTML: async (html: string) => {
-          const htmlURL = _htmlTemplateURL(nitro.options.renderer?.template, server.config.root);
-          return (await server.transformIndexHtml(htmlURL, html)).replace(
+          const template = nitro.options.renderer?.template;
+          html =
+            (await _readBundledHTML(server, template)) ??
+            (await server.transformIndexHtml(_htmlTemplateURL(template, server.config.root), html));
+          return html.replace(
             "<!--ssr-outlet-->",
             `{{{ globalThis.__nitro_vite_envs__?.["ssr"]?.fetch($REQUEST) || "" }}}`
           );
@@ -318,7 +325,8 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     }
   };
 
-  const isCatchAllRoute = (route: string) => route === "/**" || route.startsWith("/**:");
+  const isCatchAllRoute = (route: string) =>
+    route === "/**" || route.startsWith("/**:") || /^\/:\w+\(\.\*\)$/.test(route);
 
   // Opaque catch-alls: the SSR renderer and a custom server entry (see .agents/vite-dev.md §2).
   const isOpaqueHandler = (h?: { handler?: string }) =>
@@ -340,12 +348,16 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
 
     // `nitro.routing.routes` always includes the SSR catch-all `/**` in SSR apps, so an explicit
     // user route must be told apart from the catch-all. A root-level user catch-all
-    // (`routes/[...].ts` -> `/**`, `routes/[...slug].ts` -> `/**:slug`) is as authoritative as the
+    // (`routes/[...].ts` -> `/**`, `routes/[...slug].ts` -> `/:slug(.*)`) is as authoritative as the
     // SSR `/**` and must not swallow Vite asset serves either, so both forms count as catch-all;
     // prefixed splat routes (`/api/photos/**`) are deterministic user routes and stay explicit.
     const pathname = new URL(withBase(req.url!, nitro.options.baseURL), "http://localhost")
       .pathname;
-    const match = nitro.routing.routes.match(req.method || "", pathname);
+    let match = nitro.routing.routes.match(req.method || "", pathname);
+    // Mirrors the runtime: `HEAD` is served by the `GET` route unless a `HEAD` route matches
+    if (req.method === "HEAD" && !(match && !Array.isArray(match) && match.method)) {
+      match = nitro.routing.routes.match("GET", pathname);
+    }
     const matchedHandlers = match ? (Array.isArray(match) ? match : [match]) : [];
     const isExplicitRoute = matchedHandlers.some((h) => h?.route && !isCatchAllRoute(h.route));
 
@@ -475,6 +487,26 @@ function _htmlTemplateURL(template: string | undefined, root: string): string {
   }
   const path = relative(root, template);
   return path.startsWith("../") || isAbsolute(path) ? join("/@fs", template) : `/${path}`;
+}
+
+// Bundled dev only emits the template when it is a client build input (no custom client entry).
+async function _readBundledHTML(
+  server: ViteDevServer,
+  template: string | undefined
+): Promise<string | undefined> {
+  const bundledDev = server.environments.client.bundledDev;
+  if (!bundledDev) {
+    return;
+  }
+  // `devEngine` is internal to Vite (no public API to wait for the latest output).
+  await bundledDev["devEngine"].ensureLatestBuildOutput();
+  const file = bundledDev.memoryFiles.get(
+    relative(server.config.root, template || join(server.config.root, "index.html"))
+  );
+  if (!file) {
+    return;
+  }
+  return typeof file.source === "string" ? file.source : Buffer.from(file.source).toString("utf8");
 }
 
 // `Http2ServerResponse` (Vite with `server.https`) has no `destroyed`; its stream does.

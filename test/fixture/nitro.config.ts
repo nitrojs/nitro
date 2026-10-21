@@ -78,6 +78,12 @@ export default defineConfig({
       middleware: true,
     },
     {
+      route: "/api/methods/guarded",
+      handler: "./server/routed-middleware/guard.ts",
+      method: "GET",
+      middleware: true,
+    },
+    {
       route: "/virtual",
       handler: "#virtual-route",
     },
@@ -141,17 +147,16 @@ export default defineConfig({
     "/rules/redirect/legacy/**": { redirect: "/**" },
     "/rules/nested/**": { redirect: "/base", headers: { "x-test": "test" } },
     "/rules/nested/override": { redirect: { to: "/other" } },
-    "/rules/_/noncached/cached": { swr: true },
+    "/rules/_/noncached/cached": { swr: true, isr: true },
     "/rules/_/noncached/**": { swr: false, cache: false, isr: false },
     "/rules/_/cached/noncached": { cache: false, swr: false, isr: false },
-    "/rules/_/cached/**": { swr: true },
+    "/rules/_/cached/**": { swr: true, isr: true },
     "/api/proxy/**": { proxy: "/api/echo" },
     "/rules/proxy/legacy/**": { proxy: "/api/wildcard/**" },
     "/cdn/**": { proxy: "https://cdn.jsdelivr.net/**" },
-    // Method-scoped route rule: the `"METHOD /path"` key only applies to that method.
-    // (a runtime-only rule: `headers`/`redirect` keys are also emitted into
-    // platform-native static config, which cannot express a method)
+    // Method-scoped route rules: the `"METHOD /path"` key only applies to that method.
     "POST /rules/method-scoped/**": { cors: true },
+    "GET /rules/method-scoped/redirect": { redirect: "/base" },
     "/single-headers/*": { headers: { "x-single": "single" } },
     "**": { headers: { "x-test": "test" } },
   },

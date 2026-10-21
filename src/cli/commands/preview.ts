@@ -26,12 +26,15 @@ export default defineCommand({
       gracefulShutdown: false,
       port: args.port,
       hostname: args.host,
+      // Listen once the build output is loaded
+      manual: true,
     });
 
     const preview = await startPreview({
       rootDir,
       loader: { srvxServer: server },
     });
+    await server.serve();
 
     if (preview.upgrade) {
       server.node?.server?.on("upgrade", (req, socket, head) => {

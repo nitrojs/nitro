@@ -125,6 +125,12 @@ describe("nitro:preset:nitro-dev", async () => {
             }
           `);
         });
+
+        it("named catch-all params", () => {
+          expect(spec.paths?.["/api/wildcard/{param}"]?.get?.parameters).toEqual([
+            { name: "param", in: "path", required: true, schema: { type: "string" } },
+          ]);
+        });
       });
     }
   );

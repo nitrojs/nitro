@@ -2,6 +2,7 @@ import fsp from "node:fs/promises";
 import { resolveModulePath } from "exsolve";
 import { resolve } from "pathe";
 import { writeFile } from "../_utils/fs.ts";
+import { deps } from "../../utils/_deps.ts";
 import { ensureDep } from "../../utils/dep.ts";
 import type { Nitro } from "nitro/types";
 
@@ -15,25 +16,18 @@ export async function setupAzureFunctions(nitro: Nitro) {
   }
 
   if (azure.functionsVersion === 4) {
-    const reason = "the Azure Functions v4 programming model";
+    const { reason, version } = deps["@azure/functions"];
     const installedVersion = await getInstalledFunctionsVersion(nitro.options.rootDir);
     if (!installedVersion) {
-      const resolved = await ensureDep({
-        id: "@azure/functions",
-        dir: nitro.options.rootDir,
-        reason,
-        version: "^4",
-        dev: false,
-        projectOnly: true,
-      });
+      const resolved = await ensureDep({ id: "@azure/functions", dir: nitro.options.rootDir });
       if (!resolved) {
         throw new Error(
-          `\`@azure/functions@^4\` is not installed. Please add it to your dependencies for ${reason}, or set \`azure.functionsVersion\` to \`3\` to use the legacy programming model.`
+          `\`@azure/functions@${version}\` is not installed. Please add it to your dependencies for ${reason}, or set \`azure.functionsVersion\` to \`3\` to use the legacy programming model.`
         );
       }
     } else if (installedVersion < 4) {
       throw new Error(
-        `\`@azure/functions@${installedVersion}\` is installed, but ${reason} requires \`@azure/functions@^4\`. Please update it in your dependencies, or set \`azure.functionsVersion\` to \`3\` to use the legacy programming model.`
+        `\`@azure/functions@${installedVersion}\` is installed, but ${reason} requires \`@azure/functions@${version}\`. Please update it in your dependencies, or set \`azure.functionsVersion\` to \`3\` to use the legacy programming model.`
       );
     }
     (nitro.options.traceDeps ??= []).push("@azure/functions");
