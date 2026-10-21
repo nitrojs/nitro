@@ -31,7 +31,7 @@ export default defineCommand({
     let preset = args.preset;
     let outputDir: string | undefined;
     if (args.prebuilt) {
-      const lastBuild = await getBuildInfo(rootDir);
+      const lastBuild = await getBuildInfo({ rootDir });
       if (!lastBuild.buildInfo) {
         consola.error("No build info found, cannot deploy.");
         process.exit(1);
@@ -64,8 +64,11 @@ export default defineCommand({
     try {
       if (!args.prebuilt) {
         await prepare(nitro);
-        await copyPublicAssets(nitro);
-        await prerender(nitro);
+        // The vite builder copies public assets and prerenders after building the client
+        if (nitro.options.builder !== "vite") {
+          await copyPublicAssets(nitro);
+          await prerender(nitro);
+        }
         await build(nitro);
       }
       await deploy(nitro, { args: extraArgs });

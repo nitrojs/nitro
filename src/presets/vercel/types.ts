@@ -104,9 +104,9 @@ export interface VercelServerlessFunctionConfig {
   shouldAddSourcemapSupport?: boolean;
 
   /**
-   * The runtime to use. Defaults to the auto-detected Node.js version.
+   * The runtime to use. Defaults to `engines` in `package.json`, then `bunVersion` in `vercel.json`, then the runtime used to build.
    */
-  runtime?: "nodejs20.x" | "nodejs22.x" | "bun1.x" | (string & {});
+  runtime?: "nodejs22.x" | "nodejs24.x" | "bun1.x" | "bun1.4.x" | (string & {});
 
   /**
    * Experimental trigger configuration (e.g., Vercel Queues).
@@ -151,12 +151,6 @@ export interface VercelOptions {
    * @default false
    */
   immutableStaticFiles?: boolean;
-
-  /**
-   * If you are using `vercel-edge`, you can specify the region(s) for your edge function.
-   * @see https://vercel.com/docs/concepts/functions/edge-functions#edge-function-regions
-   */
-  regions?: string[];
 
   functions?: VercelServerlessFunctionConfig;
 
@@ -275,6 +269,8 @@ export type PrerenderFunctionConfig = {
 
   /**
    * When `true`, the query string will be present on the `request` argument passed to the invoked function. The `allowQuery` filter still applies.
+   *
+   * Nitro sets this to `true` when the `isr` route rule has a non-empty `allowQuery` and no `passQuery`.
    */
   passQuery?: boolean;
 

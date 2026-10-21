@@ -1,6 +1,6 @@
 import type { NitroConfig } from "nitro/types";
 import { isDebug, isTest } from "std-env";
-import { version as nitroVersion } from "nitro/meta";
+import { version as nitroVersion } from "#nitro/meta";
 
 export const NitroDefaults: NitroConfig = {
   // General
@@ -22,7 +22,6 @@ export const NitroDefaults: NitroConfig = {
   // Features
   features: {},
   experimental: {},
-  future: {},
   kv: {},
   devStorage: {},
   cache: {},
@@ -34,6 +33,7 @@ export const NitroDefaults: NitroConfig = {
   virtual: {},
   compressPublicAssets: false,
   ignore: [],
+  scanSuffixes: [],
   wasm: {},
 
   // Dev
@@ -59,8 +59,6 @@ export const NitroDefaults: NitroConfig = {
     autoSubfolderIndex: true,
     concurrency: 1,
     interval: 0,
-    retry: 3,
-    retryDelay: 500,
     failOnError: false,
     crawlLinks: false,
     ignore: [],

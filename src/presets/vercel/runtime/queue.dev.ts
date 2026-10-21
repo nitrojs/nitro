@@ -32,6 +32,7 @@ const queueDevPlugin: NitroAppPlugin = (nitroApp) => {
         retryAfterSeconds: trigger.retryAfterSeconds,
         handler: async (message: unknown, metadata: unknown) => {
           try {
+            await nitroApp.ready;
             await nitroApp.hooks.callHook("vercel:queue", {
               message,
               metadata: metadata as MessageMetadata,

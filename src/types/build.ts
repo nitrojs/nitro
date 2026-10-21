@@ -80,6 +80,15 @@ export type RolldownConfig = OptionalDepType<
   output?: OptionalDepType<RolldownOutputOptions, BundlerOutputOptions>;
 };
 
+/**
+ * Bundler config passed to the `build:config` hook, keyed by the bundler in use.
+ *
+ * The `vite` builder passes a Rollup or Rolldown config, depending on the Vite version.
+ */
+export type NitroBuildConfig =
+  | { builder: "rollup" | "vite"; rollup: RollupConfig; rolldown?: never }
+  | { builder: "rolldown" | "vite"; rolldown: RolldownConfig; rollup?: never };
+
 export interface OXCOptions {
   minify?: OptionalDepType<RolldownMinifyOptions, BundlerMinifyOptions>;
   transform?: Omit<OXCTransformOptions, "jsx"> & {

@@ -2,7 +2,7 @@ import type { Nitro } from "nitro/types";
 
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
-import { runtimeDir } from "nitro/meta";
+import { runtimeDir } from "#nitro/meta";
 import { resolve } from "pathe";
 import { writeFile } from "../../utils/fs.ts";
 import { resolveViteModuleRunner, viteImportOptions } from "./_import.ts";

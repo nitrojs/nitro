@@ -31,6 +31,9 @@ export default defineConfig({
     "build": "vite build",
     "test": "vitest"
   },
+  "dependencies": {
+    "unstorage": "^2.0.0-alpha.10"
+  },
   "devDependencies": {
     "nitro": "latest",
     "vite": "latest",

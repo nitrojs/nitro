@@ -25,8 +25,11 @@ type TypedImport = {
 
 type Comment = { start: number; end: number };
 
-export async function importAttributes(opts: { rootDir: string }): Promise<Plugin> {
-  const { parseSync } = await importOXC({ dir: opts.rootDir });
+export async function importAttributes(opts: {
+  rootDir: string;
+  paths?: Record<string, string>;
+}): Promise<Plugin> {
+  const { parseSync } = await importOXC({ dir: opts.rootDir, paths: opts.paths });
 
   return {
     name: "nitro:import-attributes",
