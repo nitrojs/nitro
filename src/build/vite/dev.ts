@@ -246,25 +246,10 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       sendMessage: (message) => nitroEnv.devServer.sendMessage(message),
       handlers: {
         transformHTML: async (html: string) => {
-          const htmlURL = _htmlTemplateURL(nitro.options.renderer?.template, server.config.root);
-          const bundledDev = server.environments.client.bundledDev;
-          if (bundledDev) {
-            await bundledDev["devEngine"].ensureLatestBuildOutput();
-            const templatePath = relative(
-              server.config.root,
-              nitro.options.renderer?.template || join(server.config.root, "index.html")
-            );
-            const template = bundledDev.memoryFiles.get(templatePath);
-            if (!template) {
-              throw new Error(`Bundled HTML template not found: ${templatePath}`);
-            }
-            html =
-              typeof template.source === "string"
-                ? template.source
-                : Buffer.from(template.source).toString("utf8");
-          } else {
-            html = await server.transformIndexHtml(htmlURL, html);
-          }
+          const template = nitro.options.renderer?.template;
+          html =
+            (await _readBundledHTML(server, template)) ??
+            (await server.transformIndexHtml(_htmlTemplateURL(template, server.config.root), html));
           return html.replace(
             "<!--ssr-outlet-->",
             `{{{ globalThis.__nitro_vite_envs__?.["ssr"]?.fetch($REQUEST) || "" }}}`
@@ -466,6 +451,26 @@ function _htmlTemplateURL(template: string | undefined, root: string): string {
   }
   const path = relative(root, template);
   return path.startsWith("../") || isAbsolute(path) ? join("/@fs", template) : `/${path}`;
+}
+
+// Bundled dev only emits the template when it is a client build input (no custom client entry).
+async function _readBundledHTML(
+  server: ViteDevServer,
+  template: string | undefined
+): Promise<string | undefined> {
+  const bundledDev = server.environments.client.bundledDev;
+  if (!bundledDev) {
+    return;
+  }
+  // `devEngine` is internal to Vite (no public API to wait for the latest output).
+  await bundledDev["devEngine"].ensureLatestBuildOutput();
+  const file = bundledDev.memoryFiles.get(
+    relative(server.config.root, template || join(server.config.root, "index.html"))
+  );
+  if (!file) {
+    return;
+  }
+  return typeof file.source === "string" ? file.source : Buffer.from(file.source).toString("utf8");
 }
 
 // `Http2ServerResponse` (Vite with `server.https`) has no `destroyed`; its stream does.
