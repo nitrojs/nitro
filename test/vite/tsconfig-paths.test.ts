@@ -14,14 +14,17 @@ const { createServer } = (await import(
 const fixtureDir = fileURLToPath(new URL("./tsconfig-paths-fixture", import.meta.url));
 const tmpDir = fileURLToPath(new URL("./tsconfig-paths-fixture/.tmp", import.meta.url));
 
-const expected = {
+const expected = (vite: boolean) => ({
   greeting: "Hello from tsconfig paths!",
   sum: 3,
   h3: "function",
   fallback: "fallback",
   aliased: "alias",
   defu: "paths",
-};
+  viteAliased: vite ? "vite-alias" : "paths",
+  etag: "function",
+  xml2js: "function",
+});
 
 describe("tsconfig-paths", () => {
   for (const builder of ["rolldown", "rollup", "vite"] as const) {
@@ -51,7 +54,7 @@ describe("tsconfig-paths", () => {
         const entry = join(outDir, "server/index.mjs");
         const { fetch } = await import(entry).then((m) => m.default);
         const res = await fetch(new Request("http://localhost/"));
-        expect(await res.json()).toEqual(expected);
+        expect(await res.json()).toEqual(expected(builder === "vite"));
       });
     });
   }
@@ -112,7 +115,7 @@ describe("tsconfig-paths", () => {
 
     it("resolves tsconfig `paths`", async () => {
       const res = await fetch(new URL("/", server.resolvedUrls!.local[0]));
-      expect(await res.json()).toEqual(expected);
+      expect(await res.json()).toEqual(expected(true));
     });
   });
 
@@ -142,7 +145,7 @@ describe("tsconfig-paths", () => {
 
     it("resolves tsconfig `paths`", async () => {
       const res = await fetch(new URL("/", server.url));
-      expect(await res.json()).toEqual(expected);
+      expect(await res.json()).toEqual(expected(false));
     });
   });
 });
