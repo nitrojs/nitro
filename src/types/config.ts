@@ -751,9 +751,8 @@ export interface NitroOptions extends PresetOptions {
      * The `vite` package to use, as a path or `file://` URL to its directory or entry
      * (e.g. `import.meta.resolve("vite")`).
      *
-     * By default, `vite` is resolved from the project root. A framework running Vite
-     * programmatically should pass its own `vite` so the dev module runner matches the
-     * running instance (in a monorepo, another version could be hoisted next to the app).
+     * By default, the `nitro/vite` plugin uses the running `vite` and the `vite` builder
+     * resolves it from the project root.
      */
     path?: string;
 

@@ -32,32 +32,38 @@ describe("vite:path", { concurrent: false }, () => {
     await rm(`${rootDir}/node_modules`, { recursive: true, force: true });
   });
 
-  test("dev worker uses the module runner of the provided vite", async () => {
-    server = await createServer({
-      root: rootDir,
-      logLevel: "warn",
-      plugins: [
-        nitro({
-          serverDir: "./",
-          serveStatic: false,
-          vite: { path: import.meta.resolve(runningPkg) },
-        }),
-      ],
-    });
-    await server.listen("0" as unknown as number);
-    const addr = server.httpServer?.address() as { port: number; address: string; family: string };
-    const serverURL = `http://${addr.family === "IPv6" ? `[${addr.address}]` : addr.address}:${addr.port}`;
+  test.each([
+    ["provided vite", { path: import.meta.resolve(runningPkg) }],
+    ["running vite", undefined],
+  ])(
+    "dev worker uses the module runner of the %s",
+    async (_, vite) => {
+      await server?.close();
+      server = await createServer({
+        root: rootDir,
+        logLevel: "warn",
+        plugins: [nitro({ serverDir: "./", serveStatic: false, vite })],
+      });
+      await server.listen("0" as unknown as number);
+      const addr = server.httpServer?.address() as {
+        port: number;
+        address: string;
+        family: string;
+      };
+      const serverURL = `http://${addr.family === "IPv6" ? `[${addr.address}]` : addr.address}:${addr.port}`;
 
-    const response = await fetch(`${serverURL}/`);
-    expect(response.status).toBe(200);
-    expect(await response.text()).toBe("vite-path:ok");
+      const response = await fetch(`${serverURL}/`);
+      expect(response.status).toBe(200);
+      expect(await response.text()).toBe("vite-path:ok");
 
-    const entry = await readFile(`${rootDir}/node_modules/.nitro/vite/dev-worker.mjs`, "utf8");
-    const moduleRunner = entry.match(/import \* as moduleRunner from "([^"]+)"/)?.[1];
-    const pkg = JSON.parse(
-      await readFile(fileURLToPath(new URL("../../package.json", moduleRunner)), "utf8")
-    ) as { name: string; version: string };
-    expect(pkg.name).toBe("vite");
-    expect(pkg.version).toBe(version);
-  }, 30_000);
+      const entry = await readFile(`${rootDir}/node_modules/.nitro/vite/dev-worker.mjs`, "utf8");
+      const moduleRunner = entry.match(/import \* as moduleRunner from "([^"]+)"/)?.[1];
+      const pkg = JSON.parse(
+        await readFile(fileURLToPath(new URL("../../package.json", moduleRunner)), "utf8")
+      ) as { name: string; version: string };
+      expect(pkg.name).toBe("vite");
+      expect(pkg.version).toBe(version);
+    },
+    30_000
+  );
 });

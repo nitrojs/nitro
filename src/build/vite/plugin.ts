@@ -30,7 +30,7 @@ import { nitroPreviewPlugin } from "./preview.ts";
 import { nitroAssetsImport } from "./_assets.ts";
 import type { NitroConfig, NitroModule } from "nitro/types";
 import { nitroDevServiceProxy, viteServicesTemplate } from "./services.ts";
-import { importVite, viteImportOptions } from "./_import.ts";
+import { importVite, setRunningVite, viteImportOptions } from "./_import.ts";
 import { isVitest, nitroVitest } from "./vitest.ts";
 
 // https://vite.dev/guide/api-environment-plugins
@@ -74,13 +74,14 @@ function nitroInit(ctx: NitroPluginContext): VitePlugin {
         ctx._initialized = true;
         ctx._isVitest = isVitest(config);
         await setupNitroContext(ctx, configEnv, config);
-        if (configEnv.command === "serve") {
-          await checkViteVersion(ctx, (this.meta as Record<string, string>).viteVersion);
-        }
       }
     },
 
-    configResolved(config) {
+    async configResolved(config) {
+      setRunningVite(useNitro(ctx), config);
+      if (config.command === "serve") {
+        await checkViteVersion(ctx, this.meta.viteVersion);
+      }
       // Vite resolves its plugin list *before* running config hooks, so a plugin added by
       // another plugin's `config` hook is discovered by Nitro but silently ignored by Vite.
       for (const plugin of ctx._pluginModules || []) {
