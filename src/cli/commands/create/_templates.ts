@@ -105,8 +105,6 @@ dist
 
 \`server/\` contains the server code (create subdirectories as needed): \`api/\` (\`/api\` prefixed handlers), \`routes/\`, \`middleware/\`, \`plugins/\`, \`utils/\`, \`assets/\` and \`tasks/\`. \`public/\` holds static assets.
 `,
-  "CLAUDE.md": `@AGENTS.md
-`,
 };
 
 function serverIndexHTML(): string {
