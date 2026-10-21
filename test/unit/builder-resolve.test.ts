@@ -17,6 +17,8 @@ vi.mock("../../src/utils/dep.ts", async (importOriginal) => {
     ...mod,
     isDepInstalled: (id: string, opts: Parameters<typeof mod.isDepInstalled>[1]) =>
       id === "vite" ? state.vite : mod.isDepInstalled(id, opts),
+    ensureDep: (opts: Parameters<typeof mod.ensureDep>[0]) =>
+      opts.id === "vite" && !state.vite ? Promise.resolve(undefined) : mod.ensureDep(opts),
   };
 });
 
@@ -90,6 +92,11 @@ describe("resolveBuilder", () => {
 
   it("installs an explicit rolldown builder on build, not on config load", async () => {
     expect(await resolve({ dev: false, builder: "rolldown" })).toBe("rolldown");
+  });
+
+  it("imports an explicit vite builder on build, not on config load", async () => {
+    expect(await resolve({ dev: true, builder: "vite" })).toBe("vite");
+    expect(await resolve({ dev: false, builder: "vite" })).toBe("vite");
   });
 
   it("keeps an explicit `builder: false`", async () => {
