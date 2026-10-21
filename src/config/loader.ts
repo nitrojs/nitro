@@ -74,7 +74,16 @@ async function _loadUserConfig(
   opts: LoadConfigOptions = {}
 ): Promise<NitroOptions> {
   // Load configuration and preset
-  configOverrides = klona(configOverrides);
+  const rawConfigOverrides = klona(configOverrides);
+
+  const envName =
+    opts.c12?.envName ??
+    (rawConfigOverrides.dev
+      ? "development"
+      : rawConfigOverrides.preset === "nitro-prerender"
+        ? ["production", "prerender"]
+        : "production");
+  configOverrides = applyEnvConfig(rawConfigOverrides, envName);
 
   // @ts-ignore
   globalThis.defineNitroConfig = globalThis.defineNitroConfig || ((c) => c);
@@ -97,13 +106,6 @@ async function _loadUserConfig(
   let inlineDefaultPreset: (NitroConfig & { _meta?: NitroPresetMeta }) | undefined;
 
   const _dotenv = opts.dotenv ?? { fileName: [".env", ".env.local"] };
-  const envName =
-    opts.c12?.envName ??
-    (configOverrides.dev
-      ? "development"
-      : configOverrides.preset === "nitro-prerender"
-        ? ["production", "prerender"]
-        : "production");
   const loadedConfig = await (
     opts.watch
       ? watchConfig<NitroConfig & { _meta?: NitroPresetMeta }>
@@ -183,7 +185,7 @@ async function _loadUserConfig(
 
   const options = klona(loadedConfig.config) as NitroOptions;
 
-  options._config = configOverrides;
+  options._config = rawConfigOverrides;
   options._c12 = loadedConfig;
   options.layers = resolveLayers(loadedConfig);
 
@@ -221,6 +223,26 @@ const mergeEnvConfig = createDefu((obj, key, value, namespace) => {
     return true;
   }
 }) as (...sources: any[]) => any;
+
+// Merges `$env.<envName>` and `$<envName>` keys into the config and drops all `$` keys
+function applyEnvConfig(
+  config: NitroConfig,
+  envName: string | string[] | false | undefined
+): NitroConfig {
+  const envConfigs = (Array.isArray(envName) ? envName : [envName])
+    .filter((name): name is string => !!name)
+    .reverse()
+    .flatMap((name) => [config.$env?.[name], (config as Record<string, unknown>)[`$${name}`]])
+    .filter((c) => c && typeof c === "object" && Object.keys(c).length > 0);
+  const resolved: Record<string, unknown> =
+    envConfigs.length > 0 ? mergeEnvConfig({}, ...envConfigs, config) : { ...config };
+  for (const key in resolved) {
+    if (key.startsWith("$")) {
+      delete resolved[key];
+    }
+  }
+  return resolved as NitroConfig;
+}
 
 // c12 layers also include overrides, rc, package.json and preset layers, which have no `cwd`
 function resolveLayers(c12: ResolvedConfig<NitroConfig>): NitroConfigLayer[] {
