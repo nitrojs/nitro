@@ -600,7 +600,8 @@ export function testNitro(
   it("shows 404 for /build/non-file", async () => {
     const { status, headers } = await callHandler({ url: "/build/non-file" });
     expect(status).toBe(404);
-    if (ctx.nitro!.options.serveStatic) {
+    // The dev server serves public asset dirs itself, without route rules
+    if (!ctx.isDev) {
       expect(headers["cache-control"]).toBe("no-store");
     }
   });

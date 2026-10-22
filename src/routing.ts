@@ -7,6 +7,7 @@ import { runtimeDir } from "#nitro/meta";
 import { normalizeRoute } from "h3";
 import { addRoute, createRouter, findRoute, findAllRoutes } from "rou3";
 import { compileRouterToString } from "rou3/compiler";
+import { joinURL } from "ufo";
 import { hash } from "./utils/hash.ts";
 
 const isGlobalMiddleware = (h: NitroEventHandler) => !h.method && (!h.route || h.route === "/**");
@@ -101,6 +102,18 @@ export function initNitroRouting(nitro: Nitro) {
         middleware: true,
         handler: join(runtimeDir, "internal/static"),
       });
+    } else {
+      for (const asset of nitro.options.publicAssets) {
+        if (asset.fallthrough || !asset.baseURL || asset.baseURL === "/") {
+          continue;
+        }
+        _middleware.unshift({
+          route: joinURL(asset.baseURL, ":path+"),
+          method: "GET",
+          middleware: true,
+          handler: join(runtimeDir, "internal/static-missing"),
+        });
+      }
     }
     globalMiddleware.splice(
       0,
