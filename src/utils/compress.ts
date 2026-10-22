@@ -33,10 +33,10 @@ export async function compressPublicAssets(nitro: Nitro) {
       const zstdSupported = zlib.zstdCompress !== undefined;
       const filePath = resolve(nitro.options.output.publicDir, fileName);
 
-      const mimeType = mime.getType(fileName) || "text/plain";
-      if (fileName.endsWith(".map") || !isCompressibleMime(mimeType)) {
+      if (!isCompressibleFile(fileName)) {
         return;
       }
+      const mimeType = mime.getType(fileName) || "text/plain";
 
       if (
         (gzip && existsSync(filePath + EncodingMap.gzip)) ||
@@ -89,6 +89,10 @@ export async function compressPublicAssets(nitro: Nitro) {
       );
     })
   );
+}
+
+export function isCompressibleFile(fileName: string) {
+  return !fileName.endsWith(".map") && isCompressibleMime(mime.getType(fileName) || "text/plain");
 }
 
 function isTextMime(mimeType: string) {

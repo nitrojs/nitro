@@ -22,6 +22,17 @@ describe("nitro:preset:nitro-dev", async () => {
         expect(status).toBe(200);
       });
 
+      it("compresses only compressible public assets", async () => {
+        const css = await callHandler({ url: "/foo.css", headers: { "Accept-Encoding": "br" } });
+        expect(css.headers["content-encoding"]).toBe("br");
+        const ico = await callHandler({
+          url: "/favicon.ico",
+          headers: { "Accept-Encoding": "br" },
+        });
+        expect(ico.status).toBe(200);
+        expect(ico.headers["content-encoding"]).toBeUndefined();
+      });
+
       describe("tasks", () => {
         it("GET /_nitro/tasks lists tasks", async () => {
           const { data, status } = await callHandler({ url: "/_nitro/tasks" });
