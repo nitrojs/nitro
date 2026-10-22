@@ -1,6 +1,6 @@
 import { defineNitroPreset } from "../_utils/preset.ts";
 import { writeFile } from "../_utils/fs.ts";
-import { version as nitroVersion } from "nitro/meta";
+import { version as nitroVersion } from "#nitro/meta";
 import { join, relative } from "pathe";
 import { stringifyYAML } from "confbox";
 import type { AppHostingOutputBundleConfig } from "./types.ts";

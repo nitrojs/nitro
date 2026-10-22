@@ -30,8 +30,7 @@ import os from "node:os";
 
 if (cluster.isPrimary) {
   const numberOfWorkers =
-    Number.parseInt(process.env.NITRO_CLUSTER_WORKERS || "") ||
-    (os.cpus().length > 0 ? os.cpus().length : 1);
+    Number.parseInt(process.env.NITRO_CLUSTER_WORKERS || "") || os.availableParallelism();
   for (let i = 0; i < numberOfWorkers; i++) {
     cluster.fork({
       WORKER_ID: i + 1,

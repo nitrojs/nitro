@@ -30,7 +30,7 @@ describe("vite:root wildcard routes", { concurrent: false }, () => {
     process.chdir(originalCwd);
   });
 
-  // #4234/#4266: a root-level user catch-all (`routes/[...path].ts` -> `/**:path`) is as
+  // #4234/#4266: a root-level user catch-all (`routes/[...path].ts` -> `/:path(.*)`) is as
   // authoritative as the SSR `/**` renderer — it must not swallow Vite's own asset serves
   // (`<script src=".../entry-client.ts">`), so the asset heuristic still applies to it.
   test("root-level named catch-all does not swallow Vite asset loads", async () => {

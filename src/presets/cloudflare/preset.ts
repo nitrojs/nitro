@@ -2,7 +2,7 @@ import { defineNitroPreset } from "../_utils/preset.ts";
 import { writeFile } from "../_utils/fs.ts";
 import type { Nitro } from "nitro/types";
 import { join, resolve } from "pathe";
-import { presetsDir } from "nitro/meta";
+import { presetsDir } from "#nitro/meta";
 import { unenvCfExternals } from "./unenv/preset.ts";
 import { extendEnv } from "../../build/env.ts";
 import {
@@ -12,7 +12,7 @@ import {
   writeCFHeaders,
   writeCFPagesRedirects,
 } from "./utils.ts";
-import { setupEntryExports } from "./entry-exports.ts";
+import { setupDevEntryExports, setupEntryExports } from "./entry-exports.ts";
 import { cloudflareOutputRewrites } from "./output-plugins.ts";
 
 export type { CloudflareOptions as PresetOptions } from "./types.ts";
@@ -53,7 +53,7 @@ const cloudflarePages = defineNitroPreset(
       "build:before": async (nitro) => {
         extendEnv(nitro, unenvCfExternals);
         await enableNodeCompat(nitro);
-        await setupEntryExports(nitro);
+        setupEntryExports(nitro);
       },
       async compiled(nitro: Nitro) {
         await writeWranglerConfig(nitro, "pages");
@@ -102,10 +102,9 @@ export const cloudflareDev = defineNitroPreset(
       runner: "miniflare",
     },
     hooks: {
-      "build:before": (nitro) => {
-        // The bridge imports `cloudflare:workers`, only available in workerd
+      "build:before": async (nitro) => {
         if (nitro.options.devServer.runner === "miniflare") {
-          setupTracingBridge(nitro);
+          await setupMiniflareDev(nitro);
         }
       },
     },
@@ -113,7 +112,6 @@ export const cloudflareDev = defineNitroPreset(
   {
     name: "cloudflare-dev" as const,
     aliases: ["cloudflare-module", "cloudflare-durable", "cloudflare-pages"],
-    compatibilityDate: "2025-07-13",
     dev: true,
   }
 );
@@ -147,7 +145,7 @@ const cloudflareModule = defineNitroPreset(
       "build:before": async (nitro) => {
         extendEnv(nitro, unenvCfExternals);
         await enableNodeCompat(nitro);
-        await setupEntryExports(nitro);
+        setupEntryExports(nitro);
         setupTracingBridge(nitro);
       },
       async compiled(nitro: Nitro) {
@@ -171,10 +169,17 @@ const cloudflareModule = defineNitroPreset(
   }
 );
 
+/** @deprecated `cloudflare-module` exports the `$DurableObject` class. */
 const cloudflareDurable = defineNitroPreset(
   {
     extends: "cloudflare-module",
-    entry: "./cloudflare/runtime/cloudflare-durable",
+    hooks: {
+      "build:before": (nitro) => {
+        nitro.logger.warn(
+          "[cloudflare] The `cloudflare_durable` preset is deprecated. Use `cloudflare_module` instead: it exports the same `$DurableObject` class and forwards WebSocket upgrades to it when its binding is declared in your Wrangler configuration."
+        );
+      },
+    },
   },
   {
     name: "cloudflare-durable" as const,
@@ -188,6 +193,22 @@ export default [
   cloudflareDurable,
   cloudflareDev,
 ];
+
+// Builds for workerd like the production presets
+async function setupMiniflareDev(nitro: Nitro) {
+  // Resolve packages for workerd (it rejects the CJS entries of the `node` condition)
+  nitro.options.exportConditions = [
+    ...new Set([
+      "workerd",
+      "worker",
+      ...nitro.options.exportConditions!.filter((c) => c !== "node"),
+    ]),
+  ];
+  extendEnv(nitro, unenvCfExternals);
+  await setupDevEntryExports(nitro);
+  // The bridge imports `cloudflare:workers`, only available in workerd
+  setupTracingBridge(nitro);
+}
 
 /**
  * Export tracing-channel spans as Cloudflare custom spans (`tracing.enterSpan`)
