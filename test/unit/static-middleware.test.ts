@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { mockEvent } from "h3";
+import { HTTPError, mockEvent } from "h3";
 import handler from "../../src/runtime/internal/static.ts";
 
 const MTIME = "2024-01-01T00:00:00.000Z";
@@ -38,9 +38,8 @@ describe("runtime static middleware", () => {
     isPublicAssetURL.mockReturnValue(true);
     const event = createEvent("/foo-missing.css", "gzip");
 
-    expect(() => handler(event)).toThrow("404");
+    expectNoStore(catchError(() => handler(event)));
     expect(event.res.headers.get("Vary")).toBe("Origin");
-    expect(event.res.headers.get("Cache-Control")).toBeNull();
   });
 
   it("responds with 404 when a matched asset has no data behind it", async () => {
@@ -53,8 +52,7 @@ describe("runtime static middleware", () => {
     readAsset.mockResolvedValue(undefined);
     const event = createEvent("/favicon.ico");
 
-    await expect(handler(event)).rejects.toThrow("404");
-    expect(event.res.headers.get("Cache-Control")).toBeNull();
+    expectNoStore(await (handler(event) as Promise<unknown>).catch((error) => error));
   });
 
   // The `inline` reader hands back its payload without a promise.
@@ -68,8 +66,7 @@ describe("runtime static middleware", () => {
     readAsset.mockReturnValue(undefined);
     const event = createEvent("/favicon.ico");
 
-    expect(() => handler(event)).toThrow("404");
-    expect(event.res.headers.get("Cache-Control")).toBeNull();
+    expectNoStore(catchError(() => handler(event)));
   });
 
   it("propagates reader errors", async () => {
@@ -249,3 +246,18 @@ describe("runtime static middleware", () => {
     expect(event.res.headers.get("Content-Encoding")).toBeNull();
   });
 });
+
+function catchError(fn: () => unknown): unknown {
+  try {
+    fn();
+  } catch (error) {
+    return error;
+  }
+}
+
+// Missing assets opt out of the immutable `cache-control` route rule (h3js/h3#1612)
+function expectNoStore(error: unknown) {
+  expect(error).toBeInstanceOf(HTTPError);
+  expect((error as HTTPError).status).toBe(404);
+  expect((error as HTTPError).headers?.get("cache-control")).toBe("no-store");
+}

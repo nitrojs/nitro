@@ -24,8 +24,8 @@ importers:
         specifier: ^0.3.7
         version: 0.3.7
       h3:
-        specifier: ^2.0.7
-        version: 2.0.7(crossws@0.4.15)(ocache@0.3.1)
+        specifier: ^2.0.8
+        version: 2.0.8(crossws@0.4.15)(ocache@0.3.1)
       ocache:
         specifier: ^0.3.1
         version: 0.3.1
@@ -4754,6 +4754,19 @@ packages:
 
   h3@2.0.7:
     resolution: {integrity: sha512-00SVloxtViij9/JBsc/Ayd9H7GLXWB0KRfkReWG0dDwuUFKUKRrNGM3Csu+KZgppi5DD8Y1KpnfjtudWaRCoiQ==}
+    engines: {node: '>=20.19.0'}
+    hasBin: true
+    peerDependencies:
+      crossws: ^0.4.12
+      ocache: '>=0.3.0'
+    peerDependenciesMeta:
+      crossws:
+        optional: true
+      ocache:
+        optional: true
+
+  h3@2.0.8:
+    resolution: {integrity: sha512-ENuKlF9kC6E6PrvY1PUyE0qkrnnPTIt2/v48uyEEfTVfgoiqBCE0uwwf++2XrWwT1gxjQBDLQ8PAsmZVniKvTw==}
     engines: {node: '>=20.19.0'}
     hasBin: true
     peerDependencies:
@@ -11231,6 +11244,14 @@ snapshots:
       duplexer: 0.1.2
 
   h3@2.0.7(crossws@0.4.15)(ocache@0.3.1):
+    dependencies:
+      rou3: 1.0.0
+      srvx: 1.0.6
+    optionalDependencies:
+      crossws: 0.4.15(srvx@1.0.6)
+      ocache: 0.3.1
+
+  h3@2.0.8(crossws@0.4.15)(ocache@0.3.1):
     dependencies:
       rou3: 1.0.0
       srvx: 1.0.6

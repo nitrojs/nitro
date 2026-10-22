@@ -592,8 +592,11 @@ export function testNitro(
   }
 
   it("shows 404 for /build/non-file", async () => {
-    const { status } = await callHandler({ url: "/build/non-file" });
+    const { status, headers } = await callHandler({ url: "/build/non-file" });
     expect(status).toBe(404);
+    if (ctx.nitro!.options.serveStatic) {
+      expect(headers["cache-control"]).toBe("no-store");
+    }
   });
 
   it("resolves utils from server/utils", async () => {
