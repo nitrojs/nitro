@@ -329,11 +329,10 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   const isCatchAllRoute = (route: string) =>
     route === "/**" || route.startsWith("/**:") || /^\/:\w+\(\.\*\)$/.test(route);
 
-  // Opaque catch-alls: the SSR renderer and a custom server entry (see .agents/vite-dev.md §2).
+  // Only a scanned user route file catch-all is transparent; the SSR renderer, a custom server
+  // entry and `routes:`/`handlers:` registrations are opaque (see .agents/vite-dev.md §2).
   const isOpaqueHandler = (h?: { handler?: string }) =>
-    !!h?.handler &&
-    (h.handler === nitro.options.renderer?.handler ||
-      h.handler === (nitro.options.serverEntry && nitro.options.serverEntry.handler));
+    !!h?.handler && !nitro.scannedHandlers.some((s) => s.handler === h.handler);
 
   // Handle server routes first to avoid conflicts with static assets served by Vite from the root
   // https://github.com/vitejs/vite/pull/20866
@@ -445,9 +444,10 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     }
 
     if (isAsset) {
-      // Opaque catch-alls (the SSR renderer and a custom server entry) route requests Nitro
-      // cannot see in `nitro.routing.routes` (#4252), so an asset-tagged miss from Vite must
-      // still be dispatched — the response content-type then decides (`_nitroAssetCheck`).
+      // Opaque catch-alls (the SSR renderer, a custom server entry, config-registered `/**`)
+      // route requests Nitro cannot see in `nitro.routing.routes` (#4252, #4531), so an
+      // asset-tagged miss from Vite must still be dispatched — the response content-type then
+      // decides (`_nitroAssetCheck`).
       // A user-file root catch-all is transparent: Nitro sees everything it can handle, so
       // Vite stays the definitive asset handler and a Vite miss must not fall back into it.
       if (matchedHandlers.every(isOpaqueHandler)) {
