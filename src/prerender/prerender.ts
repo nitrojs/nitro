@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { defu } from "defu";
 import mime from "mime";
-import { writeFile, prettyPath } from "../utils/fs.ts";
+import { writeFileAtomic, prettyPath } from "../utils/fs.ts";
 import type { Nitro, NormalizedRouteRules, PrerenderRoute, PublicAssetDir } from "nitro/types";
 import { join, relative, resolve } from "pathe";
 import { createRouter, addRoute, findAllRoutes } from "rou3";
@@ -316,7 +316,7 @@ export async function prerender(nitro: Nitro) {
       // Claim the file before awaiting, so a concurrent render of a route resolving
       // to the same file sees it as taken
       outputByFile.set(filePath, { route, hash: hashContents(dataBuff!) });
-      await writeFile(filePath, dataBuff!);
+      await writeFileAtomic(filePath, dataBuff!);
       nitro._prerenderedRoutes!.push(_route);
     } else {
       _route.skip = true;

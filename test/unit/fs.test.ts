@@ -2,9 +2,9 @@ import { mkdir, mkdtemp, readFile, readdir, rm, writeFile as fspWriteFile } from
 import { tmpdir } from "node:os";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { join } from "pathe";
-import { writeFile } from "../../src/utils/fs.ts";
+import { writeFileAtomic } from "../../src/utils/fs.ts";
 
-describe("writeFile", () => {
+describe("writeFileAtomic", () => {
   let dir: string;
 
   beforeEach(async () => {
@@ -18,13 +18,13 @@ describe("writeFile", () => {
   it("writes contents and creates missing parent directories", async () => {
     const file = join(dir, "nested/deeply/index.html");
 
-    await writeFile(file, "<h1>hello</h1>");
+    await writeFileAtomic(file, "<h1>hello</h1>");
 
     expect(await readFile(file, "utf8")).toBe("<h1>hello</h1>");
   });
 
   it("leaves no temporary files behind", async () => {
-    await writeFile(join(dir, "index.html"), "<h1>hello</h1>");
+    await writeFileAtomic(join(dir, "index.html"), "<h1>hello</h1>");
 
     expect(await readdir(dir)).toEqual(["index.html"]);
   });
@@ -33,30 +33,39 @@ describe("writeFile", () => {
     const file = join(dir, "index.html");
     await fspWriteFile(file, "old");
 
-    await writeFile(file, "new");
+    await writeFileAtomic(file, "new");
 
     expect(await readFile(file, "utf8")).toBe("new");
+  });
+
+  it("writes a file whose name is close to the length limit", async () => {
+    const file = join(dir, `${"a".repeat(250)}.html`);
+
+    await writeFileAtomic(file, "<h1>hello</h1>");
+
+    expect(await readFile(file, "utf8")).toBe("<h1>hello</h1>");
   });
 
   it("removes the temporary file when the write cannot be completed", async () => {
     const file = join(dir, "index.html");
     await mkdir(join(file, "nested"), { recursive: true });
 
-    await expect(writeFile(file, "<h1>hello</h1>")).rejects.toThrow();
+    await expect(writeFileAtomic(file, "<h1>hello</h1>")).rejects.toThrow();
 
     expect(await readdir(dir)).toEqual(["index.html"]);
   });
 
   it("never leaves a file torn between two concurrent writers", async () => {
-    // Two prerender routes can resolve to a single output file, and with
-    // `prerender.concurrency > 1` their writes overlap. A non-atomic write then
-    // leaves the longer payload's tail after the shorter payload's body.
+    // Prerender routes with different paths can still alias one file (e.g. on a
+    // case-insensitive filesystem), and with `prerender.concurrency > 1` their writes
+    // overlap. A non-atomic write then leaves the longer payload's tail after the
+    // shorter payload's body.
     const file = join(dir, "other/index.html");
     const long = Buffer.from("L".repeat(300));
     const short = Buffer.from("S".repeat(256));
 
     for (let i = 0; i < 100; i++) {
-      await Promise.all([writeFile(file, long), writeFile(file, short)]);
+      await Promise.all([writeFileAtomic(file, long), writeFileAtomic(file, short)]);
 
       const written = await readFile(file);
       const isWhole = written.equals(long) || written.equals(short);
