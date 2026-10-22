@@ -415,6 +415,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/errors\\/stack\\/?$",
               },
               {
+                "dest": "/errors/err-headers",
+                "src": "^\\/errors\\/err-headers\\/?$",
+              },
+              {
                 "dest": "/errors/captured",
                 "src": "^\\/errors\\/captured\\/?$",
               },
@@ -780,6 +784,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/embedded-kit.func (symlink)",
             "functions/env.func (symlink)",
             "functions/errors/captured.func (symlink)",
+            "functions/errors/err-headers.func (symlink)",
             "functions/errors/stack.func (symlink)",
             "functions/errors/throw.func (symlink)",
             "functions/fetch.func (symlink)",

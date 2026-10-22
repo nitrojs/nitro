@@ -800,6 +800,25 @@ export function testNitro(
       expect(data.stack).toMatch("test/fixture/server/routes/errors/stack.ts");
     });
 
+    for (const errorType of ["handled", "unhandled"]) {
+      it(`applies event.res.errHeaders (${errorType})`, async () => {
+        const consoleErrorMock = vi.spyOn(console, "error").mockImplementation(() => {});
+        let res;
+        try {
+          res = await callHandler({
+            url: `/errors/err-headers?${errorType}`,
+            headers: { Accept: "application/json" },
+          });
+        } finally {
+          consoleErrorMock.mockRestore();
+        }
+        expect(res.status).toBe(errorType === "handled" ? 403 : 500);
+        expect(res.headers["x-err-header"]).toBe("err-value");
+        expect(res.headers["set-cookie"]).toMatchObject(["err=1; Path=/"]);
+        expect(res.headers["x-success-only"]).toBeUndefined();
+      });
+    }
+
     for (const errorAction of ["throw", "return"]) {
       it(`handled errors (${errorAction})`, async () => {
         const res = await callHandler({ url: `/errors/throw?handled&action=${errorAction}` });
