@@ -32,6 +32,33 @@ describe("externals:resolveId", () => {
     );
     expect(result).toEqual({ id: "defu", external: true });
   });
+
+  it("externalizes traced root export without trailing slash", async () => {
+    const fixtureModules = fileURLToPath(
+      new URL("../fixture/node_modules", import.meta.url)
+    );
+    const plugin = externals({
+      outDir: "",
+      moduleDirectories: [fixtureModules],
+      exportConditions: ["node", "import", "production"],
+    });
+    const entry = fileURLToPath(
+      new URL(
+        "../fixture/node_modules/@fixture/nitro-root-export/index.mjs",
+        import.meta.url
+      )
+    );
+    const result = await (plugin.resolveId as any).call(
+      { resolve: () => null },
+      entry,
+      fileURLToPath(import.meta.url),
+      {}
+    );
+    expect(result).toEqual({
+      id: "@fixture/nitro-root-export",
+      external: true,
+    });
+  });
 });
 
 describe("externals:normalizeMatcher", () => {
