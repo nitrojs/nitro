@@ -411,11 +411,12 @@ function prerenderBuilder(nitro: Nitro): Nitro["options"]["builder"] {
 async function startPrerenderer(nitroRenderer: Nitro): Promise<EnvServer> {
   const prerenderer = await createPrerenderer(nitroRenderer);
   // `fetch()` gives up on the worker after ~3s, so wait until it is ready before rendering
-  // routes. A worker failing to start closes its runner, which fails the build right away.
+  // routes (allowing slow cold imports up to 60s). A worker failing to start closes its runner,
+  // which fails the build right away.
   let onClose: ((runner: unknown, cause?: unknown) => void) | undefined;
   try {
     await Promise.race([
-      prerenderer.waitForReady(),
+      prerenderer.waitForReady(60_000),
       new Promise<never>((_resolve, reject) => {
         onClose = (_runner, cause) =>
           reject(cause ?? new Error("Prerender worker closed before becoming ready"));
