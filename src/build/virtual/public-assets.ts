@@ -8,6 +8,7 @@ import { relative, resolve } from "pathe";
 import { joinURL, withTrailingSlash } from "ufo";
 import { runParallel } from "../../utils/parallel.ts";
 import { getPrerenderMeta } from "../../prerender/_meta.ts";
+import { globPublicAssets } from "../assets.ts";
 
 const readAssetHandler: Record<
   Exclude<Nitro["options"]["serveStatic"] | "true" | "false", boolean>,
@@ -26,6 +27,27 @@ export default function publicAssets(nitro: Nitro) {
       id: "#nitro/virtual/public-assets-data",
       template: async () => {
         const assets: Record<string, PublicAsset> = {};
+
+        if (nitro.options.dev) {
+          for (const asset of nitro.options.publicAssets) {
+            for (const file of await globPublicAssets(nitro, asset)) {
+              const assetId = joinURL(nitro.options.baseURL, asset.baseURL || "/", file);
+              let type = mime.getType(file) || "text/plain";
+              if (type.startsWith("text")) {
+                type += "; charset=utf-8";
+              }
+              assets[assetId] ??= {
+                type,
+                path: resolve(asset.dir, file),
+                etag: "",
+                mtime: "",
+                size: 0,
+              };
+            }
+          }
+          return `export default ${JSON.stringify(assets, null, 2)};`;
+        }
+
         const files = await glob("**", {
           cwd: nitro.options.output.publicDir,
           absolute: false,
