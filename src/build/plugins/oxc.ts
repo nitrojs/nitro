@@ -7,7 +7,10 @@ export async function oxc(
   nitro: Nitro,
   options: OXCOptions & { sourcemap: boolean; minify: boolean | OXCOptions["minify"] }
 ): Promise<Plugin> {
-  const { transformSync, minifySync } = await importOXC({ dir: nitro.options.rootDir });
+  const { transformSync, minifySync } = await importOXC({
+    dir: nitro.options.rootDir,
+    paths: nitro.options.deps?.paths,
+  });
   if (options.minify && !minifySync) {
     nitro.logger.warn(
       "Skipping minification: the `rollup` builder minifies with `rolldown`. Install `rolldown` to enable it."

@@ -1,11 +1,9 @@
 import type { Nitro } from "nitro/types";
 import type { Plugin } from "rollup";
-import { resolveModulePath } from "exsolve";
 import type { BuildEnv } from "../env.ts";
-import { ensureDep } from "../../utils/dep.ts";
+import { deps } from "../../utils/_deps.ts";
+import { ensureDep, missingDepError, resolveDep } from "../../utils/dep.ts";
 import { escapeRegExp } from "../../utils/regex.ts";
-
-const UNENV_VERSION = "^2.0.0-rc.24";
 
 /** Whether a module id refers to an `unenv` polyfill. */
 export function isUnenvId(id: string | undefined): boolean {
@@ -20,20 +18,17 @@ export function isUnenvId(id: string | undefined): boolean {
  */
 export function unenv(nitro: Nitro, env: BuildEnv): Plugin {
   const aliases = new Map(Object.entries(env.alias).filter(([, to]) => isUnenvId(to)));
-  let installed: Promise<boolean> | undefined;
 
+  // Not memoized: `ensureDep` shares concurrent installs, and a later call recovers after a failure
   const ensureUnenv = async (id: string) => {
-    const reason = `Node.js compatibility (\`${id}\` import with the \`${nitro.options.preset}\` preset)`;
-    installed ??= ensureDep({
-      id: "unenv",
-      version: UNENV_VERSION,
+    const opts = {
+      id: "unenv" as const,
       dir: nitro.options.rootDir,
-      reason,
-    }).then((resolved) => !!resolved);
-    if (!(await installed)) {
-      throw new Error(
-        `\`unenv\` is not installed. It is required for ${reason}. Please add it to your dev dependencies (e.g. \`npx nypm add -D unenv\`).`
-      );
+      paths: nitro.options.deps?.paths,
+      reason: `Node.js compatibility (\`${id}\` import with the \`${nitro.options.preset}\` preset)`,
+    };
+    if (!(await ensureDep(opts))) {
+      throw missingDepError(opts);
     }
   };
 
@@ -66,13 +61,13 @@ export function unenv(nitro: Nitro, env: BuildEnv): Plugin {
           }
         }
         await ensureUnenv(id);
-        const path = resolveModulePath(target || id, {
-          from: [nitro.options.rootDir, import.meta.url],
-          try: true,
+        const path = resolveDep(target || id, {
+          dir: nitro.options.rootDir,
+          paths: nitro.options.deps?.paths,
         });
         if (!path) {
           throw new Error(
-            `Cannot resolve \`${target || id}\` (for \`${id}\`). Please make sure \`unenv@${UNENV_VERSION}\` is installed in your project.`
+            `Cannot resolve \`${target || id}\` (for \`${id}\`). Please make sure \`unenv@${deps.unenv.version}\` is installed in your project.`
           );
         }
         // Resolve the polyfill through other plugins as well (CommonJS interop, side effects)

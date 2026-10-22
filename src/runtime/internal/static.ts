@@ -2,7 +2,7 @@ import { HTTPError, defineHandler } from "h3";
 import type { EventHandler, H3Event, HTTPMethod } from "h3";
 import type { PublicAsset } from "nitro/types";
 import { decodePath, joinURL, withLeadingSlash, withoutTrailingSlash } from "ufo";
-import { getAsset, isPublicAssetURL, readAsset } from "#nitro/virtual/public-assets";
+import { getAsset, hasAsset, isPublicAssetURL, readAsset } from "#nitro/virtual/public-assets";
 
 const METHODS = new Set(["HEAD", "GET"] as HTTPMethod[]);
 
@@ -13,7 +13,13 @@ export default defineHandler((event) => {
     return;
   }
 
-  let id = decodePath(withLeadingSlash(withoutTrailingSlash(event.url.pathname)));
+  const path = withLeadingSlash(withoutTrailingSlash(event.url.pathname));
+  let id = path.includes("%") ? decodePath(path) : path;
+
+  // Most requests are not for public assets: skip the encoding negotiation for them
+  if (!hasAsset(id) && !hasAsset(joinURL(id, "index.html")) && !isPublicAssetURL(id)) {
+    return;
+  }
 
   let asset: PublicAsset | undefined;
 
@@ -21,9 +27,23 @@ export default defineHandler((event) => {
   const encodings = [
     ...encodingHeader
       .split(",")
-      .map((e) => EncodingMap[e.trim() as keyof typeof EncodingMap])
-      .filter(Boolean)
-      .sort(),
+      .map((entry) => {
+        const [name, ...parameters] = entry.split(";");
+        const quality = parameters
+          .map((parameter) => parameter.trim().split("="))
+          .find(([key]) => key.toLowerCase() === "q")?.[1];
+        const weight = quality === undefined ? 1 : Number.parseFloat(quality);
+        return {
+          ext: EncodingMap[name.trim().toLowerCase() as keyof typeof EncodingMap],
+          // An unparsable weight is an invalid parameter, not a rejection
+          weight: Number.isNaN(weight) ? 1 : weight,
+        };
+      })
+      // `q=0` means "not acceptable" (RFC 9110 12.4.2)
+      .filter((entry) => entry.ext && entry.weight > 0)
+      // Highest client weight wins, then our own (alphabetical) preference
+      .sort((a, b) => b.weight - a.weight || (a.ext < b.ext ? -1 : a.ext > b.ext ? 1 : 0))
+      .map((entry) => entry.ext),
     "",
   ];
 

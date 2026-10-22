@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { mockEvent } from "h3";
+import { HTTPError, mockEvent } from "h3";
 import type { Middleware } from "h3";
 
 const { findRouteRules } = vi.hoisted(() => ({
@@ -12,7 +12,7 @@ vi.mock("#nitro/virtual/app", () => ({
   initNitroPlugins: () => {},
 }));
 
-const { createRouteRulesMiddleware, createRoutedMiddleware } =
+const { createMethodNotAllowedMatcher, createRouteRulesMiddleware, createRoutedMiddleware } =
   await import("../../src/runtime/internal/app.ts");
 
 describe("runtime middleware wrappers", () => {
@@ -65,5 +65,25 @@ describe("runtime middleware wrappers", () => {
     const next = vi.fn();
     expect(await middleware(mockEvent("/a"), next)).toBe("stopped");
     expect(next).not.toHaveBeenCalled();
+  });
+
+  it("method not allowed: matches nothing when the path is not routed", () => {
+    const find = createMethodNotAllowedMatcher(() => undefined, ["GET", "POST"]);
+    expect(find("GET", "/x")).toBeUndefined();
+  });
+
+  it("method not allowed: responds with `405` and the allowed methods", () => {
+    const routes: Record<string, string[]> = { "/x": ["DELETE", "GET", "PUT"], "/y": ["POST"] };
+    const findRoute = vi.fn((method: string, pathname: string) =>
+      routes[pathname]?.includes(method) ? {} : undefined
+    );
+    const find = createMethodNotAllowedMatcher(findRoute, ["DELETE", "GET", "POST", "PUT"]);
+    const route = find("POST", "/x")!;
+    expect(findRoute).not.toHaveBeenCalledWith("POST", "/x");
+    const error = route.data.handler(mockEvent("/x", { method: "POST" })) as HTTPError;
+    expect(error).toBeInstanceOf(HTTPError);
+    expect(error.status).toBe(405);
+    expect(error.headers?.get("allow")).toBe("DELETE, GET, PUT");
+    expect(error.message).toBe("Method POST is not allowed for /x (allowed: DELETE, GET, PUT)");
   });
 });

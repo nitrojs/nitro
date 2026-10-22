@@ -53,41 +53,101 @@ You can use the [runtime hooks](/docs/plugins#nitro-runtime-hooks) below to exte
 - [`cloudflare:queue`](https://developers.cloudflare.com/queues/configuration/javascript-apis/#consumer)
 - [`cloudflare:tail`](https://developers.cloudflare.com/workers/runtime-apis/handlers/tail/)
 - `cloudflare:trace`
-- `cloudflare:durable:init` (only with the [`cloudflare_durable`](#cloudflare-workers-with-durable-objects) preset)
-- [`cloudflare:durable:alarm`](https://developers.cloudflare.com/durable-objects/api/alarms/) (only with the [`cloudflare_durable`](#cloudflare-workers-with-durable-objects) preset)
+- `cloudflare:durable:init` (see [WebSockets with Durable Objects](#websockets-with-durable-objects))
+- [`cloudflare:durable:alarm`](https://developers.cloudflare.com/durable-objects/api/alarms/) (see [WebSockets with Durable Objects](#websockets-with-durable-objects))
 
 ::note
-The `cloudflare:queue` hook receives the message batch as `batch` and the `cloudflare:email` hook receives the incoming message as `message`. The older `event` field is deprecated for both hooks.
+The `cloudflare:queue` hook receives the message batch as `batch` and the `cloudflare:email` hook receives the incoming message as `message`.
 ::
+
+### Durable Objects
+
+Export your Durable Object classes from your [`server.ts`](/docs/server-entry) file. They work in your deployed Worker and during local development, including with Vite. You can also define them in other files and re-export them.
+
+```ts [server.ts]
+import { DurableObject } from "cloudflare:workers";
+
+export class Counter extends DurableObject {
+  async fetch() {
+    const count = (await this.ctx.storage.get<number>("count")) || 0;
+    await this.ctx.storage.put("count", count + 1);
+    return Response.json({ count: count + 1 });
+  }
+}
+
+export default {
+  fetch() {},
+};
+```
+
+::note
+`server.ts` needs a default export. If you only use it for your Durable Objects, keep the empty `fetch` handler above so requests continue to your routes.
+::
+
+Declare the binding and Durable Object export in your Wrangler configuration:
+
+```json [wrangler.json]
+{
+  "durable_objects": {
+    "bindings": [{ "name": "COUNTER", "class_name": "Counter" }]
+  },
+  "exports": {
+    "Counter": { "type": "durable-object", "storage": "sqlite" }
+  }
+}
+```
+
+Access the binding from a Nitro handler:
+
+```ts [routes/counter.ts]
+import { defineHandler } from "nitro";
+
+export default defineHandler((event) => {
+  const { COUNTER } = event.req.runtime!.cloudflare!.env;
+  return COUNTER.get(COUNTER.idFromName("default")).fetch(event.req);
+});
+```
+
+With Wrangler environments, declare the binding and export in the selected environment. Local Durable Object state persists in `.wrangler/state/v3`, including across development server reloads.
+
+In development, Durable Objects share module state with your routes and pick up code changes without restarting the development server. A new class, or a class not declared in the Wrangler configuration, logs a warning.
+
+To type the `COUNTER` binding with the `Counter` class, see [Typing bindings](#typing-bindings).
 
 ### Additional Exports
 
-You can add an `exports.cloudflare.ts` file to your project root to export additional handlers or properties from the Cloudflare Worker entrypoint.
+Other classes, such as Workflows or `WorkerEntrypoint`s, are exported from `server.ts` the same way:
 
-```ts [exports.cloudflare.ts]
+```ts [server.ts]
+import {
+  WorkerEntrypoint,
+  WorkflowEntrypoint,
+  type WorkflowEvent,
+  type WorkflowStep,
+} from "cloudflare:workers";
+
 export class MyWorkflow extends WorkflowEntrypoint {
   async run(event: WorkflowEvent, step: WorkflowStep) {
     // ...
   }
 }
+
+export class MyEntrypoint extends WorkerEntrypoint {
+  greet(name: string) {
+    return `Hello ${name}`;
+  }
+}
 ```
 
-Nitro will automatically detect this file and include its exports in the final build.
+Declare them in your Wrangler configuration, with a `workflows` binding or an `exports` entry:
 
-::warning
-The `exports.cloudflare.ts` file must not have a default export.
-::
-
-You can also customize the entrypoint file location using the `cloudflare.exports` option in your `nitro.config.ts`:
-
-```ts [nitro.config.ts]
-import { defineConfig } from "nitro";
-
-export default defineConfig({
-  cloudflare: {
-    exports: "custom-exports-entry.ts"
+```json [wrangler.json]
+{
+  "workflows": [{ "name": "my-workflow", "binding": "MY_WORKFLOW", "class_name": "MyWorkflow" }],
+  "exports": {
+    "MyEntrypoint": { "type": "worker" }
   }
-})
+}
 ```
 
 ### Scheduled Tasks (Cron Triggers)
@@ -111,23 +171,13 @@ export default defineConfig({
 
 No manual Wrangler configuration is needed. Nitro handles it for you.
 
-## Cloudflare Workers with Durable Objects
-
-**Preset:** `cloudflare_durable`
+### WebSockets with Durable Objects
 
 :read-more{title="Durable Objects" to="https://developers.cloudflare.com/durable-objects/"}
 
-This preset extends `cloudflare_module` and routes requests through a [Durable Object](https://developers.cloudflare.com/durable-objects/) instance, enabling stateful features such as WebSocket support (via [CrossWS](https://crossws.h3.dev/adapters/cloudflare#durable-objects)) and in-memory state that persists across requests.
+[WebSocket](/docs/websocket) connections are handled by the Worker by default. Each connection is isolated, so [pub/sub](/docs/websocket#pubsub) is not supported.
 
-```ts [nitro.config.ts]
-import { defineConfig } from "nitro";
-
-export default defineConfig({
-  preset: "cloudflare_durable"
-})
-```
-
-The preset entry exports a `$DurableObject` class. You need to declare the Durable Object binding and migration in your wrangler config:
+The Worker entry also exports a `$DurableObject` class. When its binding is declared, WebSocket upgrades are forwarded to a single instance of it, so peers share pub/sub topics and connections can [hibernate](https://developers.cloudflare.com/durable-objects/best-practices/websockets/#websocket-hibernation-api) (via [CrossWS](https://crossws.h3.dev/adapters/cloudflare#durable-objects)). Declare its binding and export in your Wrangler configuration:
 
 ```json [wrangler.json]
 {
@@ -139,16 +189,19 @@ The preset entry exports a `$DurableObject` class. You need to declare the Durab
       }
     ]
   },
-  "migrations": [
-    {
-      "tag": "v1",
-      "new_classes": ["$DurableObject"]
-    }
-  ]
+  "exports": {
+    "$DurableObject": { "type": "durable-object", "storage": "sqlite" }
+  }
 }
 ```
 
+This also works during local development, including with Vite. Restart the development server after adding or removing the binding.
+
 You can use the `cloudflare:durable:init` runtime hook to run code when the Durable Object is initialized, and the `cloudflare:durable:alarm` hook to handle [alarms](https://developers.cloudflare.com/durable-objects/api/alarms/).
+
+::note
+The `cloudflare_durable` preset is deprecated and builds the same output as `cloudflare_module`.
+::
 
 ### Tracing
 
@@ -356,6 +409,76 @@ defineHandler(async (event) => {
 })
 ```
 
+### Typing bindings
+
+Use [`wrangler types`](https://developers.cloudflare.com/workers/languages/typescript/#generate-types) to generate types for your bindings and the Workers runtime from your Wrangler configuration. It writes a `worker-configuration.d.ts` file declaring a global `Env` interface.
+
+```json [package.json]
+{
+  "scripts": {
+    "postinstall": "wrangler types",
+    "typecheck": "wrangler types && tsc --noEmit"
+  }
+}
+```
+
+Include the generated file in your `tsconfig.json`. It also provides the runtime types, so you don't need `@cloudflare/workers-types`. Nitro enables the [`nodejs_compat`](https://developers.cloudflare.com/workers/runtime-apis/nodejs/) flag for you, so also add `@types/node` (with `wrangler`) to your dev dependencies and include `node` for the Node.js APIs:
+
+```json [tsconfig.json]
+{
+  "compilerOptions": {
+    "types": ["./worker-configuration.d.ts", "node"]
+  }
+}
+```
+
+Bindings imported from `cloudflare:workers` are typed automatically:
+
+```ts
+import { defineHandler } from "nitro";
+import { env } from "cloudflare:workers";
+
+export default defineHandler(async () => {
+  return env.MY_KV.get("key");
+});
+```
+
+To type `event.req.runtime.cloudflare.env` too, augment the `CloudflareEnv` interface of [srvx](https://srvx.h3.dev):
+
+```ts [env.d.ts]
+declare module "srvx" {
+  interface CloudflareEnv extends Env {}
+}
+
+export {};
+```
+
+::note
+`srvx` must be resolvable from your project for the augmentation to apply. With pnpm, add it to your dev dependencies.
+::
+
+To type bindings to your own [Durable Objects](#durable-objects), [Workflows and `WorkerEntrypoint`s](#additional-exports) with their classes, point `main` in your Wrangler configuration to the file that exports them. Nitro still sets `main` to the built entry in the generated config.
+
+```json [wrangler.json]
+{
+  "main": "./server.ts"
+}
+```
+
+`wrangler types` then reads the classes from it:
+
+```ts [worker-configuration.d.ts]
+interface Env {
+  COUNTER: DurableObjectNamespace<import("./server").Counter>;
+  MY_WORKFLOW: Workflow<Parameters<import("./server").MyWorkflow["run"]>[0]["payload"]>;
+  API: Service<typeof import("./server").Api>;
+}
+```
+
+::tip
+Run `wrangler types` again after changing your Wrangler configuration, or use `wrangler types --check` in CI to catch outdated types.
+::
+
 ### Access to the bindings in local dev
 
 In development mode, Nitro emulates the Cloudflare environment using [Miniflare](https://miniflare.dev/) (the same [`workerd`](https://github.com/cloudflare/workerd) runtime used by Wrangler and Cloudflare Workers in production). This means bindings are available natively from the request event, with no separate proxy required.
@@ -419,7 +542,7 @@ A few things differ from `wrangler dev`:
 
 - Local data of the bindings (KV, D1, R2, ...) is persisted in `.wrangler/state/v3`, shared with `wrangler dev`.
 - The newest compatibility date supported by the installed `miniflare` is used, regardless of `compatibility_date`.
-- Static assets are served by Nitro, and bindings to other workers (`services`, `tail_consumers`) and to classes or handlers (`durable_objects`, `workflows`, queue consumers) are not available.
+- Static assets are served by Nitro. Local Durable Objects, Workflows and `WorkerEntrypoint`s exported from [`server.ts`](#durable-objects) are available; bindings to other workers (`services`, `tail_consumers`, external Durable Objects and Workflows) and queue consumers are not available.
 - When `cloudflare.wrangler` is set, it is merged with the nearest Wrangler config file.
 
 #### Wrangler environments
