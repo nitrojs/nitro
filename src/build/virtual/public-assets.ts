@@ -36,12 +36,17 @@ export default function publicAssets(nitro: Nitro) {
               if (type.startsWith("text")) {
                 type += "; charset=utf-8";
               }
+              const path = resolve(asset.dir, file);
               assets[assetId] ??= {
                 type,
-                path: resolve(asset.dir, file),
+                path,
                 etag: "",
                 mtime: "",
                 size: 0,
+                data:
+                  nitro.options.serveStatic === "inline"
+                    ? (await fsp.readFile(path)).toString("base64")
+                    : undefined,
               };
             }
           }
