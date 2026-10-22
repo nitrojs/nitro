@@ -30,9 +30,11 @@ vi.mock("std-env", async (importOriginal) => ({
 }));
 
 const addDevDependency = vi.fn();
+const detectPackageManager = vi.fn(async () => ({ name: "pnpm" }) as { name: string } | undefined);
 vi.mock("nypm", () => ({
   addDependency: vi.fn(),
   addDevDependency: (...args: unknown[]) => addDevDependency(...args),
+  detectPackageManager: () => detectPackageManager(),
 }));
 
 const prompt = vi.fn();
@@ -124,6 +126,16 @@ describe("ensureDep", () => {
     await ensureDep(missingDep);
     expect(prompt).not.toHaveBeenCalled();
     expect(addDevDependency).toHaveBeenCalledWith(missingDep.id, { cwd: missingDep.dir });
+  });
+
+  it("installs with the package manager of the runtime when none is detected", async () => {
+    env.isAgent = true;
+    detectPackageManager.mockResolvedValueOnce(undefined);
+    await ensureDep(missingDep);
+    expect(addDevDependency).toHaveBeenCalledWith(missingDep.id, {
+      cwd: missingDep.dir,
+      packageManager: "npm",
+    });
   });
 
   it("prompts in an interactive environment", async () => {

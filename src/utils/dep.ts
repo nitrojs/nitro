@@ -236,8 +236,13 @@ async function _ensureDep(opts: ResolvedDepOptions): Promise<string | undefined>
 
   const start = Date.now();
   consola.start(`Installing \`${opts.id}\` in \`${opts.dir}\`...`);
-  const { addDependency, addDevDependency } = await import("nypm");
-  await (opts.dev === false ? addDependency : addDevDependency)(_depSpec(opts), { cwd: opts.dir });
+  const { addDependency, addDevDependency, detectPackageManager } = await import("nypm");
+  // Projects without a lockfile (or `packageManager` field) use the package manager of the runtime
+  const packageManager = (await detectPackageManager(opts.dir)) ? undefined : _runtimePM();
+  await (opts.dev === false ? addDependency : addDevDependency)(_depSpec(opts), {
+    cwd: opts.dir,
+    packageManager,
+  });
 
   const installed = resolveDep(opts.id, opts);
   if (installed) {
@@ -251,6 +256,10 @@ async function _ensureDep(opts: ResolvedDepOptions): Promise<string | undefined>
 /** Whether a directory is inside `node_modules` (e.g. the `rootDir` of a framework built on Nitro). */
 function _isInNodeModules(dir: string): boolean {
   return `${normalize(dir)}/`.includes("/node_modules/");
+}
+
+function _runtimePM(): "bun" | "deno" | "npm" {
+  return process.versions.bun ? "bun" : process.versions.deno ? "deno" : "npm";
 }
 
 /** Package spec to install (with the version range if it is a simple one). */

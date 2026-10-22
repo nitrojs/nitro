@@ -14,6 +14,7 @@ const addDevDependency = vi.fn();
 vi.mock("nypm", () => ({
   addDependency: vi.fn(),
   addDevDependency: (...args: unknown[]) => addDevDependency(...args),
+  detectPackageManager: async () => ({ name: "pnpm" }),
 }));
 
 vi.mock("consola", () => ({
