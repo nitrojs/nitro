@@ -53,11 +53,13 @@ cannot serve — the post catch-all is the last handler before `finalhandler`.
   everything it can handle, so Vite stays the definitive asset handler: an
   asset-tagged request is marked `_nitroHandled` and a Vite miss must **not**
   fall back into it (#4234/#4266).
-- **Opaque catch-all** — the SSR renderer `/**` or a custom `serverEntry` `/**`
-  (both registered in `routing.ts` with identifiable `handler` paths). Their
-  *real* routes are invisible to the host (`server.ts` H3 app routes, framework
-  routers like TanStack Start), so an asset-tagged miss from Vite must still be
-  **dispatched** — marked `_nitroAssetCheck`, decided by response inspection.
+- **Opaque catch-all** — any root catch-all that is not a scanned route file:
+  the SSR renderer `/**`, a custom `serverEntry` `/**`, or a `/**` registered
+  through `routes:` / `handlers:` config or a module (#4531). Their *real*
+  routes are invisible to the host (`server.ts` H3 app routes, framework
+  routers like TanStack Start, handlers generating assets), so an asset-tagged
+  miss from Vite must still be **dispatched** — marked `_nitroAssetCheck`,
+  decided by response inspection.
 - **None** — no match. Extensionless → page navigation → Nitro; asset-tagged →
   same as opaque (`_nitroAssetCheck`, dispatch after Vite).
 
@@ -74,7 +76,12 @@ Set `Vary: sec-fetch-dest, accept`, then:
   of `ASSET_EXT_RE` like imported `.json` (#4433). Otherwise fall back to
   extension — `ASSET_EXT_RE.test(ext)` **and** no `text/html` in `Accept` ⇒
   asset. (`empty` = fetch/XHR is ambiguous: it tags both API calls and
-  `fetch()`ed assets.)
+  `fetch()`ed assets.) Last resort: the path resolves to a real file under
+  the Vite project root ⇒ asset — `?url` imports compile to a bare
+  root-relative fetch with no marker and any extension (#4230), and a real
+  root file is exactly what `serveStaticMiddleware` serves, so it mirrors its
+  skip rules (`.html` excluded, same `Accept: text/html` guard). The probe is
+  confined to the root so `%2e%2e` paths can't reveal outside files.
 - **Only `GET`/`HEAD` can be assets at all** — a `POST /upload.png` is never a
   browser asset load, so other methods bypass the heuristic entirely.
 - Non-asset + (matched or extensionless) → Nitro immediately (pre-Vite).
@@ -122,11 +129,9 @@ no production behavior change). Known leftovers:
 - **Production** SSR still renders 200 HTML for missing-asset URLs —
   pre-existing behavior; changing it is a separate, deliberate breaking-change
   discussion.
-- Opaque semantics require registration via `renderer` / `serverEntry`. A `/**`
-  catch-all added through `routes:` / `handlers:` config or a module is
-  classified **transparent** and stays pre-empted for asset-tagged requests
-  (#4252-class limitation) — a framework integrating its renderer that way
-  should use `renderer` instead.
+- A config-registered `/**` catch-all that answers every path with a bare
+  string (`text/plain`) 200s missing assets in dev, same as in production;
+  only scanned route files keep the transparent divert.
 - Dev-only cost: a missing asset matching an opaque catch-all triggers a full
   (discarded) SSR render before the 404.
 
@@ -156,6 +161,10 @@ no production behavior change). Known leftovers:
   could never run. Fixed by the opaque-catch-all + response-inspection design
   above (§2, §4): the pre-emption now applies only to transparent user-file
   catch-alls, and opaque dispatches are judged by their response content-type.
+- **#4531** a `/**` registered via `routes:` / `handlers:` config was classified
+  transparent (only `renderer` / `serverEntry` handler paths were opaque), so a
+  catch-all generating images 404'd in dev. Now only scanned route files are
+  transparent.
 
 ## 6. Runtime dispatch flow
 
@@ -173,7 +182,8 @@ Catch-all registration (`src/routing.ts`): a custom `serverEntry` is pushed as
 `/**` with `handler = nitro.options.serverEntry.handler`; the SSR renderer as
 `/**` with `handler = nitro.options.renderer.handler` (set by `plugin.ts`
 `configResolved` to `internal/vite/ssr-renderer` when an `ssr` service exists).
-These handler paths are how the pre-pass identifies opaque catch-alls.
+The pre-pass treats a matched catch-all as transparent only when its `handler`
+is in `nitro.scannedHandlers` (a route file); everything else is opaque.
 
 ## 7. Test coverage map
 
@@ -195,6 +205,9 @@ a real Vite dev server and `fetch()`es with hand-set headers.
 - `root-wildcard.test.ts` — transparent root catch-all `/**:path`: must never
   200 for `/entry-client.ts` under `script`/`style`/`image`/absent dests
   (#4234/#4266), navigations still reach it.
+- `config-catchall.test.ts` — opaque `routes: { "/**": ... }` catch-all
+  (#4531): generated `image/png` served under `image`/absent dests, HTML
+  answer to a missing `.js` still 404s, navigations reach it.
 - `baseurl-dotted-param.test.ts` — explicit splat routes under `baseURL:
   /subdir/`: #4241, #4252, #4270, query-string extension, unmatched asset →
   Vite.

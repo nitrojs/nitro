@@ -1,4 +1,4 @@
-import { defineHandler, handleCacheHeaders, toResponse } from "h3";
+import { defineHandler, handleCacheHeaders, toResponse, withCacheIsolation } from "h3";
 import { FastResponse } from "srvx";
 import {
   defineCachedFunction as _defineCachedFunction,
@@ -17,11 +17,11 @@ import type { CachedFunctionOptions, CachedHandlerOptions } from "nitro/types";
 
 let _cacheStorage: StorageInterface | undefined;
 
-function cacheStorage(): StorageInterface {
+export function cacheStorage(): StorageInterface {
   return (_cacheStorage ??= createCacheStorage());
 }
 
-function defaultOnError(error: unknown) {
+export function defaultOnError(error: unknown): void {
   console.error("[cache]", error);
   useNitroApp().captureError?.(error as Error, { tags: ["cache"] });
 }
@@ -43,16 +43,18 @@ export function defineCachedHandler(
   handler: EventHandler,
   opts: CachedHandlerOptions = {}
 ): EventHandler {
-  const ocacheHandler = _defineCachedHandler(handler as any, {
-    storage: cacheStorage,
-    group: "nitro/handlers",
-    onError: defaultOnError,
-    toResponse: (value, event) => toResponse(value, event as H3Event),
-    createResponse: (body, init) => new FastResponse(body as BodyInit, init),
-    handleCacheHeaders: (event, conditions) => handleCacheHeaders(event as H3Event, conditions),
-    ...cacheHandlerDefaults,
-    ...definedOptions(opts),
-  });
+  const ocacheHandler = withCacheIsolation(
+    _defineCachedHandler(handler as any, {
+      storage: cacheStorage,
+      group: "nitro/handlers",
+      onError: defaultOnError,
+      toResponse: (value, event) => toResponse(value, event as H3Event),
+      createResponse: (body, init) => new FastResponse(body as BodyInit, init),
+      handleCacheHeaders: (event, conditions) => handleCacheHeaders(event as H3Event, conditions),
+      ...cacheHandlerDefaults,
+      ...definedOptions(opts),
+    }) as EventHandler
+  );
   return defineHandler((event) => ocacheHandler(event as any));
 }
 

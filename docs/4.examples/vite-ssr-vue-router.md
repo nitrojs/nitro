@@ -21,13 +21,13 @@ icon: i-logos-vue
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^6.0.5",
+    "@vitejs/plugin-vue": "^6.0.10",
     "nitro": "latest",
-    "unhead": "^2.1.12",
+    "unhead": "^3.4.3",
     "vite": "latest",
-    "vite-plugin-devtools-json": "^1.0.0",
-    "vue": "^3.5.31",
-    "vue-router": "^5.0.4"
+    "vite-plugin-devtools-json": "^1.1.2",
+    "vue": "^3.5.44",
+    "vue-router": "^5.4.0"
   }
 }
 ```

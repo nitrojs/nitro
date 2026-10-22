@@ -1,5 +1,5 @@
 import { join } from "pathe";
-import { runtimeDir } from "nitro/meta";
+import { runtimeDir } from "#nitro/meta";
 import type { NitroOptions } from "nitro/types";
 
 export async function resolveTracingChannelOptions(options: NitroOptions) {
