@@ -25,8 +25,9 @@ describe("prerender output collision", () => {
         crawlLinks: false,
         // one at a time, so the route that claims the file is the first one listed
         concurrency: 1,
-        // the first two resolve to `other/index.html`, `/another` does not
-        routes: ["/other", "/other/index.html", "/another"],
+        // the first two resolve to `other/index.html`, `/another` does not, and the
+        // `/shell` pair resolves to one file with the same contents
+        routes: ["/other", "/other/index.html", "/another", "/shell", "/shell/index.html"],
       },
     });
 
@@ -56,6 +57,14 @@ describe("prerender output collision", () => {
 
     // a route resolving to its own file is untouched
     expect(nitro._prerenderedRoutes!.map((r) => r.fileName)).toContain("/another/index.html");
+
+    // routes rendering the same output to one file do not warn, and both count as written
+    expect(warnings.filter((w) => w.includes("/shell"))).toHaveLength(0);
+    const shell = nitro._prerenderedRoutes!.filter((r) => r.fileName === "/shell/index.html");
+    expect(shell.map((r) => r.route)).toEqual(["/shell", "/shell/index.html"]);
+    expect(await readFile(join(outDir, "public/shell/index.html"), "utf8")).toBe(
+      `<!DOCTYPE html><html><body>shell</body></html>`
+    );
 
     // and the file holds that route's render, whole
     const contents = await readFile(join(outDir, "public/other/index.html"), "utf8");

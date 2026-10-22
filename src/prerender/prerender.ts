@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { defu } from "defu";
 import mime from "mime";
@@ -105,11 +106,12 @@ export async function prerender(nitro: Nitro) {
   const failedRoutes = new Set<PrerenderRoute>();
   const skippedRoutes = new Set();
   const displayedLengthWarns = new Set();
-  // Output path -> the route that produced it. Two routes can resolve to one file
-  // (`/other` and `/other/index.html` both become `other/index.html`), which is only
-  // known once each of them has been rendered. Keyed by the resolved path rather
-  // than `fileName`, so aliases pointing at one file still collide.
-  const routeByOutputFile = new Map<string, string>();
+  // Output path -> the route that produced it and a hash of its contents. Two routes
+  // can resolve to one file (`/other` and `/other/index.html` both become
+  // `other/index.html`), which is only known once each of them has been rendered.
+  // Keyed by the resolved path rather than `fileName`, so aliases pointing at one
+  // file still collide.
+  const outputByFile = new Map<string, { route: string; hash: string }>();
 
   const publicAssetBases: string[] = nitro.options.publicAssets
     .filter(
@@ -275,7 +277,10 @@ export async function prerender(nitro: Nitro) {
 
     // Allow hooking before generate
     await nitro.hooks.callHook("prerender:generate", _route, nitro);
-    if (_route.contentType !== inferredContentType) {
+    const filePath = join(nitro.options.output.publicDir, _route.fileName);
+    const claimed = outputByFile.get(filePath);
+    // A route that cannot write to an already claimed file must not change its metadata
+    if (_route.contentType !== inferredContentType && !claimed) {
       const prerenderMeta = getPrerenderMeta(nitro);
       prerenderMeta[_route.fileName] ||= {};
       prerenderMeta[_route.fileName].contentType = _route.contentType;
@@ -295,19 +300,22 @@ export async function prerender(nitro: Nitro) {
     }
 
     // Write to the disk
-    const filePath = join(nitro.options.output.publicDir, _route.fileName);
-    const writtenBy = routeByOutputFile.get(filePath);
-    if (writtenBy !== undefined) {
-      // Writing again would replace the first route's output with this one, so the
-      // build result would depend on which of the two rendered first
-      nitro.logger.warn(
-        `Routes \`${writtenBy}\` and \`${route}\` both prerender to \`${_route.fileName}\`. Keeping the output of \`${writtenBy}\`.`
-      );
-      _route.skip = true;
+    if (claimed) {
+      if (claimed.hash === hashContents(dataBuff!)) {
+        // Same output (e.g. `/` and `/index.html` of an SPA): the file already holds it
+        nitro._prerenderedRoutes!.push(_route);
+      } else {
+        // Writing again would replace the first route's output with this one, so the
+        // build result would depend on which of the two rendered first
+        nitro.logger.warn(
+          `Routes \`${claimed.route}\` and \`${route}\` both prerender to \`${_route.fileName}\` with different contents. Keeping the output of \`${claimed.route}\`.`
+        );
+        _route.skip = true;
+      }
     } else if (canWriteToDisk(_route) && filePath.startsWith(nitro.options.output.publicDir)) {
       // Claim the file before awaiting, so a concurrent render of a route resolving
       // to the same file sees it as taken
-      routeByOutputFile.set(filePath, route);
+      outputByFile.set(filePath, { route, hash: hashContents(dataBuff!) });
       await writeFile(filePath, dataBuff!);
       nitro._prerenderedRoutes!.push(_route);
     } else {
@@ -434,4 +442,8 @@ function missingRendererHint(nitro: Nitro): string {
     return " No Vite SSR entry was detected. If the app renders HTML, place `entry-server` in `app/`, `src/` or the project root, or set `environments.ssr.build.rollupOptions.input` in the Vite config.";
   }
   return " No `renderer` is configured. Check that the app has a route or renderer able to serve the prerendered routes.";
+}
+
+function hashContents(data: Buffer): string {
+  return createHash("sha256").update(data).digest("hex");
 }
