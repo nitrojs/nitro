@@ -18,6 +18,8 @@ export function nitroRequireExternals(): VitePlugin {
 
     resolveId: {
       order: "pre",
+      // Bare specifiers only (`kind` cannot be filtered natively)
+      filter: { id: /^[\w@][^:]*$/ },
       async handler(id, importer, options) {
         if (importer?.startsWith(FACADE_PREFIX)) {
           return { id, external: true };
