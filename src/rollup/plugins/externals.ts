@@ -156,6 +156,15 @@ export function externals(opts: NodeExternalsOptions): Plugin {
           // Reverse engineer subpath export
           const guessedSubpath: string | null | undefined =
             await lookupNodeModuleSubpath(id).catch(() => null);
+          // The "." export is the package itself: `join(pkgName, "./")` would give
+          // `pkgName/`, which is an invalid trailing slash pattern (DEP0155).
+          if (guessedSubpath === "./" || guessedSubpath === ".") {
+            trackedExternals.add(packageEntry || resolved.id);
+            return {
+              id: pkgName,
+              external: true,
+            };
+          }
           const resolvedGuess =
             guessedSubpath &&
             tryResolve(join(pkgName, guessedSubpath), importer);
