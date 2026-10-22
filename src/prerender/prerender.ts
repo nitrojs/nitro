@@ -335,16 +335,12 @@ export async function prerender(nitro: Nitro) {
     failedRoutes: [...failedRoutes],
   });
 
-  // A prerender that wrote nothing while every attempted route failed is a misconfiguration,
-  // not a success: the build would otherwise exit 0 with an empty output. The usual cause is a
-  // Vite SSR entry Nitro could not auto-detect, which leaves no renderer so routes 404. (#4591)
+  // Every route failed and nothing was written: fail regardless of `failOnError` (#4591)
   if (failedRoutes.size > 0 && nitro._prerenderedRoutes.length === 0) {
     logPrerenderErrors(nitro, failedRoutes);
     throw new Error(
       `Prerendered 0 routes. All ${failedRoutes.size} route(s) failed, so nothing was written to \`${prettyPath(nitro.options.output.publicDir)}\`.` +
-        (nitro.options.renderer
-          ? ""
-          : " No `renderer` is configured — check that the app has a route or renderer able to serve the prerendered routes.")
+        missingRendererHint(nitro)
     );
   }
 
@@ -397,13 +393,17 @@ async function startPrerenderer(nitroRenderer: Nitro): Promise<EnvServer> {
 function logPrerenderErrors(nitro: Nitro, failedRoutes: Set<PrerenderRoute>) {
   nitro.logger.log("\nErrors prerendering:");
   for (const route of failedRoutes) {
-    // const parents = linkParents.get(route.route);
-    // const parentsText = parents?.size
-    //   ? `\n${[...parents.values()]
-    //       .map((link) => colors.gray(`  │ └── Linked from ${link}`))
-    //       .join("\n")}`
-    //   : "";
     nitro.logger.log(formatPrerenderRoute(route));
   }
   nitro.logger.log("");
+}
+
+function missingRendererHint(nitro: Nitro): string {
+  if (nitro.options.renderer) {
+    return "";
+  }
+  if (nitro.options.builder === "vite") {
+    return " No Vite SSR entry was detected. If the app renders HTML, place `entry-server` in `app/`, `src/` or the project root, or set `environments.ssr.build.rollupOptions.input` in the Vite config.";
+  }
+  return " No `renderer` is configured. Check that the app has a route or renderer able to serve the prerendered routes.";
 }

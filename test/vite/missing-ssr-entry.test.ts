@@ -45,6 +45,7 @@ describe("vite: ssr entry outside the auto-detected directories", () => {
 
     expect(error).toBeDefined();
     expect(String(error?.message)).toContain("Prerendered 0 routes");
+    expect(String(error?.message)).toContain("No Vite SSR entry was detected");
     expect(existsSync(join(publicDir, "index.html"))).toBe(false);
   }, 60_000);
 
