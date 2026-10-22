@@ -54,6 +54,7 @@
   },
   "scripts": {
     "build": "pnpm gen-presets && obuild",
+    "build:bin": "bun ./scripts/bun-bin/build.ts",
     "dev": "pnpm -C playground dev",
     "dev:build": "pnpm -C playground build",
     "dev:start": "node playground/.output/server/index.mjs",
