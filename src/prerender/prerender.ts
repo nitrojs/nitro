@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { defu } from "defu";
 import mime from "mime";
-import { writeFile, prettyPath } from "../utils/fs.ts";
+import { isCaseInsensitiveFS, writeFile, prettyPath } from "../utils/fs.ts";
 import type { Nitro, NormalizedRouteRules, PrerenderRoute, PublicAssetDir } from "nitro/types";
 import { join, relative, resolve } from "pathe";
 import { createRouter, addRoute, findAllRoutes } from "rou3";
@@ -110,8 +110,11 @@ export async function prerender(nitro: Nitro) {
   // can resolve to one file (`/other` and `/other/index.html` both become
   // `other/index.html`), which is only known once each of them has been rendered.
   // Keyed by the resolved path rather than `fileName`, so aliases pointing at one
-  // file still collide.
+  // file still collide. On a case-insensitive filesystem, `/About` and `/about` are one
+  // file too, so the key is lower-cased there.
   const outputByFile = new Map<string, { route: string; hash: string }>();
+  const caseInsensitiveFS = await isCaseInsensitiveFS(nitro.options.output.publicDir);
+  const outputKey = (filePath: string) => (caseInsensitiveFS ? filePath.toLowerCase() : filePath);
 
   const publicAssetBases: string[] = nitro.options.publicAssets
     .filter(
@@ -278,7 +281,7 @@ export async function prerender(nitro: Nitro) {
     // Allow hooking before generate
     await nitro.hooks.callHook("prerender:generate", _route, nitro);
     const filePath = join(nitro.options.output.publicDir, _route.fileName);
-    const claimed = outputByFile.get(filePath);
+    const claimed = outputByFile.get(outputKey(filePath));
     // A route that cannot write to an already claimed file must not change its metadata
     if (_route.contentType !== inferredContentType && !claimed) {
       const prerenderMeta = getPrerenderMeta(nitro);
@@ -315,7 +318,7 @@ export async function prerender(nitro: Nitro) {
     } else if (canWriteToDisk(_route) && filePath.startsWith(nitro.options.output.publicDir)) {
       // Claim the file before awaiting, so a concurrent render of a route resolving
       // to the same file sees it as taken
-      outputByFile.set(filePath, { route, hash: hashContents(dataBuff!) });
+      outputByFile.set(outputKey(filePath), { route, hash: hashContents(dataBuff!) });
       await writeFile(filePath, dataBuff!);
       nitro._prerenderedRoutes!.push(_route);
     } else {

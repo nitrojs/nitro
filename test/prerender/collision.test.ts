@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { join } from "pathe";
 import { build, copyPublicAssets, createNitro, prepare, prerender } from "nitro/builder";
 import { afterAll, describe, expect, it } from "vitest";
+import { isCaseInsensitiveFS } from "../../src/utils/fs.ts";
 
 const fixtureDir = fileURLToPath(new URL("./fixture", import.meta.url));
 const tmpDir = fileURLToPath(new URL("./.tmp", import.meta.url));
@@ -13,37 +14,15 @@ describe("prerender output collision", () => {
   });
 
   it("keeps the first route's output and warns instead of overwriting it", async () => {
-    const outDir = join(tmpDir, "output");
-    await rm(outDir, { recursive: true, force: true });
-    await mkdir(outDir, { recursive: true });
-
-    const nitro = await createNitro({
-      rootDir: fixtureDir,
-      preset: "static",
-      output: { dir: outDir },
-      prerender: {
-        crawlLinks: false,
-        // one at a time, so the route that claims the file is the first one listed
-        concurrency: 1,
-        // the first two resolve to `other/index.html`, `/another` does not, and the
-        // `/shell` pair resolves to one file with the same contents
-        routes: ["/other", "/other/index.html", "/another", "/shell", "/shell/index.html"],
-      },
-    });
-
-    const warnings: string[] = [];
-    nitro.logger.warn = ((...args: unknown[]) => {
-      warnings.push(args.map(String).join(" "));
-    }) as typeof nitro.logger.warn;
-
-    try {
-      await prepare(nitro);
-      await copyPublicAssets(nitro);
-      await prerender(nitro);
-      await build(nitro);
-    } finally {
-      await nitro.close();
-    }
+    // the first two resolve to `other/index.html`, `/another` does not, and the
+    // `/shell` pair resolves to one file with the same contents
+    const { nitro, warnings, outDir } = await prerenderRoutes("output", [
+      "/other",
+      "/other/index.html",
+      "/another",
+      "/shell",
+      "/shell/index.html",
+    ]);
 
     const collisionWarnings = warnings.filter((w) => w.includes("both prerender to"));
     expect(collisionWarnings).toHaveLength(1);
@@ -70,4 +49,55 @@ describe("prerender output collision", () => {
     const contents = await readFile(join(outDir, "public/other/index.html"), "utf8");
     expect(contents).toBe(`<!DOCTYPE html><html><body>rendered /other</body></html>`);
   }, 120_000);
+
+  it("treats routes differing only in case as one file on a case-insensitive filesystem", async () => {
+    const { nitro, warnings, outDir } = await prerenderRoutes("output-case", ["/Case", "/case"]);
+    const collisionWarnings = warnings.filter((w) => w.includes("both prerender to"));
+    const written = nitro._prerenderedRoutes!.map((r) => r.route);
+
+    if (await isCaseInsensitiveFS(outDir)) {
+      expect(collisionWarnings).toHaveLength(1);
+      expect(written).toEqual(["/Case"]);
+      expect(await readFile(join(outDir, "public/case/index.html"), "utf8")).toBe(
+        `<!DOCTYPE html><html><body>rendered /Case</body></html>`
+      );
+    } else {
+      expect(collisionWarnings).toHaveLength(0);
+      expect(written).toEqual(["/Case", "/case"]);
+    }
+  }, 120_000);
 });
+
+async function prerenderRoutes(name: string, routes: string[]) {
+  const outDir = join(tmpDir, name);
+  await rm(outDir, { recursive: true, force: true });
+  await mkdir(outDir, { recursive: true });
+
+  const nitro = await createNitro({
+    rootDir: fixtureDir,
+    preset: "static",
+    output: { dir: outDir },
+    prerender: {
+      crawlLinks: false,
+      // one at a time, so the route that claims the file is the first one listed
+      concurrency: 1,
+      routes,
+    },
+  });
+
+  const warnings: string[] = [];
+  nitro.logger.warn = ((...args: unknown[]) => {
+    warnings.push(args.map(String).join(" "));
+  }) as typeof nitro.logger.warn;
+
+  try {
+    await prepare(nitro);
+    await copyPublicAssets(nitro);
+    await prerender(nitro);
+    await build(nitro);
+  } finally {
+    await nitro.close();
+  }
+
+  return { nitro, warnings, outDir };
+}
