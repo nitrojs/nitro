@@ -1,3 +1,6 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "pathe";
 import { describe, expect, it, vi } from "vitest";
 import type { Nitro, NitroOptions } from "nitro/types";
 import { legacyUnenvLayers, resolveUnenv } from "../../src/config/resolvers/unenv.ts";
@@ -62,6 +65,18 @@ describe("resolveBuildEnv", () => {
     expect(env.inject).toEqual({});
     expect(env.polyfills).toEqual([]);
     expect(env.external).toEqual(["my-external"]);
+    expect(env.alias.nitro).toBeUndefined();
+  });
+
+  it("aliases `nitro` imports when the project cannot resolve it", async () => {
+    const rootDir = mkdtempSync(join(tmpdir(), "nitro-env-"));
+    try {
+      const env = await resolveBuildEnv(createNitro({ rootDir }));
+      expect(env.alias.nitro).toBe(join(process.cwd(), "dist/runtime/nitro.mjs"));
+      expect(env.alias["nitro/h3"]).toBe(join(process.cwd(), "lib/h3.mjs"));
+    } finally {
+      rmSync(rootDir, { recursive: true, force: true });
+    }
   });
 
   it("adds node compatibility for `node: false` builds", async () => {

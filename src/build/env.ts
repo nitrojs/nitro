@@ -1,7 +1,10 @@
 import type { Nitro } from "nitro/types";
+import { readFileSync } from "node:fs";
 import { builtinModules } from "node:module";
 import { resolveModulePath } from "exsolve";
+import { join } from "pathe";
 import { resolveAlias } from "pathe/utils";
+import { pkgDir } from "#nitro/meta";
 import { legacyUnenvLayers } from "../config/resolvers/unenv.ts";
 import { nodeCompatEnv } from "./_node-compat.ts";
 import { isUnenvId } from "./plugins/unenv.ts";
@@ -62,6 +65,7 @@ export async function resolveBuildEnv(nitro: Nitro): Promise<BuildEnv> {
   }
   layers.push(
     commonEnv,
+    selfEnv(nitro.options.rootDir),
     ...(presetEnvs.get(nitro) || []),
     ...legacyUnenvLayers(nitro.options, nitro.logger),
     {
@@ -116,6 +120,21 @@ function resolveEnvPaths(env: BuildEnv, rootDir: string) {
   for (const [name, value] of Object.entries(env.inject)) {
     env.inject[name] = typeof value === "string" ? resolve(value) : [resolve(value[0]), value[1]];
   }
+}
+
+// Projects without their own `nitro` dependency (e.g. built by a global CLI) import this one
+function selfEnv(rootDir: string): PresetEnv {
+  if (resolveModulePath("nitro", { from: rootDir, try: true })) {
+    return {};
+  }
+  const { exports } = JSON.parse(readFileSync(join(pkgDir, "package.json"), "utf8"));
+  return {
+    alias: Object.fromEntries(
+      Object.entries(exports as Record<string, string>)
+        .filter(([, path]) => path.endsWith(".mjs"))
+        .map(([id, path]) => [id.replace(/^\./, "nitro"), join(pkgDir, path)])
+    ),
+  };
 }
 
 // Deduplicates items and removes `!`-prefixed items along with their targets
