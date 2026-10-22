@@ -307,7 +307,8 @@ export async function prerender(nitro: Nitro) {
         crawlLinks ? dataBuff!.toString("utf8") : "",
         routePath,
         res,
-        crawlLinks
+        crawlLinks,
+        nitro.options.baseURL
       );
       for (const _link of extractedLinks) {
         // Crawled links include `baseURL`, while routes (and `ignore` patterns) are relative to it
