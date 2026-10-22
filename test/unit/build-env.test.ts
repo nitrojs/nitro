@@ -74,6 +74,7 @@ describe("resolveBuildEnv", () => {
       const env = await resolveBuildEnv(createNitro({ rootDir }));
       expect(env.alias.nitro).toBe(join(process.cwd(), "dist/runtime/nitro.mjs"));
       expect(env.alias["nitro/h3"]).toBe(join(process.cwd(), "lib/h3.mjs"));
+      expect(env.alias["nitro/package.json"]).toBe(join(process.cwd(), "package.json"));
     } finally {
       rmSync(rootDir, { recursive: true, force: true });
     }

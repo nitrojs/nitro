@@ -131,7 +131,7 @@ function selfEnv(rootDir: string): PresetEnv {
   return {
     alias: Object.fromEntries(
       Object.entries(exports as Record<string, string>)
-        .filter(([, path]) => path.endsWith(".mjs"))
+        .filter(([, path]) => /\.(?:mjs|json)$/.test(path))
         .map(([id, path]) => [id.replace(/^\./, "nitro"), join(pkgDir, path)])
     ),
   };
