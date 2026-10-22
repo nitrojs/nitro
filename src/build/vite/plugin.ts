@@ -247,9 +247,13 @@ function nitroSelfAliases(aliases: Record<string, string>): VitePlugin {
     resolveId: {
       order: "pre",
       filter: { id: /^nitro(\/|$)/ },
-      handler(id) {
+      async handler(id, importer, options) {
         const resolved = resolveAlias(id, aliases);
-        return resolved === id ? undefined : resolved;
+        if (resolved !== id) {
+          return (
+            (await this.resolve(resolved, importer, { ...options, skipSelf: true })) || resolved
+          );
+        }
       },
     },
   };
@@ -266,18 +270,18 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
       if (!ctx.bundlerConfig) {
         throw new Error("Bundler config is not initialized yet!");
       }
-      const isDev = ctx.nitro?.options.dev;
+      const scopeSelfAliases = ctx.nitro?.options.dev && !ctx._isVitest;
       return {
         appType: userConfig.appType || "custom",
         resolve: {
           // Keep alias order and never leak `node:` builtins to client builds.
           // In dev, the `nitro/*` aliases (no `nitro` dependency in the
           // project) are scoped to the `nitro` environment so they do not
-          // bypass the dev service proxy.
+          // bypass the dev service proxy (not used by Vitest).
           alias: Object.entries(ctx.bundlerConfig.base.aliases)
             .filter(
               ([find, replacement]) =>
-                !replacement.startsWith("node:") && !(isDev && /^nitro(\/|$)/.test(find))
+                !replacement.startsWith("node:") && !(scopeSelfAliases && /^nitro(\/|$)/.test(find))
             )
             .map(([find, replacement]) => ({
               find,

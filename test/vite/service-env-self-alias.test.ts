@@ -2,9 +2,10 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "pathe";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import type { Nitro } from "nitro/types";
 import { nitro } from "../../src/vite.ts";
 
-const { createServer } = (await import(
+const { createBuilder, createServer } = (await import(
   process.env.NITRO_VITE_PKG || "vite"
 )) as typeof import("vite");
 
@@ -47,18 +48,41 @@ describe("vite: service environments without a nitro dependency", () => {
     expect(resolved?.id).not.toContain("\0nitro-env-proxy:");
   });
 
+  test("keeps `nitro/*` self aliases in all environments with vitest", async () => {
+    // Vitest has no dev service proxy, so test files in other environments rely on the aliases
+    const vitestServer = await createServer({
+      root: rootDir,
+      configFile: false,
+      logLevel: "warn",
+      environments: { __vitest__: {} },
+      plugins: [nitro()],
+    });
+    try {
+      const importer = join(rootDir, "test/kv.test.ts");
+      const resolved = await vitestServer.environments.ssr.pluginContainer.resolveId(
+        "nitro/kv",
+        importer
+      );
+      expect(resolved?.id).toMatch(/dist\/runtime\/kv\.mjs$/);
+    } finally {
+      await vitestServer.close();
+    }
+  });
+
   test("resolves `nitro/*` self aliases in the production nitro environment", async () => {
-    const { createBuilder } = (await import(
-      process.env.NITRO_VITE_PKG || "vite"
-    )) as typeof import("vite");
+    let nitroInstance: Nitro | undefined;
     const builder = await createBuilder({
       root: rootDir,
       configFile: false,
       logLevel: "warn",
-      plugins: [nitro()],
+      plugins: [nitro({ hooks: { "build:before": (n) => void (nitroInstance = n) } })],
     });
-    const alias = builder.environments.nitro.config.resolve.alias || [];
-    const kvAlias = alias.find((a) => typeof a.find === "string" && a.find === "nitro/kv");
-    expect(kvAlias?.replacement).toMatch(/dist\/runtime\/kv\.mjs$/);
+    try {
+      const alias = builder.environments.nitro.config.resolve.alias || [];
+      const kvAlias = alias.find((a) => typeof a.find === "string" && a.find === "nitro/kv");
+      expect(kvAlias?.replacement).toMatch(/dist\/runtime\/kv\.mjs$/);
+    } finally {
+      await nitroInstance?.close();
+    }
   });
 });
