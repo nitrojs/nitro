@@ -1,8 +1,14 @@
-import { promises as fsp } from "node:fs";
+import { existsSync, promises as fsp } from "node:fs";
+import { tmpdir } from "node:os";
 import type { Context as FunctionContext } from "@netlify/functions";
-import { resolve } from "pathe";
+import { join, resolve } from "pathe";
 import { describe, expect, it } from "vitest";
-import { getStaticPaths } from "../../src/presets/netlify/utils.ts";
+import type { Nitro } from "nitro/types";
+import {
+  generateNetlifyEdgeFunction,
+  getStaticPaths,
+  writeConfig,
+} from "../../src/presets/netlify/utils.ts";
 import { getPresetTmpDir, setupTest, testNitro } from "../tests.ts";
 
 describe("nitro:preset:netlify", async () => {
@@ -12,8 +18,10 @@ describe("nitro:preset:netlify", async () => {
         publicDir: resolve(getPresetTmpDir("netlify"), "dist"),
       },
       netlify: {
-        images: {
-          remote_images: ["https://example.com/.*"],
+        config: {
+          images: {
+            remote_images: ["https://example.com/.*"],
+          },
         },
       },
     },
@@ -74,7 +82,7 @@ describe("nitro:preset:netlify", async () => {
 
       it("writes config.json", async () => {
         const config = await fsp
-          .readFile(resolve(ctx.outDir, "../deploy/v1/config.json"), "utf8")
+          .readFile(resolve(ctx.outDir, "../config.json"), "utf8")
           .then((r) => JSON.parse(r));
         expect(config).toMatchInlineSnapshot(`
           {
@@ -202,6 +210,38 @@ describe("nitro:preset:netlify", async () => {
         "/base/with-default-fallthrough/*",
         "/base/nested/no-fallthrough/*",
       ]);
+    });
+  });
+
+  describe("generateNetlifyEdgeFunction", () => {
+    it("inlines the edge function config with static paths excluded", () => {
+      const nitro = {
+        options: {
+          baseURL: "/",
+          framework: { name: "nitro", version: "3.x" },
+          publicAssets: [{ baseURL: "build", dir: "build-dir", maxAge: 0 }],
+        },
+      } as unknown as Nitro;
+      expect(generateNetlifyEdgeFunction(nitro)).toMatchInlineSnapshot(`
+        "export { default } from "./main.mjs";
+        export const config = {
+          name: "edge server handler",
+          generator: "nitro@3.x",
+          path: "/*",
+          excludedPath: ["/.netlify/*","/build/*"],
+        };"
+      `);
+    });
+  });
+
+  describe("writeConfig", () => {
+    it("removes stale config.json when config is empty", async () => {
+      const dir = await fsp.mkdtemp(join(tmpdir(), "nitro-netlify-config-"));
+      const configPath = join(dir, "config.json");
+      await fsp.writeFile(configPath, JSON.stringify({ redirects: [] }));
+      await writeConfig({ options: { netlify: {} } } as unknown as Nitro, configPath);
+      expect(existsSync(configPath)).toBe(false);
+      await fsp.rm(dir, { recursive: true, force: true });
     });
   });
 });

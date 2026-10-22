@@ -1,17 +1,19 @@
 import type { Nitro } from "nitro/types";
 import type { H3Event, HTTPHandler } from "h3";
-import { createProxyServer, type ProxyServerOptions } from "httpxy";
-import type { IncomingMessage, ServerResponse } from "node:http";
+import type { Hooks } from "crossws";
+import type { IncomingMessage } from "node:http";
 import type { Socket } from "node:net";
-import { H3, toEventHandler, serveStatic, fromNodeHandler, HTTPError } from "h3";
+import { H3, toEventHandler, serveStatic, HTTPError } from "h3";
 import { joinURL, withoutBase } from "ufo";
 import { addRoute, createRouter, findRoute } from "rou3";
 import mime from "mime";
 import { join, resolve, extname } from "pathe";
 import { stat } from "node:fs/promises";
 import { createReadStream } from "node:fs";
+import { Readable } from "node:stream";
 import { createGzip, createBrotliCompress } from "node:zlib";
 import { createVFSHandler } from "./vfs.ts";
+import { createDevProxy, type DevProxy } from "./_proxy.ts";
 import { isLocalDevRequest } from "./_request.ts";
 import { createDevToolsJSONHandler, DEVTOOLS_JSON_ROUTE } from "./_devtools-json.ts";
 
@@ -24,7 +26,7 @@ export class NitroDevApp {
   nitro: Nitro;
   fetch: (req: Request) => Response | Promise<Response>;
 
-  #wsProxies?: ReturnType<typeof createRouter<ReturnType<typeof createHTTPProxy>>>;
+  #wsProxies?: ReturnType<typeof createRouter<DevProxy>>;
   #routes = createRouter();
 
   constructor(nitro: Nitro, catchAllHandler?: HTTPHandler) {
@@ -118,7 +120,7 @@ export class NitroDevApp {
       if (typeof opts === "string") {
         opts = { target: opts };
       }
-      const proxy = createHTTPProxy(opts);
+      const proxy = createDevProxy(opts);
       app.all(route, proxy.handleEvent);
       this.#addRoute("", route);
       if (opts.ws) {
@@ -160,19 +162,28 @@ export class NitroDevApp {
    * @returns `true` if the socket was handed to a proxy, `false` if the caller should handle it.
    */
   proxyUpgrade(req: IncomingMessage, socket: Socket, head: any): boolean {
-    if (!this.#wsProxies) {
-      return false;
-    }
     const path = (req.url || "/").split("?")[0]!;
-    const match = findRoute(this.#wsProxies, "", path);
-    if (!match) {
+    const proxy = this.#findWSProxy(path);
+    if (!proxy) {
       return false;
     }
-    match.data.proxy.ws(req, socket, {}, head).catch((error) => {
+    proxy.proxyUpgrade(req, socket, head).catch((error) => {
       this.nitro.logger.error(`Failed to proxy WebSocket upgrade for \`${path}\`:`, error);
       socket.destroy();
     });
     return true;
+  }
+
+  /**
+   * Runtime-agnostic alternative to {@link proxyUpgrade}: resolve `crossws` hooks proxying a
+   * WebSocket upgrade request to a matching `devProxy` rule with `ws` enabled.
+   */
+  resolveWebSocketProxy(req: Request): Promise<Partial<Hooks>> | undefined {
+    return this.#findWSProxy(new URL(req.url).pathname)?.websocket();
+  }
+
+  #findWSProxy(path: string): DevProxy | undefined {
+    return this.#wsProxies && findRoute(this.#wsProxies, "", path)?.data;
   }
 }
 
@@ -212,35 +223,18 @@ function serveStaticDir(
         event.res.headers.set("Content-Encoding", "br");
         event.res.headers.delete("Content-Length");
         event.res.headers.set("Vary", "Accept-Encoding");
-        return stream.pipe(createBrotliCompress());
+        return toBody(event, stream.pipe(createBrotliCompress()));
       } else if (acceptEncoding.includes("gzip")) {
         event.res.headers.set("Content-Encoding", "gzip");
         event.res.headers.delete("Content-Length");
         event.res.headers.set("Vary", "Accept-Encoding");
-        return stream.pipe(createGzip());
+        return toBody(event, stream.pipe(createGzip()));
       }
-      return stream as any;
+      return toBody(event, stream) as any;
     },
   });
 }
 
-function createHTTPProxy(defaults: ProxyServerOptions = {}) {
-  const proxy = createProxyServer({ xfwd: true, ...defaults });
-  return {
-    proxy,
-    async handleEvent(event: H3Event, opts?: ProxyServerOptions) {
-      try {
-        return await fromNodeHandler((req, res) => {
-          return proxy.web(req as IncomingMessage, res as ServerResponse, opts);
-        })(event);
-      } catch (error: any) {
-        event.res.headers.set("refresh", "3");
-        throw new HTTPError({
-          status: 503,
-          message: "Dev server is unavailable.",
-          cause: error,
-        });
-      }
-    },
-  };
+function toBody(event: H3Event, stream: Readable) {
+  return event.runtime?.node ? stream : (Readable.toWeb(stream) as ReadableStream);
 }

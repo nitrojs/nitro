@@ -74,7 +74,6 @@ minimumReleaseAgeExclude:
   - hookable*
   - httpxy*
   - knitwork*
-  - mdzilla*
   - mlly*
   - nf3*
   - nypm*

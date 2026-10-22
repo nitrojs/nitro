@@ -47,8 +47,11 @@ export default defineCommand({
       }
     );
     await prepare(nitro);
-    await copyPublicAssets(nitro);
-    await prerender(nitro);
+    // The vite builder copies public assets and prerenders after building the client
+    if (nitro.options.builder !== "vite") {
+      await copyPublicAssets(nitro);
+      await prerender(nitro);
+    }
     await build(nitro);
     await nitro.close();
   },

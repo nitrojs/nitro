@@ -16,6 +16,7 @@
 | `build.ts` | CLI build entry for `nitro build` (`viteBuild()`) |
 | `preview.ts` | Preview server plugin |
 | `types.ts` | Type definitions (`NitroPluginConfig`, `NitroPluginContext`) |
+| `_assets.ts` | `?assets` import plugins, gated by `vite.assetsImport` |
 | `_import.ts` | On demand `vite` import from the user project (`importVite()`) |
 | `_dev-worker.ts` | Generated dev worker entry, injecting the app's Vite module runner |
 | `vitest.ts` | Vitest support: `nitro` test environment (`src/runtime/internal/vite/vitest-env.mjs`) |
@@ -200,7 +201,7 @@ A payload without `triggeredBy` (added/removed handlers) drops that
 environment's whole module graph instead. Reloads are serialized per
 environment and requests wait for the in-flight one.
 
-`experimental.vite.serverReload: false` opts out entirely: server modules are
+`vite.serverReload: false` opts out entirely: server modules are
 still invalidated, but no `full-reload` is sent and the dev worker keeps its
 current evaluations.
 
@@ -241,10 +242,13 @@ current evaluations.
 | Template | Dynamic (vite-env route) | Static (inlined SSR outlet) |
 | Sourcemaps | Enabled | Optional |
 
-## Experimental Features
+## Vite Options
 
-`experimental.vite` options:
-- `assetsImport` (default: true) — `?assets` imports via `@hiogawa/vite-plugin-fullstack`
+`vite` Nitro config options (from inline plugin options, `nitro` in Vite config or `nitro.config.ts`;
+read from `nitro.options.vite`, `experimental.vite` is a deprecated alias mapped by `src/config/resolvers/vite.ts`):
+- `assetsImport` (default: true) — `?assets` imports via `@hiogawa/vite-plugin-fullstack`. Its plugins
+  are always registered (Vite resolves plugins before Nitro loads its config) and their hooks are
+  skipped when disabled (`_assets.ts`)
 - `serverReload` (default: true) — reload the dev worker on server-only module changes
 - `services` — register custom service environments
 
@@ -281,5 +285,5 @@ restart itself (it ignores `configFileDependencies`).
 - `src/build/plugins.ts` — base build plugins (virtual modules, WASM, externals, etc.)
 - `src/build/virtual/` — 14 virtual module templates
 - `src/dev/app.ts` — `NitroDevApp` for dev-only handlers
-- `src/dev/server.ts` — `NitroDevServer` with `RunnerManager`
+- `src/dev/server.ts` — `createDevServer()` (internal `DevServer` class) with `RunnerManager`
 - `src/runtime/internal/vite/` — runtime worker and entry points

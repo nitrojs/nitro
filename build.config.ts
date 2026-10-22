@@ -1,36 +1,30 @@
 import { defineBuildConfig } from "obuild/config";
 
-import { readFile, writeFile } from "node:fs/promises";
+import { readdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import type { CodeSplittingOptions } from "rolldown";
 import { glob } from "tinyglobby";
+import { deps } from "./src/utils/_deps.ts";
+import type { DepMeta } from "./src/utils/_deps.ts";
 
 const isStub = process.argv.includes("--stub");
 
-// Optional dependencies imported on demand from the user project (see `src/utils/dep.ts`)
-const optionalDeps = [
-  "@vercel/queue",
-  "dotenv",
-  "giget",
-  "jiti",
-  "rolldown",
-  "rollup",
-  "vite",
-  "xml2js",
-  "zephyr-agent",
-];
+// Optional dependencies imported on demand from the user project (see `deps.json`)
+const optionalDeps = Object.keys(deps);
 
 // Optional dependencies of bundled libraries, replaced by an on demand import (see `src/shims/`)
-const shimmedDeps = ["dotenv", "giget", "jiti"];
+const shimmedDeps = (await readdir(new URL("src/shims/", import.meta.url)))
+  .filter((file) => file.endsWith(".ts") && !file.startsWith("_"))
+  .map((file) => file.slice(0, -".ts".length));
 
 // Optional dependencies imported by the public types, with a fallback type when not installed
 // (see `OptionalDepType` in `src/types/_utils.ts`)
 const optionalTypeDeps = [
   "@cloudflare/workers-types",
-  "@vercel/queue",
   "cloudflare:workers",
-  "rolldown",
-  "rollup",
+  ...Object.entries(deps as Record<string, DepMeta>)
+    .filter(([, meta]) => meta.types)
+    .map(([id]) => id),
 ];
 
 const pkg = await import("./package.json", { with: { type: "json" } }).then((r) => r.default || r);
@@ -116,7 +110,7 @@ export default defineBuildConfig({
         "nitro",
         ...Object.keys(pkg.exports || {}).map((key) => key.replace(/^./, "nitro")),
         ...Object.keys(pkg.dependencies),
-        ...optionalDeps.filter((dep) => !shimmedDeps.includes(dep)),
+        ...optionalDeps,
         "typescript",
         "firebase-functions",
         "@scalar/api-reference",
@@ -184,13 +178,6 @@ export default defineBuildConfig({
       if (isStub) {
         return;
       }
-
-      // Bundle docs
-      const { exportSource } = await import("mdzilla");
-      await exportSource("./docs", "./dist/docs", {
-        title: "Nitro Documentation",
-        filter: (e: { entry: { path: string } }) => !e.entry.path.startsWith("/blog"),
-      });
 
       // Optional dependency types
       for (const file of await glob("dist/**/*.d.mts")) {
