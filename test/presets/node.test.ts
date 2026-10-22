@@ -116,8 +116,13 @@ describe("nitro:preset:node-server", async () => {
 describe("nitro:preset:node-cluster", async () => {
   const ctx = await setupTest("node-cluster");
 
-  // Signals sent to the primary (`index.mjs`) must be forwarded to workers.
-  testCloseHook(ctx, { command: process.execPath, args: (entry) => [entry] });
+  // Signals sent to the primary (`index.mjs`) must be forwarded to workers, and the
+  // primary must exit once every worker has shut down.
+  testCloseHook(ctx, {
+    command: process.execPath,
+    args: (entry) => [entry],
+    exitCode: 0,
+  });
 
   it.skipIf(isWindows)(
     "exits non-zero when all workers exit unexpectedly",

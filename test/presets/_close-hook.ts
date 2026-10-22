@@ -15,7 +15,13 @@ const CLOSE_HOOK_MARKER = "[fixture] close hook called";
  */
 export function testCloseHook(
   ctx: Context,
-  opts: { command: string; args: (entry: string) => string[]; cwd?: string }
+  opts: {
+    command: string;
+    args: (entry: string) => string[];
+    cwd?: string;
+    /** When set, also wait for the process to exit and assert its exit code. */
+    exitCode?: number;
+  }
 ): void {
   it.skipIf(isWindows)(
     "calls `close` hooks on shutdown",
@@ -55,12 +61,21 @@ export function testCloseHook(
         // The fixture schedule runner can keep the event loop alive after the server
         // closed, so wait for the marker (or the process to exit) instead of exit alone.
         const deadline = Date.now() + 10_000;
-        while (!output.includes(CLOSE_HOOK_MARKER) && !exited && Date.now() < deadline) {
+        const waitForExit = opts.exitCode !== undefined;
+        while (
+          (waitForExit || !output.includes(CLOSE_HOOK_MARKER)) &&
+          !exited &&
+          Date.now() < deadline
+        ) {
           await new Promise((r) => setTimeout(r, 50));
         }
 
         expect(output).toContain(CLOSE_HOOK_MARKER);
         expect(output).not.toContain("unhandledRejection");
+        if (waitForExit) {
+          expect(exited).toBe(true);
+          expect(child.nodeChildProcess.exitCode).toBe(opts.exitCode);
+        }
       } finally {
         // Not awaited: the fixture schedule runner can outlive the server, and a
         // dangling child is cleaned up by execa when the test process exits.
