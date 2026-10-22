@@ -69,10 +69,12 @@ const netlify = defineNitroPreset(
 // Netlify edge
 const netlifyEdge = defineNitroPreset(
   {
+    extends: "base-worker",
     entry: "./netlify/runtime/netlify-edge",
     manifest: {
       deploymentId: process.env.DEPLOY_ID,
     },
+    exportConditions: ["deno"],
     output: {
       serverDir: "{{ rootDir }}/.netlify/edge-functions/server",
       publicDir: "{{ rootDir }}/dist/{{ baseURL }}",
