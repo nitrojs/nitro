@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { join } from "pathe";
+import { join, normalize } from "pathe";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("std-env", async (importOriginal) => ({
@@ -60,11 +60,13 @@ describe("importVite", () => {
 
 describe("viteDepPaths", () => {
   const rootDir = "/project";
-  const viteEntry = fileURLToPath(import.meta.resolve("vite"));
+  const viteEntry = normalize(fileURLToPath(import.meta.resolve("vite")));
   const viteDir = viteEntry.slice(0, viteEntry.lastIndexOf("/dist/"));
   const runningVite = (nitro: any) =>
     setRunningVite(nitro, {
-      resolve: { alias: [{ replacement: `/@fs${viteDir}/dist/client/env.mjs` }] },
+      resolve: {
+        alias: [{ replacement: `/@fs/${viteDir.replace(/^\//, "")}/dist/client/env.mjs` }],
+      },
     } as any);
 
   it("adds the running vite to resolve rolldown through it", () => {
