@@ -32,6 +32,7 @@ import { defu } from "defu";
 import { resolveViteOptions } from "../../config/resolvers/vite.ts";
 import type { Nitro, NitroConfig, NitroModule } from "nitro/types";
 import { nitroDevServiceProxy, viteServicesTemplate } from "./services.ts";
+import { nitroRequireExternals } from "./_require-externals.ts";
 import { importVite, setRunningVite, viteImportOptions } from "./_import.ts";
 import { isVitest, nitroVitest } from "./vitest.ts";
 
@@ -57,6 +58,7 @@ export function nitro(pluginConfig: NitroPluginConfig = {}): VitePlugin[] {
     nitroMain(ctx),
     nitroPrepare(ctx),
     nitroDevServiceProxy(ctx),
+    nitroRequireExternals(),
     nitroPreviewPlugin(ctx),
     nitroVitest(ctx),
     ...nitroAssetsImport(ctx),
