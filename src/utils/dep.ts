@@ -267,17 +267,21 @@ function _checkVersion(opts: ResolvedDepOptions, entry: string): void {
     return;
   }
   _checkedVersions.add(key);
-  const version = _installedVersion(opts.id, entry);
-  if (!version || _isSupportedVersion(version, opts.version)) {
+  const pkg = _installedPackage(opts.id, entry);
+  if (!pkg?.version || _isSupportedVersion(pkg.version, opts.version)) {
     return;
   }
+  // Not `opts.dir`: an explicit path (or the `vite` running `nitro/vite`) can be outside of it
   consola.warn(
-    `\`${opts.id}@${version}\` is installed in \`${opts.dir}\` but ${opts.reason} requires \`${opts.version}\`. Please update it if you run into issues.`
+    `\`${opts.id}@${pkg.version}\` is used from \`${pkg.dir}\` but ${opts.reason} requires \`${opts.version}\`. Please update it if you run into issues.`
   );
 }
 
-/** Read the version of the package `entry` belongs to (walking up to its `package.json`). */
-function _installedVersion(id: string, entry: string): string | undefined {
+/** Find the package `entry` belongs to and read its version (walking up to its `package.json`). */
+function _installedPackage(
+  id: string,
+  entry: string
+): { dir: string; version?: string } | undefined {
   let dir = dirname(entry);
   for (let depth = 0; depth < 10; depth++) {
     const pkgPath = join(dir, "package.json");
@@ -285,7 +289,7 @@ function _installedVersion(id: string, entry: string): string | undefined {
       try {
         const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
         if (pkg.name === id) {
-          return typeof pkg.version === "string" ? pkg.version : undefined;
+          return { dir, version: typeof pkg.version === "string" ? pkg.version : undefined };
         }
       } catch {
         // Ignore unreadable or invalid `package.json` files

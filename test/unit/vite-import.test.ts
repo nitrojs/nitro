@@ -1,5 +1,6 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
+import { fileURLToPath } from "node:url";
 import { join } from "pathe";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -19,7 +20,7 @@ vi.mock("consola", () => ({
   consola: { info: vi.fn(), start: vi.fn(), success: vi.fn(), warn: vi.fn() },
 }));
 
-const { importVite, setRunningVite, viteImportOptions } =
+const { importVite, setRunningVite, viteDepPaths, viteImportOptions } =
   await import("../../src/build/vite/_import.ts");
 
 describe("importVite", () => {
@@ -54,5 +55,37 @@ describe("importVite", () => {
       "Set the `vite.path` option"
     );
     expect(addDevDependency).not.toHaveBeenCalled();
+  });
+});
+
+describe("viteDepPaths", () => {
+  const rootDir = "/project";
+  const viteEntry = fileURLToPath(import.meta.resolve("vite"));
+  const viteDir = viteEntry.slice(0, viteEntry.lastIndexOf("/dist/"));
+  const runningVite = (nitro: any) =>
+    setRunningVite(nitro, {
+      resolve: { alias: [{ replacement: `/@fs${viteDir}/dist/client/env.mjs` }] },
+    } as any);
+
+  it("adds the running vite to resolve rolldown through it", () => {
+    const nitro = { options: { rootDir, vite: {}, deps: { paths: { unstorage: "/x" } } } } as any;
+    runningVite(nitro);
+    expect(viteDepPaths(nitro)).toEqual({
+      unstorage: "/x",
+      vite: `${viteDir}/dist/client/env.mjs`,
+    });
+  });
+
+  it("keeps an explicit vite path", () => {
+    const nitro = {
+      options: { rootDir, vite: { path: "/vite" }, deps: { paths: { vite: "/vite" } } },
+    } as any;
+    runningVite(nitro);
+    expect(viteDepPaths(nitro)).toEqual({ vite: "/vite" });
+  });
+
+  it("keeps the paths without a vite", () => {
+    const nitro = { options: { rootDir, vite: {}, deps: { paths: {} } } } as any;
+    expect(viteDepPaths(nitro)).toEqual({});
   });
 });

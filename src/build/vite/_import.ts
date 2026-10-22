@@ -67,6 +67,16 @@ export function viteImportOptions(nitro: Nitro): ViteImportOptions {
   };
 }
 
+/**
+ * The `deps.paths` option with the `vite` of {@link viteImportOptions}, so `rolldown` is also
+ * resolved through the `vite` running the `nitro/vite` plugin.
+ */
+export function viteDepPaths(nitro: Nitro): Record<string, string> | undefined {
+  const paths = nitro.options.deps?.paths;
+  const vite = viteImportOptions(nitro).path;
+  return vite && !paths?.vite ? { ...paths, vite } : paths;
+}
+
 /** Use the `vite` package running the `nitro/vite` plugin, located from its resolved config. */
 export function setRunningVite(nitro: Nitro, config: ResolvedConfig): void {
   let entry = _viteEnvEntry(config);

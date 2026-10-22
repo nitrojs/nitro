@@ -59,11 +59,7 @@ export async function unbundledPlugins(
     windowsPathPlugin(base.extensions),
     await transformPlugin(nitro, sourceDirs),
     replacePlugin(base.replacements, sourceDirs),
-    withoutSourceMap(
-      fromRollup(
-        await importAttributes({ rootDir: nitro.options.rootDir, paths: nitro.options.deps?.paths })
-      )
-    ),
+    withoutSourceMap(fromRollup(await importAttributes(nitro))),
     rawVirtualPlugin(nitro),
     fromRollup(raw()),
   ];

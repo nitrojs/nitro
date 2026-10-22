@@ -8,6 +8,7 @@ import { createRouter, addRoute, findAllRoutes } from "rou3";
 import { joinURL, withBase, withoutBase, withTrailingSlash } from "ufo";
 import { build } from "../build/build.ts";
 import { resolveRolldown } from "../build/rolldown/_import.ts";
+import { viteDepPaths } from "../build/vite/_import.ts";
 import { createNitro } from "../nitro.ts";
 import { compressPublicAssets } from "../utils/compress.ts";
 import { runParallel } from "../utils/parallel.ts";
@@ -64,6 +65,7 @@ export async function prerender(nitro: Nitro) {
     logLevel: 0,
     preset: "nitro-prerender",
     builder: prerenderBuilder(nitro),
+    deps: { ...nitro.options.deps, paths: viteDepPaths(nitro) },
   };
   await nitro.hooks.callHook("prerender:config", prerendererConfig);
   const nitroRenderer = await createNitro(prerendererConfig);
@@ -361,8 +363,9 @@ export async function prerender(nitro: Nitro) {
 /** Builder of the prerenderer: `vite` builds use `rolldown` when installed, or run the sources. */
 function prerenderBuilder(nitro: Nitro): Nitro["options"]["builder"] {
   if (nitro.options.builder === "vite") {
-    const { rootDir, deps } = nitro.options;
-    return resolveRolldown(rootDir, { paths: deps?.paths }) ? "rolldown" : false;
+    return resolveRolldown(nitro.options.rootDir, { paths: viteDepPaths(nitro) })
+      ? "rolldown"
+      : false;
   }
   return nitro.options.builder;
 }

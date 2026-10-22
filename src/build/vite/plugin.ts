@@ -81,7 +81,9 @@ function nitroInit(ctx: NitroPluginContext): VitePlugin {
 
     async configResolved(config) {
       setRunningVite(useNitro(ctx), config);
-      if (config.command === "serve") {
+      // Inline plugins are reused on `server.restart()`
+      if (config.command === "serve" && !ctx._viteVersionChecked) {
+        ctx._viteVersionChecked = true;
         await checkViteVersion(ctx, this.meta.viteVersion);
       }
       // Vite resolves its plugin list *before* running config hooks, so a plugin added by

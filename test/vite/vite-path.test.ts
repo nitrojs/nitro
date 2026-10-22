@@ -3,6 +3,7 @@ import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ViteDevServer } from "vite";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { consola } from "consola";
 import { nitro } from "nitro/vite";
 
 const runningPkg = process.env.NITRO_VITE_PKG || "vite";
@@ -66,4 +67,36 @@ describe("vite:path", { concurrent: false }, () => {
     },
     30_000
   );
+
+  test("warns about another explicit vite once across restarts", async () => {
+    await server?.close();
+    const warnings: string[] = [];
+    const originalReporters = [...consola.options.reporters];
+    consola.setReporters([
+      {
+        log: (logObj) => {
+          if (logObj.type === "warn") {
+            warnings.push(logObj.args.join(" "));
+          }
+        },
+      },
+    ]);
+    try {
+      server = await createServer({
+        root: rootDir,
+        logLevel: "warn",
+        plugins: [
+          nitro({
+            serverDir: "./",
+            serveStatic: false,
+            vite: { path: import.meta.resolve(otherPkg) },
+          }),
+        ],
+      });
+      await server.restart();
+    } finally {
+      consola.setReporters(originalReporters);
+    }
+    expect(warnings.filter((w) => w.includes("is running"))).toHaveLength(1);
+  }, 30_000);
 });

@@ -3,6 +3,7 @@ import { isAbsolute } from "pathe";
 import type { Expression, Literal } from "estree";
 import type { Nitro, NitroEventHandler } from "nitro/types";
 import type { Plugin } from "rollup";
+import { viteDepPaths } from "../vite/_import.ts";
 import { importOXC } from "../../utils/oxc.ts";
 import { escapeRegExp } from "../../utils/regex.ts";
 import { chain } from "../../utils/sync.ts";
@@ -10,12 +11,13 @@ import { chain } from "../../utils/sync.ts";
 const PREFIX = "\0nitro:route-meta:";
 
 export async function routeMeta(nitro: Nitro) {
-  const { parseSync, transformSync } = await importOXC({
-    dir: nitro.options.rootDir,
-    paths: nitro.options.deps?.paths,
-  });
+  let oxc = await importOXC({ dir: nitro.options.rootDir, paths: viteDepPaths(nitro) });
   return {
     name: "nitro:route-meta",
+    // With `nitro/vite`, the running `vite` is only known once its config is resolved
+    async buildStart() {
+      oxc = await importOXC({ dir: nitro.options.rootDir, paths: viteDepPaths(nitro) });
+    },
     resolveId: {
       order: "pre",
       // eslint-disable-next-line no-control-regex
@@ -50,6 +52,7 @@ export async function routeMeta(nitro: Nitro) {
         id: new RegExp(`^${escapeRegExp(PREFIX)}`),
       },
       handler(code, id) {
+        const { parseSync, transformSync } = oxc;
         let meta: NitroEventHandler["meta"] | null = null;
 
         try {
