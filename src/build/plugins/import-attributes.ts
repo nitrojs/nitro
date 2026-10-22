@@ -1,5 +1,6 @@
 import type { Nitro } from "nitro/types";
 import type { Plugin } from "rollup";
+import type { Plugin as VitePlugin } from "vite";
 import type * as ESTree from "oxbox";
 import MagicString from "magic-string";
 import { viteDepPaths } from "../vite/_import.ts";
@@ -27,12 +28,16 @@ type TypedImport = {
 
 type Comment = { start: number; end: number };
 
-export async function importAttributes(nitro: Nitro): Promise<Plugin> {
+export async function importAttributes(
+  nitro: Nitro
+): Promise<Plugin & Pick<VitePlugin, "perEnvironmentStartEndDuringDev">> {
   let oxc = await importOXC({ dir: nitro.options.rootDir, paths: viteDepPaths(nitro) });
 
   return {
     name: "nitro:import-attributes",
     // With `nitro/vite`, the running `vite` is only known once its config is resolved
+    // (Vite only runs `buildStart` of the `client` environment in dev by default)
+    perEnvironmentStartEndDuringDev: true,
     async buildStart() {
       oxc = await importOXC({ dir: nitro.options.rootDir, paths: viteDepPaths(nitro) });
     },

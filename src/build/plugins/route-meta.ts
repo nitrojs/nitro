@@ -3,6 +3,7 @@ import { isAbsolute } from "pathe";
 import type { Expression, Literal } from "estree";
 import type { Nitro, NitroEventHandler } from "nitro/types";
 import type { Plugin } from "rollup";
+import type { Plugin as VitePlugin } from "vite";
 import { viteDepPaths } from "../vite/_import.ts";
 import { importOXC } from "../../utils/oxc.ts";
 import { escapeRegExp } from "../../utils/regex.ts";
@@ -15,6 +16,8 @@ export async function routeMeta(nitro: Nitro) {
   return {
     name: "nitro:route-meta",
     // With `nitro/vite`, the running `vite` is only known once its config is resolved
+    // (Vite only runs `buildStart` of the `client` environment in dev by default)
+    perEnvironmentStartEndDuringDev: true,
     async buildStart() {
       oxc = await importOXC({ dir: nitro.options.rootDir, paths: viteDepPaths(nitro) });
     },
@@ -93,7 +96,7 @@ export async function routeMeta(nitro: Nitro) {
         };
       },
     },
-  } satisfies Plugin;
+  } satisfies Plugin & Pick<VitePlugin, "perEnvironmentStartEndDuringDev">;
 }
 
 function astToObject(node: Expression | Literal): any {
