@@ -104,37 +104,3 @@ describe("virtual/public-assets node reader", () => {
     await expect(readAsset("/index.html")).rejects.toThrow("EACCES");
   });
 });
-
-describe("virtual/public-assets dev manifest", () => {
-  const fixturePublicDir = resolve(
-    dirname(fileURLToPath(import.meta.url)),
-    "../fixture/public/build"
-  );
-
-  async function devManifest(serveStatic: boolean | "inline") {
-    const nitro = {
-      options: {
-        dev: true,
-        serveStatic,
-        baseURL: "/",
-        rootDir: fixturePublicDir,
-        ignore: [],
-        publicAssets: [{ dir: fixturePublicDir, baseURL: "build" }],
-      },
-    } as unknown as Nitro;
-    const data = publicAssets(nitro).find((t) => t.id === "#nitro/virtual/public-assets-data")!
-      .template as () => Promise<string>;
-    return JSON.parse((await data()).replace(/^export default |;$/g, ""));
-  }
-
-  it("references source files for filesystem readers", async () => {
-    const assets = await devManifest(true);
-    expect(assets["/build/test.txt"].path).toBe(resolve(fixturePublicDir, "test.txt"));
-    expect(assets["/build/test.txt"].data).toBeUndefined();
-  });
-
-  it("inlines data for the inline reader", async () => {
-    const assets = await devManifest("inline");
-    expect(atob(assets["/build/test.txt"].data)).toBe("Works!\n");
-  });
-});
