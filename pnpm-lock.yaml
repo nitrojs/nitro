@@ -115,8 +115,8 @@ importers:
         specifier: ^0.4.3
         version: 0.4.3(magicast@0.5.5)
       c12:
-        specifier: 4.0.0-rc.2
-        version: 4.0.0-rc.2(dotenv@18.0.8)(giget@3.3.1)(jiti@2.7.0)(magicast@0.5.5)
+        specifier: 4.0.0-rc.3
+        version: 4.0.0-rc.3(dotenv@18.0.8)(giget@3.3.1)(jiti@2.7.0)(magicast@0.5.5)
       changelogen:
         specifier: ^0.6.2
         version: 0.6.2(magicast@0.5.5)
@@ -3913,6 +3913,23 @@ packages:
     peerDependencies:
       dotenv: '*'
       giget: '>=3.1.0'
+      jiti: '*'
+      magicast: '*'
+    peerDependenciesMeta:
+      dotenv:
+        optional: true
+      giget:
+        optional: true
+      jiti:
+        optional: true
+      magicast:
+        optional: true
+
+  c12@4.0.0-rc.3:
+    resolution: {integrity: sha512-zJdMuRSVnBwcZAmbL3efOhRafOZMgU977nXmcdeuUtpEIgdrncoMDhwzRCVd5Drp/lhXAUvEylxP4mQDJTzoGQ==}
+    peerDependencies:
+      dotenv: '*'
+      giget: '>=3.3.1'
       jiti: '*'
       magicast: '*'
     peerDependenciesMeta:
@@ -10382,6 +10399,20 @@ snapshots:
       magicast: 0.5.5
 
   c12@4.0.0-rc.2(dotenv@18.0.8)(giget@3.3.1)(jiti@2.7.0)(magicast@0.5.5):
+    dependencies:
+      confbox: 0.3.1
+      defu: 6.1.7
+      exsolve: 1.1.3
+      pathe: 2.0.3
+      pkg-types: 2.4.0
+      rc9: 3.1.0
+    optionalDependencies:
+      dotenv: 18.0.8
+      giget: 3.3.1
+      jiti: 2.7.0
+      magicast: 0.5.5
+
+  c12@4.0.0-rc.3(dotenv@18.0.8)(giget@3.3.1)(jiti@2.7.0)(magicast@0.5.5):
     dependencies:
       confbox: 0.3.1
       defu: 6.1.7

@@ -106,7 +106,7 @@
     "@vercel/queue": "^0.8.0",
     "@vitest/coverage-v8": "^5.0.5",
     "automd": "^0.4.3",
-    "c12": "4.0.0-rc.2",
+    "c12": "4.0.0-rc.3",
     "changelogen": "^0.6.2",
     "chokidar": "^6.0.0",
     "citty": "^0.2.2",
