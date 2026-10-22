@@ -13,8 +13,6 @@ export async function runTask(
   taskEvent: TaskEvent,
   opts?: TaskRunnerOptions
 ): Promise<{ result: unknown }> {
-  // No default timeout: the socket stays idle while the task runs, so any
-  // default would cap how long a task may take. Opt in via `opts.timeout`.
   const ctx = await _getTasksContext(opts);
   const result = await ctx.devFetch(`/_nitro/tasks/${taskEvent.name}`, {
     method: "POST",
@@ -25,9 +23,7 @@ export async function runTask(
 
 /** @experimental */
 export async function listTasks(opts?: TaskRunnerOptions) {
-  // Listing is metadata the dev server answers immediately, so a default is
-  // safe here and stops a stalled socket from hanging the caller forever.
-  const ctx = await _getTasksContext(opts, 30_000);
+  const ctx = await _getTasksContext(opts, { defaultTimeout: 30_000 });
   const res = (await ctx.devFetch("/_nitro/tasks")) as {
     tasks: Record<string, { meta: TaskMeta }>;
   };
@@ -38,10 +34,13 @@ export async function listTasks(opts?: TaskRunnerOptions) {
 
 const _devHint = `(is dev server running?)`;
 
-async function _getTasksContext(opts?: TaskRunnerOptions, defaultTimeout?: number) {
+async function _getTasksContext(
+  opts?: TaskRunnerOptions,
+  internalOpts?: { defaultTimeout?: number }
+) {
   const cwd = resolve(process.cwd(), opts?.cwd || ".");
   const buildDir = resolve(cwd, opts?.buildDir || "node_modules/.nitro");
-  const timeout = opts?.timeout ?? defaultTimeout;
+  const timeout = opts?.timeout ?? internalOpts?.defaultTimeout;
 
   const buildInfoPath = resolve(buildDir, "nitro.dev.json");
   if (!existsSync(buildInfoPath)) {
@@ -80,9 +79,7 @@ async function _getTasksContext(opts?: TaskRunnerOptions, defaultTimeout?: numbe
         {
           socketPath,
           method: options?.method,
-          // Only set it when asked. Passing `timeout: undefined` still leaves
-          // the socket reporting the peer's own idle close as a `timeout`
-          // event, which would reject a request that was never capped.
+          // Omit when unset: the default agent still emits `timeout` after its own 5s idle timeout
           ...(timeout ? { timeout } : {}),
           headers: {
             Accept: "application/json",
@@ -106,8 +103,6 @@ async function _getTasksContext(opts?: TaskRunnerOptions, defaultTimeout?: numbe
 
       if (timeout) {
         request.on("timeout", () => {
-          // destroy with an error so the `error` handler rejects instead of
-          // leaving the promise pending forever on a stalled socket
           request.destroy(new Error(`Request timed out after ${timeout}ms ${_devHint}`));
         });
       }
