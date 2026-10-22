@@ -312,7 +312,8 @@ async function aliasPlugin(
       },
     },
   };
-  if (!process.versions.bun) {
+  const runner = nitro.options.devServer?.runner || process.env.NITRO_DEV_RUNNER;
+  if (!process.versions.bun && runner !== "bun-process") {
     return plugin;
   }
   // Bun runtime plugins do not resolve the bare specifiers of static imports: rewrite them instead
@@ -334,7 +335,8 @@ async function aliasPlugin(
       const s = new MagicString(code);
       for (const request of requests.values()) {
         const literal = code.slice(request.start, request.end);
-        const aliased = /^(["'`])[^"'`$]*\1$/.test(literal) && resolveAlias(literal.slice(1, -1));
+        const aliased =
+          /^(?:"[^"]*"|'[^']*'|`[^`$]*`)$/.test(literal) && resolveAlias(literal.slice(1, -1));
         if (aliased) {
           s.overwrite(request.start, request.end, JSON.stringify(aliased));
         }

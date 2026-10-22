@@ -122,6 +122,29 @@ describe("builder: false", () => {
     await nitro.close();
   });
 
+  it("rewrites aliased static imports for the bun runner", async () => {
+    const nitro = await createNitro({
+      rootDir,
+      alias: { $lib: "./lib" },
+      devServer: { runner: "bun-process" },
+    });
+    const plugin = (await unbundledPlugins(nitro)).find((p) => p.name === "nitro:alias");
+    const { handler } = plugin!.transform as { handler: (...args: any[]) => any };
+    const code = [
+      `import a from "~lib/a";`,
+      `import b from '$lib/b';`,
+      "const c = import(`~lib/${name}`);",
+    ].join("\n");
+    expect(handler(code, join(rootDir, "routes/test.ts"))?.code).toBe(
+      [
+        `import a from ${JSON.stringify(join(rootDir, "lib/a"))};`,
+        `import b from ${JSON.stringify(join(rootDir, "lib/b"))};`,
+        "const c = import(`~lib/${name}`);",
+      ].join("\n")
+    );
+    await nitro.close();
+  });
+
   it("resolves optional runtime dependencies of the runtime from the project", async () => {
     const nitro = await createNitro({ rootDir });
     const plugin = (await unbundledPlugins(nitro)).find((p) => p.name === "nitro:runtime-deps");
