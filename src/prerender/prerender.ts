@@ -409,6 +409,29 @@ function prerenderBuilder(nitro: Nitro): Nitro["options"]["builder"] {
 }
 
 async function startPrerenderer(nitroRenderer: Nitro): Promise<EnvServer> {
+  const prerenderer = await createPrerenderer(nitroRenderer);
+  // `fetch()` gives up on the worker after ~3s, so wait until it is ready before rendering
+  // routes. A worker failing to start closes its runner, which fails the build right away.
+  let onClose: ((runner: unknown, cause?: unknown) => void) | undefined;
+  try {
+    await Promise.race([
+      prerenderer.waitForReady(),
+      new Promise<never>((_resolve, reject) => {
+        onClose = (_runner, cause) =>
+          reject(cause ?? new Error("Prerender worker closed before becoming ready"));
+        prerenderer.onClose(onClose);
+      }),
+    ]);
+  } catch (error) {
+    await prerenderer.close();
+    throw error;
+  } finally {
+    prerenderer.offClose(onClose!);
+  }
+  return prerenderer;
+}
+
+async function createPrerenderer(nitroRenderer: Nitro): Promise<EnvServer> {
   if (nitroRenderer.options.builder === false) {
     const { startUnbundledPrerenderer } = await import("../build/unbundled/prerender.ts");
     return startUnbundledPrerenderer(nitroRenderer);
