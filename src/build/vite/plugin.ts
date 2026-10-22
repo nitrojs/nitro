@@ -9,6 +9,7 @@ import type {
 import type { InputOption } from "rollup";
 import type { NitroPluginConfig, NitroPluginContext } from "./types.ts";
 import { resolve, join } from "pathe";
+import { resolveAlias } from "pathe/utils";
 import { createNitro, prepare } from "../../builder.ts";
 import { installModules } from "../../module.ts";
 import { getBundlerConfig } from "./bundler.ts";
@@ -20,16 +21,18 @@ import {
   createServiceEnvironments,
   createServiceEnvironment,
 } from "./env.ts";
-import { runtimeDir } from "nitro/meta";
+import { runtimeDir } from "#nitro/meta";
 import { resolveModulePath } from "exsolve";
-import { defu } from "defu";
+import { mergeConfig } from "../../config/_merge.ts";
 import { prettyPath } from "../../utils/fs.ts";
 import { NitroDevApp } from "../../dev/app.ts";
 import { nitroPreviewPlugin } from "./preview.ts";
-import assetsPlugin from "@hiogawa/vite-plugin-fullstack/assets";
-import type { NitroConfig, NitroModule } from "nitro/types";
+import { nitroAssetsImport } from "./_assets.ts";
+import { defu } from "defu";
+import { resolveViteOptions } from "../../config/resolvers/vite.ts";
+import type { Nitro, NitroConfig, NitroModule } from "nitro/types";
 import { nitroDevServiceProxy, viteServicesTemplate } from "./services.ts";
-import { importVite, viteImportOptions } from "./_import.ts";
+import { importVite, setRunningVite, viteImportOptions } from "./_import.ts";
 import { isVitest, nitroVitest } from "./vitest.ts";
 
 // https://vite.dev/guide/api-environment-plugins
@@ -50,19 +53,14 @@ export function nitro(pluginConfig: NitroPluginConfig = {}): VitePlugin[] {
   return [
     nitroInit(ctx),
     nitroEnv(ctx),
+    nitroServerAliases(ctx),
     nitroMain(ctx),
     nitroPrepare(ctx),
     nitroDevServiceProxy(ctx),
     nitroPreviewPlugin(ctx),
     nitroVitest(ctx),
-    pluginConfig.experimental?.vite?.assetsImport !== false &&
-      assetsPlugin({
-        experimental: {
-          // See https://github.com/hi-ogawa/vite-plugins/pull/1289
-          clientBuildFallback: false,
-        },
-      }),
-  ].filter(Boolean) as VitePlugin[];
+    ...nitroAssetsImport(ctx),
+  ];
 }
 
 function nitroInit(ctx: NitroPluginContext): VitePlugin {
@@ -78,13 +76,16 @@ function nitroInit(ctx: NitroPluginContext): VitePlugin {
         ctx._initialized = true;
         ctx._isVitest = isVitest(config);
         await setupNitroContext(ctx, configEnv, config);
-        if (configEnv.command === "serve") {
-          await checkViteVersion(ctx, (this.meta as Record<string, string>).viteVersion);
-        }
       }
     },
 
-    configResolved(config) {
+    async configResolved(config) {
+      setRunningVite(useNitro(ctx), config);
+      // Inline plugins are reused on `server.restart()`
+      if (config.command === "serve" && !ctx._viteVersionChecked) {
+        ctx._viteVersionChecked = true;
+        await checkViteVersion(ctx, this.meta.viteVersion);
+      }
       // Vite resolves its plugin list *before* running config hooks, so a plugin added by
       // another plugin's `config` hook is discovered by Nitro but silently ignored by Vite.
       for (const plugin of ctx._pluginModules || []) {
@@ -215,6 +216,29 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
   };
 }
 
+function nitroServerAliases(ctx: NitroPluginContext): VitePlugin {
+  return {
+    name: "nitro:server-aliases",
+    enforce: "pre",
+    applyToEnvironment: (env) => env.name !== "client" && env.config?.consumer !== "client",
+
+    async resolveId(id, importer, options) {
+      if (!ctx.bundlerConfig) {
+        return;
+      }
+      const resolved = resolveAlias(id, ctx.bundlerConfig.base.aliases);
+      if (resolved !== id && resolved.startsWith("node:")) {
+        return (
+          (await this.resolve(resolved, importer, { ...options, skipSelf: true })) || {
+            id: resolved,
+            external: true,
+          }
+        );
+      }
+    },
+  };
+}
+
 function nitroMain(ctx: NitroPluginContext): VitePlugin {
   return {
     name: "nitro:main",
@@ -231,11 +255,13 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
         resolve: {
           // TODO: environment specific aliases not working
           // https://github.com/vitejs/vite/pull/17583 (seems not effective)
-          // preserve alias order
-          alias: Object.entries(ctx.bundlerConfig.base.aliases).map(([find, replacement]) => ({
-            find,
-            replacement,
-          })),
+          // preserve alias order (exclude node: builtins to prevent leaking to client builds)
+          alias: Object.entries(ctx.bundlerConfig.base.aliases)
+            .filter(([, replacement]) => !replacement.startsWith("node:"))
+            .map(([find, replacement]) => ({
+              find,
+              replacement,
+            })),
         },
         builder: {
           sharedConfigBuild: true,
@@ -327,7 +353,7 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
       if (env.config.consumer === "client" || ctx._isVitest) {
         return;
       }
-      if (ctx.pluginConfig.experimental?.vite?.serverReload === false) {
+      if (ctx.nitro?.options.vite?.serverReload === false) {
         // Keep the server module graph in sync but opt out of the reload:
         // returning an empty list also suppresses Vite's own `full-reload`,
         // which would otherwise still reach (and reload) the dev worker.
@@ -387,7 +413,7 @@ function nitroPrepare(ctx: NitroPluginContext): VitePlugin {
 function createContext(pluginConfig: NitroPluginConfig): NitroPluginContext {
   return {
     pluginConfig,
-    services: { ...pluginConfig.experimental?.vite?.services },
+    services: {},
     _entryPoints: {},
   };
 }
@@ -428,11 +454,7 @@ async function setupNitroContext(
     dev: configEnv.command === "serve",
     builder: "vite",
     rootDir: userConfig.root,
-    ...defu(
-      ctx.pluginConfig,
-      (ctx.pluginConfig as any).config, // TODO: Remove shortly
-      userConfig.nitro
-    ),
+    ...mergeConfig(ctx.pluginConfig, userConfig.nitro),
   };
 
   // Register Nitro modules from Vite plugins
@@ -446,6 +468,7 @@ async function setupNitroContext(
   nitroConfig.virtual[vServicesId] = () => viteServicesTemplate(ctx);
   if (providedNitro) {
     providedNitro.options.virtual[vServicesId] = nitroConfig.virtual[vServicesId];
+    await applyInlineViteOptions(providedNitro, nitroConfig);
   }
 
   // @see https://vite.dev/guide/env-and-mode#env-files
@@ -464,8 +487,11 @@ async function setupNitroContext(
     await installModules(providedNitro, pluginModules);
   }
 
+  // Register services from config
+  ctx.services = { ...ctx.nitro.options.vite?.services };
+
   // Config ssr env as a fetchable ssr service
-  if (!ctx.services?.ssr) {
+  if (!ctx.services.ssr) {
     const userSsrEnv = userConfig.environments?.ssr;
     // Vitest always defines an `ssr` environment (without an entry) for its own use
     const userSsrInput =
@@ -527,11 +553,13 @@ async function setupNitroContext(
   // Resolve common rollup options
   ctx.bundlerConfig = await getBundlerConfig(ctx);
 
-  // Call rollup:before hook to allow modifying rollup config
+  // Call build:config hook to allow modifying the bundler config
   await ctx.nitro.hooks.callHook(
-    "rollup:before",
+    "build:config",
     ctx.nitro,
-    ctx.bundlerConfig.rollupConfig || (ctx.bundlerConfig.rolldownConfig as any)
+    ctx.bundlerConfig.rollupConfig
+      ? { builder: "vite", rollup: ctx.bundlerConfig.rollupConfig }
+      : { builder: "vite", rolldown: ctx.bundlerConfig.rolldownConfig! }
   );
 
   // Attach nitro.fetch to the dev env runner (started lazily, not when resolving config)
@@ -632,4 +660,11 @@ async function flattenPlugins(userConfig: UserConfig, configEnv: ConfigEnv): Pro
       ? plugin.apply({ ...userConfig, mode: configEnv.mode }, configEnv)
       : plugin.apply === configEnv.command;
   });
+}
+
+async function applyInlineViteOptions(nitro: Nitro, nitroConfig: NitroConfig) {
+  await resolveViteOptions(nitroConfig);
+  if (nitroConfig.vite) {
+    nitro.options.vite = defu(nitroConfig.vite, nitro.options.vite);
+  }
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("nitro/meta", () => ({
+vi.mock("#nitro/meta", () => ({
   version: "0.0.0-test",
   runtimeDir: "/tmp",
   presetsDir: "/tmp",

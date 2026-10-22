@@ -1,6 +1,6 @@
 import type { Plugin, ResolvedId } from "rollup";
 import { pathRegExp } from "../../utils/regex.ts";
-import { runtimeDependencies, runtimeDir } from "nitro/meta";
+import { runtimeDependencies, runtimeDir } from "#nitro/meta";
 
 export type VirtualModule = {
   id: string;

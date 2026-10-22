@@ -8,10 +8,9 @@ import { importDep } from "../../utils/dep.ts";
  * the version installed next to the app is the version that runs.
  */
 export function importRollup(nitro: Nitro): Promise<typeof import("rollup")> {
-  return importDep<typeof import("rollup")>({
+  return importDep({
     id: "rollup",
     dir: nitro.options.rootDir,
-    reason: "the `rollup` builder",
-    version: "^4",
+    paths: nitro.options.deps?.paths,
   });
 }

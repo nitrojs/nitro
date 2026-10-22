@@ -91,7 +91,6 @@ describe("zephyr preset", () => {
 
     expect(importDepMock).toHaveBeenCalledWith({
       id: "zephyr-agent",
-      reason: "deploying to Zephyr",
       dir: "/tmp/project",
     });
     expect(uploadOutputToZephyr).toHaveBeenCalledWith({

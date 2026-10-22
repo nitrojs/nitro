@@ -1,6 +1,6 @@
 import { colors } from "consola/utils";
 import type { PrerenderRoute } from "nitro/types";
-import { parseURL } from "ufo";
+import { parseURL, withoutBase } from "ufo";
 import { parse as parseHTML, walk } from "ultrahtml";
 
 const allowedExtensions = new Set(["", ".json"]);
@@ -19,7 +19,13 @@ function escapeHtml(text: string) {
   return text.replace(/&(lt|gt|amp|apos|quot);/g, (ch) => HTML_ENTITIES[ch] || ch);
 }
 
-export async function extractLinks(html: string, from: string, res: Response, crawlLinks: boolean) {
+export async function extractLinks(
+  html: string,
+  from: string,
+  res: Response,
+  crawlLinks: boolean,
+  baseURL = "/"
+) {
   const links: string[] = [];
   const _links: string[] = [];
 
@@ -52,7 +58,9 @@ export async function extractLinks(html: string, from: string, res: Response, cr
     }
     links.push(_link.pathname + _link.search);
   }
-  for (const link of links) {
+  for (const _link of links) {
+    // Keyed by route (relative to `baseURL`), as reported by `formatPrerenderRoute`
+    const link = withoutBase(_link, baseURL);
     const _parents = linkParents.get(link);
     if (_parents) {
       _parents.add(from);
