@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import type { ViteDevServer } from "vite";
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { consola } from "consola";
-import { nitro } from "nitro/vite";
+import { nitro } from "../../src/vite.ts";
 import type { NitroConfig } from "nitro/types";
 
 const oxcPaths = vi.hoisted(() => [] as (Record<string, string> | undefined)[]);
