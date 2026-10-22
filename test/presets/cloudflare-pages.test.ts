@@ -81,6 +81,32 @@ describe.skipIf(isWindows)("nitro:preset:cloudflare-pages", async () => {
     `);
   });
 
+  it("does not let the browser cache a missing public asset", async () => {
+    const mf = new Miniflare({
+      modules: true,
+      compatibilityDate: "2025-04-01",
+      scriptPath: resolve(ctx.outDir, "_worker.js", "index.js"),
+      modulesRules: [{ type: "CompiledWasm", include: ["**/*.wasm"] }],
+      compatibilityFlags: ["nodejs_compat", "no_nodejs_compat_v2"],
+      // The `_headers` rule of a public assets base also applies to a missing file
+      serviceBindings: {
+        ASSETS: () =>
+          new Response("Not Found", {
+            status: 404,
+            headers: { "cache-control": "public, max-age=3600, immutable" },
+          }),
+      },
+      bindings: { ...ctx.env },
+    });
+    try {
+      const missing = await mf.dispatchFetch("http://localhost/build/missing.js");
+      expect(missing.status).toBe(404);
+      expect(missing.headers.get("cache-control")).toBe("no-store");
+    } finally {
+      await mf.dispose();
+    }
+  });
+
   it("should export the correct functions", async () => {
     const entry = await fsp.readFile(resolve(ctx.outDir, "_worker.js", "index.js"), "utf8");
     expect(entry).toMatch(/export \{.*myScheduled.*\}/);

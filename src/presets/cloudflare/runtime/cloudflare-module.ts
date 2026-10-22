@@ -2,7 +2,7 @@ import "#nitro/virtual/polyfills";
 import type { fetch } from "@cloudflare/workers-types";
 
 import { isPublicAssetURL } from "#nitro/virtual/public-assets";
-import { createHandler } from "./_module-handler.ts";
+import { createHandler, fetchPublicAsset } from "./_module-handler.ts";
 import { ws } from "./_durable.ts";
 
 export { $DurableObject } from "./_durable.ts";
@@ -15,18 +15,7 @@ export default createHandler<Env>({
   async fetch(cfRequest, env, context, url) {
     // Static assets fallback (optional binding)
     if (env.ASSETS && isPublicAssetURL(url.pathname)) {
-      const res = await env.ASSETS.fetch(cfRequest as any);
-      // The `_headers` rule of a public assets base also applies to a missing
-      // file. Do not let browsers cache that 404 for the lifetime of the assets.
-      if (
-        res.status === 404 &&
-        /max-age=[1-9]|immutable/i.test(res.headers.get("cache-control") || "")
-      ) {
-        const notFound = new Response(res.body as any, res as any);
-        notFound.headers.set("cache-control", "no-store");
-        return notFound as any;
-      }
-      return res;
+      return fetchPublicAsset(env.ASSETS, cfRequest) as any;
     }
 
     // Websocket upgrade
