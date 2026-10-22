@@ -202,10 +202,11 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     (opts) => typeof opts === "object" && opts.ws
   );
   if (websocket || wsProxy) {
+    const viteHmrBase = _getViteHmrBase(server);
     server.httpServer?.on("upgrade", (req, socket, head) => {
-      const protocol = req.headers["sec-websocket-protocol"];
-      if (protocol?.startsWith("vite-")) {
-        // Vite HMR WebSocket connection
+      // Vite HMR WebSocket connection. Other `vite-*` upgrades (e.g. the HMR socket of a proxied
+      // upstream Vite on another path) are never claimed by Vite and must reach Nitro.
+      if (viteHmrBase && _isViteHmrUpgrade(req, viteHmrBase)) {
         return;
       }
       if (ctx.devApp?.proxyUpgrade(req, socket as Socket, head)) {
@@ -512,4 +513,29 @@ async function _readBundledHTML(
 // `Http2ServerResponse` (Vite with `server.https`) has no `destroyed`; its stream does.
 function _isResponseDestroyed(res: ServerResponse | Http2ServerResponse): boolean {
   return "stream" in res ? res.stream.destroyed : res.destroyed;
+}
+
+// Path on which Vite's own WebSocket server claims upgrades on `server.httpServer`, if it listens
+// there at all (mirrors `createWebSocketServer`: Vite 8.3 reads `server.ws`, older 8.x `server.hmr`).
+function _getViteHmrBase(server: ViteDevServer): string | undefined {
+  const { ws, hmr, port } = server.config.server;
+  if (ws === false) {
+    return;
+  }
+  const opts = (typeof ws === "object" ? ws : typeof hmr === "object" ? hmr : undefined) as
+    | { server?: unknown; port?: number; path?: string }
+    | undefined;
+  const wsServer = opts?.server || ((!opts?.port || opts.port === port) && server.httpServer);
+  if (!wsServer || wsServer !== server.httpServer) {
+    return;
+  }
+  return opts?.path ? join(server.config.base, opts.path) : server.config.base;
+}
+
+function _isViteHmrUpgrade(req: IncomingMessage, hmrBase: string): boolean {
+  const protocol = req.headers["sec-websocket-protocol"];
+  return (
+    (protocol === "vite-hmr" || protocol === "vite-ping") &&
+    new URL(`http://localhost${req.url}`).pathname === hmrBase
+  );
 }
