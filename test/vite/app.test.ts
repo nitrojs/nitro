@@ -56,6 +56,14 @@ describe("vite:app", () => {
     expect(await res.text()).toBe("Hello from build plugin!");
   });
 
+  // #4868: `.svg` ids are checked by Vite's dev server access control, which denies ids with `:`
+  test("imports `.svg` files as text and bytes", async () => {
+    const res = await fetch(`${serverURL}/api/svg`);
+    expect(res.status).toBe(200);
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"></svg>`;
+    expect(await res.json()).toEqual({ text: svg, bytes: svg, raw: svg });
+  });
+
   // #4234: a request matching only the SSR `/**` catch-all (no explicit route) that looks like
   // an asset must be handled by Vite, not swallowed by the catch-all renderer.
   test("does not let the SSR catch-all swallow asset-tagged requests", async () => {

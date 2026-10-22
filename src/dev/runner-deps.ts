@@ -17,6 +17,7 @@ type MiniflareRunnerDeps = Pick<
   | "wranglerEnv"
   | "compatibilityDate"
   | "miniflareOptions"
+  | "crossws"
 >;
 
 /**
@@ -51,8 +52,7 @@ async function resolveMiniflareDeps(nitro: Nitro): Promise<MiniflareRunnerDeps> 
   const miniflare = await ensureDep({
     id: "miniflare",
     dir: rootDir,
-    reason: "the `miniflare` dev runner",
-    version: "^4",
+    paths: nitro.options.deps?.paths,
   });
   const inline = nitro.options.cloudflare?.wrangler;
   const configPath = await findNearestFile(["wrangler.json", "wrangler.jsonc", "wrangler.toml"], {
@@ -71,6 +71,9 @@ async function resolveMiniflareDeps(nitro: Nitro): Promise<MiniflareRunnerDeps> 
     miniflareOptions: {
       defaultPersistRoot: resolve(rootDir, ".wrangler/state/v3"),
     },
+    // WebSocket upgrades go to the same Durable Object as with the `cloudflare-module` entry
+    // when its binding is declared (`presets/cloudflare/runtime/_durable.ts`)
+    crossws: { bindingName: "$DurableObject", instanceName: "server" },
   };
 }
 

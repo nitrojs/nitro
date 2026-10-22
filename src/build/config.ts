@@ -1,5 +1,5 @@
 import type { Nitro, NitroImportMeta } from "nitro/types";
-import { pkgDir } from "nitro/meta";
+import { pkgDir } from "#nitro/meta";
 import { pathRegExp, toPathRegExp } from "../utils/regex.ts";
 import { BUILD_EXTENSIONS } from "./_extensions.ts";
 import { resolveBuildEnv } from "./env.ts";

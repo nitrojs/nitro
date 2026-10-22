@@ -21,8 +21,5 @@ function loadTsconfig(root: string): TSConfig {
     return {} as TSConfig;
   }
   tsconfig.compilerOptions ??= {};
-  if (!tsconfig.compilerOptions.baseUrl) {
-    tsconfig.compilerOptions.baseUrl = resolve(tsConfigPath, "..");
-  }
   return tsconfig;
 }

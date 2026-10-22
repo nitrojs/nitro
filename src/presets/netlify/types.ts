@@ -1,8 +1,6 @@
 // https://docs.netlify.com/build/frameworks/frameworks-api/
 
 export interface NetlifyOptions {
-  /** @deprecated Use `config.images` */
-  images?: NetlifyImagesConfig;
   config?: NetlifyConfigJson;
   // skewProtection?: NetlifySkewProtectionJson;
   // edgeFunctionsImportMap?: NetlifyImportMapJson;

@@ -1,5 +1,5 @@
 import type { NitroOptions } from "nitro/types";
-import { resolveConnectorDeps, resolveDatabaseConnections } from "../../utils/database.ts";
+import { resolveDatabaseConnections } from "../../utils/database.ts";
 import { ensureLibDeps } from "../../utils/dep.ts";
 
 export async function resolveDatabaseOptions(options: NitroOptions) {
@@ -26,12 +26,11 @@ export async function resolveDatabaseOptions(options: NitroOptions) {
   }
 
   // Database connectors lazily import their third-party dependencies.
-  // Make sure the ones required by the configured connections are installed.
+  // Make sure `db0` and the ones required by the configured connections are installed.
   await ensureLibDeps(
-    resolveDatabaseConnections(options).map((connection) => ({
+    (await resolveDatabaseConnections(options)).map((connection) => ({
+      ...connection,
       name: connection.connector,
-      options: connection.options,
-      deps: resolveConnectorDeps(connection.connector),
     })),
     { dir: options.rootDir, label: "database connector" }
   );
