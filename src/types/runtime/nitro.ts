@@ -12,6 +12,13 @@ export interface NitroApp {
   h3?: H3Core;
   hooks?: HookableCore<NitroRuntimeHooks>;
   captureError?: CaptureError;
+  /**
+   * Set while async plugins are still initializing and resolves once all
+   * plugins have finished. `undefined` when the app is ready.
+   *
+   * Requests to `fetch` are held until then automatically.
+   */
+  ready?: Promise<void>;
 }
 
 /**
@@ -20,6 +27,9 @@ export interface NitroApp {
  * Receives the {@link NitroApp} instance (with `hooks` guaranteed to exist)
  * and can register runtime hooks or modify the app.
  *
+ * A plugin can be async: the plugins after it run once it resolves, and
+ * requests are held until all plugins have finished.
+ *
  * @see https://nitro.build/docs/plugins
  */
 export interface NitroAppPlugin {
@@ -27,7 +37,7 @@ export interface NitroAppPlugin {
     nitro: NitroApp & {
       hooks: NonNullable<NitroApp["hooks"]>;
     }
-  ): void;
+  ): void | Promise<void>;
 }
 
 export interface NitroAsyncContext {

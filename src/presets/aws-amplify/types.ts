@@ -130,7 +130,7 @@ export interface AmplifyDeployManifest {
    * [
    *   {
    *     name: 'default',
-   *     runtime: 'nodejs20.x',
+   *     runtime: 'nodejs22.x',
    *     entrypoint: 'index.js',
    *   }
    * ]
@@ -152,5 +152,10 @@ export interface AwsAmplifyOptions {
     cacheControl?: string;
   };
   imageSettings?: AmplifyImageSettings;
+  /**
+   * The Node.js runtime of the compute resource.
+   *
+   * @default "nodejs22.x"
+   */
   runtime?: "nodejs20.x" | "nodejs22.x" | "nodejs24.x";
 }

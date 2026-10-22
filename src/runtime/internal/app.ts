@@ -1,8 +1,10 @@
 import type { NitroApp, NitroRuntimeHooks, ResolvedRouteRules } from "nitro/types";
 import type { ServerRequest, ServerRequestContext } from "srvx";
-import type { ComposedMiddleware, H3EventContext, Middleware, WebSocketHooks } from "h3";
-import { composeMiddleware, toRequest } from "h3";
+import type { ComposedMiddleware, H3EventContext, H3Route, Middleware, WebSocketHooks } from "h3";
+import type { MatchedRoute } from "rou3";
+import { composeMiddleware, HTTPError, toRequest } from "h3";
 import { HookableCore } from "hookable";
+import type { MatchedRouteRules } from "h3/rules";
 import { createMatcherFromFind, memoizeRouteRulesMatcher } from "h3/rules";
 
 // IMPORTANT: virtual imports and user code should be imported last to avoid initialization order issues
@@ -81,42 +83,50 @@ export function fetch(
   return globalThis.fetch(resource, init);
 }
 
-let _matchRouteRules: ReturnType<typeof createMatcherFromFind> | undefined;
-
+/**
+ * Get the resolved route rules for a method and pathname.
+ *
+ * The result is memoized and shared, so treat it as read-only.
+ */
 export function getRouteRules(
   method: string,
   pathname: string
-): {
-  routeRules: ResolvedRouteRules;
-  routeRuleMiddleware: Middleware[];
-} {
-  return (_matchRouteRules ??= memoizeRouteRulesMatcher(createMatcherFromFind(findRouteRules)))(
-    method,
-    pathname
-  );
+): { routeRules: ResolvedRouteRules } {
+  return matchRouteRules(method, pathname);
 }
 
 /**
  * Middleware that runs the route-rule middleware (`redirect`, `headers`,
- * `cors`, ...) matched for the current request. The composed chain is cached
- * per memoized match, so each distinct match is composed once.
+ * `cors`, ...) matched for the current request, except `cache` (see
+ * `createCacheRuleMiddleware`). The composed chain is cached per memoized
+ * match, so each distinct match is composed once.
  *
  * `event.context.routeRules` is assigned earlier, from `~findRoute`, so it is
  * populated for every middleware regardless of its position in the chain.
  */
 export function createRouteRulesMiddleware(): Middleware {
-  const composed = new WeakMap<Middleware[], ComposedMiddleware>();
   const middleware: Middleware = (event, next) => {
-    const ruleMiddleware = getRouteRules(event.req.method, event.url.pathname).routeRuleMiddleware;
-    if (ruleMiddleware.length === 0) {
-      return next();
+    const { rules, cache } = resolveRouteRuleChains(event.req.method, event.url.pathname);
+    if (cache) {
+      (event as CacheRuleCarrier)[kCacheRule] = cache;
     }
-    let chain = composed.get(ruleMiddleware);
-    if (!chain) {
-      chain = composeMiddleware(ruleMiddleware);
-      composed.set(ruleMiddleware, chain);
-    }
-    return chain(event, next as any);
+    return rules ? rules(event, next as any) : next();
+  };
+  return markUntraced(middleware);
+}
+
+/**
+ * Middleware that runs the `cache` route rule matched for the current request.
+ * The rule dispatches the matched route handler itself, so it is registered
+ * after global and routed middleware for them to run on cached routes too.
+ *
+ * The rule is matched by `createRouteRulesMiddleware`, on the same pathname as
+ * the other rules, even if a middleware rewrites `event.url` in between.
+ */
+export function createCacheRuleMiddleware(): Middleware {
+  const middleware: Middleware = (event, next) => {
+    const cache = (event as CacheRuleCarrier)[kCacheRule];
+    return cache ? cache(event, next) : next();
   };
   return markUntraced(middleware);
 }
@@ -150,6 +160,83 @@ export function createRoutedMiddleware(
   };
   return markUntraced(middleware);
 }
+
+// `~findRoute` fallback: `405` with an `Allow` header when the path is routed
+// only for other `methods` (a method-agnostic route would have matched already).
+export function createMethodNotAllowedMatcher(
+  findRoute: (method: string, pathname: string) => unknown,
+  methods: string[]
+): (method: string, pathname: string) => MatchedRoute<H3Route> | undefined {
+  return (method, pathname) => {
+    let allow: string | undefined;
+    for (const m of methods) {
+      if (m !== method && findRoute(m, pathname)) {
+        allow = allow ? `${allow}, ${m}` : m;
+      }
+    }
+    if (!allow) {
+      return;
+    }
+    // Returned rather than thrown: h3 handles it the same, without the unwinding cost
+    return {
+      data: {
+        handler: () =>
+          new HTTPError({
+            status: 405,
+            statusText: "Method Not Allowed",
+            message: `Method ${method} is not allowed for ${pathname} (allowed: ${allow})`,
+            headers: { allow },
+          }),
+      },
+    };
+  };
+}
+
+let _matchRouteRules: ReturnType<typeof createMatcherFromFind> | undefined;
+
+function matchRouteRules(
+  method: string,
+  pathname: string
+): {
+  routeRules: ResolvedRouteRules;
+  matchedRules: MatchedRouteRules;
+  routeRuleMiddleware: Middleware[];
+} {
+  return (_matchRouteRules ??= memoizeRouteRulesMatcher(createMatcherFromFind(findRouteRules)))(
+    method,
+    pathname
+  );
+}
+
+const kCacheRule: unique symbol = /* @__PURE__ */ Symbol("nitro.cacheRule");
+
+type CacheRuleCarrier = { [kCacheRule]?: Middleware };
+
+const _routeRuleChains = /* @__PURE__ */ new WeakMap<Middleware[], RouteRuleChains>();
+
+function resolveRouteRuleChains(method: string, pathname: string): RouteRuleChains {
+  const { matchedRules, routeRuleMiddleware } = matchRouteRules(method, pathname);
+  if (routeRuleMiddleware.length === 0) {
+    return {};
+  }
+  let chains = _routeRuleChains.get(routeRuleMiddleware);
+  if (!chains) {
+    // `cache` has the highest `order` of the rule handlers, so it is always last
+    const hasCache = !!matchedRules.cache?.handler;
+    const rules = hasCache ? routeRuleMiddleware.slice(0, -1) : routeRuleMiddleware;
+    chains = {
+      rules: rules.length > 0 ? composeMiddleware(rules) : undefined,
+      cache: hasCache ? routeRuleMiddleware.at(-1) : undefined,
+    };
+    _routeRuleChains.set(routeRuleMiddleware, chains);
+  }
+  return chains;
+}
+
+type RouteRuleChains = {
+  rules?: ComposedMiddleware;
+  cache?: Middleware;
+};
 
 type RoutedChainNode = {
   children: Map<object, RoutedChainNode>;
