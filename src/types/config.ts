@@ -335,6 +335,14 @@ export interface NitroOptions extends PresetOptions {
      * Enable WebSocket support.
      */
     websocket?: boolean;
+
+    /**
+     * Replace the global `Response` with srvx `FastResponse`, so that
+     * `new Response()` skips the native Response overhead in Node.js.
+     *
+     * Enabled by default when `node` is `true`.
+     */
+    fastResponse?: boolean;
   };
 
   /**
@@ -412,7 +420,7 @@ export interface NitroOptions extends PresetOptions {
      * Log Nitro tracing-channel spans to the console.
      *
      * Enables a built-in, dependency-free telemetry sink that `console.log`s
-     * each completed span (h3, srvx, unstorage, …). Requires `tracingChannel`
+     * each completed span (h3, srvx, unstorage, db0, …). Requires `tracingChannel`
      * to be enabled.
      */
     tracingLogger?: boolean;
@@ -751,9 +759,8 @@ export interface NitroOptions extends PresetOptions {
      * The `vite` package to use, as a path or `file://` URL to its directory or entry
      * (e.g. `import.meta.resolve("vite")`).
      *
-     * By default, `vite` is resolved from the project root. A framework running Vite
-     * programmatically should pass its own `vite` so the dev module runner matches the
-     * running instance (in a monorepo, another version could be hoisted next to the app).
+     * By default, the `nitro/vite` plugin uses the running `vite` and the `vite` builder
+     * resolves it from the project root.
      */
     path?: string;
 
@@ -1002,6 +1009,13 @@ export interface NitroOptions extends PresetOptions {
      * Defaults to the resolved `tsconfig.json` of the project root.
      */
     tsConfig?: Partial<TSConfig>;
+
+    /**
+     * Resolve path aliases (`compilerOptions.paths`) of `tsConfig` for the server sources.
+     *
+     * @default true
+     */
+    tsconfigPaths?: boolean;
   };
 
   /**
@@ -1220,6 +1234,8 @@ export interface TracingChannelOptions {
   srvx?: boolean;
   h3?: boolean;
   unstorage?: boolean;
+  /** Database queries made with `useDatabase()` (`db0.query`). Requires `experimental.database`. */
+  db0?: boolean;
 }
 
 /** @deprecated Use {@link TracingChannelOptions}. */

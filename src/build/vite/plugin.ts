@@ -28,9 +28,12 @@ import { prettyPath } from "../../utils/fs.ts";
 import { NitroDevApp } from "../../dev/app.ts";
 import { nitroPreviewPlugin } from "./preview.ts";
 import { nitroAssetsImport } from "./_assets.ts";
-import type { NitroConfig, NitroModule } from "nitro/types";
+import { defu } from "defu";
+import { resolveViteOptions } from "../../config/resolvers/vite.ts";
+import type { Nitro, NitroConfig, NitroModule } from "nitro/types";
 import { nitroDevServiceProxy, viteServicesTemplate } from "./services.ts";
-import { importVite, viteImportOptions } from "./_import.ts";
+import { nitroRequireExternals } from "./_require-externals.ts";
+import { importVite, setRunningVite, viteImportOptions } from "./_import.ts";
 import { isVitest, nitroVitest } from "./vitest.ts";
 
 // https://vite.dev/guide/api-environment-plugins
@@ -55,6 +58,7 @@ export function nitro(pluginConfig: NitroPluginConfig = {}): VitePlugin[] {
     nitroMain(ctx),
     nitroPrepare(ctx),
     nitroDevServiceProxy(ctx),
+    nitroRequireExternals(),
     nitroPreviewPlugin(ctx),
     nitroVitest(ctx),
     ...nitroAssetsImport(ctx),
@@ -74,13 +78,16 @@ function nitroInit(ctx: NitroPluginContext): VitePlugin {
         ctx._initialized = true;
         ctx._isVitest = isVitest(config);
         await setupNitroContext(ctx, configEnv, config);
-        if (configEnv.command === "serve") {
-          await checkViteVersion(ctx, (this.meta as Record<string, string>).viteVersion);
-        }
       }
     },
 
-    configResolved(config) {
+    async configResolved(config) {
+      setRunningVite(useNitro(ctx), config);
+      // Inline plugins are reused on `server.restart()`
+      if (config.command === "serve" && !ctx._viteVersionChecked) {
+        ctx._viteVersionChecked = true;
+        await checkViteVersion(ctx, this.meta.viteVersion);
+      }
       // Vite resolves its plugin list *before* running config hooks, so a plugin added by
       // another plugin's `config` hook is discovered by Nitro but silently ignored by Vite.
       for (const plugin of ctx._pluginModules || []) {
@@ -100,7 +107,7 @@ function nitroInit(ctx: NitroPluginContext): VitePlugin {
           (ctx.bundlerConfig?.rolldownConfig?.plugins as VitePlugin[]) ||
           (ctx.bundlerConfig?.rollupConfig?.plugins as VitePlugin[]) ||
           [];
-        return [...(plugins || [])];
+        return [nitroSelfAliases(ctx.bundlerConfig?.base.aliases ?? {}), ...plugins];
       }
     },
   };
@@ -234,6 +241,24 @@ function nitroServerAliases(ctx: NitroPluginContext): VitePlugin {
   };
 }
 
+function nitroSelfAliases(aliases: Record<string, string>): VitePlugin {
+  return {
+    name: "nitro:self-aliases",
+    resolveId: {
+      order: "pre",
+      filter: { id: /^nitro(\/|$)/ },
+      async handler(id, importer, options) {
+        const resolved = resolveAlias(id, aliases);
+        if (resolved !== id) {
+          return (
+            (await this.resolve(resolved, importer, { ...options, skipSelf: true })) || resolved
+          );
+        }
+      },
+    },
+  };
+}
+
 function nitroMain(ctx: NitroPluginContext): VitePlugin {
   return {
     name: "nitro:main",
@@ -245,14 +270,19 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
       if (!ctx.bundlerConfig) {
         throw new Error("Bundler config is not initialized yet!");
       }
+      const scopeSelfAliases = ctx.nitro?.options.dev && !ctx._isVitest;
       return {
         appType: userConfig.appType || "custom",
         resolve: {
-          // TODO: environment specific aliases not working
-          // https://github.com/vitejs/vite/pull/17583 (seems not effective)
-          // preserve alias order (exclude node: builtins to prevent leaking to client builds)
+          // Keep alias order and never leak `node:` builtins to client builds.
+          // In dev, the `nitro/*` aliases (no `nitro` dependency in the
+          // project) are scoped to the `nitro` environment so they do not
+          // bypass the dev service proxy (not used by Vitest).
           alias: Object.entries(ctx.bundlerConfig.base.aliases)
-            .filter(([, replacement]) => !replacement.startsWith("node:"))
+            .filter(
+              ([find, replacement]) =>
+                !replacement.startsWith("node:") && !(scopeSelfAliases && /^nitro(\/|$)/.test(find))
+            )
             .map(([find, replacement]) => ({
               find,
               replacement,
@@ -463,6 +493,7 @@ async function setupNitroContext(
   nitroConfig.virtual[vServicesId] = () => viteServicesTemplate(ctx);
   if (providedNitro) {
     providedNitro.options.virtual[vServicesId] = nitroConfig.virtual[vServicesId];
+    await applyInlineViteOptions(providedNitro, nitroConfig);
   }
 
   // @see https://vite.dev/guide/env-and-mode#env-files
@@ -654,4 +685,11 @@ async function flattenPlugins(userConfig: UserConfig, configEnv: ConfigEnv): Pro
       ? plugin.apply({ ...userConfig, mode: configEnv.mode }, configEnv)
       : plugin.apply === configEnv.command;
   });
+}
+
+async function applyInlineViteOptions(nitro: Nitro, nitroConfig: NitroConfig) {
+  await resolveViteOptions(nitroConfig);
+  if (nitroConfig.vite) {
+    nitro.options.vite = defu(nitroConfig.vite, nitro.options.vite);
+  }
 }

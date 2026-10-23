@@ -18,7 +18,7 @@ export function nitroAssetsImport(ctx: NitroPluginContext): VitePlugin[] {
       clientBuildFallback: false,
     },
   });
-  return plugins.map((plugin) => _withCondition(plugin, enabled));
+  return plugins.filter(Boolean).map((plugin) => _withCondition(plugin, enabled));
 }
 
 function _withCondition(plugin: VitePlugin, enabled: () => boolean): VitePlugin {

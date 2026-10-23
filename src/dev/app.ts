@@ -1,4 +1,4 @@
-import type { Nitro } from "nitro/types";
+import type { CompressOptions, Nitro } from "nitro/types";
 import type { H3Event, HTTPHandler } from "h3";
 import type { Hooks } from "crossws";
 import type { IncomingMessage } from "node:http";
@@ -16,6 +16,7 @@ import { createVFSHandler } from "./vfs.ts";
 import { createDevProxy, type DevProxy } from "./_proxy.ts";
 import { isLocalDevRequest } from "./_request.ts";
 import { createDevToolsJSONHandler, DEVTOOLS_JSON_ROUTE } from "./_devtools-json.ts";
+import { isCompressibleFile } from "../utils/compress.ts";
 
 import devErrorHandler, {
   defaultHandler as devErrorHandlerInternal,
@@ -106,6 +107,7 @@ export class NitroDevApp {
           dir: asset.dir,
           base: assetBase,
           fallthrough: asset.fallthrough,
+          compress: this.nitro.options.compressPublicAssets,
         })
       );
       if (!asset.fallthrough && asset.baseURL && asset.baseURL !== "/") {
@@ -190,7 +192,7 @@ export class NitroDevApp {
 // TODO: upstream to h3/node
 function serveStaticDir(
   event: H3Event,
-  opts: { dir: string; base: string; fallthrough?: boolean }
+  opts: { dir: string; base: string; fallthrough?: boolean; compress?: boolean | CompressOptions }
 ) {
   const dir = resolve(opts.dir) + "/";
   const r = (id: string) => {
@@ -200,6 +202,10 @@ function serveStaticDir(
       return resolved;
     }
   };
+
+  const compress: CompressOptions =
+    opts.compress === true ? { gzip: true, brotli: true } : opts.compress || {};
+
   return serveStatic(event, {
     fallthrough: opts.fallthrough,
     getMeta: async (id) => {
@@ -218,13 +224,15 @@ function serveStaticDir(
       const path = r(id);
       if (!path) return;
       const stream = createReadStream(path);
-      const acceptEncoding = event.req.headers.get("accept-encoding") || "";
-      if (acceptEncoding.includes("br")) {
+      const acceptEncoding = isCompressibleFile(path)
+        ? event.req.headers.get("accept-encoding") || ""
+        : "";
+      if (compress.brotli && acceptEncoding.includes("br")) {
         event.res.headers.set("Content-Encoding", "br");
         event.res.headers.delete("Content-Length");
         event.res.headers.set("Vary", "Accept-Encoding");
         return toBody(event, stream.pipe(createBrotliCompress()));
-      } else if (acceptEncoding.includes("gzip")) {
+      } else if (compress.gzip && acceptEncoding.includes("gzip")) {
         event.res.headers.set("Content-Encoding", "gzip");
         event.res.headers.delete("Content-Length");
         event.res.headers.set("Vary", "Accept-Encoding");

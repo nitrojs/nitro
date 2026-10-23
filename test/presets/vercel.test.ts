@@ -407,12 +407,24 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/fetch\\/?$",
               },
               {
+                "dest": "/fetch-public-asset",
+                "src": "^\\/fetch-public-asset\\/?$",
+              },
+              {
+                "dest": "/fast-response",
+                "src": "^\\/fast-response\\/?$",
+              },
+              {
                 "dest": "/errors/throw",
                 "src": "^\\/errors\\/throw\\/?$",
               },
               {
                 "dest": "/errors/stack",
                 "src": "^\\/errors\\/stack\\/?$",
+              },
+              {
+                "dest": "/errors/err-headers",
+                "src": "^\\/errors\\/err-headers\\/?$",
               },
               {
                 "dest": "/errors/captured",
@@ -451,7 +463,7 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/assets\\/(?<id>[^/]+)\\/?$",
               },
               {
-                "dest": "/api/test/[-]/foo",
+                "dest": "/api/test/[...]/foo",
                 "src": "^\\/api\\/test\\/(?<_0>[\\s\\S]*)\\/foo\\/?$",
               },
               {
@@ -768,7 +780,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/api/param/[test_id].func (symlink)",
             "functions/api/storage/item.func (symlink)",
             "functions/api/storage/legacy.func (symlink)",
-            "functions/api/test/[-]/foo.func (symlink)",
+            "functions/api/test/[...]/foo.func (symlink)",
             "functions/api/upload.func (symlink)",
             "functions/api/wildcard/[...param].func (symlink)",
             "functions/assets/[id].func (symlink)",
@@ -780,8 +792,11 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/embedded-kit.func (symlink)",
             "functions/env.func (symlink)",
             "functions/errors/captured.func (symlink)",
+            "functions/errors/err-headers.func (symlink)",
             "functions/errors/stack.func (symlink)",
             "functions/errors/throw.func (symlink)",
+            "functions/fast-response.func (symlink)",
+            "functions/fetch-public-asset.func (symlink)",
             "functions/fetch.func (symlink)",
             "functions/file.func (symlink)",
             "functions/icon.png.func (symlink)",

@@ -1,6 +1,9 @@
+import type { Nitro } from "nitro/types";
 import type { Plugin } from "rollup";
+import type { Plugin as VitePlugin } from "vite";
 import type * as ESTree from "oxbox";
 import MagicString from "magic-string";
+import { viteDepPaths } from "../vite/_import.ts";
 import { importOXC, walkAST } from "../../utils/oxc.ts";
 import { RESOLVED_RE as RAW_RE } from "./raw.ts";
 
@@ -25,14 +28,19 @@ type TypedImport = {
 
 type Comment = { start: number; end: number };
 
-export async function importAttributes(opts: {
-  rootDir: string;
-  paths?: Record<string, string>;
-}): Promise<Plugin> {
-  const { parseSync } = await importOXC({ dir: opts.rootDir, paths: opts.paths });
+export async function importAttributes(
+  nitro: Nitro
+): Promise<Plugin & Pick<VitePlugin, "perEnvironmentStartEndDuringDev">> {
+  let oxc = await importOXC({ dir: nitro.options.rootDir, paths: viteDepPaths(nitro) });
 
   return {
     name: "nitro:import-attributes",
+    // With `nitro/vite`, the running `vite` is only known once its config is resolved
+    // (Vite only runs `buildStart` of the `client` environment in dev by default)
+    perEnvironmentStartEndDuringDev: true,
+    async buildStart() {
+      oxc = await importOXC({ dir: nitro.options.rootDir, paths: viteDepPaths(nitro) });
+    },
     transform: {
       order: "pre",
       filter: {
@@ -46,7 +54,7 @@ export async function importAttributes(opts: {
           return; // In case the builder does not support filters
         }
         const filename = id.split("?")[0]!;
-        const { program, comments, errors } = parseSync(filename, code);
+        const { program, comments, errors } = oxc.parseSync(filename, code);
         if (errors.length > 0) {
           this.warn(
             `Could not parse \`${filename}\` to transform \`bytes\` and \`text\` import attributes: ${errors[0]!.message}`

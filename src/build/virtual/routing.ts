@@ -35,14 +35,14 @@ const multiHandler = (...handlers) => {
 
 ${allHandlers
   .filter((h) => !h.lazy)
-  .map((h) => /* js */ `import ${h._importHash} from "${h.handler}";`)
+  .map((h) => /* js */ `import ${h._importHash} from ${JSON.stringify(h.handler)};`)
   .join("\n")}
 
 ${allHandlers
   .filter((h) => h.lazy)
   .map(
     (h) =>
-      /* js */ `const ${h._importHash} = h3.defineLazyEventHandler(() => import("${h.handler}")${h.format === "node" ? ".then(m => ({ fetch: srvxNode.toFetchHandler(m.default) }))" : ""});`
+      /* js */ `const ${h._importHash} = h3.defineLazyEventHandler(() => import(${JSON.stringify(h.handler)})${h.format === "node" ? ".then(m => ({ fetch: srvxNode.toFetchHandler(m.default) }))" : ""});`
   )
   .join("\n")}
 

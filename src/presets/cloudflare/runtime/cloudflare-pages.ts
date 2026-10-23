@@ -11,7 +11,7 @@ import { isPublicAssetURL } from "#nitro/virtual/public-assets";
 import { runCronTasks } from "#nitro/runtime/task";
 import { resolveWebsocketHooks } from "#nitro/runtime/app";
 
-import { augmentReq } from "./_module-handler.ts";
+import { augmentReq, fetchPublicAsset } from "./_module-handler.ts";
 
 /**
  * Reference: https://developers.cloudflare.com/workers/runtime-apis/fetch-event/#parameters
@@ -45,7 +45,7 @@ export default {
 
     const url = new URL(cfReq.url);
     if (env.ASSETS /* !miniflare */ && isPublicAssetURL(url.pathname)) {
-      return env.ASSETS.fetch(cfReq);
+      return fetchPublicAsset(env.ASSETS, cfReq);
     }
 
     return nitroApp.fetch(cfReq as any);

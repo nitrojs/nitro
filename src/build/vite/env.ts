@@ -9,6 +9,7 @@ import { resolveModulePath } from "exsolve";
 import { isAbsolute } from "pathe";
 import { resolveRunnerDeps } from "../../dev/runner-deps.ts";
 import { OPTIONAL_RUNTIME_DEPS_RE } from "../plugins/runtime-deps.ts";
+import { tsconfigPathsNoExternal } from "../plugins/tsconfig-paths.ts";
 import { shutdownRunner } from "../../dev/shutdown.ts";
 import { writeDevWorkerEntry } from "./_dev-worker.ts";
 import { viteImportOptions } from "./_import.ts";
@@ -34,6 +35,7 @@ export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOpti
               /^nitro(\/|$)/,
               new RegExp(`^(${runtimeDependencies.join("|")})$`), // virtual resolutions in vite skip plugin hooks
               OPTIONAL_RUNTIME_DEPS_RE, // resolved (and installed) on demand from the project
+              ...tsconfigPathsNoExternal(ctx.nitro!), // packages mapped by tsconfig `paths`
               ...ctx.bundlerConfig!.base.noExternal,
             ]
         : true, // production build is standalone

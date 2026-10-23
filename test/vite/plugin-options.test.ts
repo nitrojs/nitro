@@ -5,6 +5,7 @@ import { consola } from "consola";
 import { afterEach, describe, expect, test } from "vitest";
 import { nitro } from "../../src/vite.ts";
 import type { NitroPluginConfig } from "../../src/vite.ts";
+import { createNitro } from "../../src/nitro.ts";
 
 const { resolveConfig } = (await import(
   process.env.NITRO_VITE_PKG || "vite"
@@ -61,6 +62,20 @@ describe("vite: plugin options", () => {
     expect(Object.keys(nitro.options.vite?.services || {}).sort()).toEqual(["api", "other"]);
   });
 
+  test("reads inline `vite` options on a provided nitro instance", async () => {
+    const provided = await createNitro({ rootDir });
+    const { config, nitro } = await resolve({
+      _nitro: provided,
+      vite: { assetsImport: true, services: { other: { entry: "./api-entry.ts" } } },
+    });
+    expect(Object.keys(config.environments)).toEqual(
+      expect.arrayContaining(["api", "other", "nitro"])
+    );
+    expect(nitro.options.vite?.assetsImport).toBe(true);
+    expect(config.environments.ssr.build.emitAssets).toBe(true);
+    expect(Object.keys(nitro.options.vite?.services || {}).sort()).toEqual(["api", "other"]);
+  });
+
   test("maps deprecated `experimental.vite` options", async () => {
     const warnings: string[] = [];
     const originalReporters = [...consola.options.reporters];
@@ -82,5 +97,20 @@ describe("vite: plugin options", () => {
     expect(nitro.options.vite?.serverReload).toBe(false);
     expect(nitro.options.experimental.vite).toBeUndefined();
     expect(warnings.some((w) => w.includes("`experimental.vite` is deprecated"))).toBe(true);
+  });
+
+  test("maps deprecated `experimental.vite` options on a provided nitro instance", async () => {
+    const provided = await createNitro({ rootDir });
+    const { config, nitro } = await resolve({
+      _nitro: provided,
+      experimental: {
+        vite: { serverReload: false, services: { legacy: { entry: "./api-entry.ts" } } },
+      },
+    });
+    expect(Object.keys(config.environments)).toEqual(
+      expect.arrayContaining(["api", "legacy", "nitro"])
+    );
+    expect(nitro.options.vite?.serverReload).toBe(false);
+    expect(Object.keys(nitro.options.vite?.services || {}).sort()).toEqual(["api", "legacy"]);
   });
 });

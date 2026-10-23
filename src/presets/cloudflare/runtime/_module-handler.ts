@@ -131,3 +131,21 @@ export function augmentReq(
   req.runtime.cloudflare = { ...req.runtime.cloudflare, ...ctx };
   req.waitUntil = ctx.context?.waitUntil.bind(ctx.context);
 }
+
+export async function fetchPublicAsset(
+  assets: { fetch: (request: any) => Promise<any> },
+  cfReq: Request | CF.Request
+): Promise<Response> {
+  const res: Response = await assets.fetch(cfReq);
+  // The `_headers` rule of a public assets base also applies to a missing
+  // file. Do not let browsers cache that 404 for the lifetime of the assets.
+  if (
+    res.status === 404 &&
+    /max-age=[1-9]|immutable/i.test(res.headers.get("cache-control") || "")
+  ) {
+    const notFound = new Response(res.body, res);
+    notFound.headers.set("cache-control", "no-store");
+    return notFound;
+  }
+  return res;
+}

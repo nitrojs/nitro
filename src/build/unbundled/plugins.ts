@@ -4,6 +4,7 @@ import type { Nitro, NitroBuildPlugin } from "nitro/types";
 import { existsSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import replace from "@rollup/plugin-replace";
+import MagicString from "magic-string";
 import { pkgDir } from "#nitro/meta";
 import { dirname, isAbsolute, join, normalize, resolve } from "pathe";
 import { unwasm } from "unwasm/plugin";
@@ -15,6 +16,7 @@ import { importOXC } from "../../utils/oxc.ts";
 import { chain } from "../../utils/sync.ts";
 import { raw, RESOLVED_PREFIX as RAW_PREFIX, RESOLVED_RE as RAW_RE } from "../plugins/raw.ts";
 import { routeMeta } from "../plugins/route-meta.ts";
+import { tsconfigPaths } from "../plugins/tsconfig-paths.ts";
 import { resolveBuildPlugins } from "../plugins.ts";
 import {
   ensureRuntimeDep,
@@ -58,17 +60,18 @@ export async function unbundledPlugins(
     windowsPathPlugin(base.extensions),
     await transformPlugin(nitro, sourceDirs),
     replacePlugin(base.replacements, sourceDirs),
-    withoutSourceMap(
-      fromRollup(
-        await importAttributes({ rootDir: nitro.options.rootDir, paths: nitro.options.deps?.paths })
-      )
-    ),
+    withoutSourceMap(fromRollup(await importAttributes(nitro))),
     rawVirtualPlugin(nitro),
     fromRollup(raw()),
   ];
 
   if (Object.keys(base.aliases).length > 0) {
-    plugins.push(aliasPlugin(base.aliases, nitro.options.rootDir));
+    plugins.push(await aliasPlugin(nitro, base.aliases, sourceDirs));
+  }
+
+  const tsconfigPathsPlugin = tsconfigPaths(nitro, base.aliases);
+  if (tsconfigPathsPlugin) {
+    plugins.push(fromRollup(tsconfigPathsPlugin));
   }
 
   if (nitro.options.experimental.openAPI) {
@@ -274,7 +277,12 @@ function replacePlugin(
 }
 
 /** `alias` option (and unenv aliases), resolved like bundlers do (relative targets from `rootDir`). */
-function aliasPlugin(_aliases: Record<string, string>, rootDir: string): EnvRunnerPlugin {
+async function aliasPlugin(
+  nitro: Nitro,
+  _aliases: Record<string, string>,
+  sourceDirs: string[]
+): Promise<EnvRunnerPlugin> {
+  const { rootDir } = nitro.options;
   const aliases = Object.fromEntries(
     Object.entries(_aliases).map(([key, target]) => [
       key,
@@ -282,16 +290,20 @@ function aliasPlugin(_aliases: Record<string, string>, rootDir: string): EnvRunn
     ])
   );
   const keys = Object.keys(aliases).map((key) => key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-  return {
+  const resolveAlias = (source: string) => {
+    for (const [key, target] of Object.entries(aliases)) {
+      if (source === key || source.startsWith(key.endsWith("/") ? key : `${key}/`)) {
+        return target + source.slice(key.length);
+      }
+    }
+  };
+  const plugin: EnvRunnerPlugin = {
     name: "nitro:alias",
     resolveId: {
       filter: { id: new RegExp(`^(?:${keys.join("|")})`) },
       handler(this: PluginContext, source, importer) {
-        for (const [key, target] of Object.entries(aliases)) {
-          if (source !== key && !source.startsWith(key.endsWith("/") ? key : `${key}/`)) {
-            continue;
-          }
-          const aliased = target + source.slice(key.length);
+        const aliased = resolveAlias(source);
+        if (aliased) {
           return chain(
             this.resolve(aliased, importer),
             (resolved) => resolved ?? { id: aliased, external: true }
@@ -300,6 +312,39 @@ function aliasPlugin(_aliases: Record<string, string>, rootDir: string): EnvRunn
       },
     },
   };
+  const runner = nitro.options.devServer?.runner || process.env.NITRO_DEV_RUNNER;
+  if (!process.versions.bun && runner !== "bun-process") {
+    return plugin;
+  }
+  // Bun runtime plugins do not resolve the bare specifiers of static imports: rewrite them instead
+  const { parseSync } = await importOXC({ dir: rootDir, paths: nitro.options.deps?.paths });
+  plugin.transform = {
+    filter: { id: sourceDirs, code: new RegExp(`["'\`](?:${keys.join("|")})`) },
+    handler(code, id) {
+      const { module, errors } = parseSync(id.split("?")[0]!, code);
+      if (errors.length > 0) {
+        return;
+      }
+      const requests = new Map(
+        [
+          ...module.staticImports.map((i) => i.moduleRequest),
+          ...module.staticExports.flatMap((e) => e.entries.map((entry) => entry.moduleRequest)),
+          ...module.dynamicImports.map((i) => i.moduleRequest),
+        ].flatMap((request) => (request ? [[request.start, request]] : []))
+      );
+      const s = new MagicString(code);
+      for (const request of requests.values()) {
+        const literal = code.slice(request.start, request.end);
+        const aliased =
+          /^(?:"[^"]*"|'[^']*'|`[^`$]*`)$/.test(literal) && resolveAlias(literal.slice(1, -1));
+        if (aliased) {
+          s.overwrite(request.start, request.end, JSON.stringify(aliased));
+        }
+      }
+      return s.hasChanged() ? { code: s.toString() } : undefined;
+    },
+  };
+  return plugin;
 }
 
 /**

@@ -1,3 +1,6 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "pathe";
 import { describe, expect, it, vi } from "vitest";
 import type { Nitro, NitroOptions } from "nitro/types";
 import { legacyUnenvLayers, resolveUnenv } from "../../src/config/resolvers/unenv.ts";
@@ -60,8 +63,32 @@ describe("resolveBuildEnv", () => {
     expect(env.alias["buffer/"]).toBe("node:buffer");
     expect(env.alias["node:fs"]).toBeUndefined();
     expect(env.inject).toEqual({});
-    expect(env.polyfills).toEqual([]);
+    expect(env.polyfills).toEqual([
+      expect.stringMatching(/runtime\/internal\/polyfills\/fast-response\.(ts|mjs)$/),
+    ]);
     expect(env.external).toEqual(["my-external"]);
+    expect(env.alias.nitro).toBeUndefined();
+  });
+
+  it("respects `features.fastResponse`", async () => {
+    const disabled = await resolveBuildEnv(createNitro({ features: { fastResponse: false } }));
+    expect(disabled.polyfills).toEqual([]);
+    const enabled = await resolveBuildEnv(
+      createNitro({ node: false, features: { fastResponse: true } })
+    );
+    expect(enabled.polyfills.some((p) => p.includes("fast-response"))).toBe(true);
+  });
+
+  it("aliases `nitro` imports when the project cannot resolve it", async () => {
+    const rootDir = mkdtempSync(join(tmpdir(), "nitro-env-"));
+    try {
+      const env = await resolveBuildEnv(createNitro({ rootDir }));
+      expect(env.alias.nitro).toBe(join(process.cwd(), "dist/runtime/nitro.mjs"));
+      expect(env.alias["nitro/h3"]).toBe(join(process.cwd(), "lib/h3.mjs"));
+      expect(env.alias["nitro/package.json"]).toBe(join(process.cwd(), "package.json"));
+    } finally {
+      rmSync(rootDir, { recursive: true, force: true });
+    }
   });
 
   it("adds node compatibility for `node: false` builds", async () => {
@@ -97,7 +124,10 @@ describe("resolveBuildEnv", () => {
 
   it("resolves relative ids from `rootDir`", async () => {
     const env = await resolveBuildEnv(
-      createNitro({ polyfills: ["./src/build/env.ts", "./does-not-exist.ts"] })
+      createNitro({
+        features: { fastResponse: false },
+        polyfills: ["./src/build/env.ts", "./does-not-exist.ts"],
+      })
     );
     expect(env.polyfills).toEqual([`${process.cwd()}/src/build/env.ts`, "./does-not-exist.ts"]);
   });

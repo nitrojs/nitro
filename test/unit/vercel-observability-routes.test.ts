@@ -59,6 +59,12 @@ describe("getObservabilityRoutes", () => {
     ]);
   });
 
+  it("maps a `*` catch-all segment to a catch-all dest", () => {
+    expect(
+      dests(createNitroStub({ handlers: [{ route: "/api/test/*/foo", handler: "hello.ts" }] }))
+    ).toEqual(["api/test/[...]/foo"]);
+  });
+
   // Vercel keeps functions and static files in a single path -> output map and
   // lets the function win, so a function at the path of a prerendered file
   // hides it and serves the route with SSR on every request (#4242)

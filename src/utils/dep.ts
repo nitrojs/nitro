@@ -236,8 +236,13 @@ async function _ensureDep(opts: ResolvedDepOptions): Promise<string | undefined>
 
   const start = Date.now();
   consola.start(`Installing \`${opts.id}\` in \`${opts.dir}\`...`);
-  const { addDependency, addDevDependency } = await import("nypm");
-  await (opts.dev === false ? addDependency : addDevDependency)(_depSpec(opts), { cwd: opts.dir });
+  const { addDependency, addDevDependency, detectPackageManager } = await import("nypm");
+  // Projects without a lockfile (or `packageManager` field) use the package manager of the runtime
+  const packageManager = (await detectPackageManager(opts.dir)) ? undefined : _runtimePM();
+  await (opts.dev === false ? addDependency : addDevDependency)(_depSpec(opts), {
+    cwd: opts.dir,
+    packageManager,
+  });
 
   const installed = resolveDep(opts.id, opts);
   if (installed) {
@@ -251,6 +256,10 @@ async function _ensureDep(opts: ResolvedDepOptions): Promise<string | undefined>
 /** Whether a directory is inside `node_modules` (e.g. the `rootDir` of a framework built on Nitro). */
 function _isInNodeModules(dir: string): boolean {
   return `${normalize(dir)}/`.includes("/node_modules/");
+}
+
+function _runtimePM(): "bun" | "deno" | "npm" {
+  return process.versions.bun ? "bun" : process.versions.deno ? "deno" : "npm";
 }
 
 /** Package spec to install (with the version range if it is a simple one). */
@@ -267,17 +276,21 @@ function _checkVersion(opts: ResolvedDepOptions, entry: string): void {
     return;
   }
   _checkedVersions.add(key);
-  const version = _installedVersion(opts.id, entry);
-  if (!version || _isSupportedVersion(version, opts.version)) {
+  const pkg = _installedPackage(opts.id, entry);
+  if (!pkg?.version || _isSupportedVersion(pkg.version, opts.version)) {
     return;
   }
+  // Not `opts.dir`: an explicit path (or the `vite` running `nitro/vite`) can be outside of it
   consola.warn(
-    `\`${opts.id}@${version}\` is installed in \`${opts.dir}\` but ${opts.reason} requires \`${opts.version}\`. Please update it if you run into issues.`
+    `\`${opts.id}@${pkg.version}\` is used from \`${pkg.dir}\` but ${opts.reason} requires \`${opts.version}\`. Please update it if you run into issues.`
   );
 }
 
-/** Read the version of the package `entry` belongs to (walking up to its `package.json`). */
-function _installedVersion(id: string, entry: string): string | undefined {
+/** Find the package `entry` belongs to and read its version (walking up to its `package.json`). */
+function _installedPackage(
+  id: string,
+  entry: string
+): { dir: string; version?: string } | undefined {
   let dir = dirname(entry);
   for (let depth = 0; depth < 10; depth++) {
     const pkgPath = join(dir, "package.json");
@@ -285,7 +298,7 @@ function _installedVersion(id: string, entry: string): string | undefined {
       try {
         const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
         if (pkg.name === id) {
-          return typeof pkg.version === "string" ? pkg.version : undefined;
+          return { dir, version: typeof pkg.version === "string" ? pkg.version : undefined };
         }
       } catch {
         // Ignore unreadable or invalid `package.json` files

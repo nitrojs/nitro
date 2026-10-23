@@ -2,6 +2,8 @@ import { fileURLToPath } from "node:url";
 import { readFile, rm, writeFile } from "node:fs/promises";
 import { afterAll, beforeAll, describe, expect, it, vi, type MockInstance } from "vitest";
 import { build, createDevServer, createNitro, prepare } from "nitro/builder";
+import { nitro as nitroVite } from "nitro/vite";
+import type { NitroConfig } from "nitro/types";
 import { Miniflare } from "miniflare";
 import { resolve } from "pathe";
 
@@ -255,6 +257,138 @@ for (const mode of ["nitro", "vite", "build", "vite-build"] as const) {
       }
     });
   });
+}
+
+for (const mode of ["nitro", "vite"] as const) {
+  for (const binding of [false, true]) {
+    describe(`cloudflare-dev websocket: ${mode} (\`$DurableObject\` binding: ${binding})`, () => {
+      let wsURL: URL;
+      let close: () => Promise<void>;
+
+      beforeAll(async () => {
+        const config = {
+          features: { websocket: true },
+          handlers: [
+            {
+              route: "/_ws",
+              handler: fileURLToPath(new URL("fixtures/websocket-pubsub.ts", import.meta.url)),
+            },
+          ],
+          cloudflare: binding
+            ? {
+                wranglerEnv: "test",
+                wrangler: {
+                  name: "nitro-dev",
+                  env: {
+                    test: {
+                      durable_objects: {
+                        // `script_name` of the Worker itself (`<name>-<env>`) is a local binding
+                        bindings: [
+                          {
+                            name: "$DurableObject",
+                            class_name: "$DurableObject",
+                            script_name: "nitro-dev-test",
+                          },
+                        ],
+                      },
+                    },
+                  },
+                },
+              }
+            : undefined,
+        } satisfies NitroConfig;
+        let serverURL: string;
+        if (mode === "nitro") {
+          const nitro = await createNitro({
+            ...config,
+            rootDir,
+            dev: true,
+            builder: (process.env.NITRO_BUILDER as "rollup" | "rolldown") || "rolldown",
+          });
+          const listener = createDevServer(nitro).listen({ port: 0, hostname: "127.0.0.1" });
+          // Closes the listener and the runner together (the sockets stay open until the runner stops)
+          close = () => nitro.close();
+          await prepare(nitro);
+          const ready = new Promise<void>((resolve) =>
+            nitro.hooks.hook("dev:reload", () => resolve())
+          );
+          await build(nitro);
+          await ready;
+          await listener.ready();
+          serverURL = listener.url!;
+        } else {
+          const server = await createServer({
+            root: rootDir,
+            configFile: false,
+            logLevel: "warn",
+            resolve: { alias: { "~vite-alias": rootDir } },
+            plugins: [nitroVite(config)],
+          });
+          close = () => server.close();
+          await server.listen(0);
+          serverURL = server.resolvedUrls!.local[0];
+        }
+        wsURL = new URL("/_ws", serverURL.replace(/^http/, "ws"));
+        // An upgrade sent while Miniflare starts can break its init
+        await fetch(new URL("/bindings", serverURL));
+      }, 60_000);
+
+      afterAll(async () => {
+        await close?.();
+      });
+
+      it("calls the route's hooks and publishes to peers only through the Durable Object", async () => {
+        const [a, b] = await Promise.all([connect(wsURL), connect(wsURL)]);
+        try {
+          expect(await a.next()).toBe("ready");
+          expect(await b.next()).toBe("ready");
+          a.ws.send("hello");
+          expect(await a.next()).toBe("sent");
+          if (binding) {
+            expect(await b.next()).toBe("pub:hello");
+          } else {
+            await expect(b.next(500)).rejects.toThrow("Timed out");
+          }
+          // Same Durable Object instance as the `cloudflare-module` entry
+          a.ws.send("instance");
+          expect(await a.next()).toBe(binding ? "instance:server" : "instance:undefined");
+        } finally {
+          a.ws.close();
+          b.ws.close();
+        }
+      });
+    });
+  }
+}
+
+async function connect(url: URL) {
+  const ws = new WebSocket(url);
+  const queue: string[] = [];
+  const waiters: ((message: string) => void)[] = [];
+  ws.addEventListener("message", (event) => {
+    const message = String(event.data);
+    const waiter = waiters.shift();
+    if (waiter) {
+      waiter(message);
+    } else {
+      queue.push(message);
+    }
+  });
+  await new Promise<void>((resolve, reject) => {
+    ws.addEventListener("open", () => resolve());
+    ws.addEventListener("error", () => reject(new Error("WebSocket error")));
+  });
+  const next = (timeout = 5000) =>
+    queue.length > 0
+      ? Promise.resolve(queue.shift()!)
+      : new Promise<string>((resolve, reject) => {
+          const timer = setTimeout(() => reject(new Error("Timed out")), timeout);
+          waiters.push((message) => {
+            clearTimeout(timer);
+            resolve(message);
+          });
+        });
+  return { ws, next };
 }
 
 function waitForWatcher() {

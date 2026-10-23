@@ -4,8 +4,14 @@ import type { NitroOptions } from "nitro/types";
 
 let _warned = false;
 
-export async function resolveViteOptions(options: NitroOptions) {
-  const legacy = options.experimental?.vite;
+type ViteOptionsSource = {
+  vite?: NitroOptions["vite"];
+  experimental?: NitroOptions["experimental"] | undefined;
+};
+
+export async function resolveViteOptions(options: ViteOptionsSource) {
+  const experimental = options.experimental;
+  const legacy = experimental?.vite;
   if (!legacy) {
     return;
   }
@@ -16,5 +22,5 @@ export async function resolveViteOptions(options: NitroOptions) {
     );
   }
   options.vite = defu(options.vite || {}, legacy);
-  delete options.experimental.vite;
+  delete experimental.vite;
 }

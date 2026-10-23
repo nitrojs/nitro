@@ -40,6 +40,17 @@ if (import.meta._websocket) {
 
 setupCloseHooks(server);
 
+// The IPC channel keeps a worker alive after its server closed; disconnect so it exits.
+if (cluster.isWorker) {
+  const closeServer = server.close.bind(server);
+  server.close = (closeActiveConnections?: boolean) =>
+    closeServer(closeActiveConnections).finally(() => {
+      if (cluster.worker?.isConnected()) {
+        cluster.worker.disconnect();
+      }
+    });
+}
+
 trapUnhandledErrors();
 
 // Scheduled tasks

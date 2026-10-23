@@ -2,6 +2,20 @@ import type { OpenAPI3 } from "../../src/types/openapi-ts.ts";
 import { describe, expect, it } from "vitest";
 import { setupTest, testNitro } from "../tests.ts";
 
+describe("nitro:preset:nitro-dev (serve static)", async () => {
+  const ctx = await setupTest("nitro-dev", {
+    config: { serveStatic: true },
+    outDirSuffix: "-serve-static",
+  });
+
+  it("serves public assets via internal fetch", async () => {
+    const res = await ctx.fetch("/fetch-public-asset");
+    const data = await res.json();
+    expect(data.status).toBe(200);
+    expect(data.body).toBe("Works!\n");
+  });
+});
+
 describe("nitro:preset:nitro-dev", async () => {
   const ctx = await setupTest("nitro-dev");
   testNitro(
@@ -20,6 +34,17 @@ describe("nitro:preset:nitro-dev", async () => {
       it.skipIf(process.env.OFFLINE)("returns correct status for devProxy", async () => {
         const { status } = await callHandler({ url: "/proxy/example" });
         expect(status).toBe(200);
+      });
+
+      it("compresses only compressible public assets", async () => {
+        const css = await callHandler({ url: "/foo.css", headers: { "Accept-Encoding": "br" } });
+        expect(css.headers["content-encoding"]).toBe("br");
+        const ico = await callHandler({
+          url: "/favicon.ico",
+          headers: { "Accept-Encoding": "br" },
+        });
+        expect(ico.status).toBe(200);
+        expect(ico.headers["content-encoding"]).toBeUndefined();
       });
 
       describe("tasks", () => {

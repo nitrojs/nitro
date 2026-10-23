@@ -66,7 +66,7 @@ export async function startUnbundledServer(opts: UnbundledServerOptions): Promis
       // After `createNitro`, so `.env` files can set them
       listen: opts.listen && {
         ...opts.listen,
-        port: opts.listen.port || process.env.NITRO_PORT,
+        port: opts.listen.port ?? process.env.NITRO_PORT,
         hostname: opts.listen.hostname || process.env.NITRO_HOST,
       },
       hooks: {

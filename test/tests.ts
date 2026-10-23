@@ -135,7 +135,7 @@ export async function setupTest(
   if (ctx.isDev) {
     // Setup development server
     const devServer = createDevServer(ctx.nitro);
-    const server = await devServer.listen({});
+    const server = await devServer.listen({ port: 0 });
     ctx.server = {
       url: server.url!,
       close: () => server.close(),
@@ -264,6 +264,17 @@ export function testNitro(
     const { data, headers } = await callHandler({ url: "/srvx-middleware" });
     expect(data).not.toBe("server entry middleware works!");
     expect(headers["x-srvx-plugin"]).toBeUndefined();
+  });
+
+  it("global Response is srvx FastResponse in Node.js", async () => {
+    const { data, headers } = await callHandler({ url: "/fast-response" });
+    expect(data).toBe("fast response");
+    expect(headers["x-init"]).toBe("1");
+    expect(JSON.parse(headers["x-fast-response"] as string)).toEqual({
+      // srvx `FastResponse` is the native `Response` outside of Node.js
+      fast: ctx.nitro!.options.node && !["bun", "deno-server", "standard"].includes(ctx.preset),
+      instanceOf: true,
+    });
   });
 
   it.runIf(["bun", "deno-server", "nitro-dev"].includes(ctx.preset))(
@@ -582,6 +593,12 @@ export function testNitro(
       expect(headers["content-type"]).toBe("text/plain; charset=utf-8");
     });
 
+    it("serve static asset via internal fetch", async () => {
+      const { data } = await callHandler({ url: "/fetch-public-asset" });
+      expect(data.status).toBe(200);
+      expect(data.body).toBe("Works!\n");
+    });
+
     it("stores content-type for prerendered routes", async () => {
       const { data, headers } = await callHandler({
         url: "/api/param/prerender4",
@@ -592,8 +609,12 @@ export function testNitro(
   }
 
   it("shows 404 for /build/non-file", async () => {
-    const { status } = await callHandler({ url: "/build/non-file" });
+    const { status, headers } = await callHandler({ url: "/build/non-file" });
     expect(status).toBe(404);
+    // The dev server serves public asset dirs itself, without route rules
+    if (!ctx.isDev) {
+      expect(headers["cache-control"]).toBe("no-store");
+    }
   });
 
   it("resolves utils from server/utils", async () => {
@@ -799,6 +820,25 @@ export function testNitro(
       const { data } = await callHandler({ url: "/errors/stack" });
       expect(data.stack).toMatch("test/fixture/server/routes/errors/stack.ts");
     });
+
+    for (const errorType of ["handled", "unhandled"]) {
+      it(`applies event.res.errHeaders (${errorType})`, async () => {
+        const consoleErrorMock = vi.spyOn(console, "error").mockImplementation(() => {});
+        let res;
+        try {
+          res = await callHandler({
+            url: `/errors/err-headers?${errorType}`,
+            headers: { Accept: "application/json" },
+          });
+        } finally {
+          consoleErrorMock.mockRestore();
+        }
+        expect(res.status).toBe(errorType === "handled" ? 403 : 500);
+        expect(res.headers["x-err-header"]).toBe("err-value");
+        expect(res.headers["set-cookie"]).toMatchObject(["err=1; Path=/"]);
+        expect(res.headers["x-success-only"]).toBeUndefined();
+      });
+    }
 
     for (const errorAction of ["throw", "return"]) {
       it(`handled errors (${errorAction})`, async () => {

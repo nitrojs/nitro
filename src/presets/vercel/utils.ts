@@ -664,7 +664,7 @@ function normalizeRouteDest(route: string) {
           return `[...${catchAll[1]}]`;
         }
         if (segment === "*") {
-          return "[-]";
+          return "[...]";
         }
         if (segment.startsWith(":")) {
           return `[${segment.slice(1)}]`;

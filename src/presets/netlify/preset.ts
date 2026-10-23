@@ -63,7 +63,7 @@ const netlifyEdge = defineNitroPreset(
     manifest: {
       deploymentId: process.env.DEPLOY_ID,
     },
-    exportConditions: ["netlify"],
+    exportConditions: ["deno"],
     output: {
       serverDir: "{{ rootDir }}/.netlify/v1/edge-functions/server",
       publicDir: "{{ rootDir }}/dist/{{ baseURL }}",
