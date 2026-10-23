@@ -17,7 +17,7 @@ import { defineConfig } from "nitro";
 export default defineConfig({
   serverDir: true,
 
-  // Instrument the h3, srvx and unstorage tracing channels.
+  // Instrument the h3, srvx, unstorage and db0 tracing channels.
   tracingChannel: true,
 
   experimental: {
@@ -89,7 +89,7 @@ export default defineHandler((event) => ({
 
 <!-- automd:file src="../../examples/tracing/README.md" -->
 
-Nitro can instrument its request lifecycle through Node [diagnostics channels](https://nodejs.org/api/diagnostics_channel.html) — no OpenTelemetry SDK required. This example turns instrumentation on and enables the built-in console logger, which groups every h3, srvx and unstorage span into a per-request timeline (waterfall).
+Nitro can instrument its request lifecycle through Node [diagnostics channels](https://nodejs.org/api/diagnostics_channel.html) — no OpenTelemetry SDK required. This example turns instrumentation on and enables the built-in console logger, which groups every h3, srvx, unstorage and db0 span into a per-request timeline (waterfall).
 
 ## Enabling tracing
 
@@ -97,7 +97,7 @@ Nitro can instrument its request lifecycle through Node [diagnostics channels](h
 import { defineConfig } from "nitro";
 
 export default defineConfig({
-  // Instrument the h3, srvx and unstorage tracing channels.
+  // Instrument the h3, srvx, unstorage and db0 tracing channels.
   tracingChannel: true,
 
   experimental: {

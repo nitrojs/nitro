@@ -1,9 +1,25 @@
-import { beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Database } from "db0";
 import { withTracing } from "db0/tracing";
 import type { SpanInfo } from "../../src/runtime/internal/telemetry/types.ts";
 import { TRACED_CHANNELS } from "../../src/runtime/internal/telemetry/channels.ts";
 import { subscribeTracedChannels } from "../../src/runtime/internal/telemetry/subscribe.ts";
+import { useDatabase } from "../../src/runtime/internal/database.ts";
+
+// What `#nitro/virtual/database` generates with `tracingChannel.db0` enabled.
+vi.mock("#nitro/virtual/database", async () => ({
+  traceDatabase: (await import("db0/tracing")).withTracing,
+  connectionConfigs: {
+    default: {
+      connector: () => ({
+        name: "fake",
+        dialect: "sqlite",
+        exec: () => ({ success: true }),
+      }),
+      options: {},
+    },
+  },
+}));
 
 const SECRET = "s3cr3t-user-input";
 
@@ -67,5 +83,12 @@ describe("db0.query tracing", () => {
     ]);
     expect(JSON.stringify(spans)).not.toContain(SECRET);
     expect(JSON.stringify(spans)).not.toContain("SELECT");
+  });
+});
+
+describe("useDatabase()", () => {
+  it("reports queries when tracing is enabled", async () => {
+    await useDatabase().exec(`DELETE FROM users WHERE name = '${SECRET}'`);
+    expect(spans.map((span) => span.name)).toEqual(["exec sqlite"]);
   });
 });
