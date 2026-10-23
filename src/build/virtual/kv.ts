@@ -12,21 +12,20 @@ export default function kv(nitro: Nitro) {
 
       const driverImports = [...new Set(mounts.map((m) => m.driver))];
 
-      const serverTimingEnabled = !!(nitro.options.serverTiming && nitro.options.serverTiming.kv);
-      const tracingChannelEnabled = !!(
-        typeof nitro.options.tracingChannel === "object" && nitro.options.tracingChannel?.unstorage
+      const tracingEnabled = !!(
+        (typeof nitro.options.tracingChannel === "object" &&
+          nitro.options.tracingChannel?.unstorage) ||
+        (nitro.options.serverTiming && nitro.options.serverTiming.kv)
       );
 
       return /* js */ `
 import { createStorage } from 'unstorage'
-${tracingChannelEnabled || serverTimingEnabled ? `import { withTracing } from 'unstorage/tracing'` : ""}
-${serverTimingEnabled ? `import { traceServerTiming } from '#nitro/runtime/server-timing-trace'` : ""}
+${tracingEnabled ? `import { withTracing } from 'unstorage/tracing'` : ""}
 import { assets } from '#nitro/virtual/server-assets'
 
 ${driverImports.map((i) => genImport(i, genSafeVariableName(i))).join("\n")}
 
 export function initKV() {
-  ${serverTimingEnabled ? `const timed = traceServerTiming('kv')` : ""}
   const storage = createStorage({})
   storage.mount('/assets', assets)
   ${mounts
@@ -35,7 +34,7 @@ export function initKV() {
         `storage.mount('${m.path}', ${genSafeVariableName(m.driver)}(${genDriverOptions(nitro, m)}))`
     )
     .join("\n")}
-  return ${tracingChannelEnabled ? "withTracing(storage)" : serverTimingEnabled ? "timed ? withTracing(storage) : storage" : "storage"}
+  return ${tracingEnabled ? "withTracing(storage)" : "storage"}
 }
 `;
     },

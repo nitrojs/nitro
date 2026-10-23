@@ -45,25 +45,24 @@ export function defineCachedHandler(
   handler: EventHandler,
   opts: CachedHandlerOptions = {}
 ): EventHandler {
-  const options = { ...cacheHandlerDefaults, ...definedOptions(opts) };
-  const statusHeader = resolveStatusHeader(options.cacheStatusHeader ?? true);
   const ocacheHandler = withCacheIsolation(
     _defineCachedHandler(handler as any, {
       storage: cacheStorage,
       group: "nitro/handlers",
       onError: defaultOnError,
-      toResponse: async (value, event) =>
-        detachServerTiming(await toResponse(value, event as H3Event), event as H3Event),
+      toResponse: (value, event) => toResponse(value, event as H3Event),
       createResponse: (body, init) => new FastResponse(body as BodyInit, init),
       handleCacheHeaders: (event, conditions) => handleCacheHeaders(event as H3Event, conditions),
-      ...options,
-      // Resolved here (instead of relying on ocache's default) as server timing reads it back.
-      cacheStatusHeader: statusHeader || false,
+      ...cacheHandlerDefaults,
+      ...definedOptions(opts),
     }) as EventHandler
   );
   if (!cacheServerTiming) {
     return defineHandler((event) => ocacheHandler(event as any));
   }
+  const statusHeader = resolveStatusHeader(
+    opts.cacheStatusHeader ?? cacheHandlerDefaults.cacheStatusHeader ?? true
+  );
   return defineHandler(async (event) => {
     const metric = beginOp(getServerTimingContext(event), "cache");
     if (!metric) {
@@ -86,23 +85,7 @@ export function defineCachedHandler(
 
 const cacheStatuses = /* @__PURE__ */ new Set(["hit", "miss", "stale", "revalidated"]);
 
-/**
- * `Server-Timing` describes the request that filled the cache entry: keep it out of the entry
- * (it would be replayed on every hit) and stage it on the live response instead.
- */
-function detachServerTiming(res: Response, event: H3Event): Response {
-  const timing = res.headers.get("server-timing");
-  if (!timing) {
-    return res;
-  }
-  // h3 merges staged headers into returned responses (`errHeaders` for error statuses).
-  (res.status >= 400 ? event.res.errHeaders : event.res.headers).append("server-timing", timing);
-  const headers = new Headers(res.headers);
-  headers.delete("server-timing");
-  return new FastResponse(res.body, { status: res.status, statusText: res.statusText, headers });
-}
-
-/** Response header ocache writes the cache status to (`cacheStatusHeader`). */
+/** Response header ocache writes the cache status to (same resolution as ocache's `cacheStatusHeader`). */
 function resolveStatusHeader(option: boolean | string): string | undefined {
   return option === true ? "x-cache" : option ? option.toLowerCase() : undefined;
 }
