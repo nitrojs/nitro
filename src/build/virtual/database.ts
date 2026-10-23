@@ -11,8 +11,11 @@ export default function database(nitro: Nitro) {
       const connections = await resolveDatabaseConnections(nitro.options);
 
       if (connections.length === 0) {
-        return /* js */ `export const connectionConfigs = {};`;
+        return /* js */ `export const connectionConfigs = {};\nexport const traceDatabase = (db) => db;`;
       }
+
+      const tracingEnabled =
+        typeof nitro.options.tracingChannel === "object" && !!nitro.options.tracingChannel.db0;
 
       const connectorImports = new Map(connections.map((c) => [c.connector, c.module]));
 
@@ -20,6 +23,11 @@ export default function database(nitro: Nitro) {
 ${[...connectorImports]
   .map(([name, module]) => /* js */ `import ${camelCase(name)}Connector from "${module}";`)
   .join("\n")}
+${
+  tracingEnabled
+    ? /* js */ `export { withTracing as traceDatabase } from "db0/tracing";`
+    : /* js */ `export const traceDatabase = (db) => db;`
+}
 
 export const connectionConfigs = {
   ${connections

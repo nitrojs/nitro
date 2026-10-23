@@ -207,7 +207,7 @@ The `cloudflare_durable` preset is deprecated and builds the same output as `clo
 
 **🧪 Experimental!**
 
-When the experimental [`tracingChannel`](/config#tracingchannel) option is enabled, the Cloudflare presets report Nitro's tracing-channel events (h3 routes and middleware, srvx, unstorage operations, …) as [custom spans](https://developers.cloudflare.com/workers/observability/traces/custom-spans/), alongside Cloudflare's automatic instrumentation (fetch calls, KV reads, D1 queries, …), with no OpenTelemetry SDK required.
+When the experimental [`tracingChannel`](/config#tracingchannel) option is enabled, the Cloudflare presets report Nitro's tracing-channel events (h3 routes and middleware, srvx, unstorage operations, db0 queries, …) as [custom spans](https://developers.cloudflare.com/workers/observability/traces/custom-spans/), alongside Cloudflare's automatic instrumentation (fetch calls, KV reads, D1 queries, …), with no OpenTelemetry SDK required.
 
 ```ts [nitro.config.ts]
 import { defineConfig } from "nitro";

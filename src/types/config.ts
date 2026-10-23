@@ -412,7 +412,7 @@ export interface NitroOptions extends PresetOptions {
      * Log Nitro tracing-channel spans to the console.
      *
      * Enables a built-in, dependency-free telemetry sink that `console.log`s
-     * each completed span (h3, srvx, unstorage, …). Requires `tracingChannel`
+     * each completed span (h3, srvx, unstorage, db0, …). Requires `tracingChannel`
      * to be enabled.
      */
     tracingLogger?: boolean;
@@ -1226,6 +1226,8 @@ export interface TracingChannelOptions {
   srvx?: boolean;
   h3?: boolean;
   unstorage?: boolean;
+  /** Database queries made with `useDatabase()` (`db0.query`). Requires `experimental.database`. */
+  db0?: boolean;
 }
 
 /** @deprecated Use {@link TracingChannelOptions}. */

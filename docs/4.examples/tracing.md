@@ -107,7 +107,7 @@ export default defineConfig({
 });
 ```
 
-`tracingChannel: true` wires up the producers (it accepts `{ h3, srvx, unstorage }` to trace a subset). `experimental.tracingLogger` adds a built-in sink that `console.log`s each completed span — a dependency-free alternative to a vendor exporter, handy for local development.
+`tracingChannel: true` wires up the producers (it accepts `{ h3, srvx, unstorage, db0 }` to trace a subset). `experimental.tracingLogger` adds a built-in sink that `console.log`s each completed span — a dependency-free alternative to a vendor exporter, handy for local development.
 
 ## Try it
 

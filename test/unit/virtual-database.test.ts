@@ -31,7 +31,8 @@ describe("virtual/database template", () => {
     const template = await database(
       createNitroStub({ default: { connector: "sqlite" } }, false)
     ).template();
-    expect(template).toBe("export const connectionConfigs = {};");
+    expect(template).toContain("export const connectionConfigs = {};");
+    expect(template).toContain("export const traceDatabase = (db) => db;");
   });
 
   it("imports the connector module", async () => {
@@ -80,5 +81,29 @@ describe("virtual/database template", () => {
       createNitroStub({ default: { connector: "postgresql", options: { lib: null } } })
     ).template();
     expect(template).not.toContain(`import("pg")`);
+  });
+
+  it("does not trace queries when tracingChannel is disabled", async () => {
+    const template = await database(
+      createNitroStub({ default: { connector: "sqlite" } })
+    ).template();
+    expect(template).toContain("export const traceDatabase = (db) => db;");
+    expect(template).not.toContain("db0/tracing");
+  });
+
+  it("does not trace queries when tracingChannel.db0 is disabled", async () => {
+    const nitro = createNitroStub({ default: { connector: "sqlite" } });
+    nitro.options.tracingChannel = { h3: true, srvx: true, unstorage: true, db0: false };
+    const template = await database(nitro).template();
+    expect(template).toContain("export const traceDatabase = (db) => db;");
+    expect(template).not.toContain("db0/tracing");
+  });
+
+  it("traces queries when tracingChannel.db0 is enabled", async () => {
+    const nitro = createNitroStub({ default: { connector: "sqlite" } });
+    nitro.options.tracingChannel = { db0: true };
+    const template = await database(nitro).template();
+    expect(template).toContain(`export { withTracing as traceDatabase } from "db0/tracing";`);
+    expect(template).not.toContain("export const traceDatabase");
   });
 });
