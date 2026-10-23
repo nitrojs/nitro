@@ -16,6 +16,7 @@ function createNitro(): Nitro {
       handlers: [],
       virtual: {},
       serveStatic: false,
+      publicAssets: [],
     },
     scannedHandlers: [],
   } as unknown as Nitro;
