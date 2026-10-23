@@ -433,7 +433,7 @@ export default defineConfig({
 });
 ```
 
-:read-more{to="/docs/server-timing" title="Server Timing"}
+:read-more{to="/docs/tracing#server-timing" title="Server Timing"}
 
 ## Other preset options
 

@@ -282,8 +282,8 @@ export interface NitroOptions extends PresetOptions {
    *
    * Resolves to `false` when disabled.
    *
-   * @see https://nitro.build/config#servertiming
-   * @see https://nitro.build/docs/server-timing
+   * @see https://nitro.build/config/features#servertiming
+   * @see https://nitro.build/docs/tracing#server-timing
    */
   serverTiming: false | Required<ServerTimingOptions>;
 
@@ -1210,8 +1210,8 @@ export interface NitroConfig
    * production, `false` to disable it, or pass an object to enable only the metrics set to `true`
    * (in development and production).
    *
-   * @see https://nitro.build/config#servertiming
-   * @see https://nitro.build/docs/server-timing
+   * @see https://nitro.build/config/features#servertiming
+   * @see https://nitro.build/docs/tracing#server-timing
    */
   serverTiming?: boolean | ServerTimingOptions;
 }
@@ -1362,6 +1362,7 @@ export interface ServerAssetDir {
  * Tracing channel options.
  *
  * @see https://nitro.build/config/advanced#tracingchannel
+ * @see https://nitro.build/docs/tracing#tracing-channels
  */
 export interface TracingChannelOptions {
   srvx?: boolean;
@@ -1374,7 +1375,7 @@ export interface TracingChannelOptions {
 /**
  * Built-in `Server-Timing` metrics. Only the metrics set to `true` are enabled.
  *
- * @see https://nitro.build/config#servertiming
+ * @see https://nitro.build/config/features#servertiming
  */
 export interface ServerTimingOptions {
   /** Time spent inside the Nitro app until the response headers are ready. */
