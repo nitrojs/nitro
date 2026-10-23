@@ -15,6 +15,7 @@ import { useNitroApp } from "./app.ts";
 import { beginOp, endOp, getServerTimingContext } from "./server-timing.ts";
 
 import type { EventHandler, H3Event } from "h3";
+import type { RuleHandler } from "h3/rules";
 import type { CachedFunctionOptions, CachedHandlerOptions } from "nitro/types";
 
 let _cacheStorage: StorageInterface | undefined;
@@ -57,30 +58,51 @@ export function defineCachedHandler(
       ...definedOptions(opts),
     }) as EventHandler
   );
-  if (!cacheServerTiming) {
-    return defineHandler((event) => ocacheHandler(event as any));
-  }
-  const statusHeader = resolveStatusHeader(
-    opts.cacheStatusHeader ?? cacheHandlerDefaults.cacheStatusHeader ?? true
+  const cachedHandler = (event: H3Event) => ocacheHandler(event as any);
+  return defineHandler(
+    cacheServerTiming ? withCacheServerTiming(cachedHandler, opts.cacheStatusHeader) : cachedHandler
   );
-  return defineHandler(async (event) => {
+}
+
+/** Records the `cache` server timing metric around the `cache` route rule. */
+export function withCacheRuleServerTiming(rule: RuleHandler<"cache">): RuleHandler<"cache"> {
+  if (!cacheServerTiming) {
+    return rule;
+  }
+  return {
+    ...rule,
+    handler: (matched) =>
+      withCacheServerTiming(rule.handler(matched), matched.options.cacheStatusHeader),
+  };
+}
+
+/** Records the duration and cache status of a cached handler as the `cache` server timing metric. */
+function withCacheServerTiming<T extends (event: H3Event, ...args: any[]) => unknown>(
+  handler: T,
+  cacheStatusHeader: boolean | string | undefined
+): T {
+  const statusHeader = resolveStatusHeader(
+    cacheStatusHeader ?? cacheHandlerDefaults.cacheStatusHeader ?? true
+  );
+  return (async (event: H3Event, ...args: unknown[]) => {
     const metric = beginOp(getServerTimingContext(event), "cache");
     if (!metric) {
-      return ocacheHandler(event as any);
+      return handler(event, ...args);
     }
     let status: string | undefined;
     try {
-      const res = (await ocacheHandler(event as any)) as Response;
+      const res = await handler(event, ...args);
       if (statusHeader) {
         // Bypassed responses carry no status from ocache, only the handler's own header (if any).
-        const value = res.headers.get(statusHeader)?.toLowerCase();
+        const value =
+          res instanceof Response ? res.headers.get(statusHeader)?.toLowerCase() : undefined;
         status = value && cacheStatuses.has(value) ? value : "bypass";
       }
       return res;
     } finally {
       endOp(metric, status);
     }
-  });
+  }) as T;
 }
 
 const cacheStatuses = /* @__PURE__ */ new Set(["hit", "miss", "stale", "revalidated"]);
