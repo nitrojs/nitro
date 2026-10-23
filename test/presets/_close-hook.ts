@@ -19,6 +19,7 @@ export function testCloseHook(
     command: string;
     args: (entry: string) => string[];
     cwd?: string;
+    env?: Record<string, string>;
     /** When set, also wait for the process to exit and assert its exit code. */
     exitCode?: number;
   }
@@ -32,6 +33,7 @@ export function testCloseHook(
       // `TEST` are set, so the child runs without them to exercise the real signal path.
       const env: Record<string, string | undefined> = {
         ...process.env,
+        ...opts.env,
         NITRO_PORT: String(port),
         PORT: String(port),
         NITRO_HOST: "127.0.0.1",

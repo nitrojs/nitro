@@ -121,6 +121,7 @@ describe("nitro:preset:node-cluster", async () => {
   testCloseHook(ctx, {
     command: process.execPath,
     args: (entry) => [entry],
+    env: { NITRO_CLUSTER_WORKERS: "2" },
     exitCode: 0,
   });
 
