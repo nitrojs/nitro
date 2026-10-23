@@ -112,13 +112,7 @@ describe("virtual/database template", () => {
     expect(template).not.toContain("export const traceDatabase");
   });
 
-  it("does not trace queries when serverTiming.db is disabled", async () => {
-    const template = await database(createNitroStub({ default: { connector: "sqlite" } })).template();
-    expect(template).toContain("export const traceDatabase = (db) => db;");
-    expect(template).not.toContain("db0/tracing");
-  });
-
-  it("traces queries for server timing when serverTiming.db is enabled", async () => {
+  it("traces queries when serverTiming.db is enabled", async () => {
     const template = await database(
       createNitroStub({ default: { connector: "sqlite" } }, true, {
         total: true,
@@ -127,9 +121,6 @@ describe("virtual/database template", () => {
         cache: true,
       })
     ).template();
-    expect(template).toContain(`import { withTracing } from "db0/tracing";`);
-    expect(template).toContain(
-      `export const traceDatabase = (db) => traceServerTiming("db") ? withTracing(db) : db;`
-    );
+    expect(template).toContain(`export { withTracing as traceDatabase } from "db0/tracing";`);
   });
 });

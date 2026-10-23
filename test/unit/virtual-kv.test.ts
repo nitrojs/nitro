@@ -113,33 +113,18 @@ describe("virtual/kv template", () => {
     expect(template).not.toContain("chokidar");
   });
 
-  it("wraps storage and records server timing when serverTiming.kv is enabled", () => {
-    const template = kv(
+  it("wraps storage with tracing when serverTiming.kv is enabled", async () => {
+    const template = await kv(
       createNitroStub(undefined, {}, { total: true, kv: true, db: false, cache: true })
     ).template();
     expect(template).toContain("import { withTracing } from 'unstorage/tracing'");
-    expect(template).toContain("const timed = traceServerTiming('kv')");
-    // `withTracing` needs `node:diagnostics_channel`, which `traceServerTiming` checks for
-    expect(template).toContain("return timed ? withTracing(storage) : storage");
-  });
-
-  it("always wraps storage when both serverTiming.kv and tracingChannel.unstorage are enabled", () => {
-    const template = kv(
-      createNitroStub(
-        { srvx: true, h3: true, unstorage: true },
-        {},
-        { total: true, kv: true, db: false, cache: true }
-      )
-    ).template();
-    expect(template).toContain("const timed = traceServerTiming('kv')");
     expect(template).toContain("return withTracing(storage)");
   });
 
-  it("does not record server timing when serverTiming.kv is disabled", () => {
-    const template = kv(
+  it("does not record server timing when serverTiming.kv is disabled", async () => {
+    const template = await kv(
       createNitroStub(undefined, {}, { total: true, kv: false, db: false, cache: true })
     ).template();
-    expect(template).not.toContain("traceServerTiming");
     expect(template).not.toContain("withTracing");
   });
 });

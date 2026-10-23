@@ -1,7 +1,9 @@
-import type { H3Event, Middleware } from "h3";
+import type { H3Event } from "h3";
 import type { ServerRequest } from "srvx";
 import type { NitroOptions } from "nitro/types";
 import type { AsyncLocalStorage } from "node:async_hooks";
+import { subscribeTracingChannels } from "./telemetry/subscribe.ts";
+import { UNSTORAGE_OPERATIONS } from "./telemetry/unstorage.ts";
 
 type ServerTimingOptions = Exclude<NitroOptions["serverTiming"], false>;
 
@@ -26,17 +28,6 @@ export interface ServerTimingContext {
   cache?: ServerTimingMetric;
 }
 
-/**
- * Process-wide, like the diagnostics channel subscriptions it tracks, so a runtime that is
- * re-evaluated in the same process (Vite dev reloads) reuses them instead of subscribing again.
- */
-export interface ServerTimingState {
-  /** Context of the request the current async execution belongs to. */
-  getStore?: () => ServerTimingContext | undefined;
-  als?: AsyncLocalStorage<ServerTimingContext> | null;
-  traced: Set<string>;
-}
-
 export interface ServerTimingContextOptions {
   metrics: ServerTimingOptions;
   /** Current request from an existing async context (`experimental.asyncContext`), to avoid running another one. */
@@ -44,44 +35,53 @@ export interface ServerTimingContextOptions {
 }
 
 const kServerTiming = /* @__PURE__ */ Symbol.for("nitro.serverTiming");
-const kState = /* @__PURE__ */ Symbol.for("nitro.serverTiming.state");
 
+/** Context of the request the current async execution belongs to. */
+let getStore: (() => ServerTimingContext | undefined) | undefined;
+
+/**
+ * Wraps the Nitro app handler: measures the request and appends the `Server-Timing` header to
+ * whatever response it produces (routes, errors, 404s, server entry).
+ *
+ * `kv` / `db` are recorded from the `unstorage.*` / `db0.query` tracing channels, which needs
+ * async context to attribute operations to a request (`node:async_hooks`).
+ */
 export function withServerTimingContext(
   handler: (req: ServerRequest) => Response | Promise<Response>,
   { metrics, getRequest }: ServerTimingContextOptions
 ): (req: ServerRequest) => Response | Promise<Response> {
   let als: AsyncLocalStorage<ServerTimingContext> | undefined;
+  getStore = undefined;
   if (metrics.kv || metrics.db) {
-    const state = useServerTimingState();
     if (getRequest) {
-      state.getStore = () => {
-        const context = getRequest()?.context as Record<symbol, unknown> | undefined;
-        return context?.[kServerTiming] as ServerTimingContext | undefined;
-      };
-    } else if ((als = useALS())) {
-      const store = als;
-      state.getStore = () => store.getStore();
+      getStore = () => getContext(getRequest()?.context);
+    } else if ((als = createALS())) {
+      getStore = als.getStore.bind(als);
+    }
+  }
+  if (getStore) {
+    if (metrics.kv) {
+      traceServerTiming(
+        "kv",
+        UNSTORAGE_OPERATIONS.map((operation) => `unstorage.${operation}`)
+      );
+    }
+    if (metrics.db) {
+      traceServerTiming("db", ["db0.query"]);
     }
   }
   return (req) => {
     const ctx: ServerTimingContext = { options: metrics, start: performance.now() };
     ((req.context ||= {}) as Record<symbol, unknown>)[kServerTiming] = ctx;
-    return als ? als.run(ctx, handler, req) : handler(req);
+    const res = als ? als.run(ctx, handler, req) : handler(req);
+    return res instanceof Promise
+      ? res.then((res) => appendServerTiming(res, ctx))
+      : appendServerTiming(res, ctx);
   };
 }
 
-export const serverTimingMiddleware: Middleware = (event, next) =>
-  appendServerTiming(event, next(), false);
-// Keep `h3/tracing` from wrapping Nitro's own middleware.
-(serverTimingMiddleware as { __traced__?: boolean }).__traced__ = true;
-
-/** h3 merges no staged headers into error handler responses. */
-export function serverTimingOnError(event: H3Event, response: unknown): unknown {
-  return appendServerTiming(event, response, true);
-}
-
 export function getServerTimingContext(event?: H3Event): ServerTimingContext | undefined {
-  return (event && getEventContext(event)) ?? useServerTimingState().getStore?.();
+  return (event && getContext(event.context)) ?? getStore?.();
 }
 
 export function beginOp(
@@ -129,60 +129,34 @@ export function formatServerTiming(ctx: ServerTimingContext): string {
   return entries.join(", ");
 }
 
-export function useServerTimingState(): ServerTimingState {
-  return ((globalThis as Record<symbol, unknown>)[kState] ??= {
-    traced: new Set(),
-  }) as ServerTimingState;
+function traceServerTiming(name: "kv" | "db", channels: string[]): void {
+  subscribeTracingChannels(channels, {
+    id: `nitro.serverTiming.${name}`,
+    onStart: () => beginOp(getStore?.(), name),
+    onEnd: (_, __, metric) => endOp(metric),
+  });
 }
 
-export function useALS(): AsyncLocalStorage<ServerTimingContext> | undefined {
-  const state = useServerTimingState();
-  if (state.als === undefined) {
-    const AsyncLocalStorage =
-      globalThis.process?.getBuiltinModule?.("node:async_hooks")?.AsyncLocalStorage;
-    state.als = AsyncLocalStorage ? new AsyncLocalStorage<ServerTimingContext>() : null;
-  }
-  return state.als || undefined;
-}
-
-function appendServerTiming(event: H3Event, value: unknown, isError: boolean): unknown {
-  if (typeof (value as Promise<unknown>)?.then === "function") {
-    return (value as Promise<unknown>).then((v) => appendServerTiming(event, v, isError));
-  }
-  // Errors and 404s (`kNotFound` symbol) are rendered by the error handler.
-  if (!isError && (value instanceof Error || typeof value === "symbol")) {
-    return value;
-  }
-  const ctx = getEventContext(event);
-  if (!ctx) {
-    return value;
-  }
-  let timing = formatServerTiming(ctx);
+function appendServerTiming(res: Response, ctx: ServerTimingContext): Response {
+  const timing = formatServerTiming(ctx);
   ctx.done = true;
   if (!timing) {
-    return value;
+    return res;
   }
-  if (isError && value instanceof Response) {
-    try {
-      value.headers.append("server-timing", timing);
-    } catch {
-      // Immutable headers (e.g. `Response.redirect()`)
-      value = new Response(value.body, value);
-      (value as Response).headers.append("server-timing", timing);
-    }
-    return value;
+  try {
+    res.headers.append("server-timing", timing);
+  } catch {
+    // Immutable headers (e.g. `Response.redirect()` or a proxied `fetch()` response)
+    res = new Response(res.body, res);
+    res.headers.append("server-timing", timing);
   }
-  // h3 merges staged headers into a returned response with `set`, so keep its own entries.
-  const headers = (value as { headers?: unknown } | null | undefined)?.headers;
-  const upstream = !isError && headers instanceof Headers && headers.get("server-timing");
-  if (upstream) {
-    timing = `${upstream}, ${timing}`;
-  }
-  const useErrHeaders = isError
-    ? value === undefined || value === null
-    : value instanceof Response && value.status >= 400;
-  (useErrHeaders ? event.res.errHeaders : event.res.headers).append("server-timing", timing);
-  return value;
+  return res;
+}
+
+function createALS(): AsyncLocalStorage<ServerTimingContext> | undefined {
+  const AsyncLocalStorage =
+    globalThis.process?.getBuiltinModule?.("node:async_hooks")?.AsyncLocalStorage;
+  return AsyncLocalStorage ? new AsyncLocalStorage<ServerTimingContext>() : undefined;
 }
 
 const units = { kv: ["op", "ops"], db: ["query", "queries"] } as const;
@@ -199,8 +173,8 @@ function describe(name: MetricName, metric: ServerTimingMetric): string | undefi
   return entries.map(([status, count]) => `${count} ${status}`).join(", ") || undefined;
 }
 
-function getEventContext(event: H3Event): ServerTimingContext | undefined {
-  return (event.context as Record<symbol, unknown>)[kServerTiming] as
+function getContext(context: object | undefined): ServerTimingContext | undefined {
+  return (context as Record<symbol, unknown> | undefined)?.[kServerTiming] as
     | ServerTimingContext
     | undefined;
 }

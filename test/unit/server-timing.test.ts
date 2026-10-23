@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { tracingChannel } from "node:diagnostics_channel";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { H3, HTTPError } from "h3";
 import { FastResponse } from "srvx";
 import type { ServerRequest } from "srvx";
@@ -9,11 +9,8 @@ import {
   endOp,
   formatServerTiming,
   getServerTimingContext,
-  serverTimingMiddleware,
-  serverTimingOnError,
   withServerTimingContext,
 } from "../../src/runtime/internal/server-timing.ts";
-import { traceServerTiming } from "../../src/runtime/internal/server-timing-trace.ts";
 import type { ServerTimingContext } from "../../src/runtime/internal/server-timing.ts";
 
 const options = { total: true, kv: true, db: true, cache: true };
@@ -28,10 +25,7 @@ function createApp(opts: { errorHandler?: (error: HTTPError) => unknown } = {}) 
         status: error.status,
         headers: { "content-type": "application/json" },
       }));
-  const app = new H3({
-    onError: (error, event) => serverTimingOnError(event, errorHandler(error)) as any,
-  });
-  app.use(serverTimingMiddleware);
+  const app = new H3({ onError: (error) => errorHandler(error) as any });
   const fetch = withServerTimingContext((req) => app.fetch(req), { metrics: options });
   return {
     app,
@@ -42,18 +36,9 @@ function createApp(opts: { errorHandler?: (error: HTTPError) => unknown } = {}) 
   };
 }
 
-beforeEach(() => {
-  resetState();
-});
-
 afterEach(() => {
   vi.restoreAllMocks();
 });
-
-/** Drops the process-wide state that runtime reloads share. */
-function resetState() {
-  delete (globalThis as Record<symbol, unknown>)[Symbol.for("nitro.serverTiming.state")];
-}
 
 describe("runtime: server timing", () => {
   it("adds total to plain values and responses", async () => {
@@ -113,8 +98,7 @@ describe("runtime: server timing", () => {
   });
 
   it("records traced channel operations", async () => {
-    const channel = tracingChannel("nitro.test.server-timing");
-    traceServerTiming("db", ["nitro.test.server-timing"]);
+    const channel = tracingChannel("db0.query");
     const { app, request } = createApp();
     app.get("/", async () => {
       await Promise.all([
@@ -129,11 +113,9 @@ describe("runtime: server timing", () => {
 
 describe("runtime: server timing async context", () => {
   it("reuses an existing async context", async () => {
-    const channel = tracingChannel("nitro.test.server-timing-async-context");
-    traceServerTiming("kv", ["nitro.test.server-timing-async-context"]);
+    const channel = tracingChannel("unstorage.getItem");
     const requests = new AsyncLocalStorage<ServerRequest>();
     const app = new H3();
-    app.use(serverTimingMiddleware);
     app.get("/", async () => {
       await channel.tracePromise(async () => {}, {});
       return "ok";
@@ -224,16 +206,27 @@ describe("runtime: server timing busy time", () => {
 });
 
 describe("runtime: server timing across runtime reloads", () => {
-  it("subscribes to tracing channels once", async () => {
-    const diagnostics = process.getBuiltinModule("node:diagnostics_channel");
-    const subscribe = vi.spyOn(diagnostics, "subscribe");
-    for (let i = 0; i < 2; i++) {
+  it("replaces tracing channel subscriptions", async () => {
+    const channel = tracingChannel("unstorage.getItem");
+    const requests = new AsyncLocalStorage<ServerRequest>();
+    let fetch!: (req: ServerRequest) => Response | Promise<Response>;
+    for (let i = 0; i < 3; i++) {
       vi.resetModules();
-      const trace = await import("../../src/runtime/internal/server-timing-trace.ts");
-      expect(trace.traceServerTiming("kv", ["nitro.test.server-timing-reload"])).toBe(true);
+      const timing = await import("../../src/runtime/internal/server-timing.ts");
+      fetch = timing.withServerTimingContext(
+        async () => {
+          await channel.tracePromise(async () => {}, {});
+          return new Response("ok");
+        },
+        { metrics: options, getRequest: () => requests.getStore() }
+      );
     }
-    // start, end and asyncEnd of a single channel
-    expect(subscribe).toHaveBeenCalledTimes(3);
+    const req = new Request("http://localhost/") as ServerRequest;
+    const res = await requests.run(req, () => fetch(req));
+    // Subscriptions left over from previous evaluations would count the operation again
+    expect(res.headers.get("server-timing")).toMatch(
+      new RegExp(`^kv;desc="1 op";dur=[\\d.]+, ${TOTAL}$`)
+    );
   });
 });
 
@@ -242,10 +235,7 @@ describe("runtime: server timing without async context", () => {
     vi.resetModules();
     vi.spyOn(process, "getBuiltinModule").mockReturnValue(undefined as any);
     const timing = await import("../../src/runtime/internal/server-timing.ts");
-    const trace = await import("../../src/runtime/internal/server-timing-trace.ts");
-    expect(trace.traceServerTiming("kv", ["nitro.test.server-timing-no-als"])).toBe(false);
     const app = new H3();
-    app.use(timing.serverTimingMiddleware);
     app.get("/", (event) => {
       expect(timing.getServerTimingContext()).toBeUndefined();
       timing.endOp(timing.beginOp(timing.getServerTimingContext(event), "cache"), "hit");

@@ -14,9 +14,10 @@ export default function database(nitro: Nitro) {
         return /* js */ `export const connectionConfigs = {};\nexport const traceDatabase = (db) => db;`;
       }
 
-      const tracingEnabled =
-        typeof nitro.options.tracingChannel === "object" && !!nitro.options.tracingChannel.db0;
-      const serverTimingEnabled = !!(nitro.options.serverTiming && nitro.options.serverTiming.db);
+      const tracingEnabled = !!(
+        (typeof nitro.options.tracingChannel === "object" && nitro.options.tracingChannel?.db0) ||
+        (nitro.options.serverTiming && nitro.options.serverTiming.db)
+      );
 
       const connectorImports = new Map(connections.map((c) => [c.connector, c.module]));
 
@@ -25,13 +26,8 @@ ${[...connectorImports]
   .map(([name, module]) => /* js */ `import ${camelCase(name)}Connector from "${module}";`)
   .join("\n")}
 ${
-  serverTimingEnabled
-    ? /* js */ `import { withTracing } from "db0/tracing";
-import { traceServerTiming } from "#nitro/runtime/server-timing-trace";
-
-export const traceDatabase = (db) => traceServerTiming("db") ? withTracing(db) : db;`
-    : tracingEnabled
-      ? /* js */ `export { withTracing as traceDatabase } from "db0/tracing";`
+  tracingEnabled
+    ? /* js */ `export { withTracing as traceDatabase } from "db0/tracing";`
     : /* js */ `export const traceDatabase = (db) => db;`
 }
 
