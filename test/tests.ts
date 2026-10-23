@@ -266,6 +266,17 @@ export function testNitro(
     expect(headers["x-srvx-plugin"]).toBeUndefined();
   });
 
+  it("global Response is srvx FastResponse in Node.js", async () => {
+    const { data, headers } = await callHandler({ url: "/fast-response" });
+    expect(data).toBe("fast response");
+    expect(headers["x-init"]).toBe("1");
+    expect(JSON.parse(headers["x-fast-response"] as string)).toEqual({
+      // srvx `FastResponse` is the native `Response` outside of Node.js
+      fast: ctx.nitro!.options.node && !["bun", "deno-server", "standard"].includes(ctx.preset),
+      instanceOf: true,
+    });
+  });
+
   it.runIf(["bun", "deno-server", "nitro-dev"].includes(ctx.preset))(
     "Server entry options are passed to srvx",
     async () => {

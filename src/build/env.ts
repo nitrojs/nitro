@@ -26,6 +26,10 @@ export type PresetEnv = Partial<{
 
 const presetEnvs = new WeakMap<Nitro, PresetEnv[]>();
 
+const fastResponseEnv: PresetEnv = {
+  polyfills: ["#nitro/runtime/polyfills/fast-response"],
+};
+
 const commonEnv: PresetEnv = {
   alias: {
     "buffer/": "node:buffer",
@@ -68,6 +72,7 @@ export async function resolveBuildEnv(nitro: Nitro): Promise<BuildEnv> {
     selfEnv(nitro.options.rootDir),
     ...(presetEnvs.get(nitro) || []),
     ...legacyUnenvLayers(nitro.options, nitro.logger),
+    (nitro.options.features?.fastResponse ?? nitro.options.node) ? fastResponseEnv : {},
     {
       alias: nitro.options.alias,
       inject: nitro.options.inject,

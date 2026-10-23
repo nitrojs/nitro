@@ -63,9 +63,20 @@ describe("resolveBuildEnv", () => {
     expect(env.alias["buffer/"]).toBe("node:buffer");
     expect(env.alias["node:fs"]).toBeUndefined();
     expect(env.inject).toEqual({});
-    expect(env.polyfills).toEqual([]);
+    expect(env.polyfills).toEqual([
+      expect.stringMatching(/runtime\/internal\/polyfills\/fast-response\.(ts|mjs)$/),
+    ]);
     expect(env.external).toEqual(["my-external"]);
     expect(env.alias.nitro).toBeUndefined();
+  });
+
+  it("respects `features.fastResponse`", async () => {
+    const disabled = await resolveBuildEnv(createNitro({ features: { fastResponse: false } }));
+    expect(disabled.polyfills).toEqual([]);
+    const enabled = await resolveBuildEnv(
+      createNitro({ node: false, features: { fastResponse: true } })
+    );
+    expect(enabled.polyfills.some((p) => p.includes("fast-response"))).toBe(true);
   });
 
   it("aliases `nitro` imports when the project cannot resolve it", async () => {
@@ -113,7 +124,10 @@ describe("resolveBuildEnv", () => {
 
   it("resolves relative ids from `rootDir`", async () => {
     const env = await resolveBuildEnv(
-      createNitro({ polyfills: ["./src/build/env.ts", "./does-not-exist.ts"] })
+      createNitro({
+        features: { fastResponse: false },
+        polyfills: ["./src/build/env.ts", "./does-not-exist.ts"],
+      })
     );
     expect(env.polyfills).toEqual([`${process.cwd()}/src/build/env.ts`, "./does-not-exist.ts"]);
   });

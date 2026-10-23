@@ -411,6 +411,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/fetch-public-asset\\/?$",
               },
               {
+                "dest": "/fast-response",
+                "src": "^\\/fast-response\\/?$",
+              },
+              {
                 "dest": "/errors/throw",
                 "src": "^\\/errors\\/throw\\/?$",
               },
@@ -791,6 +795,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/errors/err-headers.func (symlink)",
             "functions/errors/stack.func (symlink)",
             "functions/errors/throw.func (symlink)",
+            "functions/fast-response.func (symlink)",
             "functions/fetch-public-asset.func (symlink)",
             "functions/fetch.func (symlink)",
             "functions/file.func (symlink)",

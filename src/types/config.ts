@@ -335,6 +335,14 @@ export interface NitroOptions extends PresetOptions {
      * Enable WebSocket support.
      */
     websocket?: boolean;
+
+    /**
+     * Replace the global `Response` with srvx `FastResponse`, so that
+     * `new Response()` skips the native Response overhead in Node.js.
+     *
+     * Enabled by default when `node` is `true`.
+     */
+    fastResponse?: boolean;
   };
 
   /**
