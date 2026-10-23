@@ -30,7 +30,12 @@ async function createNitro(options: Partial<NitroOptions>) {
       static: false,
       handlers: [],
       routeRules: {},
-      output: { dir, publicDir: join(dir, "public"), serverDir: join(dir, "server") },
+      // Resolved output dirs always end with a slash
+      output: {
+        dir: dir + "/",
+        publicDir: join(dir, "public") + "/",
+        serverDir: join(dir, "server") + "/",
+      },
       ...options,
     },
   } as unknown as Nitro;
@@ -83,7 +88,7 @@ describe("netlify _redirects and _headers", () => {
       },
     });
     // Netlify presets output public assets to `dist/{{ baseURL }}`
-    nitro.options.output.publicDir = join(dir, "public/base");
+    nitro.options.output.publicDir = join(dir, "public/base") + "/";
     await mkdir(nitro.options.output.publicDir);
     await writeFile(join(nitro.options.output.publicDir, "404.html"), "");
     await writeRedirects(nitro);
@@ -110,7 +115,7 @@ describe("netlify _redirects and _headers", () => {
         "/hdr/**": { headers: { "x-hdr": "1" } },
       },
     });
-    nitro.options.output.publicDir = join(dir, "public/base");
+    nitro.options.output.publicDir = join(dir, "public/base") + "/";
     await mkdir(nitro.options.output.publicDir);
     await writeFile(join(nitro.options.output.publicDir, "_redirects"), "/user /other 302");
     await writeFile(join(nitro.options.output.publicDir, "_headers"), "/user\n  x-user: 1");
@@ -131,7 +136,7 @@ describe("netlify _redirects and _headers", () => {
       baseURL: "/base/",
       routeRules: { "/old/**": { redirect: { to: "/new/**", status: 301 } } },
     });
-    nitro.options.output.publicDir = join(dir, "public/base");
+    nitro.options.output.publicDir = join(dir, "public/base") + "/";
     await mkdir(nitro.options.output.publicDir);
     await writeFile(
       join(nitro.options.output.publicDir, "_redirects"),

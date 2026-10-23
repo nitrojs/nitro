@@ -152,7 +152,7 @@ async function writePublishFile(nitro: Nitro, name: "_redirects" | "_headers", c
 
 // Public assets are output to `dist/{{ baseURL }}`, unless `publicDir` is customized
 function getPublishDir(nitro: Nitro) {
-  const { publicDir } = nitro.options.output;
+  const publicDir = withoutTrailingSlash(nitro.options.output.publicDir);
   const base = withoutTrailingSlash(nitro.options.baseURL);
   return base && publicDir.endsWith(base) ? publicDir.slice(0, -base.length) : publicDir;
 }
