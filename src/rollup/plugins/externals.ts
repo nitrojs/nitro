@@ -20,12 +20,24 @@ import semver from "semver";
 export function externals(opts: NodeExternalsOptions): Plugin {
   const trackedExternals = new Set<string>();
 
+  // `tryResolve` runs up to three times per `resolveId` for every bare
+  // import of every emitted chunk, so the same (id, importer directory)
+  // pair was previously re-resolved hundreds of times per build (#4799).
+  // Resolution inputs do not change during a build, so cache results
+  // (including misses) per plugin instance.
+  const resolveCache = new Map<string, string | undefined>();
+
   const tryResolve = (
     id: string,
     importer: undefined | string
   ): string | undefined => {
     if (id.startsWith("\0")) {
       return id;
+    }
+    const cacheKey =
+      id + "\0" + (importer && isAbsolute(importer) ? dirname(importer) : "");
+    if (resolveCache.has(cacheKey)) {
+      return resolveCache.get(cacheKey);
     }
     const res = resolveModuleURL(id, {
       try: true,
@@ -37,7 +49,11 @@ export function externals(opts: NodeExternalsOptions): Plugin {
       suffixes: ["", "/index"],
       extensions: [".mjs", ".cjs", ".js", ".mts", ".cts", ".ts", ".json"],
     });
-    return res?.startsWith("file://") ? normalize(fileURLToPath(res)) : res;
+    const value = res?.startsWith("file://")
+      ? normalize(fileURLToPath(res))
+      : res;
+    resolveCache.set(cacheKey, value);
+    return value;
   };
 
   // Normalize options
