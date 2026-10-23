@@ -1,7 +1,7 @@
 import type { Nitro } from "nitro/types";
 import type { WranglerConfig, CloudflarePagesRoutes } from "./types.ts";
 import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { readFile, rename } from "node:fs/promises";
 import { relative, dirname, extname } from "node:path";
 import { writeFile } from "../_utils/fs.ts";
 import { parseTOML, parseJSONC } from "confbox";
@@ -9,7 +9,13 @@ import { readGitConfig, readPackageJSON, findNearestFile } from "pkg-types";
 import { defu } from "defu";
 import { glob } from "tinyglobby";
 import { join, resolve } from "pathe";
-import { joinURL, withLeadingSlash, withTrailingSlash, withoutLeadingSlash } from "ufo";
+import {
+  joinURL,
+  withLeadingSlash,
+  withTrailingSlash,
+  withoutLeadingSlash,
+  withoutTrailingSlash,
+} from "ufo";
 import { unenvCfNodeCompat } from "./unenv/preset.ts";
 import { routeToSplat, skipUnsupportedRoute, sortRoutes } from "../_utils/routes.ts";
 import { extendEnv } from "../../build/env.ts";
@@ -94,11 +100,22 @@ function comparePaths(a: string, b: string) {
   return a.split("/").length - b.split("/").length || a.localeCompare(b);
 }
 
-export async function writeCFHeaders(nitro: Nitro, outdir: "public" | "output") {
+/**
+ * Write `_headers` to `public` (the public dir), `output` (the output dir) or `assets`: the root of
+ * the static assets directory, where Cloudflare reads it on Workers. With a baseURL, the user's own
+ * `_headers` is copied under it in the public dir, so it is moved from there.
+ */
+export async function writeCFHeaders(nitro: Nitro, outdir: "public" | "output" | "assets") {
   const headersPath = join(
-    outdir === "public" ? nitro.options.output.publicDir : nitro.options.output.dir,
+    outdir === "assets"
+      ? getCFAssetsDir(nitro)
+      : outdir === "public"
+        ? nitro.options.output.publicDir
+        : nitro.options.output.dir,
     "_headers"
   );
+  const userHeadersPath =
+    outdir === "assets" ? join(nitro.options.output.publicDir, "_headers") : headersPath;
   const contents = [];
 
   for (const path of sortRoutes(Object.keys(nitro.options.routeRules))) {
@@ -116,8 +133,11 @@ export async function writeCFHeaders(nitro: Nitro, outdir: "public" | "output") 
     contents.push(headers);
   }
 
-  if (existsSync(headersPath)) {
-    const currentHeaders = await readFile(headersPath, "utf8");
+  if (existsSync(userHeadersPath)) {
+    const currentHeaders = await readFile(userHeadersPath, "utf8");
+    if (userHeadersPath !== headersPath) {
+      await rename(userHeadersPath, headersPath);
+    }
     if (/^\/\* /m.test(currentHeaders)) {
       nitro.logger.info(
         "Not adding Nitro fallback to `_headers` (as an existing fallback was found)."
@@ -129,6 +149,25 @@ export async function writeCFHeaders(nitro: Nitro, outdir: "public" | "output") 
   }
 
   await writeFile(headersPath, contents.join("\n"), true);
+}
+
+/**
+ * Move the user's `_redirects` to the root of the static assets directory, where Cloudflare reads
+ * it on Workers (with a baseURL, it is copied under it in the public dir).
+ */
+export async function moveCFRedirects(nitro: Nitro) {
+  const source = join(nitro.options.output.publicDir, "_redirects");
+  const target = join(getCFAssetsDir(nitro), "_redirects");
+  if (source !== target && existsSync(source)) {
+    await rename(source, target);
+  }
+}
+
+/** Root of the static assets directory: the public dir without its baseURL suffix. */
+export function getCFAssetsDir(nitro: Nitro): string {
+  const publicDir = withoutTrailingSlash(nitro.options.output.publicDir);
+  const base = withoutTrailingSlash(nitro.options.baseURL);
+  return base && publicDir.endsWith(base) ? publicDir.slice(0, -base.length) : publicDir;
 }
 
 export async function writeCFPagesRedirects(nitro: Nitro) {

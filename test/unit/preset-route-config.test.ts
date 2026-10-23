@@ -6,7 +6,11 @@ import { afterAll, describe, expect, it, vi } from "vitest";
 import type { Nitro, NitroOptions } from "nitro/types";
 
 import { writeHeaders, writeRedirects } from "../../src/presets/netlify/utils.ts";
-import { writeCFHeaders, writeCFPagesRedirects } from "../../src/presets/cloudflare/utils.ts";
+import {
+  moveCFRedirects,
+  writeCFHeaders,
+  writeCFPagesRedirects,
+} from "../../src/presets/cloudflare/utils.ts";
 import { writeEdgeOneConfig } from "../../src/presets/edgeone/utils.ts";
 import { isSplatExpressible, sortRoutes } from "../../src/presets/_utils/routes.ts";
 
@@ -335,6 +339,52 @@ describe("cloudflare pages _redirects and _headers", () => {
       "/a/:id/*.png\n  x-png: 1\n/ok/*\n  x-ok: 1"
     );
     expect(nitro.logger.warn).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe("cloudflare workers _headers and _redirects", () => {
+  it("writes `_headers` to the assets root and moves user files from the baseURL dir", async () => {
+    const { dir, nitro } = await createNitro({
+      baseURL: "/base/",
+      routeRules: { "/hdr/**": { headers: { "x-hdr": "1" } } },
+    });
+    // Resolved output paths end with a slash
+    nitro.options.output.publicDir = join(dir, "public/base") + "/";
+    await mkdir(nitro.options.output.publicDir);
+    await writeFile(join(nitro.options.output.publicDir, "_headers"), "/user\n  x-user: 1");
+    await writeFile(join(nitro.options.output.publicDir, "_redirects"), "/user /other 302");
+    await writeCFHeaders(nitro, "assets");
+    await moveCFRedirects(nitro);
+    expect(await readFile(join(dir, "public/_headers"), "utf8")).toBe(
+      "/user\n  x-user: 1\n/base/hdr/*\n  x-hdr: 1"
+    );
+    expect(await readFile(join(dir, "public/_redirects"), "utf8")).toBe("/user /other 302");
+    expect(existsSync(join(dir, "public/base/_headers"))).toBe(false);
+    expect(existsSync(join(dir, "public/base/_redirects"))).toBe(false);
+  });
+
+  it("keeps a user `_headers` with a fallback as is", async () => {
+    const { dir, nitro } = await createNitro({
+      baseURL: "/base/",
+      routeRules: { "/hdr/**": { headers: { "x-hdr": "1" } } },
+    });
+    nitro.options.output.publicDir = join(dir, "public/base") + "/";
+    await mkdir(nitro.options.output.publicDir);
+    await writeFile(join(nitro.options.output.publicDir, "_headers"), "/* \n  x-all: 1");
+    await writeCFHeaders(nitro, "assets");
+    expect(await readFile(join(dir, "public/_headers"), "utf8")).toBe("/* \n  x-all: 1");
+    expect(existsSync(join(dir, "public/base/_headers"))).toBe(false);
+  });
+
+  it("writes to the public dir without a baseURL", async () => {
+    const { dir, nitro } = await createNitro({
+      routeRules: { "/hdr/**": { headers: { "x-hdr": "1" } } },
+    });
+    await writeFile(join(dir, "public/_redirects"), "/user /other 302");
+    await writeCFHeaders(nitro, "assets");
+    await moveCFRedirects(nitro);
+    expect(await readFile(join(dir, "public/_headers"), "utf8")).toBe("/hdr/*\n  x-hdr: 1");
+    expect(await readFile(join(dir, "public/_redirects"), "utf8")).toBe("/user /other 302");
   });
 });
 

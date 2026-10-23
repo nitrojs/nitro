@@ -11,6 +11,7 @@ import {
   writeCFRoutes,
   writeCFHeaders,
   writeCFPagesRedirects,
+  moveCFRedirects,
 } from "./utils.ts";
 import { setupDevEntryExports, setupEntryExports } from "./entry-exports.ts";
 import { cloudflareOutputRewrites } from "./output-plugins.ts";
@@ -150,7 +151,8 @@ const cloudflareModule = defineNitroPreset(
       },
       async compiled(nitro: Nitro) {
         await writeWranglerConfig(nitro, "module");
-        await writeCFHeaders(nitro, "public");
+        await writeCFHeaders(nitro, "assets");
+        await moveCFRedirects(nitro);
 
         await writeFile(
           resolve(nitro.options.output.dir, "package.json"),
