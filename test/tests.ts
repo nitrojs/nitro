@@ -273,7 +273,8 @@ export function testNitro(
     expect(JSON.parse(headers["x-fast-response"] as string)).toEqual({
       // srvx `FastResponse` is the native `Response` outside of Node.js
       fast: ctx.nitro!.options.node && !["bun", "deno-server", "standard"].includes(ctx.preset),
-      instanceOf: true,
+      statics: true,
+      subclass: true,
     });
   });
 
