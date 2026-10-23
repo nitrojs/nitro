@@ -1106,6 +1106,18 @@ export function testNitro(
       );
     });
 
+    it("reports cache route rule status", async () => {
+      const url = `/rules/swr/server-timing-${++serverTimingCacheKey}`;
+      const first = await callHandler({ url });
+      expect(first.headers["server-timing"]).toMatch(
+        /^cache;desc="miss";dur=[\d.]+, total;dur=[\d.]+$/
+      );
+      const second = await callHandler({ url });
+      expect(second.headers["server-timing"]).toMatch(
+        /^cache;desc="hit";dur=[\d.]+, total;dur=[\d.]+$/
+      );
+    });
+
     it("reports bypassed cached handlers", async () => {
       const { headers } = await callHandler({
         url: `/server-timing/cached/${++serverTimingCacheKey}?bypass`,
