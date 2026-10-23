@@ -230,6 +230,8 @@ Tracing must be enabled on the Worker for spans to be recorded:
 }
 ```
 
+:read-more{to="/docs/tracing#tracing-channels" title="Tracing channels"}
+
 ## Cloudflare Pages
 
 **Preset:** `cloudflare_pages`

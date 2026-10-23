@@ -7,6 +7,8 @@ export const cacheFunctionDefaults: Partial<CachedFunctionOptions> = {};
 
 export const cacheHandlerDefaults: Partial<CachedHandlerOptions> = {};
 
+export const cacheServerTiming: boolean = false;
+
 export function createCacheStorage(): StorageInterface {
   return createMemoryStorage();
 }

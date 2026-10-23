@@ -14,8 +14,10 @@ export default function database(nitro: Nitro) {
         return /* js */ `export const connectionConfigs = {};\nexport const traceDatabase = (db) => db;`;
       }
 
-      const tracingEnabled =
-        typeof nitro.options.tracingChannel === "object" && !!nitro.options.tracingChannel.db0;
+      const tracingEnabled = !!(
+        (typeof nitro.options.tracingChannel === "object" && nitro.options.tracingChannel?.db0) ||
+        (nitro.options.serverTiming && nitro.options.serverTiming.db)
+      );
 
       const connectorImports = new Map(connections.map((c) => [c.connector, c.module]));
 

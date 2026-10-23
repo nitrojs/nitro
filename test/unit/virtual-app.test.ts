@@ -10,11 +10,13 @@ function createNitroStub(opts: {
   globalMiddleware?: boolean;
   plugins?: boolean;
   methodRoutes?: boolean;
+  serverTiming?: Nitro["options"]["serverTiming"];
 }): Nitro {
   return {
     options: {
       plugins: opts.plugins ? ["plugin.ts"] : [],
       experimental: {},
+      serverTiming: opts.serverTiming,
     },
     routing: {
       routes: {
@@ -139,5 +141,37 @@ describe("virtual/app template", () => {
     const withPlugins = app(createNitroStub({ plugins: true })).template();
     expect(withPlugins).toContain(`from "#nitro/runtime/async-plugins"`);
     expect(app(createNitroStub({})).template()).not.toContain("async-plugins");
+  });
+
+  describe("server timing", () => {
+    const serverTiming = { total: true, kv: true, db: false, cache: true };
+
+    it("is not wired when disabled", () => {
+      const template = app(createNitroStub({ routeRules: true, serverTiming: false })).template();
+      expect(template).not.toContain("server-timing");
+    });
+
+    it("wraps the app handler with the resolved options", () => {
+      const template = app(createNitroStub({ serverTiming })).template();
+      expect(template).toContain(
+        `appHandler = withServerTimingContext(appHandler, { metrics: ${JSON.stringify(serverTiming)} });`
+      );
+      expect(template).not.toContain('~middleware"].push(serverTiming');
+      expect(template).toContain("return errorHandler(error, event);");
+    });
+
+    it("reuses the Nitro async context when enabled", () => {
+      const nitro = createNitroStub({ serverTiming });
+      nitro.options.experimental.asyncContext = true;
+      const template = app(nitro).template();
+      expect(template).toContain(
+        `appHandler = withServerTimingContext(appHandler, { metrics: ${JSON.stringify(serverTiming)}, getRequest: () => nitroAsyncContext.tryUse()?.request });`
+      );
+      expect(template).toContain(`import { nitroAsyncContext } from "#nitro/runtime/context";`);
+      // The Nitro async context must wrap the server timing one
+      expect(template.indexOf("nitroAsyncContext.callAsync")).toBeGreaterThan(
+        template.indexOf("withServerTimingContext(appHandler")
+      );
+    });
   });
 });
