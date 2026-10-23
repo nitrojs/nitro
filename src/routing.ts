@@ -143,8 +143,10 @@ export function initNitroRouting(nitro: Nitro) {
 }
 
 function handlerWithImportHash(h: NitroEventHandler) {
-  const id = (h.lazy ? "_lazy_" : "_") + hash(h.handler);
-  return { ...h, _importHash: id };
+  // Handlers registered after options are resolved may still use windows separators
+  const handler = h.handler.replace(/\\/g, "/");
+  const id = (h.lazy ? "_lazy_" : "_") + hash(handler);
+  return { ...h, handler, _importHash: id };
 }
 
 // --- Router ---
