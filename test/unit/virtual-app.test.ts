@@ -149,25 +149,15 @@ describe("virtual/app template", () => {
     it("is not wired when disabled", () => {
       const template = app(createNitroStub({ routeRules: true, serverTiming: false })).template();
       expect(template).not.toContain("server-timing");
-      expect(template).toContain("return errorHandler(error, event);");
     });
 
-    it("registers the middleware before route rules and global middleware", () => {
-      const template = app(
-        createNitroStub({ routeRules: true, globalMiddleware: true, serverTiming })
-      ).template();
-      const timing = template.indexOf('h3App["~middleware"].push(serverTimingMiddleware);');
-      const routeRules = template.indexOf("push(createRouteRulesMiddleware())");
-      expect(timing).toBeGreaterThan(-1);
-      expect(routeRules).toBeGreaterThan(timing);
-    });
-
-    it("wraps the error handler and the app handler with the resolved options", () => {
+    it("wraps the app handler with the resolved options", () => {
       const template = app(createNitroStub({ serverTiming })).template();
-      expect(template).toContain("return serverTimingOnError(event, errorHandler(error, event));");
       expect(template).toContain(
         `appHandler = withServerTimingContext(appHandler, { metrics: ${JSON.stringify(serverTiming)} });`
       );
+      expect(template).not.toContain('~middleware"].push(serverTiming');
+      expect(template).toContain("return errorHandler(error, event);");
     });
 
     it("reuses the Nitro async context when enabled", () => {
