@@ -50,7 +50,11 @@ export function serverFetch(
 ): Promise<Response> {
   const req = toRequest(input, init);
   if (init?.context) {
-    req.context = { ...req.context, ...init.context } as ServerRequestContext;
+    req.context = {
+      ...(input as ServerRequest).context,
+      ...req.context,
+      ...init.context,
+    } as ServerRequestContext;
   }
   const nitroApp = useNitroApp();
   try {

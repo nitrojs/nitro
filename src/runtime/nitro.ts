@@ -1,6 +1,6 @@
 // Config
 import type { NitroConfig } from "nitro/types";
-import type { ServerRequestContext } from "srvx";
+import type { ServerRequest, ServerRequestContext } from "srvx";
 import { toRequest } from "h3";
 
 export function defineConfig(config: Omit<NitroConfig, "rootDir">): Omit<NitroConfig, "rootDir"> {
@@ -45,7 +45,11 @@ export function serverFetch(
   }
   const req = toRequest(input, init);
   if (init?.context) {
-    req.context = { ...req.context, ...init.context } as ServerRequestContext;
+    req.context = {
+      ...(input as ServerRequest).context,
+      ...req.context,
+      ...init.context,
+    } as ServerRequestContext;
   }
   try {
     return Promise.resolve(nitro.fetch(req));
