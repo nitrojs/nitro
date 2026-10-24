@@ -1,4 +1,3 @@
-import { EventEmitter } from "node:events";
 import * as fs from "node:fs";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -30,9 +29,9 @@ vi.mock("std-env", async (importOriginal) => ({
   },
 }));
 
-const spawn = vi.fn();
-vi.mock("node:child_process", () => ({
-  spawn: (...args: unknown[]) => spawn(...args),
+const xMock = vi.fn();
+vi.mock("tinyexec", () => ({
+  x: (...args: unknown[]) => xMock(...args),
 }));
 
 const detectPackageManager = vi.fn(
@@ -42,21 +41,21 @@ vi.mock("nypm", () => ({
   detectPackageManager: () => detectPackageManager(),
 }));
 
-/** A fake child process closing with `exitCode` after `delay` ms. */
-function fakeChild(exitCode: number, delay = 0) {
-  const child = new EventEmitter();
-  setTimeout(() => child.emit("close", exitCode), delay);
-  return child;
+/** A fake `tinyexec` result resolving with `exitCode` after `delay` ms. */
+function xResult(exitCode: number, delay = 0) {
+  return new Promise((resolvePromise) =>
+    setTimeout(() => resolvePromise({ exitCode, stdout: "", stderr: "" }), delay)
+  );
 }
 
 /** Default: the Corepack probe fails (no Corepack), installs succeed. */
-function defaultSpawn(command: string, args: string[]) {
-  return fakeChild(command === "corepack" && args[0] === "--version" ? 1 : 0);
+function defaultX(command: string, args: string[]) {
+  return xResult(command === "corepack" && args[0] === "--version" ? 1 : 0);
 }
 
-/** Spawn calls to the package manager itself (not the Corepack `--version` probe). */
+/** `x` calls to the package manager itself (not the Corepack `--version` probe). */
 function installCalls() {
-  return spawn.mock.calls.filter(([, args]) => (args as string[])[0] !== "--version");
+  return xMock.mock.calls.filter(([, args]) => (args as string[])[0] !== "--version");
 }
 
 const prompt = vi.fn();
@@ -75,6 +74,7 @@ const missingDep = { id: "nitro-missing-dep", dir: process.cwd(), reason: "testi
 async function ensureDep(
   opts: typeof missingDep & {
     version?: string;
+    dev?: boolean;
     autoInstall?: boolean;
     paths?: Record<string, string>;
   }
@@ -127,7 +127,7 @@ describe("ensureDep", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     Object.assign(env, { isAgent: false, isCI: false, isTest: false, hasTTY: true });
-    spawn.mockImplementation(defaultSpawn);
+    xMock.mockImplementation(defaultX);
     detectPackageManager.mockResolvedValue({ name: "pnpm", command: "pnpm" });
   });
 
@@ -135,7 +135,7 @@ describe("ensureDep", () => {
     const resolved = await ensureDep({ ...missingDep, id: "consola" });
     expect(resolved).toBeTruthy();
     expect(prompt).not.toHaveBeenCalled();
-    expect(spawn).not.toHaveBeenCalled();
+    expect(xMock).not.toHaveBeenCalled();
   });
 
   it("installs without prompting in an agent environment", async () => {
@@ -147,8 +147,10 @@ describe("ensureDep", () => {
         "pnpm",
         ["add", "-D", missingDep.id],
         expect.objectContaining({
-          cwd: missingDep.dir,
-          env: expect.objectContaining({ NODE_ENV: "development" }),
+          nodeOptions: expect.objectContaining({
+            cwd: missingDep.dir,
+            env: expect.objectContaining({ NODE_ENV: "development" }),
+          }),
         }),
       ],
     ]);
@@ -163,8 +165,10 @@ describe("ensureDep", () => {
         "pnpm",
         ["add", "-D", missingDep.id],
         expect.objectContaining({
-          cwd: missingDep.dir,
-          env: expect.objectContaining({ NODE_ENV: "development" }),
+          nodeOptions: expect.objectContaining({
+            cwd: missingDep.dir,
+            env: expect.objectContaining({ NODE_ENV: "development" }),
+          }),
         }),
       ],
     ]);
@@ -176,13 +180,13 @@ describe("ensureDep", () => {
     process.env.NODE_ENV = "production";
     try {
       await ensureDep(missingDep);
-      expect(installCalls()[0]?.[2]).toEqual(
+      expect(installCalls()[0]?.[2]?.nodeOptions).toEqual(
         expect.objectContaining({ env: expect.objectContaining({ NODE_ENV: "development" }) })
       );
       // The process itself is never changed
       expect(process.env.NODE_ENV).toBe("production");
 
-      spawn.mockImplementationOnce(() => fakeChild(1));
+      xMock.mockImplementationOnce(() => xResult(1));
       await expect(ensureDep({ ...missingDep, id: "nitro-missing-dep-2" })).rejects.toThrow(
         "`pnpm add -D nitro-missing-dep-2` failed."
       );
@@ -201,13 +205,17 @@ describe("ensureDep", () => {
     const prevNodeEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = "production";
     const seenEnv: (string | undefined)[] = [];
-    spawn.mockImplementation(
-      (command: string, args: string[], options: { env: Record<string, string | undefined> }) => {
+    xMock.mockImplementation(
+      (
+        command: string,
+        args: string[],
+        options: { nodeOptions: { env: Record<string, string | undefined> } }
+      ) => {
         if (command === "corepack" && args[0] === "--version") {
-          return fakeChild(1);
+          return xResult(1);
         }
-        seenEnv.push(options.env.NODE_ENV);
-        return fakeChild(0, 10); // Keep both installs in flight at once
+        seenEnv.push(options.nodeOptions.env.NODE_ENV);
+        return xResult(0, 10); // Keep both installs in flight at once
       }
     );
     try {
@@ -240,8 +248,8 @@ describe("ensureDep", () => {
       vi.resetModules(); // Fresh module: `_hasCorepack` is cached
       env.isAgent = true;
       detectPackageManager.mockResolvedValue({ name: pm, command: pm });
-      spawn.mockImplementation((command: string, args: string[]) =>
-        fakeChild(command === "corepack" && args[0] === "--version" ? (corepack ? 0 : 1) : 0)
+      xMock.mockImplementation((command: string, args: string[]) =>
+        xResult(command === "corepack" && args[0] === "--version" ? (corepack ? 0 : 1) : 0)
       );
       await ensureDep({ ...missingDep, dev });
       const wrapped = !["npm", "bun", "deno", "aube", "nub", "upm"].includes(pm) && corepack;
@@ -256,23 +264,31 @@ describe("ensureDep", () => {
             spec,
           ],
           expect.objectContaining({
-            cwd: missingDep.dir,
-            env: expect.objectContaining({ NODE_ENV: "development" }),
+            nodeOptions: expect.objectContaining({
+              cwd: missingDep.dir,
+              env: expect.objectContaining({ NODE_ENV: "development" }),
+            }),
           }),
         ],
       ]);
     }
   );
 
-  it("runs package manager commands through the shell on Windows", async () => {
-    const platform = Object.getOwnPropertyDescriptor(process, "platform")!;
-    Object.defineProperty(process, "platform", { value: "win32" });
-    try {
-      await ensureDep({ ...missingDep, autoInstall: true });
-      expect(installCalls()[0]?.[2]).toEqual(expect.objectContaining({ shell: true }));
-    } finally {
-      Object.defineProperty(process, "platform", platform);
-    }
+  it("passes the command and arguments to tinyexec verbatim, never through a shell", async () => {
+    // tinyexec resolves the executable (`PATH`/`PATHEXT`, including Windows `.cmd` shims) and
+    // quotes each argument per platform, so a `^` version range must reach it as one argument.
+    await ensureDep({ ...missingDep, version: "^1.2.3", autoInstall: true });
+    expect(installCalls()[0]).toEqual([
+      "pnpm",
+      ["add", "-D", "nitro-missing-dep@^1.2.3"],
+      expect.objectContaining({
+        nodeOptions: expect.objectContaining({
+          cwd: missingDep.dir,
+          env: expect.objectContaining({ NODE_ENV: "development" }),
+        }),
+      }),
+    ]);
+    expect(installCalls()[0]?.[2]?.nodeOptions).not.toHaveProperty("shell");
   });
 
   it("installs with the package manager of the runtime when none is detected", async () => {
@@ -284,8 +300,10 @@ describe("ensureDep", () => {
         "npm",
         ["install", "-D", missingDep.id],
         expect.objectContaining({
-          cwd: missingDep.dir,
-          env: expect.objectContaining({ NODE_ENV: "development" }),
+          nodeOptions: expect.objectContaining({
+            cwd: missingDep.dir,
+            env: expect.objectContaining({ NODE_ENV: "development" }),
+          }),
         }),
       ],
     ]);
@@ -295,7 +313,7 @@ describe("ensureDep", () => {
     prompt.mockResolvedValue(false);
     expect(await ensureDep(missingDep)).toBeUndefined();
     expect(prompt).toHaveBeenCalledOnce();
-    expect(spawn).not.toHaveBeenCalled();
+    expect(xMock).not.toHaveBeenCalled();
   });
 
   it("installs without prompting with `autoInstall`", async () => {
@@ -306,8 +324,10 @@ describe("ensureDep", () => {
         "pnpm",
         ["add", "-D", missingDep.id],
         expect.objectContaining({
-          cwd: missingDep.dir,
-          env: expect.objectContaining({ NODE_ENV: "development" }),
+          nodeOptions: expect.objectContaining({
+            cwd: missingDep.dir,
+            env: expect.objectContaining({ NODE_ENV: "development" }),
+          }),
         }),
       ],
     ]);
@@ -317,7 +337,7 @@ describe("ensureDep", () => {
     env.isTest = true;
     expect(await ensureDep({ ...missingDep, autoInstall: true })).toBeUndefined();
     expect(prompt).not.toHaveBeenCalled();
-    expect(spawn).not.toHaveBeenCalled();
+    expect(xMock).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -341,7 +361,7 @@ describe("ensureDep", () => {
         expect(await ensureDep(opts)).toBeUndefined();
       }
       expect(prompt).not.toHaveBeenCalled();
-      expect(spawn).not.toHaveBeenCalled();
+      expect(xMock).not.toHaveBeenCalled();
     }
   );
 });
@@ -350,13 +370,15 @@ describe("ensureDep (resolve cache)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     Object.assign(env, { isAgent: false, isCI: true, isTest: false, hasTTY: false });
-    spawn.mockImplementation((command: string, args: string[], options: { cwd: string }) => {
-      if (command === "corepack" && args[0] === "--version") {
-        return fakeChild(1);
+    xMock.mockImplementation(
+      (command: string, args: string[], options: { nodeOptions: { cwd: string } }) => {
+        if (command === "corepack" && args[0] === "--version") {
+          return xResult(1);
+        }
+        installStub(String(args[args.length - 1]).split("@")[0]!, options.nodeOptions.cwd);
+        return xResult(0);
       }
-      installStub(String(args[args.length - 1]).split("@")[0]!, options.cwd);
-      return fakeChild(0);
-    });
+    );
   });
 
   it("resolves a dependency installed on demand from then on", async () => {
@@ -468,7 +490,7 @@ describe("missing dependencies", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     Object.assign(env, { isAgent: false, isCI: true, isTest: false, hasTTY: false });
-    spawn.mockImplementation(defaultSpawn); // Installs succeed without installing anything
+    xMock.mockImplementation(defaultX); // Installs succeed without installing anything
   });
 
   it("includes the supported version in the install command", async () => {
@@ -491,7 +513,7 @@ describe("missing dependencies", () => {
       `\`nitro-missing-dep\` cannot be resolved from \`${dir}\`, which is inside \`node_modules\`. It is required for testing. The package that configures Nitro with this \`rootDir\` must add \`nitro-missing-dep@^1.0.0\` to its own dependencies (or provide it with the \`deps.paths\` option).`
     );
     await expect(importDep(opts)).rejects.toThrow(missingDepError(opts).message);
-    expect(spawn).not.toHaveBeenCalled();
+    expect(xMock).not.toHaveBeenCalled();
   });
 
   it("throws the same error from `importDep`", async () => {
@@ -533,7 +555,7 @@ describe("explicit dependency paths (`deps.paths`)", () => {
         join(pkgDir, "index.mjs")
       );
     }
-    expect(spawn).not.toHaveBeenCalled();
+    expect(xMock).not.toHaveBeenCalled();
   });
 
   it("prefers an explicit path over the copy installed in the project", async () => {
@@ -587,6 +609,6 @@ describe("explicit dependency paths (`deps.paths`)", () => {
     await expect(ensureDep({ ...missingDep, dir: createProject(), paths })).rejects.toThrow(
       `The \`deps.paths["${missingDep.id}"]\` option must point to the \`${missingDep.id}\` package`
     );
-    expect(spawn).not.toHaveBeenCalled();
+    expect(xMock).not.toHaveBeenCalled();
   });
 });
