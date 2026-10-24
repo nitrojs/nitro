@@ -15,8 +15,8 @@ importers:
         specifier: ^2.8.0
         version: 2.8.0(@vueuse/core@15.0.0(vue@3.5.44))(vue@3.5.44)
       undocs:
-        specifier: npm:undocs-nightly@0.10.1-20261020-132000-e950229
-        version: undocs-nightly@0.10.1-20261020-132000-e950229(@oxc-project/types@0.154.0)(csstype@3.2.3)(dotenv@17.4.2)(giget@3.3.1)(jiti@2.7.0)(lightningcss@1.33.0)(rolldown@1.2.14)
+        specifier: npm:undocs-nightly@0.10.1-20261021-144810-60ffbf3
+        version: undocs-nightly@0.10.1-20261021-144810-60ffbf3(@oxc-project/types@0.154.0)(csstype@3.2.3)(dotenv@17.4.2)(giget@3.3.1)(jiti@2.7.0)(lightningcss@1.33.0)(rolldown@1.2.14)
 
 packages:
 
@@ -694,8 +694,8 @@ packages:
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
 
-  h3@2.0.6:
-    resolution: {integrity: sha512-ELzE+z+JU0jRLcTYZNb/rVj81jaY0dQKhLNyFEC/McaFgSASfRtyB+m5mZJpfxvWjyek23dYwNFJjxgNY49i4Q==}
+  h3@2.0.7:
+    resolution: {integrity: sha512-00SVloxtViij9/JBsc/Ayd9H7GLXWB0KRfkReWG0dDwuUFKUKRrNGM3Csu+KZgppi5DD8Y1KpnfjtudWaRCoiQ==}
     engines: {node: '>=20.19.0'}
     hasBin: true
     peerDependencies:
@@ -924,8 +924,8 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
-  nitro-nightly@3.0.1-20261020-135725-f9894e92:
-    resolution: {integrity: sha512-xIytkwRRgdY/yjIXdW5Mgsa2TlgJg83J1PB2DGLCXQJYe3opvNThbKMO++3OjgpGjfHnaRkzJA4/Era6Cl0Tpg==}
+  nitro-nightly@3.0.1-20261020-162248-8b0fa015:
+    resolution: {integrity: sha512-+gR2c7anywsLK21/8Tol66YTGqHm2pmsRHKWptohvG8CntWN5Gm09ezOhW+yDYD5E0eeKaFFjIwjSeg0Qp3TkA==}
     engines: {node: '>=22.12.0'}
     hasBin: true
 
@@ -939,6 +939,9 @@ packages:
     resolution: {integrity: sha512-W72Hrj1petq+b3Hk2aAC+9zswetlIFTnDW4s5djseZh2nYqBbyQLOtj472HwcbcWykPBUW1WpWpjOd4nK6gMRw==}
     engines: {node: '>=18'}
     hasBin: true
+
+  ocache@0.3.1:
+    resolution: {integrity: sha512-qeBrhQ0ly6tgXsakgNwLx6diRUppJZIcV5OjVGa5yp9HzztutkaGDDXJqVMo1fKWz5fNDtTp3iPU2fuhHf0+Lg==}
 
   ofetch@1.5.1:
     resolution: {integrity: sha512-2W4oUZlVaqAPAil6FUg/difl6YhqhUR7x2eZY4bQCko22UXg3hptq9KLQdqFClV+Wu85UX7hNtdGTngi/1BxcA==}
@@ -1049,8 +1052,8 @@ packages:
   ufo@1.6.4:
     resolution: {integrity: sha512-JFNbkD1Svwe0KvGi8GOeLcP4kAWQ609twvCdcHxq1oSL8svv39ZuSvajcD8B+5D0eL4+s1Is2D/O6KN3qcTeRA==}
 
-  undocs-nightly@0.10.1-20261020-132000-e950229:
-    resolution: {integrity: sha512-Hhww3o4hi6GOjpT5SCdNNfmhViP4mPq6h+ejAeg6R07xBqnVqTCKJ5KHy+uY5nRRSvAceetYgHq7NKL4vMKw6g==}
+  undocs-nightly@0.10.1-20261021-144810-60ffbf3:
+    resolution: {integrity: sha512-S0jaN+a4ahXTw2VXfI1kvhL3Cl72Yk3AQ0uPrH9pxOvVuqpKAhnNvEXBdoKqTLSF+d38NnfkLl4hBbKptjJfrA==}
     hasBin: true
 
   unhead@3.4.3:
@@ -1709,12 +1712,13 @@ snapshots:
 
   graceful-fs@4.2.11: {}
 
-  h3@2.0.6(crossws@0.4.15(srvx@1.0.6)):
+  h3@2.0.7(crossws@0.4.15(srvx@1.0.6))(ocache@0.3.1):
     dependencies:
       rou3: 1.0.0
       srvx: 1.0.6
     optionalDependencies:
       crossws: 0.4.15(srvx@1.0.6)
+      ocache: 0.3.1
 
   hey-listen@1.0.8: {}
 
@@ -1879,15 +1883,14 @@ snapshots:
 
   nanoid@3.3.20: {}
 
-  nitro-nightly@3.0.1-20261020-135725-f9894e92:
+  nitro-nightly@3.0.1-20261020-162248-8b0fa015:
     dependencies:
       crossws: 0.4.15(srvx@1.0.6)
       env-runner: 0.3.6
-      h3: 2.0.6(crossws@0.4.15(srvx@1.0.6))
+      h3: 2.0.7(crossws@0.4.15(srvx@1.0.6))(ocache@0.3.1)
+      ocache: 0.3.1
       rou3: 1.0.0
       srvx: 1.0.6
-    transitivePeerDependencies:
-      - ocache
 
   node-addon-api@7.1.1: {}
 
@@ -1898,6 +1901,8 @@ snapshots:
       citty: 0.2.2
       pathe: 2.0.3
       tinyexec: 1.3.1
+
+  ocache@0.3.1: {}
 
   ofetch@1.5.1:
     dependencies:
@@ -2007,7 +2012,7 @@ snapshots:
 
   ufo@1.6.4: {}
 
-  undocs-nightly@0.10.1-20261020-132000-e950229(@oxc-project/types@0.154.0)(csstype@3.2.3)(dotenv@17.4.2)(giget@3.3.1)(jiti@2.7.0)(lightningcss@1.33.0)(rolldown@1.2.14):
+  undocs-nightly@0.10.1-20261021-144810-60ffbf3(@oxc-project/types@0.154.0)(csstype@3.2.3)(dotenv@17.4.2)(giget@3.3.1)(jiti@2.7.0)(lightningcss@1.33.0)(rolldown@1.2.14):
     dependencies:
       '@floating-ui/dom': 1.8.0
       '@fontsource-variable/geist': 5.3.0
@@ -2031,7 +2036,7 @@ snapshots:
       mermaid-compact: 0.0.1
       minisearch: 7.2.0
       motion-v: 2.8.0(@vueuse/core@15.0.0(vue@3.5.44))(vue@3.5.44)
-      nitro: nitro-nightly@3.0.1-20261020-135725-f9894e92
+      nitro: nitro-nightly@3.0.1-20261020-162248-8b0fa015
       nypm: 0.6.10
       ofetch: 1.5.1
       rangi: 2.2.0
@@ -2062,7 +2067,6 @@ snapshots:
       - less
       - lightningcss
       - magicast
-      - ocache
       - oxc-parser
       - preact
       - react
