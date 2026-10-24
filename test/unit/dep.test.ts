@@ -50,13 +50,13 @@ function fakeChild(exitCode: number, delay = 0) {
 }
 
 /** Default: the Corepack probe fails (no Corepack), installs succeed. */
-function defaultSpawn(command: string) {
-  return fakeChild(command === "corepack" ? 1 : 0);
+function defaultSpawn(command: string, args: string[]) {
+  return fakeChild(command === "corepack" && args[0] === "--version" ? 1 : 0);
 }
 
-/** Spawn calls to the package manager itself (not the Corepack probe). */
+/** Spawn calls to the package manager itself (not the Corepack `--version` probe). */
 function installCalls() {
-  return spawn.mock.calls.filter(([command]) => command !== "corepack");
+  return spawn.mock.calls.filter(([, args]) => (args as string[])[0] !== "--version");
 }
 
 const prompt = vi.fn();
@@ -128,6 +128,7 @@ describe("ensureDep", () => {
     vi.clearAllMocks();
     Object.assign(env, { isAgent: false, isCI: false, isTest: false, hasTTY: true });
     spawn.mockImplementation(defaultSpawn);
+    detectPackageManager.mockResolvedValue({ name: "pnpm", command: "pnpm" });
   });
 
   it("resolves an installed dependency without installing", async () => {
@@ -201,8 +202,8 @@ describe("ensureDep", () => {
     process.env.NODE_ENV = "production";
     const seenEnv: (string | undefined)[] = [];
     spawn.mockImplementation(
-      (command: string, _args: string[], options: { env: Record<string, string | undefined> }) => {
-        if (command === "corepack") {
+      (command: string, args: string[], options: { env: Record<string, string | undefined> }) => {
+        if (command === "corepack" && args[0] === "--version") {
           return fakeChild(1);
         }
         seenEnv.push(options.env.NODE_ENV);
@@ -224,6 +225,53 @@ describe("ensureDep", () => {
       } else {
         process.env.NODE_ENV = prevNodeEnv;
       }
+    }
+  });
+
+  it.each(
+    // Mirrors nypm's `addDependency` + `executeCommand` (0.6.11): Corepack wraps every
+    // package manager except npm/bun/deno/aube/nub/upm, and only when available
+    ["npm", "pnpm", "yarn", "bun", "deno", "aube", "nub", "upm"].flatMap((pm) =>
+      [false, true].flatMap((corepack) => [false, true].map((dev) => ({ pm, corepack, dev })))
+    )
+  )(
+    "installs with the expected command ($pm, corepack: $corepack, dev: $dev)",
+    async ({ pm, corepack, dev }) => {
+      vi.resetModules(); // Fresh module: `_hasCorepack` is cached
+      env.isAgent = true;
+      detectPackageManager.mockResolvedValue({ name: pm, command: pm });
+      spawn.mockImplementation((command: string, args: string[]) =>
+        fakeChild(command === "corepack" && args[0] === "--version" ? (corepack ? 0 : 1) : 0)
+      );
+      await ensureDep({ ...missingDep, dev });
+      const wrapped = !["npm", "bun", "deno", "aube", "nub", "upm"].includes(pm) && corepack;
+      const spec = pm === "deno" ? `npm:${missingDep.id}` : missingDep.id;
+      expect(installCalls()).toEqual([
+        [
+          wrapped ? "corepack" : pm,
+          [
+            ...(wrapped ? [pm] : []),
+            pm === "npm" ? "install" : "add",
+            ...(dev ? ["-D"] : []),
+            spec,
+          ],
+          expect.objectContaining({
+            cwd: missingDep.dir,
+            env: expect.objectContaining({ NODE_ENV: "development" }),
+          }),
+        ],
+      ]);
+    }
+  );
+
+  it("runs package manager commands through the shell on Windows", async () => {
+    const platform = Object.getOwnPropertyDescriptor(process, "platform")!;
+    Object.defineProperty(process, "platform", { value: "win32" });
+    try {
+      await ensureDep({ ...missingDep, autoInstall: true });
+      expect(installCalls()[0]?.[2]).toEqual(expect.objectContaining({ shell: true }));
+    } finally {
+      Object.defineProperty(process, "platform", platform);
     }
   });
 
@@ -303,7 +351,7 @@ describe("ensureDep (resolve cache)", () => {
     vi.clearAllMocks();
     Object.assign(env, { isAgent: false, isCI: true, isTest: false, hasTTY: false });
     spawn.mockImplementation((command: string, args: string[], options: { cwd: string }) => {
-      if (command === "corepack") {
+      if (command === "corepack" && args[0] === "--version") {
         return fakeChild(1);
       }
       installStub(String(args[args.length - 1]).split("@")[0]!, options.cwd);
