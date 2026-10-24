@@ -728,6 +728,11 @@ export interface NitroOptions extends PresetOptions {
     failOnError?: boolean;
     /** Patterns (string, RegExp, or function) of routes to skip. */
     ignore?: Array<string | RegExp | ((path: string) => undefined | null | boolean)>;
+    /**
+     * Status codes of failed routes that do not fail the build when `failOnError` is enabled
+     * (e.g. `[404]`). These routes are still reported and not written.
+     */
+    ignoreStatusCodes?: number[];
     /** Skip prerendering assets without a base URL prefix. */
     ignoreUnprefixedPublicAssets?: boolean;
     /** Explicit list of routes to prerender. */
