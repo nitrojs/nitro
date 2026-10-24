@@ -4,6 +4,7 @@ import { consola } from "consola";
 import { clearResolveCache, resolveModulePath } from "exsolve";
 import { dirname, join, normalize } from "pathe";
 import { hasTTY, isAgent, isCI, isTest } from "std-env";
+import { x } from "tinyexec";
 import { depPackageName, resolveFromDepPath } from "./_dep-path.ts";
 import { getDepMeta } from "./_deps.ts";
 import type { DepId, DepModules } from "./_deps.ts";
@@ -236,13 +237,10 @@ async function _ensureDep(opts: ResolvedDepOptions): Promise<string | undefined>
 
   const start = Date.now();
   consola.start(`Installing \`${opts.id}\` in \`${opts.dir}\`...`);
-  const { addDependency, addDevDependency, detectPackageManager } = await import("nypm");
+  const { detectPackageManager } = await import("nypm");
   // Projects without a lockfile (or `packageManager` field) use the package manager of the runtime
-  const packageManager = (await detectPackageManager(opts.dir)) ? undefined : _runtimePM();
-  await (opts.dev === false ? addDependency : addDevDependency)(_depSpec(opts), {
-    cwd: opts.dir,
-    packageManager,
-  });
+  const packageManager = (await detectPackageManager(opts.dir))?.command || _runtimePM();
+  await _addDependency(packageManager, _depSpec(opts), { dev: opts.dev !== false, cwd: opts.dir });
 
   const installed = resolveDep(opts.id, opts);
   if (installed) {
@@ -260,6 +258,70 @@ function _isInNodeModules(dir: string): boolean {
 
 function _runtimePM(): "bun" | "deno" | "npm" {
   return process.versions.bun ? "bun" : process.versions.deno ? "deno" : "npm";
+}
+
+/**
+ * Add a dependency with the project's package manager.
+ *
+ * nypm's `addDependency`/`addDevDependency` cannot scope environment variables to the install
+ * process (their `env` option is not applied, nypm 0.6.11), so the install runs directly, with
+ * a non-production `NODE_ENV` for the child process only: builds run with `NODE_ENV=production`,
+ * which makes npm omit dev dependencies, so the requested package never gets installed (#4912).
+ * Scoping the override to the child keeps concurrent installs and the rest of the process
+ * unaffected.
+ */
+async function _addDependency(
+  packageManager: string,
+  name: string,
+  opts: { dev: boolean; cwd: string }
+): Promise<void> {
+  const spec = packageManager === "deno" && !/^(npm|jsr|file):/.test(name) ? `npm:${name}` : name;
+  const args = [packageManager === "npm" ? "install" : "add", ...(opts.dev ? ["-D"] : []), spec];
+  // pnpm/yarn may only be available through Corepack (mirrors nypm's `executeCommand`)
+  const [command, commandArgs] =
+    ["npm", "bun", "deno", "aube", "nub", "upm"].includes(packageManager) || !(await _hasCorepack())
+      ? [packageManager, args]
+      : ["corepack", [packageManager, ...args]];
+  await _exec(command as string, commandArgs as string[], opts.cwd, {
+    ...process.env,
+    NODE_ENV: "development",
+  });
+}
+
+let _corepackAvailable: Promise<boolean> | undefined;
+/** Whether Corepack is available (checked once, mirrors nypm's `hasCorepack`). */
+function _hasCorepack(): Promise<boolean> {
+  _corepackAvailable ??= (
+    globalThis.process?.versions as Record<string, string | undefined> | undefined
+  )?.webcontainer
+    ? Promise.resolve(false)
+    : Promise.resolve(x("corepack", ["--version"], { nodeOptions: { stdio: "ignore" } }))
+        .then((result) => result.exitCode === 0)
+        .catch(() => false);
+  return _corepackAvailable;
+}
+
+/** Run a command, rejecting on a non-zero exit code (mirrors nypm's `executeCommand`). Commands
+ * run through `tinyexec`, the same subprocess helper `nypm` uses: it resolves the executable
+ * against `PATH`/`PATHEXT` and escapes each argument per platform: POSIX commands run without
+ * a shell, and Windows `.cmd` shims go through cmd.exe with quoted, escaped arguments.
+ */
+async function _exec(
+  command: string,
+  args: string[],
+  cwd: string,
+  env: NodeJS.ProcessEnv
+): Promise<void> {
+  const { exitCode } = await x(command, args, {
+    nodeOptions: {
+      cwd,
+      env,
+      stdio: [process.stdin.isTTY ? "inherit" : "ignore", "inherit", "inherit"],
+    },
+  });
+  if (exitCode !== 0) {
+    throw new Error(`\`${command} ${args.join(" ")}\` failed.`);
+  }
 }
 
 /** Package spec to install (with the version range if it is a simple one). */
