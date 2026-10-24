@@ -13,7 +13,9 @@ export default async () => {
     "nitro/runtime.fetch.url": await runtimeFetch(new URL("http://localhost/api/hello")).then(
       (res) => res.json()
     ),
-    "nitro/serverFetch": await nitroServerFetch("/api/hello").then((res) => res.json()),
+    "nitro/serverFetch": await nitroServerFetch("/api/hello", {
+      context: { custom: true },
+    }).then((res) => res.json()),
     "nitro/fetch": await nitroFetch("/api/hello").then((res) => res.json()),
   };
 };
