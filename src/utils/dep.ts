@@ -303,8 +303,8 @@ function _hasCorepack(): Promise<boolean> {
 
 /** Run a command, rejecting on a non-zero exit code (mirrors nypm's `executeCommand`). Commands
  * run through `tinyexec`, the same subprocess helper `nypm` uses: it resolves the executable
- * against `PATH`/`PATHEXT` and quotes arguments per platform, so no shell is involved and
- * Windows `.cmd` shims still work.
+ * against `PATH`/`PATHEXT` and escapes each argument per platform: POSIX commands run without
+ * a shell, and Windows `.cmd` shims go through cmd.exe with quoted, escaped arguments.
  */
 async function _exec(
   command: string,
