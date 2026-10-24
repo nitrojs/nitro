@@ -118,14 +118,29 @@ describe("ensureDep", () => {
     env.isAgent = true;
     await ensureDep(missingDep);
     expect(prompt).not.toHaveBeenCalled();
-    expect(addDevDependency).toHaveBeenCalledWith(missingDep.id, { cwd: missingDep.dir });
+    expect(addDevDependency).toHaveBeenCalledWith(missingDep.id, {
+      cwd: missingDep.dir,
+      env: { NODE_ENV: "development" },
+    });
   });
 
   it("installs without prompting when there is no TTY", async () => {
     env.hasTTY = false;
     await ensureDep(missingDep);
     expect(prompt).not.toHaveBeenCalled();
-    expect(addDevDependency).toHaveBeenCalledWith(missingDep.id, { cwd: missingDep.dir });
+    expect(addDevDependency).toHaveBeenCalledWith(missingDep.id, {
+      cwd: missingDep.dir,
+      env: { NODE_ENV: "development" },
+    });
+  });
+
+  it("installs with a non-production `NODE_ENV` so dev dependencies are not omitted", async () => {
+    env.isAgent = true;
+    await ensureDep(missingDep);
+    expect(addDevDependency).toHaveBeenCalledWith(missingDep.id, {
+      cwd: missingDep.dir,
+      env: { NODE_ENV: "development" },
+    });
   });
 
   it("installs with the package manager of the runtime when none is detected", async () => {
@@ -135,6 +150,7 @@ describe("ensureDep", () => {
     expect(addDevDependency).toHaveBeenCalledWith(missingDep.id, {
       cwd: missingDep.dir,
       packageManager: "npm",
+      env: { NODE_ENV: "development" },
     });
   });
 
@@ -148,7 +164,10 @@ describe("ensureDep", () => {
   it("installs without prompting with `autoInstall`", async () => {
     await ensureDep({ ...missingDep, autoInstall: true });
     expect(prompt).not.toHaveBeenCalled();
-    expect(addDevDependency).toHaveBeenCalledWith(missingDep.id, { cwd: missingDep.dir });
+    expect(addDevDependency).toHaveBeenCalledWith(missingDep.id, {
+      cwd: missingDep.dir,
+      env: { NODE_ENV: "development" },
+    });
   });
 
   it("does not install with `autoInstall` in test mode", async () => {
