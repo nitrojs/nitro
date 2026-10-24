@@ -1,11 +1,10 @@
-import { spawn } from "node:child_process";
-import type { ChildProcess, SpawnOptions } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { consola } from "consola";
 import { clearResolveCache, resolveModulePath } from "exsolve";
 import { dirname, join, normalize } from "pathe";
 import { hasTTY, isAgent, isCI, isTest } from "std-env";
+import { x } from "tinyexec";
 import { depPackageName, resolveFromDepPath } from "./_dep-path.ts";
 import { getDepMeta } from "./_deps.ts";
 import type { DepId, DepModules } from "./_deps.ts";
@@ -289,11 +288,6 @@ async function _addDependency(
   });
 }
 
-/** Spawn a package manager command (through the shell on Windows, where they are `.cmd` shims). */
-function _spawn(command: string, args: string[], options: SpawnOptions): ChildProcess {
-  return spawn(command, args, { ...options, shell: process.platform === "win32" });
-}
-
 let _corepackAvailable: Promise<boolean> | undefined;
 /** Whether Corepack is available (checked once, mirrors nypm's `hasCorepack`). */
 function _hasCorepack(): Promise<boolean> {
@@ -301,36 +295,33 @@ function _hasCorepack(): Promise<boolean> {
     globalThis.process?.versions as Record<string, string | undefined> | undefined
   )?.webcontainer
     ? Promise.resolve(false)
-    : new Promise<boolean>((resolvePromise) => {
-        const child = _spawn("corepack", ["--version"], { stdio: "ignore" });
-        child.on("error", () => resolvePromise(false));
-        child.on("close", (exitCode) => resolvePromise(exitCode === 0));
-      });
+    : Promise.resolve(x("corepack", ["--version"], { nodeOptions: { stdio: "ignore" } }))
+        .then((result) => result.exitCode === 0)
+        .catch(() => false);
   return _corepackAvailable;
 }
 
-/** Run a command, rejecting on a non-zero exit code (mirrors nypm's `executeCommand`). */
-function _exec(
+/** Run a command, rejecting on a non-zero exit code (mirrors nypm's `executeCommand`). Commands
+ * run through `tinyexec`, the same subprocess helper `nypm` uses: it resolves the executable
+ * against `PATH`/`PATHEXT` and quotes arguments per platform, so no shell is involved and
+ * Windows `.cmd` shims still work.
+ */
+async function _exec(
   command: string,
   args: string[],
   cwd: string,
   env: NodeJS.ProcessEnv
 ): Promise<void> {
-  return new Promise((resolvePromise, reject) => {
-    const child = _spawn(command, args, {
+  const { exitCode } = await x(command, args, {
+    nodeOptions: {
       cwd,
       env,
       stdio: [process.stdin.isTTY ? "inherit" : "ignore", "inherit", "inherit"],
-    });
-    child.on("error", reject);
-    child.on("close", (exitCode) => {
-      if (exitCode === 0) {
-        resolvePromise();
-      } else {
-        reject(new Error(`\`${command} ${args.join(" ")}\` failed.`));
-      }
-    });
+    },
   });
+  if (exitCode !== 0) {
+    throw new Error(`\`${command} ${args.join(" ")}\` failed.`);
+  }
 }
 
 /** Package spec to install (with the version range if it is a simple one). */
