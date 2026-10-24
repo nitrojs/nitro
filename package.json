@@ -77,7 +77,7 @@
     "h3": "^2.0.8",
     "ocache": "^0.3.1",
     "rou3": "^1.0.0",
-    "srvx": "^1.0.6"
+    "srvx": "^1.0.7"
   },
   "devDependencies": {
     "@apphosting/common": "^0.0.9",
