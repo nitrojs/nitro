@@ -927,6 +927,18 @@ export function testNitro(
     });
   });
 
+  describe("serverFetch / fetch init.context", () => {
+    it("reaches the handler for serverFetch and fetch", async () => {
+      const { data } = await callHandler({ url: "/fetch-init-context" });
+      expect(data).toEqual({
+        serverFetch: { custom: true },
+        fetch: { custom: true },
+        "runtime.serverFetch": { custom: true },
+        "runtime.fetch": { custom: true },
+      });
+    });
+  });
+
   describe("environment variables", () => {
     it("can load environment variables from runtimeConfig", async () => {
       const { data } = await callHandler({ url: "/config" });
