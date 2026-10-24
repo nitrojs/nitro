@@ -1,5 +1,6 @@
 import type { Nitro, NitroConfig } from "nitro/types";
 import { createHooks } from "hookable";
+import { serve } from "crossws/server";
 import { describe, expect, it, vi } from "vitest";
 
 const runners = vi.hoisted(() => [] as FakeRunner[]);
@@ -72,6 +73,49 @@ describe("dev server drain", () => {
     expect(runners[0]!.closes).toBe(0);
     expect(runners[1]!.shutdownMessages).toBe(1);
   });
+
+  it("keeps a drained worker until its bridged WebSocket closes", async () => {
+    runners.length = 0;
+    const upstream = serve({
+      port: 0,
+      hostname: "127.0.0.1",
+      silent: true,
+      fetch: () => new Response("upstream"),
+      websocket: {
+        message(peer, message) {
+          peer.send(`echo:${message.text()}`);
+        },
+      },
+    });
+    await upstream.ready();
+    FakeRunner.port = Number(new URL(upstream.url!).port);
+
+    const { nitro, devServer } = createServer({ drain: true });
+    await nitro.hooks.callHook("dev:reload");
+    const front = serve({
+      port: 0,
+      hostname: "127.0.0.1",
+      silent: true,
+      fetch: () => new Response("front"),
+      websocket: { resolve: (req) => (devServer as any).resolveWebSocketHooks(req) },
+    });
+    await front.ready();
+
+    const ws = new WebSocket(`${front.url!.replace("http", "ws")}ws`);
+    const echo = new Promise((resolve) => ws.addEventListener("message", (e) => resolve(e.data)));
+    ws.addEventListener("open", () => ws.send("hi"));
+    expect(await echo).toBe("echo:hi");
+
+    await nitro.hooks.callHook("dev:reload");
+    await (await devServer.fetch(new Request("http://localhost/"))).body?.cancel();
+    expect(runners).toHaveLength(2);
+    expect(runners[0]!.shutdowns).toBe(0);
+
+    ws.close();
+    await vi.waitFor(() => expect(runners[0]!.shutdowns).toBe(1));
+    await Promise.all([front.close(true), upstream.close(true), devServer.close()]);
+    FakeRunner.port = 1;
+  });
 });
 
 function createServer(devServer: NitroConfig["devServer"] = {}) {
@@ -93,9 +137,10 @@ function createServer(devServer: NitroConfig["devServer"] = {}) {
 }
 
 class FakeRunner {
+  static port = 1;
   ready = true;
   closed = false;
-  address = { host: "127.0.0.1", port: 1 };
+  address = { host: "127.0.0.1", port: FakeRunner.port };
   shutdownMessages = 0;
   shutdowns = 0;
   closes = 0;

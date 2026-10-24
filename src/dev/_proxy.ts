@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Socket } from "node:net";
 import type { H3Event } from "h3";
-import type { Hooks, WebSocketProxyOptions } from "crossws";
+import type { Hooks, Peer, WebSocketProxyOptions } from "crossws";
 import type { ProxyAddr, ProxyServerOptions, ProxyTarget } from "httpxy";
 import { createProxyServer, proxyFetch } from "httpxy";
 import { fromNodeHandler, HTTPError } from "h3";
@@ -77,15 +77,23 @@ export function createDevProxy(defaults: ProxyServerOptions = {}) {
  *
  * The handshake is rejected (`503`) when the worker has no address to dial, e.g. while it failed
  * to start or for runners that only support upgrades from a Node.js host (`miniflare`, `self`).
+ *
+ * `track` is called with the dialed address once the upstream connects, and the function it
+ * returns once the proxied connection ends (throwing closes the peer with `1011`).
  */
 export function createWorkerWebSocketProxy(
-  getAddress: () => ProxyAddr | undefined | Promise<ProxyAddr | undefined>
+  getAddress: () => ProxyAddr | undefined | Promise<ProxyAddr | undefined>,
+  opts: { track?: (addr: ProxyAddr) => (() => void) | undefined } = {}
 ): () => Promise<Partial<Hooks>> {
   let hooks: Promise<Partial<Hooks>> | undefined;
+  const dialed = new WeakMap<Peer, ProxyAddr>();
+  const settles = new WeakMap<Peer, () => void>();
+  const { track } = opts;
   return () =>
     (hooks ??= createWebSocketProxy({
       target: async (peer) => {
         const addr = await resolveWorkerAddress(getAddress);
+        dialed.set(peer, addr);
         const { pathname, search } = new URL(peer.request.url);
         return addr.socketPath
           ? `ws+unix://${addr.socketPath}:${pathname}${search}`
@@ -101,6 +109,20 @@ export function createWorkerWebSocketProxy(
         });
         return Object.fromEntries(headers);
       },
+      onUpstreamConnect:
+        track &&
+        ((peer) => {
+          const settle = track(dialed.get(peer)!);
+          if (settle) {
+            settles.set(peer, settle);
+          }
+        }),
+      onUpstreamClose:
+        track &&
+        ((peer) => {
+          settles.get(peer)?.();
+          settles.delete(peer);
+        }),
     }).then((proxy) => ({
       ...proxy,
       async upgrade(request) {

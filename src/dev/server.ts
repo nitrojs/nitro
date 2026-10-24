@@ -3,7 +3,9 @@ import type { Socket } from "node:net";
 import type { FSWatcher } from "chokidar";
 import type { ServerOptions, Server } from "srvx";
 import type { Hooks } from "crossws";
+import type { ProxyAddr } from "httpxy";
 import type {
+  EnvRunner,
   EnvRunnerData,
   EnvRunnerPluginOption,
   RunnerMessageListener,
@@ -92,18 +94,22 @@ class DevServer extends NitroDevApp implements NitroDevServer, RunnerRPCHooks {
     this.#entry = resolve(nitro.options.output.dir, nitro.options.output.serverDir, "index.mjs");
 
     this.#manager = new RunnerManager();
-    this.#workerWebSocket = createWorkerWebSocketProxy(async () => {
-      if (this.#building) {
-        await this.#waitForBuild();
-      }
-      if (this.#reloadPromise) {
-        await this.#reloadPromise;
-      }
-      if (!this.#manager.ready) {
-        await this.#waitForBuild();
-      }
-      return this.#manager.address;
-    });
+    this.#workerWebSocket = createWorkerWebSocketProxy(
+      async () => {
+        if (this.#building) {
+          await this.#waitForBuild();
+        }
+        if (this.#reloadPromise) {
+          await this.#reloadPromise;
+        }
+        if (!this.#manager.ready) {
+          await this.#waitForBuild();
+        }
+        return this.#manager.address;
+      },
+      // Bun/Deno bridged WebSockets keep a drained worker until they close
+      { track: (addr) => trackRunnerExchange(this.#manager, addr) }
+    );
     this.#manager.onReady(async (_runner, addr) => {
       this.#workerRetries = 0;
       writeDevBuildInfo(this.nitro, addr).catch((error) => {
@@ -344,4 +350,23 @@ class DevServer extends NitroDevApp implements NitroDevServer, RunnerRPCHooks {
   }
 
   // #endregion
+}
+
+/**
+ * Count a WebSocket as an exchange of the active runner, like `RunnerManager.wsSrvxPlugin()`
+ * does, whose tracking isn't exposed otherwise.
+ */
+function trackRunnerExchange(manager: RunnerManager, addr: ProxyAddr) {
+  const internal = manager as unknown as {
+    _runner?: EnvRunner;
+    _beginExchange?: (runner: EnvRunner) => () => void;
+  };
+  if (typeof internal._beginExchange !== "function") {
+    return;
+  }
+  const runner = internal._runner;
+  if (!runner || runner.address !== addr) {
+    throw new Error("The dev worker changed before the WebSocket connected");
+  }
+  return internal._beginExchange(runner);
 }
