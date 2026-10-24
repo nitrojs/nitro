@@ -70,6 +70,8 @@ export async function prerender(nitro: Nitro) {
   };
   await nitro.hooks.callHook("prerender:config", prerendererConfig);
   const nitroRenderer = await createNitro(prerendererConfig);
+  // Prerendered routes see the env name of the main build (`import.meta.envName`)
+  nitroRenderer.options.envName = nitro.options.envName;
   const prerenderStartTime = Date.now();
   await nitro.hooks.callHook("prerender:init", nitroRenderer);
   await nitroRenderer.routing.sync();

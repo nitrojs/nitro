@@ -16,6 +16,7 @@ export async function baseBuildConfig(nitro: Nitro) {
 
   const importMetaInjections: NitroImportMeta = {
     dev: nitro.options.dev,
+    envName: nitro.options.envName,
     preset: nitro.options.preset,
     prerender: nitro.options.preset === "nitro-prerender",
     nitro: true,

@@ -760,6 +760,7 @@ export function testNitro(
     const { data } = await callHandler({ url: "/static-flags" });
     expect(data).toMatchObject({
       dev: ctx.isDev,
+      envName: ctx.isDev ? "development" : "production",
       preset: ctx.preset,
       prerender: false,
       nitro: true,
