@@ -239,9 +239,13 @@ async function _ensureDep(opts: ResolvedDepOptions): Promise<string | undefined>
   const { addDependency, addDevDependency, detectPackageManager } = await import("nypm");
   // Projects without a lockfile (or `packageManager` field) use the package manager of the runtime
   const packageManager = (await detectPackageManager(opts.dir)) ? undefined : _runtimePM();
+  // Builds run with `NODE_ENV=production`; inherited by the package manager, it makes npm
+  // omit dev dependencies, so the one requested here never gets installed
+  const env = { NODE_ENV: "development" };
   await (opts.dev === false ? addDependency : addDevDependency)(_depSpec(opts), {
     cwd: opts.dir,
     packageManager,
+    env,
   });
 
   const installed = resolveDep(opts.id, opts);
