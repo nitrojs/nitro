@@ -960,7 +960,7 @@ describe("nitro:preset:vercel:node", async () => {
           handler: resolve(presetFixturesDir, "websocket.ts"),
         },
       ],
-      vercel: { entryFormat: "node" },
+      vercel: { entryFormat: "node", experimentalSchedules: "private" },
     },
   });
   testNitro(
@@ -1000,6 +1000,72 @@ describe("nitro:preset:vercel:node", async () => {
 
         expect(waitUntil).toHaveBeenCalled();
         expect(waitUntil.mock.calls[0][0]).toBeInstanceOf(Promise);
+      });
+
+      it("should emit vercel schedules instead of cron jobs", async () => {
+        const config = await fsp
+          .readFile(resolve(ctx.outDir, "config.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        expect(config.crons).toBeUndefined();
+        expect(config.schedules).toEqual([
+          { name: "test", schedule: "* * * * *", function: "_vercel/tasks" },
+        ]);
+        expect(config.routes.some((r: { dest?: string }) => r.dest === "/_vercel/cron")).toBe(
+          false
+        );
+        const funcConfig = await fsp
+          .readFile(resolve(ctx.outDir, "functions/_vercel/tasks.func/.vc-config.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        expect(funcConfig.experimentalTriggers).toEqual([{ type: "schedule/v1beta" }]);
+        expect(funcConfig.environment).toMatchObject({ NITRO_VERCEL_SCHEDULES_FUNCTION: "1" });
+      });
+
+      it("should not route public requests to the private schedules function", async () => {
+        const config = await fsp
+          .readFile(resolve(ctx.outDir, "config.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        const routes = config.routes as { src?: string; dest?: string }[];
+        expect(routes.some((r) => r.dest === "/_vercel/tasks")).toBe(false);
+      });
+
+      const dispatch = async () => {
+        // `_vercel/tasks.func` is a copy of the same bundle, importing it too would share globals
+        const nodeHandler = await import(
+          resolve(ctx.outDir, "functions/__server.func/index.mjs")
+        ).then((r) => r.default || r);
+        return toFetchHandler(nodeHandler)(
+          new Request("https://example.com/_vercel/tasks", {
+            method: "POST",
+            headers: {
+              "ce-specversion": "1.0",
+              "ce-type": "com.vercel.schedule.v1beta",
+              "ce-source": "/schedule/default/test",
+              "ce-id": "execution-1",
+              "ce-vssscheduleid": "schedule-1",
+              "ce-vssschedulename": "test",
+              "ce-vssnamespace": "default",
+              "ce-vssscheduledat": "2026-09-02T03:00:00.000Z",
+              "ce-vssschedulesource": "static",
+              "ce-vssexpression": "* * * * *",
+            },
+          })
+        );
+      };
+
+      it("should not run tasks from forged dispatches to the public server function", async () => {
+        const res = await dispatch();
+        expect(res.status).toBe(404);
+      });
+
+      it("should run the task of a schedule dispatch in the private function", async () => {
+        vi.stubEnv("NITRO_VERCEL_SCHEDULES_FUNCTION", "1");
+        try {
+          const res = await dispatch();
+          expect(res.status).toBe(200);
+          expect(await res.json()).toEqual({ success: true });
+        } finally {
+          vi.unstubAllEnvs();
+        }
       });
 
       it.skipIf(typeof WebSocket !== "function")(
