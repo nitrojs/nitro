@@ -70,6 +70,7 @@ describe("dev server drain", () => {
 
     expect(runners[0]!.shutdowns).toBe(1);
     expect(runners[0]!.closes).toBe(0);
+    expect(runners[1]!.shutdownMessages).toBe(1);
   });
 });
 
@@ -145,6 +146,7 @@ class FakeRunner {
 
   async shutdown() {
     this.shutdowns++;
+    this.sendMessage({ event: "shutdown" });
     this.closed = true;
   }
 

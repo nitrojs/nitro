@@ -190,13 +190,17 @@ export async function closeEnvRunner(ctx: NitroPluginContext) {
   if (!manager) {
     return;
   }
+  // With drain, the manager shuts the active and draining runners down gracefully
+  if (ctx.nitro!.options.devServer.drain) {
+    await manager.shutdown();
+    return;
+  }
   // The miniflare runner runs the same handshake itself when it is disposed, so it is only
   // needed for the runners that terminate their runtime outright.
   if (manager.ready && !_isWorkerdRunner(ctx)) {
     await shutdownRunner(manager, { warn: (message) => ctx.nitro!.logger.warn(message) });
   }
-  // Draining runners are shut down gracefully too
-  await (ctx.nitro!.options.devServer.drain ? manager.shutdown() : manager.close());
+  await manager.close();
 }
 
 export async function reloadEnvRunner(ctx: NitroPluginContext) {

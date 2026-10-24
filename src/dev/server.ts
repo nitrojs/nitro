@@ -213,14 +213,17 @@ class DevServer extends NitroDevApp implements NitroDevServer, RunnerRPCHooks {
   async close() {
     this.#closing = true;
     await this.#reloadPromise?.catch(() => {});
-    await this.#shutdownWorker();
+    // With drain, the manager shuts the active and draining workers down gracefully
+    const drain = this.nitro.options.devServer.drain;
+    if (!drain) {
+      await this.#shutdownWorker();
+    }
     await Promise.all(
       [
         Promise.all(this.#listeners.map((l) => l.close())).then(() => {
           this.#listeners = [];
         }),
-        // Draining workers are shut down gracefully too
-        this.nitro.options.devServer.drain ? this.#manager.shutdown() : this.#manager.close(),
+        drain ? this.#manager.shutdown() : this.#manager.close(),
         Promise.resolve(this.#watcher?.close()).then(() => {
           this.#watcher = undefined;
         }),
