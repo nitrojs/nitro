@@ -1,3 +1,4 @@
+import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { consola } from "consola";
@@ -236,26 +237,10 @@ async function _ensureDep(opts: ResolvedDepOptions): Promise<string | undefined>
 
   const start = Date.now();
   consola.start(`Installing \`${opts.id}\` in \`${opts.dir}\`...`);
-  const { addDependency, addDevDependency, detectPackageManager } = await import("nypm");
+  const { detectPackageManager } = await import("nypm");
   // Projects without a lockfile (or `packageManager` field) use the package manager of the runtime
-  const packageManager = (await detectPackageManager(opts.dir)) ? undefined : _runtimePM();
-  // Builds run with `NODE_ENV=production`; inherited by the package manager, it makes npm
-  // omit dev dependencies, so the one requested here never gets installed. Set it on the
-  // process for the install: nypm's `env` option is not applied by `addDependency` (0.6.11)
-  const prevNodeEnv = process.env.NODE_ENV;
-  process.env.NODE_ENV = "development";
-  try {
-    await (opts.dev === false ? addDependency : addDevDependency)(_depSpec(opts), {
-      cwd: opts.dir,
-      packageManager,
-    });
-  } finally {
-    if (prevNodeEnv === undefined) {
-      delete process.env.NODE_ENV;
-    } else {
-      process.env.NODE_ENV = prevNodeEnv;
-    }
-  }
+  const packageManager = (await detectPackageManager(opts.dir))?.command || _runtimePM();
+  await _addDependency(packageManager, _depSpec(opts), { dev: opts.dev !== false, cwd: opts.dir });
 
   const installed = resolveDep(opts.id, opts);
   if (installed) {
@@ -273,6 +258,73 @@ function _isInNodeModules(dir: string): boolean {
 
 function _runtimePM(): "bun" | "deno" | "npm" {
   return process.versions.bun ? "bun" : process.versions.deno ? "deno" : "npm";
+}
+
+/**
+ * Add a dependency with the project's package manager.
+ *
+ * nypm's `addDependency`/`addDevDependency` cannot scope environment variables to the install
+ * process (their `env` option is not applied, nypm 0.6.11), so the install runs directly, with
+ * a non-production `NODE_ENV` for the child process only: builds run with `NODE_ENV=production`,
+ * which makes npm omit dev dependencies, so the requested package never gets installed (#4912).
+ * Scoping the override to the child keeps concurrent installs and the rest of the process
+ * unaffected.
+ */
+async function _addDependency(
+  packageManager: string,
+  name: string,
+  opts: { dev: boolean; cwd: string }
+): Promise<void> {
+  const spec = packageManager === "deno" && !/^(npm|jsr|file):/.test(name) ? `npm:${name}` : name;
+  const args = [packageManager === "npm" ? "install" : "add", ...(opts.dev ? ["-D"] : []), spec];
+  // pnpm/yarn may only be available through Corepack (mirrors nypm's `executeCommand`)
+  const [command, commandArgs] =
+    ["npm", "bun", "deno"].includes(packageManager) || !(await _hasCorepack())
+      ? [packageManager, args]
+      : ["corepack", [packageManager, ...args]];
+  await _exec(command as string, commandArgs as string[], opts.cwd, {
+    ...process.env,
+    NODE_ENV: "development",
+  });
+}
+
+let _corepackAvailable: Promise<boolean> | undefined;
+/** Whether Corepack is available (checked once, mirrors nypm's `hasCorepack`). */
+function _hasCorepack(): Promise<boolean> {
+  _corepackAvailable ??= (
+    globalThis.process?.versions as Record<string, string | undefined> | undefined
+  )?.webcontainer
+    ? Promise.resolve(false)
+    : new Promise<boolean>((resolvePromise) => {
+        const child = spawn("corepack", ["--version"], { stdio: "ignore" });
+        child.on("error", () => resolvePromise(false));
+        child.on("close", (exitCode) => resolvePromise(exitCode === 0));
+      });
+  return _corepackAvailable;
+}
+
+/** Run a command, rejecting on a non-zero exit code (mirrors nypm's `executeCommand`). */
+function _exec(
+  command: string,
+  args: string[],
+  cwd: string,
+  env: NodeJS.ProcessEnv
+): Promise<void> {
+  return new Promise((resolvePromise, reject) => {
+    const child = spawn(command, args, {
+      cwd,
+      env,
+      stdio: [process.stdin.isTTY ? "inherit" : "ignore", "inherit", "inherit"],
+    });
+    child.on("error", reject);
+    child.on("close", (exitCode) => {
+      if (exitCode === 0) {
+        resolvePromise();
+      } else {
+        reject(new Error(`\`${command} ${args.join(" ")}\` failed.`));
+      }
+    });
+  });
 }
 
 /** Package spec to install (with the version range if it is a simple one). */
