@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import type { ChildProcess, SpawnOptions } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { consola } from "consola";
@@ -279,13 +280,18 @@ async function _addDependency(
   const args = [packageManager === "npm" ? "install" : "add", ...(opts.dev ? ["-D"] : []), spec];
   // pnpm/yarn may only be available through Corepack (mirrors nypm's `executeCommand`)
   const [command, commandArgs] =
-    ["npm", "bun", "deno"].includes(packageManager) || !(await _hasCorepack())
+    ["npm", "bun", "deno", "aube", "nub", "upm"].includes(packageManager) || !(await _hasCorepack())
       ? [packageManager, args]
       : ["corepack", [packageManager, ...args]];
   await _exec(command as string, commandArgs as string[], opts.cwd, {
     ...process.env,
     NODE_ENV: "development",
   });
+}
+
+/** Spawn a package manager command (through the shell on Windows, where they are `.cmd` shims). */
+function _spawn(command: string, args: string[], options: SpawnOptions): ChildProcess {
+  return spawn(command, args, { ...options, shell: process.platform === "win32" });
 }
 
 let _corepackAvailable: Promise<boolean> | undefined;
@@ -296,7 +302,7 @@ function _hasCorepack(): Promise<boolean> {
   )?.webcontainer
     ? Promise.resolve(false)
     : new Promise<boolean>((resolvePromise) => {
-        const child = spawn("corepack", ["--version"], { stdio: "ignore" });
+        const child = _spawn("corepack", ["--version"], { stdio: "ignore" });
         child.on("error", () => resolvePromise(false));
         child.on("close", (exitCode) => resolvePromise(exitCode === 0));
       });
@@ -311,7 +317,7 @@ function _exec(
   env: NodeJS.ProcessEnv
 ): Promise<void> {
   return new Promise((resolvePromise, reject) => {
-    const child = spawn(command, args, {
+    const child = _spawn(command, args, {
       cwd,
       env,
       stdio: [process.stdin.isTTY ? "inherit" : "ignore", "inherit", "inherit"],
