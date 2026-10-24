@@ -72,8 +72,8 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "crossws": "^0.4.15",
-    "env-runner": "^0.3.7",
+    "crossws": "^0.4.16",
+    "env-runner": "^0.3.8",
     "h3": "^2.0.8",
     "ocache": "^0.3.1",
     "rou3": "^1.0.0",

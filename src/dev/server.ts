@@ -219,7 +219,8 @@ class DevServer extends NitroDevApp implements NitroDevServer, RunnerRPCHooks {
         Promise.all(this.#listeners.map((l) => l.close())).then(() => {
           this.#listeners = [];
         }),
-        this.#manager.close(),
+        // Draining workers are shut down gracefully too
+        this.nitro.options.devServer.drain ? this.#manager.shutdown() : this.#manager.close(),
         Promise.resolve(this.#watcher?.close()).then(() => {
           this.#watcher = undefined;
         }),
@@ -246,7 +247,11 @@ class DevServer extends NitroDevApp implements NitroDevServer, RunnerRPCHooks {
   }
 
   async #reload() {
-    await this.#shutdownWorker();
+    const drain = this.nitro.options.devServer.drain;
+    // A drained worker is shut down by the manager once its requests settle
+    if (!drain) {
+      await this.#shutdownWorker();
+    }
     const runnerName = (this.nitro.options.devServer.runner ||
       process.env.NITRO_DEV_RUNNER ||
       "node-worker") as RunnerName;
@@ -257,7 +262,7 @@ class DevServer extends NitroDevApp implements NitroDevServer, RunnerRPCHooks {
       data: { entry: this.#entry, ...this.#workerData },
       plugins: this.#plugins,
     });
-    await this.#manager.reload(runner);
+    await this.#manager.reload(runner, { drain });
   }
 
   sendMessage(message: unknown) {

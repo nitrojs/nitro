@@ -18,14 +18,14 @@ importers:
   .:
     dependencies:
       crossws:
-        specifier: ^0.4.15
-        version: 0.4.15(srvx@1.0.7)
+        specifier: ^0.4.16
+        version: 0.4.16(srvx@1.0.7)
       env-runner:
-        specifier: ^0.3.7
-        version: 0.3.7
+        specifier: ^0.3.8
+        version: 0.3.8
       h3:
         specifier: ^2.0.8
-        version: 2.0.8(crossws@0.4.15)(ocache@0.3.1)
+        version: 2.0.8(crossws@0.4.16)(ocache@0.3.1)
       ocache:
         specifier: ^0.3.1
         version: 0.3.1
@@ -56,7 +56,7 @@ importers:
         version: 0.0.1
       '@hiogawa/vite-plugin-fullstack':
         specifier: ^0.0.11
-        version: 0.0.11(patch_hash=8f85f600ba1d302b0d3e7bf55b9996a5bf219e96cbffeee4d1501aaec5383681)(vite@8.3.4)
+        version: 0.0.11(patch_hash=8f85f600ba1d302b0d3e7bf55b9996a5bf219e96cbffeee4d1501aaec5383681)(vite@8.3.5)
       '@netlify/edge-functions':
         specifier: ^4.0.3
         version: 4.0.3
@@ -272,7 +272,7 @@ importers:
         version: 1.7.0
       unctx:
         specifier: ^3.0.1
-        version: 3.0.1(magic-string@1.4.3)(rolldown@1.2.14)(unplugin@3.4.0)
+        version: 3.0.1(magic-string@1.4.3)(oxc-parser@shims+oxc-parser)(rolldown@1.2.14)(unplugin@3.4.0)
       unenv:
         specifier: ^2.0.0-rc.24
         version: 2.0.0-rc.24
@@ -284,13 +284,13 @@ importers:
         version: 0.6.2
       vite:
         specifier: ^8.3.4
-        version: 8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
       vite7:
         specifier: npm:vite@^7.3.7
         version: vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.33.0)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.5
-        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@26.6.5)(@vitest/coverage-v8@5.0.5)(vite@8.3.4)
+        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@26.6.5)(@vitest/coverage-v8@5.0.5)(vite@8.3.5)
       wrangler:
         specifier: ^4.151.3
         version: 4.151.3(@cloudflare/workers-types@5.20261019.1)(@types/node@26.6.5)
@@ -642,7 +642,7 @@ importers:
         version: 1.0.0(solid-js@1.9.17)
       '@solidjs/start':
         specifier: ^2.0.6
-        version: 2.0.6(@solidjs/router@1.0.0)(crossws@0.4.15)(ocache@0.3.1)(supports-color@10.2.2)(vite@8.3.5)
+        version: 2.0.6(@solidjs/router@1.0.0)(crossws@0.4.16)(ocache@0.3.1)(supports-color@10.2.2)(vite@8.3.5)
       nitro:
         specifier: workspace:*
         version: link:../..
@@ -4143,8 +4143,8 @@ packages:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
     engines: {node: '>= 8'}
 
-  crossws@0.4.15:
-    resolution: {integrity: sha512-NsUOpDZosz7nyI+qEIl05yaiXOWaXH2oTeM+XBWtiSWZtb5rzcIsl1AST/HzM2jzUn76eFuyrkn83E6iSBRUvw==}
+  crossws@0.4.16:
+    resolution: {integrity: sha512-gKc2u346c6tZazImz8/4KkRRKW6cEHot3Z3+gzKNSkfHTWkYrXeiidMKYN0JnHqeszIs5++iDaVzP/pWl/efpw==}
     peerDependencies:
       srvx: '>=0.11.5'
     peerDependenciesMeta:
@@ -4410,8 +4410,8 @@ packages:
     resolution: {integrity: sha512-TWrgLOFUQTH994YUyl1yT4uyavY5nNB5muff+RtWaqNVCAK408b5ZnnbNAUEWLTCpum9w6arT70i1XdQ4UeOPA==}
     engines: {node: '>=0.12'}
 
-  env-runner@0.3.7:
-    resolution: {integrity: sha512-Fcv10GJOlfwP4mD6g05mTtZ1/YrmJGAFIRDYfJwXAhl4xyZCX5O2LsJVTSDctK2jUjzIrNCSk3IkHKvoOqfzHA==}
+  env-runner@0.3.8:
+    resolution: {integrity: sha512-WF/tEXA/LSE7na7k2T6STXw8aEOAt1tqxextaJH7RZnqZzqSrFVCyFKEU3r0dLgqgu55Kswo5TvkOLuGxz72VQ==}
     hasBin: true
 
   eol@0.9.1:
@@ -4751,19 +4751,6 @@ packages:
   gzip-size@7.0.0:
     resolution: {integrity: sha512-O1Ld7Dr+nqPnmGpdhzLmMTQ4vAsD+rHwMm1NLUmoUFFymBOMKxCCrtDxqdBRYXdeEPEi3SyoR4TizJLQrnKBNA==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
-
-  h3@2.0.7:
-    resolution: {integrity: sha512-00SVloxtViij9/JBsc/Ayd9H7GLXWB0KRfkReWG0dDwuUFKUKRrNGM3Csu+KZgppi5DD8Y1KpnfjtudWaRCoiQ==}
-    engines: {node: '>=20.19.0'}
-    hasBin: true
-    peerDependencies:
-      crossws: ^0.4.12
-      ocache: '>=0.3.0'
-    peerDependenciesMeta:
-      crossws:
-        optional: true
-      ocache:
-        optional: true
 
   h3@2.0.8:
     resolution: {integrity: sha512-ENuKlF9kC6E6PrvY1PUyE0qkrnnPTIt2/v48uyEEfTVfgoiqBCE0uwwf++2XrWwT1gxjQBDLQ8PAsmZVniKvTw==}
@@ -5942,10 +5929,6 @@ packages:
   pkg-types@2.4.0:
     resolution: {integrity: sha512-07Fys7iVx0X6TcviMOgogM1Lk33ZyqOezMnU79S+kffWqwolG/5W9V8EgQSeYCIfFTYVgssRbnH630Oa2+soBA==}
 
-  postcss@8.5.30:
-    resolution: {integrity: sha512-zkd+e9S1AQHhmaBKye9zlFHWjOwVgqXl1q3ECYy8561K7qxR2cREf/STLskulBFd78k6AOFeA+ff1TtEzk9bAA==}
-    engines: {node: ^10 || ^12 || >=14}
-
   postcss@8.5.31:
     resolution: {integrity: sha512-YUbWYCgErwnMAVkjUnYa+KlMBzGpHwiIt/DE7f0G33AuX2LH9UcTk6KgWxd3zRU+pN3u/C+Xl3EnMLM4Hea7Sg==}
     engines: {node: ^10 || ^12 || >=14}
@@ -6337,18 +6320,8 @@ packages:
     peerDependencies:
       seroval: ^1.0
 
-  seroval-plugins@1.6.9:
-    resolution: {integrity: sha512-kiDK/Tb8IWZ61WEU8pA2PDmAuw37gKph9Y77OZlD56mg0Y2g0Bg7gZ1HeHhs5d40w+nRoUq/wj08V26ilbez9g==}
-    engines: {node: '>=10'}
-    peerDependencies:
-      seroval: ^1.0
-
   seroval@1.6.11:
     resolution: {integrity: sha512-hpb6XnMCGN/A+79Uf8V7/iTGkyyyazNn5X0CoCAp7Uy9vT3RT8jZ9GLcnxGoVjg3P8AArbe4ZVHq6C8oT2a0kA==}
-    engines: {node: '>=10'}
-
-  seroval@1.6.9:
-    resolution: {integrity: sha512-UeEzHwAK+yl0YLbsvROV1t5yMYEwZZ0CfKYxDvUgS2fO9Vxdf8djqVIB+OuVpuawRNPqw68LE1Du/GMsW2ZPqA==}
     engines: {node: '>=10'}
 
   serve-static@1.16.3:
@@ -6478,11 +6451,6 @@ packages:
 
   srvx@0.9.8:
     resolution: {integrity: sha512-RZaxTKJEE/14HYn8COLuUOJAt0U55N9l1Xf6jj+T0GoA01EUH1Xz5JtSUOI+EHn+AEgPCVn7gk6jHJffrr06fQ==}
-    engines: {node: '>=20.16.0'}
-    hasBin: true
-
-  srvx@1.0.6:
-    resolution: {integrity: sha512-QeTKgAhk8OSsfeq60bl3wuVs9PmBftzmk7owBInA/F1YQne+TRw0UcPymNpURldAmx8hfmM2PNNGH/zgo3GpLA==}
     engines: {node: '>=20.16.0'}
     hasBin: true
 
@@ -6747,10 +6715,13 @@ packages:
     resolution: {integrity: sha512-5RAt2etv7g362RXyd33R82gm9u/kbtQlpoaOs9Bgm4E32GRMJ0xjbZyvdxUTmiuHk3V1IQb1aUNrp5IWY+JaWw==}
     peerDependencies:
       magic-string: '>=0.30.21'
+      oxc-parser: '>=0.140.0'
       rolldown: ^1.1.5
       unplugin: ^3.3.0
     peerDependenciesMeta:
       magic-string:
+        optional: true
+      oxc-parser:
         optional: true
       rolldown:
         optional: true
@@ -6954,49 +6925,6 @@ packages:
       less:
         optional: true
       lightningcss:
-        optional: true
-      sass:
-        optional: true
-      sass-embedded:
-        optional: true
-      stylus:
-        optional: true
-      sugarss:
-        optional: true
-      terser:
-        optional: true
-      tsx:
-        optional: true
-      yaml:
-        optional: true
-
-  vite@8.3.4:
-    resolution: {integrity: sha512-IftLE8phJhdNRIGNEV4JCCvfNScoZQVfcXaN8TQropWGJtOHcu+iAB9pHcuGvmEb/kddw0LBe/jS8ztdC6xdiQ==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    hasBin: true
-    peerDependencies:
-      '@types/node': ^20.19.0 || >=22.12.0
-      '@vitejs/devtools': ^0.7.1
-      esbuild: ^0.27.0 || ^0.28.0
-      jiti: '>=1.21.0'
-      less: ^4.0.0
-      sass: ^1.70.0
-      sass-embedded: ^1.70.0
-      stylus: '>=0.54.8'
-      sugarss: ^5.0.0
-      terser: ^5.16.0
-      tsx: ^4.8.1
-      yaml: ^2.4.2
-    peerDependenciesMeta:
-      '@types/node':
-        optional: true
-      '@vitejs/devtools':
-        optional: true
-      esbuild:
-        optional: true
-      jiti:
-        optional: true
-      less:
         optional: true
       sass:
         optional: true
@@ -7764,7 +7692,7 @@ snapshots:
       dotenv: 16.3.1
       undici: 7.29.1
     optionalDependencies:
-      vitest: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@26.6.5)(@vitest/coverage-v8@5.0.5)(vite@8.3.4)
+      vitest: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@26.6.5)(@vitest/coverage-v8@5.0.5)(vite@8.3.5)
 
   '@codemirror/autocomplete@6.20.4':
     dependencies:
@@ -8023,13 +7951,13 @@ snapshots:
       '@tanstack/vue-virtual': 3.13.47(vue@3.5.44)
       vue: 3.5.44(typescript@7.0.2)
 
-  '@hiogawa/vite-plugin-fullstack@0.0.11(patch_hash=8f85f600ba1d302b0d3e7bf55b9996a5bf219e96cbffeee4d1501aaec5383681)(vite@8.3.4)':
+  '@hiogawa/vite-plugin-fullstack@0.0.11(patch_hash=8f85f600ba1d302b0d3e7bf55b9996a5bf219e96cbffeee4d1501aaec5383681)(vite@8.3.5)':
     dependencies:
       '@rolldown/pluginutils': 1.0.0-beta.55
       magic-string: 0.30.21
       srvx: 0.9.8
       strip-literal: 3.1.0
-      vite: 8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
+      vite: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
 
   '@img/colour@1.1.0': {}
 
@@ -9288,7 +9216,7 @@ snapshots:
     dependencies:
       solid-js: 1.9.17
 
-  '@solidjs/start@2.0.6(@solidjs/router@1.0.0)(crossws@0.4.15)(ocache@0.3.1)(supports-color@10.2.2)(vite@8.3.5)':
+  '@solidjs/start@2.0.6(@solidjs/router@1.0.0)(crossws@0.4.16)(ocache@0.3.1)(supports-color@10.2.2)(vite@8.3.5)':
     dependencies:
       '@babel/core': 7.29.7(supports-color@10.2.2)
       '@babel/traverse': 7.29.10(supports-color@10.2.2)
@@ -9301,7 +9229,7 @@ snapshots:
       defu: 6.1.7
       error-stack-parser-es: 2.0.1
       fast-glob: 3.3.3
-      h3: 2.0.7(crossws@0.4.15)(ocache@0.3.1)
+      h3: 2.0.8(crossws@0.4.16)(ocache@0.3.1)
       html-to-image: 1.11.13
       micromatch: 4.0.8
       oxc-parser: link:shims/oxc-parser
@@ -9560,8 +9488,8 @@ snapshots:
     dependencies:
       '@tanstack/history': 1.162.5
       cookie-es: 3.1.1
-      seroval: 1.6.9
-      seroval-plugins: 1.6.9(seroval@1.6.9)
+      seroval: 1.6.11
+      seroval-plugins: 1.6.11(seroval@1.6.11)
 
   '@tanstack/router-devtools-core@1.168.2(@tanstack/router-core@1.171.38)(csstype@3.2.3)':
     dependencies:
@@ -9648,7 +9576,7 @@ snapshots:
       picomatch: 4.0.7
       seroval: 1.6.11
       source-map: 0.7.6
-      srvx: 1.0.6
+      srvx: 1.0.7
       tinyglobby: 0.2.17
       ufo: 1.6.4
       vitefu: 1.1.3(vite@8.3.5)
@@ -9987,7 +9915,7 @@ snapshots:
       obug: 3.0.0
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
-      srvx: 1.0.6
+      srvx: 1.0.7
       strip-literal: 4.0.0
       turbo-stream: 3.2.1
       vite: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
@@ -10009,22 +9937,13 @@ snapshots:
       obug: 3.0.0
       std-env: 4.3.0
       tinyrainbow: 3.2.0
-      vitest: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@26.6.5)(@vitest/coverage-v8@5.0.5)(vite@8.3.4)
+      vitest: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@26.6.5)(@vitest/coverage-v8@5.0.5)(vite@8.3.5)
 
   '@vitest/istanbul-lib-coverage@1.0.2': {}
 
   '@vitest/istanbul-lib-report@1.0.2':
     dependencies:
       '@vitest/istanbul-lib-coverage': 1.0.2
-
-  '@vitest/mocker@5.0.5(vite@8.3.4)':
-    dependencies:
-      '@jridgewell/trace-mapping': 0.3.31
-      '@vitest/spy': 5.0.5
-      estree-walker: 3.0.3
-      magic-string: 1.4.3
-    optionalDependencies:
-      vite: 8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
 
   '@vitest/mocker@5.0.5(vite@8.3.5)':
     dependencies:
@@ -10069,7 +9988,7 @@ snapshots:
       '@vue/shared': 3.5.44
       estree-walker: 2.0.2
       magic-string: 0.30.21
-      postcss: 8.5.30
+      postcss: 8.5.31
       source-map-js: 1.2.2
 
   '@vue/compiler-ssr@3.5.44':
@@ -10670,7 +10589,7 @@ snapshots:
       shebang-command: 2.0.0
       which: 2.0.2
 
-  crossws@0.4.15(srvx@1.0.7):
+  crossws@0.4.16(srvx@1.0.7):
     optionalDependencies:
       srvx: 1.0.7
 
@@ -10898,9 +10817,9 @@ snapshots:
 
   entities@7.0.1: {}
 
-  env-runner@0.3.7:
+  env-runner@0.3.8:
     dependencies:
-      crossws: 0.4.15(srvx@1.0.7)
+      crossws: 0.4.16(srvx@1.0.7)
       srvx: 1.0.7
 
   eol@0.9.1: {}
@@ -11297,20 +11216,12 @@ snapshots:
     dependencies:
       duplexer: 0.1.2
 
-  h3@2.0.7(crossws@0.4.15)(ocache@0.3.1):
-    dependencies:
-      rou3: 1.0.0
-      srvx: 1.0.6
-    optionalDependencies:
-      crossws: 0.4.15(srvx@1.0.7)
-      ocache: 0.3.1
-
-  h3@2.0.8(crossws@0.4.15)(ocache@0.3.1):
+  h3@2.0.8(crossws@0.4.16)(ocache@0.3.1):
     dependencies:
       rou3: 1.0.0
       srvx: 1.0.7
     optionalDependencies:
-      crossws: 0.4.15(srvx@1.0.7)
+      crossws: 0.4.16(srvx@1.0.7)
       ocache: 0.3.1
 
   has-flag@4.0.0: {}
@@ -12688,12 +12599,6 @@ snapshots:
       exsolve: 1.1.3
       pathe: 2.0.3
 
-  postcss@8.5.30:
-    dependencies:
-      nanoid: 3.3.20
-      picocolors: 1.1.1
-      source-map-js: 1.2.2
-
   postcss@8.5.31:
     dependencies:
       nanoid: 3.3.20
@@ -13157,13 +13062,7 @@ snapshots:
     dependencies:
       seroval: 1.6.11
 
-  seroval-plugins@1.6.9(seroval@1.6.9):
-    dependencies:
-      seroval: 1.6.9
-
   seroval@1.6.11: {}
-
-  seroval@1.6.9: {}
 
   serve-static@1.16.3(supports-color@10.2.2):
     dependencies:
@@ -13359,8 +13258,6 @@ snapshots:
   srvx@0.12.8: {}
 
   srvx@0.9.8: {}
-
-  srvx@1.0.6: {}
 
   srvx@1.0.7: {}
 
@@ -13601,13 +13498,12 @@ snapshots:
 
   ultrahtml@1.7.0: {}
 
-  unctx@3.0.1(magic-string@1.4.3)(rolldown@1.2.14)(unplugin@3.4.0):
-    dependencies:
-      oxc-parser: link:shims/oxc-parser
+  unctx@3.0.1(magic-string@1.4.3)(oxc-parser@shims+oxc-parser)(rolldown@1.2.14)(unplugin@3.4.0):
     optionalDependencies:
       magic-string: 1.4.3
+      oxc-parser: link:shims/oxc-parser
       rolldown: 1.2.14
-      unplugin: 3.4.0(esbuild@0.28.2)(rolldown@1.2.14)(rollup@4.64.12)(vite@8.3.4)
+      unplugin: 3.4.0(esbuild@0.28.2)(rolldown@1.2.14)(rollup@4.64.12)(vite@8.3.5)
 
   undici-types@7.24.6: {}
 
@@ -13688,18 +13584,6 @@ snapshots:
     dependencies:
       pathe: 2.0.3
       picomatch: 4.0.7
-
-  unplugin@3.4.0(esbuild@0.28.2)(rolldown@1.2.14)(rollup@4.64.12)(vite@8.3.4):
-    dependencies:
-      '@jridgewell/remapping': 2.3.5
-      picomatch: 4.0.7
-      webpack-virtual-modules: 0.6.2
-    optionalDependencies:
-      esbuild: 0.28.2
-      rolldown: 1.2.14
-      rollup: 4.64.12
-      vite: 8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
-    optional: true
 
   unplugin@3.4.0(esbuild@0.28.2)(rolldown@1.2.14)(rollup@4.64.12)(vite@8.3.5):
     dependencies:
@@ -13810,7 +13694,7 @@ snapshots:
       esbuild: 0.28.2
       fdir: 6.5.0(picomatch@4.0.7)
       picomatch: 4.0.7
-      postcss: 8.5.30
+      postcss: 8.5.31
       rollup: 4.64.12
       tinyglobby: 0.2.17
     optionalDependencies:
@@ -13818,20 +13702,6 @@ snapshots:
       fsevents: 2.3.3
       jiti: 2.7.0
       lightningcss: 1.33.0
-      yaml: 2.9.1
-
-  vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1):
-    dependencies:
-      lightningcss: 1.33.0
-      picomatch: 4.0.7
-      postcss: 8.5.31
-      rolldown: 1.2.14
-      tinyglobby: 0.2.17
-    optionalDependencies:
-      '@types/node': 26.6.5
-      esbuild: 0.28.2
-      fsevents: 2.3.3
-      jiti: 2.7.0
       yaml: 2.9.1
 
   vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1):
@@ -13851,29 +13721,6 @@ snapshots:
   vitefu@1.1.3(vite@8.3.5):
     optionalDependencies:
       vite: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
-
-  vitest@5.0.5(@opentelemetry/api@1.9.1)(@types/node@26.6.5)(@vitest/coverage-v8@5.0.5)(vite@8.3.4):
-    dependencies:
-      '@types/chai': 5.2.3
-      '@vitest/mocker': 5.0.5(vite@8.3.4)
-      chai: 6.3.0
-      es-module-lexer: 2.3.2
-      expect-type: 1.4.0
-      magic-string: 1.4.3
-      obug: 3.0.0
-      picomatch: 4.0.7
-      std-env: 4.3.0
-      tinybench: 6.2.2
-      tinyexec: 1.3.1
-      tinyglobby: 0.2.17
-      vite: 8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
-      why-is-node-running: 3.2.1
-    optionalDependencies:
-      '@opentelemetry/api': 1.9.1
-      '@types/node': 26.6.5
-      '@vitest/coverage-v8': 5.0.5(vitest@5.0.5)
-    transitivePeerDependencies:
-      - msw
 
   vitest@5.0.5(@opentelemetry/api@1.9.1)(@types/node@26.6.5)(@vitest/coverage-v8@5.0.5)(vite@8.3.5):
     dependencies:

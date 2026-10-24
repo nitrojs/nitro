@@ -195,7 +195,8 @@ export async function closeEnvRunner(ctx: NitroPluginContext) {
   if (manager.ready && !_isWorkerdRunner(ctx)) {
     await shutdownRunner(manager, { warn: (message) => ctx.nitro!.logger.warn(message) });
   }
-  await manager.close();
+  // Draining runners are shut down gracefully too
+  await (ctx.nitro!.options.devServer.drain ? manager.shutdown() : manager.close());
 }
 
 export async function reloadEnvRunner(ctx: NitroPluginContext) {
@@ -215,7 +216,7 @@ async function _loadRunner(ctx: NitroPluginContext, manager: RunnerManager) {
     name: "nitro-vite",
     data: { entry },
   });
-  await manager.reload(runner);
+  await manager.reload(runner, { drain: ctx.nitro!.options.devServer.drain });
 }
 
 // Resolve export conditions for the (non-workerd) environment.
