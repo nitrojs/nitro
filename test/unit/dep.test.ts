@@ -120,7 +120,6 @@ describe("ensureDep", () => {
     expect(prompt).not.toHaveBeenCalled();
     expect(addDevDependency).toHaveBeenCalledWith(missingDep.id, {
       cwd: missingDep.dir,
-      env: { NODE_ENV: "development" },
     });
   });
 
@@ -130,17 +129,31 @@ describe("ensureDep", () => {
     expect(prompt).not.toHaveBeenCalled();
     expect(addDevDependency).toHaveBeenCalledWith(missingDep.id, {
       cwd: missingDep.dir,
-      env: { NODE_ENV: "development" },
     });
   });
 
   it("installs with a non-production `NODE_ENV` so dev dependencies are not omitted", async () => {
     env.isAgent = true;
-    await ensureDep(missingDep);
-    expect(addDevDependency).toHaveBeenCalledWith(missingDep.id, {
-      cwd: missingDep.dir,
-      env: { NODE_ENV: "development" },
+    const prevNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+    let nodeEnvAtInstall: string | undefined;
+    addDevDependency.mockRejectedValueOnce(new Error("install failed"));
+    addDevDependency.mockImplementationOnce(() => {
+      nodeEnvAtInstall = process.env.NODE_ENV;
     });
+    try {
+      await expect(ensureDep(missingDep)).rejects.toThrow("install failed");
+      expect(process.env.NODE_ENV).toBe("production"); // restored after a failed install
+      await ensureDep(missingDep);
+    } finally {
+      if (prevNodeEnv === undefined) {
+        delete process.env.NODE_ENV;
+      } else {
+        process.env.NODE_ENV = prevNodeEnv;
+      }
+    }
+    expect(nodeEnvAtInstall).toBe("development");
+    expect(process.env.NODE_ENV).toBe(prevNodeEnv); // restored after the install
   });
 
   it("installs with the package manager of the runtime when none is detected", async () => {
@@ -150,7 +163,6 @@ describe("ensureDep", () => {
     expect(addDevDependency).toHaveBeenCalledWith(missingDep.id, {
       cwd: missingDep.dir,
       packageManager: "npm",
-      env: { NODE_ENV: "development" },
     });
   });
 
@@ -166,7 +178,6 @@ describe("ensureDep", () => {
     expect(prompt).not.toHaveBeenCalled();
     expect(addDevDependency).toHaveBeenCalledWith(missingDep.id, {
       cwd: missingDep.dir,
-      env: { NODE_ENV: "development" },
     });
   });
 
