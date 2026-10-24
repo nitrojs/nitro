@@ -1,6 +1,6 @@
 import type { NitroApp, NitroRuntimeHooks, ResolvedRouteRules } from "nitro/types";
 import type { ServerRequest, ServerRequestContext } from "srvx";
-import type { ComposedMiddleware, H3EventContext, H3Route, Middleware, WebSocketHooks } from "h3";
+import type { ComposedMiddleware, H3Route, Middleware, WebSocketHooks } from "h3";
 import type { MatchedRoute } from "rou3";
 import { composeMiddleware, HTTPError, toRequest } from "h3";
 import { HookableCore } from "hookable";
@@ -40,16 +40,21 @@ export function useNitroHooks(): NonNullable<NitroApp["hooks"]> {
   return (nitroApp.hooks = new HookableCore<NitroRuntimeHooks>());
 }
 
+export interface ServerFetchInit extends RequestInit {
+  context?: ServerRequestContext;
+}
+
 export function serverFetch(
-  resource: string | URL | Request,
-  init?: RequestInit,
-  context?: ServerRequestContext | H3EventContext
+  input: string | URL | Request,
+  init?: ServerFetchInit
 ): Promise<Response> {
-  const req = toRequest(resource, init);
-  req.context = { ...req.context, ...context } as ServerRequestContext;
-  const appHandler = useNitroApp().fetch;
+  const req = toRequest(input, init);
+  if (init?.context) {
+    req.context = { ...req.context, ...init.context } as ServerRequestContext;
+  }
+  const nitroApp = useNitroApp();
   try {
-    return Promise.resolve(appHandler(req));
+    return Promise.resolve(nitroApp.fetch(req));
   } catch (error) {
     return Promise.reject(error);
   }
@@ -72,15 +77,14 @@ export async function resolveWebsocketHooks(req: ServerRequest): Promise<Partial
 }
 
 export function fetch(
-  resource: string | URL | Request,
-  init?: RequestInit,
-  context?: ServerRequestContext | H3EventContext
+  input: RequestInfo | URL,
+  init?: ServerFetchInit
 ): Promise<Response> {
-  if (typeof resource === "string" && resource.charCodeAt(0) === 47) {
-    return serverFetch(resource, init, context);
+  if (typeof input === "string" && input.charCodeAt(0) === 47) {
+    return serverFetch(input, init);
   }
-  resource = (resource as any)._request || resource; // unwrap srvx request
-  return globalThis.fetch(resource, init);
+  input = (input as any)._request || input; // unwrap srvx request
+  return globalThis.fetch(input, init);
 }
 
 /**

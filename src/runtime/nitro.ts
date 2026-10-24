@@ -1,7 +1,7 @@
 // Config
 import type { NitroConfig } from "nitro/types";
 import type { ServerRequestContext } from "srvx";
-import { toRequest, type H3EventContext } from "h3";
+import { toRequest } from "h3";
 
 export function defineConfig(config: Omit<NitroConfig, "rootDir">): Omit<NitroConfig, "rootDir"> {
   return config;
@@ -27,11 +27,14 @@ export type { H3Event, EventHandlerRequest, EventHandlerWithFetch } from "h3";
 // srvx
 export type { FastResponse } from "srvx";
 
+export interface ServerFetchInit extends RequestInit {
+  context?: ServerRequestContext;
+}
+
 // Runtime
 export function serverFetch(
-  resource: string | URL | Request,
-  init?: RequestInit,
-  context?: ServerRequestContext | H3EventContext
+  input: string | URL | Request,
+  init?: ServerFetchInit
 ): Promise<Response> {
   const nitro =
     globalThis.__nitro__?.default ||
@@ -40,8 +43,10 @@ export function serverFetch(
   if (!nitro) {
     return Promise.reject(new Error("Nitro instance is not available."));
   }
-  const req = toRequest(resource, init);
-  req.context = { ...req.context, ...context } as ServerRequestContext;
+  const req = toRequest(input, init);
+  if (init?.context) {
+    req.context = { ...req.context, ...init.context } as ServerRequestContext;
+  }
   try {
     return Promise.resolve(nitro.fetch(req));
   } catch (error) {
@@ -50,13 +55,12 @@ export function serverFetch(
 }
 
 export function fetch(
-  resource: string | URL | Request,
-  init?: RequestInit,
-  context?: ServerRequestContext | H3EventContext
+  input: RequestInfo | URL,
+  init?: ServerFetchInit
 ): Promise<Response> {
-  if (typeof resource === "string" && resource.charCodeAt(0) === 47) {
-    return serverFetch(resource, init, context);
+  if (typeof input === "string" && input.charCodeAt(0) === 47) {
+    return serverFetch(input, init);
   }
-  resource = (resource as any)._request || resource; // unwrap srvx request
-  return globalThis.fetch(resource, init);
+  input = (input as any)._request || input; // unwrap srvx request
+  return globalThis.fetch(input, init);
 }
