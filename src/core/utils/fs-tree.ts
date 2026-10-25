@@ -31,7 +31,6 @@ export async function generateFSTree(
       const path = resolve(dir, file);
       const src = await fsp.readFile(path);
       const size = src.byteLength;
-      // node_modules files are only summed into the total, so their gzip size is not reported
       const gzip =
         options.compressedSizes && !file.includes("node_modules")
           ? await gzipSize(src)
@@ -47,7 +46,6 @@ export async function generateFSTree(
   let totalGzip = 0;
 
   let totalNodeModulesSize = 0;
-  let hasNodeModules = false;
 
   let treeText = "";
 
@@ -63,7 +61,6 @@ export async function generateFSTree(
 
     if (isNodeModules) {
       totalNodeModulesSize += item.size;
-      hasNodeModules = true;
       continue;
     }
 
@@ -82,7 +79,7 @@ export async function generateFSTree(
     totalSize + totalNodeModulesSize
   )}`;
   if (options.compressedSizes) {
-    treeText += ` (${prettyBytes(totalGzip)} gzip${hasNodeModules ? ", excluding node_modules" : ""})`;
+    treeText += ` (${prettyBytes(totalGzip)} gzip${totalNodeModulesSize ? ", excluding node_modules" : ""})`;
   }
   treeText += "\n";
 
