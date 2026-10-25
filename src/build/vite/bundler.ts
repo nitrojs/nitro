@@ -45,6 +45,11 @@ export const getBundlerConfig = async (
         },
         output: {
           minifyInternalExports: false,
+          // nitro:sourcemap removes `sourcesContent` from production maps, so don't generate it.
+          // `undefined` otherwise: this object wins over the user's `rolldownConfig`
+          sourcemapExcludeSources:
+            (!nitro.options.dev && nitro.options.experimental.sourcemapMinify !== false) ||
+            undefined,
           codeSplitting: {
             groups: [libChunksGroup()],
           },

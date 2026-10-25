@@ -66,6 +66,9 @@ export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownConfig> =
       // https://github.com/rolldown/rolldown/issues/7235
       minify: nitro.options.minify ? true : "dce-only",
       sourcemap: nitro.options.sourcemap,
+      // nitro:sourcemap removes `sourcesContent` from production maps, so don't generate it
+      sourcemapExcludeSources:
+        !nitro.options.dev && nitro.options.experimental.sourcemapMinify !== false,
       sourcemapIgnoreList(relativePath) {
         return relativePath.includes("node_modules");
       },

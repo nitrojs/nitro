@@ -17,28 +17,47 @@ export function sourcemap(opts: { virtualIds: Iterable<string>; minify: boolean 
 
         // Parse sourcemap
         const sourcemap: ExistingRawSourceMap = JSON.parse(asset.source);
+        let changed = false;
 
         // Virtual modules have no file on disk. Bundlers emit their ids as (relative)
         // paths, making consumers warn about missing sources. Namespace them instead.
-        if (sourcemap.sources) {
-          sourcemap.sources = sourcemap.sources.map((source) =>
+        const original = sourcemap.sources;
+        if (original) {
+          const sources = original.map((source) =>
             source ? virtualSource(source, virtualIds) : source
           );
+          if (sources.some((source, i) => source !== original[i])) {
+            sourcemap.sources = sources;
+            changed = true;
+          }
         }
 
         if (opts.minify) {
           // Remove sourcesContent
-          delete sourcemap.sourcesContent;
+          if ("sourcesContent" in sourcemap) {
+            delete sourcemap.sourcesContent;
+            changed = true;
+          }
 
           // Remove x_google_ignoreList
-          delete sourcemap.x_google_ignoreList;
+          if ("x_google_ignoreList" in sourcemap) {
+            delete sourcemap.x_google_ignoreList;
+            changed = true;
+          }
 
-          if ((sourcemap.sources || []).every((s) => s?.includes("node_modules"))) {
+          if (
+            sourcemap.mappings &&
+            (sourcemap.sources || []).every((s) => s?.includes("node_modules"))
+          ) {
             sourcemap.mappings = ""; // required key
+            changed = true;
           }
         }
 
-        asset.source = JSON.stringify(sourcemap);
+        // Assigning `asset.source` hands the map back to the bundler, so leave unchanged maps alone
+        if (changed) {
+          asset.source = JSON.stringify(sourcemap);
+        }
       }
     },
   };

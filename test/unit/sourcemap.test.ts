@@ -152,4 +152,25 @@ describe("sourcemap", () => {
     expect(results["index.mjs.map"].sourcesContent).toEqual(["export default 42;"]);
     expect(results["index.mjs.map"].sources).toEqual(["virtual:#nitro/virtual/app"]);
   });
+
+  it("leaves unchanged sourcemaps alone", () => {
+    const source = JSON.stringify({
+      version: 3,
+      sources: ["../../src/routes/index.ts"],
+      mappings: "AAAA,CAAC",
+    });
+    let writes = 0;
+    const asset = {
+      type: "asset" as const,
+      get source() {
+        return source;
+      },
+      set source(_value: string) {
+        writes++;
+      },
+    };
+    runPlugin({ "_routes/index.mjs.map": asset }, { minify: true });
+    runPlugin({ "_routes/index.mjs.map": asset }, { minify: false });
+    expect(writes).toBe(0);
+  });
 });
