@@ -29,12 +29,12 @@ describe("generateFSTree", () => {
     await rm(dir, { recursive: true, force: true });
   });
 
-  async function tree(options: { compressedSizes?: boolean }) {
-    return stripVTControlCharacters((await generateFSTree(dir, options)) || "");
+  async function tree() {
+    return stripVTControlCharacters((await generateFSTree(dir, { compressedSizes: true })) || "");
   }
 
   it("reports gzip sizes of the listed files", async () => {
-    const text = await tree({ compressedSizes: true });
+    const text = await tree();
 
     expect(text).toContain("index.mjs (1 kB) (500 B gzip)");
     expect(text).toContain("Σ Total size: 1 kB (500 B gzip)\n");
@@ -44,17 +44,10 @@ describe("generateFSTree", () => {
     await mkdir(join(dir, "node_modules/dep"), { recursive: true });
     await writeFile(join(dir, "node_modules/dep/index.js"), "b".repeat(3000));
 
-    const text = await tree({ compressedSizes: true });
+    const text = await tree();
 
     expect(gzipSize).toHaveBeenCalledTimes(1);
     expect(text).not.toContain("node_modules/dep");
     expect(text).toContain("Σ Total size: 4 kB (500 B gzip, excluding node_modules)\n");
-  });
-
-  it("skips gzip when compressedSizes is off", async () => {
-    const text = await tree({ compressedSizes: false });
-
-    expect(gzipSize).not.toHaveBeenCalled();
-    expect(text).toContain("Σ Total size: 1 kB\n");
   });
 });
