@@ -70,6 +70,14 @@ describe("vite dev worker entry", () => {
     expect(entry).toContain("export const plugins = [srvxTracing()];");
   });
 
+  test("passes the srvx tracing plugin when only srvx tracing is enabled", async () => {
+    const entry = await generate({ tracingChannel: { srvx: true, h3: false } });
+    expect(entry).toMatch(
+      /import \{ tracingPlugin as srvxTracing \} from "file:\/\/.+\/tracing\.mjs";/
+    );
+    expect(entry).toContain("export const plugins = [srvxTracing()];");
+  });
+
   test("skips the srvx tracing plugin when only h3 tracing is enabled", async () => {
     expect(await generate({ tracingChannel: { srvx: false, h3: true } })).not.toContain("srvx");
   });
