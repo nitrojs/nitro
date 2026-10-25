@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [
     nitro({
       serverDir: "./",
+      tracingChannel: true,
       buildPlugins: [
         {
           name: "fixture:virtual",

@@ -56,6 +56,27 @@ describe("vite:app", () => {
     expect(await res.text()).toBe("Hello from build plugin!");
   });
 
+  test("emits srvx.request spans from the Vite dev server", async () => {
+    const diagnostics = process.getBuiltinModule("node:diagnostics_channel");
+    const starts: string[] = [];
+    const channel = diagnostics.tracingChannel("srvx.request");
+    const listener = {
+      start: (context: { request?: { url?: string } }) => {
+        if (context.request?.url?.endsWith("/api/build-plugin")) {
+          starts.push(context.request.url);
+        }
+      },
+    };
+    channel.subscribe(listener);
+    try {
+      const res = await fetch(`${serverURL}/api/build-plugin`);
+      expect(res.status).toBe(200);
+      expect(starts).toHaveLength(1);
+    } finally {
+      channel.unsubscribe(listener);
+    }
+  });
+
   // #4868: `.svg` ids are checked by Vite's dev server access control, which denies ids with `:`
   test("imports `.svg` files as text and bytes", async () => {
     const res = await fetch(`${serverURL}/api/svg`);

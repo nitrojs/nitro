@@ -17,6 +17,7 @@ import { handleDevRPC } from "../../dev/_rpc.ts";
 import { rescanHandlers, watchScanDirs } from "./_scan-watch.ts";
 import { importVite, _resolveFromPath, type ViteImportOptions } from "./_import.ts";
 import { _isWorkerdRunner } from "./env.ts";
+import { createSrvxTracingFetch } from "./_tracing.ts";
 
 // https://vite.dev/guide/api-environment-runtimes.html#modulerunner
 
@@ -184,6 +185,9 @@ function _defineFetchableDevEnvironment({
 export async function configureViteDevServer(ctx: NitroPluginContext, server: ViteDevServer) {
   const nitro = ctx.nitro!;
   const nitroEnv = server.environments.nitro as FetchableDevEnvironment;
+  const dispatchFetch = createSrvxTracingFetch(nitro.options.tracingChannel?.srvx, (request) =>
+    nitroEnv.dispatchFetch(request)
+  );
 
   const viteBase = server.config.base || "/";
 
@@ -297,7 +301,7 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       }
 
       // Dispatch the request to the nitro environment
-      const envRes = await nitroEnv.dispatchFetch(req);
+      const envRes = await dispatchFetch(req);
       if (nodeRes.writableEnded || nodeRes.headersSent) {
         return;
       }
