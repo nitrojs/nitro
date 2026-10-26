@@ -14,7 +14,7 @@ import { RESOLVED_RE as RAW_RE } from "./raw.ts";
 // https://github.com/nitrojs/nitro/issues/4930
 
 // Evaluated by the bundler before calling into JS, so only modules holding a reference are parsed
-const NEW_URL_RE = /\bnew\s+URL\s*\([^)]*?import\.meta\.url\b/;
+const NEW_URL_RE = /\bnew\s+URL\s*\([\s\S]*?import\.meta\.url\b/;
 
 // Scripts are copied as-is by asset emission (not bundled), which would break their imports
 const SCRIPT_RE = /\.[cm]?[jt]sx?$/;
