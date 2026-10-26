@@ -53,6 +53,9 @@ describe("vite: files referenced with `new URL(..., import.meta.url)`", () => {
 
     beforeAll(async () => {
       await rm(outDir, { recursive: true, force: true });
+      // Service entries are resolved from the working directory
+      const originalCwd = process.cwd();
+      process.chdir(rootDir);
       const nitro = await createNitro({
         rootDir,
         output: { dir: outDir },
@@ -60,9 +63,13 @@ describe("vite: files referenced with `new URL(..., import.meta.url)`", () => {
         // @ts-expect-error for testing
         __vitePkg__: process.env.NITRO_VITE_PKG,
       });
-      await prepare(nitro);
-      await build(nitro);
-      await nitro.close();
+      try {
+        await prepare(nitro);
+        await build(nitro);
+      } finally {
+        await nitro.close();
+        process.chdir(originalCwd);
+      }
       serverFetch = await import(join(outDir, "server/index.mjs")).then((m) => m.default.fetch);
     }, 60_000);
 
@@ -71,12 +78,14 @@ describe("vite: files referenced with `new URL(..., import.meta.url)`", () => {
         serverFetch(new Request(`http://localhost${path}`)).then(
           (r) => r.json() as Promise<{ href: string; text: string }>
         );
-      const assetsURL = pathToFileURL(join(outDir, "server/assets")).href;
+      const assetsURL = pathToFileURL(join(outDir, "server/assets")).href + "/";
       const route = await get("/route");
-      expect(route.href).toMatch(new RegExp(`^${assetsURL}/route-[\\w-]+\\.txt$`));
+      expect(route.href.startsWith(assetsURL)).toBe(true);
+      expect(route.href.slice(assetsURL.length)).toMatch(/^route-[\w-]+\.txt$/);
       expect(route.text).toBe("route file\n");
       const service = await get("/service");
-      expect(service.href).toMatch(new RegExp(`^${assetsURL}/data-[\\w-]+\\.txt$`));
+      expect(service.href.startsWith(assetsURL)).toBe(true);
+      expect(service.href.slice(assetsURL.length)).toMatch(/^data-[\w-]+\.txt$/);
       expect(service.text).toBe("dependency file\n");
     });
   });

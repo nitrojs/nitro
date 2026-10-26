@@ -16,6 +16,9 @@ import { RESOLVED_RE as RAW_RE } from "./raw.ts";
 // Evaluated by the bundler before calling into JS, so only modules holding a reference are parsed
 const NEW_URL_RE = /\bnew\s+URL\s*\([\s\S]*?import\.meta\.url\b/;
 
+// Only JavaScript modules are parsed (with Vite, the hook also sees `.vue`, `.json`, ... sources)
+const JS_ID_RE = /\.[cm]?[jt]sx?(\?.*)?$/;
+
 // Scripts are copied as-is by asset emission (not bundled), which would break their imports
 const SCRIPT_RE = /\.[cm]?[jt]sx?$/;
 
@@ -27,13 +30,13 @@ export async function assetUrls(nitro: Nitro): Promise<Plugin> {
 
   // `pglite` references its 10 MB wasm file several times: read and emit each file once per build
   let referenceIds = new Map<string, string>();
-  let emitted = new Set<string>();
+  // Kept across rebuilds: watch mode re-emits the files of cached modules without transforming them
+  const emitted = new Set<string>();
 
   return {
     name: "nitro:asset-urls",
     buildStart() {
       referenceIds = new Map();
-      emitted = new Set();
     },
     // The reference is the first argument of `new URL`, so a relative path is enough.
     // Runs before Vite's own hook, which renders an absolute URL under its `base`.
@@ -47,11 +50,16 @@ export async function assetUrls(nitro: Nitro): Promise<Plugin> {
     },
     transform: {
       filter: {
-        id: { exclude: [/^\0/, RAW_RE] },
+        id: { include: JS_ID_RE, exclude: [/^\0/, RAW_RE] },
         code: NEW_URL_RE,
       },
       handler(code, id) {
-        if (id.startsWith("\0") || RAW_RE.test(id) || !NEW_URL_RE.test(code)) {
+        if (
+          !JS_ID_RE.test(id) ||
+          id.startsWith("\0") ||
+          RAW_RE.test(id) ||
+          !NEW_URL_RE.test(code)
+        ) {
           return; // In case the builder does not support filters
         }
         const filename = id.split("?")[0]!;
