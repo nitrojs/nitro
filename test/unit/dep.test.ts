@@ -49,6 +49,7 @@ vi.mock("consola", () => ({
 }));
 
 const missingDep = { id: "nitro-missing-dep", dir: process.cwd(), reason: "testing" };
+const installEnv = { NODE_ENV: "development" };
 
 async function ensureDep(
   opts: typeof missingDep & {
@@ -118,14 +119,20 @@ describe("ensureDep", () => {
     env.isAgent = true;
     await ensureDep(missingDep);
     expect(prompt).not.toHaveBeenCalled();
-    expect(addDevDependency).toHaveBeenCalledWith(missingDep.id, { cwd: missingDep.dir });
+    expect(addDevDependency).toHaveBeenCalledWith(missingDep.id, {
+      cwd: missingDep.dir,
+      env: installEnv,
+    });
   });
 
   it("installs without prompting when there is no TTY", async () => {
     env.hasTTY = false;
     await ensureDep(missingDep);
     expect(prompt).not.toHaveBeenCalled();
-    expect(addDevDependency).toHaveBeenCalledWith(missingDep.id, { cwd: missingDep.dir });
+    expect(addDevDependency).toHaveBeenCalledWith(missingDep.id, {
+      cwd: missingDep.dir,
+      env: installEnv,
+    });
   });
 
   it("installs with the package manager of the runtime when none is detected", async () => {
@@ -135,7 +142,19 @@ describe("ensureDep", () => {
     expect(addDevDependency).toHaveBeenCalledWith(missingDep.id, {
       cwd: missingDep.dir,
       packageManager: "npm",
+      env: installEnv,
     });
+  });
+
+  it("installs with a non-production `NODE_ENV` during builds", async () => {
+    env.isAgent = true;
+    vi.stubEnv("NODE_ENV", "production");
+    await ensureDep(missingDep);
+    vi.unstubAllEnvs();
+    expect(addDevDependency).toHaveBeenCalledWith(
+      missingDep.id,
+      expect.objectContaining({ env: { NODE_ENV: "development" } })
+    );
   });
 
   it("prompts in an interactive environment", async () => {
@@ -148,7 +167,10 @@ describe("ensureDep", () => {
   it("installs without prompting with `autoInstall`", async () => {
     await ensureDep({ ...missingDep, autoInstall: true });
     expect(prompt).not.toHaveBeenCalled();
-    expect(addDevDependency).toHaveBeenCalledWith(missingDep.id, { cwd: missingDep.dir });
+    expect(addDevDependency).toHaveBeenCalledWith(missingDep.id, {
+      cwd: missingDep.dir,
+      env: installEnv,
+    });
   });
 
   it("does not install with `autoInstall` in test mode", async () => {

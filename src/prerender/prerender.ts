@@ -383,8 +383,12 @@ export async function prerender(nitro: Nitro) {
     );
   }
 
-  if (nitro.options.prerender.failOnError && failedRoutes.size > 0) {
-    logPrerenderErrors(nitro, failedRoutes);
+  const ignoreStatusCodes = nitro.options.prerender.ignoreStatusCodes || [];
+  const fatalRoutes = new Set(
+    [...failedRoutes].filter((route) => !ignoreStatusCodes.includes(route.error!.status!))
+  );
+  if (nitro.options.prerender.failOnError && fatalRoutes.size > 0) {
+    logPrerenderErrors(nitro, fatalRoutes);
     throw new Error("Exiting due to prerender errors.");
   }
 
