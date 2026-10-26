@@ -35,11 +35,15 @@ export async function assetUrls(nitro: Nitro): Promise<Plugin> {
       referenceIds = new Map();
       emitted = new Set();
     },
-    // The reference is the first argument of `new URL`, so a relative path is enough
-    resolveFileUrl({ referenceId, relativePath }) {
-      if (emitted.has(referenceId)) {
-        return JSON.stringify(/^\.\.?\//.test(relativePath) ? relativePath : `./${relativePath}`);
-      }
+    // The reference is the first argument of `new URL`, so a relative path is enough.
+    // Runs before Vite's own hook, which renders an absolute URL under its `base`.
+    resolveFileUrl: {
+      order: "pre",
+      handler({ referenceId, relativePath }) {
+        if (emitted.has(referenceId)) {
+          return JSON.stringify(/^\.\.?\//.test(relativePath) ? relativePath : `./${relativePath}`);
+        }
+      },
     },
     transform: {
       filter: {

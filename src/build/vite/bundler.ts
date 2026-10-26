@@ -2,6 +2,7 @@ import { defu } from "defu";
 import { baseBuildConfig, type BaseBuildConfig } from "../config.ts";
 import { getChunkName, libChunkName, libChunksGroup, NODE_MODULES_RE } from "../chunks.ts";
 import { baseBuildPlugins, withBuildPlugins } from "../plugins.ts";
+import { assetUrls } from "../plugins/asset-urls.ts";
 import { excludeSourcemapSources } from "../plugins/sourcemap.ts";
 
 import type { RolldownConfig, RollupConfig } from "nitro/types";
@@ -18,6 +19,11 @@ export const getBundlerConfig = async (
   const nitro = ctx.nitro!;
   const base = await baseBuildConfig(nitro);
   const nitroPlugins = (await baseBuildPlugins(nitro, base)).filter(Boolean) as RollupPlugin[];
+  // Emitted files are read from the filesystem, which worker runtimes do not have.
+  // Not in dev: the module runner evaluates modules from their original location.
+  if (nitro.options.node && !nitro.options.dev) {
+    nitroPlugins.push(await assetUrls(nitro));
+  }
 
   const commonConfig = {
     input: nitro.options.entry,
