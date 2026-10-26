@@ -3,7 +3,9 @@ import type { Socket } from "node:net";
 import type { FSWatcher } from "chokidar";
 import type { ServerOptions, Server } from "srvx";
 import type { Hooks } from "crossws";
+import type { ProxyAddr } from "httpxy";
 import type {
+  EnvRunner,
   EnvRunnerData,
   EnvRunnerPluginOption,
   RunnerMessageListener,
@@ -92,18 +94,22 @@ class DevServer extends NitroDevApp implements NitroDevServer, RunnerRPCHooks {
     this.#entry = resolve(nitro.options.output.dir, nitro.options.output.serverDir, "index.mjs");
 
     this.#manager = new RunnerManager();
-    this.#workerWebSocket = createWorkerWebSocketProxy(async () => {
-      if (this.#building) {
-        await this.#waitForBuild();
-      }
-      if (this.#reloadPromise) {
-        await this.#reloadPromise;
-      }
-      if (!this.#manager.ready) {
-        await this.#waitForBuild();
-      }
-      return this.#manager.address;
-    });
+    this.#workerWebSocket = createWorkerWebSocketProxy(
+      async () => {
+        if (this.#building) {
+          await this.#waitForBuild();
+        }
+        if (this.#reloadPromise) {
+          await this.#reloadPromise;
+        }
+        if (!this.#manager.ready) {
+          await this.#waitForBuild();
+        }
+        return this.#manager.address;
+      },
+      // Bun/Deno bridged WebSockets keep a drained worker until they close
+      { track: (addr) => trackRunnerExchange(this.#manager, addr) }
+    );
     this.#manager.onReady(async (_runner, addr) => {
       this.#workerRetries = 0;
       writeDevBuildInfo(this.nitro, addr).catch((error) => {
@@ -213,13 +219,17 @@ class DevServer extends NitroDevApp implements NitroDevServer, RunnerRPCHooks {
   async close() {
     this.#closing = true;
     await this.#reloadPromise?.catch(() => {});
-    await this.#shutdownWorker();
+    // With drain, the manager shuts the active and draining workers down gracefully
+    const drain = this.nitro.options.devServer.drain;
+    if (!drain) {
+      await this.#shutdownWorker();
+    }
     await Promise.all(
       [
         Promise.all(this.#listeners.map((l) => l.close())).then(() => {
           this.#listeners = [];
         }),
-        this.#manager.close(),
+        drain ? this.#manager.shutdown() : this.#manager.close(),
         Promise.resolve(this.#watcher?.close()).then(() => {
           this.#watcher = undefined;
         }),
@@ -246,7 +256,11 @@ class DevServer extends NitroDevApp implements NitroDevServer, RunnerRPCHooks {
   }
 
   async #reload() {
-    await this.#shutdownWorker();
+    const drain = this.nitro.options.devServer.drain;
+    // A drained worker is shut down by the manager once its requests settle
+    if (!drain) {
+      await this.#shutdownWorker();
+    }
     const runnerName = (this.nitro.options.devServer.runner ||
       process.env.NITRO_DEV_RUNNER ||
       "node-worker") as RunnerName;
@@ -257,7 +271,7 @@ class DevServer extends NitroDevApp implements NitroDevServer, RunnerRPCHooks {
       data: { entry: this.#entry, ...this.#workerData },
       plugins: this.#plugins,
     });
-    await this.#manager.reload(runner);
+    await this.#manager.reload(runner, { drain });
   }
 
   sendMessage(message: unknown) {
@@ -336,4 +350,23 @@ class DevServer extends NitroDevApp implements NitroDevServer, RunnerRPCHooks {
   }
 
   // #endregion
+}
+
+/**
+ * Count a WebSocket as an exchange of the active runner, like `RunnerManager.wsSrvxPlugin()`
+ * does, whose tracking isn't exposed otherwise.
+ */
+function trackRunnerExchange(manager: RunnerManager, addr: ProxyAddr) {
+  const internal = manager as unknown as {
+    _runner?: EnvRunner;
+    _beginExchange?: (runner: EnvRunner) => () => void;
+  };
+  if (typeof internal._beginExchange !== "function") {
+    return;
+  }
+  const runner = internal._runner;
+  if (!runner || runner.address !== addr) {
+    throw new Error("The dev worker changed before the WebSocket connected");
+  }
+  return internal._beginExchange(runner);
 }

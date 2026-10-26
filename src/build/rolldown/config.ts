@@ -3,6 +3,7 @@ import type { OutputOptions, RolldownOptions, RolldownPlugin } from "rolldown";
 import { baseBuildConfig } from "../config.ts";
 import { baseBuildPlugins, withBuildPlugins } from "../plugins.ts";
 import { assetUrls } from "../plugins/asset-urls.ts";
+import { excludeSourcemapSources } from "../plugins/sourcemap.ts";
 import { builtinModules } from "node:module";
 import { defu } from "defu";
 import { getChunkName, libChunksGroup } from "../chunks.ts";
@@ -68,6 +69,8 @@ export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownConfig> =
       // https://github.com/rolldown/rolldown/issues/7235
       minify: nitro.options.minify ? true : "dce-only",
       sourcemap: nitro.options.sourcemap,
+      // nitro:sourcemap removes `sourcesContent` from production maps, so don't generate it
+      sourcemapExcludeSources: excludeSourcemapSources(nitro),
       sourcemapIgnoreList(relativePath) {
         return relativePath.includes("node_modules");
       },

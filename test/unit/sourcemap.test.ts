@@ -1,5 +1,13 @@
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "pathe";
 import { describe, expect, it } from "vitest";
+import type { NitroConfig } from "nitro/types";
+import { createNitro } from "../../src/nitro.ts";
 import { sourcemap } from "../../src/build/plugins/sourcemap.ts";
+import { getRolldownConfig } from "../../src/build/rolldown/config.ts";
+import { getBundlerConfig } from "../../src/build/vite/bundler.ts";
+import type { NitroPluginContext } from "../../src/build/vite/types.ts";
 
 type BundleAsset = { type: "asset"; source: string };
 
@@ -151,5 +159,67 @@ describe("sourcemap", () => {
     });
     expect(results["index.mjs.map"].sourcesContent).toEqual(["export default 42;"]);
     expect(results["index.mjs.map"].sources).toEqual(["virtual:#nitro/virtual/app"]);
+  });
+
+  it("leaves unchanged sourcemaps alone", () => {
+    const source = JSON.stringify({
+      version: 3,
+      sources: ["../../src/routes/index.ts"],
+      mappings: "AAAA,CAAC",
+    });
+    let writes = 0;
+    const asset = {
+      type: "asset" as const,
+      get source() {
+        return source;
+      },
+      set source(_value: string) {
+        writes++;
+      },
+    };
+    runPlugin({ "_routes/index.mjs.map": asset }, { minify: true });
+    runPlugin({ "_routes/index.mjs.map": asset }, { minify: false });
+    expect(writes).toBe(0);
+  });
+});
+
+describe("sourcemapExcludeSources", () => {
+  const excludeSources = async (config: NitroConfig) => {
+    const nitro = await createNitro({
+      rootDir: mkdtempSync(join(tmpdir(), "nitro-sourcemap-")),
+      compatibilityDate: "latest",
+      ...config,
+    });
+    const rolldown = await getRolldownConfig(nitro);
+    const { rolldownConfig } = await getBundlerConfig({
+      nitro,
+      _isRolldown: true,
+    } as unknown as NitroPluginContext);
+    return [
+      (rolldown.output as { sourcemapExcludeSources?: boolean }).sourcemapExcludeSources,
+      rolldownConfig!.output!.sourcemapExcludeSources,
+    ];
+  };
+
+  it("leaves out sourcesContent when nitro:sourcemap would remove it", async () => {
+    expect(await excludeSources({ sourcemap: true })).toEqual([true, true]);
+  });
+
+  it("keeps sourcesContent otherwise", async () => {
+    for (const config of [
+      { sourcemap: false },
+      { sourcemap: true, experimental: { sourcemapMinify: false } },
+    ] satisfies NitroConfig[]) {
+      expect((await excludeSources(config)).map(Boolean)).toEqual([false, false]);
+    }
+  });
+
+  it("keeps an explicit value from user config", async () => {
+    const config: NitroConfig = {
+      sourcemap: true,
+      experimental: { sourcemapMinify: false },
+      rolldownConfig: { output: { sourcemapExcludeSources: true } },
+    };
+    expect(await excludeSources(config)).toEqual([true, true]);
   });
 });

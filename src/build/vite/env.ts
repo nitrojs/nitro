@@ -190,6 +190,11 @@ export async function closeEnvRunner(ctx: NitroPluginContext) {
   if (!manager) {
     return;
   }
+  // With drain, the manager shuts the active and draining runners down gracefully
+  if (ctx.nitro!.options.devServer.drain) {
+    await manager.shutdown();
+    return;
+  }
   // The miniflare runner runs the same handshake itself when it is disposed, so it is only
   // needed for the runners that terminate their runtime outright.
   if (manager.ready && !_isWorkerdRunner(ctx)) {
@@ -215,7 +220,7 @@ async function _loadRunner(ctx: NitroPluginContext, manager: RunnerManager) {
     name: "nitro-vite",
     data: { entry },
   });
-  await manager.reload(runner);
+  await manager.reload(runner, { drain: ctx.nitro!.options.devServer.drain });
 }
 
 // Resolve export conditions for the (non-workerd) environment.

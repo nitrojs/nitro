@@ -2,6 +2,7 @@ import { defu } from "defu";
 import { baseBuildConfig, type BaseBuildConfig } from "../config.ts";
 import { getChunkName, libChunkName, libChunksGroup, NODE_MODULES_RE } from "../chunks.ts";
 import { baseBuildPlugins, withBuildPlugins } from "../plugins.ts";
+import { excludeSourcemapSources } from "../plugins/sourcemap.ts";
 
 import type { RolldownConfig, RollupConfig } from "nitro/types";
 import type { Plugin as RollupPlugin } from "rollup";
@@ -45,6 +46,10 @@ export const getBundlerConfig = async (
         },
         output: {
           minifyInternalExports: false,
+          // nitro:sourcemap removes `sourcesContent` from production maps, so don't generate it.
+          // `undefined` otherwise, so a user's `rolldownConfig.output.sourcemapExcludeSources`
+          // still applies (defu gives this object priority)
+          sourcemapExcludeSources: excludeSourcemapSources(nitro) || undefined,
           codeSplitting: {
             groups: [libChunksGroup()],
           },

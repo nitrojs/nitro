@@ -242,6 +242,8 @@ async function _ensureDep(opts: ResolvedDepOptions): Promise<string | undefined>
   await (opts.dev === false ? addDependency : addDevDependency)(_depSpec(opts), {
     cwd: opts.dir,
     packageManager,
+    // Builds set `NODE_ENV=production`, which makes package managers skip (and prune) dev dependencies
+    env: { NODE_ENV: "development" },
   });
 
   const installed = resolveDep(opts.id, opts);

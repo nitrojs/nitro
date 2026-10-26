@@ -17,7 +17,7 @@ import type { TSConfig } from "pkg-types";
 import type { BuiltinDriverName, BuiltinDriverOptions } from "unstorage";
 import type { ExternalsTraceOptions } from "nf3";
 import type { UnwasmPluginOptions } from "unwasm/plugin";
-import type { RunnerName } from "env-runner";
+import type { RunnerName, RunnerReloadOptions } from "env-runner";
 import type {
   EventHandlerFormat,
   NitroDevEventHandler,
@@ -568,6 +568,15 @@ export interface NitroOptions extends PresetOptions {
     watch?: string[];
     /** Runtime runner to use for the dev server. */
     runner?: RunnerName;
+    /**
+     * Let the previous dev worker finish the requests and WebSockets it already accepted on
+     * reloads, and shut it down once they settle (or after `timeout` ms, default `60_000`).
+     *
+     * New requests go to the new worker right away.
+     *
+     * @default false
+     */
+    drain?: RunnerReloadOptions["drain"];
     /**
      * Serve `/.well-known/appspecific/com.chrome.devtools.json` so Chrome DevTools can connect
      * the project folder as an automatic workspace.

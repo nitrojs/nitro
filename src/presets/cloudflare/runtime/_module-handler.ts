@@ -11,7 +11,7 @@ type MaybePromise<T> = T | Promise<T>;
 export function createHandler<Env>(hooks: {
   fetch: (
     ...params: [
-      ...Parameters<NonNullable<ExportedHandler<Env>["fetch"]>>,
+      ...Parameters<NonNullable<CF.ExportedHandler<Env>["fetch"]>>,
       url: URL,
       cfContextExtras: any,
     ]
@@ -36,7 +36,7 @@ export function createHandler<Env>(hooks: {
         }
       }
 
-      return (await nitroApp.fetch(request)) as any;
+      return (await nitroApp.fetch(request as any)) as any;
     },
 
     scheduled(controller, env, context) {
@@ -116,7 +116,7 @@ export function createHandler<Env>(hooks: {
         ) || Promise.resolve()
       );
     },
-  } satisfies ExportedHandler<Env>;
+  } satisfies CF.ExportedHandler<Env>;
 }
 
 export function augmentReq(
