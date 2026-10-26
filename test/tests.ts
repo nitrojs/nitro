@@ -73,6 +73,7 @@ export async function setupTest(
     preset,
     isDev: preset === "nitro-dev",
     isWorker: [
+      "cloudflare",
       "cloudflare-worker",
       "cloudflare-module",
       "cloudflare-module-legacy",

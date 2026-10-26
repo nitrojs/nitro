@@ -11,9 +11,11 @@ import {
   writeCFRoutes,
   writeCFHeaders,
   writeCFPagesRedirects,
+  moveCFRedirects,
 } from "./utils.ts";
 import { setupDevEntryExports, setupEntryExports } from "./entry-exports.ts";
 import { cloudflareOutputRewrites } from "./output-plugins.ts";
+import { setupBuildOutput, writeBuildOutput } from "./build-output.ts";
 
 export type { CloudflareOptions as PresetOptions } from "./types.ts";
 
@@ -169,6 +171,53 @@ const cloudflareModule = defineNitroPreset(
   }
 );
 
+// Build Output for the `cf` CLI (https://developers.cloudflare.com/cf/projects/)
+const cloudflare = defineNitroPreset(
+  {
+    extends: "base-worker",
+    entry: "./cloudflare/runtime/cloudflare-module",
+    output: {
+      dir: "{{ rootDir }}/.cloudflare/output/v0",
+      serverDir: "{{ output.dir }}/workers/default/bundle",
+      publicDir: "{{ output.dir }}/workers/default/assets/{{ baseURL }}",
+    },
+    exportConditions: ["workerd", "worker"],
+    minify: false,
+    commands: {
+      deploy: "npx cf deploy --prebuilt",
+    },
+    rollupConfig: {
+      output: {
+        format: "esm",
+        exports: "named",
+        inlineDynamicImports: false,
+      },
+      plugins: [cloudflareOutputRewrites()],
+    },
+    wasm: {
+      lazy: false,
+      esmImport: true,
+    },
+    hooks: {
+      "build:before": async (nitro) => {
+        extendEnv(nitro, unenvCfExternals);
+        await enableNodeCompat(nitro);
+        setupEntryExports(nitro);
+        setupTracingBridge(nitro);
+        await setupBuildOutput(nitro);
+      },
+      async compiled(nitro: Nitro) {
+        await writeCFHeaders(nitro, "assets");
+        await moveCFRedirects(nitro);
+        await writeBuildOutput(nitro);
+      },
+    },
+  },
+  {
+    name: "cloudflare" as const,
+  }
+);
+
 /** @deprecated `cloudflare-module` exports the `$DurableObject` class. */
 const cloudflareDurable = defineNitroPreset(
   {
@@ -190,6 +239,7 @@ export default [
   cloudflarePages,
   cloudflarePagesStatic,
   cloudflareModule,
+  cloudflare,
   cloudflareDurable,
   cloudflareDev,
 ];

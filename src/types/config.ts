@@ -51,6 +51,9 @@ export interface NitroOptions extends PresetOptions {
   _cli?: {
     command?: string;
   };
+  _vite?: {
+    mode?: string;
+  };
 
   /**
    * Resolved config layers, ordered from highest to lowest priority.

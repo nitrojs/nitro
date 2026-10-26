@@ -474,6 +474,7 @@ async function setupNitroContext(
   // Initialize a new Nitro instance
   ctx.nitro =
     providedNitro || (await createNitro(nitroConfig, { dotenv: { fileName: dotenvFileNames } }));
+  ctx.nitro.options._vite = { mode: configEnv.mode };
 
   // Install Vite plugin modules on the provided instance (`nitro build`)
   if (providedNitro && pluginModules.length > 0) {

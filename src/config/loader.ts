@@ -5,6 +5,7 @@ import { createDefu } from "defu";
 import { resolveCompatibilityDates } from "compatx";
 import type { CompatibilityDateSpec } from "compatx";
 import { klona } from "klona/full";
+import { resolve } from "pathe";
 import type { PresetName } from "../presets/index.ts";
 import type {
   LoadConfigOptions,
@@ -150,6 +151,7 @@ async function _loadUserConfig(
           dev: false,
           compatibilityDate: compatibilityDate || "latest",
           defaultPreset,
+          rootDir: resolve(getConf("rootDir") || "."),
         });
         preset = resolved?._meta?.name;
         // An inline `defaultPreset` object has no resolvable name, inject it directly

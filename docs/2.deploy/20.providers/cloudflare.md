@@ -276,6 +276,84 @@ Then you can deploy the application with:
 
 :pm-x{command="wrangler pages deploy"}
 
+## Cloudflare `cf` CLI
+
+**Preset:** `cloudflare`
+
+:read-more{title="cf projects" to="https://developers.cloudflare.com/cf/projects/"}
+
+::warning
+The `cloudflare` preset is experimental. The `cf` CLI and its Build Output are in beta and can change before their stable release.
+::
+
+The `cloudflare` preset builds your app for the [`cf` CLI](https://developers.cloudflare.com/cf/), which replaces Wrangler. Nitro writes the Worker bundle, static assets and Worker config to `.cloudflare/output/v0`, the directory `cf` deploys from. It works with both `nitro build` and `vite build`.
+
+Nitro uses the `cloudflare` preset automatically when your project has a `cloudflare.config.ts` file and no preset is set. You can also set it explicitly:
+
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+    preset: "cloudflare"
+})
+```
+
+### Worker configuration
+
+Configure the Worker in a `cloudflare.config.ts` file at the root of your project. Nitro evaluates it at build time with the build mode and writes the result to the Build Output.
+
+```ts [cloudflare.config.ts]
+import { defineConfig } from "cf/config";
+
+export default defineConfig(({ mode }) => ({
+  worker: {
+    name: mode === "staging" ? "my-app-staging" : "my-app",
+    compatibilityDate: "2026-10-01",
+    env: {
+      KV: { type: "kv", id: "<KV_NAMESPACE_ID>" },
+    },
+  },
+}));
+```
+
+Nitro adds the following to the Worker config, as it does for the generated Wrangler config of `cloudflare_module`:
+
+- An `ASSETS` binding to serve public assets, unless an assets binding is already declared.
+- A cron trigger for each of the [scheduled tasks](/docs/tasks#scheduled-tasks).
+
+Without a `cloudflare.config.ts` file, Nitro generates a Worker name and uses the Cloudflare [compatibility date](/config#compatibilitydate).
+
+Nitro does not add the `nodejs_compat` compatibility flag, which is on by default from the `2026-08-04` compatibility date. With an earlier date, add it to `compatibilityFlags`.
+
+::note
+The `cloudflare` preset ignores Wrangler config files and the `cloudflare.wrangler` option. Configure the Worker in `cloudflare.config.ts` instead.
+::
+
+### Build mode
+
+`cloudflare.config.ts` receives the build mode. Nitro records it in the Build Output, and `cf` checks it when deploying with `--mode`. Nitro resolves it from, in order:
+
+1. The `cloudflare.mode` option.
+2. The `CLOUDFLARE_BUILD_MODE` environment variable.
+3. The Vite mode when building with the Vite builder (`production` by default, including with `nitro build`).
+
+With the `rollup` and `rolldown` builders and no mode set, no mode is recorded.
+
+Builds for [Worker Previews](https://developers.cloudflare.com/cf/projects/#deploy-a-preview) are detected from the `CLOUDFLARE_PREVIEW_BUILD` environment variable, which `cf previews deploy` sets.
+
+### Deploy
+
+After building your application, deploy the Build Output with `cf`:
+
+:pm-x{command="cf deploy --prebuilt"}
+
+::note
+When `cf` sets up a project without a `cloudflare.config.ts` file, it removes the `nitro()` Vite plugin. Create `cloudflare.config.ts` before running `cf` for the first time.
+::
+
+::warning
+With [Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/), set the deploy command to `npx cf deploy --prebuilt`. Wrangler refuses to deploy a project that has a Build Output in `.cloudflare/output/v0`, including one left over after switching back to the `cloudflare_module` preset.
+::
 
 ## Deploy within CI/CD using GitHub Actions
 

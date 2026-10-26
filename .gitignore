@@ -21,6 +21,7 @@ package-lock.json
 dist
 .nuxt
 .output
+.cloudflare
 .gen
 .tmp
 nuxt.d.ts

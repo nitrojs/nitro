@@ -1,6 +1,8 @@
+import { existsSync } from "node:fs";
 import { resolveCompatibilityDatesFromEnv, formatCompatibilityDate } from "compatx";
 import type { CompatibilityDateSpec, PlatformName } from "compatx";
 import type { NitroPreset, NitroPresetMeta } from "nitro/types";
+import { join } from "pathe";
 import { kebabCase } from "scule";
 import { provider, runtime } from "std-env";
 import type { ProviderName } from "std-env";
@@ -20,13 +22,16 @@ export async function resolvePreset(
     compatibilityDate?: false | CompatibilityDateSpec;
     dev?: boolean;
     defaultPreset?: string | NitroPreset;
+    /** Project root, to auto-detect presets from the config file of their deployment tool. */
+    rootDir?: string;
   } = {}
 ): Promise<(NitroPreset & { _meta?: NitroPresetMeta }) | undefined> {
   if (name === ".") {
     return undefined; // invalid input
   }
 
-  const _name = kebabCase(name) || provider;
+  const _name =
+    kebabCase(name) || (opts.rootDir && _detectFromConfigFile(opts.rootDir)) || provider;
 
   const _compatDates = opts.compatibilityDate
     ? resolveCompatibilityDatesFromEnv(opts.compatibilityDate)
@@ -115,4 +120,11 @@ export async function resolvePreset(
   }
 
   return preset;
+}
+
+// `cf` CLI projects (https://developers.cloudflare.com/cf/projects/cloudflare-config/)
+function _detectFromConfigFile(rootDir: string): string | undefined {
+  if (existsSync(join(rootDir, "cloudflare.config.ts"))) {
+    return "cloudflare";
+  }
 }

@@ -1,3 +1,6 @@
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "pathe";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("#nitro/meta", () => ({
@@ -47,6 +50,21 @@ describe("defaultPreset", () => {
   it("ignores defaultPreset when an explicit preset is given", async () => {
     const preset = await resolve("bun", { defaultPreset: "node-cluster" });
     expect(preset?._meta?.name).toBe("bun");
+  });
+
+  it("detects the cloudflare preset from `cloudflare.config.ts`", async () => {
+    const rootDir = mkdtempSync(join(tmpdir(), "nitro-preset-detect-"));
+    try {
+      expect((await resolve("", { rootDir }))?._meta?.name).toBe("node-server");
+      writeFileSync(join(rootDir, "cloudflare.config.ts"), "export default {};");
+      expect((await resolve("", { rootDir }))?._meta?.name).toBe("cloudflare");
+      expect((await resolve("", { rootDir, defaultPreset: "bun" }))?._meta?.name).toBe(
+        "cloudflare"
+      );
+      expect((await resolve("bun", { rootDir }))?._meta?.name).toBe("bun");
+    } finally {
+      rmSync(rootDir, { recursive: true, force: true });
+    }
   });
 
   it("resolves the legacy platform_sh name to the upsun preset", async () => {

@@ -56,6 +56,13 @@ export interface CloudflareOptions {
    */
   nodeCompat?: boolean;
 
+  /**
+   * Mode to evaluate `cloudflare.config.ts` with, recorded in the Build Output (`cloudflare` preset only).
+   *
+   * Defaults to the `CLOUDFLARE_BUILD_MODE` environment variable, then to the Vite mode when building with Vite.
+   */
+  mode?: string;
+
   pages?: {
     /**
      * Nitro will automatically generate a `_routes.json` that controls which files get served statically and
