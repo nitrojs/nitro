@@ -579,6 +579,18 @@ export function testNitro(
     expect(mdFile).toContain("# Hello world");
   });
 
+  it.skipIf(ctx.isWorker || ctx.nitro!.options.builder !== "rolldown")(
+    "emits files referenced with `new URL(..., import.meta.url)`",
+    async () => {
+      const { data, status } = await callHandler({ url: "/asset-url" });
+      expect(status).toBe(200);
+      expect(data.file).toMatch(/^test-.+\.txt$/);
+      expect(data.text).toContain("this is an asset from a text file from nitro");
+      expect(data.same).toBe(true);
+      expect(data.source).toBe('new URL("../files/test.txt", import.meta.url)');
+    }
+  );
+
   if (ctx.nitro!.options.serveStatic) {
     it("serve static asset /favicon.ico", async () => {
       const { status, headers } = await callHandler({ url: "/favicon.ico" });

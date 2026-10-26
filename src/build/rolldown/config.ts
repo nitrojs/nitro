@@ -2,6 +2,7 @@ import type { Nitro, RolldownConfig } from "nitro/types";
 import type { OutputOptions, RolldownOptions, RolldownPlugin } from "rolldown";
 import { baseBuildConfig } from "../config.ts";
 import { baseBuildPlugins, withBuildPlugins } from "../plugins.ts";
+import { assetUrls } from "../plugins/asset-urls.ts";
 import { builtinModules } from "node:module";
 import { defu } from "defu";
 import { getChunkName, libChunksGroup } from "../chunks.ts";
@@ -26,10 +27,11 @@ export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownConfig> =
         (id) => !base.env.alias[id] || base.env.alias[id].startsWith("node:")
       ),
     ],
-    plugins: await withBuildPlugins(
-      nitro,
-      (await baseBuildPlugins(nitro, base)) as RolldownPlugin[]
-    ),
+    plugins: await withBuildPlugins(nitro, [
+      ...((await baseBuildPlugins(nitro, base)) as RolldownPlugin[]),
+      // Emitted files are read from the filesystem, which worker runtimes do not have
+      nitro.options.node && ((await assetUrls(nitro)) as RolldownPlugin),
+    ]),
     resolve: {
       alias: base.aliases,
       extensions: base.extensions,
