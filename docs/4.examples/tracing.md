@@ -138,6 +138,6 @@ The request boundary comes from Nitro's `request`/`response` runtime hooks, so g
 | --- | --- | --- |
 | `h3.request` | each matched route and middleware | `server/routes/*`, `server/middleware/*` |
 | `unstorage.*` | each storage operation (`getItem`, `setItem`, …) | `useKV()` in `server/routes/index.ts` |
-| `srvx.request` | the whole request, with response status (production server) | the srvx server layer |
+| `srvx.request` | the whole request, with response status | the srvx server layer |
 
 <!-- /automd -->
