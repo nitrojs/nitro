@@ -579,7 +579,7 @@ export function testNitro(
     expect(mdFile).toContain("# Hello world");
   });
 
-  it.skipIf(ctx.isWorker || ctx.nitro!.options.builder !== "rolldown")(
+  it.skipIf(ctx.isWorker || ctx.nitro!.options.builder === "vite")(
     "emits files referenced with `new URL(..., import.meta.url)`",
     async () => {
       const { data, status } = await callHandler({ url: "/asset-url" });

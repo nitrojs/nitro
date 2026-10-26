@@ -6,6 +6,7 @@ import inject from "@rollup/plugin-inject";
 import json from "@rollup/plugin-json";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
 import { oxc } from "../plugins/oxc.ts";
+import { assetUrls } from "../plugins/asset-urls.ts";
 import { baseBuildConfig } from "../config.ts";
 import { baseBuildPlugins, withBuildPlugins } from "../plugins.ts";
 import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
@@ -49,6 +50,8 @@ export const getRollupConfig = async (nitro: Nitro): Promise<RollupConfig> => {
       }),
       (json as unknown as typeof json.default)(),
       (inject as unknown as typeof inject.default)(base.env.inject),
+      // Emitted files are read from the filesystem, which worker runtimes do not have
+      nitro.options.node && (await assetUrls(nitro)),
     ]),
     onwarn(warning, rollupWarn) {
       if (!base.ignoreWarningCodes.has(warning.code || "")) {
