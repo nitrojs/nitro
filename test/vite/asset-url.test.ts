@@ -56,18 +56,21 @@ describe("vite: files referenced with `new URL(..., import.meta.url)`", () => {
       // Service entries are resolved from the working directory
       const originalCwd = process.cwd();
       process.chdir(rootDir);
-      const nitro = await createNitro({
-        rootDir,
-        output: { dir: outDir },
-        builder: "vite",
-        // @ts-expect-error for testing
-        __vitePkg__: process.env.NITRO_VITE_PKG,
-      });
       try {
-        await prepare(nitro);
-        await build(nitro);
+        const nitro = await createNitro({
+          rootDir,
+          output: { dir: outDir },
+          builder: "vite",
+          // @ts-expect-error for testing
+          __vitePkg__: process.env.NITRO_VITE_PKG,
+        });
+        try {
+          await prepare(nitro);
+          await build(nitro);
+        } finally {
+          await nitro.close();
+        }
       } finally {
-        await nitro.close();
         process.chdir(originalCwd);
       }
       serverFetch = await import(join(outDir, "server/index.mjs")).then((m) => m.default.fetch);
