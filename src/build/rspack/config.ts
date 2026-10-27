@@ -11,6 +11,7 @@ import { LOADER_PATH, RollupPluginsHost } from "./_plugin.ts";
 import { loaderRule } from "./_filters.ts";
 import { moduleFilenameTemplate } from "./_sourcemap.ts";
 import { externalsMatcher, rollupOptions } from "./_rollup.ts";
+import { ChunkNames } from "./_chunks.ts";
 
 export async function getRspackConfig(
   nitro: Nitro,
@@ -42,6 +43,16 @@ export async function getRspackConfig(
     [...rollupConfigPlugins, ...(await withBuildPlugins(nitro, plugins))] as Plugin[],
     { externals: [...base.env.external, ...builtins] }
   );
+
+  const entryFileName = rollup.entryFileName || "index.mjs";
+  const chunkNames = new ChunkNames(nitro, {
+    toId: (resource) => pluginsHost.virtual.toId(resource),
+    reserved: [entryFileName],
+  });
+  const chunkFilename = rollup.chunkFileName || chunkNames.filename;
+  // Rspack loads chunks with dynamic import specifiers, which worker runtimes do not support,
+  // so `inlineDynamicImports: false` of presets does not split them
+  const asyncChunks = !(nitro.options.inlineDynamicImports || rollup.inlineDynamicImports);
 
   const swcRule: RuleSetRule = {
     test: /\.(?:[cm]?tsx?|jsx)$/,
@@ -111,6 +122,7 @@ export async function getRspackConfig(
     },
     plugins: [
       pluginsHost,
+      chunkNames,
       nitro.options.wasm !== false && unwasmRspack(nitro.options.wasm || {}),
       Object.keys(base.env.inject).length > 0 &&
         new rspack.ProvidePlugin(base.env.inject as Record<string, string | string[]>),
@@ -119,22 +131,20 @@ export async function getRspackConfig(
     optimization: {
       minimize: !!nitro.options.minify,
       nodeEnv: false,
-      splitChunks: false,
+      splitChunks: asyncChunks && chunkNames.splitChunks(chunkFilename),
       chunkIds: "named",
     },
     output: {
       path: nitro.options.output.serverDir,
       module: true,
-      filename: rollup.entryFileName || "index.mjs",
-      chunkFilename: rollup.chunkFileName || "_chunks/[name].mjs",
+      filename: entryFileName,
+      chunkFilename,
       assetModuleFilename: "_assets/[name]-[hash][ext]",
       publicPath: "auto",
       library: { type: "module" },
       chunkFormat: "module",
       chunkLoading: "import",
-      // Rspack loads chunks with dynamic import specifiers, which worker runtimes do not support,
-      // so `inlineDynamicImports: false` of presets does not split them
-      asyncChunks: !(nitro.options.inlineDynamicImports || rollup.inlineDynamicImports),
+      asyncChunks,
       devtoolModuleFilenameTemplate: moduleFilenameTemplate({
         rootDir: nitro.options.rootDir,
         virtual: pluginsHost.virtual,

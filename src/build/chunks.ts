@@ -4,6 +4,8 @@ import type { Nitro } from "nitro/types";
 
 const virtualRe = /^(?:\0|#|virtual:)/;
 
+const RSPACK_PLACEHOLDER_RE = /\[(id|name|runtime|(?:full|chunk|content)?hash)\]/g;
+
 export const NODE_MODULES_RE = /node_modules[/\\](?!(?:nitro|nitro-nightly)[/\\])[^.]/;
 
 export function libChunkName(id: string) {
@@ -90,6 +92,9 @@ export function getChunkName(chunk: { name: string; moduleIds: string[] }, nitro
       if (nitro.options.builder === "rollup") {
         // rollup treats [name] in chunkFileNames as an invalid placeholder
         routePath = routePath.replace(/\[/g, "%5B").replace(/\]/g, "%5D");
+      } else if (nitro.options.builder === "rspack") {
+        // rspack replaces these placeholders in chunk file names (other brackets are kept)
+        routePath = routePath.replace(RSPACK_PLACEHOLDER_RE, "_$1_");
       }
       return `_routes/${routePath}.mjs`;
     }

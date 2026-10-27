@@ -78,6 +78,18 @@ describe("rspack: rollupConfig options", () => {
       rollupConfig: { output: { inlineDynamicImports: false } },
     });
     expect(config.output).toMatchObject({ asyncChunks: false });
+    expect(config.optimization?.splitChunks).toBe(false);
+  });
+
+  it("uses `chunkFileNames` for library chunks too", async () => {
+    const { config } = await rspackConfig({
+      rollupConfig: { output: { chunkFileNames: "chunks/[name].mjs" } },
+    });
+    expect(config.output?.chunkFilename).toBe("chunks/[name].mjs");
+    const splitChunks = config.optimization?.splitChunks as {
+      cacheGroups: Record<string, { filename?: unknown }>;
+    };
+    expect(splitChunks.cacheGroups.libs!.filename).toBe("chunks/[name].mjs");
   });
 
   it("warns about options that are not supported", async () => {
@@ -137,5 +149,35 @@ describe("rspack: rollupConfig options", () => {
     );
     expect(code).toMatch(/from ["']external-pkg["']/);
     expect(code).toMatch(/from ["']https:\/\/example\.com\/mod\.js["']/);
+  });
+});
+
+describe("rspack: chunk file names", () => {
+  it("names chunks like the other builders, without overwriting files", async () => {
+    const rootDir = createApp({
+      "profile.ts": `export default () => Promise.all([import("./a/utils.ts"), import("./b/utils.ts")]).then((m) => m.map((m) => m.default).join());`,
+      "a/utils.ts": `export default "a";`,
+      "b/utils.ts": `export default "b";`,
+    });
+    const nitro = await createNitro({
+      rootDir,
+      builder: "rspack",
+      preset: "node",
+      compatibilityDate: "latest",
+      logLevel: 0,
+      handlers: [{ route: "/users/:id/profile", handler: join(rootDir, "profile.ts"), lazy: true }],
+    });
+    try {
+      await prepare(nitro);
+      await build(nitro);
+    } finally {
+      await nitro.close();
+    }
+    const serverDir = nitro.options.output.serverDir;
+    const read = (file: string) => readFile(join(serverDir, file), "utf8");
+    // `[id]` is a placeholder of Rspack file names
+    await expect(read("_routes/users/_id_/profile.mjs")).resolves.toContain("import(");
+    const utils = await Promise.all([read("_chunks/utils.mjs"), read("_chunks/utils2.mjs")]);
+    expect(utils.join()).toMatch(/"a"[\s\S]*"b"|"b"[\s\S]*"a"/);
   });
 });

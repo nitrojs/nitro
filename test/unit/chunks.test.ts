@@ -164,6 +164,7 @@ describe("getChunkName", () => {
   it.each([
     ["rolldown", "_routes/api/users/[id].mjs"],
     ["rollup", "_routes/api/users/%5Bid%5D.mjs"],
+    ["rspack", "_routes/api/users/_id_.mjs"],
   ])("returns _routes/<path>.mjs for dynamic route (%s)", (builder, expected) => {
     const n = createNitro({
       options: { builder },
@@ -183,6 +184,7 @@ describe("getChunkName", () => {
   it.each([
     ["rolldown", "_routes/api/applications/[id]/context.mjs"],
     ["rollup", "_routes/api/applications/%5Bid%5D/context.mjs"],
+    ["rspack", "_routes/api/applications/_id_/context.mjs"],
   ])("returns _routes/<path>.mjs for nested dynamic route (%s)", (builder, expected) => {
     const n = createNitro({
       options: { builder },

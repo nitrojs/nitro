@@ -50,6 +50,13 @@ describe("nitro:preset:node-middleware", async () => {
       true
     );
   });
+
+  it("names chunks by their modules", () => {
+    const serverDir = resolve(ctx.outDir, "server");
+    for (const file of ["_routes/api/echo.mjs", "_tasks/test.mjs", "_libs/unstorage.mjs"]) {
+      expect(existsSync(resolve(serverDir, file)), file).toBe(true);
+    }
+  });
 });
 
 describe("nitro:preset:node-server", async () => {
