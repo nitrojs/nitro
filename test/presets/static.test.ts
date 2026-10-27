@@ -6,7 +6,7 @@ import { setupTest } from "../tests.ts";
 describe("nitro:preset:static", async () => {
   const ctx = await setupTest("static");
   it("should not generate a server folder", async () => {
-    const contents = await fsp.readdir(resolve(ctx.outDir));
+    const contents = (await fsp.readdir(resolve(ctx.outDir))).sort();
     expect(contents).toMatchInlineSnapshot(`
       [
         "nitro.json",
