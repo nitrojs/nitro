@@ -50,6 +50,20 @@ describe("envName", () => {
     expect(options.envName).toBe("production");
   });
 
+  it("uses the first name of a list and applies all overrides", async () => {
+    const rootDir = await createFixture(`{
+      runtimeConfig: { target: "default", prerender: false },
+      $staging: { runtimeConfig: { target: "staging" } },
+      $prerender: { runtimeConfig: { prerender: true } },
+    }`);
+    const options = await loadOptions(
+      { rootDir, preset: "nitro-prerender" },
+      { c12: { envName: ["staging", "prerender"] } }
+    );
+    expect(options.envName).toBe("staging");
+    expect(options.runtimeConfig).toMatchObject({ target: "staging", prerender: true });
+  });
+
   it("is injected as `import.meta.envName`", async () => {
     const rootDir = await createFixture();
     const nitro = await createNitro({ rootDir, logLevel: 0 }, { c12: { envName: "staging" } });

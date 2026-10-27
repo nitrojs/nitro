@@ -1,14 +1,11 @@
-import { mkdir, readFile, rm } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
+import { readFile } from "node:fs/promises";
 import { join } from "pathe";
-import { build, copyPublicAssets, createNitro, prepare, prerender } from "nitro/builder";
 import { afterAll, describe, expect, it } from "vitest";
-
-const tmpDir = fileURLToPath(new URL("./.tmp", import.meta.url));
+import { cleanupFixtures, prerenderFixture } from "./_utils.ts";
 
 describe("prerender worker startup", () => {
   afterAll(async () => {
-    await rm(tmpDir, { recursive: true, force: true });
+    await cleanupFixtures(["slow-start-fixture", "failing-start-fixture"]);
   });
 
   it("waits for a slow-starting worker before rendering the first route", async () => {
@@ -30,27 +27,3 @@ describe("prerender worker startup", () => {
     expect(Date.now() - start).toBeLessThan(10_000);
   }, 120_000);
 });
-
-async function prerenderFixture(name: string) {
-  const outDir = join(tmpDir, name);
-  await rm(outDir, { recursive: true, force: true });
-  await mkdir(outDir, { recursive: true });
-
-  const nitro = await createNitro({
-    rootDir: fileURLToPath(new URL(`./${name}`, import.meta.url)),
-    preset: "static",
-    output: { dir: outDir },
-    prerender: { crawlLinks: false, routes: ["/"] },
-  });
-
-  try {
-    await prepare(nitro);
-    await copyPublicAssets(nitro);
-    await prerender(nitro);
-    await build(nitro);
-  } finally {
-    await nitro.close();
-  }
-
-  return { nitro, outDir };
-}

@@ -186,9 +186,9 @@ async function _loadUserConfig(
   options._config = configOverrides;
   options._c12 = loadedConfig;
   options.layers = resolveLayers(loadedConfig);
-  // Exposed as `import.meta.envName` (a list of names, as used for prerendering, keeps the default)
+  // Exposed as `import.meta.envName` (the first name of a list, such as `["production", "prerender"]`)
   options.envName =
-    typeof envName === "string" ? envName : options.dev ? "development" : "production";
+    (Array.isArray(envName) ? envName[0] : envName) || (options.dev ? "development" : "production");
 
   const _presetName =
     (loadedConfig.layers || []).find((l) => l.config?._meta?.name)?.config?._meta?.name || preset;
