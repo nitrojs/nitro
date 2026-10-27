@@ -1,5 +1,4 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { isBun } from "std-env";
 import type { Database } from "db0";
 import { withTracing } from "db0/tracing";
 import type { SpanInfo } from "../../src/runtime/internal/telemetry/types.ts";
@@ -23,11 +22,6 @@ vi.mock("#nitro/virtual/database", async () => ({
 }));
 
 const SECRET = "s3cr3t-user-input";
-
-// db0 (<=0.4.1) only traces when `TracingChannel#hasSubscribers` is truthy, a
-// getter Bun does not implement, so queries are never traced on Bun.
-// https://github.com/unjs/db0/issues/266
-const itTraced = it.skipIf(isBun);
 
 const spans: SpanInfo[] = [];
 
@@ -67,7 +61,7 @@ describe("db0.query describer", () => {
 });
 
 describe("db0.query tracing", () => {
-  itTraced("reports queries of a traced database without the query text", async () => {
+  it("reports queries of a traced database without the query text", async () => {
     const db = withTracing({
       connector: { name: "fake" },
       dialect: "sqlite",
@@ -93,7 +87,7 @@ describe("db0.query tracing", () => {
 });
 
 describe("useDatabase()", () => {
-  itTraced("reports queries when tracing is enabled", async () => {
+  it("reports queries when tracing is enabled", async () => {
     await useDatabase().exec(`DELETE FROM users WHERE name = '${SECRET}'`);
     expect(spans.map((span) => span.name)).toEqual(["exec sqlite"]);
   });

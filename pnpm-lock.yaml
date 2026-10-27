@@ -142,8 +142,8 @@ importers:
         specifier: ^10.0.1
         version: 10.0.1
       db0:
-        specifier: ^0.4.1
-        version: 0.4.1
+        specifier: ^0.4.2
+        version: 0.4.2
       defu:
         specifier: ^6.1.7
         version: 6.1.7
@@ -4235,6 +4235,9 @@ packages:
 
   db0@0.4.1:
     resolution: {integrity: sha512-6RBY/bSn42UrqATwsiULj2uYFyEykB3XeA/NLIVQeHNXlYV6D4Idxx3/aa6k5Y45Dwzx7sygeLotnqHWSeURYA==}
+
+  db0@0.4.2:
+    resolution: {integrity: sha512-OCBz+HiE8NgfQdlvvNrzdE+4RhmoAV3QnkxOhLU40bQH/N1msRwmPBvVyXmCUDmjhDl1+t4CFcSCccmi5jf+VQ==}
 
   debug@2.6.9:
     resolution: {integrity: sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA==}
@@ -10808,6 +10811,8 @@ snapshots:
       '@babel/runtime': 7.29.10
 
   db0@0.4.1: {}
+
+  db0@0.4.2: {}
 
   debug@2.6.9(supports-color@10.2.2):
     dependencies:
