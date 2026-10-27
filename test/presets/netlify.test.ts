@@ -245,3 +245,27 @@ describe("nitro:preset:netlify", async () => {
     });
   });
 });
+
+describe("nitro:preset:netlify-edge", async () => {
+  const ctx = await setupTest("netlify-edge", {
+    config: {
+      minify: false,
+      output: {
+        serverDir: resolve(getPresetTmpDir("netlify-edge"), ".output/server"),
+        publicDir: resolve(getPresetTmpDir("netlify-edge"), "dist"),
+      },
+    },
+  });
+
+  it("externalizes builtins required by bundled CommonJS with the `node:` prefix", async () => {
+    const serverDir = ctx.nitro!.options.output.serverDir;
+    const files = (await fsp.readdir(serverDir, { recursive: true })).filter((f) =>
+      f.endsWith(".mjs")
+    );
+    const code = (
+      await Promise.all(files.map((f) => fsp.readFile(resolve(serverDir, f), "utf8")))
+    ).join("\n");
+    expect(code).toMatch(/["']node:events["']/);
+    expect(code).not.toMatch(/(?:from |require\()\s*["']events["']/);
+  });
+});
