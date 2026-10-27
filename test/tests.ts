@@ -282,6 +282,7 @@ export function testNitro(
   });
 
   // On Bun, the dev worker closes the socket and the dev proxy responds with 500 instead of 413
+  // https://github.com/unjs/env-runner/issues/97
   it.runIf(["bun", "deno-server", "nitro-dev"].includes(ctx.preset) && !(ctx.isDev && isBun))(
     "Server entry options are passed to srvx",
     async () => {

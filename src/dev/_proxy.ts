@@ -76,7 +76,7 @@ export function createDevProxy(defaults: ProxyServerOptions = {}) {
  * Create a resolver of `crossws` hooks proxying WebSocket connections to the dev worker.
  *
  * The handshake is rejected (`503`) when the worker has no address to dial, e.g. while it failed
- * to start or for runners that only support upgrades from a Node.js host (`miniflare`, `self`).
+ * to start or for runners that only support upgrades from a Node.js host (`self`).
  *
  * `track` is called with the dialed address once the upstream connects, and the function it
  * returns once the proxied connection ends (throwing closes the peer with `1011`).

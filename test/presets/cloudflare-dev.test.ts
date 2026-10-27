@@ -6,7 +6,6 @@ import { nitro as nitroVite } from "nitro/vite";
 import type { NitroConfig } from "nitro/types";
 import { Miniflare } from "miniflare";
 import { resolve } from "pathe";
-import { isBun } from "std-env";
 
 const { createServer, createBuilder } = (await import(
   process.env.NITRO_VITE_PKG || "vite"
@@ -271,12 +270,8 @@ for (const mode of ["nitro", "vite", "build", "vite-build"] as const) {
   });
 }
 
-// On Bun, the Nitro dev server listens with `Bun.serve` and proxies upgrades to the worker
-// address, which the miniflare runner does not expose (it only takes Node.js upgrade sockets)
-const skipNitroDevWebSocket = skipNitroDev || isBun;
-
 for (const mode of ["nitro", "vite"] as const) {
-  if (mode === "nitro" && skipNitroDevWebSocket) continue;
+  if (mode === "nitro" && skipNitroDev) continue;
   for (const binding of [false, true]) {
     describe(`cloudflare-dev websocket: ${mode} (\`$DurableObject\` binding: ${binding})`, () => {
       let wsURL: URL;
