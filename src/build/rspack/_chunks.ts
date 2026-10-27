@@ -14,6 +14,10 @@ import { moduleId } from "./_modules.ts";
 
 const FALLBACK = "_chunks/[id].mjs";
 
+const WASM_BINDING_RE = /\.wasm(?:\.module)?\.unwasm\.mjs$/;
+
+const WASM_HELPERS_RE = /[/\\]\.unwasm-helpers\.mjs$/;
+
 /**
  * Names chunk files like the other builders (see `getChunkName`), from the modules of each chunk.
  * Names are computed once per compilation (in chunk id order), with a counter on collisions.
@@ -104,7 +108,12 @@ function chunkModuleIds(
     .map((module) => ({ id: moduleId(module, toId), index: order(module) }))
     .filter((entry): entry is { id: string; index: number } => !!entry.id)
     .sort((a, b) => a.index - b.index)
-    .map((entry) => entry.id);
+    .map((entry) => unwasmId(entry.id));
+}
+
+/** Ids of the `unwasm` modules like with the other builders (bindings by their `.wasm` file). */
+function unwasmId(id: string): string {
+  return WASM_HELPERS_RE.test(id) ? "\0unwasm:helpers" : id.replace(WASM_BINDING_RE, ".wasm");
 }
 
 /** Chunk name of a module id (like Rollup, its file name without query and script extension). */

@@ -53,7 +53,12 @@ describe("nitro:preset:node-middleware", async () => {
 
   it("names chunks by their modules", () => {
     const serverDir = resolve(ctx.outDir, "server");
-    for (const file of ["_routes/api/echo.mjs", "_tasks/test.mjs", "_libs/unstorage.mjs"]) {
+    for (const file of [
+      "_routes/api/echo.mjs",
+      "_tasks/test.mjs",
+      "_libs/unstorage.mjs",
+      "_wasm/sum.mjs",
+    ]) {
       expect(existsSync(resolve(serverDir, file)), file).toBe(true);
     }
   });
