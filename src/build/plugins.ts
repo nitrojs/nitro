@@ -4,13 +4,13 @@ import type { BaseBuildConfig } from "./config.ts";
 import type { ExternalsTraceOptions } from "nf3";
 
 import { virtualTemplates } from "./virtual/_all.ts";
-import replace from "@rollup/plugin-replace";
 import { unwasm } from "unwasm/plugin";
 import { routeMeta } from "./plugins/route-meta.ts";
 import { serverMain } from "./plugins/server-main.ts";
 import { virtual, virtualDeps } from "./plugins/virtual.ts";
 import { sourcemap } from "./plugins/sourcemap.ts";
-import { raw, RESOLVED_RE as rawModulesRE } from "./plugins/raw.ts";
+import { raw } from "./plugins/raw.ts";
+import { replace } from "./plugins/replace.ts";
 import { importAttributes } from "./plugins/import-attributes.ts";
 import { externals } from "./plugins/externals.ts";
 import { unenv } from "./plugins/unenv.ts";
@@ -54,17 +54,7 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   }
 
   // Replace
-  const replacePlugin = (replace as unknown as typeof replace.default)({
-    preventAssignment: true,
-    values: base.replacements,
-    // Raw modules hold file contents as string literals; replacing inside them
-    // corrupts the content (and can break the syntax with quoted values)
-    exclude: rawModulesRE,
-  });
-  // The plugin re-applies replacements on whole chunks, where raw module contents
-  // can no longer be excluded by id. All replaceable code goes through `transform`.
-  delete replacePlugin.renderChunk;
-  plugins.push(replacePlugin);
+  plugins.push(replace(base.replacements));
 
   // Externals (require Node.js compatible resolution)
   if (nitro.options.node && nitro.options.noExternals !== true) {
