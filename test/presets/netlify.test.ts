@@ -257,7 +257,7 @@ describe("nitro:preset:netlify-edge", async () => {
     },
   });
 
-  it("externalizes builtins required by bundled CommonJS with the `node:` prefix", async () => {
+  it("externalizes builtins imported by their bare id with the `node:` prefix", async () => {
     const serverDir = ctx.nitro!.options.output.serverDir;
     const files = (await fsp.readdir(serverDir, { recursive: true })).filter((f) =>
       f.endsWith(".mjs")
@@ -266,6 +266,7 @@ describe("nitro:preset:netlify-edge", async () => {
       await Promise.all(files.map((f) => fsp.readFile(resolve(serverDir, f), "utf8")))
     ).join("\n");
     expect(code).toMatch(/["']node:events["']/);
-    expect(code).not.toMatch(/(?:from |require\()\s*["']events["']/);
+    expect(code).toMatch(/["']node:buffer["']/);
+    expect(code).not.toMatch(/(?:from|import|require\()\s*["'`](?:events|buffer\/)["'`]/);
   });
 });
