@@ -96,14 +96,11 @@ export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownConfig> =
 
 const builtins = [...builtinModules, ...builtinModules.map((m) => `node:${m}`)];
 
-// Externalizes builtins aliased to another `node:` id (e.g. `events` to `node:events`) with that
-// id (Rolldown only resolves aliases to `node:` ids with the `node` platform)
+// Externalizes ids aliased to another `node:` id (e.g. `events` or `buffer/` to `node:events` or
+// `node:buffer`) with that id (Rolldown only resolves aliases to `node:` ids with the `node` platform)
 function builtinAliases(alias: Record<string, string>): RolldownPlugin | false {
   const aliases = new Map(
-    builtins.flatMap((id) => {
-      const to = alias[id];
-      return to && to !== id && to.startsWith("node:") ? [[id, to] as const] : [];
-    })
+    Object.entries(alias).filter(([id, to]) => to !== id && to.startsWith("node:"))
   );
   if (aliases.size === 0) {
     return false;
