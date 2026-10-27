@@ -188,7 +188,8 @@ async function _loadUserConfig(
   options.layers = resolveLayers(loadedConfig);
   // Exposed as `import.meta.envName` (the first name of a list, such as `["production", "prerender"]`)
   options.envName =
-    (Array.isArray(envName) ? envName[0] : envName) || (options.dev ? "development" : "production");
+    (Array.isArray(envName) ? envName.find(Boolean) : envName) ||
+    (options.dev ? "development" : "production");
 
   const _presetName =
     (loadedConfig.layers || []).find((l) => l.config?._meta?.name)?.config?._meta?.name || preset;

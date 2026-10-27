@@ -29,6 +29,7 @@ export default defineCommand({
     const rootDir = resolve((args.dir || args._dir || ".") as string);
 
     let preset = args.preset;
+    let envName = args.envName;
     let outputDir: string | undefined;
     if (args.prebuilt) {
       const lastBuild = await getBuildInfo({ rootDir });
@@ -42,6 +43,14 @@ export default defineCommand({
         );
       }
       preset = lastBuild.buildInfo.preset;
+      if (lastBuild.buildInfo.envName) {
+        if (envName && envName !== lastBuild.buildInfo.envName) {
+          consola.warn(
+            `Ignoring \`--envName ${envName}\` and using \`${lastBuild.buildInfo.envName}\` from the existing build.`
+          );
+        }
+        envName = lastBuild.buildInfo.envName;
+      }
       outputDir = lastBuild.outputDir;
     }
 
@@ -56,7 +65,7 @@ export default defineCommand({
       },
       {
         compatibilityDate: args.compatibilityDate as DateString,
-        c12: { envName: args.envName },
+        c12: { envName },
       }
     );
 

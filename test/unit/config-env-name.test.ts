@@ -64,6 +64,12 @@ describe("envName", () => {
     expect(options.runtimeConfig).toMatchObject({ target: "staging", prerender: true });
   });
 
+  it("skips empty names of a list", async () => {
+    const rootDir = await createFixture();
+    const options = await loadOptions({ rootDir }, { c12: { envName: ["", "staging"] } });
+    expect(options.envName).toBe("staging");
+  });
+
   it("is injected as `import.meta.envName`", async () => {
     const rootDir = await createFixture();
     const nitro = await createNitro({ rootDir, logLevel: 0 }, { c12: { envName: "staging" } });

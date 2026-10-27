@@ -87,6 +87,7 @@ export interface NitroFrameworkInfo {
 export interface NitroBuildInfo {
   date: string;
   preset: PresetName;
+  envName?: string;
   framework: NitroFrameworkInfo;
   versions: {
     nitro: string;

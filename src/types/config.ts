@@ -1098,7 +1098,7 @@ export interface NitroConfig
       >
     >,
     C12InputConfig<NitroConfig> {
-  /** Config overrides applied when prerendering (on top of `$production`). */
+  /** Config overrides applied when prerendering (on top of the build env overrides, `$production` by default). */
   $prerender?: NitroConfig;
 
   preset?: PresetNameInput;
