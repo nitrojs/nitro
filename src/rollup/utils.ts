@@ -1,3 +1,7 @@
+import { statSync } from "node:fs";
+import { isAbsolute } from "node:path";
+import escapeStringRegexp from "escape-string-regexp";
+
 export function resolveAliases(_aliases: Record<string, string>) {
   // Sort aliases from specific to general (ie. fs/promises before fs)
   const aliases = Object.fromEntries(
@@ -21,5 +25,14 @@ export function resolveAliases(_aliases: Record<string, string>) {
       }
     }
   }
-  return aliases;
+  return Object.entries(aliases).map(([find, replacement]) => ({
+    // A resolved package entry is a file, not a directory containing subpaths.
+    // Let unmatched subpaths resolve through their own package exports.
+    find:
+      isAbsolute(replacement) &&
+      statSync(replacement, { throwIfNoEntry: false })?.isFile()
+        ? new RegExp(`^${escapeStringRegexp(find)}$`)
+        : find,
+    replacement,
+  }));
 }
