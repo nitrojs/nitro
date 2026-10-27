@@ -9,7 +9,7 @@ import { testCloseHook } from "./_close-hook.ts";
 import { testUnixSocket } from "./_unix-socket.ts";
 
 // Tests spawning the output are skipped on Bun: under `bun --bun`, `node` resolves to Bun,
-// where the crossws Node.js adapter throws (https://github.com/h3js/crossws/issues/220)
+// where the crossws Node.js adapter refuses to run (the `bun` preset is the native path)
 
 const presetFixturesDir = resolve(import.meta.dirname, "fixtures");
 

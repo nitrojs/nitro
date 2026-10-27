@@ -5,6 +5,7 @@ import { resolve, join, basename } from "pathe";
 import { joinURL } from "ufo";
 import { routeToRegExp } from "rou3";
 import { describe, expect, it, vi, beforeAll, afterAll } from "vitest";
+import { isBun } from "std-env";
 import { setupTest, testNitro, fixtureDir } from "../tests.ts";
 import { toFetchHandler } from "srvx/node";
 
@@ -87,6 +88,11 @@ describe("nitro:preset:vercel:web", async () => {
         const config = await fsp
           .readFile(resolve(ctx.outDir, "config.json"), "utf8")
           .then((r) => JSON.parse(r));
+        if (isBun) {
+          // Prerendered with Bun, which uses its own default content type for text bodies
+          expect(config.overrides["json-string"].contentType).toBe("text/plain;charset=utf-8");
+          config.overrides["json-string"].contentType = "text/plain; charset=UTF-8";
+        }
         expect(config).toMatchInlineSnapshot(`
           {
             "crons": [
@@ -1007,7 +1013,9 @@ describe("nitro:preset:vercel:node", async () => {
         expect(waitUntil.mock.calls[0][0]).toBeInstanceOf(Promise);
       });
 
-      it.skipIf(typeof WebSocket !== "function")(
+      // Bun's `ServerResponse` writes to `req.socket` without an assigned socket, so the
+      // emulated `204` of this harness ends up in the upgraded stream
+      it.skipIf(isBun || typeof WebSocket !== "function")(
         "should handle Vercel request context websocket upgrades",
         async () => {
           const nodeHandler = await import(
