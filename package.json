@@ -69,6 +69,7 @@
     "test:bun": "bun --bun vitest",
     "test:rolldown": "NITRO_BUILDER=rolldown pnpm vitest",
     "test:rollup": "NITRO_BUILDER=rollup pnpm vitest",
+    "test:rspack": "NITRO_BUILDER=rspack pnpm vitest",
     "test:vite": "pnpm vitest run test/vite",
     "typecheck": "tsc --noEmit --skipLibCheck"
   },

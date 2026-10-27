@@ -16,6 +16,7 @@ Nitro is a framework-agnostic and deployment-agnostic server framework powered b
 - `pnpm fmt` — Auto-fix lint and formatting (`automd` + `oxlint --fix` + `oxfmt`).
 - `pnpm test` — Full pipeline: `lint && build && typecheck && test:rollup && test:rolldown` (runs vitest against both the rollup and rolldown builders).
 - `pnpm test:rollup` / `pnpm test:rolldown` — Run vitest against a single builder (`NITRO_BUILDER`).
+- `pnpm test:rspack` — Same for the experimental `rspack` builder (not part of `pnpm test`).
 - `pnpm typecheck` — Type-check with the TypeScript native-preview compiler (`tsgo --noEmit --skipLibCheck`).
 
 **Always run** `pnpm fmt` and `pnpm typecheck` after making changes.
