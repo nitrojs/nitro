@@ -1,5 +1,13 @@
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
+import { join as nativeJoin } from "node:path";
 import { join, resolve } from "pathe";
 import { describe, expect, it, onTestFinished, vi } from "vitest";
 import type { Plugin } from "rollup";
@@ -26,7 +34,7 @@ describe.skipIf(!isRspack)("rspack: plugins host", () => {
   });
 
   it("supports `emitFile`, `getModuleInfo` and the bundle hooks", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "nitro-rspack-"));
+    const dir = realpathSync.native(mkdtempSync(join(tmpdir(), "nitro-rspack-")));
     onTestFinished(() => rmSync(dir, { recursive: true, force: true }));
     writeFileSync(
       join(dir, "index.mjs"),
@@ -34,7 +42,8 @@ describe.skipIf(!isRspack)("rspack: plugins host", () => {
     );
     writeFileSync(join(dir, "dep.mjs"), `export const dep = 1;\n`);
     writeFileSync(join(dir, "lazy.mjs"), `export const lazy = 1;\n`);
-    const id = (name: string) => join(dir, name);
+    // Module ids are native paths (like with Rollup)
+    const id = (name: string) => nativeJoin(dir, name);
     const refs: Record<string, string> = {};
     const results: Record<string, any> = {};
     const plugin: Plugin = {
