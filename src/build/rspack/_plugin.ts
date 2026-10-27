@@ -45,6 +45,8 @@ export class RollupPluginsHost implements RspackPluginInstance {
   compilation?: Compilation;
   /** `resolveId` results by issuer and request, shared by `externals` and `beforeResolve`. */
   resolveCache = new Map<string, Promise<ResolvedId | undefined>>();
+  /** `unresolvedExternal` results by resolve directory and request. */
+  unresolvedCache = new Map<string, Promise<string | undefined>>();
 
   /** Externals that are not resolved (builtins and `external` of the preset). */
   readonly staticExternals: Set<string>;
@@ -75,6 +77,7 @@ export class RollupPluginsHost implements RspackPluginInstance {
     compiler.hooks.thisCompilation.tap(NAME, (compilation) => {
       this.compilation = compilation;
       this.resolveCache.clear();
+      this.unresolvedCache.clear();
       compilation.hooks.finishModules.tapPromise(NAME, () => this.host.buildEnd());
       // After minification and before source maps are emitted
       compilation.hooks.processAssets.tapPromise(
@@ -137,19 +140,26 @@ export class RollupPluginsHost implements RspackPluginInstance {
   }
 
   /** Like Rollup, bare imports that cannot be resolved are kept external (with a warning). */
-  async unresolvedExternal(request: string, issuer: string | undefined) {
+  unresolvedExternal(request: string, issuer: string | undefined): Promise<string | undefined> {
     if (!BARE_IMPORT_RE.test(request)) {
-      return;
+      return NOT_RESOLVED;
     }
     const importer = issuer ? this.virtual.toId(issuer) : undefined;
-    const resolved = await this.resolveWithRspack(request, importer, "require-call");
-    if (resolved || (await this.resolveWithRspack(request, importer))) {
-      return;
+    const key = `${this.resolveDir(importer)}\0${request}`;
+    let result = this.unresolvedCache.get(key);
+    if (!result) {
+      result = this.resolveWithRspack(request, importer, "require-call").then(async (resolved) => {
+        if (resolved || (await this.resolveWithRspack(request, importer))) {
+          return;
+        }
+        this.host.nitro.logger.warn(
+          `Could not resolve \`${request}\`${importer ? ` (imported by \`${importer}\`)` : ""}, treating it as external.`
+        );
+        return request;
+      });
+      this.unresolvedCache.set(key, result);
     }
-    this.host.nitro.logger.warn(
-      `Could not resolve \`${request}\`${importer ? ` (imported by \`${importer}\`)` : ""}, treating it as external.`
-    );
-    return request;
+    return result;
   }
 
   /** Runs the `resolveId` hooks once per issuer, request and import kind. */
@@ -202,18 +212,20 @@ export class RollupPluginsHost implements RspackPluginInstance {
     if (!compiler) {
       return;
     }
-    const context =
-      importer && isAbsolute(importer.split("?")[0])
-        ? dirname(importer.split("?")[0])
-        : this.host.nitro.options.rootDir;
     const resolver = compiler.resolverFactory.get("normal", {
       dependencyType: kind === "require-call" ? "commonjs" : "esm",
     });
     return new Promise<string | undefined>((resolve) => {
-      resolver.resolve({}, context, source, {}, (error, result) => {
+      resolver.resolve({}, this.resolveDir(importer), source, {}, (error, result) => {
         resolve(error || !result ? undefined : result);
       });
     });
+  }
+
+  /** Directory imports of a module resolve from (the root directory for virtual modules). */
+  resolveDir(importer: string | undefined): string {
+    const path = importer?.split("?")[0];
+    return path && isAbsolute(path) ? dirname(path) : this.host.nitro.options.rootDir;
   }
 
   *moduleIds(): Iterable<string> {
