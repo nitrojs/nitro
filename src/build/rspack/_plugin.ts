@@ -25,6 +25,8 @@ const hosts: Map<string, RollupPluginsHost> = ((globalThis as any).__nitro_rspac
 
 let nextId = 0;
 
+const NOT_RESOLVED = Promise.resolve(undefined);
+
 const BARE_IMPORT_RE = /^(?![./#\0]|[a-z]:[\\/]|[a-z][\w+.-]*:)/i;
 
 /**
@@ -146,7 +148,11 @@ export class RollupPluginsHost implements RspackPluginInstance {
     issuer: string | undefined,
     kind?: ImportKind
   ): Promise<ResolvedId | undefined> {
-    const key = `${issuer || ""}\0${request}\0${kind || ""}`;
+    if (!this.host.mayResolveId(request)) {
+      return NOT_RESOLVED;
+    }
+    // `beforeResolve` has no import kind: its requests resolve as imports (like ESM externals)
+    const key = `${issuer || ""}\0${request}\0${kind || "import-statement"}`;
     let resolved = this.resolveCache.get(key);
     if (!resolved) {
       const importer = issuer ? this.virtual.toId(issuer) : undefined;
@@ -197,10 +203,8 @@ export class RollupPluginsHost implements RspackPluginInstance {
 
   async renderChunks(compilation: Compilation) {
     const { RawSource } = compilation.compiler.rspack.sources;
-    const outputOpts = {
-      dir: compilation.outputOptions.path!,
-      sourcemap: !!compilation.options.devtool,
-    };
+    // Source maps of `renderChunk` results are not used (plugins do not need to generate them)
+    const outputOpts = { dir: compilation.outputOptions.path!, sourcemap: false };
     for (const chunk of compilation.chunks) {
       for (const fileName of chunk.files) {
         if (!/\.m?js$/.test(fileName)) {

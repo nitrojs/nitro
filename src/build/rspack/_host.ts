@@ -74,6 +74,11 @@ export class PluginHost {
     }
   }
 
+  /** Whether the `resolveId` filter of a hook matches the source (otherwise it does not need to run). */
+  mayResolveId(source: string): boolean {
+    return this.hooks.resolveId.some((hook) => matchFilter(hook.filter?.id, source));
+  }
+
   async resolveId(
     source: string,
     importer: string | undefined,
