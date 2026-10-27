@@ -9,6 +9,7 @@ import type {
   RspackPluginInstance,
 } from "@rspack/core";
 import type { Nitro } from "nitro/types";
+import { isAbsolute, normalize } from "pathe";
 import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
 import { moduleId } from "./_modules.ts";
 
@@ -108,12 +109,18 @@ function chunkModuleIds(
     .map((module) => ({ id: moduleId(module, toId), index: order(module) }))
     .filter((entry): entry is { id: string; index: number } => !!entry.id)
     .sort((a, b) => a.index - b.index)
-    .map((entry) => unwasmId(entry.id));
+    .map((entry) => chunkModuleId(entry.id));
 }
 
-/** Ids of the `unwasm` modules like with the other builders (bindings by their `.wasm` file). */
-function unwasmId(id: string): string {
-  return WASM_HELPERS_RE.test(id) ? "\0unwasm:helpers" : id.replace(WASM_BINDING_RE, ".wasm");
+/**
+ * Module id as the other builders see it: paths with `/` separators (like the handlers of Nitro),
+ * and `unwasm` bindings by their `.wasm` file.
+ */
+function chunkModuleId(id: string): string {
+  if (WASM_HELPERS_RE.test(id)) {
+    return "\0unwasm:helpers";
+  }
+  return (isAbsolute(id) ? normalize(id) : id).replace(WASM_BINDING_RE, ".wasm");
 }
 
 /** Chunk name of a module id (like Rollup, its file name without query and script extension). */
