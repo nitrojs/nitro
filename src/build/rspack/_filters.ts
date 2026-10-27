@@ -1,5 +1,4 @@
 import type { RuleSetRule, RuleSetUseItem } from "@rspack/core";
-import type { Plugin } from "rollup";
 import type { Filter, Hook } from "./_hooks.ts";
 import { isWindows } from "std-env";
 import { escapeRegExp } from "../../utils/regex.ts";
@@ -62,22 +61,6 @@ export function loaderRule(opts: {
   ];
   // `enforce` is not inherited by nested rules
   return { test: opts.test, oneOf: rules.map((rule) => ({ ...rule, enforce: "pre" as const })) };
-}
-
-/**
- * Adds a `code` filter to the `transform` hook of `@rollup/plugin-replace` (modules without any of
- * the replaced keys are left unchanged), so that the loader only runs on modules having one of them.
- */
-export function withReplaceFilter(plugins: Plugin[], keys: string[]): Plugin[] {
-  if (keys.length === 0) {
-    return plugins;
-  }
-  const code = new RegExp(keys.map((key) => escapeRegExp(key)).join("|"));
-  return plugins.map((plugin) =>
-    plugin.name === "replace" && typeof plugin.transform === "function"
-      ? { ...plugin, transform: { filter: { code }, handler: plugin.transform } }
-      : plugin
-  );
 }
 
 /** Loader `codeFilter` (https://github.com/web-infra-dev/rspack/pull/16073). */

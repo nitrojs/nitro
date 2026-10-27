@@ -8,7 +8,7 @@ import { baseBuildConfig } from "../config.ts";
 import { excludeSourcemapSources } from "../plugins/sourcemap.ts";
 import { baseBuildPlugins, flatPlugins, withBuildPlugins } from "../plugins.ts";
 import { LOADER_PATH, RollupPluginsHost } from "./_plugin.ts";
-import { loaderRule, withReplaceFilter } from "./_filters.ts";
+import { loaderRule } from "./_filters.ts";
 
 export async function getRspackConfig(
   nitro: Nitro,
@@ -20,11 +20,8 @@ export async function getRspackConfig(
 
   // Plugins that need Rollup output hooks are not supported: WASM has a native Rspack plugin and
   // Rspack emits the files referenced with `new URL(..., import.meta.url)` itself
-  const plugins = withReplaceFilter(
-    (await baseBuildPlugins(nitro, base)).filter(
-      (plugin) => !/^(nitro:sourcemap|unwasm)/.test(plugin.name)
-    ),
-    Object.keys(base.replacements)
+  const plugins = (await baseBuildPlugins(nitro, base)).filter(
+    (plugin) => !/^(nitro:sourcemap|unwasm)/.test(plugin.name)
   );
   // Presets (and users) configure the entry file name and output plugins with `rollupConfig`
   const rollupConfigs = [nitro.options.rolldownConfig, nitro.options.rollupConfig];
