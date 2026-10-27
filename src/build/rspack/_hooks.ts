@@ -12,6 +12,8 @@ export const SUPPORTED_HOOKS = new Set([
   "transform",
   "buildEnd",
   "renderChunk",
+  "generateBundle",
+  "writeBundle",
   "closeBundle",
 ]);
 
@@ -22,6 +24,8 @@ export type HookName =
   | "transform"
   | "buildEnd"
   | "renderChunk"
+  | "generateBundle"
+  | "writeBundle"
   | "closeBundle";
 
 export type Hook = { plugin: Plugin; handler: (...args: any[]) => any; filter?: any };

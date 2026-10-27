@@ -14,6 +14,10 @@ import { runtimeDir } from "#nitro/meta";
 import { PluginHost } from "./_host.ts";
 import { VirtualPlaceholders } from "./_virtual.ts";
 import { chainSourceMaps } from "./_sourcemap.ts";
+import { writeAsset } from "./_bundle.ts";
+import { getModuleInfo } from "./_modules.ts";
+import { generateBundle, renderChunks, writeBundle } from "./_output.ts";
+import type { AssetSource } from "./_files.ts";
 import type { ImportKind, ResolvedId } from "./_host.ts";
 import type { HookSourceMap, RawSourceMap, SourceMapStep } from "./_sourcemap.ts";
 
@@ -37,6 +41,7 @@ const BARE_IMPORT_RE = /^(?![./#\0]|[a-z]:[\\/]|[a-z][\w+.-]*:)/i;
  * - `resolveId` before Rspack resolves a request (virtual modules, externals, aliases).
  * - `load` and `transform` with a pre-loader (virtual modules are loaded from placeholder files).
  * - `buildStart`, `buildEnd` (once all modules are built) and `renderChunk` (on emitted chunks).
+ * - `generateBundle` (on the compilation assets) and `writeBundle` (once they are written).
  */
 export class RollupPluginsHost implements RspackPluginInstance {
   readonly id: string;
@@ -47,6 +52,12 @@ export class RollupPluginsHost implements RspackPluginInstance {
   resolveCache = new Map<string, Promise<ResolvedId | undefined>>();
   /** `unresolvedExternal` results by resolve directory and request. */
   unresolvedCache = new Map<string, Promise<string | undefined>>();
+  /** Assets emitted by plugins before the compilation processes its assets. */
+  pendingAssets = new Map<string, AssetSource>();
+  /** Compilation processing its assets (plugins emit assets to it directly). */
+  assetsCompilation?: Compilation;
+  /** Whether the assets of the current compilation are written. */
+  assetsWritten = false;
 
   /** Externals that are not resolved (builtins and `external` of the preset). */
   readonly staticExternals: Set<string>;
@@ -62,6 +73,9 @@ export class RollupPluginsHost implements RspackPluginInstance {
     this.host = new PluginHost(nitro, plugins, {
       resolve: (source, importer, kind) => this.resolveWithRspack(source, importer, kind),
       getModuleIds: () => this.moduleIds(),
+      getModuleInfo: (id) =>
+        this.compilation ? getModuleInfo(this.compilation, id, (r) => this.virtual.toId(r)) : null,
+      emitAsset: (fileName, source) => this.emitAsset(fileName, source),
     });
   }
 
@@ -71,19 +85,45 @@ export class RollupPluginsHost implements RspackPluginInstance {
   }
 
   apply(compiler: Compiler) {
-    compiler.hooks.beforeCompile.tapPromise(NAME, () => this.host.buildStart());
+    compiler.hooks.beforeCompile.tapPromise(NAME, () => {
+      this.assetsCompilation = undefined;
+      this.assetsWritten = false;
+      return this.host.buildStart();
+    });
     compiler.hooks.done.tapPromise(NAME, () => this.host.closeBundle());
+    const toId = (resource: string) => this.virtual.toId(resource);
+    compiler.hooks.afterEmit.tapPromise(NAME, async (compilation) => {
+      this.assetsWritten = true;
+      await writeBundle(this.host, compilation, toId);
+    });
 
+    const { Compilation } = compiler.rspack;
     compiler.hooks.thisCompilation.tap(NAME, (compilation) => {
       this.compilation = compilation;
       this.resolveCache.clear();
       this.unresolvedCache.clear();
       compilation.hooks.finishModules.tapPromise(NAME, () => this.host.buildEnd());
+      compilation.hooks.processAssets.tap(
+        { name: NAME, stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL },
+        () => {
+          this.assetsCompilation = compilation;
+          for (const [fileName, source] of this.pendingAssets) {
+            writeAsset(compilation, fileName, source);
+          }
+          this.pendingAssets.clear();
+        }
+      );
       // After minification and before source maps are emitted
       compilation.hooks.processAssets.tapPromise(
-        { name: NAME, stage: compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_DEV_TOOLING - 1 },
-        () => this.renderChunks(compilation)
+        { name: NAME, stage: Compilation.PROCESS_ASSETS_STAGE_DEV_TOOLING - 1 },
+        () => renderChunks(this.host, compilation)
       );
+      if (this.host.hooks.generateBundle.length > 0) {
+        compilation.hooks.processAssets.tapPromise(
+          { name: NAME, stage: Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE },
+          () => generateBundle(this.host, compilation, toId)
+        );
+      }
     });
 
     compiler.hooks.normalModuleFactory.tap(NAME, (nmf) => {
@@ -189,7 +229,11 @@ export class RollupPluginsHost implements RspackPluginInstance {
     inputMap?: HookSourceMap
   ): Promise<{ code: string; map?: HookSourceMap | RawSourceMap }> {
     const id = this.virtual.toId(loader.resource);
-    const ctxOpts = { addWatchFile: (file: string) => loader.addDependency(file) };
+    const ctxOpts = {
+      addWatchFile: (file: string) => loader.addDependency(file),
+      emitAsset: (fileName: string, source: AssetSource) =>
+        loader.emitFile(fileName, typeof source === "string" ? source : Buffer.from(source)),
+    };
     const loaded = await this.host.load(id, ctxOpts);
     if (loaded == null && id !== loader.resource) {
       throw new Error(`Could not load virtual module \`${id}\`.`);
@@ -222,6 +266,18 @@ export class RollupPluginsHost implements RspackPluginInstance {
     });
   }
 
+  /** Emits an asset to the compilation processing its assets (or to the next one). */
+  emitAsset(fileName: string, source: AssetSource) {
+    if (this.assetsWritten) {
+      throw new Error("Cannot emit files once the bundle is written.");
+    }
+    if (this.assetsCompilation) {
+      writeAsset(this.assetsCompilation, fileName, source);
+    } else {
+      this.pendingAssets.set(fileName, source);
+    }
+  }
+
   /** Directory imports of a module resolve from (the root directory for virtual modules). */
   resolveDir(importer: string | undefined): string {
     const path = importer?.split("?")[0];
@@ -233,41 +289,6 @@ export class RollupPluginsHost implements RspackPluginInstance {
       const resource = (module as { resource?: string }).resource;
       if (resource) {
         yield this.virtual.toId(resource);
-      }
-    }
-  }
-
-  async renderChunks(compilation: Compilation) {
-    const sources = compilation.compiler.rspack.sources;
-    // Plugins only need to generate source maps when they are emitted
-    const outputOpts = {
-      dir: compilation.outputOptions.path!,
-      sourcemap: !!compilation.options.devtool,
-    };
-    for (const chunk of compilation.chunks) {
-      for (const fileName of chunk.files) {
-        if (!/\.m?js$/.test(fileName)) {
-          continue;
-        }
-        const asset = compilation.getAsset(fileName);
-        if (!asset) {
-          continue;
-        }
-        const code = asset.source.source().toString();
-        const chunkInfo = { fileName, name: chunk.name || "", isEntry: chunk.hasRuntime() };
-        const maps: SourceMapStep[] = [];
-        const rendered = await this.host.renderChunk(code, chunkInfo, outputOpts, maps);
-        if (rendered === code) {
-          continue;
-        }
-        const map = outputOpts.sourcemap ? asset.source.map() : undefined;
-        const renderedMap = map && chainSourceMaps(sources, { name: fileName, map, steps: maps });
-        compilation.updateAsset(
-          fileName,
-          renderedMap
-            ? new sources.SourceMapSource(rendered, fileName, renderedMap)
-            : new sources.RawSource(rendered)
-        );
       }
     }
   }

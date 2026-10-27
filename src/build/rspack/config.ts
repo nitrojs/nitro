@@ -18,8 +18,8 @@ export async function getRspackConfig(
 
   const tsc = nitro.options.typescript.tsConfig?.compilerOptions;
 
-  // Plugins that need Rollup output hooks are not supported: WASM has a native Rspack plugin and
-  // Rspack emits the files referenced with `new URL(..., import.meta.url)` itself
+  // Covered by Rspack itself: `devtool` excludes source contents, WASM has a native Rspack plugin
+  // and Rspack emits the files referenced with `new URL(..., import.meta.url)` itself
   const plugins = (await baseBuildPlugins(nitro, base)).filter(
     (plugin) => !/^(nitro:sourcemap|unwasm)/.test(plugin.name)
   );

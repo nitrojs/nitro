@@ -2,6 +2,10 @@ import type { Nitro } from "nitro/types";
 import type { Plugin } from "rollup";
 import { isHook, isUnsupportedHook, matchFilter, sortedHooks, SUPPORTED_HOOKS } from "./_hooks.ts";
 import type { Hook, HookName } from "./_hooks.ts";
+import { EmittedFiles } from "./_files.ts";
+import type { Bundle } from "./_bundle.ts";
+import type { AssetSource, EmittedFile } from "./_files.ts";
+import type { ModuleInfo } from "./_modules.ts";
 import type { HookSourceMap, SourceMapStep } from "./_sourcemap.ts";
 
 /** Import kind (Rolldown's `kind` resolve option): `require()` resolves with `require` conditions. */
@@ -15,6 +19,8 @@ export interface ResolvedId {
 export interface HookContextOptions {
   /** Called with the files a hook reads (`this.addWatchFile`). */
   addWatchFile?: (file: string) => void;
+  /** Emits the assets of a module (`this.emitFile` in `load` and `transform`). */
+  emitAsset?: (fileName: string, source: AssetSource) => void;
 }
 
 export interface PluginHostOptions {
@@ -26,17 +32,21 @@ export interface PluginHostOptions {
   ) => Promise<string | undefined>;
   /** Ids of the modules in the current build (`this.getModuleIds()`). */
   getModuleIds: () => Iterable<string>;
+  /** Info of a module in the current build (`this.getModuleInfo()`). */
+  getModuleInfo: (id: string) => ModuleInfo | null;
+  /** Emits an asset of the current build (`this.emitFile`). */
+  emitAsset: (fileName: string, source: AssetSource) => void;
 }
 
 /**
- * Runs the `resolveId`, `load`, `transform`, `renderChunk`, `buildStart` and `buildEnd` hooks of
- * Rollup plugins, with the subset of the plugin context Nitro's own plugins use.
+ * Runs the hooks of Rollup plugins (see `SUPPORTED_HOOKS`), with a subset of the plugin context.
  */
 export class PluginHost {
   readonly plugins: Plugin[];
   readonly nitro: Nitro;
   readonly opts: PluginHostOptions;
   readonly hooks: Record<HookName, Hook[]>;
+  readonly files = new EmittedFiles();
 
   constructor(nitro: Nitro, plugins: Plugin[], opts: PluginHostOptions) {
     this.nitro = nitro;
@@ -66,6 +76,18 @@ export class PluginHost {
   async buildEnd(error?: Error) {
     for (const hook of this.hooks.buildEnd) {
       await hook.handler.call(this.context(hook.plugin), error);
+    }
+  }
+
+  /** Runs the `generateBundle` or `writeBundle` hooks (in place on the `bundle`). */
+  async bundleHook(
+    name: "generateBundle" | "writeBundle",
+    outputOpts: { dir: string; sourcemap: boolean },
+    bundle: Bundle
+  ) {
+    const args = name === "generateBundle" ? [bundle, true] : [bundle];
+    for (const hook of this.hooks[name]) {
+      await hook.handler.call(this.context(hook.plugin), { format: "es", ...outputOpts }, ...args);
     }
   }
 
@@ -198,10 +220,15 @@ export class PluginHost {
       },
       addWatchFile: (file: string) => opts.addWatchFile?.(file),
       getModuleIds: () => this.opts.getModuleIds(),
-      getModuleInfo: () => null,
-      emitFile: () => {
-        throw new Error(format("`this.emitFile` is not supported by the `rspack` builder."));
+      getModuleInfo: (id: string) => this.opts.getModuleInfo(id),
+      emitFile: (file: EmittedFile) => {
+        try {
+          return this.files.emit(file, opts.emitAsset || this.opts.emitAsset);
+        } catch (error) {
+          throw new Error(format((error as Error).message));
+        }
       },
+      getFileName: (referenceId: string) => this.files.getFileName(referenceId),
       warn: (log: string | { message: string }) => logger.warn(format(log)),
       info: (log: string | { message: string }) => logger.info(format(log)),
       debug: (log: string | { message: string }) => logger.debug(format(log)),
