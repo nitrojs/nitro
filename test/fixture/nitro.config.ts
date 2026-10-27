@@ -2,6 +2,7 @@ import { defineConfig } from "nitro";
 
 import { dirname, resolve } from "node:path";
 import { existsSync } from "node:fs";
+import MagicString from "magic-string";
 
 export default defineConfig({
   vercel: {
@@ -57,6 +58,24 @@ export default defineConfig({
         },
       },
     ],
+    {
+      name: "fixture:sourcemap",
+      transform: {
+        filter: { id: /errors[/\\]stack\.ts$/ },
+        handler(code) {
+          const s = new MagicString(code).prepend("// fixture:sourcemap\n".repeat(5));
+          return { code: s.toString(), map: s.generateMap({ hires: true }) };
+        },
+      },
+      renderChunk(code: string, _chunk: unknown, outputOpts: { sourcemap?: unknown }) {
+        const lineStart = code.lastIndexOf("\n", code.indexOf("testing error")) + 1;
+        if (!outputOpts.sourcemap || lineStart === 0) {
+          return;
+        }
+        const s = new MagicString(code).appendLeft(lineStart, "\n".repeat(5));
+        return { code: s.toString(), map: s.generateMap({ hires: true }) };
+      },
+    },
   ],
   virtual: {
     "#virtual-route": () => `export default () => new Response("Hello from virtual entry!")`,

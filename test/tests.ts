@@ -846,7 +846,8 @@ export function testNitro(
         ctx.preset === "nitro-dev"
     )("sourcemap works", async () => {
       const { data } = await callHandler({ url: "/errors/stack" });
-      expect(data.stack).toMatch("test/fixture/server/routes/errors/stack.ts");
+      // Mapped through the `transform` hook of `fixture:sourcemap` (adding lines)
+      expect(data.stack).toMatch("test/fixture/server/routes/errors/stack.ts:3:");
     });
 
     for (const errorType of ["handled", "unhandled"]) {

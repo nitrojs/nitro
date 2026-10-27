@@ -2,6 +2,7 @@ import type { Nitro } from "nitro/types";
 import type { Plugin } from "rollup";
 import { isHook, isUnsupportedHook, matchFilter, sortedHooks, SUPPORTED_HOOKS } from "./_hooks.ts";
 import type { Hook, HookName } from "./_hooks.ts";
+import type { HookSourceMap, SourceMapStep } from "./_sourcemap.ts";
 
 /** Import kind (Rolldown's `kind` resolve option): `require()` resolves with `require` conditions. */
 export type ImportKind = "import-statement" | "require-call";
@@ -116,37 +117,47 @@ export class PluginHost {
     }
   }
 
-  async load(id: string, ctxOpts?: HookContextOptions): Promise<string | undefined> {
+  async load(
+    id: string,
+    ctxOpts?: HookContextOptions
+  ): Promise<{ code: string; map?: HookSourceMap } | undefined> {
     for (const hook of this.hooks.load) {
       if (!matchFilter(hook.filter?.id, id)) {
         continue;
       }
       const result = await hook.handler.call(this.context(hook.plugin, ctxOpts), id);
-      const code = typeof result === "string" ? result : result?.code;
-      if (code != null) {
-        return code;
+      if (typeof result === "string") {
+        return { code: result };
+      }
+      if (result?.code != null) {
+        return { code: result.code, map: result.map };
       }
     }
   }
 
-  async transform(code: string, id: string, ctxOpts?: HookContextOptions): Promise<string> {
+  /** Runs the `transform` hooks (pushing their source maps to `maps`, when given). */
+  async transform(
+    code: string,
+    id: string,
+    ctxOpts?: HookContextOptions,
+    maps?: SourceMapStep[]
+  ): Promise<string> {
     for (const hook of this.hooks.transform) {
       if (!matchFilter(hook.filter?.id, id) || !matchFilter(hook.filter?.code, code, true)) {
         continue;
       }
       const result = await hook.handler.call(this.context(hook.plugin, ctxOpts), code, id);
-      const transformed = typeof result === "string" ? result : result?.code;
-      if (transformed != null) {
-        code = transformed;
-      }
+      code = withResult(code, result, maps);
     }
     return code;
   }
 
+  /** Runs the `renderChunk` hooks (pushing their source maps to `maps`, when given). */
   async renderChunk(
     code: string,
     chunk: { fileName: string; name: string; isEntry: boolean },
-    outputOpts: { dir: string; sourcemap: boolean }
+    outputOpts: { dir: string; sourcemap: boolean },
+    maps?: SourceMapStep[]
   ): Promise<string> {
     for (const hook of this.hooks.renderChunk) {
       const result = await hook.handler.call(
@@ -156,10 +167,7 @@ export class PluginHost {
         { format: "es", ...outputOpts },
         {}
       );
-      const rendered = typeof result === "string" ? result : result?.code;
-      if (rendered != null) {
-        code = rendered;
-      }
+      code = withResult(code, result, maps);
     }
     return code;
   }
@@ -185,8 +193,8 @@ export class PluginHost {
           fallback: true,
         }).then((resolved) => resolved || null),
       load: async ({ id }: { id: string }) => {
-        const code = await this.load(id, opts);
-        return { id, code: code == null ? null : await this.transform(code, id, opts) };
+        const loaded = await this.load(id, opts);
+        return { id, code: loaded ? await this.transform(loaded.code, id, opts) : null };
       },
       addWatchFile: (file: string) => opts.addWatchFile?.(file),
       getModuleIds: () => this.opts.getModuleIds(),
@@ -202,4 +210,20 @@ export class PluginHost {
       },
     };
   }
+}
+
+/** Code of a `transform` or `renderChunk` hook result (its source map is pushed to `maps`). */
+function withResult(
+  code: string,
+  result: string | { code?: string; map?: HookSourceMap } | null | undefined,
+  maps: SourceMapStep[] | undefined
+): string {
+  const output = typeof result === "string" ? result : result?.code;
+  if (output == null) {
+    return code;
+  }
+  if (maps && output !== code && typeof result === "object" && result?.map) {
+    maps.push({ input: code, output, map: result.map });
+  }
+  return output;
 }

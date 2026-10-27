@@ -13,7 +13,9 @@ import { dirname, isAbsolute, join } from "pathe";
 import { runtimeDir } from "#nitro/meta";
 import { PluginHost } from "./_host.ts";
 import { VirtualPlaceholders } from "./_virtual.ts";
+import { chainSourceMaps } from "./_sourcemap.ts";
 import type { ImportKind, ResolvedId } from "./_host.ts";
+import type { HookSourceMap, RawSourceMap, SourceMapStep } from "./_sourcemap.ts";
 
 const NAME = "nitro:rollup-plugins";
 
@@ -74,9 +76,9 @@ export class RollupPluginsHost implements RspackPluginInstance {
       this.compilation = compilation;
       this.resolveCache.clear();
       compilation.hooks.finishModules.tapPromise(NAME, () => this.host.buildEnd());
-      // After minification and source maps (`renderChunk` edits are not mapped)
+      // After minification and before source maps are emitted
       compilation.hooks.processAssets.tapPromise(
-        { name: NAME, stage: compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE },
+        { name: NAME, stage: compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_DEV_TOOLING - 1 },
         () => this.renderChunks(compilation)
       );
     });
@@ -171,14 +173,28 @@ export class RollupPluginsHost implements RspackPluginInstance {
   }
 
   /** Runs the `load` and `transform` hooks for a module (called by the pre-loader). */
-  async runLoader(loader: LoaderContext, code: string): Promise<string> {
+  async runLoader(
+    loader: LoaderContext,
+    code: string,
+    inputMap?: HookSourceMap
+  ): Promise<{ code: string; map?: HookSourceMap | RawSourceMap }> {
     const id = this.virtual.toId(loader.resource);
     const ctxOpts = { addWatchFile: (file: string) => loader.addDependency(file) };
     const loaded = await this.host.load(id, ctxOpts);
     if (loaded == null && id !== loader.resource) {
       throw new Error(`Could not load virtual module \`${id}\`.`);
     }
-    return this.host.transform(loaded ?? code, id, ctxOpts);
+    const maps: SourceMapStep[] | undefined = loader.sourceMap ? [] : undefined;
+    const transformed = await this.host.transform(loaded?.code ?? code, id, ctxOpts, maps);
+    const map = loaded ? loaded.map : inputMap;
+    if (!maps?.length) {
+      return { code: transformed, map: maps && map };
+    }
+    const sources = this.compilation!.compiler.rspack.sources;
+    return {
+      code: transformed,
+      map: chainSourceMaps(sources, { name: loader.resourcePath, map, steps: maps }),
+    };
   }
 
   async resolveWithRspack(source: string, importer: string | undefined, kind?: ImportKind) {
@@ -210,9 +226,12 @@ export class RollupPluginsHost implements RspackPluginInstance {
   }
 
   async renderChunks(compilation: Compilation) {
-    const { RawSource } = compilation.compiler.rspack.sources;
-    // Source maps of `renderChunk` results are not used (plugins do not need to generate them)
-    const outputOpts = { dir: compilation.outputOptions.path!, sourcemap: false };
+    const sources = compilation.compiler.rspack.sources;
+    // Plugins only need to generate source maps when they are emitted
+    const outputOpts = {
+      dir: compilation.outputOptions.path!,
+      sourcemap: !!compilation.options.devtool,
+    };
     for (const chunk of compilation.chunks) {
       for (const fileName of chunk.files) {
         if (!/\.m?js$/.test(fileName)) {
@@ -224,10 +243,19 @@ export class RollupPluginsHost implements RspackPluginInstance {
         }
         const code = asset.source.source().toString();
         const chunkInfo = { fileName, name: chunk.name || "", isEntry: chunk.hasRuntime() };
-        const rendered = await this.host.renderChunk(code, chunkInfo, outputOpts);
-        if (rendered !== code) {
-          compilation.updateAsset(fileName, new RawSource(rendered));
+        const maps: SourceMapStep[] = [];
+        const rendered = await this.host.renderChunk(code, chunkInfo, outputOpts, maps);
+        if (rendered === code) {
+          continue;
         }
+        const map = outputOpts.sourcemap ? asset.source.map() : undefined;
+        const renderedMap = map && chainSourceMaps(sources, { name: fileName, map, steps: maps });
+        compilation.updateAsset(
+          fileName,
+          renderedMap
+            ? new sources.SourceMapSource(rendered, fileName, renderedMap)
+            : new sources.RawSource(rendered)
+        );
       }
     }
   }
