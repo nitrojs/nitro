@@ -1,4 +1,10 @@
-export default {
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  preset: "static",
+  prerender: { crawlLinks: false, routes: ["/"] },
   runtimeConfig: { target: "default" },
-  $staging: { runtimeConfig: { target: "staging" } },
-};
+  $env: {
+    staging: { runtimeConfig: { target: "staging" } },
+  },
+});

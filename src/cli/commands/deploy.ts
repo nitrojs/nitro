@@ -56,6 +56,7 @@ export default defineCommand({
       },
       {
         compatibilityDate: args.compatibilityDate as DateString,
+        c12: { envName: args.envName },
       }
     );
 

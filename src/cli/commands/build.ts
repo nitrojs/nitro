@@ -24,6 +24,11 @@ export const buildArgs = {
     description:
       "The date to use for preset compatibility (you can also use `NITRO_COMPATIBILITY_DATE` environment variable).",
   },
+  envName: {
+    type: "string",
+    description:
+      "The environment name used to apply `$env.<name>` config overrides and exposed as `import.meta.envName` (default: `production`).",
+  },
 } as const;
 
 export default defineCommand({
@@ -44,6 +49,7 @@ export default defineCommand({
       },
       {
         compatibilityDate: args.compatibilityDate as DateString,
+        c12: { envName: args.envName },
       }
     );
     await prepare(nitro);

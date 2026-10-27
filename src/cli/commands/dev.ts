@@ -18,12 +18,18 @@ export default defineCommand({
     ...commonArgs,
     port: { type: "string", description: "specify port" },
     host: { type: "string", description: "specify hostname " },
+    envName: {
+      type: "string",
+      description:
+        "The environment name used to apply `$env.<name>` config overrides and exposed as `import.meta.envName` (default: `development`).",
+    },
   },
   async run({ args }) {
     await runDev({
       rootDir: resolve((args.dir || args._dir || ".") as string),
       port: args.port,
       host: args.host,
+      envName: args.envName,
     });
   },
 });
@@ -32,6 +38,7 @@ export async function runDev(opts: {
   rootDir: string;
   port?: string;
   host?: string;
+  envName?: string;
   config?: NitroConfig;
 }) {
   let nitro: Nitro;
@@ -60,6 +67,7 @@ export async function runDev(opts: {
       {
         watch: true,
         c12: {
+          envName: opts.envName,
           async onUpdate({ getDiff, newConfig }) {
             const diff = getDiff();
 
