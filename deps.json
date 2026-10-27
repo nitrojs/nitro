@@ -3,6 +3,11 @@
     "rolldown": { "version": "^1", "reason": "the `rolldown` builder", "types": true },
     "rollup": { "version": "^4", "reason": "the `rollup` builder", "types": true },
     "vite": { "version": "^8", "reason": "the `vite` builder" },
+    "@rspack/core": {
+      "version": "^2.2.0",
+      "reason": "the `rspack` builder (experimental)",
+      "types": true
+    },
     "unstorage": {
       "version": "^2.0.0-alpha.10",
       "reason": "KV storage (`nitro/kv`)",

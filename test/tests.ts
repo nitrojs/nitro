@@ -15,7 +15,7 @@ import {
   prerender,
 } from "nitro/builder";
 import type { Nitro, NitroConfig } from "nitro/types";
-import { join, resolve } from "pathe";
+import { dirname, join, resolve } from "pathe";
 import { isBun, isWindows } from "std-env";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -656,6 +656,15 @@ export function testNitro(
     });
   });
 
+  // Rolldown keeps `require()` calls, and workerd's `require()` returns the namespace of builtins
+  it.skipIf(
+    ctx.preset === "deno-server" ||
+      (ctx.isWorker && !["rollup", "rspack"].includes(ctx.nitro!.options.builder as string))
+  )("requires builtins from bundled CommonJS", async () => {
+    const { data } = await callHandler({ url: "/cjs-builtins" });
+    expect(data).toBe("ok");
+  });
+
   it("externalizes a traced package's root export by its bare name", async () => {
     const { data } = await callHandler({ url: "/traced-root-export" });
     expect(data).toBe("@fixture/nitro-root-export");
@@ -837,7 +846,32 @@ export function testNitro(
         ctx.preset === "nitro-dev"
     )("sourcemap works", async () => {
       const { data } = await callHandler({ url: "/errors/stack" });
-      expect(data.stack).toMatch("test/fixture/server/routes/errors/stack.ts");
+      // Mapped through the `transform` hook of `fixture:sourcemap` (adding lines)
+      expect(data.stack).toMatch("test/fixture/server/routes/errors/stack.ts:3:");
+    });
+
+    it.skipIf(
+      ctx.isDev ||
+        ctx.nitro!.options.static ||
+        // TODO: `__vite-optional-peer-dep:*` sources of Vite
+        ctx.nitro!.options.builder === "vite"
+    )("sourcemaps only reference existing files or virtual modules", async () => {
+      const serverDir = ctx.nitro!.options.output.serverDir;
+      const files = await fsp.readdir(serverDir, { recursive: true });
+      const missing: string[] = [];
+      for (const file of files.filter((file) => file.endsWith(".map"))) {
+        const map = JSON.parse(await fsp.readFile(join(serverDir, file), "utf8"));
+        for (const [index, source] of (map.sources as string[]).entries()) {
+          if (!source || /^(?:virtual:|\0)/.test(source) || map.sourcesContent?.[index] != null) {
+            continue;
+          }
+          const path = resolve(serverDir, dirname(file), source);
+          if (!(await fsp.stat(path).catch(() => undefined))) {
+            missing.push(`${file}: ${source}`);
+          }
+        }
+      }
+      expect(missing).toEqual([]);
     });
 
     for (const errorType of ["handled", "unhandled"]) {
@@ -1112,7 +1146,7 @@ export function testNitro(
       if (
         ctx.preset.includes("cloudflare") &&
         key.startsWith("globals:") &&
-        ctx.nitro!.options.builder === "rolldown"
+        (ctx.nitro!.options.builder === "rolldown" || ctx.nitro!.options.builder === "rspack")
       ) {
         continue;
       }

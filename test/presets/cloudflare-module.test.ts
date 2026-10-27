@@ -1,13 +1,17 @@
 import { promises as fsp } from "node:fs";
 import { Miniflare } from "miniflare";
 import { resolve } from "pathe";
+import { isWindows } from "std-env";
 import { describe, expect, it } from "vitest";
 
 import { setupTest, testNitro } from "../tests.ts";
 
 const presetFixturesDir = resolve(import.meta.dirname, "fixtures");
 
-describe("nitro:preset:cloudflare-module", async () => {
+// TODO: rspack on Windows (https://github.com/nitrojs/nitro/issues/4948)
+const skip = isWindows && process.env.NITRO_BUILDER === "rspack";
+
+describe.skipIf(skip)("nitro:preset:cloudflare-module", async () => {
   const ctx = await setupTest("cloudflare-module", {
     config: {
       features: { websocket: true },
@@ -95,6 +99,18 @@ describe("nitro:preset:cloudflare-module", async () => {
     } finally {
       await mf.dispose();
     }
+  });
+
+  it("externalizes builtins required by bundled CommonJS with the `node:` prefix", async () => {
+    const serverDir = resolve(ctx.outDir, "server");
+    const files = (await fsp.readdir(serverDir, { recursive: true })).filter((f) =>
+      f.endsWith(".mjs")
+    );
+    const code = (
+      await Promise.all(files.map((f) => fsp.readFile(resolve(serverDir, f), "utf8")))
+    ).join("\n");
+    expect(code).toMatch(/["']node:events["']/);
+    expect(code).not.toMatch(/(?:from |require\()\s*["']events["']/);
   });
 
   it("should export the correct functions", async () => {
@@ -186,7 +202,8 @@ describe("nitro:preset:cloudflare-module", async () => {
     expect(code).toContain('import "node:fs";');
     expect(code).toContain("nitro4526marker");
     // ...while real call sites in the same chunks are still rewritten
-    expect(code).toContain('createRequire(import.meta.url || "file:///")');
+    // (Rspack calls namespace imports as `(0, ns.createRequire)(...)`)
+    expect(code).toMatch(/createRequire\)?\(import\.meta\.url \|\| "file:\/\/\/"\)/);
   });
 });
 

@@ -9,6 +9,7 @@ import type {
   MinifyOptions as RolldownMinifyOptions,
   RolldownPluginOption,
 } from "rolldown";
+import type { Configuration as RspackConfiguration } from "@rspack/core";
 import type {
   BundlerInputOptions,
   BundlerMinifyOptions,
@@ -80,6 +81,9 @@ export type RolldownConfig = OptionalDepType<
   output?: OptionalDepType<RolldownOutputOptions, BundlerOutputOptions>;
 };
 
+/** Rspack configuration (experimental `rspack` builder). */
+export type RspackConfig = OptionalDepType<RspackConfiguration, Record<string, any>>;
+
 /**
  * Bundler config passed to the `build:config` hook, keyed by the bundler in use.
  *
@@ -87,7 +91,8 @@ export type RolldownConfig = OptionalDepType<
  */
 export type NitroBuildConfig =
   | { builder: "rollup" | "vite"; rollup: RollupConfig; rolldown?: never }
-  | { builder: "rolldown" | "vite"; rolldown: RolldownConfig; rollup?: never };
+  | { builder: "rolldown" | "vite"; rolldown: RolldownConfig; rollup?: never }
+  | { builder: "rspack"; rspack: RspackConfig; rollup?: never; rolldown?: never };
 
 export interface OXCOptions {
   minify?: OptionalDepType<RolldownMinifyOptions, BundlerMinifyOptions>;

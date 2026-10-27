@@ -1,8 +1,11 @@
 import type { Nitro } from "nitro/types";
+import { isAbsolute, normalize } from "pathe";
 
 // Tests in @test/unit/chunks.test.ts
 
 const virtualRe = /^(?:\0|#|virtual:)/;
+
+const RSPACK_PLACEHOLDER_RE = /\[(id|name|runtime|(?:full|chunk|content)?hash)\]/g;
 
 export const NODE_MODULES_RE = /node_modules[/\\](?!(?:nitro|nitro-nightly)[/\\])[^.]/;
 
@@ -54,7 +57,10 @@ export function getChunkName(chunk: { name: string; moduleIds: string[] }, nitro
     return `_chunks/${chunk.name}.mjs`;
   }
 
-  const ids = chunk.moduleIds.filter((id) => !virtualRe.test(id));
+  // Module paths have `\` separators on Windows, unlike Nitro's handler paths
+  const ids = chunk.moduleIds
+    .filter((id) => !virtualRe.test(id))
+    .map((id) => (isAbsolute(id) ? normalize(id) : id));
 
   // All virtual
   if (ids.length === 0) {
@@ -90,6 +96,9 @@ export function getChunkName(chunk: { name: string; moduleIds: string[] }, nitro
       if (nitro.options.builder === "rollup") {
         // rollup treats [name] in chunkFileNames as an invalid placeholder
         routePath = routePath.replace(/\[/g, "%5B").replace(/\]/g, "%5D");
+      } else if (nitro.options.builder === "rspack") {
+        // rspack replaces these placeholders in chunk file names (other brackets are kept)
+        routePath = routePath.replace(RSPACK_PLACEHOLDER_RE, "_$1_");
       }
       return `_routes/${routePath}.mjs`;
     }

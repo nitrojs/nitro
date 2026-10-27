@@ -164,6 +164,7 @@ describe("getChunkName", () => {
   it.each([
     ["rolldown", "_routes/api/users/[id].mjs"],
     ["rollup", "_routes/api/users/%5Bid%5D.mjs"],
+    ["rspack", "_routes/api/users/_id_.mjs"],
   ])("returns _routes/<path>.mjs for dynamic route (%s)", (builder, expected) => {
     const n = createNitro({
       options: { builder },
@@ -183,6 +184,7 @@ describe("getChunkName", () => {
   it.each([
     ["rolldown", "_routes/api/applications/[id]/context.mjs"],
     ["rollup", "_routes/api/applications/%5Bid%5D/context.mjs"],
+    ["rspack", "_routes/api/applications/_id_/context.mjs"],
   ])("returns _routes/<path>.mjs for nested dynamic route (%s)", (builder, expected) => {
     const n = createNitro({
       options: { builder },
@@ -204,6 +206,24 @@ describe("getChunkName", () => {
     expect(
       getChunkName(createChunk("route", ["/src/routes/api/applications/[id]/context.ts"]), n)
     ).toBe(expected);
+  });
+
+  it("matches Windows module paths with handlers", () => {
+    const n = createNitro({
+      options: {
+        buildDir: "C:/app/.nitro",
+        tasks: { "db:migrate": { handler: "C:/app/tasks/migrate.ts" } },
+      },
+      routing: {
+        routes: {
+          routes: [{ data: [{ route: "/api/hello", handler: "C:/app/routes/api/hello.ts" }] }],
+        },
+      },
+    } as any);
+    const chunkName = (id: string) => getChunkName(createChunk("chunk", [id]), n);
+    expect(chunkName(String.raw`C:\app\routes\api\hello.ts`)).toBe("_routes/api/hello.mjs");
+    expect(chunkName(String.raw`C:\app\tasks\migrate.ts`)).toBe("_tasks/[name].mjs");
+    expect(chunkName(String.raw`C:\app\.nitro\generated.mjs`)).toBe("_build/[name].mjs");
   });
 
   it("returns _routes/index.mjs for root route", () => {

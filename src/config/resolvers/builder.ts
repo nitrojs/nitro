@@ -5,7 +5,7 @@ import { resolve } from "pathe";
 import { resolveRolldown } from "../../build/rolldown/_import.ts";
 import { ensureDep, isDepInstalled } from "../../utils/dep.ts";
 
-const VALID_BUILDERS = ["rolldown", "rollup", "vite"] as const;
+const VALID_BUILDERS = ["rolldown", "rollup", "rspack", "vite"] as const;
 
 export async function resolveBuilder(options: NitroOptions) {
   // NITRO_BUILDER environment variable
@@ -30,7 +30,7 @@ export async function resolveBuilder(options: NitroOptions) {
       );
     }
     // Check if the builder package is installed (`rolldown` and `vite` are resolved when used)
-    const pkg = options.builder;
+    const pkg = options.builder === "rspack" ? "@rspack/core" : options.builder;
     if (pkg === "rolldown" || pkg === "vite") {
       return;
     }

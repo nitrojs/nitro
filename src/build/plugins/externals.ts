@@ -278,7 +278,7 @@ export function externals(opts: ExternalsOptions): Plugin {
       return {
         code: s.toString(),
         map: outputOpts.sourcemap
-          ? s.generateMap({ hires: true, source: chunk.fileName }).toString()
+          ? s.generateMap({ hires: "boundary", source: chunk.fileName }).toString()
           : undefined,
       };
     },
