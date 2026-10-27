@@ -1,5 +1,5 @@
 import type { Nitro, NitroBuildPluginOption, RspackConfig } from "nitro/types";
-import type { Configuration, RuleSetRule } from "@rspack/core";
+import type { Configuration, ExternalItemFunctionData, RuleSetRule } from "@rspack/core";
 import type { Plugin } from "rollup";
 import { builtinModules } from "node:module";
 import { defu } from "defu";
@@ -10,6 +10,7 @@ import { baseBuildPlugins, flatPlugins, withBuildPlugins } from "../plugins.ts";
 import { LOADER_PATH, RollupPluginsHost } from "./_plugin.ts";
 import { loaderRule } from "./_filters.ts";
 import { moduleFilenameTemplate } from "./_sourcemap.ts";
+import { externalsMatcher, rollupOptions } from "./_rollup.ts";
 
 export async function getRspackConfig(
   nitro: Nitro,
@@ -24,11 +25,9 @@ export async function getRspackConfig(
   const plugins = (await baseBuildPlugins(nitro, base)).filter(
     (plugin) => !/^(nitro:sourcemap|unwasm)/.test(plugin.name)
   );
-  // Presets (and users) configure the entry file name and output plugins with `rollupConfig`
+  // Presets (and users) configure output options and plugins with `rollupConfig`
+  const rollup = rollupOptions(nitro, rspack);
   const rollupConfigs = [nitro.options.rolldownConfig, nitro.options.rollupConfig];
-  const entryFileName = rollupConfigs
-    .map((config) => config?.output?.entryFileNames)
-    .find((name) => typeof name === "string");
   const rollupConfigPlugins = await flatPlugins(
     rollupConfigs.flatMap((config) => (config?.plugins as NitroBuildPluginOption[]) || [])
   );
@@ -69,7 +68,7 @@ export async function getRspackConfig(
     target: nitro.options.node ? "node22" : "es2022",
     entry: { index: nitro.options.entry },
     devtool: nitro.options.sourcemap
-      ? excludeSourcemapSources(nitro)
+      ? (rollup.sourcemapExcludeSources ?? excludeSourcemapSources(nitro))
         ? "nosources-source-map"
         : "source-map"
       : false,
@@ -79,7 +78,11 @@ export async function getRspackConfig(
     performance: false,
     node: nitro.options.node ? { __dirname: "node-module", __filename: "node-module" } : false,
     externalsType: "module-import",
-    externals: [(data) => pluginsHost.externals(data)],
+    externals: [
+      rollup.isExternal &&
+        externalsMatcher(nitro, rollup.isExternal, (issuer) => pluginsHost.virtual.toId(issuer)),
+      (data: ExternalItemFunctionData) => pluginsHost.externals(data),
+    ].filter((external) => !!external),
     resolve: {
       alias: base.aliases,
       extensions: base.extensions,
@@ -111,6 +114,7 @@ export async function getRspackConfig(
       nitro.options.wasm !== false && unwasmRspack(nitro.options.wasm || {}),
       Object.keys(base.env.inject).length > 0 &&
         new rspack.ProvidePlugin(base.env.inject as Record<string, string | string[]>),
+      ...rollup.plugins,
     ],
     optimization: {
       minimize: !!nitro.options.minify,
@@ -121,14 +125,16 @@ export async function getRspackConfig(
     output: {
       path: nitro.options.output.serverDir,
       module: true,
-      filename: entryFileName || "index.mjs",
-      chunkFilename: "_chunks/[name].mjs",
+      filename: rollup.entryFileName || "index.mjs",
+      chunkFilename: rollup.chunkFileName || "_chunks/[name].mjs",
       assetModuleFilename: "_assets/[name]-[hash][ext]",
       publicPath: "auto",
       library: { type: "module" },
       chunkFormat: "module",
       chunkLoading: "import",
-      asyncChunks: !nitro.options.inlineDynamicImports,
+      // Rspack loads chunks with dynamic import specifiers, which worker runtimes do not support,
+      // so `inlineDynamicImports: false` of presets does not split them
+      asyncChunks: !(nitro.options.inlineDynamicImports || rollup.inlineDynamicImports),
       devtoolModuleFilenameTemplate: moduleFilenameTemplate({
         rootDir: nitro.options.rootDir,
         virtual: pluginsHost.virtual,

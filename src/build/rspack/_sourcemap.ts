@@ -1,6 +1,11 @@
-import type { ModuleFilenameTemplateContext, sources as RspackSources } from "@rspack/core";
+import type {
+  Compiler,
+  ModuleFilenameTemplateContext,
+  RspackPluginInstance,
+  sources as RspackSources,
+} from "@rspack/core";
 import { existsSync } from "node:fs";
-import { isAbsolute, relative } from "pathe";
+import { dirname, isAbsolute, join, relative } from "pathe";
 import type { VirtualPlaceholders } from "./_virtual.ts";
 
 export type RawSourceMap = {
@@ -74,6 +79,40 @@ export function moduleFilenameTemplate(opts: {
     }
     return source;
   };
+}
+
+/** `output.sourcemapPathTransform` of Rollup: called with the sources relative to the map file. */
+export class SourcemapPathTransformPlugin implements RspackPluginInstance {
+  transform: (relativeSourcePath: string, sourcemapPath: string) => string;
+
+  constructor(transform: (relativeSourcePath: string, sourcemapPath: string) => string) {
+    this.transform = transform;
+  }
+
+  apply(compiler: Compiler) {
+    const { Compilation, sources } = compiler.rspack;
+    compiler.hooks.thisCompilation.tap("nitro:sourcemap-path-transform", (compilation) => {
+      compilation.hooks.processAssets.tap(
+        {
+          name: "nitro:sourcemap-path-transform",
+          stage: Compilation.PROCESS_ASSETS_STAGE_DEV_TOOLING + 1,
+        },
+        (assets) => {
+          for (const name of Object.keys(assets).filter((name) => name.endsWith(".map"))) {
+            const mapPath = join(compilation.outputOptions.path!, name);
+            const map = JSON.parse(assets[name]!.source().toString());
+            map.sources = (map.sources as string[]).map((source) =>
+              this.transform(
+                isAbsolute(source) ? relative(dirname(mapPath), source) : source,
+                mapPath
+              )
+            );
+            compilation.updateAsset(name, new sources.RawSource(JSON.stringify(map)));
+          }
+        }
+      );
+    });
+  }
 }
 
 function parseMap(map: Exclude<HookSourceMap, null>, file: string): RawSourceMap {
