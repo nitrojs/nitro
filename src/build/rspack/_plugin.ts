@@ -1,0 +1,222 @@
+import type {
+  Compilation,
+  Compiler,
+  ExternalItemFunctionData,
+  LoaderContext,
+  RspackPluginInstance,
+} from "@rspack/core";
+import type { Nitro } from "nitro/types";
+import type { Plugin } from "rollup";
+import { fileURLToPath } from "node:url";
+import { dirname, isAbsolute, join } from "pathe";
+import { runtimeDir } from "#nitro/meta";
+import { PluginHost } from "./_host.ts";
+import { VirtualPlaceholders } from "./_virtual.ts";
+import type { ImportKind, ResolvedId } from "./_host.ts";
+
+const NAME = "nitro:rollup-plugins";
+
+/** Loader running the `load` and `transform` hooks (see `runtime/internal/rspack/loader.mjs`). */
+export const LOADER_PATH: string = join(runtimeDir, "internal/rspack/loader.mjs");
+
+// Shared with the loader, which is loaded by Rspack from a separate file
+const hosts: Map<string, RollupPluginsHost> = ((globalThis as any).__nitro_rspack_hosts__ ??=
+  new Map());
+
+let nextId = 0;
+
+const BARE_IMPORT_RE = /^(?![./#\0]|[a-z]:[\\/]|[a-z][\w+.-]*:)/i;
+
+/**
+ * Rspack plugin running Nitro's build plugins (Rollup plugin interface):
+ * - `resolveId` before Rspack resolves a request (virtual modules, externals, aliases).
+ * - `load` and `transform` with a pre-loader (virtual modules are loaded from placeholder files).
+ * - `buildStart`, `buildEnd` (once all modules are built) and `renderChunk` (on emitted chunks).
+ */
+export class RollupPluginsHost implements RspackPluginInstance {
+  readonly id: string;
+  readonly host: PluginHost;
+  readonly virtual: VirtualPlaceholders;
+  compilation?: Compilation;
+  /** `resolveId` results by issuer and request, shared by `externals` and `beforeResolve`. */
+  resolveCache = new Map<string, Promise<ResolvedId | undefined>>();
+
+  /** Externals that are not resolved (builtins and `external` of the preset). */
+  readonly staticExternals: Set<string>;
+
+  constructor(nitro: Nitro, plugins: Plugin[], opts: { externals?: string[] } = {}) {
+    this.staticExternals = new Set(opts.externals);
+    this.id = String(nextId++);
+    hosts.set(this.id, this);
+    nitro.hooks.hookOnce("close", () => {
+      hosts.delete(this.id);
+    });
+    this.virtual = new VirtualPlaceholders(join(nitro.options.buildDir, "rspack/virtual"));
+    this.host = new PluginHost(nitro, plugins, {
+      resolve: (source, importer, kind) => this.resolveWithRspack(source, importer, kind),
+      getModuleIds: () => this.moduleIds(),
+    });
+  }
+
+  /** Loader rule options, for the pre-loader to find this instance. */
+  get loaderOptions() {
+    return { host: this.id };
+  }
+
+  apply(compiler: Compiler) {
+    compiler.hooks.beforeCompile.tapPromise(NAME, () => this.host.buildStart());
+    compiler.hooks.done.tapPromise(NAME, () => this.host.closeBundle());
+
+    compiler.hooks.thisCompilation.tap(NAME, (compilation) => {
+      this.compilation = compilation;
+      this.resolveCache.clear();
+      compilation.hooks.finishModules.tapPromise(NAME, () => this.host.buildEnd());
+      // After minification and source maps (`renderChunk` edits are not mapped)
+      compilation.hooks.processAssets.tapPromise(
+        { name: NAME, stage: compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE },
+        () => this.renderChunks(compilation)
+      );
+    });
+
+    compiler.hooks.normalModuleFactory.tap(NAME, (nmf) => {
+      nmf.hooks.beforeResolve.tapPromise(NAME, async (data) => {
+        if (data.request.includes("!")) {
+          return;
+        }
+        const issuer = data.contextInfo.issuer;
+        const resolved = await this.resolve(data.request, issuer);
+        if (!resolved) {
+          // Bare and relative imports of virtual modules resolve from the root directory
+          if (issuer && this.virtual.isVirtual(issuer)) {
+            data.context = this.host.nitro.options.rootDir;
+          }
+          return;
+        }
+        if (!resolved.external) {
+          data.request = this.virtual.toRequest(resolved.id);
+        }
+      });
+    });
+  }
+
+  /** `externals` function: externals resolved by the build plugins. */
+  async externals(data: ExternalItemFunctionData): Promise<string | undefined> {
+    const { request, dependencyType, contextInfo } = data;
+    if (!request || request.includes("!")) {
+      return;
+    }
+    const kind: ImportKind = dependencyType === "commonjs" ? "require-call" : "import-statement";
+    let id: string | undefined;
+    if (this.staticExternals.has(request)) {
+      id = request;
+    } else {
+      const resolved = await this.resolve(request, contextInfo?.issuer, kind);
+      id = resolved
+        ? resolved.external
+          ? resolved.id
+          : undefined
+        : await this.unresolvedExternal(request, contextInfo?.issuer);
+    }
+    // `require()` from bundled CommonJS gets `module.exports` (not the namespace) with Node.js
+    if (id && kind === "require-call" && this.host.nitro.options.node) {
+      return `node-commonjs ${id.startsWith("file:") ? fileURLToPath(id) : id}`;
+    }
+    return id;
+  }
+
+  /** Like Rollup, bare imports that cannot be resolved are kept external (with a warning). */
+  async unresolvedExternal(request: string, issuer: string | undefined) {
+    if (!BARE_IMPORT_RE.test(request)) {
+      return;
+    }
+    const importer = issuer ? this.virtual.toId(issuer) : undefined;
+    const resolved = await this.resolveWithRspack(request, importer, "require-call");
+    if (resolved || (await this.resolveWithRspack(request, importer))) {
+      return;
+    }
+    this.host.nitro.logger.warn(
+      `Could not resolve \`${request}\`${importer ? ` (imported by \`${importer}\`)` : ""}, treating it as external.`
+    );
+    return request;
+  }
+
+  /** Runs the `resolveId` hooks once per issuer, request and import kind. */
+  resolve(
+    request: string,
+    issuer: string | undefined,
+    kind?: ImportKind
+  ): Promise<ResolvedId | undefined> {
+    const key = `${issuer || ""}\0${request}\0${kind || ""}`;
+    let resolved = this.resolveCache.get(key);
+    if (!resolved) {
+      const importer = issuer ? this.virtual.toId(issuer) : undefined;
+      resolved = this.host.resolveId(request, importer, { isEntry: !issuer, kind });
+      this.resolveCache.set(key, resolved);
+    }
+    return resolved;
+  }
+
+  /** Runs the `load` and `transform` hooks for a module (called by the pre-loader). */
+  async runLoader(loader: LoaderContext, code: string): Promise<string> {
+    const id = this.virtual.toId(loader.resource);
+    const ctxOpts = { addWatchFile: (file: string) => loader.addDependency(file) };
+    const loaded = await this.host.load(id, ctxOpts);
+    if (loaded == null && id !== loader.resource) {
+      throw new Error(`Could not load virtual module \`${id}\`.`);
+    }
+    return this.host.transform(loaded ?? code, id, ctxOpts);
+  }
+
+  async resolveWithRspack(source: string, importer: string | undefined, kind?: ImportKind) {
+    const compiler = this.compilation?.compiler;
+    if (!compiler) {
+      return;
+    }
+    const context =
+      importer && isAbsolute(importer.split("?")[0])
+        ? dirname(importer.split("?")[0])
+        : this.host.nitro.options.rootDir;
+    const resolver = compiler.resolverFactory.get("normal", {
+      dependencyType: kind === "require-call" ? "commonjs" : "esm",
+    });
+    return new Promise<string | undefined>((resolve) => {
+      resolver.resolve({}, context, source, {}, (error, result) => {
+        resolve(error || !result ? undefined : result);
+      });
+    });
+  }
+
+  *moduleIds(): Iterable<string> {
+    for (const module of this.compilation?.modules || []) {
+      const resource = (module as { resource?: string }).resource;
+      if (resource) {
+        yield this.virtual.toId(resource);
+      }
+    }
+  }
+
+  async renderChunks(compilation: Compilation) {
+    const { RawSource } = compilation.compiler.rspack.sources;
+    const outputOpts = {
+      dir: compilation.outputOptions.path!,
+      sourcemap: !!compilation.options.devtool,
+    };
+    for (const chunk of compilation.chunks) {
+      for (const fileName of chunk.files) {
+        if (!/\.m?js$/.test(fileName)) {
+          continue;
+        }
+        const asset = compilation.getAsset(fileName);
+        if (!asset) {
+          continue;
+        }
+        const code = asset.source.source().toString();
+        const chunkInfo = { fileName, name: chunk.name || "", isEntry: chunk.hasRuntime() };
+        const rendered = await this.host.renderChunk(code, chunkInfo, outputOpts);
+        if (rendered !== code) {
+          compilation.updateAsset(fileName, new RawSource(rendered));
+        }
+      }
+    }
+  }
+}

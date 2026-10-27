@@ -102,7 +102,8 @@ export async function resolveBuildPlugins(nitro: Nitro): Promise<NitroBuildPlugi
   return flatPlugins(nitro.options.buildPlugins || []);
 }
 
-async function flatPlugins(options: NitroBuildPluginOption[]): Promise<NitroBuildPlugin[]> {
+/** Flattened plugin options (nested arrays and promises resolved, falsy entries skipped). */
+export async function flatPlugins(options: NitroBuildPluginOption[]): Promise<NitroBuildPlugin[]> {
   const plugins: NitroBuildPlugin[] = [];
   for (const entry of options) {
     const option = await entry;

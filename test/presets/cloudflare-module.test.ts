@@ -186,7 +186,8 @@ describe("nitro:preset:cloudflare-module", async () => {
     expect(code).toContain('import "node:fs";');
     expect(code).toContain("nitro4526marker");
     // ...while real call sites in the same chunks are still rewritten
-    expect(code).toContain('createRequire(import.meta.url || "file:///")');
+    // (Rspack calls namespace imports as `(0, ns.createRequire)(...)`)
+    expect(code).toMatch(/createRequire\)?\(import\.meta\.url \|\| "file:\/\/\/"\)/);
   });
 });
 

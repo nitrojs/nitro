@@ -453,6 +453,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/config\\/?$",
               },
               {
+                "dest": "/cjs-builtins",
+                "src": "^\\/cjs-builtins\\/?$",
+              },
+              {
                 "dest": "/build-plugins",
                 "src": "^\\/build-plugins\\/?$",
               },
@@ -798,6 +802,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/assets/all.func (symlink)",
             "functions/assets/md.func (symlink)",
             "functions/build-plugins.func (symlink)",
+            "functions/cjs-builtins.func (symlink)",
             "functions/config.func (symlink)",
             "functions/context.func (symlink)",
             "functions/embedded-kit.func (symlink)",

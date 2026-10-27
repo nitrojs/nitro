@@ -656,6 +656,14 @@ export function testNitro(
     });
   });
 
+  it.skipIf(ctx.isWorker || ctx.preset === "deno-server")(
+    "requires builtins from bundled CommonJS",
+    async () => {
+      const { data } = await callHandler({ url: "/cjs-builtins" });
+      expect(data).toBe("ok");
+    }
+  );
+
   it("externalizes a traced package's root export by its bare name", async () => {
     const { data } = await callHandler({ url: "/traced-root-export" });
     expect(data).toBe("@fixture/nitro-root-export");
@@ -1112,7 +1120,7 @@ export function testNitro(
       if (
         ctx.preset.includes("cloudflare") &&
         key.startsWith("globals:") &&
-        ctx.nitro!.options.builder === "rolldown"
+        (ctx.nitro!.options.builder === "rolldown" || ctx.nitro!.options.builder === "rspack")
       ) {
         continue;
       }

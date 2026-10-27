@@ -96,6 +96,7 @@
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-replace": "^6.0.3",
+    "@rspack/core": "^2.2.9",
     "@scalar/api-reference": "^1.76.0",
     "@scalar/openapi-types": "^0.9.8",
     "@types/aws-lambda": "^8.10.164",

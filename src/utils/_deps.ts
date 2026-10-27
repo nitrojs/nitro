@@ -38,6 +38,7 @@ export type DepId = keyof typeof deps;
 
 /** Module types of the manifest entries imported with `importDep` (inferred from the `id`). */
 export interface DepModules {
+  "@rspack/core": typeof import("@rspack/core");
   "@vercel/queue": typeof import("@vercel/queue");
   db0: typeof import("db0");
   rollup: typeof import("rollup");

@@ -30,7 +30,7 @@ import type { Nitro, NitroFrameworkInfo } from "./nitro.ts";
 import type { NitroOpenAPIConfig } from "./openapi.ts";
 export type { NitroOpenAPIConfig } from "./openapi.ts";
 import type { NitroPreset } from "./preset.ts";
-import type { NitroBuildPluginOption, OXCOptions, RolldownConfig } from "./build.ts";
+import type { NitroBuildPluginOption, OXCOptions, RolldownConfig, RspackConfig } from "./build.ts";
 import type { CommonJSOptions } from "./_bundler.ts";
 import type { RollupConfig } from "./build.ts";
 import type { NormalizedRouteRules, RouteRuleConfig } from "./route-rules.ts";
@@ -773,9 +773,11 @@ export interface NitroOptions extends PresetOptions {
    * Set to `false` to run the server sources without bundling (experimental, `dev` and
    * `preview` only).
    *
+   * `"rspack"` bundles the server with [Rspack](https://rspack.rs) (experimental).
+   *
    * @see https://nitro.build/config#builder
    */
-  builder?: "rollup" | "rolldown" | "vite" | false;
+  builder?: "rollup" | "rolldown" | "rspack" | "vite" | false;
 
   /**
    * Options for the `vite` builder and the `nitro/vite` plugin.
@@ -861,6 +863,13 @@ export interface NitroOptions extends PresetOptions {
    * @see https://nitro.build/config#rolldownconfig
    */
   rolldownConfig?: RolldownConfig;
+
+  /**
+   * Additional Rspack configuration (experimental `rspack` builder).
+   *
+   * @see https://nitro.build/config#rspackconfig
+   */
+  rspackConfig?: RspackConfig;
 
   /**
    * Bundler entry point path.

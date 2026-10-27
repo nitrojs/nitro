@@ -49,6 +49,17 @@ export { _require };
       );
     });
 
+    it("rewrites call sites through a `node:module` namespace import", async () => {
+      const input = `import * as m from "node:module";
+const a = m.createRequire(import.meta.url);
+const b = (0, m.createRequire)(import.meta.url);
+export { a, b };
+`;
+      const { output } = await renderChunk(input);
+      expect(output).toContain('const a = m.createRequire(import.meta.url || "file:///");');
+      expect(output).toContain('const b = (0, m.createRequire)(import.meta.url || "file:///");');
+    });
+
     it("does not rewrite string data, even after a regex literal", async () => {
       const input = `${REGEX_LITERALS}const kit = { "h3.mjs": "const _require = createRequire(import.meta.url);\\nexport default _require;" };
 export { kit, enc, esc, has };

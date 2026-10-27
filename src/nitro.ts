@@ -92,10 +92,16 @@ function callRollupBeforeHooks(nitro: Nitro, config: NitroBuildConfig) {
       if (fns.length === 0) {
         return;
       }
+      if (config.builder === "rspack") {
+        nitro.logger.warn(
+          "The deprecated `rollup:before` hook is not called with the `rspack` builder. Use `build:config` instead."
+        );
+        return;
+      }
       if (!_rollupBeforeWarned) {
         _rollupBeforeWarned = true;
         nitro.logger.warn(
-          "The `rollup:before` hook is deprecated. Use `build:config` instead (the config is passed as `{ rollup }` or `{ rolldown }`)."
+          "The `rollup:before` hook is deprecated. Use `build:config` instead (the config is passed as `{ rollup }`, `{ rolldown }` or `{ rspack }`)."
         );
       }
       for (const fn of fns) {

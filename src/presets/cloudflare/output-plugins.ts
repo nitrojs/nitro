@@ -86,6 +86,8 @@ function collectEdits(program: ESTree.Program): Edit[] {
   // Minifiers rename the imported binding, so call sites are matched against it
   // rather than against the `createRequire` name alone.
   const createRequireNames = new Set<string>(["createRequire"]);
+  // Namespace imports of `node:module` (e.g. Rspack externals): `ns.createRequire(...)`
+  const moduleNamespaces = new Set<string>();
   for (const node of program.body) {
     if (node.type !== "ImportDeclaration") {
       continue;
@@ -97,6 +99,11 @@ function collectEdits(program: ESTree.Program): Edit[] {
     for (const specifier of node.specifiers) {
       if (specifier.type === "ImportSpecifier" && importedName(specifier) === "createRequire") {
         createRequireNames.add(specifier.local.name);
+      } else if (
+        specifier.type === "ImportNamespaceSpecifier" &&
+        /^(node:)?module$/.test(node.source.value)
+      ) {
+        moduleNamespaces.add(specifier.local.name);
       }
     }
   }
@@ -107,8 +114,7 @@ function collectEdits(program: ESTree.Program): Edit[] {
     }
     const arg = node.arguments[0];
     if (
-      node.callee.type === "Identifier" &&
-      createRequireNames.has(node.callee.name) &&
+      isCreateRequire(node.callee, createRequireNames, moduleNamespaces) &&
       node.arguments.length === 1 &&
       arg &&
       isImportMetaURL(arg)
@@ -118,6 +124,31 @@ function collectEdits(program: ESTree.Program): Edit[] {
   });
 
   return edits;
+}
+
+// `createRequire`, `ns.createRequire` and `(0, ns.createRequire)`
+function isCreateRequire(
+  callee: ESTree.Node,
+  names: Set<string>,
+  namespaces: Set<string>
+): boolean {
+  if (callee.type === "ParenthesizedExpression") {
+    return isCreateRequire(callee.expression, names, namespaces);
+  }
+  if (callee.type === "SequenceExpression") {
+    return isCreateRequire(callee.expressions.at(-1)!, names, namespaces);
+  }
+  if (callee.type === "Identifier") {
+    return names.has(callee.name);
+  }
+  return (
+    callee.type === "MemberExpression" &&
+    !callee.computed &&
+    callee.object.type === "Identifier" &&
+    namespaces.has(callee.object.name) &&
+    callee.property.type === "Identifier" &&
+    callee.property.name === "createRequire"
+  );
 }
 
 function importedName(specifier: ESTree.ImportSpecifier): string {
