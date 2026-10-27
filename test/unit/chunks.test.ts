@@ -208,6 +208,24 @@ describe("getChunkName", () => {
     ).toBe(expected);
   });
 
+  it("matches Windows module paths with handlers", () => {
+    const n = createNitro({
+      options: {
+        buildDir: "C:/app/.nitro",
+        tasks: { "db:migrate": { handler: "C:/app/tasks/migrate.ts" } },
+      },
+      routing: {
+        routes: {
+          routes: [{ data: [{ route: "/api/hello", handler: "C:/app/routes/api/hello.ts" }] }],
+        },
+      },
+    } as any);
+    const chunkName = (id: string) => getChunkName(createChunk("chunk", [id]), n);
+    expect(chunkName(String.raw`C:\app\routes\api\hello.ts`)).toBe("_routes/api/hello.mjs");
+    expect(chunkName(String.raw`C:\app\tasks\migrate.ts`)).toBe("_tasks/[name].mjs");
+    expect(chunkName(String.raw`C:\app\.nitro\generated.mjs`)).toBe("_build/[name].mjs");
+  });
+
   it("returns _routes/index.mjs for root route", () => {
     const n = createNitro({
       routing: {

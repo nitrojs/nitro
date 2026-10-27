@@ -1,4 +1,5 @@
 import type { Nitro } from "nitro/types";
+import { isAbsolute, normalize } from "pathe";
 
 // Tests in @test/unit/chunks.test.ts
 
@@ -56,7 +57,10 @@ export function getChunkName(chunk: { name: string; moduleIds: string[] }, nitro
     return `_chunks/${chunk.name}.mjs`;
   }
 
-  const ids = chunk.moduleIds.filter((id) => !virtualRe.test(id));
+  // Module paths have `\` separators on Windows, unlike Nitro's handler paths
+  const ids = chunk.moduleIds
+    .filter((id) => !virtualRe.test(id))
+    .map((id) => (isAbsolute(id) ? normalize(id) : id));
 
   // All virtual
   if (ids.length === 0) {
