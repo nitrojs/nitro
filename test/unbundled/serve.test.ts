@@ -29,11 +29,23 @@ describe("nitro serve runner", () => {
       expect(await text("/")).toBe("Served __PLUGIN__");
     });
   });
+
+  it("applies the env name and its overrides", async () => {
+    await serveApp({ envName: "staging" }, async ({ fetch }) => {
+      const res = await fetch("/env");
+      expect(await res.text()).toBe("staging");
+      expect(res.headers.get("x-env")).toBe("staging");
+    });
+  });
 });
 
 async function serveApp(
-  opts: { buildPlugins?: boolean },
-  fn: (ctx: { runner: unknown; text: (path: string) => Promise<string> }) => Promise<void>
+  opts: { buildPlugins?: boolean; envName?: string },
+  fn: (ctx: {
+    runner: unknown;
+    text: (path: string) => Promise<string>;
+    fetch: (path: string) => Promise<Response>;
+  }) => Promise<void>
 ) {
   const dir = await mkdtemp(join(tmpdir(), "nitro-serve-"));
   const plugin = /* js */ `{
@@ -42,23 +54,27 @@ async function serveApp(
   }`;
   await writeFile(
     join(dir, "nitro.config.mjs"),
-    `export default { serverDir: "./", buildPlugins: [${opts.buildPlugins ? plugin : ""}] };`
+    `export default { serverDir: "./", buildPlugins: [${opts.buildPlugins ? plugin : ""}], $env: { staging: { routeRules: { "/env": { headers: { "x-env": "staging" } } } } } };`
   );
   await mkdir(join(dir, "routes"));
   await writeFile(join(dir, "routes/index.ts"), `export default () => "Served __PLUGIN__";`);
+  await writeFile(join(dir, "routes/env.ts"), `export default () => import.meta.envName;`);
   await mkdir(join(dir, "public"));
   await writeFile(join(dir, "public/hello.txt"), "static asset");
   const server = await startUnbundledServer({
     rootDir: dir,
+    envName: opts.envName,
     listen: { port: 0, hostname: "127.0.0.1" },
   });
   try {
     const { host, port } = server.runner.address!;
     // `port: 0` listens on a random port, not on the 3000 default
     expect(port).not.toBe(3000);
+    const _fetch = (path: string) => fetch(`http://${host}:${port}${path}`);
     await fn({
       runner: server.runner,
-      text: (path) => fetch(`http://${host}:${port}${path}`).then((res) => res.text()),
+      fetch: _fetch,
+      text: (path) => _fetch(path).then((res) => res.text()),
     });
   } finally {
     await server.close();

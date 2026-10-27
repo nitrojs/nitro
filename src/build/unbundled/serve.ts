@@ -18,6 +18,8 @@ let selfRunnerUsed = false;
 
 export interface UnbundledServerOptions {
   rootDir: string;
+  /** Environment name used to apply `$env.<name>` config overrides (default: `production`). */
+  envName?: string;
   /** Public address the worker listens on. */
   listen?: ListenOptions;
   /** Called when the worker closes, also when it crashes. */
@@ -43,7 +45,7 @@ export interface UnbundledServer {
 export async function startUnbundledServer(opts: UnbundledServerOptions): Promise<UnbundledServer> {
   const nitro = await createNitro(
     { rootDir: opts.rootDir, dev: false, preset: "nitro-serve", builder: false },
-    { dotenv: serveDotenv }
+    { dotenv: serveDotenv, c12: { envName: opts.envName } }
   );
   let runner: EnvRunner | undefined;
   let closeCause: unknown;

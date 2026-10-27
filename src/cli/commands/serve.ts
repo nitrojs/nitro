@@ -16,12 +16,23 @@ export default defineCommand({
     port: { type: "string", description: "specify port" },
     host: { type: "string", description: "specify hostname" },
     dev: { type: "boolean", description: "start in development mode (with hot reloading)" },
+    envName: {
+      type: "string",
+      description:
+        "The environment name used to apply `$env.<name>` config overrides and exposed as `import.meta.envName` (default: `production`, or `development` with `--dev`).",
+    },
   },
   async run({ args }) {
     const rootDir = resolve((args.dir || args._dir || ".") as string);
 
     if (args.dev) {
-      await runDev({ rootDir, port: args.port, host: args.host, config: { builder: false } });
+      await runDev({
+        rootDir,
+        port: args.port,
+        host: args.host,
+        envName: args.envName,
+        config: { builder: false },
+      });
       return;
     }
 
@@ -29,6 +40,7 @@ export default defineCommand({
     let closing = false;
     const server = await startUnbundledServer({
       rootDir,
+      envName: args.envName,
       listen: {
         port: args.port,
         hostname: args.host,
