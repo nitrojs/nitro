@@ -176,7 +176,10 @@ describe("rspack: chunk file names", () => {
     const serverDir = nitro.options.output.serverDir;
     const read = (file: string) => readFile(join(serverDir, file), "utf8");
     // `[id]` is a placeholder of Rspack file names
-    await expect(read("_routes/users/_id_/profile.mjs")).resolves.toContain("import(");
+    const profile = await read("_routes/users/_id_/profile.mjs");
+    expect(profile).toContain("import(");
+    // Production chunk ids are not derived from module paths
+    expect(profile).not.toMatch(/utils_ts/);
     const utils = await Promise.all([read("_chunks/utils.mjs"), read("_chunks/utils2.mjs")]);
     expect(utils.join()).toMatch(/"a"[\s\S]*"b"|"b"[\s\S]*"a"/);
   });

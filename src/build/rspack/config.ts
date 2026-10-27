@@ -132,7 +132,8 @@ export async function getRspackConfig(
       minimize: !!nitro.options.minify,
       nodeEnv: false,
       splitChunks: asyncChunks && chunkNames.splitChunks(chunkFilename),
-      chunkIds: "named",
+      // Readable ids in development, without module paths in production builds
+      chunkIds: nitro.options.dev ? "named" : "deterministic",
     },
     output: {
       path: nitro.options.output.serverDir,
