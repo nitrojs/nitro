@@ -656,13 +656,14 @@ export function testNitro(
     });
   });
 
-  it.skipIf(ctx.isWorker || ctx.preset === "deno-server")(
-    "requires builtins from bundled CommonJS",
-    async () => {
-      const { data } = await callHandler({ url: "/cjs-builtins" });
-      expect(data).toBe("ok");
-    }
-  );
+  // Rolldown keeps `require()` calls, and workerd's `require()` returns the namespace of builtins
+  it.skipIf(
+    ctx.preset === "deno-server" ||
+      (ctx.isWorker && !["rollup", "rspack"].includes(ctx.nitro!.options.builder as string))
+  )("requires builtins from bundled CommonJS", async () => {
+    const { data } = await callHandler({ url: "/cjs-builtins" });
+    expect(data).toBe("ok");
+  });
 
   it("externalizes a traced package's root export by its bare name", async () => {
     const { data } = await callHandler({ url: "/traced-root-export" });

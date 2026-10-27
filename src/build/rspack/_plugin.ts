@@ -103,7 +103,7 @@ export class RollupPluginsHost implements RspackPluginInstance {
   }
 
   /** `externals` function: externals resolved by the build plugins. */
-  async externals(data: ExternalItemFunctionData): Promise<string | undefined> {
+  async externals(data: ExternalItemFunctionData): Promise<string | string[] | undefined> {
     const { request, dependencyType, contextInfo } = data;
     if (!request || request.includes("!")) {
       return;
@@ -122,8 +122,14 @@ export class RollupPluginsHost implements RspackPluginInstance {
         : await this.unresolvedExternal(request, contextInfo?.issuer);
     }
     // `require()` from bundled CommonJS gets `module.exports` (not the namespace) with Node.js
-    if (id && kind === "require-call" && this.host.nitro.options.node) {
-      return `node-commonjs ${id.startsWith("file:") ? fileURLToPath(id) : id}`;
+    if (id && kind === "require-call") {
+      if (this.host.nitro.options.node) {
+        return `node-commonjs ${id.startsWith("file:") ? fileURLToPath(id) : id}`;
+      }
+      // Externals are ES modules: the default export of a builtin is its `module.exports`
+      if (id.startsWith("node:")) {
+        return [id, "default"];
+      }
     }
     return id;
   }
