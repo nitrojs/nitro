@@ -8,6 +8,9 @@ import * as rspack from "@rspack/core";
 import { build, createNitro, prepare } from "../../src/builder.ts";
 import { getRspackConfig } from "../../src/build/rspack/config.ts";
 
+// Real Rspack builds, run by the `rspack` CI job (not by `pnpm test`)
+const isRspack = process.env.NITRO_BUILDER === "rspack";
+
 const tmpDirs: string[] = [];
 afterAll(() => {
   for (const dir of tmpDirs) {
@@ -41,7 +44,7 @@ async function rspackConfig(config: NitroConfig) {
   return { config: result, warnings: warn.mock.calls.map((call) => String(call[0])) };
 }
 
-describe("rspack: rollupConfig options", () => {
+describe.skipIf(!isRspack)("rspack: rollupConfig options", () => {
   it("maps output file names, code splitting and source map options", async () => {
     const { config, warnings } = await rspackConfig({
       sourcemap: true,
@@ -152,7 +155,7 @@ describe("rspack: rollupConfig options", () => {
   });
 });
 
-describe("rspack: chunk file names", () => {
+describe.skipIf(!isRspack)("rspack: chunk file names", () => {
   it("names chunks like the other builders, without overwriting files", async () => {
     const rootDir = createApp({
       "profile.ts": `export default () => Promise.all([import("./a/utils.ts"), import("./b/utils.ts")]).then((m) => m.map((m) => m.default).join());`,

@@ -158,6 +158,8 @@ jobs:
             env: { NITRO_BUILDER: rspack, NITRO_VITE_PKG: vite }
           - run: pnpm vitest run test/presets
             env: { NITRO_BUILDER: rspack, NITRO_VITE_PKG: vite }
+          - run: pnpm vitest run test/unit/rspack- test/unit/dev-route-reload
+            env: { NITRO_BUILDER: rspack }
 
   publish-pkg-pr-new:
     runs-on: ubuntu-latest

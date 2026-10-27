@@ -11,7 +11,9 @@ afterAll(() => {
   }
 });
 
-describe.each(["rspack", "rolldown"] as const)("dev route reload (%s)", (builder) => {
+const builders = [process.env.NITRO_BUILDER === "rspack" ? "rspack" : "rolldown"] as const;
+
+describe.each(builders)("dev route reload (%s)", (builder) => {
   it("serves added routes and stops serving removed ones", async () => {
     const rootDir = mkdtempSync(join(tmpdir(), "nitro-dev-route-reload-"));
     tmpDirs.push(rootDir);
