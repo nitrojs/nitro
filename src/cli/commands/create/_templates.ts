@@ -57,6 +57,23 @@ button.addEventListener("click", async () => {
     files: { "index.html": serverIndexHTML() },
   },
   {
+    name: "rspack",
+    title: "Rspack",
+    description: "API server, bundled for production with Rspack, experimental",
+    scripts: { dev: "nitro dev", build: "nitro build", preview: "nitro preview" },
+    devDependencies: { "@rspack/core": deps["@rspack/core"].version },
+    files: {
+      "nitro.config.ts": `import { defineConfig } from "nitro";
+
+export default defineConfig({
+  serverDir: "./server",
+  builder: "rspack",
+});
+`,
+      "index.html": serverIndexHTML(),
+    },
+  },
+  {
     name: "runtime",
     title: "Runtime",
     description: "API server without a build step, experimental",
