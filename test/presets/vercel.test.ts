@@ -5,7 +5,8 @@ import { resolve, join, basename } from "pathe";
 import { joinURL } from "ufo";
 import { routeToRegExp } from "rou3";
 import { describe, expect, it, vi, beforeAll, afterAll } from "vitest";
-import { setupTest, testNitro, fixtureDir } from "../tests.ts";
+import { isBun } from "std-env";
+import { describeIf, setupTest, testNitro, fixtureDir } from "../tests.ts";
 import { toFetchHandler } from "srvx/node";
 
 const presetFixturesDir = resolve(import.meta.dirname, "fixtures");
@@ -16,7 +17,8 @@ const VERCEL_REQUEST_CONTEXT = Symbol.for("@vercel/request-context");
 // (its setup/build is shared across assertions) over adding new top-level
 // `describe` blocks, which trigger a separate build and slow down CI.
 
-describe("nitro:preset:vercel:web", async () => {
+// The crossws Node.js adapter throws on Bun: https://github.com/h3js/crossws/issues/220
+describeIf(!isBun, "nitro:preset:vercel:web", async () => {
   const TEST_HASH_SALT = "initial";
 
   // Example salt used to exercise `VERCEL_HASH_SALT` namespacing of immutable
@@ -954,7 +956,7 @@ describe("nitro:preset:vercel:web", async () => {
   );
 });
 
-describe("nitro:preset:vercel:node", async () => {
+describeIf(!isBun, "nitro:preset:vercel:node", async () => {
   const ctx = await setupTest("vercel", {
     outDirSuffix: "-node",
     config: {

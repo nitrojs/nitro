@@ -2,11 +2,14 @@ import { existsSync } from "node:fs";
 import { execa } from "execa";
 import { getRandomPort, waitForPort } from "get-port-please";
 import { resolve } from "pathe";
-import { isWindows } from "std-env";
+import { isBun, isWindows } from "std-env";
 import { describe, expect, it } from "vitest";
 import { setupTest, startServer, testNitro } from "../tests.ts";
 import { testCloseHook } from "./_close-hook.ts";
 import { testUnixSocket } from "./_unix-socket.ts";
+
+// Tests spawning the output are skipped on Bun: under `bun --bun`, `node` resolves to Bun,
+// where the crossws Node.js adapter throws (https://github.com/h3js/crossws/issues/220)
 
 const presetFixturesDir = resolve(import.meta.dirname, "fixtures");
 
@@ -60,7 +63,8 @@ describe("nitro:preset:node-server", async () => {
     },
   });
 
-  it("passes server entry options to srvx", async () => {
+  it("passes server entry options to srvx", async ({ skip }) => {
+    skip(isBun);
     const port = await getRandomPort();
     const child = execa(process.execPath, [resolve(ctx.outDir, "server/index.mjs")], {
       env: { NITRO_PORT: String(port), NITRO_HOST: "127.0.0.1" },
@@ -83,7 +87,7 @@ describe("nitro:preset:node-server", async () => {
   }, 40_000);
 
   // #3925: browsers fail the handshake unless the server accepts one of the offered subprotocols
-  it.skipIf(typeof WebSocket !== "function")(
+  it.skipIf(isBun || typeof WebSocket !== "function")(
     "negotiates WebSocket subprotocols",
     async () => {
       const port = await getRandomPort();
@@ -108,9 +112,10 @@ describe("nitro:preset:node-server", async () => {
     40_000
   );
 
-  testCloseHook(ctx, { command: process.execPath, args: (entry) => [entry] });
-
-  testUnixSocket(ctx, { command: process.execPath, args: (entry) => [entry] });
+  if (!isBun) {
+    testCloseHook(ctx, { command: process.execPath, args: (entry) => [entry] });
+    testUnixSocket(ctx, { command: process.execPath, args: (entry) => [entry] });
+  }
 });
 
 describe("nitro:preset:node-cluster", async () => {
@@ -125,7 +130,7 @@ describe("nitro:preset:node-cluster", async () => {
     exitCode: 0,
   });
 
-  it.skipIf(isWindows)(
+  it.skipIf(isWindows || isBun)(
     "exits non-zero when all workers exit unexpectedly",
     async () => {
       const port = await getRandomPort();

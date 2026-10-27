@@ -141,7 +141,7 @@ describe("ensureDep", () => {
     await ensureDep(missingDep);
     expect(addDevDependency).toHaveBeenCalledWith(missingDep.id, {
       cwd: missingDep.dir,
-      packageManager: "npm",
+      packageManager: process.versions.bun ? "bun" : "npm",
       env: installEnv,
     });
   });

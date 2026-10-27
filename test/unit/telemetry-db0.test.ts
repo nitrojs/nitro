@@ -26,6 +26,7 @@ const SECRET = "s3cr3t-user-input";
 
 // db0 (<=0.4.1) only traces when `TracingChannel#hasSubscribers` is truthy, a
 // getter Bun does not implement, so queries are never traced on Bun.
+// https://github.com/unjs/db0/issues/266
 const itTraced = it.skipIf(isBun);
 
 const spans: SpanInfo[] = [];
