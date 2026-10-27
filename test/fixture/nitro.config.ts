@@ -68,11 +68,12 @@ export default defineConfig({
         },
       },
       renderChunk(code: string, _chunk: unknown, outputOpts: { sourcemap?: unknown }) {
-        const lineStart = code.lastIndexOf("\n", code.indexOf("testing error")) + 1;
-        if (!outputOpts.sourcemap || lineStart === 0) {
+        // Only on the unminified line (a minified one may start inside a template literal)
+        const line = /\n[ \t]*stack: new Error\(["']testing error/.exec(code);
+        if (!outputOpts.sourcemap || !line) {
           return;
         }
-        const s = new MagicString(code).appendLeft(lineStart, "\n".repeat(5));
+        const s = new MagicString(code).appendLeft(line.index + 1, "\n".repeat(5));
         return { code: s.toString(), map: s.generateMap({ hires: true }) };
       },
     },
