@@ -16,7 +16,7 @@ import {
 } from "nitro/builder";
 import type { Nitro, NitroConfig } from "nitro/types";
 import { join, resolve } from "pathe";
-import { isWindows } from "std-env";
+import { isBun, isWindows } from "std-env";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 export interface Context {
@@ -859,11 +859,13 @@ export function testNitro(
         const res = await callHandler({ url: `/errors/throw?handled&action=${errorAction}` });
         expect(res).toMatchObject({
           status: 503,
-          statusText: /deno|bun/.test(ctx.preset)
-            ? "Service Unavailable"
-            : /aws/.test(ctx.preset)
-              ? ""
-              : "Custom Status Text",
+          // Bun.serve (also behind the dev server on Bun) drops custom status text: https://github.com/oven-sh/bun/issues/13817
+          statusText:
+            /deno|bun/.test(ctx.preset) || (ctx.isDev && isBun)
+              ? "Service Unavailable"
+              : /aws/.test(ctx.preset)
+                ? ""
+                : "Custom Status Text",
           headers: {
             "content-type": "application/json; charset=utf-8",
             "x-custom-error": "custom-value",
