@@ -53,9 +53,7 @@ export class RollupPluginsHost implements RspackPluginInstance {
   constructor(nitro: Nitro, plugins: Plugin[], opts: { externals?: string[] } = {}) {
     this.id = String(nextId++);
     hosts.set(this.id, this);
-    nitro.hooks.hookOnce("close", () => {
-      hosts.delete(this.id);
-    });
+    nitro.hooks.hookOnce("close", () => this.release());
     this.virtual = new VirtualPlaceholders(join(nitro.options.buildDir, "rspack/virtual"));
     this.host = new PluginHost(nitro, plugins, {
       resolve: (source, importer, kind) => this.resolver.resolveWithRspack(source, importer, kind),
@@ -78,6 +76,8 @@ export class RollupPluginsHost implements RspackPluginInstance {
   }
 
   apply(compiler: Compiler) {
+    hosts.set(this.id, this);
+    compiler.hooks.shutdown.tap(NAME, () => this.release());
     compiler.hooks.beforeCompile.tapPromise(NAME, () => {
       this.assetsCompilation = undefined;
       this.assetsWritten = false;
@@ -171,6 +171,14 @@ export class RollupPluginsHost implements RspackPluginInstance {
       code: transformed,
       map: chainSourceMaps(sources, { name: loader.resourcePath, map, steps: maps }),
     };
+  }
+
+  /** Unregisters this instance and drops the last compilation (once the compiler is closed). */
+  release() {
+    hosts.delete(this.id);
+    this.compilation = undefined;
+    this.assetsCompilation = undefined;
+    this.resolver.clear();
   }
 
   /** Emits an asset to the compilation processing its assets (or to the next one). */

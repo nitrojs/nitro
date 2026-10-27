@@ -75,7 +75,10 @@ describe("rspack: plugins host", () => {
         );
       },
     };
-    await build(dir, plugin);
+    const pluginsHost = await build(dir, plugin);
+    // Released once the compiler is closed (the loader finds hosts in a global map)
+    expect((globalThis as any).__nitro_rspack_hosts__.has(pluginsHost.id)).toBe(false);
+    expect(pluginsHost.compilation).toBeUndefined();
 
     expect(results.index).toMatchObject({
       id: id("index.mjs"),
@@ -189,4 +192,5 @@ async function build(dir: string, plugin: Plugin) {
   } finally {
     await new Promise((resolve) => compiler.close(resolve));
   }
+  return pluginsHost;
 }
