@@ -1,4 +1,6 @@
 import type { Plugin } from "rollup";
+import picomatch from "picomatch";
+import { isAbsolute, resolve } from "pathe";
 
 const HOOK_ORDER = { pre: 0, post: 2 } as Record<string, number>;
 
@@ -54,34 +56,47 @@ export function isUnsupportedHook(key: string) {
 
 // Rollup hook filters (`{ id, code }`), see https://rollupjs.org/plugin-development/#hook-filters
 
-type Pattern = string | RegExp | readonly (string | RegExp)[];
+export type Pattern = string | RegExp | readonly (string | RegExp)[];
 
-export function matchFilter(
-  filter: Pattern | { include?: Pattern; exclude?: Pattern } | undefined,
-  value: string,
-  contains?: boolean
-): boolean {
+export type Filter = Pattern | { include?: Pattern; exclude?: Pattern } | undefined;
+
+export function matchFilter(filter: Filter, value: string, code?: boolean): boolean {
   if (!filter) {
     return true;
   }
+  if (!code) {
+    value = value.replace(/\\/g, "/");
+  }
   if (typeof filter === "string" || filter instanceof RegExp || Array.isArray(filter)) {
-    return matchPattern(filter as Pattern, value, contains);
+    return matchPattern(filter as Pattern, value, code);
   }
   const { include, exclude } = filter as { include?: Pattern; exclude?: Pattern };
-  if (exclude && matchPattern(exclude, value, contains)) {
+  if (exclude && matchPattern(exclude, value, code)) {
     return false;
   }
-  return include ? matchPattern(include, value, contains) : true;
+  return include ? matchPattern(include, value, code) : true;
 }
 
-// String patterns match ids exactly (no globs) and are searched in code
-function matchPattern(pattern: Pattern, value: string, contains?: boolean): boolean {
+// Like Rollup, `id` strings are globs (relative to the working directory) and `code` strings are searched
+function matchPattern(pattern: Pattern, value: string, code?: boolean): boolean {
   if (Array.isArray(pattern)) {
-    return pattern.some((p) => matchPattern(p, value, contains));
+    return pattern.some((p) => matchPattern(p, value, code));
   }
   if (pattern instanceof RegExp) {
     pattern.lastIndex = 0;
     return pattern.test(value);
   }
-  return contains ? value.includes(pattern as string) : pattern === value;
+  return code ? value.includes(pattern as string) : globMatcher(pattern as string)(value);
+}
+
+const globMatchers = new Map<string, (id: string) => boolean>();
+
+function globMatcher(glob: string) {
+  let matcher = globMatchers.get(glob);
+  if (!matcher) {
+    const pattern = glob.startsWith("**") || isAbsolute(glob) ? glob : resolve(glob);
+    matcher = picomatch(pattern.replace(/\\/g, "/"), { dot: true });
+    globMatchers.set(glob, matcher);
+  }
+  return matcher;
 }
