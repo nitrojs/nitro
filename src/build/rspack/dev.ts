@@ -5,6 +5,8 @@ import { debounce } from "perfect-debounce";
 import { scanHandlers } from "../../scan.ts";
 import { createWatcher } from "../../utils/watch.ts";
 import { formatCompatibilityDate } from "compatx";
+import { isWindows } from "std-env";
+import { pathRegExp } from "../../utils/regex.ts";
 import { RollupPluginsHost } from "./_plugin.ts";
 
 export async function watchDev(
@@ -112,7 +114,10 @@ export async function watchDev(
       return;
     }
     stale = false;
-    const virtualFiles = pluginsHost?.virtual.ids.keys() || [];
+    // Placeholder paths use `/`, Rspack may track them with native separators on Windows
+    const virtualFiles = [...(pluginsHost?.virtual.ids.keys() || [])].flatMap((file) =>
+      isWindows ? [file, file.replace(/\//g, "\\")] : [file]
+    );
     compiler.modifiedFiles = new Set([...(compiler.modifiedFiles || []), ...virtualFiles]);
   }
 
@@ -127,7 +132,12 @@ export async function watchDev(
     });
 
     return compiler.watch(
-      { aggregateTimeout: 100, ignored: ["**/node_modules/**", nitro.options.output.dir] },
+      {
+        aggregateTimeout: 100,
+        ignored: new RegExp(
+          String.raw`[/\\]node_modules[/\\]|^${pathRegExp(nitro.options.output.dir.replace(/[/\\]+$/, ""))}(?:[/\\]|$)`
+        ),
+      },
       (error, stats) => {
         if (error || stats?.hasErrors()) {
           const buildError = error || new Error(stats!.toString("errors-only"));
