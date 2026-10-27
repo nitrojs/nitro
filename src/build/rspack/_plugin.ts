@@ -7,6 +7,7 @@ import type {
 } from "@rspack/core";
 import type { Nitro } from "nitro/types";
 import type { Plugin } from "rollup";
+import { builtinModules } from "node:module";
 import { fileURLToPath } from "node:url";
 import { dirname, isAbsolute, join } from "pathe";
 import { runtimeDir } from "#nitro/meta";
@@ -110,7 +111,8 @@ export class RollupPluginsHost implements RspackPluginInstance {
     const kind: ImportKind = dependencyType === "commonjs" ? "require-call" : "import-statement";
     let id: string | undefined;
     if (this.staticExternals.has(request)) {
-      id = request;
+      // Like the externals plugin (workerd only resolves builtins by their `node:` id)
+      id = isBareBuiltin(request) ? `node:${request}` : request;
     } else {
       const resolved = await this.resolve(request, contextInfo?.issuer, kind);
       id = resolved
@@ -223,4 +225,8 @@ export class RollupPluginsHost implements RspackPluginInstance {
       }
     }
   }
+}
+
+function isBareBuiltin(id: string) {
+  return !id.startsWith("node:") && builtinModules.includes(id);
 }
