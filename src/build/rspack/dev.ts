@@ -131,11 +131,14 @@ export async function watchDev(
       await invalidateVirtual(compiler);
     });
 
+    // Virtual module placeholders are marked as modified by `invalidateVirtual`
+    const ignoredDirs = [nitro.options.output.dir, pluginsHost?.virtual.dir]
+      .filter((dir) => dir !== undefined)
+      .map((dir) => pathRegExp(dir.replace(/[/\\]+$/, "")));
     return compiler.watch(
       {
-        aggregateTimeout: 100,
         ignored: new RegExp(
-          String.raw`[/\\]node_modules[/\\]|^${pathRegExp(nitro.options.output.dir.replace(/[/\\]+$/, ""))}(?:[/\\]|$)`
+          String.raw`[/\\]node_modules[/\\]|^(?:${ignoredDirs.join("|")})(?:[/\\]|$)`
         ),
       },
       (error, stats) => {
