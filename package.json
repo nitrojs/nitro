@@ -73,7 +73,7 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "crossws": "^0.4.16",
+    "crossws": "^0.4.17",
     "env-runner": "^0.3.10",
     "h3": "^2.0.8",
     "ocache": "^0.3.1",
@@ -107,7 +107,7 @@
     "@vercel/queue": "^0.10.0",
     "@vitest/coverage-v8": "^5.0.5",
     "automd": "^0.4.3",
-    "c12": "4.0.0-rc.3",
+    "c12": "4.0.0-rc.4",
     "changelogen": "^0.6.2",
     "chokidar": "^6.0.0",
     "citty": "^0.2.2",
