@@ -10,7 +10,7 @@ import { baseBuildPlugins, flatPlugins, withBuildPlugins } from "../plugins.ts";
 import { LOADER_PATH, RollupPluginsHost } from "./_plugin.ts";
 import { loaderRule } from "./_filters.ts";
 import { moduleFilenameTemplate } from "./_sourcemap.ts";
-import { externalsMatcher, rollupOptions } from "./_rollup.ts";
+import { rollupOptions } from "./_rollup.ts";
 import { ChunkNames } from "./_chunks.ts";
 
 export async function getRspackConfig(
@@ -21,10 +21,11 @@ export async function getRspackConfig(
 
   const tsc = nitro.options.typescript.tsConfig?.compilerOptions;
 
-  // Covered by Rspack itself: `devtool` excludes source contents, WASM has a native Rspack plugin
-  // and Rspack emits the files referenced with `new URL(..., import.meta.url)` itself
+  // Covered by Rspack itself: `devtool` excludes source contents, WASM has a native Rspack plugin,
+  // Rspack emits the files referenced with `new URL(..., import.meta.url)` itself and the server
+  // main banner is added natively (no `renderChunk` round trip of the entry chunk)
   const plugins = (await baseBuildPlugins(nitro, base)).filter(
-    (plugin) => !/^(nitro:sourcemap|unwasm)/.test(plugin.name)
+    (plugin) => !/^(nitro:sourcemap|nitro:server-main|unwasm)/.test(plugin.name)
   );
   // Presets (and users) configure output options and plugins with `rollupConfig`
   const rollup = rollupOptions(nitro, rspack);
@@ -41,7 +42,7 @@ export async function getRspackConfig(
   const pluginsHost = new RollupPluginsHost(
     nitro,
     [...rollupConfigPlugins, ...(await withBuildPlugins(nitro, plugins))] as Plugin[],
-    { externals: [...base.env.external, ...builtins] }
+    { externals: [...base.env.external, ...builtins], isExternal: rollup.isExternal }
   );
 
   const entryFileName = rollup.entryFileName || "index.mjs";
@@ -89,11 +90,7 @@ export async function getRspackConfig(
     performance: false,
     node: nitro.options.node ? { __dirname: "node-module", __filename: "node-module" } : false,
     externalsType: "module-import",
-    externals: [
-      rollup.isExternal &&
-        externalsMatcher(nitro, rollup.isExternal, (issuer) => pluginsHost.virtual.toId(issuer)),
-      (data: ExternalItemFunctionData) => pluginsHost.externals(data),
-    ].filter((external) => !!external),
+    externals: [(data: ExternalItemFunctionData) => pluginsHost.externals(data)],
     resolve: {
       alias: base.aliases,
       extensions: base.extensions,
@@ -112,7 +109,6 @@ export async function getRspackConfig(
         loaderRule({
           test: /\.[cm]?[jt]sx?$/,
           loader: LOADER_PATH,
-          options: pluginsHost.loaderOptions,
           virtualDir: pluginsHost.virtual.dir,
           hooks: pluginsHost.host.hooks,
           rspackVersion: rspack.rspackVersion,
@@ -123,6 +119,12 @@ export async function getRspackConfig(
     plugins: [
       pluginsHost,
       chunkNames,
+      new rspack.BannerPlugin({
+        banner: "globalThis.__nitro_main__ = import.meta.url;",
+        raw: true,
+        entryOnly: true,
+        test: /\.m?js$/,
+      }),
       nitro.options.wasm !== false && unwasmRspack(nitro.options.wasm || {}),
       Object.keys(base.env.inject).length > 0 &&
         new rspack.ProvidePlugin(base.env.inject as Record<string, string | string[]>),

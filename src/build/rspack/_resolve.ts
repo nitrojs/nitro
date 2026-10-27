@@ -24,6 +24,8 @@ export interface ModuleResolverOptions {
   compilation: () => Compilation | undefined;
   /** Externals that are not resolved (builtins and `external` of the preset). */
   externals?: string[];
+  /** `external` option of `rollupConfig` (matched before the request is resolved). */
+  isExternal?: (source: string, importer: string | undefined) => Promise<boolean>;
 }
 
 /** Resolution of the build plugins (`resolveId`) and externals, cached per compilation. */
@@ -57,6 +59,14 @@ export class ModuleResolver {
     if (this.staticExternals.has(request)) {
       // Like the externals plugin (workerd only resolves builtins by their `node:` id)
       id = isBareBuiltin(request) ? `node:${request}` : request;
+    } else if (
+      this.opts.isExternal &&
+      (await this.opts.isExternal(
+        request,
+        contextInfo?.issuer ? this.opts.virtual.toId(contextInfo.issuer) : undefined
+      ))
+    ) {
+      id = request;
     } else {
       const resolved = await this.resolve(request, contextInfo?.issuer, kind);
       id = resolved

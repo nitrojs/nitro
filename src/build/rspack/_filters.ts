@@ -15,12 +15,11 @@ import { escapeRegExp } from "../../utils/regex.ts";
 export function loaderRule(opts: {
   test: RegExp;
   loader: string;
-  options: Record<string, unknown>;
   virtualDir: string;
   hooks: { load: Hook[]; transform: Hook[] };
   rspackVersion: string;
 }): RuleSetRule {
-  const use: RuleSetUseItem = { loader: opts.loader, options: opts.options };
+  const use: RuleSetUseItem = { loader: opts.loader };
   const fallback: RuleSetRule = { test: opts.test, enforce: "pre", use: [use] };
   if (isWindows || !supportsCodeFilter(opts.rspackVersion)) {
     return fallback;

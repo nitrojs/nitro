@@ -1,5 +1,5 @@
 import type { Nitro } from "nitro/types";
-import type { ExternalItemFunctionData, RspackPluginInstance } from "@rspack/core";
+import type { RspackPluginInstance } from "@rspack/core";
 import { SourcemapPathTransformPlugin } from "./_sourcemap.ts";
 
 type Rspack = typeof import("@rspack/core");
@@ -103,23 +103,6 @@ export function rollupOptions(nitro: Nitro, rspack: Rspack) {
     sourcemapExcludeSources: output("sourcemapExcludeSources") as boolean | undefined,
     plugins,
     isExternal: externals.length > 0 ? matchExternal(externals) : undefined,
-  };
-}
-
-/** `externals` item for the `external` option (called with the request before it is resolved). */
-export function externalsMatcher(
-  nitro: Nitro,
-  isExternal: (source: string, importer: string | undefined) => Promise<boolean>,
-  toId: (issuer: string) => string
-) {
-  return async ({ request, contextInfo, dependencyType }: ExternalItemFunctionData) => {
-    const issuer = contextInfo?.issuer;
-    if (!request || !(await isExternal(request, issuer ? toId(issuer) : undefined))) {
-      return;
-    }
-    return dependencyType === "commonjs" && nitro.options.node
-      ? `node-commonjs ${request}`
-      : request;
   };
 }
 

@@ -16,6 +16,7 @@ import { writeAsset } from "./_bundle.ts";
 import { getModuleInfo } from "./_modules.ts";
 import { generateBundle, renderChunks, writeBundle } from "./_output.ts";
 import { ModuleResolver } from "./_resolve.ts";
+import type { ModuleResolverOptions } from "./_resolve.ts";
 import type { AssetSource } from "./_files.ts";
 import type { HookSourceMap, RawSourceMap, SourceMapStep } from "./_sourcemap.ts";
 
@@ -24,11 +25,8 @@ const NAME = "nitro:rollup-plugins";
 /** Loader running the `load` and `transform` hooks (see `runtime/internal/rspack/loader.mjs`). */
 export const LOADER_PATH: string = join(runtimeDir, "internal/rspack/loader.mjs");
 
-// Shared with the loader, which is loaded by Rspack from a separate file
-const hosts: Map<string, RollupPluginsHost> = ((globalThis as any).__nitro_rspack_hosts__ ??=
-  new Map());
-
-let nextId = 0;
+/** Compiler property the pre-loader finds the host with (`loader._compiler`). */
+const HOST_KEY = Symbol.for("nitro:rspack-host");
 
 /**
  * Rspack plugin running Nitro's build plugins (Rollup plugin interface):
@@ -38,7 +36,6 @@ let nextId = 0;
  * - `generateBundle` (on the compilation assets) and `writeBundle` (once they are written).
  */
 export class RollupPluginsHost implements RspackPluginInstance {
-  readonly id: string;
   readonly host: PluginHost;
   readonly virtual: VirtualPlaceholders;
   readonly resolver: ModuleResolver;
@@ -50,10 +47,11 @@ export class RollupPluginsHost implements RspackPluginInstance {
   /** Whether the assets of the current compilation are written. */
   assetsWritten = false;
 
-  constructor(nitro: Nitro, plugins: Plugin[], opts: { externals?: string[] } = {}) {
-    this.id = String(nextId++);
-    hosts.set(this.id, this);
-    nitro.hooks.hookOnce("close", () => this.release());
+  constructor(
+    nitro: Nitro,
+    plugins: Plugin[],
+    opts: Pick<ModuleResolverOptions, "externals" | "isExternal"> = {}
+  ) {
     this.virtual = new VirtualPlaceholders(join(nitro.options.buildDir, "rspack/virtual"));
     this.host = new PluginHost(nitro, plugins, {
       resolve: (source, importer, kind) => this.resolver.resolveWithRspack(source, importer, kind),
@@ -66,18 +64,12 @@ export class RollupPluginsHost implements RspackPluginInstance {
       host: this.host,
       virtual: this.virtual,
       compilation: () => this.compilation,
-      externals: opts.externals,
+      ...opts,
     });
   }
 
-  /** Loader rule options, for the pre-loader to find this instance. */
-  get loaderOptions() {
-    return { host: this.id };
-  }
-
   apply(compiler: Compiler) {
-    hosts.set(this.id, this);
-    compiler.hooks.shutdown.tap(NAME, () => this.release());
+    (compiler as any)[HOST_KEY] = this;
     compiler.hooks.beforeCompile.tapPromise(NAME, () => {
       this.assetsCompilation = undefined;
       this.assetsWritten = false;
@@ -105,11 +97,13 @@ export class RollupPluginsHost implements RspackPluginInstance {
           this.pendingAssets.clear();
         }
       );
-      // After minification and before source maps are emitted
-      compilation.hooks.processAssets.tapPromise(
-        { name: NAME, stage: Compilation.PROCESS_ASSETS_STAGE_DEV_TOOLING - 1 },
-        () => renderChunks(this.host, compilation)
-      );
+      if (this.host.hooks.renderChunk.length > 0) {
+        // After minification and before source maps are emitted
+        compilation.hooks.processAssets.tapPromise(
+          { name: NAME, stage: Compilation.PROCESS_ASSETS_STAGE_DEV_TOOLING - 1 },
+          () => renderChunks(this.host, compilation)
+        );
+      }
       if (this.host.hooks.generateBundle.length > 0) {
         compilation.hooks.processAssets.tapPromise(
           { name: NAME, stage: Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE },
@@ -166,19 +160,11 @@ export class RollupPluginsHost implements RspackPluginInstance {
     if (!maps?.length) {
       return { code: transformed, map: maps && map };
     }
-    const sources = this.compilation!.compiler.rspack.sources;
+    const sources = loader._compiler.rspack.sources;
     return {
       code: transformed,
       map: chainSourceMaps(sources, { name: loader.resourcePath, map, steps: maps }),
     };
-  }
-
-  /** Unregisters this instance and drops the last compilation (once the compiler is closed). */
-  release() {
-    hosts.delete(this.id);
-    this.compilation = undefined;
-    this.assetsCompilation = undefined;
-    this.resolver.clear();
   }
 
   /** Emits an asset to the compilation processing its assets (or to the next one). */
