@@ -23,9 +23,11 @@ export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownConfig> =
     tsconfig: false,
     external: [
       ...base.env.external,
-      // Builtins aliased to polyfills are bundled (rolldown checks `external` before aliases and plugins)
+      // Rolldown checks `external` before aliases and plugins: builtins aliased to polyfills
+      // are bundled, and the ones aliased to another id (e.g. `events` to `node:events`) are
+      // externalized with that id
       ...[...builtinModules, ...builtinModules.map((m) => `node:${m}`)].filter(
-        (id) => !base.env.alias[id] || base.env.alias[id].startsWith("node:")
+        (id) => !base.env.alias[id] || base.env.alias[id] === id
       ),
     ],
     plugins: await withBuildPlugins(nitro, [

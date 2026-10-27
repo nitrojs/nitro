@@ -97,6 +97,18 @@ describe("nitro:preset:cloudflare-module", async () => {
     }
   });
 
+  it("externalizes builtins required by bundled CommonJS with the `node:` prefix", async () => {
+    const serverDir = resolve(ctx.outDir, "server");
+    const files = (await fsp.readdir(serverDir, { recursive: true })).filter((f) =>
+      f.endsWith(".mjs")
+    );
+    const code = (
+      await Promise.all(files.map((f) => fsp.readFile(resolve(serverDir, f), "utf8")))
+    ).join("\n");
+    expect(code).toMatch(/["']node:events["']/);
+    expect(code).not.toMatch(/(?:from |require\()\s*["']events["']/);
+  });
+
   it("should export the correct functions", async () => {
     const entry = await fsp.readFile(resolve(ctx.outDir, "server", "index.mjs"), "utf8");
     expect(entry).toMatch(/export \{.*myScheduled.*\}/);
