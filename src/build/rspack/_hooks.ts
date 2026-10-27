@@ -43,14 +43,21 @@ export function sortedHooks(plugins: Plugin[], name: string): Hook[] {
   return hooks.sort((a, b) => a.order - b.order);
 }
 
-export function isHook(value: unknown): boolean {
+/** Hooks of a plugin that the `rspack` builder does not run. */
+export function unsupportedHooks(plugin: Plugin): string[] {
+  return Object.entries(plugin)
+    .filter(([key, value]) => isHook(value) && isUnsupportedHook(key))
+    .map(([key]) => key);
+}
+
+function isHook(value: unknown): boolean {
   return (
     typeof value === "function" ||
     (!!value && typeof value === "object" && typeof (value as any).handler === "function")
   );
 }
 
-export function isUnsupportedHook(key: string) {
+function isUnsupportedHook(key: string) {
   return (
     !SUPPORTED_HOOKS.has(key) &&
     // Only hooks affecting the output (watch and options hooks are harmless)

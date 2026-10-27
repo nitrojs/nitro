@@ -60,6 +60,22 @@ export function chainSourceMaps(
   return map;
 }
 
+/** Code of a `transform` or `renderChunk` hook result (its source map is pushed to `maps`). */
+export function hookResultCode(
+  code: string,
+  result: string | { code?: string; map?: HookSourceMap } | null | undefined,
+  maps: SourceMapStep[] | undefined
+): string {
+  const output = typeof result === "string" ? result : result?.code;
+  if (output == null) {
+    return code;
+  }
+  if (maps && output !== code && typeof result === "object" && result?.map) {
+    maps.push({ input: code, output, map: result.map });
+  }
+  return output;
+}
+
 /**
  * `output.devtoolModuleFilenameTemplate`: source map sources of modules without a file on disk are
  * namespaced with `virtual:` (like `nitro:sourcemap` does with Rollup), so that consumers do not look

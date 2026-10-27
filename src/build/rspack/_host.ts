@@ -1,27 +1,16 @@
 import type { Nitro } from "nitro/types";
 import type { Plugin } from "rollup";
-import { isHook, isUnsupportedHook, matchFilter, sortedHooks, SUPPORTED_HOOKS } from "./_hooks.ts";
+import { matchFilter, sortedHooks, SUPPORTED_HOOKS, unsupportedHooks } from "./_hooks.ts";
 import type { Hook, HookName } from "./_hooks.ts";
+import { createPluginContext } from "./_context.ts";
+import type { HookContextOptions } from "./_context.ts";
 import { EmittedFiles } from "./_files.ts";
 import type { Bundle } from "./_bundle.ts";
-import type { AssetSource, EmittedFile } from "./_files.ts";
+import type { AssetSource } from "./_files.ts";
 import type { ModuleInfo } from "./_modules.ts";
+import { hookResultCode } from "./_sourcemap.ts";
 import type { HookSourceMap, SourceMapStep } from "./_sourcemap.ts";
-
-/** Import kind (Rolldown's `kind` resolve option): `require()` resolves with `require` conditions. */
-export type ImportKind = "import-statement" | "require-call";
-
-export interface ResolvedId {
-  id: string;
-  external: boolean;
-}
-
-export interface HookContextOptions {
-  /** Called with the files a hook reads (`this.addWatchFile`). */
-  addWatchFile?: (file: string) => void;
-  /** Emits the assets of a module (`this.emitFile` in `load` and `transform`). */
-  emitAsset?: (fileName: string, source: AssetSource) => void;
-}
+import type { ImportKind, ResolvedId } from "./_resolve.ts";
 
 export interface PluginHostOptions {
   /** Resolve with the bundler (when no plugin resolves the import). */
@@ -56,9 +45,7 @@ export class PluginHost {
       [...SUPPORTED_HOOKS].map((name) => [name, sortedHooks(plugins, name)])
     ) as Record<HookName, Hook[]>;
     for (const plugin of plugins) {
-      const unsupported = Object.entries(plugin)
-        .filter(([key, value]) => isHook(value) && isUnsupportedHook(key))
-        .map(([key]) => key);
+      const unsupported = unsupportedHooks(plugin);
       if (unsupported.length > 0) {
         nitro.logger.warn(
           `Build plugin \`${plugin.name}\` uses hooks the \`rspack\` builder does not support (ignored): ${unsupported.map((h) => `\`${h}\``).join(", ")}.`
@@ -169,7 +156,7 @@ export class PluginHost {
         continue;
       }
       const result = await hook.handler.call(this.context(hook.plugin, ctxOpts), code, id);
-      code = withResult(code, result, maps);
+      code = hookResultCode(code, result, maps);
     }
     return code;
   }
@@ -189,7 +176,7 @@ export class PluginHost {
         { format: "es", ...outputOpts },
         {}
       );
-      code = withResult(code, result, maps);
+      code = hookResultCode(code, result, maps);
     }
     return code;
   }
@@ -198,59 +185,6 @@ export class PluginHost {
     plugin: Plugin,
     opts: HookContextOptions & { skip?: Set<Plugin>; kind?: ImportKind } = {}
   ) {
-    const logger = this.nitro.logger;
-    const format = (log: string | { message: string }) =>
-      `[${plugin.name}] ${typeof log === "string" ? log : log.message}`;
-    return {
-      meta: { rollupVersion: "4.0.0", watchMode: this.nitro.options.dev },
-      resolve: (
-        source: string,
-        importer: string | undefined,
-        resolveOpts?: { skipSelf?: boolean; isEntry?: boolean; kind?: ImportKind }
-      ) =>
-        this.resolveId(source, importer, {
-          skip: resolveOpts?.skipSelf === false ? undefined : opts.skip || new Set([plugin]),
-          isEntry: resolveOpts?.isEntry,
-          kind: resolveOpts?.kind || opts.kind,
-          fallback: true,
-        }).then((resolved) => resolved || null),
-      load: async ({ id }: { id: string }) => {
-        const loaded = await this.load(id, opts);
-        return { id, code: loaded ? await this.transform(loaded.code, id, opts) : null };
-      },
-      addWatchFile: (file: string) => opts.addWatchFile?.(file),
-      getModuleIds: () => this.opts.getModuleIds(),
-      getModuleInfo: (id: string) => this.opts.getModuleInfo(id),
-      emitFile: (file: EmittedFile) => {
-        try {
-          return this.files.emit(file, opts.emitAsset || this.opts.emitAsset);
-        } catch (error) {
-          throw new Error(format((error as Error).message));
-        }
-      },
-      getFileName: (referenceId: string) => this.files.getFileName(referenceId),
-      warn: (log: string | { message: string }) => logger.warn(format(log)),
-      info: (log: string | { message: string }) => logger.info(format(log)),
-      debug: (log: string | { message: string }) => logger.debug(format(log)),
-      error: (error: string | Error): never => {
-        throw typeof error === "string" ? new Error(format(error)) : error;
-      },
-    };
+    return createPluginContext(this, plugin, opts);
   }
-}
-
-/** Code of a `transform` or `renderChunk` hook result (its source map is pushed to `maps`). */
-function withResult(
-  code: string,
-  result: string | { code?: string; map?: HookSourceMap } | null | undefined,
-  maps: SourceMapStep[] | undefined
-): string {
-  const output = typeof result === "string" ? result : result?.code;
-  if (output == null) {
-    return code;
-  }
-  if (maps && output !== code && typeof result === "object" && result?.map) {
-    maps.push({ input: code, output, map: result.map });
-  }
-  return output;
 }
