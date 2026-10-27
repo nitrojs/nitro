@@ -57,7 +57,7 @@ export function cloudflareOutputRewrites(): Plugin {
         return {
           code: s.toString(),
           map: options.sourcemap
-            ? s.generateMap({ hires: true, source: chunk.fileName }).toString()
+            ? s.generateMap({ hires: "boundary", source: chunk.fileName }).toString()
             : undefined,
         };
       },
