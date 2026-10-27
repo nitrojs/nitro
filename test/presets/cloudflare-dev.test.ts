@@ -209,6 +209,13 @@ for (const mode of ["nitro", "vite", "build", "vite-build"] as const) {
       expect(await response.json()).toEqual({ condition: "workerd" });
     });
 
+    it("loads CommonJS dependencies with the workerd condition", async () => {
+      const response = await fetchPath("/cjs");
+      const body = await response.text();
+      expect(response.status, body).toBe(200);
+      expect(JSON.parse(body)).toEqual({ value: 42, runtime: "workerd" });
+    });
+
     it.runIf(mode === "nitro" || mode === "vite")(
       "reloads Durable Object dependencies and preserves state",
       async () => {
