@@ -9,6 +9,7 @@ import { excludeSourcemapSources } from "../plugins/sourcemap.ts";
 import { baseBuildPlugins, flatPlugins, withBuildPlugins } from "../plugins.ts";
 import { LOADER_PATH, RollupPluginsHost } from "./_plugin.ts";
 import { loaderRule } from "./_filters.ts";
+import { moduleFilenameTemplate } from "./_sourcemap.ts";
 
 export async function getRspackConfig(
   nitro: Nitro,
@@ -128,7 +129,10 @@ export async function getRspackConfig(
       chunkFormat: "module",
       chunkLoading: "import",
       asyncChunks: !nitro.options.inlineDynamicImports,
-      devtoolModuleFilenameTemplate: "[absolute-resource-path]",
+      devtoolModuleFilenameTemplate: moduleFilenameTemplate({
+        rootDir: nitro.options.rootDir,
+        virtual: pluginsHost.virtual,
+      }),
     },
   };
 

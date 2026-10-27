@@ -1,4 +1,7 @@
-import type { sources as RspackSources } from "@rspack/core";
+import type { ModuleFilenameTemplateContext, sources as RspackSources } from "@rspack/core";
+import { existsSync } from "node:fs";
+import { isAbsolute, relative } from "pathe";
+import type { VirtualPlaceholders } from "./_virtual.ts";
 
 export type RawSourceMap = {
   version: number;
@@ -52,6 +55,27 @@ export function chainSourceMaps(
   return map;
 }
 
+/**
+ * `output.devtoolModuleFilenameTemplate`: source map sources of modules without a file on disk are
+ * namespaced with `virtual:` (like `nitro:sourcemap` does with Rollup), so that consumers do not look
+ * for missing files. These are Nitro virtual modules (their placeholder file is empty), Rspack
+ * runtime modules and modules of `VirtualModulesPlugin` (e.g. WASM bindings of `unwasm`).
+ */
+export function moduleFilenameTemplate(opts: {
+  rootDir: string;
+  virtual: VirtualPlaceholders;
+}): (info: ModuleFilenameTemplateContext) => string {
+  const cache = new Map<string, string>();
+  return ({ absoluteResourcePath: path }) => {
+    let source = cache.get(path);
+    if (source === undefined) {
+      source = sourcePath(path, opts);
+      cache.set(path, source);
+    }
+    return source;
+  };
+}
+
 function parseMap(map: Exclude<HookSourceMap, null>, file: string): RawSourceMap {
   const parsed = typeof map === "string" ? JSON.parse(map) : map;
   return {
@@ -62,4 +86,15 @@ function parseMap(map: Exclude<HookSourceMap, null>, file: string): RawSourceMap
     mappings: parsed.mappings,
     ...(parsed.sourcesContent && { sourcesContent: parsed.sourcesContent }),
   };
+}
+
+function sourcePath(path: string, opts: { rootDir: string; virtual: VirtualPlaceholders }) {
+  if (opts.virtual.isVirtual(path)) {
+    const id = opts.virtual.toId(path);
+    return id.startsWith("virtual:") ? id : `virtual:${id}`;
+  }
+  if (!isAbsolute(path)) {
+    return `virtual:${path.replace(/^webpack\//, "rspack/")}`;
+  }
+  return existsSync(path) ? path : `virtual:${relative(opts.rootDir, path)}`;
 }
