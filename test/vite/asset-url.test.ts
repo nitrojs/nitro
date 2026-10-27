@@ -1,5 +1,5 @@
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { rm } from "node:fs/promises";
+import { readdir, rm } from "node:fs/promises";
 import { join } from "pathe";
 import type { ViteDevServer } from "vite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -90,6 +90,14 @@ describe("vite: files referenced with `new URL(..., import.meta.url)`", () => {
       expect(service.href.startsWith(assetsURL)).toBe(true);
       expect(service.href.slice(assetsURL.length)).toMatch(/^data-[\w-]+\.txt$/);
       expect(service.text).toBe("dependency file\n");
+    });
+
+    it("does not write other assets to the server output", async () => {
+      const files = await readdir(join(outDir, "server/assets"));
+      expect(files.sort()).toEqual([
+        expect.stringMatching(/^data-[\w-]+\.txt$/),
+        expect.stringMatching(/^route-[\w-]+\.txt$/),
+      ]);
     });
   });
 });

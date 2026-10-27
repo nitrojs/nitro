@@ -25,29 +25,59 @@ const SCRIPT_RE = /\.[cm]?[jt]sx?$/;
 // Specifiers with a scheme (`data:`, `https:`, ...), absolute paths and bare queries or hashes
 const NON_RELATIVE_RE = /^(?:[a-z][\d+.a-z-]*:|[#/?\\])/i;
 
-export async function assetUrls(nitro: Nitro): Promise<Plugin> {
+export async function assetUrls(
+  nitro: Nitro,
+  opts: {
+    /** Remove the other assets of the bundle (Vite emits CSS, `?url` imports, ... of server code) */
+    dropOtherAssets?: boolean;
+  } = {}
+): Promise<Plugin> {
   const oxc = await importOXC({ dir: nitro.options.rootDir, paths: nitro.options.deps?.paths });
 
   // `pglite` references its 10 MB wasm file several times: read and emit each file once per build
   let referenceIds = new Map<string, string>();
   // Kept across rebuilds: watch mode re-emits the files of cached modules without transforming them
   const emitted = new Set<string>();
+  // Output files of the references that are rendered
+  const fileNames = new Set<string>();
 
   return {
     name: "nitro:asset-urls",
     buildStart() {
       referenceIds = new Map();
     },
+    renderStart() {
+      fileNames.clear();
+    },
     // The reference is the first argument of `new URL`, so a relative path is enough.
     // Runs before Vite's own hook, which renders an absolute URL under its `base`.
     resolveFileUrl: {
       order: "pre",
-      handler({ referenceId, relativePath }) {
+      handler({ referenceId, fileName, relativePath }) {
         if (emitted.has(referenceId)) {
+          fileNames.add(fileName);
           return JSON.stringify(/^\.\.?\//.test(relativePath) ? relativePath : `./${relativePath}`);
         }
       },
     },
+    generateBundle: opts.dropOtherAssets
+      ? {
+          order: "post",
+          handler(_options, bundle) {
+            // Same exceptions as Vite, when `build.emitAssets` is disabled
+            for (const [fileName, output] of Object.entries(bundle)) {
+              if (
+                output.type === "asset" &&
+                !fileNames.has(fileName) &&
+                !fileName.endsWith(".map") &&
+                !fileName.endsWith("ssr-manifest.json")
+              ) {
+                delete bundle[fileName];
+              }
+            }
+          },
+        }
+      : undefined,
     transform: {
       filter: {
         id: { include: JS_ID_RE, exclude: [/^\0/, RAW_RE] },

@@ -27,7 +27,8 @@ export function createNitroEnvironment(ctx: NitroPluginContext): EnvironmentOpti
       commonjsOptions: ctx.nitro!.options.commonJS as RollupCommonJSOptions,
       copyPublicDir: false,
       // Vite drops the assets of server environments, but files referenced with
-      // `new URL(..., import.meta.url)` are read at runtime (see `bundler.ts`)
+      // `new URL(..., import.meta.url)` are read at runtime. The others are still
+      // dropped by the `nitro:asset-urls` plugin (see `bundler.ts`)
       emitAssets: ctx.nitro!.options.node,
     },
     resolve: {

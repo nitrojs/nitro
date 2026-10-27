@@ -21,8 +21,9 @@ export const getBundlerConfig = async (
   const nitroPlugins = (await baseBuildPlugins(nitro, base)).filter(Boolean) as RollupPlugin[];
   // Emitted files are read from the filesystem, which worker runtimes do not have.
   // Not in dev: the module runner evaluates modules from their original location.
+  // `build.emitAssets` is enabled for them (`env.ts`): other assets are still dropped
   if (nitro.options.node && !nitro.options.dev) {
-    nitroPlugins.push(await assetUrls(nitro));
+    nitroPlugins.push(await assetUrls(nitro, { dropOtherAssets: true }));
   }
 
   const commonConfig = {
