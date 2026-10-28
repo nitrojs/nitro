@@ -1,7 +1,7 @@
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { join } from "pathe";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import { createNitro } from "../../src/nitro.ts";
 import { getRolldownConfig } from "../../src/build/rolldown/config.ts";
 
@@ -12,12 +12,13 @@ vi.mock("node:module", async (importOriginal) => {
 });
 
 describe("rolldown builtins", () => {
+  const rootDir = mkdtempSync(join(tmpdir(), "nitro-rolldown-builtins-"));
+  afterAll(() => rmSync(rootDir, { recursive: true, force: true }));
+
   it("externalizes prefixed builtins by their own id", async () => {
-    const nitro = await createNitro({
-      rootDir: mkdtempSync(join(tmpdir(), "nitro-rolldown-builtins-")),
-      compatibilityDate: "latest",
-    });
+    const nitro = await createNitro({ rootDir, compatibilityDate: "latest" });
     const external = (await getRolldownConfig(nitro)).external as string[];
+    await nitro.close();
     expect(external).toEqual(
       expect.arrayContaining(["events", "node:events", "node:sqlite", "bun:sqlite"])
     );

@@ -10,6 +10,7 @@ import {
   writeConfig,
 } from "../../src/presets/netlify/utils.ts";
 import { getPresetTmpDir, setupTest, testNitro } from "../tests.ts";
+import { testBuiltinImports } from "./_builtin-imports.ts";
 
 describe("nitro:preset:netlify", async () => {
   const ctx = await setupTest("netlify", {
@@ -257,16 +258,5 @@ describe("nitro:preset:netlify-edge", async () => {
     },
   });
 
-  it("externalizes builtins imported by their bare id with the `node:` prefix", async () => {
-    const serverDir = ctx.nitro!.options.output.serverDir;
-    const files = (await fsp.readdir(serverDir, { recursive: true })).filter((f) =>
-      f.endsWith(".mjs")
-    );
-    const code = (
-      await Promise.all(files.map((f) => fsp.readFile(resolve(serverDir, f), "utf8")))
-    ).join("\n");
-    expect(code).toMatch(/["']node:events["']/);
-    expect(code).toMatch(/["']node:buffer["']/);
-    expect(code).not.toMatch(/(?:from|import|require\()\s*["'`](?:events|buffer\/)["'`]/);
-  });
+  testBuiltinImports(ctx);
 });
