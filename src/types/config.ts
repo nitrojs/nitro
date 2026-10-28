@@ -272,6 +272,16 @@ export interface NitroOptions extends PresetOptions {
   devDatabase: DatabaseConnectionConfigs;
 
   /**
+   * Built-in metrics (`total`, `kv`, `db`, `cache`) emitted as a `Server-Timing` response header.
+   *
+   * Resolves to `false` when disabled.
+   *
+   * @see https://nitro.build/config#servertiming
+   * @see https://nitro.build/docs/tracing#server-timing
+   */
+  serverTiming: false | Required<ServerTimingOptions>;
+
+  /**
    * Server-side rendering entry configuration.
    *
    * Points to the main render handler (the file should export an event
@@ -1109,6 +1119,7 @@ export interface NitroConfig
         | "renderer"
         | "output"
         | "tracingChannel"
+        | "serverTiming"
       >
     >,
     C12InputConfig<NitroConfig> {
@@ -1143,6 +1154,18 @@ export interface NitroConfig
   renderer?: false | NitroOptions["renderer"];
   output?: Partial<NitroOptions["output"]>;
   tracingChannel?: boolean | TracingChannelOptions;
+
+  /**
+   * Emit built-in metrics as a `Server-Timing` response header.
+   *
+   * Enabled by default in development, with every metric. Set to `true` to also enable it in
+   * production, `false` to disable it, or pass an object to enable only the metrics set to `true`
+   * (in development and production).
+   *
+   * @see https://nitro.build/config#servertiming
+   * @see https://nitro.build/docs/tracing#server-timing
+   */
+  serverTiming?: boolean | ServerTimingOptions;
 }
 
 // ------------------------------------------------------------
@@ -1256,6 +1279,7 @@ export interface ServerAssetDir {
  * Tracing channel options.
  *
  * @see https://nitro.build/config#tracingchannel
+ * @see https://nitro.build/docs/tracing#tracing-channels
  */
 export interface TracingChannelOptions {
   srvx?: boolean;
@@ -1263,6 +1287,22 @@ export interface TracingChannelOptions {
   unstorage?: boolean;
   /** Database queries made with `useDatabase()` (`db0.query`). Requires `experimental.database`. */
   db0?: boolean;
+}
+
+/**
+ * Built-in `Server-Timing` metrics. Only the metrics set to `true` are enabled.
+ *
+ * @see https://nitro.build/config#servertiming
+ */
+export interface ServerTimingOptions {
+  /** Time spent inside the Nitro app until the response headers are ready. */
+  total?: boolean;
+  /** Time spent waiting on KV storage operations (`useKV()`). */
+  kv?: boolean;
+  /** Time spent waiting on database queries (`useDatabase()`). Requires `experimental.database`. */
+  db?: boolean;
+  /** Status (`hit`, `miss`, `stale`, `revalidated`, `bypass`) and duration of cached handlers. */
+  cache?: boolean;
 }
 
 /** @deprecated Use {@link TracingChannelOptions}. */

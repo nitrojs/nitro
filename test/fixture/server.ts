@@ -11,6 +11,9 @@ export default defineServerEntry({
     if (url.pathname === "/") {
       return new Response("server entry works!");
     }
+    if (url.pathname === "/server-entry-timing") {
+      return new Response("ok", { headers: { "server-timing": 'app;desc="App";dur=5' } });
+    }
     return new Response("404 Not Found", { status: 404 });
   },
   // Passed to srvx (node, bun and deno servers)
