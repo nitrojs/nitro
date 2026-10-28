@@ -94,7 +94,8 @@ export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownConfig> =
   return config as RolldownConfig;
 };
 
-const builtins = [...builtinModules, ...builtinModules.map((m) => `node:${m}`)];
+// Some builtins are only listed with a prefix (e.g. `node:sqlite`, or `bun:sqlite` with Bun)
+const builtins = builtinModules.flatMap((m) => (m.includes(":") ? [m] : [m, `node:${m}`]));
 
 // Externalizes ids aliased to another `node:` id (e.g. `events` or `buffer/` to `node:events` or
 // `node:buffer`) with that id (Rolldown only resolves aliases to `node:` ids with the `node` platform)
