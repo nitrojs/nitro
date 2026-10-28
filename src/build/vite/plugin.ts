@@ -321,6 +321,26 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
       };
     },
 
+    configResolved(config) {
+      if (ctx._isVitest) {
+        return;
+      }
+      // Aliases added by later `config` hooks take precedence over Nitro's
+      const nitroAliases = ctx.bundlerConfig!.base.aliases;
+      const scoped = new Set(ctx._nitroEnvAliases);
+      for (const { find, replacement } of config.resolve.alias) {
+        if (
+          typeof find === "string" &&
+          Object.hasOwn(nitroAliases, find) &&
+          nitroAliases[find] !== replacement &&
+          !nitroAliases[find].startsWith("node:")
+        ) {
+          scoped.add(find);
+        }
+      }
+      ctx._nitroEnvAliases = [...scoped];
+    },
+
     buildApp: {
       order: "post",
       handler(builder) {

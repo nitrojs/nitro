@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "pathe";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
@@ -30,13 +30,14 @@ describe("vite: nitro aliases in host environments", () => {
         preset: "standard",
         serverDir: "./",
         output: { dir: join(rootDir, ".output") },
-        alias: { "#x": serverFile, "#nitro-only": nitroOnlyFile },
+        alias: { "#x": serverFile, "#late": serverFile, "#nitro-only": nitroOnlyFile },
       }),
+      { name: "late-alias", config: () => ({ resolve: { alias: { "#late": appFile } } }) },
     ],
   });
 
   beforeAll(() => {
-    rootDir = mkdtempSync(join(tmpdir(), "nitro-env-aliases-"));
+    rootDir = realpathSync(mkdtempSync(join(tmpdir(), "nitro-env-aliases-")));
     mkdirSync(join(rootDir, "app"), { recursive: true });
     mkdirSync(join(rootDir, "api"), { recursive: true });
     appFile = join(rootDir, "app/x-app.ts");
@@ -76,8 +77,10 @@ describe("vite: nitro aliases in host environments", () => {
       ["ssr", "app"],
       ["nitro", "server"],
     ] as const)("resolves a conflicting alias in the %s environment", async (env, side) => {
-      const resolved = await server.environments[env].pluginContainer.resolveId("#x", ssrEntry);
-      expect(resolved?.id).toBe(side === "app" ? appFile : serverFile);
+      for (const id of ["#x", "#late"]) {
+        const resolved = await server.environments[env].pluginContainer.resolveId(id, ssrEntry);
+        expect(resolved?.id).toBe(side === "app" ? appFile : serverFile);
+      }
     });
 
     test("resolves a nitro-only alias in every environment", async () => {
