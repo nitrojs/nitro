@@ -15,7 +15,7 @@ Nitro auto-detects that you are in a [Netlify](https://www.netlify.com) build en
 
 For new sites, Netlify detects that you are using Nitro and sets the publish directory to `dist` and the build command to `npm run build`. If you are upgrading an existing site, check these settings and update them if needed.
 
-To add custom redirects, use [`routeRules`](/config#routerules) or add a [`_redirects`](https://docs.netlify.com/routing/redirects/#syntax-for-the-redirects-file) file to your `public` directory.
+To add custom redirects, use [`routeRules`](/config/routing#routerules) or add a [`_redirects`](https://docs.netlify.com/routing/redirects/#syntax-for-the-redirects-file) file to your `public` directory.
 
 To deploy, just push to your git repository [as you would normally do for Netlify](https://docs.netlify.com/configure-builds/get-started/).
 

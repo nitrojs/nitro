@@ -54,7 +54,7 @@ export type NitroDynamicConfig = Pick<NitroConfig, "runtimeConfig" | "routeRules
 /**
  * Metadata about the framework using Nitro.
  *
- * @see https://nitro.build/config#framework
+ * @see https://nitro.build/config/advanced#framework
  */
 export interface NitroFrameworkInfo {
   name?: "nitro" | (string & {});

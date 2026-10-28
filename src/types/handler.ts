@@ -54,7 +54,7 @@ export type EventHandlerFormat = "web" | "node";
  * Handlers are file references that the bundler imports and transforms.
  * For runtime-only handlers in development, use {@link NitroDevEventHandler}.
  *
- * @see https://nitro.build/config#handlers
+ * @see https://nitro.build/config/routing#handlers
  * @see https://nitro.build/docs/routing
  */
 export interface NitroEventHandler extends NitroHandlerCommon {
@@ -93,7 +93,7 @@ export interface NitroEventHandler extends NitroHandlerCommon {
  * These handlers are available only during `nitro dev` and are not
  * included in production builds.
  *
- * @see https://nitro.build/config#devhandlers
+ * @see https://nitro.build/config/routing#devhandlers
  */
 export interface NitroDevEventHandler extends NitroHandlerCommon {
   /**
@@ -110,7 +110,7 @@ type MaybePromise<T> = T | Promise<T>;
  * Receives the error, the H3 event, and a helper object containing the
  * `defaultHandler` for fallback rendering.
  *
- * @see https://nitro.build/config#errorhandler
+ * @see https://nitro.build/config/routing#errorhandler
  */
 export type NitroErrorHandler = (
   error: HTTPError,

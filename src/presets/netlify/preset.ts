@@ -28,7 +28,7 @@ const netlify = defineNitroPreset(
     prerender: {
       // Prevents an unnecessary redirect from /page/ to /page when accessing prerendered content.
       // Reference: https://answers.netlify.com/t/support-guide-how-can-i-alter-trailing-slash-behaviour-in-my-urls-will-enabling-pretty-urls-help/31191
-      // Reference: https://nitro.build/config#prerender
+      // Reference: https://nitro.build/config/routing#prerender
       autoSubfolderIndex: false,
     },
     rollupConfig: {
@@ -71,7 +71,7 @@ const netlifyEdge = defineNitroPreset(
     prerender: {
       // Prevents an unnecessary redirect from /page/ to /page when accessing prerendered content.
       // Reference: https://answers.netlify.com/t/support-guide-how-can-i-alter-trailing-slash-behaviour-in-my-urls-will-enabling-pretty-urls-help/31191
-      // Reference: https://nitro.build/config#prerender
+      // Reference: https://nitro.build/config/routing#prerender
       autoSubfolderIndex: false,
     },
     rollupConfig: {
@@ -115,7 +115,7 @@ const netlifyStatic = defineNitroPreset(
     prerender: {
       // Prevents an unnecessary redirect from /page/ to /page when accessing prerendered content.
       // Reference: https://answers.netlify.com/t/support-guide-how-can-i-alter-trailing-slash-behaviour-in-my-urls-will-enabling-pretty-urls-help/31191
-      // Reference: https://nitro.build/config#prerender
+      // Reference: https://nitro.build/config/routing#prerender
       autoSubfolderIndex: false,
     },
     commands: {
