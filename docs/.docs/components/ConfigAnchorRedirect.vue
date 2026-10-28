@@ -1,22 +1,21 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useRouter } from 'undocs/src/app/router'
+import { legacyConfigAnchors, legacyConfigSections } from '../utils/configAnchors'
 
-// The config reference used to be a single page: forward old `/config#<option>`
-// links to the page the option moved to, using the option links on `/config`.
+// The config reference used to be a single page: forward old `/config#<anchor>`
+// links to the page the option moved to.
 const router = useRouter()
 
 onMounted(() => {
-  const hash = window.location.hash
-  if (!hash || document.getElementById(decodeURIComponent(hash.slice(1)))) {
+  const anchor = decodeURIComponent(window.location.hash.slice(1)).toLowerCase()
+  if (!anchor) {
     return
   }
-  for (const link of document.querySelectorAll<HTMLAnchorElement>('a[href^="/config/"]')) {
-    const url = new URL(link.href)
-    if (url.hash.toLowerCase() === hash.toLowerCase()) {
-      void router.replace(url.pathname + url.hash)
-      return
-    }
+  const page = Object.keys(legacyConfigAnchors).find((page) => legacyConfigAnchors[page]!.includes(anchor))
+  const target = page ? `/config/${page}#${anchor}` : legacyConfigSections[anchor]
+  if (target) {
+    void router.replace(target)
   }
 })
 </script>
