@@ -16,7 +16,11 @@ describe("rolldown builtins", () => {
   afterAll(() => rmSync(rootDir, { recursive: true, force: true }));
 
   it("externalizes prefixed builtins by their own id", async () => {
-    const nitro = await createNitro({ rootDir, compatibilityDate: "latest" });
+    const nitro = await createNitro({
+      rootDir,
+      preset: "node-server",
+      compatibilityDate: "latest",
+    });
     const external = (await getRolldownConfig(nitro)).external as string[];
     await nitro.close();
     expect(external).toEqual(
