@@ -1,4 +1,6 @@
 import type {
+  Alias,
+  AliasOptions,
   ConfigEnv,
   EnvironmentModuleNode,
   EnvironmentOptions,
@@ -25,6 +27,7 @@ import { runtimeDir } from "#nitro/meta";
 import { resolveModulePath } from "exsolve";
 import { mergeConfig } from "../../config/_merge.ts";
 import { prettyPath } from "../../utils/fs.ts";
+import { escapeRegExp } from "../../utils/regex.ts";
 import { NitroDevApp } from "../../dev/app.ts";
 import { nitroPreviewPlugin } from "./preview.ts";
 import { nitroAssetsImport } from "./_assets.ts";
@@ -101,13 +104,23 @@ function nitroInit(ctx: NitroPluginContext): VitePlugin {
     },
 
     applyToEnvironment(env) {
-      if (env.name === "nitro" && ctx.nitro?.options.dev) {
+      if (env.name !== "nitro") {
+        return;
+      }
+      const plugins: VitePlugin[] = [];
+      if (ctx._nitroEnvAliases?.length) {
+        plugins.push(nitroEnvAliases(ctx.bundlerConfig!.base.aliases, ctx._nitroEnvAliases));
+      }
+      if (ctx.nitro?.options.dev) {
         debug("[init] Adding rollup plugins for dev");
-        const plugins =
-          (ctx.bundlerConfig?.rolldownConfig?.plugins as VitePlugin[]) ||
-          (ctx.bundlerConfig?.rollupConfig?.plugins as VitePlugin[]) ||
-          [];
-        return [nitroSelfAliases(ctx.bundlerConfig?.base.aliases ?? {}), ...plugins];
+        plugins.push(
+          ...((ctx.bundlerConfig?.rolldownConfig?.plugins as VitePlugin[]) ||
+            (ctx.bundlerConfig?.rollupConfig?.plugins as VitePlugin[]) ||
+            [])
+        );
+      }
+      if (plugins.length > 0) {
+        return plugins;
       }
     },
   };
@@ -241,12 +254,13 @@ function nitroServerAliases(ctx: NitroPluginContext): VitePlugin {
   };
 }
 
-function nitroSelfAliases(aliases: Record<string, string>): VitePlugin {
+function nitroEnvAliases(aliases: Record<string, string>, keys: string[]): VitePlugin {
+  const keysRE = keys.map((key) => escapeRegExp(key.replace(/\/$/, ""))).join("|");
   return {
-    name: "nitro:self-aliases",
+    name: "nitro:env-aliases",
     resolveId: {
       order: "pre",
-      filter: { id: /^nitro(\/|$)/ },
+      filter: { id: new RegExp(`^(?:${keysRE})(?:/|$)`) },
       async handler(id, importer, options) {
         const resolved = resolveAlias(id, aliases);
         if (resolved !== id) {
@@ -270,19 +284,23 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
       if (!ctx.bundlerConfig) {
         throw new Error("Bundler config is not initialized yet!");
       }
+      // Keep alias order and never leak `node:` builtins to client builds
+      const aliases = Object.entries(ctx.bundlerConfig.base.aliases).filter(
+        ([, replacement]) => !replacement.startsWith("node:")
+      );
+      // Scoped to the `nitro` environment (not with Vitest): `nitro/*` in dev, so
+      // they do not bypass the dev service proxy, and keys the host config maps elsewhere
       const scopeSelfAliases = ctx.nitro?.options.dev && !ctx._isVitest;
+      const hostAliases = ctx._isVitest ? new Map() : stringAliases(userConfig.resolve?.alias);
+      const isScoped = ([find, replacement]: [string, string]) =>
+        (scopeSelfAliases && /^nitro(\/|$)/.test(find)) ||
+        (hostAliases.has(find) && hostAliases.get(find) !== replacement);
+      ctx._nitroEnvAliases = aliases.filter(isScoped).map(([find]) => find);
       return {
         appType: userConfig.appType || "custom",
         resolve: {
-          // Keep alias order and never leak `node:` builtins to client builds.
-          // In dev, the `nitro/*` aliases (no `nitro` dependency in the
-          // project) are scoped to the `nitro` environment so they do not
-          // bypass the dev service proxy (not used by Vitest).
-          alias: Object.entries(ctx.bundlerConfig.base.aliases)
-            .filter(
-              ([find, replacement]) =>
-                !replacement.startsWith("node:") && !(scopeSelfAliases && /^nitro(\/|$)/.test(find))
-            )
+          alias: aliases
+            .filter((alias) => !isScoped(alias))
             .map(([find, replacement]) => ({
               find,
               replacement,
@@ -643,6 +661,15 @@ export function useLongerAssetHashes(
       }
     }
   }
+}
+
+function stringAliases(alias: AliasOptions | undefined): Map<string, string> {
+  const entries = Array.isArray(alias)
+    ? (alias as Alias[]).map((a) => [a.find, a.replacement] as const)
+    : Object.entries(alias || {});
+  return new Map(
+    entries.filter((entry): entry is [string, string] => typeof entry[0] === "string")
+  );
 }
 
 function getEntry(input: InputOption | undefined): string | undefined {

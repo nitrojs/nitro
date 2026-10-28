@@ -46,4 +46,5 @@ export interface NitroPluginContext {
   _publicDistDir?: string;
   _entryPoints: Record<string, string>;
   _pluginModules?: VitePlugin[];
+  _nitroEnvAliases?: string[];
 }
