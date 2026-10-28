@@ -656,15 +656,10 @@ export function testNitro(
     });
   });
 
-  // Rolldown keeps `require()` calls, and workerd's `require()` returns the namespace of
-  // builtins without `nodejs_compat_v2`
-  it.skipIf(ctx.isWorker && ctx.nitro!.options.builder !== "rollup")(
-    "requires builtins from bundled CommonJS",
-    async () => {
-      const { data } = await callHandler({ url: "/cjs-builtins" });
-      expect(data).toBe("ok");
-    }
-  );
+  it("requires builtins from bundled CommonJS", async () => {
+    const { data } = await callHandler({ url: "/cjs-builtins" });
+    expect(data).toBe("ok");
+  });
 
   it("externalizes a traced package's root export by its bare name", async () => {
     const { data } = await callHandler({ url: "/traced-root-export" });
