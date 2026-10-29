@@ -42,39 +42,39 @@ function createNitroStub(
 }
 
 describe("virtual/routing template", () => {
-  it("does not wrap route handlers when tracingChannel is disabled", () => {
-    const template = routing(createNitroStub()).template();
+  it("does not wrap route handlers when tracingChannel is disabled", async () => {
+    const template = await routing(createNitroStub()).template();
     expect(template).not.toContain("h3/tracing");
     expect(template).not.toContain("wrapHandlerWithTracing");
   });
 
-  it("does not wrap route handlers when tracingChannel.h3 is false", () => {
-    const template = routing(
+  it("does not wrap route handlers when tracingChannel.h3 is false", async () => {
+    const template = await routing(
       createNitroStub({ tracingChannel: { srvx: true, h3: false, unstorage: true } })
     ).template();
     expect(template).not.toContain("h3/tracing");
     expect(template).not.toContain("wrapHandlerWithTracing");
   });
 
-  it("wraps route handlers with wrapHandlerWithTracing when tracingChannel.h3 is true", () => {
-    const template = routing(
+  it("wraps route handlers with wrapHandlerWithTracing when tracingChannel.h3 is true", async () => {
+    const template = await routing(
       createNitroStub({ tracingChannel: { srvx: true, h3: true, unstorage: true } })
     ).template();
     expect(template).toContain(`import { wrapHandlerWithTracing } from "h3/tracing"`);
     expect(template).toContain("wrapHandlerWithTracing(h3.toEventHandler(_abc123))");
   });
 
-  it("does not convert web format handlers", () => {
-    expect(routing(createNitroStub()).template()).not.toContain("srvxNode.toFetchHandler");
+  it("does not convert web format handlers", async () => {
+    expect(await routing(createNitroStub()).template()).not.toContain("srvxNode.toFetchHandler");
   });
 
-  it("exposes converted node format handlers as a fetch object", () => {
-    const template = routing(createNitroStub({ handler: { format: "node" } })).template();
+  it("exposes converted node format handlers as a fetch object", async () => {
+    const template = await routing(createNitroStub({ handler: { format: "node" } })).template();
     expect(template).toContain("h3.toEventHandler({ fetch: srvxNode.toFetchHandler(_abc123) })");
   });
 
-  it("exposes converted lazy node format handlers as a fetch object", () => {
-    const template = routing(
+  it("exposes converted lazy node format handlers as a fetch object", async () => {
+    const template = await routing(
       createNitroStub({ handler: { format: "node", lazy: true } })
     ).template();
     expect(template).toContain(

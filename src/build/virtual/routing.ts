@@ -1,10 +1,11 @@
 import type { Nitro, NitroEventHandler } from "nitro/types";
 import { compileRouteRules } from "h3/rules/compiler";
+import { hasServerEntryDefaultExport } from "./server-entry.ts";
 
 export default function routing(nitro: Nitro) {
   return {
     id: "#nitro/virtual/routing",
-    template: () => {
+    template: async () => {
       const allHandlers = uniqueBy(
         [
           ...Object.values(nitro.routing.routes.routes).flatMap((h) => h.data),
@@ -21,6 +22,7 @@ export default function routing(nitro: Nitro) {
         serverEntry && serverEntry.handler && serverEntry.format !== "node"
           ? serverEntry.handler.replace(/\\/g, "/")
           : undefined;
+      const serverEntryHasDefault = !!webServerEntry && (await hasServerEntryDefaultExport(nitro));
 
       const routeRulesModule = compileRouteRules(nitro.options.routeRules, {
         runtimeRules: { cache: "#nitro/runtime/route-rule-handlers" },
@@ -43,7 +45,7 @@ ${allHandlers
   .filter((h) => !h.lazy)
   .map((h) =>
     h.handler === webServerEntry
-      ? serverEntryImport(h)
+      ? serverEntryImport(h, serverEntryHasDefault)
       : /* js */ `import ${h._importHash} from ${JSON.stringify(h.handler)};`
   )
   .join("\n")}
@@ -70,12 +72,18 @@ export const globalMiddleware = [
 
 // The default export (and its `fetch`) of the server entry is optional: it can be used
 // for startup logic only. Without a handler, requests continue to the renderer (or 404).
-function serverEntryImport(h: NitroEventHandler & { _importHash: string }): string {
-  const ns = `${h._importHash}_ns`;
-  return /* js */ `import * as ${ns} from ${JSON.stringify(h.handler)};
-const ${h._importHash} = typeof ${ns}["default"] === "function" || typeof ${ns}["default"]?.fetch === "function"
-  ? ${ns}["default"]
-  : () => Symbol.for("h3.notFound");`;
+function serverEntryImport(
+  h: NitroEventHandler & { _importHash: string },
+  hasDefault: boolean
+): string {
+  const notFound = `() => Symbol.for("h3.notFound")`;
+  if (!hasDefault) {
+    return /* js */ `import ${JSON.stringify(h.handler)};
+const ${h._importHash} = ${notFound};`;
+  }
+  const entry = `${h._importHash}_entry`;
+  return /* js */ `import ${entry} from ${JSON.stringify(h.handler)};
+const ${h._importHash} = typeof ${entry} === "function" || typeof ${entry}?.fetch === "function" ? ${entry} : ${notFound};`;
 }
 
 function uniqueBy<T>(arr: T[], key: keyof T): T[] {

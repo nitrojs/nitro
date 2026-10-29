@@ -33,12 +33,12 @@ function importSpecifiers(code: string): string[] {
 describe("virtual/routing with late-registered windows handler paths", () => {
   const windowsPath = String.raw`C:\app\.nitro\workflow\handler.mjs`;
 
-  it.each([false, true])("emits a valid import specifier (lazy: %s)", (lazy) => {
+  it.each([false, true])("emits a valid import specifier (lazy: %s)", async (lazy) => {
     const nitro = createNitro();
     nitro.options.handlers.push({ route: "/hello", handler: windowsPath, lazy });
     nitro.routing.sync();
 
-    expect(importSpecifiers(routing(nitro).template())).toEqual([
+    expect(importSpecifiers(await routing(nitro).template())).toEqual([
       "C:/app/.nitro/workflow/handler.mjs",
     ]);
     expect(importSpecifiers(routingMeta(nitro).template())).toEqual([
@@ -46,12 +46,12 @@ describe("virtual/routing with late-registered windows handler paths", () => {
     ]);
   });
 
-  it("emits a valid import specifier for middleware", () => {
+  it("emits a valid import specifier for middleware", async () => {
     const nitro = createNitro();
     nitro.options.handlers.push({ route: "/**", middleware: true, handler: windowsPath });
     nitro.routing.sync();
 
-    expect(importSpecifiers(routing(nitro).template())).toEqual([
+    expect(importSpecifiers(await routing(nitro).template())).toEqual([
       "C:/app/.nitro/workflow/handler.mjs",
     ]);
   });
