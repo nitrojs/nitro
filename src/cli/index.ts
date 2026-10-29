@@ -17,6 +17,8 @@ const main = defineCommand({
     preview: () => import("./commands/preview.ts").then((r) => r.default),
     serve: () => import("./commands/serve.ts").then((r) => r.default),
     start: () => import("./commands/serve.ts").then((r) => r.default),
+    fetch: () => import("./commands/fetch/index.ts").then((r) => r.default),
+    curl: () => import("./commands/fetch/index.ts").then((r) => r.default),
     docs: () => import("./commands/docs.ts").then((r) => r.default),
   },
 });
