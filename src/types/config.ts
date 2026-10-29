@@ -747,7 +747,10 @@ export interface NitroOptions extends PresetOptions {
     crawlLinks?: boolean;
     /** Fail the build when a route cannot be prerendered. */
     failOnError?: boolean;
-    /** Patterns (string, RegExp, or function) of routes to skip. */
+    /**
+     * Patterns of routes to skip: a string prefix, a rou3 route pattern (a string
+     * containing `*` or `:`, e.g. `/blog/**`), a RegExp, or a function.
+     */
     ignore?: Array<string | RegExp | ((path: string) => undefined | null | boolean)>;
     /**
      * Status codes of failed routes that do not fail the build when `failOnError` is enabled

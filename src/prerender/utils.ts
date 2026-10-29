@@ -1,5 +1,6 @@
 import { colors } from "consola/utils";
 import type { PrerenderRoute } from "nitro/types";
+import { routeToRegExp } from "rou3";
 import { parseURL, withoutBase } from "ufo";
 import { parse as parseHTML, walk } from "ultrahtml";
 
@@ -106,8 +107,15 @@ type IgnorePattern =
   | ((path: string) => undefined | null | boolean);
 export function matchesIgnorePattern(path: string, pattern: IgnorePattern) {
   if (typeof pattern === "string") {
-    // TODO: support rou3 patterns
-    return path.startsWith(pattern as string);
+    if (!PATTERN_MARKER_RE.test(pattern)) {
+      return path.startsWith(pattern);
+    }
+    let regexp = ignorePatternCache.get(pattern);
+    if (!regexp) {
+      regexp = routeToRegExp(pattern);
+      ignorePatternCache.set(pattern, regexp);
+    }
+    return regexp.test(path.split("?", 1)[0]!);
   }
 
   if (typeof pattern === "function") {
@@ -120,3 +128,7 @@ export function matchesIgnorePattern(path: string, pattern: IgnorePattern) {
 
   return false;
 }
+
+const PATTERN_MARKER_RE = /[*:]/;
+
+const ignorePatternCache = new Map<string, RegExp>();
