@@ -245,7 +245,7 @@ current evaluations.
 ## Vite Options
 
 `vite` Nitro config options (from inline plugin options, `nitro` in Vite config or `nitro.config.ts`;
-read from `nitro.options.vite`, `experimental.vite` is a deprecated alias mapped by `src/config/resolvers/vite.ts`):
+read from `nitro.options.vite`):
 - `assetsImport` (default: true) — `?assets` imports via `@hiogawa/vite-plugin-fullstack`. Its plugins
   are always registered (Vite resolves plugins before Nitro loads its config) and their hooks are
   skipped when disabled (`_assets.ts`)

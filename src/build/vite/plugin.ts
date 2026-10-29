@@ -32,7 +32,6 @@ import { NitroDevApp } from "../../dev/app.ts";
 import { nitroPreviewPlugin } from "./preview.ts";
 import { nitroAssetsImport } from "./_assets.ts";
 import { defu } from "defu";
-import { resolveViteOptions } from "../../config/resolvers/vite.ts";
 import type { Nitro, NitroConfig, NitroModule } from "nitro/types";
 import { nitroDevServiceProxy, viteServicesTemplate } from "./services.ts";
 import { nitroRequireExternals } from "./_require-externals.ts";
@@ -532,7 +531,7 @@ async function setupNitroContext(
   nitroConfig.virtual[vServicesId] = () => viteServicesTemplate(ctx);
   if (providedNitro) {
     providedNitro.options.virtual[vServicesId] = nitroConfig.virtual[vServicesId];
-    await applyInlineViteOptions(providedNitro, nitroConfig);
+    applyInlineViteOptions(providedNitro, nitroConfig);
   }
 
   // @see https://vite.dev/guide/env-and-mode#env-files
@@ -735,8 +734,7 @@ async function flattenPlugins(userConfig: UserConfig, configEnv: ConfigEnv): Pro
   });
 }
 
-async function applyInlineViteOptions(nitro: Nitro, nitroConfig: NitroConfig) {
-  await resolveViteOptions(nitroConfig);
+function applyInlineViteOptions(nitro: Nitro, nitroConfig: NitroConfig) {
   if (nitroConfig.vite) {
     nitro.options.vite = defu(nitroConfig.vite, nitro.options.vite);
   }
