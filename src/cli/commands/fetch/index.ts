@@ -41,8 +41,8 @@ export default defineCommand({
     const stdout = stdoutWriter();
 
     const rootDir = resolve(opts.dir || ".");
-    // A dev server can not apply another env name
-    const dev = opts.dev === false || opts.envName ? undefined : await findDevServer(rootDir);
+    const dev =
+      opts.dev === false ? undefined : await findDevServer(rootDir, { envName: opts.envName });
     consola.level = opts.silent ? 0 : 3;
     if (dev) {
       consola.info(`Using the running dev server at \`${dev.url}\` (pid: ${dev.pid})`);

@@ -13,7 +13,7 @@ export const fetchArgs = {
   envName: {
     type: "string",
     description:
-      "The environment name used to apply `$env.<name>` config overrides and exposed as `import.meta.envName` (default: `production`). Starts a server, also when `nitro dev` is running.",
+      "The environment name used to apply `$env.<name>` config overrides and exposed as `import.meta.envName` (default: `production`). A running dev server is only used if it has the same one (`development` by default).",
   },
   dev: {
     type: "boolean",

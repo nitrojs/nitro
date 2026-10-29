@@ -111,6 +111,7 @@ export async function writeDevBuildInfo(
   const buildInfo: NitroBuildInfo = {
     date: new Date().toJSON(),
     preset: nitro.options.preset,
+    envName: nitro.options.envName,
     framework: nitro.options.framework,
     versions: {
       nitro: nitroVersion,

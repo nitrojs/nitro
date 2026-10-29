@@ -7,10 +7,18 @@ export interface RunningDevServer {
   url: string;
 }
 
-/** The `nitro dev` server of the project, if it is running and accepts connections. */
-export async function findDevServer(rootDir: string): Promise<RunningDevServer | undefined> {
-  const dev = (await getDevBuildInfo(rootDir))?.dev;
-  if (!dev?.url || !(await isListening(new URL(dev.url)))) {
+/** The dev server of the project, if it is running (with the env name) and accepts connections. */
+export async function findDevServer(
+  rootDir: string,
+  opts: { envName?: string } = {}
+): Promise<RunningDevServer | undefined> {
+  const buildInfo = await getDevBuildInfo(rootDir);
+  const dev = buildInfo?.dev;
+  if (
+    !dev?.url ||
+    (opts.envName && opts.envName !== buildInfo?.envName) ||
+    !(await isListening(new URL(dev.url)))
+  ) {
     return;
   }
   return { pid: dev.pid, url: dev.url };

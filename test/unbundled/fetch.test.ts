@@ -221,9 +221,11 @@ describe("nitro fetch (running dev server)", () => {
     expect(JSON.parse(res.stdout)).toEqual({ dev: true, url: "http://example.com/mode" });
     expect(res.stderr).toContain(`Using the running dev server at \`${devURL}\``);
     expect((await fetchCLI(["/hello.txt"])).stdout).toBe("static asset");
+    const envName = await fetchCLI(["/mode", "--envName", "development"]);
+    expect(JSON.parse(envName.stdout)).toMatchObject({ dev: true });
   });
 
-  it("starts a server with `--no-dev` or `--envName`", async () => {
+  it("starts a server with `--no-dev` or another `--envName`", async () => {
     for (const args of [["--no-dev"], ["--envName", "production"]]) {
       const res = await fetchCLI(["/mode", ...args]);
       expect(JSON.parse(res.stdout)).toMatchObject({ dev: false });
