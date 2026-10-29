@@ -275,9 +275,7 @@ export default defineCommand({
     consola.log(
       `\nSummary:\n${summary.map(([label, value]) => `  ${`${label}:`.padEnd(17)} ${value}`).join("\n")}`
     );
-    const docsHint = installed
-      ? "\n\nNitro v3 docs: https://nitro.build/docs (or run `npx nitro docs`)"
-      : "";
+    const docsHint = installed ? "\n\nNitro v3 docs: https://nitro.build/docs" : "";
     const nextStepsText = `Next steps:\n\n${nextSteps.map((step) => `  ${step}`).join("\n")}${docsHint}`;
     if (interactive) {
       consola.box(nextStepsText);
