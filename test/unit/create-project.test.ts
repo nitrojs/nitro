@@ -36,7 +36,7 @@ describe("createProject", () => {
 
       const projectPkg = JSON.parse(await readFile(join(dir, "package.json"), "utf8"));
       expect(projectPkg.name).toBe("my-app");
-      expect(projectPkg.devDependencies.nitro).toBe(`^${pkg.version}`);
+      expect(projectPkg.dependencies.nitro).toBe(`^${pkg.version}`);
     }
   );
 

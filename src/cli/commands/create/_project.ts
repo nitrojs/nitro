@@ -42,9 +42,9 @@ export async function createProject(
     private: true,
     type: "module",
     scripts: template.scripts,
+    dependencies: { nitro: await nitroDependency() },
     devDependencies: sortKeys({
       "@types/node": "latest",
-      nitro: await nitroDependency(),
       typescript: "latest",
       ...template.devDependencies,
     }),
