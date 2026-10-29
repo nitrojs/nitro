@@ -7,6 +7,6 @@
   "devDependencies": {
     "automd": "^0.4.3",
     "motion-v": "^2.8.0",
-    "undocs": "npm:undocs-nightly@0.10.1-20261021-144810-60ffbf3"
+    "undocs": "npm:undocs-nightly@0.10.1-20261029-141502-950c193"
   }
 }
