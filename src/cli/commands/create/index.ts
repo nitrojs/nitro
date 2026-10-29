@@ -4,7 +4,7 @@ import { defineCommand } from "citty";
 import type { ArgsDef } from "citty";
 import { consola } from "consola";
 import { colors } from "consola/utils";
-import { installDependencies, runScriptCommand } from "nypm";
+import { installDependencies, installDependenciesCommand, runScriptCommand } from "nypm";
 import type { PackageManagerName } from "nypm";
 import { join, resolve } from "pathe";
 import { hasTTY, isAgent } from "std-env";
@@ -268,7 +268,7 @@ export default defineCommand({
     ];
     const nextSteps = [
       dirPath !== "." && `cd ${shellQuote(dirPath)}`,
-      !installed && `${pm} install`,
+      !installed && installDependenciesCommand(pm),
       runScriptCommand(pm, "dev"),
     ].filter(Boolean) as string[];
 
