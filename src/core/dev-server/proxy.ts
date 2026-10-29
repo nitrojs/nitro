@@ -36,6 +36,10 @@ export function createHTTPProxy(defaults: ProxyServerOptions = {}): HTTPProxy {
       event._handled = true;
       await proxy.web(event.node.req, event.node.res, opts);
     } catch (error: any) {
+      // Let the error handler write the 503 when nothing was sent yet
+      if (!event.node.res.headersSent) {
+        event._handled = false;
+      }
       try {
         event.node.res.setHeader("refresh", "3");
       } catch {
