@@ -13,12 +13,20 @@ export interface CreateProjectOptions {
   force?: boolean;
 }
 
+export interface CreateProjectResult {
+  /** Paths of the existing files that were overwritten (with `force`). */
+  overwritten: string[];
+}
+
 /**
  * Create a new Nitro project in `dir` from a template built into Nitro.
  *
  * The `nitro` dependency is pinned to the running Nitro version.
  */
-export async function createProject(dir: string, opts: CreateProjectOptions): Promise<void> {
+export async function createProject(
+  dir: string,
+  opts: CreateProjectOptions
+): Promise<CreateProjectResult> {
   const template = projectTemplates.find((t) => t.name === opts.template);
   if (!template) {
     throw new Error(
@@ -46,14 +54,20 @@ export async function createProject(dir: string, opts: CreateProjectOptions): Pr
     ...template.files,
     "package.json": JSON.stringify(pkg, null, 2) + "\n",
   };
+  const overwritten: string[] = [];
   for (const [path, contents] of Object.entries(files)) {
+    if (existsSync(join(dir, path))) {
+      overwritten.push(path);
+    }
     await mkdir(dirname(join(dir, path)), { recursive: true });
     await writeFile(join(dir, path), contents);
   }
+  return { overwritten };
 }
 
+/** Whether `dir` does not exist or is empty (a `.git` directory alone is ignored). */
 export async function isEmptyDir(dir: string): Promise<boolean> {
-  return !existsSync(dir) || (await readdir(dir)).length === 0;
+  return !existsSync(dir) || (await readdir(dir)).every((entry) => entry === ".git");
 }
 
 async function nitroDependency(): Promise<string> {

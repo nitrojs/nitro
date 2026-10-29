@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { defineCommand, runMain } from "citty";
 import { version as nitroVersion } from "#nitro/meta";
+import { showUsage } from "./_usage.ts";
 
 const main = defineCommand({
   meta: {
@@ -23,4 +24,4 @@ const main = defineCommand({
   },
 });
 
-runMain(main);
+runMain(main, { showUsage });

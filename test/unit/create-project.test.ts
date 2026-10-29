@@ -1,9 +1,13 @@
 import { existsSync } from "node:fs";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "pathe";
 import { afterEach, describe, expect, it } from "vitest";
-import { createProject, projectTemplates } from "../../src/cli/commands/create/_project.ts";
+import {
+  createProject,
+  isEmptyDir,
+  projectTemplates,
+} from "../../src/cli/commands/create/_project.ts";
 import pkg from "../../package.json" with { type: "json" };
 
 const temporaryDirs: string[] = [];
@@ -43,7 +47,8 @@ describe("createProject", () => {
     await expect(createProject(dir, { template: "rolldown" })).rejects.toThrow(
       /not empty.*--force/
     );
-    await createProject(dir, { template: "rolldown", force: true });
+    const { overwritten } = await createProject(dir, { template: "rolldown", force: true });
+    expect(overwritten).toEqual(["package.json"]);
     expect(JSON.parse(await readFile(join(dir, "package.json"), "utf8")).scripts.dev).toBe(
       "nitro dev"
     );
@@ -54,5 +59,13 @@ describe("createProject", () => {
     await expect(createProject(dir, { template: "nope" })).rejects.toThrow(
       /Unknown template `nope`.*`vite`, `rolldown`, `runtime`/
     );
+  });
+
+  it("treats a directory with only `.git` as empty", async () => {
+    const dir = await tmpDir();
+    await mkdir(join(dir, ".git"));
+    expect(await isEmptyDir(dir)).toBe(true);
+    await writeFile(join(dir, "README.md"), "");
+    expect(await isEmptyDir(dir)).toBe(false);
   });
 });

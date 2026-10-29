@@ -1,64 +1,85 @@
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { defineCommand, showUsage } from "citty";
+import { defineCommand } from "citty";
+import type { ArgsDef } from "citty";
 import { consola } from "consola";
 import { colors } from "consola/utils";
-import { installDependencies, packageManagers, runScriptCommand } from "nypm";
+import { installDependencies, runScriptCommand } from "nypm";
 import type { PackageManagerName } from "nypm";
-import { dirname, relative, resolve } from "pathe";
-import { findNearestFile, findWorkspaceDir } from "pkg-types";
+import { join, resolve } from "pathe";
 import { hasTTY, isAgent } from "std-env";
+import { showUsage } from "../../_usage.ts";
+import { findArgsError } from "./_args.ts";
 import { createProject, isEmptyDir, projectTemplates } from "./_project.ts";
+import {
+  detectPackageManager,
+  displayPath,
+  installErrorMessage,
+  isInsideRepo,
+  pmNames,
+  shellQuote,
+} from "./_utils.ts";
 
 const DEFAULT_DIR = "nitro-app";
 
-const pmNames = packageManagers.map((pm) => pm.name);
+const templateNames = projectTemplates.map((t) => t.name);
+
+const argsDef = {
+  dir: {
+    type: "positional",
+    required: false,
+    description: `Directory to create the project in (default: \`${DEFAULT_DIR}\`)`,
+  },
+  template: {
+    type: "string",
+    alias: "t",
+    description: `Project template: ${projectTemplates.map((t, i) => `\`${t.name}\` (${t.description}${i === 0 ? ", default" : ""})`).join(", ")}`,
+  },
+  force: {
+    type: "boolean",
+    description: "Write into a non-empty directory, overwriting the files the template creates",
+  },
+  install: {
+    type: "boolean",
+    default: true,
+    description: "Install dependencies",
+    negativeDescription: "Skip installing dependencies",
+  },
+  packageManager: {
+    type: "string",
+    alias: "p",
+    description: `Package manager to use: ${pmNames.join(", ")} (default: the one running \`nitro\`, or npm)`,
+  },
+  gitInit: {
+    type: "boolean",
+    description: "Initialize a git repository (default: prompted in a terminal, otherwise off)",
+  },
+} satisfies ArgsDef;
 
 export default defineCommand({
   meta: {
     name: "create",
     description: "Create a new Nitro project",
   },
-  args: {
-    dir: {
-      type: "positional",
-      required: false,
-      description: `Directory to create the project in (default: \`${DEFAULT_DIR}\`)`,
-    },
-    template: {
-      type: "string",
-      alias: "t",
-      description: `Project template (${projectTemplates.map((t) => t.name).join(", ")})`,
-    },
-    force: {
-      type: "boolean",
-      description: "Override the contents of an existing directory",
-    },
-    install: {
-      type: "boolean",
-      default: true,
-      description: "Install dependencies (use `--no-install` to skip)",
-    },
-    packageManager: {
-      type: "string",
-      alias: "p",
-      description: `Package manager to install dependencies with (${pmNames.join(", ")})`,
-    },
-    gitInit: {
-      type: "boolean",
-      description: "Initialize a git repository",
-    },
-  },
-  async run({ args, cmd }) {
+  args: argsDef,
+  async run({ args, rawArgs, cmd }) {
+    const argsError = findArgsError(rawArgs, argsDef, {
+      choices: { template: templateNames, packageManager: pmNames },
+    });
+    if (argsError) {
+      return fail(argsError);
+    }
     if (isAgent && !args.dir && !args.template) {
-      await showUsage(cmd);
-      process.exit(1);
+      await showUsage(cmd, { meta: { name: "nitro" } });
+      return fail(
+        `No directory given. Pick the options above and pass a directory, for example: \`nitro create ${DEFAULT_DIR} --template ${templateNames[0]}\`.`
+      );
     }
     const interactive = hasTTY && !isAgent;
 
-    if (args.template && !projectTemplates.some((t) => t.name === args.template)) {
+    if (args.template && !templateNames.includes(args.template)) {
       return fail(
-        `Unknown template \`${args.template}\`. Available templates: ${projectTemplates.map((t) => `\`${t.name}\``).join(", ")}.`
+        `Unknown template \`${args.template}\`. Available templates: ${templateNames.map((t) => `\`${t}\``).join(", ")}.`
       );
     }
     if (args.packageManager && !pmNames.includes(args.packageManager as PackageManagerName)) {
@@ -84,7 +105,7 @@ export default defineCommand({
     let force = !!args.force;
     if (!interactive && !force && !(await isEmptyDir(dir))) {
       return fail(
-        `Directory ${colors.cyan(displayPath(dir))} is not empty. Use \`--force\` to override its contents.`
+        `Directory ${colors.cyan(displayPath(dir))} is not empty. Use \`--force\` to write into it (files the template creates are overwritten) or choose another directory.`
       );
     }
     while (!force && !(await isEmptyDir(dir))) {
@@ -128,13 +149,20 @@ export default defineCommand({
               cancel: "reject",
             })
             .catch(() => process.exit(1))
-        : projectTemplates[0]!.name);
+        : templateNames[0]!);
 
-    await createProject(dir, { template, force });
-    consola.success(`Created a new Nitro project in ${colors.cyan(displayPath(dir))}.`);
+    const { overwritten } = await createProject(dir, { template, force });
+    const dirPath = displayPath(dir);
+    consola.success(
+      `Created a new Nitro project in ${dirPath === "." ? "the current directory" : colors.cyan(dirPath)}.`
+    );
+    if (overwritten.length > 0) {
+      consola.warn(`Overwrote existing files: ${overwritten.join(", ")}.`);
+    }
 
     const detectedPM = detectPackageManager();
     let packageManager: PackageManagerName | undefined;
+    let pmSource = "selected";
     if (args.packageManager) {
       packageManager = args.packageManager as PackageManagerName;
     } else if (args.install && interactive) {
@@ -154,12 +182,22 @@ export default defineCommand({
         })) as PackageManagerName | "" | undefined) || undefined;
     } else {
       packageManager = detectedPM || "npm";
+      pmSource = detectedPM ? "detected" : "default";
     }
 
+    let installed = false;
     if (args.install && packageManager) {
       consola.start(`Installing dependencies with \`${packageManager}\`...`);
-      await installDependencies({ cwd: dir, packageManager });
-      consola.success("Dependencies installed.");
+      try {
+        await installDependencies({ cwd: dir, packageManager });
+        installed = true;
+        consola.success("Dependencies installed.");
+      } catch (error) {
+        process.exitCode = 1;
+        consola.error(
+          `Failed to install dependencies: ${installErrorMessage(error, packageManager)}`
+        );
+      }
     }
 
     const gitInit =
@@ -170,52 +208,59 @@ export default defineCommand({
           initial: !(await isInsideRepo(dir)),
           cancel: "undefined",
         })));
+    let gitInitialized = false;
     if (gitInit) {
       try {
         execFileSync("git", ["init"], { cwd: dir, stdio: "ignore" });
+        gitInitialized = true;
         consola.success("Git repository initialized.");
       } catch (error) {
         consola.warn(`Failed to initialize a git repository: ${(error as Error).message}`);
       }
     }
 
+    const pm = packageManager || "npm";
+    const summary = [
+      ["Directory", dirPath],
+      [
+        "Template",
+        `${template} (${projectTemplates.find((t) => t.name === template)!.description})`,
+      ],
+      ["Package manager", packageManager ? `${packageManager} (${pmSource})` : "none"],
+      [
+        "Dependencies",
+        installed ? "installed" : args.install && packageManager ? "failed" : "not installed",
+      ],
+      [
+        "Git",
+        gitInitialized
+          ? "initialized"
+          : gitInit
+            ? "failed"
+            : existsSync(join(dir, ".git"))
+              ? "existing repository"
+              : "not initialized",
+      ],
+    ];
     const nextSteps = [
-      displayPath(dir) !== "." && `cd ${displayPath(dir)}`,
-      !(args.install && packageManager) && `${packageManager || "npm"} install`,
-      runScriptCommand(packageManager || "npm", "dev"),
-    ].filter(Boolean);
-    consola.box(`Next steps:\n\n${nextSteps.map((step) => `  ${step}`).join("\n")}`);
+      dirPath !== "." && `cd ${shellQuote(dirPath)}`,
+      !installed && `${pm} install`,
+      runScriptCommand(pm, "dev"),
+    ].filter(Boolean) as string[];
+
+    consola.log(
+      `\nSummary:\n${summary.map(([label, value]) => `  ${`${label}:`.padEnd(17)} ${value}`).join("\n")}`
+    );
+    const nextStepsText = `Next steps:\n\n${nextSteps.map((step) => `  ${step}`).join("\n")}`;
+    if (interactive) {
+      consola.box(nextStepsText);
+    } else {
+      consola.log(`\n${nextStepsText}\n`);
+    }
   },
 });
 
 function fail(message: string): never {
   consola.error(message);
   process.exit(1);
-}
-
-function displayPath(dir: string): string {
-  return relative(process.cwd(), dir) || ".";
-}
-
-/** Whether `dir` is inside a git repository or a monorepo (detected from its parent). */
-async function isInsideRepo(dir: string): Promise<boolean> {
-  const startingFrom = dirname(dir);
-  const found = await Promise.all(
-    [
-      // `.git` is a file in worktrees and submodules
-      findNearestFile(".git", { startingFrom, test: existsSync }),
-      findWorkspaceDir(startingFrom, { tests: ["workspaceFile"] }),
-    ].map((p) =>
-      p.then(
-        () => true,
-        () => false
-      )
-    )
-  );
-  return found.some(Boolean);
-}
-
-function detectPackageManager(): PackageManagerName | undefined {
-  const name = process.env.npm_config_user_agent?.split("/")[0] as PackageManagerName | undefined;
-  return name && pmNames.includes(name) ? name : undefined;
 }
