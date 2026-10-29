@@ -156,6 +156,23 @@ export function externals(opts: NodeExternalsOptions): Plugin {
           // Reverse engineer subpath export
           const guessedSubpath: string | null | undefined =
             await lookupNodeModuleSubpath(id).catch(() => null);
+          // The "." export is the package itself: `join(pkgName, "./")` would give
+          // `pkgName/`, which is an invalid trailing slash pattern (DEP0155).
+          // Only use the bare name when it resolves within the same package copy
+          // and `id` is a "." target under the export conditions used at runtime.
+          if (
+            guessedSubpath === "./" &&
+            packageEntry &&
+            parseNodeModulePath(packageEntry).dir ===
+              parseNodeModulePath(id).dir &&
+            (await isRootExport(id, opts.exportConditions || []))
+          ) {
+            trackedExternals.add(packageEntry);
+            return {
+              id: pkgName,
+              external: true,
+            };
+          }
           const resolvedGuess =
             guessedSubpath &&
             tryResolve(join(pkgName, guessedSubpath), importer);
@@ -509,6 +526,38 @@ export function applyProductionCondition(exports: PackageJson["exports"]) {
   for (const key in exports) {
     applyProductionCondition(exports[key as keyof typeof exports]);
   }
+}
+
+// Check if `path` is a target of the package "." export under `conditions`
+async function isRootExport(path: string, conditions: string[]) {
+  const { dir, name, subpath } = parseNodeModulePath(path);
+  if (!dir || !name || !subpath) {
+    return false;
+  }
+  const { exports } =
+    (await readPackageJSON(join(dir, name)).catch(() => undefined)) || {};
+  if (!exports || Array.isArray(exports)) {
+    return false;
+  }
+  const hasSubpaths =
+    typeof exports === "object" &&
+    Object.keys(exports).some((k) => k.startsWith("."));
+  const matches = (value: unknown): boolean => {
+    if (typeof value === "string") {
+      return value === subpath;
+    }
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return false;
+    }
+    return Object.entries(value).some(
+      ([condition, target]) =>
+        (condition === "default" || conditions.includes(condition)) &&
+        matches(target)
+    );
+  };
+  return matches(
+    hasSubpaths ? (exports as Record<string, unknown>)["."] : exports
+  );
 }
 
 async function isFile(file: string) {
