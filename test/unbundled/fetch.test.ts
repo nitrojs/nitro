@@ -1,3 +1,5 @@
+import type { Nitro } from "nitro/types";
+import { build, createDevServer, createNitro } from "nitro/builder";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -173,5 +175,66 @@ describe.each(["self", "worker"])("nitro fetch (%s runner)", (runner) => {
     const res = await nitro(["fetch", "-L", "/"]);
     expect(res.exitCode).toBe(2);
     expect(res.stderr).toContain("-L");
+  });
+});
+
+describe("nitro fetch (running dev server)", () => {
+  let dir: string;
+  let nitro: Nitro;
+  let devURL: string;
+  const fetchCLI = (args: string[]) =>
+    execa("node", [cli, "fetch", ...args, "--dir", dir], { reject: false });
+
+  beforeAll(async () => {
+    dir = await mkdtemp(join(tmpdir(), "nitro-fetch-dev-"));
+    await writeFile(
+      join(dir, "nitro.config.mjs"),
+      `export default { builder: false, serverDir: "./" };`
+    );
+    await mkdir(join(dir, "routes"));
+    await writeFile(
+      join(dir, "routes/mode.ts"),
+      `export default ({ req }) => ({ dev: import.meta.dev, url: req.url });`
+    );
+    await mkdir(join(dir, "public"));
+    await writeFile(join(dir, "public/hello.txt"), "static asset");
+
+    nitro = await createNitro({ rootDir: dir, dev: true });
+    const server = createDevServer(nitro).listen({ port: 0, hostname: "127.0.0.1" });
+    await server.ready();
+    devURL = server.url!;
+    const ready = new Promise<void>((resolve) =>
+      nitro.hooks.hookOnce("dev:reload", () => resolve())
+    );
+    await build(nitro);
+    await ready;
+  });
+
+  afterAll(async () => {
+    await nitro?.close();
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it("uses the running dev server", async () => {
+    const res = await fetchCLI(["http://example.com/mode"]);
+    expect(res.exitCode).toBe(0);
+    expect(JSON.parse(res.stdout)).toEqual({ dev: true, url: "http://example.com/mode" });
+    expect(res.stderr).toContain(`Using the running dev server at \`${devURL}\``);
+    expect((await fetchCLI(["/hello.txt"])).stdout).toBe("static asset");
+  });
+
+  it("starts a server with `--no-dev` or `--envName`", async () => {
+    for (const args of [["--no-dev"], ["--envName", "production"]]) {
+      const res = await fetchCLI(["/mode", ...args]);
+      expect(JSON.parse(res.stdout)).toMatchObject({ dev: false });
+      expect(res.stderr).not.toContain("dev server");
+    }
+  });
+
+  it("starts a server once the dev server is closed", async () => {
+    await nitro.close();
+    const res = await fetchCLI(["/mode"]);
+    expect(res.exitCode).toBe(0);
+    expect(JSON.parse(res.stdout)).toMatchObject({ dev: false });
   });
 });

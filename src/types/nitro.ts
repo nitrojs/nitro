@@ -102,6 +102,8 @@ export interface NitroBuildInfo {
   dev?: {
     pid: number;
     workerAddress?: WorkerAddress;
+    /** Public URL of the dev server (its first listener). */
+    url?: string;
   };
   config?: Partial<PresetOptions>;
 }

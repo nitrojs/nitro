@@ -13,7 +13,7 @@ import type {
 } from "env-runner";
 import type { RunnerName } from "env-runner";
 import { RunnerManager, loadRunner } from "env-runner";
-import type { Nitro } from "nitro/types";
+import type { Nitro, WorkerAddress } from "nitro/types";
 
 import { HTTPError } from "h3";
 
@@ -49,6 +49,7 @@ class DevServer extends NitroDevApp implements NitroDevServer, RunnerRPCHooks {
   #workerData: EnvRunnerData = {};
   #plugins?: EnvRunnerPluginOption[];
   #listeners: Server[] = [];
+  #devInfo: { workerAddress?: WorkerAddress; url?: string } = {};
   #watcher?: FSWatcher;
   #manager: RunnerManager;
   #workerWebSocket: () => Promise<Partial<Hooks>>;
@@ -112,11 +113,8 @@ class DevServer extends NitroDevApp implements NitroDevServer, RunnerRPCHooks {
     );
     this.#manager.onReady(async (_runner, addr) => {
       this.#workerRetries = 0;
-      writeDevBuildInfo(this.nitro, addr).catch((error) => {
-        this.nitro.logger.warn(
-          `Failed to write dev build info: ${error instanceof Error ? error.message : String(error)}`
-        );
-      });
+      this.#devInfo.workerAddress = addr;
+      this.#writeDevInfo();
     });
     this.#manager.onClose((_runner, cause) => {
       if (this.#shuttingDown) {
@@ -210,6 +208,15 @@ class DevServer extends NitroDevApp implements NitroDevServer, RunnerRPCHooks {
       plugins: [...(opts?.plugins || []), webSocketPlugin(this.resolveWebSocketHooks)],
     });
     this.#listeners.push(server);
+    server.ready().then(
+      () => {
+        if (!this.#devInfo.url && server.url) {
+          this.#devInfo.url = server.url;
+          this.#writeDevInfo();
+        }
+      },
+      () => {}
+    );
     if (server.node?.server) {
       server.node.server.on("upgrade", (req, sock, head) => this.upgrade(req, sock, head));
     }
@@ -301,6 +308,15 @@ class DevServer extends NitroDevApp implements NitroDevServer, RunnerRPCHooks {
     } finally {
       this.#shuttingDown = false;
     }
+  }
+
+  /** Point CLI commands (`nitro task`, `nitro fetch`) to this dev server. */
+  #writeDevInfo() {
+    writeDevBuildInfo(this.nitro, this.#devInfo).catch((error) => {
+      this.nitro.logger.warn(
+        `Failed to write dev build info: ${error instanceof Error ? error.message : String(error)}`
+      );
+    });
   }
 
   async #waitForBuild() {

@@ -13,7 +13,13 @@ export const fetchArgs = {
   envName: {
     type: "string",
     description:
-      "The environment name used to apply `$env.<name>` config overrides and exposed as `import.meta.envName` (default: `production`).",
+      "The environment name used to apply `$env.<name>` config overrides and exposed as `import.meta.envName` (default: `production`). Starts a server, also when `nitro dev` is running.",
+  },
+  dev: {
+    type: "boolean",
+    default: true,
+    description:
+      "send the request to the running `nitro dev` server of the project, if any (`--no-dev` starts a server)",
   },
   request: {
     type: "string",
@@ -55,6 +61,7 @@ export interface FetchOptions {
   url: string;
   dir?: string;
   envName?: string;
+  dev?: boolean;
   method?: string;
   headers: string[];
   /** Body parts with the option that set them, in order. */
@@ -84,6 +91,7 @@ export function parseFetchArgs(rawArgs: string[]): FetchOptions {
     args: rawArgs,
     options,
     allowPositionals: true,
+    allowNegative: true,
     tokens: true,
   });
   if (positionals.length > 1) {
@@ -99,6 +107,7 @@ export function parseFetchArgs(rawArgs: string[]): FetchOptions {
     url: positionals[0] || "/",
     dir: values.dir as string | undefined,
     envName: values.envName as string | undefined,
+    dev: values.dev as boolean | undefined,
     method: values.request as string | undefined,
     headers: (values.header as string[] | undefined) || [],
     data,

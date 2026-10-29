@@ -6,6 +6,7 @@ import { defineCommand } from "citty";
 import { consola } from "consola";
 import { resolve } from "pathe";
 import { startUnbundledServer } from "../../../build/unbundled/serve.ts";
+import { fetchDevServer, findDevServer } from "./_dev.ts";
 import { type FetchOptions, createFetchRequest, fetchArgs, parseFetchArgs } from "./_request.ts";
 
 export default defineCommand({
@@ -38,14 +39,24 @@ export default defineCommand({
 
     // Server logs go to stderr, so that stdout only has the response
     const stdout = stdoutWriter();
+
+    const rootDir = resolve(opts.dir || ".");
+    // A dev server can not apply another env name
+    const dev = opts.dev === false || opts.envName ? undefined : await findDevServer(rootDir);
+    consola.level = opts.silent ? 0 : 3;
+    if (dev) {
+      consola.info(`Using the running dev server at \`${dev.url}\` (pid: ${dev.pid})`);
+    }
     consola.level = opts.silent ? 0 : opts.verbose ? 3 : 1;
 
-    const server = await startUnbundledServer({
-      rootDir: resolve(opts.dir || "."),
-      envName: opts.envName,
-      // Listen (on a random port), so that requests go through the server middleware
-      listen: { port: 0, hostname: "127.0.0.1", silent: true },
-    });
+    const server = dev
+      ? undefined
+      : await startUnbundledServer({
+          rootDir,
+          envName: opts.envName,
+          // Listen (on a random port), so that requests go through the server middleware
+          listen: { port: 0, hostname: "127.0.0.1", silent: true },
+        });
 
     let outputError: Error | undefined;
     try {
@@ -56,7 +67,8 @@ export default defineCommand({
           prefix: "> ",
         });
       }
-      const res = await server.runner.fetch(new Request(request, { signal: abort.signal }));
+      const req = new Request(request, { signal: abort.signal });
+      const res = await (server ? server.runner.fetch(req) : fetchDevServer(dev!, req));
       const statusLine =
         `HTTP/1.1 ${res.status} ${res.statusText || STATUS_CODES[res.status] || ""}`.trimEnd();
       if (opts.verbose) {
@@ -96,7 +108,7 @@ export default defineCommand({
       }
     }
 
-    await server.close();
+    await server?.close();
     await Promise.all(
       [stdout, process.stderr]
         .filter((stream) => stream.writable)
