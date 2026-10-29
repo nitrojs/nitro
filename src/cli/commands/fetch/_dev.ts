@@ -16,6 +16,7 @@ export async function findDevServer(
   const dev = buildInfo?.dev;
   if (
     !dev?.url ||
+    !URL.canParse(dev.url) ||
     (opts.envName && opts.envName !== buildInfo?.envName) ||
     !(await isListening(new URL(dev.url)))
   ) {
@@ -27,7 +28,14 @@ export async function findDevServer(
 /** Send the request to the dev server, keeping the host of the request URL. */
 export function fetchDevServer(dev: RunningDevServer, request: Request): Promise<Response> {
   const url = new URL(dev.url);
-  return proxyFetch(url.protocol === "https:" ? url.origin : addressOf(url), request);
+  const addr = addressOf(url);
+  if (url.protocol !== "https:") {
+    return proxyFetch(addr, request);
+  }
+  if (addr.host === "localhost") {
+    url.hostname = "localhost";
+  }
+  return proxyFetch(url.origin, request);
 }
 
 function addressOf(url: URL) {

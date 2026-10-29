@@ -3,7 +3,7 @@ import { STATUS_CODES } from "node:http";
 import { Readable, type Writable } from "node:stream";
 import { finished, pipeline } from "node:stream/promises";
 import { defineCommand } from "citty";
-import { consola } from "consola";
+import { LogLevels, consola } from "consola";
 import { resolve } from "pathe";
 import { startUnbundledServer } from "../../../build/unbundled/serve.ts";
 import { fetchDevServer, findDevServer } from "./_dev.ts";
@@ -21,6 +21,9 @@ export default defineCommand({
     let request: Request;
     try {
       opts = parseFetchArgs(rawArgs);
+      if (opts.silent) {
+        consola.level = LogLevels.silent;
+      }
       request = await createFetchRequest(opts);
     } catch (error) {
       consola.error((error as Error).message);
@@ -43,11 +46,11 @@ export default defineCommand({
     const rootDir = resolve(opts.dir || ".");
     const dev =
       opts.dev === false ? undefined : await findDevServer(rootDir, { envName: opts.envName });
-    consola.level = opts.silent ? 0 : 3;
+    consola.level = opts.silent ? LogLevels.silent : 3;
     if (dev) {
       consola.info(`Using the running dev server at \`${dev.url}\` (pid: ${dev.pid})`);
     }
-    consola.level = opts.silent ? 0 : opts.verbose ? 3 : 1;
+    consola.level = opts.silent ? LogLevels.silent : opts.verbose ? 3 : 1;
 
     const server = dev
       ? undefined
@@ -67,7 +70,10 @@ export default defineCommand({
           prefix: "> ",
         });
       }
-      const req = new Request(request, { signal: abort.signal });
+      const skipBody = new AbortController();
+      const req = new Request(request, {
+        signal: AbortSignal.any([abort.signal, skipBody.signal]),
+      });
       const res = await (server ? server.runner.fetch(req) : fetchDevServer(dev!, req));
       const statusLine =
         `HTTP/1.1 ${res.status} ${res.statusText || STATUS_CODES[res.status] || ""}`.trimEnd();
@@ -83,6 +89,8 @@ export default defineCommand({
         // A web stream source would not be cancelled on abort
         await pipeline(Readable.fromWeb(res.body), out, { signal: abort.signal });
       } else {
+        // Cancelling the body would not end the request in the worker runner
+        skipBody.abort();
         out.end();
         await finished(out);
       }

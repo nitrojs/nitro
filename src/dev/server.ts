@@ -50,6 +50,7 @@ class DevServer extends NitroDevApp implements NitroDevServer, RunnerRPCHooks {
   #plugins?: EnvRunnerPluginOption[];
   #listeners: Server[] = [];
   #devInfo: { workerAddress?: WorkerAddress; url?: string } = {};
+  #devInfoWrite: Promise<void> = Promise.resolve();
   #watcher?: FSWatcher;
   #manager: RunnerManager;
   #workerWebSocket: () => Promise<Partial<Hooks>>;
@@ -312,11 +313,14 @@ class DevServer extends NitroDevApp implements NitroDevServer, RunnerRPCHooks {
 
   /** Point CLI commands (`nitro task`, `nitro fetch`) to this dev server. */
   #writeDevInfo() {
-    writeDevBuildInfo(this.nitro, this.#devInfo).catch((error) => {
-      this.nitro.logger.warn(
-        `Failed to write dev build info: ${error instanceof Error ? error.message : String(error)}`
-      );
-    });
+    // One write at a time, so that an earlier one does not finish last
+    this.#devInfoWrite = this.#devInfoWrite
+      .then(() => writeDevBuildInfo(this.nitro, this.#devInfo))
+      .catch((error) => {
+        this.nitro.logger.warn(
+          `Failed to write dev build info: ${error instanceof Error ? error.message : String(error)}`
+        );
+      });
   }
 
   async #waitForBuild() {

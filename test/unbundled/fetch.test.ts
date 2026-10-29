@@ -93,6 +93,9 @@ describe.each(["self", "worker"])("nitro fetch (%s runner)", (runner) => {
   it("prints only the headers with `-I`, and the request too with `-v`", async () => {
     const head = await nitro(["fetch", "-I", "/hello.txt"]);
     expect(head.stdout).toMatch(/^HTTP\/1\.1 200 OK\r\n[^]*\r\n\r\n$/);
+    const endless = await nitro(["fetch", "-I", "-X", "GET", "/endless"]);
+    expect(endless.exitCode).toBe(0);
+    expect(endless.stdout).toMatch(/^HTTP\/1\.1 200 OK\r\n(?:.+\r\n)*\r\n$/);
     const verbose = await nitro(["fetch", "-v", "/hello.txt"]);
     expect(verbose.stdout).toBe("static asset");
     expect(verbose.stderr).toContain("> GET /hello.txt HTTP/1.1\n> host: localhost\n");
@@ -177,6 +180,9 @@ describe.each(["self", "worker"])("nitro fetch (%s runner)", (runner) => {
     const res = await nitro(["fetch", "-L", "/"]);
     expect(res.exitCode).toBe(2);
     expect(res.stderr).toContain("-L");
+    const silent = await nitro(["fetch", "-s", "-d", "@missing.txt", "/"]);
+    expect(silent.exitCode).toBe(2);
+    expect(silent.stderr).toBe("");
   });
 });
 
