@@ -1089,6 +1089,12 @@ export function testNitro(
       expect(headers["server-timing"]).toMatch(/^custom;desc="Custom";dur=1, total;dur=[\d.]+$/);
     });
 
+    it("keeps h3 setServerTiming entries on error responses", async () => {
+      const { status, headers } = await callHandler({ url: "/server-timing/custom-throw" });
+      expect(status).toBe(503);
+      expect(headers["server-timing"]).toMatch(/^custom;desc="Custom";dur=1, total;dur=[\d.]+$/);
+    });
+
     it("keeps entries set by the server entry", async () => {
       const { headers } = await callHandler({ url: "/server-entry-timing" });
       expect(headers["server-timing"]).toMatch(/^app;desc="App";dur=5, total;dur=[\d.]+$/);

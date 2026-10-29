@@ -381,6 +381,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/server-timing\\/custom\\/?$",
               },
               {
+                "dest": "/server-timing/custom-throw",
+                "src": "^\\/server-timing\\/custom-throw\\/?$",
+              },
+              {
                 "dest": "/server-timing/cached/[id]",
                 "src": "^\\/server-timing\\/cached\\/(?<id>[^/]+)\\/?$",
               },
@@ -866,6 +870,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/rules/swr/middleware-order.func (symlink)",
             "functions/rules/swr/server-timing/cached/[id].func (symlink)",
             "functions/server-timing/cached/[id].func (symlink)",
+            "functions/server-timing/custom-throw.func (symlink)",
             "functions/server-timing/custom.func (symlink)",
             "functions/server-timing/kv.func (symlink)",
             "functions/server-timing/throw.func (symlink)",
