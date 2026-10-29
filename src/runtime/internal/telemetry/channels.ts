@@ -1,5 +1,5 @@
 import type { IKeyValue, ChannelDescriber, SpanInfo } from "./types.ts";
-import { UNSTORAGE_OPERATIONS } from "./unstorage.ts";
+import { UNSTORAGE_CHANNELS } from "./unstorage.ts";
 
 // OTLP `SpanKind` (proto enum) Wire values: INTERNAL = 1, SERVER = 2, CLIENT = 3.
 const SPAN_KIND_INTERNAL = 1;
@@ -91,8 +91,8 @@ export const TRACED_CHANNELS: Record<string, ChannelDescriber> = {
     };
   },
   ...Object.fromEntries(
-    UNSTORAGE_OPERATIONS.map((operation) => [
-      `unstorage.${operation}`,
+    UNSTORAGE_CHANNELS.map((name) => [
+      name,
       (channel: string, data: unknown) => {
         const { driver, base, keys } = data as {
           driver?: { name?: string };
