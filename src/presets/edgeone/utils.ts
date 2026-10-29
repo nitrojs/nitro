@@ -12,6 +12,7 @@ import { join } from "pathe";
 import { compareRoutes, routeToRegExp } from "rou3";
 import { joinURL } from "ufo";
 import { writeFile } from "../../utils/fs.ts";
+import { getPublicAssetCorsHeaders } from "../_utils/cors.ts";
 import { catchAllRef, hasHeaders, parseRouteKey, sortRoutes } from "../_utils/routes.ts";
 
 const NAMED_GROUP_RE = /\(\?<(?![=!])[^>]+>/g;
@@ -62,6 +63,12 @@ export async function writeEdgeOneConfig(nitro: Nitro) {
         headers: routeRules.headers as Record<string, string>,
         continue: true,
       })),
+    // CORS headers of public asset dirs, which the server function does not serve
+    ...getPublicAssetCorsHeaders(nitro).map(({ base, headers }) => ({
+      src: routeToRE2(joinURL(baseURL, base, "**")).source,
+      headers,
+      continue: true,
+    })),
     // Redirect rules (most specific first, as the first match stops routing)
     ...rules
       .filter(([_, routeRules]) => routeRules.redirect)

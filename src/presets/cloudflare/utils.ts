@@ -17,6 +17,7 @@ import {
   withoutTrailingSlash,
 } from "ufo";
 import { unenvCfNodeCompat } from "./unenv/preset.ts";
+import { getPublicAssetCorsHeaders } from "../_utils/cors.ts";
 import { hasHeaders, routeToSplat, skipUnsupportedRoute, sortRoutes } from "../_utils/routes.ts";
 import { extendEnv } from "../../build/env.ts";
 
@@ -133,19 +134,30 @@ export async function writeCFHeaders(nitro: Nitro, outdir: "public" | "output" |
     contents.push(headers);
   }
 
-  if (existsSync(userHeadersPath)) {
-    const currentHeaders = await readFile(userHeadersPath, "utf8");
+  const headersFile = existsSync(userHeadersPath)
+    ? await readFile(userHeadersPath, "utf8")
+    : undefined;
+  for (const { base, headers } of getPublicAssetCorsHeaders(nitro, { headersFile })) {
+    contents.push(
+      [
+        joinURL(nitro.options.baseURL, base, "*"),
+        ...Object.entries(headers).map(([header, value]) => `  ${header}: ${value}`),
+      ].join("\n")
+    );
+  }
+
+  if (headersFile !== undefined) {
     if (userHeadersPath !== headersPath) {
       await rename(userHeadersPath, headersPath);
     }
-    if (/^\/\* /m.test(currentHeaders)) {
+    if (/^\/\* /m.test(headersFile)) {
       nitro.logger.info(
         "Not adding Nitro fallback to `_headers` (as an existing fallback was found)."
       );
       return;
     }
     nitro.logger.info("Adding Nitro fallback to `_headers` to handle all unmatched routes.");
-    contents.unshift(currentHeaders);
+    contents.unshift(headersFile);
   }
 
   await writeFile(headersPath, contents.join("\n"), true);

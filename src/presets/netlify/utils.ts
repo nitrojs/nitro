@@ -3,6 +3,7 @@ import type { Nitro, PublicAssetDir } from "nitro/types";
 import { dirname, join } from "pathe";
 import { joinURL, withoutTrailingSlash } from "ufo";
 import { escapeRegExp } from "../../utils/regex.ts";
+import { getPublicAssetCorsHeaders } from "../_utils/cors.ts";
 import { hasHeaders, routeToSplat, skipUnsupportedRoute, sortRoutes } from "../_utils/routes.ts";
 
 export async function writeRedirects(nitro: Nitro) {
@@ -56,6 +57,18 @@ export async function writeHeaders(nitro: Nitro) {
     ].join("\n");
 
     contents += headers + "\n";
+  }
+
+  const userHeadersPath = join(nitro.options.output.publicDir, "_headers");
+  const headersFile = existsSync(userHeadersPath)
+    ? await fsp.readFile(userHeadersPath, "utf8")
+    : undefined;
+  for (const { base, headers } of getPublicAssetCorsHeaders(nitro, { headersFile })) {
+    contents +=
+      [
+        joinURL(nitro.options.baseURL, base, "*"),
+        ...Object.entries(headers).map(([header, value]) => `  ${header}: ${value}`),
+      ].join("\n") + "\n";
   }
 
   await writePublishFile(nitro, "_headers", contents);
