@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { defineCommand } from "citty";
 import type { ArgsDef } from "citty";
 import { consola } from "consola";
@@ -14,8 +14,8 @@ import { createProject, isEmptyDir, projectTemplates } from "./_project.ts";
 import {
   detectPackageManager,
   displayPath,
-  installErrorMessage,
   isInsideRepo,
+  isNotFoundError,
   pmNames,
   shellQuote,
 } from "./_utils.ts";
@@ -28,7 +28,7 @@ const argsDef = {
   dir: {
     type: "positional",
     required: false,
-    description: `Directory to create the project in (default: \`${DEFAULT_DIR}\`)`,
+    description: `Directory to create the project in (default: \`${DEFAULT_DIR}\`, prompted in a terminal; required when run by an agent)`,
   },
   template: {
     type: "string",
@@ -52,7 +52,8 @@ const argsDef = {
   },
   gitInit: {
     type: "boolean",
-    description: "Initialize a git repository (default: prompted in a terminal, otherwise off)",
+    description:
+      "Initialize a git repository (default: prompted in an interactive terminal, otherwise off)",
   },
 } satisfies ArgsDef;
 
@@ -78,8 +79,9 @@ export default defineCommand({
     const interactive = hasTTY && !isAgent;
 
     if (args.template && !templateNames.includes(args.template)) {
+      const lower = args.template.toLowerCase();
       return fail(
-        `Unknown template \`${args.template}\`. Available templates: ${templateNames.map((t) => `\`${t}\``).join(", ")}.`
+        `Unknown template \`${args.template}\`.${templateNames.includes(lower) ? ` Did you mean \`${lower}\`?` : ""} Available templates: ${templateNames.map((t) => `\`${t}\``).join(", ")}.`
       );
     }
     if (args.packageManager && !pmNames.includes(args.packageManager as PackageManagerName)) {
@@ -102,6 +104,9 @@ export default defineCommand({
           : DEFAULT_DIR)
     );
 
+    if (existsSync(dir) && !statSync(dir).isDirectory()) {
+      return fail(`${colors.cyan(displayPath(dir))} already exists and is not a directory.`);
+    }
     let force = !!args.force;
     if (!interactive && !force && !(await isEmptyDir(dir))) {
       return fail(
@@ -186,6 +191,7 @@ export default defineCommand({
     }
 
     let installed = false;
+    let pm = packageManager || "npm";
     if (args.install && packageManager) {
       consola.start(`Installing dependencies with \`${packageManager}\`...`);
       try {
@@ -194,52 +200,70 @@ export default defineCommand({
         consola.success("Dependencies installed.");
       } catch (error) {
         process.exitCode = 1;
+        const notFound = isNotFoundError(error);
+        if (notFound && packageManager !== "npm") {
+          pm = "npm";
+        }
         consola.error(
-          `Failed to install dependencies: ${installErrorMessage(error, packageManager)}`
+          `Failed to install dependencies: ${notFound ? `\`${packageManager}\` is not installed (or not in PATH).` : (error as Error).message}`
+        );
+        consola.info(
+          `The project files were created: install dependencies in the project directory with an available package manager (see the next steps), rather than running \`nitro create\` again.`
         );
       }
     }
 
+    const hasGit = existsSync(join(dir, ".git"));
+    const insideRepo = !hasGit && (await isInsideRepo(dir));
     const gitInit =
-      args.gitInit ??
-      (interactive &&
-        (await consola.prompt("Initialize a git repository?", {
-          type: "confirm",
-          initial: !(await isInsideRepo(dir)),
-          cancel: "undefined",
-        })));
+      !hasGit &&
+      (args.gitInit ??
+        (interactive &&
+          (await consola.prompt("Initialize a git repository?", {
+            type: "confirm",
+            initial: !insideRepo,
+            cancel: "undefined",
+          }))));
     let gitInitialized = false;
-    if (gitInit) {
+    if (hasGit && args.gitInit) {
+      consola.info("Skipped `git init`: the directory is already a git repository.");
+    } else if (gitInit) {
       try {
         execFileSync("git", ["init"], { cwd: dir, stdio: "ignore" });
         gitInitialized = true;
-        consola.success("Git repository initialized.");
+        consola.success(
+          `Git repository initialized${insideRepo ? " (nested inside an existing repository or workspace)" : ""}.`
+        );
       } catch (error) {
         consola.warn(`Failed to initialize a git repository: ${(error as Error).message}`);
       }
     }
 
-    const pm = packageManager || "npm";
     const summary = [
       ["Directory", dirPath],
       [
         "Template",
         `${template} (${projectTemplates.find((t) => t.name === template)!.description})`,
       ],
-      ["Package manager", packageManager ? `${packageManager} (${pmSource})` : "none"],
+      [
+        "Package manager",
+        packageManager
+          ? `${packageManager} (${pmSource}${pm === packageManager ? "" : ", not found"})`
+          : "none",
+      ],
       [
         "Dependencies",
         installed ? "installed" : args.install && packageManager ? "failed" : "not installed",
       ],
       [
         "Git",
-        gitInitialized
-          ? "initialized"
-          : gitInit
-            ? "failed"
-            : existsSync(join(dir, ".git"))
-              ? "existing repository"
-              : "not initialized",
+        hasGit
+          ? "existing repository"
+          : gitInitialized
+            ? `initialized${insideRepo ? " (nested)" : ""}`
+            : gitInit
+              ? "failed"
+              : `not initialized${insideRepo ? " (inside an existing repository or workspace)" : ""}`,
       ],
     ];
     const nextSteps = [

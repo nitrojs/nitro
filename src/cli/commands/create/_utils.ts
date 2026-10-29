@@ -4,15 +4,20 @@ import type { PackageManagerName } from "nypm";
 import { relative } from "pathe";
 import { findNearestFile, findWorkspaceDir } from "pkg-types";
 
-export const pmNames = packageManagers.map((pm) => pm.name);
+const commonPMs = ["npm", "pnpm", "yarn", "bun", "deno"];
+
+export const pmNames = packageManagers.map((pm) => pm.name).sort((a, b) => rank(a) - rank(b));
 
 export function displayPath(dir: string): string {
   return relative(process.cwd(), dir) || ".";
 }
 
-/** Quote a path for copy-pasting into a shell (POSIX shells, PowerShell and cmd). */
+/** Quote a path for copy-pasting into a shell (cmd and PowerShell on Windows, POSIX shells elsewhere). */
 export function shellQuote(path: string): string {
-  return /^[\w./~@+-]+$/.test(path) ? path : `"${path}"`;
+  if (/^[\w./~@+-]+$/.test(path)) {
+    return path;
+  }
+  return process.platform === "win32" ? `"${path}"` : `'${path.replaceAll("'", `'\\''`)}'`;
 }
 
 /** Whether `dir` is inside a git repository or a monorepo. */
@@ -37,9 +42,12 @@ export function detectPackageManager(): PackageManagerName | undefined {
   return name && pmNames.includes(name) ? name : undefined;
 }
 
-export function installErrorMessage(error: unknown, packageManager: string): string {
-  if ((error as NodeJS.ErrnoException)?.code === "ENOENT") {
-    return `\`${packageManager}\` is not installed (or not in PATH). Install it or choose another one with \`--packageManager\`.`;
-  }
-  return (error as Error)?.message || String(error);
+/** Whether `error` is a spawn error for a missing executable. */
+export function isNotFoundError(error: unknown): boolean {
+  return (error as NodeJS.ErrnoException)?.code === "ENOENT";
+}
+
+function rank(pm: string): number {
+  const index = commonPMs.indexOf(pm);
+  return index === -1 ? commonPMs.length : index;
 }

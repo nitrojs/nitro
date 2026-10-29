@@ -25,6 +25,8 @@ describe("findArgsError", () => {
     [["my-app", "--yes"], "Unknown option `--yes`. Run"],
     [["my-app", "--git"], "Did you mean `--gitInit`?"],
     [["my-app", "--templates", "vite"], "Did you mean `--template`?"],
+    [["my-app", "--tempalte", "vite"], "Did you mean `--template`?"],
+    [["my-app", "--force", "false"], "Use `--force` or `--no-force` instead."],
     [["my-app", "-t"], "Missing value for `-t`. Use one of: vite, rolldown."],
     [["my-app", "-t", "--force"], "Missing value for `-t`."],
     [["my-app", "--template="], "Missing value for `--template`."],
