@@ -240,7 +240,7 @@ export default defineCommand({
     }
 
     const summary = [
-      ["Directory", dirPath],
+      ["Directory", dir],
       [
         "Template",
         `${template} (${projectTemplates.find((t) => t.name === template)!.description})`,
