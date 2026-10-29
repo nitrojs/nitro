@@ -8,6 +8,7 @@ import {
   normalizeid,
   parseNodeModulePath,
 } from "mlly";
+import { consola } from "consola";
 import { resolveModuleURL } from "exsolve";
 import { isDirectory } from "nitropack/kit";
 import type { NodeExternalsOptions } from "nitropack/types";
@@ -16,6 +17,28 @@ import type { PackageJson } from "pkg-types";
 import { readPackageJSON, writePackageJSON } from "pkg-types";
 import type { Plugin } from "rollup";
 import semver from "semver";
+
+export type TracedFile = {
+  path: string;
+  subpath: string;
+  parents: string[];
+
+  pkgPath: string;
+  pkgName: string;
+  pkgVersion: string;
+};
+
+export type TracedPackage = {
+  name: string;
+  versions: Record<
+    string,
+    {
+      pkgJSON: PackageJson;
+      path: string;
+      files: string[];
+    }
+  >;
+};
 
 export function externals(opts: NodeExternalsOptions): Plugin {
   const trackedExternals = new Set<string>();
@@ -200,15 +223,6 @@ export function externals(opts: NodeExternalsOptions): Plugin {
       });
 
       // Resolve traced files
-      type TracedFile = {
-        path: string;
-        subpath: string;
-        parents: string[];
-
-        pkgPath: string;
-        pkgName: string;
-        pkgVersion: string;
-      };
       const _resolveTracedPath = (p: string) =>
         fsp.realpath(resolve(opts.traceOptions?.base || ".", p));
       const tracedFiles: Record<string, TracedFile> = Object.fromEntries(
@@ -250,17 +264,6 @@ export function externals(opts: NodeExternalsOptions): Plugin {
       );
 
       // Resolve traced packages
-      type TracedPackage = {
-        name: string;
-        versions: Record<
-          string,
-          {
-            pkgJSON: PackageJson;
-            path: string;
-            files: string[];
-          }
-        >;
-      };
       const tracedPackages: Record<string, TracedPackage> = {};
       for (const tracedFile of Object.values(tracedFiles)) {
         // Use `node_modules/{name}` in path as name to support aliases
@@ -371,34 +374,12 @@ export function externals(opts: NodeExternalsOptions): Plugin {
           });
       };
 
-      // Utility to find package parents
-      const findPackageParents = (pkg: TracedPackage, version: string) => {
-        // Try to find parent packages
-        const versionFiles: TracedFile[] = pkg.versions[version].files.map(
-          (path) => tracedFiles[path]
-        );
-        const parentPkgs = [
-          ...new Set(
-            versionFiles.flatMap((file) =>
-              file.parents
-                .map((parentPath) => {
-                  const parentFile = tracedFiles[parentPath];
-                  if (parentFile.pkgName === pkg.name) {
-                    return null;
-                  }
-                  return `${parentFile.pkgName}@${parentFile.pkgVersion}`;
-                })
-                .filter(Boolean)
-            ) as string[]
-          ),
-        ];
-        return parentPkgs;
-      };
-
       // Analyze dependency tree
       const multiVersionPkgs: Record<string, { [version: string]: string[] }> =
         {};
       const singleVersionPackages: string[] = [];
+      // `name@version` of packages with parents that are not traced packages
+      const pkgsWithMissingParents = new Set<string>();
       for (const tracedPackage of Object.values(tracedPackages)) {
         const versions = Object.keys(tracedPackage.versions);
         if (versions.length === 1) {
@@ -409,7 +390,14 @@ export function externals(opts: NodeExternalsOptions): Plugin {
         for (const version of versions) {
           multiVersionPkgs[tracedPackage.name][version] = findPackageParents(
             tracedPackage,
-            version
+            version,
+            tracedFiles,
+            (parentPath, file) => {
+              pkgsWithMissingParents.add(`${tracedPackage.name}@${version}`);
+              consola.debug(
+                `[nitro] [externals] Traced parent \`${parentPath}\` of \`${file.path}\` is not a traced package file. Skipping.`
+              );
+            }
           );
         }
       }
@@ -425,18 +413,20 @@ export function externals(opts: NodeExternalsOptions): Plugin {
 
       // Write packages with multiple versions
       for (const [pkgName, pkgVersions] of Object.entries(multiVersionPkgs)) {
-        const versionEntries = Object.entries(pkgVersions).sort(
-          ([v1, p1], [v2, p2]) => {
-            // 1. Package with no parent packages to be hoisted
-            if (p1.length === 0) {
-              return -1;
-            }
-            if (p2.length === 0) {
-              return 1;
-            }
-            // 2. Newest version to be hoisted
-            return compareVersions(v1, v2);
+        // Hoisting priority: 0 = no parent packages, 1 = has parent packages,
+        // 2 = only untraced parents (their code is not copied to the output)
+        const hoistRank = (version: string, parents: string[]) => {
+          if (parents.length > 0) {
+            return 1;
           }
+          return pkgsWithMissingParents.has(`${pkgName}@${version}`) ? 2 : 0;
+        };
+        const versionEntries = Object.entries(pkgVersions).sort(
+          ([v1, p1], [v2, p2]) =>
+            // 1. Package with no parent packages to be hoisted
+            hoistRank(v1, p1) - hoistRank(v2, p2) ||
+            // 2. Newest version to be hoisted
+            compareVersions(v1, v2)
         );
         for (const [version, parentPkgs] of versionEntries) {
           // Write each version into node_modules/.nitro/{name}@{version}
@@ -489,6 +479,42 @@ function compareVersions(v1 = "0.0.0", v2 = "0.0.0") {
   } catch {
     return v1.localeCompare(v2);
   }
+}
+
+export function findPackageParents(
+  pkg: TracedPackage,
+  version: string,
+  tracedFiles: Record<string, TracedFile>,
+  onMissingParent?: (parentPath: string, file: TracedFile) => void
+): string[] {
+  const versionObj = pkg.versions[version];
+  if (!versionObj || !versionObj.files) {
+    return [];
+  }
+  // Try to find parent packages
+  const versionFiles: TracedFile[] = versionObj.files
+    .map((path) => tracedFiles[path])
+    .filter(Boolean);
+  const parentPkgs = [
+    ...new Set(
+      versionFiles.flatMap((file) =>
+        (file.parents || [])
+          .map((parentPath) => {
+            const parentFile = tracedFiles[parentPath];
+            if (!parentFile?.pkgName) {
+              onMissingParent?.(parentPath, file);
+              return null;
+            }
+            if (parentFile.pkgName === pkg.name) {
+              return null;
+            }
+            return `${parentFile.pkgName}@${parentFile.pkgVersion}`;
+          })
+          .filter(Boolean)
+      ) as string[]
+    ),
+  ];
+  return parentPkgs;
 }
 
 export function applyProductionCondition(exports: PackageJson["exports"]) {
