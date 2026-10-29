@@ -316,10 +316,6 @@ Falling-through directories are unaffected, including the top-level `public/` di
 
 ## Immutable static files
 
-::important
-This feature is currently only available in the [nightly release channel](/docs/nightly) of Nitro v3.
-::
-
 <!-- :read-more{title="Immutable static files" to="https://vercel.com/docs/skew-protection"} -->
 
 Client build assets (such as JS and CSS chunks) can be emitted as **immutable static files**. These are served from the reserved `/_vercel/immutable/` path so they are shared across deployments and keep resolving even after a newer deployment no longer references them, improving cross-deployment caching.
