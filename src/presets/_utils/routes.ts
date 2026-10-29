@@ -1,4 +1,4 @@
-import type { Nitro } from "nitro/types";
+import type { Nitro, NormalizedRouteRules } from "nitro/types";
 import { addRoute, compareRoutes, createRouter, findOverlappingRoutes } from "rou3";
 
 const CATCH_ALL_RE = /\*\*(?::\w+)?/g;
@@ -131,6 +131,15 @@ export function sortRoutes(routes: string[]): string[] {
  */
 export function routeToSplat(route: string): string {
   return route.replace(CATCH_ALL_RE, "*");
+}
+
+/**
+ * Whether a route rule sets any static `headers`. A rule can have empty
+ * `headers` (`cors` alone is applied at runtime), which platform configs
+ * reject (Vercel) or would write as an empty entry.
+ */
+export function hasHeaders(routeRules: Pick<NormalizedRouteRules, "headers">): boolean {
+  return Object.keys(routeRules.headers || {}).length > 0;
 }
 
 /**

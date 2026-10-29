@@ -164,6 +164,17 @@ describe("netlify _redirects and _headers", () => {
     expect(existsSync(join(dir, "_redirects"))).toBe(false);
   });
 
+  it("skips rules without headers", async () => {
+    const { dir, nitro } = await createNitro({
+      routeRules: {
+        "/**": { cors: {}, headers: {} },
+        "/hdr/**": { headers: { "x-hdr": "1" } },
+      },
+    });
+    await writeHeaders(nitro);
+    expect(await readFile(join(dir, "public/_headers"), "utf8")).toBe("/hdr/*\n  x-hdr: 1\n");
+  });
+
   it("skips method-scoped rules with a warning", async () => {
     const { dir, nitro } = await createNitro({
       routeRules: {
@@ -280,6 +291,17 @@ describe("cloudflare pages _redirects and _headers", () => {
       "/base/cdn/*\t//cdn.nitro.build/:splat\t302\n/base/ext/*\thttps://nitro.build/:splat\t302\n/base/old/*\t/new/:splat\t301\n"
     );
     expect(await readFile(join(dir, "_headers"), "utf8")).toBe("/base/hdr/*\n  x-hdr: 1");
+  });
+
+  it("skips rules without headers", async () => {
+    const { dir, nitro } = await createNitro({
+      routeRules: {
+        "/**": { cors: {}, headers: {} },
+        "/hdr/**": { headers: { "x-hdr": "1" } },
+      },
+    });
+    await writeCFHeaders(nitro, "output");
+    expect(await readFile(join(dir, "_headers"), "utf8")).toBe("/hdr/*\n  x-hdr: 1");
   });
 
   it("skips method-scoped rules with a warning", async () => {
@@ -455,6 +477,17 @@ describe("edgeone config.json", () => {
     expect(headersFor(routes, "/base/docs")).toEqual({ "x-docs": "1" });
     expect(headersFor(routes, "/base/docs/a/b")).toEqual({ "x-docs": "1" });
     expect(headersFor(routes, "/base/single/a/b")).toEqual({ "x-single": "1" });
+  });
+
+  it("skips rules without headers", async () => {
+    const routes = await buildRoutes({
+      routeRules: {
+        "/**": { cors: {}, headers: {} },
+        "/hdr/**": { headers: { "x-hdr": "1" } },
+      },
+    });
+    expect(routes.filter((r) => r.headers && Object.keys(r.headers).length === 0)).toEqual([]);
+    expect(headersFor(routes, "/hdr/a")).toEqual({ "x-hdr": "1" });
   });
 
   it("matches the most specific redirect first", async () => {

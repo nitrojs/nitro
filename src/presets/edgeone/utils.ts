@@ -12,7 +12,7 @@ import { join } from "pathe";
 import { compareRoutes, routeToRegExp } from "rou3";
 import { joinURL } from "ufo";
 import { writeFile } from "../../utils/fs.ts";
-import { catchAllRef, parseRouteKey, sortRoutes } from "../_utils/routes.ts";
+import { catchAllRef, hasHeaders, parseRouteKey, sortRoutes } from "../_utils/routes.ts";
 
 const NAMED_GROUP_RE = /\(\?<(?![=!])[^>]+>/g;
 
@@ -54,7 +54,7 @@ export async function writeEdgeOneConfig(nitro: Nitro) {
   config.routes.push(
     // Header-only rules (least specific first, so more specific headers override on `continue`)
     ...rules
-      .filter(([_, routeRules]) => routeRules.headers && !routeRules.redirect)
+      .filter(([_, routeRules]) => hasHeaders(routeRules) && !routeRules.redirect)
       .reverse()
       .map(([{ path, methods }, routeRules]) => ({
         src: routeToRE2(joinURL(baseURL, path)).source,

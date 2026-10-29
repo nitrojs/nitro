@@ -3,7 +3,7 @@ import type { Nitro, PublicAssetDir } from "nitro/types";
 import { dirname, join } from "pathe";
 import { joinURL, withoutTrailingSlash } from "ufo";
 import { escapeRegExp } from "../../utils/regex.ts";
-import { routeToSplat, skipUnsupportedRoute, sortRoutes } from "../_utils/routes.ts";
+import { hasHeaders, routeToSplat, skipUnsupportedRoute, sortRoutes } from "../_utils/routes.ts";
 
 export async function writeRedirects(nitro: Nitro) {
   let contents = "";
@@ -45,7 +45,7 @@ export async function writeHeaders(nitro: Nitro) {
 
   for (const path of sortRoutes(Object.keys(nitro.options.routeRules))) {
     const routeRules = nitro.options.routeRules[path];
-    if (!routeRules.headers || skipUnsupportedRoute(nitro, { route: path, file: "_headers" })) {
+    if (!hasHeaders(routeRules) || skipUnsupportedRoute(nitro, { route: path, file: "_headers" })) {
       continue;
     }
     const headers = [

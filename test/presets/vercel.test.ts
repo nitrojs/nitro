@@ -51,6 +51,10 @@ describe("nitro:preset:vercel:web", async () => {
         "/rules/isr-true/**": { isr: true },
         "/rules/isr-query-empty/**": { isr: { allowQuery: [] } },
         "/rules/isr-query-nopass/**": { isr: { allowQuery: ["q"], passQuery: false } },
+        // Vercel rejects routes with empty `headers`
+        "/rules/cors-only": { cors: true },
+        "/rules/cors-empty-headers/**": { cors: true, headers: {} },
+        "/rules/cdn-empty-headers/**": { proxy: "https://cdn.jsdelivr.net/**", headers: {} },
       },
       vercel: {
         queues: {
@@ -189,6 +193,10 @@ describe("nitro:preset:vercel:web", async () => {
                 ],
                 "src": "^\\/rules\\/method-scoped\\/redirect\\/?$",
                 "status": 307,
+              },
+              {
+                "dest": "https://cdn.jsdelivr.net/$1",
+                "src": "^\\/rules\\/cdn-empty-headers(?:\\/(?<_0>(?:[\\s\\S]*[^/])?\\/*?))??\\/?$",
               },
               {
                 "headers": {
@@ -604,6 +612,18 @@ describe("nitro:preset:vercel:web", async () => {
           .then((r) => JSON.parse(r));
         expect(manifest.version).toBe(1);
         expect(manifest.hashes).toBeTypeOf("object");
+      });
+
+      it("should not write routes with empty headers", async () => {
+        const config = await fsp
+          .readFile(resolve(ctx.outDir, "config.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        expect(
+          config.routes.filter(
+            (route: { headers?: object }) =>
+              route.headers && Object.keys(route.headers).length === 0
+          )
+        ).toEqual([]);
       });
 
       it("should not cache missing immutable public assets", async () => {

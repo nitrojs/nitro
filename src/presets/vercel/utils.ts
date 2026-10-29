@@ -22,7 +22,7 @@ import {
   type RouterContext,
 } from "rou3";
 import { escapeRegExp } from "../../utils/regex.ts";
-import { catchAllRef, parseRouteKey, sortRoutes } from "../_utils/routes.ts";
+import { catchAllRef, hasHeaders, parseRouteKey, sortRoutes } from "../_utils/routes.ts";
 import { joinURL, withLeadingSlash, withoutLeadingSlash } from "ufo";
 import type {
   PrerenderFunctionConfig,
@@ -264,7 +264,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
       ...rules
         .filter(
           ([path, routeRules]) =>
-            routeRules.headers && !cdnRedirectPaths.has(path) && !cdnProxyPaths.has(path)
+            hasHeaders(routeRules) && !cdnRedirectPaths.has(path) && !cdnProxyPaths.has(path)
         )
         .reverse()
         .map(([path, routeRules]) => {
@@ -289,7 +289,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
             ...(methods && { methods }),
             dest: (routeRules.proxy as ProxyRuleOptions).to.replaceAll("**", catchAllRef(src)),
           };
-          if (routeRules.headers) {
+          if (hasHeaders(routeRules)) {
             route.headers = routeRules.headers;
           }
           return [route];
@@ -305,7 +305,7 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
               Location: redirect.to.replaceAll("**", catchAllRef(src)),
             },
           };
-          if (routeRules.headers) {
+          if (hasHeaders(routeRules)) {
             route = defu(route, { headers: routeRules.headers });
           }
           return [route];

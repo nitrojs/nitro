@@ -17,7 +17,7 @@ import {
   withoutTrailingSlash,
 } from "ufo";
 import { unenvCfNodeCompat } from "./unenv/preset.ts";
-import { routeToSplat, skipUnsupportedRoute, sortRoutes } from "../_utils/routes.ts";
+import { hasHeaders, routeToSplat, skipUnsupportedRoute, sortRoutes } from "../_utils/routes.ts";
 import { extendEnv } from "../../build/env.ts";
 
 // https://github.com/nitrojs/nitro/issues/4527
@@ -120,7 +120,7 @@ export async function writeCFHeaders(nitro: Nitro, outdir: "public" | "output" |
 
   for (const path of sortRoutes(Object.keys(nitro.options.routeRules))) {
     const routeRules = nitro.options.routeRules[path];
-    if (!routeRules.headers || skipUnsupportedRoute(nitro, { route: path, file: "_headers" })) {
+    if (!hasHeaders(routeRules) || skipUnsupportedRoute(nitro, { route: path, file: "_headers" })) {
       continue;
     }
     const headers = [
