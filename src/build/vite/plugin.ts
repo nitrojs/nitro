@@ -11,7 +11,7 @@ import type {
 import type { InputOption } from "rollup";
 import type { NitroPluginConfig, NitroPluginContext } from "./types.ts";
 import { resolve, join } from "pathe";
-import { resolveAlias } from "pathe/utils";
+import { normalizeAliases, resolveAlias } from "pathe/utils";
 import { createNitro, prepare } from "../../builder.ts";
 import { installModules } from "../../module.ts";
 import { getBundlerConfig } from "./bundler.ts";
@@ -254,7 +254,8 @@ function nitroServerAliases(ctx: NitroPluginContext): VitePlugin {
   };
 }
 
-function nitroEnvAliases(aliases: Record<string, string>, keys: string[]): VitePlugin {
+function nitroEnvAliases(_aliases: Record<string, string>, keys: string[]): VitePlugin {
+  const aliases = normalizeAliases(_aliases);
   const keysRE = keys.map((key) => escapeRegExp(key.replace(/\/$/, ""))).join("|");
   return {
     name: "nitro:env-aliases",
