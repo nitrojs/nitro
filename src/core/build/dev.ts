@@ -4,6 +4,7 @@ import type { Nitro, RollupConfig } from "nitropack/types";
 import { join } from "pathe";
 import { debounce } from "perfect-debounce";
 import * as rollup from "rollup";
+import type { RollupOptions } from "rollup";
 import { scanHandlers } from "../scan";
 import { nitroServerName } from "../utils/nitro";
 import { formatRollupError } from "./error";
@@ -52,7 +53,7 @@ export async function watchDev(nitro: Nitro, rollupConfig: RollupConfig) {
 
 function startRollupWatcher(nitro: Nitro, rollupConfig: RollupConfig) {
   const watcher = rollup.watch(
-    defu(rollupConfig, {
+    defu(rollupConfig as RollupOptions, {
       watch: {
         chokidar: nitro.options.watchOptions,
       },

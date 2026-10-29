@@ -83,7 +83,7 @@ async function _loadUserConfig(
   )) as typeof import("nitropack/presets");
 
   // prettier-ignore
-  let preset: string | undefined = (configOverrides.preset as string) || process.env.NITRO_PRESET || process.env.SERVER_PRESET
+  let preset: string | undefined = (configOverrides.preset as string) || process.env.NITRO_PRESET || process.env.SERVER_PRESET;
 
   const loadedConfig = await (
     opts.watch
@@ -110,7 +110,7 @@ async function _loadUserConfig(
       }
 
       // prettier-ignore
-      const framework = getConf("framework")
+      const framework = getConf("framework");
       const isCustomFramework = framework?.name && framework.name !== "nitro";
 
       if (!preset) {

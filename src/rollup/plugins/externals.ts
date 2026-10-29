@@ -19,6 +19,7 @@ import semver from "semver";
 
 export function externals(opts: NodeExternalsOptions): Plugin {
   const trackedExternals = new Set<string>();
+  const resolveCache = new Map<string, string | undefined>();
 
   const tryResolve = (
     id: string,
@@ -26,6 +27,11 @@ export function externals(opts: NodeExternalsOptions): Plugin {
   ): string | undefined => {
     if (id.startsWith("\0")) {
       return id;
+    }
+    const fromDir = importer && isAbsolute(importer) ? dirname(importer) : "";
+    const cacheKey = `${id}\0${fromDir}`;
+    if (resolveCache.has(cacheKey)) {
+      return resolveCache.get(cacheKey);
     }
     const res = resolveModuleURL(id, {
       try: true,
@@ -37,7 +43,11 @@ export function externals(opts: NodeExternalsOptions): Plugin {
       suffixes: ["", "/index"],
       extensions: [".mjs", ".cjs", ".js", ".mts", ".cts", ".ts", ".json"],
     });
-    return res?.startsWith("file://") ? fileURLToPath(res) : res;
+    const resolved = res?.startsWith("file://")
+      ? normalize(fileURLToPath(res))
+      : res;
+    resolveCache.set(cacheKey, resolved);
+    return resolved;
   };
 
   // Normalize options
@@ -543,7 +553,8 @@ export function normalizeMatcher(input: string | RegExp | Matcher): Matcher {
 
   if (typeof input === "string") {
     const pattern = normalize(input);
-    const matcher = ((id: string) => {
+    const matcher = ((_id: string) => {
+      const id = _id.replace(/\\/g, "/");
       const idWithoutNodeModules = id.split("node_modules/").pop();
       return (
         id.startsWith(pattern) || idWithoutNodeModules?.startsWith(pattern)

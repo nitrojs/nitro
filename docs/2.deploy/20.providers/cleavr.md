@@ -7,7 +7,7 @@
 :read-more{title="cleavr.io" to="https://cleavr.io"}
 
 ::note
-Integration with this provider is possible with [zero configuration](/deploy/#zero-config-providers).
+Integration with this provider is possible with [zero configuration](/deploy#zero-config-providers).
 ::
 
 ## Set up your web app

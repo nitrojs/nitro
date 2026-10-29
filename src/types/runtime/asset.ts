@@ -4,7 +4,7 @@ export interface PublicAsset {
   mtime: string;
   path: string;
   size: number;
-  encoding?: string;
+  encoding?: string | null;
   data?: string;
 }
 

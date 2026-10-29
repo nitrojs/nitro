@@ -284,6 +284,15 @@ export function testNitro(
     });
     expect(wildcard.status).toBe(307);
     expect(wildcard.headers.location).toBe("https://nitro.build/nuxt");
+
+    // Regression test for GHSA-9phm-9p8f-hw5m: a leading `//` after the
+    // wildcard prefix must not be forwarded as a protocol-relative URL.
+    const legacy = await callHandler({
+      url: "/rules/redirect/legacy//evil.com",
+    });
+    expect(legacy.status).toBe(307);
+    expect(legacy.headers.location).not.toMatch(/^\/\//);
+    expect(legacy.headers.location).toBe("/evil.com");
   });
 
   it("binary response", async () => {
@@ -339,7 +348,11 @@ export function testNitro(
           headers: { "Accept-Encoding": "" },
         })
       ).headers;
-      if (headers["vary"]) expect(headers["vary"]).toBe("Origin");
+      if (headers["vary"])
+        expect(
+          headers["vary"].includes("Origin") &&
+            headers["vary"].includes("Accept-Encoding")
+        ).toBeTruthy();
 
       headers = (
         await callHandler({
@@ -452,6 +465,14 @@ export function testNitro(
       expect(headers["content-type"]).toBe("text/plain; charset=utf-8");
     });
 
+    it("serve static asset /build/test.js.gz", async () => {
+      const { status, headers } = await callHandler({
+        url: "/build/test.js.gz",
+      });
+      expect(status).toBe(200);
+      expect(headers["content-encoding"]).toBe("gzip");
+    });
+
     it("stores content-type for prerendered routes", async () => {
       const { data, headers } = await callHandler({
         url: "/api/param/prerender4",
@@ -538,6 +559,15 @@ export function testNitro(
     });
     expect(data.headers["x-test"]).toBe("foobar");
     expect(data.url).toBe("/api/echo?foo=bar");
+  });
+
+  it("runtime proxy collapses leading slashes after wildcard prefix", async () => {
+    // Regression test for GHSA-9phm-9p8f-hw5m: a leading `//` after the
+    // wildcard prefix must not be forwarded verbatim to the upstream.
+    const { data } = await callHandler({
+      url: "/rules/proxy/legacy//evil.com",
+    });
+    expect(data).toBe("evil.com");
   });
 
   it.skipIf(ctx.preset === "bun" /* TODO */)("stream", async () => {
@@ -722,7 +752,7 @@ export function testNitro(
   });
 
   describe("cache", () => {
-    it.skipIf(ctx.isIsolated || (isWindows && ctx.preset === "nitro-dev"))(
+    it.skipIf(ctx.isIsolated)(
       "should setItem before returning response the first time",
       async () => {
         const {

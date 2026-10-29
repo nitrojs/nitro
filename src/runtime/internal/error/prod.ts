@@ -27,7 +27,7 @@ export function defaultHandler(
   const statusCode = error.statusCode || 500;
   const statusMessage = error.statusMessage || "Server Error";
   // prettier-ignore
-  const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true })
+  const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true });
 
   if (statusCode === 404) {
     const baseURL = import.meta.baseURL || "/";
@@ -45,7 +45,7 @@ export function defaultHandler(
   // Console output
   if (isSensitive && !opts?.silent) {
     // prettier-ignore
-    const tags = [error.unhandled && "[unhandled]", error.fatal && "[fatal]"].filter(Boolean).join(" ")
+    const tags = [error.unhandled && "[unhandled]", error.fatal && "[fatal]"].filter(Boolean).join(" ");
     console.error(`[request error] ${tags} [${event.method}] ${url}\n`, error);
   }
 

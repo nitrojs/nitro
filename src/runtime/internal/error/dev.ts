@@ -43,7 +43,7 @@ export async function defaultHandler(
   const statusCode = error.statusCode || 500;
   const statusMessage = error.statusMessage || "Server Error";
   // prettier-ignore
-  const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true })
+  const url = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true });
 
   // Redirects with base URL
   if (statusCode === 404) {
@@ -68,7 +68,7 @@ export async function defaultHandler(
   // Console output
   if (isSensitive && !opts?.silent) {
     // prettier-ignore
-    const tags = [error.unhandled && "[unhandled]", error.fatal && "[fatal]"].filter(Boolean).join(" ")
+    const tags = [error.unhandled && "[unhandled]", error.fatal && "[fatal]"].filter(Boolean).join(" ");
     const ansiError = await (
       await youch.toANSI(error)
     ).replaceAll(process.cwd(), ".");
@@ -80,7 +80,7 @@ export async function defaultHandler(
 
   // Use HTML response only when user-agent expects it (browsers)
   const useJSON =
-    opts?.json || !getRequestHeader(event, "accept")?.includes("text/html");
+    opts?.json ?? !getRequestHeader(event, "accept")?.includes("text/html");
 
   // Prepare headers
   const headers: HeadersInit = {
@@ -132,9 +132,17 @@ export async function loadStackTrace(error: any) {
   if (!(error instanceof Error)) {
     return;
   }
-  const parsed = await new ErrorParser()
-    .defineSourceLoader(sourceLoader)
-    .parse(error);
+  const consumerCache: ConsumerCache = new Map();
+  let parsed: Awaited<ReturnType<ErrorParser["parse"]>>;
+  try {
+    parsed = await new ErrorParser()
+      .defineSourceLoader((frame) => sourceLoader(frame, consumerCache))
+      .parse(error);
+  } finally {
+    for (const consumer of consumerCache.values()) {
+      await consumer.then((c) => c?.destroy()).catch(() => {});
+    }
+  }
 
   const stack =
     error.message +
@@ -150,24 +158,53 @@ export async function loadStackTrace(error: any) {
 
 type SourceLoader = Parameters<ErrorParser["defineSourceLoader"]>[0];
 type StackFrame = Parameters<SourceLoader>[0];
-async function sourceLoader(frame: StackFrame) {
+type ConsumerCache = Map<string, Promise<SourceMapConsumer | undefined>>;
+
+function loadConsumer(
+  fileName: string,
+  cache: ConsumerCache
+): Promise<SourceMapConsumer | undefined> {
+  const cached = cache.get(fileName);
+  if (cached) {
+    return cached;
+  }
+  const promise = (async () => {
+    const rawSourceMap = await readFile(`${fileName}.map`, "utf8").catch(
+      () => {}
+    );
+    if (!rawSourceMap) {
+      return undefined;
+    }
+    return await new SourceMapConsumer(rawSourceMap);
+  })().catch(() => undefined);
+  cache.set(fileName, promise);
+  return promise;
+}
+
+async function sourceLoader(frame: StackFrame, consumerCache: ConsumerCache) {
   if (!frame.fileName || frame.fileType !== "fs" || frame.type === "native") {
     return;
   }
 
   if (frame.type === "app") {
-    // prettier-ignore
-    const rawSourceMap = await readFile(`${frame.fileName}.map`, "utf8").catch(() => {});
-    if (rawSourceMap) {
-      const consumer = await new SourceMapConsumer(rawSourceMap);
-      // prettier-ignore
-      const originalPosition = consumer.originalPositionFor({ line: frame.lineNumber!, column: frame.columnNumber! });
-      if (originalPosition.source && originalPosition.line) {
+    // The dev bundle ships one large `.mjs.map`; keep the consumer keyed on the
+    // bundle path so it is parsed once per error rather than once per frame.
+    const bundleFileName = frame.fileName;
+    try {
+      const consumer = await loadConsumer(bundleFileName, consumerCache);
+      if (consumer) {
         // prettier-ignore
-        frame.fileName = resolve(dirname(frame.fileName), originalPosition.source);
-        frame.lineNumber = originalPosition.line;
-        frame.columnNumber = originalPosition.column || 0;
+        const originalPosition = consumer.originalPositionFor({ line: frame.lineNumber!, column: frame.columnNumber! });
+        if (originalPosition.source && originalPosition.line) {
+          // prettier-ignore
+          frame.fileName = resolve(dirname(bundleFileName), originalPosition.source);
+          frame.lineNumber = originalPosition.line;
+          frame.columnNumber = originalPosition.column || 0;
+        }
       }
+    } catch {
+      // Some bundler-generated maps trip the source-map wasm decoder; degrade
+      // to the un-enhanced frame instead of throwing for every frame.
     }
   }
 

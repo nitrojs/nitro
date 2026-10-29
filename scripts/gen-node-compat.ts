@@ -134,5 +134,3 @@ ${notSupported.map((id) => `  "${id}",`).join("\n")}
     code
   );
 }
-
-export {};

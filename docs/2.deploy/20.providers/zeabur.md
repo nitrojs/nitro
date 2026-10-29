@@ -7,7 +7,7 @@
 :read-more{title="Zeabur" to="https://zeabur.com"}
 
 ::note
-Integration with this provider is possible with [zero configuration](/deploy/#zero-config-providers).
+Integration with this provider is possible with [zero configuration](/deploy#zero-config-providers).
 ::
 
 ## Deploy using git

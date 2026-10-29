@@ -1,4 +1,5 @@
 import {
+  type H3Event,
   type HTTPMethod,
   createError,
   eventHandler,
@@ -49,9 +50,6 @@ export default eventHandler((event) => {
       .sort(),
     "",
   ];
-  if (encodings.length > 1) {
-    appendResponseHeader(event, "Vary", "Accept-Encoding");
-  }
 
   for (const encoding of encodings) {
     for (const _id of [id + encoding, joinURL(id, "index.html" + encoding)]) {
@@ -70,6 +68,10 @@ export default eventHandler((event) => {
       throw createError({ statusCode: 404 });
     }
     return;
+  }
+
+  if (asset.encoding !== undefined) {
+    appendResponseHeader(event, "Vary", "Accept-Encoding");
   }
 
   const ifNotMatch = getRequestHeader(event, "if-none-match") === asset.etag;
@@ -109,5 +111,20 @@ export default eventHandler((event) => {
     setResponseHeader(event, "Content-Length", asset.size);
   }
 
-  return readAsset(id);
+  const data = readAsset(id);
+  return typeof (data as { then?: unknown })?.then === "function"
+    ? (data as Promise<unknown>).then((resolved) =>
+        assertAssetData(event, resolved)
+      )
+    : assertAssetData(event, data);
 });
+
+// Readers resolve with `null`/`undefined` when the manifest entry has no data
+// backing it (file removed after build, missing inline payload).
+function assertAssetData<T>(event: H3Event, data: T): T {
+  if (data === null || data === undefined) {
+    removeResponseHeader(event, "Cache-Control");
+    throw createError({ statusCode: 404 });
+  }
+  return data;
+}

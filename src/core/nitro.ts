@@ -1,6 +1,7 @@
 import { consola } from "consola";
 import { createDebugger, createHooks } from "hookable";
 import { runtimeDir } from "nitropack/runtime/meta";
+import { version as nitroVersion } from "nitropack/meta";
 import type {
   LoadConfigOptions,
   Nitro,
@@ -25,6 +26,10 @@ export async function createNitro(
 
   // Create nitro context
   const nitro: Nitro = {
+    meta: {
+      version: nitroVersion,
+      majorVersion: 2,
+    },
     options,
     hooks: createHooks(),
     vfs: {},

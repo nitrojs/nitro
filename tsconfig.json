@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
     /* Base options: */
-    "esModuleInterop": false,
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "target": "es2022",
@@ -65,6 +64,7 @@
       "nitropack/types": ["./src/types"],
       // Virtual files
       "#nitro-internal-virtual/*": ["./src/types/virtual/*"],
+      "#nitro-internal-pollyfills": ["./src/types/_polyfills.ts"],
       // Compatibility (#internal/nitro)
       "#internal/nitro": ["./src/runtime"],
       "#internal/nitro/*": ["./src/runtime/*"],
