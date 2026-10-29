@@ -275,7 +275,10 @@ export default defineCommand({
     consola.log(
       `\nSummary:\n${summary.map(([label, value]) => `  ${`${label}:`.padEnd(17)} ${value}`).join("\n")}`
     );
-    const nextStepsText = `Next steps:\n\n${nextSteps.map((step) => `  ${step}`).join("\n")}\n\nNitro v3 docs: https://nitro.build/docs`;
+    const agentHint = isAgent
+      ? "\n\nAgents: read AGENTS.md, and test routes with `npx nitro fetch /api/hello` (no build or running server needed)."
+      : "";
+    const nextStepsText = `Next steps:\n\n${nextSteps.map((step) => `  ${step}`).join("\n")}${agentHint}\n\nNitro v3 docs: https://nitro.build/docs`;
     if (interactive) {
       consola.box(nextStepsText);
     } else {
