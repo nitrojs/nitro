@@ -6,6 +6,7 @@ export type { ServerRequest, ServerRequestContext, ServerRuntimeContext } from "
  * Default export of a server entry (`server.ts`).
  *
  * `fetch` handles requests no route matched (return nothing to continue to the renderer).
+ * It is optional, for entries that only run startup logic or set server options.
  * Other options are passed to the srvx server of the `node`, `bun` and `deno` presets.
  *
  * Only server options that are safe to ignore by other presets (and explicit runtime specific
@@ -30,5 +31,5 @@ export interface NitroServerEntry extends Pick<
   | "bun"
   | "deno"
 > {
-  fetch: (request: ServerRequest) => Response | undefined | Promise<Response | undefined>;
+  fetch?: (request: ServerRequest) => Response | undefined | Promise<Response | undefined>;
 }

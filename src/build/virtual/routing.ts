@@ -16,6 +16,12 @@ export default function routing(nitro: Nitro) {
 
       const traceH3 = !!nitro.options.tracingChannel?.h3;
 
+      const serverEntry = nitro.options.serverEntry;
+      const webServerEntry =
+        serverEntry && serverEntry.handler && serverEntry.format !== "node"
+          ? serverEntry.handler.replace(/\\/g, "/")
+          : undefined;
+
       const routeRulesModule = compileRouteRules(nitro.options.routeRules, {
         runtimeRules: { cache: "#nitro/runtime/route-rule-handlers" },
         baseURL: nitro.options.baseURL,
@@ -35,7 +41,11 @@ const multiHandler = (...handlers) => {
 
 ${allHandlers
   .filter((h) => !h.lazy)
-  .map((h) => /* js */ `import ${h._importHash} from ${JSON.stringify(h.handler)};`)
+  .map((h) =>
+    h.handler === webServerEntry
+      ? /* js */ `import { serverEntryHandler as ${h._importHash} } from "#nitro/virtual/server-entry";`
+      : /* js */ `import ${h._importHash} from ${JSON.stringify(h.handler)};`
+  )
   .join("\n")}
 
 ${allHandlers
