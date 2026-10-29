@@ -148,6 +148,7 @@ describe("Cloudflare module assets directory", () => {
             "utf8"
           )
         );
+        expect(generated.assets.directory).not.toContain("\\");
         expect(generated.assets.directory).toBe("../public");
       } finally {
         await nitro.close();
