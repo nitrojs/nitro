@@ -59,9 +59,9 @@ button.addEventListener("click", async () => {
     devDependencies: { rolldown: deps.rolldown.version },
     files: {
       "AGENTS.md": agentsMD(
-        "Scripts: `dev`, `build` (bundles into `.output/`; run with `node .output/server/index.mjs`), `preview`.\n- `index.html` is returned (status 200) for every request no route matched, including unknown `/api/*` paths."
+        "Scripts: `dev`, `build` (bundles into `.output/`; run with `node .output/server/index.mjs`), `preview`."
       ),
-      "index.html": serverIndexHTML(),
+      "public/index.html": landingHTML(),
     },
   },
   {
@@ -72,7 +72,7 @@ button.addEventListener("click", async () => {
     devDependencies: {},
     files: {
       "AGENTS.md": agentsMD(
-        "Scripts: `dev` and `start` run the `server/` sources directly without a build (experimental `builder: false`; `nitro build` is not supported).\n- `index.html` is returned (status 200) for every request no route matched, including unknown `/api/*` paths."
+        "Scripts: `dev` and `start` run the `server/` sources directly without a build (experimental `builder: false`; `nitro build` is not supported)."
       ),
       "nitro.config.ts": `import { defineConfig } from "nitro";
 
@@ -81,7 +81,7 @@ export default defineConfig({
   builder: false,
 });
 `,
-      "index.html": serverIndexHTML(),
+      "public/index.html": landingHTML(),
     },
   },
 ];
@@ -106,15 +106,13 @@ export default defineHandler(() => {
   ".gitignore": `node_modules
 dist
 .data
-.nitro
-.cache
 .output
 .env
 .env.local
 `,
 };
 
-function serverIndexHTML(): string {
+function landingHTML(): string {
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -124,8 +122,8 @@ function serverIndexHTML(): string {
   </head>
   <body>
     <h1>Nitro</h1>
-    <p>Edit <code>index.html</code> or <code>server/api/hello.ts</code> to get started.</p>
-    <pre>{{{ serverFetch("/api/hello") }}}</pre>
+    <p>Your server is running. Try <a href="/api/hello">/api/hello</a>.</p>
+    <p>Edit <code>server/api/hello.ts</code> to get started, or replace this page in <code>public/index.html</code>.</p>
   </body>
 </html>
 `;
