@@ -24,6 +24,7 @@ describe("nitro fetch arguments", () => {
     expect(req.headers.get("x-a")).toBe("1");
     expect(req.headers.get("x-b")).toBe("2");
     expect((await request(["-I", "/"])).method).toBe("HEAD");
+    expect((await request(["-I", "-X", "POST", "/"])).method).toBe("POST");
     const repeated = await request(["--json", "{}", "-H", "accept: a", "-H", "Accept: b"]);
     expect(repeated.headers.get("accept")).toBe("a, b");
   });
@@ -55,6 +56,7 @@ describe("nitro fetch arguments", () => {
   });
 
   it("sends `--json` with its headers, overridable with `-H`", async () => {
+    expect((await request(["--json", "{}"])).headers.get("accept")).toBe("application/json");
     const req = await request(["--json", '{"a":1}', "-H", "accept:", "-H", "content-type: x/y"]);
     expect(req.method).toBe("POST");
     expect(req.headers.get("accept")).toBeNull();

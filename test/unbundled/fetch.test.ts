@@ -44,6 +44,10 @@ describe.each(["self", "worker"])("nitro fetch (%s runner)", (runner) => {
     );
     await writeFile(join(dir, "routes/empty.ts"), `export default () => new Response(null);`);
     await writeFile(
+      join(dir, "routes/redirect.ts"),
+      `export default () => new Response(null, { status: 302, headers: { location: "/" } });`
+    );
+    await writeFile(
       join(dir, "routes/stream.ts"),
       /* js */ `export default () => new Response(new ReadableStream({
         async start(controller) {
@@ -90,6 +94,13 @@ describe.each(["self", "worker"])("nitro fetch (%s runner)", (runner) => {
     expect(res.stdout).toMatch(/\r\n\r\nstatic asset$/);
   });
 
+  it("does not follow redirects", async () => {
+    const res = await nitro(["curl", "-i", "/redirect"]);
+    expect(res.exitCode).toBe(0);
+    expect(res.stdout).toMatch(/^HTTP\/1\.1 302 /);
+    expect(res.stdout).toContain("location: /");
+  });
+
   it("prints only the headers with `-I`, and the request too with `-v`", async () => {
     const head = await nitro(["fetch", "-I", "/hello.txt"]);
     expect(head.stdout).toMatch(/^HTTP\/1\.1 200 OK\r\n[^]*\r\n\r\n$/);
@@ -124,6 +135,8 @@ describe.each(["self", "worker"])("nitro fetch (%s runner)", (runner) => {
       headers: { host: "example.com" },
       body: "a=1",
     });
+    const host = await nitro(["fetch", "http://example.com/echo", "-H", "host: other"]);
+    expect(JSON.parse(host.stdout)).toMatchObject({ headers: { host: "other" } });
   });
 
   it("writes the output to a file with `-o`", async () => {
@@ -207,7 +220,11 @@ describe("nitro fetch (running dev server)", () => {
     await mkdir(join(dir, "public"));
     await writeFile(join(dir, "public/hello.txt"), "static asset");
 
-    nitro = await createNitro({ rootDir: dir, dev: true });
+    await startDevServer();
+  });
+
+  async function startDevServer(envName?: string) {
+    nitro = await createNitro({ rootDir: dir, dev: true }, { c12: { envName } });
     const server = createDevServer(nitro).listen({ port: 0, hostname: "127.0.0.1" });
     await server.ready();
     devURL = server.url!;
@@ -216,7 +233,7 @@ describe("nitro fetch (running dev server)", () => {
     );
     await build(nitro);
     await ready;
-  });
+  }
 
   afterAll(async () => {
     await nitro?.close();
@@ -246,5 +263,13 @@ describe("nitro fetch (running dev server)", () => {
     const res = await fetchCLI(["/mode"]);
     expect(res.exitCode).toBe(0);
     expect(JSON.parse(res.stdout)).toMatchObject({ dev: false });
+  });
+
+  it("uses a dev server with a custom env name", async () => {
+    await startDevServer("staging");
+    const staging = await fetchCLI(["/mode", "--envName", "staging"]);
+    expect(JSON.parse(staging.stdout)).toMatchObject({ dev: true });
+    const development = await fetchCLI(["/mode", "--envName", "development"]);
+    expect(JSON.parse(development.stdout)).toMatchObject({ dev: false });
   });
 });
