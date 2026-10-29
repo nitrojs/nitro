@@ -43,7 +43,7 @@ ${allHandlers
   .filter((h) => !h.lazy)
   .map((h) =>
     h.handler === webServerEntry
-      ? /* js */ `import { serverEntryHandler as ${h._importHash} } from "#nitro/virtual/server-entry";`
+      ? serverEntryImport(h)
       : /* js */ `import ${h._importHash} from ${JSON.stringify(h.handler)};`
   )
   .join("\n")}
@@ -66,6 +66,16 @@ export const globalMiddleware = [
   `;
     },
   };
+}
+
+// The default export (and its `fetch`) of the server entry is optional: it can be used
+// for startup logic only. Without a handler, requests continue to the renderer (or 404).
+function serverEntryImport(h: NitroEventHandler & { _importHash: string }): string {
+  const ns = `${h._importHash}_ns`;
+  return /* js */ `import * as ${ns} from ${JSON.stringify(h.handler)};
+const ${h._importHash} = typeof ${ns}["default"] === "function" || typeof ${ns}["default"]?.fetch === "function"
+  ? ${ns}["default"]
+  : () => Symbol.for("h3.notFound");`;
 }
 
 function uniqueBy<T>(arr: T[], key: keyof T): T[] {

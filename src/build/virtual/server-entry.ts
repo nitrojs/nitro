@@ -9,17 +9,12 @@ export default function serverEntry(nitro: Nitro) {
       if (!entry || !entry.handler || entry.format === "node") {
         return /* js */ `${builtinExports}
 export const serverEntryOptions = {};
-export const serverEntryExports = {};
-export const serverEntryHandler = undefined;`;
+export const serverEntryExports = {};`;
       }
-      // The default export (and its `fetch`) is optional: an entry can be used for startup logic only
       return /* js */ `${builtinExports}
 import * as serverEntryExports from "${entry.handler}";
 export { serverEntryExports };
 const serverEntry = serverEntryExports["default"];
-export const serverEntryHandler = typeof serverEntry === "function" || typeof serverEntry?.fetch === "function"
-  ? serverEntry
-  : () => Symbol.for("h3.notFound");
 const proto = serverEntry && Object.getPrototypeOf(serverEntry);
 const allowedKeys = new Set(["port", "hostname", "reusePort", "protocol", "tls", "silent", "gracefulShutdown", "maxRequestBodySize", "trustProxy", "node", "bun", "deno"]);
 export const serverEntryOptions = {};
