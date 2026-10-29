@@ -28,7 +28,7 @@ const argsDef = {
   dir: {
     type: "positional",
     required: false,
-    description: `Directory to create the project in (default: \`${DEFAULT_DIR}\`, prompted in a terminal; required when run by an agent)`,
+    description: `Directory to create the project in (default: \`${DEFAULT_DIR}\`, prompted in a terminal; required when run by an agent without \`--template\`)`,
   },
   template: {
     type: "string",
