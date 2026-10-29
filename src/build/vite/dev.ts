@@ -14,6 +14,7 @@ import { isAbsolute, join, relative } from "pathe";
 import { debounce } from "perfect-debounce";
 import { withBase, withoutBase } from "ufo";
 import { handleDevRPC } from "../../dev/_rpc.ts";
+import { writeDevBuildInfo } from "../info.ts";
 import { rescanHandlers, watchScanDirs } from "./_scan-watch.ts";
 import { importVite, _resolveFromPath, type ViteImportOptions } from "./_import.ts";
 import { _isWorkerdRunner } from "./env.ts";
@@ -223,6 +224,18 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       process.off("SIGINT", onSigint);
     });
   }
+
+  // Point CLI commands (`nitro fetch`) to this dev server
+  server.httpServer?.once("listening", () => {
+    const url = _getListenURL(server);
+    if (url) {
+      writeDevBuildInfo(nitro, { url }).catch((error) => {
+        nitro.logger.warn(
+          `Failed to write dev build info: ${error instanceof Error ? error.message : String(error)}`
+        );
+      });
+    }
+  });
 
   // Worker => Host RPC
   nitroEnv.devServer.onMessage((message) =>
@@ -512,6 +525,15 @@ function _getViteHmrBase(server: ViteDevServer): string | undefined {
     return;
   }
   return opts?.path ? join(server.config.base, opts.path) : server.config.base;
+}
+
+function _getListenURL(server: ViteDevServer): string | undefined {
+  const addr = server.httpServer?.address();
+  if (!addr || typeof addr === "string") {
+    return;
+  }
+  const host = addr.address.includes(":") ? `[${addr.address}]` : addr.address;
+  return `${server.config.server.https ? "https" : "http"}://${host}:${addr.port}/`;
 }
 
 function _isViteHmrUpgrade(req: IncomingMessage, hmrBase: string): boolean {
