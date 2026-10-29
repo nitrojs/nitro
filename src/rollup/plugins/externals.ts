@@ -8,6 +8,7 @@ import {
   normalizeid,
   parseNodeModulePath,
 } from "mlly";
+import { consola } from "consola";
 import { resolveModuleURL } from "exsolve";
 import { isDirectory } from "nitropack/kit";
 import type { NodeExternalsOptions } from "nitropack/types";
@@ -21,6 +22,8 @@ export type TracedFile = {
   path: string;
   subpath: string;
   parents: string[];
+  /** File is a trace entry (directly imported by the bundle or traceInclude) */
+  initial?: boolean;
 
   pkgPath: string;
   pkgName: string;
@@ -252,6 +255,7 @@ export function externals(opts: NodeExternalsOptions): Plugin {
             const tracedFile = <TracedFile>{
               path,
               parents,
+              initial: reasons.type.includes("initial"),
 
               subpath,
               pkgName,
@@ -377,6 +381,8 @@ export function externals(opts: NodeExternalsOptions): Plugin {
       const multiVersionPkgs: Record<string, { [version: string]: string[] }> =
         {};
       const singleVersionPackages: string[] = [];
+      // `name@version` of packages with parents that are not traced packages
+      const pkgsWithMissingParents = new Set<string>();
       for (const tracedPackage of Object.values(tracedPackages)) {
         const versions = Object.keys(tracedPackage.versions);
         if (versions.length === 1) {
@@ -388,7 +394,13 @@ export function externals(opts: NodeExternalsOptions): Plugin {
           multiVersionPkgs[tracedPackage.name][version] = findPackageParents(
             tracedPackage,
             version,
-            tracedFiles
+            tracedFiles,
+            (parentPath, file) => {
+              pkgsWithMissingParents.add(`${tracedPackage.name}@${version}`);
+              consola.debug(
+                `[nitro] [externals] Traced parent \`${parentPath}\` of \`${file.path}\` is not a traced package file. Skipping.`
+              );
+            }
           );
         }
       }
@@ -404,18 +416,27 @@ export function externals(opts: NodeExternalsOptions): Plugin {
 
       // Write packages with multiple versions
       for (const [pkgName, pkgVersions] of Object.entries(multiVersionPkgs)) {
-        const versionEntries = Object.entries(pkgVersions).sort(
-          ([v1, p1], [v2, p2]) => {
-            // 1. Package with no parent packages to be hoisted
-            if (p1.length === 0) {
-              return -1;
-            }
-            if (p2.length === 0) {
-              return 1;
-            }
-            // 2. Newest version to be hoisted
-            return compareVersions(v1, v2);
+        // Hoisting priority: 0 = no parent packages, 1 = has parent packages,
+        // 2 = only untraced parents (their code is not copied to the output)
+        // and not directly imported by the bundle
+        const hoistRank = (version: string, parents: string[]) => {
+          if (parents.length > 0) {
+            return 1;
           }
+          if (!pkgsWithMissingParents.has(`${pkgName}@${version}`)) {
+            return 0;
+          }
+          const isEntry = tracedPackages[pkgName].versions[version].files.some(
+            (file) => tracedFiles[file]?.initial
+          );
+          return isEntry ? 0 : 2;
+        };
+        const versionEntries = Object.entries(pkgVersions).sort(
+          ([v1, p1], [v2, p2]) =>
+            // 1. Package with no parent packages to be hoisted
+            hoistRank(v1, p1) - hoistRank(v2, p2) ||
+            // 2. Newest version to be hoisted
+            compareVersions(v1, v2)
         );
         for (const [version, parentPkgs] of versionEntries) {
           // Write each version into node_modules/.nitro/{name}@{version}
@@ -473,7 +494,8 @@ function compareVersions(v1 = "0.0.0", v2 = "0.0.0") {
 export function findPackageParents(
   pkg: TracedPackage,
   version: string,
-  tracedFiles: Record<string, TracedFile>
+  tracedFiles: Record<string, TracedFile>,
+  onMissingParent?: (parentPath: string, file: TracedFile) => void
 ): string[] {
   const versionObj = pkg.versions[version];
   if (!versionObj || !versionObj.files) {
@@ -489,11 +511,11 @@ export function findPackageParents(
         (file.parents || [])
           .map((parentPath) => {
             const parentFile = tracedFiles[parentPath];
-            if (
-              !parentFile ||
-              !parentFile.pkgName ||
-              parentFile.pkgName === pkg.name
-            ) {
+            if (!parentFile?.pkgName) {
+              onMissingParent?.(parentPath, file);
+              return null;
+            }
+            if (parentFile.pkgName === pkg.name) {
               return null;
             }
             return `${parentFile.pkgName}@${parentFile.pkgVersion}`;
