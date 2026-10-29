@@ -55,6 +55,8 @@ describe("nitro:preset:vercel:web", async () => {
         "/rules/cors-only": { cors: true },
         "/rules/cors-empty-headers/**": { cors: true, headers: {} },
         "/rules/cdn-empty-headers/**": { proxy: "https://cdn.jsdelivr.net/**", headers: {} },
+        // Public asset dirs are served without the server function, that applies `cors`
+        "/build/**": { cors: true },
       },
       vercel: {
         queues: {
@@ -178,6 +180,14 @@ describe("nitro:preset:vercel:web", async () => {
                   "cache-control": "public, max-age=3600, immutable",
                 },
                 "src": "^\\/build(?:\\/(?<_0>(?:[\\s\\S]*[^/])?\\/*?))??\\/?$",
+              },
+              {
+                "continue": true,
+                "headers": {
+                  "access-control-allow-origin": "*",
+                  "access-control-expose-headers": "*",
+                },
+                "src": "/build/(.*)",
               },
               {
                 "dest": "https://cdn.jsdelivr.net/$1",

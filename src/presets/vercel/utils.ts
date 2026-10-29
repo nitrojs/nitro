@@ -22,6 +22,7 @@ import {
   type RouterContext,
 } from "rou3";
 import { escapeRegExp } from "../../utils/regex.ts";
+import { getPublicAssetCorsHeaders } from "../_utils/cors.ts";
 import { catchAllRef, hasHeaders, parseRouteKey, sortRoutes } from "../_utils/routes.ts";
 import { joinURL, withLeadingSlash, withoutLeadingSlash } from "ufo";
 import type {
@@ -276,6 +277,12 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
             continue: true,
           };
         }),
+      // CORS headers of public asset dirs, which the server function does not serve
+      ...getPublicAssetCorsHeaders(nitro).map(({ base, headers }) => ({
+        src: joinURL(escapeRegExp(joinURL(nitro.options.baseURL, base)), "(.*)"),
+        headers,
+        continue: true,
+      })),
       // Redirect and proxy rules (most specific first)
       // Rules left to the server function stop routing so that less specific
       // rules below cannot match.
