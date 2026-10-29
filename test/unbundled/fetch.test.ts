@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { execa } from "execa";
 import { join } from "pathe";
+import { isWindows } from "std-env";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 const cli = fileURLToPath(new URL("../../dist/cli/index.mjs", import.meta.url));
@@ -152,7 +153,8 @@ describe.each(["self", "worker"])("nitro fetch (%s runner)", (runner) => {
     expect(res.stderr).toContain("close hook");
   });
 
-  it("stops on `SIGINT`", async () => {
+  // Signals can not be sent to a process on Windows (it is terminated)
+  it.skipIf(isWindows)("stops on `SIGINT`", async () => {
     const subprocess = nitro(["fetch", "/endless"]);
     subprocess.stdout.once("data", () => subprocess.kill("SIGINT"));
     const res = await subprocess;
