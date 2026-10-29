@@ -37,6 +37,7 @@ type NitroDevRequest = IncomingMessage & {
   _nitroHandled?: boolean;
   _nitroAssetCheck?: boolean;
   _nitroDevRoute?: boolean;
+  _nitroURL?: string;
 };
 
 export interface DevServer extends RunnerRPCHooks {
@@ -268,11 +269,8 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     }
     nodeReq._nitroHandled = true;
 
-    const baseURL = nitro.options.baseURL || "/";
-    const originalURL = nodeReq.url;
-    if (baseURL !== "/") {
-      nodeReq.url = withBase(nodeReq.url, baseURL);
-    }
+    const viteURL = nodeReq.url;
+    nodeReq.url = withBase(nodeReq._nitroURL || nodeReq.url, nitro.options.baseURL || "/");
     try {
       // Create web API compat request
       const req = new NodeRequest({ req: nodeReq, res: nodeRes });
@@ -320,9 +318,7 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       if (_isResponseDestroyed(nodeRes)) return;
       return next(error);
     } finally {
-      if (baseURL !== "/") {
-        nodeReq.url = originalURL;
-      }
+      nodeReq.url = viteURL;
     }
   };
 
@@ -341,6 +337,9 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
     res: ServerResponse,
     next: (error?: unknown) => void
   ) => {
+    // Vite's base middleware strips `base` from `req.url` before the post middleware runs.
+    req._nitroURL = req.url;
+
     // Vite-internal prefixes (/@vite/client, /__vue-router/auto-routes, ...) are never Nitro's.
     if (/^\/(?:__|@)/.test(withoutBase(req.url!, viteBase))) {
       return next();
