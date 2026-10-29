@@ -14,12 +14,26 @@ describe("nitro fetch arguments", () => {
     expect((await request(["https://example.com/a"])).url).toBe("https://example.com/a");
   });
 
+  it("rejects URLs with a port but no scheme", async () => {
+    await expect(request(["localhost:3000/api"])).rejects.toThrow("http://localhost:3000/api");
+  });
+
   it("parses the method and repeated headers", async () => {
     const req = await request(["/", "-X", "delete", "-H", "x-a: 1", "--header", "X-B:2"]);
     expect(req.method).toBe("DELETE");
     expect(req.headers.get("x-a")).toBe("1");
     expect(req.headers.get("x-b")).toBe("2");
     expect((await request(["-I", "/"])).method).toBe("HEAD");
+    const repeated = await request(["--json", "{}", "-H", "accept: a", "-H", "Accept: b"]);
+    expect(repeated.headers.get("accept")).toBe("a, b");
+  });
+
+  it("sends the URL host", async () => {
+    expect((await request(["/"])).headers.get("host")).toBe("localhost");
+    expect((await request(["http://example.com:8080/"])).headers.get("host")).toBe(
+      "example.com:8080"
+    );
+    expect((await request(["/", "-H", "host: other"])).headers.get("host")).toBe("other");
   });
 
   it("joins `--data` parts as a form", async () => {

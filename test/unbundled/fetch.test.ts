@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { execa } from "execa";
@@ -7,23 +7,39 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 const cli = fileURLToPath(new URL("../../dist/cli/index.mjs", import.meta.url));
 
-describe("nitro fetch", () => {
+// Without `buildPlugins`, the server runs in the CLI process (self runner), else in a worker
+describe.each(["self", "worker"])("nitro fetch (%s runner)", (runner) => {
   let dir: string;
   const nitro = (args: string[], input?: string) =>
-    execa("node", [cli, ...args, "--dir", dir], { reject: false, input });
+    execa("node", [cli, ...args, "--dir", dir], { reject: false, input, stripFinalNewline: false });
 
   beforeAll(async () => {
     dir = await mkdtemp(join(tmpdir(), "nitro-fetch-"));
-    await writeFile(join(dir, "nitro.config.mjs"), `export default { serverDir: "./" };`);
+    const buildPlugins =
+      runner === "worker" ? `[{ name: "test", transform: async () => {} }]` : "[]";
+    await writeFile(
+      join(dir, "nitro.config.mjs"),
+      `export default { serverDir: "./", buildPlugins: ${buildPlugins} };`
+    );
     await mkdir(join(dir, "routes"));
+    await mkdir(join(dir, "plugins"));
+    await writeFile(
+      join(dir, "plugins/close.ts"),
+      `export default (nitroApp) => nitroApp.hooks.hook("close", () => console.log("close hook"));`
+    );
     await writeFile(
       join(dir, "routes/index.ts"),
       `export default () => { console.log("server log"); return { hello: "world" }; };`
     );
     await writeFile(
-      join(dir, "routes/echo.post.ts"),
-      `export default async ({ req }) => ({ type: req.headers.get("content-type"), body: await req.text() });`
+      join(dir, "routes/echo.ts"),
+      /* js */ `export default async ({ req }) => ({
+        url: req.url,
+        headers: Object.fromEntries(req.headers),
+        body: await req.text(),
+      });`
     );
+    await writeFile(join(dir, "routes/empty.ts"), `export default () => new Response(null);`);
     await writeFile(
       join(dir, "routes/stream.ts"),
       /* js */ `export default () => new Response(new ReadableStream({
@@ -34,6 +50,18 @@ describe("nitro fetch", () => {
           controller.close();
         },
       }));`
+    );
+    await writeFile(
+      join(dir, "routes/endless.ts"),
+      /* js */ `export default () => {
+        let timer;
+        return new Response(new ReadableStream({
+          pull: (controller) => new Promise((resolve) => {
+            timer = setTimeout(() => resolve(controller.enqueue(new TextEncoder().encode("x".repeat(1024)))), 10);
+          }),
+          cancel: () => clearTimeout(timer),
+        }));
+      };`
     );
     await mkdir(join(dir, "public"));
     await writeFile(join(dir, "public/hello.txt"), "static asset");
@@ -48,6 +76,7 @@ describe("nitro fetch", () => {
     expect(res.exitCode).toBe(0);
     expect(res.stdout).toBe(`{"hello":"world"}`);
     expect(res.stderr).toContain("server log");
+    expect(res.stderr).toContain("close hook");
   });
 
   it("serves public assets and includes the headers with `-i`", async () => {
@@ -58,11 +87,49 @@ describe("nitro fetch", () => {
     expect(res.stdout).toMatch(/\r\n\r\nstatic asset$/);
   });
 
-  it("sends the request body", async () => {
-    const res = await nitro(["fetch", "/echo", "--json", '{"a":1}']);
-    expect(JSON.parse(res.stdout)).toEqual({ type: "application/json", body: '{"a":1}' });
-    const stdin = await nitro(["fetch", "/echo", "-d", "@-"], "a=1");
-    expect(JSON.parse(stdin.stdout)).toMatchObject({ body: "a=1" });
+  it("prints only the headers with `-I`, and the request too with `-v`", async () => {
+    const head = await nitro(["fetch", "-I", "/hello.txt"]);
+    expect(head.stdout).toMatch(/^HTTP\/1\.1 200 OK\r\n[^]*\r\n\r\n$/);
+    const verbose = await nitro(["fetch", "-v", "/hello.txt"]);
+    expect(verbose.stdout).toBe("static asset");
+    expect(verbose.stderr).toContain("> GET /hello.txt HTTP/1.1\n> host: localhost\n");
+    expect(verbose.stderr).toContain("< HTTP/1.1 200 OK\n");
+  });
+
+  it("sends the request body and headers, with the URL host", async () => {
+    const json = await nitro([
+      "fetch",
+      "/echo",
+      "--json",
+      '{"a":1}',
+      "-H",
+      "x-a: 1",
+      "-H",
+      "x-a: 2",
+    ]);
+    expect(JSON.parse(json.stdout)).toMatchObject({
+      url: "http://localhost/echo",
+      headers: { "content-type": "application/json", "x-a": "1, 2" },
+      body: '{"a":1}',
+    });
+    const stdin = await nitro(["fetch", "http://example.com/echo?x=1", "-d", "@-"], "a=1");
+    expect(JSON.parse(stdin.stdout)).toMatchObject({
+      url: "http://example.com/echo?x=1",
+      headers: { host: "example.com" },
+      body: "a=1",
+    });
+  });
+
+  it("writes the output to a file with `-o`", async () => {
+    const file = join(dir, "out.txt");
+    expect((await nitro(["fetch", "-o", file, "/hello.txt"])).exitCode).toBe(0);
+    expect(await readFile(file, "utf8")).toBe("static asset");
+    for (const args of [["/empty"], ["-I", "/hello.txt"]]) {
+      const res = await nitro(["fetch", "-o", join(dir, "missing/out.txt"), ...args]);
+      expect(res.exitCode).toBe(23);
+      expect(res.stderr).toContain("ENOENT");
+      expect(res.stderr).not.toContain("uncaught");
+    }
   });
 
   it("streams the response", async () => {
@@ -74,11 +141,32 @@ describe("nitro fetch", () => {
     expect(res.stdout).toBe("ab");
   });
 
+  it("stops quietly when stdout is closed", async () => {
+    const subprocess = nitro(["fetch", "/endless"]);
+    subprocess.stdout.once("data", () => subprocess.stdout.destroy());
+    const res = await subprocess;
+    expect(res.exitCode).toBe(23);
+    expect(res.stderr).not.toContain("EPIPE");
+    expect(res.stderr).toContain("close hook");
+  });
+
+  it("stops on `SIGINT`", async () => {
+    const subprocess = nitro(["fetch", "/endless"]);
+    subprocess.stdout.once("data", () => subprocess.kill("SIGINT"));
+    const res = await subprocess;
+    expect(res.exitCode).toBe(130);
+    expect(res.stderr).not.toContain("ERROR");
+    expect(res.stderr).toContain("close hook");
+  });
+
   it("fails on error statuses, still printing the body", async () => {
     const res = await nitro(["fetch", "/missing"]);
     expect(res.exitCode).toBe(22);
     expect(JSON.parse(res.stdout)).toMatchObject({ status: 404 });
     expect(res.stderr).toContain("returned error: 404");
+    const silent = await nitro(["fetch", "-s", "/missing"]);
+    expect(silent.exitCode).toBe(22);
+    expect(silent.stderr).not.toContain("returned error");
   });
 
   it("fails on invalid arguments", async () => {

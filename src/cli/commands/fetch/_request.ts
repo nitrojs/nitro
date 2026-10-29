@@ -112,11 +112,17 @@ export function parseFetchArgs(rawArgs: string[]): FetchOptions {
 
 /** Create the request (paths are resolved against `http://localhost`). */
 export async function createFetchRequest(opts: FetchOptions): Promise<Request> {
+  if (/^[^/?#]+:\d+(?:[/?#]|$)/.test(opts.url)) {
+    throw new Error(
+      `Invalid URL: \`${opts.url}\` (use a path like \`/api\`, or a full URL like \`http://${opts.url}\`)`
+    );
+  }
   const url = /^https?:\/\//i.test(opts.url)
     ? new URL(opts.url)
     : new URL(opts.url.replace(/^\/*/, "/"), "http://localhost");
 
-  const headers = new Headers();
+  // The worker runner sends the request over HTTP to its own address
+  const headers = new Headers({ host: url.host });
   const isJSON = opts.data.some((part) => part.name === "json");
   if (isJSON && opts.data.some((part) => part.name !== "json")) {
     throw new Error("`--json` can not be combined with the other `--data` options");
@@ -127,18 +133,22 @@ export async function createFetchRequest(opts: FetchOptions): Promise<Request> {
   if (isJSON) {
     headers.set("accept", "application/json");
   }
+  const userHeaders = new Set<string>();
   for (const header of opts.headers) {
     const index = header.indexOf(":");
     if (index <= 0) {
       throw new Error(`Invalid header: \`${header}\` (expected \`Name: value\`)`);
     }
-    const name = header.slice(0, index).trim();
+    const name = header.slice(0, index).trim().toLowerCase();
     const value = header.slice(index + 1).trim();
-    if (value) {
-      headers.set(name, value);
-    } else {
+    if (!value) {
       headers.delete(name);
+    } else if (userHeaders.has(name)) {
+      headers.append(name, value);
+    } else {
+      headers.set(name, value);
     }
+    userHeaders.add(name);
   }
 
   let body: Uint8Array<ArrayBuffer> | undefined;

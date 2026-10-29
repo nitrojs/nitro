@@ -1,7 +1,7 @@
 import { createWriteStream } from "node:fs";
 import { STATUS_CODES } from "node:http";
-import { Writable } from "node:stream";
-import { pipeline } from "node:stream/promises";
+import { Readable, type Writable } from "node:stream";
+import { finished, pipeline } from "node:stream/promises";
 import { defineCommand } from "citty";
 import { consola } from "consola";
 import { resolve } from "pathe";
@@ -26,6 +26,16 @@ export default defineCommand({
       process.exit(2);
     }
 
+    let exitCode = 0;
+    const abort = new AbortController();
+    for (const signal of ["SIGINT", "SIGTERM"] as const) {
+      // Once, so that a second signal exits right away
+      process.once(signal, () => {
+        exitCode = signal === "SIGINT" ? 130 : 143;
+        abort.abort();
+      });
+    }
+
     // Server logs go to stderr, so that stdout only has the response
     const stdout = stdoutWriter();
     consola.level = opts.silent ? 0 : opts.verbose ? 3 : 1;
@@ -37,35 +47,32 @@ export default defineCommand({
       listen: { port: 0, hostname: "127.0.0.1", silent: true },
     });
 
-    let exitCode = 0;
-    for (const signal of ["SIGINT", "SIGTERM"] as const) {
-      process.once(signal, async () => {
-        await server.close();
-        process.exit(signal === "SIGINT" ? 130 : 143);
-      });
-    }
-
+    let outputError: Error | undefined;
     try {
+      abort.signal.throwIfAborted();
       if (opts.verbose) {
         const url = new URL(request.url);
         printHeaders(`${request.method} ${url.pathname}${url.search} HTTP/1.1`, request.headers, {
           prefix: "> ",
         });
       }
-      const res = await server.runner.fetch(request);
+      const res = await server.runner.fetch(new Request(request, { signal: abort.signal }));
       const statusLine =
         `HTTP/1.1 ${res.status} ${res.statusText || STATUS_CODES[res.status] || ""}`.trimEnd();
       if (opts.verbose) {
         printHeaders(statusLine, res.headers, { prefix: "< " });
       }
       const out = opts.output && opts.output !== "-" ? createWriteStream(opts.output) : stdout;
+      out.once("error", (error) => (outputError = error));
       if (opts.include || opts.head) {
         await writeHeaders(out, statusLine, res.headers);
       }
       if (res.body && !opts.head) {
-        await pipeline(res.body, out, { end: out !== stdout });
-      } else if (out !== stdout) {
-        await new Promise((resolve) => out.end(resolve));
+        // A web stream source would not be cancelled on abort
+        await pipeline(Readable.fromWeb(res.body), out, { signal: abort.signal });
+      } else {
+        out.end();
+        await finished(out);
       }
       // Like `curl --fail-with-body`
       if (res.status >= 400) {
@@ -75,25 +82,39 @@ export default defineCommand({
         }
       }
     } catch (error) {
-      exitCode = 1;
-      consola.error(error);
+      if (abort.signal.aborted) {
+        // Interrupted
+      } else if (outputError) {
+        // Like curl, also when stdout is closed early (`nitro fetch | head`)
+        exitCode = 23;
+        if (!opts.silent && (outputError as NodeJS.ErrnoException).code !== "EPIPE") {
+          consola.error(`Failed writing the output: ${outputError.message}`);
+        }
+      } else {
+        exitCode = 1;
+        consola.error(error);
+      }
     }
 
     await server.close();
-    await new Promise((resolve) => stdout.write("", resolve));
+    await Promise.all(
+      [stdout, process.stderr]
+        .filter((stream) => stream.writable)
+        .map((stream) => new Promise((resolve) => stream.write("", resolve)))
+    );
     process.exit(exitCode);
   },
 });
 
-/** A writer to the actual stdout, redirecting other `process.stdout` writes to stderr. */
+/**
+ * A writer to the stdout file descriptor, redirecting `process.stdout` writes to stderr.
+ *
+ * `process.stdout` itself never writes to it, so it does not fail when stdout is closed
+ * (that would also stop forwarding the logs of the worker runner).
+ */
 function stdoutWriter(): Writable {
-  const write = process.stdout.write.bind(process.stdout);
   process.stdout.write = process.stderr.write.bind(process.stderr);
-  return new Writable({
-    write(chunk, _encoding, callback) {
-      write(chunk, callback);
-    },
-  });
+  return createWriteStream("", { fd: 1, autoClose: false });
 }
 
 function printHeaders(firstLine: string, headers: Headers, opts: { prefix: string }) {
