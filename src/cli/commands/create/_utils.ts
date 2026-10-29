@@ -4,9 +4,7 @@ import type { PackageManagerName } from "nypm";
 import { relative } from "pathe";
 import { findNearestFile, findWorkspaceDir } from "pkg-types";
 
-const commonPMs = ["npm", "pnpm", "yarn", "bun", "deno"];
-
-export const pmNames = packageManagers.map((pm) => pm.name).sort((a, b) => rank(a) - rank(b));
+export const pmNames = packageManagers.map((pm) => pm.name);
 
 export function displayPath(dir: string): string {
   return relative(process.cwd(), dir) || ".";
@@ -45,9 +43,4 @@ export function detectPackageManager(): PackageManagerName | undefined {
 /** Whether `error` is a spawn error for a missing executable. */
 export function isNotFoundError(error: unknown): boolean {
   return (error as NodeJS.ErrnoException)?.code === "ENOENT";
-}
-
-function rank(pm: string): number {
-  const index = commonPMs.indexOf(pm);
-  return index === -1 ? commonPMs.length : index;
 }
