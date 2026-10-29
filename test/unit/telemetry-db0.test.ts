@@ -1,6 +1,7 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Database } from "db0";
-import { withTracing } from "db0/tracing";
+import { QUERY_CHANNEL, withTracing } from "db0/tracing";
+import { DB0_QUERY_CHANNEL } from "../../src/runtime/internal/telemetry/db0.ts";
 import type { SpanInfo } from "../../src/runtime/internal/telemetry/types.ts";
 import { TRACED_CHANNELS } from "../../src/runtime/internal/telemetry/channels.ts";
 import { subscribeTracedChannels } from "../../src/runtime/internal/telemetry/subscribe.ts";
@@ -36,6 +37,10 @@ beforeEach(() => {
 });
 
 describe("db0.query describer", () => {
+  it("matches the channel published by `db0/tracing`", () => {
+    expect(DB0_QUERY_CHANNEL).toBe(QUERY_CHANNEL);
+  });
+
   it("names the span after the method and dialect", () => {
     const info = TRACED_CHANNELS["db0.query"]!("db0.query", {
       query: `SELECT * FROM users WHERE name = '${SECRET}'`,
