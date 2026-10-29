@@ -3,6 +3,7 @@ import { FastResponse } from "srvx";
 import {
   defineCachedFunction as _defineCachedFunction,
   defineCachedHandler as _defineCachedHandler,
+  getCacheStatus,
 } from "ocache";
 import type { CachedFunction, StorageInterface } from "ocache";
 import {
@@ -59,9 +60,7 @@ export function defineCachedHandler(
     }) as EventHandler
   );
   const cachedHandler = (event: H3Event) => ocacheHandler(event as any);
-  return defineHandler(
-    cacheServerTiming ? withCacheServerTiming(cachedHandler, opts.cacheStatusHeader) : cachedHandler
-  );
+  return defineHandler(cacheServerTiming ? withCacheServerTiming(cachedHandler) : cachedHandler);
 }
 
 /** Records the `cache` server timing metric around the `cache` route rule. */
@@ -71,19 +70,14 @@ export function withCacheRuleServerTiming(rule: RuleHandler<"cache">): RuleHandl
   }
   return {
     ...rule,
-    handler: (matched) =>
-      withCacheServerTiming(rule.handler(matched), matched.options.cacheStatusHeader),
+    handler: (matched) => withCacheServerTiming(rule.handler(matched)),
   };
 }
 
 /** Records the duration and cache status of a cached handler as the `cache` server timing metric. */
 function withCacheServerTiming<T extends (event: H3Event, ...args: any[]) => unknown>(
-  handler: T,
-  cacheStatusHeader: boolean | string | undefined
+  handler: T
 ): T {
-  const statusHeader = resolveStatusHeader(
-    cacheStatusHeader ?? cacheHandlerDefaults.cacheStatusHeader ?? true
-  );
   return (async (event: H3Event, ...args: unknown[]) => {
     const metric = beginOp(getServerTimingContext(event), "cache");
     if (!metric) {
@@ -92,24 +86,12 @@ function withCacheServerTiming<T extends (event: H3Event, ...args: any[]) => unk
     let status: string | undefined;
     try {
       const res = await handler(event, ...args);
-      if (statusHeader) {
-        // Bypassed responses carry no status from ocache, only the handler's own header (if any).
-        const value =
-          res instanceof Response ? res.headers.get(statusHeader)?.toLowerCase() : undefined;
-        status = value && cacheStatuses.has(value) ? value : "bypass";
-      }
+      status = getCacheStatus(event as any) ?? "bypass";
       return res;
     } finally {
       endOp(metric, status);
     }
   }) as T;
-}
-
-const cacheStatuses = /* @__PURE__ */ new Set(["hit", "miss", "stale", "revalidated"]);
-
-/** Response header ocache writes the cache status to (same resolution as ocache's `cacheStatusHeader`). */
-function resolveStatusHeader(option: boolean | string): string | undefined {
-  return option === true ? "x-cache" : option ? option.toLowerCase() : undefined;
 }
 
 function definedOptions<T extends object>(opts: T): T {
