@@ -1094,27 +1094,28 @@ export function testNitro(
       expect(headers["server-timing"]).toMatch(/^app;desc="App";dur=5, total;dur=[\d.]+$/);
     });
 
+    // The handler's entry describes the request that ran it, so a hit doesn't repeat it
     it("reports cached handler status", async () => {
       const url = `/server-timing/cached/${++serverTimingCacheKey}`;
       const first = await callHandler({ url });
       expect(first.headers["server-timing"]).toMatch(
-        /^cache;desc="miss";dur=[\d.]+, total;dur=[\d.]+$/
+        /^mw;dur=1, handler;dur=2, cache;desc="miss";dur=[\d.]+, total;dur=[\d.]+$/
       );
       const second = await callHandler({ url });
       expect(second.headers["server-timing"]).toMatch(
-        /^cache;desc="hit";dur=[\d.]+, total;dur=[\d.]+$/
+        /^mw;dur=1, cache;desc="hit";dur=[\d.]+, total;dur=[\d.]+$/
       );
     });
 
     it("reports cache route rule status", async () => {
-      const url = `/rules/swr/server-timing-${++serverTimingCacheKey}`;
+      const url = `/rules/swr/server-timing/cached/${++serverTimingCacheKey}`;
       const first = await callHandler({ url });
       expect(first.headers["server-timing"]).toMatch(
-        /^cache;desc="miss";dur=[\d.]+, total;dur=[\d.]+$/
+        /^mw;dur=1, handler;dur=2, cache;desc="miss";dur=[\d.]+, total;dur=[\d.]+$/
       );
       const second = await callHandler({ url });
       expect(second.headers["server-timing"]).toMatch(
-        /^cache;desc="hit";dur=[\d.]+, total;dur=[\d.]+$/
+        /^mw;dur=1, cache;desc="hit";dur=[\d.]+, total;dur=[\d.]+$/
       );
     });
 
@@ -1123,7 +1124,7 @@ export function testNitro(
         url: `/server-timing/cached/${++serverTimingCacheKey}?bypass`,
       });
       expect(headers["server-timing"]).toMatch(
-        /^cache;desc="bypass";dur=[\d.]+, total;dur=[\d.]+$/
+        /^mw;dur=1, handler;dur=2, cache;desc="bypass";dur=[\d.]+, total;dur=[\d.]+$/
       );
     });
 

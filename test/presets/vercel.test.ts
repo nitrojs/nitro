@@ -385,6 +385,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/server-timing\\/cached\\/(?<id>[^/]+)\\/?$",
               },
               {
+                "dest": "/rules/swr/server-timing/cached/[id]",
+                "src": "^\\/rules\\/swr\\/server-timing\\/cached\\/(?<id>[^/]+)\\/?$",
+              },
+              {
                 "dest": "/rules/swr/middleware-order",
                 "src": "^\\/rules\\/swr\\/middleware-order\\/?$",
               },
@@ -860,6 +864,7 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/rules/isr/[...]-isr.func",
             "functions/rules/isr/[...]-isr.prerender-config.json",
             "functions/rules/swr/middleware-order.func (symlink)",
+            "functions/rules/swr/server-timing/cached/[id].func (symlink)",
             "functions/server-timing/cached/[id].func (symlink)",
             "functions/server-timing/custom.func (symlink)",
             "functions/server-timing/kv.func (symlink)",
