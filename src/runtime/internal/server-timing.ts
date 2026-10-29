@@ -3,6 +3,7 @@ import type { ServerRequest } from "srvx";
 import type { NitroOptions } from "nitro/types";
 import type { AsyncLocalStorage } from "node:async_hooks";
 import { subscribeTracingChannels } from "./telemetry/subscribe.ts";
+import { DB0_QUERY_CHANNEL } from "./telemetry/db0.ts";
 import { UNSTORAGE_CHANNELS } from "./telemetry/unstorage.ts";
 
 type ServerTimingOptions = Exclude<NitroOptions["serverTiming"], false>;
@@ -64,7 +65,7 @@ export function withServerTimingContext(
       traceServerTiming("kv", UNSTORAGE_CHANNELS);
     }
     if (metrics.db) {
-      traceServerTiming("db", ["db0.query"]);
+      traceServerTiming("db", [DB0_QUERY_CHANNEL]);
     }
   }
   return (req) => {

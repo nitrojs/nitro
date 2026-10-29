@@ -1,4 +1,5 @@
 import type { IKeyValue, ChannelDescriber, SpanInfo } from "./types.ts";
+import { DB0_QUERY_CHANNEL } from "./db0.ts";
 import { UNSTORAGE_CHANNELS } from "./unstorage.ts";
 
 // OTLP `SpanKind` (proto enum) Wire values: INTERNAL = 1, SERVER = 2, CLIENT = 3.
@@ -117,7 +118,7 @@ export const TRACED_CHANNELS: Record<string, ChannelDescriber> = {
       },
     ])
   ),
-  "db0.query"(channel: string, data: unknown): SpanInfo {
+  [DB0_QUERY_CHANNEL](channel: string, data: unknown): SpanInfo {
     // The query text is left out: `exec()` queries can inline user data.
     const { method, dialect } = data as { method: string; dialect?: string };
     const attributes: IKeyValue[] = [{ key: "db.operation", value: { stringValue: method } }];
