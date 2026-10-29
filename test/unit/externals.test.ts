@@ -33,31 +33,42 @@ describe("externals:resolveId", () => {
     expect(result).toEqual({ id: "defu", external: true });
   });
 
-  it("externalizes traced root export without trailing slash", async () => {
-    const fixtureModules = fileURLToPath(
-      new URL("../fixture/node_modules", import.meta.url)
-    );
+  const resolveFixtureEntry = (path: string) => {
     const plugin = externals({
       outDir: "",
-      moduleDirectories: [fixtureModules],
-      exportConditions: ["node", "import", "production"],
+      moduleDirectories: [
+        new URL("../fixture/node_modules/", import.meta.url).pathname,
+      ],
+      exportConditions: ["production", "node", "import", "default"],
     });
     const entry = fileURLToPath(
-      new URL(
-        "../fixture/node_modules/@fixture/nitro-root-export/index.mjs",
-        import.meta.url
-      )
+      new URL(`../fixture/node_modules/${path}`, import.meta.url)
     );
-    const result = await (plugin.resolveId as any).call(
+    return (plugin.resolveId as any).call(
       { resolve: () => null },
       entry,
       fileURLToPath(import.meta.url),
       {}
     );
+  };
+
+  it("externalizes traced root export without trailing slash", async () => {
+    const result = await resolveFixtureEntry(
+      "@fixture/nitro-root-export/index.mjs"
+    );
     expect(result).toEqual({
       id: "@fixture/nitro-root-export",
       external: true,
     });
+  });
+
+  it.each([
+    // "." is only exported under the `require` condition
+    "@fixture/nitro-root-export-cjs/index.cjs",
+    // Nested copy: the bare name resolves to another version
+    "@fixture/nitro-dep-a/node_modules/@fixture/nitro-root-export/index.mjs",
+  ])("does not externalize root export as bare name (%s)", async (path) => {
+    expect(await resolveFixtureEntry(path)).toBeNull();
   });
 });
 
