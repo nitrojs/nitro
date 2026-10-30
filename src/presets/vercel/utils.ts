@@ -17,7 +17,8 @@ import { ISR_URL_PARAM } from "./runtime/consts";
 // https://vercel.com/docs/build-output-api/configuration
 
 // https://vercel.com/docs/functions/runtimes/node-js/node-js-versions
-const SUPPORTED_NODE_VERSIONS = [18, 20, 22, 24];
+// Vercel runs the even (LTS) Node.js majors from 20 onwards.
+const MIN_NODE_VERSION = 20;
 
 const FALLBACK_ROUTE = "/__fallback";
 
@@ -39,6 +40,15 @@ function getSystemNodeVersion() {
   return Number.isNaN(systemNodeVersion) ? 22 : systemNodeVersion;
 }
 
+export function resolveNodeRuntime(
+  systemNodeVersion = getSystemNodeVersion()
+): `nodejs${number}.x` {
+  // Odd (non-LTS) majors are not Vercel runtimes: use the previous even one.
+  // Majors below the minimum use the oldest runtime.
+  const evenVersion = systemNodeVersion - (systemNodeVersion % 2);
+  return `nodejs${Math.max(MIN_NODE_VERSION, evenVersion)}.x`;
+}
+
 export async function generateFunctionFiles(nitro: Nitro) {
   const o11Routes = getObservabilityRoutes(nitro);
 
@@ -58,12 +68,7 @@ export async function generateFunctionFiles(nitro: Nitro) {
       runtime = `bun${vercelConfig.bunVersion || "1.x"}`;
     } else {
       // 3. Auto-detect runtime based on system Node.js version
-      const systemNodeVersion = getSystemNodeVersion();
-      const usedNodeVersion =
-        SUPPORTED_NODE_VERSIONS.find(
-          (version) => version >= systemNodeVersion
-        ) ?? SUPPORTED_NODE_VERSIONS.at(-1);
-      runtime = `nodejs${usedNodeVersion}.x`;
+      runtime = resolveNodeRuntime();
     }
   }
 
