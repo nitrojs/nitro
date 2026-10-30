@@ -98,6 +98,8 @@ export interface NitroBuildInfo {
     deploy?: string;
   };
   serverEntry?: string;
+  /** Optional production task CLI entry, relative to the output directory. */
+  taskEntry?: string;
   publicDir?: string;
   dev?: {
     pid: number;

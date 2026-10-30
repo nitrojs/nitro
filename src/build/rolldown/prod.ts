@@ -8,6 +8,7 @@ import { generateFSTree } from "../../utils/fs-tree.ts";
 import { writeBuildInfo } from "../info.ts";
 import { compressPublicAssets } from "../../utils/compress.ts";
 import type { RolldownOutput } from "rolldown";
+import { buildTaskCLI } from "../task-cli.ts";
 
 export async function buildProduction(
   nitro: Nitro,
@@ -31,7 +32,8 @@ export async function buildProduction(
     output = (await build.write(config.output as OutputOptions)) as RolldownOutput;
   }
 
-  const buildInfo = await writeBuildInfo(nitro, output);
+  const taskEntry = await buildTaskCLI(nitro, { builder: "rolldown", bundler: rolldown, config });
+  const buildInfo = await writeBuildInfo(nitro, output, { taskEntry });
 
   if (!nitro.options.static) {
     if (nitro.options.logging.buildSuccess) {

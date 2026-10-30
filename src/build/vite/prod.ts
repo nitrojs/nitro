@@ -11,6 +11,7 @@ import { writeBuildInfo } from "../info.ts";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { isTest, isCI } from "std-env";
 import type { RolldownOutput } from "rolldown";
+import { buildViteTaskCLI } from "./task-cli.ts";
 
 const BuilderNames = {
   nitro: C.magenta("Nitro"),
@@ -121,6 +122,8 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
     output = (await builder.build(builder.environments.nitro)) as RolldownOutput;
   }
 
+  const taskEntry = await buildViteTaskCLI(ctx, builder);
+
   // Close the Nitro instance
   await nitro.close();
 
@@ -132,7 +135,7 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
   }
 
   // Write build info
-  await writeBuildInfo(nitro, output);
+  await writeBuildInfo(nitro, output, { taskEntry });
 
   // Show deploy and preview commands
   if (!isTest && !isCI) console.log();

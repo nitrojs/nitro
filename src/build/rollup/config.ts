@@ -1,4 +1,5 @@
 import type { Nitro, RollupConfig } from "nitro/types";
+import type { BuildEnv } from "../env.ts";
 import { defu } from "defu";
 import alias from "@rollup/plugin-alias";
 import commonjs from "@rollup/plugin-commonjs";
@@ -10,49 +11,48 @@ import { assetUrls } from "../plugins/asset-urls.ts";
 import { baseBuildConfig } from "../config.ts";
 import { baseBuildPlugins, withBuildPlugins } from "../plugins.ts";
 import { getChunkName, libChunkName, NODE_MODULES_RE } from "../chunks.ts";
+import { rememberTaskCLIPlugins } from "../task-cli-plugins.ts";
 
-export const getRollupConfig = async (nitro: Nitro): Promise<RollupConfig> => {
-  const base = await baseBuildConfig(nitro);
+export const getRollupConfig = async (nitro: Nitro, env?: BuildEnv): Promise<RollupConfig> => {
+  const base = await baseBuildConfig(nitro, env);
 
   const tsc = nitro.options.typescript.tsConfig?.compilerOptions;
 
+  const internalPlugins = [
+    ...(await baseBuildPlugins(nitro, base)),
+    await oxc(nitro, {
+      sourcemap: !!nitro.options.sourcemap,
+      minify: nitro.options.minify ? { ...nitro.options.oxc?.minify } : false,
+      transform: {
+        target: "esnext",
+        cwd: nitro.options.rootDir,
+        ...nitro.options.oxc?.transform,
+        jsx: {
+          runtime: tsc?.jsx === "react" ? "classic" : "automatic",
+          pragma: tsc?.jsxFactory,
+          pragmaFrag: tsc?.jsxFragmentFactory,
+          importSource: tsc?.jsxImportSource,
+          development: nitro.options.dev,
+          ...nitro.options.oxc?.transform?.jsx,
+        },
+      },
+    }),
+    alias({ entries: base.aliases }),
+    nodeResolve({
+      extensions: base.extensions,
+      preferBuiltins: !!nitro.options.node,
+      rootDir: nitro.options.rootDir,
+      exportConditions: nitro.options.exportConditions,
+    }),
+    (commonjs as unknown as typeof commonjs.default)({ ...nitro.options.commonJS }),
+    (json as unknown as typeof json.default)(),
+    (inject as unknown as typeof inject.default)(base.env.inject),
+    nitro.options.node && (await assetUrls(nitro)),
+  ];
   let config: RollupConfig = {
     input: nitro.options.entry,
     external: [...base.env.external],
-    plugins: await withBuildPlugins(nitro, [
-      ...(await baseBuildPlugins(nitro, base)),
-      await oxc(nitro, {
-        sourcemap: !!nitro.options.sourcemap,
-        minify: nitro.options.minify ? { ...nitro.options.oxc?.minify } : false,
-        transform: {
-          target: "esnext",
-          cwd: nitro.options.rootDir,
-          ...nitro.options.oxc?.transform,
-          jsx: {
-            runtime: tsc?.jsx === "react" ? "classic" : "automatic",
-            pragma: tsc?.jsxFactory,
-            pragmaFrag: tsc?.jsxFragmentFactory,
-            importSource: tsc?.jsxImportSource,
-            development: nitro.options.dev,
-            ...nitro.options.oxc?.transform?.jsx,
-          },
-        },
-      }),
-      alias({ entries: base.aliases }),
-      nodeResolve({
-        extensions: base.extensions,
-        preferBuiltins: !!nitro.options.node,
-        rootDir: nitro.options.rootDir,
-        exportConditions: nitro.options.exportConditions,
-      }),
-      (commonjs as unknown as typeof commonjs.default)({
-        ...nitro.options.commonJS,
-      }),
-      (json as unknown as typeof json.default)(),
-      (inject as unknown as typeof inject.default)(base.env.inject),
-      // Emitted files are read from the filesystem, which worker runtimes do not have
-      nitro.options.node && (await assetUrls(nitro)),
-    ]),
+    plugins: await withBuildPlugins(nitro, internalPlugins),
     onwarn(warning, rollupWarn) {
       if (!base.ignoreWarningCodes.has(warning.code || "")) {
         rollupWarn(warning);
@@ -85,5 +85,6 @@ export const getRollupConfig = async (nitro: Nitro): Promise<RollupConfig> => {
     delete outputConfig.manualChunks;
   }
 
+  rememberTaskCLIPlugins(config, internalPlugins, base.env);
   return config;
 };

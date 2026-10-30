@@ -9,16 +9,19 @@ import { excludeSourcemapSources } from "../plugins/sourcemap.ts";
 import type { RolldownConfig, RollupConfig } from "nitro/types";
 import type { Plugin as RollupPlugin } from "rollup";
 import type { NitroPluginContext } from "./types.ts";
+import type { BuildEnv } from "../env.ts";
+import { rememberTaskCLIPlugins } from "../task-cli-plugins.ts";
 
 export const getBundlerConfig = async (
-  ctx: NitroPluginContext
+  ctx: NitroPluginContext,
+  env?: BuildEnv
 ): Promise<{
   base: BaseBuildConfig;
   rollupConfig?: RollupConfig;
   rolldownConfig?: RolldownConfig;
 }> => {
   const nitro = ctx.nitro!;
-  const base = await baseBuildConfig(nitro);
+  const base = await baseBuildConfig(nitro, env);
   const nitroPlugins = (await baseBuildPlugins(nitro, base)).filter(Boolean) as RollupPlugin[];
   // Emitted files are read from the filesystem, which worker runtimes do not have.
   // Not in dev: the module runner evaluates modules from their original location.
@@ -83,6 +86,7 @@ export const getBundlerConfig = async (
     // `inlineDynamicImports` is deprecated in favor of `codeSplitting: false`
     delete outputConfig.inlineDynamicImports;
 
+    rememberTaskCLIPlugins(rolldownConfig, nitroPlugins, base.env);
     return { base, rolldownConfig };
   } else {
     // Rollup
@@ -126,6 +130,7 @@ export const getBundlerConfig = async (
       delete outputConfig.manualChunks;
     }
 
+    rememberTaskCLIPlugins(rollupConfig, nitroPlugins, base.env);
     return { base, rollupConfig };
   }
 };

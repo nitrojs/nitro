@@ -415,6 +415,11 @@ export interface NitroOptions extends PresetOptions {
      * @see https://nitro.build/docs/tasks
      */
     tasks?: boolean;
+    /**
+     * Emit an isolated production task CLI for Node server, middleware and cluster.
+     * Requires `experimental.tasks`. Run the entry recorded in `nitro.json.taskEntry`.
+     */
+    taskCLI?: boolean;
 
     /**
      * Log Nitro tracing-channel spans to the console.

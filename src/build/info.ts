@@ -58,13 +58,15 @@ export async function findLastBuildDir(root: string): Promise<string> {
 
 export async function writeBuildInfo(
   nitro: Nitro,
-  output: RolldownOutput | RollupOutput | undefined
+  output: RolldownOutput | RollupOutput | undefined,
+  opts: { taskEntry?: string } = {}
 ): Promise<NitroBuildInfo> {
   const serverEntryName = resolveNitroServerEntry(nitro, output);
 
   const buildInfoPath = resolve(nitro.options.output.dir, "nitro.json");
   const buildInfo: NitroBuildInfo = {
     date: new Date().toJSON(),
+    ...(opts.taskEntry ? { taskEntry: opts.taskEntry } : {}),
     preset: nitro.options.preset,
     envName: nitro.options.envName,
     framework: nitro.options.framework,

@@ -35,6 +35,7 @@ import { resolveErrorOptions } from "./resolvers/error.ts";
 import { resolveUnenv } from "./resolvers/unenv.ts";
 import { resolveBuilder } from "./resolvers/builder.ts";
 import { resolveTracingChannelOptions } from "./resolvers/tracing.ts";
+import { resolveTaskCLIOptions } from "./resolvers/task-cli.ts";
 
 const configResolvers = [
   resolveCompatibilityOptions,
@@ -54,6 +55,7 @@ const configResolvers = [
   resolveUnenv,
   resolveBuilder,
   resolveTracingChannelOptions,
+  resolveTaskCLIOptions,
 ] as const;
 
 export async function loadOptions(

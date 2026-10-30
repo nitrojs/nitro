@@ -1,4 +1,5 @@
 import type { Nitro, RolldownConfig } from "nitro/types";
+import type { BuildEnv } from "../env.ts";
 import type { OutputOptions, RolldownOptions, RolldownPlugin } from "rolldown";
 import { baseBuildConfig } from "../config.ts";
 import { baseBuildPlugins, withBuildPlugins } from "../plugins.ts";
@@ -7,12 +8,18 @@ import { excludeSourcemapSources } from "../plugins/sourcemap.ts";
 import { defu } from "defu";
 import { getChunkName, libChunksGroup } from "../chunks.ts";
 import { builtinExternals, builtins } from "../plugins/builtins.ts";
+import { rememberTaskCLIPlugins } from "../task-cli-plugins.ts";
 
-export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownConfig> => {
-  const base = await baseBuildConfig(nitro);
+export const getRolldownConfig = async (nitro: Nitro, env?: BuildEnv): Promise<RolldownConfig> => {
+  const base = await baseBuildConfig(nitro, env);
 
   const tsc = nitro.options.typescript.tsConfig?.compilerOptions;
 
+  const internalPlugins = [
+    builtinExternals(base.env, { node: nitro.options.node }),
+    ...((await baseBuildPlugins(nitro, base)) as RolldownPlugin[]),
+    nitro.options.node && ((await assetUrls(nitro)) as RolldownPlugin),
+  ];
   let config: RolldownOptions = {
     platform: nitro.options.node ? "node" : "neutral",
     cwd: nitro.options.rootDir,
@@ -30,12 +37,7 @@ export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownConfig> =
           ...builtins.filter((id) => !base.env.alias[id] || base.env.alias[id] === id),
         ]
       : [],
-    plugins: await withBuildPlugins(nitro, [
-      builtinExternals(base.env, { node: nitro.options.node }),
-      ...((await baseBuildPlugins(nitro, base)) as RolldownPlugin[]),
-      // Emitted files are read from the filesystem, which worker runtimes do not have
-      nitro.options.node && ((await assetUrls(nitro)) as RolldownPlugin),
-    ]),
+    plugins: await withBuildPlugins(nitro, internalPlugins),
     resolve: {
       alias: base.aliases,
       extensions: base.extensions,
@@ -93,5 +95,6 @@ export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownConfig> =
   // `inlineDynamicImports` is deprecated in favor of `codeSplitting: false`
   delete outputConfig.inlineDynamicImports;
 
+  rememberTaskCLIPlugins(config, internalPlugins as any, base.env);
   return config as RolldownConfig;
 };
