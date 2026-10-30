@@ -34,7 +34,8 @@ import { ISR_URL_PARAM } from "./runtime/isr.ts";
 // https://vercel.com/docs/build-output-api/configuration
 
 // https://vercel.com/docs/functions/runtimes/node-js/node-js-versions
-const SUPPORTED_NODE_VERSIONS = [22, 24];
+const MIN_NODE_VERSION = 22;
+const LATEST_KNOWN_NODE_VERSION = 26;
 
 // h3 ProxyOptions that Vercel CDN rewrites cannot handle at the edge.
 // https://vercel.com/docs/rewrites
@@ -69,7 +70,18 @@ const DEFAULT_PUBLIC_ASSET_MAX_AGE = 31_536_000; // 1 year
 function getSystemNodeVersion() {
   const systemNodeVersion = Number.parseInt(process.versions.node.split(".")[0]);
 
-  return Number.isNaN(systemNodeVersion) ? 22 : systemNodeVersion;
+  return Number.isNaN(systemNodeVersion) ? MIN_NODE_VERSION : systemNodeVersion;
+}
+
+// Vercel only offers even (LTS) Node.js versions. The build's own version is included
+// so that a new even version works before `LATEST_KNOWN_NODE_VERSION` is bumped.
+function getSupportedNodeVersions() {
+  const newest = Math.max(LATEST_KNOWN_NODE_VERSION, getSystemNodeVersion());
+  const versions: number[] = [];
+  for (let version = MIN_NODE_VERSION; version <= newest; version += 2) {
+    versions.push(version);
+  }
+  return versions;
 }
 
 export async function generateFunctionFiles(nitro: Nitro) {
@@ -548,11 +560,15 @@ export async function resolveVercelRuntime(nitro: Nitro) {
       );
     }
 
+    const supportedNodeVersions = getSupportedNodeVersions();
+
     // Newest supported Node.js version allowed by engines.node
-    let usedNodeVersion = engines?.node ? await getEnginesNodeVersion(engines.node) : undefined;
+    let usedNodeVersion = engines?.node
+      ? await getEnginesNodeVersion(engines.node, supportedNodeVersions)
+      : undefined;
     if (engines?.node && !usedNodeVersion) {
       nitro.logger.warn(
-        `\`engines.node\` (\`${engines.node}\`) in \`package.json\` does not match a supported Vercel Node.js version (${SUPPORTED_NODE_VERSIONS.join(", ")}). Using the Node.js version of the build instead.`
+        `\`engines.node\` (\`${engines.node}\`) in \`package.json\` does not match a supported Vercel Node.js version (${supportedNodeVersions.join(", ")}). Using the Node.js version of the build instead.`
       );
     }
 
@@ -560,8 +576,8 @@ export async function resolveVercelRuntime(nitro: Nitro) {
     if (!usedNodeVersion) {
       const systemNodeVersion = getSystemNodeVersion();
       usedNodeVersion =
-        SUPPORTED_NODE_VERSIONS.find((version) => version >= systemNodeVersion) ??
-        SUPPORTED_NODE_VERSIONS.at(-1);
+        supportedNodeVersions.find((version) => version >= systemNodeVersion) ??
+        supportedNodeVersions.at(-1);
     }
     runtime = `nodejs${usedNodeVersion}.x`;
   }
@@ -862,13 +878,13 @@ function hasQueryWildcard(to: string): boolean {
   return index !== -1 && to.includes("**", index);
 }
 
-async function getEnginesNodeVersion(range: string) {
+async function getEnginesNodeVersion(range: string, supportedVersions: number[]) {
   const { default: validRange } = await import("semver/ranges/valid.js");
   if (!validRange(range)) {
     return;
   }
   const { default: intersects } = await import("semver/ranges/intersects.js");
-  return SUPPORTED_NODE_VERSIONS.filter((version) => intersects(`${version}.x`, range)).at(-1);
+  return supportedVersions.filter((version) => intersects(`${version}.x`, range)).at(-1);
 }
 
 async function getEnginesBunRuntime(range: string, opts: { source: string }) {
