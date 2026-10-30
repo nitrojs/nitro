@@ -5,8 +5,6 @@ import { finished, pipeline } from "node:stream/promises";
 import { defineCommand } from "citty";
 import { LogLevels, consola } from "consola";
 import { resolve } from "pathe";
-import { startUnbundledServer } from "../../../build/unbundled/serve.ts";
-import { fetchDevServer, findDevServer } from "./_dev.ts";
 import { type FetchOptions, createFetchRequest, fetchArgs, parseFetchArgs } from "./_request.ts";
 
 export default defineCommand({
@@ -44,6 +42,7 @@ export default defineCommand({
     const stdout = stdoutWriter();
 
     const rootDir = resolve(opts.dir || ".");
+    const { fetchDevServer, findDevServer } = await import("./_dev.ts");
     const dev =
       opts.dev === false ? undefined : await findDevServer(rootDir, { envName: opts.envName });
     consola.level = opts.silent ? LogLevels.silent : 3;
@@ -54,12 +53,14 @@ export default defineCommand({
 
     const server = dev
       ? undefined
-      : await startUnbundledServer({
-          rootDir,
-          envName: opts.envName,
-          // Listen (on a random port), so that requests go through the server middleware
-          listen: { port: 0, hostname: "127.0.0.1", silent: true },
-        });
+      : await import("../../../build/unbundled/serve.ts").then(({ startUnbundledServer }) =>
+          startUnbundledServer({
+            rootDir,
+            envName: opts.envName,
+            // Listen (on a random port), so that requests go through the server middleware
+            listen: { port: 0, hostname: "127.0.0.1", silent: true },
+          })
+        );
 
     let outputError: Error | undefined;
     try {

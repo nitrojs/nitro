@@ -36,6 +36,22 @@ export default defineBuildConfig({
       input: ["src/builder.ts", "src/cli/index.ts", "src/types/index.ts", "src/vite.ts"],
       minifyLibs: true,
       license: { gzip: true },
+      rolldown: {
+        plugins: [
+          {
+            name: "nitro:cli-chunks",
+            // `_build/common` also takes in the libraries it imports. Keep the ones that CLI commands
+            // import at the top apart, so that `nitro --help` doesn't load the builder.
+            outputOptions: (o) => {
+              (o.codeSplitting as CodeSplittingOptions).groups?.unshift({
+                test: /node_modules[/\\](pathe|consola|std-env|scule|exsolve)[/\\]|src[/\\]utils[/\\]_deps\.ts|deps\.json/,
+                name: "_libs/cli",
+              });
+              return o;
+            },
+          },
+        ],
+      },
     },
     {
       // Every runtime file stays an entry (build code references them by path). Bundling them

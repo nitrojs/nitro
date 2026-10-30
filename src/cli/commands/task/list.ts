@@ -1,6 +1,5 @@
 import { defineCommand } from "citty";
 import { consola } from "consola";
-import { listTasks, loadOptions } from "nitro/builder";
 import { resolve } from "pathe";
 
 export default defineCommand({
@@ -15,6 +14,7 @@ export default defineCommand({
     },
   },
   async run({ args }) {
+    const { listTasks, loadOptions } = await import("nitro/builder");
     const cwd = resolve((args.dir || args.cwd || ".") as string);
     const options = await loadOptions({ rootDir: cwd }).catch(() => undefined);
 
