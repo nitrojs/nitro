@@ -3,7 +3,6 @@ import { consola } from "consola";
 import { colors } from "consola/utils";
 import { resolve } from "pathe";
 import { commonArgs } from "../common.ts";
-import { startUnbundledServer } from "../../build/unbundled/serve.ts";
 import { runDev } from "./dev.ts";
 
 export default defineCommand({
@@ -36,6 +35,7 @@ export default defineCommand({
       return;
     }
 
+    const { startUnbundledServer } = await import("../../build/unbundled/serve.ts");
     let started = false;
     let closing = false;
     const server = await startUnbundledServer({

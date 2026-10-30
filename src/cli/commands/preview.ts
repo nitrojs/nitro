@@ -1,9 +1,6 @@
 import { defineCommand } from "citty";
 import { resolve } from "pathe";
 import { commonArgs } from "../common.ts";
-import { startPreview } from "../../preview.ts";
-import { serve } from "srvx";
-import { loggerMiddleware } from "srvx/log";
 
 export default defineCommand({
   meta: {
@@ -16,6 +13,9 @@ export default defineCommand({
     host: { type: "string", description: "specify hostname" },
   },
   async run({ args }) {
+    const { startPreview } = await import("../../preview.ts");
+    const { serve } = await import("srvx");
+    const { loggerMiddleware } = await import("srvx/log");
     const rootDir = resolve((args.dir || args._dir || ".") as string);
 
     const server = serve({

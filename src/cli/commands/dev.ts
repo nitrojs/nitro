@@ -1,11 +1,8 @@
 import type { Nitro, NitroConfig } from "nitro/types";
 import { defineCommand } from "citty";
 import { consola } from "consola";
-import { build, createNitro, prepare } from "nitro/builder";
 import { resolve } from "pathe";
 import { commonArgs } from "../common.ts";
-import { createDevServer } from "../../dev/server.ts";
-import { onWatchError } from "../../utils/watch.ts";
 
 const hmrKeyRe = /^runtimeConfig\.|routeRules\./;
 
@@ -41,6 +38,9 @@ export async function runDev(opts: {
   envName?: string;
   config?: NitroConfig;
 }) {
+  const { build, createNitro, prepare } = await import("nitro/builder");
+  const { createDevServer } = await import("../../dev/server.ts");
+  const { onWatchError } = await import("../../utils/watch.ts");
   let nitro: Nitro;
   // Watcher errors (e.g. ENOSPC) from bundler internals cannot be handled at the source
   process.on("uncaughtException", (error) => {
