@@ -34,8 +34,9 @@ import { ISR_URL_PARAM } from "./runtime/isr.ts";
 // https://vercel.com/docs/build-output-api/configuration
 
 // https://vercel.com/docs/functions/runtimes/node-js/node-js-versions
-const MIN_NODE_VERSION = 22;
-const LATEST_KNOWN_NODE_VERSION = 26;
+// Vercel supports Node.js 22, 24, and every major from 26 onwards.
+const SUPPORTED_NODE_VERSIONS = [22, 24];
+const FIRST_CONSECUTIVE_NODE_VERSION = 26;
 
 // h3 ProxyOptions that Vercel CDN rewrites cannot handle at the edge.
 // https://vercel.com/docs/rewrites
@@ -70,15 +71,15 @@ const DEFAULT_PUBLIC_ASSET_MAX_AGE = 31_536_000; // 1 year
 function getSystemNodeVersion() {
   const systemNodeVersion = Number.parseInt(process.versions.node.split(".")[0]);
 
-  return Number.isNaN(systemNodeVersion) ? MIN_NODE_VERSION : systemNodeVersion;
+  return Number.isNaN(systemNodeVersion) ? 22 : systemNodeVersion;
 }
 
-// Vercel only offers even (LTS) Node.js versions. The build's own version is included
-// so that a new even version works before `LATEST_KNOWN_NODE_VERSION` is bumped.
+// Lists every supported version up to the build's own one, so that `engines.node`
+// can match versions newer than 26.
 function getSupportedNodeVersions() {
-  const newest = Math.max(LATEST_KNOWN_NODE_VERSION, getSystemNodeVersion());
-  const versions: number[] = [];
-  for (let version = MIN_NODE_VERSION; version <= newest; version += 2) {
+  const versions = [...SUPPORTED_NODE_VERSIONS];
+  const newest = Math.max(FIRST_CONSECUTIVE_NODE_VERSION, getSystemNodeVersion());
+  for (let version = FIRST_CONSECUTIVE_NODE_VERSION; version <= newest; version++) {
     versions.push(version);
   }
   return versions;

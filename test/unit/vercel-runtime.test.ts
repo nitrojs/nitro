@@ -74,8 +74,8 @@ describe("vercel: resolveVercelRuntime", () => {
     ["20.0.0", "nodejs22.x"],
     ["23.0.0", "nodejs24.x"],
     ["25.0.0", "nodejs26.x"],
-    ["27.0.0", "nodejs26.x"],
-    ["29.0.0", "nodejs28.x"],
+    ["27.0.0", "nodejs27.x"],
+    ["29.0.0", "nodejs29.x"],
   ])("uses the runtime for the build Node.js version %s", async (version, expected) => {
     stubNodeVersion(version);
     expect(await resolveRuntime()).toBe(expected);
@@ -87,8 +87,9 @@ describe("vercel: resolveVercelRuntime", () => {
     expect(await resolveRuntime({ runtime: "nodejs26.x" })).toBe("nodejs26.x");
   });
 
-  it("matches engines.node against even versions newer than the known ones when building on them", async () => {
+  it("matches engines.node against versions newer than 26 when building on them", async () => {
     stubNodeVersion("28.0.0");
+    expect(await resolveRuntime({ engines: { node: "27.x" } })).toBe("nodejs27.x");
     expect(await resolveRuntime({ engines: { node: "28.x" } })).toBe("nodejs28.x");
     expect(await resolveRuntime({ engines: { node: ">=22" } })).toBe("nodejs28.x");
     expect(warn).not.toHaveBeenCalled();
