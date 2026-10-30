@@ -16,6 +16,7 @@ import { withBase, withoutBase } from "ufo";
 import { handleDevRPC } from "../../dev/_rpc.ts";
 import { writeDevBuildInfo } from "../info.ts";
 import { rescanHandlers, watchScanDirs } from "./_scan-watch.ts";
+import { isRecoverableDevErrorPage, withDevErrorRecovery } from "./_dev-error-page.ts";
 import { importVite, _resolveFromPath, type ViteImportOptions } from "./_import.ts";
 import { _isWorkerdRunner } from "./env.ts";
 
@@ -169,6 +170,7 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
   const nitroEnv = server.environments.nitro as FetchableDevEnvironment;
 
   const viteBase = server.config.base || "/";
+  const hmrEnabled = server.config.server.ws !== false && server.config.server.hmr !== false;
 
   // Restart with nitro.config changes
   const nitroConfigFile = nitro.options._c12.configFile;
@@ -309,6 +311,10 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       ) {
         await envRes.body?.cancel();
         return next();
+      }
+      if (hmrEnabled && isRecoverableDevErrorPage(nodeReq.method, envRes)) {
+        ctx._devErrorPageServed = true;
+        return await sendNodeResponse(nodeRes, withDevErrorRecovery(envRes, viteBase));
       }
       return await sendNodeResponse(nodeRes, envRes);
     } catch (error) {

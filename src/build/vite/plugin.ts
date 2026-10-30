@@ -416,6 +416,11 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
       if (env.config.consumer === "client" || ctx._isVitest) {
         return;
       }
+      // Server-only changes send nothing to the browser, so tell open dev error pages to retry.
+      if (ctx._devErrorPageServed) {
+        ctx._devErrorPageServed = false;
+        server.ws.send("nitro:server-update");
+      }
       if (ctx.nitro?.options.vite?.serverReload === false) {
         // Keep the server module graph in sync but opt out of the reload:
         // returning an empty list also suppresses Vite's own `full-reload`,
