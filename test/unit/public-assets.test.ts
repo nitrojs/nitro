@@ -1,5 +1,7 @@
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { dirname, normalize, resolve } from "pathe";
+import { dirname, join, normalize, resolve } from "pathe";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Nitro } from "nitro/types";
 
@@ -102,5 +104,40 @@ describe("virtual/public-assets node reader", () => {
     );
 
     await expect(readAsset("/index.html")).rejects.toThrow("EACCES");
+  });
+});
+
+describe("public assets manifest", () => {
+  const tempDirs: string[] = [];
+  afterEach(async () => {
+    for (const dir of tempDirs.splice(0)) {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("lists assets in the same order on every build", async () => {
+    const outDir = await mkdtemp(join(tmpdir(), "nitro-public-assets-"));
+    tempDirs.push(outDir);
+    const publicDir = join(outDir, "public");
+    // Large files first, so reads finish out of name order
+    const names = Array.from({ length: 40 }, (_, i) => `f${String(i).padStart(2, "0")}.txt`);
+    await mkdir(publicDir, { recursive: true });
+    for (const [i, name] of names.entries()) {
+      await writeFile(join(publicDir, name), "x".repeat((names.length - i) * 20_000));
+    }
+    const nitro = {
+      options: {
+        dev: false,
+        baseURL: "/",
+        serveStatic: true,
+        publicAssets: [],
+        output: { publicDir, serverDir: join(outDir, "server") },
+      },
+    } as unknown as Nitro;
+    const template = publicAssets(nitro).find((t) => t.id === "#nitro/virtual/public-assets-data")!
+      .template as () => Promise<string>;
+    const keys = (code: string) =>
+      Object.keys(JSON.parse(code.replace(/^export default |;$/g, "")));
+    expect(keys(await template())).toEqual(names.map((name) => `/${name}`));
   });
 });

@@ -100,7 +100,11 @@ export default function publicAssets(nitro: Nitro) {
           });
         }
 
-        return `export default ${JSON.stringify(assets, null, 2)};`;
+        // Files finish reading in any order: sort them so each build writes the same output
+        const sorted = Object.fromEntries(
+          Object.entries(assets).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+        );
+        return `export default ${JSON.stringify(sorted, null, 2)};`;
       },
     },
 
