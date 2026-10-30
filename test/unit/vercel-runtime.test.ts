@@ -7,24 +7,25 @@ describe("vercel: resolveNodeRuntime", () => {
     [22, "nodejs22.x"],
     [24, "nodejs24.x"],
     [26, "nodejs26.x"],
-    // Future even majors need no code change
+    // Future majors need no code change
+    [27, "nodejs27.x"],
     [28, "nodejs28.x"],
+    [29, "nodejs29.x"],
     [30, "nodejs30.x"],
-  ])("uses nodejs%s.x for an even Node.js major", (major, expected) => {
-    expect(resolveNodeRuntime(major)).toBe(expected);
-  });
-
-  it.each([
-    [21, "nodejs20.x"],
-    [23, "nodejs22.x"],
-    [25, "nodejs24.x"],
-    [27, "nodejs26.x"],
   ])(
-    "falls back to the previous even major for odd Node.js %s",
+    "uses the runtime of a supported Node.js major (%s)",
     (major, expected) => {
       expect(resolveNodeRuntime(major)).toBe(expected);
     }
   );
+
+  it.each([
+    [21, "nodejs22.x"],
+    [23, "nodejs24.x"],
+    [25, "nodejs26.x"],
+  ])("uses the next supported major for Node.js %s", (major, expected) => {
+    expect(resolveNodeRuntime(major)).toBe(expected);
+  });
 
   it.each([16, 18, 19])("uses the oldest runtime for Node.js %s", (major) => {
     expect(resolveNodeRuntime(major)).toBe("nodejs20.x");
