@@ -1,3 +1,7 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "pathe";
+import { rolldown, type OutputChunk } from "rolldown";
 import { describe, expect, it } from "vitest";
 import type { Nitro } from "nitro/types";
 import {
@@ -70,7 +74,46 @@ describe("libChunksGroup", () => {
     expect(group.test).toBe(NODE_MODULES_RE);
     expect(group.name("/node_modules/express/index.js")).toBe("_libs/express");
     expect((group as { debugName?: string }).debugName).toBe("libs");
-    expect(Object.keys(group)).toEqual(["test", "name"]);
+    expect(Object.keys(group)).toEqual(["test", "name", "entriesAware"]);
+  });
+
+  it("keeps a lazy chunk's packages out of the entry's imports", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "nitro-lib-chunks-"));
+    const files = {
+      "node_modules/small/package.json": `{ "name": "small", "type": "module", "main": "index.js" }`,
+      "node_modules/small/index.js": `export const small = "small";`,
+      "node_modules/big/package.json": `{ "name": "big", "type": "module", "main": "index.js" }`,
+      "node_modules/big/index.js": `import { small } from "small"; export const big = small + "-big";`,
+      "entry.mjs": `import { small } from "small"; export default [small, () => import("./lazy.mjs")];`,
+      "lazy.mjs": `import { big } from "big"; export default big;`,
+    };
+    for (const [path, code] of Object.entries(files)) {
+      mkdirSync(dirname(join(dir, path)), { recursive: true });
+      writeFileSync(join(dir, path), code);
+    }
+    try {
+      const bundle = await rolldown({ input: join(dir, "entry.mjs"), cwd: dir });
+      const { output } = await bundle.generate({
+        format: "esm",
+        chunkFileNames: (chunk) => getChunkName(chunk, createNitro()),
+        codeSplitting: { groups: [libChunksGroup()] },
+      });
+      const chunks = new Map(output.map((chunk) => [chunk.fileName, chunk]));
+      const loaded = new Set<string>();
+      const load = (fileName: string) => {
+        const chunk = chunks.get(fileName);
+        if (chunk?.type !== "chunk" || loaded.has(fileName)) return;
+        loaded.add(fileName);
+        chunk.imports.forEach(load);
+      };
+      load(output[0].fileName);
+      const packages = [...loaded].flatMap((fileName) =>
+        Object.keys((chunks.get(fileName) as OutputChunk).modules).map((id) => pathToPkgName(id))
+      );
+      expect(packages.filter(Boolean)).toEqual(["small"]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 
@@ -92,6 +135,19 @@ describe("getChunkName", () => {
   it.each<[string, { name: string; moduleIds: string[] }, string]>([
     ["rolldown-runtime", createChunk("rolldown-runtime", []), "_runtime.mjs"],
     ["_ chunks are preserved", createChunk("_shared", ["/src/foo.ts"]), "_shared.mjs"],
+    [
+      "entriesAware subgroup keeps the group name",
+      createChunk("_shared~index~api-hello~x1y2z3", ["/src/foo.ts"]),
+      "_shared.mjs",
+    ],
+    [
+      "entriesAware library subgroup keeps the group name",
+      createChunk("_libs/vendor~index~x1y2z3", [
+        "/node_modules/some-very-long-package-name/index.js",
+        "/node_modules/another-very-long-name/index.js",
+      ]),
+      "_libs/vendor+[...].mjs",
+    ],
     [
       "all node_modules (sorted a-z)",
       createChunk("vendor", ["/node_modules/express/index.js", "/node_modules/h3/dist/index.mjs"]),
