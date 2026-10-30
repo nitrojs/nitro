@@ -17,6 +17,7 @@ import {
   withoutTrailingSlash,
 } from "ufo";
 import { unenvCfNodeCompat } from "./unenv/preset.ts";
+import { getPublicAssetCorsHeaders } from "../_utils/cors.ts";
 import { hasHeaders, routeToSplat, skipUnsupportedRoute, sortRoutes } from "../_utils/routes.ts";
 import { extendEnv } from "../../build/env.ts";
 
@@ -131,6 +132,18 @@ export async function writeCFHeaders(nitro: Nitro, outdir: "public" | "output" |
     ].join("\n");
 
     contents.push(headers);
+  }
+
+  const headersFile = existsSync(userHeadersPath)
+    ? await readFile(userHeadersPath, "utf8")
+    : undefined;
+  for (const { base, headers } of getPublicAssetCorsHeaders(nitro, { headersFile })) {
+    contents.push(
+      [
+        joinURL(nitro.options.baseURL, base, "*"),
+        ...Object.entries(headers).map(([header, value]) => `  ${header}: ${value}`),
+      ].join("\n")
+    );
   }
 
   if (existsSync(userHeadersPath)) {
