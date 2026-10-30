@@ -314,7 +314,7 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
       }
       if (hmrEnabled && isRecoverableDevErrorPage(nodeReq.method, envRes)) {
         ctx._devErrorPageServed = true;
-        return await sendNodeResponse(nodeRes, await withDevErrorRecovery(envRes, viteBase));
+        return await sendNodeResponse(nodeRes, withDevErrorRecovery(envRes, viteBase));
       }
       return await sendNodeResponse(nodeRes, envRes);
     } catch (error) {

@@ -72,7 +72,7 @@ describe("vite: dev error page recovery", { concurrent: false }, () => {
     expect(html).toContain("broken page");
     expect(html).toContain(`import { createHotContext } from "/@vite/client"`);
     expect(html).toContain(`hot.on("nitro:server-update"`);
-    expect(html.indexOf("createHotContext")).toBeLessThan(html.indexOf("</body>"));
+    expect(html.trimEnd().endsWith("</script>")).toBe(true);
   });
 
   test("notifies the error page when a server module changes", async () => {

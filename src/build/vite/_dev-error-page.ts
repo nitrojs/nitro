@@ -4,27 +4,36 @@ import { withBase } from "ufo";
 const RETRY_DELAYS = [0, 100, 200, 400, 800, 1600, 3200, 3200];
 
 /** Reloads the error page once the server renders it again, since it loads no client modules. */
-export async function withDevErrorRecovery(res: Response, viteBase: string): Promise<Response> {
-  const viteClient = withBase("/@vite/client", viteBase);
-  const html = await res.text();
+export function withDevErrorRecovery(res: Response, viteBase: string): Response {
+  const script = new TextEncoder().encode(
+    devErrorRecoveryScript(withBase("/@vite/client", viteBase))
+  );
   const headers = new Headers(res.headers);
   headers.delete("content-length");
-  const script = _recoveryScript(viteClient);
-  const end = html.lastIndexOf("</body>");
-  const body = end === -1 ? html + script : html.slice(0, end) + script + html.slice(end);
+  // Appended once the page ends so a streamed body is forwarded as it arrives.
+  const body = (res.body || new Blob([]).stream()).pipeThrough(
+    new TransformStream<Uint8Array, Uint8Array>({
+      flush(controller) {
+        controller.enqueue(script);
+      },
+    })
+  );
   return new Response(body, { status: res.status, statusText: res.statusText, headers });
 }
 
 export function isRecoverableDevErrorPage(method: string | undefined, res: Response): boolean {
+  const contentType = res.headers.get("content-type") || "";
   return (
     method === "GET" &&
     res.status >= 500 &&
     !res.headers.has("content-encoding") &&
-    /^text\/html\b/i.test(res.headers.get("content-type") || "")
+    /^text\/html\b/i.test(contentType) &&
+    // The script is ASCII, so it can be appended to any ASCII-compatible encoding.
+    !/charset\s*=\s*"?utf-?(?:16|32)/i.test(contentType)
   );
 }
 
-function _recoveryScript(viteClient: string): string {
+export function devErrorRecoveryScript(viteClient: string): string {
   return /* js */ `<script type="module">
 import { createHotContext } from ${JSON.stringify(viteClient)};
 const hot = createHotContext("/@nitro/dev-error-page");
