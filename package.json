@@ -173,7 +173,7 @@
   "engines": {
     "node": ">=22.22.0"
   },
-  "packageManager": "pnpm@11.28.8",
+  "packageManager": "pnpm@11.28.9",
   "compatiblePackages": {
     "schemaVersion": 1,
     "vite": {
