@@ -13,7 +13,13 @@ export function libChunkName(id: string) {
 
 /** Rolldown `codeSplitting` group for library (`node_modules`) chunks. */
 export function libChunksGroup() {
-  const group = { test: NODE_MODULES_RE, name: (id: string) => libChunkName(id) };
+  const group = {
+    test: NODE_MODULES_RE,
+    name: (id: string) => libChunkName(id),
+    // A package's chunk also takes in the packages it imports. Without this, startup code that imports one of them
+    // loads the whole chunk, lazy routes' dependencies included.
+    entriesAware: true,
+  };
   // Rolldown >= 1.2.10 warns without `debugName`, older versions reject unknown (enumerable) keys
   Object.defineProperty(group, "debugName", { value: "libs" });
   return group;
@@ -34,6 +40,9 @@ export function getChunkName(chunk: { name: string; moduleIds: string[] }, nitro
   if (chunk.name === "rolldown-runtime") {
     return "_runtime.mjs";
   }
+
+  // `entriesAware` names split chunks `<group>~<entries>~<hash>`. Keep the group name, Rolldown dedupes file names
+  chunk = { ...chunk, name: chunk.name.split("~")[0]! };
 
   // Library chunks
   if (chunk.moduleIds.every((id) => NODE_MODULES_RE.test(id))) {
