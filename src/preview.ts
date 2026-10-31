@@ -176,19 +176,6 @@ async function runPreviewCommand(opts: {
   );
 
   let exited = false;
-  const exitPromise = new Promise<void>((resolveExit) => {
-    const settle = () => {
-      exited = true;
-      resolveExit();
-    };
-    child.once("exit", (code) => {
-      settle();
-      if (code && code !== 0) {
-        consola.error(`[nitro] Preview server exited with code ${code}`);
-      }
-    });
-    child.once("error", settle);
-  });
 
   const isRunning = () => !exited && child.exitCode === null && child.signalCode === null;
 
@@ -206,13 +193,54 @@ async function runPreviewCommand(opts: {
     process.off("SIGHUP", onSighup);
   };
 
+  const exitPromise = new Promise<void>((resolveExit) => {
+    const settle = () => {
+      exited = true;
+      resolveExit();
+    };
+    child.once("exit", (code) => {
+      settle();
+      if (code && code !== 0) {
+        consola.error(`[nitro] Preview server exited with code ${code}`);
+      }
+    });
+    child.once("error", (error) => {
+      if (child.pid === undefined) {
+        settle();
+        removeSignalListeners();
+      }
+      consola.error(
+        `[nitro] Preview server error: ${error instanceof Error ? error.message : String(error)}`
+      );
+    });
+  });
+
+  const waitForExit = async (timeout = 5000) => {
+    let timer: NodeJS.Timeout | undefined;
+    await Promise.race([
+      exitPromise,
+      new Promise<void>((resolveTimeout) => {
+        timer = setTimeout(resolveTimeout, timeout);
+      }),
+    ]);
+    clearTimeout(timer);
+  };
+
   child.once("exit", removeSignalListeners);
-  child.once("error", removeSignalListeners);
 
   process.on("SIGINT", onSigint);
   process.on("SIGHUP", onSighup);
 
-  await waitForPort(randomPort, { retries: 20, delay: 500, host: "localhost" });
+  try {
+    await waitForPort(randomPort, { retries: 20, delay: 500, host: "localhost" });
+  } catch (error) {
+    if (isRunning()) {
+      child.kill("SIGTERM");
+    }
+    removeSignalListeners();
+    await waitForExit();
+    throw error;
+  }
 
   let closePromise: Promise<void> | undefined;
 
@@ -221,14 +249,7 @@ async function runPreviewCommand(opts: {
       return;
     }
     child.kill("SIGTERM");
-    let timer: NodeJS.Timeout | undefined;
-    await Promise.race([
-      exitPromise,
-      new Promise<void>((resolveTimeout) => {
-        timer = setTimeout(resolveTimeout, 5000);
-      }),
-    ]);
-    clearTimeout(timer);
+    await waitForExit();
     if (!isRunning()) {
       return;
     }
@@ -254,9 +275,9 @@ async function resolveWranglerBin(rootDir: string): Promise<string | undefined> 
   if (!pkgPath) {
     return;
   }
-  const pkg = (await readFile(pkgPath, "utf8").then(JSON.parse, () => undefined)) as
-    | { bin?: string | Record<string, string> }
-    | undefined;
+  const pkg = (await readFile(pkgPath, "utf8")
+    .then(JSON.parse)
+    .catch(() => undefined)) as { bin?: string | Record<string, string> } | undefined;
   const bin =
     typeof pkg?.bin === "string"
       ? pkg.bin

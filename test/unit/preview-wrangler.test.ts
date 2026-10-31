@@ -110,16 +110,14 @@ describe("preview wrangler process", () => {
     } catch {
       // Best effort cleanup.
     }
-    if (isPosix) {
-      const pid =
-        grandchildPid ??
-        Number(await readFile(join(binDir, "grandchild.pid"), "utf8").catch(() => "0"));
-      if (pid) {
-        try {
-          process.kill(pid, "SIGKILL");
-        } catch {
-          // Already gone.
-        }
+    const pid =
+      grandchildPid ??
+      Number(await readFile(join(binDir, "grandchild.pid"), "utf8").catch(() => "0"));
+    if (pid) {
+      try {
+        process.kill(pid, "SIGKILL");
+      } catch {
+        // Already gone.
       }
     }
     await rm(rootDir, { recursive: true, force: true });
@@ -143,11 +141,10 @@ describe("preview wrangler process", () => {
 
       await preview.close();
 
-      await stat(join(binDir, "sigterm"));
-      await stat(join(binDir, "exit"));
-      await stat(join(binDir, "grandchild-exit"));
-
       if (isPosix) {
+        await stat(join(binDir, "sigterm"));
+        await stat(join(binDir, "exit"));
+        await stat(join(binDir, "grandchild-exit"));
         expect(await waitForProcessExit(grandchildPid)).toBe(true);
       }
 

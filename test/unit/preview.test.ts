@@ -21,6 +21,7 @@ vi.mock("get-port-please", () => ({
 
 type FakeChild = EventEmitter & {
   killed: boolean;
+  pid?: number;
   exitCode: number | null;
   signalCode: NodeJS.Signals | null;
   kill: ReturnType<typeof vi.fn>;
@@ -241,12 +242,37 @@ describe("preview", () => {
     expect(child.kill).not.toHaveBeenCalled();
   });
 
-  it("settles close when the child fails to spawn", async () => {
+  it("settles close and logs the error when the child fails to spawn", async () => {
     await writeWranglerPackage({ bin: "./bin/wrangler.js" });
+    const error = vi.spyOn(consola, "error").mockImplementation(() => {});
+    const sigint = process.listenerCount("SIGINT");
+    const sighup = process.listenerCount("SIGHUP");
     const { preview, child } = await startCloudflarePreview();
     child.emit("error", new Error("spawn ENOENT"));
     await expect(preview.close()).resolves.toBeUndefined();
+    expect(error).toHaveBeenCalledWith(expect.stringContaining("spawn ENOENT"));
     expect(child.kill).not.toHaveBeenCalled();
+    expect(process.listenerCount("SIGINT")).toBe(sigint);
+    expect(process.listenerCount("SIGHUP")).toBe(sighup);
+  });
+
+  it("does not settle close when killing the child fails", async () => {
+    await writeWranglerPackage({ bin: "./bin/wrangler.js" });
+    const error = vi.spyOn(consola, "error").mockImplementation(() => {});
+    const { preview, child } = await startCloudflarePreview();
+    child.pid = 12_345;
+    child.emit("error", new Error("kill EPERM"));
+    expect(error).toHaveBeenCalledWith(expect.stringContaining("kill EPERM"));
+    let closed = false;
+    const closing = preview.close().then(() => {
+      closed = true;
+    });
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(child.kill).toHaveBeenCalledWith("SIGTERM");
+    expect(closed).toBe(false);
+    child.emitExit(0);
+    await closing;
+    expect(closed).toBe(true);
   });
 
   it("escalates to SIGKILL after five seconds", async () => {
@@ -265,6 +291,32 @@ describe("preview", () => {
     child.emitExit(0, "SIGKILL");
     await closing;
     vi.useRealTimers();
+  });
+
+  it("cleans up the child when startup times out", async () => {
+    await writeBuild({ preset: "cloudflare-module", commands: { preview: "npx wrangler dev" } });
+    const child = createFakeChild();
+    child.pid = 12_345;
+    spawnMock.mockReturnValue(child);
+    let rejectPort: ((error: Error) => void) | undefined;
+    waitForPortMock.mockImplementationOnce(
+      () =>
+        new Promise<void>((_resolve, reject) => {
+          rejectPort = reject;
+        })
+    );
+    const sigint = process.listenerCount("SIGINT");
+    const sighup = process.listenerCount("SIGHUP");
+    const previewPromise = startPreview({ rootDir }).catch((error) => error);
+    await vi.waitFor(() => expect(waitForPortMock).toHaveBeenCalled(), { timeout: 5000 });
+    rejectPort?.(new Error("Timed out waiting for port"));
+    await vi.waitFor(() => expect(child.kill).toHaveBeenCalledWith("SIGTERM"), { timeout: 5000 });
+    child.emitExit(0, "SIGTERM");
+    const result = await previewPromise;
+    expect(result).toBeInstanceOf(Error);
+    expect((result as Error).message).toContain("Timed out waiting for port");
+    expect(process.listenerCount("SIGINT")).toBe(sigint);
+    expect(process.listenerCount("SIGHUP")).toBe(sighup);
   });
 
   it("logs a non-zero exit code", async () => {
