@@ -2,14 +2,14 @@ import type { Nitro, NitroImportMeta } from "nitro/types";
 import { pkgDir } from "#nitro/meta";
 import { pathRegExp, toPathRegExp } from "../utils/regex.ts";
 import { BUILD_EXTENSIONS } from "./_extensions.ts";
-import { resolveBuildEnv } from "./env.ts";
+import { resolveBuildEnv, type BuildEnv } from "./env.ts";
 import { isUnenvId } from "./plugins/unenv.ts";
 
 export type BaseBuildConfig = Awaited<ReturnType<typeof baseBuildConfig>>;
 
 const ROOT_ALIAS = "@";
 
-export async function baseBuildConfig(nitro: Nitro) {
+export async function baseBuildConfig(nitro: Nitro, resolvedEnv?: BuildEnv) {
   const extensions: string[] = [...BUILD_EXTENSIONS];
 
   const isNodeless = nitro.options.node === false;
@@ -38,7 +38,7 @@ export async function baseBuildConfig(nitro: Nitro) {
     ...nitro.options.replace,
   };
 
-  const env = await resolveBuildEnv(nitro);
+  const env = resolvedEnv ?? (await resolveBuildEnv(nitro));
 
   // Aliases to `unenv` polyfills are resolved on demand by the `nitro:unenv` plugin
   const aliases = resolveAliases(

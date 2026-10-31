@@ -16,6 +16,7 @@ import runtimeConfig from "./runtime-config.ts";
 import serverAssets from "./server-assets.ts";
 import serverEntry from "./server-entry.ts";
 import tasks from "./tasks.ts";
+import taskMeta from "./task-meta.ts";
 import tracing from "./tracing.ts";
 
 type VirtualTemplate = {
@@ -41,6 +42,7 @@ export function virtualTemplates(nitro: Nitro, _polyfills: string[]): VirtualTem
     serverAssets,
     serverEntry,
     tasks,
+    taskMeta,
     tracing,
   ].flatMap((t) => t(nitro, _polyfills));
 

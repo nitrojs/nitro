@@ -58,6 +58,7 @@ export async function prerender(nitro: Nitro) {
   nitro._prerenderedRoutes = [];
   const prerendererConfig = {
     ...nitro.options._config,
+    experimental: { ...nitro.options.experimental, taskCLI: false },
     static: false,
     compressPublicAssets: false,
     rootDir: nitro.options.rootDir,

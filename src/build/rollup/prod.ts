@@ -7,6 +7,7 @@ import { formatRollupError } from "./error.ts";
 import { compressPublicAssets } from "../../utils/compress.ts";
 import type { RollupOptions, RollupOutput } from "rollup";
 import { importRollup } from "./_import.ts";
+import { buildTaskCLI } from "../task-cli.ts";
 
 export async function buildProduction(nitro: Nitro, rollupConfig: RollupConfig) {
   const rollup = await importRollup(nitro);
@@ -32,7 +33,12 @@ export async function buildProduction(nitro: Nitro, rollupConfig: RollupConfig) 
     output = await build.write(rollupConfig.output!);
   }
 
-  const buildInfo = await writeBuildInfo(nitro, output);
+  const taskEntry = await buildTaskCLI(nitro, {
+    builder: "rollup",
+    bundler: rollup,
+    config: rollupConfig,
+  });
+  const buildInfo = await writeBuildInfo(nitro, output, { taskEntry });
 
   if (!nitro.options.static) {
     if (nitro.options.logging.buildSuccess) {
