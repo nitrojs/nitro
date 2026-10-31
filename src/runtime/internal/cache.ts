@@ -118,7 +118,6 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
         // Update mtime, integrity + validate and set the value in cache only the first time the request is made.
         entry.mtime = Date.now();
         entry.integrity = integrity;
-        delete pending[key];
         if (validate(entry) !== false) {
           let setOpts: TransactionOptions | undefined;
           if (opts.maxAge && !opts.swr /* TODO: respect staleMaxAge */) {
@@ -126,13 +125,19 @@ export function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
           }
           const promise = useStorage()
             .setItem(cacheKey, entry, setOpts)
+            .then(() => {
+              delete pending[key];
+            })
             .catch((error) => {
+              delete pending[key];
               console.error(`[cache] Cache write error.`, error);
               useNitroApp().captureError(error, { event, tags: ["cache"] });
             });
           if (event?.waitUntil) {
             event.waitUntil(promise);
           }
+        } else {
+          delete pending[key];
         }
       }
     };
