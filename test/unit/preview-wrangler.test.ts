@@ -75,6 +75,7 @@ describe("preview wrangler process", () => {
   let binDir: string;
   let preview: PreviewInstance | undefined;
   let grandchildPid: number | undefined;
+  let grandchildExited = false;
 
   beforeEach(async () => {
     rootDir = await mkdtemp(join(tmpdir(), "nitro-preview-wrangler-"));
@@ -113,7 +114,7 @@ describe("preview wrangler process", () => {
     const pid =
       grandchildPid ??
       Number(await readFile(join(binDir, "grandchild.pid"), "utf8").catch(() => "0"));
-    if (pid) {
+    if (pid && !grandchildExited) {
       try {
         process.kill(pid, "SIGKILL");
       } catch {
@@ -146,6 +147,7 @@ describe("preview wrangler process", () => {
         await stat(join(binDir, "exit"));
         await stat(join(binDir, "grandchild-exit"));
         expect(await waitForProcessExit(grandchildPid)).toBe(true);
+        grandchildExited = true;
       }
 
       await preview.close();

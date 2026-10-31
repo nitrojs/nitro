@@ -204,7 +204,7 @@ async function runPreviewCommand(opts: {
         consola.error(`[nitro] Preview server exited with code ${code}`);
       }
     });
-    child.once("error", (error) => {
+    child.on("error", (error) => {
       if (child.pid === undefined) {
         settle();
         removeSignalListeners();
