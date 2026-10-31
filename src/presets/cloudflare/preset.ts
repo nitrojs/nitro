@@ -3,6 +3,7 @@ import { writeFile } from "nitropack/kit";
 import type { Nitro } from "nitropack/types";
 import { resolve } from "pathe";
 import { unenvCfExternals } from "../_unenv/preset-workerd";
+import { cloudflareOutputRewrites } from "./output-plugins";
 import {
   enableNodeCompat,
   writeWranglerConfig,
@@ -45,6 +46,7 @@ const cloudflarePages = defineNitroPreset(
         format: "esm",
         inlineDynamicImports: false,
       },
+      plugins: [cloudflareOutputRewrites()],
     },
     hooks: {
       "build:before": async (nitro) => {
@@ -156,6 +158,7 @@ const cloudflareModule = defineNitroPreset(
         exports: "named",
         inlineDynamicImports: false,
       },
+      plugins: [cloudflareOutputRewrites()],
     },
     wasm: {
       lazy: false,
