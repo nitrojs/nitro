@@ -226,6 +226,18 @@ async function runPreviewCommand(opts: {
     clearTimeout(timer);
   };
 
+  const terminate = async () => {
+    if (!isRunning()) return;
+    child.kill("SIGTERM");
+    await waitForExit();
+    if (!isRunning()) return;
+    child.kill("SIGKILL");
+    await waitForExit();
+    if (isRunning()) {
+      consola.error("[nitro] Preview server did not exit after SIGKILL.");
+    }
+  };
+
   child.once("exit", removeSignalListeners);
 
   process.on("SIGINT", onSigint);
@@ -234,27 +246,15 @@ async function runPreviewCommand(opts: {
   try {
     await waitForPort(randomPort, { retries: 20, delay: 500, host: "localhost" });
   } catch (error) {
-    if (isRunning()) {
-      child.kill("SIGTERM");
-    }
     removeSignalListeners();
-    await waitForExit();
+    await terminate();
     throw error;
   }
 
   let closePromise: Promise<void> | undefined;
 
   const stop = async () => {
-    if (!isRunning()) {
-      return;
-    }
-    child.kill("SIGTERM");
-    await waitForExit();
-    if (!isRunning()) {
-      return;
-    }
-    child.kill("SIGKILL");
-    await exitPromise;
+    await terminate();
   };
 
   return {

@@ -293,6 +293,25 @@ describe("preview", () => {
     vi.useRealTimers();
   });
 
+  it("resolves close with a warning if the child ignores SIGKILL", async () => {
+    await writeWranglerPackage({ bin: "./bin/wrangler.js" });
+    const error = vi.spyOn(consola, "error").mockImplementation(() => {});
+    const { preview, child } = await startCloudflarePreview();
+    vi.useFakeTimers();
+    let closed = false;
+    const closing = preview.close().then(() => {
+      closed = true;
+    });
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(child.kill).toHaveBeenCalledWith("SIGTERM");
+    expect(child.kill).toHaveBeenCalledWith("SIGKILL");
+    await vi.advanceTimersByTimeAsync(5000);
+    await closing;
+    expect(closed).toBe(true);
+    expect(error).toHaveBeenCalledWith(expect.stringContaining("did not exit after SIGKILL"));
+    vi.useRealTimers();
+  });
+
   it("cleans up the child when startup times out", async () => {
     await writeBuild({ preset: "cloudflare-module", commands: { preview: "npx wrangler dev" } });
     const child = createFakeChild();
