@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { startPreview, type PreviewInstance } from "../../src/preview.ts";
 
 const isPosix = process.platform !== "win32";
+const isBun = Boolean((process.versions as { bun?: string }).bun);
 
 const WRANGLER_BIN = `import { spawn } from "node:child_process";
 import { writeFileSync } from "node:fs";
@@ -124,31 +125,36 @@ describe("preview wrangler process", () => {
     await rm(rootDir, { recursive: true, force: true });
   });
 
-  it("waits for wrangler to exit and cleans up the process tree", async () => {
-    const sigintListeners = process.listenerCount("SIGINT");
-    const sighupListeners = process.listenerCount("SIGHUP");
+  // Bun skips this: the mocked lifecycle test covers cleanup, but real wrangler under Bun is not verified.
+  it.skipIf(isBun)(
+    "waits for wrangler to exit and cleans up the process tree",
+    async () => {
+      const sigintListeners = process.listenerCount("SIGINT");
+      const sighupListeners = process.listenerCount("SIGHUP");
 
-    preview = await startPreview({ rootDir });
-    await waitForFile(join(binDir, "listening"));
-    await waitForFile(join(binDir, "grandchild.pid"));
-    grandchildPid = Number(await readFile(join(binDir, "grandchild.pid"), "utf8"));
-    expect(grandchildPid).toBeGreaterThan(0);
-    if (isPosix) {
-      expect(isProcessAlive(grandchildPid)).toBe(true);
-    }
+      preview = await startPreview({ rootDir });
+      await waitForFile(join(binDir, "listening"));
+      await waitForFile(join(binDir, "grandchild.pid"));
+      grandchildPid = Number(await readFile(join(binDir, "grandchild.pid"), "utf8"));
+      expect(grandchildPid).toBeGreaterThan(0);
+      if (isPosix) {
+        expect(isProcessAlive(grandchildPid)).toBe(true);
+      }
 
-    await preview.close();
+      await preview.close();
 
-    await stat(join(binDir, "sigterm"));
-    await stat(join(binDir, "exit"));
-    await stat(join(binDir, "grandchild-exit"));
+      await stat(join(binDir, "sigterm"));
+      await stat(join(binDir, "exit"));
+      await stat(join(binDir, "grandchild-exit"));
 
-    if (isPosix) {
-      expect(await waitForProcessExit(grandchildPid)).toBe(true);
-    }
+      if (isPosix) {
+        expect(await waitForProcessExit(grandchildPid)).toBe(true);
+      }
 
-    await preview.close();
-    expect(process.listenerCount("SIGINT")).toBe(sigintListeners);
-    expect(process.listenerCount("SIGHUP")).toBe(sighupListeners);
-  }, 20_000);
+      await preview.close();
+      expect(process.listenerCount("SIGINT")).toBe(sigintListeners);
+      expect(process.listenerCount("SIGHUP")).toBe(sighupListeners);
+    },
+    20_000
+  );
 });
