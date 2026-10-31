@@ -23,10 +23,14 @@ export function resolveNitroPath(
 
   // TODO: Skip if no template used
   path = _compilePathTemplate(path)(nitroOptions);
-  for (const base in nitroOptions.alias) {
-    if (path.startsWith(base)) {
-      path = nitroOptions.alias[base] + path.slice(base.length);
+  let matchedAlias: string | undefined;
+  for (const alias in nitroOptions.alias) {
+    if (alias && path.startsWith(alias) && (!matchedAlias || alias.length > matchedAlias.length)) {
+      matchedAlias = alias;
     }
+  }
+  if (matchedAlias) {
+    path = nitroOptions.alias[matchedAlias] + path.slice(matchedAlias.length);
   }
 
   // eslint-disable-next-line no-control-regex
