@@ -1,9 +1,10 @@
 import type { ServerHandler, ServerRequest } from "srvx";
 import type { LoadOptions } from "srvx/loader";
 import { spawn } from "node:child_process";
-import { stat } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import consola from "consola";
-import { basename, join, resolve } from "pathe";
+import { resolveModulePath } from "exsolve";
+import { basename, dirname, join, resolve } from "pathe";
 import { proxyFetch, proxyUpgrade, type ProxyUpgradeOptions } from "httpxy";
 import { prettyPath } from "./utils/fs.ts";
 import { getBuildInfo } from "./build/info.ts";
@@ -140,41 +141,100 @@ async function runPreviewCommand(opts: {
 }): Promise<PreviewInstance> {
   const [arg0, ...args] = opts.command.split(" ");
 
+  let command = arg0;
+  let commandArgs = args;
+  if (arg0 === "npx" && args[0] === "wrangler") {
+    const wranglerBin = await resolveWranglerBin(opts.rootDir);
+    if (wranglerBin) {
+      command = process.execPath;
+      commandArgs = [wranglerBin, ...args.slice(1)];
+    } else {
+      consola.warn(
+        "Could not resolve the `wrangler` package for the preview command. Falling back to `npx wrangler`, which may leave orphaned processes after shutdown. Install `wrangler` in the project root (e.g. `pnpm add -D wrangler`) to avoid this."
+      );
+    }
+  }
+
   consola.info(`Spawning preview server...`);
   consola.info(opts.command);
   console.log("");
 
   const { getRandomPort, waitForPort } = await import("get-port-please");
   const randomPort = await getRandomPort();
-  const child = spawn(arg0, [...args, "--port", String(randomPort), "--host", "localhost"], {
-    stdio: "inherit",
-    cwd: opts.rootDir,
-    env: {
-      ...process.env,
-      ...Object.fromEntries(opts.env ?? []),
-      PORT: String(randomPort),
-    },
+  const child = spawn(
+    command,
+    [...commandArgs, "--port", String(randomPort), "--host", "localhost"],
+    {
+      stdio: "inherit",
+      cwd: opts.rootDir,
+      env: {
+        ...process.env,
+        ...Object.fromEntries(opts.env ?? []),
+        PORT: String(randomPort),
+      },
+    }
+  );
+
+  let exited = false;
+  const exitPromise = new Promise<void>((resolveExit) => {
+    const settle = () => {
+      exited = true;
+      resolveExit();
+    };
+    child.once("exit", (code) => {
+      settle();
+      if (code && code !== 0) {
+        consola.error(`[nitro] Preview server exited with code ${code}`);
+      }
+    });
+    child.once("error", settle);
   });
 
-  const killChild = (signal: NodeJS.Signals) => {
-    if (child && !child.killed) {
+  const isRunning = () => !exited && child.exitCode === null && child.signalCode === null;
+
+  const forwardSignal = (signal: NodeJS.Signals) => {
+    if (isRunning()) {
       child.kill(signal);
     }
   };
 
-  for (const sig of ["SIGINT", "SIGHUP"] as const) {
-    process.once(sig, () => {
-      killChild(sig);
-    });
-  }
+  const onSigint = () => forwardSignal("SIGINT");
+  const onSighup = () => forwardSignal("SIGHUP");
 
-  child.once("exit", (code) => {
-    if (code && code !== 0) {
-      consola.error(`[nitro] Preview server exited with code ${code}`);
-    }
-  });
+  const removeSignalListeners = () => {
+    process.off("SIGINT", onSigint);
+    process.off("SIGHUP", onSighup);
+  };
+
+  child.once("exit", removeSignalListeners);
+  child.once("error", removeSignalListeners);
+
+  process.on("SIGINT", onSigint);
+  process.on("SIGHUP", onSighup);
 
   await waitForPort(randomPort, { retries: 20, delay: 500, host: "localhost" });
+
+  let closePromise: Promise<void> | undefined;
+
+  const stop = async () => {
+    if (!isRunning()) {
+      return;
+    }
+    child.kill("SIGTERM");
+    let timer: NodeJS.Timeout | undefined;
+    await Promise.race([
+      exitPromise,
+      new Promise<void>((resolveTimeout) => {
+        timer = setTimeout(resolveTimeout, 5000);
+      }),
+    ]);
+    clearTimeout(timer);
+    if (!isRunning()) {
+      return;
+    }
+    child.kill("SIGKILL");
+    await exitPromise;
+  };
 
   return {
     fetch(req: ServerRequest) {
@@ -183,10 +243,27 @@ async function runPreviewCommand(opts: {
     async upgrade(req, socket, head, opts) {
       await proxyUpgrade({ port: randomPort, host: "localhost" }, req, socket, head, opts);
     },
-    async close() {
-      killChild("SIGTERM");
+    close() {
+      return (closePromise ??= stop().finally(removeSignalListeners));
     },
   };
+}
+
+async function resolveWranglerBin(rootDir: string): Promise<string | undefined> {
+  const pkgPath = resolveModulePath("wrangler/package.json", { from: rootDir, try: true });
+  if (!pkgPath) {
+    return;
+  }
+  const pkg = (await readFile(pkgPath, "utf8").then(JSON.parse, () => undefined)) as
+    | { bin?: string | Record<string, string> }
+    | undefined;
+  const bin =
+    typeof pkg?.bin === "string"
+      ? pkg.bin
+      : pkg?.bin && typeof pkg.bin === "object"
+        ? pkg.bin.wrangler
+        : undefined;
+  return typeof bin === "string" ? resolve(dirname(pkgPath), bin) : undefined;
 }
 
 /** Warn when the Nitro config changed after the build (e.g. switched to `builder: false`). */
