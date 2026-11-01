@@ -24,6 +24,7 @@ import { serve } from "srvx";
 import { debounce } from "perfect-debounce";
 import { isTest, isCI } from "std-env";
 import { NitroDevApp } from "./app.ts";
+import { withDevErrorRecovery } from "./_error-recovery.ts";
 import { createWatcher } from "../utils/watch.ts";
 import { resolveRunnerDeps } from "./runner-deps.ts";
 import { shutdownRunner } from "./shutdown.ts";
@@ -90,6 +91,14 @@ class DevServer extends NitroDevApp implements NitroDevServer, RunnerRPCHooks {
       }
     }
 
+    // Open dev error pages wait for the next reload
+    const appFetch = this.fetch;
+    this.fetch = async (req) =>
+      withDevErrorRecovery(req, await appFetch(req), {
+        signal: this.reloadSignal,
+        base: nitro.options.baseURL,
+      });
+
     // Attach to Nitro.fetch
     nitro.fetch = this.fetch.bind(this);
 
@@ -124,7 +133,8 @@ class DevServer extends NitroDevApp implements NitroDevServer, RunnerRPCHooks {
       this.#workerError = cause;
       if (this.#workerRetries++ < 3) {
         this.nitro.logger.info("Restarting dev worker...", cause ? `Cause: ${cause}` : "");
-        this.reload();
+        // Open error pages are not reloaded, since the worker may crash again on each request
+        this.#queueReload();
       } else {
         this.nitro.logger.error(
           "Dev worker failed after 3 retries.",
@@ -168,6 +178,7 @@ class DevServer extends NitroDevApp implements NitroDevServer, RunnerRPCHooks {
     nitro.hooks.hook("dev:error", (cause: unknown) => {
       this.#buildError = cause;
       this.#building = false;
+      this.reloadSignal.bump();
     });
 
     const devWatch = nitro.options.devServer.watch;
@@ -226,6 +237,7 @@ class DevServer extends NitroDevApp implements NitroDevServer, RunnerRPCHooks {
 
   async close() {
     this.#closing = true;
+    this.reloadSignal.close();
     await this.#reloadPromise?.catch(() => {});
     // With drain, the manager shuts the active and draining workers down gracefully
     const drain = this.nitro.options.devServer.drain;
@@ -250,6 +262,12 @@ class DevServer extends NitroDevApp implements NitroDevServer, RunnerRPCHooks {
   }
 
   reload() {
+    this.#queueReload()
+      ?.catch(() => {})
+      .finally(() => this.reloadSignal.bump());
+  }
+
+  #queueReload(): Promise<void> | undefined {
     if (this.#closing) {
       return;
     }
@@ -261,6 +279,7 @@ class DevServer extends NitroDevApp implements NitroDevServer, RunnerRPCHooks {
         this.#reloadPromise = undefined;
       }
     });
+    return nextReload;
   }
 
   async #reload() {

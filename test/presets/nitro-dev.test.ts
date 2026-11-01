@@ -102,6 +102,36 @@ describeIf(supported, "nitro:preset:nitro-dev", async () => {
         });
       });
 
+      describe("dev error page recovery", () => {
+        const page = (dest: string) =>
+          ctx.fetch("/500", { headers: { accept: "text/html", "sec-fetch-dest": dest } });
+        const reloadState = async (query = "id=none") =>
+          (await ctx.fetch(`/_nitro/dev/reload?${query}`)).json() as Promise<{
+            id: string;
+            v: number;
+          }>;
+
+        it("injects the reload script into HTML error page loads only", async () => {
+          const res = await page("document");
+          expect(res.status).toBe(500);
+          const html = await res.text();
+          const { id, v } = await reloadState();
+          expect(html).toContain(JSON.stringify({ url: "/_nitro/dev/reload", id, v }));
+          expect(html.trimEnd().endsWith("</script>")).toBe(true);
+
+          const fetched = await page("empty");
+          expect(await fetched.text()).not.toContain("/_nitro/dev/reload");
+        });
+
+        it("answers waiting pages once the worker reloads", async () => {
+          const { id, v } = await reloadState();
+          const waiting = reloadState(`id=${id}&v=${v}`);
+          await ctx.nitro!.hooks.callHook("dev:reload");
+          expect(await waiting).toEqual({ id, v: v + 1 });
+          expect((await ctx.fetch("/api/hello")).status).toBe(200);
+        });
+      });
+
       describe("openAPI", () => {
         let spec: OpenAPI3;
         it("/_openapi.json", async () => {
