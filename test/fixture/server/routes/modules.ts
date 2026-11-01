@@ -12,6 +12,8 @@ import extraUtils from "@fixture/nitro-utils/extra";
 import cjsRequirer from "nitro-cjs-requirer";
 // @ts-ignore
 import bundledDep from "nitro-bundled-dep";
+// @ts-ignore
+import cjsNestedRequirer from "nitro-cjs-nested-requirer";
 
 export default () => {
   return {
@@ -22,5 +24,6 @@ export default () => {
     extraUtils,
     cjsRequirer,
     bundledDep, // expected to be 3.0.0
+    cjsNestedRequirer, // expected to be 4.0.0
   };
 };

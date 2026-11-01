@@ -266,10 +266,13 @@ export function externals(opts: ExternalsOptions): Plugin {
         if (!traced) {
           continue;
         }
+        const fileName = isRequireCall(code, match.index)
+          ? requireHelperFileName(code, chunk.fileName)
+          : chunk.fileName;
         s.update(
           match.index,
           match.index + match[0].length,
-          renderTracedId(traced, { layout: tracedLayout, outDir, fileName: chunk.fileName })
+          renderTracedId(traced, { layout: tracedLayout, outDir, fileName })
         );
       }
       if (!s.hasChanged()) {
@@ -351,6 +354,23 @@ export function resolveTraceDeps(
 const TRACED_ID_PREFIX = "nitro:traced/";
 
 const TRACED_ID_RE = /(?<=["'`])nitro:traced\/\d+\/[^"'`]+(?=["'`])/g;
+
+// `require()` in bundled CommonJS goes through Rolldown's shared `__require`
+// helper (`createRequire(import.meta.url)`), so relative ids resolve from the
+// chunk that defines it (e.g. `_runtime.mjs`), not from the calling chunk.
+const REQUIRE_CALL_RE = /\b__require\(\s*["'`]$/;
+
+const REQUIRE_HELPER_IMPORT_RE =
+  /\bimport\s*\{[^}]*\b__require\b[^}]*\}\s*from\s*["'](?<from>[^"']+)["']/;
+
+function isRequireCall(code: string, index: number): boolean {
+  return REQUIRE_CALL_RE.test(code.slice(Math.max(0, index - 32), index));
+}
+
+function requireHelperFileName(code: string, fileName: string): string {
+  const from = REQUIRE_HELPER_IMPORT_RE.exec(code)?.groups?.from;
+  return from ? join(dirname(fileName), from) : fileName;
+}
 
 // Bare specifier when the resolved version is the one reachable as
 // `node_modules/<name>`, otherwise a relative path to its traced copy.
