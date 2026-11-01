@@ -1,4 +1,4 @@
-import type { Plugin } from "rollup";
+import type { Plugin, RenderedChunk } from "rollup";
 import type { PackageJson } from "pkg-types";
 import type { ExternalsTraceOptions, TracedLayout } from "nf3";
 
@@ -255,7 +255,7 @@ export function externals(opts: ExternalsOptions): Plugin {
         );
       },
     },
-    renderChunk(code, chunk, outputOpts) {
+    renderChunk(code, chunk, outputOpts, meta) {
       if (tracedIds.size === 0 || !code.includes(TRACED_ID_PREFIX)) {
         return;
       }
@@ -268,7 +268,7 @@ export function externals(opts: ExternalsOptions): Plugin {
           continue;
         }
         const fileName = isRequireCall(code, match.index)
-          ? (helperFileName ??= requireHelperFileName(code, chunk.fileName))
+          ? (helperFileName ??= requireHelperFileName(chunk, meta?.chunks))
           : chunk.fileName;
         s.update(
           match.index,
@@ -358,21 +358,29 @@ const TRACED_ID_RE = /(?<=["'`])nitro:traced\/\d+\/[^"'`]+(?=["'`])/g;
 
 // `require()` in bundled CommonJS goes through Rolldown's shared `__require`
 // helper (`createRequire(import.meta.url)`), so relative ids resolve from the
-// chunk that defines it (e.g. `_runtime.mjs`), not from the calling chunk.
+// chunk that holds the Rolldown runtime (`_runtime.mjs`, a lib chunk, or the
+// calling chunk itself), not from the calling chunk.
 // The helper is renamed (`__require$1`) when another module in the chunk
 // declares its own `__require` (e.g. tsup/esbuild output).
 const REQUIRE_CALL_RE = /\b__require(?:\$\d+)?\(\s*["'`]$/;
 
-const REQUIRE_HELPER_IMPORT_RE =
-  /\bimport\s*\{[^}]*\b__require\b[^}]*\}\s*from\s*["'](?<from>[^"']+)["']/;
+const ROLLDOWN_RUNTIME_ID = "\0rolldown/runtime.js";
 
 function isRequireCall(code: string, index: number): boolean {
   return REQUIRE_CALL_RE.test(code.slice(Math.max(0, index - 32), index));
 }
 
-function requireHelperFileName(code: string, fileName: string): string {
-  const from = REQUIRE_HELPER_IMPORT_RE.exec(code)?.groups?.from;
-  return from ? join(dirname(fileName), from) : fileName;
+function requireHelperFileName(
+  chunk: RenderedChunk,
+  chunks: Record<string, RenderedChunk> | undefined
+): string {
+  if (chunk.moduleIds.includes(ROLLDOWN_RUNTIME_ID)) {
+    return chunk.fileName;
+  }
+  const runtimeChunk = Object.values(chunks || {}).find((c) =>
+    c.moduleIds.includes(ROLLDOWN_RUNTIME_ID)
+  );
+  return runtimeChunk?.fileName ?? chunk.fileName;
 }
 
 // Bare specifier when the resolved version is the one reachable as
