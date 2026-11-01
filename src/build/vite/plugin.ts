@@ -427,9 +427,8 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
         return [];
       }
       // Server-only changes send nothing to the browser, so tell open dev error pages to retry.
-      if (ctx._devErrorPageServed && modules.length > 0) {
-        ctx._devErrorPageServed = false;
-        server.ws.send("nitro:server-update");
+      if (modules.length > 0) {
+        ctx.devApp?.reloadSignal.bump();
       }
       const clientEnvs = Object.values(server.environments).filter(
         (env) => env.config.consumer === "client"
