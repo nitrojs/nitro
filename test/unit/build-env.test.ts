@@ -9,6 +9,13 @@ import { resolveBuildEnv } from "../../src/build/env.ts";
 const warn = vi.hoisted(() => vi.fn());
 vi.mock("consola", () => ({ default: { warn } }));
 
+const resolveAlias = vi.hoisted(() => vi.fn());
+vi.mock("pathe/utils", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("pathe/utils")>();
+  resolveAlias.mockImplementation(mod.resolveAlias);
+  return { ...mod, resolveAlias };
+});
+
 function createOptions(options: Partial<NitroOptions> = {}): NitroOptions {
   return {
     rootDir: process.cwd() + "/",
@@ -138,5 +145,15 @@ describe("resolveBuildEnv", () => {
     const env = await resolveBuildEnv(nitro);
     expect(env.external).toEqual(["late-external"]);
     expect(await resolveBuildEnv(nitro)).toEqual(env);
+  });
+
+  it("normalizes the alias map once", async () => {
+    resolveAlias.mockClear();
+    await resolveBuildEnv(createNitro({ node: false }));
+    const maps = new Set(resolveAlias.mock.calls.map(([, aliases]) => aliases));
+    expect(resolveAlias.mock.calls.length).toBeGreaterThan(1);
+    expect(maps.size).toBe(1);
+    const [aliases] = maps;
+    expect(aliases[Symbol.for("pathe:normalizedAlias")]).toBe(true);
   });
 });

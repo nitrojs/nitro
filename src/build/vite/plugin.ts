@@ -35,6 +35,7 @@ import { defu } from "defu";
 import type { Nitro, NitroConfig, NitroModule } from "nitro/types";
 import { nitroDevServiceProxy, viteServicesTemplate } from "./services.ts";
 import { nitroRequireExternals } from "./_require-externals.ts";
+import { nitroServerAliases } from "./_server-aliases.ts";
 import { importVite, setRunningVite, viteImportOptions } from "./_import.ts";
 import { isVitest, nitroVitest } from "./vitest.ts";
 
@@ -225,29 +226,6 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
         ctx.nitro!.options.renderer ??= {};
         ctx.nitro!.options.renderer.handler = resolve(runtimeDir, "internal/vite/ssr-renderer");
         ctx.nitro!.routing.sync();
-      }
-    },
-  };
-}
-
-function nitroServerAliases(ctx: NitroPluginContext): VitePlugin {
-  return {
-    name: "nitro:server-aliases",
-    enforce: "pre",
-    applyToEnvironment: (env) => env.name !== "client" && env.config?.consumer !== "client",
-
-    async resolveId(id, importer, options) {
-      if (!ctx.bundlerConfig) {
-        return;
-      }
-      const resolved = resolveAlias(id, ctx.bundlerConfig.base.aliases);
-      if (resolved !== id && resolved.startsWith("node:")) {
-        return (
-          (await this.resolve(resolved, importer, { ...options, skipSelf: true })) || {
-            id: resolved,
-            external: true,
-          }
-        );
       }
     },
   };

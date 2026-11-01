@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { builtinModules } from "node:module";
 import { resolveModulePath } from "exsolve";
 import { join } from "pathe";
-import { resolveAlias } from "pathe/utils";
+import { normalizeAliases, resolveAlias } from "pathe/utils";
 import { pkgDir } from "#nitro/meta";
 import { legacyUnenvLayers } from "../config/resolvers/unenv.ts";
 import { nodeCompatEnv } from "./_node-compat.ts";
@@ -107,8 +107,9 @@ function mergeEnv(layers: PresetEnv[]): BuildEnv {
 
 // Packages resolve from Nitro first, relative ids from `rootDir`. `unenv/*` ids are resolved on demand (see `plugins/unenv.ts`)
 function resolveEnvPaths(env: BuildEnv, rootDir: string) {
+  const aliases = normalizeAliases(env.alias);
   const resolve = (id: string) => {
-    id = resolveAlias(id, env.alias);
+    id = resolveAlias(id, aliases);
     if (id.startsWith("node:") || isUnenvId(id)) {
       return id;
     }
