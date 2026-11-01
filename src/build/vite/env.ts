@@ -252,8 +252,13 @@ function _envConditions(ctx: NitroPluginContext): string[] {
   return _isWorkerdRunner(ctx) ? _workerdConditions(ctx) : _resolveConditions(ctx);
 }
 
+// The runtime resolves the imports of externalized dependencies itself, without the
+// `development`/`production` condition: resolving the app's own imports of them with it
+// would load a second copy of a dependency (#4994).
 function _externalConditions(ctx: NitroPluginContext): string[] {
-  return _envConditions(ctx).filter((c) => !/browser|wasm|module/.test(c));
+  return _envConditions(ctx).filter(
+    (c) => !/browser|wasm|module/.test(c) && c !== "development" && c !== "production"
+  );
 }
 
 function _workerdConditions(ctx: NitroPluginContext): string[] {
