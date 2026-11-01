@@ -659,6 +659,7 @@ export function testNitro(
       cjsRequirer: "@fixture/nitro-native-mock",
       bundledDep: "@fixture/nitro-lib@3.0.0",
       cjsNestedRequirer: "@fixture/nitro-lib@4.0.0",
+      cjsShadowedRequirer: "@fixture/nitro-lib@5.0.0",
     });
   });
 

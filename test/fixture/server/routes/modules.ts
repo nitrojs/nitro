@@ -14,6 +14,8 @@ import cjsRequirer from "nitro-cjs-requirer";
 import bundledDep from "nitro-bundled-dep";
 // @ts-ignore
 import cjsNestedRequirer from "nitro-cjs-nested-requirer";
+// @ts-ignore
+import cjsShadowedRequirer from "nitro-cjs-shadowed-requirer";
 
 export default () => {
   return {
@@ -25,5 +27,6 @@ export default () => {
     cjsRequirer,
     bundledDep, // expected to be 3.0.0
     cjsNestedRequirer, // expected to be 4.0.0
+    cjsShadowedRequirer: cjsShadowedRequirer.lib, // expected to be 5.0.0
   };
 };

@@ -261,13 +261,14 @@ export function externals(opts: ExternalsOptions): Plugin {
       }
       const outDir = outputOpts.dir || (opts.trace && opts.trace.outDir) || opts.rootDir;
       const s = new MagicString(code);
+      let helperFileName: string | undefined;
       for (const match of code.matchAll(TRACED_ID_RE)) {
         const traced = tracedIds.get(match[0]);
         if (!traced) {
           continue;
         }
         const fileName = isRequireCall(code, match.index)
-          ? requireHelperFileName(code, chunk.fileName)
+          ? (helperFileName ??= requireHelperFileName(code, chunk.fileName))
           : chunk.fileName;
         s.update(
           match.index,
@@ -358,7 +359,9 @@ const TRACED_ID_RE = /(?<=["'`])nitro:traced\/\d+\/[^"'`]+(?=["'`])/g;
 // `require()` in bundled CommonJS goes through Rolldown's shared `__require`
 // helper (`createRequire(import.meta.url)`), so relative ids resolve from the
 // chunk that defines it (e.g. `_runtime.mjs`), not from the calling chunk.
-const REQUIRE_CALL_RE = /\b__require\(\s*["'`]$/;
+// The helper is renamed (`__require$1`) when another module in the chunk
+// declares its own `__require` (e.g. tsup/esbuild output).
+const REQUIRE_CALL_RE = /\b__require(?:\$\d+)?\(\s*["'`]$/;
 
 const REQUIRE_HELPER_IMPORT_RE =
   /\bimport\s*\{[^}]*\b__require\b[^}]*\}\s*from\s*["'](?<from>[^"']+)["']/;
