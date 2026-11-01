@@ -392,6 +392,14 @@ export interface NitroOptions extends PresetOptions {
      */
     sourcemapMinify?: false;
     /**
+     * Set to `false` to disable entries-aware library chunks (Rolldown and Vite builders).
+     *
+     * By default, each `node_modules` package chunk is split by the entries (main entry and lazy
+     * route handlers) that use it, so startup does not load code that only lazy routes need.
+     * Disabling it produces fewer, larger library chunks.
+     */
+    entriesAwareLibChunks?: false;
+    /**
      * Allow env expansion in runtime config
      *
      * @see https://github.com/nitrojs/nitro/pull/2043

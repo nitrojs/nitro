@@ -19,7 +19,7 @@ function createChunk(name: string, moduleIds: string[]): { name: string; moduleI
 
 function createNitro(overrides: Partial<Nitro> = {}): Nitro {
   return {
-    options: { buildDir: "/build", tasks: {}, ...overrides.options },
+    options: { buildDir: "/build", tasks: {}, experimental: {}, ...overrides.options },
     routing: {
       routes: { routes: [] },
       ...overrides.routing,
@@ -70,14 +70,30 @@ describe("libChunkName", () => {
 
 describe("libChunksGroup", () => {
   it("has a non-enumerable debugName", () => {
-    const group = libChunksGroup();
+    const group = libChunksGroup(createNitro());
     expect(group.test).toBe(NODE_MODULES_RE);
     expect(group.name("/node_modules/express/index.js")).toBe("_libs/express");
     expect((group as { debugName?: string }).debugName).toBe("libs");
     expect(Object.keys(group)).toEqual(["test", "name", "entriesAware"]);
+    expect(group.entriesAware).toBe(true);
   });
 
-  it("keeps a lazy chunk's packages out of the entry's imports", async () => {
+  it("can opt out of entriesAware with experimental.entriesAwareLibChunks", () => {
+    const nitro = createNitro();
+    nitro.options.experimental.entriesAwareLibChunks = false;
+    expect(libChunksGroup(nitro).entriesAware).toBe(false);
+  });
+
+  it.each([
+    ["keeps a lazy chunk's packages out of the entry's imports", undefined, ["small"]],
+    [
+      "loads a lazy chunk's packages from the entry when opted out",
+      false as const,
+      ["small", "big"],
+    ],
+  ])("%s", async (_, entriesAwareLibChunks, expected) => {
+    const nitro = createNitro();
+    nitro.options.experimental.entriesAwareLibChunks = entriesAwareLibChunks;
     const dir = mkdtempSync(join(tmpdir(), "nitro-lib-chunks-"));
     const files = {
       "node_modules/small/package.json": `{ "name": "small", "type": "module", "main": "index.js" }`,
@@ -95,8 +111,8 @@ describe("libChunksGroup", () => {
       const bundle = await rolldown({ input: join(dir, "entry.mjs"), cwd: dir });
       const { output } = await bundle.generate({
         format: "esm",
-        chunkFileNames: (chunk) => getChunkName(chunk, createNitro()),
-        codeSplitting: { groups: [libChunksGroup()] },
+        chunkFileNames: (chunk) => getChunkName(chunk, nitro),
+        codeSplitting: { groups: [libChunksGroup(nitro)] },
       });
       const chunks = new Map(output.map((chunk) => [chunk.fileName, chunk]));
       const loaded = new Set<string>();
@@ -112,7 +128,7 @@ describe("libChunksGroup", () => {
       const packages = [...loaded].flatMap((fileName) =>
         Object.keys((chunks.get(fileName) as OutputChunk).modules).map((id) => pathToPkgName(id))
       );
-      expect(packages.filter(Boolean)).toEqual(["small"]);
+      expect(packages.filter(Boolean).sort()).toEqual([...expected].sort());
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

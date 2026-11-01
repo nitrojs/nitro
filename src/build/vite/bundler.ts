@@ -62,7 +62,7 @@ export const getBundlerConfig = async (
           // still applies (defu gives this object priority)
           sourcemapExcludeSources: excludeSourcemapSources(nitro) || undefined,
           codeSplitting: {
-            groups: [libChunksGroup()],
+            groups: [libChunksGroup(nitro)],
           },
         },
       } satisfies RolldownConfig,

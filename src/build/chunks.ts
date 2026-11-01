@@ -12,13 +12,13 @@ export function libChunkName(id: string) {
 }
 
 /** Rolldown `codeSplitting` group for library (`node_modules`) chunks. */
-export function libChunksGroup() {
+export function libChunksGroup(nitro: Nitro) {
   const group = {
     test: NODE_MODULES_RE,
     name: (id: string) => libChunkName(id),
     // A package's chunk also takes in the packages it imports. Without this, startup code that imports one of them
     // loads the whole chunk, lazy routes' dependencies included.
-    entriesAware: true,
+    entriesAware: nitro.options.experimental.entriesAwareLibChunks !== false,
   };
   // Rolldown >= 1.2.10 warns without `debugName`, older versions reject unknown (enumerable) keys
   Object.defineProperty(group, "debugName", { value: "libs" });

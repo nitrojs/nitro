@@ -65,7 +65,7 @@ export const getRolldownConfig = async (nitro: Nitro): Promise<RolldownConfig> =
       minifyInternalExports: false,
       chunkFileNames: (chunk) => getChunkName(chunk, nitro),
       codeSplitting: {
-        groups: [libChunksGroup()],
+        groups: [libChunksGroup(nitro)],
       },
       dir: nitro.options.output.serverDir,
       inlineDynamicImports: nitro.options.inlineDynamicImports,
