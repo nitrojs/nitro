@@ -36,11 +36,11 @@ export function isRecoverableDevErrorPage(method: string | undefined, res: Respo
   );
 }
 
-/** Only page loads get the script: `fetch()` callers may insert the HTML and run its scripts. */
+/** Only page loads get the script (as in the middleware): `fetch()` callers may insert the HTML and run its scripts. */
 export function isDocumentRequest(headers: IncomingHttpHeaders): boolean {
   const dest = headers["sec-fetch-dest"];
   if (typeof dest === "string" && dest) {
-    return dest === "document" || dest === "iframe";
+    return /^(?:document|iframe|frame)$/.test(dest);
   }
   return /\btext\/html\b/i.test(headers.accept || "");
 }

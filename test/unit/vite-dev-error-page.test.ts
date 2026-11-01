@@ -55,6 +55,7 @@ describe("vite dev error page recovery", () => {
   it("only injects into page loads", () => {
     expect(isDocumentRequest({ "sec-fetch-dest": "document" })).toBe(true);
     expect(isDocumentRequest({ "sec-fetch-dest": "iframe" })).toBe(true);
+    expect(isDocumentRequest({ "sec-fetch-dest": "frame" })).toBe(true);
     expect(isDocumentRequest({ "sec-fetch-dest": "empty", accept: "text/html" })).toBe(false);
     expect(isDocumentRequest({ accept: "text/html,application/xhtml+xml" })).toBe(true);
     expect(isDocumentRequest({ accept: "*/*" })).toBe(false);
