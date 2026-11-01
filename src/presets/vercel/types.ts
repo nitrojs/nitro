@@ -107,7 +107,13 @@ export interface VercelServerlessFunctionConfig {
   /**
    * The runtime to use. Defaults to the auto-detected Node.js version.
    */
-  runtime?: "nodejs20.x" | "nodejs22.x" | "bun1.x" | (string & {});
+  runtime?:
+    | "nodejs20.x"
+    | "nodejs22.x"
+    | "nodejs24.x"
+    | "nodejs26.x"
+    | "bun1.x"
+    | (string & {});
 
   [key: string]: unknown;
 }

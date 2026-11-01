@@ -741,6 +741,30 @@ describe("nitro:preset:vercel:bun", async () => {
   });
 });
 
+describe("nitro:preset:vercel:node-runtime", async () => {
+  const ctx = await setupTest("vercel", {
+    config: {
+      preset: "vercel",
+      vercel: {
+        functions: {
+          runtime: "nodejs26.x",
+        },
+      },
+    },
+  });
+  // Read now: the other vercel groups build into the same output dir
+  const config = await fsp
+    .readFile(
+      resolve(ctx.outDir, "functions/__fallback.func/.vc-config.json"),
+      "utf8"
+    )
+    .then((r) => JSON.parse(r));
+
+  it("should keep an explicit nodejs26.x runtime", () => {
+    expect(config.runtime).toBe("nodejs26.x");
+  });
+});
+
 describe("nitro:preset:vercel:skew-protection", async () => {
   const prevDeploymentId = process.env.VERCEL_DEPLOYMENT_ID;
   process.env.VERCEL_DEPLOYMENT_ID = "dpl_test";
