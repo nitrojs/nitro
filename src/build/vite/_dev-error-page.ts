@@ -23,10 +23,12 @@ export function withDevErrorRecovery(res: Response, viteBase: string): Response 
 }
 
 export function isRecoverableDevErrorPage(method: string | undefined, res: Response): boolean {
+  // Checked first: reading `res.headers` makes srvx copy (and reorder) them on every response.
+  if (method !== "GET" || res.status < 500) {
+    return false;
+  }
   const contentType = res.headers.get("content-type") || "";
   return (
-    method === "GET" &&
-    res.status >= 500 &&
     !res.headers.has("content-encoding") &&
     /^text\/html\b/i.test(contentType) &&
     // The script is ASCII, so it can be appended to any ASCII-compatible encoding.
@@ -45,25 +47,39 @@ export function isDocumentRequest(headers: IncomingHttpHeaders): boolean {
 
 export function devErrorRecoveryScript(viteClient: string): string {
   return /* js */ `<script type="module">
-import { createHotContext } from ${JSON.stringify(viteClient)};
-const hot = createHotContext("/@nitro/dev-error-page");
-let pending = false;
-async function reloadWhenRecovered() {
-  if (pending) return;
-  pending = true;
-  for (const delay of ${JSON.stringify(RETRY_DELAYS)}) {
-    await new Promise((r) => setTimeout(r, delay));
-    const res = await fetch(location.href, {
-      cache: "no-store",
-      headers: { accept: "text/html" },
-      signal: AbortSignal.timeout(5000),
-    }).catch(() => {});
-    if (res && res.status < 500) return location.reload();
+// Pages that load client modules of their own (hydrated framework error pages) recover through them.
+if (!document.querySelector("script[type=module][src]")) {
+  const { createHotContext } = await import(${JSON.stringify(viteClient)});
+  const hot = createHotContext("/@nitro/dev-error-page");
+  const url = location.href;
+  let pending = false;
+  let done = false;
+  const stopped = () => done || location.href !== url;
+  async function reloadWhenRecovered() {
+    if (pending || stopped()) return;
+    pending = true;
+    for (const delay of ${JSON.stringify(RETRY_DELAYS)}) {
+      await new Promise((r) => setTimeout(r, delay));
+      if (stopped()) return;
+      const res = await fetch(url, {
+        cache: "no-store",
+        headers: { accept: "text/html" },
+        signal: AbortSignal.timeout(5000),
+      }).catch(() => {});
+      if (stopped()) return;
+      if (res && res.status < 500) {
+        done = true;
+        return location.reload();
+      }
+    }
+    pending = false;
   }
-  pending = false;
+  // Vite reloads the page itself on a full reload that names no HTML file.
+  hot.on("vite:beforeFullReload", (payload) => {
+    if (!payload?.path?.endsWith(".html")) done = true;
+  });
+  // Vite awaits listeners before handling the next HMR message, so do not return the promise.
+  hot.on("nitro:server-update", () => void reloadWhenRecovered());
 }
-// Vite awaits listeners before handling the next HMR message, so do not return the promise.
-hot.on("vite:beforeUpdate", () => void reloadWhenRecovered());
-hot.on("nitro:server-update", () => void reloadWhenRecovered());
 </script>`;
 }

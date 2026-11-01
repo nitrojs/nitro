@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join } from "pathe";
 import type { ViteDevServer } from "vite";
@@ -16,6 +16,7 @@ describe("vite: dev error page recovery", { concurrent: false }, () => {
   const rootDir = fileURLToPath(new URL("./dev-error-page-fixture", import.meta.url));
   const stateFile = join(rootDir, "state.ts");
   const originalState = readFileSync(stateFile, "utf-8");
+  const notesFile = join(rootDir, "notes.txt");
 
   const fetchPage = (init: { accept?: string; method?: string; dest?: string } = {}) =>
     fetch(serverURL, {
@@ -31,6 +32,7 @@ describe("vite: dev error page recovery", { concurrent: false }, () => {
   };
 
   beforeAll(async () => {
+    writeFileSync(notesFile, "");
     process.chdir(rootDir);
     server = await createServer({ root: rootDir, logLevel: "warn" });
     const originalSend = server.ws.send.bind(server.ws) as (...args: unknown[]) => void;
@@ -45,6 +47,7 @@ describe("vite: dev error page recovery", { concurrent: false }, () => {
 
   afterAll(async () => {
     writeFileSync(stateFile, originalState);
+    rmSync(notesFile, { force: true });
     await server?.close();
   });
 
@@ -80,9 +83,16 @@ describe("vite: dev error page recovery", { concurrent: false }, () => {
     expect(res.status).toBe(500);
     const html = await res.text();
     expect(html).toContain("broken page");
-    expect(html).toContain(`import { createHotContext } from "/@vite/client"`);
+    expect(html).toContain(`await import("/@vite/client")`);
     expect(html).toContain(`hot.on("nitro:server-update"`);
     expect(html.trimEnd().endsWith("</script>")).toBe(true);
+  });
+
+  test("does not notify the error page for files outside the module graph", async () => {
+    wsMessages.length = 0;
+    writeFileSync(notesFile, "changed");
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    expect(wsMessages).not.toContain("nitro:server-update");
   });
 
   test("notifies the error page when a server module changes", async () => {

@@ -9,18 +9,28 @@ import {
 const htmlError = (contentType = "text/html; charset=utf-8") =>
   new Response("<p>error</p>", { status: 500, headers: { "content-type": contentType } });
 
-// Runs the injected module with `createHotContext`, `fetch` and `location` stubbed.
-function runRecoveryScript(statuses: number[]) {
-  const listeners: Record<string, () => unknown> = {};
-  const hot = { on: (event: string, cb: () => unknown) => (listeners[event] = cb) };
+// Runs the injected module with `document`, the Vite client, `fetch` and `location` stubbed.
+async function runRecoveryScript(statuses: number[], opts: { clientModules?: boolean } = {}) {
+  const listeners: Record<string, (payload?: unknown) => unknown> = {};
+  const hot = {
+    on: (event: string, cb: (payload?: unknown) => unknown) => (listeners[event] = cb),
+  };
+  const importClient = vi.fn(async () => ({ createHotContext: () => hot }));
+  const document = { querySelector: () => (opts.clientModules ? {} : null) };
   const fetch = vi.fn(async () => new Response(null, { status: statuses.shift() ?? 500 }));
   const location = { href: "http://localhost/page", reload: vi.fn() };
   const source = devErrorRecoveryScript("/@vite/client")
     .replace(/^<script type="module">/, "")
     .replace(/<\/script>$/, "")
-    .replace(/^import .*$/m, "");
-  new Function("createHotContext", "fetch", "location", source)(() => hot, fetch, location);
-  return { listeners, fetch, location };
+    .replace("await import(", "await importClient(");
+  const AsyncFunction = (async () => {}).constructor as FunctionConstructor;
+  await new AsyncFunction("document", "importClient", "fetch", "location", source)(
+    document,
+    importClient,
+    fetch,
+    location
+  );
+  return { listeners, importClient, fetch, location };
 }
 
 describe("vite dev error page recovery", () => {
@@ -71,21 +81,58 @@ describe("vite dev error page recovery", () => {
     for (let chunk = await reader.read(); !chunk.done; chunk = await reader.read()) {
       rest += decoder.decode(chunk.value);
     }
-    expect(rest).toContain(`import { createHotContext } from "/base/@vite/client"`);
+    expect(rest).toContain(`await import("/base/@vite/client")`);
   });
 
   it("reloads once the page renders again", async () => {
-    const { listeners, fetch, location } = runRecoveryScript([500, 200]);
-    expect(listeners["vite:beforeUpdate"]()).toBeUndefined();
+    const { listeners, fetch, location } = await runRecoveryScript([500, 200]);
+    expect(listeners["nitro:server-update"]()).toBeUndefined();
     await vi.waitFor(() => expect(location.reload).toHaveBeenCalledOnce());
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
   it("runs one recovery loop at a time", async () => {
-    const { listeners, fetch, location } = runRecoveryScript([500, 200]);
+    const { listeners, fetch, location } = await runRecoveryScript([500, 200]);
     listeners["nitro:server-update"]();
-    listeners["vite:beforeUpdate"]();
+    listeners["nitro:server-update"]();
     await vi.waitFor(() => expect(location.reload).toHaveBeenCalledOnce());
     expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not poll on client-only HMR updates", async () => {
+    const { listeners } = await runRecoveryScript([200]);
+    expect(listeners["vite:beforeUpdate"]).toBeUndefined();
+  });
+
+  it("leaves pages that load their own client modules to them", async () => {
+    const { listeners, importClient } = await runRecoveryScript([200], { clientModules: true });
+    expect(importClient).not.toHaveBeenCalled();
+    expect(listeners).toEqual({});
+  });
+
+  it("stops after a client-side navigation", async () => {
+    const { listeners, fetch, location } = await runRecoveryScript([200]);
+    location.href = "http://localhost/other";
+    listeners["nitro:server-update"]();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(fetch).not.toHaveBeenCalled();
+    expect(location.reload).not.toHaveBeenCalled();
+  });
+
+  it("leaves the reload to Vite when it reloads the page itself", async () => {
+    const { listeners, fetch, location } = await runRecoveryScript([200]);
+    listeners["vite:beforeFullReload"]({ type: "full-reload" });
+    listeners["nitro:server-update"]();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(fetch).not.toHaveBeenCalled();
+    expect(location.reload).not.toHaveBeenCalled();
+  });
+
+  it("reads response headers only for GET 5xx responses", () => {
+    const get = vi.fn(() => "text/html");
+    const res = { status: 200, headers: { get, has: get } } as unknown as Response;
+    expect(isRecoverableDevErrorPage("GET", res)).toBe(false);
+    expect(isRecoverableDevErrorPage("POST", { ...res, status: 500 } as Response)).toBe(false);
+    expect(get).not.toHaveBeenCalled();
   });
 });
