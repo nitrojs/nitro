@@ -41,8 +41,10 @@ export function getChunkName(chunk: { name: string; moduleIds: string[] }, nitro
     return "_runtime.mjs";
   }
 
-  // `entriesAware` names split chunks `<group>~<entries>~<hash>`. Keep the group name, Rolldown dedupes file names
-  chunk = { ...chunk, name: chunk.name.split("~")[0]! };
+  // `entriesAware` suffixes split lib chunk names with `~<entries>`. Keep the group name, Rolldown dedupes file names
+  if (chunk.name.startsWith("_libs/")) {
+    chunk = { ...chunk, name: chunk.name.split("~")[0]! };
+  }
 
   // Library chunks
   if (chunk.moduleIds.every((id) => NODE_MODULES_RE.test(id))) {

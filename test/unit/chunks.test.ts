@@ -87,11 +87,11 @@ describe("libChunksGroup", () => {
       "entry.mjs": `import { small } from "small"; export default [small, () => import("./lazy.mjs")];`,
       "lazy.mjs": `import { big } from "big"; export default big;`,
     };
-    for (const [path, code] of Object.entries(files)) {
-      mkdirSync(dirname(join(dir, path)), { recursive: true });
-      writeFileSync(join(dir, path), code);
-    }
     try {
+      for (const [path, code] of Object.entries(files)) {
+        mkdirSync(dirname(join(dir, path)), { recursive: true });
+        writeFileSync(join(dir, path), code);
+      }
       const bundle = await rolldown({ input: join(dir, "entry.mjs"), cwd: dir });
       const { output } = await bundle.generate({
         format: "esm",
@@ -106,7 +106,9 @@ describe("libChunksGroup", () => {
         loaded.add(fileName);
         chunk.imports.forEach(load);
       };
-      load(output[0].fileName);
+      const entry = output.find((item) => item.type === "chunk" && item.isEntry);
+      expect(entry).toBeDefined();
+      load(entry!.fileName);
       const packages = [...loaded].flatMap((fileName) =>
         Object.keys((chunks.get(fileName) as OutputChunk).modules).map((id) => pathToPkgName(id))
       );
@@ -136,9 +138,14 @@ describe("getChunkName", () => {
     ["rolldown-runtime", createChunk("rolldown-runtime", []), "_runtime.mjs"],
     ["_ chunks are preserved", createChunk("_shared", ["/src/foo.ts"]), "_shared.mjs"],
     [
-      "entriesAware subgroup keeps the group name",
-      createChunk("_shared~index~api-hello~x1y2z3", ["/src/foo.ts"]),
-      "_shared.mjs",
+      "~ in non-library chunk names is preserved",
+      createChunk("_shared~index~api-hello", ["/src/foo.ts"]),
+      "_shared~index~api-hello.mjs",
+    ],
+    [
+      "entriesAware library subgroup with non-library modules keeps the group name",
+      createChunk("_libs/foo~index~api-hello", ["/node_modules/foo/index.js", "/src/foo.ts"]),
+      "_libs/foo.mjs",
     ],
     [
       "entriesAware library subgroup keeps the group name",
