@@ -25,6 +25,7 @@ export async function resolveKVOptions(options: NitroOptions) {
   // Make sure `unstorage` and the ones required by the configured mounts are installed.
   await ensureLibDeps(await resolveKVDrivers(options), {
     dir: options.rootDir,
+    deps: options.deps,
     label: "storage driver",
   });
 }

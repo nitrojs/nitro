@@ -28,7 +28,8 @@ export default defineConfig({});
   "devDependencies": {
     "@types/express": "^5.0.6",
     "express": "^5.3.0",
-    "nitro": "latest"
+    "nitro": "latest",
+    "rolldown": "latest"
   }
 }
 ```

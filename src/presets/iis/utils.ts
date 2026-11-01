@@ -141,7 +141,11 @@ async function iisXmlTemplate(nitro: Nitro) {
 
 //  XML Helpers
 function importXml2js(nitro: Nitro) {
-  return importDep({ id: "xml2js", dir: nitro.options.rootDir, paths: nitro.options.deps?.paths });
+  return importDep({
+    id: "xml2js",
+    dir: nitro.options.rootDir,
+    deps: nitro.options.deps,
+  });
 }
 
 async function parseXmlDoc(xml: string, nitro: Nitro): Promise<Record<string, unknown>> {

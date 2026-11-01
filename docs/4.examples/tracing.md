@@ -39,7 +39,8 @@ export default defineConfig({
     "unstorage": "^2.0.0-beta.0"
   },
   "devDependencies": {
-    "nitro": "latest"
+    "nitro": "latest",
+    "rolldown": "latest"
   }
 }
 ```

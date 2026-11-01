@@ -3,7 +3,7 @@ import { consola } from "consola";
 import type { NitroOptions } from "nitro/types";
 import { resolve } from "pathe";
 import { resolveRolldown } from "../../build/rolldown/_import.ts";
-import { ensureDep, isDepInstalled } from "../../utils/dep.ts";
+import { ensureDep, isDepInstalled, missingDepError } from "../../utils/dep.ts";
 
 const VALID_BUILDERS = ["rolldown", "rollup", "vite"] as const;
 
@@ -34,18 +34,20 @@ export async function resolveBuilder(options: NitroOptions) {
     if (pkg === "rolldown" || pkg === "vite") {
       return;
     }
-    const resolved = await ensureDep({ id: pkg, dir: options.rootDir, paths: options.deps?.paths });
-    if (!resolved) {
-      throw new Error(
-        `Nitro builder package "${pkg}" is not installed. Please install it in your project dependencies.`
-      );
+    const depOpts = {
+      id: pkg,
+      dir: options.rootDir,
+      deps: options.deps,
+    };
+    if (!(await ensureDep(depOpts))) {
+      throw missingDepError(depOpts);
     }
     return;
   }
 
   // Auto-detect: check for vite.config with nitro() plugin
   if (
-    isDepInstalled("vite", { dir: options.rootDir, paths: options.deps?.paths }) &&
+    isDepInstalled("vite", { dir: options.rootDir, deps: options.deps }) &&
     hasNitroViteConfig(options)
   ) {
     if (!options.dev) {

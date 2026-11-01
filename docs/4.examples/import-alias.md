@@ -32,7 +32,8 @@ export default defineConfig({
     "preview": "node .output/server/index.mjs"
   },
   "devDependencies": {
-    "nitro": "latest"
+    "nitro": "latest",
+    "rolldown": "latest"
   }
 }
 ```
