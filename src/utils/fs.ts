@@ -6,6 +6,7 @@ import consola from "consola";
 import { colors } from "consola/utils";
 import { getProperty } from "dot-prop";
 import { relative, resolve } from "pathe";
+import { resolveAlias } from "pathe/utils";
 
 export function prettyPath(p: string, highlight = true) {
   p = relative(process.cwd(), p);
@@ -23,15 +24,7 @@ export function resolveNitroPath(
 
   // TODO: Skip if no template used
   path = _compilePathTemplate(path)(nitroOptions);
-  let matchedAlias: string | undefined;
-  for (const alias in nitroOptions.alias) {
-    if (alias && path.startsWith(alias) && (!matchedAlias || alias.length > matchedAlias.length)) {
-      matchedAlias = alias;
-    }
-  }
-  if (matchedAlias) {
-    path = nitroOptions.alias[matchedAlias] + path.slice(matchedAlias.length);
-  }
+  path = resolveAlias(path, nitroOptions.alias);
 
   // eslint-disable-next-line no-control-regex
   if (/^[#\u0000]/.test(path)) {

@@ -1,7 +1,6 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { relative } from "node:path";
-import { join } from "pathe";
+import { join, relative } from "pathe";
 import { describe, expect, it } from "vitest";
 import { loadOptions } from "../../src/config/loader.ts";
 import { resolveNitroPath } from "../../src/utils/fs.ts";
@@ -25,6 +24,22 @@ describe("resolveNitroPath aliases", () => {
 
     expect(resolveNitroPath("#api/admin/handler.ts", options)).toBe("/app/admin/handler.ts");
   });
+
+  it.each([
+    ["referenced last", { "#a": "#b/x", "#b": "./dir" }],
+    ["referenced first", { "#b": "./dir", "#a": "#b/x" }],
+  ])("resolves aliases that point to other aliases with %s", (_name, alias) => {
+    const options = { alias, rootDir: "/app/" } as any;
+
+    expect(resolveNitroPath("#a/handler.ts", options)).toBe("/app/dir/x/handler.ts");
+  });
+
+  it("only matches aliases at a path segment boundary", () => {
+    const options = { alias: { "#api": "./api" }, rootDir: "/app/" } as any;
+
+    expect(resolveNitroPath("#api", options)).toBe("/app/api");
+    expect(resolveNitroPath("#apifoo/handler.ts", options)).toBe("#apifoo/handler.ts");
+  });
 });
 
 describe("configured handler aliases", () => {
@@ -44,7 +59,7 @@ describe("configured handler aliases", () => {
             builder: false,
             serverEntry: false,
             renderer: false,
-            alias: Object.fromEntries(reverse ? entries.reverse() : entries),
+            alias: Object.fromEntries(reverse ? [...entries].reverse() : entries),
             routes: { "/test": "#api-admin/handler.ts" },
           },
           {
