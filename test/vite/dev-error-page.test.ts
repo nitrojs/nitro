@@ -17,10 +17,10 @@ describe("vite: dev error page recovery", { concurrent: false }, () => {
   const stateFile = join(rootDir, "state.ts");
   const originalState = readFileSync(stateFile, "utf-8");
 
-  const fetchPage = (init: { accept?: string; method?: string } = {}) =>
+  const fetchPage = (init: { accept?: string; method?: string; dest?: string } = {}) =>
     fetch(serverURL, {
       method: init.method || "GET",
-      headers: { accept: init.accept || "text/html" },
+      headers: { accept: init.accept || "text/html", "sec-fetch-dest": init.dest || "document" },
     });
 
   const waitForMessage = async (match: (message: any) => boolean) => {
@@ -63,6 +63,16 @@ describe("vite: dev error page recovery", { concurrent: false }, () => {
     writeFileSync(stateFile, originalState + "\n");
     await waitForMessage((m) => m?.type === "full-reload");
     expect(wsMessages).not.toContain("nitro:server-update");
+  });
+
+  test("does not inject into fetch() requests, which still re-arm the notification", async () => {
+    const res = await fetchPage({ dest: "empty" });
+    expect(res.status).toBe(500);
+    expect(await res.text()).not.toContain("@vite/client");
+
+    wsMessages.length = 0;
+    writeFileSync(stateFile, originalState + "\n\n");
+    await waitForMessage((m) => m === "nitro:server-update");
   });
 
   test("connects the HTML error page to HMR", async () => {

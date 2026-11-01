@@ -11,6 +11,7 @@ const { createServer } = (await import(
 describe("vite: `vite.serverReload` (nitro.config)", () => {
   let server: ViteDevServer;
   let serverURL: string;
+  const wsMessages: unknown[] = [];
 
   const rootDir = fileURLToPath(new URL("./server-reload-fixture", import.meta.url));
   const handlerFile = join(rootDir, "api/state.ts");
@@ -19,6 +20,11 @@ describe("vite: `vite.serverReload` (nitro.config)", () => {
   beforeAll(async () => {
     process.chdir(rootDir);
     server = await createServer({ root: rootDir, logLevel: "warn" });
+    const originalSend = server.ws.send.bind(server.ws) as (...args: unknown[]) => void;
+    server.ws.send = ((...args: unknown[]) => {
+      wsMessages.push(args[0]);
+      return originalSend(...args);
+    }) as typeof server.ws.send;
     await server.listen("0" as unknown as number);
     const addr = server.httpServer?.address() as { port: number; address: string; family: string };
     serverURL = `http://${addr.family === "IPv6" ? `[${addr.address}]` : addr.address}:${addr.port}`;
@@ -41,5 +47,18 @@ describe("vite: `vite.serverReload` (nitro.config)", () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
       expect(await fetch(`${serverURL}/api/state`).then((r) => r.text())).toContain("original");
     }
+  });
+
+  test("does not ask open dev error pages to reload", async () => {
+    const res = await fetch(`${serverURL}/api/broken`, {
+      headers: { accept: "text/html", "sec-fetch-dest": "document" },
+    });
+    expect(res.status).toBe(500);
+    expect(await res.text()).toContain("@vite/client");
+
+    wsMessages.length = 0;
+    writeFileSync(handlerFile, originalContent.replace("original", "modified again"));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    expect(wsMessages).not.toContain("nitro:server-update");
   });
 });

@@ -1,3 +1,4 @@
+import type { IncomingHttpHeaders } from "node:http";
 import { withBase } from "ufo";
 
 // Polls for about 10 s, long enough for a large dev worker to reload after the fix.
@@ -31,6 +32,15 @@ export function isRecoverableDevErrorPage(method: string | undefined, res: Respo
     // The script is ASCII, so it can be appended to any ASCII-compatible encoding.
     !/charset\s*=\s*"?utf-?(?:16|32)/i.test(contentType)
   );
+}
+
+/** Only page loads get the script: `fetch()` callers may insert the HTML and run its scripts. */
+export function isDocumentRequest(headers: IncomingHttpHeaders): boolean {
+  const dest = headers["sec-fetch-dest"];
+  if (typeof dest === "string" && dest) {
+    return dest === "document" || dest === "iframe";
+  }
+  return /\btext\/html\b/i.test(headers.accept || "");
 }
 
 export function devErrorRecoveryScript(viteClient: string): string {

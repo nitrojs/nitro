@@ -16,7 +16,11 @@ import { withBase, withoutBase } from "ufo";
 import { handleDevRPC } from "../../dev/_rpc.ts";
 import { writeDevBuildInfo } from "../info.ts";
 import { rescanHandlers, watchScanDirs } from "./_scan-watch.ts";
-import { isRecoverableDevErrorPage, withDevErrorRecovery } from "./_dev-error-page.ts";
+import {
+  isDocumentRequest,
+  isRecoverableDevErrorPage,
+  withDevErrorRecovery,
+} from "./_dev-error-page.ts";
 import { importVite, _resolveFromPath, type ViteImportOptions } from "./_import.ts";
 import { _isWorkerdRunner } from "./env.ts";
 
@@ -313,8 +317,11 @@ export async function configureViteDevServer(ctx: NitroPluginContext, server: Vi
         return next();
       }
       if (hmrEnabled && isRecoverableDevErrorPage(nodeReq.method, envRes)) {
+        // Set for the page's own polling fetches too, so a still broken page is notified again.
         ctx._devErrorPageServed = true;
-        return await sendNodeResponse(nodeRes, withDevErrorRecovery(envRes, viteBase));
+        if (isDocumentRequest(nodeReq.headers)) {
+          return await sendNodeResponse(nodeRes, withDevErrorRecovery(envRes, viteBase));
+        }
       }
       return await sendNodeResponse(nodeRes, envRes);
     } catch (error) {

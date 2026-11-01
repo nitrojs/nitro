@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   devErrorRecoveryScript,
+  isDocumentRequest,
   isRecoverableDevErrorPage,
   withDevErrorRecovery,
 } from "../../src/build/vite/_dev-error-page.ts";
@@ -39,6 +40,15 @@ describe("vite dev error page recovery", () => {
       )
     ).toBe(false);
     expect(isRecoverableDevErrorPage("GET", new Response("", { status: 404 }))).toBe(false);
+  });
+
+  it("only injects into page loads", () => {
+    expect(isDocumentRequest({ "sec-fetch-dest": "document" })).toBe(true);
+    expect(isDocumentRequest({ "sec-fetch-dest": "iframe" })).toBe(true);
+    expect(isDocumentRequest({ "sec-fetch-dest": "empty", accept: "text/html" })).toBe(false);
+    expect(isDocumentRequest({ accept: "text/html,application/xhtml+xml" })).toBe(true);
+    expect(isDocumentRequest({ accept: "*/*" })).toBe(false);
+    expect(isDocumentRequest({})).toBe(false);
   });
 
   it("forwards a streamed page before it ends and appends the script", async () => {
