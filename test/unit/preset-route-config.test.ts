@@ -34,6 +34,7 @@ async function createNitro(options: Partial<NitroOptions>) {
       static: false,
       handlers: [],
       routeRules: {},
+      publicAssets: [],
       // Resolved output dirs always end with a slash
       output: {
         dir: dir + "/",
@@ -175,6 +176,31 @@ describe("netlify _redirects and _headers", () => {
     expect(await readFile(join(dir, "public/_headers"), "utf8")).toBe("/hdr/*\n  x-hdr: 1\n");
   });
 
+  it("adds the CORS headers of public asset dirs", async () => {
+    const { dir, nitro } = await createNitro({
+      baseURL: "/app/",
+      routeRules: { "/**": { cors: {} } },
+      publicAssets: [{ dir: "public", baseURL: "/build" }],
+    });
+    await writeHeaders(nitro);
+    expect(await readFile(join(dir, "public/_headers"), "utf8")).toBe(
+      "/app/build/*\n  access-control-allow-origin: *\n  access-control-expose-headers: *\n"
+    );
+  });
+
+  it("keeps CORS headers of the user `_headers` for public asset dirs", async () => {
+    const { dir, nitro } = await createNitro({
+      routeRules: { "/**": { cors: {} } },
+      publicAssets: [{ dir: "public", baseURL: "/build" }],
+    });
+    const userHeaders = "/build/*\n  access-control-allow-origin: https://nitro.build\n";
+    await writeFile(join(dir, "public/_headers"), userHeaders);
+    await writeHeaders(nitro);
+    expect(await readFile(join(dir, "public/_headers"), "utf8")).toBe(
+      userHeaders + "\n/build/*\n  access-control-expose-headers: *\n"
+    );
+  });
+
   it("skips method-scoped rules with a warning", async () => {
     const { dir, nitro } = await createNitro({
       routeRules: {
@@ -302,6 +328,30 @@ describe("cloudflare pages _redirects and _headers", () => {
     });
     await writeCFHeaders(nitro, "output");
     expect(await readFile(join(dir, "_headers"), "utf8")).toBe("/hdr/*\n  x-hdr: 1");
+  });
+
+  it("adds the CORS headers of public asset dirs", async () => {
+    const { dir, nitro } = await createNitro({
+      routeRules: { "/**": { cors: {} }, "/hdr/**": { headers: { "x-hdr": "1" } } },
+      publicAssets: [{ dir: "public", baseURL: "/build" }],
+    });
+    await writeCFHeaders(nitro, "output");
+    expect(await readFile(join(dir, "_headers"), "utf8")).toBe(
+      "/hdr/*\n  x-hdr: 1\n/build/*\n  access-control-allow-origin: *\n  access-control-expose-headers: *"
+    );
+  });
+
+  it("keeps CORS headers of the user `_headers` for public asset dirs", async () => {
+    const { dir, nitro } = await createNitro({
+      routeRules: { "/**": { cors: {} } },
+      publicAssets: [{ dir: "public", baseURL: "/build" }],
+    });
+    const userHeaders = "/build/*\n  access-control-allow-origin: https://nitro.build";
+    await writeFile(join(dir, "_headers"), userHeaders);
+    await writeCFHeaders(nitro, "output");
+    expect(await readFile(join(dir, "_headers"), "utf8")).toBe(
+      userHeaders + "\n/build/*\n  access-control-expose-headers: *"
+    );
   });
 
   it("skips method-scoped rules with a warning", async () => {
@@ -488,6 +538,19 @@ describe("edgeone config.json", () => {
     });
     expect(routes.filter((r) => r.headers && Object.keys(r.headers).length === 0)).toEqual([]);
     expect(headersFor(routes, "/hdr/a")).toEqual({ "x-hdr": "1" });
+  });
+
+  it("adds the CORS headers of public asset dirs", async () => {
+    const routes = await buildRoutes({
+      baseURL: "/base/",
+      routeRules: { "/**": { cors: {} } },
+      publicAssets: [{ dir: "public", baseURL: "/build" }],
+    });
+    expect(headersFor(routes, "/base/build/a.js")).toEqual({
+      "access-control-allow-origin": "*",
+      "access-control-expose-headers": "*",
+    });
+    expect(headersFor(routes, "/base/buildings")).toEqual({});
   });
 
   it("matches the most specific redirect first", async () => {

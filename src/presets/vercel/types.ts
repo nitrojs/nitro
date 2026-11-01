@@ -106,7 +106,7 @@ export interface VercelServerlessFunctionConfig {
   /**
    * The runtime to use. Defaults to `engines` in `package.json`, then `bunVersion` in `vercel.json`, then the runtime used to build.
    */
-  runtime?: "nodejs22.x" | "nodejs24.x" | "bun1.x" | "bun1.4.x" | (string & {});
+  runtime?: "nodejs22.x" | "nodejs24.x" | "nodejs26.x" | "bun1.x" | "bun1.4.x" | (string & {});
 
   /**
    * Experimental trigger configuration (e.g., Vercel Queues).

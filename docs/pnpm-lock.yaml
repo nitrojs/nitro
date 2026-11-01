@@ -12,7 +12,7 @@ importers:
         specifier: ^0.4.3
         version: 0.4.3
       motion-v:
-        specifier: ^2.8.0
+        specifier: ^2.9.0
         version: 2.9.0(@vueuse/core@15.0.0(vue@3.5.44))(vue@3.5.44)
       undocs:
         specifier: npm:undocs-nightly@0.10.1-20261029-224826-2e3e487

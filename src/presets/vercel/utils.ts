@@ -22,6 +22,7 @@ import {
   type RouterContext,
 } from "rou3";
 import { escapeRegExp } from "../../utils/regex.ts";
+import { getPublicAssetCorsHeaders } from "../_utils/cors.ts";
 import { catchAllRef, hasHeaders, parseRouteKey, sortRoutes } from "../_utils/routes.ts";
 import { joinURL, withLeadingSlash, withoutLeadingSlash } from "ufo";
 import type {
@@ -34,7 +35,8 @@ import { ISR_URL_PARAM } from "./runtime/isr.ts";
 // https://vercel.com/docs/build-output-api/configuration
 
 // https://vercel.com/docs/functions/runtimes/node-js/node-js-versions
-const SUPPORTED_NODE_VERSIONS = [22, 24];
+// https://github.com/vercel/vercel/blob/main/packages/build-utils/src/fs/node-version.ts
+const SUPPORTED_NODE_VERSIONS = [22, 24, 26];
 
 // h3 ProxyOptions that Vercel CDN rewrites cannot handle at the edge.
 // https://vercel.com/docs/rewrites
@@ -276,6 +278,12 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
             continue: true,
           };
         }),
+      // CORS headers of public asset dirs, which the server function does not serve
+      ...getPublicAssetCorsHeaders(nitro).map(({ base, headers }) => ({
+        src: joinURL(escapeRegExp(joinURL(nitro.options.baseURL, base)), "(.*)"),
+        headers,
+        continue: true,
+      })),
       // Redirect and proxy rules (most specific first)
       // Rules left to the server function stop routing so that less specific
       // rules below cannot match.
