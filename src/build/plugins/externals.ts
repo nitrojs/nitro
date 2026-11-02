@@ -22,6 +22,8 @@ export type ExternalsOptions = {
 
 const PLUGIN_NAME = "nitro:externals";
 
+const builtinExternalIds = new Map<string, string>();
+
 export function externals(opts: ExternalsOptions): Plugin {
   const resolved = opts.trace ? resolveTraceDeps(opts.include) : undefined;
 
@@ -87,11 +89,12 @@ export function externals(opts: ExternalsOptions): Plugin {
       filter: { id: { exclude, include } },
       async handler(id, importer, rOpts) {
         // Externalize built-in modules with normalized prefix
-        if (builtinModules.includes(id)) {
+        const builtinId = externalBuiltinId(id);
+        if (builtinId) {
           return {
             resolvedBy: PLUGIN_NAME,
             external: true,
-            id: id.includes(":") ? id : `node:${id}`,
+            id: builtinId,
           };
         }
 
@@ -516,4 +519,24 @@ function flattenExports(
     }
     return typeof value === "object" ? flattenExports(value, _subPath) : [];
   });
+}
+
+function externalBuiltinId(id: string): string | undefined {
+  if (!builtinModules.includes(id)) {
+    return;
+  }
+  if (id.includes(":")) {
+    return id;
+  }
+  let externalId = builtinExternalIds.get(id);
+  if (externalId === undefined) {
+    try {
+      createRequire(import.meta.url).resolve(`node:${id}`);
+      externalId = `node:${id}`;
+    } catch {
+      externalId = id;
+    }
+    builtinExternalIds.set(id, externalId);
+  }
+  return externalId;
 }
