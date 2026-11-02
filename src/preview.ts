@@ -90,11 +90,7 @@ export async function startPreview(opts: PreviewOptions): Promise<PreviewInstanc
     Promise.resolve(new Response("Not Found", { status: 404 }));
 
   if (buildInfo.serverEntry) {
-    for (const [key, val] of dotEnvEntries) {
-      if (!process.env[key]) {
-        process.env[key] = val;
-      }
-    }
+    setUnsetEnv(dotEnvEntries);
     const { loadServerEntry } = await import("srvx/loader");
     const entryPath = resolve(outputDir, buildInfo.serverEntry);
     const entry = await loadServerEntry({ entry: entryPath, ...opts.loader });
@@ -124,7 +120,14 @@ export async function startPreview(opts: PreviewOptions): Promise<PreviewInstanc
   };
 }
 
-export async function loadPreviewDotEnv(root: string): Promise<[string, string][]> {
+/** Load preview `.env` files and apply the variables that are not already set in `process.env`. */
+export async function applyPreviewDotEnv(root: string): Promise<[string, string][]> {
+  const entries = await loadPreviewDotEnv(root);
+  setUnsetEnv(entries);
+  return entries;
+}
+
+async function loadPreviewDotEnv(root: string): Promise<[string, string][]> {
   const { loadDotenv } = await import("c12");
   const env = await loadDotenv({
     cwd: root,
@@ -203,6 +206,14 @@ async function warnOutdatedBuild(rootDir: string, buildDate: string) {
         `\`${basename(configPath)}\` changed after this build. Run \`nitro build\` again, or \`nitro start\` to run the sources without a build.`
       );
       return;
+    }
+  }
+}
+
+function setUnsetEnv(entries: [string, string][]) {
+  for (const [key, val] of entries) {
+    if (!process.env[key]) {
+      process.env[key] = val;
     }
   }
 }

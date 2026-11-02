@@ -1,13 +1,12 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { parseArgs } from "citty";
+import { parseArgs, type ArgsDef } from "citty";
 import consola from "consola";
 import { join } from "pathe";
 import * as srvx from "srvx";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import previewCommand from "../../src/cli/commands/preview.ts";
-import * as previewModule from "../../src/preview.ts";
-import { loadPreviewDotEnv, startPreview } from "../../src/preview.ts";
+import { startPreview } from "../../src/preview.ts";
 
 vi.mock("srvx", () => ({ serve: vi.fn() }));
 
@@ -34,12 +33,6 @@ describe("preview", () => {
     );
   }
 
-  it("loads PORT from .env in the project root", async () => {
-    vi.stubEnv("PORT", undefined);
-    await writeFile(join(rootDir, ".env"), "PORT=14321\n");
-    expect(await loadPreviewDotEnv(rootDir)).toContainEqual(["PORT", "14321"]);
-  });
-
   it.each([undefined, "15432"])(
     "applies dotenv before constructing the CLI server with shell PORT=%s",
     async (port) => {
@@ -49,20 +42,15 @@ describe("preview", () => {
         expect(process.env.PORT).toBe(port || "14321");
         return { serve: vi.fn() } as unknown as ReturnType<typeof srvx.serve>;
       });
-      vi.spyOn(previewModule, "startPreview").mockResolvedValue({
-        fetch: vi.fn(),
-        close: vi.fn(),
-      });
-      vi.spyOn(process, "on").mockReturnValue(process);
 
-      const args = await (typeof previewCommand.args === "function"
-        ? previewCommand.args()
-        : previewCommand.args);
-      await previewCommand.run!({
-        args: parseArgs(["--dir", rootDir], args!),
-        rawArgs: [],
-        cmd: previewCommand,
-      });
+      // No build output: startPreview throws after the server has been constructed
+      await expect(
+        previewCommand.run!({
+          args: parseArgs(["--dir", rootDir], previewCommand.args as ArgsDef),
+          rawArgs: [],
+          cmd: previewCommand,
+        })
+      ).rejects.toThrow("Make sure to build first");
 
       expect(serve).toHaveBeenCalledOnce();
     }
