@@ -11,7 +11,11 @@ import type { NitroRouteRules } from "nitropack/types";
 import { createRouter as createRadixRouter, toRouteMatcher } from "radix3";
 import { getQuery, joinURL, withQuery, withoutBase } from "ufo";
 import { useRuntimeConfig } from "./config";
-import { isPathInScope, isTargetInScope } from "./route-rules-utils";
+import {
+  isPathInScope,
+  isTargetInScope,
+  resolveRedirectTarget,
+} from "./route-rules-utils";
 
 const config = useRuntimeConfig();
 const _routeRulesMatcher = toRouteMatcher(
@@ -30,11 +34,14 @@ export function createRouteRulesHandler(ctx: {
     }
     // Apply redirect options
     if (routeRules.redirect) {
-      const target = resolveRuleTarget(
-        event,
+      const target = resolveRedirectTarget(
+        event.path,
         routeRules.redirect.to,
         (routeRules.redirect as any)._redirectStripBase
       );
+      if (target === undefined) {
+        throw createError({ statusCode: 400 });
+      }
       return sendRedirect(event, target, routeRules.redirect.statusCode);
     }
     // Apply proxy options

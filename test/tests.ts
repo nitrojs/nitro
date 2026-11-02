@@ -293,6 +293,31 @@ export function testNitro(
     expect(legacy.status).toBe(307);
     expect(legacy.headers.location).not.toMatch(/^\/\//);
     expect(legacy.headers.location).toBe("/evil.com");
+
+    // backslashes (raw or encoded), encoded separators and control
+    // characters must not produce a `Location` that browsers resolve cross-origin.
+    for (const payload of [
+      "%5Cevil.com",
+      "%5c%5cevil.com",
+      "%5C/evil.com",
+      "%2F%2Fevil.com",
+      "%09/evil.com",
+      "%0A/evil.com",
+      "%0D/evil.com",
+      "%20/evil.com",
+    ]) {
+      const res = await callHandler({
+        url: `/rules/redirect/legacy/${payload}`,
+      });
+      expect(res.status, payload).toBe(307);
+      expect(res.headers.location, payload).toBe("/evil.com");
+    }
+
+    const legacyNormal = await callHandler({
+      url: "/rules/redirect/legacy/foo?x=1",
+    });
+    expect(legacyNormal.status).toBe(307);
+    expect(legacyNormal.headers.location).toBe("/foo?x=1");
   });
 
   it("binary response", async () => {

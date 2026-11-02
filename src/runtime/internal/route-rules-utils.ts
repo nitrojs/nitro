@@ -1,4 +1,4 @@
-import { parseURL } from "ufo";
+import { getQuery, joinURL, parseURL, withQuery, withoutBase } from "ufo";
 
 // Max percent-decoding passes (covers nested encodings like `%252f`, `%25%32%66`).
 const MAX_DECODE_PASSES = 8;
@@ -103,4 +103,73 @@ export function isTargetInScope(target: string, targetBase: string): boolean {
     parseURL(target).pathname || "/",
     parseURL(targetBase).pathname || ""
   );
+}
+
+// Leading run of path separators (`/`, `\`), C0 control characters and
+// space (U+0000-U+0020), and their single percent-encoded forms. This mirrors
+// WHATWG URL parsing: browsers treat `\` as `/` in special-scheme URLs and strip
+// C0 controls/space at the edges and tab/LF/CR anywhere, so
+// `/\evil.com` or `/<TAB>/evil.com` in a `Location` header resolve to the
+// protocol-relative `//evil.com`.
+const LEADING_SEPARATORS_RE =
+  // eslint-disable-next-line no-control-regex
+  /^(?:[\u0000-\u0020/\\]|%(?:2f|5c|[01][\da-f]|20))+/i;
+
+// Collapse any leading separator run to a single `/` so a path-relative
+// redirect target can never become protocol-relative (cross-origin).
+export function normalizeRedirectPath(path: string): string {
+  return path.replace(LEADING_SEPARATORS_RE, "/");
+}
+
+/**
+ * Resolve the `Location` for a `redirect` route rule.
+ *
+ * @param path - Request path, including the query string (h3 v1 `event.path`).
+ * @param to - Configured redirect target (may end with `/**`).
+ * @param stripBase - Base stripped from `path` (`/old` for `/old/**`). Only used for `/**` targets.
+ * @returns The redirect target, or `undefined` if `path` escapes `stripBase`
+ *   or the remainder escapes the target base.
+ */
+export function resolveRedirectTarget(
+  path: string,
+  to: string,
+  stripBase?: string
+): string | undefined {
+  if (!to.endsWith("/**")) {
+    return path.includes("?") ? withQuery(to, getQuery(path)) : to;
+  }
+  let targetPath = path;
+  if (stripBase) {
+    if (!isPathInScope(path.split("?")[0], stripBase)) {
+      return undefined;
+    }
+    targetPath = withoutBase(targetPath, stripBase);
+  }
+  // Prevent open redirects via a leading `//`, `\`, encoded separators
+  // or control characters
+  targetPath = normalizeRedirectPath(targetPath);
+  const targetBase = to.slice(0, -3);
+  // Normalizing may expose dot-segments (`/\../x` -> `/../x`); the remainder
+  // must never climb above a path-prefixed target base
+  if (
+    targetBase &&
+    targetBase !== "/" &&
+    !isPathInScope(joinURL("/_", targetPath.split("?")[0]), "/_")
+  ) {
+    return undefined;
+  }
+  let target = joinURL(targetBase, targetPath);
+  // Final guard: a root (`/**`) target must always be a same-origin,
+  // path-absolute URL (also avoids an empty `Location` for `/old`)
+  if (!targetBase || targetBase === "/") {
+    target = normalizeRedirectPath(target);
+    if (!target.startsWith("/")) {
+      target = "/" + target;
+    }
+  }
+  // Validate the final target, not only the incoming path (GHSA-jxc8-347r-cw9m)
+  if (!isTargetInScope(target, targetBase)) {
+    return undefined;
+  }
+  return target;
 }
