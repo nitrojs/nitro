@@ -33,7 +33,7 @@ import { nitroPreviewPlugin } from "./preview.ts";
 import { nitroAssetsImport } from "./_assets.ts";
 import { defu } from "defu";
 import type { Nitro, NitroConfig, NitroModule } from "nitro/types";
-import { nitroDevServiceProxy, viteServicesTemplate } from "./services.ts";
+import { nitroDevServiceProxy, SERVICE_MANIFEST_FILE, viteServicesTemplate } from "./services.ts";
 import { nitroRequireExternals } from "./_require-externals.ts";
 import { nitroServerAliases } from "./_server-aliases.ts";
 import { importVite, setRunningVite, viteImportOptions } from "./_import.ts";
@@ -361,6 +361,11 @@ function nitroMain(ctx: NitroPluginContext): VitePlugin {
             this.error(`No entry point found for service "${this.environment.name}".`);
           }
           ctx._entryPoints![this.environment.name] = entryFile!;
+          this.emitFile({
+            type: "asset",
+            fileName: SERVICE_MANIFEST_FILE,
+            source: JSON.stringify({ entry: entryFile }),
+          });
         }
       },
     },
