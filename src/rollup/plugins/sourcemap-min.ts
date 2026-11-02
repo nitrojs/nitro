@@ -18,7 +18,7 @@ export function sourcemapMininify() {
         // Only wipe mappings when every source is from node_modules, so that
         // chunks mixing user code with hoisted library code keep their mappings
         if (
-          !(sourcemap.sources || []).every((s) => s.includes("node_modules"))
+          !(sourcemap.sources || []).every((s) => s?.includes("node_modules"))
         ) {
           continue;
         }
