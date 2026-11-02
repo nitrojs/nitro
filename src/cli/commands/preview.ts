@@ -1,7 +1,7 @@
 import { defineCommand } from "citty";
 import { resolve } from "pathe";
 import { commonArgs } from "../common.ts";
-import { startPreview } from "../../preview.ts";
+import { applyPreviewDotEnv, startPreview } from "../../preview.ts";
 import { serve } from "srvx";
 import { loggerMiddleware } from "srvx/log";
 
@@ -17,6 +17,9 @@ export default defineCommand({
   },
   async run({ args }) {
     const rootDir = resolve((args.dir || args._dir || ".") as string);
+
+    // Apply .env before srvx resolves the listen port from `process.env.PORT`
+    await applyPreviewDotEnv(rootDir);
 
     const server = serve({
       fetch(req) {
