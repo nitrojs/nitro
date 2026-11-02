@@ -285,6 +285,53 @@ describe("netlify _redirects and _headers", () => {
       expect.stringMatching(/`\/num\/\*\*`.*`\/num\/:id\(\\d\+\)`/)
     );
   });
+
+  it("skips redirects that would also match a `redirect: false` rule", async () => {
+    const { dir, nitro } = await createNitro({
+      routeRules: {
+        "/foo/**": { redirect: { to: "/x", status: 302 } },
+        "/foo/keep": { redirect: false },
+        "/bar/**": { redirect: { to: "/y", status: 302 } },
+        "GET /bar/keep": { redirect: false },
+        "/off/**": { redirect: false },
+        "/off/on": { redirect: { to: "/z", status: 302 } },
+      },
+    });
+    await writeRedirects(nitro);
+    expect(await readFile(join(dir, "public/_redirects"), "utf8")).toBe("/off/on\t/z\t302\n");
+    expect(nitro.logger.warn).toHaveBeenCalledTimes(2);
+    expect(nitro.logger.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/`\/foo\/\*\*`.*`\/foo\/keep`/)
+    );
+    expect(nitro.logger.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/`\/bar\/\*\*`.*`GET \/bar\/keep`/)
+    );
+  });
+
+  it("skips redirects that would also match requests at their target", async () => {
+    const { dir, nitro } = await createNitro({
+      routeRules: {
+        "/docs/**": { redirect: { to: "/docs/v2/**", status: 302 } },
+        "/a/**": { redirect: { to: "/a/b?x=1", status: 302 } },
+        "/b/**": { redirect: { to: "/b/(x", status: 302 } },
+        "/c/d/**": { redirect: { to: "/c/**.html", status: 302 } },
+        "/**": { redirect: { to: "https://nitro.build/**", status: 302 } },
+        "/old/**": { redirect: { to: "/new/**", status: 302 } },
+        "/legacy/**": { redirect: { to: "/**", status: 302 } },
+      },
+    });
+    await writeRedirects(nitro);
+    expect(await readFile(join(dir, "public/_redirects"), "utf8")).toBe(
+      "/legacy/*\t/:splat\t302\n/old/*\t/new/:splat\t302\n"
+    );
+    expect(nitro.logger.warn).toHaveBeenCalledTimes(5);
+    expect(nitro.logger.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/`\/docs\/\*\*`.*`\/docs\/v2\/\*\*`/)
+    );
+    expect(nitro.logger.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/`\/a\/\*\*`.*`\/a\/b\?x=1`/)
+    );
+  });
 });
 
 describe("cloudflare pages _redirects and _headers", () => {
@@ -416,6 +463,30 @@ describe("cloudflare pages _redirects and _headers", () => {
       "/a/:id/*.png\n  x-png: 1\n/ok/*\n  x-ok: 1"
     );
     expect(nitro.logger.warn).toHaveBeenCalledTimes(3);
+  });
+
+  it("skips redirects that the runtime skips for some of their requests", async () => {
+    const { dir, nitro } = await createNitro({
+      baseURL: "/base/",
+      routeRules: {
+        "/foo/**": { redirect: { to: "/x", status: 302 } },
+        "/foo/keep": { redirect: false },
+        "/docs/**": { redirect: { to: "/base/docs/v2/**", status: 302 } },
+        // Targets are used as written, outside of the `/base/old/*` source
+        "/old/**": { redirect: { to: "/old/v2/**", status: 302 } },
+      },
+    });
+    await writeCFPagesRedirects(nitro);
+    expect(await readFile(join(dir, "_redirects"), "utf8")).toBe(
+      "/base/old/*\t/old/v2/:splat\t302\n"
+    );
+    expect(nitro.logger.warn).toHaveBeenCalledTimes(2);
+    expect(nitro.logger.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/`\/foo\/\*\*`.*`\/foo\/keep`/)
+    );
+    expect(nitro.logger.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/`\/docs\/\*\*`.*`\/base\/docs\/v2\/\*\*`/)
+    );
   });
 });
 

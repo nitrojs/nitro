@@ -1,5 +1,6 @@
 import type { Nitro, NormalizedRouteRules } from "nitro/types";
-import { addRoute, compareRoutes, createRouter, findOverlappingRoutes } from "rou3";
+import { addRoute, compareRoutes, createRouter, findOverlappingRoutes, routesOverlap } from "rou3";
+import { joinURL } from "ufo";
 
 const CATCH_ALL_RE = /\*\*(?::\w+)?/g;
 const METHOD_KEY_RE = /^([A-Za-z]+)\s+(\/.*)$/;
@@ -19,6 +20,7 @@ const HTTP_METHODS = new Set([
 const NAMED_PARAM_RE = /^:[A-Za-z]\w*$/;
 const SPECIAL_CHARS_RE = /[*:?+(){}]/;
 const SPLAT_SEGMENT_RE = /^[^*:?+(){}]*\*[^*:?+(){}]*$/;
+const ROUTE_SYNTAX_RE = /[*:?+(){}\\]/g;
 
 type PlatformRouteFile = "_redirects" | "_headers";
 
@@ -39,39 +41,52 @@ export function parseRouteKey(key: string): { path: string; methods?: string[] }
 /**
  * Warn and return `true` when a route rule has to be left out of a
  * `_redirects` or `_headers` file: a method-scoped rule, as the file cannot
- * match by method, or a pattern that its path syntax cannot express (see
- * {@link isSplatExpressible}).
- *
- * With `routes`, the other rules of a file where the first match wins, a rule
- * that would shadow a skipped one (see {@link findShadowedRoute}) is left out
- * too, so that the runtime handles all of their requests.
+ * match by method, a pattern that its path syntax cannot express (see
+ * {@link isSplatExpressible}), or a redirect that h3 skips for some of its
+ * requests, those of a more specific `redirect: false` rule or those already
+ * at its target, which the platform would redirect (in a loop).
  */
 export function skipUnsupportedRoute(
   nitro: Nitro,
-  opts: { route: string; file: PlatformRouteFile; routes?: string[] }
+  opts: { route: string; file: PlatformRouteFile }
 ): boolean {
   const { route, file } = opts;
-  const reason = unsupportedReason(route, file);
-  if (reason) {
-    nitro.logger.warn(
-      `Skipping route rule \`${route}\` in \`${file}\`, ${reason}. The Nitro runtime still applies it` +
-        (file === "_headers" ? ", but not to static assets." : ".")
-    );
-    return true;
-  }
-  const shadowed =
-    opts.routes &&
-    findShadowedRoute(
-      route,
-      opts.routes.filter((key) => unsupportedReason(key, file))
-    );
-  if (!shadowed) {
+  const reason = unsupportedReason(nitro, route, file);
+  if (!reason) {
     return false;
   }
   nitro.logger.warn(
-    `Skipping route rule \`${route}\` in \`${file}\`, as it would take precedence over the skipped route rule \`${shadowed}\`. The Nitro runtime still applies both.`
+    `Skipping route rule \`${route}\` in \`${file}\`, ${reason}. The Nitro runtime still applies it` +
+      (file === "_headers" ? ", but not to static assets." : ".")
   );
   return true;
+}
+
+/**
+ * The keys of the `redirect` rules to write to a `_redirects` file, most
+ * specific first, as the first match wins. The rules skipped by
+ * {@link skipUnsupportedRoute} are left out, and so are the rules that would
+ * shadow one of them (see {@link findShadowedRoute}), so that the runtime
+ * handles all of their requests.
+ */
+export function getRedirectRoutes(nitro: Nitro): string[] {
+  const { routeRules } = nitro.options;
+  const redirects = sortRoutes(Object.keys(routeRules)).filter((key) => routeRules[key]!.redirect);
+  const skipped = new Set(
+    redirects.filter((route) => skipUnsupportedRoute(nitro, { route, file: "_redirects" }))
+  );
+  return redirects.filter((route) => {
+    if (skipped.has(route)) {
+      return false;
+    }
+    const shadowed = findShadowedRoute(route, [...skipped]);
+    if (shadowed) {
+      nitro.logger.warn(
+        `Skipping route rule \`${route}\` in \`_redirects\`, as it would take precedence over the skipped route rule \`${shadowed}\`. The Nitro runtime still applies both.`
+      );
+    }
+    return !shadowed;
+  });
 }
 
 /**
@@ -151,7 +166,11 @@ export function catchAllRef(src: RegExp): string {
   return `$${groups || 1}`;
 }
 
-function unsupportedReason(route: string, file: PlatformRouteFile): string | undefined {
+function unsupportedReason(
+  nitro: Nitro,
+  route: string,
+  file: PlatformRouteFile
+): string | undefined {
   const { path, methods } = parseRouteKey(route);
   if (methods) {
     return "as it cannot match by HTTP method";
@@ -159,6 +178,39 @@ function unsupportedReason(route: string, file: PlatformRouteFile): string | und
   if (!isSplatExpressible(path, { file })) {
     return "as its path syntax cannot express the pattern";
   }
+  const { routeRules, baseURL } = nitro.options;
+  const redirect = file === "_redirects" && routeRules[route]?.redirect;
+  if (!redirect) {
+    return;
+  }
+  const optOut = findShadowedRoute(
+    route,
+    Object.keys(routeRules).filter((key) => routeRules[key]!.redirect === false)
+  );
+  if (optOut) {
+    return `as it would also redirect \`${optOut}\`, which sets \`redirect: false\``;
+  }
+  const target = targetPattern(redirect.to);
+  if (target && routesOverlap(joinURL(baseURL, path), target)) {
+    return `as it would also redirect requests already at its target \`${redirect.to}\``;
+  }
+}
+
+/**
+ * The path of a `redirect` target on the same host as a route pattern, as h3
+ * does not redirect the requests that are already at the target. A segment
+ * with `**` (`**` or `**.html`) matches anything. `undefined` for another host
+ * or a `/**` target, which h3 always redirects.
+ */
+function targetPattern(to: string): string | undefined {
+  const path = to.replace(/[?#].*$/s, "");
+  if (!path.startsWith("/") || path[1] === "/" || path[1] === "\\" || path === "/**") {
+    return;
+  }
+  return path
+    .split("/")
+    .map((segment) => (segment.includes("**") ? "**" : segment.replace(ROUTE_SYNTAX_RE, "\\$&")))
+    .join("/");
 }
 
 function methodRank(route: string): number {
