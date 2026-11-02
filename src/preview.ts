@@ -124,7 +124,7 @@ export async function startPreview(opts: PreviewOptions): Promise<PreviewInstanc
   };
 }
 
-async function loadPreviewDotEnv(root: string): Promise<[string, string][]> {
+export async function loadPreviewDotEnv(root: string): Promise<[string, string][]> {
   const { loadDotenv } = await import("c12");
   const env = await loadDotenv({
     cwd: root,

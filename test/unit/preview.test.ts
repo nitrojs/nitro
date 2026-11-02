@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import consola from "consola";
 import { join } from "pathe";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { startPreview } from "../../src/preview.ts";
+import { loadPreviewDotEnv, startPreview } from "../../src/preview.ts";
 
 describe("preview", () => {
   let rootDir: string;
@@ -15,6 +15,7 @@ describe("preview", () => {
   });
 
   afterEach(async () => {
+    vi.unstubAllEnvs();
     vi.restoreAllMocks();
     await rm(rootDir, { recursive: true, force: true });
   });
@@ -26,6 +27,12 @@ describe("preview", () => {
       JSON.stringify({ date: date.toJSON(), preset: "node-server", versions: { nitro: "3" } })
     );
   }
+
+  it("loads PORT from .env in the project root", async () => {
+    vi.stubEnv("PORT", undefined);
+    await writeFile(join(rootDir, ".env"), "PORT=14321\n");
+    expect(await loadPreviewDotEnv(rootDir)).toContainEqual(["PORT", "14321"]);
+  });
 
   it("warns when the config changed after the build", async () => {
     await writeBuild(new Date(Date.now() - 60_000));
