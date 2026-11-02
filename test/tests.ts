@@ -570,6 +570,21 @@ export function testNitro(
     expect(data).toBe("evil.com");
   });
 
+  it("runtime proxy rejects scope bypass via empty segment or prefix re-entry", async () => {
+    for (const url of [
+      "/rules/proxy/legacy/..%2fadmin",
+      "/rules/proxy/legacy//..%2fadmin",
+      "/rules/proxy/legacy//%2e%2e%2fadmin",
+      "/rules/proxy/legacy//..%2f//..%2fadmin",
+      "/rules/proxy/legacy/..%2frules%2fproxy%2flegacy%2fadmin",
+    ]) {
+      const { status } = await callHandler({ url });
+      expect(status, url).toBe(400);
+    }
+    const { data } = await callHandler({ url: "/rules/proxy/legacy/foo/bar" });
+    expect(data).toBe("foo/bar");
+  });
+
   it.skipIf(ctx.preset === "bun" /* TODO */)("stream", async () => {
     const { data } = await callHandler({
       url: "/stream",

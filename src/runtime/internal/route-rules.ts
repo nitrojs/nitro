@@ -11,7 +11,7 @@ import type { NitroRouteRules } from "nitropack/types";
 import { createRouter as createRadixRouter, toRouteMatcher } from "radix3";
 import { getQuery, joinURL, withQuery, withoutBase } from "ufo";
 import { useRuntimeConfig } from "./config";
-import { isPathInScope } from "./route-rules-utils";
+import { isPathInScope, isTargetInScope } from "./route-rules-utils";
 
 const config = useRuntimeConfig();
 const _routeRulesMatcher = toRouteMatcher(
@@ -30,50 +30,55 @@ export function createRouteRulesHandler(ctx: {
     }
     // Apply redirect options
     if (routeRules.redirect) {
-      let target = routeRules.redirect.to;
-      if (target.endsWith("/**")) {
-        let targetPath = event.path;
-        const strpBase = (routeRules.redirect as any)._redirectStripBase;
-        if (strpBase) {
-          if (!isPathInScope(event.path.split("?")[0], strpBase)) {
-            throw createError({ statusCode: 400 });
-          }
-          targetPath = withoutBase(targetPath, strpBase);
-        } else if (targetPath.startsWith("//")) {
-          targetPath = targetPath.replace(/^\/+/, "/");
-        }
-        target = joinURL(target.slice(0, -3), targetPath);
-      } else if (event.path.includes("?")) {
-        const query = getQuery(event.path);
-        target = withQuery(target, query);
-      }
+      const target = resolveRuleTarget(
+        event,
+        routeRules.redirect.to,
+        (routeRules.redirect as any)._redirectStripBase
+      );
       return sendRedirect(event, target, routeRules.redirect.statusCode);
     }
     // Apply proxy options
     if (routeRules.proxy) {
-      let target = routeRules.proxy.to;
-      if (target.endsWith("/**")) {
-        let targetPath = event.path;
-        const strpBase = (routeRules.proxy as any)._proxyStripBase;
-        if (strpBase) {
-          if (!isPathInScope(event.path.split("?")[0], strpBase)) {
-            throw createError({ statusCode: 400 });
-          }
-          targetPath = withoutBase(targetPath, strpBase);
-        } else if (targetPath.startsWith("//")) {
-          targetPath = targetPath.replace(/^\/+/, "/");
-        }
-        target = joinURL(target.slice(0, -3), targetPath);
-      } else if (event.path.includes("?")) {
-        const query = getQuery(event.path);
-        target = withQuery(target, query);
-      }
+      const target = resolveRuleTarget(
+        event,
+        routeRules.proxy.to,
+        (routeRules.proxy as any)._proxyStripBase
+      );
       return proxyRequest(event, target, {
         fetch: ctx.localFetch,
         ...routeRules.proxy,
       });
     }
   });
+}
+
+function resolveRuleTarget(
+  event: H3Event,
+  to: string,
+  stripBase: string | undefined
+): string {
+  if (!to.endsWith("/**")) {
+    if (event.path.includes("?")) {
+      return withQuery(to, getQuery(event.path));
+    }
+    return to;
+  }
+  const targetBase = to.slice(0, -3);
+  let targetPath = event.path;
+  if (stripBase) {
+    if (!isPathInScope(event.path.split("?")[0], stripBase)) {
+      throw createError({ statusCode: 400 });
+    }
+    targetPath = withoutBase(targetPath, stripBase);
+  } else if (targetPath.startsWith("//")) {
+    targetPath = targetPath.replace(/^\/+/, "/");
+  }
+  const target = joinURL(targetBase, targetPath);
+  // Validate the final target, not only the incoming path
+  if (!isTargetInScope(target, targetBase)) {
+    throw createError({ statusCode: 400 });
+  }
+  return target;
 }
 
 export function getRouteRules(event: H3Event): NitroRouteRules {
