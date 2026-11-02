@@ -27,8 +27,6 @@ const skip = new Set<string>([
       ]
     : [
         "vite-rsc",
-        // No tsConfigPaths support in rollup
-        "import-alias",
         // @vitejs/plugin-react depends on vite 8 vite/internal import
         "vite-ssr-react",
         "vite-ssr-tsr-react",

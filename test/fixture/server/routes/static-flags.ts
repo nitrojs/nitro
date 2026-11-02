@@ -1,6 +1,7 @@
 export default async () => {
   return {
     dev: import.meta.dev,
+    envName: import.meta.envName,
     preset: import.meta.preset,
     prerender: import.meta.prerender,
     nitro: import.meta.nitro,

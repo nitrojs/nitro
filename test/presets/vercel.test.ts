@@ -5,6 +5,7 @@ import { resolve, join, basename } from "pathe";
 import { joinURL } from "ufo";
 import { routeToRegExp } from "rou3";
 import { describe, expect, it, vi, beforeAll, afterAll } from "vitest";
+import { isBun } from "std-env";
 import { setupTest, testNitro, fixtureDir } from "../tests.ts";
 import { toFetchHandler } from "srvx/node";
 
@@ -45,6 +46,17 @@ describe("nitro:preset:vercel:web", async () => {
       },
       routeRules: {
         "/rules/nested/keep": { redirect: false, headers: { "x-keep": "keep" } },
+        "/rules/scoped/**": { redirect: false, headers: { "x-scoped": "scoped" } },
+        "/rules/scoped/old": { redirect: "/base" },
+        "/rules/isr-true/**": { isr: true },
+        "/rules/isr-query-empty/**": { isr: { allowQuery: [] } },
+        "/rules/isr-query-nopass/**": { isr: { allowQuery: ["q"], passQuery: false } },
+        // Vercel rejects routes with empty `headers`
+        "/rules/cors-only": { cors: true },
+        "/rules/cors-empty-headers/**": { cors: true, headers: {} },
+        "/rules/cdn-empty-headers/**": { proxy: "https://cdn.jsdelivr.net/**", headers: {} },
+        // Public asset dirs are served without the server function, that applies `cors`
+        "/build/**": { cors: true },
       },
       vercel: {
         queues: {
@@ -82,6 +94,11 @@ describe("nitro:preset:vercel:web", async () => {
         const config = await fsp
           .readFile(resolve(ctx.outDir, "config.json"), "utf8")
           .then((r) => JSON.parse(r));
+        if (isBun) {
+          // Prerendered with Bun, which uses its own default content type for text bodies
+          expect(config.overrides["json-string"].contentType).toBe("text/plain;charset=utf-8");
+          config.overrides["json-string"].contentType = "text/plain; charset=UTF-8";
+        }
         expect(config).toMatchInlineSnapshot(`
           {
             "crons": [
@@ -137,10 +154,18 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/rules\\/cors\\/?$",
               },
               {
+                "continue": true,
                 "headers": {
                   "x-keep": "keep",
                 },
                 "src": "^\\/rules\\/nested\\/keep\\/?$",
+              },
+              {
+                "continue": true,
+                "headers": {
+                  "x-scoped": "scoped",
+                },
+                "src": "^\\/rules\\/scoped(?:\\/(?<_0>(?:[\\s\\S]*[^/])?\\/*?))??\\/?$",
               },
               {
                 "continue": true,
@@ -157,8 +182,38 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/build(?:\\/(?<_0>(?:[\\s\\S]*[^/])?\\/*?))??\\/?$",
               },
               {
+                "continue": true,
+                "headers": {
+                  "access-control-allow-origin": "*",
+                  "access-control-expose-headers": "*",
+                },
+                "src": "/build/(.*)",
+              },
+              {
                 "dest": "https://cdn.jsdelivr.net/$1",
                 "src": "^\\/cdn(?:\\/(?<_0>(?:[\\s\\S]*[^/])?\\/*?))??\\/?$",
+              },
+              {
+                "headers": {
+                  "Location": "/base",
+                },
+                "methods": [
+                  "GET",
+                  "HEAD",
+                ],
+                "src": "^\\/rules\\/method-scoped\\/redirect\\/?$",
+                "status": 307,
+              },
+              {
+                "dest": "https://cdn.jsdelivr.net/$1",
+                "src": "^\\/rules\\/cdn-empty-headers(?:\\/(?<_0>(?:[\\s\\S]*[^/])?\\/*?))??\\/?$",
+              },
+              {
+                "headers": {
+                  "Location": "/base",
+                },
+                "src": "^\\/rules\\/scoped\\/old\\/?$",
+                "status": 307,
               },
               {
                 "src": "^\\/rules\\/proxy\\/legacy(?:\\/(?<_0>(?:[\\s\\S]*[^/])?\\/*?))??\\/?$",
@@ -175,7 +230,7 @@ describe("nitro:preset:vercel:web", async () => {
                   "Location": "/base",
                   "x-test": "test",
                 },
-                "src": "^\\/rules\\/nested(?:\\/(?<_0>(?:[\\s\\S]*[^/])?\\/*?))??\\/?$",
+                "src": "^(?!(?:\\/rules\\/nested\\/keep\\/?)$)\\/rules\\/nested(?:\\/(?<_0>(?:[\\s\\S]*[^/])?\\/*?))??\\/?$",
                 "status": 307,
               },
               {
@@ -224,6 +279,18 @@ describe("nitro:preset:vercel:web", async () => {
                 "status": 404,
               },
               {
+                "dest": "/rules/isr-query-nopass/[...]-isr?__isr_route=$__isr_route",
+                "src": "^(?<__isr_route>\\/rules\\/isr-query-nopass(?:\\/(?<_0>(?:[\\s\\S]*[^/])?\\/*?))??\\/?)$",
+              },
+              {
+                "dest": "/rules/isr-query-empty/[...]-isr?__isr_route=$__isr_route",
+                "src": "^(?<__isr_route>\\/rules\\/isr-query-empty(?:\\/(?<_0>(?:[\\s\\S]*[^/])?\\/*?))??\\/?)$",
+              },
+              {
+                "dest": "/rules/isr-true/[...]-isr?__isr_route=$__isr_route",
+                "src": "^(?<__isr_route>\\/rules\\/isr-true(?:\\/(?<_0>(?:[\\s\\S]*[^/])?\\/*?))??\\/?)$",
+              },
+              {
                 "dest": "/__server",
                 "src": "^(?<__isr_route>\\/rules\\/_\\/cached\\/noncached\\/?)$",
               },
@@ -238,14 +305,6 @@ describe("nitro:preset:vercel:web", async () => {
               {
                 "dest": "/__server",
                 "src": "^(?<__isr_route>\\/rules\\/_\\/noncached(?:\\/(?<_0>(?:[\\s\\S]*[^/])?\\/*?))??\\/?)$",
-              },
-              {
-                "dest": "/rules/swr-ttl/[...]-isr?__isr_route=$__isr_route",
-                "src": "^(?<__isr_route>\\/rules\\/swr-ttl(?:\\/(?<_0>(?:[\\s\\S]*[^/])?\\/*?))??\\/?)$",
-              },
-              {
-                "dest": "/rules/swr/[...]-isr?__isr_route=$__isr_route",
-                "src": "^(?<__isr_route>\\/rules\\/swr(?:\\/(?<_0>(?:[\\s\\S]*[^/])?\\/*?))??\\/?)$",
               },
               {
                 "dest": "/rules/isr-ttl/[...]-isr?__isr_route=$__isr_route",
@@ -284,6 +343,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/_vercel\\/cron\\/?$",
               },
               {
+                "dest": "/traced-root-export",
+                "src": "^\\/traced-root-export\\/?$",
+              },
+              {
                 "dest": "/virtual",
                 "src": "^\\/virtual\\/?$",
               },
@@ -305,7 +368,7 @@ describe("nitro:preset:vercel:web", async () => {
               },
               {
                 "dest": "/tasks/[...name]",
-                "src": "^\\/tasks\\/(?<name>[^/]+(?:\\/[^/]+)*)\\/?$",
+                "src": "^\\/tasks(?:\\/(?<name>(?:[\\s\\S]*[^/])?\\/*?))?\\/?$",
               },
               {
                 "dest": "/stream",
@@ -320,8 +383,12 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/single-headers\\/(?<id>[^/]+)\\/?$",
               },
               {
+                "dest": "/rules/swr/middleware-order",
+                "src": "^\\/rules\\/swr\\/middleware-order\\/?$",
+              },
+              {
                 "dest": "/rules/[...slug]",
-                "src": "^\\/rules\\/(?<slug>[^/]+(?:\\/[^/]+)*)\\/?$",
+                "src": "^\\/rules(?:\\/(?<slug>(?:[\\s\\S]*[^/])?\\/*?))?\\/?$",
               },
               {
                 "dest": "/replace",
@@ -364,12 +431,24 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/fetch\\/?$",
               },
               {
+                "dest": "/fetch-public-asset",
+                "src": "^\\/fetch-public-asset\\/?$",
+              },
+              {
+                "dest": "/fast-response",
+                "src": "^\\/fast-response\\/?$",
+              },
+              {
                 "dest": "/errors/throw",
                 "src": "^\\/errors\\/throw\\/?$",
               },
               {
                 "dest": "/errors/stack",
                 "src": "^\\/errors\\/stack\\/?$",
+              },
+              {
+                "dest": "/errors/err-headers",
+                "src": "^\\/errors\\/err-headers\\/?$",
               },
               {
                 "dest": "/errors/captured",
@@ -392,6 +471,10 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/config\\/?$",
               },
               {
+                "dest": "/cjs-builtins",
+                "src": "^\\/cjs-builtins\\/?$",
+              },
+              {
                 "dest": "/build-plugins",
                 "src": "^\\/build-plugins\\/?$",
               },
@@ -408,12 +491,16 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/assets\\/(?<id>[^/]+)\\/?$",
               },
               {
-                "dest": "/api/test/[-]/foo",
+                "dest": "/asset-url",
+                "src": "^\\/asset-url\\/?$",
+              },
+              {
+                "dest": "/api/test/[...]/foo",
                 "src": "^\\/api\\/test\\/(?<_0>[\\s\\S]*)\\/foo\\/?$",
               },
               {
                 "dest": "/api/wildcard/[...param]",
-                "src": "^\\/api\\/wildcard\\/(?<param>[^/]+(?:\\/[^/]+)*)\\/?$",
+                "src": "^\\/api\\/wildcard(?:\\/(?<param>(?:[\\s\\S]*[^/])?\\/*?))?\\/?$",
               },
               {
                 "dest": "/api/upload",
@@ -438,6 +525,14 @@ describe("nitro:preset:vercel:web", async () => {
               {
                 "dest": "/api/methods/search",
                 "src": "^\\/api\\/methods\\/search\\/?$",
+              },
+              {
+                "dest": "/api/methods/head",
+                "src": "^\\/api\\/methods\\/head\\/?$",
+              },
+              {
+                "dest": "/api/methods/guarded",
+                "src": "^\\/api\\/methods\\/guarded\\/?$",
               },
               {
                 "dest": "/api/methods/get",
@@ -468,8 +563,24 @@ describe("nitro:preset:vercel:web", async () => {
                 "src": "^\\/api\\/db\\/?$",
               },
               {
+                "dest": "/api/catch-all/[...slug]",
+                "src": "^\\/api\\/catch-all(?:\\/(?<slug>(?:[\\s\\S]*[^/])?\\/*?))?\\/?$",
+              },
+              {
+                "dest": "/api/catch-all-index",
+                "src": "^\\/api\\/catch-all-index\\/?$",
+              },
+              {
+                "dest": "/api/catch-all-index/[...slug]",
+                "src": "^\\/api\\/catch-all-index(?:\\/(?<slug>(?:[\\s\\S]*[^/])?\\/*?))?\\/?$",
+              },
+              {
                 "dest": "/api/cached",
                 "src": "^\\/api\\/cached\\/?$",
+              },
+              {
+                "dest": "/api/cached-middleware",
+                "src": "^\\/api\\/cached-middleware\\/?$",
               },
               {
                 "dest": "/api/body-size",
@@ -511,6 +622,18 @@ describe("nitro:preset:vercel:web", async () => {
           .then((r) => JSON.parse(r));
         expect(manifest.version).toBe(1);
         expect(manifest.hashes).toBeTypeOf("object");
+      });
+
+      it("should not write routes with empty headers", async () => {
+        const config = await fsp
+          .readFile(resolve(ctx.outDir, "config.json"), "utf8")
+          .then((r) => JSON.parse(r));
+        expect(
+          config.routes.filter(
+            (route: { headers?: object }) =>
+              route.headers && Object.keys(route.headers).length === 0
+          )
+        ).toEqual([]);
       });
 
       it("should not cache missing immutable public assets", async () => {
@@ -573,30 +696,83 @@ describe("nitro:preset:vercel:web", async () => {
         );
       });
 
-      it("should not continue into less specific redirects when `redirect: false`", async () => {
+      it("should keep `redirect: false` paths out of broader redirects only", async () => {
         const config = await fsp
           .readFile(resolve(ctx.outDir, "config.json"), "utf8")
           .then((r) => JSON.parse(r));
-        const keepIndex = config.routes.findIndex(
-          (route: { src?: string }) => route.src === routeToRegExp("/rules/nested/keep").source
-        );
-        const redirectIndex = config.routes.findIndex(
-          (route: { src?: string }) => route.src === routeToRegExp("/rules/nested/**").source
-        );
-        expect(config.routes[keepIndex]).toMatchObject({ headers: { "x-keep": "keep" } });
-        expect(keepIndex).toBeLessThan(redirectIndex);
-        expect(config.routes[keepIndex].continue).toBeUndefined();
+        // Vercel stops at the first matching route that does not `continue`
+        const firstMatch = (path: string) =>
+          config.routes.find(
+            (route: { src?: string; continue?: boolean }) =>
+              route.src && !route.continue && new RegExp(route.src).test(path)
+          );
+        const headerRoute = (route: string) =>
+          config.routes.find((r: { src?: string }) => r.src === routeToRegExp(route).source);
+
+        expect(headerRoute("/rules/nested/keep")).toMatchObject({
+          headers: { "x-keep": "keep" },
+          continue: true,
+        });
+        expect(firstMatch("/rules/nested/keep")).toMatchObject({ dest: "/rules/[...slug]" });
+        expect(firstMatch("/rules/nested/other")?.headers?.Location).toBe("/base");
+
+        // More specific rules under a `redirect: false` path still run at the edge (#4655)
+        expect(headerRoute("/rules/scoped/**")).toMatchObject({
+          headers: { "x-scoped": "scoped" },
+          continue: true,
+        });
+        expect(firstMatch("/rules/scoped/old")).toMatchObject({
+          status: 307,
+          headers: { Location: "/base" },
+        });
       });
 
       it("should generate prerender config", async () => {
-        const isrRouteConfig = await fsp.readFile(
-          resolve(ctx.outDir, "functions/rules/isr/[...]-isr.prerender-config.json"),
-          "utf8"
-        );
-        expect(JSON.parse(isrRouteConfig)).toMatchObject({
-          expiration: false,
-          allowQuery: ["q", "__isr_route"],
-        });
+        const readPrerenderConfig = (route: string) =>
+          fsp
+            .readFile(resolve(ctx.outDir, `functions${route}-isr.prerender-config.json`), "utf8")
+            .then((r) => JSON.parse(r));
+        // `allowQuery` set: `passQuery` is enabled so the handler sees the params (#4408)
+        expect(await readPrerenderConfig("/rules/isr/[...]")).toMatchInlineSnapshot(`
+          {
+            "allowQuery": [
+              "q",
+              "__isr_route",
+            ],
+            "expiration": false,
+            "passQuery": true,
+          }
+        `);
+        // Explicit `passQuery: false` is respected
+        expect(await readPrerenderConfig("/rules/isr-query-nopass/[...]")).toMatchInlineSnapshot(`
+          {
+            "allowQuery": [
+              "q",
+              "__isr_route",
+            ],
+            "expiration": false,
+            "passQuery": false,
+          }
+        `);
+        // Empty `allowQuery`, `isr: true` and `isr: <number>` are unchanged
+        expect(await readPrerenderConfig("/rules/isr-query-empty/[...]")).toMatchInlineSnapshot(`
+          {
+            "allowQuery": [
+              "__isr_route",
+            ],
+            "expiration": false,
+          }
+        `);
+        expect(await readPrerenderConfig("/rules/isr-true/[...]")).toMatchInlineSnapshot(`
+          {
+            "expiration": false,
+          }
+        `);
+        expect(await readPrerenderConfig("/rules/isr-ttl/[...]")).toMatchInlineSnapshot(`
+          {
+            "expiration": 60,
+          }
+        `);
       });
 
       const walkDir = async (path: string): Promise<string[]> => {
@@ -628,7 +804,11 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/_vercel",
             "functions/_ws.func (symlink)",
             "functions/api/body-size.func (symlink)",
+            "functions/api/cached-middleware.func (symlink)",
             "functions/api/cached.func (symlink)",
+            "functions/api/catch-all-index.func (symlink)",
+            "functions/api/catch-all-index/[...slug].func (symlink)",
+            "functions/api/catch-all/[...slug].func (symlink)",
             "functions/api/db.func (symlink)",
             "functions/api/echo.func",
             "functions/api/headers.func (symlink)",
@@ -637,25 +817,32 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/api/meta/test.func (symlink)",
             "functions/api/methods/foo.get.func (symlink)",
             "functions/api/methods/get.func (symlink)",
+            "functions/api/methods/guarded.func (symlink)",
+            "functions/api/methods/head.func (symlink)",
             "functions/api/methods/search.func (symlink)",
             "functions/api/middleware-order.func (symlink)",
             "functions/api/param/[test_id].func (symlink)",
             "functions/api/storage/item.func (symlink)",
             "functions/api/storage/legacy.func (symlink)",
-            "functions/api/test/[-]/foo.func (symlink)",
+            "functions/api/test/[...]/foo.func (symlink)",
             "functions/api/upload.func (symlink)",
             "functions/api/wildcard/[...param].func (symlink)",
+            "functions/asset-url.func (symlink)",
             "functions/assets/[id].func (symlink)",
             "functions/assets/all.func (symlink)",
             "functions/assets/md.func (symlink)",
             "functions/build-plugins.func (symlink)",
+            "functions/cjs-builtins.func (symlink)",
             "functions/config.func (symlink)",
             "functions/context.func (symlink)",
             "functions/embedded-kit.func (symlink)",
             "functions/env.func (symlink)",
             "functions/errors/captured.func (symlink)",
+            "functions/errors/err-headers.func (symlink)",
             "functions/errors/stack.func (symlink)",
             "functions/errors/throw.func (symlink)",
+            "functions/fast-response.func (symlink)",
+            "functions/fetch-public-asset.func (symlink)",
             "functions/fetch.func (symlink)",
             "functions/file.func (symlink)",
             "functions/icon.png.func (symlink)",
@@ -672,18 +859,22 @@ describe("nitro:preset:vercel:web", async () => {
             "functions/rules/_/cached/[...]-isr.prerender-config.json",
             "functions/rules/_/noncached/cached-isr.func (symlink)",
             "functions/rules/_/noncached/cached-isr.prerender-config.json",
+            "functions/rules/isr-query-empty/[...]-isr.func (symlink)",
+            "functions/rules/isr-query-empty/[...]-isr.prerender-config.json",
+            "functions/rules/isr-query-nopass/[...]-isr.func (symlink)",
+            "functions/rules/isr-query-nopass/[...]-isr.prerender-config.json",
+            "functions/rules/isr-true/[...]-isr.func (symlink)",
+            "functions/rules/isr-true/[...]-isr.prerender-config.json",
             "functions/rules/isr-ttl/[...]-isr.func (symlink)",
             "functions/rules/isr-ttl/[...]-isr.prerender-config.json",
             "functions/rules/isr/[...]-isr.func",
             "functions/rules/isr/[...]-isr.prerender-config.json",
-            "functions/rules/swr-ttl/[...]-isr.func (symlink)",
-            "functions/rules/swr-ttl/[...]-isr.prerender-config.json",
-            "functions/rules/swr/[...]-isr.func (symlink)",
-            "functions/rules/swr/[...]-isr.prerender-config.json",
+            "functions/rules/swr/middleware-order.func (symlink)",
             "functions/single-headers/[id].func (symlink)",
             "functions/static-flags.func (symlink)",
             "functions/stream.func (symlink)",
             "functions/tasks/[...name].func (symlink)",
+            "functions/traced-root-export.func (symlink)",
             "functions/virtual.func (symlink)",
             "functions/wait-until.func (symlink)",
             "functions/wasm/dynamic-import.func (symlink)",
@@ -923,7 +1114,9 @@ describe("nitro:preset:vercel:node", async () => {
         }
       });
 
-      it.skipIf(typeof WebSocket !== "function")(
+      // Bun's `ServerResponse` writes to `req.socket` without an assigned socket, so the
+      // emulated `204` of this harness ends up in the upgraded stream
+      it.skipIf(isBun || typeof WebSocket !== "function")(
         "should handle Vercel request context websocket upgrades",
         async () => {
           const nodeHandler = await import(

@@ -1,7 +1,7 @@
 import type { Nitro, NitroBuildInfo, WorkerAddress } from "nitro/types";
 import { resolveModulePath } from "exsolve";
 import { join, relative, resolve } from "pathe";
-import { version as nitroVersion } from "nitro/meta";
+import { version as nitroVersion } from "#nitro/meta";
 import { presetsWithConfig } from "../presets/_types.gen.ts";
 import { writeFile } from "../utils/fs.ts";
 import { mkdir, readFile, stat } from "node:fs/promises";
@@ -20,12 +20,11 @@ export interface GetBuildInfoOptions {
 }
 
 export async function getBuildInfo(
-  input: string | GetBuildInfoOptions
+  opts: GetBuildInfoOptions
 ): Promise<
   | { outputDir?: undefined; buildInfo?: undefined }
   | { outputDir: string; buildInfo?: NitroBuildInfo }
 > {
-  const opts = typeof input === "string" ? { rootDir: input } : input;
   const rootDir = resolve(opts.rootDir || ".");
   const outputDir = opts.outputDir
     ? resolve(rootDir, opts.outputDir)
@@ -67,6 +66,7 @@ export async function writeBuildInfo(
   const buildInfo: NitroBuildInfo = {
     date: new Date().toJSON(),
     preset: nitro.options.preset,
+    envName: nitro.options.envName,
     framework: nitro.options.framework,
     versions: {
       nitro: nitroVersion,
@@ -103,21 +103,41 @@ export async function writeBuildInfo(
   return buildInfo;
 }
 
-export async function writeDevBuildInfo(nitro: Nitro, addr?: WorkerAddress): Promise<void> {
+export async function writeDevBuildInfo(
+  nitro: Nitro,
+  dev: { workerAddress?: WorkerAddress; url?: string }
+): Promise<void> {
   const buildInfoPath = join(nitro.options.rootDir, NITRO_WELLKNOWN_DIR, "nitro.dev.json");
   const buildInfo: NitroBuildInfo = {
     date: new Date().toJSON(),
     preset: nitro.options.preset,
+    envName: nitro.options.envName,
     framework: nitro.options.framework,
     versions: {
       nitro: nitroVersion,
     },
     dev: {
       pid: process.pid,
-      workerAddress: addr,
+      ...dev,
     },
   };
   await writeFile(buildInfoPath, JSON.stringify(buildInfo, null, 2));
+}
+
+/** Build info of the dev server of the project, if its process is still running. */
+export async function getDevBuildInfo(rootDir: string): Promise<NitroBuildInfo | undefined> {
+  const buildInfo = (await readFile(join(rootDir, NITRO_WELLKNOWN_DIR, "nitro.dev.json"), "utf8")
+    .then(JSON.parse)
+    .catch(() => undefined)) as NitroBuildInfo | undefined;
+  if (!buildInfo?.dev?.pid) {
+    return;
+  }
+  try {
+    process.kill(buildInfo.dev.pid, 0);
+  } catch {
+    return;
+  }
+  return buildInfo;
 }
 
 function resolveNitroServerEntry(

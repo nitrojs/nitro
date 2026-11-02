@@ -1,17 +1,23 @@
 import { existsSync, promises as fsp } from "node:fs";
 import type { Nitro, PublicAssetDir } from "nitro/types";
-import { join } from "pathe";
+import { dirname, join } from "pathe";
 import { joinURL, withoutTrailingSlash } from "ufo";
 import { escapeRegExp } from "../../utils/regex.ts";
-import { routeToSplat, sortRoutes } from "../_utils/routes.ts";
+import { getPublicAssetCorsHeaders } from "../_utils/cors.ts";
+import { hasHeaders, routeToSplat, skipUnsupportedRoute, sortRoutes } from "../_utils/routes.ts";
 
 export async function writeRedirects(nitro: Nitro) {
   let contents = "";
 
   // Most specific first, as the first matching rule wins
-  for (const key of sortRoutes(Object.keys(nitro.options.routeRules))) {
+  const routes = sortRoutes(Object.keys(nitro.options.routeRules));
+  const redirects = routes.filter((key) => nitro.options.routeRules[key].redirect);
+  for (const key of routes) {
     const redirect = nitro.options.routeRules[key].redirect;
-    if (!redirect) {
+    if (
+      !redirect ||
+      skipUnsupportedRoute(nitro, { route: key, file: "_redirects", routes: redirects })
+    ) {
       continue;
     }
     let code = redirect.status;
@@ -40,7 +46,7 @@ export async function writeHeaders(nitro: Nitro) {
 
   for (const path of sortRoutes(Object.keys(nitro.options.routeRules))) {
     const routeRules = nitro.options.routeRules[path];
-    if (!routeRules.headers) {
+    if (!hasHeaders(routeRules) || skipUnsupportedRoute(nitro, { route: path, file: "_headers" })) {
       continue;
     }
     const headers = [
@@ -53,7 +59,29 @@ export async function writeHeaders(nitro: Nitro) {
     contents += headers + "\n";
   }
 
+  const userHeadersPath = join(nitro.options.output.publicDir, "_headers");
+  const headersFile = existsSync(userHeadersPath)
+    ? await fsp.readFile(userHeadersPath, "utf8")
+    : undefined;
+  for (const { base, headers } of getPublicAssetCorsHeaders(nitro, { headersFile })) {
+    contents +=
+      [
+        joinURL(nitro.options.baseURL, base, "*"),
+        ...Object.entries(headers).map(([header, value]) => `  ${header}: ${value}`),
+      ].join("\n") + "\n";
+  }
+
   await writePublishFile(nitro, "_headers", contents);
+}
+
+export async function writeConfig(nitro: Nitro, configPath: string) {
+  const netlify = nitro.options.netlify;
+  if (Object.keys(netlify?.config || {}).length === 0) {
+    await fsp.rm(configPath, { force: true });
+    return;
+  }
+  await fsp.mkdir(dirname(configPath), { recursive: true });
+  await fsp.writeFile(configPath, JSON.stringify(netlify!.config), "utf8");
 }
 
 export function getStaticPaths(publicAssets: PublicAssetDir[], baseURL: string): string[] {
@@ -65,7 +93,7 @@ export function getStaticPaths(publicAssets: PublicAssetDir[], baseURL: string):
   ];
 }
 
-// This is written to the functions directory. It just re-exports the compiled handler,
+// This is written to the (edge) functions directory. It just re-exports the compiled handler,
 // along with its config. We do this instead of compiling the entrypoint directly because
 // the Netlify platform actually statically analyzes the function file to read the config;
 // if we compiled the entrypoint directly, it would be chunked and wouldn't be analyzable.
@@ -80,6 +108,18 @@ export const config = {
   includedFiles: ["**"],
   excludedPath: ${JSON.stringify(getStaticPaths(nitro.options.publicAssets, nitro.options.baseURL))},
   preferStatic: true,
+};
+    `.trim();
+}
+
+export function generateNetlifyEdgeFunction(nitro: Nitro) {
+  return /* js */ `
+export { default } from "./main.mjs";
+export const config = {
+  name: "edge server handler",
+  generator: "${getGeneratorString(nitro)}",
+  path: "/*",
+  excludedPath: ${JSON.stringify(getStaticPaths(nitro.options.publicAssets, nitro.options.baseURL))},
 };
     `.trim();
 }
@@ -125,7 +165,7 @@ async function writePublishFile(nitro: Nitro, name: "_redirects" | "_headers", c
 
 // Public assets are output to `dist/{{ baseURL }}`, unless `publicDir` is customized
 function getPublishDir(nitro: Nitro) {
-  const { publicDir } = nitro.options.output;
+  const publicDir = withoutTrailingSlash(nitro.options.output.publicDir);
   const base = withoutTrailingSlash(nitro.options.baseURL);
   return base && publicDir.endsWith(base) ? publicDir.slice(0, -base.length) : publicDir;
 }

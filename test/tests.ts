@@ -16,7 +16,7 @@ import {
 } from "nitro/builder";
 import type { Nitro, NitroConfig } from "nitro/types";
 import { join, resolve } from "pathe";
-import { isWindows } from "std-env";
+import { isBun, isWindows } from "std-env";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 export interface Context {
@@ -29,7 +29,6 @@ export interface Context {
   isDev: boolean;
   isWorker: boolean;
   isLambda: boolean;
-  isIsolated: boolean;
   env: Record<string, string>;
   lambdaV1?: boolean;
   // [key: string]: unknown;
@@ -79,11 +78,8 @@ export async function setupTest(
       "cloudflare-module-legacy",
       "cloudflare-pages",
       "netlify-edge",
-      "vercel-edge",
-      "winterjs",
     ].includes(preset),
     isLambda: ["aws-lambda", "netlify-legacy"].includes(preset),
-    isIsolated: ["winterjs"].includes(preset),
     rootDir: fixtureDir,
     outDir: resolve(fixtureDir, presetTmpDir, ".output"),
     env: {
@@ -139,7 +135,7 @@ export async function setupTest(
   if (ctx.isDev) {
     // Setup development server
     const devServer = createDevServer(ctx.nitro);
-    const server = await devServer.listen({});
+    const server = await devServer.listen({ port: 0 });
     ctx.server = {
       url: server.url!,
       close: () => server.close(),
@@ -259,13 +255,35 @@ export function testNitro(
     expect(headers["x-test"]).toBe("test");
   });
 
+  it("async plugins are awaited before handling requests", async () => {
+    const { headers } = await callHandler({ url: "/" });
+    expect(headers["x-async-plugin"]).toBe("async plugin works!");
+  });
+
   it("server entry middleware and plugins are not passed to srvx", async () => {
     const { data, headers } = await callHandler({ url: "/srvx-middleware" });
     expect(data).not.toBe("server entry middleware works!");
     expect(headers["x-srvx-plugin"]).toBeUndefined();
   });
 
-  it.runIf(["bun", "deno-server", "nitro-dev"].includes(ctx.preset))(
+  it("global Response is srvx FastResponse in Node.js", async () => {
+    const { data, headers } = await callHandler({ url: "/fast-response" });
+    expect(data).toBe("fast response");
+    expect(headers["x-init"]).toBe("1");
+    expect(JSON.parse(headers["x-fast-response"] as string)).toEqual({
+      // srvx `FastResponse` is the native `Response` outside of Node.js
+      fast:
+        ctx.nitro!.options.node &&
+        !["bun", "deno-server", "standard"].includes(ctx.preset) &&
+        !ctx.nitro!.options.exportConditions?.includes("bun"),
+      statics: true,
+      subclass: true,
+    });
+  });
+
+  // On Bun, the dev worker closes the socket and the dev proxy responds with 500 instead of 413
+  // https://github.com/unjs/env-runner/issues/97
+  it.runIf(["bun", "deno-server", "nitro-dev"].includes(ctx.preset) && !(ctx.isDev && isBun))(
     "Server entry options are passed to srvx",
     async () => {
       const small = await callHandler({
@@ -291,6 +309,36 @@ export function testNitro(
     expect(headers["x-test"]).toBe("test");
   });
 
+  it("global middleware runs before cached (`swr`) route handlers", async () => {
+    const url = "/rules/swr/middleware-order";
+    // miss, then hits: the middleware must run each time, and the header it
+    // sets must not be stored in the shared cache entry
+    const miss = await callHandler({ url, headers: { "x-echo": "a" } });
+    expect(miss.data).toEqual(["rules", "global", "routed"]);
+    expect(miss.headers["x-echo"]).toBe("a");
+    const hit = await callHandler({ url, headers: { "x-echo": "b" } });
+    expect(hit.data).toEqual(["rules", "global", "routed"]);
+    expect(hit.headers["x-echo"]).toBe("b");
+    const anonymous = await callHandler({ url });
+    expect(anonymous.headers["x-echo"]).toBeUndefined();
+  });
+
+  it("global and routed middleware run for non-GET requests to cached (`swr`) routes", async () => {
+    const { data } = await callHandler({ url: "/rules/swr/middleware-order", method: "POST" });
+    expect(data).toEqual(["rules", "global", "routed"]);
+  });
+
+  it("keeps middleware headers out of `defineCachedHandler` cache entries", async () => {
+    const url = "/api/cached-middleware";
+    const miss = await callHandler({ url, headers: { "x-echo": "a" } });
+    expect(miss.data).toBe("cached");
+    expect(miss.headers["x-echo"]).toBe("a");
+    const hit = await callHandler({ url, headers: { "x-echo": "b" } });
+    expect(hit.headers["x-echo"]).toBe("b");
+    const anonymous = await callHandler({ url });
+    expect(anonymous.headers["x-echo"]).toBeUndefined();
+  });
+
   it("API Works", async () => {
     const { data: helloData } = await callHandler({ url: "/api/hello" });
     expect(helloData).to.toMatchObject({ message: "Hello API" });
@@ -313,6 +361,26 @@ export function testNitro(
       url: "/api/wildcard/foo/bar/baz",
     });
     expect(paramsData2).toBe("foo/bar/baz");
+  });
+
+  it("named catch-all route matches its base path", async () => {
+    const base = await callHandler({ url: "/api/catch-all" });
+    expect(base.status).toBe(200);
+    expect(base.data).toEqual({ route: "catch-all", params: {} });
+
+    const slash = await callHandler({ url: "/api/catch-all/" });
+    expect(slash.status).toBe(200);
+    expect(slash.data).toEqual({ route: "catch-all", params: { slug: "" } });
+
+    const { data: deep } = await callHandler({ url: "/api/catch-all/foo/bar" });
+    expect(deep).toEqual({ route: "catch-all", params: { slug: "foo/bar" } });
+
+    for (const url of ["/api/catch-all-index", "/api/catch-all-index/"]) {
+      const { data } = await callHandler({ url });
+      expect(data, url).toMatchObject({ route: "index" });
+    }
+    const { data: deepIndex } = await callHandler({ url: "/api/catch-all-index/foo" });
+    expect(deepIndex).toEqual({ route: "catch-all", params: { slug: "foo" } });
   });
 
   it("group routes", async () => {
@@ -432,8 +500,7 @@ export function testNitro(
     expect(headers["cache-control"]).toBe("s-maxage=60");
   });
 
-  // WinterJS `Headers` silently drops `access-control-allow-methods`
-  it.skipIf(ctx.preset === "winterjs")("handles route rules - cors", async () => {
+  it("handles route rules - cors", async () => {
     // `cors: true` is handled by h3's `handleCors` (via `h3/rules`). On a
     // simple (non-preflight) request it sets permissive origin/methods/expose
     // headers; `access-control-allow-headers` / `access-control-max-age` are
@@ -476,6 +543,17 @@ export function testNitro(
       expect(status).toBe(200);
       expect(headers["access-control-allow-origin"]).toBe("*");
     });
+
+    it("applies a GET-scoped redirect to GET requests only", async () => {
+      const get = await callHandler({ url: "/rules/method-scoped/redirect" });
+      expect(get.status).toBe(307);
+      expect(get.headers.location).toBe("/base");
+
+      const post = await callHandler({ url: "/rules/method-scoped/redirect", method: "POST" });
+      expect(post.status).toBe(200);
+      expect(post.data).toBe("/rules/method-scoped/redirect");
+      expect(post.headers.location).toBeUndefined();
+    });
   });
 
   it("handles route rules - allowing overriding", async () => {
@@ -511,6 +589,18 @@ export function testNitro(
     expect(mdFile).toContain("# Hello world");
   });
 
+  it.skipIf(ctx.isWorker)(
+    "emits files referenced with `new URL(..., import.meta.url)`",
+    async () => {
+      const { data, status } = await callHandler({ url: "/asset-url" });
+      expect(status).toBe(200);
+      expect(data.file).toMatch(/^test-.+\.txt$/);
+      expect(data.text).toContain("this is an asset from a text file from nitro");
+      expect(data.same).toBe(true);
+      expect(data.source).toBe('new URL("../files/test.txt", import.meta.url)');
+    }
+  );
+
   if (ctx.nitro!.options.serveStatic) {
     it("serve static asset /favicon.ico", async () => {
       const { status, headers } = await callHandler({ url: "/favicon.ico" });
@@ -526,6 +616,12 @@ export function testNitro(
       expect(headers["content-type"]).toBe("text/plain; charset=utf-8");
     });
 
+    it("serve static asset via internal fetch", async () => {
+      const { data } = await callHandler({ url: "/fetch-public-asset" });
+      expect(data.status).toBe(200);
+      expect(data.body).toBe("Works!\n");
+    });
+
     it("stores content-type for prerendered routes", async () => {
       const { data, headers } = await callHandler({
         url: "/api/param/prerender4",
@@ -536,8 +632,12 @@ export function testNitro(
   }
 
   it("shows 404 for /build/non-file", async () => {
-    const { status } = await callHandler({ url: "/build/non-file" });
+    const { status, headers } = await callHandler({ url: "/build/non-file" });
     expect(status).toBe(404);
+    // The dev server serves public asset dirs itself, without route rules
+    if (!ctx.isDev) {
+      expect(headers["cache-control"]).toBe("no-store");
+    }
   });
 
   it("resolves utils from server/utils", async () => {
@@ -558,10 +658,22 @@ export function testNitro(
       extraUtils: "@fixture/nitro-utils/extra",
       cjsRequirer: "@fixture/nitro-native-mock",
       bundledDep: "@fixture/nitro-lib@3.0.0",
+      cjsNestedRequirer: "@fixture/nitro-lib@4.0.0",
+      cjsShadowedRequirer: "@fixture/nitro-lib@5.0.0",
     });
   });
 
-  it.skipIf(ctx.isIsolated)("useKV (with base)", { retry: 5 }, async () => {
+  it("requires builtins from bundled CommonJS", async () => {
+    const { data } = await callHandler({ url: "/cjs-builtins" });
+    expect(data).toBe("ok");
+  });
+
+  it("externalizes a traced package's root export by its bare name", async () => {
+    const { data } = await callHandler({ url: "/traced-root-export" });
+    expect(data).toBe("@fixture/nitro-root-export");
+  });
+
+  it("useKV (with base)", { retry: 5 }, async () => {
     const putRes = await callHandler({
       url: "/api/storage/item?key=test:hello",
       method: "PUT",
@@ -602,9 +714,7 @@ export function testNitro(
     additionalTests(ctx, callHandler);
   }
 
-  // WinterJS drops the port when building the request URL, so an in-app proxy
-  // target resolves to port 80 instead of the server's own port.
-  it.skipIf(ctx.preset === "winterjs")("runtime proxy", async () => {
+  it("runtime proxy", async () => {
     const { data } = await callHandler({
       url: "/api/proxy?foo=bar",
       headers: {
@@ -618,33 +728,26 @@ export function testNitro(
     }
   });
 
-  it.skipIf(ctx.preset === "winterjs")(
-    "runtime proxy collapses leading slashes after wildcard prefix",
-    async () => {
-      // Regression test for GHSA-9phm-9p8f-hw5m: a leading `//` after the
-      // wildcard prefix must not be forwarded verbatim to the upstream.
-      const { data } = await callHandler({
-        url: "/rules/proxy/legacy//evil.com",
-      });
-      expect(data).toBe("evil.com");
-    }
-  );
+  it("runtime proxy collapses leading slashes after wildcard prefix", async () => {
+    // Regression test for GHSA-9phm-9p8f-hw5m: a leading `//` after the
+    // wildcard prefix must not be forwarded verbatim to the upstream.
+    const { data } = await callHandler({
+      url: "/rules/proxy/legacy//evil.com",
+    });
+    expect(data).toBe("evil.com");
+  });
 
-  it.skipIf(ctx.preset === "winterjs")(
-    "runtime proxy keeps an encoded separator opaque for the upstream",
-    async () => {
-      // Regression: an opaque `%2f` inside a segment is a single path segment for
-      // the in-scope request and must be forwarded encoded — not decoded into a
-      // real separator (which would change the resource the upstream resolves).
-      const { data } = await callHandler({
-        url: "/rules/proxy/legacy/a%2fb",
-      });
-      expect(data).toBe("a%2fb");
-    }
-  );
+  it("runtime proxy keeps an encoded separator opaque for the upstream", async () => {
+    // Regression: an opaque `%2f` inside a segment is a single path segment for
+    // the in-scope request and must be forwarded encoded — not decoded into a
+    // real separator (which would change the resource the upstream resolves).
+    const { data } = await callHandler({
+      url: "/rules/proxy/legacy/a%2fb",
+    });
+    expect(data).toBe("a%2fb");
+  });
 
-  // WinterJS strips quotes from header values, mangling the upstream weak etag
-  it.skipIf(ctx.preset === "winterjs")("external proxy", async () => {
+  it("external proxy", async () => {
     const { data, headers, status } = await callHandler({
       url: "/cdn/npm/bootstrap@5.3.8/dist/js/bootstrap.min.js",
     });
@@ -686,6 +789,7 @@ export function testNitro(
     const { data } = await callHandler({ url: "/static-flags" });
     expect(data).toMatchObject({
       dev: ctx.isDev,
+      envName: ctx.isDev ? "development" : "production",
       preset: ctx.preset,
       prerender: false,
       nitro: true,
@@ -730,7 +834,7 @@ export function testNitro(
   });
 
   describe("errors", () => {
-    it.skipIf(ctx.isIsolated)("captures errors", async () => {
+    it("captures errors", async () => {
       await callHandler({ url: "/errors/throw" });
       const { data } = await callHandler({ url: "/errors/captured" });
       const allErrorMessages = (data.allErrors || []).map((entry: any) => entry.message);
@@ -748,16 +852,37 @@ export function testNitro(
       expect(data.stack).toMatch("test/fixture/server/routes/errors/stack.ts");
     });
 
+    for (const errorType of ["handled", "unhandled"]) {
+      it(`applies event.res.errHeaders (${errorType})`, async () => {
+        const consoleErrorMock = vi.spyOn(console, "error").mockImplementation(() => {});
+        let res;
+        try {
+          res = await callHandler({
+            url: `/errors/err-headers?${errorType}`,
+            headers: { Accept: "application/json" },
+          });
+        } finally {
+          consoleErrorMock.mockRestore();
+        }
+        expect(res.status).toBe(errorType === "handled" ? 403 : 500);
+        expect(res.headers["x-err-header"]).toBe("err-value");
+        expect(res.headers["set-cookie"]).toMatchObject(["err=1; Path=/"]);
+        expect(res.headers["x-success-only"]).toBeUndefined();
+      });
+    }
+
     for (const errorAction of ["throw", "return"]) {
       it(`handled errors (${errorAction})`, async () => {
         const res = await callHandler({ url: `/errors/throw?handled&action=${errorAction}` });
         expect(res).toMatchObject({
           status: 503,
-          statusText: /deno|bun|winterjs/.test(ctx.preset)
-            ? "Service Unavailable"
-            : /aws/.test(ctx.preset)
-              ? ""
-              : "Custom Status Text",
+          // Bun.serve (also behind the dev server on Bun) drops custom status text: https://github.com/oven-sh/bun/issues/13817
+          statusText:
+            /deno|bun/.test(ctx.preset) || (ctx.isDev && isBun)
+              ? "Service Unavailable"
+              : /aws/.test(ctx.preset)
+                ? ""
+                : "Custom Status Text",
           headers: {
             "content-type": "application/json; charset=utf-8",
             "x-custom-error": "custom-value",
@@ -844,7 +969,7 @@ export function testNitro(
   });
 
   describe("cache", () => {
-    it.skipIf(ctx.isIsolated || (isWindows && ctx.preset === "nitro-dev"))(
+    it.skipIf(isWindows && ctx.preset === "nitro-dev")(
       "should setItem before returning response the first time",
       async () => {
         const {
@@ -881,10 +1006,34 @@ export function testNitro(
       );
       expect((await callHandler({ url: "/api/methods/search" })).data).toBe("get");
     });
+
+    it("Falls back to the GET route for HEAD requests", async () => {
+      const fallback = await callHandler({ url: "/api/methods/search", method: "HEAD" });
+      expect(fallback.status).toBe(200);
+      expect(fallback.data || "").toBe("");
+      const get = await callHandler({ url: "/api/methods/head" });
+      expect(get.headers["x-handler"]).toBe("get");
+      const head = await callHandler({ url: "/api/methods/head", method: "HEAD" });
+      expect(head.headers["x-handler"]).toBe("head");
+    });
+
+    it("Runs GET-scoped middleware for HEAD requests", async () => {
+      for (const method of ["GET", "HEAD"]) {
+        const denied = await callHandler({ url: "/api/methods/guarded", method });
+        expect(denied.status, method).toBe(401);
+        expect(denied.headers["x-handler"], method).toBeUndefined();
+        const allowed = await callHandler({
+          url: "/api/methods/guarded",
+          method,
+          headers: { authorization: "token" },
+        });
+        expect(allowed.status, method).toBe(200);
+        expect(allowed.headers["x-handler"], method).toBe("get");
+      }
+    });
   });
 
-  // WinterJS itself runs as WebAssembly and exposes no `WebAssembly` global
-  describe.skipIf(["cloudflare-worker", "winterjs"].includes(ctx.preset))("wasm", () => {
+  describe.skipIf(ctx.preset === "cloudflare-worker")("wasm", () => {
     it("dynamic import wasm", async () => {
       expect((await callHandler({ url: "/wasm/dynamic-import" })).data).toBe("2+3=5");
     });
@@ -899,7 +1048,7 @@ export function testNitro(
       !ctx.nitro!.options.node ||
       ctx.isLambda ||
       ctx.isWorker ||
-      ["bun", "deno-server", "deno-deploy", "netlify", "netlify-legacy"].includes(ctx.preset)
+      ["bun", "deno-server", "netlify", "netlify-legacy"].includes(ctx.preset)
   )("Database", () => {
     it("works", async () => {
       const { data } = await callHandler({ url: "/api/db" });
@@ -964,16 +1113,11 @@ export function testNitro(
 
   it.skipIf(
     process.env.OFFLINE /* connect */ ||
-      // WinterJS has no Node.js compatibility layer of its own; `node:*` imports
-      // only resolve to unenv's runtime-agnostic stubs.
-      ["cloudflare-worker", "cloudflare-module-legacy", "winterjs"].includes(ctx.preset)
+      ["cloudflare-worker", "cloudflare-module-legacy"].includes(ctx.preset)
   )("nodejs compatibility", async () => {
     const { data, status } = await callHandler({ url: "/node-compat" });
     expect(status).toBe(200);
     for (const key in data) {
-      if (ctx.preset === "vercel-edge" && key === "crypto:createHash") {
-        continue;
-      }
       if (ctx.preset === "deno-server" && key === "globals:BroadcastChannel") {
         continue; // unstable API
       }

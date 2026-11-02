@@ -1,7 +1,7 @@
 import { existsSync, promises as fsp } from "node:fs";
 import { glob } from "tinyglobby";
 import { isDirectory, prettyPath } from "../utils/fs.ts";
-import type { Nitro } from "nitro/types";
+import type { Nitro, NitroOptions } from "nitro/types";
 import { join, relative, resolve } from "pathe";
 import { compressPublicAssets } from "../utils/compress.ts";
 
@@ -15,15 +15,7 @@ export async function scanUnprefixedPublicAssets(nitro: Nitro) {
       // we can statically detect these without scanning
       continue;
     }
-    if (!(await isDirectory(asset.dir))) {
-      continue;
-    }
-    const includePatterns = getIncludePatterns(nitro, asset.dir, asset.ignore);
-    const publicAssets = await glob(includePatterns, {
-      cwd: asset.dir,
-      absolute: false,
-      dot: true,
-    });
+    const publicAssets = await globPublicAssets(nitro, asset);
     scannedPaths.push(...publicAssets.map((file) => join(asset.baseURL || "/", file)));
   }
   return scannedPaths;
@@ -34,30 +26,37 @@ export async function copyPublicAssets(nitro: Nitro) {
     return;
   }
   for (const asset of nitro.options.publicAssets) {
-    const assetDir = asset.dir;
     const dstDir = join(nitro.options.output.publicDir, asset.baseURL!);
-    if (await isDirectory(assetDir)) {
-      const includePatterns = getIncludePatterns(nitro, assetDir, asset.ignore);
-      const publicAssets = await glob(includePatterns, {
-        cwd: assetDir,
-        absolute: false,
-        dot: true,
-      });
-      await Promise.all(
-        publicAssets.map(async (file) => {
-          const src = join(assetDir, file);
-          const dst = join(dstDir, file);
-          if (!existsSync(dst)) {
-            await fsp.cp(src, dst);
-          }
-        })
-      );
-    }
+    const publicAssets = await globPublicAssets(nitro, asset);
+    await Promise.all(
+      publicAssets.map(async (file) => {
+        const src = join(asset.dir, file);
+        const dst = join(dstDir, file);
+        if (!existsSync(dst)) {
+          await fsp.cp(src, dst);
+        }
+      })
+    );
   }
   if (nitro.options.compressPublicAssets) {
     await compressPublicAssets(nitro);
   }
   nitro.logger.success("Generated public " + prettyPath(nitro.options.output.publicDir));
+}
+
+/** Files of a public asset directory (relative paths), without the ignored ones. */
+export async function globPublicAssets(
+  nitro: Nitro,
+  asset: NitroOptions["publicAssets"][number]
+): Promise<string[]> {
+  if (!(await isDirectory(asset.dir))) {
+    return [];
+  }
+  return glob(getIncludePatterns(nitro, asset.dir, asset.ignore), {
+    cwd: asset.dir,
+    absolute: false,
+    dot: true,
+  });
 }
 
 function getIncludePatterns(

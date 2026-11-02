@@ -1,6 +1,6 @@
-import { defineNitroConfig } from "nitro/config";
+import { defineConfig } from "nitro";
 
-export default defineNitroConfig({
+export default defineConfig({
   preset: "standard",
   // sourcemap: false,
 });

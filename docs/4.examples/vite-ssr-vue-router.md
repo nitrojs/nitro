@@ -21,13 +21,13 @@ icon: i-logos-vue
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^6.0.5",
+    "@vitejs/plugin-vue": "^6.0.10",
     "nitro": "latest",
-    "unhead": "^2.1.12",
+    "unhead": "^3.4.3",
     "vite": "latest",
-    "vite-plugin-devtools-json": "^1.0.0",
-    "vue": "^3.5.31",
-    "vue-router": "^5.0.4"
+    "vite-plugin-devtools-json": "^1.1.2",
+    "vue": "^3.5.44",
+    "vue-router": "^5.4.0"
   }
 }
 ```
@@ -45,23 +45,13 @@ import devtoolsJson from "vite-plugin-devtools-json";
 import { nitro } from "nitro/vite";
 
 export default defineConfig((_env) => ({
-  plugins: [patchVueExclude(vue(), /\?assets/), devtoolsJson(), nitro()],
+  plugins: [vue({ exclude: /\?assets/ }), devtoolsJson(), nitro()],
   environments: {
     client: { build: { rollupOptions: { input: "./app/entry-client.ts" } } },
     ssr: { build: { rollupOptions: { input: "./app/entry-server.ts" } } },
     nitro: { build: { rollupOptions: { treeshake: { moduleSideEffects: () => false } } } },
   },
 }));
-
-// Workaround https://github.com/vitejs/vite-plugin-vue/issues/677
-function patchVueExclude(plugin, exclude) {
-  const original = plugin.transform.handler;
-  plugin.transform.handler = function (...args) {
-    if (exclude.test(args[1])) return;
-    return original.call(this, ...args);
-  };
-  return plugin;
-}
 ```
 
 ```vue [app/app.vue]
@@ -402,25 +392,15 @@ import devtoolsJson from "vite-plugin-devtools-json";
 import { nitro } from "nitro/vite";
 
 export default defineConfig((_env) => ({
-  plugins: [patchVueExclude(vue(), /\?assets/), devtoolsJson(), nitro()],
+  plugins: [vue({ exclude: /\?assets/ }), devtoolsJson(), nitro()],
   environments: {
     client: { build: { rollupOptions: { input: "./app/entry-client.ts" } } },
     ssr: { build: { rollupOptions: { input: "./app/entry-server.ts" } } },
   },
 }));
-
-// Workaround https://github.com/vitejs/vite-plugin-vue/issues/677
-function patchVueExclude(plugin, exclude) {
-  const original = plugin.transform.handler;
-  plugin.transform.handler = function (...args) {
-    if (exclude.test(args[1])) return;
-    return original.call(this, ...args);
-  };
-  return plugin;
-}
 ```
 
-The `patchVueExclude` helper prevents the Vue plugin from processing asset imports (files with `?assets` query parameter).
+The `exclude` option prevents the Vue plugin from processing asset imports (files with `?assets` query parameter).
 
 ## 2. Define Routes
 

@@ -1,5 +1,5 @@
 diff --git a/dist/plugin-B4MlD0Bd.js b/dist/plugin-B4MlD0Bd.js
-index 7ddbbcf1630129b133dbf3e8621942478b5348b8..d73f971411782d1952391aefbf1bb5ed7c35b0dc 100644
+index 7ddbbcf1630129b133dbf3e8621942478b5348b8..d0c8757b35dfddaae3d7ec4de4d164fca392d97c 100644
 --- a/dist/plugin-B4MlD0Bd.js
 +++ b/dist/plugin-B4MlD0Bd.js
 @@ -1,5 +1,4 @@
@@ -32,3 +32,28 @@ index 7ddbbcf1630129b133dbf3e8621942478b5348b8..d73f971411782d1952391aefbf1bb5ed
  	function endIndexOf(code, searchValue) {
  		const i = code.lastIndexOf(searchValue);
  		return i === -1 ? i : i + searchValue.length;
+@@ -514,8 +521,12 @@ function patchViteClientPlugin() {
+ 			handler(code, id) {
+ 				if (id === viteClientPath) {
+ 					if (code.includes("linkSheetsMap")) return;
++					const sheetsMapIndex = code.indexOf("const sheetsMap");
++					const updateStyleIndex = endIndexOf(code, "function updateStyle(id, content) {");
++					const removeStyleIndex = endIndexOf(code, "function removeStyle(id) {");
++					if (sheetsMapIndex === -1 || updateStyleIndex === -1 || removeStyleIndex === -1) return;
+ 					const s = new MagicString(code);
+-					s.prependLeft(code.indexOf("const sheetsMap"), `\
++					s.prependLeft(sheetsMapIndex, `\
+ const linkSheetsMap = new Map();
+ document
+   .querySelectorAll('link[rel="stylesheet"][data-vite-dev-id]')
+@@ -523,8 +534,8 @@ document
+     linkSheetsMap.set(el.getAttribute('data-vite-dev-id'), el)
+   });
+ `);
+-					s.appendLeft(endIndexOf(code, `function updateStyle(id, content) {`), `if (linkSheetsMap.has(id)) { return }`);
+-					s.appendLeft(endIndexOf(code, `function removeStyle(id) {`), `
++					s.appendLeft(updateStyleIndex, `if (linkSheetsMap.has(id)) { return }`);
++					s.appendLeft(removeStyleIndex, `
+ const link = linkSheetsMap.get(id);
+ if (link) {
+   document

@@ -95,7 +95,7 @@ describe("getBuildInfo", () => {
   });
 
   it("falls back to .output under rootDir", async () => {
-    const res = await getBuildInfo(rootDir);
+    const res = await getBuildInfo({ rootDir });
     expect(res.outputDir).toBeUndefined();
   });
 });

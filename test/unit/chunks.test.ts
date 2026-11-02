@@ -1,3 +1,7 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "pathe";
+import { rolldown, type OutputChunk } from "rolldown";
 import { describe, expect, it } from "vitest";
 import type { Nitro } from "nitro/types";
 import {
@@ -15,7 +19,7 @@ function createChunk(name: string, moduleIds: string[]): { name: string; moduleI
 
 function createNitro(overrides: Partial<Nitro> = {}): Nitro {
   return {
-    options: { buildDir: "/build", tasks: {}, ...overrides.options },
+    options: { buildDir: "/build", tasks: {}, experimental: {}, ...overrides.options },
     routing: {
       routes: { routes: [] },
       ...overrides.routing,
@@ -66,11 +70,68 @@ describe("libChunkName", () => {
 
 describe("libChunksGroup", () => {
   it("has a non-enumerable debugName", () => {
-    const group = libChunksGroup();
+    const group = libChunksGroup(createNitro());
     expect(group.test).toBe(NODE_MODULES_RE);
     expect(group.name("/node_modules/express/index.js")).toBe("_libs/express");
     expect((group as { debugName?: string }).debugName).toBe("libs");
-    expect(Object.keys(group)).toEqual(["test", "name"]);
+    expect(Object.keys(group)).toEqual(["test", "name", "entriesAware"]);
+    expect(group.entriesAware).toBe(true);
+  });
+
+  it("can opt out of entriesAware with experimental.entriesAwareLibChunks", () => {
+    const nitro = createNitro();
+    nitro.options.experimental.entriesAwareLibChunks = false;
+    expect(libChunksGroup(nitro).entriesAware).toBe(false);
+  });
+
+  it.each([
+    ["keeps a lazy chunk's packages out of the entry's imports", undefined, ["small"]],
+    [
+      "loads a lazy chunk's packages from the entry when opted out",
+      false as const,
+      ["small", "big"],
+    ],
+  ])("%s", async (_, entriesAwareLibChunks, expected) => {
+    const nitro = createNitro();
+    nitro.options.experimental.entriesAwareLibChunks = entriesAwareLibChunks;
+    const dir = mkdtempSync(join(tmpdir(), "nitro-lib-chunks-"));
+    const files = {
+      "node_modules/small/package.json": `{ "name": "small", "type": "module", "main": "index.js" }`,
+      "node_modules/small/index.js": `export const small = "small";`,
+      "node_modules/big/package.json": `{ "name": "big", "type": "module", "main": "index.js" }`,
+      "node_modules/big/index.js": `import { small } from "small"; export const big = small + "-big";`,
+      "entry.mjs": `import { small } from "small"; export default [small, () => import("./lazy.mjs")];`,
+      "lazy.mjs": `import { big } from "big"; export default big;`,
+    };
+    try {
+      for (const [path, code] of Object.entries(files)) {
+        mkdirSync(dirname(join(dir, path)), { recursive: true });
+        writeFileSync(join(dir, path), code);
+      }
+      const bundle = await rolldown({ input: join(dir, "entry.mjs"), cwd: dir });
+      const { output } = await bundle.generate({
+        format: "esm",
+        chunkFileNames: (chunk) => getChunkName(chunk, nitro),
+        codeSplitting: { groups: [libChunksGroup(nitro)] },
+      });
+      const chunks = new Map(output.map((chunk) => [chunk.fileName, chunk]));
+      const loaded = new Set<string>();
+      const load = (fileName: string) => {
+        const chunk = chunks.get(fileName);
+        if (chunk?.type !== "chunk" || loaded.has(fileName)) return;
+        loaded.add(fileName);
+        chunk.imports.forEach(load);
+      };
+      const entry = output.find((item) => item.type === "chunk" && item.isEntry);
+      expect(entry).toBeDefined();
+      load(entry!.fileName);
+      const packages = [...loaded].flatMap((fileName) =>
+        Object.keys((chunks.get(fileName) as OutputChunk).modules).map((id) => pathToPkgName(id))
+      );
+      expect(packages.filter(Boolean).sort()).toEqual([...expected].sort());
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 
@@ -80,6 +141,7 @@ describe("routeToFsPath", () => {
     ["/api/users/:id", "api/users/[id]"],
     ["/", "index"],
     ["/api/users/:id/posts/*", "api/users/[id]/posts/[...]"],
+    ["/api/files/:path(.*)", "api/files/[...path]"],
   ])("%s → %s", (route, expected) => {
     expect(routeToFsPath(route)).toBe(expected);
   });
@@ -91,6 +153,24 @@ describe("getChunkName", () => {
   it.each<[string, { name: string; moduleIds: string[] }, string]>([
     ["rolldown-runtime", createChunk("rolldown-runtime", []), "_runtime.mjs"],
     ["_ chunks are preserved", createChunk("_shared", ["/src/foo.ts"]), "_shared.mjs"],
+    [
+      "~ in non-library chunk names is preserved",
+      createChunk("_shared~index~api-hello", ["/src/foo.ts"]),
+      "_shared~index~api-hello.mjs",
+    ],
+    [
+      "entriesAware library subgroup with non-library modules keeps the group name",
+      createChunk("_libs/foo~index~api-hello", ["/node_modules/foo/index.js", "/src/foo.ts"]),
+      "_libs/foo.mjs",
+    ],
+    [
+      "entriesAware library subgroup keeps the group name",
+      createChunk("_libs/vendor~index~x1y2z3", [
+        "/node_modules/some-very-long-package-name/index.js",
+        "/node_modules/another-very-long-name/index.js",
+      ]),
+      "_libs/vendor+[...].mjs",
+    ],
     [
       "all node_modules (sorted a-z)",
       createChunk("vendor", ["/node_modules/express/index.js", "/node_modules/h3/dist/index.mjs"]),

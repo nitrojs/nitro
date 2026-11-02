@@ -100,6 +100,7 @@ function normalizeRoute(_route: string) {
 
   let anonymousCtr = 0;
   const route = _route
+    .replace(/:(\w+)\(\.\*\)/g, (_, name) => `{${name}}`)
     .replace(/:(\w+)/g, (_, name) => `{${name}}`)
     .replace(/\/(\*)\//g, () => `/{param${++anonymousCtr}}/`)
     .replace(/\*\*{/, "{")

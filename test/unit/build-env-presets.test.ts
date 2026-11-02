@@ -21,7 +21,7 @@ async function setup(config: NitroConfig, setupNitro?: (nitro: Nitro) => void) {
 }
 
 describe("build env precedence with presets", () => {
-  it.each(["deno-deploy", "netlify-edge"])(
+  it.each(["netlify-edge"])(
     "%s does not expose builtin aliases to path resolution",
     async (preset) => {
       const { nitro, env } = await setup({ preset, plugins: ["utils/plugin.ts", "events.ts"] });
@@ -36,7 +36,7 @@ describe("build env precedence with presets", () => {
 
   it("legacy `unenv` config overrides preset entries", async () => {
     const { env } = await setup({
-      preset: "deno-deploy",
+      preset: "netlify-edge",
       unenv: { alias: { "node:fs": "/legacy/fs" }, inject: { process: "/legacy/process" } },
     });
     expect(env.alias["node:fs"]).toBe("/legacy/fs");

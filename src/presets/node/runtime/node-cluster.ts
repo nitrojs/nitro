@@ -17,13 +17,23 @@ if (clusterId) {
 
 const nitroApp = useNitroApp();
 
+const silent = !!clusterId && clusterId !== "1";
+
 const server = serve(
   resolveServeOptions({
     fetch: nitroApp.fetch,
     node: { exclusive: false },
-    ...(clusterId && clusterId !== "1" ? { silent: true } : {}),
+    ...(silent ? { silent: true } : {}),
   })
 );
+
+// srvx only sets `process.exitCode` on listen errors; the IPC channel and other handles would keep the worker alive.
+server.ready().catch((error) => {
+  if (!silent) {
+    console.error("[nitro] Failed to start server:", error);
+  }
+  process.exit(1);
+});
 
 if (import.meta._websocket) {
   const { handleUpgrade } = wsAdapter({ resolve: resolveWebsocketHooks });
@@ -39,6 +49,17 @@ if (import.meta._websocket) {
 }
 
 setupCloseHooks(server);
+
+// The IPC channel keeps a worker alive after its server closed; disconnect so it exits.
+if (cluster.isWorker) {
+  const closeServer = server.close.bind(server);
+  server.close = (closeActiveConnections?: boolean) =>
+    closeServer(closeActiveConnections).finally(() => {
+      if (cluster.worker?.isConnected()) {
+        cluster.worker.disconnect();
+      }
+    });
+}
 
 trapUnhandledErrors();
 

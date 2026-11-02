@@ -7,6 +7,8 @@ import type { PublicAsset } from "nitro/types";
 import { relative, resolve } from "pathe";
 import { joinURL, withTrailingSlash } from "ufo";
 import { runParallel } from "../../utils/parallel.ts";
+import { getPrerenderMeta } from "../../prerender/_meta.ts";
+import { globPublicAssets } from "../assets.ts";
 
 const readAssetHandler: Record<
   Exclude<Nitro["options"]["serveStatic"] | "true" | "false", boolean>,
@@ -25,6 +27,27 @@ export default function publicAssets(nitro: Nitro) {
       id: "#nitro/virtual/public-assets-data",
       template: async () => {
         const assets: Record<string, PublicAsset> = {};
+
+        if (nitro.options.dev) {
+          for (const asset of nitro.options.publicAssets) {
+            for (const file of await globPublicAssets(nitro, asset)) {
+              const assetId = joinURL(nitro.options.baseURL, asset.baseURL || "/", file);
+              let type = mime.getType(file) || "text/plain";
+              if (type.startsWith("text")) {
+                type += "; charset=utf-8";
+              }
+              assets[assetId] ??= {
+                type,
+                path: resolve(asset.dir, file),
+                etag: "",
+                mtime: "",
+                size: 0,
+              };
+            }
+          }
+          return `export default ${JSON.stringify(assets, null, 2)};`;
+        }
+
         const files = await glob("**", {
           cwd: nitro.options.output.publicDir,
           absolute: false,
@@ -58,7 +81,7 @@ export default function publicAssets(nitro: Nitro) {
             }
 
             assets[assetId] = {
-              type: nitro._prerenderMeta?.[assetId]?.contentType || mimeType,
+              type: getPrerenderMeta(nitro)[assetId]?.contentType || mimeType,
               encoding,
               etag,
               mtime: stat.mtime.toJSON(),
@@ -77,7 +100,11 @@ export default function publicAssets(nitro: Nitro) {
           });
         }
 
-        return `export default ${JSON.stringify(assets, null, 2)};`;
+        // Files finish reading in any order: sort them so each build writes the same output
+        const sorted = Object.fromEntries(
+          Object.entries(assets).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+        );
+        return `export default ${JSON.stringify(sorted, null, 2)};`;
       },
     },
 
@@ -124,6 +151,10 @@ export function getPublicAssetMeta(id = '') {
 
 export function getAsset (id) {
   return assets[id]
+}
+
+export function hasAsset (id = '') {
+  return !!(assets[id] || assets[id + '.gz'] || assets[id + '.br'] || assets[id + '.zst'])
 }
 `;
       },

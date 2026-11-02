@@ -1,10 +1,11 @@
 import type { Nitro, NitroEventHandler } from "nitro/types";
 import { compileRouteRules } from "h3/rules/compiler";
+import { hasServerEntryDefaultExport } from "./server-entry.ts";
 
 export default function routing(nitro: Nitro) {
   return {
     id: "#nitro/virtual/routing",
-    template: () => {
+    template: async () => {
       const allHandlers = uniqueBy(
         [
           ...Object.values(nitro.routing.routes.routes).flatMap((h) => h.data),
@@ -15,6 +16,13 @@ export default function routing(nitro: Nitro) {
       );
 
       const traceH3 = !!nitro.options.tracingChannel?.h3;
+
+      const serverEntry = nitro.options.serverEntry;
+      const webServerEntry =
+        serverEntry && serverEntry.handler && serverEntry.format !== "node"
+          ? serverEntry.handler.replace(/\\/g, "/")
+          : undefined;
+      const serverEntryHasDefault = !!webServerEntry && (await hasServerEntryDefaultExport(nitro));
 
       const routeRulesModule = compileRouteRules(nitro.options.routeRules, {
         runtimeRules: { cache: "#nitro/runtime/route-rule-handlers" },
@@ -35,14 +43,18 @@ const multiHandler = (...handlers) => {
 
 ${allHandlers
   .filter((h) => !h.lazy)
-  .map((h) => /* js */ `import ${h._importHash} from "${h.handler}";`)
+  .map((h) =>
+    h.handler === webServerEntry
+      ? serverEntryImport(h, serverEntryHasDefault)
+      : /* js */ `import ${h._importHash} from ${JSON.stringify(h.handler)};`
+  )
   .join("\n")}
 
 ${allHandlers
   .filter((h) => h.lazy)
   .map(
     (h) =>
-      /* js */ `const ${h._importHash} = h3.defineLazyEventHandler(() => import("${h.handler}")${h.format === "node" ? ".then(m => ({ fetch: srvxNode.toFetchHandler(m.default) }))" : ""});`
+      /* js */ `const ${h._importHash} = h3.defineLazyEventHandler(() => import(${JSON.stringify(h.handler)})${h.format === "node" ? ".then(m => ({ fetch: srvxNode.toFetchHandler(m.default) }))" : ""});`
   )
   .join("\n")}
 
@@ -56,6 +68,22 @@ export const globalMiddleware = [
   `;
     },
   };
+}
+
+// The default export (and its `fetch`) of the server entry is optional: it can be used
+// for startup logic only. Without a handler, requests continue to the renderer (or 404).
+function serverEntryImport(
+  h: NitroEventHandler & { _importHash: string },
+  hasDefault: boolean
+): string {
+  const notFound = `() => Symbol.for("h3.notFound")`;
+  if (!hasDefault) {
+    return /* js */ `import ${JSON.stringify(h.handler)};
+const ${h._importHash} = ${notFound};`;
+  }
+  const entry = `${h._importHash}_entry`;
+  return /* js */ `import ${entry} from ${JSON.stringify(h.handler)};
+const ${h._importHash} = typeof ${entry} === "function" || typeof ${entry}?.fetch === "function" ? ${entry} : ${notFound};`;
 }
 
 function uniqueBy<T>(arr: T[], key: keyof T): T[] {

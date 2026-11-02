@@ -53,6 +53,35 @@ describe("kv config loader", () => {
     });
   });
 
+  it("applies `$development` kv from config overrides", async () => {
+    const rootDir = await createFixture(`{}`);
+    const options = await loadOptions({
+      rootDir,
+      dev: true,
+      kv: { db: { driver: "redis", host: "prod.example.com" } },
+      $development: { kv: { db: { driver: "fs", base: "./.data/db" } } },
+      $production: { kv: { prod: { driver: "memory" } } },
+    });
+    expect(options.kv).toEqual({ db: { driver: "fs", base: "./.data/db" } });
+    expect(options._config).toHaveProperty("$development");
+  });
+
+  it("applies `$production` and `$prerender` kv from config overrides when prerendering", async () => {
+    const rootDir = await createFixture(`{}`);
+    const options = await loadOptions({
+      rootDir,
+      preset: "nitro-prerender",
+      kv: { db: { driver: "redis", host: "prod.example.com" } },
+      $development: { kv: { dev: { driver: "memory" } } },
+      $production: { kv: { prod: { driver: "memory" } } },
+      $prerender: { kv: { db: { driver: "fs", base: "./.data/db" } } },
+    });
+    expect(options.kv).toEqual({
+      db: { driver: "fs", base: "./.data/db" },
+      prod: { driver: "memory" },
+    });
+  });
+
   it("keeps applying deprecated `devStorage` when prerendering", async () => {
     const rootDir = await createFixture(`{
       kv: { db: { driver: "memory" } },

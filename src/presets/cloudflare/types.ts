@@ -85,11 +85,6 @@ export interface CloudflareOptions {
      */
     defaultRoutes?: boolean;
   };
-
-  /**
-   * Custom Cloudflare exports additional classes such as WorkflowEntrypoint.
-   */
-  exports?: string;
 }
 
 declare module "nitro/types" {
@@ -103,16 +98,12 @@ declare module "nitro/types" {
     // https://developers.cloudflare.com/email-routing/email-workers/runtime-api
     "cloudflare:email": (_: {
       message: ForwardableEmailMessage;
-      /** @deprecated please use `message` */
-      event: ForwardableEmailMessage;
       env: unknown;
       context: ExecutionContext;
     }) => void;
     // https://developers.cloudflare.com/queues/configuration/javascript-apis/#consumer
     "cloudflare:queue": (_: {
       batch: MessageBatch;
-      /** @deprecated please use `batch` */
-      event: MessageBatch;
       env: unknown;
       context: ExecutionContext;
     }) => void;

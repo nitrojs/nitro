@@ -30,11 +30,25 @@ import os from "node:os";
 
 if (cluster.isPrimary) {
   const numberOfWorkers =
-    Number.parseInt(process.env.NITRO_CLUSTER_WORKERS || "") ||
-    (os.cpus().length > 0 ? os.cpus().length : 1);
+    Number.parseInt(process.env.NITRO_CLUSTER_WORKERS || "") || os.availableParallelism();
+  const workers = [];
   for (let i = 0; i < numberOfWorkers; i++) {
-    cluster.fork({
-      WORKER_ID: i + 1,
+    workers.push(cluster.fork({ WORKER_ID: i + 1 }));
+  }
+  const forwards = new Set(workers);
+  let isShuttingDown = false;
+  cluster.on("exit", (worker) => {
+    forwards.delete(worker);
+    if (forwards.size === 0) {
+      process.exit(isShuttingDown ? 0 : 1);
+    }
+  });
+  for (const signal of ["SIGINT", "SIGTERM"]) {
+    process.on(signal, () => {
+      isShuttingDown = true;
+      for (const worker of forwards) {
+        worker.process.kill(signal);
+      }
     });
   }
 } else {

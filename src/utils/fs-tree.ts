@@ -19,6 +19,9 @@ export async function generateFSTree(dir: string, options: { compressedSizes?: b
     dot: true,
   });
 
+  const compressedSizes =
+    options.compressedSizes && !files.some((file) => file.includes("node_modules"));
+
   const items: { file: string; path: string; size: number; gzip: number }[] = [];
 
   await runParallel(
@@ -27,7 +30,7 @@ export async function generateFSTree(dir: string, options: { compressedSizes?: b
       const path = resolve(dir, file);
       const src = await fsp.readFile(path);
       const size = src.byteLength;
-      const gzip = options.compressedSizes ? await gzipSize(src) : 0;
+      const gzip = compressedSizes ? await gzipSize(src) : 0;
       items.push({ file, path, size, gzip });
     },
     { concurrency: 10 }
@@ -39,7 +42,6 @@ export async function generateFSTree(dir: string, options: { compressedSizes?: b
   let totalGzip = 0;
 
   let totalNodeModulesSize = 0;
-  let totalNodeModulesGzip = 0;
 
   let treeText = "";
 
@@ -55,12 +57,11 @@ export async function generateFSTree(dir: string, options: { compressedSizes?: b
 
     if (isNodeModules) {
       totalNodeModulesSize += item.size;
-      totalNodeModulesGzip += item.gzip;
       continue;
     }
 
     treeText += colors.gray(`  ${treeChar} ${rpath} (${prettyBytes(item.size)})`);
-    if (options.compressedSizes) {
+    if (compressedSizes) {
       treeText += colors.gray(` (${prettyBytes(item.gzip)} gzip)`);
     }
     treeText += "\n";
@@ -69,8 +70,8 @@ export async function generateFSTree(dir: string, options: { compressedSizes?: b
   }
 
   treeText += `${colors.cyan("Σ Total size:")} ${prettyBytes(totalSize + totalNodeModulesSize)}`;
-  if (options.compressedSizes) {
-    treeText += ` (${prettyBytes(totalGzip + totalNodeModulesGzip)} gzip)`;
+  if (compressedSizes) {
+    treeText += ` (${prettyBytes(totalGzip)} gzip)`;
   }
   treeText += "\n";
 

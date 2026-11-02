@@ -1,28 +1,35 @@
-import { readFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { isAbsolute } from "pathe";
 import type { Expression, Literal } from "estree";
 import type { Nitro, NitroEventHandler } from "nitro/types";
 import type { Plugin } from "rollup";
+import type { Plugin as VitePlugin } from "vite";
+import { viteDepPaths } from "../vite/_import.ts";
 import { importOXC } from "../../utils/oxc.ts";
 import { escapeRegExp } from "../../utils/regex.ts";
+import { chain } from "../../utils/sync.ts";
 
 const PREFIX = "\0nitro:route-meta:";
 
 export async function routeMeta(nitro: Nitro) {
-  const { parseSync, transformSync } = await importOXC({ dir: nitro.options.rootDir });
+  let oxc = await importOXC({ dir: nitro.options.rootDir, paths: viteDepPaths(nitro) });
   return {
     name: "nitro:route-meta",
+    // With `nitro/vite`, the running `vite` is only known once its config is resolved
+    // (Vite only runs `buildStart` of the `client` environment in dev by default)
+    perEnvironmentStartEndDuringDev: true,
+    async buildStart() {
+      oxc = await importOXC({ dir: nitro.options.rootDir, paths: viteDepPaths(nitro) });
+    },
     resolveId: {
       order: "pre",
       // eslint-disable-next-line no-control-regex
       filter: { id: /^(?!\u0000)(.+)\?meta$/ },
-      async handler(id, importer, resolveOpts) {
+      handler(id, importer, resolveOpts) {
         if (id.endsWith("?meta")) {
-          const resolved = await this.resolve(id.replace("?meta", ""), importer, resolveOpts);
-          if (!resolved) {
-            return;
-          }
-          return PREFIX + resolved.id;
+          return chain(this.resolve(id.replace("?meta", ""), importer, resolveOpts), (resolved) =>
+            resolved ? PREFIX + resolved.id : undefined
+          );
         }
       },
     },
@@ -35,7 +42,7 @@ export async function routeMeta(nitro: Nitro) {
         if (id.startsWith(PREFIX)) {
           const fullPath = id.slice(PREFIX.length);
           if (isAbsolute(fullPath)) {
-            return readFile(fullPath, { encoding: "utf8" });
+            return readFileSync(fullPath, "utf8");
           } else {
             return "export default undefined;";
           }
@@ -47,7 +54,8 @@ export async function routeMeta(nitro: Nitro) {
       filter: {
         id: new RegExp(`^${escapeRegExp(PREFIX)}`),
       },
-      async handler(code, id) {
+      handler(code, id) {
+        const { parseSync, transformSync } = oxc;
         let meta: NitroEventHandler["meta"] | null = null;
 
         try {
@@ -88,7 +96,7 @@ export async function routeMeta(nitro: Nitro) {
         };
       },
     },
-  } satisfies Plugin;
+  } satisfies Plugin & Pick<VitePlugin, "perEnvironmentStartEndDuringDev">;
 }
 
 function astToObject(node: Expression | Literal): any {

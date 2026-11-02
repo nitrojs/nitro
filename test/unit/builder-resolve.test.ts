@@ -1,15 +1,26 @@
 import type { NitroOptions } from "nitro/types";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "pathe";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-const state = vi.hoisted(() => ({ rolldown: undefined as string | undefined }));
+const state = vi.hoisted(() => ({ rolldown: undefined as string | undefined, vite: false }));
 
 vi.mock("../../src/build/rolldown/_import.ts", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../src/build/rolldown/_import.ts")>()),
   resolveRolldown: () => state.rolldown,
 }));
+
+vi.mock("../../src/utils/dep.ts", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("../../src/utils/dep.ts")>();
+  return {
+    ...mod,
+    isDepInstalled: (id: string, opts: Parameters<typeof mod.isDepInstalled>[1]) =>
+      id === "vite" ? state.vite : mod.isDepInstalled(id, opts),
+    ensureDep: (opts: Parameters<typeof mod.ensureDep>[0]) =>
+      opts.id === "vite" && !state.vite ? Promise.resolve(undefined) : mod.ensureDep(opts),
+  };
+});
 
 const { resolveBuilder } = await import("../../src/config/resolvers/builder.ts");
 
@@ -33,6 +44,7 @@ describe("resolveBuilder", () => {
   beforeEach(() => {
     delete process.env.NITRO_BUILDER;
     state.rolldown = undefined;
+    state.vite = false;
   });
 
   async function resolve(opts: Partial<NitroOptions>) {
@@ -82,8 +94,49 @@ describe("resolveBuilder", () => {
     expect(await resolve({ dev: false, builder: "rolldown" })).toBe("rolldown");
   });
 
+  it("imports an explicit vite builder on build, not on config load", async () => {
+    expect(await resolve({ dev: true, builder: "vite" })).toBe("vite");
+    expect(await resolve({ dev: false, builder: "vite" })).toBe("vite");
+  });
+
   it("keeps an explicit `builder: false`", async () => {
     state.rolldown = "/rolldown/index.mjs";
     expect(await resolve({ dev: false, builder: false })).toBe(false);
+  });
+
+  describe("vite config with nitro() plugin", () => {
+    let viteRootDir: string;
+
+    beforeAll(async () => {
+      viteRootDir = join(rootDir, "vite-app");
+      await mkdir(viteRootDir, { recursive: true });
+      await writeFile(
+        join(viteRootDir, "vite.config.ts"),
+        `import { nitro } from "nitro/vite";\nexport default { plugins: [nitro()] };\n`
+      );
+    });
+
+    it("uses vite to build", async () => {
+      state.vite = true;
+      expect(await resolve({ rootDir: viteRootDir, dev: false })).toBe("vite");
+    });
+
+    it("falls back with a warning in nitro dev", async () => {
+      vi.resetModules();
+      const { consola } = await import("consola");
+      const { resolveBuilder: freshResolveBuilder } =
+        await import("../../src/config/resolvers/builder.ts");
+      const warn = vi.spyOn(consola, "warn").mockImplementation(() => {});
+      try {
+        state.vite = true;
+        state.rolldown = "/rolldown/index.mjs";
+        const options = { rootDir: viteRootDir, dev: true } as NitroOptions;
+        await freshResolveBuilder(options);
+        expect(options.builder).toBe("rolldown");
+        expect(warn).toHaveBeenCalledOnce();
+      } finally {
+        warn.mockRestore();
+      }
+    });
   });
 });

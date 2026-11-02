@@ -1,17 +1,20 @@
+import { createHash } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { defu } from "defu";
 import mime from "mime";
-import { writeFile } from "../utils/fs.ts";
+import { isCaseInsensitiveFS, writeFile, prettyPath } from "../utils/fs.ts";
 import type { Nitro, NormalizedRouteRules, PrerenderRoute, PublicAssetDir } from "nitro/types";
 import { join, relative, resolve } from "pathe";
 import { createRouter, addRoute, findAllRoutes } from "rou3";
 import { joinURL, withBase, withoutBase, withTrailingSlash } from "ufo";
 import { build } from "../build/build.ts";
 import { resolveRolldown } from "../build/rolldown/_import.ts";
+import { viteDepPaths } from "../build/vite/_import.ts";
 import { createNitro } from "../nitro.ts";
 import { compressPublicAssets } from "../utils/compress.ts";
 import { runParallel } from "../utils/parallel.ts";
 import { extractLinks, formatPrerenderRoute, matchesIgnorePattern } from "./utils.ts";
+import { getPrerenderMeta } from "./_meta.ts";
 import { scanUnprefixedPublicAssets } from "../build/assets.ts";
 import { toRequest } from "h3";
 import { EnvServer } from "env-runner";
@@ -53,19 +56,22 @@ export async function prerender(nitro: Nitro) {
   // Build with prerender preset
   nitro.logger.info("Initializing prerenderer");
   nitro._prerenderedRoutes = [];
-  nitro._prerenderMeta = nitro._prerenderMeta || {};
   const prerendererConfig = {
     ...nitro.options._config,
     static: false,
+    compressPublicAssets: false,
     rootDir: nitro.options.rootDir,
     renderer: nitro.options.renderer,
     virtual: { ...nitro.options.virtual },
     logLevel: 0,
     preset: "nitro-prerender",
     builder: prerenderBuilder(nitro),
+    deps: { ...nitro.options.deps, paths: { ...viteDepPaths(nitro) } },
   };
   await nitro.hooks.callHook("prerender:config", prerendererConfig);
-  const nitroRenderer = await createNitro(prerendererConfig);
+  const nitroRenderer = await createNitro(prerendererConfig, {
+    c12: { envName: [nitro.options.envName, "prerender"] },
+  });
   const prerenderStartTime = Date.now();
   await nitro.hooks.callHook("prerender:init", nitroRenderer);
   await nitroRenderer.routing.sync();
@@ -97,9 +103,20 @@ export async function prerender(nitro: Nitro) {
 
   // Start prerendering
   const generatedRoutes = new Set();
+  // Original path of crawled links whose route (relative to `baseURL`) differs from it
+  const crawledLinkPaths = new Map<string, string>();
   const failedRoutes = new Set<PrerenderRoute>();
   const skippedRoutes = new Set();
   const displayedLengthWarns = new Set();
+  // Output path -> the route that produced it and a hash of its contents. Two routes
+  // can resolve to one file (`/other` and `/other/index.html` both become
+  // `other/index.html`), which is only known once each of them has been rendered.
+  // Keyed by the resolved path rather than `fileName`, so aliases pointing at one
+  // file still collide. On a case-insensitive filesystem, `/About` and `/about` are one
+  // file too, so the key is lower-cased there.
+  const outputByFile = new Map<string, { route: string; hash: string }>();
+  const caseInsensitiveFS = await isCaseInsensitiveFS(nitro.options.output.publicDir);
+  const outputKey = (filePath: string) => (caseInsensitiveFS ? filePath.toLowerCase() : filePath);
 
   const publicAssetBases: string[] = nitro.options.publicAssets
     .filter(
@@ -181,8 +198,12 @@ export async function prerender(nitro: Nitro) {
   const generateRoute = async (route: string) => {
     const start = Date.now();
 
+    // Crawled links are fetched, resolved and written by their original path
+    const crawledPath = crawledLinkPaths.get(route);
+
     // Ensure route is decoded to start with
     route = decodeURI(route);
+    const routePath = crawledPath ? decodeURI(crawledPath) : route;
 
     // Check if we should render route
     if (!canPrerender(route)) {
@@ -195,13 +216,10 @@ export async function prerender(nitro: Nitro) {
     const _route: PrerenderRoute = { route };
 
     // Fetch the route
-    const encodedRoute = encodeURI(route);
+    const encodedRoute = encodeURI(routePath);
 
     const req = toRequest(withBase(encodedRoute, nitro.options.baseURL), {
       headers: [["x-nitro-prerender", encodedRoute]],
-      // TODO
-      // retry: nitro.options.prerender.retry,
-      // retryDelay: nitro.options.prerender.retryDelay,
     });
     const res = await prerenderer.fetch(req);
     // Data will be removed as soon as written to the disk
@@ -246,14 +264,14 @@ export async function prerender(nitro: Nitro) {
     // Guess route type and populate fileName
     const contentType = res.headers.get("content-type") || "";
     const isImplicitHTML =
-      !route.endsWith(".html") &&
+      !routePath.endsWith(".html") &&
       contentType.includes("html") &&
       !JsonSigRx.test(dataBuff!.subarray(0, 32).toString("utf8"));
-    const routeWithIndex = route.endsWith("/") ? route + "index" : route;
+    const routeWithIndex = routePath.endsWith("/") ? routePath + "index" : routePath;
     const htmlPath =
-      route.endsWith("/") || nitro.options.prerender.autoSubfolderIndex
-        ? joinURL(route, "index.html")
-        : route + ".html";
+      routePath.endsWith("/") || nitro.options.prerender.autoSubfolderIndex
+        ? joinURL(routePath, "index.html")
+        : routePath + ".html";
     _route.fileName = withoutBase(
       isImplicitHTML ? htmlPath : routeWithIndex,
       nitro.options.baseURL
@@ -264,9 +282,13 @@ export async function prerender(nitro: Nitro) {
 
     // Allow hooking before generate
     await nitro.hooks.callHook("prerender:generate", _route, nitro);
-    if (_route.contentType !== inferredContentType) {
-      nitro._prerenderMeta![_route.fileName] ||= {};
-      nitro._prerenderMeta![_route.fileName].contentType = _route.contentType;
+    const filePath = join(nitro.options.output.publicDir, _route.fileName);
+    const claimed = outputByFile.get(outputKey(filePath));
+    // A route that cannot write to an already claimed file must not change its metadata
+    if (_route.contentType !== inferredContentType && !claimed) {
+      const prerenderMeta = getPrerenderMeta(nitro);
+      prerenderMeta[_route.fileName] ||= {};
+      prerenderMeta[_route.fileName].contentType = _route.contentType;
     }
 
     // After hook to allow ignoring in `prerender:generate` hook
@@ -283,8 +305,22 @@ export async function prerender(nitro: Nitro) {
     }
 
     // Write to the disk
-    const filePath = join(nitro.options.output.publicDir, _route.fileName);
-    if (canWriteToDisk(_route) && filePath.startsWith(nitro.options.output.publicDir)) {
+    if (claimed) {
+      if (claimed.hash === hashContents(dataBuff!)) {
+        // Same output (e.g. `/` and `/index.html` of an SPA): the file already holds it
+        nitro._prerenderedRoutes!.push(_route);
+      } else {
+        // Writing again would replace the first route's output with this one, so the
+        // build result would depend on which of the two rendered first
+        nitro.logger.warn(
+          `Routes \`${claimed.route}\` and \`${route}\` both prerender to \`${_route.fileName}\` with different contents. Keeping the output of \`${claimed.route}\`.`
+        );
+        _route.skip = true;
+      }
+    } else if (canWriteToDisk(_route) && filePath.startsWith(nitro.options.output.publicDir)) {
+      // Claim the file before awaiting, so a concurrent render of a route resolving
+      // to the same file sees it as taken
+      outputByFile.set(outputKey(filePath), { route, hash: hashContents(dataBuff!) });
       await writeFile(filePath, dataBuff!);
       nitro._prerenderedRoutes!.push(_route);
     } else {
@@ -292,16 +328,25 @@ export async function prerender(nitro: Nitro) {
     }
 
     // Crawl route links
-    if (!_route.error && (isImplicitHTML || route.endsWith(".html"))) {
+    if (!_route.error) {
+      const crawlLinks =
+        (nitro.options.prerender.crawlLinks ?? false) &&
+        (isImplicitHTML || routePath.endsWith(".html"));
       const extractedLinks = await extractLinks(
-        dataBuff!.toString("utf8"),
-        route,
+        crawlLinks ? dataBuff!.toString("utf8") : "",
+        routePath,
         res,
-        nitro.options.prerender.crawlLinks ?? false
+        crawlLinks,
+        nitro.options.baseURL
       );
       for (const _link of extractedLinks) {
-        if (canPrerender(_link)) {
-          routes.add(_link);
+        // Crawled links include `baseURL`, while routes (and `ignore` patterns) are relative to it
+        const link = withoutBase(_link, nitro.options.baseURL);
+        if (canPrerender(link) && !routes.has(link)) {
+          if (link !== _link) {
+            crawledLinkPaths.set(link, _link);
+          }
+          routes.add(link);
         }
       }
     }
@@ -331,18 +376,21 @@ export async function prerender(nitro: Nitro) {
     failedRoutes: [...failedRoutes],
   });
 
-  if (nitro.options.prerender.failOnError && failedRoutes.size > 0) {
-    nitro.logger.log("\nErrors prerendering:");
-    for (const route of failedRoutes) {
-      // const parents = linkParents.get(route.route);
-      // const parentsText = parents?.size
-      //   ? `\n${[...parents.values()]
-      //       .map((link) => colors.gray(`  │ └── Linked from ${link}`))
-      //       .join("\n")}`
-      //   : "";
-      nitro.logger.log(formatPrerenderRoute(route));
-    }
-    nitro.logger.log("");
+  // Every route failed and nothing was written: fail regardless of `failOnError` (#4591)
+  if (failedRoutes.size > 0 && nitro._prerenderedRoutes.length === 0) {
+    logPrerenderErrors(nitro, failedRoutes);
+    throw new Error(
+      `Prerendered 0 routes. All ${failedRoutes.size} route(s) failed, so nothing was written to \`${prettyPath(nitro.options.output.publicDir)}\`.` +
+        missingRendererHint(nitro)
+    );
+  }
+
+  const ignoreStatusCodes = nitro.options.prerender.ignoreStatusCodes || [];
+  const fatalRoutes = new Set(
+    [...failedRoutes].filter((route) => !ignoreStatusCodes.includes(route.error!.status!))
+  );
+  if (nitro.options.prerender.failOnError && fatalRoutes.size > 0) {
+    logPrerenderErrors(nitro, fatalRoutes);
     throw new Error("Exiting due to prerender errors.");
   }
 
@@ -359,13 +407,38 @@ export async function prerender(nitro: Nitro) {
 /** Builder of the prerenderer: `vite` builds use `rolldown` when installed, or run the sources. */
 function prerenderBuilder(nitro: Nitro): Nitro["options"]["builder"] {
   if (nitro.options.builder === "vite") {
-    const { rootDir, vite } = nitro.options;
-    return resolveRolldown(rootDir, { vitePath: vite?.path }) ? "rolldown" : false;
+    return resolveRolldown(nitro.options.rootDir, { paths: viteDepPaths(nitro) })
+      ? "rolldown"
+      : false;
   }
   return nitro.options.builder;
 }
 
 async function startPrerenderer(nitroRenderer: Nitro): Promise<EnvServer> {
+  const prerenderer = await createPrerenderer(nitroRenderer);
+  // `fetch()` gives up on the worker after ~3s, so wait until it is ready before rendering
+  // routes (allowing slow cold imports up to 60s). A worker failing to start closes its runner,
+  // which fails the build right away.
+  let onClose: ((runner: unknown, cause?: unknown) => void) | undefined;
+  try {
+    await Promise.race([
+      prerenderer.waitForReady(60_000),
+      new Promise<never>((_resolve, reject) => {
+        onClose = (_runner, cause) =>
+          reject(cause ?? new Error("Prerender worker closed before becoming ready"));
+        prerenderer.onClose(onClose);
+      }),
+    ]);
+  } catch (error) {
+    await prerenderer.close();
+    throw error;
+  } finally {
+    prerenderer.offClose(onClose!);
+  }
+  return prerenderer;
+}
+
+async function createPrerenderer(nitroRenderer: Nitro): Promise<EnvServer> {
   if (nitroRenderer.options.builder === false) {
     const { startUnbundledPrerenderer } = await import("../build/unbundled/prerender.ts");
     return startUnbundledPrerenderer(nitroRenderer);
@@ -384,4 +457,26 @@ async function startPrerenderer(nitroRenderer: Nitro): Promise<EnvServer> {
     runner: "node-worker",
     entry: serverEntrypoint,
   }).start();
+}
+
+function logPrerenderErrors(nitro: Nitro, failedRoutes: Set<PrerenderRoute>) {
+  nitro.logger.log("\nErrors prerendering:");
+  for (const route of failedRoutes) {
+    nitro.logger.log(formatPrerenderRoute(route));
+  }
+  nitro.logger.log("");
+}
+
+function missingRendererHint(nitro: Nitro): string {
+  if (nitro.options.renderer) {
+    return "";
+  }
+  if (nitro.options.builder === "vite") {
+    return " No Vite SSR entry was detected. If the app renders HTML, place `entry-server` in `app/`, `src/` or the project root, or set `environments.ssr.build.rollupOptions.input` in the Vite config.";
+  }
+  return " No `renderer` is configured. Check that the app has a route or renderer able to serve the prerendered routes.";
+}
+
+function hashContents(data: Buffer): string {
+  return createHash("sha256").update(data).digest("hex");
 }

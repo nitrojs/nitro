@@ -37,26 +37,30 @@ function createNitroStub(
 }
 
 describe("virtual/kv template", () => {
-  it("does not wrap storage when tracingChannel is disabled", () => {
-    const template = kv(createNitroStub(undefined)).template();
+  it("does not wrap storage when tracingChannel is disabled", async () => {
+    const template = await kv(createNitroStub(undefined)).template();
     expect(template).not.toContain("withTracing");
     expect(template).not.toContain("unstorage/tracing");
     expect(template).toContain("return storage");
   });
 
-  it("does not wrap storage when tracingChannel.unstorage is false", () => {
-    const template = kv(createNitroStub({ srvx: true, h3: true, unstorage: false })).template();
+  it("does not wrap storage when tracingChannel.unstorage is false", async () => {
+    const template = await kv(
+      createNitroStub({ srvx: true, h3: true, unstorage: false })
+    ).template();
     expect(template).not.toContain("withTracing");
   });
 
-  it("wraps storage with withTracing when tracingChannel.unstorage is true", () => {
-    const template = kv(createNitroStub({ srvx: true, h3: true, unstorage: true })).template();
+  it("wraps storage with withTracing when tracingChannel.unstorage is true", async () => {
+    const template = await kv(
+      createNitroStub({ srvx: true, h3: true, unstorage: true })
+    ).template();
     expect(template).toContain(`import { withTracing } from 'unstorage/tracing'`);
     expect(template).toContain("return withTracing(storage)");
   });
 
-  it("provides installed driver dependencies via the `lib` option", () => {
-    const template = kv(
+  it("provides installed driver dependencies via the `lib` option", async () => {
+    const template = await kv(
       createNitroStub(undefined, { "/data": { driver: "fs", base: "./data" } })
     ).template();
     expect(template).toContain(
@@ -64,10 +68,10 @@ describe("virtual/kv template", () => {
     );
   });
 
-  it("uses the driver import specifier when it differs from the package name", () => {
+  it("uses the driver import specifier when it differs from the package name", async () => {
     mockedDeps.add("uploadthing");
     try {
-      const template = kv(
+      const template = await kv(
         createNitroStub(undefined, { "/files": { driver: "uploadthing", token: "x" } })
       ).template();
       expect(template).toContain(`lib: () => import("uploadthing/server")`);
@@ -76,8 +80,8 @@ describe("virtual/kv template", () => {
     }
   });
 
-  it("does not provide `lib` for dependencies that are not installed", () => {
-    const template = kv(
+  it("does not provide `lib` for dependencies that are not installed", async () => {
+    const template = await kv(
       createNitroStub(undefined, { "/cache": { driver: "redis", base: "cache" } })
     ).template();
     expect(template).toContain(
@@ -86,22 +90,22 @@ describe("virtual/kv template", () => {
     expect(template).not.toContain("ioredis");
   });
 
-  it("does not provide `lib` for dependencies only resolvable from nitro itself", () => {
+  it("does not provide `lib` for dependencies only resolvable from nitro itself", async () => {
     const rootDir = mkdtempSync(join(tmpdir(), "nitro-storage-lib-"));
     expect(isDepInstalled("chokidar", { dir: rootDir })).toBe(true);
     expect(isDepInstalled("chokidar", { dir: rootDir, projectOnly: true })).toBe(false);
 
     const nitro = createNitroStub(undefined, { "/data": { driver: "fs", base: "./data" } });
     nitro.options.rootDir = rootDir;
-    const template = kv(nitro).template();
+    const template = await kv(nitro).template();
     expect(template).toContain(
       `storage.mount('/data', unstorage_47drivers_47fs({"base":"./data"}))`
     );
     expect(template).not.toContain("chokidar");
   });
 
-  it("does not override a user provided `lib` option", () => {
-    const template = kv(
+  it("does not override a user provided `lib` option", async () => {
+    const template = await kv(
       createNitroStub(undefined, { "/data": { driver: "fs", lib: null } })
     ).template();
     expect(template).not.toContain("chokidar");

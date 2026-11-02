@@ -1,6 +1,20 @@
 import type { NitroPluginContext } from "./types.ts";
 import type { Plugin as VitePlugin } from "vite";
-import { resolve } from "pathe";
+import { readFile } from "node:fs/promises";
+import { join, resolve } from "pathe";
+
+// Written next to each service output so a later build that skips it (`isBuilt`) finds its entry.
+export const SERVICE_MANIFEST_FILE = "nitro-service.json";
+
+// Without a manifest (e.g. output of an older Nitro), the output dir itself is imported (`index.{mjs,js}`).
+export async function readBuiltServiceEntry(outDir: string): Promise<string | undefined> {
+  try {
+    const { entry } = JSON.parse(await readFile(join(outDir, SERVICE_MANIFEST_FILE), "utf8"));
+    return typeof entry === "string" ? entry : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 export function viteServicesTemplate(ctx: NitroPluginContext): string {
   const serviceNames = Object.keys(ctx.services);

@@ -1,5 +1,5 @@
 import { prettyPath, resolveNitroPath } from "../../utils/fs.ts";
-import { runtimeDir } from "nitro/meta";
+import { runtimeDir } from "#nitro/meta";
 import type { NitroOptions, NitroConfig } from "nitro/types";
 import { join, resolve } from "pathe";
 import { findWorkspaceDir } from "pkg-types";

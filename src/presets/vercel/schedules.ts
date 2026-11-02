@@ -1,7 +1,7 @@
 import type { Nitro, NitroOptions } from "nitro/types";
 import type { H3Event } from "h3";
 import { HTTPError } from "h3";
-import { presetsDir } from "nitro/meta";
+import { presetsDir } from "#nitro/meta";
 import { join } from "pathe";
 import { joinURL, withoutLeadingSlash } from "ufo";
 import { isLocalDevRequest } from "../../dev/_request.ts";

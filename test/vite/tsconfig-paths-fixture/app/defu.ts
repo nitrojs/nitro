@@ -1,0 +1,1 @@
+export const defu = () => "paths";

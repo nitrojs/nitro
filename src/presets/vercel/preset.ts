@@ -1,14 +1,9 @@
 import { defineNitroPreset } from "../_utils/preset.ts";
 import type { Nitro } from "nitro/types";
-import { presetsDir } from "nitro/meta";
+import { presetsDir } from "#nitro/meta";
 import { join } from "pathe";
 import { importDep } from "../../utils/dep.ts";
-import {
-  deprecateSWR,
-  generateFunctionFiles,
-  generateStaticFiles,
-  resolveVercelRuntime,
-} from "./utils.ts";
+import { generateFunctionFiles, generateStaticFiles, resolveVercelRuntime } from "./utils.ts";
 import { setupImmutableStaticFiles, generateImmutableManifest } from "./immutable.ts";
 import { vercelDevModule } from "./dev.ts";
 import { isVercelSchedulesEnabled, setupVercelSchedules } from "./schedules.ts";
@@ -92,7 +87,7 @@ const vercel = defineNitroPreset(
           await importDep({
             id: "@vercel/queue",
             dir: nitro.options.rootDir,
-            reason: "Vercel Queues",
+            deps: nitro.options.deps,
           });
 
           const handlerRoute = queues.handlerRoute || "/_vercel/queues/consumer";
@@ -114,9 +109,6 @@ const vercel = defineNitroPreset(
             experimentalTriggers: [...(existingRule?.experimentalTriggers || []), ...queueTriggers],
           };
         }
-      },
-      "rollup:before": (nitro: Nitro) => {
-        deprecateSWR(nitro);
       },
       async compiled(nitro: Nitro) {
         await generateFunctionFiles(nitro);
@@ -151,9 +143,6 @@ const vercelStatic = defineNitroPreset(
       "build:before": (nitro: Nitro) => {
         // Immutable static files (opt-in, guarded by Vercel platform support)
         setupImmutableStaticFiles(nitro);
-      },
-      "rollup:before": (nitro: Nitro) => {
-        deprecateSWR(nitro);
       },
       async compiled(nitro: Nitro) {
         await generateStaticFiles(nitro);

@@ -12,8 +12,14 @@ export function libChunkName(id: string) {
 }
 
 /** Rolldown `codeSplitting` group for library (`node_modules`) chunks. */
-export function libChunksGroup() {
-  const group = { test: NODE_MODULES_RE, name: (id: string) => libChunkName(id) };
+export function libChunksGroup(nitro: Nitro) {
+  const group = {
+    test: NODE_MODULES_RE,
+    name: (id: string) => libChunkName(id),
+    // A package's chunk also takes in the packages it imports. Without this, startup code that imports one of them
+    // loads the whole chunk, lazy routes' dependencies included.
+    entriesAware: nitro.options.experimental.entriesAwareLibChunks !== false,
+  };
   // Rolldown >= 1.2.10 warns without `debugName`, older versions reject unknown (enumerable) keys
   Object.defineProperty(group, "debugName", { value: "libs" });
   return group;
@@ -33,6 +39,11 @@ export function getChunkName(chunk: { name: string; moduleIds: string[] }, nitro
   // Known groups
   if (chunk.name === "rolldown-runtime") {
     return "_runtime.mjs";
+  }
+
+  // `entriesAware` suffixes split lib chunk names with `~<entries>`. Keep the group name, Rolldown dedupes file names
+  if (chunk.name.startsWith("_libs/")) {
+    chunk = { ...chunk, name: chunk.name.split("~")[0]! };
   }
 
   // Library chunks
@@ -124,6 +135,7 @@ export function routeToFsPath(route: string) {
       .slice(1)
       .map((s) =>
         s
+          .replace(/^:(\w+)\(\.\*\)$/, "[...$1]")
           .replace(/:(\w+)/g, "[$1]")
           .replace(/\*+/g, "[...]")
           .replace(/[^a-zA-Z0-9_.[\]]/g, "_")

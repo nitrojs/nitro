@@ -1,18 +1,21 @@
 import type { Nitro, NitroBuildPlugin, NitroBuildPluginOption } from "nitro/types";
 import type { Plugin } from "rollup";
 import type { BaseBuildConfig } from "./config.ts";
+import type { ExternalsTraceOptions } from "nf3";
 
 import { virtualTemplates } from "./virtual/_all.ts";
-import replace from "@rollup/plugin-replace";
 import { unwasm } from "unwasm/plugin";
 import { routeMeta } from "./plugins/route-meta.ts";
 import { serverMain } from "./plugins/server-main.ts";
 import { virtual, virtualDeps } from "./plugins/virtual.ts";
 import { sourcemap } from "./plugins/sourcemap.ts";
-import { raw, RESOLVED_RE as rawModulesRE } from "./plugins/raw.ts";
+import { raw } from "./plugins/raw.ts";
+import { replace } from "./plugins/replace.ts";
 import { importAttributes } from "./plugins/import-attributes.ts";
 import { externals } from "./plugins/externals.ts";
 import { unenv } from "./plugins/unenv.ts";
+import { runtimeDeps } from "./plugins/runtime-deps.ts";
+import { tsconfigPaths } from "./plugins/tsconfig-paths.ts";
 
 export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   const plugins: Plugin[] = [];
@@ -22,8 +25,17 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   nitro.vfs = virtualPlugin.api.modules;
   plugins.push(virtualPlugin, virtualDeps());
 
+  // TypeScript `paths`
+  const tsconfigPathsPlugin = tsconfigPaths(nitro, base.aliases);
+  if (tsconfigPathsPlugin) {
+    plugins.push(tsconfigPathsPlugin);
+  }
+
   // Node.js compatibility polyfills (resolved on demand)
   plugins.push(unenv(nitro, base.env));
+
+  // Optional runtime dependencies (`unstorage`, `db0`) imported by Nitro (resolved on demand)
+  plugins.push(runtimeDeps(nitro));
 
   // WASM loader
   if (nitro.options.wasm !== false) {
@@ -34,7 +46,7 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   plugins.push(serverMain(nitro));
 
   // Raw Imports
-  plugins.push(await importAttributes({ rootDir: nitro.options.rootDir }), raw());
+  plugins.push(await importAttributes(nitro), raw());
 
   // Route meta
   if (nitro.options.experimental.openAPI) {
@@ -42,17 +54,7 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
   }
 
   // Replace
-  const replacePlugin = (replace as unknown as typeof replace.default)({
-    preventAssignment: true,
-    values: base.replacements,
-    // Raw modules hold file contents as string literals; replacing inside them
-    // corrupts the content (and can break the syntax with quoted values)
-    exclude: rawModulesRE,
-  });
-  // The plugin re-applies replacements on whole chunks, where raw module contents
-  // can no longer be excluded by id. All replaceable code goes through `transform`.
-  delete replacePlugin.renderChunk;
-  plugins.push(replacePlugin);
+  plugins.push(replace(base.replacements));
 
   // Externals (require Node.js compatible resolution)
   if (nitro.options.node && nitro.options.noExternals !== true) {
@@ -66,7 +68,8 @@ export async function baseBuildPlugins(nitro: Nitro, base: BaseBuildConfig) {
         trace: isDevOrPrerender
           ? false
           : {
-              ...nitro.options.traceOpts,
+              // `nitro/types` has its own bundled copy of the `nf3` types
+              ...(nitro.options.traceOpts as Partial<ExternalsTraceOptions>),
               outDir: nitro.options.output.serverDir,
             },
       })

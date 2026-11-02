@@ -298,6 +298,18 @@ export const websocketOptions = {
   },
 };
 
+// Worker classes for the miniflare runner: the server entry exports re-exported by the nitro
+// environment's entry (`dev-entry.mjs`). Resolved on each use so they follow reloads, and
+// share the module state of the routes.
+export async function resolveExports() {
+  const env = envs.nitro || (await waitForEnv("nitro"));
+  if (!env) {
+    throw httpError(503, `Vite environment "nitro" is unavailable`);
+  }
+  const entry = await env.waitForEntry();
+  return entry.serverEntryExports || {};
+}
+
 export const ipc = {
   onOpen(ctx) {
     sendMessage = ctx.sendMessage;

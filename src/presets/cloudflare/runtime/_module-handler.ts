@@ -3,6 +3,7 @@ import type * as CF from "@cloudflare/workers-types";
 import type { ServerRequest, ServerRuntimeContext } from "srvx";
 
 import { runCronTasks } from "#nitro/runtime/task";
+import { afterNitroReady } from "#nitro/runtime/async-plugins";
 import { useNitroApp, useNitroHooks } from "nitro/app";
 
 type MaybePromise<T> = T | Promise<T>;
@@ -10,7 +11,7 @@ type MaybePromise<T> = T | Promise<T>;
 export function createHandler<Env>(hooks: {
   fetch: (
     ...params: [
-      ...Parameters<NonNullable<ExportedHandler<Env>["fetch"]>>,
+      ...Parameters<NonNullable<CF.ExportedHandler<Env>["fetch"]>>,
       url: URL,
       cfContextExtras: any,
     ]
@@ -35,17 +36,19 @@ export function createHandler<Env>(hooks: {
         }
       }
 
-      return (await nitroApp.fetch(request)) as any;
+      return (await nitroApp.fetch(request as any)) as any;
     },
 
     scheduled(controller, env, context) {
       (globalThis as any).__env__ = env;
       context.waitUntil(
-        nitroHooks.callHook("cloudflare:scheduled", {
-          controller,
-          env,
-          context,
-        }) || Promise.resolve()
+        afterNitroReady(nitroApp, () =>
+          nitroHooks.callHook("cloudflare:scheduled", {
+            controller,
+            env,
+            context,
+          })
+        ) || Promise.resolve()
       );
       if (import.meta._tasks) {
         context.waitUntil(
@@ -65,49 +68,55 @@ export function createHandler<Env>(hooks: {
     email(message, env, context) {
       (globalThis as any).__env__ = env;
       context.waitUntil(
-        nitroHooks.callHook("cloudflare:email", {
-          message: message as any,
-          event: message as any, // backward compat
-          env,
-          context,
-        }) || Promise.resolve()
+        afterNitroReady(nitroApp, () =>
+          nitroHooks.callHook("cloudflare:email", {
+            message: message as any,
+            env,
+            context,
+          })
+        ) || Promise.resolve()
       );
     },
 
     queue(batch, env, context) {
       (globalThis as any).__env__ = env;
       context.waitUntil(
-        nitroHooks.callHook("cloudflare:queue", {
-          batch,
-          event: batch,
-          env,
-          context,
-        }) || Promise.resolve()
+        afterNitroReady(nitroApp, () =>
+          nitroHooks.callHook("cloudflare:queue", {
+            batch,
+            env,
+            context,
+          })
+        ) || Promise.resolve()
       );
     },
 
     tail(traces, env, context) {
       (globalThis as any).__env__ = env;
       context.waitUntil(
-        nitroHooks.callHook("cloudflare:tail", {
-          traces,
-          env,
-          context,
-        }) || Promise.resolve()
+        afterNitroReady(nitroApp, () =>
+          nitroHooks.callHook("cloudflare:tail", {
+            traces,
+            env,
+            context,
+          })
+        ) || Promise.resolve()
       );
     },
 
     trace(traces, env, context) {
       (globalThis as any).__env__ = env;
       context.waitUntil(
-        nitroHooks.callHook("cloudflare:trace", {
-          traces,
-          env,
-          context,
-        }) || Promise.resolve()
+        afterNitroReady(nitroApp, () =>
+          nitroHooks.callHook("cloudflare:trace", {
+            traces,
+            env,
+            context,
+          })
+        ) || Promise.resolve()
       );
     },
-  } satisfies ExportedHandler<Env>;
+  } satisfies CF.ExportedHandler<Env>;
 }
 
 export function augmentReq(
@@ -121,4 +130,22 @@ export function augmentReq(
   req.runtime ??= { name: "cloudflare" };
   req.runtime.cloudflare = { ...req.runtime.cloudflare, ...ctx };
   req.waitUntil = ctx.context?.waitUntil.bind(ctx.context);
+}
+
+export async function fetchPublicAsset(
+  assets: { fetch: (request: any) => Promise<any> },
+  cfReq: Request | CF.Request
+): Promise<Response> {
+  const res: Response = await assets.fetch(cfReq);
+  // The `_headers` rule of a public assets base also applies to a missing
+  // file. Do not let browsers cache that 404 for the lifetime of the assets.
+  if (
+    res.status === 404 &&
+    /max-age=[1-9]|immutable/i.test(res.headers.get("cache-control") || "")
+  ) {
+    const notFound = new Response(res.body, res);
+    notFound.headers.set("cache-control", "no-store");
+    return notFound;
+  }
+  return res;
 }

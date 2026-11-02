@@ -23,7 +23,7 @@ export async function runTask(
 
 /** @experimental */
 export async function listTasks(opts?: TaskRunnerOptions) {
-  const ctx = await _getTasksContext(opts);
+  const ctx = await _getTasksContext(opts, { defaultTimeout: 30_000 });
   const res = (await ctx.devFetch("/_nitro/tasks")) as {
     tasks: Record<string, { meta: TaskMeta }>;
   };
@@ -34,9 +34,13 @@ export async function listTasks(opts?: TaskRunnerOptions) {
 
 const _devHint = `(is dev server running?)`;
 
-async function _getTasksContext(opts?: TaskRunnerOptions) {
+async function _getTasksContext(
+  opts?: TaskRunnerOptions,
+  internalOpts?: { defaultTimeout?: number }
+) {
   const cwd = resolve(process.cwd(), opts?.cwd || ".");
   const buildDir = resolve(cwd, opts?.buildDir || "node_modules/.nitro");
+  const timeout = opts?.timeout ?? internalOpts?.defaultTimeout;
 
   const buildInfoPath = resolve(buildDir, "nitro.dev.json");
   if (!existsSync(buildInfoPath)) {
@@ -75,6 +79,8 @@ async function _getTasksContext(opts?: TaskRunnerOptions) {
         {
           socketPath,
           method: options?.method,
+          // Omit when unset: the default agent still emits `timeout` after its own 5s idle timeout
+          ...(timeout ? { timeout } : {}),
           headers: {
             Accept: "application/json",
             "Content-Type": "application/json",
@@ -95,6 +101,11 @@ async function _getTasksContext(opts?: TaskRunnerOptions) {
         }
       );
 
+      if (timeout) {
+        request.on("timeout", () => {
+          request.destroy(new Error(`Request timed out after ${timeout}ms ${_devHint}`));
+        });
+      }
       request.on("error", (e) => reject(e));
 
       if (options?.body) {
