@@ -773,6 +773,76 @@ export function testNitro(
         }
       }
     );
+
+    it.skipIf(ctx.isIsolated)(
+      "should not serve or store cached responses for non GET requests",
+      async () => {
+        const post = await callHandler({
+          url: "/api/cache/method",
+          method: "POST",
+        });
+        expect(post.data.method).toBe("POST");
+        const get1 = await callHandler({ url: "/api/cache/method" });
+        expect(get1.data.method).toBe("GET");
+        const get2 = await callHandler({ url: "/api/cache/method" });
+        expect(get2.data.rand).toBe(get1.data.rand);
+        const post2 = await callHandler({
+          url: "/api/cache/method",
+          method: "POST",
+        });
+        expect(post2.data.method).toBe("POST");
+        expect(post2.data.rand).not.toBe(get1.data.rand);
+      }
+    );
+
+    it.skipIf(ctx.isIsolated)(
+      "should not cache or replay set-cookie to other requests",
+      async () => {
+        const a = await callHandler({ url: "/api/cache/cookie" });
+        expect(String(a.headers["set-cookie"])).toContain(`sid=${a.data.sid}`);
+        const b = await callHandler({ url: "/api/cache/cookie" });
+        expect(b.data.sid).not.toBe(a.data.sid);
+        expect(String(b.headers["set-cookie"] || "")).not.toContain(
+          `sid=${a.data.sid}`
+        );
+      }
+    );
+
+    it.skipIf(ctx.isIsolated)(
+      "should not share set-cookie responses with concurrent requests",
+      async () => {
+        const [a, b] = await Promise.all([
+          callHandler({ url: "/api/cache/cookie" }),
+          callHandler({ url: "/api/cache/cookie" }),
+        ]);
+        expect(b.data.sid).not.toBe(a.data.sid);
+        for (const res of [a, b]) {
+          const cookies = String(res.headers["set-cookie"]);
+          expect(cookies).toContain(`sid=${res.data.sid}`);
+          expect(cookies).toContain(`csrf=${res.data.sid}`);
+        }
+      }
+    );
+
+    it.skipIf(ctx.isIsolated)(
+      "should not cache or rewrite no-store responses",
+      async () => {
+        const a = await callHandler({ url: "/api/cache/no-store" });
+        expect(a.headers["cache-control"]).toBe("no-store");
+        const b = await callHandler({ url: "/api/cache/no-store" });
+        expect(b.data.rand).not.toBe(a.data.rand);
+        expect(b.headers["cache-control"]).toBe("no-store");
+      }
+    );
+
+    it.skipIf(ctx.isIsolated)(
+      "should not cache responses varying on headers not in varies",
+      async () => {
+        const a = await callHandler({ url: "/api/cache/vary" });
+        const b = await callHandler({ url: "/api/cache/vary" });
+        expect(b.data.rand).not.toBe(a.data.rand);
+      }
+    );
   });
 
   describe("scanned files", () => {
