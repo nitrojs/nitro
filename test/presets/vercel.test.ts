@@ -862,9 +862,9 @@ describe("nitro:preset:vercel:node", async () => {
           .readFile(resolve(ctx.outDir, "config.json"), "utf8")
           .then((r) => JSON.parse(r));
         expect(config.crons).toBeUndefined();
-        expect(config.schedules).toEqual([
-          { name: "test", schedule: "* * * * *", function: "_vercel/tasks" },
-        ]);
+        expect(config.schedules).toEqual({
+          test: { schedule: "* * * * *", function: "_vercel/tasks" },
+        });
         expect(config.routes.some((r: { dest?: string }) => r.dest === "/_vercel/cron")).toBe(
           false
         );

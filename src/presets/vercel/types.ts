@@ -53,16 +53,15 @@ export interface VercelBuildConfigV3 {
     path: string;
     schedule: string;
   }[];
-  schedules?: VercelSchedule[];
+  /** Vercel Schedules, keyed by schedule name. */
+  schedules?: Record<string, VercelSchedule>;
 }
 
 /**
- * Vercel Schedules definition in the Build Output API
+ * Vercel Schedules definition in the Build Output API, keyed by its name in `schedules`
  * @see https://vercel.com/docs/schedules
  */
 export type VercelSchedule = {
-  /** Schedule name, unique within the deployment. Defaults to a hash of the target and cron expression. */
-  name?: string;
   /** Cron expression. */
   schedule: string;
   /** IANA timezone the cron expression is evaluated in. Defaults to UTC. */

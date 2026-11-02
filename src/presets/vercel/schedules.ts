@@ -132,20 +132,21 @@ export function getVercelTaskSchedules(
 export function getVercelBuildOutputSchedules(
   nitro: Nitro,
   scheduledTasks = nitro.options.scheduledTasks
-): VercelSchedule[] {
+): Record<string, VercelSchedule> {
   const mode = getVercelSchedulesMode(nitro.options);
   if (!mode) {
-    return [];
+    return {};
   }
   const target =
     mode === "public"
       ? { path: joinURL(nitro.options.baseURL, getCronHandlerRoute(nitro)) }
       : { function: getScheduleFunctionPath(nitro) };
-  return getVercelTaskSchedules(nitro.options, scheduledTasks).map(({ name, schedule }) => ({
-    name,
-    schedule,
-    ...target,
-  }));
+  return Object.fromEntries(
+    getVercelTaskSchedules(nitro.options, scheduledTasks).map(({ name, schedule }) => [
+      name,
+      { schedule, ...target },
+    ])
+  );
 }
 
 /**
@@ -215,8 +216,8 @@ export interface VercelDevManifest {
     invocation: { type: "http"; pathname: string };
     experimentalTriggers: VercelFunctionTrigger[];
   }[];
-  /** Build Output API `schedules`, as emitted by `nitro build`. */
-  schedules: VercelSchedule[];
+  /** Build Output API `schedules` keyed by name, as emitted by `nitro build`. */
+  schedules: Record<string, VercelSchedule>;
 }
 
 /**
@@ -256,7 +257,7 @@ export function getVercelDevManifest(
   scheduledTasks = nitro.options.scheduledTasks
 ): VercelDevManifest {
   const schedules = getVercelBuildOutputSchedules(nitro, scheduledTasks);
-  if (schedules.length === 0 || getVercelSchedulesMode(nitro.options) === "public") {
+  if (Object.keys(schedules).length === 0 || getVercelSchedulesMode(nitro.options) === "public") {
     return { functions: [], schedules };
   }
   return {

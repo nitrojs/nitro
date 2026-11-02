@@ -386,14 +386,14 @@ function generateBuildConfig(nitro: Nitro, o11Routes?: ObservabilityRoute[]) {
 
   // Schedules from scheduledTasks
   if (isVercelSchedulesEnabled(nitro.options)) {
-    const schedules = nitro.options.static ? [] : getVercelBuildOutputSchedules(nitro);
+    const schedules = nitro.options.static ? {} : getVercelBuildOutputSchedules(nitro);
     if (nitro.options.static && Object.keys(nitro.options.scheduledTasks || {}).length > 0) {
       nitro.logger.warn(
         "Scheduled tasks are not supported by the `vercel-static` preset. Use the `vercel` preset to run them with Vercel Schedules."
       );
     }
-    if (schedules.length > 0) {
-      config.schedules = [...schedules, ...(config.schedules || [])];
+    if (Object.keys(schedules).length > 0) {
+      config.schedules = { ...schedules, ...config.schedules };
     }
   }
   // Cron jobs from scheduledTasks

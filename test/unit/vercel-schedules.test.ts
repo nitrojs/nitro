@@ -154,34 +154,34 @@ function createNitro(
 
 describe("getVercelBuildOutputSchedules", () => {
   it("targets the private function", () => {
-    expect(getVercelBuildOutputSchedules(createNitro())).toEqual([
-      { name: "cleanup", schedule: "0 3 * * *", function: "_vercel/tasks" },
-    ]);
+    expect(getVercelBuildOutputSchedules(createNitro())).toEqual({
+      cleanup: { schedule: "0 3 * * *", function: "_vercel/tasks" },
+    });
   });
 
   it("targets the cron handler route in path mode", () => {
-    expect(getVercelBuildOutputSchedules(createNitro("public"))).toEqual([
-      { name: "cleanup", schedule: "0 3 * * *", path: "/_vercel/cron" },
-    ]);
+    expect(getVercelBuildOutputSchedules(createNitro("public"))).toEqual({
+      cleanup: { schedule: "0 3 * * *", path: "/_vercel/cron" },
+    });
     const nitro = createNitro("public", {
       vercel: { experimentalSchedules: "public", cronHandlerRoute: "/api/cron" },
     });
-    expect(getVercelBuildOutputSchedules(nitro)).toEqual([
-      { name: "cleanup", schedule: "0 3 * * *", path: "/api/cron" },
-    ]);
+    expect(getVercelBuildOutputSchedules(nitro)).toEqual({
+      cleanup: { schedule: "0 3 * * *", path: "/api/cron" },
+    });
   });
 
   it("is empty without the opt-in", () => {
-    expect(getVercelBuildOutputSchedules(createNitro(false))).toEqual([]);
+    expect(getVercelBuildOutputSchedules(createNitro(false))).toEqual({});
   });
 
   it("includes the baseURL in function and path targets", () => {
-    expect(getVercelBuildOutputSchedules(createNitro("private", { baseURL: "/app/" }))).toEqual([
-      { name: "cleanup", schedule: "0 3 * * *", function: "app/_vercel/tasks" },
-    ]);
-    expect(getVercelBuildOutputSchedules(createNitro("public", { baseURL: "/app/" }))).toEqual([
-      { name: "cleanup", schedule: "0 3 * * *", path: "/app/_vercel/cron" },
-    ]);
+    expect(getVercelBuildOutputSchedules(createNitro("private", { baseURL: "/app/" }))).toEqual({
+      cleanup: { schedule: "0 3 * * *", function: "app/_vercel/tasks" },
+    });
+    expect(getVercelBuildOutputSchedules(createNitro("public", { baseURL: "/app/" }))).toEqual({
+      cleanup: { schedule: "0 3 * * *", path: "/app/_vercel/cron" },
+    });
   });
 });
 
@@ -331,7 +331,7 @@ describe("setupVercelSchedulesDev", () => {
             experimentalTriggers: [{ type: "schedule/v1beta" }],
           },
         ],
-        schedules: [{ name: "cleanup", schedule: "0 3 * * *", function: "_vercel/tasks" }],
+        schedules: { cleanup: { schedule: "0 3 * * *", function: "_vercel/tasks" } },
       })});`
     );
   });
@@ -345,7 +345,7 @@ describe("setupVercelSchedulesDev", () => {
       expect.objectContaining({ route: "/_vercel/dev-manifest" }),
     ]);
     const template = nitro.options.virtual["#nitro/virtual/vercel-dev-manifest"] as () => string;
-    expect(template()).toContain(`export default () => ({"functions":[],"schedules":[]});`);
+    expect(template()).toContain(`export default () => ({"functions":[],"schedules":{}});`);
   });
 
   it("serves the cron handler for path targets", () => {
