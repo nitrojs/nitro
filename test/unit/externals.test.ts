@@ -1,5 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { resolveModulePath } from "exsolve";
+import { normalize } from "pathe";
 import { describe, expect, it, vi } from "vitest";
 import {
   applyProductionCondition,
@@ -37,7 +38,9 @@ describe("externals:resolveId", () => {
     const plugin = externals({
       outDir: "",
       moduleDirectories: [
-        new URL("../fixture/node_modules/", import.meta.url).pathname,
+        normalize(
+          fileURLToPath(new URL("../fixture/node_modules/", import.meta.url))
+        ),
       ],
       exportConditions: ["production", "node", "import", "default"],
     });
