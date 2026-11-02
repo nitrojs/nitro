@@ -1,9 +1,10 @@
 import { execa } from "execa";
-import { getRandomPort, waitForPort } from "get-port-please";
+import { getRandomPort } from "get-port-please";
 import { resolve } from "pathe";
 import { isWindows } from "std-env";
 import { expect, it } from "vitest";
 import type { Context } from "../tests.ts";
+import { waitForServer } from "./_wait-for-server.ts";
 
 const CLOSE_HOOK_MARKER = "[fixture] close hook called";
 
@@ -56,7 +57,7 @@ export function testCloseHook(
       child.nodeChildProcess.once("close", () => (exited = true));
 
       try {
-        await waitForPort(port, { delay: 1000, retries: 20, host: "127.0.0.1" });
+        await waitForServer(`http://127.0.0.1:${port}/`, child.nodeChildProcess);
 
         child.kill("SIGTERM");
 

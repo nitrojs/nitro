@@ -1,8 +1,9 @@
 import { execa, execaSync } from "execa";
-import { getRandomPort, waitForPort } from "get-port-please";
+import { getRandomPort } from "get-port-please";
 import { describe } from "vitest";
 import { setupTest, testNitro } from "../tests.ts";
 import { testCloseHook } from "./_close-hook.ts";
+import { waitForServer } from "./_wait-for-server.ts";
 import { testUnixSocket } from "./_unix-socket.ts";
 
 const hasDeno = execaSync("deno", ["--version"], { stdio: "ignore", reject: false }).exitCode === 0;
@@ -26,7 +27,7 @@ describe.runIf(hasDeno)("nitro:preset:deno-server", async () => {
         p.kill();
       },
     } as any;
-    await waitForPort(port, { delay: 1000, retries: 20, host: "127.0.0.1" });
+    await waitForServer(`http://127.0.0.1:${port}/`, p.nodeChildProcess);
     return async ({ url, ...opts }) => {
       const res = await ctx.fetch(url, opts);
       return res;
