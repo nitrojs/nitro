@@ -111,6 +111,10 @@ describe("isTargetInScope", () => {
     ).toBe(false);
     expect(isPathInScope("/api/a%2fb/../../admin", "/api")).toBe(false);
     expect(isPathInScope("/api/x%2fy%2fz/../../../admin", "/api")).toBe(false);
+    expect(isPathInScope("/api/a%2F/../../secret", "/api")).toBe(false);
+    expect(
+      isTargetInScope("http://host/base/a%2F/../../secret", "http://host/base")
+    ).toBe(false);
   });
 
   it("rejects double-encoded traversal without literal %25%25", () => {
@@ -325,6 +329,10 @@ describe("resolveRedirectTarget", () => {
       "/old/%2F%2e%2e/x",
       "/old/%5C../x",
       "/old//../x",
+      // `%2F` is one opaque segment for browsers, so it must not absorb a `..`
+      "/old/a%2F/../../x",
+      "/old/x%2F%2F/../../../x",
+      "/old/a%5C/../../x",
     ])("rejects prefix escape via %j", (path) => {
       expect(resolveRedirectTarget(path, "/new/**", "/old")).toBeUndefined();
       expect(
