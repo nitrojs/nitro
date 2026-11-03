@@ -52,6 +52,8 @@ export class PluginContainer {
   readonly watchFiles = new Set<string>();
   /** Assets emitted by plugins, by reference id. */
   readonly emittedFiles = new Map<string, { fileName: string; source: string | Uint8Array }>();
+  /** Called when a plugin emits an asset (set while `generateBundle` hooks run). */
+  onEmitFile?: (file: { fileName: string; source: string | Uint8Array }) => void;
   /** Ids of virtual modules by their (escaped) path in Bun. */
   readonly virtualPaths = new Map<string, string>();
 

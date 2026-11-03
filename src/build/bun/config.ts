@@ -21,7 +21,6 @@ export async function getBunConfig(
   const rollupConfig = await fromRollupConfig(nitro);
 
   const config: BunConfig = defu(nitro.options.bunConfig, rollupConfig.config, {
-    entrypoints: [nitro.options.entry],
     root: nitro.options.rootDir,
     target: nitro.options.preset === "bun" ? "bun" : nitro.options.node ? "node" : "browser",
     external: nitro.options.node ? [...base.env.external] : [],
@@ -45,6 +44,8 @@ export async function getBunConfig(
     define: { "process.env.NODE_ENV": "process.env.NODE_ENV" },
     metafile: true,
   } satisfies BunConfig) as BunConfig;
+  // Replaced, not concatenated (`defu` merges arrays)
+  config.entrypoints = nitro.options.bunConfig?.entrypoints ?? [nitro.options.entry];
 
   const plugins = (await withBuildPlugins(nitro, [
     ...rollupConfig.plugins,

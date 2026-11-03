@@ -61,7 +61,9 @@ export function pluginContext(
         file.fileName ||
         `_assets/${basename(file.name || "asset", ext)}-${hash(file.source)}${ext}`;
       const referenceId = hash(fileName);
-      container.emittedFiles.set(referenceId, { fileName, source: file.source });
+      const emitted = { fileName, source: file.source };
+      container.emittedFiles.set(referenceId, emitted);
+      container.onEmitFile?.(emitted);
       return referenceId;
     },
     error: (error: string | Error) => {

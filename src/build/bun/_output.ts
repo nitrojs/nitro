@@ -53,12 +53,6 @@ export async function writeOutput(
     }
   }
 
-  const emitAssets = () => {
-    for (const { fileName, source } of container.emittedFiles.values()) {
-      bundle[fileName] ??= toAsset(fileName, source);
-    }
-  };
-
   const chunks = Object.values(bundle).filter((output) => output.type === "chunk");
   const meta = { chunks: Object.fromEntries(chunks.map((chunk) => [chunk.fileName, chunk])) };
   // Source maps returned by `renderChunk` hooks are not used: they do not need to generate them
@@ -74,11 +68,20 @@ export async function writeOutput(
     chunk.code = pragma + chunk.code;
   }
 
-  // Assets emitted until `renderChunk`, then only the ones of `generateBundle` (others can be deleted)
-  emitAssets();
-  container.emittedFiles.clear();
-  await container.callBundleHook("generateBundle", [outputOptions, bundle, true]);
-  emitAssets();
+  // Same as Rollup: assets emitted by `generateBundle` hooks are added to the bundle right away,
+  // so later hooks can read or delete them
+  const addAsset = ({ fileName, source }: { fileName: string; source: string | Uint8Array }) => {
+    bundle[fileName] ??= toAsset(fileName, source);
+  };
+  for (const file of container.emittedFiles.values()) {
+    addAsset(file);
+  }
+  container.onEmitFile = addAsset;
+  try {
+    await container.callBundleHook("generateBundle", [outputOptions, bundle, true]);
+  } finally {
+    container.onEmitFile = undefined;
+  }
 
   await Promise.all(
     Object.values(bundle).map(async (output) => {

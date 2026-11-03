@@ -186,6 +186,55 @@ describe.runIf(process.versions.bun)("bun builder plugin container", () => {
     expect(existsSync(join(dir, "deleted.txt"))).toBe(false);
   });
 
+  it("adds assets emitted by `generateBundle` to the bundle of later hooks", async () => {
+    const seen: string[] = [];
+    const container = new PluginContainer(
+      [
+        {
+          name: "test:emit",
+          generateBundle() {
+            this.emitFile({ type: "asset", fileName: "kept.txt", source: "kept" });
+            this.emitFile({ type: "asset", fileName: "removed.txt", source: "removed" });
+          },
+        },
+        {
+          name: "test:delete",
+          generateBundle(_options, bundle) {
+            seen.push(...Object.keys(bundle));
+            delete bundle["removed.txt"];
+          },
+        },
+      ],
+      {
+        rootDir,
+        conditions: [],
+        extensions: [],
+        isExternal: () => false,
+        watchMode: false,
+        onWarn: () => {},
+      }
+    );
+    const dir = join(rootDir, "output-generate");
+    const { output } = await writeOutput(container, {
+      outputs: [
+        {
+          path: "./index.mjs",
+          kind: "entry-point",
+          text: async () => "export {};",
+          bytes: async () => new Uint8Array(),
+        },
+      ],
+      meta: () => undefined,
+      dir,
+      format: "es",
+      sourcemap: false,
+    });
+    expect(seen).toEqual(["index.mjs", "kept.txt", "removed.txt"]);
+    expect(output.map((file) => file.fileName)).toEqual(["index.mjs", "kept.txt"]);
+    expect(existsSync(join(dir, "kept.txt"))).toBe(true);
+    expect(existsSync(join(dir, "removed.txt"))).toBe(false);
+  });
+
   it("does not parse relative `export *`", async () => {
     const code = await loadCode(`export * from "./lib/utils/index.ts";`);
     expect(code).toBe(`export * from "./lib/utils/index.ts";`);
