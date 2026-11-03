@@ -149,6 +149,8 @@ describe.runIf(process.versions.bun)("bun builder plugin container", () => {
           name: "test:assets",
           renderChunk() {
             this.emitFile({ type: "asset", fileName: "render.txt", source: "render" });
+            this.emitFile({ type: "asset", fileName: "constructor", source: "c" });
+            this.emitFile({ type: "asset", fileName: "__proto__", source: "p" });
             return null;
           },
           generateBundle(_options, bundle) {
@@ -183,6 +185,8 @@ describe.runIf(process.versions.bun)("bun builder plugin container", () => {
     });
     expect(existsSync(join(dir, "index.mjs"))).toBe(true);
     expect(existsSync(join(dir, "render.txt"))).toBe(true);
+    expect(existsSync(join(dir, "constructor"))).toBe(true);
+    expect(existsSync(join(dir, "__proto__"))).toBe(true);
     expect(existsSync(join(dir, "deleted.txt"))).toBe(false);
   });
 

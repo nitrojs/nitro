@@ -34,7 +34,8 @@ export async function writeOutput(
     sourcemap: opts.sourcemap,
   } as OutputOptions;
 
-  const bundle: OutputBundle = {};
+  // Same as Rollup: file names such as `constructor` or `__proto__` are own properties
+  const bundle: OutputBundle = Object.create(null);
   for (const artifact of opts.outputs) {
     const fileName = artifact.path.replace(/^\.\//, "");
     if (artifact.kind === "entry-point" || artifact.kind === "chunk") {
