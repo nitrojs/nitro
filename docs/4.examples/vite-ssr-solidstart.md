@@ -22,10 +22,10 @@ icon: i-logos-solidjs-icon
   },
   "dependencies": {
     "@solidjs/meta": "^0.29.4",
-    "@solidjs/router": "^1.0.0",
-    "@solidjs/start": "^2.1.0",
+    "@solidjs/router": "^1.0.1",
+    "@solidjs/start": "^2.2.0",
     "nitro": "latest",
-    "solid-js": "^1.9.17",
+    "solid-js": "^1.9.18",
     "vite": "latest"
   },
   "engines": {

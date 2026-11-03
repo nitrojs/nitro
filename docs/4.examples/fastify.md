@@ -26,7 +26,7 @@ export default defineConfig({});
     "dev": "nitro dev"
   },
   "devDependencies": {
-    "fastify": "^5.12.7",
+    "fastify": "^5.12.8",
     "nitro": "latest",
     "rolldown": "latest"
   }

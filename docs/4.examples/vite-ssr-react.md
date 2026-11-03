@@ -23,7 +23,7 @@ icon: i-logos-react
   "devDependencies": {
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "@vitejs/plugin-react": "^6.1.2",
+    "@vitejs/plugin-react": "^6.2.1",
     "nitro": "latest",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",

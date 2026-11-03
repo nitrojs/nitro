@@ -33,7 +33,7 @@ icon: i-logos-react
   "devDependencies": {
     "@react-router/dev": "^8.5.1",
     "@tailwindcss/vite": "^4.3.3",
-    "@types/node": "^26.6.5",
+    "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "nitro": "latest",
