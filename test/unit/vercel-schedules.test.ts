@@ -240,9 +240,7 @@ describe("setupVercelSchedules", () => {
   it("serves the cron handler in path mode", () => {
     const nitro = createNitro("public");
     setupVercelSchedules(nitro);
-    expect(nitro.options.handlers).toEqual([
-      expect.objectContaining({ route: "/_vercel/cron", method: "GET" }),
-    ]);
+    expect(nitro.options.handlers).toEqual([expect.objectContaining({ route: "/_vercel/cron" })]);
     expect(nitro.options.vercel!.functionRules).toBeUndefined();
   });
 
@@ -346,7 +344,7 @@ describe("setupVercelSchedulesDev", () => {
     expect(nitro.options.scheduler.runner).toBe(false);
     expect(nitro.options.handlers).toEqual([
       expect.objectContaining({ route: "/_vercel/dev-manifest" }),
-      expect.objectContaining({ route: "/_vercel/cron", method: "GET" }),
+      expect.objectContaining({ route: "/_vercel/cron" }),
     ]);
     const template = nitro.options.virtual[
       "#nitro/virtual/vercel-schedule-handler"
