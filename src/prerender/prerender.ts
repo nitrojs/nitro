@@ -62,6 +62,7 @@ export async function prerender(nitro: Nitro) {
     compressPublicAssets: false,
     rootDir: nitro.options.rootDir,
     renderer: nitro.options.renderer,
+    services: nitro.options.services,
     virtual: { ...nitro.options.virtual },
     logLevel: 0,
     preset: "nitro-prerender",
@@ -73,6 +74,7 @@ export async function prerender(nitro: Nitro) {
     c12: { envName: [nitro.options.envName, "prerender"] },
   });
   nitroRenderer._pageTemplate = nitro._pageTemplate;
+  nitroRenderer._serviceLoader = nitro._serviceLoader;
   const prerenderStartTime = Date.now();
   await nitro.hooks.callHook("prerender:init", nitroRenderer);
   await nitroRenderer.routing.sync();

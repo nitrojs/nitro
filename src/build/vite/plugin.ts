@@ -10,7 +10,7 @@ import type {
 } from "vite";
 import type { InputOption } from "rollup";
 import type { NitroPluginConfig, NitroPluginContext } from "./types.ts";
-import { resolve, join } from "pathe";
+import { resolve } from "pathe";
 import { normalizeAliases, resolveAlias } from "pathe/utils";
 import { createNitro, prepare } from "../../builder.ts";
 import { installModules } from "../../module.ts";
@@ -23,8 +23,6 @@ import {
   createServiceEnvironments,
   createServiceEnvironment,
 } from "./env.ts";
-import { runtimeDir } from "#nitro/meta";
-import { resolveModulePath } from "exsolve";
 import { mergeConfig } from "../../config/_merge.ts";
 import { NitroDefaults } from "../../config/defaults.ts";
 import { prettyPath } from "../../utils/fs.ts";
@@ -34,7 +32,9 @@ import { nitroPreviewPlugin } from "./preview.ts";
 import { nitroAssetsImport } from "./_assets.ts";
 import { defu } from "defu";
 import type { Nitro, NitroConfig, NitroModule } from "nitro/types";
-import { nitroDevServiceProxy, SERVICE_MANIFEST_FILE, viteServicesTemplate } from "./services.ts";
+import { nitroDevServiceProxy, SERVICE_MANIFEST_FILE, viteServiceLoader } from "./services.ts";
+import { checkServerEntry, findSSREntry, useSSRServiceRenderer } from "../services.ts";
+import { resolveServiceEntry, resolveServices } from "../../config/resolvers/services.ts";
 import { nitroRequireExternals } from "./_require-externals.ts";
 import { nitroServerAliases } from "./_server-aliases.ts";
 import { importVite, setRunningVite, viteImportOptions } from "./_import.ts";
@@ -42,8 +42,6 @@ import { isVitest, nitroVitest } from "./vitest.ts";
 
 // https://vite.dev/guide/api-environment-plugins
 // https://vite.dev/guide/api-environment-frameworks.html
-
-const DEFAULT_EXTENSIONS = [".ts", ".js", ".mts", ".mjs", ".tsx", ".jsx"];
 
 const debug = process.env.NITRO_DEBUG
   ? (...args: any[]) => console.log("[nitro]", ...args)
@@ -202,13 +200,7 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
       }
 
       // Resolve and register as a service
-      const resolvedEntry =
-        resolveModulePath(entry, {
-          from: [ctx.nitro!.options.rootDir, ...ctx.nitro!.options.scanDirs],
-          extensions: DEFAULT_EXTENSIONS,
-          suffixes: ["", "/index"],
-          try: true,
-        }) || entry;
+      const resolvedEntry = resolveServiceEntry(ctx.nitro!.options, entry);
 
       ctx.services[name] = { entry: resolvedEntry };
       debug(`[env]  Auto-detected service "${name}" with entry: ${resolvedEntry}`);
@@ -219,15 +211,7 @@ function nitroEnv(ctx: NitroPluginContext): VitePlugin {
 
     configResolved() {
       // Setup default SSR renderer after all environments are configured
-      if (
-        !ctx.nitro!.options.renderer?.handler &&
-        !ctx.nitro!.options.renderer?.template &&
-        ctx.services.ssr?.entry
-      ) {
-        ctx.nitro!.options.renderer ??= {};
-        ctx.nitro!.options.renderer.handler = resolve(runtimeDir, "internal/vite/ssr-renderer");
-        ctx.nitro!.routing.sync();
-      }
+      useSSRServiceRenderer(ctx.nitro!);
     },
   };
 }
@@ -516,12 +500,12 @@ async function setupNitroContext(
   const pluginModules = ctx._pluginModules.map((p) => p.nitro!);
   nitroConfig.modules = [...(nitroConfig.modules || []), ...pluginModules];
 
-  // Register service entries VFS
-  const vServicesId = "#nitro/virtual/vite-services";
-  nitroConfig.virtual ??= {};
-  nitroConfig.virtual[vServicesId] = () => viteServicesTemplate(ctx);
+  // Inline `vite.services` (alias) take precedence over `services` of the config file
+  if (nitroConfig.vite?.services) {
+    nitroConfig.services = { ...nitroConfig.vite.services, ...nitroConfig.services };
+  }
+
   if (providedNitro) {
-    providedNitro.options.virtual[vServicesId] = nitroConfig.virtual[vServicesId];
     applyInlineViteOptions(providedNitro, nitroConfig);
   }
 
@@ -554,8 +538,12 @@ async function setupNitroContext(
   // Page template context (the page HTML and the SSR outlet are set by dev and build)
   ctx.nitro._pageTemplate = { context: [{ from: "nitro/vite/runtime", name: "fetchViteEnv" }] };
 
-  // Register services from config
-  ctx.services = { ...ctx.nitro.options.vite?.services };
+  // Services (from config, modules and registered server environments) are built by Vite.
+  // The `vite.services` alias is merged after modules ran (`services` take precedence).
+  const { options } = ctx.nitro;
+  options.services = resolveServices(options, { ...options.vite?.services, ...options.services });
+  ctx.services = options.services;
+  ctx.nitro._serviceLoader = (name) => viteServiceLoader(ctx, name);
 
   // Config ssr env as a fetchable ssr service
   if (!ctx.services.ssr) {
@@ -564,40 +552,19 @@ async function setupNitroContext(
     const userSsrInput =
       userSsrEnv?.build?.rolldownOptions?.input ?? userSsrEnv?.build?.rollupOptions?.input;
     if (userSsrEnv === undefined || (ctx._isVitest && !userSsrInput)) {
-      const ssrEntry = resolveModulePath("./entry-server", {
-        from: ["app", "src", ""].flatMap((d) =>
-          [ctx.nitro!.options.rootDir, ...ctx.nitro!.options.scanDirs].map((s) => join(s, d) + "/")
-        ),
-        extensions: DEFAULT_EXTENSIONS,
-        try: true,
-      });
+      const ssrEntry = findSSREntry(ctx.nitro);
       if (ssrEntry) {
         ctx.services.ssr = { entry: ssrEntry };
         ctx.nitro!.logger.info(`Using \`${prettyPath(ssrEntry)}\` as vite ssr entry.`);
       }
     } else {
-      let ssrEntry = getEntry(userSsrInput);
+      const ssrEntry = getEntry(userSsrInput);
       if (typeof ssrEntry === "string") {
-        ssrEntry =
-          resolveModulePath(ssrEntry, {
-            from: [ctx.nitro.options.rootDir, ...ctx.nitro.options.scanDirs],
-            extensions: DEFAULT_EXTENSIONS,
-            suffixes: ["", "/index"],
-            try: true,
-          }) || ssrEntry;
-        ctx.services.ssr = { entry: ssrEntry };
+        ctx.services.ssr = { entry: resolveServiceEntry(ctx.nitro.options, ssrEntry) };
       }
     }
   }
-  if (
-    ctx.nitro.options.serverEntry &&
-    ctx.nitro.options.serverEntry.handler === ctx.services.ssr?.entry
-  ) {
-    ctx.nitro.logger.warn(
-      `Nitro server entry and Vite SSR both set to ${prettyPath(ctx.services.ssr.entry)}. Use a separate SSR entry (e.g. \`src/server.ts\`).`
-    );
-    ctx.nitro.options.serverEntry = false;
-  }
+  checkServerEntry(ctx.nitro);
 
   // Determine default Vite dist directory
   const publicDistDir = (ctx._publicDistDir =
@@ -741,6 +708,9 @@ async function flattenPlugins(userConfig: UserConfig, configEnv: ConfigEnv): Pro
 function applyInlineViteOptions(nitro: Nitro, nitroConfig: NitroConfig) {
   if (nitroConfig.vite) {
     nitro.options.vite = defu(nitroConfig.vite, nitro.options.vite);
+  }
+  if (nitroConfig.services) {
+    Object.assign(nitro.options.services, resolveServices(nitro.options, nitroConfig.services));
   }
 }
 

@@ -44,9 +44,15 @@ export const rendererTemplate = () => new HTTPResponse("<!-- renderer.template i
 `;
   }
 
-  const fetchService = nitro._pageTemplate?.fetchService;
-  if (fetchService && nitro.options.renderer?.static !== true && html.includes(SSR_OUTLET)) {
-    html = html.replace(SSR_OUTLET, `{{{ __nitro_fetchService__("ssr", $REQUEST) }}}`);
+  // Services are fetchable when built by the builder integration (e.g. `nitro/vite`)
+  const hasServices = !!nitro._serviceLoader;
+  if (
+    hasServices &&
+    nitro.options.services.ssr &&
+    nitro.options.renderer?.static !== true &&
+    html.includes(SSR_OUTLET)
+  ) {
+    html = html.replace(SSR_OUTLET, `{{{ fetchService("ssr", $REQUEST) }}}`);
   }
 
   const isStatic = nitro.options.renderer?.static ?? !hasTemplateSyntax(html);
@@ -68,12 +74,14 @@ export const rendererTemplate = () => new HTTPResponse(${JSON.stringify(html)}, 
     );
   }
   const template = compileTemplateToString(html, { contextKeys });
-  const contextImports = nitro._pageTemplate?.context || [];
+  const contextImports = [
+    ...(hasServices ? [{ from: "nitro/services", name: "fetchService" }] : []),
+    ...(nitro._pageTemplate?.context || []),
+  ];
   return /* js */ `
 import { renderToResponse } from "#nitro/runtime/rendu";
 import { fetch, serverFetch } from "nitro/app";
 ${contextImports.map((i) => `import { ${i.name} } from ${JSON.stringify(i.from)};`).join("\n")}
-${fetchService ? `import { ${fetchService.name} as __nitro_fetchService__ } from ${JSON.stringify(fetchService.from)};` : ""}
 const context = { fetch, serverFetch${contextImports.map((i) => `, ${i.name}`).join("")} };
 const template = ${template};
 export const rendererTemplate = (request) => renderToResponse(template, { request, context });

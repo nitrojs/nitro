@@ -181,7 +181,7 @@ The catch-all `nitroDevMiddleware` dispatches in two stages:
 Catch-all registration (`src/routing.ts`): a custom `serverEntry` is pushed as
 `/**` with `handler = nitro.options.serverEntry.handler`; the SSR renderer as
 `/**` with `handler = nitro.options.renderer.handler` (set by `plugin.ts`
-`configResolved` to `internal/vite/ssr-renderer` when an `ssr` service exists).
+`configResolved` to `internal/routes/ssr-renderer` by `useSSRServiceRenderer()` when an `ssr` service exists).
 The pre-pass treats a matched catch-all as transparent only when its `handler`
 is in `nitro.scannedHandlers` (a route file); everything else is opaque.
 

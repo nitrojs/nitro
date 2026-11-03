@@ -5,19 +5,16 @@ import { join } from "pathe";
 import { describe, expect, it } from "vitest";
 import rendererTemplate from "../../src/build/virtual/renderer-template.ts";
 
-function renderModule(opts: {
-  html: string;
-  dev?: boolean;
-  static?: boolean;
-  fetchService?: { from: string; name: string };
-}) {
+function renderModule(opts: { html: string; dev?: boolean; static?: boolean; ssr?: boolean }) {
   const nitro = {
     options: {
       dev: !!opts.dev,
       builder: "rolldown",
       renderer: { template: "/app/index.html", static: opts.static },
+      services: opts.ssr ? { ssr: { entry: "/app/entry-server.ts" } } : {},
     },
-    _pageTemplate: { html: () => opts.html, fetchService: opts.fetchService },
+    _pageTemplate: { html: () => opts.html },
+    _serviceLoader: opts.ssr ? () => ({ import: "/app/entry-server.ts" }) : undefined,
   } as any;
   return rendererTemplate(nitro).template() as Promise<string>;
 }
@@ -46,28 +43,26 @@ describe("renderer template", () => {
   it("renders the ssr outlet with the service", async () => {
     const code = await renderModule({
       html: `<div id="app"><!--ssr-outlet--></div>`,
-      fetchService: { from: "nitro/vite/runtime", name: "fetchViteEnv" },
+      ssr: true,
     });
-    expect(code).toContain(
-      `import { fetchViteEnv as __nitro_fetchService__ } from "nitro/vite/runtime";`
-    );
-    expect(code).toContain(`__nitro_fetchService__("ssr", $REQUEST)`);
+    expect(code).toContain(`import { fetchService } from "nitro/services";`);
+    expect(code).toContain(`fetchService("ssr", $REQUEST)`);
     expect(code).not.toContain("<!--ssr-outlet-->");
   });
 
   it("keeps the ssr outlet without a service", async () => {
     const code = await renderModule({ html: `<div id="app"><!--ssr-outlet--></div>` });
     expect(code).toContain("<!--ssr-outlet-->");
-    expect(code).not.toContain("__nitro_fetchService__");
+    expect(code).not.toContain("fetchService");
   });
 
   it("keeps static templates as is", async () => {
     const code = await renderModule({
       html: `<div id="app"><!--ssr-outlet--></div>`,
       static: true,
-      fetchService: { from: "nitro/vite/runtime", name: "fetchViteEnv" },
+      ssr: true,
     });
     expect(code).toContain("<!--ssr-outlet-->");
-    expect(code).not.toContain("__nitro_fetchService__");
+    expect(code).not.toContain("fetchService");
   });
 });

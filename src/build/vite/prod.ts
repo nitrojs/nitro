@@ -11,7 +11,7 @@ import { writeBuildInfo } from "../info.ts";
 import { readFile, rm } from "node:fs/promises";
 import { isTest, isCI } from "std-env";
 import { withoutTrailingSlash } from "ufo";
-import { readBuiltServiceEntry, ssrFetchService } from "./services.ts";
+import { readBuiltServiceEntry } from "./services.ts";
 import { writeAssetsManifest } from "./_assets-build.ts";
 import type { RolldownOutput } from "rolldown";
 
@@ -67,7 +67,6 @@ export async function buildEnvironments(ctx: NitroPluginContext, builder: ViteBu
   nitro._pageTemplate = {
     ...nitro._pageTemplate,
     html: pageHTML === undefined ? undefined : () => pageHTML,
-    fetchService: ssrFetchService(ctx),
   };
 
   // Write the manifest of `?assets` imports (server environments import it)

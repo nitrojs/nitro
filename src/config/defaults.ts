@@ -29,6 +29,7 @@ export const NitroDefaults: NitroConfig = {
   serverAssets: [],
   plugins: [],
   tasks: {},
+  services: {},
   scheduledTasks: {},
   scheduler: {},
   virtual: {},

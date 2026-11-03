@@ -142,7 +142,7 @@ Browser → Vite Dev Server
 
 **Stage 2: Page template**
 - If client input == renderer template, the built client HTML is passed in memory (`nitro._pageTemplate.html`)
-- Core compiles it into `#nitro/virtual/renderer-template`, rendering the SSR outlet with `fetchViteEnv("ssr")`
+- Core compiles it into `#nitro/virtual/renderer-template`, rendering the SSR outlet with `fetchService("ssr")` (when `nitro._serviceLoader` is set and an `ssr` service exists)
 
 **Stage 3: Asset management**
 - Calls `builder.writeAssetsManifest?.()`
@@ -216,7 +216,6 @@ current evaluations.
 |------|---------|
 | `dev-entry.mjs` | Dev entry: polyfills, WebSocket adapter, schedule runner |
 | `dev-worker.mjs` | Worker process: `ViteEnvRunner` class, RPC layer, env management |
-| `ssr-renderer.mjs` | SSR service: calls `fetchViteEnv("ssr", req)` |
 
 `dev-worker.mjs` is not loaded directly: `writeDevWorkerEntry()` generates `<buildDir>/vite/dev-worker.mjs`, which re-exports it and injects the `vite/module-runner` resolved from the app (`vite` is not resolvable from Nitro's `dist/`).
 
@@ -226,9 +225,11 @@ current evaluations.
 - Routes fetch requests to loaded entries
 - Exposes `__VITE_ENVIRONMENT_RUNNER_IMPORT__` for RSC
 
-### Runtime API (`src/runtime/vite.ts`)
-- `fetchViteEnv(name, input, init)` — route fetch to named Vite environment
-- Accesses `globalThis.__nitro_vite_envs__` registry
+### Services (core)
+- Top-level `services` option (`vite.services` is an alias), resolved in `src/config/resolvers/services.ts`
+- `src/build/services.ts`: `entry-server` detection, server entry conflict check, default `ssr` renderer (`internal/routes/ssr-renderer.ts`)
+- `#nitro/virtual/services` (`src/build/virtual/services.ts`) loads each service as reported by `nitro._serviceLoader`; the Vite plugin sets it (`viteServiceLoader()`): `globalThis.__nitro_vite_envs__[name]` in dev, the built output in production, the source entry with Vitest
+- Runtime API: `fetchService(name, input, init)` from `nitro/services`; `fetchViteEnv()` (`nitro/vite/runtime`) is an alias
 
 ## Dev vs Production
 
@@ -264,7 +265,7 @@ preset hooks such as the Cloudflare tracing bridge are skipped; tests run in Nod
 and service environments use Vite's default dev environment, and
 `configureServer`, `hotUpdate` and the service `nitro/*` proxy are skipped. Service entries (e.g.
 the SSR entry, still auto-detected despite Vitest's own `ssr` environment) are imported from the
-`nitro` environment by `viteServicesTemplate()`, as in production. The `vitest-setup.mjs` setup file
+`nitro` environment by `#nitro/virtual/services` (`viteServiceLoader()`), as in production. The `vitest-setup.mjs` setup file
 creates the app lazily in `beforeAll` (after the test file's `vi.mock` calls) so `serverFetch` from
 `nitro` works; it is an empty module in other environments. vm pools keep Vitest's default environment. Inline `test.projects` resolve from the raw `test`
 config (captured before plugin `config` hooks), so `configureVitest` adds the setup file to each

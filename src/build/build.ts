@@ -14,6 +14,7 @@ export async function build(nitro: Nitro) {
   if (nitro.options.dev && nitro.options.builder === false) {
     watchRendererTemplate(nitro);
   }
+  warnUnbuiltServices(nitro);
   switch (nitro.options.builder) {
     case "rollup": {
       const { rollupBuild } = await import("./rollup/build.ts");
@@ -57,4 +58,22 @@ function watchRendererTemplate(nitro: Nitro) {
     ignoreInitial: true,
   }).on("all", () => nitro.hooks.callHook("build:reload"));
   nitro.hooks.hook("close", () => watcher.close());
+}
+
+// Services are built by a builder integration (e.g. `nitro/vite`), which sets `_serviceLoader`
+function warnUnbuiltServices(nitro: Nitro) {
+  const names = Object.keys({ ...nitro.options.vite?.services, ...nitro.options.services });
+  const { builder } = nitro.options;
+  // The prerenderer of the app reuses its services (warned once, by the app build)
+  if (
+    names.length === 0 ||
+    nitro._serviceLoader ||
+    builder === "vite" ||
+    nitro.options.preset === "nitro-prerender"
+  ) {
+    return;
+  }
+  nitro.logger.warn(
+    `Services (${names.join(", ")}) are not built ${builder ? `by the \`${builder}\` builder` : "without a builder"} and are ignored.`
+  );
 }

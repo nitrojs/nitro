@@ -34,6 +34,7 @@ import { resolveURLOptions } from "./resolvers/url.ts";
 import { resolveErrorOptions } from "./resolvers/error.ts";
 import { resolveUnenv } from "./resolvers/unenv.ts";
 import { resolveBuilder } from "./resolvers/builder.ts";
+import { resolveServicesOptions } from "./resolvers/services.ts";
 import { resolveTracingChannelOptions } from "./resolvers/tracing.ts";
 
 const configResolvers = [
@@ -51,6 +52,7 @@ const configResolvers = [
   resolveKVOptions,
   resolveCacheOptions,
   resolveErrorOptions,
+  resolveServicesOptions,
   resolveUnenv,
   resolveBuilder,
   resolveTracingChannelOptions,
