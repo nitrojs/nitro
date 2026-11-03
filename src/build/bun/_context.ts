@@ -24,7 +24,12 @@ export function pluginContext(
 ) {
   const { plugin, skip } = opts;
   return {
-    meta: { rollupVersion: "4.0.0", watchMode: opts.watchMode },
+    meta: {
+      // Rollup plugin API level (same as rolldown and Vite); `bunVersion` names the actual host
+      rollupVersion: "4.23.0",
+      bunVersion: (globalThis as any).Bun?.version as string | undefined,
+      watchMode: opts.watchMode,
+    },
     resolve: async (
       id: string,
       importer?: string,
