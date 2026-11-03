@@ -141,6 +141,7 @@ for (const mode of ["nitro", "vite", "build", "vite-build"] as const) {
       const body = await response.text();
       expect(response.status, body).toBe(200);
       expect(body).toContain("<h1>cloudflare-dev</h1>");
+      expect(body).toContain("<p>path: /</p>");
       if (mode === "vite") {
         expect(body).toContain("/@vite/client");
       }
