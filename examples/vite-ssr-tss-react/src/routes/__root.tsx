@@ -11,7 +11,7 @@ export const Route = createRootRoute({
       { name: "viewport", content: "width=device-width, initial-scale=1" },
     ],
     links: [{ rel: "stylesheet", href: appCss }],
-    scripts: [{ src: "/customScript.js", type: "text/javascript" }],
+    scripts: [{ src: `${import.meta.env.BASE_URL}customScript.js`, type: "text/javascript" }],
   }),
   errorComponent: () => <h1>500: Internal Server Error</h1>,
   notFoundComponent: () => <h1>404: Page Not Found</h1>,

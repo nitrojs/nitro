@@ -75,6 +75,35 @@ describe("services template (loaders)", () => {
     delete (globalThis as any).__nitro_test_service__;
   });
 
+  it("imports unbundled loaders at runtime", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "nitro-services-"));
+    writeFileSync(join(dir, "ssr.mjs"), entries.default);
+    const url = pathToFileURL(join(dir, "ssr.mjs")).href;
+    const nitro = {
+      options: { services: { ssr: { entry: "ssr" } } },
+      _serviceLoader: () => ({ import: url, bundle: false }),
+    } as unknown as Nitro;
+    const code = servicesTemplate(nitro);
+    // A literal specifier would be bundled
+    expect(code).not.toContain(`import(${JSON.stringify(url)})`);
+    expect(code).toContain("webpackIgnore: true");
+    const services = await importTemplate(dir, code);
+    expect(await services.ssr.fetch("req")).toBe("default:req");
+  });
+
+  it("retries a failed import on the next fetch", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "nitro-services-"));
+    const file = join(dir, "later.mjs");
+    const nitro = {
+      options: { services: { later: { entry: "later" } } },
+      _serviceLoader: () => ({ import: pathToFileURL(file).href, bundle: false }),
+    } as unknown as Nitro;
+    const services = await importTemplate(dir, servicesTemplate(nitro));
+    await expect(services.later.fetch("req")).rejects.toThrow();
+    writeFileSync(file, entries.named);
+    expect(await services.later.fetch("req")).toBe("named:req");
+  });
+
   it("is empty when no builder integration loads the services", () => {
     const nitro = { options: { services: { api: { entry: "./api.ts" } } } } as unknown as Nitro;
     expect(servicesTemplate(nitro)).toBe("export const services = {};");

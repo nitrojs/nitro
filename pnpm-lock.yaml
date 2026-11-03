@@ -75,12 +75,15 @@ importers:
       '@rollup/plugin-replace':
         specifier: ^6.0.3
         version: 6.0.3(rollup@4.67.3)
+      '@rsbuild/core':
+        specifier: ^2.3.0
+        version: 2.3.0
       '@rspack/core':
         specifier: ^2.3.0
         version: 2.3.0(@swc/helpers@0.5.23)
       '@scalar/api-reference':
         specifier: ^1.76.4
-        version: 1.76.4(@oxc-project/types@0.156.0)(@rspack/core@2.3.0)(axios@1.21.0)(esbuild@0.28.2)(jwt-decode@4.0.0)(lightningcss@1.33.0)(oxc-parser@shims+oxc-parser)(rolldown@1.2.16)(rollup@4.67.3)(supports-color@10.2.2)(tailwindcss@4.3.3)(typescript@7.0.2)(vite@8.3.5)(zod@4.6.7)
+        version: 1.76.4(@oxc-project/types@0.156.0)(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(axios@1.21.0)(esbuild@0.28.2)(jwt-decode@4.0.0)(lightningcss@1.33.0)(oxc-parser@shims+oxc-parser)(rolldown@1.2.16)(rollup@4.67.3)(supports-color@10.2.2)(tailwindcss@4.3.3)(typescript@7.0.2)(vite@8.3.5)(zod@4.6.7)
       '@scalar/openapi-types':
         specifier: ^0.9.8
         version: 0.9.8
@@ -464,6 +467,73 @@ importers:
         specifier: latest
         version: 1.2.16
 
+  examples/rsbuild-ssr-html:
+    devDependencies:
+      '@rsbuild/core':
+        specifier: ^2.3.0
+        version: 2.3.0
+      nitro:
+        specifier: workspace:*
+        version: link:../..
+
+  examples/rsbuild-ssr-react:
+    devDependencies:
+      '@rsbuild/core':
+        specifier: ^2.3.0
+        version: 2.3.0
+      '@rsbuild/plugin-react':
+        specifier: ^2.1.1
+        version: 2.1.1(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)
+      '@types/react':
+        specifier: ^19.3.0
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: ^19.3.0
+        version: 19.3.0(@types/react@19.3.0)
+      nitro:
+        specifier: workspace:*
+        version: link:../..
+      react:
+        specifier: ^19.3.1
+        version: 19.3.1
+      react-dom:
+        specifier: ^19.3.1
+        version: 19.3.1(react@19.3.1)
+
+  examples/rsbuild-ssr-tss-react:
+    dependencies:
+      '@tanstack/react-router':
+        specifier: ^1.170.46
+        version: 1.170.46(react-dom@19.3.1)(react@19.3.1)
+      '@tanstack/react-router-devtools':
+        specifier: ^1.167.2
+        version: 1.167.2(@tanstack/react-router@1.170.46)(@tanstack/router-core@1.171.39)(csstype@3.2.3)(react-dom@19.3.1)(react@19.3.1)
+      '@tanstack/react-start':
+        specifier: ^1.169.4
+        version: 1.169.4(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(@vitejs/plugin-rsc@0.5.38)(esbuild@0.28.2)(react-dom@19.3.1)(react@19.3.1)(rolldown@1.2.16)(rollup@4.67.3)(supports-color@10.2.2)(vite-plugin-solid@2.11.15)(vite@8.3.5)
+      nitro:
+        specifier: workspace:*
+        version: link:../..
+      react:
+        specifier: ^19.3.1
+        version: 19.3.1
+      react-dom:
+        specifier: ^19.3.1
+        version: 19.3.1(react@19.3.1)
+    devDependencies:
+      '@rsbuild/core':
+        specifier: ^2.3.0
+        version: 2.3.0
+      '@rsbuild/plugin-react':
+        specifier: ^2.1.1
+        version: 2.1.1(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)
+      '@types/react':
+        specifier: ^19.3.0
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: ^19.3.0
+        version: 19.3.0(@types/react@19.3.0)
+
   examples/runtime-config:
     devDependencies:
       nitro:
@@ -726,7 +796,7 @@ importers:
         version: 1.167.2(@tanstack/react-router@1.170.46)(@tanstack/router-core@1.171.39)(csstype@3.2.3)(react-dom@19.3.1)(react@19.3.1)
       '@tanstack/router-plugin':
         specifier: ^1.168.48
-        version: 1.168.48(@rspack/core@2.3.0)(@tanstack/react-router@1.170.46)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(supports-color@10.2.2)(vite-plugin-solid@2.11.15)(vite@8.3.5)
+        version: 1.168.48(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(@tanstack/react-router@1.170.46)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(supports-color@10.2.2)(vite-plugin-solid@2.11.15)(vite@8.3.5)
       '@types/react':
         specifier: ^19.3.0
         version: 19.3.0
@@ -759,7 +829,7 @@ importers:
         version: 1.167.2(@tanstack/react-router@1.170.46)(@tanstack/router-core@1.171.39)(csstype@3.2.3)(react-dom@19.3.1)(react@19.3.1)
       '@tanstack/react-start':
         specifier: ^1.169.4
-        version: 1.169.4(@rspack/core@2.3.0)(@vitejs/plugin-rsc@0.5.38)(esbuild@0.28.2)(react-dom@19.3.1)(react@19.3.1)(rolldown@1.2.16)(rollup@4.67.3)(supports-color@10.2.2)(vite-plugin-solid@2.11.15)(vite@8.3.5)
+        version: 1.169.4(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(@vitejs/plugin-rsc@0.5.38)(esbuild@0.28.2)(react-dom@19.3.1)(react@19.3.1)(rolldown@1.2.16)(rollup@4.67.3)(supports-color@10.2.2)(vite-plugin-solid@2.11.15)(vite@8.3.5)
       nitro:
         specifier: workspace:*
         version: link:../..
@@ -811,7 +881,7 @@ importers:
         version: link:../..
       unhead:
         specifier: ^3.4.3
-        version: 3.4.3(@rspack/core@2.3.0)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5)
+        version: 3.4.3(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5)
       vite:
         specifier: latest
         version: 8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
@@ -823,7 +893,7 @@ importers:
         version: 3.5.44(typescript@7.0.2)
       vue-router:
         specifier: ^5.4.0
-        version: 5.4.0(@rspack/core@2.3.0)(@vue/compiler-sfc@3.5.44)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5)(vue@3.5.44)
+        version: 5.4.0(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(@vue/compiler-sfc@3.5.44)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5)(vue@3.5.44)
 
   examples/vite-trpc:
     devDependencies:
@@ -2664,6 +2734,24 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@rsbuild/core@2.3.0':
+    resolution: {integrity: sha512-fT7GWVOV3Rk0P/1/XpZIEg4wv/9GRggQRXpEZkGAcQsTiljjgtxYmN4KOWMVXTb/0wtukKBGc/iKf/HV86n/Zg==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    hasBin: true
+    peerDependencies:
+      core-js: '>= 3.0.0'
+    peerDependenciesMeta:
+      core-js:
+        optional: true
+
+  '@rsbuild/plugin-react@2.1.1':
+    resolution: {integrity: sha512-tLtUedsRtTLS6M4VtwzI6aakFLOFdgl9Sh1ZNBWvxb0Te3EnHrppaE7UiYEmDUXQDJ50gfr6yyirtxY5N6moyg==}
+    peerDependencies:
+      '@rsbuild/core': ^2.0.0
+    peerDependenciesMeta:
+      '@rsbuild/core':
+        optional: true
+
   '@rspack/binding-darwin-arm64@2.3.0':
     resolution: {integrity: sha512-raUm1V29xRm1fPaS2R2qK4Yw5PGo3xooK6Fz2rt74pjJ+UhEUT4ED/8A9Qyf/YW16aMUl58eS5prtth8+UaJSQ==}
     cpu: [arm64]
@@ -2754,6 +2842,15 @@ packages:
       '@module-federation/runtime-tools':
         optional: true
       '@swc/helpers':
+        optional: true
+
+  '@rspack/plugin-react-refresh@2.0.2':
+    resolution: {integrity: sha512-dGNZiCxQxgAUI9sah7gd8u+O7OJZRCmqtEJNDOd8xW5RqcieC86F7p5qcShyw6onH5pKf57evpr2VjGbaFGkZg==}
+    peerDependencies:
+      '@rspack/core': ^2.0.0
+      react-refresh: '>=0.10.0 <1.0.0'
+    peerDependenciesMeta:
+      '@rspack/core':
         optional: true
 
   '@sagold/json-pointer@5.1.2':
@@ -9035,6 +9132,22 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.67.3':
     optional: true
 
+  '@rsbuild/core@2.3.0':
+    dependencies:
+      '@rspack/core': 2.3.0(@swc/helpers@0.5.23)
+      '@swc/helpers': 0.5.23
+    transitivePeerDependencies:
+      - '@module-federation/runtime-tools'
+
+  '@rsbuild/plugin-react@2.1.1(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)':
+    dependencies:
+      '@rspack/plugin-react-refresh': 2.0.2(@rspack/core@2.3.0)(react-refresh@0.19.0)
+      react-refresh: 0.19.0
+    optionalDependencies:
+      '@rsbuild/core': 2.3.0
+    transitivePeerDependencies:
+      - '@rspack/core'
+
   '@rspack/binding-darwin-arm64@2.3.0':
     optional: true
 
@@ -9103,6 +9216,12 @@ snapshots:
       '@rspack/binding': 2.3.0
     optionalDependencies:
       '@swc/helpers': 0.5.23
+
+  '@rspack/plugin-react-refresh@2.0.2(@rspack/core@2.3.0)(react-refresh@0.19.0)':
+    dependencies:
+      react-refresh: 0.19.0
+    optionalDependencies:
+      '@rspack/core': 2.3.0(@swc/helpers@0.5.23)
 
   '@sagold/json-pointer@5.1.2': {}
 
@@ -9205,7 +9324,7 @@ snapshots:
       - typescript
       - universal-cookie
 
-  '@scalar/api-reference@1.76.4(@oxc-project/types@0.156.0)(@rspack/core@2.3.0)(axios@1.21.0)(esbuild@0.28.2)(jwt-decode@4.0.0)(lightningcss@1.33.0)(oxc-parser@shims+oxc-parser)(rolldown@1.2.16)(rollup@4.67.3)(supports-color@10.2.2)(tailwindcss@4.3.3)(typescript@7.0.2)(vite@8.3.5)(zod@4.6.7)':
+  '@scalar/api-reference@1.76.4(@oxc-project/types@0.156.0)(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(axios@1.21.0)(esbuild@0.28.2)(jwt-decode@4.0.0)(lightningcss@1.33.0)(oxc-parser@shims+oxc-parser)(rolldown@1.2.16)(rollup@4.67.3)(supports-color@10.2.2)(tailwindcss@4.3.3)(typescript@7.0.2)(vite@8.3.5)(zod@4.6.7)':
     dependencies:
       '@headlessui/vue': 1.7.23(vue@3.5.44)
       '@scalar/agent-chat': 0.12.49(axios@1.21.0)(jwt-decode@4.0.0)(supports-color@10.2.2)(tailwindcss@4.3.3)(typescript@7.0.2)(zod@4.6.7)
@@ -9228,7 +9347,7 @@ snapshots:
       '@scalar/use-toasts': 0.10.6(typescript@7.0.2)
       '@scalar/validation': 0.6.7
       '@scalar/workspace-store': 0.69.3(typescript@7.0.2)
-      '@unhead/vue': 3.4.3(@oxc-project/types@0.156.0)(@rspack/core@2.3.0)(esbuild@0.28.2)(lightningcss@1.33.0)(oxc-parser@shims+oxc-parser)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5)(vue@3.5.44)
+      '@unhead/vue': 3.4.3(@oxc-project/types@0.156.0)(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(esbuild@0.28.2)(lightningcss@1.33.0)(oxc-parser@shims+oxc-parser)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5)(vue@3.5.44)
       '@vueuse/core': 15.0.0(vue@3.5.44)
       fuse.js: 7.5.0
       microdiff: 1.5.0
@@ -9795,14 +9914,14 @@ snapshots:
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
 
-  '@tanstack/react-start-rsc@0.1.65(@rspack/core@2.3.0)(@vitejs/plugin-rsc@0.5.38)(esbuild@0.28.2)(react-dom@19.3.1)(react@19.3.1)(rolldown@1.2.16)(rollup@4.67.3)(supports-color@10.2.2)(vite-plugin-solid@2.11.15)(vite@8.3.5)':
+  '@tanstack/react-start-rsc@0.1.65(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(@vitejs/plugin-rsc@0.5.38)(esbuild@0.28.2)(react-dom@19.3.1)(react@19.3.1)(rolldown@1.2.16)(rollup@4.67.3)(supports-color@10.2.2)(vite-plugin-solid@2.11.15)(vite@8.3.5)':
     dependencies:
       '@tanstack/react-router': 1.170.46(react-dom@19.3.1)(react@19.3.1)
       '@tanstack/router-core': 1.171.39
       '@tanstack/router-utils': 1.162.4(supports-color@10.2.2)
       '@tanstack/start-client-core': 1.170.39
       '@tanstack/start-fn-stubs': 1.162.0
-      '@tanstack/start-plugin-core': 1.171.55(@rspack/core@2.3.0)(@tanstack/react-router@1.170.46)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(supports-color@10.2.2)(vite-plugin-solid@2.11.15)(vite@8.3.5)
+      '@tanstack/start-plugin-core': 1.171.55(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(@tanstack/react-router@1.170.46)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(supports-color@10.2.2)(vite-plugin-solid@2.11.15)(vite@8.3.5)
       '@tanstack/start-storage-context': 1.167.41
       pathe: 2.0.3
       react: 19.3.1
@@ -9831,20 +9950,21 @@ snapshots:
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
 
-  '@tanstack/react-start@1.169.4(@rspack/core@2.3.0)(@vitejs/plugin-rsc@0.5.38)(esbuild@0.28.2)(react-dom@19.3.1)(react@19.3.1)(rolldown@1.2.16)(rollup@4.67.3)(supports-color@10.2.2)(vite-plugin-solid@2.11.15)(vite@8.3.5)':
+  '@tanstack/react-start@1.169.4(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(@vitejs/plugin-rsc@0.5.38)(esbuild@0.28.2)(react-dom@19.3.1)(react@19.3.1)(rolldown@1.2.16)(rollup@4.67.3)(supports-color@10.2.2)(vite-plugin-solid@2.11.15)(vite@8.3.5)':
     dependencies:
       '@tanstack/react-router': 1.170.46(react-dom@19.3.1)(react@19.3.1)
       '@tanstack/react-start-client': 1.168.44(react-dom@19.3.1)(react@19.3.1)
-      '@tanstack/react-start-rsc': 0.1.65(@rspack/core@2.3.0)(@vitejs/plugin-rsc@0.5.38)(esbuild@0.28.2)(react-dom@19.3.1)(react@19.3.1)(rolldown@1.2.16)(rollup@4.67.3)(supports-color@10.2.2)(vite-plugin-solid@2.11.15)(vite@8.3.5)
+      '@tanstack/react-start-rsc': 0.1.65(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(@vitejs/plugin-rsc@0.5.38)(esbuild@0.28.2)(react-dom@19.3.1)(react@19.3.1)(rolldown@1.2.16)(rollup@4.67.3)(supports-color@10.2.2)(vite-plugin-solid@2.11.15)(vite@8.3.5)
       '@tanstack/react-start-server': 1.167.52(react-dom@19.3.1)(react@19.3.1)
       '@tanstack/router-utils': 1.162.4(supports-color@10.2.2)
       '@tanstack/start-client-core': 1.170.39
-      '@tanstack/start-plugin-core': 1.171.55(@rspack/core@2.3.0)(@tanstack/react-router@1.170.46)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(supports-color@10.2.2)(vite-plugin-solid@2.11.15)(vite@8.3.5)
+      '@tanstack/start-plugin-core': 1.171.55(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(@tanstack/react-router@1.170.46)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(supports-color@10.2.2)(vite-plugin-solid@2.11.15)(vite@8.3.5)
       '@tanstack/start-server-core': 1.169.45
       pathe: 2.0.3
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
     optionalDependencies:
+      '@rsbuild/core': 2.3.0
       '@vitejs/plugin-rsc': 0.5.38(react-dom@19.3.1)(react@19.3.1)(vite@8.3.5)
       vite: 8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
     transitivePeerDependencies:
@@ -9895,7 +10015,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@tanstack/router-plugin@1.168.48(@rspack/core@2.3.0)(@tanstack/react-router@1.170.46)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(supports-color@10.2.2)(vite-plugin-solid@2.11.15)(vite@8.3.5)':
+  '@tanstack/router-plugin@1.168.48(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(@tanstack/react-router@1.170.46)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(supports-color@10.2.2)(vite-plugin-solid@2.11.15)(vite@8.3.5)':
     dependencies:
       '@babel/core': 7.29.7(supports-color@10.2.2)
       '@babel/template': 7.29.7
@@ -9904,9 +10024,10 @@ snapshots:
       '@tanstack/router-generator': 1.167.46(supports-color@10.2.2)
       '@tanstack/router-utils': 1.162.4(supports-color@10.2.2)
       chokidar: 5.0.0
-      unplugin: 3.7.0(@rspack/core@2.3.0)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5)
+      unplugin: 3.7.0(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5)
       zod: 4.6.7
     optionalDependencies:
+      '@rsbuild/core': 2.3.0
       '@tanstack/react-router': 1.170.46(react-dom@19.3.1)(react@19.3.1)
       vite: 8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
       vite-plugin-solid: 2.11.15(solid-js@1.9.18)(supports-color@10.2.2)(vite@8.3.5)
@@ -9942,7 +10063,7 @@ snapshots:
 
   '@tanstack/start-fn-stubs@1.162.0': {}
 
-  '@tanstack/start-plugin-core@1.171.55(@rspack/core@2.3.0)(@tanstack/react-router@1.170.46)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(supports-color@10.2.2)(vite-plugin-solid@2.11.15)(vite@8.3.5)':
+  '@tanstack/start-plugin-core@1.171.55(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(@tanstack/react-router@1.170.46)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(supports-color@10.2.2)(vite-plugin-solid@2.11.15)(vite@8.3.5)':
     dependencies:
       '@babel/code-frame': 7.29.7
       '@babel/core': 7.29.7(supports-color@10.2.2)
@@ -9950,7 +10071,7 @@ snapshots:
       '@jridgewell/remapping': 2.3.5
       '@tanstack/router-core': 1.171.39
       '@tanstack/router-generator': 1.167.46(supports-color@10.2.2)
-      '@tanstack/router-plugin': 1.168.48(@rspack/core@2.3.0)(@tanstack/react-router@1.170.46)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(supports-color@10.2.2)(vite-plugin-solid@2.11.15)(vite@8.3.5)
+      '@tanstack/router-plugin': 1.168.48(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(@tanstack/react-router@1.170.46)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(supports-color@10.2.2)(vite-plugin-solid@2.11.15)(vite@8.3.5)
       '@tanstack/router-utils': 1.162.4(supports-color@10.2.2)
       '@tanstack/start-server-core': 1.169.45
       exsolve: 1.2.0
@@ -9966,6 +10087,7 @@ snapshots:
       xmlbuilder2: 4.0.3
       zod: 4.6.7
     optionalDependencies:
+      '@rsbuild/core': 2.3.0
       vite: 8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
     transitivePeerDependencies:
       - '@farmfe/core'
@@ -10260,12 +10382,12 @@ snapshots:
 
   '@ungap/structured-clone@1.4.0': {}
 
-  '@unhead/bundler@3.4.3(@oxc-project/types@0.156.0)(@rspack/core@2.3.0)(esbuild@0.28.2)(lightningcss@1.33.0)(oxc-parser@shims+oxc-parser)(rolldown@1.2.16)(rollup@4.67.3)(unhead@3.4.3)(vite@8.3.5)':
+  '@unhead/bundler@3.4.3(@oxc-project/types@0.156.0)(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(esbuild@0.28.2)(lightningcss@1.33.0)(oxc-parser@shims+oxc-parser)(rolldown@1.2.16)(rollup@4.67.3)(unhead@3.4.3)(vite@8.3.5)':
     dependencies:
       magic-string: 1.4.5
       oxc-walker: 1.1.1(@oxc-project/types@0.156.0)(oxc-parser@shims+oxc-parser)(rolldown@1.2.16)
-      unhead: 3.4.3(@rspack/core@2.3.0)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5)
-      unplugin: 3.7.0(@rspack/core@2.3.0)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5)
+      unhead: 3.4.3(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5)
+      unplugin: 3.7.0(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5)
     optionalDependencies:
       esbuild: 0.28.2
       lightningcss: 1.33.0
@@ -10281,12 +10403,12 @@ snapshots:
       - rollup
       - unloader
 
-  '@unhead/vue@3.4.3(@oxc-project/types@0.156.0)(@rspack/core@2.3.0)(esbuild@0.28.2)(lightningcss@1.33.0)(oxc-parser@shims+oxc-parser)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5)(vue@3.5.44)':
+  '@unhead/vue@3.4.3(@oxc-project/types@0.156.0)(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(esbuild@0.28.2)(lightningcss@1.33.0)(oxc-parser@shims+oxc-parser)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5)(vue@3.5.44)':
     dependencies:
-      '@unhead/bundler': 3.4.3(@oxc-project/types@0.156.0)(@rspack/core@2.3.0)(esbuild@0.28.2)(lightningcss@1.33.0)(oxc-parser@shims+oxc-parser)(rolldown@1.2.16)(rollup@4.67.3)(unhead@3.4.3)(vite@8.3.5)
+      '@unhead/bundler': 3.4.3(@oxc-project/types@0.156.0)(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(esbuild@0.28.2)(lightningcss@1.33.0)(oxc-parser@shims+oxc-parser)(rolldown@1.2.16)(rollup@4.67.3)(unhead@3.4.3)(vite@8.3.5)
       hookable: 6.1.2
-      unhead: 3.4.3(@rspack/core@2.3.0)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5)
-      unplugin: 3.7.0(@rspack/core@2.3.0)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5)
+      unhead: 3.4.3(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5)
+      unplugin: 3.7.0(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5)
       vue: 3.5.44(typescript@7.0.2)
     optionalDependencies:
       vite: 8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
@@ -13936,7 +14058,7 @@ snapshots:
       magic-string: 1.4.5
       oxc-parser: link:shims/oxc-parser
       rolldown: 1.2.16
-      unplugin: 3.7.0(@rspack/core@2.3.0)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5)
+      unplugin: 3.7.0(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5)
 
   undici-types@7.24.6: {}
 
@@ -13952,10 +14074,10 @@ snapshots:
     dependencies:
       pathe: 2.0.3
 
-  unhead@3.4.3(@rspack/core@2.3.0)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5):
+  unhead@3.4.3(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5):
     dependencies:
       hookable: 6.1.2
-      unplugin: 3.7.0(@rspack/core@2.3.0)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5)
+      unplugin: 3.7.0(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5)
     optionalDependencies:
       vite: 8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
     transitivePeerDependencies:
@@ -14011,13 +14133,14 @@ snapshots:
       pathe: 2.0.3
       picomatch: 4.0.7
 
-  unplugin@3.7.0(@rspack/core@2.3.0)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5):
+  unplugin@3.7.0(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5):
     dependencies:
       '@jridgewell/remapping': 2.3.5
       '@rolldown/pluginutils': 1.0.1
       picomatch: 4.0.7
       webpack-virtual-modules: 0.6.2
     optionalDependencies:
+      '@rsbuild/core': 2.3.0
       '@rspack/core': 2.3.0(@swc/helpers@0.5.23)
       esbuild: 0.28.2
       rolldown: 1.2.16
@@ -14178,7 +14301,7 @@ snapshots:
     dependencies:
       vue: 3.5.44(typescript@7.0.2)
 
-  vue-router@5.4.0(@rspack/core@2.3.0)(@vue/compiler-sfc@3.5.44)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5)(vue@3.5.44):
+  vue-router@5.4.0(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(@vue/compiler-sfc@3.5.44)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5)(vue@3.5.44):
     dependencies:
       '@vue-macros/common': 3.1.4(vue@3.5.44)
       '@vue/devtools-api': 8.2.1
@@ -14194,7 +14317,7 @@ snapshots:
       picomatch: 4.0.7
       scule: 1.3.0
       tinyglobby: 0.2.17
-      unplugin: 3.7.0(@rspack/core@2.3.0)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5)
+      unplugin: 3.7.0(@rsbuild/core@2.3.0)(@rspack/core@2.3.0)(esbuild@0.28.2)(rolldown@1.2.16)(rollup@4.67.3)(vite@8.3.5)
       unplugin-utils: 0.3.2
       vue: 3.5.44(typescript@7.0.2)
     optionalDependencies:
