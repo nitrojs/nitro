@@ -24,10 +24,17 @@ type TupleIfDiff<
     : Tuple
   : [];
 
-type MaxTuple<N extends any[] = [], T extends any[] = []> = {
-  current: T;
-  result: MaxTuple<N, ["", ...T]>;
-}[[N["length"]] extends [Partial<T>["length"]] ? "current" : "result"];
+// Keys of the highest scoring matches: those no score in `Scores` is longer than.
+// Matches are not compared against a highest score built up front, because building
+// it recurses without end while the route is still generic.
+type MaxScoreKeys<Matches, Scores> = Matches extends {
+  key: infer Key;
+  score: infer Score extends any[];
+}
+  ? [Extract<Scores, [...Score, any, ...any[]]>] extends [never]
+    ? Key
+    : never
+  : never;
 
 type CalcMatchScore<
   Key extends string,
@@ -95,9 +102,6 @@ export type MatchedRoutes<
 > = Route extends "/"
   ? keyof InternalApi // root middleware
   : Extract<Matches, { exact: true }> extends never
-    ? | Extract<
-          Exclude<Matches, { score: never }>,
-          { score: MaxTuple<Matches["score"]> }
-        >["key"]
+    ? | MaxScoreKeys<Exclude<Matches, { score: never }>, Matches["score"]>
       | Extract<Matches, { catchAll: true }>["key"] // partial, glob and catchAll matches
     : Extract<Matches, { exact: true }>["key"]; // exact matches
