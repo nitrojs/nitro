@@ -6,7 +6,7 @@ import { isCaseInsensitiveFS, writeFile, prettyPath } from "../utils/fs.ts";
 import type { Nitro, NormalizedRouteRules, PrerenderRoute, PublicAssetDir } from "nitro/types";
 import { join, relative, resolve } from "pathe";
 import { createRouter, addRoute, findAllRoutes } from "rou3";
-import { joinURL, withBase, withoutBase, withTrailingSlash } from "ufo";
+import { decodePath, joinURL, withBase, withoutBase, withTrailingSlash } from "ufo";
 import { build } from "../build/build.ts";
 import { resolveRolldown } from "../build/rolldown/_import.ts";
 import { viteDepPaths } from "../build/vite/_import.ts";
@@ -124,6 +124,15 @@ export async function prerender(nitro: Nitro) {
         !!a.baseURL && a.baseURL !== "/" && !a.fallthrough
     )
     .map((a) => withTrailingSlash(a.baseURL));
+
+  for (const route of routes) {
+    const base = publicAssetBases.find((base) => decodePath(route).startsWith(base));
+    if (base) {
+      nitro.logger.warn(
+        `Skipping prerender of \`${route}\`: \`${base}\` is a public assets directory, which only serves its own files. Move the route out of it.`
+      );
+    }
+  }
 
   const scannedPublicAssets = nitro.options.prerender.ignoreUnprefixedPublicAssets
     ? new Set(await scanUnprefixedPublicAssets(nitro))
